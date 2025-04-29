@@ -4468,18 +4468,18 @@ TEST(nntrainer_Tensor, constructor_from_shared_const_ptr_shares_variable_n) {
   EXPECT_NE(A->getDim(), C.getDim());
 }
 
-TEST(nntrainer_Tensor, constructor_from_shared_ptr_tensor_base_n) {
-  std::shared_ptr<nntrainer::TensorBase> itensor = nullptr;
+TEST(nntrainer_Tensor, constructor_from_unique_ptr_tensor_base_n) {
+  std::unique_ptr<nntrainer::TensorBase> itensor = nullptr;
 
   // create tensor with TensorBase pointer (nullptr)
   EXPECT_THROW(nntrainer::Tensor tensor(itensor), std::invalid_argument);
 }
 
-TEST(nntrainer_Tensor, constructor_from_shared_ptr_tensor_base_p) {
+TEST(nntrainer_Tensor, constructor_from_unique_ptr_tensor_base_p) {
   nntrainer::TensorDim dim(3, 2, 4, 5);
 
-  std::shared_ptr<nntrainer::TensorBase> itensor =
-    std::shared_ptr<nntrainer::FloatTensor>(
+  std::unique_ptr<nntrainer::TensorBase> itensor =
+    std::unique_ptr<nntrainer::FloatTensor>(
       new nntrainer::FloatTensor(dim),
       std::default_delete<nntrainer::FloatTensor>());
 

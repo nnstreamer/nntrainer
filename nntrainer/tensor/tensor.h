@@ -222,8 +222,7 @@ public:
    */
   Tensor(std::vector<std::vector<std::vector<std::vector<_FP16>>>> const &d,
          ml::train::TensorDim::TensorType t_type) {
-    itensor = std::shared_ptr<HalfTensor>(new HalfTensor(d, t_type.format),
-                                          std::default_delete<HalfTensor>());
+    itensor_ = std::make_unique<HalfTensor>(d, t_type.format);
   }
 
   /**
@@ -435,12 +434,13 @@ public:
 
   /**
    *  @brief  Constructor of Tensor by directly assigning TensorBase.
-   *  @param[in] rhs shared_ptr of a TensorBase
-   *  @note TensorBase is an abstract class so we can't directly instantiate it.
-   *  Make sure to use a shared_ptr with a derived class when utilizing this
+   *  @param[in] rhs unique_ptr of a TensorBase
+   *  @note TensorBase is an abstract class so we can't directly instantiate
+   it.
+   *  Make sure to use a unique_ptr with a derived class when utilizing this
    *  constructor.
    */
-  Tensor(std::shared_ptr<TensorBase> rhs);
+  Tensor(const std::unique_ptr<TensorBase> &rhs);
 
   /**
    * @brief Basic Destructor
@@ -482,6 +482,23 @@ public:
    * @param[in] rhs Tensor to be compared with
    */
   bool operator!=(const Tensor &rhs) const { return !(*this == rhs); }
+
+  /**
+   *  @brief  Compare itensor considering dynamic type checking.
+   *  @param[in] lhs pointer of a TensorBase
+   *  @param[in] rhs pointer of a TensorBase
+   */
+  template <typename T>
+  static bool itensorCompare(const TensorBase *lhs, const TensorBase *rhs) {
+    auto lhs_cast = dynamic_cast<const T *>(lhs);
+    auto rhs_cast = dynamic_cast<const T *>(rhs);
+
+    if (!lhs_cast || !rhs_cast) {
+      return false;
+    }
+
+    return *lhs_cast == *rhs_cast;
+  }
 
   /**
    * @brief Construct a new Tensor object from a buffer
@@ -533,7 +550,7 @@ public:
    * @retval    template T pointer
    */
   template <typename T = float> T *getData() const {
-    return (T *)itensor->getData();
+    return (T *)itensor_->getData();
   }
 
   /**
@@ -541,7 +558,7 @@ public:
    * @retval    template T pointer
    */
   template <typename T = float> T *getData(size_t idx) const {
-    return (T *)itensor->getData(idx);
+    return (T *)itensor_->getData(idx);
   }
 
   /**
@@ -549,7 +566,7 @@ public:
    * @retval    template T pointer
    */
   template <typename T = float> T *getScale() const {
-    return (T *)itensor->getScale();
+    return (T *)itensor_->getScale();
   }
 
   /**
@@ -557,21 +574,21 @@ public:
    * @retval    template T pointer
    */
   template <typename T = float> T *getScale(size_t idx) const {
-    return (T *)itensor->getScale(idx);
+    return (T *)itensor_->getScale(idx);
   }
 
   /**
    * @brief     return zero point pointer of Tensor
    * @retval    unsigned int pointer
    */
-  unsigned int *getZeroPoint() const { return itensor->getZeroPoint(); }
+  unsigned int *getZeroPoint() const { return itensor_->getZeroPoint(); }
 
   /**
    * @brief     return zero point pointer of Tensor
    * @retval    unsigned int pointer
    */
   unsigned int *getZeroPoint(size_t idx) const {
-    return itensor->getZeroPoint(idx);
+    return itensor_->getZeroPoint(idx);
   }
 
   /**
@@ -579,7 +596,7 @@ public:
    * @retval    template T pointer (address of ith data)
    */
   template <typename T = float> T *getAddress(unsigned int i) {
-    return (T *)itensor->getAddress(i);
+    return (T *)itensor_->getAddress(i);
   }
 
   /**
@@ -587,7 +604,7 @@ public:
    * @retval    template T pointer (address of ith data)
    */
   template <typename T = float> const T *getAddress(unsigned int i) const {
-    return (T *)itensor->getAddress(i);
+    return (T *)itensor_->getAddress(i);
   }
 
   /**
@@ -760,16 +777,16 @@ public:
    */
   template <typename T = float>
   Tensor &apply(std::function<T(T)> f, Tensor &output) const {
-    CREATE_IF_EMPTY_DIMS(output, itensor->getDim(), nullptr);
+    CREATE_IF_EMPTY_DIMS(output, itensor_->getDim(), nullptr);
 
-    if (itensor->getFormat() != output.itensor->getFormat() ||
-        itensor->getDataType() != output.itensor->getDataType()) {
+    if (itensor_->getFormat() != output.itensor_->getFormat() ||
+        itensor_->getDataType() != output.itensor_->getDataType()) {
       /// @todo add unittest
       throw std::invalid_argument(
         "[Tensor::apply] output format or data type does not match");
     }
 
-    itensor->apply(f, output);
+    itensor_->apply(f, output);
 
     return output;
   }
@@ -1833,19 +1850,19 @@ public:
    * @param[in] rhs Tensor to be swapped
    */
   friend void swap(Tensor &lhs, Tensor &rhs) noexcept {
-    std::swap(lhs.itensor, rhs.itensor);
+    std::swap(lhs.itensor_, rhs.itensor_);
   }
 
   /**
    * @brief      check if there is NaN or Inf element
    * @param[out] bool false if there is NaN or Inf else false
    */
-  bool isValid() const { return itensor->isValid(); };
+  bool isValid() const { return itensor_->isValid(); };
 
   static constexpr float epsilon = 1e-5f;
 
 private:
-  std::shared_ptr<TensorBase> itensor;
+  std::unique_ptr<TensorBase> itensor_;
 
   /**
    * @brief Set tensor variables

@@ -42,9 +42,7 @@ Tensor::Tensor(
   default:
     break;
   }
-  itensor = std::shared_ptr<ShortTensor>(
-    new ShortTensor(d, scales, t_type.format, qscheme_),
-    std::default_delete<ShortTensor>());
+  itensor_ = std::make_unique<ShortTensor>(d, scales, t_type.format, qscheme_);
 }
 
 Tensor::Tensor(
@@ -52,13 +50,10 @@ Tensor::Tensor(
   std::vector<float> const &scales, ml::train::TensorDim::TensorType t_type,
   QScheme qscheme_) {
   if (t_type.data_type == Tdatatype::QINT4) {
-    itensor = std::shared_ptr<Int4QTensor>(
-      new Int4QTensor(d, scales, t_type.format, qscheme_),
-      std::default_delete<Int4QTensor>());
+    itensor_ =
+      std::make_unique<Int4QTensor>(d, scales, t_type.format, qscheme_);
   } else if (t_type.data_type == Tdatatype::QINT8) {
-    itensor = std::shared_ptr<CharTensor>(
-      new CharTensor(d, scales, t_type.format, qscheme_),
-      std::default_delete<CharTensor>());
+    itensor_ = std::make_unique<CharTensor>(d, scales, t_type.format, qscheme_);
   } else {
     throw std::invalid_argument(
       "Error: Tensor cannot be constructed because the given data type is "
@@ -69,8 +64,7 @@ Tensor::Tensor(
 Tensor::Tensor(
   std::vector<std::vector<std::vector<std::vector<float>>>> const &d,
   ml::train::TensorDim::TensorType t_type) {
-  itensor = std::shared_ptr<FloatTensor>(new FloatTensor(d, t_type.format),
-                                         std::default_delete<FloatTensor>());
+  itensor_ = std::make_unique<FloatTensor>(d, t_type.format);
 }
 
 Tensor::Tensor(
@@ -79,13 +73,11 @@ Tensor::Tensor(
   std::vector<unsigned int> const &zero_points,
   ml::train::TensorDim::TensorType t_type, QScheme qscheme_) {
   if (t_type.data_type == Tdatatype::UINT4) {
-    itensor = std::shared_ptr<Uint4QTensor>(
-      new Uint4QTensor(d, scales, zero_points, t_type.format, qscheme_),
-      std::default_delete<Uint4QTensor>());
+    itensor_ = std::make_unique<Uint4QTensor>(d, scales, zero_points,
+                                              t_type.format, qscheme_);
   } else if (t_type.data_type == Tdatatype::UINT8) {
-    itensor = std::shared_ptr<UInt8Tensor>(
-      new UInt8Tensor(d, scales, zero_points, t_type.format, qscheme_),
-      std::default_delete<UInt8Tensor>());
+    itensor_ = std::make_unique<UInt8Tensor>(d, scales, zero_points,
+                                             t_type.format, qscheme_);
   } else {
     throw std::invalid_argument(
       "Error: Tensor cannot be constructed because the given data type is "
@@ -98,9 +90,8 @@ Tensor::Tensor(
   std::vector<float> const &scales,
   std::vector<unsigned int> const &zero_points,
   ml::train::TensorDim::TensorType t_type, QScheme qscheme_) {
-  itensor = std::shared_ptr<UInt16Tensor>(
-    new UInt16Tensor(d, scales, zero_points, t_type.format, qscheme_),
-    std::default_delete<UInt16Tensor>());
+  itensor_ = std::make_unique<UInt16Tensor>(d, scales, zero_points,
+                                            t_type.format, qscheme_);
 }
 
 Tensor::Tensor(
@@ -108,49 +99,38 @@ Tensor::Tensor(
   std::vector<float> const &scales,
   std::vector<unsigned int> const &zero_points,
   ml::train::TensorDim::TensorType t_type, QScheme qscheme_) {
-  itensor = std::shared_ptr<UInt32Tensor>(
-    new UInt32Tensor(d, scales, zero_points, t_type.format, qscheme_),
-    std::default_delete<UInt32Tensor>());
+  itensor_ = std::make_unique<UInt32Tensor>(d, scales, zero_points,
+                                            t_type.format, qscheme_);
 }
 
 Tensor::Tensor(std::string name_, Tformat fm, Tdatatype d_type) {
-  itensor = nullptr;
+  itensor_ = nullptr;
 
   if (d_type == Tdatatype::FP32) {
-    itensor = std::shared_ptr<FloatTensor>(new FloatTensor(name_, fm),
-                                           std::default_delete<FloatTensor>());
+    itensor_ = std::make_unique<FloatTensor>(name_, fm);
   } else if (d_type == Tdatatype::FP16) {
 #ifdef ENABLE_FP16
-    itensor = std::shared_ptr<HalfTensor>(new HalfTensor(name_, fm),
-                                          std::default_delete<HalfTensor>());
+    itensor_ = std::make_unique<HalfTensor>(name_, fm);
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
   } else if (d_type == Tdatatype::UINT4) {
-    itensor = std::shared_ptr<Uint4QTensor>(
-      new Uint4QTensor(name_, fm), std::default_delete<Uint4QTensor>());
+    itensor_ = std::make_unique<Uint4QTensor>(name_, fm);
   } else if (d_type == Tdatatype::UINT8) {
-    itensor = std::shared_ptr<UInt8Tensor>(new UInt8Tensor(name_, fm),
-                                           std::default_delete<UInt8Tensor>());
+    itensor_ = std::make_unique<UInt8Tensor>(name_, fm);
   } else if (d_type == Tdatatype::UINT16) {
-    itensor = std::shared_ptr<UInt16Tensor>(
-      new UInt16Tensor(name_, fm), std::default_delete<UInt16Tensor>());
+    itensor_ = std::make_unique<UInt16Tensor>(name_, fm);
   } else if (d_type == Tdatatype::UINT32) {
-    itensor = std::shared_ptr<UInt32Tensor>(
-      new UInt32Tensor(name_, fm), std::default_delete<UInt32Tensor>());
+    itensor_ = std::make_unique<UInt32Tensor>(name_, fm);
   } else if (d_type == Tdatatype::QINT16) {
-    itensor = std::shared_ptr<ShortTensor>(new ShortTensor(name_, fm),
-                                           std::default_delete<ShortTensor>());
+    itensor_ = std::make_unique<ShortTensor>(name_, fm);
   } else if (d_type == Tdatatype::QINT8) {
-    itensor = std::shared_ptr<CharTensor>(new CharTensor(name_, fm),
-                                          std::default_delete<CharTensor>());
+    itensor_ = std::make_unique<CharTensor>(name_, fm);
   } else if (d_type == Tdatatype::QINT4) {
-    itensor = std::shared_ptr<Int4QTensor>(new Int4QTensor(name_, fm),
-                                           std::default_delete<Int4QTensor>());
+    itensor_ = std::make_unique<Int4QTensor>(name_, fm);
   } else if (d_type == Tdatatype::BCQ) {
 #ifdef ENABLE_BIQGEMM
-    itensor = std::shared_ptr<BCQTensor>(new BCQTensor(name_, fm),
-                                         std::default_delete<BCQTensor>());
+    itensor_ = std::make_unique<BCQTensor>(name_, fm);
 #else
     throw std::invalid_argument("Error: enable-biqgemm is not activated. "
                                 "Enable only if your system supports BiQGEMM.");
@@ -165,53 +145,33 @@ Tensor::Tensor(std::string name_, Tformat fm, Tdatatype d_type) {
 
 Tensor::Tensor(const TensorDim &d, bool alloc_now, Initializer init,
                std::string name, QScheme qscheme) {
-  itensor = nullptr;
+  itensor_ = nullptr;
 
   if (d.getDataType() == Tdatatype::FP32) {
-    itensor =
-      std::shared_ptr<FloatTensor>(new FloatTensor(d, alloc_now, init, name),
-                                   std::default_delete<FloatTensor>());
+    itensor_ = std::make_unique<FloatTensor>(d, alloc_now, init, name);
   } else if (d.getDataType() == Tdatatype::FP16) {
 #ifdef ENABLE_FP16
-    itensor =
-      std::shared_ptr<HalfTensor>(new HalfTensor(d, alloc_now, init, name),
-                                  std::default_delete<HalfTensor>());
+    itensor_ = std::make_unique<HalfTensor>(d, alloc_now, init, name);
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
   } else if (d.getDataType() == Tdatatype::UINT4) {
-    itensor =
-      std::shared_ptr<Uint4QTensor>(new Uint4QTensor(d, alloc_now, init, name),
-                                    std::default_delete<Uint4QTensor>());
+    itensor_ = std::make_unique<Uint4QTensor>(d, alloc_now, init, name);
   } else if (d.getDataType() == Tdatatype::UINT8) {
-    itensor =
-      std::shared_ptr<UInt8Tensor>(new UInt8Tensor(d, alloc_now, init, name),
-                                   std::default_delete<UInt8Tensor>());
+    itensor_ = std::make_unique<UInt8Tensor>(d, alloc_now, init, name);
   } else if (d.getDataType() == Tdatatype::UINT16) {
-    itensor =
-      std::shared_ptr<UInt16Tensor>(new UInt16Tensor(d, alloc_now, init, name),
-                                    std::default_delete<UInt16Tensor>());
+    itensor_ = std::make_unique<UInt16Tensor>(d, alloc_now, init, name);
   } else if (d.getDataType() == Tdatatype::UINT32) {
-    itensor =
-      std::shared_ptr<UInt32Tensor>(new UInt32Tensor(d, alloc_now, init, name),
-                                    std::default_delete<UInt32Tensor>());
+    itensor_ = std::make_unique<UInt32Tensor>(d, alloc_now, init, name);
   } else if (d.getDataType() == Tdatatype::QINT16) {
-    itensor = std::shared_ptr<ShortTensor>(
-      new ShortTensor(d, alloc_now, init, name, qscheme),
-      std::default_delete<ShortTensor>());
+    itensor_ = std::make_unique<ShortTensor>(d, alloc_now, init, name, qscheme);
   } else if (d.getDataType() == Tdatatype::QINT8) {
-    itensor = std::shared_ptr<CharTensor>(
-      new CharTensor(d, alloc_now, init, name, qscheme),
-      std::default_delete<CharTensor>());
+    itensor_ = std::make_unique<CharTensor>(d, alloc_now, init, name, qscheme);
   } else if (d.getDataType() == Tdatatype::QINT4) {
-    itensor = std::shared_ptr<Int4QTensor>(
-      new Int4QTensor(d, alloc_now, init, name, qscheme),
-      std::default_delete<Int4QTensor>());
+    itensor_ = std::make_unique<Int4QTensor>(d, alloc_now, init, name, qscheme);
   } else if (d.getDataType() == Tdatatype::BCQ) {
 #ifdef ENABLE_BIQGEMM
-    itensor =
-      std::shared_ptr<BCQTensor>(new BCQTensor(d, alloc_now, init, name),
-                                 std::default_delete<BCQTensor>());
+    itensor_ = std::make_unique<BCQTensor>(d, alloc_now, init, name);
 #else
     throw std::invalid_argument("Error: enable-biqgemm is not activated. "
                                 "Enable only if your system supports BiQGEMM.");
@@ -225,43 +185,33 @@ Tensor::Tensor(const TensorDim &d, bool alloc_now, Initializer init,
 }
 
 Tensor::Tensor(const TensorDim &d, const void *buf, QScheme qscheme) {
-  itensor = nullptr;
+  itensor_ = nullptr;
 
   if (d.getDataType() == Tdatatype::FP32) {
-    itensor = std::shared_ptr<FloatTensor>(new FloatTensor(d, buf),
-                                           std::default_delete<FloatTensor>());
+    itensor_ = std::make_unique<FloatTensor>(d, buf);
   } else if (d.getDataType() == Tdatatype::FP16) {
 #ifdef ENABLE_FP16
-    itensor = std::shared_ptr<HalfTensor>(new HalfTensor(d, buf),
-                                          std::default_delete<HalfTensor>());
+    itensor_ = std::make_unique<HalfTensor>(d, buf);
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
   } else if (d.getDataType() == Tdatatype::UINT4) {
-    itensor = std::shared_ptr<Uint4QTensor>(
-      new Uint4QTensor(d, buf), std::default_delete<Uint4QTensor>());
+    itensor_ = std::make_unique<Uint4QTensor>(d, buf);
   } else if (d.getDataType() == Tdatatype::UINT8) {
-    itensor = std::shared_ptr<UInt8Tensor>(new UInt8Tensor(d, buf),
-                                           std::default_delete<UInt8Tensor>());
+    itensor_ = std::make_unique<UInt8Tensor>(d, buf);
   } else if (d.getDataType() == Tdatatype::UINT16) {
-    itensor = std::shared_ptr<UInt16Tensor>(
-      new UInt16Tensor(d, buf), std::default_delete<UInt16Tensor>());
+    itensor_ = std::make_unique<UInt16Tensor>(d, buf);
   } else if (d.getDataType() == Tdatatype::UINT32) {
-    itensor = std::shared_ptr<UInt32Tensor>(
-      new UInt32Tensor(d, buf), std::default_delete<UInt32Tensor>());
+    itensor_ = std::make_unique<UInt32Tensor>(d, buf);
   } else if (d.getDataType() == Tdatatype::QINT16) {
-    itensor = std::shared_ptr<ShortTensor>(new ShortTensor(d, buf, qscheme),
-                                           std::default_delete<ShortTensor>());
+    itensor_ = std::make_unique<ShortTensor>(d, buf, qscheme);
   } else if (d.getDataType() == Tdatatype::QINT8) {
-    itensor = std::shared_ptr<CharTensor>(new CharTensor(d, buf, qscheme),
-                                          std::default_delete<CharTensor>());
+    itensor_ = std::make_unique<CharTensor>(d, buf, qscheme);
   } else if (d.getDataType() == Tdatatype::QINT4) {
-    itensor = std::shared_ptr<Int4QTensor>(new Int4QTensor(d, buf),
-                                           std::default_delete<Int4QTensor>());
+    itensor_ = std::make_unique<Int4QTensor>(d, buf);
   } else if (d.getDataType() == Tdatatype::BCQ) {
 #ifdef ENABLE_BIQGEMM
-    itensor = std::shared_ptr<BCQTensor>(new BCQTensor(d, buf),
-                                         std::default_delete<BCQTensor>());
+    itensor_ = std::make_unique<BCQTensor>(d, buf);
 #else
     throw std::invalid_argument("Error: enable-biqgemm is not activated. "
                                 "Enable only if your system supports BiQGEMM.");
@@ -276,40 +226,30 @@ Tensor::Tensor(const TensorDim &d, const void *buf, QScheme qscheme) {
 
 Tensor::Tensor(const Tensor &rhs) {
   if (rhs.getDataType() == Tdatatype::FP32) {
-    itensor = std::shared_ptr<FloatTensor>(new FloatTensor(*rhs.itensor),
-                                           std::default_delete<FloatTensor>());
+    itensor_ = std::make_unique<FloatTensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::FP16) {
 #ifdef ENABLE_FP16
-    itensor = std::shared_ptr<HalfTensor>(new HalfTensor(*rhs.itensor),
-                                          std::default_delete<HalfTensor>());
+    itensor_ = std::make_unique<HalfTensor>(*rhs.itensor_);
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
   } else if (rhs.getDataType() == Tdatatype::UINT4) {
-    itensor = std::shared_ptr<Uint4QTensor>(
-      new Uint4QTensor(*rhs.itensor), std::default_delete<Uint4QTensor>());
+    itensor_ = std::make_unique<Uint4QTensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::UINT8) {
-    itensor = std::shared_ptr<UInt8Tensor>(new UInt8Tensor(*rhs.itensor),
-                                           std::default_delete<UInt8Tensor>());
+    itensor_ = std::make_unique<UInt8Tensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::UINT16) {
-    itensor = std::shared_ptr<UInt16Tensor>(
-      new UInt16Tensor(*rhs.itensor), std::default_delete<UInt16Tensor>());
+    itensor_ = std::make_unique<UInt16Tensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::UINT32) {
-    itensor = std::shared_ptr<UInt32Tensor>(
-      new UInt32Tensor(*rhs.itensor), std::default_delete<UInt32Tensor>());
+    itensor_ = std::make_unique<UInt32Tensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::QINT16) {
-    itensor = std::shared_ptr<ShortTensor>(new ShortTensor(*rhs.itensor),
-                                           std::default_delete<ShortTensor>());
+    itensor_ = std::make_unique<ShortTensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::QINT8) {
-    itensor = std::shared_ptr<CharTensor>(new CharTensor(*rhs.itensor),
-                                          std::default_delete<CharTensor>());
+    itensor_ = std::make_unique<CharTensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::QINT4) {
-    itensor = std::shared_ptr<Int4QTensor>(new Int4QTensor(*rhs.itensor),
-                                           std::default_delete<Int4QTensor>());
+    itensor_ = std::make_unique<Int4QTensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::BCQ) {
 #ifdef ENABLE_BIQGEMM
-    itensor = std::shared_ptr<BCQTensor>(new BCQTensor(*rhs.itensor),
-                                         std::default_delete<BCQTensor>());
+    itensor_ = std::make_unique<BCQTensor>(*rhs.itensor_);
 #else
     throw std::invalid_argument("Error: enable-biqgemm is not activated. "
                                 "Enable only if your system supports BiQGEMM.");
@@ -317,49 +257,68 @@ Tensor::Tensor(const Tensor &rhs) {
   }
 }
 
-Tensor::Tensor(std::shared_ptr<TensorBase> rhs) {
-  NNTR_THROW_IF(rhs == nullptr, std::invalid_argument)
+Tensor::Tensor(const std::unique_ptr<TensorBase> &rhs) {
+  NNTR_THROW_IF(rhs.get() == nullptr, std::invalid_argument)
     << "Error: received a nullptr. Tensor cannot be constructed";
 
-  itensor = rhs;
+  if (rhs->getDataType() == Tdatatype::FP32) {
+    itensor_ = std::make_unique<FloatTensor>(*rhs.get());
+  } else if (rhs->getDataType() == Tdatatype::FP16) {
+#ifdef ENABLE_FP16
+    itensor_ = std::make_unique<HalfTensor>(*rhs.get());
+#else
+    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+#endif
+  } else if (rhs->getDataType() == Tdatatype::UINT4) {
+    itensor_ = std::make_unique<Uint4QTensor>(*rhs.get());
+  } else if (rhs->getDataType() == Tdatatype::UINT8) {
+    itensor_ = std::make_unique<UInt8Tensor>(*rhs.get());
+  } else if (rhs->getDataType() == Tdatatype::UINT16) {
+    itensor_ = std::make_unique<UInt16Tensor>(*rhs.get());
+  } else if (rhs->getDataType() == Tdatatype::UINT32) {
+    itensor_ = std::make_unique<UInt32Tensor>(*rhs.get());
+  } else if (rhs->getDataType() == Tdatatype::QINT16) {
+    itensor_ = std::make_unique<ShortTensor>(*rhs.get());
+  } else if (rhs->getDataType() == Tdatatype::QINT8) {
+    itensor_ = std::make_unique<CharTensor>(*rhs.get());
+  } else if (rhs->getDataType() == Tdatatype::QINT4) {
+    itensor_ = std::make_unique<Int4QTensor>(*rhs.get());
+  } else if (rhs->getDataType() == Tdatatype::BCQ) {
+#ifdef ENABLE_BIQGEMM
+    itensor_ = std::make_unique<BCQTensor>(*rhs.get());
+#else
+    throw std::invalid_argument("Error: enable-biqgemm is not activated. "
+                                "Enable only if your system supports BiQGEMM.");
+#endif
+  }
 }
 
 Tensor &Tensor::operator=(const Tensor &rhs) {
   if (rhs.getDataType() == Tdatatype::FP32) {
-    itensor = std::shared_ptr<FloatTensor>(new FloatTensor(*rhs.itensor),
-                                           std::default_delete<FloatTensor>());
+    itensor_ = std::make_unique<FloatTensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::FP16) {
 #ifdef ENABLE_FP16
-    itensor = std::shared_ptr<HalfTensor>(new HalfTensor(*rhs.itensor),
-                                          std::default_delete<HalfTensor>());
+    itensor_ = std::make_unique<HalfTensor>(*rhs.itensor_);
 #else
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
   } else if (rhs.getDataType() == Tdatatype::UINT4) {
-    itensor = std::shared_ptr<Uint4QTensor>(
-      new Uint4QTensor(*rhs.itensor), std::default_delete<Uint4QTensor>());
+    itensor_ = std::make_unique<Uint4QTensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::UINT8) {
-    itensor = std::shared_ptr<UInt8Tensor>(new UInt8Tensor(*rhs.itensor),
-                                           std::default_delete<UInt8Tensor>());
+    itensor_ = std::make_unique<UInt8Tensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::UINT16) {
-    itensor = std::shared_ptr<UInt16Tensor>(
-      new UInt16Tensor(*rhs.itensor), std::default_delete<UInt16Tensor>());
+    itensor_ = std::make_unique<UInt16Tensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::UINT32) {
-    itensor = std::shared_ptr<UInt32Tensor>(
-      new UInt32Tensor(*rhs.itensor), std::default_delete<UInt32Tensor>());
+    itensor_ = std::make_unique<UInt32Tensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::QINT16) {
-    itensor = std::shared_ptr<ShortTensor>(new ShortTensor(*rhs.itensor),
-                                           std::default_delete<ShortTensor>());
+    itensor_ = std::make_unique<ShortTensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::QINT8) {
-    itensor = std::shared_ptr<CharTensor>(new CharTensor(*rhs.itensor),
-                                          std::default_delete<CharTensor>());
+    itensor_ = std::make_unique<CharTensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::QINT4) {
-    itensor = std::shared_ptr<Int4QTensor>(new Int4QTensor(*rhs.itensor),
-                                           std::default_delete<Int4QTensor>());
+    itensor_ = std::make_unique<Int4QTensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::BCQ) {
 #ifdef ENABLE_BIQGEMM
-    itensor = std::shared_ptr<BCQTensor>(new BCQTensor(*rhs.itensor),
-                                         std::default_delete<BCQTensor>());
+    itensor_ = std::make_unique<BCQTensor>(*rhs.itensor_);
 #else
     throw std::invalid_argument("Error: enable-biqgemm is not activated. "
                                 "Enable only if your system supports BiQGEMM.");
@@ -370,45 +329,35 @@ Tensor &Tensor::operator=(const Tensor &rhs) {
 
 bool Tensor::operator==(const Tensor &rhs) const {
   /// compares tensor information
-  if (*itensor == *rhs.itensor) {
+  if (*itensor_.get() == *rhs.itensor_.get()) {
     /// compares tensor data
     if (getDataType() == Tdatatype::FP32) {
-      return *std::dynamic_pointer_cast<FloatTensor>(itensor) ==
-             *std::dynamic_pointer_cast<FloatTensor>(rhs.itensor);
+      return itensorCompare<FloatTensor>(itensor_.get(), rhs.itensor_.get());
     } else if (getDataType() == Tdatatype::FP16) {
 #ifdef ENABLE_FP16
-      return *std::dynamic_pointer_cast<HalfTensor>(itensor) ==
-             *std::dynamic_pointer_cast<HalfTensor>(rhs.itensor);
+      return itensorCompare<HalfTensor>(itensor_.get(), rhs.itensor_.get());
 #else
       throw std::invalid_argument(
         "Error: HalfTensor cannot be created or used when FP16 is not enabled. "
         "Please check if the tensor data type is set properly.");
 #endif
     } else if (getDataType() == Tdatatype::UINT4) {
-      return *std::dynamic_pointer_cast<Uint4QTensor>(itensor) ==
-             *std::dynamic_pointer_cast<Uint4QTensor>(rhs.itensor);
+      return itensorCompare<Uint4QTensor>(itensor_.get(), rhs.itensor_.get());
     } else if (getDataType() == Tdatatype::UINT8) {
-      return *std::dynamic_pointer_cast<UInt8Tensor>(itensor) ==
-             *std::dynamic_pointer_cast<UInt8Tensor>(rhs.itensor);
+      return itensorCompare<UInt8Tensor>(itensor_.get(), rhs.itensor_.get());
     } else if (getDataType() == Tdatatype::UINT16) {
-      return *std::dynamic_pointer_cast<UInt16Tensor>(itensor) ==
-             *std::dynamic_pointer_cast<UInt16Tensor>(rhs.itensor);
+      return itensorCompare<UInt16Tensor>(itensor_.get(), rhs.itensor_.get());
     } else if (getDataType() == Tdatatype::UINT32) {
-      return *std::dynamic_pointer_cast<UInt32Tensor>(itensor) ==
-             *std::dynamic_pointer_cast<UInt32Tensor>(rhs.itensor);
+      return itensorCompare<UInt32Tensor>(itensor_.get(), rhs.itensor_.get());
     } else if (getDataType() == Tdatatype::QINT16) {
-      return *std::dynamic_pointer_cast<ShortTensor>(itensor) ==
-             *std::dynamic_pointer_cast<ShortTensor>(rhs.itensor);
+      return itensorCompare<ShortTensor>(itensor_.get(), rhs.itensor_.get());
     } else if (getDataType() == Tdatatype::QINT8) {
-      return *std::dynamic_pointer_cast<CharTensor>(itensor) ==
-             *std::dynamic_pointer_cast<CharTensor>(rhs.itensor);
+      return itensorCompare<CharTensor>(itensor_.get(), rhs.itensor_.get());
     } else if (getDataType() == Tdatatype::QINT4) {
-      return *std::dynamic_pointer_cast<Int4QTensor>(itensor) ==
-             *std::dynamic_pointer_cast<Int4QTensor>(rhs.itensor);
+      return itensorCompare<Int4QTensor>(itensor_.get(), rhs.itensor_.get());
     } else if (getDataType() == Tdatatype::BCQ) {
 #ifdef ENABLE_BIQGEMM
-      return *std::dynamic_pointer_cast<BCQTensor>(itensor) ==
-             *std::dynamic_pointer_cast<BCQTensor>(rhs.itensor);
+      return itensorCompare<BCQTensor>(itensor_.get(), rhs.itensor_.get());
 #else
       throw std::invalid_argument(
         "Error: enable-biqgemm is not activated. "
@@ -419,41 +368,41 @@ bool Tensor::operator==(const Tensor &rhs) const {
   return false;
 }
 
-void Tensor::allocate() { itensor->allocate(); }
+void Tensor::allocate() { itensor_->allocate(); }
 
-void Tensor::deallocate() { itensor->deallocate(); }
+void Tensor::deallocate() { itensor_->deallocate(); }
 
-bool Tensor::isAllocated() { return itensor->isAllocated(); }
+bool Tensor::isAllocated() { return itensor_->isAllocated(); }
 
-void Tensor::setValue(float value) { itensor->setValue(value); }
+void Tensor::setValue(float value) { itensor_->setValue(value); }
 
 void Tensor::setValue(unsigned int b, unsigned int c, unsigned int h,
                       unsigned int w, float value) {
-  itensor->setValue(b, c, h, w, value);
+  itensor_->setValue(b, c, h, w, value);
 }
 
 void Tensor::addValue(unsigned int b, unsigned int c, unsigned int h,
                       unsigned int w, float value, float beta) noexcept {
-  itensor->addValue(b, c, h, w, value, beta);
+  itensor_->addValue(b, c, h, w, value, beta);
 }
 
-void Tensor::setZero() { itensor->setZero(); }
+void Tensor::setZero() { itensor_->setZero(); }
 
 void Tensor::setRandNormal(float mean, float stddev) {
-  itensor->setRandNormal(mean, stddev);
+  itensor_->setRandNormal(mean, stddev);
 }
 
 void Tensor::setRandUniform(float min, float max) {
-  itensor->setRandUniform(min, max);
+  itensor_->setRandUniform(min, max);
 }
 
 void Tensor::setRandBernoulli(float probability) {
-  itensor->setRandBernoulli(probability);
+  itensor_->setRandBernoulli(probability);
 }
 
-void Tensor::initialize() { itensor->initialize(); }
+void Tensor::initialize() { itensor_->initialize(); }
 
-void Tensor::initialize(Initializer init) { itensor->initialize(init); }
+void Tensor::initialize(Initializer init) { itensor_->initialize(init); }
 
 Tensor Tensor::apply(std::function<Tensor(Tensor)> f) const { return f(*this); }
 
@@ -480,7 +429,7 @@ Tensor Tensor::multiply_strided(Tensor const &m, const float beta) const {
 
 Tensor &Tensor::multiply_strided(Tensor const &m, Tensor &output,
                                  const float beta) const {
-  itensor->multiply_strided(m, output, beta);
+  itensor_->multiply_strided(m, output, beta);
   return output;
 }
 
@@ -488,7 +437,7 @@ int Tensor::multiply_i(float const &value) {
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
     << getName() << " is not contiguous, cannot multiply";
 
-  return itensor->multiply_i(value);
+  return itensor_->multiply_i(value);
 }
 
 Tensor Tensor::multiply(float const &value) const {
@@ -497,7 +446,7 @@ Tensor Tensor::multiply(float const &value) const {
 }
 
 Tensor &Tensor::multiply(float const &value, Tensor &out) const {
-  itensor->multiply(value, out);
+  itensor_->multiply(value, out);
   return out;
 }
 
@@ -529,7 +478,7 @@ Tensor &Tensor::multiply(Tensor const &m, Tensor &output,
                 std::invalid_argument)
     << getName() << " is not contiguous, cannot multiply";
 
-  itensor->multiply(m, output, beta);
+  itensor_->multiply(m, output, beta);
   return output;
 }
 
@@ -553,7 +502,7 @@ Tensor &Tensor::divide(float const &value, Tensor &output) const {
     ss << "[Tensor] divide by value failed, value: " << value;
     throw std::invalid_argument(ss.str().c_str());
   }
-  itensor->divide(value, output);
+  itensor_->divide(value, output);
   return output;
 }
 
@@ -578,7 +527,7 @@ Tensor &Tensor::divide(Tensor const &m, Tensor &output) const {
                   !output.getContiguous(),
                 std::invalid_argument)
     << getName() << " is not contiguous, cannot divide";
-  itensor->divide(m, output);
+  itensor_->divide(m, output);
   return output;
 }
 
@@ -606,7 +555,7 @@ Tensor &Tensor::add_strided(Tensor const &input, Tensor &output,
     throw std::invalid_argument(
       "Strided addition does not support broadcasting");
 
-  itensor->add_strided(input, output, beta);
+  itensor_->add_strided(input, output, beta);
 
   return output;
 }
@@ -622,13 +571,13 @@ Tensor Tensor::add(float const &value) const {
 }
 
 Tensor &Tensor::add(float const &value, Tensor &output) const {
-  itensor->add(value, output);
+  itensor_->add(value, output);
   return output;
 }
 
 int Tensor::add_i(Tensor const &m, float const alpha) {
   try {
-    itensor->add(m, *this, alpha);
+    itensor_->add(m, *this, alpha);
   } catch (std::exception &err) {
     ml_loge("%s %s", typeid(err).name(), err.what());
     return ML_ERROR_INVALID_PARAMETER;
@@ -639,8 +588,8 @@ int Tensor::add_i(Tensor const &m, float const alpha) {
 int Tensor::add_i_partial(unsigned int len, unsigned int addr_idx, Tensor &m,
                           unsigned int incX, unsigned int incY,
                           const Tensor alphas, unsigned int alpha_idx) {
-  return itensor->add_i_partial(len, addr_idx, m, incX, incY, alphas,
-                                alpha_idx);
+  return itensor_->add_i_partial(len, addr_idx, m, incX, incY, alphas,
+                                 alpha_idx);
 }
 
 Tensor Tensor::add(Tensor const &m, float const alpha) const {
@@ -654,11 +603,11 @@ Tensor &Tensor::add(Tensor const &m, Tensor &output, float const alpha) const {
     << ((bool)(this->getFormat()) ? "NHWC" : "NCHW") << " is not match. ("
     << ((bool)(m.getFormat()) ? "NHWC" : "NCHW") << ")";
 
-  NNTR_THROW_IF(!itensor->getContiguous() || !m.getContiguous() ||
+  NNTR_THROW_IF(!itensor_->getContiguous() || !m.getContiguous() ||
                   !output.getContiguous(),
                 std::invalid_argument)
     << getName() << " is not contiguous, cannot add";
-  itensor->add(m, output, alpha);
+  itensor_->add(m, output, alpha);
   return output;
 }
 
@@ -673,7 +622,7 @@ Tensor Tensor::subtract(float const &value) const {
 }
 
 Tensor &Tensor::subtract(float const &value, Tensor &output) const {
-  itensor->subtract(value, output);
+  itensor_->subtract(value, output);
   return output;
 }
 
@@ -697,7 +646,7 @@ Tensor Tensor::sum_by_batch() const {
     << getName() << " is not contiguous, cannot sum";
 
   Tensor output(batch(), 1, 1, 1, this->getFormat(), getDataType());
-  itensor->sum_by_batch(output);
+  itensor_->sum_by_batch(output);
   return output;
 }
 
@@ -711,7 +660,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &output, float alpha,
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
     << getName() << " is not contiguous, cannot sum";
 
-  itensor->sum(axis, output, alpha, beta);
+  itensor_->sum(axis, output, alpha, beta);
   return output;
 }
 
@@ -758,7 +707,7 @@ Tensor &Tensor::abs(Tensor &output) const {
     throw std::invalid_argument(
       "Error: Tensor::abs requires output tensor to be same size, data type "
       "and format as input tensor.");
-  return itensor->abs(output);
+  return itensor_->abs(output);
 }
 
 Tensor Tensor::average(unsigned int axis) const {
@@ -832,7 +781,7 @@ Tensor Tensor::pow(float exponent) const {
 }
 
 Tensor &Tensor::pow(float exponent, Tensor &output) const {
-  itensor->pow(exponent, output);
+  itensor_->pow(exponent, output);
   return output;
 }
 
@@ -853,7 +802,7 @@ Tensor &Tensor::sqrt(Tensor &output) const {
       "Error: Tensor::sqrt requires output tensor to be same size, data type "
       "and format as input tensor.");
 
-  itensor->sqrt(output);
+  itensor_->sqrt(output);
   return output;
 };
 
@@ -868,7 +817,7 @@ Tensor Tensor::erf() const {
 }
 
 Tensor &Tensor::erf(Tensor &output) const {
-  itensor->erf(output);
+  itensor_->erf(output);
   return output;
 }
 
@@ -876,14 +825,14 @@ void Tensor::sin(Tensor &out, float alpha) const {
   if (size() != out.size())
     throw std::invalid_argument("Error: Size of out of Tensor::sin must match");
 
-  itensor->sin(out, alpha);
+  itensor_->sin(out, alpha);
 }
 
 void Tensor::cos(Tensor &out, float alpha) const {
   if (size() != out.size())
     throw std::invalid_argument("Error: Size of out of Tensor::cos must match");
 
-  itensor->cos(out, alpha);
+  itensor_->cos(out, alpha);
 }
 
 void Tensor::tan(Tensor &output, float alpha) const {
@@ -893,19 +842,19 @@ void Tensor::tan(Tensor &output, float alpha) const {
       "Error: Tensor::abs requires output tensor to be same size, data type "
       "and format as input tensor.");
 
-  itensor->tan(output, alpha);
+  itensor_->tan(output, alpha);
 }
 
-void Tensor::inv_sqrt_i() { itensor->inv_sqrt(*this); }
+void Tensor::inv_sqrt_i() { itensor_->inv_sqrt(*this); }
 
 Tensor Tensor::inv_sqrt(Tensor &out) const {
-  itensor->inv_sqrt(out);
+  itensor_->inv_sqrt(out);
   return out;
 }
 
 LazyTensor Tensor::chain() const { return LazyTensor(*this); }
 
-float Tensor::l2norm() const { return itensor->l2norm(); }
+float Tensor::l2norm() const { return itensor_->l2norm(); }
 
 void Tensor::normalization_i() {
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
@@ -974,7 +923,7 @@ Tensor &Tensor::dot(Tensor const &input, Tensor &output, bool trans,
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
     << getName() << " is not contiguous. Cannot dot product.";
 
-  itensor->dot(input, output, trans, trans_in, beta);
+  itensor_->dot(input, output, trans, trans_in, beta);
   return output;
 }
 
@@ -1079,12 +1028,12 @@ void Tensor::dropout_mask(float dropout) {
     return;
 
   setRandUniform(0.0, 1.0);
-  itensor->dropout_mask(dropout);
+  itensor_->dropout_mask(dropout);
 }
 
 void Tensor::filter_mask(const Tensor &mask_len, bool reverse) {
   /// @todo add unittest
-  itensor->filter_mask(mask_len, reverse);
+  itensor_->filter_mask(mask_len, reverse);
 }
 
 Tensor Tensor::zoneout_mask(float zoneout) {
@@ -1104,7 +1053,7 @@ void Tensor::zoneout_mask(Tensor &opposite, float zoneout) {
   if (std::fpclassify(zoneout) == FP_ZERO)
     return;
 
-  itensor->zoneout_mask(opposite, zoneout);
+  itensor_->zoneout_mask(opposite, zoneout);
 }
 
 std::vector<Tensor> Tensor::split(unsigned num_size, int axis) {
@@ -1144,12 +1093,12 @@ std::vector<Tensor> Tensor::split(std::vector<size_t> sizes, int axis) {
     std::invalid_argument)
     << "among given sizes at least one of size is 0";
 
-  return itensor->split(sizes, axis);
+  return itensor_->split(sizes, axis);
 }
 
 Tensor Tensor::concat(const std::vector<Tensor> &tensors, int axis,
                       Tensor &output) {
-  return itensor->concat(tensors, axis, output);
+  return itensor_->concat(tensors, axis, output);
 }
 
 Tensor Tensor::cat(const std::vector<Tensor> &tensors, int axis) {
@@ -1182,14 +1131,14 @@ Tensor Tensor::cat(const std::vector<Tensor> &tensors, int axis,
 
 void Tensor::print(std::ostream &out) const {
   printInstance(out, this);
-  itensor->print(out);
+  itensor_->print(out);
 }
 
-void Tensor::putData() const { itensor->putData(); }
+void Tensor::putData() const { itensor_->putData(); }
 
 void Tensor::setData(const std::shared_ptr<MemoryData> buf, size_t off,
                      bool init) {
-  itensor->setMemoryData(buf, off);
+  itensor_->setMemoryData(buf, off);
 
   if (buf && init) {
     initialize();
@@ -1197,14 +1146,14 @@ void Tensor::setData(const std::shared_ptr<MemoryData> buf, size_t off,
 }
 
 const std::shared_ptr<MemoryData> Tensor::getMemoryData() const {
-  return itensor->getMemoryData();
+  return itensor_->getMemoryData();
 }
 
-size_t Tensor::getOffset() const { return itensor->getOffset(); }
+size_t Tensor::getOffset() const { return itensor_->getOffset(); }
 
 void Tensor::copy(const Tensor &from) {
   /// @todo enable copy to non-contiguous tensor
-  if (!itensor->getContiguous() || !from.getContiguous()) {
+  if (!itensor_->getContiguous() || !from.getContiguous()) {
     throw std::runtime_error("Cannot copy non-contiguous tensor");
   }
 
@@ -1212,24 +1161,24 @@ void Tensor::copy(const Tensor &from) {
       scale_size() == from.scale_size() &&
       getDataType() == from.getDataType()) {
     // if tensor size and data type match, copy data
-    itensor->copy(from);
+    itensor_->copy(from);
   } else {
     Tensor t = Tensor(from.getDim(), from.getData<char>());
     swap(t, *this);
   }
 }
 
-void Tensor::copyData(const Tensor &from) { itensor->copyData(from); }
+void Tensor::copyData(const Tensor &from) { itensor_->copyData(from); }
 
 void Tensor::copy_with_stride(const Tensor &from) {
-  if (itensor->getDim() == from.getDim()) {
+  if (itensor_->getDim() == from.getDim()) {
     // If the tensor dim matches, copy the data. This also applies to
     // uncontigous tensor.
-    itensor->copy_with_stride(from, *this);
+    itensor_->copy_with_stride(from, *this);
   } else {
     // replace with a new tensor that has the same data as the given tensor
     Tensor t = Tensor(from.getDim(), true);
-    itensor->copy_with_stride(from, t);
+    itensor_->copy_with_stride(from, t);
     swap(t, *this);
   }
 }
@@ -1259,43 +1208,43 @@ Tensor Tensor::clone(ml::train::TensorDim::DataType type) const {
   return output;
 }
 
-void Tensor::readFSU() { itensor->readFSU(); }
+void Tensor::readFSU() { itensor_->readFSU(); }
 
 void Tensor::save(std::ostream &file) {
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
     << getName() << " is not contiguous, cannot save.";
 
-  itensor->save(file);
+  itensor_->save(file);
 }
 
 void Tensor::read(std::ifstream &file) {
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
     << getName() << " is not contiguous, cannot read.";
 
-  itensor->read(file);
+  itensor_->read(file);
 }
 
 std::vector<unsigned int> Tensor::argmax() const {
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
     << getName() << " is not contiguous, cannot get argmax.";
-  return itensor->argmax();
+  return itensor_->argmax();
 }
 
 std::vector<unsigned int> Tensor::argmin() const {
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
     << getName() << " is not contiguous, cannot get argmin.";
-  return itensor->argmin();
+  return itensor_->argmin();
 }
 
 float Tensor::max_abs() const {
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
     << getName() << " is not contiguous, cannot get max_abs.";
-  return itensor->max_abs();
+  return itensor_->max_abs();
 }
 
-float Tensor::maxValue() const { return itensor->maxValue(); }
+float Tensor::maxValue() const { return itensor_->maxValue(); }
 
-float Tensor::minValue() const { return itensor->minValue(); }
+float Tensor::minValue() const { return itensor_->minValue(); }
 
 Tensor Tensor::transpose(const std::string &direction) const {
   Tensor output(getDim());
@@ -1312,12 +1261,12 @@ Tensor &Tensor::transpose(const std::string &direction, Tensor &output) const {
     return result.transpose(direction, output);
   }
 
-  itensor->transpose(direction, output);
+  itensor_->transpose(direction, output);
 
   return output;
 }
 
-void Tensor::reshape(const TensorDim &d) { itensor->reshape(d); }
+void Tensor::reshape(const TensorDim &d) { itensor_->reshape(d); }
 
 void Tensor::fill(const Tensor &from, bool allocate) {
   if (allocate && this->empty()) {
@@ -1344,27 +1293,29 @@ void Tensor::fill(const Tensor &from, bool allocate) {
   copyData(from);
 }
 
-TensorDim Tensor::getDim() const { return itensor->getDim(); }
+TensorDim Tensor::getDim() const { return itensor_->getDim(); }
 
 TensorDim::TensorType Tensor::getTensorType() const {
-  return itensor->getTensorType();
+  return itensor_->getTensorType();
 };
 
-Initializer Tensor::getInitializer() const { return itensor->getInitializer(); }
+Initializer Tensor::getInitializer() const {
+  return itensor_->getInitializer();
+}
 
-TensorDim::Format Tensor::getFormat() const { return itensor->getFormat(); }
+TensorDim::Format Tensor::getFormat() const { return itensor_->getFormat(); }
 
-Tdatatype Tensor::getDataType() const { return itensor->getDataType(); }
+Tdatatype Tensor::getDataType() const { return itensor_->getDataType(); }
 
-void Tensor::updateBatch(unsigned int batch) { itensor->updateBatch(batch); }
+void Tensor::updateBatch(unsigned int batch) { itensor_->updateBatch(batch); }
 
 const bool Tensor::getContiguous() const noexcept {
-  return itensor->getContiguous();
+  return itensor_->getContiguous();
 }
 
 const std::array<size_t, TensorDim::MAXDIM>
 Tensor::getStrides() const noexcept {
-  return itensor->getStrides();
+  return itensor_->getStrides();
 }
 
 bool Tensor::checkContinuous(unsigned int np1, unsigned int np2) const {
@@ -1385,34 +1336,34 @@ bool Tensor::checkContinuous(unsigned int np1, unsigned int np2) const {
   return false;
 }
 
-void Tensor::setName(const std::string &name_) { itensor->setName(name_); }
+void Tensor::setName(const std::string &name_) { itensor_->setName(name_); }
 
-const std::string &Tensor::getName() const { return itensor->getName(); }
+const std::string &Tensor::getName() const { return itensor_->getName(); }
 
 size_t Tensor::getIndex(unsigned int b, unsigned int c, unsigned int h,
                         unsigned int w) const noexcept {
-  return itensor->getIndex(b, c, h, w);
+  return itensor_->getIndex(b, c, h, w);
 }
 
-size_t Tensor::size() const { return itensor->size(); }
+size_t Tensor::size() const { return itensor_->size(); }
 
-bool Tensor::empty() const { return itensor->empty(); }
+bool Tensor::empty() const { return itensor_->empty(); }
 
-size_t Tensor::bytes() const { return itensor->bytes(); }
+size_t Tensor::bytes() const { return itensor_->bytes(); }
 
-size_t Tensor::getMemoryBytes() const { return itensor->getMemoryBytes(); }
+size_t Tensor::getMemoryBytes() const { return itensor_->getMemoryBytes(); }
 
-size_t Tensor::batch() const { return itensor->batch(); }
+size_t Tensor::batch() const { return itensor_->batch(); }
 
-size_t Tensor::channel() const { return itensor->channel(); }
+size_t Tensor::channel() const { return itensor_->channel(); }
 
-size_t Tensor::height() const { return itensor->height(); }
+size_t Tensor::height() const { return itensor_->height(); }
 
-size_t Tensor::width() const { return itensor->width(); }
+size_t Tensor::width() const { return itensor_->width(); }
 
-size_t Tensor::scale_size() const { return itensor->scale_size(); }
+size_t Tensor::scale_size() const { return itensor_->scale_size(); }
 
-QScheme Tensor::q_scheme() const { return itensor->q_scheme(); }
+QScheme Tensor::q_scheme() const { return itensor_->q_scheme(); }
 
 void Tensor::mergeAxis(unsigned int axis1, unsigned int axis2) {
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
@@ -1422,26 +1373,26 @@ void Tensor::mergeAxis(unsigned int axis1, unsigned int axis2) {
     if (!checkContinuous(axis1, axis2))
       throw std::invalid_argument("axis2 must be axis1 + 1 for merging.");
 
-  itensor->mergeAxis(axis1, axis2);
+  itensor_->mergeAxis(axis1, axis2);
 }
 
 void Tensor::createSharedDataTensor(const Tensor &src, Tensor &dest,
                                     size_t offset) const {
-  itensor->createSharedDataTensor(src.itensor.get(), dest.itensor.get(),
-                                  offset);
+  itensor_->createSharedDataTensor(src.itensor_.get(), dest.itensor_.get(),
+                                   offset);
 }
 
 Tensor Tensor::getSharedDataTensor(const TensorDim dim_, size_t offset,
                                    bool reset_stride,
                                    const std::string &name_) const {
   Tensor ret = *this;
-  itensor->getSharedDataTensor(dim_, offset, reset_stride, name_,
-                               ret.itensor.get());
+  itensor_->getSharedDataTensor(dim_, offset, reset_stride, name_,
+                                ret.itensor_.get());
   return ret;
 }
 
 void Tensor::setTensorVar(TensorDim d, void *buf, size_t offset) {
-  itensor->setTensorVar(d, buf, offset);
+  itensor_->setTensorVar(d, buf, offset);
 }
 
 TensorDim Tensor::calculateConcatOutputDim(const std::vector<Tensor> &tensors,
