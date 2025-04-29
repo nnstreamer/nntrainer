@@ -14,8 +14,8 @@
 #ifndef __OPENCL_COMMAND_QUEUE_MANAGER_H__
 #define __OPENCL_COMMAND_QUEUE_MANAGER_H__
 
+#include "CL/cl.h"
 #include "opencl_kernel.h"
-#include "third_party/cl.h"
 #include <memory>
 
 namespace nntrainer::opencl {

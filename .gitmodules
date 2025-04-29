@@ -9,3 +9,7 @@
 [submodule "subprojects/ggml"]
 	path = subprojects/ggml
 	url = https://github.com/ggml-org/ggml.git
+
+[submodule "subprojects/CLBlast"]
+	path = subprojects/CLBlast
+	url = https://github.com/CNugteren/CLBlast.git

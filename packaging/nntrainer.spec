@@ -59,6 +59,16 @@
 %define fp16_support -Denable-fp16=false
 %endif # enable_fp16
 
+## GPU flag
+## To enable OpenCL, pass the flag to gbs build with: --define "_with_gpu 1"
+%bcond_with gpu
+
+%if %{with gpu}
+%define opencl_support -Denable-opencl=true
+%else
+%define opencl_support -Denable-opencl=false
+%endif # gpu
+
 Name:		nntrainer
 Summary:	Software framework for training neural networks
 Version:	0.6.0
@@ -84,6 +94,10 @@ BuildRequires:	python3
 BuildRequires:	python3-numpy
 BuildRequires:	flatbuffers-devel
 BuildRequires:  cmake
+%if %{with gpu}
+BuildRequires:  opencl-headers
+BuildRequires:  opencl-icd-loader
+%endif # gpu
 
 %if 0%{?unit_test}
 BuildRequires:	ssat >= 1.1.0
@@ -320,6 +334,12 @@ Summary: Ruy support in NNTrainer
 Summary: GGML support in NNTrainer
 %description -n ggml
 
+%if %{with gpu}
+%package -n clblast
+Summary: CLBlast as an OpenCL backend for BLAS operations in NNTrainer
+%description -n clblast
+%endif # clblast
+
 %endif #tizen
 
 ## Define build options
@@ -412,6 +432,11 @@ tar -xf packaging/ruy.tar.gz -C subprojects
 # Setup GGML
 tar -xf packaging/ggml.tar.gz -C subprojects
 
+# Setup CLBlast
+%if %{with gpu}
+tar -xf packaging/clblast.tar.gz -C subprojects
+%endif # clblast
+
 mkdir -p build
 meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       --libdir=%{_lib} --bindir=%{nntrainerapplicationdir} \
@@ -423,8 +448,7 @@ meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       %{enable_reduce_tolerance} %{configure_subplugin_install_path} %{enable_debug} \
       -Dml-api-support=enabled -Denable-nnstreamer-tensor-filter=enabled \
       -Denable-nnstreamer-tensor-trainer=enabled -Denable-capi=enabled \
-      -Denable-ggml=true \
-      %{fp16_support} build --wrap-mode=nodownload
+      -Denable-ggml=true %{fp16_support} %{opencl_support} build --wrap-mode=nodownload
 
 ninja -C build %{?_smp_mflags}
 
@@ -651,6 +675,23 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/mem_allocator.h
 %{_includedir}/nntrainer/tensor_layer.h
 %{_includedir}/nntrainer/weight_layer.h
+%if %{with gpu}
+%{_includedir}/nntrainer/CL/cl.h
+%{_includedir}/nntrainer/CL/cl_platform.h
+%{_includedir}/nntrainer/CL/opencl.h
+%{_includedir}/nntrainer/attention_kernel_interface.h
+%{_includedir}/nntrainer/attention_kernel_strings.h
+%{_includedir}/nntrainer/blas_kernel_interface.h
+%{_includedir}/nntrainer/blas_kernel_strings.h
+%{_includedir}/nntrainer/cl_buffer_manager.h
+%{_includedir}/nntrainer/cl_context.h
+%{_includedir}/nntrainer/cl_platform.h
+%{_includedir}/nntrainer/opencl_command_queue_manager.h
+%{_includedir}/nntrainer/opencl_context_manager.h
+%{_includedir}/nntrainer/opencl_kernel.h
+%{_includedir}/nntrainer/opencl_op_interface.h
+%{_includedir}/nntrainer/opencl_program.h
+%endif # gpu
 %files devel-static
 %{_libdir}/libnntrainer*.a
 %exclude %{_libdir}/libcapi*.a
@@ -743,6 +784,30 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_libdir}/libggml.so
 %{_libdir}/libggml_base.so
 %{_libdir}/libggml_cpu.so
+
+# CLBlast
+%if %{with gpu}
+%files -n clblast
+%manifest nntrainer.manifest
+%defattr(-,root,root,-)
+%license LICENSE
+%{_libdir}/libclblast.so
+%{_bindir}/clblast_tuner_copy_fast
+%{_bindir}/clblast_tuner_copy_pad
+%{_bindir}/clblast_tuner_invert
+%{_bindir}/clblast_tuner_routine_xgemm
+%{_bindir}/clblast_tuner_routine_xtrsv
+%{_bindir}/clblast_tuner_transpose_fast
+%{_bindir}/clblast_tuner_transpose_pad
+%{_bindir}/clblast_tuner_xaxpy
+%{_bindir}/clblast_tuner_xconvgemm
+%{_bindir}/clblast_tuner_xdot
+%{_bindir}/clblast_tuner_xgemm
+%{_bindir}/clblast_tuner_xgemm_direct
+%{_bindir}/clblast_tuner_xgemv
+%{_bindir}/clblast_tuner_xger
+%endif
+
 %endif #tizen
 
 %files applications
