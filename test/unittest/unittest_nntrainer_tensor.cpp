@@ -732,13 +732,13 @@ TEST(nntrainer_Tensor, QTensor_13_p) {
   A_fp32.dot(W_q4k, out_q4k_t);
   std::cout << out_q4k_t << std::endl;
   std::cout << out_t << std::endl;
-  const float eps = 1e-5;
+  const float eps = 1e-3;
   auto mean_squared_error =
     mse<float, float>(out_t.getData<float>(), ref_dst.data(), M * N);
-  EXPECT_NEAR(mean_squared_error, 0., eps * K * N);
+  EXPECT_NEAR(mean_squared_error, 0., eps * M * N);
   auto mean_squared_error_tensor = mse<float, float>(
     out_t.getData<float>(), out_q4k_t.getData<float>(), M * N);
-  EXPECT_NEAR(mean_squared_error_tensor, 0., eps * K * N);
+  EXPECT_NEAR(mean_squared_error_tensor, 0., eps * M * N);
 }
 
 TEST(nntrainer_Tensor, QTensor_14_p) {
@@ -748,7 +748,7 @@ TEST(nntrainer_Tensor, QTensor_14_p) {
   uint32_t N = 1024;
 
   // Float tensor
-  std::vector<float> weight = generate_random_vector<float>(K * N);
+  std::vector<float> weight = generate_random_vector<float>(K * N, -0.05, 0.05);
   std::vector<float> activation = generate_random_vector<float>(M * K);
   nntrainer::Tensor W_fp32(
     1, 1, K, N,

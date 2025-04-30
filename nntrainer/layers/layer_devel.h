@@ -391,7 +391,30 @@ public:
         for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
           /// @note shared weights are only be read at the first acecss
           if (run_context.isGradientFirstAccess(i)) {
-            run_context.getWeight(i).read(file);
+            // This is a temporary work to quantize & repack fp32 data to q4kx8
+            if (run_context.getWeight(i).getDataType() == Tdatatype::FP32) {
+              run_context.getWeight(i).read(file);
+            } else {
+              /// if run_context.getWeight(i).getDataType() == Tdatatype::Q4_K
+              Tensor W_q4k = run_context.getWeight(i);
+              uint32_t K = W_q4k.height();
+              uint32_t N = W_q4k.width();
+
+              Tensor W_fp32(1, 1, K, N,
+                            {ml::train::TensorDim::Format::NCHW,
+                             ml::train::TensorDim::DataType::FP32});
+              W_fp32.read(file);
+              Tensor W_fp32_t = W_fp32.transpose("0:2:1");
+
+              const float *src_ptr = W_fp32_t.getData<float>();
+              std::vector<char> dst_vector = std::vector<char>(W_q4k.size());
+              char *dst_ptr = (char *)dst_vector.data();
+
+              nntrainer::quantize_q4_K(src_ptr, (void *)dst_ptr, N, K, nullptr);
+
+              nntrainer::repack_q4_K_to_q4_K_8(W_q4k.getData<uint8_t>(),
+                                               dst_ptr, W_q4k.size(), N, K);
+            }
 
             if (run_context.isMixedPrecision(i) && trainable &&
                 !run_context.getWeightFP32(i).empty()) {

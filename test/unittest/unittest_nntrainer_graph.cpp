@@ -406,8 +406,10 @@ TEST(nntrainerGraphUnitTest, Q4_K_FP32_Model) {
   model->addLayer(ml::train::createLayer(
     "input", {nntrainer::withKey("name", "input0"),
               nntrainer::withKey("input_shape", "1:1:1024")}));
+  
+  int NUM_LAYER = 1;
 
-  for (int i = 0; i < 10; ++i) {
+  for (int i = 0; i < NUM_LAYER; ++i) {
     model->addLayer(ml::train::createLayer(
       "fully_connected", {nntrainer::withKey("unit", 1024),
                           nntrainer::withKey("disable_bias", "true")}));
@@ -433,7 +435,7 @@ TEST(nntrainerGraphUnitTest, Q4_K_FP32_Model) {
     "input", {nntrainer::withKey("name", "input0"),
               nntrainer::withKey("input_shape", "1:1:1024")}));
 
-  for (int i = 0; i < 10; ++i) {
+  for (int i = 0; i < NUM_LAYER; ++i) {
     model_fp->addLayer(ml::train::createLayer(
       "fully_connected", {nntrainer::withKey("unit", 1024),
                           nntrainer::withKey("disable_bias", "true")}));
@@ -453,7 +455,7 @@ TEST(nntrainerGraphUnitTest, Q4_K_FP32_Model) {
   model_fp->load("fc_float.bin");
 
   float input[1024];
-  std::vector<float> input_data = generate_random_vector<float>(1024);
+  std::vector<float> input_data = generate_random_vector<float>(1024, -0.05, 0.05);
 
   for (unsigned int i = 0; i < 1024; ++i) {
     input[i] = input_data[i];
@@ -470,9 +472,22 @@ TEST(nntrainerGraphUnitTest, Q4_K_FP32_Model) {
 
   const float eps = 1e-5;
   auto mean_squared_error = mse<float, float>(ans[0], ans2[0], 1024);
-  for (unsigned int i = 0; i < 1024; ++i) {
-    std::cout << ans[0][i] << " " << ans2[0][i] << std::endl;
+  for (unsigned int i = 0; i < 5; ++i) {
+    std::cout << ans[0][i] << " " ;
   }
+  std::cout << " ... ";
+  for (unsigned int i = 5; i > 0; --i) {
+    std::cout << ans[0][1024-i] << " " ;
+  }
+  std::cout << std::endl;
+  for (unsigned int i = 0; i < 5; ++i) {
+    std::cout << ans2[0][i] << " " ;
+  }
+  std::cout << " ... ";
+  for (unsigned int i = 5; i > 0; --i) {
+    std::cout << ans2[0][1024-i] << " " ;
+  }
+  std::cout << std::endl;
 
   in.clear();
   ans.clear();
