@@ -1,5 +1,6 @@
 ggml_interface_headers = [
     'ggml_interface.h',
+    'bs_thread_pool.h'
 ]
 ggml_interface_sources = [
     'ggml_interface.cpp',
