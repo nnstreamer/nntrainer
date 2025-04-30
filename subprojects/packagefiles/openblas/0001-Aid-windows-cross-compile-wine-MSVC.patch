@@ -135,7 +135,6 @@ index 229554f33..e7edc07fd 100644
 +#if defined(ATOM) || defined(CORE_generic)
  
  #define SNUMOPT		2
- #define DNUMOPT		1
 -- 
 2.43.0
 
