@@ -16,8 +16,19 @@
 #include <fallback_internal.h>
 #include <neon_impl.h>
 #include <nntrainer_error.h>
+#ifdef ENABLE_GGML
+#include <ggml_interface.h>
+#endif
 
 namespace nntrainer {
+
+void init_backend() {
+#ifdef ENABLE_GGML
+  __ggml_init();
+#else
+  // TODO it needed.
+#endif
+}
 
 void calc_trigonometric_vals_dup(unsigned int N_half, float *angle, float *cos_,
                                  float *sin_, unsigned int alpha) {
@@ -230,9 +241,75 @@ bool is_valid(const unsigned int N, const float *input) {
   return nntrainer::neon::is_valid(N, input);
 }
 
+void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
+               const float *A, const unsigned int lda, const void *B,
+               const unsigned int ldb, float *C, const unsigned int ldc) {
+#ifdef ENABLE_GGML
+  return __ggml_q4_0_8x8_q8_0_GEMM(M, N, K, A, lda, B, ldb, C, ldc);
+#else
+  return __fallback_gemm_q4_0(M, N, K, A, lda, B, ldb, C, ldc);
+#endif
+}
+
 void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc) {
+#ifdef ENABLE_GGML
+  return __ggml_q4_K_8x8_q8_K_GEMM(M, N, K, A, lda, B, ldb, C, ldc);
+#else
   return __fallback_gemm_q4_K(M, N, K, A, lda, B, ldb, C, ldc);
+#endif
+}
+
+size_t quantize_q4_0(const float *src, void *dst, int64_t nrow,
+                     int64_t n_per_row, const float *quant_weights) {
+#ifdef ENABLE_GGML
+  return __ggml_quantize_q4_0(src, dst, nrow, n_per_row, quant_weights);
+#else
+  return __fallback_quantize_q4_0(src, dst, nrow, n_per_row, quant_weights);
+#endif
+}
+
+size_t quantize_q4_K(const float *src, void *dst, int64_t nrow,
+                     int64_t n_per_row, const float *quant_weights) {
+#ifdef ENABLE_GGML
+  return __ggml_quantize_q4_K(src, dst, nrow, n_per_row, quant_weights);
+#else
+  return __fallback_quantize_q4_K(src, dst, nrow, n_per_row, quant_weights);
+#endif
+}
+
+void dequantize_row_q4_K(const void *x_raw, float *y, int64_t k) {
+#ifdef ENABLE_GGML
+  __ggml_dequantize_row_q4_K(x_raw, y, k);
+#else
+  __fallback_dequantize_row_q4_K(x_raw, y, k);
+#endif
+}
+
+void dequantize_row_q8_K(const void *x, float *y, int64_t k) {
+#ifdef ENABLE_GGML
+  __ggml_dequantize_row_q8_K(x, y, k);
+#else
+  __fallback_dequantize_row_q8_K(x, y, k);
+#endif
+}
+
+void repack_q4_0_to_q4_0_8(void *W, void *repacked_W, size_t data_size,
+                           const unsigned int M, const unsigned int N) {
+#ifdef ENABLE_GGML
+  __ggml_repack_q4_0_to_q4_0_8(W, repacked_W, data_size, M, N);
+#else
+  __fallback_repack_q4_0_to_q4_0_8(W, repacked_W, data_size, M, N);
+#endif
+}
+
+void repack_q4_K_to_q4_K_8(void *W, void *repacked_W, size_t data_size,
+                           const unsigned int M, const unsigned int N) {
+#ifdef ENABLE_GGML
+  __ggml_repack_q4_K_to_q4_K_8(W, repacked_W, data_size, M, N);
+#else
+  __fallback_repack_q4_K_to_q4_K_8(W, repacked_W, data_size, M, N);
+#endif
 }
 } /* namespace nntrainer */

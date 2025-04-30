@@ -356,7 +356,7 @@ static void run_quant_test(const uint32_t M, const uint32_t K, const uint32_t N,
                    weight.data(), K, 0.F, ref_dst.data(), N);
   auto t2 = high_resolution_clock::now();
   auto dt = duration_cast<nanoseconds>(t2 - t1);
-  std::cout << "[INFO] sgemm : " << dt.count() << " ns " << std::endl;
+  std::cout << "[INFO] sgemm :    " << dt.count() << " ns " << std::endl;
 
   q0_k_mse = test_gemm_q4_0(M, K, N, weight.data(), activation.data(), ref_dst);
   q4_k_mse = test_gemm_q4_K(M, K, N, weight.data(), activation.data(), ref_dst);
