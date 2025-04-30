@@ -462,18 +462,26 @@ endif
 ggml_dep = dummy_dep
 
 if get_option('enable-ggml')
+  message('preparing ggml')
   ggml_options = cmake.subproject_options()
-  if cxx_compiler_id == 'msvc'
+  ggml_root = meson.source_root() / 'subprojects' / 'ggml'
+  if host_machine.system() == 'windows'
     ggml_options.add_cmake_defines(common_win_subproject_cmake_defines)
   endif
   ggml_options.add_cmake_defines({'BUILD_SHARED_LIBS': host_machine.system() != 'windows'})
   ggml_options.add_cmake_defines({'GGML_BUILD_TESTS': false})
   ggml_options.add_cmake_defines({'GGML_BUILD_EXAMPLES': false})
+  ggml_options.add_cmake_defines({'CMAKE_INSTALL_LIBDIR': nntrainer_libdir / 'arm64-v8a'})
   ggml_proj = cmake.subproject('ggml', options: ggml_options, required: true)
   ggml_dep = [
     ggml_proj.dependency('ggml-base'),
     ggml_proj.dependency('ggml-cpu'),
     ggml_proj.dependency('ggml')]
+
+  if get_option('platform') == 'android'
+    message('preparing ggml for Android')
+    run_command([meson.source_root() / 'jni' / 'prepare_ggml.sh', ggml_root ], check: true)
+  endif
 
   extra_defines += '-DENABLE_GGML=1'
 endif
