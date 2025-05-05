@@ -188,3 +188,5 @@ compilation terminated.
 ```bash
 sudo apt install libflatbuffers-dev
 ```
+
+## For Windows OS please follow: [Getting Started (Windows)](https://github.com/nnstreamer/nntrainer/blob/main/docs/getting-started-windows.md)
