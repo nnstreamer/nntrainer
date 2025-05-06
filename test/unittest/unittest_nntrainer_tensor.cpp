@@ -748,7 +748,7 @@ TEST(nntrainer_Tensor, copy_07_p) {
     batch, channel, height, width,
     {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
 
-  input.copyData(output);
+  output.copyData(input);
 
   ASSERT_NE(input, output);
 
@@ -774,7 +774,7 @@ TEST(nntrainer_Tensor, copy_08_p) {
 
   nntrainer::Tensor output(batch, channel, height, width);
 
-  EXPECT_NO_THROW(input.copyData(output));
+  EXPECT_NO_THROW(output.copyData(input));
 
   for (unsigned int b = 0; b < output.batch(); ++b)
     for (unsigned int c = 0; c < output.channel(); ++c)
@@ -798,7 +798,7 @@ TEST(nntrainer_Tensor, copy_09_p) {
 
   nntrainer::Tensor output(batch, channel, height, width);
 
-  EXPECT_NO_THROW(input.copyData(output));
+  EXPECT_NO_THROW(output.copyData(input));
 
   for (unsigned int b = 0; b < output.batch(); ++b)
     for (unsigned int c = 0; c < output.channel(); ++c)
@@ -959,8 +959,8 @@ TEST(nntrainer_Tensor, copy_15_n) {
     batch, channel, height, width,
     {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT8});
 
-  // Currently, UINT16 does not support copyData of UINT8 data type
-  EXPECT_THROW(input.copyData(output), std::invalid_argument);
+  // Currently, UINT8 does not support copyData of UINT16 data type
+  EXPECT_THROW(output.copyData(input), std::invalid_argument);
 }
 
 TEST(nntrainer_Tensor, copy_16_n) {
@@ -979,8 +979,8 @@ TEST(nntrainer_Tensor, copy_16_n) {
     batch, channel, height, width,
     {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16});
 
-  // Currently, CharTensor does not support copyData of a UINT16 data type
-  EXPECT_THROW(input.copyData(output), std::invalid_argument);
+  // Currently, UINT16 does not support copyData of a CharTensor data type
+  EXPECT_THROW(output.copyData(input), std::invalid_argument);
 }
 
 TEST(nntrainer_Tensor, multiply_i_01_p) {
