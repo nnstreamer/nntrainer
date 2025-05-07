@@ -23,6 +23,59 @@ using std::chrono::microseconds;
 using std::chrono::milliseconds;
 using std::chrono::nanoseconds;
 using std::chrono::seconds;
+#include <unistd.h>
+#include <fstream>
+#include <filesystem>
+
+bool is_cpu_fully_utilized(int cpu_id) {
+    std::ifstream cur_file("/sys/devices/system/cpu/cpu" + std::to_string(cpu_id) + "/cpufreq/scaling_cur_freq");
+    std::ifstream max_file("/sys/devices/system/cpu/cpu" + std::to_string(cpu_id) + "/cpufreq/cpuinfo_max_freq");
+
+    int cur_freq = 0, max_freq = 0;
+    if (cur_file >> cur_freq && max_file >> max_freq) {
+        float utilization_ratio = float(cur_freq) / max_freq;
+        std::cout << "CPU utilization_ratio : " << utilization_ratio << "\n";
+        return utilization_ratio > 0.95f; // 95%+ means likely fully utilized
+    }
+
+    return false;
+}
+
+void print_cpu_frequency() {
+    for (int i = 0; i < 8; ++i) { // Change 8 to match your number of cores
+        is_cpu_fully_utilized(i);
+        std::string path = "/sys/devices/system/cpu/cpu" + std::to_string(i) + "/cpufreq/scaling_cur_freq";
+        std::ifstream freq_file(path);
+        if (freq_file.is_open()) {
+            int freq_khz;
+            freq_file >> freq_khz;
+            std::cout << "CPU" << i << " Frequency: " << freq_khz / 1000.0 << " MHz\n";
+        }
+    }
+}
+
+void print_cpu_temperature() {
+    for (const auto& entry : std::filesystem::directory_iterator("/sys/class/thermal/")) {
+        std::string temp_path = entry.path().string() + "/temp";
+        std::ifstream temp_file(temp_path);
+        if (temp_file.is_open()) {
+            int temp_millic;
+            temp_file >> temp_millic;
+            std::cout << entry.path().filename() << " Temp: " << temp_millic / 1000.0 << " °C\n";
+        }
+    }
+}
+
+void print_memory_usage() {
+    std::ifstream statm("/proc/self/statm");
+    if (statm.is_open()) {
+        long pages_total, resident;
+        statm >> pages_total >> resident;
+        long page_size_kb = sysconf(_SC_PAGE_SIZE) / 1024;
+        std::cout << "Virtual Memory: " << pages_total * page_size_kb << " KB\n";
+        std::cout << "Resident Set Size (RSS): " << resident * page_size_kb << " KB\n";
+    }
+}
 
 template <typename T>
 static inline std::vector<T>
@@ -279,15 +332,29 @@ static float test_gemm_q4_0(const uint32_t M, const uint32_t K,
 
   // Step3. Run GEMM! (Online activation quantization + kernel routine + return
   // float)
+  print_cpu_frequency();
+  print_cpu_temperature();
+  print_memory_usage();
+  sleep(1);
+  const int TC = 1;
+  double gflops = 2 * M * N * K;
   std::vector<float> dst(M * N);
-  auto t1 = high_resolution_clock::now();
-  // #### MAIN TESTED METHOD ####
   nntrainer::gemm_q4_0(M, N, K, activations, K,
                        (void *)q4_0_repacked_qWeight.data(), N, dst.data(), N);
+  nntrainer::gemm_q4_0(M, N, K, activations, K,
+                       (void *)q4_0_repacked_qWeight.data(), N, dst.data(), N);
+  nntrainer::gemm_q4_0(M, N, K, activations, K,
+                       (void *)q4_0_repacked_qWeight.data(), N, dst.data(), N);
+  auto t1 = high_resolution_clock::now();
+  // #### MAIN TESTED METHOD ####
+  for (int tc = 0; tc < TC; ++tc){
+  nntrainer::gemm_q4_0(M, N, K, activations, K,
+                       (void *)q4_0_repacked_qWeight.data(), N, dst.data(), N);
+  }
   // #### MAIN TESTED METHOD ####
   auto t2 = high_resolution_clock::now();
   auto dt = duration_cast<nanoseconds>(t2 - t1);
-  std::cout << "[INFO] gemm_q4_0: " << dt.count() << " ns " << std::endl;
+  std::cout << "[INFO] gemm_q4_0: " << dt.count() / TC << " ns " << " , gflops : " << 1e+9 * gflops / (dt.count() / TC)<< std::endl;
 
   // Step4. Compute quantization error
   auto mean_squared_error = compute_mse(M, N, ref_dst, dst);
@@ -319,15 +386,29 @@ static float test_gemm_q4_K(const uint32_t M, const uint32_t K,
 
   // Step3. Run GEMM! (Online activation quantization + kernel routine + return
   // float)
+  print_cpu_frequency();
+  print_cpu_temperature();
+  print_memory_usage();
+  const int TC = 1;
+  double gflops = 2 * M * N * K;
   std::vector<float> dst(M * N);
+  nntrainer::gemm_q4_K(M, N, K, activations, K, (void *)repacked_qWeight.data(),
+                    N, dst.data(), N);
+  nntrainer::gemm_q4_K(M, N, K, activations, K, (void *)repacked_qWeight.data(),
+                    N, dst.data(), N);
+  nntrainer::gemm_q4_K(M, N, K, activations, K, (void *)repacked_qWeight.data(),
+                    N, dst.data(), N);
+  sleep(1);
   auto t1 = high_resolution_clock::now();
   // #### MAIN TESTED METHOD ####
-  nntrainer::gemm_q4_K(M, N, K, activations, K, (void *)repacked_qWeight.data(),
+  for (int tc = 0; tc < TC; ++tc){
+    nntrainer::gemm_q4_K(M, N, K, activations, K, (void *)repacked_qWeight.data(),
                        N, dst.data(), N);
+  }
   // #### MAIN TESTED METHOD ####
   auto t2 = high_resolution_clock::now();
   auto dt = duration_cast<nanoseconds>(t2 - t1);
-  std::cout << "[INFO] gemm_q4_K: " << dt.count() << " ns " << std::endl;
+  std::cout << "[INFO] gemm_q4_K: " << dt.count() / TC << " ns " << " , gflops : " << gflops * (1e+9) / (dt.count() / TC)<< std::endl;
   ///@note Needs validation!
 
   // Step4. Compare quantization error
@@ -351,12 +432,15 @@ static void run_quant_test(const uint32_t M, const uint32_t K, const uint32_t N,
   std::vector<float> ref_dst(M * N);
 
   // GROUND TRUTH TRANSB SGEMM for reference
+const int TC = 1;
   auto t1 = high_resolution_clock::now();
-  nntrainer::sgemm(0, false, true, M, N, K, 1.F, activation.data(), K,
+  for (int tc = 0; tc < TC; ++tc){
+     nntrainer::sgemm(0, false, true, M, N, K, 1.F, activation.data(), K,
                    weight.data(), K, 0.F, ref_dst.data(), N);
+  }
   auto t2 = high_resolution_clock::now();
   auto dt = duration_cast<nanoseconds>(t2 - t1);
-  std::cout << "[INFO] sgemm : " << dt.count() << " ns " << std::endl;
+  std::cout << "[INFO] sgemm : " << dt.count() / TC << " ns " << std::endl;
 
   q0_k_mse = test_gemm_q4_0(M, K, N, weight.data(), activation.data(), ref_dst);
   q4_k_mse = test_gemm_q4_K(M, K, N, weight.data(), activation.data(), ref_dst);
@@ -546,6 +630,26 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMV_1x8192x3072) {
   const unsigned int M = 1;
   const unsigned int K = 8192;
   const unsigned int N = 3072;
+  float q0_k_mse, q4_k_mse;
+  run_quant_test(M, K, N, q0_k_mse, q4_k_mse);
+  ASSERT_LE(q0_k_mse, 1.0f);
+  ASSERT_LE(q4_k_mse, 1.0f);
+}
+
+TEST(nntrainer_cpu_backend_standalone, quant_GEMV_1x768x768) {
+  const unsigned int M = 1;
+  const unsigned int K = 768;
+  const unsigned int N = 768;
+  float q0_k_mse, q4_k_mse;
+  run_quant_test(M, K, N, q0_k_mse, q4_k_mse);
+  ASSERT_LE(q0_k_mse, 1.0f);
+  ASSERT_LE(q4_k_mse, 1.0f);
+}
+
+TEST(nntrainer_cpu_backend_standalone, quant_GEMM_2048x768x768) {
+  const unsigned int M = 2048;
+  const unsigned int K = 768;
+  const unsigned int N = 768;
   float q0_k_mse, q4_k_mse;
   run_quant_test(M, K, N, q0_k_mse, q4_k_mse);
   ASSERT_LE(q0_k_mse, 1.0f);
