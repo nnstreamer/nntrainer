@@ -110,7 +110,7 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
 
     // ::ggml_gemv_q4_0_8x8_q8_0(K, C, ldc, B, QA.data(), M, N);
 
-    n_threads = 1;
+    n_threads = 8;
     // if (K < 1592 && N < 1592) n_threads = 1;
 #pragma omp parallel for num_threads(n_threads)
     for (int thread_idx = 0; thread_idx < n_threads; ++thread_idx) {
@@ -169,12 +169,9 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int lda, const void *B,
                                const unsigned int ldb, float *C,
                                const unsigned int ldc) {
-  int n_threads = std::thread::hardware_concurrency();
-  BS::thread_pool<> bspool(n_threads);
-  // BS::thread_pool<> bspool(std::thread::hardware_concurrency());
 
   if (M == 1) { // GEMV
-    n_threads = 8;
+    int n_threads = 4;
     if (K < 1592 && N < 1592) n_threads = 1;
     int blocks_per_row = (K + QK_K - 1) / QK_K;
     int qa_size = sizeof(block_q8_K) * blocks_per_row;
@@ -217,6 +214,8 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
     // single thread
     ggml_gemm_q4_K_8x8_q8_K(K, C, ldc, B, QA.data(), M, N);
 #else
+    BS::thread_pool<> bspool(std::thread::hardware_concurrency());
+
     // TODO check beter multithreading
     int delta = 8;
     // int delta = 384 / 4;
