@@ -27,10 +27,10 @@ option('capi-ml-common-actual', type: 'string', value: 'capi-ml-common',
         description: 'backward compatible dependency name of capi-ml-common. ignored if ml-api-support is disabled.')
 option('tizen-version-major', type: 'integer', min : 4, max : 9999, value: 9999) # 9999 means "not Tizen"
 option('tizen-version-minor', type: 'integer', min : 0, max : 9999, value: 0)
-option('openblas-num-threads', type: 'integer', min : 0, max : 9999, value: 0)
+option('openblas-num-threads', type: 'integer', min : 0, max : 9999, value: 8)
 #This is for the multi-threading in nntrainer
 option('nntr-num-threads', type: 'integer', min : 0, max : 9999, value: 1)
-option('omp-num-threads', type: 'integer', min : 0, max : 9999, value: 1)
+option('omp-num-threads', type: 'integer', min : 0, max : 9999, value: 8)
 option('hgemm-experimental-kernel', type: 'boolean', value: false)
 
 # test related option

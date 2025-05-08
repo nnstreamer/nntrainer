@@ -80,6 +80,14 @@ public:
     TensorBase(rhs), qscheme(QScheme::PER_TENSOR_AFFINE) {}
 
   /**
+   * @brief Construct a new Uint4QTensor object
+   * @param rhs TensorBase object to copy
+   * @param qsceme_ qscheme_
+   */
+  Uint4QTensor(TensorBase &rhs, QScheme qscheme_) :
+    TensorBase(rhs), qscheme(qscheme_) {}
+
+  /**
    * @brief Basic Destructor
    */
   ~Uint4QTensor() {}
@@ -292,7 +300,7 @@ public:
    */
   QScheme q_scheme() const override;
 
-private:
+protected:
   /**
    * @brief quantization scheme
    */
