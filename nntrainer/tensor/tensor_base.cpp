@@ -44,8 +44,7 @@ void TensorBase::setTensorVar(TensorDim d, void *buf, size_t offset) {
   dim = d;
   strides = d.computeStrides();
   /// Tensor does not own the memory
-  data = std::shared_ptr<MemoryData>(new MemoryData((void *)buf),
-                                     std::default_delete<MemoryData>());
+  data = std::make_shared<MemoryData>(buf);
   offset = offset;
 }
 

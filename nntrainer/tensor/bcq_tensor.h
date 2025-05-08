@@ -270,8 +270,8 @@ public:
 
 private:
   /// @note this is an arbitrary value
-  uint16_t quantized_bit_size = 3;
-  std::shared_ptr<BiQGEMM::BCQW> bcq_weight;
+  uint16_t quantized_bit_size_ = 3;
+  std::unique_ptr<BiQGEMM::BCQW> bcq_weight_;
 
   /**
    * @brief create BCQW structure from current tensor

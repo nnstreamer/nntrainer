@@ -200,7 +200,8 @@ void BCQTensor::initialize(Initializer init) {
 
 Tensor &BCQTensor::dot(Tensor const &input, Tensor &output, bool trans,
                        bool trans_in, float beta) const {
-  BiQGEMM::matrixDotMatrix(output.getData(), *bcq_weight, input.getData(),
+  BiQGEMM::matrixDotMatrix(output.getData(), *bcq_weight_.get(),
+                           input.getData(),
                            trans_in ? input.width() : input.height());
   return output;
 }
@@ -297,17 +298,17 @@ std::vector<unsigned int> BCQTensor::argmax() const {
 }
 
 void BCQTensor::save_quantization_info(std::ostream &file) {
-  checkedWrite(file, (char *)&quantized_bit_size, sizeof(uint16_t),
+  checkedWrite(file, (char *)&quantized_bit_size_, sizeof(uint16_t),
                "[BCQTensor::save] failed to write quantization information");
 }
 
 void BCQTensor::read_quantization_info(std::ifstream &file) {
-  checkedRead(file, (char *)&quantized_bit_size, sizeof(uint16_t),
+  checkedRead(file, (char *)&quantized_bit_size_, sizeof(uint16_t),
               "[BCQTensor::read] failed to read quantization information");
 }
 
 size_t BCQTensor::size() const {
-  return quantized_bit_size * dim.width() * ((dim.height() + 31) / 32);
+  return quantized_bit_size_ * dim.width() * ((dim.height() + 31) / 32);
 }
 
 float BCQTensor::max_abs() const { return maxValue(); }
@@ -340,7 +341,7 @@ void BCQTensor::print(std::ostream &out) const {
   init.copyfmt(out);
 
   size_t idx = 0;
-  for (unsigned int bit = 0; bit < quantized_bit_size; ++bit) {
+  for (unsigned int bit = 0; bit < quantized_bit_size_; ++bit) {
     for (unsigned int k = 0; k < batch(); k++) {
       for (unsigned int l = 0; l < channel(); l++) {
         for (unsigned int i = 0; i < width(); i++) {
@@ -360,7 +361,7 @@ size_t BCQTensor::getMemoryBytes() const {
   return bytes() + scale_size() * sizeof(float);
 }
 
-size_t BCQTensor::scale_size() const { return width() * quantized_bit_size; }
+size_t BCQTensor::scale_size() const { return width() * quantized_bit_size_; }
 
 void BCQTensor::copy(const void *buf) {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
@@ -398,7 +399,7 @@ void BCQTensor::printScales(std::ostream &out) const {
 }
 
 void BCQTensor::createBCQW() {
-  size_t qbit_of_clusters[] = {quantized_bit_size};
+  size_t qbit_of_clusters[] = {quantized_bit_size_};
   size_t size_of_clusters[] = {width()};
   const size_t number_of_cluster = 1;
 
@@ -407,7 +408,7 @@ void BCQTensor::createBCQW() {
   /// found with various values according to the usage environment.
   size_t hidden_tile_size = 32;
 
-  bcq_weight = std::make_shared<BiQGEMM::BCQW>(
+  bcq_weight_ = std::make_unique<BiQGEMM::BCQW>(
     (uint32_t *)(data->getAddr<uint32_t>()),
     (float *)((uint32_t *)(data->getAddr<uint32_t>()) + size()), width(),
     height(), number_of_cluster, qbit_of_clusters, size_of_clusters,
