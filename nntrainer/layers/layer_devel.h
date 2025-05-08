@@ -392,10 +392,8 @@ public:
           /// @note shared weights are only be read at the first acecss
           if (run_context.isGradientFirstAccess(i)) {
             // This is a temporary work to quantize & repack fp32 data to q4kx8
-            if (run_context.getWeight(i).getDataType() == Tdatatype::FP32) {
-              run_context.getWeight(i).read(file);
-            } else {
-              /// if run_context.getWeight(i).getDataType() == Tdatatype::Q4_K
+            if (run_context.getWeight(i).getDataType() == Tdatatype::Q4_K) {
+
               Tensor W_q4k = run_context.getWeight(i);
               uint32_t K = W_q4k.height();
               uint32_t N = W_q4k.width();
@@ -414,6 +412,8 @@ public:
 
               nntrainer::repack_q4_K_to_q4_K_8(W_q4k.getData<uint8_t>(),
                                                dst_ptr, W_q4k.size(), N, K);
+            } else {
+              run_context.getWeight(i).read(file);
             }
 
             if (run_context.isMixedPrecision(i) && trainable &&
