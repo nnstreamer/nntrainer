@@ -16,7 +16,7 @@
 #include <stdexcept>
 #include <vector>
 
-#include <profiler.h>
+// #include <profiler.h>
 
 namespace nntrainer {
 
@@ -60,14 +60,11 @@ void CacheElem::swapIn(Options opt) {
   mem_data->setAddr((void *)buf);
   mem_data->setValid(true);
   active = true;
-
-  /**
-  #ifdef PROFILE
-    std::string msg("CacheElem(");
-    msg += device->getDevicePath() + ") #" + std::to_string(id);
-    PROFILE_CACHE_ALLOC(buf, length, msg, policyToStr[policy], !alloc_only);
-  #endif
-  */
+  // #ifdef PROFILE
+  //   std::string msg("CacheElem(");
+  //   msg += device->getDevicePath() + ") #" + std::to_string(id);
+  //   PROFILE_CACHE_ALLOC(buf, length, msg, policyToStr[policy], !alloc_only);
+  // #endif
 }
 
 void CacheElem::swapOut(Options opt) {
@@ -80,10 +77,9 @@ void CacheElem::swapOut(Options opt) {
   mem_data->setAddr(nullptr);
   mem_data->setValid(false);
   active = false;
-  /**
-  #ifdef PROFILE
-    PROFILE_CACHE_DEALLOC(buf, policyToStr[policy], !dealloc_only);
-  #endif
-  */
+  // #ifdef PROFILE
+  //   PROFILE_CACHE_DEALLOC(buf, policyToStr[policy], !dealloc_only);
+  // #endif
 }
+
 } // namespace nntrainer
