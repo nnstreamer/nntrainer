@@ -31,7 +31,7 @@
 
 namespace nntrainer {
 
-BS::thread_pool<> Tensor::pool(std::thread::hardware_concurrency());  
+BS::thread_pool<> Tensor::pool(std::thread::hardware_concurrency());
 
 Tensor::Tensor(
   std::vector<std::vector<std::vector<std::vector<int16_t>>>> const &d,
