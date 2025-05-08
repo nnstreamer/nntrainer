@@ -11,6 +11,7 @@
 #include "nntrainer_test_util.h"
 #include <cpu_backend.h>
 #include <gtest/gtest.h>
+#include <ios>
 #include <numeric>
 #include <random>
 #include <vector>
@@ -23,6 +24,9 @@ using std::chrono::microseconds;
 using std::chrono::milliseconds;
 using std::chrono::nanoseconds;
 using std::chrono::seconds;
+
+static constexpr float kNanoSecondsToMiliSecondsFactor =
+  1.0f / (1000.0f * 1000.0f);
 
 template <typename T>
 static inline std::vector<T>
@@ -287,7 +291,9 @@ static float test_gemm_q4_0(const uint32_t M, const uint32_t K,
   // #### MAIN TESTED METHOD ####
   auto t2 = high_resolution_clock::now();
   auto dt = duration_cast<nanoseconds>(t2 - t1);
-  std::cout << "[INFO] gemm_q4_0: " << dt.count() << " ns " << std::endl;
+  std::cout << std::fixed << "[INFO] gemm_q4_0: " << dt.count() << " ns ("
+            << dt.count() * kNanoSecondsToMiliSecondsFactor << " ms)"
+            << std::endl;
 
   // Step4. Compute quantization error
   auto mean_squared_error = compute_mse(M, N, ref_dst, dst);
@@ -327,7 +333,9 @@ static float test_gemm_q4_K(const uint32_t M, const uint32_t K,
   // #### MAIN TESTED METHOD ####
   auto t2 = high_resolution_clock::now();
   auto dt = duration_cast<nanoseconds>(t2 - t1);
-  std::cout << "[INFO] gemm_q4_K: " << dt.count() << " ns " << std::endl;
+  std::cout << std::fixed << "[INFO] gemm_q4_K: " << dt.count() << " ns ("
+            << dt.count() * kNanoSecondsToMiliSecondsFactor << " ms)"
+            << std::endl;
   ///@note Needs validation!
 
   // Step4. Compare quantization error
@@ -356,7 +364,9 @@ static void run_quant_test(const uint32_t M, const uint32_t K, const uint32_t N,
                    weight.data(), K, 0.F, ref_dst.data(), N);
   auto t2 = high_resolution_clock::now();
   auto dt = duration_cast<nanoseconds>(t2 - t1);
-  std::cout << "[INFO] sgemm : " << dt.count() << " ns " << std::endl;
+  std::cout << std::fixed << "[INFO] sgemm : " << dt.count() << " ns ("
+            << dt.count() * kNanoSecondsToMiliSecondsFactor << " ms)"
+            << std::endl;
 
   q0_k_mse = test_gemm_q4_0(M, K, N, weight.data(), activation.data(), ref_dst);
   q4_k_mse = test_gemm_q4_K(M, K, N, weight.data(), activation.data(), ref_dst);
