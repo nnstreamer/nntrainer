@@ -51,9 +51,9 @@ void MakeWeight(unsigned int feature_size, unsigned int layer_num,
        nntrainer::withKey("bias_initializer", "zeros")}));
   }
 
-  _model->setProperty({nntrainer::withKey("batch_size", 1),
-                       nntrainer::withKey("epochs", 1),
-                       nntrainer::withKey("model_tensor_type", weight_act_type)});
+  _model->setProperty(
+    {nntrainer::withKey("batch_size", 1), nntrainer::withKey("epochs", 1),
+     nntrainer::withKey("model_tensor_type", weight_act_type)});
   auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
   int status = _model->setOptimizer(std::move(optimizer));
 
@@ -83,9 +83,9 @@ void MakeAnswer(unsigned int feature_size, unsigned int layer_num,
        nntrainer::withKey("bias_initializer", "zeros")}));
   }
 
-  _model->setProperty({nntrainer::withKey("batch_size", 1),
-                       nntrainer::withKey("epochs", 1),
-                       nntrainer::withKey("model_tensor_type", weight_act_type)});
+  _model->setProperty(
+    {nntrainer::withKey("batch_size", 1), nntrainer::withKey("epochs", 1),
+     nntrainer::withKey("model_tensor_type", weight_act_type)});
   auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
   int status = _model->setOptimizer(std::move(optimizer));
 
@@ -135,7 +135,7 @@ void MakeAndRunModel(unsigned int feature_size, unsigned int layer_num,
     {nntrainer::withKey("batch_size", 1), nntrainer::withKey("epochs", 1),
      nntrainer::withKey("fsu", "true"),
      nntrainer::withKey("fsu_lookahead", std::to_string(look_ahead)),
-     nntrainer::withKey("model_tensor_type", "weight_act_type")});
+     nntrainer::withKey("model_tensor_type", weight_act_type)});
 
   int status = _model->compile(ml::train::ExecutionMode::INFERENCE);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -166,16 +166,19 @@ void MakeAndRunModel(unsigned int feature_size, unsigned int layer_num,
  *
  */
 class LookAheadParm
-  : public ::testing::TestWithParam<std::tuple<unsigned int, std::string>> {};
-
+  : public ::testing::TestWithParam<
+      std::tuple<unsigned int, std::string, unsigned int, unsigned int>> {};
+// look_ahead_parm, weight_act_type, feature_size, layer_num
 TEST_P(LookAheadParm, simple_fc) {
   auto param = GetParam();
   unsigned int look_ahead_parm = std::get<0>(param);
   std::string weight_act_type = std::get<1>(param);
-  unsigned int feature_size = 2048;
-  unsigned int layer_num = 28;
-  std::string file_path =
-    "weight_file" + std::to_string(look_ahead_parm) + ".bin";
+  unsigned int feature_size = std::get<2>(param);
+  unsigned int layer_num = std::get<3>(param);
+  std::string file_path = "weight_file" + std::to_string(look_ahead_parm) +
+                          "_" + std::to_string(feature_size) + "_" +
+                          std::to_string(layer_num) + ".bin";
+
   ori_answer.clear();
   fsu_answer.clear();
 
@@ -189,11 +192,22 @@ TEST_P(LookAheadParm, simple_fc) {
   RemoveWeightFile(file_path);
 }
 
+#ifdef ENABLE_FP16
 INSTANTIATE_TEST_SUITE_P(
   LookAheadParmTest, LookAheadParm,
-  ::testing::Values(std::make_tuple(2, "FP16-FP16")
-                    // 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
-                    // 13, 14, 15, 16, 17, 18, 19, 20, 21,
-                    // 22, 23, 24, 25, 26, 27, 28
-                    // for now it take too long time, so commented out
-                    ));
+  ::testing::Values(std::make_tuple(2, "FP16-FP16", 1024, 8),
+                    std::make_tuple(4, "FP16-FP16", 1024, 8),
+                    std::make_tuple(2, "FP32-FP32", 1024, 8),
+                    std::make_tuple(4, "FP32-FP32", 1024, 8),
+                    std::make_tuple(4, "FP32-FP32", 512, 6),
+                    std::make_tuple(4, "FP32-FP32", 256, 6),
+                    std::make_tuple(4, "FP32-FP32", 100, 6)));
+#else
+INSTANTIATE_TEST_SUITE_P(
+  LookAheadParmTest, LookAheadParm,
+  ::testing::Values(std::make_tuple(2, "FP32-FP32", 1024, 8),
+                    std::make_tuple(4, "FP32-FP32", 1024, 8),
+                    std::make_tuple(4, "FP32-FP32", 512, 6),
+                    std::make_tuple(4, "FP32-FP32", 256, 6),
+                    std::make_tuple(4, "FP32-FP32", 100, 6)));
+#endif

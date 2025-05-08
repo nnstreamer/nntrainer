@@ -22,7 +22,7 @@
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <numeric>
-#include <profiler.h>
+// #include <profiler.h>
 #include <vector>
 
 #if defined(_WIN32)
@@ -176,13 +176,13 @@ void MemoryPool::allocate() {
   }
 #endif
 
-#ifdef PROFILE
-  static long long seq = 0;
-
-  std::string msg("MemoryPool #");
-  msg.append(std::to_string(seq++));
-  PROFILE_MEM_ALLOC(mem_pool, pool_size, msg);
-#endif
+  // #ifdef PROFILE
+  //   static long long seq = 0;
+  //
+  //   std::string msg("MemoryPool #");
+  //   msg.append(std::to_string(seq++));
+  //   PROFILE_MEM_ALLOC(mem_pool, pool_size, msg);
+  // #endif
 }
 
 void MemoryPool::allocateFSU() {
@@ -263,9 +263,9 @@ void MemoryPool::deallocate() {
     memory_exec_order.clear();
     memory_is_wgrad.clear();
 
-#ifdef PROFILE
-    PROFILE_MEM_DEALLOC(mem_pool);
-#endif
+    // #ifdef PROFILE
+    //     PROFILE_MEM_DEALLOC(mem_pool);
+    // #endif
 
     memory_ptrs.clear();
   }
