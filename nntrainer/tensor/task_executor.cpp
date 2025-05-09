@@ -114,7 +114,7 @@ bool TaskExecutor::cancel(int id) {
   std::lock_guard<std::mutex> lock(queue_mutex);
 
   auto it = cancel_map.find(id);
-  if (it == cancel_map.end() || it == nullptr) {
+  if (it == cancel_map.end()) {
     return false;
   }
   *(it->second) = true;
