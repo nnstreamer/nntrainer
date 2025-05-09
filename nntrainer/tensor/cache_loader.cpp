@@ -59,7 +59,7 @@ bool CacheLoader::loadAllinOrder(unsigned int order) {
     return false;
   }
 
-  std::set<unsigned int> exec_id = pool->getExecIDs(order);
+  std::unordered_set<unsigned int> exec_id = pool->getExecIDs(order);
 
   for (auto &id : exec_id) {
     loadTensor(id);
@@ -101,7 +101,7 @@ bool CacheLoader::unloadAllinOrder(unsigned int order) {
     return false;
   }
 
-  std::set<unsigned int> exec_id = pool->getExecIDs(order);
+  std::unordered_set<unsigned int> exec_id = pool->getExecIDs(order);
 
   for (auto &id : exec_id) {
     unloadTensor(id);
@@ -158,7 +158,7 @@ int CacheLoader::flushAsync(unsigned int order,
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  std::set<unsigned int> exec_id = pool->getExecIDs(order);
+  std::unordered_set<unsigned int> exec_id = pool->getExecIDs(order);
 
   for (auto &id : exec_id) {
     unloadTensor(id);
@@ -195,25 +195,30 @@ int CacheLoader::cancelAsync(int id) {
 }
 
 unsigned int CacheLoader::inActive(unsigned int order) {
-  std::set<unsigned int> exec_id = pool->getExecIDs(order);
-  for (auto &id : exec_id) {
-    std::shared_ptr<CacheElem> elem = pool->getCacheElem(id);
-    std::list<std::shared_ptr<CacheElem>> actives = pool->getActiveElems();
-    int load_task_id = elem->getLoadTaskID();
-    if (load_task_id >= 0) {
-      load_task_executor->releaseTask(load_task_id);
-      elem->setLoadTaskID(-1);
-      states[id] = LoadState::Unloading;
+  auto ids = pool->getExecIDsAll();
+  std::list<std::shared_ptr<CacheElem>> actives = pool->getActiveElems();
+  actives.clear();
+
+  for (auto id : ids) {
+    auto exec_id = id.second;
+    for (auto &id : exec_id) {
+      std::shared_ptr<CacheElem> elem = pool->getCacheElem(id);
+      int load_task_id = elem->getLoadTaskID();
+      if (load_task_id >= 0) {
+        load_task_executor->releaseTask(load_task_id);
+        elem->setLoadTaskID(-1);
+        states[id] = LoadState::Unloading;
+      }
+      elem->inActive();
     }
-    actives.remove(elem);
-    elem->inActive();
   }
+  // std::set<unsigned int> exec_id = pool->getExecIDs(order);
   return 0;
 }
 
 bool CacheLoader::checkAllLoadComplete(unsigned int order) {
 
-  std::set<unsigned int> exec_id = pool->getExecIDs(order);
+  std::unordered_set<unsigned int> exec_id = pool->getExecIDs(order);
 
   for (auto &id : exec_id) {
     checkLoadComplete(id);
@@ -223,7 +228,7 @@ bool CacheLoader::checkAllLoadComplete(unsigned int order) {
 
 bool CacheLoader::checkAllUnloadComplete(unsigned int order) {
 
-  std::set<unsigned int> exec_id = pool->getExecIDs(order);
+  std::unordered_set<unsigned int> exec_id = pool->getExecIDs(order);
 
   for (auto &id : exec_id) {
     checkUnloadComplete(id);

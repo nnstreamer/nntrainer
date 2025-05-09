@@ -22,6 +22,7 @@
 #include <common.h>
 #include <memory_pool.h>
 #include <swap_device.h>
+#include <unordered_set>
 
 namespace nntrainer {
 
@@ -35,7 +36,7 @@ public:
     std::unordered_map<unsigned int,
                        std::shared_ptr<CacheElem>>; /**< cache id, cache elem */
   using CacheElemsIter = CacheElems::iterator;
-  using ExecIds = std::set<unsigned int>;
+  using ExecIds = std::unordered_set<unsigned int>;
   using ExecIdsIter = ExecIds::iterator;
 
   /**
@@ -220,9 +221,16 @@ public:
    * @param order Execution order
    * @return Tensor id set
    */
-  std::set<unsigned int> getExecIDs(unsigned int order) {
+  std::unordered_set<unsigned int> getExecIDs(unsigned int order) {
     return exec_ids[order];
   }
+
+  /**
+   * @brief get Active Cache Elem lists All
+   *
+   * @return Active Cache Elem list All
+   */
+  std::unordered_map<unsigned int, ExecIds> getExecIDsAll() { return exec_ids; }
 
   /**
    * @brief get Active Cache Elem lists
