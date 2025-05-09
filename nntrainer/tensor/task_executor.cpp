@@ -112,12 +112,13 @@ void TaskExecutor::submitTasks(const std::vector<TaskDesc> &tasks) {
 
 bool TaskExecutor::cancel(int id) {
   std::lock_guard<std::mutex> lock(queue_mutex);
+
   auto it = cancel_map.find(id);
-  if (it != cancel_map.end()) {
-    *(it->second) = true;
-    return true;
+  if (it == cancel_map.end() || it == nullptr) {
+    return false;
   }
-  return false;
+  *(it->second) = true;
+  return true;
 }
 
 void TaskExecutor::wait(int id) {
