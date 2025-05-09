@@ -1,14 +1,25 @@
-From cd79bc216aa3b25e65caf1415911c5a16a0c4576 Mon Sep 17 00:00:00 2001
+From 7affdf7eb6044da3aea7f52d3c6fc8f05b7c3403 Mon Sep 17 00:00:00 2001
 From: Maciej Nalewaj <m.nalewaj@samsung.com>
-Date: Fri, 25 Apr 2025 10:39:18 +0200
+Date: Fri, 9 May 2025 11:40:20 +0200
 Subject: [PATCH] Export some internal methods
 
 Signed-off-by: Maciej Nalewaj <m.nalewaj@samsung.com>
 ---
+ CMakeLists.txt                    |  2 +-
  include/ggml.h                    | 13 ++++++
  src/ggml-cpu/ggml-cpu-aarch64.cpp | 74 ++++++++++++++++++++++++++++---
- 2 files changed, 80 insertions(+), 7 deletions(-)
+ 3 files changed, 81 insertions(+), 8 deletions(-)
 
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 61fe15a..cf7aec3 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,4 +1,4 @@
+-cmake_minimum_required(VERSION 3.14) # for add_link_options and implicit target directories.
++cmake_minimum_required(VERSION 3.16) # for add_link_options and implicit target directories.
+ project("ggml" C CXX)
+ include(CheckIncludeFileCXX)
+ 
 diff --git a/include/ggml.h b/include/ggml.h
 index 51aa5b3..02f4126 100644
 --- a/include/ggml.h
