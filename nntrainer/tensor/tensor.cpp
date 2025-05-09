@@ -30,6 +30,8 @@
 
 namespace nntrainer {
 
+BS::thread_pool<> Tensor::pool(std::thread::hardware_concurrency());  
+
 Tensor::Tensor(
   std::vector<std::vector<std::vector<std::vector<int16_t>>>> const &d,
   std::vector<float> const &scales, ml::train::TensorDim::TensorType t_type,
