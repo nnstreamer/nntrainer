@@ -3791,10 +3791,13 @@ TEST(nntrainer_Tensor, dotbatch_01_p) {
   nntrainer::Tensor a = ranged(2, 1, 2, 2);
   nntrainer::Tensor b = ranged(2, 1, 2, 2);
   float answer_data[] = {2, 3, 6, 11, 46, 55, 66, 79};
-  float dummy_data[] = {std::nan(""), std::nan(""), std::nan(""), std::nan(""),
-                        std::nan(""), std::nan(""), std::nan(""), std::nan(""),
-                        std::nan(""), std::nan(""), std::nan(""), std::nan(""),
-                        std::nan(""), std::nan(""), std::nan(""), std::nan("")};
+  float dummy_data[] = {
+    (float)std::nan(""), (float)std::nan(""), (float)std::nan(""),
+    (float)std::nan(""), (float)std::nan(""), (float)std::nan(""),
+    (float)std::nan(""), (float)std::nan(""), (float)std::nan(""),
+    (float)std::nan(""), (float)std::nan(""), (float)std::nan(""),
+    (float)std::nan(""), (float)std::nan(""), (float)std::nan(""),
+    (float)std::nan("")};
   nntrainer::Tensor answer({2, 1, 2, 2}, answer_data);
   nntrainer::Tensor out({2, 1, 2, 2}, dummy_data);
   a.dotBatched(b, out);
@@ -3806,10 +3809,13 @@ TEST(nntrainer_Tensor, dotbatch_02_p) {
   nntrainer::Tensor b = ranged(2, 1, 2, 2);
   float answer_data[] = {2,  3,   6,   11,  10,  19,  14,  27,
                          86, 103, 106, 127, 126, 151, 146, 175};
-  float dummy_data[] = {std::nan(""), std::nan(""), std::nan(""), std::nan(""),
-                        std::nan(""), std::nan(""), std::nan(""), std::nan(""),
-                        std::nan(""), std::nan(""), std::nan(""), std::nan(""),
-                        std::nan(""), std::nan(""), std::nan(""), std::nan("")};
+  float dummy_data[] = {
+    (float)std::nan(""), (float)std::nan(""), (float)std::nan(""),
+    (float)std::nan(""), (float)std::nan(""), (float)std::nan(""),
+    (float)std::nan(""), (float)std::nan(""), (float)std::nan(""),
+    (float)std::nan(""), (float)std::nan(""), (float)std::nan(""),
+    (float)std::nan(""), (float)std::nan(""), (float)std::nan(""),
+    (float)std::nan("")};
   nntrainer::Tensor answer({4, 1, 2, 2}, answer_data);
   nntrainer::Tensor out({4, 1, 2, 2}, dummy_data);
   a.dotBatched(b, out);
@@ -3821,10 +3827,13 @@ TEST(nntrainer_Tensor, dotbatch_03_p) {
   nntrainer::Tensor b = ranged(4, 1, 2, 2);
   float answer_data[] = {2,  3,  6,   11,  6,   7,   26,  31,
                          82, 91, 118, 131, 118, 127, 170, 183};
-  float dummy_data[] = {std::nan(""), std::nan(""), std::nan(""), std::nan(""),
-                        std::nan(""), std::nan(""), std::nan(""), std::nan(""),
-                        std::nan(""), std::nan(""), std::nan(""), std::nan(""),
-                        std::nan(""), std::nan(""), std::nan(""), std::nan("")};
+  float dummy_data[] = {
+    (float)std::nan(""), (float)std::nan(""), (float)std::nan(""),
+    (float)std::nan(""), (float)std::nan(""), (float)std::nan(""),
+    (float)std::nan(""), (float)std::nan(""), (float)std::nan(""),
+    (float)std::nan(""), (float)std::nan(""), (float)std::nan(""),
+    (float)std::nan(""), (float)std::nan(""), (float)std::nan(""),
+    (float)std::nan("")};
   nntrainer::Tensor answer({4, 1, 2, 2}, answer_data);
   nntrainer::Tensor out({4, 1, 2, 2}, dummy_data);
   a.dotBatched(b, out);
