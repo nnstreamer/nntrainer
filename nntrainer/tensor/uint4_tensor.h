@@ -292,7 +292,7 @@ public:
    */
   QScheme q_scheme() const override;
 
-private:
+protected:
   /**
    * @brief quantization scheme
    */
