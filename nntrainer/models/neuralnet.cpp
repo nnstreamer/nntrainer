@@ -395,7 +395,7 @@ sharedConstTensors NeuralNetwork::forwarding(
       **/
       model_graph.checkLoadComplete(f);
       node->forwarding(training);
-      model_graph.inActive(f);
+      // model_graph.inActive(f);
       model_graph.LoadTensors(f + lookahead);
     }
   };
@@ -424,7 +424,10 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
     << " target_batch: " << current_batch;
 
   model_graph.setInputsLabels(input, label);
-
+  auto fsu_enable = std::get<props::Fsu>(model_flex_props);
+  if (fsu_enable) {
+    model_graph.inActive(0);
+  }
   return forwarding(training);
 }
 
@@ -452,7 +455,7 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
     } else {
       model_graph.checkLoadComplete(f);
       node->incremental_forwarding(from, to, training);
-      model_graph.inActive(f);
+      // model_graph.inActive(f);
       model_graph.LoadTensors(f + lookahead);
     }
   };
@@ -994,7 +997,10 @@ sharedConstTensors NeuralNetwork::incremental_inference(
   /** @todo: deallocate tensor after incremental inference **/
   /** Clear the set inputs and labels */
   model_graph.setInputsLabels({}, {});
-
+  auto fsu_enable = std::get<props::Fsu>(model_flex_props);
+  if (fsu_enable) {
+    model_graph.inActive(0);
+  }
   return out;
 }
 
