@@ -516,7 +516,8 @@ public:
 
     if (t_w.getDataType() == Tdatatype::FP32 ||
         t_w.getDataType() == Tdatatype::FP16 ||
-        t_w.getDataType() == Tdatatype::BCQ) {
+        t_w.getDataType() == Tdatatype::BCQ ||
+        t_w.getDataType() == Tdatatype::Q4_K) {
       w = t_w;
       return;
     }
