@@ -194,9 +194,9 @@ void TensorDim::setTensorDim(unsigned int idx, size_t value) {
     throw std::out_of_range(
       "[TensorDim] Tensor Dimension index should be between 0 and 4");
 
-  if (value <= 0)
+  if (value < 0)
     throw std::invalid_argument(
-      "[TensorDim] Trying to assign value <=0 to tensor dim");
+      "[TensorDim] Trying to assign value < 0 to tensor dim");
 
   if (len == 0) {
     for (size_t i = 0; i < MAXDIM; ++i) {
@@ -262,9 +262,25 @@ size_t TensorDim::height() const { return dim[2]; };
 
 size_t TensorDim::width() const { return dim[3]; };
 
-size_t TensorDim::getDataLen() const { return len; };
+size_t TensorDim::getDataLen() const {
+  if (len == 0) {
+    std::cerr
+      << "Warning: At least one dimension value is 0. "
+         "The dimension needs to be reinitialized during the finalize stage."
+      << std::endl;
+  }
+  return len;
+};
 
-size_t TensorDim::getFeatureLen() const { return feature_len; };
+size_t TensorDim::getFeatureLen() const {
+  if (feature_len == 0) {
+    std::cerr
+      << "Warning: At least one dimension value is 0. "
+         "The dimension needs to be reinitialized during the finalize stage."
+      << std::endl;
+  }
+  return feature_len;
+};
 
 void TensorDim::batch(size_t b) { setTensorDim(0, b); }
 
