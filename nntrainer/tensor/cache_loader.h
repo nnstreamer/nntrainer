@@ -130,11 +130,10 @@ public:
   virtual int cancelAsync(int id);
 
   /**
-   * @brief set Inactive elems in order
+   * @brief set Inactive All elems
    *
    */
-
-  unsigned int inActive(unsigned int order);
+  unsigned int inActiveAll();
 
   /**
    * @brief wait for the load tasks in order are complete

@@ -425,7 +425,7 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
   model_graph.setInputsLabels(input, label);
   auto fsu_enable = std::get<props::Fsu>(model_flex_props);
   if (fsu_enable) {
-    model_graph.inActive(0);
+    model_graph.inActiveAll();
   }
   return forwarding(training);
 }
@@ -1021,7 +1021,7 @@ sharedConstTensors NeuralNetwork::incremental_inference(
   model_graph.setInputsLabels({}, {});
   auto fsu_enable = std::get<props::Fsu>(model_flex_props);
   if (fsu_enable) {
-    model_graph.inActive(0);
+    model_graph.inActiveAll();
   }
   return out;
 }

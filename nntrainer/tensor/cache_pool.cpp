@@ -131,15 +131,6 @@ CachePool::~CachePool() {
   }
 }
 
-void CachePool::inActive(unsigned int order) {
-
-  auto exec_id = exec_ids[order];
-  for (auto &id : exec_id) {
-    actives.remove(elems[id]);
-    elems[id]->inActive();
-  }
-}
-
 void CachePool::allocate() {
   NNTR_THROW_IF(swap_device->isOperating(), std::runtime_error)
     << "Cache pool is already allocated";

@@ -67,13 +67,6 @@ public:
   virtual ~CachePool();
 
   /**
-   * @brief inactive elements
-   *
-   * @param order order to inactive
-   */
-  void inActive(unsigned int order);
-
-  /**
    * @brief Do the allocation of cache
    *
    */

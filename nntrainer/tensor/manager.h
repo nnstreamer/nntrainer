@@ -550,10 +550,10 @@ public:
   bool isMixedPrecision() { return !istrequal(tensor_dtype[0], "FP32"); }
 
   /**
-   * @brief set Inactive elems in order
+   * @brief set Inactive All elems
    *
    */
-  unsigned int inActive(unsigned int order);
+  unsigned int inActiveAll();
 
   /**
    * @brief set FSU weight path

@@ -194,7 +194,7 @@ int CacheLoader::cancelAsync(int id) {
   return ML_ERROR_NONE;
 }
 
-unsigned int CacheLoader::inActive(unsigned int order) {
+unsigned int CacheLoader::inActiveAll() {
   auto order_to_execids = pool->getExecIDsAll();
   std::list<std::shared_ptr<CacheElem>> actives = pool->getActiveElems();
   actives.clear();
