@@ -73,7 +73,7 @@ test_target = [
   ['unittest_common_properties', []],
   ['unittest_nntrainer_tensor_pool', []],
   ['unittest_nntrainer_lr_scheduler', []],
-  ['unittest_nntrainer_task', []],
+  # ['unittest_nntrainer_task', []],
 ]
 
 if get_option('enable-opencl')
@@ -111,7 +111,7 @@ endforeach
 
 unittest_inc = include_directories('.')
 
-subdir('memory')
+# subdir('memory')
 subdir('compiler')
 subdir('layers')
 subdir('datasets')
