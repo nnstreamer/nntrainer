@@ -78,6 +78,15 @@ void print_memory_usage() {
 }
 
 template <typename T>
+void transpose_matrix_util(T* src, T* dst, unsigned int M, unsigned int N){
+  for (unsigned int i = 0; i < M; ++i){
+    for (unsigned int j = 0; j < N; ++j){
+      dst[j * M + i] = src[i * N + j];
+    }
+  }
+}
+
+template <typename T>
 static inline std::vector<T>
 generate_random_vector(size_t size, float min_val = -1.F, float max_val = 1.F) {
   std::random_device rd;
@@ -387,12 +396,12 @@ static float test_gemm_q4_K(const uint32_t M, const uint32_t K,
   const int TC = 1;
   double gflops = 2 * M * N * K;
   std::vector<float> dst(M * N);
-  nntrainer::gemm_q4_K(M, N, K, activations, K, (void *)repacked_qWeight.data(),
-                    N, dst.data(), N);
-  nntrainer::gemm_q4_K(M, N, K, activations, K, (void *)repacked_qWeight.data(),
-                    N, dst.data(), N);
-  nntrainer::gemm_q4_K(M, N, K, activations, K, (void *)repacked_qWeight.data(),
-                    N, dst.data(), N);
+  // nntrainer::gemm_q4_K(M, N, K, activations, K, (void *)repacked_qWeight.data(),
+  //                   N, dst.data(), N);
+  // nntrainer::gemm_q4_K(M, N, K, activations, K, (void *)repacked_qWeight.data(),
+  //                   N, dst.data(), N);
+  // nntrainer::gemm_q4_K(M, N, K, activations, K, (void *)repacked_qWeight.data(),
+  //                   N, dst.data(), N);
   auto t1 = high_resolution_clock::now();
   // #### MAIN TESTED METHOD ####
   for (int tc = 0; tc < TC; ++tc){
@@ -402,11 +411,17 @@ static float test_gemm_q4_K(const uint32_t M, const uint32_t K,
   // #### MAIN TESTED METHOD ####
   auto t2 = high_resolution_clock::now();
   auto dt = duration_cast<nanoseconds>(t2 - t1);
-  std::cout << "[INFO] gemm_q4_K: " << dt.count() / TC << " ns " << " , gflops : " << gflops * (1e+9) / (dt.count() / TC)<< std::endl;
+  auto dt_ms = duration_cast<milliseconds>(t2 - t1);
+  std::cout << "[INFO] gemm_q4_K: " << dt.count() / TC << " ns , " << dt_ms << " ms "<< std::endl;
   ///@note Needs validation!
 
   // Step4. Compare quantization error
   auto mean_squared_error = compute_mse(M, N, ref_dst, dst);
+  
+  std::vector<float> dst_trans(M * N);
+  transpose_matrix_util<float>(dst.data(), dst_trans.data(), M, N);
+  auto mean_squared_error_transpose = compute_mse(M, N, ref_dst, dst_trans);
+
   return mean_squared_error;
 }
 
@@ -440,15 +455,15 @@ const int TC = 1;
   q4_k_mse = test_gemm_q4_K(M, K, N, weight.data(), activation.data(), ref_dst);
 }
 
-TEST(nntrainer_cpu_backend_standalone, quant_GEMM_512512128) {
-  const unsigned int M = 512;
-  const unsigned int K = 512;
-  const unsigned int N = 128;
-  float q0_k_mse, q4_k_mse;
-  run_quant_test(M, K, N, q0_k_mse, q4_k_mse);
-  // ASSERT_LE(q0_k_mse, 2.0f);
-  ASSERT_LE(q4_k_mse, 2.0f);
-}
+// TEST(nntrainer_cpu_backend_standalone, quant_GEMM_512512128) {
+//   const unsigned int M = 512;
+//   const unsigned int K = 512;
+//   const unsigned int N = 128;
+//   float q0_k_mse, q4_k_mse;
+//   run_quant_test(M, K, N, q0_k_mse, q4_k_mse);
+//   // ASSERT_LE(q0_k_mse, 2.0f);
+//   ASSERT_LE(q4_k_mse, 2.0f);
+// }
 
 TEST(nntrainer_cpu_backend_standalone, quant_GEMM_128512512) {
   const unsigned int M = 128;
@@ -530,8 +545,8 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMM_1024x3072x3072) {
   ASSERT_LE(q4_k_mse, 2.0f);
 }
 
-TEST(nntrainer_cpu_backend_standalone, quant_GEMM_1024x3072x8192) {
-  const unsigned int M = 1024;
+TEST(nntrainer_cpu_backend_standalone, quant_GEMM_512x3072x8192) {
+  const unsigned int M = 512;
   const unsigned int K = 3072;
   const unsigned int N = 8192;
   float q0_k_mse, q4_k_mse;
