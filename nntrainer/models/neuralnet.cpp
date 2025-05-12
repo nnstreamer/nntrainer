@@ -395,7 +395,6 @@ sharedConstTensors NeuralNetwork::forwarding(
       **/
       model_graph.checkLoadComplete(f);
       node->forwarding(training);
-      // model_graph.inActive(f);
       model_graph.LoadTensors(f + lookahead);
     }
   };
@@ -457,7 +456,6 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
     } else {
       model_graph.checkLoadComplete(f);
       node->incremental_forwarding(from, to, training);
-      // model_graph.inActive(f);
       model_graph.LoadTensors(f + lookahead);
     }
   };

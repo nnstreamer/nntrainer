@@ -195,19 +195,19 @@ int CacheLoader::cancelAsync(int id) {
 }
 
 unsigned int CacheLoader::inActive(unsigned int order) {
-  auto ids = pool->getExecIDsAll();
+  auto order_to_execids = pool->getExecIDsAll();
   std::list<std::shared_ptr<CacheElem>> actives = pool->getActiveElems();
   actives.clear();
 
-  for (auto id : ids) {
-    auto exec_id = id.second;
-    for (auto &id : exec_id) {
-      std::shared_ptr<CacheElem> elem = pool->getCacheElem(id);
+  for (auto element : order_to_execids) {
+    auto exec_ids = element.second;
+    for (auto &element_id : exec_ids) {
+      std::shared_ptr<CacheElem> elem = pool->getCacheElem(element_id);
       int load_task_id = elem->getLoadTaskID();
       if (load_task_id >= 0) {
         load_task_executor->releaseTask(load_task_id);
         elem->setLoadTaskID(-1);
-        states[id] = LoadState::Unloading;
+        states[element_id] = LoadState::Unloading;
       }
       elem->inActive();
     }
