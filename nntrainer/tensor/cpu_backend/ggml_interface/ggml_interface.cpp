@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <string>
 #include <vector>
-#include <bs_thread_pool.h>
+#include <tensor.h>
 
 namespace nntrainer {
 
@@ -214,22 +214,56 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
     // single thread
     ggml_gemm_q4_K_8x8_q8_K(K, C, ldc, B, QA.data(), M, N);
 #else
-    BS::thread_pool<> bspool(std::thread::hardware_concurrency());
 
     // TODO check beter multithreading
+    int thread_num = 16; // nth
     int delta = 8;
     // int delta = 384 / 4;
     int step_N = N / delta;
     int step_C = delta;
     int step_B = blocks_per_4_rows * sizeof(block_q4_K) * delta;
-// #pragma omp parallel for collapse(1) num_threads(16)
-    // for (int i = 0; i < step_N; i++) {
-    //   ::ggml_gemm_q4_K_8x8_q8_K(K, C + i * step_C, ldc, (char *)B + i * step_B,
-    //                             QA.data(), M, delta);
+    int B_step = sizeof(block_q4_K) * (K / QK_K);
+
+// 1. omp, with threadnum indexing
+#pragma omp parallel for collapse(1) num_threads(thread_num)
+    for (int i = 0; i < thread_num; i++) {
+    int src0_start = (i * N) / thread_num;
+    int src0_end = ((i + 1) * N) / thread_num;
+
+      src0_start =
+        (src0_start % 8) ? src0_start + 8 - (src0_start % 8) : src0_start;
+      src0_end = (src0_end % 8) ? src0_end + 8 - (src0_end % 8) : src0_end;
+
+      ::ggml_gemm_q4_K_8x8_q8_K(K, (float*)(C + src0_start), ldc, (void *)((char *)B + src0_start * B_step),
+                                QA.data(), M, src0_end - src0_start);
+
+      ///@experiment : if, col-maj, transpose inputs beforehand and do it again?
+    }
+
+// 2. (WORKS, but SLOW - similar to f32)
+    // BS::thread_pool<>& pool = nntrainer::Tensor::getThreadPool();
+    // BS::multi_future<void> multi_future = pool.submit_loop(0, step_N, [=](int i){::ggml_gemm_q4_K_8x8_q8_K(K, C + i * step_C, ldc, (char *)B + i * step_B,
+    //                         QA.data(), M, delta);});
+    // multi_future.wait();
+    
+// 3. threadpool, with threadnum indexing   
+    // BS::thread_pool<>& pool = nntrainer::Tensor::getThreadPool();
+    // thread_num = pool.get_thread_count();
+    // std::vector<std::future<void>> futures;
+    // for (int i = 0; i < thread_num; i++) {
+    //     int src0_start = (i * N) / thread_num;
+    //     int src0_end = ((i + 1) * N) / thread_num;
+    //     src0_start =
+    //         (src0_start % 8) ? src0_start + 8 - (src0_start % 8) : src0_start;
+    //       src0_end = (src0_end % 8) ? src0_end + 8 - (src0_end % 8) : src0_end;
+
+    //   futures.push_back(pool.submit_task([=](){::ggml_gemm_q4_K_8x8_q8_K(K, (float*)((char*)C + src0_start), ldc, (void *)((char *)B + src0_start * B_step),
+    //                             QA.data(), M, src0_end - src0_start);}));
     // }
-      BS::multi_future<void> multi_future = bspool.submit_loop(0, step_N, [&](int i){::ggml_gemm_q4_K_8x8_q8_K(K, C + i * step_C, ldc, (char *)B + i * step_B,
-                              QA.data(), M, delta);});
-      multi_future.wait();
+    // for(auto &f: futures){
+    //   f.get();
+    // }
+
     
 #endif
   }
