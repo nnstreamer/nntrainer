@@ -5,6 +5,7 @@ cl_op_sources = [
   'attention_kernel_interface.cpp',
   'attention_kernel_strings.cpp',
   'attention_kernels.cpp',
+  'clblast_interface.cpp'
 ]
 
 cl_op_headers = [
