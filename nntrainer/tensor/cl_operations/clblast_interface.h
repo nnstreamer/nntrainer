@@ -13,7 +13,16 @@
 #ifndef __CLBLAST_INTERFACE_H__
 #define __CLBLAST_INTERFACE_H__
 
+#include <engine.h>
+
 namespace nntrainer {
+
+static ClContext *clblast_cc =
+  static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+static ClBufferManager &clBuffManagerInst = ClBufferManager::getInstance();
+
+static cl_command_queue command_queue =
+  clblast_cc->command_queue_inst_.GetCommandQueue();
 
 /**
  * @brief Multiplies n elements of vector x by a scalar constant alpha.
@@ -22,10 +31,8 @@ namespace nntrainer {
  * @param X Vector X (input)
  * @param incX Increment for input
  */
-template <typename T>
-void scal_cl(const unsigned int N, const T alpha, T *X, unsigned int incX = 1) {
-  throw std::runtime_error("scal_cl is not implemented");
-}
+void scal_cl(const unsigned int N, const float alpha, float *X,
+             unsigned int incX = 1);
 
 /**
  * @brief Copies the contents of vector x into vector y.
@@ -37,11 +44,8 @@ void scal_cl(const unsigned int N, const T alpha, T *X, unsigned int incX = 1) {
  * @param incY Increment for output
  * @note incX and incY are used to skip elements in the input and output
  */
-template <typename T>
-void copy_cl(const unsigned int N, const T *X, T *Y, unsigned int incX = 1,
-             unsigned int incY = 1) {
-  throw std::runtime_error("copy_cl is not implemented");
-}
+void copy_cl(const unsigned int N, const float *X, float *Y,
+             unsigned int incX = 1, unsigned int incY = 1);
 
 /**
  * @brief Performs the operation y = alpha * x + y
@@ -50,11 +54,8 @@ void copy_cl(const unsigned int N, const T *X, T *Y, unsigned int incX = 1,
  * @param X Vector X (input)
  * @param Y Vector Y (output)
  */
-template <typename T>
-void axpy_cl(const unsigned int N, const T alpha, const T *X, T *Y,
-             unsigned int incX = 1, unsigned int incY = 1) {
-  throw std::runtime_error("axpy_cl is not implemented");
-}
+void axpy_cl(const unsigned int N, const float alpha, const float *X, float *Y,
+             unsigned int incX = 1, unsigned int incY = 1);
 
 /**
  * @brief Multiplies n elements of the vectors x and y element-wise
@@ -65,11 +66,8 @@ void axpy_cl(const unsigned int N, const T alpha, const T *X, T *Y,
  * @param incY Increment for input Y
  * @note incX and incY are used to skip elements in the X and Y
  */
-template <typename T>
-T dot_cl(const unsigned int N, const T *X, const T *Y, unsigned int incX = 1,
-         unsigned int incY = 1) {
-  throw std::runtime_error("dot_cl is not implemented");
-}
+float dot_cl(const unsigned int N, const float *X, const float *Y,
+             unsigned int incX = 1, unsigned int incY = 1);
 
 /**
  * @brief Accumulates the square of n elements in the x vector and takes the
@@ -78,43 +76,31 @@ T dot_cl(const unsigned int N, const T *X, const T *Y, unsigned int incX = 1,
  * @param X Vector X (input)
  * @param incX Increment for input
  */
-template <typename T>
-T nrm2_cl(const unsigned int N, const T *X, unsigned int incX = 1) {
-  throw std::runtime_error("nrm2_cl is not implemented");
-}
+float nrm2_cl(const unsigned int N, const float *X, unsigned int incX = 1);
 
 /**
- * @brief     Computes the absolute sum of value in the vector X
+ * @brief Computes the absolute sum of value in the vector X
  * @param N Number of elements
  * @param X Vector X (input)
  * @param incX Increment for input
  */
-template <typename T>
-T asum_cl(const unsigned int N, const T *X, unsigned int incX = 1) {
-  throw std::runtime_error("asum_cl is not implemented");
-}
+float asum_cl(const unsigned int N, const float *X, unsigned int incX = 1);
 
 /**
- * @brief     Index of absolute maximum value in a vector X
+ * @brief Index of absolute maximum value in a vector X
  * @param N Number of elements
  * @param X Vector X (input)
  * @param incX Increment for input
  */
-template <typename T>
-int amax_cl(const unsigned int N, const T *X, unsigned int incX = 1) {
-  throw std::runtime_error("amax_cl is not implemented");
-}
+int amax_cl(const unsigned int N, const float *X, unsigned int incX = 1);
 
 /**
- * @brief     Index of absolute minimum value in a vector X
+ * @brief Index of absolute minimum value in a vector X
  * @param N Number of elements
  * @param X Vector X (input)
  * @param incX Increment for input
  */
-template <typename T>
-int amin_cl(const unsigned int N, const T *X, unsigned int incX = 1) {
-  throw std::runtime_error("amin_cl is not implemented");
-}
+int amin_cl(const unsigned int N, const float *X, unsigned int incX = 1);
 
 /**
  * @brief General matrix-vector multiplication
@@ -133,13 +119,10 @@ int amin_cl(const unsigned int N, const T *X, unsigned int incX = 1) {
  * @param incX increment for input
  * @param incY increment for output
  */
-template <typename T>
 void gemv_cl(const unsigned int layout, bool TransA, const unsigned int M,
-             const unsigned int N, const T alpha, const T *A,
-             const unsigned int lda, const T *X, const T beta, T *Y,
-             unsigned int incX = 1, unsigned int incY = 1) {
-  throw std::runtime_error("gemv_cl is not implemented");
-}
+             const unsigned int N, const float alpha, const float *A,
+             const unsigned int lda, const float *X, const float beta, float *Y,
+             unsigned int incX = 1, unsigned int incY = 1);
 
 /**
  * @brief General matrix-matrix multiplication
@@ -161,14 +144,11 @@ void gemv_cl(const unsigned int layout, bool TransA, const unsigned int M,
  * @param ldc leading dimension of C
  * @note The result is stored in C, which is also the output matrix.
  */
-template <typename T>
 void gemm_cl(const unsigned int layout, bool TransA, bool TransB,
              const unsigned int M, const unsigned int N, const unsigned int K,
-             const T alpha, const T *A, const unsigned int lda, const T *B,
-             const unsigned int ldb, const T beta, T *C,
-             const unsigned int ldc) {
-  throw std::runtime_error("gemm_cl is not implemented");
-}
+             const float alpha, const float *A, const unsigned int lda,
+             const float *B, const unsigned int ldb, const float beta, float *C,
+             const unsigned int ldc);
 
 /**
  * @brief Batched version of GEMM
@@ -191,15 +171,12 @@ void gemm_cl(const unsigned int layout, bool TransA, bool TransB,
  * @param batch_size number of batches
  * @note The result is stored in C, which is also the output matrix.
  */
-template <typename T>
 void gemm_batched_cl(const unsigned int layout, bool TransA, bool TransB,
                      const unsigned int M, const unsigned int N,
-                     const unsigned int K, const T *alpha, const T *A,
-                     const unsigned int lda, const T *B, const unsigned int ldb,
-                     const T *beta, T *C, const unsigned int ldc,
-                     const unsigned int batch_size) {
-  throw std::runtime_error("gemm_batched_cl is not implemented");
-}
+                     const unsigned int K, const float *alpha, const float *A,
+                     const unsigned int lda, const float *B,
+                     const unsigned int ldb, const float *beta, float *C,
+                     const unsigned int ldc, const unsigned int batch_size);
 
 /**
  * @brief Performs the im2col algorithm
@@ -223,15 +200,12 @@ void gemm_batched_cl(const unsigned int layout, bool TransA, bool TransB,
  * The number of columns is equal to the number of patches that can be
  * extracted from the input tensor.
  */
-template <typename T>
 void im2col_cl(const unsigned int C, const unsigned int H, const unsigned int W,
                const unsigned int kernel_h, const unsigned int kernel_w,
                const unsigned int pad_h, const unsigned int pad_w,
                const unsigned int stride_h, const unsigned int stride_w,
                const unsigned int dilation_h, const unsigned int dilation_w,
-               const T *input, T *output) {
-  throw std::runtime_error("im2col_cl is not implemented");
-}
+               const float *input, float *output);
 
 } // namespace nntrainer
 
