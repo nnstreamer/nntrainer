@@ -13,6 +13,7 @@
 #include <iostream>
 
 #include <blas_kernel_strings.h>
+#include <clblast_interface.h>
 #include <layer_context.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
@@ -113,21 +114,19 @@ void ReshapeLayerCl::incremental_forwarding(RunLayerContext &context,
 }
 
 void ReshapeLayerCl::ReshapeProcess(Tensor const &input, Tensor &output) {
-
-  unsigned int input_batch_size, input_height, input_width, input_channels;
-
-  input_batch_size = input.batch();
-  input_height = input.height();
-  input_width = input.width();
-  input_channels = input.channel();
-
   if (input.getDataType() == ml::train::TensorDim::DataType::FP32) {
     const float *data = input.getData();
     float *rdata = output.getData();
-    copy_cl(data, rdata, input_batch_size, input_channels, input_height,
-            input_width);
+    copy_cl(output.size(), data, rdata);
   } else if (input.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
+    unsigned int input_batch_size, input_height, input_width, input_channels;
+
+    input_batch_size = input.batch();
+    input_height = input.height();
+    input_width = input.width();
+    input_channels = input.channel();
+
     const _FP16 *data = input.getData<_FP16>();
     _FP16 *rdata = output.getData<_FP16>();
     copy_cl_fp16(data, rdata, input_batch_size, input_channels, input_height,
@@ -222,11 +221,11 @@ void ReshapeLayerCl::copy_cl_fp16(const _FP16 *input, _FP16 *res,
 }
 #endif
 
-void ReshapeLayerCl::copy_cl(const float *input, float *res,
-                             unsigned int input_batch_size,
-                             unsigned int input_channels,
-                             unsigned int input_height,
-                             unsigned int input_width) {
+void ReshapeLayerCl::scopy_cl(const float *input, float *res,
+                              unsigned int input_batch_size,
+                              unsigned int input_channels,
+                              unsigned int input_height,
+                              unsigned int input_width) {
 
   bool result = false;
 
