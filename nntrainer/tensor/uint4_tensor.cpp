@@ -451,7 +451,7 @@ float Uint4QTensor::max_abs() const {
   uint8_t abs_max_val = 0;
   uint8_t curr_val;
   for (unsigned int idx = 0; idx < size(); ++idx) {
-    curr_val = std::abs(getValue(idx));
+    curr_val = getValue(idx);
     abs_max_val = (curr_val > abs_max_val) ? curr_val : abs_max_val;
 
     // Terminate search when abs_max_val is an Uint4 absolute max value 15

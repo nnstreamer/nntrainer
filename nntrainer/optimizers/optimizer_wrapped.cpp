@@ -90,7 +90,7 @@ void OptimizerWrapped::finalize() {
   auto const &props_ds = std::get<props::DecaySteps>(props);
 
   /** if lr_sched already set and property not empty, error */
-  bool props_empty = props_dr.empty() & props_ds.empty();
+  bool props_empty = props_dr.empty() && props_ds.empty();
 
   NNTR_THROW_IF(!props_empty && lr_sched, std::invalid_argument)
     << "Multiple learning rate schedulers set for the optimizer " << getType();

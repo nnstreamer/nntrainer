@@ -45,7 +45,7 @@ void TensorBase::setTensorVar(TensorDim d, void *buf, size_t offset) {
   strides = d.computeStrides();
   /// Tensor does not own the memory
   data = std::make_shared<MemoryData>(buf);
-  offset = offset;
+  this->offset = offset;
 }
 
 void TensorBase::save(std::ostream &file) {

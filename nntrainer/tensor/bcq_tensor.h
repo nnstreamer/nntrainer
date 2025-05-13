@@ -211,7 +211,7 @@ public:
   /**
    * @copydoc Tensor::readFSU()
    */
-  void readFSU();
+  void readFSU() override;
 
   /**
    * @copydoc Tensor::read(std::ifstream &file)
