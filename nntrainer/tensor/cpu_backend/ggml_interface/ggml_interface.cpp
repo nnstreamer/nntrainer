@@ -23,7 +23,6 @@
 #include <stdio.h>
 #include <string>
 #include <vector>
-// #include <tensor.h>
 #include <bs_thread_pool_manager.hpp>
 
 namespace nntrainer {
@@ -197,27 +196,34 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
 
     //  ::ggml_gemv_q4_K_8x8_q8_K(K, C, ldc, B, QA.data(), M, N);
   } else { // GEMM
-    int blocks_per_4_rows = (K + QK_K - 1) / QK_K;
-    int qa_4_rows_size = sizeof(block_q8_Kx4) * blocks_per_4_rows;
-    int M4 = ((M + 3) / 4);
+    unsigned int blocks_per_4_rows = (K + QK_K - 1) / QK_K;
+    unsigned int qa_4_rows_size = sizeof(block_q8_Kx4) * blocks_per_4_rows;
+    // unsigned int M4 = M - M % 4;
+    unsigned int M4 = ((M + 3) / 4);
 
-    int qa_size = qa_4_rows_size * M4;
+    // unsigned int qa_size = qa_4_rows_size *((M + 3) / 4);
+    unsigned int qa_size = qa_4_rows_size * M4;
     std::vector<char> QA = std::vector<char>(qa_size);
 
     // Quantization of activations
-#pragma omp parallel for collapse(1) num_threads(16)
-    for (int i = 0; i < M4; i++) {
+// #pragma omp parallel for collapse(1) num_threads(16)
+    for (unsigned int i = 0; i < M4; i++) {
       ::ggml_quantize_mat_q8_K_4x8(A + 4 * i * K,
                                    QA.data() + i * qa_4_rows_size, K);
     }
+
+    // for (unsigned int i = M4; i < M; i++) {
+    //   ::quantize_row_q8_K(A + i * K, QA.data() + i * qa_4_rows_size, K);
+    // }
 
 #if 0
     // single thread
     ggml_gemm_q4_K_8x8_q8_K(K, C, ldc, B, QA.data(), M, N);
 #else
 
-    // TODO check beter multithreading
-    int thread_num = 16; // nth
+    // TODO check better multithreading
+    unsigned int thread_num = std::thread::hardware_concurrency();
+    if (M < 1536 && K < 1536 && N < 1536) thread_num = 1;
     int delta = 8;
     // int delta = 384 / 4;
     int step_N = N / delta;
@@ -227,9 +233,9 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
 
 // 1. omp, with threadnum indexing
 #pragma omp parallel for collapse(1) num_threads(thread_num)
-    for (int i = 0; i < thread_num; i++) {
-    int src0_start = (i * N) / thread_num;
-    int src0_end = ((i + 1) * N) / thread_num;
+    for (unsigned int i = 0; i < thread_num; i++) {
+    unsigned int src0_start = (i * N) / thread_num;
+    unsigned int src0_end = ((i + 1) * N) / thread_num;
 
       src0_start =
         (src0_start % 8) ? src0_start + 8 - (src0_start % 8) : src0_start;
@@ -240,20 +246,33 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
 
       ///@experiment : if, col-maj, transpose inputs beforehand and do it again?
     }
+// 1-2. BS threadpool, with threadnum indexing
+    // auto& pool = ThreadPoolManager::getInstance();
+    // thread_num = pool.get_thread_count();
+    // BS::multi_future<void> multi_future = pool.submit_loop(0, thread_num, [=](unsigned int i){::ggml_gemm_q4_K_8x8_q8_K(K, (C + ((i * N) / thread_num)), ldc, ((char *)B + (((i * N) / thread_num) * B_step)),
+    //                             QA.data(), M, (((i + 1) * N) / thread_num) - ((i * N) / thread_num));});
+    // multi_future.wait();
 
 // 2. (WORKS, but SLOW - similar to f32)
-    auto& pool = ThreadPoolManager::getInstance();
-    BS::multi_future<void> multi_future = pool.submit_loop(0, step_N, [=](int i){::ggml_gemm_q4_K_8x8_q8_K(K, C + i * step_C, ldc, (char *)B + i * step_B,
-                            QA.data(), M, delta);});
-    multi_future.wait();
+    // auto& pool = ThreadPoolManager::getInstance();
+    // BS::multi_future<void> multi_future = pool.submit_loop(0, step_N, [=](int i){::ggml_gemm_q4_K_8x8_q8_K(K, C + i * step_C, ldc, (char *)B + i * step_B,
+    //                         QA.data(), M, delta);});
+    // multi_future.wait();
+    // 2-1 omp version of 2
+    // #pragma omp parallel for collapse(1) num_threads(16)
+    // for (int i = 0; i < step_N; i++) {
+    //   ::ggml_gemm_q4_K_8x8_q8_K(K, C + i * step_C, ldc, (char *)B + i * step_B,
+    //                             QA.data(), M, delta);
+    // }
     
 // 3. threadpool, with threadnum indexing   
-    // BS::thread_pool<>& pool = nntrainer::Tensor::getThreadPool();
+    // auto& pool = ThreadPoolManager::getInstance();
     // thread_num = pool.get_thread_count();
     // std::vector<std::future<void>> futures;
     // for (int i = 0; i < thread_num; i++) {
     //     int src0_start = (i * N) / thread_num;
     //     int src0_end = ((i + 1) * N) / thread_num;
+
     //     src0_start =
     //         (src0_start % 8) ? src0_start + 8 - (src0_start % 8) : src0_start;
     //       src0_end = (src0_end % 8) ? src0_end + 8 - (src0_end % 8) : src0_end;
@@ -265,6 +284,10 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
     //   f.get();
     // }
 
+    // 4. vanilla threadpool, without indexing
+    // auto& pool = ThreadPoolManager::getInstance();
+    // std::future<void> fut = pool.submit_task([=](){:: ggml_gemm_q4_K_8x8_q8_K(K, C, ldc, B, QA.data(), M, N);});
+    // fut.get();
     
 #endif
   }
