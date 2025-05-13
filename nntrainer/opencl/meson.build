@@ -9,7 +9,7 @@ opencl_sources = [
 ]
 
 opencl_headers = [
-  'third_party/cl_platform.h',
+  'CL/cl_platform.h',
   'opencl_op_interface.h',
   'opencl_command_queue_manager.h',
   'opencl_context_manager.h',
@@ -25,4 +25,4 @@ foreach h : opencl_headers
   nntrainer_headers += meson.current_source_dir() / h
 endforeach
 
-install_subdir('third_party', install_dir : nntrainer_prefix / 'include' / 'nntrainer')
+install_subdir('CL', install_dir : nntrainer_prefix / 'include' / 'nntrainer')

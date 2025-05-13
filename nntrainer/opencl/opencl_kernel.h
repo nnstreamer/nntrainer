@@ -16,8 +16,8 @@
 
 #include <string>
 
+#include "CL/cl.h"
 #include "opencl_program.h"
-#include "third_party/cl.h"
 
 namespace nntrainer::opencl {
 
