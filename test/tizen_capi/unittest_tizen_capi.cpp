@@ -929,9 +929,9 @@ TEST(nntrainer_capi_nnmodel, getWeight_01) {
   ml_tensors_info_h weight_info;
   ml_tensors_data_h weights;
   unsigned int num_weights;
-  unsigned int weight_dim_expected[2][MAXDIM] = {{1, 1, 62720, 10},
-                                                 {1, 1, 1, 10}};
-  unsigned int dim[2][MAXDIM];
+  const unsigned int weight_dim_expected[2][MAXDIM] = {{1, 1, 62720, 10},
+                                                       {1, 1, 1, 10}};
+  ml_tensor_dimension dim;
 
   ScopedIni s("capi_test_get_weight_01",
               {model_base, optimizer, dataset, inputlayer, outputlayer});
@@ -955,9 +955,9 @@ TEST(nntrainer_capi_nnmodel, getWeight_01) {
   EXPECT_EQ(num_weights, 2ul);
 
   for (unsigned int idx = 0; idx < num_weights; ++idx) {
-    ml_tensors_info_get_tensor_dimension(weight_info, idx, dim[idx]);
+    ml_tensors_info_get_tensor_dimension(weight_info, idx, dim);
     for (unsigned int i = 0; i < MAXDIM; ++i) {
-      EXPECT_EQ(dim[idx][i], weight_dim_expected[idx][i]);
+      EXPECT_EQ(dim[i], weight_dim_expected[idx][i]);
     }
   }
 
@@ -1406,9 +1406,9 @@ TEST(nntrainer_capi_nnmodel, get_input_output_dimension_01_p) {
 
   unsigned int input_count, output_count;
   const unsigned int MAXDIM = 4;
-  unsigned int input_dim_expected[MAXDIM] = {32, 1, 1, 62720};
-  unsigned int output_dim_expected[MAXDIM] = {32, 1, 1, 10};
-  unsigned int dim[MAXDIM];
+  const unsigned int input_dim_expected[MAXDIM] = {32, 1, 1, 62720};
+  const unsigned int output_dim_expected[MAXDIM] = {32, 1, 1, 10};
+  ml_tensor_dimension dim;
 
   int status = ML_ERROR_NONE;
 
@@ -1460,9 +1460,9 @@ TEST(nntrainer_capi_nnmodel, get_input_output_dimension_02_p) {
 
   unsigned int input_count, output_count;
   const unsigned int MAXDIM = 4;
-  unsigned int input_dim_expected[MAXDIM] = {32, 1, 1, 62720};
-  unsigned int output_dim_expected[MAXDIM] = {32, 1, 1, 10};
-  unsigned int dim[MAXDIM];
+  const unsigned int input_dim_expected[MAXDIM] = {32, 1, 1, 62720};
+  const unsigned int output_dim_expected[MAXDIM] = {32, 1, 1, 10};
+  ml_tensor_dimension dim;
 
   int status = ML_ERROR_NONE;
 
@@ -1567,9 +1567,9 @@ TEST(nntrainer_capi_nnmodel, get_input_output_dimension_06_n) {
 
   unsigned int input_count, output_count;
   const unsigned int MAXDIM = 4;
-  unsigned int input_dim_expected[MAXDIM] = {32, 1, 1, 62720};
-  unsigned int output_dim_expected[MAXDIM] = {32, 1, 1, 10};
-  unsigned int dim[MAXDIM];
+  const unsigned int input_dim_expected[MAXDIM] = {32, 1, 1, 62720};
+  const unsigned int output_dim_expected[MAXDIM] = {32, 1, 1, 10};
+  ml_tensor_dimension dim;
 
   int status = ML_ERROR_NONE;
 
