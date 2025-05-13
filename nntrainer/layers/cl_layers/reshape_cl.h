@@ -129,9 +129,9 @@ public:
    * @param[in] input_height   represents the height of the input tensor
    * @param[in] input_width   represents the width of the input tensor
    */
-  void copy_cl(const float *input, float *res, unsigned int input_batch_size,
-               unsigned int input_channels, unsigned int input_height,
-               unsigned int input_width);
+  void scopy_cl(const float *input, float *res, unsigned int input_batch_size,
+                unsigned int input_channels, unsigned int input_height,
+                unsigned int input_width);
 
 #ifdef ENABLE_FP16
   /**

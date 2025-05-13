@@ -78,5 +78,47 @@ void add_i_cl(Tensor &result, Tensor const &input);
 void transposeCl(const std::string &direction, Tensor const &in,
                  Tensor &result);
 
+/**
+ * @brief Copy data from one tensor to another
+ *
+ * @param input Tensor
+ * @param result Tensor
+ */
+void copyCl(const Tensor &input, Tensor &result);
+
+/**
+ * @brief nrm2 computation : Euclidean norm
+ * @param input Tensor
+ * @return Euclidean norm
+ * @note This function is used to compute the Euclidean norm of a vector.
+ */
+float nrm2Cl(const Tensor &input);
+
+/**
+ * @brief Absolute sum computation
+ *
+ * @param input Tensor
+ * @return float absolute sum of the elements
+ */
+float asumCl(const Tensor &input);
+
+/**
+ * @brief Absolute max computation
+ *
+ * @param input Tensor
+ * @return int index of the maximum absolute value
+ * @note Not necessarily the first if there are multiple maximums.
+ */
+int amaxCl(const Tensor &input);
+
+/**
+ * @brief Absolute min computation
+ *
+ * @param input Tensor
+ * @return int index of the minimum absolute value
+ * @note Not necessarily the first if there are multiple minimums.
+ */
+int aminCl(const Tensor &input);
+
 } // namespace nntrainer
 #endif /* __BLAS_KERNEL_INTERFACE_H__ */
