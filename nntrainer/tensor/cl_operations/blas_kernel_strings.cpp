@@ -59,81 +59,211 @@ const std::string &getDotClKernel() {
 
 const std::string &getSgemmClNoTransKernel() {
   static const std::string sgemm_cl_noTrans_kernel_ =
-    R"(__kernel void sgemm_cl_noTrans(const __global float* A, const __global float* B,
-                        __global float* C, unsigned int K, unsigned int lda, unsigned int ldb, unsigned int ldc) {
-          
-          unsigned int m = get_global_id(0);
-          unsigned int n = get_global_id(1);
-          float c = 0.0f;
-          for (unsigned int k = 0; k < K; ++k) {
-            float a, b;
-            a = A[m * lda + k];
-            b = B[k * ldb + n];
-            c += a * b;
-          }
-          C[m * ldc + n] = c;
-      })";
+    R"(
+    #define TS 16
+    __kernel void sgemm_cl_noTrans(__global const float *A, __global const float *B,
+                                   __global float *C, const int M, const int N,
+                                   const int K) {
+      const int globalRow = get_global_id(1); // M dimension
+      const int globalCol = get_global_id(0); // N dimension
+
+      __local float Asub[TS][TS];
+      __local float Bsub[TS][TS];
+
+      float sum = 0.0f;
+
+      const int localRow = get_local_id(1);
+      const int localCol = get_local_id(0);
+      const int groupRow = TS * get_group_id(1);
+      const int groupCol = TS * get_group_id(0);
+
+      for (int t = 0; t < (K + TS - 1) / TS; ++t) {
+        const int tiledRowA = groupRow + localRow;
+        const int tiledColA = t * TS + localCol;
+
+        const int tiledRowB = t * TS + localRow;
+        const int tiledColB = groupCol + localCol;
+
+        // Load A
+        if (tiledRowA < M && tiledColA < K)
+          Asub[localRow][localCol] = A[tiledRowA * K + tiledColA];
+        else
+          Asub[localRow][localCol] = 0.0f;
+
+        // Load B
+        if (tiledRowB < K && tiledColB < N)
+          Bsub[localRow][localCol] = B[tiledRowB * N + tiledColB];
+        else
+          Bsub[localRow][localCol] = 0.0f;
+
+        barrier(CLK_LOCAL_MEM_FENCE);
+
+        for (int k = 0; k < TS; ++k)
+          sum += Asub[localRow][k] * Bsub[k][localCol];
+
+        barrier(CLK_LOCAL_MEM_FENCE);
+      }
+
+      if (globalRow < M && globalCol < N)
+        C[globalRow * N + globalCol] = sum;
+    }
+    )";
   return sgemm_cl_noTrans_kernel_;
 }
 
 const std::string &getSgemmClTransAKernel() {
   static const std::string sgemm_cl_transA_kernel_ =
-    R"(__kernel void sgemm_cl_transA(const __global float* A, const __global float* B,
-                          __global float* C, unsigned int K, unsigned int lda, unsigned int ldb, unsigned int ldc) {
-            
-            unsigned int m = get_global_id(0);
-            unsigned int n = get_global_id(1);
-            float c = 0.0f;
-            for (unsigned int k = 0; k < K; ++k) {
-              float a, b;
-              a = A[k * lda + m];
-              b = B[k * ldb + n];
-              c += a * b;
-            }
-            C[m * ldc + n] = c;
-        })";
+    R"(
+    #define TS 16
+    __kernel void sgemm_cl_transA(__global const float *A, __global const float *B,
+                                  __global float *C, const int M, const int N,
+                                  const int K) {
+      const int globalRow = get_global_id(1); // M
+      const int globalCol = get_global_id(0); // N
+
+      __local float Asub[TS][TS];
+      __local float Bsub[TS][TS];
+
+      float sum = 0.0f;
+
+      const int localRow = get_local_id(1);
+      const int localCol = get_local_id(0);
+      const int groupRow = TS * get_group_id(1);
+      const int groupCol = TS * get_group_id(0);
+
+      for (int t = 0; t < (K + TS - 1) / TS; ++t) {
+        const int tiledRowA = t * TS + localCol;
+        const int tiledColA = groupRow + localRow;
+
+        if (tiledRowA < K && tiledColA < M)
+          Asub[localRow][localCol] = A[tiledRowA * M + tiledColA];
+        else
+          Asub[localRow][localCol] = 0.0f;
+
+        const int tiledRowB = t * TS + localRow;
+        const int tiledColB = groupCol + localCol;
+
+        if (tiledRowB < K && tiledColB < N)
+          Bsub[localRow][localCol] = B[tiledRowB * N + tiledColB];
+        else
+          Bsub[localRow][localCol] = 0.0f;
+
+        barrier(CLK_LOCAL_MEM_FENCE);
+
+        for (int k = 0; k < TS; ++k)
+          sum += Asub[localRow][k] * Bsub[k][localCol];
+
+        barrier(CLK_LOCAL_MEM_FENCE);
+      }
+
+      if (globalRow < M && globalCol < N)
+        C[globalRow * N + globalCol] = sum;
+    }
+    )";
   return sgemm_cl_transA_kernel_;
 }
 
 const std::string &getSgemmClTransBKernel() {
   static const std::string sgemm_cl_transB_kernel_ =
-    R"(__kernel void sgemm_cl_transB(const __global float *A, const __global float *B,
-                                  __global float *C, unsigned int K,
-                                  unsigned int lda, unsigned int ldb,
-                                  unsigned int ldc) {
-    
-            unsigned int m = get_global_id(0);
-            unsigned int n = get_global_id(1);
-            float c = 0.0f;
-            for (unsigned int k = 0; k < K; ++k) {
-              float a, b;
-              a = A[m * lda + k];
-              b = B[n * ldb + k];
-              c += a * b;
-            }
-            C[m * ldc + n] = c;
-        })";
+    R"(
+    #define TS 16
+    __kernel void sgemm_cl_transB(__global const float *A, __global const float *B,
+                                  __global float *C, const int M, const int N,
+                                  const int K) {
+      const int globalRow = get_global_id(1);
+      const int globalCol = get_global_id(0);
+
+      __local float Asub[TS][TS];
+      __local float Bsub[TS][TS];
+
+      float sum = 0.0f;
+
+      const int localRow = get_local_id(1);
+      const int localCol = get_local_id(0);
+      const int groupRow = TS * get_group_id(1);
+      const int groupCol = TS * get_group_id(0);
+
+      for (int t = 0; t < (K + TS - 1) / TS; ++t) {
+        const int tiledRowA = groupRow + localRow;
+        const int tiledColA = t * TS + localCol;
+
+        if (tiledRowA < M && tiledColA < K)
+          Asub[localRow][localCol] = A[tiledRowA * K + tiledColA];
+        else
+          Asub[localRow][localCol] = 0.0f;
+
+        const int tiledRowB = groupCol + localCol;
+        const int tiledColB = t * TS + localRow;
+
+        if (tiledRowB < N && tiledColB < K)
+          Bsub[localRow][localCol] = B[tiledRowB * K + tiledColB];
+        else
+          Bsub[localRow][localCol] = 0.0f;
+
+        barrier(CLK_LOCAL_MEM_FENCE);
+
+        for (int k = 0; k < TS; ++k)
+          sum += Asub[localRow][k] * Bsub[k][localCol];
+
+        barrier(CLK_LOCAL_MEM_FENCE);
+      }
+
+      if (globalRow < M && globalCol < N)
+        C[globalRow * N + globalCol] = sum;
+    }
+    )";
   return sgemm_cl_transB_kernel_;
 }
 
 const std::string &getSgemmClTransABKernel() {
   static const std::string sgemm_cl_transAB_kernel_ =
-    R"(__kernel void sgemm_cl_transAB(const __global float *A, const __global float *B,
-                                   __global float *C, unsigned int K,
-                                   unsigned int lda, unsigned int ldb,
-                                   unsigned int ldc) {
-    
-            unsigned int m = get_global_id(0);
-            unsigned int n = get_global_id(1);
-            float c = 0.0f;
-            for (unsigned int k = 0; k < K; ++k) {
-              float a, b;
-              a = A[k * lda + m];
-              b = B[n * ldb + k];
-              c += a * b;
-            }
-            C[m * ldc + n] = c;
-        })";
+    R"(
+    #define TS 16
+    __kernel void sgemm_cl_transAB(__global const float *A, __global const float *B,
+                                  __global float *C, const int M, const int N,
+                                  const int K) {
+      const int globalRow = get_global_id(1);
+      const int globalCol = get_global_id(0);
+
+      __local float Asub[TS][TS];
+      __local float Bsub[TS][TS];
+
+      float sum = 0.0f;
+
+      const int localRow = get_local_id(1);
+      const int localCol = get_local_id(0);
+      const int groupRow = TS * get_group_id(1);
+      const int groupCol = TS * get_group_id(0);
+
+      for (int t = 0; t < (K + TS - 1) / TS; ++t) {
+        const int tiledRowA = t * TS + localCol;
+        const int tiledColA = groupRow + localRow;
+
+        if (tiledRowA < K && tiledColA < M)
+          Asub[localRow][localCol] = A[tiledRowA * M + tiledColA];
+        else
+          Asub[localRow][localCol] = 0.0f;
+
+        const int tiledRowB = groupCol + localCol;
+        const int tiledColB = t * TS + localRow;
+
+        if (tiledRowB < N && tiledColB < K)
+          Bsub[localRow][localCol] = B[tiledRowB * K + tiledColB];
+        else
+          Bsub[localRow][localCol] = 0.0f;
+
+        barrier(CLK_LOCAL_MEM_FENCE);
+
+        for (int k = 0; k < TS; ++k)
+          sum += Asub[localRow][k] * Bsub[k][localCol];
+
+        barrier(CLK_LOCAL_MEM_FENCE);
+      }
+
+      if (globalRow < M && globalCol < N)
+        C[globalRow * N + globalCol] = sum;
+    }
+    )";
   return sgemm_cl_transAB_kernel_;
 }
 
