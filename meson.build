@@ -469,6 +469,22 @@ if get_option('enable-ggml')
   ggml_options.add_cmake_defines({'BUILD_SHARED_LIBS': host_machine.system() != 'windows'})
   ggml_options.add_cmake_defines({'GGML_BUILD_TESTS': false})
   ggml_options.add_cmake_defines({'GGML_BUILD_EXAMPLES': false})
+
+  if arch == 'x86_64'
+    if cc.has_argument('-march=x86-64-v2')
+      cpu_type = 'x86-64-v2'
+    elif cc.has_argument('-march=haswell')
+      cpu_type = 'haswell'
+    else
+      cpu_type = 'x86-64'
+    endif
+  endif
+
+  message('Auto-detected safe CPU tuning: ' + cpu_type)
+
+  ggml_options.append_compile_args('c', '-march=' + cpu_type)
+  ggml_options.append_compile_args('cpp', '-march=' + cpu_type)
+
   ggml_proj = cmake.subproject('ggml', options: ggml_options, required: true)
   ggml_dep = ggml_proj.dependency('ggml-cpu')
 endif
