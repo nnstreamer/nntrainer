@@ -411,8 +411,8 @@ static float test_gemm_q4_K(const uint32_t M, const uint32_t K,
   // #### MAIN TESTED METHOD ####
   auto t2 = high_resolution_clock::now();
   auto dt = duration_cast<nanoseconds>(t2 - t1);
-  auto dt_ms = duration_cast<milliseconds>(t2 - t1);
-  std::cout << "[INFO] gemm_q4_K: " << dt.count() / TC << " ns , " << dt_ms << " ms "<< std::endl;
+  // auto dt_ms = duration_cast<milliseconds>(t2 - t1);
+  std::cout << "[INFO] gemm_q4_K: " << dt.count() / TC << " ns , " << std::endl;
   ///@note Needs validation!
 
   // Step4. Compare quantization error

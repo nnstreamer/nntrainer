@@ -27,8 +27,6 @@
 #include <nntrainer_log.h>
 #include <tensor_base.h>
 
-#pragma once
-#include <bs_thread_pool.h>
 
 #ifdef ENABLE_FP16
 #include <half_tensor.h>
@@ -53,8 +51,6 @@ class LazyTensor;
  *
  */
 class Tensor {
-  protected:
-  static BS::thread_pool<> pool;
 public:
   /**
    * @brief     Basic Constructor of Tensor
@@ -1846,9 +1842,6 @@ public:
   bool isValid() const { return itensor->isValid(); };
 
   static constexpr float epsilon = 1e-5f;
-static BS::thread_pool<> & getThreadPool(){
-    return pool;
-  }
 private:
   std::shared_ptr<TensorBase> itensor;
 

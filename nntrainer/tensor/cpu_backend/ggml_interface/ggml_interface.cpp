@@ -23,7 +23,8 @@
 #include <stdio.h>
 #include <string>
 #include <vector>
-#include <tensor.h>
+// #include <tensor.h>
+#include <bs_thread_pool_manager.hpp>
 
 namespace nntrainer {
 
@@ -98,7 +99,7 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int ldb, float *C,
                                const unsigned int ldc) {
   int n_threads = std::thread::hardware_concurrency();
-  BS::thread_pool<> bspool(n_threads);
+  auto& bspool = ThreadPoolManager::getInstance();
   if (M == 1) { // GEMV
     int blocks_per_row = (K + QK8_0 - 1) / QK8_0;
     int qa_size = sizeof(block_q8_0) * blocks_per_row;
@@ -241,10 +242,10 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
     }
 
 // 2. (WORKS, but SLOW - similar to f32)
-    // BS::thread_pool<>& pool = nntrainer::Tensor::getThreadPool();
-    // BS::multi_future<void> multi_future = pool.submit_loop(0, step_N, [=](int i){::ggml_gemm_q4_K_8x8_q8_K(K, C + i * step_C, ldc, (char *)B + i * step_B,
-    //                         QA.data(), M, delta);});
-    // multi_future.wait();
+    auto& pool = ThreadPoolManager::getInstance();
+    BS::multi_future<void> multi_future = pool.submit_loop(0, step_N, [=](int i){::ggml_gemm_q4_K_8x8_q8_K(K, C + i * step_C, ldc, (char *)B + i * step_B,
+                            QA.data(), M, delta);});
+    multi_future.wait();
     
 // 3. threadpool, with threadnum indexing   
     // BS::thread_pool<>& pool = nntrainer::Tensor::getThreadPool();
