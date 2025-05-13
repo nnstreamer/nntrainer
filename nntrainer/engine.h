@@ -49,7 +49,7 @@ protected:
 
   static void add_default_object(Engine &eg);
 
-  static void registerContext(std::string name, nntrainer::Context *context) {
+  void registerContext(std::string name, nntrainer::Context *context) {
     const std::lock_guard<std::mutex> lock(engine_mutex);
 
     std::transform(name.begin(), name.end(), name.begin(),
@@ -99,7 +99,7 @@ public:
    * @return Context Pointer : for register Object factory, casting might be
    * needed.
    */
-  static nntrainer::Context *getRegisteredContext(std::string name) {
+  nntrainer::Context *getRegisteredContext(std::string name) const {
 
     std::transform(name.begin(), name.end(), name.begin(),
                    [](unsigned char c) { return std::tolower(c); });
@@ -111,8 +111,7 @@ public:
     return engines.at(name);
   }
 
-  static std::unordered_map<std::string,
-                            std::shared_ptr<nntrainer::MemAllocator>>
+  std::unordered_map<std::string, std::shared_ptr<nntrainer::MemAllocator>>
   getAllocators() {
     return allocator;
   }
@@ -257,10 +256,9 @@ private:
    * @brief map for Context and Context name
    *
    */
-  static inline std::unordered_map<std::string, nntrainer::Context *> engines;
+  std::unordered_map<std::string, nntrainer::Context *> engines;
 
-  static inline std::unordered_map<std::string,
-                                   std::shared_ptr<nntrainer::MemAllocator>>
+  std::unordered_map<std::string, std::shared_ptr<nntrainer::MemAllocator>>
     allocator;
 
   std::string working_path_base;
