@@ -163,7 +163,6 @@ private:
                   const std::vector<std::string> &filter_props = {});
 
   const char *unknown = "Unknown";
-  const char *none = "none";
 
   Engine ct_engine;
   std::unique_ptr<Engine> model_file_engine;

@@ -228,7 +228,7 @@ void TensorPool::allocate(bool init) {
   if (minMemoryRequirement() == 0)
     return;
   mem_pool->allocate();
-  unsigned int i = 0;
+
   /** set the pointers using the token for all the tensors */
   for (auto &spec : pool) {
     auto details = std::get_if<SourceDetails>(&spec.details);
@@ -238,7 +238,6 @@ void TensorPool::allocate(bool init) {
     spec.tensor->setData(mem_pool->getMemory(details->token), 0, init);
 
     syncDependents(spec);
-    i++;
   }
 
   if (cache_loader) {
