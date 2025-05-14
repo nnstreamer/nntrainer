@@ -378,7 +378,8 @@ template <typename T> void UIntTensor<T>::save(std::ostream &file) {
 }
 
 template <typename T>
-void UIntTensor<T>::read(std::ifstream &file, size_t start_offset) {
+void UIntTensor<T>::read(std::ifstream &file, size_t start_offset,
+                         bool read_from_offset) {
   /// @note Read quantization information
   read_quantization_info(file);
 

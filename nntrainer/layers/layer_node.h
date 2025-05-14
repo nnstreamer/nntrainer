@@ -290,7 +290,6 @@ public:
    */
   InitLayerContext refinalize(const std::vector<TensorDim> &input_dims = {});
 
-
   void initialize() override { layer->initialize(*run_context); }
 
   /**
@@ -760,7 +759,8 @@ public:
    */
   void read(std::ifstream &file, bool opt_var = false,
             ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN,
-            bool fsu = false, size_t start_offset = -1);
+            bool fsu = false, size_t start_offset = -1,
+            bool read_from_offset = false);
 
   /**
    * @brief     save layer Weight & Bias data from file

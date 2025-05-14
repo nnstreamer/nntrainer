@@ -707,7 +707,7 @@ void NeuralNetwork::load(const std::string &file_path,
           auto local_model_file = checkedOpenStream<std::ifstream>(
             (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
           (*iter)->read(local_model_file, false, exec_mode, fsu_mode,
-                        start_offsets[exec_order]);
+                        start_offsets[exec_order], true);
         }));
       }
       // 모든 작업이 끝날 때까지 대기

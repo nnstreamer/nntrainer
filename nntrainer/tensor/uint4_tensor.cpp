@@ -380,7 +380,8 @@ void Uint4QTensor::save(std::ostream &file) {
   putData();
 }
 
-void Uint4QTensor::read(std::ifstream &file, size_t start_offset) {
+void Uint4QTensor::read(std::ifstream &file, size_t start_offset,
+                        bool read_from_offset) {
   /// @note Read quantization information
   read_quantization_info(file);
 
