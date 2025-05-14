@@ -23,9 +23,12 @@ using std::chrono::microseconds;
 using std::chrono::milliseconds;
 using std::chrono::nanoseconds;
 using std::chrono::seconds;
-#include <unistd.h>
 #include <fstream>
 #include <filesystem>
+
+#if defined(_WIN32)
+#include <Sysinfoapi.h>
+#endif
 
 bool is_cpu_fully_utilized(int cpu_id) {
     std::ifstream cur_file("/sys/devices/system/cpu/cpu" + std::to_string(cpu_id) + "/cpufreq/scaling_cur_freq");
@@ -67,14 +70,24 @@ void print_cpu_temperature() {
 }
 
 void print_memory_usage() {
-    std::ifstream statm("/proc/self/statm");
-    if (statm.is_open()) {
-        long pages_total, resident;
-        statm >> pages_total >> resident;
-        long page_size_kb = sysconf(_SC_PAGE_SIZE) / 1024;
-        std::cout << "Virtual Memory: " << pages_total * page_size_kb << " KB\n";
-        std::cout << "Resident Set Size (RSS): " << resident * page_size_kb << " KB\n";
-    }
+  std::ifstream statm("/proc/self/statm");
+  if (statm.is_open()) {
+    long pages_total, resident;
+    statm >> pages_total >> resident;
+
+#if defined(_WIN32)
+    SYSTEM_INFO sysInfo;
+    GetSystemInfo(&sysInfo);
+    auto page_size = sysInfo.dwAllocationGranularity;
+#else
+    auto page_size = sysconf(_SC_PAGE_SIZE);
+#endif
+    long page_size_kb = page_size / 1024;
+
+    std::cout << "Virtual Memory: " << pages_total * page_size_kb << " KB\n";
+    std::cout << "Resident Set Size (RSS): " << resident * page_size_kb
+              << " KB\n";
+  }
 }
 
 template <typename T>

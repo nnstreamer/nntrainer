@@ -233,7 +233,7 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
 
 // 1. omp, with threadnum indexing
 #pragma omp parallel for collapse(1) num_threads(thread_num)
-    for (unsigned int i = 0; i < thread_num; i++) {
+    for (int i = 0; i < thread_num; i++) {
     unsigned int src0_start = (i * N) / thread_num;
     unsigned int src0_end = ((i + 1) * N) / thread_num;
 
