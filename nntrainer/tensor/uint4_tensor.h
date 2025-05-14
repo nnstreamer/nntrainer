@@ -243,7 +243,7 @@ public:
   /**
    * @copydoc Tensor::read(std::ifstream &file)
    */
-  void read(std::ifstream &file) override;
+  void read(std::ifstream &file, size_t start_offset) override;
 
   /**
    * @copydoc Tensor::argmax()
