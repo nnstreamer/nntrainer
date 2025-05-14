@@ -65,7 +65,8 @@ void TensorBase::read(std::ifstream &file, size_t start_offset) {
     << "read size: " << bytes()
     << " is too big. It cannot be represented by std::streamsize";
 
-  checkedRead(file, (char *)getData(), sz, "[Tensor::read] operation failed", start_offset);
+  checkedRead(file, (char *)getData(), sz, "[Tensor::read] operation failed",
+              start_offset);
   putData();
 }
 
