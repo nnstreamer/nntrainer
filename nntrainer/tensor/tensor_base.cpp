@@ -59,14 +59,14 @@ void TensorBase::save(std::ostream &file) {
   putData();
 }
 
-void TensorBase::read(std::ifstream &file) {
+void TensorBase::read(std::ifstream &file, size_t start_offset) {
   std::streamsize sz = static_cast<std::streamsize>(bytes());
 
   NNTR_THROW_IF(sz < 0, std::invalid_argument)
     << "read size: " << bytes()
     << " is too big. It cannot be represented by std::streamsize";
 
-  checkedRead(file, (char *)getData(), sz, "[Tensor::read] operation failed");
+  checkedRead(file, (char *)getData(), sz, "[Tensor::read] operation failed", start_offset);
   putData();
 }
 
