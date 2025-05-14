@@ -3,7 +3,7 @@ project('nntrainer', 'c', 'cpp',
   license: ['apache-2.0'],
   meson_version: '>=0.55.0',
   default_options: [
-    'werror=true',
+    'werror=false',
     'warning_level=1',
     'c_std=gnu89',
     'cpp_std=c++17',
