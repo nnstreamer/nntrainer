@@ -760,7 +760,7 @@ public:
    */
   void read(std::ifstream &file, bool opt_var = false,
             ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN,
-            bool fsu = false);
+            bool fsu = false, size_t start_offset = -1);
 
   /**
    * @brief     save layer Weight & Bias data from file

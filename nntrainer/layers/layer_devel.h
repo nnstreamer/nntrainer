@@ -368,7 +368,7 @@ public:
    */
   virtual void read(std::ifstream &file, RunLayerContext &run_context,
                     bool opt_var, ml::train::ExecutionMode mode, bool trainable,
-                    TensorDim::DataType defineWeightDataType, bool fsu) {
+                    TensorDim::DataType defineWeightDataType, bool fsu, size_t start_offset = -1) {
     if (fsu) {
       for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
         if (run_context.getWeight(i).getDataType() ==
@@ -383,7 +383,7 @@ public:
             /// @note read optimizer variables
             for (unsigned int j = 0; j < run_context.getNumWeightOptVar(i);
                  ++j) {
-              run_context.getWeightOptVar(i, j).read(file);
+              run_context.getWeightOptVar(i, j).read(file, start_offset);
             }
           }
         }
@@ -391,7 +391,7 @@ public:
         for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
           /// @note shared weights are only be read at the first acecss
           if (run_context.isGradientFirstAccess(i)) {
-            run_context.getWeight(i).read(file);
+            run_context.getWeight(i).read(file, start_offset);
 
             if (run_context.isMixedPrecision(i) && trainable &&
                 !run_context.getWeightFP32(i).empty()) {
