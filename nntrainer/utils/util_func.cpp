@@ -72,7 +72,11 @@ static void checkFile(const T &file, const char *error_msg) {
 }
 
 void checkedRead(std::ifstream &file, char *array, std::streamsize size,
-                 const char *error_msg) {
+                 const char *error_msg, size_t start_offset) {
+  if (start_offset >= 0) {
+    file.seekg(start_offset, std::ios::beg);
+    checkFile(file, "failed to move offset");
+  }
   file.read(array, size);
 
   checkFile(file, error_msg);
