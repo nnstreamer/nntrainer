@@ -480,7 +480,8 @@ void LayerNode::exportTo(Exporter &exporter,
 }
 
 void LayerNode::read(std::ifstream &file, bool opt_var,
-                     ml::train::ExecutionMode mode, bool fsu, size_t start_offset) {
+                     ml::train::ExecutionMode mode, bool fsu,
+                     size_t start_offset) {
   NNTR_THROW_IF(!run_context, std::runtime_error)
     << __func__ << " layer needs to be finalized first!";
   getLayer()->read(file, *run_context, opt_var, mode,
