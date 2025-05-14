@@ -40,11 +40,11 @@
 
 namespace nntrainer {
 
-#define NN_RETURN_STATUS()         \
-  do {                             \
-    if (status != ML_ERROR_NONE) { \
-      return status;               \
-    }                              \
+#define NN_RETURN_STATUS()                                                     \
+  do {                                                                         \
+    if (status != ML_ERROR_NONE) {                                             \
+      return status;                                                           \
+    }                                                                          \
   } while (0)
 
 /**
@@ -135,7 +135,8 @@ constexpr const char *default_error_msg =
  * @throw std::runtime_error if file.fail() is true after read.
  */
 void checkedRead(std::ifstream &file, char *array, std::streamsize size,
-                 const char *error_msg = default_error_msg, size_t start_offset = -1);
+                 const char *error_msg = default_error_msg,
+                 size_t start_offset = -1);
 
 /**
  * @brief same as file.write except it checks if fail to write the file
