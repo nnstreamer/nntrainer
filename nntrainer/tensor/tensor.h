@@ -1589,7 +1589,8 @@ public:
    * @brief     Read the Tensor from file
    * @param[in] file input file stream
    */
-  void read(std::ifstream &file, size_t start_offset = -1);
+  void read(std::ifstream &file, size_t start_offset = 0,
+            bool read_from_offset = false);
 
   /**
    * @brief     return argument index which value is max by batch
