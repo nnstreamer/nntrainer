@@ -368,7 +368,8 @@ public:
    */
   virtual void read(std::ifstream &file, RunLayerContext &run_context,
                     bool opt_var, ml::train::ExecutionMode mode, bool trainable,
-                    TensorDim::DataType defineWeightDataType, bool fsu, size_t start_offset = -1) {
+                    TensorDim::DataType defineWeightDataType, bool fsu,
+                    size_t start_offset = -1) {
     if (fsu) {
       for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
         if (run_context.getWeight(i).getDataType() ==

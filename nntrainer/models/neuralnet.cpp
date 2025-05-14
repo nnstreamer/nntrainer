@@ -698,21 +698,27 @@ void NeuralNetwork::load(const std::string &file_path,
 
     auto model_file = checkedOpenStream<std::ifstream>(
       (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
-
-    std::vector<std::future<void>> futures;
-    for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); ++iter) {
-      auto exec_order = std::get<0>((*iter)->getExecutionOrder());
-      futures.emplace_back(std::async(std::launch::async, [=]() {
-        auto local_model_file = checkedOpenStream<std::ifstream>(
-          (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
-        (*iter)->read(local_model_file, false, exec_mode, fsu_mode,
-                      start_offsets[exec_order]);
-      }));
+    if (exec_mode == ml::train::ExecutionMode::INFERENCE) {
+      std::vector<std::future<void>> futures;
+      for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
+           ++iter) {
+        auto exec_order = std::get<0>((*iter)->getExecutionOrder());
+        futures.emplace_back(std::async(std::launch::async, [=]() {
+          auto local_model_file = checkedOpenStream<std::ifstream>(
+            (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
+          (*iter)->read(local_model_file, false, exec_mode, fsu_mode,
+                        start_offsets[exec_order]);
+        }));
+      }
+      // 모든 작업이 끝날 때까지 대기
+      for (auto &f : futures)
+        f.get();
+    } else {
+      for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
+           ++iter) {
+        (*iter)->read(model_file, false, exec_mode, fsu_mode);
+      }
     }
-    // 모든 작업이 끝날 때까지 대기
-    for (auto &f : futures)
-      f.get();
-
     try {
       /// this is assuming that the failure is allowed at the end of the file
       /// read. so, after this line, additional read shouldn't be called
