@@ -423,7 +423,7 @@ void BatchNormalizationLayer::read(std::ifstream &file,
                                    ml::train::ExecutionMode mode,
                                    bool trainable,
                                    TensorDim::DataType definedWeightDataType,
-                                   bool fsu) {
+                                   bool fsu, size_t start_offset) {
   if (opt_var) {
     for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
       if (run_context.isGradientLastAccess(i) && trainable) {
@@ -452,7 +452,7 @@ void BatchNormalizationLayer::read(std::ifstream &file,
           T_read.read(file);
           run_context.getWeight(i).copyData(T_read);
         } else {
-          run_context.getWeight(i).read(file);
+          run_context.getWeight(i).read(file, start_offset);
         }
 
         if (run_context.isMixedPrecision(i) && trainable &&
