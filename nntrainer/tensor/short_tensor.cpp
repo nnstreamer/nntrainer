@@ -321,7 +321,7 @@ void ShortTensor::save(std::ostream &file) {
   putData();
 }
 
-void ShortTensor::read(std::ifstream &file) {
+void ShortTensor::read(std::ifstream &file, size_t start_offset) {
   /// @note Read quantization information
   read_quantization_info(file);
 

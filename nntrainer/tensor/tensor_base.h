@@ -500,7 +500,7 @@ public:
    * @brief     Read the Tensor from file
    * @param[in] file input file stream
    */
-  virtual void read(std::ifstream &file);
+  virtual void read(std::ifstream &file, size_t start_offset);
 
   /**
    * @copydoc Tensor::readFSU()
