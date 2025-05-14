@@ -1296,11 +1296,12 @@ void Tensor::save(std::ostream &file) {
   itensor->save(file);
 }
 
-void Tensor::read(std::ifstream &file, size_t start_offset) {
+void Tensor::read(std::ifstream &file, size_t start_offset,
+                  bool read_from_offset) {
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
     << getName() << " is not contiguous, cannot read.";
 
-  itensor->read(file, start_offset);
+  itensor->read(file, start_offset, read_from_offset);
 }
 
 std::vector<unsigned int> Tensor::argmax() const {
