@@ -678,6 +678,9 @@ void NeuralNetwork::load(const std::string &file_path,
     auto local_offset = start_offsets.back();
     for (auto weight : weights) {
       size_t size = weight->getVariable().getMemoryBytes();
+      if (weight->getDim().getDataType() == TensorDim::DataType::Q4_K) {
+        size += sizeof(uint16_t);
+      }
       file_offset.emplace_back(std::make_pair(start_from, size));
       start_from += size;
       local_offset += size;
@@ -698,6 +701,7 @@ void NeuralNetwork::load(const std::string &file_path,
 
     auto model_file = checkedOpenStream<std::ifstream>(
       (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
+
     if (exec_mode == ml::train::ExecutionMode::INFERENCE) {
       std::vector<std::future<void>> futures;
       for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
@@ -710,7 +714,6 @@ void NeuralNetwork::load(const std::string &file_path,
                         start_offsets[exec_order], true);
         }));
       }
-      // 모든 작업이 끝날 때까지 대기
       for (auto &f : futures)
         f.get();
     } else {

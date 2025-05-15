@@ -383,16 +383,18 @@ void Uint4QTensor::save(std::ostream &file) {
 void Uint4QTensor::read(std::ifstream &file, size_t start_offset,
                         bool read_from_offset) {
   /// @note Read quantization information
-  read_quantization_info(file);
+  read_quantization_info(file, start_offset, read_from_offset);
 
   std::streamsize sz = static_cast<std::streamsize>(getMemoryBytes());
 
   NNTR_THROW_IF(sz < 0, std::invalid_argument)
     << "read size: " << getMemoryBytes()
     << " is too big. It cannot be represented by std::streamsize";
-
+  if (read_from_offset) {
+    start_offset += sizeof(uint16_t);
+  }
   checkedRead(file, (char *)getData(), sz,
-              "[Uint4QTensor::read] operation failed");
+              "[Uint4QTensor::read] operation failed", start_offset, read_from_offset);
   putData();
 }
 
@@ -608,9 +610,10 @@ void Uint4QTensor::save_quantization_info(std::ostream &file) {
                "[Uint4QTensor::save] failed to write quantization information");
 }
 
-void Uint4QTensor::read_quantization_info(std::ifstream &file) {
+void Uint4QTensor::read_quantization_info(std::ifstream &file, size_t start_offset,
+                        bool read_from_offset) {
   checkedRead(file, (char *)&qscheme, sizeof(uint16_t),
-              "[Uint4QTensor::read] failed to read quantization information");
+              "[Uint4QTensor::read] failed to read quantization information", start_offset, read_from_offset);
 }
 
 } // namespace nntrainer
