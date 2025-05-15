@@ -55,7 +55,6 @@ public:
                .append(name)
                .string()),
     fd(-1),
-    offset_index(0),
     execution_mode(ml::train::ExecutionMode::TRAIN) {}
 
   /**
@@ -65,7 +64,6 @@ public:
   explicit SwapDevice(const std::string &path, const std::string &name) :
     dev_path(std::filesystem::path(path).append(name).string()),
     fd(-1),
-    offset_index(0),
     execution_mode(ml::train::ExecutionMode::TRAIN) {}
 
   /**
@@ -148,7 +146,6 @@ private:
   std::string dev_path; /**< device path */
   int fd;               /**< device file description */
   std::vector<std::pair<size_t, size_t>> weight_offset;
-  int offset_index;
   ml::train::ExecutionMode execution_mode;
 #ifdef USE_MMAP
   std::map<void *, std::tuple<void *, size_t, off_t, ssize_t>>

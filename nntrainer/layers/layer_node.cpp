@@ -387,7 +387,7 @@ bool LayerNode::getTrainable() const {
      * if a layer does not contain any weights, it will be treated as a
      * non-trainable layer.
      */
-    return std::get<props::Trainable>(*layer_node_props) &
+    return std::get<props::Trainable>(*layer_node_props) &&
            (run_context->getNumWeights() > 0);
   else
     return std::get<props::Trainable>(*layer_node_props);
