@@ -27,6 +27,7 @@
 #include <nntrainer_log.h>
 #include <tensor_base.h>
 
+
 #ifdef ENABLE_FP16
 #include <half_tensor.h>
 #endif
@@ -1572,7 +1573,8 @@ public:
    * @brief     Read the Tensor from file
    * @param[in] file input file stream
    */
-  void read(std::ifstream &file);
+  void read(std::ifstream &file, size_t start_offset = 0,
+            bool read_from_offset = false);
 
   /**
    * @brief     return argument index which value is max by batch
@@ -1843,7 +1845,6 @@ public:
   bool isValid() const { return itensor->isValid(); };
 
   static constexpr float epsilon = 1e-5f;
-
 private:
   std::shared_ptr<TensorBase> itensor;
 

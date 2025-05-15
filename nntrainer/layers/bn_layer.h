@@ -143,8 +143,8 @@ public:
    */
   void read(std::ifstream &file, RunLayerContext &context, bool opt_var,
             ml::train::ExecutionMode mode, bool trainable,
-            TensorDim::DataType definedWeightDataType,
-            bool fsu = false) override;
+            TensorDim::DataType definedWeightDataType, bool fsu = false,
+            size_t start_offset = 0, bool read_from_offset = false) override;
 
 private:
   float divider; /**< size of the axes of the reduced */
