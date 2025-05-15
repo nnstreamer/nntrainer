@@ -759,7 +759,7 @@ public:
    */
   void read(std::ifstream &file, bool opt_var = false,
             ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN,
-            bool fsu = false, size_t start_offset = -1,
+            bool fsu = false, size_t start_offset = 0,
             bool read_from_offset = false);
 
   /**
