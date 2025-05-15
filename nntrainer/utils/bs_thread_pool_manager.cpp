@@ -4,7 +4,6 @@
 #include "bs_thread_pool_manager.hpp"
 
 namespace nntrainer{
-    // BS::thread_pool<> ThreadPoolManager::pool(8);
     BS::thread_pool<> ThreadPoolManager::pool(std::thread::hardware_concurrency());
 }
 
