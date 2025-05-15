@@ -693,6 +693,17 @@ void __fallback_gemm_q4_K(const unsigned int M, const unsigned int N,
 /**
  * @brief
  *
+ * @param K
+ * @param v_q6_K
+ * @param v_q8_K
+ * @return float
+ */
+float __fallback_dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
+                               const void *v_q8_K);
+
+/**
+ * @brief
+ *
  * @param src
  * @param dst
  * @param nrow
@@ -715,6 +726,24 @@ size_t __fallback_quantize_q4_0(const float *src, void *dst, int64_t nrow,
  */
 size_t __fallback_quantize_q4_K(const float *src, void *dst, int64_t nrow,
                                 int64_t n_per_row, const float *quant_weights);
+
+/**
+ * @brief
+ *
+ * @param src
+ * @param dst
+ * @param k
+ */
+void __fallback_quantize_row_q6_K(const float *src, void *dst, int64_t k);
+
+/**
+ * @brief
+ *
+ * @param src
+ * @param dst
+ * @param k
+ */
+void __fallback_quantize_row_q8_K(const float *src, void *dst, int64_t k);
 
 /**
  * @brief

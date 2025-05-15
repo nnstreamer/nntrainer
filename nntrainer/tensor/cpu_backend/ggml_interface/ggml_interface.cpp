@@ -91,6 +91,14 @@ size_t __ggml_quantize_q4_K(const float *src, void *dst, int64_t nrow,
   return ::quantize_q4_K(src, dst, nrow, n_per_row, quant_weights);
 }
 
+void __ggml_quantize_row_q6_K(const float *src, void *dst, int64_t k) {
+  ::quantize_q6_K(src, dst, 1, k, nullptr);
+}
+
+void __ggml_quantize_row_q8_K(const float *src, void *dst, int64_t k) {
+  ::quantize_row_q8_K(src, dst, k);
+}
+
 void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int K, const float *A,
                                const unsigned int lda, const void *B,
@@ -182,6 +190,16 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
     }
 #endif
   }
+}
+
+float __ggml_vec_dot_q6_K_q8_K(const unsigned int K,
+                               const void *GGML_RESTRICT v_q6_K,
+                               const void *GGML_RESTRICT v_q8_K) {
+  float result;
+  int bs = 1, bx = 1, by = 1,
+      nrc = 1; // unused variables in ::ggml_vec_dot_q6_K_q8_K
+  ::ggml_vec_dot_q6_K_q8_K(K, &result, bs, v_q6_K, bx, v_q8_K, by, nrc);
+  return result;
 }
 
 void __ggml_dequantize_row_q4_K(const void *x_raw, float *y, int64_t k) {
