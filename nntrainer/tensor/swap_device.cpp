@@ -14,7 +14,7 @@
 #include <cstring>
 #include <fcntl.h>
 #include <malloc.h>
-#include <profiler.h>
+// #include <profiler.h>
 #include <stdlib.h>
 
 #include <nntrainer_error.h>
