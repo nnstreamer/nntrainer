@@ -348,7 +348,7 @@ void Int4QTensor::save(std::ostream &file) {
 void Int4QTensor::read(std::ifstream &file, size_t start_offset,
                        bool read_from_offset) {
   /// @note Read quantization information
-  read_quantization_info(file);
+  read_quantization_info(file, start_offset, read_from_offset);
 
   std::streamsize sz = static_cast<std::streamsize>(getMemoryBytes());
 
@@ -555,7 +555,8 @@ void Int4QTensor::save_quantization_info(std::ostream &file) {
                "[Int4QTensor::save] failed to write quantization information");
 }
 
-void Int4QTensor::read_quantization_info(std::ifstream &file) {
+void Int4QTensor::read_quantization_info(std::ifstream &file, size_t start_offset,
+                        bool read_from_offset) {
   checkedRead(file, (char *)&qscheme, sizeof(uint16_t),
               "[Int4QTensor::read] failed to read quantization information");
 }
