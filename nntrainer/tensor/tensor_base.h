@@ -500,7 +500,8 @@ public:
    * @brief     Read the Tensor from file
    * @param[in] file input file stream
    */
-  virtual void read(std::ifstream &file);
+  virtual void read(std::ifstream &file, size_t start_offset = 0,
+                    bool read_from_offset = false);
 
   /**
    * @copydoc Tensor::readFSU()
@@ -642,7 +643,8 @@ public:
   /**
    * @brief     Read quantization information
    */
-  virtual void read_quantization_info(std::ifstream &file) {}
+  virtual void read_quantization_info(std::ifstream &file, size_t start_offset = 0,
+                        bool read_from_offset = false) {}
 
   /**
    * @brief     Get size of current tensor

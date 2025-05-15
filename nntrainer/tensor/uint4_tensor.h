@@ -235,7 +235,8 @@ public:
   /**
    * @copydoc Tensor::read(std::ifstream &file)
    */
-  void read(std::ifstream &file) override;
+  void read(std::ifstream &file, size_t start_offset,
+            bool read_from_offset) override;
 
   /**
    * @copydoc Tensor::argmax()
@@ -275,7 +276,8 @@ public:
   /**
    * @copydoc TensorBase::read_quantization_info()
    */
-  void read_quantization_info(std::ifstream &file) override;
+  void read_quantization_info(std::ifstream &file, size_t start_offset,
+                        bool read_from_offset) override;
 
   /**
    * @copydoc Tensor::getMemoryBytes()
