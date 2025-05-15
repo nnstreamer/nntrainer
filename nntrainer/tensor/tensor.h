@@ -27,6 +27,7 @@
 #include <nntrainer_log.h>
 #include <tensor_base.h>
 
+
 #ifdef ENABLE_FP16
 #include <half_tensor.h>
 #endif
@@ -1843,7 +1844,6 @@ public:
   bool isValid() const { return itensor->isValid(); };
 
   static constexpr float epsilon = 1e-5f;
-
 private:
   std::shared_ptr<TensorBase> itensor;
 

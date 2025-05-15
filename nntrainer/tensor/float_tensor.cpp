@@ -682,6 +682,28 @@ void FloatTensor::inv_sqrt(Tensor &out) {
 
 Tensor &FloatTensor::dot(Tensor const &input, Tensor &output, bool trans,
                          bool trans_in, float beta) const {
+  /**
+   * @note FP32.dot(input);
+   * according to the input type, invoked kernels can be varied.
+   */
+  switch (input.getDataType()) {
+  /** applying sgemm/sgemv after type casting to FP32 */
+  case Tdatatype::FP32:
+  case Tdatatype::FP16:
+    dotFloat(input, output, trans, trans_in, beta);
+    break;
+  /** applying gemm_q4_k */
+  case Tdatatype::Q4_K:
+    dotQ4K(input, output, trans, trans_in, beta);
+    break;
+  default:
+    throw std::invalid_argument("Error: unsupported datatype");
+  }
+  return output;
+}
+
+Tensor &FloatTensor::dotFloat(Tensor const &input, Tensor &output, bool trans,
+                              bool trans_in, float beta) const {
   // Comment out with intension to support the calculation wrt. batch and
   // height direction. It supposes to have this->dim as [ BxCxH,W ] and
   // input.dim is [BxCxH,W] as well if (input.dim.rank() > 2) {
@@ -735,6 +757,24 @@ Tensor &FloatTensor::dot(Tensor const &input, Tensor &output, bool trans,
           data, lda, mdata, ldb, beta, rdata, ldc);
   }
 
+  return output;
+}
+Tensor &FloatTensor::dotQ4K(Tensor const &input, Tensor &output, bool trans,
+                            bool trans_in, float beta) const {
+  ///@note trans / trans_in is not yet applied
+  NNTR_THROW_IF(trans || trans_in, std::invalid_argument)
+    << "dotQ4K does not support trans / trans_in";
+
+  const float *data = (float *)getData();
+  const uint8_t *mdata = input.getData<uint8_t>();
+  float *rdata = output.getData<float>();
+
+  unsigned int M, N, K;
+  M = getDim().height();
+  K = getDim().width();
+  N = input.getDim().width();
+
+  gemm_q4_K(M, N, K, data, K, (void *)mdata, N, rdata, N);
   return output;
 }
 
