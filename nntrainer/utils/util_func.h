@@ -115,6 +115,15 @@ template <typename T = float> T logFloat(T x) {
  */
 template <typename T = float> T exp_util(T x) { return static_cast<T>(exp(x)); }
 
+#ifdef _WIN32
+#ifdef _Float16
+template <>  
+_Float16 exp_util<_Float16>(_Float16 x) {  
+    return static_cast<_Float16>(std::exp(static_cast<float>(x)));  
+}  
+#endif  
+#endif
+
 /**
  * @brief     Check Existance of File
  * @param[in] file path of the file to be checked
