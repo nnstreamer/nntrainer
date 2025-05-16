@@ -2,6 +2,4 @@
 url = https://github.com/OpenMathLib/OpenBLAS.git
 directory=OpenBLAS
 revision = v0.3.29
-patch_directory = openblas
-diff_files = openblas/0001-Aid-windows-cross-compile-wine-MSVC.patch
 method = cmake
