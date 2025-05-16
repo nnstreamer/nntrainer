@@ -3,9 +3,9 @@ project('nntrainer', 'c', 'cpp',
   license: ['apache-2.0'],
   meson_version: '>=0.55.0',
   default_options: [
-    'werror=true',
+    'werror=false',
     'warning_level=1',
-    'c_std=gnu89',
+    'c_std=gnu99',
     'cpp_std=c++17',
     'buildtype=release'
   ]
@@ -28,6 +28,7 @@ add_project_arguments('-DVERSION_MICRO=' + nntrainer_version_split[2], language:
 
 cc = meson.get_compiler('c')
 cxx = meson.get_compiler('cpp')
+cxx_compiler_id = cxx.get_id()
 
 powershell_prog = find_program('powershell', required: (build_machine.system() == 'windows'))
 
@@ -98,7 +99,8 @@ if arch == 'arm' or arch == 'aarch64' or get_option('platform') == 'android'
   endif
 elif arch == 'x86' or arch == 'x86_64'
   message('Build for X86 architecture')
-  if host_machine.system() == 'windows'
+  if cxx_compiler_id == 'msvc'
+  # if build_machine.system() == 'windows'
     add_project_arguments(['/arch:AVX2'], language: ['c','cpp'])
   else
     add_project_arguments(['-march=native'], language: ['c','cpp'])
@@ -326,10 +328,10 @@ if get_option('enable-blas')
       blas_options.add_cmake_defines({'BUILD_SHARED_LIBS': host_machine.system() != 'windows'})
       blas_options.add_cmake_defines({'BUILD_WITHOUT_LAPACK': true})
       blas_options.add_cmake_defines({'NOFORTRAN': true})
-      if host_machine.system() == 'windows'
+      if cxx_compiler_id == 'msvc'
         blas_options.add_cmake_defines(common_win_subproject_cmake_defines)
         blas_options.add_cmake_defines({'MSVC_STATIC_CRT': '1'})
-        if meson.is_cross_build() and host_machine.system() == 'windows'
+        if meson.is_cross_build()
           blas_options.add_cmake_defines({
             'TARGET': 'generic',
             'TARGET_CORE': 'generic',
@@ -337,6 +339,8 @@ if get_option('enable-blas')
             'BUILD_COMPLEX16': false,
           })
           warning('Disabling assembly optimizations for OpenBLAS')
+
+          # add_project_arguments(['/arch:AVX2'], language: ['c','cpp'])
         endif
       endif
       blas_subproject = cmake.subproject('openblas', options: blas_options, required: true)
@@ -389,7 +393,7 @@ if get_option('enable-benchmarks')
   benchmark_dep = dependency('benchmark', static : true, main : false, required : false)
   if not benchmark_dep.found()
     benchmark_options = cmake.subproject_options()
-    if host_machine.system() == 'windows'
+    if cxx_compiler_id == 'msvc'
       benchmark_options.add_cmake_defines(common_win_subproject_cmake_defines)
     endif
     benchmark_options.add_cmake_defines({'BENCHMARK_ENABLE_TESTING': false})
@@ -406,7 +410,7 @@ gtest_main_dep = dependency('gtest', static: true, main: true, required: false)
 
 if not gmock_dep.found() or not gtest_dep.found() or not gtest_main_dep.found()
   googletest_options = cmake.subproject_options()
-  if host_machine.system() == 'windows'
+  if cxx_compiler_id == 'msvc'
     googletest_options.add_cmake_defines(common_win_subproject_cmake_defines)
   else
     googletest_options.add_cmake_defines({'CMAKE_POSITION_INDEPENDENT_CODE': true})
@@ -446,7 +450,7 @@ else
 
   if not iniparser_dep.found()
     iniparser_options = cmake.subproject_options()
-    if host_machine.system() == 'windows'
+    if cxx_compiler_id == 'msvc'
       iniparser_options.add_cmake_defines(common_win_subproject_cmake_defines)
     endif
     iniparser_options.add_cmake_defines({'BUILD_DOCS': false})
@@ -468,6 +472,22 @@ if get_option('enable-ggml')
   ggml_options.add_cmake_defines({'BUILD_SHARED_LIBS': host_machine.system() != 'windows'})
   ggml_options.add_cmake_defines({'GGML_BUILD_TESTS': false})
   ggml_options.add_cmake_defines({'GGML_BUILD_EXAMPLES': false})
+
+  if arch == 'x86_64'
+    if cc.has_argument('-march=x86-64-v2')
+      cpu_type = 'x86-64-v2'
+    elif cc.has_argument('-march=haswell')
+      cpu_type = 'haswell'
+    else
+      cpu_type = 'x86-64'
+    endif
+  endif
+
+  message('Auto-detected safe CPU tuning: ' + cpu_type)
+
+  ggml_options.append_compile_args('c', '-march=' + cpu_type)
+  ggml_options.append_compile_args('cpp', '-march=' + cpu_type)
+
   ggml_proj = cmake.subproject('ggml', options: ggml_options, required: true)
   ggml_dep = [
     ggml_proj.dependency('ggml-base'),
@@ -485,7 +505,7 @@ else
   ruy_options = cmake.subproject_options()
   ruy_options.add_cmake_defines({'RUY_MINIMAL_BUILD': true})
   ruy_options.add_cmake_defines({'CMAKE_POLICY_VERSION_MINIMUM': '3.5'})
-  if host_machine.system() == 'windows'
+  if cxx_compiler_id == 'msvc'
     ruy_options.add_cmake_defines(common_win_subproject_cmake_defines)
   else
     ruy_flags = [
@@ -497,6 +517,7 @@ else
       '-Wno-error=stringop-overread',
       '-Wno-error=array-parameter'
       ]
+    ruy_options.append_compile_args('c', '-Wno-implicit-function-declaration')
     ruy_options.append_compile_args('c', ruy_flags)
     ruy_options.append_compile_args('cpp', ruy_flags)
   endif
