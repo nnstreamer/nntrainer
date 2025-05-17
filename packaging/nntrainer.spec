@@ -316,6 +316,10 @@ NNSteamer tensor trainer static package for nntrainer to support inference.
 Summary: Ruy support in NNTrainer
 %description -n ruy
 
+%package -n ggml
+Summary: GGML support in NNTrainer
+%description -n ggml
+
 %endif #tizen
 
 ## Define build options
@@ -405,6 +409,9 @@ ln -sf %{_libdir}/pkgconfig/capi-nnstreamer.pc %{_libdir}/pkgconfig/capi-ml-comm
 # Setup Ruy
 tar -xf packaging/ruy.tar.gz -C subprojects
 
+# Setup GGML
+tar -xf packaging/ggml.tar.gz -C subprojects
+
 mkdir -p build
 meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       --libdir=%{_lib} --bindir=%{nntrainerapplicationdir} \
@@ -416,6 +423,7 @@ meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       %{enable_reduce_tolerance} %{configure_subplugin_install_path} %{enable_debug} \
       -Dml-api-support=enabled -Denable-nnstreamer-tensor-filter=enabled \
       -Denable-nnstreamer-tensor-trainer=enabled -Denable-capi=enabled \
+      -Denable-ggml=true \
       %{fp16_support} build --wrap-mode=nodownload
 
 ninja -C build %{?_smp_mflags}
@@ -548,6 +556,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/cpu_backend.h
 %{_includedir}/nntrainer/fallback_internal.h
 %{_includedir}/nntrainer/cblas_interface.h
+%{_includedir}/nntrainer/ggml_interface.h
 %ifarch %{ix86} x86_64
 %{_includedir}/nntrainer/x86_compute_backend.h
 %{_includedir}/nntrainer/avx2_impl.h
@@ -722,6 +731,15 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %ifarch x86_64
 %{_bindir}/cpuid_dump
 %endif #x86_64
+
+# GGML
+%files -n ggml
+%manifest nntrainer.manifest
+%defattr(-,root,root,-)
+%license LICENSE
+%{_libdir}/arm64-v8a/libggml.so
+%{_libdir}/arm64-v8a/libggml_base.so
+%{_libdir}/arm64-v8a/libggml_cpu.so
 
 %endif #tizen
 
