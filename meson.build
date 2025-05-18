@@ -3,7 +3,7 @@ project('nntrainer', 'c', 'cpp',
   license: ['apache-2.0'],
   meson_version: '>=0.55.0',
   default_options: [
-    'werror=true',
+    'werror=false',
     'warning_level=1',
     'c_std=gnu89',
     'cpp_std=c++17',
@@ -462,15 +462,28 @@ endif
 ggml_dep = dummy_dep
 
 if get_option('enable-ggml')
+  message('preparing ggml')
   ggml_options = cmake.subproject_options()
+  ggml_root = meson.source_root() / 'subprojects' / 'ggml'
   if cxx_compiler_id == 'msvc'
     ggml_options.add_cmake_defines(common_win_subproject_cmake_defines)
   endif
   ggml_options.add_cmake_defines({'BUILD_SHARED_LIBS': host_machine.system() != 'windows'})
   ggml_options.add_cmake_defines({'GGML_BUILD_TESTS': false})
   ggml_options.add_cmake_defines({'GGML_BUILD_EXAMPLES': false})
+  ggml_options.add_cmake_defines({'CMAKE_INSTALL_LIBDIR': nntrainer_libdir / 'arm64-v8a'})
   ggml_proj = cmake.subproject('ggml', options: ggml_options, required: true)
-  ggml_dep = ggml_proj.dependency('ggml-cpu')
+  ggml_dep = [
+    ggml_proj.dependency('ggml-base'),
+    ggml_proj.dependency('ggml-cpu'),
+    ggml_proj.dependency('ggml')]
+
+  if get_option('platform') == 'android'
+    message('preparing ggml for Android')
+    run_command([meson.source_root() / 'jni' / 'prepare_ggml.sh', ggml_root ], check: true)
+  endif
+
+  extra_defines += '-DENABLE_GGML=1'
 endif
 
 # Configure the Ruy project (CMake)
