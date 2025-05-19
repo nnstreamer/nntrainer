@@ -389,8 +389,13 @@ void UIntTensor<T>::read(std::ifstream &file, size_t start_offset,
     << "read size: " << getMemoryBytes()
     << " is too big. It cannot be represented by std::streamsize";
 
+  if (read_from_offset) {
+    start_offset += sizeof(uint16_t);
+  }
+
   checkedRead(file, (char *)getData(), sz,
-              "[UIntTensor::read] operation failed");
+              "[UIntTensor::read] operation failed", start_offset,
+              read_from_offset);
   putData();
 }
 
@@ -529,7 +534,8 @@ void UIntTensor<T>::read_quantization_info(std::ifstream &file,
                                            size_t start_offset,
                                            bool read_from_offset) {
   checkedRead(file, (char *)&qscheme, sizeof(uint16_t),
-              "[CharTensor::read] failed to read quantization information");
+              "[CharTensor::read] failed to read quantization information",
+              start_offset, read_from_offset);
 }
 
 template <typename T> size_t UIntTensor<T>::scale_size() const {

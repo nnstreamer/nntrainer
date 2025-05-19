@@ -678,7 +678,10 @@ void NeuralNetwork::load(const std::string &file_path,
     auto local_offset = start_offsets.back();
     for (auto weight : weights) {
       size_t size = weight->getVariable().getMemoryBytes();
-      if (weight->getDim().getDataType() == TensorDim::DataType::Q4_K) {
+      auto tensor_data_type = weight->getDim().getDataType();
+
+      if (tensor_data_type != TensorDim::DataType::FP32 ||
+          tensor_data_type != TensorDim::DataType::FP16) {
         size += sizeof(uint16_t);
       }
       file_offset.emplace_back(std::make_pair(start_from, size));
