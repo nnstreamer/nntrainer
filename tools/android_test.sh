@@ -23,17 +23,25 @@ fi
 popd
 pushd test/libs/arm64-v8a
 
-adb root
+if [ -v ADB_IP ]; then
+  echo "Variable is set"
+  ADB_CMD="adb -H ${ADB_IP}"
+else
+  echo "Variable is not set"
+  ADB_CMD="adb"
+fi
+
+$ADB_CMD root
 
 if [ $? != 0 ]; then
   echo "$0: adb root failed"
   exit 1
 fi
 
-adb shell mkdir -p /data/local/tmp/nntr_android_test/res
-adb shell mkdir -p /data/local/tmp/nntr_android_test/nntrainer_opencl_kernels
+$ADB_CMD shell mkdir -p /data/local/tmp/nntr_android_test/res
+$ADB_CMD shell mkdir -p /data/local/tmp/nntr_android_test/nntrainer_opencl_kernels
 
-adb push . /data/local/tmp/nntr_android_test
+$ADB_CMD push . /data/local/tmp/nntr_android_test
 
 if [ $? != 0 ]; then
   echo "$0: adb push failed to write to /data/local/tmp/nntr_android_test"
@@ -47,13 +55,13 @@ fi
 # meson build will unzip golden data for the unit tests
 popd
 if [ ! -d build ]; then
-  meson build -Dopenblas-num-threads=1  -Denable-tflite-interpreter=false -Denable-tflite-backbone=false -Denable-fp16=true -Domp-num-threads=1 -Denable-opencl=true -Dhgemm-experimental-kernel=false
+  meson build -Dopenblas-num-threads=1  -Denable-tflite-interpreter=false -Denable-tflite-backbone=false -Denable-fp16=true -Domp-num-threads=1 -Denable-opencl=true -Denable-ggml=true -Dhgemm-experimental-kernel=false
 else
   echo "warning: build has already been taken, this script tries to reconfigure and try building"
   pushd build
-  meson configure -Dopenblas-num-threads=1  -Denable-tflite-interpreter=false -Denable-tflite-backbone=false -Denable-fp16=true -Domp-num-threads=1 -Denable-opencl=true -Dhgemm-experimental-kernel=false
+  meson configure -Dopenblas-num-threads=1  -Denable-tflite-interpreter=false -Denable-tflite-backbone=false -Denable-fp16=true -Domp-num-threads=1 -Denable-opencl=true -Denable-ggml=true -Dhgemm-experimental-kernel=false
   popd
 fi
 
 cd build
-adb push res/ /data/local/tmp/nntr_android_test
+$ADB_CMD push res/ /data/local/tmp/nntr_android_test
