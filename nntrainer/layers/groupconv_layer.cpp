@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright
+ * Copyright (C) 2025 Sehyeon Park <shlion@snu.ac.kr>
  *
  * @file   groupconv_layer.cpp
  * @date   28 April 2025
  * @see    https://github.com/nnstreamer/nntrainer
- * @author 
- * @bug    
+ * @author Sehyeon Park <shlion@snu.ac.kr>
+ * @bug    No known bugs except for NYI items
  * @brief  This is Group Convolution Layer Class for Neural Network, Based on conv2d layer.
  *
  */
@@ -248,14 +248,13 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
 enum ConvParams { weight, bias };
 
 GroupConvLayer::GroupConvLayer(
-  const std::array<unsigned int, GROUPCONV_DIM * 2> &padding_,
-  const unsigned int group_n_) :
+  const std::array<unsigned int, GROUPCONV_DIM * 2> &padding_) :
   LayerImpl(),
   padding(padding_),
   conv_props(props::FilterSize(), std::array<props::KernelSize, GROUPCONV_DIM>(),
              std::array<props::Stride, GROUPCONV_DIM>(), props::Padding2D(),
-             std::array<props::Dilation, GROUPCONV_DIM>()),
-  group_n(group_n_) {
+             std::array<props::Dilation, GROUPCONV_DIM>(), props::SplitNumber()
+            ) {
   wt_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
@@ -264,6 +263,11 @@ void GroupConvLayer::finalize(InitLayerContext &context) {
     << "Convolution layer takes only one input";
 
   const TensorDim &in_dim = context.getInputDimensions()[0];
+
+  // If SplitNumber is empty, default is the number of channel.
+  if (std::get<props::SplitNumber>(conv_props).empty()) {
+    std::get<props::SplitNumber>(conv_props).set(in_dim.channel());
+  }
 
   auto &weight_regularizer =
     std::get<props::WeightRegularizer>(*layer_impl_props);
@@ -282,6 +286,7 @@ void GroupConvLayer::finalize(InitLayerContext &context) {
   auto &stride = std::get<std::array<props::Stride, GROUPCONV_DIM>>(conv_props);
   auto &dilation =
     std::get<std::array<props::Dilation, GROUPCONV_DIM>>(conv_props);
+  unsigned int &group_n = std::get<props::SplitNumber>(conv_props);
 
   auto in_t_type = in_dim.getTensorType();
   in_t_type.data_type = context.getWeightDataType();
@@ -350,6 +355,7 @@ void GroupConvLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
   Tensor &filter_kernel = context.getWeight(wt_idx[ConvParams::weight]);
+  unsigned int &group_n = std::get<props::SplitNumber>(conv_props);
 
   /** Calculate Group Convolution
    *
@@ -391,7 +397,7 @@ void GroupConvLayer::forwarding(RunLayerContext &context, bool training) {
   const TensorDim &out_dim = hidden_.getDim();
   const TensorDim &filter_dim = filter_kernel.getDim();
 
-  // Assert the number of input channels is divisible by the number of groups.
+  // Assert the number of channels is divisible by the number of groups.
   NNTR_THROW_IF(in_dim.channel() % group_n != 0, std::invalid_argument)
   << "Failed to forwarding: Input channels must be divisible by number of groups.";
   NNTR_THROW_IF(out_dim.channel() % group_n != 0, std::invalid_argument)
@@ -475,11 +481,199 @@ void GroupConvLayer::forwarding(RunLayerContext &context, bool training) {
 }
 
 void GroupConvLayer::calcDerivative(RunLayerContext &context) {
-  // TODO
+  const unsigned int filter_size = std::get<props::FilterSize>(conv_props);
+  const auto &stride = std::get<std::array<props::Stride, GROUPCONV_DIM>>(conv_props);
+  const auto &dilation = std::get<std::array<props::Dilation, GROUPCONV_DIM>>(conv_props);
+  unsigned int &group_n = std::get<props::SplitNumber>(conv_props);
+
+  const Tensor &derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  Tensor &input_derivative = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
+  Tensor &filter_kernel = context.getWeight(wt_idx[ConvParams::weight]);
+
+  const TensorDim &in_dim = input_derivative.getDim();
+  const TensorDim &out_dim = derivative.getDim();
+  const TensorDim &filter_dim = filter_kernel.getDim();
+
+  // Assert the number of channels is divisible by the number of groups.
+  NNTR_THROW_IF(in_dim.channel() % group_n != 0, std::invalid_argument)
+  << "Failed to calcDerivative: Input channels must be divisible by number of groups.";
+  NNTR_THROW_IF(out_dim.channel() % group_n != 0, std::invalid_argument)
+  << "Failed to calcDerivative: Output channels must be divisible by number of groups.";
+
+  const unsigned int input_channels_per_group = in_dim.channel() / group_n;
+  const unsigned int output_channels_per_group = out_dim.channel() / group_n;
+
+  TensorDim filter_dim_squeezed{filter_kernel.batch(), filter_dim.getFeatureLen()};
+  filter_kernel.reshape(filter_dim_squeezed);
+
+  /// for each batch, each group
+  /// filter_kernel^T X derivative -> column matrix
+  /// col2im(column matrix) to reconstruct the original image
+
+  auto compute_derivative = [&](unsigned int s, unsigned int e,
+                                unsigned int pid, void *user_data) {
+    Tensor result = Tensor(calcCol2ImOutputDim(out_dim, filter_dim));
+
+    for (unsigned int b = s; b < e; ++b) {
+      Tensor deriv_batch = derivative.getBatchSlice(b, 1);
+      Tensor in_deriv_batch = input_derivative.getBatchSlice(b, 1);
+
+      for (unsigned int g = 0; g < group_n; ++g) {
+        Tensor deriv_sub = deriv_batch.getSharedDataTensor(
+          {1, output_channels_per_group, out_dim.height(), out_dim.width()},
+          g * output_channels_per_group * out_dim.height() * out_dim.width());
+
+        deriv_sub.reshape({filter_size, out_dim.width() * out_dim.height()});
+
+        Tensor in_deriv_sub = in_deriv_batch.getSharedDataTensor(
+          {1, input_channels_per_group, in_dim.height(), in_dim.width()},
+          g * input_channels_per_group * in_dim.height() * in_dim.width());
+
+        Tensor filter_kernel_sub = filter_kernel.getSharedDataTensor(
+          {output_channels_per_group,
+           input_channels_per_group * filter_dim.height() * filter_dim.width()},
+          g * output_channels_per_group);
+
+        filter_kernel_sub.dot(deriv_sub, result, true, false);
+        col2im(result, filter_dim, padding, stride, dilation, in_deriv_sub);
+      }
+    }
+    result.deallocate();
+  };
+
+  auto workers = ParallelBatch(compute_derivative, derivative.batch(), nullptr);
+
+  if (workers.getNumWorkers() > 1) {
+    workers.run();
+  } else {
+    compute_derivative(0, derivative.batch(), 0, nullptr);
+  }
+
+  filter_kernel.reshape(filter_dim);
 }
 
 void GroupConvLayer::calcGradient(RunLayerContext &context) {
-  // TODO
+  unsigned int filter_size = std::get<props::FilterSize>(conv_props);
+  auto &stride = std::get<std::array<props::Stride, GROUPCONV_DIM>>(conv_props);
+  auto &dilation =
+    std::get<std::array<props::Dilation, GROUPCONV_DIM>>(conv_props);
+  unsigned int &group_n = std::get<props::SplitNumber>(conv_props);
+
+  const Tensor &derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
+
+  Tensor &delK = context.getWeightGrad(wt_idx[ConvParams::weight]);
+  delK.setZero();
+
+  TensorDim filter_dim = delK.getDim();
+  TensorDim filter_dim_squeezed{filter_dim.batch(), filter_dim.getFeatureLen()};
+
+  delK.reshape(filter_dim_squeezed);
+
+  // Assert the number of channels is divisible by the number of groups.
+  NNTR_THROW_IF(input_.channel() % group_n != 0, std::invalid_argument)
+  << "Failed to calcGradient: Input channels must be divisible by number of groups.";
+  NNTR_THROW_IF(derivative.channel() % group_n != 0, std::invalid_argument)
+  << "Failed to calcGradient: Output channels must be divisible by number of groups.";
+  NNTR_THROW_IF(delK.channel() % group_n != 0, std::invalid_argument)
+  << "Failed to calcGradient: Filter output channels must be divisible by number of groups.";
+
+  unsigned int input_c_per_group = input_.channel() / group_n;
+  unsigned int output_c_per_group = derivative.channel() / group_n;
+  unsigned int filter_offset_per_group = output_c_per_group * filter_dim.getFeatureLen();
+
+  /**
+   * no need to set zero for im2col_result, as its lifespan is ITERATION,
+   * so its zero padded values will still be zero
+   */
+
+  TensorDim out_dim_squeezed{filter_size,
+                             derivative.width() * derivative.height()};
+  auto workers = ParallelBatch(input_.batch());
+
+  if (workers.getNumWorkers() > 1) {
+    TensorDim delK_ext = filter_dim_squeezed;
+    delK_ext.batch(input_.batch());
+
+    Tensor delK_par = Tensor(delK_ext);
+    delK_par.setZero();
+
+    auto calc_grad_job = [&](unsigned int s, unsigned int e, unsigned int pid,
+                             void *user_data) {
+      Tensor result =
+        Tensor(calcCol2ImOutputDim(derivative.getDim(), filter_dim));
+      result.setZero();
+      for (unsigned int b = s; b < e; ++b) {
+        for (unsigned int g = 0; g < group_n; ++g) {
+          Tensor deriv_sub = derivative.getBatchSlice(b, 1).getSharedDataTensor(
+            {output_c_per_group, derivative.height(), derivative.width()},
+            g * output_c_per_group * derivative.height() * derivative.width());
+            // same as g * output_c_per_group * derivative.getDim().getFeatureLen()
+
+          Tensor delK_sub = delK_par.getBatchSlice(b, 1).getSharedDataTensor(
+            {output_c_per_group, filter_dim.getFeatureLen()},
+            g * filter_offset_per_group);
+
+          deriv_sub.reshape(out_dim_squeezed);
+
+          Tensor in_sub = input_.getBatchSlice(b, 1).getSharedDataTensor(
+            {input_c_per_group, input_.height(), input_.width()},
+            g * input_c_per_group * input_.height() * input_.width());
+            // same as g * output_c_per_group * input_.getDim().getFeatureLen()
+
+          im2col(in_sub, filter_dim, padding, stride, dilation, result);
+          deriv_sub.dot(result, delK_sub, false, false);
+        }
+      }
+      result.deallocate();
+    };
+
+    workers.setCallback(calc_grad_job, nullptr);
+
+    workers.run();
+
+    for (unsigned int b = 0; b < input_.batch(); ++b) {
+      Tensor delK_sub = delK_par.getBatchSlice(b, 1);
+      delK.add_i(delK_sub);
+    }
+
+  } else {
+    Tensor result =
+      Tensor(calcCol2ImOutputDim(derivative.getDim(), filter_dim));
+    result.setZero();
+
+    for (unsigned int b = 0; b < input_.batch(); ++b) {
+      for (unsigned int g = 0; g < group_n; ++g) {
+        Tensor deriv_sub = derivative.getBatchSlice(b, 1).getSharedDataTensor(
+          {output_c_per_group, derivative.height(), derivative.width()},
+          g * output_c_per_group * derivative.height() * derivative.width());
+          // same as g * output_c_per_group * derivative.getDim().getFeatureLen()
+
+        deriv_sub.reshape(out_dim_squeezed);
+
+        Tensor in_sub = input_.getBatchSlice(b, 1).getSharedDataTensor(
+          {input_c_per_group, input_.height(), input_.width()},
+          g * input_c_per_group * input_.height() * input_.width());
+          // same as g * output_c_per_group * input_.getDim().getFeatureLen()
+
+        im2col(in_sub, filter_dim, padding, stride, dilation, result);
+
+        Tensor delK_sub = delK.getSharedDataTensor(
+          {output_c_per_group, filter_dim.getFeatureLen()},
+          g * filter_offset_per_group);
+
+        deriv_sub.dot(result, delK_sub, false, false, b == 0 ? 0 : 1);
+      }
+    }
+    result.deallocate();
+  }
+  delK.reshape(filter_dim);
+  if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
+      disable_bias.empty() || disable_bias.get() == false) {
+    Tensor &delBias = context.getWeightGrad(wt_idx[ConvParams::bias]);
+    delBias.setZero();
+    derivative.sum({0, 2, 3}, delBias);
+  }
 }
 
 void GroupConvLayer::exportTo(Exporter &exporter,

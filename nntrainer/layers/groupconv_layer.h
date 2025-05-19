@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright
+ * Copyright (C) 2025 Sehyeon Park <shlion@snu.ac.kr>
  *
  * @file   groupconv_layer.h
  * @date   27 April 2025
  * @see    https://github.com/nnstreamer/nntrainer
- * @author 
- * @bug    
+ * @author Sehyeon Park <shlion@snu.ac.kr>
+ * @bug    No known bugs except for NYI items
  * @brief  This is Group Convolution Layer Class for Neural Network, Based on conv2d layer.
  *
  */
@@ -34,7 +34,7 @@
     * @brief     Constructor of Group Conv Layer
     */
    GroupConvLayer(const std::array<unsigned int, GROUPCONV_DIM * 2> &padding_ = {
-                 0, 0, 0, 0}, const unsigned int group_n_);
+                 0, 0, 0, 0});
  
    /**
     * @brief     Destructor of Group Conv Layer
@@ -104,15 +104,13 @@
    std::array<unsigned int, GROUPCONV_DIM * 2> padding;
    std::tuple<props::FilterSize, std::array<props::KernelSize, GROUPCONV_DIM>,
               std::array<props::Stride, GROUPCONV_DIM>, props::Padding2D,
-              std::array<props::Dilation, GROUPCONV_DIM>>
+              std::array<props::Dilation, GROUPCONV_DIM>, props::SplitNumber>
      conv_props;
  
    std::array<unsigned int, 5> wt_idx; /**< indices of the weights and tensors */
-   unsigned int group_n; /* number of groups dividing channels */
  };
  
  } // namespace nntrainer
  
  #endif /* __cplusplus */
  #endif /* __GROUPCONV_LAYER_H_ */
- 
