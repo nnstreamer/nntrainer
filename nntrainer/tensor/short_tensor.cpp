@@ -493,8 +493,9 @@ void ShortTensor::save_quantization_info(std::ostream &file) {
   checkedWrite(file, (char *)&qscheme, sizeof(uint16_t),
                "[ShortTensor::save] failed to write quantization information");
 }
-void ShortTensor::read_quantization_info(std::ifstream &file, size_t start_offset,
-                        bool read_from_offset) {
+void ShortTensor::read_quantization_info(std::ifstream &file,
+                                         size_t start_offset,
+                                         bool read_from_offset) {
   checkedRead(file, (char *)&qscheme, sizeof(uint16_t),
               "[ShortTensor::read] failed to read quantization information");
 }

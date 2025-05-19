@@ -265,7 +265,7 @@ public:
    * @copydoc TensorBase::read_quantization_info()
    */
   void read_quantization_info(std::ifstream &file, size_t start_offset,
-                        bool read_from_offset) override;
+                              bool read_from_offset) override;
 
   /**
    * @copydoc Tensor::getMemoryBytes()

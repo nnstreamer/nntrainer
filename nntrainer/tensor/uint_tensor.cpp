@@ -525,8 +525,9 @@ void UIntTensor<T>::save_quantization_info(std::ostream &file) {
 }
 
 template <typename T>
-void UIntTensor<T>::read_quantization_info(std::ifstream &file, size_t start_offset,
-                        bool read_from_offset) {
+void UIntTensor<T>::read_quantization_info(std::ifstream &file,
+                                           size_t start_offset,
+                                           bool read_from_offset) {
   checkedRead(file, (char *)&qscheme, sizeof(uint16_t),
               "[CharTensor::read] failed to read quantization information");
 }
