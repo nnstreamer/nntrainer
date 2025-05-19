@@ -347,20 +347,19 @@ sharedConstTensors NeuralNetwork::forwarding(
   bool training, std::function<bool(void *userdata)> stop_cb, void *userdata) {
 
   unsigned int lookahead = std::get<props::FsuLookahead>(model_flex_props);
-
-  for (unsigned int i = 0; i < lookahead; ++i) {
-    model_graph.LoadTensors(i);
+  bool fsu_mode = std::get<props::Fsu>(model_flex_props);
+  if (fsu_mode) {
+    for (unsigned int i = 0; i < lookahead; ++i) {
+      model_graph.LoadTensors(i);
+    }
   }
-
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
-    [this, stop_cb, userdata, lookahead](std::shared_ptr<LayerNode> node,
-                                         bool training) -> void {
+    [this, stop_cb, userdata, lookahead,
+     fsu_mode](std::shared_ptr<LayerNode> node, bool training) -> void {
     (void)this;
     PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
 
     auto f = std::get<0>(node->getExecutionOrder());
-    bool fsu_mode = std::get<props::Fsu>(model_flex_props);
-    // temperally remain. when we evaluate all for asynch mode, we weill remove
     if (exec_mode == ExecutionMode::TRAIN or
         (exec_mode == ExecutionMode::INFERENCE and !fsu_mode)) {
       model_graph.flushCacheExcept(f);
@@ -433,18 +432,20 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
   std::function<bool(void *userdata)> stop_cb, void *userdata) {
 
   unsigned int lookahead = std::get<props::FsuLookahead>(model_flex_props);
+  bool fsu_mode = std::get<props::Fsu>(model_flex_props);
 
-  for (unsigned int i = 0; i < lookahead; ++i) {
-    model_graph.LoadTensors(i);
+  if (fsu_mode) {
+    for (unsigned int i = 0; i < lookahead; ++i) {
+      model_graph.LoadTensors(i);
+    }
   }
+
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
-    [this, from, to, stop_cb, userdata,
+    [this, from, to, stop_cb, userdata, fsu_mode,
      lookahead](std::shared_ptr<LayerNode> node, bool training) -> void {
     PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
 
     auto f = std::get<0>(node->getExecutionOrder());
-    bool fsu_mode = std::get<props::Fsu>(model_flex_props);
-
     if (exec_mode == ExecutionMode::TRAIN or
         (exec_mode == ExecutionMode::INFERENCE and !fsu_mode)) {
       model_graph.flushCacheExcept(f);
