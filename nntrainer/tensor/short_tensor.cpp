@@ -332,8 +332,13 @@ void ShortTensor::read(std::ifstream &file, size_t start_offset,
     << "read size: " << getMemoryBytes()
     << " is too big. It cannot be represented by std::streamsize";
 
+  if (read_from_offset) {
+    start_offset += sizeof(uint16_t);
+  }
+
   checkedRead(file, (char *)getData(), sz,
-              "[ShortTensor::read] operation failed");
+              "[ShortTensor::read] operation failed", start_offset,
+              read_from_offset);
   putData();
 }
 
@@ -497,7 +502,8 @@ void ShortTensor::read_quantization_info(std::ifstream &file,
                                          size_t start_offset,
                                          bool read_from_offset) {
   checkedRead(file, (char *)&qscheme, sizeof(uint16_t),
-              "[ShortTensor::read] failed to read quantization information");
+              "[ShortTensor::read] failed to read quantization information",
+              start_offset, read_from_offset);
 }
 
 } // namespace nntrainer

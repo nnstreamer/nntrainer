@@ -266,7 +266,7 @@ void BCQTensor::readFSU() { createBCQW(); }
 
 void BCQTensor::read(std::ifstream &file) {
   /// @note Read quantization information
-  read_quantization_info(file);
+  read_quantization_info(file, start_offset, read_from_offset);
 
   std::streamsize sz = static_cast<std::streamsize>(getMemoryBytes());
 
@@ -274,8 +274,12 @@ void BCQTensor::read(std::ifstream &file) {
     << "read size: " << getMemoryBytes()
     << " is too big. It cannot be represented by std::streamsize";
 
-  checkedRead(file, (char *)getData(), sz,
-              "[BCQTensor::read] operation failed");
+  if (read_from_offset) {
+    start_offset += sizeof(uint16_t);
+  }
+
+  checkedRead(file, (char *)getData(), sz, "[BCQTensor::read] operation failed",
+              start_offset, read_from_offset);
   putData();
 
   createBCQW();
@@ -302,9 +306,11 @@ void BCQTensor::save_quantization_info(std::ostream &file) {
                "[BCQTensor::save] failed to write quantization information");
 }
 
-void BCQTensor::read_quantization_info(std::ifstream &file) {
+void BCQTensor::read_quantization_info(std::ifstream &file, start_offset,
+                                       read_from_offset) {
   checkedRead(file, (char *)&quantized_bit_size_, sizeof(uint16_t),
-              "[BCQTensor::read] failed to read quantization information");
+              "[BCQTensor::read] failed to read quantization information",
+              start_offset, read_from_offset);
 }
 
 size_t BCQTensor::size() const {

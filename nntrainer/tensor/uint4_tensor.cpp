@@ -390,9 +390,11 @@ void Uint4QTensor::read(std::ifstream &file, size_t start_offset,
   NNTR_THROW_IF(sz < 0, std::invalid_argument)
     << "read size: " << getMemoryBytes()
     << " is too big. It cannot be represented by std::streamsize";
+
   if (read_from_offset) {
     start_offset += sizeof(uint16_t);
   }
+
   checkedRead(file, (char *)getData(), sz,
               "[Uint4QTensor::read] operation failed", start_offset,
               read_from_offset);
