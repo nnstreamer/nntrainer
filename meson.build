@@ -167,6 +167,10 @@ if get_option('enable-opencl')
   clblast_options = cmake.subproject_options()
 
   if get_option('platform') == 'android'
+    message('preparing opencl')
+    run_command([meson.source_root() / 'jni' / 'prepare_opencl.sh', meson.build_root()], check: true)
+    clblast_root = meson.source_root() / 'subprojects' / 'CLBlast'
+    opencl_root = meson.build_root() / 'opencl'
     clblast_dep = declare_dependency()
   else
     if host_machine.system() == 'windows'
