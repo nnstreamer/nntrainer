@@ -51,6 +51,13 @@ LOCAL_SRC_FILES := $(NNTRAINER_ROOT)/builddir/obj/local/$(TARGET_ARCH_ABI)/libru
 include $(PREBUILT_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
+
+LOCAL_MODULE := ggml
+LOCAL_SRC_FILES := $(NNTRAINER_ROOT)/builddir/jni/$(TARGET_ARCH_ABI)//libggml.so
+
+include $(PREBUILT_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
 GTEST_PATH := googletest
 
 LOCAL_MODULE := googletest_main
@@ -88,7 +95,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer ggml
 LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
 include $(BUILD_EXECUTABLE)
 
@@ -105,7 +112,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer ggml
 LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
 include $(BUILD_EXECUTABLE)
 
@@ -122,7 +129,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer ggml
 LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
 include $(BUILD_EXECUTABLE)
 
@@ -139,7 +146,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer ggml
 LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
 include $(BUILD_EXECUTABLE)
 
@@ -156,7 +163,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer ggml
 LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
 include $(BUILD_EXECUTABLE)
 
@@ -173,7 +180,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer ggml
 LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
 include $(BUILD_EXECUTABLE)
 
@@ -190,7 +197,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer ggml
 LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
 include $(BUILD_EXECUTABLE)
 
@@ -207,7 +214,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer ggml
 LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
 include $(BUILD_EXECUTABLE)
 
@@ -224,7 +231,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer ggml
 LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
 include $(BUILD_EXECUTABLE)
 
@@ -241,7 +248,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer ggml
 LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
 include $(BUILD_EXECUTABLE)
 
@@ -258,7 +265,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer ggml
 LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
 include $(BUILD_EXECUTABLE)
 
@@ -274,7 +281,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer ggml
 LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
 include $(BUILD_EXECUTABLE)
 
@@ -290,7 +297,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer ggml
 LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
 include $(BUILD_EXECUTABLE)
 
@@ -306,7 +313,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer ggml
 LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
 include $(BUILD_EXECUTABLE)
 
@@ -322,7 +329,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer ggml
 LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
 include $(BUILD_EXECUTABLE)
 
@@ -338,7 +345,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer ggml
 LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
 include $(BUILD_EXECUTABLE)
 
@@ -354,7 +361,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer ggml
 LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
 include $(BUILD_EXECUTABLE)
 
@@ -372,7 +379,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer ggml
 LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
 include $(BUILD_EXECUTABLE)
 
@@ -390,7 +397,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer ggml
 LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
 include $(BUILD_EXECUTABLE)
 
@@ -410,7 +417,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer ggml
 LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
 include $(BUILD_EXECUTABLE)
 
@@ -434,7 +441,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer ggml
 LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
 include $(BUILD_EXECUTABLE)
 
@@ -490,7 +497,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer ggml
 LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
 include $(BUILD_EXECUTABLE)
 
@@ -506,7 +513,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer ggml
 LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
 include $(BUILD_EXECUTABLE)
 
@@ -522,7 +529,22 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer ggml
+LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := unittest_nntrainer_cpu_backend
+LOCAL_CFLAGS := -Igoogletest/include -I../include -I../unittest/layers -I../../nntrainer/layers/loss -pthread -fexceptions -fopenmp -static-openmp -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -march=armv8.2-a+fp16 -O3 -frtti -DNDK_BUILD=1 -DENABLE_FP16=1 -DENABLE_OPENCL=1 -DUSE__FP16=1
+LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions -DENABLE_GGML
+LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp
+
+LOCAL_SRC_FILES := \
+	 ../unittest/unittest_nntrainer_cpu_backend.cpp
+
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer ggml
 LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
 include $(BUILD_EXECUTABLE)
 
@@ -539,6 +561,6 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer ggml
 LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
 include $(BUILD_EXECUTABLE)
