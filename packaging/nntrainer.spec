@@ -558,6 +558,8 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/fallback_internal.h
 %{_includedir}/nntrainer/cblas_interface.h
 %{_includedir}/nntrainer/ggml_interface.h
+%{_includedir}/nntrainer/bs_thread_pool.h
+%{_includedir}/nntrainer/bs_thread_pool_manager.hpp
 %ifarch %{ix86} x86_64
 %{_includedir}/nntrainer/x86_compute_backend.h
 %{_includedir}/nntrainer/avx2_impl.h
@@ -618,8 +620,6 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 # update this to enable external applications
 # @todo filter out headers that should be hidden, and classifiy in the appropriate place if not
 %{_includedir}/nntrainer/util_func.h
-%{_includedir}/nntrainer/bs_thread_pool.h
-%{_includedir}/nntrainer/bs_thread_pool_manager.hpp
 %{_includedir}/nntrainer/fp16.h
 %{_includedir}/nntrainer/util_simd.h
 %{_includedir}/nntrainer/dynamic_library_loader.h

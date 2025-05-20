@@ -26,13 +26,22 @@
 #include <vector>
 
 namespace nntrainer {
-
+/**
+ * @brief Continuously packed 4 q8_K
+ *
+ */
 struct block_q8_Kx4 {
   float d[4];              // delta
   int8_t qs[QK_K * 4];     // quants
   int16_t bsums[QK_K / 4]; // sum of quants in groups of 16
 };
 
+/**
+ * @brief struct template for q4_0 and q8_0
+ *
+ * @tparam K 4 or 8
+ * @return constexpr int number of elements in the quantized block
+ */
 template <int K> constexpr int QK_0() {
   if constexpr (K == 4) {
     return QK4_0;
@@ -43,6 +52,12 @@ template <int K> constexpr int QK_0() {
   return -1;
 }
 
+/**
+ * @brief block of q4_0 or q8_0 block
+ *
+ * @tparam K 4 or 8
+ * @tparam N number of blocks to be packed
+ */
 template <int K, int N> struct block {
   ggml_half d[N];                     // deltas for N qK_0 blocks
   int8_t qs[(QK_0<K>() * N * K) / 8]; // quants for N qK_0 blocks

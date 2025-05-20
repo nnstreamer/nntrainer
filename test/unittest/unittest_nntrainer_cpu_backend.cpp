@@ -39,72 +39,6 @@ generate_random_vector(size_t size, float min_val = -1.F, float max_val = 1.F) {
 }
 
 template <typename T>
-inline std::vector<T> generate_random_positive_vector(size_t size,
-                                                      float min_val = 0.F,
-                                                      float max_val = 0.5F) {
-  std::random_device rd;
-  std::mt19937 gen(42);
-  // std::mt19937 gen(rd());
-  std::uniform_real_distribution<float> dist(min_val, max_val);
-  std::vector<T> vec(size);
-  for (auto &val : vec) {
-    val = static_cast<T>(dist(gen));
-  }
-  return vec;
-}
-
-template <typename T>
-static inline std::vector<T> generate_homogeneous_vector(size_t size, T value) {
-  std::vector<T> vec(size);
-  for (auto &val : vec) {
-    val = value;
-  }
-  return vec;
-}
-
-template <typename T> static inline void print_matrix(T *src, int M, int N) {
-  for (int i = 0; i < M; ++i) {
-    for (int j = 0; j < N; ++j) {
-      std::cout << src[i * N + j] << " ";
-    }
-    std::cout << std::endl;
-  }
-}
-
-template <typename T>
-inline void print_matrix_partially(T *src, int M, int N, int partial_m = 5,
-                                   int partial_n = 5, int partial_len = 5) {
-  for (int k = 0; k < partial_len; ++k) {
-    std::cout << src[partial_m * N + partial_n + k] << " ";
-  }
-  std::cout << std::endl;
-}
-
-template <typename T>
-inline void print_vector_partially(T *src, int init_idx = 5,
-                                   int partial_len = 5) {
-  for (int k = 0; k < partial_len; ++k) {
-    std::cout << src[init_idx + k] << " ";
-  }
-  std::cout << std::endl;
-}
-
-template <typename T>
-static inline void
-print_matrix_partially_n(const std::string &name, const T *src, int M, int N,
-                         int partial_m = 5, int partial_n = 5) {
-  std::cout << name << ":" << std::endl;
-  std::cout << "--------------------------" << std::endl;
-  for (int i = 0; i < partial_m; ++i) {
-    for (int j = 0; j < partial_n; ++j) {
-      std::cout << src[i * N + j] << "  ";
-    }
-    std::cout << std::endl;
-  }
-  std::cout << "--------------------------" << std::endl;
-}
-
-template <typename T>
 static inline double find_max_diff(T *src, T *src2, int M, int N) {
   float max_diff = 0;
   double err_sum = 0;
@@ -119,11 +53,18 @@ static inline double find_max_diff(T *src, T *src2, int M, int N) {
 }
 
 #define QK4_0 32
+/**
+ * @brief q4_0 block
+ *
+ */
 typedef struct {
   uint16_t d;            // delta
   uint8_t qs[QK4_0 / 2]; // nibbles / quants
 } block_q4_0_testonly;
-
+/**
+ * @brief q4_K block
+ *
+ */
 typedef struct {
   union {
     struct {
@@ -135,15 +76,18 @@ typedef struct {
   uint8_t scales[12];  // scales and mins, quantized with 6 bits
   uint8_t qs[256 / 2]; // 4--bit quants
 } block_q4_K_testonly;
-
+/**
+ * @brief q8_K block
+ *
+ */
 typedef struct {
   float d;                 // delta
   int8_t qs[256];          // quants
   int16_t bsums[256 / 16]; // sum of quants in groups of 16
 } block_q8_K_testonly;
-
 /**
- * @brief
+ * @brief q4_Kx8 block
+ *
  */
 struct block_q4_Kx8_testonly {
   int16_t d[8];       // super-block scale for quantized scales
@@ -152,27 +96,11 @@ struct block_q4_Kx8_testonly {
   uint8_t qs[1024];   // 4--bit quants
 };
 
-static inline void print_q4_k_block_partially(void *block) {
-  block_q4_K_testonly *b = (block_q4_K_testonly *)block;
-  std::cout << "d : " << b->d << std::endl;
-  std::cout << "dmin : " << b->dmin << std::endl;
-  // std::cout << "qs : ";
-  // for (int i = 0; i < 256/2; ++i){
-  //     uint8_t packed_val = b->qs[i];
-  //     uint8_t val1 = packed_val & 0x0F;
-  //     uint8_t val2 = (packed_val >> 4) & 0x0F;
-  //     std::cout << (int)val1 << " " << (int)val2 << " ";
-  // }
-  std::cout << "qs 5~8 : ";
-  for (int i = 5; i < 8; ++i) {
-    uint8_t packed_val = b->qs[i];
-    uint8_t val1 = packed_val & 0x0F;
-    uint8_t val2 = (packed_val >> 4) & 0x0F;
-    std::cout << (int)val1 << " " << (int)val2 << " ";
-  }
-  std::cout << std::endl;
-}
-
+/**
+ * @brief Elementwise-addition unittest : Vanilla example for formulating a TC
+ * in unittest_nntrainer_cpu_backend.cpp
+ *
+ */
 TEST(nntrainer_cpu_backend_standalone, ele_add) {
   const unsigned int TEST_SIZE = 100;
   float alpha = 1.F;
@@ -235,7 +163,8 @@ TEST(nntrainer_cpu_backend_standalone, q4_K_quantization) {
 }
 
 static float compute_mse(const uint32_t M, const uint32_t N,
-                         std::vector<float> &ref_dst, std::vector<float> &dst) {
+                         std::vector<float> &ref_dst, std::vector<float> &dst,
+                         bool print = false) {
   auto mean_squared_error =
     mse<float, float>(ref_dst.data(), dst.data(), M * N);
   auto cos_sim = cosine_similarity(ref_dst.data(), dst.data(), M * N);
@@ -243,16 +172,18 @@ static float compute_mse(const uint32_t M, const uint32_t N,
 
   auto sum = std::accumulate(dst.begin(), dst.end(), 0.0);
   auto sum_gt = std::accumulate(ref_dst.begin(), ref_dst.end(), 0.0);
-  std::cout << "[INFO]            MSE: " << mean_squared_error
-            << ", COS_SIM: " << cos_sim << ", MAX_DIFFER: " << max_differ
-            << ", SUM: " << sum << ", SUM_GT: " << sum_gt << std::endl;
+  if (print) {
+    std::cout << "[INFO]            MSE: " << mean_squared_error
+              << ", COS_SIM: " << cos_sim << ", MAX_DIFFER: " << max_differ
+              << ", SUM: " << sum << ", SUM_GT: " << sum_gt << std::endl;
+  }
   return mean_squared_error;
 }
 
 static float test_gemm_q4_0(const uint32_t M, const uint32_t K,
                             const uint32_t N, const float *weights,
                             const float *activations,
-                            std::vector<float> &ref_dst) {
+                            std::vector<float> &ref_dst, bool print = false) {
   // needed to initialize f16 tables
   nntrainer::init_backend();
 
@@ -287,7 +218,9 @@ static float test_gemm_q4_0(const uint32_t M, const uint32_t K,
   // #### MAIN TESTED METHOD ####
   auto t2 = high_resolution_clock::now();
   auto dt = duration_cast<nanoseconds>(t2 - t1);
-  std::cout << "[INFO] gemm_q4_0: " << dt.count() << " ns " << std::endl;
+  if (print) {
+    std::cout << "[INFO] gemm_q4_0: " << dt.count() << " ns " << std::endl;
+  }
 
   // Step4. Compute quantization error
   auto mean_squared_error = compute_mse(M, N, ref_dst, dst);
@@ -297,7 +230,7 @@ static float test_gemm_q4_0(const uint32_t M, const uint32_t K,
 static float test_gemm_q4_K(const uint32_t M, const uint32_t K,
                             const uint32_t N, const float *weights,
                             const float *activations,
-                            std::vector<float> &ref_dst) {
+                            std::vector<float> &ref_dst, bool print = false) {
   // Step0. Allocate a temporary buffer for quantized weight
   int64_t q4_k_block_size = 256;
   int64_t q4_k_type_size = sizeof(block_q4_K_testonly);
@@ -327,8 +260,9 @@ static float test_gemm_q4_K(const uint32_t M, const uint32_t K,
   // #### MAIN TESTED METHOD ####
   auto t2 = high_resolution_clock::now();
   auto dt = duration_cast<nanoseconds>(t2 - t1);
-  std::cout << "[INFO] gemm_q4_K: " << dt.count() << " ns " << std::endl;
-  ///@note Needs validation!
+  if (print) {
+    std::cout << "[INFO] gemm_q4_K: " << dt.count() << " ns " << std::endl;
+  }
 
   // Step4. Compare quantization error
   auto mean_squared_error = compute_mse(M, N, ref_dst, dst);
@@ -336,16 +270,16 @@ static float test_gemm_q4_K(const uint32_t M, const uint32_t K,
 }
 
 static void run_quant_test(const uint32_t M, const uint32_t K, const uint32_t N,
-                           float &q0_k_mse, float &q4_k_mse) {
-  std::cout << "[INFO] Quantization Test (M:" << M << ", K:" << K << ", N:" << N
-            << ")" << std::endl;
+                           float &q0_k_mse, float &q4_k_mse,
+                           bool print = false) {
+  if (print) {
+    std::cout << "[INFO] Quantization Test (M:" << M << ", K:" << K
+              << ", N:" << N << ")" << std::endl;
+  }
   ///@note A(M, K) * W.T(N, K) = (M, N)
   ///@note A(sizez, sizex) * W.T(sizey, sizex) = (sizez, sizey)
 
   ///@note q4_K GEMM is a Row-Major, transB GEMM
-  // std::vector<float> activation = generate_homogeneous_vector<float>(M *
-  // K, 2.0f); std::vector<float> weight = generate_homogeneous_vector<float>(N
-  // * K, 1.0F);
   std::vector<float> activation = generate_random_vector<float>(M * K);
   std::vector<float> weight = generate_random_vector<float>(N * K);
   std::vector<float> ref_dst(M * N);
@@ -356,8 +290,9 @@ static void run_quant_test(const uint32_t M, const uint32_t K, const uint32_t N,
                    weight.data(), K, 0.F, ref_dst.data(), N);
   auto t2 = high_resolution_clock::now();
   auto dt = duration_cast<nanoseconds>(t2 - t1);
-  std::cout << "[INFO] sgemm :    " << dt.count() << " ns " << std::endl;
-
+  if (print) {
+    std::cout << "[INFO] sgemm :    " << dt.count() << " ns " << std::endl;
+  }
   q0_k_mse = test_gemm_q4_0(M, K, N, weight.data(), activation.data(), ref_dst);
   q4_k_mse = test_gemm_q4_K(M, K, N, weight.data(), activation.data(), ref_dst);
 }
@@ -463,17 +398,6 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMV_1x1536x5760) {
 }
 
 #endif
-
-/**
- * Room for optimization
- *
- *   1. Why don't we save weights for GEMM in q4_K_8x8 format offline?
- *        - PRO : We can save the time for repacking the weight
- *        - CON : We need to save the weight in two different formats (q4_K and
- *   q4_K_8x8), and such kernel works for specific HWs.
- *    2. Pre-allocation of runtime quantized activation buffer
- *   3. ???
- */
 
 int main(int argc, char **argv) {
   int result = -1;
