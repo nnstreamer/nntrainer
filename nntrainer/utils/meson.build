@@ -8,6 +8,7 @@ util_sources = [
   'fp16.cpp',
   'util_simd.cpp',
   'mman_windows.cpp',
+  'bs_thread_pool_manager.cpp'
 ]
 
 util_headers = [
