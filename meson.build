@@ -474,6 +474,9 @@ if get_option('enable-ggml')
   if arch == 'aarch64' or get_option('platform') == 'android'
     ggml_options.add_cmake_defines({'CMAKE_INSTALL_LIBDIR': nntrainer_libdir / 'arm64-v8a'})
   endif
+    if arch == 'arm'
+    ggml_options.add_cmake_defines({'CMAKE_INSTALL_LIBDIR': nntrainer_libdir / 'armv7l'})
+  endif
 
   # TODO : This commit is to enable ggml in ubuntu 20.04, but occured error. Since ubuntu 20.04 is not the main target anymore, temporarily disable it.
   if host_machine.system() == 'windows'
