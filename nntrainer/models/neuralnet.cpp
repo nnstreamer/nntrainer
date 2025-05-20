@@ -681,7 +681,7 @@ void NeuralNetwork::load(const std::string &file_path,
       size_t size = weight->getVariable().getMemoryBytes();
       auto tensor_data_type = weight->getDim().getDataType();
 
-      if (tensor_data_type != TensorDim::DataType::FP32 ||
+      if (tensor_data_type != TensorDim::DataType::FP32 &&
           tensor_data_type != TensorDim::DataType::FP16) {
         size += sizeof(uint16_t);
       }
