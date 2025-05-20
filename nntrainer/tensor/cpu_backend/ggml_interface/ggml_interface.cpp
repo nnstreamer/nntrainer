@@ -91,7 +91,7 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
   // auto &bspool = ThreadPoolManager::getInstance();
 
   if (M == 1) { // GEMV
-    unsigned int n_threads = 4;
+    int n_threads = 4;
     unsigned int B_step = sizeof(block_q4_0) * (K / QK4_0);
     unsigned int blocks_per_row = (K + QK8_0 - 1) / QK8_0;
     unsigned int qa_size = sizeof(block_q8_0) * blocks_per_row;
@@ -99,7 +99,7 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
     ::quantize_row_q8_0(A, QA.data(), K);
 
 #pragma omp parallel for num_threads(n_threads)
-    for (unsigned int thread_idx = 0; thread_idx < n_threads; ++thread_idx) {
+    for (int thread_idx = 0; thread_idx < n_threads; ++thread_idx) {
       unsigned int M_step_start = (thread_idx * N) / n_threads;     // = 0
       unsigned int M_step_end = ((thread_idx + 1) * N) / n_threads; // ne01 = N
 
@@ -159,7 +159,7 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int ldb, float *C,
                                const unsigned int ldc) {
   if (M == 1) { // GEMV
-    unsigned int n_threads = 4;
+    int n_threads = 4;
     unsigned int blocks_per_row = (K + QK_K - 1) / QK_K;
     unsigned int qa_size = sizeof(block_q8_K) * blocks_per_row;
     unsigned int B_step = sizeof(block_q4_K) * (K / QK_K);
@@ -169,7 +169,7 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
     ::quantize_row_q8_K(A, QA.data(), K);
 
 #pragma omp parallel for num_threads(n_threads)
-    for (unsigned int thread_idx = 0; thread_idx < n_threads; ++thread_idx) {
+    for (int thread_idx = 0; thread_idx < n_threads; ++thread_idx) {
       unsigned int M_step_start = (thread_idx * N) / n_threads;     // = 0
       unsigned int M_step_end = ((thread_idx + 1) * N) / n_threads; // ne01 = N
 
@@ -187,7 +187,8 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
     unsigned int qa_4_rows_size = sizeof(block_q8_Kx4) * blocks_per_4_rows;
     unsigned int M4 = ((M + 3) / 4);
     unsigned int B_step = sizeof(block_q4_K) * (K / QK_K);
-    unsigned int thread_num = std::thread::hardware_concurrency();
+    ///@note OpenMP thread number should be a signed integer
+    int thread_num = std::thread::hardware_concurrency();
 
     unsigned int qa_size = qa_4_rows_size * M4;
     std::vector<char> QA = std::vector<char>(qa_size);
@@ -202,7 +203,7 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
     }
 
 #pragma omp parallel for collapse(1) num_threads(thread_num)
-    for (unsigned int i = 0; i < thread_num; i++) {
+    for (int i = 0; i < thread_num; i++) {
       unsigned int src0_start = (i * N) / thread_num;
       unsigned int src0_end = ((i + 1) * N) / thread_num;
 
