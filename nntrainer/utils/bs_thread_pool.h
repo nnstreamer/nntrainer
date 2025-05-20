@@ -2355,7 +2355,7 @@ private:
 #ifdef __cpp_lib_jthread
                  (const std::stop_token &stop_token) { worker(stop_token, i); }
 #else
-                  { worker(i); }
+                 { worker(i); }
 #endif
         );
     }
