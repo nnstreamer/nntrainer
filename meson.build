@@ -471,7 +471,7 @@ if get_option('enable-ggml')
   ggml_options.add_cmake_defines({'BUILD_SHARED_LIBS': host_machine.system() != 'windows'})
   ggml_options.add_cmake_defines({'GGML_BUILD_TESTS': false})
   ggml_options.add_cmake_defines({'GGML_BUILD_EXAMPLES': false})
-  if get_option('platform') == 'android'
+  if arch == 'arm' or arch == 'aarch64' or get_option('platform') == 'android'
     ggml_options.add_cmake_defines({'CMAKE_INSTALL_LIBDIR': nntrainer_libdir / 'arm64-v8a'})
   endif
   ggml_options.append_compile_args('c', ['-Wno-error=maybe-uninitialized', '-Wno-error=pointer-to-int-cast'])
