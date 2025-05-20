@@ -21,6 +21,7 @@ util_headers = [
   'dynamic_library_loader.h',
   'mman_windows.h',
   'bs_thread_pool.h',
+  'bs_thread_pool_manager.hpp',
 ]
 
 if get_option('enable-trace')
