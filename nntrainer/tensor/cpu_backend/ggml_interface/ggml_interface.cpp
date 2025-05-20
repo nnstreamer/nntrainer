@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
  * Copyright (C) 2025 Michal Wlasiuk <testmailsmtp12345@gmail.com>
+ * Copyright (C) 2025 Sungsik Kong <ss.kong@samsung.com>
  *
- * @file   ggml_interface.h
+ * @file   ggml_interface.cpp
  * @date   15 April 2025
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Michal Wlasiuk <testmailsmtp12345@gmail.com>
+ * @author Sungsik Kong <ss.kong@samsung.com>
  * @bug    No known bugs except for NYI items
  * @brief  Function interface to use ggml lib from cpu_backend
  */
@@ -13,37 +15,17 @@
 #include "ggml-cpu-quants.h"
 #include "ggml-quants.h"
 #include <ggml.h>
-#include <ggml_interface.h>
-
 #include "ggml-common.h"
 #include "ggml-cpu.h"
 #include "ggml.h"
-#include <iostream>
-#include <stdint.h>
-#include <stdio.h>
+
+#include <ggml_interface.h>
 #include <string>
 #include <vector>
+#include <thread>
 
 namespace nntrainer {
 
-template <typename T>
-static inline void
-print_matrix_partially_n(const std::string &name, const T *src, int M, int N,
-                         int partial_m = 5, int partial_n = 5) {
-  std::cout << name << ":" << std::endl;
-  std::cout << "--------------------------" << std::endl;
-  for (int i = 0; i < partial_m; ++i) {
-    for (int j = 0; j < partial_n; ++j) {
-      std::cout << src[i * N + j] << "  ";
-    }
-    std::cout << std::endl;
-  }
-  std::cout << "--------------------------" << std::endl;
-}
-
-/**
- * @brief
- */
 struct block_q8_Kx4 {
   float d[4];              // delta
   int8_t qs[QK_K * 4];     // quants
@@ -60,12 +42,6 @@ template <int K> constexpr int QK_0() {
   return -1;
 }
 
-/**
- * @brief
- *
- * @tparam K
- * @tparam N
- */
 template <int K, int N> struct block {
   ggml_half d[N];                     // deltas for N qK_0 blocks
   int8_t qs[(QK_0<K>() * N * K) / 8]; // quants for N qK_0 blocks
@@ -112,7 +88,7 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
     std::vector<char> QA = std::vector<char>(qa_size);
 
     // Quantization of activations
-#pragma omp parallel for collapse(1) num_threads(16)
+// #pragma omp parallel for collapse(1) num_threads(16) // This makes model latency even slower.
     for (int i = 0; i < M4; i++) {
       ::ggml_quantize_mat_q8_0_4x8(A + 4 * i * K,
                                    QA.data() + i * qa_4_rows_size, K);
@@ -122,9 +98,7 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
     // single thread
     ::ggml_gemm_q4_0_8x8_q8_0(K, C, ldc, B, QA.data(), M, N);
 #else
-    // TODO check beter multithreading
     int delta = 8;
-    // int delta = 384 / 4;
     int step_N = N / delta;
     int step_C = delta;
     int step_B = blocks_per_4_rows * sizeof(block_q4_0) * delta;
@@ -151,36 +125,35 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
 
     ::ggml_gemv_q4_K_8x8_q8_K(K, C, ldc, B, QA.data(), M, N);
   } else { // GEMM
-    int blocks_per_4_rows = (K + QK_K - 1) / QK_K;
-    int qa_4_rows_size = sizeof(block_q8_Kx4) * blocks_per_4_rows;
-    int M4 = ((M + 3) / 4);
+    unsigned int blocks_per_4_rows = (K + QK_K - 1) / QK_K;
+    unsigned int qa_4_rows_size = sizeof(block_q8_Kx4) * blocks_per_4_rows;
+    unsigned int M4 = ((M + 3) / 4);
+    unsigned int B_step = sizeof(block_q4_K) * (K / QK_K);
+    unsigned int thread_num = std::thread::hardware_concurrency();
 
-    int qa_size = qa_4_rows_size * M4;
+    unsigned int qa_size = qa_4_rows_size * M4;
     std::vector<char> QA = std::vector<char>(qa_size);
 
     // Quantization of activations
-#pragma omp parallel for collapse(1) num_threads(16)
-    for (int i = 0; i < M4; i++) {
+/// @note Heuristic inspection conducted that applying multithreading on run-time quantization hurts model latency 
+// #pragma omp parallel for collapse(1) num_threads(16)
+    for (unsigned int i = 0; i < M4; i++) {
       ::ggml_quantize_mat_q8_K_4x8(A + 4 * i * K,
                                    QA.data() + i * qa_4_rows_size, K);
     }
 
-#if 0
-    // single thread
-    ggml_gemm_q4_K_8x8_q8_K(K, C, ldc, B, QA.data(), M, N);
-#else
-    // TODO check beter multithreading
-    int delta = 8;
-    // int delta = 384 / 4;
-    int step_N = N / delta;
-    int step_C = delta;
-    int step_B = blocks_per_4_rows * sizeof(block_q4_K) * delta;
-#pragma omp parallel for collapse(1) num_threads(16)
-    for (int i = 0; i < step_N; i++) {
-      ::ggml_gemm_q4_K_8x8_q8_K(K, C + i * step_C, ldc, (char *)B + i * step_B,
-                                QA.data(), M, delta);
+#pragma omp parallel for collapse(1) num_threads(thread_num)
+    for (unsigned int i = 0; i < thread_num; i++) {
+    unsigned int src0_start = (i * N) / thread_num;
+    unsigned int src0_end = ((i + 1) * N) / thread_num;
+
+      src0_start =
+        (src0_start % 8) ? src0_start + 8 - (src0_start % 8) : src0_start;
+      src0_end = (src0_end % 8) ? src0_end + 8 - (src0_end % 8) : src0_end;
+
+      ::ggml_gemm_q4_K_8x8_q8_K(K, (float*)(C + src0_start), ldc, (void *)((char *)B + src0_start * B_step),
+                                QA.data(), M, src0_end - src0_start);
     }
-#endif
   }
 }
 

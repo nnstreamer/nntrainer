@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
  * Copyright (C) 2025 Michal Wlasiuk <testmailsmtp12345@gmail.com>
+ * Copyright (C) 2025 Sungsik Kong <ss.kong@samsung.com>
  *
  * @file   ggml_interface.h
  * @date   15 April 2025
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Michal Wlasiuk <testmailsmtp12345@gmail.com>
+ * @author Sungsik Kong <ss.kong@samsung.com>
  * @bug    No known bugs except for NYI items
  * @brief  Function interface to use ggml lib from cpu_backend
  */
@@ -27,9 +29,9 @@ void __ggml_init();
 /**
  * @brief Quantize float to q4_0 Quantization format
  *
- * @param src
- * @param dst
- * @param nrow
+ * @param src input src to be quantized
+ * @param dst output destination for quantized data
+ * @param nrow 
  * @param n_per_row
  * @param quant_weights
  * @return size_t
