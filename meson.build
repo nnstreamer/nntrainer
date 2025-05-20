@@ -475,6 +475,7 @@ if get_option('enable-ggml')
     ggml_options.add_cmake_defines({'CMAKE_INSTALL_LIBDIR': nntrainer_libdir / 'arm64-v8a'})
   endif
 
+  # TODO : This commit is to enable ggml in ubuntu 20.04, but occured error. Since ubuntu 20.04 is not the main target anymore, temporarily disable it.
   if host_machine.system() == 'windows'
     if arch == 'x86_64'
       if cc.has_argument('-march=x86-64-v2')
@@ -493,6 +494,7 @@ if get_option('enable-ggml')
   endif
 
   ggml_options.append_compile_args('c', ['-Wno-error=maybe-uninitialized', '-Wno-error=pointer-to-int-cast'])
+
 
   ggml_proj = cmake.subproject('ggml', options: ggml_options, required: true)
   ggml_dep = [
