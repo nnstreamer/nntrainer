@@ -476,20 +476,21 @@ if get_option('enable-ggml')
   endif
   ggml_options.append_compile_args('c', ['-Wno-error=maybe-uninitialized', '-Wno-error=pointer-to-int-cast'])
 
-  if arch == 'x86_64'
-    if cc.has_argument('-march=x86-64-v2')
-      cpu_type = 'x86-64-v2'
-    elif cc.has_argument('-march=haswell')
-      cpu_type = 'haswell'
-    else
-      cpu_type = 'x86-64'
-    endif
-  endif
+  # TODO : This commit is to enable ggml in ubuntu 20.04, but occured error. Since ubuntu 20.04 is not the main target anymore, temporarily disable it.
+  # if arch == 'x86_64'
+  #   if cc.has_argument('-march=x86-64-v2')
+  #     cpu_type = 'x86-64-v2'
+  #   elif cc.has_argument('-march=haswell')
+  #     cpu_type = 'haswell'
+  #   else
+  #     cpu_type = 'x86-64'
+  #   endif
+  # endif
 
-  message('Auto-detected safe CPU tuning: ' + cpu_type)
+  # message('Auto-detected safe CPU tuning: ' + cpu_type)
 
-  ggml_options.append_compile_args('c', '-march=' + cpu_type)
-  ggml_options.append_compile_args('cpp', '-march=' + cpu_type)
+  # ggml_options.append_compile_args('c', '-march=' + cpu_type)
+  # ggml_options.append_compile_args('cpp', '-march=' + cpu_type)
 
   ggml_proj = cmake.subproject('ggml', options: ggml_options, required: true)
   ggml_dep = [
