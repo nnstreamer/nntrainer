@@ -740,20 +740,9 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %manifest nntrainer.manifest
 %defattr(-,root,root,-)
 %license LICENSE
-%ifarch aarch64
-%{_libdir}/arm64-v8a/libggml.so
-%{_libdir}/arm64-v8a/libggml_base.so
-%{_libdir}/arm64-v8a/libggml_cpu.so
-%endif
-%ifarch %arm
-%{_libdir}/armv7l/libggml.so
-%{_libdir}/armv7l/libggml_base.so
-%{_libdir}/armv7l/libggml_cpu.so
-%else
 %{_libdir}/libggml.so
 %{_libdir}/libggml_base.so
 %{_libdir}/libggml_cpu.so
-%endif
 %endif #tizen
 
 %files applications
