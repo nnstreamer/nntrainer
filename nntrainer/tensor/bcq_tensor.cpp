@@ -264,7 +264,8 @@ void BCQTensor::save(std::ostream &file) {
 
 void BCQTensor::readFSU() { createBCQW(); }
 
-void BCQTensor::read(std::ifstream &file) {
+void BCQTensor::read(std::ifstream &file, size_t start_offset,
+                     bool read_from_offset) {
   /// @note Read quantization information
   read_quantization_info(file, start_offset, read_from_offset);
 
@@ -306,8 +307,8 @@ void BCQTensor::save_quantization_info(std::ostream &file) {
                "[BCQTensor::save] failed to write quantization information");
 }
 
-void BCQTensor::read_quantization_info(std::ifstream &file, start_offset,
-                                       read_from_offset) {
+void BCQTensor::read_quantization_info(std::ifstream &file, size_t start_offset,
+                                       bool read_from_offset) {
   checkedRead(file, (char *)&quantized_bit_size_, sizeof(uint16_t),
               "[BCQTensor::read] failed to read quantization information",
               start_offset, read_from_offset);
