@@ -53,6 +53,8 @@
 # update this to enable external applications
 # @todo filter out headers that should be hidden
 /usr/include/nntrainer/util_func.h
+/usr/include/nntrainer/bs_thread_pool.h
+/usr/include/nntrainer/bs_thread_pool_manager.hpp
 /usr/include/nntrainer/fp16.h
 /usr/include/nntrainer/util_simd.h
 /usr/include/nntrainer/dynamic_library_loader.h
