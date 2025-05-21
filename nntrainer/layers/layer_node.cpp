@@ -202,7 +202,7 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   layer_node_props(new PropsType(
     props::Name(), props::Distribute(), props::Trainable(), {}, {},
     props::SharedFrom(), props::ClipGradByGlobalNorm(), props::Packed(),
-    props::LossScaleForMixed(), props::ComputeEngine())),
+    props::WeightDtype(), props::LossScaleForMixed(), props::ComputeEngine())),
   layer_node_props_realization(
     new RealizationPropsType(props::Flatten(), props::Activation())),
   loss(new props::Loss()),
@@ -609,6 +609,11 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims,
       // set weight type = activation type
       tensor_type[1] = tensor_type[2];
     }
+  }
+
+  if (!std::get<props::WeightDtype>(*layer_node_props).empty()) {
+    // set weight type = tensor_data_type
+    tensor_type[1] = to_string(std::get<props::WeightDtype>(*layer_node_props));
   }
 
   std::vector<bool> out_info;
