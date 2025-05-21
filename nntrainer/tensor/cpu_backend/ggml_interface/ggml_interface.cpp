@@ -124,7 +124,7 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
     /// @note Heuristic inspection conducted that applying multithreading on
     /// run-time quantization hurts model latency
     // #pragma omp parallel for collapse(1) num_threads(16)
-    for (unsigned int i = 0; i < M4; i++) {
+    for (int i = 0; i < static_cast<int>(M4); i++) {
       ::ggml_quantize_mat_q8_0_4x8(A + 4 * i * K,
                                    QA.data() + i * qa_4_rows_size, K);
     }
@@ -227,7 +227,7 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
     /// @note Heuristic inspection conducted that applying multithreading on
     /// run-time quantization hurts model latency
     // #pragma omp parallel for collapse(1) num_threads(16)
-    for (unsigned int i = 0; i < M4; i++) {
+    for (int i = 0; i < static_cast<int>(M4); i++) {
       ::ggml_quantize_mat_q8_K_4x8(A + 4 * i * K,
                                    QA.data() + i * qa_4_rows_size, K);
     }

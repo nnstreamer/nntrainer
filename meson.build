@@ -465,8 +465,10 @@ if get_option('enable-ggml')
   message('preparing ggml')
   ggml_options = cmake.subproject_options()
   ggml_root = meson.source_root() / 'subprojects' / 'ggml'
-  if cxx_compiler_id == 'msvc'
+  if host_machine.system() == 'windows'
     ggml_options.add_cmake_defines(common_win_subproject_cmake_defines)
+  else
+    ggml_options.append_compile_args('c', ['-Wno-error=maybe-uninitialized', '-Wno-error=pointer-to-int-cast'])
   endif
   ggml_options.add_cmake_defines({'BUILD_SHARED_LIBS': host_machine.system() != 'windows'})
   ggml_options.add_cmake_defines({'GGML_BUILD_TESTS': false})
@@ -491,9 +493,6 @@ if get_option('enable-ggml')
       ggml_options.append_compile_args('cpp', '-march=' + cpu_type)
     endif
   endif
-
-  ggml_options.append_compile_args('c', ['-Wno-error=maybe-uninitialized', '-Wno-error=pointer-to-int-cast'])
-
 
   ggml_proj = cmake.subproject('ggml', options: ggml_options, required: true)
   ggml_dep = [
