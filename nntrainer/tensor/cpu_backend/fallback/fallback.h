@@ -16,7 +16,7 @@
 #ifdef __cplusplus
 
 #include <cstdint>
-#include <stdexcept>
+#include <stdexcept>p
 #include <tensor_dim.h>
 
 namespace nntrainer {
@@ -728,6 +728,18 @@ bool is_valid(const unsigned int N, const float *X);
 void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc);
+
+/**
+ * @brief
+ *
+ * @param K
+ * @param v_q6_K
+ * @param v_q8_K
+ * @return float
+ */
+float dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
+                    const void *v_q8_K);
+
 /**
  * @brief
  *

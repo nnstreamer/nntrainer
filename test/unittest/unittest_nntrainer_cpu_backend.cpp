@@ -24,11 +24,12 @@ using std::chrono::milliseconds;
 using std::chrono::nanoseconds;
 using std::chrono::seconds;
 
-template <typename T>
+template <typename T, bool random_init = false>
 static inline std::vector<T>
 generate_random_vector(size_t size, float min_val = -1.F, float max_val = 1.F) {
   std::random_device rd;
-  std::mt19937 gen(42);
+  auto init_val = random_init ? rd() : 42;
+  std::mt19937 gen(init_val);
   // std::mt19937 gen(rd());
   std::uniform_real_distribution<float> dist(min_val, max_val);
   std::vector<T> vec(size);
@@ -95,6 +96,14 @@ struct block_q4_Kx8_testonly {
   uint8_t scales[96]; // scales and mins, quantized with 6 bits
   uint8_t qs[1024];   // 4--bit quants
 };
+
+#define QK_K 256
+typedef struct {
+  uint8_t ql[QK_K / 2];     // quants, lower 4 bits
+  uint8_t qh[QK_K / 4];     // quants, upper 2 bits
+  int8_t scales[QK_K / 16]; // scales, quantized with 8 bits
+  uint16_t d;               // super-block scale
+} block_q6_K_testonly;
 
 /**
  * @brief Elementwise-addition unittest : Vanilla example for formulating a TC
@@ -425,6 +434,90 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMV_1x1536x5760) {
   run_quant_test(M, K, N, q0_k_mse, q4_k_mse);
   ASSERT_LE(q0_k_mse, 1.0f);
   ASSERT_LE(q4_k_mse, 1.0f);
+}
+
+static void run_vec_dot_test(const uint32_t K) {
+  const int TEST_CNT = 100;
+  nanoseconds ref_time = (nanoseconds)0;
+  nanoseconds q6_k_time = (nanoseconds)0;
+  float ref_result, result;
+
+  for (int i = -1; i < TEST_CNT; i++) {
+    std::vector<float> activation = generate_random_vector<float, true>(K);
+    std::vector<float> weight = generate_random_vector<float, true>(K);
+
+    {
+      // GROUND TRUTH sdot for reference
+      auto t1 = high_resolution_clock::now();
+      ref_result = nntrainer::sdot(K, weight.data(), 1, activation.data(), 1);
+      auto t2 = high_resolution_clock::now();
+      auto dt = duration_cast<nanoseconds>(t2 - t1);
+      // std::cout << "[INFO] sdot : " << dt.count() << " ns " << std::endl;
+      if (i >= 0) { // skip the first run
+        ref_time += dt;
+      }
+    }
+
+    // Quantization of weights
+    int64_t num_blocks = K / 256;
+    size_t q6_k_data_size = num_blocks * sizeof(block_q6_K_testonly);
+    std::vector<char> q6_K_weight = std::vector<char>(q6_k_data_size);
+    nntrainer::quantize_row_q6_K(weight.data(), q6_K_weight.data(), K);
+
+    // Quantization of activations
+    int blocks_per_row = (K + QK_K - 1) / QK_K;
+    int q8_K_activation_size = sizeof(block_q8_K_testonly) * blocks_per_row;
+    std::vector<char> v_q8_activation = std::vector<char>(q8_K_activation_size);
+    nntrainer::quantize_row_q8_K(activation.data(), v_q8_activation.data(), K);
+
+    {
+      auto t1 = high_resolution_clock::now();
+      // #### MAIN TESTED METHOD ####
+      result =
+        nntrainer::dot_q6_K_q8_K(K, q6_K_weight.data(), v_q8_activation.data());
+      // #### MAIN TESTED METHOD ####
+      auto t2 = high_resolution_clock::now();
+      auto dt = duration_cast<nanoseconds>(t2 - t1);
+      // std::cout << "[INFO] dot_q6_K_q8_K : " << dt.count() << " ns " <<
+      // std::endl;
+      if (i >= 0) { // skip the first run
+        q6_k_time += dt;
+      }
+    }
+    // printf("res: %f  res: %f, diff: %f\n", result, ref_result, result -
+    // ref_result);
+    EXPECT_NEAR(result, ref_result, 0.25 * K / 256);
+  }
+
+  std::cout << "[INFO] dot_q6_K_q8_K: TEST CNT: " << TEST_CNT << ", K: " << K
+            << ", Average ref_time: " << ref_time.count() / TEST_CNT
+            << " ns, Average q6_k_time: " << q6_k_time.count() / TEST_CNT
+            << " ns " << std::endl;
+}
+
+TEST(nntrainer_cpu_backend_standalone, quant_q_6_K_DOT_256) {
+  const uint32_t K = 256;
+  run_vec_dot_test(K);
+}
+
+TEST(nntrainer_cpu_backend_standalone, quant_q_6_K_DOT_1024) {
+  const uint32_t K = 1024;
+  run_vec_dot_test(K);
+}
+
+TEST(nntrainer_cpu_backend_standalone, quant_q_6_K_DOT_2560) {
+  const uint32_t K = 2560;
+  run_vec_dot_test(K);
+}
+
+TEST(nntrainer_cpu_backend_standalone, quant_q_6_K_DOT_10240) {
+  const uint32_t K = 10240;
+  run_vec_dot_test(K);
+}
+
+TEST(nntrainer_cpu_backend_standalone, quant_q_6_K_DOT_25600) {
+  const uint32_t K = 25600;
+  run_vec_dot_test(K);
 }
 
 #endif
