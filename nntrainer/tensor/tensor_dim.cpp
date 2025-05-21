@@ -173,6 +173,8 @@ unsigned int TensorDim::getDataTypeSize() const {
     return sizeof(int8_t);
   case TensorDim::DataType::BCQ:
     return sizeof(uint32_t);
+  case TensorDim::DataType::Q6_K:
+    return sizeof(uint8_t);
   default:
     return sizeof(float);
   }
@@ -408,6 +410,10 @@ std::ostream &operator<<(std::ostream &out, TensorDim const &d) {
     type_ = "BCQ";
   } else if (d.getDataType() == ml::train::TensorDim::DataType::Q4_K) {
     type_ = "Q4_K";
+  } else if (d.getDataType() == ml::train::TensorDim::DataType::Q6_K) {
+    type_ = "Q6_K";
+  } else {
+    type_ = "Unknown";
   }
 
   std::string format_ =
