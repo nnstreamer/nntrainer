@@ -102,6 +102,15 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
 void __ggml_dequantize_row_q4_K(const void *x_raw, float *y, int64_t k);
 
 /**
+ * @brief q6K to float dequantize
+ *
+ * @param x_raw input src to be dequantized
+ * @param y output destination for dequantized data
+ * @param k data length
+ */
+void __ggml_dequantize_row_q6_K(const void *x_raw, float *y, int64_t k);
+
+/**
  * @brief q8K to float dequantize
  *
  * @param x_raw input src to be dequantized
