@@ -13,6 +13,7 @@ libs/
 obj/
 ml_api_common/
 openblas/
+ggml/
 
 # tflite for applications
 tensorflow-1.13.1
