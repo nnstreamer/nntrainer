@@ -717,20 +717,29 @@ size_t __fallback_quantize_q4_K(const float *src, void *dst, int64_t nrow,
                                 int64_t n_per_row, const float *quant_weights);
 
 /**
- * @brief
+ * @brief q4K to float dequantize
  *
- * @param x_raw
- * @param y
- * @param k
+ * @param x_raw input src to be dequantized
+ * @param y output destination for dequantized data
+ * @param k data length
  */
 void __fallback_dequantize_row_q4_K(const void *x_raw, float *y, int64_t k);
 
 /**
- * @brief
+ * @brief q6K to float dequantize
  *
- * @param x
- * @param y
- * @param k
+ * @param x_raw input src to be dequantized
+ * @param y output destination for dequantized data
+ * @param k data length
+ */
+void __fallback_dequantize_row_q6_K(const void *x_raw, float *y, int64_t k);
+
+/**
+ * @brief q8K to float dequantize
+ *
+ * @param x_raw input src to be dequantized
+ * @param y output destination for dequantized data
+ * @param k data length
  */
 void __fallback_dequantize_row_q8_K(const void *x, float *y, int64_t k);
 
