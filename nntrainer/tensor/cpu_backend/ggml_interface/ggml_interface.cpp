@@ -300,6 +300,10 @@ void __ggml_dequantize_row_q4_K(const void *x_raw, float *y, int64_t k) {
   ::dequantize_row_q4_K((const block_q4_K *)x_raw, y, k);
 }
 
+void __ggml_dequantize_row_q6_K(const void *x, float *y, int64_t k) {
+  ::dequantize_row_q6_K((const block_q6_K *)x, y, k);
+}
+
 void __ggml_dequantize_row_q8_K(const void *x, float *y, int64_t k) {
   ::dequantize_row_q8_K((const block_q8_K *)x, y, k);
 }

@@ -647,5 +647,32 @@ extern void gemm_q4_K(const unsigned int M, const unsigned int N,
  */
 extern float dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
                            const void *v_q8_K);
+
+/**
+ * @brief dequantize row of q4_K data to float
+ *
+ * @param x input to be dequantized from q4_K to float
+ * @param y dequantized data output
+ * @param k number of elements in x
+ */
+extern void dequantize_row_q4_K(const void *x, float *y, int64_t k);
+
+/**
+ * @brief dequantize row of q6_K data to float
+ *
+ * @param x input to be dequantized from q6_K to float
+ * @param y dequantized data output
+ * @param k number of elements in x
+ */
+extern void dequantize_row_q6_K(const void *x, float *y, int64_t k);
+
+/**
+ * @brief dequantize row of q8_K data to float
+ *
+ * @param x input to be dequantized from q8_K to float
+ * @param y dequantized data output
+ * @param k number of elements in x
+ */
+extern void dequantize_row_q8_K(const void *x, float *y, int64_t k);
 #endif
 #endif

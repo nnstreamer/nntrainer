@@ -312,6 +312,14 @@ void dequantize_row_q4_K(const void *x_raw, float *y, int64_t k) {
 #endif
 }
 
+void dequantize_row_q6_K(const void *x, float *y, int64_t k) {
+#ifdef ENABLE_GGML
+  __ggml_dequantize_row_q6_K(x, y, k);
+#else
+  __fallback_dequantize_row_q6_K(x, y, k);
+#endif
+}
+
 void dequantize_row_q8_K(const void *x, float *y, int64_t k) {
 #ifdef ENABLE_GGML
   __ggml_dequantize_row_q8_K(x, y, k);

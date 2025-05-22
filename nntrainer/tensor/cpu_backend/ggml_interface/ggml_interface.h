@@ -131,6 +131,15 @@ float __ggml_vec_dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
 void __ggml_dequantize_row_q4_K(const void *x_raw, float *y, int64_t k);
 
 /**
+ * @brief dequantize row of q6_K data to float
+ *
+ * @param x input to be dequantized from q6_K to float
+ * @param y dequantized data output
+ * @param k number of elements in x
+ */
+void __ggml_dequantize_row_q6_K(const void *x, float *y, int64_t k);
+
+/**
  * @brief q8K to float dequantize
  *
  * @param x_raw input src to be dequantized
