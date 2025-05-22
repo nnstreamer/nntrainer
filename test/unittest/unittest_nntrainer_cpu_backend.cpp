@@ -464,6 +464,18 @@ static void run_vec_dot_test(const uint32_t K) {
     std::vector<char> q6_K_weight = std::vector<char>(q6_k_data_size);
     nntrainer::quantize_row_q6_K(weight.data(), q6_K_weight.data(), K);
 
+    std::vector<float> weight_dequant(K, 0.0f);
+    nntrainer::dequantize_row_q6_K(q6_K_weight.data(), weight_dequant.data(),
+                                   K);
+
+    const auto weights_quant_dequant_cos_sim =
+      cosine_similarity(weight.data(), weight_dequant.data(), K);
+    const auto weights_quant_dequant_max_diff =
+      find_max_diff(weight.data(), weight_dequant.data(), 1, K);
+
+    EXPECT_NEAR(weights_quant_dequant_cos_sim, 1.0f, 0.001f);
+    EXPECT_NEAR(weights_quant_dequant_max_diff, 0.0f, 0.025f);
+
     // Quantization of activations
     int blocks_per_row = (K + QK_K - 1) / QK_K;
     int q8_K_activation_size = sizeof(block_q8_K_testonly) * blocks_per_row;

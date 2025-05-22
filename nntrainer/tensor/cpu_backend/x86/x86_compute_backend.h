@@ -807,20 +807,29 @@ void quantize_row_q6_K(const float *src, void *dst, int64_t k);
 void quantize_row_q8_K(const float *src, void *dst, int64_t k);
 
 /**
- * @brief
+ * @brief dequantize row of q4_K data to float
  *
- * @param x_raw
- * @param y
- * @param k
+ * @param x input to be dequantized from q4_K to float
+ * @param y dequantized data output
+ * @param k number of elements in x
  */
-void dequantize_row_q4_K(const void *x_raw, float *y, int64_t k);
+void dequantize_row_q4_K(const void *x, float *y, int64_t k);
 
 /**
- * @brief
+ * @brief dequantize row of q6_K data to float
  *
- * @param x
- * @param y
- * @param k
+ * @param x input to be dequantized from q6_K to float
+ * @param y dequantized data output
+ * @param k number of elements in x
+ */
+void dequantize_row_q6_K(const void *x, float *y, int64_t k);
+
+/**
+ * @brief dequantize row of q8_K data to float
+ *
+ * @param x input to be dequantized from q8_K to float
+ * @param y dequantized data output
+ * @param k number of elements in x
  */
 void dequantize_row_q8_K(const void *x, float *y, int64_t k);
 
