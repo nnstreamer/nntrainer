@@ -12,7 +12,6 @@ iniparser/
 libs/
 obj/
 ml_api_common/
-openblas/
 ggml/
 
 # tflite for applications

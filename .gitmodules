@@ -13,3 +13,7 @@
 [submodule "subprojects/CLBlast"]
 	path = subprojects/CLBlast
 	url = https://github.com/CNugteren/CLBlast.git
+
+[submodule "subprojects/OpenBLAS"]
+	path = subprojects/OpenBLAS
+	url = https://github.com/OpenMathLib/OpenBLAS.git
