@@ -333,28 +333,55 @@ if get_option('enable-blas')
     blas_dep = dependency('openblas', required : false)
 
     if not blas_dep.found()
-      blas_options = cmake.subproject_options()
-      blas_options.add_cmake_defines({'NUM_THREADS': get_option('openblas-num-threads').to_string()})
-      blas_options.add_cmake_defines({'BUILD_TESTING': false})
-      blas_options.add_cmake_defines({'BUILD_BENCHMARKS': false})
-      blas_options.add_cmake_defines({'BUILD_SHARED_LIBS': host_machine.system() != 'windows'})
-      blas_options.add_cmake_defines({'BUILD_WITHOUT_LAPACK': true})
-      blas_options.add_cmake_defines({'NOFORTRAN': true})
-      if cxx_compiler_id == 'msvc'
-        blas_options.add_cmake_defines(common_win_subproject_cmake_defines)
-        blas_options.add_cmake_defines({'MSVC_STATIC_CRT': '1'})
-        if meson.is_cross_build()
-          blas_options.add_cmake_defines({
-            'TARGET': 'generic',
-            'TARGET_CORE': 'generic',
-            'BUILD_COMPLEX': false,
-            'BUILD_COMPLEX16': false,
-          })
-          warning('Disabling assembly optimizations for OpenBLAS')
+      message('Cannot find OpenBLAS dependency in system')
+      openblas_dir_relative = 'subprojects' / 'OpenBLAS'
+      openblas_dir_absolute = meson.current_source_dir() / openblas_dir_relative
+      openblas_build_dir_relative = openblas_dir_relative / 'build'
+      openblas_build_dir_absolute = meson.current_source_dir() / openblas_build_dir_relative
+
+      if fs.exists (openblas_build_dir_absolute)
+        message('Skip compiling OpenBLAS (using previous build)')
+      else
+        message('Setup OpenBLAS')
+        openblas_setup_command = ['cmake', '-B', openblas_build_dir_absolute, '-DNUM_THREADS=' + get_option('openblas-num-threads').to_string(), '-DBUILD_TESTING=False', '-DBUILD_BENCHMARKS=False', '-DBUILD_WITHOUT_LAPACK=True', '-DNOFORTRAN=True', '-DCMAKE_BUILD_TYPE=Release']
+
+        if host_machine.system() == 'windows'
+          openblas_setup_command += '-DBUILD_SHARED_LIBS=False'
+          openblas_setup_command += '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded'
+          openblas_setup_command += '-DMSVC_STATIC_CRT=1'
+        else
+          openblas_setup_command += '-DBUILD_SHARED_LIBS=True'
         endif
+
+        if cxx_compiler_id == 'clang'
+          openblas_setup_command += '-G Ninja'
+          openblas_setup_command += '-DCMAKE_C_COMPILER=clang'
+          openblas_setup_command += '-DCMAKE_CXX_COMPILER=clang++'
+        endif
+
+        openblas_setup_command += openblas_dir_absolute
+
+        run_command(openblas_setup_command, check: true)
+
+        message('Compile OpenBLAS')
+        openblas_compile_command = ['cmake' , '--build', openblas_build_dir_absolute, '--config', 'Release', '-j']
+        run_command(openblas_compile_command, check: true)
       endif
-      blas_subproject = cmake.subproject('openblas', options: blas_options, required: true)
-      blas_dep = host_machine.system() == 'windows'? blas_subproject.dependency('openblas_static') : blas_subproject.dependency('openblas_shared')
+
+      if host_machine.system() == 'windows'
+        if cxx_compiler_id == 'msvc'
+          openblas_lib = openblas_build_dir_absolute / 'lib' / 'RELEASE' / 'openblas.lib'
+        else
+          openblas_lib = openblas_build_dir_absolute / 'lib' / 'openblas.lib'
+        endif
+      else
+        openblas_lib = openblas_build_dir_absolute / 'lib' / 'libopenblas.so'
+      endif
+
+      openblas_include = include_directories(openblas_dir_relative, openblas_build_dir_relative)
+      blas_dep = declare_dependency(include_directories: openblas_include, link_args:[openblas_lib])
+    else
+      message('OpenBLAS dependency found in system')
     endif
   endif
 
