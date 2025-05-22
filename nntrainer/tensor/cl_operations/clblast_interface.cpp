@@ -150,7 +150,30 @@ void gemm_cl(const unsigned int layout, bool TransA, bool TransB,
              const float alpha, const float *A, const unsigned int lda,
              const float *B, const unsigned int ldb, const float beta, float *C,
              const unsigned int ldc) {
-  throw std::runtime_error("gemm_cl is not implemented");
+  clblast::Transpose transA =
+    (TransA) ? clblast::Transpose::kYes : clblast::Transpose::kNo;
+  clblast::Transpose transB =
+    (TransB) ? clblast::Transpose::kYes : clblast::Transpose::kNo;
+
+  clBuffManagerInst.getInBufferA()->WriteDataRegion(
+    clblast_cc->command_queue_inst_, M * K * sizeof(float), A);
+
+  clBuffManagerInst.getInBufferB()->WriteDataRegion(
+    clblast_cc->command_queue_inst_, K * N * sizeof(float), B);
+
+  clBuffManagerInst.getOutBufferA()->WriteDataRegion(
+    clblast_cc->command_queue_inst_, M * N * sizeof(float), C);
+
+  // layout is currently fixed to RowMajor
+  clblast::Gemm<float>(
+    clblast::Layout::kRowMajor, transA, transB, M, N, K, alpha,
+    clBuffManagerInst.getInBufferA()->GetBuffer(), 0, lda,
+    clBuffManagerInst.getInBufferB()->GetBuffer(), 0, ldb, beta,
+    clBuffManagerInst.getOutBufferA()->GetBuffer(), 0, ldc, &command_queue);
+
+  // Read the result back to C
+  clBuffManagerInst.getOutBufferA()->ReadDataRegion(
+    clblast_cc->command_queue_inst_, M * N * sizeof(float), C);
 }
 
 void gemm_batched_cl(const unsigned int layout, bool TransA, bool TransB,
