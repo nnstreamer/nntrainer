@@ -136,6 +136,30 @@ TEST(nntrainer_LayerNode, finalize_05_n) {
 }
 
 /**
+ * @brief finalize with tensor_dtype
+ */
+TEST(nntrainer_LayerNode, finalize_06_p) {
+  std::unique_ptr<nntrainer::LayerNode> lnode;
+  EXPECT_NO_THROW(lnode =
+                    nntrainer::createLayerNode(nntrainer::IdentityLayer::type));
+  EXPECT_NO_THROW(
+    lnode->setProperty({"input_shape=1:1:1", "weight_dtype=Q4_K", "name=abc"}));
+  EXPECT_NO_THROW(lnode->finalize());
+}
+
+/**
+ * @brief finalize with not supported tensor_dtype
+ */
+TEST(nntrainer_LayerNode, finalize_07_n) {
+  std::unique_ptr<nntrainer::LayerNode> lnode;
+  EXPECT_NO_THROW(lnode =
+                    nntrainer::createLayerNode(nntrainer::IdentityLayer::type));
+  EXPECT_THROW(
+    lnode->setProperty({"input_shape=1:1:1", "weight_dtype=Q6_K", "name=abc"}),
+    std::invalid_argument);
+}
+
+/**
  * @brief getRunContext for empty run_context
  */
 TEST(nntrainer_LayerNode, getRunContext_01_n) {

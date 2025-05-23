@@ -1025,7 +1025,7 @@ properties in the context/graph unless intended. */
     std::tuple<props::Name, props::Distribute, props::Trainable,
                std::vector<props::InputConnection>,
                std::vector<props::InputShape>, props::SharedFrom,
-               props::ClipGradByGlobalNorm, props::Packed,
+               props::ClipGradByGlobalNorm, props::Packed, props::WeightDtype,
                props::LossScaleForMixed, props::ComputeEngine>;
 
   using RealizationPropsType = std::tuple<props::Flatten, props::Activation>;
