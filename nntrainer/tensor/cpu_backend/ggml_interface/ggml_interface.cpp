@@ -249,8 +249,7 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
           M_step_end - M_step_start);
       }
     }
-  }
-  else { // GEMM
+  } else { // GEMM
     unsigned int blocks_per_4_rows = (K + QK_K - 1) / QK_K;
     unsigned int qa_4_rows_size = sizeof(block_q8_Kx4) * blocks_per_4_rows;
     unsigned int M4 = ((M + 3) / 4);
@@ -297,8 +296,8 @@ float __ggml_vec_dot_q6_K_q8_K(const unsigned int K,
 }
 
 float __ggml_vec_dot_q6_K(const unsigned int K,
-                               const void *GGML_RESTRICT v_q6_K,
-                               const float *GGML_RESTRICT activation) {
+                          const void *GGML_RESTRICT v_q6_K,
+                          const float *GGML_RESTRICT activation) {
   float result;
   int bs = 1, bx = 1, by = 1,
       nrc = 1; // unused variables in ::ggml_vec_dot_q6_K_q8_K
@@ -314,10 +313,10 @@ float __ggml_vec_dot_q6_K(const unsigned int K,
 }
 
 void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
-                           const unsigned int K, const float *A,
-                           const unsigned int lda, const void *B,
-                           const unsigned int ldb, float *C,
-                           const unsigned int ldc) {
+                      const unsigned int K, const float *A,
+                      const unsigned int lda, const void *B,
+                      const unsigned int ldb, float *C,
+                      const unsigned int ldc) {
   int num_blocks_per_row = (K + QK_K - 1) / QK_K;
   for (unsigned int i = 0; i < M; i++) {
     for (unsigned int j = 0; j < N; j++) {
