@@ -55,13 +55,8 @@ void Q4_K_Tensor::allocate() {
     /** as this memory is shared, do NOT initialize */
   } else {
     /// allocate new memory for the tensor data
-    MemoryData *mem_data;
-
-    mem_data = new MemoryData((void *)(new uint8_t[size()]{}));
-    data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-      delete[] mem_data->template getAddr<uint8_t>();
-      delete mem_data;
-    });
+    auto data_t = std::make_shared<MemoryDataT<uint8_t>>(new uint32_t[size()]);
+    data = std::static_pointer_cast<MemoryData>(std::move(data_t));
 
     offset = 0;
     initialize();
