@@ -74,7 +74,7 @@ jobs:
       shell: bash
       run: |
         sudo add-apt-repository -y ppa:nnstreamer/ppa && sudo apt-get update
-        sudo apt-get update && sudo apt-get install -y gcc g++ pkg-config libopenblas-dev libiniparser-dev libjsoncpp-dev libcurl3-dev tensorflow2-lite-dev nnstreamer-dev libglib2.0-dev libgstreamer1.0-dev libgtest-dev ml-api-common-dev flatbuffers-compiler ml-inference-api-dev libunwind-dev
+        sudo apt-get update && sudo apt-get install -y gcc g++ pkg-config libopenblas-dev libiniparser-dev libclblast-dev libjsoncpp-dev libcurl3-dev tensorflow2-lite-dev nnstreamer-dev libglib2.0-dev libgstreamer1.0-dev libgtest-dev ml-api-common-dev flatbuffers-compiler ml-inference-api-dev libunwind-dev
         sudo apt-get install -y python3-dev python3-numpy python3
         sudo add-apt-repository ppa:ubuntu-toolchain-r/test
         sudo apt-get install build-essential

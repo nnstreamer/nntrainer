@@ -132,7 +132,7 @@ Install the required packages.
 
 ```bash
 sudo apt install meson ninja-build
-sudo apt install gcc g++ pkg-config libopenblas-dev libiniparser-dev libjsoncpp-dev libcurl3-dev tensorflow2-lite-dev nnstreamer-dev libglib2.0-dev libgstreamer1.0-dev libgtest-dev ml-api-common-dev flatbuffers-compiler ml-inference-api-dev
+sudo apt install gcc g++ pkg-config libopenblas-dev libiniparser-dev libclblast-dev libjsoncpp-dev libcurl3-dev tensorflow2-lite-dev nnstreamer-dev libglib2.0-dev libgstreamer1.0-dev libgtest-dev ml-api-common-dev flatbuffers-compiler ml-inference-api-dev
 ```
 
 Install submodules.

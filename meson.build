@@ -169,13 +169,17 @@ if get_option('enable-opencl')
   if get_option('platform') == 'android'
     clblast_dep = declare_dependency()
   else
-    if host_machine.system() == 'windows'
-      clblast_options.add_cmake_defines(common_win_subproject_cmake_defines)
-    endif
+    clblast_dep = dependency('clblast', required : false)
 
-    clblast_options.add_cmake_defines({'CMAKE_POLICY_VERSION_MINIMUM': '3.10'})
-    clblast_proj = cmake.subproject('clblast', options: clblast_options, required: true)
-    clblast_dep = clblast_proj.dependency('clblast')
+    if not clblast_dep.found()
+      if host_machine.system() == 'windows'
+        clblast_options.add_cmake_defines(common_win_subproject_cmake_defines)
+      endif
+
+      clblast_options.add_cmake_defines({'CMAKE_POLICY_VERSION_MINIMUM': '3.10'})
+      clblast_proj = cmake.subproject('clblast', options: clblast_options, required: true)
+      clblast_dep = clblast_proj.dependency('clblast')
+    endif
   endif
 endif
 
