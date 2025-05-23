@@ -517,7 +517,8 @@ if get_option('enable-ggml')
     ggml_options.add_cmake_defines({'CMAKE_INSTALL_LIBDIR': nntrainer_libdir / 'arm64-v8a'})
   endif
 
-  if host_machine.system() == 'windows'
+  # we do not want it for clang on windows
+  if cxx_compiler_id == 'msvc'
     if arch == 'x86_64'
       if cc.has_argument('-march=x86-64-v2')
         cpu_type = 'x86-64-v2'

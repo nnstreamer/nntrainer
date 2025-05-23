@@ -4,7 +4,7 @@ set -e
 GGML_SRC=$1
 
 REVISION=489716ba99ecd51164f79e8c6fec0b5bf634eac9
-PATCH_PATH="${GGML_SRC}"/../packagefiles/ggml/0001-Export-some-internal-methods.patch
+PATCH_PATH="${GGML_SRC}"/../packagefiles/ggml/0001-nntrainer-ggml-patch.patch
 
 echo "[GGML] PREPARING GGML..."
 
