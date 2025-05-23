@@ -28,17 +28,15 @@ jobs:
           architecture: x64
       - name: Download Intel OpenCL Runtime (CPU only)
         run: |
-          Invoke-WebRequest -Uri "https://registrationcenter-download.intel.com/akdlm/irc_nas/18248/opencl_runtime_18.1_x64_setup.msi" -OutFile "opencl_runtime.msi"
-        shell: powershell
+          curl -L -o intel_runtime.exe https://registrationcenter-download.intel.com/akdlm/IRC_NAS/b6dccdb7-b503-41ea-bd4b-a78e9c2d8dd6/w_opencl_runtime_p_2025.1.0.972.exe
       - name: Install Intel OpenCL CPU runtime
         run: |
-          msiexec /i opencl_runtime.msi /qn
+          intel_runtime.exe -s --action install --components=intel.oneapi.win.runtime.opencl,intel.oneapi.win.runtime.opencl-cpu --eula accept
         shell: cmd
       - name: Verify Intel OpenCL installation
         run: |
-          dir "C:\Windows\System32\OpenCL.dll"
-          where clinfo || echo "clinfo not found"
-        shell: cmd
+          clinfo || echo "clinfo not available"
+          where OpenCL.dll || echo "OpenCL.dll not found"
       - name: Prepare Build
         run: meson setup --native-file windows-native.ini builddir
       - name: Run Build
