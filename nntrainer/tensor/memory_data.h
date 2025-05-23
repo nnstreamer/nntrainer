@@ -109,12 +109,31 @@ public:
    */
   void setValid(bool v) { valid = v; }
 
-private:
+protected:
   bool valid;
   unsigned int id;
   void *address;
   MemoryDataValidateCallback validate_cb;
   MemoryDataValidateCallback invalidate_cb;
+};
+
+/**
+ * @class   MemoryDataT
+ * @brief   MemoryDataT make possible to create classes derived from MemoryData
+ * with proper memory release depends on data type
+ */
+template <typename T> class MemoryDataT : public MemoryData {
+public:
+  /**
+   * @brief  Constructor of MemoryDataT
+   * @param[in] addr Memory data
+   */
+  explicit MemoryDataT(void *addr) : MemoryData(addr) {}
+
+  /**
+   * @brief  Destructor of MemoryDataT
+   */
+  ~MemoryDataT() override { delete[] static_cast<T *>(address); };
 };
 
 } // namespace nntrainer

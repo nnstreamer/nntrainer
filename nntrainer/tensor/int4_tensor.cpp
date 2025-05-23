@@ -68,12 +68,9 @@ Int4QTensor::Int4QTensor(
 
   /// @note sizeof(float) * scale_size() assumes scale factors are in
   /// full-precision fp.
-  MemoryData *mem_data =
-    new MemoryData((void *)(new int8_t[(dim.getDataLen() + 1) / 2 +
-                                       sizeof(float) * scale_size()]()));
-  data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
-    delete[] mem_data->getAddr<int8_t>();
-  });
+  auto data_t = std::make_shared<MemoryDataT<int8_t>>(
+    new int8_t[(dim.getDataLen() + 1) / 2 + sizeof(float) * scale_size()]);
+  data = std::static_pointer_cast<MemoryData>(std::move(data_t));
 
   offset = 0;
 
@@ -128,16 +125,9 @@ void Int4QTensor::allocate() {
     /** as this memory is shared, do NOT initialize */
   } else {
     /// allocate new memory for the tensor data
-    MemoryData *mem_data;
-
-    /// quantized 4-bit is stored as a 8-bit signed integer (int4x2)
-    mem_data =
-      new MemoryData((void *)(new int8_t[(dim.getDataLen() + 1) / 2 +
-                                         sizeof(float) * scale_size()]{}));
-    data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-      delete[] mem_data->template getAddr<int8_t>();
-      delete mem_data;
-    });
+    auto data_t = std::make_shared<MemoryDataT<int8_t>>(
+      new int8_t[(dim.getDataLen() + 1) / 2 + sizeof(float) * scale_size()]);
+    data = std::static_pointer_cast<MemoryData>(std::move(data_t));
 
     offset = 0;
     initialize();

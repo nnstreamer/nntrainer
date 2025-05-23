@@ -59,13 +59,9 @@ void BCQTensor::allocate() {
     /** as this memory is shared, do NOT initialize */
   } else {
     /// allocate new memory for the tensor data
-    MemoryData *mem_data;
-
-    mem_data = new MemoryData((void *)(new uint32_t[size() + scale_size()]{}));
-    data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-      delete[] mem_data->template getAddr<uint32_t>();
-      delete mem_data;
-    });
+    auto data_t = std::make_shared<MemoryDataT<uint32_t>>(
+      new uint32_t[size() + scale_size()]);
+    data = std::static_pointer_cast<MemoryData>(std::move(data_t));
 
     offset = 0;
     initialize();
