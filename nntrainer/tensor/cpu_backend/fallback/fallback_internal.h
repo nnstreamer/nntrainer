@@ -693,6 +693,17 @@ void __fallback_gemm_q4_K(const unsigned int M, const unsigned int N,
 /**
  * @brief
  *
+ * @param K
+ * @param v_q6_K
+ * @param v_q8_K
+ * @return float
+ */
+float __fallback_dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
+                               const void *v_q8_K);
+
+/**
+ * @brief
+ *
  * @param src
  * @param dst
  * @param nrow
@@ -719,18 +730,45 @@ size_t __fallback_quantize_q4_K(const float *src, void *dst, int64_t nrow,
 /**
  * @brief
  *
- * @param x_raw
- * @param y
+ * @param src
+ * @param dst
  * @param k
  */
-void __fallback_dequantize_row_q4_K(const void *x_raw, float *y, int64_t k);
+void __fallback_quantize_row_q6_K(const float *src, void *dst, int64_t k);
 
 /**
  * @brief
  *
- * @param x
- * @param y
+ * @param src
+ * @param dst
  * @param k
+ */
+void __fallback_quantize_row_q8_K(const float *src, void *dst, int64_t k);
+
+/**
+ * @brief dequantize row of q4_K data to float
+ *
+ * @param x input to be dequantized from q4_K to float
+ * @param y dequantized data output
+ * @param k number of elements in x
+ */
+void __fallback_dequantize_row_q4_K(const void *x_raw, float *y, int64_t k);
+
+/**
+ * @brief dequantize row of q6_K data to float
+ *
+ * @param x input to be dequantized from q6_K to float
+ * @param y dequantized data output
+ * @param k number of elements in x
+ */
+void __fallback_dequantize_row_q6_K(const void *x, float *y, int64_t k);
+
+/**
+ * @brief dequantize row of q8_K data to float
+ *
+ * @param x input to be dequantized from q8_K to float
+ * @param y dequantized data output
+ * @param k number of elements in x
  */
 void __fallback_dequantize_row_q8_K(const void *x, float *y, int64_t k);
 

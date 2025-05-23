@@ -16,7 +16,7 @@
 #ifdef __cplusplus
 
 #include <cstdint>
-#include <stdexcept>
+#include <stdexcept>p
 #include <tensor_dim.h>
 
 namespace nntrainer {
@@ -728,6 +728,18 @@ bool is_valid(const unsigned int N, const float *X);
 void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc);
+
+/**
+ * @brief
+ *
+ * @param K
+ * @param v_q6_K
+ * @param v_q8_K
+ * @return float
+ */
+float dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
+                    const void *v_q8_K);
+
 /**
  * @brief
  *
@@ -755,20 +767,29 @@ size_t quantize_q4_K(const float *src, void *dst, int64_t nrow,
                      int64_t n_per_row, const float *quant_weights);
 
 /**
- * @brief
+ * @brief dequantize row of q4_K data to float
  *
- * @param x_raw
- * @param y
- * @param k
+ * @param x input to be dequantized from q4_K to float
+ * @param y dequantized data output
+ * @param k number of elements in x
  */
-void dequantize_row_q4_K(const void *x_raw, float *y, int64_t k);
+void dequantize_row_q4_K(const void *x, float *y, int64_t k);
 
 /**
- * @brief
+ * @brief dequantize row of q6_K data to float
  *
- * @param x
- * @param y
- * @param k
+ * @param x input to be dequantized from q6_K to float
+ * @param y dequantized data output
+ * @param k number of elements in x
+ */
+void dequantize_row_q6_K(const void *x, float *y, int64_t k);
+
+/**
+ * @brief dequantize row of q8_K data to float
+ *
+ * @param x input to be dequantized from q8_K to float
+ * @param y dequantized data output
+ * @param k number of elements in x
  */
 void dequantize_row_q8_K(const void *x, float *y, int64_t k);
 

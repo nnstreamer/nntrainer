@@ -55,6 +55,24 @@ size_t __ggml_quantize_q4_K(const float *src, void *dst, int64_t nrow,
                             int64_t n_per_row, const float *quant_weights);
 
 /**
+ * @brief Quantize float to q6_K Quantization format
+ *
+ * @param src
+ * @param dst
+ * @param k
+ */
+void __ggml_quantize_row_q6_K(const float *src, void *dst, int64_t k);
+
+/**
+ * @brief Quantize float to q6_K Quantization format
+ *
+ * @param src
+ * @param dst
+ * @param k
+ */
+void __ggml_quantize_row_q8_K(const float *src, void *dst, int64_t k);
+
+/**
  * @brief A(M, K) * W.T(N, K) = (M, N)
  *
  * @param M as descripted above
@@ -93,6 +111,17 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int ldc);
 
 /**
+ * @brief
+ *
+ * @param K
+ * @param v_q6_K
+ * @param v_q8_K
+ * @return float
+ */
+float __ggml_vec_dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
+                               const void *v_q8_K);
+
+/**
  * @brief q4K to float dequantize
  *
  * @param x_raw input src to be dequantized
@@ -100,6 +129,15 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
  * @param k data length
  */
 void __ggml_dequantize_row_q4_K(const void *x_raw, float *y, int64_t k);
+
+/**
+ * @brief dequantize row of q6_K data to float
+ *
+ * @param x input to be dequantized from q6_K to float
+ * @param y dequantized data output
+ * @param k number of elements in x
+ */
+void __ggml_dequantize_row_q6_K(const void *x, float *y, int64_t k);
 
 /**
  * @brief q8K to float dequantize
