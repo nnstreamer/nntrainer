@@ -99,9 +99,9 @@ bool Buffer::WriteDataRegion(CommandQueueManager &command_queue_inst,
                              size_t host_origin_offset,
                              size_t buffer_origin_offset) {
   if (size_in_bytes > size_) {
-    ml_loge("Failed to write buffer region. Region size(%lu bytes) greater "
-            "than buffer size(%lu bytes).",
-            size_in_bytes, size_);
+    ml_loge("Failed to write buffer region. Region size(%d bytes) greater "
+            "than buffer size(%d bytes).",
+            (int)size_in_bytes, (int)size_);
     return false;
   }
   return command_queue_inst.EnqueueWriteBufferRegion(
@@ -124,9 +124,9 @@ bool Buffer::ReadDataRegion(CommandQueueManager &command_queue_inst,
                             size_t host_origin_offset,
                             size_t buffer_origin_offset) {
   if (size_in_bytes > size_) {
-    ml_loge("Failed to read from buffer region. Region size(%lu bytes) greater "
-            "than buffer size(%lu bytes).",
-            size_in_bytes, size_);
+    ml_loge("Failed to read from buffer region. Region size(%d bytes) greater "
+            "than buffer size(%d bytes).",
+            (int)size_in_bytes, (int)size_);
     return false;
   }
   return command_queue_inst.EnqueueReadBufferRegion(
