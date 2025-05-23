@@ -14,11 +14,11 @@ jobs:
       matrix:
         include:
           - gbs_build_arch: "x86_64"
-            gbs_build_option: "--define \"unit_test 1\""
+            gbs_build_option: "--define \"unit_test 1\" --define \"_with_gpu 1\""
           - gbs_build_arch: "armv7l"
-            gbs_build_option: "--define \"unit_test 0\""
+            gbs_build_option: "--define \"unit_test 0\" --define \"_with_gpu 1\""
           - gbs_build_arch: "aarch64"
-            gbs_build_option: "--define \"unit_test 0\""
+            gbs_build_option: "--define \"unit_test 0\" --define \"_with_gpu 1\""
 
     runs-on: ubuntu-22.04
 
