@@ -54,6 +54,9 @@ size_t __ggml_quantize_q4_0(const float *src, void *dst, int64_t nrow,
 size_t __ggml_quantize_q4_K(const float *src, void *dst, int64_t nrow,
                             int64_t n_per_row, const float *quant_weights);
 
+size_t __ggml_quantize_q6_K(const float *src, void *dst, int64_t nrow,
+                            int64_t n_per_row, const float *quant_weights);
+
 /**
  * @brief Quantize float to q6_K Quantization format
  *
@@ -110,6 +113,11 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int ldb, float *C,
                                const unsigned int ldc);
 
+void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
+                           const unsigned int K, const float *A,
+                           const unsigned int lda, const void *B,
+                           const unsigned int ldb, float *C,
+                           const unsigned int ldc);
 /**
  * @brief
  *
