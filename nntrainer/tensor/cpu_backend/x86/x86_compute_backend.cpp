@@ -269,6 +269,7 @@ size_t quantize_q6_K(const float *src, void *dst, int64_t nrow,
 #ifdef ENABLE_GGML
   return __ggml_quantize_q6_K(src, dst, nrow, n_per_row, quant_weights);
 #endif
+  return 0;
 }
 
 void quantize_row_q6_K(const float *src, void *dst, int64_t k) {

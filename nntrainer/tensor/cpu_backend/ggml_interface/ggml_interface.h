@@ -112,12 +112,23 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int lda, const void *B,
                                const unsigned int ldb, float *C,
                                const unsigned int ldc);
-
+/**
+ * @brief
+ *
+ * @param M
+ * @param N
+ * @param K
+ * @param A
+ * @param lda
+ * @param B
+ * @param ldb
+ * @param C
+ * @param ldc
+ */
 void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
-                           const unsigned int K, const float *A,
-                           const unsigned int lda, const void *B,
-                           const unsigned int ldb, float *C,
-                           const unsigned int ldc);
+                      const unsigned int K, const float *A,
+                      const unsigned int lda, const void *B,
+                      const unsigned int ldb, float *C, const unsigned int ldc);
 /**
  * @brief
  *
