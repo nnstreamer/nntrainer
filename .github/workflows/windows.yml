@@ -26,6 +26,19 @@ jobs:
         uses: bus1/cabuild/action/msdevshell@v1
         with:
           architecture: x64
+      - name: Download Intel OpenCL Runtime (CPU only)
+        run: |
+          Invoke-WebRequest -Uri "https://registrationcenter-download.intel.com/akdlm/irc_nas/18248/opencl_runtime_18.1_x64_setup.msi" -OutFile "opencl_runtime.msi"
+        shell: powershell
+      - name: Install Intel OpenCL CPU runtime
+        run: |
+          msiexec /i opencl_runtime.msi /qn
+        shell: cmd
+      - name: Verify Intel OpenCL installation
+        run: |
+          dir "C:\Windows\System32\OpenCL.dll"
+          where clinfo || echo "clinfo not found"
+        shell: cmd
       - name: Prepare Build
         run: meson setup --native-file windows-native.ini builddir
       - name: Run Build
