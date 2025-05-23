@@ -83,6 +83,11 @@ size_t __ggml_quantize_q4_K(const float *src, void *dst, int64_t nrow,
   return ::quantize_q4_K(src, dst, nrow, n_per_row, quant_weights);
 }
 
+size_t __ggml_quantize_q6_K(const float *src, void *dst, int64_t nrow,
+                            int64_t n_per_row, const float *quant_weights) {
+  return ::quantize_q6_K(src, dst, nrow, n_per_row, quant_weights);
+}
+
 void __ggml_quantize_row_q6_K(const float *src, void *dst, int64_t k) {
   ::quantize_q6_K(src, dst, 1, k, nullptr);
 }
@@ -136,11 +141,6 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
       ::ggml_quantize_mat_q8_0_4x8(A + 4 * i * K,
                                    QA.data() + i * qa_4_rows_size, K);
     }
-
-#if 0
-    // single thread
-    ::ggml_gemm_q4_0_8x8_q8_0(K, C, ldc, B, QA.data(), M, N);
-#else
     int delta = 8;
     int step_N = N / delta;
     int step_C = delta;
@@ -157,7 +157,6 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
                                 QA.data(), M, delta);});
       multi_future.wait();
      */
-#endif
   }
 }
 
@@ -250,7 +249,8 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
           M_step_end - M_step_start);
       }
     }
-  } else { // GEMM
+  }
+  else { // GEMM
     unsigned int blocks_per_4_rows = (K + QK_K - 1) / QK_K;
     unsigned int qa_4_rows_size = sizeof(block_q8_Kx4) * blocks_per_4_rows;
     unsigned int M4 = ((M + 3) / 4);
@@ -294,6 +294,39 @@ float __ggml_vec_dot_q6_K_q8_K(const unsigned int K,
       nrc = 1; // unused variables in ::ggml_vec_dot_q6_K_q8_K
   ::ggml_vec_dot_q6_K_q8_K(K, &result, bs, v_q6_K, bx, v_q8_K, by, nrc);
   return result;
+}
+
+float __ggml_vec_dot_q6_K(const unsigned int K,
+                               const void *GGML_RESTRICT v_q6_K,
+                               const float *GGML_RESTRICT activation) {
+  float result;
+  int bs = 1, bx = 1, by = 1,
+      nrc = 1; // unused variables in ::ggml_vec_dot_q6_K_q8_K
+
+  int blocks_per_row = (K + QK_K - 1) / QK_K;
+  int q8_K_activation_size = sizeof(block_q8_K) * blocks_per_row;
+  std::vector<char> v_q8_activation = std::vector<char>(q8_K_activation_size);
+  __ggml_quantize_row_q8_K(activation, v_q8_activation.data(), K);
+
+  ::ggml_vec_dot_q6_K_q8_K(K, &result, bs, v_q6_K, bx, v_q8_activation.data(),
+                           by, nrc);
+  return result;
+}
+
+void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
+                           const unsigned int K, const float *A,
+                           const unsigned int lda, const void *B,
+                           const unsigned int ldb, float *C,
+                           const unsigned int ldc) {
+  int num_blocks_per_row = (K + QK_K - 1) / QK_K;
+  for (unsigned int i = 0; i < M; i++) {
+    for (unsigned int j = 0; j < N; j++) {
+      C[i * ldc + j] = __ggml_vec_dot_q6_K(
+        K, (void *)((char *)B + (sizeof(block_q6_K) * num_blocks_per_row) * j),
+        A + i * K);
+    }
+  }
+  return;
 }
 
 void __ggml_dequantize_row_q4_K(const void *x_raw, float *y, int64_t k) {
