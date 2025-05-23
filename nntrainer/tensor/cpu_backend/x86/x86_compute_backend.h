@@ -751,6 +751,9 @@ void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc);
 
+void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
+               const float *A, const unsigned int lda, const void *B,
+               const unsigned int ldb, float *C, const unsigned int ldc);
 /**
  * @brief
  *
