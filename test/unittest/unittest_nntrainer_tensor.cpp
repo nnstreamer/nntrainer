@@ -833,6 +833,37 @@ TEST(nntrainer_Tensor, QTensor_14_p) {
 }
 #endif
 
+/**
+ * @brief Construct a Q6_K Tensor with invalid size
+ */
+TEST(nntrainer_Tensor, QTensor_15_n) {
+  EXPECT_ANY_THROW(nntrainer::Tensor q6_k_tensor(
+    {1, 1, 256, 8, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::Q6_K}, true,
+    nntrainer::Initializer::NONE, "q6_k_tensor", nntrainer::QScheme::Q6_K));
+
+  EXPECT_ANY_THROW(nntrainer::Tensor q6_k_tensor(
+    {1, 1, 16, 16, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::Q6_K}, true,
+    nntrainer::Initializer::NONE, "q6_k_tensor", nntrainer::QScheme::Q6_K));
+}
+
+/**
+ * @brief Construct a Q6_K Tensor
+ */
+TEST(nntrainer_Tensor, QTensor_16_p) {
+  // This will create a single q4_kx8 block
+  nntrainer::Tensor q6_k_tensor(
+    {1, 1, 8, 256, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::Q6_K}, false,
+    nntrainer::Initializer::NONE, "q6_k_tensor", nntrainer::QScheme::Q6_K);
+
+  EXPECT_EQ(q6_k_tensor.getData<uint8_t>(), nullptr);
+  EXPECT_EQ(q6_k_tensor.q_scheme(), nntrainer::QScheme::Q6_K);
+  EXPECT_EQ(q6_k_tensor.size(), 1680);
+
+  q6_k_tensor.allocate();
+
+  EXPECT_NE(q6_k_tensor.getData<uint8_t>(), nullptr);
+}
+
 TEST(nntrainer_Tensor, copy_01_n) {
   int batch = 3;
   int channel = 1;

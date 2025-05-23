@@ -35,6 +35,7 @@ enum class QScheme : uint16_t {
   PER_CHANNEL_AFFINE = 0x01,
   BINARY_CODE_BASED = 0x02,
   Q4_Kx8 = 0x03,
+  Q6_K = 0x4,
   /** this is for custom use */
   CUSTOM_QUANTIZER_01 = 0x10,
   CUSTOM_QUANTIZER_02 = 0x11,

@@ -11,6 +11,7 @@
 /usr/include/nntrainer/tensor.h
 /usr/include/nntrainer/tensor_base.h
 /usr/include/nntrainer/q4_k_tensor.h
+/usr/include/nntrainer/q6_k_tensor.h
 /usr/include/nntrainer/int4_tensor.h
 /usr/include/nntrainer/uint4_tensor.h
 /usr/include/nntrainer/char_tensor.h
