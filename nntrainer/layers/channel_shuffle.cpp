@@ -66,7 +66,30 @@ void ChannelShuffle::finalize(InitLayerContext &context) {
 
   const TensorDim &in_dim = context.getInputDimensions()[0];
 
-  unsigned int num_groups = std::get<props::SplitNumber>(channel_shuffle_props);
+  unsigned int num_groups = std::get<props::SplitNumber>(channel_shuffle_props).get();
+  
+  // If split_number is 0, find the smallest divisor of channel count that is greater than 1 and less than channel
+  if (num_groups == 0) {
+    unsigned int channel_count = in_dim.channel();
+    for (unsigned int i = 2; i < channel_count; i++) {
+      if (channel_count % i == 0) {
+        num_groups = i;
+        break;
+      }
+    }
+
+    NNTR_THROW_IF(num_groups == 0, std::invalid_argument)
+      << "Input split_number is 0, and channel count is prime number";
+
+    std::get<props::SplitNumber>(channel_shuffle_props).set(num_groups);
+  }
+
+  // Validate split_number
+  NNTR_THROW_IF(num_groups <= 1, std::invalid_argument)
+    << "Number of groups must be greater than 1";
+    
+  NNTR_THROW_IF(num_groups >= in_dim.channel(), std::invalid_argument)
+    << "Number of groups must be less than number of channels";
 
   NNTR_THROW_IF(in_dim.channel() % num_groups != 0, std::invalid_argument)
     << "Number of channels must be divisible by number of groups";

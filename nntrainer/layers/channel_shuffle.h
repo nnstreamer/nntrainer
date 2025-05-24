@@ -93,7 +93,7 @@ public:
      */
     void setProperty(const std::vector<std::string> &values) override;
 
-    static constexpr const char *type = "channelshuffle";
+    static constexpr const char *type = "channel_shuffle";
 
 private:
     std::tuple<props::SplitNumber> channel_shuffle_props;
