@@ -487,6 +487,10 @@ public:
    */
   void UnloadTensors(const unsigned int order);
 
+  void save_kvcache(const std::string &file_path);
+
+  void load_kvcache(const std::string &file_path);
+
 #ifdef ENABLE_TEST
   /**
    * @brief Get layer node's tenexecution orders
