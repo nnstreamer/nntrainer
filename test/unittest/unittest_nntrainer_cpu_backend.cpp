@@ -171,6 +171,42 @@ TEST(nntrainer_cpu_backend_standalone, q4_K_quantization) {
   EXPECT_NEAR(max_differ, 0., eps * K * N);
 }
 
+TEST(nntrainer_cpu_backend_standalone, q6_K_quantization) {
+  const unsigned int K = 768;
+  const unsigned int N = 512;
+
+  std::vector<float> weight = generate_random_vector<float>(N * K);
+  std::vector<float> weight_tmp(N * K);
+
+  const float *rhs_ptr = (const float *)weight.data();
+  float *rhs_ptr_tmp = weight_tmp.data();
+
+  int64_t ne0 = N; // row length of the weight matrix
+  int64_t q6_k_block_size = 256;
+  int64_t q6_k_type_size = sizeof(block_q6_K_testonly);
+  int64_t num_blocks = (K * N) / q6_k_block_size;
+  size_t data_size = q6_k_type_size * ne0 / q6_k_block_size;
+  data_size *= K;
+
+  std::vector<char> offline_qWeight = std::vector<char>(data_size);
+  char *offline_qWeight_ptr = (char *)offline_qWeight.data();
+
+  nntrainer::quantize_q6_K(rhs_ptr, (void *)offline_qWeight_ptr, K, N, nullptr);
+
+  nntrainer::dequantize_row_q6_K(offline_qWeight_ptr, rhs_ptr_tmp, K * N);
+
+  auto mean_squared_error =
+    mse<float, float>(weight.data(), rhs_ptr_tmp, N * K);
+  auto cos_sim = cosine_similarity(weight.data(), rhs_ptr_tmp, N * K);
+  auto max_differ = find_max_diff(weight.data(), rhs_ptr_tmp, N, K);
+
+  const float eps = 1e-5;
+  ///@todo Find proper metric and standard to assess
+  EXPECT_NEAR(mean_squared_error, 0., eps * K * N);
+  EXPECT_NEAR(cos_sim, 0., eps * K * N);
+  EXPECT_NEAR(max_differ, 0., eps * K * N);
+}
+
 static float compute_mse(const uint32_t M, const uint32_t N,
                          std::vector<float> &ref_dst, std::vector<float> &dst,
                          bool print = false) {
