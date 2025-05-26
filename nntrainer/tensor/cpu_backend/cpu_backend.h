@@ -668,6 +668,23 @@ extern size_t quantize_q6_K(const float *src, void *dst, int64_t nrow,
 /**
  * @brief
  *
+ * @param M Original row size of output
+ * @param N Original col size of output
+ * @param K Hidden size
+ * @param A Input activation to be online-runtime quantized to q6_K_MxN format
+ * @param lda Leading dimension of A
+ * @param B (void*) (block_q6_K*) for Offline-quantized transposed weight
+ * @param ldb Leading dimenstion of B
+ * @param C float* output
+ * @param ldc Leading dimension of C
+ */
+void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
+               const float *A, const unsigned int lda, const void *B,
+               const unsigned int ldb, float *C, const unsigned int ldc);
+
+/**
+ * @brief
+ *
  * @param K Length of vectors
  * @param v_q6_K lhs vector - data stored in Q6_K format
  * @param v_q8_K rhs vector - data stored in Q8_K format

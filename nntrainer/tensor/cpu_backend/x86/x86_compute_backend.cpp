@@ -243,6 +243,8 @@ void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
                const unsigned int ldb, float *C, const unsigned int ldc) {
 #ifdef ENABLE_GGML
   return __ggml_gemm_q6_K(M, N, K, A, lda, B, ldb, C, ldc);
+#else
+  return __fallback_gemm_q6_K(M, N, K, A, lda, B, ldb, C, ldc);
 #endif
 }
 
