@@ -351,6 +351,141 @@ private:
 };
 
 /**
+ * @class BlockwiseQuantizer class
+ * @brief BlockwiseQuantizer class uses blockwise quantization scheme.
+ *
+ * Expecially, we consider blockwise unifrom quantizeation scheme.
+ * Currently, we support:
+ *  - Q4_Kx8: 4-bit quantization
+ *  - Q6_K: 6-bit quantization
+ */
+class BlockwiseQuantizer : public UniformQuantizer {
+public:
+  /**
+   * @brief Basic Constructor of a BlockwiseQuantizer
+   */
+  BlockwiseQuantizer() : UniformQuantizer() {}
+
+  /**
+   * @brief calculateQParams is not supported in BlockwiseQuantizer
+   */
+  void calculateQParams(const Tensor &input,
+                        ml::train::TensorDim::DataType qtype) override {
+    throw std::invalid_argument(
+      "BlockwiseQuantizer does not support calculateQParams");
+  }
+
+  /**
+   * @copydoc Quantizer::quantize(const Tensor &input, Tensor &output, float
+   * *scales, unsigned int *zero_points)
+   */
+  Tensor &quantize(const Tensor &input, Tensor &output, float *scales,
+                   unsigned int *zero_points = nullptr) override {
+    std::invalid_argument(
+      "BlockwiseQuantizer does not support quantize with scales tensor");
+    return output;
+  }
+
+  /**
+   * @copydoc Quantizer::quantize(const Tensor &input)
+   */
+  Tensor quantize(const Tensor &input,
+                  ml::train::TensorDim::DataType qtype) override;
+
+  /**
+   * @copydoc Quantizer::dequantize(const Tensor &input)
+   */
+  Tensor dequantize(const Tensor &input,
+                    ml::train::TensorDim::DataType dtype) override;
+
+private:
+  /**
+   * @brief Quantize a tensor into a quantized tensor.
+   */
+  virtual Tensor quantize_fp32(const Tensor &input,
+                               ml::train::TensorDim::DataType qtype) = 0;
+
+  /**
+   * @brief Dequantize a quantized tensor into a tensor.
+   */
+  virtual Tensor dequantize_to_fp32(const Tensor &input,
+                                    ml::train::TensorDim::DataType dtype) = 0;
+};
+
+/**
+ * @class Q4_K_8_Quantizer class
+ * @brief Q4_K_8_Quantizer class uses Q4_Kx8 quantization scheme.
+ */
+class Q4_K_8_Quantizer : public BlockwiseQuantizer {
+public:
+  /**
+   * @brief Basic Constructor of a Q4_K_8_Quantizer
+   */
+  Q4_K_8_Quantizer() : BlockwiseQuantizer() {}
+
+  /**
+   * @copydoc Quantizer::create()
+   */
+  std::unique_ptr<Quantizer> create() override {
+    return std::make_unique<Q4_K_8_Quantizer>();
+  }
+
+  QScheme qscheme() const override { return QScheme::Q4_Kx8; }
+
+private:
+  /**
+   * @copydoc BlockwiseQuantizer::quantize_fp32(const Tensor &input,
+   * ml::train::TensorDim::DataType qtype)
+   */
+  Tensor quantize_fp32(const Tensor &input,
+                       ml::train::TensorDim::DataType qtype) override;
+  /**
+   *  * @copydoc BlockwiseQuantizer::dequantize_to_fp32(const Tensor &input,
+   * ml::train::TensorDim::DataType qtype)
+   */
+  Tensor dequantize_to_fp32(const Tensor &input,
+                            ml::train::TensorDim::DataType qtype) override;
+};
+
+/**
+ * @class Q6_K_Quantizer class
+ * @brief Q6_K_Quantizer class uses Q6_K quantization scheme.
+ *
+ * @note Q6_K quantization is a blockwise quantization scheme that uses 6 bits
+ * for quantization.
+ */
+class Q6_K_Quantizer : public BlockwiseQuantizer {
+public:
+  /**
+   * @brief Basic Constructor of a Q6_K_Quantizer
+   */
+  Q6_K_Quantizer() : BlockwiseQuantizer() {}
+
+  /**
+   * @copydoc Quantizer::create()
+   */
+  std::unique_ptr<Quantizer> create() override {
+    return std::make_unique<Q6_K_Quantizer>();
+  }
+
+  QScheme qscheme() const override { return QScheme::Q6_K; }
+
+private:
+  /**
+   * @copydoc BlockwiseQuantizer::quantize_fp32(const Tensor &input,
+   * ml::train::TensorDim::DataType qtype)
+   */
+  Tensor quantize_fp32(const Tensor &input,
+                       ml::train::TensorDim::DataType qtype) override;
+  /**
+   *  * @copydoc BlockwiseQuantizer::dequantize_to_fp32(const Tensor &input,
+   * ml::train::TensorDim::DataType qtype)
+   */
+  Tensor dequantize_to_fp32(const Tensor &input,
+                            ml::train::TensorDim::DataType qtype) override;
+};
+
+/**
  * @brief Quantization class to create a quantizer
  *
  * @details The quantization class is a creator class to create a predefined
@@ -380,6 +515,10 @@ public:
     case QScheme::BINARY_CODE_BASED:
       return std::make_unique<BinaryCodeBasedQuantizer>();
       break;
+    case QScheme::Q4_Kx8:
+      return std::make_unique<Q4_K_8_Quantizer>();
+    case QScheme::Q6_K:
+      return std::make_unique<Q6_K_Quantizer>();
     default:
       return Quantizer::getRegisteredQuantizer(qscheme)->create();
       break;

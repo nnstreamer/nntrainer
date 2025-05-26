@@ -232,4 +232,63 @@ QScheme BinaryCodeBasedQuantizer::qscheme() const {
   return QScheme::BINARY_CODE_BASED;
 }
 
+Tensor BlockwiseQuantizer::quantize(const Tensor &input, Tdatatype qtype) {
+  switch (input.getDataType()) {
+  case Tdatatype::FP32:
+    return quantize_fp32(input, qtype);
+    break;
+  default:
+    throw std::invalid_argument("[BlockwiseQuantizer] Unsupported data type "
+                                "for quantization.");
+  }
+}
+
+Tensor BlockwiseQuantizer::dequantize(const Tensor &input, Tdatatype dtype) {
+  switch (dtype) {
+  case Tdatatype::FP32:
+    return dequantize_to_fp32(input, dtype);
+    break;
+  default:
+    throw std::invalid_argument("[BlockwiseQuantizer] Unsupported data type "
+                                "for dequantization.");
+  }
+}
+
+Tensor Q4_K_8_Quantizer::quantize_fp32(const Tensor &input, Tdatatype qtype) {
+  if (qtype != Tdatatype::Q4_K)
+    throw std::invalid_argument("[Q4_K_8_Quantizer] Unsupported data type for "
+                                "quantization. Expected Q4_K.");
+
+  uint32_t K = input.height();
+  uint32_t N = input.width();
+  Tensor output(TensorDim(input.batch(), 1, K, N, Tformat::NCHW, qtype));
+  std::vector<char> dst_buf = std::vector<char>(output.size());
+  float *src_ptr = input.getData<float>();
+  char *dst_ptr = (char *)dst_buf.data();
+
+  quantize_q4_K(src_ptr, (void *)dst_ptr, N, K, nullptr);
+  repack_q4_K_to_q4_K_8(output.getData<uint8_t>(), dst_ptr, output.size(), N,
+                        K);
+
+  return output;
+}
+
+Tensor Q4_K_8_Quantizer::dequantize_to_fp32(const Tensor &input,
+                                            Tdatatype dtype) {
+
+  ///@note NYI (dequantization for Q4_K_8 is not implemented yet)
+  ///      unpack is not yet implemented
+  throw std::invalid_argument("[Q4_K_8_Quantizer] Unsupported data type for "
+                              "dequantization");
+}
+
+Tensor Q6_K_Quantizer::quantize_fp32(const Tensor &input, Tdatatype qtype) {
+  throw std::invalid_argument("[Q6_K_Quantizer] NYI");
+}
+
+Tensor Q6_K_Quantizer::dequantize_to_fp32(const Tensor &input,
+                                          Tdatatype dtype) {
+  throw std::invalid_argument("[Q6_K_Quantizer] NYI");
+}
+
 } // namespace nntrainer
