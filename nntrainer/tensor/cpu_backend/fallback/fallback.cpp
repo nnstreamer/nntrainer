@@ -211,6 +211,14 @@ float dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
   return __fallback_dot_q6_K_q8_K(K, v_q6_K, v_q8_K);
 }
 
+float dot_q6_K_f32(const unsigned int K, const void *v_q6_K, const float *f) {
+  float __fallback_dot_q6_K_f32(K, v_q6_K, f);
+}
+
+float dot_q6_K_f32(const unsigned int K, const void *v_q6_K, const float *f) {
+#error 2
+}
+
 size_t quantize_q4_0(const float *src, void *dst, int64_t nrow,
                      int64_t n_per_row, const float *quant_weights) {
   return __fallback_quantize_q4_0(src, dst, nrow, n_per_row, quant_weights);

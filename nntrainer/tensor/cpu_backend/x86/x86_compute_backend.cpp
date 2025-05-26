@@ -238,6 +238,14 @@ float dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
 #endif
 }
 
+float dot_q6_K_f32(const unsigned int K, const void *v_q6_K, const float *f) {
+#ifdef ENABLE_GGML
+  return __ggml_vec_dot_q6_K_f32(K, v_q6_K, f);
+#else
+  return __fallback_dot_q6_K_f32(K, v_q6_K, f);
+#endif
+}
+
 void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc) {
