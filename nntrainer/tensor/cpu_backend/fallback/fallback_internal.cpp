@@ -375,6 +375,15 @@ float __fallback_dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
   return 0;
 }
 
+float __fallback_gemm_q6_K(const unsigned int M, const unsigned int N,
+                                const unsigned int K, const float *A,
+                                const unsigned int lda, const void *B,
+                                const unsigned int ldb, float *C,
+                                const unsigned int ldc) {
+  throw std::runtime_error("NYI : __fallback_gemm_q6_K");
+  return 0;
+}
+
 size_t __fallback_quantize_q4_0(const float *src, void *dst, int64_t nrow,
                                 int64_t n_per_row, const float *quant_weights) {
   throw std::runtime_error("NYI : __fallback_quantize_q4_0");
