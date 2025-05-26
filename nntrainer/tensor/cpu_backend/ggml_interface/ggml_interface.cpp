@@ -17,7 +17,6 @@
 #include "ggml-cpu.h"
 #include "ggml-quants.h"
 #include "ggml.h"
-#include <ggml.h>
 
 #include <bs_thread_pool_manager.hpp>
 #include <ggml_interface.h>
@@ -293,6 +292,17 @@ float __ggml_vec_dot_q6_K_q8_K(const unsigned int K,
       nrc = 1; // unused variables in ::ggml_vec_dot_q6_K_q8_K
   ::ggml_vec_dot_q6_K_q8_K(K, &result, bs, v_q6_K, bx, v_q8_K, by, nrc);
   return result;
+}
+
+float __ggml_vec_dot_q6_K_f32(const unsigned int K, const void *v_q6_K,
+                              const float *f) {
+  // Quantization of activations
+  int blocks_per_row = (K + QK_K - 1) / QK_K;
+  int q8_K_activation_size = sizeof(block_q8_K) * blocks_per_row;
+  std::vector<char> v_q8_activation = std::vector<char>(q8_K_activation_size);
+  ::quantize_row_q8_K(f, v_q8_activation.data(), K);
+
+  return __ggml_vec_dot_q6_K_q8_K(K, v_q6_K, v_q8_activation.data());
 }
 
 float __ggml_vec_dot_q6_K(const unsigned int K,

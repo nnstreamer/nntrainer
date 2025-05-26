@@ -794,6 +794,8 @@ void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
 float dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
                     const void *v_q8_K);
 
+float dot_q6_K_f32(const unsigned int K, const void *v_q6_K, const float *f);
+
 /**
  * @brief
  *

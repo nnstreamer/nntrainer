@@ -694,6 +694,17 @@ extern float dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
                            const void *v_q8_K);
 
 /**
+ * @brief
+ *
+ * @param K Length of vectors
+ * @param v_q6_K lhs vector - data stored in Q6_K format
+ * @param f rhs vector - data stored in float format
+ * @return float Result of performing dot operation on v_q6_K and v_q8_K
+ */
+extern float dot_q6_K_f32(const unsigned int K, const void *v_q6_K,
+                           const float *f);
+
+/**
  * @brief dequantize row of q4_K data to float
  *
  * @param x input to be dequantized from q4_K to float
