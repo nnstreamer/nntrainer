@@ -487,7 +487,7 @@ else
 
   if not iniparser_dep.found()
     iniparser_options = cmake.subproject_options()
-    if cxx_compiler_id == 'msvc'
+    if host_machine.system() == 'windows'
       iniparser_options.add_cmake_defines(common_win_subproject_cmake_defines)
     endif
     iniparser_options.add_cmake_defines({'BUILD_DOCS': false})
