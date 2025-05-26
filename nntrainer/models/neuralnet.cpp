@@ -654,6 +654,10 @@ void NeuralNetwork::save(const std::string &file_path,
       "saving with ONNX format is not supported yet.");
     break;
   }
+  case ml::train::ModelFormat::MODEL_FORMAT_KVCACHE: {
+    model_graph.save_kvcache(file_path); 
+    break;
+  }
   default:
     throw nntrainer::exception::not_supported(
       "saving with given format is not supported yet");
@@ -812,6 +816,10 @@ void NeuralNetwork::load(const std::string &file_path,
     }
 
     qnn_load.join();
+    break;
+  }
+  case ml::train::ModelFormat::MODEL_FORMAT_KVCACHE: {
+    model_graph.load_kvcache(file_path);
     break;
   }
   default:

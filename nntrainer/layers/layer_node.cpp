@@ -1089,4 +1089,13 @@ void LayerNode::print(std::ostream &out, unsigned int flags) {
     printMetric(out);
   }
 };
+
+void LayerNode::save_kvcache(const std::string &file_path) {
+  getLayer()->save_kvcache(*run_context, getName(), file_path);
+}
+
+void LayerNode::load_kvcache(const std::string &file_path) {
+  getLayer()->load_kvcache(*run_context, getName(), file_path);
+}
+
 }; // namespace nntrainer

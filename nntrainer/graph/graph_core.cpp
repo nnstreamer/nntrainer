@@ -13,6 +13,7 @@
  */
 
 #include <algorithm>
+#include <filesystem>
 #include <sstream>
 
 #include <graph_core.h>
@@ -194,6 +195,30 @@ void GraphCore::realizeInputOutputNode() {
 
 unsigned int GraphCore::getNodeIdx(const std::string &name) {
   return node_map.at(name);
+}
+
+void GraphCore::save_kvcache(const std::string &file_path) {
+  if (!std::filesystem::exists(file_path)) {
+    if (!std::filesystem::create_directories(file_path)) {
+      ml_loge("Error: create kvcache directory failed");
+      return;
+    }
+  }
+
+  for (auto node : node_list) {
+    node->save_kvcache(file_path);
+  }
+}
+
+void GraphCore::load_kvcache(const std::string &file_path) {
+  if (!std::filesystem::exists(file_path)) {
+    ml_loge("Error: create kvcache directory failed");
+    return;
+  }
+
+  for (auto node : node_list) {
+    node->load_kvcache(file_path);
+  }
 }
 
 } /* namespace nntrainer */

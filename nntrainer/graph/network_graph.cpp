@@ -1636,6 +1636,10 @@ void NetworkGraph::UnloadTensors(unsigned int order) {
   tensor_manager->UnloadTensors(order);
 }
 
+void NetworkGraph::save_kvcache(const std::string &file_path) { graph.save_kvcache(file_path); }
+
+void NetworkGraph::load_kvcache(const std::string &file_path) { graph.load_kvcache(file_path); }
+
 void NetworkGraph::requestOptimizerVariable(
   std::function<std::vector<TensorDim>(const TensorDim &)> cb,
   bool request_only_trainable) {
