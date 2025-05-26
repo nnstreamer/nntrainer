@@ -280,6 +280,14 @@ float dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
 #endif
 }
 
+float dot_q6_K_f32(const unsigned int K, const void *v_q6_K, const float *f) {
+#ifdef ENABLE_GGML
+  return __ggml_vec_dot_q6_K_f32(K, v_q6_K, f);
+#else
+  return __fallback_dot_q6_K_f32(K, v_q6_K, f);
+#endif
+}
+
 size_t quantize_q4_0(const float *src, void *dst, int64_t nrow,
                      int64_t n_per_row, const float *quant_weights) {
 #ifdef ENABLE_GGML
