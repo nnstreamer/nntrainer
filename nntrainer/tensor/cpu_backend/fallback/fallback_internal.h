@@ -693,10 +693,10 @@ void __fallback_gemm_q4_K(const unsigned int M, const unsigned int N,
 /**
  * @brief
  *
- * @param K
- * @param v_q6_K
- * @param v_q8_K
- * @return float
+ * @param K Length of vectors
+ * @param v_q6_K lhs vector - data stored in Q6_K format
+ * @param v_q8_K rhs vector - data stored in Q8_K format
+ * @return float Result of performing dot operation on v_q6_K and v_q8_K
  */
 float __fallback_dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
                                const void *v_q8_K);
