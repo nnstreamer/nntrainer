@@ -754,7 +754,22 @@ void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
 void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc);
-
+/**
+ * @brief q4_K GEMM : A (M,K) * W.T (N,K) = O (M,N)
+ *
+ * @param M Original row size of output
+ * @param N Original col size of output
+ * @param K Hidden size
+ * @param A Input activation to be online-runtime quantized to q8_K_MxN format
+ * @param lda Leading dimension of A
+ * @param B (void*) (block_q4_K*) for Offline-quantized transposed weight
+ * @param ldb Leading dimenstion of B
+ * @param C float* output
+ * @param ldc Leading dimension of C
+ */
+void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
+               const float *A, const unsigned int lda, const void *B,
+               const unsigned int ldb, float *C, const unsigned int ldc);
 /**
  * @brief
  *
@@ -791,7 +806,18 @@ size_t quantize_q4_0(const float *src, void *dst, int64_t nrow,
  */
 size_t quantize_q4_K(const float *src, void *dst, int64_t nrow,
                      int64_t n_per_row, const float *quant_weights);
-
+/**
+ * @brief
+ *
+ * @param src
+ * @param dst
+ * @param nrow
+ * @param n_per_row
+ * @param quant_weights
+ * @return size_t
+ */
+size_t quantize_q6_K(const float *src, void *dst, int64_t nrow,
+                     int64_t n_per_row, const float *quant_weights);
 /**
  * @brief
  *
@@ -860,7 +886,6 @@ void repack_q4_0_to_q4_0_8(void *W, void *repacked_W, size_t data_size,
  */
 void repack_q4_K_to_q4_K_8(void *W, void *repacked_W, size_t data_size,
                            const unsigned int M, const unsigned int N);
-
 } /* namespace nntrainer */
 #endif /* __cplusplus */
 #endif /* __ARM_COMPUTE_BACKEND_H__ */
