@@ -29,8 +29,8 @@ option('tizen-version-major', type: 'integer', min : 4, max : 9999, value: 9999)
 option('tizen-version-minor', type: 'integer', min : 0, max : 9999, value: 0)
 option('openblas-num-threads', type: 'integer', min : 0, max : 9999, value: 0)
 #This is for the multi-threading in nntrainer
-option('nntr-num-threads', type: 'integer', min : 0, max : 9999, value: 1)
-option('omp-num-threads', type: 'integer', min : 0, max : 9999, value: 1)
+option('nntr-num-threads', type: 'integer', min : 0, max : 9999, value: 8)
+option('omp-num-threads', type: 'integer', min : 0, max : 9999, value: 8)
 option('hgemm-experimental-kernel', type: 'boolean', value: false)
 
 # test related option
