@@ -270,7 +270,7 @@ static float test_gemm_q4_0(const uint32_t M, const uint32_t K,
   }
 
   // Step4. Compute quantization error
-  auto mean_squared_error = compute_mse(M, N, ref_dst, dst);
+  auto mean_squared_error = compute_mse(M, N, ref_dst, dst, print);
   return mean_squared_error;
 }
 
@@ -312,7 +312,7 @@ static float test_gemm_q4_K(const uint32_t M, const uint32_t K,
   }
 
   // Step4. Compare quantization error
-  auto mean_squared_error = compute_mse(M, N, ref_dst, dst);
+  auto mean_squared_error = compute_mse(M, N, ref_dst, dst, print);
   return mean_squared_error;
 }
 
@@ -348,7 +348,7 @@ static float test_gemm_q6_K(const uint32_t M, const uint32_t K,
   }
 
   // Step4. Compare quantization error
-  auto mean_squared_error = compute_mse(M, N, ref_dst, dst);
+  auto mean_squared_error = compute_mse(M, N, ref_dst, dst, print);
   return mean_squared_error;
 }
 
