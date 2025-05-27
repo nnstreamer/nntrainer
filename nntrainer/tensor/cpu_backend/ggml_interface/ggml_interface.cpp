@@ -327,16 +327,48 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
                       const unsigned int lda, const void *B,
                       const unsigned int ldb, float *C,
                       const unsigned int ldc) {
-  int num_blocks_per_row = (K + QK_K - 1) / QK_K;
-#pragma omp parallel for collapse(2)
-  for (int i = 0; i < static_cast<int>(M); i++) {
-    for (int j = 0; j < static_cast<int>(N); j++) {
-      C[i * ldc + j] = __ggml_vec_dot_q6_K(
-        K, (void *)((char *)B + (sizeof(block_q6_K) * num_blocks_per_row) * j),
-        A + i * K);
+  static constexpr const int32_t thread_count = 8;
+
+  static constexpr const int32_t bs = 1;  // unused in ::ggml_vec_dot_q6_K_q8_K
+  static constexpr const int32_t bx = 1;  // unused in ::ggml_vec_dot_q6_K_q8_K
+  static constexpr const int32_t by = 1;  // unused in ::ggml_vec_dot_q6_K_q8_K
+  static constexpr const int32_t nrc = 1; // unused in ::ggml_vec_dot_q6_K_q8_K
+
+  const int32_t blocks_per_row = (K + QK_K - 1) / QK_K;
+  const int32_t A_row_size = sizeof(block_q8_K) * blocks_per_row;
+  const int32_t B_row_size = sizeof(block_q6_K) * blocks_per_row;
+
+  if /*MATRIX - VECTOR*/ (M == 1) {
+    const int32_t per_thread_N = N / thread_count;
+
+    std::vector<char> quantized_A(A_row_size);
+    ::quantize_row_q8_K(A, quantized_A.data(), K);
+
+    const void *const quantized_A_data = quantized_A.data();
+
+#pragma omp parallel for collapse(1) num_threads(thread_count)
+    for (int32_t thread_idx = 0; thread_idx < thread_count; thread_idx++) {
+      const int32_t n_start = thread_idx * per_thread_N;
+      const int32_t n_end = (thread_idx + 1) * per_thread_N;
+
+      for (int32_t thread_job = n_start; thread_job < n_end; thread_job++) {
+        const int32_t B_row_data_offset = B_row_size * thread_job;
+
+        const void *const B_data = (void *)((char *)B + B_row_data_offset);
+
+        ::ggml_vec_dot_q6_K_q8_K(K, &C[thread_job], bs, B_data, bx,
+                                 quantized_A_data, by, nrc);
+      }
+    }
+  } /*MATRIX - MATRIX*/ else {
+    for (unsigned int i = 0; i < M; i++) {
+      for (unsigned int j = 0; j < N; j++) {
+        C[i * ldc + j] = __ggml_vec_dot_q6_K(
+          K, (void *)((char *)B + (sizeof(block_q6_K) * blocks_per_row) * j),
+          A + i * K);
+      }
     }
   }
-  return;
 }
 
 void __ggml_dequantize_row_q4_K(const void *x_raw, float *y, int64_t k) {
