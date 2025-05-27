@@ -702,7 +702,7 @@ extern float dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
  * @return float Result of performing dot operation on v_q6_K and v_q8_K
  */
 extern float dot_q6_K_f32(const unsigned int K, const void *v_q6_K,
-                           const float *f);
+                          const float *f);
 
 /**
  * @brief dequantize row of q4_K data to float
