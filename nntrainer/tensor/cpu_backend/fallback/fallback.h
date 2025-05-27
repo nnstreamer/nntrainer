@@ -16,7 +16,7 @@
 #ifdef __cplusplus
 
 #include <cstdint>
-#include <stdexcept>p
+#include <stdexcept>
 #include <tensor_dim.h>
 
 namespace nntrainer {
