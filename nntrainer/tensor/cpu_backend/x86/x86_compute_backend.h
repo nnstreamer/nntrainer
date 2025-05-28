@@ -767,22 +767,7 @@ void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
 void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc);
-/**
- * @brief
- *
- * @param M
- * @param N
- * @param K
- * @param A
- * @param lda
- * @param B
- * @param ldb
- * @param C
- * @param ldc
- */
-void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
-               const float *A, const unsigned int lda, const void *B,
-               const unsigned int ldb, float *C, const unsigned int ldc);
+
 /**
  * @brief
  *

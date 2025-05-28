@@ -215,7 +215,7 @@ float dot_q6_K_f32(const unsigned int K, const void *v_q6_K, const float *f) {
   float __fallback_dot_q6_K_f32(K, v_q6_K, f);
 }
 
-float dot_q6_K_f32(const unsigned int K, const void *v_q6_K, const float *f) {
+float dot_q6_K_f32(const unsigned int K, const void *v_q6_K, const float *f){
 #error 2
 }
 
