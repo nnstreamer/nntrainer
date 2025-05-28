@@ -361,11 +361,21 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
       }
     }
   } /*MATRIX - MATRIX*/ else {
+    const int32_t A_total_size = A_row_size * M;
+
+    std::vector<char> quantized_A(A_total_size);
+
     for (unsigned int i = 0; i < M; i++) {
+      const int32_t A_row_data_offset = A_row_size * i;
+      void *A_data = (void *)((char *)quantized_A.data() + A_row_data_offset);
+      ::quantize_row_q8_K(A + i * K, A_data, K);
+
       for (unsigned int j = 0; j < N; j++) {
-        C[i * ldc + j] = __ggml_vec_dot_q6_K(
-          K, (void *)((char *)B + (sizeof(block_q6_K) * blocks_per_row) * j),
-          A + i * K);
+        const int32_t B_row_data_offset = B_row_size * j;
+        const void *const B_data = (void *)((char *)B + B_row_data_offset);
+
+        ::ggml_vec_dot_q6_K_q8_K(K, &C[i * ldc + j], bs, B_data, bx, A_data, by,
+                                 nrc);
       }
     }
   }
