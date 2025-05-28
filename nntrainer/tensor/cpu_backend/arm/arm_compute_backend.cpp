@@ -267,8 +267,7 @@ void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
 #ifdef ENABLE_GGML
   return __ggml_gemm_q6_K(M, N, K, A, lda, B, ldb, C, ldc);
 #else
-  // return __fallback_gemm_q6_K(M, N, K, A, lda, B, ldb, C, ldc);
-  return;
+  return __fallback_gemm_q6_K(M, N, K, A, lda, B, ldb, C, ldc);
 #endif
 }
 
@@ -304,8 +303,7 @@ size_t quantize_q6_K(const float *src, void *dst, int64_t nrow,
 #ifdef ENABLE_GGML
   return __ggml_quantize_q6_K(src, dst, nrow, n_per_row, quant_weights);
 #endif
-  // return __fallback_quantize_q6_K(src, dst, nrow, n_per_row, quant_weights);
-  return 0;
+  return __fallback_quantize_q6_K(src, dst, nrow, n_per_row, quant_weights);
 }
 
 void quantize_row_q6_K(const float *src, void *dst, int64_t k) {
