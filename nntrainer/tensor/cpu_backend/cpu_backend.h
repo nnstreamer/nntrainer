@@ -602,7 +602,7 @@ extern void ele_div(const unsigned N, const float *X, const float *Y, float *Z,
 extern bool is_valid(const unsigned int N, const float *X);
 
 /**
- * @brief q4_K GEMM : A (M,K) * W.T (N,K) = O (M,N)
+ * @brief q4_0 GEMM : A (M,K) * W.T (N,K) = O (M,N)
  *
  * @param M Original row size of output
  * @param N Original col size of output
@@ -638,19 +638,7 @@ extern void gemm_q4_K(const unsigned int M, const unsigned int N,
                       const unsigned int ldb, float *C, const unsigned int ldc);
 
 /**
- * @brief
- *
- * @param src
- * @param dst
- * @param nrow
- * @param n_per_row
- * @param quant_weights
- * @return size_t
- */
-extern size_t quantize_q6_K(const float *src, void *dst, int64_t nrow,
-                            int64_t n_per_row, const float *quant_weights);
-/**
- * @brief
+ * @brief q6_K GEMM : A (M,K) * W.T (N,K) = O (M,N)
  *
  * @param M Original row size of output
  * @param N Original col size of output
@@ -662,9 +650,23 @@ extern size_t quantize_q6_K(const float *src, void *dst, int64_t nrow,
  * @param C float* output
  * @param ldc Leading dimension of C
  */
-void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
-               const float *A, const unsigned int lda, const void *B,
-               const unsigned int ldb, float *C, const unsigned int ldc);
+extern void gemm_q6_K(const unsigned int M, const unsigned int N,
+                      const unsigned int K, const float *A,
+                      const unsigned int lda, const void *B,
+                      const unsigned int ldb, float *C, const unsigned int ldc);
+/**
+ * @brief Quantize float to q6_K Quantization format
+ *
+ * @param src input src to be quantized
+ * @param dst output destination for quantized data
+ * @param nrow number of row
+ * @param n_per_row number of elements per row
+ * @param quant_weights additional information for quantization. Currently in no
+ * use.
+ * @return size_t total size of quantized data
+ */
+extern size_t quantize_q6_K(const float *src, void *dst, int64_t nrow,
+                            int64_t n_per_row, const float *quant_weights);
 
 /**
  * @brief
