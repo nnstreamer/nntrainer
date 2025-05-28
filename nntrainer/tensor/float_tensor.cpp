@@ -11,6 +11,7 @@
 
 #include <iomanip>
 #include <iostream>
+#include <memory>
 #include <numeric>
 
 #include <cpu_backend.h>
@@ -63,13 +64,9 @@ void FloatTensor::allocate() {
     /** as this memory is shared, do NOT initialize */
   } else {
     /// allocate new memory for the tensor data
-    MemoryData *mem_data;
-
-    mem_data = new MemoryData((void *)(new float[dim.getDataLen()]{}));
-    data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-      delete[] mem_data->template getAddr<float>();
-      delete mem_data;
-    });
+    auto data_t =
+      std::make_shared<MemoryDataT<float>>(new float[dim.getDataLen()]);
+    data = std::static_pointer_cast<MemoryData>(std::move(data_t));
 
     offset = 0;
     initialize();

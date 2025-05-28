@@ -84,12 +84,9 @@ public:
     contiguous = true;
     initializer = Initializer::NONE;
 
-    MemoryData *mem_data =
-      new MemoryData((void *)(new float[dim.getDataLen()]()));
-    data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
-      delete[] mem_data->getAddr<float>();
-      delete mem_data;
-    });
+    auto data_t =
+      std::make_shared<MemoryDataT<float>>(new float[dim.getDataLen()]);
+    data = std::static_pointer_cast<MemoryData>(std::move(data_t));
 
     offset = 0;
 
