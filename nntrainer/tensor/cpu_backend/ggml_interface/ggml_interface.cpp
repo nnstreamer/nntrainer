@@ -327,7 +327,7 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
                       const unsigned int lda, const void *B,
                       const unsigned int ldb, float *C,
                       const unsigned int ldc) {
-  static constexpr const int32_t thread_count = 8;
+  static constexpr const int32_t thread_count = 16;
 
   static constexpr const int32_t bs = 1;  // unused in ::ggml_vec_dot_q6_K_q8_K
   static constexpr const int32_t bx = 1;  // unused in ::ggml_vec_dot_q6_K_q8_K
@@ -361,21 +361,41 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
       }
     }
   } /*MATRIX - MATRIX*/ else {
-    const int32_t A_total_size = A_row_size * M;
+    const int32_t per_thread_M = M / thread_count;
 
+    const int32_t A_total_size = A_row_size * M;
     std::vector<char> quantized_A(A_total_size);
 
-    for (unsigned int i = 0; i < M; i++) {
-      const int32_t A_row_data_offset = A_row_size * i;
-      void *A_data = (void *)((char *)quantized_A.data() + A_row_data_offset);
-      ::quantize_row_q8_K(A + i * K, A_data, K);
+#pragma omp parallel for collapse(1) num_threads(thread_count)
+    for (int32_t thread_idx = 0; thread_idx < thread_count; thread_idx++) {
+      const int32_t m_start = thread_idx * per_thread_M;
+      const int32_t m_end = (thread_idx + 1) * per_thread_M;
 
-      for (unsigned int j = 0; j < N; j++) {
-        const int32_t B_row_data_offset = B_row_size * j;
-        const void *const B_data = (void *)((char *)B + B_row_data_offset);
+      for (unsigned int thread_job = m_start; thread_job < m_end;
+           thread_job++) {
+        const int32_t A_row_data_offset = A_row_size * thread_job;
+        void *A_data = (void *)((char *)quantized_A.data() + A_row_data_offset);
+        ::quantize_row_q8_K(A + thread_job * K, A_data, K);
+      }
+    }
 
-        ::ggml_vec_dot_q6_K_q8_K(K, &C[i * ldc + j], bs, B_data, bx, A_data, by,
-                                 nrc);
+#pragma omp parallel for collapse(1) num_threads(thread_count)
+    for (int32_t thread_idx = 0; thread_idx < thread_count; thread_idx++) {
+      const int32_t m_start = thread_idx * per_thread_M;
+      const int32_t m_end = (thread_idx + 1) * per_thread_M;
+
+      for (unsigned int thread_job = m_start; thread_job < m_end;
+           thread_job++) {
+        const int32_t A_row_data_offset = A_row_size * thread_job;
+        void *A_data = (void *)((char *)quantized_A.data() + A_row_data_offset);
+
+        for (unsigned int j = 0; j < N; j++) {
+          const int32_t B_row_data_offset = B_row_size * j;
+          const void *const B_data = (void *)((char *)B + B_row_data_offset);
+
+          ::ggml_vec_dot_q6_K_q8_K(K, &C[thread_job * ldc + j], bs, B_data, bx,
+                                   A_data, by, nrc);
+        }
       }
     }
   }

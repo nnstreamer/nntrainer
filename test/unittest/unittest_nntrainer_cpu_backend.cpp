@@ -266,7 +266,9 @@ static float test_gemm_q4_0(const uint32_t M, const uint32_t K,
   auto t2 = high_resolution_clock::now();
   auto dt = duration_cast<nanoseconds>(t2 - t1);
   if (print) {
-    std::cout << "[INFO] gemm_q4_0: " << dt.count() << " ns " << std::endl;
+    std::cout << "[INFO] gemm_q4_0: " << dt.count() << " ns "
+              << dt.count() / 1'000 << " us " << dt.count() / 1'000'000
+              << " ms " << std::endl;
   }
 
   // Step4. Compute quantization error
@@ -308,7 +310,9 @@ static float test_gemm_q4_K(const uint32_t M, const uint32_t K,
   auto t2 = high_resolution_clock::now();
   auto dt = duration_cast<nanoseconds>(t2 - t1);
   if (print) {
-    std::cout << "[INFO] gemm_q4_K: " << dt.count() << " ns " << std::endl;
+    std::cout << "[INFO] gemm_q4_K: " << dt.count() << " ns "
+              << dt.count() / 1'000 << " us " << dt.count() / 1'000'000
+              << " ms " << std::endl;
   }
 
   // Step4. Compare quantization error
@@ -344,7 +348,9 @@ static float test_gemm_q6_K(const uint32_t M, const uint32_t K,
   auto t2 = high_resolution_clock::now();
   auto dt = duration_cast<nanoseconds>(t2 - t1);
   if (print) {
-    std::cout << "[INFO] gemm_q6_K: " << dt.count() << " ns " << std::endl;
+    std::cout << "[INFO] gemm_q6_K: " << dt.count() << " ns "
+              << dt.count() / 1'000 << " us " << dt.count() / 1'000'000
+              << " ms " << std::endl;
   }
 
   // Step4. Compare quantization error
@@ -376,7 +382,9 @@ static void run_quant_test(const uint32_t M, const uint32_t K, const uint32_t N,
   auto t2 = high_resolution_clock::now();
   auto dt = duration_cast<nanoseconds>(t2 - t1);
   if (print) {
-    std::cout << "[INFO] sgemm :    " << dt.count() << " ns " << std::endl;
+    std::cout << "[INFO] sgemm :    " << dt.count() << " ns "
+              << dt.count() / 1'000 << " us " << dt.count() / 1'000'000
+              << " ms " << std::endl;
   }
   q4_0_mse =
     test_gemm_q4_0(M, K, N, weight.data(), activation.data(), ref_dst, print);
