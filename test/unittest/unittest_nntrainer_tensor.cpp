@@ -864,6 +864,116 @@ TEST(nntrainer_Tensor, QTensor_16_p) {
   EXPECT_NE(q6_k_tensor.getData<uint8_t>(), nullptr);
 }
 
+#ifdef ENABLE_GGML
+TEST(nntrainer_Tensor, Q_Tensor_17_p) {
+
+  ///@note this unittest check quantization and dequantization with Q6_K tensor
+  /// format
+  ///      this is not a desirable form.
+  ///@todo this unittest should be removed once the quantizer is implemented
+  /// with Q6_K tensor format
+
+  const unsigned int M = 1;
+  uint32_t K = 105900; // height
+  uint32_t N = 3072;   // width
+
+  // Float tensor
+  std::vector<float> weight = generate_random_vector<float>(K * N);
+
+  nntrainer::Tensor W_fp32(
+    1, 1, K, N,
+    {ml::train::TensorDim::Format::NCHW, ml::train::TensorDim::DataType::FP32});
+  nntrainer::Tensor W_dequant(
+    1, 1, K, N,
+    {ml::train::TensorDim::Format::NCHW, ml::train::TensorDim::DataType::FP32});
+  nntrainer::Tensor W_q6k(
+    1, 1, K, N,
+    {ml::train::TensorDim::Format::NCHW, ml::train::TensorDim::DataType::Q6_K});
+
+  for (uint32_t k = 0; k < K; ++k)
+    for (uint32_t n = 0; n < N; ++n)
+      W_fp32.setValue(0, 0, k, n, weight[k * N + n]);
+
+  nntrainer::quantize_q6_K((const float *)W_fp32.getData(),
+                           (void *)W_q6k.getData<uint8_t>(), N, K, nullptr);
+
+  nntrainer::dequantize_row_q6_K(W_q6k.getData<uint8_t>(), W_dequant.getData(),
+                                 K * N);
+
+  auto mean_squared_error =
+    mse<float, float>(W_fp32.getData(), W_dequant.getData(), N * K);
+  auto cos_sim =
+    cosine_similarity(W_dequant.getData(), W_fp32.getData(), N * K);
+
+  std::cout << W_fp32 << std::endl;
+  std::cout << W_dequant << std::endl;
+  const float eps = 1e-5;
+  ///@todo Find proper metric and standard to assess
+  EXPECT_NEAR(mean_squared_error, 0, eps * K * N);
+  EXPECT_NEAR(cos_sim, 0., eps * K * N);
+}
+
+TEST(nntrainer_Tensor, QTensor_18_p) {
+
+  ///@note this unittest verify Q6_K tensor dot
+
+  const unsigned int M = 1;
+  uint32_t K = 3072;
+  uint32_t N = 105900;
+
+  std::vector<float> weight = generate_random_vector<float>(K * N, -0.05, 0.05);
+  std::vector<float> activation =
+    generate_random_vector<float>(M * K, -0.05, 0.05);
+
+  nntrainer::Tensor E_fp32(
+    1, 1, N, K,
+    {ml::train::TensorDim::Format::NCHW, ml::train::TensorDim::DataType::FP32});
+  nntrainer::Tensor L_fp32(
+    1, 1, K, N,
+    {ml::train::TensorDim::Format::NCHW, ml::train::TensorDim::DataType::FP32});
+  nntrainer::Tensor A_fp32(
+    1, 1, M, K,
+    {ml::train::TensorDim::Format::NCHW, ml::train::TensorDim::DataType::FP32});
+  nntrainer::Tensor W_q6k(
+    1, 1, N, K, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::Q6_K});
+
+  for (uint32_t n = 0; n < N; ++n)
+    for (uint32_t k = 0; k < K; ++k)
+      E_fp32.setValue(0, 0, n, k, weight[n * K + k]);
+
+  for (uint32_t k = 0; k < K; ++k)
+    for (uint32_t n = 0; n < N; ++n)
+      L_fp32.setValue(0, 0, k, n, weight[k * N + n]);
+
+  for (uint32_t m = 0; m < M; ++m)
+    for (uint32_t k = 0; k < K; ++k)
+      A_fp32.setValue(0, 0, m, k, activation[m * K + k]);
+
+  std::vector<float> ref_dst(M * N);
+  EXPECT_NO_THROW(nntrainer::quantize_q6_K(
+    E_fp32.getData<float>(), (void *)W_q6k.getData<uint8_t>(), N, K, nullptr));
+
+  nntrainer::Tensor out = A_fp32.dot(L_fp32, false, false);
+  nntrainer::Tensor out_q6k(
+    1, 1, M, N, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
+  A_fp32.dot(W_q6k, out_q6k);
+
+  const float eps = 1e-4;
+  auto mean_squared_error =
+    mse<float, float>(out.getData<float>(), out_q6k.getData<float>(), M * N);
+  EXPECT_NEAR(mean_squared_error, 0., eps * M * N);
+
+#ifdef DEBUG
+  for (int i = 0; i < 10; ++i) {
+    std::cout << "gemm_out[" << i << "] = " << out_q6k.getData<float>()[i]
+              << std::endl;
+    std::cout << "out_t[" << i << "] = " << out.getData<float>()[i]
+              << std::endl;
+  }
+#endif
+}
+#endif
+
 TEST(nntrainer_Tensor, copy_01_n) {
   int batch = 3;
   int channel = 1;
