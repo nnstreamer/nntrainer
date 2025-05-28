@@ -662,11 +662,12 @@ void from_string(const std::string &value, std::vector<T> &property) {
 struct TensorDataTypeInfo {
   using Enum = nntrainer::TensorDim::DataType;
   static constexpr std::initializer_list<Enum> EnumList = {
-    Enum::BCQ,  Enum::QINT4, Enum::QINT8, Enum::QINT16, Enum::FP16,
-    Enum::FP32, Enum::UINT4, Enum::UINT8, Enum::UINT16, Enum::Q4_K};
+    Enum::BCQ,    Enum::QINT4, Enum::QINT8, Enum::QINT16,
+    Enum::FP16,   Enum::FP32,  Enum::UINT4, Enum::UINT8,
+    Enum::UINT16, Enum::Q4_K,  Enum::Q6_K};
   static constexpr const char *EnumStr[] = {
-    "BCQ",  "QINT4", "QINT8", "QINT16", "FP16",
-    "FP32", "UINT4", "UINT8", "UINT16", "Q4_K"};
+    "BCQ",   "QINT4", "QINT8",  "QINT16", "FP16", "FP32",
+    "UINT4", "UINT8", "UINT16", "Q4_K",   "Q6_K"};
 };
 
 /**

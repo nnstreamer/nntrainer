@@ -681,8 +681,15 @@ void NeuralNetwork::load(const std::string &file_path,
       size_t size = weight->getVariable().getMemoryBytes();
       auto tensor_data_type = weight->getDim().getDataType();
 
+      ///@todo instead of checking the data type,
+      /// we may need to create a common parent class for
+      /// quantized tensors, requiring qparam to be saved
+      /// and creating a common interface to check if qparam is needed
+      /// this kind of type checking should be avoided
       if (tensor_data_type != TensorDim::DataType::FP32 &&
-          tensor_data_type != TensorDim::DataType::FP16) {
+          tensor_data_type != TensorDim::DataType::FP16 &&
+          tensor_data_type != TensorDim::DataType::Q6_K) {
+        // for tensor with qparam
         size += sizeof(uint16_t);
       }
       file_offset.emplace_back(std::make_pair(start_from, size));

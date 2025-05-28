@@ -692,9 +692,10 @@ Tensor &FloatTensor::dot(Tensor const &input, Tensor &output, bool trans,
   case Tdatatype::FP16:
     dotFloat(input, output, trans, trans_in, beta);
     break;
-  /** applying gemm_q4_k */
+  /** applying gemm_q4_k / gemm_q6_k */
   case Tdatatype::Q4_K:
-    dotQ4K(input, output, trans, trans_in, beta);
+  case Tdatatype::Q6_K:
+    dotQnK(input, output, trans, trans_in, beta, input.getDataType());
     break;
   default:
     throw std::invalid_argument("Error: unsupported datatype");
@@ -759,22 +760,35 @@ Tensor &FloatTensor::dotFloat(Tensor const &input, Tensor &output, bool trans,
 
   return output;
 }
-Tensor &FloatTensor::dotQ4K(Tensor const &input, Tensor &output, bool trans,
-                            bool trans_in, float beta) const {
+Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
+                            bool trans_in, float beta, Tdatatype dtype) const {
   ///@note trans / trans_in is not yet applied
   NNTR_THROW_IF(trans || trans_in, std::invalid_argument)
-    << "dotQ4K does not support trans / trans_in";
+    << "dotQnK does not support trans / trans_in";
 
   const float *data = (float *)getData();
   const uint8_t *mdata = input.getData<uint8_t>();
   float *rdata = output.getData<float>();
 
   unsigned int M, N, K;
-  M = getDim().height();
-  K = getDim().width();
-  N = input.getDim().width();
 
-  gemm_q4_K(M, N, K, data, K, (void *)mdata, N, rdata, N);
+  switch (dtype) {
+  case Tdatatype::Q4_K:
+    M = getDim().height();
+    K = getDim().width();
+    N = input.getDim().width();
+    gemm_q4_K(M, N, K, data, K, (void *)mdata, N, rdata, N);
+    break;
+  case Tdatatype::Q6_K:
+    M = getDim().height();
+    K = getDim().width();
+    N = input.getDim().height();
+    gemm_q6_K(M, N, K, data, K, (void *)mdata, N, rdata, N);
+    break;
+  default:
+    throw std::invalid_argument("Error: unsupported datatype");
+  }
+
   return output;
 }
 
