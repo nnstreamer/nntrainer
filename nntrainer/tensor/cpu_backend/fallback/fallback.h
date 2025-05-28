@@ -760,7 +760,7 @@ void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc);
 /**
- * @brief
+ * @brief (1xK)*(Kx1) dot product for q6_K and q8_K vectors
  *
  * @param M Original row size of output
  * @param N Original col size of output
@@ -790,38 +790,38 @@ float dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
 float dot_q6_K_f32(const unsigned int K, const void *v_q6_K, const float *f);
 
 /**
- * @brief
+ * @brief quantize_q4_0 function
  *
- * @param src
- * @param dst
- * @param nrow
- * @param n_per_row
- * @param quant_weights
- * @return size_t
+ * @param src float* to quantize
+ * @param dst q4_0* to store quantized data
+ * @param nrow number of rows in src
+ * @param n_per_row number of elements in each row of src
+ * @param quant_weights unused for now -> imatrix
+ * @return size_t size of total quantized data in bytes
  */
 size_t quantize_q4_0(const float *src, void *dst, int64_t nrow,
                      int64_t n_per_row, const float *quant_weights);
 /**
- * @brief
+ * @brief quantize_q4_K function
  *
- * @param src
- * @param dst
- * @param nrow
- * @param n_per_row
- * @param quant_weights
- * @return size_t
+ * @param src float* to quantize
+ * @param dst q4_K* to store quantized data
+ * @param nrow number of rows in src
+ * @param n_per_row number of elements in each row of src
+ * @param quant_weights unused for now -> imatrix
+ * @return size_t size of total quantized data in bytes
  */
 size_t quantize_q4_K(const float *src, void *dst, int64_t nrow,
                      int64_t n_per_row, const float *quant_weights);
 /**
- * @brief
+ * @brief quantize_q6_K function
  *
- * @param src
- * @param dst
- * @param nrow
- * @param n_per_row
- * @param quant_weights
- * @return size_t
+ * @param src float* to quantize
+ * @param dst q6_K* to store quantized data
+ * @param nrow number of rows in src
+ * @param n_per_row number of elements in each row of src
+ * @param quant_weights unused for now -> imatrix
+ * @return size_t size of total quantized data in bytes
  */
 size_t quantize_q6_K(const float *src, void *dst, int64_t nrow,
                      int64_t n_per_row, const float *quant_weights);
@@ -853,13 +853,25 @@ void dequantize_row_q6_K(const void *x, float *y, int64_t k);
 void dequantize_row_q8_K(const void *x, float *y, int64_t k);
 
 /**
- * @brief
+ * @brief repack q40 to q40x8
  *
- * @param W
- * @param repacked_W
- * @param data_size
- * @param M
- * @param N
+ * @param W input q40
+ * @param repacked_W output q40x8
+ * @param data_size total weight size
+ * @param M number of rows
+ * @param N number of columns
+ */
+void repack_q4_0_to_q4_0_8(void *W, void *repacked_W, size_t data_size,
+                           const unsigned int M, const unsigned int N);
+
+/**
+ * @brief repack q4K to q4Kx8
+ *
+ * @param W input q4K
+ * @param repacked_W output q4Kx8
+ * @param data_size total weight size
+ * @param M number of rows
+ * @param N number of columns
  */
 void repack_q4_K_to_q4_K_8(void *W, void *repacked_W, size_t data_size,
                            const unsigned int M, const unsigned int N);

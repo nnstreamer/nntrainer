@@ -54,14 +54,15 @@ size_t __ggml_quantize_q4_0(const float *src, void *dst, int64_t nrow,
 size_t __ggml_quantize_q4_K(const float *src, void *dst, int64_t nrow,
                             int64_t n_per_row, const float *quant_weights);
 /**
- * @brief
+ * @brief Quantize float to q6_K Quantization format
  *
- * @param src
- * @param dst
- * @param nrow
- * @param n_per_row
- * @param quant_weights
- * @return size_t
+ * @param src input src to be quantized
+ * @param dst output destination for quantized data
+ * @param nrow number of row
+ * @param n_per_row number of elements per row
+ * @param quant_weights additional information for quantization. Currently in no
+ * use.
+ * @return size_t total size of quantized data
  */
 size_t __ggml_quantize_q6_K(const float *src, void *dst, int64_t nrow,
                             int64_t n_per_row, const float *quant_weights);
@@ -69,18 +70,18 @@ size_t __ggml_quantize_q6_K(const float *src, void *dst, int64_t nrow,
 /**
  * @brief Quantize float to q6_K Quantization format
  *
- * @param src
- * @param dst
- * @param k
+ * @param src float* src to be quantized
+ * @param dst void* dst to store quantized data
+ * @param k number of elements in src
  */
 void __ggml_quantize_row_q6_K(const float *src, void *dst, int64_t k);
 
 /**
  * @brief Quantize float to q6_K Quantization format
  *
- * @param src
- * @param dst
- * @param k
+ * @param src float* src to be quantized
+ * @param dst void* dst to store quantized data
+ * @param k number of elements in src
  */
 void __ggml_quantize_row_q8_K(const float *src, void *dst, int64_t k);
 
@@ -122,24 +123,24 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int ldb, float *C,
                                const unsigned int ldc);
 /**
- * @brief
+ * @brief A(M, K) * W.T(N, K) = (M, N)
  *
- * @param M
- * @param N
- * @param K
- * @param A
- * @param lda
- * @param B
- * @param ldb
- * @param C
- * @param ldc
+ * @param M as descripted above
+ * @param N as descripted above
+ * @param K as descripted above
+ * @param A Activation
+ * @param lda leading dimension of A
+ * @param B offline quantized and packed q4_kx8 Weight
+ * @param ldb leading dimension of B
+ * @param C dst matrix
+ * @param ldc leading dimension of C
  */
 void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
                       const unsigned int K, const float *A,
                       const unsigned int lda, const void *B,
                       const unsigned int ldb, float *C, const unsigned int ldc);
 /**
- * @brief
+ * @brief (1xK)*(Kx1) dot product for q6_K and q8_K vectors
  *
  * @param K Length of vectors
  * @param v_q6_K lhs vector - data stored in Q6_K format
