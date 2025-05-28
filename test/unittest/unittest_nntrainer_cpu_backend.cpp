@@ -352,42 +352,6 @@ static float test_gemm_q6_K(const uint32_t M, const uint32_t K,
   return mean_squared_error;
 }
 
-static float test_gemm_q6_K(const uint32_t M, const uint32_t K,
-                            const uint32_t N, const float *weights,
-                            const float *activations,
-                            std::vector<float> &ref_dst, bool print = false) {
-  // Step0. Allocate a temporary buffer for quantized weight
-  int64_t q6_k_block_size = 256;
-  int64_t q6_k_type_size = sizeof(block_q6_K_testonly);
-  int64_t num_blocks = (K * N) / q6_k_block_size;
-  size_t data_size = q6_k_type_size * N / q6_k_block_size;
-  data_size *= K;
-  std::vector<char> offline_qWeight = std::vector<char>(data_size);
-  char *offline_qWeight_ptr = (char *)offline_qWeight.data();
-
-  // Step1. Supposed to be an offline Weight quantization from float to q4_K
-  // (Zero latency overhead for the model runtime)
-  nntrainer::quantize_q6_K(weights, (void *)offline_qWeight_ptr, N, K, nullptr);
-
-  // Step2. Run GEMM! (Online activation quantization + kernel routine + return
-  // float)
-  std::vector<float> dst(M * N);
-  auto t1 = high_resolution_clock::now();
-  // #### MAIN TESTED METHOD ####
-  nntrainer::gemm_q6_K(M, N, K, activations, K, (void *)offline_qWeight_ptr, N,
-                       dst.data(), N);
-  // #### MAIN TESTED METHOD ####
-  auto t2 = high_resolution_clock::now();
-  auto dt = duration_cast<nanoseconds>(t2 - t1);
-  if (print) {
-    std::cout << "[INFO] gemm_q6_K: " << dt.count() << " ns " << std::endl;
-  }
-
-  // Step4. Compare quantization error
-  auto mean_squared_error = compute_mse(M, N, ref_dst, dst);
-  return mean_squared_error;
-}
-
 static void run_quant_test(const uint32_t M, const uint32_t K, const uint32_t N,
                            float &q4_0_mse, float &q4_k_mse, float &q6_k_mse,
                            bool print = false) {
