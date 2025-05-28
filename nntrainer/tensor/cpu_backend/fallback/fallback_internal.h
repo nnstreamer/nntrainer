@@ -702,9 +702,11 @@ void __fallback_gemm_q4_K(const unsigned int M, const unsigned int N,
  * @param C float* output
  * @param ldc Leading dimension of C
  */
-void __fallback_gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
-               const float *A, const unsigned int lda, const void *B,
-               const unsigned int ldb, float *C, const unsigned int ldc);
+void __fallback_gemm_q6_K(const unsigned int M, const unsigned int N,
+                          const unsigned int K, const float *A,
+                          const unsigned int lda, const void *B,
+                          const unsigned int ldb, float *C,
+                          const unsigned int ldc);
 /**
  * @brief (1xK)*(Kx1) dot product for q6_K and q8_K vectors
  *
@@ -736,7 +738,7 @@ void __fallback_gemm_q6_K(const unsigned int M, const unsigned int N,
  * @return size_t size of total quantized data in bytes
  */
 size_t __fallback_quantize_q4_0(const float *src, void *dst, int64_t nrow,
-                     int64_t n_per_row, const float *quant_weights);
+                                int64_t n_per_row, const float *quant_weights);
 /**
  * @brief quantize_q4_K function
  *
@@ -748,7 +750,7 @@ size_t __fallback_quantize_q4_0(const float *src, void *dst, int64_t nrow,
  * @return size_t size of total quantized data in bytes
  */
 size_t __fallback_quantize_q4_K(const float *src, void *dst, int64_t nrow,
-                     int64_t n_per_row, const float *quant_weights);
+                                int64_t n_per_row, const float *quant_weights);
 /**
  * @brief quantize_q6_K function
  *
@@ -760,7 +762,7 @@ size_t __fallback_quantize_q4_K(const float *src, void *dst, int64_t nrow,
  * @return size_t size of total quantized data in bytes
  */
 size_t __fallback_quantize_q6_K(const float *src, void *dst, int64_t nrow,
-                     int64_t n_per_row, const float *quant_weights);
+                                int64_t n_per_row, const float *quant_weights);
 
 /**
  * @brief Quantize float to q6_K Quantization format
