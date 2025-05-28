@@ -319,8 +319,8 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
                       const unsigned int ldc) {
   int num_blocks_per_row = (K + QK_K - 1) / QK_K;
 #pragma omp parallel for collapse(2)
-  for (unsigned int i = 0; i < M; i++) {
-    for (unsigned int j = 0; j < N; j++) {
+  for (int i = 0; i < static_cast<int>(M); i++) {
+    for (int j = 0; j < static_cast<int>(N); j++) {
       C[i * ldc + j] = __ggml_vec_dot_q6_K(
         K, (void *)((char *)B + (sizeof(block_q6_K) * num_blocks_per_row) * j),
         A + i * K);

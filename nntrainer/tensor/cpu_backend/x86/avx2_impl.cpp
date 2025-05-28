@@ -220,7 +220,7 @@ _nnt_ATTR_ALWAYS_INLINE _nnt_ATTR_FLATTEN inline auto _nnt_CC_VECTORCALL
 avx2_approx_exp_e2lookup(__m256 xs) noexcept {
 
   constexpr static uint32_t N_MASK = uint32_t(N_ - 1U);
-  constexpr static auto EXP2_TBL = exp2_table_v<N_>;
+  alignas(64) constexpr static auto EXP2_TBL = exp2_table_v<N_>;
   constexpr static unsigned MANTISSA_BITS =
     std::numeric_limits<float>::digits - 1;
 
