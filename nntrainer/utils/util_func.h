@@ -334,6 +334,46 @@ template <typename T, typename C = int> T enum_class_or(T e1, T e2) {
 }
 
 /**
+ * @brief Find value in tuple by key (internal impl)
+ *
+ * @tparam Tuple Tuple type to search
+ * @tparam ls... Tuple index sequence
+ * @param t Tuple to search
+ * @param key Key to find
+ *
+ * @return Found value or empty string
+ */
+template <typename Tuple, std::size_t... ls>
+std::string find_in_tuple(const Tuple &t, std::index_sequence<ls...>,
+                          const std::string &key) {
+  std::string result = "";
+
+  (..., ([&] {
+     auto &&elem = std::get<ls>(t);
+     if (strcmp(getPropKey(elem), key.c_str()) == 0) {
+       result = elem.empty() ? "empty" : to_string(elem);
+     }
+   }()));
+
+  return result;
+}
+
+/**
+ * @brief Find value in tuple by key (user-friendly wrapper)
+ *
+ * @tparam Args Tuple element types
+ * @param t Tuple to search
+ * @param key Key to find
+ *
+ * @return Found value or empty string
+ */
+template <typename... Args>
+std::string find_in_tuple(const std::tuple<Args...> &t,
+                          const std::string &key) {
+  return find_in_tuple(t, std::index_sequence_for<Args...>{}, key);
+}
+
+/**
  * @brief Convert a relative path into an absolute path.
  *
  * @param name relative path

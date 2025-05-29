@@ -195,6 +195,18 @@ public:
   virtual void setProperty(const std::vector<std::string> &values) = 0;
 
   /**
+   * @brief     Get property value of layer
+   * @param[in] key Property key to retrieve
+   * @retval    std::string Property value as string
+   * @retval    Empty string if property not found
+   * @details   For layers derived from layer_impl: Property lookup is handled
+   * automatically.
+   * @details For layers derived from layer_devel: The getProperty() function
+   * must be overridden to enable property retrieval.
+   */
+  virtual std::string getProperty(const std::string &key) = 0;
+
+  /**
    * @brief     Get name of the layer
    * @retval    name of the layer
    * @note      This name is unique to this layer in a model

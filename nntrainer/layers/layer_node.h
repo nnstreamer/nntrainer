@@ -98,6 +98,8 @@ public:
    */
   void setProperty(const std::vector<std::string> &properties) override;
 
+  std::string getProperty(const std::string &key) override;
+
   /**
    * @brief     Get name of the layer
    *
