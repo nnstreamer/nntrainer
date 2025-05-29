@@ -155,7 +155,7 @@ TEST(nntrainer_LayerNode, finalize_07_n) {
   EXPECT_NO_THROW(lnode =
                     nntrainer::createLayerNode(nntrainer::IdentityLayer::type));
   EXPECT_THROW(
-    lnode->setProperty({"input_shape=1:1:1", "weight_dtype=Q6_K", "name=abc"}),
+    lnode->setProperty({"input_shape=1:1:1", "weight_dtype=Q8_K", "name=abc"}),
     std::invalid_argument);
 }
 
