@@ -655,6 +655,11 @@ void NeuralNetwork::save(const std::string &file_path,
       "saving with ONNX format is not supported yet.");
     break;
   }
+  case ml::train::ModelFormat::MODEL_FORMAT_LORA_BIN: {
+    throw nntrainer::exception::not_supported(
+      "saving with lora bin format is not supported yet.");
+    break;
+  }
   default:
     throw nntrainer::exception::not_supported(
       "saving with given format is not supported yet");
@@ -810,6 +815,11 @@ void NeuralNetwork::load(const std::string &file_path,
     }
 
     qnn_load.join();
+    break;
+  }
+  case ml::train::ModelFormat::MODEL_FORMAT_LORA_BIN: {
+    throw nntrainer::exception::not_supported(
+      "loading with lora bin format is not supported yet.");
     break;
   }
   default:

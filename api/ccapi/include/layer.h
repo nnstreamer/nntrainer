@@ -194,6 +194,8 @@ public:
    */
   virtual void setProperty(const std::vector<std::string> &values) = 0;
 
+  virtual std::string getProperty(const std::string &key) = 0;
+
   /**
    * @brief     Get name of the layer
    * @retval    name of the layer
