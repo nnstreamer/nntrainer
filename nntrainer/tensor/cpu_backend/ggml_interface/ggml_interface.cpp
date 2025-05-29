@@ -359,25 +359,6 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
       ::ggml_vec_dot_q6_K_q8_K(K, &C[thread_job], bs, B_data, bx,
                                quantized_A_data, by, nrc);
     }
-
-    // NOTE(m.wlasiuk) : to be used with pool
-    // #pragma omp parallel for collapse(1) num_threads(thread_count)
-    //     for (int32_t thread_idx = 0; thread_idx < thread_count; thread_idx++)
-    //     {
-    //       const uint32_t n_start = thread_idx * per_thread_N;
-    //       const uint32_t n_end = (thread_idx + 1) * per_thread_N;
-
-    //       for (int32_t thread_job = n_start; thread_job < n_end;
-    //       thread_job++) {
-    //         const int32_t B_row_data_offset = B_row_size * thread_job;
-
-    //         const void *const B_data = (void *)((char *)B +
-    //         B_row_data_offset);
-
-    //         ::ggml_vec_dot_q6_K_q8_K(K, &C[thread_job], bs, B_data, bx,
-    //                                  quantized_A_data, by, nrc);
-    //       }
-    //     }
   } else { // GEMM
     const int32_t per_thread_M = M / thread_count;
 
@@ -390,23 +371,6 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
       void *A_data = (void *)((char *)quantized_A.data() + A_row_data_offset);
       ::quantize_row_q8_K(A + thread_job * K, A_data, K);
     }
-
-    // NOTE(m.wlasiuk) : to be used with pool
-    // #pragma omp parallel for collapse(1) num_threads(thread_count)
-    //     for (int32_t thread_idx = 0; thread_idx < thread_count; thread_idx++)
-    //     {
-    //       const uint32_t m_start = thread_idx * per_thread_M;
-    //       const uint32_t m_end = (thread_idx + 1) * per_thread_M;
-    //
-    //       for (int32_t thread_job = m_start; thread_job < m_end;
-    //       thread_job++) {
-    //         const int32_t A_row_data_offset = A_row_size * thread_job;
-    //         void *A_data = (void *)((char *)quantized_A.data() +
-    //         A_row_data_offset);
-    //         ::quantize_row_q8_K(A + thread_job * K, A_data, K);
-    //       }
-    //     }
-
 #pragma omp parallel for collapse(1) num_threads(thread_count)
     for (int32_t thread_job = 0; thread_job < M; thread_job++) {
       const int32_t A_row_data_offset = A_row_size * thread_job;
@@ -420,31 +384,6 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
                                  A_data, by, nrc);
       }
     }
-
-    // NOTE(m.wlasiuk) : to be used with pool
-    // #pragma omp parallel for collapse(1) num_threads(thread_count)
-    //     for (int32_t thread_idx = 0; thread_idx < thread_count; thread_idx++)
-    //     {
-    //       const uint32_t m_start = thread_idx * per_thread_M;
-    //       const uint32_t m_end = (thread_idx + 1) * per_thread_M;
-
-    //       for (int32_t thread_job = m_start; thread_job < m_end;
-    //       thread_job++) {
-    //         const int32_t A_row_data_offset = A_row_size * thread_job;
-    //         void *A_data = (void *)((char *)quantized_A.data() +
-    //         A_row_data_offset);
-
-    //         for (uint32_t j = 0; j < N; j++) {
-    //           const int32_t B_row_data_offset = B_row_size * j;
-    //           const void *const B_data = (void *)((char *)B +
-    //           B_row_data_offset);
-
-    //           ::ggml_vec_dot_q6_K_q8_K(K, &C[thread_job * ldc + j], bs,
-    //           B_data, bx,
-    //                                    A_data, by, nrc);
-    //         }
-    //       }
-    //     }
   }
 }
 
