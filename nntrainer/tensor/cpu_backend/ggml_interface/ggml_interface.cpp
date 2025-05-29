@@ -327,9 +327,6 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
                       const unsigned int lda, const void *B,
                       const unsigned int ldb, float *C,
                       const unsigned int ldc) {
-
-#define USE_SPLIT 1
-
   static constexpr const int32_t thread_count = 16;
 
   static constexpr const int32_t bs = 1;  // unused in ::ggml_vec_dot_q6_K_q8_K
@@ -343,8 +340,6 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
 
   // GEMV
   if (M == 1) {
-    const int32_t per_thread_N = N / thread_count;
-
     std::vector<char> quantized_A(A_row_size);
     ::quantize_row_q8_K(A, quantized_A.data(), K);
 
@@ -360,8 +355,6 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
                                quantized_A_data, by, nrc);
     }
   } else { // GEMM
-    const int32_t per_thread_M = M / thread_count;
-
     const int32_t A_total_size = A_row_size * M;
     std::vector<char> quantized_A(A_total_size);
 
