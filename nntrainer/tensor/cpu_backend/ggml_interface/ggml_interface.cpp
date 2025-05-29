@@ -346,7 +346,8 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
     const void *const quantized_A_data = quantized_A.data();
 
 #pragma omp parallel for collapse(1) num_threads(thread_count)
-    for (int32_t thread_job = 0; thread_job < N; thread_job++) {
+    for (int32_t thread_job = 0; thread_job < static_cast<int>(N);
+         thread_job++) {
       const int32_t B_row_data_offset = B_row_size * thread_job;
 
       const void *const B_data = (void *)((char *)B + B_row_data_offset);
@@ -359,13 +360,15 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
     std::vector<char> quantized_A(A_total_size);
 
 #pragma omp parallel for collapse(1) num_threads(thread_count)
-    for (int32_t thread_job = 0; thread_job < M; thread_job++) {
+    for (int32_t thread_job = 0; thread_job < static_cast<int>(M);
+         thread_job++) {
       const int32_t A_row_data_offset = A_row_size * thread_job;
       void *A_data = (void *)((char *)quantized_A.data() + A_row_data_offset);
       ::quantize_row_q8_K(A + thread_job * K, A_data, K);
     }
 #pragma omp parallel for collapse(1) num_threads(thread_count)
-    for (int32_t thread_job = 0; thread_job < M; thread_job++) {
+    for (int32_t thread_job = 0; thread_job < static_cast<int>(M);
+         thread_job++) {
       const int32_t A_row_data_offset = A_row_size * thread_job;
       void *A_data = (void *)((char *)quantized_A.data() + A_row_data_offset);
 
