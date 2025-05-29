@@ -15,89 +15,52 @@ import numpy as np
 from transformers import LlamaForCausalLM, AutoConfig
 
 
-def save_llama_for_nntrainer(params, n_layers, file, dtype):
+def save_llama_for_nntrainer(params, n_layers, file, dtype):  
     """
     @brief convert and save weights as nntrainer format for multi-head attention model
     """
-
+      
     def save_weight(weight):
-        np.array(weight, dtype=dtype).tofile(file)
+        np.array(weight, dtype=dtype).tofile(file)  
 
-    def save_embedding(weight):
-        save_weight(weight)
+    def save_projection(layer_name, proj_name):  
+        """Helper function to handle base/lora weight saving"""  
+        lora_key = f"{layer_name}{proj_name}.lora_A.default.weight"  
+        if lora_key in params:  
+            save_weight(params[f"{layer_name}{proj_name}.base_layer.weight"].permute(1, 0))  
+            save_weight(params[f"{layer_name}{proj_name}.lora_A.default.weight"].permute(1, 0))  
+            save_weight(params[f"{layer_name}{proj_name}.lora_B.default.weight"].permute(1, 0))  
+        else:  
+            save_weight(params[f"{layer_name}{proj_name}.weight"].permute(1, 0))  
 
-    def save_attention(layer_name):
-        save_weight(params[layer_name + "input_layernorm" + ".weight"])
-        
-        if(layer_name + "self_attn.q_proj" + ".lora_A.default.weight" in params) :
-            save_weight(params[layer_name + "self_attn.q_proj" + ".base_layer.weight"].permute(1, 0))
-            save_weight(params[layer_name + "self_attn.q_proj" + ".lora_A.default.weight"].permute(1,0))
-            save_weight(params[layer_name + "self_attn.q_proj" + ".lora_B.default.weight"].permute(1,0))
-        else:
-            save_weight(params[layer_name + "self_attn.q_proj" + ".weight"].permute(1, 0))
-            
-        if(layer_name + "self_attn.k_proj" + ".lora_A.default.weight" in params) :
-            save_weight(params[layer_name + "self_attn.k_proj" + ".base_layer.weight"].permute(1, 0))
-            save_weight(params[layer_name + "self_attn.k_proj" + ".lora_A.default.weight"].permute(1,0))
-            save_weight(params[layer_name + "self_attn.k_proj" + ".lora_B.default.weight"].permute(1,0))
-        else:
-            save_weight(params[layer_name + "self_attn.k_proj" + ".weight"].permute(1, 0))
+    def save_attention(layer_name):  
+        """Save attention layer weights"""  
+        save_weight(params[f"{layer_name}input_layernorm.weight"])  
+          
+        # Save Q/K/V/O projections using helper  
+        for proj in ["q_proj", "k_proj", "v_proj", "o_proj"]:  
+            save_projection(layer_name, f"self_attn.{proj}")  
 
-        if(layer_name + "self_attn.v_proj" + ".lora_A.default.weight" in params) :
-            save_weight(params[layer_name + "self_attn.v_proj" + ".base_layer.weight"].permute(1, 0))
-            save_weight(params[layer_name + "self_attn.v_proj" + ".lora_A.default.weight"].permute(1,0))
-            save_weight(params[layer_name + "self_attn.v_proj" + ".lora_B.default.weight"].permute(1,0))
-        else:
-            save_weight(params[layer_name + "self_attn.v_proj" + ".weight"].permute(1, 0))
+    def save_feed_forward(layer_name):  
+        """Save feed forward layer weights"""  
+        save_weight(params[f"{layer_name}post_attention_layernorm.weight"])  
+          
+        # Save MLP projections using helper  
+        for proj in ["up_proj", "gate_proj", "down_proj"]:  
+            save_projection(layer_name, f"mlp.{proj}")  
 
-        if(layer_name + "self_attn.o_proj" + ".lora_A.default.weight" in params) :
-            save_weight(params[layer_name + "self_attn.o_proj" + ".base_layer.weight"].permute(1, 0))
-            save_weight(params[layer_name + "self_attn.o_proj" + ".lora_A.default.weight"].permute(1,0))
-            save_weight(params[layer_name + "self_attn.o_proj" + ".lora_B.default.weight"].permute(1,0))
-        else:
-            save_weight(params[layer_name + "self_attn.o_proj" + ".weight"].permute(1, 0))
+    # Save embedding layer  
+    save_weight(params["model.embed_tokens.weight"])  
 
-    def save_feed_forward(layer_name):
-        save_weight(params[layer_name + "post_attention_layernorm" + ".weight"])
+    # Process all layers  
+    for layer_idx in range(n_layers):  
+        layer_prefix = f"model.layers.{layer_idx}."  
+        save_attention(layer_prefix)  
+        save_feed_forward(layer_prefix)  
 
-        # save weight of mlp layer
-        if(layer_name + "mlp.up_proj" + ".lora_A.default.weight" in params) :
-            save_weight(params[layer_name + "mlp.up_proj" + ".base_layer.weight"].permute(1, 0))
-            save_weight(params[layer_name + "mlp.up_proj" + ".lora_A.default.weight"].permute(1,0))
-            save_weight(params[layer_name + "mlp.up_proj" + ".lora_B.default.weight"].permute(1,0))
-        else:
-            save_weight(params[layer_name + "mlp.up_proj" + ".weight"].permute(1, 0))
-
-        # save weight of gate layer
-        if(layer_name + "mlp.gate_proj" + ".lora_A.default.weight" in params) :
-            save_weight(params[layer_name + "mlp.gate_proj" + ".base_layer.weight"].permute(1, 0))
-            save_weight(params[layer_name + "mlp.gate_proj" + ".lora_A.default.weight"].permute(1,0))
-            save_weight(params[layer_name + "mlp.gate_proj" + ".lora_B.default.weight"].permute(1,0))
-        else:
-            save_weight(params[layer_name + "mlp.gate_proj" + ".weight"].permute(1, 0))
-
-        # save weight of down projection layer
-        if(layer_name + "mlp.down_proj" + ".lora_A.default.weight" in params) :
-            save_weight(params[layer_name + "mlp.down_proj" + ".base_layer.weight"].permute(1, 0))
-            save_weight(params[layer_name + "mlp.down_proj" + ".lora_A.default.weight"].permute(1,0))
-            save_weight(params[layer_name + "mlp.down_proj" + ".lora_B.default.weight"].permute(1,0))
-        else:
-            save_weight(params[layer_name + "mlp.down_proj" + ".weight"].permute(1, 0))
-
-    # save weights of embedding layer
-    save_embedding(params["model.embed_tokens.weight"])
-
-    # save weights of attention layers & feed forward layers
-    for layer_idx in range(n_layers):
-        save_attention(f"model.layers.{layer_idx}.")
-        save_feed_forward(f"model.layers.{layer_idx}.")
-
-    # save weights of output batch-normalization layer
-    save_weight(params["model.norm.weight"])
-
-    # save weights of output fc layer
-    save_weight(params["lm_head.weight"].permute(1, 0))
-
+    # Save final layers  
+    save_weight(params["model.norm.weight"])  
+    save_weight(params["lm_head.weight"].permute(1, 0))  
 
 if __name__ == "__main__":
     model_name_or_path = "./"
