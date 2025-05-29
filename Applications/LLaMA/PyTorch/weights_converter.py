@@ -7,6 +7,7 @@ Copyright (C) 2023 Seungbaek Hong <sb92.hong@samsung.com>
 @this script is tested on transformers 4.30.2
 
 @author Seungbaek Hong <sb92.hong@samsung.com>
+@author Eunju Yang <ej.yang@samsung.com>
 """
 
 import torch
@@ -27,16 +28,61 @@ def save_llama_for_nntrainer(params, n_layers, file, dtype):
 
     def save_attention(layer_name):
         save_weight(params[layer_name + "input_layernorm" + ".weight"])
-        save_weight(params[layer_name + "self_attn.q_proj" + ".weight"].permute(1, 0))
-        save_weight(params[layer_name + "self_attn.k_proj" + ".weight"].permute(1, 0))
-        save_weight(params[layer_name + "self_attn.v_proj" + ".weight"].permute(1, 0))
-        save_weight(params[layer_name + "self_attn.o_proj" + ".weight"].permute(1, 0))
+        
+        if(layer_name + "self_attn.q_proj" + ".lora_A.default.weight" in params) :
+            save_weight(params[layer_name + "self_attn.q_proj" + ".base_layer.weight"].permute(1, 0))
+            save_weight(params[layer_name + "self_attn.q_proj" + ".lora_A.default.weight"].permute(1,0))
+            save_weight(params[layer_name + "self_attn.q_proj" + ".lora_B.default.weight"].permute(1,0))
+        else:
+            save_weight(params[layer_name + "self_attn.q_proj" + ".weight"].permute(1, 0))
+            
+        if(layer_name + "self_attn.k_proj" + ".lora_A.default.weight" in params) :
+            save_weight(params[layer_name + "self_attn.k_proj" + ".base_layer.weight"].permute(1, 0))
+            save_weight(params[layer_name + "self_attn.k_proj" + ".lora_A.default.weight"].permute(1,0))
+            save_weight(params[layer_name + "self_attn.k_proj" + ".lora_B.default.weight"].permute(1,0))
+        else:
+            save_weight(params[layer_name + "self_attn.k_proj" + ".weight"].permute(1, 0))
+
+        if(layer_name + "self_attn.v_proj" + ".lora_A.default.weight" in params) :
+            save_weight(params[layer_name + "self_attn.v_proj" + ".base_layer.weight"].permute(1, 0))
+            save_weight(params[layer_name + "self_attn.v_proj" + ".lora_A.default.weight"].permute(1,0))
+            save_weight(params[layer_name + "self_attn.v_proj" + ".lora_B.default.weight"].permute(1,0))
+        else:
+            save_weight(params[layer_name + "self_attn.v_proj" + ".weight"].permute(1, 0))
+
+        if(layer_name + "self_attn.o_proj" + ".lora_A.default.weight" in params) :
+            save_weight(params[layer_name + "self_attn.o_proj" + ".base_layer.weight"].permute(1, 0))
+            save_weight(params[layer_name + "self_attn.o_proj" + ".lora_A.default.weight"].permute(1,0))
+            save_weight(params[layer_name + "self_attn.o_proj" + ".lora_B.default.weight"].permute(1,0))
+        else:
+            save_weight(params[layer_name + "self_attn.o_proj" + ".weight"].permute(1, 0))
 
     def save_feed_forward(layer_name):
         save_weight(params[layer_name + "post_attention_layernorm" + ".weight"])
-        save_weight(params[layer_name + "mlp.up_proj" + ".weight"].permute(1, 0))
-        save_weight(params[layer_name + "mlp.gate_proj" + ".weight"].permute(1, 0))
-        save_weight(params[layer_name + "mlp.down_proj" + ".weight"].permute(1, 0))
+
+        # save weight of mlp layer
+        if(layer_name + "mlp.up_proj" + ".lora_A.default.weight" in params) :
+            save_weight(params[layer_name + "mlp.up_proj" + ".base_layer.weight"].permute(1, 0))
+            save_weight(params[layer_name + "mlp.up_proj" + ".lora_A.default.weight"].permute(1,0))
+            save_weight(params[layer_name + "mlp.up_proj" + ".lora_B.default.weight"].permute(1,0))
+        else:
+            save_weight(params[layer_name + "mlp.up_proj" + ".weight"].permute(1, 0))
+
+        # save weight of gate layer
+        if(layer_name + "mlp.gate_proj" + ".lora_A.default.weight" in params) :
+            save_weight(params[layer_name + "mlp.gate_proj" + ".base_layer.weight"].permute(1, 0))
+            save_weight(params[layer_name + "mlp.gate_proj" + ".lora_A.default.weight"].permute(1,0))
+            save_weight(params[layer_name + "mlp.gate_proj" + ".lora_B.default.weight"].permute(1,0))
+        else:
+            save_weight(params[layer_name + "mlp.gate_proj" + ".weight"].permute(1, 0))
+
+        # save weight of down projection layer
+        if(layer_name + "mlp.down_proj" + ".lora_A.default.weight" in params) :
+            save_weight(params[layer_name + "mlp.down_proj" + ".base_layer.weight"].permute(1, 0))
+            save_weight(params[layer_name + "mlp.down_proj" + ".lora_A.default.weight"].permute(1,0))
+            save_weight(params[layer_name + "mlp.down_proj" + ".lora_B.default.weight"].permute(1,0))
+        else:
+            save_weight(params[layer_name + "mlp.down_proj" + ".weight"].permute(1, 0))
 
     # save weights of embedding layer
     save_embedding(params["model.embed_tokens.weight"])
