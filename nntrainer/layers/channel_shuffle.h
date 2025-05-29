@@ -18,8 +18,8 @@
 #include <memory.h>
 
 #include <common_properties.h>
-#include <layer_impl.h>
 #include <layer_devel.h>
+#include <layer_impl.h>
 #include <tensor_dim.h>
 
 namespace nntrainer {
@@ -30,75 +30,76 @@ namespace nntrainer {
  */
 class ChannelShuffle : public LayerImpl {
 public:
-    /**
-     * @brief     Constructor of Channel Shuffle Layer
-     */
-    ChannelShuffle();
+  /**
+   * @brief     Constructor of Channel Shuffle Layer
+   */
+  ChannelShuffle();
 
-    /**
-     * @brief     Destructor of Channel Shuffle Layer
-     */
-    ~ChannelShuffle() = default;
+  /**
+   * @brief     Destructor of Channel Shuffle Layer
+   */
+  ~ChannelShuffle() = default;
 
-    /**
-     * @brief  Move constructor of Channel Shuffle Layer.
-     * @param[in] ChannelShuffle &&
-     */
-    ChannelShuffle(ChannelShuffle &&rhs) noexcept = default;
+  /**
+   * @brief  Move constructor of Channel Shuffle Layer.
+   * @param[in] ChannelShuffle &&
+   */
+  ChannelShuffle(ChannelShuffle &&rhs) noexcept = default;
 
-    /**
-     * @brief  Move assignment operator.
-     * @parma[in] rhs ChannelShuffle to be moved.
-     */
-    ChannelShuffle &operator=(ChannelShuffle &&rhs) = default;
+  /**
+   * @brief  Move assignment operator.
+   * @parma[in] rhs ChannelShuffle to be moved.
+   */
+  ChannelShuffle &operator=(ChannelShuffle &&rhs) = default;
 
-    /**
-     * @copydoc Layer::finalize(InitLayerContext &context)
-     */
-    void finalize(InitLayerContext &context) override;
+  /**
+   * @copydoc Layer::finalize(InitLayerContext &context)
+   */
+  void finalize(InitLayerContext &context) override;
 
-    /**
-     * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
-     */
-    void forwarding(RunLayerContext &context, bool training) override;
+  /**
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
+   */
+  void forwarding(RunLayerContext &context, bool training) override;
 
-    /**
-     * @copydoc Layer::calcDerivative(RunLayerContext &context)
-     */
-    void calcDerivative(RunLayerContext &context) override;
+  /**
+   * @copydoc Layer::calcDerivative(RunLayerContext &context)
+   */
+  void calcDerivative(RunLayerContext &context) override;
 
-    /**
-     * @copydoc Layer::calcGradient(RunLayerContext &context)
-     */
-    void calcGradient(RunLayerContext &context) override;
+  /**
+   * @copydoc Layer::calcGradient(RunLayerContext &context)
+   */
+  void calcGradient(RunLayerContext &context) override;
 
-    /**
-     * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods method)
-     */
-    void exportTo(Exporter &exporter,
-                  const ml::train::ExportMethods &method) const override;
+  /**
+   * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
+   * method)
+   */
+  void exportTo(Exporter &exporter,
+                const ml::train::ExportMethods &method) const override;
 
-    /**
-     * @copydoc Layer::getType()
-     */
-    const std::string getType() const override { return ChannelShuffle::type; };
+  /**
+   * @copydoc Layer::getType()
+   */
+  const std::string getType() const override { return ChannelShuffle::type; };
 
-    /**
-     * @copydoc Layer::supportBackwarding()
-     */
-    bool supportBackwarding() const override { return true; };
+  /**
+   * @copydoc Layer::supportBackwarding()
+   */
+  bool supportBackwarding() const override { return true; };
 
-    /**
-     * @copydoc Layer::setProperty(const std::vector<std::string> &values)
-     */
-    void setProperty(const std::vector<std::string> &values) override;
+  /**
+   * @copydoc Layer::setProperty(const std::vector<std::string> &values)
+   */
+  void setProperty(const std::vector<std::string> &values) override;
 
-    static constexpr const char *type = "channel_shuffle";
+  static constexpr const char *type = "channel_shuffle";
 
 private:
-    std::tuple<props::SplitNumber> channel_shuffle_props;
+  std::tuple<props::SplitNumber> channel_shuffle_props;
 };
-}
+} // namespace nntrainer
 
 #endif /* __cplusplus */
 #endif /* __CHANNEL_SHUFFLE_H__ */
