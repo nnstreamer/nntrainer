@@ -119,6 +119,7 @@ enum LayerType {
   LAYER_UPSAMPLE2D,               /**< Upsample 2D Layer type */
   LAYER_RMSNORM = ML_TRAIN_LAYER_TYPE_RMSNORM,     /**<RMS NORM Layer */
   LAYER_TRANSPOSE = ML_TRAIN_LAYER_TYPE_TRANSPOSE, /**< Transpose Layer type */
+  LAYER_GROUPCONV = ML_TRAIN_LAYER_TYPE_GROUP_CONVOLUTION,  /**< Groupconv Layer type */
   LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN      /**< Unknown */
 };
 
@@ -424,6 +425,14 @@ Swiglu(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 Transpose(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_TRANSPOSE, properties);
+}
+
+/**
+ * @brief Helper function to create Transpose layer
+ */
+inline std::unique_ptr<Layer>
+GroupConvolution(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_GROUPCONV, properties);
 }
 
 /**

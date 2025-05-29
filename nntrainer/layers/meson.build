@@ -57,6 +57,7 @@ layer_sources = [
   'positional_encoding_layer.cpp',
   'identity_layer.cpp',
   'upsample2d_layer.cpp'
+  'groupconv_layer.cpp'
 ]
 
 layer_headers = [

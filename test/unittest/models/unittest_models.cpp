@@ -1062,6 +1062,24 @@ static std::unique_ptr<NeuralNetwork> makeMatMulOperation() {
   return nn;
 }
 
+static std::unique_ptr<NeuralNetwork> makeGroupConvOperation() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+
+  auto outer_graph =
+    makeGraph({{"input", {"name=in", "input_shape=1:8:4:4"}},
+               {"group_convolution", {"name=gc_layer", "padding=0,0,0,0", "filters=8", "kernel_size=1,1", "stride=1,1", "dilation=1,1", "split_number=4", "input_layers=in"}},
+               {"mse", {"name=loss", "input_layers=gc_layer"}}});
+
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
+
+  nn->setProperty({"batch_size=1"});
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate=0.1"}));
+
+  return nn;
+}
+
 GTEST_PARAMETER_TEST(
   model, nntrainerModelTest,
   ::testing::ValuesIn({
