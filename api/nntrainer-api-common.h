@@ -79,6 +79,7 @@ typedef enum {
   ML_TRAIN_LAYER_TYPE_COSINE = 42,  /**< Cosine Layer type (Since 9.0)*/
   ML_TRAIN_LAYER_TYPE_TANGENT = 43, /**< Tangent Layer type (Since 9.0)*/
   ML_TRAIN_LAYER_TYPE_MATMUL = 44,  /**< MatMul Layer type (Since 9.0)*/
+  ML_TRAIN_LAYER_TYPE_CAST = 45,    /**< Cast Layer type (Since 9.0)*/
   ML_TRAIN_LAYER_TYPE_PREPROCESS_FLIP =
     300, /**< Preprocess flip Layer (Since 6.5) */
   ML_TRAIN_LAYER_TYPE_PREPROCESS_TRANSLATE =
