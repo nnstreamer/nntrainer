@@ -167,6 +167,7 @@ void __nntrainer_log_print(nntrainer_loglevel loglevel,
   Logger::instance().log(ss, loglevel);
 #else
 
+#if defined(DEBUG)
   switch (loglevel) {
   case NNTRAINER_LOG_ERROR:
     std::cerr << ss << std::endl;
@@ -178,7 +179,7 @@ void __nntrainer_log_print(nntrainer_loglevel loglevel,
   default:
     break;
   }
-
+#endif
 #endif
 }
 
