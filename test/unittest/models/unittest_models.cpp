@@ -1065,12 +1065,12 @@ static std::unique_ptr<NeuralNetwork> makeMatMulOperation() {
 static std::unique_ptr<NeuralNetwork> makeChannelShuffleOperation() {
   std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
 
-  auto outer_graph =
-    makeGraph({{"conv2d", {"name=conv", "input_shape=1:8:4:4", "filters=8", "kernel_size=1,1"}},
-               {"channel_shuffle",
-                {"name=channel_shuffle_layer", "split_number=4",
-                 "input_layers=conv"}},
-               {"mse", {"name=loss", "input_layers=channel_shuffle_layer"}}});
+  auto outer_graph = makeGraph(
+    {{"conv2d",
+      {"name=conv", "input_shape=1:8:4:4", "filters=8", "kernel_size=1,1"}},
+     {"channel_shuffle",
+      {"name=channel_shuffle_layer", "split_number=4", "input_layers=conv"}},
+     {"mse", {"name=loss", "input_layers=channel_shuffle_layer"}}});
 
   for (auto &node : outer_graph) {
     nn->addLayer(node);
