@@ -824,6 +824,24 @@ public:
   void updateTensor(unsigned int idx, unsigned int batch);
 
   /**
+   * @brief Update the dimensions for a requested tensor
+   *
+   * @param idx index of the tensor (identifier)
+   * @param dim dimension to update
+   * @param value value to update
+   */
+  void updateTensor(unsigned int idx, unsigned int dim, unsigned int value);
+
+  /**
+   * @brief Update the dimensions for a requested output
+   *
+   * @param idx index of the output (identifier)
+   * @param dim dimension to update
+   * @param value value to update
+   */
+  void updateOutput(unsigned int idx, unsigned int dim, unsigned int value);
+
+  /**
    * @brief   Get weight object for the weights
    *
    * @param idx index of the weight (identifier)

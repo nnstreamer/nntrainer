@@ -373,8 +373,9 @@ public:
    * @brief     Run NeuralNetwork incremental inference
    * @param[in] X input tensor
    * @param[in] init_seq_len initial sequence length
-   * @param[in] cur_step current working step index (zero based index)
-s   * @retval shared_ptr<const Tensor>
+   * @param[in] from current working step index
+   * @param[in] to next working step index
+   * @retval shared_ptr<const Tensor>
    */
   sharedConstTensors incremental_inference(sharedConstTensors X,
                                            unsigned int init_seq_len,
@@ -385,7 +386,8 @@ s   * @retval shared_ptr<const Tensor>
    * @param[in] X input tensor
    * @param[in] label label tensor
    * @param[in] init_seq_len initial sequence length
-   * @param[in] cur_step current working step index (zero based index)
+   * @param[in] from current working step index
+   * @param[in] to next working step index
    * @retval shared_ptr<const Tensor>
    */
   sharedConstTensors incremental_inference(sharedConstTensors X,
@@ -399,7 +401,10 @@ s   * @retval shared_ptr<const Tensor>
    * @param[in] input inputs as a list of each input data
    * @param[in] label labels as a list of each label data
    * @param[in] init_seq_len initial sequence length
-   * @param[in] cur_step current working step index (zero based index)
+   * @param[in] from current working step index
+   * @param[in] to next working step index
+   * @param[in] output_hidden_state return last hidden state if true else return
+   * all hidden state
    * @retval list of output as float *
    * @note The output memory must not be freed by the caller
    */
@@ -409,6 +414,21 @@ s   * @retval shared_ptr<const Tensor>
                         unsigned int init_seq_len, unsigned int from,
                         unsigned int to,
                         bool output_hidden_state = false) override;
+
+  /**
+   * @brief     reset input dimensions of a model
+   * @param[in] dims input dimensions
+   * @note Similar to reinitialize, the resetInputDimension API is used for
+   * modifying input dimensions after model initialization. The reinitialize
+   * function should be the officially called API when changing input
+   * dimensions, as it properly recalculates weights, tensors, and outputs for
+   * each layer. On the other hand, resetInputDimension is a specialized API
+   * created to modify only specific dimensions (specifically height values)
+   * within input/output dimensions. Since this API uniformly adjusts the height
+   * across all model layers, developers must verify that every layer in their
+   * model architecture can safely accommodate such height modifications.
+   */
+  void resetInputDimension(std::vector<TensorDim> dims) override;
 
   /**
    * @brief     Run NeuralNetwork train with callback function by user
@@ -749,7 +769,6 @@ private:
    * @retval true if matches, false is error
    */
   bool validateInput(sharedConstTensors X);
-
 };
 
 } /* namespace nntrainer */

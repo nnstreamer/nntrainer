@@ -1005,8 +1005,8 @@ sharedConstTensors NeuralNetwork::incremental_inference(
   if (!validateInput(X))
     throw std::invalid_argument("Input validation failed.");
 
-  if (from == 0) {
-    allocate(ExecutionMode::INFERENCE);
+  if (!from) {
+    model_graph.allocateTensors(ExecutionMode::INFERENCE);
   }
 
   int nn_foward;
@@ -1094,6 +1094,10 @@ std::vector<float *> NeuralNetwork::incremental_inference(
     output.push_back(last_out_buf_data);
   }
   return output;
+}
+
+void NeuralNetwork::resetInputDimension(std::vector<TensorDim> dims) {
+  model_graph.resetInputDimension(dims);
 }
 
 int NeuralNetwork::setDataset(const DatasetModeType &mode,
