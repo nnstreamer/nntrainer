@@ -105,6 +105,10 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
+  void updateTensorsByInputDimensions(
+    nntrainer::RunLayerContext &context,
+    std::vector<nntrainer::TensorDim> input_dimensions) override;
+
   static constexpr const char *type = "input";
 
 private:

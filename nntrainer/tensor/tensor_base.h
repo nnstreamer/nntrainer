@@ -618,6 +618,12 @@ public:
   void updateBatch(unsigned int batch);
 
   /**
+   * @brief     update the dimension for this tensor
+   * @param     dimension dimension to be updated
+   */
+  void updateDimension(TensorDim dimension);
+
+  /**
    * @brief     return whether tensor is contiguous or not.
    * @retval    bool contiguous
    */

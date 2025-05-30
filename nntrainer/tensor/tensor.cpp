@@ -1345,6 +1345,10 @@ Tdatatype Tensor::getDataType() const { return itensor_->getDataType(); }
 
 void Tensor::updateBatch(unsigned int batch) { itensor_->updateBatch(batch); }
 
+void Tensor::updateDimension(TensorDim dimension) {
+  itensor_->updateDimension(dimension);
+}
+
 const bool Tensor::getContiguous() const noexcept {
   return itensor_->getContiguous();
 }

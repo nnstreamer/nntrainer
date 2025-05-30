@@ -1709,6 +1709,14 @@ public:
   void updateBatch(unsigned int batch);
 
   /**
+   * @brief     update the dimension for this tensor
+   * @param     dimension dimension to be updated
+   * @note      if this tensor is allocated this will throw an error.
+   * @note      we assume that the caller checks if the tensor is not allocated
+   */
+  void updateDimension(TensorDim dimension);
+
+  /**
    * @brief     return whether tensor is contiguous or not.
    * @retval    bool contiguous
    */

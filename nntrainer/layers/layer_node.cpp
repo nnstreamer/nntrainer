@@ -808,6 +808,7 @@ void LayerNode::incremental_forwarding(unsigned int from, unsigned int to,
                                        bool training) {
   loss->set(run_context->getRegularizationLoss());
   PROFILE_TIME_START(forward_event_key);
+  // std::cerr << getType() << "\n";
   layer->incremental_forwarding(*run_context, from, to, training);
   PROFILE_TIME_END(forward_event_key);
   TRACE_MEMORY() << getName() + ": F";
@@ -870,6 +871,14 @@ void LayerNode::setBatch(unsigned int batch) {
     << " setting batch not supported before initialization";
 
   getLayer()->setBatch(*run_context, batch);
+}
+
+void LayerNode::updateTensorsByInputDimensions(
+  std::vector<TensorDim> input_dimensions) {
+  NNTR_THROW_IF(!run_context, std::invalid_argument)
+    << " update tensors not supported before initialization";
+
+  getLayer()->updateTensorsByInputDimensions(*run_context, input_dimensions);
 }
 
 /**

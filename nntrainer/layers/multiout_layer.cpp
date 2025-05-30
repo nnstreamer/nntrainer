@@ -89,4 +89,14 @@ void MultiOutLayer::setProperty(const std::vector<std::string> &values) {
   }
 }
 
+void MultiOutLayer::updateTensorsByInputDimensions(
+  nntrainer::RunLayerContext &context,
+  std::vector<nntrainer::TensorDim> input_dimensions) {
+  context.updateInput(SINGLE_INOUT_IDX, input_dimensions[0]);
+
+  for (size_t i = 0; i < context.getNumOutputs(); ++i) {
+    context.updateOutput(i, input_dimensions[0]);
+  }
+}
+
 } /* namespace nntrainer */
