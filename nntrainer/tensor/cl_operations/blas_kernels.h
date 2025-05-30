@@ -30,6 +30,17 @@ static ClContext *blas_cc =
 static ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
 
 /**
+ * @brief     Q6_K sgemv computation : Y = A*X
+ * @param[in] matAdata void * for Matrix A
+ * @param[in] vecXdata float * for Vector X
+ * @param[in] vecYdata float * for Vector Y
+ * @param[in] M number of rows in matrix A
+ * @param[in] N number of columns in matrix A
+ */
+void sgemv_q6_k_cl(const void *matAdata, const float *vecXdata, float *vecYdata,
+                   unsigned int M, unsigned int N);
+
+/**
  * @brief     sgemv computation : Y = A*X + Y
  * @param[in] matAdata float * for Matrix A
  * @param[in] vecXdata float * for Vector X
