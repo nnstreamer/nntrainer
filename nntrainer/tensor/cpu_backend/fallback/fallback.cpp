@@ -212,11 +212,7 @@ float dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
 }
 
 float dot_q6_K_f32(const unsigned int K, const void *v_q6_K, const float *f) {
-  float __fallback_dot_q6_K_f32(K, v_q6_K, f);
-}
-
-float dot_q6_K_f32(const unsigned int K, const void *v_q6_K, const float *f){
-#error 2
+  return __fallback_dot_q6_K_f32(K, v_q6_K, f);
 }
 
 size_t quantize_q4_0(const float *src, void *dst, int64_t nrow,
