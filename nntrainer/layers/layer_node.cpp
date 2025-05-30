@@ -855,6 +855,13 @@ void LayerNode::setBatch(unsigned int batch) {
   getLayer()->setBatch(*run_context, batch);
 }
 
+void LayerNode::updateTimeStep(unsigned int max_timestep) {
+  NNTR_THROW_IF(!run_context, std::invalid_argument)
+    << " setting batch not supported before initialization";
+
+  getLayer()->updateTimeStep(*run_context, max_timestep);
+}
+
 /**
  * @brief   If the current layer can support in-place
  */

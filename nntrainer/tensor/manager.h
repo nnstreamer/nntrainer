@@ -345,6 +345,17 @@ public:
       out->setBatchSize(batch);
   }
 
+  void updateInputOutput(unsigned axis, unsigned int value) {
+    /**
+     * All the tensors must be deallocated first by the called and then
+     * allocated by the caller.
+     */
+    for (auto &in : inputs_v2)
+      in->updateDimension(axis, value);
+    for (auto &out : outputs_v2)
+      out->updateDimension(axis, value);
+  }
+
   /**
    * @brief Set the batch size for the given tensor
    *
