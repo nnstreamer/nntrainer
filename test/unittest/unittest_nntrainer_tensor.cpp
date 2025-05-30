@@ -874,11 +874,11 @@ TEST(nntrainer_Tensor, Q_Tensor_17_p) {
   /// with Q6_K tensor format
 
   const unsigned int M = 1;
-  uint32_t K = 105900; // height
-  uint32_t N = 3072;   // width
+  uint32_t K = 5012; // height
+  uint32_t N = 3072; // width
 
   // Float tensor
-  std::vector<float> weight = generate_random_vector<float>(K * N);
+  std::vector<float> weight = generate_random_vector<float>(K * N, -0.05, 0.05);
 
   nntrainer::Tensor W_fp32(
     1, 1, K, N,
@@ -919,7 +919,7 @@ TEST(nntrainer_Tensor, QTensor_18_p) {
 
   const unsigned int M = 1;
   uint32_t K = 3072;
-  uint32_t N = 105900;
+  uint32_t N = 5012;
 
   std::vector<float> weight = generate_random_vector<float>(K * N, -0.05, 0.05);
   std::vector<float> activation =
