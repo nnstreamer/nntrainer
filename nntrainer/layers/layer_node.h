@@ -349,6 +349,8 @@ public:
    */
   void setBatch(unsigned int batch);
 
+  void updateTimeStep(unsigned int max_timestep);
+
   /**
    * @brief   If the current layer can support in-place
    * @return  true if inplace, else false

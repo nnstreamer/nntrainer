@@ -320,7 +320,8 @@ public:
   incremental_inference(unsigned int batch, const std::vector<float *> &input,
                         const std::vector<float *> &label,
                         unsigned int init_seq_len, unsigned int from,
-                        unsigned int to, bool output_hidden_state = false) = 0;
+                        unsigned int to, bool output_hidden_state = false,
+                        unsigned int num_to_generate = 512) = 0;
 
   /**
    * @brief     Summarize the model

@@ -225,6 +225,13 @@ public:
       grad->updateBatch(batch);
   }
 
+  void updateDimension(unsigned int axis, unsigned int value) {
+    if (!var->empty())
+      var->updateDimension(axis, value);
+    if (grad && !grad->empty())
+      grad->updateDimension(axis, value);
+  }
+
   /**
    * @brief Get the variable tensor (by reference)
    *
