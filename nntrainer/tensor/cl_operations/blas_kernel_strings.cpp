@@ -733,6 +733,24 @@ const std::string &getHgemmClNoTransKernel() {
 const std::string &getHgemmClTransAKernel() {
   static const std::string hgemm_cl_transA_kernel_ =
     R"(
+      #pragma OPENCL EXTENSION cl_khr_fp16 : enable
+      #define TS 16
+      __kernel void sgemm_cl_transA_fp16(__global const half *A,
+                                      __global const half *B, __global half *C,
+                                      const int M, const int N, const int K) {
+      const int globalRow = get_global_id(1); // M
+      const int globalCol = get_global_id(0); // N
+
+      const int localRow = get_local_id(1);
+      const int localCol = get_local_id(0);
+      const int groupRow = TS * get_group_id(1);
+      const int groupCol = TS * get_group_id(0);
+
+      __local half Asub[TS][TS];
+      __local half Bsub[TS][TS];
+
+      float sum = 0.0f;
+
       for (int t = 0; t < (K + TS - 1) / TS; ++t) {
         const int tiledRowA = t * TS + localCol;
         const int tiledColA = groupRow + localRow;
