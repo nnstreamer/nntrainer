@@ -37,6 +37,7 @@
 #include <attention_layer.h>
 #include <bn_layer.h>
 #include <centroid_knn.h>
+#include <channel_shuffle.h>
 #include <concat_layer.h>
 #include <constant_derivative_loss_layer.h>
 #include <conv1d_layer.h>
@@ -354,6 +355,9 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_IDENTITY);
   ac.registerFactory(nntrainer::createLayer<Upsample2dLayer>,
                      Upsample2dLayer::type, LayerType::LAYER_UPSAMPLE2D);
+
+  ac.registerFactory(nntrainer::createLayer<ChannelShuffle>,
+                     ChannelShuffle::type, LayerType::LAYER_CHANNEL_SHUFFLE);
 
 #ifdef ENABLE_NNSTREAMER_BACKBONE
   ac.registerFactory(nntrainer::createLayer<NNStreamerLayer>,
