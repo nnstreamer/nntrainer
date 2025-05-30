@@ -229,6 +229,10 @@ void LayerNode::setProperty(const std::vector<std::string> &properties) {
   }
 }
 
+std::string LayerNode::getProperty(const std::string &key) {
+  return layer->getProperty(key);
+}
+
 void LayerNode::setWeights(const std::vector<float *> weights) {
   NNTR_THROW_IF(!run_context, std::runtime_error)
     << __func__ << " layer needs to be finalized first!";

@@ -251,6 +251,8 @@ public:
    */
   virtual void setProperty(const std::vector<std::string> &values) = 0;
 
+  virtual std::string getProperty(const std::string &key) {return "";}
+
   /**
    * @brief this function helps exporting the layer in a predefined format,
    * while workarounding issue caused by templated function type eraser

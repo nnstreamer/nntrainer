@@ -76,6 +76,10 @@ public:
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
   virtual void setProperty(const std::vector<std::string> &values) override;
+  
+  virtual std::string getProperty(const std::string &key) override {
+    return "";
+  }
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, const ml::train::ExportMethods
@@ -83,6 +87,35 @@ public:
    */
   virtual void exportTo(Exporter &exporter,
                         const ml::train::ExportMethods &method) const override;
+
+  template <typename Func, typename Tuple, std::size_t... ls>
+  std::string for_each_imple(Func &&f, const Tuple &t,
+                                        std::index_sequence<ls...>,
+                                        const std::string &key) {
+    std::string result = "";
+
+    (..., (
+            [&] {
+              auto &&elem = std::get<ls>(t);
+              if (strcmp(getPropKey(elem), key.c_str()) == 0) {
+                if (!elem.empty()) {
+                  result = to_string(elem);
+                } else {
+                  result = "empty";
+                }
+              }
+            }(),
+            0));
+
+    return result;
+  }
+
+  template <typename Func, typename... Args>
+  std::string for_each(const std::tuple<Args...> &t, Func &&f,
+                                  const std::string &key) {
+    return for_each_imple(std::forward<Func>(f), t,
+                          std::index_sequence_for<Args...>{}, key);
+  }
 
 protected:
   std::unique_ptr<
