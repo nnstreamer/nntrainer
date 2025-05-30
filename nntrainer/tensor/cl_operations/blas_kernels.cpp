@@ -19,6 +19,191 @@
 
 namespace nntrainer {
 
+void sgemv_q6_k_cl(const void *matAdata, const float *vecXdata, float *vecYdata,
+                   unsigned int M, unsigned int N) {
+  bool result = false;
+
+  ClContext::SharedPtrClKernel kernel_q6_k_sgemv_ptr;
+
+  kernel_q6_k_sgemv_ptr =
+    blas_cc->registerClKernel(getQ6KSgemvClKernel(), "kernel_mul_mv_q6_K_f32");
+
+  if (!kernel_q6_k_sgemv_ptr) {
+    ml_loge("Failed to register kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  int q6k_size = 210 * M * N / 256;
+
+  result = clbuffInstance.getInBufferA()->WriteDataRegion(
+    blas_cc->command_queue_inst_, q6k_size, matAdata);
+  if (!result) {
+    ml_loge("Failed to write data to input buffer A for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = clbuffInstance.getInBufferB()->WriteDataRegion(
+    blas_cc->command_queue_inst_, M * sizeof(float), vecXdata);
+  if (!result) {
+    ml_loge("Failed to write data to input buffer B for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  int ne00 = M; // number of rows in matrix X
+  int ne01 = N; // number of columns in matrix X
+  int ne02 = 1; // number of channels in matrix X
+  int ne10 = M; // number of rows in vector A
+  int ne11 = 1; // number of columns in vector A
+  int ne12 = 1; // number of channels in vector A
+  int ne13 = 1; // number of channels in vector A (Need to check)
+  int ne0 = N;  // number of rows in output vector Y
+  int ne1 = 1;  // number of columns in output vector Y
+
+  int r2 = 1; // number of batches in vector A
+  int r3 = 1; // number of batches in matrix X
+
+  int nth0 = 2;
+  int nth1 = 16;
+
+  cl_ulong offset0 = 0;
+  cl_ulong offset1 = 0;
+  cl_ulong offsetd = 0;
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(
+    0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 0 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result =
+    kernel_q6_k_sgemv_ptr->SetKernelArguments(1, &offset0, sizeof(cl_ulong));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 1 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(
+    2, clbuffInstance.getInBufferB(), sizeof(cl_mem));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 2 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result =
+    kernel_q6_k_sgemv_ptr->SetKernelArguments(3, &offset1, sizeof(cl_ulong));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 3 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(
+    4, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 4 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result =
+    kernel_q6_k_sgemv_ptr->SetKernelArguments(5, &offsetd, sizeof(cl_ulong));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 5 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(6, &ne00, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 6 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(7, &ne01, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 7 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(8, &ne02, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 8 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(9, &ne10, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 9 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(10, &ne12, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 10 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(11, &ne0, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 11 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(12, &ne1, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 12 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(13, &r2, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 13 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(14, &r3, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 14 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+#define N_SIMDWIDTH 16
+#define N_SIMDGROUP 2
+
+  const int work_groups_count[3] = {ne00, 1, 1};
+  /// @todo: create a group size by device & input
+  const int work_group_size[3] = {N_SIMDWIDTH * N_SIMDGROUP, 1, 1};
+
+  result = opencl::CommandQueueManager::GetInstance().DispatchCommand(
+    kernel_q6_k_sgemv_ptr, work_groups_count, work_group_size);
+  if (!result) {
+    ml_loge("Failed to dispatch kernel q6_k_sgemv");
+    return;
+  }
+
+  result = clbuffInstance.getOutBufferA()->ReadDataRegion(
+    blas_cc->command_queue_inst_, N * sizeof(float), vecYdata);
+  if (!result) {
+    ml_loge(
+      "Failed to read data from the output buffer for kernel_q6_k_sgemv_ptr");
+
+    return;
+  }
+}
+
 void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
               bool TransA, unsigned int dim1, unsigned int dim2,
               unsigned int lda) {
