@@ -874,7 +874,7 @@ TEST(nntrainer_Tensor, Q_Tensor_17_p) {
   /// with Q6_K tensor format
 
   const unsigned int M = 1;
-  uint32_t K = 5012; // height
+  uint32_t K = 5120; // height
   uint32_t N = 3072; // width
 
   // Float tensor
@@ -919,7 +919,7 @@ TEST(nntrainer_Tensor, QTensor_18_p) {
 
   const unsigned int M = 1;
   uint32_t K = 3072;
-  uint32_t N = 5012;
+  uint32_t N = 5120;
 
   std::vector<float> weight = generate_random_vector<float>(K * N, -0.05, 0.05);
   std::vector<float> activation =
