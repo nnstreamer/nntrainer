@@ -172,6 +172,8 @@ public:
    */
   void setBatchSize(unsigned int batch_size);
 
+  void updateTimeStep(unsigned int max_timestep);
+
   /**
    * @brief try apply gradient if possible
    * @note if it is not the last of the gradient access, this is noop

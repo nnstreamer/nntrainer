@@ -378,7 +378,7 @@ s   * @retval shared_ptr<const Tensor>
    */
   sharedConstTensors incremental_inference(sharedConstTensors X,
                                            unsigned int init_seq_len,
-                                           unsigned int from, unsigned int to);
+                                           unsigned int from, unsigned int to, unsigned int num_to_generate);
 
   /**
    * @brief     Run NeuralNetwork incremental inference
@@ -391,7 +391,7 @@ s   * @retval shared_ptr<const Tensor>
   sharedConstTensors incremental_inference(sharedConstTensors X,
                                            sharedConstTensors label,
                                            unsigned int init_seq_len,
-                                           unsigned int from, unsigned int to);
+                                           unsigned int from, unsigned int to, unsigned int num_to_generate);
 
   /**
    * @brief     Run the incremental inference of the model
@@ -408,7 +408,8 @@ s   * @retval shared_ptr<const Tensor>
                         const std::vector<float *> &label,
                         unsigned int init_seq_len, unsigned int from,
                         unsigned int to,
-                        bool output_hidden_state = false) override;
+                        bool output_hidden_state = false,
+                        unsigned int num_to_generate = 512) override;
 
   /**
    * @brief     Run NeuralNetwork train with callback function by user
@@ -684,6 +685,8 @@ private:
 
   DynamicTrainingOptimization dynamic_training_opt; /**< Dynamic fine-tuning
    optimization mode. supported modes are "max" and "norm" */
+   
+  unsigned int model_init_seq_len;
 
   /**
    * @brief save model in ini
