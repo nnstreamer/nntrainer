@@ -482,6 +482,18 @@ void RunLayerContext::updateTensor(unsigned int idx, unsigned int batch) {
   tensors[idx]->setBatchSize(batch);
 }
 
+void RunLayerContext::updateInput(unsigned int idx, TensorDim dimension) {
+  inputs[idx]->updateDimension(dimension);
+}
+
+void RunLayerContext::updateOutput(unsigned int idx, TensorDim dimension) {
+  outputs[idx]->updateDimension(dimension);
+}
+
+void RunLayerContext::updateTensor(unsigned int idx, TensorDim dimension) {
+  tensors[idx]->updateDimension(dimension);
+}
+
 /**
  * @brief   Get weight object for the weights
  *

@@ -83,4 +83,11 @@ void InputLayer::finalize(InitLayerContext &context) {
     is_inplace = false;
 }
 
+void InputLayer::updateTensorsByInputDimensions(
+  nntrainer::RunLayerContext &context,
+  std::vector<nntrainer::TensorDim> input_dimensions) {
+  context.updateInput(SINGLE_INOUT_IDX, input_dimensions[0]);
+  context.updateOutput(SINGLE_INOUT_IDX, input_dimensions[0]);
+}
+
 } /* namespace nntrainer */

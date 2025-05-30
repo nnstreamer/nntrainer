@@ -99,6 +99,10 @@ public:
    */
   const std::string getType() const override { return MultiOutLayer::type; };
 
+  void updateTensorsByInputDimensions(
+    nntrainer::RunLayerContext &context,
+    std::vector<nntrainer::TensorDim> input_dimensions) override;
+
   static constexpr const char *type = "multiout";
 };
 

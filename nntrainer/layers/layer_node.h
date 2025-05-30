@@ -352,6 +352,14 @@ public:
   void setBatch(unsigned int batch);
 
   /**
+   * @brief Update the tensors dimensions of the layer by input dimensions
+   * @param     input_dimensions input dimensions of the layer
+   * @details Update the dimensions of inputs, outputs, weights, tensors based
+   * on the input dimensions
+   */
+  void updateTensorsByInputDimensions(std::vector<TensorDim> input_dimensions);
+
+  /**
    * @brief   If the current layer can support in-place
    * @return  true if inplace, else false
    */

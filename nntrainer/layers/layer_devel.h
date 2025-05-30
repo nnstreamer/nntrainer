@@ -277,6 +277,21 @@ public:
   virtual void setBatch(RunLayerContext &context, unsigned int batch) {}
 
   /**
+   * @brief Update the tensor dimensions of layer by input dimensions
+   * @param     context Context of the layer
+   * @param     input_dimensions input dimensions of layer
+   * @details Update the dimensions of inputs, outputs, weights and tensors
+   * based on the input dimensions
+   */
+  virtual void
+  updateTensorsByInputDimensions(RunLayerContext &context,
+                                 std::vector<TensorDim> input_dimensions) {
+    throw std::invalid_argument("updateTensorsByInputDimensions() is currently "
+                                "not supported for layer type " +
+                                getType());
+  }
+
+  /**
    * @brief   If the current layer can support in-place
    *
    * @return  true if inplace, else false
