@@ -75,7 +75,7 @@ public:
   /**
    * @copydoc Tensor::deallocate()
    */
-  void deallocate() {
+  void deallocate() override {
     data = nullptr;
     offset = 0;
   }
@@ -88,7 +88,7 @@ public:
   /**
    * @copydoc Tensor::getData()
    */
-  void *getData(size_t idx) const {
+  void *getData(size_t idx) const override {
     throw std::invalid_argument(
       "Q6_K_Tensor::getData() is not supported. Use getData() instead.");
   }
@@ -96,21 +96,21 @@ public:
   /**
    * @copydoc Tensor::getAddress()
    */
-  void *getAddress(unsigned int i) {
+  void *getAddress(unsigned int i) override {
     throw std::invalid_argument("Q6_K_Tensor::getAddress() is not supported.");
   }
 
   /**
    * @copydoc Tensor::getAddress()
    */
-  const void *getAddress(unsigned int i) const {
+  const void *getAddress(unsigned int i) const override {
     throw std::invalid_argument("Q6_K_Tensor::getAddress() is not supported.");
   }
 
   /**
    * @copydoc Tensor::setValue()
    */
-  void setValue(float value) {
+  void setValue(float value) override {
     throw std::invalid_argument("Q6_K_Tensor::setValue() is not supported.");
   }
 
@@ -118,7 +118,7 @@ public:
    * @copydoc Tensor::setValue()
    */
   void setValue(unsigned int b, unsigned int c, unsigned int h, unsigned int w,
-                float value) {
+                float value) override {
     throw std::invalid_argument("Q6_K_Tensor::setValue() is not supported.");
   }
 
@@ -126,7 +126,7 @@ public:
    * @copydoc Tensor::addValue()
    */
   void addValue(unsigned int b, unsigned int c, unsigned int h, unsigned int w,
-                float value, float beta) {
+                float value, float beta) override {
     throw std::invalid_argument("Q6_K_Tensor::addValue() is not supported.");
   }
 
@@ -138,7 +138,7 @@ public:
   /**
    * @copydoc Tensor::initialize()
    */
-  void initialize(Initializer init) {
+  void initialize(Initializer init) override {
     throw std::invalid_argument("Q6_K_Tensor::initialize() is not supported.");
   }
 
@@ -150,27 +150,27 @@ public:
   /**
    * @copydoc Tensor::print()
    */
-  void print(std::ostream &out) const {
+  void print(std::ostream &out) const override {
     throw std::invalid_argument("Q6_K_Tensor::print() is not supported.");
   }
 
   /**
    * @copydoc Tensor::copy()
    */
-  void copy(const Tensor &from) {
+  void copy(const Tensor &from) override {
     throw std::invalid_argument("Q6_K_Tensor::copy() is not supported.");
   }
   /**
    * @copydoc Tensor::copyData()
    */
-  void copyData(const Tensor &from) {
+  void copyData(const Tensor &from) override {
     throw std::invalid_argument("Q6_K_Tensor::copyData() is not supported.");
   }
 
   /**
    * @copydoc Tensor::copy_with_stride()
    */
-  void copy_with_stride(const Tensor &input, Tensor &output) {
+  void copy_with_stride(const Tensor &input, Tensor &output) override {
     throw std::invalid_argument(
       "Q6_K_Tensor::copy_with_stride() is not supported.");
   }
@@ -178,21 +178,21 @@ public:
   /**
    * @copydoc Tensor::max_abs()
    */
-  float max_abs() const {
+  float max_abs() const override {
     throw std::invalid_argument("Q6_K_Tensor::max_abs() is not supported.");
   }
 
   /**
    * @copydoc Tensor::maxValue()
    */
-  float maxValue() const {
+  float maxValue() const override {
     throw std::invalid_argument("Q6_K_Tensor::maxValue() is not supported.");
   }
 
   /**
    * @copydoc Tensor::minValue()
    */
-  float minValue() const {
+  float minValue() const override {
     throw std::invalid_argument("Q6_K_Tensor::minValue() is not supported.");
   }
 
