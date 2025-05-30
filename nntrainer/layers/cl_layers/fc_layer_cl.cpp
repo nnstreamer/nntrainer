@@ -112,25 +112,8 @@ void FullyConnectedLayerCl::forwarding(RunLayerContext &context,
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
 
-  if (weight.getDataType() == nntrainer::Tdatatype::QINT4 ||
-      weight.getDataType() == nntrainer::Tdatatype::QINT8) {
-    Tdatatype dtype = input_.getDataType();
-
-    Tensor weight_(
-      {{weight.batch(), weight.channel(), weight.height(), weight.width()},
-       {weight.getFormat(), dtype}},
-      true);
-
-    unsigned int axis =
-      context.getWeightObject(weight_idx[FCParams::weight]).getOutputAxis();
-
-    // Dequantize is currently disabled
-    // weight.dequantize(weight_, axis);
-
-    dotCl(input_, weight_, hidden_);
-  } else {
-    dotCl(input_, weight, hidden_);
-  }
+  hidden_.setZero();
+  dotCl(input_, weight, hidden_);
 
   if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
       disable_bias.empty() || disable_bias.get() == false) {
