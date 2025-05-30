@@ -81,7 +81,8 @@ NeuralNetwork::NeuralNetwork() :
   initialized(false),
   compiled(false),
   loadedFromConfig(false),
-  exec_mode(ExecutionMode::TRAIN) {
+  exec_mode(ExecutionMode::TRAIN),
+  model_init_seq_len(0u) {
   ct_engine = Engine(Engine::Global());
 }
 
@@ -102,7 +103,8 @@ NeuralNetwork::NeuralNetwork(Engine ct_engine_) :
   compiled(false),
   loadedFromConfig(false),
   exec_mode(ExecutionMode::TRAIN),
-  ct_engine(ct_engine_) {}
+  ct_engine(ct_engine_),
+  model_init_seq_len(0u) {}
 
 int NeuralNetwork::loadFromConfig(const std::string &config) {
   if (loadedFromConfig == true) {
@@ -987,16 +989,15 @@ NeuralNetwork::inference(unsigned int batch_size,
   return output;
 }
 
-sharedConstTensors
-NeuralNetwork::incremental_inference(sharedConstTensors X,
-                                     unsigned int init_seq_len,
-                                     unsigned int from, unsigned int to) {
-  return incremental_inference(X, {}, init_seq_len, from, to);
+sharedConstTensors NeuralNetwork::incremental_inference(
+  sharedConstTensors X, unsigned int init_seq_len, unsigned int from,
+  unsigned int to, unsigned int num_to_generate) {
+  return incremental_inference(X, {}, init_seq_len, from, to, num_to_generate);
 }
 
 sharedConstTensors NeuralNetwork::incremental_inference(
   sharedConstTensors X, sharedConstTensors label, unsigned int init_seq_len,
-  unsigned int from, unsigned int to) {
+  unsigned int from, unsigned int to, unsigned int num_to_generate) {
   if (model_graph.getBatchSize() != X[0]->batch()) {
     model_graph.setBatchSize(X[0]->batch());
   }
@@ -1005,9 +1006,25 @@ sharedConstTensors NeuralNetwork::incremental_inference(
   if (!validateInput(X))
     throw std::invalid_argument("Input validation failed.");
 
-  if (from == 0) {
-    allocate(ExecutionMode::INFERENCE);
+  if (!from) {
+    if (model_init_seq_len < init_seq_len) {
+      sharedConstTensors new_X;
+      auto in_dims = getInputDimension();
+      // @todo: we need to handle the case where the input tensor is not related
+      // to timestep (ex image)
+      for (unsigned int i = 0; i < X.size(); ++i) {
+        auto in_dim = in_dims[i];
+        in_dim.height(init_seq_len + num_to_generate);
+        new_X.emplace_back(MAKE_SHARED_TENSOR(Tensor::Map(
+          X[i]->getData(), in_dim.getDataLen() * sizeof(float), in_dim, 0)));
+      }
+      X = new_X;
+      model_graph.updateTimeStep(init_seq_len + num_to_generate);
+    }
+    model_graph.allocateTensors(ExecutionMode::INFERENCE);
   }
+
+  model_init_seq_len = init_seq_len;
 
   int nn_foward;
   PROFILE_TIME_REGISTER_EVENT(nn_foward, "nn_forward");
@@ -1027,7 +1044,8 @@ sharedConstTensors NeuralNetwork::incremental_inference(
 std::vector<float *> NeuralNetwork::incremental_inference(
   unsigned int batch_size, const std::vector<float *> &input,
   const std::vector<float *> &label, unsigned int init_seq_len,
-  unsigned int from, unsigned int to, bool output_hidden_state) {
+  unsigned int from, unsigned int to, bool output_hidden_state,
+  unsigned int num_to_generate) {
 
   sharedConstTensors input_tensors, output_tensors;
   auto in_dim = getInputDimension();
@@ -1049,11 +1067,11 @@ std::vector<float *> NeuralNetwork::incremental_inference(
         Tensor::Map(label[idx], label_dim[idx].getDataLen() * sizeof(float),
                     label_dim[idx], 0)));
     }
-    output_tensors = incremental_inference(input_tensors, label_tensors,
-                                           init_seq_len, from, to);
+    output_tensors = incremental_inference(
+      input_tensors, label_tensors, init_seq_len, from, to, num_to_generate);
   } else {
-    output_tensors =
-      incremental_inference(input_tensors, init_seq_len, from, to);
+    output_tensors = incremental_inference(input_tensors, init_seq_len, from,
+                                           to, num_to_generate);
   }
 
   std::vector<float *> output;

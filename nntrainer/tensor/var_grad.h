@@ -226,6 +226,19 @@ public:
   }
 
   /**
+   * @brief Update the dimension
+   *
+   * @param axis axis to be updated
+   * @param value value to be updated
+   */
+  void updateDimension(unsigned int axis, unsigned int value) {
+    if (!var->empty())
+      var->updateDimension(axis, value);
+    if (grad && !grad->empty())
+      grad->updateDimension(axis, value);
+  }
+
+  /**
    * @brief Get the variable tensor (by reference)
    *
    * @return Tensor Variable tensor

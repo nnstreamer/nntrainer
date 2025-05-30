@@ -373,25 +373,31 @@ public:
    * @brief     Run NeuralNetwork incremental inference
    * @param[in] X input tensor
    * @param[in] init_seq_len initial sequence length
-   * @param[in] cur_step current working step index (zero based index)
-s   * @retval shared_ptr<const Tensor>
+   * @param[in] from current working step index
+   * @param[in] to next working step index
+   * @param[in] num_to_generate number of maximum sequence to generate
+   * @retval shared_ptr<const Tensor>
    */
   sharedConstTensors incremental_inference(sharedConstTensors X,
                                            unsigned int init_seq_len,
-                                           unsigned int from, unsigned int to);
+                                           unsigned int from, unsigned int to,
+                                           unsigned int num_to_generate);
 
   /**
    * @brief     Run NeuralNetwork incremental inference
    * @param[in] X input tensor
    * @param[in] label label tensor
    * @param[in] init_seq_len initial sequence length
-   * @param[in] cur_step current working step index (zero based index)
+   * @param[in] from current working step index
+   * @param[in] to next working step index
+   * @param[in] num_to_generate number of maximum sequence to generate
    * @retval shared_ptr<const Tensor>
    */
   sharedConstTensors incremental_inference(sharedConstTensors X,
                                            sharedConstTensors label,
                                            unsigned int init_seq_len,
-                                           unsigned int from, unsigned int to);
+                                           unsigned int from, unsigned int to,
+                                           unsigned int num_to_generate);
 
   /**
    * @brief     Run the incremental inference of the model
@@ -399,7 +405,11 @@ s   * @retval shared_ptr<const Tensor>
    * @param[in] input inputs as a list of each input data
    * @param[in] label labels as a list of each label data
    * @param[in] init_seq_len initial sequence length
-   * @param[in] cur_step current working step index (zero based index)
+   * @param[in] from current working step index
+   * @param[in] to next working step index
+   * @param[in] output_hidden_state return last hidden state if true else return
+   * all hidden state
+   * @param[in] num_to_generate number of maximum sequence to generate
    * @retval list of output as float *
    * @note The output memory must not be freed by the caller
    */
@@ -407,8 +417,8 @@ s   * @retval shared_ptr<const Tensor>
   incremental_inference(unsigned int batch, const std::vector<float *> &input,
                         const std::vector<float *> &label,
                         unsigned int init_seq_len, unsigned int from,
-                        unsigned int to,
-                        bool output_hidden_state = false) override;
+                        unsigned int to, bool output_hidden_state = false,
+                        unsigned int num_to_generate = 512) override;
 
   /**
    * @brief     Run NeuralNetwork train with callback function by user
@@ -685,6 +695,8 @@ private:
   DynamicTrainingOptimization dynamic_training_opt; /**< Dynamic fine-tuning
    optimization mode. supported modes are "max" and "norm" */
 
+  unsigned int model_init_seq_len;
+
   /**
    * @brief save model in ini
    *
@@ -749,7 +761,6 @@ private:
    * @retval true if matches, false is error
    */
   bool validateInput(sharedConstTensors X);
-
 };
 
 } /* namespace nntrainer */

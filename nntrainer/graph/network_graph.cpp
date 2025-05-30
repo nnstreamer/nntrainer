@@ -331,6 +331,32 @@ void NetworkGraph::setBatchSize(unsigned int batch_size) {
     label_dims[idx] = tensor_manager->getTensor(label_list[idx])->getDim();
 }
 
+void NetworkGraph::updateTimeStep(unsigned int max_timestep) {
+  auto allocated = tensor_manager->isAllocated();
+
+  if (allocated)
+    deallocateTensors();
+
+  /// resize input and output spec
+  tensor_manager->updateInputOutput(tensor_format == "NCHW" ? 2 : 1,
+                                    max_timestep);
+
+  for (auto iter = cbegin(); iter != cend(); iter++) {
+    if ((*iter)->isFinalized()) {
+      (*iter)->updateTimeStep(max_timestep);
+    }
+  }
+
+  if (allocated)
+    allocateTensors(exec_mode);
+
+  /** update input and label dimensions */
+  for (unsigned int idx = 0; idx < input_list.size(); idx++)
+    input_dims[idx] = tensor_manager->getTensor(input_list[idx])->getDim();
+  for (unsigned int idx = 0; idx < label_list.size(); idx++)
+    label_dims[idx] = tensor_manager->getTensor(label_list[idx])->getDim();
+}
+
 void NetworkGraph::applyGradients(
   LayerNode *node, const std::function<void(Weight &)> &apply_func) {
   if (!node->getTrainable())
