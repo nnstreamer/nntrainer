@@ -83,6 +83,8 @@ TEST_P(LayerSemantics, setBatchValidate_p) {
 }
 
 #ifdef ENABLE_OPENCL
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(LayerSemanticsGpu);
+
 TEST_P(LayerSemanticsGpu, setProperties_n) {
   /** must not crash */
   EXPECT_THROW(layer->setProperty({"unknown_props=2"}), std::invalid_argument);
