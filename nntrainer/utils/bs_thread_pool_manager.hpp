@@ -47,9 +47,8 @@ public:
    * @param K K for GEMM or GEMV
    * @return std::size_t number of thread to use
    */
-  std::size_t ThreadPoolManager::select_k_quant_thread_count(unsigned int M,
-                                                             unsigned int N,
-                                                             unsigned int K);
+  std::size_t select_k_quant_thread_count(unsigned int M, unsigned int N,
+                                          unsigned int K);
 
   /**
    * @brief Static method to access the single instance
