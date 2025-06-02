@@ -97,6 +97,10 @@ const std::shared_ptr<MemoryData> TensorBase::getMemoryData() const {
 
 size_t TensorBase::getOffset() const { return offset; }
 
+size_t TensorBase::getFileOffset() const { return file_offset; }
+
+void TensorBase::setFileOffset(size_t off) { file_offset = off; }
+
 void TensorBase::reshape(const TensorDim &d) {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << " is not contiguous, cannot reshape.";

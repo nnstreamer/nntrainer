@@ -104,6 +104,7 @@ public:
     name(name_),
     data(nullptr),
     offset(0),
+    file_offset(0),
     src_tensor() {}
 
   /**
@@ -563,6 +564,18 @@ public:
   size_t getOffset() const;
 
   /**
+   * @brief     get FileOffset of Tensor
+   * @return    size_t fileOffset
+   */
+  size_t getFileOffset() const;
+
+  /**
+   * @brief     set FileOffset to Tensor
+   * @param     off FileOffset
+   */
+  void setFileOffset(size_t off);
+
+  /**
    * @brief     set Tensor Dim
    * @param[in] d TensorDim
    * @note      Throws std::invalid_argument if size mismatch
@@ -776,6 +789,7 @@ protected:
   std::string name; /**< name of the tensor */
   std::shared_ptr<MemoryData> data;
   size_t offset;
+  size_t file_offset; /**< offset of the tensor in the file */
 
   /**<
    * When using shared_data with tensor, this stores the ptr of the source
