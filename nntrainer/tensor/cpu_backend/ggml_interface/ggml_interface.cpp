@@ -359,7 +359,6 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
     const int32_t A_total_size = A_row_size * M;
     std::vector<char> quantized_A(A_total_size);
 
-#pragma omp parallel for num_threads(thread_count)
     for (int32_t thread_job = 0; thread_job < static_cast<int>(M);
          thread_job++) {
       const int32_t A_row_data_offset = A_row_size * thread_job;
