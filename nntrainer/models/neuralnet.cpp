@@ -680,7 +680,8 @@ void NeuralNetwork::load(const std::string &file_path,
     for (auto weight : weights) {
       size_t size = weight->getVariable().getMemoryBytes();
       auto tensor_data_type = weight->getDim().getDataType();
-
+      weight->getVariableRef().setFileOffset(start_from);
+      weight->getVariable().getOffset();
       ///@todo instead of checking the data type,
       /// we may need to create a common parent class for
       /// quantized tensors, requiring qparam to be saved

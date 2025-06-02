@@ -1372,6 +1372,12 @@ bool Tensor::checkContinuous(unsigned int np1, unsigned int np2) const {
   return false;
 }
 
+void Tensor::setFileOffset(const size_t file_offset) {
+  itensor_->setFileOffset(file_offset);
+}
+
+size_t Tensor::getFileOffset() const { return itensor_->getFileOffset(); }
+
 void Tensor::setName(const std::string &name_) { itensor_->setName(name_); }
 
 const std::string &Tensor::getName() const { return itensor_->getName(); }
