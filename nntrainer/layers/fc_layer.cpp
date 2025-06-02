@@ -137,14 +137,16 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
     TensorDim loraTmp_dim(
       in_dim.batch(), is_nchw ? 1 : lora_rank, is_nchw ? in_dim.height() : 1,
       is_nchw ? lora_rank : in_dim.width(),
-      TensorDim::TensorType(context.getFormat(), context.getWeightDataType()),
+      TensorDim::TensorType(context.getFormat(),
+                            context.getActivationDataType()),
       is_nchw ? 0b1011 : 0b1101);
 
     /** loraTmp Dimension : (B, 1, in_dim.height(), unit) */
     TensorDim loraOut_dim(
       in_dim.batch(), is_nchw ? 1 : unit, is_nchw ? in_dim.height() : 1,
       is_nchw ? unit : in_dim.width(),
-      TensorDim::TensorType(context.getFormat(), context.getWeightDataType()),
+      TensorDim::TensorType(context.getFormat(),
+                            context.getActivationDataType()),
       is_nchw ? 0b1011 : 0b1101);
 
     lora_idx[LORAParams::loraA] = context.requestWeight(
