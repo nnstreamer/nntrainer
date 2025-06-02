@@ -430,7 +430,7 @@ if get_option('enable-benchmarks')
   benchmark_dep = dependency('benchmark', static : true, main : false, required : false)
   if not benchmark_dep.found()
     benchmark_options = cmake.subproject_options()
-    if cxx_compiler_id == 'msvc'
+    if host_machine.system() == 'windows'
       benchmark_options.add_cmake_defines(common_win_subproject_cmake_defines)
     endif
     benchmark_options.add_cmake_defines({'BENCHMARK_ENABLE_TESTING': false})
@@ -447,7 +447,7 @@ gtest_main_dep = dependency('gtest', static: true, main: true, required: false)
 
 if not gmock_dep.found() or not gtest_dep.found() or not gtest_main_dep.found()
   googletest_options = cmake.subproject_options()
-  if cxx_compiler_id == 'msvc'
+  if host_machine.system() == 'windows'
     googletest_options.add_cmake_defines(common_win_subproject_cmake_defines)
   else
     googletest_options.add_cmake_defines({'CMAKE_POSITION_INDEPENDENT_CODE': true})
@@ -557,9 +557,12 @@ else
   ruy_options = cmake.subproject_options()
   ruy_options.add_cmake_defines({'RUY_MINIMAL_BUILD': true})
   ruy_options.add_cmake_defines({'CMAKE_POLICY_VERSION_MINIMUM': '3.5'})
-  if cxx_compiler_id == 'msvc'
+
+  if host_machine.system() == 'windows'
     ruy_options.add_cmake_defines(common_win_subproject_cmake_defines)
-  else
+  endif
+
+  if cxx_compiler_id != 'msvc'
     ruy_flags = [
       '-Wno-error=unused-result',
       '-Wno-error=comment',
