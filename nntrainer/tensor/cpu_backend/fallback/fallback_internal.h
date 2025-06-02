@@ -718,14 +718,16 @@ void __fallback_gemm_q6_K(const unsigned int M, const unsigned int N,
 float __fallback_dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
                                const void *v_q8_K);
 
+/**
+ * @brief (1xK)*(Kx1) dot product for q6_K and f32 vectors
+ *
+ * @param K Length of vectors
+ * @param v_q6_K lhs vector - data stored in Q6_K format
+ * @param f rhs vector - data stored in f32 format
+ * @return float float Result of performing dot operation on v_q6_K and f
+ */
 float __fallback_dot_q6_K_f32(const unsigned int K, const void *v_q6_K,
                               const float *f);
-
-void __fallback_gemm_q6_K(const unsigned int M, const unsigned int N,
-                          const unsigned int K, const float *A,
-                          const unsigned int lda, const void *B,
-                          const unsigned int ldb, float *C,
-                          const unsigned int ldc);
 
 /**
  * @brief quantize_q4_0 function
