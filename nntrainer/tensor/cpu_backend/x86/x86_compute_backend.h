@@ -780,7 +780,7 @@ float dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
                     const void *v_q8_K);
 /**
  * @brief (1xK)*(Kx1) dot product for q6_K and f32 vectors
- * 
+ *
  * @param K Length of vectors
  * @param v_q6_K lhs vector - data stored in Q6_K format
  * @param f rhs vector - data stored in f32 format

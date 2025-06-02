@@ -492,7 +492,6 @@ static void run_vec_dot_test(const uint32_t K, bool print = false) {
       ref_result = nntrainer::sdot(K, weight.data(), 1, activation.data(), 1);
       auto t2 = high_resolution_clock::now();
       auto dt = duration_cast<nanoseconds>(t2 - t1);
-      // std::cout << "[INFO] sdot : " << dt.count() << " ns " << std::endl;
       if (i >= 0) { // skip the first run
         ref_time += dt;
       }
@@ -522,8 +521,6 @@ static void run_vec_dot_test(const uint32_t K, bool print = false) {
         q6_k_time += dt;
       }
     }
-    // printf("res: %f  res: %f, diff: %f\n", result, ref_result, result -
-    // ref_result);
     EXPECT_NEAR(result, ref_result, 0.25 * K / 256);
   }
   if (print) {
