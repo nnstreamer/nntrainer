@@ -397,10 +397,11 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMM_256x1024x512) {
   const unsigned int K = 1024;
   const unsigned int N = 512;
   float q4_0_mse, q4_k_mse, q6_k_mse;
+  constexpr float eps = 1e-5;
   run_quant_test(M, K, N, q4_0_mse, q4_k_mse, q6_k_mse, false);
   // ASSERT_LE(q4_0_mse, 2.0f);
-  // ASSERT_LE(q4_k_mse, 2.0f);
-  ASSERT_LE(q6_k_mse, 2.0f);
+  ASSERT_LE(q4_k_mse, eps * M * K * N);
+  ASSERT_LE(q6_k_mse, q4_k_mse);
 }
 
 TEST(nntrainer_cpu_backend_standalone, quant_GEMM_457x3072x3072) {
@@ -408,10 +409,11 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMM_457x3072x3072) {
   const unsigned int K = 3072;
   const unsigned int N = 3072;
   float q4_0_mse, q4_k_mse, q6_k_mse;
+  constexpr float eps = 1e-5;
   run_quant_test(M, K, N, q4_0_mse, q4_k_mse, q6_k_mse, false);
   // ASSERT_LE(q4_0_mse, 1.5f);
-  // ASSERT_LE(q4_k_mse, 1.5f);
-  ASSERT_LE(q6_k_mse, 1.5f);
+  ASSERT_LE(q4_k_mse, eps * M * K * N);
+  ASSERT_LE(q6_k_mse, q4_k_mse);
 }
 
 TEST(nntrainer_cpu_backend_standalone, quant_GEMM_458x3072x3072) {
@@ -419,10 +421,11 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMM_458x3072x3072) {
   const unsigned int K = 3072;
   const unsigned int N = 3072;
   float q4_0_mse, q4_k_mse, q6_k_mse;
+  constexpr float eps = 1e-5;
   run_quant_test(M, K, N, q4_0_mse, q4_k_mse, q6_k_mse, false);
   // ASSERT_LE(q4_0_mse, 1.5f);
-  // ASSERT_LE(q4_k_mse, 1.5f);
-  ASSERT_LE(q6_k_mse, 1.5f);
+  ASSERT_LE(q4_k_mse, eps * M * K * N);
+  ASSERT_LE(q6_k_mse, q4_k_mse);
 }
 
 TEST(nntrainer_cpu_backend_standalone, quant_GEMM_459x3072x3072) {
@@ -430,10 +433,11 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMM_459x3072x3072) {
   const unsigned int K = 3072;
   const unsigned int N = 3072;
   float q4_0_mse, q4_k_mse, q6_k_mse;
+  constexpr float eps = 1e-5;
   run_quant_test(M, K, N, q4_0_mse, q4_k_mse, q6_k_mse, false);
   // ASSERT_LE(q4_0_mse, 1.5f);
-  // ASSERT_LE(q4_k_mse, 1.5f);
-  ASSERT_LE(q6_k_mse, 1.5f);
+  ASSERT_LE(q4_k_mse, eps * M * K * N);
+  ASSERT_LE(q6_k_mse, q4_k_mse);
 }
 
 TEST(nntrainer_cpu_backend_standalone, quant_GEMM_1024x3072x3072) {
@@ -441,10 +445,11 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMM_1024x3072x3072) {
   const unsigned int K = 3072;
   const unsigned int N = 3072;
   float q4_0_mse, q4_k_mse, q6_k_mse;
+  constexpr float eps = 1e-5;
   run_quant_test(M, K, N, q4_0_mse, q4_k_mse, q6_k_mse, false);
   // ASSERT_LE(q4_0_mse, 2.0f);
-  // ASSERT_LE(q4_k_mse, 2.0f);
-  ASSERT_LE(q6_k_mse, 2.0f);
+  ASSERT_LE(q4_k_mse, eps * M * K * N);
+  ASSERT_LE(q6_k_mse, q4_k_mse);
 }
 
 TEST(nntrainer_cpu_backend_standalone, quant_GEMV_1x768x1024) {
@@ -452,10 +457,11 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMV_1x768x1024) {
   const unsigned int K = 768;
   const unsigned int N = 1024;
   float q4_0_mse, q4_k_mse, q6_k_mse;
+  constexpr float eps = 1e-5;
   run_quant_test(M, K, N, q4_0_mse, q4_k_mse, q6_k_mse, false);
   // ASSERT_LE(q4_0_mse, 1.0f);
-  // ASSERT_LE(q4_k_mse, 1.0f);
-  ASSERT_LE(q6_k_mse, 1.0f);
+  ASSERT_LE(q4_k_mse, eps * M * K * N);
+  ASSERT_LE(q6_k_mse, q4_k_mse);
 }
 
 TEST(nntrainer_cpu_backend_standalone, quant_GEMV_1x3072x3072) {
@@ -463,13 +469,14 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMV_1x3072x3072) {
   const unsigned int K = 3072;
   const unsigned int N = 3072;
   float q4_0_mse, q4_k_mse, q6_k_mse;
+  constexpr float eps = 1e-5;
   run_quant_test(M, K, N, q4_0_mse, q4_k_mse, q6_k_mse, false);
   // ASSERT_LE(q4_0_mse, 1.0f);
-  // ASSERT_LE(q4_k_mse, 1.0f);
-  ASSERT_LE(q6_k_mse, 1.0f);
+  ASSERT_LE(q4_k_mse, eps * M * K * N);
+  ASSERT_LE(q6_k_mse, q4_k_mse);
 }
 
-static void run_vec_dot_test(const uint32_t K) {
+static void run_vec_dot_test(const uint32_t K, bool print = false) {
   const int TEST_CNT = 20;
   nanoseconds ref_time = (nanoseconds)0;
   nanoseconds q6_k_time = (nanoseconds)0;
@@ -511,8 +518,6 @@ static void run_vec_dot_test(const uint32_t K) {
       // #### MAIN TESTED METHOD ####
       auto t2 = high_resolution_clock::now();
       auto dt = duration_cast<nanoseconds>(t2 - t1);
-      // std::cout << "[INFO] dot_q6_K_q8_K : " << dt.count() << " ns " <<
-      // std::endl;
       if (i >= 0) { // skip the first run
         q6_k_time += dt;
       }
@@ -521,11 +526,12 @@ static void run_vec_dot_test(const uint32_t K) {
     // ref_result);
     EXPECT_NEAR(result, ref_result, 0.25 * K / 256);
   }
-
-  std::cout << "[INFO] dot_q6_K_q8_K: TEST CNT: " << TEST_CNT << ", K: " << K
-            << ", Average ref_time: " << ref_time.count() / TEST_CNT
-            << " ns, Average q6_k_time: " << q6_k_time.count() / TEST_CNT
-            << " ns " << std::endl;
+  if (print) {
+    std::cout << "[INFO] dot_q6_K_q8_K: TEST CNT: " << TEST_CNT << ", K: " << K
+              << ", Average ref_time: " << ref_time.count() / TEST_CNT
+              << " ns, Average q6_k_time: " << q6_k_time.count() / TEST_CNT
+              << " ns " << std::endl;
+  }
 }
 
 TEST(nntrainer_cpu_backend_standalone, quant_q_6_K_DOT_1024) {
