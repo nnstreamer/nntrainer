@@ -40,6 +40,18 @@ public:
   ThreadPoolManager(ThreadPoolManager &&) = delete;
 
   /**
+   * @brief Select optimal number of thread to use in K-quantized GEMM and GEMV
+   *
+   * @param M M for GEMM (M != 1) or GEMV (M = 1)
+   * @param N N for GEMM or GEMV
+   * @param K K for GEMM or GEMV
+   * @return std::size_t number of thread to use
+   */
+  std::size_t ThreadPoolManager::select_k_quant_thread_count(unsigned int M,
+                                                             unsigned int N,
+                                                             unsigned int K);
+
+  /**
    * @brief Static method to access the single instance
    *
    * @return BS::thread_pool<>&
