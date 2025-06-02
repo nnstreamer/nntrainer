@@ -20,6 +20,8 @@ namespace nntrainer {
 
 const std::string &getQ6KSgemvClKernel();
 
+const std::string &getDequantizeQ6KKernel();
+
 const std::string &getSgemvClKernel();
 
 const std::string &getSgemvClNoTransKernel();

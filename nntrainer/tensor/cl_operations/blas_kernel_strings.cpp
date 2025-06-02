@@ -142,6 +142,55 @@ const std::string &getQ6KSgemvClKernel() {
   return q6_k_sgemv_cl_kernel_;
 }
 
+const std::string &getDequantizeQ6KKernel() {
+  static const std::string dequantize_q6_k_kernel_ =
+    R"(
+    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
+
+    #define QK_K 256
+
+    typedef char int8_t;
+    typedef uchar uint8_t;
+    typedef short int16_t;
+    typedef ushort uint16_t;
+    typedef int int32_t;
+    typedef uint uint32_t;
+
+    typedef struct {
+      uint8_t ql[QK_K / 2];
+      uint8_t qh[QK_K / 4];
+      int8_t scales[QK_K / 16];
+      half d;
+    } block_q6_K;
+
+    kernel void dequantize_q6_k(global void *src, global float *dst) {
+      const int i = get_group_id(0);
+
+      // assume 64 threads - this is very slightly better than the one below
+      const int tid = get_local_id(0);
+      const int ip = tid / 32;      // ip is 0 or 1
+      const int il = tid - 32 * ip; // 0...32
+      const int is = 8 * ip + il / 16;
+
+      __global float *y = dst + i * QK_K + 128 * ip + il;
+
+      global block_q6_K *x = (global block_q6_K *)src;
+      const float d = x[i].d;
+
+      __global const uint8_t *ql = x[i].ql + 64 * ip + il;
+      const uint8_t qh = x[i].qh[32 * ip + il];
+      __global const int8_t *sc = x[i].scales + is;
+
+      y[0] = d * sc[0] * ((int8_t)((ql[0] & 0xF) | (((qh >> 0) & 3) << 4)) - 32);
+      y[32] = d * sc[2] * ((int8_t)((ql[32] & 0xF) | (((qh >> 2) & 3) << 4)) - 32);
+      y[64] = d * sc[4] * ((int8_t)((ql[0] >> 4) | (((qh >> 4) & 3) << 4)) - 32);
+      y[96] = d * sc[6] * ((int8_t)((ql[32] >> 4) | (((qh >> 6) & 3) << 4)) - 32);
+    }
+  )";
+
+  return dequantize_q6_k_kernel_;
+}
+
 const std::string &getSgemvClKernel() {
   static const std::string sgemv_cl_kernel_ =
     R"(__kernel void sgemv_cl(const __global float* A, const __global float* X,

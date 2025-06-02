@@ -41,6 +41,16 @@ void sgemv_q6_k_cl(const void *matAdata, const float *vecXdata, float *vecYdata,
                    unsigned int M, unsigned int N);
 
 /**
+ * @brief     Dequantize Q6_K data to float
+ *
+ * @param matXdata void * for Q6_K quantized data
+ * @param matYdata float * for dequantized data
+ * @param size number of elements
+ */
+void dequantize_q6_k_cl(const void *matXdata, float *matYdata,
+                        unsigned int size);
+
+/**
  * @brief     sgemv computation : Y = A*X + Y
  * @param[in] matAdata float * for Matrix A
  * @param[in] vecXdata float * for Vector X

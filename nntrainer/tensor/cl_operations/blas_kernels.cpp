@@ -204,6 +204,65 @@ void sgemv_q6_k_cl(const void *matAdata, const float *vecXdata, float *vecYdata,
   }
 }
 
+void dequantize_q6_k_cl(const void *matXdata, float *matYdata,
+                        unsigned int size) {
+  bool result = false;
+
+  ClContext::SharedPtrClKernel kernel_q6_k_dequantize_ptr;
+
+  kernel_q6_k_dequantize_ptr =
+    blas_cc->registerClKernel(getDequantizeQ6KKernel(), "dequantize_q6_k");
+
+  if (!kernel_q6_k_dequantize_ptr) {
+    ml_loge("Failed to register kernel_q6_k_dequantize_ptr");
+    return;
+  }
+
+  int q6k_size = 210 * size / 256;
+
+  result = clbuffInstance.getInBufferA()->WriteDataRegion(
+    blas_cc->command_queue_inst_, q6k_size, matXdata);
+  if (!result) {
+    ml_loge(
+      "Failed to write data to input buffer A for kernel_q6_k_dequantize_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_dequantize_ptr->SetKernelArguments(
+    0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 0 for kernel_q6_k_dequantize_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_dequantize_ptr->SetKernelArguments(
+    1, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 1 for kernel_q6_k_dequantize_ptr");
+    return;
+  }
+
+  const int work_groups_count[3] = {(int)size, 1, 1};
+  /// @todo: create a group size by device & input
+  const int work_group_size[3] = {64, 1, 1};
+
+  result = opencl::CommandQueueManager::GetInstance().DispatchCommand(
+    kernel_q6_k_dequantize_ptr, work_groups_count, work_group_size);
+  if (!result) {
+    ml_loge("Failed to dispatch kernel q6_k_dequantize");
+    return;
+  }
+
+  result = clbuffInstance.getOutBufferA()->ReadDataRegion(
+    blas_cc->command_queue_inst_, size * sizeof(float), matYdata);
+  if (!result) {
+    ml_loge("Failed to read data from the output buffer for "
+            "kernel_q6_k_dequantize_ptr");
+    return;
+  }
+}
 void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
               bool TransA, unsigned int dim1, unsigned int dim2,
               unsigned int lda) {
