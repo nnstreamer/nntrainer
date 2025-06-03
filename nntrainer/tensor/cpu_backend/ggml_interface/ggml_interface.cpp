@@ -365,12 +365,6 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
       const int32_t A_row_data_offset = A_row_size * thread_job;
       void *A_data = (void *)((char *)quantized_A.data() + A_row_data_offset);
       ::quantize_row_q8_K(A + thread_job * K, A_data, K);
-    }
-#pragma omp parallel for collapse(1) num_threads(thread_count)
-    for (int32_t thread_job = 0; thread_job < static_cast<int>(M);
-         thread_job++) {
-      const int32_t A_row_data_offset = A_row_size * thread_job;
-      void *A_data = (void *)((char *)quantized_A.data() + A_row_data_offset);
 
       for (uint32_t j = 0; j < N; j++) {
         const int32_t B_row_data_offset = B_row_size * j;
