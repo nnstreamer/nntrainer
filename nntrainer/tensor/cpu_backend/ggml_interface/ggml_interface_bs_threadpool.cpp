@@ -125,29 +125,25 @@ static inline void __ggml_q4_0_8x8_q8_0_GEMM_GEMV(
   auto qa_data = QA.data();
 
   ::quantize_row_q8_0(A, qa_data, K);
-  // ::ggml_gemv_q4_0_8x8_q8_0(K, C, ldc, B, qa_data, M, N);
-  unsigned int B_step = sizeof(block_q4_K) * (K / QK_K);
+  int B_step = sizeof(block_q4_0) * (K / QK4_0);
+
   auto &bs_thread_pool = ThreadPoolManager::getInstance();
   int thread_num = bs_thread_pool.get_thread_count();
-  std::vector<std::future<void>> futures;
-  // for (int i = 0; i < thread_num; ++i){
-  //    unsigned int M_step_start = (i * N) / thread_num;     // = 0
-  //     unsigned int M_step_end = ((i + 1) * N) / thread_num; // ne01 = N
-
-  //     M_step_start = (M_step_start % 8) ? M_step_start + 8 - (M_step_start %
-  //     8)
-  //                                       : M_step_start;
-  //     M_step_end =
-  //       (M_step_end % 8) ? M_step_end + 8 - (M_step_end % 8) : M_step_end;
-  // }
-  BS::multi_future<void> multi_future =
+  BS::multi_future<void> loop_future =
     bs_thread_pool.submit_loop(0, thread_num, [=](int i) {
-      ::ggml_gemv_q4_K_8x8_q8_K(
-        K, (float *)((C) + (i * N) / thread_num), N,
-        (void *)((char *)B + (i * N) / thread_num * B_step), QA.data(), M,
-        ((i + 1) * N) / thread_num - (i * N) / thread_num);
+      unsigned int M_step_start = (i * N) / thread_num;
+      unsigned int M_step_end = ((i + 1) * N) / thread_num;
+
+      M_step_start = (M_step_start % 8) ? M_step_start + 8 - (M_step_start % 8)
+                                        : M_step_start;
+      M_step_end =
+        (M_step_end % 8) ? M_step_end + 8 - (M_step_end % 8) : M_step_end;
+
+      ::ggml_gemv_q4_0_8x8_q8_0(K, (float *)(C + M_step_start), N,
+                                (void *)((char *)B + M_step_start * B_step),
+                                QA.data(), M, M_step_end - M_step_start);
     });
-  multi_future.wait();
+  loop_future.wait();
 }
 
 static inline void __ggml_q4_0_8x8_q8_0_GEMM_GEMM(
