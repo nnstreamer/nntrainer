@@ -120,7 +120,7 @@ RandomDataOneHotProducer::finalize(const std::vector<TensorDim> &input_dims,
   label_chooser_.reserve(label_dims.size());
   std::transform(label_dims.begin(), label_dims.end(),
                  std::back_inserter(label_chooser_),
-                 [this](const TensorDim &label_dim) {
+                 [](const TensorDim &label_dim) {
                    return std::uniform_int_distribution<unsigned int>(
                      0, label_dim.width() - 1);
                  });

@@ -860,10 +860,9 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
   if (lnode->getType() == RNNCellLayer::type or
       lnode->getType() == LSTMCellLayer::type or
       lnode->getType() == GRUCellLayer::type) {
-    std::for_each(
-      out_specs.begin(), out_specs.end(), [this](VarGradSpecV2 &spec) {
-        spec.variable_spec.ls = TensorLifespan::FORWARD_GRAD_LIFESPAN;
-      });
+    std::for_each(out_specs.begin(), out_specs.end(), [](VarGradSpecV2 &spec) {
+      spec.variable_spec.ls = TensorLifespan::FORWARD_GRAD_LIFESPAN;
+    });
   }
 
   const std::vector<Var_Grad *> &outputs = tensor_manager->requestTensors(
@@ -1029,10 +1028,9 @@ NetworkGraph::refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
   if (lnode->getType() == RNNCellLayer::type or
       lnode->getType() == LSTMCellLayer::type or
       lnode->getType() == GRUCellLayer::type) {
-    std::for_each(
-      out_specs.begin(), out_specs.end(), [this](VarGradSpecV2 &spec) {
-        spec.variable_spec.ls = TensorLifespan::FORWARD_GRAD_LIFESPAN;
-      });
+    std::for_each(out_specs.begin(), out_specs.end(), [](VarGradSpecV2 &spec) {
+      spec.variable_spec.ls = TensorLifespan::FORWARD_GRAD_LIFESPAN;
+    });
   }
 
   const std::vector<Var_Grad *> &outputs = tensor_manager->requestTensors(

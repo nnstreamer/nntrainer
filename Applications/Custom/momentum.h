@@ -53,12 +53,12 @@ public:
    * @copydoc applyGradient(Weight &weight, int tensor_idx, double updated_lr,
    * int iteration)
    */
-  void applyGradient(nntrainer::RunOptimizerContext &context);
+  void applyGradient(nntrainer::RunOptimizerContext &context) override;
 
   /**
    * @copydoc Optimizer::getType()
    */
-  const std::string getType() const { return Momentum::type; }
+  const std::string getType() const override { return Momentum::type; }
 
   /**
    * @copydoc Optimizer::getOptimizerVariableDim(const TensorDim &dim)

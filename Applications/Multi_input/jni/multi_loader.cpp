@@ -63,16 +63,14 @@ MultiDataLoader::MultiDataLoader(const std::vector<TensorDim> &input_shapes,
 
 void MultiDataLoader::next(float **input, float **label, bool *last) {
 
-  auto fill_input = [this](float *input, unsigned int length,
-                           unsigned int value) {
+  auto fill_input = [](float *input, unsigned int length, unsigned int value) {
     for (unsigned int i = 0; i < length; ++i) {
       *input = value;
       input++;
     }
   };
 
-  auto fill_label = [this](float *input, unsigned int length,
-                           unsigned int value) {
+  auto fill_label = [](float *input, unsigned int length, unsigned int value) {
     for (unsigned int i = 0; i < length; ++i) {
       *input = value;
       input++;

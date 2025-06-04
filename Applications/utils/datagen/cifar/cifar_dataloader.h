@@ -113,7 +113,6 @@ private:
   inline static constexpr int SampleSize =
     4 * (3 * 32 * 32 + 2); /**< 1 coarse label, 1 fine label, pixel size */
 
-  unsigned int batch;
   unsigned int current_iteration;
   unsigned int iteration_per_epoch;
 

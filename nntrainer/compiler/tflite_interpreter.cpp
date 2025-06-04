@@ -335,7 +335,7 @@ TfOpNodes buildOpNodes(const GraphRepresentation &representation,
       export_output.get()->setTrainable(false);
     }
 
-    nodes.emplace_back(move(export_output));
+    nodes.emplace_back(std::move(export_output));
     tf_to_layer.insert({nodes.back().get(), ln.get()});
     layer_to_tf.insert({ln.get(), nodes.back().get()});
   }

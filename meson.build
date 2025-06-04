@@ -66,10 +66,18 @@ warning_flags = [
   '-Wno-error=varargs',
   '-Wdefaulted-function-deleted',
   '-ftree-vectorize',
-  '-Wno-maybe-uninitialized',
   '-Wno-unused-variable',
   '-Wno-comment'
 ]
+
+if cxx_compiler_id == 'clang'
+  warning_flags += '-Wno-uninitialized'
+  warning_flags += '-Wno-format-nonliteral'
+  warning_flags += '-Wno-varargs'
+  warning_flags += '-Wno-missing-braces'
+else
+  warning_flags += '-Wno-maybe-uninitialized'
+endif
 
 warning_c_flags = [
   '-Wmissing-declarations',
@@ -508,7 +516,15 @@ if get_option('enable-ggml')
   if host_machine.system() == 'windows'
     ggml_options.add_cmake_defines(common_win_subproject_cmake_defines)
   else
-    ggml_options.append_compile_args('c', ['-Wno-error=maybe-uninitialized', '-Wno-error=pointer-to-int-cast'])
+    ggml_flags = [
+      '-Wno-error=pointer-to-int-cast'
+      ]
+    if cxx_compiler_id == 'clang'
+      ggml_flags += '-Wno-error=uninitialized'
+    else 
+      ggml_flags += '-Wno-error=maybe-uninitialized'
+    endif
+    ggml_options.append_compile_args('c', ggml_flags)
   endif
   ggml_options.add_cmake_defines({'BUILD_SHARED_LIBS': host_machine.system() != 'windows'})
   ggml_options.add_cmake_defines({'GGML_BUILD_TESTS': false})
@@ -563,12 +579,18 @@ else
     ruy_flags = [
       '-Wno-error=unused-result',
       '-Wno-error=comment',
-      '-Wno-error=maybe-uninitialized',
       '-Wno-error=unknown-pragmas',
-      '-Wno-error=unused-function',
-      '-Wno-error=stringop-overread',
-      '-Wno-error=array-parameter'
+      '-Wno-error=unused-function'
       ]
+
+    if cxx_compiler_id == 'clang'
+      ruy_flags += '-Wno-error=uninitialized'
+    else
+      ruy_flags += '-Wno-error=maybe-uninitialized'
+      ruy_flags += '-Wno-error=stringop-overread'
+      ruy_flags += '-Wno-error=array-parameter'
+    endif
+    
     ruy_options.append_compile_args('c', '-Wno-implicit-function-declaration')
     ruy_options.append_compile_args('c', ruy_flags)
     ruy_options.append_compile_args('cpp', ruy_flags)

@@ -355,8 +355,8 @@ sharedConstTensors NeuralNetwork::forwarding(
     }
   }
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
-    [this, stop_cb, userdata, lookahead,
-     fsu_mode](std::shared_ptr<LayerNode> node, bool training) -> void {
+    [this, stop_cb, lookahead, fsu_mode](std::shared_ptr<LayerNode> node,
+                                         bool training) -> void {
     (void)this;
     PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
 
@@ -442,7 +442,7 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
   }
 
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
-    [this, from, to, stop_cb, userdata, fsu_mode,
+    [this, from, to, stop_cb, fsu_mode,
      lookahead](std::shared_ptr<LayerNode> node, bool training) -> void {
     PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
 
@@ -495,8 +495,7 @@ void NeuralNetwork::backwarding(int iteration,
 #endif
 
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
-    [this, stop_cb, userdata](std::shared_ptr<LayerNode> node,
-                              bool training) -> void {
+    [this, stop_cb](std::shared_ptr<LayerNode> node, bool training) -> void {
     (void)this;
     PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
 
@@ -718,7 +717,7 @@ void NeuralNetwork::load(const std::string &file_path,
       for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
            ++iter) {
         auto exec_order = std::get<0>((*iter)->getExecutionOrder());
-        futures.emplace_back(std::async(std::launch::async, [=]() {
+        futures.emplace_back(std::async(std::launch::async, [=, this]() {
           auto local_model_file = checkedOpenStream<std::ifstream>(
             (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
           (*iter)->read(local_model_file, false, exec_mode, fsu_mode,
