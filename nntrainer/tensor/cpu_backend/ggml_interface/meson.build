@@ -8,6 +8,7 @@ if get_option('K-quant_multithreading_strategy') == 'bs'
 elif get_option('K-quant_multithreading_strategy') == 'omp'
   ggml_interface_sources += 'ggml_interface_omp.cpp'
 else
+  message('Unknown K-quant_multithreading_strategy meson option! Use openMP as a default.')
   ggml_interface_sources += 'ggml_interface_omp.cpp'
 endif
 
