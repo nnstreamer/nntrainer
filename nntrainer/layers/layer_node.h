@@ -1042,7 +1042,6 @@ properties in the context/graph unless intended. */
   std::unique_ptr<RealizationPropsType>
     layer_node_props_realization;    /**< properties for the node */
   std::unique_ptr<props::Loss> loss; /**< loss */
-  float regularization_loss;
   ExecutionOrder exec_order; /**< order/location of execution for this node
                                    in forward and backwarding operations */
 

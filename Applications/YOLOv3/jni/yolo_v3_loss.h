@@ -142,7 +142,7 @@ public:
   /**
    * @copydoc Layer::requireLabel()
    */
-  bool requireLabel() const { return true; }
+  bool requireLabel() const override { return true; }
 
   /**
    * @copydoc Layer::getType()
@@ -154,9 +154,6 @@ public:
 private:
   static constexpr unsigned int NUM_ANCHOR = 3;
   const float img_size = 416;
-  // empty buffers for anchors
-  float anchors_w_buf[NUM_ANCHOR] = {0, 0, 0};
-  float anchors_h_buf[NUM_ANCHOR] = {0, 0, 0};
   // anchors for large scale
   float anchors_w_buf_1[NUM_ANCHOR] = {116 / img_size, 156 / img_size,
                                        373 / img_size};

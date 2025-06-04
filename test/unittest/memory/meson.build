@@ -12,10 +12,14 @@ test_target = [
   'unittest_cache_pool_fsu.cpp'
 ]
 
-if cxx.get_id() == 'msvc'
-  cpp_args_str = []
-else
-  cpp_args_str = '-Wno-maybe-uninitialized'
+cpp_args_str = []
+
+if cxx.get_id() != 'msvc'
+  if cxx_compiler_id == 'clang'
+    cpp_args_str += '-Wno-uninitialized'
+  else
+    cpp_args_str += '-Wno-maybe-uninitialized'
+  endif
 endif
 
 # memory unittests

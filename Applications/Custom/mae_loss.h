@@ -86,7 +86,7 @@ public:
   /**
    * @copydoc Layer::requireLabel()
    */
-  bool requireLabel() const { return true; }
+  bool requireLabel() const override { return true; }
 
   static constexpr const char *type = "mae_loss";
 };

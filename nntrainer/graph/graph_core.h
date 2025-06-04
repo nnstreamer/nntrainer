@@ -38,7 +38,7 @@ public:
   /**
    * @brief     Constructor of Graph Core Class
    */
-  GraphCore() : sorted(false), node_names(), def_name_count(0) {}
+  GraphCore() : node_names(), def_name_count(0) {}
 
   /**
    * @brief     Destructor of Graph Core Class
@@ -261,7 +261,6 @@ private:
   std::unordered_map<std::string, int>
     sorted_node_map;                              /**< Unordered Node map  */
   std::vector<std::shared_ptr<GraphNode>> Sorted; /**< Ordered Node List  */
-  bool sorted; /** if the node_list is sorted */
 
   std::unordered_set<std::string>
     node_names;       /**< Set containing all the names of nodes in the model */

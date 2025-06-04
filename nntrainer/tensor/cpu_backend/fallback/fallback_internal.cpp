@@ -221,7 +221,7 @@ unsigned int __fallback_isamax(const unsigned int N, const float *X,
   unsigned int max_idx = 0;
   float max_val = X[0];
   for (unsigned int n = 1; n < N; n += incX) {
-    float cur_val = abs(X[n]);
+    float cur_val = std::abs(X[n]);
     if (cur_val > max_val) {
       max_val = cur_val;
       max_idx = n;
