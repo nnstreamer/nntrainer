@@ -122,29 +122,63 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
                                 QA.data(), M, M_step_end - M_step_start);
     }
   } else { // GEMM
+    int n_threads = std::thread::hardware_concurrency();
     unsigned int blocks_per_4_rows = (K + QK8_0 - 1) / QK8_0;
     unsigned int qa_4_rows_size = sizeof(block_q8_0x4) * blocks_per_4_rows;
-    unsigned int M4 = ((M + 3) / 4);
+    const size_t qa_row_size = (sizeof(block_q8_0) * K) / QK8_0;
+    unsigned int M4 = ((M - M % 4) / 4);
+    int B_step = sizeof(block_q4_0) * (K / QK4_0);
 
-    unsigned int qa_size = qa_4_rows_size * M4;
+    unsigned int qa_size = qa_4_rows_size * (((M >> 2) << 2) / 4 + 1);
     std::vector<char> QA = std::vector<char>(qa_size);
 
-    // Quantization of activations
-    /// @note Heuristic inspection conducted that applying multithreading on
-    /// run-time quantization hurts model latency
-    // #pragma omp parallel for collapse(1) num_threads(16)
-    for (int i = 0; i < static_cast<int>(M4); i++) {
+    // Quantize 4-divisible-M row portion with matrix-wise function
+    for (unsigned int i = 0; i < M4; i++) {
       ::ggml_quantize_mat_q8_0_4x8(A + 4 * i * K,
                                    QA.data() + i * qa_4_rows_size, K);
     }
-    int delta = 8;
-    int step_N = N / delta;
-    int step_C = delta;
-    int step_B = blocks_per_4_rows * sizeof(block_q4_0) * delta;
-#pragma omp parallel for collapse(1) num_threads(16)
-    for (int i = 0; i < step_N; i++) {
-      ::ggml_gemm_q4_0_8x8_q8_0(K, C + i * step_C, ldc, (char *)B + i * step_B,
-                                QA.data(), M, delta);
+    // Quantize leftover 1 ~ 3 rows with row-wise function
+    for (unsigned int i = M4 * 4; i < M; i++) {
+      ::quantize_row_q8_0(
+        (float *)A + i * K,
+        (QA.data() + (M4 * qa_4_rows_size) + (i - M4 * 4) * qa_row_size), K);
+    }
+
+// Compute 4-divisible-M row portion with multithreaded GEMM
+#pragma omp parallel for collapse(1) num_threads(n_threads)
+    for (int i = 0; i < n_threads; i++) {
+      unsigned int src0_start = (i * N) / n_threads;
+      unsigned int src0_end = ((i + 1) * N) / n_threads;
+
+      src0_start =
+        (src0_start % 8) ? src0_start + 8 - (src0_start % 8) : src0_start;
+      src0_end = (src0_end % 8) ? src0_end + 8 - (src0_end % 8) : src0_end;
+
+      ::ggml_gemm_q4_0_8x8_q8_0(K, (float *)(C + src0_start), ldc,
+                                (void *)((char *)B + src0_start * B_step),
+                                QA.data(), M4 * 4, src0_end - src0_start);
+    }
+
+    // Compute leftover 1 ~ 3 rows with multithreaded GEMV
+    n_threads = 4;
+    for (unsigned int pb = M4 * 4; pb < M; pb++) {
+#pragma omp parallel for num_threads(n_threads)
+      for (int thread_idx = 0; thread_idx < n_threads; ++thread_idx) {
+        unsigned int M_step_start = (thread_idx * N) / n_threads;
+        unsigned int M_step_end = ((thread_idx + 1) * N) / n_threads;
+
+        M_step_start = (M_step_start % 8)
+                         ? M_step_start + 8 - (M_step_start % 8)
+                         : M_step_start;
+        M_step_end =
+          (M_step_end % 8) ? M_step_end + 8 - (M_step_end % 8) : M_step_end;
+
+        ::ggml_gemv_q4_0_8x8_q8_0(
+          K, (float *)((C + ((pb - M4 * 4) * N) + (M4 * 4 * N)) + M_step_start),
+          N, (void *)((char *)B + M_step_start * B_step),
+          QA.data() + (M4 * qa_4_rows_size) + (pb - M4 * 4) * qa_row_size, 1,
+          M_step_end - M_step_start);
+      }
     }
   }
 }
@@ -178,7 +212,7 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
                                 (void *)((char *)B + M_step_start * B_step),
                                 QA.data(), M, M_step_end - M_step_start);
     }
-  } else if (M % 4 != 0) {
+  } else {
     int n_threads = std::thread::hardware_concurrency();
     unsigned int blocks_per_4_rows = (K + QK_K - 1) / QK_K;
     unsigned int qa_4_rows_size = sizeof(block_q8_Kx4) * blocks_per_4_rows;
@@ -221,9 +255,8 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
     for (unsigned int pb = M4 * 4; pb < M; pb++) {
 #pragma omp parallel for num_threads(n_threads)
       for (int thread_idx = 0; thread_idx < n_threads; ++thread_idx) {
-        unsigned int M_step_start = (thread_idx * N) / n_threads; // = 0
-        unsigned int M_step_end =
-          ((thread_idx + 1) * N) / n_threads; // ne01 = N
+        unsigned int M_step_start = (thread_idx * N) / n_threads;
+        unsigned int M_step_end = ((thread_idx + 1) * N) / n_threads;
 
         M_step_start = (M_step_start % 8)
                          ? M_step_start + 8 - (M_step_start % 8)
@@ -237,39 +270,6 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
           QA.data() + (M4 * qa_4_rows_size) + (pb - M4 * 4) * qa_row_size, 1,
           M_step_end - M_step_start);
       }
-    }
-  } else { // GEMM
-    unsigned int blocks_per_4_rows = (K + QK_K - 1) / QK_K;
-    unsigned int qa_4_rows_size = sizeof(block_q8_Kx4) * blocks_per_4_rows;
-    unsigned int M4 = ((M + 3) / 4);
-    unsigned int B_step = sizeof(block_q4_K) * (K / QK_K);
-    ///@note OpenMP thread number should be a signed integer
-    int thread_num = std::thread::hardware_concurrency();
-
-    unsigned int qa_size = qa_4_rows_size * M4;
-    std::vector<char> QA = std::vector<char>(qa_size);
-
-    // Quantization of activations
-    /// @note Heuristic inspection conducted that applying multithreading on
-    /// run-time quantization hurts model latency
-    // #pragma omp parallel for collapse(1) num_threads(16)
-    for (int i = 0; i < static_cast<int>(M4); i++) {
-      ::ggml_quantize_mat_q8_K_4x8(A + 4 * i * K,
-                                   QA.data() + i * qa_4_rows_size, K);
-    }
-
-#pragma omp parallel for collapse(1) num_threads(thread_num)
-    for (int i = 0; i < thread_num; i++) {
-      unsigned int src0_start = (i * N) / thread_num;
-      unsigned int src0_end = ((i + 1) * N) / thread_num;
-
-      src0_start =
-        (src0_start % 8) ? src0_start + 8 - (src0_start % 8) : src0_start;
-      src0_end = (src0_end % 8) ? src0_end + 8 - (src0_end % 8) : src0_end;
-
-      ::ggml_gemm_q4_K_8x8_q8_K(K, (float *)(C + src0_start), ldc,
-                                (void *)((char *)B + src0_start * B_step),
-                                QA.data(), M, src0_end - src0_start);
     }
   }
 }
