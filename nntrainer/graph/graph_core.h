@@ -253,6 +253,10 @@ public:
     return true;
   }
 
+  void save_kvcache(const std::string &file_path);
+
+  void load_kvcache(const std::string &file_path);
+
 private:
   std::vector<std::shared_ptr<GraphNode>> input_list;
   std::vector<std::shared_ptr<GraphNode>> output_list;
