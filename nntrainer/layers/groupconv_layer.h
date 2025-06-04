@@ -98,7 +98,7 @@
     */
    void setProperty(const std::vector<std::string> &values) override;
  
-   static constexpr const char *type = "groupconv";
+   static constexpr const char *type = "group_convolution";
  
  private:
    std::array<unsigned int, GROUPCONV_DIM * 2> padding;

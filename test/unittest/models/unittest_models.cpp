@@ -1065,10 +1065,12 @@ static std::unique_ptr<NeuralNetwork> makeMatMulOperation() {
 static std::unique_ptr<NeuralNetwork> makeGroupConvOperation() {
   std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
 
-  auto outer_graph =
-    makeGraph({{"input", {"name=in", "input_shape=1:8:4:4"}},
-               {"group_convolution", {"name=gc_layer", "padding=0,0,0,0", "filters=8", "kernel_size=1,1", "stride=1,1", "dilation=1,1", "split_number=4", "input_layers=in"}},
-               {"mse", {"name=loss", "input_layers=gc_layer"}}});
+  auto outer_graph = makeGraph(
+    {{"input", {"name=in", "input_shape=1:8:4:4"}},
+     {"group_convolution",
+      {"name=gc_layer", "padding=0,0,0,0", "filters=8", "kernel_size=1,1",
+       "stride=1,1", "dilation=1,1", "split_number=4", "input_layers=in"}},
+     {"mse", {"name=loss", "input_layers=gc_layer"}}});
 
   for (auto &node : outer_graph) {
     nn->addLayer(node);

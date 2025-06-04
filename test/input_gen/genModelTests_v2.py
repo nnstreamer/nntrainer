@@ -1008,4 +1008,4 @@ if __name__ == "__main__":
     )
 
     #    Function to check the created golden test file
-    inspect_file("group_convoluton.nnmodelgolden")
+    inspect_file("group_convolution.nnmodelgolden")
