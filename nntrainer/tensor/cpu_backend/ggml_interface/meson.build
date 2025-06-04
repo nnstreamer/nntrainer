@@ -3,12 +3,12 @@ ggml_interface_headers = [
 ]
 ggml_interface_sources = [ ]
 
-if get_option('K-quant_multithreading_strategy') == 'bs'
+if get_option('ggml-thread-backend') == 'bsthread'
   ggml_interface_sources += 'ggml_interface_bs_threadpool.cpp'
-elif get_option('K-quant_multithreading_strategy') == 'omp'
+elif get_option('ggml-thread-backend') == 'openmp'
   ggml_interface_sources += 'ggml_interface_omp.cpp'
 else
-  message('Unknown K-quant_multithreading_strategy meson option! Use openMP as a default.')
+  message('Unknown ggml-thread-backend meson option! Use openMP as a default.')
   ggml_interface_sources += 'ggml_interface_omp.cpp'
 endif
 
