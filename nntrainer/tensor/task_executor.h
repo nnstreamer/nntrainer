@@ -173,9 +173,9 @@ private:
   std::string name;
   std::vector<std::thread> workers;
   std::queue<Task> task_queue;
-  std::map<int, std::shared_ptr<std::atomic_bool>> cancel_map;
-  std::map<int, std::shared_future<void>> future_map;
-  std::map<int, bool> task_started;
+  std::unordered_map<int, std::shared_ptr<std::atomic_bool>> cancel_map;
+  std::unordered_map<int, std::shared_future<void>> future_map;
+  std::unordered_map<int, bool> task_started;
   std::mutex queue_mutex;
   std::condition_variable cond_var;
   std::condition_variable task_started_cv;
