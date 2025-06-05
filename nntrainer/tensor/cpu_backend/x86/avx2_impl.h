@@ -91,6 +91,10 @@ void transpose_matrix(const unsigned int M, const unsigned int N,
  */
 void swiglu(const unsigned int N, float *X, const float *Y, const float *Z);
 
+void ele_add(const unsigned int N, const float *X, const float *Y,
+    float *Z, float alpha, float beta,
+    unsigned int i_stride, unsigned int o_stride);
+
 } // namespace nntrainer::avx2
 
 #endif /* __cplusplus */
