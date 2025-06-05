@@ -35,7 +35,9 @@ nntrainer_base_deps=[
 ]
 
 if get_option('enable-opencl')
-  nntrainer_base_deps += clblast_dep
+  if host_machine.system() != 'windows'
+    nntrainer_base_deps += clblast_dep
+  endif
 endif
 
 if get_option('platform') == 'tizen'
