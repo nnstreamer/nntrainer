@@ -591,6 +591,26 @@ class MatMulOperation(torch.nn.Module):
         return out, loss
 
 
+class ChannelShuffle(torch.nn.Module):
+    def __init__(self, split_number):
+        super().__init__()
+        self.conv2d = torch.nn.Conv2d(8, 8, 1)  # 1x1 convolution
+        self.split_number = split_number
+        self.loss = torch.nn.MSELoss()
+
+    def forward(self, inputs, labels):
+        # Channel shuffle operation
+        batch_size, channels, height, width = inputs[0].shape
+        channels_per_group = channels // self.split_number
+        
+        out = self.conv2d(inputs[0])
+        out = out.view(batch_size, self.split_number, channels_per_group, height * width)
+        out = out.transpose(1, 2).contiguous().view(batch_size, -1, height, width)
+        loss = self.loss(out, labels[0])
+        
+        return out, loss
+
+
 if __name__ == "__main__":
     record_v2(
         ReduceMeanLast(),
@@ -985,3 +1005,17 @@ if __name__ == "__main__":
 
     #    Function to check the created golden test file
     inspect_file("non_trainable_fc_idx3.nnmodelgolden")
+
+    # Add ChannelShuffle test
+    channel_shuffle = ChannelShuffle(split_number=4)
+    record_v2(
+        channel_shuffle,
+        iteration=2,
+        input_dims=[(1, 8, 4, 4)],  # batch_size=1, channels=8, height=4, width=4
+        input_dtype=[float],
+        label_dims=[(1, 8, 4, 4)],
+        name="channel_shuffle",
+    )
+
+    #    Function to check the created golden test file
+    inspect_file("channel_shuffle.nnmodelgolden")
