@@ -21,13 +21,13 @@ jobs:
       - name: Install submodules
         run: git submodule sync && git submodule update --init --recursive
       - name: Install Python Dependencies
-        run: pip install meson==1.7.2 ninja
+        run: pip install meson==1.7.2 ninja pyopencl
       - name: Prepare MSVC
         uses: bus1/cabuild/action/msdevshell@v1
         with:
           architecture: x64
       - name: Prepare Build
-        run: meson setup --native-file windows-native.ini builddir
+        run: meson setup --native-file windows-native.ini builddir -Denable-opencl=true
       - name: Run Build
         run: meson compile -C builddir
       - name: Run Test Suite
