@@ -670,12 +670,10 @@ void NeuralNetwork::load(const std::string &file_path,
   const std::regex reg_("\\s*\\:\\s*");
   auto v = split(file_path, reg_);
 
-  std::vector<size_t> start_offsets = {0};
-  std::vector<std::pair<size_t, size_t>> file_offset;
   size_t start_from = 0;
+  std::vector<std::pair<size_t, size_t>> file_offset;
   for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
     auto weights = (*iter)->getRunContext().getWeights();
-    auto local_offset = start_offsets.back();
     for (auto weight : weights) {
       size_t size = weight->getVariable().getMemoryBytes();
       auto tensor_data_type = weight->getDim().getDataType();
@@ -693,9 +691,7 @@ void NeuralNetwork::load(const std::string &file_path,
       }
       file_offset.emplace_back(std::make_pair(start_from, size));
       start_from += size;
-      local_offset += size;
     }
-    start_offsets.push_back(local_offset);
   }
 
   if (exec_mode == ExecutionMode::INFERENCE && fsu_mode) {
@@ -721,7 +717,7 @@ void NeuralNetwork::load(const std::string &file_path,
           auto local_model_file = checkedOpenStream<std::ifstream>(
             (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
           (*iter)->read(local_model_file, false, exec_mode, fsu_mode,
-                        start_offsets[exec_order], true);
+                        std::numeric_limits<size_t>::max(), true);
         }));
       }
       for (auto &f : futures)
