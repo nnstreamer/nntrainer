@@ -625,6 +625,161 @@ const std::string &getRMSNormClKernel() {
   return rmsnorm_cl_kernel_;
 }
 
+const std::string &getFlashAttentionClKernel() {
+  static const std::string kernel =
+    R"(
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+
+#define TILE_SIZE 128
+
+/**
+ * @brief flash attention v1, h_dim _MUST_ be 128. tile: 128 x 128, pay attention to data dimension's order, as ctx_len being the first axis. This
+ * kernel is expected to be invoked with 1 dimension global size set to be equal num_head_q. For GQA, K's n th head matches Q's heads whose indices
+ * belong to [n * head_q / head_kv, (n+1) * head_q / head_kv).
+ * @param O float, (ctx_len_q, num_head_q, 128)
+ * @param Q float, (ctx_len_q, num_head_q, 128)
+ * @param K half, (ctx_len_kv, num_head_kv, 128)
+ * @param V half, (ctx_len_kv, num_head_kv, 128)
+ * @param ctx_len_q 1 for token gen, > 1 for prefill
+ * @param ctx_len_kv
+ * @param num_head_q divisible by @param num_head_kv, behavior not defined otherwise
+ * @param num_head_kv
+ * @return
+ */
+kernel void flash_attention_D128(global float *O, const global float *Q, const global half *K, const global half *V, int ctx_len_q, int ctx_len_kv,
+                                 int num_head_q, int num_head_kv) {
+  local float _O[TILE_SIZE][TILE_SIZE];
+  local float _Q[TILE_SIZE][TILE_SIZE];
+  local float _S[TILE_SIZE][TILE_SIZE];
+
+  local half _K[TILE_SIZE][TILE_SIZE];
+  local half _V[TILE_SIZE][TILE_SIZE];
+
+  local float _m_glb[TILE_SIZE];
+  local float _m_blk[TILE_SIZE];
+  local float _m_new[TILE_SIZE];
+  local float _l_glb[TILE_SIZE];
+  local float _l_blk[TILE_SIZE];
+  local float _l_new[TILE_SIZE];
+
+  size_t head_q_idx = get_global_id(0); // suppose num_group = num_head_q
+  size_t head_kv_idx = head_q_idx * num_head_kv / num_head_q;
+  size_t group_size = get_local_size(0);
+  // # of elements of Q to be copied per work-item
+  size_t elem_item = TILE_SIZE * TILE_SIZE / group_size;
+  size_t item_idx = get_local_linear_id();
+
+  for (int qi = 0; qi < (ctx_len_q + TILE_SIZE - 1) / TILE_SIZE; ++qi) {
+    // init max, exp-sum
+    if (item_idx < TILE_SIZE) {
+      _m_glb[item_idx] = -INFINITY;
+      _l_glb[item_idx] = 0.0f;
+    }
+
+    // Load global Q to local
+    for (int i = item_idx; i < TILE_SIZE * TILE_SIZE; i += elem_item) {
+      int ty = i / TILE_SIZE, tx = i % TILE_SIZE;
+      int token_idx_q = qi * TILE_SIZE + ty;
+      // note that h_dim == TILE_SIZE
+      if (token_idx_q < ctx_len_q) {
+        _Q[ty][tx] = Q[token_idx_q * num_head_q * TILE_SIZE + head_q_idx * TILE_SIZE + tx];
+        _O[ty][tx] = 0.0f;
+      }
+    }
+
+    for (int ki = 0; ki < (ctx_len_kv + TILE_SIZE - 1) / TILE_SIZE && ki < qi; ++ki) {
+      // Load global K, V to local
+      for (int i = item_idx; i < TILE_SIZE * TILE_SIZE; i += elem_item) {
+        int ty = i / TILE_SIZE, tx = i % TILE_SIZE;
+        int token_idx_kv = ki * TILE_SIZE + ty;
+        if (token_idx_kv < ctx_len_kv) {
+          _K[ty][tx] = K[token_idx_kv * num_head_kv * TILE_SIZE + head_kv_idx * TILE_SIZE + tx];
+          _V[ty][tx] = V[token_idx_kv * num_head_kv * TILE_SIZE + head_kv_idx * TILE_SIZE + tx];
+        }
+      }
+      barrier(CLK_LOCAL_MEM_FENCE);
+
+      // Q * K^T
+      float scale_factor = rsqrt(TILE_SIZE);
+      for (int i = item_idx; i < TILE_SIZE * TILE_SIZE; i += elem_item) {
+        int ty = i / TILE_SIZE, tx = i % TILE_SIZE;
+        int token_idx_q = qi * TILE_SIZE + ty;
+        int token_idx_k = ki * TILE_SIZE + tx;
+        if (ctx_len_q <= token_idx_q || ctx_len_kv <= token_idx_k)
+          continue;
+        // mask (decoder based attention)
+        if (token_idx_q < token_idx_k) {
+          _S[ty][tx] = -INFINITY;
+        } else {
+          float sum = 0.0f;
+          // CAVEAT: K is not transposed
+          for (int j = 0; j < TILE_SIZE; ++j)
+            sum += _Q[ty][j] * _K[tx][j];
+          _S[ty][tx] = sum * scale_factor;
+        }
+      }
+      barrier(CLK_LOCAL_MEM_FENCE);
+
+      // get block's max
+      if (item_idx < TILE_SIZE && qi * TILE_SIZE + item_idx < ctx_len_q) {
+        float m = -INFINITY;
+        for (int i = 0; i < TILE_SIZE && ki * TILE_SIZE + i < ctx_len_kv; ++i) {
+          m = fmax(m, _S[item_idx][i]);
+        }
+        _m_blk[item_idx] = m;
+      }
+      barrier(CLK_LOCAL_MEM_FENCE);
+
+      // sub max, exp
+      for (int i = item_idx; i < TILE_SIZE * TILE_SIZE; i += elem_item) {
+        int ty = i / TILE_SIZE, tx = i % TILE_SIZE;
+        _S[ty][tx] -= _m_blk[ty];
+        _S[ty][tx] = exp(_S[ty][tx]);
+      }
+      barrier(CLK_LOCAL_MEM_FENCE);
+
+      if (item_idx < TILE_SIZE && qi * TILE_SIZE + item_idx < ctx_len_q) {
+        // get block's exp-sum
+        float exp_sum = 0.0f;
+        for (int i = 0; i < TILE_SIZE && ki * TILE_SIZE + i < ctx_len_kv; ++i) {
+          exp_sum += _S[item_idx][i];
+        }
+        _l_blk[item_idx] = exp_sum;
+        // Flash attention 1 paper's line 13
+        _m_new[item_idx] = fmax(_m_glb[item_idx], _m_blk[item_idx]);
+        _l_new[item_idx] = exp(_m_glb[item_idx] - _m_new[item_idx]) * _l_glb[item_idx] + exp(_m_blk[item_idx] - _m_new[item_idx]) * _l_blk[item_idx];
+      }
+      barrier(CLK_LOCAL_MEM_FENCE);
+
+      // P * V, and normailze for softmax
+      for (int i = item_idx; i < TILE_SIZE * TILE_SIZE; i += elem_item) {
+        int ty = i / TILE_SIZE, tx = i % TILE_SIZE;
+        int token_idx_q = qi * TILE_SIZE + ty;
+        int token_idx_k = ki * TILE_SIZE + tx;
+        if (ctx_len_q <= token_idx_q || ctx_len_kv <= token_idx_k)
+          continue;
+        float _o_blk = 0.0f;
+        for (int j = 0; j < TILE_SIZE; ++j) {
+          _o_blk += _S[ty][j] * _V[j][tx];
+        }
+
+        _O[ty][tx] = (_l_glb[ty] * exp(_m_glb[ty] - _m_new[ty]) * _O[ty][tx] + exp(_m_blk[ty] - _m_new[ty]) * _o_blk) / _l_new[ty];
+      }
+      barrier(CLK_LOCAL_MEM_FENCE);
+
+      if (item_idx < TILE_SIZE && qi * TILE_SIZE + item_idx < ctx_len_q) {
+        _l_glb[item_idx] = _l_new[item_idx];
+        _m_glb[item_idx] = _m_new[item_idx];
+      }
+      // barrier is not neccessary here
+    }
+  }
+}
+  
+  )";
+  return kernel;
+}
+
 #ifdef ENABLE_FP16
 const std::string &getHgemvClKernel() {
   static const std::string hgemv_cl_kernel_ =
