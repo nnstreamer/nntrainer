@@ -30,5 +30,7 @@ jobs:
         run: meson setup --native-file windows-native.ini builddir -Denable-opencl=true
       - name: Run Build
         run: meson compile -C builddir
+      - name: Run CL test
+        run: D:\a\nntrainer\nntrainer\builddir\test\unittest\unittest_attention_kernels_cl.exe --gtest_output=xml:D:\a\nntrainer\nntrainer\builddir/unittest_attention_kernels_cl.xml
       - name: Run Test Suite
         run: meson test -C builddir
