@@ -617,6 +617,8 @@ public:
    */
   void updateBatch(unsigned int batch);
 
+  void updateDimension(unsigned int axis, unsigned int value);
+
   /**
    * @brief     return whether tensor is contiguous or not.
    * @retval    bool contiguous

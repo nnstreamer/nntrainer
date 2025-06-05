@@ -128,6 +128,30 @@ void TensorBase::updateBatch(unsigned int batch) {
   dim.batch(batch);
 }
 
+void TensorBase::updateDimension(unsigned int axis, unsigned int value) {
+  if (dim.getTensorDim(axis) == value) {
+    return;
+  }
+
+  if (isAllocated())
+    throw std::invalid_argument("Cannot update tensor dimension for an allocated tensor");
+
+  switch (axis) {
+    case 0:
+      dim.batch(value);
+      break;
+    case 1:
+      dim.channel(value);
+      break;
+    case 2:
+      dim.height(value);
+      break;
+    case 3:
+      dim.width(value);
+      break;
+  }
+}
+
 size_t TensorBase::getIndex(unsigned int b, unsigned int c, unsigned int h,
                             unsigned int w) const noexcept {
   if (getFormat() == Tformat::NCHW) {

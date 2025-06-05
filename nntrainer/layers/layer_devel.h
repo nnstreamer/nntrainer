@@ -269,6 +269,8 @@ public:
    */
   virtual void setBatch(RunLayerContext &context, unsigned int batch) {}
 
+  virtual void updateTimeStep(RunLayerContext &context, unsigned int max_timestep) {}
+
   /**
    * @brief   If the current layer can support in-place
    *

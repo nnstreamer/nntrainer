@@ -823,6 +823,10 @@ public:
    */
   void updateTensor(unsigned int idx, unsigned int batch);
 
+  void updateTensor(unsigned int idx, unsigned int dim, unsigned int value);
+
+  void updateOutput(unsigned int idx, unsigned int dim, unsigned int value);
+
   /**
    * @brief   Get weight object for the weights
    *
