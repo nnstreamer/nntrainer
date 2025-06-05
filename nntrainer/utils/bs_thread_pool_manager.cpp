@@ -31,17 +31,19 @@ std::size_t ThreadPoolManager::select_k_quant_thread_count(unsigned int M,
   const std::size_t max_threads = std::thread::hardware_concurrency();
 
   const std::size_t work_size = static_cast<std::size_t>(M * N * K);
+  std::size_t est_threads;
 
   //  Use log-scale thresholds to reduce threads on smaller work sizes
   if (work_size < 1536 * 1536)
-    return 1;
+    est_threads = 1;
   if (work_size < 1536 * 2048)
-    return 2;
+    est_threads = 2;
   if (work_size < 2048 * 2048)
-    return 4;
-
-  std::size_t est_threads =
-    static_cast<std::size_t>(std::log2(work_size / (1536 * 1536))) + 4;
+    est_threads = 4;
+  else {
+    est_threads =
+      static_cast<std::size_t>(std::log2(work_size / (1536 * 1536))) + 4;
+  }
   return std::min(est_threads, max_threads);
 }
 } // namespace nntrainer
