@@ -591,9 +591,9 @@ class MatMulOperation(torch.nn.Module):
         return out, loss
 
 class GroupConv(torch.nn.Module):
-    def __init__(self, groups):
+    def __init__(self, kernel_size, groups):
         super().__init__()
-        self.conv = torch.nn.Conv2d(8, 8, 1, groups=groups)
+        self.conv = torch.nn.Conv2d(8, 8, kernel_size=kernel_size, groups=groups)
         self.loss = torch.nn.MSELoss()
 
     def forward(self, inputs, labels):
@@ -997,15 +997,35 @@ if __name__ == "__main__":
     inspect_file("non_trainable_fc_idx3.nnmodelgolden")
 
     # Add Groupconv Test
-    group_convolution = GroupConv(groups=4)
+    group_convolution = GroupConv(kernel_size=1, groups=2)
     record_v2(
         group_convolution,
         iteration=2,
         input_dims=[(1, 8, 4, 4)],  # batch_size=1, channels=8, height=4, width=4
         input_dtype=[float],
         label_dims=[(1, 8, 4, 4)],
-        name="group_convolution",
+        name="group_convolution_idx1",
+    )
+
+    group_convolution = GroupConv(kernel_size=3, groups=4)
+    record_v2(
+        group_convolution,
+        iteration=2,
+        input_dims=[(1, 8, 8, 16)],  # batch_size=1, channels=8, height=8, width=16
+        input_dtype=[float],
+        label_dims=[(1, 8, 6, 14)],
+        name="group_convolution_idx2",
+    )
+
+    group_convolution = GroupConv(kernel_size=(3, 5), groups=8)
+    record_v2(
+        group_convolution,
+        iteration=2,
+        input_dims=[(1, 8, 16, 16)],  # batch_size=1, channels=8, height=16, width=16
+        input_dtype=[float],
+        label_dims=[(1, 8, 14, 12)],
+        name="group_convolution_idx3",
     )
 
     #    Function to check the created golden test file
-    inspect_file("group_convolution.nnmodelgolden")
+    inspect_file("group_convolution_idx1.nnmodelgolden")

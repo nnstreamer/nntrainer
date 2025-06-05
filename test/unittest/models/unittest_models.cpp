@@ -1076,11 +1076,16 @@ static std::unique_ptr<NeuralNetwork> makeGroupConvOperation() {
     nn->addLayer(node);
   }
 
-  nn->setProperty({"batch_size=1"});
-  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate=0.1"}));
+    nn->setProperty({"batch_size=1"});
+    nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate=0.1"}));
 
-  return nn;
+    return nn;
+  };
 }
+
+static auto makeGroupConvOperationIdx1 = getFuncToMakeGroupConvOperation(1);
+static auto makeGroupConvOperationIdx2 = getFuncToMakeGroupConvOperation(2);
+static auto makeGroupConvOperationIdx3 = getFuncToMakeGroupConvOperation(3);
 
 GTEST_PARAMETER_TEST(
   model, nntrainerModelTest,
