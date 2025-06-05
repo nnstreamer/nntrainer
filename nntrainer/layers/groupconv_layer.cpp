@@ -431,7 +431,7 @@ void GroupConvLayer::forwarding(RunLayerContext &context, bool training) {
       out.reshape({filter_size, out_dim.width() * out_dim.height()});
       Tensor in_sub = input_.getBatchSlice(b, 1);
 
-      size_t input_channel_stride = in_dim.getFeatureLen();
+      size_t input_channel_stride = in_dim.height() * in_dim.width();
       size_t output_channel_stride = out_dim.height() * out_dim.width();
       size_t filter_stride =
         input_channels_per_group * filter_dim.height() * filter_dim.width();
@@ -537,7 +537,8 @@ void GroupConvLayer::calcDerivative(RunLayerContext &context) {
           {1, output_channels_per_group, out_dim.height(), out_dim.width()},
           g * output_channels_per_group * out_dim.height() * out_dim.width());
 
-        deriv_sub.reshape({filter_size, out_dim.width() * out_dim.height()});
+        deriv_sub.reshape(
+          {output_channels_per_group, out_dim.width() * out_dim.height()});
 
         Tensor in_deriv_sub = in_deriv_batch.getSharedDataTensor(
           {1, input_channels_per_group, in_dim.height(), in_dim.width()},
@@ -584,17 +585,6 @@ void GroupConvLayer::calcGradient(RunLayerContext &context) {
 
   delK.reshape(filter_dim_squeezed);
 
-  // Assert the number of channels is divisible by the number of groups.
-  NNTR_THROW_IF(input_.channel() % group_n != 0, std::invalid_argument)
-    << "Failed to calcGradient: Input channels must be divisible by number of "
-       "groups.";
-  NNTR_THROW_IF(derivative.channel() % group_n != 0, std::invalid_argument)
-    << "Failed to calcGradient: Output channels must be divisible by number of "
-       "groups.";
-  NNTR_THROW_IF(delK.channel() % group_n != 0, std::invalid_argument)
-    << "Failed to calcGradient: Filter output channels must be divisible by "
-       "number of groups.";
-
   unsigned int input_c_per_group = input_.channel() / group_n;
   unsigned int output_c_per_group = derivative.channel() / group_n;
   unsigned int filter_offset_per_group =
@@ -605,7 +595,7 @@ void GroupConvLayer::calcGradient(RunLayerContext &context) {
    * so its zero padded values will still be zero
    */
 
-  TensorDim out_dim_squeezed{filter_size,
+  TensorDim out_dim_squeezed{output_c_per_group,
                              derivative.width() * derivative.height()};
   auto workers = ParallelBatch(input_.batch());
 

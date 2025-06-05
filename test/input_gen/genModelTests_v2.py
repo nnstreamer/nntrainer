@@ -593,11 +593,11 @@ class MatMulOperation(torch.nn.Module):
 class GroupConv(torch.nn.Module):
     def __init__(self, groups):
         super().__init__()
-        self.fc = torch.nn.Conv2d(8, 8, 1, groups=groups)
+        self.conv = torch.nn.Conv2d(8, 8, 1, groups=groups)
         self.loss = torch.nn.MSELoss()
 
     def forward(self, inputs, labels):
-        out = self.fc(inputs[0])
+        out = self.conv(inputs[0])
         loss = self.loss(out, labels[0])
         return out, loss
 
@@ -1004,7 +1004,7 @@ if __name__ == "__main__":
         input_dims=[(1, 8, 4, 4)],  # batch_size=1, channels=8, height=4, width=4
         input_dtype=[float],
         label_dims=[(1, 8, 4, 4)],
-        name="group_convoluton",
+        name="group_convolution",
     )
 
     #    Function to check the created golden test file
