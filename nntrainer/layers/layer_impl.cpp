@@ -37,6 +37,14 @@ void LayerImpl::setProperty(const std::vector<std::string> &values) {
          std::to_string(values.size());
 }
 
+std::string LayerImpl::getProperty(const std::string &key) {
+  if (!layer_impl_props)
+    return "";
+
+  std::string result = find_in_tuple(*layer_impl_props, key);
+  return !result.empty() ? result : "";
+}
+
 void LayerImpl::exportTo(Exporter &exporter,
                          const ml::train::ExportMethods &method) const {
   exporter.saveResult(*layer_impl_props, method, this);

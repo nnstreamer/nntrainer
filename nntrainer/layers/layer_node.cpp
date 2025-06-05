@@ -228,6 +228,24 @@ void LayerNode::setProperty(const std::vector<std::string> &properties) {
   }
 }
 
+std::string LayerNode::getProperty(const std::string &key) {
+  if (layer_node_props) {
+    std::string result = find_in_tuple(*layer_node_props, key);
+    if (!result.empty()) {
+      return result;
+    }
+  }
+
+  if (layer_node_props_realization) {
+    std::string result = find_in_tuple(*layer_node_props_realization, key);
+    if (!result.empty()) {
+      return result;
+    }
+  }
+
+  return layer->getProperty(key);
+}
+
 void LayerNode::setWeights(const std::vector<float *> weights) {
   NNTR_THROW_IF(!run_context, std::runtime_error)
     << __func__ << " layer needs to be finalized first!";
