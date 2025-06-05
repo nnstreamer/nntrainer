@@ -17,6 +17,8 @@
 
 #include <chrono>
 #include <iostream>
+
+#include <avx2_impl.h>
 using std::chrono::duration_cast;
 using std::chrono::high_resolution_clock;
 using std::chrono::microseconds;
@@ -127,6 +129,31 @@ TEST(nntrainer_cpu_backend_standalone, ele_add) {
 
   nntrainer::ele_add(TEST_SIZE, lhs_ptr, rhs_ptr, dst_ptr, alpha, beta,
                      i_stride, o_stride);
+
+  for (unsigned int i = 0; i < TEST_SIZE; ++i) {
+    EXPECT_EQ(dst[i], lhs[i] + rhs[i]);
+  }
+}
+
+TEST(nntrainer_cpu_backend_avx2, ele_add_avx2) {
+  const unsigned int TEST_SIZE = 100;
+  float alpha = 1.F;
+  float beta = 0.F;
+  unsigned int i_stride = 1;
+  unsigned int o_stride = 1;
+
+  std::vector<float> lhs = generate_random_vector<float>(TEST_SIZE);
+  std::vector<float> rhs = generate_random_vector<float>(TEST_SIZE);
+  std::vector<float> dst(TEST_SIZE);
+
+  const float *lhs_ptr = (const float *)lhs.data();
+  const float *rhs_ptr = (const float *)rhs.data();
+  float *dst_ptr = (float *)dst.data();
+
+  //nntrainer::ele_add(TEST_SIZE, lhs_ptr, rhs_ptr, dst_ptr, alpha, beta,
+  //                   i_stride, o_stride);
+  nntrainer::avx2::ele_add(TEST_SIZE, lhs_ptr, rhs_ptr, dst_ptr, alpha, beta,
+                       i_stride, o_stride); 
 
   for (unsigned int i = 0; i < TEST_SIZE; ++i) {
     EXPECT_EQ(dst[i], lhs[i] + rhs[i]);

@@ -490,4 +490,32 @@ void swiglu(const unsigned int N, float *X, const float *Y, const float *Z) {
   _mm_setcsr(oldcsr);
 }
 
+void ele_add(const unsigned int N, const float *X, const float *Y,
+  float *Z, float alpha, float beta,
+  unsigned int i_stride, unsigned int o_stride) {
+  /*for (unsigned int i = 0; i < N; ++i) {
+    *Z = *X + alpha * *Y + beta * *Z;
+    X += o_stride;
+    Y += i_stride;
+    Z += o_stride;
+  }*/
+
+  if(alpha == 1.0 && beta == 0.0 && i_stride == 1 && o_stride == 1){
+    //finally we have 
+    //*Z = *X + *Y;
+    //unsigned int N8 = (N >> 3) << 3;
+    unsigned int N8 = (N & ~(7));
+    for (unsigned int i = 0; i < N8; i += 8) {
+      __m256 x = _mm256_loadu_ps(&X[i]);
+      __m256 y = _mm256_loadu_ps(&Y[i]);
+      __m256 res = _mm256_add_ps(x, y);
+      _mm256_storeu_ps(&Z[i], res);
+    }
+
+    for (unsigned int i = N8; i < N; i++) {
+      Z[i] = X[i] + Y[i];
+    }
+  }
+}
+
 } // namespace nntrainer::avx2
