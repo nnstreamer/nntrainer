@@ -41,6 +41,11 @@ if ruy_dep.found()
   and_conf.set('MESON_RUY_ROOT', ruy_root)
 endif
 
+if clblast_dep.found()
+  and_conf.set('MESON_CLBLAST_ROOT', clblast_root)
+  and_conf.set('MESON_CL_ROOT', opencl_root)
+endif
+
 if tflite_dep.found()
   and_conf.set('MESON_HAS_TFLITE', 1)
   and_conf.set('MESON_TFLITE_ROOT', tflite_root)
