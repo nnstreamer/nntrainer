@@ -1062,19 +1062,38 @@ static std::unique_ptr<NeuralNetwork> makeMatMulOperation() {
   return nn;
 }
 
-static std::unique_ptr<NeuralNetwork> makeGroupConvOperation() {
-  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+std::function<std::unique_ptr<NeuralNetwork>()>
+getFuncToMakeGroupConvOperation(int idx) {
+  return [idx]() {
+    std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+    nntrainer::GraphRepresentation outer_graph;
 
-  auto outer_graph = makeGraph(
-    {{"input", {"name=in", "input_shape=1:8:4:4"}},
-     {"group_convolution",
-      {"name=gc_layer", "padding=0,0,0,0", "filters=8", "kernel_size=1,1",
-       "stride=1,1", "dilation=1,1", "split_number=4", "input_layers=in"}},
-     {"mse", {"name=loss", "input_layers=gc_layer"}}});
+    if (idx == 1) {
+      outer_graph =
+        makeGraph({{"input", {"name=in", "input_shape=1:8:4:4"}},
+                   {"group_convolution",
+                    {"name=gc_layer", "padding=valid", "filters=8",
+                     "kernel_size=1,1", "split_number=2", "input_layers=in"}},
+                   {"mse", {"name=loss", "input_layers=gc_layer"}}});
+    } else if (idx == 2) {
+      outer_graph =
+        makeGraph({{"input", {"name=in", "input_shape=1:8:8:16"}},
+                   {"group_convolution",
+                    {"name=gc_layer", "padding=valid", "filters=8",
+                     "kernel_size=3,3", "split_number=4", "input_layers=in"}},
+                   {"mse", {"name=loss", "input_layers=gc_layer"}}});
+    } else if (idx == 3) {
+      outer_graph =
+        makeGraph({{"input", {"name=in", "input_shape=1:8:16:16"}},
+                   {"group_convolution",
+                    {"name=gc_layer", "padding=valid", "filters=8",
+                     "kernel_size=3,5", "split_number=8", "input_layers=in"}},
+                   {"mse", {"name=loss", "input_layers=gc_layer"}}});
+    }
 
-  for (auto &node : outer_graph) {
-    nn->addLayer(node);
-  }
+    for (auto &node : outer_graph) {
+      nn->addLayer(node);
+    }
 
     nn->setProperty({"batch_size=1"});
     nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate=0.1"}));
@@ -1173,6 +1192,12 @@ GTEST_PARAMETER_TEST(
     mkModelTc_V2(makeTangentOperation, "tangent_operation",
                  ModelTestOption::ALL_V2),
     mkModelTc_V2(makeMatMulOperation, "matmul_operation",
+                 ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeGroupConvOperationIdx1, "group_convolution_idx1",
+                 ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeGroupConvOperationIdx2, "group_convolution_idx2",
+                 ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeGroupConvOperationIdx3, "group_convolution_idx3",
                  ModelTestOption::ALL_V2),
   }),
   [](const testing::TestParamInfo<nntrainerModelTest::ParamType> &info)
