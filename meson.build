@@ -169,21 +169,73 @@ if get_option('enable-mmap')
   extra_defines += '-DUSE_MMAP=1'
 endif
 
+dummy_dep = dependency('', required: false)
+
+# CLBlast
+clblast_dep = dummy_dep
+
 if get_option('enable-opencl')
   message ('OpenCL build is now enabled and will function only if an OpenCL-supported GPU is available. Using CLBlast as the OpenCL backend.')
   extra_defines += '-DENABLE_OPENCL=1'
+
   clblast_options = cmake.subproject_options()
 
   if get_option('platform') == 'android'
     clblast_dep = declare_dependency()
   else
-    if host_machine.system() == 'windows'
-      clblast_options.add_cmake_defines(common_win_subproject_cmake_defines)
-    endif
 
-    clblast_options.add_cmake_defines({'CMAKE_POLICY_VERSION_MINIMUM': '3.10'})
-    clblast_proj = cmake.subproject('clblast', options: clblast_options, required: true)
-    clblast_dep = clblast_proj.dependency('clblast')
+    clblast_dep = dependency('clblast', required : false)
+
+    if not clblast_dep.found()
+      message('Cannot find CLBlast dependency in system')
+      clblast_dir_relative = 'subprojects' / 'CLBlast'
+      clblast_include_dir_relative = clblast_dir_relative / 'include'
+      clblast_dir_absolute = meson.current_source_dir() / clblast_dir_relative
+      clblast_build_dir_relative = clblast_dir_relative / 'build'
+      clblast_build_dir_absolute = meson.current_source_dir() / clblast_build_dir_relative
+
+      if fs.exists (clblast_build_dir_absolute)
+        message('Skip compiling CLBlast (using previous build)')
+      else
+        message('Setup CLBlast')
+        clblast_setup_command = ['cmake', '-B', clblast_build_dir_absolute, '-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_CXX_STANDARD=17', '-DCMAKE_POLICY_VERSION_MINIMUM=3.10']
+
+        if host_machine.system() == 'windows'
+          clblast_setup_command += '-DBUILD_SHARED_LIBS=False'
+          clblast_setup_command += '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded'
+          clblast_setup_command += '-DMSVC_STATIC_CRT=1'
+        else
+          clblast_setup_command += '-DBUILD_SHARED_LIBS=True'
+        endif
+
+        if cxx_compiler_id == 'clang'
+          clblast_setup_command += '-G Ninja'
+          clblast_setup_command += '-DCMAKE_C_COMPILER=clang'
+          clblast_setup_command += '-DCMAKE_CXX_COMPILER=clang++'
+        endif
+
+        clblast_setup_command += clblast_dir_absolute
+
+        run_command(clblast_setup_command, check: true)
+
+        message('Compile CLBlast')
+        clblast_compile_command = ['cmake' , '--build', clblast_build_dir_absolute, '--config', 'Release', '-j']
+        run_command(clblast_compile_command, check: true)
+      endif
+
+      if host_machine.system() == 'windows'
+        if cxx_compiler_id == 'msvc'
+          clblast_lib = clblast_build_dir_absolute / 'Release' / 'clblast.lib'
+        else
+          clblast_lib = clblast_build_dir_absolute / 'clblast.lib'
+        endif
+      else
+        clblast_lib = clblast_build_dir_absolute / 'libclblast.so'
+      endif
+
+      clblast_include = include_directories(clblast_include_dir_relative)
+      clblast_dep = declare_dependency(include_directories: clblast_include, link_args:[clblast_lib])
+    endif
   endif
 endif
 
@@ -294,7 +346,6 @@ nntrainer_conf.set('INCLUDE_INSTALL_DIR', nntrainer_includedir / '..')
 nntrainer_conf.set('FLASH_STORAGE_UTILIZATION', nntrainer_enable_fsu)
 nntrainer_conf.set('FLASH_STORAGE_UTILIZATION_PATH', nntrainer_fsudir)
 
-dummy_dep = dependency('', required: false)
 ml_api_common_flag = '-DML_API_COMMON=0'
 
 # if ml-api-support is disabled, enable dummy common api interfaces and disable related dependencies.
@@ -323,6 +374,8 @@ else
   nntrainer_conf.set('CAPI_ML_COMMON_DEP', '')
   extra_defines += '-DML_API_COMMON=0'
 endif
+
+# OpenBLAS
 blas_dep = dummy_dep
 # Dependencies
 if get_option('enable-cublas')

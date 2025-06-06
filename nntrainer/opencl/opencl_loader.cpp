@@ -44,7 +44,12 @@ bool LoadOpenCL() {
   }
 
   void *libopencl = nullptr;
+
+#if defined(_WIN32)
+  static const char *kClLibName = "OpenCL.dll";
+#else
   static const char *kClLibName = "libOpenCL.so";
+#endif
 
   libopencl =
     DynamicLibraryLoader::loadLibrary(kClLibName, RTLD_NOW | RTLD_LOCAL);
