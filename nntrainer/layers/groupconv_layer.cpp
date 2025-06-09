@@ -408,8 +408,8 @@ void GroupConvLayer::forwarding(RunLayerContext &context, bool training) {
        "groups.";
 
   // for Group convolution
-  const unsigned int input_channels_per_group = in_dim.channel() / group_n;
-  const unsigned int output_channels_per_group = out_dim.channel() / group_n;
+  const size_t input_channels_per_group = in_dim.channel() / group_n;
+  const size_t output_channels_per_group = out_dim.channel() / group_n;
 
   TensorDim filter_dim_squeezed{filter_kernel.batch(),
                                 filter_kernel.getDim().getFeatureLen()};
@@ -438,10 +438,10 @@ void GroupConvLayer::forwarding(RunLayerContext &context, bool training) {
 
       // im2col and dot production group by group.
       for (unsigned int g = 0; g < group_n; ++g) {
-        size_t offset_in = g * input_channels_per_group * input_channel_stride;
+        size_t offset_in = input_channels_per_group * input_channel_stride * g;
         size_t offset_out =
-          g * output_channels_per_group * output_channel_stride;
-        size_t offset_filter = g * output_channels_per_group * filter_stride;
+          output_channels_per_group * output_channel_stride * g;
+        size_t offset_filter = output_channels_per_group * filter_stride * g;
 
         Tensor in_sub_group = in_sub.getSharedDataTensor(
           {1, input_channels_per_group, in_dim.height(), in_dim.width()},
@@ -513,8 +513,8 @@ void GroupConvLayer::calcDerivative(RunLayerContext &context) {
     << "Failed to calcDerivative: Output channels must be divisible by number "
        "of groups.";
 
-  const unsigned int input_channels_per_group = in_dim.channel() / group_n;
-  const unsigned int output_channels_per_group = out_dim.channel() / group_n;
+  const size_t input_channels_per_group = in_dim.channel() / group_n;
+  const size_t output_channels_per_group = out_dim.channel() / group_n;
 
   TensorDim filter_dim_squeezed{filter_kernel.batch(),
                                 filter_dim.getFeatureLen()};
@@ -535,19 +535,19 @@ void GroupConvLayer::calcDerivative(RunLayerContext &context) {
       for (unsigned int g = 0; g < group_n; ++g) {
         Tensor deriv_sub = deriv_batch.getSharedDataTensor(
           {1, output_channels_per_group, out_dim.height(), out_dim.width()},
-          g * output_channels_per_group * out_dim.height() * out_dim.width());
+          output_channels_per_group * out_dim.height() * out_dim.width() * g);
 
         deriv_sub.reshape(
           {output_channels_per_group, out_dim.width() * out_dim.height()});
 
         Tensor in_deriv_sub = in_deriv_batch.getSharedDataTensor(
           {1, input_channels_per_group, in_dim.height(), in_dim.width()},
-          g * input_channels_per_group * in_dim.height() * in_dim.width());
+          input_channels_per_group * in_dim.height() * in_dim.width() * g);
 
         Tensor filter_kernel_sub = filter_kernel.getSharedDataTensor(
           {output_channels_per_group,
            input_channels_per_group * filter_dim.height() * filter_dim.width()},
-          g * output_channels_per_group);
+          output_channels_per_group * g);
 
         filter_kernel_sub.dot(deriv_sub, result, true, false);
         col2im(result, filter_dim, padding, stride, dilation, in_deriv_sub);
@@ -585,9 +585,9 @@ void GroupConvLayer::calcGradient(RunLayerContext &context) {
 
   delK.reshape(filter_dim_squeezed);
 
-  unsigned int input_c_per_group = input_.channel() / group_n;
-  unsigned int output_c_per_group = derivative.channel() / group_n;
-  unsigned int filter_offset_per_group =
+  size_t input_c_per_group = input_.channel() / group_n;
+  size_t output_c_per_group = derivative.channel() / group_n;
+  size_t filter_offset_per_group =
     output_c_per_group * filter_dim.getFeatureLen();
 
   /**
@@ -615,19 +615,19 @@ void GroupConvLayer::calcGradient(RunLayerContext &context) {
         for (unsigned int g = 0; g < group_n; ++g) {
           Tensor deriv_sub = derivative.getBatchSlice(b, 1).getSharedDataTensor(
             {output_c_per_group, derivative.height(), derivative.width()},
-            g * output_c_per_group * derivative.height() * derivative.width());
+            output_c_per_group * derivative.height() * derivative.width() * g);
           // same as g * output_c_per_group *
           // derivative.getDim().getFeatureLen()
 
           Tensor delK_sub = delK_par.getBatchSlice(b, 1).getSharedDataTensor(
             {output_c_per_group, filter_dim.getFeatureLen()},
-            g * filter_offset_per_group);
+            filter_offset_per_group * g);
 
           deriv_sub.reshape(out_dim_squeezed);
 
           Tensor in_sub = input_.getBatchSlice(b, 1).getSharedDataTensor(
             {input_c_per_group, input_.height(), input_.width()},
-            g * input_c_per_group * input_.height() * input_.width());
+            input_c_per_group * input_.height() * input_.width() * g);
           // same as g * output_c_per_group * input_.getDim().getFeatureLen()
 
           im2col(in_sub, filter_dim, padding, stride, dilation, result);
