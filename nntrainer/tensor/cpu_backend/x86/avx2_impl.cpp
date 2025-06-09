@@ -490,4 +490,92 @@ void swiglu(const unsigned int N, float *X, const float *Y, const float *Z) {
   _mm_setcsr(oldcsr);
 }
 
+void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z,
+             float alpha, float beta, unsigned int i_stride,
+             unsigned int o_stride) {
+  if (alpha == 1.0f && beta == 0.0f && o_stride == 1) {
+    unsigned int N8 = (N & ~(7));
+    if (i_stride == 0) {
+      float vy8[8] = {Y[0], Y[0], Y[0], Y[0], Y[0], Y[0], Y[0], Y[0]};
+      auto y = _mm256_loadu_ps(&vy8[0]);
+      for (unsigned int i = 0; i < N8; i += 8) {
+        auto x = _mm256_loadu_ps(X);
+        auto z = _mm256_mul_ps(x, y);
+        _mm256_storeu_ps(Z, z);
+        X += 8;
+        Y += i_stride * 8;
+        Z += 8;
+      }
+    } else {
+      for (unsigned int i = 0; i < N8; i += 8) {
+        auto x = _mm256_loadu_ps(X);
+        auto y = _mm256_loadu_ps(Y);
+        auto z = _mm256_mul_ps(x, y);
+        _mm256_storeu_ps(Z, z);
+        X += 8;
+        Y += i_stride * 8;
+        Z += 8;
+      }
+    }
+    for (unsigned int i = N8; i < N; ++i) {
+      *Z = *X * *Y;
+      X++;
+      Y += i_stride;
+      Z++;
+    }
+  } else {
+    // TODO: AVX2 implementation if used
+    for (unsigned int i = 0; i < N; ++i) {
+      *Z = *X * alpha * *Y + beta * *Z;
+      X += o_stride;
+      Y += i_stride;
+      Z += o_stride;
+    }
+  }
+}
+
+void ele_add(const unsigned int N, const float *X, const float *Y, float *Z,
+             float alpha, float beta, unsigned int i_stride,
+             unsigned int o_stride) {
+  if (alpha == 1.0f && beta == 0.0f && o_stride == 1) {
+    unsigned int N8 = (N & ~(7));
+    if (i_stride == 0) {
+      float vy8[8] = {Y[0], Y[0], Y[0], Y[0], Y[0], Y[0], Y[0], Y[0]};
+      auto y = _mm256_loadu_ps(&vy8[0]);
+      for (unsigned int i = 0; i < N8; i += 8) {
+        auto x = _mm256_loadu_ps(X);
+        auto z = _mm256_add_ps(x, y);
+        _mm256_storeu_ps(Z, z);
+        X += 8;
+        Y += i_stride * 8;
+        Z += 8;
+      }
+    } else {
+      for (unsigned int i = 0; i < N8; i += 8) {
+        auto x = _mm256_loadu_ps(X);
+        auto y = _mm256_loadu_ps(Y);
+        auto z = _mm256_add_ps(x, y);
+        _mm256_storeu_ps(Z, z);
+        X += 8;
+        Y += i_stride * 8;
+        Z += 8;
+      }
+    }
+    for (unsigned int i = N8; i < N; ++i) {
+      *Z = *X + *Y;
+      X++;
+      Y += i_stride;
+      Z++;
+    }
+  } else {
+    // TODO: AVX2 implementation if used
+    for (unsigned int i = 0; i < N; ++i) {
+      *Z = *X + alpha * *Y + beta * *Z;
+      X += o_stride;
+      Y += i_stride;
+      Z += o_stride;
+    }
+  }
+}
+
 } // namespace nntrainer::avx2

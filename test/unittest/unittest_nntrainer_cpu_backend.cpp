@@ -10,6 +10,7 @@
 
 #include "nntrainer_test_util.h"
 #include <cpu_backend.h>
+#include <fallback_internal.h>
 #include <gtest/gtest.h>
 #include <numeric>
 #include <random>
@@ -133,6 +134,24 @@ TEST(nntrainer_cpu_backend_standalone, ele_add) {
   }
 }
 
+float compute_mse(const uint32_t M, const uint32_t N,
+                  std::vector<float> &ref_dst, std::vector<float> &dst,
+                  bool print = false) {
+  auto mean_squared_error =
+    mse<float, float>(ref_dst.data(), dst.data(), M * N);
+  auto cos_sim = cosine_similarity(ref_dst.data(), dst.data(), M * N);
+  auto max_differ = find_max_diff(ref_dst.data(), dst.data(), M, N);
+
+  auto sum = std::accumulate(dst.begin(), dst.end(), 0.0);
+  auto sum_gt = std::accumulate(ref_dst.begin(), ref_dst.end(), 0.0);
+  if (print) {
+    std::cout << "[INFO]            MSE: " << mean_squared_error
+              << ", COS_SIM: " << cos_sim << ", MAX_DIFFER: " << max_differ
+              << ", SUM: " << sum << ", SUM_GT: " << sum_gt << std::endl;
+  }
+  return mean_squared_error;
+}
+
 #ifdef ENABLE_GGML
 TEST(nntrainer_cpu_backend_standalone, q4_K_quantization) {
   nntrainer::init_backend();
@@ -208,24 +227,6 @@ TEST(nntrainer_cpu_backend_standalone, q6_K_quantization) {
   EXPECT_NEAR(mean_squared_error, 0., eps * K * N);
   EXPECT_NEAR(cos_sim, 0., eps * K * N);
   EXPECT_NEAR(max_differ, 0., eps * K * N);
-}
-
-float compute_mse(const uint32_t M, const uint32_t N,
-                  std::vector<float> &ref_dst, std::vector<float> &dst,
-                  bool print = false) {
-  auto mean_squared_error =
-    mse<float, float>(ref_dst.data(), dst.data(), M * N);
-  auto cos_sim = cosine_similarity(ref_dst.data(), dst.data(), M * N);
-  auto max_differ = find_max_diff(ref_dst.data(), dst.data(), M, N);
-
-  auto sum = std::accumulate(dst.begin(), dst.end(), 0.0);
-  auto sum_gt = std::accumulate(ref_dst.begin(), ref_dst.end(), 0.0);
-  if (print) {
-    std::cout << "[INFO]            MSE: " << mean_squared_error
-              << ", COS_SIM: " << cos_sim << ", MAX_DIFFER: " << max_differ
-              << ", SUM: " << sum << ", SUM_GT: " << sum_gt << std::endl;
-  }
-  return mean_squared_error;
 }
 
 float test_gemm_q4_0(const uint32_t M, const uint32_t K, const uint32_t N,
@@ -548,9 +549,162 @@ TEST(nntrainer_cpu_backend_standalone, quant_q_6_K_DOT_10240) {
 
 #endif
 
+static void run_ele_mul_test(const unsigned int N, float alpha, float beta,
+                             unsigned int i_stride, unsigned int o_stride) {
+  // Z = X ⊙ alpha * Y + beta * Z
+  const int TEST_CNT = 20;
+  nanoseconds ref_mul_time = (nanoseconds)0;
+  nanoseconds mul_time = (nanoseconds)0;
+
+  for (int i = -1; i < TEST_CNT; i++) {
+    std::vector<float> X =
+      generate_random_vector<float, false>((size_t)N * o_stride);
+    std::vector<float> Y = generate_random_vector<float, false>(
+      std::max<size_t>(1, (size_t)N * i_stride));
+    std::vector<float> Z =
+      generate_random_vector<float, false>((size_t)N * o_stride);
+    std::vector<float> Z_ref = Z;
+    {
+      // #### GROUND TRUTH ####
+      auto t1 = high_resolution_clock::now();
+      nntrainer::__fallback_ele_mul(N, X.data(), Y.data(), Z_ref.data(), alpha,
+                                    beta, i_stride, o_stride);
+      auto t2 = high_resolution_clock::now();
+      auto dt = duration_cast<nanoseconds>(t2 - t1);
+      if (i >= 0) { // skip the first run
+        ref_mul_time += dt;
+      }
+    }
+    {
+      auto t1 = high_resolution_clock::now();
+      // #### MAIN TESTED METHOD ####
+      nntrainer::ele_mul(N, X.data(), Y.data(), Z.data(), alpha, beta, i_stride,
+                         o_stride);
+      // #### MAIN TESTED METHOD ####
+      auto t2 = high_resolution_clock::now();
+      auto dt = duration_cast<nanoseconds>(t2 - t1);
+      if (i >= 0) { // skip the first run
+        mul_time += dt;
+      }
+    }
+
+    auto mean_squared_error = compute_mse(1, N, Z_ref, Z, false);
+    ASSERT_LE(mean_squared_error, 0.00001f);
+  }
+
+  std::cout << "[INFO] ele_mul: TEST CNT: " << TEST_CNT << ", N: " << N
+            << ", i_stride: " << i_stride
+            << ", Average ref_time: " << ref_mul_time.count() / TEST_CNT
+            << " ns, Average mul_time: " << mul_time.count() / TEST_CNT
+            << " ns " << std::endl;
+}
+
+TEST(nntrainer_cpu_backend_standalone, ele_mul_3072_istr_0) {
+  const unsigned int N = 3072;
+  const float alpha = 1.f;
+  const float beta = 0.f;
+  const unsigned int i_stride = 0;
+  const unsigned int o_stride = 1;
+  run_ele_mul_test(N, alpha, beta, i_stride, o_stride);
+}
+
+TEST(nntrainer_cpu_backend_standalone, ele_mul_3072_istr_1) {
+  const unsigned int N = 3072;
+  const float alpha = 1.f;
+  const float beta = 0.f;
+  const unsigned int i_stride = 1;
+  const unsigned int o_stride = 1;
+  run_ele_mul_test(N, alpha, beta, i_stride, o_stride);
+}
+
+TEST(nntrainer_cpu_backend_standalone, ele_mul_3072_istr_16_ostr_16) {
+  const unsigned int N = 3072;
+  const float alpha = 3.f;
+  const float beta = 2.f;
+  const unsigned int i_stride = 16;
+  const unsigned int o_stride = 16;
+  run_ele_mul_test(N, alpha, beta, i_stride, o_stride);
+}
+
+static void run_ele_add_test(const unsigned int N, float alpha, float beta,
+                             unsigned int i_stride, unsigned int o_stride) {
+  // Z = X ⊙ alpha * Y + beta * Z
+  const int TEST_CNT = 20;
+  nanoseconds ref_add_time = (nanoseconds)0;
+  nanoseconds add_time = (nanoseconds)0;
+
+  for (int i = -1; i < TEST_CNT; i++) {
+    std::vector<float> X =
+      generate_random_vector<float, false>((size_t)N * o_stride);
+    std::vector<float> Y = generate_random_vector<float, false>(
+      std::max<size_t>(1, (size_t)N * i_stride));
+    std::vector<float> Z =
+      generate_random_vector<float, false>((size_t)N * o_stride);
+    std::vector<float> Z_ref = Z;
+    {
+      // #### GROUND TRUTH ####
+      auto t1 = high_resolution_clock::now();
+      nntrainer::__fallback_ele_add(N, X.data(), Y.data(), Z_ref.data(), alpha,
+                                    beta, i_stride, o_stride);
+      auto t2 = high_resolution_clock::now();
+      auto dt = duration_cast<nanoseconds>(t2 - t1);
+      if (i >= 0) { // skip the first run
+        ref_add_time += dt;
+      }
+    }
+    {
+      auto t1 = high_resolution_clock::now();
+      // #### MAIN TESTED METHOD ####
+      nntrainer::ele_add(N, X.data(), Y.data(), Z.data(), alpha, beta, i_stride,
+                         o_stride);
+      // #### MAIN TESTED METHOD ####
+      auto t2 = high_resolution_clock::now();
+      auto dt = duration_cast<nanoseconds>(t2 - t1);
+      if (i >= 0) { // skip the first run
+        add_time += dt;
+      }
+    }
+    auto mean_squared_error = compute_mse(1, N, Z_ref, Z, false);
+    ASSERT_LE(mean_squared_error, 0.00001f);
+  }
+
+  std::cout << "[INFO] ele_add: TEST CNT: " << TEST_CNT << ", N: " << N
+            << ", i_stride: " << i_stride
+            << ", Average ref_time: " << ref_add_time.count() / TEST_CNT
+            << " ns, Average add_time: " << add_time.count() / TEST_CNT
+            << " ns " << std::endl;
+}
+
+TEST(nntrainer_cpu_backend_standalone, ele_add_3072_istr_0) {
+  const unsigned int N = 3072;
+  const float alpha = 1.f;
+  const float beta = 0.f;
+  const unsigned int i_stride = 0;
+  const unsigned int o_stride = 1;
+  run_ele_add_test(N, alpha, beta, i_stride, o_stride);
+}
+
+TEST(nntrainer_cpu_backend_standalone, ele_add_3072_istr_1) {
+  const unsigned int N = 3072;
+  const float alpha = 1.f;
+  const float beta = 0.f;
+  const unsigned int i_stride = 1;
+  const unsigned int o_stride = 1;
+  run_ele_add_test(N, alpha, beta, i_stride, o_stride);
+}
+
+TEST(nntrainer_cpu_backend_standalone, ele_add_3072_istr_16_ostrid_16) {
+  const unsigned int N = 3072;
+  const float alpha = 3.f;
+  const float beta = 2.f;
+  const unsigned int i_stride = 16;
+  const unsigned int o_stride = 16;
+  run_ele_add_test(N, alpha, beta, i_stride, o_stride);
+}
+
 int main(int argc, char **argv) {
   int result = -1;
-#ifdef ENABLE_GGML
+
   try {
     testing::InitGoogleTest(&argc, argv);
   } catch (...) {
@@ -563,8 +717,6 @@ int main(int argc, char **argv) {
   } catch (...) {
     std::cerr << "Error during RUN_ALL_TESTS()" << std::endl;
   }
-#else
-  result = 0;
-#endif
+
   return result;
 }
