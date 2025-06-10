@@ -133,15 +133,14 @@ void dotCl(Tensor const &input, Tensor const &m, Tensor &result, bool trans,
     }
     /// case2: (M * K) X (K * 1)
     else if (N == 1) {
-      trans ? sgemv_cl(data, mdata, rdata, trans, dim2, dim1, lda)
-            : sgemv_cl(data, mdata, rdata, trans, dim1, dim2, lda);
+      gemv_cl(0, trans, dim1, dim2, 1.0f, data, lda, mdata, 0.0f, rdata, 1);
     }
     /// case3: (1 * K) X (K * N) = 1 * N = R
     /// = R^T = (K * N) ^T * (1 * K) ^T = (N * K) * (K * 1) = (N * K) * (1 * K)
     /// Effectively a translation of sgemv
     else if (M == 1) {
-      trans_m ? sgemv_cl(mdata, data, rdata, !trans_m, mdim1, mdim2, ldb)
-              : sgemv_cl(mdata, data, rdata, !trans_m, mdim2, mdim1, ldb);
+      gemv_cl(0, !trans_m, mdim1, mdim2, 1.0f, mdata, ldb, data, 0.0f, rdata,
+              1);
     }
     /// case others: use gemm
     else {
