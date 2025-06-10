@@ -151,27 +151,47 @@ void gemv_cl(const unsigned int layout, bool TransA, const unsigned int M,
   const size_t x_size = (TransA ? M : N) * incX;
   const size_t y_size = (TransA ? N : M) * incY;
 
-  clBuffManagerInst.getInBufferA()->WriteDataRegion(
-    clblast_cc->command_queue_inst_, a_size * sizeof(float), A);
+  // Map the input buffer for a matrix A
+  float *ptr_A = (float *)clBuffManagerInst.getInBufferA()->MapBuffer(
+    opencl::CommandQueueManager::GetInstance(), 0, a_size * sizeof(float),
+    false);
 
-  clBuffManagerInst.getOutBufferA()->WriteDataRegion(
-    clblast_cc->command_queue_inst_, y_size * sizeof(float), Y);
+  // Copy data to the mapped buffer
+  memcpy(ptr_A, A, a_size * sizeof(float));
 
-  clBuffManagerInst.getInBufferB()->WriteDataRegion(
-    clblast_cc->command_queue_inst_, x_size * sizeof(float), X);
+  // Unmap the buffer after copying
+  clBuffManagerInst.getInBufferA()->UnMapBuffer(clblast_cc->command_queue_inst_,
+                                                ptr_A);
 
+  // Map the input buffer fora a vector X
+  float *ptr_X = (float *)clBuffManagerInst.getInBufferB()->MapBuffer(
+    opencl::CommandQueueManager::GetInstance(), 0, x_size * sizeof(float),
+    false);
+
+  // Copy data to the mapped buffer
+  memcpy(ptr_X, X, x_size * sizeof(float));
+
+  // Unmap the buffer after copying
+  clBuffManagerInst.getInBufferB()->UnMapBuffer(clblast_cc->command_queue_inst_,
+                                                ptr_X);
+
+  // Execute the gemv operation
   auto s = clblast::Gemv<float>(
     clblast::Layout::kRowMajor, transA, M, N, alpha,
     clBuffManagerInst.getInBufferA()->GetBuffer(), 0, lda,
     clBuffManagerInst.getInBufferB()->GetBuffer(), 0, incX, beta,
     clBuffManagerInst.getOutBufferA()->GetBuffer(), 0, incY, &command_queue);
 
-  opencl::clFinish(clblast_cc->command_queue_inst_.GetCommandQueue());
+  // Map the output buffer for a vector Y
+  float *res = (float *)clBuffManagerInst.getOutBufferA()->MapBuffer(
+    clblast_cc->command_queue_inst_, 0, y_size * sizeof(float), false);
 
-  opencl::clEnqueueReadBuffer(clblast_cc->command_queue_inst_.GetCommandQueue(),
-                              clBuffManagerInst.getOutBufferA()->GetBuffer(),
-                              CL_TRUE, 0, y_size * sizeof(float), Y, 0, nullptr,
-                              nullptr);
+  // Copy the result to the output vector Y
+  memcpy(Y, res, y_size * sizeof(float));
+
+  // Unmap the output buffer after copying
+  clBuffManagerInst.getOutBufferA()->UnMapBuffer(
+    clblast_cc->command_queue_inst_, res);
 }
 
 void gemm_cl(const unsigned int layout, bool TransA, bool TransB,
@@ -184,25 +204,47 @@ void gemm_cl(const unsigned int layout, bool TransA, bool TransB,
   clblast::Transpose transB =
     (TransB) ? clblast::Transpose::kYes : clblast::Transpose::kNo;
 
-  clBuffManagerInst.getInBufferA()->WriteDataRegion(
-    clblast_cc->command_queue_inst_, M * K * sizeof(float), A);
+  // Map the input buffer for a matrix A
+  float *ptr_A = (float *)clBuffManagerInst.getInBufferA()->MapBuffer(
+    opencl::CommandQueueManager::GetInstance(), 0, M * K * sizeof(float),
+    false);
 
-  clBuffManagerInst.getInBufferB()->WriteDataRegion(
-    clblast_cc->command_queue_inst_, K * N * sizeof(float), B);
+  // Copy data to the mapped buffer
+  memcpy(ptr_A, A, M * K * sizeof(float));
 
-  clBuffManagerInst.getOutBufferA()->WriteDataRegion(
-    clblast_cc->command_queue_inst_, M * N * sizeof(float), C);
+  // Unmap the buffer after copying
+  clBuffManagerInst.getInBufferA()->UnMapBuffer(clblast_cc->command_queue_inst_,
+                                                ptr_A);
+
+  // Map the input buffer for a matrix B
+  float *ptr_B = (float *)clBuffManagerInst.getInBufferB()->MapBuffer(
+    opencl::CommandQueueManager::GetInstance(), 0, K * N * sizeof(float),
+    false);
+
+  // Copy data to the mapped buffer
+  memcpy(ptr_B, B, K * N * sizeof(float));
+
+  // Unmap the buffer after copying
+  clBuffManagerInst.getInBufferB()->UnMapBuffer(clblast_cc->command_queue_inst_,
+                                                ptr_B);
 
   // layout is currently fixed to RowMajor
   clblast::Gemm<float>(
     clblast::Layout::kRowMajor, transA, transB, M, N, K, alpha,
     clBuffManagerInst.getInBufferA()->GetBuffer(), 0, lda,
-    clBuffManagerInst.getInBufferB()->GetBuffer(), 0, ldb, beta,
+    clBuffManagerInst.getInBufferB()->GetBuffer(), 0, ldb, 0.0f,
     clBuffManagerInst.getOutBufferA()->GetBuffer(), 0, ldc, &command_queue);
 
-  // Read the result back to C
-  clBuffManagerInst.getOutBufferA()->ReadDataRegion(
-    clblast_cc->command_queue_inst_, M * N * sizeof(float), C);
+  // Map the output buffer for a matrix C
+  float *res = (float *)clBuffManagerInst.getOutBufferA()->MapBuffer(
+    clblast_cc->command_queue_inst_, 0, M * N * sizeof(float), false);
+
+  // Copy the result to the output matrix C
+  memcpy(C, res, M * N * sizeof(float));
+
+  // Unmap the output buffer after copying
+  clBuffManagerInst.getOutBufferA()->UnMapBuffer(
+    clblast_cc->command_queue_inst_, res);
 }
 
 void gemm_batched_cl(const unsigned int layout, bool TransA, bool TransB,
