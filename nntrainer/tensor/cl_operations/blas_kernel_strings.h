@@ -54,6 +54,8 @@ const std::string &getConcatClAxis1Kernel();
 
 const std::string &getRMSNormClKernel();
 
+const std::string &getFlashAttentionClKernel();
+
 #ifdef ENABLE_FP16
 
 const std::string &getHgemvClKernel();
