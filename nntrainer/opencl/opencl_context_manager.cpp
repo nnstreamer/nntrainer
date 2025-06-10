@@ -13,6 +13,7 @@
 
 #include "opencl_context_manager.h"
 
+#include <cstring>
 #include <iostream>
 #include <vector>
 
@@ -111,7 +112,24 @@ ContextManager::~ContextManager() {
  * @return true if successful or false otherwise
  */
 bool ContextManager::CreateDefaultGPUDevice() {
-  cl_uint num_platforms;
+  uint32_t preferred_platform_index = 0;
+  uint32_t preferred_device_index = 0;
+
+  if (const char *nntrainer_opencl_platform_device =
+        std::getenv("NNTRAINER_OPENCL_PLATFORM_DEVICE")) {
+    if (!std::sscanf(nntrainer_opencl_platform_device, "%d:%d",
+                     &preferred_platform_index, &preferred_device_index)) {
+      ml_loge("Failed to parse NNTRAINER_OPENCL_PLATFORM_DEVICE (%s).",
+              nntrainer_opencl_platform_device);
+    } else {
+      ml_logi("Using NNTRAINER_OPENCL_PLATFORM_DEVICE (%s) to override default "
+              "OpenCL platform and device indices with %u and %u.",
+              nntrainer_opencl_platform_device, preferred_platform_index,
+              preferred_device_index);
+    }
+  }
+
+  cl_uint num_platforms = 0;
 
   // returns number of OpenCL supported platforms
   cl_int status = clGetPlatformIDs(0, nullptr, &num_platforms);
@@ -132,10 +150,17 @@ bool ContextManager::CreateDefaultGPUDevice() {
     return false;
   }
 
-  // platform is a specific OpenCL implementation, for instance ARM
-  cl_platform_id platform_id_ = platforms[0];
+  if (preferred_platform_index >= num_platforms) {
+    preferred_platform_index = 0;
+    ml_loge("Given platform index exceeds number of available platforms - "
+            "changing to %u.",
+            preferred_platform_index);
+  }
 
-  cl_uint num_devices;
+  // platform is a specific OpenCL implementation, for instance ARM
+  cl_platform_id platform_id_ = platforms[preferred_platform_index];
+
+  cl_uint num_devices = 0;
 
   // getting available GPU devices
   status =
@@ -158,8 +183,16 @@ bool ContextManager::CreateDefaultGPUDevice() {
     return false;
   }
 
+  if (preferred_device_index >= num_devices) {
+    preferred_device_index = 0;
+    ml_loge("Given device index exceeds number of available devices for "
+            "choosen platform - "
+            "changing to %u.",
+            preferred_device_index);
+  }
+
   // setting the first GPU ID and platform (ARM)
-  device_id_ = devices[0];
+  device_id_ = devices[preferred_device_index];
   this->platform_id_ = platform_id_;
 
 #ifdef ENABLE_FP16
