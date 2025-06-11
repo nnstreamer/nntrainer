@@ -974,6 +974,10 @@ public:
     return "cpu";
   }
 
+  void save_kvcache(const std::string &file_path) override;
+
+  void load_kvcache(const std::string &file_path) override;
+
 private:
   /**
    * @brief     Get the Input Layers object

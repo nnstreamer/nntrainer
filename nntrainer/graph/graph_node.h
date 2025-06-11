@@ -109,6 +109,10 @@ public:
    * respectively
    */
   virtual void setExecutionOrder(ExecutionOrder exec_order_) = 0;
+
+  virtual void save_kvcache(const std::string &file_path){};
+
+  virtual void load_kvcache(const std::string &file_path){};
 };
 
 /**

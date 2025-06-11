@@ -275,7 +275,9 @@ typedef enum {
   ML_TRAIN_MODEL_FORMAT_ONNX =
     4, /**< QNNX binary format file saves model configurations and weights. */
   ML_TRAIN_MODEL_FORMAT_QNN =
-    5 /**< QNN binary format file saves model configurations and weights. */
+    5, /**< QNN binary format file saves model configurations and weights. */
+  ML_TRAIN_MODEL_FORMAT_KVCACHE = 
+    6,
 } ml_train_model_format_e;
 
 /**

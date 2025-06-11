@@ -410,6 +410,10 @@ public:
     }
   }
 
+  virtual void save_kvcache(RunLayerContext &context, std::string layerName, const std::string &file_path){};
+
+  virtual void load_kvcache(RunLayerContext &context, std::string layerName, const std::string &file_path){};
+
 protected:
   bool is_inplace = false; /**< whether this layer is in-place or not */
 };
