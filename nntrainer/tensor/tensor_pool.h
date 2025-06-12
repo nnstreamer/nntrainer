@@ -317,10 +317,10 @@ public:
   void loadCacheCancel(int id);
 
   /**
-   * @brief This function will reset Actives at the given order.
+   * @brief This function will reset Actives
    *
    */
-  unsigned int inActive(unsigned int order);
+  unsigned int inActiveAll();
 
   /**
    * @brief set FSU weight path
