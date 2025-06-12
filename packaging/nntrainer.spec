@@ -427,14 +427,14 @@ ln -sf %{_libdir}/pkgconfig/capi-nnstreamer.pc %{_libdir}/pkgconfig/capi-ml-comm
 %endif
 
 # Setup Ruy
-tar -xf packaging/ruy.tar.gz -C subprojects
+tar -xf packaging/ruy.tar.gz -C third_party
 
 # Setup GGML
-tar -xf packaging/ggml.tar.gz -C subprojects
+tar -xf packaging/ggml.tar.gz -C third_party
 
 # Setup CLBlast
 %if %{with gpu}
-tar -xf packaging/clblast.tar.gz -C subprojects
+tar -xf packaging/clblast.tar.gz -C third_party
 %endif # clblast
 
 mkdir -p build
