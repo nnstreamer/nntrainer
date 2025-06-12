@@ -173,6 +173,12 @@ public:
   void setBatchSize(unsigned int batch_size);
 
   /**
+   * @brief     update time step
+   * @param[in] max_timestep maximum timestep
+   */
+  void updateTimeStep(unsigned int max_timestep);
+
+  /**
    * @brief try apply gradient if possible
    * @note if it is not the last of the gradient access, this is noop
    * @note if the gradient is to be clipped by norm, this is noop

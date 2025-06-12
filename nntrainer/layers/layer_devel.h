@@ -277,6 +277,16 @@ public:
   virtual void setBatch(RunLayerContext &context, unsigned int batch) {}
 
   /**
+   * @brief Update the time step for the layer
+   * @param     context Context of the layer
+   * @param     max_timestep timestep value to be update
+   * @details Update the run context based on the updated max_timestep if
+   * required
+   */
+  virtual void updateTimeStep(RunLayerContext &context,
+                              unsigned int max_timestep) {}
+
+  /**
    * @brief   If the current layer can support in-place
    *
    * @return  true if inplace, else false

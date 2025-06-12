@@ -352,6 +352,14 @@ public:
   void setBatch(unsigned int batch);
 
   /**
+   * @brief Update the time step for the layer
+   * @param     max_timestep timestep value to be update
+   * @details Update the run context based on the updated max_timestep if
+   * required
+   */
+  void updateTimeStep(unsigned int max_timestep);
+
+  /**
    * @brief   If the current layer can support in-place
    * @return  true if inplace, else false
    */
