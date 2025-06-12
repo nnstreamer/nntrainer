@@ -239,6 +239,14 @@ void FullyConnectedLayer::incremental_forwarding(RunLayerContext &context,
   Tensor &weight = context.getWeight(weight_idx[FCParams::weight]);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
+  Tensor loraA, loraB, hidden_tmp_lora, hidden_out_lora;
+
+  if (!std::get<props::LoraRank>(fc_props).empty()) {
+    loraA = context.getWeight(lora_idx[LORAParams::loraA]);
+    loraB = context.getWeight(lora_idx[LORAParams::loraB]);
+    hidden_tmp_lora = context.getTensor(lora_idx[LORAParams::loraTmp]);
+    hidden_out_lora = context.getTensor(lora_idx[LORAParams::loraOut]);
+  }
 
   TensorDim input_dim = input_.getDim();
   TensorDim hidden_dim = hidden_.getDim();
@@ -268,17 +276,26 @@ void FullyConnectedLayer::incremental_forwarding(RunLayerContext &context,
     input_step.dot(weight, hidden_step, false, false);
 
     if (!std::get<props::LoraRank>(fc_props).empty()) {
-      Tensor &loraA = context.getWeight(lora_idx[LORAParams::loraA]);
-      Tensor &loraB = context.getWeight(lora_idx[LORAParams::loraB]);
-      Tensor &hidden_tmp_lora =
-        context.getTensor(lora_idx[LORAParams::loraTmp]);
-      Tensor &hidden_out_lora =
-        context.getTensor(lora_idx[LORAParams::loraOut]);
+      nntrainer::TensorDim hidden_tmp_lora_step_dim = hidden_tmp_lora.getDim();
+      hidden_tmp_lora_step_dim.batch(1);
+      hidden_tmp_lora_step_dim.height(to - from);
+      nntrainer::TensorDim hidden_out_lora_step_dim = hidden_out_lora.getDim();
+      hidden_out_lora_step_dim.batch(1);
+      hidden_out_lora_step_dim.height(to - from);
 
-      input_step.dot(loraA, hidden_tmp_lora, false, false);
-      hidden_tmp_lora.dot(loraB, hidden_out_lora, false, false);
-      hidden_out_lora.multiply_i(lora_scaling);
-      hidden_step.add_i(hidden_out_lora);
+      nntrainer::Tensor hidden_tmp_lora_step =
+        hidden_tmp_lora.getSharedDataTensor(
+          hidden_tmp_lora_step_dim,
+          b * hidden_tmp_lora.height() * hidden_tmp_lora.width(), true);
+      nntrainer::Tensor hidden_out_lora_step =
+        hidden_out_lora.getSharedDataTensor(
+          hidden_out_lora_step_dim,
+          b * hidden_out_lora.height() * hidden_out_lora.width(), true);
+
+      input_step.dot(loraA, hidden_tmp_lora_step, false, false);
+      hidden_tmp_lora_step.dot(loraB, hidden_out_lora_step, false, false);
+      hidden_out_lora_step.multiply_i(lora_scaling);
+      hidden_step.add_i(hidden_out_lora_step);
     }
 
     if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
