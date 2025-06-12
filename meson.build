@@ -90,11 +90,6 @@ warning_c_flags = [
   '-Wno-error=varargs'
 ]
 
-common_win_subproject_cmake_defines = {
-  'CMAKE_MSVC_RUNTIME_LIBRARY': 'MultiThreaded',
-  'CMAKE_BUILD_TYPE': 'Release',
-}
-
 arch = host_machine.cpu_family()
 
 target = target_machine.cpu_family()
@@ -169,27 +164,70 @@ if get_option('enable-mmap')
   extra_defines += '-DUSE_MMAP=1'
 endif
 
+dummy_dep = dependency('', required: false)
+third_party_build_dir = 'build_' + cxx_compiler_id
+# CLBlast
+clblast_dep = dummy_dep
+
 if get_option('enable-opencl')
   message ('OpenCL build is now enabled and will function only if an OpenCL-supported GPU is available. Using CLBlast as the OpenCL backend.')
   extra_defines += '-DENABLE_OPENCL=1'
-  clblast_options = cmake.subproject_options()
 
   if get_option('platform') == 'android'
     message('preparing opencl')
-    run_command([meson.source_root() / 'jni' / 'prepare_opencl.sh', meson.build_root()], check: true)
-    clblast_root = meson.source_root() / 'subprojects' / 'CLBlast'
-    opencl_root = meson.build_root() / 'opencl'
+    run_command([meson.current_source_dir() / 'jni' / 'prepare_opencl.sh', meson.current_build_dir()], check: true)
+    clblast_root = meson.current_source_dir() / 'third_party' / 'CLBlast'
+    opencl_root = meson.current_build_dir() / 'opencl'
     clblast_dep = declare_dependency()
   else
-    if host_machine.system() == 'windows'
-      clblast_options.add_cmake_defines(common_win_subproject_cmake_defines)
+    message('Configuring')
+    clblast_dir_relative = 'third_party' / 'CLBlast'
+    clblast_include_dir_relative = clblast_dir_relative / 'include'
+    clblast_dir_absolute = meson.current_source_dir() / clblast_dir_relative
+    clblast_build_dir_relative = clblast_dir_relative / third_party_build_dir
+    clblast_build_dir_absolute = meson.current_source_dir() / clblast_build_dir_relative
+
+    if fs.exists (clblast_build_dir_absolute)
+      message('Skip compiling CLBlast (using previous build)')
+    else
+      message('Setup CLBlast')
+      clblast_setup_command = ['cmake', '-B', clblast_build_dir_absolute, '-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_CXX_STANDARD=17', '-DCMAKE_POLICY_VERSION_MINIMUM=3.10']
+
+      if cxx_compiler_id == 'clang'
+        clblast_setup_command += '-G Ninja'
+        clblast_setup_command += '-DCMAKE_C_COMPILER=clang'
+        clblast_setup_command += '-DCMAKE_CXX_COMPILER=clang++'
+      endif
+
+      clblast_setup_command += clblast_dir_absolute
+
+      message(clblast_setup_command)
+      run_command(clblast_setup_command, check: true)
+
+      message('Compile CLBlast')
+      clblast_compile_command = ['cmake' , '--build', clblast_build_dir_absolute, '--config', 'Release', '-j']
+      message(clblast_compile_command)
+      run_command(clblast_compile_command, check: true)
     endif
 
-    clblast_options.add_cmake_defines({'CMAKE_POLICY_VERSION_MINIMUM': '3.10'})
-    clblast_proj = cmake.subproject('clblast', options: clblast_options, required: true)
-    clblast_dep = clblast_proj.dependency('clblast')
+    if host_machine.system() == 'windows'
+      if cxx_compiler_id == 'msvc'
+        clblast_lib_dir_absolute = clblast_build_dir_absolute / 'Release'
+        clblast_lib = clblast_lib_dir_absolute / 'clblast.lib'
+      else
+        clblast_lib_dir_absolute = clblast_build_dir_absolute
+        clblast_lib = clblast_lib_dir_absolute / 'clblast.lib'
+      endif
+    else
+      clblast_lib_dir_absolute = clblast_build_dir_absolute
+      clblast_lib = clblast_lib_dir_absolute / 'libclblast.so'
+    endif
+
+    clblast_include = include_directories(clblast_include_dir_relative)
+    clblast_dep = declare_dependency(include_directories: clblast_include, link_args:[clblast_lib])
   endif
 endif
+
 
 if get_option('opencl-kernel-path') != ''
   message ('OpenCL kernel path set to: @0@'.format(get_option('opencl-kernel-path')))
@@ -247,7 +285,7 @@ if get_option('platform') != 'android'
   application_install_dir = nntrainer_bindir / 'applications'
   nntrainer_fsudir = '/tmp'
 else
-  nntrainer_prefix = meson.build_root() / 'android_build_result'
+  nntrainer_prefix = meson.current_build_dir() / 'android_build_result'
   # @todo arch has to be option
   nntrainer_libdir = nntrainer_prefix / 'lib'
   nntrainer_includedir = nntrainer_prefix / 'include' / 'nntrainer'
@@ -269,7 +307,7 @@ if get_option('fsu-path') != ''
 endif
 
 # handle resources
-nntrainer_resdir = meson.build_root() / 'res'
+nntrainer_resdir = meson.current_build_dir() / 'res'
 
 if build_machine.system() == 'windows'
   nntrainer_resdir_win = nntrainer_resdir.replace('/', '\\')
@@ -298,7 +336,6 @@ nntrainer_conf.set('INCLUDE_INSTALL_DIR', nntrainer_includedir / '..')
 nntrainer_conf.set('FLASH_STORAGE_UTILIZATION', nntrainer_enable_fsu)
 nntrainer_conf.set('FLASH_STORAGE_UTILIZATION_PATH', nntrainer_fsudir)
 
-dummy_dep = dependency('', required: false)
 ml_api_common_flag = '-DML_API_COMMON=0'
 
 # if ml-api-support is disabled, enable dummy common api interfaces and disable related dependencies.
@@ -327,6 +364,8 @@ else
   nntrainer_conf.set('CAPI_ML_COMMON_DEP', '')
   extra_defines += '-DML_API_COMMON=0'
 endif
+
+# OpenBLAS
 blas_dep = dummy_dep
 # Dependencies
 if get_option('enable-cublas')
@@ -338,17 +377,17 @@ if get_option('enable-blas')
 
   if get_option('platform') == 'android'
     message('preparing blas')
-    run_command([meson.source_root() / 'jni' / 'prepare_openblas.sh', meson.build_root()], check: true)
-    blas_root = meson.build_root() / 'openblas'
+    run_command([meson.current_source_dir() / 'jni' / 'prepare_openblas.sh', meson.current_build_dir()], check: true)
+    blas_root = meson.current_build_dir() / 'openblas'
     blas_dep = declare_dependency(include_directories: [ 'openblas/include' ])
   else
     blas_dep = dependency('openblas', required : false)
 
     if not blas_dep.found()
       message('Cannot find OpenBLAS dependency in system')
-      openblas_dir_relative = 'subprojects' / 'OpenBLAS'
+      openblas_dir_relative = 'third_party' / 'OpenBLAS'
       openblas_dir_absolute = meson.current_source_dir() / openblas_dir_relative
-      openblas_build_dir_relative = openblas_dir_relative / 'build'
+      openblas_build_dir_relative = openblas_dir_relative / third_party_build_dir
       openblas_build_dir_absolute = meson.current_source_dir() / openblas_build_dir_relative
 
       if fs.exists (openblas_build_dir_absolute)
@@ -356,14 +395,6 @@ if get_option('enable-blas')
       else
         message('Setup OpenBLAS')
         openblas_setup_command = ['cmake', '-B', openblas_build_dir_absolute, '-DNUM_THREADS=' + get_option('openblas-num-threads').to_string(), '-DBUILD_TESTING=False', '-DBUILD_BENCHMARKS=False', '-DBUILD_WITHOUT_LAPACK=True', '-DNOFORTRAN=True', '-DCMAKE_BUILD_TYPE=Release']
-
-        if host_machine.system() == 'windows'
-          openblas_setup_command += '-DBUILD_SHARED_LIBS=False'
-          openblas_setup_command += '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded'
-          openblas_setup_command += '-DMSVC_STATIC_CRT=1'
-        else
-          openblas_setup_command += '-DBUILD_SHARED_LIBS=True'
-        endif
 
         if cxx_compiler_id == 'clang'
           openblas_setup_command += '-G Ninja'
@@ -373,10 +404,12 @@ if get_option('enable-blas')
 
         openblas_setup_command += openblas_dir_absolute
 
+        message(openblas_setup_command)
         run_command(openblas_setup_command, check: true)
 
         message('Compile OpenBLAS')
         openblas_compile_command = ['cmake' , '--build', openblas_build_dir_absolute, '--config', 'Release', '-j']
+        message(openblas_compile_command)
         run_command(openblas_compile_command, check: true)
       endif
 
@@ -441,37 +474,113 @@ endif
 if get_option('enable-benchmarks')
   benchmark_dep = dependency('benchmark', static : true, main : false, required : false)
   if not benchmark_dep.found()
-    benchmark_options = cmake.subproject_options()
-    if host_machine.system() == 'windows'
-      benchmark_options.add_cmake_defines(common_win_subproject_cmake_defines)
+    message('Cannot find benchmark dependency in system')
+    benchmark_dir_relative = 'third_party' / 'benchmark'
+    benchmark_include_dir_relative = benchmark_dir_relative / 'include'
+    benchmark_dir_absolute = meson.current_source_dir() / benchmark_dir_relative
+    benchmark_build_dir_relative = benchmark_dir_relative / third_party_build_dir
+    benchmark_build_dir_absolute = meson.current_source_dir() / benchmark_build_dir_relative
+
+    if fs.exists (benchmark_build_dir_absolute)
+      message('Skip compiling benchmark (using previous build)')
+    else
+      message('Setup benchmark')
+      benchmark_setup_command = ['cmake', '-B', benchmark_build_dir_absolute, '-DCMAKE_BUILD_TYPE=Release', '-DBENCHMARK_ENABLE_TESTING=False']
+
+      if cxx_compiler_id == 'clang'
+        benchmark_setup_command += '-G Ninja'
+        benchmark_setup_command += '-DCMAKE_C_COMPILER=clang'
+        benchmark_setup_command += '-DCMAKE_CXX_COMPILER=clang++'
+      endif
+
+      benchmark_setup_command += benchmark_dir_absolute
+
+      message(benchmark_setup_command)
+      run_command(benchmark_setup_command, check: true)
+
+      message('Compile benchmark')
+      benchmark_compile_command = ['cmake' , '--build', benchmark_build_dir_absolute, '--config', 'Release', '-j']
+      message(benchmark_compile_command)
+      run_command(benchmark_compile_command, check: true)
     endif
-    benchmark_options.add_cmake_defines({'BENCHMARK_ENABLE_TESTING': false})
-    benchmark_subproject = cmake.subproject('benchmark', options: benchmark_options, required: true)
-    benchmark_dep = benchmark_subproject.dependency('benchmark')
-    message('benchmar targets')
-    message(benchmark_subproject.target_list())
+
+    if host_machine.system() == 'windows'
+      if cxx_compiler_id == 'msvc'
+        benchmark_lib = benchmark_build_dir_absolute / 'src' / 'Release' / 'benchmark.lib'
+      else
+        benchmark_lib = benchmark_build_dir_absolute / 'src' / 'benchmark.lib'
+      endif
+    else
+      benchmark_lib = benchmark_build_dir_absolute / 'src' / 'libbenchmark.so'
+    endif
+
+    benchmark_include = include_directories(benchmark_include_dir_relative)
+    benchmark_dep = declare_dependency(include_directories: benchmark_include, link_args:[benchmark_lib])
   endif
 endif
 
+# googletest
+use_custom_googletest = false
 gmock_dep = dependency('gmock', static: true, main: false, required: false)
 gtest_dep = dependency('gtest', static: true, main: false, required: false)
 gtest_main_dep = dependency('gtest', static: true, main: true, required: false)
 
 if not gmock_dep.found() or not gtest_dep.found() or not gtest_main_dep.found()
-  googletest_options = cmake.subproject_options()
-  if host_machine.system() == 'windows'
-    googletest_options.add_cmake_defines(common_win_subproject_cmake_defines)
+  message('Cannot find googletest dependency in system')
+  use_custom_googletest = true
+  googletest_dir_relative = 'third_party' / 'googletest'
+  googletest_dir_absolute = meson.current_source_dir() / googletest_dir_relative
+  googletest_build_dir_relative = googletest_dir_relative / third_party_build_dir
+  googletest_build_dir_absolute = meson.current_source_dir() / googletest_build_dir_relative
+
+  if fs.exists (googletest_build_dir_absolute)
+    message('Skip compiling googletest (using previous build)')
   else
-    googletest_options.add_cmake_defines({'CMAKE_POSITION_INDEPENDENT_CODE': true})
+    message('Setup googletest')
+    googletest_setup_command = ['cmake', '-B', googletest_build_dir_absolute, '-DCMAKE_BUILD_TYPE=Release']
+
+    if cxx_compiler_id == 'clang'
+      googletest_setup_command += '-G Ninja'
+      googletest_setup_command += '-DCMAKE_C_COMPILER=clang'
+      googletest_setup_command += '-DCMAKE_CXX_COMPILER=clang++'
+    endif
+
+    googletest_setup_command += googletest_dir_absolute
+
+    message(googletest_setup_command)
+    run_command(googletest_setup_command, check: true)
+
+    message('Compile googletest')
+    googletest_compile_command = ['cmake' , '--build', googletest_build_dir_absolute, '--config', 'Release', '-j']
+    message(googletest_compile_command)
+    run_command(googletest_compile_command, check: true)
   endif
-  googletest_options.add_cmake_defines({'BUILD_SHARED_LIBS': false})
-  googletest_subproject = cmake.subproject('googletest', options: googletest_options, required: true)
-  gmock_dep = googletest_subproject.dependency('gmock')
-  gtest_dep = googletest_subproject.dependency('gtest')
-  gtest_main_dep = [googletest_subproject.dependency('gtest_main')]
-  # meson provided dependency gtest_main_dep is sum of [gtest_dep, gtest_main_dep]
-  # This difference between cmake and meson dependency is exposed on linux
-  gtest_main_dep += gtest_dep
+
+  if host_machine.system() == 'windows'
+    if cxx_compiler_id == 'msvc'
+      googletest_lib_dir_absolute = googletest_build_dir_absolute / 'lib' / 'Release'
+      gtest_lib = googletest_lib_dir_absolute / 'gtest.lib'
+      gtest_main_lib = googletest_lib_dir_absolute / 'gtest_main.lib'
+      gmock_lib = googletest_lib_dir_absolute / 'gmock.lib'
+    else
+      googletest_lib_dir_absolute = googletest_build_dir_absolute / 'lib'
+      gtest_lib = googletest_build_dir_absolute / 'gtest.lib'
+      gtest_main_lib = googletest_build_dir_absolute / 'gtest_main.lib'
+      gmock_lib = googletest_build_dir_absolute / 'gmock.lib'
+    endif
+  else
+      googletest_lib_dir_absolute = googletest_build_dir_absolute / 'lib'
+      gtest_lib = googletest_lib_dir_absolute / 'libgtest.so'
+      gtest_main_lib = googletest_lib_dir_absolute / 'libgtest_main.so'
+      gmock_lib = googletest_lib_dir_absolute / 'libgmock.so'
+  endif
+
+  gtest_include = include_directories(googletest_dir_relative / 'googletest' / 'include')
+  gmock_include = include_directories(googletest_dir_relative / 'googlemock' / 'include')
+
+  gmock_dep = declare_dependency(include_directories: gmock_include, link_args:[gmock_lib])
+  gtest_dep = declare_dependency(include_directories: gtest_include, link_args:[gtest_lib])
+  gtest_main_dep = declare_dependency(include_directories: gtest_include, link_args:[gtest_main_lib, gtest_lib])
 endif
 
 if get_option('enable-test') # and get_option('platform') != 'android'
@@ -491,125 +600,188 @@ libdl_dep = cxx.find_library('dl', required: false) # DL library
 
 thread_dep = dependency('threads') # pthread for tensorflow-lite
 
+# iniparser
+use_custom_iniparser = false
+
 if get_option('platform') == 'android'
-  iniparser_root = meson.source_root() / 'subprojects' / 'iniparser'
+  iniparser_root = meson.current_source_dir() / 'third_party' / 'iniparser'
   iniparser_dep = declare_dependency()
 else
   iniparser_dep = dependency('iniparser', required : false, version : '>=3.2') # iniparser
 
   if not iniparser_dep.found()
-    iniparser_options = cmake.subproject_options()
-    if host_machine.system() == 'windows'
-      iniparser_options.add_cmake_defines(common_win_subproject_cmake_defines)
+    message('Cannot find iniparser dependency in system')
+    use_custom_iniparser = true
+    iniparser_dir_relative = 'third_party' / 'iniparser'
+    iniparser_include_dir_relative = iniparser_dir_relative / 'src'
+    iniparser_dir_absolute = meson.current_source_dir() / iniparser_dir_relative
+    iniparser_build_dir_relative = iniparser_dir_relative / third_party_build_dir
+    iniparser_build_dir_absolute = meson.current_source_dir() / iniparser_build_dir_relative
+
+    if fs.exists (iniparser_build_dir_absolute)
+      message('Skip compiling iniparser (using previous build)')
+    else
+      message('Setup iniparser')
+      iniparser_setup_command = ['cmake', '-B', iniparser_build_dir_absolute, '-DCMAKE_BUILD_TYPE=Release', '-DBUILD_DOCS=False', '-DBUILD_EXAMPLES=False', '-DBUILD_TESTING=False']
+
+      if cxx_compiler_id == 'clang'
+        iniparser_setup_command += '-G Ninja'
+        iniparser_setup_command += '-DCMAKE_C_COMPILER=clang'
+        iniparser_setup_command += '-DCMAKE_CXX_COMPILER=clang++'
+      endif
+
+      iniparser_setup_command += iniparser_dir_absolute
+
+      message(iniparser_setup_command)
+      run_command(iniparser_setup_command, check: true)
+
+      message('Compile iniparser')
+      iniparser_compile_command = ['cmake' , '--build', iniparser_build_dir_absolute, '--config', 'Release', '-j']
+      message(iniparser_compile_command)
+      run_command(iniparser_compile_command, check: true)
     endif
-    iniparser_options.add_cmake_defines({'BUILD_DOCS': false})
-    iniparser_options.add_cmake_defines({'BUILD_EXAMPLES': false})
-    iniparser_options.add_cmake_defines({'BUILD_TESTING': false})
-    iniparser_options.add_cmake_defines({'BUILD_SHARED_LIBS': false})
-    iniparser_subproject = cmake.subproject('iniparser', options: iniparser_options, required: true)
-    iniparser_dep = iniparser_subproject.dependency('iniparser-static')
+
+    if host_machine.system() == 'windows'
+      if cxx_compiler_id == 'msvc'
+        iniparser_lib_dir_absolute = iniparser_build_dir_absolute / 'Release'
+        iniparser_lib = iniparser_lib_dir_absolute / 'iniparser.lib'
+      else
+        iniparser_lib_dir_absolute = iniparser_build_dir_absolute
+        iniparser_lib = iniparser_lib_dir_absolute / 'iniparser.lib'
+      endif
+    else
+      iniparser_lib_dir_absolute = iniparser_build_dir_absolute
+      iniparser_lib = iniparser_lib_dir_absolute / 'libiniparser.so'
+    endif
+
+    iniparser_include = include_directories(iniparser_include_dir_relative)
+    iniparser_dep = declare_dependency(include_directories: iniparser_include, link_args:[iniparser_lib])
   endif
 endif
 
+# ggml
 ggml_dep = dummy_dep
 
 if get_option('enable-ggml')
-  message('preparing ggml')
-  ggml_options = cmake.subproject_options()
-  ggml_root = meson.source_root() / 'subprojects' / 'ggml'
-  if host_machine.system() == 'windows'
-    ggml_options.add_cmake_defines(common_win_subproject_cmake_defines)
-  else
-    ggml_flags = [
-      '-Wno-error=pointer-to-int-cast'
-      ]
-    if cxx_compiler_id == 'clang'
-      ggml_flags += '-Wno-error=uninitialized'
-    else 
-      ggml_flags += '-Wno-error=maybe-uninitialized'
-    endif
-    ggml_options.append_compile_args('c', ggml_flags)
-  endif
-  ggml_options.add_cmake_defines({'BUILD_SHARED_LIBS': host_machine.system() != 'windows'})
-  ggml_options.add_cmake_defines({'GGML_BUILD_TESTS': false})
-  ggml_options.add_cmake_defines({'GGML_BUILD_EXAMPLES': false})
-  if get_option('platform') == 'android'
-    ggml_options.add_cmake_defines({'CMAKE_INSTALL_LIBDIR': nntrainer_libdir / 'arm64-v8a'})
-  endif
-
-  # we do not want it for clang on windows
-  if cxx_compiler_id == 'msvc'
-    if arch == 'x86_64'
-      if cc.has_argument('-march=x86-64-v2')
-        cpu_type = 'x86-64-v2'
-      elif cc.has_argument('-march=haswell')
-        cpu_type = 'haswell'
-      else
-        cpu_type = 'x86-64'
-      endif
-      
-      message('Auto-detected safe CPU tuning: ' + cpu_type)
-
-      ggml_options.append_compile_args('c', '-march=' + cpu_type)
-      ggml_options.append_compile_args('cpp', '-march=' + cpu_type)
-    endif
-  endif
-
-  ggml_proj = cmake.subproject('ggml', options: ggml_options, required: true)
-  ggml_dep = [
-    ggml_proj.dependency('ggml-base'),
-    ggml_proj.dependency('ggml-cpu'),
-    ggml_proj.dependency('ggml')]
+  message('Configuring ggml')
+  extra_defines += '-DENABLE_GGML=1'
+  ggml_root = meson.current_source_dir() / 'third_party' / 'ggml'
 
   if get_option('platform') == 'android'
     message('preparing ggml for Android')
-    run_command([meson.source_root() / 'jni' / 'prepare_ggml.sh', ggml_root ], check: true)
+    run_command([meson.current_source_dir() / 'jni' / 'prepare_ggml.sh', ggml_root ], check: true)
   endif
 
-  extra_defines += '-DENABLE_GGML=1'
+  if get_option('platform') != 'tizen' and get_option('platform') != 'android'
+    ggml_dir_relative = 'third_party' / 'ggml'
+    ggml_patch_relative = 'third_party' / 'packagefiles' / 'ggml' / '0001-nntrainer-ggml-patch.patch'
+    ggml_dir_absolute = meson.current_source_dir() / ggml_dir_relative
+    ggml_build_dir_relative = ggml_dir_relative / third_party_build_dir
+    ggml_build_dir_absolute = meson.current_source_dir() / ggml_build_dir_relative
+
+    if fs.exists (ggml_build_dir_absolute)
+      message('Skip compiling ggml (using previous build)')
+    else
+      message('Patch ggml')
+      ggml_patch_command = ['git', 'apply', '--directory=' + ggml_dir_relative, ggml_patch_relative]
+      message(ggml_patch_command)
+      run_command(ggml_patch_command, check: true)
+
+      message('Setup ggml')
+      ggml_setup_command = ['cmake', '-B', ggml_build_dir_absolute, '-DCMAKE_BUILD_TYPE=Release', '-DGGML_BUILD_TESTS=False', '-DGGML_BUILD_EXAMPLES=False']
+
+      if get_option('platform') == 'android'
+        ggml_setup_command += '-DCMAKE_INSTALL_LIBDIR=' + nntrainer_libdir / 'arm64-v8a'
+      endif
+
+      if host_machine.system() == 'windows'
+        ggml_setup_command += '-DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=True'
+      endif
+
+      if cxx_compiler_id == 'clang'
+        ggml_setup_command += '-G Ninja'
+        ggml_setup_command += '-DCMAKE_C_COMPILER=clang'
+        ggml_setup_command += '-DCMAKE_CXX_COMPILER=clang++'
+      endif
+
+      ggml_setup_command += ggml_dir_absolute
+
+      message(ggml_setup_command)
+      run_command(ggml_setup_command, check: true)
+
+      message('Compile ggml')
+      ggml_compile_command = ['cmake' , '--build', ggml_build_dir_absolute, '--config', 'Release', '-j']
+      message(ggml_compile_command)
+      run_command(ggml_compile_command, check: true)
+    endif
+
+    if host_machine.system() == 'windows'
+      if cxx_compiler_id == 'msvc'
+        ggml_lib_dir_absolute = ggml_build_dir_absolute / 'src' / 'Release'
+        ggml_dll_dir_absolute = ggml_build_dir_absolute / 'bin' / 'Release'
+        ggml_lib = ggml_lib_dir_absolute / 'ggml.lib'
+        ggml_base_lib = ggml_lib_dir_absolute / 'ggml-base.lib'
+        ggml_cpu_lib = ggml_lib_dir_absolute / 'ggml-cpu.lib'
+      else
+        ggml_lib_dir_absolute = ggml_build_dir_absolute / 'src'
+        ggml_lib = ggml_lib_dir_absolute / 'ggml.lib'
+        ggml_base_lib = ggml_lib_dir_absolute / 'ggml-base.lib'
+        ggml_cpu_lib = ggml_lib_dir_absolute / 'ggml-cpu.lib'
+      endif
+    else
+        ggml_lib_dir_absolute = ggml_build_dir_absolute / 'src'
+        ggml_lib = ggml_lib_dir_absolute / 'libggml.so'
+        ggml_base_lib = ggml_lib_dir_absolute / 'libggml-base.so'
+        ggml_cpu_lib = ggml_lib_dir_absolute / 'libggml-cpu.so'
+    endif
+
+    ggml_include = include_directories(ggml_dir_relative / 'include', ggml_dir_relative / 'src', ggml_dir_relative / 'src' / 'ggml-cpu')
+    ggml_dep = declare_dependency(include_directories: ggml_include, link_args:[ggml_lib, ggml_base_lib, ggml_cpu_lib])
+  endif
 endif
 
 # Configure the Ruy project (CMake)
 if get_option('platform') == 'android'
-  ruy_root = meson.source_root() / 'subprojects' / 'ruy'
+  ruy_root = meson.current_source_dir() / 'third_party' / 'ruy'
   ruy_dep = declare_dependency()
 else
-  ruy_options = cmake.subproject_options()
-  ruy_options.add_cmake_defines({'RUY_MINIMAL_BUILD': true})
-  ruy_options.add_cmake_defines({'CMAKE_POLICY_VERSION_MINIMUM': '3.5'})
+  message('Configuring ruy')
+  ruy_dir_relative = 'third_party' / 'ruy'
+  ruy_dir_absolute = meson.current_source_dir() / ruy_dir_relative
+  ruy_build_dir_relative = ruy_dir_relative / third_party_build_dir
+  ruy_build_dir_absolute = meson.current_source_dir() / ruy_build_dir_relative
 
-  if host_machine.system() == 'windows'
-    ruy_options.add_cmake_defines(common_win_subproject_cmake_defines)
-  endif
-
-  if cxx_compiler_id != 'msvc'
-    ruy_flags = [
-      '-Wno-error=unused-result',
-      '-Wno-error=comment',
-      '-Wno-error=unknown-pragmas',
-      '-Wno-error=unused-function'
-      ]
+  if fs.exists (ruy_build_dir_absolute)
+    message('Skip compiling ruy (using previous build)')
+  else
+    message('Setup ruy')
+    ruy_setup_command = ['cmake', '-B', ruy_build_dir_absolute, '-DCMAKE_BUILD_TYPE=Release', '-DRUY_MINIMAL_BUILD=True', '-DCMAKE_POLICY_VERSION_MINIMUM=3.5']
 
     if cxx_compiler_id == 'clang'
-      ruy_flags += '-Wno-error=uninitialized'
-    else
-      ruy_flags += '-Wno-error=maybe-uninitialized'
-      ruy_flags += '-Wno-error=stringop-overread'
-      ruy_flags += '-Wno-error=array-parameter'
+      ruy_setup_command += '-G Ninja'
+      ruy_setup_command += '-DCMAKE_C_COMPILER=clang'
+      ruy_setup_command += '-DCMAKE_CXX_COMPILER=clang++'
     endif
-    
-    ruy_options.append_compile_args('c', '-Wno-implicit-function-declaration')
-    ruy_options.append_compile_args('c', ruy_flags)
-    ruy_options.append_compile_args('cpp', ruy_flags)
+
+    ruy_setup_command += ruy_dir_absolute
+
+    message(ruy_setup_command)
+    run_command(ruy_setup_command, check: true)
+
+    message('Compile ruy')
+    ruy_compile_command = ['cmake' , '--build', ruy_build_dir_absolute, '--config', 'Release', '-j']
+    message(ruy_compile_command)
+    run_command(ruy_compile_command, check: true)
   endif
-  ruy_proj = cmake.subproject('ruy', options: ruy_options, required: true)
-  ruy_dep = ruy_proj.dependency('ruy').partial_dependency(includes: true)
+
+  ruy_include = include_directories(ruy_dir_relative)
+  ruy_dep = declare_dependency(include_directories: ruy_include)
 endif
 
 if get_option('platform') == 'android'
   message('preparing ml api')
-  run_command([meson.source_root() / 'jni' / 'prepare_ml-api.sh', meson.build_root() / 'ml-api-inference'], check: true)
-  ml_api_common_root = meson.build_root() / 'ml-api-inference'
+  run_command([meson.current_source_dir() / 'jni' / 'prepare_ml-api.sh', meson.current_build_dir() / 'ml-api-inference'], check: true)
+  ml_api_common_root = meson.current_build_dir() / 'ml-api-inference'
   ml_api_inc = ml_api_common_root / 'include'
   meson.add_install_script(
     'sh', '-c', 'cp @0@ ${DESTDIR}@1@'.format(ml_api_inc / 'ml-api-common.h', nntrainer_includedir)
@@ -632,8 +804,8 @@ else
   if get_option('enable-tflite-backbone') or get_option('enable-tflite-interpreter')
     tflite_version = '2.18.0'
     message('preparing tflite ' + tflite_version + ', because either tflite backbone or interpreter is enabled')
-    run_command(join_paths(meson.source_root(), 'jni', 'prepare_tflite.sh'), tflite_version, meson.build_root(), check: true)
-    tflite_root = join_paths(meson.build_root(), 'tensorflow-' + tflite_version, 'tensorflow-lite')
+    run_command(join_paths(meson.current_source_dir(), 'jni', 'prepare_tflite.sh'), tflite_version, meson.current_build_dir(), check: true)
+    tflite_root = join_paths(meson.current_build_dir(), 'tensorflow-' + tflite_version, 'tensorflow-lite')
     tflite_dep = declare_dependency(include_directories: [ join_paths('tensorflow-' + tflite_version, 'tensorflow-lite', 'include') ])
   endif
 endif
@@ -693,6 +865,58 @@ endforeach
 
 # Build nntrainer
 subdir('nntrainer')
+
+
+# Copy libraries from CMake third party to nntrainer directory
+nntrainer_dir_absolute = meson.current_build_dir() / 'nntrainer'
+
+if get_option('platform') != 'android' and get_option('platform') != 'tizen'
+  if use_custom_googletest
+    if host_machine.system() == 'windows'
+      message('Copy googletest libraries')
+      googletest_lib_dir_absolute_win = googletest_lib_dir_absolute.replace('/', '\\')
+      run_command(['xcopy', '/C', '/Y', googletest_lib_dir_absolute_win, meson.current_build_dir()], check: true)
+    endif
+  endif
+
+  if use_custom_iniparser
+    if host_machine.system() == 'windows'
+      message('Copy iniparser libraries')
+      iniparser_lib_dir_absolute_win = iniparser_lib_dir_absolute.replace('/', '\\')
+      run_command(['xcopy', '/C', '/Y', iniparser_lib_dir_absolute_win, meson.current_build_dir()], check: true)
+    endif
+  endif
+
+  if get_option('enable-opencl')
+    message('Copy CLBlast libraries')
+    if host_machine.system() == 'windows'
+      clblast_lib_dir_absolute_win = clblast_lib_dir_absolute.replace('/', '\\')
+      run_command(['xcopy', '/C', '/Y', clblast_lib_dir_absolute_win, meson.current_build_dir()], check: true)
+    else
+      run_command(['cp', '-f', clblast_lib_dir_absolute / 'libclblast.so', nntrainer_dir_absolute], check: true)
+      run_command(['cp', '-f', clblast_lib_dir_absolute / 'libclblast.so.1', nntrainer_dir_absolute], check: true)
+      run_command(['cp', '-f', clblast_lib_dir_absolute / 'libclblast.so.1.6.3', nntrainer_dir_absolute], check: true)
+    endif
+  endif
+
+  if get_option('enable-ggml')
+    message('Copy ggml libraries')
+
+    if host_machine.system() == 'windows'
+      ggml_lib_dir_absolute_win = ggml_lib_dir_absolute.replace('/', '\\')
+      run_command(['xcopy', '/C', '/Y', ggml_lib_dir_absolute_win, meson.current_build_dir()], check: true)
+    else
+      run_command(['cp', '-f', ggml_lib , nntrainer_dir_absolute], check: true)
+      run_command(['cp', '-f', ggml_base_lib , nntrainer_dir_absolute], check: true)
+      run_command(['cp', '-f', ggml_cpu_lib , nntrainer_dir_absolute], check: true)
+    endif
+
+    if cxx_compiler_id == 'msvc'
+      ggml_dll_dir_absolute_win = ggml_dll_dir_absolute.replace('/', '\\')
+      run_command(['xcopy', '/C', '/Y', ggml_dll_dir_absolute_win, meson.current_build_dir()], check: true)
+    endif
+  endif
+endif
 
 enable_capi = false
 enable_ccapi = false

@@ -58,7 +58,7 @@ if get_option('enable-opencl')
   nntrainer_elements += 'opencl'
   nntrainer_elements += 'layers/cl_layers'
 
-  nntrainer_inc_abs += meson.source_root() / 'subprojects' / 'CLBlast' / 'include'
+  nntrainer_inc_abs += meson.source_root() / 'third_party' / 'CLBlast' / 'include'
 endif
 
 foreach elem : nntrainer_elements
@@ -74,12 +74,12 @@ nntrainer_common_sources = [
   'mem_allocator.cpp'
 ]
 
-nntrainer_inc_abs += meson.source_root() / 'subprojects' / 'ruy'
+nntrainer_inc_abs += meson.source_root() / 'third_party' / 'ruy'
 
 if get_option('enable-ggml')
-  nntrainer_inc_abs += meson.source_root() / 'subprojects' / 'ggml' / 'include'
-  nntrainer_inc_abs += meson.source_root() / 'subprojects' / 'ggml' / 'src'
-  nntrainer_inc_abs += meson.source_root() / 'subprojects' / 'ggml' / 'src' / 'ggml-cpu'
+  nntrainer_inc_abs += meson.source_root() / 'third_party' / 'ggml' / 'include'
+  nntrainer_inc_abs += meson.source_root() / 'third_party' / 'ggml' / 'src'
+  nntrainer_inc_abs += meson.source_root() / 'third_party' / 'ggml' / 'src' / 'ggml-cpu'
 endif
 
 if get_option('enable-opencl')

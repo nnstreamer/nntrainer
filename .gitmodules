@@ -1,19 +1,27 @@
-[submodule "subprojects/iniparser"]
-	path = subprojects/iniparser
+[submodule "third_party/googletest"]
+	path = third_party/googletest
+	url = https://github.com/google/googletest.git
+
+[submodule "third_party/OpenBLAS"]
+	path = third_party/OpenBLAS
+	url = https://github.com/OpenMathLib/OpenBLAS.git
+
+[submodule "third_party/iniparser"]
+	path = third_party/iniparser
 	url = https://github.com/ndevilla/iniparser.git
 
-[submodule "subprojects/ruy"]
-	path = subprojects/ruy
-	url = https://github.com/google/ruy
-
-[submodule "subprojects/ggml"]
-	path = subprojects/ggml
+[submodule "third_party/ggml"]
+	path = third_party/ggml
 	url = https://github.com/ggml-org/ggml.git
 
-[submodule "subprojects/CLBlast"]
-	path = subprojects/CLBlast
+[submodule "third_party/CLBlast"]
+	path = third_party/CLBlast
 	url = https://github.com/CNugteren/CLBlast.git
 
-[submodule "subprojects/OpenBLAS"]
-	path = subprojects/OpenBLAS
-	url = https://github.com/OpenMathLib/OpenBLAS.git
+[submodule "third_party/ruy"]
+	path = third_party/ruy
+	url = https://github.com/google/ruy.git
+
+[submodule "third_party/benchmark"]
+	path = third_party/benchmark
+	url = https://github.com/google/benchmark.git
