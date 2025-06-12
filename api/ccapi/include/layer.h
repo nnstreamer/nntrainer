@@ -121,6 +121,7 @@ enum LayerType {
   LAYER_TRANSPOSE = ML_TRAIN_LAYER_TYPE_TRANSPOSE, /**< Transpose Layer type */
   LAYER_CHANNEL_SHUFFLE =
     ML_TRAIN_LAYER_TYPE_CHANNEL_SHUFFLE,      /**< Channel Shuffle Layer type */
+  LAYER_GROUPCONV = ML_TRAIN_LAYER_TYPE_GROUP_CONVOLUTION,  /**< Groupconv Layer type */
   LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN /**< Unknown */
 };
 
@@ -446,6 +447,14 @@ Transpose(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 ChannelShuffle(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_CHANNEL_SHUFFLE, properties);
+}
+
+/**
+ * @brief Helper function to create Group Convolution layer
+ */
+inline std::unique_ptr<Layer>
+GroupConvolution(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_GROUPCONV, properties);
 }
 
 /**

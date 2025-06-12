@@ -52,6 +52,7 @@
 #include <embedding.h>
 #include <fc_layer.h>
 #include <flatten_layer.h>
+#include <groupconv_layer.h>
 #include <gru.h>
 #include <grucell.h>
 #include <identity_layer.h>
@@ -358,6 +359,9 @@ static void add_default_object(AppContext &ac) {
 
   ac.registerFactory(nntrainer::createLayer<ChannelShuffle>,
                      ChannelShuffle::type, LayerType::LAYER_CHANNEL_SHUFFLE);
+
+  ac.registerFactory(nntrainer::createLayer<GroupConvLayer>,
+                     GroupConvLayer::type, LayerType::LAYER_GROUPCONV);
 
 #ifdef ENABLE_NNSTREAMER_BACKBONE
   ac.registerFactory(nntrainer::createLayer<NNStreamerLayer>,
