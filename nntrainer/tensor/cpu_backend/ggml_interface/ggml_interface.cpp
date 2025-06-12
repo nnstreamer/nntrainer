@@ -305,23 +305,6 @@ float __ggml_vec_dot_q6_K_f32(const unsigned int K, const void *v_q6_K,
   return __ggml_vec_dot_q6_K_q8_K(K, v_q6_K, v_q8_activation.data());
 }
 
-float __ggml_vec_dot_q6_K(const unsigned int K,
-                          const void *GGML_RESTRICT v_q6_K,
-                          const float *GGML_RESTRICT activation) {
-  float result;
-  int bs = 1, bx = 1, by = 1,
-      nrc = 1; // unused variables in ::ggml_vec_dot_q6_K_q8_K
-
-  int blocks_per_row = (K + QK_K - 1) / QK_K;
-  int q8_K_activation_size = sizeof(block_q8_K) * blocks_per_row;
-  std::vector<char> v_q8_activation = std::vector<char>(q8_K_activation_size);
-  __ggml_quantize_row_q8_K(activation, v_q8_activation.data(), K);
-
-  ::ggml_vec_dot_q6_K_q8_K(K, &result, bs, v_q6_K, bx, v_q8_activation.data(),
-                           by, nrc);
-  return result;
-}
-
 void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
                       const unsigned int K, const float *A,
                       const unsigned int lda, const void *B,
