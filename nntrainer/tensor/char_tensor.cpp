@@ -422,7 +422,9 @@ void CharTensor::save(std::ostream &file) {
 
 void CharTensor::read(std::ifstream &file, size_t start_offset,
                       bool read_from_offset) {
-  /// @note Read quantization information
+  if (start_offset == std::numeric_limits<size_t>::max()) {
+    start_offset = file_offset;
+  }
   read_quantization_info(file, start_offset, read_from_offset);
 
   std::streamsize sz = static_cast<std::streamsize>(getMemoryBytes());

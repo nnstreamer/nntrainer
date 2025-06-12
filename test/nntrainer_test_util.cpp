@@ -44,7 +44,7 @@ constexpr const char *default_error_msg =
 
 template <typename T>
 static void checkFile(const T &file, const char *error_msg) {
-  if (file.bad() | file.eof() | !file.good() | file.fail()) {
+  if (file.bad() || file.eof() || !file.good() || file.fail()) {
     throw std::runtime_error(error_msg);
   }
 }

@@ -246,13 +246,14 @@ void floatToFixedPointAndExponent(float input, int &fixedpoint, int &exponent) {
   // normalize the floating-point number into the form: mantissa * 2^exponent
   float mantissa = std::frexp(input, &exponent);
   // scale mantissa to a fixed-point range to maximize precision
-  fixedpoint = static_cast<int>(mantissa * std::numeric_limits<int>::max());
+  fixedpoint = static_cast<int>(
+    mantissa * static_cast<float>(std::numeric_limits<int>::max()));
 }
 
 float fixedPointAndExponentToFloat(int fixedpoint, int exponent) {
   // scale back to the normalized floating-point range
-  float mantissa =
-    static_cast<float>(fixedpoint) / std::numeric_limits<int>::max();
+  float mantissa = static_cast<float>(fixedpoint) /
+                   static_cast<float>(std::numeric_limits<int>::max());
   // reconstruct the floating-point number
   return std::ldexp(mantissa, exponent);
 }

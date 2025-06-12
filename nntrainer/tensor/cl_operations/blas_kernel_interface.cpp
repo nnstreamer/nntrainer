@@ -13,6 +13,7 @@
 
 #include <blas_kernel_interface.h>
 #include <blas_kernels.h>
+#include <clblast_interface.h>
 
 namespace nntrainer {
 void dotBatchedCl(Tensor const &input, Tensor const &m, Tensor &result,
@@ -127,7 +128,8 @@ void dotCl(Tensor const &input, Tensor const &m, Tensor &result, bool trans,
     /// (1 * K) X (1 * M) can be a case
     /// case1: (1 * K) X (K * 1)
     if (M == 1 && N == 1) {
-      *rdata = dot_cl(data, mdata, K) + (*rdata);
+      // *rdata = dot_cl(data, mdata, K) + (*rdata);
+      *rdata = dot_cl(K, data, mdata) + (*rdata);
     }
     /// case2: (M * K) X (K * 1)
     else if (N == 1) {
@@ -143,7 +145,12 @@ void dotCl(Tensor const &input, Tensor const &m, Tensor &result, bool trans,
     }
     /// case others: use gemm
     else {
-      sgemm_cl(trans, trans_m, data, mdata, rdata, M, N, K, lda, ldb, ldc);
+      if (input.getFormat() == Tformat::NHWC) {
+        sgemm_cl(trans, trans_m, data, mdata, rdata, M, N, K, lda, ldb, ldc);
+      } else {
+        gemm_cl(0, trans, trans_m, M, N, K, 1.0f, data, (trans) ? M : K, mdata,
+                (trans_m) ? K : N, 1.0f, rdata, N);
+      }
     }
   } else if (input.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
@@ -188,7 +195,7 @@ void multiplyCl(Tensor &input, float const &value) {
     float *data = input.getData<float>();
     unsigned int len = input.size();
 
-    sscal_cl(data, len, value);
+    scal_cl(len, value, data);
   } else if (input.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
     _FP16 *data = input.getData<_FP16>();
@@ -215,13 +222,13 @@ void add_i_cl(Tensor &result, Tensor const &input) {
        result.height() == input.height() && result.width() == input.width())) {
 
     if (result.getDataType() == ml::train::TensorDim::DataType::FP32) {
-      unsigned int size_res = result.size();
-      unsigned int size_input = input.size();
-      float *data_res = result.getData();
-      const float *data_input = input.getData();
+      float *Y = result.getData();
+      const float *X = input.getData();
 
-      addition_cl(data_input, data_res, size_input, size_res);
-
+      for (unsigned int i = 0; i < result.batch() / input.batch(); ++i) {
+        axpy_cl(input.size(), 1.0f, X, Y);
+        Y += input.size();
+      }
     } else if (result.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
       unsigned int size_res = result.size();
@@ -295,6 +302,85 @@ void transposeCl(const std::string &direction, Tensor const &in,
     throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
   }
+}
+
+void copyCl(const Tensor &input, Tensor &result) {
+  if (input.getDataType() == ml::train::TensorDim::DataType::FP32) {
+    const float *data = input.getData();
+    float *rdata = result.getData();
+
+    unsigned int len = input.size();
+
+    copy_cl(len, data, rdata);
+  } else if (input.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    throw std::runtime_error("Error: Currently, copyCl not supported for FP16");
+#endif
+  }
+}
+
+float nrm2Cl(const Tensor &input) {
+  float result = 0.0f;
+  if (input.getDataType() == ml::train::TensorDim::DataType::FP32) {
+    float *data = input.getData();
+    unsigned int len = input.size();
+
+    result = nrm2_cl(len, data);
+  } else if (input.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    throw std::runtime_error("Error: Currently, nrm2Cl not supported for FP16");
+#endif
+  }
+
+  return result;
+}
+
+float asumCl(const Tensor &input) {
+  float result = 0.0f;
+  if (input.getDataType() == ml::train::TensorDim::DataType::FP32) {
+    float *data = input.getData();
+    unsigned int len = input.size();
+
+    result = asum_cl(len, data);
+  } else if (input.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    throw std::runtime_error("Error: Currently, asumCl not supported for FP16");
+#endif
+  }
+
+  return result;
+}
+
+int amaxCl(const Tensor &input) {
+  int result = 0;
+  if (input.getDataType() == ml::train::TensorDim::DataType::FP32) {
+    float *data = input.getData();
+    unsigned int len = input.size();
+
+    result = amax_cl(len, data);
+  } else if (input.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    throw std::runtime_error("Error: Currently, amaxCl not supported for FP16");
+#endif
+  }
+
+  return result;
+}
+
+int aminCl(const Tensor &input) {
+  int result = 0;
+  if (input.getDataType() == ml::train::TensorDim::DataType::FP32) {
+    float *data = input.getData();
+    unsigned int len = input.size();
+
+    result = amin_cl(len, data);
+  } else if (input.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    throw std::runtime_error("Error: Currently, amaxCl not supported for FP16");
+#endif
+  }
+
+  return result;
 }
 
 } // namespace nntrainer

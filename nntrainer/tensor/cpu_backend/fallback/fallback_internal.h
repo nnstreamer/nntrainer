@@ -689,9 +689,26 @@ void __fallback_gemm_q4_K(const unsigned int M, const unsigned int N,
                           const unsigned int lda, const void *B,
                           const unsigned int ldb, float *C,
                           const unsigned int ldc);
-
 /**
- * @brief
+ * @brief q6_K GEMM : A (M,K) * W.T (N,K) = O (M,N)
+ *
+ * @param M Original row size of output
+ * @param N Original col size of output
+ * @param K Hidden size
+ * @param A Input activation to be online-runtime quantized to q8_K_MxN format
+ * @param lda Leading dimension of A
+ * @param B (void*) (block_q4_K*) for Offline-quantized transposed weight
+ * @param ldb Leading dimenstion of B
+ * @param C float* output
+ * @param ldc Leading dimension of C
+ */
+void __fallback_gemm_q6_K(const unsigned int M, const unsigned int N,
+                          const unsigned int K, const float *A,
+                          const unsigned int lda, const void *B,
+                          const unsigned int ldb, float *C,
+                          const unsigned int ldc);
+/**
+ * @brief (1xK)*(Kx1) dot product for q6_K and q8_K vectors
  *
  * @param K Length of vectors
  * @param v_q6_K lhs vector - data stored in Q6_K format
@@ -701,56 +718,69 @@ void __fallback_gemm_q4_K(const unsigned int M, const unsigned int N,
 float __fallback_dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
                                const void *v_q8_K);
 
+/**
+ * @brief (1xK)*(Kx1) dot product for q6_K and f32 vectors
+ *
+ * @param K Length of vectors
+ * @param v_q6_K lhs vector - data stored in Q6_K format
+ * @param f rhs vector - data stored in f32 format
+ * @return float float Result of performing dot operation on v_q6_K and f
+ */
 float __fallback_dot_q6_K_f32(const unsigned int K, const void *v_q6_K,
                               const float *f);
 
-void __fallback_gemm_q6_K(const unsigned int M, const unsigned int N,
-                          const unsigned int K, const float *A,
-                          const unsigned int lda, const void *B,
-                          const unsigned int ldb, float *C,
-                          const unsigned int ldc);
-
 /**
- * @brief
+ * @brief quantize_q4_0 function
  *
- * @param src
- * @param dst
- * @param nrow
- * @param n_per_row
- * @param quant_weights
- * @return size_t
+ * @param src float* to quantize
+ * @param dst q4_0* to store quantized data
+ * @param nrow number of rows in src
+ * @param n_per_row number of elements in each row of src
+ * @param quant_weights unused for now -> imatrix
+ * @return size_t size of total quantized data in bytes
  */
 size_t __fallback_quantize_q4_0(const float *src, void *dst, int64_t nrow,
                                 int64_t n_per_row, const float *quant_weights);
-
 /**
- * @brief
+ * @brief quantize_q4_K function
  *
- * @param src
- * @param dst
- * @param nrow
- * @param n_per_row
- * @param quant_weights
- * @return size_t
+ * @param src float* to quantize
+ * @param dst q4_K* to store quantized data
+ * @param nrow number of rows in src
+ * @param n_per_row number of elements in each row of src
+ * @param quant_weights unused for now -> imatrix
+ * @return size_t size of total quantized data in bytes
  */
 size_t __fallback_quantize_q4_K(const float *src, void *dst, int64_t nrow,
                                 int64_t n_per_row, const float *quant_weights);
+/**
+ * @brief quantize_q6_K function
+ *
+ * @param src float* to quantize
+ * @param dst q6_K* to store quantized data
+ * @param nrow number of rows in src
+ * @param n_per_row number of elements in each row of src
+ * @param quant_weights unused for now -> imatrix
+ * @return size_t size of total quantized data in bytes
+ */
+size_t __fallback_quantize_q6_K(const float *src, void *dst, int64_t nrow,
+                                int64_t n_per_row, const float *quant_weights);
 
 /**
- * @brief
+ * @brief Quantize float to q6_K Quantization format
  *
- * @param src
- * @param dst
- * @param k
+ * @param src float* src to be quantized
+ * @param dst void* dst to store quantized data
+ * @param k number of elements in src
  */
 void __fallback_quantize_row_q6_K(const float *src, void *dst, int64_t k);
 
 /**
- * @brief
+ * @brief Quantize float to q6_K Quantization format
  *
- * @param src
- * @param dst
- * @param k
+ * @param src float* src to be quantized
+ * @param dst void* dst to store quantized data
+ * @param k number of elements in src
  */
 void __fallback_quantize_row_q8_K(const float *src, void *dst, int64_t k);
 
@@ -782,26 +812,26 @@ void __fallback_dequantize_row_q6_K(const void *x, float *y, int64_t k);
 void __fallback_dequantize_row_q8_K(const void *x, float *y, int64_t k);
 
 /**
- * @brief
+ * @brief repack q40 to q40x8
  *
- * @param W
- * @param repacked_W
- * @param data_size
- * @param M
- * @param N
+ * @param W input q40
+ * @param repacked_W output q40x8
+ * @param data_size total weight size
+ * @param M number of rows
+ * @param N number of columns
  */
 void __fallback_repack_q4_0_to_q4_0_8(void *W, void *repacked_W,
                                       size_t data_size, const unsigned int M,
                                       const unsigned int N);
 
 /**
- * @brief
+ * @brief repack q4K to q4Kx8
  *
- * @param W
- * @param repacked_W
- * @param data_size
- * @param M
- * @param N
+ * @param W input q4K
+ * @param repacked_W output q4Kx8
+ * @param data_size total weight size
+ * @param M number of rows
+ * @param N number of columns
  */
 void __fallback_repack_q4_K_to_q4_K_8(void *W, void *repacked_W,
                                       size_t data_size, const unsigned int M,

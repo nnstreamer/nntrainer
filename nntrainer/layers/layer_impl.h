@@ -78,6 +78,11 @@ public:
   virtual void setProperty(const std::vector<std::string> &values) override;
 
   /**
+   * @copydoc Layer::getProperty(const std::string &key)
+   */
+  virtual std::string getProperty(const std::string &key) override;
+
+  /**
    * @copydoc Layer::exportTo(Exporter &exporter, const ml::train::ExportMethods
    * &methods)
    */

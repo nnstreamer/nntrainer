@@ -1729,6 +1729,18 @@ public:
   bool checkContinuous(unsigned int np1, unsigned int np2) const;
 
   /**
+   * @brief     set FileOffset to Tensor
+   * @param     off FileOffset
+   */
+  void setFileOffset(size_t file_offset);
+
+  /**
+   * @brief     get FileOffset of Tensor
+   * @return    size_t fileOffset
+   */
+  size_t getFileOffset() const;
+
+  /**
    * @brief     Set name of the tensor
    * @param[in] name_ tensor name
    */

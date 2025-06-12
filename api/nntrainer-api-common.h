@@ -79,6 +79,8 @@ typedef enum {
   ML_TRAIN_LAYER_TYPE_COSINE = 42,  /**< Cosine Layer type (Since 9.0)*/
   ML_TRAIN_LAYER_TYPE_TANGENT = 43, /**< Tangent Layer type (Since 9.0)*/
   ML_TRAIN_LAYER_TYPE_MATMUL = 44,  /**< MatMul Layer type (Since 9.0)*/
+  ML_TRAIN_LAYER_TYPE_CHANNEL_SHUFFLE =
+    45, /**< Channel Shuffle Layer type (Since 9.0)*/
   ML_TRAIN_LAYER_TYPE_GROUP_CONVOLUTION = 46, /**< Groupconv Layer type (Since 9.0)*/
   ML_TRAIN_LAYER_TYPE_PREPROCESS_FLIP =
     300, /**< Preprocess flip Layer (Since 6.5) */

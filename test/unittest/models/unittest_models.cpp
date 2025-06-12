@@ -1062,6 +1062,7 @@ static std::unique_ptr<NeuralNetwork> makeMatMulOperation() {
   return nn;
 }
 
+<<<<<<< HEAD
 std::function<std::unique_ptr<NeuralNetwork>()>
 getFuncToMakeGroupConvOperation(int idx) {
   return [idx]() {
@@ -1106,6 +1107,28 @@ static auto makeGroupConvOperationIdx1 = getFuncToMakeGroupConvOperation(1);
 static auto makeGroupConvOperationIdx2 = getFuncToMakeGroupConvOperation(2);
 static auto makeGroupConvOperationIdx3 = getFuncToMakeGroupConvOperation(3);
 
+=======
+static std::unique_ptr<NeuralNetwork> makeChannelShuffleOperation() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+
+  auto outer_graph = makeGraph(
+    {{"conv2d",
+      {"name=conv", "input_shape=1:8:4:4", "filters=8", "kernel_size=1,1"}},
+     {"channel_shuffle",
+      {"name=channel_shuffle_layer", "split_number=4", "input_layers=conv"}},
+     {"mse", {"name=loss", "input_layers=channel_shuffle_layer"}}});
+
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
+
+  nn->setProperty({"batch_size=1"});
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate=0.1"}));
+
+  return nn;
+}
+
+>>>>>>> myfork/main
 GTEST_PARAMETER_TEST(
   model, nntrainerModelTest,
   ::testing::ValuesIn({
@@ -1193,11 +1216,15 @@ GTEST_PARAMETER_TEST(
                  ModelTestOption::ALL_V2),
     mkModelTc_V2(makeMatMulOperation, "matmul_operation",
                  ModelTestOption::ALL_V2),
+<<<<<<< HEAD
     mkModelTc_V2(makeGroupConvOperationIdx1, "group_convolution_idx1",
                  ModelTestOption::ALL_V2),
     mkModelTc_V2(makeGroupConvOperationIdx2, "group_convolution_idx2",
                  ModelTestOption::ALL_V2),
     mkModelTc_V2(makeGroupConvOperationIdx3, "group_convolution_idx3",
+=======
+    mkModelTc_V2(makeChannelShuffleOperation, "channel_shuffle",
+>>>>>>> myfork/main
                  ModelTestOption::ALL_V2),
   }),
   [](const testing::TestParamInfo<nntrainerModelTest::ParamType> &info)

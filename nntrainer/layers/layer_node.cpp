@@ -206,7 +206,6 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   layer_node_props_realization(
     new RealizationPropsType(props::Flatten(), props::Activation())),
   loss(new props::Loss()),
-  regularization_loss(0.0f),
   exec_order({0, 0, 0, 0}),
   needs_restore_data(false),
   data_type({TensorDim::DataType::FP32, TensorDim::DataType::FP32}) {
@@ -227,6 +226,24 @@ void LayerNode::setProperty(const std::vector<std::string> &properties) {
       layer->setProperty({"activation=" + to_string(act_prop)});
     }
   }
+}
+
+std::string LayerNode::getProperty(const std::string &key) {
+  if (layer_node_props) {
+    std::string result = find_in_tuple(*layer_node_props, key);
+    if (!result.empty()) {
+      return result;
+    }
+  }
+
+  if (layer_node_props_realization) {
+    std::string result = find_in_tuple(*layer_node_props_realization, key);
+    if (!result.empty()) {
+      return result;
+    }
+  }
+
+  return layer->getProperty(key);
 }
 
 void LayerNode::setWeights(const std::vector<float *> weights) {

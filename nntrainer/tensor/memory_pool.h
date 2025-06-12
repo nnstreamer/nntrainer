@@ -316,8 +316,10 @@ private:
 
   std::unordered_map<std::string, std::shared_ptr<nntrainer::MemAllocator>>
     allocators;
+#if defined(__ANDROID__)
   RpcMemAllocFn_t rpcmem_alloc;
   RpcMemFreeFn_t rpcmem_free;
+#endif
 };
 
 } // namespace nntrainer

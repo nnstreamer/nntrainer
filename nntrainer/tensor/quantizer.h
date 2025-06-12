@@ -249,12 +249,7 @@ public:
   /**
    * @brief Basic Constructor of a PerChannelAffineQuantizer
    */
-  PerChannelAffineQuantizer() :
-    UniformQuantizer(),
-    scales(nullptr),
-    zero_points(nullptr),
-    quant_min(0),
-    quant_max(0) {}
+  PerChannelAffineQuantizer() : UniformQuantizer() {}
 
   /**
    * @copydoc Quantizer::create()
@@ -286,11 +281,6 @@ public:
   QScheme qscheme() const override;
 
 private:
-  float *scales;
-  int *zero_points;
-  long int quant_min = 0;
-  long int quant_max = 0;
-
   /**
    * @copydoc Quantizer::calculateQParams(const Tensor &input,
    * ml::train::TensorDim::DataType qtype)
@@ -342,6 +332,11 @@ public:
   QScheme qscheme() const override;
 
 private:
+  // float *scales = nullptr;
+  // int *zero_points = nullptr;
+  // long int quant_min = 0;
+  // long int quant_max = 0;
+
   /**
    * @copydoc Quantizer::calculateQParams(const Tensor &input,
    * ml::train::TensorDim::DataType qtype)

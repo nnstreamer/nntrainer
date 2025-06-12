@@ -72,7 +72,7 @@ public:
   /**
    * @copydoc Layer::requireLabel()
    */
-  bool requireLabel() const { return true; }
+  bool requireLabel() const override { return true; }
 
   /**
    * @copydoc Layer::getType()

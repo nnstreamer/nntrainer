@@ -221,7 +221,7 @@ unsigned int __fallback_isamax(const unsigned int N, const float *X,
   unsigned int max_idx = 0;
   float max_val = X[0];
   for (unsigned int n = 1; n < N; n += incX) {
-    float cur_val = abs(X[n]);
+    float cur_val = std::abs(X[n]);
     if (cur_val > max_val) {
       max_val = cur_val;
       max_idx = n;
@@ -396,6 +396,12 @@ size_t __fallback_quantize_q4_0(const float *src, void *dst, int64_t nrow,
 }
 
 size_t __fallback_quantize_q4_K(const float *src, void *dst, int64_t nrow,
+                                int64_t n_per_row, const float *quant_weights) {
+  throw std::runtime_error("NYI : __fallback_quantize_q4_K");
+  return 1;
+}
+
+size_t __fallback_quantize_q6_K(const float *src, void *dst, int64_t nrow,
                                 int64_t n_per_row, const float *quant_weights) {
   throw std::runtime_error("NYI : __fallback_quantize_q4_K");
   return 1;

@@ -22,8 +22,8 @@ auto semantic_positional_encoding = LayerSemanticsParamType(
   nntrainer::PositionalEncodingLayer::type, {"max_timestep=10"},
   LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
-INSTANTIATE_TEST_CASE_P(PositionalEncoding, LayerSemantics,
-                        ::testing::Values(semantic_positional_encoding));
+INSTANTIATE_TEST_SUITE_P(PositionalEncoding, LayerSemantics,
+                         ::testing::Values(semantic_positional_encoding));
 
 auto positional_encoding_partial = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::PositionalEncodingLayer>,
@@ -35,9 +35,9 @@ auto positional_encoding = LayerGoldenTestParamType(
   {"max_timestep=10"}, "3:1:10:6", "positional_encoding.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT, "nchw", "fp32", "fp32");
 
-INSTANTIATE_TEST_CASE_P(PositionalEncoding, LayerGoldenTest,
-                        ::testing::Values(positional_encoding_partial,
-                                          positional_encoding));
+INSTANTIATE_TEST_SUITE_P(PositionalEncoding, LayerGoldenTest,
+                         ::testing::Values(positional_encoding_partial,
+                                           positional_encoding));
 
 #ifdef ENABLE_FP16
 auto positional_encoding_partial_w16a16 = LayerGoldenTestParamType(

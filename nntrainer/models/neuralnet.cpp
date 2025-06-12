@@ -355,8 +355,8 @@ sharedConstTensors NeuralNetwork::forwarding(
     }
   }
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
-    [this, stop_cb, userdata, lookahead,
-     fsu_mode](std::shared_ptr<LayerNode> node, bool training) -> void {
+    [this, stop_cb, lookahead, fsu_mode](std::shared_ptr<LayerNode> node,
+                                         bool training) -> void {
     (void)this;
     PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
 
@@ -442,7 +442,7 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
   }
 
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
-    [this, from, to, stop_cb, userdata, fsu_mode,
+    [this, from, to, stop_cb, fsu_mode,
      lookahead](std::shared_ptr<LayerNode> node, bool training) -> void {
     PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
 
@@ -495,8 +495,7 @@ void NeuralNetwork::backwarding(int iteration,
 #endif
 
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
-    [this, stop_cb, userdata](std::shared_ptr<LayerNode> node,
-                              bool training) -> void {
+    [this, stop_cb](std::shared_ptr<LayerNode> node, bool training) -> void {
     (void)this;
     PROFILE_MEM_ANNOTATE("Forwarding for layer: " + node->getName());
 
@@ -671,16 +670,14 @@ void NeuralNetwork::load(const std::string &file_path,
   const std::regex reg_("\\s*\\:\\s*");
   auto v = split(file_path, reg_);
 
-  std::vector<size_t> start_offsets = {0};
-  std::vector<std::pair<size_t, size_t>> file_offset;
   size_t start_from = 0;
+  std::vector<std::pair<size_t, size_t>> file_offset;
   for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
     auto weights = (*iter)->getRunContext().getWeights();
-    auto local_offset = start_offsets.back();
     for (auto weight : weights) {
       size_t size = weight->getVariable().getMemoryBytes();
       auto tensor_data_type = weight->getDim().getDataType();
-
+      weight->getVariableRef().setFileOffset(start_from);
       ///@todo instead of checking the data type,
       /// we may need to create a common parent class for
       /// quantized tensors, requiring qparam to be saved
@@ -694,9 +691,7 @@ void NeuralNetwork::load(const std::string &file_path,
       }
       file_offset.emplace_back(std::make_pair(start_from, size));
       start_from += size;
-      local_offset += size;
     }
-    start_offsets.push_back(local_offset);
   }
 
   if (exec_mode == ExecutionMode::INFERENCE && fsu_mode) {
@@ -718,11 +713,11 @@ void NeuralNetwork::load(const std::string &file_path,
       for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
            ++iter) {
         auto exec_order = std::get<0>((*iter)->getExecutionOrder());
-        futures.emplace_back(std::async(std::launch::async, [=]() {
+        futures.emplace_back(std::async(std::launch::async, [=, this]() {
           auto local_model_file = checkedOpenStream<std::ifstream>(
             (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
           (*iter)->read(local_model_file, false, exec_mode, fsu_mode,
-                        start_offsets[exec_order], true);
+                        std::numeric_limits<size_t>::max(), true);
         }));
       }
       for (auto &f : futures)

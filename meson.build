@@ -66,10 +66,18 @@ warning_flags = [
   '-Wno-error=varargs',
   '-Wdefaulted-function-deleted',
   '-ftree-vectorize',
-  '-Wno-maybe-uninitialized',
   '-Wno-unused-variable',
   '-Wno-comment'
 ]
+
+if cxx_compiler_id == 'clang'
+  warning_flags += '-Wno-uninitialized'
+  warning_flags += '-Wno-format-nonliteral'
+  warning_flags += '-Wno-varargs'
+  warning_flags += '-Wno-missing-braces'
+else
+  warning_flags += '-Wno-maybe-uninitialized'
+endif
 
 warning_c_flags = [
   '-Wmissing-declarations',
@@ -167,6 +175,10 @@ if get_option('enable-opencl')
   clblast_options = cmake.subproject_options()
 
   if get_option('platform') == 'android'
+    message('preparing opencl')
+    run_command([meson.source_root() / 'jni' / 'prepare_opencl.sh', meson.build_root()], check: true)
+    clblast_root = meson.source_root() / 'subprojects' / 'CLBlast'
+    opencl_root = meson.build_root() / 'opencl'
     clblast_dep = declare_dependency()
   else
     if host_machine.system() == 'windows'
@@ -430,7 +442,7 @@ if get_option('enable-benchmarks')
   benchmark_dep = dependency('benchmark', static : true, main : false, required : false)
   if not benchmark_dep.found()
     benchmark_options = cmake.subproject_options()
-    if cxx_compiler_id == 'msvc'
+    if host_machine.system() == 'windows'
       benchmark_options.add_cmake_defines(common_win_subproject_cmake_defines)
     endif
     benchmark_options.add_cmake_defines({'BENCHMARK_ENABLE_TESTING': false})
@@ -447,7 +459,7 @@ gtest_main_dep = dependency('gtest', static: true, main: true, required: false)
 
 if not gmock_dep.found() or not gtest_dep.found() or not gtest_main_dep.found()
   googletest_options = cmake.subproject_options()
-  if cxx_compiler_id == 'msvc'
+  if host_machine.system() == 'windows'
     googletest_options.add_cmake_defines(common_win_subproject_cmake_defines)
   else
     googletest_options.add_cmake_defines({'CMAKE_POSITION_INDEPENDENT_CODE': true})
@@ -508,7 +520,15 @@ if get_option('enable-ggml')
   if host_machine.system() == 'windows'
     ggml_options.add_cmake_defines(common_win_subproject_cmake_defines)
   else
-    ggml_options.append_compile_args('c', ['-Wno-error=maybe-uninitialized', '-Wno-error=pointer-to-int-cast'])
+    ggml_flags = [
+      '-Wno-error=pointer-to-int-cast'
+      ]
+    if cxx_compiler_id == 'clang'
+      ggml_flags += '-Wno-error=uninitialized'
+    else 
+      ggml_flags += '-Wno-error=maybe-uninitialized'
+    endif
+    ggml_options.append_compile_args('c', ggml_flags)
   endif
   ggml_options.add_cmake_defines({'BUILD_SHARED_LIBS': host_machine.system() != 'windows'})
   ggml_options.add_cmake_defines({'GGML_BUILD_TESTS': false})
@@ -557,18 +577,27 @@ else
   ruy_options = cmake.subproject_options()
   ruy_options.add_cmake_defines({'RUY_MINIMAL_BUILD': true})
   ruy_options.add_cmake_defines({'CMAKE_POLICY_VERSION_MINIMUM': '3.5'})
-  if cxx_compiler_id == 'msvc'
+
+  if host_machine.system() == 'windows'
     ruy_options.add_cmake_defines(common_win_subproject_cmake_defines)
-  else
+  endif
+
+  if cxx_compiler_id != 'msvc'
     ruy_flags = [
       '-Wno-error=unused-result',
       '-Wno-error=comment',
-      '-Wno-error=maybe-uninitialized',
       '-Wno-error=unknown-pragmas',
-      '-Wno-error=unused-function',
-      '-Wno-error=stringop-overread',
-      '-Wno-error=array-parameter'
+      '-Wno-error=unused-function'
       ]
+
+    if cxx_compiler_id == 'clang'
+      ruy_flags += '-Wno-error=uninitialized'
+    else
+      ruy_flags += '-Wno-error=maybe-uninitialized'
+      ruy_flags += '-Wno-error=stringop-overread'
+      ruy_flags += '-Wno-error=array-parameter'
+    endif
+    
     ruy_options.append_compile_args('c', '-Wno-implicit-function-declaration')
     ruy_options.append_compile_args('c', ruy_flags)
     ruy_options.append_compile_args('cpp', ruy_flags)
