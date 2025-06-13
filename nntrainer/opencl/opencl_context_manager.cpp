@@ -56,6 +56,11 @@ const cl_context &ContextManager::GetContext() {
   bool result = true;
 
   do {
+    result = CreateDefaultPlatform();
+    if (!result) {
+      break;
+    }
+
     result = CreateDefaultGPUDevice();
     if (!result) {
       break;
@@ -106,15 +111,18 @@ ContextManager::~ContextManager() {
 }
 
 /**
- * @brief Create a Default GPU Device object
+ * @brief Create a default platform object
  *
  * @return true if successful or false otherwise
  */
-bool ContextManager::CreateDefaultGPUDevice() {
-  cl_uint num_platforms;
+bool ContextManager::CreateDefaultPlatform() {
+  cl_int status = 0;
+
+  cl_uint num_platforms = 0;
+  cl_uint preferred_platform_index = 0;
 
   // returns number of OpenCL supported platforms
-  cl_int status = clGetPlatformIDs(0, nullptr, &num_platforms);
+  status = clGetPlatformIDs(0, nullptr, &num_platforms);
   if (status != CL_SUCCESS) {
     ml_loge("clGetPlatformIDs returned %d", status);
     return false;
@@ -133,9 +141,21 @@ bool ContextManager::CreateDefaultGPUDevice() {
   }
 
   // platform is a specific OpenCL implementation, for instance ARM
-  cl_platform_id platform_id_ = platforms[0];
+  platform_id_ = platforms[preferred_platform_index];
 
-  cl_uint num_devices;
+  return true;
+}
+
+/**
+ * @brief Create a Default GPU Device object
+ *
+ * @return true if successful or false otherwise
+ */
+bool ContextManager::CreateDefaultGPUDevice() {
+  cl_int status = 0;
+
+  cl_uint num_devices = 0;
+  cl_uint preferred_device_index = 0;
 
   // getting available GPU devices
   status =
@@ -158,9 +178,9 @@ bool ContextManager::CreateDefaultGPUDevice() {
     return false;
   }
 
-  // setting the first GPU ID and platform (ARM)
-  device_id_ = devices[0];
-  this->platform_id_ = platform_id_;
+  // setting the first GPU ID that is available on platform selected in
+  // ContextManager::CreateDefazultPlatform function
+  device_id_ = devices[preferred_device_index];
 
 #ifdef ENABLE_FP16
   /// @note This is working incorrectly. For CUDA devices, cl_khr_fp16 is not

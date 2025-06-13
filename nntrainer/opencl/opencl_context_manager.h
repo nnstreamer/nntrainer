@@ -31,6 +31,13 @@ class ContextManager {
   cl_context context_{nullptr};
 
   /**
+   * @brief Create a default platform object
+   *
+   * @return true if successful or false otherwise
+   */
+  bool CreateDefaultPlatform();
+
+  /**
    * @brief Create a Default GPU Device object
    *
    * @return true if successful or false otherwise
@@ -48,7 +55,7 @@ class ContextManager {
    * @brief Private constructor to prevent object creation
    *
    */
-  ContextManager(){};
+  ContextManager() {};
 
 public:
   /**
