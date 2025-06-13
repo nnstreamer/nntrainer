@@ -61,7 +61,7 @@ const cl_context &ContextManager::GetContext() {
       break;
     }
 
-    result = CreateDefaultGPUDevice();
+    result = CreateDefaultDevice();
     if (!result) {
       break;
     }
@@ -147,19 +147,18 @@ bool ContextManager::CreateDefaultPlatform() {
 }
 
 /**
- * @brief Create a Default GPU Device object
+ * @brief Create a default device object
  *
  * @return true if successful or false otherwise
  */
-bool ContextManager::CreateDefaultGPUDevice() {
+bool ContextManager::CreateDefaultDevice(cl_device_type type) {
   cl_int status = 0;
 
   cl_uint num_devices = 0;
   cl_uint preferred_device_index = 0;
 
-  // getting available GPU devices
-  status =
-    clGetDeviceIDs(platform_id_, CL_DEVICE_TYPE_GPU, 0, nullptr, &num_devices);
+  // getting number of available devices of selected type
+  status = clGetDeviceIDs(platform_id_, type, 0, nullptr, &num_devices);
   if (status != CL_SUCCESS) {
     ml_loge("clGetDeviceIDs returned %d", status);
     return false;
@@ -169,17 +168,16 @@ bool ContextManager::CreateDefaultGPUDevice() {
     return false;
   }
 
-  // getting the GPU device IDs
+  // getting the device IDs
   std::vector<cl_device_id> devices(num_devices);
-  status = clGetDeviceIDs(platform_id_, CL_DEVICE_TYPE_GPU, num_devices,
-                          devices.data(), nullptr);
+  status =
+    clGetDeviceIDs(platform_id_, type, num_devices, devices.data(), nullptr);
   if (status != CL_SUCCESS) {
     ml_loge("clGetDeviceIDs returned %d", status);
     return false;
   }
 
-  // setting the first GPU ID that is available on platform selected in
-  // ContextManager::CreateDefazultPlatform function
+  // setting the first device ID that is available on platform
   device_id_ = devices[preferred_device_index];
 
 #ifdef ENABLE_FP16
