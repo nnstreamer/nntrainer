@@ -1272,6 +1272,39 @@ std::vector<unsigned int> Tensor::argmin() const {
   return itensor_->argmin();
 }
 
+std::pair<Tensor, Tensor> Tensor::topK(unsigned int k) const {
+
+  // Create output tensor with modified W dimension
+  TensorDim output_dim = getDim();
+  TensorDim indices_dim = getDim();
+  Tformat format = output_dim.getFormat();
+
+  // Validate k is within width dimension size
+  unsigned int width_size = output_dim.width();
+  NNTR_THROW_IF(k == 0 || k > width_size, std::invalid_argument)
+    << "k must be between 1 and width dimension size (" << width_size << ")";
+
+  // Set new width dimension to k
+  output_dim.width(k);
+  indices_dim.width(k);
+  indices_dim.setDataType(Tdatatype::UINT32); // Set indices data type to UINT32
+
+  // Create output tensor
+  Tensor output(output_dim);
+  output.allocate();
+  Tensor indices(indices_dim);
+  indices.allocate();
+
+  // Prepare output buffer
+  void *output_data = output.getData<void>();
+  uint32_t *indices_data = indices.getData<uint32_t>();
+
+  // Call TopK implementation
+  itensor_->topK(k, output_data, indices_data);
+
+  return {output, indices};
+}
+
 float Tensor::max_abs() const {
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
     << getName() << " is not contiguous, cannot get max_abs.";

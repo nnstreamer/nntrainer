@@ -451,6 +451,11 @@ public:
   std::vector<unsigned int> argmin() const override;
 
   /**
+   * @copydoc TensorBase::top_k()
+   */
+  void topK(unsigned int k, void *output_data, uint32_t *indices) override;
+
+  /**
    * @copydoc Tensor::max_abs()
    */
   float max_abs() const override;
