@@ -31,11 +31,18 @@ class ContextManager {
   cl_context context_{nullptr};
 
   /**
-   * @brief Create a Default GPU Device object
+   * @brief Create a default platform object
    *
    * @return true if successful or false otherwise
    */
-  bool CreateDefaultGPUDevice();
+  bool CreateDefaultPlatform();
+
+  /**
+   * @brief Create a default device object
+   *
+   * @return true if successful or false otherwise
+   */
+  bool CreateDefaultDevice(cl_device_type type = CL_DEVICE_TYPE_GPU);
 
   /**
    * @brief Create OpenCL context

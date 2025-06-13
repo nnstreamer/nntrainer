@@ -56,7 +56,12 @@ const cl_context &ContextManager::GetContext() {
   bool result = true;
 
   do {
-    result = CreateDefaultGPUDevice();
+    result = CreateDefaultPlatform();
+    if (!result) {
+      break;
+    }
+
+    result = CreateDefaultDevice();
     if (!result) {
       break;
     }
@@ -106,15 +111,18 @@ ContextManager::~ContextManager() {
 }
 
 /**
- * @brief Create a Default GPU Device object
+ * @brief Create a default platform object
  *
  * @return true if successful or false otherwise
  */
-bool ContextManager::CreateDefaultGPUDevice() {
-  cl_uint num_platforms;
+bool ContextManager::CreateDefaultPlatform() {
+  cl_int status = 0;
+
+  cl_uint num_platforms = 0;
+  cl_uint preferred_platform_index = 0;
 
   // returns number of OpenCL supported platforms
-  cl_int status = clGetPlatformIDs(0, nullptr, &num_platforms);
+  status = clGetPlatformIDs(0, nullptr, &num_platforms);
   if (status != CL_SUCCESS) {
     ml_loge("clGetPlatformIDs returned %d", status);
     return false;
@@ -133,13 +141,24 @@ bool ContextManager::CreateDefaultGPUDevice() {
   }
 
   // platform is a specific OpenCL implementation, for instance ARM
-  cl_platform_id platform_id_ = platforms[0];
+  platform_id_ = platforms[preferred_platform_index];
 
-  cl_uint num_devices;
+  return true;
+}
 
-  // getting available GPU devices
-  status =
-    clGetDeviceIDs(platform_id_, CL_DEVICE_TYPE_GPU, 0, nullptr, &num_devices);
+/**
+ * @brief Create a default device object
+ *
+ * @return true if successful or false otherwise
+ */
+bool ContextManager::CreateDefaultDevice(cl_device_type type) {
+  cl_int status = 0;
+
+  cl_uint num_devices = 0;
+  cl_uint preferred_device_index = 0;
+
+  // getting number of available devices of selected type
+  status = clGetDeviceIDs(platform_id_, type, 0, nullptr, &num_devices);
   if (status != CL_SUCCESS) {
     ml_loge("clGetDeviceIDs returned %d", status);
     return false;
@@ -149,18 +168,17 @@ bool ContextManager::CreateDefaultGPUDevice() {
     return false;
   }
 
-  // getting the GPU device IDs
+  // getting the device IDs
   std::vector<cl_device_id> devices(num_devices);
-  status = clGetDeviceIDs(platform_id_, CL_DEVICE_TYPE_GPU, num_devices,
-                          devices.data(), nullptr);
+  status =
+    clGetDeviceIDs(platform_id_, type, num_devices, devices.data(), nullptr);
   if (status != CL_SUCCESS) {
     ml_loge("clGetDeviceIDs returned %d", status);
     return false;
   }
 
-  // setting the first GPU ID and platform (ARM)
-  device_id_ = devices[0];
-  this->platform_id_ = platform_id_;
+  // setting the first device ID that is available on platform
+  device_id_ = devices[preferred_device_index];
 
 #ifdef ENABLE_FP16
   /// @note This is working incorrectly. For CUDA devices, cl_khr_fp16 is not
