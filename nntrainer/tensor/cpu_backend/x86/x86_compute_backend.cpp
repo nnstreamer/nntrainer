@@ -104,13 +104,13 @@ void inv_sqrt_inplace(const unsigned int N, float *X) {
 void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z,
              float alpha, float beta, unsigned int i_stride,
              unsigned int o_stride) {
-  __fallback_ele_mul(N, X, Y, Z, alpha, beta, i_stride, o_stride);
+  nntrainer::avx2::ele_mul(N, X, Y, Z, alpha, beta, i_stride, o_stride);
 }
 
 void ele_add(const unsigned int N, const float *X, const float *Y, float *Z,
              float alpha, float beta, unsigned int i_stride,
              unsigned int o_stride) {
-  __fallback_ele_add(N, X, Y, Z, alpha, beta, i_stride, o_stride);
+  nntrainer::avx2::ele_add(N, X, Y, Z, alpha, beta, i_stride, o_stride);
 }
 
 void ele_sub(const unsigned N, const float *X, const float *Y, float *Z,
