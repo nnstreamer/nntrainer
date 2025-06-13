@@ -1,4 +1,4 @@
 [wrap-git]
 url = https://github.com/google/benchmark.git
 directory=benchmark
-revision = v1.9.1
+revision = v1.9.4
