@@ -120,8 +120,9 @@ enum LayerType {
   LAYER_RMSNORM = ML_TRAIN_LAYER_TYPE_RMSNORM,     /**<RMS NORM Layer */
   LAYER_TRANSPOSE = ML_TRAIN_LAYER_TYPE_TRANSPOSE, /**< Transpose Layer type */
   LAYER_CHANNEL_SHUFFLE =
-    ML_TRAIN_LAYER_TYPE_CHANNEL_SHUFFLE,      /**< Channel Shuffle Layer type */
-  LAYER_GROUPCONV = ML_TRAIN_LAYER_TYPE_GROUP_CONVOLUTION,  /**< Groupconv Layer type */
+    ML_TRAIN_LAYER_TYPE_CHANNEL_SHUFFLE, /**< Channel Shuffle Layer type */
+  LAYER_GROUPCONV =
+    ML_TRAIN_LAYER_TYPE_GROUP_CONVOLUTION,    /**< Groupconv Layer type */
   LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN /**< Unknown */
 };
 
