@@ -1288,7 +1288,7 @@ Tensor Tensor::getBatchSlice(const std::vector<unsigned int> &indices) const {
 
 // Parallel copy using OpenMP
 #pragma omp parallel for schedule(static)
-  for (size_t i = 0; i < indices.size(); ++i) {
+  for (int i = 0; i < static_cast<int>(indices.size()); ++i) {
     const unsigned batch_idx = indices[i];
 
     // Calculate memory offsets
