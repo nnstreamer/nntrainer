@@ -1561,6 +1561,32 @@ public:
   Tensor getBatchSlice(size_t offset, unsigned int size) const;
 
   /**
+   * @brief Extract sub-tensor containing specified batch indices
+   *
+   * @param indices List of batch indices to extract (0-based)
+   * @return Tensor New tensor containing only specified batches  (copied
+   * tensor!)
+   *
+   * @details
+   * This function creates a new tensor containing copies of data from
+   * specified batch indices of the original tensor. The operation:
+   * - Requires the original tensor to be contiguous in memory
+   * - Preserves channel/height/width dimensions
+   * - Maintains data ordering within each batch
+   * - Uses memcpy for efficient memory operations
+   *
+   * @note
+   * - Time complexity: O(k*C*H*W) where k = num_indices
+   * - Memory complexity: O(k*C*H*W)
+   * - Thread-safe when using different indices in parallel
+   *
+   * @throw std::runtime_error If:
+   * - Tensor is not contiguous
+   * - Any index is out of bounds
+   */
+  Tensor getBatchSlice(const std::vector<unsigned int> &indices) const;
+
+  /**
    * @brief     Convient wrapper for inplace copy of @a this.
    * @retval    Copied version of this
    */
