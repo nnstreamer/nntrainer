@@ -1242,6 +1242,54 @@ Tensor Tensor::getBatchSlice(size_t offset, unsigned int size) const {
                              true, "");
 }
 
+Tensor Tensor::getBatchSlice(const std::vector<unsigned int> &indices) const {
+
+  // Validate tensor contiguity
+  NNTR_THROW_IF(!this->getContiguous(), std::runtime_error)
+    << "getBatchSlice requires contiguous tensor layer";
+
+  // Validate indices
+  const unsigned batch_size = getDim().batch();
+  for (auto idx : indices) {
+    NNTR_THROW_IF(idx >= batch_size, std::out_of_range)
+      << "Batch index " << idx << " out of range [0," << batch_size << ")";
+  }
+
+  // Get original tensor dimensions
+  const TensorDim &orig_dim = this->getDim();
+  const size_t element_size = orig_dim.getDataTypeSize();
+
+  // Calculate single batch size in elements
+  const size_t single_batch_size = orig_dim.getFeatureLen();
+
+  // Create output tensor with selected batches
+  TensorDim new_dim = orig_dim;
+  new_dim.batch(indices.size());
+  Tensor output(new_dim);
+
+  // Get raw data pointers
+  const unsigned char *src_data =
+    static_cast<const unsigned char *>(this->getData<unsigned char>());
+  unsigned char *dst_data =
+    static_cast<unsigned char *>(output.getData<void>());
+
+// Parallel copy using OpenMP
+#pragma omp parallel for schedule(static)
+  for (size_t i = 0; i < indices.size(); ++i) {
+    const unsigned batch_idx = indices[i];
+
+    // Calculate memory offsets
+    const size_t src_offset = batch_idx * single_batch_size * element_size;
+    const size_t dst_offset = i * single_batch_size * element_size;
+
+    // Perform memory copy
+    std::memcpy(dst_data + dst_offset, src_data + src_offset,
+                single_batch_size * element_size);
+  }
+
+  return output;
+}
+
 Tensor Tensor::clone() const {
   Tensor output(getName(), getFormat(), getDataType());
   output.copy(*this);
