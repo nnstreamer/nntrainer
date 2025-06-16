@@ -5,7 +5,8 @@ opencl_sources = [
     'opencl_kernel.cpp',
     'opencl_loader.cpp',
     'opencl_program.cpp',
-    'opencl_op_interface.cpp'
+    'opencl_op_interface.cpp',
+    'opencl_device.cpp'
 ]
 
 opencl_headers = [
@@ -14,7 +15,8 @@ opencl_headers = [
   'opencl_command_queue_manager.h',
   'opencl_context_manager.h',
   'opencl_kernel.h',
-  'opencl_program.h'
+  'opencl_program.h',
+  'opencl_device.h'
 ]
 
 foreach s : opencl_sources
