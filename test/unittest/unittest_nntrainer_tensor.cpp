@@ -1133,6 +1133,208 @@ TEST(nntrainer_Tensor, QTensor_21_p) {
 }
 #endif
 
+/**
+ * @brief Construct a Q4_0 Tensor with invalid size
+ */
+TEST(nntrainer_Tensor, QTensor_19_n) {
+  EXPECT_ANY_THROW(nntrainer::Tensor q4_0_tensor(
+    {1, 1, 256, 8, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::Q4_0}, true,
+    nntrainer::Initializer::NONE, "q4_0_tensor", nntrainer::QScheme::Q4_0));
+  EXPECT_ANY_THROW(nntrainer::Tensor q4_0_tensor(
+    {1, 1, 16, 16, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::Q4_0}, true,
+    nntrainer::Initializer::NONE, "q4_0_tensor", nntrainer::QScheme::Q4_0));
+}
+
+/**
+ * @brief Construct a Q4_0 Tensor
+ */
+TEST(nntrainer_Tensor, QTensor_20_p) {
+  nntrainer::Tensor q4_0_tensor(
+    {1, 1, 8, 256, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::Q4_0}, true,
+    nntrainer::Initializer::NONE, "q4_0_tensor", nntrainer::QScheme::Q4_0);
+
+  EXPECT_EQ(q4_0_tensor.q_scheme(), nntrainer::QScheme::Q4_0);
+  EXPECT_EQ(q4_0_tensor.size(), 1152);
+}
+
+#ifdef ENABLE_GGML
+/**
+ * @brief Construct a Q4_0 Tensor
+ */
+TEST(nntrainer_Tensor, QTensor_21_p) {
+
+  nntrainer::init_backend();
+
+  ///@note
+  // Q4K_GEMM: A(M, K) * W.T(N, K) = (M, N)
+  // FP_DOT: A(M, K) * W(K, N) = (M, N)
+  // Tensor dimension should be same as K, N (not N, K!)
+
+  // create Weight Tensor
+  const unsigned int M = 1;
+  uint32_t K = 768;
+  uint32_t N = 512;
+  size_t data_size = K * N / 32 * 18;
+
+  // Float tensor
+  std::vector<float> weight = generate_random_vector<float>(K * N);
+  std::vector<float> activation =
+    generate_random_vector<float>(M * K, -0.05, 0.05);
+
+  nntrainer::Tensor W_fp32(
+    1, 1, K, N,
+    {ml::train::TensorDim::Format::NCHW, ml::train::TensorDim::DataType::FP32});
+  nntrainer::Tensor A_fp32(
+    1, 1, M, K,
+    {ml::train::TensorDim::Format::NCHW, ml::train::TensorDim::DataType::FP32});
+
+  for (uint32_t k = 0; k < K; ++k)
+    for (uint32_t n = 0; n < N; ++n)
+      W_fp32.setValue(0, 0, k, n, weight[k * N + n]);
+
+  for (uint32_t m = 0; m < M; ++m)
+    for (uint32_t k = 0; k < K; ++k)
+      A_fp32.setValue(0, 0, m, k, activation[m * K + k]);
+
+  nntrainer::Tensor out_t = A_fp32.dot(W_fp32, false, false);
+
+  // Now create a quantized tensor, which dimension is same with W_fp32
+  // but its data should be transposed
+  nntrainer::Tensor W_fp32_t = W_fp32.transpose("0:2:1");
+  const float *src_ptr = W_fp32_t.getData<float>();
+  std::vector<char> dst_vector = std::vector<char>(data_size);
+  char *dst_ptr = (char *)dst_vector.data();
+  EXPECT_NO_THROW(
+    nntrainer::quantize_q4_0(src_ptr, (void *)dst_ptr, N, K, nullptr));
+
+  // repacked qweight memory with memcpy (Q4_0)
+  nntrainer::Tensor W_q40(
+    {1, 1, K, N, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::Q4_0}, true,
+    nntrainer::Initializer::NONE, "q4_0_tensor", nntrainer::QScheme::Q4_0);
+
+  EXPECT_NO_THROW(nntrainer::repack_q4_0(W_q40.getData<uint8_t>(),
+                                        dst_ptr, data_size, N, K));
+
+  std::vector<float> ref_dst(M * N);
+  nntrainer::gemm_q4_0(M, N, K, A_fp32.getData<float>(), K,
+                       (void *)W_q40.getData<uint8_t>(), N, ref_dst.data(), N);
+
+  nntrainer::Tensor out_q40_t(
+    1, 1, M, N, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
+  A_fp32.dot(W_q40, out_q40_t);
+
+  const float eps = 1e-5;
+  auto mean_squared_error =
+    mse<float, float>(out_t.getData<float>(), ref_dst.data(), M * N);
+  EXPECT_NEAR(mean_squared_error, 0., eps * M * N);
+  auto mean_squared_error_tensor = mse<float, float>(
+    out_t.getData<float>(), out_q40_t.getData<float>(), M * N);
+  EXPECT_NEAR(mean_squared_error_tensor, 0., eps * M * N);
+}
+#endif
+
+TEST(nntrainer_Tensor, getBatchSlice_float_p) {
+  // Create input tensor: batch=2, channel=1, height=1, width=3
+  std::vector<std::vector<std::vector<std::vector<float>>>> data = {
+    {{{1.0f, 2.0f, 3.0f}}}, {{{4.0f, 5.0f, 6.0f}}}};
+
+  nntrainer::Tensor input(
+    data, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
+
+  // Test single batch selection
+  {
+    std::vector<unsigned int> indices = {1};
+    nntrainer::Tensor sliced = input.getBatchSlice(indices);
+
+    EXPECT_EQ(sliced.getDim(), nntrainer::TensorDim(1, 1, 1, 3));
+    EXPECT_FLOAT_EQ(sliced.getValue(0, 0, 0, 0), 4.0f);
+    EXPECT_FLOAT_EQ(sliced.getValue(0, 0, 0, 1), 5.0f);
+    EXPECT_FLOAT_EQ(sliced.getValue(0, 0, 0, 2), 6.0f);
+  }
+
+  // Test multi-batch selection
+  {
+    std::vector<unsigned int> indices = {0, 1};
+    nntrainer::Tensor sliced = input.getBatchSlice(indices);
+
+    EXPECT_EQ(sliced.getDim(), nntrainer::TensorDim(2, 1, 1, 3));
+    EXPECT_FLOAT_EQ(sliced.getValue(0, 0, 0, 0), 1.0f);
+    EXPECT_FLOAT_EQ(sliced.getValue(0, 0, 0, 1), 2.0f);
+    EXPECT_FLOAT_EQ(sliced.getValue(0, 0, 0, 2), 3.0f);
+  }
+
+  // Test invalid index
+  EXPECT_THROW(input.getBatchSlice({3}), std::out_of_range);
+}
+
+TEST(nntrainer_Tensor, getBatchSlice_uint16_p) {
+  // UINT16 텐서 생성: [batch=3][channel=2][height=4][width=2]
+  std::vector<std::vector<std::vector<std::vector<float>>>> data = {
+    {// Batch 0
+     {{1000, 2000}, {3000, 4000}, {5000, 6000}, {7000, 8000}},
+     {{9000, 10000}, {11000, 12000}, {13000, 14000}, {15000, 16000}}},
+    {// Batch 1
+     {{17000, 18000}, {19000, 20000}, {21000, 22000}, {23000, 24000}},
+     {{25000, 26000}, {27000, 28000}, {29000, 30000}, {31000, 32000}}},
+    {// Batch 2
+     {{33000, 34000}, {35000, 36000}, {37000, 38000}, {39000, 40000}},
+     {{41000, 42000}, {43000, 44000}, {45000, 46000}, {47000, UINT16_MAX}}}};
+
+  nntrainer::Tensor input(
+    3, 2, 4, 2, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16});
+
+  for (size_t b = 0; b < 3; ++b) {
+    for (size_t c = 0; c < 2; ++c) {
+      for (size_t h = 0; h < 4; ++h) {
+        for (size_t w = 0; w < 2; ++w) {
+          input.setValue(b, c, h, w, data[b][c][h][w]);
+        }
+      }
+    }
+  }
+
+  std::vector<unsigned int> indices = {1, 2};
+  nntrainer::Tensor sliced = input.getBatchSlice(indices);
+
+  // Validate sliced tensor dimensions
+  EXPECT_EQ(
+    sliced.getDim(),
+    nntrainer::TensorDim(
+      2, 2, 4, 2, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16}));
+
+  // Validate sliced tensor data
+  // Batch 1
+  EXPECT_EQ(sliced.getValue<uint16_t>(0, 0, 0, 0), 17000);
+  EXPECT_EQ(sliced.getValue<uint16_t>(0, 1, 3, 1), 32000);
+
+  // Batch 2
+  EXPECT_EQ(sliced.getValue<uint16_t>(1, 0, 2, 1), 38000);
+  EXPECT_EQ(sliced.getValue<uint16_t>(1, 1, 3, 1), UINT16_MAX);
+}
+
+TEST(nntrainer_Tensor, getBatchSlice_parallel_p) {
+  // Create large input tensor for parallel test
+  nntrainer::Tensor input(8, 3, 224, 224);
+  input.setRandUniform(-10.0f, 10.0f); // Initialize with random values
+
+  // Create reference slice using sequential method
+  std::vector<unsigned int> indices = {2};
+
+  nntrainer::Tensor ref_slice = input.getBatchSlice(indices);
+
+// Enable OpenMP and test parallel execution
+#pragma omp parallel for
+  for (int i = 0; i < 100; ++i) {
+    nntrainer::Tensor par_slice = input.getBatchSlice(indices);
+    EXPECT_EQ(ref_slice.getDim(), par_slice.getDim());
+    EXPECT_EQ(ref_slice.size(), par_slice.size());
+
+    for (unsigned int idx = 0; idx < ref_slice.size(); ++idx) {
+      EXPECT_FLOAT_EQ(ref_slice.getValue(idx), par_slice.getValue(idx));
+    }
+  }
+}
+
 TEST(nntrainer_Tensor, copy_01_n) {
   int batch = 3;
   int channel = 1;
