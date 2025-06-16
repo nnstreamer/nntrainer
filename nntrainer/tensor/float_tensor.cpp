@@ -885,10 +885,10 @@ void FloatTensor::topK(unsigned int k, void *output_data,
                        uint32_t *indices_data) {
   const auto &input_dim = getDim();
   const Tformat format = input_dim.getFormat();
-  const unsigned int batch = input_dim.batch();
-  const unsigned int channel = input_dim.channel();
-  const unsigned int height = input_dim.height();
-  const unsigned int width = input_dim.width();
+  const auto batch = input_dim.batch();
+  const auto channel = input_dim.channel();
+  const auto height = input_dim.height();
+  const auto width = input_dim.width();
 
   const float *input_buffer = (float *)getData();
   float *output_buffer = static_cast<float *>(output_data);
@@ -900,9 +900,9 @@ void FloatTensor::topK(unsigned int k, void *output_data,
   const auto output_strides = output_dim.computeStrides();
 
 #pragma omp parallel for collapse(3)
-  for (unsigned int b = 0; b < batch; ++b) {
-    for (unsigned int c = 0; c < channel; ++c) {
-      for (unsigned int h = 0; h < height; ++h) {
+  for (int b = 0; b < static_cast<int>(batch); ++b) {
+    for (int c = 0; c < static_cast<int>(channel); ++c) {
+      for (int h = 0; h < static_cast<int>(height); ++h) {
 
         // Collect elements along width dimension
         std::vector<std::pair<float, unsigned int>> elements(width);
