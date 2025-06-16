@@ -18,6 +18,8 @@
 
 #include "CL/cl.h"
 
+#include "opencl_device.h"
+
 namespace nntrainer::opencl {
 
 /**
@@ -26,16 +28,15 @@ namespace nntrainer::opencl {
  *
  */
 class ContextManager {
-  cl_platform_id platform_id_{nullptr};
-  cl_device_id device_id_{nullptr};
-  cl_context context_{nullptr};
+  OpenCLDevice opencl_device_;
+  cl_context context_;
 
   /**
-   * @brief Create a Default GPU Device object
+   * @brief Create a default device object
    *
    * @return true if successful or false otherwise
    */
-  bool CreateDefaultGPUDevice();
+  bool CreateDefaultDevice(cl_device_type type = CL_DEVICE_TYPE_GPU);
 
   /**
    * @brief Create OpenCL context
@@ -48,7 +49,7 @@ class ContextManager {
    * @brief Private constructor to prevent object creation
    *
    */
-  ContextManager(){};
+  ContextManager() {};
 
 public:
   /**

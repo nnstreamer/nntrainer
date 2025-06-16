@@ -18,8 +18,6 @@
 
 #include "opencl_loader.h"
 
-#include <nntrainer_log.h>
-
 namespace nntrainer::opencl {
 
 /**
@@ -56,7 +54,7 @@ const cl_context &ContextManager::GetContext() {
   bool result = true;
 
   do {
-    result = CreateDefaultGPUDevice();
+    result = CreateDefaultDevice();
     if (!result) {
       break;
     }
@@ -91,7 +89,9 @@ void ContextManager::ReleaseContext() {
  *
  * @return const cl_device_id
  */
-const cl_device_id ContextManager::GetDeviceId() { return device_id_; }
+const cl_device_id ContextManager::GetDeviceId() {
+  return opencl_device_.GetHandle();
+}
 
 /**
  * @brief Destroy the Context Manager object
@@ -106,61 +106,23 @@ ContextManager::~ContextManager() {
 }
 
 /**
- * @brief Create a Default GPU Device object
+ * @brief Create a default device object
  *
  * @return true if successful or false otherwise
  */
-bool ContextManager::CreateDefaultGPUDevice() {
-  cl_uint num_platforms;
+bool ContextManager::CreateDefaultDevice(cl_device_type type) {
+  for (const auto &device : OpenCLDevice::GetDeviceList()) {
+    if (device.GetInfoValue<cl_device_type>(CL_DEVICE_TYPE) == type) {
+      auto name = device.GetInfoString(CL_DEVICE_NAME);
+      auto vendor = device.GetInfoString(CL_DEVICE_VENDOR);
 
-  // returns number of OpenCL supported platforms
-  cl_int status = clGetPlatformIDs(0, nullptr, &num_platforms);
-  if (status != CL_SUCCESS) {
-    ml_loge("clGetPlatformIDs returned %d", status);
-    return false;
+      ml_logi("Found suitable device : %s (%s)", name.c_str(), vendor.c_str());
+
+      opencl_device_ = device;
+
+      return true;
+    }
   }
-  if (num_platforms == 0) {
-    ml_loge("No supported OpenCL platform.");
-    return false;
-  }
-
-  // getting the platform IDs
-  std::vector<cl_platform_id> platforms(num_platforms);
-  status = clGetPlatformIDs(num_platforms, platforms.data(), nullptr);
-  if (status != CL_SUCCESS) {
-    ml_loge("clGetPlatformIDs returned %d", status);
-    return false;
-  }
-
-  // platform is a specific OpenCL implementation, for instance ARM
-  cl_platform_id platform_id_ = platforms[0];
-
-  cl_uint num_devices;
-
-  // getting available GPU devices
-  status =
-    clGetDeviceIDs(platform_id_, CL_DEVICE_TYPE_GPU, 0, nullptr, &num_devices);
-  if (status != CL_SUCCESS) {
-    ml_loge("clGetDeviceIDs returned %d", status);
-    return false;
-  }
-  if (num_devices == 0) {
-    ml_loge("No GPU on current platform.");
-    return false;
-  }
-
-  // getting the GPU device IDs
-  std::vector<cl_device_id> devices(num_devices);
-  status = clGetDeviceIDs(platform_id_, CL_DEVICE_TYPE_GPU, num_devices,
-                          devices.data(), nullptr);
-  if (status != CL_SUCCESS) {
-    ml_loge("clGetDeviceIDs returned %d", status);
-    return false;
-  }
-
-  // setting the first GPU ID and platform (ARM)
-  device_id_ = devices[0];
-  this->platform_id_ = platform_id_;
 
 #ifdef ENABLE_FP16
   /// @note This is working incorrectly. For CUDA devices, cl_khr_fp16 is not
@@ -192,7 +154,7 @@ bool ContextManager::CreateDefaultGPUDevice() {
   // }
 #endif
 
-  return true;
+  return false;
 }
 
 /**
@@ -201,14 +163,18 @@ bool ContextManager::CreateDefaultGPUDevice() {
  * @return true if successful or false otherwise
  */
 bool ContextManager::CreateCLContext() {
+  cl_platform_id platform =
+    opencl_device_.GetInfoValue<cl_platform_id>(CL_DEVICE_PLATFORM);
+  cl_device_id device = opencl_device_.GetHandle();
+
   int error_code;
   cl_context_properties properties[] = {CL_CONTEXT_PLATFORM,
-                                        (cl_context_properties)platform_id_, 0};
+                                        (cl_context_properties)platform, 0};
 
   // creating valid ARM GPU OpenCL context, will return NULL with error code if
   // fails
   context_ =
-    clCreateContext(properties, 1, &device_id_, nullptr, nullptr, &error_code);
+    clCreateContext(properties, 1, &device, nullptr, nullptr, &error_code);
   if (!context_) {
     ml_loge("Failed to create a compute context. OpenCL error code: %d",
             error_code);
