@@ -65,6 +65,7 @@
 #include <lstm.h>
 #include <lstmcell.h>
 #include <matmul_layer.h>
+#include <moe_layer.h>
 #include <mol_attention_layer.h>
 #include <mse_loss_layer.h>
 #include <multi_head_attention_layer.h>
@@ -358,6 +359,8 @@ static void add_default_object(AppContext &ac) {
 
   ac.registerFactory(nntrainer::createLayer<ChannelShuffle>,
                      ChannelShuffle::type, LayerType::LAYER_CHANNEL_SHUFFLE);
+  ac.registerFactory(nntrainer::createLayer<MoELayer>, MoELayer::type,
+                     LayerType::LAYER_MOE);
 
 #ifdef ENABLE_NNSTREAMER_BACKBONE
   ac.registerFactory(nntrainer::createLayer<NNStreamerLayer>,
