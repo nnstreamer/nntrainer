@@ -114,5 +114,5 @@ private:
 
 } // namespace nntrainer
 
-#endif /* __cplusplus */
-#endif /* __GROUPCONV_LAYER_H_ */
+#endif /** __cplusplus */
+#endif /** __GROUPCONV_LAYER_H_ */
