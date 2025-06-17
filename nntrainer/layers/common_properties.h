@@ -980,6 +980,13 @@ public:
   static constexpr const char *key = "activation";
 };
 
+class MoEActivation final
+  : public EnumProperty<nntrainer::props::ActivationTypeInfo> {
+public:
+  using prop_tag = enum_class_prop_tag;
+  static constexpr const char *key = "moe_activation";
+};
+
 /**
  * @brief HiddenStateActivation Enumeration Information
  *
@@ -1661,6 +1668,25 @@ class TensorName : public Name {
 public:
   static constexpr const char *key = "tensor_name";
   using prop_tag = str_prop_tag;
+};
+
+/**
+ * @brief NumExperts,  Number of experts property
+ */
+class NumExperts : public PositiveIntegerProperty {
+public:
+  static constexpr const char *key = "num_experts"; /**< unique key to access */
+  using prop_tag = uint_prop_tag;                   /**< property type */
+};
+
+/**
+ * @brief NumExpertsPerToken,  Number of experts per token property
+ */
+class NumExpertsPerToken : public PositiveIntegerProperty {
+public:
+  static constexpr const char *key =
+    "num_experts_per_token";      /**< unique key to access */
+  using prop_tag = uint_prop_tag; /**< property type */
 };
 
 } // namespace props
