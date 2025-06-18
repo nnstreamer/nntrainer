@@ -17,3 +17,15 @@
 [submodule "subprojects/OpenBLAS"]
 	path = subprojects/OpenBLAS
 	url = https://github.com/OpenMathLib/OpenBLAS.git
+	
+[submodule "subprojects/googletest"]
+	path = subprojects/googletest
+	url = https://github.com/google/googletest.git
+
+[submodule "subprojects/benchmark"]
+	path = subprojects/benchmark
+	url = https://github.com/google/benchmark.git
+	
+[submodule "nntrainer-windows-resource"]
+	path = nntrainer-windows-resource
+	url = https://github.com/nnstreamer/nntrainer-windows-resource.git

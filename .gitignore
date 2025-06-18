@@ -8,11 +8,9 @@
 .idea/
 
 # jni build files
-iniparser/
 libs/
 obj/
 ml_api_common/
-ggml/
 
 # tflite for applications
 tensorflow-1.13.1

@@ -30,6 +30,11 @@ cc = meson.get_compiler('c')
 cxx = meson.get_compiler('cpp')
 cxx_compiler_id = cxx.get_id()
 
+subprojects_dir_relative = 'subprojects'
+subprojects_dir_absolute = meson.current_source_dir() / subprojects_dir_relative
+windows_resource_dir_relative = 'nntrainer-windows-resource'
+windows_resource_dir_absolute = meson.current_source_dir() / windows_resource_dir_relative
+
 powershell_prog = find_program('powershell', required: (build_machine.system() == 'windows'))
 
 # Obtains number of cores
@@ -89,11 +94,6 @@ warning_c_flags = [
   '-Wdeclaration-after-statement',
   '-Wno-error=varargs'
 ]
-
-common_win_subproject_cmake_defines = {
-  'CMAKE_MSVC_RUNTIME_LIBRARY': 'MultiThreaded',
-  'CMAKE_BUILD_TYPE': 'Release',
-}
 
 arch = host_machine.cpu_family()
 
@@ -170,21 +170,27 @@ if get_option('enable-mmap')
 endif
 
 if get_option('enable-opencl')
+  if get_option('platform') == 'android'
+  endif
+
   message ('OpenCL build is now enabled and will function only if an OpenCL-supported GPU is available. Using CLBlast as the OpenCL backend.')
   extra_defines += '-DENABLE_OPENCL=1'
-  clblast_options = cmake.subproject_options()
 
   if get_option('platform') == 'android'
     message('preparing opencl')
     run_command([meson.source_root() / 'jni' / 'prepare_opencl.sh', meson.build_root()], check: true)
-    clblast_root = meson.source_root() / 'subprojects' / 'CLBlast'
+    clblast_root = subprojects_dir_absolute / 'CLBlast'
     opencl_root = meson.build_root() / 'opencl'
     clblast_dep = declare_dependency()
-  else
-    if host_machine.system() == 'windows'
-      clblast_options.add_cmake_defines(common_win_subproject_cmake_defines)
-    endif
-
+  elif get_option('platform') == 'windows'
+    clblast_lib_dir_absolute = windows_resource_dir_absolute / 'CLBlast'
+    clblast_lib_dir_absolute_win = clblast_lib_dir_absolute.replace('/', '\\')
+    run_command(['xcopy', '/C', '/Y', clblast_lib_dir_absolute_win, meson.current_build_dir()], check: true)
+    clblast_dir_relative = subprojects_dir_relative / 'CLBlast'
+    clblast_include = include_directories(clblast_dir_relative / 'include')
+    clblast_dep = declare_dependency(include_directories: clblast_include, link_args:['clblast.lib'])
+  else 
+    clblast_options = cmake.subproject_options()
     clblast_options.add_cmake_defines({'CMAKE_POLICY_VERSION_MINIMUM': '3.10'})
     clblast_proj = cmake.subproject('clblast', options: clblast_options, required: true)
     clblast_dep = clblast_proj.dependency('clblast')
@@ -271,7 +277,7 @@ endif
 # handle resources
 nntrainer_resdir = meson.build_root() / 'res'
 
-if build_machine.system() == 'windows'
+if get_option('platform') == 'windows'
   nntrainer_resdir_win = nntrainer_resdir.replace('/', '\\')
   if not fs.exists (nntrainer_resdir_win)
     run_command([prog_win_cmd, '/C', 'mkdir', nntrainer_resdir_win], check: true)
@@ -341,12 +347,20 @@ if get_option('enable-blas')
     run_command([meson.source_root() / 'jni' / 'prepare_openblas.sh', meson.build_root()], check: true)
     blas_root = meson.build_root() / 'openblas'
     blas_dep = declare_dependency(include_directories: [ 'openblas/include' ])
+  elif get_option('platform') == 'windows'
+    openblas_lib_dir_absolute = windows_resource_dir_absolute / 'OpenBLAS'
+    openblas_lib_dir_absolute_win = openblas_lib_dir_absolute.replace('/', '\\')
+    run_command(['xcopy', '/C', '/Y', openblas_lib_dir_absolute_win, meson.current_build_dir()], check: true)
+    openblas_dir_relative = subprojects_dir_relative / 'OpenBLAS'
+    openblas_lib_dir_relative = windows_resource_dir_relative / 'OpenBLAS'
+    openblas_include = include_directories(openblas_dir_relative, openblas_lib_dir_relative)
+    blas_dep = declare_dependency(include_directories: openblas_include, link_args:['openblas.lib'])
   else
     blas_dep = dependency('openblas', required : false)
 
     if not blas_dep.found()
       message('Cannot find OpenBLAS dependency in system')
-      openblas_dir_relative = 'subprojects' / 'OpenBLAS'
+      openblas_dir_relative = subprojects_dir_relative / 'OpenBLAS'
       openblas_dir_absolute = meson.current_source_dir() / openblas_dir_relative
       openblas_build_dir_relative = openblas_dir_relative / 'build'
       openblas_build_dir_absolute = meson.current_source_dir() / openblas_build_dir_relative
@@ -356,14 +370,7 @@ if get_option('enable-blas')
       else
         message('Setup OpenBLAS')
         openblas_setup_command = ['cmake', '-B', openblas_build_dir_absolute, '-DNUM_THREADS=' + get_option('openblas-num-threads').to_string(), '-DBUILD_TESTING=False', '-DBUILD_BENCHMARKS=False', '-DBUILD_WITHOUT_LAPACK=True', '-DNOFORTRAN=True', '-DCMAKE_BUILD_TYPE=Release']
-
-        if host_machine.system() == 'windows'
-          openblas_setup_command += '-DBUILD_SHARED_LIBS=False'
-          openblas_setup_command += '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded'
-          openblas_setup_command += '-DMSVC_STATIC_CRT=1'
-        else
-          openblas_setup_command += '-DBUILD_SHARED_LIBS=True'
-        endif
+        openblas_setup_command += '-DBUILD_SHARED_LIBS=True'
 
         if cxx_compiler_id == 'clang'
           openblas_setup_command += '-G Ninja'
@@ -380,16 +387,7 @@ if get_option('enable-blas')
         run_command(openblas_compile_command, check: true)
       endif
 
-      if host_machine.system() == 'windows'
-        if cxx_compiler_id == 'msvc'
-          openblas_lib = openblas_build_dir_absolute / 'lib' / 'RELEASE' / 'openblas.lib'
-        else
-          openblas_lib = openblas_build_dir_absolute / 'lib' / 'openblas.lib'
-        endif
-      else
-        openblas_lib = openblas_build_dir_absolute / 'lib' / 'libopenblas.so'
-      endif
-
+      openblas_lib = openblas_build_dir_absolute / 'lib' / 'libopenblas.so'
       openblas_include = include_directories(openblas_dir_relative, openblas_build_dir_relative)
       blas_dep = declare_dependency(include_directories: openblas_include, link_args:[openblas_lib])
     else
@@ -439,39 +437,55 @@ if get_option('enable-logging')
 endif
 
 if get_option('enable-benchmarks')
-  benchmark_dep = dependency('benchmark', static : true, main : false, required : false)
-  if not benchmark_dep.found()
-    benchmark_options = cmake.subproject_options()
-    if host_machine.system() == 'windows'
-      benchmark_options.add_cmake_defines(common_win_subproject_cmake_defines)
+  if get_option('platform') == 'windows'
+    benchmark_lib_dir_absolute = windows_resource_dir_absolute / 'benchmark'
+    benchmark_lib_dir_absolute_win = benchmark_lib_dir_absolute.replace('/', '\\')
+    run_command(['xcopy', '/C', '/Y', benchmark_lib_dir_absolute_win, meson.current_build_dir()], check: true)
+    benchmark_dir_relative = subprojects_dir_relative / 'benchmark'
+    benchmark_include = include_directories(benchmark_dir_relative / 'include')
+    benchmark_dep = declare_dependency(include_directories: benchmark_include, link_args:['benchmark.lib'])
+  else
+    benchmark_dep = dependency('benchmark', static : true, main : false, required : false)
+    if not benchmark_dep.found()
+      benchmark_options = cmake.subproject_options()
+      benchmark_options.add_cmake_defines({'BENCHMARK_ENABLE_TESTING': false})
+      benchmark_subproject = cmake.subproject('benchmark', options: benchmark_options, required: true)
+      benchmark_dep = benchmark_subproject.dependency('benchmark')
+      message('benchmar targets')
+      message(benchmark_subproject.target_list())
     endif
-    benchmark_options.add_cmake_defines({'BENCHMARK_ENABLE_TESTING': false})
-    benchmark_subproject = cmake.subproject('benchmark', options: benchmark_options, required: true)
-    benchmark_dep = benchmark_subproject.dependency('benchmark')
-    message('benchmar targets')
-    message(benchmark_subproject.target_list())
   endif
 endif
 
-gmock_dep = dependency('gmock', static: true, main: false, required: false)
-gtest_dep = dependency('gtest', static: true, main: false, required: false)
-gtest_main_dep = dependency('gtest', static: true, main: true, required: false)
+if get_option('platform') == 'windows'
+    googletest_lib_dir_absolute = windows_resource_dir_absolute / 'googletest'
+    googletest_lib_dir_absolute_win = googletest_lib_dir_absolute.replace('/', '\\')
+    run_command(['xcopy', '/C', '/Y', googletest_lib_dir_absolute_win, meson.current_build_dir()], check: true)
+    googletest_dir_relative = subprojects_dir_relative / 'googletest'
+    gtest_include = include_directories(googletest_dir_relative / 'googletest' / 'include')
+    gmock_include = include_directories(googletest_dir_relative / 'googlemock' / 'include')
+    gmock_dep = declare_dependency(include_directories: gmock_include, link_args:['gmock.lib'])
+    gtest_dep = declare_dependency(include_directories: gtest_include, link_args:['gtest.lib'])
+    gtest_main_dep = declare_dependency(include_directories: gtest_include, link_args:['gtest_main.lib', 'gtest.lib'])
+else
+  gmock_dep = dependency('gmock', static: true, main: false, required: false)
+  gtest_dep = dependency('gtest', static: true, main: false, required: false)
+  gtest_main_dep = dependency('gtest', static: true, main: true, required: false)
 
-if not gmock_dep.found() or not gtest_dep.found() or not gtest_main_dep.found()
-  googletest_options = cmake.subproject_options()
-  if host_machine.system() == 'windows'
-    googletest_options.add_cmake_defines(common_win_subproject_cmake_defines)
-  else
-    googletest_options.add_cmake_defines({'CMAKE_POSITION_INDEPENDENT_CODE': true})
+  if not gmock_dep.found() or not gtest_dep.found() or not gtest_main_dep.found()
+    googletest_options = cmake.subproject_options()
+    if host_machine.system() != 'windows'
+      googletest_options.add_cmake_defines({'CMAKE_POSITION_INDEPENDENT_CODE': true})
+    endif
+    googletest_options.add_cmake_defines({'BUILD_SHARED_LIBS': false})
+    googletest_subproject = cmake.subproject('googletest', options: googletest_options, required: true)
+    gmock_dep = googletest_subproject.dependency('gmock')
+    gtest_dep = googletest_subproject.dependency('gtest')
+    gtest_main_dep = [googletest_subproject.dependency('gtest_main')]
+    # meson provided dependency gtest_main_dep is sum of [gtest_dep, gtest_main_dep]
+    # This difference between cmake and meson dependency is exposed on linux
+    gtest_main_dep += gtest_dep
   endif
-  googletest_options.add_cmake_defines({'BUILD_SHARED_LIBS': false})
-  googletest_subproject = cmake.subproject('googletest', options: googletest_options, required: true)
-  gmock_dep = googletest_subproject.dependency('gmock')
-  gtest_dep = googletest_subproject.dependency('gtest')
-  gtest_main_dep = [googletest_subproject.dependency('gtest_main')]
-  # meson provided dependency gtest_main_dep is sum of [gtest_dep, gtest_main_dep]
-  # This difference between cmake and meson dependency is exposed on linux
-  gtest_main_dep += gtest_dep
 endif
 
 if get_option('enable-test') # and get_option('platform') != 'android'
@@ -492,16 +506,20 @@ libdl_dep = cxx.find_library('dl', required: false) # DL library
 thread_dep = dependency('threads') # pthread for tensorflow-lite
 
 if get_option('platform') == 'android'
-  iniparser_root = meson.source_root() / 'subprojects' / 'iniparser'
+  iniparser_root = subprojects_dir_absolute / 'iniparser'
   iniparser_dep = declare_dependency()
+elif get_option('platform') == 'windows'
+  iniparser_lib_dir_absolute = windows_resource_dir_absolute / 'iniparser'
+  iniparser_lib_dir_absolute_win = iniparser_lib_dir_absolute.replace('/', '\\')
+  run_command(['xcopy', '/C', '/Y', iniparser_lib_dir_absolute_win, meson.current_build_dir()], check: true)
+  iniparser_dir_relative = subprojects_dir_relative / 'iniparser'
+  iniparser_include = include_directories(iniparser_dir_relative / 'src')
+  iniparser_dep = declare_dependency(include_directories: iniparser_include, link_args:['iniparser.lib'])
 else
   iniparser_dep = dependency('iniparser', required : false, version : '>=3.2') # iniparser
 
   if not iniparser_dep.found()
     iniparser_options = cmake.subproject_options()
-    if host_machine.system() == 'windows'
-      iniparser_options.add_cmake_defines(common_win_subproject_cmake_defines)
-    endif
     iniparser_options.add_cmake_defines({'BUILD_DOCS': false})
     iniparser_options.add_cmake_defines({'BUILD_EXAMPLES': false})
     iniparser_options.add_cmake_defines({'BUILD_TESTING': false})
@@ -515,11 +533,20 @@ ggml_dep = dummy_dep
 
 if get_option('enable-ggml')
   message('preparing ggml')
-  ggml_options = cmake.subproject_options()
-  ggml_root = meson.source_root() / 'subprojects' / 'ggml'
-  if host_machine.system() == 'windows'
-    ggml_options.add_cmake_defines(common_win_subproject_cmake_defines)
+
+  if get_option('platform') == 'windows'
+    ggml_lib_dir_absolute = windows_resource_dir_absolute / 'ggml'
+    ggml_lib_dir_absolute_win = ggml_lib_dir_absolute.replace('/', '\\')
+    run_command(['xcopy', '/C', '/Y', ggml_lib_dir_absolute_win, meson.current_build_dir()], check: true)
+    ggml_dir_relative = subprojects_dir_relative / 'ggml'
+    ggml_include = include_directories(ggml_dir_relative / 'include', ggml_dir_relative / 'src', ggml_dir_relative / 'src' / 'ggml-cpu')
+    ggml_dep = declare_dependency(include_directories: ggml_include, link_args:['ggml.lib', 'ggml-base.lib', 'ggml-cpu.lib'])
+    ggml_patch_relative = subprojects_dir_relative / 'packagefiles' / 'ggml' / '0001-nntrainer-ggml-patch.patch'
+    ggml_patch_command = ['git', 'apply', '--directory=' + ggml_dir_relative, ggml_patch_relative]
+    run_command(ggml_patch_command, check: false)
   else
+    ggml_options = cmake.subproject_options()
+    ggml_root = subprojects_dir_absolute / 'ggml'
     ggml_flags = [
       '-Wno-error=pointer-to-int-cast'
       ]
@@ -529,41 +556,23 @@ if get_option('enable-ggml')
       ggml_flags += '-Wno-error=maybe-uninitialized'
     endif
     ggml_options.append_compile_args('c', ggml_flags)
-  endif
-  ggml_options.add_cmake_defines({'BUILD_SHARED_LIBS': host_machine.system() != 'windows'})
-  ggml_options.add_cmake_defines({'GGML_BUILD_TESTS': false})
-  ggml_options.add_cmake_defines({'GGML_BUILD_EXAMPLES': false})
-  if get_option('platform') == 'android'
-    ggml_options.add_cmake_defines({'CMAKE_INSTALL_LIBDIR': nntrainer_libdir / 'arm64-v8a'})
-  endif
-
-  # we do not want it for clang on windows
-  if cxx_compiler_id == 'msvc'
-    if arch == 'x86_64'
-      if cc.has_argument('-march=x86-64-v2')
-        cpu_type = 'x86-64-v2'
-      elif cc.has_argument('-march=haswell')
-        cpu_type = 'haswell'
-      else
-        cpu_type = 'x86-64'
-      endif
-      
-      message('Auto-detected safe CPU tuning: ' + cpu_type)
-
-      ggml_options.append_compile_args('c', '-march=' + cpu_type)
-      ggml_options.append_compile_args('cpp', '-march=' + cpu_type)
+    ggml_options.add_cmake_defines({'BUILD_SHARED_LIBS': true})
+    ggml_options.add_cmake_defines({'GGML_BUILD_TESTS': false})
+    ggml_options.add_cmake_defines({'GGML_BUILD_EXAMPLES': false})
+    if get_option('platform') == 'android'
+      ggml_options.add_cmake_defines({'CMAKE_INSTALL_LIBDIR': nntrainer_libdir / 'arm64-v8a'})
     endif
+
+    ggml_proj = cmake.subproject('ggml', options: ggml_options, required: true)
+    ggml_dep = [
+      ggml_proj.dependency('ggml-base'),
+      ggml_proj.dependency('ggml-cpu'),
+      ggml_proj.dependency('ggml')]
+
+    if get_option('platform') == 'android'
+      message('preparing ggml for Android')
+      run_command([meson.source_root() / 'jni' / 'prepare_ggml.sh', ggml_root ], check: true)
   endif
-
-  ggml_proj = cmake.subproject('ggml', options: ggml_options, required: true)
-  ggml_dep = [
-    ggml_proj.dependency('ggml-base'),
-    ggml_proj.dependency('ggml-cpu'),
-    ggml_proj.dependency('ggml')]
-
-  if get_option('platform') == 'android'
-    message('preparing ggml for Android')
-    run_command([meson.source_root() / 'jni' / 'prepare_ggml.sh', ggml_root ], check: true)
   endif
 
   extra_defines += '-DENABLE_GGML=1'
@@ -571,37 +580,36 @@ endif
 
 # Configure the Ruy project (CMake)
 if get_option('platform') == 'android'
-  ruy_root = meson.source_root() / 'subprojects' / 'ruy'
+  ruy_root = subprojects_dir_absolute / 'ruy'
   ruy_dep = declare_dependency()
+elif get_option('platform') == 'windows'
+  ruy_dir_relative = subprojects_dir_relative / 'ruy'
+  ruy_include = include_directories(ruy_dir_relative)
+  ruy_dep = declare_dependency(include_directories: ruy_include)
 else
   ruy_options = cmake.subproject_options()
   ruy_options.add_cmake_defines({'RUY_MINIMAL_BUILD': true})
   ruy_options.add_cmake_defines({'CMAKE_POLICY_VERSION_MINIMUM': '3.5'})
 
-  if host_machine.system() == 'windows'
-    ruy_options.add_cmake_defines(common_win_subproject_cmake_defines)
-  endif
+  ruy_flags = [
+    '-Wno-error=unused-result',
+    '-Wno-error=comment',
+    '-Wno-error=unknown-pragmas',
+    '-Wno-error=unused-function'
+    ]
 
-  if cxx_compiler_id != 'msvc'
-    ruy_flags = [
-      '-Wno-error=unused-result',
-      '-Wno-error=comment',
-      '-Wno-error=unknown-pragmas',
-      '-Wno-error=unused-function'
-      ]
-
-    if cxx_compiler_id == 'clang'
-      ruy_flags += '-Wno-error=uninitialized'
-    else
-      ruy_flags += '-Wno-error=maybe-uninitialized'
-      ruy_flags += '-Wno-error=stringop-overread'
-      ruy_flags += '-Wno-error=array-parameter'
-    endif
-    
-    ruy_options.append_compile_args('c', '-Wno-implicit-function-declaration')
-    ruy_options.append_compile_args('c', ruy_flags)
-    ruy_options.append_compile_args('cpp', ruy_flags)
+  if cxx_compiler_id == 'clang'
+    ruy_flags += '-Wno-error=uninitialized'
+  else
+    ruy_flags += '-Wno-error=maybe-uninitialized'
+    ruy_flags += '-Wno-error=stringop-overread'
+    ruy_flags += '-Wno-error=array-parameter'
   endif
+  
+  ruy_options.append_compile_args('c', '-Wno-implicit-function-declaration')
+  ruy_options.append_compile_args('c', ruy_flags)
+  ruy_options.append_compile_args('cpp', ruy_flags)
+
   ruy_proj = cmake.subproject('ruy', options: ruy_options, required: true)
   ruy_dep = ruy_proj.dependency('ruy').partial_dependency(includes: true)
 endif
@@ -724,7 +732,7 @@ if get_option('enable-app')
   endif
 endif
 
-if get_option('platform') != 'android' and host_machine.system() != 'windows' and get_option('enable-nnstreamer-backbone')
+if get_option('platform') != 'android' and get_option('platform') != 'windows' and get_option('enable-nnstreamer-backbone')
   nnstreamer_dep = dependency('nnstreamer')
   message('building nnstreamer')
   subdir('nnstreamer')
