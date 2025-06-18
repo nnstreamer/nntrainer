@@ -36,6 +36,9 @@ nntrainer_base_deps=[
 
 if get_option('enable-opencl')
   nntrainer_base_deps += clblast_dep
+
+  nntrainer_inc_abs += meson.source_root() / 'nntrainer' / 'opencl' / 'OpenCL-Headers'
+  nntrainer_inc_abs += meson.source_root() / 'nntrainer' / 'opencl' / 'OpenCL-CLHPP' / 'include'
 endif
 
 if get_option('platform') == 'tizen'

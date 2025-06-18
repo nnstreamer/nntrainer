@@ -16,7 +16,7 @@
 
 #include <string>
 
-#include "CL/cl.h"
+#include <CL/opencl.hpp>
 
 namespace nntrainer::opencl {
 

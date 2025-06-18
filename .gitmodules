@@ -17,3 +17,9 @@
 [submodule "subprojects/OpenBLAS"]
 	path = subprojects/OpenBLAS
 	url = https://github.com/OpenMathLib/OpenBLAS.git
+[submodule "subprojects/OpenCL-Headers"]
+	path = nntrainer/opencl/OpenCL-Headers
+	url = https://github.com/KhronosGroup/OpenCL-Headers.git
+[submodule "subprojects/OpenCL-CLHPP"]
+	path = nntrainer/opencl/OpenCL-CLHPP
+	url = https://github.com/KhronosGroup/OpenCL-CLHPP.git
