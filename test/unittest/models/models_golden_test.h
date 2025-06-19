@@ -38,6 +38,7 @@ typedef enum {
   SAVE_AND_LOAD_INI = 1 << 2, /**< Set this to check if saving and constructing
                                  a new model works okay (without weights) */
   USE_V2 = 1 << 3,            /**< use v2 model format */
+  INFERENCE_ONLY = 1 << 4,    /**< inference test only */
   COMPARE = COMPARE_RUN | NO_THROW_RUN, /**< Set this to comp are the numbers */
 
   COMPARE_RUN_V2 = COMPARE_RUN | USE_V2,         /**< compare run v2 */
@@ -46,7 +47,9 @@ typedef enum {
   SAVE_AND_LOAD_V2 = SAVE_AND_LOAD_INI | USE_V2, /**< save and load with v2 */
 
   ALL = COMPARE | SAVE_AND_LOAD_INI, /**< Set every option */
-  ALL_V2 = ALL | USE_V2              /**< Set every option with v2 */
+  ALL_V2 = ALL | USE_V2,             /**< Set every option with v2 */
+  ALL_V2_WITH_INFERENCE =
+    ALL | USE_V2 | INFERENCE_ONLY /**< Set every inference option with v2 */
 } ModelTestOption;
 
 using ModelGoldenTestParamType =
