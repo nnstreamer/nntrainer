@@ -14,7 +14,6 @@
 #include <blas_kernel_strings.h>
 #include <blas_kernels.h>
 
-#define CL_EXT_SUFFIX__VERSION_2_0_DEPRECATED // to disable deprecation warnings
 #include "clblast.h"
 
 namespace nntrainer {

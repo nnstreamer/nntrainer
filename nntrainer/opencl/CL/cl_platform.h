@@ -1,133 +1,163 @@
-/**********************************************************************************
- * Copyright (c) 2008-2012 The Khronos Group Inc.
+/*******************************************************************************
+ * Copyright (c) 2008-2020 The Khronos Group Inc.
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and/or associated documentation files (the
- * "Materials"), to deal in the Materials without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Materials, and to
- * permit persons to whom the Materials are furnished to do so, subject to
- * the following conditions:
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * The above copyright notice and this permission notice shall be included
- * in all copies or substantial portions of the Materials.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- * THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
- **********************************************************************************/
-
-/* $Revision: 11803 $ on $Date: 2010-06-25 10:02:12 -0700 (Fri, 25 Jun 2010) $
- */
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ ******************************************************************************/
 
 #ifndef __CL_PLATFORM_H
 #define __CL_PLATFORM_H
 
-#ifdef __APPLE__
-/* Contains #defines for AVAILABLE_MAC_OS_X_VERSION_10_6_AND_LATER below */
-#include <AvailabilityMacros.h>
-#endif
+#include "cl_version.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #if defined(_WIN32)
+#if !defined(CL_API_ENTRY)
 #define CL_API_ENTRY
+#endif
+#if !defined(CL_API_CALL)
 #define CL_API_CALL __stdcall
+#endif
+#if !defined(CL_CALLBACK)
 #define CL_CALLBACK __stdcall
+#endif
 #else
+#if !defined(CL_API_ENTRY)
 #define CL_API_ENTRY
+#endif
+#if !defined(CL_API_CALL)
 #define CL_API_CALL
+#endif
+#if !defined(CL_CALLBACK)
 #define CL_CALLBACK
 #endif
-
-#ifdef __APPLE__
-#define CL_EXTENSION_WEAK_LINK __attribute__((weak_import))
-#define CL_API_SUFFIX__VERSION_1_0 AVAILABLE_MAC_OS_X_VERSION_10_6_AND_LATER
-#define CL_EXT_SUFFIX__VERSION_1_0 \
-  CL_EXTENSION_WEAK_LINK AVAILABLE_MAC_OS_X_VERSION_10_6_AND_LATER
-#define CL_API_SUFFIX__VERSION_1_1 AVAILABLE_MAC_OS_X_VERSION_10_7_AND_LATER
-#define GCL_API_SUFFIX__VERSION_1_1 AVAILABLE_MAC_OS_X_VERSION_10_7_AND_LATER
-#define CL_EXT_SUFFIX__VERSION_1_1 \
-  CL_EXTENSION_WEAK_LINK AVAILABLE_MAC_OS_X_VERSION_10_7_AND_LATER
-#define CL_EXT_SUFFIX__VERSION_1_0_DEPRECATED \
-  CL_EXTENSION_WEAK_LINK                      \
-  AVAILABLE_MAC_OS_X_VERSION_10_6_AND_LATER_BUT_DEPRECATED_IN_MAC_OS_X_VERSION_10_7
-
-#ifdef AVAILABLE_MAC_OS_X_VERSION_10_8_AND_LATER
-#define CL_API_SUFFIX__VERSION_1_2 AVAILABLE_MAC_OS_X_VERSION_10_8_AND_LATER
-#define GCL_API_SUFFIX__VERSION_1_2 AVAILABLE_MAC_OS_X_VERSION_10_8_AND_LATER
-#define CL_EXT_SUFFIX__VERSION_1_2 \
-  CL_EXTENSION_WEAK_LINK AVAILABLE_MAC_OS_X_VERSION_10_8_AND_LATER
-#define CL_EXT_PREFIX__VERSION_1_1_DEPRECATED
-#define CL_EXT_SUFFIX__VERSION_1_1_DEPRECATED \
-  CL_EXTENSION_WEAK_LINK                      \
-  AVAILABLE_MAC_OS_X_VERSION_10_7_AND_LATER_BUT_DEPRECATED_IN_MAC_OS_X_VERSION_10_8
-#else
-#warning  This path should never happen outside of internal operating system development.  AvailabilityMacros do not function correctly here!
-#define CL_API_SUFFIX__VERSION_1_2 AVAILABLE_MAC_OS_X_VERSION_10_7_AND_LATER
-#define GCL_API_SUFFIX__VERSION_1_2 AVAILABLE_MAC_OS_X_VERSION_10_7_AND_LATER
-#define CL_EXT_SUFFIX__VERSION_1_2 \
-  CL_EXTENSION_WEAK_LINK AVAILABLE_MAC_OS_X_VERSION_10_7_AND_LATER
-#define CL_EXT_SUFFIX__VERSION_1_1_DEPRECATED \
-  CL_EXTENSION_WEAK_LINK AVAILABLE_MAC_OS_X_VERSION_10_7_AND_LATER
 #endif
-#else
-#define CL_EXTENSION_WEAK_LINK
-#define CL_API_SUFFIX__VERSION_1_0
-#define CL_EXT_SUFFIX__VERSION_1_0
-#define CL_API_SUFFIX__VERSION_1_1
-#define CL_EXT_SUFFIX__VERSION_1_1
-#define CL_API_SUFFIX__VERSION_1_2
-#define CL_EXT_SUFFIX__VERSION_1_2
+
+/*
+ * Deprecation flags refer to the last version of the header in which the
+ * feature was not deprecated.
+ *
+ * E.g. VERSION_1_1_DEPRECATED means the feature is present in 1.1 without
+ * deprecation but is deprecated in versions later than 1.1.
+ */
+
+#ifndef CL_API_SUFFIX_USER
+#define CL_API_SUFFIX_USER
+#endif
+
+#ifndef CL_API_PREFIX_USER
+#define CL_API_PREFIX_USER
+#endif
+
+#define CL_API_SUFFIX_COMMON CL_API_SUFFIX_USER
+#define CL_API_PREFIX_COMMON CL_API_PREFIX_USER
+
+#define CL_API_SUFFIX__VERSION_1_0 CL_API_SUFFIX_COMMON
+#define CL_API_SUFFIX__VERSION_1_1 CL_API_SUFFIX_COMMON
+#define CL_API_SUFFIX__VERSION_1_2 CL_API_SUFFIX_COMMON
+#define CL_API_SUFFIX__VERSION_2_0 CL_API_SUFFIX_COMMON
+#define CL_API_SUFFIX__VERSION_2_1 CL_API_SUFFIX_COMMON
+#define CL_API_SUFFIX__VERSION_2_2 CL_API_SUFFIX_COMMON
+#define CL_API_SUFFIX__VERSION_3_0 CL_API_SUFFIX_COMMON
+#define CL_API_SUFFIX__EXPERIMENTAL CL_API_SUFFIX_COMMON
 
 #ifdef __GNUC__
-#ifdef CL_USE_DEPRECATED_OPENCL_1_0_APIS
-#define CL_EXT_SUFFIX__VERSION_1_0_DEPRECATED
-#define CL_EXT_PREFIX__VERSION_1_0_DEPRECATED
+#define CL_API_SUFFIX_DEPRECATED __attribute__((deprecated))
+#define CL_API_PREFIX_DEPRECATED
+#elif defined(_MSC_VER) && !defined(__clang__)
+#define CL_API_SUFFIX_DEPRECATED
+#define CL_API_PREFIX_DEPRECATED __declspec(deprecated)
 #else
-#define CL_EXT_SUFFIX__VERSION_1_0_DEPRECATED __attribute__((deprecated))
-#define CL_EXT_PREFIX__VERSION_1_0_DEPRECATED
+#define CL_API_SUFFIX_DEPRECATED
+#define CL_API_PREFIX_DEPRECATED
+#endif
+
+#ifdef CL_USE_DEPRECATED_OPENCL_1_0_APIS
+#define CL_API_SUFFIX__VERSION_1_0_DEPRECATED CL_API_SUFFIX_COMMON
+#define CL_API_PREFIX__VERSION_1_0_DEPRECATED CL_API_PREFIX_COMMON
+#else
+#define CL_API_SUFFIX__VERSION_1_0_DEPRECATED                                  \
+  CL_API_SUFFIX_COMMON CL_API_SUFFIX_DEPRECATED
+#define CL_API_PREFIX__VERSION_1_0_DEPRECATED                                  \
+  CL_API_PREFIX_COMMON CL_API_PREFIX_DEPRECATED
 #endif
 
 #ifdef CL_USE_DEPRECATED_OPENCL_1_1_APIS
-#define CL_EXT_SUFFIX__VERSION_1_1_DEPRECATED
-#define CL_EXT_PREFIX__VERSION_1_1_DEPRECATED
+#define CL_API_SUFFIX__VERSION_1_1_DEPRECATED CL_API_SUFFIX_COMMON
+#define CL_API_PREFIX__VERSION_1_1_DEPRECATED CL_API_PREFIX_COMMON
 #else
-#define CL_EXT_SUFFIX__VERSION_1_1_DEPRECATED __attribute__((deprecated))
-#define CL_EXT_PREFIX__VERSION_1_1_DEPRECATED
-#endif
-#elif defined(_WIN32)
-#ifdef CL_USE_DEPRECATED_OPENCL_1_0_APIS
-#define CL_EXT_SUFFIX__VERSION_1_0_DEPRECATED
-#define CL_EXT_PREFIX__VERSION_1_0_DEPRECATED
-#else
-#define CL_EXT_SUFFIX__VERSION_1_0_DEPRECATED
-#define CL_EXT_PREFIX__VERSION_1_0_DEPRECATED __declspec(deprecated)
+#define CL_API_SUFFIX__VERSION_1_1_DEPRECATED                                  \
+  CL_API_SUFFIX_COMMON CL_API_SUFFIX_DEPRECATED
+#define CL_API_PREFIX__VERSION_1_1_DEPRECATED                                  \
+  CL_API_PREFIX_COMMON CL_API_PREFIX_DEPRECATED
 #endif
 
-#ifdef CL_USE_DEPRECATED_OPENCL_1_1_APIS
-#define CL_EXT_SUFFIX__VERSION_1_1_DEPRECATED
-#define CL_EXT_PREFIX__VERSION_1_1_DEPRECATED
+#ifdef CL_USE_DEPRECATED_OPENCL_1_2_APIS
+#define CL_API_SUFFIX__VERSION_1_2_DEPRECATED CL_API_SUFFIX_COMMON
+#define CL_API_PREFIX__VERSION_1_2_DEPRECATED CL_API_PREFIX_COMMON
 #else
-#define CL_EXT_SUFFIX__VERSION_1_1_DEPRECATED
-#define CL_EXT_PREFIX__VERSION_1_1_DEPRECATED __declspec(deprecated)
+#define CL_API_SUFFIX__VERSION_1_2_DEPRECATED                                  \
+  CL_API_SUFFIX_COMMON CL_API_SUFFIX_DEPRECATED
+#define CL_API_PREFIX__VERSION_1_2_DEPRECATED                                  \
+  CL_API_PREFIX_COMMON CL_API_PREFIX_DEPRECATED
 #endif
-#else
-#define CL_EXT_SUFFIX__VERSION_1_0_DEPRECATED
-#define CL_EXT_PREFIX__VERSION_1_0_DEPRECATED
 
-#define CL_EXT_SUFFIX__VERSION_1_1_DEPRECATED
-#define CL_EXT_PREFIX__VERSION_1_1_DEPRECATED
+#ifdef CL_USE_DEPRECATED_OPENCL_2_0_APIS
+#define CL_API_SUFFIX__VERSION_2_0_DEPRECATED CL_API_SUFFIX_COMMON
+#define CL_API_PREFIX__VERSION_2_0_DEPRECATED CL_API_PREFIX_COMMON
+#else
+#define CL_API_SUFFIX__VERSION_2_0_DEPRECATED                                  \
+  CL_API_SUFFIX_COMMON CL_API_SUFFIX_DEPRECATED
+#define CL_API_PREFIX__VERSION_2_0_DEPRECATED                                  \
+  CL_API_PREFIX_COMMON CL_API_PREFIX_DEPRECATED
 #endif
+
+#ifdef CL_USE_DEPRECATED_OPENCL_2_1_APIS
+#define CL_API_SUFFIX__VERSION_2_1_DEPRECATED CL_API_SUFFIX_COMMON
+#define CL_API_PREFIX__VERSION_2_1_DEPRECATED CL_API_PREFIX_COMMON
+#else
+#define CL_API_SUFFIX__VERSION_2_1_DEPRECATED                                  \
+  CL_API_SUFFIX_COMMON CL_API_SUFFIX_DEPRECATED
+#define CL_API_PREFIX__VERSION_2_1_DEPRECATED                                  \
+  CL_API_PREFIX_COMMON CL_API_PREFIX_DEPRECATED
+#endif
+
+#ifdef CL_USE_DEPRECATED_OPENCL_2_2_APIS
+#define CL_API_SUFFIX__VERSION_2_2_DEPRECATED CL_API_SUFFIX_COMMON
+#define CL_API_PREFIX__VERSION_2_2_DEPRECATED CL_API_PREFIX_COMMON
+#else
+#define CL_API_SUFFIX__VERSION_2_2_DEPRECATED                                  \
+  CL_API_SUFFIX_COMMON CL_API_SUFFIX_DEPRECATED
+#define CL_API_PREFIX__VERSION_2_2_DEPRECATED                                  \
+  CL_API_PREFIX_COMMON CL_API_PREFIX_DEPRECATED
 #endif
 
 #if (defined(_WIN32) && defined(_MSC_VER))
+
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wlanguage-extension-token"
+#endif
+
+/* intptr_t is used in cl.h and provided by stddef.h in Visual C++, but not in
+ * clang */
+/* stdint.h was missing before Visual Studio 2010, include it for later versions
+ * and for clang */
+#if defined(__clang__) || _MSC_VER >= 1600
+#include <stdint.h>
+#endif
 
 /* scalar types  */
 typedef signed __int8 cl_char;
@@ -140,6 +170,112 @@ typedef signed __int64 cl_long;
 typedef unsigned __int64 cl_ulong;
 
 typedef unsigned __int16 cl_half;
+typedef float cl_float;
+typedef double cl_double;
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
+
+/* Macro names and corresponding values defined by OpenCL */
+#define CL_CHAR_BIT 8
+#define CL_SCHAR_MAX 127
+#define CL_SCHAR_MIN (-127 - 1)
+#define CL_CHAR_MAX CL_SCHAR_MAX
+#define CL_CHAR_MIN CL_SCHAR_MIN
+#define CL_UCHAR_MAX 255
+#define CL_SHRT_MAX 32767
+#define CL_SHRT_MIN (-32767 - 1)
+#define CL_USHRT_MAX 65535
+#define CL_INT_MAX 2147483647
+#define CL_INT_MIN (-2147483647 - 1)
+#define CL_UINT_MAX 0xffffffffU
+#define CL_LONG_MAX ((cl_long)0x7FFFFFFFFFFFFFFFLL)
+#define CL_LONG_MIN ((cl_long)-0x7FFFFFFFFFFFFFFFLL - 1LL)
+#define CL_ULONG_MAX ((cl_ulong)0xFFFFFFFFFFFFFFFFULL)
+
+#define CL_FLT_DIG 6
+#define CL_FLT_MANT_DIG 24
+#define CL_FLT_MAX_10_EXP +38
+#define CL_FLT_MAX_EXP +128
+#define CL_FLT_MIN_10_EXP -37
+#define CL_FLT_MIN_EXP -125
+#define CL_FLT_RADIX 2
+#define CL_FLT_MAX 340282346638528859811704183484516925440.0f
+#define CL_FLT_MIN 1.175494350822287507969e-38f
+#define CL_FLT_EPSILON 1.1920928955078125e-7f
+
+#define CL_HALF_DIG 3
+#define CL_HALF_MANT_DIG 11
+#define CL_HALF_MAX_10_EXP +4
+#define CL_HALF_MAX_EXP +16
+#define CL_HALF_MIN_10_EXP -4
+#define CL_HALF_MIN_EXP -13
+#define CL_HALF_RADIX 2
+#define CL_HALF_MAX 65504.0f
+#define CL_HALF_MIN 6.103515625e-05f
+#define CL_HALF_EPSILON 9.765625e-04f
+
+#define CL_DBL_DIG 15
+#define CL_DBL_MANT_DIG 53
+#define CL_DBL_MAX_10_EXP +308
+#define CL_DBL_MAX_EXP +1024
+#define CL_DBL_MIN_10_EXP -307
+#define CL_DBL_MIN_EXP -1021
+#define CL_DBL_RADIX 2
+#define CL_DBL_MAX 1.7976931348623158e+308
+#define CL_DBL_MIN 2.225073858507201383090e-308
+#define CL_DBL_EPSILON 2.220446049250313080847e-16
+
+#define CL_M_E 2.7182818284590452354
+#define CL_M_LOG2E 1.4426950408889634074
+#define CL_M_LOG10E 0.43429448190325182765
+#define CL_M_LN2 0.69314718055994530942
+#define CL_M_LN10 2.30258509299404568402
+#define CL_M_PI 3.14159265358979323846
+#define CL_M_PI_2 1.57079632679489661923
+#define CL_M_PI_4 0.78539816339744830962
+#define CL_M_1_PI 0.31830988618379067154
+#define CL_M_2_PI 0.63661977236758134308
+#define CL_M_2_SQRTPI 1.12837916709551257390
+#define CL_M_SQRT2 1.41421356237309504880
+#define CL_M_SQRT1_2 0.70710678118654752440
+
+#define CL_M_E_F 2.718281828f
+#define CL_M_LOG2E_F 1.442695041f
+#define CL_M_LOG10E_F 0.434294482f
+#define CL_M_LN2_F 0.693147181f
+#define CL_M_LN10_F 2.302585093f
+#define CL_M_PI_F 3.141592654f
+#define CL_M_PI_2_F 1.570796327f
+#define CL_M_PI_4_F 0.785398163f
+#define CL_M_1_PI_F 0.318309886f
+#define CL_M_2_PI_F 0.636619772f
+#define CL_M_2_SQRTPI_F 1.128379167f
+#define CL_M_SQRT2_F 1.414213562f
+#define CL_M_SQRT1_2_F 0.707106781f
+
+#define CL_NAN (CL_INFINITY - CL_INFINITY)
+#define CL_HUGE_VALF ((cl_float)1e50)
+#define CL_HUGE_VAL ((cl_double)1e500)
+#define CL_MAXFLOAT CL_FLT_MAX
+#define CL_INFINITY CL_HUGE_VALF
+
+#else
+
+#include <stdint.h>
+
+/* scalar types  */
+typedef int8_t cl_char;
+typedef uint8_t cl_uchar;
+typedef int16_t cl_short;
+typedef uint16_t cl_ushort;
+typedef int32_t cl_int;
+typedef uint32_t cl_uint;
+typedef int64_t cl_long;
+typedef uint64_t cl_ulong;
+
+typedef uint16_t cl_half;
 typedef float cl_float;
 typedef double cl_double;
 
@@ -169,7 +305,18 @@ typedef double cl_double;
 #define CL_FLT_RADIX 2
 #define CL_FLT_MAX 340282346638528859811704183484516925440.0f
 #define CL_FLT_MIN 1.175494350822287507969e-38f
-#define CL_FLT_EPSILON 0x1.0p-23f
+#define CL_FLT_EPSILON 1.1920928955078125e-7f
+
+#define CL_HALF_DIG 3
+#define CL_HALF_MANT_DIG 11
+#define CL_HALF_MAX_10_EXP +4
+#define CL_HALF_MAX_EXP +16
+#define CL_HALF_MIN_10_EXP -4
+#define CL_HALF_MIN_EXP -13
+#define CL_HALF_RADIX 2
+#define CL_HALF_MAX 65504.0f
+#define CL_HALF_MIN 6.103515625e-05f
+#define CL_HALF_EPSILON 9.765625e-04f
 
 #define CL_DBL_DIG 15
 #define CL_DBL_MANT_DIG 53
@@ -178,129 +325,38 @@ typedef double cl_double;
 #define CL_DBL_MIN_10_EXP -307
 #define CL_DBL_MIN_EXP -1021
 #define CL_DBL_RADIX 2
-#define CL_DBL_MAX \
+#define CL_DBL_MAX                                                             \
   179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368.0
 #define CL_DBL_MIN 2.225073858507201383090e-308
 #define CL_DBL_EPSILON 2.220446049250313080847e-16
 
-#define CL_M_E 2.718281828459045090796
-#define CL_M_LOG2E 1.442695040888963387005
-#define CL_M_LOG10E 0.434294481903251816668
-#define CL_M_LN2 0.693147180559945286227
-#define CL_M_LN10 2.302585092994045901094
-#define CL_M_PI 3.141592653589793115998
-#define CL_M_PI_2 1.570796326794896557999
-#define CL_M_PI_4 0.785398163397448278999
-#define CL_M_1_PI 0.318309886183790691216
-#define CL_M_2_PI 0.636619772367581382433
-#define CL_M_2_SQRTPI 1.128379167095512558561
-#define CL_M_SQRT2 1.414213562373095145475
-#define CL_M_SQRT1_2 0.707106781186547572737
+#define CL_M_E 2.7182818284590452354
+#define CL_M_LOG2E 1.4426950408889634074
+#define CL_M_LOG10E 0.43429448190325182765
+#define CL_M_LN2 0.69314718055994530942
+#define CL_M_LN10 2.30258509299404568402
+#define CL_M_PI 3.14159265358979323846
+#define CL_M_PI_2 1.57079632679489661923
+#define CL_M_PI_4 0.78539816339744830962
+#define CL_M_1_PI 0.31830988618379067154
+#define CL_M_2_PI 0.63661977236758134308
+#define CL_M_2_SQRTPI 1.12837916709551257390
+#define CL_M_SQRT2 1.41421356237309504880
+#define CL_M_SQRT1_2 0.70710678118654752440
 
-#define CL_M_E_F 2.71828174591064f
-#define CL_M_LOG2E_F 1.44269502162933f
-#define CL_M_LOG10E_F 0.43429449200630f
-#define CL_M_LN2_F 0.69314718246460f
-#define CL_M_LN10_F 2.30258512496948f
-#define CL_M_PI_F 3.14159274101257f
-#define CL_M_PI_2_F 1.57079637050629f
-#define CL_M_PI_4_F 0.78539818525314f
-#define CL_M_1_PI_F 0.31830987334251f
-#define CL_M_2_PI_F 0.63661974668503f
-#define CL_M_2_SQRTPI_F 1.12837922573090f
-#define CL_M_SQRT2_F 1.41421353816986f
-#define CL_M_SQRT1_2_F 0.70710676908493f
-
-#define CL_NAN (CL_INFINITY - CL_INFINITY)
-#define CL_HUGE_VALF ((cl_float)1e50)
-#define CL_HUGE_VAL ((cl_double)1e500)
-#define CL_MAXFLOAT CL_FLT_MAX
-#define CL_INFINITY CL_HUGE_VALF
-
-#else
-
-#include <stdint.h>
-
-/* scalar types  */
-typedef int8_t cl_char;
-typedef uint8_t cl_uchar;
-typedef int16_t cl_short __attribute__((aligned(2)));
-typedef uint16_t cl_ushort __attribute__((aligned(2)));
-typedef int32_t cl_int __attribute__((aligned(4)));
-typedef uint32_t cl_uint __attribute__((aligned(4)));
-typedef int64_t cl_long __attribute__((aligned(8)));
-typedef uint64_t cl_ulong __attribute__((aligned(8)));
-
-typedef uint16_t cl_half __attribute__((aligned(2)));
-typedef float cl_float __attribute__((aligned(4)));
-typedef double cl_double __attribute__((aligned(8)));
-
-/* Macro names and corresponding values defined by OpenCL */
-#define CL_CHAR_BIT 8
-#define CL_SCHAR_MAX 127
-#define CL_SCHAR_MIN (-127 - 1)
-#define CL_CHAR_MAX CL_SCHAR_MAX
-#define CL_CHAR_MIN CL_SCHAR_MIN
-#define CL_UCHAR_MAX 255
-#define CL_SHRT_MAX 32767
-#define CL_SHRT_MIN (-32767 - 1)
-#define CL_USHRT_MAX 65535
-#define CL_INT_MAX 2147483647
-#define CL_INT_MIN (-2147483647 - 1)
-#define CL_UINT_MAX 0xffffffffU
-#define CL_LONG_MAX ((cl_long)0x7FFFFFFFFFFFFFFFLL)
-#define CL_LONG_MIN ((cl_long)-0x7FFFFFFFFFFFFFFFLL - 1LL)
-#define CL_ULONG_MAX ((cl_ulong)0xFFFFFFFFFFFFFFFFULL)
-
-#define CL_FLT_DIG 6
-#define CL_FLT_MANT_DIG 24
-#define CL_FLT_MAX_10_EXP +38
-#define CL_FLT_MAX_EXP +128
-#define CL_FLT_MIN_10_EXP -37
-#define CL_FLT_MIN_EXP -125
-#define CL_FLT_RADIX 2
-#define CL_FLT_MAX 0x1.fffffep127f
-#define CL_FLT_MIN 0x1.0p-126f
-#define CL_FLT_EPSILON 0x1.0p-23f
-
-#define CL_DBL_DIG 15
-#define CL_DBL_MANT_DIG 53
-#define CL_DBL_MAX_10_EXP +308
-#define CL_DBL_MAX_EXP +1024
-#define CL_DBL_MIN_10_EXP -307
-#define CL_DBL_MIN_EXP -1021
-#define CL_DBL_RADIX 2
-#define CL_DBL_MAX 0x1.fffffffffffffp1023
-#define CL_DBL_MIN 0x1.0p-1022
-#define CL_DBL_EPSILON 0x1.0p-52
-
-#define CL_M_E 2.718281828459045090796
-#define CL_M_LOG2E 1.442695040888963387005
-#define CL_M_LOG10E 0.434294481903251816668
-#define CL_M_LN2 0.693147180559945286227
-#define CL_M_LN10 2.302585092994045901094
-#define CL_M_PI 3.141592653589793115998
-#define CL_M_PI_2 1.570796326794896557999
-#define CL_M_PI_4 0.785398163397448278999
-#define CL_M_1_PI 0.318309886183790691216
-#define CL_M_2_PI 0.636619772367581382433
-#define CL_M_2_SQRTPI 1.128379167095512558561
-#define CL_M_SQRT2 1.414213562373095145475
-#define CL_M_SQRT1_2 0.707106781186547572737
-
-#define CL_M_E_F 2.71828174591064f
-#define CL_M_LOG2E_F 1.44269502162933f
-#define CL_M_LOG10E_F 0.43429449200630f
-#define CL_M_LN2_F 0.69314718246460f
-#define CL_M_LN10_F 2.30258512496948f
-#define CL_M_PI_F 3.14159274101257f
-#define CL_M_PI_2_F 1.57079637050629f
-#define CL_M_PI_4_F 0.78539818525314f
-#define CL_M_1_PI_F 0.31830987334251f
-#define CL_M_2_PI_F 0.63661974668503f
-#define CL_M_2_SQRTPI_F 1.12837922573090f
-#define CL_M_SQRT2_F 1.41421353816986f
-#define CL_M_SQRT1_2_F 0.70710676908493f
+#define CL_M_E_F 2.718281828f
+#define CL_M_LOG2E_F 1.442695041f
+#define CL_M_LOG10E_F 0.434294482f
+#define CL_M_LN2_F 0.693147181f
+#define CL_M_LN10_F 2.302585093f
+#define CL_M_PI_F 3.141592654f
+#define CL_M_PI_2_F 1.570796327f
+#define CL_M_PI_4_F 0.785398163f
+#define CL_M_1_PI_F 0.318309886f
+#define CL_M_2_PI_F 0.636619772f
+#define CL_M_2_SQRTPI_F 1.128379167f
+#define CL_M_SQRT2_F 1.414213562f
+#define CL_M_SQRT1_2_F 0.707106781f
 
 #if defined(__GNUC__)
 #define CL_HUGE_VALF __builtin_huge_valf()
@@ -318,12 +374,6 @@ float nanf(const char *);
 #endif
 
 #include <stddef.h>
-
-/* Mirror types to GL types. Mirror types allow us to avoid deciding which 87s
- * to load based on whether we are using GL or GLES here. */
-typedef unsigned int cl_GLuint;
-typedef int cl_GLint;
-typedef unsigned int cl_GLenum;
 
 /*
  * Vector types
@@ -343,7 +393,9 @@ typedef unsigned int cl_GLenum;
 
 /* Define basic vector types */
 #if defined(__VEC__)
+#if !defined(__clang__)
 #include <altivec.h> /* may be omitted depending on compiler. AltiVec spec provides no way to detect whether the header is required. */
+#endif
 typedef __vector unsigned char __cl_uchar16;
 typedef __vector signed char __cl_char16;
 typedef __vector unsigned short __cl_ushort8;
@@ -463,10 +515,35 @@ typedef __m256d __cl_double4;
 #define __CL_DOUBLE4__ 1
 #endif
 
+/* Define capabilities for anonymous struct members. */
+#if !defined(__cplusplus) && defined(__STDC_VERSION__) &&                      \
+  __STDC_VERSION__ >= 201112L
+#define __CL_HAS_ANON_STRUCT__ 1
+#define __CL_ANON_STRUCT__
+#elif defined(_WIN32) && defined(_MSC_VER) && !defined(__STDC__)
+#define __CL_HAS_ANON_STRUCT__ 1
+#define __CL_ANON_STRUCT__
+#elif defined(__GNUC__) && !defined(__STRICT_ANSI__)
+#define __CL_HAS_ANON_STRUCT__ 1
+#define __CL_ANON_STRUCT__ __extension__
+#elif defined(__clang__)
+#define __CL_HAS_ANON_STRUCT__ 1
+#define __CL_ANON_STRUCT__ __extension__
+#else
+#define __CL_HAS_ANON_STRUCT__ 0
+#define __CL_ANON_STRUCT__
+#endif
+
+#if defined(_WIN32) && defined(_MSC_VER) && __CL_HAS_ANON_STRUCT__
+/* Disable warning C4201: nonstandard extension used : nameless struct/union */
+#pragma warning(push)
+#pragma warning(disable : 4201)
+#endif
+
 /* Define alignment keys */
-#if defined(__GNUC__)
+#if defined(__GNUC__) || defined(__INTEGRITY)
 #define CL_ALIGNED(_x) __attribute__((aligned(_x)))
-#elif defined(_WIN32) && defined(_MSC_VER)
+#elif defined(_WIN32) && (_MSC_VER)
 /* Alignment keys neutered on windows because MSVC can't swallow function
  * arguments with alignment requirements     */
 /* http://msdn.microsoft.com/en-us/library/373ak2y1%28VS.71%29.aspx */
@@ -479,7 +556,7 @@ typedef __m256d __cl_double4;
 #endif
 
 /* Indicate whether .xyzw, .s0123 and .hi.lo are supported */
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
+#if __CL_HAS_ANON_STRUCT__
 /* .xyzw and .s0123...{f|F} are supported */
 #define CL_HAS_NAMED_VECTOR_FIELDS 1
 /* .hi and .lo are supported */
@@ -491,16 +568,10 @@ typedef __m256d __cl_double4;
 /* ---- cl_charn ---- */
 typedef union {
   cl_char CL_ALIGNED(2) s[2];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_char x, y;
-  };
-  __extension__ struct {
-    cl_char s0, s1;
-  };
-  __extension__ struct {
-    cl_char lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_char x, y; };
+  __CL_ANON_STRUCT__ struct { cl_char s0, s1; };
+  __CL_ANON_STRUCT__ struct { cl_char lo, hi; };
 #endif
 #if defined(__CL_CHAR2__)
   __cl_char2 v2;
@@ -509,16 +580,10 @@ typedef union {
 
 typedef union {
   cl_char CL_ALIGNED(4) s[4];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_char x, y, z, w;
-  };
-  __extension__ struct {
-    cl_char s0, s1, s2, s3;
-  };
-  __extension__ struct {
-    cl_char2 lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_char x, y, z, w; };
+  __CL_ANON_STRUCT__ struct { cl_char s0, s1, s2, s3; };
+  __CL_ANON_STRUCT__ struct { cl_char2 lo, hi; };
 #endif
 #if defined(__CL_CHAR2__)
   __cl_char2 v2[2];
@@ -534,16 +599,10 @@ typedef cl_char4 cl_char3;
 
 typedef union {
   cl_char CL_ALIGNED(8) s[8];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_char x, y, z, w;
-  };
-  __extension__ struct {
-    cl_char s0, s1, s2, s3, s4, s5, s6, s7;
-  };
-  __extension__ struct {
-    cl_char4 lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_char x, y, z, w; };
+  __CL_ANON_STRUCT__ struct { cl_char s0, s1, s2, s3, s4, s5, s6, s7; };
+  __CL_ANON_STRUCT__ struct { cl_char4 lo, hi; };
 #endif
 #if defined(__CL_CHAR2__)
   __cl_char2 v2[4];
@@ -558,17 +617,15 @@ typedef union {
 
 typedef union {
   cl_char CL_ALIGNED(16) s[16];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct {
     cl_char x, y, z, w, __spacer4, __spacer5, __spacer6, __spacer7, __spacer8,
       __spacer9, sa, sb, sc, sd, se, sf;
   };
-  __extension__ struct {
+  __CL_ANON_STRUCT__ struct {
     cl_char s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, sA, sB, sC, sD, sE, sF;
   };
-  __extension__ struct {
-    cl_char8 lo, hi;
-  };
+  __CL_ANON_STRUCT__ struct { cl_char8 lo, hi; };
 #endif
 #if defined(__CL_CHAR2__)
   __cl_char2 v2[8];
@@ -587,16 +644,10 @@ typedef union {
 /* ---- cl_ucharn ---- */
 typedef union {
   cl_uchar CL_ALIGNED(2) s[2];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_uchar x, y;
-  };
-  __extension__ struct {
-    cl_uchar s0, s1;
-  };
-  __extension__ struct {
-    cl_uchar lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_uchar x, y; };
+  __CL_ANON_STRUCT__ struct { cl_uchar s0, s1; };
+  __CL_ANON_STRUCT__ struct { cl_uchar lo, hi; };
 #endif
 #if defined(__cl_uchar2__)
   __cl_uchar2 v2;
@@ -605,16 +656,10 @@ typedef union {
 
 typedef union {
   cl_uchar CL_ALIGNED(4) s[4];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_uchar x, y, z, w;
-  };
-  __extension__ struct {
-    cl_uchar s0, s1, s2, s3;
-  };
-  __extension__ struct {
-    cl_uchar2 lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_uchar x, y, z, w; };
+  __CL_ANON_STRUCT__ struct { cl_uchar s0, s1, s2, s3; };
+  __CL_ANON_STRUCT__ struct { cl_uchar2 lo, hi; };
 #endif
 #if defined(__CL_UCHAR2__)
   __cl_uchar2 v2[2];
@@ -630,16 +675,10 @@ typedef cl_uchar4 cl_uchar3;
 
 typedef union {
   cl_uchar CL_ALIGNED(8) s[8];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_uchar x, y, z, w;
-  };
-  __extension__ struct {
-    cl_uchar s0, s1, s2, s3, s4, s5, s6, s7;
-  };
-  __extension__ struct {
-    cl_uchar4 lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_uchar x, y, z, w; };
+  __CL_ANON_STRUCT__ struct { cl_uchar s0, s1, s2, s3, s4, s5, s6, s7; };
+  __CL_ANON_STRUCT__ struct { cl_uchar4 lo, hi; };
 #endif
 #if defined(__CL_UCHAR2__)
   __cl_uchar2 v2[4];
@@ -654,17 +693,15 @@ typedef union {
 
 typedef union {
   cl_uchar CL_ALIGNED(16) s[16];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct {
     cl_uchar x, y, z, w, __spacer4, __spacer5, __spacer6, __spacer7, __spacer8,
       __spacer9, sa, sb, sc, sd, se, sf;
   };
-  __extension__ struct {
+  __CL_ANON_STRUCT__ struct {
     cl_uchar s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, sA, sB, sC, sD, sE, sF;
   };
-  __extension__ struct {
-    cl_uchar8 lo, hi;
-  };
+  __CL_ANON_STRUCT__ struct { cl_uchar8 lo, hi; };
 #endif
 #if defined(__CL_UCHAR2__)
   __cl_uchar2 v2[8];
@@ -683,16 +720,10 @@ typedef union {
 /* ---- cl_shortn ---- */
 typedef union {
   cl_short CL_ALIGNED(4) s[2];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_short x, y;
-  };
-  __extension__ struct {
-    cl_short s0, s1;
-  };
-  __extension__ struct {
-    cl_short lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_short x, y; };
+  __CL_ANON_STRUCT__ struct { cl_short s0, s1; };
+  __CL_ANON_STRUCT__ struct { cl_short lo, hi; };
 #endif
 #if defined(__CL_SHORT2__)
   __cl_short2 v2;
@@ -701,16 +732,10 @@ typedef union {
 
 typedef union {
   cl_short CL_ALIGNED(8) s[4];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_short x, y, z, w;
-  };
-  __extension__ struct {
-    cl_short s0, s1, s2, s3;
-  };
-  __extension__ struct {
-    cl_short2 lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_short x, y, z, w; };
+  __CL_ANON_STRUCT__ struct { cl_short s0, s1, s2, s3; };
+  __CL_ANON_STRUCT__ struct { cl_short2 lo, hi; };
 #endif
 #if defined(__CL_SHORT2__)
   __cl_short2 v2[2];
@@ -726,16 +751,10 @@ typedef cl_short4 cl_short3;
 
 typedef union {
   cl_short CL_ALIGNED(16) s[8];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_short x, y, z, w;
-  };
-  __extension__ struct {
-    cl_short s0, s1, s2, s3, s4, s5, s6, s7;
-  };
-  __extension__ struct {
-    cl_short4 lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_short x, y, z, w; };
+  __CL_ANON_STRUCT__ struct { cl_short s0, s1, s2, s3, s4, s5, s6, s7; };
+  __CL_ANON_STRUCT__ struct { cl_short4 lo, hi; };
 #endif
 #if defined(__CL_SHORT2__)
   __cl_short2 v2[4];
@@ -750,17 +769,15 @@ typedef union {
 
 typedef union {
   cl_short CL_ALIGNED(32) s[16];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct {
     cl_short x, y, z, w, __spacer4, __spacer5, __spacer6, __spacer7, __spacer8,
       __spacer9, sa, sb, sc, sd, se, sf;
   };
-  __extension__ struct {
+  __CL_ANON_STRUCT__ struct {
     cl_short s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, sA, sB, sC, sD, sE, sF;
   };
-  __extension__ struct {
-    cl_short8 lo, hi;
-  };
+  __CL_ANON_STRUCT__ struct { cl_short8 lo, hi; };
 #endif
 #if defined(__CL_SHORT2__)
   __cl_short2 v2[8];
@@ -779,16 +796,10 @@ typedef union {
 /* ---- cl_ushortn ---- */
 typedef union {
   cl_ushort CL_ALIGNED(4) s[2];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_ushort x, y;
-  };
-  __extension__ struct {
-    cl_ushort s0, s1;
-  };
-  __extension__ struct {
-    cl_ushort lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_ushort x, y; };
+  __CL_ANON_STRUCT__ struct { cl_ushort s0, s1; };
+  __CL_ANON_STRUCT__ struct { cl_ushort lo, hi; };
 #endif
 #if defined(__CL_USHORT2__)
   __cl_ushort2 v2;
@@ -797,16 +808,10 @@ typedef union {
 
 typedef union {
   cl_ushort CL_ALIGNED(8) s[4];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_ushort x, y, z, w;
-  };
-  __extension__ struct {
-    cl_ushort s0, s1, s2, s3;
-  };
-  __extension__ struct {
-    cl_ushort2 lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_ushort x, y, z, w; };
+  __CL_ANON_STRUCT__ struct { cl_ushort s0, s1, s2, s3; };
+  __CL_ANON_STRUCT__ struct { cl_ushort2 lo, hi; };
 #endif
 #if defined(__CL_USHORT2__)
   __cl_ushort2 v2[2];
@@ -822,16 +827,10 @@ typedef cl_ushort4 cl_ushort3;
 
 typedef union {
   cl_ushort CL_ALIGNED(16) s[8];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_ushort x, y, z, w;
-  };
-  __extension__ struct {
-    cl_ushort s0, s1, s2, s3, s4, s5, s6, s7;
-  };
-  __extension__ struct {
-    cl_ushort4 lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_ushort x, y, z, w; };
+  __CL_ANON_STRUCT__ struct { cl_ushort s0, s1, s2, s3, s4, s5, s6, s7; };
+  __CL_ANON_STRUCT__ struct { cl_ushort4 lo, hi; };
 #endif
 #if defined(__CL_USHORT2__)
   __cl_ushort2 v2[4];
@@ -846,17 +845,15 @@ typedef union {
 
 typedef union {
   cl_ushort CL_ALIGNED(32) s[16];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct {
     cl_ushort x, y, z, w, __spacer4, __spacer5, __spacer6, __spacer7, __spacer8,
       __spacer9, sa, sb, sc, sd, se, sf;
   };
-  __extension__ struct {
+  __CL_ANON_STRUCT__ struct {
     cl_ushort s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, sA, sB, sC, sD, sE, sF;
   };
-  __extension__ struct {
-    cl_ushort8 lo, hi;
-  };
+  __CL_ANON_STRUCT__ struct { cl_ushort8 lo, hi; };
 #endif
 #if defined(__CL_USHORT2__)
   __cl_ushort2 v2[8];
@@ -872,19 +869,89 @@ typedef union {
 #endif
 } cl_ushort16;
 
+/* ---- cl_halfn ---- */
+typedef union {
+  cl_half CL_ALIGNED(4) s[2];
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_half x, y; };
+  __CL_ANON_STRUCT__ struct { cl_half s0, s1; };
+  __CL_ANON_STRUCT__ struct { cl_half lo, hi; };
+#endif
+#if defined(__CL_HALF2__)
+  __cl_half2 v2;
+#endif
+} cl_half2;
+
+typedef union {
+  cl_half CL_ALIGNED(8) s[4];
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_half x, y, z, w; };
+  __CL_ANON_STRUCT__ struct { cl_half s0, s1, s2, s3; };
+  __CL_ANON_STRUCT__ struct { cl_half2 lo, hi; };
+#endif
+#if defined(__CL_HALF2__)
+  __cl_half2 v2[2];
+#endif
+#if defined(__CL_HALF4__)
+  __cl_half4 v4;
+#endif
+} cl_half4;
+
+/* cl_half3 is identical in size, alignment and behavior to cl_half4. See
+ * section 6.1.5. */
+typedef cl_half4 cl_half3;
+
+typedef union {
+  cl_half CL_ALIGNED(16) s[8];
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_half x, y, z, w; };
+  __CL_ANON_STRUCT__ struct { cl_half s0, s1, s2, s3, s4, s5, s6, s7; };
+  __CL_ANON_STRUCT__ struct { cl_half4 lo, hi; };
+#endif
+#if defined(__CL_HALF2__)
+  __cl_half2 v2[4];
+#endif
+#if defined(__CL_HALF4__)
+  __cl_half4 v4[2];
+#endif
+#if defined(__CL_HALF8__)
+  __cl_half8 v8;
+#endif
+} cl_half8;
+
+typedef union {
+  cl_half CL_ALIGNED(32) s[16];
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct {
+    cl_half x, y, z, w, __spacer4, __spacer5, __spacer6, __spacer7, __spacer8,
+      __spacer9, sa, sb, sc, sd, se, sf;
+  };
+  __CL_ANON_STRUCT__ struct {
+    cl_half s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, sA, sB, sC, sD, sE, sF;
+  };
+  __CL_ANON_STRUCT__ struct { cl_half8 lo, hi; };
+#endif
+#if defined(__CL_HALF2__)
+  __cl_half2 v2[8];
+#endif
+#if defined(__CL_HALF4__)
+  __cl_half4 v4[4];
+#endif
+#if defined(__CL_HALF8__)
+  __cl_half8 v8[2];
+#endif
+#if defined(__CL_HALF16__)
+  __cl_half16 v16;
+#endif
+} cl_half16;
+
 /* ---- cl_intn ---- */
 typedef union {
   cl_int CL_ALIGNED(8) s[2];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_int x, y;
-  };
-  __extension__ struct {
-    cl_int s0, s1;
-  };
-  __extension__ struct {
-    cl_int lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_int x, y; };
+  __CL_ANON_STRUCT__ struct { cl_int s0, s1; };
+  __CL_ANON_STRUCT__ struct { cl_int lo, hi; };
 #endif
 #if defined(__CL_INT2__)
   __cl_int2 v2;
@@ -893,16 +960,10 @@ typedef union {
 
 typedef union {
   cl_int CL_ALIGNED(16) s[4];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_int x, y, z, w;
-  };
-  __extension__ struct {
-    cl_int s0, s1, s2, s3;
-  };
-  __extension__ struct {
-    cl_int2 lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_int x, y, z, w; };
+  __CL_ANON_STRUCT__ struct { cl_int s0, s1, s2, s3; };
+  __CL_ANON_STRUCT__ struct { cl_int2 lo, hi; };
 #endif
 #if defined(__CL_INT2__)
   __cl_int2 v2[2];
@@ -918,16 +979,10 @@ typedef cl_int4 cl_int3;
 
 typedef union {
   cl_int CL_ALIGNED(32) s[8];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_int x, y, z, w;
-  };
-  __extension__ struct {
-    cl_int s0, s1, s2, s3, s4, s5, s6, s7;
-  };
-  __extension__ struct {
-    cl_int4 lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_int x, y, z, w; };
+  __CL_ANON_STRUCT__ struct { cl_int s0, s1, s2, s3, s4, s5, s6, s7; };
+  __CL_ANON_STRUCT__ struct { cl_int4 lo, hi; };
 #endif
 #if defined(__CL_INT2__)
   __cl_int2 v2[4];
@@ -942,17 +997,15 @@ typedef union {
 
 typedef union {
   cl_int CL_ALIGNED(64) s[16];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct {
     cl_int x, y, z, w, __spacer4, __spacer5, __spacer6, __spacer7, __spacer8,
       __spacer9, sa, sb, sc, sd, se, sf;
   };
-  __extension__ struct {
+  __CL_ANON_STRUCT__ struct {
     cl_int s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, sA, sB, sC, sD, sE, sF;
   };
-  __extension__ struct {
-    cl_int8 lo, hi;
-  };
+  __CL_ANON_STRUCT__ struct { cl_int8 lo, hi; };
 #endif
 #if defined(__CL_INT2__)
   __cl_int2 v2[8];
@@ -971,16 +1024,10 @@ typedef union {
 /* ---- cl_uintn ---- */
 typedef union {
   cl_uint CL_ALIGNED(8) s[2];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_uint x, y;
-  };
-  __extension__ struct {
-    cl_uint s0, s1;
-  };
-  __extension__ struct {
-    cl_uint lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_uint x, y; };
+  __CL_ANON_STRUCT__ struct { cl_uint s0, s1; };
+  __CL_ANON_STRUCT__ struct { cl_uint lo, hi; };
 #endif
 #if defined(__CL_UINT2__)
   __cl_uint2 v2;
@@ -989,16 +1036,10 @@ typedef union {
 
 typedef union {
   cl_uint CL_ALIGNED(16) s[4];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_uint x, y, z, w;
-  };
-  __extension__ struct {
-    cl_uint s0, s1, s2, s3;
-  };
-  __extension__ struct {
-    cl_uint2 lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_uint x, y, z, w; };
+  __CL_ANON_STRUCT__ struct { cl_uint s0, s1, s2, s3; };
+  __CL_ANON_STRUCT__ struct { cl_uint2 lo, hi; };
 #endif
 #if defined(__CL_UINT2__)
   __cl_uint2 v2[2];
@@ -1014,16 +1055,10 @@ typedef cl_uint4 cl_uint3;
 
 typedef union {
   cl_uint CL_ALIGNED(32) s[8];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_uint x, y, z, w;
-  };
-  __extension__ struct {
-    cl_uint s0, s1, s2, s3, s4, s5, s6, s7;
-  };
-  __extension__ struct {
-    cl_uint4 lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_uint x, y, z, w; };
+  __CL_ANON_STRUCT__ struct { cl_uint s0, s1, s2, s3, s4, s5, s6, s7; };
+  __CL_ANON_STRUCT__ struct { cl_uint4 lo, hi; };
 #endif
 #if defined(__CL_UINT2__)
   __cl_uint2 v2[4];
@@ -1038,17 +1073,15 @@ typedef union {
 
 typedef union {
   cl_uint CL_ALIGNED(64) s[16];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct {
     cl_uint x, y, z, w, __spacer4, __spacer5, __spacer6, __spacer7, __spacer8,
       __spacer9, sa, sb, sc, sd, se, sf;
   };
-  __extension__ struct {
+  __CL_ANON_STRUCT__ struct {
     cl_uint s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, sA, sB, sC, sD, sE, sF;
   };
-  __extension__ struct {
-    cl_uint8 lo, hi;
-  };
+  __CL_ANON_STRUCT__ struct { cl_uint8 lo, hi; };
 #endif
 #if defined(__CL_UINT2__)
   __cl_uint2 v2[8];
@@ -1067,16 +1100,10 @@ typedef union {
 /* ---- cl_longn ---- */
 typedef union {
   cl_long CL_ALIGNED(16) s[2];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_long x, y;
-  };
-  __extension__ struct {
-    cl_long s0, s1;
-  };
-  __extension__ struct {
-    cl_long lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_long x, y; };
+  __CL_ANON_STRUCT__ struct { cl_long s0, s1; };
+  __CL_ANON_STRUCT__ struct { cl_long lo, hi; };
 #endif
 #if defined(__CL_LONG2__)
   __cl_long2 v2;
@@ -1085,16 +1112,10 @@ typedef union {
 
 typedef union {
   cl_long CL_ALIGNED(32) s[4];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_long x, y, z, w;
-  };
-  __extension__ struct {
-    cl_long s0, s1, s2, s3;
-  };
-  __extension__ struct {
-    cl_long2 lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_long x, y, z, w; };
+  __CL_ANON_STRUCT__ struct { cl_long s0, s1, s2, s3; };
+  __CL_ANON_STRUCT__ struct { cl_long2 lo, hi; };
 #endif
 #if defined(__CL_LONG2__)
   __cl_long2 v2[2];
@@ -1110,16 +1131,10 @@ typedef cl_long4 cl_long3;
 
 typedef union {
   cl_long CL_ALIGNED(64) s[8];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_long x, y, z, w;
-  };
-  __extension__ struct {
-    cl_long s0, s1, s2, s3, s4, s5, s6, s7;
-  };
-  __extension__ struct {
-    cl_long4 lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_long x, y, z, w; };
+  __CL_ANON_STRUCT__ struct { cl_long s0, s1, s2, s3, s4, s5, s6, s7; };
+  __CL_ANON_STRUCT__ struct { cl_long4 lo, hi; };
 #endif
 #if defined(__CL_LONG2__)
   __cl_long2 v2[4];
@@ -1134,17 +1149,15 @@ typedef union {
 
 typedef union {
   cl_long CL_ALIGNED(128) s[16];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct {
     cl_long x, y, z, w, __spacer4, __spacer5, __spacer6, __spacer7, __spacer8,
       __spacer9, sa, sb, sc, sd, se, sf;
   };
-  __extension__ struct {
+  __CL_ANON_STRUCT__ struct {
     cl_long s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, sA, sB, sC, sD, sE, sF;
   };
-  __extension__ struct {
-    cl_long8 lo, hi;
-  };
+  __CL_ANON_STRUCT__ struct { cl_long8 lo, hi; };
 #endif
 #if defined(__CL_LONG2__)
   __cl_long2 v2[8];
@@ -1163,16 +1176,10 @@ typedef union {
 /* ---- cl_ulongn ---- */
 typedef union {
   cl_ulong CL_ALIGNED(16) s[2];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_ulong x, y;
-  };
-  __extension__ struct {
-    cl_ulong s0, s1;
-  };
-  __extension__ struct {
-    cl_ulong lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_ulong x, y; };
+  __CL_ANON_STRUCT__ struct { cl_ulong s0, s1; };
+  __CL_ANON_STRUCT__ struct { cl_ulong lo, hi; };
 #endif
 #if defined(__CL_ULONG2__)
   __cl_ulong2 v2;
@@ -1181,16 +1188,10 @@ typedef union {
 
 typedef union {
   cl_ulong CL_ALIGNED(32) s[4];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_ulong x, y, z, w;
-  };
-  __extension__ struct {
-    cl_ulong s0, s1, s2, s3;
-  };
-  __extension__ struct {
-    cl_ulong2 lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_ulong x, y, z, w; };
+  __CL_ANON_STRUCT__ struct { cl_ulong s0, s1, s2, s3; };
+  __CL_ANON_STRUCT__ struct { cl_ulong2 lo, hi; };
 #endif
 #if defined(__CL_ULONG2__)
   __cl_ulong2 v2[2];
@@ -1206,16 +1207,10 @@ typedef cl_ulong4 cl_ulong3;
 
 typedef union {
   cl_ulong CL_ALIGNED(64) s[8];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_ulong x, y, z, w;
-  };
-  __extension__ struct {
-    cl_ulong s0, s1, s2, s3, s4, s5, s6, s7;
-  };
-  __extension__ struct {
-    cl_ulong4 lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_ulong x, y, z, w; };
+  __CL_ANON_STRUCT__ struct { cl_ulong s0, s1, s2, s3, s4, s5, s6, s7; };
+  __CL_ANON_STRUCT__ struct { cl_ulong4 lo, hi; };
 #endif
 #if defined(__CL_ULONG2__)
   __cl_ulong2 v2[4];
@@ -1230,17 +1225,15 @@ typedef union {
 
 typedef union {
   cl_ulong CL_ALIGNED(128) s[16];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct {
     cl_ulong x, y, z, w, __spacer4, __spacer5, __spacer6, __spacer7, __spacer8,
       __spacer9, sa, sb, sc, sd, se, sf;
   };
-  __extension__ struct {
+  __CL_ANON_STRUCT__ struct {
     cl_ulong s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, sA, sB, sC, sD, sE, sF;
   };
-  __extension__ struct {
-    cl_ulong8 lo, hi;
-  };
+  __CL_ANON_STRUCT__ struct { cl_ulong8 lo, hi; };
 #endif
 #if defined(__CL_ULONG2__)
   __cl_ulong2 v2[8];
@@ -1260,16 +1253,10 @@ typedef union {
 
 typedef union {
   cl_float CL_ALIGNED(8) s[2];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_float x, y;
-  };
-  __extension__ struct {
-    cl_float s0, s1;
-  };
-  __extension__ struct {
-    cl_float lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_float x, y; };
+  __CL_ANON_STRUCT__ struct { cl_float s0, s1; };
+  __CL_ANON_STRUCT__ struct { cl_float lo, hi; };
 #endif
 #if defined(__CL_FLOAT2__)
   __cl_float2 v2;
@@ -1278,16 +1265,10 @@ typedef union {
 
 typedef union {
   cl_float CL_ALIGNED(16) s[4];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_float x, y, z, w;
-  };
-  __extension__ struct {
-    cl_float s0, s1, s2, s3;
-  };
-  __extension__ struct {
-    cl_float2 lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_float x, y, z, w; };
+  __CL_ANON_STRUCT__ struct { cl_float s0, s1, s2, s3; };
+  __CL_ANON_STRUCT__ struct { cl_float2 lo, hi; };
 #endif
 #if defined(__CL_FLOAT2__)
   __cl_float2 v2[2];
@@ -1303,16 +1284,10 @@ typedef cl_float4 cl_float3;
 
 typedef union {
   cl_float CL_ALIGNED(32) s[8];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_float x, y, z, w;
-  };
-  __extension__ struct {
-    cl_float s0, s1, s2, s3, s4, s5, s6, s7;
-  };
-  __extension__ struct {
-    cl_float4 lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_float x, y, z, w; };
+  __CL_ANON_STRUCT__ struct { cl_float s0, s1, s2, s3, s4, s5, s6, s7; };
+  __CL_ANON_STRUCT__ struct { cl_float4 lo, hi; };
 #endif
 #if defined(__CL_FLOAT2__)
   __cl_float2 v2[4];
@@ -1327,17 +1302,15 @@ typedef union {
 
 typedef union {
   cl_float CL_ALIGNED(64) s[16];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct {
     cl_float x, y, z, w, __spacer4, __spacer5, __spacer6, __spacer7, __spacer8,
       __spacer9, sa, sb, sc, sd, se, sf;
   };
-  __extension__ struct {
+  __CL_ANON_STRUCT__ struct {
     cl_float s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, sA, sB, sC, sD, sE, sF;
   };
-  __extension__ struct {
-    cl_float8 lo, hi;
-  };
+  __CL_ANON_STRUCT__ struct { cl_float8 lo, hi; };
 #endif
 #if defined(__CL_FLOAT2__)
   __cl_float2 v2[8];
@@ -1357,16 +1330,10 @@ typedef union {
 
 typedef union {
   cl_double CL_ALIGNED(16) s[2];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_double x, y;
-  };
-  __extension__ struct {
-    cl_double s0, s1;
-  };
-  __extension__ struct {
-    cl_double lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_double x, y; };
+  __CL_ANON_STRUCT__ struct { cl_double s0, s1; };
+  __CL_ANON_STRUCT__ struct { cl_double lo, hi; };
 #endif
 #if defined(__CL_DOUBLE2__)
   __cl_double2 v2;
@@ -1375,16 +1342,10 @@ typedef union {
 
 typedef union {
   cl_double CL_ALIGNED(32) s[4];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_double x, y, z, w;
-  };
-  __extension__ struct {
-    cl_double s0, s1, s2, s3;
-  };
-  __extension__ struct {
-    cl_double2 lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_double x, y, z, w; };
+  __CL_ANON_STRUCT__ struct { cl_double s0, s1, s2, s3; };
+  __CL_ANON_STRUCT__ struct { cl_double2 lo, hi; };
 #endif
 #if defined(__CL_DOUBLE2__)
   __cl_double2 v2[2];
@@ -1400,16 +1361,10 @@ typedef cl_double4 cl_double3;
 
 typedef union {
   cl_double CL_ALIGNED(64) s[8];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
-    cl_double x, y, z, w;
-  };
-  __extension__ struct {
-    cl_double s0, s1, s2, s3, s4, s5, s6, s7;
-  };
-  __extension__ struct {
-    cl_double4 lo, hi;
-  };
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct { cl_double x, y, z, w; };
+  __CL_ANON_STRUCT__ struct { cl_double s0, s1, s2, s3, s4, s5, s6, s7; };
+  __CL_ANON_STRUCT__ struct { cl_double4 lo, hi; };
 #endif
 #if defined(__CL_DOUBLE2__)
   __cl_double2 v2[4];
@@ -1424,17 +1379,15 @@ typedef union {
 
 typedef union {
   cl_double CL_ALIGNED(128) s[16];
-#if defined(__GNUC__) && !defined(__STRICT_ANSI__)
-  __extension__ struct {
+#if __CL_HAS_ANON_STRUCT__
+  __CL_ANON_STRUCT__ struct {
     cl_double x, y, z, w, __spacer4, __spacer5, __spacer6, __spacer7, __spacer8,
       __spacer9, sa, sb, sc, sd, se, sf;
   };
-  __extension__ struct {
+  __CL_ANON_STRUCT__ struct {
     cl_double s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, sA, sB, sC, sD, sE, sF;
   };
-  __extension__ struct {
-    cl_double8 lo, hi;
-  };
+  __CL_ANON_STRUCT__ struct { cl_double8 lo, hi; };
 #endif
 #if defined(__CL_DOUBLE2__)
   __cl_double2 v2[8];
@@ -1472,11 +1425,15 @@ typedef union {
  */
 #define __CL_STRINGIFY(_x) #_x
 #define _CL_STRINGIFY(_x) __CL_STRINGIFY(_x)
-#define CL_PROGRAM_STRING_DEBUG_INFO \
+#define CL_PROGRAM_STRING_DEBUG_INFO                                           \
   "#line " _CL_STRINGIFY(__LINE__) " \"" __FILE__ "\" \n\n"
 
 #ifdef __cplusplus
 }
+#endif
+
+#if defined(_WIN32) && defined(_MSC_VER) && __CL_HAS_ANON_STRUCT__
+#pragma warning(pop)
 #endif
 
 #endif /* __CL_PLATFORM_H  */
