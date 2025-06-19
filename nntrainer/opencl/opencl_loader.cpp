@@ -98,7 +98,13 @@ void LoadOpenCLFunctions(void *libopencl) {
   LoadFunction(clRetainCommandQueue);
   LoadFunction(clReleaseCommandQueue);
   LoadFunction(clReleaseMemObject);
+  LoadFunction(clFlush);
   LoadFunction(clFinish);
+  LoadFunction(clSVMAlloc);
+  LoadFunction(clSVMFree);
+  LoadFunction(clEnqueueSVMMap);
+  LoadFunction(clEnqueueSVMUnmap);
+  LoadFunction(clSetKernelArgSVMPointer);
 }
 
 PFN_clGetPlatformIDs clGetPlatformIDs;
@@ -128,6 +134,12 @@ PFN_clReleaseContext clReleaseContext;
 PFN_clRetainCommandQueue clRetainCommandQueue;
 PFN_clReleaseCommandQueue clReleaseCommandQueue;
 PFN_clReleaseMemObject clReleaseMemObject;
+PFN_clFlush clFlush;
 PFN_clFinish clFinish;
+PFN_clSVMAlloc clSVMAlloc;
+PFN_clSVMFree clSVMFree;
+PFN_clEnqueueSVMMap clEnqueueSVMMap;
+PFN_clEnqueueSVMUnmap clEnqueueSVMUnmap;
+PFN_clSetKernelArgSVMPointer clSetKernelArgSVMPointer;
 
 } // namespace nntrainer::opencl
