@@ -169,8 +169,34 @@ typedef cl_int(CL_API_CALL *PFN_clReleaseCommandQueue)(
 
 typedef cl_int(CL_API_CALL *PFN_clReleaseMemObject)(cl_mem /**< memobj */);
 
+typedef cl_int(CL_API_CALL *PFN_clFlush)(
+  cl_command_queue /**< command_queue */);
+
 typedef cl_int(CL_API_CALL *PFN_clFinish)(
   cl_command_queue /**< command_queue */);
+
+typedef void *(CL_API_CALL *PFN_clSVMAlloc)(cl_context /**< context */,
+                                            cl_svm_mem_flags /**< flags */,
+                                            size_t /**< size */,
+                                            cl_uint /**< alignment */);
+
+typedef void(CL_API_CALL *PFN_clSVMFree)(cl_context /**< context */,
+                                         void * /**< svm_pointer */);
+
+typedef cl_int(CL_API_CALL *PFN_clSetKernelArgSVMPointer)(
+  cl_kernel /**< kernel */, cl_uint /**< arg_index */,
+  const void * /**< arg_value */);
+
+typedef cl_int(CL_API_CALL *PFN_clEnqueueSVMMap)(
+  cl_command_queue /**< command_queue */, cl_bool /**< blocking_map */,
+  cl_map_flags /**< flags */, void * /**< svm_ptr */, size_t /**< size */,
+  cl_uint /**< num_events_in_wait_list */,
+  const cl_event * /**< event_wait_list */, cl_event * /**< event */);
+
+typedef cl_int(CL_API_CALL *PFN_clEnqueueSVMUnmap)(
+  cl_command_queue /**< command_queue */, void * /**< svm_ptr */,
+  cl_uint /**< num_events_in_wait_list */,
+  const cl_event * /**< event_wait_list */, cl_event * /**< event */);
 
 extern PFN_clGetPlatformIDs clGetPlatformIDs;
 extern PFN_clGetDeviceIDs clGetDeviceIDs;
@@ -199,7 +225,13 @@ extern PFN_clReleaseContext clReleaseContext;
 extern PFN_clRetainCommandQueue clRetainCommandQueue;
 extern PFN_clReleaseCommandQueue clReleaseCommandQueue;
 extern PFN_clReleaseMemObject clReleaseMemObject;
+extern PFN_clFlush clFlush;
 extern PFN_clFinish clFinish;
+extern PFN_clSVMAlloc clSVMAlloc;
+extern PFN_clSVMFree clSVMFree;
+extern PFN_clEnqueueSVMMap clEnqueueSVMMap;
+extern PFN_clEnqueueSVMUnmap clEnqueueSVMUnmap;
+extern PFN_clSetKernelArgSVMPointer clSetKernelArgSVMPointer;
 
 } // namespace nntrainer::opencl
 
