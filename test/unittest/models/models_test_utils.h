@@ -188,12 +188,13 @@ public:
    *
    * @param reference reference file name
    */
-  void compareFor_V2(const std::string &reference);
+  void compareFor_V2(const std::string &reference,
+                     bool test_inference_only = false);
 
   /**
    * @brief   Validate the running of the graph without any errors
    */
-  void validateFor_V2();
+  void validateFor_V2(bool test_inference_only = false);
 
 private:
   /**
