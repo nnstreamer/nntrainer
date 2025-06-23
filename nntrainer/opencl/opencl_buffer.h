@@ -14,9 +14,9 @@
 #ifndef __OPENCL_BUFFER_H__
 #define __OPENCL_BUFFER_H__
 
-#include "CL/cl.h"
 #include "opencl_command_queue_manager.h"
 #include "opencl_context_manager.h"
+#include <CL/opencl.hpp>
 
 namespace nntrainer::opencl {
 

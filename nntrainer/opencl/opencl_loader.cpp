@@ -47,7 +47,7 @@ bool LoadOpenCL() {
   static const char *kClLibName = "libOpenCL.so";
 
   libopencl =
-    DynamicLibraryLoader::loadLibrary(kClLibName, RTLD_NOW | RTLD_LOCAL);
+    DynamicLibraryLoader::loadLibrary(kClLibName, RTLD_NOW | RTLD_GLOBAL);
   if (libopencl) {
     LoadOpenCLFunctions(libopencl);
     open_cl_initialized = true;
@@ -126,3 +126,11 @@ PFN_clReleaseMemObject clReleaseMemObject;
 PFN_clFinish clFinish;
 
 } // namespace nntrainer::opencl
+
+#if defined(__ANDROID__)
+extern "C" {
+[[gnu::weak]] cl_int clReleaseDevice(cl_device_id) { return -1; }
+[[gnu::weak]] cl_int clReleaseContext(cl_context) { return -1; }
+[[gnu::weak]] cl_int clReleaseCommandQueue(cl_command_queue) { return -1; }
+}
+#endif

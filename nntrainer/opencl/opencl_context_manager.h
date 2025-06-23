@@ -16,7 +16,7 @@
 
 #include <mutex>
 
-#include "CL/cl.h"
+#include <CL/opencl.hpp>
 
 namespace nntrainer::opencl {
 
