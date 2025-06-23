@@ -468,10 +468,10 @@ public:
   bool checkLoadComplete(const unsigned int order);
 
   /**
-   * @brief inactive the elem
+   * @brief inactive all element
    *
    */
-  bool inActive(unsigned int order);
+  bool inActiveAll();
 
   /**
    * @brief check data of order is Unloaded
