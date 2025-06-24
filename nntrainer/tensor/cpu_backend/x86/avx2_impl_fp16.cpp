@@ -48,22 +48,11 @@ void vcvt_f16_f32(unsigned int N, const _Float16 *input, float *output) {
     output += 8;
   }
   // remaining half-precision floating point values to single-precision values
-  if (N - idx > 0 && N - idx < 8) {
-    const __m256 vec = _mm256_cvtph_ps(_mm_loadu_si128((const __m128i *)data));
-    __m128 s_vec = _mm256_castps256_ps128(vec);
-    if ((N - idx) & 4) {
-      _mm_storeu_ps(output, s_vec);
-      s_vec = _mm256_extractf128_ps(vec, 1);
-      output += 4;
-    }
-    if ((N - idx) & 2) {
-      _mm_storel_pi((__m64 *)output, s_vec);
-      s_vec = _mm_movehl_ps(s_vec, s_vec);
-      output += 2;
-    }
-    if ((N - idx) & 1) {
-      _mm_store_ss(output, s_vec);
-    }
+  while (idx < N) {
+    *output = static_cast<float>(*data);
+    ++output;
+    ++data;
+    ++idx;
   }
 }
 
@@ -194,4 +183,5 @@ bool is_valid(const unsigned int N, const _Float16 *input) {
 
   return true;
 }
-} // namespace nntrainer::avx
+
+} // namespace nntrainer::avx2
