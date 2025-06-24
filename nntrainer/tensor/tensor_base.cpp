@@ -58,6 +58,25 @@ void TensorBase::save(std::ostream &file) {
   putData();
 }
 
+void TensorBase::setScale(const float value) {
+  NNTR_THROW_IF(!hasScale(), std::logic_error)
+    << "Tensor does not support scale";
+  NNTR_THROW_IF(scale_size() == 0, std::logic_error) << "Incorrect scale size";
+
+  auto *scale = (float *)getScale();
+  std::fill(scale, scale + scale_size(), value);
+}
+
+void TensorBase::setZeroPoint(const unsigned int value) {
+  NNTR_THROW_IF(!hasZeroPoint(), std::logic_error)
+    << "Tensor does not support zero point";
+  NNTR_THROW_IF(scale_size() == 0, std::logic_error)
+    << "Incorrect zero point size";
+
+  auto *zero_point = (unsigned int *)getZeroPoint();
+  std::fill(zero_point, zero_point + scale_size(), value);
+}
+
 void TensorBase::read(std::ifstream &file, size_t start_offset,
                       bool read_from_offset) {
   if (start_offset == std::numeric_limits<size_t>::max()) {
@@ -406,6 +425,16 @@ void TensorBase::setRandBernoulli(float probability) {
   throw std::invalid_argument("Tensor::setRandBernoulli() is currently not "
                               "supported in tensor data type " +
                               getStringDataType());
+}
+
+void TensorBase::initialize() {
+  if (hasScale()) {
+    setScale(DEFAULT_TENSOR_SCALE);
+  }
+
+  if (hasZeroPoint()) {
+    setZeroPoint(DEFAULT_TENSOR_ZERO_POINT);
+  }
 }
 
 Tensor TensorBase::multiply_strided(Tensor const &m, Tensor &output,

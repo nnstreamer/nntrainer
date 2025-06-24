@@ -77,6 +77,16 @@ public:
   void allocate() override;
 
   /**
+   * @copydoc Tensor::hasScale()
+   */
+  bool hasScale() const override { return false; }
+
+  /**
+   * @copydoc Tensor::hasZeroPoint()
+   */
+  bool hasZeroPoint() const override { return false; }
+
+  /**
    * @copydoc TensorBase::size()
    */
   size_t size() const override;

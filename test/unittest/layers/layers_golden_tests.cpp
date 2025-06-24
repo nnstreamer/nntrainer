@@ -26,8 +26,8 @@
 
 #pragma GCC diagnostic ignored "-Wunused-local-typedefs"
 
-#define EXPECT_IN_RANGE(VAL, MIN, MAX) \
-  EXPECT_GE((VAL), (MIN));             \
+#define EXPECT_IN_RANGE(VAL, MIN, MAX)                                         \
+  EXPECT_GE((VAL), (MIN));                                                     \
   EXPECT_LE((VAL), (MAX))
 
 using namespace nntrainer;
@@ -145,7 +145,10 @@ static TensorPacks prepareTensors(const InitLayerContext &context,
         sizeCheckedReadTensor(weights.back().getVariableRef(), file,
                               weights.back().getName());
       }
-      weights.back().getGradientRef().setZero();
+
+      if (weights.back().getGradientRef().isAllocated()) {
+        weights.back().getGradientRef().setZero();
+      }
     }
     return weights;
   };
