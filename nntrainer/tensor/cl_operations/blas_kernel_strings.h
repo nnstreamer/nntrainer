@@ -26,6 +26,12 @@ const std::string &getDotClKernel();
 
 const std::string &getSgemmClNoTransKernel();
 
+const std::string &getSgemmClKernel_Q6_K_F32();
+
+const std::string &getSgemmClKernel_Q6_K_Q8_1();
+
+const std::string &getSgemmClKernel_Q4_K_Q8_1();
+
 const std::string &getSgemmClTransAKernel();
 
 const std::string &getSgemmClTransBKernel();

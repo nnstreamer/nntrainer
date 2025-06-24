@@ -148,6 +148,9 @@ void ClContext::initBlasClKernels() {
   registerClKernel(getSgemvClNoTransKernel(), "sgemv_cl_noTrans");
   registerClKernel(getDotClKernel(), "dot_cl");
   registerClKernel(getSgemmClNoTransKernel(), "sgemm_cl_noTrans");
+  registerClKernel(getSgemmClKernel_Q6_K_F32(), "sgemm_cl_Q6_K_F32");
+  registerClKernel(getSgemmClKernel_Q6_K_Q8_1(), "sgemm_cl_Q6_K_Q8_1");
+  registerClKernel(getSgemmClKernel_Q4_K_Q8_1(), "sgemm_cl_Q4_K_Q8_1");
   registerClKernel(getSgemmClTransAKernel(), "sgemm_cl_transA");
   registerClKernel(getSgemmClTransBKernel(), "sgemm_cl_transB");
   registerClKernel(getSgemmClTransABKernel(), "sgemm_cl_transAB");
