@@ -125,6 +125,11 @@ public:
   void *getScale(size_t idx) const override;
 
   /**
+   * @copydoc Tensor::hasScale()
+   */
+  bool hasScale() const override { return true; }
+
+  /**
    * @brief     i data index
    * @retval    address of ith data
    */
