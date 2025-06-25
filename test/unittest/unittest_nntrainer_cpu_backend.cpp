@@ -16,6 +16,8 @@
 #include <random>
 #include <vector>
 
+#include "blas_kernels.h"
+
 #include <chrono>
 #include <iostream>
 using std::chrono::duration_cast;
@@ -153,6 +155,7 @@ float compute_mse(const uint32_t M, const uint32_t N,
 }
 
 #ifdef ENABLE_GGML
+
 TEST(nntrainer_cpu_backend_standalone, q4_K_quantization) {
   nntrainer::init_backend();
 
@@ -700,6 +703,94 @@ TEST(nntrainer_cpu_backend_standalone, ele_add_3072_istr_16_ostrid_16) {
   const unsigned int i_stride = 16;
   const unsigned int o_stride = 16;
   run_ele_add_test(N, alpha, beta, i_stride, o_stride);
+TEST(nntrainer_cpu_backend_standalone, q_6_K_test) {
+  size_t M = 1;
+  size_t K = 3072;
+  size_t N = 105900;
+
+  std::vector<float> activation = generate_random_vector<float>(M * K);
+  std::vector<float> weight = generate_random_vector<float>(N * K);
+  std::vector<float> ref_dst(M * N);
+
+  float *weights = weight.data();
+  float *activations = activation.data();
+
+  // Step0. Allocate a temporary buffer for quantized weight
+  size_t data_size = sizeof(block_q6_K_testonly) * N * K / 256;
+  std::vector<char> offline_qWeight = std::vector<char>(data_size);
+  char *offline_qWeight_ptr = (char *)offline_qWeight.data();
+
+  nntrainer::sgemm(0, false, true, M, N, K, 1.F, activation.data(), K,
+                   weight.data(), K, 0.F, ref_dst.data(), N);
+
+  // Step1. Supposed to be an offline Weight quantization from float to q4_K
+  // (Zero latency overhead for the model runtime)
+  nntrainer::quantize_q6_K(weights, (void *)offline_qWeight_ptr, N, K, nullptr);
+
+  std::cout << "q6_K data size: " << data_size / (1024 * 1024.0f) << " MB"
+            << std::endl;
+
+  // Step2. Run GEMM!
+  std::vector<float> dst(M * N);
+  auto t1 = high_resolution_clock::now();
+  // #### MAIN TESTED METHOD ####
+  for (unsigned int i = 0; i < 100; ++i) {
+    nntrainer::gemm_q6_K(M, N, K, activations, K, (void *)offline_qWeight_ptr,
+                         N, dst.data(), N);
+  }
+
+  // #### MAIN TESTED METHOD ####
+  auto t2 = high_resolution_clock::now();
+  auto dt = duration_cast<microseconds>(t2 - t1);
+
+  std::cout << "gemm_q6_K: " << dt.count() / 100.f << " us " << std::endl;
+
+  std::cout << "[CPU]: ";
+  for (unsigned int i = 0; i < 5; ++i) {
+    std::cout << dst[i] << " ";
+  }
+  for (unsigned int i = M * N - 5; i < M * N; ++i) {
+    std::cout << dst[i] << " ";
+  }
+  std::cout << std::endl;
+
+  std::vector<float> dst_gpu(M * N);
+  auto t3 = high_resolution_clock::now();
+  for (unsigned int i = 0; i < 100; ++i) {
+    nntrainer::sgemv_q6_k_cl(offline_qWeight_ptr, activations, dst_gpu.data(),
+                             K, N);
+  }
+
+  auto t4 = high_resolution_clock::now();
+  auto gpu_dt = duration_cast<microseconds>(t4 - t3);
+
+  std::cout << "gemm_q6_K: " << gpu_dt.count() / 100.f << " us " << std::endl;
+
+  std::cout << "[GPU]: ";
+  for (unsigned int i = 0; i < 5; ++i) {
+    std::cout << dst_gpu[i] << " ";
+  }
+  for (unsigned int i = M * N - 5; i < M * N; ++i) {
+    std::cout << dst_gpu[i] << " ";
+  }
+  std::cout << std::endl;
+
+  int count = 0;
+  for (unsigned int i = 0; i < M * N; ++i) {
+    if (dst_gpu[i] == 0) {
+      count++;
+    }
+  }
+  std::cout << "[debug] " << count << " zeros found" << std::endl;
+
+  std::cout << "[Float]: ";
+  for (unsigned int i = 0; i < 5; ++i) {
+    std::cout << ref_dst[i] << " ";
+  }
+  for (unsigned int i = M * N - 5; i < M * N; ++i) {
+    std::cout << ref_dst[i] << " ";
+  }
+  std::cout << std::endl;
 }
 
 int main(int argc, char **argv) {
