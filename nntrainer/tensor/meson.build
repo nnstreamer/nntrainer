@@ -20,6 +20,7 @@ tensor_sources = [
   'quantizer.cpp',
   'basic_planner.cpp',
   'memory_pool.cpp',
+  'shared_memory.cpp',
   'swap_device.cpp',
   'tensor_pool.cpp',
   'optimized_v1_planner.cpp',

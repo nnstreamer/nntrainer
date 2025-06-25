@@ -70,6 +70,8 @@ endforeach
 nntrainer_common_sources = [
   'nntrainer_logger.cpp',
   'app_context.cpp',
+  'context_data.cpp',
+  'device_info.cpp',
   'engine.cpp',
   'mem_allocator.cpp'
 ]
