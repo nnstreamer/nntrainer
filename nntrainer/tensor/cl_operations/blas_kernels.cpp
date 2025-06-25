@@ -183,9 +183,11 @@ void sgemv_q6_k_cl(const void *matAdata, const float *vecXdata, float *vecYdata,
 #define N_SIMDWIDTH 16
 #define N_SIMDGROUP 2
 
-  const int work_groups_count[3] = {ne00, 1, 1};
+  const int work_groups_count[3] = {((ne0 + N_SIMDGROUP - 1) / N_SIMDGROUP) *
+                                      (N_SIMDGROUP * N_SIMDWIDTH),
+                                    ne1, 1};
   /// @todo: create a group size by device & input
-  const int work_group_size[3] = {N_SIMDWIDTH * N_SIMDGROUP, 1, 1};
+  const int work_group_size[3] = {32, 1, 1};
 
   result = opencl::CommandQueueManager::GetInstance().DispatchCommand(
     kernel_q6_k_sgemv_ptr, work_groups_count, work_group_size);
