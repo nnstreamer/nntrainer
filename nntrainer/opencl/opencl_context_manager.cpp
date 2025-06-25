@@ -147,6 +147,7 @@ bool ContextManager::CreateDefaultGPUDevice() {
   }
 
   // platform is a specific OpenCL implementation, for instance ARM
+  /// @note this is temporary method to use Intel GPU
   cl_platform_id platform_id_ = platforms[0];
 
   cl_uint num_devices;
@@ -175,6 +176,14 @@ bool ContextManager::CreateDefaultGPUDevice() {
   // setting the first GPU ID and platform (ARM)
   device_id_ = devices[0];
   this->platform_id_ = platform_id_;
+
+  /// @note this is for verification. should be removed.
+  size_t size;
+  clGetDeviceInfo(device_id_, CL_DEVICE_NAME, 0, NULL, &size);
+  std::string name;
+  name.resize(size);
+  clGetDeviceInfo(device_id_, CL_DEVICE_NAME, size, name.data(), nullptr);
+  std::cerr << "GPU device name: " << name << std::endl;
 
 #ifdef ENABLE_FP16
   /// @note This is working incorrectly. For CUDA devices, cl_khr_fp16 is not
