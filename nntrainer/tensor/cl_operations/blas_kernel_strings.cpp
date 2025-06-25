@@ -19,125 +19,572 @@ namespace nntrainer {
 const std::string &getQ6KSgemvClKernel() {
   static const std::string q6_k_sgemv_cl_kernel_ =
     R"(
-    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
+      #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 
-    #define QK_K 256
-    #define N_SIMDWIDTH 16
-    #define N_SIMDGROUP 2
-    #define N_DST 1
-    #define BLOCK_STRIDE (N_SIMDWIDTH / 16)
+      #ifdef cl_intel_subgroups
+      #pragma OPENCL EXTENSION cl_intel_subgroups : enable
+      #else
+      #pragma OPENCL EXTENSION cl_khr_subgroups : enable
+      #endif
 
-    typedef char int8_t;
-    typedef uchar uint8_t;
-    typedef short int16_t;
-    typedef ushort uint16_t;
-    typedef int int32_t;
-    typedef uint uint32_t;
+      #ifdef cl_intel_required_subgroup_size
+      #pragma OPENCL EXTENSION cl_intel_required_subgroup_size : enable
+      #define INTEL_GPU 1
+      #define REQD_SUBGROUP_SIZE_16 __attribute__((intel_reqd_sub_group_size(16)))
+      #define REQD_SUBGROUP_SIZE_32 __attribute__((intel_reqd_sub_group_size(32)))
+      #elif defined(cl_qcom_reqd_sub_group_size)
+      #pragma OPENCL EXTENSION cl_qcom_reqd_sub_group_size : enable
+      #define ADRENO_GPU 1
+      #define REQD_SUBGROUP_SIZE_64  __attribute__((qcom_reqd_sub_group_size("half")))
+      #define REQD_SUBGROUP_SIZE_128 __attribute__((qcom_reqd_sub_group_size("full")))
+      #endif
 
-    typedef struct {
-        uint8_t ql[QK_K / 2];
-        uint8_t qh[QK_K / 4];
-        int8_t  scales[QK_K / 16];
-        half d;
-    } block_q6_K;
+      #define QK4_0                   32
+      #define QR4_0                   2
+      #define QK4_1                   32
+      #define QR4_1                   2
+      #define QK5_0                   32
+      #define QR5_0                   2
+      #define QK5_1                   32
+      #define QR5_1                   2
+      #define QK8_0                   32
+      #define QR8_0                   1
+      #define QK_K                    256
+      #define K_QUANTS_PER_ITERATION  2
 
-    kernel void kernel_mul_mv_q6_K_f32(
-        global void * src0,
-        ulong offset0,
-        global float * src1,
-        ulong offset1,
-        global float * dst,
-        ulong offsetd,
-        int ne00,
-        int ne01,
-        int ne02,
-        int ne10,
-        int ne12,
-        int ne0,
-        int ne1,
-        int r2,
-        int r3
-    ) {
-        __local float reduction_buf[N_SIMDGROUP][N_SIMDWIDTH];
+      typedef char int8_t;
+      typedef uchar uint8_t;
+      typedef short int16_t;
+      typedef ushort uint16_t;
+      typedef int int32_t;
+      typedef uint uint32_t;
 
-        src0 = (global void*)((global char*)src0 + offset0);
-        src1 = (global float*)((global char*)src1 + offset1);
-        dst = (global float*)((global char*)dst + offsetd);
+      //------------------------------------------------------------------------------
+      // block_q6_K
+      //------------------------------------------------------------------------------
+      // 6-bit quantization
+      // weight is represented as x = a * q
+      // 16 blocks of 16 elements each
+      // Effectively 6.5625 bits per weight
+      typedef struct {
+          uint8_t ql[QK_K/2];      // quants, lower 4 bits
+          uint8_t qh[QK_K/4];      // quants, upper 2 bits
+          int8_t  scales[QK_K/16]; // scales, quantized with 8 bits
+          half d;             // super-block scale
+      } block_q6_K;
 
-        int nb = ne00 / QK_K;
+      //------------------------------------------------------------------------------
+      // kernel_mul_mv_q6_K_f32
+      //------------------------------------------------------------------------------
 
-        int r0 = get_group_id(0);
-        int r1 = get_group_id(1);
-        int im = get_group_id(2);
-        int lid = get_local_id(0);
-        int lsize = get_local_size(0);
+      #undef N_DST
+      #undef N_SIMDGROUP
+      #undef N_SIMDWIDTH
 
-        int row_group = lid / N_SIMDWIDTH;
-        int lane = lid % N_SIMDWIDTH;
-        int row = r0 * N_SIMDGROUP + row_group;
+      #ifdef INTEL_GPU
+      #define N_DST 1 // number of rows each SIMD group works on
+      #define N_SIMDGROUP 2 // number of SIMD groups in a thread group
+      #define N_SIMDWIDTH 16 // SIMD group size
+      #elif defined (ADRENO_GPU)
+      #define N_DST 1
+      #define N_SIMDGROUP 2
+      #define N_SIMDWIDTH 64
+      #endif
 
-        int i12 = im % ne12;
-        int i13 = im / ne12;
+      #define BLOCK_STRIDE (N_SIMDWIDTH/16) // number of blocks each subgroup processes
 
-        ulong offset_src0 = (i12 / r2) * (nb * ne01) + (i13 / r3) * (nb * ne01 * ne02);
+      #ifdef INTEL_GPU
+      REQD_SUBGROUP_SIZE_16
+      #elif defined (ADRENO_GPU)
+      REQD_SUBGROUP_SIZE_64
+      #endif
+      kernel void kernel_mul_mv_q6_K_f32(
+              global void * src0,
+              ulong offset0,
+              global float * src1,
+              ulong offset1,
+              global float * dst,
+              ulong offsetd,
+              int ne00,
+              int ne01,
+              int ne02,
+              int ne10,
+              int ne12,
+              int ne0,
+              int ne1,
+              int r2,
+              int r3
+      ) {
+          src0 = (global void*)((global char*)src0 + offset0);
+          src1 = (global float*)((global char*)src1 + offset1);
+          dst = (global float*)((global char*)dst + offsetd);
 
-        global block_q6_K * x = (global block_q6_K *) src0 + row * nb + offset_src0;
-        global float      * yy = (global float     *) src1 + r1 * ne10 + im * ne00 * ne1;
+          uchar kmask1 = 0x03;
+          uchar kmask2 = 0x0C;
+          uchar kmask3 = 0x30;
+          uchar kmask4 = 0xC0;
 
-        uchar kmask1 = 0x03, kmask2 = 0x0C, kmask3 = 0x30, kmask4 = 0xC0;
+          int nb = ne00/QK_K;
 
-        int tid  = lane / BLOCK_STRIDE;
-        int ix   = lane % BLOCK_STRIDE;
-        int ip   = tid / 8;
-        int il   = tid % 8;
-        int n    = 4;
-        int l0   = n * il;
-        int is   = 8 * ip + l0 / 16;
+          int r0 = get_group_id(0);
+          int r1 = get_group_id(1);
+          int im = get_group_id(2);
 
-        int y_offset = 128 * ip + l0;
-        int q_offset_l = 64 * ip + l0;
-        int q_offset_h = 32 * ip + l0;
+          int row = N_SIMDGROUP * r0 + get_sub_group_id();
 
-        float sumf = 0.0f;
+          int i12 = im%ne12;
+          int i13 = im/ne12;
 
-        for (int i = ix; i < nb; i += BLOCK_STRIDE) {
-            global uint8_t * q1 = x[i].ql + q_offset_l;
-            global uint8_t * q2 = q1 + QK_K / 8;
-            global uint8_t * qh = x[i].qh + q_offset_h;
-            global int8_t  * sc = x[i].scales + is;
-            global float   * y = yy + i * QK_K + y_offset;
+          ulong offset_src0 = (i12/r2)*(nb*ne01) + (i13/r3)*(nb*ne01*ne02);
 
-            float dall = x[i].d;
-            float4 sums = {0.f, 0.f, 0.f, 0.f};
+          global block_q6_K * x = (global block_q6_K *) src0 + row*nb + offset_src0;
+          global float      * yy = (global float     *) src1 + r1*ne10 + im*ne00*ne1;
 
-            for (int j = 0; j < 4; j++) {
-                sums.s0 += y[j + 0]   * ((float)((q1[j] & 0xF) | ((qh[j] & kmask1) << 4)) - 32.f);
-                sums.s1 += y[j + 32]  * ((float)((q2[j] & 0xF) | ((qh[j] & kmask2) << 2)) - 32.f);
-                sums.s2 += y[j + 64]  * ((float)((q1[j] >> 4) | ((qh[j] & kmask3) >> 0)) - 32.f);
-                sums.s3 += y[j + 96]  * ((float)((q2[j] >> 4) | ((qh[j] & kmask4) >> 2)) - 32.f);
-            }
+          float sumf = 0;
 
-            sumf += dall * (sums.s0 * sc[0] + sums.s1 * sc[2] + sums.s2 * sc[4] + sums.s3 * sc[6]);
-        }
+          // For Q6_K quantization, 16 values forms a subblock, 16 subblock forms a
+          // block. Values in a subblock shares a scale that is quantized with 8 bits;
+          // the entire block shares a single floating point scale.
+          // For work distribution, each thread processes a subblock (16 weights), hence
+          // 16 threads process a (super) block -- a subgroup thus handles SIMDWIDTH/16
+          // (super) blocks -- this is the block stride.
+          // The 16 threads that process a (super) block are split into 2 portions, each has
+          // 8 threads; each portion works on 8 subblocks.
+          // For subgroup of 16 threads, the entire subgroup works on a single (super) block
+          // before moving to the next (super) block. Thread0 - thread7 work on the
+          // first 8 subblocks; thread8 - thread15 works on the last 8 subblocks.
+          // Thread0 - thread3 work on subblocks 0, 2, 4, 6; thread4 - thread7 work on
+          // subblocks 1, 3, 5, 7. Each thread does not work on an entire subblock, but
+          // works on a total of 16 weight values.
+          int tid  = get_sub_group_local_id()/BLOCK_STRIDE; // first block_stride groups have tid=0
+          int ix   = get_sub_group_local_id()%BLOCK_STRIDE; // first block is 0..block_stride-1
+          int ip   = tid/8;   // first or second half of (super) block (0 or 1)
+          int il   = tid%8;   // each half has 8 parts, one per scale
+          int n    = 4;       // 4 scales at a time (and 4 sums)
+          int l0   = n*il;    // offset into half-block, 0..28
+          int is   = 8*ip + l0/16; // 0, 1, 8, 9
 
-        reduction_buf[row_group][lane] = sumf;
-        barrier(CLK_LOCAL_MEM_FENCE);
+          int y_offset = 128*ip + l0;
+          int q_offset_l = 64*ip + l0;
+          int q_offset_h = 32*ip + l0;
 
-        for (int offset = N_SIMDWIDTH / 2; offset > 0; offset >>= 1) {
-            if (lane < offset) {
-                reduction_buf[row_group][lane] += reduction_buf[row_group][lane + offset];
-            }
-            barrier(CLK_LOCAL_MEM_FENCE);
-        }
+          for (int i = ix; i < nb; i += BLOCK_STRIDE) {
 
-        if (lane == 0) {
-            int global_row = r0 * N_SIMDGROUP + row_group;
-            dst[r1 * ne0 + im * ne0 * ne1 + global_row] = reduction_buf[row_group][0];
-        }
-    }
+              global uint8_t * q1 = x[i].ql + q_offset_l;
+              global uint8_t * q2 = q1 + QK_K/8;
+              global uint8_t * qh = x[i].qh + q_offset_h;
+              global int8_t  * sc = x[i].scales + is;
+
+              global float * y = yy + i * QK_K + y_offset;
+
+              float dall = x[i].d;
+
+              float4 sums = {0.f, 0.f, 0.f, 0.f};
+
+              sums.s0 += y[0+ 0] * ((float)((q1[0] & 0xF) | ((qh[0] & kmask1) << 4)) - 32.f);
+              sums.s1 += y[0+32] * ((float)((q2[0] & 0xF) | ((qh[0] & kmask2) << 2)) - 32.f);
+              sums.s2 += y[0+64] * ((float)((q1[0]  >> 4) | ((qh[0] & kmask3) << 0)) - 32.f);
+              sums.s3 += y[0+96] * ((float)((q2[0]  >> 4) | ((qh[0] & kmask4) >> 2)) - 32.f);
+
+              sums.s0 += y[1+ 0] * ((float)((q1[1] & 0xF) | ((qh[1] & kmask1) << 4)) - 32.f);
+              sums.s1 += y[1+32] * ((float)((q2[1] & 0xF) | ((qh[1] & kmask2) << 2)) - 32.f);
+              sums.s2 += y[1+64] * ((float)((q1[1]  >> 4) | ((qh[1] & kmask3) << 0)) - 32.f);
+              sums.s3 += y[1+96] * ((float)((q2[1]  >> 4) | ((qh[1] & kmask4) >> 2)) - 32.f);
+
+              sums.s0 += y[2+ 0] * ((float)((q1[2] & 0xF) | ((qh[2] & kmask1) << 4)) - 32.f);
+              sums.s1 += y[2+32] * ((float)((q2[2] & 0xF) | ((qh[2] & kmask2) << 2)) - 32.f);
+              sums.s2 += y[2+64] * ((float)((q1[2]  >> 4) | ((qh[2] & kmask3) << 0)) - 32.f);
+              sums.s3 += y[2+96] * ((float)((q2[2]  >> 4) | ((qh[2] & kmask4) >> 2)) - 32.f);
+
+              sums.s0 += y[3+ 0] * ((float)((q1[3] & 0xF) | ((qh[3] & kmask1) << 4)) - 32.f);
+              sums.s1 += y[3+32] * ((float)((q2[3] & 0xF) | ((qh[3] & kmask2) << 2)) - 32.f);
+              sums.s2 += y[3+64] * ((float)((q1[3]  >> 4) | ((qh[3] & kmask3) << 0)) - 32.f);
+              sums.s3 += y[3+96] * ((float)((q2[3]  >> 4) | ((qh[3] & kmask4) >> 2)) - 32.f);
+
+              sumf += dall * (sums.s0 * sc[0] + sums.s1 * sc[2] + sums.s2 * sc[4] + sums.s3 * sc[6]);
+          }
+
+          float tot = sub_group_reduce_add(sumf);
+          if (get_sub_group_local_id() == 0) {
+              dst[r1*ne0 + im*ne0*ne1 + row] = tot;
+          }
+      }
     )";
 
   return q6_k_sgemv_cl_kernel_;
+}
+
+const std::string &getQ6KQ81SgemvClKernel() {
+  static const std::string q6_k_q8_1_sgemv_cl_kernel_ =
+    R"(
+      typedef char int8_t;
+      typedef uchar uint8_t;
+      typedef short int16_t;
+      typedef ushort uint16_t;
+      typedef int int32_t;
+      typedef uint uint32_t;
+
+      #define QK_K 256
+      
+      #define WARP_SIZE 32
+
+      #define VDR_Q6_K_Q8_1_MMQ 8
+      
+      #define QR6_K 2
+      #define QI6_K (QK_K / (4 * QR6_K))
+
+      #define QK8_1 32
+      #define QR8_1 1
+      #define QI8_1 (QK8_1 / (4 * QR8_1))
+      
+      #define MMQ_TILE_Y_K (WARP_SIZE * QR6_K)
+
+      typedef struct
+      {
+        int qs;
+        int dm;
+        int sc;
+      } tile_x_sizes;
+
+      // NOTE(m.wlasiuk) : https://github.com/ggml-org/llama.cpp/blob/c46503014db0d63fa7b1b28c58adfb51054e2dec/ggml/src/ggml-cuda/mmq.cuh#L158
+      tile_x_sizes mmq_get_dp4a_tile_x_sizes_q6k(int mmq_y)
+      {
+        return (tile_x_sizes)
+        {
+          mmq_y * WARP_SIZE * 2 + mmq_y,
+          mmq_y * WARP_SIZE / QI6_K + mmq_y / QI6_K,
+          mmq_y * WARP_SIZE / 8 + mmq_y / 8
+        };
+      } 
+
+      // NOTE(m.wlasiuk) : https://github.com/ggml-org/llama.cpp/blob/c46503014db0d63fa7b1b28c58adfb51054e2dec/ggml/src/ggml-cuda/vecdotq.cuh#L501
+      int ggml_cuda_dp4a(const int a, const int b, int sum)
+      {
+        char4 a_vec = *(char*)&a;
+        char4 b_vec = *(char*)&b;
+
+        return sum + a_vec.s0 * b_vec.s0
+                   + a_vec.s1 * b_vec.s1
+                   + a_vec.s2 * b_vec.s2
+                   + a_vec.s3 * b_vec.s3;
+      }
+
+      // NOTE(m.wlasiuk) : https://github.com/ggml-org/llama.cpp/blob/c46503014db0d63fa7b1b28c58adfb51054e2dec/ggml/src/ggml-cuda/vecdotq.cuh#L501
+      float vec_dot_q6_K_q8_1_impl_mmq(
+        const __global int * restrict v,
+        const __global int * restrict u,
+        const global int8_t * restrict sc,
+        const float d6,
+        const __global float* restrict d8)
+      {
+        float sumf_d = 0.0f;
+
+        const int      sc_packed = *((const __global int *)sc);
+        const int8_t * sc_reg = (const int8_t *)&sc_packed;
+
+        for(int i0 = 0; i0 < VDR_Q6_K_Q8_1_MMQ; i0 +=4)
+        {
+          int2 sumi_d = (int2)(0, 0);
+
+          for(int i = i0; i < i0 + 2; i++)
+          {
+            sumi_d.x = ggml_cuda_dp4a(v[2 * i + 0], u[2 * i + 0], sumi_d.x);
+            sumi_d.x = ggml_cuda_dp4a(v[2 * i + 1], u[2 * i + 1], sumi_d.x);
+
+            sumi_d.y = ggml_cuda_dp4a(v[2 * i + 4], u[2 * i + 4], sumi_d.y);
+            sumi_d.y = ggml_cuda_dp4a(v[2 * i + 5], u[2 * i + 5], sumi_d.y);
+          }
+
+          sumf_d += d8[i0/4] * (sc_reg[i0 / 2 + 0] * sumi_d.x + sc_reg[i0 / 2 + 1] * sumi_d.y);
+        }
+
+        return d6 * sumf_d;
+      }
+
+      // NOTE(m.wlasiuk) : https://github.com/ggml-org/llama.cpp/blob/c46503014db0d63fa7b1b28c58adfb51054e2dec/ggml/src/ggml-cuda/mmq.cuh#L1696
+      // vec_dot_q6_K_q8_1_dp4a
+      __kernel void kernel_mul_mv_q6_K_q8_1(
+        const __global int * restrict x,
+        const __global int * restrict y,
+        __global float * restrict sum,
+        const int k00,
+        const int mmq_x,
+        const int mmq_y,
+        const int nwarps)
+      {
+        const tile_x_sizes txs = mmq_get_dp4a_tile_x_sizes_q6k(mmq_y);
+
+        const __global int   * x_qs = x;
+        const __global float * x_df = (const __global float*)(x_qs + txs.qs);
+        const __global int   * x_sc = (const __global int*)(x_df + txs.dm);
+        const __global int   * y_qs = y + 4;
+        const __global float * y_df = (const __global float*)y;
+
+        const int tid_x = get_local_id(0);
+        const int tid_y = get_local_id(1);
+
+        for(int k01 = 0; k01 < WARP_SIZE; k01 += QR6_K * VDR_Q6_K_Q8_1_MMQ)
+        {
+          const int k0 = k00 + k01;
+
+          for(int j0 = 0; j0 < mmq_x; j0 += nwarps)
+          {
+            const int j = j0 + tid_y;
+
+            for(int i0 = 0; i0 < mmq_y; i0 += WARP_SIZE)
+            {
+              const int i = i0 + tid_x;
+
+              const __global int8_t * sc = (const __global int8_t*)&x_sc[i * (WARP_SIZE / 8) + i / 8 + k0 / 16];
+
+              sum[j0 / nwarps * mmq_y / WARP_SIZE + i0 / WARP_SIZE] += vec_dot_q6_K_q8_1_impl_mmq(
+                &x_qs[i * (QR6_K * WARP_SIZE + 1) + k0],
+                &y_qs[j * MMQ_TILE_Y_K + k01],
+                sc,
+                x_df[i * (WARP_SIZE / QI6_K) + i / QI6_K],
+                &y_df[j * MMQ_TILE_Y_K + k01 / QI8_1]);
+            }
+          }
+        }
+      }
+
+    )";
+  return q6_k_q8_1_sgemv_cl_kernel_;
+}
+
+// NOTE(m.wlasiuk) : skip
+const std::string &getQ4KQ81SgemvClKernel() {
+  static const std::string q4_k_q8_1_sgemv_cl_kernel_ =
+    R"(
+    // PLACEHOLDER
+      __kernel void kernel_mul_mv_q4_K_q8_1()
+      {
+      }
+
+    //  #define WARP_SIZE 32
+    //  #define QR4_K 2
+    //  #define VDR_Q4_K_Q8_1_MMQ 2
+    //  #define QI8_1 8
+    //  #define QI4_K 32
+    //  #define QK8_1 32
+    //  #define MMQ_ITER_K 32
+    //  #define MMQ_TILE_Y_K (WARP_SIZE * QR4_K)
+    //  #define GGML_PAD(x, n) (((x) + (n) - 1) & ~((n) - 1))
+    //
+    //  typedef struct
+    //  {
+    //    int qs;
+    //    int dm;
+    //    int sc;
+    //  } tile_x_sizes;
+    //
+    //  tile_x_sizes mmq_get_dp4a_tile_x_sizes_q4k(int mmq_y)
+    //  {
+    //    return (tile_x_sizes)
+    //    {
+    //      mmq_y * WARP_SIZE + mmq_y,
+    //      mmq_y * WARP_SIZE / QI4_K,
+    //      mmq_y * WARP_SIZE / 8 + mmq_y / 8
+    //    };
+    //  }
+    //
+    //  int ggml_cuda_dp4a(const int a, const int b, int c)
+    //  {
+    //    char4 va = *(char4*)&a;
+    //    char4 vb = *(char4*)&b;
+    //
+    //    return c + (va.s0 * vb.s0) + (va.s1 * vb.s1) + (va.s2 * vb.s2) + (va.s3 * vb.s3);
+    //  }
+    //
+    //  float vec_dot_q4_K_q8_1_impl_mmq(
+    //    const __global int * restrict v,
+    //    const __global int * restrict u,
+    //    const __global uint8_t * restrict sc,
+    //    const __global uint8_t * restrict m,
+    //    const half2 dm4,
+    //    const __global half2 * restrict ds8)
+    //  {
+    //    float sumf_d = 0.0f;
+    //    float sumf_m = 0.0f;
+    //
+    //    for(int i = 0; i < QR4_K * VDR_Q4_K_Q8_1_MMQ / QI8_1; i++)
+    //    {
+    //      int sumi_d = 0;
+    //
+    //      for(int j = 0; j < QI8_1; j++)
+    //      {
+    //        int v_val = (v[j] >> (4 * i)) & 0x0F0F0F0F;
+    //        int u_val = v[i * QI8_1 + j];
+    //
+    //        sumi_d = ggml_cuda_dp4a(v_val, u_val, sumi_d);
+    //      }
+    //
+    //      float2 ds8f = convert_float2(ds8[i]);
+    //
+    //      sumf_d += ds8f.x * (sc[i] * sumi_d);
+    //      sumf_m += ds8f.y * m[i];
+    //    }
+    //
+    //    float2 dm4f = convert_float2(dm4);
+    //
+    //    return dm4f.x * sumf_d - dm4f.y * sumf_m;
+    //  } 
+    //
+    //  void vec_dot_q4_K_q8_1_dp4a(
+    //    const __global int * restrict x,
+    //    const __global int * restrict y,
+    //    __global float* restrict sum,
+    //    const int k00,
+    //    const int mmq_x,
+    //    const int mmq_y,
+    //    const int nwarps)
+    //  {                                            
+    //    const tile_x_sizes txs = mmq_get_dp4a_tile_x_sizes_q4k(mmq_y);
+    //
+    //    const __global int * x_qs = x;
+    //    const __global half2 * x_dm = (const __global half2*)(x_qs + txs.qs);
+    //    const __global int * x_sc = (const __global int*)(x_dm + txs.dm);
+    //    const __global int * y_qs = y + 4;
+    //    const __global half2* y_ds = (const __global half2*)y;
+    //
+    //    int tid_x = get_local_id(0);
+    //    int tid_y = get_local_id(1);
+    //
+    //    int warp_id = tid_y;
+    //
+    //    for(int k01 = 0; k01 < WARP_SIZE; k01 += QR4_K * VDR_Q4_K_Q8_1_MMQ)
+    //    {
+    //      const int k0 = k00 + k01;
+    //
+    //      for(int j0 = 0; j0 < mmq_x; j0 += nwarps)
+    //      {
+    //        const j = j0 + warp_id;
+    //        
+    //        if(j >= mmq_x)
+    //        {
+    //          constinue;
+    //        }
+    //      
+    //        for(int i0 = 0; i0 < mmq_y; i0 += WARP_SIZE)
+    //        {
+    //          if(i >= mmq_y)
+    //          {
+    //            constinue;
+    //          }
+    //          
+    //          const __global uint8_t* sc = (const __global uint8_t*)&x_sc[i * (WARP_SIZE / 8) + i / 8 + k0 / 32] + 2 * (k01 / 16);
+    //
+    //          float result = vec_dot_q4_K_q8_1_impl_mmq(
+    //            &x_qs[i * (WARP_SIZE + 1) + k0 / 2],
+    //            &y_qs[j * MMQ_TILE_Y_K + k01],
+    //            sc,
+    //            sc + 8,
+    //            x_dm[i],
+    //            &y_ds[i * MMQ_TILE_Y_K + k01 / QI8_1]);
+    //
+    //          atomic_add(&sum[j0 / nwarps * mmq_y / WARP_SIZE + i0 / WARP_SIZE], result);
+    //        }
+    //      }
+    //    }
+    //  }
+    //
+    //  void load_tiles_q4_K(
+    //    const __global char* restrict x,
+    //    __local int* restrict x_tile,
+    //    const int kbx0,
+    //    const int i_max,
+    //    const int stride,
+    //    const int mmq_y,
+    //    const int nwarps,
+    //    const int need_check)
+    //  {
+    //  }
+    //
+    //  void mul_mat_q_process_tile(
+    //    const __global_ char* restrict x,
+    //    const int offset_x,
+    //    const __global int* restrict y,
+    //    const __global int* restrict ids_dst,
+    //    __global_ float* restrict dst,
+    //    __global float* restrict tmp_fixup,
+    //    const int stride_row_x,
+    //    const int ncols_y,
+    //    const int stride_col_dst,
+    //    const int tile_x_max_i,
+    //    const int tile_y_max_j,
+    //    const int kb0_start,
+    //    const int kb0_stop,
+    //    const int mmq_x,
+    //    const int nwarps,
+    //    const int need_check,
+    //    const int fixup,
+    //    __local int* data_mul_mat_q)
+    //  {
+    //    const int qk = QK4_K;
+    //    const int mmq_y = 64; // NOTE : idk?
+    //
+    //    __local int* tile_y = data_mul_mat_q + mmq_x;
+    //    __local int* tile_x = tile_y + GGML_PAD(mmq_x * (WARP_SIZE + WARP_SIZE / QI8_1), nwarps * WARP_SIZE);
+    //
+    //    float sum[mmq_x * mmq_y / nwarps * WARP_SIZE] = {0.0f};
+    //
+    //    const int blocks_per_iter = MMQ_ITER_K / qk;
+    //    
+    //    const int tid_x = get_local_id(0);
+    //    const int tid_y = get_local_id(1);
+    //
+    //    for(int kb0 = kb0_start; kb0 < kb0_stop; kb0 += blocks_per_iter)
+    //    {
+    //      load_tiles_q4_K(x, tile_x, offset_x + kb0, tile_x_max_i, stride_row_x);
+    //
+    //      {
+    //        const __global int * by0 = y + ncols_y * (kb0 * (qk*sizeof(block_q8_1_mmq) / (4 * QK8_1*sizeof(int))));
+    //        
+    //        for(int l0 = 0; l0 < mmq_x * MMQ_TILE_Y_K; l0 += nwarps * WARP_SIZE)
+    //        {
+    //          int l = l0 + tid_y * WARP_SIZE + tid_x;
+    //          if(!need_check || l < mmq_x * MMQ_TILE_Y_K)
+    //          {
+    //            tile_y[l] = by0[l];
+    //          }
+    //        }
+    //      }
+    //
+    //      barrier(CLK_LOCAL_MEM_FENCE);
+    //      vec_dot_q4_K_q8_1_dp4a(tile_x, tile_y, sum, 0, mmq_x, mmq_y, nwarps);
+    //      barrier(CLK_LOCAL_MEM_FENCE);
+    //      
+    //      {
+    //        const __global int * by0 = y + ncols_y * (kb0 * (qk * sizeof(block_q8_1_mmq) / (4 * QK8_1 * sizeof(int)) + sizeof(block_q8_1_mmq) / sizeof(int)));
+    //
+    //        for(int l0 = 0; l0 < mmq_x * MMQ_TILE_Y_K; l0 += nwarps * WARP_SIZE)
+    //        {
+    //          int l = l0 + tid_y * WARP_SIZE + tid_x;
+    //          if(!need_check || l < mmq_x * MMQ_TILE_Y_K)
+    //          {
+    //            tile_y[l] = by0[l]
+    //          }
+    //        }
+    //      }
+    //
+    //      barrier(CLK_LOCAL_MEM_FENCE);
+    //      vec_dot_q4_K_q8_1_dp4a(tile_x, tile_y, sum, WARP_SIZE, mmq_x, mmq_y, nwarps);
+    //      barrier(CLK_LOCAL_MEM_FENCE);
+    //    }
+    //
+    //    if(fixup)
+    //    {
+    //      mmq_write_back_dp4a(sum, ids_dst, tmp_fixup + get_group_id(0) * (mmq_x * mmq_y), mmq_y, mmq_y, mmq_x);
+    //    }
+    //    else
+    //    {
+    //      mmq_write_back_dp4a(sum, ids_dst, dst, stride_col_dst, tile_x_max_i, tile_y_max_j);
+    //    }
+    //  }
+    //
+    //  // kernel mul_mat_q .....
+    //)";
+  return q4_k_q8_1_sgemv_cl_kernel_;
 }
 
 const std::string &getSgemvClKernel() {
