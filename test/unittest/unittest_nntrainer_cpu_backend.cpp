@@ -696,20 +696,24 @@ TEST(nntrainer_cpu_backend_standalone, ele_add_3072_istr_1) {
   run_ele_add_test(N, alpha, beta, i_stride, o_stride);
 }
 
-TEST(nntrainer_cpu_backend_standalone, ele_add_3072_istr_16_ostrid_16) {
-  const unsigned int N = 3072;
-  const float alpha = 3.f;
-  const float beta = 2.f;
-  const unsigned int i_stride = 16;
-  const unsigned int o_stride = 16;
-  run_ele_add_test(N, alpha, beta, i_stride, o_stride);
-TEST(nntrainer_cpu_backend_standalone, q_6_K_test) {
-  size_t M = 1;
-  size_t K = 3072;
-  size_t N = 105900;
+static void run_q_6_K_test(const uint32_t M, const uint32_t K,
+                           const uint32_t N) {
 
-  std::vector<float> activation = generate_random_vector<float>(M * K);
-  std::vector<float> weight = generate_random_vector<float>(N * K);
+  auto debug_print_beg_end = [M, K, N](const float *const data,
+                                       const uint32_t count = 5) {
+    std::cout << "[";
+    for (unsigned int i = 0; i < count; ++i) {
+      std::cout << data[i] << " ";
+    }
+    std::cout << "][";
+    for (unsigned int i = M * N - count; i < M * N; ++i) {
+      std::cout << data[i] << " ";
+    }
+    std::cout << "]";
+  };
+
+  std::vector<float> activation = generate_random_vector<float, false>(M * K);
+  std::vector<float> weight = generate_random_vector<float, false>(N * K);
   std::vector<float> ref_dst(M * N);
 
   float *weights = weight.data();
@@ -727,9 +731,6 @@ TEST(nntrainer_cpu_backend_standalone, q_6_K_test) {
   // (Zero latency overhead for the model runtime)
   nntrainer::quantize_q6_K(weights, (void *)offline_qWeight_ptr, N, K, nullptr);
 
-  std::cout << "q6_K data size: " << data_size / (1024 * 1024.0f) << " MB"
-            << std::endl;
-
   // Step2. Run GEMM!
   std::vector<float> dst(M * N);
   auto t1 = high_resolution_clock::now();
@@ -741,18 +742,7 @@ TEST(nntrainer_cpu_backend_standalone, q_6_K_test) {
 
   // #### MAIN TESTED METHOD ####
   auto t2 = high_resolution_clock::now();
-  auto dt = duration_cast<microseconds>(t2 - t1);
-
-  std::cout << "gemm_q6_K: " << dt.count() / 100.f << " us " << std::endl;
-
-  std::cout << "[CPU]: ";
-  for (unsigned int i = 0; i < 5; ++i) {
-    std::cout << dst[i] << " ";
-  }
-  for (unsigned int i = M * N - 5; i < M * N; ++i) {
-    std::cout << dst[i] << " ";
-  }
-  std::cout << std::endl;
+  auto dt = duration_cast<nanoseconds>(t2 - t1);
 
   std::vector<float> dst_gpu(M * N);
   auto t3 = high_resolution_clock::now();
@@ -762,36 +752,207 @@ TEST(nntrainer_cpu_backend_standalone, q_6_K_test) {
   }
 
   auto t4 = high_resolution_clock::now();
-  auto gpu_dt = duration_cast<microseconds>(t4 - t3);
+  auto gpu_dt = duration_cast<nanoseconds>(t4 - t3);
 
-  std::cout << "gemm_q6_K: " << gpu_dt.count() / 100.f << " us " << std::endl;
+  uint32_t first_zero_index = UINT32_MAX;
+  int zeros = 0;
+  int nans = 0;
 
-  std::cout << "[GPU]: ";
-  for (unsigned int i = 0; i < 5; ++i) {
-    std::cout << dst_gpu[i] << " ";
-  }
-  for (unsigned int i = M * N - 5; i < M * N; ++i) {
-    std::cout << dst_gpu[i] << " ";
-  }
-  std::cout << std::endl;
-
-  int count = 0;
-  for (unsigned int i = 0; i < M * N; ++i) {
+  for (uint32_t i = 0; i < M * N; ++i) {
     if (dst_gpu[i] == 0) {
-      count++;
+      zeros++;
+      if (first_zero_index == UINT32_MAX) {
+        first_zero_index = i;
+      }
+    }
+
+    if (std::isnan(dst_gpu[i])) {
+      nans++;
     }
   }
-  std::cout << "[debug] " << count << " zeros found" << std::endl;
 
-  std::cout << "[Float]: ";
-  for (unsigned int i = 0; i < 5; ++i) {
-    std::cout << ref_dst[i] << " ";
-  }
-  for (unsigned int i = M * N - 5; i < M * N; ++i) {
-    std::cout << ref_dst[i] << " ";
-  }
+  const auto mean_squared_error_dst_gpu =
+    compute_mse(M, N, ref_dst, dst_gpu, false);
+  const auto mean_squared_error_dst = compute_mse(M, N, ref_dst, dst, false);
+
+  const auto data_size_mb = data_size / (1024 * 1024.0f);
+
+  std::cout << "--- Raport : " << M << " x " << K << " x " << N << std::endl;
+  std::cout << " - q6_K data size : " << data_size_mb << " [MB]" << std::endl;
+  std::cout << " - time : CPU = " << dt.count() / (1000.f * 1000.0f) << " ms"
+            << std::endl;
+  std::cout << " - time : GPU = " << gpu_dt.count() / (1000.f * 1000.0f)
+            << " ms" << std::endl;
+  std::cout << " - sample : CPU = ";
+  debug_print_beg_end(dst.data());
   std::cout << std::endl;
+  std::cout << " - sample : GPU = ";
+  debug_print_beg_end(dst_gpu.data());
+  std::cout << std::endl;
+  std::cout << " - zeros : " << zeros << " / " << M * N << " [ "
+            << zeros * 100.0f / float(M * N) << " %] - first at [ "
+            << first_zero_index << " ]" << std::endl;
+  std::cout << " - nans : " << nans << " / " << M * N << " [ "
+            << nans * 100.0f / float(M * N) << " %]" << std::endl;
+  std::cout << " - MSE : CPU = " << mean_squared_error_dst << std::endl;
+  std::cout << " - MSE : GPU = " << mean_squared_error_dst_gpu << std::endl;
 }
+
+#define DECLARE_q_6_K_test_M_K_N(M, K, N)                                      \
+  TEST(nntrainer_cpu_backend_standalone, q_6_K_test_##M##_##K##_##N) {         \
+    run_q_6_K_test(M, K, N);                                                   \
+  }
+
+// DECLARE_q_6_K_test_M_K_N(1, 512, 32);
+// DECLARE_q_6_K_test_M_K_N(1, 768, 32);
+// DECLARE_q_6_K_test_M_K_N(1, 1024, 32);
+// DECLARE_q_6_K_test_M_K_N(1, 2048, 32);
+// DECLARE_q_6_K_test_M_K_N(1, 4096, 32);
+// DECLARE_q_6_K_test_M_K_N(1, 8192, 32);
+// DECLARE_q_6_K_test_M_K_N(1, 16384, 32);
+// DECLARE_q_6_K_test_M_K_N(1, 32768, 32);
+// DECLARE_q_6_K_test_M_K_N(1, 65536, 32);
+// DECLARE_q_6_K_test_M_K_N(1, 131072, 32);
+//
+// DECLARE_q_6_K_test_M_K_N(1, 512, 64);
+// DECLARE_q_6_K_test_M_K_N(1, 768, 64);
+// DECLARE_q_6_K_test_M_K_N(1, 1024, 64);
+// DECLARE_q_6_K_test_M_K_N(1, 2048, 64);
+// DECLARE_q_6_K_test_M_K_N(1, 4096, 64);
+// DECLARE_q_6_K_test_M_K_N(1, 8192, 64);
+// DECLARE_q_6_K_test_M_K_N(1, 16384, 64);
+// DECLARE_q_6_K_test_M_K_N(1, 32768, 64);
+// DECLARE_q_6_K_test_M_K_N(1, 65536, 64);
+// DECLARE_q_6_K_test_M_K_N(1, 131072, 64);
+//
+// DECLARE_q_6_K_test_M_K_N(1, 512, 128);
+// DECLARE_q_6_K_test_M_K_N(1, 768, 128);
+// DECLARE_q_6_K_test_M_K_N(1, 1024, 128);
+// DECLARE_q_6_K_test_M_K_N(1, 2048, 128);
+// DECLARE_q_6_K_test_M_K_N(1, 4096, 128);
+// DECLARE_q_6_K_test_M_K_N(1, 8192, 128);
+// DECLARE_q_6_K_test_M_K_N(1, 16384, 128);
+// DECLARE_q_6_K_test_M_K_N(1, 32768, 128);
+// DECLARE_q_6_K_test_M_K_N(1, 65536, 128);
+// DECLARE_q_6_K_test_M_K_N(1, 131072, 128);
+//
+// DECLARE_q_6_K_test_M_K_N(1, 128, 512);
+// DECLARE_q_6_K_test_M_K_N(1, 128, 768);
+// DECLARE_q_6_K_test_M_K_N(1, 128, 1024);
+// DECLARE_q_6_K_test_M_K_N(1, 128, 2048);
+// DECLARE_q_6_K_test_M_K_N(1, 128, 4096);
+// DECLARE_q_6_K_test_M_K_N(1, 128, 8192);
+// DECLARE_q_6_K_test_M_K_N(1, 128, 16384);
+// DECLARE_q_6_K_test_M_K_N(1, 128, 32768);
+// DECLARE_q_6_K_test_M_K_N(1, 128, 65536);
+// DECLARE_q_6_K_test_M_K_N(1, 128, 131072);
+//
+// DECLARE_q_6_K_test_M_K_N(1, 256, 512);
+// DECLARE_q_6_K_test_M_K_N(1, 256, 768);
+// DECLARE_q_6_K_test_M_K_N(1, 256, 1024);
+// DECLARE_q_6_K_test_M_K_N(1, 256, 2048);
+// DECLARE_q_6_K_test_M_K_N(1, 256, 4096);
+// DECLARE_q_6_K_test_M_K_N(1, 256, 8192);
+// DECLARE_q_6_K_test_M_K_N(1, 256, 16384);
+// DECLARE_q_6_K_test_M_K_N(1, 256, 32768);
+// DECLARE_q_6_K_test_M_K_N(1, 256, 65536);
+// DECLARE_q_6_K_test_M_K_N(1, 256, 131072);
+//
+// DECLARE_q_6_K_test_M_K_N(1, 512, 256);
+// DECLARE_q_6_K_test_M_K_N(1, 768, 256);
+// DECLARE_q_6_K_test_M_K_N(1, 1024, 256);
+// DECLARE_q_6_K_test_M_K_N(1, 2048, 256);
+// DECLARE_q_6_K_test_M_K_N(1, 4096, 256);
+// DECLARE_q_6_K_test_M_K_N(1, 8192, 256);
+// DECLARE_q_6_K_test_M_K_N(1, 16384, 256);
+// DECLARE_q_6_K_test_M_K_N(1, 32768, 256);
+// DECLARE_q_6_K_test_M_K_N(1, 65536, 256);
+// DECLARE_q_6_K_test_M_K_N(1, 131072, 256);
+//
+// // DECLARE_q_6_K_test_M_K_N(1, 384, 512);
+// // DECLARE_q_6_K_test_M_K_N(1, 384, 768);
+// // DECLARE_q_6_K_test_M_K_N(1, 384, 1024);
+// // DECLARE_q_6_K_test_M_K_N(1, 384, 2048);
+// // DECLARE_q_6_K_test_M_K_N(1, 384, 4096);
+// // DECLARE_q_6_K_test_M_K_N(1, 384, 8192);
+// // DECLARE_q_6_K_test_M_K_N(1, 384, 16384);
+// // DECLARE_q_6_K_test_M_K_N(1, 384, 32768);
+// // DECLARE_q_6_K_test_M_K_N(1, 384, 65536);
+// // DECLARE_q_6_K_test_M_K_N(1, 384, 131072);
+//
+// DECLARE_q_6_K_test_M_K_N(1, 512, 384);
+// DECLARE_q_6_K_test_M_K_N(1, 768, 384);
+// DECLARE_q_6_K_test_M_K_N(1, 1024, 384);
+// DECLARE_q_6_K_test_M_K_N(1, 2048, 384);
+// DECLARE_q_6_K_test_M_K_N(1, 4096, 384);
+// DECLARE_q_6_K_test_M_K_N(1, 8192, 384);
+// DECLARE_q_6_K_test_M_K_N(1, 16384, 384);
+// DECLARE_q_6_K_test_M_K_N(1, 32768, 384);
+// DECLARE_q_6_K_test_M_K_N(1, 65536, 384);
+// DECLARE_q_6_K_test_M_K_N(1, 131072, 384);
+//
+// DECLARE_q_6_K_test_M_K_N(1, 512, 320);
+// DECLARE_q_6_K_test_M_K_N(1, 768, 320);
+// DECLARE_q_6_K_test_M_K_N(1, 1024, 320);
+// DECLARE_q_6_K_test_M_K_N(1, 2048, 320);
+// DECLARE_q_6_K_test_M_K_N(1, 4096, 320);
+// DECLARE_q_6_K_test_M_K_N(1, 8192, 320);
+// DECLARE_q_6_K_test_M_K_N(1, 16384, 320);
+// DECLARE_q_6_K_test_M_K_N(1, 32768, 320);
+// DECLARE_q_6_K_test_M_K_N(1, 65536, 320);
+// DECLARE_q_6_K_test_M_K_N(1, 131072, 320);
+//
+// DECLARE_q_6_K_test_M_K_N(1, 512, 288);
+// DECLARE_q_6_K_test_M_K_N(1, 768, 288);
+// DECLARE_q_6_K_test_M_K_N(1, 1024, 288);
+// DECLARE_q_6_K_test_M_K_N(1, 2048, 288);
+// DECLARE_q_6_K_test_M_K_N(1, 4096, 288);
+// DECLARE_q_6_K_test_M_K_N(1, 8192, 288);
+// DECLARE_q_6_K_test_M_K_N(1, 16384, 288);
+// DECLARE_q_6_K_test_M_K_N(1, 32768, 288);
+// DECLARE_q_6_K_test_M_K_N(1, 65536, 288);
+// DECLARE_q_6_K_test_M_K_N(1, 131072, 288);
+//
+// DECLARE_q_6_K_test_M_K_N(1, 512, 768);
+// DECLARE_q_6_K_test_M_K_N(1, 512, 1024);
+// DECLARE_q_6_K_test_M_K_N(1, 512, 2048);
+// DECLARE_q_6_K_test_M_K_N(1, 512, 4096);
+// DECLARE_q_6_K_test_M_K_N(1, 512, 8192);
+// DECLARE_q_6_K_test_M_K_N(1, 512, 16384);
+// DECLARE_q_6_K_test_M_K_N(1, 512, 32768);
+// DECLARE_q_6_K_test_M_K_N(1, 512, 65536);
+// DECLARE_q_6_K_test_M_K_N(1, 512, 131072);
+//
+// DECLARE_q_6_K_test_M_K_N(1, 768, 512);
+// DECLARE_q_6_K_test_M_K_N(1, 1024, 512);
+// DECLARE_q_6_K_test_M_K_N(1, 2048, 512);
+// DECLARE_q_6_K_test_M_K_N(1, 4096, 512);
+// DECLARE_q_6_K_test_M_K_N(1, 8192, 512);
+// DECLARE_q_6_K_test_M_K_N(1, 16384, 512);
+// DECLARE_q_6_K_test_M_K_N(1, 32768, 512);
+// DECLARE_q_6_K_test_M_K_N(1, 65536, 512);
+// DECLARE_q_6_K_test_M_K_N(1, 131072, 512);
+//
+// DECLARE_q_6_K_test_M_K_N(1, 768, 1024);
+// DECLARE_q_6_K_test_M_K_N(1, 768, 2048);
+// DECLARE_q_6_K_test_M_K_N(1, 768, 4096);
+// DECLARE_q_6_K_test_M_K_N(1, 768, 8192);
+// DECLARE_q_6_K_test_M_K_N(1, 768, 16384);
+// DECLARE_q_6_K_test_M_K_N(1, 768, 32768);
+// DECLARE_q_6_K_test_M_K_N(1, 768, 65536);
+// DECLARE_q_6_K_test_M_K_N(1, 768, 131072);
+//
+// DECLARE_q_6_K_test_M_K_N(1, 1024, 768);
+// DECLARE_q_6_K_test_M_K_N(1, 2048, 768);
+// DECLARE_q_6_K_test_M_K_N(1, 4096, 768);
+// DECLARE_q_6_K_test_M_K_N(1, 8192, 768);
+// DECLARE_q_6_K_test_M_K_N(1, 16384, 768);
+// DECLARE_q_6_K_test_M_K_N(1, 32768, 768);
+// DECLARE_q_6_K_test_M_K_N(1, 65536, 768);
+// DECLARE_q_6_K_test_M_K_N(1, 131072, 768);
+
+DECLARE_q_6_K_test_M_K_N(1, 3072, 105900);
+// FYI, the target dimension for sgemv is 1 x 3072 x 105900.
 
 int main(int argc, char **argv) {
   int result = -1;
