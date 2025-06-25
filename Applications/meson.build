@@ -46,5 +46,3 @@ if host_machine.system() != 'windows'
   subdir('Custom')
   subdir('PicoGPT/jni')
 endif
-
-subdir('FELICE')
