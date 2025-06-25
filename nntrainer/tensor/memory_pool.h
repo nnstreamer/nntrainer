@@ -23,9 +23,15 @@
 #include <memory>
 #include <vector>
 
+#include <engine.h>
 #include <memory_data.h>
 #include <memory_planner.h>
 #include <tensor_wrap_specs.h>
+
+#ifdef ENABLE_OPENCL
+#include <cl_context.h>
+#include <opencl_loader.h>
+#endif
 
 #include <cstdlib>
 #include <dynamic_library_loader.h>
@@ -64,6 +70,12 @@ enum {
 };
 
 namespace nntrainer {
+
+#ifdef ENABLE_OPENCL
+static ClContext *cl_context_ =
+  static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+#endif
+
 /**
  * @class   MemoryPool
  * @brief   Memory Pool provides a common pool for all the tensor memory
