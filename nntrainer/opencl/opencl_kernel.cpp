@@ -68,6 +68,26 @@ bool Kernel::SetKernelArguments(cl_uint arg_index, const void *arg_value,
 }
 
 /**
+ * @brief Set the Kernel Arguments
+ *
+ * @param arg_index index of the argument
+ * @param arg_value value of the argument
+ * @param size size of the argument
+ * @return true if successful or false otherwise
+ */
+bool Kernel::SetKernelSVMArguments(cl_uint arg_index, const void *arg_value) {
+  int error_code;
+  // returns NULL with error code if fails
+  error_code = clSetKernelArgSVMPointer(kernel_, arg_index, arg_value);
+  if (error_code != CL_SUCCESS) {
+    ml_loge("Failed to set argument. OpenCL error code: %d", error_code);
+    return false;
+  }
+
+  return true;
+}
+
+/**
  * @brief Get the Kernel object
  *
  * @return const cl_kernel
