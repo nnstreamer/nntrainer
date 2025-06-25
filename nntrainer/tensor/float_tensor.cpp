@@ -11,6 +11,13 @@
 
 #include <iomanip>
 #include <iostream>
+#include <chrono>
+using std::chrono::nanoseconds; // or microseconds
+using std::chrono::microseconds; // or microseconds
+using std::chrono::milliseconds; // or microseconds
+using std::chrono::seconds; // or microseconds
+using std::chrono::high_resolution_clock;
+using std::chrono::duration_cast;
 #include <numeric>
 
 #include <cpu_backend.h>
@@ -757,6 +764,7 @@ Tensor &FloatTensor::dotFloat(Tensor const &input, Tensor &output, bool trans,
     sgemm((unsigned int)dim.getStorageOrder(), trans, trans_in, M, N, K, alpha,
           data, lda, mdata, ldb, beta, rdata, ldc);
   }
+  std::cout << "operation type : SGEMM" << "  | " << M << "x" << K << "x" << N << std::endl;
 
   return output;
 }
@@ -773,18 +781,34 @@ Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
   unsigned int M, N, K;
 
   switch (dtype) {
-  case Tdatatype::Q4_K:
+  case Tdatatype::Q4_K:{
+
     M = getDim().height();
     K = getDim().width();
     N = input.getDim().width();
+
+     std::cout << "operation type : Q4_K" << "  | " << M << "x" << K << "x" << N;
+auto t1 = high_resolution_clock::now();
+
     gemm_q4_K(M, N, K, data, K, (void *)mdata, N, rdata, N);
+auto t2 = high_resolution_clock::now();
+auto dt = duration_cast<nanoseconds>(t2 - t1);
+std::cout << " | " << dt.count() << " ns " << dt.count() / 1'000 << " us " << dt.count() / 1'000'000 << " ms " << std::endl;
     break;
+  }
   case Tdatatype::Q6_K:
+{
     M = getDim().height();
     K = getDim().width();
     N = input.getDim().height();
+  std::cout << "operation type : Q6_K" << "  | " << M << "x" << K << "x" << N;
+auto t1 = high_resolution_clock::now();
     gemm_q6_K(M, N, K, data, K, (void *)mdata, N, rdata, N);
+auto t2 = high_resolution_clock::now();
+auto dt = duration_cast<nanoseconds>(t2 - t1);
+std::cout << " | " << dt.count() << " ns " << dt.count() / 1'000 << " us " << dt.count() / 1'000'000 << " ms " << std::endl;
     break;
+    }
   default:
     throw std::invalid_argument("Error: unsupported datatype");
   }

@@ -139,7 +139,7 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
     // Quantization of activations
     /// @note Heuristic inspection conducted that applying multithreading on
     /// run-time quantization hurts model latency
-    // #pragma omp parallel for schedule(guided) num_threads(16)
+    // #pragma omp parallel for schedule(guided) collapse(1) num_threads(16)
     for (int i = 0; i < static_cast<int>(M4); i++) {
       ::ggml_quantize_mat_q8_0_4x8(A + 4 * i * K,
                                    QA.data() + i * qa_4_rows_size, K);
@@ -148,7 +148,7 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
     int step_N = N / delta;
     int step_C = delta;
     int step_B = blocks_per_4_rows * sizeof(block_q4_0) * delta;
-#pragma omp parallel for schedule(guided) num_threads(16)
+#pragma omp parallel for schedule(guided) collapse(1) num_threads(16)
     for (int i = 0; i < step_N; i++) {
       ::ggml_gemm_q4_0_8x8_q8_0(K, C + i * step_C, ldc, (char *)B + i * step_B,
                                 QA.data(), M, delta);
@@ -232,7 +232,7 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
     }
 
 // Compute 4-divisible-M row portion with multithreaded GEMM
-#pragma omp parallel for schedule(guided) num_threads(n_threads)
+#pragma omp parallel for schedule(guided) collapse(1) num_threads(n_threads)
     for (int i = 0; i < n_threads; i++) {
     // int tid = omp_get_thread_num();
     // cpu_set_t cpuset;
@@ -259,8 +259,8 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
     n_threads = 8;
     if (N < 512 || K < 512) n_threads = 1; // for small K and N, use single thread
     if (N <= 1536 && K <= 1536) n_threads = 1;
-#pragma omp parallel for schedule(guided) collapse(2) num_threads(n_threads)
     for (unsigned int pb = M4 * 4; pb < M; pb++) {
+#pragma omp parallel for schedule(guided) num_threads(n_threads)
       for (int thread_idx = 0; thread_idx < n_threads; ++thread_idx) {
     // int tid = omp_get_thread_num();
     // cpu_set_t cpuset;
@@ -304,13 +304,13 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
     // Quantization of activations
     /// @note Heuristic inspection conducted that applying multithreading on
     /// run-time quantization hurts model latency
-    // #pragma omp parallel for schedule(guided) num_threads(16)
+    // #pragma omp parallel for schedule(guided) collapse(1) num_threads(16)
     for (int i = 0; i < static_cast<int>(M4); i++) {
       ::ggml_quantize_mat_q8_K_4x8(A + 4 * i * K,
                                    QA.data() + i * qa_4_rows_size, K);
     }
 
-#pragma omp parallel for schedule(guided) num_threads(thread_num)
+#pragma omp parallel for schedule(guided) collapse(1) num_threads(thread_num)
     for (int i = 0; i < thread_num; i++) {
       // cpu_set_t cpuset;
       // int tid = omp_get_thread_num();
@@ -376,7 +376,7 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
 
     const void *const quantized_A_data = quantized_A.data();
 
-#pragma omp parallel for schedule(guided) num_threads(thread_count)
+#pragma omp parallel for schedule(guided) collapse(1) num_threads(thread_count)
     for (int32_t thread_job = 0; thread_job < static_cast<int>(N);
          thread_job++) {
       const int32_t B_row_data_offset = B_row_size * thread_job;
