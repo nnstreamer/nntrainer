@@ -52,6 +52,15 @@ public:
                           size_t size);
 
   /**
+   * @brief Set the Kernel Arguments
+   *
+   * @param arg_index index of the argument
+   * @param arg_value value of the argument
+   * @return true if successful or false otherwise
+   */
+  bool SetKernelSVMArguments(cl_uint arg_index, const void *arg_value);
+
+  /**
    * @brief Get the Kernel object
    *
    * @return const cl_kernel
