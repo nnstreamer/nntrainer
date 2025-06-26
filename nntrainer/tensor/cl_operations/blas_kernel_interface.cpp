@@ -148,8 +148,9 @@ void dotCl(Tensor const &input, Tensor const &m, Tensor &result, bool trans,
       if (input.getFormat() == Tformat::NHWC) {
         sgemm_cl(trans, trans_m, data, mdata, rdata, M, N, K, lda, ldb, ldc);
       } else {
-        gemm_cl(0, trans, trans_m, M, N, K, 1.0f, data, (trans) ? M : K, mdata,
-                (trans_m) ? K : N, 1.0f, rdata, N);
+        ldc = (trans_m) ? mdim1 : mdim2;
+        gemm_cl(0, trans, trans_m, M, N, K, 1.0f, data, dim2, mdata, mdim2,
+                0.0f, rdata, ldc);
       }
     }
   } else if (input.getDataType() == ml::train::TensorDim::DataType::FP16) {
