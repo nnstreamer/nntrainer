@@ -145,6 +145,34 @@ public:
                              cl_event *event = nullptr);
 
   /**
+   * @brief Enqueue SVM memory map operation.
+   *
+   * @param svm_ptr Pointer to the SVM memory region to be mapped
+   * @param size Size of the SVM memory region to be mapped
+   * @param read_only Flag indicating whether the SVM memory should be mapped
+   * for read-only access (true) or read-write access (false).
+   * @param event Optional event object that can be used to query or wait for
+   * the mapping operation to complete. If not provided, the mapping will be
+   * blocking.
+   * @return true if mapping is successful, false otherwise.
+   */
+  bool enqueueSVMMap(void *svm_ptr, size_t size, bool read_only,
+                     cl_event *event = nullptr);
+
+  /**
+   * @brief Enqueue SVM memory unmap operation.
+   *
+   * This function unmaps a previously mapped SVM memory region.
+   *
+   * @param svm_ptr Pointer to the SVM memory region to be unmapped
+   * @param event  Optional event object that can be used to query or wait for
+   * the mapping operation to complete. If not provided, the mapping will be
+   * blocking.
+   * @return true if unmapping is successful, false otherwise.
+   */
+  bool enqueueSVMUnmap(void *svm_ptr, cl_event *event = nullptr);
+
+  /**
    * @brief Function to initiate execution of the command queue.
    *
    * @param kernel OpenCL kernel
