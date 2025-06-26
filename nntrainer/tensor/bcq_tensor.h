@@ -84,11 +84,6 @@ public:
   void deallocate() override;
 
   /**
-   * @copydoc Tensor::getData()
-   */
-  void *getData() const override;
-
-  /**
    * @copydoc Tensor::getData(size_t idx)
    */
   void *getData(size_t idx) const override;
@@ -308,6 +303,10 @@ private:
    * @brief print quantization scale factors
    */
   void printScales(std::ostream &out) const;
+
+  std::size_t getDataTypeBitsSize() const override {
+    return sizeof(uint32_t) * CHAR_BIT;
+  }
 };
 
 } // namespace nntrainer

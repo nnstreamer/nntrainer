@@ -121,6 +121,10 @@ private:
    */
   bool isValid() const override { return true; }
 
+  std::size_t getDataTypeBitsSize() const override {
+    return sizeof(uint8_t) * CHAR_BIT;
+  }
+
 }; // class Q4_K_Tensor
 
 } // namespace nntrainer

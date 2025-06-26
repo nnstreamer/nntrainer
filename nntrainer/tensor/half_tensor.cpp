@@ -61,9 +61,7 @@ void HalfTensor::allocate() {
     /** as this memory is shared, do NOT initialize */
   } else {
     /// allocate new memory for the tensor data
-    auto data_t =
-      std::make_shared<MemoryDataT<_FP16>>(new _FP16[dim.getDataLen()]);
-    data = std::static_pointer_cast<MemoryData>(std::move(data_t));
+    allocateInternal();
 
     offset = 0;
     initialize();
@@ -73,22 +71,6 @@ void HalfTensor::allocate() {
 void HalfTensor::deallocate() {
   data = nullptr;
   offset = 0;
-}
-
-void *HalfTensor::getData() const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return data->getAddr<_FP16>() + offset;
-}
-
-void *HalfTensor::getData(size_t idx) const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return data->getAddr<_FP16>() + offset + idx;
 }
 
 void *HalfTensor::getAddress(unsigned int i) {

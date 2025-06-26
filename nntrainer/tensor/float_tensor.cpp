@@ -64,9 +64,7 @@ void FloatTensor::allocate() {
     /** as this memory is shared, do NOT initialize */
   } else {
     /// allocate new memory for the tensor data
-    auto data_t =
-      std::make_shared<MemoryDataT<float>>(new float[dim.getDataLen()]);
-    data = std::static_pointer_cast<MemoryData>(std::move(data_t));
+    allocateInternal();
 
     offset = 0;
     initialize();
@@ -76,22 +74,6 @@ void FloatTensor::allocate() {
 void FloatTensor::deallocate() {
   data = nullptr;
   offset = 0;
-}
-
-void *FloatTensor::getData() const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return data->getAddr<float>() + offset;
-}
-
-void *FloatTensor::getData(size_t idx) const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return data->getAddr<float>() + offset + idx;
 }
 
 void *FloatTensor::getAddress(unsigned int i) {
