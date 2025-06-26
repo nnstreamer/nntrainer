@@ -64,9 +64,7 @@ CharTensor::CharTensor(
   NNTR_THROW_IF(scales.size() != scale_size(), std::invalid_argument)
     << "invalid scale factor size " << scales.size();
 
-  auto data_t = std::make_shared<MemoryDataT<int8_t>>(
-    new int8_t[dim.getDataLen() + sizeof(float) * scale_size()]);
-  data = std::static_pointer_cast<MemoryData>(std::move(data_t));
+  allocateInternal();
 
   offset = 0;
 
@@ -124,9 +122,7 @@ void CharTensor::allocate() {
     /** as this memory is shared, do NOT initialize */
   } else {
     /// allocate new memory for the tensor data
-    auto data_t = std::make_shared<MemoryDataT<int8_t>>(
-      new int8_t[dim.getDataLen() + 4 * scale_size()]);
-    data = std::static_pointer_cast<MemoryData>(std::move(data_t));
+    allocateInternal();
 
     offset = 0;
     initialize();
@@ -136,22 +132,6 @@ void CharTensor::allocate() {
 void CharTensor::deallocate() {
   data = nullptr;
   offset = 0;
-}
-
-void *CharTensor::getData() const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return data->getAddr<int8_t>() + offset;
-}
-
-void *CharTensor::getData(size_t idx) const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return data->getAddr<int8_t>() + offset + idx;
 }
 
 void *CharTensor::getScale() const {

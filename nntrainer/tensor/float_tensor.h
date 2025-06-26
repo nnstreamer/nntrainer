@@ -84,9 +84,7 @@ public:
     contiguous = true;
     initializer = Initializer::NONE;
 
-    auto data_t =
-      std::make_shared<MemoryDataT<float>>(new float[dim.getDataLen()]);
-    data = std::static_pointer_cast<MemoryData>(std::move(data_t));
+    allocateInternal();
 
     offset = 0;
 
@@ -142,16 +140,6 @@ public:
    * @copydoc Tensor::deallocate()
    */
   void deallocate() override;
-
-  /**
-   * @copydoc Tensor::getData()
-   */
-  void *getData() const override;
-
-  /**
-   * @copydoc Tensor::getData(size_t idx)
-   */
-  void *getData(size_t idx) const override;
 
   /**
    * @brief     i data index
@@ -539,6 +527,10 @@ private:
    */
   Tensor &dotQnK(Tensor const &input, Tensor &output, bool trans, bool trans_in,
                  float beta, Tdatatype dtype) const;
+
+  std::size_t getDataTypeBitsSize() const override {
+    return sizeof(float) * CHAR_BIT;
+  }
 };
 
 } // namespace nntrainer

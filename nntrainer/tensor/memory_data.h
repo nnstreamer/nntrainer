@@ -15,6 +15,7 @@
 #define __MEMORY_DATA_H__
 
 #include <functional>
+#include <iostream>
 
 namespace nntrainer {
 
@@ -27,113 +28,120 @@ class MemoryData {
 public:
   /**
    * @brief  Constructor of Memory Data
-   * @param[in] addr Memory data
+   * @param[in] addres Memory data address
+   * @param[in] own_memory Memory ownership flag
    */
-  explicit MemoryData(void *addr) :
-    valid(true),
-    id(0),
-    address(addr),
-    validate_cb([](unsigned int) {}),
-    invalidate_cb([](unsigned int) {}) {}
+  explicit MemoryData(void *address, bool own_memory) :
+    valid_(true),
+    id_(0),
+    address_(address),
+    own_memory_(own_memory),
+    validate_cb_([](unsigned int) {}),
+    invalidate_cb_([](unsigned int) {}) {
+
+    if ((address != nullptr) && !is_aligned(address, 4)) {
+      std::cout << "dupa";
+    }
+  }
 
   /**
    * @brief  Constructor of Memory Data
-   * @param[in] mem_id validate callback.
-   * @param[in] v_cb validate callback.
-   * @param[in] i_cb invalidate callback.
+   * @param[in] id validate callback.
+   * @param[in] validate_cb validate callback.
+   * @param[in] invalidate_cb invalidate callback.
    */
-  explicit MemoryData(unsigned int mem_id, MemoryDataValidateCallback v_cb,
-                      MemoryDataValidateCallback i_cb,
-                      void *memory_ptr = nullptr) :
-    valid(false),
-    id(mem_id),
-    address(memory_ptr),
-    validate_cb(v_cb),
-    invalidate_cb(i_cb) {}
+  explicit MemoryData(unsigned int id, MemoryDataValidateCallback validate_cb,
+                      MemoryDataValidateCallback invalidate_cb,
+                      void *address = nullptr) :
+    valid_(false),
+    id_(id),
+    address_(address),
+    own_memory_(false),
+    validate_cb_(validate_cb),
+    invalidate_cb_(invalidate_cb) {
+
+    if ((address != nullptr) && !is_aligned(address, 4)) {
+      std::cout << "dupa";
+    }
+  }
 
   /**
    * @brief  Deleted constructor of Memory Data
    */
   explicit MemoryData() = delete;
 
-  /**
-   * @brief  Constructor of MemoryData
-   */
-  explicit MemoryData(MemoryDataValidateCallback v_cb,
-                      MemoryDataValidateCallback i_cb) = delete;
-  /**
-   * @brief  Constructor of MemoryData
-   */
-  explicit MemoryData(void *addr, MemoryDataValidateCallback v_cb,
-                      MemoryDataValidateCallback i_cb) = delete;
+  MemoryData(const MemoryData &) = delete;
+
+  MemoryData &operator=(const MemoryData &) = delete;
 
   /**
    * @brief  Destructor of Memory Data
    */
-  virtual ~MemoryData() = default;
+  ~MemoryData() {
+    if (own_memory_ && (address_ != nullptr)) {
+      std::free(address_);
+    }
+  };
 
   /**
    * @brief  Set address
    */
-  void setAddr(void *addr) { address = addr; }
+  void setAddr(void *address) {
+    address_ = address;
+    if ((address != nullptr) && !is_aligned(address, 4)) {
+      std::cout << "dupa";
+    }
+  }
 
   /**
    * @brief  Get address
    */
   template <typename T = float> T *getAddr() const {
-    return static_cast<T *>(address);
+    return static_cast<T *>(address_);
   }
 
   /**
    * @brief  Validate memory data
    */
   void validate() {
-    if (valid)
+    if (valid_) {
       return;
-    if (validate_cb != nullptr)
-      validate_cb(id);
+    }
+
+    if (validate_cb_ != nullptr) {
+      validate_cb_(id_);
+    }
   }
 
   /**
    * @brief  Invalidate memory data
    */
   void invalidate() {
-    if (!valid)
+    if (!valid_) {
       return;
-    if (invalidate_cb != nullptr)
-      invalidate_cb(id);
+    }
+
+    if (invalidate_cb_ != nullptr) {
+      invalidate_cb_(id_);
+    }
   }
 
   /**
    * @brief  Set valid
    */
-  void setValid(bool v) { valid = v; }
+  void setValid(bool valid) { valid_ = valid; }
 
-protected:
-  bool valid;
-  unsigned int id;
-  void *address;
-  MemoryDataValidateCallback validate_cb;
-  MemoryDataValidateCallback invalidate_cb;
-};
+  bool is_aligned(const void *pointer, const std::size_t alignment) {
+    return ((reinterpret_cast<uintptr_t>(pointer) % alignment) == 0);
+  }
 
-/**
- * @class   MemoryDataT
- * @brief   MemoryDataT make possible to create classes derived from MemoryData
- * with proper memory release depends on data type
- */
-template <typename T> class MemoryDataT : public MemoryData {
-public:
-  /**
-   * @brief  Constructor of MemoryDataT
-   * @param[in] addr Memory data
-   */
-  explicit MemoryDataT(void *addr) : MemoryData(addr) {}
-
-  /**
-   * @brief  Destructor of MemoryDataT
-   */
-  ~MemoryDataT() override { delete[] static_cast<T *>(address); };
+private:
+  bool valid_;
+  unsigned int id_;
+  void *address_;
+  bool own_memory_;
+  MemoryDataValidateCallback validate_cb_;
+  MemoryDataValidateCallback invalidate_cb_;
 };
 
 } // namespace nntrainer

@@ -89,7 +89,6 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
     NNTR_THROW_IF(ptr == MAP_FAILED, std::runtime_error)
       << "SwapDevice: mmap: " << SAFE_STRERROR(errno, error_buf, error_buflen);
 
-
 #if !defined(__ANDROID__) && !defined(_WIN32)
     // MADVISE can be used to improve performance.
     mlock(ptr, len);
@@ -126,7 +125,11 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
   ssize_t len;
   void *ptr;
 
-  ptr = calloc(1, size);
+  //ptr = calloc(1, size);
+
+  auto alloc_size = (size / 4 + (((size % 4) == 0) ? 0 : 1)) * 4;
+  ptr = std::aligned_alloc(4, alloc_size);
+
   NNTR_THROW_IF(ptr == NULL, std::runtime_error)
     << "SwapDevice: memory alloc failed";
 
@@ -140,7 +143,7 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
       << "SwapDevice: read file: " << dev_path;
   }
 
-  allocated[ptr] = std::make_pair(offset, (ssize_t)size);
+  allocated[ptr] = std::make_pair(offset, (ssize_t)alloc_size);
 
   return ptr;
 #endif

@@ -68,12 +68,7 @@ Uint4QTensor::Uint4QTensor(
   initializer = Initializer::NONE;
   qscheme = qscheme_;
 
-  /// @note sizeof(float) * scale_size() assumes scale factors are in
-  /// full-precision fp.
-  auto data_t = std::make_shared<MemoryDataT<uint8_t>>(
-    new uint8_t[(dim.getDataLen() + 1) / 2 + sizeof(float) * scale_size() +
-                sizeof(unsigned int) * scale_size()]);
-  data = std::static_pointer_cast<MemoryData>(std::move(data_t));
+  allocateInternal();
 
   offset = 0;
 
@@ -135,10 +130,7 @@ void Uint4QTensor::allocate() {
     /** as this memory is shared, do NOT initialize */
   } else {
     /// allocate new memory for the tensor data
-    auto data_t = std::make_shared<MemoryDataT<uint8_t>>(
-      new uint8_t[(dim.getDataLen() + 1) / 2 + sizeof(float) * scale_size() +
-                  sizeof(unsigned int) * scale_size()]);
-    data = std::static_pointer_cast<MemoryData>(std::move(data_t));
+    allocateInternal();
 
     offset = 0;
     initialize();
@@ -150,21 +142,17 @@ void Uint4QTensor::deallocate() {
   offset = 0;
 }
 
-void *Uint4QTensor::getData() const {
-  if (!data)
-    return nullptr;
+// void *Uint4QTensor::getData(size_t idx) const {
+//   std::byte *data_ptr = static_cast<std::byte *>(getData());
 
-  data->validate();
-  return data->getAddr<uint8_t>() + offset;
-}
+//   if (!data_ptr) {
+//     return nullptr;
+//   }
 
-void *Uint4QTensor::getData(size_t idx) const {
-  if (!data)
-    return nullptr;
+//   data->validate();
 
-  data->validate();
-  return data->getAddr<uint8_t>() + offset + (idx / 2);
-}
+//   return data_ptr + ((idx / 2) * getDataTypeBitsSize() / CHAR_BIT);
+// }
 
 void *Uint4QTensor::getScale() const {
   if (!data)

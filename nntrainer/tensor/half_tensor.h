@@ -83,9 +83,7 @@ public:
     contiguous = true;
     initializer = Initializer::NONE;
 
-    auto data_t =
-      std::make_shared<MemoryDataT<_FP16>>(new _FP16[dim.getDataLen()]);
-    data = std::static_pointer_cast<MemoryData>(std::move(data_t));
+    allocateInternal();
 
     offset = 0;
 
@@ -142,16 +140,6 @@ public:
    * @copydoc Tensor::deallocate()
    */
   void deallocate() override;
-
-  /**
-   * @copydoc Tensor::getData()
-   */
-  void *getData() const override;
-
-  /**
-   * @copydoc Tensor::getData(size_t idx)
-   */
-  void *getData(size_t idx) const override;
 
   /**
    * @brief     i data index
@@ -516,6 +504,10 @@ private:
    * @copydoc Tensor::isValid()
    */
   bool isValid() const override;
+
+  std::size_t getDataTypeBitsSize() const override {
+    return sizeof(_FP16) * CHAR_BIT;
+  }
 };
 
 } // namespace nntrainer

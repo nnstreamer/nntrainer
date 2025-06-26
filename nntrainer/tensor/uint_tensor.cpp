@@ -71,10 +71,7 @@ UIntTensor<T>::UIntTensor(
   contiguous = true;
   initializer = Initializer::NONE;
 
-  auto data_t = std::make_shared<MemoryDataT<T>>(
-    new T[dim.getDataLen() +
-          (sizeof(float) + sizeof(unsigned int)) / sizeof(T) * scale_size()]);
-  data = std::static_pointer_cast<MemoryData>(std::move(data_t));
+  allocateInternal();
 
   offset = 0;
 
@@ -148,10 +145,7 @@ template <typename T> void UIntTensor<T>::allocate() {
     /** as this memory is shared, do NOT initialize */
   } else {
     /// allocate new memory for the tensor data
-    auto data_t = std::make_shared<MemoryDataT<T>>(
-      new T[dim.getDataLen() +
-            (sizeof(float) + sizeof(unsigned int)) / sizeof(T) * scale_size()]);
-    data = std::static_pointer_cast<MemoryData>(std::move(data_t));
+    allocateInternal();
 
     offset = 0;
     initialize();
@@ -161,21 +155,6 @@ template <typename T> void UIntTensor<T>::allocate() {
 template <typename T> void UIntTensor<T>::deallocate() {
   data = nullptr;
   offset = 0;
-}
-template <typename T> void *UIntTensor<T>::getData() const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return data->getAddr<T>() + offset;
-}
-
-template <typename T> void *UIntTensor<T>::getData(size_t idx) const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return data->getAddr<T>() + offset + idx;
 }
 
 template <typename T> void *UIntTensor<T>::getScale() const {

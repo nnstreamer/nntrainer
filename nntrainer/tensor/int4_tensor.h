@@ -104,15 +104,10 @@ public:
    */
   void deallocate() override;
 
-  /**
-   * @copydoc Tensor::getData()
-   */
-  void *getData() const override;
-
-  /**
-   * @copydoc Tensor::getData(size_t idx)
-   */
-  void *getData(size_t idx) const override;
+  // /**
+  //  * @copydoc Tensor::getData(size_t idx)
+  //  */
+  // void *getData(size_t idx) const override;
 
   /**
    * @copydoc Tensor::getScale()
@@ -311,6 +306,10 @@ private:
    * @copydoc Tensor::isValid()
    */
   bool isValid() const override { return true; };
+
+  std::size_t getDataTypeBitsSize() const override {
+    return sizeof(int8_t) * CHAR_BIT / 2;
+  }
 };
 
 } // namespace nntrainer

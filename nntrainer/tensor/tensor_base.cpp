@@ -44,8 +44,31 @@ void TensorBase::setTensorVar(TensorDim d, void *buf, size_t offset) {
   dim = d;
   strides = d.computeStrides();
   /// Tensor does not own the memory
-  data = std::make_shared<MemoryData>(buf);
+  data = std::make_shared<MemoryData>(buf, false);
   this->offset = offset;
+}
+
+void *TensorBase::getData() const {
+  if (!data) {
+    return nullptr;
+  }
+
+  data->validate();
+  // TODO offset is proper address for 4 bit type ?
+  return reinterpret_cast<std::byte *>(data->getAddr()) +
+         (offset * getDataTypeBitsSize() / CHAR_BIT);
+}
+
+void *TensorBase::getData(size_t idx) const {
+  std::byte *data_ptr = static_cast<std::byte *>(getData());
+
+  if (!data_ptr) {
+    return nullptr;
+  }
+
+  data->validate();
+
+  return data_ptr + (idx * getDataTypeBitsSize() / CHAR_BIT);
 }
 
 void TensorBase::save(std::ostream &file) {
@@ -646,6 +669,36 @@ Tensor &TensorBase::transpose(const std::string &direction, Tensor &out) const {
   throw std::invalid_argument(
     "Tensor::transpose() is currently not supported in tensor data type " +
     getStringDataType());
+}
+
+size_t roundAllocationTo(const size_t bits_size, const size_t round_to_bits) {
+  int aligned_allocations_size =
+    (bits_size / round_to_bits) + (((bits_size % round_to_bits) != 0) ? 1 : 0);
+  return aligned_allocations_size * round_to_bits;
+}
+
+void TensorBase::allocateInternal() {
+  const size_t data_bits_size = size() * getDataTypeBitsSize();
+  const size_t aligned_data_bits_size =
+    roundAllocationTo(data_bits_size, TENSOR_DATA_ALIGNMENT * CHAR_BIT);
+  size_t aligned_scale_bits_size = 0;
+  size_t aligned_zero_point_bits_size = 0;
+
+  if (hasScale()) {
+    aligned_scale_bits_size = scale_size() * CHAR_BIT;
+  }
+
+  if (hasZeroPoint()) {
+    aligned_zero_point_bits_size = scale_size() * CHAR_BIT;
+  }
+
+  size_t aligned_bytes_size =
+    (aligned_data_bits_size + aligned_scale_bits_size +
+     aligned_zero_point_bits_size) /
+    CHAR_BIT;
+
+  data = std::make_shared<MemoryData>(
+    std::aligned_alloc(TENSOR_DATA_ALIGNMENT, aligned_bytes_size), true);
 }
 
 } // namespace nntrainer

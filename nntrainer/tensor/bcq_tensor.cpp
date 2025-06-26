@@ -59,9 +59,7 @@ void BCQTensor::allocate() {
     /** as this memory is shared, do NOT initialize */
   } else {
     /// allocate new memory for the tensor data
-    auto data_t = std::make_shared<MemoryDataT<uint32_t>>(
-      new uint32_t[size() + scale_size()]);
-    data = std::static_pointer_cast<MemoryData>(std::move(data_t));
+    allocateInternal();
 
     offset = 0;
     initialize();
@@ -73,23 +71,16 @@ void BCQTensor::deallocate() {
   offset = 0;
 }
 
-void *BCQTensor::getData() const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return data->getAddr<uint32_t>() + offset;
-}
-
 void *BCQTensor::getData(size_t idx) const {
-  NNTR_THROW_IF(idx > dim.getDataLen(), std::invalid_argument)
-    << "Tensor::getData() index is not valid";
+  std::byte *data_ptr = static_cast<std::byte *>(getData());
 
-  if (!data)
+  if (!data_ptr) {
     return nullptr;
+  }
 
   data->validate();
-  return data->getAddr<uint32_t>() + offset + (idx / 32);
+
+  return data_ptr + ((idx / 32) * getDataTypeBitsSize() / CHAR_BIT);
 }
 
 void *BCQTensor::getScale() const {

@@ -106,16 +106,6 @@ public:
   void deallocate() override;
 
   /**
-   * @copydoc Tensor::getData()
-   */
-  void *getData() const override;
-
-  /**
-   * @copydoc Tensor::getData(size_t idx)
-   */
-  void *getData(size_t idx) const override;
-
-  /**
    * @copydoc Tensor::getScale()
    */
   void *getScale() const override;
@@ -350,6 +340,10 @@ private:
    * @copydoc Tensor::isValid()
    */
   bool isValid() const override { return true; }; // NYI
+
+  std::size_t getDataTypeBitsSize() const override {
+    return sizeof(T) * CHAR_BIT;
+  }
 };
 
 /******  Alias for UIntTensors ******/

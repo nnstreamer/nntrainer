@@ -64,7 +64,11 @@ public:
 
 void MakeWightFile(size_t size) {
   std::ofstream outFile("weight.bin", std::ios::out | std::ios::binary);
-  char *random_data = static_cast<char *>(calloc(size, 1));
+  //char *random_data = static_cast<char *>(calloc(size, 1));
+
+  auto alloc_size = (size / 4 + (((size % 4) == 0) ? 0 : 1)) * 4;
+  char *random_data = static_cast<char *>(std::aligned_alloc(4, alloc_size));
+
   for (size_t i = 0; i < size; i++) {
     random_data[i] = 0xAA;
   }
