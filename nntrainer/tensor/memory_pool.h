@@ -30,7 +30,6 @@
 
 #ifdef ENABLE_OPENCL
 #include <cl_context.h>
-#include <opencl_loader.h>
 #endif
 
 #include <cstdlib>

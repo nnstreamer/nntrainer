@@ -79,6 +79,21 @@ public:
   const cl_device_id GetDeviceId();
 
   /**
+   * @brief allocate SVM memory
+   *
+   * @param size size of the memory to be allocated
+   * @return void* pointer to the allocated SVM memory
+   */
+  void *createSVMRegion(size_t size);
+
+  /**
+   * @brief deallocate SVM memory
+   *
+   * @param svm_ptr pointer to the SVM memory to be deallocated
+   */
+  void releaseSVMRegion(void *svm_ptr);
+
+  /**
    * @brief Deleting operator overload
    *
    */
