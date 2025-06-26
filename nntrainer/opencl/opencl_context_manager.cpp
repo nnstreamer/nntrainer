@@ -93,6 +93,20 @@ void ContextManager::ReleaseContext() {
  */
 const cl_device_id ContextManager::GetDeviceId() { return device_id_; }
 
+void *ContextManager::createSVMRegion(size_t size) {
+  return clSVMAlloc(context_, CL_MEM_READ_WRITE, size, 0);
+}
+
+void ContextManager::releaseSVMRegion(void *svm_ptr) {
+  if (svm_ptr) {
+    // deallocates the SVM memory
+    clSVMFree(context_, svm_ptr);
+  } else {
+    ml_logw("Attempted to deallocate a null pointer");
+  }
+  svm_ptr = nullptr;
+}
+
 /**
  * @brief Destroy the Context Manager object
  *
