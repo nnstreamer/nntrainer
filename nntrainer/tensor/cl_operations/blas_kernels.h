@@ -40,9 +40,8 @@ static ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
  * @param[in] lda number of X's columns
  * @param[in] context RunLayerContext reference
  */
-void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
-              bool TransA, unsigned int dim1, unsigned int dim2,
-              unsigned int lda);
+void sgemv_cl(float *matAdata, float *vecXdata, float *vecYdata, bool TransA,
+              unsigned int dim1, unsigned int dim2, unsigned int lda);
 
 /**
  * @brief     dot computation : sum of all X * Y
