@@ -293,6 +293,36 @@ bool CommandQueueManager::EnqueueUnmapMemObject(cl_mem buffer, void *mapped_ptr,
   return true;
 }
 
+bool CommandQueueManager::enqueueSVMMap(void *svm_ptr, size_t size,
+                                        bool read_only, cl_event *event) {
+  // managing read/write flags
+  const cl_map_flags map_flag = read_only ? CL_MAP_READ : CL_MAP_WRITE;
+
+  cl_int error_code = clEnqueueSVMMap(command_queue_, CL_TRUE, map_flag,
+                                      svm_ptr, size, 0, nullptr, nullptr);
+
+  if (error_code != CL_SUCCESS) {
+    ml_loge("Failed to map SVM memory (clEnqueueSVMMap). OpenCL error code: %d",
+            error_code);
+    return false;
+  }
+  return true;
+}
+
+bool CommandQueueManager::enqueueSVMUnmap(void *svm_ptr, cl_event *event) {
+  cl_int error_code =
+    clEnqueueSVMUnmap(command_queue_, svm_ptr, 0, nullptr, event);
+
+  if (error_code != CL_SUCCESS) {
+    ml_loge(
+      "Failed to unmap SVM memory (clEnqueueSVMUnmap). OpenCL error code: "
+      "%d",
+      error_code);
+    return false;
+  }
+  return true;
+}
+
 /**
  * @brief Function to initiate execution of the command queue.
  *
