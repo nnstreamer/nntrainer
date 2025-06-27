@@ -24,7 +24,8 @@ void nntrainerModelTest::compare(
   auto net = creator ? creator() : createModel();
   GraphWatcher g(std::move(net), opt);
   if (options & (ModelTestOption::USE_V2)) {
-    g.compareFor_V2(getGoldenName_V2());
+    g.compareFor_V2(getGoldenName_V2(),
+                    options & (ModelTestOption::INFERENCE_ONLY));
   } else {
     g.compareFor(getGoldenName(), getLabelDim(), getIteration());
   }
@@ -37,7 +38,7 @@ void nntrainerModelTest::validate(
   auto net = creator ? creator() : createModel();
   GraphWatcher g(std::move(net), opt);
   if (options & (ModelTestOption::USE_V2)) {
-    g.validateFor_V2();
+    g.validateFor_V2(options & (ModelTestOption::INFERENCE_ONLY));
   } else {
     g.validateFor(getLabelDim());
   }
