@@ -24,7 +24,7 @@ void MemAllocator::alloc(void **ptr, size_t size, size_t alignment) {
   if (size == 0)
     ml_loge("cannot allocate size = 0");
 
-  *ptr = std::calloc(size, 1);
+  *ptr = std::aligned_alloc(alignment, size);
 };
 
 void MemAllocator::free(void *ptr) { std::free(ptr); };

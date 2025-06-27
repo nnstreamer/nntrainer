@@ -26,6 +26,11 @@
 
 namespace nntrainer {
 
+DeviceContextAdaptor::DeviceContextAdaptor(unsigned dev_num, ContextData *context_data)
+  // TODO(prak): Access ContextData->_device_contexts
+{
+}
+
 /**
  * @brief rename specification
  *
@@ -45,6 +50,7 @@ InitLayerContext::InitLayerContext(
   const float max_norm, std::array<std::string, 3> tensor_type_,
   const float loss_scale_, ml::train::ExecutionMode mode_,
   ml::train::LayerComputeEngine engine_) :
+  DeviceInfoAdaptor(),
   input_dim(dim),
   is_inplace(is_inplace_),
   clip_by_global_norm(max_norm),
@@ -134,6 +140,7 @@ RunLayerContext::RunLayerContext(const std::string &name, bool trainable,
                                  const std::vector<Var_Grad *> &in,
                                  const std::vector<Var_Grad *> &out,
                                  const std::vector<Var_Grad *> &t) :
+  DeviceContextAdaptor(/*FIXME*/ unsigned(-1), ct_data.get()),
   ct_data(ct_data_),
   loss(l),
   is_inplace(is_inplace_),

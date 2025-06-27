@@ -29,6 +29,48 @@ namespace nntrainer {
 
 class Var_Grad;
 class ContextData;
+struct DeviceContext;
+struct DeviceInfo;
+
+/*
+ * @brief Provides DeviceContext of particular device
+ */
+class DeviceContextAdaptor
+{
+public:
+   auto getDeviceContext() const -> const DeviceContext*;
+   auto hasDevice() -> bool { return getDeviceContext() != nullptr; }
+
+protected:
+   DeviceContextAdaptor() = default;
+
+   DeviceContextAdaptor(unsigned device_numer, ContextData *);
+
+   ~DeviceContextAdaptor() = default;
+private:
+   unsigned device_numer = std::numeric_limits<unsigned>::max();
+   ContextData *contextData = nullptr;
+};
+
+/*
+ * @brief Provides DeviceInfo of particular device
+ */
+class DeviceInfoAdaptor
+{
+public:
+   // FIXME(prak):
+   // pass DeviceInfoList and numer to InitLayerContext to
+   auto getDeviceInfo() -> std::nullptr_t;
+   auto hasDevice() const -> bool { return false; }
+
+protected:
+   DeviceInfoAdaptor() = default;
+
+   DeviceInfoAdaptor(unsigned device_numer, ContextData *);
+
+   ~DeviceInfoAdaptor() = default;
+};
+
 
 /**
  * @class   Layer Context class for all layers
@@ -39,7 +81,7 @@ class ContextData;
  * allocate any new memory, but rather only support storing specifications based
  * on which memory will be allocated later.
  */
-class InitLayerContext {
+class InitLayerContext : DeviceInfoAdaptor {
 public:
   /**
    * @brief Construct a new Init Layer Context object
@@ -452,13 +494,13 @@ private:
  * @todo Check the caller of the getTensor() and set restrictions on the tensors
  * to be accessed based on which function is requesting it.
  */
-class RunLayerContext {
+class RunLayerContext : public DeviceContextAdaptor {
 public:
   /**
    * @brief Construct a new Run Layer Context object
    *
    */
-  RunLayerContext() :
+  RunLayerContext() : DeviceContextAdaptor(),
     loss(0.0), is_inplace(false), loss_scale(1.0), restoreData(false) {}
 
   /**
