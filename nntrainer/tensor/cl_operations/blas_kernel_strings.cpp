@@ -348,6 +348,14 @@ const std::string &getQ6KQ81SgemvClKernel() {
         }
       }
 
+      // Unpack data and run tile
+      // TODO : mul_mat_q_process_tile
+      // src/ggml-cuda/mmq.cuh L2522
+
+      // Run all tiles based on input matrices dimensions
+      // TODO : mul_mat_q <== make it kernel
+      // src/ggml-cuda/mmq.cuh L2606
+
     )";
   return q6_k_q8_1_sgemv_cl_kernel_;
 }
