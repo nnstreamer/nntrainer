@@ -49,7 +49,7 @@ public:
   /**
    * @brief   Default constructor
    */
-  AppContext() : Context(ContextData::createSingleDevice()) {}
+  AppContext() : Context(ContextData::createHostOnly()) {}
 
   /**
    * @brief   Default destructor

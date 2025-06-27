@@ -18,6 +18,9 @@ nntrainer_headers = [
    meson.current_source_dir() / 'nntrainer_error.h',
    meson.current_source_dir() / 'app_context.h',
    meson.current_source_dir() / 'context.h',
+   meson.current_source_dir() / 'context_data.h',
+   meson.current_source_dir() / 'device_context.h',
+   meson.current_source_dir() / 'device_info.h',
    meson.current_source_dir() / 'engine.h',
    meson.current_source_dir() / 'mem_allocator.h',
 ]
@@ -71,6 +74,7 @@ nntrainer_common_sources = [
   'nntrainer_logger.cpp',
   'app_context.cpp',
   'context_data.cpp',
+  'device_context.cpp',
   'device_info.cpp',
   'engine.cpp',
   'mem_allocator.cpp'

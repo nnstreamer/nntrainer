@@ -3,7 +3,7 @@
 
 #include <memory>
 
-#include <device_info.h>
+#include <device_context.h>
 #include <mem_allocator.h>
 
 namespace nntrainer
@@ -32,7 +32,7 @@ public:
   void setMemAllocator(std::shared_ptr<MemAllocator> m) { mem_allocator = m; }
 
   // TODO(prak) DO we want make layer up responsible for for providing/creating HostDeviceInfo/Context??
-  static auto createSingleDevice() -> std::shared_ptr<ContextData>;
+  static auto createHostOnly() -> std::shared_ptr<ContextData>;
 
   static auto createMultiDevice(const std::vector<std::string> accelerators) -> std::shared_ptr<ContextData>
   {
@@ -44,10 +44,10 @@ private:
   //std::unique_ptr<HostDeviceContext> host_context;
   std::shared_ptr<MemAllocator> mem_allocator = nullptr; // TODO(): move to HostDeviceContext
   std::vector<std::unique_ptr<DeviceInfo>> accelerator_devices;
-  //std::vector<std::unique_ptr<DeviceContext>> device_contexts;
+  //std::vector<std::unique_ptr<DeviceContext>> accelerator_contexts;
 
   DeviceInfoList dev_info_list;
-  //DeviceContextList device_context_list;
+  DeviceContextList device_context_list;
 };
 
 }

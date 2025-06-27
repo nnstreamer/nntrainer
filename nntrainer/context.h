@@ -26,7 +26,6 @@
 #include <vector>
 
 #include <context_data.h>
-#include <device_info.h>
 #include <layer.h>
 #include <layer_devel.h>
 #include <optimizer.h>
@@ -35,9 +34,6 @@
 #include <nntrainer_log.h>
 
 namespace nntrainer {
-
-struct DeviceContext;
-struct DeviceInfo;
 
 /**
  * @class Context contains user-dependent configuration for  support
