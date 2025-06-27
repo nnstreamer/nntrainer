@@ -718,9 +718,9 @@ static void run_q_6_K_test(const uint32_t M, const uint32_t K,
   std::vector<float> activation = generate_random_vector<float, false>(M * K);
   std::vector<float> weight = generate_random_vector<float, false>(N * K);
 
-  std::vector<float> ref_dst(M * N);
-  std::vector<float> cpu_q6_dst(M * N);
-  std::vector<float> gpu_q6_dst(M * N);
+  std::vector<float> ref_dst(M * N, 0.0f);
+  std::vector<float> cpu_q6_dst(M * N, 0.0f);
+  std::vector<float> gpu_q6_dst(M * N, 0.0f);
 
   const auto data_size = sizeof(block_q6_K_testonly) * N * K / 256;
   std::vector<char> q6_weight = std::vector<char>(data_size);
