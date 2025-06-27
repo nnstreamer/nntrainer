@@ -19,6 +19,7 @@
 #include <fallback_internal.h>
 #include <stdexcept>
 #include <tensor_dim.h>
+#include <util_func.h>
 
 #define sgemv_loop(ci, cj, cM, cN)                                             \
   do {                                                                         \
@@ -309,8 +310,9 @@ void __fallback_transpose_matrix(const unsigned int M, const unsigned int N,
 
 bool __fallback_isValid(const unsigned int N, const float *X) {
   for (size_t i = 0; i < N; ++i) {
-    if (*X != *X || *X == std::numeric_limits<float>::infinity())
+    if (!isFloatValid(*X)) {
       return false;
+    }
     ++X;
   }
 

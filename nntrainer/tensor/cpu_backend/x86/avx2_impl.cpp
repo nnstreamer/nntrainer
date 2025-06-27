@@ -30,6 +30,7 @@
 #if __has_include(<version>)
 #include <version>
 #endif
+#include <util_func.h>
 
 #if !defined(__has_constexpr_builtin)
 #define __has_constexpr_builtin(x) (0)
@@ -369,9 +370,8 @@ bool is_valid(const unsigned int N, const float *input) {
       return false;
   }
 
-  // remain check : ( X != X )
   while (idx < N) {
-    if (*input != *input || *input == std::numeric_limits<float>::infinity()) {
+    if (!isFloatValid(*input)) {
       return false;
     }
     ++input;

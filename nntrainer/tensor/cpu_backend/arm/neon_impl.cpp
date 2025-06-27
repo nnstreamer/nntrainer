@@ -20,6 +20,7 @@
 #ifdef ARMV7
 #include <armv7_neon.h>
 #endif
+#include <util_func.h>
 
 namespace nntrainer::neon {
 static inline void __ele_qmul_kernel(int8_t *lhs, int8_t *rhs, int8_t *res,
@@ -122,8 +123,9 @@ bool is_valid(const unsigned int N, const float *X) {
   }
 
   while (i < N) {
-    if (X[i] != X[i] || X[i] == std::numeric_limits<float>::infinity())
+    if (!isFloatValid(X[i])) {
       return false;
+    }
     ++i;
   }
 

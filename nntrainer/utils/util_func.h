@@ -124,6 +124,18 @@ template <> _Float16 exp_util<_Float16>(_Float16 x) {
 #endif
 
 /**
+ * @brief     Check if float is not nan and not inf
+ * @param[in] value float
+ * @note      We can switch to use std::isfinite once it will start support half
+ floats
+ */
+template <typename T> bool isFloatValid(const T value) {
+  return !((value != value) ||
+           (value == std::numeric_limits<float>::infinity()) ||
+           (value == -std::numeric_limits<float>::infinity()));
+}
+
+/**
  * @brief     Check Existance of File
  * @param[in] file path of the file to be checked
  * @returns   true if file exists, else false
