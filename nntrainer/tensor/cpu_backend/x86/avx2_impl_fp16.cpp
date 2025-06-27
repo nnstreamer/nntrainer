@@ -17,6 +17,7 @@
 #include <cmath>
 #include <cstdint>
 #include <immintrin.h>
+#include <util_func.h>
 
 namespace nntrainer::avx2 {
 
@@ -172,9 +173,8 @@ bool is_valid(const unsigned int N, const _Float16 *input) {
       return false;
   }
 
-  // remain check : ( X != X || X == Inf )
   while (idx < N) {
-    if (*input != *input || *input == std::numeric_limits<float>::infinity()) {
+    if (!isFloatValid(*input)) {
       return false;
     }
     ++input;
