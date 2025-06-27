@@ -823,9 +823,9 @@ void Manager::LoadTensors(unsigned int order,
       << "Fail to launch task";
   };
 
-  if (order <= max_exec_order) {
-    enqueTasks(order);
-  }
+  auto order_mod = order % (max_exec_order+1);
+  enqueTasks(order_mod);
+
 }
 
 void Manager::UnloadTensors(unsigned int order) {

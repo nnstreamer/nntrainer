@@ -39,9 +39,9 @@ CacheLoader::~CacheLoader() {
 
 void CacheLoader::init() {
   if (load_task_executor == nullptr)
-    load_task_executor = new TaskExecutor("loadPool", 2);
+    load_task_executor = new TaskExecutor("loadPool", 8);
   if (unload_task_executor == nullptr)
-    unload_task_executor = new TaskExecutor("UnloadPool", 2);
+    unload_task_executor = new TaskExecutor("UnloadPool", 8);
 }
 
 void CacheLoader::finish() {
