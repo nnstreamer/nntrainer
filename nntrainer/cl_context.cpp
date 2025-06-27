@@ -153,6 +153,9 @@ void ClContext::initBlasClKernels() {
   registerClKernel(getSgemmClTransABKernel(), "sgemm_cl_transAB");
   registerClKernel(getAdditionClKernel(), "addition_cl");
   registerClKernel(getSscalClKernel(), "sscal_cl");
+  registerClKernel(getQ6KSgemvClKernel(), "kernel_mul_mv_q6_K_f32");
+  registerClKernel(getQ6KQ81SgemvClKernel(), "kernel_mul_mv_q6_K_q8_1");
+  registerClKernel(getQ4KQ81SgemvClKernel(), "kernel_mul_mv_q4_K_q8_1");
 
 #ifdef ENABLE_FP16
   registerClKernel(getHgemvClKernel(), "sgemv_cl_fp16");
