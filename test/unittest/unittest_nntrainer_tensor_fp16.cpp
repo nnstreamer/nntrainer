@@ -6252,7 +6252,7 @@ TEST(nntrainer_Tensor, TensorWrap_02_n) {
 // }
 
 /**
- * @brief fp16 tensor has NaN
+ * @brief fp16 tensor has NaN (16 float vec)
  */
 TEST(nntrainer_Tensor, is_valid_01) {
   size_t batch = 1;
@@ -6275,6 +6275,74 @@ TEST(nntrainer_Tensor, is_valid_01) {
   EXPECT_EQ(input.isValid(), false);
 
   input.setValue(0, 0, 0, 0, std::numeric_limits<float>::infinity());
+
+  EXPECT_EQ(input.isValid(), false);
+
+  input.setValue(0, 0, 0, 0, -std::numeric_limits<float>::infinity());
+
+  EXPECT_EQ(input.isValid(), false);
+}
+
+/**
+ * @brief fp16 tensor has NaN (8 float vec)
+ */
+TEST(nntrainer_Tensor, is_valid_02) {
+  size_t batch = 1;
+  size_t channel = 2;
+  size_t height = 2;
+  size_t width = 2;
+
+  nntrainer::Tensor input(
+    {batch,
+     channel,
+     height,
+     width,
+     {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16}},
+    true, nntrainer::Initializer::ZEROS);
+
+  EXPECT_EQ(input.isValid(), true);
+
+  input.setValue(0, 0, 0, 0, std::nan("1"));
+
+  EXPECT_EQ(input.isValid(), false);
+
+  input.setValue(0, 0, 0, 0, std::numeric_limits<float>::infinity());
+
+  EXPECT_EQ(input.isValid(), false);
+
+  input.setValue(0, 0, 0, 0, -std::numeric_limits<float>::infinity());
+
+  EXPECT_EQ(input.isValid(), false);
+}
+
+/**
+ * @brief fp16 tensor has NaN (1 float)
+ */
+TEST(nntrainer_Tensor, is_valid_03) {
+  size_t batch = 1;
+  size_t channel = 1;
+  size_t height = 1;
+  size_t width = 1;
+
+  nntrainer::Tensor input(
+    {batch,
+     channel,
+     height,
+     width,
+     {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16}},
+    true, nntrainer::Initializer::ZEROS);
+
+  EXPECT_EQ(input.isValid(), true);
+
+  input.setValue(0, 0, 0, 0, std::nan("1"));
+
+  EXPECT_EQ(input.isValid(), false);
+
+  input.setValue(0, 0, 0, 0, std::numeric_limits<float>::infinity());
+
+  EXPECT_EQ(input.isValid(), false);
+
+  input.setValue(0, 0, 0, 0, -std::numeric_limits<float>::infinity());
 
   EXPECT_EQ(input.isValid(), false);
 }
