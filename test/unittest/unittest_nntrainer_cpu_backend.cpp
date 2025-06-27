@@ -696,6 +696,7 @@ TEST(nntrainer_cpu_backend_standalone, ele_add_3072_istr_1) {
   run_ele_add_test(N, alpha, beta, i_stride, o_stride);
 }
 
+template <bool is_q_8_1_weights = false>
 static void run_q_6_K_test(const uint32_t M, const uint32_t K,
                            const uint32_t N) {
 
@@ -712,95 +713,103 @@ static void run_q_6_K_test(const uint32_t M, const uint32_t K,
     std::cout << "]";
   };
 
+  static constexpr uint32_t run_count = 100;
+
   std::vector<float> activation = generate_random_vector<float, false>(M * K);
   std::vector<float> weight = generate_random_vector<float, false>(N * K);
+
   std::vector<float> ref_dst(M * N);
+  std::vector<float> cpu_q6_dst(M * N);
+  std::vector<float> gpu_q6_dst(M * N);
 
-  float *weights = weight.data();
-  float *activations = activation.data();
+  const auto data_size = sizeof(block_q6_K_testonly) * N * K / 256;
+  std::vector<char> q6_weight = std::vector<char>(data_size);
+  char *q6_weight_ptr = (char *)q6_weight.data();
 
-  // Step0. Allocate a temporary buffer for quantized weight
-  size_t data_size = sizeof(block_q6_K_testonly) * N * K / 256;
-  std::vector<char> offline_qWeight = std::vector<char>(data_size);
-  char *offline_qWeight_ptr = (char *)offline_qWeight.data();
+  float *weights_f32_ptr = weight.data();
+  float *activations_f32_ptr = activation.data();
 
+  // F32-F32 GEMM
   nntrainer::sgemm(0, false, true, M, N, K, 1.F, activation.data(), K,
                    weight.data(), K, 0.F, ref_dst.data(), N);
 
-  // Step1. Supposed to be an offline Weight quantization from float to q4_K
-  // (Zero latency overhead for the model runtime)
-  nntrainer::quantize_q6_K(weights, (void *)offline_qWeight_ptr, N, K, nullptr);
+  nntrainer::quantize_q6_K(weights_f32_ptr, (void *)q6_weight_ptr, N, K,
+                           nullptr);
 
-  // Step2. Run GEMM!
-  std::vector<float> dst(M * N);
   auto t1 = high_resolution_clock::now();
-  // #### MAIN TESTED METHOD ####
-  for (unsigned int i = 0; i < 100; ++i) {
-    nntrainer::gemm_q6_K(M, N, K, activations, K, (void *)offline_qWeight_ptr,
-                         N, dst.data(), N);
+  for (unsigned int i = 0; i < run_count; ++i) {
+    nntrainer::gemm_q6_K(M, N, K, activations_f32_ptr, K, (void *)q6_weight_ptr,
+                         N, cpu_q6_dst.data(), N);
   }
-
-  // #### MAIN TESTED METHOD ####
   auto t2 = high_resolution_clock::now();
   auto dt = duration_cast<nanoseconds>(t2 - t1);
 
-  std::vector<float> dst_gpu(M * N);
   auto t3 = high_resolution_clock::now();
-  for (unsigned int i = 0; i < 100; ++i) {
-    nntrainer::sgemv_q6_k_cl(offline_qWeight_ptr, activations, dst_gpu.data(),
-                             K, N);
+  for (unsigned int i = 0; i < run_count; ++i) {
+    if constexpr (is_q_8_1_weights) {
+      nntrainer::sgemv_q6_k_q8_1_cl(q6_weight_ptr, activations_f32_ptr,
+                                    gpu_q6_dst.data(), K, N);
+    } else {
+      nntrainer::sgemv_q6_k_cl(q6_weight_ptr, activations_f32_ptr,
+                               gpu_q6_dst.data(), K, N);
+    }
   }
-
   auto t4 = high_resolution_clock::now();
   auto gpu_dt = duration_cast<nanoseconds>(t4 - t3);
 
-  uint32_t first_zero_index = UINT32_MAX;
-  int zeros = 0;
-  int nans = 0;
+  // Compute raports
+  {
+    uint32_t first_zero_index = UINT32_MAX;
+    int zeros = 0;
+    int nans = 0;
 
-  for (uint32_t i = 0; i < M * N; ++i) {
-    if (dst_gpu[i] == 0) {
-      zeros++;
-      if (first_zero_index == UINT32_MAX) {
-        first_zero_index = i;
+    for (uint32_t i = 0; i < M * N; ++i) {
+      if (gpu_q6_dst[i] == 0) {
+        zeros++;
+        if (first_zero_index == UINT32_MAX) {
+          first_zero_index = i;
+        }
+      }
+
+      if (std::isnan(gpu_q6_dst[i])) {
+        nans++;
       }
     }
 
-    if (std::isnan(dst_gpu[i])) {
-      nans++;
-    }
+    const auto mean_squared_error_dst_gpu =
+      compute_mse(M, N, ref_dst, gpu_q6_dst, false);
+    const auto mean_squared_error_dst =
+      compute_mse(M, N, ref_dst, cpu_q6_dst, false);
+
+    const auto data_size_mb = data_size / (1024 * 1024.0f);
+
+    std::cout << "--- Raport (is_q_8_1_weights = " << is_q_8_1_weights
+              << ") : " << M << " x " << K << " x " << N << std::endl;
+    std::cout << " - q6_K data size : " << data_size_mb << " [MB]" << std::endl;
+    std::cout << " - time : CPU = " << dt.count() / (1000.f * 1000.0f) << " ms"
+              << std::endl;
+    std::cout << " - time : GPU = " << gpu_dt.count() / (1000.f * 1000.0f)
+              << " ms" << std::endl;
+    std::cout << " - sample : CPU = ";
+    debug_print_beg_end(cpu_q6_dst.data());
+    std::cout << std::endl;
+    std::cout << " - sample : GPU = ";
+    debug_print_beg_end(gpu_q6_dst.data());
+    std::cout << std::endl;
+    std::cout << " - zeros : " << zeros << " / " << M * N << " [ "
+              << zeros * 100.0f / float(M * N) << " %] - first at [ "
+              << first_zero_index << " ]" << std::endl;
+    std::cout << " - nans : " << nans << " / " << M * N << " [ "
+              << nans * 100.0f / float(M * N) << " %]" << std::endl;
+    std::cout << " - MSE : CPU = " << mean_squared_error_dst << std::endl;
+    std::cout << " - MSE : GPU = " << mean_squared_error_dst_gpu << std::endl;
   }
-
-  const auto mean_squared_error_dst_gpu =
-    compute_mse(M, N, ref_dst, dst_gpu, false);
-  const auto mean_squared_error_dst = compute_mse(M, N, ref_dst, dst, false);
-
-  const auto data_size_mb = data_size / (1024 * 1024.0f);
-
-  std::cout << "--- Raport : " << M << " x " << K << " x " << N << std::endl;
-  std::cout << " - q6_K data size : " << data_size_mb << " [MB]" << std::endl;
-  std::cout << " - time : CPU = " << dt.count() / (1000.f * 1000.0f) << " ms"
-            << std::endl;
-  std::cout << " - time : GPU = " << gpu_dt.count() / (1000.f * 1000.0f)
-            << " ms" << std::endl;
-  std::cout << " - sample : CPU = ";
-  debug_print_beg_end(dst.data());
-  std::cout << std::endl;
-  std::cout << " - sample : GPU = ";
-  debug_print_beg_end(dst_gpu.data());
-  std::cout << std::endl;
-  std::cout << " - zeros : " << zeros << " / " << M * N << " [ "
-            << zeros * 100.0f / float(M * N) << " %] - first at [ "
-            << first_zero_index << " ]" << std::endl;
-  std::cout << " - nans : " << nans << " / " << M * N << " [ "
-            << nans * 100.0f / float(M * N) << " %]" << std::endl;
-  std::cout << " - MSE : CPU = " << mean_squared_error_dst << std::endl;
-  std::cout << " - MSE : GPU = " << mean_squared_error_dst_gpu << std::endl;
 }
 
-#define DECLARE_q_6_K_test_M_K_N(M, K, N)                                      \
-  TEST(nntrainer_cpu_backend_standalone, q_6_K_test_##M##_##K##_##N) {         \
-    run_q_6_K_test(M, K, N);                                                   \
+#define DECLARE_q_6_K_test_M_K_N(M, K, N, is_q_8_1_weights)                    \
+  TEST(nntrainer_cpu_backend_standalone,                                       \
+       q_6_K_test_##M##_##K##_##N##_is_q_8_1_weights_##is_q_8_1_weights) {     \
+    run_q_6_K_test<is_q_8_1_weights>(M, K, N);                                 \
   }
 
 // DECLARE_q_6_K_test_M_K_N(1, 512, 32);
@@ -951,8 +960,8 @@ static void run_q_6_K_test(const uint32_t M, const uint32_t K,
 // DECLARE_q_6_K_test_M_K_N(1, 65536, 768);
 // DECLARE_q_6_K_test_M_K_N(1, 131072, 768);
 
-DECLARE_q_6_K_test_M_K_N(1, 3072, 105900);
-// FYI, the target dimension for sgemv is 1 x 3072 x 105900.
+DECLARE_q_6_K_test_M_K_N(1, 3072, 105900, false);
+DECLARE_q_6_K_test_M_K_N(1, 3072, 105900, true);
 
 int main(int argc, char **argv) {
   int result = -1;

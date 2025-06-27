@@ -279,28 +279,36 @@ void sgemv_q6_k_q8_1_cl(const void *matAdata, const float *vecXdata,
   }
 
   /// @todo Set proper values for the following arguments @m-wlasiuk
+  const int k00 = 0;
   const int mmq_x = 1;
   const int mmq_y = 1;
   const int nwarps = 32;
 
   result =
-    kernel_q6_k_q_8_1_sgemv_ptr->SetKernelArguments(3, &mmq_x, sizeof(int));
+    kernel_q6_k_q_8_1_sgemv_ptr->SetKernelArguments(3, &k00, sizeof(int));
   if (!result) {
     ml_loge("Failed to set kernel argument 3 for kernel_q6_k_q_8_1_sgemv_ptr");
     return;
   }
 
   result =
-    kernel_q6_k_q_8_1_sgemv_ptr->SetKernelArguments(4, &mmq_y, sizeof(int));
+    kernel_q6_k_q_8_1_sgemv_ptr->SetKernelArguments(4, &mmq_x, sizeof(int));
   if (!result) {
     ml_loge("Failed to set kernel argument 4 for kernel_q6_k_q_8_1_sgemv_ptr");
     return;
   }
 
   result =
-    kernel_q6_k_q_8_1_sgemv_ptr->SetKernelArguments(5, &nwarps, sizeof(int));
+    kernel_q6_k_q_8_1_sgemv_ptr->SetKernelArguments(5, &mmq_y, sizeof(int));
   if (!result) {
     ml_loge("Failed to set kernel argument 5 for kernel_q6_k_q_8_1_sgemv_ptr");
+    return;
+  }
+
+  result =
+    kernel_q6_k_q_8_1_sgemv_ptr->SetKernelArguments(6, &nwarps, sizeof(int));
+  if (!result) {
+    ml_loge("Failed to set kernel argument 6 for kernel_q6_k_q_8_1_sgemv_ptr");
     return;
   }
 
