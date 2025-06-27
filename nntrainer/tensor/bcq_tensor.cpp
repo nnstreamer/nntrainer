@@ -254,8 +254,8 @@ void BCQTensor::save(std::ostream &file) {
   std::streamsize sz1 = static_cast<std::streamsize>(bytes());
   std::streamsize sz2 = static_cast<std::streamsize>(scale_size() *
   sizeof(float)); checkedWrite(file, (char *)bcq_weight->binary_weights.data(),
-  sz1, "Faile"); checkedWrite(file, (char *)bcq_weight->weight_scales.data(),
-  sz2, "Faile");
+  sz1, "Failed"); checkedWrite(file, (char *)bcq_weight->weight_scales.data(),
+  sz2, "Failed");
   */
   checkedWrite(file, (char *)getData(), sz,
                "[BCQTensor::save] operation failed");
