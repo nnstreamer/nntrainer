@@ -206,7 +206,127 @@ void sgemv_q6_k_cl(const void *matAdata, const float *vecXdata, float *vecYdata,
 }
 
 void sgemv_q6_k_q8_1_cl(const void *matAdata, const float *vecXdata,
-                        float *vecYdata, unsigned int M, unsigned int N) {}
+                        float *vecYdata, unsigned int M, unsigned int N) {
+  bool result = false;
+
+  ClContext::SharedPtrClKernel kernel_q6_k_q_8_1_sgemv_ptr;
+
+  kernel_q6_k_q_8_1_sgemv_ptr = blas_cc->registerClKernel(
+    getQ6KQ81SgemvClKernel(), "kernel_mul_mv_q6_K_q8_1");
+
+  if (!kernel_q6_k_q_8_1_sgemv_ptr) {
+    ml_loge("Failed to register kernel_q6_k_q_8_1_sgemv_ptr");
+    return;
+  }
+
+  int q6k_bytes = 210 * M * N / 256;
+
+  /**
+  typedef struct {
+      ggml_half2 ds;
+      int8_t qs[QK8_1]; // quants
+  } block_q8_1;
+  */
+  int q8k_bytes = 288 * M / 256;
+
+  /// @todo: Quantize vecXdata to q8k format @m-wlasiuk
+  // nntrainer::quantize_q8_1(vecXdata);
+
+  /// @todo Apply SVM after #3262 is merged
+  result = clbuffInstance.getInBufferA()->WriteDataRegion(
+    blas_cc->command_queue_inst_, q6k_bytes, matAdata);
+  if (!result) {
+    ml_loge(
+      "Failed to write data to input buffer A for kernel_q6_k_q_8_1_sgemv_ptr");
+    return;
+  }
+
+  /// @todo Apply SVM after #3262 is merged
+  result = clbuffInstance.getInBufferB()->WriteDataRegion(
+    blas_cc->command_queue_inst_, q8k_bytes, vecXdata);
+  if (!result) {
+    ml_loge(
+      "Failed to write data to input buffer B for kernel_q6_k_q_8_1_sgemv_ptr");
+    return;
+  }
+
+  /// @todo Apply SVM after #3262 is merged
+  result = kernel_q6_k_q_8_1_sgemv_ptr->SetKernelArguments(
+    0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 0 for kernel_q6_k_q_8_1_sgemv_ptr");
+    return;
+  }
+
+  /// @todo Apply SVM after #3262 is merged
+  result = kernel_q6_k_q_8_1_sgemv_ptr->SetKernelArguments(
+    1, clbuffInstance.getInBufferB(), sizeof(cl_mem));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 1 for kernel_q6_k_q_8_1_sgemv_ptr");
+    return;
+  }
+
+  /// @todo Apply SVM after #3262 is merged
+  result = kernel_q6_k_q_8_1_sgemv_ptr->SetKernelArguments(
+    2, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 2 for kernel_q6_k_q_8_1_sgemv_ptr");
+    return;
+  }
+
+  /// @todo Set proper values for the following arguments @m-wlasiuk
+  const int mmq_x = 1;
+  const int mmq_y = 1;
+  const int nwarps = 32;
+
+  result =
+    kernel_q6_k_q_8_1_sgemv_ptr->SetKernelArguments(3, &mmq_x, sizeof(int));
+  if (!result) {
+    ml_loge("Failed to set kernel argument 3 for kernel_q6_k_q_8_1_sgemv_ptr");
+    return;
+  }
+
+  result =
+    kernel_q6_k_q_8_1_sgemv_ptr->SetKernelArguments(4, &mmq_y, sizeof(int));
+  if (!result) {
+    ml_loge("Failed to set kernel argument 4 for kernel_q6_k_q_8_1_sgemv_ptr");
+    return;
+  }
+
+  result =
+    kernel_q6_k_q_8_1_sgemv_ptr->SetKernelArguments(5, &nwarps, sizeof(int));
+  if (!result) {
+    ml_loge("Failed to set kernel argument 5 for kernel_q6_k_q_8_1_sgemv_ptr");
+    return;
+  }
+
+  /// @todo Set proper global and local work size @m-wlasiuk
+  const int work_groups_count[3] = {(int)((N + N_SIMDGROUP - 1) / N_SIMDGROUP) *
+                                      (N_SIMDGROUP * N_SIMDWIDTH),
+                                    1, 1}; // global work size
+  const int work_group_size[3] = {N_SIMDGROUP * N_SIMDWIDTH, 1,
+                                  1}; // local work size
+
+  result = opencl::CommandQueueManager::GetInstance().DispatchCommand(
+    kernel_q6_k_q_8_1_sgemv_ptr, work_groups_count, work_group_size);
+  if (!result) {
+    ml_loge("Failed to dispatch kernel kernel_q6_k_q_8_1_sgemv_ptr");
+    return;
+  }
+
+  /// @todo Apply SVM after #3262 is merged
+  result = clbuffInstance.getOutBufferA()->ReadDataRegion(
+    blas_cc->command_queue_inst_, N * sizeof(float), vecYdata);
+
+  if (!result) {
+    ml_loge("Failed to read data from the output buffer for "
+            "kernel_q6_k_q_8_1_sgemv_ptr");
+    return;
+  }
+}
 
 void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
               bool TransA, unsigned int dim1, unsigned int dim2,
