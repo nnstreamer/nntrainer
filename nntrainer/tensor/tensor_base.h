@@ -92,6 +92,8 @@ class SrcSharedTensorBase;
  */
 class TensorBase {
 public:
+  static constexpr float DEFAULT_TENSOR_SCALE = 1.0f;
+  static constexpr unsigned int DEFAULT_TENSOR_ZERO_POINT = 0u;
   /**
    * @brief     Basic Constructor of Tensor
    */
@@ -209,6 +211,16 @@ public:
   }
 
   /**
+   * @copydoc Tensor::setScale(const float value)
+   */
+  void setScale(const float value);
+
+  /**
+   * @copydoc Tensor::hasScale()
+   */
+  virtual bool hasScale() const { return false; }
+
+  /**
    * @copydoc Tensor::getZeroPoint()
    */
   virtual unsigned int *getZeroPoint() const {
@@ -225,6 +237,16 @@ public:
       "Tensor::getZeroPoint() is not supported in tensor data type " +
       getStringDataType());
   }
+
+  /**
+   * @copydoc Tensor::setZeroPoint(const unsigned int value)
+   */
+  void setZeroPoint(const unsigned int value);
+
+  /**
+   * @copydoc Tensor::hasZeroPoint()
+   */
+  virtual bool hasZeroPoint() const { return false; }
 
   /**
    * @brief     i data index
@@ -278,7 +300,7 @@ public:
   /**
    * @copydoc Tensor::initialize()
    */
-  virtual void initialize() = 0;
+  virtual void initialize();
 
   /**
    * @copydoc Tensor::initialize(Initializer init)
