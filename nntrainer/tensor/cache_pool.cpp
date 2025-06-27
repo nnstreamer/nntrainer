@@ -195,7 +195,7 @@ unsigned int CachePool::requestMemory(size_t bytes, unsigned int start_time,
   policies.push_back(policy);
 
   NNTR_THROW_IF(id != policies.size(), std::runtime_error)
-    << "Invalid requqestMemory call exist";
+    << "Invalid requestMemory call exist";
 
   return id;
 }

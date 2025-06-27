@@ -438,13 +438,13 @@ std::vector<Weight *> Manager::requestWeights(
     Tensor *var = nullptr, *grad = nullptr, *var32 = nullptr;
     bool is_dependent = !shared_names.empty();
     if (is_dependent) {
-      /// shared_name is used and the orignal name is discarded
+      /// shared_name is used and the original name is discarded
       const auto &shared_name = shared_names.at(i);
       /** case when shared names are given */
       var = weight_pool.requestOrExtend(shared_name, dim_v, var_exec_order,
                                         var_ls, t_initializer);
       if (trainable && need_gradient) {
-        /** We cannot use the tensor schedulding for weight gradient if the
+        /** We cannot use the tensor scheduling for weight gradient if the
          * weight is shared. Weight Sharing means, the gradient is not temporal
          * for each layer anymore and it is hard to overwritten.
          */
@@ -696,21 +696,21 @@ unsigned int Manager::getSecondMaxTensorExecutionOrder(const std::string &name,
 
 bool Manager::isFirstAccess(const std::string &name, unsigned current_execution,
                             bool is_weight) {
-  /// @todo add cache machanism, eg) sort at finalizing requesting
+  /// @todo add cache mechanism, eg) sort at finalizing requesting
   return getMinMaxTensorExecutionOrder(name, is_weight).first ==
          current_execution;
 }
 
 bool Manager::isLastAccess(const std::string &name, unsigned current_execution,
                            bool is_weight) {
-  /// @todo add cache machanism, eg) sort at finalizing requesting
+  /// @todo add cache mechanism, eg) sort at finalizing requesting
   return getMinMaxTensorExecutionOrder(name, is_weight).second ==
          current_execution;
 }
 
 bool Manager::isSecondLastAccess(const std::string &name,
                                  unsigned current_execution, bool is_weight) {
-  /// @todo add cache machanism, eg) sort at finalizing requesting
+  /// @todo add cache mechanism, eg) sort at finalizing requesting
   return getSecondMaxTensorExecutionOrder(name, is_weight) == current_execution;
 }
 
@@ -812,7 +812,7 @@ void Manager::LoadTensors(unsigned int order,
 
   auto enqueTasks = [&](unsigned int o) {
     auto load_weight = loadTensorsAsync(weight_pool, o);
-    ml_logd("load weigth is requested in LoadTensors with order - %d", o);
+    ml_logd("load weight is requested in LoadTensors with order - %d", o);
     int load_tensor = 0;
 
     if (exec_mode != ml::train::ExecutionMode::INFERENCE) {
