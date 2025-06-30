@@ -108,7 +108,7 @@ def record_v2(
     if optimizer == None:
         optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
 
-    def record_iteration(write_fn):
+    def record_iteration(write_fn, inference_only=False):
         if input_label_reader != None:
             inputs, labels = input_label_reader(input_dims, label_dims, input_dtype)
         else:
@@ -122,12 +122,13 @@ def record_v2(
         output, *losses = model(inputs, labels)
         write_fn(output)
 
-        optimizer.zero_grad()
-        for loss in losses:
-            loss.backward()
-        if clip:
-            norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 0.0001)
-        optimizer.step()
+        if not inference_only:
+            optimizer.zero_grad()
+            for loss in losses:
+                loss.backward()
+            if clip:
+                norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 0.0001)
+            optimizer.step()
 
     def record_iteration_with_amp(write_fn, inputs, labels, is_nan, scaler):
         model_ = model.cuda()
