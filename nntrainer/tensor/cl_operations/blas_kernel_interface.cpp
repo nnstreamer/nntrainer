@@ -116,8 +116,8 @@ void dotCl(Tensor const &input, Tensor const &m, Tensor &result, bool trans,
     (input.getFormat() == Tformat::NHWC) ? result.channel() : result.width();
 
   if (input.getDataType() == ml::train::TensorDim::DataType::FP32) {
-    const float *data = input.getData();
-    const float *mdata = m.getData();
+    float *data = input.getData();
+    float *mdata = m.getData();
     float *rdata = result.getData();
 
     /// shortcut handling in case of vector
