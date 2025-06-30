@@ -974,6 +974,108 @@ TEST(nntrainer_Tensor, QTensor_18_p) {
 }
 #endif
 
+TEST(nntrainer_Tensor, getBatchSlice_float_p) {
+  // Create input tensor: batch=2, channel=1, height=1, width=3
+  std::vector<std::vector<std::vector<std::vector<float>>>> data = {
+    {{{1.0f, 2.0f, 3.0f}}}, {{{4.0f, 5.0f, 6.0f}}}};
+
+  nntrainer::Tensor input(
+    data, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
+
+  // Test single batch selection
+  {
+    std::vector<unsigned int> indices = {1};
+    nntrainer::Tensor sliced = input.getBatchSlice(indices);
+
+    EXPECT_EQ(sliced.getDim(), nntrainer::TensorDim(1, 1, 1, 3));
+    EXPECT_FLOAT_EQ(sliced.getValue(0, 0, 0, 0), 4.0f);
+    EXPECT_FLOAT_EQ(sliced.getValue(0, 0, 0, 1), 5.0f);
+    EXPECT_FLOAT_EQ(sliced.getValue(0, 0, 0, 2), 6.0f);
+  }
+
+  // Test multi-batch selection
+  {
+    std::vector<unsigned int> indices = {0, 1};
+    nntrainer::Tensor sliced = input.getBatchSlice(indices);
+
+    EXPECT_EQ(sliced.getDim(), nntrainer::TensorDim(2, 1, 1, 3));
+    EXPECT_FLOAT_EQ(sliced.getValue(0, 0, 0, 0), 1.0f);
+    EXPECT_FLOAT_EQ(sliced.getValue(0, 0, 0, 1), 2.0f);
+    EXPECT_FLOAT_EQ(sliced.getValue(0, 0, 0, 2), 3.0f);
+  }
+
+  // Test invalid index
+  EXPECT_THROW(input.getBatchSlice({3}), std::out_of_range);
+}
+
+TEST(nntrainer_Tensor, getBatchSlice_uint16_p) {
+  // UINT16 텐서 생성: [batch=3][channel=2][height=4][width=2]
+  std::vector<std::vector<std::vector<std::vector<float>>>> data = {
+    {// Batch 0
+     {{1000, 2000}, {3000, 4000}, {5000, 6000}, {7000, 8000}},
+     {{9000, 10000}, {11000, 12000}, {13000, 14000}, {15000, 16000}}},
+    {// Batch 1
+     {{17000, 18000}, {19000, 20000}, {21000, 22000}, {23000, 24000}},
+     {{25000, 26000}, {27000, 28000}, {29000, 30000}, {31000, 32000}}},
+    {// Batch 2
+     {{33000, 34000}, {35000, 36000}, {37000, 38000}, {39000, 40000}},
+     {{41000, 42000}, {43000, 44000}, {45000, 46000}, {47000, UINT16_MAX}}}};
+
+  nntrainer::Tensor input(
+    3, 2, 4, 2, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16});
+
+  for (size_t b = 0; b < 3; ++b) {
+    for (size_t c = 0; c < 2; ++c) {
+      for (size_t h = 0; h < 4; ++h) {
+        for (size_t w = 0; w < 2; ++w) {
+          input.setValue(b, c, h, w, data[b][c][h][w]);
+        }
+      }
+    }
+  }
+
+  std::vector<unsigned int> indices = {1, 2};
+  nntrainer::Tensor sliced = input.getBatchSlice(indices);
+
+  // Validate sliced tensor dimensions
+  EXPECT_EQ(
+    sliced.getDim(),
+    nntrainer::TensorDim(
+      2, 2, 4, 2, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16}));
+
+  // Validate sliced tensor data
+  // Batch 1
+  EXPECT_EQ(sliced.getValue<uint16_t>(0, 0, 0, 0), 17000);
+  EXPECT_EQ(sliced.getValue<uint16_t>(0, 1, 3, 1), 32000);
+
+  // Batch 2
+  EXPECT_EQ(sliced.getValue<uint16_t>(1, 0, 2, 1), 38000);
+  EXPECT_EQ(sliced.getValue<uint16_t>(1, 1, 3, 1), UINT16_MAX);
+}
+
+TEST(nntrainer_Tensor, getBatchSlice_parallel_p) {
+  // Create large input tensor for parallel test
+  nntrainer::Tensor input(8, 3, 224, 224);
+  input.setRandUniform(-10.0f, 10.0f); // Initialize with random values
+
+  // Create reference slice using sequential method
+  std::vector<unsigned int> indices = {2};
+
+  nntrainer::Tensor ref_slice = input.getBatchSlice(indices);
+
+// Enable OpenMP and test parallel execution
+#pragma omp parallel for
+  for (int i = 0; i < 100; ++i) {
+    nntrainer::Tensor par_slice = input.getBatchSlice(indices);
+    EXPECT_EQ(ref_slice.getDim(), par_slice.getDim());
+    EXPECT_EQ(ref_slice.size(), par_slice.size());
+
+    for (unsigned int idx = 0; idx < ref_slice.size(); ++idx) {
+      EXPECT_FLOAT_EQ(ref_slice.getValue(idx), par_slice.getValue(idx));
+    }
+  }
+}
+
 TEST(nntrainer_Tensor, copy_01_n) {
   int batch = 3;
   int channel = 1;
