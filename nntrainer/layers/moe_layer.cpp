@@ -141,8 +141,8 @@ void MoELayer::finalize(InitLayerContext &context) {
 
   // Expert mask: [num_experts, batch*seq]
   expert_mask_idx = context.requestTensor(
-    {num_experts, 1, 1, batch_size * seq_len}, "expert_mask", Initializer::NONE,
-    false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
+    {num_experts, 1, topk, batch_size * seq_len}, "expert_mask",
+    Initializer::ZEROS, false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
 }
 
 void MoELayer::forwarding(RunLayerContext &context, bool training) {
@@ -171,12 +171,11 @@ void MoELayer::forwarding(RunLayerContext &context, bool training) {
   router_logits.apply(ActiFunc::softmax<float>, routing_weights);
   auto [topk_values, topk_indices] = routing_weights.topK(topk);
 
-  expert_mask.setZero();
   const uint32_t *indices_data = topk_indices.getData<uint32_t>();
 #pragma omp parallel for collapse(2)
   for (unsigned i = 0; i < total_tokens; ++i) {
     for (unsigned k = 0; k < topk; ++k) {
-      expert_mask.setValue(1.0f, indices_data[i * topk + k], 0, 0, i);
+      expert_mask.setValue(indices_data[i * topk + k], 0, k, i, 1.0f);
     }
   }
 
@@ -189,8 +188,10 @@ void MoELayer::forwarding(RunLayerContext &context, bool training) {
 
       // get token indices for this expert
       for (unsigned i = 0; i < total_tokens; ++i) {
-        if (expert_mask.getValue<float>(expert_idx, 0, 0, i) > 0.5f) {
-          token_indices.push_back(i);
+        for (unsigned k = 0; k < topk; ++k) {
+          if (expert_mask.getValue<float>(expert_idx, 0, k, i) > 0.5f) {
+            token_indices.push_back(i);
+          }
         }
       }
       if (token_indices.empty())
@@ -209,11 +210,8 @@ void MoELayer::forwarding(RunLayerContext &context, bool training) {
       {
         for (size_t i = 0; i < token_indices.size(); ++i) {
           unsigned idx = token_indices[i];
-          for (unsigned h = 0; h < hidden_size; ++h) {
-            float val = output.getValue(idx, 0, 0, h) +
-                        expert_output.getValue(i, 0, 0, h);
-            output.setValue(val, idx, 0, 0, h);
-          }
+          auto tgt_output = output.getBatchSlice(idx, 1);
+          tgt_output.copyData(expert_output.getBatchSlice(i, 1));
         }
       }
     }
@@ -235,29 +233,30 @@ inline Tensor MoELayer::compute_expert_forward(const Tensor &input,
 
   // Gate projection: [tokens,1,1,H] x [H,I] -> [tokens,1,1,I]
   Tensor gate_out(tokens, 1, 1, intermediate_size);
+  Tensor acti_out(tokens, 1, 1, intermediate_size);
   input.dot(gate_proj, gate_out);
 
   // Apply activation (silu)
-  acti_func.run_fn(gate_out, gate_out);
+  ///@todo acti_func.run_fn(gate_out, gate_out); -> this inplace operation
+  ///doesn't work
+  acti_func.run_fn(gate_out, acti_out);
 
   // Up projection: [tokens,1,1,H] x [H,I] -> [tokens,1,1,I]
   Tensor up_out(tokens, 1, 1, intermediate_size);
   input.dot(up_proj, up_out);
 
   // Multiply: silu(gate_out) * up_out
-  gate_out.multiply_i(up_out);
+  acti_out.multiply_i(up_out);
 
   // Down projection: [tokens,1,1,I] x [I,H] -> [tokens,1,1,H]
   Tensor expert_output(tokens, 1, 1, hidden_size);
-  gate_out.dot(down_proj, expert_output);
+  acti_out.dot(down_proj, expert_output);
 
   // Weight by routing scores (broadcast multiply)
   for (unsigned i = 0; i < tokens; ++i) {
     float weight_val = weights.getValue(i, 0, 0, 0);
-    for (unsigned h = 0; h < hidden_size; ++h) {
-      float val = expert_output.getValue(i, 0, 0, h) * weight_val;
-      expert_output.setValue(val, i, 0, 0, h);
-    }
+    auto weighted_expert_output = expert_output.getBatchSlice(i, 1);
+    weighted_expert_output.multiply_i(weight_val);
   }
 
   return expert_output;
