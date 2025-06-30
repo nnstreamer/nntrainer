@@ -749,6 +749,86 @@ const std::string &getRMSNormClKernel() {
   return rmsnorm_cl_kernel_;
 }
 
+const std::string &getQuantizeQ8_1Kernel() {
+  static const std::string quantize_q8_1_kernel_ =
+    R"(
+    #pragma OPENCL EXTENSION cl_khr_subgroups : enable
+    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
+
+    #define QK8_1 32
+
+    #define MMQ_Q8_1_DS_LAYOUT_D4     0
+    #define MMQ_Q8_1_DS_LAYOUT_DS4    1
+    #define MMQ_Q8_1_DS_LAYOUT_D2S6   2
+
+    typedef struct {
+        union {
+            float  d[4];       // for D4
+            half2  ds4[4];     // for DS4
+            half   d2s6[8];    // for D2S6
+        };
+        char qs[4*QK8_1];
+    } block_q8_1_mmq;
+
+    __kernel void quantize_q8_1_cl(
+        __global const float *x,       // input float vector
+        __global void *y_raw,          // output (cast to block_q8_1_mmq*)
+        int num_elements,              // total number of floats (must be multiple of 128)
+        int layout                     // quantization layout enum
+    ) {
+        int gid = get_global_id(0);    // one work-item per 4 floats
+        int i0 = gid * 4;
+        if (i0 >= num_elements) return;
+
+        float4 xi = (float4)(x[i0], x[i0+1], x[i0+2], x[i0+3]);
+
+        float amax = fmax(fabs(xi.x), fmax(fabs(xi.y), fmax(fabs(xi.z), fabs(xi.w))));
+        amax = sub_group_reduce_max(amax);
+
+        float sum = 0.0f;
+        if (layout != MMQ_Q8_1_DS_LAYOUT_D4) {
+            sum = xi.x + xi.y + xi.z + xi.w;
+            sum = sub_group_reduce_add(sum);
+        }
+
+        float d_inv = (amax != 0.0f) ? (127.0f / amax) : 0.0f;
+
+        char4 q;
+        q.x = (char)rint(xi.x * d_inv);
+        q.y = (char)rint(xi.y * d_inv);
+        q.z = (char)rint(xi.z * d_inv);
+        q.w = (char)rint(xi.w * d_inv);
+
+        __global block_q8_1_mmq *y = (__global block_q8_1_mmq *) y_raw;
+
+        int block_id = i0 / (4 * QK8_1); // block per 128 floats
+        int q_index  = i0 % (4 * QK8_1); // offset within block
+
+        __global char4 *yqs4 = (__global char4 *)(y[block_id].qs);
+        yqs4[q_index / 4] = q;
+
+        float d = (d_inv != 0.0f) ? (1.0f / d_inv) : 0.0f;
+
+        if (layout == MMQ_Q8_1_DS_LAYOUT_D2S6) {
+            if (q_index % 16 == 0 && q_index < 96)
+                y[block_id].d2s6[2 + q_index / 16] = (half)sum;
+            if (q_index % 64 == 0)
+                y[block_id].d2s6[q_index / 64] = (half)d;
+            return;
+        }
+
+        if (q_index % 32 != 0) return;
+
+        if (layout == MMQ_Q8_1_DS_LAYOUT_DS4) {
+            y[block_id].ds4[q_index / 32] = (half2)(d, sum);
+        } else {
+            y[block_id].d[q_index / 32] = d;
+        }
+    }
+    )";
+  return quantize_q8_1_kernel_;
+}
+
 #ifdef ENABLE_FP16
 const std::string &getHgemvClKernel() {
   static const std::string hgemv_cl_kernel_ =
