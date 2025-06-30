@@ -1709,6 +1709,29 @@ public:
   void updateBatch(unsigned int batch);
 
   /**
+   * @brief     update the dimension for this tensor
+   * @param     dim dimension to be updated
+   * @param     value value to be updated
+   * @note      The value size of src_tensor need not be related with this
+   * tensor's value size
+   *
+   * @note      The memory for this tensor will re-allocated/re-assigned if the
+   * updated value is different than the current value.
+   *
+   * @note      If this tensor is/was the src_tensor for some other, then
+   * reduction in dimension can make the dependent tensors allocate fail due to
+   * memory smaller. Caller must handle this in their own end.
+   *
+   * @note      If this tensor is re-allocated, then the memory might not be
+   * immediately freed as the tensor already depending on this tensor also
+   * share the same memory. So, the peak memory consumption in worst case can
+   * reach the total memory requirements of a model with old value size and the
+   * new value size. It is recommended to first deallocate all the tensors,
+   * update value and then allocate again to avoid such issues.
+   */
+  void updateDimension(unsigned int dim, unsigned int value);
+
+  /**
    * @brief     return whether tensor is contiguous or not.
    * @retval    bool contiguous
    */

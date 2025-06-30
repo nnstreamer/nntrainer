@@ -173,6 +173,21 @@ public:
   void setBatchSize(unsigned int batch_size);
 
   /**
+   * @brief     reset input dimensions of a model
+   * @param[in] dims input dimensions
+   * @note Similar to reinitialize, the resetInputDimension API is used for
+   * modifying input dimensions after model initialization. The reinitialize
+   * function should be the officially called API when changing input
+   * dimensions, as it properly recalculates weights, tensors, and outputs for
+   * each layer. On the other hand, resetInputDimension is a specialized API
+   * created to modify only specific dimensions (specifically height values)
+   * within input/output dimensions. Since this API uniformly adjusts the height
+   * across all model layers, developers must verify that every layer in their
+   * model architecture can safely accommodate such height modifications.
+   */
+  void resetInputDimension(std::vector<TensorDim> dims);
+
+  /**
    * @brief try apply gradient if possible
    * @note if it is not the last of the gradient access, this is noop
    * @note if the gradient is to be clipped by norm, this is noop
