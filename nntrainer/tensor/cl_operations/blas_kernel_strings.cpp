@@ -144,6 +144,29 @@ const std::string &getQ6KQ81SgemvClKernel() {
       
       #define MMQ_TILE_Y_K (WARP_SIZE * QR6_K)
 
+      #define GGML_PAD(x, n) (((x) + (n) - 1) & ~((n) - 1))
+
+      #define MMQ_DP4A_MAX_BATCH_SIZE 64
+      #define MMQ_ITER_K 256
+      #define MMQ_NWARPS 8
+
+      typedef struct {
+          uint8_t ql[QK_K / 2];
+          uint8_t qh[QK_K / 4];
+          int8_t  scales[QK_K / 16];
+          half d;
+      } block_q6_K;
+
+      typedef struct {
+        union {
+          float d4[4];    // 1 32 bit scale per 32 values, stored as d0,d1,d2,d3
+          half2 ds4[4];   // 1 16 bit scale + 1 16 bit partial sum per 32 values, stored as d0,s0,d1,s1,d2,s2,d3,s3
+          half  d2s6[8];  // 1 16 bit scale per 64 values + 1 16 bit partial sum per 16 values for the first 96 values,
+                          //     stored as d0,d1,s1,s2,s3,s4,s5
+        };
+        int8_t qs[4*QK8_1]; // 128 values quantized to 8 bit each
+      } block_q8_1_mmq;
+
       typedef struct
       {
         int qs;
@@ -253,6 +276,193 @@ const std::string &getQ6KQ81SgemvClKernel() {
         }
       }
 
+      // NOTE(m.wlasiuk) : https://github.com/ggml-org/llama.cpp/blob/c46503014db0d63fa7b1b28c58adfb51054e2dec/ggml/src/ggml-cuda/vecdotq.cuh#L6
+      int get_int_b2(const __global void* x, const int i32)
+      {
+        const __global uint16_t* x16 = (const __global uint16_t *)x;
+
+        int x32 = x16[2 * i32 + 0] << 0;
+        x32 |= x16[2 * i32 + 1] << 16;
+
+        return x32;
+      }
+
+      // NOTE(m.wlasiuk) : https://github.com/ggml-org/ggml/blob/14147d683fb9d95444b43747d03b1b3bc5234714/src/ggml-cuda/mmq.cuh#L1613
+      void load_tiles_q6_K(
+        const __global char * restrict x,
+        __local int * restrict x_tile,
+        const int kbx0,
+        const int i_max,
+        const int stride,
+        const int mmq_y,
+        const int nwarps,
+        const bool need_check)
+      {
+        const tile_x_sizes txs = mmq_get_dp4a_tile_x_sizes_q6k(mmq_y);
+
+        __local int * x_qs = x_tile;
+        __local float * x_df = (__local float *)(x_qs + txs.qs);
+        __local int * x_sc = (local int *)(x_df + txs.dm);
+
+        const int tid_x = get_local_id(0);
+        const int tid_y = get_local_id(1);
+        const int warp_size = get_local_size(0);
+
+        for(int i0 = 0; i0 < mmq_y; i0 += nwarps)
+        {
+          int i = i0 + tid_y;
+
+          if(need_check)
+          {
+            i = min(i, i_max);
+          }
+
+          const __global block_q6_K * bxi = (const __global block_q6_K*)(x + (kbx0 + i * stride) * sizeof(block_q6_K));
+
+          const int ql = get_int_b2(bxi->ql, tid_x);
+          const int ql0 = (ql >> 0) & 0x0F0F0F0F;
+          const int ql1 = (ql >> 4) & 0x0F0F0F0F;
+
+          const int qh = get_int_b2(bxi->qh, (QI6_K / 4) * (tid_x / (QI6_K / 2)) + tid_x % (QI6_K / 4));
+          const int qh0 = ((qh >> ((tid_x & 0x08) >> 2)) << 4) & 0x30303030;
+          const int qh1 = (qh >> ((tid_x & 0x08) >> 2)) & 0x30303030;
+
+          const int kq0 = 2 * tid_x - tid_x % (QI6_K / 2) + 0;
+          const int kq1 = 2 * tid_x - tid_x % (QI6_K / 2) + QI6_K / 2;
+
+          x_qs[i * (2 * WARP_SIZE + 1) + kq0] = (ql0 | qh0) - 0x20202020;
+          x_qs[i * (2 * WARP_SIZE + 1) + kq1] = (ql1 | qh1) - 0x20202020;
+        }
+
+        barrier(CLK_LOCAL_MEM_FENCE);
+
+        const int blocks_per_tile_x_row = WARP_SIZE / QI6_K;
+        const int kbxd = tid_x % blocks_per_tile_x_row;
+
+        for(int i0 = 0; i0 < mmq_y; i0 += nwarps * QI6_K)
+        {
+          int i = (i0 + tid_y * QI6_K + tid_x / blocks_per_tile_x_row) % mmq_y;
+
+          if(need_check)
+          {
+            i = min(i, i_max);
+          }
+
+          const __global block_q6_K * bxi = (const __global block_q6_K *)(x + (kbx0 + i * stride + kbxd)*sizeof(block_q6_K));
+          x_df[i * (WARP_SIZE / QI6_K) + i / QI6_K + kbxd] = bxi->d;
+        }
+
+        barrier(CLK_LOCAL_MEM_FENCE);
+
+        for(int i0 = 0; i0 < mmq_y; i0 += nwarps * 8)
+        {
+          int i = (i0 + tid_y * 8 + tid_x / (WARP_SIZE/8)) % mmq_y;
+
+          if(need_check)
+          {
+            i = min(i, i_max);
+          }
+          
+          const __global block_q6_K* bxi = (const __global block_q6_K*)(x + (kbx0 + i * stride + (tid_x % (WARP_SIZE / 8)) / 4) * sizeof(block_q6_K));
+          x_sc[i * (WARP_SIZE / 8) + i / 8 + tid_x %(WARP_SIZE / 8)] = get_int_b2(bxi->scales, tid_x % (QI6_K / 8));
+        }
+
+        barrier(CLK_LOCAL_MEM_FENCE);
+      }
+
+      void mmq_write_back_dp4a(
+        const float * restrict sum,
+        const __global  int32_t * restrict ids_dst,
+        __global float * restrict dst,
+        const int stride,
+        const int i_max,
+        const int j_max)
+      {
+      }
+
+      // NOTE(m.wlasiuk) : https://github.com/ggml-org/ggml/blob/14147d683fb9d95444b43747d03b1b3bc5234714/src/ggml-cuda/mmq.cuh#L2522
+      void mul_mat_q_process_tile(
+        const __global char* restrict x,
+        const int offset_x,
+        const __global int* restrict y,
+        const __global int* restrict ids_dst,
+        __global float* restrict dst,
+        __global float* restrict tmp_fixup,
+        const int stride_row_x,
+        const int ncols_y,
+        const int stride_col_dst,
+        const int tile_x_max_i,
+        const int tile_y_max_j,
+        const int kb0_start,
+        const int kb0_stop,
+        const int mmq_x,
+        const int nwarps,
+        const int need_check,
+        const int fixup,
+        __local int* data_mul_mat_q) 
+      {
+        const int tid_x = get_local_id(0);
+        const int tid_y = get_local_id(1);
+
+        // NOTE(m.wlasiuk) : https://github.com/ggml-org/ggml/blob/14147d683fb9d95444b43747d03b1b3bc5234714/src/ggml-cuda/mmq.cuh#L102
+        const int mmq_y = 64;
+
+        __local int * tile_y = data_mul_mat_q + mmq_x;
+        __local int * tile_x = tile_y + GGML_PAD(mmq_x * (WARP_SIZE + WARP_SIZE / QI8_1), nwarps * WARP_SIZE);
+
+        const int qk = QK_K;
+        const int blocks_per_iter = MMQ_ITER_K / qk;
+
+        const int LARGE_TMP = 256 * 256 * 256;
+
+        float sum[LARGE_TMP] = {0.0f};
+        
+        // ORIGINAL:
+        // float sum[mmq_x * mmq_y / nwarps * WARP_SIZE] = {0.0f};
+
+        for (int kb0 = kb0_start; kb0 < kb0_stop; kb0 += blocks_per_iter)
+        {
+          load_tiles_q6_K(x, tile_x, offset_x + kb0, tile_x_max_i, stride_row_x, mmq_y, nwarps, need_check);
+
+          {
+            const __global int * by0 = y + ncols_y*(kb0*(qk*sizeof(block_q8_1_mmq) / (4*QK8_1*sizeof(int))) + 0*sizeof(block_q8_1_mmq)/sizeof(int));
+
+            for (int l0 = 0; l0 < mmq_x*MMQ_TILE_Y_K; l0 += nwarps*WARP_SIZE)
+            {
+              int l = l0 + tid_y*WARP_SIZE + tid_x;
+              tile_y[l] = by0[l];
+            }
+          }
+
+          barrier(CLK_LOCAL_MEM_FENCE);
+          vec_dot_q6_K_q8_1_dp4a(tile_x, tile_y, sum, 0);
+          barrier(CLK_LOCAL_MEM_FENCE);
+
+          {
+            const __global int * by0 = y + ncols_y*(kb0*(qk*sizeof(block_q8_1_mmq) / (4*QK8_1*sizeof(int))) + 1*sizeof(block_q8_1_mmq)/sizeof(int));
+
+            for (int l0 = 0; l0 < mmq_x*MMQ_TILE_Y_K; l0 += nwarps*WARP_SIZE)
+            {
+              int l = l0 + tid_y*WARP_SIZE + tid_x;
+              tile_y[l] = by0[l];
+            }
+          }
+
+          barrier(CLK_LOCAL_MEM_FENCE);
+          vec_dot_q6_K_q8_1_dp4a(tile_x, tile_y, sum, WARP_SIZE);
+          barrier(CLK_LOCAL_MEM_FENCE);
+        }
+
+        if (fixup)
+        {
+          mmq_write_back_dp4a(sum, ids_dst, tmp_fixup + tid_x*(mmq_x*mmq_y), mmq_y, mmq_y, mmq_x);
+        }
+        else
+        {
+          mmq_write_back_dp4a(sum, ids_dst, dst, stride_col_dst, tile_x_max_i, tile_y_max_j);
+        }
+      }
+
       // Unpack data and run tile
       // TODO : mul_mat_q_process_tile
       // src/ggml-cuda/mmq.cuh L2522
@@ -260,6 +470,8 @@ const std::string &getQ6KQ81SgemvClKernel() {
       // Run all tiles based on input matrices dimensions
       // TODO : mul_mat_q <== make it kernel
       // src/ggml-cuda/mmq.cuh L2606
+
+      // MAYBE : launch_mul_mat_q ??? mmq.cuh : L3009
 
     )";
   return q6_k_q8_1_sgemv_cl_kernel_;
