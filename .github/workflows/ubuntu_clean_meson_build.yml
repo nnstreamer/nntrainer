@@ -3,6 +3,7 @@ name: "Build Test - Ubuntu Meson"
 on:
   pull_request:
     types: [opened, edited, reopened, synchronize]
+  workflow_call:
 
 jobs:
   meson_test:

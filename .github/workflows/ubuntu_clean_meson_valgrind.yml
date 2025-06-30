@@ -1,0 +1,23 @@
+name: "Valgrind Test - Following Ubuntu Meson"
+
+on:
+  pull_request:
+
+jobs:
+  call_ubuntu_clean_meson_build:
+    uses: ./.github/workflows/ubuntu_clean_meson_build.yml
+    strategy:
+      matrix:
+        os: [ubuntu-24.04]
+        meson_options: ["-Denable-fp16=true"]
+
+  valgrind_test:
+    runs-on: ubuntu-24.04
+    needs: [call_ubuntu_clean_meson_build]
+    steps:
+    - name: install valgrind
+      run: sudo apt-get install valgrind libc6-dbg binutils-x86-64-linux-gnu-dbg
+    - name: unittest with valgrind
+      run: meson test --wrap='valgrind --leak-check=full --error-exitcode=127' -C build --suite unittests --timeout-multiplier 3
+    - name: apptest with valgrind
+      run: meson test --wrap='valgrind --leak-check=full --error-exitcode=127' -C build --no-suite unittests --timeout-multiplier 3
