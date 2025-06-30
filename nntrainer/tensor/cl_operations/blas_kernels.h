@@ -40,8 +40,8 @@ static ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
 void sgemv_q6_k_cl(const void *matAdata, const float *vecXdata, float *vecYdata,
                    unsigned int M, unsigned int N);
 
-void sgemv_q6_k_q8_1_cl(const void *matAdata, const float *vecXdata,
-                        float *vecYdata, unsigned int M, unsigned int N);
+void sgemv_q6_k_q8_1_cl(void *matAdata, void *vecXdata, float *vecYdata,
+                        unsigned int M, unsigned int N);
 
 /**
  * @brief     sgemv computation : Y = A*X + Y

@@ -205,8 +205,8 @@ void sgemv_q6_k_cl(const void *matAdata, const float *vecXdata, float *vecYdata,
   }
 }
 
-void sgemv_q6_k_q8_1_cl(const void *matAdata, const float *vecXdata,
-                        float *vecYdata, unsigned int M, unsigned int N) {
+void sgemv_q6_k_q8_1_cl(void *matAdata, void *vecXdata, float *vecYdata,
+                        unsigned int M, unsigned int N) {
   bool result = false;
 
   ClContext::SharedPtrClKernel kernel_q6_k_q_8_1_sgemv_ptr;
@@ -232,46 +232,23 @@ void sgemv_q6_k_q8_1_cl(const void *matAdata, const float *vecXdata,
   /// @todo: Quantize vecXdata to q8k format @m-wlasiuk
   // nntrainer::quantize_q8_1(vecXdata);
 
-  /// @todo Apply SVM after #3262 is merged
-  result = clbuffInstance.getInBufferA()->WriteDataRegion(
-    blas_cc->command_queue_inst_, q6k_bytes, matAdata);
-  if (!result) {
-    ml_loge(
-      "Failed to write data to input buffer A for kernel_q6_k_q_8_1_sgemv_ptr");
-    return;
-  }
+  blas_cc->command_queue_inst_.enqueueSVMUnmap(matAdata);
 
-  /// @todo Apply SVM after #3262 is merged
-  result = clbuffInstance.getInBufferB()->WriteDataRegion(
-    blas_cc->command_queue_inst_, q8k_bytes, vecXdata);
-  if (!result) {
-    ml_loge(
-      "Failed to write data to input buffer B for kernel_q6_k_q_8_1_sgemv_ptr");
-    return;
-  }
+  blas_cc->command_queue_inst_.enqueueSVMUnmap(vecXdata);
 
-  /// @todo Apply SVM after #3262 is merged
-  result = kernel_q6_k_q_8_1_sgemv_ptr->SetKernelArguments(
-    0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
-
+  result = kernel_q6_k_q_8_1_sgemv_ptr->SetKernelSVMArguments(0, matAdata);
   if (!result) {
     ml_loge("Failed to set kernel argument 0 for kernel_q6_k_q_8_1_sgemv_ptr");
     return;
   }
 
-  /// @todo Apply SVM after #3262 is merged
-  result = kernel_q6_k_q_8_1_sgemv_ptr->SetKernelArguments(
-    1, clbuffInstance.getInBufferB(), sizeof(cl_mem));
-
+  result = kernel_q6_k_q_8_1_sgemv_ptr->SetKernelSVMArguments(1, vecXdata);
   if (!result) {
     ml_loge("Failed to set kernel argument 1 for kernel_q6_k_q_8_1_sgemv_ptr");
     return;
   }
 
-  /// @todo Apply SVM after #3262 is merged
-  result = kernel_q6_k_q_8_1_sgemv_ptr->SetKernelArguments(
-    2, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
-
+  result = kernel_q6_k_q_8_1_sgemv_ptr->SetKernelSVMArguments(2, vecYdata);
   if (!result) {
     ml_loge("Failed to set kernel argument 2 for kernel_q6_k_q_8_1_sgemv_ptr");
     return;
@@ -325,10 +302,8 @@ void sgemv_q6_k_q8_1_cl(const void *matAdata, const float *vecXdata,
     return;
   }
 
-  /// @todo Apply SVM after #3262 is merged
-  result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-    blas_cc->command_queue_inst_, N * sizeof(float), vecYdata);
-
+  result = blas_cc->command_queue_inst_.enqueueSVMMap(vecYdata,
+                                                      N * sizeof(float), true);
   if (!result) {
     ml_loge("Failed to read data from the output buffer for "
             "kernel_q6_k_q_8_1_sgemv_ptr");
