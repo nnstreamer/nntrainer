@@ -12,6 +12,8 @@ import math
 from recorder_v2 import record_v2, inspect_file, _rand_like
 import torch
 from torch import autocast
+import torch.nn.functional as F
+import torch.nn as nn
 
 
 class ReduceMeanLast(torch.nn.Module):
@@ -610,8 +612,128 @@ class ChannelShuffle(torch.nn.Module):
         
         return out, loss
 
+class MoEMLP(torch.nn.Module):
+    """MoE expert (mlp) layer"""
+    def __init__(self, intermediate_size=32, hidden_size=128):
+        super().__init__()  
+        self.intermediate_size = intermediate_size
+        self.hidden_size = hidden_size
+        self.gate_proj = nn.Linear(self.hidden_size, self.intermediate_size, bias=False)
+        self.up_proj = nn.Linear(self.hidden_size, self.intermediate_size, bias=False)
+        self.down_proj = nn.Linear(self.intermediate_size, self.hidden_size, bias=False)
+    
+    def forward(self, x):
+        print("current_state", x)
+        print("gate_proj", self.gate_proj.weight.T)
+        print("up_proj", self.up_proj.weight.T)
+        print("down_proj", self.down_proj.weight.T)
+
+        gate_out = self.gate_proj(x)
+        print("gate_out", gate_out)
+
+        gate_out = F.silu(gate_out)
+        print("gate_out after silu", gate_out)
+
+        up_out = self.up_proj(x)
+        print("up_out", up_out)
+
+        gate_out = gate_out * up_out
+        print("gate_out", gate_out)
+
+        expert_out = self.down_proj(gate_out)
+        print("expert_out", expert_out)
+        return expert_out
+
+class MoELayer(torch.nn.Module):  
+    """MoE Layer implementation based on Qwen architecture"""  
+    def __init__(self, num_experts=4, num_experts_per_token=2, unit=32, hidden_dim=128):
+        super().__init__()  
+        self.num_experts = num_experts  
+        self.topk = num_experts_per_token  
+        self.unit = unit  
+        self.hidden_dim = hidden_dim
+          
+        # Router weights  
+        self.gate = nn.Linear(hidden_dim, num_experts, bias=False)
+          
+        # Expert weights  
+        self.experts = torch.nn.ModuleList([MoEMLP(unit, hidden_dim) for _ in range(num_experts)])
+          
+    def forward(self, inputs):  
+        batch_size, sequence_length, hidden_dim = inputs.shape
+        assert(hidden_dim == self.hidden_dim), f"Expected hidden_dim {self.hidden_dim}, but got {hidden_dim}"
+
+        hidden_states = inputs.view(-1, hidden_dim)  # [batch*seq, hidden]  
+        print("hidden_states", hidden_states)
+
+        # Compute router logits [batch*seq, num_experts]  
+        router_logits  = self.gate(hidden_states)
+        print("router_logits", router_logits)
+          
+        # Compute routing weights [batch*seq, num_experts]  
+        routing_weights = F.softmax(router_logits, dim=1, dtype=torch.float)
+
+        # Select top-k experts [batch*seq, topk]  
+        routing_weights, selected_experts = torch.topk(routing_weights, self.topk, dim=-1)
+        print("routing_weights", routing_weights)
+        print("selected_experts", selected_experts)
+
+        # if self.norm_topk_prob: # only diff with mixtral sparse moe block!
+        #     routing_weight = routing_weight / torch.sum(routing_weight, dim=-1, keepdim=True)
+
+        # 
+        final_hidden_states = torch.zeros(
+            (batch_size * sequence_length, hidden_dim), dtype=hidden_states.dtype
+        )
+
+        # one-hot encode the selected experts to create an expert mask
+        # this will be used to easily index which expert is going to be sollicitated
+        # [num_experts, topk, batch * seq]
+        expert_mask = torch.nn.functional.one_hot(selected_experts, num_classes = self.num_experts).permute(2, 1, 0)
+        print("expert_mask", expert_mask)
+
+        # loop over all available experts in the model and perform the computation on each expert
+        for expert_idx in range(self.num_experts):  
+            # expert_layer = self.experts[expert_idx]
+            print("expert", expert_idx)
+            idx, top_x = torch.where(expert_mask[expert_idx])
+            print("idx", idx)
+            print("top_x", top_x)
+
+            # Index the correct hidden states and compute the expert hidden state for
+            # the current expert. We need to make sure to multiply the output hidden
+            # states by `routing_weights` on the corresponding tokens (top-1 and top-2)
+            current_state = hidden_states[None, top_x].reshape(-1, hidden_dim)
+
+            # expert_out = expert_downs(F.silu(expert_gate(current_state)) * expert_ups(current_state))
+            expert_out = self.experts[expert_idx](current_state)
+
+
+            # run expert layer
+            current_hidden_states = expert_out * routing_weights[top_x, idx, None]
+              
+            # Accumulate results [batch*seq, hidden]  
+            final_hidden_states.index_add_(0, top_x, current_hidden_states)
+          
+        final_hidden_states.view(batch_size, sequence_length, hidden_dim)  
+
+        return final_hidden_states, router_logits
+    
+class MoEModel(torch.nn.Module):  
+    """MoE Model for testing"""  
+    def __init__(self, num_experts=4, num_experts_per_token=2, unit=32, hidden_dim=128):  
+        super().__init__()  
+        self.moe = MoELayer(num_experts, num_experts_per_token, unit, hidden_dim)  
+        self.loss = torch.nn.MSELoss()  
+          
+    def forward(self, inputs, labels):  
+        output, router_logits = self.moe(inputs[0])  
+        loss = self.loss(output, labels[0])  
+        return output, loss  
+
 
 if __name__ == "__main__":
+    """
     record_v2(
         ReduceMeanLast(),
         iteration=2,
@@ -1019,3 +1141,16 @@ if __name__ == "__main__":
 
     #    Function to check the created golden test file
     inspect_file("channel_shuffle.nnmodelgolden")
+    """
+
+    # Add MoE Layer test
+    moe_layer = MoEModel(num_experts=4, num_experts_per_token=2, unit=32, hidden_dim=128)
+    record_v2(
+        moe_layer,
+        iteration=1,
+        input_dims=[(1, 10, 128)],  # batch_size=1, sequence_length=10, hidden_dim=128
+        input_dtype=[float],
+        label_dims=[(1, 10, 128)],  # batch_size=1, sequence_length=10, hidden_dim=128
+        name="moe_layer",
+    )
+    inspect_file("moe_layer.nnmodelgolden")
