@@ -829,6 +829,67 @@ const std::string &getQuantizeQ8_1Kernel() {
   return quantize_q8_1_kernel_;
 }
 
+const std::string &getDequantizeQ8_1Kernel() {
+  static const std::string dequantize_q8_1_kernel_ =
+    R"(
+    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
+
+    #define QK8_1 32
+
+    #define MMQ_Q8_1_DS_LAYOUT_D4     0
+    #define MMQ_Q8_1_DS_LAYOUT_DS4    1
+    #define MMQ_Q8_1_DS_LAYOUT_D2S6   2
+
+    typedef struct {
+        union {
+            float  d[4];       // for D4
+            half2  ds4[4];     // for DS4
+            half   d2s6[8];    // for D2S6
+        };
+        char qs[4*QK8_1];
+    } block_q8_1_mmq;
+
+    __kernel void dequantize_q8_1_cl(
+        __global const void *y_raw,   // input: quantized
+        __global float *x_out,        // output: dequantized
+        int num_elements,             // must match original float count
+        int layout                    // layout enum
+    ) {
+        int gid = get_global_id(0);
+        int i0 = gid * 4;
+        if (i0 >= num_elements) return;
+
+        int block_id = i0 / (4 * QK8_1);
+        int q_index  = i0 % (4 * QK8_1);
+
+        __global const block_q8_1_mmq *y = (__global const block_q8_1_mmq *) y_raw;
+        __global const char4 *yqs4 = (__global const char4 *)(y[block_id].qs);
+
+        char4 q = yqs4[q_index / 4];
+
+        float d = 1.0f;
+        float sum = 0.0f;
+
+        if (layout == MMQ_Q8_1_DS_LAYOUT_D2S6) {
+            d = (float)(y[block_id].d2s6[q_index / 64]);
+            sum = (float)(y[block_id].d2s6[2 + q_index / 16]);
+        } else if (layout == MMQ_Q8_1_DS_LAYOUT_DS4) {
+            half2 hs = y[block_id].ds4[q_index / 32];
+            d = (float)hs.s0;
+            sum = (float)hs.s1;
+        } else {
+            d = y[block_id].d[q_index / 32];
+        }
+
+        x_out[i0 + 0] = (float)(q.x) * d;
+        x_out[i0 + 1] = (float)(q.y) * d;
+        x_out[i0 + 2] = (float)(q.z) * d;
+        x_out[i0 + 3] = (float)(q.w) * d;
+    }
+    )";
+  return dequantize_q8_1_kernel_;
+}
+
 #ifdef ENABLE_FP16
 const std::string &getHgemvClKernel() {
   static const std::string hgemv_cl_kernel_ =

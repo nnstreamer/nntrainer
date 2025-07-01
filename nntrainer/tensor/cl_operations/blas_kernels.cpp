@@ -795,4 +795,86 @@ void quantize_q8_1_cl(const float *input, void *output, unsigned int size) {
   } while (false);
 }
 
+void dequantize_q8_1_cl(const void *input, float *output, unsigned int size) {
+  bool result = false;
+
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
+  do {
+    ClContext::SharedPtrClKernel kernel_dequantize_q8_1_ptr =
+      blas_cc->registerClKernel(getDequantizeQ8_1Kernel(),
+                                "dequantize_q8_1_cl");
+    if (!kernel_dequantize_q8_1_ptr) {
+      ml_loge("Failed to register kernel_dequantize_q8_1_ptr");
+      break;
+    }
+
+    if (size % 128 != 0) {
+      ml_loge("Size must be a multiple of 128 for dequantize_q8_1_cl");
+      break;
+    }
+    size_t num_q8_1_block = size / 128;
+    size_t input_size_bytes = num_q8_1_block * 144;
+    size_t output_size_bytes = size * sizeof(float);
+    const int layout = 0;
+
+    result = clbuffInstance.getInBufferA()->WriteDataRegion(
+      blas_cc->command_queue_inst_, input_size_bytes, input);
+    if (!result) {
+      ml_loge("Failed to write data to input buffer A for "
+              "kernel_dequantize_q8_1_ptr");
+      break;
+    }
+
+    result = kernel_dequantize_q8_1_ptr->SetKernelArguments(
+      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
+    if (!result) {
+      ml_loge("Failed to set kernel argument 0 for kernel_dequantize_q8_1_ptr");
+      break;
+    }
+
+    result = kernel_dequantize_q8_1_ptr->SetKernelArguments(
+      1, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
+    if (!result) {
+      ml_loge("Failed to set kernel argument 1 for kernel_dequantize_q8_1_ptr");
+      break;
+    }
+
+    result =
+      kernel_dequantize_q8_1_ptr->SetKernelArguments(2, &size, sizeof(int));
+    if (!result) {
+      ml_loge("Failed to set kernel argument 2 for kernel_dequantize_q8_1_ptr");
+      break;
+    }
+
+    result =
+      kernel_dequantize_q8_1_ptr->SetKernelArguments(3, &layout, sizeof(int));
+    if (!result) {
+      ml_loge("Failed to set kernel argument 3 for kernel_dequantize_q8_1_ptr");
+      break;
+    }
+
+    const int work_groups_count[3] = {(int)size / 4, 1, 1};
+    const int work_group_size[3] = {32, 1, 1};
+
+    result = blas_cc->command_queue_inst_.DispatchCommand(
+      kernel_dequantize_q8_1_ptr, work_groups_count, work_group_size);
+    if (!result) {
+      ml_loge("Failed to dispatch dequantize_q8_1 kernel");
+      break;
+    }
+
+    result = clbuffInstance.getOutBufferA()->ReadDataRegion(
+      blas_cc->command_queue_inst_, output_size_bytes, output);
+    if (!result) {
+      ml_loge("Failed to read data from output buffer A for "
+              "kernel_dequantize_q8_1_ptr");
+      break;
+    }
+
+  } while (false);
+}
+
 } // namespace nntrainer
