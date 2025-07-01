@@ -733,7 +733,6 @@ class MoEModel(torch.nn.Module):
 
 
 if __name__ == "__main__":
-    """
     record_v2(
         ReduceMeanLast(),
         iteration=2,
@@ -1141,7 +1140,6 @@ if __name__ == "__main__":
 
     #    Function to check the created golden test file
     inspect_file("channel_shuffle.nnmodelgolden")
-    """
 
     # Add MoE Layer test
     moe_layer = MoEModel(num_experts=4, num_experts_per_token=2, unit=32, hidden_dim=128)

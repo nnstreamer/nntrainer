@@ -126,23 +126,24 @@ void MoELayer::finalize(InitLayerContext &context) {
   }
 
   // 6. Request intermediate tensors
-  const unsigned int batch_size = in_dim.batch();
-  const unsigned int seq_len = in_dim.height();
+  const unsigned batch_size = in_dim.batch();
+  const unsigned seq_len = in_dim.height();
+  const unsigned total_tokens = batch_size * seq_len;
 
   // Router logits :  [batch * seq, num_experts]
   router_logits_idx = context.requestTensor(
-    {batch_size * seq_len, 1, 1, num_experts}, "router_logits",
-    Initializer::NONE, false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
+    {total_tokens, 1, 1, num_experts}, "router_logits", Initializer::NONE,
+    false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
 
   // Routing weights: [batch*seq, topk]
   routing_weights_idx = context.requestTensor(
-    {batch_size * seq_len, 1, 1, topk}, "routing_weights", Initializer::NONE,
-    false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
+    {total_tokens, 1, 1, topk}, "routing_weights", Initializer::NONE, false,
+    TensorLifespan::FORWARD_FUNC_LIFESPAN);
 
   // Expert mask: [num_experts, batch*seq]
   expert_mask_idx = context.requestTensor(
-    {num_experts, 1, topk, batch_size * seq_len}, "expert_mask",
-    Initializer::ZEROS, false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
+    {num_experts, 1, topk, total_tokens}, "expert_mask", Initializer::ZEROS,
+    false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
 }
 
 void MoELayer::forwarding(RunLayerContext &context, bool training) {
@@ -169,12 +170,14 @@ void MoELayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &gate_weights = context.getWeight(gate_idx);
   input.dot(gate_weights, router_logits);
   router_logits.apply(ActiFunc::softmax<float>, routing_weights);
-  auto [topk_values, topk_indices] = routing_weights.topK(topk);
+  auto topk_result = routing_weights.topK(topk);
+  auto topk_values = std::get<0>(topk_result);
+  auto topk_indices = std::get<1>(topk_result);
 
   const uint32_t *indices_data = topk_indices.getData<uint32_t>();
 #pragma omp parallel for collapse(2)
-  for (unsigned i = 0; i < total_tokens; ++i) {
-    for (unsigned k = 0; k < topk; ++k) {
+  for (int i = 0; i < static_cast<int>(total_tokens); ++i) {
+    for (int k = 0; k < static_cast<int>(topk); ++k) {
       expert_mask.setValue(indices_data[i * topk + k], 0, k, i, 1.0f);
     }
   }
@@ -183,12 +186,13 @@ void MoELayer::forwarding(RunLayerContext &context, bool training) {
 #pragma omp parallel
   {
 #pragma omp for schedule(dynamic)
-    for (unsigned expert_idx = 0; expert_idx < num_experts; ++expert_idx) {
+    for (int expert_idx = 0; expert_idx < static_cast<int>(num_experts);
+         ++expert_idx) {
       std::vector<unsigned> token_indices;
 
       // get token indices for this expert
-      for (unsigned i = 0; i < total_tokens; ++i) {
-        for (unsigned k = 0; k < topk; ++k) {
+      for (int i = 0; i < static_cast<int>(total_tokens); ++i) {
+        for (int k = 0; k < static_cast<int>(topk); ++k) {
           if (expert_mask.getValue<float>(expert_idx, 0, k, i) > 0.5f) {
             token_indices.push_back(i);
           }
@@ -208,7 +212,7 @@ void MoELayer::forwarding(RunLayerContext &context, bool training) {
 // acuumulate expert output into the main output tensor
 #pragma omp critical
       {
-        for (size_t i = 0; i < token_indices.size(); ++i) {
+        for (int i = 0; i < static_cast<int>(token_indices.size()); ++i) {
           unsigned idx = token_indices[i];
           auto tgt_output = output.getBatchSlice(idx, 1);
           tgt_output.copyData(expert_output.getBatchSlice(i, 1));
@@ -238,7 +242,7 @@ inline Tensor MoELayer::compute_expert_forward(const Tensor &input,
 
   // Apply activation (silu)
   ///@todo acti_func.run_fn(gate_out, gate_out); -> this inplace operation
-  ///doesn't work
+  /// doesn't work
   acti_func.run_fn(gate_out, acti_out);
 
   // Up projection: [tokens,1,1,H] x [H,I] -> [tokens,1,1,I]
