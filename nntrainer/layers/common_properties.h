@@ -980,6 +980,9 @@ public:
   static constexpr const char *key = "activation";
 };
 
+/**
+ * @brief MoE activation type
+ */
 class MoEActivation final
   : public EnumProperty<nntrainer::props::ActivationTypeInfo> {
 public:
