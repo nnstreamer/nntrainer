@@ -62,6 +62,8 @@ const std::string &getRMSNormClKernel();
 
 const std::string &getQuantizeQ8_1Kernel();
 
+const std::string &getDequantizeQ8_1Kernel();
+
 #ifdef ENABLE_FP16
 
 const std::string &getHgemvClKernel();

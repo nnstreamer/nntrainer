@@ -131,9 +131,18 @@ void transpose_cl_axis(const float *in, float *res,
  * @param output Pointer to the output tensor in q8_1 format
  * @param size Size of the input tensor in elements
  *
- * @note src_q8_1 size: ne13*ne12*ne11*ne10_padded * sizeof(block_q8_1)/QK8_1
  */
 void quantize_q8_1_cl(const float *input, void *output, unsigned int size);
+
+/**
+ * @brief Dequantize a float tensor to q8_1 format
+ *
+ * @param input Pointer to the input tensor  in q8_1 format
+ * @param output Float pointer to the output tensor
+ * @param size Size of the output tensor in elements
+ *
+ */
+void dequantize_q8_1_cl(const void *input, float *output, unsigned int size);
 
 #ifdef ENABLE_FP16
 
