@@ -17,6 +17,7 @@
 #include "nntrainer_test_util.h"
 #include "util_func.h"
 #include <blas_kernel_interface.h>
+#include <blas_kernels.h>
 #include <cl_context.h>
 #include <layer_context.h>
 #include <tensor.h>
@@ -26,6 +27,42 @@
   EXPECT_LE((VAL), (MAX))
 
 using namespace nntrainer;
+
+/**
+ * @note This is a temporary test to verify the quantization and dequantization
+ * of Q8_1 format
+ */
+TEST(blas_kernels, test_quantize_dequantize_q8_1) {
+  int batch = 1;
+  int channel = 1;
+  int height = 1;
+  int width = 1024;
+  int MOD = 10;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor A_fp32(batch, channel, height, width, t_type_nchw_fp32);
+  nntrainer::Tensor B_fp32(batch, channel, height, width, t_type_nchw_fp32);
+
+  A_fp32.setRandNormal();
+
+  float *q8_1_data = (float *)malloc(width / 128 * 144);
+  quantize_q8_1_cl(A_fp32.getData<float>(), (void *)q8_1_data, A_fp32.size());
+  dequantize_q8_1_cl((void *)q8_1_data, B_fp32.getData<float>(), B_fp32.size());
+
+  std::cout << A_fp32 << std::endl;
+  std::cout << B_fp32 << std::endl;
+
+  float *data_A = A_fp32.getData();
+  float *data_B = B_fp32.getData();
+
+  for (unsigned int i = 0; i < A_fp32.size(); ++i) {
+    if (std::fabs(data_A[i] - data_B[i]) >= 0.01) {
+      std::cout << i << ": " << data_A[i] << ", " << data_B[i] << std::endl;
+    }
+  }
+}
 
 TEST(blas_kernels, dotCL_sgemv_M_1_1) {
   int batch = 1;

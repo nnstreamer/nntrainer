@@ -219,18 +219,13 @@ void sgemv_q6_k_q8_1_cl(const void *matAdata, const float *vecXdata,
     return;
   }
 
-  int q6k_bytes = 210 * M * N / 256;
+  const int q6k_bytes = 210 * M * N / 256;
+  const int q8k_bytes = M / 128 * 144;
 
-  /**
-  typedef struct {
-      ggml_half2 ds;
-      int8_t qs[QK8_1]; // quants
-  } block_q8_1;
-  */
-  int q8k_bytes = 288 * M / 256;
+  void *q8k_data = malloc(q8k_bytes);
 
-  /// @todo: Quantize vecXdata to q8k format @m-wlasiuk
-  // nntrainer::quantize_q8_1(vecXdata);
+  // Quantize the input vector X to Q8_1 format
+  quantize_q8_1_cl(vecXdata, q8k_data, M);
 
   /// @todo Apply SVM after #3262 is merged
   result = clbuffInstance.getInBufferA()->WriteDataRegion(
@@ -243,7 +238,7 @@ void sgemv_q6_k_q8_1_cl(const void *matAdata, const float *vecXdata,
 
   /// @todo Apply SVM after #3262 is merged
   result = clbuffInstance.getInBufferB()->WriteDataRegion(
-    blas_cc->command_queue_inst_, q8k_bytes, vecXdata);
+    blas_cc->command_queue_inst_, q8k_bytes, q8k_data);
   if (!result) {
     ml_loge(
       "Failed to write data to input buffer B for kernel_q6_k_q_8_1_sgemv_ptr");
@@ -334,6 +329,9 @@ void sgemv_q6_k_q8_1_cl(const void *matAdata, const float *vecXdata,
             "kernel_q6_k_q_8_1_sgemv_ptr");
     return;
   }
+
+  free(q8k_data);
+  q8k_data = nullptr;
 }
 
 void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
