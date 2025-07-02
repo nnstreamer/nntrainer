@@ -40,8 +40,8 @@ static ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
 void sgemv_q6_k_cl(const void *matAdata, const float *vecXdata, float *vecYdata,
                    unsigned int M, unsigned int N);
 
-void sgemv_q6_k_q8_1_cl(const void *matAdata, const float *vecXdata,
-                        float *vecYdata, unsigned int M, unsigned int N);
+void sgemv_q6_k_q8_1_cl(void *matAdata, float *vecXdata, float *vecYdata,
+                        unsigned int M, unsigned int N);
 
 /**
  * @brief     sgemv computation : Y = A*X + Y
@@ -132,7 +132,7 @@ void transpose_cl_axis(const float *in, float *res,
  * @param size Size of the input tensor in elements
  *
  */
-void quantize_q8_1_cl(const float *input, void *output, unsigned int size);
+void quantize_q8_1_cl(float *input, void *output, unsigned int size);
 
 /**
  * @brief Dequantize a float tensor to q8_1 format

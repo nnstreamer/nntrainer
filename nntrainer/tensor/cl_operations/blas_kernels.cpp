@@ -205,8 +205,8 @@ void sgemv_q6_k_cl(const void *matAdata, const float *vecXdata, float *vecYdata,
   }
 }
 
-void sgemv_q6_k_q8_1_cl(const void *matAdata, const float *vecXdata,
-                        float *vecYdata, unsigned int M, unsigned int N) {
+void sgemv_q6_k_q8_1_cl(void *matAdata, float *vecXdata, float *vecYdata,
+                        unsigned int M, unsigned int N) {
   bool result = false;
 
   ClContext::SharedPtrClKernel kernel_q6_k_q_8_1_sgemv_ptr;
@@ -222,50 +222,37 @@ void sgemv_q6_k_q8_1_cl(const void *matAdata, const float *vecXdata,
   const int q6k_bytes = 210 * M * N / 256;
   const int q8k_bytes = M / 128 * 144;
 
-  void *q8k_data = malloc(q8k_bytes);
+  void *q8_1_data = blas_cc->context_inst_.createSVMRegion(q8k_bytes);
+
+  if (!q8_1_data) {
+    std::cerr << "Failed to create SVM region for q8_1_data" << std::endl;
+    return;
+  }
 
   // Quantize the input vector X to Q8_1 format
-  quantize_q8_1_cl(vecXdata, q8k_data, M);
+  quantize_q8_1_cl(vecXdata, q8_1_data, M);
 
-  /// @todo Apply SVM after #3262 is merged
-  result = clbuffInstance.getInBufferA()->WriteDataRegion(
-    blas_cc->command_queue_inst_, q6k_bytes, matAdata);
-  if (!result) {
-    ml_loge(
-      "Failed to write data to input buffer A for kernel_q6_k_q_8_1_sgemv_ptr");
-    return;
-  }
+  blas_cc->command_queue_inst_.enqueueSVMUnmap(matAdata);
 
-  /// @todo Apply SVM after #3262 is merged
-  result = clbuffInstance.getInBufferB()->WriteDataRegion(
-    blas_cc->command_queue_inst_, q8k_bytes, q8k_data);
-  if (!result) {
-    ml_loge(
-      "Failed to write data to input buffer B for kernel_q6_k_q_8_1_sgemv_ptr");
-    return;
-  }
+  blas_cc->command_queue_inst_.enqueueSVMUnmap(q8_1_data);
 
-  /// @todo Apply SVM after #3262 is merged
-  result = kernel_q6_k_q_8_1_sgemv_ptr->SetKernelArguments(
-    0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
+  blas_cc->command_queue_inst_.enqueueSVMUnmap(vecYdata);
+
+  result = kernel_q6_k_q_8_1_sgemv_ptr->SetKernelSVMArguments(0, matAdata);
 
   if (!result) {
     ml_loge("Failed to set kernel argument 0 for kernel_q6_k_q_8_1_sgemv_ptr");
     return;
   }
 
-  /// @todo Apply SVM after #3262 is merged
-  result = kernel_q6_k_q_8_1_sgemv_ptr->SetKernelArguments(
-    1, clbuffInstance.getInBufferB(), sizeof(cl_mem));
+  result = kernel_q6_k_q_8_1_sgemv_ptr->SetKernelSVMArguments(1, q8_1_data);
 
   if (!result) {
     ml_loge("Failed to set kernel argument 1 for kernel_q6_k_q_8_1_sgemv_ptr");
     return;
   }
 
-  /// @todo Apply SVM after #3262 is merged
-  result = kernel_q6_k_q_8_1_sgemv_ptr->SetKernelArguments(
-    2, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
+  result = kernel_q6_k_q_8_1_sgemv_ptr->SetKernelSVMArguments(2, vecYdata);
 
   if (!result) {
     ml_loge("Failed to set kernel argument 2 for kernel_q6_k_q_8_1_sgemv_ptr");
@@ -320,9 +307,8 @@ void sgemv_q6_k_q8_1_cl(const void *matAdata, const float *vecXdata,
     return;
   }
 
-  /// @todo Apply SVM after #3262 is merged
-  result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-    blas_cc->command_queue_inst_, N * sizeof(float), vecYdata);
+  result = blas_cc->command_queue_inst_.enqueueSVMMap(vecYdata,
+                                                      N * sizeof(float), false);
 
   if (!result) {
     ml_loge("Failed to read data from the output buffer for "
@@ -330,8 +316,7 @@ void sgemv_q6_k_q8_1_cl(const void *matAdata, const float *vecXdata,
     return;
   }
 
-  free(q8k_data);
-  q8k_data = nullptr;
+  blas_cc->context_inst_.releaseSVMRegion(q8_1_data);
 }
 
 void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
@@ -821,7 +806,7 @@ void transpose_cl_axis(const float *in, float *res,
   } while (false);
 }
 
-void quantize_q8_1_cl(const float *input, void *output, unsigned int size) {
+void quantize_q8_1_cl(float *input, void *output, unsigned int size) {
   bool result = false;
 
   do {
@@ -840,23 +825,18 @@ void quantize_q8_1_cl(const float *input, void *output, unsigned int size) {
     const size_t output_size = (size / 128) * 144;
     const int layout = 0;
 
-    result = clbuffInstance.getInBufferA()->WriteDataRegion(
-      blas_cc->command_queue_inst_, input_size, input);
-    if (!result) {
-      ml_loge("Failed to write data to input buffer A for "
-              "kernel_quantize_q8_1_ptr");
-      break;
-    }
+    blas_cc->command_queue_inst_.enqueueSVMUnmap(input);
 
-    result = kernel_quantize_q8_1_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
+    blas_cc->command_queue_inst_.enqueueSVMUnmap(output);
+
+    result = kernel_quantize_q8_1_ptr->SetKernelSVMArguments(0, input);
     if (!result) {
       ml_loge("Failed to set kernel argument 0 for kernel_quantize_q8_1_ptr");
       break;
     }
 
-    result = kernel_quantize_q8_1_ptr->SetKernelArguments(
-      1, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
+    result = kernel_quantize_q8_1_ptr->SetKernelSVMArguments(1, output);
+
     if (!result) {
       ml_loge("Failed to set kernel argument 1 for kernel_quantize_q8_1_ptr");
       break;
@@ -886,8 +866,8 @@ void quantize_q8_1_cl(const float *input, void *output, unsigned int size) {
       break;
     }
 
-    result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-      blas_cc->command_queue_inst_, output_size, output);
+    result =
+      blas_cc->command_queue_inst_.enqueueSVMMap(output, output_size, true);
     if (!result) {
       ml_loge("Failed to read data from output buffer A for "
               "kernel_quantize_q8_1_ptr");

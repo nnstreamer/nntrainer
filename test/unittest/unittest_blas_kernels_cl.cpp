@@ -47,7 +47,7 @@ TEST(blas_kernels, test_quantize_dequantize_q8_1) {
 
   A_fp32.setRandNormal();
 
-  float *q8_1_data = (float *)malloc(width / 128 * 144);
+  void *q8_1_data = blas_cc->context_inst_.createSVMRegion(width / 128 * 144);
   quantize_q8_1_cl(A_fp32.getData<float>(), (void *)q8_1_data, A_fp32.size());
   dequantize_q8_1_cl((void *)q8_1_data, B_fp32.getData<float>(), B_fp32.size());
 

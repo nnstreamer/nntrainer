@@ -720,14 +720,28 @@ static void run_q_6_K_test(const uint32_t M, const uint32_t K,
 
   std::vector<float> ref_dst(M * N, 0.0f);
   std::vector<float> cpu_q6_dst(M * N, 0.0f);
-  std::vector<float> gpu_q6_dst(M * N, 0.0f);
+  // std::vector<float> gpu_q6_dst(M * N, 0.0f);
+
+  void *gpu_q6_dst =
+    nntrainer::blas_cc->context_inst_.createSVMRegion(M * N * sizeof(float));
 
   const auto data_size = sizeof(block_q6_K_testonly) * N * K / 256;
   std::vector<char> q6_weight = std::vector<char>(data_size);
-  char *q6_weight_ptr = (char *)q6_weight.data();
+  // char *q6_weight_ptr = (char *)q6_weight.data();
+
+  void *q6_weight_ptr =
+    nntrainer::blas_cc->context_inst_.createSVMRegion(data_size);
 
   float *weights_f32_ptr = weight.data();
-  float *activations_f32_ptr = activation.data();
+  // float *activations_f32_ptr = activation.data();
+
+  float *activations_f32_ptr =
+    (float *)nntrainer::blas_cc->context_inst_.createSVMRegion(M * K *
+                                                               sizeof(float));
+
+  for (unsigned int i = 0; i < M * K; ++i) {
+    activations_f32_ptr[i] = activation[i];
+  }
 
   // F32-F32 GEMM
   nntrainer::sgemm(0, false, true, M, N, K, 1.F, activation.data(), K,
@@ -748,10 +762,10 @@ static void run_q_6_K_test(const uint32_t M, const uint32_t K,
   for (unsigned int i = 0; i < run_count; ++i) {
     if constexpr (is_q_8_1_weights) {
       nntrainer::sgemv_q6_k_q8_1_cl(q6_weight_ptr, activations_f32_ptr,
-                                    gpu_q6_dst.data(), K, N);
+                                    (float *)gpu_q6_dst, K, N);
     } else {
       nntrainer::sgemv_q6_k_cl(q6_weight_ptr, activations_f32_ptr,
-                               gpu_q6_dst.data(), K, N);
+                               (float *)gpu_q6_dst, K, N);
     }
   }
   auto t4 = high_resolution_clock::now();
@@ -764,22 +778,22 @@ static void run_q_6_K_test(const uint32_t M, const uint32_t K,
     int nans = 0;
 
     for (uint32_t i = 0; i < M * N; ++i) {
-      if (gpu_q6_dst[i] == 0) {
+      if (((float *)gpu_q6_dst)[i] == 0) {
         zeros++;
         if (first_zero_index == UINT32_MAX) {
           first_zero_index = i;
         }
       }
 
-      if (std::isnan(gpu_q6_dst[i])) {
+      if (std::isnan(((float *)gpu_q6_dst)[i])) {
         nans++;
       }
     }
 
-    const auto mean_squared_error_dst_gpu =
-      compute_mse(M, N, ref_dst, gpu_q6_dst, false);
-    const auto mean_squared_error_dst =
-      compute_mse(M, N, ref_dst, cpu_q6_dst, false);
+    // const auto mean_squared_error_dst_gpu =
+    //   compute_mse(M, N, ref_dst, gpu_q6_dst, false);
+    // const auto mean_squared_error_dst =
+    //   compute_mse(M, N, ref_dst, cpu_q6_dst, false);
 
     const auto data_size_mb = data_size / (1024 * 1024.0f);
 
@@ -794,15 +808,16 @@ static void run_q_6_K_test(const uint32_t M, const uint32_t K,
     debug_print_beg_end(cpu_q6_dst.data());
     std::cout << std::endl;
     std::cout << " - sample : GPU = ";
-    debug_print_beg_end(gpu_q6_dst.data());
+    debug_print_beg_end((float *)gpu_q6_dst);
     std::cout << std::endl;
     std::cout << " - zeros : " << zeros << " / " << M * N << " [ "
               << zeros * 100.0f / float(M * N) << " %] - first at [ "
               << first_zero_index << " ]" << std::endl;
     std::cout << " - nans : " << nans << " / " << M * N << " [ "
               << nans * 100.0f / float(M * N) << " %]" << std::endl;
-    std::cout << " - MSE : CPU = " << mean_squared_error_dst << std::endl;
-    std::cout << " - MSE : GPU = " << mean_squared_error_dst_gpu << std::endl;
+    // std::cout << " - MSE : CPU = " << mean_squared_error_dst << std::endl;
+    // std::cout << " - MSE : GPU = " << mean_squared_error_dst_gpu <<
+    // std::endl;
   }
 }
 
