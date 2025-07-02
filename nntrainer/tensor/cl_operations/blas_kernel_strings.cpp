@@ -142,7 +142,7 @@ const std::string &getQ6KQ81SgemvClKernel() {
       #define QR8_1 1
       #define QI8_1 (QK8_1 / (4 * QR8_1))
       
-      #define MMQ_TILE_Y_K (WARP_SIZE * QR6_K)
+      #define MMQ_TILE_Y_K (WARP_SIZE + WARP_SIZE/QI8_1)
 
       #define GGML_PAD(x, n) (((x) + (n) - 1) & ~((n) - 1))
 
@@ -310,7 +310,6 @@ const std::string &getQ6KQ81SgemvClKernel() {
 
         const int tid_x = get_local_id(0);
         const int tid_y = get_local_id(1);
-        const int warp_size = get_local_size(0);
 
         for(int i0 = 0; i0 < mmq_y; i0 += nwarps)
         {
@@ -375,35 +374,63 @@ const std::string &getQ6KQ81SgemvClKernel() {
       }
 
       void mmq_write_back_dp4a(
-        const float * restrict sum,
-        const __global  int32_t * restrict ids_dst,
+        const   float * restrict sum,
+        const __local  int32_t * restrict ids_dst,
         __global float * restrict dst,
         const int stride,
         const int i_max,
-        const int j_max)
+        const int j_max,
+        const int mmq_x,
+        const int mmq_y,
+        const int nwarps,
+        const int need_check)
       {
+        const int tid_x = get_local_id(0);
+        const int tid_y = get_local_id(1);
+
+        for (int j0 = 0; j0 < mmq_x; j0 += nwarps)
+        {
+          const int j = j0 + tid_y;
+
+          if (j > j_max)
+          {
+            return;
+          }
+
+          for (int i0 = 0; i0 < mmq_y; i0 += WARP_SIZE)
+          {
+            const int i = i0 + tid_x;
+
+            if (need_check && i > i_max)
+            {
+              continue;
+            }
+
+            dst[ids_dst[j]*stride + i] = sum[(j0/nwarps) * (mmq_y/WARP_SIZE) + i0/WARP_SIZE];
+          }
+        }
       }
 
       // NOTE(m.wlasiuk) : https://github.com/ggml-org/ggml/blob/14147d683fb9d95444b43747d03b1b3bc5234714/src/ggml-cuda/mmq.cuh#L2522
       void mul_mat_q_process_tile(
-        const __global char* restrict x,
-        const int offset_x,
-        const __global int* restrict y,
-        const __global int* restrict ids_dst,
-        __global float* restrict dst,
-        __global float* restrict tmp_fixup,
-        const int stride_row_x,
-        const int ncols_y,
-        const int stride_col_dst,
-        const int tile_x_max_i,
-        const int tile_y_max_j,
-        const int kb0_start,
-        const int kb0_stop,
-        const int mmq_x,
-        const int nwarps,
-        const int need_check,
-        const int fixup,
-        __local int* data_mul_mat_q) 
+        const __global char*  restrict x,
+        const          int             offset_x,
+        const __global int*   restrict y,
+        const __local  int*   restrict ids_dst,
+              __global float* restrict dst,
+              __global float* restrict tmp_fixup,
+        const          int             stride_row_x,
+        const          int             ncols_y,
+        const          int             stride_col_dst,
+        const          int             tile_x_max_i,
+        const          int             tile_y_max_j,
+        const          int             kb0_start,
+        const          int             kb0_stop,
+        const          int             mmq_x,
+        const          int             nwarps,
+        const          int             need_check,
+        const          int             fixup,
+               __local int*            data_mul_mat_q) 
       {
         const int tid_x = get_local_id(0);
         const int tid_y = get_local_id(1);
@@ -459,42 +486,43 @@ const std::string &getQ6KQ81SgemvClKernel() {
 
         if (fixup)
         {
-          mmq_write_back_dp4a(sum, ids_dst, tmp_fixup + tid_x*(mmq_x*mmq_y), mmq_y, mmq_y, mmq_x);
+          mmq_write_back_dp4a(sum, ids_dst, tmp_fixup + tid_x*(mmq_x*mmq_y), mmq_y, mmq_y, mmq_x, mmq_x, mmq_y, nwarps, need_check);
         }
         else
         {
-          mmq_write_back_dp4a(sum, ids_dst, dst, stride_col_dst, tile_x_max_i, tile_y_max_j);
+          mmq_write_back_dp4a(sum, ids_dst, dst, stride_col_dst, tile_x_max_i, tile_y_max_j, mmq_x, mmq_y, nwarps, need_check);
         }
       }
 
       // ORIGINAL : mul_mat_q
       __kernel void kernel_mul_mv_q6_K_q8_1(
-        const __global char    * __restrict__ x,
-        const __global int     * __restrict__ y,
-        const __global int32_t * __restrict__ ids_dst,
-        const __global int32_t * __restrict__ expert_bounds,
-              __global float   * __restrict__ dst,
-              __global float   * __restrict__ tmp_fixup,
-        const          int                    ncols_x,
-        const          int                    nrows_x,
-        const          int                    ncols_dst,
-        const          int                    stride_row_x,
-        const          int                    ncols_y,
-        const          int                    stride_col_dst,
-        const          int                    channel_ratio,
-        const          int                    nchannels_y,
-        const          int                    stride_channel_x,
-        const          int                    stride_channel_y,
-        const          int                    stride_channel_dst,
-        const          int                    sample_ratio,
-        const          int                    nsamples_y,
-        const          int                    stride_sample_x,
-        const          int                    stride_sample_y,
-        const          int                    stride_sample_dst,
-        const          int                    mmq_x,
-        const          int                    nwarps,
-        const          int                    need_check,
-              __local  int*                   ids_dst_shared)
+        /*0*/    const __global char    * __restrict__ x,
+        /*1*/    const __global int     * __restrict__ y,
+        /*2*/    const __global int32_t * __restrict__ ids_dst,
+        /*3*/    const __global int32_t * __restrict__ expert_bounds,
+        /*4*/          __global float   * __restrict__ dst,
+        /*5*/          __global float   * __restrict__ tmp_fixup,
+        /*6*/    const          int                    ncols_x,
+        /*7*/    const          int                    nrows_x,
+        /*8*/    const          int                    ncols_dst,
+        /*9*/    const          int                    stride_row_x,
+        /*10*/   const          int                    ncols_y,
+        /*11*/   const          int                    stride_col_dst,
+        /*12*/   const          int                    channel_ratio,
+        /*13*/   const          int                    nchannels_y,
+        /*14*/   const          int                    stride_channel_x,
+        /*15*/   const          int                    stride_channel_y,
+        /*16*/   const          int                    stride_channel_dst,
+        /*17*/   const          int                    sample_ratio,
+        /*18*/   const          int                    nsamples_y,
+        /*19*/   const          int                    stride_sample_x,
+        /*20*/   const          int                    stride_sample_y,
+        /*21*/   const          int                    stride_sample_dst,
+        /*22*/   const          int                    mmq_x,
+        /*23*/   const          int                    nwarps,
+        /*24*/   const          int                    need_check,
+        /*25*/         __local  int*                   ids_dst_shared,
+        /*26*/         __local  int*                   data_mul_mat_q)
       {
         const int tid_x = get_local_id(0);
         const int tid_y = get_local_id(1);
@@ -520,51 +548,81 @@ const std::string &getQ6KQ81SgemvClKernel() {
 
         // MAGIC
         {
+          // HMMMM?
           // const int wt = blockIdx.z / nchannels_y;
           // const int zt = blockIdx.z - wt*nchannels_y;
           // const int jt = blockIdx.y;
           // const int it = blockIdx.x;
 
-          // // Defaults for regular matrix multiplication:
-          // int col_low    = 0;
-          // int col_high   = ncols_dst;
-          // int col_diff   = ncols_dst;
-          // int offset_y   = wt*stride_sample_y   + zt*stride_channel_y;
-          // int offset_dst = wt*stride_sample_dst + zt*stride_channel_dst + jt*mmq_x*stride_col_dst;
+          const int wt = get_group_id(2) / nchannels_y;
+          const int zt = get_group_id(2) - wt*nchannels_y;
+          const int jt = get_group_id(1);
+          const int it = get_group_id(0);
 
-          // if (ids_dst) {
-          //     col_low  = expert_bounds[zt + 0];
-          //     col_high = expert_bounds[zt + 1];
-          //     col_diff = col_high - col_low;
+          // Defaults for regular matrix multiplication:
+          int col_low    = 0;
+          int col_high   = ncols_dst;
+          int col_diff   = ncols_dst;
+          int offset_y   = wt*stride_sample_y   + zt*stride_channel_y;
+          int offset_dst = wt*stride_sample_dst + zt*stride_channel_dst + jt*mmq_x*stride_col_dst;
 
-          //     offset_y   = 0;
-          //     offset_dst = 0;
+          if (ids_dst)
+          {
+              col_low  = expert_bounds[zt + 0];
+              col_high = expert_bounds[zt + 1];
+              col_diff = col_high - col_low;
 
-          //     if (jt*mmq_x >= col_diff) {
-          //         return;
-          //     }
+              offset_y   = 0;
+              offset_dst = 0;
 
-          //     // __syncthreads(); // There is no previous tile that could cause a race condition.
+              if (jt*mmq_x >= col_diff)
+              {
+                  return;
+              }
 
-          //     for (int j0 = 0; j0 < mmq_x; j0 += nwarps*WARP_SIZE) {
-          //         const int j = j0 + threadIdx.y*WARP_SIZE + threadIdx.x;
+              // __syncthreads(); // There is no previous tile that could cause a race condition.
 
-          //         if (j0 + nwarps*WARP_SIZE > mmq_x && j >= mmq_x) {
-          //             break;
-          //         }
+              for (int j0 = 0; j0 < mmq_x; j0 += nwarps*WARP_SIZE)
+              {
+                  const int j = j0 + tid_y*WARP_SIZE + tid_x;
 
-          //         ids_dst_shared[j] = ids_dst[col_low + jt*mmq_x + j];
-          //     }
-          //     __syncthreads();
-          // }
+                  if (j0 + nwarps*WARP_SIZE > mmq_x && j >= mmq_x)
+                  {
+                      break;
+                  }
 
-          // offset_y   += (col_low + jt*mmq_x)*(sizeof(block_q8_1_mmq)/sizeof(int));
-          // offset_dst += it*mmq_y;
+                  ids_dst_shared[j] = ids_dst[col_low + jt*mmq_x + j];
+              }
+              barrier(CLK_LOCAL_MEM_FENCE); //__syncthreads();
+          }
 
-          // const int tile_x_max_i = nrows_x  - it*mmq_y - 1;
-          // const int tile_y_max_j = col_diff - jt*mmq_x - 1;
+          offset_y   += (col_low + jt*mmq_x)*(sizeof(block_q8_1_mmq)/sizeof(int));
+          offset_dst += it*mmq_y;
 
-          // const int offset_x = (wt/sample_ratio)*stride_sample_x + (zt/channel_ratio)*stride_channel_x + it*mmq_y*stride_row_x;
+          const int tile_x_max_i = nrows_x  - it*mmq_y - 1;
+          const int tile_y_max_j = col_diff - jt*mmq_x - 1;
+
+          const int offset_x = (wt/sample_ratio)*stride_sample_x + (zt/channel_ratio)*stride_channel_x + it*mmq_y*stride_row_x;
+
+          mul_mat_q_process_tile(
+            x,
+            offset_x,
+            y + offset_y,
+            ids_dst_shared,
+            dst + offset_dst,
+            tmp_fixup,
+            stride_row_x,
+            ncols_y,
+            stride_col_dst,
+            tile_x_max_i,
+            tile_y_max_j,
+            0,
+            ncols_x/qk,
+            mmq_x,
+            nwarps,
+            need_check,
+            false, //fixup,
+            data_mul_mat_q);
 
           // constexpr bool fixup = false;
           // mul_mat_q_process_tile<type, mmq_x, nwarps, need_check, fixup>
