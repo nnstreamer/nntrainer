@@ -174,6 +174,12 @@ const std::string &getQ6KQ81SgemvClKernel() {
         int sc;
       } tile_x_sizes;
 
+      // NOTE(m.wlasiuk) : https://github.com/ggml-org/ggml/blob/a2253f34452312d4c3be4f42451591eeaff12467/src/ggml-cuda/mmq.cuh#L131
+      int get_mmq_y_device()
+      {
+        return 64;
+      }
+
       // NOTE(m.wlasiuk) : https://github.com/ggml-org/llama.cpp/blob/c46503014db0d63fa7b1b28c58adfb51054e2dec/ggml/src/ggml-cuda/mmq.cuh#L158
       tile_x_sizes mmq_get_dp4a_tile_x_sizes_q6k(int mmq_y)
       {
@@ -199,16 +205,15 @@ const std::string &getQ6KQ81SgemvClKernel() {
 
       // NOTE(m.wlasiuk) : https://github.com/ggml-org/llama.cpp/blob/c46503014db0d63fa7b1b28c58adfb51054e2dec/ggml/src/ggml-cuda/vecdotq.cuh#L501
       float vec_dot_q6_K_q8_1_impl_mmq(
-        const __global int * restrict v,
-        const __global int * restrict u,
-        const global int8_t * restrict sc,
+        const __local int * restrict v,
+        const __local int * restrict u,
+        const __local int8_t * restrict sc,
         const float d6,
-        const __global float* restrict d8)
+        const __local float* restrict d8)
       {
         float sumf_d = 0.0f;
 
-        const int      sc_packed = *((const __global int *)sc);
-        const int8_t * sc_reg = (const int8_t *)&sc_packed;
+        const __local int8_t * sc_reg = (const __local int8_t *)((const __local int *)sc);
 
         for(int i0 = 0; i0 < VDR_Q6_K_Q8_1_MMQ; i0 +=4)
         {
@@ -230,11 +235,10 @@ const std::string &getQ6KQ81SgemvClKernel() {
       }
 
       // NOTE(m.wlasiuk) : https://github.com/ggml-org/llama.cpp/blob/c46503014db0d63fa7b1b28c58adfb51054e2dec/ggml/src/ggml-cuda/mmq.cuh#L1696
-      // vec_dot_q6_K_q8_1_dp4a
-      __kernel void kernel_mul_mv_q6_K_q8_1(
-        const __global int * restrict x,
-        const __global int * restrict y,
-        __global float * restrict sum,
+      void vec_dot_q6_K_q8_1_dp4a(
+        const __local int * restrict x,
+        const __local int * restrict y,
+        float * restrict sum,
         const int k00,
         const int mmq_x,
         const int mmq_y,
@@ -242,11 +246,11 @@ const std::string &getQ6KQ81SgemvClKernel() {
       {
         const tile_x_sizes txs = mmq_get_dp4a_tile_x_sizes_q6k(mmq_y);
 
-        const __global int   * x_qs = x;
-        const __global float * x_df = (const __global float*)(x_qs + txs.qs);
-        const __global int   * x_sc = (const __global int*)(x_df + txs.dm);
-        const __global int   * y_qs = y + 4;
-        const __global float * y_df = (const __global float*)y;
+        const __local int   * x_qs = x;
+        const __local float * x_df = (const __local float*)(x_qs + txs.qs);
+        const __local int   * x_sc = (const __local int*)(x_df + txs.dm);
+        const __local int   * y_qs = y + 4;
+        const __local float * y_df = (const __local float*)y;
 
         const int tid_x = get_local_id(0);
         const int tid_y = get_local_id(1);
@@ -263,7 +267,7 @@ const std::string &getQ6KQ81SgemvClKernel() {
             {
               const int i = i0 + tid_x;
 
-              const __global int8_t * sc = (const __global int8_t*)&x_sc[i * (WARP_SIZE / 8) + i / 8 + k0 / 16];
+              const __local int8_t * sc = (const __local int8_t*)&x_sc[i * (WARP_SIZE / 8) + i / 8 + k0 / 16];
 
               sum[j0 / nwarps * mmq_y / WARP_SIZE + i0 / WARP_SIZE] += vec_dot_q6_K_q8_1_impl_mmq(
                 &x_qs[i * (QR6_K * WARP_SIZE + 1) + k0],
@@ -435,7 +439,7 @@ const std::string &getQ6KQ81SgemvClKernel() {
           }
 
           barrier(CLK_LOCAL_MEM_FENCE);
-          vec_dot_q6_K_q8_1_dp4a(tile_x, tile_y, sum, 0);
+          vec_dot_q6_K_q8_1_dp4a(tile_x, tile_y, sum, 0, mmq_x, mmq_y, nwarps);
           barrier(CLK_LOCAL_MEM_FENCE);
 
           {
@@ -449,7 +453,7 @@ const std::string &getQ6KQ81SgemvClKernel() {
           }
 
           barrier(CLK_LOCAL_MEM_FENCE);
-          vec_dot_q6_K_q8_1_dp4a(tile_x, tile_y, sum, WARP_SIZE);
+          vec_dot_q6_K_q8_1_dp4a(tile_x, tile_y, sum, WARP_SIZE, mmq_x, mmq_y, nwarps);
           barrier(CLK_LOCAL_MEM_FENCE);
         }
 
@@ -463,6 +467,112 @@ const std::string &getQ6KQ81SgemvClKernel() {
         }
       }
 
+      // ORIGINAL : mul_mat_q
+      __kernel void kernel_mul_mv_q6_K_q8_1(
+        const __global char    * __restrict__ x,
+        const __global int     * __restrict__ y,
+        const __global int32_t * __restrict__ ids_dst,
+        const __global int32_t * __restrict__ expert_bounds,
+              __global float   * __restrict__ dst,
+              __global float   * __restrict__ tmp_fixup,
+        const          int                    ncols_x,
+        const          int                    nrows_x,
+        const          int                    ncols_dst,
+        const          int                    stride_row_x,
+        const          int                    ncols_y,
+        const          int                    stride_col_dst,
+        const          int                    channel_ratio,
+        const          int                    nchannels_y,
+        const          int                    stride_channel_x,
+        const          int                    stride_channel_y,
+        const          int                    stride_channel_dst,
+        const          int                    sample_ratio,
+        const          int                    nsamples_y,
+        const          int                    stride_sample_x,
+        const          int                    stride_sample_y,
+        const          int                    stride_sample_dst,
+        const          int                    mmq_x,
+        const          int                    nwarps,
+        const          int                    need_check,
+              __local  int*                   ids_dst_shared)
+      {
+        const int tid_x = get_local_id(0);
+        const int tid_y = get_local_id(1);
+
+        const int qk = QK_K;
+        const int mmq_y = get_mmq_y_device();
+
+        const int ntx = (ncols_dst + mmq_x - 1) / mmq_x;
+        const int nty = (nrows_x   + mmq_y - 1) / mmq_y;
+
+        for (int j0 = 0; j0 < mmq_x; j0 += nwarps*WARP_SIZE) {
+            const int j = j0 + tid_y*WARP_SIZE + tid_x;
+
+            if (j0 + nwarps*WARP_SIZE > mmq_x && j >= mmq_x) {
+                break;
+            }
+
+            ids_dst_shared[j] = j;
+        }  
+
+        barrier(CLK_LOCAL_MEM_FENCE);
+
+
+        // MAGIC
+        {
+          // const int wt = blockIdx.z / nchannels_y;
+          // const int zt = blockIdx.z - wt*nchannels_y;
+          // const int jt = blockIdx.y;
+          // const int it = blockIdx.x;
+
+          // // Defaults for regular matrix multiplication:
+          // int col_low    = 0;
+          // int col_high   = ncols_dst;
+          // int col_diff   = ncols_dst;
+          // int offset_y   = wt*stride_sample_y   + zt*stride_channel_y;
+          // int offset_dst = wt*stride_sample_dst + zt*stride_channel_dst + jt*mmq_x*stride_col_dst;
+
+          // if (ids_dst) {
+          //     col_low  = expert_bounds[zt + 0];
+          //     col_high = expert_bounds[zt + 1];
+          //     col_diff = col_high - col_low;
+
+          //     offset_y   = 0;
+          //     offset_dst = 0;
+
+          //     if (jt*mmq_x >= col_diff) {
+          //         return;
+          //     }
+
+          //     // __syncthreads(); // There is no previous tile that could cause a race condition.
+
+          //     for (int j0 = 0; j0 < mmq_x; j0 += nwarps*WARP_SIZE) {
+          //         const int j = j0 + threadIdx.y*WARP_SIZE + threadIdx.x;
+
+          //         if (j0 + nwarps*WARP_SIZE > mmq_x && j >= mmq_x) {
+          //             break;
+          //         }
+
+          //         ids_dst_shared[j] = ids_dst[col_low + jt*mmq_x + j];
+          //     }
+          //     __syncthreads();
+          // }
+
+          // offset_y   += (col_low + jt*mmq_x)*(sizeof(block_q8_1_mmq)/sizeof(int));
+          // offset_dst += it*mmq_y;
+
+          // const int tile_x_max_i = nrows_x  - it*mmq_y - 1;
+          // const int tile_y_max_j = col_diff - jt*mmq_x - 1;
+
+          // const int offset_x = (wt/sample_ratio)*stride_sample_x + (zt/channel_ratio)*stride_channel_x + it*mmq_y*stride_row_x;
+
+          // constexpr bool fixup = false;
+          // mul_mat_q_process_tile<type, mmq_x, nwarps, need_check, fixup>
+          //     (x, offset_x, y + offset_y, ids_dst_shared, dst + offset_dst, tmp_fixup, stride_row_x, ncols_y, stride_col_dst,
+          //     tile_x_max_i, tile_y_max_j, 0, ncols_x/qk);
+        }
+      }
+      
       // Unpack data and run tile
       // TODO : mul_mat_q_process_tile
       // src/ggml-cuda/mmq.cuh L2522
