@@ -73,6 +73,7 @@ Int4QTensor::Int4QTensor(
                                        sizeof(float) * scale_size()]()));
   data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
     delete[] mem_data->getAddr<int8_t>();
+    delete mem_data;
   });
 
   offset = 0;
