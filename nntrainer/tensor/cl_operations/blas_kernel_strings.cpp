@@ -494,7 +494,7 @@ const std::string &getQ6KQ81SgemvClKernel() {
         }
       }
 
-      // ORIGINAL : mul_mat_q
+      // ORIGINAL : mul_mat_q (27!)
       __kernel void kernel_mul_mv_q6_K_q8_1(
         /*0*/    const __global char    * __restrict__ x,
         /*1*/    const __global int     * __restrict__ y,

@@ -207,6 +207,36 @@ void sgemv_q6_k_cl(const void *matAdata, const float *vecXdata, float *vecYdata,
 
 void sgemv_q6_k_q8_1_cl(void *matAdata, void *vecXdata, float *vecYdata,
                         unsigned int M, unsigned int N) {
+  // MMQ - parameters
+  //
+  //      /*0*/    const __global char    * __restrict__ x                  => [matAdata]                  = ?
+  //      /*1*/    const __global int     * __restrict__ y                  => [vecXdata]                  = ?
+  //      /*2*/    const __global int32_t * __restrict__ ids_dst            => [ ]                         = ?
+  //      /*3*/    const __global int32_t * __restrict__ expert_bounds      => [ ]                         = mmq.cu:193
+  //      /*4*/          __global float   * __restrict__ dst                => [dst]                       = ?
+  //      /*5*/          __global float   * __restrict__ tmp_fixup          => [ ]                         = ?
+  //      /*6*/    const          int                    ncols_x            => [matAdata]                  = ?
+  //      /*7*/    const          int                    nrows_x            => [matAdata]                  = ?
+  //      /*8*/    const          int                    ncols_dst          => [dst]                       = ?
+  //      /*9*/    const          int                    stride_row_x       => [matAdata]                  = ?
+  //      /*10*/   const          int                    ncols_y            => [vecXdata]                  = ?
+  //      /*11*/   const          int                    stride_col_dst     => [dst]                       = ?
+  //      /*12*/   const          int                    channel_ratio      => [nchannels_y / nchannels_x] = mmq.cuh:L3035
+  //      /*13*/   const          int                    nchannels_y        => [vecXdata]                  = ?
+  //      /*14*/   const          int                    stride_channel_x   => [matAdata]                  = ?
+  //      /*15*/   const          int                    stride_channel_y   => [vecXdata]                  = ?
+  //      /*16*/   const          int                    stride_channel_dst => [dst]                       = ?
+  //      /*17*/   const          int                    sample_ratio       => [nsamples_y  / nsamples_x]  = mmq.cuh:L3036
+  //      /*18*/   const          int                    nsamples_y         => [vecXdata]                  = ?
+  //      /*19*/   const          int                    stride_sample_x    => [matAdata]                  = ?
+  //      /*20*/   const          int                    stride_sample_y    => [vecXdata]                  = ?
+  //      /*21*/   const          int                    stride_sample_dst  => [dst]                       = ?
+  //      /*22*/   const          int                    mmq_x              => [device specific]           = mmq.cuh:L3128
+  //      /*23*/   const          int                    nwarps             => [8]                         = mmq.cuh:L14 / mmq.cuh:L3015 -> block size
+  //      /*24*/   const          int                    need_check         => [mmq_y specific]            = mmq.cuh:L3039 -> see int get_mmq_y_device() in blas_kernel_strings.cpp
+  //      /*25*/         __local  int*                   ids_dst_shared     => [ ]                         = ?
+  //      /*26*/         __local  int*                   data_mul_mat_q     => [ ]                         = ?
+
   bool result = false;
 
   ClContext::SharedPtrClKernel kernel_q6_k_q_8_1_sgemv_ptr;
