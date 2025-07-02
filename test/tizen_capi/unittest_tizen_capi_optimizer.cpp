@@ -138,6 +138,8 @@ TEST(nntrainer_capi_nnopt, setProperty_05_n) {
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_train_optimizer_set_property(handle, "unknown=unknown", NULL);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+  status = ml_train_optimizer_destroy(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
 /**
