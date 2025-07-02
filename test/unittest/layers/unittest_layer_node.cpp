@@ -301,6 +301,9 @@ TEST(nntrainer_LayerNode, setWeights_01_n) {
   EXPECT_NO_THROW(lnode =
                     nntrainer::createLayerNode(nntrainer::IdentityLayer::type));
   EXPECT_THROW(lnode->setWeights(weights), std::runtime_error);
+
+  for (auto &i : weights)
+    delete i;
 }
 
 /**
