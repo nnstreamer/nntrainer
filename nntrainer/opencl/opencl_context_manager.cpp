@@ -148,7 +148,7 @@ bool ContextManager::CreateDefaultGPUDevice() {
 
   // platform is a specific OpenCL implementation, for instance ARM
   /// @note this is temporary method to use Intel GPU
-  cl_platform_id platform_id_ = platforms[0];
+  cl_platform_id platform_id_ = platforms[1];
 
   cl_uint num_devices;
 

@@ -792,8 +792,8 @@ Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
   NNTR_THROW_IF(trans || trans_in, std::invalid_argument)
     << "dotQnK does not support trans / trans_in";
 
-  const float *data = (float *)getData();
-  const uint8_t *mdata = input.getData<uint8_t>();
+  float *data = (float *)getData();
+  uint8_t *mdata = input.getData<uint8_t>();
   float *rdata = output.getData<float>();
 
   unsigned int M, N, K;
@@ -809,7 +809,8 @@ Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
     M = getDim().height();
     K = getDim().width();
     N = input.getDim().height();
-    gemm_q6_K(M, N, K, data, K, (void *)mdata, N, rdata, N);
+    // gemm_q6_K(M, N, K, data, K, (void *)mdata, N, rdata, N);
+    sgemv_q6_k_q8_1_cl((void *)mdata, data, rdata, K, N);
     break;
   default:
     throw std::invalid_argument("Error: unsupported datatype");
