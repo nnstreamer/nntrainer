@@ -33,6 +33,9 @@ std::mutex engine_mutex;
 
 std::once_flag global_engine_init_flag;
 
+nntrainer::Context
+  *Engine::nntrainerRegisteredContext[Engine::RegisterContextMax];
+
 void Engine::add_default_object(Engine &eg) {
   /// @note all layers should be added to the app_context to guarantee that
   /// createLayer/createOptimizer class is created

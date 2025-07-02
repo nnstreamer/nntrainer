@@ -47,10 +47,20 @@ class Engine {
 protected:
   static void registerer(Engine &eg) noexcept;
 
+  static const int RegisterContextMax = 16;
+  static nntrainer::Context *nntrainerRegisteredContext[RegisterContextMax];
+  /// Valgrind complains memory leaks with context registered because
+  /// every context is alive during the whole application lifecycle
+  /// and we do not free them. It can be amended by using unique_ptr;
+  /// however, as we use container and function calls with context,
+  /// let's not bother modify all the related functions, but waste
+  /// a few words.
+
   static void add_default_object(Engine &eg);
 
   void registerContext(std::string name, nntrainer::Context *context) {
     const std::lock_guard<std::mutex> lock(engine_mutex);
+    static int registerCount = 0;
 
     std::transform(name.begin(), name.end(), name.begin(),
                    [](unsigned char c) { return std::tolower(c); });
@@ -61,6 +71,11 @@ protected:
       throw std::invalid_argument(ss.str().c_str());
     }
     engines.insert(std::make_pair(name, context));
+
+    if (registerCount < RegisterContextMax) {
+      nntrainerRegisteredContext[registerCount] = context;
+      registerCount++;
+    }
 
     auto alloc = context->getMemAllocator();
 
