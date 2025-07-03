@@ -133,8 +133,6 @@ const std::string &getQ6KSgemvClKernel() {
         if (lane == 0) {
             int global_row = r0 * N_SIMDGROUP + row_group;
             dst[r1 * ne0 + im * ne0 * ne1 + global_row] = reduction_buf[row_group][0];
-
-            // dst[r1 * ne0 + im * ne0 * ne1 + row] = reduction_buf[row_group][0];
         }
     }
     )";
