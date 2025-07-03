@@ -13,6 +13,7 @@
 
 #include "opencl_context_manager.h"
 
+#include <cstring>
 #include <iostream>
 #include <vector>
 
@@ -125,9 +126,14 @@ ContextManager::~ContextManager() {
  * @return true if successful or false otherwise
  */
 bool ContextManager::CreateDefaultGPUDevice() {
-  cl_uint num_platforms;
+  std::vector<std::pair<cl_platform_id, cl_device_id>> platform_device_pairs;
 
-  // returns number of OpenCL supported platforms
+  platform_id_ = nullptr;
+  device_id_ = nullptr;
+
+  ml_logi("Collecting OpenCL platforms ...");
+
+  cl_uint num_platforms = 0;
   cl_int status = clGetPlatformIDs(0, nullptr, &num_platforms);
   if (status != CL_SUCCESS) {
     ml_loge("clGetPlatformIDs returned %d", status);
@@ -138,7 +144,6 @@ bool ContextManager::CreateDefaultGPUDevice() {
     return false;
   }
 
-  // getting the platform IDs
   std::vector<cl_platform_id> platforms(num_platforms);
   status = clGetPlatformIDs(num_platforms, platforms.data(), nullptr);
   if (status != CL_SUCCESS) {
@@ -146,35 +151,92 @@ bool ContextManager::CreateDefaultGPUDevice() {
     return false;
   }
 
-  // platform is a specific OpenCL implementation, for instance ARM
-  cl_platform_id platform_id_ = platforms[0];
+  for (size_t i = 0; i < static_cast<size_t>(num_platforms); i++) {
+    ml_logi("Collecting OpenCL devices for platform %d / %d ...", (int32_t)i,
+            (int32_t)num_platforms);
 
-  cl_uint num_devices;
+    cl_uint num_devices = 0;
+    status = clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, 0, nullptr,
+                            &num_devices);
+    if (status != CL_SUCCESS) {
+      ml_loge("clGetDeviceIDs returned %d", status);
+      return false;
+    }
+    if (num_devices == 0) {
+      ml_loge("No GPU on current platform.");
+      return false;
+    }
 
-  // getting available GPU devices
-  status =
-    clGetDeviceIDs(platform_id_, CL_DEVICE_TYPE_GPU, 0, nullptr, &num_devices);
-  if (status != CL_SUCCESS) {
-    ml_loge("clGetDeviceIDs returned %d", status);
-    return false;
+    // getting the GPU device IDs
+    std::vector<cl_device_id> devices(num_devices);
+    status = clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, num_devices,
+                            devices.data(), nullptr);
+    if (status != CL_SUCCESS) {
+      ml_loge("clGetDeviceIDs returned %d", status);
+      return false;
+    }
+
+    for (size_t j = 0; j < static_cast<size_t>(num_devices); j++) {
+      platform_device_pairs.push_back(
+        std::make_pair<>(platforms[i], devices[j]));
+    }
   }
-  if (num_devices == 0) {
-    ml_loge("No GPU on current platform.");
-    return false;
+
+  ml_logi("Looking for suitable OpenCL platform and device ...");
+
+  // Vendor ID of Intel : 0x8086
+  // Vendor ID of NVidia : 0x10DE / 0x13B5
+  constexpr static cl_uint intel_igpu_vendor_id = 0x8086;
+  constexpr static cl_device_type intel_igpu_device_type = CL_DEVICE_TYPE_GPU;
+
+  for (const std::pair<cl_platform_id, cl_device_id> &platform_device :
+       platform_device_pairs) {
+    cl_platform_id platform = platform_device.first;
+    cl_device_id device = platform_device.second;
+
+    cl_uint vendor_id = 0;
+    if (CL_SUCCESS != clGetDeviceInfo(device, CL_DEVICE_VENDOR_ID,
+                                      sizeof(cl_uint), &vendor_id, nullptr)) {
+      ml_loge("Failed to query for device vendor ID - skipping...");
+      continue;
+    }
+
+    cl_device_type device_type = 0;
+    if (CL_SUCCESS != clGetDeviceInfo(device, CL_DEVICE_TYPE,
+                                      sizeof(cl_device_type), &device_type,
+                                      nullptr)) {
+      ml_loge("Failed to query for device type - skipping...");
+      continue;
+    }
+
+    if ((vendor_id == intel_igpu_vendor_id) &&
+        (device_type == intel_igpu_device_type)) {
+      platform_id_ = platform;
+      device_id_ = device;
+
+      break;
+    }
   }
 
-  // getting the GPU device IDs
-  std::vector<cl_device_id> devices(num_devices);
-  status = clGetDeviceIDs(platform_id_, CL_DEVICE_TYPE_GPU, num_devices,
-                          devices.data(), nullptr);
-  if (status != CL_SUCCESS) {
-    ml_loge("clGetDeviceIDs returned %d", status);
-    return false;
+  if ((nullptr == platform_id_) || (nullptr == device_id_)) {
+    ml_loge("No suitable platform / device found - using default (first)");
+    platform_id_ = platform_device_pairs[0].first;
+    device_id_ = platform_device_pairs[0].second;
   }
 
-  // setting the first GPU ID and platform (ARM)
-  device_id_ = devices[0];
-  this->platform_id_ = platform_id_;
+  // Raport device name
+  {
+    char device_name_buffer[1024];
+    std::memset(device_name_buffer, 0x00, sizeof(device_name_buffer));
+
+    if (CL_SUCCESS != clGetDeviceInfo(device_id_, CL_DEVICE_NAME,
+                                      sizeof(device_name_buffer),
+                                      &device_name_buffer, NULL)) {
+      ml_loge("Failed to query for device name ...");
+    }
+
+    ml_logi("Using device : %s", device_name_buffer);
+  }
 
 #ifdef ENABLE_FP16
   /// @note This is working incorrectly. For CUDA devices, cl_khr_fp16 is not
