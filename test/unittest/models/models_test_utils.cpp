@@ -169,7 +169,8 @@ public:
    * @param f  file stream which contains golden data
    * @param test_weights test weights if true else fill weights from read
    */
-  void test(unsigned iteration, std::ifstream &f, bool test_weights) {
+  void test(unsigned iteration, std::ifstream &f, bool test_weights,
+            bool test_inference_only = false) {
     auto read_tensors = [&f](std::vector<Tensor> &ts) {
       std::for_each(ts.begin(), ts.end(), [&f](Tensor &t) {
         sizeCheckedReadTensor(t, f, "read_failed for " + t.getName());
@@ -207,7 +208,8 @@ public:
 
     auto out = nn->forwarding(shared_inputs, shared_labels);
     verify(to_tensors(out), expected_outputs, " output");
-    nn->backwarding(iteration);
+    if (!test_inference_only)
+      nn->backwarding(iteration);
   }
 
 private:
@@ -475,7 +477,8 @@ void GraphWatcher::validateFor(const nntrainer::TensorDim &label_shape) {
   EXPECT_NO_THROW(nn->inference(input, true));
 }
 
-void GraphWatcher::compareFor_V2(const std::string &reference) {
+void GraphWatcher::compareFor_V2(const std::string &reference,
+                                 bool test_inference_only) {
 
   auto file = nntrainer::checkedOpenStream<std::ifstream>(
     getModelsPath(reference), std::ios::in | std::ios::binary);
@@ -486,11 +489,11 @@ void GraphWatcher::compareFor_V2(const std::string &reference) {
   IterationForGolden ifg(nn.get());
 
   for (unsigned int i = 0; i < num_iter; ++i) {
-    ifg.test(i, file, i != 0);
+    ifg.test(i, file, i != 0, test_inference_only);
   }
 }
 
-void GraphWatcher::validateFor_V2() {
+void GraphWatcher::validateFor_V2(bool test_inference_only) {
   auto in_dims = nn->getInputDimension();
   auto out_dims = nn->getOutputDimension();
 
@@ -506,7 +509,7 @@ void GraphWatcher::validateFor_V2() {
     EXPECT_NO_THROW(nn->forwarding(shared_inputs, {}));
   }
 
-  if (loss_nodes.size()) {
+  if (loss_nodes.size() && !test_inference_only) {
     EXPECT_NO_THROW(nn->backwarding(0));
   }
 
