@@ -497,7 +497,7 @@ int Tensor::multiply_i(Tensor const &m, const float beta) {
 }
 
 Tensor Tensor::multiply(Tensor const &m, const float beta) const {
-  Tensor t("", this->getFormat());
+  Tensor t("", getFormat(), getDataType());
   return multiply(m, t, beta);
 }
 
@@ -664,7 +664,7 @@ Tensor &Tensor::subtract(float const &value, Tensor &output) const {
 int Tensor::subtract_i(Tensor const &m) { return add_i(m, -1); }
 
 Tensor Tensor::subtract(Tensor const &m) const {
-  Tensor t;
+  Tensor t("", getFormat(), getDataType());
   return this->subtract(m, t);
 }
 
@@ -941,7 +941,7 @@ void Tensor::standardization_i() {
 }
 
 Tensor Tensor::dot(Tensor const &input, bool trans, bool trans_in) const {
-  Tensor output("", this->getFormat(), this->getDataType());
+  Tensor output("", getFormat(), getDataType());
   dot(input, output, trans, trans_in);
 
   return output;

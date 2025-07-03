@@ -494,8 +494,16 @@ void GraphWatcher::validateFor_V2() {
   auto in_dims = nn->getInputDimension();
   auto out_dims = nn->getOutputDimension();
 
-  std::vector<Tensor> inputs(in_dims.begin(), in_dims.end());
-  std::vector<Tensor> labels(out_dims.begin(), out_dims.end());
+  std::vector<Tensor> inputs;
+  std::vector<Tensor> labels;
+
+  for (const auto &dim : in_dims) {
+    inputs.emplace_back(dim, true, Initializer::ZEROS);
+  }
+
+  for (const auto &dim : out_dims) {
+    labels.emplace_back(dim, true, Initializer::ZEROS);
+  }
 
   auto shared_inputs = toSharedTensors(inputs);
   auto shared_labels = toSharedTensors(labels);
