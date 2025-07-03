@@ -18,7 +18,7 @@
 
 namespace nntrainer {
 
-void sgemv_q6_k_cl(const void *matAdata, const float *vecXdata, float *vecYdata,
+void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
                    unsigned int M, unsigned int N) {
   bool result = false;
 
@@ -32,17 +32,15 @@ void sgemv_q6_k_cl(const void *matAdata, const float *vecXdata, float *vecYdata,
     return;
   }
 
-  int q6k_size = 210 * M * N / 256;
+  const size_t q6k_bytes = 210 * M * N / 256;
 
-  result = clbuffInstance.getInBufferA()->WriteDataRegion(
-    blas_cc->command_queue_inst_, q6k_size, matAdata);
+  result = blas_cc->command_queue_inst_.enqueueSVMUnmap(matAdata);
   if (!result) {
     ml_loge("Failed to write data to input buffer A for kernel_q6_k_sgemv_ptr");
     return;
   }
 
-  result = clbuffInstance.getInBufferB()->WriteDataRegion(
-    blas_cc->command_queue_inst_, M * sizeof(float), vecXdata);
+  result = blas_cc->command_queue_inst_.enqueueSVMUnmap(vecXdata);
   if (!result) {
     ml_loge("Failed to write data to input buffer B for kernel_q6_k_sgemv_ptr");
     return;
@@ -68,8 +66,7 @@ void sgemv_q6_k_cl(const void *matAdata, const float *vecXdata, float *vecYdata,
   cl_ulong offset1 = 0;
   cl_ulong offsetd = 0;
 
-  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(
-    0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
+  result = kernel_q6_k_sgemv_ptr->SetKernelSVMArguments(0, matAdata);
 
   if (!result) {
     ml_loge("Failed to set kernel argument 0 for kernel_q6_k_sgemv_ptr");
@@ -84,8 +81,7 @@ void sgemv_q6_k_cl(const void *matAdata, const float *vecXdata, float *vecYdata,
     return;
   }
 
-  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(
-    2, clbuffInstance.getInBufferB(), sizeof(cl_mem));
+  result = kernel_q6_k_sgemv_ptr->SetKernelSVMArguments(2, vecXdata);
 
   if (!result) {
     ml_loge("Failed to set kernel argument 2 for kernel_q6_k_sgemv_ptr");
@@ -100,8 +96,7 @@ void sgemv_q6_k_cl(const void *matAdata, const float *vecXdata, float *vecYdata,
     return;
   }
 
-  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(
-    4, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
+  result = kernel_q6_k_sgemv_ptr->SetKernelSVMArguments(4, vecYdata);
 
   if (!result) {
     ml_loge("Failed to set kernel argument 4 for kernel_q6_k_sgemv_ptr");
@@ -182,9 +177,11 @@ void sgemv_q6_k_cl(const void *matAdata, const float *vecXdata, float *vecYdata,
 #define N_SIMDWIDTH 16
 #define N_SIMDGROUP 2
 
-  const int work_groups_count[3] = {ne00, 1, 1};
+  const int work_groups_count[3] = {((ne0 + N_SIMDGROUP - 1) / N_SIMDGROUP) *
+                                      (N_SIMDGROUP * N_SIMDWIDTH),
+                                    ne1, 1};
   /// @todo: create a group size by device & input
-  const int work_group_size[3] = {N_SIMDWIDTH * N_SIMDGROUP, 1, 1};
+  const int work_group_size[3] = {32, 1, 1};
 
   result = opencl::CommandQueueManager::GetInstance().DispatchCommand(
     kernel_q6_k_sgemv_ptr, work_groups_count, work_group_size);
@@ -193,8 +190,9 @@ void sgemv_q6_k_cl(const void *matAdata, const float *vecXdata, float *vecYdata,
     return;
   }
 
-  result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-    blas_cc->command_queue_inst_, N * sizeof(float), vecYdata);
+  result = blas_cc->command_queue_inst_.enqueueSVMMap(vecYdata,
+                                                      N * sizeof(float), true);
+
   if (!result) {
     ml_loge(
       "Failed to read data from the output buffer for kernel_q6_k_sgemv_ptr");

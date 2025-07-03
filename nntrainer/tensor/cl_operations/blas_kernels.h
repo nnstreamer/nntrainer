@@ -37,7 +37,7 @@ static ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
  * @param[in] M number of rows in matrix A
  * @param[in] N number of columns in matrix A
  */
-void sgemv_q6_k_cl(const void *matAdata, const float *vecXdata, float *vecYdata,
+void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
                    unsigned int M, unsigned int N);
 
 /**
