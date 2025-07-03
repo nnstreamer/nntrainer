@@ -135,6 +135,11 @@ public:
   void *getScale(size_t idx) const override;
 
   /**
+   * @copydoc Tensor::hasScale()
+   */
+  bool hasScale() const override { return true; }
+
+  /**
    * @copydoc Tensor::getZeroPoint()
    */
   unsigned int *getZeroPoint() const override;
@@ -143,6 +148,11 @@ public:
    * @copydoc Tensor::getZeroPoint(size_t idx)
    */
   unsigned int *getZeroPoint(size_t idx) const override;
+
+  /**
+   * @copydoc Tensor::hasZeroPoint()
+   */
+  bool hasZeroPoint() const override { return true; }
 
   /**
    * @brief     i data index

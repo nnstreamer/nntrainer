@@ -61,13 +61,9 @@ void HalfTensor::allocate() {
     /** as this memory is shared, do NOT initialize */
   } else {
     /// allocate new memory for the tensor data
-    MemoryData *mem_data;
-
-    mem_data = new MemoryData((void *)(new _FP16[dim.getDataLen()]{}));
-    data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-      delete[] mem_data->template getAddr<_FP16>();
-      delete mem_data;
-    });
+    auto data_t =
+      std::make_shared<MemoryDataT<_FP16>>(new _FP16[dim.getDataLen()]);
+    data = std::static_pointer_cast<MemoryData>(std::move(data_t));
 
     offset = 0;
     initialize();
@@ -175,6 +171,8 @@ void HalfTensor::setRandBernoulli(float probability) {
 void HalfTensor::initialize() {
   if (empty() || !isAllocated())
     return;
+
+  TensorBase::initialize();
 
   unsigned int fan_in, fan_out;
 
@@ -673,7 +671,9 @@ Tensor &HalfTensor::dot(Tensor const &input, Tensor &output, bool trans,
   /// (1 * K) X (1 * M) can be a case
   /// case1: (1 * K) X (K * 1)
   if (M == 1 && N == 1) {
-    *rdata = sdot(K, data, 1, mdata, 1) + static_cast<_FP16>(beta) * (*rdata);
+    *rdata = sdot(K, data, 1, mdata, 1) +
+             ((0.0f == beta) ? static_cast<_FP16>(0.0f)
+                             : static_cast<_FP16>(beta) * *rdata);
   }
   /// case2: (M * K) X (K * 1)
   else if (N == 1) {
