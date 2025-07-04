@@ -106,16 +106,6 @@ public:
   void deallocate() override;
 
   /**
-   * @copydoc Tensor::getData()
-   */
-  void *getData() const override;
-
-  /**
-   * @copydoc Tensor::getData(size_t idx)
-   */
-  void *getData(size_t idx) const override;
-
-  /**
    * @copydoc Tensor::getScale()
    */
   void *getScale() const override;
@@ -126,6 +116,11 @@ public:
   void *getScale(size_t idx) const override;
 
   /**
+   * @copydoc Tensor::hasScale()
+   */
+  bool hasScale() const override { return true; }
+
+  /**
    * @copydoc Tensor::getZeroPoint()
    */
   unsigned int *getZeroPoint() const override;
@@ -134,6 +129,11 @@ public:
    * @copydoc Tensor::getZeroPoint(size_t idx)
    */
   unsigned int *getZeroPoint(size_t idx) const override;
+
+  /**
+   * @copydoc Tensor::hasZeroPoint()
+   */
+  bool hasZeroPoint() const override { return true; }
 
   /**
    * @brief     i data index
@@ -340,6 +340,10 @@ private:
    * @copydoc Tensor::isValid()
    */
   bool isValid() const override { return true; }; // NYI
+
+  std::size_t getDataTypeBitsSize() const override {
+    return sizeof(T) * CHAR_BIT;
+  }
 };
 
 /******  Alias for UIntTensors ******/

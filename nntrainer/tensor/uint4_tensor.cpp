@@ -68,15 +68,7 @@ Uint4QTensor::Uint4QTensor(
   initializer = Initializer::NONE;
   qscheme = qscheme_;
 
-  /// @note sizeof(float) * scale_size() assumes scale factors are in
-  /// full-precision fp.
-  MemoryData *mem_data = new MemoryData((
-    void
-      *)(new uint8_t[(dim.getDataLen() + 1) / 2 + sizeof(float) * scale_size() +
-                     sizeof(unsigned int) * scale_size()]()));
-  data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
-    delete[] mem_data->getAddr<uint8_t>();
-  });
+  allocateInternal();
 
   offset = 0;
 
@@ -138,17 +130,7 @@ void Uint4QTensor::allocate() {
     /** as this memory is shared, do NOT initialize */
   } else {
     /// allocate new memory for the tensor data
-    MemoryData *mem_data;
-
-    /// quantized 4-bit is stored as a 8-bit signed integer (uint4x2)
-    mem_data = new MemoryData(
-      (void *)(new uint8_t[(dim.getDataLen() + 1) / 2 +
-                           sizeof(float) * scale_size() +
-                           sizeof(unsigned int) * scale_size()]{}));
-    data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-      delete[] mem_data->template getAddr<uint8_t>();
-      delete mem_data;
-    });
+    allocateInternal();
 
     offset = 0;
     initialize();
@@ -160,21 +142,17 @@ void Uint4QTensor::deallocate() {
   offset = 0;
 }
 
-void *Uint4QTensor::getData() const {
-  if (!data)
-    return nullptr;
+// void *Uint4QTensor::getData(size_t idx) const {
+//   std::byte *data_ptr = static_cast<std::byte *>(getData());
 
-  data->validate();
-  return data->getAddr<uint8_t>() + offset;
-}
+//   if (!data_ptr) {
+//     return nullptr;
+//   }
 
-void *Uint4QTensor::getData(size_t idx) const {
-  if (!data)
-    return nullptr;
+//   data->validate();
 
-  data->validate();
-  return data->getAddr<uint8_t>() + offset + (idx / 2);
-}
+//   return data_ptr + ((idx / 2) * getDataTypeBitsSize() / CHAR_BIT);
+// }
 
 void *Uint4QTensor::getScale() const {
   if (!data)
@@ -304,6 +282,8 @@ void Uint4QTensor::setZero() {
 void Uint4QTensor::initialize() {
   if (empty() || !isAllocated())
     return;
+
+  TensorBase::initialize();
 
   /// @note Sampling from the normal/uniform distribution is invalid
   switch (initializer) {

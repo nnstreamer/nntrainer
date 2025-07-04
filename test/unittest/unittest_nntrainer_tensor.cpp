@@ -655,9 +655,8 @@ TEST(nntrainer_Tensor, QTensor_11_n) {
 TEST(nntrainer_Tensor, QTensor_12_p) {
   // This will create a single q4_kx8 block
   nntrainer::Tensor q4_k_tensor(
-    {1, 1, 8, 256, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT4},
-    false, nntrainer::Initializer::NONE, "q4_k_tensor",
-    nntrainer::QScheme::Q4_Kx8);
+    {1, 1, 8, 256, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::Q4_K}, false,
+    nntrainer::Initializer::NONE, "q4_k_tensor", nntrainer::QScheme::Q4_Kx8);
 
   EXPECT_EQ(q4_k_tensor.getData<uint8_t>(), nullptr);
   EXPECT_EQ(q4_k_tensor.q_scheme(), nntrainer::QScheme::Q4_Kx8);
@@ -4933,7 +4932,7 @@ TEST(nntrainer_Tensor, print_small_size_02) {
            << "         1          1 \n"
            << "         1          1 \n"
            << "\n"
-           << "-------\nScale factors: 0 \n";
+           << "-------\nScale factors: 1 \n";
 
   EXPECT_EQ(ss.str(), expected.str());
 }
