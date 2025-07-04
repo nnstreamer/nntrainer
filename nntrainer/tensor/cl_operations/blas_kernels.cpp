@@ -18,6 +18,307 @@
 
 namespace nntrainer {
 
+void sgemv_q6_k_cl(const void *matAdata, const float *vecXdata, float *vecYdata,
+                   unsigned int M, unsigned int N) {
+  bool result = false;
+
+  ClContext::SharedPtrClKernel kernel_q6_k_sgemv_ptr;
+
+  kernel_q6_k_sgemv_ptr =
+    blas_cc->registerClKernel(getQ6KSgemvClKernel(), "kernel_mul_mv_q6_K_f32");
+
+  if (!kernel_q6_k_sgemv_ptr) {
+    ml_loge("Failed to register kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  int q6k_size = 210 * M * N / 256;
+
+  result = clbuffInstance.getInBufferA()->WriteDataRegion(
+    blas_cc->command_queue_inst_, q6k_size, matAdata);
+  if (!result) {
+    ml_loge("Failed to write data to input buffer A for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = clbuffInstance.getInBufferB()->WriteDataRegion(
+    blas_cc->command_queue_inst_, M * sizeof(float), vecXdata);
+  if (!result) {
+    ml_loge("Failed to write data to input buffer B for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  int ne00 = M; // number of rows in matrix X
+  int ne01 = N; // number of columns in matrix X
+  int ne02 = 1; // number of channels in matrix X
+  int ne10 = M; // number of rows in vector A
+  int ne11 = 1; // number of columns in vector A
+  int ne12 = 1; // number of channels in vector A
+  int ne13 = 1; // number of channels in vector A (Need to check)
+  int ne0 = N;  // number of rows in output vector Y
+  int ne1 = 1;  // number of columns in output vector Y
+
+  int r2 = 1; // number of batches in vector A
+  int r3 = 1; // number of batches in matrix X
+
+  int nth0 = 2;
+  int nth1 = 16;
+
+  cl_ulong offset0 = 0;
+  cl_ulong offset1 = 0;
+  cl_ulong offsetd = 0;
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(
+    0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 0 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result =
+    kernel_q6_k_sgemv_ptr->SetKernelArguments(1, &offset0, sizeof(cl_ulong));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 1 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(
+    2, clbuffInstance.getInBufferB(), sizeof(cl_mem));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 2 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result =
+    kernel_q6_k_sgemv_ptr->SetKernelArguments(3, &offset1, sizeof(cl_ulong));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 3 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(
+    4, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 4 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result =
+    kernel_q6_k_sgemv_ptr->SetKernelArguments(5, &offsetd, sizeof(cl_ulong));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 5 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(6, &ne00, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 6 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(7, &ne01, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 7 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(8, &ne02, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 8 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(9, &ne10, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 9 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(10, &ne12, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 10 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(11, &ne0, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 11 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(12, &ne1, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 12 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(13, &r2, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 13 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(14, &r3, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 14 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+#define N_SIMDWIDTH 16
+#define N_SIMDGROUP 2
+
+  const int work_groups_count[3] = {((ne0 + N_SIMDGROUP - 1) / N_SIMDGROUP) *
+                                      (N_SIMDGROUP * N_SIMDWIDTH),
+                                    ne1, 1};
+  /// @todo: create a group size by device & input
+  const int work_group_size[3] = {32, 1, 1};
+
+  result = opencl::CommandQueueManager::GetInstance().DispatchCommand(
+    kernel_q6_k_sgemv_ptr, work_groups_count, work_group_size);
+  if (!result) {
+    ml_loge("Failed to dispatch kernel q6_k_sgemv");
+    return;
+  }
+
+  result = clbuffInstance.getOutBufferA()->ReadDataRegion(
+    blas_cc->command_queue_inst_, N * sizeof(float), vecYdata);
+  if (!result) {
+    ml_loge(
+      "Failed to read data from the output buffer for kernel_q6_k_sgemv_ptr");
+
+    return;
+  }
+}
+
+void sgemv_q6_k_q8_1_cl(void *matAdata, float *vecXdata, float *vecYdata,
+                        unsigned int M, unsigned int N) {
+  bool result = false;
+
+  ClContext::SharedPtrClKernel kernel_q6_k_q_8_1_sgemv_ptr;
+
+  kernel_q6_k_q_8_1_sgemv_ptr = blas_cc->registerClKernel(
+    getQ6KQ81SgemvClKernel(), "kernel_mul_mv_q6_K_q8_1");
+
+  if (!kernel_q6_k_q_8_1_sgemv_ptr) {
+    ml_loge("Failed to register kernel_q6_k_q_8_1_sgemv_ptr");
+    return;
+  }
+
+  const int q6k_bytes = 210 * M * N / 256;
+  const int q8k_bytes = M / 128 * 144;
+
+  void *q8_1_data = blas_cc->context_inst_.createSVMRegion(q8k_bytes);
+
+  if (!q8_1_data) {
+    std::cerr << "Failed to create SVM region for q8_1_data" << std::endl;
+    return;
+  }
+
+  // Quantize the input vector X to Q8_1 format
+  quantize_q8_1_cl(vecXdata, q8_1_data, M);
+
+  blas_cc->command_queue_inst_.enqueueSVMUnmap(matAdata);
+
+  blas_cc->command_queue_inst_.enqueueSVMUnmap(q8_1_data);
+
+  blas_cc->command_queue_inst_.enqueueSVMUnmap(vecYdata);
+
+  result = kernel_q6_k_q_8_1_sgemv_ptr->SetKernelSVMArguments(0, matAdata);
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 0 for kernel_q6_k_q_8_1_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_q_8_1_sgemv_ptr->SetKernelSVMArguments(1, q8_1_data);
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 1 for kernel_q6_k_q_8_1_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_q_8_1_sgemv_ptr->SetKernelSVMArguments(2, vecYdata);
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 2 for kernel_q6_k_q_8_1_sgemv_ptr");
+    return;
+  }
+
+  /// @todo Set proper values for the following arguments @m-wlasiuk
+  const int k00 = 0;
+  const int mmq_x = 1;
+  const int mmq_y = 1;
+  const int nwarps = 32;
+
+  result =
+    kernel_q6_k_q_8_1_sgemv_ptr->SetKernelArguments(3, &k00, sizeof(int));
+  if (!result) {
+    ml_loge("Failed to set kernel argument 3 for kernel_q6_k_q_8_1_sgemv_ptr");
+    return;
+  }
+
+  result =
+    kernel_q6_k_q_8_1_sgemv_ptr->SetKernelArguments(4, &mmq_x, sizeof(int));
+  if (!result) {
+    ml_loge("Failed to set kernel argument 4 for kernel_q6_k_q_8_1_sgemv_ptr");
+    return;
+  }
+
+  result =
+    kernel_q6_k_q_8_1_sgemv_ptr->SetKernelArguments(5, &mmq_y, sizeof(int));
+  if (!result) {
+    ml_loge("Failed to set kernel argument 5 for kernel_q6_k_q_8_1_sgemv_ptr");
+    return;
+  }
+
+  result =
+    kernel_q6_k_q_8_1_sgemv_ptr->SetKernelArguments(6, &nwarps, sizeof(int));
+  if (!result) {
+    ml_loge("Failed to set kernel argument 6 for kernel_q6_k_q_8_1_sgemv_ptr");
+    return;
+  }
+
+  /// @todo Set proper global and local work size @m-wlasiuk
+  const int work_groups_count[3] = {(int)((N + N_SIMDGROUP - 1) / N_SIMDGROUP) *
+                                      (N_SIMDGROUP * N_SIMDWIDTH),
+                                    1, 1}; // global work size
+  const int work_group_size[3] = {N_SIMDGROUP * N_SIMDWIDTH, 1,
+                                  1}; // local work size
+
+  result = opencl::CommandQueueManager::GetInstance().DispatchCommand(
+    kernel_q6_k_q_8_1_sgemv_ptr, work_groups_count, work_group_size);
+  if (!result) {
+    ml_loge("Failed to dispatch kernel kernel_q6_k_q_8_1_sgemv_ptr");
+    return;
+  }
+
+  result = blas_cc->command_queue_inst_.enqueueSVMMap(vecYdata,
+                                                      N * sizeof(float), false);
+
+  if (!result) {
+    ml_loge("Failed to read data from the output buffer for "
+            "kernel_q6_k_q_8_1_sgemv_ptr");
+    return;
+  }
+
+  blas_cc->context_inst_.releaseSVMRegion(q8_1_data);
+}
+
 void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
               bool TransA, unsigned int dim1, unsigned int dim2,
               unsigned int lda) {
@@ -504,4 +805,154 @@ void transpose_cl_axis(const float *in, float *res,
 
   } while (false);
 }
+
+void quantize_q8_1_cl(float *input, void *output, unsigned int size) {
+  bool result = false;
+
+  do {
+    ClContext::SharedPtrClKernel kernel_quantize_q8_1_ptr =
+      blas_cc->registerClKernel(getQuantizeQ8_1Kernel(), "quantize_q8_1_cl");
+    if (!kernel_quantize_q8_1_ptr) {
+      ml_loge("Failed to register kernel_quantize_q8_1_ptr");
+      break;
+    }
+
+    if (size % 128 != 0) {
+      ml_loge("Size must be a multiple of 128 for quantize_q8_1_cl");
+      break;
+    }
+    const size_t input_size = size * sizeof(float);
+    const size_t output_size = (size / 128) * 144;
+    const int layout = 0;
+
+    blas_cc->command_queue_inst_.enqueueSVMUnmap(input);
+
+    blas_cc->command_queue_inst_.enqueueSVMUnmap(output);
+
+    result = kernel_quantize_q8_1_ptr->SetKernelSVMArguments(0, input);
+    if (!result) {
+      ml_loge("Failed to set kernel argument 0 for kernel_quantize_q8_1_ptr");
+      break;
+    }
+
+    result = kernel_quantize_q8_1_ptr->SetKernelSVMArguments(1, output);
+
+    if (!result) {
+      ml_loge("Failed to set kernel argument 1 for kernel_quantize_q8_1_ptr");
+      break;
+    }
+
+    result =
+      kernel_quantize_q8_1_ptr->SetKernelArguments(2, &size, sizeof(int));
+    if (!result) {
+      ml_loge("Failed to set kernel argument 2 for kernel_quantize_q8_1_ptr");
+      break;
+    }
+
+    result =
+      kernel_quantize_q8_1_ptr->SetKernelArguments(3, &layout, sizeof(int));
+    if (!result) {
+      ml_loge("Failed to set kernel argument 3 for kernel_quantize_q8_1_ptr");
+      break;
+    }
+
+    const int work_groups_count[3] = {(int)size / 4, 1, 1};
+    const int work_group_size[3] = {32, 1, 1};
+
+    result = blas_cc->command_queue_inst_.DispatchCommand(
+      kernel_quantize_q8_1_ptr, work_groups_count, work_group_size);
+    if (!result) {
+      ml_loge("Failed to dispatch quantize_q8_1 kernel");
+      break;
+    }
+
+    result =
+      blas_cc->command_queue_inst_.enqueueSVMMap(output, output_size, true);
+    if (!result) {
+      ml_loge("Failed to read data from output buffer A for "
+              "kernel_quantize_q8_1_ptr");
+      break;
+    }
+
+  } while (false);
+}
+
+void dequantize_q8_1_cl(const void *input, float *output, unsigned int size) {
+  bool result = false;
+
+  do {
+    ClContext::SharedPtrClKernel kernel_dequantize_q8_1_ptr =
+      blas_cc->registerClKernel(getDequantizeQ8_1Kernel(),
+                                "dequantize_q8_1_cl");
+    if (!kernel_dequantize_q8_1_ptr) {
+      ml_loge("Failed to register kernel_dequantize_q8_1_ptr");
+      break;
+    }
+
+    if (size % 128 != 0) {
+      ml_loge("Size must be a multiple of 128 for dequantize_q8_1_cl");
+      break;
+    }
+    size_t num_q8_1_block = size / 128;
+    size_t input_size_bytes = num_q8_1_block * 144;
+    size_t output_size_bytes = size * sizeof(float);
+    const int layout = 0;
+
+    result = clbuffInstance.getInBufferA()->WriteDataRegion(
+      blas_cc->command_queue_inst_, input_size_bytes, input);
+    if (!result) {
+      ml_loge("Failed to write data to input buffer A for "
+              "kernel_dequantize_q8_1_ptr");
+      break;
+    }
+
+    result = kernel_dequantize_q8_1_ptr->SetKernelArguments(
+      0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
+    if (!result) {
+      ml_loge("Failed to set kernel argument 0 for kernel_dequantize_q8_1_ptr");
+      break;
+    }
+
+    result = kernel_dequantize_q8_1_ptr->SetKernelArguments(
+      1, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
+    if (!result) {
+      ml_loge("Failed to set kernel argument 1 for kernel_dequantize_q8_1_ptr");
+      break;
+    }
+
+    result =
+      kernel_dequantize_q8_1_ptr->SetKernelArguments(2, &size, sizeof(int));
+    if (!result) {
+      ml_loge("Failed to set kernel argument 2 for kernel_dequantize_q8_1_ptr");
+      break;
+    }
+
+    result =
+      kernel_dequantize_q8_1_ptr->SetKernelArguments(3, &layout, sizeof(int));
+    if (!result) {
+      ml_loge("Failed to set kernel argument 3 for kernel_dequantize_q8_1_ptr");
+      break;
+    }
+
+    const int work_groups_count[3] = {(int)size / 4, 1, 1};
+    const int work_group_size[3] = {32, 1, 1};
+
+    result = blas_cc->command_queue_inst_.DispatchCommand(
+      kernel_dequantize_q8_1_ptr, work_groups_count, work_group_size);
+    if (!result) {
+      ml_loge("Failed to dispatch dequantize_q8_1 kernel");
+      break;
+    }
+
+    result = clbuffInstance.getOutBufferA()->ReadDataRegion(
+      blas_cc->command_queue_inst_, output_size_bytes, output);
+    if (!result) {
+      ml_loge("Failed to read data from output buffer A for "
+              "kernel_dequantize_q8_1_ptr");
+      break;
+    }
+
+  } while (false);
+}
+
 } // namespace nntrainer

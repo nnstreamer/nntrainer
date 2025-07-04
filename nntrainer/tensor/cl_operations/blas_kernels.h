@@ -30,6 +30,20 @@ static ClContext *blas_cc =
 static ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
 
 /**
+ * @brief     Q6_K sgemv computation : Y = A*X
+ * @param[in] matAdata void * for Matrix A
+ * @param[in] vecXdata float * for Vector X
+ * @param[in] vecYdata float * for Vector Y
+ * @param[in] M number of rows in matrix A
+ * @param[in] N number of columns in matrix A
+ */
+void sgemv_q6_k_cl(const void *matAdata, const float *vecXdata, float *vecYdata,
+                   unsigned int M, unsigned int N);
+
+void sgemv_q6_k_q8_1_cl(void *matAdata, float *vecXdata, float *vecYdata,
+                        unsigned int M, unsigned int N);
+
+/**
  * @brief     sgemv computation : Y = A*X + Y
  * @param[in] matAdata float * for Matrix A
  * @param[in] vecXdata float * for Vector X
@@ -109,6 +123,26 @@ void transpose_cl_axis(const float *in, float *res,
                        unsigned int input_batch_size,
                        unsigned int input_channels, unsigned int input_height,
                        unsigned int input_width, unsigned int axis);
+
+/**
+ * @brief Quantize a float tensor to q8_1 format
+ *
+ * @param input Float pointer to the input tensor
+ * @param output Pointer to the output tensor in q8_1 format
+ * @param size Size of the input tensor in elements
+ *
+ */
+void quantize_q8_1_cl(float *input, void *output, unsigned int size);
+
+/**
+ * @brief Dequantize a float tensor to q8_1 format
+ *
+ * @param input Pointer to the input tensor  in q8_1 format
+ * @param output Float pointer to the output tensor
+ * @param size Size of the output tensor in elements
+ *
+ */
+void dequantize_q8_1_cl(const void *input, float *output, unsigned int size);
 
 #ifdef ENABLE_FP16
 
