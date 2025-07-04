@@ -49,7 +49,7 @@ public:
   /**
    * @brief   Default constructor
    */
-  AppContext() : Context(std::make_shared<ContextData>()) {}
+  AppContext() : Context(ContextData::createHostOnly()) {}
 
   /**
    * @brief   Default destructor
