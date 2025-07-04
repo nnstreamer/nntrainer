@@ -17,7 +17,7 @@ NNtrainer is a Software Framework for training Neural Network models on devices.
 
 NNtrainer is an Open Source Project. The aim of the NNtrainer is to develop a Software Framework to train neural network models on embedded devices which have relatively limited resources. Rather than training whole layers of a network from the scratch, NNtrainer finetunes the neural network model on device with user data for the personalization.
 
-Even if NNtrainer runs on device, it provides full functionalities to train models and also utilizes limited device resources efficiently. NNTrainer is able to train various machine learning algorithms such as k-Nearest Neighbor (k-NN), Neural Networks, Logistic Regression, Reinforcement Learning algorithms, Recurrent network and more. We also provide examples for various tasks such as Few-shot learning, ResNet, VGG, Product Rating and more will be added. All of these were tested on Samsung Galaxy smart phone with Android and PC (Ubuntu 18.04/20.04).
+Even if NNtrainer runs on device, it provides full functionalities to train models and also utilizes limited device resources efficiently. NNTrainer is able to train various machine learning algorithms such as k-Nearest Neighbor (k-NN), Neural Networks, Logistic Regression, Reinforcement Learning algorithms, Recurrent network and more. We also provide examples for various tasks such as Few-shot learning, ResNet, VGG, Product Rating and more will be added. All of these were tested on Samsung Galaxy smart phone with Android and PC (Ubuntu).
 
 [ A New Frontier of AI: On-Device AI Training and Personalization ](https://dl.acm.org/doi/abs/10.1145/3639477.3639716), ICSE-SEIP, 2024 <br />
 [ NNTrainer: Light-Weight On-Device Training Framework ](https://arxiv.org/pdf/2206.04688.pdf), arXiv, 2022 <br />
@@ -29,7 +29,7 @@ Even if NNtrainer runs on device, it provides full functionalities to train mode
 
 |     | [Tizen](http://download.tizen.org/snapshots/tizen/unified/latest/repos/standard/packages/) | [Ubuntu](https://launchpad.net/~nnstreamer/+archive/ubuntu/ppa) | Android/NDK Build |
 | :-- | :--: | :--: | :--: |
-|     | 6.0M2 and later | 18.04 | 9/P |
+|     | 6.0M2 and later | 22.04/24.04 | 9/P |
 | arm | [![armv7l badge](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/badge/tizen.armv7l_result_badge.svg)](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/build_result/) | Available  | Ready |
 | arm64 |  [![aarch64 badge](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/badge/tizen.aarch64_result_badge.svg)](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/build_result/) | Available  | [![android badge](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/badge/arm64_v8a_android_result_badge.svg)](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/build_result/) |
 | x64 | [![x64 badge](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/badge/tizen.x86_64_result_badge.svg)](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/build_result/)  | [![ubuntu badge](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/badge/ubuntu_result_badge.svg)](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/build_result/)  | Ready  |
@@ -40,7 +40,7 @@ Even if NNtrainer runs on device, it provides full functionalities to train mode
 - Ready: CI system ensures build-ability and unit-testing. Users may easily build and execute. However, we do not have automated release & deployment system for this instance.
 - Available: binary packages are released and deployed automatically and periodically along with CI tests.
 - [Daily Release](http://ci.nnstreamer.ai/nntrainer/ci/daily-build/build_result/)
-- SDK Support: Tizen Studio (6.0 M2+)
+- SDK Support: Tizen Studio (6.0 and later)
 
 ## Getting Started
 
