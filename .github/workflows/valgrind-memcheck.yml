@@ -1,0 +1,240 @@
+name: Memory Leak Check with Valgrind
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  valgrind-check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install system dependencies
+      run: |
+        sudo add-apt-repository -y ppa:nnstreamer/ppa
+        sudo apt-get update
+        sudo apt-get install -y gcc g++ pkg-config libopenblas-dev libiniparser-dev libjsoncpp-dev libcurl3-dev tensorflow2-lite-dev nnstreamer-dev libglib2.0-dev libgstreamer1.0-dev libgtest-dev ml-api-common-dev flatbuffers-compiler ml-inference-api-dev libunwind-dev valgrind gdb
+        sudo apt-get install -y python3-dev python3-numpy python3
+    - name: Configure build with debug symbols
+      run: |
+        meson setup build \
+          -Denable-test=true \
+          -Denable-logging=true \
+          -Denable-debug=true \
+          -Denable-capi=enabled \
+          -Denable-ccapi=true \
+          -Denable-blas=true \
+          -Denable-profile=false \
+          -Denable-trace=false \
+          -Denable-fp16=false \
+          -Denable-tizen-feature-check=false \
+          --buildtype=debug \
+          --optimization=g \
+          -Db_sanitize=none
+
+    - name: Build project
+      run: ninja -C build -v
+
+    - name: Create valgrind suppressions file
+      run: |
+        cat > valgrind.supp << 'EOF'
+        # Suppress known false positives from glib
+        {
+           glib_slice_allocator
+           Memcheck:Leak
+           match-leak-kinds: definite
+           ...
+           fun:g_slice_alloc*
+        }
+        {
+           glib_type_system
+           Memcheck:Leak
+           match-leak-kinds: definite
+           ...
+           fun:g_type_*
+        }
+        {
+           glib_quark_system
+           Memcheck:Leak
+           match-leak-kinds: definite
+           ...
+           fun:g_quark_*
+        }
+        # Suppress gtest-related allocations
+        {
+           gtest_framework
+           Memcheck:Leak
+           match-leak-kinds: definite
+           ...
+           fun:*testing*
+        }
+        # Suppress pthread-related false positives
+        {
+           pthread_create
+           Memcheck:Leak
+           match-leak-kinds: possible
+           ...
+           fun:pthread_create*
+        }
+        # Suppress dlopen-related allocations
+        {
+           dlopen_leak
+           Memcheck:Leak
+           match-leak-kinds: definite
+           ...
+           fun:dlopen*
+        }
+        EOF
+
+    - name: Run unit tests with valgrind
+      run: |
+        mkdir -p valgrind-reports
+
+        # Find test executables using multiple strategies
+        echo "Searching for test executables..."
+        TEST_BINARIES=$(find build -name "*test*" -type f -executable 2>/dev/null | grep -v ".so" | head -15)
+
+        if [ -z "$TEST_BINARIES" ]; then
+          echo "No test binaries found with *test* pattern, trying meson test..."
+          if meson test -C build --list >/dev/null 2>&1; then
+            echo "Running meson test with valgrind wrapper..."
+            meson test -C build --wrap='valgrind --tool=memcheck --leak-check=full --error-exitcode=1 --suppressions=../valgrind.supp --log-file=valgrind-reports/meson-test.log' --timeout-multiplier=3
+            exit_code=$?
+            if [ $exit_code -ne 0 ]; then
+              echo "❌ Memory leak check FAILED!"
+              exit 1
+            else
+              echo "✅ All tests passed memory leak check!"
+            fi
+          else
+            echo "❌ No tests found to run with valgrind"
+            exit 1
+          fi
+        else
+          echo "Found test binaries:"
+          echo "$TEST_BINARIES"
+
+          FAILED_TESTS=""
+          SUCCESS_COUNT=0
+
+          for test_binary in $TEST_BINARIES; do
+            test_name=$(basename "$test_binary")
+            echo "Running valgrind on: $test_name"
+
+            # Run with timeout to prevent hanging
+            timeout 300 valgrind \
+              --tool=memcheck \
+              --leak-check=full \
+              --show-leak-kinds=definite,possible \
+              --track-origins=yes \
+              --verbose \
+              --error-exitcode=1 \
+              --suppressions=valgrind.supp \
+              --log-file="valgrind-reports/${test_name}.log" \
+              --num-callers=20 \
+              --track-fds=yes \
+              "$test_binary" 2>&1 | tee "valgrind-reports/${test_name}.output"
+
+            exit_code=$?
+            if [ $exit_code -eq 0 ]; then
+              echo "✅ $test_name passed memory check"
+              SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+            elif [ $exit_code -eq 124 ]; then
+              echo "⏰ $test_name timed out"
+              FAILED_TESTS="$FAILED_TESTS $test_name(timeout)"
+            else
+              echo "❌ $test_name failed memory check"
+              FAILED_TESTS="$FAILED_TESTS $test_name"
+            fi
+            echo "---"
+          done
+
+          # Generate summary
+          echo "# Valgrind Memory Check Summary" > valgrind-reports/summary.md
+          echo "" >> valgrind-reports/summary.md
+          echo "**Date:** $(date)" >> valgrind-reports/summary.md
+          echo "" >> valgrind-reports/summary.md
+
+          TOTAL_TESTS=$(echo "$TEST_BINARIES" | wc -l)
+          FAILED_COUNT=$(echo "$FAILED_TESTS" | wc -w)
+
+          echo "**Results:**" >> valgrind-reports/summary.md
+          echo "- Total tests: $TOTAL_TESTS" >> valgrind-reports/summary.md
+          echo "- Passed: $SUCCESS_COUNT" >> valgrind-reports/summary.md
+          echo "- Failed: $FAILED_COUNT" >> valgrind-reports/summary.md
+          echo "" >> valgrind-reports/summary.md
+
+          if [ -n "$FAILED_TESTS" ]; then
+            echo "**❌ Tests with memory issues:**" >> valgrind-reports/summary.md
+            for test in $FAILED_TESTS; do
+              echo "- $test" >> valgrind-reports/summary.md
+            done
+          fi
+
+          # Display summary
+          echo ""
+          echo "========================================"
+          echo "           VALGRIND SUMMARY"
+          echo "========================================"
+          cat valgrind-reports/summary.md
+
+          # Fail if there were memory errors
+          if [ -n "$FAILED_TESTS" ]; then
+            echo ""
+            echo "❌ Memory leak check FAILED!"
+            echo "Failed tests: $FAILED_TESTS"
+            exit 1
+          else
+            echo ""
+            echo "✅ All tests passed memory leak check!"
+          fi
+        fi
+
+    - name: Upload valgrind reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: valgrind-reports-${{ github.run_number }}
+        path: valgrind-reports/
+        retention-days: 7
+
+    - name: Comment PR with results
+      if: github.event_name == 'pull_request' && always()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+
+          let summary = '❌ Failed to generate summary';
+          try {
+            summary = fs.readFileSync('valgrind-reports/summary.md', 'utf8');
+          } catch (error) {
+            console.log('Summary file not found:', error.message);
+          }
+
+          const body = `## 🔍 Valgrind Memory Leak Check Results
+
+          ${summary}
+
+          📊 **Detailed Reports:** Available in the workflow artifacts
+
+          ---
+          *Automated memory leak detection*`;
+
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: body
+          });
+
+
