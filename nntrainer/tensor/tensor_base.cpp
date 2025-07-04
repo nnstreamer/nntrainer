@@ -613,6 +613,12 @@ std::vector<unsigned int> TensorBase::argmin() const {
     getStringDataType());
 }
 
+void TensorBase::topK(unsigned int k, void *output_data, uint32_t *indices) {
+  throw std::invalid_argument(
+    "Tensor::topK() is currently not supported in tensor data type " +
+    getStringDataType());
+}
+
 Tensor &TensorBase::transpose(const std::string &direction, Tensor &out) const {
   throw std::invalid_argument(
     "Tensor::transpose() is currently not supported in tensor data type " +

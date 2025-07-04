@@ -1082,6 +1082,24 @@ static std::unique_ptr<NeuralNetwork> makeChannelShuffleOperation() {
   return nn;
 }
 
+static std::unique_ptr<NeuralNetwork> makeSingleMoELayer() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+
+  auto outer_graph =
+    makeGraph({{"moe",
+                {"name=moe_layer", "input_shape=1:1:10:128", "num_experts=4",
+                 "num_experts_per_token=2", "unit=32", "moe_activation=swish"}},
+               {"mse", {"name=loss", "input_layers=moe_layer"}}});
+
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
+
+  nn->setProperty({"batch_size=1"});
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate=0.1"}));
+  return nn;
+}
+
 GTEST_PARAMETER_TEST(
   model, nntrainerModelTest,
   ::testing::ValuesIn({
@@ -1171,6 +1189,8 @@ GTEST_PARAMETER_TEST(
                  ModelTestOption::ALL_V2),
     mkModelTc_V2(makeChannelShuffleOperation, "channel_shuffle",
                  ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeSingleMoELayer, "moe_layer",
+                 ModelTestOption::ALL_V2_WITH_INFERENCE),
   }),
   [](const testing::TestParamInfo<nntrainerModelTest::ParamType> &info)
     -> const auto & { return std::get<1>(info.param); });

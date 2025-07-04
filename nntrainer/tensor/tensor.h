@@ -1561,6 +1561,32 @@ public:
   Tensor getBatchSlice(size_t offset, unsigned int size) const;
 
   /**
+   * @brief Extract sub-tensor containing specified batch indices
+   *
+   * @param indices List of batch indices to extract (0-based)
+   * @return Tensor New tensor containing only specified batches  (copied
+   * tensor!)
+   *
+   * @details
+   * This function creates a new tensor containing copies of data from
+   * specified batch indices of the original tensor. The operation:
+   * - Requires the original tensor to be contiguous in memory
+   * - Preserves channel/height/width dimensions
+   * - Maintains data ordering within each batch
+   * - Uses memcpy for efficient memory operations
+   *
+   * @note
+   * - Time complexity: O(k*C*H*W) where k = num_indices
+   * - Memory complexity: O(k*C*H*W)
+   * - Thread-safe when using different indices in parallel
+   *
+   * @throw std::runtime_error If:
+   * - Tensor is not contiguous
+   * - Any index is out of bounds
+   */
+  Tensor getBatchSlice(const std::vector<unsigned int> &indices) const;
+
+  /**
    * @brief     Convient wrapper for inplace copy of @a this.
    * @retval    Copied version of this
    */
@@ -1603,6 +1629,35 @@ public:
    * @retval    unsigned int argument indices
    */
   std::vector<unsigned int> argmin() const;
+
+  /**
+   * @brief Find top-K maximum values along the width dimension and return
+   * results as tensors
+   *
+   * @details This function computes the top-K maximum values and their
+   * corresponding indices along the **width** dimension for each batch,
+   * channel, and height slice. The operation preserves the original tensor
+   * format (NCHW/NHWC) while reducing the width dimension to size K. The
+   * indices are returned as a separate tensor of type `UINT32`.
+   *
+   * @param[in] k Number of largest elements to select (1 <= k <= width_size)
+   *
+   * @return std::pair<Tensor, Tensor> containing:
+   *         - First: Output tensor of shape [batch][channel][height][k] (NCHW)
+   * or [batch][height][k][channel] (NHWC) with top-K values
+   *         - Second: Indices tensor of shape [batch][channel][height][k]
+   * (NCHW) or [batch][height][k][channel] (NHWC) with original width positions
+   *
+   * @throw std::invalid_argument If:
+   *         - k is 0 or exceeds width dimension size
+   *         - Called on non-floating point tensor (UINT8/UINT16/etc)
+   *
+   * @note
+   * - Indices represent positions in the **original width dimension**
+   * - Sorting is done in descending order
+   * - Preserves tensor format (NCHW/NHWC) of the original tensor
+   */
+  std::pair<Tensor, Tensor> topK(unsigned int k) const;
 
   /**
    * @brief     return max of the absolute values of the tensor
