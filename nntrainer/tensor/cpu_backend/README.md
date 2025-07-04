@@ -1,6 +1,7 @@
 # cpu backend
 
 ## Overview
+```
 ...
 tensor
 ├─── cpu_backend
@@ -22,6 +23,7 @@ tensor
 │   └─── cblas_interface
 │      └─── cblas_interface : all cblas-related function interfaces, and params
 ...
+```
 ## Basic guidelines for developers
 1. If you are considering custom implementation using SIMD intrinsic for interested target HW architecture, you can directly implement under `neon_impl`, `avx2_impl`, or add a new folder for the target architecture / SIMD ISA.
 2. If you are considering introducing external library (e.g., eigen3, XNNPACK, etc.), add a new folder like `cblas_interface` and refer to it.
