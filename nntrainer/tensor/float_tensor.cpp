@@ -809,7 +809,7 @@ Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
     K = getDim().width();
     N = input.getDim().height();
 #ifdef ENABLE_OPENCL
-    sgemv_q6_k_cl((void *)mdata, data, rdata, K, N);
+    sgemv_q6_k_cl((void *)mdata, data, rdata, K, N, true);
 #else
     gemm_q6_K(M, N, K, data, K, (void *)mdata, N, rdata, N);
 #endif

@@ -18,9 +18,15 @@
 
 namespace nntrainer {
 
+static bool loaded = false;
+
 void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
-                   unsigned int M, unsigned int N) {
+                   unsigned int M, unsigned int N, bool use_preload) {
   bool result = false;
+
+  if (!use_preload) {
+    loaded = false;
+  }
 
   ClContext::SharedPtrClKernel kernel_q6_k_sgemv_ptr;
 
@@ -32,15 +38,25 @@ void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
     return;
   }
 
-  const size_t q6k_bytes = 210 * M * N / 256;
+  const size_t q6k_bytes = 210 * N * (M / 256);
 
-  result = blas_cc->command_queue_inst_.enqueueSVMUnmap(matAdata);
-  if (!result) {
-    ml_loge("Failed to write data to input buffer A for kernel_q6_k_sgemv_ptr");
-    return;
+  if (use_preload && !loaded) {
+    result = clbuffInstance.getInBufferC()->WriteDataRegion(
+      blas_cc->command_queue_inst_, q6k_bytes, matAdata);
+    if (!result) {
+      return;
+    }
+    loaded = true;
+  } else if (!use_preload) {
+    result = clbuffInstance.getInBufferA()->WriteDataRegion(
+      blas_cc->command_queue_inst_, q6k_bytes, matAdata);
+    if (!result) {
+      return;
+    }
   }
 
-  result = blas_cc->command_queue_inst_.enqueueSVMUnmap(vecXdata);
+  result = clbuffInstance.getInBufferB()->WriteDataRegion(
+    blas_cc->command_queue_inst_, M * sizeof(float), vecXdata);
   if (!result) {
     ml_loge("Failed to write data to input buffer B for kernel_q6_k_sgemv_ptr");
     return;
@@ -66,11 +82,18 @@ void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
   cl_ulong offset1 = 0;
   cl_ulong offsetd = 0;
 
-  result = kernel_q6_k_sgemv_ptr->SetKernelSVMArguments(0, matAdata);
-
-  if (!result) {
-    ml_loge("Failed to set kernel argument 0 for kernel_q6_k_sgemv_ptr");
-    return;
+  if (loaded) {
+    result = kernel_q6_k_sgemv_ptr->SetKernelArguments(
+      0, clbuffInstance.getInBufferC(), sizeof(cl_mem));
+    if (!result) {
+      return;
+    }
+  } else {
+    result = kernel_q6_k_sgemv_ptr->SetKernelArguments(
+      0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
+    if (!result) {
+      return;
+    }
   }
 
   result =
@@ -81,8 +104,8 @@ void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
     return;
   }
 
-  result = kernel_q6_k_sgemv_ptr->SetKernelSVMArguments(2, vecXdata);
-
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(
+    2, clbuffInstance.getInBufferB(), sizeof(cl_mem));
   if (!result) {
     ml_loge("Failed to set kernel argument 2 for kernel_q6_k_sgemv_ptr");
     return;
@@ -96,7 +119,8 @@ void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
     return;
   }
 
-  result = kernel_q6_k_sgemv_ptr->SetKernelSVMArguments(4, vecYdata);
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(
+    4, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
 
   if (!result) {
     ml_loge("Failed to set kernel argument 4 for kernel_q6_k_sgemv_ptr");
@@ -190,8 +214,11 @@ void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
     return;
   }
 
-  result = blas_cc->command_queue_inst_.enqueueSVMMap(vecYdata,
-                                                      N * sizeof(float), true);
+  result = clbuffInstance.getOutBufferA()->ReadDataRegion(
+    blas_cc->command_queue_inst_, N * sizeof(float), vecYdata);
+  if (!result) {
+    return;
+  }
 
   if (!result) {
     ml_loge(

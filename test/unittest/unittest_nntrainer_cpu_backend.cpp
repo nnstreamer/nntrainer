@@ -768,7 +768,7 @@ static void run_q_6_K_test(const uint32_t M, const uint32_t K,
   for (unsigned int i = 0; i < run_count; ++i) {
     if constexpr (is_q_8_1_weights) {
       nntrainer::sgemv_q6_k_cl(q6_weight_ptr, activations_f32_ptr,
-                               (float *)gpu_q6_dst, K, N);
+                               (float *)gpu_q6_dst, K, N, true);
     } else {
       nntrainer::sgemv_q6_k_cl(q6_weight_ptr, activations_f32_ptr,
                                (float *)gpu_q6_dst, K, N);

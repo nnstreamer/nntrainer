@@ -38,7 +38,7 @@ static ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
  * @param[in] N number of columns in matrix A
  */
 void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
-                   unsigned int M, unsigned int N);
+                   unsigned int M, unsigned int N, bool use_preload = false);
 
 /**
  * @brief     sgemv computation : Y = A*X + Y
