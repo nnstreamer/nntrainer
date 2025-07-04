@@ -64,3 +64,43 @@ jobs:
       run: meson test -C build --no-suite unittests
     - name: run Unittests
       run: meson test -C build --suite unittests
+    - name: Prepare valgrind test
+      if: ${{ matrix.os == 'ubuntu-24.04' && matrix.meson_options == '-Denable-fp16=true' }}
+      run: |
+        sudo apt-get install valgrind
+        cp .github/workflows/valgrind.supp .
+
+        mkdir -p valgrind-reports
+        error_flag=0
+
+        meson test -C build --suite unittests --wrap='valgrind --tool=memcheck --leak-check=full --error-exitcode=1 --suppressions=../valgrind.supp --log-file=../valgrind-reports/meson-test-unittest.log' --timeout-multiplier=0 || error_flag=1
+        if [ $error_flag -eq 1 ]; then
+          echo "❌ Memory leak check on unit tests FAILED!"
+          echo " "
+          echo " "
+          echo "========================================"
+          echo "           VALGRIND SUMMARY (unit test)"
+          echo "========================================"
+          cat valgrind-reports/meson-test-unittest.log
+          echo " "
+          echo " "
+        else
+          echo "✅ All unit tests passed memory leak check!"
+        fi
+
+        meson test -C build --no-suite unittests --wrap='valgrind --tool=memcheck --leak-check=full --error-exitcode=1 --suppressions=../valgrind.supp --log-file=../valgrind-reports/meson-test-apptest.log' --timeout-multiplier=0 || error_flag=2
+        if [ $error_flag -eq 2 ]; then
+          echo "❌ Memory leak check on app tests FAILED!"
+          echo " "
+          echo " "
+          echo "========================================"
+          echo "           VALGRIND SUMMARY (app test)"
+          echo "========================================"
+          echo " "
+          echo " "
+          cat valgrind-reports/meson-test-apptest.log
+        else
+          echo "✅ All app tests passed memory leak check!"
+        fi
+
+        exit $error_flag
