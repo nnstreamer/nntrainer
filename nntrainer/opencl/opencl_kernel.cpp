@@ -60,7 +60,8 @@ bool Kernel::SetKernelArguments(cl_uint arg_index, const void *arg_value,
   // returns NULL with error code if fails
   error_code = clSetKernelArg(kernel_, arg_index, size, arg_value);
   if (error_code != CL_SUCCESS) {
-    ml_loge("Failed to set argument. OpenCL error code: %d", error_code);
+    ml_loge("Failed to set argument: %u = %p. OpenCL error code: %d", arg_index,
+            arg_value, error_code);
     return false;
   }
 
