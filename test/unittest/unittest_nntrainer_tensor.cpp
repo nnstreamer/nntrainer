@@ -1165,10 +1165,13 @@ TEST(nntrainer_Tensor, getBatchSlice_float_p) {
 
   // Test invalid index
   EXPECT_THROW(input.getBatchSlice({3}), std::out_of_range);
+
+  // Test empty indices vector
+  EXPECT_THROW(input.getBatchSlice({}), std::invalid_argument);
 }
 
 TEST(nntrainer_Tensor, getBatchSlice_uint16_p) {
-  // UINT16 텐서 생성: [batch=3][channel=2][height=4][width=2]
+  // Create UINT16 tensor: [batch=3, channel=2, height=4, width=2]
   std::vector<std::vector<std::vector<std::vector<float>>>> data = {
     {// Batch 0
      {{1000, 2000}, {3000, 4000}, {5000, 6000}, {7000, 8000}},
@@ -1233,6 +1236,47 @@ TEST(nntrainer_Tensor, getBatchSlice_parallel_p) {
       EXPECT_FLOAT_EQ(ref_slice.getValue(idx), par_slice.getValue(idx));
     }
   }
+}
+
+TEST(nntrainer_Tensor, getBatchSlice_duplicate_indices_p) {
+  // Create input tensor: batch=4, channel=1, height=1, width=2
+  std::vector<std::vector<std::vector<std::vector<float>>>> data = {
+    {{{10.0f, 11.0f}}},
+    {{{20.0f, 21.0f}}},
+    {{{30.0f, 31.0f}}},
+    {{{40.0f, 41.0f}}}};
+
+  nntrainer::Tensor input(
+    data, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
+
+  // Test with duplicate indices: {0, 1, 3, 1, 1}
+  std::vector<unsigned int> indices = {0, 1, 3, 1, 1};
+
+  nntrainer::Tensor sliced = input.getBatchSlice(indices);
+
+  // Verify  output tensor dimensions
+  EXPECT_EQ(sliced.getDim(), nntrainer::TensorDim(5, 1, 1, 2));
+
+  // Verify each batch in the output
+  // Position 0: should contain batch 0 data
+  EXPECT_FLOAT_EQ(sliced.getValue(0, 0, 0, 0), 10.0f);
+  EXPECT_FLOAT_EQ(sliced.getValue(0, 0, 0, 1), 11.0f);
+
+  // Position 1: should contain batch 1 data
+  EXPECT_FLOAT_EQ(sliced.getValue(1, 0, 0, 0), 20.0f);
+  EXPECT_FLOAT_EQ(sliced.getValue(1, 0, 0, 1), 21.0f);
+
+  // Position 2: should contain batch 3 data
+  EXPECT_FLOAT_EQ(sliced.getValue(2, 0, 0, 0), 40.0f);
+  EXPECT_FLOAT_EQ(sliced.getValue(2, 0, 0, 1), 41.0f);
+
+  // Position 3: should contain batch 1 data again
+  EXPECT_FLOAT_EQ(sliced.getValue(3, 0, 0, 0), 20.0f);
+  EXPECT_FLOAT_EQ(sliced.getValue(3, 0, 0, 1), 21.0f);
+
+  // Position 4: should contain batch 1 data again
+  EXPECT_FLOAT_EQ(sliced.getValue(4, 0, 0, 0), 20.0f);
+  EXPECT_FLOAT_EQ(sliced.getValue(4, 0, 0, 1), 21.0f);
 }
 
 TEST(nntrainer_Tensor, copy_01_n) {

@@ -1261,6 +1261,10 @@ Tensor Tensor::getBatchSlice(const std::vector<unsigned int> &indices) const {
   NNTR_THROW_IF(!this->getContiguous(), std::runtime_error)
     << "getBatchSlice requires contiguous tensor layer";
 
+  // Validate indices vector is not empty
+  NNTR_THROW_IF(indices.empty(), std::invalid_argument)
+    << "Indices vector cannot be empty";
+
   // Validate indices
   const unsigned batch_size = getDim().batch();
   for (auto idx : indices) {
@@ -1280,6 +1284,10 @@ Tensor Tensor::getBatchSlice(const std::vector<unsigned int> &indices) const {
   new_dim.batch(indices.size());
   Tensor output(new_dim);
 
+  // Validate output tensor size
+  const size_t output_bytes = output.bytes();
+  const size_t single_batch_bytes = single_batch_size * element_size;
+
   // Get raw data pointers
   const unsigned char *src_data =
     static_cast<const unsigned char *>(this->getData<unsigned char>());
@@ -1292,12 +1300,18 @@ Tensor Tensor::getBatchSlice(const std::vector<unsigned int> &indices) const {
     const unsigned batch_idx = indices[i];
 
     // Calculate memory offsets
-    const size_t src_offset = batch_idx * single_batch_size * element_size;
-    const size_t dst_offset = i * single_batch_size * element_size;
+    const size_t src_offset =
+      static_cast<size_t>(batch_idx) * single_batch_bytes;
+    const size_t dst_offset = static_cast<size_t>(i) * single_batch_bytes;
+
+    // Bounds check for destination buffer
+    NNTR_THROW_IF(dst_offset + single_batch_bytes > output_bytes,
+                  std::runtime_error)
+      << "Destination buffer overflow detected";
 
     // Perform memory copy
     std::memcpy(dst_data + dst_offset, src_data + src_offset,
-                single_batch_size * element_size);
+                single_batch_bytes);
   }
 
   return output;
