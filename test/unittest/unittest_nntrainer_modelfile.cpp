@@ -757,9 +757,9 @@ TEST(nntrainerIniTest, backbone_based_on_working_directory_p) {
               {nw_base_cross + "loss=mse", adam, input,
                backbone_valid + "input_layers=inputlayer"}};
 
-  nntrainer::Engine eg(nntrainer::Engine::Global());
+  auto &eg(nntrainer::Engine::Global());
   eg.setWorkingDirectory(getResPath("", {"test"}));
-  nntrainer::NeuralNetwork NN(eg);
+  nntrainer::NeuralNetwork NN(&eg);
 
   EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
 }

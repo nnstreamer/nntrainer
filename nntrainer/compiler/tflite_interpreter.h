@@ -26,10 +26,8 @@ public:
   /**
    * @brief Construct a new tflite Graph Interpreter object
    *
-   * @param app_context_ app context to create layers
    */
-  TfliteInterpreter(const Engine &ct_engine_ = Engine::Global()) :
-    ct_engine(ct_engine_) {}
+  TfliteInterpreter() = default;
 
   /**
    * @brief Destroy the Tflite Interpreter object
@@ -47,9 +45,6 @@ public:
    * @copydoc GraphInterpreter::deserialize(const std::string &in)
    */
   GraphRepresentation deserialize(const std::string &in) override;
-
-private:
-  Engine ct_engine;
 };
 
 } // namespace nntrainer

@@ -35,7 +35,7 @@ public:
    * @param pathResolver_ path resolver function to be used
    */
   IniGraphInterpreter(
-    const Engine &ct_engine_ = Engine::Global(),
+    const Engine *ct_engine_ = &Engine::Global(),
     std::function<const std::string(const std::string &)> pathResolver_ =
       [](const std::string &path) { return path; });
 
@@ -58,7 +58,7 @@ public:
   GraphRepresentation deserialize(const std::string &in) override;
 
 private:
-  Engine ct_engine;
+  const Engine *ct_engine = nullptr;
   std::function<const std::string(std::string)> pathResolver;
 };
 

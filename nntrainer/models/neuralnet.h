@@ -92,7 +92,7 @@ public:
   /**
    * @brief     Constructor of NeuralNetwork Class
    */
-  NeuralNetwork(Engine ct_engine_);
+  NeuralNetwork(const Engine *ct_engine_);
 
   /**
    * @brief     Destructor of NeuralNetwork Class
@@ -696,7 +696,8 @@ private:
 
   ExecutionMode exec_mode; /** execution mode : train : inference */
 
-  Engine ct_engine; /** Configurations bound to current engine */
+  const Engine *ct_engine =
+    nullptr; /** Configurations bound to current engine */
 
   NetworkGraph model_graph; /** Network Model Graph */
 
