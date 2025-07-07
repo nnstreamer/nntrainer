@@ -25,9 +25,9 @@
 namespace nntrainer {
 
 // get global cl_context to use in kernels
-static ClContext *blas_cc =
-  static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-static ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
+// static ClContext *blas_cc =
+//   static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+//static ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
 
 /**
  * @brief     Q6_K sgemv computation : Y = A*X

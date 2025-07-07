@@ -126,7 +126,7 @@ public:
   /**
    * @brief     Register OpenCL kernels for SwiGLU layer. This should be called
    */
-  static bool registerClKernels();
+  static bool registerClKernels(ClContext * global_cl_context);
 
 private:
   std::tuple<props::Print> swiglu_props; /**< swiglu layer properties : unit -

@@ -104,7 +104,7 @@ public:
   /**
    * @brief registerClKernels
    */
-  static bool registerClKernels();
+  static bool registerClKernels(ClContext *global_cl_context);
 
   static constexpr const char *type = "concat";
 

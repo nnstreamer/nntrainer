@@ -70,10 +70,10 @@ enum {
 
 namespace nntrainer {
 
-#ifdef ENABLE_OPENCL
-static ClContext *cl_context_ =
-  static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-#endif
+// #ifdef ENABLE_OPENCL
+// static ClContext *cl_context_ =
+//   static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+// #endif
 
 /**
  * @class   MemoryPool

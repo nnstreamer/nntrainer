@@ -24,6 +24,9 @@ void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
 
   ClContext::SharedPtrClKernel kernel_q6_k_sgemv_ptr;
 
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+
   kernel_q6_k_sgemv_ptr =
     blas_cc->registerClKernel(getQ6KSgemvClKernel(), "kernel_mul_mv_q6_K_f32");
 
@@ -207,6 +210,10 @@ void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
 
   bool result = false;
 
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
+
   do {
     ClContext::SharedPtrClKernel kernel_sgemv_ptr;
 
@@ -294,6 +301,10 @@ float dot_cl(const float *vecAdata, const float *vecXdata, unsigned int dim1) {
 
   bool result = false;
 
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
+
   float cl_ret = 0;
 
   do {
@@ -367,6 +378,10 @@ void sgemm_cl(bool TransA, bool TransB, const float *A, const float *B,
 
   std::string kernel_func_;
   std::string sgemm_cl_kernel_;
+
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
 
   if (!TransA && !TransB) {
     kernel_func_ = "sgemm_cl_noTrans";
@@ -473,6 +488,10 @@ void addition_cl(const float *input, float *res, unsigned int size_input,
 
   bool result = false;
 
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
+
   do {
     ClContext::SharedPtrClKernel kernel_addition_ptr =
       blas_cc->registerClKernel(getAdditionClKernel(), "addition_cl");
@@ -539,6 +558,10 @@ void addition_cl(const float *input, float *res, unsigned int size_input,
 void sscal_cl(float *X, const unsigned int N, const float alpha) {
   bool result = false;
 
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
+
   do {
     ClContext::SharedPtrClKernel kernel_ptr =
       blas_cc->registerClKernel(getSscalClKernel(), "sscal_cl");
@@ -591,6 +614,10 @@ void transpose_cl_axis(const float *in, float *res,
                        unsigned int input_width, unsigned int axis) {
 
   bool result = false;
+
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
 
   do {
     ClContext::SharedPtrClKernel kernel_transpose_ptr;

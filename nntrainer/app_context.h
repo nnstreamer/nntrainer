@@ -57,6 +57,30 @@ public:
   ~AppContext() override = default;
 
   /**
+   * @brief Deleting copy constructor
+   *
+   */
+  AppContext(const AppContext &) = delete;
+
+  /**
+   * @brief Deleting assignment operator
+   *
+   */
+  AppContext &operator=(const AppContext &) = delete;
+
+  /**
+   * @brief Deleting move constructor
+   *
+   */
+  AppContext(AppContext &&) = delete;
+
+  /**
+   * @brief Deleting move assignment operator
+   *
+   */
+  AppContext &operator=(AppContext &&) = delete;
+
+  /**
    *
    * @brief Get Global app context.
    *
