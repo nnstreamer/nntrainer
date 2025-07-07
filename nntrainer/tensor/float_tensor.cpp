@@ -890,7 +890,11 @@ void FloatTensor::topK(unsigned int k, void *output_data,
   const auto height = input_dim.height();
   const auto width = input_dim.width();
 
-  const float *input_buffer = (float *)getData();
+  if (k == 0 || k > width) {
+    throw std::invalid_argument(
+      "k must be greater than 0 and less than or equal to width");
+  }
+
   float *output_buffer = static_cast<float *>(output_data);
 
   // Calculate strides for input and output
@@ -904,28 +908,27 @@ void FloatTensor::topK(unsigned int k, void *output_data,
     for (int c = 0; c < static_cast<int>(channel); ++c) {
       for (int h = 0; h < static_cast<int>(height); ++h) {
 
-        // Collect elements along width dimension
-        std::vector<std::pair<float, unsigned int>> elements(width);
-        for (unsigned int w = 0; w < width; ++w) {
-          size_t input_idx;
-          if (format == Tformat::NCHW) {
-            // NCHW: [b][c][h][w]
-            input_idx = b * input_strides[0] + c * input_strides[1] +
-                        h * input_strides[2] + w;
-          } else {
-            // NHWC: [b][h][w][c]
-            input_idx = b * input_strides[0] + h * input_strides[1] +
-                        w * input_strides[2] + c;
-          }
-          elements[w] = {input_buffer[input_idx], w};
+        size_t offset;
+        if (format == Tformat::NCHW) {
+          // NCHW: [b][c][h][i]
+          offset =
+            b * input_strides[0] + c * input_strides[1] + h * input_strides[2];
+        } else {
+          // NHWC: [b][h][i][c]
+          offset = b * input_strides[0] + h * input_strides[1] + c;
         }
 
-        // Sort first k elements in descending order
-        std::partial_sort(
-          elements.begin(), elements.begin() + k, elements.end(),
-          [](const auto &a, const auto &b) { return a.first > b.first; });
+        const unsigned int width_stride =
+          format == Tformat::NHWC ? input_strides[2] : 1;
+        const float *B = static_cast<const float *>(getData()) + offset;
+        std::vector<size_t> idx(width);
+        std::iota(idx.begin(), idx.end(), 0);
+        std::partial_sort(idx.begin(), idx.begin() + k, idx.end(),
+                          [&B, width_stride](size_t i1, size_t i2) {
+                            return B[i1 * width_stride] > B[i2 * width_stride];
+                          });
 
-        // Store results in output and indices tensors
+        // write top-k values and their indices to output
         for (unsigned int i = 0; i < k; ++i) {
           size_t output_idx;
           if (format == Tformat::NCHW) {
@@ -937,12 +940,8 @@ void FloatTensor::topK(unsigned int k, void *output_data,
             output_idx = b * output_strides[0] + h * output_strides[1] +
                          i * output_strides[2] + c;
           }
-
-          // Update output values
-          output_buffer[output_idx] = elements[i].first;
-
-          // Update indices tensor
-          indices_data[output_idx] = static_cast<uint32_t>(elements[i].second);
+          output_buffer[output_idx] = B[idx[i]];
+          indices_data[output_idx] = static_cast<uint32_t>(idx[i]);
         }
       }
     }
