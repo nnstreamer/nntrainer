@@ -1563,7 +1563,8 @@ public:
   /**
    * @brief Extract sub-tensor containing specified batch indices
    *
-   * @param indices List of batch indices to extract (0-based)
+   * @param indices List of batch indices to extract (0-based) Duplicates are
+   * allowed and will result in the same batch data being copied multiple times.
    * @return Tensor New tensor containing only specified batches  (copied
    * tensor!)
    *
@@ -1574,6 +1575,11 @@ public:
    * - Preserves channel/height/width dimensions
    * - Maintains data ordering within each batch
    * - Uses memcpy for efficient memory operations
+   *
+   * @note Duplicate indices: If the same index appears multiple times, the
+   * corresponding batch data will be copied to each position in the output
+   * tensor. Example: indices {0, 1, 1} creates output with 3 batches where
+   * positions 1 and 2 contain identical copies  of input batch 1.
    *
    * @note
    * - Time complexity: O(k*C*H*W) where k = num_indices
