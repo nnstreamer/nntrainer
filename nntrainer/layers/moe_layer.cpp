@@ -34,8 +34,16 @@ static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 MoELayer::MoELayer() :
   LayerImpl(),
+  num_experts(0),
+  topk(0),
   moe_props(props::NumExperts(), props::NumExpertsPerToken(), props::Unit(),
-            props::MoEActivation()) {}
+            props::MoEActivation()),
+  expert_gate_proj_indices({}),
+  expert_up_proj_indices({}),
+  expert_down_proj_indices({}),
+  gate_idx(std::numeric_limits<unsigned>::max()),
+  router_logits_idx(std::numeric_limits<unsigned>::max()),
+  expert_mask_idx(std::numeric_limits<unsigned>::max()) {}
 
 void MoELayer::finalize(InitLayerContext &context) {
 
@@ -135,11 +143,6 @@ void MoELayer::finalize(InitLayerContext &context) {
     {total_tokens, 1, 1, num_experts}, "router_logits", Initializer::NONE,
     false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
 
-  // Routing weights: [batch*seq, topk]
-  routing_weights_idx = context.requestTensor(
-    {total_tokens, 1, 1, topk}, "routing_weights", Initializer::NONE, false,
-    TensorLifespan::FORWARD_FUNC_LIFESPAN);
-
   // Expert mask: [num_experts, batch*seq]
   expert_mask_idx = context.requestTensor(
     {num_experts, 1, topk, total_tokens}, "expert_mask", Initializer::ZEROS,
@@ -151,7 +154,6 @@ void MoELayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
 
   Tensor &router_logits = context.getTensor(router_logits_idx);
-  Tensor &routing_weights = context.getTensor(routing_weights_idx);
   Tensor &expert_mask = context.getTensor(expert_mask_idx);
 
   const unsigned batch_size = input.batch();
@@ -169,8 +171,8 @@ void MoELayer::forwarding(RunLayerContext &context, bool training) {
   // routing
   Tensor &gate_weights = context.getWeight(gate_idx);
   input.dot(gate_weights, router_logits);
-  router_logits.apply(ActiFunc::softmax<float>, routing_weights);
-  auto topk_result = routing_weights.topK(topk);
+  router_logits.apply(ActiFunc::softmax<float>, router_logits);
+  auto topk_result = router_logits.topK(topk);
   auto topk_values = std::get<0>(topk_result);
   auto topk_indices = std::get<1>(topk_result);
 
@@ -215,6 +217,7 @@ void MoELayer::forwarding(RunLayerContext &context, bool training) {
         for (int i = 0; i < static_cast<int>(token_indices.size()); ++i) {
           unsigned idx = token_indices[i];
           auto tgt_output = output.getBatchSlice(idx, 1);
+          // tgt_output.add_i(expert_output.getBatchSlice(i, 1));
           tgt_output.copyData(expert_output.getBatchSlice(i, 1));
         }
       }

@@ -119,7 +119,6 @@ private:
 
   // Intermediate tensor indices
   unsigned int router_logits_idx;
-  unsigned int routing_weights_idx;
   unsigned int expert_mask_idx;
 
   inline Tensor compute_expert_forward(const Tensor &input,
