@@ -199,6 +199,8 @@ int main(int argc, char *argv[]) {
       output = interpreter->typed_output_tensor<float>(0);
 
       std::copy(output, output + 128, out[i][j]);
+
+      delete[] in;
     }
   }
 
@@ -264,6 +266,8 @@ int main(int argc, char *argv[]) {
      */
     ret = KNN(out, testout[i]);
     printf("class %d\n", ret);
+
+    delete[] in;
   }
 
   return 0;
