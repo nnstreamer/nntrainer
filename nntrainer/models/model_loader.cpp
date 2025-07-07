@@ -63,7 +63,7 @@ int ModelLoader::loadLearningRateSchedulerConfigIni(
 
   try {
     auto lrs =
-      ct_engine.createLearningRateSchedulerObject(lrs_type, properties);
+      ct_engine->createLearningRateSchedulerObject(lrs_type, properties);
     auto opt_wrapped = std::static_pointer_cast<OptimizerWrapped>(optimizer);
     opt_wrapped->setLearningRateScheduler(std::move(lrs));
   } catch (std::exception &e) {

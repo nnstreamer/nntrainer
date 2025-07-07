@@ -34,7 +34,7 @@ public:
   /**
    * @brief     Constructor of the model loader
    */
-  ModelLoader(const Engine &ct_eng_ = Engine::Global()) :
+  ModelLoader(const Engine *ct_eng_ = &Engine::Global()) :
     ct_engine(ct_eng_), model_file_engine(nullptr) {}
 
   /**
@@ -148,7 +148,7 @@ private:
    * @return const std::string resolved path.
    */
   const std::string resolvePath(const std::string &path) {
-    auto path_ = ct_engine.getWorkingPath(path);
+    auto path_ = ct_engine->getWorkingPath(path);
     return model_file_engine->getWorkingPath(path_);
   }
 
@@ -164,7 +164,7 @@ private:
 
   const char *unknown = "Unknown";
 
-  Engine ct_engine;
+  const Engine *ct_engine = nullptr;
   std::unique_ptr<Engine> model_file_engine;
   /**< model_file specific context which is
   //          referred to as if app_context cannot

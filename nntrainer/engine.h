@@ -94,6 +94,30 @@ public:
   ~Engine() = default;
 
   /**
+   * @brief Deleting copy constructor
+   *
+   */
+  Engine(const Engine &) = delete;
+
+  /**
+   * @brief Deleting assignment operator
+   *
+   */
+  Engine &operator=(const Engine &) = delete;
+
+  /**
+   * @brief Deleting move constructor
+   *
+   */
+  Engine(Engine &&) = delete;
+
+  /**
+   * @brief Deleting move assignment operator
+   *
+   */
+  Engine &operator=(Engine &&) = delete;
+
+  /**
    * @brief register a Context from a shared library
    * plugin must have **extern "C" LayerPluggable *ml_train_context_pluggable**
    * defined else error
@@ -242,7 +266,7 @@ public:
    * If relative path is given and working_path_base has set, return absolute
    * path from current working directory
    */
-  const std::string getWorkingPath(const std::string &path = "");
+  const std::string getWorkingPath(const std::string &path = "") const;
 
   /**
    * @brief Set Working Directory for a relative path. working directory is set

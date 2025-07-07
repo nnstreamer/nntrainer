@@ -106,7 +106,7 @@ public:
         << func_tag << "open rpc mem failed";
     }
 #else
-    allocators = Engine(Engine::Global()).getAllocators();
+    allocators = Engine::Global().getAllocators();
 #endif
   }
 

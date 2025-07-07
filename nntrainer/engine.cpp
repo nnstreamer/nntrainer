@@ -122,7 +122,7 @@ const std::string getFullPath(const std::string &path,
   return path == std::string() ? base : base + "/" + path;
 }
 
-const std::string Engine::getWorkingPath(const std::string &path) {
+const std::string Engine::getWorkingPath(const std::string &path) const {
   return getFullPath(path, working_path_base);
 }
 

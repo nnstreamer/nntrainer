@@ -776,7 +776,7 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
 
   /** finalize the layer and get the final context */
   auto init_context = lnode->finalize(input_dims, getTensorType(), exec_mode);
-  auto ct_engine = nntrainer::Engine::Global();
+  const auto &ct_engine = nntrainer::Engine::Global();
 
   /**
    * Request manager for either a pre-allocated output as input or a newly
@@ -969,7 +969,7 @@ NetworkGraph::refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
 
   /** refinalize the layer and get the final context */
   auto init_context = lnode->refinalize(input_dims);
-  auto ct_engine = nntrainer::Engine::Global();
+  const auto &ct_engine = nntrainer::Engine::Global();
 
   /**
    * Request manager for either a pre-allocated output as input or a newly

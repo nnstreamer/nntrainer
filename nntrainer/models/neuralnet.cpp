@@ -81,11 +81,10 @@ NeuralNetwork::NeuralNetwork() :
   initialized(false),
   compiled(false),
   loadedFromConfig(false),
-  exec_mode(ExecutionMode::TRAIN) {
-  ct_engine = Engine(Engine::Global());
-}
+  exec_mode(ExecutionMode::TRAIN),
+  ct_engine(&Engine::Global()) {}
 
-NeuralNetwork::NeuralNetwork(Engine ct_engine_) :
+NeuralNetwork::NeuralNetwork(const Engine *ct_engine_) :
   model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm(),
               props::LossScale()),
   model_flex_props(props::Epochs(), props::TrainingBatchSize(),
@@ -795,7 +794,7 @@ void NeuralNetwork::load(const std::string &file_path,
 
     std::thread qnn_load([this, &v]() {
       int ret =
-        ct_engine.getRegisteredContext("qnn")->load(props::FilePath(v[0]));
+        ct_engine->getRegisteredContext("qnn")->load(props::FilePath(v[0]));
       throw_status(ret);
     });
 

@@ -47,7 +47,7 @@ static constexpr const char *LRSCHED_STR = "LearningRateScheduler";
 namespace nntrainer {
 
 IniGraphInterpreter::IniGraphInterpreter(
-  const Engine &ct_eg_,
+  const Engine *ct_eg_,
   std::function<const std::string(const std::string &)> pathResolver_) :
   ct_engine(ct_eg_), pathResolver(pathResolver_) {}
 
@@ -134,7 +134,7 @@ std::vector<std::string> section2properties(
  */
 template <typename T>
 std::shared_ptr<LayerNode>
-section2layer(dictionary *ini, const std::string &sec_name, const Engine &eg,
+section2layer(dictionary *ini, const std::string &sec_name, const Engine *eg,
               const std::string &backbone_file,
               std::function<const std::string(std::string)> &pathResolver) {
   throw std::invalid_argument("supported only with a tag for now");
@@ -142,7 +142,7 @@ section2layer(dictionary *ini, const std::string &sec_name, const Engine &eg,
 
 template <>
 std::shared_ptr<LayerNode> section2layer<PlainLayer>(
-  dictionary *ini, const std::string &sec_name, const Engine &eg,
+  dictionary *ini, const std::string &sec_name, const Engine *eg,
   const std::string &backbone_file,
   std::function<const std::string(std::string)> &pathResolver) {
 
@@ -154,13 +154,13 @@ std::shared_ptr<LayerNode> section2layer<PlainLayer>(
   auto properties = section2properties(ini, sec_name, pathResolver);
 
   auto layer =
-    createLayerNode(eg.createLayerObject(layer_type, properties), properties);
+    createLayerNode(eg->createLayerObject(layer_type, properties), properties);
   return layer;
 }
 
 template <>
 std::shared_ptr<LayerNode> section2layer<BackboneLayer>(
-  dictionary *ini, const std::string &sec_name, const Engine &eg,
+  dictionary *ini, const std::string &sec_name, const Engine *eg,
   const std::string &backbone_file,
   std::function<const std::string(std::string)> &pathResolver) {
   std::string type;
