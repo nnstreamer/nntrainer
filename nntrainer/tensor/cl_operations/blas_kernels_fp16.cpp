@@ -15,6 +15,7 @@
 #include <blas_kernels.h>
 #include <unordered_map>
 #include <mutex>
+#include <CL/cl.h>
 
 namespace nntrainer {
 
@@ -85,6 +86,73 @@ public:
 
 cl_event AsyncMemoryManager::events_[3];
 
+// Device capability manager for adaptive optimization
+class DeviceCapabilityManager {
+private:
+  static bool initialized_;
+  static size_t max_work_group_size_;
+  static size_t max_compute_units_;
+  static size_t max_local_memory_;
+  static bool supports_fp16_;
+  static int optimal_tile_size_;
+  
+public:
+  static bool initialize(cl_device_id device) {
+    if (initialized_) return true;
+    
+    // Query device capabilities
+    clGetDeviceInfo(device, CL_DEVICE_MAX_WORK_GROUP_SIZE,
+                   sizeof(max_work_group_size_), &max_work_group_size_, nullptr);
+    
+    clGetDeviceInfo(device, CL_DEVICE_MAX_COMPUTE_UNITS,
+                   sizeof(max_compute_units_), &max_compute_units_, nullptr);
+    
+    clGetDeviceInfo(device, CL_DEVICE_LOCAL_MEM_SIZE,
+                   sizeof(max_local_memory_), &max_local_memory_, nullptr);
+    
+    // Check FP16 support
+    size_t extensions_size;
+    clGetDeviceInfo(device, CL_DEVICE_EXTENSIONS, 0, nullptr, &extensions_size);
+    std::string extensions(extensions_size, '\0');
+    clGetDeviceInfo(device, CL_DEVICE_EXTENSIONS, extensions_size, 
+                   &extensions[0], nullptr);
+    
+    supports_fp16_ = extensions.find("cl_khr_fp16") != std::string::npos;
+    
+    // Determine optimal tile size based on device vendor
+    char device_name[256];
+    clGetDeviceInfo(device, CL_DEVICE_NAME, sizeof(device_name), device_name, nullptr);
+    std::string name(device_name);
+    
+    if (name.find("NVIDIA") != std::string::npos) {
+      optimal_tile_size_ = 32; // NVIDIA GPUs prefer 32x32 tiles
+    } else if (name.find("AMD") != std::string::npos) {
+      optimal_tile_size_ = 16; // AMD GPUs prefer 16x16 tiles
+    } else if (name.find("Intel") != std::string::npos) {
+      optimal_tile_size_ = 8;  // Intel integrated GPUs prefer smaller tiles
+    } else {
+      optimal_tile_size_ = 16; // Default
+    }
+    
+    initialized_ = true;
+    return true;
+  }
+  
+  static size_t getMaxWorkGroupSize() { return max_work_group_size_; }
+  static size_t getMaxComputeUnits() { return max_compute_units_; }
+  static size_t getMaxLocalMemory() { return max_local_memory_; }
+  static bool supportsFP16() { return supports_fp16_; }
+  static int getOptimalTileSize() { return optimal_tile_size_; }
+};
+
+// Static member definitions
+bool DeviceCapabilityManager::initialized_ = false;
+size_t DeviceCapabilityManager::max_work_group_size_ = 256;
+size_t DeviceCapabilityManager::max_compute_units_ = 16;
+size_t DeviceCapabilityManager::max_local_memory_ = 32768;
+bool DeviceCapabilityManager::supports_fp16_ = false;
+int DeviceCapabilityManager::optimal_tile_size_ = 16;
+
 // Dynamic work group configuration
 struct WorkGroupConfig {
   int global_size[3];
@@ -97,8 +165,10 @@ WorkGroupConfig calculateOptimalWorkGroup(unsigned int dim1, unsigned int dim2,
   WorkGroupConfig config;
   
   // Query device capabilities (should be cached globally)
-  size_t max_work_group_size = 256; // Default, should query actual device
-  size_t max_compute_units = 16;    // Default, should query actual device
+  size_t max_work_group_size = DeviceCapabilityManager::getMaxWorkGroupSize();
+  size_t max_compute_units = DeviceCapabilityManager::getMaxComputeUnits();
+  size_t max_local_memory = DeviceCapabilityManager::getMaxLocalMemory();
+  int optimal_tile = DeviceCapabilityManager::getOptimalTileSize();
   
   if (operation == "sgemv") {
     // For GEMV: optimize for memory bandwidth
@@ -112,8 +182,16 @@ WorkGroupConfig calculateOptimalWorkGroup(unsigned int dim1, unsigned int dim2,
     config.local_size[1] = 1;
     config.local_size[2] = 1;
   } else if (operation == "sgemm") {
-    // For GEMM: optimize for compute throughput with tiling
-    const int TILE_SIZE = 16; // Optimized for most GPUs
+    // For GEMM: optimize for compute throughput with device-adaptive tiling
+    int TILE_SIZE = optimal_tile;
+    
+    // Ensure we don't exceed max work group size
+    while (TILE_SIZE * TILE_SIZE > max_work_group_size) {
+      TILE_SIZE /= 2;
+    }
+    
+    // Minimum viable tile size
+    TILE_SIZE = std::max(TILE_SIZE, 4);
     
     config.local_size[0] = TILE_SIZE;
     config.local_size[1] = TILE_SIZE;
