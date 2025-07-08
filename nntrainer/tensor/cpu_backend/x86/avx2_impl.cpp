@@ -21,6 +21,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <fp16.h>
 #include <immintrin.h>
 #include <limits>
 #if __has_include(<numbers>)
@@ -30,7 +31,9 @@
 #if __has_include(<version>)
 #include <version>
 #endif
+#include <fallback_internal.h>
 #include <util_func.h>
+#include <vector>
 
 #if !defined(__has_constexpr_builtin)
 #define __has_constexpr_builtin(x) (0)
@@ -576,6 +579,521 @@ void ele_add(const unsigned int N, const float *X, const float *Y, float *Z,
       Z += o_stride;
     }
   }
+}
+
+static inline __m256 exp256_ps(__m256 x) {
+  /*  Low-Precision Version I*/
+  // const __m256 c1 = _mm256_set1_ps(12102203.0f);
+  // const __m256 c2 = _mm256_set1_ps(1065353216.0f);
+  // __m256 fx = _mm256_add_ps(_mm256_mul_ps(x, c1),c2);
+  // return _mm256_castsi256_ps(_mm256_cvtps_epi32(fx));
+
+  /* Low-Precision Version II*/
+  /*    const __m256 ln2 = _mm256_set1_ps(0.69314718056f);
+    const __m256 inv_ln2 = _mm256_set1_ps(1.44269504089f); // 1 / ln(2)
+
+    // Range reduction: x = n * ln2 + r,  where n is integer and |r| <= ln2/2
+    __m256 fx = _mm256_mul_ps(x, inv_ln2);
+    fx = _mm256_round_ps(fx, _MM_FROUND_TO_NEAREST_INT | _MM_FROUND_NO_EXC);
+    __m256i emm0 = _mm256_cvtps_epi32(fx);
+
+    __m256 tmp = _mm256_mul_ps(fx, ln2);
+    __m256 r = _mm256_sub_ps(x, tmp);
+
+    // Compute polynomial approximation of exp(r)
+    const __m256 c1 = _mm256_set1_ps(1.9875691500E-4f);
+    const __m256 c2 = _mm256_set1_ps(1.3981999507E-3f);
+    const __m256 c3 = _mm256_set1_ps(8.3334519073E-3f);
+    const __m256 c4 = _mm256_set1_ps(4.1665795894E-2f);
+    const __m256 c5 = _mm256_set1_ps(1.6666665459E-1f);
+    const __m256 c6 = _mm256_set1_ps(5.0000001201E-1f);
+
+  //  __m256 r2 = _mm256_mul_ps(r, r);
+  //  __m256 r3 = _mm256_mul_ps(r2, r);
+  //  __m256 r4 = _mm256_mul_ps(r2, r2);
+
+    __m256 y = _mm256_fmadd_ps(c1, r, c2);
+    y = _mm256_fmadd_ps(y, r, c3);
+    y = _mm256_fmadd_ps(y, r, c4);
+    y = _mm256_fmadd_ps(y, r, c5);
+    y = _mm256_fmadd_ps(y, r, c6);
+    y = _mm256_fmadd_ps(y, r, _mm256_set1_ps(1.0f));
+
+    // Reconstruct exp(x) = 2^n * exp(r)
+    emm0 = _mm256_add_epi32(emm0, _mm256_set1_epi32(127));
+    emm0 = _mm256_slli_epi32(emm0, 23);
+    __m256 pow2n = _mm256_castsi256_ps(emm0);
+
+    return _mm256_mul_ps(y, pow2n);
+  */
+  /* Low-Precision Versino III */
+  const __m256 LOG2EF = _mm256_set1_ps(1.44269504088896341f); // 1 / ln(2)
+  const __m256 LN2 = _mm256_set1_ps(0.6931471805599453f);     // ln(2)
+
+  // Clamp input to range to prevent overflow/underflow
+  const __m256 max_x = _mm256_set1_ps(88.3762626647949f);  // log(FLT_MAX)
+  const __m256 min_x = _mm256_set1_ps(-88.3762626647949f); // log(FLT_MIN)
+  x = _mm256_max_ps(min_x, _mm256_min_ps(max_x, x));
+
+  // Range reduction: x = n * ln2 + r
+  __m256 fx = _mm256_mul_ps(x, LOG2EF); // x * (1/ln(2))
+  fx = _mm256_floor_ps(_mm256_add_ps(fx, _mm256_set1_ps(0.5f)));
+
+  __m256 tmp = _mm256_mul_ps(fx, LN2); // n * ln(2)
+  __m256 r = _mm256_sub_ps(x, tmp);    // r = x - n * ln2
+
+  // Compute exp(r) using 10th-order polynomial (Horner's method)
+  const __m256 c0 = _mm256_set1_ps(1.0f);
+  const __m256 c1 = _mm256_set1_ps(1.0f);
+  const __m256 c2 = _mm256_set1_ps(0.5f);
+  const __m256 c3 = _mm256_set1_ps(1.0f / 6.0f);
+  const __m256 c4 = _mm256_set1_ps(1.0f / 24.0f);
+  const __m256 c5 = _mm256_set1_ps(1.0f / 120.0f);
+  const __m256 c6 = _mm256_set1_ps(1.0f / 720.0f);
+  const __m256 c7 = _mm256_set1_ps(1.0f / 5040.0f);
+  const __m256 c8 = _mm256_set1_ps(1.0f / 40320.0f);
+  const __m256 c9 = _mm256_set1_ps(1.0f / 362880.0f);
+  const __m256 c10 = _mm256_set1_ps(1.0f / 3628800.0f);
+
+  __m256 y = c10;
+  y = _mm256_fmadd_ps(y, r, c9);
+  y = _mm256_fmadd_ps(y, r, c8);
+  y = _mm256_fmadd_ps(y, r, c7);
+  y = _mm256_fmadd_ps(y, r, c6);
+  y = _mm256_fmadd_ps(y, r, c5);
+  y = _mm256_fmadd_ps(y, r, c4);
+  y = _mm256_fmadd_ps(y, r, c3);
+  y = _mm256_fmadd_ps(y, r, c2);
+  y = _mm256_fmadd_ps(y, r, c1);
+  y = _mm256_fmadd_ps(y, r, c0); // final y = (((...r+...)*r+...)*r + 1)
+
+  // Reconstruct exp(x) = 2^n * exp(r)
+  __m256i emm0 = _mm256_cvtps_epi32(fx);
+  emm0 = _mm256_add_epi32(emm0, _mm256_set1_epi32(127));
+  emm0 = _mm256_slli_epi32(emm0, 23);
+  __m256 pow2n = _mm256_castsi256_ps(emm0);
+
+  return _mm256_mul_ps(y, pow2n);
+}
+
+void softmax_row_inplace(float *qk_out, size_t start_row, size_t end_row,
+                         size_t num_heads) {
+  size_t row_range = end_row - start_row;
+  const size_t full_blocks = (num_heads / 8) * 8;
+  // const size_t remainder = num_heads % 8;
+
+  float *max_vals = new float[num_heads];
+  float *sum_vals = new float[num_heads];
+  // 1. max
+  for (size_t c = 0; c < num_heads; ++c) {
+    float max_val = -INFINITY;
+    for (size_t r = start_row; r < end_row; ++r)
+      max_val = std::max(max_val, qk_out[r * num_heads + c]);
+    max_vals[c] = max_val;
+  }
+
+  // 2. inplace exp + sum
+  for (size_t c = 0; c < full_blocks; c += 8) {
+    __m256 maxv = _mm256_loadu_ps(&max_vals[c]);
+    __m256 sum = _mm256_setzero_ps();
+    for (size_t r = 0; r < row_range; ++r) {
+      float *ptr = &qk_out[(start_row + r) * num_heads + c];
+      __m256 val = _mm256_loadu_ps(ptr);
+      __m256 e = exp256_ps(_mm256_sub_ps(val, maxv));
+      _mm256_storeu_ps(ptr, e); // overwrite qk_out
+      sum = _mm256_add_ps(sum, e);
+    }
+    _mm256_storeu_ps(&sum_vals[c], sum);
+  }
+
+  for (size_t c = full_blocks; c < num_heads; ++c) {
+    float sum = 0.0f;
+    float maxv = max_vals[c];
+    for (size_t r = 0; r < row_range; ++r) {
+      float &a = qk_out[(start_row + r) * num_heads + c];
+      a = std::exp(a - maxv); // overwrite qk_out
+      sum += a;
+    }
+    sum_vals[c] = sum;
+  }
+  // 3. softmax = exp / sum (inplace)
+  for (size_t r = 0; r < row_range; ++r) {
+    for (size_t c = 0; c < full_blocks; c += 8) {
+      float *ptr = &qk_out[(start_row + r) * num_heads + c];
+      __m256 val = _mm256_loadu_ps(ptr); // already exp(x - max)
+      __m256 sumv = _mm256_loadu_ps(&sum_vals[c]);
+      __m256 soft = _mm256_div_ps(val, sumv);
+      _mm256_storeu_ps(ptr, soft);
+    }
+    for (size_t c = full_blocks; c < num_heads; ++c) {
+      qk_out[(start_row + r) * num_heads + c] /= sum_vals[c];
+    }
+  }
+
+  delete[] max_vals;
+  delete[] sum_vals;
+}
+
+void softmax_row(float *qk_out, size_t start_row, size_t end_row,
+                 size_t num_heads) {
+  const size_t full_block = (num_heads / 8) * 8;
+
+  float *max_vals = new float[num_heads];
+  float *sum_vals = new float[num_heads];
+
+  // 1. Find Max along with col
+  for (size_t c = 0; c < num_heads; ++c) {
+    float max_val = -INFINITY;
+    for (size_t r = start_row; r < end_row; ++r) {
+      max_val = std::max(max_val, qk_out[r * num_heads + c]);
+    }
+    max_vals[c] = max_val;
+  }
+
+  // 2. Compute sum along with col (exp vectorized)
+  for (size_t c = 0; c < full_block; c += 8) {
+    __m256 sum = _mm256_setzero_ps();
+    for (size_t r = start_row; r < end_row; ++r) {
+      __m256 val = _mm256_loadu_ps(&qk_out[r * num_heads + c]);
+      __m256 maxv = _mm256_loadu_ps(&max_vals[c]);
+      __m256 sub = _mm256_sub_ps(val, maxv);
+      __m256 e = exp256_ps(sub);
+      sum = _mm256_add_ps(sum, e);
+    }
+    _mm256_storeu_ps(&sum_vals[c], sum);
+  }
+
+  for (size_t c = full_block; c < num_heads; ++c) {
+    float sum = 0.0f;
+    for (size_t r = start_row; r < end_row; ++r) {
+      sum += std::exp(qk_out[r * num_heads + c] - max_vals[c]);
+    }
+    sum_vals[c] = sum;
+  }
+
+  // 3. apply softmax
+  for (size_t r = start_row; r < end_row; ++r) {
+    for (size_t c = 0; c < full_block; c += 8) {
+      __m256 val = _mm256_loadu_ps(&qk_out[r * num_heads + c]);
+      __m256 maxv = _mm256_loadu_ps(&max_vals[c]);
+      __m256 sub = _mm256_sub_ps(val, maxv);
+      __m256 e = exp256_ps(sub);
+      __m256 sumv = _mm256_loadu_ps(&sum_vals[c]);
+      __m256 softmax = _mm256_div_ps(e, sumv);
+      _mm256_storeu_ps(&qk_out[r * num_heads + c], softmax);
+    }
+    for (size_t c = full_block; c < num_heads; ++c) {
+      qk_out[r * num_heads + c] =
+        std::exp(qk_out[r * num_heads + c] - max_vals[c]) / sum_vals[c];
+    }
+  }
+
+  delete[] max_vals;
+  delete[] sum_vals;
+}
+
+static inline float convert_scalar_f16_to_f32(uint16_t h) {
+  return nntrainer::compute_fp16_to_fp32(h);
+}
+
+void compute_fp16vcache_fp32_transposed(int iter, const float *in,
+                                        const uint16_t *vcache, float *output,
+                                        int seq, int num_cache_head,
+                                        int gqa_size, int head_dim,
+                                        bool process_all) {
+#if defined(__TIZEN__) && !defined(__F16C__)
+  __fallback_compute_fp16vcache_fp32_transposed(iter, in, vcache, output, seq,
+                                                num_cache_head, gqa_size,
+                                                head_dim, process_all);
+#else
+  // cpu_set_t cpu_set;
+  // CPU_ZERO(&cpu_set);
+  // std::vector<bool> affinity(8, false);
+  // affinity[i % affinity.size()] = true;
+
+  // for (std::size_t j = 0;
+  //      j < std::min<std::size_t>(affinity.size(), CPU_SETSIZE); ++j) {
+  //   if (affinity[j])
+  //     CPU_SET(j, &cpu_set);
+  // }
+  // pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpu_set);
+
+  std::vector<float> tmp_fp32(head_dim);
+  int a_row_start =
+    process_all ? ((iter * (iter + 1)) / 2) * num_cache_head * gqa_size : 0;
+  int out_offset = process_all ? iter : 0;
+
+  int num_blocks = head_dim / 8;
+  __m256 *sumVec = new __m256[std::max(1, num_blocks * gqa_size)];
+
+  for (int n = 0; n < num_cache_head; ++n) {
+    int rem = head_dim % 8;
+
+    /* Declaration: std::vector<__m256> sumVec(num_blocks * gqa_size,
+     * _mm256_setzero_ps()); caused warning: ignoring attributes on template
+     * argument ‘__m256’ [-Wignored-attributes].
+     * So it is implemented that way.
+     */
+    for (int i = 0; i < num_blocks * gqa_size; i++) {
+      sumVec[i] = _mm256_setzero_ps();
+    }
+    std::vector<float> sumRem((size_t)gqa_size * rem, 0.0f);
+
+    for (int j = 0; j <= iter; ++j) {
+      if (j + 1 < seq) {
+        const uint16_t *next_vptr =
+          vcache + ((j + 1) * num_cache_head + n) * head_dim;
+        _mm_prefetch(reinterpret_cast<const char *>(next_vptr), _MM_HINT_T0);
+      }
+
+      const uint16_t *vptr = vcache + (j * num_cache_head + n) * head_dim;
+
+      int d0 = 0;
+      for (; d0 + 8 <= head_dim; d0 += 8) {
+        __m128i half =
+          _mm_loadu_si128(reinterpret_cast<const __m128i *>(vptr + d0));
+        __m256 f32 = _mm256_cvtph_ps(half);
+        _mm256_storeu_ps(&tmp_fp32[d0], f32);
+      }
+      for (; d0 < head_dim; ++d0) {
+        tmp_fp32[d0] = convert_scalar_f16_to_f32(vptr[d0]);
+      }
+
+      for (int h = 0; h < gqa_size; ++h) {
+        // float a_val = in[a_row_start + (j * gqa_size + h) * num_cache_head +
+        // n];
+        float a_val =
+          in[a_row_start + (j * gqa_size * num_cache_head + n * gqa_size + h)];
+        __m256 inVec = _mm256_set1_ps(a_val);
+
+        for (int b = 0; b < num_blocks; ++b) {
+          __m256 bVec = _mm256_loadu_ps(&tmp_fp32[b * 8]);
+          sumVec[h * num_blocks + b] =
+            _mm256_fmadd_ps(inVec, bVec, sumVec[h * num_blocks + b]);
+        }
+
+        float *remPtr = &sumRem.data()[h * rem];
+        int base = num_blocks * 8;
+        for (int r = 0; r < rem; ++r) {
+          remPtr[r] += a_val * tmp_fp32[base + r];
+        }
+      }
+    }
+
+    for (int h = 0; h < gqa_size; ++h) {
+      for (int b = 0; b < num_blocks; ++b) {
+        int out_base =
+          ((out_offset * num_cache_head + n) * gqa_size + h) * head_dim + b * 8;
+        _mm256_storeu_ps(&output[out_base], sumVec[h * num_blocks + b]);
+      }
+
+      float *remPtr = &sumRem.data()[h * rem];
+      // float *remPtr = &sumRem[h * rem];
+      int base = num_blocks * 8;
+      for (int r = 0; r < rem; ++r) {
+        int out_idx =
+          ((out_offset * num_cache_head + n) * gqa_size + h) * head_dim + base +
+          r;
+        output[out_idx] = remPtr[r];
+      }
+    }
+  }
+  delete[] sumVec;
+#endif
+}
+
+#if !defined(__TIZEN__) || defined(__F16C__)
+static inline __m256 load_fp16_8_avx(const uint16_t *src) {
+  __m128i in = _mm_loadu_si128(reinterpret_cast<const __m128i *>(src));
+  return _mm256_cvtph_ps(in);
+}
+
+static inline void load_fp16_8_to_chunk(const uint16_t *b_src, float *temp_row,
+                                        int chunk_size) {
+  int i = 0;
+  for (; i + 8 <= chunk_size; i += 8) {
+    __m256 f32 = load_fp16_8_avx((const uint16_t *)(b_src + i));
+    _mm256_storeu_ps(temp_row + i, f32);
+  }
+  for (; i < chunk_size; ++i) {
+    temp_row[i] = convert_scalar_f16_to_f32(b_src[i]);
+  }
+}
+#endif
+
+template <>
+void compute_kcaches(const float *A, const uint16_t *B, float *output,
+                     int num_rows, int N, int chunk_size, int group_size,
+                     int tile_size) {
+#if defined(__TIZEN__) && !defined(__F16C__)
+  __fallback_compute_kcaches<uint16_t>(A, B, output, num_rows, N, chunk_size,
+                                       group_size, tile_size);
+#else
+  using BType = uint16_t;
+  int row_stride = N * chunk_size;
+  const int group_stride = group_size * chunk_size;
+  const int tile_count = (num_rows + tile_size - 1) / tile_size;
+
+  // FP32 Cache Buffer
+  thread_local std::vector<float> temp_tile_buf((size_t)tile_size * chunk_size);
+
+  for (int n = 0; n < N; ++n) {
+    for (int t = 0; t < tile_count; ++t) {
+      int row_tile_start = t * tile_size;
+      int tile_rows = std::min(tile_size, num_rows - row_tile_start);
+
+      // FP16 to FP32 Conversion : preprocessing (row unit)
+      if constexpr (!std::is_same<BType, float>::value) {
+        for (int row = 0; row < tile_rows; ++row) {
+          const BType *b_src =
+            B + (row_tile_start + row) * row_stride + n * chunk_size;
+          float *dst = temp_tile_buf.data() + row * chunk_size;
+          load_fp16_8_to_chunk(b_src, dst, chunk_size);
+        }
+      }
+
+      for (int g = 0; g < group_size; ++g) {
+        const float *a_ptr = A + n * group_stride + g * chunk_size;
+        for (int row = 0; row < tile_rows; ++row) {
+          const float *b_row;
+          if constexpr (std::is_same<BType, float>::value) {
+            b_row = reinterpret_cast<const float *>(
+              B + (row_tile_start + row) * row_stride + n * chunk_size);
+          } else {
+            b_row = temp_tile_buf.data() + row * chunk_size;
+          }
+
+          float sum = 0.0f;
+          int i = 0;
+          __m256 acc = _mm256_setzero_ps();
+          for (; i + 8 <= chunk_size; i += 8) {
+            __m256 va = _mm256_loadu_ps(a_ptr + i);
+            __m256 vb = _mm256_loadu_ps(b_row + i);
+            acc = _mm256_fmadd_ps(va, vb, acc);
+          }
+
+          __m128 low = _mm256_castps256_ps128(acc);
+          __m128 high = _mm256_extractf128_ps(acc, 1);
+          __m128 sum128 = _mm_add_ps(low, high);
+          sum128 = _mm_hadd_ps(sum128, sum128);
+          sum128 = _mm_hadd_ps(sum128, sum128);
+          sum += _mm_cvtss_f32(sum128);
+
+          for (; i < chunk_size; ++i)
+            sum += a_ptr[i] * b_row[i];
+
+          output[(row_tile_start + row) * N * group_size + n * group_size + g] =
+            sum / sqrt((float)chunk_size);
+        }
+      }
+    }
+  }
+#endif
+}
+
+#ifdef _WIN32
+#define COMPUTE_FP16_TO_FP32(x)                                                \
+  _mm_cvtss_f32(_mm_cvtph_ps(_mm_cvtsi32_si128(x)))
+#define COMPUTE_FP32_TO_FP16(x)                                                \
+  _mm_extract_epi16(_mm_cvtps_ph(_mm_set_ss(x), 0), 0)
+#else
+#define COMPUTE_FP16_TO_FP32(x) _cvtsh_ss(x)
+#define COMPUTE_FP32_TO_FP16(x) _cvtss_sh(x, 0)
+#endif
+
+void compute_rotary_emb_value(unsigned int width, unsigned int dim,
+                              unsigned int half_, float *inout, void *output,
+                              const float *cos_, const float *sin_,
+                              bool only_convert_to_fp16) {
+#if defined(__TIZEN__) && !defined(__F16C__)
+  __fallback_compute_rotary_emb_value(width, dim, half_, inout, output, cos_,
+                                      sin_, only_convert_to_fp16);
+#else
+  enum class OutputType { FP16, FP32 };
+
+  OutputType out_type = OutputType::FP32;
+  if (output != nullptr)
+    out_type = OutputType::FP16;
+
+  for (unsigned int w = 0; w < width; w += dim) {
+    unsigned int k = 0;
+    for (; k + 7 < half_; k += 8) {
+      unsigned int i0 = w + k;
+      unsigned int i1 = w + k + half_;
+
+      __m256 a = _mm256_loadu_ps(&inout[i0]);
+      __m256 b = _mm256_loadu_ps(&inout[i1]);
+
+      if (only_convert_to_fp16) {
+        if (out_type == OutputType::FP16) {
+          __m128i a_fp16 = _mm256_cvtps_ph(a, 0);
+          __m128i b_fp16 = _mm256_cvtps_ph(b, 0);
+
+          _mm_storeu_si128(
+            reinterpret_cast<__m128i *>(static_cast<uint16_t *>(output) + i0),
+            a_fp16);
+          _mm_storeu_si128(
+            reinterpret_cast<__m128i *>(static_cast<uint16_t *>(output) + i1),
+            b_fp16);
+        }
+
+      } else {
+        __m256 cos_v = _mm256_loadu_ps(&cos_[k]);
+        __m256 sin_v = _mm256_loadu_ps(&sin_[k]);
+
+        __m256 out0 =
+          _mm256_sub_ps(_mm256_mul_ps(a, cos_v), _mm256_mul_ps(b, sin_v));
+        __m256 out1 =
+          _mm256_add_ps(_mm256_mul_ps(a, sin_v), _mm256_mul_ps(b, cos_v));
+
+        if (out_type == OutputType::FP16) {
+          __m128i out0_fp16 = _mm256_cvtps_ph(out0, 0);
+          __m128i out1_fp16 = _mm256_cvtps_ph(out1, 0);
+
+          _mm_storeu_si128(
+            reinterpret_cast<__m128i *>(static_cast<uint16_t *>(output) + i0),
+            out0_fp16);
+          _mm_storeu_si128(
+            reinterpret_cast<__m128i *>(static_cast<uint16_t *>(output) + i1),
+            out1_fp16);
+
+        } else if (out_type == OutputType::FP32) {
+          _mm256_storeu_ps(&inout[i0], out0);
+          _mm256_storeu_ps(&inout[i1], out1);
+        }
+      }
+    }
+
+    for (; k < half_; ++k) {
+      unsigned int i0 = w + k;
+      unsigned int i1 = w + k + half_;
+      // assert(i1 < width && "Scalar i1 overflow!");
+      float a = inout[i0];
+      float b = inout[i1];
+
+      if (only_convert_to_fp16) {
+        static_cast<uint16_t *>(output)[i0] = COMPUTE_FP32_TO_FP16(a);
+        static_cast<uint16_t *>(output)[i1] = COMPUTE_FP32_TO_FP16(b);
+
+      } else {
+
+        float c = cos_[k];
+        float s = sin_[k];
+
+        float out0 = a * c - b * s;
+        float out1 = a * s + b * c;
+
+        if (out_type == OutputType::FP16) {
+          static_cast<uint16_t *>(output)[i0] = COMPUTE_FP32_TO_FP16(out0);
+          static_cast<uint16_t *>(output)[i1] = COMPUTE_FP32_TO_FP16(out1);
+        } else if (out_type == OutputType::FP32) {
+          inout[i0] = out0;
+          inout[i1] = out1;
+        }
+      }
+    }
+  }
+#endif
 }
 
 } // namespace nntrainer::avx2
