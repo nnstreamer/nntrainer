@@ -22,6 +22,10 @@
 #include "blas_kernels.h"
 #endif
 
+#ifdef ENABLE_OPENCL
+#include "blas_kernels.h"
+#endif
+
 namespace nntrainer {
 
 FloatTensor::FloatTensor(std::string name_, Tformat fm) :
