@@ -52,6 +52,39 @@ public:
 std::unordered_map<std::string, ClContext::SharedPtrClKernel> KernelCache::cache_;
 std::mutex KernelCache::cache_mutex_;
 
+// Asynchronous memory operation manager
+class AsyncMemoryManager {
+private:
+  static cl_event events_[3]; // For input A, input B, output buffers
+  
+public:
+  static bool writeDataAsync(ClBuffer* buffer, const cl_command_queue& queue,
+                           size_t size, const void* data, int event_index) {
+    return buffer->WriteDataRegionAsync(queue, size, data, &events_[event_index]);
+  }
+  
+  static bool readDataAsync(ClBuffer* buffer, const cl_command_queue& queue,
+                          size_t size, void* data, int event_index) {
+    return buffer->ReadDataRegionAsync(queue, size, data, &events_[event_index]);
+  }
+  
+  static bool waitForEvents(int count) {
+    return clWaitForEvents(count, events_) == CL_SUCCESS;
+  }
+  
+  static bool waitForEvent(int event_index) {
+    return clWaitForEvents(1, &events_[event_index]) == CL_SUCCESS;
+  }
+  
+  static void clearEvents() {
+    for (int i = 0; i < 3; i++) {
+      if (events_[i]) clReleaseEvent(events_[i]);
+    }
+  }
+};
+
+cl_event AsyncMemoryManager::events_[3];
+
 // Dynamic work group configuration
 struct WorkGroupConfig {
   int global_size[3];
@@ -114,18 +147,25 @@ void sgemv_cl(const _FP16 *matAdata, const _FP16 *vecXdata, _FP16 *vecYdata,
 
     size_t dim1_size = sizeof(_FP16) * dim1;
     size_t dim2_size = sizeof(_FP16) * dim2;
+    size_t matrix_size = dim1 * dim2 * sizeof(_FP16);
 
-    result = clbuffInstance.getInBufferA()->WriteDataRegion(
-      blas_cc->command_queue_inst_, dim1 * dim2 * sizeof(_FP16), matAdata);
+    // OPTIMIZED: Asynchronous memory transfers
+    result = AsyncMemoryManager::writeDataAsync(
+      clbuffInstance.getInBufferA(), blas_cc->command_queue_inst_, 
+      matrix_size, matAdata, 0);
     if (!result) {
       break;
     }
 
-    result = clbuffInstance.getInBufferB()->WriteDataRegion(
-      blas_cc->command_queue_inst_, dim2_size, vecXdata);
+    result = AsyncMemoryManager::writeDataAsync(
+      clbuffInstance.getInBufferB(), blas_cc->command_queue_inst_, 
+      dim2_size, vecXdata, 1);
     if (!result) {
       break;
     }
+
+    // Wait for input transfers before kernel execution
+    if (!AsyncMemoryManager::waitForEvents(2)) break;
 
     result = clbuffInstance.getOutBufferA()->WriteDataRegion(
       blas_cc->command_queue_inst_, dim1_size, vecYdata);
@@ -172,11 +212,16 @@ void sgemv_cl(const _FP16 *matAdata, const _FP16 *vecXdata, _FP16 *vecYdata,
       break;
     }
 
-    result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-      blas_cc->command_queue_inst_, dim1_size, vecYdata);
+    // OPTIMIZED: Asynchronous result reading
+    result = AsyncMemoryManager::readDataAsync(
+      clbuffInstance.getOutBufferA(), blas_cc->command_queue_inst_, 
+      dim1_size, vecYdata, 0);
     if (!result) {
       break;
     }
+
+    // Wait for result transfer to complete
+    AsyncMemoryManager::waitForEvent(0);
 
   } while (false);
 }
@@ -288,17 +333,23 @@ void sgemm_cl(bool TransA, bool TransB, const _FP16 *A, const _FP16 *B,
     size_t k_n_size = K * N * sizeof(_FP16);
     size_t m_n_size = M * N * sizeof(_FP16);
 
-    result = clbuffInstance.getInBufferA()->WriteDataRegion(
-      blas_cc->command_queue_inst_, m_k_size, A);
+    // OPTIMIZED: Asynchronous memory transfers
+    result = AsyncMemoryManager::writeDataAsync(
+      clbuffInstance.getInBufferA(), blas_cc->command_queue_inst_, 
+      m_k_size, A, 0);
     if (!result) {
       break;
     }
 
-    result = clbuffInstance.getInBufferB()->WriteDataRegion(
-      blas_cc->command_queue_inst_, k_n_size, B);
+    result = AsyncMemoryManager::writeDataAsync(
+      clbuffInstance.getInBufferB(), blas_cc->command_queue_inst_, 
+      k_n_size, B, 1);
     if (!result) {
       break;
     }
+
+    // Wait for input data transfers
+    if (!AsyncMemoryManager::waitForEvents(2)) break;
 
     result = clbuffInstance.getOutBufferA()->WriteDataRegion(
       blas_cc->command_queue_inst_, m_n_size, C);
