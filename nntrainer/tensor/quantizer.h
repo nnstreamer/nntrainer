@@ -70,7 +70,8 @@ protected:
    * @note This function registers the custom quantizer class. User defined
    * derived class must be registered with this function.
    */
-  static void registerQuantizer(QScheme qscheme, Quantizer &quantizer) {
+  NNTR_API static void registerQuantizer(QScheme qscheme,
+                                         Quantizer &quantizer) {
     custom_quantizers.insert(std::make_pair(qscheme, &quantizer));
   }
 
@@ -83,25 +84,26 @@ protected:
    * @param input input tensor
    * @param qtype quantized data type
    */
-  virtual void calculateQParams(const Tensor &input,
-                                ml::train::TensorDim::DataType qtype) = 0;
+  NNTR_API virtual void
+  calculateQParams(const Tensor &input,
+                   ml::train::TensorDim::DataType qtype) = 0;
 
   /**
    * @brief Calculate the minimum & maximum value
    * @param qtype quantized data type
    */
-  void calculateMinMaxValue(ml::train::TensorDim::DataType qtype);
+  NNTR_API void calculateMinMaxValue(ml::train::TensorDim::DataType qtype);
 
 public:
   /**
    * @brief Basic Constructor of a Quantizer
    */
-  Quantizer() = default;
+  NNTR_API Quantizer() = default;
 
   /**
    * @brief Basic Destructor of a Quantizer
    */
-  virtual ~Quantizer() = default;
+  NNTR_API virtual ~Quantizer() = default;
 
   /**
    * @brief Get the Registered Quantizer object
@@ -109,7 +111,7 @@ public:
    * @param qscheme Quantization scheme
    * @return Quantizer* registered quantizer object
    */
-  static Quantizer *getRegisteredQuantizer(QScheme qscheme) {
+  NNTR_API static Quantizer *getRegisteredQuantizer(QScheme qscheme) {
     if (custom_quantizers.find(qscheme) == custom_quantizers.end()) {
       throw std::invalid_argument("requested quantizer is not registered.");
     }
@@ -122,15 +124,15 @@ public:
    *
    * @return std::unique_ptr<Quantizer>
    */
-  virtual std::unique_ptr<Quantizer> create() = 0;
+  NNTR_API virtual std::unique_ptr<Quantizer> create() = 0;
 
   /**
    * @brief Quantize a tensor into a quantized tensor.
    * @param[in] input Floating point tensor to quantize
    * @return Tensor quantized tensor
    */
-  virtual Tensor quantize(const Tensor &input,
-                          ml::train::TensorDim::DataType qtype) = 0;
+  NNTR_API virtual Tensor quantize(const Tensor &input,
+                                   ml::train::TensorDim::DataType qtype) = 0;
 
   /**
    * @brief Quantize a tensor into a quantized tensor.
@@ -140,22 +142,23 @@ public:
    * @param[in] zero_points unsigned int zero points
    * @return Tensor quantized tensor
    */
-  virtual Tensor &quantize(const Tensor &input, Tensor &output, float *scales,
-                           unsigned int *zero_points = nullptr) = 0;
+  NNTR_API virtual Tensor &quantize(const Tensor &input, Tensor &output,
+                                    float *scales,
+                                    unsigned int *zero_points = nullptr) = 0;
 
   /**
    * @brief Dequantize a quantized tensor into a tensor.
    * @param[in] input Quantized tensor to dequantize
    * @return Tensor dequantized tensor
    */
-  virtual Tensor dequantize(const Tensor &input,
-                            ml::train::TensorDim::DataType qtype) = 0;
+  NNTR_API virtual Tensor dequantize(const Tensor &input,
+                                     ml::train::TensorDim::DataType qtype) = 0;
 
   /**
    * @brief Get quantization Scheme type.
    * @return Quantization scheme
    */
-  virtual QScheme qscheme() const = 0;
+  NNTR_API virtual QScheme qscheme() const = 0;
 };
 
 /**
@@ -165,7 +168,7 @@ public:
  */
 class UniformQuantizer : public Quantizer {
 public:
-  UniformQuantizer() : Quantizer() {}
+  NNTR_API UniformQuantizer() : Quantizer() {}
 };
 
 /**
@@ -175,7 +178,7 @@ public:
  */
 class NonUniformQuantizer : public Quantizer {
 public:
-  NonUniformQuantizer() : Quantizer() {}
+  NNTR_API NonUniformQuantizer() : Quantizer() {}
 };
 
 /**
@@ -192,36 +195,36 @@ public:
   /**
    * @brief Basic Constructor of a PerTensorAffineQuantizer
    */
-  PerTensorAffineQuantizer() : UniformQuantizer(), scale(1) {}
+  NNTR_API PerTensorAffineQuantizer() : UniformQuantizer(), scale(1) {}
 
   /**
    * @copydoc Quantizer::create()
    */
-  std::unique_ptr<Quantizer> create() override;
+  NNTR_API std::unique_ptr<Quantizer> create() override;
 
   /**
    * @copydoc Quantizer::quantize(const Tensor &input)
    */
-  Tensor quantize(const Tensor &input,
-                  ml::train::TensorDim::DataType qtype) override;
+  NNTR_API Tensor quantize(const Tensor &input,
+                           ml::train::TensorDim::DataType qtype) override;
 
   /**
    * @copydoc Quantizer::quantize(const Tensor &input, Tensor &output, float
    * *scales, unsigned int *zero_points)
    */
-  Tensor &quantize(const Tensor &input, Tensor &output, float *scales,
-                   unsigned int *zero_points = nullptr) override;
+  NNTR_API Tensor &quantize(const Tensor &input, Tensor &output, float *scales,
+                            unsigned int *zero_points = nullptr) override;
 
   /**
    * @copydoc Quantizer::dequantize(const Tensor &input)
    */
-  Tensor dequantize(const Tensor &input,
-                    ml::train::TensorDim::DataType dtype) override;
+  NNTR_API Tensor dequantize(const Tensor &input,
+                             ml::train::TensorDim::DataType dtype) override;
 
   /**
    * @copydoc Quantizer::qscheme()
    */
-  QScheme qscheme() const override;
+  NNTR_API QScheme qscheme() const override;
 
 private:
   float scale;
@@ -231,8 +234,8 @@ private:
    * @copydoc Quantizer::calculateQParams(const Tensor &input,
    * ml::train::TensorDim::DataType qtype)
    */
-  void calculateQParams(const Tensor &input,
-                        ml::train::TensorDim::DataType qtype) override;
+  NNTR_API void calculateQParams(const Tensor &input,
+                                 ml::train::TensorDim::DataType qtype) override;
 };
 
 /**
@@ -249,44 +252,45 @@ public:
   /**
    * @brief Basic Constructor of a PerChannelAffineQuantizer
    */
-  PerChannelAffineQuantizer() : UniformQuantizer() {}
+  NNTR_API PerChannelAffineQuantizer() : UniformQuantizer() {}
 
   /**
    * @copydoc Quantizer::create()
    */
-  std::unique_ptr<Quantizer> create() override;
+  NNTR_API std::unique_ptr<Quantizer> create() override;
 
   /**
    * @copydoc Quantizer::quantize(const Tensor &input)
    */
-  Tensor quantize(const Tensor &input,
-                  ml::train::TensorDim::DataType qtype) override;
+  NNTR_API Tensor quantize(const Tensor &input,
+                           ml::train::TensorDim::DataType qtype) override;
 
   /**
    * @copydoc Quantizer::quantize(const Tensor &input, Tensor &output, float
    * *scales, unsigned int *zero_points)
    */
-  Tensor &quantize(const Tensor &input, Tensor &output, float *scales,
-                   unsigned int *zero_points = nullptr) override;
+  NNTR_API Tensor &quantize(const Tensor &input, Tensor &output, float *scales,
+                            unsigned int *zero_points = nullptr) override;
 
   /**
    * @copydoc Quantizer::dequantize(const Tensor &input)
    */
-  Tensor dequantize(const Tensor &input,
-                    ml::train::TensorDim::DataType dtype) override;
+  NNTR_API Tensor dequantize(const Tensor &input,
+                             ml::train::TensorDim::DataType dtype) override;
 
   /**
    * @copydoc Quantizer::qscheme()
    */
-  QScheme qscheme() const override;
+  NNTR_API QScheme qscheme() const override;
 
 private:
   /**
    * @copydoc Quantizer::calculateQParams(const Tensor &input,
    * ml::train::TensorDim::DataType qtype)
    */
-  void calculateQParams(const Tensor &input,
-                        ml::train::TensorDim::DataType qtype) override {}
+  NNTR_API void
+  calculateQParams(const Tensor &input,
+                   ml::train::TensorDim::DataType qtype) override {}
 };
 
 /**
@@ -300,36 +304,36 @@ public:
   /**
    * @brief Basic Constructor of a BinaryCodeBasedQuantizer
    */
-  BinaryCodeBasedQuantizer() : NonUniformQuantizer() {}
+  NNTR_API BinaryCodeBasedQuantizer() : NonUniformQuantizer() {}
 
   /**
    * @copydoc Quantizer::create()
    */
-  std::unique_ptr<Quantizer> create() override;
+  NNTR_API std::unique_ptr<Quantizer> create() override;
 
   /**
    * @copydoc Quantizer::quantize(const Tensor &input)
    */
-  Tensor quantize(const Tensor &input,
-                  ml::train::TensorDim::DataType qtype) override;
+  NNTR_API Tensor quantize(const Tensor &input,
+                           ml::train::TensorDim::DataType qtype) override;
 
   /**
    * @copydoc Quantizer::quantize(const Tensor &input, Tensor &output, float
    * *scales, unsigned int *zero_points)
    */
-  Tensor &quantize(const Tensor &input, Tensor &output, float *scales,
-                   unsigned int *zero_points = nullptr) override;
+  NNTR_API Tensor &quantize(const Tensor &input, Tensor &output, float *scales,
+                            unsigned int *zero_points = nullptr) override;
 
   /**
    * @copydoc Quantizer::dequantize(const Tensor &input)
    */
-  Tensor dequantize(const Tensor &input,
-                    ml::train::TensorDim::DataType dtype) override;
+  NNTR_API Tensor dequantize(const Tensor &input,
+                             ml::train::TensorDim::DataType dtype) override;
 
   /**
    * @copydoc Quantizer::qscheme()
    */
-  QScheme qscheme() const override;
+  NNTR_API QScheme qscheme() const override;
 
 private:
   // float *scales = nullptr;
@@ -341,8 +345,9 @@ private:
    * @copydoc Quantizer::calculateQParams(const Tensor &input,
    * ml::train::TensorDim::DataType qtype)
    */
-  void calculateQParams(const Tensor &input,
-                        ml::train::TensorDim::DataType qtype) override {}
+  NNTR_API void
+  calculateQParams(const Tensor &input,
+                   ml::train::TensorDim::DataType qtype) override {}
 };
 
 /**
@@ -364,7 +369,7 @@ public:
    * @param qscheme quantization scheme
    * @return std::unique_ptr<Quantizer> quantizer object
    */
-  static std::unique_ptr<Quantizer> createQuantizer(QScheme qscheme) {
+  NNTR_API static std::unique_ptr<Quantizer> createQuantizer(QScheme qscheme) {
     switch (qscheme) {
     case QScheme::PER_TENSOR_AFFINE:
       return std::make_unique<PerTensorAffineQuantizer>();

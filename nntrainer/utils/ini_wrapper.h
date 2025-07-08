@@ -22,6 +22,12 @@
 
 #include <node_exporter.h>
 
+#if defined(_WIN32)
+#define NNTR_API __declspec(dllexport)
+#else
+#define NNTR_API
+#endif
+
 namespace nntrainer {
 
 /**
@@ -37,7 +43,7 @@ public:
    *
    * @param name section name
    */
-  IniSection(const std::string &name);
+  NNTR_API IniSection(const std::string &name);
 
   /**
    * @brief Construct a new Ini Section object
@@ -45,7 +51,8 @@ public:
    * @param section_name section name
    * @param entry_str entry representing string (separated by `|`)
    */
-  IniSection(const std::string &section_name, const std::string &entry_str);
+  NNTR_API IniSection(const std::string &section_name,
+                      const std::string &entry_str);
 
   /**
    * @brief Copy Construct a new Ini Section object
@@ -57,8 +64,8 @@ public:
    * updated
    * @param entry_str entry string to override the given section name
    */
-  IniSection(IniSection &from, const std::string &section_name,
-             const std::string &entry_str);
+  NNTR_API IniSection(IniSection &from, const std::string &section_name,
+                      const std::string &entry_str);
 
   /**
    * @brief Construct a new Ini Section object
@@ -66,14 +73,14 @@ public:
    * @param from Ini Section to copy from
    * @param entry_str entry string to override the given section name
    */
-  IniSection(IniSection &from, const std::string &entry_str) :
+  NNTR_API IniSection(IniSection &from, const std::string &entry_str) :
     IniSection(from, "", entry_str) {}
 
   /**
    * @brief Default constructor for the Ini Section object
    *
    */
-  IniSection() : section_name(""), entry{} {};
+  NNTR_API IniSection() : section_name(""), entry{} {};
 
   /**
    * @brief Construct a new Ini Section object from which implements
@@ -85,8 +92,8 @@ public:
    * @return IniSection created section
    */
   template <typename Exportable>
-  static IniSection FromExportable(const std::string &section_name,
-                                   const Exportable &exportable) {
+  NNTR_API static IniSection FromExportable(const std::string &section_name,
+                                            const Exportable &exportable) {
     IniSection s(section_name);
     Exporter e;
     exportable.exportTo(e, ml::train::ExportMethods::METHOD_STRINGVECTOR);
@@ -107,7 +114,7 @@ public:
    * @brief Default destructor for the Ini Section object
    *
    */
-  ~IniSection() = default;
+  NNTR_API ~IniSection() = default;
 
   /**
    * @brief +=operator from IniSection
@@ -115,7 +122,7 @@ public:
    * @param rhs operand to add
    * @return IniSection& this
    */
-  IniSection &operator+=(const IniSection &rhs) {
+  NNTR_API IniSection &operator+=(const IniSection &rhs) {
     setEntry(rhs.entry);
     return *this;
   }
@@ -126,7 +133,7 @@ public:
    * @param rhs operand to add
    * @return IniSection new Inisection
    */
-  IniSection operator+(const IniSection &rhs) const {
+  NNTR_API IniSection operator+(const IniSection &rhs) const {
     return IniSection(*this) += rhs;
   }
 
@@ -136,7 +143,7 @@ public:
    * @param s string representation to add
    * @return IniSection& this
    */
-  IniSection &operator+=(const std::string &s) {
+  NNTR_API IniSection &operator+=(const std::string &s) {
     setEntry(s);
     return *this;
   }
@@ -147,7 +154,9 @@ public:
    * @param s string representation to add
    * @return IniSection Newly created section
    */
-  IniSection operator+(const std::string &s) { return IniSection(*this) += s; }
+  NNTR_API IniSection operator+(const std::string &s) {
+    return IniSection(*this) += s;
+  }
 
   /**
    * @brief equal operator between ini section
@@ -156,7 +165,7 @@ public:
    * @retval true two inisections are equal
    * @retval false two ini sections are not equal
    */
-  bool operator==(const IniSection &rhs) const {
+  NNTR_API bool operator==(const IniSection &rhs) const {
     return section_name == rhs.section_name && entry == rhs.entry;
   }
 
@@ -167,21 +176,23 @@ public:
    * @retval true two inisections are not equal
    * @retval false two inisections are equal
    */
-  bool operator!=(const IniSection &rhs) const { return !operator==(rhs); }
+  NNTR_API bool operator!=(const IniSection &rhs) const {
+    return !operator==(rhs);
+  }
 
   /**
    * @brief print out a section
    *
    * @param out ostream to print
    */
-  void print(std::ostream &out) const;
+  NNTR_API void print(std::ostream &out) const;
 
   /**
    * @brief Get the Name object
    *
    * @return std::string section name
    */
-  std::string getName() const { return section_name; }
+  NNTR_API std::string getName() const { return section_name; }
 
   /**
    * @brief Set the Entry object by key and value
@@ -189,7 +200,7 @@ public:
    * @param key key to update
    * @param value value to be added
    */
-  void setEntry(const std::string &key, const std::string &value);
+  NNTR_API void setEntry(const std::string &key, const std::string &value);
 
 private:
   /**
@@ -197,7 +208,7 @@ private:
    *
    * @param entry set entry from a given map
    */
-  void setEntry(const std::map<std::string, std::string> &entry);
+  NNTR_API void setEntry(const std::map<std::string, std::string> &entry);
 
   /**
    * @brief set entry from the string representation
@@ -205,7 +216,7 @@ private:
    * @param entry_str setEntry as "Type = neuralnetwork | decayrate = 0.96 |
    * -epochs = 1" will delete epochs, and overwrite type and decayrate
    */
-  void setEntry(const std::string &entry_str);
+  NNTR_API void setEntry(const std::string &entry_str);
 
   std::string section_name; /**< section name of the ini section */
 
@@ -220,7 +231,8 @@ private:
    * @param section section to print
    * @return std::ostream& ostream
    */
-  friend std::ostream &operator<<(std::ostream &os, const IniSection &section) {
+  NNTR_API friend std::ostream &operator<<(std::ostream &os,
+                                           const IniSection &section) {
     return os << section.section_name;
   }
 };
@@ -237,7 +249,7 @@ public:
    * @brief Construct a new Ini Test Wrapper object
    *
    */
-  IniWrapper() = default;
+  NNTR_API IniWrapper() = default;
 
   /**
    * @brief Construct a new Ini Test Wrapper object
@@ -245,9 +257,9 @@ public:
    * @param name_ name of the ini without `.ini` extension
    * @param sections_ sections that should go into ini
    */
-  IniWrapper(const std::string &name_, const Sections &sections_ = {}) :
-    name(name_),
-    sections(sections_){};
+  NNTR_API IniWrapper(const std::string &name_,
+                      const Sections &sections_ = {}) :
+    name(name_), sections(sections_){};
 
   /**
    * @brief ini operator== to check if IniWrapper is equal
@@ -256,7 +268,7 @@ public:
    * @retval true true if ini is equal (deeply)
    * @retval false false if ini is not equal
    */
-  bool operator==(const IniWrapper &rhs) const {
+  NNTR_API bool operator==(const IniWrapper &rhs) const {
     return name == rhs.name && sections == rhs.sections;
   }
 
@@ -267,7 +279,9 @@ public:
    * @retval true if not equal
    * @retval false if equal
    */
-  bool operator!=(const IniWrapper &rhs) const { return !operator==(rhs); }
+  NNTR_API bool operator!=(const IniWrapper &rhs) const {
+    return !operator==(rhs);
+  }
 
   /**
    * @brief update sections if section is empty, else update section by section
@@ -276,7 +290,7 @@ public:
    * @param[in] ini IniWrapper
    * @return IniWrapper& this
    */
-  IniWrapper &operator+=(const IniWrapper &ini) {
+  NNTR_API IniWrapper &operator+=(const IniWrapper &ini) {
     if (sections.empty()) {
       sections = ini.sections;
     } else {
@@ -293,7 +307,7 @@ public:
    * @param[in] rhs IniWrapper
    * @return IniWrapper& a new instance
    */
-  IniWrapper operator+(const IniWrapper &rhs) const {
+  NNTR_API IniWrapper operator+(const IniWrapper &rhs) const {
     return IniWrapper(*this) += rhs;
   }
 
@@ -303,7 +317,7 @@ public:
    * @param string format of `sectionkey / propkey=val | propkey=val| ..`
    * @return IniWrapper& ini wrapper
    */
-  IniWrapper &operator+=(const std::string &s) {
+  NNTR_API IniWrapper &operator+=(const std::string &s) {
     updateSection(s);
     return *this;
   }
@@ -314,7 +328,7 @@ public:
    * @param string format of `sectionkey / propkey=val | propkey=val| ..`
    * @return IniWrapper& ini wrapper
    */
-  IniWrapper &operator+=(const IniSection &section_) {
+  NNTR_API IniWrapper &operator+=(const IniSection &section_) {
     sections.push_back(section_);
     return *this;
   }
@@ -325,7 +339,7 @@ public:
    * @param rhs string representatioin to merge
    * @return IniWrapper ini wrapper
    */
-  IniWrapper operator+(const std::string &rhs) const {
+  NNTR_API IniWrapper operator+(const std::string &rhs) const {
     return IniWrapper(*this) += rhs;
   }
 
@@ -335,7 +349,7 @@ public:
    * @param rhs string representatioin to merge
    * @return IniWrapper ini wrapper
    */
-  IniWrapper operator+(const IniSection &section_) const {
+  NNTR_API IniWrapper operator+(const IniSection &section_) const {
     return IniWrapper(*this) += section_;
   }
 
@@ -344,32 +358,32 @@ public:
    *
    * @return std::string ini name with extension appended
    */
-  std::string getIniName() const { return name + ".ini"; }
+  NNTR_API std::string getIniName() const { return name + ".ini"; }
 
   /**
    * @brief Get the Name
    *
    * @return std::string name
    */
-  std::string getName() const { return name; }
+  NNTR_API std::string getName() const { return name; }
 
   /**
    * @brief save ini to a file, (getIniName() is used to save)
    */
-  void save_ini() const;
+  NNTR_API void save_ini() const;
 
   /**
    * @brief save ini by ini_name
    *
    * @param ini_name ini name to svae
    */
-  void save_ini(const std::string &ini_name) const;
+  NNTR_API void save_ini(const std::string &ini_name) const;
 
   /**
    * @brief erase ini
    *
    */
-  void erase_ini() const noexcept;
+  NNTR_API void erase_ini() const noexcept;
 
   /**
    * @brief operator<< to print information to outstream
@@ -378,7 +392,8 @@ public:
    * @param ini ini wrapper
    * @return std::ostream& outstream
    */
-  friend std::ostream &operator<<(std::ostream &os, const IniWrapper &ini) {
+  NNTR_API friend std::ostream &operator<<(std::ostream &os,
+                                           const IniWrapper &ini) {
     return os << ini.name;
   }
 
@@ -389,14 +404,14 @@ private:
    * @note add containered version of this, something like std::pair
    * @param string_representation "model/optimizer=SGD | ..."
    */
-  void updateSection(const std::string &string_representation);
+  NNTR_API void updateSection(const std::string &string_representation);
 
   /**
    * @brief update Section that matches section key of @a sections
    *
    * @param section section
    */
-  void updateSection(const IniSection &section);
+  NNTR_API void updateSection(const IniSection &section);
 
   /**
    * @brief update sections with following rule
@@ -404,7 +419,7 @@ private:
    * std::invalid_argument
    * @param sections sections to update
    */
-  void updateSections(const Sections &sections_);
+  NNTR_API void updateSections(const Sections &sections_);
 
   std::string name;  /**< name of ini */
   Sections sections; /**< sections of ini */

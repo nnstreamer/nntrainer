@@ -26,8 +26,8 @@ namespace nntrainer {
  * @param[in] from sequence order
  * @param[in] max_timestep maximum timestep
  */
-void apply_rotary_emb_cl(Tensor &in, unsigned int dim, unsigned int from,
-                         unsigned int max_timestep);
+NNTR_API void apply_rotary_emb_cl(Tensor &in, unsigned int dim,
+                                  unsigned int from, unsigned int max_timestep);
 
 } // namespace nntrainer
 #endif /* __ATTENTION_KERNEL_INTERFACE_H__ */

@@ -464,7 +464,7 @@ public:
    * @return int ML_ERROR_NONE if successs
    */
   NNTR_API int setTensorDim(const std::string &input_shape,
-                   TensorType t_type_ = TensorType());
+                            TensorType t_type_ = TensorType());
 
   /**
    * @brief copy assign a dimension
@@ -609,7 +609,7 @@ private:
    * @brief reset length
    *
    */
-  void resetLen();
+  NNTR_API void resetLen();
 
   TensorType t_type;
 
@@ -631,7 +631,7 @@ dynamic dimension size */
  * @param d dimension to print
  * @return std::ostream& ostream
  */
-std::ostream &operator<<(std::ostream &out, TensorDim const &d);
+NNTR_API std::ostream &operator<<(std::ostream &out, TensorDim const &d);
 
 } /* namespace train */
 } /* namespace ml */

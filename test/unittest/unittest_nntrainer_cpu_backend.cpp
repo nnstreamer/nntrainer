@@ -700,6 +700,9 @@ template <bool is_q_8_1_weights = false>
 static void run_q_6_K_test(const uint32_t M, const uint32_t K,
                            const uint32_t N) {
 
+  auto *blas_cc = static_cast<nntrainer::ClContext *>(
+    nntrainer::Engine::Global().getRegisteredContext("gpu"));
+
   auto debug_print_beg_end = [M, K, N](const float *const data,
                                        const uint32_t count = 5) {
     std::cout << "[";
@@ -723,27 +726,24 @@ static void run_q_6_K_test(const uint32_t M, const uint32_t K,
   // std::vector<float> gpu_q6_dst(M * N, 0.0f);
 
   void *gpu_q6_dst =
-    nntrainer::blas_cc->context_inst_.createSVMRegion(M * N * sizeof(float));
+    blas_cc->context_inst_.createSVMRegion(M * N * sizeof(float));
 
   const auto data_size = sizeof(block_q6_K_testonly) * N * K / 256;
   std::vector<char> q6_weight = std::vector<char>(data_size);
   // char *q6_weight_ptr = (char *)q6_weight.data();
 
-  void *q6_weight_ptr =
-    nntrainer::blas_cc->context_inst_.createSVMRegion(data_size);
+  void *q6_weight_ptr = blas_cc->context_inst_.createSVMRegion(data_size);
 
-  nntrainer::blas_cc->command_queue_inst_.enqueueSVMMap(q6_weight_ptr,
-                                                        data_size, false);
+  blas_cc->command_queue_inst_.enqueueSVMMap(q6_weight_ptr, data_size, false);
 
   float *weights_f32_ptr = weight.data();
   // float *activations_f32_ptr = activation.data();
 
   float *activations_f32_ptr =
-    (float *)nntrainer::blas_cc->context_inst_.createSVMRegion(M * K *
-                                                               sizeof(float));
+    (float *)blas_cc->context_inst_.createSVMRegion(M * K * sizeof(float));
 
-  nntrainer::blas_cc->command_queue_inst_.enqueueSVMMap(
-    activations_f32_ptr, M * K * sizeof(float), false);
+  blas_cc->command_queue_inst_.enqueueSVMMap(activations_f32_ptr,
+                                             M * K * sizeof(float), false);
 
   for (unsigned int i = 0; i < M * K; ++i) {
     activations_f32_ptr[i] = activation[i];

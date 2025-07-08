@@ -47,7 +47,7 @@ public:
    * @brief OptimizedV1Planner destructor
    *
    */
-  OptimizedV1Planner() = default;
+  NNTR_API OptimizedV1Planner() = default;
 
   /**
    * @copydoc MemoryPlanner::planLayout(
@@ -57,7 +57,7 @@ public:
    * std::vector<bool> &memory_is_wgrad);
    *
    */
-  size_t planLayout(
+  NNTR_API size_t planLayout(
     const std::vector<size_t> &memory_size,
     const std::vector<std::pair<unsigned int, unsigned int>> &memory_validity,
     std::vector<size_t> &memory_offset, std::vector<bool> &memory_is_wgrad,
@@ -67,7 +67,7 @@ public:
    * @copydoc MemoryPlanner::getType() const
    *
    */
-  const std::string getType() const { return type; }
+  NNTR_API const std::string getType() const { return type; }
 
   static constexpr const char *type = "optimized_v1_planner";
 };

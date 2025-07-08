@@ -524,7 +524,7 @@ public:
    * @param lnode layer node
    * @note this is for test purpose only
    */
-  std::map<std::string, std::vector<unsigned int>>
+  NNTR_API std::map<std::string, std::vector<unsigned int>>
   getLayerExecutionOrders(const std::shared_ptr<LayerNode> &lnode);
 #endif // ENABLE_TEST
 

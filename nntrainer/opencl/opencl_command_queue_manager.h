@@ -18,6 +18,12 @@
 #include "opencl_kernel.h"
 #include <memory>
 
+#if defined(_WIN32)
+#define NNTR_API __declspec(dllexport)
+#else
+#define NNTR_API
+#endif
+
 namespace nntrainer::opencl {
 
 /**
@@ -38,7 +44,7 @@ class CommandQueueManager {
    * @brief Private constructor to prevent object creation
    *
    */
-  CommandQueueManager(){};
+  NNTR_API CommandQueueManager(){};
 
 public:
   /**
@@ -46,20 +52,20 @@ public:
    *
    * @return CommandQueueManager global instance
    */
-  static CommandQueueManager &GetInstance();
+  NNTR_API static CommandQueueManager &GetInstance();
 
   /**
    * @brief Create a Command Queue object
    *
    * @return true if creation is successful or false otherwise
    */
-  bool CreateCommandQueue();
+  NNTR_API bool CreateCommandQueue();
 
   /**
    * @brief Release th OpenCL command queue instance
    *
    */
-  void ReleaseCommandQueue();
+  NNTR_API void ReleaseCommandQueue();
 
   /**
    * @brief Reading buffer object. Used from Buffer class
@@ -70,8 +76,8 @@ public:
    * @param async flag for asynchronous operation
    * @return true if reading is successful or false otherwise
    */
-  bool EnqueueReadBuffer(cl_mem buffer, size_t size_in_bytes, void *data,
-                         bool async = false);
+  NNTR_API bool EnqueueReadBuffer(cl_mem buffer, size_t size_in_bytes,
+                                  void *data, bool async = false);
 
   /**
    * @brief Reading 1D region from a buffer object. Used from Buffer class
@@ -84,10 +90,11 @@ public:
    * @param async flag for asynchronous operation
    * @return true if reading is successful or false otherwise
    */
-  bool EnqueueReadBufferRegion(cl_mem buffer, size_t size_in_bytes, void *data,
-                               size_t host_origin_offset = 0,
-                               size_t buffer_origin_offset = 0,
-                               bool async = false);
+  NNTR_API bool EnqueueReadBufferRegion(cl_mem buffer, size_t size_in_bytes,
+                                        void *data,
+                                        size_t host_origin_offset = 0,
+                                        size_t buffer_origin_offset = 0,
+                                        bool async = false);
 
   /**
    * @brief Writing buffer object. Used from Buffer class
@@ -98,8 +105,8 @@ public:
    * @param async flag for asynchronous operation
    * @return true if writing is successful or false otherwise
    */
-  bool EnqueueWriteBuffer(cl_mem buffer, size_t size_in_bytes, const void *data,
-                          bool async = false);
+  NNTR_API bool EnqueueWriteBuffer(cl_mem buffer, size_t size_in_bytes,
+                                   const void *data, bool async = false);
 
   /**
    * @brief Writing 1D region of a buffer object. Used from Buffer class
@@ -111,10 +118,11 @@ public:
    * @param async flag for asynchronous operation
    * @return true if writing is successful or false otherwise
    */
-  bool EnqueueWriteBufferRegion(cl_mem buffer, size_t size_in_bytes,
-                                const void *data, size_t host_origin_offset = 0,
-                                size_t buffer_origin_offset = 0,
-                                bool async = false);
+  NNTR_API bool EnqueueWriteBufferRegion(cl_mem buffer, size_t size_in_bytes,
+                                         const void *data,
+                                         size_t host_origin_offset = 0,
+                                         size_t buffer_origin_offset = 0,
+                                         bool async = false);
   /**
    * @brief Mapping a region of a buffer object into the host address space
    *
@@ -128,9 +136,10 @@ public:
    * or wait for this command to complete
    * @return void* pointer to the mapped region
    */
-  void *EnqueueMapBuffer(cl_mem buffer, size_t offset_in_bytes,
-                         size_t size_in_bytes, bool read_only,
-                         bool async = false, cl_event *event = nullptr);
+  NNTR_API void *EnqueueMapBuffer(cl_mem buffer, size_t offset_in_bytes,
+                                  size_t size_in_bytes, bool read_only,
+                                  bool async = false,
+                                  cl_event *event = nullptr);
 
   /**
    * @brief Un-mapping a buffer object from the host address space
@@ -141,8 +150,8 @@ public:
    * or wait for this command to complete
    * @return true if unmap is successful
    */
-  bool EnqueueUnmapMemObject(cl_mem buffer, void *mapped_ptr,
-                             cl_event *event = nullptr);
+  NNTR_API bool EnqueueUnmapMemObject(cl_mem buffer, void *mapped_ptr,
+                                      cl_event *event = nullptr);
 
   /**
    * @brief Enqueue SVM memory map operation.
@@ -156,8 +165,8 @@ public:
    * blocking.
    * @return true if mapping is successful, false otherwise.
    */
-  bool enqueueSVMMap(void *svm_ptr, size_t size, bool read_only,
-                     cl_event *event = nullptr);
+  NNTR_API bool enqueueSVMMap(void *svm_ptr, size_t size, bool read_only,
+                              cl_event *event = nullptr);
 
   /**
    * @brief Enqueue SVM memory unmap operation.
@@ -170,7 +179,7 @@ public:
    * blocking.
    * @return true if unmapping is successful, false otherwise.
    */
-  bool enqueueSVMUnmap(void *svm_ptr, cl_event *event = nullptr);
+  NNTR_API bool enqueueSVMUnmap(void *svm_ptr, cl_event *event = nullptr);
 
   /**
    * @brief Function to initiate execution of the command queue.
@@ -183,9 +192,10 @@ public:
    * or wait for this command to complete
    * @return true if command queue execution is successful or false otherwise
    */
-  bool DispatchCommand(Kernel kernel, const int (&work_groups_count)[3],
-                       const int (&work_group_size)[3],
-                       cl_event *event = nullptr);
+  NNTR_API bool DispatchCommand(Kernel kernel,
+                                const int (&work_groups_count)[3],
+                                const int (&work_group_size)[3],
+                                cl_event *event = nullptr);
 
   /**
    * @brief Overloaded function to initiate execution of the command queue.
@@ -198,35 +208,35 @@ public:
    * or wait for this command to complete
    * @return true if command queue execution is successful or false otherwise
    */
-  bool DispatchCommand(const std::shared_ptr<Kernel> &kernel_ptr,
-                       const int (&work_groups_count)[3],
-                       const int (&work_group_size)[3],
-                       cl_event *event = nullptr);
+  NNTR_API bool DispatchCommand(const std::shared_ptr<Kernel> &kernel_ptr,
+                                const int (&work_groups_count)[3],
+                                const int (&work_group_size)[3],
+                                cl_event *event = nullptr);
 
   /**
    * @brief Get the OpenCL Command Queue object
    *
    * @return const cl_command_queue
    */
-  const cl_command_queue GetCommandQueue();
+  NNTR_API const cl_command_queue GetCommandQueue();
 
   /**
    * @brief Deleting operator overload
    *
    */
-  void operator=(CommandQueueManager const &) = delete;
+  NNTR_API void operator=(CommandQueueManager const &) = delete;
 
   /**
    * @brief Deleting copy constructor
    *
    */
-  CommandQueueManager(CommandQueueManager const &) = delete;
+  NNTR_API CommandQueueManager(CommandQueueManager const &) = delete;
 
   /**
    * @brief Destroy the Command Queue Manager object
    *
    */
-  ~CommandQueueManager();
+  NNTR_API ~CommandQueueManager();
 };
 } // namespace nntrainer::opencl
 

@@ -27,7 +27,7 @@ namespace nntrainer {
 // get global cl_context to use in kernels
 // static ClContext *blas_cc =
 //   static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-//static ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
+// static ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
 
 /**
  * @brief     Q6_K sgemv computation : Y = A*X
@@ -37,8 +37,8 @@ namespace nntrainer {
  * @param[in] M number of rows in matrix A
  * @param[in] N number of columns in matrix A
  */
-void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
-                   unsigned int M, unsigned int N);
+NNTR_API void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
+                            unsigned int M, unsigned int N);
 
 /**
  * @brief     sgemv computation : Y = A*X + Y
@@ -51,9 +51,9 @@ void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
  * @param[in] lda number of X's columns
  * @param[in] context RunLayerContext reference
  */
-void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
-              bool TransA, unsigned int dim1, unsigned int dim2,
-              unsigned int lda);
+NNTR_API void sgemv_cl(const float *matAdata, const float *vecXdata,
+                       float *vecYdata, bool TransA, unsigned int dim1,
+                       unsigned int dim2, unsigned int lda);
 
 /**
  * @brief     dot computation : sum of all X * Y
@@ -63,7 +63,8 @@ void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
  * @param[in] context RunLayerContext reference
  * @return    float dot product result
  */
-float dot_cl(const float *vecAdata, const float *vecXdata, unsigned int dim1);
+NNTR_API float dot_cl(const float *vecAdata, const float *vecXdata,
+                      unsigned int dim1);
 
 /**
  * @brief     sgemm computation : Y = op(A)*op(B) + C,
@@ -81,9 +82,9 @@ float dot_cl(const float *vecAdata, const float *vecXdata, unsigned int dim1);
  * @param[in] ldc number of C's columns
  * @param[in] context RunLayerContext reference
  */
-void sgemm_cl(bool TransA, bool TransB, const float *A, const float *B,
-              float *C, unsigned int M, unsigned int N, unsigned int K,
-              unsigned int lda, unsigned int ldb, unsigned int ldc);
+NNTR_API void sgemm_cl(bool TransA, bool TransB, const float *A, const float *B,
+                       float *C, unsigned int M, unsigned int N, unsigned int K,
+                       unsigned int lda, unsigned int ldb, unsigned int ldc);
 
 /**
  * @brief     addition : sum of all input vectors
@@ -92,8 +93,8 @@ void sgemm_cl(bool TransA, bool TransB, const float *A, const float *B,
  * @param[in] size_input number of elements in input vector
  * @param[in] size_res number of elements in result vector
  */
-void addition_cl(const float *input, float *res, unsigned int size_input,
-                 unsigned int size_res);
+NNTR_API void addition_cl(const float *input, float *res,
+                          unsigned int size_input, unsigned int size_res);
 
 /**
  * @brief     sscal value element by element immediately
@@ -102,7 +103,7 @@ void addition_cl(const float *input, float *res, unsigned int size_input,
  * @param[in] alpha float multiplier
  * @param[in] context RunLayerContext reference
  */
-void sscal_cl(float *X, const unsigned int N, const float alpha);
+NNTR_API void sscal_cl(float *X, const unsigned int N, const float alpha);
 
 /**
  * @brief     transpose computation
@@ -116,10 +117,11 @@ void sscal_cl(float *X, const unsigned int N, const float alpha);
  * @param[in] axis   transpose about axis, 0-> channels & height, 1-> height &
  * width, 2-> channels & width
  */
-void transpose_cl_axis(const float *in, float *res,
-                       unsigned int input_batch_size,
-                       unsigned int input_channels, unsigned int input_height,
-                       unsigned int input_width, unsigned int axis);
+NNTR_API void transpose_cl_axis(const float *in, float *res,
+                                unsigned int input_batch_size,
+                                unsigned int input_channels,
+                                unsigned int input_height,
+                                unsigned int input_width, unsigned int axis);
 
 #ifdef ENABLE_FP16
 
