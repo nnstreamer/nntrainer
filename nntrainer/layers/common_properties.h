@@ -356,6 +356,23 @@ public:
   bool isValid(const unsigned int &value) const override;
 };
 
+class Original_ndim : public nntrainer::PositiveIntegerProperty {
+public:
+  static constexpr const char *key = "original_ndim"; /**< unique key to access */
+  using prop_tag = uint_prop_tag;            /**< property type */
+
+  /**
+   * @brief check if given value is valid
+   *
+   * @param v value to check
+   * @retval true if it is greater equal to 0 and smaller than
+   * ml::train::TensorDim::MAXDIM
+   * @retval false if it is smaller than 0 or greater than
+   * ml::train::TensorDim::MAXDIM
+   */
+  // bool isValid(const unsigned int &value) const override;
+};
+
 /**
  * @brief StartDimension property, start dimension to be flatten
  *

@@ -590,7 +590,17 @@ class MatMulOperation(torch.nn.Module):
         loss = self.loss(out, labels[0])
         return out, loss
 
+class UnsqueezeOperation(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc = torch.nn.Linear(3, 12)
+        self.loss = torch.nn.MSELoss()
 
+    def forward(self, inputs, labels):
+        out = self.fc(inputs[0])
+        out = torch.unsqueeze(out, 1)
+        loss = self.loss(out, labels[0])
+        return out, loss
 class ChannelShuffle(torch.nn.Module):
     def __init__(self, split_number):
         super().__init__()
@@ -967,6 +977,17 @@ if __name__ == "__main__":
         input_dtype=[float],
         label_dims=[(1, 2)],
         name="cosine_operation",
+    )
+    
+    inspect_file("unsqueeze_operation.nnmodelgolden")
+    unsqueeze_operation = UnsqueezeOperation()
+    record_v2(
+        unsqueeze_operation,
+        iteration=2,
+        input_dims=[(2, 3)],
+        input_dtype=[float],
+        label_dims=[(2, 1, 12)],
+        name="unsqueeze_operation",
     )
 
     tangent_operation = TangentOperation()

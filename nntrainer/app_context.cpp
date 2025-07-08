@@ -93,6 +93,7 @@
 #include <upsample2d_layer.h>
 #include <weight_layer.h>
 #include <zoneout_lstmcell.h>
+#include<unsqueeze_layer.h>
 
 #ifdef ENABLE_TFLITE_BACKBONE
 #include <tflite_layer.h>
@@ -358,6 +359,9 @@ static void add_default_object(AppContext &ac) {
 
   ac.registerFactory(nntrainer::createLayer<ChannelShuffle>,
                      ChannelShuffle::type, LayerType::LAYER_CHANNEL_SHUFFLE);
+
+  ac.registerFactory(nntrainer::createLayer<UnsqueezeLayer>, UnsqueezeLayer::type,
+                     LayerType::LAYER_UNSQUEEZE);                   
 
 #ifdef ENABLE_NNSTREAMER_BACKBONE
   ac.registerFactory(nntrainer::createLayer<NNStreamerLayer>,
