@@ -63,6 +63,7 @@ test_target = [
   'unittest_layers_divide.cpp',
   'unittest_layers_pow.cpp',
   'unittest_layers_sqrt.cpp',
+  'unittest_layers_neg.cpp',
   'unittest_layers_sine.cpp',
   'unittest_layers_cosine.cpp',
   'unittest_layers_tangent.cpp',
