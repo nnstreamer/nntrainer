@@ -93,7 +93,7 @@ struct WorkGroupConfig {
 
 // Calculate optimal work group sizes based on operation and dimensions
 WorkGroupConfig calculateOptimalWorkGroup(unsigned int dim1, unsigned int dim2, 
-                                         const std::string& operation) {
+                                         const std::string& operation, unsigned int dim3 = 1) {
   WorkGroupConfig config;
   
   // Query device capabilities (should be cached globally)
@@ -111,8 +111,41 @@ WorkGroupConfig calculateOptimalWorkGroup(unsigned int dim1, unsigned int dim2,
     config.local_size[0] = optimal_local;
     config.local_size[1] = 1;
     config.local_size[2] = 1;
+  } else if (operation == "sgemm") {
+    // For GEMM: optimize for compute throughput with tiling
+    const int TILE_SIZE = 16; // Optimized for most GPUs
+    
+    config.local_size[0] = TILE_SIZE;
+    config.local_size[1] = TILE_SIZE;
+    config.local_size[2] = 1;
+    
+    config.global_size[0] = ((dim2 + TILE_SIZE - 1) / TILE_SIZE) * TILE_SIZE;
+    config.global_size[1] = ((dim1 + TILE_SIZE - 1) / TILE_SIZE) * TILE_SIZE;
+    config.global_size[2] = 1;
+  } else if (operation == "dot") {
+    // For DOT: optimize for reduction operations
+    size_t reduction_size = std::min(static_cast<size_t>(128), max_work_group_size);
+    
+    config.local_size[0] = reduction_size;
+    config.local_size[1] = 1;
+    config.local_size[2] = 1;
+    
+    config.global_size[0] = ((dim1 + reduction_size - 1) / reduction_size) * reduction_size;
+    config.global_size[1] = 1;
+    config.global_size[2] = 1;
+  } else if (operation == "vector") {
+    // For vector operations (addition, sscal): optimize for memory bandwidth
+    size_t vector_size = std::min(static_cast<size_t>(64), max_work_group_size);
+    
+    config.local_size[0] = vector_size;
+    config.local_size[1] = 1;
+    config.local_size[2] = 1;
+    
+    config.global_size[0] = ((dim1 + vector_size - 1) / vector_size) * vector_size;
+    config.global_size[1] = 1;
+    config.global_size[2] = 1;
   } else {
-    // Default fallback for other operations
+    // Default fallback
     config.global_size[0] = dim1;
     config.global_size[1] = 1;
     config.global_size[2] = 1;
@@ -277,9 +310,10 @@ _FP16 dot_cl(const _FP16 *vecAdata, const _FP16 *vecXdata, unsigned int dim1) {
       break;
     }
 
-    const int work_groups_count[3] = {(int)dim1, 1, 1};
-    /// @todo: create a group size by device & input
-    const int work_group_size[3] = {1, 1, 1};
+    // OPTIMIZED: Dynamic work group calculation for dot product
+    WorkGroupConfig wg_config = calculateOptimalWorkGroup(dim1, 1, "dot");
+    const int work_groups_count[3] = {wg_config.global_size[0], wg_config.global_size[1], wg_config.global_size[2]};
+    const int work_group_size[3] = {wg_config.local_size[0], wg_config.local_size[1], wg_config.local_size[2]};
 
     result = blas_cc->command_queue_inst_.DispatchCommand(
       kernel_dot_fp16_ptr, work_groups_count, work_group_size);
@@ -390,12 +424,10 @@ void sgemm_cl(bool TransA, bool TransB, const _FP16 *A, const _FP16 *B,
       break;
     }
 
-    const int tiled_size = 16;
-    const int work_groups_count[3] = {
-      (int)((N + tiled_size - 1) / tiled_size) * tiled_size,
-      (int)((M + tiled_size - 1) / tiled_size) * tiled_size, 1}; // test-value
-
-    const int work_group_size[3] = {tiled_size, tiled_size, 1}; // test-value
+    // OPTIMIZED: Dynamic work group calculation for matrix multiplication
+    WorkGroupConfig wg_config = calculateOptimalWorkGroup(M, N, "sgemm", K);
+    const int work_groups_count[3] = {wg_config.global_size[0], wg_config.global_size[1], wg_config.global_size[2]};
+    const int work_group_size[3] = {wg_config.local_size[0], wg_config.local_size[1], wg_config.local_size[2]};
 
     result = blas_cc->command_queue_inst_.DispatchCommand(
       kernel_sgemm_fp16_ptr, work_groups_count, work_group_size);
@@ -463,9 +495,11 @@ void addition_cl(const _FP16 *input, _FP16 *res, unsigned int size_input,
       break;
     }
 
-    const int work_groups_count[3] = {(int)size_res, 1, 1};
-    /// @todo: create a group size by device & input
-    const int work_group_size[3] = {1, 1, 1}; // test-value
+    // OPTIMIZED: Dynamic work group calculation for vector addition
+    WorkGroupConfig wg_config = calculateOptimalWorkGroup(size_res, 1, "vector");
+    const int work_groups_count[3] = {wg_config.global_size[0], wg_config.global_size[1], wg_config.global_size[2]};
+    const int work_group_size[3] = {wg_config.local_size[0], wg_config.local_size[1], wg_config.local_size[2]};
+    
     result = blas_cc->command_queue_inst_.DispatchCommand(
       kernel_addition_fp16_ptr, work_groups_count, work_group_size);
     if (!result) {
@@ -513,9 +547,10 @@ void sscal_cl(_FP16 *X, const unsigned int N, const float alpha) {
       break;
     }
 
-    const int work_groups_count[3] = {(int)N, 1, 1};
-    /// @todo: create a group size by device & input
-    const int work_group_size[3] = {1, 1, 1}; // test-value
+    // OPTIMIZED: Dynamic work group calculation for vector scaling
+    WorkGroupConfig wg_config = calculateOptimalWorkGroup(N, 1, "vector");
+    const int work_groups_count[3] = {wg_config.global_size[0], wg_config.global_size[1], wg_config.global_size[2]};
+    const int work_group_size[3] = {wg_config.local_size[0], wg_config.local_size[1], wg_config.local_size[2]};
 
     result = blas_cc->command_queue_inst_.DispatchCommand(
       kernel_sscal_fp16_ptr, work_groups_count, work_group_size);
