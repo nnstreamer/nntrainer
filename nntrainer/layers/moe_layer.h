@@ -185,6 +185,11 @@ private:
   void batched_gemm(const Tensor& input, const Tensor& weight, Tensor& output,
                    const std::vector<unsigned int>& token_indices);
 
+  /**
+   * @brief Debug utility to print MoE layer state for troubleshooting
+   */
+  void debug_print_state() const;
+
   inline Tensor compute_expert_forward(const Tensor &input,
                                        const Tensor &weights,
                                        const Tensor &gate_proj_weight,

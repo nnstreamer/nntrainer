@@ -29,6 +29,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include <cstring>
+#include <iostream>
 
 namespace nntrainer {
 
@@ -78,6 +79,16 @@ void MoELayer::finalize(InitLayerContext &context) {
   const unsigned int intermediate_size = std::get<props::Unit>(moe_props).get();
   const unsigned int hidden_size = in_dim.width(); // Feature dimension
 
+  // Validation of MoE parameters
+  NNTR_THROW_IF(num_experts == 0, std::invalid_argument)
+    << "Number of experts must be greater than 0";
+  NNTR_THROW_IF(topk == 0 || topk > num_experts, std::invalid_argument)
+    << "topk must be between 1 and num_experts (" << num_experts << ")";
+  NNTR_THROW_IF(intermediate_size == 0, std::invalid_argument)
+    << "Intermediate size must be greater than 0";
+  NNTR_THROW_IF(hidden_size == 0, std::invalid_argument)
+    << "Hidden size must be greater than 0";
+
   // activation function
   if (std::get<props::MoEActivation>(moe_props).empty()) {
     throw std::runtime_error("Activation type is not set for MoE layer");
@@ -103,6 +114,9 @@ void MoELayer::finalize(InitLayerContext &context) {
     weight_regularizer_constant, weight_decay, "gate", true);
 
   // 5. Initialize expert weights
+  expert_gate_proj_indices.clear();
+  expert_up_proj_indices.clear();
+  expert_down_proj_indices.clear();
   expert_gate_proj_indices.reserve(num_experts);
   expert_up_proj_indices.reserve(num_experts);
   expert_down_proj_indices.reserve(num_experts);
@@ -154,9 +168,16 @@ void MoELayer::finalize(InitLayerContext &context) {
   const unsigned max_expert_tokens = total_tokens;
   
   // Determine actual number of threads to use (avoid over-allocation)
+  // Use at least 1 thread, at most num_experts threads (since we can't have more useful threads than experts)
   const int max_threads = std::min(MAX_THREADS, std::max(1, static_cast<int>(num_experts)));
   
-  // Resize vectors to actual thread count
+  // Clear and resize vectors to actual thread count
+  temp_gate_out_indices.clear();
+  temp_up_out_indices.clear();
+  temp_intermediate_indices.clear();
+  temp_expert_input_indices.clear();
+  temp_expert_output_indices.clear();
+  
   temp_gate_out_indices.resize(max_threads);
   temp_up_out_indices.resize(max_threads);
   temp_intermediate_indices.resize(max_threads);
@@ -191,10 +212,19 @@ void MoELayer::finalize(InitLayerContext &context) {
       false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
   }
 
-  // Initialize routing cache
+  // Initialize routing cache with proper sizes
+  routing_cache.clear();
   routing_cache.expert_token_indices.resize(num_experts);
   routing_cache.expert_token_weights.resize(num_experts);
   routing_cache.token_expert_counts.resize(total_tokens);
+  
+  // Verify all vectors are properly sized
+  NNTR_THROW_IF(routing_cache.expert_token_indices.size() != num_experts, std::runtime_error)
+    << "routing_cache.expert_token_indices size mismatch";
+  NNTR_THROW_IF(routing_cache.expert_token_weights.size() != num_experts, std::runtime_error)
+    << "routing_cache.expert_token_weights size mismatch";
+  NNTR_THROW_IF(temp_gate_out_indices.size() != static_cast<size_t>(max_threads), std::runtime_error)
+    << "temp_gate_out_indices size mismatch";
 }
 
 void MoELayer::forwarding(RunLayerContext &context, bool training) {
@@ -206,6 +236,12 @@ void MoELayer::forwarding(RunLayerContext &context, bool training) {
   const unsigned seq_len = input.height();
   const unsigned hidden_size = input.width();
   const unsigned total_tokens = batch_size * seq_len;
+
+  // Validation of input dimensions
+  NNTR_THROW_IF(total_tokens == 0, std::invalid_argument)
+    << "Total tokens must be greater than 0";
+  NNTR_THROW_IF(hidden_size == 0, std::invalid_argument)
+    << "Hidden size must be greater than 0";
 
   // Reshape input: [B,1,S,H] -> [B*S,1,1,H]
   input.reshape({total_tokens, 1, 1, hidden_size});
@@ -220,6 +256,14 @@ void MoELayer::forwarding(RunLayerContext &context, bool training) {
   // Compute optimized routing information
   compute_routing_optimized(router_logits, routing_cache);
 
+  // Verify routing cache is properly sized
+  NNTR_THROW_IF(routing_cache.expert_token_indices.size() != num_experts, std::runtime_error)
+    << "routing_cache.expert_token_indices size mismatch: expected " << num_experts 
+    << ", got " << routing_cache.expert_token_indices.size();
+  NNTR_THROW_IF(routing_cache.expert_token_weights.size() != num_experts, std::runtime_error)
+    << "routing_cache.expert_token_weights size mismatch: expected " << num_experts 
+    << ", got " << routing_cache.expert_token_weights.size();
+
   // Get raw data pointers for efficient access
   const float* input_data = input.getData<float>();
   float* output_data = output.getData<float>();
@@ -227,6 +271,24 @@ void MoELayer::forwarding(RunLayerContext &context, bool training) {
   // Process experts in parallel
 #pragma omp parallel for schedule(dynamic)
   for (int expert_idx = 0; expert_idx < static_cast<int>(num_experts); ++expert_idx) {
+    // Bounds check for expert index (should never fail, but defensive programming)
+    if (expert_idx < 0 || expert_idx >= static_cast<int>(num_experts)) {
+      continue; // Skip invalid expert index
+    }
+    
+    // Bounds check for routing cache access
+    if (expert_idx >= static_cast<int>(routing_cache.expert_token_indices.size()) ||
+        expert_idx >= static_cast<int>(routing_cache.expert_token_weights.size())) {
+      continue; // Skip if routing cache is not properly sized
+    }
+    
+    // Bounds check for expert weight indices
+    if (expert_idx >= static_cast<int>(expert_gate_proj_indices.size()) ||
+        expert_idx >= static_cast<int>(expert_up_proj_indices.size()) ||
+        expert_idx >= static_cast<int>(expert_down_proj_indices.size())) {
+      continue; // Skip if expert weights are not properly allocated
+    }
+    
     const auto& token_indices = routing_cache.expert_token_indices[expert_idx];
     const auto& token_weights = routing_cache.expert_token_weights[expert_idx];
     
@@ -286,6 +348,14 @@ void MoELayer::compute_routing_optimized(const Tensor& router_logits, RoutingInf
       const unsigned int expert_idx = expert_probs[k].second;
       const float weight = expert_probs[k].first;
       
+      // Bounds check for expert_idx
+      if (expert_idx >= num_experts || 
+          expert_idx >= routing_info.expert_token_indices.size() ||
+          expert_idx >= routing_info.expert_token_weights.size()) {
+        throw std::runtime_error("Expert index out of bounds: " + std::to_string(expert_idx) + 
+                               " >= " + std::to_string(num_experts));
+      }
+      
       routing_info.expert_token_indices[expert_idx].push_back(token_idx);
       routing_info.expert_token_weights[expert_idx].push_back(weight);
     }
@@ -310,9 +380,40 @@ void MoELayer::compute_expert_forward_optimized(
   const unsigned int hidden_size = gate_proj.height();
   const unsigned int intermediate_size = gate_proj.width();
   
+  // Validate input parameters
+  NNTR_THROW_IF(input_data == nullptr, std::invalid_argument)
+    << "input_data cannot be null";
+  NNTR_THROW_IF(output_data == nullptr, std::invalid_argument)
+    << "output_data cannot be null";
+  NNTR_THROW_IF(token_indices.size() != token_weights.size(), std::invalid_argument)
+    << "token_indices and token_weights size mismatch";
+
   // Get thread-specific temporary tensors to avoid race conditions
   const int thread_id = omp_get_thread_num();
-  const int safe_thread_id = std::min(thread_id, static_cast<int>(temp_gate_out_indices.size()) - 1);  // Bounds check
+  
+  // Comprehensive bounds checking for thread-local tensors
+  if (temp_gate_out_indices.empty() || temp_up_out_indices.empty() || 
+      temp_intermediate_indices.empty() || temp_expert_input_indices.empty() || 
+      temp_expert_output_indices.empty()) {
+    throw std::runtime_error("Thread-local temporary tensors not properly initialized");
+  }
+  
+  // Safe thread ID calculation with proper bounds checking
+  const int safe_thread_id = std::max(0, std::min(thread_id, 
+    static_cast<int>(std::min({
+      temp_gate_out_indices.size(),
+      temp_up_out_indices.size(),
+      temp_intermediate_indices.size(),
+      temp_expert_input_indices.size(),
+      temp_expert_output_indices.size()
+    })) - 1));
+  
+  // Additional safety check - this should never happen if finalize() worked correctly
+  if (safe_thread_id < 0 || safe_thread_id >= static_cast<int>(temp_gate_out_indices.size())) {
+    throw std::runtime_error("Unable to determine safe thread ID for temporary tensors. "
+                            "Thread ID: " + std::to_string(thread_id) + 
+                            ", Available tensors: " + std::to_string(temp_gate_out_indices.size()));
+  }
   
   Tensor& temp_gate_out = context.getTensor(temp_gate_out_indices[safe_thread_id]);
   Tensor& temp_up_out = context.getTensor(temp_up_out_indices[safe_thread_id]);  
@@ -342,6 +443,12 @@ void MoELayer::compute_expert_forward_optimized(
 #pragma omp parallel for
   for (int i = 0; i < static_cast<int>(num_tokens); ++i) {
     const unsigned int token_idx = token_indices[i];
+    
+    // Bounds check for token_idx - this is critical to prevent segfault
+    if (token_idx >= INT_MAX / hidden_size) {
+      throw std::runtime_error("Token index too large: " + std::to_string(token_idx));
+    }
+    
     const float* src = input_data + token_idx * hidden_size;
     float* dst = expert_input_data + i * hidden_size;
     std::memcpy(dst, src, hidden_size * sizeof(float));
@@ -378,6 +485,11 @@ void MoELayer::compute_expert_forward_optimized(
     const unsigned int token_idx = token_indices[i];
     const float weight = token_weights[i];
     
+    // Bounds check for token_idx in output scatter
+    if (token_idx >= INT_MAX / hidden_size) {
+      throw std::runtime_error("Token index too large for output scatter: " + std::to_string(token_idx));
+    }
+    
     const float* src = expert_output_data + i * hidden_size;
     float* dst = output_data + token_idx * hidden_size;
     
@@ -394,6 +506,34 @@ void MoELayer::batched_gemm(const Tensor& input, const Tensor& weight, Tensor& o
                            const std::vector<unsigned int>& token_indices) {
   // Use the tensor's built-in dot product which should be optimized
   input.dot(weight, output);
+}
+
+void MoELayer::debug_print_state() const {
+  std::cout << "=== MoE Layer Debug State ===" << std::endl;
+  std::cout << "num_experts: " << num_experts << std::endl;
+  std::cout << "topk: " << topk << std::endl;
+  
+  std::cout << "Expert weight indices sizes:" << std::endl;
+  std::cout << "  expert_gate_proj_indices.size(): " << expert_gate_proj_indices.size() << std::endl;
+  std::cout << "  expert_up_proj_indices.size(): " << expert_up_proj_indices.size() << std::endl;
+  std::cout << "  expert_down_proj_indices.size(): " << expert_down_proj_indices.size() << std::endl;
+  
+  std::cout << "Thread-local tensor indices sizes:" << std::endl;
+  std::cout << "  temp_gate_out_indices.size(): " << temp_gate_out_indices.size() << std::endl;
+  std::cout << "  temp_up_out_indices.size(): " << temp_up_out_indices.size() << std::endl;
+  std::cout << "  temp_intermediate_indices.size(): " << temp_intermediate_indices.size() << std::endl;
+  std::cout << "  temp_expert_input_indices.size(): " << temp_expert_input_indices.size() << std::endl;
+  std::cout << "  temp_expert_output_indices.size(): " << temp_expert_output_indices.size() << std::endl;
+  
+  std::cout << "Routing cache sizes:" << std::endl;
+  std::cout << "  routing_cache.expert_token_indices.size(): " << routing_cache.expert_token_indices.size() << std::endl;
+  std::cout << "  routing_cache.expert_token_weights.size(): " << routing_cache.expert_token_weights.size() << std::endl;
+  std::cout << "  routing_cache.token_expert_counts.size(): " << routing_cache.token_expert_counts.size() << std::endl;
+  
+  std::cout << "Current thread info:" << std::endl;
+  std::cout << "  omp_get_thread_num(): " << omp_get_thread_num() << std::endl;
+  std::cout << "  omp_get_max_threads(): " << omp_get_max_threads() << std::endl;
+  std::cout << "=========================" << std::endl;
 }
 
 // Keep the original compute_expert_forward for compatibility
