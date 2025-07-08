@@ -25,6 +25,22 @@
 #include <layer_impl.h>
 
 namespace nntrainer {
+
+/**
+ * @brief Structure to represent routing information for efficient processing
+ */
+struct RoutingInfo {
+  std::vector<std::vector<unsigned int>> expert_token_indices; /**< token indices per expert */
+  std::vector<std::vector<float>> expert_token_weights;        /**< weights per expert */
+  std::vector<unsigned int> token_expert_counts;               /**< number of experts per token */
+  
+  void clear() {
+    expert_token_indices.clear();
+    expert_token_weights.clear();
+    token_expert_counts.clear();
+  }
+};
+
 /**
  * @class   MoELayer
  * @brief   Mixture of Expert Layer
@@ -111,7 +127,7 @@ private:
              props::MoEActivation>
     moe_props;
 
-  // weight indeices
+  // weight indices
   std::vector<unsigned int> expert_gate_proj_indices;
   std::vector<unsigned int> expert_up_proj_indices;
   std::vector<unsigned int> expert_down_proj_indices;
@@ -119,7 +135,54 @@ private:
 
   // Intermediate tensor indices
   unsigned int router_logits_idx;
-  unsigned int expert_mask_idx;
+  
+  // Pre-allocated tensors for efficient computation (avoid repeated allocations)
+  unsigned int temp_gate_out_idx;
+  unsigned int temp_up_out_idx; 
+  unsigned int temp_intermediate_idx;
+  unsigned int temp_expert_input_idx;
+  unsigned int temp_expert_output_idx;
+
+  // Routing information cache
+  RoutingInfo routing_cache;
+
+  /**
+   * @brief Efficient expert forward computation using pre-allocated tensors
+   * @param input_data Raw input data pointer
+   * @param output_data Raw output data pointer
+   * @param token_indices Token indices for this expert
+   * @param token_weights Token weights for this expert
+   * @param gate_proj Gate projection weight tensor
+   * @param up_proj Up projection weight tensor
+   * @param down_proj Down projection weight tensor
+   * @param context Run context for accessing temporary tensors
+   */
+  void compute_expert_forward_optimized(
+    const float* input_data,
+    float* output_data,
+    const std::vector<unsigned int>& token_indices,
+    const std::vector<float>& token_weights,
+    const Tensor& gate_proj,
+    const Tensor& up_proj, 
+    const Tensor& down_proj,
+    RunLayerContext& context);
+
+  /**
+   * @brief Optimized routing computation that avoids expert mask tensor
+   * @param router_logits Router logits tensor
+   * @param routing_info Output routing information
+   */
+  void compute_routing_optimized(const Tensor& router_logits, RoutingInfo& routing_info);
+
+  /**
+   * @brief Batched GEMM operations for better cache utilization
+   * @param input Input tensor
+   * @param weight Weight tensor
+   * @param output Output tensor
+   * @param token_indices Token indices to process
+   */
+  void batched_gemm(const Tensor& input, const Tensor& weight, Tensor& output,
+                   const std::vector<unsigned int>& token_indices);
 
   inline Tensor compute_expert_forward(const Tensor &input,
                                        const Tensor &weights,
