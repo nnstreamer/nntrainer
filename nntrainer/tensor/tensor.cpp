@@ -841,6 +841,22 @@ Tensor &Tensor::sqrt(Tensor &output) const {
   return output;
 };
 
+Tensor Tensor::neg() const {
+  Tensor output("", getFormat(), getDataType());
+  return neg(output);
+};
+
+Tensor &Tensor::neg(Tensor &output) const {
+  if (size() != output.size() || getDataType() != output.getDataType() ||
+      getFormat() != output.getFormat())
+    throw std::invalid_argument(
+      "Error: Tensor::sqrt requires output tensor to be same size, data type "
+      "and format as input tensor.");
+
+  itensor_->multiply(-1, output);
+  return output;
+};
+
 int Tensor::erf_i() {
   erf(*this);
   return ML_ERROR_NONE;
