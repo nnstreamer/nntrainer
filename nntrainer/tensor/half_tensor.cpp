@@ -612,6 +612,14 @@ Tensor &HalfTensor::sqrt(Tensor &output) const {
   return output;
 }
 
+Tensor &HalfTensor::neg(Tensor &output) const {
+  auto f = [](_FP16 in) {
+    return static_cast<_FP16>(-(static_cast<float>(in)));
+  };
+  apply(f, output);
+  return output;
+}
+
 Tensor &HalfTensor::erf(Tensor &output) const {
   auto f = [](_FP16 in) {
     return static_cast<_FP16>(std::erf(static_cast<float>(in)));

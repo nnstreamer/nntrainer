@@ -517,6 +517,12 @@ Tensor &TensorBase::sqrt(Tensor &output) const {
     getStringDataType());
 }
 
+Tensor &TensorBase::neg(Tensor &output) const {
+  throw std::invalid_argument(
+    "Tensor::neg() is currently not supported in tensor data type " +
+    getStringDataType());
+}
+
 Tensor &TensorBase::erf(Tensor &output) const {
   throw std::invalid_argument(
     "Tensor::erf() is currently not supported in tensor data type " +

@@ -647,6 +647,12 @@ Tensor &FloatTensor::sqrt(Tensor &output) const {
   return output;
 }
 
+Tensor &FloatTensor::neg(Tensor &output) const {
+  auto f = [](float in) { return -in; };
+  apply(f, output);
+  return output;
+}
+
 Tensor &FloatTensor::erf(Tensor &output) const {
   auto f = [](float in) { return std::erf(in); };
   apply(f, output);

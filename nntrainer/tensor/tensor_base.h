@@ -383,6 +383,12 @@ public:
   virtual Tensor &sqrt(Tensor &output) const;
 
   /**
+   * @brief    negate function
+   * @param[out] output output to store the result
+   */
+  virtual Tensor &neg(Tensor &output) const;
+
+  /**
    * @copydoc Tensor::erf(Tensor &output)
    */
   virtual Tensor &erf(Tensor &output) const;

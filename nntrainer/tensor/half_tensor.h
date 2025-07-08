@@ -366,6 +366,11 @@ public:
   Tensor &sqrt(Tensor &output) const override;
 
   /**
+   * @copydoc Tensor::neg(Tensor &output)
+   */
+  Tensor &neg(Tensor &output) const override;
+
+  /**
    * @copydoc Tensor::erf(Tensor &output)
    */
   Tensor &erf(Tensor &output) const override;
