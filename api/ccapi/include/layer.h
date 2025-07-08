@@ -49,6 +49,7 @@ enum LayerType {
   LAYER_TANGENT = ML_TRAIN_LAYER_TYPE_TANGENT,   /**< Tangent Layer type */
   LAYER_MATMUL =
     ML_TRAIN_LAYER_TYPE_MATMUL,      /**< Matrix multiplication Layer type */
+  LAYER_NEG = ML_TRAIN_LAYER_TYPE_NEG, /**< Negate Layer type */
   LAYER_FC = ML_TRAIN_LAYER_TYPE_FC, /**< Fully Connected Layer type */
   LAYER_SWIGLU = ML_TRAIN_LAYER_TYPE_SWIGLU, /**< Swiglu Layer type */
   LAYER_BN = ML_TRAIN_LAYER_TYPE_BN, /**< Batch Normalization Layer type */
@@ -403,6 +404,14 @@ TangentLayer(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 MatMulLayer(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_MATMUL, properties);
+}
+
+/**
+ * @brief Helper function to create neg layer
+ */
+inline std::unique_ptr<Layer>
+NegLayer(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_NEG, properties);
 }
 
 /**
