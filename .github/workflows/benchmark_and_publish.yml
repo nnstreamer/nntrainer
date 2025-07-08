@@ -1,0 +1,260 @@
+name: "Benchmark and Publish"
+
+# This workflow runs benchmarks and publishes results to GitHub Pages
+# It runs on both scheduled intervals and pull requests
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'nntrainer/**'
+      - 'benchmarks/**'
+      - 'meson.build'
+      - '.github/workflows/benchmark_and_publish.yml'
+  workflow_dispatch:  # Allow manual triggering
+
+env:
+  PROJECT_NAME: "NNTrainer"
+
+jobs:
+  benchmark:
+    name: "Run Benchmarks"
+    runs-on: ubuntu-latest
+
+    outputs:
+      benchmark-results: ${{ steps.save-results.outputs.results }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.10"
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          gcc g++ pkg-config \
+          libopenblas-dev libiniparser-dev libjsoncpp-dev libcurl3-dev \
+          libglib2.0-dev libgstreamer1.0-dev libgtest-dev \
+          libunwind-dev libbenchmark-dev \
+          python3-dev python3-numpy \
+          meson ninja-build linux-tools-common \
+
+    - name: Install additional packages from PPA
+      run: |
+        sudo add-apt-repository -y ppa:nnstreamer/ppa
+        sudo apt-get update
+        sudo apt-get install -y \
+          tensorflow2-lite-dev nnstreamer-dev \
+          ml-api-common-dev flatbuffers-compiler ml-inference-api-dev
+
+    - name: Install submodules
+      run: git submodule sync && git submodule update --init --recursive
+
+    - name: Configure build
+      run: |
+        meson setup build_benchmarks \
+          --buildtype=release \
+          --prefix=$(pwd)/usr \
+          --sysconfdir=$(pwd)/etc \
+          --libdir=lib \
+          --bindir=bin \
+          --includedir=include \
+          -Dinstall-app=false \
+          -Dreduce-tolerance=false \
+          -Denable-debug=false \
+          -Dml-api-support=enabled \
+          -Denable-nnstreamer-tensor-filter=enabled \
+          -Denable-nnstreamer-tensor-trainer=enabled \
+          -Denable-nnstreamer-backbone=true \
+          -Dcapi-ml-common-actual=capi-ml-common \
+          -Dcapi-ml-inference-actual=capi-ml-inference \
+          -Denable-capi=enabled \
+          -Denable-benchmarks=true \
+          -Denable-app=true
+
+    - name: Build project
+      run: |
+        ninja -C build_benchmarks
+        ninja install -C build_benchmarks
+
+    - name: Run the first benchmark (ResNet training)
+      run: |
+        echo "Running placeholder benchmark..."
+        LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$(pwd)/lib
+        pushd benchmarks
+        ./run.sh ../build_benchmarks/benchmarks/benchmark_application/Benchmark_ResNet benchmark_output.txt
+        echo "Benchmark output:"
+        cat benchmark_output.txt
+        popd
+
+    - name: Parse benchmark results
+      run: |
+        echo "Parsing benchmark results..."
+        cd benchmarks
+        python3 parse_results.py benchmark_output.txt > benchmark_results.json
+        echo "Parsed results:"
+        cat benchmark_results.json
+
+    - name: Generate HTML report
+      run: |
+        echo "Generating HTML report..."
+        cd benchmarks
+        python3 generate_html.py benchmark_results.json ../test-results/index.html --project-name "$PROJECT_NAME"
+        echo "Generated HTML report at test-results/index.html"
+
+    - name: Save results as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-results
+        path: |
+          benchmarks/benchmark_results.json
+          test-results/index.html
+
+    - name: Save results for next job
+      id: save-results
+      run: |
+        echo "results<<EOF" >> $GITHUB_OUTPUT
+        cat benchmarks/benchmark_results.json >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+  publish:
+    name: "Publish to GitHub Pages"
+    runs-on: ubuntu-latest
+    needs: benchmark
+    # Only publish on main branch (scheduled runs or workflow_dispatch)
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download benchmark results
+      uses: actions/download-artifact@v4
+      with:
+        name: benchmark-results
+
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+
+    - name: Prepare pages content
+      run: |
+        # Create the directory structure for GitHub Pages
+        mkdir -p pages/test-results
+
+        # Copy the HTML report
+        cp test-results/index.html pages/test-results/
+
+        # Copy benchmark JSON data
+        cp benchmarks/benchmark_results.json pages/test-results/
+
+        # Create a simple index.html that redirects to test-results
+        cat > pages/index.html << 'EOF'
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Benchmark Results</title>
+            <meta http-equiv="refresh" content="0; url=./test-results/">
+        </head>
+        <body>
+            <p>Redirecting to <a href="./test-results/">benchmark results</a>...</p>
+        </body>
+        </html>
+        EOF
+
+        # Create a simple README
+        cat > pages/README.md << 'EOF'
+        # Benchmark Results
+
+        This directory contains automated benchmark results published from GitHub Actions.
+
+        - [Latest Results](./test-results/)
+        - [Raw Data](./test-results/benchmark_results.json)
+
+        Results are updated automatically on every push to main and daily at 2 AM UTC.
+        EOF
+
+    - name: Upload pages artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: pages
+
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+
+  comment-pr:
+    name: "Comment on PR"
+    runs-on: ubuntu-latest
+    needs: benchmark
+    if: github.event_name == 'pull_request'
+
+    permissions:
+      pull-requests: write
+      issues: write
+
+    steps:
+    - name: Download benchmark results
+      uses: actions/download-artifact@v4
+      with:
+        name: benchmark-results
+
+    - name: Create PR comment
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const fs = require('fs');
+
+          // Read benchmark results
+          let results;
+          try {
+            results = JSON.parse(fs.readFileSync('benchmarks/benchmark_results.json', 'utf8'));
+          } catch (error) {
+            console.error('Error reading benchmark results:', error);
+            return;
+          }
+
+          // Format results for PR comment
+          const { results: benchmarkData } = results;
+          let comment = `## 🚀 Benchmark Results\n\n`;
+
+          if (benchmarkData.peak_memory_mb) {
+            comment += `- **Peak Memory Usage**: ${benchmarkData.peak_memory_mb} MB\n`;
+          }
+
+          if (benchmarkData.cpu_cycles) {
+            comment += `- **CPU Cycles**: ${benchmarkData.cpu_cycles.toLocaleString()}\n`;
+          }
+
+          comment += `\n### Context\n`;
+          comment += `- **Commit**: ${results.context.commit_sha?.substring(0, 7) || 'unknown'}\n`;
+          comment += `- **Branch**: ${results.context.branch || 'unknown'}\n`;
+          comment += `- **Workflow Run**: #${results.context.run_number || 'unknown'}\n`;
+
+          comment += `\n---\n`;
+          comment += `*This comment was generated automatically by the benchmark workflow.*`;
+
+          // Post comment
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
