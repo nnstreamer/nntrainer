@@ -445,4 +445,36 @@ void __fallback_repack_q4_K_to_q4_K_8(void *W, void *repacked_W,
   throw std::runtime_error("NYI : __fallback_repack_q4_K_to_q4_K_8");
 }
 
+void __fallback_softmax_row_inplace(float *qk_out, size_t start_row,
+                                    size_t end_row, size_t num_heads) {
+  throw std::runtime_error("NYI : __fallback_softmax_row_inplace");
+}
+
+void __fallback_softmax_row(float *qk_out, size_t start_row, size_t end_row,
+                            size_t num_heads) {
+  throw std::runtime_error("NYI : __fallback_softmax_row");
+}
+
+void __fallback_compute_fp16vcache_fp32_transposed(
+  int iter, const float *in, const uint16_t *vcache, float *output, int seq,
+  int num_cache_head, int gqa_size, int head_dim, bool process_all) {
+  throw std::runtime_error(
+    "NYI : __fallback_compute_fp16vcache_fp32_transposed");
+}
+
+template <>
+void __fallback_compute_kcaches(const float *A, const uint16_t *B,
+                                float *output, int num_rows, int N,
+                                int chunk_size, int group_size, int tile_size) {
+  throw std::runtime_error("NYI : __fallback_compute_kcaches");
+}
+
+void __fallback_compute_rotary_emb_value(unsigned int width, unsigned int dim,
+                                         unsigned int half_, float *inout,
+                                         void *output, const float *cos_,
+                                         const float *sin_,
+                                         bool only_convert_to_fp16) {
+  throw std::runtime_error("NYI : __fallback_compute_rotary_emb_value");
+}
+
 } // namespace nntrainer
