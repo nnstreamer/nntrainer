@@ -32,7 +32,7 @@ static constexpr size_t SINGLE_INOUT_IDX = 0;
 static constexpr size_t INPUT_IDX_1 = 0;
 static constexpr size_t INPUT_IDX_2 = 1;
 
-bool ConcatLayerCl::registerClKernels() {
+bool ConcatLayerCl::registerClKernels(ClContext *global_cl_context) {
   auto &layer_kernel_ptrs = getLayerKernelPtrs();
 
   // check if already registered
@@ -230,6 +230,10 @@ void ConcatLayerCl::concat_cl_axis3(const float *matAdata,
 
   bool result = false;
 
+  ClContext *global_cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
+
   do {
 
     const auto &kernel_concat_ptr =
@@ -345,6 +349,10 @@ void ConcatLayerCl::concat_cl_axis2(const float *matAdata,
 
   bool result = false;
 
+  ClContext *global_cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
+
   do {
 
     const auto &kernel_concat_ptr =
@@ -458,6 +466,10 @@ void ConcatLayerCl::concat_cl_axis1(const float *matAdata,
                                     unsigned int input2_channels) {
 
   bool result = false;
+
+  ClContext *global_cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
 
   do {
     const auto &kernel_concat_ptr =
@@ -574,6 +586,10 @@ void ConcatLayerCl::concat_cl_axis3_fp16(const _FP16 *matAdata,
 
   bool result = false;
 
+  ClContext *global_cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
+
   do {
 
     const auto &kernel_concat_ptr =
@@ -689,6 +705,10 @@ void ConcatLayerCl::concat_cl_axis2_fp16(const _FP16 *matAdata,
 
   bool result = false;
 
+  ClContext *global_cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
+
   do {
     const auto &kernel_concat_ptr =
       getLayerKernelPtrs()[Kernels::CONCAT_CL_AXIS2_FP16];
@@ -801,6 +821,10 @@ void ConcatLayerCl::concat_cl_axis1_fp16(const _FP16 *matAdata,
                                          unsigned int input2_channels) {
 
   bool result = false;
+
+  ClContext *global_cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
 
   do {
 

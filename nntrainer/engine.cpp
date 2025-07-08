@@ -31,7 +31,7 @@ namespace nntrainer {
 
 std::mutex engine_mutex;
 
-std::once_flag global_engine_init_flag;
+static std::once_flag global_engine_init_flag;
 
 nntrainer::Context
   *Engine::nntrainerRegisteredContext[Engine::RegisterContextMax];
@@ -39,6 +39,8 @@ nntrainer::Context
 void Engine::add_default_object(Engine &eg) {
   /// @note all layers should be added to the app_context to guarantee that
   /// createLayer/createOptimizer class is created
+
+  std::cout << "Engine::add_default_object" << std::endl;
 
   nntrainer::AppContext *app_context = new nntrainer::AppContext();
   app_context->Global();
@@ -66,6 +68,9 @@ void Engine::registerer(Engine &eg) noexcept {
 
 Engine &Engine::Global() {
   static Engine instance;
+
+  //std::cout << "instance ptr: " << (long long)&instance << std::endl;
+
   /// in g++ there is a bug that hangs up if caller throws,
   /// so registerer is noexcept although it'd better not
   /// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70298
