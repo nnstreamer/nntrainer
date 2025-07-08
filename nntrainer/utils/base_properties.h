@@ -24,6 +24,12 @@
 #include <tensor_dim.h>
 #include <util_func.h>
 
+#if defined(_WIN32)
+#define NNTR_API __declspec(dllexport)
+#else
+#define NNTR_API
+#endif
+
 /** base and predefined structures */
 
 namespace nntrainer {
@@ -147,21 +153,21 @@ public:
    * @brief Construct a new Property object
    *
    */
-  Property() : value(nullptr){};
+  NNTR_API Property() : value(nullptr){};
 
   /**
    * @brief Construct a new Property object
    *
    * @param value default value
    */
-  Property(const T &value_) { set(value_); }
+  NNTR_API Property(const T &value_) { set(value_); }
 
   /**
    * @brief Copy Construct a new Property object
    *
    * @param rhs right side to copy from
    */
-  Property(const Property &rhs) {
+  NNTR_API Property(const Property &rhs) {
     if (this != &rhs && rhs.value) {
       value = std::make_unique<T>(*rhs.value);
     }
@@ -173,42 +179,42 @@ public:
    * @param rhs right side to copy from
    * @return Property& this
    */
-  Property &operator=(const Property &rhs) {
+  NNTR_API Property &operator=(const Property &rhs) {
     if (this != &rhs && rhs.value) {
       value = std::make_unique<T>(*rhs.value);
     }
     return *this;
   };
 
-  Property(Property &&rhs) noexcept = default;
-  Property &operator=(Property &&rhs) noexcept = default;
+  NNTR_API Property(Property &&rhs) noexcept = default;
+  NNTR_API Property &operator=(Property &&rhs) noexcept = default;
 
   /**
    * @brief Destroy the Property object
    *
    */
-  virtual ~Property() = default;
+  NNTR_API virtual ~Property() = default;
 
   /**
    * @brief cast operator for property
    *
    * @return T value
    */
-  operator T &() { return get(); }
+  NNTR_API operator T &() { return get(); }
 
   /**
    * @brief cast operator for property
    *
    * @return T value
    */
-  operator const T &() const { return get(); }
+  NNTR_API operator const T &() const { return get(); }
 
   /**
    * @brief get the underlying data
    *
    * @return const T& data
    */
-  const T &get() const {
+  NNTR_API const T &get() const {
     NNTR_THROW_IF(value == nullptr, std::invalid_argument)
       << "Cannot get property, property is empty";
     return *value;
@@ -219,7 +225,7 @@ public:
    *
    * @return T& data
    */
-  T &get() {
+  NNTR_API T &get() {
     NNTR_THROW_IF(value == nullptr, std::invalid_argument)
       << "Cannot get property, property is empty";
     return *value;
@@ -231,7 +237,7 @@ public:
    * @retval true empty
    * @retval false not empty
    */
-  bool empty() const { return value == nullptr; }
+  NNTR_API bool empty() const { return value == nullptr; }
 
   /**
    * @brief set the underlying data
@@ -239,7 +245,7 @@ public:
    * @param v value to set
    * @throw std::invalid_argument if argument is not valid
    */
-  virtual void set(const T &v) {
+  NNTR_API virtual void set(const T &v) {
     NNTR_THROW_IF(isValid(v) == false, std::invalid_argument)
       << "argument is not valid";
     value = std::make_unique<T>(v);
@@ -252,7 +258,7 @@ public:
    * @retval true if valid
    * @retval false if not valid
    */
-  virtual bool isValid(const T &v) const { return true; }
+  NNTR_API virtual bool isValid(const T &v) const { return true; }
 
   /**
    * @brief operator==
@@ -261,7 +267,9 @@ public:
    * @retval true if equal
    * @retval false if not equal
    */
-  bool operator==(const Property<T> &rhs) const { return *value == *rhs.value; }
+  NNTR_API bool operator==(const Property<T> &rhs) const {
+    return *value == *rhs.value;
+  }
 
 private:
   std::unique_ptr<T> value; /**< underlying data */
@@ -288,7 +296,7 @@ public:
    * @brief Destroy the TensorDim Property object
    *
    */
-  virtual ~TensorDimProperty() = default;
+  NNTR_API virtual ~TensorDimProperty() = default;
 };
 
 /**
@@ -301,7 +309,7 @@ public:
    * @brief Destroy the Positive Integer Property object
    *
    */
-  virtual ~PositiveIntegerProperty() = default;
+  NNTR_API virtual ~PositiveIntegerProperty() = default;
 
   /**
    * @brief isValid override, check if value > 0
@@ -309,7 +317,7 @@ public:
    * @param value value to check
    * @retval true if value > 0
    */
-  virtual bool isValid(const unsigned int &value) const override;
+  NNTR_API virtual bool isValid(const unsigned int &value) const override;
 };
 /**
  * @brief meta function to cast tag to it's base
@@ -368,7 +376,7 @@ template <typename Tag, typename DataType> struct str_converter {
    * @param value value to convert to string
    * @return std::string string
    */
-  static std::string to_string(const DataType &value);
+  NNTR_API static std::string to_string(const DataType &value);
 
   /**
    * @brief convert string to underlying value
@@ -376,7 +384,7 @@ template <typename Tag, typename DataType> struct str_converter {
    * @param value value to convert to string
    * @return DataType converted type
    */
-  static DataType from_string(const std::string &value);
+  NNTR_API static DataType from_string(const std::string &value);
 };
 
 /**
@@ -390,7 +398,7 @@ struct str_converter<enum_class_prop_tag, EnumInfo> {
   /**
    * @copydoc template <typename Tag, typename DataType> struct str_converter
    */
-  static std::string to_string(const typename EnumInfo::Enum &value) {
+  NNTR_API static std::string to_string(const typename EnumInfo::Enum &value) {
     constexpr auto size = EnumInfo::EnumList.size();
     constexpr const auto data = std::data(EnumInfo::EnumList);
     for (unsigned i = 0; i < size; ++i) {
@@ -404,7 +412,8 @@ struct str_converter<enum_class_prop_tag, EnumInfo> {
   /**
    * @copydoc template <typename Tag, typename DataType> struct str_converter
    */
-  static typename EnumInfo::Enum from_string(const std::string &value) {
+  NNTR_API static typename EnumInfo::Enum
+  from_string(const std::string &value) {
     constexpr auto size = EnumInfo::EnumList.size();
     constexpr const auto data = std::data(EnumInfo::EnumList);
     for (unsigned i = 0; i < size; ++i) {
@@ -429,7 +438,7 @@ template <typename DataType> struct str_converter<ptr_prop_tag, DataType> {
    * @param value value to convert to string
    * @return std::string string
    */
-  static std::string to_string(const DataType &value) {
+  NNTR_API static std::string to_string(const DataType &value) {
     std::ostringstream ss;
     ss << value;
     return ss.str();
@@ -441,7 +450,7 @@ template <typename DataType> struct str_converter<ptr_prop_tag, DataType> {
    * @param value value to convert to string
    * @return DataType converted type
    */
-  static DataType from_string(const std::string &value) {
+  NNTR_API static DataType from_string(const std::string &value) {
     std::stringstream ss(value);
     uintptr_t addr = static_cast<uintptr_t>(std::stoull(value, 0, 16));
     return reinterpret_cast<DataType>(addr);
@@ -452,81 +461,84 @@ template <typename DataType> struct str_converter<ptr_prop_tag, DataType> {
  * @copydoc template <typename Tag, typename DataType> struct str_converter
  */
 template <>
-std::string
+NNTR_API std::string
 str_converter<str_prop_tag, std::string>::to_string(const std::string &value);
 
 /**
  * @copydoc template <typename Tag, typename DataType> struct str_converter
  */
 template <>
-std::string
+NNTR_API std::string
 str_converter<str_prop_tag, std::string>::from_string(const std::string &value);
 
 /**
  * @copydoc template <typename Tag, typename DataType> struct str_converter
  */
 template <>
-std::string str_converter<uint_prop_tag, unsigned int>::to_string(
+NNTR_API std::string str_converter<uint_prop_tag, unsigned int>::to_string(
   const unsigned int &value);
 
 /**
  * @copydoc template <typename Tag, typename DataType> struct str_converter
  */
 template <>
-unsigned int str_converter<uint_prop_tag, unsigned int>::from_string(
+NNTR_API unsigned int str_converter<uint_prop_tag, unsigned int>::from_string(
   const std::string &value);
 
 /**
  * @copydoc template <typename Tag, typename DataType> struct str_converter
  */
 template <>
-std::string
+NNTR_API std::string
 str_converter<size_t_prop_tag, size_t>::to_string(const size_t &value);
 
 /**
  * @copydoc template <typename Tag, typename DataType> struct str_converter
  */
 template <>
-size_t
+NNTR_API size_t
 str_converter<size_t_prop_tag, size_t>::from_string(const std::string &value);
 
 /**
  * @copydoc template <typename Tag, typename DataType> struct str_converter
  */
 template <>
-std::string str_converter<bool_prop_tag, bool>::to_string(const bool &value);
+NNTR_API std::string
+str_converter<bool_prop_tag, bool>::to_string(const bool &value);
 
 /**
  * @copydoc template <typename Tag, typename DataType> struct str_converter
  */
 template <>
-bool str_converter<bool_prop_tag, bool>::from_string(const std::string &value);
+NNTR_API bool
+str_converter<bool_prop_tag, bool>::from_string(const std::string &value);
 
 /**
  * @copydoc template <typename Tag, typename DataType> struct str_converter
  */
 template <>
-std::string str_converter<float_prop_tag, float>::to_string(const float &value);
+NNTR_API std::string
+str_converter<float_prop_tag, float>::to_string(const float &value);
 
 /**
  * @copydoc template <typename Tag, typename DataType> struct str_converter
  */
 template <>
-float str_converter<float_prop_tag, float>::from_string(
-  const std::string &value);
+NNTR_API float
+str_converter<float_prop_tag, float>::from_string(const std::string &value);
 
 /**
  * @copydoc template <typename Tag, typename DataType> struct str_converter
  */
 template <>
-std::string
+NNTR_API std::string
 str_converter<double_prop_tag, double>::to_string(const double &value);
 
 /**
  * @copydoc template <typename Tag, typename DataType> struct str_converter
  */
 template <>
-double
+NNTR_API double
 str_converter<double_prop_tag, double>::from_string(const std::string &value);
 
 /**
@@ -536,7 +548,7 @@ str_converter<double_prop_tag, double>::from_string(const std::string &value);
  * @param property property to convert
  * @return std::string converted string
  */
-template <typename T> std::string to_string(const T &property) {
+template <typename T> NNTR_API std::string to_string(const T &property) {
   using info = prop_info<T>;
   using tag_type =
     typename tag_cast<typename info::tag_type, int_prop_tag, uint_prop_tag,
@@ -556,7 +568,8 @@ template <typename T> std::string to_string(const T &property) {
  * @brief to_string vector specialization
  * @copydoc template <typename T> std::string to_string(const T &property)
  */
-template <typename T> std::string to_string(const std::vector<T> &property) {
+template <typename T>
+NNTR_API std::string to_string(const std::vector<T> &property) {
   std::stringstream ss;
   auto last_iter = property.end() - 1;
   for (auto iter = property.begin(); iter != last_iter; ++iter) {
@@ -592,7 +605,8 @@ static std::string to_string(const std::array<T, sz> &value) {
  * @param str string to convert
  * @param[out] property property, converted type
  */
-template <typename T> void from_string(const std::string &str, T &property) {
+template <typename T>
+void NNTR_API from_string(const std::string &str, T &property) {
   using info = prop_info<T>;
   using tag_type =
     typename tag_cast<typename info::tag_type, int_prop_tag, uint_prop_tag,
@@ -630,7 +644,8 @@ static const std::regex reg_("\\s*\\,\\s*");
  * check on size
  */
 template <typename T, size_t sz>
-void from_string(const std::string &value, std::array<T, sz> &property) {
+NNTR_API void from_string(const std::string &value,
+                          std::array<T, sz> &property) {
   auto v = split(value, reg_);
   NNTR_THROW_IF(v.size() != sz, std::invalid_argument)
     << "size must match with array size, array size: " << sz
@@ -647,7 +662,7 @@ void from_string(const std::string &value, std::array<T, sz> &property) {
  *
  */
 template <typename T>
-void from_string(const std::string &value, std::vector<T> &property) {
+NNTR_API void from_string(const std::string &value, std::vector<T> &property) {
   auto v = split(value, reg_);
 
   property.clear();
@@ -720,14 +735,14 @@ public:
   /**
    * @brief Constructor
    */
-  WeightDtype(){};
+  NNTR_API WeightDtype(){};
 
   /**
    * @brief Constructor
    *
    * @param value value to set
    */
-  WeightDtype(TensorDataTypeInfo::Enum value) { set(value); };
+  NNTR_API WeightDtype(TensorDataTypeInfo::Enum value) { set(value); };
 };
 
 /**
@@ -744,7 +759,7 @@ public:
    *
    * @param value value to set, defaults to FP32
    */
-  TensorDataType(
+  NNTR_API TensorDataType(
     TensorDataTypeInfo::Enum value = TensorDataTypeInfo::Enum::FP32) {
     set(value);
   };
@@ -765,6 +780,7 @@ public:
    *
    * @param value value to set, defaults to NCHW
    */
+  NNTR_API
   TensorFormat(TensorFormatInfo::Enum value = TensorFormatInfo::Enum::NCHW) {
     set(value);
   };
@@ -778,6 +794,7 @@ class TensorType final : public EnumProperty<nntrainer::TensorTypeInfo> {
 public:
   static constexpr const char *key = "tensor_type";
   using prop_tag = enum_class_prop_tag;
+  NNTR_API
   TensorType(TensorTypeInfo::Enum value = TensorTypeInfo::Enum::WEIGHT) {
     set(value);
   }

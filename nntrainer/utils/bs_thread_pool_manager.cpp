@@ -21,7 +21,8 @@ namespace nntrainer {
  *
  * @return BS::thread_pool<>
  */
-BS::thread_pool<> ThreadPoolManager::pool(std::thread::hardware_concurrency());
+// BS::thread_pool<>
+// ThreadPoolManager::pool(std::thread::hardware_concurrency());
 } // namespace nntrainer
 
 #endif // THREAD_POOL_MANAGER_CPP

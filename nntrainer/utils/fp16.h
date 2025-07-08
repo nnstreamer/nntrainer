@@ -25,6 +25,12 @@
 #include <stdint.h>
 #endif
 
+#if defined(_WIN32)
+#define NNTR_API __declspec(dllexport)
+#else
+#define NNTR_API
+#endif
+
 namespace nntrainer {
 
 /**
@@ -33,7 +39,7 @@ namespace nntrainer {
  * @param w 32-bit float as bits
  * @return float 32-bit float as value
  */
-float fp32_from_bits(uint32_t w);
+NNTR_API float fp32_from_bits(uint32_t w);
 
 /**
  * @brief convert 32-bit float value as bits
@@ -41,7 +47,7 @@ float fp32_from_bits(uint32_t w);
  * @param f 32-bit float as value
  * @return float 32-bit float as bits
  */
-uint32_t fp32_to_bits(float f);
+NNTR_API uint32_t fp32_to_bits(float f);
 
 /**
  * @brief convert a 32-bit float to a 16-bit float in bit representation
@@ -49,7 +55,7 @@ uint32_t fp32_to_bits(float f);
  * @param f 32-bit float as value
  * @return uint16_t 16-bit float as bits
  */
-uint16_t compute_fp32_to_fp16(float f);
+NNTR_API uint16_t compute_fp32_to_fp16(float f);
 
 /**
  * @brief convert a 16-bit float, in bit representation, to a 32-bit float
@@ -57,7 +63,7 @@ uint16_t compute_fp32_to_fp16(float f);
  * @param h 16-bit float as bits
  * @return float 32-bit float as value
  */
-float compute_fp16_to_fp32(uint16_t h);
+NNTR_API float compute_fp16_to_fp32(uint16_t h);
 
 } /* namespace nntrainer */
 

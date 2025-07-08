@@ -31,6 +31,12 @@
 #include <half_tensor.h>
 #endif
 
+#if defined(_WIN32)
+#define NNTR_API __declspec(dllexport)
+#else
+#define NNTR_API
+#endif
+
 namespace nntrainer {
 
 class LazyTensor;
@@ -54,8 +60,8 @@ public:
   /**
    * @brief     Basic Constructor of Tensor
    */
-  Tensor(std::string name_ = "", Tformat fm = Tformat::NCHW,
-         Tdatatype d_type = Tdatatype::FP32);
+  NNTR_API Tensor(std::string name_ = "", Tformat fm = Tformat::NCHW,
+                  Tdatatype d_type = Tdatatype::FP32);
 
   /**
    * @brief     Constructor of Tensor with dimension, possibly lazily
@@ -65,9 +71,9 @@ public:
    * @param name Name of the tensor
    * @param qscheme_ Quantization scheme (only applies to Quantized Tensor)
    */
-  Tensor(const TensorDim &d, bool alloc_now,
-         Initializer init = Initializer::NONE, std::string name = "",
-         QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE);
+  NNTR_API Tensor(const TensorDim &d, bool alloc_now,
+                  Initializer init = Initializer::NONE, std::string name = "",
+                  QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE);
 
   /**
    * @brief     Constructor of Tensor with dimension/buf
@@ -76,8 +82,8 @@ public:
    * @param qscheme_ Quantization scheme (only applies to Quantized Tensor)
    * @note Memory for this tensor is instantaneously allocated
    */
-  Tensor(const TensorDim &d, const void *buf = nullptr,
-         QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE);
+  NNTR_API Tensor(const TensorDim &d, const void *buf = nullptr,
+                  QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE);
 
   /**
    * @brief     Constructor of Tensor
@@ -89,9 +95,10 @@ public:
    * @param[in] d_type Tensor Data Type
    * @param[in] qscheme_ Quantization scheme (only applies to Quantized Tensor)
    */
-  Tensor(size_t d0, size_t d1, size_t d2, size_t d3, Tformat fm = Tformat::NCHW,
-         Tdatatype d_type = Tdatatype::FP32,
-         QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE) :
+  NNTR_API Tensor(size_t d0, size_t d1, size_t d2, size_t d3,
+                  Tformat fm = Tformat::NCHW,
+                  Tdatatype d_type = Tdatatype::FP32,
+                  QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE) :
     Tensor(TensorDim(d0, d1, d2, d3, fm, d_type), nullptr, qscheme_){};
 
   /**
@@ -103,9 +110,9 @@ public:
    * @param[in] d_type Tensor Data Type
    * @param[in] qscheme_ Quantization scheme (only applies to Quantized Tensor)
    */
-  Tensor(size_t d1, size_t d2, size_t d3, Tformat fm = Tformat::NCHW,
-         Tdatatype d_type = Tdatatype::FP32,
-         QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE) :
+  NNTR_API Tensor(size_t d1, size_t d2, size_t d3, Tformat fm = Tformat::NCHW,
+                  Tdatatype d_type = Tdatatype::FP32,
+                  QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE) :
     Tensor(1, d1, d2, d3, fm, d_type, qscheme_){};
 
   /**
@@ -116,9 +123,9 @@ public:
    * @param[in] d_type Tensor Data Type
    * @param[in] qscheme_ Quantization scheme (only applies to Quantized Tensor)
    */
-  Tensor(size_t d2, size_t d3, Tformat fm = Tformat::NCHW,
-         Tdatatype d_type = Tdatatype::FP32,
-         QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE) :
+  NNTR_API Tensor(size_t d2, size_t d3, Tformat fm = Tformat::NCHW,
+                  Tdatatype d_type = Tdatatype::FP32,
+                  QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE) :
     Tensor(1, 1, d2, d3, fm, d_type, qscheme_){};
 
   /**
@@ -128,9 +135,9 @@ public:
    * @param[in] d_type Tensor Data Type
    * @param[in] qscheme_ Quantization scheme (only applies to Quantized Tensor)
    */
-  explicit Tensor(size_t d3, Tformat fm = Tformat::NCHW,
-                  Tdatatype d_type = Tdatatype::FP32,
-                  QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE) :
+  NNTR_API explicit Tensor(size_t d3, Tformat fm = Tformat::NCHW,
+                           Tdatatype d_type = Tdatatype::FP32,
+                           QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE) :
     Tensor(1, 1, 1, d3, fm, d_type, qscheme_){};
 
   /**
@@ -142,9 +149,9 @@ public:
    * @param[in] t_type Tensor Type
    * @param[in] qscheme_ Quantization scheme (only applies to Quantized Tensor)
    */
-  Tensor(size_t d0, size_t d1, size_t d2, size_t d3,
-         ml::train::TensorDim::TensorType t_type,
-         QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE) :
+  NNTR_API Tensor(size_t d0, size_t d1, size_t d2, size_t d3,
+                  ml::train::TensorDim::TensorType t_type,
+                  QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE) :
     Tensor(TensorDim(d0, d1, d2, d3, t_type), nullptr, qscheme_){};
 
   /**
@@ -155,9 +162,9 @@ public:
    * @param[in] t_type Tensor Type
    * @param[in] qscheme_ Quantization scheme (only applies to Quantized Tensor)
    */
-  Tensor(size_t d1, size_t d2, size_t d3,
-         ml::train::TensorDim::TensorType t_type,
-         QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE) :
+  NNTR_API Tensor(size_t d1, size_t d2, size_t d3,
+                  ml::train::TensorDim::TensorType t_type,
+                  QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE) :
     Tensor(1, d1, d2, d3, t_type){};
 
   /**
@@ -167,8 +174,8 @@ public:
    * @param[in] t_type Tensor Type
    * @param[in] qscheme_ Quantization scheme (only applies to Quantized Tensor)
    */
-  Tensor(size_t d2, size_t d3, ml::train::TensorDim::TensorType t_type,
-         QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE) :
+  NNTR_API Tensor(size_t d2, size_t d3, ml::train::TensorDim::TensorType t_type,
+                  QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE) :
     Tensor(1, (t_type.format == Tformat::NCHW) ? 1 : d3,
            (t_type.format == Tformat::NCHW) ? d2 : 1,
            (t_type.format == Tformat::NCHW) ? d3 : d2, t_type, qscheme_){};
@@ -178,8 +185,8 @@ public:
    * @param[in] t_type Tensor Type
    * @param[in] qscheme_ Quantization scheme (only applies to Quantized Tensor)
    */
-  explicit Tensor(size_t d3, ml::train::TensorDim::TensorType t_type,
-                  QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE) :
+  NNTR_API explicit Tensor(size_t d3, ml::train::TensorDim::TensorType t_type,
+                           QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE) :
     Tensor(1, (t_type.format == Tformat::NCHW) ? 1 : d3, 1,
            (t_type.format == Tformat::NCHW) ? d3 : 1, t_type, qscheme_){};
 
@@ -188,6 +195,7 @@ public:
    * @param[in] d data for the Tensor. It needs to set format properly.
    * @param[in] t_type Tensor Type
    */
+  NNTR_API
   Tensor(std::vector<std::vector<std::vector<std::vector<float>>>> const &d,
          ml::train::TensorDim::TensorType t_type);
 
@@ -197,8 +205,8 @@ public:
    * @param[in] d data for the Tensor. It needs to set format properly.
    * @param[in] t_type Tensor Type
    */
-  Tensor(std::vector<std::vector<std::vector<float>>> const &d,
-         ml::train::TensorDim::TensorType t_type) :
+  NNTR_API Tensor(std::vector<std::vector<std::vector<float>>> const &d,
+                  ml::train::TensorDim::TensorType t_type) :
     Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
 
   /**
@@ -207,8 +215,8 @@ public:
    * @param[in] d data for the Tensor with batch size one
    * @param[in] t_type Tensor Type
    */
-  Tensor(std::vector<std::vector<float>> const &d,
-         ml::train::TensorDim::TensorType t_type) :
+  NNTR_API Tensor(std::vector<std::vector<float>> const &d,
+                  ml::train::TensorDim::TensorType t_type) :
     Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
 
 #ifdef ENABLE_FP16
@@ -220,6 +228,7 @@ public:
    * @todo      It is more desirable to move this implementaton into
    *            `tensor.cpp`, for it requires half_tensor.h
    */
+  NNTR_API
   Tensor(std::vector<std::vector<std::vector<std::vector<_FP16>>>> const &d,
          ml::train::TensorDim::TensorType t_type) {
     itensor_ = std::make_unique<HalfTensor>(d, t_type.format);
@@ -231,8 +240,8 @@ public:
    * @param[in] d data for the Tensor. It needs to set format properly.
    * @param[in] t_type Tensor Type
    */
-  Tensor(std::vector<std::vector<std::vector<_FP16>>> const &d,
-         ml::train::TensorDim::TensorType t_type) :
+  NNTR_API Tensor(std::vector<std::vector<std::vector<_FP16>>> const &d,
+                  ml::train::TensorDim::TensorType t_type) :
     Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
 
   /**
@@ -241,8 +250,8 @@ public:
    * @param[in] d data for the Tensor with batch size one
    * @param[in] t_type Tensor Type
    */
-  Tensor(std::vector<std::vector<_FP16>> const &d,
-         ml::train::TensorDim::TensorType t_type) :
+  NNTR_API Tensor(std::vector<std::vector<_FP16>> const &d,
+                  ml::train::TensorDim::TensorType t_type) :
     Tensor(std::vector<std::decay<decltype(d)>::type>{d}, t_type){};
 #endif
 
@@ -251,6 +260,7 @@ public:
    * @param[in] d data for the Tensor. It needs to set format properly.
    * @param[in] t_type Tensor Type
    */
+  NNTR_API
   Tensor(std::vector<std::vector<std::vector<std::vector<uint8_t>>>> const &d,
          std::vector<float> const &scales,
          std::vector<unsigned int> const &zero_points,
@@ -262,10 +272,10 @@ public:
    * @param[in] d data for the Tensor. It needs to set format properly.
    * @param[in] t_type Tensor Type
    */
-  Tensor(std::vector<std::vector<std::vector<uint8_t>>> const &d,
-         std::vector<float> const &scales,
-         std::vector<unsigned int> const &zero_points,
-         ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
+  NNTR_API Tensor(std::vector<std::vector<std::vector<uint8_t>>> const &d,
+                  std::vector<float> const &scales,
+                  std::vector<unsigned int> const &zero_points,
+                  ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
     Tensor(std::vector<std::decay<decltype(d)>::type>{d}, scales, zero_points,
            t_type, qscheme_){};
 
@@ -275,10 +285,10 @@ public:
    * @param[in] d data for the Tensor with batch size one
    * @param[in] t_type Tensor Type
    */
-  Tensor(std::vector<std::vector<uint8_t>> const &d,
-         std::vector<float> const &scales,
-         std::vector<unsigned int> const &zero_points,
-         ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
+  NNTR_API Tensor(std::vector<std::vector<uint8_t>> const &d,
+                  std::vector<float> const &scales,
+                  std::vector<unsigned int> const &zero_points,
+                  ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
     Tensor(std::vector<std::decay<decltype(d)>::type>{d}, scales, zero_points,
            t_type, qscheme_){};
 
@@ -287,6 +297,7 @@ public:
    * @param[in] d data for the Tensor. It needs to set format properly.
    * @param[in] t_type Tensor Type
    */
+  NNTR_API
   Tensor(std::vector<std::vector<std::vector<std::vector<uint16_t>>>> const &d,
          std::vector<float> const &scales,
          std::vector<unsigned int> const &zero_points,
@@ -298,10 +309,10 @@ public:
    * @param[in] d data for the Tensor. It needs to set format properly.
    * @param[in] t_type Tensor Type
    */
-  Tensor(std::vector<std::vector<std::vector<uint16_t>>> const &d,
-         std::vector<float> const &scales,
-         std::vector<unsigned int> const &zero_points,
-         ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
+  NNTR_API Tensor(std::vector<std::vector<std::vector<uint16_t>>> const &d,
+                  std::vector<float> const &scales,
+                  std::vector<unsigned int> const &zero_points,
+                  ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
     Tensor(std::vector<std::decay<decltype(d)>::type>{d}, scales, zero_points,
            t_type, qscheme_){};
 
@@ -311,10 +322,10 @@ public:
    * @param[in] d data for the Tensor with batch size one
    * @param[in] t_type Tensor Type
    */
-  Tensor(std::vector<std::vector<uint16_t>> const &d,
-         std::vector<float> const &scales,
-         std::vector<unsigned int> const &zero_points,
-         ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
+  NNTR_API Tensor(std::vector<std::vector<uint16_t>> const &d,
+                  std::vector<float> const &scales,
+                  std::vector<unsigned int> const &zero_points,
+                  ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
     Tensor(std::vector<std::decay<decltype(d)>::type>{d}, scales, zero_points,
            t_type, qscheme_){};
 
@@ -323,6 +334,7 @@ public:
    * @param[in] d data for the Tensor. It needs to set format properly.
    * @param[in] t_type Tensor Type
    */
+  NNTR_API
   Tensor(std::vector<std::vector<std::vector<std::vector<uint32_t>>>> const &d,
          std::vector<float> const &scales,
          std::vector<unsigned int> const &zero_points,
@@ -334,10 +346,10 @@ public:
    * @param[in] d data for the Tensor. It needs to set format properly.
    * @param[in] t_type Tensor Type
    */
-  Tensor(std::vector<std::vector<std::vector<uint32_t>>> const &d,
-         std::vector<float> const &scales,
-         std::vector<unsigned int> const &zero_points,
-         ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
+  NNTR_API Tensor(std::vector<std::vector<std::vector<uint32_t>>> const &d,
+                  std::vector<float> const &scales,
+                  std::vector<unsigned int> const &zero_points,
+                  ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
     Tensor(std::vector<std::decay<decltype(d)>::type>{d}, scales, zero_points,
            t_type, qscheme_){};
 
@@ -347,10 +359,10 @@ public:
    * @param[in] d data for the Tensor with batch size one
    * @param[in] t_type Tensor Type
    */
-  Tensor(std::vector<std::vector<uint32_t>> const &d,
-         std::vector<float> const &scales,
-         std::vector<unsigned int> const &zero_points,
-         ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
+  NNTR_API Tensor(std::vector<std::vector<uint32_t>> const &d,
+                  std::vector<float> const &scales,
+                  std::vector<unsigned int> const &zero_points,
+                  ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
     Tensor(std::vector<std::decay<decltype(d)>::type>{d}, scales, zero_points,
            t_type, qscheme_){};
 
@@ -361,6 +373,7 @@ public:
    * @param[in] t_type Tensor Type
    * @param[in] qscheme_ Quantization scheme (only applies to Quantized Tensor)
    */
+  NNTR_API
   Tensor(std::vector<std::vector<std::vector<std::vector<int8_t>>>> const &d,
          std::vector<float> const &scales,
          ml::train::TensorDim::TensorType t_type, QScheme qscheme_);
@@ -373,9 +386,9 @@ public:
    * @param[in] t_type Tensor Type
    * @param[in] qscheme_ Quantization scheme (only applies to Quantized Tensor)
    */
-  Tensor(std::vector<std::vector<std::vector<int8_t>>> const &d,
-         std::vector<float> const &scales,
-         ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
+  NNTR_API Tensor(std::vector<std::vector<std::vector<int8_t>>> const &d,
+                  std::vector<float> const &scales,
+                  ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
     Tensor(std::vector<std::decay<decltype(d)>::type>{d}, scales, t_type,
            qscheme_){};
 
@@ -387,9 +400,9 @@ public:
    * @param[in] t_type Tensor Type
    * @param[in] qscheme_ Quantization scheme (only applies to Quantized Tensor)
    */
-  Tensor(std::vector<std::vector<int8_t>> const &d,
-         std::vector<float> const &scales,
-         ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
+  NNTR_API Tensor(std::vector<std::vector<int8_t>> const &d,
+                  std::vector<float> const &scales,
+                  ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
     Tensor(std::vector<std::decay<decltype(d)>::type>{d}, scales, t_type,
            qscheme_){};
 
@@ -400,6 +413,7 @@ public:
    * @param[in] t_type Tensor Type
    * @param[in] qscheme_ Quantization scheme (only applies to Quantized Tensor)
    */
+  NNTR_API
   Tensor(std::vector<std::vector<std::vector<std::vector<int16_t>>>> const &d,
          std::vector<float> const &scales,
          ml::train::TensorDim::TensorType t_type, QScheme qscheme_);
@@ -412,9 +426,9 @@ public:
    * @param[in] t_type Tensor Type
    * @param[in] qscheme_ Quantization scheme (only applies to Quantized Tensor)
    */
-  Tensor(std::vector<std::vector<std::vector<int16_t>>> const &d,
-         std::vector<float> const &scales,
-         ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
+  NNTR_API Tensor(std::vector<std::vector<std::vector<int16_t>>> const &d,
+                  std::vector<float> const &scales,
+                  ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
     Tensor(std::vector<std::decay<decltype(d)>::type>{d}, scales, t_type,
            qscheme_){};
 
@@ -426,9 +440,9 @@ public:
    * @param[in] t_type Tensor Type
    * @param[in] qscheme_ Quantization scheme (only applies to Quantized Tensor)
    */
-  Tensor(std::vector<std::vector<int16_t>> const &d,
-         std::vector<float> const &scales,
-         ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
+  NNTR_API Tensor(std::vector<std::vector<int16_t>> const &d,
+                  std::vector<float> const &scales,
+                  ml::train::TensorDim::TensorType t_type, QScheme qscheme_) :
     Tensor(std::vector<std::decay<decltype(d)>::type>{d}, scales, t_type,
            qscheme_){};
 
@@ -440,48 +454,48 @@ public:
    *  Make sure to use a unique_ptr with a derived class when utilizing this
    *  constructor.
    */
-  Tensor(const std::unique_ptr<TensorBase> &rhs);
+  NNTR_API Tensor(const std::unique_ptr<TensorBase> &rhs);
 
   /**
    * @brief Basic Destructor
    */
-  ~Tensor() = default;
+  NNTR_API ~Tensor() = default;
 
   /**
    *  @brief  Copy constructor of Tensor.
    *  @param[in] Tensor &
    */
-  Tensor(const Tensor &rhs);
+  NNTR_API Tensor(const Tensor &rhs);
 
   /**
    *  @brief  Move constructor of Tensor.
    *  @param[in] Tensor &&
    */
-  Tensor(Tensor &&rhs) noexcept = default;
+  NNTR_API Tensor(Tensor &&rhs) noexcept = default;
 
   /**
    * @brief  Copy assignment operator.
    * @param[in] rhs Tensor to be copied.
    */
-  Tensor &operator=(const Tensor &rhs);
+  NNTR_API Tensor &operator=(const Tensor &rhs);
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs Tensor to be moved.
    */
-  Tensor &operator=(Tensor &&rhs) noexcept = default;
+  NNTR_API Tensor &operator=(Tensor &&rhs) noexcept = default;
 
   /**
    * @brief     Comparison operator overload
    * @param[in] rhs Tensor to be compared with
    */
-  bool operator==(const Tensor &rhs) const;
+  NNTR_API bool operator==(const Tensor &rhs) const;
 
   /**
    * @brief     Comparison operator overload
    * @param[in] rhs Tensor to be compared with
    */
-  bool operator!=(const Tensor &rhs) const { return !(*this == rhs); }
+  NNTR_API bool operator!=(const Tensor &rhs) const { return !(*this == rhs); }
 
   /**
    *  @brief  Compare itensor considering dynamic type checking.
@@ -489,7 +503,8 @@ public:
    *  @param[in] rhs pointer of a TensorBase
    */
   template <typename T>
-  static bool itensorCompare(const TensorBase *lhs, const TensorBase *rhs) {
+  NNTR_API static bool itensorCompare(const TensorBase *lhs,
+                                      const TensorBase *rhs) {
     auto lhs_cast = dynamic_cast<const T *>(lhs);
     auto rhs_cast = dynamic_cast<const T *>(rhs);
 
@@ -512,8 +527,8 @@ public:
    * @throws    std::invalid_argument if buf is null
    */
   template <typename T = float>
-  static Tensor Map(T *buf, unsigned int bytes, const TensorDim &d,
-                    size_t offset = 0) {
+  NNTR_API static Tensor Map(T *buf, unsigned int bytes, const TensorDim &d,
+                             size_t offset = 0) {
     if (d.getDataLen() == 0 || buf == nullptr) {
       throw std::invalid_argument(
         "[Tensor::Map] empty tensor dim is not allowed");
@@ -532,24 +547,24 @@ public:
   /**
    * @brief    Allocate memory for this tensor
    */
-  void allocate();
+  NNTR_API void allocate();
 
   /**
    * @brief    Deallocate memory for this tensor
    * @note     This will not necessary free the memory as tensors share memory
    */
-  void deallocate();
+  NNTR_API void deallocate();
 
   /**
    * @brief    Check if the tensor has memory allocated/assigned/associated
    */
-  bool isAllocated();
+  NNTR_API bool isAllocated();
 
   /**
    * @brief     return Data pointer of Tensor
    * @retval    template T pointer
    */
-  template <typename T = float> T *getData() const {
+  template <typename T = float> NNTR_API T *getData() const {
     return (T *)itensor_->getData();
   }
 
@@ -557,7 +572,7 @@ public:
    * @brief     return Data pointer of Tensor
    * @retval    template T pointer
    */
-  template <typename T = float> T *getData(size_t idx) const {
+  template <typename T = float> NNTR_API T *getData(size_t idx) const {
     return (T *)itensor_->getData(idx);
   }
 
@@ -565,7 +580,7 @@ public:
    * @brief     return scale pointer of Tensor
    * @retval    template T pointer
    */
-  template <typename T = float> T *getScale() const {
+  template <typename T = float> NNTR_API T *getScale() const {
     return (T *)itensor_->getScale();
   }
 
@@ -573,7 +588,7 @@ public:
    * @brief     return scale pointer of Tensor
    * @retval    template T pointer
    */
-  template <typename T = float> T *getScale(size_t idx) const {
+  template <typename T = float> NNTR_API T *getScale(size_t idx) const {
     return (T *)itensor_->getScale(idx);
   }
 
@@ -581,13 +596,15 @@ public:
    * @brief     return zero point pointer of Tensor
    * @retval    unsigned int pointer
    */
-  unsigned int *getZeroPoint() const { return itensor_->getZeroPoint(); }
+  NNTR_API unsigned int *getZeroPoint() const {
+    return itensor_->getZeroPoint();
+  }
 
   /**
    * @brief     return zero point pointer of Tensor
    * @retval    unsigned int pointer
    */
-  unsigned int *getZeroPoint(size_t idx) const {
+  NNTR_API unsigned int *getZeroPoint(size_t idx) const {
     return itensor_->getZeroPoint(idx);
   }
 
@@ -595,7 +612,7 @@ public:
    * @brief     i data index
    * @retval    template T pointer (address of ith data)
    */
-  template <typename T = float> T *getAddress(unsigned int i) {
+  template <typename T = float> NNTR_API T *getAddress(unsigned int i) {
     return (T *)itensor_->getAddress(i);
   }
 
@@ -603,7 +620,8 @@ public:
    * @brief     i data index
    * @retval    template T pointer (address of ith data)
    */
-  template <typename T = float> const T *getAddress(unsigned int i) const {
+  template <typename T = float>
+  NNTR_API const T *getAddress(unsigned int i) const {
     return (T *)itensor_->getAddress(i);
   }
 
@@ -611,8 +629,8 @@ public:
    * @brief    get address of n-d data
    */
   template <typename T = float>
-  T *getAddress(unsigned int b, unsigned int c, unsigned int h,
-                unsigned int w) {
+  NNTR_API T *getAddress(unsigned int b, unsigned int c, unsigned int h,
+                         unsigned int w) {
     return getAddress<T>(getIndex(b, c, h, w));
   }
 
@@ -620,8 +638,8 @@ public:
    * @brief    get address of n-d data
    */
   template <typename T = float>
-  const T *getAddress(unsigned int b, unsigned int c, unsigned int h,
-                      unsigned int w) const {
+  NNTR_API const T *getAddress(unsigned int b, unsigned int c, unsigned int h,
+                               unsigned int w) const {
     return getAddress<T>(getIndex(b, c, h, w));
   }
 
@@ -630,7 +648,7 @@ public:
    * @param[in] idx location
    */
   template <typename T = float>
-  const T &getValue(unsigned int idx) const noexcept {
+  NNTR_API const T &getValue(unsigned int idx) const noexcept {
     return getData<T>()[idx];
   }
 
@@ -638,7 +656,8 @@ public:
    * @brief     return value at specific location
    * @param[in] idx location
    */
-  template <typename T = float> T &getValue(unsigned int idx) noexcept {
+  template <typename T = float>
+  NNTR_API T &getValue(unsigned int idx) noexcept {
     return getData<T>()[idx];
   }
 
@@ -650,8 +669,8 @@ public:
    * @param[in] w width location
    */
   template <typename T = float>
-  const T &getValue(unsigned int b, unsigned int c, unsigned int h,
-                    unsigned int w) const noexcept {
+  NNTR_API const T &getValue(unsigned int b, unsigned int c, unsigned int h,
+                             unsigned int w) const noexcept {
     return getValue<T>(getIndex(b, c, h, w));
   }
 
@@ -663,8 +682,8 @@ public:
    * @param[in] w width location
    */
   template <typename T = float>
-  T &getValue(unsigned int b, unsigned int c, unsigned int h,
-              unsigned int w) noexcept {
+  NNTR_API T &getValue(unsigned int b, unsigned int c, unsigned int h,
+                       unsigned int w) noexcept {
     return getValue<T>(getIndex(b, c, h, w));
   }
 
@@ -672,7 +691,7 @@ public:
    * @brief     Fill the Tensor elements with value
    * @param[in] value value to be stored
    */
-  void setValue(float value);
+  NNTR_API void setValue(float value);
 
   /**
    * @brief     Set the element value
@@ -682,8 +701,8 @@ public:
    * @param[in] w width location
    * @param[in] value value to be stored
    */
-  void setValue(unsigned int b, unsigned int c, unsigned int h, unsigned int w,
-                float value);
+  NNTR_API void setValue(unsigned int b, unsigned int c, unsigned int h,
+                         unsigned int w, float value);
 
   /**
    * @brief     Set the element value
@@ -692,7 +711,7 @@ public:
    *
    * @todo      This is a temporary workout. Remove this
    */
-  void setValueInt(unsigned int offset, int value) noexcept {
+  NNTR_API void setValueInt(unsigned int offset, int value) noexcept {
     int *data_int = (int *)getData();
     data_int[offset] = value;
   }
@@ -706,51 +725,51 @@ public:
    * @param[in] value value to be stored
    * @param[in] beta scalar to multiply output with and add
    */
-  void addValue(unsigned int b, unsigned int c, unsigned int h, unsigned int w,
-                float value, float beta) noexcept;
+  NNTR_API void addValue(unsigned int b, unsigned int c, unsigned int h,
+                         unsigned int w, float value, float beta) noexcept;
 
   /**
    * @brief     Fill the Tensor elements with zero
    */
-  void setZero();
+  NNTR_API void setZero();
 
   /**
    * @brief     Set the tensor with random normal distribution
    * @param[in] mean mean of the distribution
    * @param[in] std standard deviation of the distribution
    */
-  void setRandNormal(float mean = 0.0f, float stddev = 0.05f);
+  NNTR_API void setRandNormal(float mean = 0.0f, float stddev = 0.05f);
 
   /**
    * @brief     Set the tensor with random uniform distribution
    * @param[in] min minimum value for the distribution
    * @param[in] max maximum value for the distribution
    */
-  void setRandUniform(float min = -0.05f, float max = 0.05f);
+  NNTR_API void setRandUniform(float min = -0.05f, float max = 0.05f);
 
   /**
    * @brief     Set the tensor with random bernoulli distribution
    * @param[in] probability probability value for the distribution
    */
-  void setRandBernoulli(float probability = 0.5f);
+  NNTR_API void setRandBernoulli(float probability = 0.5f);
 
   /**
    * @brief     Initialize the memory of the given tensor
    */
-  void initialize();
+  NNTR_API void initialize();
 
   /**
    * @brief     Initialize the memory of the given tensor
    * @param     init Initiailizer to use for the initialization
    */
-  void initialize(Initializer init);
+  NNTR_API void initialize(Initializer init);
 
   /**
    * @brief Apply instantly to the element
    * @param[in] *function function pointer applied
    * @return int ML_ERROR_NONE if successful
    */
-  template <typename T = float> int apply_i(std::function<T(T)> f) {
+  template <typename T = float> NNTR_API int apply_i(std::function<T(T)> f) {
     Tensor result = *this;
     apply<T>(f, result);
 
@@ -762,7 +781,8 @@ public:
    * @param[in] *function function pointer applied
    * @retval    Tensor
    */
-  template <typename T = float> Tensor apply(std::function<T(T)> f) const {
+  template <typename T = float>
+  NNTR_API Tensor apply(std::function<T(T)> f) const {
     Tensor result;
     apply<T>(f, result);
 
@@ -776,7 +796,7 @@ public:
    * @retval    Tensor
    */
   template <typename T = float>
-  Tensor &apply(std::function<T(T)> f, Tensor &output) const {
+  NNTR_API Tensor &apply(std::function<T(T)> f, Tensor &output) const {
     CREATE_IF_EMPTY_DIMS(output, itensor_->getDim(), nullptr);
 
     if (itensor_->getFormat() != output.itensor_->getFormat() ||
@@ -796,7 +816,7 @@ public:
    * @param[in] *function function pointer applied
    * @retval    Tensor
    */
-  Tensor apply(std::function<Tensor(Tensor)> f) const;
+  NNTR_API Tensor apply(std::function<Tensor(Tensor)> f) const;
 
   /**
    * @brief     Apply function to Tensor
@@ -804,8 +824,8 @@ public:
    * @param[out] output output tensor
    * @retval    Tensor
    */
-  Tensor &apply(std::function<Tensor &(Tensor, Tensor &)> f,
-                Tensor &output) const;
+  NNTR_API Tensor &apply(std::function<Tensor &(Tensor, Tensor &)> f,
+                         Tensor &output) const;
 
   /**
    * @brief     Multiply Tensor Elementwise
@@ -818,7 +838,7 @@ public:
    *
    * @todo merge this to multiply_i
    */
-  int multiply_i_strided(Tensor const &m, const float beta = 0.0);
+  NNTR_API int multiply_i_strided(Tensor const &m, const float beta = 0.0);
 
   /**
    * @brief     Multiply Tensor Element by Element ( Not the MxM )
@@ -831,7 +851,8 @@ public:
    *
    * @todo merge this to multiply
    */
-  Tensor multiply_strided(Tensor const &m, const float beta = 0.0) const;
+  NNTR_API Tensor multiply_strided(Tensor const &m,
+                                   const float beta = 0.0) const;
 
   /**
    * @brief     Multiply Tensor Element by Element ( Not the MxM )
@@ -845,8 +866,8 @@ public:
    *
    * @todo merge this to multiply
    */
-  Tensor &multiply_strided(Tensor const &m, Tensor &output,
-                           const float beta = 0.0) const;
+  NNTR_API Tensor &multiply_strided(Tensor const &m, Tensor &output,
+                                    const float beta = 0.0) const;
 
   /**
    * @brief     Multiply value element by element immediately
@@ -854,14 +875,14 @@ public:
    * @retval    #ML_ERROR_INVALID_PARAMETER Tensor dimension is not right
    * @retval    #ML_ERROR_NONE Successful
    */
-  int multiply_i(float const &value);
+  NNTR_API int multiply_i(float const &value);
 
   /**
    * @brief     Multiply value element by element
    * @param[in] value multiplier
    * @retval    Calculated Tensor
    */
-  Tensor multiply(float const &value) const;
+  NNTR_API Tensor multiply(float const &value) const;
 
   /**
    * @brief      multiply value element by element
@@ -869,7 +890,7 @@ public:
    * @param[out] out out tensor to store the result
    * @retval     Calculated Tensor
    */
-  Tensor &multiply(float const &value, Tensor &out) const;
+  NNTR_API Tensor &multiply(float const &value, Tensor &out) const;
 
   /**
    * @brief     Multiply Tensor Elementwise
@@ -877,7 +898,7 @@ public:
    * @param[in] beta scalar to multiply output with and add
    * @retval    #ML_ERROR_NONE successful
    */
-  int multiply_i(Tensor const &m, const float beta = 0.0);
+  NNTR_API int multiply_i(Tensor const &m, const float beta = 0.0);
 
   /**
    * @brief     Multiply Tensor Element by Element ( Not the MxM )
@@ -885,7 +906,7 @@ public:
    * @param[in] beta scalar to multiply output with and add
    * @retval    Calculated Tensor
    */
-  Tensor multiply(Tensor const &m, const float beta = 0.0) const;
+  NNTR_API Tensor multiply(Tensor const &m, const float beta = 0.0) const;
 
   /**
    * @brief      Multiply Tensor Element by Element ( Not the MxM )
@@ -894,8 +915,8 @@ public:
    * @param[in]  beta scalar to multiply output with and add
    * @retval     Calculated Tensor
    */
-  Tensor &multiply(Tensor const &m, Tensor &output,
-                   const float beta = 0.0) const;
+  NNTR_API Tensor &multiply(Tensor const &m, Tensor &output,
+                            const float beta = 0.0) const;
 
   /**
    * @brief     Divide value element by element immediately
@@ -903,14 +924,14 @@ public:
    * @retval    #ML_ERROR_INVALID_PARAMETER Tensor dimension is not right
    * @retval    #ML_ERROR_NONE Successful
    */
-  int divide_i(float const &value);
+  NNTR_API int divide_i(float const &value);
 
   /**
    * @brief     Divide value element by element
    * @param[in] value Divisor
    * @retval    Calculated Tensor
    */
-  Tensor divide(float const &value) const;
+  NNTR_API Tensor divide(float const &value) const;
 
   /**
    * @brief     Divide value element by element
@@ -918,21 +939,21 @@ public:
    * @param[out] output Tensor to store the result
    * @retval    Calculated Tensor
    */
-  Tensor &divide(float const &value, Tensor &output) const;
+  NNTR_API Tensor &divide(float const &value, Tensor &output) const;
 
   /**
    * @brief     divide Tensor Elementwise
    * @param[in] m Tensor to be multiplied
    * @retval    #ML_ERROR_NONE successful
    */
-  int divide_i(Tensor const &m);
+  NNTR_API int divide_i(Tensor const &m);
 
   /**
    * @brief     Divide Tensor Element by Element
    * @param[in] m Divisor Tensor
    * @retval    Calculated Tensor
    */
-  Tensor divide(Tensor const &m) const;
+  NNTR_API Tensor divide(Tensor const &m) const;
 
   /**
    * @brief     divide Tensor Elementwise
@@ -940,7 +961,7 @@ public:
    * @param[out] output Tensor to store the result
    * @retval    Calculated Tensor
    */
-  Tensor &divide(Tensor const &m, Tensor &output) const;
+  NNTR_API Tensor &divide(Tensor const &m, Tensor &output) const;
 
   /**
    * @brief     Add Tensor Elementwise
@@ -953,7 +974,7 @@ public:
    *
    * @todo merge this to add_i
    */
-  int add_i_strided(Tensor const &input, const float beta = 0.0);
+  NNTR_API int add_i_strided(Tensor const &input, const float beta = 0.0);
 
   /**
    * @brief     Add Tensor Element by Element
@@ -966,7 +987,8 @@ public:
    *
    * @todo merge this to add
    */
-  Tensor add_strided(Tensor const &input, const float beta = 0.0) const;
+  NNTR_API Tensor add_strided(Tensor const &input,
+                              const float beta = 0.0) const;
 
   /**
    * @brief      Add Tensor Element by Element
@@ -980,8 +1002,8 @@ public:
    *
    * @todo merge this to add
    */
-  Tensor &add_strided(Tensor const &input, Tensor &output,
-                      const float beta = 0.0) const;
+  NNTR_API Tensor &add_strided(Tensor const &input, Tensor &output,
+                               const float beta = 0.0) const;
 
   /**
    * @brief     Add Tensor Element immediately to target tensor without mem copy
@@ -989,14 +1011,14 @@ public:
    * @retval    #ML_ERROR_NONE  Successful
    * @retval    #ML_ERROR_INVALID_PARAMETER Invalid Parameter
    */
-  int add_i(float const &value);
+  NNTR_API int add_i(float const &value);
 
   /**
    * @brief     Add value Element by Element
    * @param[in] value value to be added
    * @retval    Calculated Tensor
    */
-  Tensor add(float const &value) const;
+  NNTR_API Tensor add(float const &value) const;
 
   /**
    * @brief      Add Tensor Element by Element
@@ -1004,7 +1026,7 @@ public:
    * @param[out] output Tensor to save output without allocating new memory
    * @retval     Calculated Tensor
    */
-  Tensor &add(float const &value, Tensor &output) const;
+  NNTR_API Tensor &add(float const &value, Tensor &output) const;
 
   /**
    * @brief     Add Tensor Element by Element without mem copy
@@ -1013,7 +1035,7 @@ public:
    * @retval    #ML_ERROR_NONE  Successful
    * @retval    #ML_ERROR_INVALID_PARAMETER Invalid Parameter
    */
-  int add_i(Tensor const &m, float const alpha = 1.F);
+  NNTR_API int add_i(Tensor const &m, float const alpha = 1.F);
 
   /**
    * @brief Do add_i for specific section
@@ -1028,9 +1050,9 @@ public:
    * @retval #ML_ERROR_NONE  Successful
    * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
    */
-  int add_i_partial(unsigned int len, unsigned int addr_idx, Tensor &m,
-                    unsigned int incX, unsigned int incY, const Tensor alphas,
-                    unsigned int alpha_idx);
+  NNTR_API int add_i_partial(unsigned int len, unsigned int addr_idx, Tensor &m,
+                             unsigned int incX, unsigned int incY,
+                             const Tensor alphas, unsigned int alpha_idx);
 
   /**
    * @brief     Add Tensor Element by Element
@@ -1038,7 +1060,7 @@ public:
    * @param[in] alpha Values to be scaled
    * @retval    Calculated Tensor
    */
-  Tensor add(Tensor const &m, float const alpha = 1) const;
+  NNTR_API Tensor add(Tensor const &m, float const alpha = 1) const;
 
   /**
    * @brief      Add Tensor Element by Element
@@ -1047,21 +1069,22 @@ public:
    * @param[in]  alpha Values to be scaled
    * @retval     Calculated Tensor
    */
-  Tensor &add(Tensor const &m, Tensor &output, float const alpha = 1) const;
+  NNTR_API Tensor &add(Tensor const &m, Tensor &output,
+                       float const alpha = 1) const;
 
   /**
    * @brief     memcpyless version of subtract
    * @retval    #ML_ERROR_NONE  Successful
    * @retval    #ML_ERROR_INVALID_PARAMETER Invalid Parameter
    */
-  int subtract_i(float const &value);
+  NNTR_API int subtract_i(float const &value);
 
   /**
    * @brief     subtract value Element by Element
    * @param[in] value value to be subtracted
    * @retval    Calculated Tensor
    */
-  Tensor subtract(float const &value) const;
+  NNTR_API Tensor subtract(float const &value) const;
 
   /**
    * @brief      Subtract Tensor Element by Element
@@ -1069,7 +1092,7 @@ public:
    * @param[out] output Tensor to save output without allocating new memory
    * @retval     Calculated Tensor
    */
-  Tensor &subtract(float const &value, Tensor &output) const;
+  NNTR_API Tensor &subtract(float const &value, Tensor &output) const;
 
   /**
    * @brief     memcpyless version of subtract
@@ -1077,14 +1100,14 @@ public:
    * @retval    #ML_ERROR_NONE  Successful
    * @retval    #ML_ERROR_INVALID_PARAMETER Invalid Parameter
    */
-  int subtract_i(Tensor const &m);
+  NNTR_API int subtract_i(Tensor const &m);
 
   /**
    * @brief     Substract Tensor Element by Element
    * @param[in] m Tensor to be subtracted
    * @retval    Calculated Tensor
    */
-  Tensor subtract(Tensor const &m) const;
+  NNTR_API Tensor subtract(Tensor const &m) const;
 
   /**
    * @brief      Subtract Tensor Element by Element
@@ -1092,13 +1115,13 @@ public:
    * @param[out] output Tensor to be out
    * @retval     Calculated Tensor
    */
-  Tensor &subtract(Tensor const &m, Tensor &output) const;
+  NNTR_API Tensor &subtract(Tensor const &m, Tensor &output) const;
 
   /**
    * @brief     sum all the Tensor elements according to the batch
    * @retval    Calculated Tensor(batch, 1, 1, 1)
    */
-  Tensor sum_by_batch() const;
+  NNTR_API Tensor sum_by_batch() const;
 
   /**
    * @brief     sum all the Tensor elements according to the axis
@@ -1110,7 +1133,7 @@ public:
    * @param[in] alpha Scale the sum by this value
    * @retval    Calculated Tensor
    */
-  Tensor sum(unsigned int axis, float alpha = 1.0) const;
+  NNTR_API Tensor sum(unsigned int axis, float alpha = 1.0) const;
 
   /**
    * @brief     sum all the Tensor elements according to the axis
@@ -1123,8 +1146,8 @@ public:
    * @param[in] alpha Scale the sum by this value
    * @retval    Calculated Tensor
    */
-  Tensor &sum(unsigned int axis, Tensor &output, float alpha = 1.0,
-              float beta = 0.0) const;
+  NNTR_API Tensor &sum(unsigned int axis, Tensor &output, float alpha = 1.0,
+                       float beta = 0.0) const;
 
   /**
    * @brief sum all the Tensor by multiple axes
@@ -1133,7 +1156,8 @@ public:
    * @param alpha Scale the sum by this value
    * @return Tensor
    */
-  Tensor sum(const std::vector<unsigned int> &axes, float alpha = 1.0) const;
+  NNTR_API Tensor sum(const std::vector<unsigned int> &axes,
+                      float alpha = 1.0) const;
 
   /**
    * @brief sum all the Tensor by multiple axes
@@ -1143,14 +1167,14 @@ public:
    * @param alpha Scale the sum by this value
    * @return Tensor
    */
-  Tensor &sum(const std::vector<unsigned int> &axes, Tensor &output,
-              float alpha = 1.0) const;
+  NNTR_API Tensor &sum(const std::vector<unsigned int> &axes, Tensor &output,
+                       float alpha = 1.0) const;
 
   /**
    * @brief  return absolute value
    * @retval Calculated Tensor
    */
-  Tensor &abs(Tensor &output) const;
+  NNTR_API Tensor &abs(Tensor &output) const;
 
   /**
    * @brief     Averaging the Tensor elements according to the axis
@@ -1160,20 +1184,20 @@ public:
    *            3 : width direction
    * @retval    Calculated Tensor
    */
-  Tensor average(unsigned int axis) const;
+  NNTR_API Tensor average(unsigned int axis) const;
 
   /**
    * @brief     Averaging the Tensor elements according to the axis
    * @retval    Calculated Tensor
    */
-  Tensor &average(unsigned int axis, Tensor &output) const;
+  NNTR_API Tensor &average(unsigned int axis, Tensor &output) const;
 
   /**
    * @brief     Average all the Tensor by multiple axes
    * @param[in] axes axes to sum along
    * @retval    Calculated Tensor
    */
-  Tensor average(const std::vector<unsigned int> &axes) const;
+  NNTR_API Tensor average(const std::vector<unsigned int> &axes) const;
 
   /**
    * @brief      Average all the Tensor by multiple axes
@@ -1181,33 +1205,34 @@ public:
    * @param[out] output output tensor
    * @retval     Calculated Tensor
    */
-  Tensor &average(const std::vector<unsigned int> &axes, Tensor &output) const;
+  NNTR_API Tensor &average(const std::vector<unsigned int> &axes,
+                           Tensor &output) const;
 
   /**
    * @brief     Average the Tensor elements by all axis
    * @retval    Calculated Tensor
    */
-  Tensor average() const;
+  NNTR_API Tensor average() const;
 
   /**
    * @brief     Averaging the Tensor elements by all axis
    * @retval    Calculated Tensor
    */
-  Tensor &average(Tensor &output) const;
+  NNTR_API Tensor &average(Tensor &output) const;
 
   /**
    * @brief     Tensor power element without mem copy
    * @param[in] exponent exponent
    * @retval    #ML_ERROR_NONE  Successful
    */
-  int pow_i(float exponent);
+  NNTR_API int pow_i(float exponent);
 
   /**
    * @brief     Tensor power element by element
    * @param[in] exponent exponent
    * @retval    Calculated Tensor
    */
-  Tensor pow(float exponent) const;
+  NNTR_API Tensor pow(float exponent) const;
 
   /**
    * @brief      Tensor power element by element
@@ -1215,110 +1240,110 @@ public:
    * @param[out] output out to store the result
    * @retval     Calculated Tensor
    */
-  Tensor &pow(float exponent, Tensor &output) const;
+  NNTR_API Tensor &pow(float exponent, Tensor &output) const;
 
   /**
    * @brief     Compute square-root element by element
    * @retval    #ML_ERROR_NONE  Successful
    */
-  int sqrt_i();
+  NNTR_API int sqrt_i();
 
   /**
    * @brief     Compute square-root by element
    * @retval    Calculated Tensor
    */
-  Tensor sqrt() const;
+  NNTR_API Tensor sqrt() const;
 
   /**
    * @brief      Compute square-root by element
    * @param[out] output out to store the result
    * @retval     Calculated Tensor
    */
-  Tensor &sqrt(Tensor &output) const;
+  NNTR_API Tensor &sqrt(Tensor &output) const;
 
   /**
    * @brief     Gauss error function
    * @retval    #ML_ERROR_NONE  Successful
    */
-  int erf_i();
+  NNTR_API int erf_i();
 
   /**
    * @brief     Gauss error function
    * @retval    Calculated Tensor
    */
-  Tensor erf() const;
+  NNTR_API Tensor erf() const;
 
   /**
    * @brief      Gauss error function
    * @param[out] output out to store the result
    * @retval     Calculated Tensor
    */
-  Tensor &erf(Tensor &output) const;
+  NNTR_API Tensor &erf(Tensor &output) const;
 
   /**
    * @brief    sin transform function
    * @param[out] out out to store the result
    */
-  void sin(Tensor &out, float alpha = 1.0) const;
+  NNTR_API void sin(Tensor &out, float alpha = 1.0) const;
 
   /**
    * @brief    cos transform function
    * @param[out] out out to store the result
    */
-  void cos(Tensor &out, float alpha = 1.0) const;
+  NNTR_API void cos(Tensor &out, float alpha = 1.0) const;
 
   /**
    * @brief tangent transform function
    * @param[out] output out to store the result
    */
-  void tan(Tensor &output, float alpha = 1.0) const;
+  NNTR_API void tan(Tensor &output, float alpha = 1.0) const;
 
   /**
    * @brief inverse squared root function (in-place)
    */
-  void inv_sqrt_i();
+  NNTR_API void inv_sqrt_i();
 
   /**
    * @brief inverse squared root function
    * @param[in] out output Tensor
    */
-  Tensor inv_sqrt(Tensor &out) const;
+  NNTR_API Tensor inv_sqrt(Tensor &out) const;
 
   /**
    * @brief     Anchor a starting point to defer following evaluation
    * @retval    LazyTensor class that can be used with run();
    */
-  LazyTensor chain() const;
+  NNTR_API LazyTensor chain() const;
 
   /**
    * @brief     l2norm the Tensor elements
    * @retval    Calculated l2norm
    */
-  float l2norm() const;
+  NNTR_API float l2norm() const;
 
   /**
    * @brief     Normalize the Tensor elements
    * @retval    Calculated Tensor
    */
-  Tensor &normalization(Tensor &output) const;
+  NNTR_API Tensor &normalization(Tensor &output) const;
 
   /**
    * @brief     Standardize the Tensor elements
    * @retval    Calculated Tensor
    */
-  Tensor &standardization(Tensor &output) const;
+  NNTR_API Tensor &standardization(Tensor &output) const;
 
   /**
    * @brief     Normalize the Tensor elements in-place
    * @retval    Calculated Tensor
    */
-  void normalization_i();
+  NNTR_API void normalization_i();
 
   /**
    * @brief     Standardize the Tensor elements in-place
    * @retval    Calculated Tensor
    */
-  void standardization_i();
+  NNTR_API void standardization_i();
 
   /**
    * @brief     Dot Product of Tensor ( equal MxM )
@@ -1329,8 +1354,8 @@ public:
    * @param[in] trans_in Transpose input
    * @retval    Calculated Tensor
    */
-  Tensor dot(Tensor const &input, bool trans = false,
-             bool trans_in = false) const;
+  NNTR_API Tensor dot(Tensor const &input, bool trans = false,
+                      bool trans_in = false) const;
 
   /**
    * @brief     Dot Product of Tensor ( equal MxM )
@@ -1343,8 +1368,8 @@ public:
    * @param[in] beta beta
    * @retval    Calculated Tensor
    */
-  Tensor &dot(Tensor const &input, Tensor &output, bool trans = false,
-              bool trans_in = false, float beta = 0.0f) const;
+  NNTR_API Tensor &dot(Tensor const &input, Tensor &output, bool trans = false,
+                       bool trans_in = false, float beta = 0.0f) const;
 
   /**
    * @brief compute the derivative of this in the current tensor
@@ -1357,9 +1382,10 @@ public:
    existing
    * data in the tensor
    */
-  Tensor &dot_deriv_wrt_1(Tensor const &input, Tensor const &output_deriv,
-                          bool trans = false, bool trans_in = false,
-                          float beta = 0.0f);
+  NNTR_API Tensor &dot_deriv_wrt_1(Tensor const &input,
+                                   Tensor const &output_deriv,
+                                   bool trans = false, bool trans_in = false,
+                                   float beta = 0.0f);
 
   /**
    * @brief compute the derivative wrt m in the input tensor
@@ -1371,9 +1397,10 @@ public:
    * @note The caller tensor must be the same tensor as the one which called
    the dot() product.
    */
-  Tensor &dot_deriv_wrt_2(Tensor &input_deriv, Tensor const &output_deriv,
-                          bool trans = false, bool trans_in = false,
-                          float beta = 0.0f) const;
+  NNTR_API Tensor &dot_deriv_wrt_2(Tensor &input_deriv,
+                                   Tensor const &output_deriv,
+                                   bool trans = false, bool trans_in = false,
+                                   float beta = 0.0f) const;
 
   /**
    * @copydoc Tensor::dot(Tensor const &input, Tensor &output, bool trans,
@@ -1382,46 +1409,49 @@ public:
    of the given two tensors are different, the bigger one should be a multiple
    of the smaller one.
    */
-  Tensor &dotBatched(Tensor const &input, Tensor &result, bool trans = false,
-                     bool trans_in = false, float beta = 0.0f) const;
+  NNTR_API Tensor &dotBatched(Tensor const &input, Tensor &result,
+                              bool trans = false, bool trans_in = false,
+                              float beta = 0.0f) const;
 
   /**
    * @copydoc Tensor::dot_deriv_wrt_1(Tensor const &input, Tensor const
    &output_deriv, bool trans, bool trans_in, float beta)
    */
-  Tensor &dot_batched_deriv_wrt_1(Tensor const &input,
-                                  Tensor const &output_deriv,
-                                  bool trans = false, bool trans_in = false,
-                                  float beta = 0.0f);
+  NNTR_API Tensor &dot_batched_deriv_wrt_1(Tensor const &input,
+                                           Tensor const &output_deriv,
+                                           bool trans = false,
+                                           bool trans_in = false,
+                                           float beta = 0.0f);
 
   /**
    * @brief Tensor::dot_deriv_wrt_2(Tensor const &input_deriv, Tensor const
    &output_deriv, bool trans, bool trans_in, float beta) const
    */
-  Tensor &dot_batched_deriv_wrt_2(Tensor &input_deriv,
-                                  Tensor const &output_deriv,
-                                  bool trans = false, bool trans_in = false,
-                                  float beta = 0.0f) const;
+  NNTR_API Tensor &dot_batched_deriv_wrt_2(Tensor &input_deriv,
+                                           Tensor const &output_deriv,
+                                           bool trans = false,
+                                           bool trans_in = false,
+                                           float beta = 0.0f) const;
 
   /**
    * @brief Calculate Drop Out Mask : x * 1.0/(1.0-rate)
    * @param dropout drop out rate
    * @retval Tensor& reference of drop out mask
    */
-  Tensor dropout_mask(float dropout) const;
+  NNTR_API Tensor dropout_mask(float dropout) const;
 
   /**
    * @brief Calculate Drop Out Mask : x * 1.0/(1.0-rate) inplace
    * @param dropout drop out rate
    */
-  void dropout_mask(float dropout);
+  NNTR_API void dropout_mask(float dropout);
 
   /**
    * @brief Calculate filter mask
    * @param mask_len length of each mask along the last axis
    * @param invert invert the mask
    */
-  void filter_mask(const Tensor &mask_len, bool reverse = false);
+  NNTR_API void filter_mask(const Tensor &mask_len, bool reverse = false);
 
   /**
    * @brief Calculate 2 Zone Out Mask
@@ -1431,7 +1461,7 @@ public:
    * @param zoneout zone out rate
    * @retval Tensor zone out mask for opposite tensor
    */
-  Tensor zoneout_mask(float zoneout);
+  NNTR_API Tensor zoneout_mask(float zoneout);
 
   /**
    * @brief Calculate 2 Zone Out Mask
@@ -1441,7 +1471,7 @@ public:
    * @param opposite opposite zone out mask
    * @param zoneout zone out rate
    */
-  void zoneout_mask(Tensor &opposite, float zoneout);
+  NNTR_API void zoneout_mask(Tensor &opposite, float zoneout);
 
   /**
    * @brief split tensor along axis.
@@ -1450,7 +1480,7 @@ public:
    * @param axis axis
    * @return Tensor splitted tensor
    */
-  std::vector<Tensor> split(unsigned num_size, int axis = 0);
+  NNTR_API std::vector<Tensor> split(unsigned num_size, int axis = 0);
 
   /**
    * @brief split tensor along axis.
@@ -1461,7 +1491,7 @@ public:
    * @note if the given array sizes is just a 1 unsigned int value, assumes that
    * it divide tensor by given size evenly
    */
-  std::vector<Tensor> split(std::vector<size_t> sizes, int axis = 0);
+  NNTR_API std::vector<Tensor> split(std::vector<size_t> sizes, int axis = 0);
 
   /**
    * @brief concatenate tensors along axis
@@ -1473,7 +1503,8 @@ public:
    *
    * @note  This function should not be used directly. Please use cat() instead.
    */
-  Tensor concat(const std::vector<Tensor> &tensors, int axis, Tensor &output);
+  NNTR_API Tensor concat(const std::vector<Tensor> &tensors, int axis,
+                         Tensor &output);
 
   /**
    * @brief concatenate tensors along axis
@@ -1482,7 +1513,7 @@ public:
    * @param axis axis
    * @return Tensor concatenated tensor
    */
-  static Tensor cat(const std::vector<Tensor> &tensors, int axis = 0);
+  NNTR_API static Tensor cat(const std::vector<Tensor> &tensors, int axis = 0);
 
   /**
    * @brief concatenate tensors along axis
@@ -1492,20 +1523,20 @@ public:
    * @param output output tensor to store the result
    * @return Tensor concatenated tensor
    */
-  static Tensor cat(const std::vector<Tensor> &tensors, int axis,
-                    Tensor &output);
+  NNTR_API static Tensor cat(const std::vector<Tensor> &tensors, int axis,
+                             Tensor &output);
 
   /**
    * @brief     Print element
    * @param[in] out out stream
    */
-  void print(std::ostream &out) const;
+  NNTR_API void print(std::ostream &out) const;
 
   /**
    * @brief     put data of Tensor
    * @note      It is only effective when fsu is used
    */
-  void putData() const;
+  NNTR_API void putData() const;
 
   /**
    * @brief Set the memory buffer for the tensor
@@ -1513,19 +1544,19 @@ public:
    * @param buf the memory buffer
    * @param init intialize the buffer
    */
-  void setData(const std::shared_ptr<MemoryData> buf, size_t off = 0,
-               bool init = false);
+  NNTR_API void setData(const std::shared_ptr<MemoryData> buf, size_t off = 0,
+                        bool init = false);
 
   /**
    * @brief     return Data pointer of Tensor
    * @retval    template T pointer (float pointer as default)
    */
-  const std::shared_ptr<MemoryData> getMemoryData() const;
+  NNTR_API const std::shared_ptr<MemoryData> getMemoryData() const;
 
   /**
    * @brief     return offset
    */
-  size_t getOffset() const;
+  NNTR_API size_t getOffset() const;
 
   /**
    * @brief     Copy the Tensor
@@ -1534,21 +1565,21 @@ public:
    * @note copy can reshape the tensor to match the shape
    * @note support copying data from multiple data type
    */
-  void copy(const Tensor &from);
+  NNTR_API void copy(const Tensor &from);
 
   /**
    * @brief     Copy the Tensor
    * @param[in] from Tensor to be copied
    * @note      support copying data from multiple data type
    */
-  void copyData(const Tensor &from);
+  NNTR_API void copyData(const Tensor &from);
 
   /**
    * @brief     Copy the Tensor
    * @param[in] from Tensor to be copied
    * @note      only support copying data from tensor with the same data type
    */
-  void copy_with_stride(const Tensor &from);
+  NNTR_API void copy_with_stride(const Tensor &from);
 
   /**
    * @brief Get slice of the tensor, sliced by batch
@@ -1558,76 +1589,76 @@ public:
    * @note This function provides a slice of this tensor, and does not create a
    * copy
    */
-  Tensor getBatchSlice(size_t offset, unsigned int size) const;
+  NNTR_API Tensor getBatchSlice(size_t offset, unsigned int size) const;
 
   /**
    * @brief     Convient wrapper for inplace copy of @a this.
    * @retval    Copied version of this
    */
-  Tensor clone() const;
+  NNTR_API Tensor clone() const;
 
   /**
    * @brief     Convient wrapper for inplace copy of @a this.
    * @param[in] type output tensor data type
    * @retval    Copied version of this
    */
-  Tensor clone(ml::train::TensorDim::DataType type) const;
+  NNTR_API Tensor clone(ml::train::TensorDim::DataType type) const;
 
   /**
    * @brief     Read the Tensor For FSU
    *
    */
-  void readFSU();
+  NNTR_API void readFSU();
 
   /**
    * @brief     Save the Tensor into file
    * @param[in] file output file stream
    */
-  void save(std::ostream &file);
+  NNTR_API void save(std::ostream &file);
 
   /**
    * @brief     Read the Tensor from file
    * @param[in] file input file stream
    */
-  void read(std::ifstream &file, size_t start_offset = 0,
-            bool read_from_offset = false);
+  NNTR_API void read(std::ifstream &file, size_t start_offset = 0,
+                     bool read_from_offset = false);
 
   /**
    * @brief     return argument index which value is max by batch
    * @retval    unsigned int argument indices
    */
-  std::vector<unsigned int> argmax() const;
+  NNTR_API std::vector<unsigned int> argmax() const;
 
   /**
    * @brief     return argument index which value is min by batch
    * @retval    unsigned int argument indices
    */
-  std::vector<unsigned int> argmin() const;
+  NNTR_API std::vector<unsigned int> argmin() const;
 
   /**
    * @brief     return max of the absolute values of the tensor
    * @retval    maximum absolute value
    */
-  float max_abs() const;
+  NNTR_API float max_abs() const;
 
   /**
    * @brief  return maximum value
    * @retval Maximum value of the tensor data
    */
-  float maxValue() const;
+  NNTR_API float maxValue() const;
 
   /**
    * @brief  return minimum value
    * @retval Minimum value of the tensor data
    */
-  float minValue() const;
+  NNTR_API float minValue() const;
 
   /**
    * @brief  Transpose Tensor
    * @param  direction to transpose ex) 0:2:1
    * @return Tensor
    */
-  Tensor transpose(const std::string &direction) const;
+  NNTR_API Tensor transpose(const std::string &direction) const;
 
   /**
    * @brief      Transpose Tensor
@@ -1635,14 +1666,14 @@ public:
    * @param[out] Tensor to save to, dimension is always reshaped.
    * @retval     Tensor& reference to the out
    */
-  Tensor &transpose(const std::string &direction, Tensor &out) const;
+  NNTR_API Tensor &transpose(const std::string &direction, Tensor &out) const;
 
   /**
    * @brief     set Tensor Dim
    * @param[in] d TensorDim
    * @note      Throws std::invalid_argument if size mismatch
    */
-  void reshape(const TensorDim &d);
+  NNTR_API void reshape(const TensorDim &d);
 
   /**
    * @brief fill tensor data with current value,
@@ -1653,38 +1684,38 @@ public:
    * @param allocate if unallocated, allocate with from.getDim()
    * @throws std::invalid_argument if dimension and stride does not match
    */
-  void fill(const Tensor &from, bool allocate = false);
+  NNTR_API void fill(const Tensor &from, bool allocate = false);
 
   /**
    * @brief     return a copy of the Tensor Dim
    * @retval    TensorDim
    */
-  TensorDim getDim() const;
+  NNTR_API TensorDim getDim() const;
 
   /**
    * @brief     return Tensor Type
    */
-  TensorDim::TensorType getTensorType() const;
+  NNTR_API TensorDim::TensorType getTensorType() const;
 
   /**
    * @brief Get initializer for the tensor
    *
    * @return initializer of the tensor
    */
-  Initializer getInitializer() const;
+  NNTR_API Initializer getInitializer() const;
 
   /**
    * @brief Get format for the tensor
    * @return format of the tensor
    */
-  TensorDim::Format getFormat() const;
+  NNTR_API TensorDim::Format getFormat() const;
 
   /**
    * @brief Get data type for the tensor
    *
    * @return data type of the tensor
    */
-  Tdatatype getDataType() const;
+  NNTR_API Tdatatype getDataType() const;
 
   /**
    * @brief     update batch size for this tensor
@@ -1706,7 +1737,7 @@ public:
    * new batch size. It is recommended to first deallocate all the tensors,
    * updateBatch and then allocate again to avoid such issues.
    */
-  void updateBatch(unsigned int batch);
+  NNTR_API void updateBatch(unsigned int batch);
 
   /**
    * @brief     update the dimension for this tensor
@@ -1714,19 +1745,20 @@ public:
    * @note      if this tensor is allocated this will throw an error.
    * @note      we assume that the caller checks if the tensor is not allocated
    */
-  void updateDimension(TensorDim dimension);
+  NNTR_API void updateDimension(TensorDim dimension);
 
   /**
    * @brief     return whether tensor is contiguous or not.
    * @retval    bool contiguous
    */
-  const bool getContiguous() const noexcept;
+  NNTR_API const bool getContiguous() const noexcept;
 
   /**
    * @brief     return current stride of tensor.
    * @retval    int[MAXDIM] strides
    */
-  const std::array<size_t, TensorDim::MAXDIM> getStrides() const noexcept;
+  NNTR_API const std::array<size_t, TensorDim::MAXDIM>
+  getStrides() const noexcept;
 
   /**
    * @brief     Check if two given axes are contiguous
@@ -1734,54 +1766,54 @@ public:
    * @param[in] np2 second axis to compare with first axis
    * @retval    bool continuous
    */
-  bool checkContinuous(unsigned int np1, unsigned int np2) const;
+  NNTR_API bool checkContinuous(unsigned int np1, unsigned int np2) const;
 
   /**
    * @brief     set FileOffset to Tensor
    * @param     off FileOffset
    */
-  void setFileOffset(size_t file_offset);
+  NNTR_API void setFileOffset(size_t file_offset);
 
   /**
    * @brief     get FileOffset of Tensor
    * @return    size_t fileOffset
    */
-  size_t getFileOffset() const;
+  NNTR_API size_t getFileOffset() const;
 
   /**
    * @brief     Set name of the tensor
    * @param[in] name_ tensor name
    */
-  void setName(const std::string &name_);
+  NNTR_API void setName(const std::string &name_);
 
   /**
    * @brief     Get name of the tensor
    * @retval    string name
    */
-  const std::string &getName() const;
+  NNTR_API const std::string &getName() const;
 
   /**
    * @brief Get linear index given the n-d index
    */
-  size_t getIndex(unsigned int b, unsigned int c, unsigned int h,
-                  unsigned int w) const noexcept;
+  NNTR_API size_t getIndex(unsigned int b, unsigned int c, unsigned int h,
+                           unsigned int w) const noexcept;
   /**
    * @brief     Get size of current tensor
    * @retval    unsigned int size of the current tensor
    */
-  size_t size() const;
+  NNTR_API size_t size() const;
 
   /**
    * @brief     Get if the tensor is empty
    * @retval    true if the tensor is empty
    */
-  bool empty() const;
+  NNTR_API bool empty() const;
 
   /**
    * @brief     Get size of the data in bytes
    * @retval    size_t Size in bytes
    */
-  size_t bytes() const;
+  NNTR_API size_t bytes() const;
 
   /**
    * @brief     Get a total size of the memory data in bytes
@@ -1790,43 +1822,43 @@ public:
    * factors and the zero points. For float type, this will return the same as
    * bytes()
    */
-  size_t getMemoryBytes() const;
+  NNTR_API size_t getMemoryBytes() const;
 
   /**
    * @brief     return Tensor batch size
    * @retval    batch size
    */
-  size_t batch() const;
+  NNTR_API size_t batch() const;
 
   /**
    * @brief     return Tensor channel size
    * @retval    channel size
    */
-  size_t channel() const;
+  NNTR_API size_t channel() const;
 
   /**
    * @brief     return Tensor height size
    * @retval    height size
    */
-  size_t height() const;
+  NNTR_API size_t height() const;
 
   /**
    * @brief     return Tensor width size
    * @retval    width size
    */
-  size_t width() const;
+  NNTR_API size_t width() const;
 
   /**
    * @brief     return Tensor scale factor size if exists
    * @retval    scale factor size
    */
-  size_t scale_size() const;
+  NNTR_API size_t scale_size() const;
 
   /**
    * @brief     return Tensor quantization scheme
    * @retval    Qscheme qscheme
    */
-  QScheme q_scheme() const;
+  NNTR_API QScheme q_scheme() const;
 
   /**
    * @brief Merge the given two axis for tensor at second axis inplace
@@ -1834,7 +1866,7 @@ public:
    * @param axis1 first axis to merge
    * @param axis2 second axis to merge
    */
-  void mergeAxis(unsigned int axis1, unsigned int axis2);
+  NNTR_API void mergeAxis(unsigned int axis1, unsigned int axis2);
 
   /**
    * @brief Update destination tensor to share memory with source tensor
@@ -1847,8 +1879,8 @@ public:
    * @note New size added with offset must be less than the size of the original
    * tensor.
    */
-  void createSharedDataTensor(const Tensor &src, Tensor &dest,
-                              size_t offset) const;
+  NNTR_API void createSharedDataTensor(const Tensor &src, Tensor &dest,
+                                       size_t offset) const;
 
   /**
    * @brief Get new tensor which shares memory with current tensor but different
@@ -1861,16 +1893,16 @@ public:
    * @note New size added with offset must be less than the size of the original
    * tensor.
    */
-  Tensor getSharedDataTensor(const TensorDim dim_, size_t offset,
-                             bool reset_stride = true,
-                             const std::string &name_ = "") const;
+  NNTR_API Tensor getSharedDataTensor(const TensorDim dim_, size_t offset,
+                                      bool reset_stride = true,
+                                      const std::string &name_ = "") const;
 
   /**
    * @brief    Swaps Tensor lhs and rhs
    * @param[in] lhs Tensor to be swapped
    * @param[in] rhs Tensor to be swapped
    */
-  friend void swap(Tensor &lhs, Tensor &rhs) noexcept {
+  NNTR_API friend void swap(Tensor &lhs, Tensor &rhs) noexcept {
     std::swap(lhs.itensor_, rhs.itensor_);
   }
 
@@ -1878,7 +1910,7 @@ public:
    * @brief      check if there is NaN or Inf element
    * @param[out] bool false if there is NaN or Inf else false
    */
-  bool isValid() const { return itensor_->isValid(); };
+  NNTR_API bool isValid() const { return itensor_->isValid(); };
 
   static constexpr float epsilon = 1e-5f;
 

@@ -23,6 +23,12 @@
 #include <memory_pool.h>
 #include <swap_device.h>
 
+#if defined(_WIN32)
+#define NNTR_API __declspec(dllexport)
+#else
+#define NNTR_API
+#endif
+
 namespace nntrainer {
 
 /**
@@ -43,19 +49,19 @@ public:
    *
    * @param name name of the cache pool
    */
-  explicit CachePool(const std::string &name);
+  NNTR_API explicit CachePool(const std::string &name);
 
   /**
    * @brief CachePool constructor with cache path
    *
    */
-  explicit CachePool(const std::string &path, const std::string &name);
+  NNTR_API explicit CachePool(const std::string &path, const std::string &name);
 
   /**
    * @brief CachePool constructor with cache path & ExecutionMode
    *
    */
-  explicit CachePool(
+  NNTR_API explicit CachePool(
     const std::string &path, const std::string &name,
     ml::train::ExecutionMode exec_mode = ml::train::ExecutionMode::TRAIN);
 
@@ -63,32 +69,32 @@ public:
    * @brief MemoryPool destructor
    *
    */
-  virtual ~CachePool();
+  NNTR_API virtual ~CachePool();
 
   /**
    * @brief inactive elements
    *
    * @param order order to inactive
    */
-  void inActive(unsigned int order);
+  NNTR_API void inActive(unsigned int order);
 
   /**
    * @brief Do the allocation of cache
    *
    */
-  virtual void allocate() override;
+  NNTR_API virtual void allocate() override;
 
   /**
    * @brief Free all the allocated cache
    *
    */
-  virtual void deallocate() override;
+  NNTR_API virtual void deallocate() override;
 
   /**
    * @brief Request Memory from memory pool
    * @note start_time is inclusive, but end_time is exclusive
    */
-  virtual unsigned int requestMemory(
+  NNTR_API virtual unsigned int requestMemory(
     size_t bytes, unsigned int start_time, unsigned int end_time,
     std::vector<unsigned int> exec_order = std::vector<unsigned int>(),
     TensorLifespan lifespan = TensorLifespan::MAX_LIFESPAN,
@@ -102,114 +108,117 @@ public:
    *
    * @details This function will throw if called before allocation.
    */
-  virtual std::shared_ptr<MemoryData> getMemory(unsigned int id) override;
+  NNTR_API virtual std::shared_ptr<MemoryData>
+  getMemory(unsigned int id) override;
 
   /**
    * @brief Is the cache pool allocated
    *
    * @return true if the memory is allocated, else false
    */
-  virtual bool isAllocated() const override;
+  NNTR_API virtual bool isAllocated() const override;
 
   /**
    * @brief Flush cache data to device
    *
    * @note it must be called only when epoch ends.
    */
-  virtual void flush();
+  NNTR_API virtual void flush();
 
   /**
    * @brief Flush cache data to device except given order
    *
    * @param order except execution order
    */
-  virtual void flushExcept(unsigned int order);
+  NNTR_API virtual void flushExcept(unsigned int order);
 
   /**
    * @brief Flush cache data to device except given order
    *
    * @param order except execution order
    */
-  virtual void flushExcept(std::vector<unsigned int> order);
+  NNTR_API virtual void flushExcept(std::vector<unsigned int> order);
 
   /**
    * @brief Clear the memory pool
    *
    */
-  virtual void clear() override;
+  NNTR_API virtual void clear() override;
 
   /**
    * @brief Load cache data by execution order
    *
    * @param order execution order
    */
-  virtual void loadExec(unsigned int order);
+  NNTR_API virtual void loadExec(unsigned int order);
 
   /**
    * @brief Load Tensor
    *
    * @param order order of Tensor to load
    */
-  virtual void loadTensor(unsigned int order);
+  NNTR_API virtual void loadTensor(unsigned int order);
 
   /**
    * @brief Load cache data by execution order
    *
    * @param order execution order
    */
-  virtual bool loadExecOnce(unsigned int order, ExecIdsIter &iter);
+  NNTR_API virtual bool loadExecOnce(unsigned int order, ExecIdsIter &iter);
 
   /**
    * @brief Unload cache data by execution order
    *
    * @param order execution order
    */
-  virtual void unloadExec(unsigned int order);
+  NNTR_API virtual void unloadExec(unsigned int order);
 
   /**
    * @brief Unload Tensor
    *
    * @param order order of Tensor to unload
    */
-  virtual void unloadTensor(unsigned int order);
+  NNTR_API virtual void unloadTensor(unsigned int order);
 
   /**
    * @brief Load active cache data
    */
-  virtual void loadActives();
+  NNTR_API virtual void loadActives();
 
   /**
    * @brief Unload active cache data
    */
-  virtual void unloadActives();
+  NNTR_API virtual void unloadActives();
 
   /**
    * @brief Get name
    *
    * @return cache pool name
    */
-  virtual std::string getName() { return name; }
+  NNTR_API virtual std::string getName() { return name; }
 
   /**
    * @brief Get ExecutionMode
    *
    * @return ml::train::ExecutionMode
    */
-  ml::train::ExecutionMode getExecMode() const { return execution_mode_; }
+  NNTR_API ml::train::ExecutionMode getExecMode() const {
+    return execution_mode_;
+  }
 
   /**
    * @brief set FSU weight path
    *
    * @param path FSU weight file path
    */
-  void setFsuWeightPath(std::string path) override;
+  NNTR_API void setFsuWeightPath(std::string path) override;
 
   /**
    * @brief set weight file offset for FSU loading
    *
    * @param offsets weight file offset
    */
-  void
+  NNTR_API void
   setWeightOffset(std::vector<std::pair<size_t, size_t>> offsets) override {
     swap_device->setWeightOffset(offsets);
   }
@@ -220,7 +229,7 @@ public:
    * @param order Execution order
    * @return Tensor id set
    */
-  std::set<unsigned int> getExecIDs(unsigned int order) {
+  NNTR_API std::set<unsigned int> getExecIDs(unsigned int order) {
     return exec_ids[order];
   }
 
@@ -229,21 +238,25 @@ public:
    *
    * @return Active Cache Elem list
    */
-  std::list<std::shared_ptr<CacheElem>> getActiveElems() { return actives; }
+  NNTR_API std::list<std::shared_ptr<CacheElem>> getActiveElems() {
+    return actives;
+  }
 
   /**
    * @brief get Cache Elem with id
    * @param id Tensor ID
    * @return Cache Elem
    */
-  std::shared_ptr<CacheElem> getCacheElem(unsigned int id) { return elems[id]; }
+  NNTR_API std::shared_ptr<CacheElem> getCacheElem(unsigned int id) {
+    return elems[id];
+  }
 
   /**
    * @brief check Cache Elem with id is loaded (Active)
    * @param id Tensor ID
    * @return true if it is loaded
    */
-  bool isLoaded(unsigned int id) { return elems[id]->isActive(); }
+  NNTR_API bool isLoaded(unsigned int id) { return elems[id]->isActive(); }
 
 protected:
   /**

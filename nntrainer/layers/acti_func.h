@@ -24,6 +24,12 @@
 #include <math.h>
 #endif
 
+#if defined(_WIN32)
+#define NNTR_API __declspec(dllexport)
+#else
+#define NNTR_API
+#endif
+
 namespace nntrainer {
 
 class Tensor;
@@ -41,8 +47,8 @@ public:
    * @brief     Constructor of ActiFunc
    */
   template <typename T = float>
-  ActiFunc(ActivationType at = ActivationType::ACT_NONE,
-           bool is_inplace_ = true) :
+  NNTR_API ActiFunc(ActivationType at = ActivationType::ACT_NONE,
+                    bool is_inplace_ = true) :
     is_inplace(is_inplace_) {
     setActiFunc<T>(at);
   }
@@ -50,14 +56,15 @@ public:
   /**
    * @brief     Destructor of ActiFunc
    */
-  ~ActiFunc(){};
+  NNTR_API ~ActiFunc(){};
 
   /**
    * @brief setActivation by preset ActivationType
    *
    * @param[in] ActivationType
    */
-  template <typename T = float> void setActiFunc(ActivationType acti_type) {
+  template <typename T = float>
+  NNTR_API void setActiFunc(ActivationType acti_type) {
     activation_type = acti_type;
 
     switch (acti_type) {
@@ -119,7 +126,9 @@ public:
    * @param[in] input : input
    * @param[out] output : output
    */
-  void run_fn(Tensor const &input, Tensor &output) { _act_fn(input, output); }
+  NNTR_API void run_fn(Tensor const &input, Tensor &output) {
+    _act_fn(input, output);
+  }
 
   /**
    * @brief run prime function
@@ -130,9 +139,9 @@ public:
    * @param[in] incoming_derivative incoming derivative
    * @retVal    Tensor
    */
-  Tensor &run_prime_fn(Tensor &input, Tensor &output,
-                       Tensor &outgoing_derivative,
-                       Tensor const &incoming_derivative) {
+  NNTR_API Tensor &run_prime_fn(Tensor &input, Tensor &output,
+                                Tensor &outgoing_derivative,
+                                Tensor const &incoming_derivative) {
     return _act_prime_fn(input, output, outgoing_derivative,
                          incoming_derivative);
   }
@@ -145,8 +154,8 @@ public:
    * @param[in] incoming_derivative incoming derivative
    * @retVal    Tensor
    */
-  Tensor &run_prime_fn(Tensor &output, Tensor &outgoing_derivative,
-                       Tensor const &incoming_derivative) {
+  NNTR_API Tensor &run_prime_fn(Tensor &output, Tensor &outgoing_derivative,
+                                Tensor const &incoming_derivative) {
     return _act_prime_fn(Tensor(), output, outgoing_derivative,
                          incoming_derivative);
   }
@@ -154,7 +163,7 @@ public:
   /**
    * @copydoc Layer::supportInPlace()
    */
-  bool supportInPlace() const { return is_inplace; }
+  NNTR_API bool supportInPlace() const { return is_inplace; }
 
   /**
    * @brief       Calculate softmax for Tensor Type
@@ -621,7 +630,7 @@ public:
    * @retval #ML_ERROR_NONE when successful
    */
   template <typename funcParam = Tensor>
-  int setActivation(
+  NNTR_API int setActivation(
     std::function<funcParam &(funcParam const &, funcParam &)> const
       &activation_fn,
     std::function<funcParam &(funcParam &, funcParam &,
@@ -649,7 +658,7 @@ public:
    * @retval #ML_ERROR_NONE when successful
    */
   template <typename funcParam = Tensor>
-  int setActivation(
+  NNTR_API int setActivation(
     std::function<funcParam &(funcParam const &, funcParam &)> const
       &activation_fn,
     std::function<funcParam &(funcParam const &, funcParam const &, funcParam &,
@@ -672,11 +681,11 @@ public:
    * @retval #ML_ERROR_NONE when successful
    */
   template <typename funcParam = Tensor>
-  int setActivation(
-    std::function<funcParam &(funcParam const &, funcParam &)> const
-      &activation_fn,
-    std::function<funcParam &(funcParam &, funcParam &)> const
-      &activation_prime_fn) {
+  NNTR_API int
+  setActivation(std::function<funcParam &(funcParam const &, funcParam &)> const
+                  &activation_fn,
+                std::function<funcParam &(funcParam &, funcParam &)> const
+                  &activation_prime_fn) {
     if (!is_inplace) {
       _act_prime_fn = [activation_prime_fn](
                         funcParam const &t_in, funcParam &t_out,
@@ -714,7 +723,7 @@ public:
    * @retval #ML_ERROR_NONE when successful
    */
   template <typename funcParam = float>
-  int setActivation(
+  NNTR_API int setActivation(
     std::function<funcParam(funcParam const)> const &activation_fn,
     std::function<funcParam(funcParam const)> const &activation_prime_fn) {
     _act_fn = [activation_fn](Tensor const &x, Tensor &hidden) -> Tensor & {
@@ -756,7 +765,7 @@ public:
    * activation_prime_fn activation_prime_function to be used
    * @retval #ML_ERROR_NONE when successful
    */
-  int setActivation(
+  NNTR_API int setActivation(
     std::function<float(float const)> const &activation_fn,
     std::function<float(float const, float const)> const &activation_prime_fn);
 
@@ -765,7 +774,7 @@ public:
    *
    * @param val True if execute in-place, else false
    */
-  void setInPlace(bool val) {
+  NNTR_API void setInPlace(bool val) {
     if (val && !supportInPlace())
       throw std::runtime_error(
         "Error setting activation layer to work in-place");

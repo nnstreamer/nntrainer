@@ -24,6 +24,12 @@
 #include <queue>
 #include <task_executor.h>
 
+#if defined(_WIN32)
+#define NNTR_API __declspec(dllexport)
+#else
+#define NNTR_API
+#endif
+
 namespace nntrainer {
 
 /**
@@ -42,31 +48,31 @@ public:
    * @brief CacheLoader default constructor
    *
    */
-  explicit CacheLoader(std::shared_ptr<CachePool> cache_pool);
+  NNTR_API explicit CacheLoader(std::shared_ptr<CachePool> cache_pool);
 
   /**
    * @brief CacheLoader destructor
    *
    */
-  virtual ~CacheLoader();
+  NNTR_API virtual ~CacheLoader();
 
   /**
    * @brief initialize loader
    */
-  virtual void init();
+  NNTR_API virtual void init();
 
   /**
    * @brief finish loader
    *
    */
-  virtual void finish();
+  NNTR_API virtual void finish();
 
   /**
    * @brief Load cache data with execution order
    *
    * @param order execution order
    */
-  virtual void load(unsigned int order);
+  NNTR_API virtual void load(unsigned int order);
 
   /**
    * @brief Load cache data asynchronously in Tensor
@@ -74,7 +80,7 @@ public:
    * @param id Tensor id
    * @return async task id
    */
-  virtual int loadTensor(unsigned int id);
+  NNTR_API virtual int loadTensor(unsigned int id);
 
   /**
    * @brief unLoad cache data asynchronously in Tensor
@@ -82,7 +88,7 @@ public:
    * @param id Tensor id
    * @return async task id
    */
-  virtual int unloadTensor(unsigned int id);
+  NNTR_API virtual int unloadTensor(unsigned int id);
 
   /**
    * @brief Load cache data asynchronously with execution order
@@ -90,7 +96,7 @@ public:
    * @param order execution order
    * @return true if enqueue loads successfully
    */
-  virtual bool loadAllinOrder(unsigned int order);
+  NNTR_API virtual bool loadAllinOrder(unsigned int order);
 
   /**
    * @brief unLoad cache data asynchronously with execution order
@@ -98,15 +104,15 @@ public:
    * @param order execution order
    * @return true if enqueue unloads successfully
    */
-  virtual bool unloadAllinOrder(unsigned int order);
+  NNTR_API virtual bool unloadAllinOrder(unsigned int order);
   /**
    *
    * @param order execution order
    * @param complete complete callback
    * @return async task id
    */
-  virtual int flushAsync(unsigned int order,
-                         TaskExecutor::CompleteCallback callback);
+  NNTR_API virtual int flushAsync(unsigned int order,
+                                  TaskExecutor::CompleteCallback callback);
 
   /**
    * @brief Load cache data asynchronously with execution order
@@ -117,9 +123,9 @@ public:
    * @return async task id
    * @note timeout_ms does not work now.
    */
-  virtual int flushAsync(unsigned int order,
-                         TaskExecutor::CompleteCallback callback,
-                         long timeout_ms);
+  NNTR_API virtual int flushAsync(unsigned int order,
+                                  TaskExecutor::CompleteCallback callback,
+                                  long timeout_ms);
 
   /**
    * @brief Cancel async task
@@ -127,14 +133,14 @@ public:
    * @param id task id
    * @return 0 on success, otherwise negative error
    */
-  virtual int cancelAsync(int id);
+  NNTR_API virtual int cancelAsync(int id);
 
   /**
    * @brief set Inactive elems in order
    *
    */
 
-  unsigned int inActive(unsigned int order);
+  NNTR_API unsigned int inActive(unsigned int order);
 
   /**
    * @brief wait for the load tasks in order are complete
@@ -142,7 +148,7 @@ public:
    * @return true if all load tasks complete
    *
    */
-  bool checkAllLoadComplete(unsigned int order);
+  NNTR_API bool checkAllLoadComplete(unsigned int order);
 
   /**
    * @brief wait for the load task with id is complete
@@ -150,7 +156,7 @@ public:
    * @return true if load tas complete
    *
    */
-  bool checkLoadComplete(unsigned int id);
+  NNTR_API bool checkLoadComplete(unsigned int id);
 
   /**
    * @brief wait for the unload tasks in order are complete
@@ -158,7 +164,7 @@ public:
    * @return true if all unload tasks complete
    *
    */
-  bool checkAllUnloadComplete(unsigned int order);
+  NNTR_API bool checkAllUnloadComplete(unsigned int order);
 
   /**
    * @brief wait for the unload task with id is complete
@@ -166,7 +172,7 @@ public:
    * @return true if unload tas complete
    *
    */
-  bool checkUnloadComplete(unsigned int id);
+  NNTR_API bool checkUnloadComplete(unsigned int id);
 
   /**
    * @brief get Loading / Unloading Status of tensor with id
@@ -174,14 +180,14 @@ public:
    * @return LoadState
    *
    */
-  LoadState getState(int id) const;
+  NNTR_API LoadState getState(int id) const;
 
   /**
    * @brief unload all the tensors and clear cache elem
    * @return true if unload tas complete
    *
    */
-  void flush();
+  NNTR_API void flush();
 
 private:
   std::shared_ptr<CachePool> pool;    /**< cache pool */

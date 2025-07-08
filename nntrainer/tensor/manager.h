@@ -36,6 +36,12 @@
 #include <var_grad.h>
 #include <weight.h>
 
+#if defined(_WIN32)
+#define NNTR_API __declspec(dllexport)
+#else
+#define NNTR_API
+#endif
+
 namespace nntrainer {
 using ExecutionMode = ml::train::ExecutionMode;
 
@@ -51,25 +57,25 @@ public:
    * @param size bytesize of the memory chunk
    * @param allocate_fd_ map a shared memory object to a file
    */
-  MMapedMemory(size_t size, bool allocate_fd_ = false);
+  NNTR_API MMapedMemory(size_t size, bool allocate_fd_ = false);
 
   /**
    * @brief Destroy the MMapedMemory object
    *
    */
-  ~MMapedMemory() noexcept;
+  NNTR_API ~MMapedMemory() noexcept;
 
   /**
    * @brief Construct a new MMapedMemory object (deleted)
    *
    */
-  MMapedMemory(const MMapedMemory &) = delete;
+  NNTR_API MMapedMemory(const MMapedMemory &) = delete;
 
   /**
    * @brief Copy assignment operator (deleted)
    *
    */
-  MMapedMemory &operator=(const MMapedMemory &) = delete;
+  NNTR_API MMapedMemory &operator=(const MMapedMemory &) = delete;
 
   /**
    * @brief Get the File descriptor.
@@ -78,14 +84,14 @@ public:
    *
    * @return -1 if fd is not allocated (or unabled to allocate)
    */
-  int getFd() noexcept { return fd; }
+  NNTR_API int getFd() noexcept { return fd; }
 
   /**
    * @brief get the size of managed memory
    *
    * @return size_t size
    */
-  size_t size() noexcept { return buf_size; }
+  NNTR_API size_t size() noexcept { return buf_size; }
 
   /**
    * @brief get Typed buffer from the memory
@@ -93,11 +99,11 @@ public:
    * @tparam T Type to specify the buffer. return is reinterpreted to T*
    * @return T* Typed buffer, return nullptr if empty
    */
-  template <typename T> T *typedBuffer() noexcept {
+  template <typename T> NNTR_API T *typedBuffer() noexcept {
     return reinterpret_cast<T *>(buf);
   }
 
-  void *data() noexcept { return typedBuffer<void>(); }
+  NNTR_API void *data() noexcept { return typedBuffer<void>(); }
 
 private:
   int fd;           /**< fd to access the shared_memory  */
@@ -132,7 +138,7 @@ public:
   /**
    * @brief     Constructor of Manager
    */
-  Manager() :
+  NNTR_API Manager() :
     enable_fsu(false),
     enable_optimizations(true),
     fsu_lookahead(0),
@@ -143,10 +149,11 @@ public:
   /**
    * @brief     Constructor of Manager
    */
-  Manager(bool enable_fsu_, const std::string &fsu_path = "",
-          unsigned int lookahead = 0, const std::string tensor_format_ = "NCHW",
-          const std::string tensor_dtype_ = "FP32-FP32",
-          ExecutionMode exec_mode_ = ExecutionMode::TRAIN) :
+  NNTR_API Manager(bool enable_fsu_, const std::string &fsu_path = "",
+                   unsigned int lookahead = 0,
+                   const std::string tensor_format_ = "NCHW",
+                   const std::string tensor_dtype_ = "FP32-FP32",
+                   ExecutionMode exec_mode_ = ExecutionMode::TRAIN) :
     weight_pool(enable_fsu_, fsu_path, "weight_pool", exec_mode_),
     tensor_pool(enable_fsu_ && (exec_mode_ == ExecutionMode::TRAIN), fsu_path,
                 "tensor_pool", exec_mode_),
@@ -161,31 +168,31 @@ public:
    * @brief Construct a new Manager object (deleted)
    *
    */
-  Manager(const Manager &) = delete;
+  NNTR_API Manager(const Manager &) = delete;
 
   /**
    * @brief Copy Assign a new Manager object (deleted)
    *
    */
-  Manager &operator=(const Manager &) = delete;
+  NNTR_API Manager &operator=(const Manager &) = delete;
 
   /**
    * @brief Move Construct a new Manager object
    *
    */
-  Manager(Manager &&) noexcept;
+  NNTR_API Manager(Manager &&) noexcept;
 
   /**
    * @brief Move assign a new Manager object
    *
    * @return Manager& reference to newly assign
    */
-  Manager &operator=(Manager &&) noexcept;
+  NNTR_API Manager &operator=(Manager &&) noexcept;
 
   /**
    * @brief     Destructor of Manager
    */
-  ~Manager() = default;
+  NNTR_API ~Manager() = default;
 
   /**
    * @brief     Create weights with the given spec
@@ -200,7 +207,7 @@ public:
    *
    * @return created weights list
    */
-  std::vector<Weight *>
+  NNTR_API std::vector<Weight *>
   requestWeights(const GraphNode &node,
                  const std::vector<Weight::Spec> &weights_spec, bool trainable,
                  const std::vector<std::string> &shared_names);
@@ -215,7 +222,7 @@ public:
    *
    * @return created tensors list
    */
-  std::vector<Var_Grad *> requestTensors(
+  NNTR_API std::vector<Var_Grad *> requestTensors(
     const GraphNode &node, const std::vector<Var_Grad::Spec> &tensors_spec,
     bool trainable, const std::vector<std::string> &shared_names = {});
 
@@ -227,7 +234,7 @@ public:
    *
    * @return created tensors list
    */
-  std::vector<Tensor *> requestWeightOptimizerVariables(
+  NNTR_API std::vector<Tensor *> requestWeightOptimizerVariables(
     const std::vector<TensorDim> &dims, const std::string &name,
     const std::string &suffix, const TensorLifespan &lifespan,
     bool is_grad_clip, bool is_mixed_type,
@@ -249,7 +256,7 @@ public:
    * output_tensors must match. If the outputs_name are empty, then new tensors
    * will be allocated.
    */
-  std::vector<Var_Grad *>
+  NNTR_API std::vector<Var_Grad *>
   requestInputs(const GraphNode &node, const std::vector<TensorDim> &inputs_dim,
                 const std::vector<std::string> &outputs_name = {});
 
@@ -258,7 +265,7 @@ public:
    *
    * @return    return the weights with satisfying the above condition
    */
-  std::vector<Weight *>
+  NNTR_API std::vector<Weight *>
   getWeights(const std::function<bool(const Weight *)> &condition = nullptr);
 
   /**
@@ -268,8 +275,8 @@ public:
    * @param is_weight check if this should be queried in weight pool
    * @return std::vector<unsigned int>
    */
-  std::vector<unsigned int> getTensorExecutionOrders(const std::string &name,
-                                                     bool is_weight);
+  NNTR_API std::vector<unsigned int>
+  getTensorExecutionOrders(const std::string &name, bool is_weight);
 
   /**
    * @brief Get the Min Max of a tensor execution order
@@ -278,7 +285,7 @@ public:
    * @param is_weight check if this should be queried in weight pool
    * @return std::pair<unsigned int, unsigned int>
    */
-  std::pair<unsigned int, unsigned int>
+  NNTR_API std::pair<unsigned int, unsigned int>
   getMinMaxTensorExecutionOrder(const std::string &name, bool is_weight);
 
   /**
@@ -288,8 +295,8 @@ public:
    * @param is_weight check if this should be queried in weight pool
    * @return 2nd max execution order value
    */
-  unsigned int getSecondMaxTensorExecutionOrder(const std::string &name,
-                                                bool is_weight);
+  NNTR_API unsigned int
+  getSecondMaxTensorExecutionOrder(const std::string &name, bool is_weight);
 
   /**
    * @brief check if given execution order is the first access
@@ -299,8 +306,9 @@ public:
    * @param is_weight check if this should be queried in weight pool
    * @return bool true if given execution order first access
    */
-  bool isFirstAccess(const std::string &name, unsigned current_execution,
-                     bool is_weight = false);
+  NNTR_API bool isFirstAccess(const std::string &name,
+                              unsigned current_execution,
+                              bool is_weight = false);
 
   /**
    * @brief check if given execution order is the last access
@@ -310,8 +318,9 @@ public:
    * @param is_weight check if this should be queried in weight pool
    * @return bool ture if given execution order is the last access
    */
-  bool isLastAccess(const std::string &name, unsigned current_execution,
-                    bool is_weight = false);
+  NNTR_API bool isLastAccess(const std::string &name,
+                             unsigned current_execution,
+                             bool is_weight = false);
 
   /**
    * @brief check if given execution order is the second last access
@@ -321,20 +330,21 @@ public:
    * @param is_weight check if this should be queried in weight pool
    * @return bool ture if given execution order is the second last access
    */
-  bool isSecondLastAccess(const std::string &name, unsigned current_execution,
-                          bool is_weight = false);
+  NNTR_API bool isSecondLastAccess(const std::string &name,
+                                   unsigned current_execution,
+                                   bool is_weight = false);
 
   /**
    * @brief   Check if the manager has allocated tensors
    *
    * @return true if tensors allocated, else false
    */
-  bool isAllocated() const { return tensor_pool.isAllocated(); }
+  NNTR_API bool isAllocated() const { return tensor_pool.isAllocated(); }
 
   /**
    * @brief Set the batch size for the inputs/outputs of the layers
    */
-  void setBatchSize(unsigned int batch) {
+  NNTR_API void setBatchSize(unsigned int batch) {
     /**
      * All the tensors must be deallocated first by the called and then
      * allocated by the caller.
@@ -351,7 +361,7 @@ public:
    * @note this does not works for weights as they are supposed to be
    * independent of batch size.
    */
-  void setBatchSize(const std::string &name, unsigned int batch) {
+  NNTR_API void setBatchSize(const std::string &name, unsigned int batch) {
     tensor_pool.setBatchSize(name, batch);
   }
 
@@ -366,12 +376,12 @@ public:
    * planner to plan the layout of all the tensors which are used at least once
    * before the max_exec_order.
    */
-  void allocateTensors(unsigned int max_exec_order_);
+  NNTR_API void allocateTensors(unsigned int max_exec_order_);
 
   /**
    * @brief Deallocate memory for all the managed tensors
    */
-  void deallocateTensors(bool dealloc_weights = false);
+  NNTR_API void deallocateTensors(bool dealloc_weights = false);
 
   /**
    * @brief Allocate memory for all the managed weights
@@ -387,19 +397,19 @@ public:
    * @note this will make requests to the tensor pool and allocate the
    * corresponding weights
    */
-  void allocateWeights(unsigned int max_exec_order_, bool init = true);
+  NNTR_API void allocateWeights(unsigned int max_exec_order_, bool init = true);
 
   /**
    * @brief Deallocate memory for all the weights
    */
-  void deallocateWeights();
+  NNTR_API void deallocateWeights();
 
   /**
    * @brief Set optimizations for manager
    *
    * @param val true to enable, else false
    */
-  void setOptimizations(bool val) { enable_optimizations = val; }
+  NNTR_API void setOptimizations(bool val) { enable_optimizations = val; }
 
   /**
    * @brief Update externally dependent tensors
@@ -407,7 +417,7 @@ public:
    * @param name Name of the tensor
    * @param t External tensor
    */
-  void fillPlaceholder(const std::string &name, const Tensor &t) {
+  NNTR_API void fillPlaceholder(const std::string &name, const Tensor &t) {
     tensor_pool.fillPlaceholder(name, t);
   }
 
@@ -417,7 +427,7 @@ public:
    * @return ptr to the tensor with the given
    * @throws if no tensor is found with the given name
    */
-  Tensor *getTensor(const std::string &name) {
+  NNTR_API Tensor *getTensor(const std::string &name) {
     try {
       return tensor_pool.getTensor(name);
     } catch (...) {
@@ -432,7 +442,8 @@ public:
    * @param identify_as identify as tensor as a group
    * @return Tensor* tensor
    */
-  Tensor *requestTensor(const WeightSpecV2 &spec, TensorGroupType identify_as);
+  NNTR_API Tensor *requestTensor(const WeightSpecV2 &spec,
+                                 TensorGroupType identify_as);
 
   /**
    * @brief request Tensor with variable + gradient specification
@@ -447,11 +458,12 @@ public:
    * valid max_exec_order when allocation happens
    * @return Tensor* tensor
    */
-  Var_Grad *requestTensor(const VarGradSpecV2 &spec,
-                          TensorGroupType identify_as,
-                          const GraphNode::ExecutionOrder &exec_order,
-                          const std::string &scope = "",
-                          bool expose_var = false, bool expose_grad = false);
+  NNTR_API Var_Grad *requestTensor(const VarGradSpecV2 &spec,
+                                   TensorGroupType identify_as,
+                                   const GraphNode::ExecutionOrder &exec_order,
+                                   const std::string &scope = "",
+                                   bool expose_var = false,
+                                   bool expose_grad = false);
 
   /**
    * @brief request vector of tensors with variable + gradient specification
@@ -467,7 +479,7 @@ public:
    * valid max_exec_order when allocation happens
    * @return Tensor* tensor
    */
-  std::vector<Var_Grad *> requestTensors(
+  NNTR_API std::vector<Var_Grad *> requestTensors(
     const std::vector<VarGradSpecV2> &specs, TensorGroupType identify_as,
     const GraphNode::ExecutionOrder &exec_order, const std::string &scope = "",
     bool expose_var = false, bool expose_grad = false);
@@ -475,7 +487,7 @@ public:
   /**
    * @brief flush cache data
    */
-  void flushCache();
+  NNTR_API void flushCache();
 
   /**
    * @brief flush cache data except the order
@@ -486,7 +498,7 @@ public:
    *       for lookahead size. If new flush request arrives,
    *       it waits previous preloading is completed and invokes new one.
    */
-  void flushCacheExcept(unsigned int order);
+  NNTR_API void flushCacheExcept(unsigned int order);
 
   /**
    * @brief load cache data for the execution order
@@ -496,7 +508,8 @@ public:
    * @note preloading loads execution order data asynchronously,
    *       for lookahead size.
    */
-  void LoadTensors(unsigned int order, unsigned int remainder_lookahead = 0);
+  NNTR_API void LoadTensors(unsigned int order,
+                            unsigned int remainder_lookahead = 0);
 
   /**
    * @brief check completion of load data for the execution order
@@ -504,7 +517,7 @@ public:
    * @param order execution order
    * @note preloading tensors for execution order.
    */
-  bool checkLoadComplete(unsigned int order);
+  NNTR_API bool checkLoadComplete(unsigned int order);
 
   /**
    * @brief check completion of unload data for the execution order
@@ -512,7 +525,7 @@ public:
    * @param order execution order
    * @note preloading tensors for execution order.
    */
-  bool checkUnloadComplete(unsigned int order);
+  NNTR_API bool checkUnloadComplete(unsigned int order);
 
   /**
    * @brief load cache data for the execution order
@@ -522,7 +535,7 @@ public:
    * @note preloading loads execution order data asynchronously,
    *       for lookahead size.
    */
-  void LoadFsuTensors(unsigned int order, unsigned int lookahead);
+  NNTR_API void LoadFsuTensors(unsigned int order, unsigned int lookahead);
 
   /**
    * @brief flush load data for the execution order
@@ -530,37 +543,39 @@ public:
    * @param order execution order
    * @note flush tensors for execution order.
    */
-  void UnloadTensors(unsigned int order);
+  NNTR_API void UnloadTensors(unsigned int order);
 
   /**
    * @brief     reinitialize manager
    */
-  void reinitialize();
+  NNTR_API void reinitialize();
 
   /**
    * @brief     set Execution Mode
    */
-  void setExecutionMode(ExecutionMode mode = ExecutionMode::TRAIN) {
+  NNTR_API void setExecutionMode(ExecutionMode mode = ExecutionMode::TRAIN) {
     exec_mode = mode;
   };
 
   /**
    * @brief     return if it is mixed precsion
    */
-  bool isMixedPrecision() { return !istrequal(tensor_dtype[0], "FP32"); }
+  NNTR_API bool isMixedPrecision() {
+    return !istrequal(tensor_dtype[0], "FP32");
+  }
 
   /**
    * @brief set Inactive elems in order
    *
    */
-  unsigned int inActive(unsigned int order);
+  NNTR_API unsigned int inActive(unsigned int order);
 
   /**
    * @brief set FSU weight path
    *
    * @param path FSU weight file path
    */
-  void setFsuWeightPath(std::string path) {
+  NNTR_API void setFsuWeightPath(std::string path) {
     weight_pool.setFsuWeightPath(path);
   }
 
@@ -569,7 +584,8 @@ public:
    *
    * @param offsets weight file offset
    */
-  void setWeightOffset(std::vector<std::pair<size_t, size_t>> offsets) {
+  NNTR_API void
+  setWeightOffset(std::vector<std::pair<size_t, size_t>> offsets) {
     weight_pool.setWeightOffset(offsets);
   }
 

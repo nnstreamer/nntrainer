@@ -35,6 +35,12 @@
 #include <mem_allocator.h>
 #include <nntrainer_error.h>
 
+#if defined(_WIN32)
+#define NNTR_API __declspec(dllexport)
+#else
+#define NNTR_API
+#endif
+
 namespace nntrainer {
 
 extern std::mutex factory_mutex;
@@ -49,36 +55,36 @@ public:
   /**
    * @brief   Default constructor
    */
-  AppContext() : Context(std::make_shared<ContextData>()) {}
+  NNTR_API AppContext() : Context(std::make_shared<ContextData>()) {}
 
   /**
    * @brief   Default destructor
    */
-  ~AppContext() override = default;
+  NNTR_API ~AppContext() override = default;
 
   /**
    * @brief Deleting copy constructor
    *
    */
-  AppContext(const AppContext &) = delete;
+  NNTR_API AppContext(const AppContext &) = delete;
 
   /**
    * @brief Deleting assignment operator
    *
    */
-  AppContext &operator=(const AppContext &) = delete;
+  NNTR_API AppContext &operator=(const AppContext &) = delete;
 
   /**
    * @brief Deleting move constructor
    *
    */
-  AppContext(AppContext &&) = delete;
+  NNTR_API AppContext(AppContext &&) = delete;
 
   /**
    * @brief Deleting move assignment operator
    *
    */
-  AppContext &operator=(AppContext &&) = delete;
+  NNTR_API AppContext &operator=(AppContext &&) = delete;
 
   /**
    *
@@ -86,7 +92,7 @@ public:
    *
    * @return AppContext&
    */
-  AppContext &Global() override;
+  NNTR_API AppContext &Global() override;
 
   /**
    * @brief Set Working Directory for a relative path. working directory is set
@@ -94,13 +100,13 @@ public:
    * @param[in] base base directory
    * @throw std::invalid_argument if path is not valid for current system
    */
-  void setWorkingDirectory(const std::string &base);
+  NNTR_API void setWorkingDirectory(const std::string &base);
 
   /**
    * @brief unset working directory
    *
    */
-  void unsetWorkingDirectory() { working_path_base = ""; }
+  NNTR_API void unsetWorkingDirectory() { working_path_base = ""; }
 
   /**
    * @brief query if the appcontext has working directory set
@@ -108,7 +114,7 @@ public:
    * @retval true working path base is set
    * @retval false working path base is not set
    */
-  bool hasWorkingDirectory() { return !working_path_base.empty(); }
+  NNTR_API bool hasWorkingDirectory() { return !working_path_base.empty(); }
 
   /**
    * @brief register a layer factory from a shared library
@@ -121,8 +127,8 @@ public:
    * @throws std::invalid_parameter if library_path is invalid or library is
    * invalid
    */
-  int registerLayer(const std::string &library_path,
-                    const std::string &base_path = "");
+  NNTR_API int registerLayer(const std::string &library_path,
+                             const std::string &base_path = "");
 
   /**
    * @brief register a optimizer factory from a shared library
@@ -135,8 +141,8 @@ public:
    * @throws std::invalid_parameter if library_path is invalid or library is
    * invalid
    */
-  int registerOptimizer(const std::string &library_path,
-                        const std::string &base_path = "");
+  NNTR_API int registerOptimizer(const std::string &library_path,
+                                 const std::string &base_path = "");
 
   /**
    * @brief register pluggables from a directory.
@@ -146,7 +152,8 @@ public:
    * @param base_path a directory path to search pluggables's
    * @return std::vector<int> list of integer key to create a pluggable
    */
-  std::vector<int> registerPluggableFromDirectory(const std::string &base_path);
+  NNTR_API std::vector<int>
+  registerPluggableFromDirectory(const std::string &base_path);
 
   /**
    * @brief Get Working Path from a relative or representation of a path
@@ -158,7 +165,7 @@ public:
    * If relative path is given and working_path_base has set, return absolute
    * path from current working directory
    */
-  const std::string getWorkingPath(const std::string &path = "");
+  NNTR_API const std::string getWorkingPath(const std::string &path = "");
 
   /**
    * @brief Get memory fsu file path from configuration file
@@ -166,7 +173,7 @@ public:
    * If memory fsu path is not presented in configuration file, it returns
    * empty string
    */
-  const std::vector<std::string> getProperties(void);
+  NNTR_API const std::vector<std::string> getProperties(void);
 
   /**
    * @brief Factory register function, use this function to register custom
@@ -182,9 +189,9 @@ public:
    * @throw invalid argument when key and/or int_key is already taken
    */
   template <typename T>
-  const int registerFactory(const PtrFactoryType<T> factory,
-                            const std::string &key = "",
-                            const int int_key = -1) {
+  NNTR_API const int registerFactory(const PtrFactoryType<T> factory,
+                                     const std::string &key = "",
+                                     const int int_key = -1) {
     FactoryType<T> f = factory;
     return registerFactory(f, key, int_key);
   }
@@ -203,42 +210,42 @@ public:
    * @throw invalid argument when key and/or int_key is already taken
    */
   template <typename T>
-  const int registerFactory(const FactoryType<T> factory,
-                            const std::string &key = "",
-                            const int int_key = -1);
+  NNTR_API const int registerFactory(const FactoryType<T> factory,
+                                     const std::string &key = "",
+                                     const int int_key = -1);
 
-  std::unique_ptr<nntrainer::Layer>
+  NNTR_API std::unique_ptr<nntrainer::Layer>
   createLayerObject(const std::string &type,
                     const std::vector<std::string> &properties = {}) override {
     return createObject<nntrainer::Layer>(type, properties);
   }
 
-  std::unique_ptr<nntrainer::Optimizer> createOptimizerObject(
+  NNTR_API std::unique_ptr<nntrainer::Optimizer> createOptimizerObject(
     const std::string &type,
     const std::vector<std::string> &properties = {}) override {
     return createObject<nntrainer::Optimizer>(type, properties);
   }
 
-  std::unique_ptr<ml::train::LearningRateScheduler>
+  NNTR_API std::unique_ptr<ml::train::LearningRateScheduler>
   createLearningRateSchedulerObject(
     const std::string &type,
     const std::vector<std::string> &properties = {}) override {
     return createObject<ml::train::LearningRateScheduler>(type, properties);
   }
 
-  std::unique_ptr<nntrainer::Layer>
+  NNTR_API std::unique_ptr<nntrainer::Layer>
   createLayerObject(const int int_key,
                     const std::vector<std::string> &properties = {}) override {
     return createObject<nntrainer::Layer>(int_key, properties);
   }
 
-  std::unique_ptr<nntrainer::Optimizer> createOptimizerObject(
+  NNTR_API std::unique_ptr<nntrainer::Optimizer> createOptimizerObject(
     const int int_key,
     const std::vector<std::string> &properties = {}) override {
     return createObject<nntrainer::Optimizer>(int_key, properties);
   }
 
-  std::unique_ptr<ml::train::LearningRateScheduler>
+  NNTR_API std::unique_ptr<ml::train::LearningRateScheduler>
   createLearningRateSchedulerObject(
     const int int_key,
     const std::vector<std::string> &properties = {}) override {
@@ -254,8 +261,8 @@ public:
    * @return PtrType<T> unique pointer to the object
    */
   template <typename T>
-  PtrType<T> createObject(const int int_key,
-                          const PropsType &props = {}) const {
+  NNTR_API PtrType<T> createObject(const int int_key,
+                                   const PropsType &props = {}) const {
     static_assert(isSupported<T>::value,
                   "given type is not supported for current app context");
     auto &index = std::get<IndexType<T>>(factory_map);
@@ -281,8 +288,8 @@ public:
    * @return PtrType<T> unique pointer to the object
    */
   template <typename T>
-  PtrType<T> createObject(const std::string &key,
-                          const PropsType &props = {}) const {
+  NNTR_API PtrType<T> createObject(const std::string &key,
+                                   const PropsType &props = {}) const {
     auto &index = std::get<IndexType<T>>(factory_map);
     auto &str_map = std::get<StrIndexType<T>>(index);
 
@@ -311,13 +318,13 @@ public:
    * @throw always throw runtime_error
    */
   template <typename T>
-  static PtrType<T> unknownFactory(const PropsType &props) {
+  NNTR_API static PtrType<T> unknownFactory(const PropsType &props) {
     throw std::invalid_argument("cannot create unknown object");
   }
 
-  std::string getName() override { return "cpu"; }
+  NNTR_API std::string getName() override { return "cpu"; }
 
-  void setMemAllocator(std::shared_ptr<MemAllocator> mem) {
+  NNTR_API void setMemAllocator(std::shared_ptr<MemAllocator> mem) {
     getContextData()->setMemAllocator(mem);
   }
 
@@ -348,21 +355,23 @@ private:
 /**
  * @copydoc const int AppContext::registerFactory
  */
-extern template const int AppContext::registerFactory<nntrainer::Optimizer>(
+extern template NNTR_API const int
+AppContext::registerFactory<nntrainer::Optimizer>(
   const FactoryType<nntrainer::Optimizer> factory, const std::string &key,
   const int int_key);
 
 /**
  * @copydoc const int AppContext::registerFactory
  */
-extern template const int AppContext::registerFactory<nntrainer::Layer>(
+extern template NNTR_API const int
+AppContext::registerFactory<nntrainer::Layer>(
   const FactoryType<nntrainer::Layer> factory, const std::string &key,
   const int int_key);
 
 /**
  * @copydoc const int AppContext::registerFactory
  */
-extern template const int
+extern template NNTR_API const int
 AppContext::registerFactory<ml::train::LearningRateScheduler>(
   const FactoryType<ml::train::LearningRateScheduler> factory,
   const std::string &key, const int int_key);
