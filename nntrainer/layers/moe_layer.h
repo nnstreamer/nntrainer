@@ -136,12 +136,13 @@ private:
   // Intermediate tensor indices
   unsigned int router_logits_idx;
   
-  // Pre-allocated tensors for efficient computation (avoid repeated allocations)
-  unsigned int temp_gate_out_idx;
-  unsigned int temp_up_out_idx; 
-  unsigned int temp_intermediate_idx;
-  unsigned int temp_expert_input_idx;
-  unsigned int temp_expert_output_idx;
+  // Thread-local pre-allocated tensors for efficient computation (one set per thread)
+  static constexpr int MAX_THREADS = 64;  // Reasonable upper bound for OpenMP threads
+  std::vector<unsigned int> temp_gate_out_indices;      // [MAX_THREADS] 
+  std::vector<unsigned int> temp_up_out_indices;        // [MAX_THREADS]
+  std::vector<unsigned int> temp_intermediate_indices;  // [MAX_THREADS]
+  std::vector<unsigned int> temp_expert_input_indices;  // [MAX_THREADS]
+  std::vector<unsigned int> temp_expert_output_indices; // [MAX_THREADS]
 
   // Routing information cache
   RoutingInfo routing_cache;

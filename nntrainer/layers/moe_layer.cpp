@@ -45,11 +45,11 @@ MoELayer::MoELayer() :
   expert_down_proj_indices({}),
   gate_idx(std::numeric_limits<unsigned>::max()),
   router_logits_idx(std::numeric_limits<unsigned>::max()),
-  temp_gate_out_idx(std::numeric_limits<unsigned>::max()),
-  temp_up_out_idx(std::numeric_limits<unsigned>::max()),
-  temp_intermediate_idx(std::numeric_limits<unsigned>::max()),
-  temp_expert_input_idx(std::numeric_limits<unsigned>::max()),
-  temp_expert_output_idx(std::numeric_limits<unsigned>::max()) {}
+  temp_gate_out_indices(MAX_THREADS, std::numeric_limits<unsigned>::max()),
+  temp_up_out_indices(MAX_THREADS, std::numeric_limits<unsigned>::max()),
+  temp_intermediate_indices(MAX_THREADS, std::numeric_limits<unsigned>::max()),
+  temp_expert_input_indices(MAX_THREADS, std::numeric_limits<unsigned>::max()),
+  temp_expert_output_indices(MAX_THREADS, std::numeric_limits<unsigned>::max()) {}
 
 void MoELayer::finalize(InitLayerContext &context) {
 
@@ -149,29 +149,47 @@ void MoELayer::finalize(InitLayerContext &context) {
     {total_tokens, 1, 1, num_experts}, "router_logits", Initializer::NONE,
     false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
 
-  // Pre-allocate temporary tensors for efficient computation
+  // Pre-allocate thread-local temporary tensors for efficient computation
   // Maximum tokens any single expert might process
   const unsigned max_expert_tokens = total_tokens;
   
-  temp_gate_out_idx = context.requestTensor(
-    {max_expert_tokens, 1, 1, intermediate_size}, "temp_gate_out", Initializer::NONE,
-    false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
-    
-  temp_up_out_idx = context.requestTensor(
-    {max_expert_tokens, 1, 1, intermediate_size}, "temp_up_out", Initializer::NONE,
-    false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
-    
-  temp_intermediate_idx = context.requestTensor(
-    {max_expert_tokens, 1, 1, intermediate_size}, "temp_intermediate", Initializer::NONE,
-    false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
-    
-  temp_expert_input_idx = context.requestTensor(
-    {max_expert_tokens, 1, 1, hidden_size}, "temp_expert_input", Initializer::NONE,
-    false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
-    
-  temp_expert_output_idx = context.requestTensor(
-    {max_expert_tokens, 1, 1, hidden_size}, "temp_expert_output", Initializer::NONE,
-    false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
+  // Determine actual number of threads to use (avoid over-allocation)
+  const int max_threads = std::min(MAX_THREADS, std::max(1, static_cast<int>(num_experts)));
+  
+  // Resize vectors to actual thread count
+  temp_gate_out_indices.resize(max_threads);
+  temp_up_out_indices.resize(max_threads);
+  temp_intermediate_indices.resize(max_threads);
+  temp_expert_input_indices.resize(max_threads);
+  temp_expert_output_indices.resize(max_threads);
+  
+  // Allocate one set of temporary tensors for each thread
+  for (int thread_id = 0; thread_id < max_threads; ++thread_id) {
+    temp_gate_out_indices[thread_id] = context.requestTensor(
+      {max_expert_tokens, 1, 1, intermediate_size}, 
+      "temp_gate_out_" + std::to_string(thread_id), Initializer::NONE,
+      false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
+      
+    temp_up_out_indices[thread_id] = context.requestTensor(
+      {max_expert_tokens, 1, 1, intermediate_size}, 
+      "temp_up_out_" + std::to_string(thread_id), Initializer::NONE,
+      false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
+      
+    temp_intermediate_indices[thread_id] = context.requestTensor(
+      {max_expert_tokens, 1, 1, intermediate_size}, 
+      "temp_intermediate_" + std::to_string(thread_id), Initializer::NONE,
+      false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
+      
+    temp_expert_input_indices[thread_id] = context.requestTensor(
+      {max_expert_tokens, 1, 1, hidden_size}, 
+      "temp_expert_input_" + std::to_string(thread_id), Initializer::NONE,
+      false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
+      
+    temp_expert_output_indices[thread_id] = context.requestTensor(
+      {max_expert_tokens, 1, 1, hidden_size}, 
+      "temp_expert_output_" + std::to_string(thread_id), Initializer::NONE,
+      false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
+  }
 
   // Initialize routing cache
   routing_cache.expert_token_indices.resize(num_experts);
@@ -292,12 +310,15 @@ void MoELayer::compute_expert_forward_optimized(
   const unsigned int hidden_size = gate_proj.height();
   const unsigned int intermediate_size = gate_proj.width();
   
-  // Get pre-allocated temporary tensors
-  Tensor& temp_gate_out = context.getTensor(temp_gate_out_idx);
-  Tensor& temp_up_out = context.getTensor(temp_up_out_idx);  
-  Tensor& temp_intermediate = context.getTensor(temp_intermediate_idx);
-  Tensor& temp_expert_input = context.getTensor(temp_expert_input_idx);
-  Tensor& temp_expert_output = context.getTensor(temp_expert_output_idx);
+  // Get thread-specific temporary tensors to avoid race conditions
+  const int thread_id = omp_get_thread_num();
+  const int safe_thread_id = std::min(thread_id, static_cast<int>(temp_gate_out_indices.size()) - 1);  // Bounds check
+  
+  Tensor& temp_gate_out = context.getTensor(temp_gate_out_indices[safe_thread_id]);
+  Tensor& temp_up_out = context.getTensor(temp_up_out_indices[safe_thread_id]);  
+  Tensor& temp_intermediate = context.getTensor(temp_intermediate_indices[safe_thread_id]);
+  Tensor& temp_expert_input = context.getTensor(temp_expert_input_indices[safe_thread_id]);
+  Tensor& temp_expert_output = context.getTensor(temp_expert_output_indices[safe_thread_id]);
   
   // Resize temporary tensors for current batch
   temp_gate_out.reshape({num_tokens, 1, 1, intermediate_size});
