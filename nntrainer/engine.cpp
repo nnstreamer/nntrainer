@@ -23,8 +23,16 @@
 #include <dynamic_library_loader.h>
 #include <engine.h>
 
+#ifdef __APPLE__
+static std::string solib_suffix = ".dylib";
+static std::string contextlib_suffix = "context.dylib";
+#elif defined(_WIN32)
+static std::string solib_suffix = ".dll";
+static std::string contextlib_suffix = "context.dll";
+#else
 static std::string solib_suffix = ".so";
 static std::string contextlib_suffix = "context.so";
+#endif
 static const std::string func_tag = "[Engine] ";
 
 namespace nntrainer {

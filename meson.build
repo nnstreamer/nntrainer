@@ -389,7 +389,13 @@ if get_option('enable-blas')
         run_command(openblas_compile_command, check: true)
       endif
 
-      openblas_lib = openblas_build_dir_absolute / 'lib' / 'libopenblas.so'
+      if host_machine.system() == 'darwin'
+        openblas_lib = openblas_build_dir_absolute / 'lib' / 'libopenblas.dylib'
+      elif host_machine.system() == 'windows'
+        openblas_lib = openblas_build_dir_absolute / 'lib' / 'libopenblas.dll'
+      else
+        openblas_lib = openblas_build_dir_absolute / 'lib' / 'libopenblas.so'
+      endif
       openblas_include = include_directories(openblas_dir_relative, openblas_build_dir_relative)
       blas_dep = declare_dependency(include_directories: openblas_include, link_args:[openblas_lib])
     else

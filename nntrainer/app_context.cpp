@@ -103,9 +103,19 @@
 #endif
 
 /// add #ifdef across platform
+#ifdef __APPLE__
+static std::string solib_suffix = ".dylib";
+static std::string layerlib_suffix = "layer.dylib";
+static std::string optimizerlib_suffix = "optimizer.dylib";
+#elif defined(_WIN32)
+static std::string solib_suffix = ".dll";
+static std::string layerlib_suffix = "layer.dll";
+static std::string optimizerlib_suffix = "optimizer.dll";
+#else
 static std::string solib_suffix = ".so";
 static std::string layerlib_suffix = "layer.so";
 static std::string optimizerlib_suffix = "optimizer.so";
+#endif
 static const std::string func_tag = "[AppContext] ";
 
 #ifdef NNTRAINER_CONF_PATH

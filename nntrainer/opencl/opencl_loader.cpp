@@ -47,6 +47,10 @@ bool LoadOpenCL() {
 
 #if defined(_WIN32)
   static const char *kClLibName = "OpenCL.dll";
+#elif defined(__APPLE__)
+  static const char *kClLibName = "libOpenCL.dylib";
+  // On macOS, OpenCL framework is preferred:
+  // static const char *kClLibName = "/System/Library/Frameworks/OpenCL.framework/OpenCL";
 #else
   static const char *kClLibName = "libOpenCL.so";
 #endif
