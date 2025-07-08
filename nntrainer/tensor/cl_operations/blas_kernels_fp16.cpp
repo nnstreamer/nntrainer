@@ -13,8 +13,44 @@
 
 #include <blas_kernel_strings.h>
 #include <blas_kernels.h>
+#include <unordered_map>
+#include <mutex>
 
 namespace nntrainer {
+
+// Global kernel cache for performance optimization
+class KernelCache {
+private:
+  static std::unordered_map<std::string, ClContext::SharedPtrClKernel> cache_;
+  static std::mutex cache_mutex_;
+
+public:
+  static ClContext::SharedPtrClKernel getOrCreateKernel(
+    const std::string& kernel_source, const std::string& kernel_name) {
+    
+    std::lock_guard<std::mutex> lock(cache_mutex_);
+    
+    auto it = cache_.find(kernel_name);
+    if (it != cache_.end()) {
+      return it->second; // Return cached kernel
+    }
+    
+    // Create and cache new kernel
+    auto kernel = blas_cc->registerClKernel(kernel_source, kernel_name);
+    if (kernel) {
+      cache_[kernel_name] = kernel;
+    }
+    return kernel;
+  }
+  
+  static void clearCache() {
+    std::lock_guard<std::mutex> lock(cache_mutex_);
+    cache_.clear();
+  }
+};
+
+std::unordered_map<std::string, ClContext::SharedPtrClKernel> KernelCache::cache_;
+std::mutex KernelCache::cache_mutex_;
 
 // Dynamic work group configuration
 struct WorkGroupConfig {
@@ -65,10 +101,10 @@ void sgemv_cl(const _FP16 *matAdata, const _FP16 *vecXdata, _FP16 *vecYdata,
     ClContext::SharedPtrClKernel kernel_sgemv_fp16_ptr;
 
     if (TransA) {
-      kernel_sgemv_fp16_ptr =
-        blas_cc->registerClKernel(getHgemvClKernel(), "sgemv_cl_fp16");
+      kernel_sgemv_fp16_ptr = KernelCache::getOrCreateKernel(
+        getHgemvClKernel(), "sgemv_cl_fp16");
     } else {
-      kernel_sgemv_fp16_ptr = blas_cc->registerClKernel(
+      kernel_sgemv_fp16_ptr = KernelCache::getOrCreateKernel(
         getHgemvClNoTransKernel(), "sgemv_cl_noTrans_fp16");
     }
 
@@ -153,7 +189,7 @@ _FP16 dot_cl(const _FP16 *vecAdata, const _FP16 *vecXdata, unsigned int dim1) {
 
   do {
     ClContext::SharedPtrClKernel kernel_dot_fp16_ptr =
-      blas_cc->registerClKernel(getDotClKernelFP16(), "dot_cl_fp16");
+      KernelCache::getOrCreateKernel(getDotClKernelFP16(), "dot_cl_fp16");
 
     if (!kernel_dot_fp16_ptr) {
       break;
@@ -242,7 +278,7 @@ void sgemm_cl(bool TransA, bool TransB, const _FP16 *A, const _FP16 *B,
 
   do {
     ClContext::SharedPtrClKernel kernel_sgemm_fp16_ptr =
-      blas_cc->registerClKernel(sgemm_cl_kernel_fp16_, kernel_func_);
+      KernelCache::getOrCreateKernel(sgemm_cl_kernel_fp16_, kernel_func_);
     if (!kernel_sgemm_fp16_ptr) {
       break;
     }
@@ -332,7 +368,7 @@ void addition_cl(const _FP16 *input, _FP16 *res, unsigned int size_input,
 
   do {
     ClContext::SharedPtrClKernel kernel_addition_fp16_ptr =
-      blas_cc->registerClKernel(getAdditionClKernelFP16(), "addition_cl_fp16");
+      KernelCache::getOrCreateKernel(getAdditionClKernelFP16(), "addition_cl_fp16");
     if (!kernel_addition_fp16_ptr) {
       break;
     }
@@ -400,7 +436,7 @@ void sscal_cl(_FP16 *X, const unsigned int N, const float alpha) {
 
   do {
     ClContext::SharedPtrClKernel kernel_sscal_fp16_ptr =
-      blas_cc->registerClKernel(getHscalClKernel(), "sscal_cl_fp16");
+      KernelCache::getOrCreateKernel(getHscalClKernel(), "sscal_cl_fp16");
 
     if (!kernel_sscal_fp16_ptr) {
       break;
@@ -456,15 +492,15 @@ void transpose_cl_axis(const _FP16 *in, _FP16 *res,
     ClContext::SharedPtrClKernel kernel_transpose_fp_16_ptr;
     switch (axis) {
     case 0:
-      kernel_transpose_fp_16_ptr = blas_cc->registerClKernel(
+      kernel_transpose_fp_16_ptr = KernelCache::getOrCreateKernel(
         getTransposeClAxis0KernelFP16(), "transpose_cl_fp16_axis0");
       break;
     case 1:
-      kernel_transpose_fp_16_ptr = blas_cc->registerClKernel(
+      kernel_transpose_fp_16_ptr = KernelCache::getOrCreateKernel(
         getTransposeClAxis1KernelFP16(), "transpose_cl_fp16_axis1");
       break;
     case 2:
-      kernel_transpose_fp_16_ptr = blas_cc->registerClKernel(
+      kernel_transpose_fp_16_ptr = KernelCache::getOrCreateKernel(
         getTransposeClAxis2KernelFP16(), "transpose_cl_fp16_axis2");
       break;
     default:
