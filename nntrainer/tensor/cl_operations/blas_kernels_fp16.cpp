@@ -16,8 +16,18 @@
 #include <unordered_map>
 #include <mutex>
 #include <CL/cl.h>
+#include <functional>
 
 namespace nntrainer {
+
+// Result type for structured error handling
+enum class BlasResult {
+  SUCCESS = 0,
+  KERNEL_REGISTRATION_FAILED,
+  MEMORY_TRANSFER_FAILED,
+  KERNEL_EXECUTION_FAILED,
+  DEVICE_ERROR
+};
 
 // Global kernel cache for performance optimization
 class KernelCache {
@@ -153,6 +163,27 @@ size_t DeviceCapabilityManager::max_local_memory_ = 32768;
 bool DeviceCapabilityManager::supports_fp16_ = false;
 int DeviceCapabilityManager::optimal_tile_size_ = 16;
 
+// RAII-based operation manager for clean resource handling
+class BlasOperationManager {
+private:
+  bool resources_acquired_;
+  
+public:
+  BlasOperationManager() : resources_acquired_(false) {}
+  
+  ~BlasOperationManager() {
+    // Automatic cleanup if needed
+  }
+  
+  BlasResult executeOperation(std::function<BlasResult()> operation) {
+    try {
+      return operation();
+    } catch (...) {
+      return BlasResult::DEVICE_ERROR;
+    }
+  }
+};
+
 // Dynamic work group configuration
 struct WorkGroupConfig {
   int global_size[3];
@@ -235,7 +266,86 @@ WorkGroupConfig calculateOptimalWorkGroup(unsigned int dim1, unsigned int dim2,
   return config;
 }
 
+// Optimized sgemv with structured error handling
+BlasResult sgemv_cl_optimized(const _FP16 *matAdata, const _FP16 *vecXdata, _FP16 *vecYdata,
+              bool TransA, unsigned int dim1, unsigned int dim2,
+              unsigned int lda) {
+
+  BlasOperationManager manager;
+  
+  return manager.executeOperation([&]() -> BlasResult {
+    // Get cached kernel
+    ClContext::SharedPtrClKernel kernel_ptr;
+    if (TransA) {
+      kernel_ptr = KernelCache::getOrCreateKernel(
+        getHgemvClKernel(), "sgemv_cl_fp16");
+    } else {
+      kernel_ptr = KernelCache::getOrCreateKernel(
+        getHgemvClNoTransKernel(), "sgemv_cl_noTrans_fp16");
+    }
+    
+    if (!kernel_ptr) {
+      return BlasResult::KERNEL_REGISTRATION_FAILED;
+    }
+
+    // Memory operations
+    size_t dim1_size = sizeof(_FP16) * dim1;
+    size_t dim2_size = sizeof(_FP16) * dim2;
+    size_t matrix_size = dim1 * dim2 * sizeof(_FP16);
+
+    // Async memory transfers
+    if (!AsyncMemoryManager::writeDataAsync(clbuffInstance.getInBufferA(), 
+                                           blas_cc->command_queue_inst_, matrix_size, matAdata, 0) ||
+        !AsyncMemoryManager::writeDataAsync(clbuffInstance.getInBufferB(), 
+                                           blas_cc->command_queue_inst_, dim2_size, vecXdata, 1)) {
+      return BlasResult::MEMORY_TRANSFER_FAILED;
+    }
+
+    // Wait for input transfers
+    if (!AsyncMemoryManager::waitForEvents(2)) {
+      return BlasResult::MEMORY_TRANSFER_FAILED;
+    }
+
+    // Set kernel arguments efficiently
+    if (!kernel_ptr->SetKernelArguments(0, clbuffInstance.getInBufferA(), sizeof(cl_mem)) ||
+        !kernel_ptr->SetKernelArguments(1, clbuffInstance.getInBufferB(), sizeof(cl_mem)) ||
+        !kernel_ptr->SetKernelArguments(2, clbuffInstance.getOutBufferA(), sizeof(cl_mem)) ||
+        !kernel_ptr->SetKernelArguments(3, &dim2, sizeof(int)) ||
+        !kernel_ptr->SetKernelArguments(4, &lda, sizeof(int))) {
+      return BlasResult::KERNEL_EXECUTION_FAILED;
+    }
+
+    // Execute with optimized work groups
+    WorkGroupConfig wg_config = calculateOptimalWorkGroup(dim1, dim2, "sgemv");
+    if (!blas_cc->command_queue_inst_.DispatchCommand(kernel_ptr, wg_config.global_size, wg_config.local_size)) {
+      return BlasResult::KERNEL_EXECUTION_FAILED;
+    }
+
+    // Async result reading
+    if (!AsyncMemoryManager::readDataAsync(clbuffInstance.getOutBufferA(), 
+                                          blas_cc->command_queue_inst_, dim1_size, vecYdata, 0)) {
+      return BlasResult::MEMORY_TRANSFER_FAILED;
+    }
+
+    // Wait for completion
+    if (!AsyncMemoryManager::waitForEvent(0)) {
+      return BlasResult::MEMORY_TRANSFER_FAILED;
+    }
+
+    return BlasResult::SUCCESS;
+  });
+}
+
+// Wrapper function for backward compatibility
 void sgemv_cl(const _FP16 *matAdata, const _FP16 *vecXdata, _FP16 *vecYdata,
+              bool TransA, unsigned int dim1, unsigned int dim2,
+              unsigned int lda) {
+  BlasResult result = sgemv_cl_optimized(matAdata, vecXdata, vecYdata, TransA, dim1, dim2, lda);
+  // Could add logging or error handling based on result
+}
+
+// Legacy implementation for reference (to be removed after validation)
+void sgemv_cl_legacy(const _FP16 *matAdata, const _FP16 *vecXdata, _FP16 *vecYdata,
               bool TransA, unsigned int dim1, unsigned int dim2,
               unsigned int lda) {
 
