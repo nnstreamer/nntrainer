@@ -29,74 +29,78 @@ public:
   /**
    * @brief     Constructor of Concat Layer
    */
-  ConcatLayer();
+  NNTR_API ConcatLayer();
 
   /**
    * @brief     Destructor of Concat Layer
    */
-  ~ConcatLayer() = default;
+  NNTR_API ~ConcatLayer() = default;
 
   /**
    *  @brief  Move constructor of ConcatLayer.
    *  @param[in] ConcatLayer &&
    */
-  ConcatLayer(ConcatLayer &&rhs) noexcept = default;
+  NNTR_API ConcatLayer(ConcatLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs ConcatLayer to be moved.
    */
-  ConcatLayer &operator=(ConcatLayer &&rhs) = default;
+  NNTR_API ConcatLayer &operator=(ConcatLayer &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) override;
+  NNTR_API void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  NNTR_API void forwarding(RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::incremental_forwarding(RunLayerContext &context, unsigned
    * int from, unsigned int to, bool training)
    */
-  void incremental_forwarding(RunLayerContext &context, unsigned int from,
-                              unsigned int to, bool training) override;
+  NNTR_API void incremental_forwarding(RunLayerContext &context,
+                                       unsigned int from, unsigned int to,
+                                       bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  NNTR_API void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return ConcatLayer::type; };
+  NNTR_API const std::string getType() const override {
+    return ConcatLayer::type;
+  };
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override;
+  NNTR_API void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::supportBackwarding()
    */
-  bool supportBackwarding() const override { return true; }
+  NNTR_API bool supportBackwarding() const override { return true; }
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
    * &value)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_API void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
    */
-  void setBatch(RunLayerContext &context, unsigned int batch) override {
+  NNTR_API void setBatch(RunLayerContext &context,
+                         unsigned int batch) override {
     setBatch(batch);
   }
 
@@ -115,7 +119,7 @@ private:
    *
    * @param batch update batch size
    */
-  void setBatch(unsigned int batch) {
+  NNTR_API void setBatch(unsigned int batch) {
     for (auto &irh : input_reshape_helper)
       irh.batch(batch * leading_helper_dim);
     output_reshape_helper.batch(batch * leading_helper_dim);

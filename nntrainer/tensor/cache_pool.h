@@ -264,21 +264,21 @@ protected:
    *
    * @param cache element id
    */
-  virtual void validate(unsigned int id);
+  NNTR_API virtual void validate(unsigned int id);
 
   /**
    * @brief invalidate cache element
    *
    * @param cache element id
    */
-  virtual void invalidate(unsigned int id);
+  NNTR_API virtual void invalidate(unsigned int id);
 
   /**
    * @brief Get cache policies
    *
    * @return Cache polices
    */
-  std::vector<CachePolicy> &getCachePolicy() { return policies; }
+  NNTR_API std::vector<CachePolicy> &getCachePolicy() { return policies; }
 
 private:
   std::string name;                         /**< pool name */

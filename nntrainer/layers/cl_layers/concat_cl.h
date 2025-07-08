@@ -37,74 +37,77 @@ public:
   /**
    * @brief     Constructor of Concat Layer
    */
-  ConcatLayerCl();
+  NNTR_API ConcatLayerCl();
 
   /**
    * @brief     Destructor of Concat Layer
    */
-  ~ConcatLayerCl() = default;
+  NNTR_API ~ConcatLayerCl() = default;
 
   /**
    *  @brief  Move constructor of ConcatLayer.
    *  @param[in] ConcatLayer &&
    */
-  ConcatLayerCl(ConcatLayerCl &&rhs) noexcept = default;
+  NNTR_API ConcatLayerCl(ConcatLayerCl &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs ConcatLayer to be moved.
    */
-  ConcatLayerCl &operator=(ConcatLayerCl &&rhs) = default;
+  NNTR_API ConcatLayerCl &operator=(ConcatLayerCl &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) override;
+  NNTR_API void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  NNTR_API void forwarding(RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::incremental_forwarding(RunLayerContext &context, unsigned
    * int from, unsigned int to, bool training)
    */
-  void incremental_forwarding(RunLayerContext &context, unsigned int from,
-                              unsigned int to, bool training) override;
+  NNTR_API void incremental_forwarding(RunLayerContext &context,
+                                       unsigned int from, unsigned int to,
+                                       bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  NNTR_API void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return ConcatLayerCl::type; };
+  NNTR_API const std::string getType() const override {
+    return ConcatLayerCl::type;
+  };
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override;
+  NNTR_API void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::supportBackwarding()
    */
-  bool supportBackwarding() const override { return false; }
+  NNTR_API bool supportBackwarding() const override { return false; }
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
    * &value)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_API void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @brief registerClKernels
    */
-  static bool registerClKernels(ClContext *global_cl_context);
+  NNTR_API static bool registerClKernels(ClContext *global_cl_context);
 
   static constexpr const char *type = "concat";
 
@@ -114,8 +117,8 @@ public:
    * @param[in] input2 Tensor
    * @param[in] result Tensor
    */
-  void ConcatProcess(Tensor const &input1, Tensor const &input2,
-                     Tensor &result);
+  NNTR_API void ConcatProcess(Tensor const &input1, Tensor const &input2,
+                              Tensor &result);
 
   /**
    * @brief     concat computation for axis 3
@@ -129,10 +132,12 @@ public:
    * @param[in] input1_width   represents the width of the input tensor A
    * @param[in] input2_width   represents the width of the input tensor X
    */
-  void concat_cl_axis3(const float *matAdata, const float *vecXdata,
-                       float *vecYdata, unsigned int input1_batch_size,
-                       unsigned int input1_channels, unsigned int input1_height,
-                       unsigned int input1_width, unsigned int input2_width);
+  NNTR_API void concat_cl_axis3(const float *matAdata, const float *vecXdata,
+                                float *vecYdata, unsigned int input1_batch_size,
+                                unsigned int input1_channels,
+                                unsigned int input1_height,
+                                unsigned int input1_width,
+                                unsigned int input2_width);
 
   /**
    * @brief     concat computation for axis 2
@@ -146,10 +151,12 @@ public:
    * @param[in] input1_height   represents the height of the input tensor A
    * @param[in] input2_height   represents the height of the input tensor X
    */
-  void concat_cl_axis2(const float *matAdata, const float *vecXdata,
-                       float *vecYdata, unsigned int input1_batch_size,
-                       unsigned int input1_channels, unsigned int input1_width,
-                       unsigned int input1_height, unsigned int input2_height);
+  NNTR_API void concat_cl_axis2(const float *matAdata, const float *vecXdata,
+                                float *vecYdata, unsigned int input1_batch_size,
+                                unsigned int input1_channels,
+                                unsigned int input1_width,
+                                unsigned int input1_height,
+                                unsigned int input2_height);
 
   /**
    * @brief     concat computation for axis 1
@@ -163,11 +170,12 @@ public:
    * @param[in] input1_channels   represents the channels of the input tensor A
    * @param[in] input2_channels   represents the channels of the input tensor X
    */
-  void concat_cl_axis1(const float *matAdata, const float *vecXdata,
-                       float *vecYdata, unsigned int input1_batch_size,
-                       unsigned int input1_height, unsigned int input1_width,
-                       unsigned int input1_channels,
-                       unsigned int input2_channels);
+  NNTR_API void concat_cl_axis1(const float *matAdata, const float *vecXdata,
+                                float *vecYdata, unsigned int input1_batch_size,
+                                unsigned int input1_height,
+                                unsigned int input1_width,
+                                unsigned int input1_channels,
+                                unsigned int input2_channels);
 
 #ifdef ENABLE_FP16
   /**
@@ -182,12 +190,11 @@ public:
    * @param[in] input1_width   represents the width of the input tensor A
    * @param[in] input2_width   represents the width of the input tensor X
    */
-  void concat_cl_axis3_fp16(const _FP16 *matAdata, const _FP16 *vecXdata,
-                            _FP16 *vecYdata, unsigned int input1_batch_size,
-                            unsigned int input1_channels,
-                            unsigned int input1_height,
-                            unsigned int input1_width,
-                            unsigned int input2_width);
+  NNTR_API void
+  concat_cl_axis3_fp16(const _FP16 *matAdata, const _FP16 *vecXdata,
+                       _FP16 *vecYdata, unsigned int input1_batch_size,
+                       unsigned int input1_channels, unsigned int input1_height,
+                       unsigned int input1_width, unsigned int input2_width);
 
   /**
    * @brief     concat computation for axis 2 fp16
@@ -201,12 +208,11 @@ public:
    * @param[in] input1_height   represents the height of the input tensor A
    * @param[in] input2_height   represents the height of the input tensor X
    */
-  void concat_cl_axis2_fp16(const _FP16 *matAdata, const _FP16 *vecXdata,
-                            _FP16 *vecYdata, unsigned int input1_batch_size,
-                            unsigned int input1_channels,
-                            unsigned int input1_width,
-                            unsigned int input1_height,
-                            unsigned int input2_height);
+  NNTR_API void
+  concat_cl_axis2_fp16(const _FP16 *matAdata, const _FP16 *vecXdata,
+                       _FP16 *vecYdata, unsigned int input1_batch_size,
+                       unsigned int input1_channels, unsigned int input1_width,
+                       unsigned int input1_height, unsigned int input2_height);
 
   /**
    * @brief     concat computation for axis 1 fp16
@@ -220,17 +226,19 @@ public:
    * @param[in] input1_channels   represents the channels of the input tensor A
    * @param[in] input2_channels   represents the channels of the input tensor X
    */
-  void concat_cl_axis1_fp16(const _FP16 *matAdata, const _FP16 *vecXdata,
-                            _FP16 *vecYdata, unsigned int input1_batch_size,
-                            unsigned int input1_height,
-                            unsigned int input1_width,
-                            unsigned int input1_channels,
-                            unsigned int input2_channelst);
+  NNTR_API void concat_cl_axis1_fp16(const _FP16 *matAdata,
+                                     const _FP16 *vecXdata, _FP16 *vecYdata,
+                                     unsigned int input1_batch_size,
+                                     unsigned int input1_height,
+                                     unsigned int input1_width,
+                                     unsigned int input1_channels,
+                                     unsigned int input2_channelst);
 #endif
 private:
   std::tuple<props::ConcatDimension> concat_props;
 
-  static std::vector<ClContext::SharedPtrClKernel> &getLayerKernelPtrs();
+  NNTR_API static std::vector<ClContext::SharedPtrClKernel> &
+  getLayerKernelPtrs();
 
   enum Kernels {
     CONCAT_CL_AXIS1,

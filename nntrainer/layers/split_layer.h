@@ -32,68 +32,71 @@ public:
   /**
    * @brief     Constructor of Split Layer
    */
-  SplitLayer();
+  NNTR_API SplitLayer();
 
   /**
    * @brief     Destructor of Split Layer
    */
-  ~SplitLayer() = default;
+  NNTR_API ~SplitLayer() = default;
 
   /**
    *  @brief  Move constructor of SplitLayer.
    *  @param[in] SplitLayer &&
    */
-  SplitLayer(SplitLayer &&rhs) noexcept = default;
+  NNTR_API SplitLayer(SplitLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs SplitLayer to be moved.
    */
-  SplitLayer &operator=(SplitLayer &&rhs) = default;
+  NNTR_API SplitLayer &operator=(SplitLayer &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) override;
+  NNTR_API void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  NNTR_API void forwarding(RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  NNTR_API void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc bool supportBackwarding() const
    */
-  bool supportBackwarding() const override { return true; };
+  NNTR_API bool supportBackwarding() const override { return true; };
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override;
+  NNTR_API void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_API void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return SplitLayer::type; };
+  NNTR_API const std::string getType() const override {
+    return SplitLayer::type;
+  };
 
   static constexpr const char *type = "split";
 
   /**
    * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
    */
-  void setBatch(RunLayerContext &context, unsigned int batch) override {
+  NNTR_API void setBatch(RunLayerContext &context,
+                         unsigned int batch) override {
     setBatch(batch);
   }
 
@@ -109,7 +112,7 @@ private:
    *
    * @param batch update batch size
    */
-  void setBatch(unsigned int batch) {
+  NNTR_API void setBatch(unsigned int batch) {
     input_reshape_helper.batch(batch * leading_helper_dim);
     output_reshape_helper.batch(batch * leading_helper_dim);
   }

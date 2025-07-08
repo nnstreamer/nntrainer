@@ -35,30 +35,30 @@ public:
   /**
    * @brief     Constructor of Layer Class
    */
-  LayerImplCl() : LayerImpl(){};
+  NNTR_API LayerImplCl() : LayerImpl(){};
 
   /**
    * @brief     Destructor of Layer Class
    */
-  virtual ~LayerImplCl() = default;
+  NNTR_API virtual ~LayerImplCl() = default;
 
   /**
    *  @brief  Move constructor of LayerImpl Layer.
    *  @param[in] LayerImplCl &&
    */
-  LayerImplCl(LayerImplCl &&rhs) noexcept = default;
+  NNTR_API LayerImplCl(LayerImplCl &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs LayerImplCl to be moved.
    */
-  LayerImplCl &operator=(LayerImplCl &&rhs) = default;
+  NNTR_API LayerImplCl &operator=(LayerImplCl &&rhs) = default;
 
   /**
    * @brief     register ClKernels for this layer
    * registerClKernels() is called in global ClContext.
    */
-  static bool registerClKernels();
+  NNTR_API static bool registerClKernels();
 
 protected:
   // inline static ClContext *global_cl_context =

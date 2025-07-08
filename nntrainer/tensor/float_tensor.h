@@ -488,7 +488,7 @@ private:
    *
    * @param buf buffer to copy from
    */
-  void copy(const void *buf);
+  NNTR_API void copy(const void *buf);
 
   /**
    * @brief Applies the given operator to the tensor with the passed argument
@@ -501,7 +501,7 @@ private:
    * @retval #ML_ERROR_NONE Successful
    * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
    */
-  void
+  NNTR_API void
   apply_broadcast_util(Tensor const &m,
                        std::function<void(const BroadcastInfo &e, const float *,
                                           const float *, float *)>
@@ -518,36 +518,37 @@ private:
    * @retval #ML_ERROR_NONE Successful
    * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
    */
-  void apply_broadcast(Tensor const &m,
-                       std::function<void(const BroadcastInfo &e, const float *,
-                                          const float *, float *)>
-                         v_func,
-                       Tensor &output) const;
+  NNTR_API void
+  apply_broadcast(Tensor const &m,
+                  std::function<void(const BroadcastInfo &e, const float *,
+                                     const float *, float *)>
+                    v_func,
+                  Tensor &output) const;
 
   /**
    * @brief  Get the Data Type String object
    * @return std::string of tensor data type (FP32)
    */
-  std::string getStringDataType() const override { return "FP32"; }
+  NNTR_API std::string getStringDataType() const override { return "FP32"; }
 
   /**
    * @copydoc Tensor::isValid()
    */
-  bool isValid() const override;
+  NNTR_API bool isValid() const override;
 
   /**
    * @brief Float.dot(Float)
    * @return Tensor& reference to the output tensor
    */
-  Tensor &dotFloat(Tensor const &input, Tensor &output, bool trans,
-                   bool trans_in, float beta) const;
+  NNTR_API Tensor &dotFloat(Tensor const &input, Tensor &output, bool trans,
+                            bool trans_in, float beta) const;
 
   /**
    * @brief Float.dot(Q4K/Q6K)
    * @return Tensor& reference to the output tensor
    */
-  Tensor &dotQnK(Tensor const &input, Tensor &output, bool trans, bool trans_in,
-                 float beta, Tdatatype dtype) const;
+  NNTR_API Tensor &dotQnK(Tensor const &input, Tensor &output, bool trans,
+                          bool trans_in, float beta, Tdatatype dtype) const;
 };
 
 } // namespace nntrainer

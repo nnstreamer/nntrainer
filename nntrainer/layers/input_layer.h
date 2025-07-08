@@ -40,50 +40,50 @@ public:
   /**
    * @brief     Constructor of InputLayer
    */
-  InputLayer();
+  NNTR_API InputLayer();
 
   /**
    * @brief     Destructor of InputLayer
    */
-  ~InputLayer() = default;
+  NNTR_API ~InputLayer() = default;
 
   /**
    *  @brief  Move constructor of Pooling 2D Layer.
    *  @param[in] Input &&
    */
-  InputLayer(InputLayer &&rhs) noexcept = default;
+  NNTR_API InputLayer(InputLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs InputLayer to be moved.
    */
-  InputLayer &operator=(InputLayer &&rhs) = default;
+  NNTR_API InputLayer &operator=(InputLayer &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) override;
+  NNTR_API void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  NNTR_API void forwarding(RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  NNTR_API void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc bool supportBackwarding() const
    */
-  bool supportBackwarding() const override { return false; };
+  NNTR_API bool supportBackwarding() const override { return false; };
 
   /**
    * @brief Initialize the in-place settings of the layer
    * @return InPlaceType
    */
-  InPlaceType initializeInPlace() final {
+  NNTR_API InPlaceType initializeInPlace() final {
     is_inplace = true;
     return InPlaceType::NON_RESTRICTING;
   }
@@ -92,20 +92,22 @@ public:
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override;
+  NNTR_API void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return InputLayer::type; };
+  NNTR_API const std::string getType() const override {
+    return InputLayer::type;
+  };
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_API void setProperty(const std::vector<std::string> &values) override;
 
-  void updateTensorsByInputDimensions(
+  NNTR_API void updateTensorsByInputDimensions(
     nntrainer::RunLayerContext &context,
     std::vector<nntrainer::TensorDim> input_dimensions) override;
 

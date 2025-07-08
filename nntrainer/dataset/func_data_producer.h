@@ -39,41 +39,43 @@ public:
    * @param datagen_cb data callback
    * @param user_data_ user data
    */
-  FuncDataProducer(datagen_cb datagen_cb, void *user_data_);
+  NNTR_API FuncDataProducer(datagen_cb datagen_cb, void *user_data_);
 
   /**
    * @brief Destroy the Func Data Producer object
    *
    */
-  ~FuncDataProducer();
+  NNTR_API ~FuncDataProducer();
 
   static constexpr const char *type = "callback";
 
   /**
    * @copydoc DataProducer::getType()
    */
-  const std::string getType() const override;
+  NNTR_API const std::string getType() const override;
 
   /**
    * @copydoc DataProducer::setProperty(const std::vector<std::string>
    * &properties)
    */
-  void setProperty(const std::vector<std::string> &properties) override;
+  NNTR_API void
+  setProperty(const std::vector<std::string> &properties) override;
 
   /**
    * @copydoc DataProducer::finalize(const std::vector<TensorDim>, const
    * std::vector<TensorDim>, void* user_data)
    */
-  DataProducer::Generator finalize(const std::vector<TensorDim> &input_dims,
-                                   const std::vector<TensorDim> &label_dims,
-                                   void *user_data = nullptr) override;
+  NNTR_API DataProducer::Generator
+  finalize(const std::vector<TensorDim> &input_dims,
+           const std::vector<TensorDim> &label_dims,
+           void *user_data = nullptr) override;
 
   /**
    * @copydoc DataProducer::exportTo(Exporter &exporter,
    * ml::train::ExportMethods method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override;
+  NNTR_API void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const override;
 
 private:
   datagen_cb cb;

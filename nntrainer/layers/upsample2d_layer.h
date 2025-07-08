@@ -34,49 +34,53 @@ public:
    * @brief Construct a new Upsample layer object
    *
    */
-  Upsample2dLayer();
+  NNTR_API Upsample2dLayer();
 
   /**
    * @brief Destroy the Upsample layer object
    *
    */
-  ~Upsample2dLayer() {}
+  NNTR_API ~Upsample2dLayer() {}
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(nntrainer::InitLayerContext &context) override;
+  NNTR_API void finalize(nntrainer::InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(nntrainer::RunLayerContext &context, bool training) override;
+  NNTR_API void forwarding(nntrainer::RunLayerContext &context,
+                           bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(nntrainer::RunLayerContext &context) override;
+  NNTR_API void calcDerivative(nntrainer::RunLayerContext &context) override;
 
   /**
    * @copydoc bool supportBackwarding() const
    */
-  bool supportBackwarding() const override { return true; };
+  NNTR_API bool supportBackwarding() const override { return true; };
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  void exportTo(nntrainer::Exporter &exporter,
-                const ml::train::ExportMethods &method) const override{};
+  NNTR_API void
+  exportTo(nntrainer::Exporter &exporter,
+           const ml::train::ExportMethods &method) const override{};
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return Upsample2dLayer::type; };
+  NNTR_API const std::string getType() const override {
+    return Upsample2dLayer::type;
+  };
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_API void setProperty(const std::vector<std::string> &values) override;
 
   static constexpr const char *type = "upsample2d";
 

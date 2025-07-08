@@ -18,6 +18,12 @@
 
 #include <compiler_fwd.h>
 
+#if defined(_WIN32)
+#define NNTR_API __declspec(dllexport)
+#else
+#define NNTR_API
+#endif
+
 namespace nntrainer {
 
 /**
@@ -30,13 +36,14 @@ public:
    * @brief Destroy the Graph Realizer object
    *
    */
-  virtual ~GraphRealizer() {}
+  NNTR_API virtual ~GraphRealizer() {}
 
   /**
    * @brief graph realizer creates a new graph based on the reference
    * @todo consider void GraphRepresentation &
    */
-  virtual GraphRepresentation realize(const GraphRepresentation &reference) = 0;
+  NNTR_API virtual GraphRepresentation
+  realize(const GraphRepresentation &reference) = 0;
 };
 
 } // namespace nntrainer

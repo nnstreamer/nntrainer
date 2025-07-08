@@ -34,7 +34,7 @@ private:
    * @brief Private constructor to prevent object creation
    *
    */
-  ClBufferManager() :
+  NNTR_API ClBufferManager() :
     inBufferA(nullptr),
     inBufferB(nullptr),
     inBufferC(nullptr),
@@ -64,48 +64,48 @@ public:
    *
    * @return ClBufferManager&
    */
-  static ClBufferManager &getInstance();
+  NNTR_API static ClBufferManager &getInstance();
 
   /**
    * @brief Initialize Buffer objects.
    */
-  void initBuffers();
+  NNTR_API void initBuffers();
 
   /**
    * @brief Get read only inBufferA.
    * @return opencl::Buffer* or nullptr if initBuffers() is not called
    */
-  opencl::Buffer *getInBufferA() { return inBufferA; }
+  NNTR_API opencl::Buffer *getInBufferA() { return inBufferA; }
 
   /**
    * @brief Get read only inBufferB.
    * @return opencl::Buffer* or nullptr if initBuffers() is not called
    */
-  opencl::Buffer *getInBufferB() { return inBufferB; }
+  NNTR_API opencl::Buffer *getInBufferB() { return inBufferB; }
 
   /**
    * @brief Get read only inBufferC.
    * @return opencl::Buffer* or nullptr if initBuffers() is not called
    */
-  opencl::Buffer *getInBufferC() { return inBufferC; }
+  NNTR_API opencl::Buffer *getInBufferC() { return inBufferC; }
 
   /**
    * @brief Get read-write outBufferA.
    * @return opencl::Buffer* or nullptr if initBuffers() is not called
    */
-  opencl::Buffer *getOutBufferA() { return outBufferA; }
+  NNTR_API opencl::Buffer *getOutBufferA() { return outBufferA; }
 
   /**
    * @brief Get read-write outBufferB.
    * @return opencl::Buffer* or nullptr if initBuffers() is not called
    */
-  opencl::Buffer *getOutBufferB() { return outBufferB; }
+  NNTR_API opencl::Buffer *getOutBufferB() { return outBufferB; }
 
   /**
    * @brief Destroy Buffer pointers.
    *
    */
-  ~ClBufferManager();
+  NNTR_API ~ClBufferManager();
 };
 } // namespace nntrainer
 

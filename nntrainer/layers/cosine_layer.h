@@ -29,7 +29,7 @@ public:
   /**
    * @brief Constructor of Cosine Layer
    */
-  CosineLayer() :
+  NNTR_API CosineLayer() :
     UnaryOperationLayer(),
     cosine_props(props::Print(), props::InPlaceProp()),
     support_backwarding(true) {}
@@ -37,24 +37,24 @@ public:
   /**
    * @brief Destructor of Cosine Layer
    */
-  ~CosineLayer(){};
+  NNTR_API ~CosineLayer(){};
 
   /**
    *  @brief  Move constructor of Cosine Layer.
    *  @param[in] CosineLayer &&
    */
-  CosineLayer(CosineLayer &&rhs) noexcept = default;
+  NNTR_API CosineLayer(CosineLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs CosineLayer to be moved.
    */
-  CosineLayer &operator=(CosineLayer &&rhs) = default;
+  NNTR_API CosineLayer &operator=(CosineLayer &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) final;
+  NNTR_API void finalize(InitLayerContext &context) final;
 
   /**
    * @brief forwarding operation for cosine
@@ -62,23 +62,25 @@ public:
    * @param input input tensor
    * @param hidden tensor to store the result value
    */
-  void forwarding_operation(const Tensor &input, Tensor &hidden) final;
+  NNTR_API void forwarding_operation(const Tensor &input, Tensor &hidden) final;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) final;
+  NNTR_API void calcDerivative(RunLayerContext &context) final;
 
   /**
    * @copydoc bool supportBackwarding() const
    */
-  bool supportBackwarding() const final { return support_backwarding; };
+  NNTR_API bool supportBackwarding() const final {
+    return support_backwarding;
+  };
 
   /**
    * @brief Initialize the in-place settings of the layer
    * @return InPlaceType
    */
-  InPlaceType initializeInPlace() final {
+  NNTR_API InPlaceType initializeInPlace() final {
     is_inplace = !std::get<props::InPlaceProp>(cosine_props).empty() &&
                  std::get<props::InPlaceProp>(cosine_props).get();
     support_backwarding = !is_inplace;
@@ -93,18 +95,20 @@ public:
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const final {}
+  NNTR_API void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const final {}
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  void setProperty(const std::vector<std::string> &values) final;
+  NNTR_API void setProperty(const std::vector<std::string> &values) final;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const final { return CosineLayer::type; };
+  NNTR_API const std::string getType() const final {
+    return CosineLayer::type;
+  };
 
   std::tuple<props::Print, props::InPlaceProp> cosine_props;
   bool support_backwarding; /**< support backwarding */

@@ -46,69 +46,71 @@ public:
   /**
    * @brief     Constructor of Pooling 2D Layer
    */
-  Pooling2DLayer(const std::array<unsigned int, POOLING2D_DIM * 2> &padding_ = {
-                   0, 0, 0, 0});
+  NNTR_API Pooling2DLayer(
+    const std::array<unsigned int, POOLING2D_DIM * 2> &padding_ = {0, 0, 0, 0});
 
   /**
    * @brief     Destructor of Pooling 2D Layer
    */
-  ~Pooling2DLayer() = default;
+  NNTR_API ~Pooling2DLayer() = default;
 
   /**
    *  @brief  Move constructor of Pooling 2D Layer.
    *  @param[in] Pooling2D &&
    */
-  Pooling2DLayer(Pooling2DLayer &&rhs) noexcept = default;
+  NNTR_API Pooling2DLayer(Pooling2DLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs Pooling2DLayer to be moved.
    */
-  Pooling2DLayer &operator=(Pooling2DLayer &&rhs) = default;
+  NNTR_API Pooling2DLayer &operator=(Pooling2DLayer &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) override;
+  NNTR_API void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  NNTR_API void forwarding(RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  NNTR_API void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override;
+  NNTR_API void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return Pooling2DLayer::type; };
+  NNTR_API const std::string getType() const override {
+    return Pooling2DLayer::type;
+  };
 
   /**
    * @copydoc Layer::supportBackwarding()
    */
-  bool supportBackwarding() const override { return true; }
+  NNTR_API bool supportBackwarding() const override { return true; }
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_API void setProperty(const std::vector<std::string> &values) override;
 
   static constexpr const char *type = "pooling2d";
 
   /**
    * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
    */
-  void setBatch(RunLayerContext &context, unsigned int batch) override;
+  NNTR_API void setBatch(RunLayerContext &context, unsigned int batch) override;
 
 private:
   std::array<unsigned int, POOLING2D_DIM * 2> padding;
@@ -129,8 +131,8 @@ private:
    * @param[in] pool_helper helper tensor (batch sliced)
    * @param[in] batch_idx idx of the batch
    */
-  void pooling2d(Tensor &in, bool training, Tensor &output, Tensor &pool_helper,
-                 int batch_idx);
+  NNTR_API void pooling2d(Tensor &in, bool training, Tensor &output,
+                          Tensor &pool_helper, int batch_idx);
 };
 
 } // namespace nntrainer

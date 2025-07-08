@@ -95,8 +95,8 @@ public:
   /**
    * @brief     Basic Constructor of Tensor
    */
-  TensorBase(std::string name_ = "", Tformat fm = Tformat::NCHW,
-             Tdatatype d_type = Tdatatype::FP32) :
+  NNTR_API TensorBase(std::string name_ = "", Tformat fm = Tformat::NCHW,
+                      Tdatatype d_type = Tdatatype::FP32) :
     dim(TensorDim(fm, d_type)),
     strides(dim.computeStrides()),
     contiguous(true),
@@ -114,8 +114,9 @@ public:
    * @param init Initializer for the tensor
    * @param name Name of the tensor
    */
-  TensorBase(const TensorDim &d, bool alloc_now,
-             Initializer init = Initializer::NONE, std::string name = "");
+  NNTR_API TensorBase(const TensorDim &d, bool alloc_now,
+                      Initializer init = Initializer::NONE,
+                      std::string name = "");
 
   /**
    * @brief     Constructor of Tensor with dimension/buf
@@ -123,14 +124,14 @@ public:
    * @param buf buffer
    * @note Memory for this tensor is instantaneously allocated
    */
-  TensorBase(const TensorDim &d, const void *buf = nullptr) :
+  NNTR_API TensorBase(const TensorDim &d, const void *buf = nullptr) :
     TensorBase(d, true) {}
 
   /**
    *  @brief  Copy constructor of TensorBase.
    *  @param[in] Tensor &
    */
-  TensorBase(const TensorBase &rhs) {
+  NNTR_API TensorBase(const TensorBase &rhs) {
     dim = rhs.dim;
     strides = rhs.strides;
     contiguous = rhs.contiguous;
@@ -146,54 +147,56 @@ public:
    * @param[in] rhs Tensor to be compared with
    * @note      Only compares Tensor information
    */
-  bool operator==(const TensorBase &rhs) const;
+  NNTR_API bool operator==(const TensorBase &rhs) const;
 
   /**
    * @brief     Comparison operator overload
    * @param[in] rhs Tensor to be compared with
    * @note      Only compares Tensor information
    */
-  bool operator!=(const TensorBase &rhs) const { return !(*this == rhs); }
+  NNTR_API bool operator!=(const TensorBase &rhs) const {
+    return !(*this == rhs);
+  }
 
   /**
    * @copydoc Tensor::setTensorVar(TensorDim d, void *buf, size_t offset)
    */
-  void setTensorVar(TensorDim d, void *buf, size_t offset);
+  NNTR_API void setTensorVar(TensorDim d, void *buf, size_t offset);
 
   /**
    * @brief Basic Destructor
    */
-  virtual ~TensorBase() {}
+  NNTR_API virtual ~TensorBase() {}
 
   /**
    * @copydoc Tensor::allocate()
    */
-  virtual void allocate() = 0;
+  NNTR_API virtual void allocate() = 0;
 
   /**
    * @copydoc Tensor::deallocate()
    */
-  virtual void deallocate() = 0;
+  NNTR_API virtual void deallocate() = 0;
 
   /**
    * @copydoc Tensor::isAllocated()
    */
-  bool isAllocated() { return data != nullptr; }
+  NNTR_API bool isAllocated() { return data != nullptr; }
 
   /**
    * @copydoc Tensor::getData()
    */
-  virtual void *getData() const = 0;
+  NNTR_API virtual void *getData() const = 0;
 
   /**
    * @copydoc Tensor::getData(size_t idx)
    */
-  virtual void *getData(size_t idx) const = 0;
+  NNTR_API virtual void *getData(size_t idx) const = 0;
 
   /**
    * @copydoc Tensor::getScale()
    */
-  virtual void *getScale() const {
+  NNTR_API virtual void *getScale() const {
     throw std::invalid_argument(
       "Tensor::getScale() is not supported in tensor data type " +
       getStringDataType());
@@ -202,7 +205,7 @@ public:
   /**
    * @copydoc Tensor::getScale(size_t idx)
    */
-  virtual void *getScale(size_t idx) const {
+  NNTR_API virtual void *getScale(size_t idx) const {
     throw std::invalid_argument(
       "Tensor::getScale() is not supported in tensor data type " +
       getStringDataType());
@@ -211,7 +214,7 @@ public:
   /**
    * @copydoc Tensor::getZeroPoint()
    */
-  virtual unsigned int *getZeroPoint() const {
+  NNTR_API virtual unsigned int *getZeroPoint() const {
     throw std::invalid_argument(
       "Tensor::getZeroPoint() is not supported in tensor data type " +
       getStringDataType());
@@ -220,7 +223,7 @@ public:
   /**
    * @copydoc Tensor::getZeroPoint(size_t idx)
    */
-  virtual unsigned int *getZeroPoint(size_t idx) const {
+  NNTR_API virtual unsigned int *getZeroPoint(size_t idx) const {
     throw std::invalid_argument(
       "Tensor::getZeroPoint() is not supported in tensor data type " +
       getStringDataType());
@@ -230,186 +233,188 @@ public:
    * @brief     i data index
    * @retval    address of ith data
    */
-  virtual void *getAddress(unsigned int i) = 0;
+  NNTR_API virtual void *getAddress(unsigned int i) = 0;
 
   /**
    * @brief     i data index
    * @retval    address of ith data
    */
-  virtual const void *getAddress(unsigned int i) const = 0;
+  NNTR_API virtual const void *getAddress(unsigned int i) const = 0;
 
   /**
    * @copydoc Tensor::setValue(float value)
    */
-  virtual void setValue(float value) = 0;
+  NNTR_API virtual void setValue(float value) = 0;
 
   /**
    * @copydoc Tensor::setValue(b, c, h, w, value)
    */
-  virtual void setValue(unsigned int b, unsigned int c, unsigned int h,
-                        unsigned int w, float value) = 0;
+  NNTR_API virtual void setValue(unsigned int b, unsigned int c, unsigned int h,
+                                 unsigned int w, float value) = 0;
 
   /**
    * @copydoc Tensor::addValue()
    */
-  virtual void addValue(unsigned int b, unsigned int c, unsigned int h,
-                        unsigned int w, float value, float beta) = 0;
+  NNTR_API virtual void addValue(unsigned int b, unsigned int c, unsigned int h,
+                                 unsigned int w, float value, float beta) = 0;
 
   /**
    * @copydoc Tensor::setZero()
    */
-  virtual void setZero() = 0;
+  NNTR_API virtual void setZero() = 0;
 
   /**
    * @copydoc Tensor::setRandNormal()
    */
-  virtual void setRandNormal(float mean, float stddev);
+  NNTR_API virtual void setRandNormal(float mean, float stddev);
 
   /**
    * @copydoc Tensor::setRandBernoulli()
    */
-  virtual void setRandUniform(float min, float max);
+  NNTR_API virtual void setRandUniform(float min, float max);
 
   /**
    * @copydoc Tensor::setRandBernoulli()
    */
-  virtual void setRandBernoulli(float probability);
+  NNTR_API virtual void setRandBernoulli(float probability);
 
   /**
    * @copydoc Tensor::initialize()
    */
-  virtual void initialize() = 0;
+  NNTR_API virtual void initialize() = 0;
 
   /**
    * @copydoc Tensor::initialize(Initializer init)
    */
-  virtual void initialize(Initializer init) = 0;
+  NNTR_API virtual void initialize(Initializer init) = 0;
 
   /**
    * @copydoc Tensor::multiply_strided(Tensor const &m, Tensor &output,
    * const float beta)
    */
-  virtual Tensor multiply_strided(Tensor const &m, Tensor &output,
-                                  const float beta) const;
+  NNTR_API virtual Tensor multiply_strided(Tensor const &m, Tensor &output,
+                                           const float beta) const;
 
   /**
    * @copydoc Tensor::multiply_i(float const &value)
    */
-  virtual int multiply_i(float const &value);
+  NNTR_API virtual int multiply_i(float const &value);
 
   /**
    * @copydoc Tensor::multiply(float const &value, Tensor &output)
    */
-  virtual Tensor &multiply(float const &value, Tensor &output) const;
+  NNTR_API virtual Tensor &multiply(float const &value, Tensor &output) const;
 
   /**
    * @copydoc Tensor::multiply(Tensor const &m, Tensor &output, const
    * float beta = 0.0)
    */
-  virtual Tensor &multiply(Tensor const &m, Tensor &output,
-                           const float beta = 0.0) const;
+  NNTR_API virtual Tensor &multiply(Tensor const &m, Tensor &output,
+                                    const float beta = 0.0) const;
 
   /**
    * @copydoc Tensor::divide(float const &value, Tensor &output)
    */
-  virtual Tensor &divide(float const &value, Tensor &output) const;
+  NNTR_API virtual Tensor &divide(float const &value, Tensor &output) const;
 
   /**
    * @copydoc Tensor::divide(Tensor const &m, Tensor &output)
    */
-  virtual Tensor &divide(Tensor const &m, Tensor &output) const;
+  NNTR_API virtual Tensor &divide(Tensor const &m, Tensor &output) const;
 
   /**
    * @copydoc Tensor::add_strided(Tensor const &input, Tensor &output,
    * const float beta)
    */
-  virtual Tensor &add_strided(Tensor const &input, Tensor &output,
-                              const float beta) const;
+  NNTR_API virtual Tensor &add_strided(Tensor const &input, Tensor &output,
+                                       const float beta) const;
 
   /**
    * @copydoc Tensor::add_i_partial()
    */
-  virtual int add_i_partial(unsigned int len, unsigned int addr_idx, Tensor &m,
-                            unsigned int incX, unsigned int incY,
-                            const Tensor alphas, unsigned int alpha_idx);
+  NNTR_API virtual int add_i_partial(unsigned int len, unsigned int addr_idx,
+                                     Tensor &m, unsigned int incX,
+                                     unsigned int incY, const Tensor alphas,
+                                     unsigned int alpha_idx);
 
   /**
    * @copydoc Tensor::add(float const &value, Tensor &output)
    */
-  virtual Tensor &add(float const &value, Tensor &output) const;
+  NNTR_API virtual Tensor &add(float const &value, Tensor &output) const;
 
   /**
    * @copydoc Tensor::add(Tensor const &m, Tensor &output, float const
    * alpha)
    */
-  virtual Tensor &add(Tensor const &m, Tensor &output, float const alpha) const;
+  NNTR_API virtual Tensor &add(Tensor const &m, Tensor &output,
+                               float const alpha) const;
 
   /**
    * @copydoc Tensor::subtract(float const &value, Tensor &output)
    */
-  virtual Tensor &subtract(float const &value, Tensor &output) const;
+  NNTR_API virtual Tensor &subtract(float const &value, Tensor &output) const;
 
   /**
    * @brief      Sum all the Tensor elements according to the batch
    * @param[out] output Tensor(batch, 1, 1, 1)
    */
-  virtual void sum_by_batch(Tensor &output) const;
+  NNTR_API virtual void sum_by_batch(Tensor &output) const;
 
   /**
    * @copydoc Tensor::sum(unsigned int axis, Tensor &output, float alpha,
    * float beta) const
    */
-  virtual Tensor &sum(unsigned int axis, Tensor &output, float alpha,
-                      float beta) const;
+  NNTR_API virtual Tensor &sum(unsigned int axis, Tensor &output, float alpha,
+                               float beta) const;
 
   /**
    * @copydoc Tensor::abs()
    */
-  virtual Tensor &abs(Tensor &output) const;
+  NNTR_API virtual Tensor &abs(Tensor &output) const;
 
   /**
    * @copydoc Tensor::l2norm
    */
-  virtual float l2norm() const;
+  NNTR_API virtual float l2norm() const;
 
   /**
    * @copydoc Tensor::pow(float exponent, Tensor &output)
    */
-  virtual Tensor &pow(float exponent, Tensor &output) const;
+  NNTR_API virtual Tensor &pow(float exponent, Tensor &output) const;
 
   /**
    * @copydoc Tensor::sqrt(Tensor &output)
    */
-  virtual Tensor &sqrt(Tensor &output) const;
+  NNTR_API virtual Tensor &sqrt(Tensor &output) const;
 
   /**
    * @copydoc Tensor::erf(Tensor &output)
    */
-  virtual Tensor &erf(Tensor &output) const;
+  NNTR_API virtual Tensor &erf(Tensor &output) const;
 
   /**
    * @brief    sin transform function
    * @param[out] out out to store the result
    */
-  virtual void sin(Tensor &out, float alpha = 1.0);
+  NNTR_API virtual void sin(Tensor &out, float alpha = 1.0);
 
   /**
    * @brief    cos transform function
    * @param[out] out out to store the result
    */
-  virtual void cos(Tensor &out, float alpha = 1.0);
+  NNTR_API virtual void cos(Tensor &out, float alpha = 1.0);
 
   /**
    * @brief    tangent transform function
    * @param[out] output output to store the result
    */
-  virtual void tan(Tensor &output, float alpha = 1.0);
+  NNTR_API virtual void tan(Tensor &output, float alpha = 1.0);
 
   /**
    * @brief      inverse squared root function
    * @param[out] out out to store the result
    */
-  virtual void inv_sqrt(Tensor &out);
+  NNTR_API virtual void inv_sqrt(Tensor &out);
 
   /**
    * @brief     Dot Product of Tensor ( equal MxM )
@@ -422,52 +427,55 @@ public:
    * @param[in] beta beta
    * @retval    Calculated Tensor
    */
-  virtual Tensor &dot(Tensor const &input, Tensor &output, bool trans,
-                      bool trans_in, float beta) const;
+  NNTR_API virtual Tensor &dot(Tensor const &input, Tensor &output, bool trans,
+                               bool trans_in, float beta) const;
 
   /**
    * @copydoc Tensor::dropout_mask(float dropout)
    */
-  virtual void dropout_mask(float dropout);
+  NNTR_API virtual void dropout_mask(float dropout);
 
   /**
    * @copydoc Tensor::filter_mask(const Tensor &mask_len, bool reverse)
    */
-  virtual void filter_mask(const Tensor &mask_len, bool reverse);
+  NNTR_API virtual void filter_mask(const Tensor &mask_len, bool reverse);
 
   /**
    * @copydoc Tensor::zoneout_mask(Tensor &opposite, float zoneout)
    */
-  virtual void zoneout_mask(Tensor &opposite, float zoneout);
+  NNTR_API virtual void zoneout_mask(Tensor &opposite, float zoneout);
 
   /**
    * @copydoc Tensor::split(std::vector<size_t> sizes, int axis)
    */
-  virtual std::vector<Tensor> split(std::vector<size_t> sizes, int axis);
+  NNTR_API virtual std::vector<Tensor> split(std::vector<size_t> sizes,
+                                             int axis);
 
   /**
    * @copydoc Tensor::concat()
    */
-  virtual Tensor concat(const std::vector<Tensor> &tensors, int axis,
-                        Tensor &output);
+  NNTR_API virtual Tensor concat(const std::vector<Tensor> &tensors, int axis,
+                                 Tensor &output);
 
   /**
    * @copydoc Tensor::print(std::ostream &out)
    */
-  virtual void print(std::ostream &out) const = 0;
+  NNTR_API virtual void print(std::ostream &out) const = 0;
 
   /**
    * @copydoc Tensor::apply(std::function<T(T)> f, Tensor &output)
    * @note    This will be only used in FloatTensor.
    */
-  virtual Tensor &apply(std::function<float(float)> f, Tensor &output) const;
+  NNTR_API virtual Tensor &apply(std::function<float(float)> f,
+                                 Tensor &output) const;
 
 #ifdef ENABLE_FP16
   /**
    * @copydoc Tensor::apply(std::function<T(T)> f, Tensor &output)
    * @note    This will be only used in HalfTensor.
    */
-  virtual Tensor &apply(std::function<_FP16(_FP16)> f, Tensor &output) const;
+  NNTR_API virtual Tensor &apply(std::function<_FP16(_FP16)> f,
+                                 Tensor &output) const;
 #endif
 
   /**
@@ -476,219 +484,225 @@ public:
    *
    * @note copy can reshape the tensor to match the shape
    */
-  virtual void copy(const Tensor &from) = 0;
+  NNTR_API virtual void copy(const Tensor &from) = 0;
 
   /**
    * @brief     Copy the Tensor
    * @param[in] from Tensor to be copied
    */
-  virtual void copyData(const Tensor &from) = 0;
+  NNTR_API virtual void copyData(const Tensor &from) = 0;
 
   /**
    * @brief      Copy the Tensor
    * @param[in]  input Tensor to be copied
    * @param[out] output output Tensor
    */
-  virtual void copy_with_stride(const Tensor &input, Tensor &output) = 0;
+  NNTR_API virtual void copy_with_stride(const Tensor &input,
+                                         Tensor &output) = 0;
 
   /**
    * @brief     Save the Tensor into file
    * @param[in] file input file stream
    */
-  virtual void save(std::ostream &file);
+  NNTR_API virtual void save(std::ostream &file);
 
   /**
    * @brief     Read the Tensor from file
    * @param[in] file input file stream
    */
-  virtual void read(std::ifstream &file, size_t start_offset = 0,
-                    bool read_from_offset = false);
+  NNTR_API virtual void read(std::ifstream &file, size_t start_offset = 0,
+                             bool read_from_offset = false);
 
   /**
    * @copydoc Tensor::readFSU()
    */
-  virtual void readFSU();
+  NNTR_API virtual void readFSU();
 
   /**
    * @copydoc Tensor::argmax()
    */
-  virtual std::vector<unsigned int> argmax() const;
+  NNTR_API virtual std::vector<unsigned int> argmax() const;
 
   /**
    * @copydoc Tensor::argmin()
    */
-  virtual std::vector<unsigned int> argmin() const;
+  NNTR_API virtual std::vector<unsigned int> argmin() const;
 
   /**
    * @copydoc Tensor::max_abs()
    */
-  virtual float max_abs() const = 0;
+  NNTR_API virtual float max_abs() const = 0;
 
   /**
    * @copydoc Tensor::maxValue()
    */
-  virtual float maxValue() const = 0;
+  NNTR_API virtual float maxValue() const = 0;
 
   /**
    * @copydoc Tensor::minValue()
    */
-  virtual float minValue() const = 0;
+  NNTR_API virtual float minValue() const = 0;
 
   /**
    * @copydoc Tensor::transpose(const std::string &direction, Tensor &out)
    */
-  virtual Tensor &transpose(const std::string &direction, Tensor &out) const;
+  NNTR_API virtual Tensor &transpose(const std::string &direction,
+                                     Tensor &out) const;
 
   /**
    * @brief     put data of Tensor
    * @note      It is only effective when fsu is used
    */
-  void putData() const;
+  NNTR_API void putData() const;
 
   /**
    * @brief Set the memory buffer for the tensor
    * @param buf the memory buffer
    * @param off offset
    */
-  void setMemoryData(const std::shared_ptr<MemoryData> buf, size_t off);
+  NNTR_API void setMemoryData(const std::shared_ptr<MemoryData> buf,
+                              size_t off);
 
   /**
    * @brief     return Data pointer of Tensor
    * @retval    template T pointer (float pointer as default)
    */
-  const std::shared_ptr<MemoryData> getMemoryData() const;
+  NNTR_API const std::shared_ptr<MemoryData> getMemoryData() const;
 
   /**
    * @brief     return offset
    */
-  size_t getOffset() const;
+  NNTR_API size_t getOffset() const;
 
   /**
    * @brief     get FileOffset of Tensor
    * @return    size_t fileOffset
    */
-  size_t getFileOffset() const;
+  NNTR_API size_t getFileOffset() const;
 
   /**
    * @brief     set FileOffset to Tensor
    * @param     off FileOffset
    */
-  void setFileOffset(size_t off);
+  NNTR_API void setFileOffset(size_t off);
 
   /**
    * @brief     set Tensor Dim
    * @param[in] d TensorDim
    * @note      Throws std::invalid_argument if size mismatch
    */
-  void reshape(const TensorDim &d);
+  NNTR_API void reshape(const TensorDim &d);
 
   /**
    * @brief     return a copy of the Tensor Dim
    * @retval    TensorDim
    */
-  TensorDim getDim() const { return TensorDim(dim); }
+  NNTR_API TensorDim getDim() const { return TensorDim(dim); }
 
   /**
    * @brief     return Tensor Type
    */
-  TensorDim::TensorType getTensorType() const { return dim.getTensorType(); }
+  NNTR_API TensorDim::TensorType getTensorType() const {
+    return dim.getTensorType();
+  }
 
   /**
    * @brief Get initializer for the tensor
    * @retval initializer of the tensor
    */
-  Initializer getInitializer() const { return initializer; }
+  NNTR_API Initializer getInitializer() const { return initializer; }
 
   /**
    * @brief Get format for the tensor
    * @retval format of the tensor
    */
-  TensorDim::Format getFormat() const { return dim.getFormat(); }
+  NNTR_API TensorDim::Format getFormat() const { return dim.getFormat(); }
 
   /**
    * @brief Get data type for the tensor
    * @retval data type of the tensor
    */
-  Tdatatype getDataType() const { return dim.getDataType(); }
+  NNTR_API Tdatatype getDataType() const { return dim.getDataType(); }
 
   /**
    * @brief     update batch size for this tensor
    * @param     batch size
    */
-  void updateBatch(unsigned int batch);
+  NNTR_API void updateBatch(unsigned int batch);
 
   /**
    * @brief     update the dimension for this tensor
    * @param     dimension dimension to be updated
    */
-  void updateDimension(TensorDim dimension);
+  NNTR_API void updateDimension(TensorDim dimension);
 
   /**
    * @brief     return whether tensor is contiguous or not.
    * @retval    bool contiguous
    */
-  const bool getContiguous() const noexcept { return contiguous; }
+  NNTR_API const bool getContiguous() const noexcept { return contiguous; }
 
   /**
    * @brief     return current stride of tensor.
    * @retval    int[MAXDIM] strides
    */
-  const std::array<size_t, TensorDim::MAXDIM> getStrides() const noexcept {
+  NNTR_API const std::array<size_t, TensorDim::MAXDIM>
+  getStrides() const noexcept {
     return strides;
   }
 
   /**
    * @brief     Set name of the tensor
    */
-  void setName(const std::string &name_) { name = name_; }
+  NNTR_API void setName(const std::string &name_) { name = name_; }
 
   /**
    * @brief     Get name of the tensor
    * @retval    string name
    */
-  const std::string &getName() const { return name; }
+  NNTR_API const std::string &getName() const { return name; }
 
   /**
    * @brief Get linear index given the n-d index
    */
-  size_t getIndex(unsigned int b, unsigned int c, unsigned int h,
-                  unsigned int w) const noexcept;
+  NNTR_API size_t getIndex(unsigned int b, unsigned int c, unsigned int h,
+                           unsigned int w) const noexcept;
 
   /**
    * @brief     Save quantization information
    */
-  virtual void save_quantization_info(std::ostream &file) {}
+  NNTR_API virtual void save_quantization_info(std::ostream &file) {}
 
   /**
    * @brief     Read quantization information
    */
-  virtual void read_quantization_info(std::ifstream &file,
-                                      size_t start_offset = 0,
-                                      bool read_from_offset = false) {}
+  NNTR_API virtual void read_quantization_info(std::ifstream &file,
+                                               size_t start_offset = 0,
+                                               bool read_from_offset = false) {}
 
   /**
    * @brief     Get size of current tensor
    * @retval    unsigned int size of the current tensor
    */
-  virtual size_t size() const { return dim.getDataLen(); }
+  NNTR_API virtual size_t size() const { return dim.getDataLen(); }
 
   /**
    * @brief     Get if the tensor is empty
    * @retval    true if the tensor is empty
    */
-  bool empty() const { return size() == 0; }
+  NNTR_API bool empty() const { return size() == 0; }
 
   /**
    * @brief     Get size of the data in bytes
    * @retval    size_t Size in bytes
    */
-  size_t bytes() const { return size() * dim.getDataTypeSize(); }
+  NNTR_API size_t bytes() const { return size() * dim.getDataTypeSize(); }
 
   /**
    * @brief     Get a total size of the memory data in bytes
    * @retval    size_t Size in bytes
    */
-  virtual size_t getMemoryBytes() const {
+  NNTR_API virtual size_t getMemoryBytes() const {
     return size() * dim.getDataTypeSize();
   }
 
@@ -696,39 +710,39 @@ public:
    * @brief     return Tensor batch size
    * @retval    batch size
    */
-  size_t batch() const { return dim.batch(); }
+  NNTR_API size_t batch() const { return dim.batch(); }
 
   /**
    * @brief     return Tensor channel size
    * @retval    channel size
    */
-  size_t channel() const { return dim.channel(); }
+  NNTR_API size_t channel() const { return dim.channel(); }
 
   /**
    * @brief     return Tensor height size
    * @retval    height size
    */
-  size_t height() const { return dim.height(); }
+  NNTR_API size_t height() const { return dim.height(); }
 
   /**
    * @brief     return Tensor width size
    * @retval    width size
    */
-  size_t width() const { return dim.width(); }
+  NNTR_API size_t width() const { return dim.width(); }
 
   /**
    * @brief     return Tensor scale factor size if exists
    * @retval    scale factor size
    * @note      Override for quantize tensor
    */
-  virtual size_t scale_size() const { return 0; }
+  NNTR_API virtual size_t scale_size() const { return 0; }
 
   /**
    * @brief     return Tensor quantization scheme
    * @retval    Qscheme qscheme
    * @note      Override for quantize tensor
    */
-  virtual QScheme q_scheme() const {
+  NNTR_API virtual QScheme q_scheme() const {
     throw std::invalid_argument(
       "Tensor::q_scheme() is not supported in tensor data type " +
       getStringDataType());
@@ -740,13 +754,13 @@ public:
    * @param axis1 first axis to merge
    * @param axis2 second axis to merge
    */
-  void mergeAxis(unsigned int axis1, unsigned int axis2);
+  NNTR_API void mergeAxis(unsigned int axis1, unsigned int axis2);
 
   /**
    * @brief Allocate data based on the source tensor
    * @note As this memory is shared, do NOT initialize
    */
-  void allocateSrcTensor();
+  NNTR_API void allocateSrcTensor();
 
   /**
    * @brief Update destination tensor to share memory with source tensor
@@ -759,8 +773,8 @@ public:
    * @note New size added with offset must be less than the size of the original
    * tensor.
    */
-  void createSharedDataTensor(const TensorBase *src, TensorBase *dest,
-                              size_t offset) const;
+  NNTR_API void createSharedDataTensor(const TensorBase *src, TensorBase *dest,
+                                       size_t offset) const;
 
   /**
    * @brief Get new tensor which shares memory with current tensor but different
@@ -776,9 +790,9 @@ public:
    * @note New size added with offset must be less than the size of the original
    * tensor.
    */
-  void getSharedDataTensor(const TensorDim dim_, size_t offset,
-                           bool reset_stride, const std::string &name_,
-                           TensorBase *ret);
+  NNTR_API void getSharedDataTensor(const TensorDim dim_, size_t offset,
+                                    bool reset_stride, const std::string &name_,
+                                    TensorBase *ret);
 
   /**
    * @copydoc Tensor::isValid()
@@ -817,7 +831,7 @@ protected:
     /**
      * @brief Construct a new External Loop Info object
      */
-    BroadcastInfo() :
+    NNTR_API BroadcastInfo() :
       buffer_size(0),
       buffer_axis(-1),
       strides{0, 0, 0, 0},
@@ -837,7 +851,7 @@ protected:
    * @param m target tensor to be calculated against.
    * @return BroadcastInfo Loopinfo needed to run external loop
    */
-  BroadcastInfo computeBroadcastInfo(const Tensor &m) const;
+  NNTR_API BroadcastInfo computeBroadcastInfo(const Tensor &m) const;
 
   /**
    * @brief Calcuates variables needed to perform tensor flatten dot product
@@ -859,13 +873,12 @@ protected:
    *
    * @note op(X) is one of X or X**T
    */
-  void calculateFlattenDot(Tensor const &input, Tensor &output, bool trans,
-                           bool trans_in, unsigned int &first_three_flat,
-                           unsigned int &last_axis,
-                           unsigned int &input_first_three_flat,
-                           unsigned int &input_last_axis, unsigned int &M,
-                           unsigned int &N, unsigned int &K, unsigned int &lda,
-                           unsigned int &ldb, unsigned int &ldc) const;
+  NNTR_API void calculateFlattenDot(
+    Tensor const &input, Tensor &output, bool trans, bool trans_in,
+    unsigned int &first_three_flat, unsigned int &last_axis,
+    unsigned int &input_first_three_flat, unsigned int &input_last_axis,
+    unsigned int &M, unsigned int &N, unsigned int &K, unsigned int &lda,
+    unsigned int &ldb, unsigned int &ldc) const;
 
   /**
    * @brief  Get the Data Type String object
@@ -873,7 +886,9 @@ protected:
    * @note   TensorBase::getStringDataType() should not be called. Please define
    * this function in the derived class to the corresponding data type.
    */
-  virtual std::string getStringDataType() const { return "Undefined type"; }
+  NNTR_API virtual std::string getStringDataType() const {
+    return "Undefined type";
+  }
 };
 
 /**
@@ -885,18 +900,18 @@ public:
   /**
    * @brief   Constructor for the class
    */
-  SrcSharedTensorBase() : src(nullptr), off(0) {}
+  NNTR_API SrcSharedTensorBase() : src(nullptr), off(0) {}
 
   /**
    * @brief   Constructor for the class
    */
-  SrcSharedTensorBase(const TensorBase *tensor, size_t offset) :
+  NNTR_API SrcSharedTensorBase(const TensorBase *tensor, size_t offset) :
     src(tensor), off(offset) {}
 
   /**
    * @brief   Get the allocated src tensor
    */
-  const TensorBase *tensor() const {
+  NNTR_API const TensorBase *tensor() const {
     if (!src)
       throw std::runtime_error("Accessing empty src tensor");
 
@@ -906,7 +921,7 @@ public:
   /**
    * @brief   Get the offset from the source tensor
    */
-  size_t offset() const { return off; }
+  NNTR_API size_t offset() const { return off; }
 
 private:
   const TensorBase *src; /**< Tensor of the source */
