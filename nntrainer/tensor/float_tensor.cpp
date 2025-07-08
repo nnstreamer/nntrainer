@@ -69,11 +69,33 @@ void FloatTensor::allocate() {
     /// allocate new memory for the tensor data
     MemoryData *mem_data;
 
+#ifdef ENABLE_OPENCL
+    if (blas_cc != nullptr) {
+      mem_data = new MemoryData(blas_cc->context_inst_.createSVMRegion(
+        dim.getDataLen() * sizeof(float)));
+
+      data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
+        blas_cc->context_inst_.releaseSVMRegion(
+          mem_data->template getAddr<float>());
+      });
+
+      blas_cc->command_queue_inst_.enqueueSVMMap(
+        mem_data->template getAddr<float>(), dim.getDataLen() * sizeof(float),
+        false);
+    } else {
+      mem_data = new MemoryData((void *)(new float[dim.getDataLen()]{}));
+      data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
+        delete[] mem_data->template getAddr<float>();
+        delete mem_data;
+      });
+    }
+#else
     mem_data = new MemoryData((void *)(new float[dim.getDataLen()]{}));
     data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
       delete[] mem_data->template getAddr<float>();
       delete mem_data;
     });
+#endif
 
     offset = 0;
     initialize();
