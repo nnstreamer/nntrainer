@@ -22,10 +22,6 @@
 #include "blas_kernels.h"
 #endif
 
-#ifdef ENABLE_OPENCL
-#include "blas_kernels.h"
-#endif
-
 namespace nntrainer {
 
 FloatTensor::FloatTensor(std::string name_, Tformat fm) :
@@ -824,9 +820,6 @@ Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
 #endif
     break;
   case Tdatatype::Q4_0:
-    M = getDim().height();
-    K = getDim().width();
-    N = input.getDim().width();
     gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
     break;
 
