@@ -65,12 +65,12 @@
 #include <lstm.h>
 #include <lstmcell.h>
 #include <matmul_layer.h>
-#include <neg_layer.h>
 #include <mol_attention_layer.h>
 #include <mse_loss_layer.h>
 #include <multi_head_attention_layer.h>
 #include <multiout_layer.h>
 #include <multiply_layer.h>
+#include <neg_layer.h>
 #include <nntrainer_error.h>
 #include <permute_layer.h>
 #include <plugged_layer.h>

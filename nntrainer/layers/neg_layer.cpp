@@ -46,5 +46,4 @@ void NegLayer::setProperty(const std::vector<std::string> &values) {
 
 } /* namespace nntrainer */
 
-
 // derivative and props
