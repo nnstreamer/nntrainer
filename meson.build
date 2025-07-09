@@ -575,6 +575,8 @@ else
 endif
 
 # Configure the Ruy project (CMake)
+ruy_dep = dummy_dep
+if get_option('enable-ruy')
 if get_option('platform') == 'android'
   ruy_root = subprojects_dir_absolute / 'ruy'
   ruy_dep = declare_dependency()
@@ -609,6 +611,7 @@ else
   ruy_proj = cmake.subproject('ruy', options: ruy_options, required: true)
   ruy_dep = ruy_proj.dependency('ruy').partial_dependency(includes: true)
 endif
+endif # enable ruy
 
 if get_option('platform') == 'android'
   message('preparing ml api')
