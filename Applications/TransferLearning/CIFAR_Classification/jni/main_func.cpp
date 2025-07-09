@@ -113,7 +113,7 @@ static int rangeRandom(int min, int max) {
  */
 void getImage(const string filename, float *image) {
   int width, height, channels;
-  uint8_t *in =
+  std::vector<uint8_t> in =
     tflite::label_image::read_bmp(filename, &width, &height, &channels);
 
   if (width * height * channels != image_size)
@@ -122,8 +122,6 @@ void getImage(const string filename, float *image) {
   for (size_t i = 0; i < image_size; i++) {
     image[i] = ((float)in[i]) / 255.0;
   }
-
-  delete[] in;
 }
 
 /**

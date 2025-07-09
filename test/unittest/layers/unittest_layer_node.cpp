@@ -296,14 +296,12 @@ TEST(nntrainer_LayerNode, getWeights_01_n) {
  */
 TEST(nntrainer_LayerNode, setWeights_01_n) {
   std::unique_ptr<nntrainer::LayerNode> lnode;
-  const std::vector<float *> weights({new float});
+  float f;
+  const std::vector<float *> weights({&f});
 
   EXPECT_NO_THROW(lnode =
                     nntrainer::createLayerNode(nntrainer::IdentityLayer::type));
   EXPECT_THROW(lnode->setWeights(weights), std::runtime_error);
-
-  for (auto &i : weights)
-    delete i;
 }
 
 /**
