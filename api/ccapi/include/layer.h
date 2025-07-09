@@ -110,19 +110,19 @@ enum LayerType {
     ML_TRAIN_LAYER_TYPE_LOSS_CROSS_ENTROPY_SOFTMAX, /**< Cross Entropy with
                                                        Softmax Loss Layer type
                                                      */
-  LAYER_TIME_DIST,                /**< Time Distributed Layer type */
-  LAYER_BACKBONE_TFLITE,          /**< Backbone using TFLite */
-  LAYER_RESHAPE,                  /**< Reshape Layer type */
-  LAYER_REDUCE_MEAN,              /**< Reduce mean Layer type */
-  LAYER_UNSQUEEZE ,                  /**< Unsqueeze Layer type */
+  LAYER_TIME_DIST,       /**< Time Distributed Layer type */
+  LAYER_BACKBONE_TFLITE, /**< Backbone using TFLite */
+  LAYER_RESHAPE,         /**< Reshape Layer type */
+  LAYER_REDUCE_MEAN,     /**< Reduce mean Layer type */
+  LAYER_UNSQUEEZE = ML_TRAIN_LAYER_TYPE_UNSQUEEZE, /**< Unsqueeze Layer type */
   LAYER_LOSS_CONSTANT_DERIVATIVE, /**< Synthetic loss layer to feed constant
                                      derivative */
   LAYER_UPSAMPLE2D,               /**< Upsample 2D Layer type */
   LAYER_RMSNORM = ML_TRAIN_LAYER_TYPE_RMSNORM,     /**<RMS NORM Layer */
   LAYER_TRANSPOSE = ML_TRAIN_LAYER_TYPE_TRANSPOSE, /**< Transpose Layer type */
   LAYER_CHANNEL_SHUFFLE =
-    ML_TRAIN_LAYER_TYPE_CHANNEL_SHUFFLE,      /**< Channel Shuffle Layer type */
-    
+    ML_TRAIN_LAYER_TYPE_CHANNEL_SHUFFLE, /**< Channel Shuffle Layer type */
+
   LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN /**< Unknown */
 };
 
