@@ -23,8 +23,89 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <memory>
+#include <unordered_map>
+#include <mutex>
 
 namespace nntrainer {
+
+/**
+ * @brief High-performance memory pool for quantization buffers
+ */
+class QuantizationBufferPool {
+private:
+  std::unordered_map<size_t, std::vector<std::unique_ptr<char[]>>> buffers_;
+  std::mutex mutex_;
+  
+  static constexpr size_t CACHE_LINE_SIZE = 64;
+  static constexpr size_t MAX_CACHED_BUFFERS = 8;
+
+public:
+  static QuantizationBufferPool& getInstance() {
+    static QuantizationBufferPool instance;
+    return instance;
+  }
+
+  std::unique_ptr<char[]> getBuffer(size_t size) {
+    // Align size to cache line boundary for optimal performance
+    size_t aligned_size = (size + CACHE_LINE_SIZE - 1) & ~(CACHE_LINE_SIZE - 1);
+    
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto& pool = buffers_[aligned_size];
+    
+    if (!pool.empty()) {
+      auto buffer = std::move(pool.back());
+      pool.pop_back();
+      return buffer;
+    }
+    
+    return std::make_unique<char[]>(aligned_size);
+  }
+
+  void returnBuffer(std::unique_ptr<char[]> buffer, size_t size) {
+    if (!buffer) return;
+    
+    size_t aligned_size = (size + CACHE_LINE_SIZE - 1) & ~(CACHE_LINE_SIZE - 1);
+    
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto& pool = buffers_[aligned_size];
+    
+    if (pool.size() < MAX_CACHED_BUFFERS) {
+      pool.emplace_back(std::move(buffer));
+    }
+    // If pool is full, buffer will be automatically destroyed
+  }
+};
+
+/**
+ * @brief RAII wrapper for pooled buffers
+ */
+class PooledBuffer {
+private:
+  std::unique_ptr<char[]> buffer_;
+  size_t size_;
+  QuantizationBufferPool& pool_;
+
+public:
+  PooledBuffer(size_t size) : size_(size), pool_(QuantizationBufferPool::getInstance()) {
+    buffer_ = pool_.getBuffer(size);
+  }
+
+  ~PooledBuffer() {
+    pool_.returnBuffer(std::move(buffer_), size_);
+  }
+
+  char* data() { return buffer_.get(); }
+  const char* data() const { return buffer_.get(); }
+  size_t size() const { return size_; }
+
+  // Non-copyable, movable
+  PooledBuffer(const PooledBuffer&) = delete;
+  PooledBuffer& operator=(const PooledBuffer&) = delete;
+  PooledBuffer(PooledBuffer&&) = default;
+  PooledBuffer& operator=(PooledBuffer&&) = default;
+};
+
 /**
  * @brief Continuously packed 4 q8_K
  *
@@ -109,7 +190,7 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
     unsigned int B_step = sizeof(block_q4_0) * (K / QK4_0);
     unsigned int blocks_per_row = (K + QK8_0 - 1) / QK8_0;
     unsigned int qa_size = sizeof(block_q8_0) * blocks_per_row;
-    std::vector<char> QA = std::vector<char>(qa_size);
+    PooledBuffer QA(qa_size);
     ::quantize_row_q8_0(A, QA.data(), K);
 
     // Use BS thread pool for parallel GEMV
@@ -141,7 +222,7 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
     unsigned int M4 = ((M + 3) / 4);
 
     unsigned int qa_size = qa_4_rows_size * M4;
-    std::vector<char> QA = std::vector<char>(qa_size);
+    PooledBuffer QA(qa_size);
 
     // Quantization of activations
     /// @note Heuristic inspection conducted that applying multithreading on
@@ -183,7 +264,7 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
     unsigned int qa_size = sizeof(block_q8_K) * blocks_per_row;
     unsigned int B_step = sizeof(block_q4_K) * (K / QK_K);
 
-    std::vector<char> QA = std::vector<char>(qa_size);
+    PooledBuffer QA(qa_size);
 
     ::quantize_row_q8_K(A, QA.data(), K);
 
@@ -219,7 +300,7 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
     int B_step = sizeof(block_q4_K) * (K / QK_K);
 
     unsigned int qa_size = qa_4_rows_size * (((M >> 2) << 2) / 4 + 1);
-    std::vector<char> QA = std::vector<char>(qa_size);
+    PooledBuffer QA(qa_size);
 
     // Quantize 4-divisible-M row portion with matrix-wise function
     for (unsigned int i = 0; i < M4; i++) {
@@ -293,7 +374,7 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
       std::max(1u, N / 32));
 
     unsigned int qa_size = qa_4_rows_size * M4;
-    std::vector<char> QA = std::vector<char>(qa_size);
+    PooledBuffer QA(qa_size);
 
     // Quantization of activations
     /// @note Heuristic inspection conducted that applying multithreading on
@@ -367,7 +448,7 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
   // GEMV
   if (M == 1) {
     auto &bspool = ThreadPoolManager::getInstance();
-    std::vector<char> quantized_A(A_row_size);
+    PooledBuffer quantized_A(A_row_size);
     ::quantize_row_q8_K(A, quantized_A.data(), K);
 
     const void *const quantized_A_data = quantized_A.data();
@@ -385,7 +466,7 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
     multi_future.wait();
   } else { // GEMM
     const int32_t A_total_size = A_row_size * M;
-    std::vector<char> quantized_A(A_total_size);
+    PooledBuffer quantized_A(A_total_size);
 
     for (int32_t thread_job = 0; thread_job < static_cast<int>(M);
          thread_job++) {
