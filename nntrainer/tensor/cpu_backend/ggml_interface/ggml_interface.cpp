@@ -20,6 +20,7 @@
 
 #include <bs_thread_pool_manager.hpp>
 #include <ggml_interface.h>
+#include "ggml_simd_quant.h"
 #include <string>
 #include <thread>
 #include <vector>
@@ -173,7 +174,7 @@ void __ggml_quantize_row_q6_K(const float *src, void *dst, int64_t k) {
 }
 
 void __ggml_quantize_row_q8_K(const float *src, void *dst, int64_t k) {
-  ::quantize_row_q8_K(src, dst, k);
+  simd::quantize_row_q8_K_optimized(src, dst, k);
 }
 
 void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
@@ -266,7 +267,7 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
 
     PooledBuffer QA(qa_size);
 
-    ::quantize_row_q8_K(A, QA.data(), K);
+    simd::quantize_row_q8_K_optimized(A, QA.data(), K);
 
     // Use BS thread pool for parallel GEMV  
     std::vector<std::future<void>> futures;
@@ -309,7 +310,7 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
     }
     // Quantize leftover 1 ~ 3 rows with row-wise function
     for (unsigned int i = M4 * 4; i < M; i++) {
-      ::quantize_row_q8_K(
+      simd::quantize_row_q8_K_optimized(
         (float *)A + i * K,
         (QA.data() + (M4 * qa_4_rows_size) + (i - M4 * 4) * qa_row_size), K);
     }
@@ -423,8 +424,8 @@ float __ggml_vec_dot_q6_K_f32(const unsigned int K, const void *v_q6_K,
   // Quantization of activations
   int blocks_per_row = (K + QK_K - 1) / QK_K;
   int q8_K_activation_size = sizeof(block_q8_K) * blocks_per_row;
-  std::vector<char> v_q8_activation = std::vector<char>(q8_K_activation_size);
-  ::quantize_row_q8_K(f, v_q8_activation.data(), K);
+  PooledBuffer v_q8_activation(q8_K_activation_size);
+  simd::quantize_row_q8_K_optimized(f, v_q8_activation.data(), K);
 
   return __ggml_vec_dot_q6_K_q8_K(K, v_q6_K, v_q8_activation.data());
 }
@@ -449,7 +450,7 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
   if (M == 1) {
     auto &bspool = ThreadPoolManager::getInstance();
     PooledBuffer quantized_A(A_row_size);
-    ::quantize_row_q8_K(A, quantized_A.data(), K);
+    simd::quantize_row_q8_K_optimized(A, quantized_A.data(), K);
 
     const void *const quantized_A_data = quantized_A.data();
 
@@ -472,7 +473,7 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
          thread_job++) {
       const int32_t A_row_data_offset = A_row_size * thread_job;
       void *A_data = (void *)((char *)quantized_A.data() + A_row_data_offset);
-      ::quantize_row_q8_K(A + thread_job * K, A_data, K);
+      simd::quantize_row_q8_K_optimized(A + thread_job * K, A_data, K);
 
       for (uint32_t j = 0; j < N; j++) {
         const int32_t B_row_data_offset = B_row_size * j;
