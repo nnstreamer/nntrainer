@@ -16,14 +16,15 @@
 
 namespace nntrainer {
 
-void rotary_emb_cl(float *in, float *out,
-                   std::vector<std::vector<float>> freqs_cos,
-                   std::vector<std::vector<float>> freqs_sin,
-                   std::vector<float> cos_, std::vector<float> sin_,
-                   unsigned int batch, unsigned int channel,
-                   unsigned int height, unsigned int width, unsigned int dim,
-                   unsigned int from, unsigned int max_timestep,
-                   unsigned int in_size, unsigned int out_size) {
+void rotary_emb_cl(const float *in, float *out,
+                   const std::vector<std::vector<float>> &freqs_cos,
+                   const std::vector<std::vector<float>> &freqs_sin,
+                   const std::vector<float> &cos_,
+                   const std::vector<float> &sin_, unsigned int batch,
+                   unsigned int channel, unsigned int height,
+                   unsigned int width, unsigned int dim, unsigned int from,
+                   unsigned int max_timestep, unsigned int in_size,
+                   unsigned int out_size) {
   bool result = false;
 
   auto *cl_context =
