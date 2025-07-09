@@ -48,9 +48,9 @@ enum LayerType {
   LAYER_COSINE = ML_TRAIN_LAYER_TYPE_COSINE,     /**< Cosine Layer type */
   LAYER_TANGENT = ML_TRAIN_LAYER_TYPE_TANGENT,   /**< Tangent Layer type */
   LAYER_MATMUL =
-    ML_TRAIN_LAYER_TYPE_MATMUL,      /**< Matrix multiplication Layer type */
+    ML_TRAIN_LAYER_TYPE_MATMUL,        /**< Matrix multiplication Layer type */
   LAYER_NEG = ML_TRAIN_LAYER_TYPE_NEG, /**< Negate Layer type */
-  LAYER_FC = ML_TRAIN_LAYER_TYPE_FC, /**< Fully Connected Layer type */
+  LAYER_FC = ML_TRAIN_LAYER_TYPE_FC,   /**< Fully Connected Layer type */
   LAYER_SWIGLU = ML_TRAIN_LAYER_TYPE_SWIGLU, /**< Swiglu Layer type */
   LAYER_BN = ML_TRAIN_LAYER_TYPE_BN, /**< Batch Normalization Layer type */
   LAYER_CONV2D = ML_TRAIN_LAYER_TYPE_CONV2D, /**< Convolution 2D Layer type */
