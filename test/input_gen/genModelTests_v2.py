@@ -979,7 +979,6 @@ if __name__ == "__main__":
         name="cosine_operation",
     )
     
-    inspect_file("unsqueeze_operation.nnmodelgolden")
     unsqueeze_operation = UnsqueezeOperation()
     record_v2(
         unsqueeze_operation,
@@ -989,6 +988,8 @@ if __name__ == "__main__":
         label_dims=[(2, 1, 12)],
         name="unsqueeze_operation",
     )
+    
+    inspect_file("unsqueeze_operation.nnmodelgolden")
 
     tangent_operation = TangentOperation()
     record_v2(

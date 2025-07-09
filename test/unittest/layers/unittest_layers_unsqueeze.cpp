@@ -14,22 +14,23 @@
 
 #include <gtest/gtest.h>
 
-#include <unsqueeze_layer.h>
 #include <layers_common_tests.h>
+#include <unsqueeze_layer.h>
 
 auto semantic_unsqueeze_axis2 = LayerSemanticsParamType(
-  nntrainer::createLayer<nntrainer::UnsqueezeLayer>, nntrainer::UnsqueezeLayer::type,
-  {"original_ndim=3", "axis=3"}, LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false,
-  1);
+  nntrainer::createLayer<nntrainer::UnsqueezeLayer>,
+  nntrainer::UnsqueezeLayer::type, {"original_ndim=3", "axis=3"},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 auto semantic_unsqueeze_axis1 = LayerSemanticsParamType(
-  nntrainer::createLayer<nntrainer::UnsqueezeLayer>, nntrainer::UnsqueezeLayer::type,
-  {"original_ndim=2", "axis=2"}, LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false,
-  1);
+  nntrainer::createLayer<nntrainer::UnsqueezeLayer>,
+  nntrainer::UnsqueezeLayer::type, {"original_ndim=2", "axis=2"},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 auto semantic_unsqueeze_axis0 = LayerSemanticsParamType(
-  nntrainer::createLayer<nntrainer::UnsqueezeLayer>, nntrainer::UnsqueezeLayer::type,
-  {"original_ndim=2", "axis=1"}, LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false,
-  1);
+  nntrainer::createLayer<nntrainer::UnsqueezeLayer>,
+  nntrainer::UnsqueezeLayer::type, {"original_ndim=2", "axis=1"},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
 GTEST_PARAMETER_TEST(Unsqueeze, LayerSemantics,
                      ::testing::Values(semantic_unsqueeze_axis0,
-                        semantic_unsqueeze_axis1,semantic_unsqueeze_axis2));
+                                       semantic_unsqueeze_axis1,
+                                       semantic_unsqueeze_axis2));

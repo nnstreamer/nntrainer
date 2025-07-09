@@ -356,10 +356,15 @@ public:
   bool isValid(const unsigned int &value) const override;
 };
 
+/**
+ * @brief Original_ndim property to support layers like unsqueeze.
+ *
+ */
 class Original_ndim : public nntrainer::PositiveIntegerProperty {
 public:
-  static constexpr const char *key = "original_ndim"; /**< unique key to access */
-  using prop_tag = uint_prop_tag;            /**< property type */
+  static constexpr const char *key =
+    "original_ndim";              /**< unique key to access */
+  using prop_tag = uint_prop_tag; /**< property type */
 
   /**
    * @brief check if given value is valid
