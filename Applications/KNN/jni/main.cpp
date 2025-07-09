@@ -176,7 +176,7 @@ int main(int argc, char *argv[]) {
       img += total_label[i] + std::to_string(j + 1) + ".bmp";
       printf("%s\n", img.c_str());
 
-      uint8_t *in;
+      std::vector<uint8_t> in;
       float *output;
       in = tflite::label_image::read_bmp(img, &wanted_width, &wanted_height,
                                          &wanted_channels);
@@ -234,7 +234,7 @@ int main(int argc, char *argv[]) {
     img += "test" + std::to_string(i + 1) + ".bmp";
     printf("%s\n", img.c_str());
 
-    uint8_t *in;
+    std::vector<uint8_t> in;
     float *output;
     in = tflite::label_image::read_bmp(img, &wanted_width, &wanted_height,
                                        &wanted_channels);

@@ -161,7 +161,7 @@ void getFeature(const string filename, vector<float> &feature_input) {
   int _input = interpreter->inputs()[0];
 
   float *output;
-  uint8_t *in = tflite::label_image::read_bmp(filename, &wanted_width,
+  std::vector<uint8_t> in = tflite::label_image::read_bmp(filename, &wanted_width,
                                               &wanted_height, &wanted_channels);
 
   if (interpreter->AllocateTensors() != kTfLiteOk) {
@@ -188,8 +188,6 @@ void getFeature(const string filename, vector<float> &feature_input) {
   for (unsigned int l = 0; l < feature_size; l++) {
     feature_input[l] = output[l];
   }
-
-  delete[] in;
 }
 
 /**
