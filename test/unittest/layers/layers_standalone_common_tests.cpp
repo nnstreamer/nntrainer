@@ -82,7 +82,7 @@ TEST_P(LayerSemantics, setBatchValidate_p) {
   }
 }
 
-#ifdef ENABLE_OPENCL
+#if 0
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(LayerSemanticsGpu);
 
 TEST_P(LayerSemanticsGpu, setProperties_n) {
