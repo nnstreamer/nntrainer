@@ -16,24 +16,26 @@
 
 #include <databuffer.h>
 
+#include "defines.h"
+
 namespace nntrainer {
 
 /**
  * @brief Factory creator with constructor
  */
-std::unique_ptr<DataBuffer> createDataBuffer(DatasetType type);
+NNTR_EXPORT std::unique_ptr<DataBuffer> createDataBuffer(DatasetType type);
 
 /**
  * @brief Factory creator with constructor for databuffer with files
  */
-std::unique_ptr<DataBuffer> createDataBuffer(DatasetType type,
-                                             const char *file);
+NNTR_EXPORT std::unique_ptr<DataBuffer> createDataBuffer(DatasetType type,
+                                                         const char *file);
 
 /**
  * @brief Factory creator with constructor for databuffer with callbacks
  */
-std::unique_ptr<DataBuffer> createDataBuffer(DatasetType type, datagen_cb cb,
-                                             void *user_data = nullptr);
+NNTR_EXPORT std::unique_ptr<DataBuffer>
+createDataBuffer(DatasetType type, datagen_cb cb, void *user_data = nullptr);
 
 } /* namespace nntrainer */
 

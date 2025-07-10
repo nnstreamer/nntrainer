@@ -56,7 +56,7 @@ public:
    * @param loss_scale loss scale value for mixed precision training
    * @param mode execution mode.
    */
-  InitLayerContext(
+  NNTR_EXPORT InitLayerContext(
     const std::vector<TensorDim> &dim,
     const std::vector<bool> &req_out_connected, bool is_inplace_,
     const std::string &n = "", const std::string &prefix_ = "",
@@ -70,7 +70,7 @@ public:
    *
    * @return Tensor Format of the layer
    */
-  TensorDim::Format getFormat() {
+  NNTR_EXPORT TensorDim::Format getFormat() {
     return str_converter<enum_class_prop_tag, nntrainer::TensorFormatInfo>::
       from_string(tensor_type[0]);
   };
@@ -80,7 +80,7 @@ public:
    *
    * @return Tensor DataType of the the Weight
    */
-  TensorDim::DataType getWeightDataType() {
+  NNTR_EXPORT TensorDim::DataType getWeightDataType() {
     return str_converter<enum_class_prop_tag, nntrainer::TensorDataTypeInfo>::
       from_string(tensor_type[1]);
   };
@@ -90,7 +90,7 @@ public:
    *
    * @return Tensor DataType of the the Activation
    */
-  TensorDim::DataType getActivationDataType() {
+  NNTR_EXPORT TensorDim::DataType getActivationDataType() {
     return str_converter<enum_class_prop_tag, nntrainer::TensorDataTypeInfo>::
       from_string(tensor_type[2]);
   };
@@ -100,14 +100,16 @@ public:
    *
    * @return Engine Engine Type
    */
-  ml::train::LayerComputeEngine getComputeEngineType() { return engine; };
+  NNTR_EXPORT ml::train::LayerComputeEngine getComputeEngineType() {
+    return engine;
+  };
 
   /**
    * @brief   get name by the layer
    *
    * @return name of the layer
    */
-  const std::string &getName() const { return name; }
+  NNTR_EXPORT const std::string &getName() const { return name; }
 
   /**
    * @brief   get Execution Mode
@@ -115,35 +117,39 @@ public:
    * @return Mode Execution Mode : ml::train::ExecutionMode::INFERNECE |
    * ml::train::ExecutionMode::TRAIN
    */
-  const ml::train::ExecutionMode &getExecutionMode() const { return mode; }
+  NNTR_EXPORT const ml::train::ExecutionMode &getExecutionMode() const {
+    return mode;
+  }
 
   /**
    * @brief Get the number of inputs for the layer
    *
    * @return unsigned int number of inputs
    */
-  unsigned int getNumInputs() const { return input_dim.size(); }
+  NNTR_EXPORT unsigned int getNumInputs() const { return input_dim.size(); }
 
   /**
    * @brief Get the number of requested outputs for the layer
    *
    * @return unsigned int number of requested outputs
    */
-  unsigned int getNumRequestedOutputs() const;
+  NNTR_EXPORT unsigned int getNumRequestedOutputs() const;
 
   /**
    * @brief Get the Input Dimensions object
    *
    * @return const std::vector<TensorDim>& Input dimensions
    */
-  const std::vector<TensorDim> &getInputDimensions() const { return input_dim; }
+  NNTR_EXPORT const std::vector<TensorDim> &getInputDimensions() const {
+    return input_dim;
+  }
 
   /**
    * @brief Retrieves the data type of input tensor at the given index
    *
    * @return The data type of the input tensor
    */
-  const TensorDim::DataType getInputDataType(int idx) const {
+  NNTR_EXPORT const TensorDim::DataType getInputDataType(int idx) const {
     return input_dim[idx].getDataType();
   }
 
@@ -152,14 +158,16 @@ public:
    *
    * @return std::vector<TensorDim>& Input dimensions
    */
-  std::vector<TensorDim> &getMutableInputDimensions() { return input_dim; }
+  NNTR_EXPORT std::vector<TensorDim> &getMutableInputDimensions() {
+    return input_dim;
+  }
 
   /**
    * @brief Set Data Type for Input Dimensions
    *
    * @param ty data type to set
    */
-  void setInputDataType(TensorDim::DataType ty) {
+  NNTR_EXPORT void setInputDataType(TensorDim::DataType ty) {
     for (auto &d : input_dim)
       d.setDataType(ty);
   }
@@ -169,7 +177,7 @@ public:
    *
    * @param dim_flag_ dimension bit to calculate, rightmost is width
    */
-  void
+  NNTR_EXPORT void
   setEffDimFlagInputDimension(unsigned int idx,
                               const std::bitset<TensorDim::MAXDIM> &dim_flag_) {
     input_dim[idx].setEffDimFlag(dim_flag_);
@@ -181,7 +189,7 @@ public:
    *
    * @param dim_flag_ dimension bit to calculate, rightmost is width
    */
-  void
+  NNTR_EXPORT void
   setDynDimFlagInputDimension(unsigned int idx,
                               const std::bitset<TensorDim::MAXDIM> &dim_flag_) {
     input_dim[idx].setDynDimFlag(dim_flag_);
@@ -192,7 +200,7 @@ public:
    *
    * @param out_dim the output dimension to set to
    */
-  void setOutputDimensions(const std::vector<TensorDim> &out_dim);
+  NNTR_EXPORT void setOutputDimensions(const std::vector<TensorDim> &out_dim);
 
   /**
    * @brief Request a new weight for the layer
@@ -208,10 +216,11 @@ public:
    * @todo Consider providing a guarantee that the returned indices will always
    * start from 0 and will always be incremental.
    */
-  unsigned int requestWeight(const TensorDim &dim, const Initializer init,
-                             const WeightRegularizer reg, const float reg_const,
-                             const float decay, const std::string &name,
-                             bool trainable = true, unsigned int out_axis = 3) {
+  NNTR_EXPORT unsigned int
+  requestWeight(const TensorDim &dim, const Initializer init,
+                const WeightRegularizer reg, const float reg_const,
+                const float decay, const std::string &name,
+                bool trainable = true, unsigned int out_axis = 3) {
 
     /** @note : We assumes the gradient type is same with Activation data
      * type.*/
@@ -241,11 +250,10 @@ public:
    * @todo Consider providing a guarantee that the returned indices will always
    * start from 0 and will always be incremental.
    */
-  unsigned int requestWeight(const TensorDim &dim, const TensorDim &dim_g,
-                             const Initializer init,
-                             const WeightRegularizer reg, const float reg_const,
-                             const float decay, const std::string &name,
-                             bool trainable = true, unsigned int out_axis = 3) {
+  NNTR_EXPORT unsigned int requestWeight(
+    const TensorDim &dim, const TensorDim &dim_g, const Initializer init,
+    const WeightRegularizer reg, const float reg_const, const float decay,
+    const std::string &name, bool trainable = true, unsigned int out_axis = 3) {
 
     /** @note : We assumes the gradient type is same with Activation data
      * type.*/
@@ -265,7 +273,7 @@ public:
    * @todo Consider providing a guarantee that the returned indices will always
    * start from 0 and will always be incremental.
    */
-  unsigned int requestWeight(const WeightSpec &spec) {
+  NNTR_EXPORT unsigned int requestWeight(const WeightSpec &spec) {
     weights_spec.emplace_back(spec);
     return weights_spec.size() - 1;
   }
@@ -283,7 +291,7 @@ public:
    * @todo Consider providing a guarantee that the returned indices will always
    * start from 0 and will always be incremental.
    */
-  unsigned int requestTensor(
+  NNTR_EXPORT unsigned int requestTensor(
     const TensorDim &dim, const std::string &name,
     const Initializer init = Initializer::NONE, bool trainable = false,
     TensorLifespan lifespan = TensorLifespan::ITERATION_LIFESPAN,
@@ -310,7 +318,7 @@ public:
    * @todo Consider providing a guarantee that the returned indices will always
    * start from 0 and will always be incremental.
    */
-  unsigned int requestTensor(const TensorSpec &spec) {
+  NNTR_EXPORT unsigned int requestTensor(const TensorSpec &spec) {
     tensors_spec.emplace_back(spec);
     return tensors_spec.size() - 1;
   }
@@ -320,28 +328,32 @@ public:
    *
    * @return The current weights spec
    */
-  const std::vector<WeightSpec> &getWeightsSpec() const { return weights_spec; }
+  NNTR_EXPORT const std::vector<WeightSpec> &getWeightsSpec() const {
+    return weights_spec;
+  }
 
   /**
    * @brief Get the number of requested weights
    *
    * @return The current number of requested weights
    */
-  unsigned int getNumWeights() const { return weights_spec.size(); }
+  NNTR_EXPORT unsigned int getNumWeights() const { return weights_spec.size(); }
 
   /**
    * @brief Get the current tensors spec
    *
    * @return The current tensors spec
    */
-  const std::vector<TensorSpec> &getTensorsSpec() const { return tensors_spec; }
+  NNTR_EXPORT const std::vector<TensorSpec> &getTensorsSpec() const {
+    return tensors_spec;
+  }
 
   /**
    * @brief Get the number of requested tensors objects
    *
    * @return unsigned int number of requested tensors
    */
-  unsigned int getNumTensors() const { return tensors_spec.size(); }
+  NNTR_EXPORT unsigned int getNumTensors() const { return tensors_spec.size(); }
 
   /**
    * @brief create var grad specification with output default
@@ -352,7 +364,7 @@ public:
    * @param grad_ls gradient lifespan
    * @return VarGradSpecV2 var grad specification
    */
-  static VarGradSpecV2
+  NNTR_EXPORT static VarGradSpecV2
   outSpec(const TensorDim &dim, const std::string &name = "out",
           TensorLifespan ls = TensorLifespan::FORWARD_FUNC_LIFESPAN,
           TensorLifespan grad_ls = TensorLifespan::CALC_GRAD_DERIV_LIFESPAN);
@@ -363,14 +375,14 @@ public:
    * @param out_specs pack of out specification, name will be automatically
    * indexed to prevent name clash
    */
-  void requestOutputs(std::vector<VarGradSpecV2> &&out_specs);
+  NNTR_EXPORT void requestOutputs(std::vector<VarGradSpecV2> &&out_specs);
 
   /**
    * @brief Get the Out Specs object
    *
    * @return std::vector<VarGradSpecV2> out specification
    */
-  const std::vector<VarGradSpecV2> &getOutSpecs() const;
+  NNTR_EXPORT const std::vector<VarGradSpecV2> &getOutSpecs() const;
 
   /**
    * @brief Validate the context
@@ -378,7 +390,7 @@ public:
    * @return true if validated, else false
    * @note this must be called before passing a context to a layer for finalize
    */
-  bool validate() {
+  NNTR_EXPORT bool validate() {
     if (input_dim.empty()) {
       return false;
     }
@@ -401,7 +413,7 @@ public:
    *
    * @return true if in-place, else false
    */
-  bool getInPlace() const { return is_inplace; }
+  NNTR_EXPORT bool getInPlace() const { return is_inplace; }
 
   /**
    * @brief   get Initial value of Loss_Scale. This is set to RunLayerContext
@@ -409,7 +421,7 @@ public:
    *
    * @return loss_scale
    */
-  float getLossScale() const { return loss_scale; }
+  NNTR_EXPORT float getLossScale() const { return loss_scale; }
 
   /**
    * @brief   get Mixed Precision Training. If the weight is not the FP32, then
@@ -417,7 +429,7 @@ public:
    *
    * @return true if it is mixed training
    */
-  bool isMixedTraining() { return istrequal(tensor_type[1], "FP32"); }
+  NNTR_EXPORT bool isMixedTraining() { return istrequal(tensor_type[1], "FP32"); }
 
 private:
   std::vector<TensorDim> input_dim; /**< Input dimensions for the layer */
@@ -458,14 +470,14 @@ public:
    * @brief Construct a new Run Layer Context object
    *
    */
-  RunLayerContext() :
+  NNTR_EXPORT RunLayerContext() :
     loss(0.0), is_inplace(false), loss_scale(1.0), restoreData(false) {}
 
   /**
    * @brief Construct a new Run Layer Context object
    *
    */
-  RunLayerContext(const std::string &name, bool is_inplace_) :
+  NNTR_EXPORT RunLayerContext(const std::string &name, bool is_inplace_) :
     RunLayerContext() {
     is_inplace = is_inplace_;
     std::get<props::Name>(props).set(name);
@@ -475,8 +487,8 @@ public:
    * @brief Construct a new Run Layer Context object
    *
    */
-  RunLayerContext(const std::string &name, bool is_inplace_,
-                  float loss_scale_) :
+  NNTR_EXPORT RunLayerContext(const std::string &name, bool is_inplace_,
+                           float loss_scale_) :
     RunLayerContext() {
     is_inplace = is_inplace_;
     std::get<props::Name>(props).set(name);
@@ -496,13 +508,13 @@ public:
    * @param out outputs of the layer
    * @param t extra tensors of the layer
    */
-  RunLayerContext(const std::string &name, bool trainable, float l,
-                  bool is_inplace_, float loss_scale_,
-                  std::shared_ptr<ContextData> ct_data, bool restoreData_,
-                  const std::vector<Weight *> &w,
-                  const std::vector<Var_Grad *> &in,
-                  const std::vector<Var_Grad *> &out,
-                  const std::vector<Var_Grad *> &t);
+  NNTR_EXPORT RunLayerContext(const std::string &name, bool trainable, float l,
+                           bool is_inplace_, float loss_scale_,
+                           std::shared_ptr<ContextData> ct_data,
+                           bool restoreData_, const std::vector<Weight *> &w,
+                           const std::vector<Var_Grad *> &in,
+                           const std::vector<Var_Grad *> &out,
+                           const std::vector<Var_Grad *> &t);
 
   /**
    * @brief Get the Weight tensor object
@@ -511,7 +523,7 @@ public:
    * @param idx Identifier of the weight
    * @return Tensor& Reference to the weight tensor
    */
-  void getWeight(Tensor &w, unsigned int idx) {
+  NNTR_EXPORT void getWeight(Tensor &w, unsigned int idx) {
     Tensor &t_w = weights[idx]->getVariableRef();
 
     if (t_w.getDataType() == Tdatatype::FP32 ||
@@ -540,7 +552,7 @@ public:
    * @param idx Identifier of the weight
    * @return Tensor& Reference to the weight tensor
    */
-  Tensor &getWeight(unsigned int idx) const;
+  NNTR_EXPORT Tensor &getWeight(unsigned int idx) const;
 
   /**
    * @brief Get the Weight Gradient tensor object
@@ -549,7 +561,7 @@ public:
    * @param idx Identifier of the weight
    * @return Tensor& Reference to the weight grad tensor
    */
-  Tensor &getWeightGrad(unsigned int idx) const;
+  NNTR_EXPORT Tensor &getWeightGrad(unsigned int idx) const;
 
   /**
    * @brief Get the Weight Gradient tensor object
@@ -557,7 +569,7 @@ public:
    * @param idx Identifier of the weight
    * @return Tensor& Reference to the weight grad tensor
    */
-  Tensor &getWeightFP32(unsigned int idx) const;
+  NNTR_EXPORT Tensor &getWeightFP32(unsigned int idx) const;
 
   /**
 
@@ -567,7 +579,7 @@ public:
    * @param jdx Identifier of the weight optimizer variable
    * @return Tensor& Reference to the weight grad tensor
    */
-  Tensor &getWeightOptVar(unsigned int idx, unsigned int jdx) const;
+  NNTR_EXPORT Tensor &getWeightOptVar(unsigned int idx, unsigned int jdx) const;
 
   /**
    * @brief Get the Weight name
@@ -575,7 +587,7 @@ public:
    * @param idx Identifier of the weight
    * @return name of the weight
    */
-  const std::string &getWeightName(unsigned int idx) const;
+  NNTR_EXPORT const std::string &getWeightName(unsigned int idx) const;
 
   /**
    * @brief check if the weight has gradient
@@ -583,7 +595,7 @@ public:
    * @param idx Identifier of the weight
    * @return true if weight has gradient, else false
    */
-  bool weightHasGradient(unsigned int idx) const;
+  NNTR_EXPORT bool weightHasGradient(unsigned int idx) const;
 
   /**
    * @brief Get the Output tensor object
@@ -591,7 +603,7 @@ public:
    * @param idx Identifier of the output
    * @return Tensor& Reference to the output tensor
    */
-  Tensor &getOutput(unsigned int idx);
+  NNTR_EXPORT Tensor &getOutput(unsigned int idx);
 
   /**
    * @brief Get the Output tensor object
@@ -599,7 +611,7 @@ public:
    * @param idx Identifier of the output
    * @return Tensor& Reference to the output tensor
    */
-  const Tensor &getOutput(unsigned int idx) const;
+  NNTR_EXPORT const Tensor &getOutput(unsigned int idx) const;
 
   /**
    * @brief Get the Output Grad tensor object
@@ -608,7 +620,7 @@ public:
    * @return Read-only output grad tensor, if derivative does not have
    * gradient, return a temporary, initialized to zero
    */
-  const Tensor getOutputGrad(unsigned int idx) const;
+  NNTR_EXPORT const Tensor getOutputGrad(unsigned int idx) const;
 
   /**
    * @brief Get the Output Grad tensor object
@@ -620,7 +632,7 @@ public:
    * @note recommended to NOT use this function as a layer developer but rather
    * use getOutputGrad().
    */
-  Tensor &getOutputGradUnsafe(unsigned int idx);
+  NNTR_EXPORT Tensor &getOutputGradUnsafe(unsigned int idx);
 
   /**
    * @brief check if the weight has gradient
@@ -628,7 +640,7 @@ public:
    * @param idx Identifier of the weight
    * @return true if weight has gradient, else false
    */
-  bool outputHasGradient(unsigned int idx) const;
+  NNTR_EXPORT bool outputHasGradient(unsigned int idx) const;
 
   /**
    * @brief Get the incoming Derivative tensor object
@@ -637,7 +649,7 @@ public:
    * @return Tensor output derivative tensor, if derivative does not have
    * gradient, return a temporary, initialized to zero
    */
-  const Tensor getIncomingDerivative(unsigned int idx) const;
+  NNTR_EXPORT const Tensor getIncomingDerivative(unsigned int idx) const;
 
   /**
    * @brief Get the Input tensor object
@@ -645,7 +657,7 @@ public:
    * @param idx Identifier of the input
    * @return Tensor& Reference to the input grad tensor
    */
-  Tensor &getInput(unsigned int idx);
+  NNTR_EXPORT Tensor &getInput(unsigned int idx);
 
   /**
    * @brief Get the Input tensor object
@@ -653,7 +665,7 @@ public:
    * @param idx Identifier of the input
    * @return Tensor& Reference to the input grad tensor
    */
-  const Tensor &getInput(unsigned int idx) const;
+  NNTR_EXPORT const Tensor &getInput(unsigned int idx) const;
 
   /**
    * @brief Get the Input Grad tensor object
@@ -661,7 +673,7 @@ public:
    * @param idx Identifier of the input
    * @return Tensor& Reference to the input grad tensor
    */
-  Tensor &getInputGrad(unsigned int idx);
+  NNTR_EXPORT Tensor &getInputGrad(unsigned int idx);
 
   /**
    * @brief check if the weight has gradient
@@ -669,7 +681,7 @@ public:
    * @param idx Identifier of the weight
    * @return true if weight has gradient, else false
    */
-  bool inputHasGradient(unsigned int idx) const;
+  NNTR_EXPORT bool inputHasGradient(unsigned int idx) const;
 
   /**
    * @brief Get the outgoing Derivative tensor object
@@ -677,7 +689,7 @@ public:
    * @param idx Identifier of the input
    * @return Tensor& Reference to the input derivative tensor
    */
-  Tensor &getOutgoingDerivative(unsigned int idx);
+  NNTR_EXPORT Tensor &getOutgoingDerivative(unsigned int idx);
 
   /**
    * @brief Get the Tensor object
@@ -685,7 +697,7 @@ public:
    * @param idx Identifier of the tensor
    * @return Tensor& Reference to the tensor
    */
-  Tensor &getTensor(unsigned int idx);
+  NNTR_EXPORT Tensor &getTensor(unsigned int idx);
 
   /**
    * @brief Get the Tensor object
@@ -693,7 +705,7 @@ public:
    * @param idx Identifier of the tensor
    * @return Tensor& Reference to the tensor
    */
-  const Tensor &getTensor(unsigned int idx) const;
+  NNTR_EXPORT const Tensor &getTensor(unsigned int idx) const;
 
   /**
    * @brief Get the Tensor Grad object
@@ -701,7 +713,7 @@ public:
    * @param idx Identifier of the tensor
    * @return Tensor& Reference to the tensor grad tensor
    */
-  Tensor &getTensorGrad(unsigned int idx);
+  NNTR_EXPORT Tensor &getTensorGrad(unsigned int idx);
 
   /**
    * @brief Get the Tensor Grad object
@@ -709,7 +721,7 @@ public:
    * @param idx Identifier of the tensor
    * @return Tensor& Reference to the tensor grad tensor
    */
-  const Tensor &getTensorGrad(unsigned int idx) const;
+  NNTR_EXPORT const Tensor &getTensorGrad(unsigned int idx) const;
 
   /**
    * @brief check if the tensor has gradient
@@ -717,7 +729,7 @@ public:
    * @param idx Identifier of the tensor
    * @return true if tensor has gradient, else false
    */
-  bool tensorHasGradient(unsigned int idx) const;
+  NNTR_EXPORT bool tensorHasGradient(unsigned int idx) const;
 
   /**
    * @brief check if the weight is burrowed from others so it is dependent
@@ -725,7 +737,7 @@ public:
    * @param idx index
    * @return bool true if weight is burrowed from outside
    */
-  bool isWeightDependent(unsigned int idx) const;
+  NNTR_EXPORT bool isWeightDependent(unsigned int idx) const;
 
   /**
    * @brief check current gradient is first access
@@ -736,7 +748,7 @@ public:
    * @param idx index
    * @return bool true if first access
    */
-  bool isGradientFirstAccess(unsigned int idx) const;
+  NNTR_EXPORT bool isGradientFirstAccess(unsigned int idx) const;
 
   /**
    * @brief check current gradient is last access
@@ -747,7 +759,7 @@ public:
    * @param idx index
    * @return bool true if last access
    */
-  bool isGradientLastAccess(unsigned int idx) const;
+  NNTR_EXPORT bool isGradientLastAccess(unsigned int idx) const;
 
   /**
    * @brief check if the gradient is to be clipped by global norm
@@ -755,7 +767,7 @@ public:
    * @param idx index
    * @return bool true if it is to be clipped else false
    */
-  bool isGradientClipByGlobalNorm(unsigned int idx) const;
+  NNTR_EXPORT bool isGradientClipByGlobalNorm(unsigned int idx) const;
 
   /**
    * @brief check if the weight is mixed precsion
@@ -763,7 +775,7 @@ public:
    * @param idx index
    * @return bool true if it is mixed precision
    */
-  bool isMixedPrecision(unsigned int idx) const;
+  NNTR_EXPORT bool isMixedPrecision(unsigned int idx) const;
 
   /**
    * @brief Get the tensor name
@@ -771,28 +783,28 @@ public:
    * @param idx Identifier of the tensor
    * @return name of the tensor
    */
-  const std::string &getTensorName(unsigned int idx) const;
+  NNTR_EXPORT const std::string &getTensorName(unsigned int idx) const;
 
   /**
    * @brief Get the number of Outputs tensor objects
    *
    * @return unsigned int number of output tensors
    */
-  unsigned int getNumOutputs() const;
+  NNTR_EXPORT unsigned int getNumOutputs() const;
 
   /**
    * @brief Get the number of inputs tensor objects
    *
    * @return unsigned int number of input tensors
    */
-  unsigned int getNumInputs() const;
+  NNTR_EXPORT unsigned int getNumInputs() const;
 
   /**
    * @brief Get the number of weights tensor objects
    *
    * @return unsigned int number of weight tensors
    */
-  unsigned int getNumWeights() const;
+  NNTR_EXPORT unsigned int getNumWeights() const;
 
   /**
    * @brief Get the Number of Weight Optimizer Variable tensor object
@@ -800,20 +812,20 @@ public:
    * @param idx Identifier of the weight
    * @return unsigned int Number of the weight optimizer variable
    */
-  unsigned int getNumWeightOptVar(unsigned int idx) const;
+  NNTR_EXPORT unsigned int getNumWeightOptVar(unsigned int idx) const;
 
   /**
    * @brief Get the number of requested tensors objects
    *
    * @return unsigned int number of requested tensors
    */
-  unsigned int getNumTensors() const;
+  NNTR_EXPORT unsigned int getNumTensors() const;
   /**
    * @brief Set the batch for the run context
    *
    * @param batch Update batch size
    */
-  void setBatch(unsigned int batch);
+  NNTR_EXPORT void setBatch(unsigned int batch);
 
   /**
    * @brief Update the dimensions for a requested tensor
@@ -821,7 +833,7 @@ public:
    * @param idx index of the tensor (identifier)
    * @param batch Updated batch size
    */
-  void updateTensor(unsigned int idx, unsigned int batch);
+  NNTR_EXPORT void updateTensor(unsigned int idx, unsigned int batch);
 
   /**
    * @brief Update the dimensions for a requested input
@@ -829,7 +841,7 @@ public:
    * @param idx index of the input (identifier)
    * @param dim dimension to be updated
    */
-  void updateInput(unsigned int idx, TensorDim dim);
+  NNTR_EXPORT void updateInput(unsigned int idx, TensorDim dim);
 
   /**
    * @brief Update the dimensions for a requested output
@@ -837,7 +849,7 @@ public:
    * @param idx index of the output (identifier)
    * @param dim dimension to be updated
    */
-  void updateOutput(unsigned int idx, TensorDim dim);
+  NNTR_EXPORT void updateOutput(unsigned int idx, TensorDim dim);
 
   /**
    * @brief Update the dimensions for a requested tensor
@@ -845,7 +857,7 @@ public:
    * @param idx index of the tensor (identifier)
    * @param dim dimension to be updated
    */
-  void updateTensor(unsigned int idx, TensorDim dim);
+  NNTR_EXPORT void updateTensor(unsigned int idx, TensorDim dim);
 
   /**
    * @brief   Get weight object for the weights
@@ -853,7 +865,7 @@ public:
    * @param idx index of the weight (identifier)
    * @return weight object
    */
-  Weight &getWeightObject(unsigned int idx);
+  NNTR_EXPORT Weight &getWeightObject(unsigned int idx);
 
   /**
    * @brief   check if the label is available
@@ -861,7 +873,7 @@ public:
    * @param idx Identifier of the input
    * @return true if label is available else false
    */
-  bool isLabelAvailable(unsigned int idx) const;
+  NNTR_EXPORT bool isLabelAvailable(unsigned int idx) const;
 
   /**
    * @brief   Get label tensor
@@ -869,7 +881,7 @@ public:
    * @param idx Identifier of the input
    * @return Tensor& Reference to the label tensor
    */
-  Tensor &getLabel(unsigned int idx);
+  NNTR_EXPORT Tensor &getLabel(unsigned int idx);
 
   /**
    * @brief   update loss by the layer
@@ -878,7 +890,7 @@ public:
    * @note loss value is only used for loss layers. For non-loss layers, setting
    * this value will have no change on the behavior of the model.
    */
-  void setLoss(float val) { loss = val; }
+  NNTR_EXPORT void setLoss(float val) { loss = val; }
 
   /**
    * @brief   update loss by the layer
@@ -886,14 +898,14 @@ public:
    * @return loss of the layer
    * @note does not includes the regularization loss.
    */
-  float getLoss() const { return loss; }
+  NNTR_EXPORT float getLoss() const { return loss; }
 
   /**
    * @brief   get regularization loss of the layer
    *
    * @return regularization loss of the layer
    */
-  float getRegularizationLoss() const {
+  NNTR_EXPORT float getRegularizationLoss() const {
     float loss_ = 0;
     for (unsigned int idx = 0; idx < getNumWeights(); idx++) {
       loss_ += getWeightRegularizationLoss(idx);
@@ -901,28 +913,32 @@ public:
     return loss_;
   }
 
-  std::shared_ptr<ContextData> getContextData() { return ct_data; }
+  NNTR_EXPORT std::shared_ptr<ContextData> getContextData() { return ct_data; }
 
   /**
    * @brief   get name by the layer
    *
    * @return name of the layer
    */
-  const std::string &getName() const { return std::get<props::Name>(props); }
+  NNTR_EXPORT const std::string &getName() const {
+    return std::get<props::Name>(props);
+  }
 
   /**
    * @brief   get trainable by the layer
    *
    * @return trainable of the layer
    */
-  bool getTrainable() const { return std::get<props::Trainable>(props); }
+  NNTR_EXPORT bool getTrainable() const {
+    return std::get<props::Trainable>(props);
+  }
 
   /**
    * @brief   check if run context is set and is ready to use
    *
    * @return true if ready, else false
    */
-  bool readyToUse() const;
+  NNTR_EXPORT bool readyToUse() const;
 
   /**
    * @brief   validates the run context after run
@@ -932,34 +948,34 @@ public:
    *
    * @return true if ready, else false
    */
-  bool validate(bool skip_input = false, bool skip_label = false);
+  NNTR_EXPORT bool validate(bool skip_input = false, bool skip_label = false);
 
   /**
    * @brief   check if the layer is expected to run in-place
    *
    * @return true if in-place, else false
    */
-  bool getInPlace() const { return is_inplace; }
+  NNTR_EXPORT bool getInPlace() const { return is_inplace; }
 
   /**
    * @brief   get layer weights
    *
    * @return weights
    */
-  std::vector<Weight *> getWeights() { return weights; }
+  NNTR_EXPORT std::vector<Weight *> getWeights() { return weights; }
 
   /**
    * @brief get loss scale
    * @return loss scale
    */
-  float getLossScale() { return loss_scale; }
+  NNTR_EXPORT float getLossScale() { return loss_scale; }
 
   /**
    * @brief   set Loss_Scale.
    *
    * @return loss_scale
    */
-  void setLossScale(float scale) {
+  NNTR_EXPORT void setLossScale(float scale) {
     loss_scale = scale;
     for (auto w : weights) {
       w->setLossScale(scale);
@@ -970,13 +986,13 @@ public:
    * @brief   set Output Zero Flag.
    *
    */
-  void reStoreData(bool nb) { restoreData = nb; }
+  NNTR_EXPORT void reStoreData(bool nb) { restoreData = nb; }
 
   /**
    * @brief   get Output Zero Flag.
    *
    */
-  bool reStoreData() { return restoreData; }
+  NNTR_EXPORT bool reStoreData() { return restoreData; }
 
 private:
   std::tuple<props::Name, props::Trainable> props; /**< props of the layer */
@@ -1002,7 +1018,7 @@ private:
    * @param idx Identifier of the weight
    * @return float Value of the loss
    */
-  float getWeightRegularizationLoss(unsigned int idx) const;
+  NNTR_EXPORT float getWeightRegularizationLoss(unsigned int idx) const;
 };
 
 } // namespace nntrainer

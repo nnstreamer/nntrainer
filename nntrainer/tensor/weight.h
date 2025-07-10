@@ -39,7 +39,7 @@ public:
   /**
    * @brief Weight default constructor
    */
-  Weight() :
+  NNTR_EXPORT Weight() :
     Var_Grad(),
     regularizer(WeightRegularizer::UNKNOWN),
     regularizer_constant(1.0f),
@@ -60,14 +60,13 @@ public:
    * @param alloc_now The memory for the weight tensors be allocated upon init
    * @param name Name for this weight
    */
-  explicit Weight(const TensorDim &dim,
-                  const Initializer init = Initializer::XAVIER_UNIFORM,
-                  const WeightRegularizer reg = WeightRegularizer::NONE,
-                  const float reg_const = 1.0f, const float decay = 0.0f,
-                  const float clip_by_global_norm = 0.0f, bool ng = true,
-                  bool alloc_now = false, std::string name = "",
-                  unsigned int axis = 3, float loss_scale_ = 1.0,
-                  bool is_mixed = false);
+  NNTR_EXPORT explicit Weight(
+    const TensorDim &dim, const Initializer init = Initializer::XAVIER_UNIFORM,
+    const WeightRegularizer reg = WeightRegularizer::NONE,
+    const float reg_const = 1.0f, const float decay = 0.0f,
+    const float clip_by_global_norm = 0.0f, bool ng = true,
+    bool alloc_now = false, std::string name = "", unsigned int axis = 3,
+    float loss_scale_ = 1.0, bool is_mixed = false);
 
   /**
    * @brief Construct a new Weight object
@@ -81,21 +80,21 @@ public:
    * @param alloc_now The memory for the weight tensors be allocated upon init
    * @param name Name for this weight
    */
-  explicit Weight(const TensorDim &dim_v, const TensorDim &dim_g,
-                  const Initializer init = Initializer::XAVIER_UNIFORM,
-                  const WeightRegularizer reg = WeightRegularizer::NONE,
-                  const float reg_const = 1.0f, const float decay = 0.0f,
-                  const float clip_by_global_norm = 0.0f, bool ng = true,
-                  bool alloc_now = false, std::string name = "",
-                  unsigned int axis = 3, float loss_scale_ = 1.0,
-                  bool is_mixed = false);
+  NNTR_EXPORT explicit Weight(
+    const TensorDim &dim_v, const TensorDim &dim_g,
+    const Initializer init = Initializer::XAVIER_UNIFORM,
+    const WeightRegularizer reg = WeightRegularizer::NONE,
+    const float reg_const = 1.0f, const float decay = 0.0f,
+    const float clip_by_global_norm = 0.0f, bool ng = true,
+    bool alloc_now = false, std::string name = "", unsigned int axis = 3,
+    float loss_scale_ = 1.0, bool is_mixed = false);
 
   /**
    * @brief Construct a new Weight object
    *
    * @param spec Weight specification
    */
-  explicit Weight(const Spec &spec, bool alloc_now = false) :
+  NNTR_EXPORT explicit Weight(const Spec &spec, bool alloc_now = false) :
     Weight(std::get<0>(spec), // TensorDim for Variable
            std::get<1>(spec), // TensorDim for Gradient
            std::get<2>(spec), // Initializer
@@ -126,9 +125,10 @@ public:
    * uses only, as Weight does not own the tensors v and g, and can go invalid
    * if the owner of these tensors free the tensors.
    */
-  explicit Weight(const Tensor &v, const Tensor &g, const Tensor &v32,
-                  const std::string &n = "", bool is_dependent = false,
-                  unsigned int output_axis_ = 3);
+  NNTR_EXPORT explicit Weight(const Tensor &v, const Tensor &g,
+                              const Tensor &v32, const std::string &n = "",
+                              bool is_dependent = false,
+                              unsigned int output_axis_ = 3);
 
   /**
    * @brief Construct a new Weight object
@@ -139,11 +139,13 @@ public:
    * @param reg Regularizer for the weight
    * @param reg_const Constant multiplier for regularizer
    */
-  explicit Weight(Tensor *v, Tensor *g, Tensor *v32,
-                  const WeightRegularizer reg, const float reg_const,
-                  const float decay, bool is_dependent = false,
-                  const float max_norm = 0.0f, unsigned int output_axis_ = 3,
-                  float loss_scale_ = 1.0f, bool is_mixed = false);
+  NNTR_EXPORT explicit Weight(Tensor *v, Tensor *g, Tensor *v32,
+                              const WeightRegularizer reg,
+                              const float reg_const, const float decay,
+                              bool is_dependent = false,
+                              const float max_norm = 0.0f,
+                              unsigned int output_axis_ = 3,
+                              float loss_scale_ = 1.0f, bool is_mixed = false);
 
   /**
    * @brief Swap for weight
@@ -152,7 +154,7 @@ public:
    * @param rhs Swap from
    * @note Only swap gradient if need gradient
    */
-  friend void swap(Weight &lhs, Weight &rhs) noexcept {
+  NNTR_EXPORT friend void swap(Weight &lhs, Weight &rhs) noexcept {
     using std::swap;
     swap(static_cast<Var_Grad &>(lhs), static_cast<Var_Grad &>(rhs));
     swap(lhs.regularizer, rhs.regularizer);
@@ -171,14 +173,14 @@ public:
    *
    * @param rhs weight to construct from
    */
-  Weight(const Weight &rhs) = default;
+  NNTR_EXPORT Weight(const Weight &rhs) = default;
 
   /**
    * @brief Move constructor for weight
    *
    * @param rhs weight to construct from
    */
-  Weight(Weight &&rhs) = default;
+  NNTR_EXPORT Weight(Weight &&rhs) = default;
 
   /**
    * @brief copy assigment
@@ -186,7 +188,7 @@ public:
    * @param rhs copy from
    * @return Weight& Updated weight
    */
-  Weight &operator=(const Weight &rhs) = default;
+  NNTR_EXPORT Weight &operator=(const Weight &rhs) = default;
 
   /**
    * @brief move assignment
@@ -194,14 +196,14 @@ public:
    * @param rhs move from
    * @return Weight& Updated weight
    */
-  Weight &operator=(Weight &&rhs) = default;
+  NNTR_EXPORT Weight &operator=(Weight &&rhs) = default;
 
   /**
    * @brief Clone the currnet object
    *
    * @return Cloned copy
    */
-  Weight clone() const {
+  NNTR_EXPORT Weight clone() const {
     Weight w(*this);
     if (!this->var->empty())
       w.var = std::make_shared<Tensor>(this->var->clone());
@@ -216,13 +218,13 @@ public:
   /**
    * @brief Clear optimizer variables
    */
-  void clearOptimizerVariables() { opt_vars.clear(); }
+  NNTR_EXPORT void clearOptimizerVariables() { opt_vars.clear(); }
 
   /**
    * @brief Add optimizer variables
    * @param dim Optimizer variable dimension
    */
-  void setOptimizerVariables(std::vector<Tensor *> tensors) {
+  NNTR_EXPORT void setOptimizerVariables(std::vector<Tensor *> tensors) {
     opt_vars = tensors;
   }
 
@@ -231,25 +233,27 @@ public:
    * @param idx Index of the optimizer variable to get
    * @retval Reference of the optimizer variable
    */
-  Tensor &getOptimizerVariableRef(unsigned int idx) { return *opt_vars[idx]; }
+  NNTR_EXPORT Tensor &getOptimizerVariableRef(unsigned int idx) {
+    return *opt_vars[idx];
+  }
 
   /**
    * @brief Get number of optimizer variable
    * @retval number of optimizer variable
    */
-  int getNumOptVariable() { return opt_vars.size(); }
+  NNTR_EXPORT int getNumOptVariable() { return opt_vars.size(); }
 
   /**
    * @brief Get axis of Weight
    * @retval axis of Wegiht
    */
-  unsigned int getOutputAxis() { return output_axis; }
+  NNTR_EXPORT unsigned int getOutputAxis() { return output_axis; }
 
   /**
    * @brief     check if weight regularizer type is l2norm
    * @return    bool is weight regrulatizer type is L2 Norm
    */
-  bool isWeightRegularizerL2Norm() {
+  NNTR_EXPORT bool isWeightRegularizerL2Norm() {
     return regularizer == WeightRegularizer::L2NORM;
   }
 
@@ -257,12 +261,12 @@ public:
    * @brief     check if weight decay is enabled
    * @return    true if weight decay is enabled else false
    */
-  bool isWeightDecay() { return decay > epsilon_decay; }
+  NNTR_EXPORT bool isWeightDecay() { return decay > epsilon_decay; }
 
   /**
    * @brief     Get loss from the regularization of the weight
    */
-  float getRegularizationLoss() {
+  NNTR_EXPORT float getRegularizationLoss() {
     if (hasGradient() && isWeightRegularizerL2Norm())
       return regularizer_constant * 0.5f * var->l2norm();
 
@@ -272,7 +276,7 @@ public:
   /**
    * @brief     Calculate gradient from the regularization of the weight
    */
-  void calcRegularizationGradient() {
+  NNTR_EXPORT void calcRegularizationGradient() {
     if (isWeightRegularizerL2Norm())
       grad->add_i(*var.get(), regularizer_constant);
   }
@@ -280,7 +284,7 @@ public:
   /**
    * @brief     Calculate gradient from the decay of the weight
    */
-  void calcWeightDecayGradient() {
+  NNTR_EXPORT void calcWeightDecayGradient() {
     if (isWeightDecay())
       applyWeightDecay();
   }
@@ -288,14 +292,14 @@ public:
   /**
    * @brief     Apply the gradient to the weight
    */
-  void applyGradient(double lr) { var->add_i(*grad.get(), -lr); }
+  NNTR_EXPORT void applyGradient(double lr) { var->add_i(*grad.get(), -lr); }
 
   /**
    * @brief     Apply the gradient to the weight with updated gradient
    * @param[in] updated_grad gradient tensor which is updated in optimizer
    * it might be different data type with gradient in weight. .eg : FP32
    */
-  void applyGradient(double lr, Tensor &updated_grad);
+  NNTR_EXPORT void applyGradient(double lr, Tensor &updated_grad);
 
   /**
    * @brief Check if the gradient is supposed to be clipped by global norm with
@@ -305,7 +309,7 @@ public:
    * @return true if it is to be clipped
    * @return false otherwise
    */
-  static bool isGradientClipByGlobalNorm(const float max_norm) {
+  NNTR_EXPORT static bool isGradientClipByGlobalNorm(const float max_norm) {
     return max_norm > epsilon;
   }
 
@@ -315,7 +319,7 @@ public:
    * @return true if it is to be clipped
    * @return false otherwise
    */
-  bool isGradientClipByGlobalNorm() const {
+  NNTR_EXPORT bool isGradientClipByGlobalNorm() const {
     return clip_by_global_norm > epsilon;
   }
 
@@ -325,14 +329,14 @@ public:
    * @return true if it is not full precsion
    * @return false otherwise
    */
-  bool isMixedPrecision() const { return is_mixed; }
+  NNTR_EXPORT bool isMixedPrecision() const { return is_mixed; }
 
   /**
    * @brief clip the gradient value based on the given global norm
    *
    * @param global_norm the global norm for all the weights
    */
-  void clipGradientByGlobalNorm(const float global_norm) {
+  NNTR_EXPORT void clipGradientByGlobalNorm(const float global_norm) {
     if ((global_norm + epsilon) > clip_by_global_norm)
       grad->multiply_i(clip_by_global_norm / (global_norm + epsilon));
   }
@@ -342,26 +346,26 @@ public:
    *
    * @return Tensor Variable FP32 tensor
    */
-  Tensor &getVariableFP32Ref() { return *var32.get(); }
+  NNTR_EXPORT Tensor &getVariableFP32Ref() { return *var32.get(); }
 
   /**
    * @brief Quantize var32 to var
    *
    */
-  void quantizeWeight();
+  NNTR_EXPORT void quantizeWeight();
 
   /**
    * @brief set loss scale
    * param[in] scale
    *
    */
-  void setLossScale(float scale) { loss_scale = scale; };
+  NNTR_EXPORT void setLossScale(float scale) { loss_scale = scale; };
 
   /**
    * @brief get loss scale
    *
    */
-  const float getLossScale() { return loss_scale; };
+  NNTR_EXPORT const float getLossScale() { return loss_scale; };
 
 private:
   static constexpr float epsilon = 1e-6f; /**< epsilon for zero comparison */

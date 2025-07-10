@@ -17,6 +17,8 @@
 #include <string>
 #include <vector>
 
+#include "defines.h"
+
 namespace nntrainer {
 
 /**
@@ -29,7 +31,7 @@ public:
    * @brief MemoryPlanner destructor
    *
    */
-  virtual ~MemoryPlanner() = default;
+  NNTR_EXPORT virtual ~MemoryPlanner() = default;
 
   /**
    * @brief Plan the layout for the memory allocation
@@ -44,7 +46,7 @@ public:
    * @details The minimum offset will be 0, and the maximum offset will be less
    * than the sum of the memory_size vector.
    */
-  virtual size_t planLayout(
+  NNTR_EXPORT virtual size_t planLayout(
     const std::vector<size_t> &memory_size,
     const std::vector<std::pair<unsigned int, unsigned int>> &memory_validity,
     std::vector<size_t> &memory_offset, std::vector<bool> &memory_is_wgrad,
@@ -55,7 +57,7 @@ public:
    *
    * @return The type of the planner
    */
-  virtual const std::string getType() const = 0;
+  NNTR_EXPORT virtual const std::string getType() const = 0;
 };
 
 } // namespace nntrainer

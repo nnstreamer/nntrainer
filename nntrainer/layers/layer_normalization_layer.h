@@ -34,76 +34,79 @@ public:
   /**
    * @brief     Constructor of LayerNormalizationLayer
    */
-  LayerNormalizationLayer();
+  NNTR_EXPORT LayerNormalizationLayer();
 
   /**
    * @brief     Destructor of LayerNormalizationLayer
    */
-  ~LayerNormalizationLayer() {}
+  NNTR_EXPORT ~LayerNormalizationLayer() {}
 
   /**
    * @brief  Move constructor of LayerNormalizationLayer
    * @param[in] rhs LayerNormalizationLayer to be moved
    */
+  NNTR_EXPORT
   LayerNormalizationLayer(LayerNormalizationLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator
    * @param[in] rhs LayerNormalizationLayer to be moved
    */
-  LayerNormalizationLayer &operator=(LayerNormalizationLayer &&rhs) = default;
+  NNTR_EXPORT LayerNormalizationLayer &
+  operator=(LayerNormalizationLayer &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) override;
+  NNTR_EXPORT void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  NNTR_EXPORT void forwarding(RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::incremental_forwarding(RunLayerContext &context, unsigned
    * int from, unsigned int to, bool training)
    */
-  void incremental_forwarding(RunLayerContext &context, unsigned int from,
-                              unsigned int to, bool training) override;
+  NNTR_EXPORT void incremental_forwarding(RunLayerContext &context,
+                                       unsigned int from, unsigned int to,
+                                       bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  NNTR_EXPORT void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::calcGradient(RunLayerContext &context)
    */
-  void calcGradient(RunLayerContext &context) override;
+  NNTR_EXPORT void calcGradient(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, const ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override;
+  NNTR_EXPORT void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override {
+  NNTR_EXPORT const std::string getType() const override {
     return LayerNormalizationLayer::type;
   };
 
   /**
    * @copydoc Layer::supportBackwarding()
    */
-  bool supportBackwarding() const override { return true; }
+  NNTR_EXPORT bool supportBackwarding() const override { return true; }
 
   /**
    * @brief Initialize the in-place settings of the layer
    * @return InPlaceType
    */
-  InPlaceType initializeInPlace() final {
+  NNTR_EXPORT InPlaceType initializeInPlace() final {
     is_inplace = true;
     return InPlaceType::NON_RESTRICTING;
   }
@@ -113,12 +116,12 @@ public:
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_EXPORT void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
    */
-  void setBatch(RunLayerContext &context, unsigned int batch) override;
+  NNTR_EXPORT void setBatch(RunLayerContext &context, unsigned int batch) override;
 
   static constexpr const char *type = "layer_normalization";
 

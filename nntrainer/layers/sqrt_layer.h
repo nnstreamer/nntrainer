@@ -30,7 +30,7 @@ public:
   /**
    * @brief Constructor of SQRT Layer
    */
-  SQRTLayer() :
+  NNTR_EXPORT SQRTLayer() :
     UnaryOperationLayer(),
     sqrt_props(props::Print(), props::InPlaceProp()),
     support_backwarding(true) {}
@@ -38,24 +38,24 @@ public:
   /**
    * @brief Destructor of SQRT Layer
    */
-  ~SQRTLayer(){};
+  NNTR_EXPORT ~SQRTLayer(){};
 
   /**
    *  @brief  Move constructor of SQRT Layer.
    *  @param[in] SQRTLayer &&
    */
-  SQRTLayer(SQRTLayer &&rhs) noexcept = default;
+  NNTR_EXPORT SQRTLayer(SQRTLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs SQRTLayer to be moved.
    */
-  SQRTLayer &operator=(SQRTLayer &&rhs) = default;
+  NNTR_EXPORT SQRTLayer &operator=(SQRTLayer &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) final;
+  NNTR_EXPORT void finalize(InitLayerContext &context) final;
 
   /**
    * @brief forwarding operation for SQRT
@@ -63,23 +63,25 @@ public:
    * @param input input tensor
    * @param hidden tensor to store the result value
    */
-  void forwarding_operation(const Tensor &input, Tensor &hidden) final;
+  NNTR_EXPORT void forwarding_operation(const Tensor &input, Tensor &hidden) final;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) final;
+  NNTR_EXPORT void calcDerivative(RunLayerContext &context) final;
 
   /**
    * @copydoc bool supportBackwarding() const
    */
-  bool supportBackwarding() const final { return support_backwarding; };
+  NNTR_EXPORT bool supportBackwarding() const final {
+    return support_backwarding;
+  };
 
   /**
    * @brief Initialize the in-place settings of the layer
    * @return InPlaceType
    */
-  InPlaceType initializeInPlace() final {
+  NNTR_EXPORT InPlaceType initializeInPlace() final {
     if (std::get<props::InPlaceProp>(sqrt_props).empty() ||
         !std::get<props::InPlaceProp>(sqrt_props).get()) {
       is_inplace = false;
@@ -99,18 +101,18 @@ public:
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const final {}
+  NNTR_EXPORT void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const final {}
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  void setProperty(const std::vector<std::string> &values) final;
+  NNTR_EXPORT void setProperty(const std::vector<std::string> &values) final;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const final { return SQRTLayer::type; };
+  NNTR_EXPORT const std::string getType() const final { return SQRTLayer::type; };
 
   std::tuple<props::Print, props::InPlaceProp> sqrt_props;
   bool support_backwarding; /**< support backwarding */

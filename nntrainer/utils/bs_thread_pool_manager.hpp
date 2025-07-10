@@ -16,14 +16,14 @@
 #pragma once
 #include "bs_thread_pool.h"
 
+#include "defines.h"
+
 namespace nntrainer {
 /**
  * @brief ThreadPoolManager is a singleton class that manages a thread pool
  *
  */
 class ThreadPoolManager {
-protected:
-  static BS::thread_pool<> pool;
 
 public:
   // Delete copy and move constructors and assignment operators
@@ -31,13 +31,13 @@ public:
    * @brief Construct a new Thread Pool Manager object
    *
    */
-  ThreadPoolManager(const ThreadPoolManager &) = delete;
+  NNTR_EXPORT ThreadPoolManager(const ThreadPoolManager &) = delete;
 
   /**
    * @brief Construct a new Thread Pool Manager object
    *
    */
-  ThreadPoolManager(ThreadPoolManager &&) = delete;
+  NNTR_EXPORT ThreadPoolManager(ThreadPoolManager &&) = delete;
 
   /**
    * @brief Select optimal number of thread to use in K-quantized GEMM and GEMV
@@ -55,19 +55,22 @@ public:
    *
    * @return BS::thread_pool<>&
    */
-  static BS::thread_pool<> &getInstance() { return pool; }
+  NNTR_EXPORT static BS::thread_pool<> &getInstance() {
+    static BS::thread_pool<> pool(std::thread::hardware_concurrency());
+    return pool;
+  }
 
 private:
   /**
    * @brief Construct a new Thread Pool Manager object
    *
    */
-  ThreadPoolManager() = default;
+  NNTR_EXPORT ThreadPoolManager() = default;
   /**
    * @brief Destroy the Thread Pool Manager object
    *
    */
-  ~ThreadPoolManager() = default;
+  NNTR_EXPORT ~ThreadPoolManager() = default;
 };
 } // namespace nntrainer
 

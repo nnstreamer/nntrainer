@@ -35,13 +35,13 @@ public:
    * @brief Construct a new BN Realizer object
    *
    */
-  BnRealizer() = default;
+  NNTR_EXPORT BnRealizer() = default;
 
   /**
    * @brief Destroy the Graph Realizer object
    *
    */
-  ~BnRealizer() = default;
+  NNTR_EXPORT ~BnRealizer() = default;
 
   /**
    * @brief graph realizer creates a shallow copied graph based on the reference
@@ -51,7 +51,7 @@ public:
    * @throw std::invalid_argument if graph is ill formed
    *
    */
-  GraphRepresentation realize(const GraphRepresentation &reference) override;
+  NNTR_EXPORT GraphRepresentation realize(const GraphRepresentation &reference) override;
 };
 
 } // namespace nntrainer

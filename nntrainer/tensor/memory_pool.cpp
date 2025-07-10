@@ -168,6 +168,8 @@ void MemoryPool::allocate() {
 #else
 
 #ifdef ENABLE_OPENCL
+  ClContext *cl_context_ =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
   mem_pool = cl_context_->context_inst_.createSVMRegion(pool_size);
 
   if (mem_pool == nullptr) {
@@ -268,6 +270,8 @@ std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
 void MemoryPool::deallocate() {
   if (mem_pool != nullptr) {
 #ifdef ENABLE_OPENCL
+    ClContext *cl_context_ =
+      static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
     cl_context_->context_inst_.releaseSVMRegion(mem_pool);
 #else
     free(mem_pool);

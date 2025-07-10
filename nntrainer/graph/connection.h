@@ -15,6 +15,8 @@
 #include <string>
 #include <utility>
 
+#include "defines.h"
+
 namespace nntrainer {
 /**
  * @brief RAII class to define a connection
@@ -29,7 +31,7 @@ public:
    * @param layer_name layer identifier
    * @param idx index denotes nth tensor in a layer
    */
-  Connection(const std::string &layer_name, unsigned int idx);
+  NNTR_EXPORT Connection(const std::string &layer_name, unsigned int idx);
 
   /**
    * @brief Construct a new Connection object from string representation
@@ -37,14 +39,14 @@ public:
    *
    * @param str_repr string format of {layer_name}({idx})
    */
-  explicit Connection(const std::string &str_repr);
+  NNTR_EXPORT explicit Connection(const std::string &str_repr);
 
   /**
    * @brief Construct a new Connection object
    *
    * @param rhs rhs to copy
    */
-  Connection(const Connection &rhs);
+  NNTR_EXPORT Connection(const Connection &rhs);
 
   /**
    * @brief Copy assignment operator
@@ -52,14 +54,14 @@ public:
    * @param rhs rhs to copy
    * @return Connection&
    */
-  Connection &operator=(const Connection &rhs);
+  NNTR_EXPORT Connection &operator=(const Connection &rhs);
 
   /**
    * @brief Move Construct Connection object
    *
    * @param rhs rhs to move
    */
-  Connection(Connection &&rhs) noexcept;
+  NNTR_EXPORT Connection(Connection &&rhs) noexcept;
 
   /**
    * @brief Move assign a connection operator
@@ -67,42 +69,42 @@ public:
    * @param rhs rhs to move
    * @return Connection&
    */
-  Connection &operator=(Connection &&rhs) noexcept;
+  NNTR_EXPORT Connection &operator=(Connection &&rhs) noexcept;
 
   /**
    * @brief string representation of connection
    *
    * @return std::string string format of {name}({idx})
    */
-  std::string toString() const;
+  NNTR_EXPORT std::string toString() const;
 
   /**
    * @brief Get the index
    *
    * @return unsigned index
    */
-  const unsigned getIndex() const { return index; }
+  NNTR_EXPORT const unsigned getIndex() const { return index; }
 
   /**
    * @brief Get the index
    *
    * @return unsigned index
    */
-  unsigned &getIndex() { return index; }
+  NNTR_EXPORT unsigned &getIndex() { return index; }
 
   /**
    * @brief Get the Layer name object
    *
    * @return const Name& name of layer
    */
-  const std::string &getName() const { return name; }
+  NNTR_EXPORT const std::string &getName() const { return name; }
 
   /**
    * @brief Get the Layer name object
    *
    * @return Name& name of layer
    */
-  std::string &getName() { return name; }
+  NNTR_EXPORT std::string &getName() { return name; }
 
   /**
    *
@@ -112,7 +114,7 @@ public:
    * @return true if equal
    * @return false if not equal
    */
-  bool operator==(const Connection &rhs) const noexcept;
+  NNTR_EXPORT bool operator==(const Connection &rhs) const noexcept;
 
 private:
   unsigned index;
@@ -132,7 +134,7 @@ template <> struct std::hash<nntrainer::Connection> {
    * @param c connection to hash
    * @return std::size_t hash
    */
-  std::size_t operator()(const nntrainer::Connection &c) const {
+  NNTR_EXPORT std::size_t operator()(const nntrainer::Connection &c) const {
     return std::hash<std::string>{}(c.toString());
   }
 };

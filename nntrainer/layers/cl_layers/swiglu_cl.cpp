@@ -21,7 +21,7 @@ static constexpr size_t OUT_IDX = 0;
 static constexpr size_t INPUT_IDX_1 = 0;
 static constexpr size_t INPUT_IDX_2 = 1;
 
-bool SwiGLULayerCl::registerClKernels() {
+bool SwiGLULayerCl::registerClKernels(ClContext * global_cl_context) {
   auto &layer_kernel_ptrs = getLayerKernelPtrs();
 
   // check if the kernels are already registered.
@@ -120,6 +120,10 @@ void SwiGLULayerCl::swiglu_cl(const float *matAdata, const float *vecXdata,
 
   bool result = false;
 
+  ClContext *global_cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
+
   do {
     const auto &kernel_swiglu_ptr = getLayerKernelPtrs()[Kernels::SWIGLU_CL];
     int dim = int(dim1 * dim2);
@@ -185,6 +189,10 @@ void SwiGLULayerCl::swiglu_cl_fp16(const _FP16 *matAdata, const _FP16 *vecXdata,
                                    unsigned int dim2) {
 
   bool result = false;
+
+  ClContext *global_cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
 
   do {
     const auto &kernel_swiglu_ptr =

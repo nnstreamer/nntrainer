@@ -30,27 +30,27 @@ public:
   /**
    * @brief     Constructor of Constant Loss Layer
    */
-  KLDLossLayer() : LossLayer() {}
+  NNTR_EXPORT KLDLossLayer() : LossLayer() {}
 
   /**
    * @brief     Destructor of MSE Loss Layer
    */
-  ~KLDLossLayer() = default;
+  NNTR_EXPORT ~KLDLossLayer() = default;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  NNTR_EXPORT void forwarding(RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  NNTR_EXPORT void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return KLDLossLayer::type; }
+  NNTR_EXPORT const std::string getType() const override { return KLDLossLayer::type; }
 
   static constexpr const char *type = "kld";
 };

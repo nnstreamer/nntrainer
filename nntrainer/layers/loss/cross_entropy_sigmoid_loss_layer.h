@@ -29,27 +29,27 @@ public:
   /**
    * @brief     Constructor of Cross Entropy Sigmoid Loss Layer
    */
-  CrossEntropySigmoidLossLayer() : LossLayer() {}
+  NNTR_EXPORT CrossEntropySigmoidLossLayer() : LossLayer() {}
 
   /**
    * @brief     Destructor of Cross Entropy Sigmoid Loss Layer
    */
-  ~CrossEntropySigmoidLossLayer() = default;
+  NNTR_EXPORT ~CrossEntropySigmoidLossLayer() = default;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  NNTR_EXPORT void forwarding(RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  NNTR_EXPORT void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override {
+  NNTR_EXPORT const std::string getType() const override {
     return CrossEntropySigmoidLossLayer::type;
   };
 

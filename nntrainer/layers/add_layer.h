@@ -30,12 +30,12 @@ public:
   /**
    * @brief Destructor of Add Layer
    */
-  ~AddLayer() {}
+  NNTR_EXPORT ~AddLayer() {}
 
   /**
    * @brief Constructor of Add Layer
    */
-  AddLayer() :
+  NNTR_EXPORT AddLayer() :
     BinaryOperationLayer(),
     add_props(props::Print(), props::InPlaceProp(),
               props::InPlaceDirectionProp()) {}
@@ -44,18 +44,18 @@ public:
    *  @brief  Move constructor of Add Layer.
    *  @param[in] AddLayer &&
    */
-  AddLayer(AddLayer &&rhs) noexcept = default;
+  NNTR_EXPORT AddLayer(AddLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs AddLayer to be moved.
    */
-  AddLayer &operator=(AddLayer &&rhs) = default;
+  NNTR_EXPORT AddLayer &operator=(AddLayer &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) final;
+  NNTR_EXPORT void finalize(InitLayerContext &context) final;
 
   /**
    * @brief forwarding operation for add
@@ -64,25 +64,25 @@ public:
    * @param input1 input tensor 1
    * @param hidden tensor to store the result of addition
    */
-  void forwarding_operation(const Tensor &input0, const Tensor &input1,
-                            Tensor &hidden) final;
+  NNTR_EXPORT void forwarding_operation(const Tensor &input0, const Tensor &input1,
+                                     Tensor &hidden) final;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) final;
+  NNTR_EXPORT void calcDerivative(RunLayerContext &context) final;
 
   /**
    * @copydoc bool supportBackwarding() const
    */
-  bool supportBackwarding() const final { return true; };
+  NNTR_EXPORT bool supportBackwarding() const final { return true; };
 
   /**
    * @brief Get the inplace direction for the tensor operation layer
    *
    * @return InPlaceDirection
    */
-  InPlaceDirection getInPlaceDirection() override {
+  NNTR_EXPORT InPlaceDirection getInPlaceDirection() override {
     if (!supportInPlace())
       return InPlaceDirection::NONE;
     if (std::get<props::InPlaceDirectionProp>(add_props).empty() ||
@@ -97,7 +97,7 @@ public:
    * @brief Initialize the in-place settings of the layer
    * @return InPlaceType
    */
-  InPlaceType initializeInPlace() final {
+  NNTR_EXPORT InPlaceType initializeInPlace() final {
     if (std::get<props::InPlaceProp>(add_props).empty() ||
         std::get<props::InPlaceProp>(add_props).get()) {
       is_inplace = true;
@@ -114,18 +114,18 @@ public:
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const final {}
+  NNTR_EXPORT void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const final {}
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  void setProperty(const std::vector<std::string> &values) final;
+  NNTR_EXPORT void setProperty(const std::vector<std::string> &values) final;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const final { return AddLayer::type; }
+  NNTR_EXPORT const std::string getType() const final { return AddLayer::type; }
 
   std::tuple<props::Print, props::InPlaceProp, props::InPlaceDirectionProp>
     add_props;

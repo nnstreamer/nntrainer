@@ -38,56 +38,60 @@ public:
    * @brief Construct a new SwiGLU layer object
    *
    */
-  SwiGLULayerCl() : LayerImplCl(), swiglu_props(props::Print()) {}
+  NNTR_EXPORT SwiGLULayerCl() : LayerImplCl(), swiglu_props(props::Print()) {}
 
   /**
    * @brief Destroy the SwiGLU layer object
    *
    */
-  ~SwiGLULayerCl() {}
+  NNTR_EXPORT ~SwiGLULayerCl() {}
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) override;
+  NNTR_EXPORT void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  NNTR_EXPORT void forwarding(RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::incremental_forwarding(RunLayerContext &context, unsigned
    * int from, unsigned int to, bool training)
    */
-  void incremental_forwarding(RunLayerContext &context, unsigned int from,
-                              unsigned int to, bool training) override;
+  NNTR_EXPORT void incremental_forwarding(RunLayerContext &context,
+                                       unsigned int from, unsigned int to,
+                                       bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  NNTR_EXPORT void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc bool supportBackwarding() const
    */
-  bool supportBackwarding() const override { return false; };
+  NNTR_EXPORT bool supportBackwarding() const override { return false; };
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override{};
+  NNTR_EXPORT void
+  exportTo(Exporter &exporter,
+           const ml::train::ExportMethods &method) const override{};
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return SwiGLULayerCl::type; };
+  NNTR_EXPORT const std::string getType() const override {
+    return SwiGLULayerCl::type;
+  };
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_EXPORT void setProperty(const std::vector<std::string> &values) override;
 
   static constexpr const char *type = "swiglu";
 
@@ -97,7 +101,8 @@ public:
    * @param[in] input2 Tensor
    * @param[in] result Tensor
    */
-  void swigluProcess(Tensor const &in1, Tensor const &in2, Tensor &result);
+  NNTR_EXPORT void swigluProcess(Tensor const &in1, Tensor const &in2,
+                              Tensor &result);
 
   /**
    * @brief     swiglu computation
@@ -107,8 +112,9 @@ public:
    * @param[in] dim1 number of elements in input vector A
    * @param[in] dim1 number of elements in input vector X
    */
-  void swiglu_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
-                 unsigned int dim1, unsigned int dim2);
+  NNTR_EXPORT void swiglu_cl(const float *matAdata, const float *vecXdata,
+                          float *vecYdata, unsigned int dim1,
+                          unsigned int dim2);
 
 #ifdef ENABLE_FP16
   /**
@@ -119,20 +125,22 @@ public:
    * @param[in] dim1 number of elements in input vector A
    * @param[in] dim1 number of elements in input vector X
    */
-  void swiglu_cl_fp16(const _FP16 *matAdata, const _FP16 *vecXdata,
-                      _FP16 *vecYdata, unsigned int dim1, unsigned int dim2);
+  NNTR_EXPORT void swiglu_cl_fp16(const _FP16 *matAdata, const _FP16 *vecXdata,
+                               _FP16 *vecYdata, unsigned int dim1,
+                               unsigned int dim2);
 #endif
 
   /**
    * @brief     Register OpenCL kernels for SwiGLU layer. This should be called
    */
-  static bool registerClKernels();
+  NNTR_EXPORT static bool registerClKernels(ClContext *global_cl_context);
 
 private:
   std::tuple<props::Print> swiglu_props; /**< swiglu layer properties : unit -
                                             number of output neurons */
 
-  static std::vector<ClContext::SharedPtrClKernel> &getLayerKernelPtrs();
+  NNTR_EXPORT static std::vector<ClContext::SharedPtrClKernel> &
+  getLayerKernelPtrs();
 
   enum Kernels { SWIGLU_CL, SWIGLU_CL_FP16 }; /** kernels enum */
 };

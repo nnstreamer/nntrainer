@@ -33,62 +33,63 @@ public:
   /**
    * @brief     Constructor of Reshape Layer
    */
-  ReshapeLayerCl() : LayerImplCl() {}
+  NNTR_EXPORT ReshapeLayerCl() : LayerImplCl() {}
 
   /**
    * @brief     Destructor of Reshape Layer
    */
-  ~ReshapeLayerCl() = default;
+  NNTR_EXPORT ~ReshapeLayerCl() = default;
 
   /**
    *  @brief  Move constructor of ReshapeLayer.
    *  @param[in] ReshapeLayer &&
    */
-  ReshapeLayerCl(ReshapeLayerCl &&rhs) noexcept = default;
+  NNTR_EXPORT ReshapeLayerCl(ReshapeLayerCl &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs ReshapeLayer to be moved.
    */
-  ReshapeLayerCl &operator=(ReshapeLayerCl &&rhs) = default;
+  NNTR_EXPORT ReshapeLayerCl &operator=(ReshapeLayerCl &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) override;
+  NNTR_EXPORT void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  NNTR_EXPORT void forwarding(RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::incremental_forwarding(RunLayerContext &context, unsigned
    int from, unsigned int to, bool training)
    */
-  void incremental_forwarding(RunLayerContext &context, unsigned int from,
-                              unsigned int to, bool training) override;
+  NNTR_EXPORT void incremental_forwarding(RunLayerContext &context,
+                                       unsigned int from, unsigned int to,
+                                       bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  NNTR_EXPORT void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_EXPORT void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @copydoc bool supportBackwarding() const
    */
-  bool supportBackwarding() const override { return false; };
+  NNTR_EXPORT bool supportBackwarding() const override { return false; };
 
   /**
    * @brief Initialize the in-place settings of the layer
    * @return InPlaceType
    */
-  InPlaceType initializeInPlace() final {
+  NNTR_EXPORT InPlaceType initializeInPlace() final {
     is_inplace = true;
     return InPlaceType::NON_RESTRICTING;
   }
@@ -97,13 +98,15 @@ public:
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override;
+  NNTR_EXPORT void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return ReshapeLayerCl::type; };
+  NNTR_EXPORT const std::string getType() const override {
+    return ReshapeLayerCl::type;
+  };
 
   static constexpr const char *type = "reshape";
 
@@ -112,12 +115,12 @@ public:
    * @param[in] input Tensor
    * @param[in] result Tensor
    */
-  void ReshapeProcess(Tensor const &input, Tensor &result);
+  NNTR_EXPORT void ReshapeProcess(Tensor const &input, Tensor &result);
 
   /**
    * @brief registerClKernels
    */
-  static bool registerClKernels();
+  NNTR_EXPORT static bool registerClKernels(ClContext *global_cl_context);
 
   /**
    * @brief     copy computation
@@ -129,9 +132,10 @@ public:
    * @param[in] input_height   represents the height of the input tensor
    * @param[in] input_width   represents the width of the input tensor
    */
-  void scopy_cl(const float *input, float *res, unsigned int input_batch_size,
-                unsigned int input_channels, unsigned int input_height,
-                unsigned int input_width);
+  NNTR_EXPORT void scopy_cl(const float *input, float *res,
+                         unsigned int input_batch_size,
+                         unsigned int input_channels, unsigned int input_height,
+                         unsigned int input_width);
 
 #ifdef ENABLE_FP16
   /**
@@ -144,16 +148,19 @@ public:
    * @param[in] input_height   represents the height of the input tensor
    * @param[in] input_width   represents the width of the input tensor
    */
-  void copy_cl_fp16(const _FP16 *input, _FP16 *res,
-                    unsigned int input_batch_size, unsigned int input_channels,
-                    unsigned int input_height, unsigned int input_width);
+  NNTR_EXPORT void copy_cl_fp16(const _FP16 *input, _FP16 *res,
+                             unsigned int input_batch_size,
+                             unsigned int input_channels,
+                             unsigned int input_height,
+                             unsigned int input_width);
 #endif
 
 private:
   std::tuple<props::TargetShape>
     reshape_props; /**< reshape properties : target_shape after reshape */
 
-  static std::vector<ClContext::SharedPtrClKernel> &getLayerKernelPtrs();
+  NNTR_EXPORT static std::vector<ClContext::SharedPtrClKernel> &
+  getLayerKernelPtrs();
 
   enum Kernels { COPY_CL, COPY_CL_FP16 };
 };

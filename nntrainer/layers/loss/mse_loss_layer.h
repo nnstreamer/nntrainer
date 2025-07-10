@@ -28,27 +28,29 @@ public:
   /**
    * @brief     Constructor of MSE Loss Layer
    */
-  MSELossLayer() : LossLayer() {}
+  NNTR_EXPORT MSELossLayer() : LossLayer() {}
 
   /**
    * @brief     Destructor of MSE Loss Layer
    */
-  ~MSELossLayer() = default;
+  NNTR_EXPORT ~MSELossLayer() = default;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  NNTR_EXPORT void forwarding(RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  NNTR_EXPORT void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return MSELossLayer::type; };
+  NNTR_EXPORT const std::string getType() const override {
+    return MSELossLayer::type;
+  };
 
   static constexpr const char *type = "mse";
 };
