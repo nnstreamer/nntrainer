@@ -565,6 +565,38 @@ if get_option('enable-ggml')
       ggml_options.add_cmake_defines({'CMAKE_INSTALL_LIBDIR': nntrainer_libdir / 'arm64-v8a'})
     endif
 
+    # Apply Tizen-specific patches before building
+    if get_option('platform') == 'tizen'
+      message('Applying Tizen patches to ggml')
+      ggml_patch_relative = subprojects_dir_relative / 'packagefiles' / 'ggml' / '0001-nntrainer-ggml-patch.patch'
+      ggml_patch_absolute = meson.current_source_dir() / ggml_patch_relative
+      
+      # Check if patch command is available
+      patch_prog = find_program('patch', required: false)
+      if patch_prog.found()
+        # Apply patch using standard patch command (more widely available than git)
+        # -p1: strip first directory level from paths
+        # -N: don't reverse already applied patches
+        # -f: force, don't ask questions
+        # -r-: send reject files to stdout instead of creating .rej files
+        ggml_patch_command = [patch_prog, '-p1', '-N', '-f', '-r-', '-d', ggml_root]
+        ggml_patch_result = run_command(ggml_patch_command, input: files(ggml_patch_absolute), check: false)
+        
+        if ggml_patch_result.returncode() == 0
+          message('Successfully applied ggml patch for Tizen')
+        else
+          # Patch might already be applied, check if it's because of that
+          if ggml_patch_result.stderr().contains('Reversed (or previously applied) patch detected')
+            message('ggml patch already applied for Tizen')
+          else
+            warning('Failed to apply ggml patch for Tizen: ' + ggml_patch_result.stderr())
+          endif
+        endif
+      else
+        warning('patch command not found, skipping ggml patch application for Tizen')
+      endif
+    endif
+
     ggml_proj = cmake.subproject('ggml', options: ggml_options, required: true)
     ggml_dep = [
       ggml_proj.dependency('ggml-base'),
