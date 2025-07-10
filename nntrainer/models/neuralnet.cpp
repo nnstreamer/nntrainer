@@ -712,7 +712,7 @@ void NeuralNetwork::load(const std::string &file_path,
       for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
            ++iter) {
         auto exec_order = std::get<0>((*iter)->getExecutionOrder());
-        futures.emplace_back(std::async(std::launch::async, [=]() {
+        futures.emplace_back(std::async(std::launch::async, [&]() {
           auto local_model_file = checkedOpenStream<std::ifstream>(
             (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
           (*iter)->read(local_model_file, false, exec_mode, fsu_mode,
