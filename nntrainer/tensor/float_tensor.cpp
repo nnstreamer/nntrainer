@@ -9,6 +9,7 @@
  * @bug		No known bugs except for NYI items
  */
 
+#include "tensor_base.h"
 #include <iomanip>
 #include <iostream>
 #include <numeric>
@@ -803,7 +804,14 @@ Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
     M = getDim().height();
     K = getDim().width();
     N = input.getDim().width();
+
+#ifdef ENABLE_OPENCL
+    /// @note(mwlasiuk) : TEST
+    (void)M;
+    sgemv_q4_k_cl((void *)mdata, data, rdata, K, N);
+#else
     gemm_q4_K(M, N, K, data, K, (void *)mdata, N, rdata, N);
+#endif
     break;
   case Tdatatype::Q6_K:
     M = getDim().height();

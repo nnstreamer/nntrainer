@@ -16,7 +16,87 @@
 
 #include "clblast.h"
 
+#define N_SIMDWIDTH 16
+#define N_SIMDGROUP 2
+
 namespace nntrainer {
+
+void sgemv_q4_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
+                   unsigned int M, unsigned int N) {
+  ClContext::SharedPtrClKernel kernel =
+    blas_cc->registerClKernel(getQ4KSgemvClKernel(), "kernel_mul_mv_q4_K_f32");
+
+  if (!kernel) {
+    ml_loge("Failed to register kernel_mul_mv_q4_K_f32");
+    return;
+  }
+
+  // [0] (cl_mem) __global const int   * restrict x
+  // [1] (cl_mem) __global const int   * restrict y
+  // [2] (cl_mem) __global       float * restrict sum
+  // [3] (cl_int)         const  int              k00
+
+  // From : q4_k_tensor.h
+  const size_t Q4_K_SIZE = 144; // sizeof(block_q4_K)
+  const size_t q6k_bytes = Q4_K_SIZE * M * N / 256;
+
+  const int32_t k00 = 0; // TODO : CHECK
+
+  if (!blas_cc->command_queue_inst_.enqueueSVMUnmap(matAdata)) {
+    ml_loge(
+      "Failed to write data to input buffer A for kernel_mul_mv_q4_K_f32");
+    return;
+  }
+
+  if (!blas_cc->command_queue_inst_.enqueueSVMUnmap(vecXdata)) {
+    ml_loge(
+      "Failed to write data to input buffer B for kernel_mul_mv_q4_K_f32");
+    return;
+  }
+
+  if (!kernel->SetKernelSVMArguments(0, matAdata)) {
+    ml_loge("Failed to set kernel argument 0 for kernel_mul_mv_q4_K_f32");
+    return;
+  }
+
+  if (!kernel->SetKernelSVMArguments(1, vecXdata)) {
+    ml_loge("Failed to set kernel argument 1 for kernel_mul_mv_q4_K_f32");
+    return;
+  }
+
+  if (!kernel->SetKernelSVMArguments(2, vecYdata)) {
+    ml_loge("Failed to set kernel argument 2 for kernel_mul_mv_q4_K_f32");
+    return;
+  }
+
+  if (!kernel->SetKernelArguments(3, &k00, sizeof(int))) {
+    ml_loge("Failed to set kernel argument 3 for kernel_mul_mv_q4_K_f32");
+    return;
+  }
+
+  int ne0 = N; // number of rows in output vector Y
+  int ne1 = 1; // number of columns in output vector Y
+
+  const int work_groups_count[3] = {((ne0 + N_SIMDGROUP - 1) / N_SIMDGROUP) *
+                                      (N_SIMDGROUP * N_SIMDWIDTH),
+                                    ne1, 1};
+  /// @todo: create a group size by device & input
+  const int work_group_size[3] = {32, 1, 1};
+
+  if (!opencl::CommandQueueManager::GetInstance().DispatchCommand(
+        kernel, work_groups_count, work_group_size)) {
+    ml_loge("Failed to dispatch kernel q6_k_sgemv");
+    return;
+  }
+
+  if (!blas_cc->command_queue_inst_.enqueueSVMMap(vecYdata, N * sizeof(float),
+                                                  true)) {
+    ml_loge(
+      "Failed to read data from the output buffer for kernel_q6_k_sgemv_ptr");
+
+    return;
+  }
+}
 
 void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
                    unsigned int M, unsigned int N) {

@@ -16,6 +16,164 @@
 
 namespace nntrainer {
 
+const std::string &getQ4KSgemvClKernel() {
+  static const std::string q4_k_sgemv_cl_kernel =
+    R"(
+      // ---
+      // SETTINGS
+      // ---
+
+      #ifndef MMQ_X
+        #define MMQ_X 64   // TODO : check for best value based on device ...
+      #endif
+
+      #ifndef MMQ_Y
+        #define MMQ_Y  64  // TODO : check for best value based on device ...
+      #endif
+
+      #ifndef NWARPS
+        #define NWARPS 8   // TODO : check for best value based on device ...
+      #endif
+
+      // ---
+      // DEFINES
+      // ---
+
+      #define WARP_SIZE          32
+
+      #define QK_K               256
+      #define QK8_1              32
+
+      #define QR4_K              2
+      #define QI4_K              (QK_K / (4 * QR4_K))
+
+      #define QR8_1              1
+      #define QI8_1              (QK8_1 / (4 * QR8_1))
+
+      #define VDR_Q4_K_Q8_1_MMQ  8
+      #define MMQ_TILE_Y_K       (WARP_SIZE + WARP_SIZE / QI8_1) 
+
+      // ---
+      // STRUCT
+      // ---
+
+      typedef struct
+      {
+        int qs;
+        int dm;
+        int sc;
+      } tile_x_sizes;
+
+      // ---
+      // FUNCTIONS
+      // ---
+
+      tile_x_sizes mmq_get_dp4a_tile_x_sizes()
+      {
+        return (tile_x_sizes){
+          MMQ_Y * WARP_SIZE + MMQ_Y,
+          MMQ_Y * WARP_SIZE / QI4_K,
+          MMQ_Y * WARP_SIZE / 8 + MMQ_Y / 8};
+      }
+
+      int ggml_cuda_dp4a(const int a, const int b, const int c)
+      {
+        const char4 a_vec = *((const char4*)&a);
+        const char4 b_vec = *((const char4*)&a);
+
+        const int4 a_vec_i = convert_int4(a_vec);
+        const int4 b_vec_i = convert_int4(b_vec);
+
+        return c + 
+          a_vec_i.s0 * b_vec_i.s0 +
+          a_vec_i.s1 * b_vec_i.s1 +
+          a_vec_i.s2 * b_vec_i.s2 +
+          a_vec_i.s3 * b_vec_i.s3;
+      }
+
+      float vec_dot_q4_K_q8_1_impl_mmq(
+        __global const int     * restrict v,
+        __global const int     * restrict u,
+        __global const uchar   * restrict sc,
+        __global const uchar   * restrict m,
+        __global       half2   * restrict ds8,
+                 const half2              dm4)
+      {
+        float sumf_d = 0.0f;
+        float sumf_m = 0.0f;
+
+        for (int i = 0; i < QR4_K * VDR_Q4_K_Q8_1_MMQ / QI8_1; ++i)
+        {
+          int sumi_d = 0;
+
+          for (int j = 0; j < QI8_1; ++j)
+          {
+            sumi_d = ggml_cuda_dp4a((v[j] >> (4 * i)) & 0x0F0F0F0F, u[i * QI8_1 + j], sumi_d);
+          }
+          
+          const float2 ds8f = convert_float2(ds8[i]);
+
+          sumf_d += ds8f.x * (sc[i] * sumi_d);
+          sumf_m += ds8f.y * m[i];
+        }
+
+        const float2 dm4f = convert_float2(dm4);
+
+        return dm4f.x * sumf_d - dm4f.y * sumf_m;
+      }
+
+      // ---
+      // KERNEL
+      // ---
+
+      __kernel void kernel_mul_mv_q4_K_f32(
+        __global const int   * restrict x,
+        __global const int   * restrict y,
+        __global       float * restrict sum,
+                const  int              k00)
+      {
+        const tile_x_sizes txs = mmq_get_dp4a_tile_x_sizes();
+
+        __global const int   * x_qs = (__global int *)x;
+        __global const half2 * x_dm = (__global const half2 *)x_qs + txs.qs;
+        __global const int   * x_sc = (__global const int *)x_dm + txs.dm;
+
+        __global const int   * y_qs = (__global const int *)y + 4;
+        __global const half2 * y_ds = (__global const half2*)y;
+
+        const int tid_x = get_global_id(0); // TODO : check if not global ...
+        const int tid_y = get_global_id(1); // TODO : check if not global ...
+
+        for(int k01 = 0; k01 < WARP_SIZE; k01 += QR4_K * VDR_Q4_K_Q8_1_MMQ)
+        {
+          const int k0 = k00 + k01;
+
+          for(int j0 = 0; j0 < MMQ_X; j0 += NWARPS)
+          {
+            const int j = j0 + tid_y;
+
+            for(int i0 = 0; i0 < MMQ_Y; i0 += WARP_SIZE)
+            {
+              const int i = i0 + tid_x;
+
+              __global const uchar * sc = (__global const uchar *)&x_sc[i * (WARP_SIZE / 8) + i / 8 + k0 / 32] + 2 * (k01 / 16);
+
+              sum[j0 / NWARPS * MMQ_Y / WARP_SIZE + i0 / WARP_SIZE] += vec_dot_q4_K_q8_1_impl_mmq(
+                  &x_qs[i * (WARP_SIZE + 1) + k0 / 2],
+                  &y_qs[j * MMQ_TILE_Y_K + k01],
+                  sc,
+                  sc + 8,
+                  &y_ds[i * MMQ_TILE_Y_K + k01 / QI8_1],
+                  x_dm[i]);
+            }
+          }
+        }
+      }
+    )";
+
+  return q4_k_sgemv_cl_kernel;
+}
+
 const std::string &getQ6KSgemvClKernel() {
   static const std::string q6_k_sgemv_cl_kernel_ =
     R"(
