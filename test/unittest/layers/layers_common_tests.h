@@ -91,7 +91,15 @@ protected:
  * @brief LayerSemanticsGpu
  * @details Inherit LayerSemantics to test layers on GPU
  */
-class LayerSemanticsGpu : public LayerSemantics {};
+class LayerSemanticsGpu : public LayerSemantics {
+  void SetUp() override {
+    if (nntrainer::Engine::Global().maybeGetRegisteredContext("gpu") ==
+        nullptr) {
+      GTEST_SKIP() << "OpenCL not available";
+    }
+    LayerSemantics::SetUp();
+  }
+};
 
 /**
  * @brief LayerPropertySemantics

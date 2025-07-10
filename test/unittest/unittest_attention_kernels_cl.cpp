@@ -29,7 +29,17 @@
 
 using namespace nntrainer;
 
-TEST(attention_kernels, rotary_emb_kernel_FP32) {
+class attention_kernels : public ::testing::Test {
+public:
+  void SetUp() override {
+    if (nntrainer::Engine::Global().maybeGetRegisteredContext("gpu") ==
+        nullptr) {
+      GTEST_SKIP() << "OpenCL not available";
+    }
+  }
+};
+
+TEST_F(attention_kernels, rotary_emb_kernel_FP32) {
   int batch = 1;
   int channel = 1;
   int height = 4;
@@ -70,7 +80,7 @@ TEST(attention_kernels, rotary_emb_kernel_FP32) {
   EXPECT_IN_RANGE((float)cosSimNeon_fp32, 0.99, 1);
 }
 
-TEST(attention_kernels, rotary_emb_kernel_FP32_case2) {
+TEST_F(attention_kernels, rotary_emb_kernel_FP32_case2) {
   int batch = 4;
   int channel = 4;
   int height = 8;
@@ -113,7 +123,7 @@ TEST(attention_kernels, rotary_emb_kernel_FP32_case2) {
 
 #ifdef ENABLE_FP16
 
-TEST(attention_kernels, rotary_emb_kernel_FP16) {
+TEST_F(attention_kernels, rotary_emb_kernel_FP16) {
   int batch = 1;
   int channel = 1;
   int height = 4;
@@ -153,7 +163,7 @@ TEST(attention_kernels, rotary_emb_kernel_FP16) {
   EXPECT_IN_RANGE((float)cosSimNeon_fp16, 0.99, 1);
 }
 
-TEST(attention_kernels, rotary_emb_kernel_FP16_case2) {
+TEST_F(attention_kernels, rotary_emb_kernel_FP16_case2) {
   int batch = 4;
   int channel = 4;
   int height = 8;

@@ -90,6 +90,8 @@ ClContext &ClContext::Global() {
   // initializing commandqueue and context
   if (!clInit()) {
     ml_loge("cl_context: opencl command queue creation failed");
+    throw std::runtime_error(
+      "cl_context: opencl command queue creation failed");
   }
 
   registerer(*this);

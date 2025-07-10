@@ -48,9 +48,13 @@ void Engine::add_default_object(Engine &eg) {
 
 #ifdef ENABLE_OPENCL
   nntrainer::ClContext *cl_context = new nntrainer::ClContext();
-  cl_context->Global();
+  try {
+    cl_context->Global();
 
-  eg.registerContext("gpu", cl_context);
+    eg.registerContext("gpu", cl_context);
+  } catch (std::runtime_error &e) {
+    ml_loge("Error initializing cl_context: %s", e.what());
+  }
 #endif
 }
 

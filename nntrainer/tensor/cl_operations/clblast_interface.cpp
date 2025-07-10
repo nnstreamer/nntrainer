@@ -24,7 +24,8 @@ void scal_cl(const unsigned int N, const float alpha, float *X,
     clblast_cc->command_queue_inst_, N * sizeof(float), X);
 
   clblast::Scal<float>(N, alpha, clBuffManagerInst.getOutBufferA()->GetBuffer(),
-                       0, incX, &command_queue);
+                       0, incX,
+                       &clblast_cc->command_queue_inst_.GetCommandQueue());
 
   clBuffManagerInst.getOutBufferA()->ReadDataRegion(
     clblast_cc->command_queue_inst_, N * sizeof(float), X);
@@ -37,7 +38,8 @@ void copy_cl(const unsigned int N, const float *X, float *Y, unsigned int incX,
 
   clblast::Copy<float>(N, clBuffManagerInst.getInBufferA()->GetBuffer(), 0,
                        incX, clBuffManagerInst.getOutBufferA()->GetBuffer(), 0,
-                       incY, &command_queue);
+                       incY,
+                       &clblast_cc->command_queue_inst_.GetCommandQueue());
 
   clBuffManagerInst.getOutBufferA()->ReadDataRegion(
     clblast_cc->command_queue_inst_, N * sizeof(float), Y);
@@ -53,7 +55,8 @@ void axpy_cl(const unsigned int N, const float alpha, const float *X, float *Y,
 
   clblast::Axpy<float>(N, alpha, clBuffManagerInst.getInBufferA()->GetBuffer(),
                        0, incX, clBuffManagerInst.getOutBufferA()->GetBuffer(),
-                       0, incY, &command_queue);
+                       0, incY,
+                       &clblast_cc->command_queue_inst_.GetCommandQueue());
 
   clBuffManagerInst.getOutBufferA()->ReadDataRegion(
     clblast_cc->command_queue_inst_, N * sizeof(float), Y);
@@ -70,7 +73,7 @@ float dot_cl(const unsigned int N, const float *X, const float *Y,
   clblast::Dot<float>(N, clBuffManagerInst.getOutBufferA()->GetBuffer(), 0,
                       clBuffManagerInst.getInBufferA()->GetBuffer(), 0, incX,
                       clBuffManagerInst.getInBufferB()->GetBuffer(), 0, incY,
-                      &command_queue);
+                      &clblast_cc->command_queue_inst_.GetCommandQueue());
 
   float result;
   clBuffManagerInst.getOutBufferA()->ReadDataRegion(
@@ -84,7 +87,7 @@ float nrm2_cl(const unsigned int N, const float *X, unsigned int incX) {
 
   clblast::Nrm2<float>(N, clBuffManagerInst.getOutBufferA()->GetBuffer(), 0,
                        clBuffManagerInst.getInBufferA()->GetBuffer(), 0, incX,
-                       &command_queue);
+                       &clblast_cc->command_queue_inst_.GetCommandQueue());
 
   float result;
   clBuffManagerInst.getOutBufferA()->ReadDataRegion(
@@ -99,7 +102,7 @@ float asum_cl(const unsigned int N, const float *X, unsigned int incX) {
 
   clblast::Asum<float>(N, clBuffManagerInst.getOutBufferA()->GetBuffer(), 0,
                        clBuffManagerInst.getInBufferA()->GetBuffer(), 0, incX,
-                       &command_queue);
+                       &clblast_cc->command_queue_inst_.GetCommandQueue());
 
   float result;
   clBuffManagerInst.getOutBufferA()->ReadDataRegion(
@@ -114,7 +117,7 @@ int amax_cl(const unsigned int N, const float *X, unsigned int incX) {
 
   clblast::Amax<float>(N, clBuffManagerInst.getOutBufferA()->GetBuffer(), 0,
                        clBuffManagerInst.getInBufferA()->GetBuffer(), 0, incX,
-                       &command_queue);
+                       &clblast_cc->command_queue_inst_.GetCommandQueue());
 
   int result;
   clBuffManagerInst.getOutBufferA()->ReadDataRegion(
@@ -129,7 +132,7 @@ int amin_cl(const unsigned int N, const float *X, unsigned int incX) {
 
   clblast::Amin<float>(N, clBuffManagerInst.getOutBufferA()->GetBuffer(), 0,
                        clBuffManagerInst.getInBufferA()->GetBuffer(), 0, incX,
-                       &command_queue);
+                       &clblast_cc->command_queue_inst_.GetCommandQueue());
 
   int result;
   clBuffManagerInst.getOutBufferA()->ReadDataRegion(
@@ -165,11 +168,12 @@ void gemm_cl(const unsigned int layout, bool TransA, bool TransB,
     clblast_cc->command_queue_inst_, M * N * sizeof(float), C);
 
   // layout is currently fixed to RowMajor
-  clblast::Gemm<float>(
-    clblast::Layout::kRowMajor, transA, transB, M, N, K, alpha,
-    clBuffManagerInst.getInBufferA()->GetBuffer(), 0, lda,
-    clBuffManagerInst.getInBufferB()->GetBuffer(), 0, ldb, beta,
-    clBuffManagerInst.getOutBufferA()->GetBuffer(), 0, ldc, &command_queue);
+  clblast::Gemm<float>(clblast::Layout::kRowMajor, transA, transB, M, N, K,
+                       alpha, clBuffManagerInst.getInBufferA()->GetBuffer(), 0,
+                       lda, clBuffManagerInst.getInBufferB()->GetBuffer(), 0,
+                       ldb, beta,
+                       clBuffManagerInst.getOutBufferA()->GetBuffer(), 0, ldc,
+                       &clblast_cc->command_queue_inst_.GetCommandQueue());
 
   // Read the result back to C
   clBuffManagerInst.getOutBufferA()->ReadDataRegion(

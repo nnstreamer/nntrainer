@@ -26,8 +26,8 @@
 
 #pragma GCC diagnostic ignored "-Wunused-local-typedefs"
 
-#define EXPECT_IN_RANGE(VAL, MIN, MAX) \
-  EXPECT_GE((VAL), (MIN));             \
+#define EXPECT_IN_RANGE(VAL, MIN, MAX)                                         \
+  EXPECT_GE((VAL), (MIN));                                                     \
   EXPECT_LE((VAL), (MAX))
 
 using namespace nntrainer;
@@ -379,7 +379,16 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
 
 LayerGoldenTest::~LayerGoldenTest() {}
 
-void LayerGoldenTest::SetUp() {}
+void LayerGoldenTest::SetUp() {
+  bool is_gpu_test =
+    std::string(
+      ::testing::UnitTest::GetInstance()->current_test_suite()->name())
+      .find("GPU") != std::string::npos;
+  if (is_gpu_test &&
+      nntrainer::Engine::Global().maybeGetRegisteredContext("gpu") == nullptr) {
+    GTEST_SKIP() << "OpenCL not available";
+  }
+}
 
 void LayerGoldenTest::TearDown() {}
 
