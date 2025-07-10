@@ -62,13 +62,7 @@ ShortTensor::ShortTensor(
   contiguous = true;
   initializer = Initializer::NONE;
 
-  MemoryData *mem_data = new MemoryData(
-    (void *)(new int16_t[dim.getDataLen() +
-                         sizeof(float) / sizeof(int16_t) * scale_size()]()));
-  data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
-    delete[] mem_data->getAddr<int16_t>();
-    delete mem_data;
-  });
+  allocateInternal();
 
   offset = 0;
 
@@ -126,15 +120,7 @@ void ShortTensor::allocate() {
     /** as this memory is shared, do NOT initialize */
   } else {
     /// allocate new memory for the tensor data
-    MemoryData *mem_data;
-
-    mem_data = new MemoryData(
-      (void *)(new int16_t[dim.getDataLen() +
-                           sizeof(float) / sizeof(int16_t) * scale_size()]{}));
-    data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-      delete[] mem_data->template getAddr<int16_t>();
-      delete mem_data;
-    });
+    allocateInternal();
 
     offset = 0;
     initialize();
@@ -144,22 +130,6 @@ void ShortTensor::allocate() {
 void ShortTensor::deallocate() {
   data = nullptr;
   offset = 0;
-}
-
-void *ShortTensor::getData() const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return data->getAddr<int16_t>() + offset;
-}
-
-void *ShortTensor::getData(size_t idx) const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return data->getAddr<int16_t>() + offset + idx;
 }
 
 void *ShortTensor::getScale() const {
@@ -243,6 +213,8 @@ void ShortTensor::setZero() {
 void ShortTensor::initialize() {
   if (empty() || !isAllocated())
     return;
+
+  TensorBase::initialize();
 
   /// @note Sampling from the normal/uniform distribution is invalid
   switch (initializer) {

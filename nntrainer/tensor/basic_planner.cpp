@@ -46,7 +46,10 @@ size_t BasicPlanner::planLayout(
 #endif
 
     memory_offset[idx] = csum;
-    csum += memory_size[idx];
+
+    size_t aligned_memory_size =
+      ((memory_size[idx] / 4) + (((memory_size[idx] % 4) == 0) ? 0 : 1)) * 4;
+    csum += aligned_memory_size;
   }
 
   return csum;

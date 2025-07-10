@@ -77,6 +77,16 @@ public:
   void allocate() override;
 
   /**
+   * @copydoc Tensor::hasScale()
+   */
+  bool hasScale() const override { return false; }
+
+  /**
+   * @copydoc Tensor::hasZeroPoint()
+   */
+  bool hasZeroPoint() const override { return false; }
+
+  /**
    * @copydoc TensorBase::size()
    */
   size_t size() const override;
@@ -110,6 +120,10 @@ private:
    * @copydoc Tensor::isValid()
    */
   bool isValid() const override { return true; }
+
+  std::size_t getDataTypeBitsSize() const override {
+    return sizeof(uint8_t) * CHAR_BIT;
+  }
 
 }; // class Q4_K_Tensor
 

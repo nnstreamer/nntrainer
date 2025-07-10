@@ -175,7 +175,9 @@ void MemoryPool::allocate() {
                              std::to_string(pool_size) + " bytes");
   }
 #else
-  mem_pool = calloc(pool_size, 1);
+  // mem_pool = calloc(pool_size, 1);
+  auto alloc_pool_size = (pool_size / 4 + (((pool_size % 4) == 0) ? 0 : 1)) * 4;
+  mem_pool = std::aligned_alloc(4, alloc_pool_size);
 #endif
 
   unsigned int idx = 1;
@@ -237,7 +239,8 @@ void MemoryPool::allocateFSU() {
     i++;
   }
 
-  mem_pool = calloc(1, 1);
+  // mem_pool = calloc(1, 1);
+  mem_pool = std::aligned_alloc(4, 4);
 
   if (mem_pool == nullptr)
     throw std::runtime_error(
@@ -256,7 +259,8 @@ std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
   if (mem_pool == nullptr)
     throw std::invalid_argument("Getting memory before allocation");
 
-  auto mem_data = std::make_shared<MemoryData>((void *)memory_ptrs.at(idx - 1));
+  auto mem_data =
+    std::make_shared<MemoryData>((void *)memory_ptrs.at(idx - 1), false);
 #endif
   return mem_data;
 }
