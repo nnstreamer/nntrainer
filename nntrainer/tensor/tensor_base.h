@@ -138,6 +138,7 @@ public:
     name = rhs.name;
     data = rhs.data;
     offset = rhs.offset;
+    file_offset = rhs.file_offset;
     src_tensor = rhs.src_tensor;
   }
 
