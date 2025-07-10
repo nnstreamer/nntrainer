@@ -605,7 +605,12 @@ else
   else
     ruy_flags += '-Wno-error=maybe-uninitialized'
     ruy_flags += '-Wno-error=stringop-overread'
-    ruy_flags += '-Wno-error=array-parameter'
+    
+    # -Wno-error=array-parameter is only available in newer GCC versions
+    # Add it only for Tizen 10+ where this flag is supported
+    if get_option('tizen-version-major') >= 10
+      ruy_flags += '-Wno-error=array-parameter'
+    endif
   endif
   
   ruy_options.append_compile_args('c', '-Wno-implicit-function-declaration')
