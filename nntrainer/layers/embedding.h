@@ -30,68 +30,71 @@ public:
   /**
    * @brief     Constructor of Embedding Layer
    */
-  EmbeddingLayer();
+  NNTR_EXPORT EmbeddingLayer();
 
   /**
    * @brief     Destructor of Embedding Layer
    */
-  ~EmbeddingLayer() = default;
+  NNTR_EXPORT ~EmbeddingLayer() = default;
 
   /**
    *  @brief  Move constructor.
    *  @param[in] EmbeddingLayer &&
    */
-  EmbeddingLayer(EmbeddingLayer &&rhs) noexcept = default;
+  NNTR_EXPORT EmbeddingLayer(EmbeddingLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs EmbeddingLayer to be moved.
    */
-  EmbeddingLayer &operator=(EmbeddingLayer &&rhs) = default;
+  NNTR_EXPORT EmbeddingLayer &operator=(EmbeddingLayer &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) override;
+  NNTR_EXPORT void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  NNTR_EXPORT void forwarding(RunLayerContext &context, bool training) override;
 
   /**
 ￼   * @copydoc Layer::incremental_forwarding(RunLayerContext &context, unsigned
 ￼   * int from, unsigned int to, bool training)
 ￼   */
-  void incremental_forwarding(RunLayerContext &context, unsigned int from,
-                              unsigned int to, bool training) override;
+  NNTR_EXPORT void incremental_forwarding(RunLayerContext &context,
+                                       unsigned int from, unsigned int to,
+                                       bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  NNTR_EXPORT void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::calcGradient(RunLayerContext &context)
    */
-  void calcGradient(RunLayerContext &context) override;
+  NNTR_EXPORT void calcGradient(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override;
+  NNTR_EXPORT void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return EmbeddingLayer::type; };
+  NNTR_EXPORT const std::string getType() const override {
+    return EmbeddingLayer::type;
+  };
 
   /**
    * @copydoc Layer::supportBackwarding()
    */
-  bool supportBackwarding() const override { return false; }
+  NNTR_EXPORT bool supportBackwarding() const override { return false; }
 
   using Layer::setProperty;
 
@@ -99,7 +102,7 @@ public:
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
    * &value)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_EXPORT void setProperty(const std::vector<std::string> &values) override;
 
   static constexpr const char *type = "embedding";
 

@@ -39,12 +39,12 @@ public:
    * @brief Var_Grad default constructor
    * @note Default variable is not need_gradient as gradient is 0 dim tensor
    */
-  Var_Grad() : Var_Grad(TensorDim()) {}
+  NNTR_EXPORT Var_Grad() : Var_Grad(TensorDim()) {}
 
   /**
    * @brief Var_Grad default destructor
    */
-  virtual ~Var_Grad() = default;
+  NNTR_EXPORT virtual ~Var_Grad() = default;
 
   /**
    * @brief Construct a new Var_Grad object
@@ -54,9 +54,10 @@ public:
    * @param alloc_now The memory for the var_grad tensors be allocated upon init
    * @param name Name for this Var_Grad
    */
-  explicit Var_Grad(const TensorDim &dim,
-                    const Initializer init = Initializer::NONE, bool ng = true,
-                    bool alloc_now = false, const std::string &name = "");
+  NNTR_EXPORT explicit Var_Grad(const TensorDim &dim,
+                                const Initializer init = Initializer::NONE,
+                                bool ng = true, bool alloc_now = false,
+                                const std::string &name = "");
 
   /**
    * @brief Construct a new Var_Grad object
@@ -67,16 +68,17 @@ public:
    * @param alloc_now The memory for the var_grad tensors be allocated upon init
    * @param name Name for this Var_Grad
    */
-  explicit Var_Grad(const TensorDim &dim_v, const TensorDim &dim_g,
-                    const Initializer init = Initializer::NONE, bool ng = true,
-                    bool alloc_now = false, const std::string &name = "");
+  NNTR_EXPORT explicit Var_Grad(const TensorDim &dim_v, const TensorDim &dim_g,
+                                const Initializer init = Initializer::NONE,
+                                bool ng = true, bool alloc_now = false,
+                                const std::string &name = "");
 
   /**
    * @brief Construct a new Var_Grad object
    *
    * @param spec Var_Grad specification
    */
-  explicit Var_Grad(const Spec &spec, bool alloc_now = false) :
+  NNTR_EXPORT explicit Var_Grad(const Spec &spec, bool alloc_now = false) :
     Var_Grad(std::get<0>(spec), // TensorDim
              std::get<1>(spec), // initializer
              std::get<2>(spec), // need_gradient
@@ -96,8 +98,9 @@ public:
    * uses only, as Var_Grad does not own the tensors v and g, and can go invalid
    * if the owner of these tensors free the tensors.
    */
-  explicit Var_Grad(const Tensor &v, const Tensor &g, const std::string &n = "",
-                    bool is_dependent = false) :
+  NNTR_EXPORT explicit Var_Grad(const Tensor &v, const Tensor &g,
+                                const std::string &n = "",
+                                bool is_dependent = false) :
     is_dependent(is_dependent),
     is_first_access_gradient(false),
     is_last_access_gradient(false),
@@ -116,7 +119,8 @@ public:
    * @param g ptr to already created gradient tensor
    * @param is_dependent true if the given var grad is dependent
    */
-  explicit Var_Grad(Tensor *v, Tensor *g, bool is_dependent = false) :
+  NNTR_EXPORT explicit Var_Grad(Tensor *v, Tensor *g,
+                                bool is_dependent = false) :
     is_dependent(is_dependent),
     is_first_access_gradient(false),
     is_last_access_gradient(false),
@@ -133,14 +137,14 @@ public:
    *
    * @param rhs Var_Grad to construct from
    */
-  Var_Grad(const Var_Grad &rhs) = default;
+  NNTR_EXPORT Var_Grad(const Var_Grad &rhs) = default;
 
   /**
    * @brief Move constructor for Var_Grad
    *
    * @param rhs Var_Grad to construct from
    */
-  Var_Grad(Var_Grad &&rhs) = default;
+  NNTR_EXPORT Var_Grad(Var_Grad &&rhs) = default;
 
   /**
    * @brief copy assigment
@@ -148,7 +152,7 @@ public:
    * @param rhs copy from
    * @return Var_Grad& Updated Var_Grad
    */
-  Var_Grad &operator=(const Var_Grad &rhs) = default;
+  NNTR_EXPORT Var_Grad &operator=(const Var_Grad &rhs) = default;
 
   /**
    * @brief move assignment
@@ -156,59 +160,63 @@ public:
    * @param rhs move from
    * @return Var_Grad& Updated Var_Grad
    */
-  Var_Grad &operator=(Var_Grad &&rhs) = default;
+  NNTR_EXPORT Var_Grad &operator=(Var_Grad &&rhs) = default;
 
   /**
    * @brief Initialize the variable
    * @param preallocated if initialized, use this tensor for variable memory
    */
-  virtual void initializeVariable(const Tensor &preallocated = Tensor());
+  NNTR_EXPORT virtual void
+  initializeVariable(const Tensor &preallocated = Tensor());
 
   /**
    * @brief Initialize the gradient for the variable
    * @param preallocated if initialized, use this tensor for gradient memory
    */
-  virtual void initializeGradient(const Tensor &preallocated = Tensor());
+  NNTR_EXPORT virtual void
+  initializeGradient(const Tensor &preallocated = Tensor());
 
   /**
    * @brief Get the TensorDim
    *
    * @return TensorDim Dimension
    */
-  TensorDim getDim() const { return var->getDim(); }
+  NNTR_EXPORT TensorDim getDim() const { return var->getDim(); }
 
   /**
    * @brief Get the name of the variable
    *
    * @return std::string name of the variable
    */
-  const std::string &getName() const { return var->getName(); }
+  NNTR_EXPORT const std::string &getName() const { return var->getName(); }
 
   /**
    * @brief Get the name of the gradient
    *
    * @return std::string name of the gradient
    */
-  const std::string &getGradientName() const { return grad->getName(); }
+  NNTR_EXPORT const std::string &getGradientName() const {
+    return grad->getName();
+  }
 
   /**
    * @brief Get the variable tensor
    *
    * @return Tensor Variable tensor
    */
-  Tensor getVariable() const { return *var.get(); }
+  NNTR_EXPORT Tensor getVariable() const { return *var.get(); }
 
   /**
    * @brief Get the Gradient tensor
    *
    * @return Tensor Gradient tensor
    */
-  Tensor getGradient() const { return *grad.get(); }
+  NNTR_EXPORT Tensor getGradient() const { return *grad.get(); }
 
   /**
    * @brief Reset the gradient to 0
    */
-  void resetGradient() {
+  NNTR_EXPORT void resetGradient() {
     /** zero the gradient */
     grad->initialize();
   }
@@ -218,7 +226,7 @@ public:
    *
    * @param batch batch size
    */
-  void setBatchSize(unsigned int batch) {
+  NNTR_EXPORT void setBatchSize(unsigned int batch) {
     if (!var->empty())
       var->updateBatch(batch);
     if (grad && !grad->empty())
@@ -230,7 +238,7 @@ public:
    *
    * @param dimension dimension to be updated
    */
-  void updateDimension(TensorDim dimension) {
+  NNTR_EXPORT void updateDimension(TensorDim dimension) {
     if (!var->empty())
       var->updateDimension(dimension);
     if (grad && !grad->empty())
@@ -242,28 +250,28 @@ public:
    *
    * @return Tensor Variable tensor
    */
-  Tensor &getVariableRef() { return *var.get(); }
+  NNTR_EXPORT Tensor &getVariableRef() { return *var.get(); }
 
   /**
    * @brief Get the Gradient tensor (by reference)
    *
    * @return Tensor Gradient tensor
    */
-  Tensor &getGradientRef() { return *grad.get(); }
+  NNTR_EXPORT Tensor &getGradientRef() { return *grad.get(); }
 
   /**
    * @brief Get the variable tensor (by reference)
    *
    * @return Tensor Variable tensor
    */
-  const Tensor &getVariableRef() const { return *var.get(); }
+  NNTR_EXPORT const Tensor &getVariableRef() const { return *var.get(); }
 
   /**
    * @brief Get the Gradient tensor (by reference)
    *
    * @return Tensor Gradient tensor
    */
-  const Tensor &getGradientRef() const { return *grad.get(); }
+  NNTR_EXPORT const Tensor &getGradientRef() const { return *grad.get(); }
 
   /**
    * @brief If this variable has gradient
@@ -272,7 +280,7 @@ public:
    * @note this is can return is the var_grad needs gradient but it not
    * empty
    */
-  bool hasGradient() const {
+  NNTR_EXPORT bool hasGradient() const {
     if (!grad)
       return false;
     if (var->isAllocated())
@@ -285,19 +293,21 @@ public:
    *
    * @return bool return true if the weight is dependent to others
    */
-  bool isDependent() const { return is_dependent; }
+  NNTR_EXPORT bool isDependent() const { return is_dependent; }
 
   /**
    * @brief Set the As First Gradient Access
    *
    */
-  void setAsGradientFirstAccess() { is_first_access_gradient = true; }
+  NNTR_EXPORT void setAsGradientFirstAccess() {
+    is_first_access_gradient = true;
+  }
 
   /**
    * @brief Set the As Gradient Last Access object
    *
    */
-  void setAsGradientLastAccess() { is_last_access_gradient = true; }
+  NNTR_EXPORT void setAsGradientLastAccess() { is_last_access_gradient = true; }
 
   /**
    * @brief check if given weight at the last execution order
@@ -305,7 +315,9 @@ public:
    *
    * @return bool true if last access
    */
-  bool isGradientFirstAccess() const { return is_first_access_gradient; }
+  NNTR_EXPORT bool isGradientFirstAccess() const {
+    return is_first_access_gradient;
+  }
 
   /**
    * @brief check if given weight at the first execution order (last access of
@@ -313,14 +325,16 @@ public:
    *
    * @return bool true if last access
    */
-  bool isGradientLastAccess() const { return is_last_access_gradient; }
+  NNTR_EXPORT bool isGradientLastAccess() const {
+    return is_last_access_gradient;
+  }
 
   /**
    * @brief Get the norm of the gradient
    *
    * @return float l2 norm of the gradient
    */
-  float getGradientNorm() const { return grad->l2norm(); }
+  NNTR_EXPORT float getGradientNorm() const { return grad->l2norm(); }
 
   static constexpr const char *grad_suffix = ":grad";
 

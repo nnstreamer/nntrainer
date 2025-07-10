@@ -33,39 +33,39 @@ public:
    * @brief Construct a new constant learning rate scheduler object
    *
    */
-  ConstantLearningRateScheduler();
+  NNTR_EXPORT ConstantLearningRateScheduler();
 
   /**
    * @copydoc LearningRateScheduler::getLearningRate(size_t iteration) const
    *
    */
-  virtual double getLearningRate(size_t iteration) override;
+  NNTR_EXPORT virtual double getLearningRate(size_t iteration) override;
 
   /**
    * @copydoc LearningRateScheduler::finalize()
    *
    */
-  virtual void finalize() override;
+  NNTR_EXPORT virtual void finalize() override;
 
   /**
    * @copydoc LearningRateScheduler::exportTo(Exporter &exporter, const
    * ml::train::ExportMethods& method)
    *
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override;
+  NNTR_EXPORT void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const override;
 
   /**
    * @copydoc LearningRateScheduler::setProperty(const std::vector<std::string>
    * &values)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_EXPORT void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @copydoc LearningRateScheduler::getType() const
    *
    */
-  const std::string getType() const override {
+  NNTR_EXPORT const std::string getType() const override {
     return ConstantLearningRateScheduler::type;
   }
 

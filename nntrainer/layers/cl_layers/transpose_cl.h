@@ -32,56 +32,61 @@ public:
    * @brief Construct a new transpose layer object
    *
    */
-  TransposeLayerCl() : LayerImplCl(), transpose_props(props::Print()) {}
+  NNTR_EXPORT TransposeLayerCl() :
+    LayerImplCl(), transpose_props(props::Print()) {}
 
   /**
    * @brief Destroy the transpose layer object
    *
    */
-  ~TransposeLayerCl() {}
+  NNTR_EXPORT ~TransposeLayerCl() {}
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) override;
+  NNTR_EXPORT void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  NNTR_EXPORT void forwarding(RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::incremental_forwarding(RunLayerContext &context, unsigned
    * int from, unsigned int to, bool training)
    */
-  void incremental_forwarding(RunLayerContext &context, unsigned int from,
-                              unsigned int to, bool training) override;
+  NNTR_EXPORT void incremental_forwarding(RunLayerContext &context,
+                                       unsigned int from, unsigned int to,
+                                       bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  NNTR_EXPORT void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc bool supportBackwarding() const
    */
-  bool supportBackwarding() const override { return false; };
+  NNTR_EXPORT bool supportBackwarding() const override { return false; };
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override{};
+  NNTR_EXPORT void
+  exportTo(Exporter &exporter,
+           const ml::train::ExportMethods &method) const override{};
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return TransposeLayerCl::type; };
+  NNTR_EXPORT const std::string getType() const override {
+    return TransposeLayerCl::type;
+  };
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_EXPORT void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @brief     Register Cl Kernels for `TransposeLayerCl`, bypassing the
@@ -89,7 +94,7 @@ public:
    * function simply returns `true` because `TransposeLayerCl` does not rely on
    * the specific kernels for the layer.
    */
-  static bool registerClKernels() { return true; };
+  NNTR_EXPORT static bool registerClKernels() { return true; };
 
   static constexpr const char *type = "transpose";
 

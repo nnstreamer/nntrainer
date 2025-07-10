@@ -135,13 +135,4 @@ float DynamicTrainingOptimization::reduceByNorm(Tensor const &ratio) {
   return l2norm / std::sqrt(ratio.size());
 }
 
-/**< Different types of reduce operations */
-const std::string DynamicTrainingOptimization::dft_opt_max = "max";
-const std::string DynamicTrainingOptimization::dft_opt_norm = "norm";
-
-const std::string DynamicTrainingOptimization::dft_opt_mode_gradient =
-  "gradient";
-const std::string DynamicTrainingOptimization::dft_opt_mode_derivative =
-  "derivative";
-
 } /* namespace nntrainer */

@@ -36,46 +36,49 @@ public:
    * @brief Construct a new Random Data One Hot Producer object
    *
    */
-  RandomDataOneHotProducer();
+  NNTR_EXPORT RandomDataOneHotProducer();
 
   /**
    * @brief Destroy the Random Data One Hot Producer object
    *
    */
-  ~RandomDataOneHotProducer();
+  NNTR_EXPORT ~RandomDataOneHotProducer();
 
   static constexpr const char *type = "random_data_one_hot";
 
   /**
    * @copydoc DataProducer::getType()
    */
-  const std::string getType() const override;
+  NNTR_EXPORT const std::string getType() const override;
 
   /**
    * @copydoc DataProducer::isMultiThreadSafe()
    */
-  bool isMultiThreadSafe() const override;
+  NNTR_EXPORT bool isMultiThreadSafe() const override;
 
   /**
    * @copydoc DataProducer::setProeprty(const std::vector<std::string>
    * &properties)
    */
-  void setProperty(const std::vector<std::string> &properties) override;
+  NNTR_EXPORT void
+  setProperty(const std::vector<std::string> &properties) override;
 
   /**
    * @copydoc DataProducer::finalize(const std::vector<TensorDim>, const
    * std::vector<TensorDim>)
    */
-  DataProducer::Generator finalize(const std::vector<TensorDim> &input_dims,
-                                   const std::vector<TensorDim> &label_dims,
-                                   void *user_data = nullptr) override;
+  NNTR_EXPORT DataProducer::Generator
+  finalize(const std::vector<TensorDim> &input_dims,
+           const std::vector<TensorDim> &label_dims,
+           void *user_data = nullptr) override;
 
   /**
    * @copydoc DataProducer::finalize_sample(const std::vector<TensorDim>, const
    * std::vector<TensorDim>, void *)
    */
-  unsigned int size(const std::vector<TensorDim> &input_dims,
-                    const std::vector<TensorDim> &label_dims) const override;
+  NNTR_EXPORT unsigned int
+  size(const std::vector<TensorDim> &input_dims,
+       const std::vector<TensorDim> &label_dims) const override;
 
 private:
   using Props = std::tuple<PropsMin, PropsMax, PropsNumSamples>;

@@ -29,7 +29,7 @@ public:
   /**
    * @brief Constructor of Tangent Layer
    */
-  TangentLayer() :
+  NNTR_EXPORT TangentLayer() :
     UnaryOperationLayer(),
     tangent_props(props::Print(), props::InPlaceProp()),
     support_backwarding(true) {}
@@ -37,24 +37,24 @@ public:
   /**
    * @brief Destructor of Tangent Layer
    */
-  ~TangentLayer(){};
+  NNTR_EXPORT ~TangentLayer(){};
 
   /**
    *  @brief  Move constructor of Tangent Layer.
    *  @param[in] TangentLayer &&
    */
-  TangentLayer(TangentLayer &&rhs) noexcept = default;
+  NNTR_EXPORT TangentLayer(TangentLayer &&rhs) noexcept = default;
 
   /**
    * @brief Move assignment operator.
    * @parma[in] rhs TangentLayer to be moved.
    */
-  TangentLayer &operator=(TangentLayer &&rhs) = default;
+  NNTR_EXPORT TangentLayer &operator=(TangentLayer &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) final;
+  NNTR_EXPORT void finalize(InitLayerContext &context) final;
 
   /**
    * @brief forwarding operation for tangent
@@ -62,23 +62,25 @@ public:
    * @param input input tensor
    * @param hidden tensor to store the result value
    */
-  void forwarding_operation(const Tensor &input, Tensor &hidden) final;
+  NNTR_EXPORT void forwarding_operation(const Tensor &input, Tensor &hidden) final;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) final;
+  NNTR_EXPORT void calcDerivative(RunLayerContext &context) final;
 
   /**
    * @copydoc bool supportBackwarding() const
    */
-  bool supportBackwarding() const final { return support_backwarding; };
+  NNTR_EXPORT bool supportBackwarding() const final {
+    return support_backwarding;
+  };
 
   /**
    * @brief Initialize the in-place settings of the layer
    * @return InPlaceType
    */
-  InPlaceType initializeInPlace() final {
+  NNTR_EXPORT InPlaceType initializeInPlace() final {
     is_inplace = !std::get<props::InPlaceProp>(tangent_props).empty() &&
                  std::get<props::InPlaceProp>(tangent_props).get();
     support_backwarding = !is_inplace;
@@ -93,18 +95,20 @@ public:
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const final {}
+  NNTR_EXPORT void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const final {}
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  void setProperty(const std::vector<std::string> &values) final;
+  NNTR_EXPORT void setProperty(const std::vector<std::string> &values) final;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const final { return TangentLayer::type; };
+  NNTR_EXPORT const std::string getType() const final {
+    return TangentLayer::type;
+  };
 
   std::tuple<props::Print, props::InPlaceProp> tangent_props;
   bool support_backwarding; /**< support backwarding */

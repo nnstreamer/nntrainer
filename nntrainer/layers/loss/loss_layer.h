@@ -30,27 +30,28 @@ public:
   /**
    * @brief     Destructor of Loss Layer
    */
-  virtual ~LossLayer() = default;
+  NNTR_EXPORT virtual ~LossLayer() = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  virtual void finalize(InitLayerContext &context) override;
+  NNTR_EXPORT virtual void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  virtual void setProperty(const std::vector<std::string> &values) override;
+  NNTR_EXPORT virtual void
+  setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @copydoc Layer::supportBackwarding()
    */
-  virtual bool supportBackwarding() const override { return true; }
+  NNTR_EXPORT virtual bool supportBackwarding() const override { return true; }
 
   /**
    * @copydoc Layer::requireLabel()
    */
-  bool requireLabel() const override { return true; }
+  NNTR_EXPORT bool requireLabel() const override { return true; }
 
 protected:
   /**
@@ -58,14 +59,14 @@ protected:
    * @param     context Run context to update loss in
    * @param     l Tensor data to calculate
    */
-  void updateLoss(RunLayerContext &context, const Tensor &l);
+  NNTR_EXPORT void updateLoss(RunLayerContext &context, const Tensor &l);
 
   /**
    * @brief     update return derivative with loss scale
    * @param     context Run context to update
    * @param     return_dev Tensor data to calculate
    */
-  void applyLossScale(RunLayerContext &context, Tensor &l);
+  NNTR_EXPORT void applyLossScale(RunLayerContext &context, Tensor &l);
 
   Tensor
     l; /**< loss tensor to store intermediate value to calculate loss value */

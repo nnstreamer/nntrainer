@@ -37,14 +37,14 @@ public:
    * @param start_conns start layers
    * @param input_conns input layers
    */
-  InputRealizer(const std::vector<Connection> &start_conns,
-                const std::vector<Connection> &input_conns);
+  NNTR_EXPORT InputRealizer(const std::vector<Connection> &start_conns,
+                         const std::vector<Connection> &input_conns);
 
   /**
    * @brief Destroy the Graph Realizer object
    *
    */
-  ~InputRealizer();
+  NNTR_EXPORT ~InputRealizer();
 
   /**
    * @brief graph realizer creates a shallow copied graph based on the reference
@@ -53,7 +53,8 @@ public:
    * @throw std::invalid_argument if graph is ill formed
    *
    */
-  GraphRepresentation realize(const GraphRepresentation &reference) override;
+  NNTR_EXPORT GraphRepresentation
+  realize(const GraphRepresentation &reference) override;
 
 private:
   std::vector<Connection> start_conns;

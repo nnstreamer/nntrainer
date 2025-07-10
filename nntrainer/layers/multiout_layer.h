@@ -27,57 +27,58 @@ public:
   /**
    * @brief     Constructor of Multiout Layer
    */
-  MultiOutLayer() : Layer() {}
+  NNTR_EXPORT MultiOutLayer() : Layer() {}
 
   /**
    * @brief     Destructor of Multiout Layer
    */
-  ~MultiOutLayer() = default;
+  NNTR_EXPORT ~MultiOutLayer() = default;
 
   /**
    *  @brief  Move constructor of MultiOutLayer.
    *  @param[in] MultiOutLayer &&
    */
-  MultiOutLayer(MultiOutLayer &&rhs) noexcept = default;
+  NNTR_EXPORT MultiOutLayer(MultiOutLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs MultiOutLayer to be moved.
    */
-  MultiOutLayer &operator=(MultiOutLayer &&rhs) = default;
+  NNTR_EXPORT MultiOutLayer &operator=(MultiOutLayer &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) override;
+  NNTR_EXPORT void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  NNTR_EXPORT void forwarding(RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::incremental_forwarding(RunLayerContext &context, unsigned
    * int from, unsigned int to, bool training)
    */
-  void incremental_forwarding(RunLayerContext &context, unsigned int from,
-                              unsigned int to, bool training) override;
+  NNTR_EXPORT void incremental_forwarding(RunLayerContext &context,
+                                       unsigned int from, unsigned int to,
+                                       bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  NNTR_EXPORT void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc bool supportBackwarding() const
    */
-  bool supportBackwarding() const override { return true; };
+  NNTR_EXPORT bool supportBackwarding() const override { return true; };
 
   /**
    * @brief Initialize the in-place settings of the layer
    * @return InPlaceType
    */
-  InPlaceType initializeInPlace() final {
+  NNTR_EXPORT InPlaceType initializeInPlace() final {
     is_inplace = true;
     return InPlaceType::RESTRICTING;
   }
@@ -86,20 +87,23 @@ public:
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override {}
+  NNTR_EXPORT void
+  exportTo(Exporter &exporter,
+           const ml::train::ExportMethods &method) const override {}
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_EXPORT void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return MultiOutLayer::type; };
+  NNTR_EXPORT const std::string getType() const override {
+    return MultiOutLayer::type;
+  };
 
-  void updateTensorsByInputDimensions(
+  NNTR_EXPORT void updateTensorsByInputDimensions(
     nntrainer::RunLayerContext &context,
     std::vector<nntrainer::TensorDim> input_dimensions) override;
 

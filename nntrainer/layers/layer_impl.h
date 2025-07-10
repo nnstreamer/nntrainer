@@ -53,41 +53,43 @@ public:
   /**
    * @brief     Constructor of Layer Class
    */
-  LayerImpl();
+  NNTR_EXPORT LayerImpl();
 
   /**
    * @brief     Destructor of Layer Class
    */
-  virtual ~LayerImpl() = default;
+  NNTR_EXPORT virtual ~LayerImpl() = default;
 
   /**
    *  @brief  Move constructor of LayerImpl Layer.
    *  @param[in] LayerImpl &&
    */
-  LayerImpl(LayerImpl &&rhs) noexcept = default;
+  NNTR_EXPORT LayerImpl(LayerImpl &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs LayerImpl to be moved.
    */
-  LayerImpl &operator=(LayerImpl &&rhs) = default;
+  NNTR_EXPORT LayerImpl &operator=(LayerImpl &&rhs) = default;
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  virtual void setProperty(const std::vector<std::string> &values) override;
+  NNTR_EXPORT virtual void
+  setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @copydoc Layer::getProperty(const std::string &key)
    */
-  virtual std::string getProperty(const std::string &key) override;
+  NNTR_EXPORT virtual std::string getProperty(const std::string &key) override;
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, const ml::train::ExportMethods
    * &methods)
    */
-  virtual void exportTo(Exporter &exporter,
-                        const ml::train::ExportMethods &method) const override;
+  NNTR_EXPORT virtual void
+  exportTo(Exporter &exporter,
+           const ml::train::ExportMethods &method) const override;
 
 protected:
   std::unique_ptr<

@@ -34,7 +34,7 @@ public:
    *
    * @param pathResolver_ path resolver function to be used
    */
-  IniGraphInterpreter(
+  NNTR_EXPORT IniGraphInterpreter(
     const Engine *ct_engine_ = &Engine::Global(),
     std::function<const std::string(const std::string &)> pathResolver_ =
       [](const std::string &path) { return path; });
@@ -43,19 +43,19 @@ public:
    * @brief Destroy the Ini Graph Interpreter object
    *
    */
-  virtual ~IniGraphInterpreter();
+  NNTR_EXPORT virtual ~IniGraphInterpreter();
 
   /**
    * @copydoc GraphInterpreter::serialize(const GraphRepresentation
    * representation, const std::string &out)
    */
-  void serialize(const GraphRepresentation &representation,
-                 const std::string &out) override;
+  NNTR_EXPORT void serialize(const GraphRepresentation &representation,
+                          const std::string &out) override;
 
   /**
    * @copydoc GraphInterpreter::deserialize(const std::string &in)
    */
-  GraphRepresentation deserialize(const std::string &in) override;
+  NNTR_EXPORT GraphRepresentation deserialize(const std::string &in) override;
 
 private:
   const Engine *ct_engine = nullptr;

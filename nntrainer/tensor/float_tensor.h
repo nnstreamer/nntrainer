@@ -32,7 +32,7 @@ public:
   /**
    * @brief     Basic Constructor of Tensor
    */
-  FloatTensor(std::string name_ = "", Tformat fm = Tformat::NCHW);
+  NNTR_EXPORT FloatTensor(std::string name_ = "", Tformat fm = Tformat::NCHW);
 
   /**
    * @brief Construct a new FloatTensor object
@@ -42,8 +42,9 @@ public:
    * @param init Initializer for the tensor
    * @param name Name of the tensor
    */
-  FloatTensor(const TensorDim &d, bool alloc_now,
-              Initializer init = Initializer::NONE, std::string name = "");
+  NNTR_EXPORT FloatTensor(const TensorDim &d, bool alloc_now,
+                       Initializer init = Initializer::NONE,
+                       std::string name = "");
 
   /**
    * @brief Construct a new FloatTensor object
@@ -51,7 +52,7 @@ public:
    * @param d Tensor dim for this tensor
    * @param buf buffer
    */
-  FloatTensor(const TensorDim &d, const void *buf = nullptr);
+  NNTR_EXPORT FloatTensor(const TensorDim &d, const void *buf = nullptr);
 
   /**
    * @brief Construct a new FloatTensor object
@@ -59,7 +60,7 @@ public:
    * @param d data for the Tensor
    * @param fm format for the Tensor
    */
-  FloatTensor(
+  NNTR_EXPORT FloatTensor(
     std::vector<std::vector<std::vector<std::vector<float>>>> const &d,
     Tformat fm) {
     if (d.empty() || d[0].empty() || d[0][0].empty() || d[0][0][0].empty()) {
@@ -115,70 +116,72 @@ public:
    * @brief Construct a new FloatTensor object
    * @param rhs TensorBase object to copy
    */
-  FloatTensor(TensorBase &rhs) : TensorBase(rhs) {}
+  NNTR_EXPORT FloatTensor(TensorBase &rhs) : TensorBase(rhs) {}
 
   /**
    * @brief Basic Destructor
    */
-  ~FloatTensor() {}
+  NNTR_EXPORT ~FloatTensor() {}
 
   /**
    * @brief     Comparison operator overload
    * @param[in] rhs Tensor to be compared with
    * @note      Only compares Tensor data
    */
-  bool operator==(const FloatTensor &rhs) const;
+  NNTR_EXPORT bool operator==(const FloatTensor &rhs) const;
 
   /**
    * @brief     Comparison operator overload
    * @param[in] rhs Tensor to be compared with
    * @note      Only compares Tensor data
    */
-  bool operator!=(const FloatTensor &rhs) const { return !(*this == rhs); }
+  NNTR_EXPORT bool operator!=(const FloatTensor &rhs) const {
+    return !(*this == rhs);
+  }
 
   /**
    * @copydoc Tensor::allocate()
    */
-  void allocate() override;
+  NNTR_EXPORT void allocate() override;
 
   /**
    * @copydoc Tensor::deallocate()
    */
-  void deallocate() override;
+  NNTR_EXPORT void deallocate() override;
 
   /**
    * @copydoc Tensor::getData()
    */
-  void *getData() const override;
+  NNTR_EXPORT void *getData() const override;
 
   /**
    * @copydoc Tensor::getData(size_t idx)
    */
-  void *getData(size_t idx) const override;
+  NNTR_EXPORT void *getData(size_t idx) const override;
 
   /**
    * @brief     i data index
    * @retval    address of ith data
    */
-  void *getAddress(unsigned int i) override;
+  NNTR_EXPORT void *getAddress(unsigned int i) override;
 
   /**
    * @brief     i data index
    * @retval    address of ith data
    */
-  const void *getAddress(unsigned int i) const override;
+  NNTR_EXPORT const void *getAddress(unsigned int i) const override;
 
   /**
    * @brief     return value at specific location
    * @param[in] i index
    */
-  const float &getValue(unsigned int i) const;
+  NNTR_EXPORT const float &getValue(unsigned int i) const;
 
   /**
    * @brief     return value at specific location
    * @param[in] i index
    */
-  float &getValue(unsigned int i);
+  NNTR_EXPORT float &getValue(unsigned int i);
 
   /**
    * @brief     return value at specific location
@@ -187,8 +190,8 @@ public:
    * @param[in] h height location
    * @param[in] w width location
    */
-  const float &getValue(unsigned int b, unsigned int c, unsigned int h,
-                        unsigned int w) const;
+  NNTR_EXPORT const float &getValue(unsigned int b, unsigned int c, unsigned int h,
+                                 unsigned int w) const;
 
   /**
    * @brief     return value at specific location
@@ -197,36 +200,36 @@ public:
    * @param[in] h height location
    * @param[in] w width location
    */
-  float &getValue(unsigned int b, unsigned int c, unsigned int h,
-                  unsigned int w);
+  NNTR_EXPORT float &getValue(unsigned int b, unsigned int c, unsigned int h,
+                           unsigned int w);
 
   /**
    * @copydoc Tensor::setValue(float value)
    */
-  void setValue(float value) override;
+  NNTR_EXPORT void setValue(float value) override;
 
   /**
    * @copydoc Tensor::setValue(b, c, h, w, value)
    */
-  void setValue(unsigned int b, unsigned int c, unsigned int h, unsigned int w,
-                float value) override;
+  NNTR_EXPORT void setValue(unsigned int b, unsigned int c, unsigned int h,
+                         unsigned int w, float value) override;
 
   /**
    * @copydoc Tensor::addValue(b, c, h, w, value, beta)
    */
-  void addValue(unsigned int b, unsigned int c, unsigned int h, unsigned int w,
-                float value, float beta) override;
+  NNTR_EXPORT void addValue(unsigned int b, unsigned int c, unsigned int h,
+                         unsigned int w, float value, float beta) override;
 
   /**
    * @copydoc Tensor::setZero()
    */
-  void setZero() override;
+  NNTR_EXPORT void setZero() override;
 
   /**
    * @brief Set the Dist object
    * @param dist distribution engine
    */
-  template <typename Engine> void setDist(Engine dist) {
+  template <typename Engine> NNTR_EXPORT void setDist(Engine dist) {
     NNTR_THROW_IF(!contiguous, std::invalid_argument)
       // << getName() << " Tensor is not contiguous, cannot set distribution";
       << " Tensor is not contiguous, cannot set distribution";
@@ -241,244 +244,248 @@ public:
   /**
    * @copydoc Tensor::setRandNormal()
    */
-  void setRandNormal(float mean = 0.0f, float stddev = 0.05f) override;
+  NNTR_EXPORT void setRandNormal(float mean = 0.0f, float stddev = 0.05f) override;
 
   /**
    * @copydoc Tensor::setRandUniform()
    */
-  void setRandUniform(float min = -0.05f, float max = 0.05f) override;
+  NNTR_EXPORT void setRandUniform(float min = -0.05f, float max = 0.05f) override;
 
   /**
    * @copydoc Tensor::setRandBernoulli()
    */
-  void setRandBernoulli(float probability = 0.5f) override;
+  NNTR_EXPORT void setRandBernoulli(float probability = 0.5f) override;
 
   /**
    * @copydoc Tensor::initialize()
    */
-  void initialize() override;
+  NNTR_EXPORT void initialize() override;
 
   /**
    * @copydoc Tensor::initialize(Initializer init)
    */
-  void initialize(Initializer init) override;
+  NNTR_EXPORT void initialize(Initializer init) override;
 
   /**
    * @copydoc Tensor::apply(std::function<T(T)> f, Tensor &output)
    */
-  Tensor &apply(std::function<float(float)> f, Tensor &output) const override;
+  NNTR_EXPORT Tensor &apply(std::function<float(float)> f,
+                         Tensor &output) const override;
 
   /**
    * @copydoc Tensor::multiply_strided(Tensor const &m, Tensor &output,
    * const float beta)
    */
-  Tensor multiply_strided(Tensor const &m, Tensor &output,
-                          const float beta) const override;
+  NNTR_EXPORT Tensor multiply_strided(Tensor const &m, Tensor &output,
+                                   const float beta) const override;
 
   /**
    * @copydoc Tensor::multiply_i(float const &value)
    */
-  int multiply_i(float const &value) override;
+  NNTR_EXPORT int multiply_i(float const &value) override;
 
   /**
    * @copydoc Tensor::multiply(float const &value, Tensor &out)
    */
-  Tensor &multiply(float const &value, Tensor &out) const override;
+  NNTR_EXPORT Tensor &multiply(float const &value, Tensor &out) const override;
 
   /**
    * @copydoc Tensor::multiply(Tensor const &m, Tensor &output, const
    * float beta = 0.0)
    */
-  Tensor &multiply(Tensor const &m, Tensor &output,
-                   const float beta = 0.0) const override;
+  NNTR_EXPORT Tensor &multiply(Tensor const &m, Tensor &output,
+                            const float beta = 0.0) const override;
 
   /**
    * @copydoc Tensor::divide(float const &value, Tensor &output)
    */
-  Tensor &divide(float const &value, Tensor &output) const override;
+  NNTR_EXPORT Tensor &divide(float const &value, Tensor &output) const override;
 
   /**
    * @copydoc Tensor::divide(Tensor const &m, Tensor &output)
    */
-  Tensor &divide(Tensor const &m, Tensor &output) const override;
+  NNTR_EXPORT Tensor &divide(Tensor const &m, Tensor &output) const override;
 
   /**
    * @copydoc Tensor::add_strided(Tensor const &input, Tensor &output,
    * const float beta)
    */
-  Tensor &add_strided(Tensor const &input, Tensor &output,
-                      const float beta) const override;
+  NNTR_EXPORT Tensor &add_strided(Tensor const &input, Tensor &output,
+                               const float beta) const override;
 
   /**
    * @copydoc Tensor::add_i_partial()
    */
-  int add_i_partial(unsigned int len, unsigned int addr_idx, Tensor &m,
-                    unsigned int incX, unsigned int incY, const Tensor alphas,
-                    unsigned int alpha_idx) override;
+  NNTR_EXPORT int add_i_partial(unsigned int len, unsigned int addr_idx, Tensor &m,
+                             unsigned int incX, unsigned int incY,
+                             const Tensor alphas,
+                             unsigned int alpha_idx) override;
 
   /**
    * @copydoc Tensor::add(float const &value, Tensor &output)
    */
-  Tensor &add(float const &value, Tensor &output) const override;
+  NNTR_EXPORT Tensor &add(float const &value, Tensor &output) const override;
 
   /**
    * @copydoc Tensor::add(Tensor const &m, Tensor &output, float const
    * alpha)
    */
-  Tensor &add(Tensor const &m, Tensor &output,
-              float const alpha) const override;
+  NNTR_EXPORT Tensor &add(Tensor const &m, Tensor &output,
+                       float const alpha) const override;
 
   /**
    *  @copydoc Tensor::subtract(float const &value, Tensor &output)
    */
-  Tensor &subtract(float const &value, Tensor &output) const override;
+  NNTR_EXPORT Tensor &subtract(float const &value, Tensor &output) const override;
 
   /**
    *  @copydoc TensorBase::sum_by_batch(Tensor &output)
    */
-  void sum_by_batch(Tensor &output) const override;
+  NNTR_EXPORT void sum_by_batch(Tensor &output) const override;
 
   /**
    * @copydoc Tensor::sum(unsigned int axis, Tensor &output, float alpha,
    * float beta) const
    */
-  Tensor &sum(unsigned int axis, Tensor &output, float alpha,
-              float beta) const override;
+  NNTR_EXPORT Tensor &sum(unsigned int axis, Tensor &output, float alpha,
+                       float beta) const override;
 
   /**
    * @copydoc Tensor::abs()
    */
-  Tensor &abs(Tensor &output) const override;
+  NNTR_EXPORT Tensor &abs(Tensor &output) const override;
 
   /**
    * @copydoc Tensor::l2norm
    */
-  float l2norm() const override;
+  NNTR_EXPORT float l2norm() const override;
 
   /**
    * @copydoc Tensor::pow(float exponent, Tensor &output)
    */
-  Tensor &pow(float exponent, Tensor &output) const override;
+  NNTR_EXPORT Tensor &pow(float exponent, Tensor &output) const override;
 
   /**
    * @copydoc Tensor::sqrt(&output)
    */
-  Tensor &sqrt(Tensor &output) const override;
+  NNTR_EXPORT Tensor &sqrt(Tensor &output) const override;
 
   /**
    * @copydoc Tensor::erf(Tensor &output)
    */
-  Tensor &erf(Tensor &output) const override;
+  NNTR_EXPORT Tensor &erf(Tensor &output) const override;
 
   /**
    * @copydoc Tensor::sin(Tensor &out, float alpha)
    */
-  void sin(Tensor &out, float alpha) override;
+  NNTR_EXPORT void sin(Tensor &out, float alpha) override;
 
   /**
    * @copydoc Tensor::cos(Tensor &out, float alpha)
    */
-  void cos(Tensor &out, float alpha) override;
+  NNTR_EXPORT void cos(Tensor &out, float alpha) override;
 
   /**
    * @copydoc Tensor::tan(Tensor &output, float alpha)
    */
-  void tan(Tensor &output, float alpha) override;
+  NNTR_EXPORT void tan(Tensor &output, float alpha) override;
 
   /**
    * @copydoc TensorBase::inv_sqrt(Tensor &out)
    */
-  void inv_sqrt(Tensor &out) override;
+  NNTR_EXPORT void inv_sqrt(Tensor &out) override;
 
   /**
    *  @copydoc Tensor::dot(Tensor const &input, Tensor &output, bool
    * trans, bool trans_in, float beta)
    */
-  Tensor &dot(Tensor const &input, Tensor &output, bool trans, bool trans_in,
-              float beta) const override;
+  NNTR_EXPORT Tensor &dot(Tensor const &input, Tensor &output, bool trans,
+                       bool trans_in, float beta) const override;
 
   /**
    * @copydoc Tensor::dropout_mask(float dropout)
    */
-  void dropout_mask(float dropout) override;
+  NNTR_EXPORT void dropout_mask(float dropout) override;
 
   /**
    * @copydoc Tensor::filter_mask(const Tensor &mask_len, bool reverse)
    */
-  void filter_mask(const Tensor &mask_len, bool reverse) override;
+  NNTR_EXPORT void filter_mask(const Tensor &mask_len, bool reverse) override;
 
   /**
    * @copydoc Tensor::zoneout_mask(Tensor &opposite, float zoneout)
    */
-  void zoneout_mask(Tensor &opposite, float zoneout) override;
+  NNTR_EXPORT void zoneout_mask(Tensor &opposite, float zoneout) override;
 
   /**
    * @copydoc Tensor::split(std::vector<size_t> sizes, int axis)
    */
-  std::vector<Tensor> split(std::vector<size_t> sizes, int axis) override;
+  NNTR_EXPORT std::vector<Tensor> split(std::vector<size_t> sizes,
+                                     int axis) override;
 
   /**
    * @copydoc Tensor::concat()
    */
-  Tensor concat(const std::vector<Tensor> &tensors, int axis,
-                Tensor &output) override;
+  NNTR_EXPORT Tensor concat(const std::vector<Tensor> &tensors, int axis,
+                         Tensor &output) override;
 
   /**
    * @copydoc Tensor::copy(const Tensor &from)
    */
-  void copy(const Tensor &from) override;
+  NNTR_EXPORT void copy(const Tensor &from) override;
 
   /**
    * @copydoc Tensor::copyData(const Tensor &from)
    */
-  void copyData(const Tensor &from) override;
+  NNTR_EXPORT void copyData(const Tensor &from) override;
 
   /**
    * @brief      Copy the Tensor
    * @param[in]  input Tensor to be copied
    * @param[out] output output Tensor
    */
-  void copy_with_stride(const Tensor &input, Tensor &output) override;
+  NNTR_EXPORT void copy_with_stride(const Tensor &input, Tensor &output) override;
 
   /**
    * @copydoc Tensor::argmax()
    */
-  std::vector<unsigned int> argmax() const override;
+  NNTR_EXPORT std::vector<unsigned int> argmax() const override;
 
   /**
    * @copydoc Tensor::argmin()
    */
-  std::vector<unsigned int> argmin() const override;
+  NNTR_EXPORT std::vector<unsigned int> argmin() const override;
 
   /**
    * @copydoc TensorBase::top_k()
    */
-  void topK(unsigned int k, void *output_data, uint32_t *indices) override;
+  NNTR_EXPORT void topK(unsigned int k, void *output_data,
+                     uint32_t *indices) override;
 
   /**
    * @copydoc Tensor::max_abs()
    */
-  float max_abs() const override;
+  NNTR_EXPORT float max_abs() const override;
   /**
    * @copydoc Tensor::maxValue()
    */
-  float maxValue() const override;
+  NNTR_EXPORT float maxValue() const override;
 
   /**
    * @copydoc Tensor::minValue()
    */
-  float minValue() const override;
+  NNTR_EXPORT float minValue() const override;
 
   /**
    * @copydoc Tensor::transpose(const std::string &direction, Tensor &out)
    */
-  Tensor &transpose(const std::string &direction,
-                    Tensor &output) const override;
+  NNTR_EXPORT Tensor &transpose(const std::string &direction,
+                             Tensor &output) const override;
 
   /**
    * @copydoc Tensor::print(std::ostream &out)
    */
-  void print(std::ostream &out) const override;
+  NNTR_EXPORT void print(std::ostream &out) const override;
 
 private:
   /**
@@ -487,7 +494,7 @@ private:
    *
    * @param buf buffer to copy from
    */
-  void copy(const void *buf);
+  NNTR_EXPORT void copy(const void *buf);
 
   /**
    * @brief Applies the given operator to the tensor with the passed argument
@@ -500,7 +507,7 @@ private:
    * @retval #ML_ERROR_NONE Successful
    * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
    */
-  void
+  NNTR_EXPORT void
   apply_broadcast_util(Tensor const &m,
                        std::function<void(const BroadcastInfo &e, const float *,
                                           const float *, float *)>
@@ -517,36 +524,37 @@ private:
    * @retval #ML_ERROR_NONE Successful
    * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
    */
-  void apply_broadcast(Tensor const &m,
-                       std::function<void(const BroadcastInfo &e, const float *,
-                                          const float *, float *)>
-                         v_func,
-                       Tensor &output) const;
+  NNTR_EXPORT void
+  apply_broadcast(Tensor const &m,
+                  std::function<void(const BroadcastInfo &e, const float *,
+                                     const float *, float *)>
+                    v_func,
+                  Tensor &output) const;
 
   /**
    * @brief  Get the Data Type String object
    * @return std::string of tensor data type (FP32)
    */
-  std::string getStringDataType() const override { return "FP32"; }
+  NNTR_EXPORT std::string getStringDataType() const override { return "FP32"; }
 
   /**
    * @copydoc Tensor::isValid()
    */
-  bool isValid() const override;
+  NNTR_EXPORT bool isValid() const override;
 
   /**
    * @brief Float.dot(Float)
    * @return Tensor& reference to the output tensor
    */
-  Tensor &dotFloat(Tensor const &input, Tensor &output, bool trans,
-                   bool trans_in, float beta) const;
+  NNTR_EXPORT Tensor &dotFloat(Tensor const &input, Tensor &output, bool trans,
+                            bool trans_in, float beta) const;
 
   /**
    * @brief Float.dot(Q4K/Q6K)
    * @return Tensor& reference to the output tensor
    */
-  Tensor &dotQnK(Tensor const &input, Tensor &output, bool trans, bool trans_in,
-                 float beta, Tdatatype dtype) const;
+  NNTR_EXPORT Tensor &dotQnK(Tensor const &input, Tensor &output, bool trans,
+                          bool trans_in, float beta, Tdatatype dtype) const;
 };
 
 } // namespace nntrainer

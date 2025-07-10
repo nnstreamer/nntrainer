@@ -31,80 +31,83 @@ public:
   /**
    * @brief     Constructor of MultiHeadAttention Layer
    */
-  MultiHeadAttentionLayer();
+  NNTR_EXPORT MultiHeadAttentionLayer();
 
   /**
    * @brief     Destructor of MultiHeadAttention Layer
    */
-  ~MultiHeadAttentionLayer();
+  NNTR_EXPORT ~MultiHeadAttentionLayer();
 
   /**
    *  @brief  Move constructor of MultiHeadAttentionLayer.
    *  @param[in] MultiHeadAttentionLayer &&
    */
+  NNTR_EXPORT
   MultiHeadAttentionLayer(MultiHeadAttentionLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs MultiHeadAttentionLayer to be moved.
    */
-  MultiHeadAttentionLayer &operator=(MultiHeadAttentionLayer &&rhs) = default;
+  NNTR_EXPORT MultiHeadAttentionLayer &
+  operator=(MultiHeadAttentionLayer &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) override;
+  NNTR_EXPORT void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  NNTR_EXPORT void forwarding(RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::incremental_forwarding(RunLayerContext &context, unsigned
    * int from, unsigned int to, bool training)
    */
-  void incremental_forwarding(RunLayerContext &context, unsigned int from,
-                              unsigned int to, bool training) override;
+  NNTR_EXPORT void incremental_forwarding(RunLayerContext &context,
+                                       unsigned int from, unsigned int to,
+                                       bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  NNTR_EXPORT void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::calcGradient(RunLayerContext &context)
    */
-  void calcGradient(RunLayerContext &context) override;
+  NNTR_EXPORT void calcGradient(RunLayerContext &context) override;
 
   /**
    * @copydoc bool supportBackwarding() const
    */
-  bool supportBackwarding() const override { return true; };
+  NNTR_EXPORT bool supportBackwarding() const override { return true; };
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override;
+  NNTR_EXPORT void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_EXPORT void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override {
+  NNTR_EXPORT const std::string getType() const override {
     return MultiHeadAttentionLayer::type;
   };
 
   /**
    * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
    */
-  void setBatch(RunLayerContext &context, unsigned int batch) override;
+  NNTR_EXPORT void setBatch(RunLayerContext &context, unsigned int batch) override;
 
   static constexpr const char *type = "multi_head_attention";
 
@@ -127,7 +130,7 @@ private:
    * @brief calculate common derivative
    * @param context Context of the layer
    */
-  void calcCommonDerivative(RunLayerContext &context);
+  NNTR_EXPORT void calcCommonDerivative(RunLayerContext &context);
 };
 
 } // namespace nntrainer

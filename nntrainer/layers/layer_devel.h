@@ -166,13 +166,13 @@ public:
   /**
    * @brief     Destructor of Layer Class
    */
-  virtual ~Layer() = default;
+  NNTR_EXPORT virtual ~Layer() = default;
 
   /**
    * @brief Get the layer type
    * @return const std::string type representation
    */
-  virtual const std::string getType() const = 0;
+  NNTR_EXPORT virtual const std::string getType() const = 0;
 
   /**
    * @brief     Finalize creating the layer
@@ -188,12 +188,12 @@ public:
    * step. Any tensor memory required must be requested to the context which
    * will be made available during execution of the layer with the context.
    */
-  virtual void finalize(InitLayerContext &context) = 0;
+  NNTR_EXPORT virtual void finalize(InitLayerContext &context) = 0;
 
   /**
    * @brief    Initialize the layer
    */
-  virtual void initialize(RunLayerContext &context){};
+  NNTR_EXPORT virtual void initialize(RunLayerContext &context){};
 
   /**
    * @brief     Forward Propagation of a layer
@@ -205,7 +205,7 @@ public:
    * outputs, and tensors (if any) for the layer. Input and output dimensions
    * can be access from the inputs/outputs tensors themselves.
    */
-  virtual void forwarding(RunLayerContext &context, bool training) = 0;
+  NNTR_EXPORT virtual void forwarding(RunLayerContext &context, bool training) = 0;
 
   /**
    * @brief     Incremental forward Propagation of a layer
@@ -219,9 +219,9 @@ public:
    * outputs, and tensors (if any) for the layer. Input and output dimensions
    * can be access from the inputs/outputs tensors themselves.
    */
-  virtual void incremental_forwarding(RunLayerContext &context,
-                                      unsigned int from, unsigned int to,
-                                      bool training) {
+  NNTR_EXPORT virtual void incremental_forwarding(RunLayerContext &context,
+                                               unsigned int from,
+                                               unsigned int to, bool training) {
     forwarding(context, training);
   };
 
@@ -233,7 +233,7 @@ public:
    * outputs, and tensors (if any) for the layer. Input and output dimensions
    * can be access from the inputs/outputs tensors themselves.
    */
-  virtual void calcDerivative(RunLayerContext &context) = 0;
+  NNTR_EXPORT virtual void calcDerivative(RunLayerContext &context) = 0;
 
   /**
    * @brief     Calculate the derivative of a layer
@@ -242,21 +242,23 @@ public:
    * can be access from the inputs/outputs tensors themselves.
    * @note      Gradients must be set in weight gradient tensors.
    */
-  virtual void calcGradient(RunLayerContext &context) {}
+  NNTR_EXPORT virtual void calcGradient(RunLayerContext &context) {}
 
   /**
    * @brief     set Property of layer
    * @param     values values of property
    * @throw std::invalid_argument invalid parameter.
    */
-  virtual void setProperty(const std::vector<std::string> &values) = 0;
+  NNTR_EXPORT virtual void setProperty(const std::vector<std::string> &values) = 0;
 
   /**
    * @brief     Get property value of layer
    * @param     key Property key to retrieve
    * @return    Property value as string (empty string if not found)
    */
-  virtual std::string getProperty(const std::string &key) { return ""; }
+  NNTR_EXPORT virtual std::string getProperty(const std::string &key) {
+    return "";
+  }
 
   /**
    * @brief this function helps exporting the layer in a predefined format,
@@ -265,8 +267,9 @@ public:
    * @param     exporter exporter that conatins exporting logic
    * @param     method enum value to identify how it should be exported to
    */
-  virtual void exportTo(Exporter &exporter,
-                        const ml::train::ExportMethods &method) const {}
+  NNTR_EXPORT virtual void exportTo(Exporter &exporter,
+                                 const ml::train::ExportMethods &method) const {
+  }
 
   /**
    * @brief Set the batch for the layer
@@ -274,7 +277,8 @@ public:
    * @param     batch Batch value to be set
    * @details Update the run context based on the updated batch size if required
    */
-  virtual void setBatch(RunLayerContext &context, unsigned int batch) {}
+  NNTR_EXPORT virtual void setBatch(RunLayerContext &context, unsigned int batch) {
+  }
 
   /**
    * @brief Update the tensor dimensions of layer by input dimensions
@@ -283,7 +287,7 @@ public:
    * @details Update the dimensions of inputs, outputs, weights and tensors
    * based on the input dimensions
    */
-  virtual void
+  NNTR_EXPORT virtual void
   updateTensorsByInputDimensions(RunLayerContext &context,
                                  std::vector<TensorDim> input_dimensions) {
     throw std::invalid_argument("updateTensorsByInputDimensions() is currently "
@@ -298,14 +302,14 @@ public:
    * @details all layers default to out of place execution
    * @note all layers default to out of place execution
    */
-  virtual bool supportInPlace() const { return is_inplace; }
+  NNTR_EXPORT virtual bool supportInPlace() const { return is_inplace; }
 
   /**
    * @brief Get the inplace direction for the tensor operation layer
    *
    * @return InPlaceDirection
    */
-  virtual InPlaceDirection getInPlaceDirection() {
+  NNTR_EXPORT virtual InPlaceDirection getInPlaceDirection() {
     return InPlaceDirection::NONE;
   };
 
@@ -318,7 +322,7 @@ public:
    * override this function.
    * @return InPlaceType
    */
-  virtual InPlaceType initializeInPlace() {
+  NNTR_EXPORT virtual InPlaceType initializeInPlace() {
     if (!supportInPlace())
       return InPlaceType::NONE;
     else
@@ -332,7 +336,7 @@ public:
    * requireLabel is true
    * @return true if requires a label when training, else false
    */
-  virtual bool requireLabel() const { return false; }
+  NNTR_EXPORT virtual bool requireLabel() const { return false; }
 
   /**
    * @brief  check if this layer supports backwarding
@@ -340,7 +344,7 @@ public:
    * derivatives and return back the gradients to the previous layer.
    * @return true if supports backwarding, else false
    */
-  virtual bool supportBackwarding() const = 0;
+  NNTR_EXPORT virtual bool supportBackwarding() const = 0;
 
   /**
    * @brief     save layer Weight & Bias data from file
@@ -351,9 +355,10 @@ public:
    * @param trainable is there trainable weight
    * @param definedWeightDataTey current data type of the layer
    */
-  virtual void save(std::ofstream &file, RunLayerContext &run_context,
-                    bool opt_var, ml::train::ExecutionMode mode, bool trainable,
-                    TensorDim::DataType definedWeightDataType) const {
+  NNTR_EXPORT virtual void save(std::ofstream &file, RunLayerContext &run_context,
+                             bool opt_var, ml::train::ExecutionMode mode,
+                             bool trainable,
+                             TensorDim::DataType definedWeightDataType) const {
 
     if (opt_var) {
       for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
@@ -388,10 +393,12 @@ public:
    * @param bool fsu flag
    *
    */
-  virtual void read(std::ifstream &file, RunLayerContext &run_context,
-                    bool opt_var, ml::train::ExecutionMode mode, bool trainable,
-                    TensorDim::DataType defineWeightDataType, bool fsu,
-                    size_t start_offset = 0, bool read_from_offset = false) {
+  NNTR_EXPORT virtual void read(std::ifstream &file, RunLayerContext &run_context,
+                             bool opt_var, ml::train::ExecutionMode mode,
+                             bool trainable,
+                             TensorDim::DataType defineWeightDataType, bool fsu,
+                             size_t start_offset = 0,
+                             bool read_from_offset = false) {
     if (fsu) {
       for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
         if (run_context.getWeight(i).getDataType() ==
@@ -451,7 +458,8 @@ using DestroyLayerFunc = void (*)(nntrainer::Layer *);
  */
 template <typename T,
           std::enable_if_t<std::is_base_of<Layer, T>::value, T> * = nullptr>
-std::unique_ptr<Layer> createLayer(const std::vector<std::string> &props = {}) {
+NNTR_EXPORT std::unique_ptr<Layer>
+createLayer(const std::vector<std::string> &props = {}) {
   std::unique_ptr<Layer> ptr = std::make_unique<T>();
   ptr->setProperty(props);
   return ptr;

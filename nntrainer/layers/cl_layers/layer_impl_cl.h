@@ -35,36 +35,30 @@ public:
   /**
    * @brief     Constructor of Layer Class
    */
-  LayerImplCl() : LayerImpl(){};
+  NNTR_EXPORT LayerImplCl() : LayerImpl(){};
 
   /**
    * @brief     Destructor of Layer Class
    */
-  virtual ~LayerImplCl() = default;
+  NNTR_EXPORT virtual ~LayerImplCl() = default;
 
   /**
    *  @brief  Move constructor of LayerImpl Layer.
    *  @param[in] LayerImplCl &&
    */
-  LayerImplCl(LayerImplCl &&rhs) noexcept = default;
+  NNTR_EXPORT LayerImplCl(LayerImplCl &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs LayerImplCl to be moved.
    */
-  LayerImplCl &operator=(LayerImplCl &&rhs) = default;
+  NNTR_EXPORT LayerImplCl &operator=(LayerImplCl &&rhs) = default;
 
   /**
    * @brief     register ClKernels for this layer
    * registerClKernels() is called in global ClContext.
    */
-  static bool registerClKernels();
-
-protected:
-  inline static ClContext *global_cl_context =
-    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  inline static ClBufferManager &clbuffInstance =
-    ClBufferManager::getInstance();
+  NNTR_EXPORT static bool registerClKernels();
 };
 
 } // namespace nntrainer

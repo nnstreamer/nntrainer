@@ -29,46 +29,47 @@ public:
   /**
    * @brief     Constructor of Fully Connected Layer
    */
-  FullyConnectedLayer();
+  NNTR_EXPORT FullyConnectedLayer();
 
   /**
    * @brief     Destructor of Fully Connected Layer
    */
-  ~FullyConnectedLayer() = default;
+  NNTR_EXPORT ~FullyConnectedLayer() = default;
 
   /**
    *  @brief  Move constructor.
    *  @param[in] FullyConnected &&
    */
-  FullyConnectedLayer(FullyConnectedLayer &&rhs) noexcept = default;
+  NNTR_EXPORT FullyConnectedLayer(FullyConnectedLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs FullyConnectedLayer to be moved.
    */
-  FullyConnectedLayer &operator=(FullyConnectedLayer &&rhs) = default;
+  NNTR_EXPORT FullyConnectedLayer &operator=(FullyConnectedLayer &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) override;
+  NNTR_EXPORT void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  NNTR_EXPORT void forwarding(RunLayerContext &context, bool training) override;
 
   /**
 ￼   * @copydoc Layer::incremental_forwarding(RunLayerContext &context, unsigned
 ￼   * int from, unsigned int to, bool training)
 ￼   */
-  void incremental_forwarding(RunLayerContext &context, unsigned int from,
-                              unsigned int to, bool training) override;
+  NNTR_EXPORT void incremental_forwarding(RunLayerContext &context,
+                                       unsigned int from, unsigned int to,
+                                       bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  NNTR_EXPORT void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::calcGradient(RunLayerContext &context)
@@ -76,38 +77,38 @@ public:
    * [note for LoRA] implicit calcDerivative is implicitly applied.
    * The weight is already updated with the LoRA's (W = W + W_lora)
    */
-  void calcGradient(RunLayerContext &context) override;
+  NNTR_EXPORT void calcGradient(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override;
+  NNTR_EXPORT void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override {
+  NNTR_EXPORT const std::string getType() const override {
     return FullyConnectedLayer::type;
   };
 
   /**
    * @copydoc Layer::supportBackwarding()
    */
-  bool supportBackwarding() const override { return true; }
+  NNTR_EXPORT bool supportBackwarding() const override { return true; }
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
    * &value)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_EXPORT void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
    */
-  void setBatch(nntrainer::RunLayerContext &context,
-                unsigned int batch) override;
+  NNTR_EXPORT void setBatch(nntrainer::RunLayerContext &context,
+                         unsigned int batch) override;
 
   static constexpr const char *type = "fully_connected";
 

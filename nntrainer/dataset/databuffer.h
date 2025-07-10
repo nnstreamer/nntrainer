@@ -61,13 +61,13 @@ public:
    * @brief   Create DataBuffer with a producer
    *
    */
-  DataBuffer(std::unique_ptr<DataProducer> &&producer_);
+  NNTR_EXPORT DataBuffer(std::unique_ptr<DataProducer> &&producer_);
 
   /**
    * @brief Destroy the Data Buffer object
    *
    */
-  ~DataBuffer();
+  NNTR_EXPORT ~DataBuffer();
 
   /**
    * @brief prepare iteration a head of time with a dedicated worker. The
@@ -81,7 +81,7 @@ public:
    * release this pointer after calling @a fetch() is done to invalidate
    * subsequent call of @a fetch()
    */
-  std::future<std::shared_ptr<IterationQueue>>
+  NNTR_EXPORT std::future<std::shared_ptr<IterationQueue>>
   startFetchWorker(const std::vector<TensorDim> &input_dims,
                    const std::vector<TensorDim> &label_dims,
                    bool shuffle = true);
@@ -95,7 +95,7 @@ public:
    * @return ScopedView<DataProducer::Iteration> the resource is released to the
    * databuffer when the returned ~ScopedView<Iteration> is called
    */
-  ScopedView<Iteration> fetch();
+  NNTR_EXPORT ScopedView<Iteration> fetch();
 
   /**
    * @brief Get the Generator object and the generator object returns a batch
@@ -107,8 +107,8 @@ public:
    * @param label_dims dimension of label_dims
    * @return DataProducer::Generator which generates an iteration
    */
-  std::tuple<DataProducer::Generator /**< callback */,
-             unsigned int /**< size */>
+  NNTR_EXPORT std::tuple<DataProducer::Generator /**< callback */,
+                      unsigned int /**< size */>
   getGenerator(const std::vector<TensorDim> &input_dims,
                const std::vector<TensorDim> &label_dims);
 
@@ -118,7 +118,7 @@ public:
    * @param[in] type buffer type ( MODE_TRAIN, MODE_VALID, MODE_TEST )
    * @retval void
    */
-  void displayProgress(const int count, float loss);
+  NNTR_EXPORT void displayProgress(const int count, float loss);
 
   /**
    * @brief     set property
@@ -126,14 +126,14 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_EXPORT void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @brief Get the Type of underlying producer
    *
    * @return const std::string type
    */
-  const std::string getType() const;
+  NNTR_EXPORT const std::string getType() const;
 
   /**
    * @brief this function helps exporting the dataset in a predefined format,
@@ -142,8 +142,8 @@ public:
    * @param     exporter exporter that contains exporting logic
    * @param     method enum value to identify how it should be exported to
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const;
+  NNTR_EXPORT void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const;
 
   /**
    * @brief check if given databuffer is exportable, this is needed because some
@@ -152,7 +152,7 @@ public:
    * @param method proposed method
    * @return bool true if serializable
    */
-  bool isSerializable(const ml::train::ExportMethods &method) const;
+  NNTR_EXPORT bool isSerializable(const ml::train::ExportMethods &method) const;
 
 protected:
   std::shared_ptr<DataProducer> producer;

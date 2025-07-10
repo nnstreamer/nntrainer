@@ -18,6 +18,8 @@
 
 #include <compiler_fwd.h>
 
+#include "defines.h"
+
 namespace nntrainer {
 
 /**
@@ -30,13 +32,14 @@ public:
    * @brief Destroy the Graph Realizer object
    *
    */
-  virtual ~GraphRealizer() {}
+  NNTR_EXPORT virtual ~GraphRealizer() {}
 
   /**
    * @brief graph realizer creates a new graph based on the reference
    * @todo consider void GraphRepresentation &
    */
-  virtual GraphRepresentation realize(const GraphRepresentation &reference) = 0;
+  NNTR_EXPORT virtual GraphRepresentation
+  realize(const GraphRepresentation &reference) = 0;
 };
 
 } // namespace nntrainer

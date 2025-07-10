@@ -43,54 +43,57 @@ public:
    * @brief Construct a new Raw File Data Producer object
    *
    */
-  RawFileDataProducer();
+  NNTR_EXPORT RawFileDataProducer();
 
   /**
    * @brief Construct a new RawFileDataProducer object
    *
    */
-  RawFileDataProducer(const std::string &path);
+  NNTR_EXPORT RawFileDataProducer(const std::string &path);
 
   /**
    * @brief Destroy the RawFileDataProducer object
    *
    */
-  ~RawFileDataProducer();
+  NNTR_EXPORT ~RawFileDataProducer();
 
   static constexpr const char *type = "file";
 
   /**
    * @copydoc DataProducer::getType()
    */
-  const std::string getType() const override;
+  NNTR_EXPORT const std::string getType() const override;
 
   /**
    * @copydoc DataProducer::setProeprty(const std::vector<std::string>
    * &properties)
    */
-  void setProperty(const std::vector<std::string> &properties) override;
+  NNTR_EXPORT void
+  setProperty(const std::vector<std::string> &properties) override;
 
   /**
    * @copydoc DataProducer::finalize(const std::vector<TensorDim>, const
    * std::vector<TensorDim>)
    */
-  DataProducer::Generator finalize(const std::vector<TensorDim> &input_dims,
-                                   const std::vector<TensorDim> &label_dims,
-                                   void *user_data = nullptr) override;
+  NNTR_EXPORT DataProducer::Generator
+  finalize(const std::vector<TensorDim> &input_dims,
+           const std::vector<TensorDim> &label_dims,
+           void *user_data = nullptr) override;
 
   /**
    * @copydoc DataProducer::size(const std::vector<TensorDim>, const
    * std::vector<TensorDim>)
    */
-  unsigned int size(const std::vector<TensorDim> &input_dims,
-                    const std::vector<TensorDim> &label_dims) const override;
+  NNTR_EXPORT unsigned int
+  size(const std::vector<TensorDim> &input_dims,
+       const std::vector<TensorDim> &label_dims) const override;
 
   /**
    * @copydoc DataProducer::exportTo(Exporter &exporter,
    * ml::train::ExportMethods method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override;
+  NNTR_EXPORT void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const override;
 
 private:
   std::ifstream file;

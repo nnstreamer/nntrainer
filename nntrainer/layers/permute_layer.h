@@ -39,7 +39,7 @@ public:
    * @return true if valid
    * @return false if not valid
    */
-  bool isValid(const unsigned int &) const override;
+  NNTR_EXPORT bool isValid(const unsigned int &) const override;
 };
 } // namespace props
 
@@ -53,61 +53,63 @@ public:
    * @brief     Constructor of Permute Layer
    * @param     direction direction to permute
    */
-  PermuteLayer() : Layer(), direction(), reverse_direction() {}
+  NNTR_EXPORT PermuteLayer() : Layer(), direction(), reverse_direction() {}
 
   /**
    * @brief     Destructor of Permute Layer
    */
-  ~PermuteLayer() = default;
+  NNTR_EXPORT ~PermuteLayer() = default;
 
   /**
    *  @brief  Move constructor.
    *  @param[in] PermuteLayer &&
    */
-  PermuteLayer(PermuteLayer &&rhs) noexcept = default;
+  NNTR_EXPORT PermuteLayer(PermuteLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @param[in] rhs PermuteLayer to be moved.
    */
-  PermuteLayer &operator=(PermuteLayer &&rhs) = default;
+  NNTR_EXPORT PermuteLayer &operator=(PermuteLayer &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) override;
+  NNTR_EXPORT void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  NNTR_EXPORT void forwarding(RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  NNTR_EXPORT void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override;
+  NNTR_EXPORT void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return PermuteLayer::type; };
+  NNTR_EXPORT const std::string getType() const override {
+    return PermuteLayer::type;
+  };
 
   /**
    * @copydoc Layer::supportBackwarding()
    */
-  bool supportBackwarding() const override { return true; }
+  NNTR_EXPORT bool supportBackwarding() const override { return true; }
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_EXPORT void setProperty(const std::vector<std::string> &values) override;
 
   static constexpr const char *type = "permute";
 

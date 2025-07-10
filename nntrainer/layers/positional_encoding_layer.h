@@ -33,61 +33,63 @@ public:
   /**
    * @brief     Constructor of PositionalEncodingLayer
    */
-  PositionalEncodingLayer();
+  NNTR_EXPORT PositionalEncodingLayer();
 
   /**
    * @brief     Destructor of PositionalEncodingLayer
    */
-  ~PositionalEncodingLayer();
+  NNTR_EXPORT ~PositionalEncodingLayer();
 
   /**
    *  @brief  Move constructor of PositionalEncodingLayer.
    *  @param[in] PositionalEncodingLayer &&
    */
+  NNTR_EXPORT
   PositionalEncodingLayer(PositionalEncodingLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs PositionalEncodingLayer to be moved.
    */
-  PositionalEncodingLayer &operator=(PositionalEncodingLayer &&rhs) = default;
+  NNTR_EXPORT PositionalEncodingLayer &
+  operator=(PositionalEncodingLayer &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) override;
+  NNTR_EXPORT void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  NNTR_EXPORT void forwarding(RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  NNTR_EXPORT void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc bool supportBackwarding() const
    */
-  bool supportBackwarding() const override { return true; };
+  NNTR_EXPORT bool supportBackwarding() const override { return true; };
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override;
+  NNTR_EXPORT void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_EXPORT void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override {
+  NNTR_EXPORT const std::string getType() const override {
     return PositionalEncodingLayer::type;
   };
 
@@ -103,7 +105,7 @@ private:
    * @brief calculate positional encoding
    * @param context Context of the layer
    */
-  void calculatePositionalEncoding(RunLayerContext &context);
+  NNTR_EXPORT void calculatePositionalEncoding(RunLayerContext &context);
 };
 
 } // namespace nntrainer

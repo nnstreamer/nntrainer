@@ -35,63 +35,66 @@ public:
   /**
    * @brief     Constructor of RMS Norm Layer
    */
-  RMSNormLayerCl();
+  NNTR_EXPORT RMSNormLayerCl();
 
   /**
    * @brief     Destructor of RMS Norm Layer
    */
-  ~RMSNormLayerCl() = default;
+  NNTR_EXPORT ~RMSNormLayerCl() = default;
 
   /**
    *  @brief  Move constructor.
    *  @param[in] RMSNorm &&
    */
-  RMSNormLayerCl(RMSNormLayerCl &&rhs) noexcept = default;
+  NNTR_EXPORT RMSNormLayerCl(RMSNormLayerCl &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs RMS Norm to be moved.
    */
-  RMSNormLayerCl &operator=(RMSNormLayerCl &&rhs) = default;
+  NNTR_EXPORT RMSNormLayerCl &operator=(RMSNormLayerCl &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) override;
+  NNTR_EXPORT void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  NNTR_EXPORT void forwarding(RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::incremental_forwarding(RunLayerContext &context, unsigned
    * int from, unsigned int to, bool training)
    */
-  void incremental_forwarding(RunLayerContext &context, unsigned int from,
-                              unsigned int to, bool training) override;
+  NNTR_EXPORT void incremental_forwarding(RunLayerContext &context,
+                                       unsigned int from, unsigned int to,
+                                       bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  NNTR_EXPORT void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::calcGradient(RunLayerContext &context)
    */
-  void calcGradient(RunLayerContext &context) override;
+  NNTR_EXPORT void calcGradient(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override;
+  NNTR_EXPORT void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return RMSNormLayerCl::type; };
+  NNTR_EXPORT const std::string getType() const override {
+    return RMSNormLayerCl::type;
+  };
 
   /**
    * @brief Process data and dimensions for rms norm operation
@@ -101,8 +104,8 @@ public:
    * @param[in] epsilon float
    */
 
-  void rmsnormProcess(Tensor const &input, Tensor &result, Tensor const &gamma,
-                      const float epsilon);
+  NNTR_EXPORT void rmsnormProcess(Tensor const &input, Tensor &result,
+                               Tensor const &gamma, const float epsilon);
 #ifdef ENABLE_FP16
   /**
    * @brief Process data and dimensions for FP16 rms norm operation
@@ -112,23 +115,23 @@ public:
    * @param[in] epsilon float
    */
 
-  void rmsnormProcess_fp16(Tensor const &input, Tensor &result,
-                           Tensor const &gamma, const float epsilon);
+  NNTR_EXPORT void rmsnormProcess_fp16(Tensor const &input, Tensor &result,
+                                    Tensor const &gamma, const float epsilon);
 #endif
   /**
    * @copydoc Layer::supportBackwarding()
    */
-  bool supportBackwarding() const override { return false; }
+  NNTR_EXPORT bool supportBackwarding() const override { return false; }
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_EXPORT void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @brief registerClKernels
    */
-  static bool registerClKernels();
+  NNTR_EXPORT static bool registerClKernels(ClContext *global_cl_context);
 
   static constexpr const char *type = "rmsnorm";
 
@@ -138,7 +141,8 @@ private:
   std::tuple<props::GammaInitializer, props::Epsilon>
     rmsnorm_props; /**< rmsnorm layer properties */
 
-  static std::vector<ClContext::SharedPtrClKernel> &getLayerKernelPtrs();
+  NNTR_EXPORT static std::vector<ClContext::SharedPtrClKernel> &
+  getLayerKernelPtrs();
 
   enum Kernels {
     RMSNORM_CL,

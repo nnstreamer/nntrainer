@@ -31,12 +31,12 @@ public:
   /**
    * @brief     Constructor of LSTMCore
    */
-  LSTMCore();
+  NNTR_EXPORT LSTMCore();
 
   /**
    * @brief     Destructor of LSTMCore
    */
-  ~LSTMCore() = default;
+  NNTR_EXPORT ~LSTMCore() = default;
 
   /**
    * @brief lstm cell forwarding implementation
@@ -60,14 +60,16 @@ public:
    * @param bias_hh bias for hidden
    * @param ifgo input gate, forget gate, memory cell, output gate
    */
-  void forwardLSTM(const unsigned int batch_size, const unsigned int unit,
-                   const bool disable_bias, const bool integrate_bias,
-                   ActiFunc &acti_func, ActiFunc &recurrent_acti_func,
-                   const Tensor &input, const Tensor &prev_hidden_state,
-                   const Tensor &prev_cell_state, Tensor &hidden_state,
-                   Tensor &cell_state, const Tensor &weight_ih,
-                   const Tensor &weight_hh, const Tensor &bias_h,
-                   const Tensor &bias_ih, const Tensor &bias_hh, Tensor &ifgo);
+  NNTR_EXPORT void forwardLSTM(const unsigned int batch_size,
+                            const unsigned int unit, const bool disable_bias,
+                            const bool integrate_bias, ActiFunc &acti_func,
+                            ActiFunc &recurrent_acti_func, const Tensor &input,
+                            const Tensor &prev_hidden_state,
+                            const Tensor &prev_cell_state, Tensor &hidden_state,
+                            Tensor &cell_state, const Tensor &weight_ih,
+                            const Tensor &weight_hh, const Tensor &bias_h,
+                            const Tensor &bias_ih, const Tensor &bias_hh,
+                            Tensor &ifgo);
 
   /**
    * @brief lstm cell calculate derivative implementation
@@ -78,8 +80,10 @@ public:
    * gate
    * @param alpha value to be scale outgoing_derivative
    */
-  void calcDerivativeLSTM(Tensor &outgoing_derivative, const Tensor &weight_ih,
-                          const Tensor &d_ifgo, const float alpha = 0.0f);
+  NNTR_EXPORT void calcDerivativeLSTM(Tensor &outgoing_derivative,
+                                   const Tensor &weight_ih,
+                                   const Tensor &d_ifgo,
+                                   const float alpha = 0.0f);
 
   /**
    * @brief lstm cell calculate gradient implementation
@@ -109,31 +113,30 @@ public:
    * @param d_ifgo gradient for input gate, forget gate, memory cell, output
    * gate
    */
-  void calcGradientLSTM(const unsigned int batch_size, const unsigned int unit,
-                        const bool disable_bias, const bool integrate_bias,
-                        ActiFunc &acti_func, ActiFunc &recurrent_acti_func,
-                        const Tensor &input, const Tensor &prev_hidden_state,
-                        Tensor &d_prev_hidden_state,
-                        const Tensor &prev_cell_state,
-                        Tensor &d_prev_cell_state, const Tensor &d_hidden_state,
-                        const Tensor &cell_state, const Tensor &d_cell_state,
-                        Tensor &d_weight_ih, const Tensor &weight_hh,
-                        Tensor &d_weight_hh, Tensor &d_bias_h,
-                        Tensor &d_bias_ih, Tensor &d_bias_hh,
-                        const Tensor &ifgo, Tensor &d_ifgo);
+  NNTR_EXPORT void
+  calcGradientLSTM(const unsigned int batch_size, const unsigned int unit,
+                   const bool disable_bias, const bool integrate_bias,
+                   ActiFunc &acti_func, ActiFunc &recurrent_acti_func,
+                   const Tensor &input, const Tensor &prev_hidden_state,
+                   Tensor &d_prev_hidden_state, const Tensor &prev_cell_state,
+                   Tensor &d_prev_cell_state, const Tensor &d_hidden_state,
+                   const Tensor &cell_state, const Tensor &d_cell_state,
+                   Tensor &d_weight_ih, const Tensor &weight_hh,
+                   Tensor &d_weight_hh, Tensor &d_bias_h, Tensor &d_bias_ih,
+                   Tensor &d_bias_hh, const Tensor &ifgo, Tensor &d_ifgo);
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
    * &value)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_EXPORT void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override;
+  NNTR_EXPORT void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const override;
 
 protected:
   /**

@@ -70,11 +70,6 @@ enum {
 
 namespace nntrainer {
 
-#ifdef ENABLE_OPENCL
-static ClContext *cl_context_ =
-  static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-#endif
-
 /**
  * @class   MemoryPool
  * @brief   Memory Pool provides a common pool for all the tensor memory
@@ -85,7 +80,7 @@ public:
    * @brief MemoryPool default constructor
    *
    */
-  explicit MemoryPool() :
+  NNTR_EXPORT explicit MemoryPool() :
     mem_pool(nullptr), pool_size(0), min_pool_size(0), n_wgrad(0) {
 
 #if defined(__ANDROID__)
@@ -114,7 +109,7 @@ public:
    * @brief MemoryPool destructor
    *
    */
-  virtual ~MemoryPool() { deallocate(); }
+  NNTR_EXPORT virtual ~MemoryPool() { deallocate(); }
 
   /**
    * @brief Request Memory from memory pool
@@ -130,7 +125,7 @@ public:
    * @note start_time is inclusive, but end_time is exclusive
    * @note The value of the return token starts from 1.
    */
-  virtual unsigned int requestMemory(
+  NNTR_EXPORT virtual unsigned int requestMemory(
     size_t bytes, unsigned int start_time, unsigned int end_time,
     std::vector<unsigned int> exec_order = std::vector<unsigned int>(),
     TensorLifespan lifespan = TensorLifespan::MAX_LIFESPAN,
@@ -151,19 +146,19 @@ public:
    * any allocation but rather just plans the layout and stores the layout.
    * Subsequent call to this function will overwrite any existing layout.
    */
-  double planLayout(const MemoryPlanner &planner);
+  NNTR_EXPORT double planLayout(const MemoryPlanner &planner);
 
   /**
    * @brief Do the allocation of memory
    *
    */
-  virtual void allocate();
+  NNTR_EXPORT virtual void allocate();
 
   /**
    * @brief Do the allocation of memory for FSU
    *
    */
-  virtual void allocateFSU();
+  NNTR_EXPORT virtual void allocateFSU();
 
   /**
    * @brief Get the allocated memory
@@ -174,68 +169,68 @@ public:
    *
    * @details This function will throw if called before allocation.
    */
-  virtual std::shared_ptr<MemoryData> getMemory(unsigned int idx);
+  NNTR_EXPORT virtual std::shared_ptr<MemoryData> getMemory(unsigned int idx);
 
   /**
    * @brief Free all the allocated memory
    *
    */
-  virtual void deallocate();
+  NNTR_EXPORT virtual void deallocate();
 
   /**
    * @brief Get the maximum real memory requirement
    *
    * @return The real memory requirement with this strategy in bytes
    */
-  size_t size();
+  NNTR_EXPORT size_t size();
 
   /**
    * @brief Get the minimum theoretical memory requirement
    *
    * @return The theoretical memory requirement with this strategy in bytes
    */
-  size_t minMemoryRequirement();
+  NNTR_EXPORT size_t minMemoryRequirement();
 
   /**
    * @brief Clear the memory pool
    *
    */
-  virtual void clear();
+  NNTR_EXPORT virtual void clear();
 
   /**
    * @brief Is the memory pool allocated
    *
    * @return true if the memory is allocated, else false
    */
-  virtual bool isAllocated() const;
+  NNTR_EXPORT virtual bool isAllocated() const;
 
   /**
    *  @brief Get memory ptrs vector from memory pool class.
    *
    * @return memory ptrs vector
    */
-  std::vector<void *> getMemoryPtrs() { return memory_ptrs; }
+  NNTR_EXPORT std::vector<void *> getMemoryPtrs() { return memory_ptrs; }
 
   /**
    * @brief Get the memory pool address.
    *
    * @return MemoryPool address.
    */
-  void *getMemoryPoolAddress() { return mem_pool; }
+  NNTR_EXPORT void *getMemoryPoolAddress() { return mem_pool; }
 
   /**
    * @brief set FSU weight path
    *
    * @param path FSU weight file path
    */
-  virtual void setFsuWeightPath(std::string path){};
+  NNTR_EXPORT virtual void setFsuWeightPath(std::string path){};
 
   /**
    * @brief set weight file offset for FSU loading
    *
    * @param offsets weight file offset
    */
-  virtual void
+  NNTR_EXPORT virtual void
   setWeightOffset(std::vector<std::pair<size_t, size_t>> offsets){};
 
 protected:

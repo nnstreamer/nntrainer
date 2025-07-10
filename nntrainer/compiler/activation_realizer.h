@@ -30,13 +30,14 @@ public:
    * @brief Destroy the Graph Realizer object
    *
    */
-  ~ActivationRealizer();
+  NNTR_EXPORT ~ActivationRealizer();
 
   /**
    * @brief graph realizer creates a new graph based on the reference
    *
    */
-  GraphRepresentation realize(const GraphRepresentation &reference) override;
+  NNTR_EXPORT GraphRepresentation
+  realize(const GraphRepresentation &reference) override;
 };
 
 } // namespace nntrainer

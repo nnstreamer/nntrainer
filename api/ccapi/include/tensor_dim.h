@@ -30,6 +30,12 @@
 #endif
 #endif
 
+#if defined(_WIN32)
+#define NNTR_API __declspec(dllexport)
+#else
+#define NNTR_API
+#endif
+
 namespace ml {
 namespace train {
 
@@ -114,7 +120,7 @@ public:
    *
    * @return unsigned int fixed value of MAXDIM
    */
-  static unsigned int getNumDim();
+  NNTR_API static unsigned int getNumDim();
 
   /**
    * @brief     Creator of TensorDim with Format & DataType
@@ -125,9 +131,9 @@ public:
    * @param eff_dim_flag_ effective dimension flag (1 means it's effective)
    * @param dyn_dim_flag_ dynamic dimension flag (1 means it's unspecified)
    */
-  TensorDim(TensorDim::Format fm, TensorDim::DataType d_type,
-            const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
-            const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000);
+  NNTR_API TensorDim(TensorDim::Format fm, TensorDim::DataType d_type,
+                     const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
+                     const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000);
 
   /**
    * @brief Construct a new Tensor Dim object
@@ -136,9 +142,10 @@ public:
    * @param eff_dim_flag_ effective dimension flag (1 means it's effective)
    * @param dyn_dim_flag_ dynamic dimension flag (1 means it's unspecified)
    */
-  explicit TensorDim(TensorType t_type_ = TensorType(),
-                     const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
-                     const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000);
+  NNTR_API explicit TensorDim(
+    TensorType t_type_ = TensorType(),
+    const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
+    const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000);
 
   /**
    * @brief Construct a new Tensor Dim object
@@ -149,8 +156,8 @@ public:
    * formats of {w}, {h, w}, {c, h, w}, {b, c, h, w} for the NCHW & NHWC are
    * accepted
    */
-  TensorDim(std::initializer_list<size_t> dims,
-            TensorType t_type_ = TensorType());
+  NNTR_API TensorDim(std::initializer_list<size_t> dims,
+                     TensorType t_type_ = TensorType());
 
   /**
    * @brief Construct a new Tensor Dim object without batch dimension
@@ -158,8 +165,8 @@ public:
    * @param shapes shapes without batch dimension
    * @param t_type_ tensor type
    */
-  TensorDim(const std::array<size_t, 3> &shapes,
-            TensorType t_type_ = TensorType());
+  NNTR_API TensorDim(const std::array<size_t, 3> &shapes,
+                     TensorType t_type_ = TensorType());
 
   /**
    * @brief Construct a new Tensor Dim object
@@ -172,10 +179,10 @@ public:
    * @param eff_dim_flag_ dimension bit flag to calculate the dynamic
    * dimension, rightmost is width
    */
-  TensorDim(size_t b, size_t c, size_t h, size_t w,
-            TensorType t_type_ = TensorType(),
-            const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
-            const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000);
+  NNTR_API TensorDim(size_t b, size_t c, size_t h, size_t w,
+                     TensorType t_type_ = TensorType(),
+                     const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
+                     const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000);
 
   /**
    * @brief Construct a new Tensor Dim object
@@ -187,9 +194,10 @@ public:
    * @param eff_dim_flag_ dimension bit flag to calculate the dynamic
    * dimension, rightmost is width
    */
-  TensorDim(size_t c, size_t h, size_t w, TensorType t_type_ = TensorType(),
-            const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
-            const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000);
+  NNTR_API TensorDim(size_t c, size_t h, size_t w,
+                     TensorType t_type_ = TensorType(),
+                     const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
+                     const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000);
 
   /**
    * @brief Construct a new Tensor Dim object
@@ -200,9 +208,9 @@ public:
    * @param eff_dim_flag_ dimension bit flag to calculate the dynamic
    * dimension, rightmost is width
    */
-  TensorDim(size_t h, size_t w, TensorType t_type_ = TensorType(),
-            const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
-            const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000);
+  NNTR_API TensorDim(size_t h, size_t w, TensorType t_type_ = TensorType(),
+                     const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
+                     const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000);
 
   /**
    * @brief Construct a new Tensor Dim object
@@ -212,9 +220,9 @@ public:
    * @param eff_dim_flag_ dimension bit flag to calculate the dynamic
    * dimension, rightmost is width
    */
-  TensorDim(size_t w, TensorType t_type_ = TensorType(),
-            const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
-            const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000);
+  NNTR_API TensorDim(size_t w, TensorType t_type_ = TensorType(),
+                     const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
+                     const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000);
 
   /**
    * @brief Construct a new Tensor Dim object
@@ -229,17 +237,17 @@ public:
    * @param eff_dim_flag_ dimension bit flag to calculate the dynamic
    * dimension, rightmost is width
    */
-  TensorDim(size_t d0, size_t d1, size_t d2, size_t d3, TensorDim::Format fm,
-            TensorDim::DataType d_type,
-            const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
-            const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000);
+  NNTR_API TensorDim(size_t d0, size_t d1, size_t d2, size_t d3,
+                     TensorDim::Format fm, TensorDim::DataType d_type,
+                     const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
+                     const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000);
 
   /**
    * @brief Copy construct a new tensor dim
    *
    * @param rhs tensor dim to copy from
    */
-  TensorDim(const TensorDim &rhs) = default;
+  NNTR_API TensorDim(const TensorDim &rhs) = default;
 
   /**
    * @brief Construct a new Tensor Dim object
@@ -247,7 +255,8 @@ public:
    * @param shape shape of format
    * @param t_type_ Tensor Type
    */
-  TensorDim(const std::string &shape, TensorType t_type_ = TensorType());
+  NNTR_API TensorDim(const std::string &shape,
+                     TensorType t_type_ = TensorType());
 
   /**
    * @brief Construct a new Tensor Dim object
@@ -258,6 +267,7 @@ public:
    * UINT32 | FP16 | FP32
    * @param order data storage order ROW_MAJOR | COL_MAJOR
    */
+  NNTR_API
   TensorDim(const std::string &shape, TensorDim::Format fm,
             TensorDim::DataType d_type = TensorDim::DataType::FP32,
             TensorDim::StorageOrder order = TensorDim::StorageOrder::ROW_MAJOR);
@@ -266,24 +276,24 @@ public:
    * @brief Destroy the Tensor Dim object
    *
    */
-  ~TensorDim() = default;
+  NNTR_API ~TensorDim() = default;
 
   /**
    *  @brief  Move constructor of Conv 2D Layer.
    *  @param[in] Conv2dLayer &&
    */
-  TensorDim(TensorDim &&rhs) noexcept = default;
+  NNTR_API TensorDim(TensorDim &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs Optimizer to be moved.
    */
-  TensorDim &operator=(TensorDim &&rhs) noexcept;
+  NNTR_API TensorDim &operator=(TensorDim &&rhs) noexcept;
 
   /**
    * @brief  get data type size
    */
-  unsigned int getDataTypeSize() const;
+  NNTR_API unsigned int getDataTypeSize() const;
 
   /**
    * @brief Set the Dim Flag to retrieve effective dimension
@@ -292,7 +302,7 @@ public:
    *
    * @param dim_flag_ dimension bit to calculate, rightmost is width
    */
-  void setEffDimFlag(const std::bitset<MAXDIM> &dim_flag_);
+  NNTR_API void setEffDimFlag(const std::bitset<MAXDIM> &dim_flag_);
 
   /**
    * @brief Set the dynamic Dim Flag to retrieve dynamic dimension (that can
@@ -304,7 +314,7 @@ public:
    *
    * @param dim_flag_ dimension bit to calculate, rightmost is width
    */
-  void setDynDimFlag(const std::bitset<MAXDIM> &dim_flag_);
+  NNTR_API void setDynDimFlag(const std::bitset<MAXDIM> &dim_flag_);
 
   /**
    * @brief Get the Dim Flag to retrieve effective dimension
@@ -313,7 +323,7 @@ public:
    *
    * @return dim_flag_ dimension bit to calculate, rightmost is width
    */
-  const std::bitset<MAXDIM> &getEffDimFlag() const;
+  NNTR_API const std::bitset<MAXDIM> &getEffDimFlag() const;
 
   /**
    * @brief Get the dynamic Dim Flag to retrieve dynamic dimension (that can
@@ -325,91 +335,91 @@ public:
    *
    * @return dim_flag_ dimension bit to calculate, rightmost is width
    */
-  const std::bitset<MAXDIM> &getDynDimFlag() const;
+  NNTR_API const std::bitset<MAXDIM> &getDynDimFlag() const;
 
   /**
    * @brief  swap variable of Conv2D Layer
    * @parma[out] lhs Optimizer
    * @parma[in] rhs Optimizer
    */
-  friend void swap(TensorDim &lhs, TensorDim &rhs) noexcept;
+  NNTR_API friend void swap(TensorDim &lhs, TensorDim &rhs) noexcept;
 
   /**
    * @brief get batch (axis 0)
    *
    * @return unsigned int batch size
    */
-  size_t batch() const;
+  NNTR_API size_t batch() const;
 
   /**
    * @brief get channel (axis 1)
    *
    * @return size_t channel size
    */
-  size_t channel() const;
+  NNTR_API size_t channel() const;
 
   /**
    * @brief get height (axis 2)
    *
    * @return size_t height size
    */
-  size_t height() const;
+  NNTR_API size_t height() const;
 
   /**
    * @brief get width (axis 3)
    *
    * @return size_t width size
    */
-  size_t width() const;
+  NNTR_API size_t width() const;
 
   /**
    * @brief Get the Data Len object
    *
    * @return size_t get length of the data
    */
-  size_t getDataLen() const;
+  NNTR_API size_t getDataLen() const;
 
   /**
    * @brief Get the Feature Len object
    *
    * @return size_t get feature length
    */
-  size_t getFeatureLen() const;
+  NNTR_API size_t getFeatureLen() const;
 
   /**
    * @brief set batch (axis 0)
    *
    * @param b batch to set
    */
-  void batch(size_t b);
+  NNTR_API void batch(size_t b);
 
   /**
    * @brief set channel (axis 1)
    *
    * @param c channel to set
    */
-  void channel(size_t c);
+  NNTR_API void channel(size_t c);
 
   /**
    * @brief set height (axis 2)
    *
    * @param h height to set
    */
-  void height(size_t h);
+  NNTR_API void height(size_t h);
 
   /**
    * @brief set width (axis 3)
    *
    * @param w width to set
    */
-  void width(size_t w);
+  NNTR_API void width(size_t w);
 
   /**
    * @brief Get the Dim object
    *
    * @return const size_t* array of size[MAXDIM]
    */
-  const size_t *getDim() const;
+  NNTR_API const size_t *getDim() const;
 
   /**
    * @brief calculate tranposed dimension
@@ -419,7 +429,7 @@ public:
    * @param direction  direction to transpose
    * @return TensorDim calculated dimension
    */
-  TensorDim transpose(const std::string &direction) const;
+  NNTR_API TensorDim transpose(const std::string &direction) const;
 
   /**
    * @brief calculate trasposed dimension
@@ -428,7 +438,7 @@ public:
    * @param axes axes to be transposed
    * @return TensorDim calculated dimension
    */
-  TensorDim transpose(const std::array<size_t, MAXDIM> &axes) const;
+  NNTR_API TensorDim transpose(const std::array<size_t, MAXDIM> &axes) const;
 
   /**
    * @brief Get the Tensor dimension for an axis
@@ -436,7 +446,7 @@ public:
    * @param idx axis to get
    * @return const size_t dimension of the given axis
    */
-  const size_t getTensorDim(unsigned int idx) const;
+  NNTR_API const size_t getTensorDim(unsigned int idx) const;
 
   /**
    * @brief Set the Tensor Dim object
@@ -444,7 +454,7 @@ public:
    * @param idx axis to set
    * @param value value to set
    */
-  void setTensorDim(unsigned int idx, size_t value);
+  NNTR_API void setTensorDim(unsigned int idx, size_t value);
 
   /**
    * @brief Set the Tensor Dim object
@@ -453,8 +463,8 @@ public:
    * @param fm NCHW | NHWC
    * @return int ML_ERROR_NONE if successs
    */
-  int setTensorDim(const std::string &input_shape,
-                   TensorType t_type_ = TensorType());
+  NNTR_API int setTensorDim(const std::string &input_shape,
+                            TensorType t_type_ = TensorType());
 
   /**
    * @brief copy assign a dimension
@@ -462,7 +472,7 @@ public:
    * @param rhs other side to copy assign
    * @return TensorDim& tensor dimension
    */
-  TensorDim &operator=(const TensorDim &rhs);
+  NNTR_API TensorDim &operator=(const TensorDim &rhs);
 
   /**
    * @brief check if tensor dims are equal
@@ -471,7 +481,7 @@ public:
    * @retval true equal
    * @retval false not equal
    */
-  bool operator==(const TensorDim &rhs) const;
+  NNTR_API bool operator==(const TensorDim &rhs) const;
 
   /**
    * @brief check if tensor dims are not equal
@@ -480,7 +490,7 @@ public:
    * @retval true not equal
    * @retval false equal
    */
-  bool operator!=(const TensorDim &rhs) const;
+  NNTR_API bool operator!=(const TensorDim &rhs) const;
 
   /**
    * @brief check if given tensor dimension is empty
@@ -488,14 +498,14 @@ public:
    * @retval true empty
    * @retval false not empty
    */
-  bool isEmpty() const;
+  NNTR_API bool isEmpty() const;
 
   /**
    * @brief get index rank (dimension of 1 is considered not valid here)
    *
    * @return unsigned int calculated index
    */
-  unsigned int rank() const;
+  NNTR_API unsigned int rank() const;
 
   /**
    * @brief operator[] to get index from tensor_dim
@@ -503,7 +513,7 @@ public:
    * @param index index
    * @return unsigned int& returned index reference
    */
-  size_t &operator[](const unsigned int index);
+  NNTR_API size_t &operator[](const unsigned int index);
 
   /**
    * @brief operator[] to get index from tensor_dim
@@ -511,19 +521,19 @@ public:
    * @param index index
    * @return const size_t& returned index reference
    */
-  const size_t &operator[](const unsigned int index) const;
+  NNTR_API const size_t &operator[](const unsigned int index) const;
 
   /**
    * @brief Calculate standard strides
    *
    * @return std::array <unsigned int, MAXDIM>
    */
-  std::array<size_t, MAXDIM> computeStrides() const;
+  NNTR_API std::array<size_t, MAXDIM> computeStrides() const;
 
   /**
    * @brief reverse the dimensions inplace
    */
-  void reverse();
+  NNTR_API void reverse();
 
   /**
    * @brief Get the Effective Dimension of the current
@@ -532,7 +542,7 @@ public:
    * @param dynamic if dimension has to be considering dynamic set this to ture
    * @return std::vector<int> integer vector
    */
-  std::vector<int> getEffectiveDimension(bool dynamic = false) const;
+  NNTR_API std::vector<int> getEffectiveDimension(bool dynamic = false) const;
 
   /**
    * @brief check if tensor is dynamic
@@ -540,25 +550,25 @@ public:
    * @retval true any of dyn_dim_flag is set
    * @retval false none of dyn_dim_flag is set
    */
-  bool is_dynamic() const;
+  NNTR_API bool is_dynamic() const;
 
   /**
    * @brief getFormat
    *
    */
-  TensorDim::Format getFormat() const { return t_type.format; };
+  NNTR_API TensorDim::Format getFormat() const { return t_type.format; };
 
   /**
    * @brief getType
    *
    */
-  TensorDim::DataType getDataType() const { return t_type.data_type; };
+  NNTR_API TensorDim::DataType getDataType() const { return t_type.data_type; };
 
   /**
    * @brief getStorageOrder
    *
    */
-  TensorDim::StorageOrder getStorageOrder() const {
+  NNTR_API TensorDim::StorageOrder getStorageOrder() const {
     return t_type.storage_order;
   };
 
@@ -566,19 +576,19 @@ public:
    * @brief setFormat
    *
    */
-  void setFormat(TensorDim::Format fm) { t_type.format = fm; };
+  NNTR_API void setFormat(TensorDim::Format fm) { t_type.format = fm; };
 
   /**
    * @brief setDataType
    *
    */
-  void setDataType(TensorDim::DataType ty) { t_type.data_type = ty; };
+  NNTR_API void setDataType(TensorDim::DataType ty) { t_type.data_type = ty; };
 
   /**
    * @brief setDataType
    *
    */
-  void setStorageOrder(TensorDim::StorageOrder storage_order_) {
+  NNTR_API void setStorageOrder(TensorDim::StorageOrder storage_order_) {
     t_type.storage_order = storage_order_;
   };
 
@@ -586,20 +596,20 @@ public:
    * @brief getFormat
    *
    */
-  TensorType getTensorType() const { return t_type; };
+  NNTR_API TensorType getTensorType() const { return t_type; };
 
   /**
    * @brief setTensorType
    *
    */
-  void setTensorType(TensorType tt) { t_type = tt; };
+  NNTR_API void setTensorType(TensorType tt) { t_type = tt; };
 
 private:
   /**
    * @brief reset length
    *
    */
-  void resetLen();
+  NNTR_API void resetLen();
 
   TensorType t_type;
 
@@ -621,7 +631,7 @@ dynamic dimension size */
  * @param d dimension to print
  * @return std::ostream& ostream
  */
-std::ostream &operator<<(std::ostream &out, TensorDim const &d);
+NNTR_API std::ostream &operator<<(std::ostream &out, TensorDim const &d);
 
 } /* namespace train */
 } /* namespace ml */

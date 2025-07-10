@@ -32,7 +32,7 @@ public:
    * @brief BasicPlanner destructor
    *
    */
-  ~BasicPlanner() = default;
+  NNTR_EXPORT ~BasicPlanner() = default;
 
   /**
    * @copydoc MemoryPlanner::planLayout(
@@ -42,7 +42,7 @@ public:
    * std::vector<bool> &memory_is_wgrad);
    *
    */
-  size_t planLayout(
+  NNTR_EXPORT size_t planLayout(
     const std::vector<size_t> &memory_size,
     const std::vector<std::pair<unsigned int, unsigned int>> &memory_validity,
     std::vector<size_t> &memory_offset, std::vector<bool> &memory_is_wgrad,
@@ -52,7 +52,7 @@ public:
    * @copydoc MemoryPlanner::getType() const
    *
    */
-  const std::string getType() const { return type; }
+  NNTR_EXPORT const std::string getType() const { return type; }
 
   static constexpr const char *type = "basic_planner";
 };

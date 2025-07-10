@@ -68,7 +68,7 @@ Logger::Cleanup::~Cleanup() {
 Logger::~Logger() {
   try {
     outputstream.close();
-  } catch(...) {
+  } catch (...) {
     std::cerr << "Error closing the log file\n";
   }
 }
@@ -141,6 +141,8 @@ void Logger::log(const std::string &message,
   outputstream << ss.str() << " " << message << std::endl;
 }
 
+} /* namespace nntrainer */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -164,7 +166,7 @@ void __nntrainer_log_print(nntrainer_loglevel loglevel,
   std::string ss = std::string(formatted.get());
 
 #if defined(__LOGGING__)
-  Logger::instance().log(ss, loglevel);
+  nntrainer::Logger::instance().log(ss, loglevel);
 #else
 
 #if defined(DEBUG)
@@ -186,4 +188,3 @@ void __nntrainer_log_print(nntrainer_loglevel loglevel,
 #ifdef __cplusplus
 }
 #endif
-} /* namespace nntrainer */

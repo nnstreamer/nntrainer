@@ -29,7 +29,7 @@ enum RMSParams { gamma };
 
 RMSNormLayerCl::RMSNormLayerCl() : LayerImplCl() { wt_idx.fill(0); }
 
-bool RMSNormLayerCl::registerClKernels() {
+bool RMSNormLayerCl::registerClKernels(ClContext *global_cl_context) {
   auto &layer_kernel_ptrs = getLayerKernelPtrs();
 
   // check if already registered
@@ -108,6 +108,9 @@ void RMSNormLayerCl::rmsnormProcess(Tensor const &input, Tensor &result,
   int c = input.channel();
   int h = input.height();
   int w = input.width();
+  ClContext *global_cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
 
   do {
     const auto &kernel_rmsnorm_ptr = getLayerKernelPtrs()[Kernels::RMSNORM_CL];
@@ -194,6 +197,11 @@ void RMSNormLayerCl::rmsnormProcess_fp16(Tensor const &input, Tensor &result,
                                          const float epsilon) {
 
   bool ret = false;
+
+  ClContext *global_cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
+
   int dim1 = input.batch() * input.height() * input.width() * input.channel();
   CREATE_IF_EMPTY_DIMS(result, input.batch(), input.channel(), input.height(),
                        input.width(), input.getTensorType());

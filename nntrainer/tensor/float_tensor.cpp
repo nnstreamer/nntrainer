@@ -18,6 +18,9 @@
 #include <tensor.h>
 #include <util_func.h>
 
+#ifdef ENABLE_OPENCL
+#include <blas_kernels.h>
+#endif
 namespace nntrainer {
 
 FloatTensor::FloatTensor(std::string name_, Tformat fm) :
@@ -65,11 +68,37 @@ void FloatTensor::allocate() {
     /// allocate new memory for the tensor data
     MemoryData *mem_data;
 
+#ifdef ENABLE_OPENCL
+    auto *blas_cc =
+      static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+    if (blas_cc != nullptr) {
+      mem_data = new MemoryData(blas_cc->context_inst_.createSVMRegion(
+        dim.getDataLen() * sizeof(float)));
+
+      data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
+        auto *blas_cc = static_cast<ClContext *>(
+          Engine::Global().getRegisteredContext("gpu"));
+        blas_cc->context_inst_.releaseSVMRegion(
+          mem_data->template getAddr<float>());
+      });
+
+      blas_cc->command_queue_inst_.enqueueSVMMap(
+        mem_data->template getAddr<float>(), dim.getDataLen() * sizeof(float),
+        false);
+    } else {
+      mem_data = new MemoryData((void *)(new float[dim.getDataLen()]{}));
+      data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
+        delete[] mem_data->template getAddr<float>();
+        delete mem_data;
+      });
+    }
+#else
     mem_data = new MemoryData((void *)(new float[dim.getDataLen()]{}));
     data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
       delete[] mem_data->template getAddr<float>();
       delete mem_data;
     });
+#endif
 
     offset = 0;
     initialize();
@@ -766,8 +795,8 @@ Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
   NNTR_THROW_IF(trans || trans_in, std::invalid_argument)
     << "dotQnK does not support trans / trans_in";
 
-  const float *data = (float *)getData();
-  const uint8_t *mdata = input.getData<uint8_t>();
+  float *data = (float *)getData();
+  uint8_t *mdata = input.getData<uint8_t>();
   float *rdata = output.getData<float>();
 
   unsigned int M, N, K;
@@ -783,7 +812,11 @@ Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
     M = getDim().height();
     K = getDim().width();
     N = input.getDim().height();
+#ifdef ENABLE_OPENCL
+    sgemv_q6_k_cl((void *)mdata, data, rdata, K, N);
+#else
     gemm_q6_K(M, N, K, data, K, (void *)mdata, N, rdata, N);
+#endif
     break;
   default:
     throw std::invalid_argument("Error: unsupported datatype");
