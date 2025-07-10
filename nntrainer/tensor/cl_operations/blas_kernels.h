@@ -29,6 +29,17 @@ static ClContext *blas_cc =
   static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
 static ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
 
+
+/**
+ */
+void sgemm_q4_k_cl(const unsigned int M, const unsigned int N,
+                   const unsigned int K, void *A, void *B, void *C);
+
+/**
+ */
+void sgemv_q4_k_cl(const unsigned int M, const unsigned int N,
+                   const unsigned int K, void *A, void *B, void *C);
+
 /**
  * @brief     Q6_K sgemv computation : Y = A*X
  * @param[in] matAdata void * for Matrix A
