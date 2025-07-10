@@ -46,7 +46,7 @@ option('enable-opencl', type: 'boolean', value: false)
 option('enable-biqgemm', type: 'boolean', value: false)
 option('biqgemm-path', type: 'string', value: '../BiQGEMM')
 option('enable-benchmarks', type: 'boolean', value : false)
-option('enable-ggml', type: 'boolean', value: true)
+option('enable-ggml', type: 'boolean', value: false)
 option('enable-ruy', type: 'boolean', value: true)
 option('K-quant_multithreading_strategy', type: 'string', value: 'omp')
 
