@@ -16,7 +16,75 @@
 
 #include "clblast.h"
 
+#define N_SIMDWIDTH 16
+#define N_SIMDGROUP 2
+
 namespace nntrainer {
+
+void sgemv_q4_k_cl(const unsigned int M, const unsigned int N,
+                   const unsigned int K, void *A, void *B, void *C) {
+  ClContext::SharedPtrClKernel kernel =
+    blas_cc->registerClKernel(getQ4KSgemvClKernel(), "ggml_gemv_q4_K_8x8_q8_K");
+
+  if (!kernel) {
+    ml_loge("Failed to register ggml_gemv_q4_K_8x8_q8_K");
+    return;
+  }
+
+  if (!blas_cc->command_queue_inst_.enqueueSVMUnmap(A)) {
+    ml_loge(
+      "Failed to write data to input buffer A for ggml_gemv_q4_K_8x8_q8_K");
+    return;
+  }
+
+  if (!blas_cc->command_queue_inst_.enqueueSVMUnmap(B)) {
+    ml_loge(
+      "Failed to write data to input buffer B for ggml_gemv_q4_K_8x8_q8_K");
+    return;
+  }
+
+  if (!kernel->SetKernelArguments(0, &K, sizeof(unsigned int))) {
+    ml_loge("Failed to set argument : %s", __LINE__);
+    return;
+  }
+  if (!kernel->SetKernelSVMArguments(1, C)) {
+    ml_loge("Failed to set argument : %s", __LINE__);
+    return;
+  }
+  if (!kernel->SetKernelSVMArguments(2, B)) {
+    ml_loge("Failed to set argument : %s", __LINE__);
+    return;
+  }
+  if (!kernel->SetKernelSVMArguments(3, A)) {
+    ml_loge("Failed to set argument : %s", __LINE__);
+    return;
+  }
+  if (!kernel->SetKernelArguments(4, &M, sizeof(unsigned int))) {
+    ml_loge("Failed to set argument : %s", __LINE__);
+    return;
+  }
+  if (!kernel->SetKernelArguments(5, &N, sizeof(unsigned int))) {
+    ml_loge("Failed to set argument : %s", __LINE__);
+    return;
+  }
+
+  const int work_groups_count[3] = {
+    (int)N / 8, 8, 1};
+  const int work_group_size[3] = {4, 8, 1};
+
+  if (!opencl::CommandQueueManager::GetInstance().DispatchCommand(
+        kernel, work_groups_count, work_group_size)) {
+    ml_loge("Failed to dispatch kernel q6_k_sgemv");
+    return;
+  }
+
+  if (!blas_cc->command_queue_inst_.enqueueSVMMap(C, N * sizeof(float), true)) {
+    ml_loge(
+      "Failed to read data from the output buffer for kernel_q6_k_sgemv_ptr");
+
+    return;
+  }
+}
 
 void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
                    unsigned int M, unsigned int N) {

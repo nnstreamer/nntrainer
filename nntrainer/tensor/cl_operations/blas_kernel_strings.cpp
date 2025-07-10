@@ -16,6 +16,136 @@
 
 namespace nntrainer {
 
+const std::string &getQ4KSgemvClKernel() {
+  static const std::string q4_k_sgemv_cl_kernel =
+    R"(
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+
+#define QK_K 256
+#define BLOCKLEN 8
+#define NCOLS_INTERLEAVED 8
+
+typedef struct {
+    half d[8];
+    half dmin[8];
+    uchar scales[96];
+    uchar qs[1024];
+} block_q4_Kx8;
+
+typedef struct {
+    float d;
+    char qs[QK_K];
+    short bsums[QK_K / 16];
+} block_q8_K;
+
+inline float GGML_FP16_TO_FP32(half h) {
+    return convert_float(h);
+}
+
+__kernel void ggml_gemv_q4_K_8x8_q8_K(
+             const int                       n,
+    __global       float        * __restrict s,
+    __global const block_q4_Kx8 * __restrict vx,
+    __global const block_q8_K   * __restrict vy,
+             const int                       nr,
+             const int                       nc)
+{
+    const int qk = QK_K;
+    const int nb = n / qk;
+
+    const uint kmask1 = 0x3f3f3f3f;
+    const uint kmask2 = 0x0f0f0f0f;
+    const uint kmask3 = 0x03030303;
+
+    const int x = get_global_id(0);
+    
+    if (x >= nc / NCOLS_INTERLEAVED)
+    {
+      return;
+    }
+
+    float sumf[8] = {};
+    float sum_minf[8] = {};
+    uint utmp[32] = {};
+
+    for (int l = 0; l < nb; l++)
+    {
+        __global const block_q4_Kx8 * b = &vx[x * nb + l];
+        __global const block_q8_K * a = &vy[l];
+
+        for (int sb = 0; sb < 8; sb++)
+        {
+            const uint3 u012 = vload3(0, (__global const uint *)(b->scales + sb * 12));
+
+            const uint u0 = u012.s0;
+            const uint u1 = u012.s1;
+            const uint u2 = u012.s2;
+
+            utmp[sb * 4 + 0] = u0 & kmask1;
+            utmp[sb * 4 + 1] = (u2 & kmask2) | (((u0 >> 6) & kmask3) << 4);
+            utmp[sb * 4 + 2] = u1 & kmask1;
+            utmp[sb * 4 + 3] = ((u2 >> 4) & kmask2) | (((u1 >> 6) & kmask3) << 4);
+        }
+
+        for (int k = 0; k < (qk / (2 * BLOCKLEN)); k++) {
+            const uchar *scales_0 = (const uchar *)utmp + (k / 4) * 32;
+            const uchar *scales_1 = (const uchar *)utmp + (k / 4) * 32 + 16;
+
+            for (int j = 0; j < NCOLS_INTERLEAVED; j++)
+            {
+                int sumi = 0;
+
+                for (int i = 0; i < BLOCKLEN; ++i)
+                {
+                    const int qidx = k * NCOLS_INTERLEAVED * BLOCKLEN + j * BLOCKLEN + i;
+
+                    const uchar q = b->qs[qidx];
+
+                    const int v0 = (char)(q & 0xF);
+                    const int v1 = (char)(q >> 4);
+
+                    const int aidx0 = (k >> 2) * 64 + (k % 4) * BLOCKLEN + i;
+                    const int aidx1 = aidx0 + 32;
+
+                    const int a0 = (char)(a->qs[aidx0]);
+                    const int a1 = (char)(a->qs[aidx1]);
+
+                    sumi += 
+                      (v0 * a0 * scales_0[j]) + 
+                      (v1 * a1 * scales_1[j]);
+                }
+
+                sumf[j] += (float)sumi * GGML_FP16_TO_FP32(b->d[j]) *  a->d;
+            }
+        }
+
+        for (int sb = 0; sb < 8; sb++)
+        {
+            const uchar *mins = ((uchar*)utmp) + 8 + sb * 16;
+
+            for (int j = 0; j < NCOLS_INTERLEAVED; j++)
+            {
+                const float bsum = (float)(a->bsums[sb * 2] + a->bsums[sb * 2 + 1]);
+                
+                sum_minf[j] += mins[j] * bsum * GGML_FP16_TO_FP32(b->dmin[j]) * a->d;
+            }
+        }
+    }
+
+    for (int j = 0; j + 3 < NCOLS_INTERLEAVED ; j += 4)
+    {
+      const float4 sumf_vec = vload4(0, &sumf[j]);
+      const float4 sum_minf_vec = vload4(0, &sum_minf[j]);
+      const float4 result_vec = sumf_vec - sum_minf_vec;
+
+      vstore4(result_vec, 0, &s[x * NCOLS_INTERLEAVED + j]);
+    }
+}
+    )";
+
+  return q4_k_sgemv_cl_kernel;
+}
+
 const std::string &getQ6KSgemvClKernel() {
   static const std::string q6_k_sgemv_cl_kernel_ =
     R"(
