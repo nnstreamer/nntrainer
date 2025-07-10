@@ -534,82 +534,98 @@ endif
 ggml_dep = dummy_dep
 
 if get_option('enable-ggml')
-  message('preparing ggml')
-
-  if get_option('platform') == 'windows'
-    ggml_lib_dir_absolute = windows_resource_dir_absolute / 'ggml'
-    ggml_lib_dir_absolute_win = ggml_lib_dir_absolute.replace('/', '\\')
-    run_command(['xcopy', '/C', '/Y', ggml_lib_dir_absolute_win, meson.current_build_dir()], check: true)
-    ggml_dir_relative = subprojects_dir_relative / 'ggml'
-    ggml_include = include_directories(ggml_dir_relative / 'include', ggml_dir_relative / 'src', ggml_dir_relative / 'src' / 'ggml-cpu')
-    ggml_dep = declare_dependency(include_directories: ggml_include, link_args:['ggml.lib', 'ggml-base.lib', 'ggml-cpu.lib'])
-    ggml_patch_relative = subprojects_dir_relative / 'packagefiles' / 'ggml' / '0001-nntrainer-ggml-patch.patch'
-    ggml_patch_command = ['git', 'apply', '--directory=' + ggml_dir_relative, ggml_patch_relative]
-    run_command(ggml_patch_command, check: false)
+  # Check if we're building for Tizen 7.0 where GGML has compatibility issues
+  if get_option('platform') == 'tizen' and get_option('tizen-version-major') <= 7
+    warning('GGML disabled for Tizen 7.0 due to ARM NEON compatibility issues')
+    warning('GGML uses ARM NEON intrinsics (vld1q_s8_x4, vld1q_u8_x4) not available in Tizen 7.0')
+    warning('Workarounds: 1) Use -Denable-ggml=false, 2) Upgrade to Tizen 8.0+, 3) Apply compatibility patches')
+    ggml_dep = dummy_dep
   else
-    ggml_options = cmake.subproject_options()
-    ggml_root = subprojects_dir_absolute / 'ggml'
-    ggml_flags = [
-      '-Wno-error=pointer-to-int-cast'
-      ]
-    if cxx_compiler_id == 'clang'
-      ggml_flags += '-Wno-error=uninitialized'
-    else 
-      ggml_flags += '-Wno-error=maybe-uninitialized'
-    endif
-    ggml_options.append_compile_args('c', ggml_flags)
-    ggml_options.add_cmake_defines({'BUILD_SHARED_LIBS': true})
-    ggml_options.add_cmake_defines({'GGML_BUILD_TESTS': false})
-    ggml_options.add_cmake_defines({'GGML_BUILD_EXAMPLES': false})
-    if get_option('platform') == 'android'
-      ggml_options.add_cmake_defines({'CMAKE_INSTALL_LIBDIR': nntrainer_libdir / 'arm64-v8a'})
-    endif
+    message('preparing ggml')
 
-    # Apply Tizen-specific patches before building
-    if get_option('platform') == 'tizen'
-      message('Applying Tizen patches to ggml')
+    if get_option('platform') == 'windows'
+      ggml_lib_dir_absolute = windows_resource_dir_absolute / 'ggml'
+      ggml_lib_dir_absolute_win = ggml_lib_dir_absolute.replace('/', '\\')
+      run_command(['xcopy', '/C', '/Y', ggml_lib_dir_absolute_win, meson.current_build_dir()], check: true)
+      ggml_dir_relative = subprojects_dir_relative / 'ggml'
+      ggml_include = include_directories(ggml_dir_relative / 'include', ggml_dir_relative / 'src', ggml_dir_relative / 'src' / 'ggml-cpu')
+      ggml_dep = declare_dependency(include_directories: ggml_include, link_args:['ggml.lib', 'ggml-base.lib', 'ggml-cpu.lib'])
       ggml_patch_relative = subprojects_dir_relative / 'packagefiles' / 'ggml' / '0001-nntrainer-ggml-patch.patch'
-      ggml_patch_absolute = meson.current_source_dir() / ggml_patch_relative
+      ggml_patch_command = ['git', 'apply', '--directory=' + ggml_dir_relative, ggml_patch_relative]
+      run_command(ggml_patch_command, check: false)
+    else
+      ggml_options = cmake.subproject_options()
+      ggml_root = subprojects_dir_absolute / 'ggml'
+      ggml_flags = [
+        '-Wno-error=pointer-to-int-cast'
+        ]
+      if cxx_compiler_id == 'clang'
+        ggml_flags += '-Wno-error=uninitialized'
+      else 
+        ggml_flags += '-Wno-error=maybe-uninitialized'
+      endif
+      ggml_options.append_compile_args('c', ggml_flags)
+      ggml_options.add_cmake_defines({'BUILD_SHARED_LIBS': true})
+      ggml_options.add_cmake_defines({'GGML_BUILD_TESTS': false})
+      ggml_options.add_cmake_defines({'GGML_BUILD_EXAMPLES': false})
       
-      # Check if patch command is available
-      patch_prog = find_program('patch', required: false)
-      if patch_prog.found()
-        # Apply patch using standard patch command (more widely available than git)
-        # -p1: strip first directory level from paths
-        # -N: don't reverse already applied patches
-        # -f: force, don't ask questions
-        # -r-: send reject files to stdout instead of creating .rej files
-        ggml_patch_command = [patch_prog, '-p1', '-N', '-f', '-r-', '-d', ggml_root]
-        ggml_patch_result = run_command(ggml_patch_command, input: files(ggml_patch_absolute), check: false)
+      # Disable advanced ARM NEON features for Tizen builds to ensure compatibility
+      if get_option('platform') == 'tizen'
+        message('Configuring GGML for Tizen compatibility')
+        # Disable features that require newer ARM NEON intrinsics
+        ggml_options.add_cmake_defines({'GGML_USE_CPU_AARCH64': false})
+        ggml_options.add_cmake_defines({'CMAKE_C_FLAGS': '-DGGML_USE_CPU_AARCH64=0'})
+        ggml_options.add_cmake_defines({'CMAKE_CXX_FLAGS': '-DGGML_USE_CPU_AARCH64=0'})
         
-        if ggml_patch_result.returncode() == 0
-          message('Successfully applied ggml patch for Tizen')
-        else
-          # Patch might already be applied, check if it's because of that
-          if ggml_patch_result.stderr().contains('Reversed (or previously applied) patch detected')
-            message('ggml patch already applied for Tizen')
+        # Apply Tizen-specific patches before building
+        message('Applying Tizen patches to ggml')
+        ggml_patch_relative = subprojects_dir_relative / 'packagefiles' / 'ggml' / '0001-nntrainer-ggml-patch.patch'
+        ggml_patch_absolute = meson.current_source_dir() / ggml_patch_relative
+        
+        # Check if patch command is available
+        patch_prog = find_program('patch', required: false)
+        if patch_prog.found()
+          # Apply patch using standard patch command (more widely available than git)
+          # -p1: strip first directory level from paths
+          # -N: don't reverse already applied patches
+          # -f: force, don't ask questions
+          # -r-: send reject files to stdout instead of creating .rej files
+          ggml_patch_command = [patch_prog, '-p1', '-N', '-f', '-r-', '-d', ggml_root]
+          ggml_patch_result = run_command(ggml_patch_command, input: files(ggml_patch_absolute), check: false)
+          
+          if ggml_patch_result.returncode() == 0
+            message('Successfully applied ggml patch for Tizen')
           else
-            warning('Failed to apply ggml patch for Tizen: ' + ggml_patch_result.stderr())
+            # Patch might already be applied, check if it's because of that
+            if ggml_patch_result.stderr().contains('Reversed (or previously applied) patch detected')
+              message('ggml patch already applied for Tizen')
+            else
+              warning('Failed to apply ggml patch for Tizen: ' + ggml_patch_result.stderr())
+            endif
           endif
+        else
+          warning('patch command not found, skipping ggml patch application for Tizen')
         endif
-      else
-        warning('patch command not found, skipping ggml patch application for Tizen')
+      endif
+      
+      if get_option('platform') == 'android'
+        ggml_options.add_cmake_defines({'CMAKE_INSTALL_LIBDIR': nntrainer_libdir / 'arm64-v8a'})
+      endif
+
+      ggml_proj = cmake.subproject('ggml', options: ggml_options, required: true)
+      ggml_dep = [
+        ggml_proj.dependency('ggml-base'),
+        ggml_proj.dependency('ggml-cpu'),
+        ggml_proj.dependency('ggml')]
+
+      if get_option('platform') == 'android'
+        message('preparing ggml for Android')
+        run_command([meson.source_root() / 'jni' / 'prepare_ggml.sh', ggml_root ], check: true)
       endif
     endif
 
-    ggml_proj = cmake.subproject('ggml', options: ggml_options, required: true)
-    ggml_dep = [
-      ggml_proj.dependency('ggml-base'),
-      ggml_proj.dependency('ggml-cpu'),
-      ggml_proj.dependency('ggml')]
-
-    if get_option('platform') == 'android'
-      message('preparing ggml for Android')
-      run_command([meson.source_root() / 'jni' / 'prepare_ggml.sh', ggml_root ], check: true)
+    extra_defines += '-DENABLE_GGML=1'
   endif
-  endif
-
-  extra_defines += '-DENABLE_GGML=1'
 endif
 
 # Configure the Ruy project (CMake)
