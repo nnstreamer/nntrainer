@@ -1,4 +1,4 @@
- #Execute gbs with --define "testcoverage 1" in case that you must get unittest coverage statistics
+# Execute gbs with --define "testcoverage 1" in case that you must get unittest coverage statistics
 %define         use_cblas 1
 %define         nnstreamer_filter 1
 %define         nnstreamer_trainer 1
@@ -840,7 +840,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %defattr(-,root,root,-)
 %license LICENSE
 %{_libdir}/nntrainer/bin/applications/*
-%{_libdir}/nntrainer/layers/*layer.so 
+%{_libdir}/nntrainer/layers/*layer.so
 
 %if 0%{?gcov:1}
 %files gcov

@@ -600,8 +600,10 @@ else
     ruy_flags += '-Wno-error=uninitialized'
   else
     ruy_flags += '-Wno-error=maybe-uninitialized'
-    ruy_flags += '-Wno-error=stringop-overread'
-    ruy_flags += '-Wno-error=array-parameter'
+    if cxx.has_argument('-Wno-error=stringop-overread') and cxx.has_argument('-Wno-error=array-parameter')
+      ruy_flags += '-Wno-error=stringop-overread'
+      ruy_flags += '-Wno-error=array-parameter'
+    endif
   endif
   
   ruy_options.append_compile_args('c', '-Wno-implicit-function-declaration')
