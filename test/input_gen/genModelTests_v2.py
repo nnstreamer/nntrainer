@@ -542,6 +542,19 @@ class SQRTOperation(torch.nn.Module):
         loss = self.loss(out, labels[0])
         return out, loss
 
+class NegOperation(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc = torch.nn.Linear(2, 2)
+        self.loss = torch.nn.MSELoss()
+
+    def forward(self, inputs, labels):
+        out = self.fc(inputs[0])
+        out = torch.neg(out)
+        loss = self.loss(out, labels[0])
+        return out, loss
+
+
 class CosineOperation(torch.nn.Module):
     def __init__(self):
         super().__init__()
@@ -947,6 +960,16 @@ if __name__ == "__main__":
         input_dtype=[float],
         label_dims=[(1, 2)],
         name="sqrt_operation",
+    )
+
+    neg_operation = NegOperation()
+    record_v2(
+        neg_operation,
+        iteration=2,
+        input_dims=[(1, 2)],
+        input_dtype=[float],
+        label_dims=[(1, 2)],
+        name="neg_operation",
     )
 
     cosine_operation = CosineOperation()

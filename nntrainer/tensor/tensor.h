@@ -1237,6 +1237,19 @@ public:
   Tensor &sqrt(Tensor &output) const;
 
   /**
+   * @brief     Compute negation by element
+   * @retval    Calculated Tensor
+   */
+  Tensor neg() const;
+
+  /**
+   * @brief      Compute negation by element
+   * @param[out] output out to store the result
+   * @retval     Calculated Tensor
+   */
+  Tensor &neg(Tensor &output) const;
+
+  /**
    * @brief     Gauss error function
    * @retval    #ML_ERROR_NONE  Successful
    */

@@ -70,6 +70,7 @@
 #include <multi_head_attention_layer.h>
 #include <multiout_layer.h>
 #include <multiply_layer.h>
+#include <neg_layer.h>
 #include <nntrainer_error.h>
 #include <permute_layer.h>
 #include <plugged_layer.h>
@@ -288,6 +289,8 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_TANGENT);
   ac.registerFactory(nntrainer::createLayer<MatMulLayer>, MatMulLayer::type,
                      LayerType::LAYER_MATMUL);
+  ac.registerFactory(nntrainer::createLayer<NegLayer>, NegLayer::type,
+                     LayerType::LAYER_NEG);
   ac.registerFactory(nntrainer::createLayer<FullyConnectedLayer>,
                      FullyConnectedLayer::type, LayerType::LAYER_FC);
   ac.registerFactory(nntrainer::createLayer<BatchNormalizationLayer>,

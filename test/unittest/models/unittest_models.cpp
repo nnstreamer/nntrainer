@@ -986,6 +986,25 @@ static std::unique_ptr<NeuralNetwork> makeSQRTOperation() {
   return nn;
 }
 
+static std::unique_ptr<NeuralNetwork> makeNegOperation() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+
+  auto outer_graph =
+    makeGraph({{"input", {"name=in", "input_shape=1:1:2"}},
+               {"fully_connected", {"name=fc", "unit=2", "input_layers=in"}},
+               {"neg", {"name=neg_layer", "input_layers=fc"}},
+               {"mse", {"name=loss", "input_layers=neg_layer"}}});
+
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
+
+  nn->setProperty({"batch_size=1"});
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate=0.1"}));
+
+  return nn;
+}
+
 std::unique_ptr<NeuralNetwork> makeCosineOperation() {
   std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
 
@@ -1162,6 +1181,7 @@ GTEST_PARAMETER_TEST(
                  ModelTestOption::ALL_V2),
     mkModelTc_V2(makePowOperation, "pow_operation", ModelTestOption::ALL_V2),
     mkModelTc_V2(makeSQRTOperation, "sqrt_operation", ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeNegOperation, "neg_operation", ModelTestOption::ALL_V2),
     mkModelTc_V2(makeSineOperation, "sine_operation", ModelTestOption::ALL_V2),
     mkModelTc_V2(makeCosineOperation, "cosine_operation",
                  ModelTestOption::ALL_V2),
