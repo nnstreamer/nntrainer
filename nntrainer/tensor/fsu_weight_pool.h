@@ -89,7 +89,7 @@ public:
 
   void loadTensor(unsigned int order);
 
-  void setFsuWeightPath(std::string path) override {weight_file_path = path};
+  void setFsuWeightPath(std::string path) override {weight_file_path = path;}
 
   /**
    * @brief set {start_off, weight_len} to elements[id]

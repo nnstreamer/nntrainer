@@ -486,7 +486,7 @@ public:
    * @brief inactive the elem
    *
    */
-  bool inActive(unsigned int order);
+  void inActive(unsigned int order);
 
   /**
    * @brief check data of order is Unloaded

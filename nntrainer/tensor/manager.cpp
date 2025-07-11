@@ -915,7 +915,7 @@ void Manager::finalizeTensorPool(TensorPool &pool, unsigned int start,
   }
 }
 
-unsigned int Manager::inActive(unsigned int order) {
+void Manager::inActive(unsigned int order) {
   return weight_pool.inActive(order);
 }
 
