@@ -14,9 +14,6 @@
 #ifndef __CACHE_ELEM_H__
 #define __CACHE_ELEM_H__
 
-#include <list>
-#include <mutex>
-
 #include <memory_data.h>
 #include <swap_device.h>
 
@@ -156,7 +153,6 @@ public:
 
 private:
   Options initial_opt;                  /**< accessed */
-  mutable std::mutex device_mutex;      /**< protect device */
   std::shared_ptr<SwapDevice> device;   /**< swap device */
   bool active;                          /**< element is loaded */
   unsigned int id;                      /**< memory id */

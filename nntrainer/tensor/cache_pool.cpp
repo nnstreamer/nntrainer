@@ -134,8 +134,9 @@ CachePool::~CachePool() {
 void CachePool::inActive(unsigned int order) {
 
   auto exec_id = exec_ids[order];
+  std::lock_guard<std::mutex> lock(mutex);
   for (auto &id : exec_id) {
-    actives.remove(elems[id]);
+    actives.erase(id);
     elems[id]->inActive();
   }
 }
@@ -171,15 +172,16 @@ void CachePool::deallocate() {
 void CachePool::validate(unsigned int id) {
   if (!elems[id]->isActive()) {
     elems[id]->swapIn();
-    actives.push_back(elems[id]);
+    std::lock_guard<std::mutex> lock(mutex);
+    actives.insert(id);
   }
 }
 
 void CachePool::invalidate(unsigned int id) {
-
   if (elems[id]->isActive()) {
     elems[id]->swapOut();
-    actives.remove(elems[id]);
+    std::lock_guard<std::mutex> lock(mutex);
+    actives.erase(id);
   }
 }
 
@@ -218,9 +220,9 @@ std::shared_ptr<MemoryData> CachePool::getMemory(unsigned int id) {
     id, std::bind(&CachePool::validate, this, std::placeholders::_1),
     std::bind(&CachePool::invalidate, this, std::placeholders::_1), memory_ptr);
 
-  auto elem = std::make_shared<CacheElem>(swap_device, id, offset, len,
+  auto elem = std::make_unique<CacheElem>(swap_device, id, offset, len,
                                           mem_data, policy, memory_ptr);
-  elems[id] = elem;
+  elems[id] = std::move(elem);
 
   std::string ords;
 
@@ -241,8 +243,8 @@ std::shared_ptr<MemoryData> CachePool::getMemory(unsigned int id) {
 }
 
 void CachePool::flush() {
-  for (auto &elem : actives) {
-    elem->swapOut(CacheElem::LAST_ACCESS);
+  for (auto &id : actives) {
+    elems[id]->swapOut(CacheElem::LAST_ACCESS);
   }
 
   for (auto &[id, elem] : elems)
@@ -254,21 +256,20 @@ void CachePool::flush() {
 void CachePool::flushExcept(unsigned int order) {
   auto exe_orders = getMemoryExecOrder();
 
-  actives.remove_if([&, order](auto elem) -> bool {
-    auto id = elem->getId();
+  eraseActiveIf([&, order](const unsigned int id) -> bool {
     auto exe_order = exe_orders.at(id - 1);
     auto found = std::find(exe_order.begin(), exe_order.end(), order);
     if (found != exe_order.end()) {
       /**
        * We assumes that flushExcept will be called in front of each execution
        * order, and the order is incremental. So, we can conclude that, if the
-       * order passes by the max order of the cache element, it was LAST access
-       * of the element.
+       * order passes by the max order of the cache element, it was LAST
+       * access of the element.
        */
       CacheElem::Options opt = CacheElem::NONE;
       if (*std::max_element(exe_order.begin(), exe_order.end()) < order)
         opt = CacheElem::LAST_ACCESS;
-      elem->swapOut(opt);
+      elems[id]->swapOut(opt);
       return true;
     }
     return false;
@@ -278,8 +279,7 @@ void CachePool::flushExcept(unsigned int order) {
 void CachePool::flushExcept(std::vector<unsigned int> order) {
   auto exe_orders = getMemoryExecOrder();
 
-  actives.remove_if([&, order](const auto elem) -> bool {
-    auto id = elem->getId();
+  eraseActiveIf([&, order](const unsigned int id) -> bool {
     auto exe_order = exe_orders.at(id - 1);
     for (auto &o : order) {
       auto found = std::find(exe_order.begin(), exe_order.end(), o);
@@ -295,7 +295,7 @@ void CachePool::flushExcept(std::vector<unsigned int> order) {
     CacheElem::Options opt = CacheElem::NONE;
     if (*std::max_element(exe_order.begin(), exe_order.end()) < order[0])
       opt = CacheElem::LAST_ACCESS;
-    elem->swapOut(opt);
+    elems[id]->swapOut(opt);
     return true;
   });
 }
@@ -336,20 +336,23 @@ void CachePool::unloadExec(unsigned int order) {
 
 void CachePool::unloadTensor(unsigned int order) {
   invalidate(order);
-  actives.remove(elems[order]);
+  std::lock_guard<std::mutex> lock(mutex);
+  actives.erase(order);
 }
 
 void CachePool::loadActives() {
   ml_logd("load active caches");
 
-  for (auto &elem : actives)
-    elem->swapIn();
+  for (auto &id : actives) {
+    elems[id]->swapIn();
+  }
 }
 
 void CachePool::unloadActives() {
   ml_logd("unload active caches");
-  for (auto &elem : actives)
-    elem->swapOut();
+  for (auto &id : actives) {
+    elems[id]->swapOut();
+  }
 }
 
 void CachePool::setFsuWeightPath(std::string path) {
@@ -365,6 +368,13 @@ void CachePool::setFsuWeightPath(std::string path) {
   swap_device->setFsuWeightPath(path);
   swap_device->finish();
   swap_device->start(size(), execution_mode_);
+}
+
+void CachePool::eraseActiveIf(
+  const std::function<bool(unsigned int id)> &pred) {
+  for (auto it = actives.begin(); it != actives.end();
+       pred(*it) ? it = actives.erase(it) : ++it) {
+  }
 }
 
 } // namespace nntrainer
