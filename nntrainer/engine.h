@@ -43,7 +43,7 @@ namespace {} // namespace
  * @class Engine contains user-dependent configuration
  * @brief App
  */
-class Engine {
+class Engine : public Noncopyable, public Nonmovable {
 protected:
   static void registerer(Engine &eg) noexcept;
 
@@ -92,30 +92,6 @@ public:
    * @brief   Default Destructor
    */
   ~Engine() = default;
-
-  /**
-   * @brief Deleting copy constructor
-   *
-   */
-  Engine(const Engine &) = delete;
-
-  /**
-   * @brief Deleting assignment operator
-   *
-   */
-  Engine &operator=(const Engine &) = delete;
-
-  /**
-   * @brief Deleting move constructor
-   *
-   */
-  Engine(Engine &&) = delete;
-
-  /**
-   * @brief Deleting move assignment operator
-   *
-   */
-  Engine &operator=(Engine &&) = delete;
 
   /**
    * @brief register a Context from a shared library

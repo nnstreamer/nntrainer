@@ -24,6 +24,9 @@
 #include <unordered_set>
 #include <vector>
 
+#include "utils/noncopyable.h"
+#include "utils/nonmovable.h"
+
 using timepoint = std::chrono::time_point<std::chrono::steady_clock>;
 
 #ifndef PROFILE
@@ -306,20 +309,13 @@ std::ostream &operator<<(std::ostream &out, T &l) {
  * @brief Profiler object
  *
  */
-class Profiler {
+class Profiler : public Noncopyable, public Nonmovable {
 public:
   /**
    * @brief Construct a new Profiler object
    *
    */
   Profiler() : total_size(0) {}
-
-  /**
-   * @brief Deleted constructor
-   *
-   */
-  Profiler(const Profiler &) = delete;
-  Profiler &operator=(const Profiler &) = delete;
 
   /**
    *
