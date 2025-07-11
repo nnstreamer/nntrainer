@@ -553,7 +553,7 @@ public:
    * @brief set Inactive elems in order
    *
    */
-  unsigned int inActive(unsigned int order);
+  void inActive(unsigned int order);
 
   /**
    * @brief set FSU weight path

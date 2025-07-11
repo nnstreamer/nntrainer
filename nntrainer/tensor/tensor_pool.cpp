@@ -485,7 +485,9 @@ int TensorPool::loadCacheExecAsync(
 }
 
 bool TensorPool::checkLoadComplete(unsigned int order) {
-  if (dynamic_cast<CachePool *>(mem_pool.get()))
+  if (auto fsu_pool = dynamic_cast<FsuWeightPool *>(mem_pool.get()))
+    return fsu_pool->checkAllLoadComplete(order);
+  else if (dynamic_cast<CachePool *>(mem_pool.get()))
     return cache_loader->checkAllLoadComplete(order);
   else
     return true;
@@ -506,8 +508,11 @@ void TensorPool::loadCacheCancel(int id) {
   cache_loader->cancelAsync(id);
 }
 
-unsigned int TensorPool::inActive(unsigned int order) {
-  return cache_loader->inActive(order);
+void TensorPool::inActive(unsigned int order) {
+  if (auto fsu_pool = dynamic_cast<FsuWeightPool *>(mem_pool.get()))
+    return fsu_pool->inActive(order);
+  else
+    return cache_loader->inActive(order);
 }
 
 } // namespace nntrainer

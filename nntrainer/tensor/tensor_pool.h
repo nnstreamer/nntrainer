@@ -29,6 +29,8 @@
 #include <tensor.h>
 #include <tensor_wrap_specs.h>
 
+#include <fsu_weight_pool.h>
+
 namespace nntrainer {
 
 /**
@@ -53,11 +55,16 @@ public:
     bool enable_fsu, const std::string &fsu_path = "",
     const std::string &fsu_name = "",
     ml::train::ExecutionMode execution_mode = ml::train::ExecutionMode::TRAIN) {
+    exec_mode = execution_mode;
     if (enable_fsu) {
       auto cache_pool =
         std::make_shared<CachePool>(fsu_path, fsu_name, execution_mode);
       cache_loader = std::make_unique<CacheLoader>(cache_pool);
       mem_pool = cache_pool;
+      if (exec_mode == ml::train::ExecutionMode::INFERENCE) {
+        auto fsu_weight_pool_ = std::make_shared<FsuWeightPool>();
+        mem_pool = fsu_weight_pool_;
+      }
     } else {
       mem_pool = std::make_shared<MemoryPool>();
     }
@@ -320,7 +327,7 @@ public:
    * @brief This function will reset Actives at the given order.
    *
    */
-  unsigned int inActive(unsigned int order);
+  void inActive(unsigned int order);
 
   /**
    * @brief set FSU weight path
@@ -442,7 +449,7 @@ private:
     name_map;                           /**< indexing of requested tensors */
   std::shared_ptr<MemoryPool> mem_pool; /**< memory pool for the tensors */
   std::unique_ptr<CacheLoader> cache_loader; /**< memory pool for the tensors */
-
+  ml::train::ExecutionMode exec_mode;
   /**
    * @brief     Check if the lifespan leads to long term valitidy
    *

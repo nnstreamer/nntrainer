@@ -15,10 +15,9 @@
 
 namespace nntrainer {
 
-FsuWeightPool::FsuWeightPool() {
-  if (load_task_executor == nullptr) {
-    load_task_executor = new TaskExecutor("loadPool", 8);
-  }
+FsuWeightPool::FsuWeightPool() : fd(-1), load_batch_size(1) {
+  std::cout << "FSU Weight Pool is Allocated" << std::endl;
+  load_task_executor = new TaskExecutor("loadPool", 8);
 }
 
 FsuWeightPool::~FsuWeightPool() {
@@ -49,6 +48,15 @@ void FsuWeightPool::weightFileClose() {
   fd = -1;
 }
 
+void FsuWeightPool::setWeightOffset(std::vector<std::pair<size_t, size_t>> offsets) {
+  int id_idx = 0;
+  for (auto element : offsets) {
+    elements[id_idx].start_offset = element.first;
+    elements[id_idx].weight_len = element.second;
+    id_idx++;
+  }
+}
+
 void FsuWeightPool::allocate() {
 
   size_t pool_size = size();
@@ -61,15 +69,7 @@ void FsuWeightPool::allocate() {
 
 void FsuWeightPool::deallocate() { MemoryPool::deallocate(); }
 
-void FsuWeightPool::validate(unsigned int id) {
-  if (!elements[id].active) {
-    id_bank.push_back(id);
-  }
-  if (id_bank.size() == batch_size) {
-    loadFromFile(id_bank);
-    id_bank.clear();
-  }
-}
+
 
 unsigned int FsuWeightPool::requestMemory(size_t bytes, unsigned int start_time,
                                           unsigned int end_time,
@@ -83,8 +83,6 @@ unsigned int FsuWeightPool::requestMemory(size_t bytes, unsigned int start_time,
 
 std::shared_ptr<MemoryData> FsuWeightPool::getMemory(unsigned int id) {
 
-  off_t offset = getMemoryOffset().at(id - 1);
-  size_t len = getMemorySize().at(id - 1);
   auto exe_order = getMemoryExecOrder().at(id - 1);
 
   void *memory_ptr = nullptr;
@@ -93,9 +91,7 @@ std::shared_ptr<MemoryData> FsuWeightPool::getMemory(unsigned int id) {
   auto mem_data = std::make_shared<MemoryData>(
     id, std::bind(&FsuWeightPool::validate, this, std::placeholders::_1),
     nullptr, memory_ptr);
-
   elements[id] = {id, memory_ptr, false, 0, 0, mem_data, -1, LoadState::Idle};
-
   auto &o = exe_order[0];
   order_to_exec_ids[o].insert(id);
 
@@ -106,7 +102,22 @@ void FsuWeightPool::clear() {
   deallocate();
   MemoryPool::clear();
 }
-
+void FsuWeightPool::validate(unsigned int id) {
+  std::cout << "validate start " << std::endl;
+  if (!elements[id].active) {
+    id_bank.push_back(id);
+  }
+  if (id_bank.size() == load_batch_size) {
+    std::cout << "id_bank { ";
+    for (auto element : id_bank) {
+      std::cout << element << ", ";
+    }
+    std::cout << " } " << std::endl;
+    loadFromFile(id_bank);
+    id_bank.clear();
+    std::cout << "validate end" << std::endl;
+  }
+}
 void FsuWeightPool::loadFromFile(std::vector<unsigned int> ids) {
   NNTR_THROW_IF(fd <= 0, std::runtime_error)
     << "[FSU_ELEM] LoadFromFile failed : Device is not started";
@@ -129,6 +140,7 @@ void FsuWeightPool::loadFromFile(std::vector<unsigned int> ids) {
   size_t diff = start_offset - off;
   size_t len = total_len + diff;
 
+  std::cout << "start mmap " << "- len : " << len << " fd : " << fd << " off : " << off << std::endl;
   char *ptr = static_cast<char *>(
     mmap(nullptr, len, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, off));
 
@@ -138,13 +150,13 @@ void FsuWeightPool::loadFromFile(std::vector<unsigned int> ids) {
     << "[FSU_ELEM] mmap failed : "
     << SAFE_STRERROR(errno, error_buf, error_buflen);
 
-  char *real_start_ptr = static_cast<char *>(ptr + diff);
-
   // memcpy
   size_t offset_sum = 0;
   for (auto id : ids) {
-    void *now_ptr = static_cast<void *>(real_start_ptr + offset_sum);
-
+    void *now_ptr = static_cast<void *>(ptr + diff + offset_sum);
+    std::cout << "memory_ptr : " << elements[id].memory_ptr
+              << " now_ptr : " << now_ptr
+              << " weight_len : " << elements[id].weight_len << std::endl;
     memcpy(elements[id].memory_ptr, now_ptr, elements[id].weight_len);
     offset_sum += elements[id].weight_len;
 
@@ -179,9 +191,9 @@ bool FsuWeightPool::loadAllinOrder(unsigned int order) {
 
     int load_task_id_ = load_task_executor->submit(
       [this, id](void *data) {
-        validate(id);
+        this->validate(id);
         std::lock_guard<std::mutex> lock(this->state_mutex);
-        elements[id].load_state = LoadState::Loaded;
+        this->elements[id].load_state = LoadState::Loaded;
       },
       (void *)(std::uintptr_t)id);
 

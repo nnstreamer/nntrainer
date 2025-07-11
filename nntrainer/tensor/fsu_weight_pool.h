@@ -89,30 +89,16 @@ public:
 
   void loadTensor(unsigned int order);
 
-  void setFsuWeightPath(std::string path) override {weight_file_path = path};
-
-  /**
-   * @brief set {start_off, weight_len} to elements[id]
-
-   * @param id weight id
-   * @param offset {start_off, weight_len}
-   */
-  void addElement(unsigned int id, const std::pair<size_t, size_t> &offset,
-                  std::shared_ptr<MemoryData> data, void *ptr) {
-    /**
-      unsigned int id{};
-      void *memory_ptr{};
-      bool active{};
-      size_t start_offset{};
-      size_t weight_len{};
-      std::shared_ptr<MemoryData> mem_data;
-    */
-    elements[id] = {id, ptr, false, offset.first, offset.second, data};
+  void setFsuWeightPath(std::string path) override {
+    std::cout << "path set & open fd" << std::endl;
+    weight_file_path = path;
+    weightFileOpen();
   }
+
   bool checkAllLoadComplete(unsigned int order);
   void loadFromFile(std::vector<unsigned int> ids);
   bool loadAllinOrder(unsigned int order);
-
+  void setWeightOffset(std::vector<std::pair<size_t, size_t>> offsets);
 protected:
   void validate(unsigned int id);
 
@@ -124,9 +110,10 @@ private:
   TaskExecutor *load_task_executor;   /**< task executor */
   std::unordered_map<unsigned int, ExecIds> order_to_exec_ids;
   std::vector<unsigned int> id_bank;
-  unsigned int batch_size;
-  std::mutex mod_mutex;
+  unsigned int load_batch_size;
+
   std::mutex state_mutex;
+  std::mutex memcpy_mutex;
 };
 } // namespace nntrainer
 #endif // FSU_WEIGHT_POOL_H
