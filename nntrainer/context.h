@@ -34,6 +34,9 @@
 
 #include <nntrainer_log.h>
 
+#include "utils/noncopyable.h"
+#include "utils/nonmovable.h"
+
 namespace nntrainer {
 
 /**
@@ -61,7 +64,7 @@ private:
  * @brief  support for app context
  */
 
-class Context {
+class Context : public Noncopyable, public Nonmovable {
 public:
   using PropsType = std::vector<std::string>;
 

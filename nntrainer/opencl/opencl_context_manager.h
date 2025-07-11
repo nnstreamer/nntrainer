@@ -18,6 +18,9 @@
 
 #include "CL/cl.h"
 
+#include "utils/noncopyable.h"
+#include "utils/nonmovable.h"
+
 namespace nntrainer::opencl {
 
 /**
@@ -25,7 +28,7 @@ namespace nntrainer::opencl {
  * @brief OpenCL context wrapper
  *
  */
-class ContextManager {
+class ContextManager : public Noncopyable, public Nonmovable {
   cl_platform_id platform_id_{nullptr};
   cl_device_id device_id_{nullptr};
   cl_context context_{nullptr};
@@ -92,18 +95,6 @@ public:
    * @param svm_ptr pointer to the SVM memory to be deallocated
    */
   void releaseSVMRegion(void *svm_ptr);
-
-  /**
-   * @brief Deleting operator overload
-   *
-   */
-  void operator=(ContextManager const &) = delete;
-
-  /**
-   * @brief Deleting copy constructor
-   *
-   */
-  ContextManager(ContextManager const &) = delete;
 
   /**
    * @brief Destroy the Context Manager object

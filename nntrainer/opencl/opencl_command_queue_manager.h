@@ -16,6 +16,8 @@
 
 #include "CL/cl.h"
 #include "opencl_kernel.h"
+#include "utils/noncopyable.h"
+#include "utils/nonmovable.h"
 #include <memory>
 
 namespace nntrainer::opencl {
@@ -26,7 +28,7 @@ namespace nntrainer::opencl {
  * @brief OpenCL command queue wrapper
  *
  */
-class CommandQueueManager {
+class CommandQueueManager : public Noncopyable, public Nonmovable {
 
   /**
    * @brief cl_command_queue instance
@@ -209,18 +211,6 @@ public:
    * @return const cl_command_queue
    */
   const cl_command_queue GetCommandQueue();
-
-  /**
-   * @brief Deleting operator overload
-   *
-   */
-  void operator=(CommandQueueManager const &) = delete;
-
-  /**
-   * @brief Deleting copy constructor
-   *
-   */
-  CommandQueueManager(CommandQueueManager const &) = delete;
 
   /**
    * @brief Destroy the Command Queue Manager object
