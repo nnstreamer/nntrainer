@@ -89,7 +89,6 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
     NNTR_THROW_IF(ptr == MAP_FAILED, std::runtime_error)
       << "SwapDevice: mmap: " << SAFE_STRERROR(errno, error_buf, error_buflen);
 
-
 #if !defined(__ANDROID__) && !defined(_WIN32)
     // MADVISE can be used to improve performance.
     mlock(ptr, len);
@@ -117,6 +116,8 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
     NNTR_THROW_IF(ptr == MAP_FAILED, std::runtime_error)
       << "SwapDevice: mmap: " << SAFE_STRERROR(errno, error_buf, error_buflen);
     void *buf = static_cast<void *>(ptr + diff);
+
+    std::lock_guard<std::mutex> lock(mutex);
     mapped[buf] = std::make_tuple(ptr, len, offset, (ssize_t)size);
 
     return buf;
@@ -140,7 +141,10 @@ void *SwapDevice::getBuffer(off_t offset, size_t size, void *memory_ptr,
       << "SwapDevice: read file: " << dev_path;
   }
 
-  allocated[ptr] = std::make_pair(offset, (ssize_t)size);
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    allocated[ptr] = std::make_pair(offset, (ssize_t)size);
+  }
 
   return ptr;
 #endif
@@ -150,16 +154,17 @@ void SwapDevice::putBuffer(void *ptr, bool dealloc_only) {
   NNTR_THROW_IF(fd <= 0, std::runtime_error)
     << "SwapDevice: Device is not started";
 #ifdef USE_MMAP
-  if (mapped.size() == 0) {
-    return;
+  decltype(mapped)::mapped_type info;
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    auto it = mapped.find(ptr);
+    NNTR_THROW_IF(it == mapped.end(), std::runtime_error)
+      << "Couldn't find buffer";
+    info = it->second;
   }
-
-  NNTR_THROW_IF(mapped.find(ptr) == mapped.end(), std::runtime_error)
-    << "Couldn't find buffer";
 
   off_t off;
   ssize_t len;
-  auto info = mapped[ptr];
   if (!dealloc_only) {
     off = lseek(fd, std::get<2>(info), SEEK_SET);
     NNTR_THROW_IF(off < 0, std::runtime_error)
@@ -178,20 +183,28 @@ void SwapDevice::putBuffer(void *ptr, bool dealloc_only) {
   NNTR_THROW_IF(ret == -1, std::runtime_error)
     << "SwapDevice: munmap: " << SAFE_STRERROR(errno, error_buf, error_buflen);
 
-  mapped.erase(ptr);
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    mapped.erase(ptr);
+  }
 
 #if !defined(__ANDROID__) && !defined(_WIN32)
   madvise(std::get<void *>(info), std::get<size_t>(info), MADV_FREE);
 #endif
 
 #else
+  decltype(allocated)::mapped_type info;
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    auto it = allocated.find(ptr);
+    NNTR_THROW_IF(it == allocated.end(), std::invalid_argument)
+      << "SwapDevice: Couldn't find buffer";
+    info = it->second;
+  }
   off_t off;
   ssize_t len;
 
-  NNTR_THROW_IF(allocated.find(ptr) == allocated.end(), std::invalid_argument)
-    << "SwapDevice: Couldn't find buffer";
-
-  auto [offset, size] = allocated[ptr];
+  auto [offset, size] = info;
 
   if (!dealloc_only) {
     off = lseek(fd, offset, SEEK_SET);
@@ -204,7 +217,10 @@ void SwapDevice::putBuffer(void *ptr, bool dealloc_only) {
   }
 
   free(ptr);
-  allocated.erase(ptr);
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    allocated.erase(ptr);
+  }
 
 #if !defined(__ANDROID__) && !defined(_WIN32)
   malloc_trim(0);

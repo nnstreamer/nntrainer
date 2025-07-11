@@ -84,13 +84,13 @@ int CacheLoader::loadTensor(unsigned int id) {
 
   int load_task_id = load_task_executor->submit(
     [this, id](void *data) {
-      pool->loadTensor(id);
       std::lock_guard<std::mutex> lock(this->state_mutex);
+      pool->loadTensor(id);
       this->states[id] = LoadState::Loaded;
     },
     (void *)(std::uintptr_t)id);
 
-  pool->getCacheElem(id)->setLoadTaskID(load_task_id);
+  pool->getCacheElem(id).setLoadTaskID(load_task_id);
 
   return load_task_id;
 }
@@ -133,7 +133,7 @@ int CacheLoader::unloadTensor(unsigned int id) {
     },
     (void *)(std::uintptr_t)id);
 
-  pool->getCacheElem(id)->setUnloadTaskID(unload_task_id);
+  pool->getCacheElem(id).setUnloadTaskID(unload_task_id);
   return unload_task_id;
 }
 
@@ -167,15 +167,13 @@ int CacheLoader::flushAsync(unsigned int order,
   return 0;
 }
 void CacheLoader::flush() {
-  std::list<std::shared_ptr<CacheElem>> actives = pool->getActiveElems();
+  auto actives = pool->getActiveElems();
 
-  for (auto &elem : actives) {
-    auto id = elem->getId();
+  for (auto &id : actives) {
     unloadTensor(id);
   }
 
-  for (auto &elem : actives) {
-    auto id = elem->getId();
+  for (auto &id : actives) {
     checkUnloadComplete(id);
   }
 
@@ -197,16 +195,14 @@ int CacheLoader::cancelAsync(int id) {
 unsigned int CacheLoader::inActive(unsigned int order) {
   std::set<unsigned int> exec_id = pool->getExecIDs(order);
   for (auto &id : exec_id) {
-    std::shared_ptr<CacheElem> elem = pool->getCacheElem(id);
-    std::list<std::shared_ptr<CacheElem>> actives = pool->getActiveElems();
-    int load_task_id = elem->getLoadTaskID();
+    auto &elem = pool->getCacheElem(id);
+    int load_task_id = elem.getLoadTaskID();
     if (load_task_id >= 0) {
       load_task_executor->releaseTask(load_task_id);
-      elem->setLoadTaskID(-1);
+      elem.setLoadTaskID(-1);
       states[id] = LoadState::Unloading;
     }
-    actives.remove(elem);
-    elem->inActive();
+    pool->inActive(id);
   }
   return 0;
 }
@@ -232,12 +228,12 @@ bool CacheLoader::checkAllUnloadComplete(unsigned int order) {
 }
 
 bool CacheLoader::checkLoadComplete(unsigned int id) {
-  std::shared_ptr<CacheElem> elem = pool->getCacheElem(id);
-  int unload_task_id = elem->getUnloadTaskID();
-  int load_task_id = elem->getLoadTaskID();
+  auto &elem = pool->getCacheElem(id);
+  int unload_task_id = elem.getUnloadTaskID();
+  int load_task_id = elem.getLoadTaskID();
   if (unload_task_id >= 0) {
     load_task_executor->releaseTask(unload_task_id);
-    elem->setUnloadTaskID(-1);
+    elem.setUnloadTaskID(-1);
   }
 
   if (load_task_id >= 0) {
@@ -248,12 +244,12 @@ bool CacheLoader::checkLoadComplete(unsigned int id) {
 }
 
 bool CacheLoader::checkUnloadComplete(unsigned int id) {
-  std::shared_ptr<CacheElem> elem = pool->getCacheElem(id);
-  int unload_task_id = elem->getUnloadTaskID();
-  int load_task_id = elem->getLoadTaskID();
+  auto &elem = pool->getCacheElem(id);
+  int unload_task_id = elem.getUnloadTaskID();
+  int load_task_id = elem.getLoadTaskID();
   if (load_task_id >= 0) {
     load_task_executor->releaseTask(load_task_id);
-    elem->setLoadTaskID(-1);
+    elem.setLoadTaskID(-1);
   }
   if (unload_task_id >= 0) {
     load_task_executor->wait(unload_task_id);

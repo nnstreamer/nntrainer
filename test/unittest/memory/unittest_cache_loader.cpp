@@ -58,26 +58,31 @@ TEST_F(CacheLoaderTest, load_01_p) {
   loader->checkLoadComplete(1);
   EXPECT_NE(mem->getAddr(), nullptr);
   int unload_id = loader->unloadTensor(1);
+  loader->checkUnloadComplete(1);
 
   loader->loadAllinOrder(1);
   loader->checkAllLoadComplete(1);
   EXPECT_NE(mem->getAddr(), nullptr);
   loader->unloadAllinOrder(1);
+  loader->checkAllUnloadComplete(1);
 
   loader->loadAllinOrder(2);
   loader->checkAllLoadComplete(2);
   EXPECT_NE(mem->getAddr(), nullptr);
   loader->unloadAllinOrder(2);
+  loader->checkAllUnloadComplete(2);
 
   loader->loadAllinOrder(3);
   loader->checkAllLoadComplete(3);
   EXPECT_NE(mem->getAddr(), nullptr);
   loader->unloadAllinOrder(3);
+  loader->checkAllUnloadComplete(3);
 
   loader->loadAllinOrder(4);
   loader->checkAllLoadComplete(4);
   EXPECT_NE(mem->getAddr(), nullptr);
   loader->unloadAllinOrder(4);
+  loader->checkAllUnloadComplete(4);
 
   loader->loadAllinOrder(5);
   loader->checkAllLoadComplete(5);
@@ -89,6 +94,7 @@ TEST_F(CacheLoaderTest, load_01_p) {
   loader->checkAllLoadComplete(6);
   EXPECT_EQ(mem->getAddr(), nullptr);
   loader->unloadAllinOrder(6);
+  loader->checkAllUnloadComplete(6);
 }
 
 /**

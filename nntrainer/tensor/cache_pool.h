@@ -16,6 +16,7 @@
 
 #include <list>
 #include <mutex>
+#include <unordered_set>
 #include <vector>
 
 #include <cache_elem.h>
@@ -33,7 +34,7 @@ class CachePool : public MemoryPool {
 public:
   using CacheElems =
     std::unordered_map<unsigned int,
-                       std::shared_ptr<CacheElem>>; /**< cache id, cache elem */
+                       std::unique_ptr<CacheElem>>; /**< cache id, cache elem */
   using CacheElemsIter = CacheElems::iterator;
   using ExecIds = std::set<unsigned int>;
   using ExecIdsIter = ExecIds::iterator;
@@ -229,14 +230,14 @@ public:
    *
    * @return Active Cache Elem list
    */
-  std::list<std::shared_ptr<CacheElem>> getActiveElems() { return actives; }
+  std::unordered_set<unsigned int> getActiveElems() { return actives; }
 
   /**
    * @brief get Cache Elem with id
    * @param id Tensor ID
    * @return Cache Elem
    */
-  std::shared_ptr<CacheElem> getCacheElem(unsigned int id) { return elems[id]; }
+  CacheElem &getCacheElem(unsigned int id) { return *elems[id]; }
 
   /**
    * @brief check Cache Elem with id is loaded (Active)
@@ -268,15 +269,17 @@ protected:
   std::vector<CachePolicy> &getCachePolicy() { return policies; }
 
 private:
+  void eraseActiveIf(const std::function<bool(unsigned int id)> &pred);
+
   std::string name;                         /**< pool name */
   ml::train::ExecutionMode execution_mode_; /**< execution mode */
   std::shared_ptr<SwapDevice> swap_device;  /**< swap device */
   CacheElems elems;                         /**< cache elements */
-  std::list<std::shared_ptr<CacheElem>> actives;
+  std::unordered_set<unsigned int> actives;
   std::vector<CachePolicy> policies;
   std::unordered_map<unsigned int, ExecIds> exec_ids;
 
-  std::mutex mod_mutex;
+  mutable std::mutex mutex;
 };
 
 } // namespace nntrainer

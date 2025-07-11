@@ -13,9 +13,6 @@
 
 #include "cache_elem.h"
 
-#include <stdexcept>
-#include <vector>
-
 #include <profiler.h>
 
 namespace nntrainer {
@@ -50,8 +47,6 @@ inline bool checkDeallocOnly(CachePolicy policy, CacheElem::Options opt) {
 } // namespace
 
 void CacheElem::swapIn(Options opt) {
-  std::lock_guard<std::mutex> lock(device_mutex);
-
   opt = static_cast<Options>(opt | initial_opt);
   bool alloc_only = checkAllocOnly(policy, opt);
   void *buf = device->getBuffer(offset, length, memory_ptr, id - 1, alloc_only);
@@ -68,7 +63,6 @@ void CacheElem::swapIn(Options opt) {
 }
 
 void CacheElem::swapOut(Options opt) {
-  std::lock_guard<std::mutex> lock(device_mutex);
   opt = static_cast<Options>(opt | initial_opt);
   bool dealloc_only = checkDeallocOnly(policy, opt);
   void *buf = (void *)mem_data->getAddr();
