@@ -46,7 +46,7 @@ typedef struct {
 
 
 inline float GGML_FP16_TO_FP32(half h) {
-    return convert_float(h);
+    return (float)(h);
 }
 
 __kernel void  ggml_gemm_q4_K_8x8_q8_K(
@@ -194,7 +194,7 @@ typedef struct {
 } block_q8_K;
 
 inline float GGML_FP16_TO_FP32(half h) {
-    return convert_float(h);
+    return (float)(h);
 }
 
 __kernel void ggml_gemv_q4_K_8x8_q8_K(
@@ -203,8 +203,7 @@ __kernel void ggml_gemv_q4_K_8x8_q8_K(
     __global const block_q4_Kx8 * __restrict vx,
     __global const block_q8_K   * __restrict vy,
              const int                       nr,
-             const int                       nc)
-{
+             const int                       nc) {
     const int qk = QK_K;
     const int nb = n / qk;
 
@@ -295,7 +294,7 @@ __kernel void ggml_gemv_q4_K_8x8_q8_K(
 
       vstore4(result_vec, 0, &s[x * NCOLS_INTERLEAVED + j]);
     }
-}
+  }
     )";
 
   return q4_k_sgemv_cl_kernel;

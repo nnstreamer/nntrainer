@@ -73,7 +73,7 @@ void sgemm_q4_k_cl(const unsigned int M, const unsigned int N,
   }
 
   const int work_groups_count[3] = {(int)N / 8, (int)M / 4, 1};
-  const int work_group_size[3] = {8, 8, 1};
+  const int work_group_size[3] = {8, 4, 1};
 
   if (!opencl::CommandQueueManager::GetInstance().DispatchCommand(
         kernel, work_groups_count, work_group_size)) {

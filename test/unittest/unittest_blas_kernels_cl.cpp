@@ -15,6 +15,7 @@
 #include <iostream>
 #include <random>
 #include <type_traits>
+#include <numeric>
 
 #include "ggml.h"
 
@@ -44,6 +45,55 @@ typedef struct {
   EXPECT_LE((VAL), (MAX))
 
 using namespace nntrainer;
+
+template <typename T>
+static inline double find_max_diff(T *src, T *src2, int M, int N) {
+  float max_diff = 0;
+  double err_sum = 0;
+  for (int i = 0; i < M; ++i) {
+    for (int j = 0; j < N; ++j) {
+      max_diff = std::max(max_diff, std::abs(src[i * N + j] - src2[i * N + j]));
+      err_sum += std::abs(src[i * N + j] - src2[i * N + j]);
+    }
+  }
+  // std::cout << "err_sum : " << err_sum << std::endl;
+  return max_diff;
+}
+
+float compute_mse(const uint32_t M, const uint32_t N, float *ref_dst,
+                  const size_t ref_dst_sz, float *dst, const size_t dst_sz,
+                  bool print = false) {
+  auto mean_squared_error = mse<float, float>(ref_dst, dst, M * N);
+  auto cos_sim = cosine_similarity(ref_dst, dst, M * N);
+  auto max_differ = find_max_diff(ref_dst, dst, M, N);
+
+  auto sum = std::accumulate(dst, dst + dst_sz, 0.0);
+  auto sum_gt = std::accumulate(ref_dst, ref_dst + ref_dst_sz, 0.0);
+  if (print) {
+    std::cout << "[INFO]            MSE: " << mean_squared_error
+              << ", COS_SIM: " << cos_sim << ", MAX_DIFFER: " << max_differ
+              << ", SUM: " << sum << ", SUM_GT: " << sum_gt << std::endl;
+  }
+  return mean_squared_error;
+}
+
+float compute_mse(const uint32_t M, const uint32_t N,
+                  std::vector<float> &ref_dst, std::vector<float> &dst,
+                  bool print = false) {
+  auto mean_squared_error =
+    mse<float, float>(ref_dst.data(), dst.data(), M * N);
+  auto cos_sim = cosine_similarity(ref_dst.data(), dst.data(), M * N);
+  auto max_differ = find_max_diff(ref_dst.data(), dst.data(), M, N);
+
+  auto sum = std::accumulate(dst.begin(), dst.end(), 0.0);
+  auto sum_gt = std::accumulate(ref_dst.begin(), ref_dst.end(), 0.0);
+  if (print) {
+    std::cout << "[INFO]            MSE: " << mean_squared_error
+              << ", COS_SIM: " << cos_sim << ", MAX_DIFFER: " << max_differ
+              << ", SUM: " << sum << ", SUM_GT: " << sum_gt << std::endl;
+  }
+  return mean_squared_error;
+}
 
 TEST(blas_kernels, dotCL_sgemv_M_1_1) {
   int batch = 1;
@@ -1411,10 +1461,10 @@ static void run_q_4_K_test(const uint32_t M, const uint32_t K,
       }
     }
 
-    // const auto mean_squared_error_dst_gpu =
-    //   compute_mse(M, N, ref_dst, gpu_q6_dst, false);
-    // const auto mean_squared_error_dst =
-    //   compute_mse(M, N, ref_dst, cpu_q6_dst, false);
+    const auto mean_squared_error_dst_gpu =
+      compute_mse(M, N, (float*)ref_dst.data(), M * N, (float*)gpu_q4_dst, M * N, false);
+    const auto mean_squared_error_dst =
+      compute_mse(M, N, (float*)ref_dst.data(), M * N, (float*)cpu_q4_dst.data(), M * N, false);
 
     const auto data_size_mb = data_size / (1024 * 1024.0f);
 
@@ -1438,9 +1488,8 @@ static void run_q_4_K_test(const uint32_t M, const uint32_t K,
               << first_zero_index << " ]" << std::endl;
     std::cout << " - nans : " << nans << " / " << M * N << " [ "
               << nans * 100.0f / float(M * N) << " %]" << std::endl;
-    // std::cout << " - MSE : CPU = " << mean_squared_error_dst << std::endl;
-    // std::cout << " - MSE : GPU = " << mean_squared_error_dst_gpu <<
-    // std::endl;
+    std::cout << " - MSE : CPU = " << mean_squared_error_dst << std::endl;
+    std::cout << " - MSE : GPU = " << mean_squared_error_dst_gpu << std::endl;
   }
 }
 
