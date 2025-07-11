@@ -7,8 +7,10 @@
  * @brief  Test Application for Asynch FSU
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Jijoong Moon <jijoong.moon@samsung.com>
+ * @author Donghak Park <donghak.park@samsung.com>
  * @bug    No known bugs except for NYI items
  */
+
 #include <array>
 #include <chrono>
 #include <ctime>
@@ -22,10 +24,6 @@
 #include <model.h>
 #include <optimizer.h>
 #include <util_func.h>
-
-#ifdef PROFILE
-#include <profiler.h>
-#endif
 
 using LayerHandle = std::shared_ptr<ml::train::Layer>;
 using ModelHandle = std::unique_ptr<ml::train::Model>;
@@ -47,7 +45,7 @@ std::vector<LayerHandle> createGraph() {
   for (int i = 0; i < 56; i++) {
     layers.push_back(
       createLayer("fully_connected",
-                  {nntrainer::withKey("unit", 1024),
+                  {nntrainer::withKey("unit", 2048),
                    nntrainer::withKey("weight_initializer", "xavier_uniform"),
                    nntrainer::withKey("disable_bias", "true")}));
   }
@@ -66,10 +64,10 @@ ModelHandle create() {
   return model;
 }
 
-void saveBin(unsigned int epochs, unsigned int batch_size) {
+void saveBin(std::string file_path) {
   ModelHandle model = create();
-  model->setProperty({nntrainer::withKey("batch_size", batch_size),
-                      nntrainer::withKey("epochs", epochs),
+  model->setProperty({nntrainer::withKey("batch_size", 1),
+                      nntrainer::withKey("epochs", 1),
                       nntrainer::withKey("model_tensor_type", "FP16-FP16")});
   auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
   int status = model->setOptimizer(std::move(optimizer));
@@ -86,40 +84,36 @@ void saveBin(unsigned int epochs, unsigned int batch_size) {
   if (status) {
     throw std::invalid_argument("model initialization failed!");
   }
-  std::string filePath = "FSU_WEIGHT.bin";
-  model->save(filePath, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+
+  model->save(file_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
 }
 
 void createAndRun(unsigned int epochs, unsigned int batch_size,
-                  std::string fsu_on_off, std::string look_ahaed,
-                  std::string file_path) {
-  saveBin(epochs, batch_size);
-  // setup model
-  ModelHandle model = create();
-  model->setProperty({nntrainer::withKey("batch_size", batch_size),
-                      nntrainer::withKey("epochs", epochs),
-                      nntrainer::withKey("model_tensor_type", "FP16-FP16")});
-
-  model->setProperty({nntrainer::withKey("fsu", fsu_on_off)});
-  if (fsu_on_off == "true") {
-    model->setProperty({nntrainer::withKey("fsu_lookahead", look_ahaed)});
-  }
+                  std::string look_ahaed, std::string file_path) {
 
   auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
-  int status = model->setOptimizer(std::move(optimizer));
-  if (status) {
-    throw std::invalid_argument("failed to set optimizer!");
-  }
 
-  status = model->compile(ml::train::ExecutionMode::INFERENCE);
-  if (status) {
-    throw std::invalid_argument("model compilation failed!");
-  }
+  // Model with FSU option
+  ModelHandle model_fsu = create();
+  model_fsu->setProperty(
+    {nntrainer::withKey("batch_size", batch_size),
+     nntrainer::withKey("epochs", epochs),
+     nntrainer::withKey("model_tensor_type", "FP16-FP16")});
+  model_fsu->setProperty({nntrainer::withKey("fsu", "true")});
+  model_fsu->setProperty({nntrainer::withKey("fsu_lookahead", look_ahaed)});
+  model_fsu->setOptimizer(std::move(optimizer));
+  model_fsu->compile(ml::train::ExecutionMode::INFERENCE);
+  model_fsu->initialize(ml::train::ExecutionMode::INFERENCE);
 
-  status = model->initialize(ml::train::ExecutionMode::INFERENCE);
-  if (status) {
-    throw std::invalid_argument("model initialization failed!");
-  }
+  // Model without FSU option
+  ModelHandle model_no_fsu = create();
+  model_no_fsu->setProperty(
+    {nntrainer::withKey("batch_size", batch_size),
+     nntrainer::withKey("epochs", epochs),
+     nntrainer::withKey("model_tensor_type", "FP16-FP16")});
+  model_no_fsu->setOptimizer(std::move(optimizer));
+  model_no_fsu->compile(ml::train::ExecutionMode::INFERENCE);
+  model_no_fsu->initialize(ml::train::ExecutionMode::INFERENCE);
 
   const unsigned int feature_size = 1 * 1024 * 1024;
 
@@ -133,75 +127,85 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
 
   in.push_back(input.data());
 
-  auto start = std::chrono::system_clock::now();
-  std::time_t start_time = std::chrono::system_clock::to_time_t(start);
-  std::cout << "started computation at " << std::ctime(&start_time)
+  if (std::filesystem::exists(file_path)) {
+    model_fsu->load(file_path);
+    model_no_fsu->load(file_path);
+  } else {
+    saveBin(file_path);
+    model_fsu->load(file_path);
+    model_no_fsu->load(file_path);
+  }
+  std::cout << "==============================================================="
+               "==========================\n"
+            << "| Operation             | FSU        | NO_FSU          | "
+               "DIFF(ABS)       | NO_FSU/FSU(%) "
             << std::endl;
 
-  // to test asynch fsu, we do need save the model weight data in file
-  std::string filePath = "simplefc_weight_fp16_fp16_100.bin";
-  if (std::filesystem::exists(filePath)) {
-    model->load(filePath);
+  double total_fsu_time = 0.0;
+  double total_no_fsu_time = 0.0;
 
-    auto load_end = std::chrono::system_clock::now();
-    std::chrono::duration<double> load_elapsed_seconds = load_end - start;
-    std::time_t load_end_time = std::chrono::system_clock::to_time_t(load_end);
-    std::cout << "Load finished computation at " << std::ctime(&load_end_time)
-              << "elapsed time: " << load_elapsed_seconds.count() << "s\n";
-  } else {
-    model->save(filePath, ml::train::ModelFormat::MODEL_FORMAT_BIN);
-    model->load(filePath);
+  for (int iteration = 1; iteration <= 5; iteration++) {
+    auto fsu_iter_start = std::chrono::system_clock::now();
+    answer = model_fsu->inference(1, in);
+    auto fsu_iter_end = std::chrono::system_clock::now();
+
+    auto no_fsu_iter_start = std::chrono::system_clock::now();
+    answer = model_no_fsu->inference(1, in);
+    auto no_fsu_iter_end = std::chrono::system_clock::now();
+
+    std::chrono::duration<double> fsu_time = fsu_iter_end - fsu_iter_start;
+    std::chrono::duration<double> no_fsu_time =
+      no_fsu_iter_end - no_fsu_iter_start;
+
+    std::cout << "-------------------------------------------------------------"
+                 "----------------------------\n"
+              << "| " << iteration << "-infer Time          | "
+              << fsu_time.count() << "   | " << no_fsu_time.count()
+              << "        | "
+              << std::abs(fsu_time.count() - no_fsu_time.count())
+              << "        | " << (no_fsu_time.count() / fsu_time.count()) * 100
+              << " % \n";
+    total_fsu_time += fsu_time.count();
+    total_no_fsu_time += no_fsu_time.count();
   }
 
-  answer = model->inference(1, in);
-
-  auto end = std::chrono::system_clock::now();
-  std::chrono::duration<double> elapsed_seconds = end - start;
-  std::time_t end_time = std::chrono::system_clock::to_time_t(end);
-  std::cout << "finished computation at " << std::ctime(&end_time)
-            << "elapsed time: " << elapsed_seconds.count() << "s\n";
+  std::cout << "---------------------------------------------------------------"
+               "--------------------------\n"
+            << "| total Infer Time      | " << total_fsu_time << "   | "
+            << total_no_fsu_time << "        | " <<std::abs(total_fsu_time - total_no_fsu_time)
+            << "        | " << (total_no_fsu_time / total_fsu_time) * 100
+            << " % \n"
+            << "==============================================================="
+               "==========================\n";
   in.clear();
 }
 
 int main(int argc, char *argv[]) {
 
-#ifdef PROFILE
-  auto listener =
-    std::make_shared<nntrainer::profile::GenericProfileListener>();
-  nntrainer::profile::Profiler::Global().subscribe(listener);
-#endif
-
-  std::string fsu_on = "true";
-  std::string look_ahead = "1";
-  std::string weight_file_path = "FSU_WEIGHT.bin";
-  if (argc < 4) {
+  if (argc < 3) {
     std::cerr << "need more argc, executable fsu_on look_ahead Weight_file_path"
               << std::endl;
   }
 
-  fsu_on = argv[1];           // true or false
-  look_ahead = argv[2];       // int
-  weight_file_path = argv[3]; // string
+  std::string fsu_on = argv[1];     // true or false
+  std::string look_ahead = argv[2]; // int
+  std::string weight_file_path = argv[3];
 
-  std::cout << "fsu_on : " << fsu_on << std::endl;
-  std::cout << "look_ahead : " << look_ahead << std::endl;
-  std::cout << "weight_file_path : " << weight_file_path << std::endl;
+  std::cout << std::fixed << std::setprecision(6);
+  std::cout << "==============================================================="
+               "==========================\n"
+            << "| LOOK_AHEAD ==>   " << look_ahead << "\n";
 
   unsigned int batch_size = 1;
   unsigned int epoch = 1;
 
   try {
-    createAndRun(epoch, batch_size, fsu_on, look_ahead, weight_file_path);
+    createAndRun(epoch, batch_size, look_ahead, weight_file_path);
   } catch (const std::exception &e) {
     std::cerr << "uncaught error while running! details: " << e.what()
               << std::endl;
     return EXIT_FAILURE;
   }
-
-#ifdef PROFILE
-  std::cout << *listener;
-#endif
-
   int status = EXIT_SUCCESS;
   return status;
 }

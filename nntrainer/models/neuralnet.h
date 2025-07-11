@@ -705,7 +705,7 @@ private:
 
   DynamicTrainingOptimization dynamic_training_opt; /**< Dynamic fine-tuning
    optimization mode. supported modes are "max" and "norm" */
-
+  bool is_first_inference = false;
   /**
    * @brief save model in ini
    *

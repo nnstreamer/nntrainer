@@ -134,7 +134,7 @@ public:
    *
    */
 
-  unsigned int inActive(unsigned int order);
+  void inActive(unsigned int order);
 
   /**
    * @brief wait for the load tasks in order are complete

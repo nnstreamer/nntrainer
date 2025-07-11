@@ -1,5 +1,6 @@
 tensor_sources = [
   'cache_elem.cpp',
+  'fsu_weight_pool.cpp',
   'cache_loader.cpp',
   'cache_pool.cpp',
   'lazy_tensor.cpp',
@@ -52,6 +53,7 @@ tensor_headers = [
   'task_executor.h',
   'cache_pool.h',
   'cache_elem.h',
+  'fsu_weight_pool.h',
   'memory_pool.h',
   'swap_device.h',
   'task.h'

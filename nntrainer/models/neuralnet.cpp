@@ -348,11 +348,14 @@ sharedConstTensors NeuralNetwork::forwarding(
 
   unsigned int lookahead = std::get<props::FsuLookahead>(model_flex_props);
   bool fsu_mode = std::get<props::Fsu>(model_flex_props);
-  if (fsu_mode) {
+
+  if (is_first_inference == false && fsu_mode) {
     for (unsigned int i = 0; i < lookahead; ++i) {
       model_graph.LoadTensors(i);
     }
+    is_first_inference = true;
   }
+
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
     [this, stop_cb, lookahead, fsu_mode](std::shared_ptr<LayerNode> node,
                                          bool training) -> void {

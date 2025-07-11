@@ -823,9 +823,9 @@ void Manager::LoadTensors(unsigned int order,
       << "Fail to launch task";
   };
 
-  if (order <= max_exec_order) {
-    enqueTasks(order);
-  }
+  auto order_mod = order % (max_exec_order+1);
+  enqueTasks(order_mod);
+
 }
 
 void Manager::UnloadTensors(unsigned int order) {
@@ -915,7 +915,7 @@ void Manager::finalizeTensorPool(TensorPool &pool, unsigned int start,
   }
 }
 
-unsigned int Manager::inActive(unsigned int order) {
+void Manager::inActive(unsigned int order) {
   return weight_pool.inActive(order);
 }
 
