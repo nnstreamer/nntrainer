@@ -19,8 +19,6 @@ namespace nntrainer {
 const std::string &getQ4KGemmClKernel() {
   static const std::string q4_k_gemm_cl_kernel =
     R"(
-    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
-
     #define QK_K 256
     #define NCOLS_INTERLEAVED 8
     #define BLOCKLEN 8
@@ -47,6 +45,9 @@ const std::string &getQ4KGemmClKernel() {
     inline float fp16_to_fp32(half h) { return convert_float(h); }
     inline int low_nib(uchar v) { return v & 0x0F; }
     inline int high_nib(uchar v) { return v >> 4; }
+
+    #define REDUCE_ADD_SHORT8(v)                                                   \
+      ((v).s0 + (v).s1 + (v).s2 + (v).s3 + (v).s4 + (v).s5 + (v).s6 + (v).s7)
 
     __kernel void mat_mul_q4_K_8x8_q8_K(const int n, __global float *restrict s,
                                         const int bs, // leading stride of s
@@ -93,8 +94,8 @@ const std::string &getQ4KGemmClKernel() {
 
         barrier(CLK_LOCAL_MEM_FENCE);
 
-        // 2. Single lane unpacks
-        if (lane == 0) {
+        // 2. Parellel lane unpacks
+        if (lane < 8) {
           for (int sb = 0; sb < 8; ++sb) {
             __local const uchar *src =
               (__local const uchar *)&lB.scales[0] + sb * 12;
@@ -113,33 +114,44 @@ const std::string &getQ4KGemmClKernel() {
 
         barrier(CLK_LOCAL_MEM_FENCE);
 
-        // 3. Dot product
-        for (int k = 0; k < QK_K / (2 * BLOCKLEN); ++k) {
+        const float dB = fp16_to_fp32(lB.d[lane_j]);
+        const float dB_min = fp16_to_fp32(lB.dmin[lane_j]);
+        const float dA = lA.d[lane_m];
 
+        // 3. Dot product (vectorized)
+        for (int k = 0; k < QK_K / (2 * BLOCKLEN); ++k) {
           __local const uchar *lbytes = (__local const uchar *)lutmp;
           __local const uchar *scales_0 = lbytes + (k / 4) * 32;
           __local const uchar *scales_1 = scales_0 + 16;
 
-          int sumi = 0;
+          const int scale0 = scales_0[lane_j];
+          const int scale1 = scales_1[lane_j];
 
-          for (int i = 0; i < BLOCKLEN; ++i) {
-            const int idxB =
-              k * NCOLS_INTERLEAVED * BLOCKLEN + lane_j * BLOCKLEN + i;
+          const int idxB_base =
+            k * NCOLS_INTERLEAVED * BLOCKLEN + lane_j * BLOCKLEN;
+          const int idxA_base =
+            (k >> 2) * 256 + (k & 3) * 4 * BLOCKLEN + lane_m * BLOCKLEN;
 
-            const int idxA =
-              (k >> 2) * 256 + (k & 3) * 4 * BLOCKLEN + lane_m * BLOCKLEN + i;
+          uchar8 qbytes = vload8(0, lB.qs + idxB_base);
+          char8 a0v = vload8(0, lA.qs + idxA_base);
+          char8 a1v = vload8(0, lA.qs + idxA_base + 128);
 
-            uchar q4 = lB.qs[idxB];
-            int v0 = (char)low_nib(q4);
-            int v1 = (char)high_nib(q4);
+          uchar8 low_u = qbytes & (uchar8)(0x0F);
+          uchar8 high_u = qbytes >> (uchar8)4;
 
-            int a0 = (char)lA.qs[idxA];
-            int a1 = (char)lA.qs[idxA + 128];
+          short8 v0 = convert_short8(low_u);
+          short8 v1 = convert_short8(high_u);
+          short8 a0 = convert_short8(a0v);
+          short8 a1 = convert_short8(a1v);
 
-            sumi += v0 * a0 * scales_0[lane_j] + v1 * a1 * scales_1[lane_j];
-          }
+          short8 prod0 = v0 * a0;
+          short8 prod1 = v1 * a1;
 
-          sumf += (float)sumi * fp16_to_fp32(lB.d[lane_j]) * lA.d[lane_m];
+          int sumi0 = REDUCE_ADD_SHORT8(prod0);
+          int sumi1 = REDUCE_ADD_SHORT8(prod1);
+          int sumi = sumi0 * scale0 + sumi1 * scale1;
+
+          sumf += (float)sumi * dB * dA;
         }
 
         // 4. Mins correction
@@ -148,16 +160,13 @@ const std::string &getQ4KGemmClKernel() {
 
           for (int sb = 0; sb < 8; ++sb) {
             __local const uchar *mins = lbytes + 8 + sb * 16;
-
             __local const short *bsum = (__local const short *)&lA.bsums[0] +
                                         sb * 8 + lane_m * 4 - ((sb & 1) * 6);
 
             int macc = mins[lane_j] * (bsum[0] + bsum[1]);
-
-            sum_minf += (float)macc * fp16_to_fp32(lB.dmin[lane_j]) * lA.d[lane_m];
+            sum_minf += (float)macc * dB_min * dA;
           }
         }
-
         barrier(CLK_LOCAL_MEM_FENCE);
       }
 
