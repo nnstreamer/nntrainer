@@ -247,8 +247,8 @@ void sgemm_q4_k_cl(const unsigned int M, const unsigned int N,
     return;
   }
 
-  const int tile_size = 32;
-  const int work_groups_count[3] = {(int)(M / 4) * tile_size, (int)N / 8, 1};
+  const int tile_size = 64;
+  const int work_groups_count[3] = {(int)(M / 4) * tile_size, (int)N / 16, 1};
   const int work_group_size[3] = {tile_size, 1, 1};
 
   if (!opencl::CommandQueueManager::GetInstance().DispatchCommand(
