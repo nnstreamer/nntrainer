@@ -20,9 +20,9 @@ const std::string &getQ4KGemmClKernel() {
   static const std::string q4_k_gemm_cl_kernel =
     R"(
     #define QK_K 256
-    #define NCOLS_INTERLEAVED 8
-    #define BLOCKLEN 8
-    #define WORKGROUP_SIZE 32
+    #define NCOL_I 16
+    #define BLK_LEN 8
+    #define WG_SIZE 64
 
     #define KMASK1 0x3f3f3f3fu
     #define KMASK2 0x0f0f0f0fu
@@ -58,48 +58,54 @@ const std::string &getQ4KGemmClKernel() {
       const int tile_x = get_group_id(1);
       const int lane = get_local_id(0);
 
-      const int lane_m = lane / NCOLS_INTERLEAVED;
-      const int lane_j = lane % NCOLS_INTERLEAVED;
+      const int lane_m = lane / NCOL_I;
+      const int lane_j = lane % NCOL_I;
 
       const int nb = n / QK_K;
 
-      // Local memory
-      __local block_q4_Kx8 lB;
+      __local block_q4_Kx8 lB[2];
       __local block_q8_Kx4 lA;
-      __local uint lutmp[32];
+      __local uint lutmp[2][32];
 
       float sumf = 0.0f;
       float sum_minf = 0.0f;
 
       for (int b = 0; b < nb; ++b) {
-        // 1. All lanes copy the two blocks
         {
-          __global const uchar *gB = (__global const uchar *)(vx + tile_x * nb + b);
+          __global const uchar *gB0 =
+            (__global const uchar *)(vx + (tile_x * 2 + 0) * nb + b);
+          __global const uchar *gB1 =
+            (__global const uchar *)(vx + (tile_x * 2 + 1) * nb + b);
           __global const uchar *gA = (__global const uchar *)(vy + tile_y * nb + b);
-          __local uchar *lBdst = (__local uchar *)&lB;
+
+          __local uchar *lBdst0 = (__local uchar *)&lB[0];
+          __local uchar *lBdst1 = (__local uchar *)&lB[1];
           __local uchar *lAdst = (__local uchar *)&lA;
 
           const int vecsB = (int)(sizeof(block_q4_Kx8) / 16);
           const int vecsA = (int)(sizeof(block_q8_Kx4) / 16);
 
-          for (int v = lane; v < vecsB; v += WORKGROUP_SIZE) {
-            uchar16 tmp = vload16(0, gB + v * 16);
-            vstore16(tmp, 0, lBdst + v * 16);
+          for (int v = lane; v < vecsB; v += WG_SIZE) {
+            uchar16 tmp0 = vload16(0, gB0 + v * 16);
+            uchar16 tmp1 = vload16(0, gB1 + v * 16);
+            vstore16(tmp0, 0, lBdst0 + v * 16);
+            vstore16(tmp1, 0, lBdst1 + v * 16);
           }
-          for (int v = lane; v < vecsA; v += WORKGROUP_SIZE) {
+          for (int v = lane; v < vecsA; v += WG_SIZE) {
             uchar16 tmp = vload16(0, gA + v * 16);
             vstore16(tmp, 0, lAdst + v * 16);
           }
         }
-
         barrier(CLK_LOCAL_MEM_FENCE);
 
-        // 2. Parellel lane unpacks
-        if (lane < 8) {
+        if (lane < 16) {
+          const int blk = lane >> 3;
+          const int lj = lane & 7;
+
           for (int sb = 0; sb < 8; ++sb) {
             __local const uchar *src =
-              (__local const uchar *)&lB.scales[0] + sb * 12;
-            __local uint *dst = lutmp + sb * 4;
+              (__local const uchar *)&lB[blk].scales[0] + sb * 12;
+            __local uint *dst = lutmp[blk] + sb * 4;
 
             vstore4(vload4(0, (__local uint *)src), 0, dst);
 
@@ -111,28 +117,27 @@ const std::string &getQ4KGemmClKernel() {
             dst[0] &= KMASK1;
           }
         }
-
         barrier(CLK_LOCAL_MEM_FENCE);
 
-        const float dB = fp16_to_fp32(lB.d[lane_j]);
-        const float dB_min = fp16_to_fp32(lB.dmin[lane_j]);
+        const int blk = lane_j >> 3;
+        const int lj = lane_j & 7;
+        const float dB = fp16_to_fp32(lB[blk].d[lj]);
+        const float dB_min = fp16_to_fp32(lB[blk].dmin[lj]);
         const float dA = lA.d[lane_m];
 
-        // 3. Dot product (vectorized)
-        for (int k = 0; k < QK_K / (2 * BLOCKLEN); ++k) {
-          __local const uchar *lbytes = (__local const uchar *)lutmp;
+        for (int k = 0; k < QK_K / (2 * BLK_LEN); ++k) {
+          __local const uchar *lbytes = (__local const uchar *)lutmp[blk];
           __local const uchar *scales_0 = lbytes + (k / 4) * 32;
           __local const uchar *scales_1 = scales_0 + 16;
 
-          const int scale0 = scales_0[lane_j];
-          const int scale1 = scales_1[lane_j];
+          const int scale0 = scales_0[lj];
+          const int scale1 = scales_1[lj];
 
-          const int idxB_base =
-            k * NCOLS_INTERLEAVED * BLOCKLEN + lane_j * BLOCKLEN;
+          const int idxB_base = k * 8 * BLK_LEN + lj * BLK_LEN;
           const int idxA_base =
-            (k >> 2) * 256 + (k & 3) * 4 * BLOCKLEN + lane_m * BLOCKLEN;
+            (k >> 2) * 256 + (k & 3) * 4 * BLK_LEN + lane_m * BLK_LEN;
 
-          uchar8 qbytes = vload8(0, lB.qs + idxB_base);
+          uchar8 qbytes = vload8(0, lB[blk].qs + idxB_base);
           char8 a0v = vload8(0, lA.qs + idxA_base);
           char8 a1v = vload8(0, lA.qs + idxA_base + 128);
 
@@ -154,25 +159,22 @@ const std::string &getQ4KGemmClKernel() {
           sumf += (float)sumi * dB * dA;
         }
 
-        // 4. Mins correction
         {
-          __local const uchar *lbytes = (__local const uchar *)lutmp;
-
+          __local const uchar *lbytes = (__local const uchar *)lutmp[blk];
           for (int sb = 0; sb < 8; ++sb) {
             __local const uchar *mins = lbytes + 8 + sb * 16;
             __local const short *bsum = (__local const short *)&lA.bsums[0] +
                                         sb * 8 + lane_m * 4 - ((sb & 1) * 6);
 
-            int macc = mins[lane_j] * (bsum[0] + bsum[1]);
+            int macc = mins[lj] * (bsum[0] + bsum[1]);
             sum_minf += (float)macc * dB_min * dA;
           }
         }
         barrier(CLK_LOCAL_MEM_FENCE);
       }
 
-      // 5. Write output
       const int out_row = tile_y * 4 + lane_m;
-      const int out_col = tile_x * NCOLS_INTERLEAVED + lane_j;
+      const int out_col = tile_x * NCOL_I + lane_j;
       s[out_row * bs + out_col] = sumf - sum_minf;
     }
   )";
