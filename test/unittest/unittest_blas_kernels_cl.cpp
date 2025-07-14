@@ -1200,7 +1200,7 @@ generate_random_vector(size_t size, float min_val = -1.F, float max_val = 1.F) {
   return vec;
 }
 
-#if 0 
+#if 1
 static void run_q_6_K_test(const uint32_t M, const uint32_t K,
                            const uint32_t N) {
   nntrainer::init_backend();
@@ -1488,25 +1488,25 @@ static void run_q_4_K_test(const uint32_t M, const uint32_t K,
 
 // DECLARE_q_4_K_test_M_K_N(1, 768, 1024);
 
-DECLARE_q_4_K_test_M_K_N(256, 1024, 256);
-DECLARE_q_4_K_test_M_K_N(256, 3072, 8192);
-DECLARE_q_4_K_test_M_K_N(256, 8192, 3072);
-DECLARE_q_4_K_test_M_K_N(256, 3072, 3072);
-
-DECLARE_q_4_K_test_M_K_N(255, 1024, 256);
-DECLARE_q_4_K_test_M_K_N(255, 3072, 8192);
-DECLARE_q_4_K_test_M_K_N(255, 8192, 3072);
-DECLARE_q_4_K_test_M_K_N(255, 3072, 3072);
-
-DECLARE_q_4_K_test_M_K_N(33, 1024, 256);
-DECLARE_q_4_K_test_M_K_N(33, 3072, 8192);
-DECLARE_q_4_K_test_M_K_N(33, 8192, 3072);
-DECLARE_q_4_K_test_M_K_N(33, 3072, 3072);
+DECLARE_q_4_K_test_M_K_N(10, 1024, 256);
+DECLARE_q_4_K_test_M_K_N(10, 3072, 8192);
+DECLARE_q_4_K_test_M_K_N(10, 8192, 3072);
+DECLARE_q_4_K_test_M_K_N(10, 3072, 3072);
 
 DECLARE_q_4_K_test_M_K_N(32, 1024, 256);
 DECLARE_q_4_K_test_M_K_N(32, 3072, 8192);
 DECLARE_q_4_K_test_M_K_N(32, 8192, 3072);
 DECLARE_q_4_K_test_M_K_N(32, 3072, 3072);
+
+DECLARE_q_4_K_test_M_K_N(50, 1024, 256);
+DECLARE_q_4_K_test_M_K_N(50, 3072, 8192);
+DECLARE_q_4_K_test_M_K_N(50, 8192, 3072);
+DECLARE_q_4_K_test_M_K_N(50, 3072, 3072);
+
+DECLARE_q_4_K_test_M_K_N(256, 1024, 256);
+DECLARE_q_4_K_test_M_K_N(256, 3072, 8192);
+DECLARE_q_4_K_test_M_K_N(256, 8192, 3072);
+DECLARE_q_4_K_test_M_K_N(256, 3072, 3072);
 
 // DECLARE_q_4_K_test_M_K_N(256, 256, 3072);
 // DECLARE_q_4_K_test_M_K_N(3072, 256, 256);
