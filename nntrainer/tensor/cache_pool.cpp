@@ -220,9 +220,8 @@ std::shared_ptr<MemoryData> CachePool::getMemory(unsigned int id) {
     id, std::bind(&CachePool::validate, this, std::placeholders::_1),
     std::bind(&CachePool::invalidate, this, std::placeholders::_1), memory_ptr);
 
-  auto elem = std::make_unique<CacheElem>(swap_device, id, offset, len,
-                                          mem_data, policy, memory_ptr);
-  elems[id] = std::move(elem);
+  elems.emplace(id, std::make_unique<CacheElem>(swap_device, id, offset, len,
+                                                mem_data, policy, memory_ptr));
 
   std::string ords;
 
