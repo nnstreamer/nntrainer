@@ -84,8 +84,8 @@ int CacheLoader::loadTensor(unsigned int id) {
 
   int load_task_id = load_task_executor->submit(
     [this, id](void *data) {
-      std::lock_guard<std::mutex> lock(this->state_mutex);
       pool->loadTensor(id);
+      std::lock_guard<std::mutex> lock(this->state_mutex);
       this->states[id] = LoadState::Loaded;
     },
     (void *)(std::uintptr_t)id);
