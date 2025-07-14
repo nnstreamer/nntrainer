@@ -24,6 +24,118 @@
 #include <layer_context.h>
 #include <tensor.h>
 
+#include "ggml.h"
+
+#define QK_K 256
+
+typedef struct {
+  uint8_t ql[QK_K / 2];     // quants, lower 4 bits
+  uint8_t qh[QK_K / 4];     // quants, upper 2 bits
+  int8_t scales[QK_K / 16]; // scales, quantized with 8 bits
+  _Float16 d;               // super-block scale
+} block_q6_K;
+
+typedef struct {
+  float d;                  // delta
+  int8_t qs[QK_K];          // quants
+  int16_t bsums[QK_K / 16]; // sum of quants in groups of 16
+} block_q8_K;
+
+/**
+ * @brief Helper function to compute the dot product of Q6 and Q8 quantized
+ * vectors
+ *
+ * @param n Number of elements in the input vectors
+ * @param s Pointer to the output scalar
+ * @param vx Pointer to the Q6_K quantized data
+ * @param vy Pointer to the Q8_K quantized data
+ */
+void ggml_vec_dot_q6_K_q8_K_kernel(int n, float *s, const void *vx,
+                                   const void *vy) {
+  assert(n % QK_K == 0);
+
+  const block_q6_K *x = (block_q6_K *)vx;
+  const block_q8_K *y = (block_q8_K *)vy;
+
+  const int nb = n / QK_K;
+
+  int8_t aux8[QK_K];
+  int16_t aux16[8];
+  float sums[8];
+  int32_t aux32[8];
+  memset(sums, 0, 8 * sizeof(float));
+
+  float sumf = 0;
+  for (int i = 0; i < nb; ++i) {
+    const uint8_t *q4 = x[i].ql;
+    const uint8_t *qh = x[i].qh;
+    const int8_t *q8 = y[i].qs;
+    memset(aux32, 0, 8 * sizeof(int32_t));
+    int8_t *a = aux8;
+    for (int j = 0; j < QK_K; j += 128) {
+      for (int l = 0; l < 32; ++l) {
+        a[l + 0] = (int8_t)((q4[l + 0] & 0xF) | (((qh[l] >> 0) & 3) << 4)) - 32;
+        a[l + 32] =
+          (int8_t)((q4[l + 32] & 0xF) | (((qh[l] >> 2) & 3) << 4)) - 32;
+        a[l + 64] = (int8_t)((q4[l + 0] >> 4) | (((qh[l] >> 4) & 3) << 4)) - 32;
+        a[l + 96] =
+          (int8_t)((q4[l + 32] >> 4) | (((qh[l] >> 6) & 3) << 4)) - 32;
+      }
+      a += 128;
+      q4 += 64;
+      qh += 32;
+    }
+    a = aux8;
+    int is = 0;
+    for (int j = 0; j < QK_K / 16; ++j) {
+      int scale = x[i].scales[is++];
+      for (int l = 0; l < 8; ++l)
+        aux16[l] = q8[l] * a[l];
+      for (int l = 0; l < 8; ++l)
+        aux32[l] += scale * aux16[l];
+      q8 += 8;
+      a += 8;
+      for (int l = 0; l < 8; ++l)
+        aux16[l] = q8[l] * a[l];
+      for (int l = 0; l < 8; ++l)
+        aux32[l] += scale * aux16[l];
+      q8 += 8;
+      a += 8;
+    }
+    const float d = ((float)(x[i].d)) * y[i].d;
+    for (int l = 0; l < 8; ++l)
+      sums[l] += d * aux32[l];
+  }
+  for (int l = 0; l < 8; ++l)
+    sumf += sums[l];
+  *s = sumf;
+}
+
+/**
+ * @brief GEMV kernel for Q6 quantized matrices
+ *
+ * @param M Number of rows in the input matrix q6_k_matrix / number of elements
+ * of q8_k_vec
+ * @param N Number of columns in the output matrix q6_k_matrix / number of
+ * elements in C
+ * @param q8_k_vec Pointer to the Q8_K quantized vector
+ * @param q6_k_matrix Pointer to the q6_k quantized matrix
+ * @param C Pointer to the output matrix (shape N x 1)
+ */
+void gemv_q6_k_kernel(const int M, const int N, const void *q8_k_vec,
+                      const void *q6_k_matrix, float *C) {
+  const int32_t blocks_per_row = (M + QK_K - 1) / QK_K;
+  const int32_t A_row_size = sizeof(block_q8_K) * blocks_per_row;
+  const int32_t B_row_size = sizeof(block_q6_K) * blocks_per_row;
+
+  for (int j = 0; j < N; j++) {
+    const void *const q6_k_mat_data =
+      (void *)((char *)q6_k_matrix + B_row_size * j);
+
+    ggml_vec_dot_q6_K_q8_K_kernel(M, &C[j], q6_k_mat_data, q8_k_vec);
+  }
+}
+
 #define EXPECT_IN_RANGE(VAL, MIN, MAX)                                         \
   EXPECT_GE((VAL), (MIN));                                                     \
   EXPECT_LE((VAL), (MAX))
@@ -1193,6 +1305,11 @@ static void run_q_6_K_test(const uint32_t M, const uint32_t K,
   /// Quantize weight data
   nntrainer::quantize_q6_K(weights_f32_ptr, q6_weight_ptr, N, K, nullptr);
 
+  float *q8_k_data =
+    (float *)blas_cc->context_inst_.createSVMRegion(M * K * sizeof(float));
+
+  ::quantize_row_q8_K((float *)activation.data(), q8_k_data, K);
+
   // CPU Q6_K GEMV
   auto t1 = std::chrono::high_resolution_clock::now();
   for (unsigned int i = 0; i < run_count; ++i) {
@@ -1204,7 +1321,12 @@ static void run_q_6_K_test(const uint32_t M, const uint32_t K,
 
   // GPU Q6_K GEMV
   auto t3 = std::chrono::high_resolution_clock::now();
+
+  // gemv_q6_k_kernel(const int M, const int N, const float *q8_k_vec,
+  //                     const void *q4_k_matrix, float *C)
+
   for (unsigned int i = 0; i < run_count; ++i) {
+    // gemv_q6_k_cl(q6_weight_ptr, q8_k_data, (float *)gpu_q6_dst, K, N);
     nntrainer::sgemv_q6_k_cl(q6_weight_ptr, activations_f32_ptr,
                              (float *)gpu_q6_dst, K, N);
   }

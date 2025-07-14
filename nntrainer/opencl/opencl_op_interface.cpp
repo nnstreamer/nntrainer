@@ -46,9 +46,9 @@ bool GpuCLOpInterface::Init(std::string kernel_string,
     Program program;
 
     // creating program
-    result =
-      program.CreateCLProgram(context_inst_.GetContext(),
-                              context_inst_.GetDeviceId(), kernel_string, "");
+    result = program.CreateCLProgram(context_inst_.GetContext(),
+                                     context_inst_.GetDeviceId(), kernel_string,
+                                     "-cl-fast-relaxed-math -cl-mad-enable");
     if (!result) {
       break;
     }
