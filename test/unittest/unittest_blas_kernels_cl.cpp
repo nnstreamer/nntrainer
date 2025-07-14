@@ -1259,6 +1259,11 @@ static void run_q_6_K_test(const uint32_t M, const uint32_t K,
   /// Quantize weight data
   nntrainer::quantize_q6_K(weights_f32_ptr, q6_weight_ptr, N, K, nullptr);
 
+  float *q8_k_data =
+    (float *)blas_cc->context_inst_.createSVMRegion(M * K * sizeof(float));
+
+  ::quantize_row_q8_K((float *)activation.data(), q8_k_data, K);
+
   // CPU Q6_K GEMV
   auto t1 = std::chrono::high_resolution_clock::now();
   for (unsigned int i = 0; i < run_count; ++i) {
@@ -1270,7 +1275,12 @@ static void run_q_6_K_test(const uint32_t M, const uint32_t K,
 
   // GPU Q6_K GEMV
   auto t3 = std::chrono::high_resolution_clock::now();
+
+  // gemv_q6_k_kernel(const int M, const int N, const float *q8_k_vec,
+  //                     const void *q4_k_matrix, float *C)
+
   for (unsigned int i = 0; i < run_count; ++i) {
+    // gemv_q6_k_cl(q6_weight_ptr, q8_k_data, (float *)gpu_q6_dst, K, N);
     nntrainer::sgemv_q6_k_cl(q6_weight_ptr, activations_f32_ptr,
                              (float *)gpu_q6_dst, K, N);
   }

@@ -176,122 +176,206 @@ const std::string &getQ4KGemmClKernel() {
 const std::string &getQ6KSgemvClKernel() {
   static const std::string q6_k_sgemv_cl_kernel_ =
     R"(
-    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
 
-    #define QK_K 256
-    #define N_SIMDWIDTH 16
-    #define N_SIMDGROUP 2
-    #define N_DST 1
-    #define BLOCK_STRIDE (N_SIMDWIDTH / 16)
+#ifdef cl_intel_subgroups
+#pragma OPENCL EXTENSION cl_intel_subgroups : enable
+#pragma OPENCL EXTENSION cl_intel_required_subgroup_size : enable
+#define INTEL_GPU 1
+#define REQD_SUBGROUP_SIZE_16 __attribute__((intel_reqd_sub_group_size(16)))
+#else
+#pragma OPENCL EXTENSION cl_khr_subgroups : enable
+#endif
 
-    typedef char int8_t;
-    typedef uchar uint8_t;
-    typedef short int16_t;
-    typedef ushort uint16_t;
-    typedef int int32_t;
-    typedef uint uint32_t;
+// ---------------- constants & helper types ----------------------------------
+#define QK_K 256       // 256 quantised values per block
+#define N_SIMDWIDTH 16 // compile for 16-wide sub-groups
+#define N_SIMDGROUP 2  // two sub-groups per work-group
+#define N_DST 8        // **8 rows per sub-group  (key to the speed-up)**
 
-    typedef struct {
-        uint8_t ql[QK_K / 2];
-        uint8_t qh[QK_K / 4];
-        int8_t  scales[QK_K / 16];
-        half d;
-    } block_q6_K;
+typedef uchar uint8_t;
+typedef char int8_t;
 
-    kernel void kernel_mul_mv_q6_K_f32(
-        global void * src0,
-        ulong offset0,
-        global float * src1,
-        ulong offset1,
-        global float * dst,
-        ulong offsetd,
-        int ne00,
-        int ne01,
-        int ne02,
-        int ne10,
-        int ne12,
-        int ne0,
-        int ne1,
-        int r2,
-        int r3
-    ) {
-        __local float reduction_buf[N_SIMDGROUP][N_SIMDWIDTH];
+// GGML q6_K block layout ------------------------------------------------------
+typedef struct {
+  uint8_t ql[QK_K / 2];     // 128 B – lower 4 bits
+  uint8_t qh[QK_K / 4];     //  64 B – upper 2 bits
+  int8_t scales[QK_K / 16]; //  16 B – per-group scale
+  half d;                   //   2 B – block-wide scale
+} block_q6_K;
 
-        src0 = (global void*)((global char*)src0 + offset0);
-        src1 = (global float*)((global char*)src1 + offset1);
-        dst = (global float*)((global char*)dst + offsetd);
+// bit-plane masks reused everywhere
+static constant uint8_t KMASK1 = 0x03;
+static constant uint8_t KMASK2 = 0x0C;
+static constant uint8_t KMASK3 = 0x30;
+static constant uint8_t KMASK4 = 0xC0;
 
-        int nb = ne00 / QK_K;
+// ---------------------------------------------------------------------------
+// 8-row kernel
+// ---------------------------------------------------------------------------
+#ifdef INTEL_GPU
+REQD_SUBGROUP_SIZE_16
+#endif
+kernel void kernel_mul_mv_q6_K_f32(global void *src0, ulong offset0,
+                                   global float *src1, ulong offset1,
+                                   global float *dst, ulong offsetd,
+                                   const int ne00, const int ne01,
+                                   const int ne02, const int ne10,
+                                   const int ne12, const int ne0, const int ne1,
+                                   const int r2, const int r3) {
+  // adjust host pointers ---------------------------------------------------
+  src0 = (global void *)((global char *)src0 + offset0);
+  src1 = (global float *)((global char *)src1 + offset1);
+  dst = (global float *)((global char *)dst + offsetd);
 
-        int r0 = get_group_id(0);
-        int r1 = get_group_id(1);
-        int im = get_group_id(2);
-        int lid = get_local_id(0);
-        int lsize = get_local_size(0);
+  const int nb = ne00 / QK_K; // blocks per row
 
-        int row_group = lid / N_SIMDWIDTH;
-        int lane = lid % N_SIMDWIDTH;
-        int row = r0 * N_SIMDGROUP + row_group;
+  // ---------------- work-group / sub-group bookkeeping --------------------
+  const int r0 = get_group_id(0); // WG in X dimension
+  const int batch_y = get_group_id(1);
+  const int im = get_group_id(2);
 
-        int i12 = im % ne12;
-        int i13 = im / ne12;
+  const int sg_id = get_sub_group_id();      // 0 or 1 in a WG
+  const int lane = get_sub_group_local_id(); // 0 … 15
 
-        ulong offset_src0 = (i12 / r2) * (nb * ne01) + (i13 / r3) * (nb * ne01 * ne02);
+  // first of the N_DST rows this sub-group will produce
+  const int first_row = (r0 * N_SIMDGROUP + sg_id) * N_DST;
 
-        global block_q6_K * x = (global block_q6_K *) src0 + row * nb + offset_src0;
-        global float      * yy = (global float     *) src1 + r1 * ne10 + im * ne00 * ne1;
+  // batch/head offsets (identical for every row in this sub-group)
+  const int i12 = im % ne12;
+  const int i13 = im / ne12;
+  const ulong base_batch_off = (ulong)(i12 / r2) * (ulong)(nb * ne01) +
+                               (ulong)(i13 / r3) * (ulong)(nb * ne01 * ne02);
 
-        uchar kmask1 = 0x03, kmask2 = 0x0C, kmask3 = 0x30, kmask4 = 0xC0;
+  // ---------------- lane-specific constant offsets ------------------------
+  const int ip = lane >> 3;                 // 0 or 1
+  const int il = lane & 7;                  // 0 … 7
+  const int l0 = il * 4;                    // {0,4,8,…,28}
+  const int scale_idx = ip * 8 + (l0 >> 4); // 0 … 15
 
-        int tid  = lane / BLOCK_STRIDE;
-        int ix   = lane % BLOCK_STRIDE;
-        int ip   = tid / 8;
-        int il   = tid % 8;
-        int n    = 4;
-        int l0   = n * il;
-        int is   = 8 * ip + l0 / 16;
+  const int y_off = 128 * ip + l0; // 0 … 156
+  const int ql_off = 64 * ip + l0; // 0 … 92
+  const int qh_off = 32 * ip + l0; // 0 … 60
 
-        int y_offset = 128 * ip + l0;
-        int q_offset_l = 64 * ip + l0;
-        int q_offset_h = 32 * ip + l0;
+  // --------------------- initialise accumulators --------------------------
+  float sum[N_DST] = {0.0f}; // private per-lane accumulators
 
-        float sumf = 0.0f;
+  // pointers that do **not** change inside the block loop
+  global float *y_base = src1 + batch_y * ne10 + im * ne00 * ne1 + y_off;
 
-        for (int i = ix; i < nb; i += BLOCK_STRIDE) {
-            global uint8_t * q1 = x[i].ql + q_offset_l;
-            global uint8_t * q2 = q1 + QK_K / 8;
-            global uint8_t * qh = x[i].qh + q_offset_h;
-            global int8_t  * sc = x[i].scales + is;
-            global float   * y = yy + i * QK_K + y_offset;
+  // --------------------------- block loop ---------------------------------
+  for (int ib = 0; ib < nb; ++ib) {
 
-            float dall = x[i].d;
-            float4 sums = {0.f, 0.f, 0.f, 0.f};
+    // --- load and cache the 16 floats we need from `y` only once --------
+    global float *yptr = y_base + ib * QK_K;
 
-            for (int j = 0; j < 4; j++) {
-                sums.s0 += y[j + 0]   * ((float)((q1[j] & 0xF) | ((qh[j] & kmask1) << 4)) - 32.f);
-                sums.s1 += y[j + 32]  * ((float)((q2[j] & 0xF) | ((qh[j] & kmask2) << 2)) - 32.f);
-                sums.s2 += y[j + 64]  * ((float)((q1[j] >> 4) | ((qh[j] & kmask3) >> 0)) - 32.f);
-                sums.s3 += y[j + 96]  * ((float)((q2[j] >> 4) | ((qh[j] & kmask4) >> 2)) - 32.f);
-            }
+    float y0 = yptr[0];
+    float y1 = yptr[32];
+    float y2 = yptr[64];
+    float y3 = yptr[96];
 
-            sumf += dall * (sums.s0 * sc[0] + sums.s1 * sc[2] + sums.s2 * sc[4] + sums.s3 * sc[6]);
+    float y4 = yptr[1];
+    float y5 = yptr[33];
+    float y6 = yptr[65];
+    float y7 = yptr[97];
+
+    float y8 = yptr[2];
+    float y9 = yptr[34];
+    float yA = yptr[66];
+    float yB = yptr[98];
+
+    float yC = yptr[3];
+    float yD = yptr[35];
+    float yE = yptr[67];
+    float yF = yptr[99];
+
+    // unrolled over the 8 output rows -----------------------------------
+#pragma unroll
+    for (int dst_idx = 0; dst_idx < N_DST; ++dst_idx) {
+
+      const int row = first_row + dst_idx;
+      if (row >= ne0)
+        break; // outside valid rows
+
+      // pointer to the block for this row
+      global block_q6_K *blk =
+        (global block_q6_K *)src0 + row * nb + base_batch_off + ib;
+
+      // per-lane pointers inside the block
+      global uint8_t *q1 = blk->ql + ql_off;
+      global uint8_t *q2 = q1 + QK_K / 8;
+      global uint8_t *qh = blk->qh + qh_off;
+      global int8_t *sc = blk->scales + scale_idx;
+
+      // *four* scale factors used by this lane
+      const float s0 = (float)sc[0];
+      const float s1 = (float)sc[2];
+      const float s2 = (float)sc[4];
+      const float s3 = (float)sc[6];
+
+      const float d = (float)blk->d;
+
+      // ---- reconstruct 6-bit values & accumulate --------------------
+#pragma unroll
+      for (int j = 0; j < 4; ++j) {
+        const uint8_t q1j = q1[j];
+        const uint8_t q2j = q2[j];
+        const uint8_t qhj = qh[j];
+
+        const float v0 = (float)((q1j & 0x0F) | ((qhj & KMASK1) << 4)) - 32.0f;
+        const float v1 = (float)((q2j & 0x0F) | ((qhj & KMASK2) << 2)) - 32.0f;
+        const float v2 = (float)((q1j >> 4) | ((qhj & KMASK3) >> 0)) - 32.0f;
+        const float v3 = (float)((q2j >> 4) | ((qhj & KMASK4) >> 2)) - 32.0f;
+
+        // pick the matching `y` element (hand-unrolled)
+        float yy0, yy1, yy2, yy3;
+        switch (j) {
+        case 0:
+          yy0 = y0;
+          yy1 = y1;
+          yy2 = y2;
+          yy3 = y3;
+          break;
+        case 1:
+          yy0 = y4;
+          yy1 = y5;
+          yy2 = y6;
+          yy3 = y7;
+          break;
+        case 2:
+          yy0 = y8;
+          yy1 = y9;
+          yy2 = yA;
+          yy3 = yB;
+          break;
+        default:
+          yy0 = yC;
+          yy1 = yD;
+          yy2 = yE;
+          yy3 = yF;
+          break;
         }
 
-        reduction_buf[row_group][lane] = sumf;
-        barrier(CLK_LOCAL_MEM_FENCE);
+        sum[dst_idx] +=
+          d * (yy0 * v0 * s0 + yy1 * v1 * s1 + yy2 * v2 * s2 + yy3 * v3 * s3);
+      } // j
+    } // dst_idx
+  } // ib
 
-        for (int offset = N_SIMDWIDTH / 2; offset > 0; offset >>= 1) {
-            if (lane < offset) {
-                reduction_buf[row_group][lane] += reduction_buf[row_group][lane + offset];
-            }
-            barrier(CLK_LOCAL_MEM_FENCE);
-        }
+  // ---------------- sub-group reduction & write-back ----------------------
+#pragma unroll
+  for (int dst_idx = 0; dst_idx < N_DST; ++dst_idx) {
 
-        if (lane == 0) {
-            int global_row = r0 * N_SIMDGROUP + row_group;
-            dst[r1 * ne0 + im * ne0 * ne1 + global_row] = reduction_buf[row_group][0];
-        }
+    float total = sub_group_reduce_add(sum[dst_idx]);
+
+    if (lane == 0) {
+      const int row = first_row + dst_idx;
+      if (row < ne0) {
+        dst[batch_y * ne0 + im * ne0 * ne1 + row] = total;
+      }
     }
+  }
+}
     )";
 
   return q6_k_sgemv_cl_kernel_;
