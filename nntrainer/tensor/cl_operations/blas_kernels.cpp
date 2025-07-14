@@ -175,12 +175,7 @@ void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
     return;
   }
 
-#define N_SIMDWIDTH 16
-#define N_SIMDGROUP 2
-
-  const int work_groups_count[3] = {((ne0 + N_SIMDGROUP - 1) / N_SIMDGROUP) *
-                                      (N_SIMDGROUP * N_SIMDWIDTH),
-                                    ne1, 1};
+  const int work_groups_count[3] = {((ne0 + 15) / 16) * 32, ne1, 1};
   /// @todo: create a group size by device & input
   const int work_group_size[3] = {32, 1, 1};
 
