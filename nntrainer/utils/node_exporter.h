@@ -238,6 +238,7 @@ class LossScaleForMixed;
 class InPlaceProp;
 class InPlaceDirectionProp;
 class Exponent;
+class Original_ndim;
 } // namespace props
 
 class LayerNode;
