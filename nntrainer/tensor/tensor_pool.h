@@ -340,6 +340,8 @@ public:
     }
   }
 
+  bool LoadFsuTensor(unsigned int order);
+
   /**
    * @brief set weight file offset for FSU loading
    *

@@ -40,14 +40,44 @@ std::vector<LayerHandle> createGraph() {
 
   layers.push_back(
     createLayer("input", {nntrainer::withKey("name", "input0"),
-                          nntrainer::withKey("input_shape", "1:1:1024:1024")}));
+                          nntrainer::withKey("input_shape", "1:1:1:3072")}));
 
-  for (int i = 0; i < 56; i++) {
+  for (int i = 0; i < 34; i++) {
     layers.push_back(
       createLayer("fully_connected",
-                  {nntrainer::withKey("unit", 2048),
+                  {nntrainer::withKey("unit", 3072),
                    nntrainer::withKey("weight_initializer", "xavier_uniform"),
                    nntrainer::withKey("disable_bias", "true")}));
+    layers.push_back(
+  createLayer("fully_connected",
+              {nntrainer::withKey("unit", 3072),
+               nntrainer::withKey("weight_initializer", "xavier_uniform"),
+               nntrainer::withKey("disable_bias", "true")}));
+    layers.push_back(
+  createLayer("fully_connected",
+              {nntrainer::withKey("unit", 3072),
+               nntrainer::withKey("weight_initializer", "xavier_uniform"),
+               nntrainer::withKey("disable_bias", "true")}));
+    layers.push_back(
+  createLayer("fully_connected",
+              {nntrainer::withKey("unit", 3072),
+               nntrainer::withKey("weight_initializer", "xavier_uniform"),
+               nntrainer::withKey("disable_bias", "true")}));
+    layers.push_back(
+  createLayer("fully_connected",
+              {nntrainer::withKey("unit", 8192),
+               nntrainer::withKey("weight_initializer", "xavier_uniform"),
+               nntrainer::withKey("disable_bias", "true")}));
+    layers.push_back(
+  createLayer("fully_connected",
+              {nntrainer::withKey("unit", 8192),
+               nntrainer::withKey("weight_initializer", "xavier_uniform"),
+               nntrainer::withKey("disable_bias", "true")}));
+    layers.push_back(
+  createLayer("fully_connected",
+              {nntrainer::withKey("unit", 3072),
+               nntrainer::withKey("weight_initializer", "xavier_uniform"),
+               nntrainer::withKey("disable_bias", "true")}));
   }
 
   return layers;
@@ -68,7 +98,7 @@ void saveBin(std::string file_path) {
   ModelHandle model = create();
   model->setProperty({nntrainer::withKey("batch_size", 1),
                       nntrainer::withKey("epochs", 1),
-                      nntrainer::withKey("model_tensor_type", "FP16-FP16")});
+                      nntrainer::withKey("model_tensor_type", "FP32-FP32")});
   auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
   int status = model->setOptimizer(std::move(optimizer));
   if (status) {
@@ -86,6 +116,7 @@ void saveBin(std::string file_path) {
   }
 
   model->save(file_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+  std::cout << "save bin file done" << std::endl;
 }
 
 void createAndRun(unsigned int epochs, unsigned int batch_size,
@@ -93,12 +124,13 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
 
   auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
 
-  // Model with FSU option
+  // // Model with FSU option
   ModelHandle model_fsu = create();
   model_fsu->setProperty(
     {nntrainer::withKey("batch_size", batch_size),
      nntrainer::withKey("epochs", epochs),
-     nntrainer::withKey("model_tensor_type", "FP16-FP16")});
+     nntrainer::withKey("model_tensor_type", "Q4_K-FP32")});
+
   model_fsu->setProperty({nntrainer::withKey("fsu", "true")});
   model_fsu->setProperty({nntrainer::withKey("fsu_lookahead", look_ahaed)});
   model_fsu->setOptimizer(std::move(optimizer));
@@ -110,12 +142,12 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
   model_no_fsu->setProperty(
     {nntrainer::withKey("batch_size", batch_size),
      nntrainer::withKey("epochs", epochs),
-     nntrainer::withKey("model_tensor_type", "FP16-FP16")});
+     nntrainer::withKey("model_tensor_type", "Q4_K-FP32")});
   model_no_fsu->setOptimizer(std::move(optimizer));
   model_no_fsu->compile(ml::train::ExecutionMode::INFERENCE);
   model_no_fsu->initialize(ml::train::ExecutionMode::INFERENCE);
 
-  const unsigned int feature_size = 1 * 1024 * 1024;
+  const unsigned int feature_size = 1 * 1 * 3072;
 
   std::vector<float> input(feature_size);
 
@@ -123,17 +155,19 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
     input[j] = (j / (float)feature_size);
 
   std::vector<float *> in;
-  std::vector<float *> answer;
+  std::vector<float *> answer1;
+  std::vector<float *> answer2;
 
   in.push_back(input.data());
-
   if (std::filesystem::exists(file_path)) {
     model_fsu->load(file_path);
     model_no_fsu->load(file_path);
+    // model_no_fsu->save("simplefc_weight_q4k.bin", ml::train::ModelFormat::MODEL_FORMAT_BIN);
   } else {
-    saveBin(file_path);
+    // saveBin(file_path);
     model_fsu->load(file_path);
     model_no_fsu->load(file_path);
+    // model_no_fsu->save("test_14_k.bin", ml::train::ModelFormat::MODEL_FORMAT_BIN);
   }
   std::cout << "==============================================================="
                "==========================\n"
@@ -146,11 +180,13 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
 
   for (int iteration = 1; iteration <= 5; iteration++) {
     auto fsu_iter_start = std::chrono::system_clock::now();
-    answer = model_fsu->inference(1, in);
+    answer1 = model_fsu->inference(1, in);
+    std::cout << "answer : " << answer1[0][0] << std::endl;
     auto fsu_iter_end = std::chrono::system_clock::now();
 
     auto no_fsu_iter_start = std::chrono::system_clock::now();
-    answer = model_no_fsu->inference(1, in);
+    answer2 = model_no_fsu->inference(1, in);
+    std::cout << "answer : " << answer2[0][0] << std::endl;
     auto no_fsu_iter_end = std::chrono::system_clock::now();
 
     std::chrono::duration<double> fsu_time = fsu_iter_end - fsu_iter_start;
@@ -182,14 +218,8 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
 
 int main(int argc, char *argv[]) {
 
-  if (argc < 3) {
-    std::cerr << "need more argc, executable fsu_on look_ahead Weight_file_path"
-              << std::endl;
-  }
-
-  std::string fsu_on = argv[1];     // true or false
-  std::string look_ahead = argv[2]; // int
-  std::string weight_file_path = argv[3];
+  std::string look_ahead = "10";
+  std::string weight_file_path = "simplefc_weight_q4k.bin";
 
   std::cout << std::fixed << std::setprecision(6);
   std::cout << "==============================================================="

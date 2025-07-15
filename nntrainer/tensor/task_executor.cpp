@@ -53,7 +53,7 @@ void TaskExecutor::worker_thread() {
 
       task = std::move(task_queue.front());
       task_queue.pop();
-      task_started[task.id] = true;
+            task_started[task.id] = true;
       task_started_cv.notify_all();
 
       // we are not going to remove the Done Tasks.
@@ -63,6 +63,7 @@ void TaskExecutor::worker_thread() {
     }
 
     try {
+      // printf("task start *** id : %d \n",task.data);
       task.callback(task.data);
       task.promise.set_value();
     } catch (...) {
@@ -97,7 +98,7 @@ int TaskExecutor::submit(TaskCallback cb, void *data) {
     Task task{id, std::move(*promise), cb, data};
 
     future_map[id] = fut;
-
+    // printf("task id : %d \n ", task.id);
     task_queue.push(std::move(task));
   }
   cond_var.notify_one();

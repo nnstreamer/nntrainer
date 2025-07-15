@@ -161,7 +161,7 @@ if get_option('enable-fp16')
      error ('RISCV64 RVV support and fp16 support is not yet implemented.')
    else
      error ('FP16 support for this arch is not yet implemented.')
-   endif  
+   endif
 endif
 
 if get_option('enable-mmap')
@@ -191,7 +191,7 @@ if get_option('enable-opencl')
     clblast_dir_relative = subprojects_dir_relative / 'CLBlast'
     clblast_include = include_directories(clblast_dir_relative / 'include')
     clblast_dep = declare_dependency(include_directories: clblast_include, link_args:['clblast.lib'])
-  else 
+  else
     clblast_options = cmake.subproject_options()
     clblast_options.add_cmake_defines({'CMAKE_POLICY_VERSION_MINIMUM': '3.10'})
     clblast_proj = cmake.subproject('clblast', options: clblast_options, required: true)
@@ -218,7 +218,7 @@ if get_option('enable-biqgemm')
       # relative path from biqgemm is assumed
       biqgemm_path = get_option('biqgemm-path')
       message('[lib:biqgemm] fallback: finding biqgemm from user-path :' + biqgemm_path)
-      if fs.is_dir(biqgemm_path) 
+      if fs.is_dir(biqgemm_path)
         message('[lib:biqgemm] biqgemm header is found successfully')
         extra_defines += '-DENABLE_BIQGEMM=1'
         biqgemm_inc = include_directories(biqgemm_path)
@@ -554,7 +554,7 @@ if get_option('enable-ggml')
       ]
     if cxx_compiler_id == 'clang'
       ggml_flags += '-Wno-error=uninitialized'
-    else 
+    else
       ggml_flags += '-Wno-error=maybe-uninitialized'
     endif
     ggml_options.append_compile_args('c', ggml_flags)
@@ -607,7 +607,7 @@ else
     ruy_flags += '-Wno-error=stringop-overread'
     ruy_flags += '-Wno-error=array-parameter'
   endif
-  
+
   ruy_options.append_compile_args('c', '-Wno-implicit-function-declaration')
   ruy_options.append_compile_args('c', ruy_flags)
   ruy_options.append_compile_args('cpp', ruy_flags)

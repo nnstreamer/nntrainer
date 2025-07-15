@@ -1642,6 +1642,9 @@ void NetworkGraph::LoadTensors(unsigned int order, unsigned int lookahead) {
   tensor_manager->LoadTensors(order, lookahead);
 }
 
+void NetworkGraph::LoadFsuTensors(unsigned int order) {
+  tensor_manager->LoadFsuTensors(order);
+}
 bool NetworkGraph::checkLoadComplete(unsigned int order) {
   return tensor_manager->checkLoadComplete(order);
 }

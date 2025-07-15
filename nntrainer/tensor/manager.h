@@ -522,7 +522,7 @@ public:
    * @note preloading loads execution order data asynchronously,
    *       for lookahead size.
    */
-  void LoadFsuTensors(unsigned int order, unsigned int lookahead);
+  void LoadFsuTensors(unsigned int order);
 
   /**
    * @brief flush load data for the execution order

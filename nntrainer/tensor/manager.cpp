@@ -823,9 +823,18 @@ void Manager::LoadTensors(unsigned int order,
       << "Fail to launch task";
   };
 
-  auto order_mod = order % (max_exec_order+1);
+  auto order_mod = order % (max_exec_order + 1);
   enqueTasks(order_mod);
+}
 
+void Manager::LoadFsuTensors(unsigned int order) {
+
+  auto enqueTasks = [&](unsigned int order) {
+    return weight_pool.LoadFsuTensor(order);
+  };
+
+  auto order_mod = order % (max_exec_order + 1);
+  enqueTasks(order_mod);
 }
 
 void Manager::UnloadTensors(unsigned int order) {

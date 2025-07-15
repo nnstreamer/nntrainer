@@ -240,7 +240,7 @@ void TensorPool::allocate(bool init) {
     syncDependents(spec);
   }
 
-  if (cache_loader) {
+  if (cache_loader && exec_mode == ml::train::ExecutionMode::TRAIN) {
     cache_loader->init();
   }
 }
@@ -249,7 +249,7 @@ void TensorPool::allocate(bool init) {
  * @brief Deallocate memory for all the managed tensors
  */
 void TensorPool::deallocate() {
-  if (cache_loader)
+  if (cache_loader && exec_mode == ml::train::ExecutionMode::TRAIN)
     cache_loader->finish();
 
   mem_pool->deallocate();
@@ -507,7 +507,13 @@ void TensorPool::loadCacheCancel(int id) {
 
   cache_loader->cancelAsync(id);
 }
-
+bool TensorPool::LoadFsuTensor(unsigned int order) {
+  if (auto fsu_pool = dynamic_cast<FsuWeightPool *>(mem_pool.get())) {
+    return fsu_pool->loadAllinOrder(order);
+  }
+  else
+    return false;
+}
 void TensorPool::inActive(unsigned int order) {
   if (auto fsu_pool = dynamic_cast<FsuWeightPool *>(mem_pool.get()))
     return fsu_pool->inActive(order);

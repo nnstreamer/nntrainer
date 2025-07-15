@@ -351,7 +351,8 @@ sharedConstTensors NeuralNetwork::forwarding(
 
   if (is_first_inference == false && fsu_mode) {
     for (unsigned int i = 0; i < lookahead; ++i) {
-      model_graph.LoadTensors(i);
+      // printf("request LoadFsuTensors for [%d] \n", i);
+      model_graph.LoadFsuTensors(i);
     }
     is_first_inference = true;
   }
@@ -398,7 +399,7 @@ sharedConstTensors NeuralNetwork::forwarding(
       model_graph.checkLoadComplete(f);
       node->forwarding(training);
       model_graph.inActive(f);
-      model_graph.LoadTensors(f + lookahead);
+      model_graph.LoadFsuTensors(f + lookahead);
     }
   };
 
@@ -437,10 +438,11 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
   unsigned int lookahead = std::get<props::FsuLookahead>(model_flex_props);
   bool fsu_mode = std::get<props::Fsu>(model_flex_props);
 
-  if (fsu_mode) {
+  if (is_first_inference == false && fsu_mode) {
     for (unsigned int i = 0; i < lookahead; ++i) {
-      model_graph.LoadTensors(i);
+      model_graph.LoadFsuTensors(i);
     }
+    // is_first_inference = true;
   }
 
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
@@ -457,7 +459,7 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
       model_graph.checkLoadComplete(f);
       node->incremental_forwarding(from, to, training);
       model_graph.inActive(f);
-      model_graph.LoadTensors(f + lookahead);
+      model_graph.LoadFsuTensors(f + lookahead);
     }
   };
 

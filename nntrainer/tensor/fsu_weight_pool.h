@@ -90,7 +90,6 @@ public:
   void loadTensor(unsigned int order);
 
   void setFsuWeightPath(std::string path) override {
-    std::cout << "path set & open fd" << std::endl;
     weight_file_path = path;
     weightFileOpen();
   }
@@ -110,10 +109,11 @@ private:
   TaskExecutor *load_task_executor;   /**< task executor */
   std::unordered_map<unsigned int, ExecIds> order_to_exec_ids;
   std::vector<unsigned int> id_bank;
+  unsigned int max_exec_id;
   unsigned int load_batch_size;
 
   std::mutex state_mutex;
-  std::mutex memcpy_mutex;
+  std::mutex id_bank_mutex;
 };
 } // namespace nntrainer
 #endif // FSU_WEIGHT_POOL_H
