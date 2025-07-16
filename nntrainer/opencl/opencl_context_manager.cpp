@@ -137,7 +137,7 @@ bool ContextManager::CreateDefaultGPUDevice() {
   }
 
   // platform is a specific OpenCL implementation, for instance ARM
-  cl_platform_id platform_id_ = platforms[0];
+  cl_platform_id platform_id_ = platforms[1];
 
   cl_uint num_devices;
 
@@ -165,6 +165,12 @@ bool ContextManager::CreateDefaultGPUDevice() {
   // setting the first GPU ID and platform (ARM)
   device_id_ = devices[0];
   this->platform_id_ = platform_id_;
+
+  char name [1024];
+  std::memset(name, 0x00, 1024);
+  clGetDeviceInfo(device_id_, CL_DEVICE_NAME, 1024, name, nullptr);
+
+  std::cout << "OpenCL device : " << name << std::endl;
 
 #ifdef ENABLE_FP16
   /// @note This is working incorrectly. For CUDA devices, cl_khr_fp16 is not
