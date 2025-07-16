@@ -579,6 +579,7 @@ void softmax_row_inplace(float *qk_out, size_t start_row, size_t end_row,
 void softmax_row(float *qk_out, size_t start_row, size_t end_row,
                  size_t num_heads);
 
+#if !defined(ARMV7)
 /**
  * @brief
  * @param iter
@@ -592,7 +593,7 @@ void softmax_row(float *qk_out, size_t start_row, size_t end_row,
  * @param process_all
  */
 void compute_fp16vcache_fp32_transposed(int iter, const float *in,
-                                        const uint16_t *vcache, float *output,
+                                        const __fp16 *vcache, float *output,
                                         int seq, int num_cache_head,
                                         int gqa_size, int head_dim,
                                         bool process_all);
@@ -629,7 +630,7 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
                               unsigned int half_, float *inout, void *output,
                               const float *cos_, const float *sin_,
                               bool only_convert_to_fp16);
-
+#endif
 } // namespace nntrainer::neon
 
 #endif /* __cplusplus */
