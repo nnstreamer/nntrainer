@@ -3,6 +3,7 @@ typedef float half;
 typedef unsigned char uchar;
 typedef unsigned int uint;
 typedef long long uint4;
+typedef struct {int s0, s1, s2;} uint3;
 #define convert_float(x) (x)
 #define __kernel
 #define __global
@@ -93,21 +94,19 @@ typedef long long uint4;
         barrier(CLK_LOCAL_MEM_FENCE);
 
         // 2.  All 64 lanes build the two 8x4 LUTs
-        for (int v = lane; v < 128; v += WG_SIZE) {
-          const int blk = v >> 6;       // 0 | 1
-          const int sb = (v & 63) >> 3; // 0-7
+        if (lane < 16) {
+          const int blk = lane >> 3;       // 0 | 1
+          const int sb = lane && 0b111; // 0-7
           __local const uchar *src =
             (__local const uchar *)&lB[blk].scales[0] + sb * 12;
           __local uint *dst = lutmp[blk] + sb * 4;
 
-          uint4 tmp4 = vload4(0, (const __local uint *)src);
-          vstore4(tmp4, 0, dst);
+          uint3 tmp3 = vload3(0, (const __local uint *)src);          
 
-          dst[3] = ((dst[2] >> 4) & KMASK2) | (((dst[1] >> 6) & KMASK3) << 4);
-          uint t = dst[1] & KMASK1;
-          dst[1] = (dst[2] & KMASK2) | (((dst[0] >> 6) & KMASK3) << 4);
-          dst[2] = t;
-          dst[0] &= KMASK1;
+          dst[3] = ((tmp3.s2 >> 4) & KMASK2) | (((tmp3.s1 >> 6) & KMASK3) << 4);
+          dst[2] = tmp3.s1 & KMASK1;
+          dst[1] = (tmp3.s2 & KMASK2) | (((tmp3.s0 >> 6) & KMASK3) << 4);
+          dst[0] = tmp3.s0 & KMASK1;
         }
         barrier(CLK_LOCAL_MEM_FENCE); // LUTs ready
 
