@@ -1027,20 +1027,12 @@ void softmax_row(float *qk_out, size_t start_row, size_t end_row,
   delete[] sum_vals;
 }
 
-static inline float convert_scalar_f16_to_f32(uint16_t h) {
-  return nntrainer::compute_fp16_to_fp32(h);
-}
-
+#if !defined(ARMV7)
 void compute_fp16vcache_fp32_transposed(int iter, const float *in,
-                                        const uint16_t *vcache, float *output,
+                                        const __fp16 *vcache, float *output,
                                         int seq, int num_cache_head,
                                         int gqa_size, int head_dim,
                                         bool process_all) {
-#ifdef ARMV7
-  __fallback_compute_fp16vcache_fp32_transposed(iter, in, vcache, output, seq,
-                                                num_cache_head, gqa_size,
-                                                head_dim, process_all);
-#else
   std::vector<float> tmp_fp32(head_dim);
   int a_row_start =
     process_all ? ((iter * (iter + 1)) / 2) * num_cache_head * gqa_size : 0;
@@ -1055,24 +1047,22 @@ void compute_fp16vcache_fp32_transposed(int iter, const float *in,
 
     for (int j = 0; j <= iter; ++j) {
       if (j + 1 < seq) {
-        const uint16_t *next_vptr =
+        const __fp16 *next_vptr =
           vcache + ((j + 1) * num_cache_head + n) * head_dim;
-        //_mm_prefetch(reinterpret_cast<const char *>(next_vptr), _MM_HINT_T0);
         __builtin_prefetch(reinterpret_cast<const char *>(next_vptr), 0,
                            3); // READ, L1 load
       }
 
-      const uint16_t *vptr = vcache + (j * num_cache_head + n) * head_dim;
+      const __fp16 *vptr = vcache + (j * num_cache_head + n) * head_dim;
 
       int d0 = 0;
       for (; d0 + 4 <= head_dim; d0 += 4) {
-        float16x4_t half =
-          vld1_f16(reinterpret_cast<const float16_t *>(vptr + d0));
+        float16x4_t half = vld1_f16(vptr + d0);
         float32x4_t f32 = vcvt_f32_f16(half);
         vst1q_f32(&tmp_fp32[d0], f32);
       }
       for (; d0 < head_dim; ++d0) {
-        tmp_fp32[d0] = convert_scalar_f16_to_f32(vptr[d0]);
+        tmp_fp32[d0] = vptr[d0];
       }
 
       for (int h = 0; h < gqa_size; ++h) {
@@ -1114,37 +1104,26 @@ void compute_fp16vcache_fp32_transposed(int iter, const float *in,
       }
     }
   }
-#endif
 }
 
-#if !defined(ARMV7)
-static inline float32x4_t load_fp16_4_NEON(const uint16_t *src) {
-  float16x4_t in = vld1_f16(reinterpret_cast<const float16_t *>(src));
-  return vcvt_f32_f16(in);
-}
-
-static inline void load_fp16_4_to_chunk_NEON(const uint16_t *b_src,
+static inline void load_fp16_4_to_chunk_NEON(const __fp16 *b_src,
                                              float *temp_row, int chunk_size) {
   int i = 0;
   for (; i + 4 <= chunk_size; i += 4) {
-    float32x4_t f32 = load_fp16_4_NEON((const uint16_t *)(b_src + i));
+    float16x4_t half = vld1_f16(b_src + i);
+    float32x4_t f32 = vcvt_f32_f16(half);
     vst1q_f32(temp_row + i, f32);
   }
   for (; i < chunk_size; ++i) {
-    temp_row[i] = convert_scalar_f16_to_f32(b_src[i]);
+    temp_row[i] = b_src[i];
   }
 }
-#endif
 
 template <>
-void compute_kcaches(const float *A, const uint16_t *B, float *output,
+void compute_kcaches(const float *A, const __fp16 *B, float *output,
                      int num_rows, int N, int chunk_size, int group_size,
                      int tile_size) {
-#ifdef ARMV7
-  __fallback_compute_kcaches<uint16_t>(A, B, output, num_rows, N, chunk_size,
-                                       group_size, tile_size);
-#else
-  using BType = uint16_t;
+  using BType = __fp16;
   int row_stride = N * chunk_size;
   const int group_stride = group_size * chunk_size;
   const int tile_count = (num_rows + tile_size - 1) / tile_size;
@@ -1200,19 +1179,12 @@ void compute_kcaches(const float *A, const uint16_t *B, float *output,
       }
     }
   }
-#endif
 }
-
-#define COMPUTE_FP32_TO_FP16(x) vcvt_f16_f32(vdupq_n_f32(x))[0]
 
 void compute_rotary_emb_value(unsigned int width, unsigned int dim,
                               unsigned int half_, float *inout, void *output,
                               const float *cos_, const float *sin_,
                               bool only_convert_to_fp16) {
-#ifdef ARMV7
-  __fallback_compute_rotary_emb_value(width, dim, half_, inout, output, cos_,
-                                      sin_, only_convert_to_fp16);
-#else
   enum class OutputType { FP16, FP32 };
 
   OutputType out_type = OutputType::FP32;
@@ -1265,8 +1237,8 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
       float b = inout[i1];
 
       if (only_convert_to_fp16) {
-        static_cast<__fp16 *>(output)[i0] = COMPUTE_FP32_TO_FP16(a);
-        static_cast<__fp16 *>(output)[i1] = COMPUTE_FP32_TO_FP16(b);
+        static_cast<__fp16 *>(output)[i0] = a;
+        static_cast<__fp16 *>(output)[i1] = b;
 
       } else {
 
@@ -1277,8 +1249,8 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
         float out1 = a * s + b * c;
 
         if (out_type == OutputType::FP16) {
-          static_cast<__fp16 *>(output)[i0] = COMPUTE_FP32_TO_FP16(out0);
-          static_cast<__fp16 *>(output)[i1] = COMPUTE_FP32_TO_FP16(out1);
+          static_cast<__fp16 *>(output)[i0] = out0;
+          static_cast<__fp16 *>(output)[i1] = out1;
         } else if (out_type == OutputType::FP32) {
           inout[i0] = out0;
           inout[i1] = out1;
@@ -1286,7 +1258,7 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
       }
     }
   }
-#endif
 }
+#endif
 
 } // namespace nntrainer::neon
