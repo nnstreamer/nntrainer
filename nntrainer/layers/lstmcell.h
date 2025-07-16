@@ -30,60 +30,62 @@ public:
   /**
    * @brief     Constructor of LSTMCellLayer
    */
-  LSTMCellLayer();
+  NNTR_EXPORT LSTMCellLayer();
 
   /**
    * @brief     Destructor of LSTMCellLayer
    */
-  ~LSTMCellLayer() = default;
+  NNTR_EXPORT ~LSTMCellLayer() = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) override;
+  NNTR_EXPORT void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  NNTR_EXPORT void forwarding(RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  NNTR_EXPORT void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::calcGradient(RunLayerContext &context)
    */
-  void calcGradient(RunLayerContext &context) override;
+  NNTR_EXPORT void calcGradient(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override;
+  NNTR_EXPORT void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return LSTMCellLayer::type; };
+  NNTR_EXPORT const std::string getType() const override {
+    return LSTMCellLayer::type;
+  };
 
   /**
    * @copydoc Layer::supportBackwarding()
    */
-  bool supportBackwarding() const override { return true; }
+  NNTR_EXPORT bool supportBackwarding() const override { return true; }
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
    * &value)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_EXPORT void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
    */
-  void setBatch(RunLayerContext &context, unsigned int batch) override;
+  NNTR_EXPORT void setBatch(RunLayerContext &context, unsigned int batch) override;
 
   static constexpr const char *type = "lstmcell";
 

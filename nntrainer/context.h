@@ -100,6 +100,30 @@ public:
   virtual ~Context() = default;
 
   /**
+   * @brief Deleting copy constructor
+   *
+   */
+  Context(const Context &) = delete;
+
+  /**
+   * @brief Deleting assignment operator
+   *
+   */
+  Context &operator=(const Context &) = delete;
+
+  /**
+   * @brief Deleting move constructor
+   *
+   */
+  Context(Context &&) = delete;
+
+  /**
+   * @brief Deleting move assignment operator
+   *
+   */
+  Context &operator=(Context &&) = delete;
+
+  /**
    *
    * @brief Get Global qnn context.
    *

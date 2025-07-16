@@ -30,72 +30,74 @@ public:
   /**
    * @brief     Constructor of LSTMLayer
    */
-  LSTMLayer();
+  NNTR_EXPORT LSTMLayer();
 
   /**
    * @brief     Destructor of LSTMLayer
    */
-  ~LSTMLayer() = default;
+  NNTR_EXPORT ~LSTMLayer() = default;
 
   /**
    *  @brief  Move constructor.
    *  @param[in] LSTMLayer &&
    */
-  LSTMLayer(LSTMLayer &&rhs) noexcept;
+  NNTR_EXPORT LSTMLayer(LSTMLayer &&rhs) noexcept;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs LSTMLayer to be moved.
    */
-  LSTMLayer &operator=(LSTMLayer &&rhs);
+  NNTR_EXPORT LSTMLayer &operator=(LSTMLayer &&rhs);
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) override;
+  NNTR_EXPORT void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  NNTR_EXPORT void forwarding(RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  NNTR_EXPORT void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::calcGradient(RunLayerContext &context)
    */
-  void calcGradient(RunLayerContext &context) override;
+  NNTR_EXPORT void calcGradient(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override;
+  NNTR_EXPORT void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return LSTMLayer::type; };
+  NNTR_EXPORT const std::string getType() const override {
+    return LSTMLayer::type;
+  };
 
   /**
    * @copydoc Layer::supportBackwarding()
    */
-  bool supportBackwarding() const override { return true; }
+  NNTR_EXPORT bool supportBackwarding() const override { return true; }
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
    * &value)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_EXPORT void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
    */
-  void setBatch(RunLayerContext &context, unsigned int batch) override;
+  NNTR_EXPORT void setBatch(RunLayerContext &context, unsigned int batch) override;
 
   static constexpr const char *type = "lstm";
 
@@ -145,7 +147,7 @@ private:
    * @param ifgo_ input gate, forget gate, memory cell, output gate
    * @param mask_ dropout mask
    */
-  void forwardingBatchFirstLSTM(
+  NNTR_EXPORT void forwardingBatchFirstLSTM(
     unsigned int NUM_GATE, const unsigned int batch_size,
     const unsigned int feature_size, const bool disable_bias,
     const unsigned int unit, const bool integrate_bias, ActiFunc &acti_func,
@@ -193,7 +195,7 @@ private:
    * gate
    * @param mask_ dropout mask
    */
-  void calcGradientBatchFirstLSTM(
+  NNTR_EXPORT void calcGradientBatchFirstLSTM(
     unsigned int NUM_GATE, const unsigned int batch_size,
     const unsigned int feature_size, const bool disable_bias,
     const unsigned int unit, const bool integrate_bias, ActiFunc &acti_func,

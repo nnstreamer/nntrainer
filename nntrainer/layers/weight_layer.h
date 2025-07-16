@@ -30,67 +30,69 @@ public:
   /**
    * @brief     Constructor of Weight Layer
    */
-  WeightLayer();
+  NNTR_EXPORT WeightLayer();
 
   /**
    * @brief     Destructor of Weight Layer
    */
-  ~WeightLayer() = default;
+  NNTR_EXPORT ~WeightLayer() = default;
 
   /**
    *  @brief  Move constructor.
    *  @param[in] WeightLayer &&
    */
-  WeightLayer(WeightLayer &&rhs) noexcept = default;
+  NNTR_EXPORT WeightLayer(WeightLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs WeightLayer to be moved.
    */
-  WeightLayer &operator=(WeightLayer &&rhs) = default;
+  NNTR_EXPORT WeightLayer &operator=(WeightLayer &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) override;
+  NNTR_EXPORT void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  NNTR_EXPORT void forwarding(RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  NNTR_EXPORT void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::calcGradient(RunLayerContext &context)
    */
-  void calcGradient(RunLayerContext &context) override;
+  NNTR_EXPORT void calcGradient(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override;
+  NNTR_EXPORT void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return WeightLayer::type; };
+  NNTR_EXPORT const std::string getType() const override {
+    return WeightLayer::type;
+  };
 
   /**
    * @copydoc Layer::supportBackwarding()
    */
-  bool supportBackwarding() const override { return true; }
+  NNTR_EXPORT bool supportBackwarding() const override { return true; }
 
   /**
    * @brief Initialize the in-place settings of the layer
    * @return InPlaceType
    */
-  InPlaceType initializeInPlace() final {
+  NNTR_EXPORT InPlaceType initializeInPlace() final {
     is_inplace = true;
     return InPlaceType::NON_RESTRICTING;
   }
@@ -99,7 +101,7 @@ public:
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
    * &value)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_EXPORT void setProperty(const std::vector<std::string> &values) override;
 
   static constexpr const char *type = "weight";
 

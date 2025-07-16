@@ -68,13 +68,13 @@ public:
    * @param l layer to wrap with, the ownership is transferred to layer node
    *
    */
-  LayerNode(std::unique_ptr<nntrainer::Layer> &&l);
+  NNTR_EXPORT LayerNode(std::unique_ptr<nntrainer::Layer> &&l);
 
   /**
    * @brief     Destructor of LayerNode Class
    *
    */
-  ~LayerNode();
+  NNTR_EXPORT ~LayerNode();
 
   /**
    * Support all the interface requirements by ml::train::Layer
@@ -85,7 +85,7 @@ public:
    *
    * @return const std::string type representation
    */
-  const std::string getType() const override;
+  NNTR_EXPORT const std::string getType() const override;
 
   /**
    * @brief     set Property of layer
@@ -96,9 +96,10 @@ public:
    *  { std::string property_name=property_val, ...}
    *
    */
-  void setProperty(const std::vector<std::string> &properties) override;
+  NNTR_EXPORT void
+  setProperty(const std::vector<std::string> &properties) override;
 
-  std::string getProperty(const std::string &key) override;
+  NNTR_EXPORT std::string getProperty(const std::string &key) override;
 
   /**
    * @brief     Get name of the layer
@@ -108,7 +109,7 @@ public:
    * @note      This name might be changed once this layer is added to the model
    * to keep the name unique to the model
    */
-  const std::string getName() const override;
+  NNTR_EXPORT const std::string getName() const override;
 
   /**
    * Support all the interface requirements by nntrainer::GraphNode
@@ -119,7 +120,7 @@ public:
    *
    * @param[in] name Name of the layer
    */
-  void setName(const std::string &name) override {
+  NNTR_EXPORT void setName(const std::string &name) override {
     setProperty({"name=" + name});
   }
 
@@ -128,8 +129,8 @@ public:
    *
    * @param[in] weight data type, activation data type
    */
-  void setDataType(const TensorDim::DataType w_type,
-                   const TensorDim::DataType a_type) {
+  NNTR_EXPORT void setDataType(const TensorDim::DataType w_type,
+                            const TensorDim::DataType a_type) {
     data_type = {w_type, a_type};
   }
 
@@ -138,14 +139,16 @@ public:
    *
    * @return TensorDim::DataType weight data type
    */
-  const TensorDim::DataType getWeightDataType() const { return data_type[0]; }
+  NNTR_EXPORT const TensorDim::DataType getWeightDataType() const {
+    return data_type[0];
+  }
 
   /**
    * @brief Get the Activation Data Type
    *
    * @return TensorDim::DataType activation data type
    */
-  const TensorDim::DataType getActivationDataType() const {
+  NNTR_EXPORT const TensorDim::DataType getActivationDataType() const {
     return data_type[1];
   }
 
@@ -156,7 +159,7 @@ public:
    * @throws if nth is out of range of getNumInputConnection()
    * @return const unsigned index
    */
-  const unsigned getInputConnectionIndex(unsigned nth) const;
+  NNTR_EXPORT const unsigned getInputConnectionIndex(unsigned nth) const;
 
   /**
    * @brief Get the Input Connection Name object
@@ -165,7 +168,7 @@ public:
    * @throws if nth is out of range of getNumInputConnection()
    * @return const std::string& name
    */
-  const std::string &getInputConnectionName(unsigned nth) const;
+  NNTR_EXPORT const std::string &getInputConnectionName(unsigned nth) const;
 
   /**
    * @brief Set the Input Connection Index object
@@ -174,7 +177,7 @@ public:
    * @param index index to set
    * @throws if nth is out of range of getNumInputConnection()
    */
-  void setInputConnectionIndex(unsigned nth, unsigned index);
+  NNTR_EXPORT void setInputConnectionIndex(unsigned nth, unsigned index);
 
   /**
    * @brief Get the Input Connection Name object
@@ -184,7 +187,7 @@ public:
    * @throws if nth is out of range of getNumInputConnection()
    * @throws if new identifier is invalid
    */
-  void setInputConnectionName(unsigned nth, const std::string &name);
+  NNTR_EXPORT void setInputConnectionName(unsigned nth, const std::string &name);
 
   /**
    * @brief Get the output connection object
@@ -193,7 +196,7 @@ public:
    * @throws if nth is out of range of getNumOutputConnection()
    * @return Connection * view of a connection, null means this does not exist
    */
-  const Connection *getOutputConnection(unsigned nth) const;
+  NNTR_EXPORT const Connection *getOutputConnection(unsigned nth) const;
 
   /**
    * @brief Set the Output Connection
@@ -209,22 +212,23 @@ public:
    * @param name name of the output bound connection
    * @param index index of the output bound connection
    */
-  void setOutputConnection(unsigned nth, const std::string &name,
-                           unsigned index);
+  NNTR_EXPORT void setOutputConnection(unsigned nth, const std::string &name,
+                                    unsigned index);
 
   /**
    * @brief set the compute engine for this node
    * @param compute engine (CPU/GPU)
    */
-  void setComputeEngine(const ml::train::LayerComputeEngine &compute_engine =
-                          ml::train::LayerComputeEngine::CPU);
+  NNTR_EXPORT void
+  setComputeEngine(const ml::train::LayerComputeEngine &compute_engine =
+                     ml::train::LayerComputeEngine::CPU);
 
   /**
    * @brief     Get the input connections for this node
    *
    * @return list of name of the nodes which form input connections
    */
-  const std::vector<std::string> getInputConnections() const override {
+  NNTR_EXPORT const std::vector<std::string> getInputConnections() const override {
     return getInputLayers();
   }
 
@@ -233,7 +237,8 @@ public:
    *
    * @return list of name of the nodes which form output connections
    */
-  const std::vector<std::string> getOutputConnections() const override {
+  NNTR_EXPORT const std::vector<std::string>
+  getOutputConnections() const override {
     return getOutputLayers();
   }
 
@@ -242,14 +247,16 @@ public:
    *
    * @retval    the execution order/location of this node
    */
-  ExecutionOrder getExecutionOrder() const override { return exec_order; }
+  NNTR_EXPORT ExecutionOrder getExecutionOrder() const override {
+    return exec_order;
+  }
 
   /**
    * @brief     set the execution order/location of this node
    *
    * @param     exec_order the execution order/location of this node
    */
-  void setExecutionOrder(ExecutionOrder exec_order_) override {
+  NNTR_EXPORT void setExecutionOrder(ExecutionOrder exec_order_) override {
     exec_order = exec_order_;
   }
 
@@ -271,7 +278,7 @@ public:
    * will be made available during execution of the layer with the context.
    * @note configureRunContext() is expected to called right after this.
    */
-  InitLayerContext
+  NNTR_EXPORT InitLayerContext
   finalize(const std::vector<TensorDim> &input_dims = {},
            std::array<std::string, 3> tensor_type = {"NCHW", "FP32", "FP32"},
            ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN);
@@ -290,9 +297,10 @@ public:
    * will be made available during execution of the layer with the context.
    * @note configureRunContext() is expected to called right after this.
    */
-  InitLayerContext refinalize(const std::vector<TensorDim> &input_dims = {});
+  NNTR_EXPORT InitLayerContext
+  refinalize(const std::vector<TensorDim> &input_dims = {});
 
-  void initialize() override { layer->initialize(*run_context); }
+  NNTR_EXPORT void initialize() override { layer->initialize(*run_context); }
 
   /**
    * @brief     Forward Propagation of a layer
@@ -302,7 +310,7 @@ public:
    * outputs, and tensors (if any) for the layer. Input and output dimensions
    * can be access from the inputs/outputs tensors themselves.
    */
-  void forwarding(bool training = true);
+  NNTR_EXPORT void forwarding(bool training = true);
 
   /**
    * @brief     Incremental forward Propagation of a layer
@@ -314,8 +322,8 @@ public:
    * outputs, and tensors (if any) for the layer. Input and output dimensions
    * can be access from the inputs/outputs tensors themselves.
    */
-  void incremental_forwarding(unsigned int from, unsigned int to,
-                              bool training = true);
+  NNTR_EXPORT void incremental_forwarding(unsigned int from, unsigned int to,
+                                       bool training = true);
 
   /**
    * @brief     calc the derivative to be passed to the previous layer
@@ -324,7 +332,7 @@ public:
    * outputs, and tensors (if any) for the layer. Input and output dimensions
    * can be access from the inputs/outputs tensors themselves.
    */
-  void calcDerivative();
+  NNTR_EXPORT void calcDerivative();
 
   /**
    * @brief     Calculate the derivative of a layer
@@ -332,7 +340,7 @@ public:
    * outputs, and tensors (if any) for the layer. Input and output dimensions
    * can be access from the inputs/outputs tensors themselves.
    */
-  void calcGradient();
+  NNTR_EXPORT void calcGradient();
 
   /**
    * @brief this function helps exporting the layer in a predefined format,
@@ -341,15 +349,15 @@ public:
    * @param     exporter exporter that contains exporting logic
    * @param     method enum value to identify how it should be exported to
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const;
+  NNTR_EXPORT void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const;
 
   /**
    * @brief Set the batch for the layer
    * @param     batch Batch value to be set
    * @details Update the run context based on the updated batch size if required
    */
-  void setBatch(unsigned int batch);
+  NNTR_EXPORT void setBatch(unsigned int batch);
 
   /**
    * @brief Update the tensors dimensions of the layer by input dimensions
@@ -357,13 +365,14 @@ public:
    * @details Update the dimensions of inputs, outputs, weights, tensors based
    * on the input dimensions
    */
-  void updateTensorsByInputDimensions(std::vector<TensorDim> input_dimensions);
+  NNTR_EXPORT void
+  updateTensorsByInputDimensions(std::vector<TensorDim> input_dimensions);
 
   /**
    * @brief   If the current layer can support in-place
    * @return  true if inplace, else false
    */
-  bool supportInPlace() const;
+  NNTR_EXPORT bool supportInPlace() const;
 
   /**
    * @brief Initialize the in-place settings of the layer
@@ -374,13 +383,13 @@ public:
    * override this function.
    * @return InPlaceType
    */
-  InPlaceType initializeInPlace();
+  NNTR_EXPORT InPlaceType initializeInPlace();
   /**
    * @brief   Notify that this layer will execute in-place
    *
    * @param val in place state for the layer
    */
-  void setInPlaceType(InPlaceType val) {
+  NNTR_EXPORT void setInPlaceType(InPlaceType val) {
     if (val != InPlaceType::NONE && !supportInPlace())
       throw std::runtime_error("Error setting layer to work in-place");
 
@@ -392,14 +401,14 @@ public:
    *
    * @return Inplace type for the layer
    */
-  InPlaceType getInPlaceType() const { return inplace_type; }
+  NNTR_EXPORT InPlaceType getInPlaceType() const { return inplace_type; }
 
   /**
    * @brief Get the inplace direction for the layer
    *
    * @return InPlaceDirection
    */
-  InPlaceDirection getInPlaceDirection() const;
+  NNTR_EXPORT InPlaceDirection getInPlaceDirection() const;
 
   /**
    * @brief  check if this layer requires label to be passed
@@ -408,7 +417,7 @@ public:
    * a graph(numOutlayers == 0). label will be fed to the gradient of hidden
    * if requireLabel is true
    */
-  bool requireLabel() const;
+  NNTR_EXPORT bool requireLabel() const;
 
   /**
    * Add rest of the helper interfaces required by other internal classes
@@ -419,7 +428,9 @@ public:
    *
    * @return boolean true if trainable, else false
    */
-  bool supportBackwarding() const { return getLayer()->supportBackwarding(); }
+  NNTR_EXPORT bool supportBackwarding() const {
+    return getLayer()->supportBackwarding();
+  }
 
   /**
    * Support interfaces for the properties intercepted from layer
@@ -430,56 +441,56 @@ public:
    *
    * @return boolean true if trainable, else false
    */
-  bool getTrainable() const override;
+  NNTR_EXPORT bool getTrainable() const override;
 
   /**
    * @brief     get if the output of this layer must be flatten
    * @retval    flatten value
    */
-  bool getFlatten() const;
+  NNTR_EXPORT bool getFlatten() const;
 
   /**
    * @brief Get the Shared From property of the layer node
    *
    * @return std::string node name where the weights are borrowed
    */
-  std::string getSharedFrom() const;
+  NNTR_EXPORT std::string getSharedFrom() const;
 
   /**
    * @brief     get distribute for this layer
    * @retval dist to enable/disable distribute
    */
-  bool getDistribute() const;
+  NNTR_EXPORT bool getDistribute() const;
 
   /**
    * @brief     get activation for this layer
    * @retval dist to enable/disable distribute
    */
-  ActivationType getActivationToBeRealized() const;
+  NNTR_EXPORT ActivationType getActivationToBeRealized() const;
 
   /**
    * @brief     Activation Type Getter
    * @retval    Activation Type.
    */
-  ActivationType getActivationType() const;
+  NNTR_EXPORT ActivationType getActivationType() const;
 
   /**
    * @brief     Get number of input connections
    * @retval    number of inputs
    */
-  unsigned int getNumInputConnections() const;
+  NNTR_EXPORT unsigned int getNumInputConnections() const;
 
   /**
    * @brief     Get number of output connections
    * @retval    number of outputs
    */
-  unsigned int getNumOutputConnections() const;
+  NNTR_EXPORT unsigned int getNumOutputConnections() const;
 
   /**
    * @brief     Get number of inputs
    * @retval    number of inputs
    */
-  unsigned int getNumInputs() const {
+  NNTR_EXPORT unsigned int getNumInputs() const {
     NNTR_THROW_IF(!run_context, std::runtime_error)
       << __func__ << " layer needs to be finalized first!";
     return run_context->getNumInputs();
@@ -489,7 +500,7 @@ public:
    * @brief     Get number of outputs
    * @retval    number of outputs
    */
-  unsigned int getNumOutputs() const {
+  NNTR_EXPORT unsigned int getNumOutputs() const {
     NNTR_THROW_IF(!run_context, std::runtime_error)
       << __func__ << " layer needs to be finalized first!";
     return run_context->getNumOutputs();
@@ -500,7 +511,7 @@ public:
    *
    * @return unsigned int number of weights
    */
-  unsigned int getNumWeights() const {
+  NNTR_EXPORT unsigned int getNumWeights() const {
     NNTR_THROW_IF(!run_context, std::runtime_error)
       << __func__ << " layer needs to be finalized first!";
     return run_context->getNumWeights();
@@ -511,26 +522,26 @@ public:
    *
    * @param layers Name of the layers
    */
-  void setOutputLayers(const std::vector<std::string> &layers);
+  NNTR_EXPORT void setOutputLayers(const std::vector<std::string> &layers);
 
   /**
    * @brief check if input shape property is set
    *
    * @return bool true if input shape property has set
    */
-  bool hasInputShapeProperty() const;
+  NNTR_EXPORT bool hasInputShapeProperty() const;
 
   /**
    * @brief Get the input dimension
    * @return TensorDim dimension of the input
    */
-  const std::vector<TensorDim> getInputDimensions() const;
+  NNTR_EXPORT const std::vector<TensorDim> getInputDimensions() const;
 
   /**
    * @brief Get the output dimension
    * @return TensorDim dimension of the output
    */
-  const std::vector<TensorDim> getOutputDimensions() const;
+  NNTR_EXPORT const std::vector<TensorDim> getOutputDimensions() const;
   /**
    * @brief Get the Weight object
    * currently, only unittest uses this func.
@@ -538,7 +549,7 @@ public:
    * @param idx Identifier of the weight
    * @return Weight& Reference to the weight
    */
-  Weight getWeightWrapper(unsigned int idx) {
+  NNTR_EXPORT Weight getWeightWrapper(unsigned int idx) {
     NNTR_THROW_IF(!run_context, std::runtime_error)
       << __func__ << " layer needs to be finalized first!";
     if (run_context->weightHasGradient(idx)) {
@@ -557,7 +568,7 @@ public:
    * @param idx Identifier of the weight
    * @return Tensor& Reference to the weight tensor
    */
-  Weight &getWeightObject(unsigned int idx) {
+  NNTR_EXPORT Weight &getWeightObject(unsigned int idx) {
     NNTR_THROW_IF(!run_context, std::runtime_error)
       << __func__ << " layer needs to be finalized first!";
     return run_context->getWeightObject(idx);
@@ -569,7 +580,7 @@ public:
    * @param idx Identifier of the weight
    * @return Tensor& Reference to the weight tensor
    */
-  Tensor &getWeight(unsigned int idx) {
+  NNTR_EXPORT Tensor &getWeight(unsigned int idx) {
     NNTR_THROW_IF(!run_context, std::runtime_error)
       << __func__ << " layer needs to be finalized first!";
     return run_context->getWeight(idx);
@@ -581,7 +592,7 @@ public:
    * @param idx Identifier of the weight
    * @return Tensor& Reference to the weight grad tensor
    */
-  Tensor &getWeightGrad(unsigned int idx) {
+  NNTR_EXPORT Tensor &getWeightGrad(unsigned int idx) {
     NNTR_THROW_IF(!run_context, std::runtime_error)
       << __func__ << " layer needs to be finalized first!";
     return run_context->getWeightGrad(idx);
@@ -593,7 +604,7 @@ public:
    * @param idx Identifier of the weight
    * @return const std::string &Name of the weight
    */
-  const std::string &getWeightName(unsigned int idx) override {
+  NNTR_EXPORT const std::string &getWeightName(unsigned int idx) override {
     NNTR_THROW_IF(!run_context, std::runtime_error)
       << __func__ << " layer needs to be finalized first!";
     return run_context->getWeightName(idx);
@@ -606,7 +617,7 @@ public:
    * of vector is zero
    * @note      layer needs to be finalized before called.
    */
-  const std::vector<float *> getWeights() override {
+  NNTR_EXPORT const std::vector<float *> getWeights() override {
     NNTR_THROW_IF(!run_context, std::runtime_error)
       << __func__ << " layer needs to be finalized first!";
 
@@ -640,8 +651,8 @@ public:
    * of vector is zero
    * @note      layer needs to be finalized before called.
    */
-  void getWeights(std::vector<float *> &weights,
-                  std::vector<TensorDim> &weight_dim) override {
+  NNTR_EXPORT void getWeights(std::vector<float *> &weights,
+                           std::vector<TensorDim> &weight_dim) override {
     NNTR_THROW_IF(!run_context, std::runtime_error)
       << __func__ << " layer needs to be finalized first!";
 
@@ -680,8 +691,8 @@ public:
    * of vector is zero
    * @note      layer needs to be finalized before called.
    */
-  void getFP16Weights(std::vector<_FP16 *> &weights,
-                      std::vector<TensorDim> &weight_dim) override {
+  NNTR_EXPORT void getFP16Weights(std::vector<_FP16 *> &weights,
+                               std::vector<TensorDim> &weight_dim) override {
     NNTR_THROW_IF(!run_context, std::runtime_error)
       << __func__ << " layer needs to be finalized first!";
 
@@ -700,7 +711,7 @@ public:
    * @note      Size of vector must be the same with number of weights.
    * @note      layer needs to be finalized before called.
    */
-  void setWeights(const std::vector<float *> weights) override;
+  NNTR_EXPORT void setWeights(const std::vector<float *> weights) override;
 
   /**
    * @brief Get the Input tensor object
@@ -708,7 +719,7 @@ public:
    * @param idx Identifier of the input
    * @return Tensor& Reference to the input grad tensor
    */
-  Tensor &getInput(unsigned int idx) {
+  NNTR_EXPORT Tensor &getInput(unsigned int idx) {
     NNTR_THROW_IF(!run_context, std::runtime_error)
       << __func__ << " layer needs to be finalized first!";
     return run_context->getInput(idx);
@@ -720,7 +731,7 @@ public:
    * @param idx Identifier of the input
    * @return Tensor& Reference to the input grad tensor
    */
-  Tensor &getInputGrad(unsigned int idx) {
+  NNTR_EXPORT Tensor &getInputGrad(unsigned int idx) {
     NNTR_THROW_IF(!run_context, std::runtime_error)
       << __func__ << " layer needs to be finalized first!";
     return run_context->getInputGrad(idx);
@@ -732,7 +743,7 @@ public:
    * @param idx Identifier of the output
    * @return Tensor& Reference to the output tensor
    */
-  Tensor &getOutput(unsigned int idx) {
+  NNTR_EXPORT Tensor &getOutput(unsigned int idx) {
     NNTR_THROW_IF(!run_context, std::runtime_error)
       << __func__ << " layer needs to be finalized first!";
     return run_context->getOutput(idx);
@@ -744,7 +755,7 @@ public:
    * @param idx Identifier of the output
    * @return Tensor& Reference to the output grad tensor
    */
-  const Tensor getOutputGrad(unsigned int idx) const {
+  NNTR_EXPORT const Tensor getOutputGrad(unsigned int idx) const {
     NNTR_THROW_IF(!run_context, std::runtime_error)
       << __func__ << " layer needs to be finalized first!";
     return run_context->getOutputGrad(idx);
@@ -756,7 +767,7 @@ public:
    * @param idx Identifier of the output
    * @return Tensor& Reference to the output grad tensor
    */
-  const Tensor &getOutputGradUnsafe(unsigned int idx) const {
+  NNTR_EXPORT const Tensor &getOutputGradUnsafe(unsigned int idx) const {
     return run_context->getOutputGradUnsafe(idx);
   }
 
@@ -767,17 +778,18 @@ public:
    * @param mode Execution mode
    * @param opt_var read optimizer variables
    */
-  void read(std::ifstream &file, bool opt_var = false,
-            ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN,
-            bool fsu = false, size_t start_offset = 0,
-            bool read_from_offset = false);
+  NNTR_EXPORT void
+  read(std::ifstream &file, bool opt_var = false,
+       ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN,
+       bool fsu = false, size_t start_offset = 0,
+       bool read_from_offset = false);
 
   /**
    * @brief     save layer Weight & Bias data from file
    * @param file output file stream
    * @param bool save optimizer variables
    */
-  void
+  NNTR_EXPORT void
   save(std::ofstream &file, bool opt_var = false,
        ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN) const;
 
@@ -785,13 +797,13 @@ public:
    * @brief clear optimizer variable to initial state
    *
    */
-  void clearOptVar();
+  NNTR_EXPORT void clearOptVar();
 
   /**
    * @brief     get loss for the layer
    * @return    loss of the layer
    */
-  float getLoss() const;
+  NNTR_EXPORT float getLoss() const;
 
 #ifdef PROFILE
   int forward_event_key;
@@ -802,14 +814,15 @@ public:
   /**
    * @brief   Overriding output stream for layers and it's derived class
    */
-  friend std::ostream &operator<<(std::ostream &out, const LayerNode &l);
+  NNTR_EXPORT friend std::ostream &operator<<(std::ostream &out,
+                                           const LayerNode &l);
 
   /**
    * @brief   Get run layer context
    *
    * @retval  run layer context
    */
-  RunLayerContext &getRunContext() {
+  NNTR_EXPORT RunLayerContext &getRunContext() {
     NNTR_THROW_IF(!run_context, std::runtime_error)
       << __func__ << " layer needs to be configured first!";
     return *run_context;
@@ -820,7 +833,7 @@ public:
    *
    * @retval  run layer context
    */
-  const RunLayerContext &getRunContext() const {
+  NNTR_EXPORT const RunLayerContext &getRunContext() const {
     NNTR_THROW_IF(!run_context, std::runtime_error)
       << __func__ << " layer needs to be configured first!";
     return *run_context;
@@ -855,7 +868,7 @@ public:
    *
    * @retval  bool true if the layer is finalized else false
    */
-  bool isFinalized() const {
+  NNTR_EXPORT bool isFinalized() const {
     if (!run_context)
       return false;
 
@@ -870,12 +883,12 @@ public:
    * @param outputs outputs
    * @param tensors tensors
    */
-  void configureRunContext(const std::vector<Weight *> &weights,
-                           const std::vector<Var_Grad *> &inputs,
-                           const std::vector<Var_Grad *> &outputs,
-                           const std::vector<Var_Grad *> &tensors,
-                           float loss_scale,
-                           std::shared_ptr<ContextData> ct_data = nullptr);
+  NNTR_EXPORT void
+  configureRunContext(const std::vector<Weight *> &weights,
+                      const std::vector<Var_Grad *> &inputs,
+                      const std::vector<Var_Grad *> &outputs,
+                      const std::vector<Var_Grad *> &tensors, float loss_scale,
+                      std::shared_ptr<ContextData> ct_data = nullptr);
 
   /**
    * @brief Preset modes for printing summary for the layer
@@ -894,22 +907,22 @@ public:
    * @param out oustream
    * @param preset preset to be used
    */
-  void printPreset(std::ostream &out,
-                   PrintPreset preset = PrintPreset::PRINT_SUMMARY);
+  NNTR_EXPORT void printPreset(std::ostream &out,
+                            PrintPreset preset = PrintPreset::PRINT_SUMMARY);
 
   /**
    * @brief remap identifier inside layer node
    *
    * @param remap_fn function to remap
    */
-  void remapIdentifiers(std::function<void(std::string &)> remap_fn);
+  NNTR_EXPORT void remapIdentifiers(std::function<void(std::string &)> remap_fn);
 
   /**
    * @brief remap connections(input, output layers ) inside layer node
    *
    * @param remap_fn function to remap
    */
-  void
+  NNTR_EXPORT void
   remapConnections(std::function<void(std::string &, unsigned &)> remap_fn);
 
   /**
@@ -919,14 +932,14 @@ public:
    * change some properties
    * @return LayerNode newly created node
    */
-  std::unique_ptr<LayerNode> cloneConfiguration();
+  NNTR_EXPORT std::unique_ptr<LayerNode> cloneConfiguration();
 
   /**
    * @brief Set if the layer needs to do derivative calculation
    *
    * @param nb true if the layer needs to do backwarding, else false
    */
-  void needsCalcDerivative(bool nb) {
+  NNTR_EXPORT void needsCalcDerivative(bool nb) {
     NNTR_THROW_IF(nb && !supportBackwarding(), std::invalid_argument)
       << "[Layer] " << getName()
       << " does not support backwarding but is needed";
@@ -938,7 +951,7 @@ public:
    *
    * @param nb true if the layer needs to do reinitialization, eles false
    */
-  void reStoreData(bool nb) {
+  NNTR_EXPORT void reStoreData(bool nb) {
     needs_restore_data = nb;
     run_context->reStoreData(nb);
   }
@@ -948,30 +961,30 @@ public:
    *
    * @param nb true if the layer needs to do backwarding, else false
    */
-  void needsCalcGradient(bool nb) { needs_calc_gradient = nb; }
+  NNTR_EXPORT void needsCalcGradient(bool nb) { needs_calc_gradient = nb; }
 
   /**
    * @brief Get the layer needs to do calculation of derivatives
    *
    * @return true if the layer needs to do backwarding, else false
    */
-  bool needsCalcDerivative() { return needs_calc_derivative; }
+  NNTR_EXPORT bool needsCalcDerivative() { return needs_calc_derivative; }
 
   /**
    * @brief Set if the layer needs to do calculation of gradient
    *
    * @param nb true if the layer needs to do backwarding, else false
    */
-  bool needsCalcGradient() { return needs_calc_gradient; }
+  NNTR_EXPORT bool needsCalcGradient() { return needs_calc_gradient; }
 
   /**
    * @brief Set if the layer needs to reinitialization @mixed precsion
    *
    * @param nb true if the layer needs reinitialization, eles false
    */
-  bool reStoreData() { return needs_restore_data; }
+  NNTR_EXPORT bool reStoreData() { return needs_restore_data; }
 
-  std::string getComputeEngineType() {
+  NNTR_EXPORT std::string getComputeEngineType() {
     auto size = props::ComputeEngineTypeInfo::EnumList.size();
     auto data = std::data(props::ComputeEngineTypeInfo::EnumList);
     for (unsigned i = 0; i < size; ++i) {
@@ -988,14 +1001,14 @@ private:
    *
    * @return const std::vector<std::string>
    */
-  const std::vector<std::string> getInputLayers() const;
+  NNTR_EXPORT const std::vector<std::string> getInputLayers() const;
 
   /**
    * @brief Get the Output Layers object
    *
    * @return const std::vector<std::string>
    */
-  const std::vector<std::string> getOutputLayers() const;
+  NNTR_EXPORT const std::vector<std::string> getOutputLayers() const;
 
   std::unique_ptr<nntrainer::Layer>
     layer; /**< The actual object in the graph node */
@@ -1066,7 +1079,7 @@ properties in the context/graph unless intended. */
    * @details this is layer inside the distribution layer if this layer node
    * is distributed.
    */
-  const nntrainer::Layer *getLayer() const;
+  NNTR_EXPORT const nntrainer::Layer *getLayer() const;
 
   /**
    * @brief   Get the effective layer managed by this layer node
@@ -1074,19 +1087,19 @@ properties in the context/graph unless intended. */
    * @details this is layer inside the distribution layer if this layer node
    * is distributed.
    */
-  nntrainer::Layer *getLayer();
+  NNTR_EXPORT nntrainer::Layer *getLayer();
 
   /**
    * @brief anchor point to override if PRINT_SHAPE_INFO is enabled for
    * Layer::print()
    */
-  void printShapeInfo(std::ostream &out);
+  NNTR_EXPORT void printShapeInfo(std::ostream &out);
 
   /**
    * @brief anchor point to override if PRINT_METRIC is enabled for
    * Layer::print()
    */
-  void printMetric(std::ostream &out);
+  NNTR_EXPORT void printMetric(std::ostream &out);
 
   /**
    * @brief     Print layer related information. Do not override without clear
@@ -1095,7 +1108,7 @@ properties in the context/graph unless intended. */
    * @param[in] out outstream
    * @param[in] flags combination of LayerPrintOption
    */
-  void print(std::ostream &out, unsigned int flags = 0);
+  NNTR_EXPORT void print(std::ostream &out, unsigned int flags = 0);
 };
 
 /**
@@ -1105,7 +1118,7 @@ properties in the context/graph unless intended. */
  * @params[in] properties Properties of the layer
  * @params[in] compute engine for the layer to run on
  */
-std::unique_ptr<LayerNode>
+NNTR_EXPORT std::unique_ptr<LayerNode>
 createLayerNode(const ml::train::LayerType &type,
                 const std::vector<std::string> &properties = {});
 
@@ -1115,7 +1128,7 @@ createLayerNode(const ml::train::LayerType &type,
  * @params[in] type Type of the layer to be constructed
  * @params[in] properties Properties of the layer
  */
-std::unique_ptr<LayerNode>
+NNTR_EXPORT std::unique_ptr<LayerNode>
 createLayerNode(const std::string &type,
                 const std::vector<std::string> &properties = {});
 
@@ -1126,7 +1139,7 @@ createLayerNode(const std::string &type,
  * @params[in] properties Properties of the layer
  * @params[in] compute engine for the layer to run on
  */
-std::unique_ptr<LayerNode>
+NNTR_EXPORT std::unique_ptr<LayerNode>
 createLayerNode(std::unique_ptr<nntrainer::Layer> &&layer,
                 const std::vector<std::string> &properties);
 

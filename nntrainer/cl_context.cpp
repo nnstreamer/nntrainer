@@ -43,24 +43,24 @@ static void add_default_object(ClContext &cc) {
                        ml::train::LayerType::LAYER_ADDITION);
   }
 
-  if (SwiGLULayerCl::registerClKernels()) {
+  if (SwiGLULayerCl::registerClKernels(&cc)) {
     cc.registerFactory(nntrainer::createLayer<SwiGLULayerCl>,
                        SwiGLULayerCl::type, ml::train::LayerType::LAYER_SWIGLU);
   }
 
-  if (ReshapeLayerCl::registerClKernels()) {
+  if (ReshapeLayerCl::registerClKernels(&cc)) {
     cc.registerFactory(nntrainer::createLayer<ReshapeLayerCl>,
                        ReshapeLayerCl::type,
                        ml::train::LayerType::LAYER_RESHAPE);
   }
 
-  if (RMSNormLayerCl::registerClKernels()) {
+  if (RMSNormLayerCl::registerClKernels(&cc)) {
     cc.registerFactory(nntrainer::createLayer<RMSNormLayerCl>,
                        RMSNormLayerCl::type,
                        ml::train::LayerType::LAYER_RMSNORM);
   }
 
-  if (ConcatLayerCl::registerClKernels()) {
+  if (ConcatLayerCl::registerClKernels(&cc)) {
     cc.registerFactory(nntrainer::createLayer<ConcatLayerCl>,
                        ConcatLayerCl::type, ml::train::LayerType::LAYER_CONCAT);
   }
@@ -88,11 +88,15 @@ static void registerer(ClContext &cc) noexcept {
 
 ClContext &ClContext::Global() {
   // initializing commandqueue and context
+  bool init = cl_initialized;
   if (!clInit()) {
     ml_loge("cl_context: opencl command queue creation failed");
   }
 
-  registerer(*this);
+  if (cl_initialized != init) {
+    registerer(*this);
+  }
+
   return *this;
 }
 
@@ -153,6 +157,7 @@ void ClContext::initBlasClKernels() {
   registerClKernel(getSgemmClTransABKernel(), "sgemm_cl_transAB");
   registerClKernel(getAdditionClKernel(), "addition_cl");
   registerClKernel(getSscalClKernel(), "sscal_cl");
+  registerClKernel(getQ6KSgemvClKernel(), "kernel_mul_mv_q6_K_f32");
 
 #ifdef ENABLE_FP16
   registerClKernel(getHgemvClKernel(), "sgemv_cl_fp16");

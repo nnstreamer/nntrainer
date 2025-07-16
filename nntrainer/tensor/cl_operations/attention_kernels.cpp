@@ -26,6 +26,10 @@ void rotary_emb_cl(float *in, float *out,
                    unsigned int in_size, unsigned int out_size) {
   bool result = false;
 
+  ClContext *attention_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
+
   do {
     ClContext::SharedPtrClKernel kernel_rotaryEmb_ptr =
       attention_cc->registerClKernel(getRotaryEmbClKernel(), "rotary_emb_cl");

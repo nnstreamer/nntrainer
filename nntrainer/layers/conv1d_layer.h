@@ -18,6 +18,7 @@
 #include <common_properties.h>
 #include <layer_impl.h>
 #include <memory.h>
+#include <conv2d_layer.h>
 
 namespace nntrainer {
 
@@ -32,61 +33,63 @@ public:
   /**
    * @brief     Constructor of Conv 1D Layer
    */
-  Conv1DLayer();
+  NNTR_EXPORT Conv1DLayer();
 
   /**
    * @brief     Destructor of Conv 1D Layer
    */
-  ~Conv1DLayer();
+  NNTR_EXPORT ~Conv1DLayer();
 
   /**
    *  @brief  Move constructor of Conv 1D Layer.
    *  @param[in] Conv1dLayer &&
    */
-  Conv1DLayer(Conv1DLayer &&rhs) noexcept = default;
+  NNTR_EXPORT Conv1DLayer(Conv1DLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs Conv1DLayer to be moved.
    */
-  Conv1DLayer &operator=(Conv1DLayer &&rhs) = default;
+  NNTR_EXPORT Conv1DLayer &operator=(Conv1DLayer &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) override;
+  NNTR_EXPORT void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  NNTR_EXPORT void forwarding(RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  NNTR_EXPORT void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::calcGradient(RunLayerContext &context)
    */
-  void calcGradient(RunLayerContext &context) override;
+  NNTR_EXPORT void calcGradient(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override;
+  NNTR_EXPORT void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return Conv1DLayer::type; };
+  NNTR_EXPORT const std::string getType() const override {
+    return Conv1DLayer::type;
+  };
 
   /**
    * @copydoc Layer::supportBackwarding()
    */
-  bool supportBackwarding() const override { return true; }
+  NNTR_EXPORT bool supportBackwarding() const override { return true; }
 
   using Layer::setProperty;
 
@@ -94,7 +97,7 @@ public:
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
    * &value)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_EXPORT void setProperty(const std::vector<std::string> &values) override;
 
   static constexpr const char *type = "conv1d";
 

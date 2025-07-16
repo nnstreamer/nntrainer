@@ -32,6 +32,8 @@
 #include <nntrainer_error.h>
 #include <random>
 
+#include "defines.h"
+
 // /**
 //  * @brief     get the seed
 //  * @return    seed
@@ -52,7 +54,7 @@ namespace nntrainer {
  *
  * @param status status to throw
  */
-inline void throw_status(int status) {
+NNTR_EXPORT inline void throw_status(int status) {
   switch (status) {
   case ML_ERROR_NONE:
     break;
@@ -81,7 +83,7 @@ static auto rng = [] {
  * @brief     sqrt function for float type
  * @param[in] x float
  */
-template <typename T = float> T sqrtFloat(T x) {
+template <typename T = float> NNTR_EXPORT T sqrtFloat(T x) {
   return static_cast<T>(sqrt((float)x));
 }
 
@@ -91,13 +93,13 @@ template <typename T = float> T sqrtFloat(T x) {
  * @param x value to take sqrt
  * @return double return value
  */
-double sqrtDouble(double x);
+NNTR_EXPORT double sqrtDouble(double x);
 
 /**
  * @brief     abs function for float type
  * @param[in] x float
  */
-template <typename T = float> T absFloat(T x) {
+template <typename T = float> NNTR_EXPORT T absFloat(T x) {
   return static_cast<T>(abs((float)x));
 }
 
@@ -105,7 +107,7 @@ template <typename T = float> T absFloat(T x) {
  * @brief     log function for float type
  * @param[in] x float
  */
-template <typename T = float> T logFloat(T x) {
+template <typename T = float> NNTR_EXPORT T logFloat(T x) {
   return static_cast<T>(log(x + 1.0e-20));
 }
 
@@ -113,11 +115,13 @@ template <typename T = float> T logFloat(T x) {
  * @brief     exp function for float type
  * @param[in] x float
  */
-template <typename T = float> T exp_util(T x) { return static_cast<T>(exp(x)); }
+template <typename T = float> NNTR_EXPORT T exp_util(T x) {
+  return static_cast<T>(exp(x));
+}
 
 #ifdef _WIN32
 #ifdef _Float16
-template <> _Float16 exp_util<_Float16>(_Float16 x) {
+template <> NNTR_EXPORT _Float16 exp_util<_Float16>(_Float16 x) {
   return static_cast<_Float16>(std::exp(static_cast<float>(x)));
 }
 #endif
@@ -129,7 +133,7 @@ template <> _Float16 exp_util<_Float16>(_Float16 x) {
  * @note      We can switch to use std::isfinite once it will start support half
  floats
  */
-template <typename T> bool isFloatValid(const T value) {
+template <typename T> NNTR_EXPORT bool isFloatValid(const T value) {
   return !((value != value) ||
            (value == std::numeric_limits<float>::infinity()) ||
            (value == -std::numeric_limits<float>::infinity()));
@@ -140,7 +144,7 @@ template <typename T> bool isFloatValid(const T value) {
  * @param[in] file path of the file to be checked
  * @returns   true if file exists, else false
  */
-bool isFileExist(std::string file);
+NNTR_EXPORT bool isFileExist(std::string file);
 
 constexpr const char *default_error_msg =
   "[util::checkeFile] file operation failed";
@@ -154,9 +158,11 @@ constexpr const char *default_error_msg =
  * @param error_msg error msg to print when operation fail
  * @throw std::runtime_error if file.fail() is true after read.
  */
-void checkedRead(std::ifstream &file, char *array, std::streamsize size,
-                 const char *error_msg = default_error_msg,
-                 size_t start_offset = 0, bool read_from_offset = false);
+NNTR_EXPORT void checkedRead(std::ifstream &file, char *array,
+                             std::streamsize size,
+                             const char *error_msg = default_error_msg,
+                             size_t start_offset = 0,
+                             bool read_from_offset = false);
 
 /**
  * @brief same as file.write except it checks if fail to write the file
@@ -167,16 +173,17 @@ void checkedRead(std::ifstream &file, char *array, std::streamsize size,
  * @param error_msg error msg to print when operation fail
  * @throw std::runtime_error if file.fail() is true after write.
  */
-void checkedWrite(std::ostream &file, const char *array, std::streamsize size,
-                  const char *error_msg = default_error_msg);
+NNTR_EXPORT void checkedWrite(std::ostream &file, const char *array,
+                              std::streamsize size,
+                              const char *error_msg = default_error_msg);
 /**
  * @brief read string from a binary file
  *
  * @param file file to input
  * @return std::string result string
  */
-std::string readString(std::ifstream &file,
-                       const char *error_msg = default_error_msg);
+NNTR_EXPORT std::string readString(std::ifstream &file,
+                                   const char *error_msg = default_error_msg);
 
 /**
  * @brief write string to a binary file
@@ -184,8 +191,8 @@ std::string readString(std::ifstream &file,
  * @param file file to write
  * @param str target string to write
  */
-void writeString(std::ofstream &file, const std::string &str,
-                 const char *error_msg = default_error_msg);
+NNTR_EXPORT void writeString(std::ofstream &file, const std::string &str,
+                             const char *error_msg = default_error_msg);
 
 /**
  * @brief check if string ends with @a suffix
@@ -195,7 +202,7 @@ void writeString(std::ofstream &file, const std::string &str,
  * @retval true @a target ends with @a suffix
  * @retval false @a target does not ends with @a suffix
  */
-bool endswith(const std::string &target, const std::string &suffix);
+NNTR_EXPORT bool endswith(const std::string &target, const std::string &suffix);
 
 /**
  * @brief     print instance info. as <Type at (address)>
@@ -204,7 +211,7 @@ bool endswith(const std::string &target, const std::string &suffix);
  */
 template <typename T,
           typename std::enable_if_t<std::is_pointer<T>::value, T> * = nullptr>
-void printInstance(std::ostream &out, const T &t) {
+NNTR_EXPORT void printInstance(std::ostream &out, const T &t) {
   out << '<' << typeid(*t).name() << " at " << t << '>' << std::endl;
 }
 
@@ -257,7 +264,8 @@ static std::string withKey(const std::string &key,
  * @return T created stream
  */
 template <typename T>
-T checkedOpenStream(const std::string &path, std::ios_base::openmode mode) {
+NNTR_EXPORT T checkedOpenStream(const std::string &path,
+                                std::ios_base::openmode mode) {
   T model_file(path, mode);
   if (!model_file.good()) {
     const size_t error_buflen = 100;
@@ -283,8 +291,8 @@ T checkedOpenStream(const std::string &path, std::ios_base::openmode mode) {
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
  */
-int getKeyValue(const std::string &input_str, std::string &key,
-                std::string &value);
+NNTR_EXPORT int getKeyValue(const std::string &input_str, std::string &key,
+                            std::string &value);
 
 /**
  * @brief     parse string and stored to int
@@ -294,7 +302,7 @@ int getKeyValue(const std::string &input_str, std::string &key,
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
  */
-int getValues(int n_str, std::string str, int *value);
+NNTR_EXPORT int getValues(int n_str, std::string str, int *value);
 
 /**
  * @brief     split string into vector with delimiter regex
@@ -302,7 +310,8 @@ int getValues(int n_str, std::string str, int *value);
  * @param[in] reg regular expression to use as delimiter
  * @retval    output string vector
  */
-std::vector<std::string> split(const std::string &s, const std::regex &reg);
+NNTR_EXPORT std::vector<std::string> split(const std::string &s,
+                                           const std::regex &reg);
 
 /**
  * @brief Cast insensitive string comparison
@@ -312,7 +321,7 @@ std::vector<std::string> split(const std::string &s, const std::regex &reg);
  * @retval true if string is case-insensitive equal
  * @retval false if string is case-insensitive not equal
  */
-bool istrequal(const std::string &a, const std::string &b);
+NNTR_EXPORT bool istrequal(const std::string &a, const std::string &b);
 
 /**
  * @brief Perform INT_LOGICAL_AND operation on enum class value
@@ -323,7 +332,7 @@ bool istrequal(const std::string &a, const std::string &b);
  * @return enum value after performing logical AND operation
  */
 template <typename T, typename C = int>
-bool enum_class_logical_and(T e1, T e2) {
+NNTR_EXPORT bool enum_class_logical_and(T e1, T e2) {
   C i1 = static_cast<int>(e1);
   C i2 = static_cast<int>(e2);
 
@@ -338,7 +347,8 @@ bool enum_class_logical_and(T e1, T e2) {
  *
  * @return enum value after performing OR operation
  */
-template <typename T, typename C = int> T enum_class_or(T e1, T e2) {
+template <typename T, typename C = int>
+NNTR_EXPORT T enum_class_or(T e1, T e2) {
   C i1 = static_cast<int>(e1);
   C i2 = static_cast<int>(e2);
 
@@ -356,8 +366,9 @@ template <typename T, typename C = int> T enum_class_or(T e1, T e2) {
  * @return Found value or empty string
  */
 template <typename Tuple, std::size_t... ls>
-std::string find_in_tuple(const Tuple &t, std::index_sequence<ls...>,
-                          const std::string &key) {
+NNTR_EXPORT std::string find_in_tuple(const Tuple &t,
+                                      std::index_sequence<ls...>,
+                                      const std::string &key) {
   std::string result = "";
 
   (..., ([&] {
@@ -380,8 +391,8 @@ std::string find_in_tuple(const Tuple &t, std::index_sequence<ls...>,
  * @return Found value or empty string
  */
 template <typename... Args>
-std::string find_in_tuple(const std::tuple<Args...> &t,
-                          const std::string &key) {
+NNTR_EXPORT std::string find_in_tuple(const std::tuple<Args...> &t,
+                                      const std::string &key) {
   return find_in_tuple(t, std::index_sequence_for<Args...>{}, key);
 }
 
@@ -393,7 +404,7 @@ std::string find_in_tuple(const std::tuple<Args...> &t,
  *
  * @return absolute path
  */
-char *getRealpath(const char *name, char *resolved);
+NNTR_EXPORT char *getRealpath(const char *name, char *resolved);
 
 /**
  * @brief Get local time in tm struct format
@@ -402,14 +413,14 @@ char *getRealpath(const char *name, char *resolved);
  *
  * @return tm struct
  */
-tm *getLocaltime(tm *tp);
+NNTR_EXPORT tm *getLocaltime(tm *tp);
 
 /**
  * @brief Create and return std::regex with the received string
  * @param str String in regular expression form
  * @return std::regex
  */
-std::regex getRegex(const std::string &str);
+NNTR_EXPORT std::regex getRegex(const std::string &str);
 
 /**
  * @brief  Convert a floating-point number into its fixed-point component (the
@@ -419,7 +430,8 @@ std::regex getRegex(const std::string &str);
  * @param[out] fixedpoint fixed-point
  * @param[out] exponent exponent
  */
-void floatToFixedPointAndExponent(float input, int &fixedpoint, int &exponent);
+NNTR_EXPORT void floatToFixedPointAndExponent(float input, int &fixedpoint,
+                                              int &exponent);
 
 /**
  * @brief Convert a fixed-point number and an exponent into a floating-point
@@ -429,7 +441,7 @@ void floatToFixedPointAndExponent(float input, int &fixedpoint, int &exponent);
  * @param[in] exponent exponent
  * @return floating point result
  */
-float fixedPointAndExponentToFloat(int fixedpoint, int exponent);
+NNTR_EXPORT float fixedPointAndExponentToFloat(int fixedpoint, int exponent);
 
 } /* namespace nntrainer */
 

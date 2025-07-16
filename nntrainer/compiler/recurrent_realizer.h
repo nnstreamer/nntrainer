@@ -60,7 +60,7 @@ public:
    * @param input_conns input conns from outer side
    * @param end_conns end connections (output of the internal graph)
    */
-  RecurrentRealizer(const std::vector<std::string> &properties,
+  NNTR_EXPORT RecurrentRealizer(const std::vector<std::string> &properties,
                     const std::vector<Connection> &input_conns,
                     const std::vector<Connection> &end_conns);
 
@@ -70,14 +70,14 @@ public:
    * @param ini ini to load recurrent properties from
    * @param external_input_layers external input layers to map input layers
    */
-  RecurrentRealizer(const char *ini,
+  NNTR_EXPORT RecurrentRealizer(const char *ini,
                     const std::vector<std::string> &external_input_layers);
 
   /**
    * @brief Destroy the Recurrent Realizer object
    *
    */
-  ~RecurrentRealizer();
+  NNTR_EXPORT ~RecurrentRealizer();
 
   /**
    * @brief realized graph
@@ -85,7 +85,7 @@ public:
    * @param reference reference to realize graph
    * @return GraphRepresentation realized graph
    */
-  GraphRepresentation realize(const GraphRepresentation &reference) override;
+  NNTR_EXPORT GraphRepresentation realize(const GraphRepresentation &reference) override;
 
 private:
   using PropTypes =

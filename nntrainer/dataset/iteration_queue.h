@@ -40,14 +40,14 @@ public:
   /**
    * @brief Construct a new queue
    */
-  ViewQueue() : q() {}
+  NNTR_EXPORT ViewQueue() : q() {}
 
   /**
    * @brief push data to queue
    *
    * @param data data to put
    */
-  void push(T *data) {
+  NNTR_EXPORT void push(T *data) {
     {
       std::unique_lock<std::shared_mutex> lk(q_mutex);
       q.push(data);
@@ -62,7 +62,7 @@ public:
    * happens)
    * @return T* view of the data
    */
-  T *waitAndPop() {
+  NNTR_EXPORT T *waitAndPop() {
     std::unique_lock<std::shared_mutex> lk(q_mutex);
     q_cv.wait(lk, [this] { return !q.empty(); });
     auto ptr = q.front();
@@ -76,7 +76,7 @@ public:
    *
    * @return bool true if empty
    */
-  bool isEmpty() const {
+  NNTR_EXPORT bool isEmpty() const {
     std::shared_lock<std::shared_mutex> lk(q_mutex);
     return q.empty();
   }
@@ -207,15 +207,15 @@ public:
    * @param input_dims input dimensions
    * @param label_dims label dimensions
    */
-  IterationQueue(unsigned int num_slots,
-                 const std::vector<ml::train::TensorDim> &input_dims,
-                 const std::vector<ml::train::TensorDim> &label_dims);
+  NNTR_EXPORT IterationQueue(unsigned int num_slots,
+                          const std::vector<ml::train::TensorDim> &input_dims,
+                          const std::vector<ml::train::TensorDim> &label_dims);
 
   /**
    * @brief Destroy the Iteration Queue object
    *
    */
-  ~IterationQueue();
+  NNTR_EXPORT ~IterationQueue();
 
   /**
    * @brief request empty sample from the queue.
@@ -225,7 +225,7 @@ public:
    * if there is no more data coming. Destroying the returned object will
    * signal the queue that the sample is filled.
    */
-  ScopedView<Sample> requestEmptySlot();
+  NNTR_EXPORT ScopedView<Sample> requestEmptySlot();
 
   /**
    * @brief request filled iteration from the queue.
@@ -236,21 +236,21 @@ public:
    * signal the queue that the sample is done using.
    *
    */
-  ScopedView<Iteration> requestFilledSlot();
+  NNTR_EXPORT ScopedView<Iteration> requestFilledSlot();
 
   /**
    * @brief get slot size, slot size is number of batches inside the queue
    *
    * @return unsigned int num slot
    */
-  unsigned int slots() { return iterations.size(); }
+  NNTR_EXPORT unsigned int slots() { return iterations.size(); }
 
   /**
    * @brief get size of batch for one iteration
    *
    * @return unsigned int size of batch
    */
-  unsigned int batch() { return batch_size; }
+  NNTR_EXPORT unsigned int batch() { return batch_size; }
 
   /**
    * @brief notifyEndOfRequest, when the producing by requestEmptySlot has
@@ -262,7 +262,7 @@ public:
    * this function.
    *
    */
-  void notifyEndOfRequestEmpty();
+  NNTR_EXPORT void notifyEndOfRequestEmpty();
 
 private:
   /**
@@ -281,6 +281,7 @@ private:
      * @param label_dims label dimensions
      * @param iq_ iteration queue view to notify
      */
+    NNTR_EXPORT
     MarkableIteration(const std::vector<ml::train::TensorDim> &input_dims,
                       const std::vector<ml::train::TensorDim> &label_dims,
                       IterationQueue *iq);
@@ -289,14 +290,14 @@ private:
      * @brief reset num observation and internal batch size of iteration
      *
      */
-    void reset();
+    NNTR_EXPORT void reset();
 
     /**
      * @brief Construct a new Markable Iteration object
      *
      * @param rhs right side to move
      */
-    MarkableIteration(MarkableIteration &&rhs);
+    NNTR_EXPORT MarkableIteration(MarkableIteration &&rhs);
 
     /**
      * @brief Move Assignement operator
@@ -304,13 +305,13 @@ private:
      * @param rhs rhs to move
      * @return MarkableIteration& markable iteration
      */
-    MarkableIteration &operator=(MarkableIteration &&rhs);
+    NNTR_EXPORT MarkableIteration &operator=(MarkableIteration &&rhs);
 
     /**
      * @brief mark iteration that one sample is filled
      * @todo make this function noexcept
      */
-    void markSampleFilled() /** noexcept */;
+    NNTR_EXPORT void markSampleFilled() /** noexcept */;
 
     /**
      * @brief update end sample to the given iterator and mark last
@@ -319,14 +320,14 @@ private:
      *
      * @param iterator non-inclusive iterator to mark the last
      */
-    void setEndSample(std::vector<Sample>::iterator sample_iterator);
+    NNTR_EXPORT void setEndSample(std::vector<Sample>::iterator sample_iterator);
 
     /**
      * @brief get underlying iteration
      *
      * @return Iteration& iteration
      */
-    Iteration &get() { return iteration; }
+    NNTR_EXPORT Iteration &get() { return iteration; }
 
   private:
     unsigned int num_observed; /**< number of observed samples which were passed
@@ -352,14 +353,14 @@ private:
    * @todo make this noexcept with the thread safe queue
    * @param iteration iteration to mark it as filled
    */
-  void markFilled(MarkableIteration *iteration) /** noexcept */;
+  NNTR_EXPORT void markFilled(MarkableIteration *iteration) /** noexcept */;
 
   /**
    * @brief mark the given iteration empty
    * @todo make this noexcept with the thread safe queue
    * @param iteration iteration to mark it as emptied
    */
-  void markEmpty(MarkableIteration *iteration) /** noexcept */;
+  NNTR_EXPORT void markEmpty(MarkableIteration *iteration) /** noexcept */;
 
   std::vector<MarkableIteration> iterations; /**< allocated iterations */
   MarkableIteration *being_filled; /**< last iteration that is being filled */

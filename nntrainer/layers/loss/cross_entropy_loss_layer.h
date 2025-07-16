@@ -29,17 +29,17 @@ public:
   /**
    * @brief     Constructor of Cross Entropy Loss Layer
    */
-  CrossEntropyLossLayer() : LossLayer() {}
+  NNTR_EXPORT CrossEntropyLossLayer() : LossLayer() {}
 
   /**
    * @brief     Destructor of Cross Entropy Loss Layer
    */
-  ~CrossEntropyLossLayer() = default;
+  NNTR_EXPORT ~CrossEntropyLossLayer() = default;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void finalize(InitLayerContext &context) override {
+  NNTR_EXPORT void finalize(InitLayerContext &context) override {
     throw exception::not_supported(
       "Cross Entropy not supported without softmax or sigmoid");
   }
@@ -47,7 +47,7 @@ public:
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override {
+  NNTR_EXPORT void forwarding(RunLayerContext &context, bool training) override {
     throw exception::not_supported(
       "Cross Entropy not supported without softmax or sigmoid");
   }
@@ -55,7 +55,7 @@ public:
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override {
+  NNTR_EXPORT void calcDerivative(RunLayerContext &context) override {
     throw exception::not_supported(
       "Cross Entropy not supported without softmax or sigmoid");
   }
@@ -63,7 +63,7 @@ public:
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override {
+  NNTR_EXPORT const std::string getType() const override {
     return CrossEntropyLossLayer::type;
   };
 

@@ -43,13 +43,13 @@ public:
   /**
    * @brief     Constructor of TensorPool
    */
-  TensorPool() :
+  NNTR_EXPORT TensorPool() :
     mem_pool(std::make_unique<MemoryPool>()), cache_loader(nullptr) {}
 
   /**
    * @brief     Constructor of TensorPool
    */
-  TensorPool(
+  NNTR_EXPORT TensorPool(
     bool enable_fsu, const std::string &fsu_path = "",
     const std::string &fsu_name = "",
     ml::train::ExecutionMode execution_mode = ml::train::ExecutionMode::TRAIN) {
@@ -66,12 +66,12 @@ public:
   /**
    * @brief     Destructor of TensorPool
    */
-  ~TensorPool() = default;
+  NNTR_EXPORT ~TensorPool() = default;
 
   /**
    * @brief     reinitialize TensorPool
    */
-  void reinitialize() {
+  NNTR_EXPORT void reinitialize() {
     name_map.clear();
     mem_pool = std::make_shared<MemoryPool>();
   }
@@ -85,51 +85,54 @@ public:
    * @details finalize the requested tensors, request memory for them and plan
    * layout for their allocations.
    */
-  void finalize(const MemoryPlanner &planner, unsigned int start_order,
-                unsigned int end_order);
+  NNTR_EXPORT void finalize(const MemoryPlanner &planner,
+                            unsigned int start_order, unsigned int end_order);
 
   /**
    * @brief Set the batch size for the inputs/outputs of the layers
    */
-  void setBatchSize(const std::string &name, unsigned int batch);
+  NNTR_EXPORT void setBatchSize(const std::string &name, unsigned int batch);
 
   /**
    * @brief Allocate memory for all the managed tensors
    */
-  void allocate(bool init = true);
+  NNTR_EXPORT void allocate(bool init = true);
 
   /**
    * @brief Deallocate memory for all the managed tensors
    */
-  void deallocate();
+  NNTR_EXPORT void deallocate();
 
   /**
    * @brief     Get execution order for the given tensor
    *
    * @return The execution order of the tensor
    */
-  const std::vector<unsigned int> &getExecutionOrder(const std::string &name);
+  NNTR_EXPORT const std::vector<unsigned int> &
+  getExecutionOrder(const std::string &name);
 
   /**
    * @brief Get the maximum real memory requirement
    *
    * @return The real memory requirement with this strategy in bytes
    */
-  size_t size() { return mem_pool->size(); }
+  NNTR_EXPORT size_t size() { return mem_pool->size(); }
 
   /**
    * @brief Get the minimum theoretical memory requirement
    *
    * @return The theoretical memory requirement with this strategy in bytes
    */
-  size_t minMemoryRequirement() { return mem_pool->minMemoryRequirement(); }
+  NNTR_EXPORT size_t minMemoryRequirement() {
+    return mem_pool->minMemoryRequirement();
+  }
 
   /**
    * @brief Is the tensor pool allocated
    *
    * @return true if the tensors are allocated, else false
    */
-  bool isAllocated() const { return mem_pool->isAllocated(); }
+  NNTR_EXPORT bool isAllocated() const { return mem_pool->isAllocated(); }
 
   /**
    * @brief Get the tensor of the given name
@@ -137,7 +140,7 @@ public:
    * @return ptr to the tensor with the given
    * @throws if no tensor is found with the given name
    */
-  Tensor *getTensor(const std::string &name) {
+  NNTR_EXPORT Tensor *getTensor(const std::string &name) {
     return pool[name_map.at(name)].tensor.get();
   }
 
@@ -149,7 +152,7 @@ public:
    *
    * @note Update externally dependent tensors data ptrs from their parents
    */
-  void fillPlaceholder(const std::string &name, const Tensor &t);
+  NNTR_EXPORT void fillPlaceholder(const std::string &name, const Tensor &t);
 
   /**
    * @brief request placeholder which will be not managed by this tensor pool
@@ -161,7 +164,8 @@ public:
    *
    * @note returns empty tensor which must be filled by the caller before use.
    */
-  Tensor *placeholder(const std::string &name, const TensorDim &dim);
+  NNTR_EXPORT Tensor *placeholder(const std::string &name,
+                                  const TensorDim &dim);
 
   /**
    * @brief     create a new tensor with the given spec.
@@ -179,11 +183,11 @@ public:
    * @note we assume that the caller checks if the exec_order and lifespan are
    * compatible.
    */
-  Tensor *request(const std::string &name, const TensorDim &dim,
-                  const std::vector<unsigned int> &exec_order,
-                  TensorLifespan lifespan,
-                  const Initializer &init = Initializer::NONE,
-                  bool is_weight_grad = false);
+  NNTR_EXPORT Tensor *request(const std::string &name, const TensorDim &dim,
+                              const std::vector<unsigned int> &exec_order,
+                              TensorLifespan lifespan,
+                              const Initializer &init = Initializer::NONE,
+                              bool is_weight_grad = false);
 
   /**
    * @brief     Request tensor which is a view of already requested with the
@@ -205,10 +209,10 @@ public:
    * compatible.
    *
    */
-  Tensor *view(const std::string &name, const std::string &reference,
-               const TensorDim &dim,
-               const std::vector<unsigned int> &exec_order,
-               TensorLifespan lifespan, const size_t offset = 0);
+  NNTR_EXPORT Tensor *view(const std::string &name,
+                           const std::string &reference, const TensorDim &dim,
+                           const std::vector<unsigned int> &exec_order,
+                           TensorLifespan lifespan, const size_t offset = 0);
 
   /**
    * @brief extend a tensor life as tensor is being shared.
@@ -221,9 +225,9 @@ public:
    * @note we assume that the caller checks if the exec_order and lifespan are
    * compatible.
    */
-  Tensor *extend(const std::string &name, const TensorDim &dim,
-                 const std::vector<unsigned int> &exec_order,
-                 TensorLifespan lifespan);
+  NNTR_EXPORT Tensor *extend(const std::string &name, const TensorDim &dim,
+                             const std::vector<unsigned int> &exec_order,
+                             TensorLifespan lifespan);
 
   /**
    * @brief create a new tensor if tensor does not exist else return the tensor
@@ -240,10 +244,11 @@ public:
    * @return Tensor* ptr to either to the existing tensor or newly created
    * tensor
    */
-  Tensor *requestOrExtend(const std::string &name, const TensorDim &dim,
-                          const std::vector<unsigned int> &exec_order,
-                          TensorLifespan lifespan,
-                          const Initializer &init = Initializer::NONE);
+  NNTR_EXPORT Tensor *
+  requestOrExtend(const std::string &name, const TensorDim &dim,
+                  const std::vector<unsigned int> &exec_order,
+                  TensorLifespan lifespan,
+                  const Initializer &init = Initializer::NONE);
 
   /**
    * @brief reidentify the source of already created tensor (or view).
@@ -259,14 +264,15 @@ public:
    * @param new_src identifier for the new source tensor
    * @param offset offset
    */
-  void reidentifySource(const std::string &dest, const std::string &new_src,
-                        unsigned int offset);
+  NNTR_EXPORT void reidentifySource(const std::string &dest,
+                                    const std::string &new_src,
+                                    unsigned int offset);
 
   /**
    * @brief flush cache data
    *
    */
-  void flushCache();
+  NNTR_EXPORT void flushCache();
 
   /**
    * @brief flush cache data except order
@@ -274,14 +280,14 @@ public:
    * @param order except execution order
    *
    */
-  void flushCacheExcept(unsigned int order);
+  NNTR_EXPORT void flushCacheExcept(unsigned int order);
 
   /**
    * @brief load cache data by execution order
    *
    * @param order execution order
    */
-  void loadCacheExec(unsigned int order);
+  NNTR_EXPORT void loadCacheExec(unsigned int order);
 
   /**
    * @brief load cache data by execution order
@@ -289,8 +295,9 @@ public:
    * @param order execution order
    * @return async task id
    */
-  int loadCacheExecAsync(unsigned int order,
-                         TaskExecutor::CompleteCallback complete_callback);
+  NNTR_EXPORT int
+  loadCacheExecAsync(unsigned int order,
+                     TaskExecutor::CompleteCallback complete_callback);
 
   /**
    * @brief check if tensors are loaded for the given execution order.
@@ -298,7 +305,7 @@ public:
    * @param order target execution order
    * @return bool true if tensors are loaded, false otherwise.
    */
-  bool checkLoadComplete(unsigned int order);
+  NNTR_EXPORT bool checkLoadComplete(unsigned int order);
 
   /**
    * @brief load cache data by execution order
@@ -306,28 +313,29 @@ public:
    * @param order execution order
    * @return async task id
    */
-  int flushCacheExecAsync(unsigned int order,
-                          TaskExecutor::CompleteCallback complete_callback);
+  NNTR_EXPORT int
+  flushCacheExecAsync(unsigned int order,
+                      TaskExecutor::CompleteCallback complete_callback);
 
   /**
    * @brief load cache data by execution order
    *
    * @param id async task id
    */
-  void loadCacheCancel(int id);
+  NNTR_EXPORT void loadCacheCancel(int id);
 
   /**
    * @brief This function will reset Actives at the given order.
    *
    */
-  unsigned int inActive(unsigned int order);
+  NNTR_EXPORT unsigned int inActive(unsigned int order);
 
   /**
    * @brief set FSU weight path
    *
    * @param path FSU weight file path
    */
-  void setFsuWeightPath(std::string path) {
+  NNTR_EXPORT void setFsuWeightPath(std::string path) {
     if (mem_pool) {
       mem_pool->setFsuWeightPath(path);
     }
@@ -338,7 +346,8 @@ public:
    *
    * @param offsets weight file offset
    */
-  void setWeightOffset(std::vector<std::pair<size_t, size_t>> offsets) {
+  NNTR_EXPORT void
+  setWeightOffset(std::vector<std::pair<size_t, size_t>> offsets) {
     if (mem_pool) {
       mem_pool->setWeightOffset(offsets);
     }

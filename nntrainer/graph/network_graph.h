@@ -38,7 +38,7 @@ public:
   /**
    * @brief     Constructor of NeuralNetwork Graph Class
    */
-  NetworkGraph() :
+  NNTR_EXPORT NetworkGraph() :
     tensor_manager(std::make_shared<Manager>()),
     graph(),
     compiled(false),
@@ -65,6 +65,7 @@ public:
    * @param[in] tensor_type It says weight type and activation type (default
    * FP32-FP32)
    */
+  NNTR_EXPORT
   NetworkGraph(bool enable_fsu, ExecutionMode mode = ExecutionMode::TRAIN,
                const std::string &fsu_path = "", unsigned int lookahead = 0,
                const std::string &tensor_format_ = "NCHW",
@@ -90,20 +91,20 @@ public:
    * @brief   Destructor of the NeuralNetwork Graph class
    *
    */
-  ~NetworkGraph() = default;
+  NNTR_EXPORT ~NetworkGraph() = default;
 
   /**
    * @brief     Compile the graph
    * @param[in] loss_type loss for the graph
    * returns ML_ERROR_NONE on success, error on failure
    */
-  int compile(const std::string &loss_type);
+  NNTR_EXPORT int compile(const std::string &loss_type);
 
   /**
    * @brief Create new LayerNode and add into Graph
    * @param[in] layer shared_ptr of Layer
    */
-  void addLayer(std::shared_ptr<LayerNode> layer);
+  NNTR_EXPORT void addLayer(std::shared_ptr<LayerNode> layer);
 
   /**
    * @brief get current flat graph from the model before sorting
@@ -114,7 +115,7 @@ public:
    * @todo remove getting unsorted layers from model loader, compile model
    * loader
    */
-  std::vector<std::shared_ptr<LayerNode>>
+  NNTR_EXPORT std::vector<std::shared_ptr<LayerNode>>
   getUnsortedLayers(const std::string &input_layer,
                     const std::string &output_layer) const;
 
@@ -122,18 +123,18 @@ public:
    * @brief getter of number of nodes
    * @param[out] number of nodes
    */
-  unsigned int size() const { return graph.size(); }
+  NNTR_EXPORT unsigned int size() const { return graph.size(); }
 
   /**
    * @brief get if the graph is empty
    * @param[out] true if empty, else false
    */
-  bool empty() const { return graph.empty(); }
+  NNTR_EXPORT bool empty() const { return graph.empty(); }
 
   /**
    * @brief     Swap function for the class
    */
-  friend void swap(NetworkGraph &lhs, NetworkGraph &rhs) {
+  NNTR_EXPORT friend void swap(NetworkGraph &lhs, NetworkGraph &rhs) {
     /// @fixme this swap function need maintenance
     using std::swap;
 
@@ -145,7 +146,8 @@ public:
    * @param[in] index
    * @ret LayerNode
    */
-  std::shared_ptr<LayerNode> getSortedLayerNode(unsigned int ith) const {
+  NNTR_EXPORT std::shared_ptr<LayerNode>
+  getSortedLayerNode(unsigned int ith) const {
     return std::static_pointer_cast<LayerNode>(graph.getSortedNode(ith));
   }
 
@@ -154,7 +156,8 @@ public:
    * @param[in] layer name
    * @retval LayerNode
    */
-  std::shared_ptr<LayerNode> getLayerNode(const std::string &layer_name) const {
+  NNTR_EXPORT std::shared_ptr<LayerNode>
+  getLayerNode(const std::string &layer_name) const {
     return std::static_pointer_cast<LayerNode>(graph.getNode(layer_name));
   }
 
@@ -164,13 +167,13 @@ public:
    * @note these layer nodes will be in sorted order if the model is compiled,
    * otherwise the order is the order of addition of layer nodes in the model.
    */
-  std::vector<std::shared_ptr<LayerNode>> getLayerNodes() const;
+  NNTR_EXPORT std::vector<std::shared_ptr<LayerNode>> getLayerNodes() const;
 
   /**
    * @brief     set batch size
    * @param[in] batch size
    */
-  void setBatchSize(unsigned int batch_size);
+  NNTR_EXPORT void setBatchSize(unsigned int batch_size);
 
   /**
    * @brief     reset input dimensions of a model
@@ -185,7 +188,7 @@ public:
    * across all model layers, developers must verify that every layer in their
    * model architecture can safely accommodate such height modifications.
    */
-  void resetInputDimension(std::vector<TensorDim> dims);
+  NNTR_EXPORT void resetInputDimension(std::vector<TensorDim> dims);
 
   /**
    * @brief try apply gradient if possible
@@ -195,15 +198,16 @@ public:
    * @param node node to try apply gradient
    * @param apply_func apply function
    */
-  static void applyGradients(LayerNode *node,
-                             const std::function<void(Weight &)> &apply_func);
+  NNTR_EXPORT static void
+  applyGradients(LayerNode *node,
+                 const std::function<void(Weight &)> &apply_func);
 
   /**
    * @brief     forwarding network graph
    * @param[in] training true if forwarding is on training
    * @retval output tensors
    */
-  sharedConstTensors forwarding(
+  NNTR_EXPORT sharedConstTensors forwarding(
     bool training = false,
     std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
       [](std::shared_ptr<LayerNode>, bool) {},
@@ -218,7 +222,7 @@ public:
    * @param[in] training true if forwarding is on training
    * @retval output tensors
    */
-  sharedConstTensors incremental_forwarding(
+  NNTR_EXPORT sharedConstTensors incremental_forwarding(
     unsigned int from, unsigned int to, bool training = false,
     std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op =
       [](std::shared_ptr<LayerNode>, bool) {},
@@ -236,7 +240,7 @@ public:
    * training. If it is, then we need to control the loss scale factor and
    * compute again the derivatives.
    */
-  bool backwarding(
+  NNTR_EXPORT bool backwarding(
     int iteration,
     std::function<void(std::shared_ptr<LayerNode>, bool)> &forwarding_op,
     std::function<bool(std::shared_ptr<LayerNode>, int)> &backwarding_op,
@@ -249,7 +253,7 @@ public:
    * @brief     get begin iterator for the graph
    * @retval    const iterator
    */
-  graph_const_iterator<LayerNode> cbegin() const {
+  NNTR_EXPORT graph_const_iterator<LayerNode> cbegin() const {
     return graph.cbegin<LayerNode>();
   }
 
@@ -257,7 +261,7 @@ public:
    * @brief     get end iterator for the graph
    * @retval    const iterator
    */
-  graph_const_iterator<LayerNode> cend() const {
+  NNTR_EXPORT graph_const_iterator<LayerNode> cend() const {
     return graph.cend<LayerNode>();
   }
 
@@ -265,7 +269,7 @@ public:
    * @brief     get reverse begin iterator for the graph
    * @retval    const reverse iterator
    */
-  graph_const_reverse_iterator<LayerNode> crbegin() const {
+  NNTR_EXPORT graph_const_reverse_iterator<LayerNode> crbegin() const {
     return graph.crbegin<LayerNode>();
   }
 
@@ -273,7 +277,7 @@ public:
    * @brief     get reverse end iterator for the graph
    * @retval    const reverse iterator
    */
-  graph_const_reverse_iterator<LayerNode> crend() const {
+  NNTR_EXPORT graph_const_reverse_iterator<LayerNode> crend() const {
     return graph.crend<LayerNode>();
   }
 
@@ -281,7 +285,8 @@ public:
    * @brief     get begin iterator for the backwarding
    * @retval    const reverse iterator marking the begin of backwarding
    */
-  graph_const_reverse_iterator<LayerNode> getBackwardingBeginIter() const {
+  NNTR_EXPORT graph_const_reverse_iterator<LayerNode>
+  getBackwardingBeginIter() const {
     return crbegin();
   }
 
@@ -289,7 +294,8 @@ public:
    * @brief     get end iterator for the backwarding
    * @retval    const reverse iterator marking the end of backwarding
    */
-  graph_const_reverse_iterator<LayerNode> getBackwardingEndIter() const {
+  NNTR_EXPORT graph_const_reverse_iterator<LayerNode>
+  getBackwardingEndIter() const {
     return crend();
   }
 
@@ -297,27 +303,27 @@ public:
    * @brief     getter of output dimension of graph
    * @retval    output tensor dim list
    */
-  std::vector<TensorDim> getOutputDimension() const;
+  NNTR_EXPORT std::vector<TensorDim> getOutputDimension() const;
 
   /**
    * @brief     getter of input dimension of graph
    * @retval    input tensor dim list
    */
-  std::vector<TensorDim> getInputDimension() const;
+  NNTR_EXPORT std::vector<TensorDim> getInputDimension() const;
 
   /**
    * @brief Get the Batch Size object of current model
    *
    * @return unsigned int
    */
-  unsigned int getBatchSize() const;
+  NNTR_EXPORT unsigned int getBatchSize() const;
 
   /**
    * @brief     Copy the graph
    * @param[in] from Graph Object to copy
    * @retval    Graph Object copyed
    */
-  NetworkGraph &copy(NetworkGraph &from) {
+  NNTR_EXPORT NetworkGraph &copy(NetworkGraph &from) {
     graph.copy(from.graph);
     return *this;
   }
@@ -331,9 +337,10 @@ public:
    * that can be labels will be identified in the sort order
    * @return int ML_ERROR_NONE if successful
    */
-  int initialize(ExecutionMode mode = ExecutionMode::TRAIN,
-                 const std::vector<Connection> &model_input_names = {},
-                 const std::vector<Connection> &model_label_names = {});
+  NNTR_EXPORT int
+  initialize(ExecutionMode mode = ExecutionMode::TRAIN,
+             const std::vector<Connection> &model_input_names = {},
+             const std::vector<Connection> &model_label_names = {});
 
   /**
    * @brief reinitialize network graph
@@ -344,8 +351,9 @@ public:
    * that can be labels will be identified in the sort order
    * @return int ML_ERROR_NONE if successful
    */
-  int reinitialize(const std::vector<Connection> &model_input_names = {},
-                   const std::vector<Connection> &model_label_names = {});
+  NNTR_EXPORT int
+  reinitialize(const std::vector<Connection> &model_input_names = {},
+               const std::vector<Connection> &model_label_names = {});
 
   /**
    * @brief Create run layer context from the given init layer context
@@ -353,7 +361,7 @@ public:
    * @param lnode layer node to finalize and set run context
    * @param prev_inputs previous input information
    */
-  std::vector<Var_Grad *>
+  NNTR_EXPORT std::vector<Var_Grad *>
   finalizeContext(const std::shared_ptr<LayerNode> &lnode,
                   const std::vector<Var_Grad *> &prev_inputs);
 
@@ -363,7 +371,7 @@ public:
    * @param lnode layer node to finalize and set run context
    * @param prev_inputs previous input information
    */
-  std::vector<Var_Grad *>
+  NNTR_EXPORT std::vector<Var_Grad *>
   refinalizeContext(const std::shared_ptr<LayerNode> &lnode,
                     const std::vector<Var_Grad *> &prev_inputs);
 
@@ -374,19 +382,19 @@ public:
    *
    * @param[in] training If true, initialize derivates/gradients, else, do not.
    */
-  void allocateTensors(ExecutionMode exec_mode_);
+  NNTR_EXPORT void allocateTensors(ExecutionMode exec_mode_);
 
   /**
    * @brief Deallocate memory for all the managed tensors
    */
-  void deallocateTensors(bool dealloc_weights = false) {
+  NNTR_EXPORT void deallocateTensors(bool dealloc_weights = false) {
     tensor_manager->deallocateTensors(dealloc_weights);
   }
 
   /**
    * @brief Allocate memory for all the managed weights
    */
-  void allocateWeights(bool init = true) {
+  NNTR_EXPORT void allocateWeights(bool init = true) {
     unsigned int max_exec_order =
       std::get<3>(backward_iter_end->getExecutionOrder());
 
@@ -398,14 +406,14 @@ public:
   /**
    * @brief Deallocate memory for all the weights
    */
-  void deallocateWeights() { tensor_manager->deallocateWeights(); }
+  NNTR_EXPORT void deallocateWeights() { tensor_manager->deallocateWeights(); }
 
   /**
    * @brief     Enable the memory optimizations for the network
    *
    * @param val true to enable, else false
    */
-  void setMemoryOptimizations(bool val) {
+  NNTR_EXPORT void setMemoryOptimizations(bool val) {
     tensor_manager->setOptimizations(val);
     optimize_memory = val;
   }
@@ -416,7 +424,7 @@ public:
    * @param cb  Call back function which will return vector of dimension
    * @param request_only_trainable true when only request trainable weight
    */
-  void requestOptimizerVariable(
+  NNTR_EXPORT void requestOptimizerVariable(
     std::function<std::vector<TensorDim>(const TensorDim &)> cb,
     bool request_only_trainable = true);
 
@@ -426,8 +434,8 @@ public:
    * @param inputs Input data
    * @param labels Label data
    */
-  void setInputsLabels(const std::vector<Tensor> &inputs,
-                       const std::vector<Tensor> &labels);
+  NNTR_EXPORT void setInputsLabels(const std::vector<Tensor> &inputs,
+                                   const std::vector<Tensor> &labels);
 
   /**
    * @brief Feed inputs and labels to the graph
@@ -435,7 +443,8 @@ public:
    * @param inputs Input data
    * @param labels Label data
    */
-  void setInputsLabels(sharedConstTensors &inputs, sharedConstTensors &labels);
+  NNTR_EXPORT void setInputsLabels(sharedConstTensors &inputs,
+                                   sharedConstTensors &labels);
 
   /**
    * @brief Get the Output Tensors list for the graph
@@ -443,14 +452,14 @@ public:
    * @return std::vector<Tensor> List of output tensors
    * @note this tensor list is analogous to the label list
    */
-  std::vector<Tensor> getOutputTensors() const;
+  NNTR_EXPORT std::vector<Tensor> getOutputTensors() const;
 
   /**
    * @brief return model tensor type
    *
    * @return TensorDim::Format NCHW or NHWC
    */
-  std::array<std::string, 3> getTensorType() {
+  NNTR_EXPORT std::array<std::string, 3> getTensorType() {
     return {tensor_format, tensor_dtype[0], tensor_dtype[1]};
   };
 
@@ -458,49 +467,49 @@ public:
    * @brief Flush data to the device
    *
    */
-  void flushCache();
+  NNTR_EXPORT void flushCache();
 
   /**
    * @brief Flush data to the device except order
    *
    * @param order except execution order
    */
-  void flushCacheExcept(const unsigned int order);
+  NNTR_EXPORT void flushCacheExcept(const unsigned int order);
 
   /**
    * @brief Load data of order to the device
    *
    * @param order execution order
    */
-  void LoadTensors(const unsigned int order,
-                   unsigned int remainder_lookahead = 0);
+  NNTR_EXPORT void LoadTensors(const unsigned int order,
+                               unsigned int remainder_lookahead = 0);
 
   /**
    * @brief check data of order is loaded
    *
    * @param order execution order
    */
-  bool checkLoadComplete(const unsigned int order);
+  NNTR_EXPORT bool checkLoadComplete(const unsigned int order);
 
   /**
    * @brief inactive the elem
    *
    */
-  bool inActive(unsigned int order);
+  NNTR_EXPORT bool inActive(unsigned int order);
 
   /**
    * @brief check data of order is Unloaded
    *
    * @param order execution order
    */
-  bool checkUnloadComplete(const unsigned int order);
+  NNTR_EXPORT bool checkUnloadComplete(const unsigned int order);
 
   /**
    * @brief Load data of order to the device
    *
    * @param order execution order
    */
-  void UnloadTensors(const unsigned int order);
+  NNTR_EXPORT void UnloadTensors(const unsigned int order);
 
 #ifdef ENABLE_TEST
   /**
@@ -509,7 +518,7 @@ public:
    * @param lnode layer node
    * @note this is for test purpose only
    */
-  std::map<std::string, std::vector<unsigned int>>
+  NNTR_EXPORT std::map<std::string, std::vector<unsigned int>>
   getLayerExecutionOrders(const std::shared_ptr<LayerNode> &lnode);
 #endif // ENABLE_TEST
 
@@ -517,19 +526,21 @@ public:
    * @brief     reset the loss scale
    * @param[in] scale
    */
-  void resetLossScale(float scale);
+  NNTR_EXPORT void resetLossScale(float scale);
 
   /**
    * @brief     check if it is mixed precision training
    */
-  bool isMixedPrecision() { return (!istrequal(tensor_dtype[1], "FP32")); }
+  NNTR_EXPORT bool isMixedPrecision() {
+    return (!istrequal(tensor_dtype[1], "FP32"));
+  }
 
   /**
    * @brief set FSU weight path
    *
    * @param path FSU weight file path
    */
-  void setFsuWeightPath(const std::string &path) {
+  NNTR_EXPORT void setFsuWeightPath(const std::string &path) {
     tensor_manager->setFsuWeightPath(path);
   }
 
@@ -538,7 +549,8 @@ public:
    *
    * @param offsets weight file offset
    */
-  void setWeightOffset(std::vector<std::pair<size_t, size_t>> &offsets) {
+  NNTR_EXPORT void
+  setWeightOffset(std::vector<std::pair<size_t, size_t>> &offsets) {
     tensor_manager->setWeightOffset(offsets);
   }
 

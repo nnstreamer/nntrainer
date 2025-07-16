@@ -27,8 +27,8 @@ namespace nntrainer {
  * @param[in] trans bool
  * @param[in] trans_m bool
  */
-Tensor dotCl(Tensor const &input, Tensor const &m, bool trans = false,
-             bool trans_m = false);
+NNTR_EXPORT Tensor dotCl(Tensor const &input, Tensor const &m, bool trans = false,
+                      bool trans_m = false);
 
 /**
  * @brief Process data and dimensions for OpenCL dot operation
@@ -39,8 +39,8 @@ Tensor dotCl(Tensor const &input, Tensor const &m, bool trans = false,
  * @param[in] trans bool
  * @param[in] trans_m bool
  */
-void dotCl(Tensor const &input, Tensor const &m, Tensor &result,
-           bool trans = false, bool trans_m = false);
+NNTR_EXPORT void dotCl(Tensor const &input, Tensor const &m, Tensor &result,
+                    bool trans = false, bool trans_m = false);
 
 /**
  * @brief Process data and dimensions for OpenCL dot operation
@@ -51,8 +51,8 @@ void dotCl(Tensor const &input, Tensor const &m, Tensor &result,
  * @param[in] trans bool
  * @param[in] trans_m bool
  */
-void dotBatchedCl(Tensor const &input, Tensor const &m, Tensor &result,
-                  bool trans = false, bool trans_m = false);
+NNTR_EXPORT void dotBatchedCl(Tensor const &input, Tensor const &m, Tensor &result,
+                           bool trans = false, bool trans_m = false);
 
 /**
  * @brief Multiply value element by element immediately
@@ -60,14 +60,14 @@ void dotBatchedCl(Tensor const &input, Tensor const &m, Tensor &result,
  * @param[in] value multiplier
  * @param[in] RunLayerContext reference
  */
-void multiplyCl(Tensor &input, float const &value);
+NNTR_EXPORT void multiplyCl(Tensor &input, float const &value);
 
 /**
  * @brief Process data and dimensions for add operation
  * @param[in] result Tensor
  * @param[in] input Tensor
  */
-void add_i_cl(Tensor &result, Tensor const &input);
+NNTR_EXPORT void add_i_cl(Tensor &result, Tensor const &input);
 
 /**
  * @brief Process data and dimensions for transpose operation
@@ -75,8 +75,8 @@ void add_i_cl(Tensor &result, Tensor const &input);
  * @param[in] input Tensor
  * @param[in] result Tensor
  */
-void transposeCl(const std::string &direction, Tensor const &in,
-                 Tensor &result);
+NNTR_EXPORT void transposeCl(const std::string &direction, Tensor const &in,
+                          Tensor &result);
 
 /**
  * @brief Copy data from one tensor to another
@@ -84,7 +84,7 @@ void transposeCl(const std::string &direction, Tensor const &in,
  * @param input Tensor
  * @param result Tensor
  */
-void copyCl(const Tensor &input, Tensor &result);
+NNTR_EXPORT void copyCl(const Tensor &input, Tensor &result);
 
 /**
  * @brief nrm2 computation : Euclidean norm
@@ -92,7 +92,7 @@ void copyCl(const Tensor &input, Tensor &result);
  * @return Euclidean norm
  * @note This function is used to compute the Euclidean norm of a vector.
  */
-float nrm2Cl(const Tensor &input);
+NNTR_EXPORT float nrm2Cl(const Tensor &input);
 
 /**
  * @brief Absolute sum computation
@@ -100,7 +100,7 @@ float nrm2Cl(const Tensor &input);
  * @param input Tensor
  * @return float absolute sum of the elements
  */
-float asumCl(const Tensor &input);
+NNTR_EXPORT float asumCl(const Tensor &input);
 
 /**
  * @brief Absolute max computation
@@ -109,7 +109,7 @@ float asumCl(const Tensor &input);
  * @return int index of the maximum absolute value
  * @note Not necessarily the first if there are multiple maximums.
  */
-int amaxCl(const Tensor &input);
+NNTR_EXPORT int amaxCl(const Tensor &input);
 
 /**
  * @brief Absolute min computation
@@ -118,7 +118,7 @@ int amaxCl(const Tensor &input);
  * @return int index of the minimum absolute value
  * @note Not necessarily the first if there are multiple minimums.
  */
-int aminCl(const Tensor &input);
+NNTR_EXPORT int aminCl(const Tensor &input);
 
 } // namespace nntrainer
 #endif /* __BLAS_KERNEL_INTERFACE_H__ */

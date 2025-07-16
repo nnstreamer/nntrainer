@@ -74,7 +74,7 @@ template <> struct return_type<ml::train::ExportMethods::METHOD_TFLITE> {
  * @tparam T type to create
  * @param[in/out] ptr ptr to create
  */
-template <typename T> void createIfNull(std::unique_ptr<T> &ptr) {
+template <typename T> NNTR_EXPORT void createIfNull(std::unique_ptr<T> &ptr) {
   if (ptr == nullptr) {
     ptr = std::make_unique<T>();
   }
@@ -94,23 +94,25 @@ public:
    * @brief Construct a new Exporter object
    *
    */
-  Exporter();
+  NNTR_EXPORT Exporter();
 
 #ifdef ENABLE_TFLITE_INTERPRETER
   /**
    * @brief Construct a new Exporter object with flatbuffer builder
    *
    */
-  Exporter(flatbuffers::FlatBufferBuilder *fbb);
+  NNTR_EXPORT Exporter(flatbuffers::FlatBufferBuilder *fbb);
 
-  flatbuffers::FlatBufferBuilder *getFlatbufferBuilder() { return fbb; }
+  NNTR_EXPORT flatbuffers::FlatBufferBuilder *getFlatbufferBuilder() {
+    return fbb;
+  }
 #endif
 
   /**
    * @brief Destroy the Exporter object
    *
    */
-  ~Exporter();
+  NNTR_EXPORT ~Exporter();
 
   /**
    * @brief this function iterates over the property and process the property in
@@ -123,9 +125,9 @@ public:
    * @param self this pointer to the layer which is being exported
    */
   template <typename... Ts, typename NodeType = void>
-  void saveResult(const std::tuple<Ts...> &props,
-                  ml::train::ExportMethods method,
-                  const NodeType *self = nullptr) {
+  NNTR_EXPORT void saveResult(const std::tuple<Ts...> &props,
+                           ml::train::ExportMethods method,
+                           const NodeType *self = nullptr) {
     switch (method) {
     case ml::train::ExportMethods::METHOD_STRINGVECTOR: {
       createIfNull(stored_result);
@@ -171,7 +173,7 @@ public:
    */
   template <ml::train::ExportMethods methods,
             typename T = typename return_type<methods>::type>
-  std::unique_ptr<T> getResult();
+  NNTR_EXPORT std::unique_ptr<T> getResult();
 
 private:
   /**
@@ -183,7 +185,7 @@ private:
    * @param self @a this of the current layer
    */
   template <typename PropsType, typename NodeType>
-  void saveTflResult(const PropsType &props, const NodeType *self);
+  NNTR_EXPORT void saveTflResult(const PropsType &props, const NodeType *self);
 
 #ifdef ENABLE_TFLITE_INTERPRETER
   std::unique_ptr<TfOpNode> tf_node;   /**< created node from the export */
@@ -207,7 +209,8 @@ private:
  * @param self @a this of the current layer
  */
 template <typename PropsType, typename NodeType>
-void Exporter::saveTflResult(const PropsType &props, const NodeType *self) {
+NNTR_EXPORT void Exporter::saveTflResult(const PropsType &props,
+                                      const NodeType *self) {
   NNTR_THROW_IF(true, nntrainer::exception::not_supported)
     << "given node cannot be converted to tfnode, type: "
     << typeid(self).name();
@@ -372,7 +375,7 @@ void Exporter::saveTflResult(const std::tuple<> &props,
  * @return void
  */
 template <size_t I = 0, typename Callable, typename... Ts>
-typename std::enable_if<I == sizeof...(Ts), void>::type
+typename std::enable_if<I == sizeof...(Ts), void>::type NNTR_EXPORT
 iterate_prop(Callable &&c, const std::tuple<Ts...> &tup) {
   // end of recursion;
 }
@@ -388,7 +391,7 @@ iterate_prop(Callable &&c, const std::tuple<Ts...> &tup) {
  * @return not used
  */
 template <size_t I = 0, typename Callable, typename... Ts>
-typename std::enable_if<(I < sizeof...(Ts)), void>::type
+typename std::enable_if<(I < sizeof...(Ts)), void>::type NNTR_EXPORT
 iterate_prop(Callable &&c, const std::tuple<Ts...> &tup) {
   c(std::get<I>(tup), I);
 
@@ -401,7 +404,7 @@ typename std::enable_if<(I < sizeof...(Ts)), void>::type iterate_prop(Callable
 &&c, const std::tuple<Ts...> &tup)
  */
 template <size_t I = 0, typename Callable, typename... Ts>
-typename std::enable_if<(I < sizeof...(Ts)), void>::type
+typename std::enable_if<(I < sizeof...(Ts)), void>::type NNTR_EXPORT
 iterate_prop(Callable &&c, std::tuple<Ts...> &tup) {
   c(std::get<I>(tup), I);
 
@@ -419,7 +422,7 @@ iterate_prop(Callable &&c, std::tuple<Ts...> &tup) {
  * setting the property
  */
 template <typename Tuple>
-std::vector<std::string>
+NNTR_EXPORT std::vector<std::string>
 loadProperties(const std::vector<std::string> &string_vector, Tuple &&props) {
   std::vector<std::string> string_vector_splited;
   string_vector_splited.reserve(string_vector.size());

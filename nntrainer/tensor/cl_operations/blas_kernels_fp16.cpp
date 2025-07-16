@@ -22,6 +22,10 @@ void sgemv_cl(const _FP16 *matAdata, const _FP16 *vecXdata, _FP16 *vecYdata,
 
   bool result = false;
 
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
+
   do {
     ClContext::SharedPtrClKernel kernel_sgemv_fp16_ptr;
 
@@ -111,6 +115,10 @@ _FP16 dot_cl(const _FP16 *vecAdata, const _FP16 *vecXdata, unsigned int dim1) {
 
   _FP16 cl_ret = 0;
 
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
+
   do {
     ClContext::SharedPtrClKernel kernel_dot_fp16_ptr =
       blas_cc->registerClKernel(getDotClKernelFP16(), "dot_cl_fp16");
@@ -183,6 +191,10 @@ void sgemm_cl(bool TransA, bool TransB, const _FP16 *A, const _FP16 *B,
 
   std::string kernel_func_;
   std::string sgemm_cl_kernel_fp16_;
+
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
 
   if (!TransA && !TransB) {
     kernel_func_ = "sgemm_cl_noTrans_fp16";
@@ -290,6 +302,10 @@ void addition_cl(const _FP16 *input, _FP16 *res, unsigned int size_input,
 
   bool result = false;
 
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
+
   do {
     ClContext::SharedPtrClKernel kernel_addition_fp16_ptr =
       blas_cc->registerClKernel(getAdditionClKernelFP16(), "addition_cl_fp16");
@@ -358,6 +374,10 @@ void addition_cl(const _FP16 *input, _FP16 *res, unsigned int size_input,
 void sscal_cl(_FP16 *X, const unsigned int N, const float alpha) {
   bool result = false;
 
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
+
   do {
     ClContext::SharedPtrClKernel kernel_sscal_fp16_ptr =
       blas_cc->registerClKernel(getHscalClKernel(), "sscal_cl_fp16");
@@ -411,6 +431,10 @@ void transpose_cl_axis(const _FP16 *in, _FP16 *res,
                        unsigned int input_width, unsigned int axis) {
 
   bool result = false;
+
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
 
   do {
     ClContext::SharedPtrClKernel kernel_transpose_fp_16_ptr;

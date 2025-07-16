@@ -42,69 +42,71 @@ public:
   /**
    * @brief     Constructor of Batch Normalization Layer
    */
-  BatchNormalizationLayer();
+  NNTR_EXPORT BatchNormalizationLayer();
 
   /**
    * @brief     Destructor of BatchNormalizationLayer
    */
-  ~BatchNormalizationLayer() {}
+  NNTR_EXPORT ~BatchNormalizationLayer() {}
 
   /**
    *  @brief  Move constructor of Pooling 2D Layer.
    *  @param[in] BatchNormalization &&
    */
+  NNTR_EXPORT
   BatchNormalizationLayer(BatchNormalizationLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs BatchNormalizationLayer to be moved.
    */
-  BatchNormalizationLayer &operator=(BatchNormalizationLayer &&rhs) = default;
+  NNTR_EXPORT BatchNormalizationLayer &
+  operator=(BatchNormalizationLayer &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) override;
+  NNTR_EXPORT void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  NNTR_EXPORT void forwarding(RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  NNTR_EXPORT void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::calcGradient(RunLayerContext &context)
    */
-  void calcGradient(RunLayerContext &context) override;
+  NNTR_EXPORT void calcGradient(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override;
+  NNTR_EXPORT void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override {
+  NNTR_EXPORT const std::string getType() const override {
     return BatchNormalizationLayer::type;
   };
 
   /**
    * @copydoc Layer::supportBackwarding()
    */
-  bool supportBackwarding() const override { return true; }
+  NNTR_EXPORT bool supportBackwarding() const override { return true; }
 
   /**
    * @brief Initialize the in-place settings of the layer
    * @return InPlaceType
    */
-  InPlaceType initializeInPlace() final {
+  NNTR_EXPORT InPlaceType initializeInPlace() final {
     is_inplace = true;
     return InPlaceType::NON_RESTRICTING;
   }
@@ -115,12 +117,12 @@ public:
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
    * &value)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_EXPORT void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
    */
-  void setBatch(RunLayerContext &context, unsigned int batch) override;
+  NNTR_EXPORT void setBatch(RunLayerContext &context, unsigned int batch) override;
 
   static constexpr const char *type = "batch_normalization";
 
@@ -132,19 +134,21 @@ public:
    *      bool trainable,
    *      TensorDim::DataType definedWeightDataType)
    */
-  void save(std::ofstream &file, RunLayerContext &run_context, bool opt_var,
-            ml::train::ExecutionMode mode, bool trainable,
-            TensorDim::DataType definedWeightDataType) const override;
+  NNTR_EXPORT void save(std::ofstream &file, RunLayerContext &run_context,
+                     bool opt_var, ml::train::ExecutionMode mode,
+                     bool trainable,
+                     TensorDim::DataType definedWeightDataType) const override;
 
   /**
    * @copydoc Layer::read(std::ifstream &file, RunLayerContext &context, bool
    * opt_var, ml::train::ExecutionMode mode, bool trainable, TensorDim::DataType
    * definedWeightDataType, bool fsu)
    */
-  void read(std::ifstream &file, RunLayerContext &context, bool opt_var,
-            ml::train::ExecutionMode mode, bool trainable,
-            TensorDim::DataType definedWeightDataType, bool fsu = false,
-            size_t start_offset = 0, bool read_from_offset = false) override;
+  NNTR_EXPORT void read(std::ifstream &file, RunLayerContext &context,
+                     bool opt_var, ml::train::ExecutionMode mode,
+                     bool trainable, TensorDim::DataType definedWeightDataType,
+                     bool fsu = false, size_t start_offset = 0,
+                     bool read_from_offset = false) override;
 
 private:
   float divider; /**< size of the axes of the reduced */

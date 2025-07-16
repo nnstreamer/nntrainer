@@ -19,12 +19,14 @@
 #include <stdexcept>
 #include <tensor_dim.h>
 
+#include "defines.h"
+
 namespace nntrainer {
 
 /**
  * @brief Initialization of ggml backend
  */
-void init_backend();
+NNTR_EXPORT void init_backend();
 
 #ifdef ENABLE_FP16
 /**
@@ -305,8 +307,9 @@ void transpose_matrix(const unsigned int M, const unsigned int N,
  * @param sin_ float* for sin_
  * @param alpha scaling factor
  */
-void calc_trigonometric_vals_dup(unsigned int N_half, float *angle, float *cos_,
-                                 float *sin_, unsigned int alpha = 1.0);
+NNTR_EXPORT void calc_trigonometric_vals_dup(unsigned int N_half, float *angle,
+                                             float *cos_, float *sin_,
+                                             unsigned int alpha = 1.0);
 /**
  * @brief swiglu function with neon : X = (Y / (1 + exp( -Y ))) * Z
  *
@@ -315,7 +318,7 @@ void calc_trigonometric_vals_dup(unsigned int N_half, float *angle, float *cos_,
  * @param Y float * for Vector Y
  * @param Z float * for Vector Z
  */
-void swiglu(const unsigned int N, float *X, float *Y, float *Z);
+NNTR_EXPORT void swiglu(const unsigned int N, float *X, float *Y, float *Z);
 
 /**
  * @brief returns maximum value of the vector X
@@ -324,7 +327,7 @@ void swiglu(const unsigned int N, float *X, float *Y, float *Z);
  * @param X float * for Vector X
  * @return float maximum value of vector X
  */
-float max_val(const unsigned int N, float *X);
+NNTR_EXPORT float max_val(const unsigned int N, float *X);
 
 /**
  * @brief softmax function y_i = exp(x_i) / sum( exp(x_i) )
@@ -333,7 +336,7 @@ float max_val(const unsigned int N, float *X);
  * @param X float * for Vector X
  * @param Y  float * for Vector Y
  */
-void softmax(const unsigned int N, float *X, float *Y);
+NNTR_EXPORT void softmax(const unsigned int N, float *X, float *Y);
 /**
  * @brief Matrix transpose / 2D Tensor transpose
  *
@@ -344,47 +347,51 @@ void softmax(const unsigned int N, float *X, float *Y);
  * @param dst destination of output matrix
  * @param ld_dst data offset of output matrix
  */
-void transpose_matrix(const unsigned int M, const unsigned int N,
-                      const float *src, unsigned int ld_src, float *dst,
-                      unsigned int ld_dst);
+NNTR_EXPORT void transpose_matrix(const unsigned int M, const unsigned int N,
+                                  const float *src, unsigned int ld_src,
+                                  float *dst, unsigned int ld_dst);
 /**
  * @brief     sscal computation : X = alpha * X
  * @param[in] N number of elements in X
  * @param[in] X float * for Vector X
  * @param[in] alpha float number
  */
-void sscal(const unsigned int N, const float alpha, float *X,
-           const unsigned int incX);
+NNTR_EXPORT void sscal(const unsigned int N, const float alpha, float *X,
+                       const unsigned int incX);
 /**
  * @brief     snrm2 computation : Euclidean norm
  * @param[in] N number of elements in X
  * @param[in] X float * for Vector X
  */
-float snrm2(const unsigned int N, const float *X, const unsigned int incX);
+NNTR_EXPORT float snrm2(const unsigned int N, const float *X,
+                        const unsigned int incX);
 /**
  * @brief     copy function : Y = X
  * @param[in] N number of elements in X
  * @param[in] X float * for Vector X
  * @param[in] Y float * for Vector Y
  */
-void scopy(const unsigned int N, const float *X, const unsigned int incX,
-           float *Y, const unsigned int incY);
+NNTR_EXPORT void scopy(const unsigned int N, const float *X,
+                       const unsigned int incX, float *Y,
+                       const unsigned int incY);
 /**
  * @brief     copy function : Y = X
  * @param[in] N number of elements in X
  * @param[in] X uint8_t * for Vector X
  * @param[in] Y uint8_t * for Vector Y
  */
-void scopy(const unsigned int N, const uint8_t *X, const unsigned int incX,
-           uint8_t *Y, const unsigned int incY);
+NNTR_EXPORT void scopy(const unsigned int N, const uint8_t *X,
+                       const unsigned int incX, uint8_t *Y,
+                       const unsigned int incY);
 /**
  * @brief     copy function : Y = X
  * @param[in] N number of elements in X
  * @param[in] X int8_t * for Vector X
  * @param[in] Y int8_t * for Vector Y
  */
-void scopy(const unsigned int N, const int8_t *X, const unsigned int incX,
-           int8_t *Y, const unsigned int incY);
+NNTR_EXPORT void scopy(const unsigned int N, const int8_t *X,
+                       const unsigned int incX, int8_t *Y,
+                       const unsigned int incY);
 
 /**
  * @brief     copy function : Y = X
@@ -392,16 +399,17 @@ void scopy(const unsigned int N, const int8_t *X, const unsigned int incX,
  * @param[in] X uint8_t * for Vector X
  * @param[in] Y float * for Vector Y
  */
-void scopy_int4_to_float32(const unsigned int N, const uint8_t *X,
-                           const unsigned int incX, float *Y,
-                           const unsigned int incY);
+NNTR_EXPORT void scopy_int4_to_float32(const unsigned int N, const uint8_t *X,
+                                       const unsigned int incX, float *Y,
+                                       const unsigned int incY);
 /**
  * @brief     copy function : Y = X
  * @param[in] N number of elements in X
  * @param[in] X int16_t * for Vector X
  * @param[in] Y float * for Vector Y
  */
-void copy_s16_fp32(const unsigned int N, const int16_t *X, float *Y);
+NNTR_EXPORT void copy_s16_fp32(const unsigned int N, const int16_t *X,
+                               float *Y);
 
 /**
  * @brief     copy function : Y = X
@@ -409,7 +417,8 @@ void copy_s16_fp32(const unsigned int N, const int16_t *X, float *Y);
  * @param[in] X uint16_t * for Vector X
  * @param[in] Y float * for Vector Y
  */
-void copy_u16_fp32(const unsigned int N, const uint16_t *X, float *Y);
+NNTR_EXPORT void copy_u16_fp32(const unsigned int N, const uint16_t *X,
+                               float *Y);
 
 /**
  * @brief     copy function : Y = X
@@ -417,7 +426,8 @@ void copy_u16_fp32(const unsigned int N, const uint16_t *X, float *Y);
  * @param[in] X float * for Vector X
  * @param[in] Y uint32_t * for Vector Y
  */
-void copy_fp32_u32(const unsigned int N, const float *X, uint32_t *Y);
+NNTR_EXPORT void copy_fp32_u32(const unsigned int N, const float *X,
+                               uint32_t *Y);
 
 /**
  * @brief     copy function : Y = X
@@ -425,7 +435,8 @@ void copy_fp32_u32(const unsigned int N, const float *X, uint32_t *Y);
  * @param[in] X float * for Vector X
  * @param[in] Y uint16_t * for Vector Y
  */
-void copy_fp32_u16(const unsigned int N, const float *X, uint16_t *Y);
+NNTR_EXPORT void copy_fp32_u16(const unsigned int N, const float *X,
+                               uint16_t *Y);
 
 /**
  * @brief     copy function : Y = X
@@ -433,7 +444,7 @@ void copy_fp32_u16(const unsigned int N, const float *X, uint16_t *Y);
  * @param[in] X float * for Vector X
  * @param[in] Y uint8_t * for Vector Y
  */
-void copy_fp32_u8(const unsigned int N, const float *X, uint8_t *Y);
+NNTR_EXPORT void copy_fp32_u8(const unsigned int N, const float *X, uint8_t *Y);
 
 /**
  * @brief     copy function : Y = X
@@ -441,7 +452,8 @@ void copy_fp32_u8(const unsigned int N, const float *X, uint8_t *Y);
  * @param[in] X float * for Vector X
  * @param[in] Y int16_t * for Vector Y
  */
-void copy_fp32_s16(const unsigned int N, const float *X, int16_t *Y);
+NNTR_EXPORT void copy_fp32_s16(const unsigned int N, const float *X,
+                               int16_t *Y);
 
 /**
  * @brief     copy function : Y = X
@@ -449,7 +461,7 @@ void copy_fp32_s16(const unsigned int N, const float *X, int16_t *Y);
  * @param[in] X float * for Vector X
  * @param[in] Y int8_t * for Vector Y
  */
-void copy_fp32_s8(const unsigned int N, const float *X, int8_t *Y);
+NNTR_EXPORT void copy_fp32_s8(const unsigned int N, const float *X, int8_t *Y);
 
 /**
  * @brief     copy function : Y = X
@@ -458,7 +470,7 @@ void copy_fp32_s8(const unsigned int N, const float *X, int8_t *Y);
  * @param[in] Y T * for Vector Y
  */
 template <typename T>
-void copy_fp32(const unsigned int N, const float *X, T *Y);
+NNTR_EXPORT void copy_fp32(const unsigned int N, const float *X, T *Y);
 
 /**
  * @brief     copy function : Y = X
@@ -467,7 +479,7 @@ void copy_fp32(const unsigned int N, const float *X, T *Y);
  * @param[in] Y T * for Vector Y
  */
 template <typename T>
-inline void copy_fp32(const unsigned int N, const float *X, T *Y) {
+NNTR_EXPORT inline void copy_fp32(const unsigned int N, const float *X, T *Y) {
   throw std::invalid_argument("copy_fp32 for the type is not supported");
 }
 
@@ -478,8 +490,8 @@ inline void copy_fp32(const unsigned int N, const float *X, T *Y) {
  * @param[in] Y uint32_t * for Vector Y
  */
 template <>
-inline void copy_fp32<uint32_t>(const unsigned int N, const float *X,
-                                uint32_t *Y) {
+NNTR_EXPORT inline void copy_fp32<uint32_t>(const unsigned int N,
+                                            const float *X, uint32_t *Y) {
   copy_fp32_u32(N, X, Y);
 }
 
@@ -490,8 +502,8 @@ inline void copy_fp32<uint32_t>(const unsigned int N, const float *X,
  * @param[in] Y uint16_t * for Vector Y
  */
 template <>
-inline void copy_fp32<uint16_t>(const unsigned int N, const float *X,
-                                uint16_t *Y) {
+NNTR_EXPORT inline void copy_fp32<uint16_t>(const unsigned int N,
+                                            const float *X, uint16_t *Y) {
   copy_fp32_u16(N, X, Y);
 }
 
@@ -502,8 +514,8 @@ inline void copy_fp32<uint16_t>(const unsigned int N, const float *X,
  * @param[in] Y uint16_t * for Vector Y
  */
 template <>
-inline void copy_fp32<uint8_t>(const unsigned int N, const float *X,
-                               uint8_t *Y) {
+NNTR_EXPORT inline void copy_fp32<uint8_t>(const unsigned int N, const float *X,
+                                           uint8_t *Y) {
   copy_fp32_u8(N, X, Y);
 }
 
@@ -514,8 +526,8 @@ inline void copy_fp32<uint8_t>(const unsigned int N, const float *X,
  * @param[in] Y int16_t * for Vector Y
  */
 template <>
-inline void copy_fp32<int16_t>(const unsigned int N, const float *X,
-                               int16_t *Y) {
+NNTR_EXPORT inline void copy_fp32<int16_t>(const unsigned int N, const float *X,
+                                           int16_t *Y) {
   copy_fp32_s16(N, X, Y);
 }
 
@@ -526,7 +538,8 @@ inline void copy_fp32<int16_t>(const unsigned int N, const float *X,
  * @param[in] Y int8_t * for Vector Y
  */
 template <>
-inline void copy_fp32<int8_t>(const unsigned int N, const float *X, int8_t *Y) {
+NNTR_EXPORT inline void copy_fp32<int8_t>(const unsigned int N, const float *X,
+                                          int8_t *Y) {
   copy_fp32_s8(N, X, Y);
 }
 
@@ -536,7 +549,7 @@ inline void copy_fp32<int8_t>(const unsigned int N, const float *X, int8_t *Y) {
  * @param[in] X int16_t * for Vector X
  * @param[in] Y int16_t * for Vector Y
  */
-void copy_s16(const unsigned int N, const int16_t *X, int16_t *Y);
+NNTR_EXPORT void copy_s16(const unsigned int N, const int16_t *X, int16_t *Y);
 
 /**
  * @brief     copy function : Y = X
@@ -544,7 +557,7 @@ void copy_s16(const unsigned int N, const int16_t *X, int16_t *Y);
  * @param[in] X uint16_t * for Vector X
  * @param[in] Y uint16_t * for Vector Y
  */
-void copy_u16(const unsigned int N, const uint16_t *X, uint16_t *Y);
+NNTR_EXPORT void copy_u16(const unsigned int N, const uint16_t *X, uint16_t *Y);
 
 /**
  * @brief     copy function : Y = X
@@ -552,26 +565,27 @@ void copy_u16(const unsigned int N, const uint16_t *X, uint16_t *Y);
  * @param[in] X uint8_t * for Vector X
  * @param[in] Y float * for Vector Y
  */
-void scopy_int8_to_float32(const unsigned int N, const uint8_t *X,
-                           const unsigned int incX, float *Y,
-                           const unsigned int incY);
+NNTR_EXPORT void scopy_int8_to_float32(const unsigned int N, const uint8_t *X,
+                                       const unsigned int incX, float *Y,
+                                       const unsigned int incY);
 /**
  * @brief     copy function : Y = X
  * @param[in] N number of elements in X
  * @param[in] X int8_t * for Vector X
  * @param[in] Y float * for Vector Y
  */
-void scopy_int8_to_float32(const unsigned int N, const int8_t *X,
-                           const unsigned int incX, float *Y,
-                           const unsigned int incY);
+NNTR_EXPORT void scopy_int8_to_float32(const unsigned int N, const int8_t *X,
+                                       const unsigned int incX, float *Y,
+                                       const unsigned int incY);
 /**
  * @brief     sdot computation : sum of all X * Y
  * @param[in] N number of elements in Y
  * @param[in] X float * for Vector X
  * @param[in] Y float * for Vector Y
  */
-float sdot(const unsigned int N, const float *X, const unsigned int incX,
-           const float *Y, const unsigned int incY);
+NNTR_EXPORT float sdot(const unsigned int N, const float *X,
+                       const unsigned int incX, const float *Y,
+                       const unsigned int incY);
 /**
  * @brief     saxpy computation : Y = alpha*X + Y
  * @param[in] N number of elements in Y
@@ -579,8 +593,9 @@ float sdot(const unsigned int N, const float *X, const unsigned int incX,
  * @param[in] X float * for Vector X
  * @param[in] Y float * for Vector Y
  */
-void saxpy(const unsigned int N, const float alpha, const float *X,
-           const unsigned int incX, float *Y, const unsigned int incY);
+NNTR_EXPORT void saxpy(const unsigned int N, const float alpha, const float *X,
+                       const unsigned int incX, float *Y,
+                       const unsigned int incY);
 /**
  * @brief     sgemm computation  : Y = alpha*op(A)*op(B) + beta*C,
  * where op(X) is one of X or X**T
@@ -593,11 +608,12 @@ void saxpy(const unsigned int N, const float alpha, const float *X,
  * @param[in] alpha float number
  * @param[in] beta float number
  */
-void sgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
-           const unsigned int M, const unsigned int N, const unsigned int K,
-           const float alpha, const float *A, const unsigned int lda,
-           const float *B, const unsigned int ldb, const float beta, float *C,
-           const unsigned int ldc);
+NNTR_EXPORT void sgemm(const unsigned int TStorageOrder, bool TransA,
+                       bool TransB, const unsigned int M, const unsigned int N,
+                       const unsigned int K, const float alpha, const float *A,
+                       const unsigned int lda, const float *B,
+                       const unsigned int ldb, const float beta, float *C,
+                       const unsigned int ldc);
 /**
  * @brief     sgemv computation  : Y = alpha*A*X + beta*Y
  * @param[in] A float * for Matrix A
@@ -608,17 +624,19 @@ void sgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
  * @param[in] alpha float number
  * @param[in] beta float number
  */
-void sgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
-           const unsigned int N, const float alpha, const float *A,
-           const unsigned int lda, const float *X, const unsigned int incX,
-           const float beta, float *Y, const unsigned int incY);
+NNTR_EXPORT void sgemv(const unsigned int TStorageOrder, bool TransA,
+                       const unsigned int M, const unsigned int N,
+                       const float alpha, const float *A,
+                       const unsigned int lda, const float *X,
+                       const unsigned int incX, const float beta, float *Y,
+                       const unsigned int incY);
 /**
  * @brief     isamax function : index of first maxima
  * @param[in] N number of elements in X
  * @param[in] X float * for Vector X
  */
-unsigned int isamax(const unsigned int N, const float *X,
-                    const unsigned int incX);
+NNTR_EXPORT unsigned int isamax(const unsigned int N, const float *X,
+                                const unsigned int incX);
 
 /**
  * @brief     sine with neon: Y = sin(alpha * X)
@@ -627,7 +645,8 @@ unsigned int isamax(const unsigned int N, const float *X,
  * @param[in] Y float * for Vector Y
  * @param[in] alpha float * for scaling angle (radian)
  */
-void sine(const unsigned int N, float *X, float *Y, float alpha = 1.f);
+NNTR_EXPORT void sine(const unsigned int N, float *X, float *Y,
+                      float alpha = 1.f);
 
 /**
  * @brief     cosine with neon: Y = cos(alpha * X)
@@ -636,7 +655,8 @@ void sine(const unsigned int N, float *X, float *Y, float alpha = 1.f);
  * @param[in] Y float * for Vector Y
  * @param[in] alpha float * for scaling angle (radian)
  */
-void cosine(const unsigned int N, float *X, float *Y, float alpha = 1.f);
+NNTR_EXPORT void cosine(const unsigned int N, float *X, float *Y,
+                        float alpha = 1.f);
 
 /**
  * @brief inversed squared root transformation inplace : X = 1 / sqrt(X)
@@ -644,7 +664,7 @@ void cosine(const unsigned int N, float *X, float *Y, float alpha = 1.f);
  * @param N size of X
  * @param X float * for Vector X
  */
-void inv_sqrt_inplace(const unsigned int N, float *X);
+NNTR_EXPORT void inv_sqrt_inplace(const unsigned int N, float *X);
 /**
  * @brief     elementwise vector multiplication : Z = X ⊙ alpha * Y +
  * beta * Z
@@ -657,9 +677,9 @@ void inv_sqrt_inplace(const unsigned int N, float *X);
  * @param[in] i_stride input stride
  * @param[in] o_stride output stride
  */
-void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z,
-             float alpha = 1.f, float beta = 0.f, unsigned int i_stride = 1,
-             unsigned int o_stride = 1);
+NNTR_EXPORT void ele_mul(const unsigned int N, const float *X, const float *Y,
+                         float *Z, float alpha = 1.f, float beta = 0.f,
+                         unsigned int i_stride = 1, unsigned int o_stride = 1);
 
 /**
  * @brief     elementwise vector addition : Z = X + alpha * Y + beta *
@@ -673,9 +693,9 @@ void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z,
  * @param[in] i_stride input stride
  * @param[in] o_stride output stride
  */
-void ele_add(const unsigned int N, const float *X, const float *Y, float *Z,
-             float alpha = 1.f, float beta = 0.f, unsigned int i_stride = 1,
-             unsigned int o_stride = 1);
+NNTR_EXPORT void ele_add(const unsigned int N, const float *X, const float *Y,
+                         float *Z, float alpha = 1.f, float beta = 0.f,
+                         unsigned int i_stride = 1, unsigned int o_stride = 1);
 /**
  * @brief     elementwise vector subtraction with neon : Z = X - alpha * Y +
  * beta * Z
@@ -688,9 +708,9 @@ void ele_add(const unsigned int N, const float *X, const float *Y, float *Z,
  * @param[in] i_stride input stride
  * @param[in] o_stride output stride
  */
-void ele_sub(const unsigned N, const float *X, const float *Y, float *Z,
-             float alpha = 1.f, float beta = 0.f, unsigned int i_stride = 1,
-             unsigned int o_stride = 1);
+NNTR_EXPORT void ele_sub(const unsigned N, const float *X, const float *Y,
+                         float *Z, float alpha = 1.f, float beta = 0.f,
+                         unsigned int i_stride = 1, unsigned int o_stride = 1);
 
 /**
  * @brief     elementwise vector division with neon : Z = X / (alpha * Y) + beta
@@ -705,9 +725,9 @@ void ele_sub(const unsigned N, const float *X, const float *Y, float *Z,
  * @param[in] i_stride input stride
  * @param[in] o_stride output stride
  */
-void ele_div(const unsigned N, const float *X, const float *Y, float *Z,
-             float alpha = 1.f, float beta = 0.f, unsigned int i_stride = 1,
-             unsigned int o_stride = 1);
+NNTR_EXPORT void ele_div(const unsigned N, const float *X, const float *Y,
+                         float *Z, float alpha = 1.f, float beta = 0.f,
+                         unsigned int i_stride = 1, unsigned int o_stride = 1);
 
 /**
  * @brief     check if X array has NaN or inf
@@ -715,7 +735,7 @@ void ele_div(const unsigned N, const float *X, const float *Y, float *Z,
  * @param[in] X float * for Vector X
  * @param[out] bool false if not valid else true
  */
-bool is_valid(const unsigned int N, const float *X);
+NNTR_EXPORT bool is_valid(const unsigned int N, const float *X);
 
 /**
  * @brief q4_0 GEMM : A (M,K) * W.T (N,K) = O (M,N)
@@ -730,9 +750,11 @@ bool is_valid(const unsigned int N, const float *X);
  * @param C float* output
  * @param ldc Leading dimension of C
  */
-void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
-               const float *A, const unsigned int lda, const void *B,
-               const unsigned int ldb, float *C, const unsigned int ldc);
+NNTR_EXPORT void gemm_q4_0(const unsigned int M, const unsigned int N,
+                           const unsigned int K, const float *A,
+                           const unsigned int lda, const void *B,
+                           const unsigned int ldb, float *C,
+                           const unsigned int ldc);
 
 /**
  * @brief q4_K GEMM : A (M,K) * W.T (N,K) = O (M,N)
@@ -747,9 +769,11 @@ void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
  * @param C float* output
  * @param ldc Leading dimension of C
  */
-void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
-               const float *A, const unsigned int lda, const void *B,
-               const unsigned int ldb, float *C, const unsigned int ldc);
+NNTR_EXPORT void gemm_q4_K(const unsigned int M, const unsigned int N,
+                           const unsigned int K, const float *A,
+                           const unsigned int lda, const void *B,
+                           const unsigned int ldb, float *C,
+                           const unsigned int ldc);
 
 /**
  * @brief q6_K GEMM : A (M,K) * W.T (N,K) = O (M,N)
@@ -764,9 +788,11 @@ void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
  * @param C float* output
  * @param ldc Leading dimension of C
  */
-void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
-               const float *A, const unsigned int lda, const void *B,
-               const unsigned int ldb, float *C, const unsigned int ldc);
+NNTR_EXPORT void gemm_q6_K(const unsigned int M, const unsigned int N,
+                           const unsigned int K, const float *A,
+                           const unsigned int lda, const void *B,
+                           const unsigned int ldb, float *C,
+                           const unsigned int ldc);
 
 /**
  * @brief (1xK)*(Kx1) dot product for q6_K and q8_K vectors
@@ -776,8 +802,8 @@ void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
  * @param v_q8_K rhs vector - data stored in Q8_K format
  * @return float Result of performing dot operation on v_q6_K and v_q8_K
  */
-float dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
-                    const void *v_q8_K);
+NNTR_EXPORT float dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
+                                const void *v_q8_K);
 /**
  * @brief (1xK)*(Kx1) dot product for q6_K and f32 vectors
  *
@@ -786,7 +812,8 @@ float dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
  * @param f rhs vector - data stored in f32 format
  * @return float Result of performing dot operation on v_q6_K and f32
  */
-float dot_q6_K_f32(const unsigned int K, const void *v_q6_K, const float *f);
+NNTR_EXPORT float dot_q6_K_f32(const unsigned int K, const void *v_q6_K,
+                               const float *f);
 
 /**
  * @brief quantize_q4_0 function
@@ -798,8 +825,8 @@ float dot_q6_K_f32(const unsigned int K, const void *v_q6_K, const float *f);
  * @param quant_weights unused for now -> imatrix
  * @return size_t size of total quantized data in bytes
  */
-size_t quantize_q4_0(const float *src, void *dst, int64_t nrow,
-                     int64_t n_per_row, const float *quant_weights);
+NNTR_EXPORT size_t quantize_q4_0(const float *src, void *dst, int64_t nrow,
+                                 int64_t n_per_row, const float *quant_weights);
 /**
  * @brief quantize_q4_K function
  *
@@ -810,8 +837,8 @@ size_t quantize_q4_0(const float *src, void *dst, int64_t nrow,
  * @param quant_weights unused for now -> imatrix
  * @return size_t size of total quantized data in bytes
  */
-size_t quantize_q4_K(const float *src, void *dst, int64_t nrow,
-                     int64_t n_per_row, const float *quant_weights);
+NNTR_EXPORT size_t quantize_q4_K(const float *src, void *dst, int64_t nrow,
+                                 int64_t n_per_row, const float *quant_weights);
 /**
  * @brief quantize_q6_K function
  *
@@ -822,8 +849,8 @@ size_t quantize_q4_K(const float *src, void *dst, int64_t nrow,
  * @param quant_weights unused for now -> imatrix
  * @return size_t size of total quantized data in bytes
  */
-size_t quantize_q6_K(const float *src, void *dst, int64_t nrow,
-                     int64_t n_per_row, const float *quant_weights);
+NNTR_EXPORT size_t quantize_q6_K(const float *src, void *dst, int64_t nrow,
+                                 int64_t n_per_row, const float *quant_weights);
 
 /**
  * @brief Quantize float to q6_K Quantization format
@@ -832,7 +859,7 @@ size_t quantize_q6_K(const float *src, void *dst, int64_t nrow,
  * @param dst void* dst to store quantized data
  * @param k number of elements in src
  */
-void quantize_row_q6_K(const float *src, void *dst, int64_t k);
+NNTR_EXPORT void quantize_row_q6_K(const float *src, void *dst, int64_t k);
 
 /**
  * @brief Quantize float to q6_K Quantization format
@@ -841,7 +868,7 @@ void quantize_row_q6_K(const float *src, void *dst, int64_t k);
  * @param dst void* dst to store quantized data
  * @param k number of elements in src
  */
-void quantize_row_q8_K(const float *src, void *dst, int64_t k);
+NNTR_EXPORT void quantize_row_q8_K(const float *src, void *dst, int64_t k);
 
 /**
  * @brief dequantize row of q4_K data to float
@@ -850,7 +877,7 @@ void quantize_row_q8_K(const float *src, void *dst, int64_t k);
  * @param y dequantized data output
  * @param k number of elements in x
  */
-void dequantize_row_q4_K(const void *x, float *y, int64_t k);
+NNTR_EXPORT void dequantize_row_q4_K(const void *x, float *y, int64_t k);
 
 /**
  * @brief dequantize row of q6_K data to float
@@ -859,7 +886,7 @@ void dequantize_row_q4_K(const void *x, float *y, int64_t k);
  * @param y dequantized data output
  * @param k number of elements in x
  */
-void dequantize_row_q6_K(const void *x, float *y, int64_t k);
+NNTR_EXPORT void dequantize_row_q6_K(const void *x, float *y, int64_t k);
 
 /**
  * @brief dequantize row of q8_K data to float
@@ -868,7 +895,7 @@ void dequantize_row_q6_K(const void *x, float *y, int64_t k);
  * @param y dequantized data output
  * @param k number of elements in x
  */
-void dequantize_row_q8_K(const void *x, float *y, int64_t k);
+NNTR_EXPORT void dequantize_row_q8_K(const void *x, float *y, int64_t k);
 
 /**
  * @brief repack q40 to q40x8
@@ -879,8 +906,9 @@ void dequantize_row_q8_K(const void *x, float *y, int64_t k);
  * @param M number of rows
  * @param N number of columns
  */
-void repack_q4_0_to_q4_0_8(void *W, void *repacked_W, size_t data_size,
-                           const unsigned int M, const unsigned int N);
+NNTR_EXPORT void repack_q4_0_to_q4_0_8(void *W, void *repacked_W,
+                                       size_t data_size, const unsigned int M,
+                                       const unsigned int N);
 
 /**
  * @brief repack q4K to q4Kx8
@@ -891,8 +919,9 @@ void repack_q4_0_to_q4_0_8(void *W, void *repacked_W, size_t data_size,
  * @param M number of rows
  * @param N number of columns
  */
-void repack_q4_K_to_q4_K_8(void *W, void *repacked_W, size_t data_size,
-                           const unsigned int M, const unsigned int N);
+NNTR_EXPORT void repack_q4_K_to_q4_K_8(void *W, void *repacked_W,
+                                       size_t data_size, const unsigned int M,
+                                       const unsigned int N);
 
 } /* namespace nntrainer */
 #endif /* __cplusplus */

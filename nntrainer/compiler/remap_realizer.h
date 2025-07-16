@@ -36,7 +36,7 @@ public:
    * constructor, only connections will be remapped eg) if you are inserting a
    * new layer node in between, only connections need remapping
    */
-  RemapRealizer(
+  NNTR_EXPORT RemapRealizer(
     std::function<void(std::string & /**< identifier */,
                        unsigned & /**< index of a connection, remapping
                                      identifier should not modify this */)>
@@ -48,20 +48,21 @@ public:
    * @param remap_function remap function, with this constructor, all
    * identifiers wherever it is used will be remapped
    */
-  RemapRealizer(
+  NNTR_EXPORT RemapRealizer(
     std::function<void(std::string & /**< identifier */)> remap_function);
 
   /**
    * @brief Destroy the Graph Realizer object
    *
    */
-  ~RemapRealizer();
+  NNTR_EXPORT ~RemapRealizer();
 
   /**
    * @brief graph realizer creates a new graph based on the reference
    *
    */
-  GraphRepresentation realize(const GraphRepresentation &reference) override;
+  NNTR_EXPORT GraphRepresentation
+  realize(const GraphRepresentation &reference) override;
 
 private:
   std::function<void(std::string &)> remap_fn;

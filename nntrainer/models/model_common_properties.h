@@ -31,7 +31,7 @@ public:
    *
    * @param value value to set
    */
-  Epochs(unsigned int value = 1);
+  NNTR_EXPORT Epochs(unsigned int value = 1);
 };
 
 /**
@@ -49,7 +49,7 @@ public:
    * @param value value to check
    * @return bool true if valid
    */
-  bool isValid(const std::string &value) const override;
+  NNTR_EXPORT bool isValid(const std::string &value) const override;
 };
 
 /**
@@ -87,7 +87,7 @@ public:
    *
    * @param value value to set, defaults to 1
    */
-  TrainingBatchSize(unsigned int value = 1);
+  NNTR_EXPORT TrainingBatchSize(unsigned int value = 1);
 };
 
 /**
@@ -105,7 +105,7 @@ public:
    *
    * @param value value to set, defaults to false
    */
-  ContinueTrain(bool value = false);
+  NNTR_EXPORT ContinueTrain(bool value = false);
 };
 
 /**
@@ -123,7 +123,7 @@ public:
    *
    * @param value value to set, defaults to true
    */
-  MemoryOptimization(bool value = true);
+  NNTR_EXPORT MemoryOptimization(bool value = true);
 };
 
 /**
@@ -140,7 +140,7 @@ public:
    *
    * @param value value to set, defaults to false
    */
-  Fsu(bool value = false);
+  NNTR_EXPORT Fsu(bool value = false);
 };
 
 /**
@@ -157,7 +157,7 @@ public:
    *
    * @param value value to set, defaults to current directory
    */
-  FsuPath(const std::string &value = ".");
+  NNTR_EXPORT FsuPath(const std::string &value = ".");
 };
 
 /**
@@ -175,7 +175,7 @@ public:
    *
    * @param value value to set, defaults to current directory
    */
-  FsuLookahead(const unsigned int &value = 0);
+  NNTR_EXPORT FsuLookahead(const unsigned int &value = 0);
 };
 
 /**
@@ -231,8 +231,8 @@ public:
    *
    * @param value value to set, defaults to W32A32
    */
-  ModelTensorDataType(ModelTensorDataTypeInfo::Enum value =
-                        ModelTensorDataTypeInfo::Enum::W32A32);
+  NNTR_EXPORT ModelTensorDataType(ModelTensorDataTypeInfo::Enum value =
+                                 ModelTensorDataTypeInfo::Enum::W32A32);
 };
 
 /**
@@ -241,7 +241,7 @@ public:
  */
 class LossScale : public Property<float> {
 public:
-  LossScale(float value = 1.0f);
+  NNTR_EXPORT LossScale(float value = 1.0f);
   static constexpr const char *key = "loss_scale"; /**< unique key to access */
   using prop_tag = float_prop_tag;                 /**< property type */
 
@@ -251,7 +251,7 @@ public:
    * @param value value to check
    * @return bool true if valid
    */
-  bool isValid(const float &value) const override;
+  NNTR_EXPORT bool isValid(const float &value) const override;
 };
 
 } // namespace nntrainer::props

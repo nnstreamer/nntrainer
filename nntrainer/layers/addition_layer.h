@@ -29,70 +29,74 @@ public:
   /**
    * @brief     Constructor of Addition Layer
    */
-  AdditionLayer() : Layer(), add_props(props::Print()) {}
+  NNTR_EXPORT AdditionLayer() : Layer(), add_props(props::Print()) {}
 
   /**
    * @brief     Destructor of Addition Layer
    */
-  ~AdditionLayer(){};
+  NNTR_EXPORT ~AdditionLayer(){};
 
   /**
    *  @brief  Move constructor of AdditionLayer.
    *  @param[in] AdditionLayer &&
    */
-  AdditionLayer(AdditionLayer &&rhs) noexcept = default;
+  NNTR_EXPORT AdditionLayer(AdditionLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs AdditionLayer to be moved.
    */
-  AdditionLayer &operator=(AdditionLayer &&rhs) = default;
+  NNTR_EXPORT AdditionLayer &operator=(AdditionLayer &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) override;
+  NNTR_EXPORT void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  NNTR_EXPORT void forwarding(RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::incremental_forwarding(RunLayerContext &context, unsigned
    * int from, unsigned int to, bool training)
    */
-  void incremental_forwarding(RunLayerContext &context, unsigned int from,
-                              unsigned int to, bool training) override;
+  NNTR_EXPORT void incremental_forwarding(RunLayerContext &context,
+                                       unsigned int from, unsigned int to,
+                                       bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  NNTR_EXPORT void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc bool supportBackwarding() const
    */
-  bool supportBackwarding() const override { return true; };
+  NNTR_EXPORT bool supportBackwarding() const override { return true; };
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override {}
+  NNTR_EXPORT void
+  exportTo(Exporter &exporter,
+           const ml::train::ExportMethods &method) const override {}
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_EXPORT void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return AdditionLayer::type; };
+  NNTR_EXPORT const std::string getType() const override {
+    return AdditionLayer::type;
+  };
 
-  void updateTensorsByInputDimensions(
+  NNTR_EXPORT void updateTensorsByInputDimensions(
     nntrainer::RunLayerContext &context,
     std::vector<nntrainer::TensorDim> input_dimensions) override;
 
