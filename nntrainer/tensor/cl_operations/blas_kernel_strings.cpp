@@ -32,6 +32,9 @@ const std::string &getQ4KGemmClKernel() {
     #pragma OPENCL EXTENSION cl_khr_fp16 : enable
     #endif
 
+    // https://bashbaug.github.io/OpenCL-Docs/pdf/OpenCL_C.pdf#page=101&zoom=100,0,206
+    #pragma OPENCL EXTENSION cl_khr_integer_dot_product : enable
+
     typedef struct {
       half d[8];
       half dmin[8];
@@ -134,18 +137,52 @@ const std::string &getQ4KGemmClKernel() {
           const int sc0 = lbytes[(k / 4) * 32 + lj];
           const int sc1 = lbytes[(k / 4) * 32 + 16 + lj];
 
-          uchar8 q = vload8(0, lB[blk].qs + idxB);
-          char8 a0 = vload8(0, lA.qs + idxA);
-          char8 a1 = vload8(0, lA.qs + idxA + 128);
+          const uchar8 q = vload8(0, lB[blk].qs + idxB);
 
-          uchar8 qlo = q & (uchar8)(0x0F); // low nibbles
-          uchar8 qhi = q >> (uchar8)4;     // high nibbles
+          const char8 a0 = vload8(0, lA.qs + idxA);
+          const char8 a1 = vload8(0, lA.qs + idxA + 128);
 
-          short8 prod0 = convert_short8(qlo) * convert_short8(a0);
-          short8 prod1 = convert_short8(qhi) * convert_short8(a1);
+          const uchar8 qlo = q & (uchar8)(0x0F); // low nibbles
+          const uchar8 qhi = q >> (uchar8)4;     // high nibbles
+   
+#if defined(__opencl_c_integer_dot_product_input_4x8bit)
+          const char4* a0_arr = (const char4*)(&a0)
+          const char4* a1_arr = (const char4*)(&a1)
 
-          int sumi =
-            REDUCE_ADD_SHORT8(prod0) * sc0 + REDUCE_ADD_SHORT8(prod1) * sc1;
+          const uchar4* qlo_arr = (const uchar4*)(&qlo)
+          const uchar4* qhi_arr = (const uchar4*)(&qhi)
+
+          // int dot(uchar4 a, char4 b) from __opencl_c_integer_dot_product_input_4x8bit 
+
+          
+          /// Loop solution
+          #if 1
+            int prod0 = 0;
+            int prod1 = 0;
+
+            # pragma unroll 2
+            for(int prod_idx = 0; prod_idx < 2; prod_idx++)
+            {
+              prod0 += dot(qlo_arr[prod_idx], a0_arr[prod_idx])
+              prod1 += dot(qhi_arr[prod_idx], a1_arr[prod_idx])
+            }
+          #else
+            /// No loop solution
+            const int prod00 = dot(qlo_arr[0], a0_arr[0]);
+            const int prod10 = dot(qhi_arr[0], a1_arr[0]);
+            
+            const int prod01 = dot(qlo_arr[1], a0_arr[1]);
+            const int prod11 = dot(qhi_arr[1], a1_arr[1]);    
+            
+            const int prod0 = prod00 + prod01;
+            const int prod1 = prod10 + prod11;
+          #endif
+#else
+          const int prod0 = REDUCE_ADD_SHORT8(convert_short8(qlo) * convert_short8(a0));
+          const int prod1 = REDUCE_ADD_SHORT8(convert_short8(qhi) * convert_short8(a1));
+#endif
+
+          const int sumi = prod0 * sc0 + prod1 * sc1;
 
           sumf += (float)sumi * dB * dA;
         }
