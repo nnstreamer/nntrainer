@@ -146,11 +146,11 @@ const std::string &getQ4KGemmClKernel() {
           const uchar8 qhi = q >> (uchar8)4;     // high nibbles
    
 #if defined(__opencl_c_integer_dot_product_input_4x8bit)
-          const char4* a0_arr = (const char4*)(&a0)
-          const char4* a1_arr = (const char4*)(&a1)
+          const char4* a0_arr = (const char4*)(&a0);
+          const char4* a1_arr = (const char4*)(&a1);
 
-          const uchar4* qlo_arr = (const uchar4*)(&qlo)
-          const uchar4* qhi_arr = (const uchar4*)(&qhi)
+          const uchar4* qlo_arr = (const uchar4*)(&qlo);
+          const uchar4* qhi_arr = (const uchar4*)(&qhi);
 
           // int dot(uchar4 a, char4 b) from __opencl_c_integer_dot_product_input_4x8bit 
 
@@ -163,8 +163,8 @@ const std::string &getQ4KGemmClKernel() {
             # pragma unroll 2
             for(int prod_idx = 0; prod_idx < 2; prod_idx++)
             {
-              prod0 += dot(qlo_arr[prod_idx], a0_arr[prod_idx])
-              prod1 += dot(qhi_arr[prod_idx], a1_arr[prod_idx])
+              prod0 += dot(qlo_arr[prod_idx], a0_arr[prod_idx]);
+              prod1 += dot(qhi_arr[prod_idx], a1_arr[prod_idx]);
             }
           #else
             /// No loop solution
