@@ -15,8 +15,10 @@
 
 #include <cstring>
 #include <iostream>
+#include <string>
 #include <vector>
 
+#include "CL/cl.h"
 #include "opencl_loader.h"
 
 #include <nntrainer_log.h>
@@ -131,6 +133,8 @@ bool ContextManager::CreateDefaultGPUDevice() {
   platform_id_ = nullptr;
   device_id_ = nullptr;
 
+  static constexpr cl_device_type kDefaultQueryDeviceType = CL_DEVICE_TYPE_GPU;
+
   ml_logi("Collecting OpenCL platforms ...");
 
   cl_uint num_platforms = 0;
@@ -156,24 +160,23 @@ bool ContextManager::CreateDefaultGPUDevice() {
             (int32_t)num_platforms);
 
     cl_uint num_devices = 0;
-    status = clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, 0, nullptr,
+    status = clGetDeviceIDs(platforms[i], kDefaultQueryDeviceType, 0, nullptr,
                             &num_devices);
     if (status != CL_SUCCESS) {
       ml_loge("clGetDeviceIDs returned %d", status);
-      return false;
+      continue;
     }
     if (num_devices == 0) {
       ml_loge("No GPU on current platform.");
-      return false;
+      continue;
     }
 
-    // getting the GPU device IDs
     std::vector<cl_device_id> devices(num_devices);
-    status = clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, num_devices,
+    status = clGetDeviceIDs(platforms[i], kDefaultQueryDeviceType, num_devices,
                             devices.data(), nullptr);
     if (status != CL_SUCCESS) {
       ml_loge("clGetDeviceIDs returned %d", status);
-      return false;
+      continue;
     }
 
     for (size_t j = 0; j < static_cast<size_t>(num_devices); j++) {
@@ -187,13 +190,30 @@ bool ContextManager::CreateDefaultGPUDevice() {
   // Vendor ID of Intel : 0x8086
   // Vendor ID of NVidia : 0x10DE / 0x13B5
   constexpr static cl_uint intel_igpu_vendor_id = 0x8086;
-  constexpr static cl_device_type intel_igpu_device_type = CL_DEVICE_TYPE_GPU;
+  constexpr static const char *const intel_igpu_device_name_pfx = "Intel";
 
   for (const std::pair<cl_platform_id, cl_device_id> &platform_device :
        platform_device_pairs) {
     cl_platform_id platform = platform_device.first;
     cl_device_id device = platform_device.second;
 
+#define SEARCH_BY_NAME 1
+#if SEARCH_BY_NAME
+    char device_name_buffer[1024];
+    std::memset(device_name_buffer, 0x00, sizeof(device_name_buffer));
+
+    if (CL_SUCCESS != clGetDeviceInfo(device, CL_DEVICE_NAME,
+                                      sizeof(device_name_buffer),
+                                      &device_name_buffer, NULL)) {
+      ml_loge("Failed to query for device name ...");
+    }
+
+    std::string device_name(device_name_buffer);
+    std::string device_name_query(intel_igpu_device_name_pfx);
+
+    const bool vendor_check =
+      (device_name.find(device_name_query) != std::string::npos);
+#else
     cl_uint vendor_id = 0;
     if (CL_SUCCESS != clGetDeviceInfo(device, CL_DEVICE_VENDOR_ID,
                                       sizeof(cl_uint), &vendor_id, nullptr)) {
@@ -201,16 +221,11 @@ bool ContextManager::CreateDefaultGPUDevice() {
       continue;
     }
 
-    cl_device_type device_type = 0;
-    if (CL_SUCCESS != clGetDeviceInfo(device, CL_DEVICE_TYPE,
-                                      sizeof(cl_device_type), &device_type,
-                                      nullptr)) {
-      ml_loge("Failed to query for device type - skipping...");
-      continue;
-    }
+    const bool vendor_check = (vendor_id == intel_igpu_vendor_id);
+#endif
+#undef SEARCH_BY_NAME
 
-    if ((vendor_id == intel_igpu_vendor_id) &&
-        (device_type == intel_igpu_device_type)) {
+    if (vendor_check) {
       platform_id_ = platform;
       device_id_ = device;
 
