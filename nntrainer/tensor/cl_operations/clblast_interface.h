@@ -17,13 +17,6 @@
 
 namespace nntrainer {
 
-static ClContext *clblast_cc =
-  static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-static ClBufferManager &clBuffManagerInst = ClBufferManager::getInstance();
-
-static cl_command_queue command_queue =
-  clblast_cc->command_queue_inst_.GetCommandQueue();
-
 /**
  * @brief Multiplies n elements of vector x by a scalar constant alpha.
  * @param N Number of elements

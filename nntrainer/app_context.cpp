@@ -233,194 +233,12 @@ std::mutex factory_mutex;
 
 std::once_flag global_app_context_init_flag;
 
-static void add_default_object(AppContext &ac) {
-  /// @note all layers should be added to the app_context to guarantee that
-  /// createLayer/createOptimizer class is created
-  using OptType = ml::train::OptimizerType;
-  ac.registerFactory(nntrainer::createOptimizer<SGD>, SGD::type, OptType::SGD);
-  ac.registerFactory(nntrainer::createOptimizer<Adam>, Adam::type,
-                     OptType::ADAM);
-  ac.registerFactory(nntrainer::createOptimizer<AdamW>, AdamW::type,
-                     OptType::ADAMW);
-  ac.registerFactory(AppContext::unknownFactory<nntrainer::Optimizer>,
-                     "unknown", OptType::UNKNOWN);
-
-  using LRType = LearningRateSchedulerType;
-  ac.registerFactory(
-    ml::train::createLearningRateScheduler<ConstantLearningRateScheduler>,
-    ConstantLearningRateScheduler::type, LRType::CONSTANT);
-  ac.registerFactory(
-    ml::train::createLearningRateScheduler<ExponentialLearningRateScheduler>,
-    ExponentialLearningRateScheduler::type, LRType::EXPONENTIAL);
-  ac.registerFactory(
-    ml::train::createLearningRateScheduler<StepLearningRateScheduler>,
-    StepLearningRateScheduler::type, LRType::STEP);
-  ac.registerFactory(ml::train::createLearningRateScheduler<
-                       CosineAnnealingLearningRateScheduler>,
-                     CosineAnnealingLearningRateScheduler::type,
-                     LRType::COSINE);
-  ac.registerFactory(
-    ml::train::createLearningRateScheduler<LinearLearningRateScheduler>,
-    LinearLearningRateScheduler::type, LRType::LINEAR);
-
-  using LayerType = ml::train::LayerType;
-  ac.registerFactory(nntrainer::createLayer<InputLayer>, InputLayer::type,
-                     LayerType::LAYER_IN);
-  ac.registerFactory(nntrainer::createLayer<WeightLayer>, WeightLayer::type,
-                     LayerType::LAYER_WEIGHT);
-  ac.registerFactory(nntrainer::createLayer<AddLayer>, AddLayer::type,
-                     LayerType::LAYER_ADD);
-  ac.registerFactory(nntrainer::createLayer<SubtractLayer>, SubtractLayer::type,
-                     LayerType::LAYER_SUBTRACT);
-  ac.registerFactory(nntrainer::createLayer<MultiplyLayer>, MultiplyLayer::type,
-                     LayerType::LAYER_MULTIPLY);
-  ac.registerFactory(nntrainer::createLayer<DivideLayer>, DivideLayer::type,
-                     LayerType::LAYER_DIVIDE);
-  ac.registerFactory(nntrainer::createLayer<PowLayer>, PowLayer::type,
-                     LayerType::LAYER_POW);
-  ac.registerFactory(nntrainer::createLayer<SQRTLayer>, SQRTLayer::type,
-                     LayerType::LAYER_SQRT);
-  ac.registerFactory(nntrainer::createLayer<SineLayer>, SineLayer::type,
-                     LayerType::LAYER_SINE);
-  ac.registerFactory(nntrainer::createLayer<CosineLayer>, CosineLayer::type,
-                     LayerType::LAYER_COSINE);
-  ac.registerFactory(nntrainer::createLayer<TangentLayer>, TangentLayer::type,
-                     LayerType::LAYER_TANGENT);
-  ac.registerFactory(nntrainer::createLayer<MatMulLayer>, MatMulLayer::type,
-                     LayerType::LAYER_MATMUL);
-  ac.registerFactory(nntrainer::createLayer<FullyConnectedLayer>,
-                     FullyConnectedLayer::type, LayerType::LAYER_FC);
-  ac.registerFactory(nntrainer::createLayer<BatchNormalizationLayer>,
-                     BatchNormalizationLayer::type, LayerType::LAYER_BN);
-  ac.registerFactory(nntrainer::createLayer<LayerNormalizationLayer>,
-                     LayerNormalizationLayer::type,
-                     LayerType::LAYER_LAYER_NORMALIZATION);
-  ac.registerFactory(nntrainer::createLayer<Conv2DLayer>, Conv2DLayer::type,
-                     LayerType::LAYER_CONV2D);
-  ac.registerFactory(nntrainer::createLayer<Conv2DTransposeLayer>,
-                     Conv2DTransposeLayer::type,
-                     LayerType::LAYER_CONV2D_TRANSPOSE);
-  ac.registerFactory(nntrainer::createLayer<Conv1DLayer>, Conv1DLayer::type,
-                     LayerType::LAYER_CONV1D);
-  ac.registerFactory(nntrainer::createLayer<Pooling2DLayer>,
-                     Pooling2DLayer::type, LayerType::LAYER_POOLING2D);
-  ac.registerFactory(nntrainer::createLayer<FlattenLayer>, FlattenLayer::type,
-                     LayerType::LAYER_FLATTEN);
-  ac.registerFactory(nntrainer::createLayer<ReshapeLayer>, ReshapeLayer::type,
-                     LayerType::LAYER_RESHAPE);
-  ac.registerFactory(nntrainer::createLayer<ActivationLayer>,
-                     ActivationLayer::type, LayerType::LAYER_ACTIVATION);
-  ac.registerFactory(nntrainer::createLayer<AdditionLayer>, AdditionLayer::type,
-                     LayerType::LAYER_ADDITION);
-  ac.registerFactory(nntrainer::createLayer<ConcatLayer>, ConcatLayer::type,
-                     LayerType::LAYER_CONCAT);
-  ac.registerFactory(nntrainer::createLayer<MultiOutLayer>, MultiOutLayer::type,
-                     LayerType::LAYER_MULTIOUT);
-  ac.registerFactory(nntrainer::createLayer<EmbeddingLayer>,
-                     EmbeddingLayer::type, LayerType::LAYER_EMBEDDING);
-  ac.registerFactory(nntrainer::createLayer<RNNLayer>, RNNLayer::type,
-                     LayerType::LAYER_RNN);
-  ac.registerFactory(nntrainer::createLayer<RNNCellLayer>, RNNCellLayer::type,
-                     LayerType::LAYER_RNNCELL);
-  ac.registerFactory(nntrainer::createLayer<LSTMLayer>, LSTMLayer::type,
-                     LayerType::LAYER_LSTM);
-  ac.registerFactory(nntrainer::createLayer<LSTMCellLayer>, LSTMCellLayer::type,
-                     LayerType::LAYER_LSTMCELL);
-  ac.registerFactory(nntrainer::createLayer<ZoneoutLSTMCellLayer>,
-                     ZoneoutLSTMCellLayer::type,
-                     LayerType::LAYER_ZONEOUT_LSTMCELL);
-  ac.registerFactory(nntrainer::createLayer<SplitLayer>, SplitLayer::type,
-                     LayerType::LAYER_SPLIT);
-  ac.registerFactory(nntrainer::createLayer<GRULayer>, GRULayer::type,
-                     LayerType::LAYER_GRU);
-  ac.registerFactory(nntrainer::createLayer<GRUCellLayer>, GRUCellLayer::type,
-                     LayerType::LAYER_GRUCELL);
-  ac.registerFactory(nntrainer::createLayer<PermuteLayer>, PermuteLayer::type,
-                     LayerType::LAYER_PERMUTE);
-  ac.registerFactory(nntrainer::createLayer<DropOutLayer>, DropOutLayer::type,
-                     LayerType::LAYER_DROPOUT);
-  ac.registerFactory(nntrainer::createLayer<AttentionLayer>,
-                     AttentionLayer::type, LayerType::LAYER_ATTENTION);
-  ac.registerFactory(nntrainer::createLayer<MoLAttentionLayer>,
-                     MoLAttentionLayer::type, LayerType::LAYER_MOL_ATTENTION);
-  ac.registerFactory(nntrainer::createLayer<MultiHeadAttentionLayer>,
-                     MultiHeadAttentionLayer::type,
-                     LayerType::LAYER_MULTI_HEAD_ATTENTION);
-  ac.registerFactory(nntrainer::createLayer<ReduceMeanLayer>,
-                     ReduceMeanLayer::type, LayerType::LAYER_REDUCE_MEAN);
-  ac.registerFactory(nntrainer::createLayer<PositionalEncodingLayer>,
-                     PositionalEncodingLayer::type,
-                     LayerType::LAYER_POSITIONAL_ENCODING);
-  ac.registerFactory(nntrainer::createLayer<IdentityLayer>, IdentityLayer::type,
-                     LayerType::LAYER_IDENTITY);
-  ac.registerFactory(nntrainer::createLayer<Upsample2dLayer>,
-                     Upsample2dLayer::type, LayerType::LAYER_UPSAMPLE2D);
-
-  ac.registerFactory(nntrainer::createLayer<ChannelShuffle>,
-                     ChannelShuffle::type, LayerType::LAYER_CHANNEL_SHUFFLE);
-
-#ifdef ENABLE_NNSTREAMER_BACKBONE
-  ac.registerFactory(nntrainer::createLayer<NNStreamerLayer>,
-                     NNStreamerLayer::type,
-                     LayerType::LAYER_BACKBONE_NNSTREAMER);
-#endif
-#ifdef ENABLE_TFLITE_BACKBONE
-  ac.registerFactory(nntrainer::createLayer<TfLiteLayer>, TfLiteLayer::type,
-                     LayerType::LAYER_BACKBONE_TFLITE);
-#endif
-  ac.registerFactory(nntrainer::createLayer<CentroidKNN>, CentroidKNN::type,
-                     LayerType::LAYER_CENTROID_KNN);
-
-  /** preprocess layers */
-  ac.registerFactory(nntrainer::createLayer<PreprocessFlipLayer>,
-                     PreprocessFlipLayer::type,
-                     LayerType::LAYER_PREPROCESS_FLIP);
-  ac.registerFactory(nntrainer::createLayer<PreprocessTranslateLayer>,
-                     PreprocessTranslateLayer::type,
-                     LayerType::LAYER_PREPROCESS_TRANSLATE);
-  ac.registerFactory(nntrainer::createLayer<PreprocessL2NormLayer>,
-                     PreprocessL2NormLayer::type,
-                     LayerType::LAYER_PREPROCESS_L2NORM);
-
-  /** register losses */
-  ac.registerFactory(nntrainer::createLayer<MSELossLayer>, MSELossLayer::type,
-                     LayerType::LAYER_LOSS_MSE);
-  ac.registerFactory(nntrainer::createLayer<CrossEntropySigmoidLossLayer>,
-                     CrossEntropySigmoidLossLayer::type,
-                     LayerType::LAYER_LOSS_CROSS_ENTROPY_SIGMOID);
-  ac.registerFactory(nntrainer::createLayer<CrossEntropySoftmaxLossLayer>,
-                     CrossEntropySoftmaxLossLayer::type,
-                     LayerType::LAYER_LOSS_CROSS_ENTROPY_SOFTMAX);
-  ac.registerFactory(nntrainer::createLayer<ConstantDerivativeLossLayer>,
-                     ConstantDerivativeLossLayer::type,
-                     LayerType::LAYER_LOSS_CONSTANT_DERIVATIVE);
-
-  ac.registerFactory(nntrainer::createLayer<TimeDistLayer>, TimeDistLayer::type,
-                     LayerType::LAYER_TIME_DIST);
-
-  ac.registerFactory(AppContext::unknownFactory<nntrainer::Layer>, "unknown",
-                     LayerType::LAYER_UNKNOWN);
-}
-
-static void add_extension_object(AppContext &ac) {
-  auto dir_list = getPluginPaths();
-
-  for (auto &path : dir_list) {
-    try {
-      ac.registerPluggableFromDirectory(path);
-    } catch (std::exception &e) {
-      ml_logw("tried to register extension from %s but failed, reason: %s",
-              path.c_str(), e.what());
-    }
-  }
-}
-
-static void registerer(AppContext &ac) noexcept {
+void AppContext::initialize() noexcept {
   try {
-    ac.setMemAllocator(std::make_shared<MemAllocator>());
+    setMemAllocator(std::make_shared<MemAllocator>());
 
-    add_default_object(ac);
-    add_extension_object(ac);
+    add_default_object();
+    add_extension_object();
   } catch (std::exception &e) {
     ml_loge("registering layers failed!!, reason: %s", e.what());
   } catch (...) {
@@ -428,9 +246,182 @@ static void registerer(AppContext &ac) noexcept {
   }
 };
 
-AppContext &AppContext::Global() {
-  registerer(*this);
-  return *this;
+void AppContext::add_default_object() {
+  /// @note all layers should be added to the app_context to guarantee that
+  /// createLayer/createOptimizer class is created
+  using OptType = ml::train::OptimizerType;
+  registerFactory(nntrainer::createOptimizer<SGD>, SGD::type, OptType::SGD);
+  registerFactory(nntrainer::createOptimizer<Adam>, Adam::type, OptType::ADAM);
+  registerFactory(nntrainer::createOptimizer<AdamW>, AdamW::type,
+                  OptType::ADAMW);
+  registerFactory(AppContext::unknownFactory<nntrainer::Optimizer>, "unknown",
+                  OptType::UNKNOWN);
+
+  using LRType = LearningRateSchedulerType;
+  registerFactory(
+    ml::train::createLearningRateScheduler<ConstantLearningRateScheduler>,
+    ConstantLearningRateScheduler::type, LRType::CONSTANT);
+  registerFactory(
+    ml::train::createLearningRateScheduler<ExponentialLearningRateScheduler>,
+    ExponentialLearningRateScheduler::type, LRType::EXPONENTIAL);
+  registerFactory(
+    ml::train::createLearningRateScheduler<StepLearningRateScheduler>,
+    StepLearningRateScheduler::type, LRType::STEP);
+  registerFactory(ml::train::createLearningRateScheduler<
+                    CosineAnnealingLearningRateScheduler>,
+                  CosineAnnealingLearningRateScheduler::type, LRType::COSINE);
+  registerFactory(
+    ml::train::createLearningRateScheduler<LinearLearningRateScheduler>,
+    LinearLearningRateScheduler::type, LRType::LINEAR);
+
+  using LayerType = ml::train::LayerType;
+  registerFactory(nntrainer::createLayer<InputLayer>, InputLayer::type,
+                  LayerType::LAYER_IN);
+  registerFactory(nntrainer::createLayer<WeightLayer>, WeightLayer::type,
+                  LayerType::LAYER_WEIGHT);
+  registerFactory(nntrainer::createLayer<AddLayer>, AddLayer::type,
+                  LayerType::LAYER_ADD);
+  registerFactory(nntrainer::createLayer<SubtractLayer>, SubtractLayer::type,
+                  LayerType::LAYER_SUBTRACT);
+  registerFactory(nntrainer::createLayer<MultiplyLayer>, MultiplyLayer::type,
+                  LayerType::LAYER_MULTIPLY);
+  registerFactory(nntrainer::createLayer<DivideLayer>, DivideLayer::type,
+                  LayerType::LAYER_DIVIDE);
+  registerFactory(nntrainer::createLayer<PowLayer>, PowLayer::type,
+                  LayerType::LAYER_POW);
+  registerFactory(nntrainer::createLayer<SQRTLayer>, SQRTLayer::type,
+                  LayerType::LAYER_SQRT);
+  registerFactory(nntrainer::createLayer<SineLayer>, SineLayer::type,
+                  LayerType::LAYER_SINE);
+  registerFactory(nntrainer::createLayer<CosineLayer>, CosineLayer::type,
+                  LayerType::LAYER_COSINE);
+  registerFactory(nntrainer::createLayer<TangentLayer>, TangentLayer::type,
+                  LayerType::LAYER_TANGENT);
+  registerFactory(nntrainer::createLayer<MatMulLayer>, MatMulLayer::type,
+                  LayerType::LAYER_MATMUL);
+  registerFactory(nntrainer::createLayer<FullyConnectedLayer>,
+                  FullyConnectedLayer::type, LayerType::LAYER_FC);
+  registerFactory(nntrainer::createLayer<BatchNormalizationLayer>,
+                  BatchNormalizationLayer::type, LayerType::LAYER_BN);
+  registerFactory(nntrainer::createLayer<LayerNormalizationLayer>,
+                  LayerNormalizationLayer::type,
+                  LayerType::LAYER_LAYER_NORMALIZATION);
+  registerFactory(nntrainer::createLayer<Conv2DLayer>, Conv2DLayer::type,
+                  LayerType::LAYER_CONV2D);
+  registerFactory(nntrainer::createLayer<Conv2DTransposeLayer>,
+                  Conv2DTransposeLayer::type,
+                  LayerType::LAYER_CONV2D_TRANSPOSE);
+  registerFactory(nntrainer::createLayer<Conv1DLayer>, Conv1DLayer::type,
+                  LayerType::LAYER_CONV1D);
+  registerFactory(nntrainer::createLayer<Pooling2DLayer>, Pooling2DLayer::type,
+                  LayerType::LAYER_POOLING2D);
+  registerFactory(nntrainer::createLayer<FlattenLayer>, FlattenLayer::type,
+                  LayerType::LAYER_FLATTEN);
+  registerFactory(nntrainer::createLayer<ReshapeLayer>, ReshapeLayer::type,
+                  LayerType::LAYER_RESHAPE);
+  registerFactory(nntrainer::createLayer<ActivationLayer>,
+                  ActivationLayer::type, LayerType::LAYER_ACTIVATION);
+  registerFactory(nntrainer::createLayer<AdditionLayer>, AdditionLayer::type,
+                  LayerType::LAYER_ADDITION);
+  registerFactory(nntrainer::createLayer<ConcatLayer>, ConcatLayer::type,
+                  LayerType::LAYER_CONCAT);
+  registerFactory(nntrainer::createLayer<MultiOutLayer>, MultiOutLayer::type,
+                  LayerType::LAYER_MULTIOUT);
+  registerFactory(nntrainer::createLayer<EmbeddingLayer>, EmbeddingLayer::type,
+                  LayerType::LAYER_EMBEDDING);
+  registerFactory(nntrainer::createLayer<RNNLayer>, RNNLayer::type,
+                  LayerType::LAYER_RNN);
+  registerFactory(nntrainer::createLayer<RNNCellLayer>, RNNCellLayer::type,
+                  LayerType::LAYER_RNNCELL);
+  registerFactory(nntrainer::createLayer<LSTMLayer>, LSTMLayer::type,
+                  LayerType::LAYER_LSTM);
+  registerFactory(nntrainer::createLayer<LSTMCellLayer>, LSTMCellLayer::type,
+                  LayerType::LAYER_LSTMCELL);
+  registerFactory(nntrainer::createLayer<ZoneoutLSTMCellLayer>,
+                  ZoneoutLSTMCellLayer::type,
+                  LayerType::LAYER_ZONEOUT_LSTMCELL);
+  registerFactory(nntrainer::createLayer<SplitLayer>, SplitLayer::type,
+                  LayerType::LAYER_SPLIT);
+  registerFactory(nntrainer::createLayer<GRULayer>, GRULayer::type,
+                  LayerType::LAYER_GRU);
+  registerFactory(nntrainer::createLayer<GRUCellLayer>, GRUCellLayer::type,
+                  LayerType::LAYER_GRUCELL);
+  registerFactory(nntrainer::createLayer<PermuteLayer>, PermuteLayer::type,
+                  LayerType::LAYER_PERMUTE);
+  registerFactory(nntrainer::createLayer<DropOutLayer>, DropOutLayer::type,
+                  LayerType::LAYER_DROPOUT);
+  registerFactory(nntrainer::createLayer<AttentionLayer>, AttentionLayer::type,
+                  LayerType::LAYER_ATTENTION);
+  registerFactory(nntrainer::createLayer<MoLAttentionLayer>,
+                  MoLAttentionLayer::type, LayerType::LAYER_MOL_ATTENTION);
+  registerFactory(nntrainer::createLayer<MultiHeadAttentionLayer>,
+                  MultiHeadAttentionLayer::type,
+                  LayerType::LAYER_MULTI_HEAD_ATTENTION);
+  registerFactory(nntrainer::createLayer<ReduceMeanLayer>,
+                  ReduceMeanLayer::type, LayerType::LAYER_REDUCE_MEAN);
+  registerFactory(nntrainer::createLayer<PositionalEncodingLayer>,
+                  PositionalEncodingLayer::type,
+                  LayerType::LAYER_POSITIONAL_ENCODING);
+  registerFactory(nntrainer::createLayer<IdentityLayer>, IdentityLayer::type,
+                  LayerType::LAYER_IDENTITY);
+  registerFactory(nntrainer::createLayer<Upsample2dLayer>,
+                  Upsample2dLayer::type, LayerType::LAYER_UPSAMPLE2D);
+
+  registerFactory(nntrainer::createLayer<ChannelShuffle>, ChannelShuffle::type,
+                  LayerType::LAYER_CHANNEL_SHUFFLE);
+
+#ifdef ENABLE_NNSTREAMER_BACKBONE
+  registerFactory(nntrainer::createLayer<NNStreamerLayer>,
+                  NNStreamerLayer::type, LayerType::LAYER_BACKBONE_NNSTREAMER);
+#endif
+#ifdef ENABLE_TFLITE_BACKBONE
+  registerFactory(nntrainer::createLayer<TfLiteLayer>, TfLiteLayer::type,
+                  LayerType::LAYER_BACKBONE_TFLITE);
+#endif
+  registerFactory(nntrainer::createLayer<CentroidKNN>, CentroidKNN::type,
+                  LayerType::LAYER_CENTROID_KNN);
+
+  /** preprocess layers */
+  registerFactory(nntrainer::createLayer<PreprocessFlipLayer>,
+                  PreprocessFlipLayer::type, LayerType::LAYER_PREPROCESS_FLIP);
+  registerFactory(nntrainer::createLayer<PreprocessTranslateLayer>,
+                  PreprocessTranslateLayer::type,
+                  LayerType::LAYER_PREPROCESS_TRANSLATE);
+  registerFactory(nntrainer::createLayer<PreprocessL2NormLayer>,
+                  PreprocessL2NormLayer::type,
+                  LayerType::LAYER_PREPROCESS_L2NORM);
+
+  /** register losses */
+  registerFactory(nntrainer::createLayer<MSELossLayer>, MSELossLayer::type,
+                  LayerType::LAYER_LOSS_MSE);
+  registerFactory(nntrainer::createLayer<CrossEntropySigmoidLossLayer>,
+                  CrossEntropySigmoidLossLayer::type,
+                  LayerType::LAYER_LOSS_CROSS_ENTROPY_SIGMOID);
+  registerFactory(nntrainer::createLayer<CrossEntropySoftmaxLossLayer>,
+                  CrossEntropySoftmaxLossLayer::type,
+                  LayerType::LAYER_LOSS_CROSS_ENTROPY_SOFTMAX);
+  registerFactory(nntrainer::createLayer<ConstantDerivativeLossLayer>,
+                  ConstantDerivativeLossLayer::type,
+                  LayerType::LAYER_LOSS_CONSTANT_DERIVATIVE);
+
+  registerFactory(nntrainer::createLayer<TimeDistLayer>, TimeDistLayer::type,
+                  LayerType::LAYER_TIME_DIST);
+
+  registerFactory(AppContext::unknownFactory<nntrainer::Layer>, "unknown",
+                  LayerType::LAYER_UNKNOWN);
+}
+
+void AppContext::add_extension_object() {
+  auto dir_list = getPluginPaths();
+
+  for (auto &path : dir_list) {
+    try {
+      registerPluggableFromDirectory(path);
+    } catch (std::exception &e) {
+      ml_logw("tried to register extension from %s but failed, reason: %s",
+              path.c_str(), e.what());
+    }
+  }
 }
 
 void AppContext::setWorkingDirectory(const std::string &base) {

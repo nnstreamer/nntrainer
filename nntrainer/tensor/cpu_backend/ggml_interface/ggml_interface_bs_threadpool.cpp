@@ -132,7 +132,7 @@ static inline void __ggml_q4_0_8x8_q8_0_GEMM_GEMM(
   const unsigned int M, const unsigned int N, const unsigned int K,
   const float *A, const unsigned int lda, const void *B, const unsigned int ldb,
   float *C, const unsigned int ldc) {
-  auto &bs_thread_pool = ThreadPoolManager::getInstance();
+  auto &bs_thread_pool = ThreadPoolManager::Global().getThreadPool();
   static const int32_t MULTITHREADING_METHOD_THREADS_TOTAL = 8;
   static const int32_t MULTITHREADING_METHOD_THREADS_TOTAL_MINUS_ONE =
     MULTITHREADING_METHOD_THREADS_TOTAL - 1;
@@ -234,7 +234,7 @@ static inline void __ggml_q4_K_8x8_q8_K_GEMM_GEMM(
   const unsigned int M, const unsigned int N, const unsigned int K,
   const float *A, const unsigned int lda, const void *B, const unsigned int ldb,
   float *C, const unsigned int ldc) {
-  auto &bs_thread_pool = ThreadPoolManager::getInstance();
+  auto &bs_thread_pool = ThreadPoolManager::Global().getThreadPool();
   static const int32_t MULTITHREADING_METHOD_THREADS_TOTAL = 8;
   static const int32_t MULTITHREADING_METHOD_THREADS_TOTAL_MINUS_ONE =
     MULTITHREADING_METHOD_THREADS_TOTAL - 1;

@@ -14,11 +14,6 @@
 
 namespace nntrainer {
 
-ClBufferManager &ClBufferManager::getInstance() {
-  static ClBufferManager instance;
-  return instance;
-}
-
 // to-do: Implementation to be updated with array of Buffer objects if required
 // fp16 Buffer objects to be added in future
 void ClBufferManager::initBuffers() {
