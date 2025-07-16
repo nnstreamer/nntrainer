@@ -213,6 +213,8 @@ bool ClContext::clCreateKernel(std::string &kernel_string,
                        "_kernel.bin",
                      std::ios::binary | std::ios::in);
 
+    const std::string compiler_options = "-cl-std=CL3.0";
+
     if (fs.good()) {
       fs.seekg(0, std::ios::end);
       size_t binary_size = fs.tellg();
@@ -227,11 +229,11 @@ bool ClContext::clCreateKernel(std::string &kernel_string,
         chunk.data(),
         opencl::Program::DEFAULT_KERNEL_PATH + "/" + kernel_name +
           "_kernel.bin",
-        "");
+        compiler_options);
     } else {
       result = program.CreateCLProgram(
         opencl::ContextManager::Global().GetContext(),
-        opencl::ContextManager::Global().GetDeviceId(), kernel_string, "");
+        opencl::ContextManager::Global().GetDeviceId(), kernel_string, compiler_options);
     }
 
     if (!result) {

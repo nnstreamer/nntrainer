@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008-2021 The Khronos Group Inc.
+ * Copyright (c) 2008-2020 The Khronos Group Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,19 +14,5 @@
  * limitations under the License.
  ******************************************************************************/
 
-#ifndef __OPENCL_H
-#define __OPENCL_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include <CL/cl.h>
-#include <CL/cl_gl.h>
-#include <CL/cl_ext.h>
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif  /* __OPENCL_H   */
+#include <CL/cl_dx9_media_sharing.h>
+#pragma message("The Intel DX9 media sharing extensions have been moved into cl_dx9_media_sharing.h.  Please include cl_dx9_media_sharing.h directly.")
