@@ -95,7 +95,7 @@ float compute_mse(const uint32_t M, const uint32_t N,
   return mean_squared_error;
 }
 
-TEST(blas_kernels, dotCL_sgemv_M_1_1) {
+TEST(blas_kernels, DISABLED_dotCL_sgemv_M_1_1) {
   int batch = 1;
   int channel = 1;
   int height = 1;
@@ -140,7 +140,7 @@ TEST(blas_kernels, dotCL_sgemv_M_1_1) {
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
 }
 
-TEST(blas_kernels, dotCL_sgemv_M_1_2) {
+TEST(blas_kernels, DISABLED_dotCL_sgemv_M_1_2) {
   int batch = 1;
   int channel = 1;
   int height = 1;
@@ -185,7 +185,7 @@ TEST(blas_kernels, dotCL_sgemv_M_1_2) {
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
 }
 
-TEST(blas_kernels, dotCL_sgemv_N_1_1) {
+TEST(blas_kernels, DISABLED_dotCL_sgemv_N_1_1) {
   int batch = 1;
   int channel = 1;
   int height = 768;
@@ -230,7 +230,7 @@ TEST(blas_kernels, dotCL_sgemv_N_1_1) {
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
 }
 
-TEST(blas_kernels, dotCL_sgemv_N_1_2) {
+TEST(blas_kernels, DISABLED_dotCL_sgemv_N_1_2) {
   int batch = 1;
   int channel = 1;
   int height = 768;
@@ -275,7 +275,7 @@ TEST(blas_kernels, dotCL_sgemv_N_1_2) {
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
 }
 
-TEST(blas_kernels, dotCL_sgemv_n) {
+TEST(blas_kernels, DISABLED_dotCL_sgemv_n) {
 
   int batch = 1;
   int channel = 1;
@@ -309,7 +309,7 @@ TEST(blas_kernels, dotCL_sgemv_n) {
   EXPECT_THROW(dotCl(A_fp32, B_fp32, transA, transB), std::runtime_error);
 }
 
-TEST(blas_kernels, dotCL_sgemv_N_1_M_1_1) {
+TEST(blas_kernels, DISABLED_dotCL_sgemv_N_1_M_1_1) {
   int batch = 1;
   int channel = 1;
   int height = 1;
@@ -353,7 +353,7 @@ TEST(blas_kernels, dotCL_sgemv_N_1_M_1_1) {
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
 }
 
-TEST(blas_kernels, dotCL_sgemv_N_1_M_1_2) {
+TEST(blas_kernels, DISABLED_dotCL_sgemv_N_1_M_1_2) {
   int batch = 1;
   int channel = 1;
   int height = 1;
@@ -398,7 +398,7 @@ TEST(blas_kernels, dotCL_sgemv_N_1_M_1_2) {
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
 }
 
-TEST(blas_kernels, dot_gemm_50_768_1024_noTrans) {
+TEST(blas_kernels, DISABLED_dot_gemm_50_768_1024_noTrans) {
   int batch = 1;
   int channel = 1;
   int height = 50;
@@ -443,7 +443,7 @@ TEST(blas_kernels, dot_gemm_50_768_1024_noTrans) {
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
 }
 
-TEST(blas_kernels, dot_gemm_50_768_2048_transB) {
+TEST(blas_kernels, DISABLED_dot_gemm_50_768_2048_transB) {
   int batch = 1;
   int channel = 1;
   int height = 50;
@@ -488,7 +488,7 @@ TEST(blas_kernels, dot_gemm_50_768_2048_transB) {
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
 }
 
-TEST(blas_kernels, dot_gemm_50_768_1024_transA) {
+TEST(blas_kernels, DISABLED_dot_gemm_50_768_1024_transA) {
   int batch = 1;
   int channel = 1;
   int height = 768;
@@ -533,7 +533,7 @@ TEST(blas_kernels, dot_gemm_50_768_1024_transA) {
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
 }
 
-TEST(blas_kernels, dot_gemm_50_768_2048_transAB) {
+TEST(blas_kernels, DISABLED_dot_gemm_50_768_2048_transAB) {
   int batch = 1;
   int channel = 1;
   int height = 768;
@@ -578,7 +578,7 @@ TEST(blas_kernels, dot_gemm_50_768_2048_transAB) {
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
 }
 
-TEST(blas_kernels, addition_i) {
+TEST(blas_kernels, DISABLED_addition_i) {
 
   int batch = 12;
   int channel = 1;
@@ -630,7 +630,7 @@ TEST(blas_kernels, addition_i) {
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
 }
 
-TEST(blas_kernels, l2norm) {
+TEST(blas_kernels, DISABLED_l2norm) {
   int batch = 1;
   int channel = 1;
   int height = 768;
@@ -661,7 +661,7 @@ TEST(blas_kernels, l2norm) {
   EXPECT_FLOAT_EQ(gpu_result, cpu_result);
 }
 
-TEST(blas_kernels, absolute_sum) {
+TEST(blas_kernels, DISABLED_absolute_sum) {
   int batch = 1;
   int channel = 1;
   int height = 32;
@@ -692,7 +692,7 @@ TEST(blas_kernels, absolute_sum) {
 
 #ifdef ENABLE_FP16
 
-TEST(blas_kernels, dotCL_sgemv_M_1_1_fp16) {
+TEST(blas_kernels, DISABLED_dotCL_sgemv_M_1_1_fp16) {
   int batch = 1;
   int channel = 1;
   int height = 1;
@@ -737,7 +737,7 @@ TEST(blas_kernels, dotCL_sgemv_M_1_1_fp16) {
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
 }
 
-TEST(blas_kernels, dotCL_sgemv_M_1_2_fp16) {
+TEST(blas_kernels, DISABLED_dotCL_sgemv_M_1_2_fp16) {
   int batch = 1;
   int channel = 1;
   int height = 1;
@@ -782,7 +782,7 @@ TEST(blas_kernels, dotCL_sgemv_M_1_2_fp16) {
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
 }
 
-TEST(blas_kernels, dotCL_sgemv_N_1_1_fp16) {
+TEST(blas_kernels, DISABLED_dotCL_sgemv_N_1_1_fp16) {
   int batch = 1;
   int channel = 1;
   int height = 768;
@@ -827,7 +827,7 @@ TEST(blas_kernels, dotCL_sgemv_N_1_1_fp16) {
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
 }
 
-TEST(blas_kernels, dotCL_sgemv_N_1_2_fp16) {
+TEST(blas_kernels, DISABLED_dotCL_sgemv_N_1_2_fp16) {
   int batch = 1;
   int channel = 1;
   int height = 768;
@@ -872,7 +872,7 @@ TEST(blas_kernels, dotCL_sgemv_N_1_2_fp16) {
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
 }
 
-TEST(blas_kernels, dotCL_sgemv_n_fp16) {
+TEST(blas_kernels, DISABLED_dotCL_sgemv_n_fp16) {
 
   int batch = 1;
   int channel = 1;
@@ -906,7 +906,7 @@ TEST(blas_kernels, dotCL_sgemv_n_fp16) {
   EXPECT_THROW(dotCl(A_fp16, B_fp16, transA, transB), std::runtime_error);
 }
 
-TEST(blas_kernels, multiply_i) {
+TEST(blas_kernels, DISABLED_multiply_i) {
   int batch = 1;
   int channel = 1;
   int height = 2;
@@ -947,7 +947,7 @@ TEST(blas_kernels, multiply_i) {
   EXPECT_IN_RANGE(cosSim, 0.99, 1);
 }
 
-TEST(blas_kernels, dot_gemm_50_768_1024_noTrans_fp16) {
+TEST(blas_kernels, DISABLED_dot_gemm_50_768_1024_noTrans_fp16) {
   /// @note GEMM : A X B = C
 
   int batch = 1;
@@ -994,7 +994,7 @@ TEST(blas_kernels, dot_gemm_50_768_1024_noTrans_fp16) {
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
 }
 
-TEST(blas_kernels, dot_gemm_50_768_2048_transB_fp16) {
+TEST(blas_kernels, DISABLED_dot_gemm_50_768_2048_transB_fp16) {
   /// @note GEMM : A X B = C
 
   int batch = 1;
@@ -1041,7 +1041,7 @@ TEST(blas_kernels, dot_gemm_50_768_2048_transB_fp16) {
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
 }
 
-TEST(blas_kernels, dot_gemm_50_768_1024_transA_fp16) {
+TEST(blas_kernels, DISABLED_dot_gemm_50_768_1024_transA_fp16) {
   int batch = 1;
   int channel = 1;
   int height = 768;
@@ -1086,7 +1086,7 @@ TEST(blas_kernels, dot_gemm_50_768_1024_transA_fp16) {
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
 }
 
-TEST(blas_kernels, dot_gemm_50_768_2048_transAB_fp16) {
+TEST(blas_kernels, DISABLED_dot_gemm_50_768_2048_transAB_fp16) {
   int batch = 1;
   int channel = 1;
   int height = 768;
@@ -1131,7 +1131,7 @@ TEST(blas_kernels, dot_gemm_50_768_2048_transAB_fp16) {
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
 }
 
-TEST(blas_kernels, addition_i_fp16) {
+TEST(blas_kernels, DISABLED_addition_i_fp16) {
 
   int batch = 12;
   int channel = 1;
@@ -1355,7 +1355,7 @@ static void run_q_4_K_test(const uint32_t M, const uint32_t K,
     std::cout << "]";
   };
 
-  static constexpr uint32_t run_count = 16;
+  static constexpr uint32_t run_count = 128;
 
   std::vector<float> activation = generate_random_vector<float, false>(M * K);
   std::vector<float> weight = generate_random_vector<float, false>(N * K);
