@@ -16,6 +16,193 @@
 
 namespace nntrainer {
 
+const std::string &getQ6KSgemvClKernel() {
+  static const std::string q6_k_sgemv_cl_kernel_ =
+    R"(
+// ---------------------------------------------------------------
+//  kernel_mul_mv_q6_K_f32_opt  –  with optional sub-group prefetch
+// ---------------------------------------------------------------
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#pragma OPENCL EXTENSION cl_intel_subgroups : enable
+#pragma OPENCL EXTENSION cl_intel_required_sub_group_size : enable
+/* Prefetch is enabled only if the device says so */
+#ifdef cl_intel_subgroup_buffer_prefetch
+#pragma OPENCL EXTENSION cl_intel_subgroup_buffer_prefetch : enable
+#endif
+
+#define QK_K 256
+#define SGW 16      /* sub-group width                */
+#define SG_PER_WG 2 /* 2 sub-groups → 32 WI per WG    */
+#define N_DST 8     /* rows produced per sub-group    */
+
+typedef uchar uint8_t;
+typedef char int8_t;
+
+typedef struct __attribute__((packed)) {
+  uint8_t ql[QK_K / 2];
+  uint8_t qh[QK_K / 4];
+  int8_t scales[QK_K / 16];
+  half d;
+} block_q6_K;
+
+/* 2-bit masks reused in unpack */
+static constant uint8_t KMASK1 = 0x03;
+static constant uint8_t KMASK2 = 0x0C;
+static constant uint8_t KMASK3 = 0x30;
+static constant uint8_t KMASK4 = 0xC0;
+
+__attribute__((intel_reqd_sub_group_size(SGW)))
+__attribute__((reqd_work_group_size(SGW * SG_PER_WG, 1, 1))) kernel void
+kernel_mul_mv_q6_K_f32(global void *restrict src0, ulong offset0,
+                       global float *restrict src1, ulong offset1,
+                       global float *restrict dst, ulong offsetd, int ne00,
+                       int ne01, int ne02, int ne10, int ne12, int ne0, int ne1,
+                       int r2, int r3) {
+  /* ------ adjust pointers from host side-byte offsets ------------------ */
+  src0 = (global void *)((global char *)src0 + offset0);
+  src1 = (global float *)((global char *)src1 + offset1);
+  dst = (global float *)((global char *)dst + offsetd);
+
+  const int nb = ne00 / QK_K; /* blocks per row */
+
+  /* ----------- work-group / sub-group bookkeeping ---------------------- */
+  const int gid_x = get_group_id(0);
+  const int gid_y = get_group_id(1);
+  const int gid_z = get_group_id(2);
+
+  const int sg_id = get_sub_group_id();      /* 0 or 1 in this WG */
+  const int lane = get_sub_group_local_id(); /* 0 … 15            */
+
+  const int first_row = (gid_x * SG_PER_WG + sg_id) * N_DST;
+
+  /* ---------------- batch / head offsets into src0 --------------------- */
+  const int i12 = gid_z % ne12;
+  const int i13 = gid_z / ne12;
+  const ulong base_off = (ulong)(i12 / r2) * (ulong)(nb * ne01) +
+                         (ulong)(i13 / r3) * (ulong)(nb * ne01 * ne02);
+
+  /* ---------------- lane-constant byte offsets ------------------------- */
+  const int ip = lane >> 3; /* 0 / 1               */
+  const int il = lane & 7;  /* 0 … 7               */
+  const int l0 = il * 4;    /* 0,4,8, … 28         */
+
+  const int scale_idx = ip * 8 + (l0 >> 4); /* 0 … 15              */
+  const int y_off = 128 * ip + l0;
+  const int ql_off = 64 * ip + l0;
+  const int qh_off = 32 * ip + l0;
+
+  /* ---------------- base pointer to the y-vector ----------------------- */
+  global float *y_base = src1 + gid_y * ne10 + gid_z * ne00 * ne1 + y_off;
+
+  float sum[N_DST] = {0.0f};
+
+  /* ============================= block loop ============================ */
+  for (int ib = 0; ib < nb; ++ib) {
+
+    global float *yptr = y_base + ib * QK_K;
+
+/* ---------- software prefetch of the NEXT block’s y (if enabled) -- */
+#ifdef cl_intel_subgroup_buffer_prefetch
+    if (__builtin_expect(ib + 1 < nb, 1)) {
+      global uint *next = (global uint *)(yptr + QK_K); /* +256 floats */
+      /* each ui8 == 8 uints  == 32 bytes per lane */
+      intel_sub_group_block_prefetch_ui8(next + 0);  /* +0  B */
+      intel_sub_group_block_prefetch_ui8(next + 8);  /* +32 B */
+      intel_sub_group_block_prefetch_ui8(next + 16); /* +64 B */
+      intel_sub_group_block_prefetch_ui8(next + 24); /* +96 B */
+    }
+#endif
+
+    /* --------- 16 lane-private y scalars ------------------------------ */
+    float y0 = yptr[0], y1 = yptr[32], y2 = yptr[64], y3 = yptr[96];
+    float y4 = yptr[1], y5 = yptr[33], y6 = yptr[65], y7 = yptr[97];
+    float y8 = yptr[2], y9 = yptr[34], yA = yptr[66], yB = yptr[98];
+    float yC = yptr[3], yD = yptr[35], yE = yptr[67], yF = yptr[99];
+
+/* ------------- process N_DST destination rows -------------------- */
+#pragma unroll
+    for (int dst_idx = 0; dst_idx < N_DST; ++dst_idx) {
+
+      const int row = first_row + dst_idx;
+      if (row >= ne0)
+        break;
+
+      global block_q6_K *blk =
+        (global block_q6_K *)src0 + row * nb + base_off + ib;
+
+      uchar4 q1v = vload4(0, (global uchar *)(blk->ql + ql_off));
+      uchar4 q2v = vload4(0, (global uchar *)(blk->ql + ql_off + QK_K / 8));
+      uchar4 qhv = vload4(0, (global uchar *)(blk->qh + qh_off));
+
+      const uchar *q1 = (const uchar *)&q1v;
+      const uchar *q2 = (const uchar *)&q2v;
+      const uchar *qh = (const uchar *)&qhv;
+
+      const float s0 = (float)blk->scales[scale_idx + 0];
+      const float s1 = (float)blk->scales[scale_idx + 2];
+      const float s2 = (float)blk->scales[scale_idx + 4];
+      const float s3 = (float)blk->scales[scale_idx + 6];
+      const float d = (float)blk->d;
+
+#pragma unroll
+      for (int j = 0; j < 4; ++j) {
+        const uint8_t q1j = q1[j], q2j = q2[j], qhj = qh[j];
+
+        const float v0 = (float)((q1j & 0x0F) | ((qhj & KMASK1) << 4)) - 32.f;
+        const float v1 = (float)((q2j & 0x0F) | ((qhj & KMASK2) << 2)) - 32.f;
+        const float v2 = (float)((q1j >> 4) | ((qhj & KMASK3) >> 0)) - 32.f;
+        const float v3 = (float)((q2j >> 4) | ((qhj & KMASK4) >> 2)) - 32.f;
+
+        float yy0, yy1, yy2, yy3;
+        switch (j) {
+        case 0:
+          yy0 = y0;
+          yy1 = y1;
+          yy2 = y2;
+          yy3 = y3;
+          break;
+        case 1:
+          yy0 = y4;
+          yy1 = y5;
+          yy2 = y6;
+          yy3 = y7;
+          break;
+        case 2:
+          yy0 = y8;
+          yy1 = y9;
+          yy2 = yA;
+          yy3 = yB;
+          break;
+        default:
+          yy0 = yC;
+          yy1 = yD;
+          yy2 = yE;
+          yy3 = yF;
+          break;
+        }
+
+        sum[dst_idx] +=
+          d * (yy0 * v0 * s0 + yy1 * v1 * s1 + yy2 * v2 * s2 + yy3 * v3 * s3);
+      }
+    }
+  }
+
+/* ------------------- reduce inside sub-group + store ----------------- */
+#pragma unroll
+  for (int k = 0; k < N_DST; ++k) {
+    float total = sub_group_reduce_add(sum[k]);
+    if (lane == 0) {
+      int row = first_row + k;
+      if (row < ne0)
+        dst[gid_y * ne0 + gid_z * ne0 * ne1 + row] = total;
+    }
+  }
+}
+    )";
+
+  return q6_k_sgemv_cl_kernel_;
+}
+
 const std::string &getSgemvClKernel() {
   static const std::string sgemv_cl_kernel_ =
     R"(__kernel void sgemv_cl(const __global float* A, const __global float* X,
