@@ -34,6 +34,8 @@
 #include <cl_context.h>
 #endif
 
+#include "utils/singleton.h"
+
 namespace nntrainer {
 
 extern std::mutex engine_mutex;
@@ -43,10 +45,8 @@ namespace {} // namespace
  * @class Engine contains user-dependent configuration
  * @brief App
  */
-class Engine {
+class Engine : public Singleton<Engine> {
 protected:
-  static void registerer(Engine &eg) noexcept;
-
   static const int RegisterContextMax = 16;
   static nntrainer::Context *nntrainerRegisteredContext[RegisterContextMax];
   /// Valgrind complains memory leaks with context registered because
@@ -56,7 +56,9 @@ protected:
   /// let's not bother modify all the related functions, but waste
   /// a few words.
 
-  static void add_default_object(Engine &eg);
+  void initialize() noexcept override;
+
+  void add_default_object();
 
   void registerContext(std::string name, nntrainer::Context *context) {
     const std::lock_guard<std::mutex> lock(engine_mutex);
@@ -92,30 +94,6 @@ public:
    * @brief   Default Destructor
    */
   ~Engine() = default;
-
-  /**
-   * @brief Deleting copy constructor
-   *
-   */
-  Engine(const Engine &) = delete;
-
-  /**
-   * @brief Deleting assignment operator
-   *
-   */
-  Engine &operator=(const Engine &) = delete;
-
-  /**
-   * @brief Deleting move constructor
-   *
-   */
-  Engine(Engine &&) = delete;
-
-  /**
-   * @brief Deleting move assignment operator
-   *
-   */
-  Engine &operator=(Engine &&) = delete;
 
   /**
    * @brief register a Context from a shared library
@@ -154,14 +132,6 @@ public:
   getAllocators() {
     return allocator;
   }
-
-  /**
-   *
-   * @brief Get Global Engine which is Static.
-   *
-   * @return Engine&
-   */
-  static Engine &Global();
 
   /**
    *

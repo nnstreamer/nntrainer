@@ -37,6 +37,8 @@
 #include <opencl_kernel.h>
 #include <opencl_program.h>
 
+#include "utils/singleton.h"
+
 namespace nntrainer {
 
 extern std::mutex cl_factory_mutex;
@@ -46,7 +48,7 @@ extern std::mutex cl_factory_mutex;
  * @brief OpenCL support for app context
  */
 
-class ClContext : public Context {
+class ClContext : public Context, public Singleton<ClContext> {
 public:
   using SharedPtrClKernel = std::shared_ptr<opencl::Kernel>;
 
@@ -55,11 +57,11 @@ public:
 
   // getting static instance of commandqueue, opencl context and buffermanager
   opencl::CommandQueueManager &command_queue_inst_ =
-    opencl::CommandQueueManager::GetInstance();
+    opencl::CommandQueueManager::Global();
 
-  opencl::ContextManager &context_inst_ = opencl::ContextManager::GetInstance();
+  opencl::ContextManager &context_inst_ = opencl::ContextManager::Global();
 
-  ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
+  ClBufferManager &clbuffInstance = ClBufferManager::Global();
 
   /**
    * @brief   Default constructor
@@ -76,13 +78,6 @@ public:
       context_inst_.ReleaseContext();
     }
   };
-
-  /**
-   * @brief Get Global cl context.
-   *
-   * @return ClContext&
-   */
-  ClContext &Global() override;
 
   /**
    * @brief Factory register function, use this function to register custom
@@ -243,6 +238,13 @@ public:
   }
 
 private:
+  /**
+   * @brief   Overriden initialization function
+   */
+  void initialize() noexcept override;
+
+  void add_default_object();
+
   // flag to check opencl commandqueue and context inititalization
   bool cl_initialized = false;
 

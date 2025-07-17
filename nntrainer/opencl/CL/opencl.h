@@ -22,9 +22,11 @@ extern "C" {
 #endif
 
 #include <CL/cl.h>
+#include <CL/cl_gl.h>
+#include <CL/cl_ext.h>
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __OPENCL_H   */
+#endif  /* __OPENCL_H   */

@@ -89,7 +89,9 @@ public:
    * function simply returns `true` because `TransposeLayerCl` does not rely on
    * the specific kernels for the layer.
    */
-  static bool registerClKernels() { return true; };
+  static bool registerClKernels([[maybe_unused]] ClContext &cl_context) {
+    return true;
+  };
 
   static constexpr const char *type = "transpose";
 

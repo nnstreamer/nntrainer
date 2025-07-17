@@ -36,6 +36,9 @@
 #include <var_grad.h>
 #include <weight.h>
 
+#include "utils/noncopyable.h"
+#include "utils/nonmovable.h"
+
 namespace nntrainer {
 using ExecutionMode = ml::train::ExecutionMode;
 
@@ -43,7 +46,7 @@ using ExecutionMode = ml::train::ExecutionMode;
  * @class MMappedMemory
  * @brief Memory Handler, that has mmaped memory with a file descriptor
  */
-class MMapedMemory {
+class MMapedMemory : public Noncopyable, public Nonmovable {
 public:
   /**
    * @brief Construct a new MMapedMemory object
@@ -58,18 +61,6 @@ public:
    *
    */
   ~MMapedMemory() noexcept;
-
-  /**
-   * @brief Construct a new MMapedMemory object (deleted)
-   *
-   */
-  MMapedMemory(const MMapedMemory &) = delete;
-
-  /**
-   * @brief Copy assignment operator (deleted)
-   *
-   */
-  MMapedMemory &operator=(const MMapedMemory &) = delete;
 
   /**
    * @brief Get the File descriptor.
@@ -110,7 +101,7 @@ private:
  * @class   Manager
  * @brief   manager of nntrainer
  */
-class Manager {
+class Manager : public Noncopyable, public Nonmovable {
 
 public:
   /**
@@ -156,18 +147,6 @@ public:
     tensor_format(tensor_format_),
     tensor_dtype(split(tensor_dtype_, getRegex("\\-"))),
     exec_mode(exec_mode_) {}
-
-  /**
-   * @brief Construct a new Manager object (deleted)
-   *
-   */
-  Manager(const Manager &) = delete;
-
-  /**
-   * @brief Copy Assign a new Manager object (deleted)
-   *
-   */
-  Manager &operator=(const Manager &) = delete;
 
   /**
    * @brief Move Construct a new Manager object

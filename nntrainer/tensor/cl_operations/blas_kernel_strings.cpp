@@ -16,6 +16,387 @@
 
 namespace nntrainer {
 
+const std::string &getQ4KGemmClKernel() {
+  static const std::string q4_k_gemm_cl_kernel =
+    R"(
+    #define QK_K 256
+    #define NCOL_I 16
+    #define BLK_LEN 8
+    #define WG_SIZE 64
+
+    #define KMASK1 0x3f3f3f3fu
+    #define KMASK2 0x0f0f0f0fu
+    #define KMASK3 0x03030303u
+
+    #ifdef cl_khr_fp16
+    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
+    #endif
+
+    // https://bashbaug.github.io/OpenCL-Docs/pdf/OpenCL_C.pdf#page=101&zoom=100,0,206
+    #pragma OPENCL EXTENSION cl_khr_integer_dot_product : enable
+
+    typedef struct {
+      half d[8];
+      half dmin[8];
+      uchar scales[96];
+      uchar qs[1024];
+    } block_q4_Kx8;
+
+    typedef struct {
+      float d[4];
+      char qs[QK_K * 4];
+      short bsums[QK_K / 4];
+    } block_q8_Kx4;
+
+    /// @note convert_float() does not work for Nvidia GPU
+    inline float fp16_to_fp32(half h) { return convert_float(h); }
+    #define REDUCE_ADD_SHORT8(v)                                                   \
+      ((v).s0 + (v).s1 + (v).s2 + (v).s3 + (v).s4 + (v).s5 + (v).s6 + (v).s7)
+
+    __kernel void mat_mul_q4_K_8x8_q8_K(const int n, __global float *restrict s,
+                                        const int bs, // leading stride in s
+                                        __global const block_q4_Kx8 *restrict vx,
+                                        __global const block_q8_Kx4 *restrict vy,
+                                        const int nr, const int nc) {
+      const int tile_y = get_group_id(0);
+      const int tile_x = get_group_id(1);
+      const int lane = get_local_id(0);
+
+      const int lane_m = lane / NCOL_I; // 0-3  (row inside 4x16 tile)
+      const int lane_j = lane % NCOL_I; // 0-15 (col inside 4x16 tile)
+
+      const int nb = n / QK_K; // #256-element blocks
+
+      __local block_q4_Kx8 lB[2];
+      __local block_q8_Kx4 lA;
+      __local uint lutmp[2][32];
+
+      float sumf = 0.0f;
+      float sum_minf = 0.0f;
+
+      for (int b = 0; b < nb; ++b) {
+        // 1.  Copy one q8 block (A) and two q4 blocks (B0/B1) to LDS
+        {
+          __global const uchar *gB0 =
+            (__global const uchar *)(vx + (tile_x * 2 + 0) * nb + b);
+          __global const uchar *gB1 =
+            (__global const uchar *)(vx + (tile_x * 2 + 1) * nb + b);
+          __global const uchar *gA = (__global const uchar *)(vy + tile_y * nb + b);
+
+          __local uchar *lBdst0 = (__local uchar *)&lB[0];
+          __local uchar *lBdst1 = (__local uchar *)&lB[1];
+          __local uchar *lAdst = (__local uchar *)&lA;
+
+          const int vecsB = (int)(sizeof(block_q4_Kx8) / 16);
+          const int vecsA = (int)(sizeof(block_q8_Kx4) / 16);
+
+          for (int v = lane; v < vecsB; v += WG_SIZE) {
+            vstore16(vload16(0, gB0 + v * 16), 0, lBdst0 + v * 16);
+            vstore16(vload16(0, gB1 + v * 16), 0, lBdst1 + v * 16);
+          }
+          for (int v = lane; v < vecsA; v += WG_SIZE) {
+            vstore16(vload16(0, gA + v * 16), 0, lAdst + v * 16);
+          }
+        }
+        barrier(CLK_LOCAL_MEM_FENCE);
+
+        // 2.  All 64 lanes build the two 8x4 LUTs
+        for (int v = lane; v < 128; v += WG_SIZE) {
+          const int blk = v >> 6;       // 0 | 1
+          const int sb = (v & 63) >> 3; // 0-7
+          __local const uchar *src =
+            (__local const uchar *)&lB[blk].scales[0] + sb * 12;
+          __local uint *dst = lutmp[blk] + sb * 4;
+
+          uint4 tmp4 = vload4(0, (const __local uint *)src);
+          vstore4(tmp4, 0, dst);
+
+          dst[3] = ((dst[2] >> 4) & KMASK2) | (((dst[1] >> 6) & KMASK3) << 4);
+          uint t = dst[1] & KMASK1;
+          dst[1] = (dst[2] & KMASK2) | (((dst[0] >> 6) & KMASK3) << 4);
+          dst[2] = t;
+          dst[0] &= KMASK1;
+        }
+        barrier(CLK_LOCAL_MEM_FENCE); // LUTs ready
+
+        // 3.  Each lane accumulates one C-tile element
+        const int blk = lane_j >> 3;
+        const int lj = lane_j & 7;
+
+        const float dB = fp16_to_fp32(lB[blk].d[lj]);
+        const float dB_min = fp16_to_fp32(lB[blk].dmin[lj]);
+        const float dA = lA.d[lane_m];
+
+        __local const uchar *lbytes = (const __local uchar *)lutmp[blk];
+
+    #pragma unroll 16
+        for (int k = 0; k < 16; ++k) {      // QK_K/(2*BLK_LEN)
+          const int idxB = k * 64 + lj * 8; // 8 × 8 q4 block stride
+          const int idxA = (k >> 2) * 256 + (k & 3) * 32 + lane_m * 8;
+
+          const int sc0 = lbytes[(k / 4) * 32 + lj];
+          const int sc1 = lbytes[(k / 4) * 32 + 16 + lj];
+
+          const uchar8 q = vload8(0, lB[blk].qs + idxB);
+
+          const char8 a0 = vload8(0, lA.qs + idxA);
+          const char8 a1 = vload8(0, lA.qs + idxA + 128);
+
+          const uchar8 qlo = q & (uchar8)(0x0F); // low nibbles
+          const uchar8 qhi = q >> (uchar8)4;     // high nibbles
+   
+#if defined(__opencl_c_integer_dot_product_input_4x8bit)
+          const char4* a0_arr = (const char4*)(&a0);
+          const char4* a1_arr = (const char4*)(&a1);
+
+          const uchar4* qlo_arr = (const uchar4*)(&qlo);
+          const uchar4* qhi_arr = (const uchar4*)(&qhi);
+
+          // int dot(uchar4 a, char4 b) from __opencl_c_integer_dot_product_input_4x8bit 
+
+          
+          /// Loop solution
+          #if 1
+            int prod0 = 0;
+            int prod1 = 0;
+
+            # pragma unroll 2
+            for(int prod_idx = 0; prod_idx < 2; prod_idx++)
+            {
+              prod0 += dot(qlo_arr[prod_idx], a0_arr[prod_idx]);
+              prod1 += dot(qhi_arr[prod_idx], a1_arr[prod_idx]);
+            }
+          #else
+            /// No loop solution
+            const int prod00 = dot(qlo_arr[0], a0_arr[0]);
+            const int prod10 = dot(qhi_arr[0], a1_arr[0]);
+            
+            const int prod01 = dot(qlo_arr[1], a0_arr[1]);
+            const int prod11 = dot(qhi_arr[1], a1_arr[1]);    
+            
+            const int prod0 = prod00 + prod01;
+            const int prod1 = prod10 + prod11;
+          #endif
+#else
+          const int prod0 = REDUCE_ADD_SHORT8(convert_short8(qlo) * convert_short8(a0));
+          const int prod1 = REDUCE_ADD_SHORT8(convert_short8(qhi) * convert_short8(a1));
+#endif
+
+          const int sumi = prod0 * sc0 + prod1 * sc1;
+
+          sumf += (float)sumi * dB * dA;
+        }
+
+        // 4.  bias / min-d correction
+        for (int sb = 0; sb < 8; ++sb) {
+          __local const uchar *mins = lbytes + 8 + sb * 16;
+          __local const short *bsum = (__local const short *)&lA.bsums[0] + sb * 8 +
+                                      lane_m * 4 - ((sb & 1) * 6);
+
+          int macc = mins[lj] * (bsum[0] + bsum[1]);
+          sum_minf += (float)macc * dB_min * dA;
+        }
+
+        barrier(CLK_LOCAL_MEM_FENCE);
+      }
+
+      // 5.  write one result element
+      const int out_row = tile_y * 4 + lane_m;
+      const int out_col = tile_x * NCOL_I + lane_j;
+      s[out_row * bs + out_col] = sumf - sum_minf;
+    }
+  )";
+
+  return q4_k_gemm_cl_kernel;
+}
+
+const std::string &getQ6KSgemvClKernel() {
+  static const std::string q6_k_sgemv_cl_kernel_ =
+    R"(
+// ---------------------------------------------------------------
+//  kernel_mul_mv_q6_K_f32_opt  –  with optional sub-group prefetch
+// ---------------------------------------------------------------
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#pragma OPENCL EXTENSION cl_intel_subgroups : enable
+#pragma OPENCL EXTENSION cl_intel_required_sub_group_size : enable
+/* Prefetch is enabled only if the device says so */
+#ifdef cl_intel_subgroup_buffer_prefetch
+#pragma OPENCL EXTENSION cl_intel_subgroup_buffer_prefetch : enable
+#endif
+
+#define QK_K 256
+#define SGW 16      /* sub-group width                */
+#define SG_PER_WG 2 /* 2 sub-groups → 32 WI per WG    */
+#define N_DST 8     /* rows produced per sub-group    */
+
+typedef uchar uint8_t;
+typedef char int8_t;
+
+typedef struct __attribute__((packed)) {
+  uint8_t ql[QK_K / 2];
+  uint8_t qh[QK_K / 4];
+  int8_t scales[QK_K / 16];
+  half d;
+} block_q6_K;
+
+/* 2-bit masks reused in unpack */
+static constant uint8_t KMASK1 = 0x03;
+static constant uint8_t KMASK2 = 0x0C;
+static constant uint8_t KMASK3 = 0x30;
+static constant uint8_t KMASK4 = 0xC0;
+
+__attribute__((intel_reqd_sub_group_size(SGW)))
+__attribute__((reqd_work_group_size(SGW * SG_PER_WG, 1, 1))) kernel void
+kernel_mul_mv_q6_K_f32(global void *restrict src0, ulong offset0,
+                       global float *restrict src1, ulong offset1,
+                       global float *restrict dst, ulong offsetd, int ne00,
+                       int ne01, int ne02, int ne10, int ne12, int ne0, int ne1,
+                       int r2, int r3) {
+  /* ------ adjust pointers from host side-byte offsets ------------------ */
+  src0 = (global void *)((global char *)src0 + offset0);
+  src1 = (global float *)((global char *)src1 + offset1);
+  dst = (global float *)((global char *)dst + offsetd);
+
+  const int nb = ne00 / QK_K; /* blocks per row */
+
+  /* ----------- work-group / sub-group bookkeeping ---------------------- */
+  const int gid_x = get_group_id(0);
+  const int gid_y = get_group_id(1);
+  const int gid_z = get_group_id(2);
+
+  const int sg_id = get_sub_group_id();      /* 0 or 1 in this WG */
+  const int lane = get_sub_group_local_id(); /* 0 … 15            */
+
+  const int first_row = (gid_x * SG_PER_WG + sg_id) * N_DST;
+
+  /* ---------------- batch / head offsets into src0 --------------------- */
+  const int i12 = gid_z % ne12;
+  const int i13 = gid_z / ne12;
+  const ulong base_off = (ulong)(i12 / r2) * (ulong)(nb * ne01) +
+                         (ulong)(i13 / r3) * (ulong)(nb * ne01 * ne02);
+
+  /* ---------------- lane-constant byte offsets ------------------------- */
+  const int ip = lane >> 3; /* 0 / 1               */
+  const int il = lane & 7;  /* 0 … 7               */
+  const int l0 = il * 4;    /* 0,4,8, … 28         */
+
+  const int scale_idx = ip * 8 + (l0 >> 4); /* 0 … 15              */
+  const int y_off = 128 * ip + l0;
+  const int ql_off = 64 * ip + l0;
+  const int qh_off = 32 * ip + l0;
+
+  /* ---------------- base pointer to the y-vector ----------------------- */
+  global float *y_base = src1 + gid_y * ne10 + gid_z * ne00 * ne1 + y_off;
+
+  float sum[N_DST] = {0.0f};
+
+  /* ============================= block loop ============================ */
+  for (int ib = 0; ib < nb; ++ib) {
+
+    global float *yptr = y_base + ib * QK_K;
+
+/* ---------- software prefetch of the NEXT block’s y (if enabled) -- */
+#ifdef cl_intel_subgroup_buffer_prefetch
+    if (__builtin_expect(ib + 1 < nb, 1)) {
+      global uint *next = (global uint *)(yptr + QK_K); /* +256 floats */
+      /* each ui8 == 8 uints  == 32 bytes per lane */
+      intel_sub_group_block_prefetch_ui8(next + 0);  /* +0  B */
+      intel_sub_group_block_prefetch_ui8(next + 8);  /* +32 B */
+      intel_sub_group_block_prefetch_ui8(next + 16); /* +64 B */
+      intel_sub_group_block_prefetch_ui8(next + 24); /* +96 B */
+    }
+#endif
+
+    /* --------- 16 lane-private y scalars ------------------------------ */
+    float y0 = yptr[0], y1 = yptr[32], y2 = yptr[64], y3 = yptr[96];
+    float y4 = yptr[1], y5 = yptr[33], y6 = yptr[65], y7 = yptr[97];
+    float y8 = yptr[2], y9 = yptr[34], yA = yptr[66], yB = yptr[98];
+    float yC = yptr[3], yD = yptr[35], yE = yptr[67], yF = yptr[99];
+
+/* ------------- process N_DST destination rows -------------------- */
+#pragma unroll
+    for (int dst_idx = 0; dst_idx < N_DST; ++dst_idx) {
+
+      const int row = first_row + dst_idx;
+      if (row >= ne0)
+        break;
+
+      global block_q6_K *blk =
+        (global block_q6_K *)src0 + row * nb + base_off + ib;
+
+      uchar4 q1v = vload4(0, (global uchar *)(blk->ql + ql_off));
+      uchar4 q2v = vload4(0, (global uchar *)(blk->ql + ql_off + QK_K / 8));
+      uchar4 qhv = vload4(0, (global uchar *)(blk->qh + qh_off));
+
+      const uchar *q1 = (const uchar *)&q1v;
+      const uchar *q2 = (const uchar *)&q2v;
+      const uchar *qh = (const uchar *)&qhv;
+
+      const float s0 = (float)blk->scales[scale_idx + 0];
+      const float s1 = (float)blk->scales[scale_idx + 2];
+      const float s2 = (float)blk->scales[scale_idx + 4];
+      const float s3 = (float)blk->scales[scale_idx + 6];
+      const float d = (float)blk->d;
+
+#pragma unroll
+      for (int j = 0; j < 4; ++j) {
+        const uint8_t q1j = q1[j], q2j = q2[j], qhj = qh[j];
+
+        const float v0 = (float)((q1j & 0x0F) | ((qhj & KMASK1) << 4)) - 32.f;
+        const float v1 = (float)((q2j & 0x0F) | ((qhj & KMASK2) << 2)) - 32.f;
+        const float v2 = (float)((q1j >> 4) | ((qhj & KMASK3) >> 0)) - 32.f;
+        const float v3 = (float)((q2j >> 4) | ((qhj & KMASK4) >> 2)) - 32.f;
+
+        float yy0, yy1, yy2, yy3;
+        switch (j) {
+        case 0:
+          yy0 = y0;
+          yy1 = y1;
+          yy2 = y2;
+          yy3 = y3;
+          break;
+        case 1:
+          yy0 = y4;
+          yy1 = y5;
+          yy2 = y6;
+          yy3 = y7;
+          break;
+        case 2:
+          yy0 = y8;
+          yy1 = y9;
+          yy2 = yA;
+          yy3 = yB;
+          break;
+        default:
+          yy0 = yC;
+          yy1 = yD;
+          yy2 = yE;
+          yy3 = yF;
+          break;
+        }
+
+        sum[dst_idx] +=
+          d * (yy0 * v0 * s0 + yy1 * v1 * s1 + yy2 * v2 * s2 + yy3 * v3 * s3);
+      }
+    }
+  }
+
+/* ------------------- reduce inside sub-group + store ----------------- */
+#pragma unroll
+  for (int k = 0; k < N_DST; ++k) {
+    float total = sub_group_reduce_add(sum[k]);
+    if (lane == 0) {
+      int row = first_row + k;
+      if (row < ne0)
+        dst[gid_y * ne0 + gid_z * ne0 * ne1 + row] = total;
+    }
+  }
+}
+    )";
+
+  return q6_k_sgemv_cl_kernel_;
+}
+
 const std::string &getSgemvClKernel() {
   static const std::string sgemv_cl_kernel_ =
     R"(__kernel void sgemv_cl(const __global float* A, const __global float* X,

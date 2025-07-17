@@ -70,11 +70,6 @@ enum {
 
 namespace nntrainer {
 
-#ifdef ENABLE_OPENCL
-static ClContext *cl_context_ =
-  static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-#endif
-
 /**
  * @class   MemoryPool
  * @brief   Memory Pool provides a common pool for all the tensor memory

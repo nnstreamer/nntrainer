@@ -97,13 +97,6 @@ if get_option('platform') == 'android'
   nntrainer_dep = declare_dependency(include_directories: nntrainer_inc)
 else
   # Build libraries
-  nntrainer_shared = shared_library('nntrainer',
-    nntrainer_sources,
-    dependencies: nntrainer_base_deps,
-    include_directories: nntrainer_inc,
-    install: true,
-    install_dir: nntrainer_libdir
-  )
 
   nntrainer_static = static_library('nntrainer',
     nntrainer_sources,
@@ -113,13 +106,28 @@ else
     install_dir: nntrainer_libdir
   )
 
-  if host_machine.system() == 'windows'
-    nntrainer_lib = nntrainer_static
+  if get_option('platform') == 'windows'
+    nntrainer_def = custom_target('nntrainer_def',
+    command : ['python', meson.source_root() / 'generate_def.py', '--objects_dir', meson.build_root() / 'nntrainer' / 'libnntrainer.a.p', '--working_dir', meson.current_build_dir()],
+    output: 'nntrainer.def',
+    depends: nntrainer_static,
+    )
   else
-    nntrainer_lib = nntrainer_shared
-    if get_option('default_library') == 'static'
-      nntrainer_lib = nntrainer_static
-    endif
+    nntrainer_def = custom_target()
+  endif
+
+  nntrainer_shared = shared_library('nntrainer',
+    nntrainer_sources,
+    dependencies: nntrainer_base_deps,
+    include_directories: nntrainer_inc,
+    install: true,
+    install_dir: nntrainer_libdir,
+    vs_module_defs : nntrainer_def
+  )
+
+  nntrainer_lib = nntrainer_shared
+  if get_option('default_library') == 'static'
+    nntrainer_lib = nntrainer_static
   endif
 
   nntrainer_dep = declare_dependency(link_with: nntrainer_lib,
@@ -132,4 +140,3 @@ endif
 install_headers(nntrainer_headers,
   install_dir: nntrainer_includedir,
 )
-

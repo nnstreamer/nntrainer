@@ -23,16 +23,6 @@
 namespace nntrainer::opencl {
 
 /**
- * @brief Get the global instance object
- *
- * @return ContextManager global instance
- */
-ContextManager &ContextManager::GetInstance() {
-  static ContextManager instance;
-  return instance;
-}
-
-/**
  * @brief Get the OpenCL context object
  *
  * @return const cl_context

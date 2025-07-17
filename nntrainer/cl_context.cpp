@@ -29,56 +29,17 @@ namespace nntrainer {
 
 std::mutex cl_factory_mutex;
 
-static void add_default_object(ClContext &cc) {
-
-  if (FullyConnectedLayerCl::registerClKernels()) {
-    cc.registerFactory(nntrainer::createLayer<FullyConnectedLayerCl>,
-                       FullyConnectedLayerCl::type,
-                       ml::train::LayerType::LAYER_FC);
-  }
-
-  if (AdditionLayerCL::registerClKernels()) {
-    cc.registerFactory(nntrainer::createLayer<AdditionLayerCL>,
-                       AdditionLayerCL::type,
-                       ml::train::LayerType::LAYER_ADDITION);
-  }
-
-  if (SwiGLULayerCl::registerClKernels()) {
-    cc.registerFactory(nntrainer::createLayer<SwiGLULayerCl>,
-                       SwiGLULayerCl::type, ml::train::LayerType::LAYER_SWIGLU);
-  }
-
-  if (ReshapeLayerCl::registerClKernels()) {
-    cc.registerFactory(nntrainer::createLayer<ReshapeLayerCl>,
-                       ReshapeLayerCl::type,
-                       ml::train::LayerType::LAYER_RESHAPE);
-  }
-
-  if (RMSNormLayerCl::registerClKernels()) {
-    cc.registerFactory(nntrainer::createLayer<RMSNormLayerCl>,
-                       RMSNormLayerCl::type,
-                       ml::train::LayerType::LAYER_RMSNORM);
-  }
-
-  if (ConcatLayerCl::registerClKernels()) {
-    cc.registerFactory(nntrainer::createLayer<ConcatLayerCl>,
-                       ConcatLayerCl::type, ml::train::LayerType::LAYER_CONCAT);
-  }
-
-  if (TransposeLayerCl::registerClKernels()) {
-    cc.registerFactory(nntrainer::createLayer<TransposeLayerCl>,
-                       TransposeLayerCl::type,
-                       ml::train::LayerType::LAYER_TRANSPOSE);
-  }
-}
-
-static void registerer(ClContext &cc) noexcept {
+void ClContext::initialize() noexcept {
   try {
-    cc.setMemAllocator(std::make_shared<MemAllocator>());
+    if (!clInit()) {
+      ml_loge("cl_context: opencl command queue creation failed");
+    }
 
-    cc.initBlasClKernels();
-    cc.initAttentionClKernels();
-    add_default_object(cc);
+    setMemAllocator(std::make_shared<MemAllocator>());
+
+    initBlasClKernels();
+    initAttentionClKernels();
+    add_default_object();
   } catch (std::exception &e) {
     ml_loge("cl_context: registering layers failed!!, reason: %s", e.what());
   } catch (...) {
@@ -86,14 +47,44 @@ static void registerer(ClContext &cc) noexcept {
   }
 };
 
-ClContext &ClContext::Global() {
-  // initializing commandqueue and context
-  if (!clInit()) {
-    ml_loge("cl_context: opencl command queue creation failed");
+void ClContext::add_default_object() {
+  if (FullyConnectedLayerCl::registerClKernels(*this)) {
+    registerFactory(nntrainer::createLayer<FullyConnectedLayerCl>,
+                    FullyConnectedLayerCl::type,
+                    ml::train::LayerType::LAYER_FC);
   }
 
-  registerer(*this);
-  return *this;
+  if (AdditionLayerCL::registerClKernels(*this)) {
+    registerFactory(nntrainer::createLayer<AdditionLayerCL>,
+                    AdditionLayerCL::type,
+                    ml::train::LayerType::LAYER_ADDITION);
+  }
+
+  if (SwiGLULayerCl::registerClKernels(*this)) {
+    registerFactory(nntrainer::createLayer<SwiGLULayerCl>, SwiGLULayerCl::type,
+                    ml::train::LayerType::LAYER_SWIGLU);
+  }
+
+  if (ReshapeLayerCl::registerClKernels(*this)) {
+    registerFactory(nntrainer::createLayer<ReshapeLayerCl>,
+                    ReshapeLayerCl::type, ml::train::LayerType::LAYER_RESHAPE);
+  }
+
+  if (RMSNormLayerCl::registerClKernels(*this)) {
+    registerFactory(nntrainer::createLayer<RMSNormLayerCl>,
+                    RMSNormLayerCl::type, ml::train::LayerType::LAYER_RMSNORM);
+  }
+
+  if (ConcatLayerCl::registerClKernels(*this)) {
+    registerFactory(nntrainer::createLayer<ConcatLayerCl>, ConcatLayerCl::type,
+                    ml::train::LayerType::LAYER_CONCAT);
+  }
+
+  if (TransposeLayerCl::registerClKernels(*this)) {
+    registerFactory(nntrainer::createLayer<TransposeLayerCl>,
+                    TransposeLayerCl::type,
+                    ml::train::LayerType::LAYER_TRANSPOSE);
+  }
 }
 
 template <typename T>
@@ -153,6 +144,8 @@ void ClContext::initBlasClKernels() {
   registerClKernel(getSgemmClTransABKernel(), "sgemm_cl_transAB");
   registerClKernel(getAdditionClKernel(), "addition_cl");
   registerClKernel(getSscalClKernel(), "sscal_cl");
+  registerClKernel(getQ6KSgemvClKernel(), "kernel_mul_mv_q6_K_f32");
+  registerClKernel(getQ4KGemmClKernel(), "mat_mul_q4_K_8x8_q8_K");
 
 #ifdef ENABLE_FP16
   registerClKernel(getHgemvClKernel(), "sgemv_cl_fp16");
@@ -220,6 +213,8 @@ bool ClContext::clCreateKernel(std::string &kernel_string,
                        "_kernel.bin",
                      std::ios::binary | std::ios::in);
 
+    const std::string compiler_options = "-cl-std=CL3.0";
+
     if (fs.good()) {
       fs.seekg(0, std::ios::end);
       size_t binary_size = fs.tellg();
@@ -229,16 +224,17 @@ bool ClContext::clCreateKernel(std::string &kernel_string,
       fs.read((char *)chunk.data(), binary_size);
 
       result = program.CreateCLProgramWithBinary(
-        opencl::ContextManager::GetInstance().GetContext(),
-        opencl::ContextManager::GetInstance().GetDeviceId(), binary_size,
+        opencl::ContextManager::Global().GetContext(),
+        opencl::ContextManager::Global().GetDeviceId(), binary_size,
         chunk.data(),
         opencl::Program::DEFAULT_KERNEL_PATH + "/" + kernel_name +
           "_kernel.bin",
-        "");
+        compiler_options);
     } else {
-      result = program.CreateCLProgram(
-        opencl::ContextManager::GetInstance().GetContext(),
-        opencl::ContextManager::GetInstance().GetDeviceId(), kernel_string, "");
+      result =
+        program.CreateCLProgram(opencl::ContextManager::Global().GetContext(),
+                                opencl::ContextManager::Global().GetDeviceId(),
+                                kernel_string, compiler_options);
     }
 
     if (!result) {
