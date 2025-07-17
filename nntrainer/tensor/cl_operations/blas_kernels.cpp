@@ -15,8 +15,312 @@
 #include <blas_kernels.h>
 
 #include "clblast.h"
+#include "ggml.h"
 
 namespace nntrainer {
+
+void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
+                   unsigned int M, unsigned int N) {
+  bool result = false;
+
+  ClContext::SharedPtrClKernel kernel_q6_k_sgemv_ptr;
+
+  kernel_q6_k_sgemv_ptr =
+    blas_cc->registerClKernel(getQ6KSgemvClKernel(), "kernel_mul_mv_q6_K_f32");
+
+  if (!kernel_q6_k_sgemv_ptr) {
+    ml_loge("Failed to register kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  const size_t q6k_bytes = 210 * M * N / 256;
+
+  result = blas_cc->command_queue_inst_.enqueueSVMUnmap(matAdata);
+  if (!result) {
+    ml_loge("Failed to write data to input buffer A for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = blas_cc->command_queue_inst_.enqueueSVMUnmap(vecXdata);
+  if (!result) {
+    ml_loge("Failed to write data to input buffer B for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  int ne00 = M; // number of rows in matrix X
+  int ne01 = N; // number of columns in matrix X
+  int ne02 = 1; // number of channels in matrix X
+  int ne10 = M; // number of rows in vector A
+  int ne11 = 1; // number of columns in vector A
+  int ne12 = 1; // number of channels in vector A
+  int ne13 = 1; // number of channels in vector A (Need to check)
+  int ne0 = N;  // number of rows in output vector Y
+  int ne1 = 1;  // number of columns in output vector Y
+
+  int r2 = 1; // number of batches in vector A
+  int r3 = 1; // number of batches in matrix X
+
+  int nth0 = 2;
+  int nth1 = 16;
+
+  cl_ulong offset0 = 0;
+  cl_ulong offset1 = 0;
+  cl_ulong offsetd = 0;
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelSVMArguments(0, matAdata);
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 0 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result =
+    kernel_q6_k_sgemv_ptr->SetKernelArguments(1, &offset0, sizeof(cl_ulong));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 1 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelSVMArguments(2, vecXdata);
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 2 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result =
+    kernel_q6_k_sgemv_ptr->SetKernelArguments(3, &offset1, sizeof(cl_ulong));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 3 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelSVMArguments(4, vecYdata);
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 4 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result =
+    kernel_q6_k_sgemv_ptr->SetKernelArguments(5, &offsetd, sizeof(cl_ulong));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 5 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(6, &ne00, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 6 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(7, &ne01, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 7 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(8, &ne02, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 8 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(9, &ne10, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 9 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(10, &ne12, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 10 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(11, &ne0, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 11 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(12, &ne1, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 12 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(13, &r2, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 13 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(14, &r3, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 14 for kernel_q6_k_sgemv_ptr");
+    return;
+  }
+
+#define N_SIMDWIDTH 16
+#define N_SIMDGROUP 2
+
+  const int work_groups_count[3] = {((ne0 + N_SIMDGROUP - 1) / N_SIMDGROUP) *
+                                      (N_SIMDGROUP * N_SIMDWIDTH),
+                                    ne1, 1};
+  /// @todo: create a group size by device & input
+  const int work_group_size[3] = {32, 1, 1};
+
+  result = opencl::CommandQueueManager::GetInstance().DispatchCommand(
+    kernel_q6_k_sgemv_ptr, work_groups_count, work_group_size);
+  if (!result) {
+    ml_loge("Failed to dispatch kernel q6_k_sgemv");
+    return;
+  }
+
+  result = blas_cc->command_queue_inst_.enqueueSVMMap(vecYdata,
+                                                      N * sizeof(float), true);
+
+  if (!result) {
+    ml_loge(
+      "Failed to read data from the output buffer for kernel_q6_k_sgemv_ptr");
+
+    return;
+  }
+}
+
+void sgemm_q4_k_cl(const unsigned int M, const unsigned int N,
+                   const unsigned int K, void *matAdata, void *matBdata,
+                   float *matCdata) {
+  ClContext::SharedPtrClKernel kernel =
+    blas_cc->registerClKernel(getQ4KGemmClKernel(), "mat_mul_q4_K_8x8_q8_K");
+
+  if (!kernel) {
+    ml_loge("Failed to register mat_mul_q4_K_8x8_q8_K");
+    return;
+  }
+
+  /// @note Dynamic quatization for matBdata
+  const size_t qk_k = 256;
+  const size_t sizeof_block_q8_K = 292;
+
+  const unsigned int blocks_per_4_rows = (K + qk_k - 1) / qk_k;
+  const unsigned int qb_4_rows_size = sizeof_block_q8_K * 4 * blocks_per_4_rows;
+  const size_t qb_row_size = (sizeof_block_q8_K * K) / qk_k;
+  const unsigned int qb_size = qb_4_rows_size * (((M >> 2) << 2) / 4 + 1);
+  const unsigned int M4 = ((M - M % 4) / 4);
+  const int B_step = 144 * (K / qk_k);
+
+  void *quantBdata = blas_cc->context_inst_.createSVMRegion(qb_size);
+
+  if (M == 1) {
+    nntrainer::quantize_row_q8_K((float *)matBdata, quantBdata, K);
+  } else {
+    for (int i = 0; i < static_cast<int>(M4); i++) {
+      ::ggml_quantize_mat_q8_K_4x8(
+        ((float *)matBdata) + 4 * i * K,
+        reinterpret_cast<char *>(quantBdata) + i * qb_4_rows_size, K);
+    }
+
+    for (unsigned int i = M4 * 4; i < M; i++) {
+      nntrainer::quantize_row_q8_K(((float *)matBdata) + i * K,
+                                   (reinterpret_cast<char *>(quantBdata) +
+                                    (M4 * qb_4_rows_size) +
+                                    (i - M4 * 4) * qb_row_size),
+                                   K);
+    }
+  }
+
+  if (!kernel->SetKernelArguments(0, &K, sizeof(int))) {
+    printf("Failed to set kernel argument 1 for mat_mul_q4_K_8x8_q8_K");
+    return;
+  }
+
+  if (!kernel->SetKernelSVMArguments(1, matCdata)) {
+    printf("Failed to set kernel SVM argument 0 for mat_mul_q4_K_8x8_q8_K");
+    return;
+  }
+
+  if (!kernel->SetKernelArguments(2, &N, sizeof(int))) {
+    printf("Failed to set kernel argument 1 for mat_mul_q4_K_8x8_q8_K");
+    return;
+  }
+
+  if (!kernel->SetKernelSVMArguments(3, matAdata)) {
+    printf("Failed to set kernel SVM argument 2 for mat_mul_q4_K_8x8_q8_K");
+    return;
+  }
+
+  if (!kernel->SetKernelSVMArguments(4, quantBdata)) {
+    printf("Failed to set kernel SVM argument 3 for mat_mul_q4_K_8x8_q8_K");
+    return;
+  }
+
+  if (!kernel->SetKernelArguments(5, &M, sizeof(int))) {
+    printf("Failed to set kernel argument 5 for mat_mul_q4_K_8x8_q8_K");
+    return;
+  }
+
+  if (!kernel->SetKernelArguments(6, &N, sizeof(int))) {
+    printf("Failed to set kernel argument 6 for mat_mul_q4_K_8x8_q8_K");
+    return;
+  }
+
+  const int tile_size = 64;
+  const int work_groups_count[3] = {(int)(M / 4) * tile_size, (int)N / 16, 1};
+  const int work_group_size[3] = {tile_size, 1, 1};
+
+  if (!opencl::CommandQueueManager::GetInstance().DispatchCommand(
+        kernel, work_groups_count, work_group_size)) {
+    printf("Failed to dispatch kernel mat_mul_q4_K_8x8_q8_K");
+    return;
+  }
+
+  if (!blas_cc->command_queue_inst_.enqueueSVMMap(
+        matCdata, M * N * sizeof(float), true)) {
+    printf("Failed to map output buffer for mat_mul_q4_K_8x8_q8_K\n");
+    return;
+  }
+
+  /// @note Use CPU multithreaded GEMV for the leftover rows
+  int n_threads = 4;
+  for (unsigned int pb = M4 * 4; pb < M; pb++) {
+#pragma omp parallel for num_threads(n_threads)
+    for (int thread_idx = 0; thread_idx < n_threads; ++thread_idx) {
+      unsigned int M_step_start = (thread_idx * N) / n_threads;     // = 0
+      unsigned int M_step_end = ((thread_idx + 1) * N) / n_threads; // ne01 = N
+
+      M_step_start = (M_step_start % 8) ? M_step_start + 8 - (M_step_start % 8)
+                                        : M_step_start;
+      M_step_end =
+        (M_step_end % 8) ? M_step_end + 8 - (M_step_end % 8) : M_step_end;
+
+      ::ggml_gemv_q4_K_8x8_q8_K(
+        K,
+        (float *)((matCdata + ((pb - M4 * 4) * N) + (M4 * 4 * N)) +
+                  M_step_start),
+        N, (void *)((char *)matAdata + M_step_start * B_step),
+        (char *)quantBdata + (M4 * qb_4_rows_size) +
+          (pb - M4 * 4) * qb_row_size,
+        1, M_step_end - M_step_start);
+    }
+  }
+
+  blas_cc->context_inst_.releaseSVMRegion(quantBdata);
+}
 
 void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
               bool TransA, unsigned int dim1, unsigned int dim2,
