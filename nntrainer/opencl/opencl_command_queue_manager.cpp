@@ -97,9 +97,9 @@ CommandQueueManager::~CommandQueueManager() {
 /**
  * @brief Get the OpenCL Command Queue object
  *
- * @return const cl_command_queue
+ * @return cl_command_queue
  */
-const cl_command_queue CommandQueueManager::GetCommandQueue() {
+cl_command_queue &CommandQueueManager::GetCommandQueue() {
   return command_queue_;
 }
 
