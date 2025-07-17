@@ -231,9 +231,10 @@ bool ClContext::clCreateKernel(std::string &kernel_string,
           "_kernel.bin",
         compiler_options);
     } else {
-      result = program.CreateCLProgram(
-        opencl::ContextManager::Global().GetContext(),
-        opencl::ContextManager::Global().GetDeviceId(), kernel_string, compiler_options);
+      result =
+        program.CreateCLProgram(opencl::ContextManager::Global().GetContext(),
+                                opencl::ContextManager::Global().GetDeviceId(),
+                                kernel_string, compiler_options);
     }
 
     if (!result) {

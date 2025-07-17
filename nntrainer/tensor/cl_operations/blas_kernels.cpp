@@ -24,6 +24,8 @@ void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
   bool result = false;
 
   ClContext::SharedPtrClKernel kernel_q6_k_sgemv_ptr;
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
 
   kernel_q6_k_sgemv_ptr =
     blas_cc->registerClKernel(getQ6KSgemvClKernel(), "kernel_mul_mv_q6_K_f32");
@@ -179,7 +181,7 @@ void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
   /// @todo: create a group size by device & input
   const int work_group_size[3] = {32, 1, 1};
 
-  result = opencl::CommandQueueManager::GetInstance().DispatchCommand(
+  result = opencl::CommandQueueManager::Global().DispatchCommand(
     kernel_q6_k_sgemv_ptr, work_groups_count, work_group_size);
   if (!result) {
     ml_loge("Failed to dispatch kernel q6_k_sgemv");
@@ -200,6 +202,9 @@ void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
 void sgemm_q4_k_cl(const unsigned int M, const unsigned int N,
                    const unsigned int K, void *matAdata, void *matBdata,
                    float *matCdata) {
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+
   ClContext::SharedPtrClKernel kernel =
     blas_cc->registerClKernel(getQ4KGemmClKernel(), "mat_mul_q4_K_8x8_q8_K");
 
@@ -278,7 +283,7 @@ void sgemm_q4_k_cl(const unsigned int M, const unsigned int N,
   const int work_groups_count[3] = {(int)(M / 4) * tile_size, (int)N / 16, 1};
   const int work_group_size[3] = {tile_size, 1, 1};
 
-  if (!opencl::CommandQueueManager::GetInstance().DispatchCommand(
+  if (!opencl::CommandQueueManager::Global().DispatchCommand(
         kernel, work_groups_count, work_group_size)) {
     printf("Failed to dispatch kernel mat_mul_q4_K_8x8_q8_K");
     return;
