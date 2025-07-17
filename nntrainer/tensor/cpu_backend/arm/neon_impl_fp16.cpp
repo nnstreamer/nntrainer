@@ -1380,4 +1380,236 @@ void softmax(const unsigned int N, __fp16 *X, __fp16 *Y) {
     ++i;
   }
 }
+
+void compute_fp16vcache_fp32_transposed(int iter, const float *in,
+                                        const __fp16 *vcache, float *output,
+                                        int seq, int num_cache_head,
+                                        int gqa_size, int head_dim,
+                                        bool process_all) {
+  std::vector<float> tmp_fp32(head_dim);
+  int a_row_start =
+    process_all ? ((iter * (iter + 1)) / 2) * num_cache_head * gqa_size : 0;
+  int out_offset = process_all ? iter : 0;
+
+  for (int n = 0; n < num_cache_head; ++n) {
+    int num_blocks = head_dim / 4;
+    int rem = head_dim % 4;
+
+    std::vector<float32x4_t> sumVec(num_blocks * gqa_size, vdupq_n_f32(0.0f));
+    std::vector<float> sumRem(gqa_size * rem, 0.0f);
+
+    for (int j = 0; j <= iter; ++j) {
+      if (j + 1 < seq) {
+        const __fp16 *next_vptr =
+          vcache + ((j + 1) * num_cache_head + n) * head_dim;
+        __builtin_prefetch(reinterpret_cast<const char *>(next_vptr), 0,
+                           3); // READ, L1 load
+      }
+
+      const __fp16 *vptr = vcache + (j * num_cache_head + n) * head_dim;
+
+      int d0 = 0;
+      for (; d0 + 4 <= head_dim; d0 += 4) {
+        float16x4_t half = vld1_f16(vptr + d0);
+        float32x4_t f32 = vcvt_f32_f16(half);
+        vst1q_f32(&tmp_fp32[d0], f32);
+      }
+      for (; d0 < head_dim; ++d0) {
+        tmp_fp32[d0] = vptr[d0];
+      }
+
+      for (int h = 0; h < gqa_size; ++h) {
+        // float a_val = in[a_row_start + (j * gqa_size + h) * num_cache_head +
+        // n];
+        float a_val =
+          in[a_row_start + (j * gqa_size * num_cache_head + n * gqa_size + h)];
+        float32x4_t inVec = vdupq_n_f32(a_val);
+
+        for (int b = 0; b < num_blocks; ++b) {
+          float32x4_t bVec = vld1q_f32(&tmp_fp32[b * 4]);
+          sumVec[h * num_blocks + b] =
+            vfmaq_f32(sumVec[h * num_blocks + b], inVec, bVec);
+        }
+
+        float *remPtr = &sumRem.data()[h * rem];
+        int base = num_blocks * 4;
+        for (int r = 0; r < rem; ++r) {
+          remPtr[r] += a_val * tmp_fp32[base + r];
+        }
+      }
+    }
+
+    for (int h = 0; h < gqa_size; ++h) {
+      for (int b = 0; b < num_blocks; ++b) {
+        int out_base =
+          ((out_offset * num_cache_head + n) * gqa_size + h) * head_dim + b * 4;
+        vst1q_f32(&output[out_base], sumVec[h * num_blocks + b]);
+      }
+
+      float *remPtr = &sumRem.data()[h * rem];
+      // float *remPtr = &sumRem[h * rem];
+      int base = num_blocks * 4;
+      for (int r = 0; r < rem; ++r) {
+        int out_idx =
+          ((out_offset * num_cache_head + n) * gqa_size + h) * head_dim + base +
+          r;
+        output[out_idx] = remPtr[r];
+      }
+    }
+  }
+}
+
+static inline void load_fp16_4_to_chunk_NEON(const __fp16 *b_src,
+                                             float *temp_row, int chunk_size) {
+  int i = 0;
+  for (; i + 4 <= chunk_size; i += 4) {
+    float16x4_t half = vld1_f16(b_src + i);
+    float32x4_t f32 = vcvt_f32_f16(half);
+    vst1q_f32(temp_row + i, f32);
+  }
+  for (; i < chunk_size; ++i) {
+    temp_row[i] = b_src[i];
+  }
+}
+
+template <>
+void compute_kcaches(const float *A, const __fp16 *B, float *output,
+                     int num_rows, int N, int chunk_size, int group_size,
+                     int tile_size) {
+  using BType = __fp16;
+  int row_stride = N * chunk_size;
+  const int group_stride = group_size * chunk_size;
+  const int tile_count = (num_rows + tile_size - 1) / tile_size;
+
+  // FP32 Cache Buffer
+  thread_local std::vector<float> temp_tile_buf(tile_size * chunk_size);
+
+  for (int n = 0; n < N; ++n) {
+    for (int t = 0; t < tile_count; ++t) {
+      int row_tile_start = t * tile_size;
+      int tile_rows = std::min(tile_size, num_rows - row_tile_start);
+
+      // FP16 to FP32 Conversion : preprocessing (row unit)
+      if constexpr (!std::is_same<BType, float>::value) {
+        for (int row = 0; row < tile_rows; ++row) {
+          const BType *b_src =
+            B + (row_tile_start + row) * row_stride + n * chunk_size;
+          float *dst = temp_tile_buf.data() + row * chunk_size;
+          load_fp16_4_to_chunk_NEON(b_src, dst, chunk_size);
+        }
+      }
+
+      for (int g = 0; g < group_size; ++g) {
+        const float *a_ptr = A + n * group_stride + g * chunk_size;
+        for (int row = 0; row < tile_rows; ++row) {
+          const float *b_row;
+          if constexpr (std::is_same<BType, float>::value) {
+            b_row = reinterpret_cast<const float *>(
+              B + (row_tile_start + row) * row_stride + n * chunk_size);
+          } else {
+            b_row = temp_tile_buf.data() + row * chunk_size;
+          }
+
+          float sum = 0.0f;
+          int i = 0;
+          float32x4_t acc = vdupq_n_f32(0.0f);
+          for (; i + 4 <= chunk_size; i += 4) {
+            float32x4_t va = vld1q_f32(a_ptr + i);
+            float32x4_t vb = vld1q_f32(b_row + i);
+            acc = vfmaq_f32(acc, va, vb);
+          }
+
+          acc = vpaddq_f32(acc, acc);
+          acc = vpaddq_f32(acc, acc);
+          sum += vgetq_lane_f32(acc, 0);
+
+          for (; i < chunk_size; ++i)
+            sum += a_ptr[i] * b_row[i];
+
+          output[(row_tile_start + row) * N * group_size + n * group_size + g] =
+            sum / sqrt((float)chunk_size);
+        }
+      }
+    }
+  }
+}
+
+void compute_rotary_emb_value(unsigned int width, unsigned int dim,
+                              unsigned int half_, float *inout, void *output,
+                              const float *cos_, const float *sin_,
+                              bool only_convert_to_fp16) {
+  enum class OutputType { FP16, FP32 };
+
+  OutputType out_type = OutputType::FP32;
+  if (output != nullptr)
+    out_type = OutputType::FP16;
+
+  for (unsigned int w = 0; w < width; w += dim) {
+    unsigned int k = 0;
+    for (; k + 3 < half_; k += 4) {
+      unsigned int i0 = w + k;
+      unsigned int i1 = w + k + half_;
+
+      float32x4_t a = vld1q_f32(&inout[i0]);
+      float32x4_t b = vld1q_f32(&inout[i1]);
+
+      if (only_convert_to_fp16) {
+        if (out_type == OutputType::FP16) {
+          float16x4_t a_fp16 = vcvt_f16_f32(a);
+          float16x4_t b_fp16 = vcvt_f16_f32(b);
+
+          vst1_f16(static_cast<__fp16 *>(output) + i0, a_fp16);
+          vst1_f16(static_cast<__fp16 *>(output) + i1, b_fp16);
+        }
+
+      } else {
+        float32x4_t cos_v = vld1q_f32(&cos_[k]);
+        float32x4_t sin_v = vld1q_f32(&sin_[k]);
+
+        float32x4_t out0 = vsubq_f32(vmulq_f32(a, cos_v), vmulq_f32(b, sin_v));
+        float32x4_t out1 = vaddq_f32(vmulq_f32(a, sin_v), vmulq_f32(b, cos_v));
+
+        if (out_type == OutputType::FP16) {
+          float16x4_t out0_fp16 = vcvt_f16_f32(out0);
+          float16x4_t out1_fp16 = vcvt_f16_f32(out1);
+
+          vst1_f16(static_cast<__fp16 *>(output) + i0, out0_fp16);
+          vst1_f16(static_cast<__fp16 *>(output) + i1, out1_fp16);
+        } else if (out_type == OutputType::FP32) {
+          vst1q_f32(&inout[i0], out0);
+          vst1q_f32(&inout[i1], out1);
+        }
+      }
+    }
+
+    for (; k < half_; ++k) {
+      unsigned int i0 = w + k;
+      unsigned int i1 = w + k + half_;
+      // assert(i1 < width && "Scalar i1 overflow!");
+      float a = inout[i0];
+      float b = inout[i1];
+
+      if (only_convert_to_fp16) {
+        static_cast<__fp16 *>(output)[i0] = a;
+        static_cast<__fp16 *>(output)[i1] = b;
+
+      } else {
+
+        float c = cos_[k];
+        float s = sin_[k];
+
+        float out0 = a * c - b * s;
+        float out1 = a * s + b * c;
+
+        if (out_type == OutputType::FP16) {
+          static_cast<__fp16 *>(output)[i0] = out0;
+          static_cast<__fp16 *>(output)[i1] = out1;
+        } else if (out_type == OutputType::FP32) {
+          inout[i0] = out0;
+          inout[i1] = out1;
+        }
+      }
+    }
+  }
+}
 } // namespace nntrainer::neon
