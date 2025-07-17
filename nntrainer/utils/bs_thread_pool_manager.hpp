@@ -37,18 +37,19 @@ public:
 
   BS::thread_pool<> &getThreadPool() { return pool_; }
 
-private:
   /**
    * @brief Construct a new Thread Pool Manager object
    *
    */
   ThreadPoolManager() : pool_(std::thread::hardware_concurrency()) {}
+
   /**
    * @brief Destroy the Thread Pool Manager object
    *
    */
   ~ThreadPoolManager() = default;
 
+private:
   BS::thread_pool<> pool_;
 };
 } // namespace nntrainer
