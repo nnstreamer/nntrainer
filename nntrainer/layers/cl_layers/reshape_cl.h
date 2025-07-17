@@ -117,7 +117,7 @@ public:
   /**
    * @brief registerClKernels
    */
-  static bool registerClKernels();
+  static bool registerClKernels(ClContext &cl_context);
 
   /**
    * @brief     copy computation

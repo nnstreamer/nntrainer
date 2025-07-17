@@ -101,7 +101,9 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
-  static bool registerClKernels() { return true; };
+  static bool registerClKernels([[maybe_unused]] ClContext &cl_context) {
+    return true;
+  };
 
   static constexpr const char *type = "fully_connected";
 

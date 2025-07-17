@@ -36,42 +36,31 @@ std::once_flag global_engine_init_flag;
 nntrainer::Context
   *Engine::nntrainerRegisteredContext[Engine::RegisterContextMax];
 
-void Engine::add_default_object(Engine &eg) {
+void Engine::add_default_object() {
   /// @note all layers should be added to the app_context to guarantee that
   /// createLayer/createOptimizer class is created
 
-  nntrainer::AppContext *app_context = new nntrainer::AppContext();
-  app_context->Global();
+  auto &app_context = nntrainer::AppContext::Global();
 
   init_backend(); // initialize cpu backend
-  eg.registerContext("cpu", app_context);
+  registerContext("cpu", &app_context);
 
 #ifdef ENABLE_OPENCL
-  nntrainer::ClContext *cl_context = new nntrainer::ClContext();
-  cl_context->Global();
+  auto &cl_context = nntrainer::ClContext::Global();
 
-  eg.registerContext("gpu", cl_context);
+  registerContext("gpu", &cl_context);
 #endif
 }
 
-void Engine::registerer(Engine &eg) noexcept {
+void Engine::initialize() noexcept {
   try {
-    add_default_object(eg);
+    add_default_object();
   } catch (std::exception &e) {
     ml_loge("registering layers failed!!, reason: %s", e.what());
   } catch (...) {
     ml_loge("registering layer failed due to unknown reason");
   }
 };
-
-Engine &Engine::Global() {
-  static Engine instance;
-  /// in g++ there is a bug that hangs up if caller throws,
-  /// so registerer is noexcept although it'd better not
-  /// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70298
-  std::call_once(global_engine_init_flag, registerer, std::ref(instance));
-  return instance;
-}
 
 std::string
 Engine::parseComputeEngine(const std::vector<std::string> &props) const {

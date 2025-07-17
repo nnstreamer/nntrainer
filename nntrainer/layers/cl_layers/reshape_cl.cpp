@@ -24,7 +24,7 @@ namespace nntrainer {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
-bool ReshapeLayerCl::registerClKernels() {
+bool ReshapeLayerCl::registerClKernels(ClContext &cl_context) {
   auto &layer_kernel_ptrs = getLayerKernelPtrs();
 
   // check if already registered
@@ -36,8 +36,7 @@ bool ReshapeLayerCl::registerClKernels() {
   do {
     ClContext::SharedPtrClKernel kernel_copy_ptr = nullptr;
 
-    kernel_copy_ptr =
-      global_cl_context->registerClKernel(getCopyClKernel(), "copy_cl");
+    kernel_copy_ptr = cl_context.registerClKernel(getCopyClKernel(), "copy_cl");
     if (!kernel_copy_ptr) {
       ml_loge("OpenCL Error: Fail to register copy_cl kernel");
       break;
@@ -45,8 +44,8 @@ bool ReshapeLayerCl::registerClKernels() {
     layer_kernel_ptrs.emplace_back(kernel_copy_ptr);
 
 #ifdef ENABLE_FP16
-    kernel_copy_ptr = global_cl_context->registerClKernel(getCopyClKernelFP16(),
-                                                          "copy_cl_fp16");
+    kernel_copy_ptr =
+      cl_context.registerClKernel(getCopyClKernelFP16(), "copy_cl_fp16");
     if (!kernel_copy_ptr) {
       ml_loge("OpenCL Error: Fail to register copy_cl_fp16 kernel");
       break;
@@ -146,6 +145,10 @@ void ReshapeLayerCl::copy_cl_fp16(const _FP16 *input, _FP16 *res,
 
   bool result = false;
 
+  auto *global_cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
   do {
     const auto &kernel_copy_ptr = getLayerKernelPtrs()[Kernels::COPY_CL];
 
@@ -228,6 +231,10 @@ void ReshapeLayerCl::scopy_cl(const float *input, float *res,
                               unsigned int input_width) {
 
   bool result = false;
+
+  auto *global_cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
 
   do {
     const auto &kernel_copy_ptr = getLayerKernelPtrs()[Kernels::COPY_CL];
