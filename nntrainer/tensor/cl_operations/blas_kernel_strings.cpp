@@ -207,17 +207,17 @@ const std::string &getQ4KGemmClKernel2() {
     #define REDUCE_ADD_SHORT8(v)                                                   \
       ((v).s0 + (v).s1 + (v).s2 + (v).s3 + (v).s4 + (v).s5 + (v).s6 + (v).s7)
 
-    __kernel void mat_mul_q4_K_8x8_q8_K2(const int n, __global float *restrict s,
+    __kernel void mat_mul_q4_K_8x8_q8_K2(const int n, float *restrict s,
                                         const int bs, // leading stride in s
-                                        __global const block_q4_Kx8 *restrict vx,
-                                        __global const block_q8_Kx4 *restrict vy,
+                                        const block_q4_Kx8 *restrict vx,
+                                        const block_q8_Kx4 *restrict vy,
                                         const int nr, const int nc) {
       const int tile_y = get_group_id(0);
       const int tile_x = get_group_id(1);
       const int lane = get_local_id(0);
 
-      const int lane_m = lane / NCOL_I; // 0-3  (row inside 4x16 tile)
-      const int lane_j = lane % NCOL_I; // 0-15 (col inside 4x16 tile)
+      const int grp_y = lane / NCOL_I; // 0-3  (row inside 4x16 tile)
+      const int grp_x = lane % NCOL_I; // 0-15 (col inside 4x16 tile)
 
       const int nb = n / QK_K; // #256-element blocks
 
@@ -228,21 +228,21 @@ const std::string &getQ4KGemmClKernel2() {
       float sumf = 0.0f;
       float sum_minf = 0.0f;
 
-      __global const block_q4_Kx8 *restrict gB[2];
+      const block_q4_Kx8 *restrict gB[2];
       gB[0] = vx + (tile_x * 2 + 0) * nb;
       gB[1] = vx + (tile_x * 2 + 1) * nb;
-      __global const block_q4_Kx8 *restrict gA_ = vy + tile_y * nb;
+      const block_q4_Kx8 *restrict gA_ = vy + tile_y * nb;
 
-      __local uint *restrict lBdst0 = (__local uint *)&lB[0];
-      __local uint *restrict lBdst1 = (__local uint *)&lB[1];
-      __local uint *restrict lAdst = (__local uint *)&lA;
+      uint *restrict lBdst0 = (uint *)&lB[0];
+      uint *restrict lBdst1 = (uint *)&lB[1];
+      uint *restrict lAdst = (uint *)&lA;
 
       for (int b = 0; b < nb; ++b) {
         // 1.  Copy one q8 block (A) and two q4 blocks (B0/B1) to LDS
         {
-          __global const uint *gB0 = (__global const uint *)(gB[0] + b);
-          __global const uint *gB1 = (__global const uint *)(gB[1] + b);
-          __global const uint *gA = (__global const uint *)(gA_ + b);
+          const uint *gB0 = (const uint *)(gB[0] + b);
+          const uint *gB1 = (const uint *)(gB[1] + b);
+          const uint *gA = (const uint *)(gA_ + b);
 
           const int vecsB = (int)(sizeof(block_q4_Kx8) / (16 * 4));
           const int vecsA = (int)(sizeof(block_q8_Kx4) / (16 * 4));
@@ -261,11 +261,10 @@ const std::string &getQ4KGemmClKernel2() {
         if (lane < 16) {
           const int blk = lane >> 3;       // 0 | 1
           const int sb = lane && 0b111; // 0-7
-          __local const uchar *src =
-            (__local const uchar *)&lB[blk].scales[0] + sb * 12;
-          __local uint *dst = lutmp[blk] + sb * 4;
+          const uchar *src = (const uchar *)&lB[blk].scales[0] + sb * 12;
+          uint *dst = lutmp[blk] + sb * 4;
 
-          uint3 tmp3 = vload3(0, (const __local uint *)src);          
+          uint3 tmp3 = vload3(0, (const uint *)src);          
 
           dst[3] = ((tmp3.s2 >> 4) & KMASK2) | (((tmp3.s1 >> 6) & KMASK3) << 4);
           dst[2] = tmp3.s1 & KMASK1;
@@ -275,55 +274,53 @@ const std::string &getQ4KGemmClKernel2() {
         barrier(CLK_LOCAL_MEM_FENCE); // LUTs ready
 
         // 3.  Each lane accumulates one C-tile element
-        const int blk = lane_j >> 3;
-        const int lj = lane_j & 7;
-
-        const float dB = fp16_to_fp32(lB[blk].d[lj]);
-        const float dB_min = fp16_to_fp32(lB[blk].dmin[lj]);
-        const float dA = lA.d[lane_m];
-
-        __local const uchar *lbytes = (const __local uchar *)lutmp[blk];
-
-    #pragma unroll 16
-        for (int k = 0; k < 16; ++k) {      // QK_K/(2*BLK_LEN)
-          const int idxB = k * 64 + lj * 8; // 8 × 8 q4 block stride
-          const int idxA = k * 32 + lane_m * 8;
-
-          const int sc0 = lbytes[(k / 4) * 32 + lj];
-          const int sc1 = lbytes[(k / 4) * 32 + 16 + lj];
-
-          uchar8 q = vload8(0, lB[blk].qs + idxB);
-          char8 a0 = vload8(0, lA.qs + idxA);
-          char8 a1 = vload8(0, lA.qs + idxA + 128);
-
-          uchar8 qlo = q & 0x0F; // low nibbles
-          uchar8 qhi = q >> 4;     // high nibbles
-
-          short8 prod0 = convert_short8(qlo) * convert_short8(a0);
-          short8 prod1 = convert_short8(qhi) * convert_short8(a1);
-
-          int sumi =
-            REDUCE_ADD_SHORT8(prod0) * sc0 + REDUCE_ADD_SHORT8(prod1) * sc1;
-
-          sumf += (float)sumi * dB * dA;
+        {
+          const int blk = grp_x >> 3;
+          const int lj = grp_x & 0b111;
+  
+          const float dB = fp16_to_fp32(lB[blk].d[lj]);
+          const float dB_min = fp16_to_fp32(lB[blk].dmin[lj]);
+          const float dA = lA.d[grp_y];
+  
+          const uchar *dequant_lut = (const uchar *)lutmp[blk];
+  
+          #pragma unroll 16
+          for (int k = 0; k < 16; ++k) {      // QK_K/(2*BLK_LEN)
+            const int idxB = (8 * k + lj) * 8; // 8 × 8 q4 block stride
+            const int idxA = (4 * k + grp_y) * 8;
+  
+            const int sc0 = dequant_lut[(k / 4) * 32 + lj];
+            const int sc1 = dequant_lut[(k / 4) * 32 + 16 + lj];
+  
+            uchar8 q = vload8(0, lB[blk].qs + idxB);
+            char8 a0 = vload8(0, lA.qs + idxA);
+            char8 a1 = vload8(0, lA.qs + idxA + 128);
+  
+            uchar8 qlo = q & 0x0F; // low nibbles
+            uchar8 qhi = q >> 4;     // high nibbles
+  
+            short8 prod0 = convert_short8(qlo) * convert_short8(a0);
+            short8 prod1 = convert_short8(qhi) * convert_short8(a1);
+  
+            int sumi = REDUCE_ADD_SHORT8(prod0) * sc0 + REDUCE_ADD_SHORT8(prod1) * sc1;
+  
+            sumf += (float)sumi * dB * dA;
+          }
+          // 4.  bias / min-d correction
+          for (int sb = 0; sb < 8; ++sb) {
+            const uchar *mins = dequant_lut + 8 + sb * 16;
+            const short *bsum = (const short *)&lA.bsums[0] + sb * 8 + grp_y * 4 - ((sb & 1) * 6);
+  
+            int macc = mins[lj] * (bsum[0] + bsum[1]);
+            sum_minf += (float)macc * dB_min * dA;
+          }
         }
-
-        // 4.  bias / min-d correction
-        for (int sb = 0; sb < 8; ++sb) {
-          __local const uchar *mins = lbytes + 8 + sb * 16;
-          __local const short *bsum = (__local const short *)&lA.bsums[0] + sb * 8 +
-                                      lane_m * 4 - ((sb & 1) * 6);
-
-          int macc = mins[lj] * (bsum[0] + bsum[1]);
-          sum_minf += (float)macc * dB_min * dA;
-        }
-
         barrier(CLK_LOCAL_MEM_FENCE);
       }
 
       // 5.  write one result element
-      const int out_row = tile_y * 4 + lane_m;
-      const int out_col = tile_x * NCOL_I + lane_j;
+      const int out_row = tile_y * 4 + grp_y;
+      const int out_col = tile_x * NCOL_I + grp_x;
       s[out_row * bs + out_col] = sumf - sum_minf;
     }
   )";
