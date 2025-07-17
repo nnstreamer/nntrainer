@@ -41,6 +41,7 @@ generate_random_vector(size_t size, float min_val = -1.F, float max_val = 1.F) {
   return vec;
 }
 
+#ifdef ENABLE_FP16
 static inline std::vector<uint16_t>
 convert_vector_f32_to_f16_as_uint16(std::vector<float> f32_vec) {
   std::vector<uint16_t> vec(f32_vec.size());
@@ -58,6 +59,7 @@ convert_vector_f16_as_uint16_to_f32(std::vector<uint16_t> uint16_vec) {
   }
   return vec;
 }
+#endif
 
 template <typename T>
 static inline double find_max_diff(T *src, T *src2, int M, int N) {
@@ -776,9 +778,7 @@ TEST(nntrainer_cpu_backend_standalone, softmax_row) {
   }
 }
 
-// Some conversion methods for float 16 are not available in the Tizen builds.
-// Therefore, these tests are currently filtered.
-#if !defined(__TIZEN__) || defined(__aarch64__) || defined(__F16C__)
+#ifdef ENABLE_FP16
 TEST(nntrainer_cpu_backend_standalone, compute_kcaches) {
   int num_rows = 1;
   int N = 2;
