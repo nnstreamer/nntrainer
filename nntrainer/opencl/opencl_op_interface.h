@@ -38,8 +38,8 @@ class GpuCLOpInterface {
 protected:
   bool initialized_;
   Kernel kernel_;
-  ContextManager &context_inst_ = ContextManager::GetInstance();
-  CommandQueueManager &command_queue_inst_ = CommandQueueManager::GetInstance();
+  ContextManager &context_inst_ = ContextManager::Global();
+  CommandQueueManager &command_queue_inst_ = CommandQueueManager::Global();
 
   /**
    * @brief Initialize OpenCL kernel

@@ -24,6 +24,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include "utils/singleton.h"
+
 using timepoint = std::chrono::time_point<std::chrono::steady_clock>;
 
 #ifndef PROFILE
@@ -306,29 +308,8 @@ std::ostream &operator<<(std::ostream &out, T &l) {
  * @brief Profiler object
  *
  */
-class Profiler {
+class Profiler : public Singleton<Profiler> {
 public:
-  /**
-   * @brief Construct a new Profiler object
-   *
-   */
-  Profiler() : total_size(0) {}
-
-  /**
-   * @brief Deleted constructor
-   *
-   */
-  Profiler(const Profiler &) = delete;
-  Profiler &operator=(const Profiler &) = delete;
-
-  /**
-   *
-   * @brief Get Global Profiler
-   *
-   * @return Profiler&
-   */
-  static Profiler &Global();
-
   /**
    * @brief start time profile
    *
@@ -419,7 +400,7 @@ private:
   std::unordered_map<const void *, std::tuple<size_t, timepoint, std::string>>
     allocates; /**< allocated memory information (ptr, (size, time, info) */
 
-  std::atomic<std::size_t> total_size; /**< total allocated memory size */
+  std::atomic<std::size_t> total_size = 0; /**< total allocated memory size */
 
   std::mutex listeners_mutex; /**< protect listeners */
   std::mutex allocates_mutex; /**< protect allocates */

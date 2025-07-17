@@ -35,6 +35,8 @@
 #include <mem_allocator.h>
 #include <nntrainer_error.h>
 
+#include "utils/singleton.h"
+
 namespace nntrainer {
 
 extern std::mutex factory_mutex;
@@ -44,7 +46,7 @@ namespace {} // namespace
  * @class AppContext contains user-dependent configuration
  * @brief App
  */
-class AppContext : public Context {
+class AppContext : public Context, public Singleton<AppContext> {
 public:
   /**
    * @brief   Default constructor
@@ -55,14 +57,6 @@ public:
    * @brief   Default destructor
    */
   ~AppContext() override = default;
-
-  /**
-   *
-   * @brief Get Global app context.
-   *
-   * @return AppContext&
-   */
-  AppContext &Global() override;
 
   /**
    * @brief Set Working Directory for a relative path. working directory is set
@@ -298,6 +292,15 @@ public:
   }
 
 private:
+  /**
+   * @brief   Overriden initialization function
+   */
+  void initialize() noexcept override;
+
+  void add_default_object();
+
+  void add_extension_object();
+
   FactoryMap<nntrainer::Optimizer, nntrainer::Layer,
              ml::train::LearningRateScheduler>
     factory_map;
