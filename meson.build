@@ -10,6 +10,10 @@ project('nntrainer', 'c', 'cpp',
     'buildtype=release'
   ]
 )
+common_win_subproject_cmake_defines = {
+  'CMAKE_MSVC_RUNTIME_LIBRARY': 'MultiThreaded',
+  'CMAKE_BUILD_TYPE': 'Release',
+}
 
 # Set version info
 nntrainer_version = meson.project_version()
@@ -72,7 +76,9 @@ warning_flags = [
   '-Wdefaulted-function-deleted',
   '-ftree-vectorize',
   '-Wno-unused-variable',
-  '-Wno-comment'
+  '-Wno-comment',
+  '-Wno-ignored-attributes',
+  '-Wno-sign-compare'
 ]
 
 if cxx_compiler_id == 'clang'
@@ -109,6 +115,7 @@ elif arch == 'x86' or arch == 'x86_64'
   message('Build for X86 architecture')
   if cxx_compiler_id == 'msvc'
     add_project_arguments(['/arch:AVX2'], language: ['c','cpp'])
+   add_project_arguments(['cpp_args=/MT'], language: ['c','cpp'] )
   else
     add_project_arguments(['-march=native'], language: ['c','cpp'])
     add_project_arguments(['-mavx2', '-mfma'], language: ['c','cpp'])
@@ -408,10 +415,28 @@ endif
 
 extra_defines += '-DNNTR_NUM_THREADS=@0@'.format(get_option('nntr-num-threads'))
 message('set nntrainer num threads=@0@'.format(get_option('nntr-num-threads')))
-
 openmp_dep = dummy_dep
 if get_option('enable-openmp')
-  openmp_dep = dependency('openmp')
+ if cxx_compiler_id == 'msvc'
+    libiomp_root_opt = get_option('libiomp_root')
+    libiomp_root = join_paths(meson.project_source_root(), libiomp_root_opt)
+    omp_libdir = libiomp_root
+    omp_incdir = join_paths(libiomp_root_opt, 'include')
+
+    add_project_arguments('/openmp', language: ['cpp','c'])
+    cpp = meson.get_compiler('cpp')
+    libiomp = cpp.find_library('libiomp5md', dirs: omp_libdir, required: true)
+
+    openmp_dep = declare_dependency(
+      include_directories : include_directories(omp_incdir),
+      compile_args : ['/openmp'],
+      link_args : ['/NODEFAULTLIB:vcomp'],
+      dependencies : [libiomp])
+
+  message('set openmp with libiomp5md for windows-----------------')
+else
+    openmp_dep = dependency('openmp')
+endif
   if get_option('omp-num-threads') > 0
     extra_defines += '-DOMP_NUM_THREADS=@0@'.format(get_option('omp-num-threads'))
     message('set nntrainer omp threads=@0@'.format(get_option('omp-num-threads')))
@@ -550,7 +575,8 @@ if get_option('enable-ggml')
     ggml_options = cmake.subproject_options()
     ggml_root = subprojects_dir_absolute / 'ggml'
     ggml_flags = [
-      '-Wno-error=pointer-to-int-cast'
+      '-Wno-error=pointer-to-int-cast',
+    '-Wno-error=stringop-overflow'
       ]
     if cxx_compiler_id == 'clang'
       ggml_flags += '-Wno-error=uninitialized'
@@ -558,6 +584,7 @@ if get_option('enable-ggml')
       ggml_flags += '-Wno-error=maybe-uninitialized'
     endif
     ggml_options.append_compile_args('c', ggml_flags)
+    ggml_options.append_compile_args('cpp', ggml_flags)        
     ggml_options.add_cmake_defines({'BUILD_SHARED_LIBS': true})
     ggml_options.add_cmake_defines({'GGML_BUILD_TESTS': false})
     ggml_options.add_cmake_defines({'GGML_BUILD_EXAMPLES': false})

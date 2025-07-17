@@ -13,6 +13,9 @@
 
 #include <assert.h>
 #include <avx2_impl.h>
+#ifdef USE_BLAS
+#include <cblas_interface.h>
+#endif
 #include <fallback_internal.h>
 #include <nntrainer_error.h>
 #include <tensor_dim.h>
