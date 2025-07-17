@@ -28,48 +28,50 @@ public:
   /**
    * @brief     Constructor of Flatten Layer
    */
-  FlattenLayer() :
+  NNTR_API FlattenLayer() :
     ReshapeLayer(),
     flatten_props(props::StartDimension(), props::EndDimension()) {}
 
   /**
    * @brief     Destructor of Flatten Layer
    */
-  ~FlattenLayer() = default;
+  NNTR_API ~FlattenLayer() = default;
 
   /**
    *  @brief  Move constructor of FlattenLayer.
    *  @param[in] FlattenLayer &&
    */
-  FlattenLayer(FlattenLayer &&rhs) noexcept = default;
+  NNTR_API FlattenLayer(FlattenLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs FlattenLayer to be moved.
    */
-  FlattenLayer &operator=(FlattenLayer &&rhs) = default;
+  NNTR_API FlattenLayer &operator=(FlattenLayer &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) override;
+  NNTR_API void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_API void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override;
+  NNTR_API void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return FlattenLayer::type; };
+  NNTR_API const std::string getType() const override {
+    return FlattenLayer::type;
+  };
 
   static constexpr const char *type = "flatten";
 

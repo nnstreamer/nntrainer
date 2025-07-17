@@ -448,8 +448,14 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
     auto f = std::get<0>(node->getExecutionOrder());
     if (exec_mode == ExecutionMode::TRAIN or
         (exec_mode == ExecutionMode::INFERENCE and !fsu_mode)) {
+    //auto start_layer =
+      //std::chrono::high_resolution_clock::now(); // log the start_prefill time
       model_graph.flushCacheExcept(f);
       node->incremental_forwarding(from, to, training);
+   //auto end_layer =
+     // std::chrono::high_resolution_clock::now(); // log th
+   //auto duration_ = std::chrono::duration_cast<std::chrono::nanoseconds>(end_layer-start_layer);
+     //     std::cout << node->getName() <<" : "<< duration_.count()<<" ns"<<std::endl;
     } else {
       model_graph.checkLoadComplete(f);
       node->incremental_forwarding(from, to, training);
@@ -1028,6 +1034,8 @@ std::vector<float *> NeuralNetwork::incremental_inference(
   const std::vector<float *> &label, unsigned int init_seq_len,
   unsigned int from, unsigned int to, bool output_hidden_state) {
 
+  auto start_in_neuralnet = std::chrono::high_resolution_clock::now();
+
   sharedConstTensors input_tensors, output_tensors;
   auto in_dim = getInputDimension();
 
@@ -1038,6 +1046,7 @@ std::vector<float *> NeuralNetwork::incremental_inference(
       input[idx], in_dim[idx].getDataLen() * sizeof(float), in_dim[idx], 0)));
   }
 
+  auto start_increment = std::chrono::high_resolution_clock::now();  
   if (!label.empty()) {
     sharedConstTensors label_tensors;
     auto label_dim = getOutputDimension();
@@ -1054,7 +1063,7 @@ std::vector<float *> NeuralNetwork::incremental_inference(
     output_tensors =
       incremental_inference(input_tensors, init_seq_len, from, to);
   }
-
+  auto end_increment = std::chrono::high_resolution_clock::now();
   std::vector<float *> output;
 
   unsigned int step = from ? 0 : to - 1;
@@ -1084,6 +1093,7 @@ std::vector<float *> NeuralNetwork::incremental_inference(
           const float *out_t_batch_ptr =
             out_t.getData() + batch * out_t.getDim().getFeatureLen() +
             step * out_t.width();
+            //std::memcpy( last_out_buf_data + batch * out_t.width(), out_t_batch_ptr, out_t.width()*sizeof(float));
           scopy(out_t.width(), out_t_batch_ptr, 1,
                 last_out_buf_data + batch * out_t.width(), 1);
         }
@@ -1092,6 +1102,15 @@ std::vector<float *> NeuralNetwork::incremental_inference(
 
     output.push_back(last_out_buf_data);
   }
+  //auto end_net_inference = std::chrono::high_resolution_clock::now();
+  //auto prepare = std::chrono::duration_cast<std::chrono::nanoseconds>(start_increment-start_in_neuralnet);
+  //auto run_inf = std::chrono::duration_cast<std::chrono::nanoseconds>(end_increment-start_increment);;
+  //auto out_gen = std::chrono::duration_cast<std::chrono::nanoseconds>(end_net_inference-end_increment);;  
+  //auto net_gen = std::chrono::duration_cast<std::chrono::nanoseconds>(end_net_inference-start_in_neuralnet);
+
+  //std::cout <<"prepare : "<< prepare.count() << " run_inf : "<< run_inf.count() << " out_gen : "<< out_gen.count()<<std::endl;
+  //std::cout << "-------- net_inference: "<< net_gen.count() << std::endl;
+  
   return output;
 }
 

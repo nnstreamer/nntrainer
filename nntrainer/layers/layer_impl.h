@@ -25,6 +25,12 @@
 #include <memory>
 #include <tuple>
 
+#if defined(_WIN32)
+#define NNTR_API __declspec(dllexport)
+#else
+#define NNTR_API
+#endif
+
 namespace nntrainer {
 
 class InitLayerContext;
@@ -53,40 +59,40 @@ public:
   /**
    * @brief     Constructor of Layer Class
    */
-  LayerImpl();
+  NNTR_API LayerImpl();
 
   /**
    * @brief     Destructor of Layer Class
    */
-  virtual ~LayerImpl() = default;
+  NNTR_API virtual ~LayerImpl() = default;
 
   /**
    *  @brief  Move constructor of LayerImpl Layer.
    *  @param[in] LayerImpl &&
    */
-  LayerImpl(LayerImpl &&rhs) noexcept = default;
+  NNTR_API LayerImpl(LayerImpl &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs LayerImpl to be moved.
    */
-  LayerImpl &operator=(LayerImpl &&rhs) = default;
+  NNTR_API LayerImpl &operator=(LayerImpl &&rhs) = default;
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  virtual void setProperty(const std::vector<std::string> &values) override;
+  NNTR_API virtual void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @copydoc Layer::getProperty(const std::string &key)
    */
-  virtual std::string getProperty(const std::string &key) override;
+  NNTR_API virtual std::string getProperty(const std::string &key) override;
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, const ml::train::ExportMethods
    * &methods)
    */
-  virtual void exportTo(Exporter &exporter,
+  NNTR_API virtual void exportTo(Exporter &exporter,
                         const ml::train::ExportMethods &method) const override;
 
 protected:

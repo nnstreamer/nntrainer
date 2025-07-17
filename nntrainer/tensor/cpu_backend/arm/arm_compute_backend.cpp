@@ -12,9 +12,7 @@
  */
 #include <arm_compute_backend.h>
 #include <assert.h>
-#ifdef USE_BLAS
 #include <cblas_interface.h>
-#endif
 #include <fallback_internal.h>
 #include <neon_impl.h>
 #include <nntrainer_error.h>
@@ -186,33 +184,20 @@ void ele_div(const unsigned N, const float *X, const float *Y, float *Z,
 
 void saxpy(const unsigned int N, const float alpha, const float *X,
            const unsigned int incX, float *Y, const unsigned int incY) {
-#ifdef USE_BLAS
   __cblas_saxpy(N, alpha, X, incX, Y, incY);
-#else
-  __fallback_saxpy(N, alpha, X, incX, Y, incY);
-#endif
 }
 
 void sgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
            const unsigned int N, const float alpha, const float *A,
            const unsigned int lda, const float *X, const unsigned int incX,
            const float beta, float *Y, const unsigned int incY) {
-#ifdef USE_BLAS
   __cblas_sgemv(TStorageOrder, TransA, M, N, alpha, A, lda, X, incX, beta, Y,
                 incY);
-#else
-  __fallback_sgemv(TStorageOrder, TransA, M, N, alpha, A, lda, X, incX, beta, Y,
-                   incY);
-#endif
 }
 
 float sdot(const unsigned int N, const float *X, const unsigned int incX,
            const float *Y, const unsigned int incY) {
-#ifdef USE_BLAS
   return __cblas_sdot(N, X, incX, Y, incY);
-#else
-  return __fallback_sdot(N, X, incX, Y, incY);
-#endif
 }
 
 void scopy(const unsigned int N, const float *X, const unsigned int incX,
@@ -225,19 +210,11 @@ void scopy(const unsigned int N, const float *X, const unsigned int incX,
 
 void sscal(const unsigned int N, const float alpha, float *X,
            const unsigned int incX) {
-#ifdef USE_BLAS
   __cblas_sscal(N, alpha, X, incX);
-#else
-  __fallback_sscal(N, alpha, X, incX);
-#endif
 }
 
 float snrm2(const unsigned int N, const float *X, const unsigned int incX) {
-#ifdef USE_BLAS
   return __cblas_snrm2(N, X, incX);
-#else
-  return __fallback_snrm2(N, X, incX);
-#endif
 }
 
 void sgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
@@ -245,22 +222,13 @@ void sgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
            const float alpha, const float *A, const unsigned int lda,
            const float *B, const unsigned int ldb, const float beta, float *C,
            const unsigned int ldc) {
-#ifdef USE_BLAS
   __cblas_sgemm(TStorageOrder, TransA, TransB, M, N, K, alpha, A, lda, B, ldb,
                 beta, C, ldc);
-#else
-  __fallback_sgemm(TStorageOrder, TransA, TransB, M, N, K, alpha, A, lda, B,
-                   ldb, beta, C, ldc);
-#endif
 }
 
 unsigned int isamax(const unsigned int N, const float *X,
                     const unsigned int incX) {
-#ifdef USE_BLAS
   return __cblas_isamax(N, X, incX);
-#else
-  return __fallback_isamax(N, X, incX);
-#endif
 }
 
 void transpose_matrix(const unsigned int M, const unsigned int N,

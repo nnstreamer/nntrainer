@@ -60,14 +60,14 @@ public:
    * @brief Construct a new Name object without a default value
    *
    */
-  Name();
+  NNTR_API Name();
 
   /**
    * @brief Construct a new Name object with a default value
    *
    * @param value value to contrusct the property
    */
-  Name(const std::string &value);
+  NNTR_API Name(const std::string &value);
 
   static constexpr const char *key = "name"; /**< unique key to access */
   using prop_tag = str_prop_tag;             /**< property type */
@@ -77,7 +77,7 @@ public:
    *
    * @param value value to set
    */
-  void set(const std::string &value) override;
+  NNTR_API void set(const std::string &value) override;
 
   /**
    * @brief name validator
@@ -86,7 +86,7 @@ public:
    * @retval true if it contains alphanumeric and/or '-', '_', '/'
    * @retval false if it is empty or contains non-valid character
    */
-  bool isValid(const std::string &v) const override;
+  NNTR_API bool isValid(const std::string &v) const override;
 };
 
 /**
@@ -110,7 +110,7 @@ public:
    * @brief Construct a new Trainable object
    *
    */
-  Trainable(bool val = true) : nntrainer::Property<bool>(val) {}
+  NNTR_API Trainable(bool val = true) : nntrainer::Property<bool>(val) {}
   static constexpr const char *key = "trainable";
   using prop_tag = bool_prop_tag;
 };
@@ -159,7 +159,7 @@ public:
    * Weight Type ). if it is false, the weight type follows tensor_type[2]
    * (Global Activation Type)
    */
-  Packed(bool val = true) : nntrainer::Property<bool>(val) {}
+  NNTR_API Packed(bool val = true) : nntrainer::Property<bool>(val) {}
   static constexpr const char *key = "packed";
   using prop_tag = bool_prop_tag;
 };
@@ -174,7 +174,7 @@ public:
    * @brief Construct a DisableBias object
    *
    */
-  DisableBias(bool val = false) : nntrainer::Property<bool>(val) {}
+  NNTR_API DisableBias(bool val = false) : nntrainer::Property<bool>(val) {}
   using prop_tag = bool_prop_tag;
   static constexpr const char *key = "disable_bias";
 };
@@ -190,7 +190,7 @@ public:
    * @brief Construct a IntegrateBias object
    *
    */
-  IntegrateBias(bool val = false) : nntrainer::Property<bool>(val) {}
+  NNTR_API IntegrateBias(bool val = false) : nntrainer::Property<bool>(val) {}
   using prop_tag = bool_prop_tag;
   static constexpr const char *key = "integrate_bias";
 };
@@ -206,7 +206,7 @@ public:
    * @brief Construct a new Normalization object
    *
    */
-  Normalization(bool value = false);
+  NNTR_API Normalization(bool value = false);
   static constexpr const char *key = "normalization";
   using prop_tag = bool_prop_tag;
 };
@@ -222,7 +222,7 @@ public:
    * @brief Construct a new Standardization object
    *
    */
-  Standardization(bool value = false);
+  NNTR_API Standardization(bool value = false);
   static constexpr const char *key = "standardization";
   using prop_tag = bool_prop_tag;
 };
@@ -243,14 +243,14 @@ public:
    * @brief Construct a new Input Spec object
    *
    */
-  InputConnection();
+  NNTR_API InputConnection();
 
   /**
    * @brief Construct a new Input Spec object
    *
    * @param value default value of a input spec
    */
-  InputConnection(const Connection &value);
+  NNTR_API InputConnection(const Connection &value);
   static constexpr const char *key =
     "input_layers";                     /**< unique key to access */
   using prop_tag = connection_prop_tag; /**< property type */
@@ -267,7 +267,7 @@ public:
    * @brief Construct a new Epsilon object with a default value 0.001
    *
    */
-  Epsilon(float value = 0.001);
+  NNTR_API Epsilon(float value = 0.001);
   static constexpr const char *key = "epsilon"; /**< unique key to access */
   using prop_tag = float_prop_tag;              /**< property type */
 
@@ -278,7 +278,7 @@ public:
    * @retval true if it is greater or equal than 0.0
    * @retval false if it is smaller than 0.0
    */
-  bool isValid(const float &value) const override;
+  NNTR_API bool isValid(const float &value) const override;
 };
 
 /**
@@ -292,7 +292,7 @@ public:
    * @brief Construct a new Exponent object
    *
    */
-  Exponent(float value = 1.0f);
+  NNTR_API Exponent(float value = 1.0f);
   static constexpr const char *key = "exponent"; /**< unique key to access */
   using prop_tag = float_prop_tag;               /**< property type */
 };
@@ -308,7 +308,7 @@ public:
    * @brief Construct a new Momentum object with a default value 0.99
    *
    */
-  Momentum(float value = 0.99);
+  NNTR_API Momentum(float value = 0.99);
   static constexpr const char *key = "momentum"; /**< unique key to access */
   using prop_tag = float_prop_tag;               /**< property type */
 
@@ -320,7 +320,7 @@ public:
    * @retval false if it is smaller or equal than 0.0
    * or greater or equal than 1.0
    */
-  bool isValid(const float &value) const override;
+  NNTR_API bool isValid(const float &value) const override;
 };
 
 /**
@@ -353,7 +353,7 @@ public:
    * @retval false if it is smaller than 0 or greater than
    * ml::train::TensorDim::MAXDIM
    */
-  bool isValid(const unsigned int &value) const override;
+  NNTR_API bool isValid(const unsigned int &value) const override;
 };
 
 /**
@@ -362,7 +362,7 @@ public:
  */
 class StartDimension : public Axis {
 public:
-  StartDimension(unsigned int value = 1);
+  NNTR_API StartDimension(unsigned int value = 1);
   static constexpr const char *key = "start_dimension";
   using prop_tag = uint_prop_tag;
 
@@ -375,7 +375,7 @@ public:
    * @retval false if it is smaller or equal to 0 or greater than
    * ml::train::TensorDim::MAXDIM
    */
-  bool isValid(const unsigned int &value) const override;
+  NNTR_API bool isValid(const unsigned int &value) const override;
 };
 
 /**
@@ -384,7 +384,7 @@ public:
  */
 class EndDimension : public Axis {
 public:
-  EndDimension(unsigned int value = ml::train::TensorDim::MAXDIM - 1);
+  NNTR_API EndDimension(unsigned int value = ml::train::TensorDim::MAXDIM - 1);
   static constexpr const char *key = "end_dimension";
   using prop_tag = uint_prop_tag;
 
@@ -397,7 +397,7 @@ public:
    * @retval false if it is smaller or equal to 0 or greater than
    * ml::train::TensorDim::MAXDIM
    */
-  bool isValid(const unsigned int &value) const override;
+  NNTR_API bool isValid(const unsigned int &value) const override;
 };
 
 /**
@@ -415,7 +415,7 @@ public:
    * @retval false if it is smaller or equal to 0 or greater than
    * ml::train::TensorDim::MAXDIM
    */
-  bool isValid(const unsigned int &value) const override;
+  NNTR_API bool isValid(const unsigned int &value) const override;
 };
 
 /**
@@ -461,13 +461,13 @@ public:
    * @brief Construct a new PoolSize object
    *
    */
-  PoolSize() {}
+  NNTR_API PoolSize() {}
 
   /**
    * @brief Construct a new PoolSize object with default value
    *
    */
-  PoolSize(unsigned int value);
+  NNTR_API PoolSize(unsigned int value);
   static constexpr const char *key = "pool_size"; /**< unique key to access */
   using prop_tag = uint_prop_tag;                 /**< property type */
 };
@@ -483,7 +483,7 @@ public:
    * @brief Construct a new Stride object with a default value 1
    *
    */
-  Stride(unsigned int value = 1);
+  NNTR_API Stride(unsigned int value = 1);
   static constexpr const char *key = "stride"; /**< unique key to access */
   using prop_tag = uint_prop_tag;              /**< property type */
 };
@@ -499,7 +499,7 @@ public:
    * @brief Construct a new Dilation object with a default value 1
    *
    */
-  Dilation(unsigned int value = 1);
+  NNTR_API Dilation(unsigned int value = 1);
   static constexpr const char *key = "dilation"; /**< unique key to access */
   using prop_tag = uint_prop_tag;                /**< property type */
 };
@@ -523,9 +523,9 @@ public:
    * @brief Construct a new Padding2D object
    *
    */
-  Padding2D(const std::string &value = "valid") :
+  NNTR_API Padding2D(const std::string &value = "valid") :
     nntrainer::Property<std::string>(value) {} /**< default value if any */
-  bool isValid(const std::string &v) const override;
+  NNTR_API bool isValid(const std::string &v) const override;
   static constexpr const char *key = "padding"; /**< unique key to access */
   using prop_tag = str_prop_tag;                /**< property type */
 
@@ -537,7 +537,7 @@ public:
    * @param stride stride
    * @return std::array<unsigned int, 4> list of unsigned padding
    */
-  std::array<unsigned int, 4>
+  NNTR_API std::array<unsigned int, 4>
   compute(const TensorDim &input, const TensorDim &kernel,
           const std::array<unsigned int, 2> &strides,
           const std::array<unsigned int, 2> &dilation);
@@ -561,9 +561,9 @@ public:
    * @brief Construct a new Padding1D object
    *
    */
-  Padding1D(const std::string &value = "valid") :
+  NNTR_API Padding1D(const std::string &value = "valid") :
     nntrainer::Property<std::string>(value) {} /**< default value if any */
-  bool isValid(const std::string &v) const override;
+  NNTR_API bool isValid(const std::string &v) const override;
   static constexpr const char *key = "padding"; /**< unique key to access */
   using prop_tag = str_prop_tag;                /**< property type */
 
@@ -575,10 +575,10 @@ public:
    * @param stride stride
    * @return std::array<unsigned int, 4> list of unsigned padding
    */
-  std::array<unsigned int, 2> compute(const TensorDim &input,
-                                      const unsigned int &kernel,
-                                      const unsigned int &stride,
-                                      const unsigned int &dilation);
+  NNTR_API std::array<unsigned int, 2> compute(const TensorDim &input,
+                                               const unsigned int &kernel,
+                                               const unsigned int &stride,
+                                               const unsigned int &dilation);
 };
 
 /**
@@ -625,7 +625,7 @@ public:
    * @brief Construct a new DropOutRate object with a default value 0.0
    *
    */
-  DropOutRate(float value = 0.0) : nntrainer::Property<float>(value) {}
+  NNTR_API DropOutRate(float value = 0.0) : nntrainer::Property<float>(value) {}
   static constexpr const char *key =
     "dropout_rate";                /**< unique key to access */
   using prop_tag = float_prop_tag; /**< property type */
@@ -637,7 +637,7 @@ public:
    * @retval true if it is greater or equal than 0.0
    * @retval false if it is smaller than 0.0
    */
-  bool isValid(const float &v) const override;
+  NNTR_API bool isValid(const float &v) const override;
 };
 
 /**
@@ -657,7 +657,7 @@ public:
    *
    * @param value value to set
    */
-  void set(const float &value) override;
+  NNTR_API void set(const float &value) override;
 };
 
 /**
@@ -669,14 +669,14 @@ public:
   /**
    * @brief Construct a new File Path object
    */
-  FilePath() : Property<std::string>() {}
+  NNTR_API FilePath() : Property<std::string>() {}
 
   /**
    * @brief Construct a new File Path object
    *
    * @param path path to set
    */
-  FilePath(const std::string &path) { set(path); }
+  NNTR_API FilePath(const std::string &path) { set(path); }
   static constexpr const char *key = "path"; /**< unique key to access */
   using prop_tag = str_prop_tag;             /**< property type */
 
@@ -686,21 +686,21 @@ public:
    * @param v value to check
    * @return bool true if valid
    */
-  bool isValid(const std::string &v) const override;
+  NNTR_API bool isValid(const std::string &v) const override;
 
   /**
    * @brief setter
    *
    * @param v value to set
    */
-  void set(const std::string &v) override;
+  NNTR_API void set(const std::string &v) override;
 
   /**
    * @brief return file size
    *
    * @return std::ifstream::pos_type size of the file
    */
-  std::ifstream::pos_type file_size();
+  NNTR_API std::ifstream::pos_type file_size();
 
 private:
   std::ifstream::pos_type cached_pos_size;
@@ -715,14 +715,14 @@ public:
   /**
    * @brief Construct a new Dir Path object
    */
-  DirPath() : Property<std::string>() {}
+  NNTR_API DirPath() : Property<std::string>() {}
 
   /**
    * @brief Construct a new Dir Path object
    *
    * @param path path to set
    */
-  DirPath(const std::string &path) { set(path); }
+  NNTR_API DirPath(const std::string &path) { set(path); }
   static constexpr const char *key = "dir_path"; /**< unique key to access */
   using prop_tag = str_prop_tag;                 /**< property type */
 
@@ -732,14 +732,14 @@ public:
    * @param v value to check
    * @return bool true if valid
    */
-  bool isValid(const std::string &v) const override;
+  NNTR_API bool isValid(const std::string &v) const override;
 
   /**
    * @brief setter
    *
    * @param v value to set
    */
-  void set(const std::string &v) override;
+  NNTR_API void set(const std::string &v) override;
 };
 
 /**
@@ -753,7 +753,7 @@ public:
    * @brief Construct a new ReturnSequences object
    *
    */
-  ReturnSequences(bool value = false);
+  NNTR_API ReturnSequences(bool value = false);
   static constexpr const char *key = "return_sequences";
   using prop_tag = bool_prop_tag;
 };
@@ -768,7 +768,7 @@ public:
    * @brief Construct a new Bidirectional object
    *
    */
-  Bidirectional(bool value = false);
+  NNTR_API Bidirectional(bool value = false);
   static constexpr const char *key = "bidirectional";
   using prop_tag = bool_prop_tag;
 };
@@ -808,7 +808,7 @@ public:
    * @brief Construct a new ResetAfter object with a default value true
    *
    */
-  ResetAfter(bool value = true) : nntrainer::Property<bool>(value) {}
+  NNTR_API ResetAfter(bool value = true) : nntrainer::Property<bool>(value) {}
   static constexpr const char *key = "reset_after"; /**< unique key to access */
   using prop_tag = bool_prop_tag;                   /**< property type */
 };
@@ -825,7 +825,7 @@ public:
   /**
    * @copydoc nntrainer::Property<unsigned int>::isValid(const unsigned int &v);
    */
-  bool isValid(const unsigned int &v) const override;
+  NNTR_API bool isValid(const unsigned int &v) const override;
 };
 
 /**
@@ -840,7 +840,7 @@ public:
    * @brief Construct a new BasicRegularizerConstant object
    *
    */
-  BasicRegularizerConstant(float value = 1.0f);
+  NNTR_API BasicRegularizerConstant(float value = 1.0f);
   static constexpr const char *key =
     "basic_regularizer_constant";  /**< unique key to access */
   using prop_tag = float_prop_tag; /**< property type */
@@ -851,7 +851,7 @@ public:
    * @param value value to check
    * @return bool true if valid
    */
-  bool isValid(const float &value) const override;
+  NNTR_API bool isValid(const float &value) const override;
 };
 
 /**
@@ -866,7 +866,7 @@ public:
    * @brief Construct a new WeightRegularizerConstant object
    *
    */
-  WeightRegularizerConstant(float value = 1.0f);
+  NNTR_API WeightRegularizerConstant(float value = 1.0f);
   static constexpr const char *key =
     "weight_regularizer_constant"; /**< unique key to access */
 };
@@ -883,7 +883,7 @@ public:
    * @brief Construct a new WeightDecay object
    *
    */
-  WeightDecay(float value = 0.0f);
+  NNTR_API WeightDecay(float value = 0.0f);
   static constexpr const char *key =
     "weight_decay"; /**< unique key to access */
 };
@@ -900,7 +900,7 @@ public:
    * @brief Construct a new BiasDecay object
    *
    */
-  BiasDecay(float value = 0.0f);
+  NNTR_API BiasDecay(float value = 0.0f);
   static constexpr const char *key = "bias_decay"; /**< unique key to access */
 };
 
@@ -915,14 +915,14 @@ public:
    * @brief Construct a new Output Layer object
    *
    */
-  OutputLayer();
+  NNTR_API OutputLayer();
 
   /**
    * @brief Construct a new Output Layer object
    *
    * @param name name to set
    */
-  OutputLayer(const std::string &name);
+  NNTR_API OutputLayer(const std::string &name);
   static constexpr const char *key = "output_layers";
   using prop_tag = str_prop_tag;
 };
@@ -938,14 +938,14 @@ public:
    * @brief Construct LabelLayer object
    *
    */
-  LabelLayer();
+  NNTR_API LabelLayer();
 
   /**
    * @brief Construct LabelLayer with the given name
    *
    * @param name Name for the input_layers
    */
-  LabelLayer(const std::string &name);
+  NNTR_API LabelLayer(const std::string &name);
   static constexpr const char *key = "label_layers";
   using prop_tag = str_prop_tag;
 };
@@ -991,7 +991,7 @@ public:
    * ActivationTypeInfo::Enum::ACT_NONE
    *
    */
-  HiddenStateActivation(
+  NNTR_API HiddenStateActivation(
     ActivationTypeInfo::Enum value = ActivationTypeInfo::Enum::ACT_NONE);
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "hidden_state_activation";
@@ -1008,7 +1008,7 @@ public:
    * ActivationTypeInfo::Enum::ACT_NONE
    *
    */
-  RecurrentActivation(
+  NNTR_API RecurrentActivation(
     ActivationTypeInfo::Enum value = ActivationTypeInfo::Enum::ACT_NONE);
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "recurrent_activation";
@@ -1039,7 +1039,7 @@ public:
   /**
    * @brief Construct a WeightInitializer object
    */
-  WeightInitializer(Initializer value = Initializer::XAVIER_UNIFORM);
+  NNTR_API WeightInitializer(Initializer value = Initializer::XAVIER_UNIFORM);
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "weight_initializer";
 };
@@ -1053,7 +1053,7 @@ public:
   /**
    * @brief Construct a BiasInitializer object
    */
-  BiasInitializer(Initializer value = Initializer::ZEROS);
+  NNTR_API BiasInitializer(Initializer value = Initializer::ZEROS);
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "bias_initializer";
 };
@@ -1067,7 +1067,7 @@ public:
   /**
    * @brief Construct a MuInitializer object
    */
-  MuInitializer(Initializer value = Initializer::ZEROS);
+  NNTR_API MuInitializer(Initializer value = Initializer::ZEROS);
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "moving_mean_initializer";
 };
@@ -1081,7 +1081,7 @@ public:
   /**
    * @brief Construct a VarInitializer object
    */
-  VarInitializer(Initializer value = Initializer::ONES);
+  NNTR_API VarInitializer(Initializer value = Initializer::ONES);
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "moving_variance_initializer";
 };
@@ -1095,7 +1095,7 @@ public:
   /**
    * @brief Construct a GammaInitializer object
    */
-  GammaInitializer(Initializer value = Initializer::ONES);
+  NNTR_API GammaInitializer(Initializer value = Initializer::ONES);
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "gamma_initializer";
 };
@@ -1109,7 +1109,7 @@ public:
   /**
    * @brief Construct a BetaInitializer object
    */
-  BetaInitializer(Initializer value = Initializer::ZEROS);
+  NNTR_API BetaInitializer(Initializer value = Initializer::ZEROS);
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "beta_initializer";
 };
@@ -1134,7 +1134,7 @@ public:
   /**
    * @brief Construct a BasicRegularizer object
    */
-  BasicRegularizer(nntrainer::WeightRegularizer value);
+  NNTR_API BasicRegularizer(nntrainer::WeightRegularizer value);
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "basic_regularizer";
 
@@ -1145,7 +1145,8 @@ public:
    * @retval true if value is not nntrainer::WeightRegularizer::UNKNOWN
    * @retval false if value is nntrainer::WeightRegularizer::UNKNOWN
    */
-  bool isValid(const nntrainer::WeightRegularizer &value) const override;
+  NNTR_API bool
+  isValid(const nntrainer::WeightRegularizer &value) const override;
 };
 
 /**
@@ -1157,7 +1158,7 @@ public:
   /**
    * @brief Construct a WeightRegularizer object
    */
-  WeightRegularizer(
+  NNTR_API WeightRegularizer(
     nntrainer::WeightRegularizer value = nntrainer::WeightRegularizer::NONE);
   static constexpr const char *key = "weight_regularizer";
 };
@@ -1240,8 +1241,8 @@ struct FlipDirectionInfo {
  */
 class FlipDirection final : public EnumProperty<FlipDirectionInfo> {
 public:
-  FlipDirection(FlipDirectionInfo::Enum value =
-                  FlipDirectionInfo::Enum::horizontal_and_vertical);
+  NNTR_API FlipDirection(FlipDirectionInfo::Enum value =
+                           FlipDirectionInfo::Enum::horizontal_and_vertical);
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "flip_direction";
 };
@@ -1289,7 +1290,7 @@ public:
    *
    * @param value value to set
    */
-  void set(const TensorDim &value) override;
+  NNTR_API void set(const TensorDim &value) override;
 };
 
 /**
@@ -1316,7 +1317,7 @@ public:
    * @brief Construct a new ScaledDotProduct object
    *
    */
-  ScaledDotProduct(bool value = false);
+  NNTR_API ScaledDotProduct(bool value = false);
   static constexpr const char *key = "scaled_dot_product";
   using prop_tag = bool_prop_tag;
 };
@@ -1331,7 +1332,7 @@ public:
    * @brief Construct a new CausalMask object
    *
    */
-  CausalMask(bool value = false);
+  NNTR_API CausalMask(bool value = false);
   static constexpr const char *key = "causal_mask";
   using prop_tag = bool_prop_tag;
 };
@@ -1346,7 +1347,7 @@ public:
    * @brief Construct a new Print object
    *
    */
-  Print(bool value = false) { set(value); }
+  NNTR_API Print(bool value = false) { set(value); }
   static constexpr const char *key = "print";
   using prop_tag = bool_prop_tag;
 };
@@ -1371,7 +1372,7 @@ public:
    * @brief Construct a new NumHeads object with default value 1
    *
    */
-  NumHeads(unsigned int value = 1);
+  NNTR_API NumHeads(unsigned int value = 1);
   static constexpr const char *key = "num_heads"; /**< unique key to access */
   using prop_tag = uint_prop_tag;                 /**< property type */
 };
@@ -1445,8 +1446,8 @@ public:
    * @brief Construct a new ReturnAttentionWeight object
    *
    */
-  ReturnAttentionWeight(ReturnAttentionWeightInfo::Enum value =
-                          ReturnAttentionWeightInfo::Enum::none);
+  NNTR_API ReturnAttentionWeight(ReturnAttentionWeightInfo::Enum value =
+                                   ReturnAttentionWeightInfo::Enum::none);
 };
 
 /**
@@ -1509,7 +1510,7 @@ public:
    * @retval true if it is Not 0
    * @retval false if it is 0
    */
-  bool isValid(const float &value) const override;
+  NNTR_API bool isValid(const float &value) const override;
 };
 
 /**
@@ -1581,7 +1582,7 @@ public:
  */
 class PropsUserData final : public Property<void *> {
 public:
-  PropsUserData(void *user_data);
+  NNTR_API PropsUserData(void *user_data);
   static constexpr const char *key = "user_data";
   using prop_tag = ptr_prop_tag;
 };
@@ -1640,6 +1641,7 @@ public:
    * @brief Construct a new ReturnAttentionWeight object
    *
    */
+  NNTR_API
   TensorLife(TensorLifeInfo::Enum value = TensorLifeInfo::Enum::MAX_LIFESPAN) {
     set(value);
   };

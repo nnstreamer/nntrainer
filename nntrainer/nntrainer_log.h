@@ -55,29 +55,38 @@
 #else /* Linux distro */
 #include <nntrainer_logger.h>
 
-#if !defined(ml_logi)
-#define ml_logi(format, ...)                                                \
-  __nntrainer_log_print(NNTRAINER_LOG_INFO, "(%s:%s:%d) " format, __FILE__, \
-                        __func__, __LINE__, ##__VA_ARGS__)
-#endif
 
-#if !defined(ml_logw)
-#define ml_logw(format, ...)                                                \
-  __nntrainer_log_print(NNTRAINER_LOG_WARN, "(%s:%s:%d) " format, __FILE__, \
-                        __func__, __LINE__, ##__VA_ARGS__)
-#endif
+#define ml_logi(...) 
 
-#if !defined(ml_loge)
-#define ml_loge(format, ...)                                                 \
-  __nntrainer_log_print(NNTRAINER_LOG_ERROR, "(%s:%s:%d) " format, __FILE__, \
-                        __func__, __LINE__, ##__VA_ARGS__)
-#endif
+#define ml_logw(...) 
 
-#if !defined(ml_logd)
-#define ml_logd(format, ...)                                                 \
-  __nntrainer_log_print(NNTRAINER_LOG_DEBUG, "(%s:%s:%d) " format, __FILE__, \
-                        __func__, __LINE__, ##__VA_ARGS__)
-#endif
+#define ml_loge(...) 
+
+#define ml_logd(...) 
+
+// #if !defined(ml_logi)
+// #define ml_logi(format, ...)                                                \
+//   __nntrainer_log_print(NNTRAINER_LOG_INFO, "(%s:%s:%d) " format, __FILE__, \
+//                         __func__, __LINE__, ##__VA_ARGS__)
+// #endif
+
+// #if !defined(ml_logw)
+// #define ml_logw(format, ...)                                                \
+//   __nntrainer_log_print(NNTRAINER_LOG_WARN, "(%s:%s:%d) " format, __FILE__, \
+//                         __func__, __LINE__, ##__VA_ARGS__)
+// #endif
+
+// #if !defined(ml_loge)
+// #define ml_loge(format, ...)                                                 \
+//   __nntrainer_log_print(NNTRAINER_LOG_ERROR, "(%s:%s:%d) " format, __FILE__, \
+//                         __func__, __LINE__, ##__VA_ARGS__)
+// #endif
+
+// #if !defined(ml_logd)
+// #define ml_logd(format, ...)                                                 \
+//   __nntrainer_log_print(NNTRAINER_LOG_DEBUG, "(%s:%s:%d) " format, __FILE__, \
+//                         __func__, __LINE__, ##__VA_ARGS__)
+// #endif
 
 #endif
 

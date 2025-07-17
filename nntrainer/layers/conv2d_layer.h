@@ -33,62 +33,64 @@ public:
   /**
    * @brief     Constructor of Conv 2D Layer
    */
-  Conv2DLayer(const std::array<unsigned int, CONV2D_DIM * 2> &padding_ = {
-                0, 0, 0, 0});
+  NNTR_API Conv2DLayer(
+    const std::array<unsigned int, CONV2D_DIM * 2> &padding_ = {0, 0, 0, 0});
 
   /**
    * @brief     Destructor of Conv 2D Layer
    */
-  ~Conv2DLayer() = default;
+  NNTR_API ~Conv2DLayer() = default;
 
   /**
    *  @brief  Move constructor of Conv 2D Layer.
    *  @param[in] Conv2dLayer &&
    */
-  Conv2DLayer(Conv2DLayer &&rhs) noexcept = default;
+  NNTR_API Conv2DLayer(Conv2DLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs Conv2DLayer to be moved.
    */
-  Conv2DLayer &operator=(Conv2DLayer &&rhs) = default;
+  NNTR_API Conv2DLayer &operator=(Conv2DLayer &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) override;
+  NNTR_API void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  NNTR_API void forwarding(RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  NNTR_API void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::calcGradient(RunLayerContext &context)
    */
-  void calcGradient(RunLayerContext &context) override;
+  NNTR_API void calcGradient(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override;
+  NNTR_API void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return Conv2DLayer::type; };
+  NNTR_API const std::string getType() const override {
+    return Conv2DLayer::type;
+  };
 
   /**
    * @copydoc Layer::supportBackwarding()
    */
-  bool supportBackwarding() const override { return true; }
+  NNTR_API bool supportBackwarding() const override { return true; }
 
   using Layer::setProperty;
 
@@ -96,7 +98,7 @@ public:
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
    * &value)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_API void setProperty(const std::vector<std::string> &values) override;
 
   /* TO DO : support keras type of padding */
   /* enum class PaddingType { */

@@ -28,32 +28,32 @@ public:
   /**
    * @brief     Constructor of Constant Loss Layer
    */
-  ConstantDerivativeLossLayer();
+  NNTR_API ConstantDerivativeLossLayer();
 
   /**
    * @brief     Destructor of MSE Loss Layer
    */
-  ~ConstantDerivativeLossLayer();
+  NNTR_API ~ConstantDerivativeLossLayer();
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_API void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  NNTR_API void forwarding(RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  NNTR_API void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override {
+  NNTR_API const std::string getType() const override {
     return ConstantDerivativeLossLayer::type;
   };
 

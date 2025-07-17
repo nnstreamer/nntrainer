@@ -35,14 +35,14 @@ public:
    * @param start_connections start layers
    * @param end_connections end layers
    */
-  SliceRealizer(const std::vector<Connection> &start_connections,
+  NNTR_API SliceRealizer(const std::vector<Connection> &start_connections,
                 const std::vector<Connection> &end_connections);
 
   /**
    * @brief Destroy the Graph Realizer object
    *
    */
-  ~SliceRealizer();
+  NNTR_API ~SliceRealizer();
 
   /**
    * @brief graph realizer creates a new graph based on the reference
@@ -51,7 +51,7 @@ public:
    * @throw std::invalid_argument if created GraphRepresentation is empty
    *
    */
-  GraphRepresentation realize(const GraphRepresentation &reference) override;
+  NNTR_API GraphRepresentation realize(const GraphRepresentation &reference) override;
 
 private:
   std::vector<std::string> start_layers;

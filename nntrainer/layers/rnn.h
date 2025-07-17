@@ -30,72 +30,74 @@ public:
   /**
    * @brief     Constructor of RNNLayer
    */
-  RNNLayer();
+  NNTR_API RNNLayer();
 
   /**
    * @brief     Destructor of RNNLayer
    */
-  ~RNNLayer() = default;
+  NNTR_API ~RNNLayer() = default;
 
   /**
    *  @brief  Move constructor.
    *  @param[in] RNNLayer &&
    */
-  RNNLayer(RNNLayer &&rhs) noexcept = default;
+  NNTR_API RNNLayer(RNNLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs RNNLayer to be moved.
    */
-  RNNLayer &operator=(RNNLayer &&rhs) = default;
+  NNTR_API RNNLayer &operator=(RNNLayer &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) override;
+  NNTR_API void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(RunLayerContext &context, bool training) override;
+  NNTR_API void forwarding(RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) override;
+  NNTR_API void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::calcGradient(RunLayerContext &context)
    */
-  void calcGradient(RunLayerContext &context) override;
+  NNTR_API void calcGradient(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override;
+  NNTR_API void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return RNNLayer::type; };
+  NNTR_API const std::string getType() const override {
+    return RNNLayer::type;
+  };
 
   /**
    * @copydoc Layer::supportBackwarding()
    */
-  bool supportBackwarding() const override { return true; }
+  NNTR_API bool supportBackwarding() const override { return true; }
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
    * &value)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_API void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
    */
-  void setBatch(RunLayerContext &context, unsigned int batch) override;
+  NNTR_API void setBatch(RunLayerContext &context, unsigned int batch) override;
 
   static constexpr const char *type = "rnn";
 

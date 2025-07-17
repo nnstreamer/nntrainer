@@ -30,7 +30,7 @@ public:
   /**
    * @brief Constructor of Sine Layer
    */
-  SineLayer() :
+  NNTR_API SineLayer() :
     UnaryOperationLayer(),
     sine_props(props::Print(), props::InPlaceProp()),
     support_backwarding(true) {}
@@ -38,24 +38,24 @@ public:
   /**
    * @brief Destructor of Sine Layer
    */
-  ~SineLayer(){};
+  NNTR_API ~SineLayer(){};
 
   /**
    *  @brief  Move constructor of Sine Layer.
    *  @param[in] SineLayer &&
    */
-  SineLayer(SineLayer &&rhs) noexcept = default;
+  NNTR_API SineLayer(SineLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs SineLayer to be moved.
    */
-  SineLayer &operator=(SineLayer &&rhs) = default;
+  NNTR_API SineLayer &operator=(SineLayer &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) final;
+  NNTR_API void finalize(InitLayerContext &context) final;
 
   /**
    * @brief forwarding operation for sine
@@ -63,23 +63,25 @@ public:
    * @param input input tensor
    * @param hidden tensor to store the result value
    */
-  void forwarding_operation(const Tensor &input, Tensor &hidden) final;
+  NNTR_API void forwarding_operation(const Tensor &input, Tensor &hidden) final;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) final;
+  NNTR_API void calcDerivative(RunLayerContext &context) final;
 
   /**
    * @copydoc bool supportBackwarding() const
    */
-  bool supportBackwarding() const final { return support_backwarding; };
+  NNTR_API bool supportBackwarding() const final {
+    return support_backwarding;
+  };
 
   /**
    * @brief Initialize the in-place settings of the layer
    * @return InPlaceType
    */
-  InPlaceType initializeInPlace() final {
+  NNTR_API InPlaceType initializeInPlace() final {
     auto inplace_prop = std::get<props::InPlaceProp>(sine_props);
     is_inplace = !inplace_prop.empty() && inplace_prop.get();
     support_backwarding = !is_inplace;
@@ -90,18 +92,18 @@ public:
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const final {}
+  NNTR_API void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const final {}
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  void setProperty(const std::vector<std::string> &values) final;
+  NNTR_API void setProperty(const std::vector<std::string> &values) final;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const final { return SineLayer::type; };
+  NNTR_API const std::string getType() const final { return SineLayer::type; };
 
   std::tuple<props::Print, props::InPlaceProp> sine_props;
   bool support_backwarding; /**< support backwarding */

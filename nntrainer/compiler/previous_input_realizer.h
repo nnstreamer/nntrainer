@@ -34,19 +34,19 @@ public:
    * @param identified_inputs node that is identified as an input, this must not
    * connect to other nodes automatically
    */
-  PreviousInputRealizer(const std::vector<Connection> &identified_inputs);
+  NNTR_API PreviousInputRealizer(const std::vector<Connection> &identified_inputs);
 
   /**
    * @brief Destroy the Graph Realizer object
    *
    */
-  ~PreviousInputRealizer();
+  NNTR_API ~PreviousInputRealizer();
 
   /**
    * @brief graph realizer creates a new graph based on the reference
    *
    */
-  GraphRepresentation realize(const GraphRepresentation &reference) override;
+  NNTR_API GraphRepresentation realize(const GraphRepresentation &reference) override;
 
 private:
   std::vector<Connection> identified_inputs; /**< inputs are identified */

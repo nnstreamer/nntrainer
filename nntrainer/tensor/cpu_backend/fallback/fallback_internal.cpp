@@ -26,10 +26,7 @@
     float y0;                                                                  \
     unsigned int i, j;                                                         \
     for (ci = 0; ci != cM; ci++) {                                             \
-      y0 = 0.0f;                                                               \
-      if (beta != 0.0f) {                                                      \
-        y0 = Y[ci * incY] * beta;                                              \
-      }                                                                        \
+      y0 = Y[ci * incY] * beta;                                                \
       for (cj = 0; cj != cN; cj++)                                             \
         y0 += A[i + j * lda] * X[cj * incX];                                   \
       Y[ci * incY] = y0;                                                       \
@@ -201,9 +198,8 @@ void __fallback_sgemm(const unsigned int TStorageOrder, bool TransA,
         c += a * b;
       }
       C[m * ldc + n] = alpha * c;
-      if (beta != 0.0f) {
+      if (beta != 0.0)
         C[m * ldc + n] += beta * c_old;
-      }
     }
   }
 }
@@ -262,7 +258,7 @@ void __fallback_ele_mul(const unsigned int N, const float *X, const float *Y,
                         float *Z, float alpha, float beta,
                         unsigned int i_stride, unsigned int o_stride) {
   for (unsigned int i = 0; i < N; ++i) {
-    *Z = *X * alpha * *Y + ((0.0f == beta) ? 0.0f : beta * *Z);
+    *Z = *X * alpha * *Y + beta * *Z;
     X += o_stride;
     Y += i_stride;
     Z += o_stride;
@@ -273,7 +269,7 @@ void __fallback_ele_add(const unsigned int N, const float *X, const float *Y,
                         float *Z, float alpha, float beta,
                         unsigned int i_stride, unsigned int o_stride) {
   for (unsigned int i = 0; i < N; ++i) {
-    *Z = *X + alpha * *Y + ((0.0f == beta) ? 0.0f : beta * *Z);
+    *Z = *X + alpha * *Y + beta * *Z;
     X += o_stride;
     Y += i_stride;
     Z += o_stride;
@@ -284,7 +280,7 @@ void __fallback_ele_sub(const unsigned N, const float *X, const float *Y,
                         float *Z, float alpha, float beta,
                         unsigned int i_stride, unsigned int o_stride) {
   for (unsigned int i = 0; i < N; ++i) {
-    *Z = *X - alpha * *Y + ((0.0f == beta) ? 0.0f : beta * *Z);
+    *Z = *X - alpha * *Y + beta * *Z;
     X += o_stride;
     Y += i_stride;
     Z += o_stride;
@@ -295,7 +291,7 @@ void __fallback_ele_div(const unsigned N, const float *X, const float *Y,
                         float *Z, float alpha, float beta,
                         unsigned int i_stride, unsigned int o_stride) {
   for (unsigned int i = 0; i < N; ++i) {
-    *Z = *X / (alpha * *Y) + ((0.0f == beta) ? 0.0f : beta * *Z);
+    *Z = *X / (alpha * *Y) + beta * *Z;
     X += o_stride;
     Y += i_stride;
     Z += o_stride;

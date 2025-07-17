@@ -40,12 +40,12 @@ public:
    * @param input_dims input dimension
    * @param label_dims label dimension
    */
-  Iteration(const std::vector<ml::train::TensorDim> &input_dims,
-            const std::vector<ml::train::TensorDim> &label_dims);
+  NNTR_API Iteration(const std::vector<ml::train::TensorDim> &input_dims,
+                     const std::vector<ml::train::TensorDim> &label_dims);
 
   Iteration(const Iteration &rhs) = delete;
   Iteration &operator=(const Iteration &rhs) = delete;
-  Iteration(Iteration &&rhs) = default;
+  NNTR_API Iteration(Iteration &&rhs) = default;
   Iteration &operator=(Iteration &&rhs) = default;
 
   /**
@@ -53,76 +53,80 @@ public:
    *
    * @return unsigned int batch size
    */
-  unsigned int batch();
+  NNTR_API unsigned int batch();
 
   /**
    * @brief Get the Input Reference object
    *
    * @return std::vector<Tensor>& input
    */
-  std::vector<Tensor> &getInputsRef() { return inputs; }
+  NNTR_API std::vector<Tensor> &getInputsRef() { return inputs; }
 
   /**
    * @brief Get the Input Reference object
    *
    * @return const std::vector<Tensor>& input
    */
-  const std::vector<Tensor> &getInputsRef() const { return inputs; }
+  NNTR_API const std::vector<Tensor> &getInputsRef() const { return inputs; }
 
   /**
    * @brief Get the Label Reference object
    *
    * @return std::vector<Tensor>&  label
    */
-  std::vector<Tensor> &getLabelsRef() { return labels; }
+  NNTR_API std::vector<Tensor> &getLabelsRef() { return labels; }
 
   /**
    * @brief Get the Label Reference object
    *
    * @return const std::vector<Tensor>&  label
    */
-  const std::vector<Tensor> &getLabelsRef() const { return labels; }
+  NNTR_API const std::vector<Tensor> &getLabelsRef() const { return labels; }
 
   /**
    * @brief get sample iterator begin()
    *
    * @return std::vector<Sample>::iterator
    */
-  std::vector<Sample>::iterator begin() { return samples.begin(); }
+  NNTR_API std::vector<Sample>::iterator begin() { return samples.begin(); }
 
   /**
    * @brief get sample iterator end
    *
    * @return std::vector<Sample>::iterator
    */
-  std::vector<Sample>::iterator end() { return end_iterator; }
+  NNTR_API std::vector<Sample>::iterator end() { return end_iterator; }
 
   /**
    * @brief get sample iterator begin
    *
    * @return std::vector<Sample>::const_iterator
    */
-  std::vector<Sample>::const_iterator begin() const { return samples.begin(); }
+  NNTR_API std::vector<Sample>::const_iterator begin() const {
+    return samples.begin();
+  }
 
   /**
    * @brief get sample iterator end
    *
    * @return std::vector<Sample>::const_iterator
    */
-  std::vector<Sample>::const_iterator end() const { return end_iterator; }
+  NNTR_API std::vector<Sample>::const_iterator end() const {
+    return end_iterator;
+  }
 
   /**
    * @brief set end of the sample which will be used to calculate the batch size
    * @note @a iteration must be non-inclusive
    *
    */
-  void setEndSample(std::vector<Sample>::iterator sample_iterator);
+  NNTR_API void setEndSample(std::vector<Sample>::iterator sample_iterator);
 
   /**
    * @brief Set the End Sample to the original end
    *
    */
-  void setEndSample();
+  NNTR_API void setEndSample();
 
 private:
   std::vector<Tensor> inputs, labels;
@@ -144,11 +148,11 @@ public:
    * @param iter iteration objects
    * @param batch nth batch to create the sample
    */
-  Sample(const Iteration &iter, unsigned int batch);
+  NNTR_API Sample(const Iteration &iter, unsigned int batch);
 
   Sample(const Sample &rhs) = delete;
   Sample &operator=(const Sample &rhs) = delete;
-  Sample(Sample &&rhs) = default;
+  NNTR_API Sample(Sample &&rhs) = default;
   Sample &operator=(Sample &&rhs) = default;
 
   /**
@@ -156,28 +160,28 @@ public:
    *
    * @return std::vector<Tensor>& input
    */
-  std::vector<Tensor> &getInputsRef() { return inputs; }
+  NNTR_API std::vector<Tensor> &getInputsRef() { return inputs; }
 
   /**
    * @brief Get the Input Reference object
    *
    * @return const std::vector<Tensor>& input
    */
-  const std::vector<Tensor> &getInputsRef() const { return inputs; }
+  NNTR_API const std::vector<Tensor> &getInputsRef() const { return inputs; }
 
   /**
    * @brief Get the Label Reference object
    *
    * @return std::vector<Tensor>&  label
    */
-  std::vector<Tensor> &getLabelsRef() { return labels; }
+  NNTR_API std::vector<Tensor> &getLabelsRef() { return labels; }
 
   /**
    * @brief Get the Label Reference object
    *
    * @return const std::vector<Tensor>&  label
    */
-  const std::vector<Tensor> &getLabelsRef() const { return labels; }
+  NNTR_API const std::vector<Tensor> &getLabelsRef() const { return labels; }
 
 private:
   std::vector<Tensor> inputs, labels;

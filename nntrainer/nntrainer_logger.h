@@ -28,6 +28,12 @@
 #include <mutex>
 #include <string>
 
+#if defined(_WIN32)
+#define NNTR_API __declspec(dllexport)
+#else
+#define NNTR_API
+#endif
+
 /**
  * @brief     Log Level of NNtrainer
  *            0. informations
@@ -64,18 +70,20 @@ public:
    * @brief     Logging Instance Function. Get a lock and create Logger if it
    * is null;
    */
-  static Logger &instance();
+  NNTR_API static Logger &instance();
 
   /**
    * @brief     Logging member function for logging messages.
    */
-  void log(const std::string &message,
-           const nntrainer_loglevel loglevel = NNTRAINER_LOG_INFO);
+  NNTR_API void log(const std::string &message,
+                    const nntrainer_loglevel loglevel = NNTRAINER_LOG_INFO);
 
   /**
    * @brief     Set timestamp type
    */
-  void setTimeStampType(nntrainer_log_timestamp type) { ts_type = type; }
+  NNTR_API void setTimeStampType(nntrainer_log_timestamp type) {
+    ts_type = type;
+  }
 
 protected:
   /**
@@ -149,8 +157,8 @@ extern "C" {
 /**
  * @brief     Interface function for C
  */
-void __nntrainer_log_print(nntrainer_loglevel loglevel,
-                           const std::string format, ...);
+NNTR_API void __nntrainer_log_print(nntrainer_loglevel loglevel,
+                                    const std::string format, ...);
 
 #ifdef __cplusplus
 }

@@ -12,9 +12,7 @@
  */
 
 #include <cblas.h>
-#ifdef USE_BLAS
 #include <cblas_interface.h>
-#endif
 
 namespace nntrainer {
 void __cblas_saxpy(const unsigned int N, const float alpha, const float *X,

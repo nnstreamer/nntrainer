@@ -526,7 +526,7 @@ void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z,
   } else {
     // TODO: AVX2 implementation if used
     for (unsigned int i = 0; i < N; ++i) {
-      *Z = *X * alpha * *Y + ((0.0f == beta) ? 0.0f : beta * *Z);
+      *Z = *X * alpha * *Y + beta * *Z;
       X += o_stride;
       Y += i_stride;
       Z += o_stride;
@@ -570,7 +570,7 @@ void ele_add(const unsigned int N, const float *X, const float *Y, float *Z,
   } else {
     // TODO: AVX2 implementation if used
     for (unsigned int i = 0; i < N; ++i) {
-      *Z = *X + alpha * *Y + ((0.0f == beta) ? 0.0f : beta * *Z);
+      *Z = *X + alpha * *Y + beta * *Z;
       X += o_stride;
       Y += i_stride;
       Z += o_stride;

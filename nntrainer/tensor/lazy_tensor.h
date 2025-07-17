@@ -31,63 +31,63 @@ public:
    * @brief Constructor of Lazy Tensor, Tensor is copied to gaurantee
    * immutability
    */
-  LazyTensor(const Tensor &from) { target.copy(from); };
+  NNTR_API LazyTensor(const Tensor &from) { target.copy(from); };
 
   /**
    * @brief     Wrapper method of add_i. see tensor.h for more detail
    * @param[in] value to be added
    * @retval    LazyTensor *this
    */
-  LazyTensor &add_i(float const &value);
+  NNTR_API LazyTensor &add_i(float const &value);
 
   /**
    * @brief     Wrapper method of add_i. see tensor.h for more detail
    * @param[in] m Tensor to be added
    * @retval    LazyTensor *this
    */
-  LazyTensor &add_i(Tensor const &m, float const alpha = 1);
+  NNTR_API LazyTensor &add_i(Tensor const &m, float const alpha = 1);
 
   /**
    * @brief     Wrapper method of subtract_i. see tensor.h for more detail
    * @param[in] m Tensor to subtract
    * @retval    LazyTensor *this
    */
-  LazyTensor &subtract_i(Tensor const &m);
+  NNTR_API LazyTensor &subtract_i(Tensor const &m);
 
   /**
    * @brief     Wrapper method of subtract_i. see tensor.h for more detail
    * @param[in] value value to subtract
    * @retval    LazyTensor *this
    */
-  LazyTensor &subtract_i(float const &value);
+  NNTR_API LazyTensor &subtract_i(float const &value);
 
   /**
    * @brief Wrapper method of multiply_i. see tensor.h for more detail
    * @param[in] value to be added
    * @retval LazyTensor *this
    */
-  LazyTensor &multiply_i(float const &value);
+  NNTR_API LazyTensor &multiply_i(float const &value);
 
   /**
    * @brief     Wrapper method of multiply_i. see tensor.h for more detail
    * @param[in] m Tensor to be multiplied
    * @retval    LazyTensor *this
    */
-  LazyTensor &multiply_i(Tensor const &m);
+  NNTR_API LazyTensor &multiply_i(Tensor const &m);
 
   /**
    * @brief     Wrapper method of divide_i. see tensor.h for more detail
    * @param[in] value divisor
    * @retval    LazyTensor *this
    */
-  LazyTensor &divide_i(float const &value);
+  NNTR_API LazyTensor &divide_i(float const &value);
 
   /**
    * @brief     Wrapper method of divide_i. see tensor.h for more detail
    * @param[in] m Tensor to for division
    * @retval    LazyTensor *this
    */
-  LazyTensor &divide_i(Tensor const &m);
+  NNTR_API LazyTensor &divide_i(Tensor const &m);
 
   /**
    * @brief     Wrapper method of dot. see tensor.h for more detail (memcopy
@@ -95,7 +95,7 @@ public:
    * @param[in] m Tensor
    * @retval    LazyTensor *this
    */
-  LazyTensor &dot(Tensor const &m);
+  NNTR_API LazyTensor &dot(Tensor const &m);
 
   /**
    * @brief     Wrapper method of transpose. see tensor.h for more detail
@@ -103,14 +103,14 @@ public:
    * @param[in] direction to transpose ex) 0:2:1
    * @retval    LazyTensor *this
    */
-  LazyTensor &transpose(std::string direction);
+  NNTR_API LazyTensor &transpose(std::string direction);
 
   /**
    * @brief     Wrapper method of sum_by_batch. see tensor.h for more detail
    * (memcopy happens)
    * @retval    LazyTensor *this
    */
-  LazyTensor &sum_by_batch();
+  NNTR_API LazyTensor &sum_by_batch();
 
   /**
    * @brief     Wrapper method of sum. see tensor.h for more detail (memcopy
@@ -118,7 +118,7 @@ public:
    * width direction
    * @retval    LazyTensor *this
    */
-  LazyTensor &sum(int axis);
+  NNTR_API LazyTensor &sum(int axis);
 
   /**
    * @brief     Wrapper method of average. see tensor.h for more detail (memcopy
@@ -126,20 +126,20 @@ public:
    * width direction
    * @retval    LazyTensor *this
    */
-  LazyTensor &average(int axis);
+  NNTR_API LazyTensor &average(int axis);
 
   /**
    * @brief     Wrapper method of average. see tensor.h for more detail (memcopy
    * happens)
    * @retval    LazyTensor *this
    */
-  LazyTensor &average();
+  NNTR_API LazyTensor &average();
 
   /**
    * @brief execute the call_chain to get the tensor
    * @retval calculated tensor
    */
-  Tensor run();
+  NNTR_API Tensor run();
 
 private:
   /**< handle the data as a std::vector type */

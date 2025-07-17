@@ -17,7 +17,11 @@
 #include <float_tensor.h>
 #include <tensor.h>
 #include <util_func.h>
+#include <chrono>
 
+#ifdef ENABLE_OPENCL
+#include "blas_kernels.h"
+#endif
 namespace nntrainer {
 
 FloatTensor::FloatTensor(std::string name_, Tformat fm) :
@@ -65,11 +69,41 @@ void FloatTensor::allocate() {
     /// allocate new memory for the tensor data
     MemoryData *mem_data;
 
-    mem_data = new MemoryData((void *)(new float[dim.getDataLen()]{}));
+/*#ifdef ENABLE_OPENCL
+    auto *blas_cc =
+      static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+    if (blas_cc != nullptr) {
+      auto start_time = std::chrono::high_resolution_clock::now();
+      mem_data = new MemoryData(blas_cc->context_inst_.createSVMRegion(
+        dim.getDataLen() * sizeof(float)));
+
+      data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
+        auto *blas_cc = static_cast<ClContext *>(
+          Engine::Global().getRegisteredContext("gpu"));
+        blas_cc->context_inst_.releaseSVMRegion(
+          mem_data->template getAddr<float>());
+      });
+
+      blas_cc->command_queue_inst_.enqueueSVMMap(
+        mem_data->template getAddr<float>(), dim.getDataLen() * sizeof(float),
+        false);
+      auto end_time = std::chrono::high_resolution_clock::now();
+      auto ms = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time).count();
+      std::cout <<"******* alloc with cl: "<< ms<<" ns\n"<<std::endl;
+    } else {
+      mem_data = new MemoryData((void *)(new float[dim.getDataLen()]{}));
+      data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
+        delete[] mem_data->template getAddr<float>();
+        delete mem_data;
+      });
+    }
+#else*/
+    mem_data = new MemoryData((void *)(new float[dim.getDataLen()]));
     data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
       delete[] mem_data->template getAddr<float>();
       delete mem_data;
     });
+//#endif
 
     offset = 0;
     initialize();
@@ -737,8 +771,7 @@ Tensor &FloatTensor::dotFloat(Tensor const &input, Tensor &output, bool trans,
   /// (1 * K) X (1 * M) can be a case
   /// case1: (1 * K) X (K * 1)
   if (M == 1 && N == 1) {
-    *rdata =
-      sdot(K, data, 1, mdata, 1) + ((0.0f == beta) ? 0.0f : beta * *rdata);
+    *rdata = sdot(K, data, 1, mdata, 1) + beta * (*rdata);
   }
   /// case2: (M * K) X (K * 1)
   else if (N == 1) {
@@ -767,8 +800,8 @@ Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
   NNTR_THROW_IF(trans || trans_in, std::invalid_argument)
     << "dotQnK does not support trans / trans_in";
 
-  const float *data = (float *)getData();
-  const uint8_t *mdata = input.getData<uint8_t>();
+  float *data = (float *)getData();
+  uint8_t *mdata = input.getData<uint8_t>();
   float *rdata = output.getData<float>();
 
   unsigned int M, N, K;
@@ -784,7 +817,11 @@ Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
     M = getDim().height();
     K = getDim().width();
     N = input.getDim().height();
+#ifdef ENABLE_OPENCL
+    sgemv_q6_k_cl((void *)mdata, data, rdata, K, N);
+#else
     gemm_q6_K(M, N, K, data, K, (void *)mdata, N, rdata, N);
+#endif
     break;
   default:
     throw std::invalid_argument("Error: unsupported datatype");
@@ -880,73 +917,6 @@ std::vector<unsigned int> FloatTensor::argmin() const {
     result[b] = std::distance(data, min_iter) - (b * feature_len);
   }
   return result;
-}
-
-void FloatTensor::topK(unsigned int k, void *output_data,
-                       uint32_t *indices_data) {
-  const auto &input_dim = getDim();
-  const Tformat format = input_dim.getFormat();
-  const auto batch = input_dim.batch();
-  const auto channel = input_dim.channel();
-  const auto height = input_dim.height();
-  const auto width = input_dim.width();
-
-  if (k == 0 || k > width) {
-    throw std::invalid_argument(
-      "k must be greater than 0 and less than or equal to width");
-  }
-
-  float *output_buffer = static_cast<float *>(output_data);
-
-  // Calculate strides for input and output
-  const auto input_strides = input_dim.computeStrides();
-  TensorDim output_dim = input_dim;
-  output_dim.width(k);
-  const auto output_strides = output_dim.computeStrides();
-
-#pragma omp parallel for collapse(3)
-  for (int b = 0; b < static_cast<int>(batch); ++b) {
-    for (int c = 0; c < static_cast<int>(channel); ++c) {
-      for (int h = 0; h < static_cast<int>(height); ++h) {
-
-        size_t offset;
-        if (format == Tformat::NCHW) {
-          // NCHW: [b][c][h][i]
-          offset =
-            b * input_strides[0] + c * input_strides[1] + h * input_strides[2];
-        } else {
-          // NHWC: [b][h][i][c]
-          offset = b * input_strides[0] + h * input_strides[1] + c;
-        }
-
-        const unsigned int width_stride =
-          format == Tformat::NHWC ? input_strides[2] : 1;
-        const float *B = static_cast<const float *>(getData()) + offset;
-        std::vector<size_t> idx(width);
-        std::iota(idx.begin(), idx.end(), 0);
-        std::partial_sort(idx.begin(), idx.begin() + k, idx.end(),
-                          [&B, width_stride](size_t i1, size_t i2) {
-                            return B[i1 * width_stride] > B[i2 * width_stride];
-                          });
-
-        // write top-k values and their indices to output
-        for (unsigned int i = 0; i < k; ++i) {
-          size_t output_idx;
-          if (format == Tformat::NCHW) {
-            // NCHW: [b][c][h][i]
-            output_idx = b * output_strides[0] + c * output_strides[1] +
-                         h * output_strides[2] + i;
-          } else {
-            // NHWC: [b][h][i][c]
-            output_idx = b * output_strides[0] + h * output_strides[1] +
-                         i * output_strides[2] + c;
-          }
-          output_buffer[output_idx] = B[idx[i]];
-          indices_data[output_idx] = static_cast<uint32_t>(idx[i]);
-        }
-      }
-    }
-  }
 }
 
 float FloatTensor::max_abs() const {

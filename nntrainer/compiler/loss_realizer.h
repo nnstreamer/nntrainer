@@ -29,13 +29,13 @@ public:
    * @brief Construct a new Loss Realizer object
    *
    */
-  LossRealizer() = default;
+  NNTR_API LossRealizer() = default;
 
   /**
    * @brief Destroy the Graph Realizer object
    *
    */
-  ~LossRealizer() = default;
+  NNTR_API ~LossRealizer() = default;
 
   /**
    * @brief graph realizer creates a shallow copied graph based on the reference
@@ -43,7 +43,8 @@ public:
    * @param reference GraphRepresentation to be realized
    *
    */
-  GraphRepresentation realize(const GraphRepresentation &reference) override;
+  NNTR_API GraphRepresentation
+  realize(const GraphRepresentation &reference) override;
 };
 
 } // namespace nntrainer

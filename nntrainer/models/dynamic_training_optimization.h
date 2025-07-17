@@ -42,6 +42,12 @@
 #include <layer_devel.h>
 #include <tensor.h>
 
+#if defined(_WIN32)
+#define NNTR_API __declspec(dllexport)
+#else
+#define NNTR_API
+#endif
+
 namespace nntrainer {
 
 class Weight;
@@ -57,12 +63,13 @@ public:
   /**
    * @brief     Constructor of DynamicFineTuning Optimization
    */
-  DynamicTrainingOptimization(float threshold_ = 1.0f, int skip_n_iter = 1);
+  NNTR_API DynamicTrainingOptimization(float threshold_ = 1.0f,
+                                       int skip_n_iter = 1);
 
   /**
    * @brief     Set threshold for optimization
    */
-  void setThreshold(float threshold_) {
+  NNTR_API void setThreshold(float threshold_) {
     if (threshold_ < epsilon)
       throw std::invalid_argument("Threshold is too small or negative");
 
@@ -72,7 +79,7 @@ public:
   /**
    * @brief     Set the reduce operation for dynamic optimization
    */
-  void setOp(const std::string &op) {
+  NNTR_API void setOp(const std::string &op) {
     if (op == dft_opt_max)
       reduce_op = reduceByMax;
     else if (op == dft_opt_norm)
@@ -85,17 +92,17 @@ public:
   /**
    * @brief     Enable the optimization
    */
-  void enable() { enabled = true; }
+  NNTR_API void enable() { enabled = true; }
 
   /**
    * @brief     Disable the optimization
    */
-  void disable() { enabled = false; }
+  NNTR_API void disable() { enabled = false; }
 
   /**
    * @brief     Set the mode for optimization
    */
-  void setMode(const std::string &mode_) {
+  NNTR_API void setMode(const std::string &mode_) {
     calc_ratio_mode = mode_;
     if (mode_ == dft_opt_mode_derivative)
       calc_ratio_op = ratioUsingDerivative;
@@ -110,7 +117,7 @@ public:
    * @note Use the derivative to calculate an approximate gradient to estimate
    * if the actual gradient needs applying
    */
-  bool isDerivativeMode() {
+  NNTR_API bool isDerivativeMode() {
     if (enabled && calc_ratio_mode == dft_opt_mode_derivative)
       return true;
     return false;
@@ -120,7 +127,7 @@ public:
    * @brief     Check if the gradient mode is used for optimization
    * @note Use the gradient to estimate if this gradient needs applying
    */
-  bool isGradientMode() {
+  NNTR_API bool isGradientMode() {
     if (enabled && calc_ratio_mode == dft_opt_mode_gradient)
       return true;
     return false;
@@ -132,7 +139,9 @@ public:
    * will updated and dynamic training optimization will not be performed.
    *
    */
-  void setSkipIterations(int skip_n_iter) { skip_n_iterations = skip_n_iter; }
+  NNTR_API void setSkipIterations(int skip_n_iter) {
+    skip_n_iterations = skip_n_iter;
+  }
 
   /**
    * @brief     Check if the given weights can skip updating
@@ -143,11 +152,11 @@ public:
    * @param[in] iteration Current iteration number in training
    * @note true if should be applied, else false
    */
-  bool checkIfApply(const std::vector<Weight> &weights,
-                    const std::shared_ptr<Var_Grad> &input,
-                    const std::shared_ptr<Var_Grad> &output,
-                    const std::shared_ptr<OptimizerWrapped> &opt,
-                    int iteration);
+  NNTR_API bool checkIfApply(const std::vector<Weight> &weights,
+                             const std::shared_ptr<Var_Grad> &input,
+                             const std::shared_ptr<Var_Grad> &output,
+                             const std::shared_ptr<OptimizerWrapped> &opt,
+                             int iteration);
 
   /**
    * @brief     Check if the given weight can skip updating
@@ -158,19 +167,19 @@ public:
    * @param[in] iteration Current iteration number in training
    * @note true if should be applied, else false
    */
-  bool checkIfApply(const Weight &weight,
-                    const std::shared_ptr<Var_Grad> &input,
-                    const std::shared_ptr<Var_Grad> &output,
-                    const std::shared_ptr<OptimizerWrapped> &opt,
-                    int iteration);
+  NNTR_API bool checkIfApply(const Weight &weight,
+                             const std::shared_ptr<Var_Grad> &input,
+                             const std::shared_ptr<Var_Grad> &output,
+                             const std::shared_ptr<OptimizerWrapped> &opt,
+                             int iteration);
 
   /**< Different types of reduce operations */
-  static const std::string dft_opt_max;
-  static const std::string dft_opt_norm;
+  static constexpr const char *dft_opt_max = "max";
+  static constexpr const char *dft_opt_norm = "norm";
 
   /**< Different types of optimization modes */
-  static const std::string dft_opt_mode_gradient;
-  static const std::string dft_opt_mode_derivative;
+  static constexpr const char *dft_opt_mode_gradient = "gradient";
+  static constexpr const char *dft_opt_mode_derivative = "derivative";
 
 private:
   std::mt19937 rng; /**< random number generator */
@@ -196,7 +205,7 @@ private:
    * @param[in] output Output tensor for a layer, from forward operation
    * @param[in] reduce_op Operation to reduce the ratio
    */
-  static float
+  NNTR_API static float
   ratioUsingDerivative(const Weight &weight,
                        const std::shared_ptr<Var_Grad> &input,
                        const std::shared_ptr<Var_Grad> &output,
@@ -209,7 +218,7 @@ private:
    * @param[in] output Output tensor for a layer, from forward operation
    * @param[in] reduce_op Operation to reduce the ratio
    */
-  static float
+  NNTR_API static float
   ratioUsingGradient(const Weight &weight,
                      const std::shared_ptr<Var_Grad> &input,
                      const std::shared_ptr<Var_Grad> &output,
@@ -219,19 +228,19 @@ private:
    * @brief   Check if the update should be applied or skipped
    * @note true if should be applied, else false
    */
-  bool checkIfApply(float reduced_ratio, float learning_rate);
+  NNTR_API bool checkIfApply(float reduced_ratio, float learning_rate);
 
   /**
    * @brief     Operation to decide if update should be skipped
    * @note      Calculate l0 norm of the tensor
    */
-  static float reduceByMax(Tensor const &ratio);
+  NNTR_API static float reduceByMax(Tensor const &ratio);
 
   /**
    * @brief     Operation to decide if update should be skipped
    * @note      Calculate l2 norm of the tensor averaged by its size
    */
-  static float reduceByNorm(Tensor const &ratio);
+  NNTR_API static float reduceByNorm(Tensor const &ratio);
 };
 
 } /* namespace nntrainer */

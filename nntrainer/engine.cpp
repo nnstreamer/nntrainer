@@ -31,30 +31,33 @@ namespace nntrainer {
 
 std::mutex engine_mutex;
 
-std::once_flag global_engine_init_flag;
+static std::once_flag global_engine_init_flag;
 
 nntrainer::Context
   *Engine::nntrainerRegisteredContext[Engine::RegisterContextMax];
 
-void Engine::add_default_object(Engine &eg) {
+void Engine::add_default_object(Engine *eg) {
   /// @note all layers should be added to the app_context to guarantee that
   /// createLayer/createOptimizer class is created
+
+  //std::cout << "Engine::add_default_object, addr:" << (long long)&eg
+            //<< std::endl;
 
   nntrainer::AppContext *app_context = new nntrainer::AppContext();
   app_context->Global();
 
   init_backend(); // initialize cpu backend
-  eg.registerContext("cpu", app_context);
+  eg->registerContext("cpu", app_context);
 
 #ifdef ENABLE_OPENCL
   nntrainer::ClContext *cl_context = new nntrainer::ClContext();
   cl_context->Global();
 
-  eg.registerContext("gpu", cl_context);
+  eg->registerContext("gpu", cl_context);
 #endif
 }
 
-void Engine::registerer(Engine &eg) noexcept {
+void Engine::registerer(Engine *eg) noexcept {
   try {
     add_default_object(eg);
   } catch (std::exception &e) {
@@ -65,12 +68,20 @@ void Engine::registerer(Engine &eg) noexcept {
 };
 
 Engine &Engine::Global() {
-  static Engine instance;
+  static bool initialized = false;
+  static auto instance = std::make_unique<Engine>();
+
+  if (!initialized) {
+    registerer(instance.get());
+    initialized = true;
+  }
+  // std::cout << "instance ptr: " << (long long)&instance << std::endl;
+
   /// in g++ there is a bug that hangs up if caller throws,
   /// so registerer is noexcept although it'd better not
   /// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70298
-  std::call_once(global_engine_init_flag, registerer, std::ref(instance));
-  return instance;
+  // std::call_once(global_engine_init_flag, registerer, instance.get());
+  return *instance.get();
 }
 
 std::string

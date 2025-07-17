@@ -34,6 +34,12 @@
 #include <cl_context.h>
 #endif
 
+#if defined(_WIN32)
+#define NNTR_API __declspec(dllexport)
+#else
+#define NNTR_API
+#endif
+
 namespace nntrainer {
 
 extern std::mutex engine_mutex;
@@ -45,7 +51,7 @@ namespace {} // namespace
  */
 class Engine {
 protected:
-  static void registerer(Engine &eg) noexcept;
+  static void registerer(Engine *eg) noexcept;
 
   static const int RegisterContextMax = 16;
   static nntrainer::Context *nntrainerRegisteredContext[RegisterContextMax];
@@ -56,7 +62,7 @@ protected:
   /// let's not bother modify all the related functions, but waste
   /// a few words.
 
-  static void add_default_object(Engine &eg);
+  static void add_default_object(Engine *eg);
 
   void registerContext(std::string name, nntrainer::Context *context) {
     const std::lock_guard<std::mutex> lock(engine_mutex);
@@ -86,12 +92,12 @@ public:
   /**
    * @brief   Default constructor
    */
-  Engine() = default;
+  NNTR_API Engine() = default;
 
   /**
    * @brief   Default Destructor
    */
-  ~Engine() = default;
+  NNTR_API ~Engine() = default;
 
   /**
    * @brief Deleting copy constructor
@@ -127,8 +133,8 @@ public:
    * @throws std::invalid_parameter if library_path is invalid or library is
    * invalid
    */
-  int registerContext(const std::string &library_path,
-                      const std::string &base_path = "");
+  NNTR_API int registerContext(const std::string &library_path,
+                               const std::string &base_path = "");
 
   /**
    * @brief get registered a Context
@@ -138,7 +144,7 @@ public:
    * @return Context Pointer : for register Object factory, casting might be
    * needed.
    */
-  nntrainer::Context *getRegisteredContext(std::string name) const {
+  NNTR_API nntrainer::Context *getRegisteredContext(std::string name) const {
 
     std::transform(name.begin(), name.end(), name.begin(),
                    [](unsigned char c) { return std::tolower(c); });
@@ -150,6 +156,7 @@ public:
     return engines.at(name);
   }
 
+  NNTR_API
   std::unordered_map<std::string, std::shared_ptr<nntrainer::MemAllocator>>
   getAllocators() {
     return allocator;
@@ -161,7 +168,7 @@ public:
    *
    * @return Engine&
    */
-  static Engine &Global();
+  NNTR_API static Engine &Global();
 
   /**
    *
@@ -169,7 +176,8 @@ public:
    *  default is "cpu"
    * @return Context name
    */
-  std::string parseComputeEngine(const std::vector<std::string> &props) const;
+  NNTR_API std::string
+  parseComputeEngine(const std::vector<std::string> &props) const;
 
   /**
    * @brief Create an Layer Object with Layer name
@@ -178,7 +186,7 @@ public:
    * @param props property
    * @return unitque_ptr<T> unique pointer to the Layer object
    */
-  std::unique_ptr<nntrainer::Layer>
+  NNTR_API std::unique_ptr<nntrainer::Layer>
   createLayerObject(const std::string &type,
                     const std::vector<std::string> &properties = {}) const {
     auto ct = getRegisteredContext(parseComputeEngine(properties));
@@ -192,7 +200,7 @@ public:
    * @param props property
    * @return unitque_ptr<T> unique pointer to the Layer object
    */
-  std::unique_ptr<nntrainer::Layer>
+  NNTR_API std::unique_ptr<nntrainer::Layer>
   createLayerObject(const int int_key,
                     const std::vector<std::string> &properties = {}) const {
     auto ct = getRegisteredContext(parseComputeEngine(properties));
@@ -206,7 +214,7 @@ public:
    * @param props property
    * @return unitque_ptr<T> unique pointer to the Optimizer object
    */
-  std::unique_ptr<nntrainer::Optimizer>
+  NNTR_API std::unique_ptr<nntrainer::Optimizer>
   createOptimizerObject(const std::string &type,
                         const std::vector<std::string> &properties = {}) const {
     auto ct = getRegisteredContext(parseComputeEngine(properties));
@@ -220,7 +228,7 @@ public:
    * @param props property
    * @return unitque_ptr<T> unique pointer to the Optimizer object
    */
-  std::unique_ptr<nntrainer::Optimizer>
+  NNTR_API std::unique_ptr<nntrainer::Optimizer>
   createOptimizerObject(const int int_key,
                         const std::vector<std::string> &properties = {}) const {
     auto ct = getRegisteredContext(parseComputeEngine(properties));
@@ -234,7 +242,7 @@ public:
    * @param props property
    * @return unitque_ptr<T> unique pointer to the LearningRateScheduler object
    */
-  std::unique_ptr<ml::train::LearningRateScheduler>
+  NNTR_API std::unique_ptr<ml::train::LearningRateScheduler>
   createLearningRateSchedulerObject(
     const std::string &type,
     const std::vector<std::string> &properties = {}) const {
@@ -249,7 +257,7 @@ public:
    * @param props property
    * @return unitque_ptr<T> unique pointer to the LearningRateScheduler object
    */
-  std::unique_ptr<ml::train::LearningRateScheduler>
+  NNTR_API std::unique_ptr<ml::train::LearningRateScheduler>
   createLearningRateSchedulerObject(
     const int int_key, const std::vector<std::string> &properties = {}) {
     auto ct = getRegisteredContext(parseComputeEngine(properties));
@@ -266,7 +274,7 @@ public:
    * If relative path is given and working_path_base has set, return absolute
    * path from current working directory
    */
-  const std::string getWorkingPath(const std::string &path = "") const;
+  NNTR_API const std::string getWorkingPath(const std::string &path = "") const;
 
   /**
    * @brief Set Working Directory for a relative path. working directory is set
@@ -274,13 +282,13 @@ public:
    * @param[in] base base directory
    * @throw std::invalid_argument if path is not valid for current system
    */
-  void setWorkingDirectory(const std::string &base);
+  NNTR_API void setWorkingDirectory(const std::string &base);
 
   /**
    * @brief unset working directory
    *
    */
-  void unsetWorkingDirectory() { working_path_base = ""; }
+  NNTR_API void unsetWorkingDirectory() { working_path_base = ""; }
 
   /**
    * @brief query if the appcontext has working directory set
@@ -288,7 +296,7 @@ public:
    * @retval true working path base is set
    * @retval false working path base is not set
    */
-  bool hasWorkingDirectory() { return !working_path_base.empty(); }
+  NNTR_API bool hasWorkingDirectory() { return !working_path_base.empty(); }
 
 private:
   /**

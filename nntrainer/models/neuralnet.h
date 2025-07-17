@@ -48,6 +48,12 @@
 #include <nntrainer_error.h>
 #include <node_exporter.h>
 
+#if defined(_WIN32)
+#define NNTR_API __declspec(dllexport)
+#else
+#define NNTR_API
+#endif
+
 namespace ml::train {
 class DataSet;
 enum class DatasetType;
@@ -87,59 +93,61 @@ public:
   /**
    * @brief     Constructor of NeuralNetwork Class
    */
-  NeuralNetwork();
+  NNTR_API NeuralNetwork();
 
   /**
    * @brief     Constructor of NeuralNetwork Class
    */
-  NeuralNetwork(const Engine *ct_engine_);
+  NNTR_API NeuralNetwork(const Engine *ct_engine_);
 
   /**
    * @brief     Destructor of NeuralNetwork Class
    */
-  ~NeuralNetwork();
+  NNTR_API ~NeuralNetwork();
 
   /**
    * @brief     Get Loss from the previous ran batch of data
    * @retval    loss value
    */
-  float getLoss() override;
+  NNTR_API float getLoss() override;
 
   /**
    * @brief returns compilation state of a network
    * @retval initialized value
    */
-  bool getCompiled() const override { return compiled; }
+  NNTR_API bool getCompiled() const override { return compiled; }
 
   /**
    * @brief returns initialization state of a network
    * @retval initialized value
    */
-  bool getInitialized() const override { return initialized; }
+  NNTR_API bool getInitialized() const override { return initialized; }
 
   /**
    * @brief returns loadedFromConfig state of a network
    * @retval loadedFromConfig value
    */
-  bool getLoadedFromConfig() const override { return loadedFromConfig; }
+  NNTR_API bool getLoadedFromConfig() const override {
+    return loadedFromConfig;
+  }
 
   /**
    * @brief     Get Loss from the previous epoch of training data
    * @retval    loss value
    */
-  float getTrainingLoss() override { return training.loss; }
+  NNTR_API float getTrainingLoss() override { return training.loss; }
 
   /**
    * @brief     Get Loss from the previous epoch of validation data
    * @retval    loss value
    */
-  float getValidationLoss() override { return validation.loss; }
+  NNTR_API float getValidationLoss() override { return validation.loss; }
 
-  RunStats getTrainingStats() override { return training; }
+  NNTR_API RunStats getTrainingStats() override { return training; }
 
-  RunStats getValidStats() override { return validation; }
+  NNTR_API RunStats getValidStats() override { return validation; }
 
-  RunStats getTestStats() override { return testing; }
+  NNTR_API RunStats getTestStats() override { return testing; }
 
   /**
    * @brief     Get Learning rate
@@ -147,7 +155,7 @@ public:
    *
    * @todo update to return the last used learning rate
    */
-  float getLearningRate() { return opt->getLearningRate(0); };
+  NNTR_API float getLearningRate() { return opt->getLearningRate(0); };
 
   /**
    * @brief     Create and load the Network with ini configuration file.
@@ -155,14 +163,14 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int loadFromConfig(const std::string &config) override;
+  NNTR_API int loadFromConfig(const std::string &config) override;
 
   /**
    * @brief     Compile the graph in the model
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int compile(ExecutionMode mode = ExecutionMode::TRAIN) override;
+  NNTR_API int compile(ExecutionMode mode = ExecutionMode::TRAIN) override;
 
   /**
    * @brief     set Property of Network
@@ -170,7 +178,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_API void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @brief     Initialize Network. This should be called after set all
@@ -178,14 +186,14 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int initialize(ExecutionMode mode = ExecutionMode::TRAIN) override;
+  NNTR_API int initialize(ExecutionMode mode = ExecutionMode::TRAIN) override;
 
   /**
    * @brief     Reinitialize Network. This should be called after initialize
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int reinitialize() override;
+  NNTR_API int reinitialize() override;
 
   /**
    * @brief     Allocate memory for the model. This should be called after
@@ -194,7 +202,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int allocate(ExecutionMode mode = ExecutionMode::TRAIN) override;
+  NNTR_API int allocate(ExecutionMode mode = ExecutionMode::TRAIN) override;
 
   /**
    * @brief     Deallocate memory for the model.
@@ -203,7 +211,7 @@ public:
    * @note This does not free the model graph but only the weight tensors, and
    * input/output/gradient/derivative tensors if any.
    */
-  int deallocate();
+  NNTR_API int deallocate();
 
   /**
    * @brief     Update graph to make batch normalization in-place
@@ -216,12 +224,12 @@ public:
    * other backend. Ensure to verify this optimization with other
    * implementations once added.
    */
-  void inPlaceOptimization(const std::string &layer_type);
+  NNTR_API void inPlaceOptimization(const std::string &layer_type);
 
   /**
    * @brief     Forward Propagation of the neural network
    */
-  sharedConstTensors forwarding(
+  NNTR_API sharedConstTensors forwarding(
     bool training = true,
     std::function<bool(void *userdata)> stop_cb =
       [](void *user_data) { return false; },
@@ -233,14 +241,14 @@ public:
    * @param[in] label List of Label Tensors for the model
    * @retval    List of Output Tensors
    */
-  sharedConstTensors forwarding(sharedConstTensors input,
-                                sharedConstTensors label = {},
-                                bool training = true);
+  NNTR_API sharedConstTensors forwarding(sharedConstTensors input,
+                                         sharedConstTensors label = {},
+                                         bool training = true);
 
   /**
    * @brief     Incremental forward Propagation of the neural network
    */
-  sharedConstTensors incremental_forwarding(
+  NNTR_API sharedConstTensors incremental_forwarding(
     unsigned int from, unsigned int to, bool training = true,
     std::function<bool(void *userdata)> stop_cb =
       [](void *user_data) { return false; },
@@ -252,16 +260,15 @@ public:
    * @param[in] label List of Label Tensors for the model
    * @retval    List of Output Tensors
    */
-  sharedConstTensors incremental_forwarding(unsigned int from, unsigned int to,
-                                            sharedConstTensors input,
-                                            sharedConstTensors label = {},
-                                            bool training = true);
+  NNTR_API sharedConstTensors incremental_forwarding(
+    unsigned int from, unsigned int to, sharedConstTensors input,
+    sharedConstTensors label = {}, bool training = true);
 
   /**
    * @brief     Backward Propagation of the neural network
    * @param[in] iteration Iteration Number for the optimizer
    */
-  void backwarding(
+  NNTR_API void backwarding(
     int iteration,
     std::function<bool(void *userdata)> stop_cb =
       [](void *user_data) { return false; },
@@ -271,23 +278,23 @@ public:
    * @copydoc Model::save(const std::string &file_path, ml::train::ModelFormat
    * format);
    */
-  void save(const std::string &file_path,
-            ml::train::ModelFormat format =
-              ml::train::ModelFormat::MODEL_FORMAT_BIN) override;
+  NNTR_API void save(const std::string &file_path,
+                     ml::train::ModelFormat format =
+                       ml::train::ModelFormat::MODEL_FORMAT_BIN) override;
 
   /**
    * @copydoc Model::load(const std::string &file_path, ml::train::ModelFormat
    * format);
    */
-  void load(const std::string &file_path,
-            ml::train::ModelFormat format =
-              ml::train::ModelFormat::MODEL_FORMAT_BIN) override;
+  NNTR_API void load(const std::string &file_path,
+                     ml::train::ModelFormat format =
+                       ml::train::ModelFormat::MODEL_FORMAT_BIN) override;
 
   /**
    * @brief     get Epochs
    * @retval    epochs
    */
-  unsigned int getEpochs() {
+  NNTR_API unsigned int getEpochs() {
     return std::get<props::Epochs>(model_flex_props);
   };
 
@@ -295,7 +302,7 @@ public:
    * @brief     get current epoch_idx
    * @retval    current epoch_idx
    */
-  unsigned int getCurrentEpoch() override;
+  NNTR_API unsigned int getCurrentEpoch() override;
 
   /**
    * @brief     Copy Neural Network
@@ -303,7 +310,7 @@ public:
    * @retval    NeuralNewtork Object copyed
    * @todo Need to implement the copy of graph core
    */
-  NeuralNetwork &copy(NeuralNetwork &from);
+  NNTR_API NeuralNetwork &copy(NeuralNetwork &from);
 
   /**
    * @brief     Copy Neural Network Configuration
@@ -314,7 +321,7 @@ public:
    * compile and initialization to run the model. Also if you need the
    * initialized the weight, load call is required.
    */
-  NeuralNetwork &copyConfiguration(NeuralNetwork &from);
+  NNTR_API NeuralNetwork &copyConfiguration(NeuralNetwork &from);
 
   /**
    * @brief     Run NeuralNetwork train
@@ -330,7 +337,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int train(
+  NNTR_API int train(
     const std::vector<std::string> &values = {},
     std::function<bool(void *)> stop_cb =
       [](void *stop_user_data) { return false; },
@@ -345,7 +352,8 @@ public:
    * @param[in] free_mem true to free memory. used only in training mode.
    * @retval shared_ptr<const Tensor>
    */
-  sharedConstTensors inference(sharedConstTensors X, bool free_mem = false);
+  NNTR_API sharedConstTensors inference(sharedConstTensors X,
+                                        bool free_mem = false);
 
   /**
    * @brief     Run NeuralNetwork inference
@@ -354,8 +362,9 @@ public:
    * @param[in] free_mem true to free memory. used only in training mode.
    * @retval shared_ptr<const Tensor>
    */
-  sharedConstTensors inference(sharedConstTensors X, sharedConstTensors label,
-                               bool free_mem = false);
+  NNTR_API sharedConstTensors inference(sharedConstTensors X,
+                                        sharedConstTensors label,
+                                        bool free_mem = false);
 
   /**
    * @brief     Run the inference of the model
@@ -365,7 +374,7 @@ public:
    * @retval list of output as float *
    * @note The output memory must not be freed by the caller
    */
-  std::vector<float *> inference(
+  NNTR_API std::vector<float *> inference(
     unsigned int batch, const std::vector<float *> &input,
     const std::vector<float *> &label = std::vector<float *>()) override;
 
@@ -377,9 +386,10 @@ public:
    * @param[in] to next working step index
    * @retval shared_ptr<const Tensor>
    */
-  sharedConstTensors incremental_inference(sharedConstTensors X,
-                                           unsigned int init_seq_len,
-                                           unsigned int from, unsigned int to);
+  NNTR_API sharedConstTensors incremental_inference(sharedConstTensors X,
+                                                    unsigned int init_seq_len,
+                                                    unsigned int from,
+                                                    unsigned int to);
 
   /**
    * @brief     Run NeuralNetwork incremental inference
@@ -390,10 +400,11 @@ public:
    * @param[in] to next working step index
    * @retval shared_ptr<const Tensor>
    */
-  sharedConstTensors incremental_inference(sharedConstTensors X,
-                                           sharedConstTensors label,
-                                           unsigned int init_seq_len,
-                                           unsigned int from, unsigned int to);
+  NNTR_API sharedConstTensors incremental_inference(sharedConstTensors X,
+                                                    sharedConstTensors label,
+                                                    unsigned int init_seq_len,
+                                                    unsigned int from,
+                                                    unsigned int to);
 
   /**
    * @brief     Run the incremental inference of the model
@@ -408,7 +419,7 @@ public:
    * @retval list of output as float *
    * @note The output memory must not be freed by the caller
    */
-  std::vector<float *>
+  NNTR_API std::vector<float *>
   incremental_inference(unsigned int batch, const std::vector<float *> &input,
                         const std::vector<float *> &label,
                         unsigned int init_seq_len, unsigned int from,
@@ -428,7 +439,7 @@ public:
    * across all model layers, developers must verify that every layer in their
    * model architecture can safely accommodate such height modifications.
    */
-  void resetInputDimension(std::vector<TensorDim> dims) override;
+  NNTR_API void resetInputDimension(std::vector<TensorDim> dims) override;
 
   /**
    * @brief     Run NeuralNetwork train with callback function by user
@@ -437,15 +448,15 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setDataset(const DatasetModeType &dt,
-                 std::shared_ptr<ml::train::Dataset> dataset) override;
+  NNTR_API int setDataset(const DatasetModeType &dt,
+                          std::shared_ptr<ml::train::Dataset> dataset) override;
 
   /**
    * @copydoc void forEachLayer(std::function<void(Layer &,
    * nntrainer::RunLayerContext &), void *user_data> fn);
    *
    */
-  void forEachLayer(
+  NNTR_API void forEachLayer(
     std::function<void(ml::train::Layer & /**< layer */,
                        RunLayerContext & /**< rc */, void *user_data)>
       fn,
@@ -458,8 +469,8 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setDataBuffer(const DatasetModeType &dt,
-                    std::shared_ptr<DataBuffer> data_buffer);
+  NNTR_API int setDataBuffer(const DatasetModeType &dt,
+                             std::shared_ptr<DataBuffer> data_buffer);
 
   /**
    * @brief     add layer into neural network model
@@ -467,7 +478,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int addLayer(std::shared_ptr<ml::train::Layer> layer) override {
+  NNTR_API int addLayer(std::shared_ptr<ml::train::Layer> layer) override {
     return addLayer(std::static_pointer_cast<LayerNode>(layer));
   }
 
@@ -476,14 +487,15 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int addLayer(NodeType layer);
+  NNTR_API int addLayer(NodeType layer);
 
   /**
    * @brief     set optimizer for the neural network model
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setOptimizer(std::shared_ptr<ml::train::Optimizer> optimizer) override;
+  NNTR_API int
+  setOptimizer(std::shared_ptr<ml::train::Optimizer> optimizer) override;
 
   /**
    * @brief     get layer by name from neural network model
@@ -492,8 +504,8 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int getLayer(const char *name,
-               std::shared_ptr<ml::train::Layer> *layer) override;
+  NNTR_API int getLayer(const char *name,
+                        std::shared_ptr<ml::train::Layer> *layer) override;
 
   /**
    * @brief this function helps exporting the layer in a predefined format,
@@ -502,14 +514,14 @@ public:
    * @param     exporter exporter that conatins exporting logic
    * @param     method enum value to identify how it should be exported to
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const;
+  NNTR_API void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const;
 
   /**
    * @brief     get input dimension of neural network
    * @retval std::vector<TensorDim> input dimension
    */
-  std::vector<TensorDim> getInputDimension() override {
+  NNTR_API std::vector<TensorDim> getInputDimension() override {
     if (!compiled) {
       throw std::logic_error("model should be compiled before get dimension");
     }
@@ -520,7 +532,7 @@ public:
    * @brief     get output dimension of neural network
    * @retval std::vector<TensorDim> output dimension
    */
-  std::vector<TensorDim> getOutputDimension() override {
+  NNTR_API std::vector<TensorDim> getOutputDimension() override {
     if (!compiled) {
       throw std::logic_error("model should be compiled before get dimension");
     }
@@ -535,25 +547,25 @@ public:
    * @note these layers will be in sorted order if the model is compiled,
    * otherwise the order is the order of addition of layers in the model.
    */
-  FlatGraphType getFlatGraph() { return model_graph.getLayerNodes(); }
+  NNTR_API FlatGraphType getFlatGraph() { return model_graph.getLayerNodes(); }
 
   /**
    * @brief get if the model is empty
    * @param[out] true if empty, else false
    */
-  bool empty() const { return model_graph.empty(); }
+  NNTR_API bool empty() const { return model_graph.empty(); }
 
   /**
    * @brief get the number of nodes in the model
    * @param[out] number of nodes
    */
-  size_t size() const { return model_graph.size(); }
+  NNTR_API size_t size() const { return model_graph.size(); }
 
   /**
    * @brief     get network graph
    * @retval NetowrkGraphType
    */
-  NetworkGraphType getNetworkGraph() { return model_graph; }
+  NNTR_API NetworkGraphType getNetworkGraph() { return model_graph; }
 
   /**
    * @brief get current graph from the model
@@ -561,16 +573,16 @@ public:
    * copied.
    * @retval current graph
    */
-  GraphType getUnsortedLayers(const std::string &input_layer = "",
-                              const std::string &output_layer = "");
+  NNTR_API GraphType getUnsortedLayers(const std::string &input_layer = "",
+                                       const std::string &output_layer = "");
 
   /**
    * @brief     Summarize the model
    * @param out std::ostream to get the model summary
    * @param verbosity verbosity of the summary
    */
-  virtual void summarize(std::ostream &out,
-                         ml_train_summary_type_e verbosity) override {
+  NNTR_API virtual void summarize(std::ostream &out,
+                                  ml_train_summary_type_e verbosity) override {
     printPreset(out, (unsigned int)verbosity);
   }
 
@@ -580,7 +592,7 @@ public:
    * @param out std::ostream to print
    * @param preset preset from `ml_train_summary_type_e`
    */
-  virtual void printPreset(std::ostream &out, unsigned int preset);
+  NNTR_API virtual void printPreset(std::ostream &out, unsigned int preset);
 
   /**
    * @brief Enable dynamic fine-tuning optimization
@@ -588,7 +600,7 @@ public:
    * @param mode dynamic fine-tuning optimization mode. Supported modes are
    * "max" and "norm" for now
    */
-  void enableDynamicTraining(
+  NNTR_API void enableDynamicTraining(
     float threshold, std::string op = DynamicTrainingOptimization::dft_opt_norm,
     std::string mode = DynamicTrainingOptimization::dft_opt_mode_derivative) {
     dynamic_training_opt.setThreshold(threshold);
@@ -600,7 +612,7 @@ public:
   /**
    * @brief Disable dynamic fine-tuning optimization
    */
-  void disableDynamicFineTuning() { dynamic_training_opt.disable(); }
+  NNTR_API void disableDynamicFineTuning() { dynamic_training_opt.disable(); }
 
   /**
    * @copydoc   void ml::train::Model::addWithReferenceLayers(
@@ -611,7 +623,7 @@ public:
    * const std::vector<std::string> &type_properties = {})
    *
    */
-  void addWithReferenceLayers(
+  NNTR_API void addWithReferenceLayers(
     const std::vector<std::shared_ptr<ml::train::Layer>> &reference,
     const std::string &scope, const std::vector<std::string> &input_layers,
     const std::vector<std::string> &start_layers,
@@ -627,7 +639,7 @@ public:
    * const std::vector<std::string> &end_layers, ReferenceLayersType type,
    * const std::vector<std::string> &type_properties = {})
    */
-  void addWithReferenceLayers(
+  NNTR_API void addWithReferenceLayers(
     const std::vector<std::shared_ptr<LayerNode>> &reference,
     const std::string &scope, const std::vector<std::string> &input_layers,
     const std::vector<std::string> &start_layers,
@@ -640,8 +652,8 @@ public:
    * @param method export method
    * @param file_path path to be serialized
    */
-  void exports(const ml::train::ExportMethods &method,
-               const std::string file_path) override;
+  NNTR_API void exports(const ml::train::ExportMethods &method,
+                        const std::string file_path) override;
 
 private:
   using FlexiblePropTypes =

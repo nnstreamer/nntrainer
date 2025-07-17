@@ -24,7 +24,7 @@ namespace nntrainer {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
-bool ReshapeLayerCl::registerClKernels() {
+bool ReshapeLayerCl::registerClKernels(ClContext *global_cl_context) {
   auto &layer_kernel_ptrs = getLayerKernelPtrs();
 
   // check if already registered
@@ -146,6 +146,10 @@ void ReshapeLayerCl::copy_cl_fp16(const _FP16 *input, _FP16 *res,
 
   bool result = false;
 
+  ClContext *global_cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
+
   do {
     const auto &kernel_copy_ptr = getLayerKernelPtrs()[Kernels::COPY_CL];
 
@@ -228,6 +232,10 @@ void ReshapeLayerCl::scopy_cl(const float *input, float *res,
                               unsigned int input_width) {
 
   bool result = false;
+
+  ClContext *global_cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
 
   do {
     const auto &kernel_copy_ptr = getLayerKernelPtrs()[Kernels::COPY_CL];

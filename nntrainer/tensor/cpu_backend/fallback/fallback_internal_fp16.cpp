@@ -26,10 +26,7 @@
     float y0;                                                                  \
     unsigned int i, j;                                                         \
     for (ci = 0; ci != cM; ci++) {                                             \
-      y0 = 0.0f;                                                               \
-      if (beta != 0.0f) {                                                      \
-        y0 = static_cast<float>(Y[ci * incY] * static_cast<_FP16>(beta));      \
-      }                                                                        \
+      y0 = static_cast<float>(Y[ci * incY] * static_cast<_FP16>(beta));        \
       for (cj = 0; cj != cN; cj++)                                             \
         y0 += static_cast<float>(A[i + j * lda] * X[cj * incX]);               \
       Y[ci * incY] = static_cast<_FP16>(y0);                                   \
@@ -49,9 +46,8 @@
           c += static_cast<float>(a * b);                                      \
         }                                                                      \
         C[m * ldc + n] = static_cast<_FP16>(alpha * c);                        \
-        if (beta != 0.0f) {                                                    \
+        if (beta != 0.0)                                                       \
           C[m * ldc + n] += static_cast<_FP16>(beta) * c_old;                  \
-        }                                                                      \
       }                                                                        \
     }                                                                          \
   } while (0);
@@ -220,9 +216,7 @@ void __fallback_ele_mul(const unsigned int N, const _FP16 *X, const _FP16 *Y,
                         _FP16 *Z, float alpha, float beta,
                         unsigned int i_stride, unsigned int o_stride) {
   for (unsigned int i = 0; i < N; ++i) {
-    *Z = *X * static_cast<_FP16>(alpha) * *Y +
-         ((0.0f == beta) ? static_cast<_FP16>(0.0f)
-                         : static_cast<_FP16>(beta) * *Z);
+    *Z = *X * static_cast<_FP16>(alpha) * *Y + static_cast<_FP16>(beta) * *Z;
     X += o_stride;
     Y += i_stride;
     Z += o_stride;
@@ -233,9 +227,7 @@ void __fallback_ele_add(const unsigned int N, const _FP16 *X, const _FP16 *Y,
                         _FP16 *Z, float alpha, float beta,
                         unsigned int i_stride, unsigned int o_stride) {
   for (unsigned int i = 0; i < N; ++i) {
-    *Z = *X + static_cast<_FP16>(alpha) * *Y +
-         ((0.0f == beta) ? static_cast<_FP16>(0.0f)
-                         : static_cast<_FP16>(beta) * *Z);
+    *Z = *X + static_cast<_FP16>(alpha) * *Y + static_cast<_FP16>(beta) * *Z;
     X += o_stride;
     Y += i_stride;
     Z += o_stride;
@@ -246,9 +238,7 @@ void __fallback_ele_sub(const unsigned N, const _FP16 *X, const _FP16 *Y,
                         _FP16 *Z, float alpha, float beta,
                         unsigned int i_stride, unsigned int o_stride) {
   for (unsigned int i = 0; i < N; ++i) {
-    *Z = *X - static_cast<_FP16>(alpha) * *Y +
-         ((0.0f == beta) ? static_cast<_FP16>(0.0f)
-                         : static_cast<_FP16>(beta) * *Z);
+    *Z = *X - static_cast<_FP16>(alpha) * *Y + static_cast<_FP16>(beta) * *Z;
     X += o_stride;
     Y += i_stride;
     Z += o_stride;
@@ -259,9 +249,7 @@ void __fallback_ele_div(const unsigned N, const _FP16 *X, const _FP16 *Y,
                         _FP16 *Z, float alpha, float beta,
                         unsigned int i_stride, unsigned int o_stride) {
   for (unsigned int i = 0; i < N; ++i) {
-    *Z = *X / (static_cast<_FP16>(alpha) * *Y) +
-         ((0.0f == beta) ? static_cast<_FP16>(0.0f)
-                         : static_cast<_FP16>(beta) * *Z);
+    *Z = *X / (static_cast<_FP16>(alpha) * *Y) + static_cast<_FP16>(beta) * *Z;
     X += o_stride;
     Y += i_stride;
     Z += o_stride;

@@ -15,6 +15,12 @@
 #ifndef __OPTIMIZER_WRAPPER_H__
 #define __OPTIMIZER_WRAPPER_H__
 
+#if defined(_WIN32)
+#define NNTR_API __declspec(dllexport)
+#else
+#define NNTR_API
+#endif
+
 #if __cplusplus
 
 #include <string>
@@ -40,12 +46,12 @@ public:
    * @param opt optimizer to wrap
    *
    */
-  OptimizerWrapped(std::unique_ptr<OptimizerCore> &&opt);
+  NNTR_API OptimizerWrapped(std::unique_ptr<OptimizerCore> &&opt);
 
   /**
    * @brief     Destructor of Optimizer Class
    */
-  ~OptimizerWrapped() = default;
+  NNTR_API ~OptimizerWrapped() = default;
 
   /**
    * Support all the interface requirements by ml::train::Optimizer
@@ -55,7 +61,7 @@ public:
    * @brief     get Optimizer Type
    * @retval    Optimizer type
    */
-  const std::string getType() const override;
+  NNTR_API const std::string getType() const override;
 
   /**
    * @brief     Default allowed properties
@@ -78,14 +84,14 @@ public:
    * @details   This function accepts vector of properties in the format -
    *  { std::string property_name, void * property_val, ...}
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  NNTR_API void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @brief Set the Learning Rate Scheduler object
    *
    * @param lrs the learning rate scheduler object
    */
-  int setLearningRateScheduler(
+  NNTR_API int setLearningRateScheduler(
     std::shared_ptr<ml::train::LearningRateScheduler> lrs) override;
 
   /**
@@ -99,13 +105,13 @@ public:
    * @detail    the return value of this function and getLearningRate() must
    * match for iteration == 0.
    */
-  double getLearningRate(size_t iteration);
+  NNTR_API double getLearningRate(size_t iteration);
 
   /**
    * @brief     apply gradient to weight
    * @param[in] context Optimizer context
    */
-  void applyGradient(RunOptimizerContext &context);
+  NNTR_API void applyGradient(RunOptimizerContext &context);
 
   /**
    * @brief this function helps exporting the optimizer in a predefined format,
@@ -114,39 +120,39 @@ public:
    * @param     exporter exporter that contains exporting logic
    * @param     method enum value to identify how it should be exported to
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const;
+  NNTR_API void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const;
 
   /**
    * @brief     finalize optimizer.
    */
-  void finalize();
+  NNTR_API void finalize();
 
   /**
    * @brief     Read Training optimizer parameters from file
    * @param[in] file input stream file
    */
-  void read(std::ifstream &file);
+  NNTR_API void read(std::ifstream &file);
 
   /**
    * @brief     Save Training optimizer parameters from file
    * @param[in] file output stream file
    */
-  void save(std::ofstream &file);
+  NNTR_API void save(std::ofstream &file);
 
   /**
    * @brief     Get dimension of extra variables if the optimizer needs any.
    * @param dim Dimension of tensor to be added as a optimizer variable
    * @return    Vector of dimensions
    */
-  std::vector<TensorDim> getOptimizerVariableDim(const TensorDim &dim);
+  NNTR_API std::vector<TensorDim> getOptimizerVariableDim(const TensorDim &dim);
 
   /**
    * @brief Get the Learning Rate Scheduler object
    *
    * @return the learning rate scheduler object
    */
-  nntrainer::LearningRateScheduler *getLearningRateScheduler();
+  NNTR_API nntrainer::LearningRateScheduler *getLearningRateScheduler();
 
 private:
   std::unique_ptr<OptimizerCore> optimizer; /**< the underlying optimizer */
@@ -164,7 +170,7 @@ private:
  * @params[in] type Type of the optimizer to be constructed
  * @params[in] properties Properties of the optimizer
  */
-std::unique_ptr<OptimizerWrapped>
+NNTR_API std::unique_ptr<OptimizerWrapped>
 createOptimizerWrapped(const ml::train::OptimizerType &type,
                        const std::vector<std::string> &properties = {});
 
@@ -174,7 +180,7 @@ createOptimizerWrapped(const ml::train::OptimizerType &type,
  * @params[in] type Type of the optimizer to be constructed
  * @params[in] properties Properties of the optimizer
  */
-std::unique_ptr<OptimizerWrapped>
+NNTR_API std::unique_ptr<OptimizerWrapped>
 createOptimizerWrapped(const std::string &type,
                        const std::vector<std::string> &properties = {});
 
@@ -184,7 +190,7 @@ createOptimizerWrapped(const std::string &type,
  * @params[in] type Type of the optimizer to be constructed
  * @params[in] properties Properties of the optimizer
  */
-std::unique_ptr<OptimizerWrapped>
+NNTR_API std::unique_ptr<OptimizerWrapped>
 createOptimizerWrapped(std::unique_ptr<OptimizerCore> &&opt,
                        const std::vector<std::string> &properties = {});
 

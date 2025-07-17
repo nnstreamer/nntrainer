@@ -36,6 +36,8 @@
 #include <opencl_context_manager.h>
 #include <opencl_kernel.h>
 #include <opencl_program.h>
+#include <windows.h>
+#include <iostream>
 
 namespace nntrainer {
 
@@ -64,12 +66,12 @@ public:
   /**
    * @brief   Default constructor
    */
-  ClContext() : Context(std::make_shared<ContextData>()) {}
+  NNTR_API ClContext() : Context(std::make_shared<ContextData>()) {}
 
   /**
    * @brief destructor to release opencl commandQueue
    */
-  ~ClContext() override {
+  NNTR_API ~ClContext() override {
     if (cl_initialized) {
       command_queue_inst_.ReleaseCommandQueue();
       // getContext() is called by clCreateKernel
@@ -82,7 +84,7 @@ public:
    *
    * @return ClContext&
    */
-  ClContext &Global() override;
+  NNTR_API ClContext &Global() override;
 
   /**
    * @brief Factory register function, use this function to register custom
@@ -98,9 +100,9 @@ public:
    * @throw invalid argument when key and/or int_key is already taken
    */
   template <typename T>
-  const int registerFactory(const PtrFactoryType<T> factory,
-                            const std::string &key = "",
-                            const int int_key = -1) {
+  NNTR_API const int registerFactory(const PtrFactoryType<T> factory,
+                                     const std::string &key = "",
+                                     const int int_key = -1) {
     FactoryType<T> f = factory;
     return registerFactory(f, key, int_key);
   }
@@ -119,9 +121,9 @@ public:
    * @throw invalid argument when key and/or int_key is already taken
    */
   template <typename T>
-  const int registerFactory(const FactoryType<T> factory,
-                            const std::string &key = "",
-                            const int int_key = -1);
+  NNTR_API const int registerFactory(const FactoryType<T> factory,
+                                     const std::string &key = "",
+                                     const int int_key = -1);
 
   /**
    * @brief Create an Object from the integer key
@@ -132,8 +134,8 @@ public:
    * @return PtrType<T> unique pointer to the object
    */
   template <typename T>
-  PtrType<T> createObject(const int int_key,
-                          const PropsType &props = {}) const {
+  NNTR_API PtrType<T> createObject(const int int_key,
+                                   const PropsType &props = {}) const {
     static_assert(isSupported<T>::value,
                   "given type is not supported for current app context");
     auto &index = std::get<IndexType<T>>(factory_map);
@@ -160,8 +162,8 @@ public:
    * @return PtrType<T> unique pointer to the object
    */
   template <typename T>
-  PtrType<T> createObject(const std::string &key,
-                          const PropsType &props = {}) const {
+  NNTR_API PtrType<T> createObject(const std::string &key,
+                                   const PropsType &props = {}) const {
     auto &index = std::get<IndexType<T>>(factory_map);
     auto &str_map = std::get<StrIndexType<T>>(index);
 
@@ -190,7 +192,7 @@ public:
    * @param properties property
    * @return std::unique_ptr<nntrainer::Layer> unique pointer to the object
    */
-  std::unique_ptr<nntrainer::Layer>
+  std::unique_ptr<nntrainer::Layer> NNTR_API
   createLayerObject(const std::string &type,
                     const std::vector<std::string> &properties = {}) override {
     return createObject<nntrainer::Layer>(type, properties);
@@ -203,7 +205,7 @@ public:
    * @param properties property
    * @return std::unique_ptr<nntrainer::Layer> unique pointer to the object
    */
-  std::unique_ptr<nntrainer::Layer>
+  std::unique_ptr<nntrainer::Layer> NNTR_API
   createLayerObject(const int int_key,
                     const std::vector<std::string> &properties = {}) override {
     return createObject<nntrainer::Layer>(int_key, properties);
@@ -215,30 +217,30 @@ public:
    * @param kernel_name kernel name
    * @return std::shared_ptr<opencl::Kernel>
    */
-  const SharedPtrClKernel registerClKernel(std::string kernel_string,
-                                           std::string kernel_name);
+  NNTR_API const SharedPtrClKernel registerClKernel(std::string kernel_string,
+                                                    std::string kernel_name);
 
   /**
    * @brief Initialize and register all blas OpenCl kernels
    */
-  void initBlasClKernels();
+  NNTR_API void initBlasClKernels();
 
   /**
    * @brief Initialize and register all attention OpenCl kernels
    */
-  void initAttentionClKernels();
+  NNTR_API void initAttentionClKernels();
 
   /**
    * @brief Get the name of the context
    */
-  std::string getName() override { return "gpu"; }
+  NNTR_API std::string getName() override { return "gpu"; }
 
   /**
    * @brief Set the Mem Allocator object
    *
    * @param mem Memory allocator object
    */
-  void setMemAllocator(std::shared_ptr<MemAllocator> mem) {
+  NNTR_API void setMemAllocator(std::shared_ptr<MemAllocator> mem) {
     getContextData()->setMemAllocator(mem);
   }
 
@@ -280,7 +282,7 @@ private:
    * false otherwise
    */
 
-  bool clInit() {
+  NNTR_API bool clInit() {
     // if commandqueue already created
     if (cl_initialized)
       return true;
@@ -289,7 +291,6 @@ private:
     bool result = command_queue_inst_.CreateCommandQueue();
     // initialize device buffers
     clbuffInstance.initBuffers();
-
     cl_initialized = result;
     return cl_initialized;
   };
@@ -301,14 +302,15 @@ private:
    * @param kernel_ptr_ reference of shared_ptr of Kernel
    * @return true if successful, false otherwise
    */
-  bool clCreateKernel(std::string &kernel_string, std::string &kernel_name,
-                      const SharedPtrClKernel &kernel_ptr_);
+  NNTR_API bool clCreateKernel(std::string &kernel_string,
+                               std::string &kernel_name,
+                               const SharedPtrClKernel &kernel_ptr_);
 };
 
 /**
  * @copydoc const int ClContext::registerFactory
  */
-extern template const int ClContext::registerFactory<nntrainer::Layer>(
+extern template NNTR_API const int ClContext::registerFactory<nntrainer::Layer>(
   const FactoryType<nntrainer::Layer> factory, const std::string &key,
   const int int_key);
 

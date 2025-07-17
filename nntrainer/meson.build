@@ -113,14 +113,14 @@ else
     install_dir: nntrainer_libdir
   )
 
-  if host_machine.system() == 'windows'
+  # if host_machine.system() == 'windows'
+  #   nntrainer_lib = nntrainer_static
+  # else
+  nntrainer_lib = nntrainer_shared
+  if get_option('default_library') == 'static'
     nntrainer_lib = nntrainer_static
-  else
-    nntrainer_lib = nntrainer_shared
-    if get_option('default_library') == 'static'
-      nntrainer_lib = nntrainer_static
-    endif
   endif
+  # endif
 
   nntrainer_dep = declare_dependency(link_with: nntrainer_lib,
     dependencies: nntrainer_base_deps,

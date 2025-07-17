@@ -29,7 +29,7 @@ public:
   /**
    * @brief Constructor of MatMul Layer
    */
-  MatMulLayer() :
+  NNTR_API MatMulLayer() :
     BinaryOperationLayer(),
     matmul_props(props::Print(), props::InPlaceProp()),
     support_backwarding(true) {}
@@ -37,24 +37,24 @@ public:
   /**
    * @brief Destructor of MatMul Layer
    */
-  ~MatMulLayer(){};
+  NNTR_API ~MatMulLayer(){};
 
   /**
    *  @brief  Move constructor of MatMul Layer.
    *  @param[in] MatMulLayer &&
    */
-  MatMulLayer(MatMulLayer &&rhs) noexcept = default;
+  NNTR_API MatMulLayer(MatMulLayer &&rhs) noexcept = default;
 
   /**
    * @brief Move assignment operator.
    * @parma[in] rhs MatMulLayer to be moved.
    */
-  MatMulLayer &operator=(MatMulLayer &&rhs) = default;
+  NNTR_API MatMulLayer &operator=(MatMulLayer &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(InitLayerContext &context) final;
+  NNTR_API void finalize(InitLayerContext &context) final;
 
   /**
    * @brief forwarding operation for matmul
@@ -63,24 +63,26 @@ public:
    * @param input2 second input tensor
    * @param hidden tensor to store the result value
    */
-  void forwarding_operation(const Tensor &input1, const Tensor &input2,
-                            Tensor &hidden) final;
+  NNTR_API void forwarding_operation(const Tensor &input1, const Tensor &input2,
+                                     Tensor &hidden) final;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(RunLayerContext &context) final;
+  NNTR_API void calcDerivative(RunLayerContext &context) final;
 
   /**
    * @copydoc bool supportBackwarding() const
    */
-  bool supportBackwarding() const final { return support_backwarding; };
+  NNTR_API bool supportBackwarding() const final {
+    return support_backwarding;
+  };
 
   /**
    * @brief Initialize the in-place settings of the layer
    * @return InPlaceType
    */
-  InPlaceType initializeInPlace() final {
+  NNTR_API InPlaceType initializeInPlace() final {
     is_inplace = !std::get<props::InPlaceProp>(matmul_props).empty() &&
                  std::get<props::InPlaceProp>(matmul_props).get();
     support_backwarding = !is_inplace;
@@ -95,18 +97,20 @@ public:
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */
-  void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const final {}
+  NNTR_API void exportTo(Exporter &exporter,
+                         const ml::train::ExportMethods &method) const final {}
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  void setProperty(const std::vector<std::string> &values) final;
+  NNTR_API void setProperty(const std::vector<std::string> &values) final;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const final { return MatMulLayer::type; };
+  NNTR_API const std::string getType() const final {
+    return MatMulLayer::type;
+  };
 
   std::tuple<props::Print, props::InPlaceProp> matmul_props;
   bool support_backwarding;

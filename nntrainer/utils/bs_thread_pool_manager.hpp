@@ -16,20 +16,57 @@
 #pragma once
 #include "bs_thread_pool.h"
 
+#if defined(_WIN32)
+#define NNTR_API __declspec(dllexport)
+#else
+#define NNTR_API
+#endif
+
 namespace nntrainer {
+/**
+ * @brief ThreadPoolManager is a singleton class that manages a thread pool
+ *
+ */
 class ThreadPoolManager {
+
 public:
-  static BS::thread_pool<>& getInstance();
+  // Delete copy and move constructors and assignment operators
+  /**
+   * @brief Construct a new Thread Pool Manager object
+   *
+   */
+  NNTR_API ThreadPoolManager(const ThreadPoolManager &) = delete;
 
-  // Prevent copying and moving  
-  ThreadPoolManager(const ThreadPoolManager&) = delete;  
-  ThreadPoolManager& operator=(const ThreadPoolManager&) = delete;  
-  ThreadPoolManager(ThreadPoolManager&&) = delete;  
-  ThreadPoolManager& operator=(ThreadPoolManager&&) = delete;  
+  /**
+   * @brief Construct a new Thread Pool Manager object
+   *
+   */
+  NNTR_API ThreadPoolManager(ThreadPoolManager &&) = delete;
 
-private:  
-  ThreadPoolManager() = default; // Prevent instantiation  
+  /**
+   * @brief Static method to access the single instance
+   *
+   * @return BS::thread_pool<>&
+   */
+  NNTR_API static BS::thread_pool<> &getInstance() {
+    static BS::thread_pool<> pool(12);
+    // static BS::thread_pool<> pool(std::thread::hardware_concurrency());
+    return pool;
+  }
+    // NNTR_API static BS::thread_pool<> &getInstance();
+
+private:
+  /**
+   * @brief Construct a new Thread Pool Manager object
+   *
+   */
+  NNTR_API ThreadPoolManager() = default;
+  /**
+   * @brief Destroy the Thread Pool Manager object
+   *
+   */
+  NNTR_API ~ThreadPoolManager() = default;
 };
-}
+} // namespace nntrainer
 
 #endif // THREAD_POOL_MANAGER_HPP
