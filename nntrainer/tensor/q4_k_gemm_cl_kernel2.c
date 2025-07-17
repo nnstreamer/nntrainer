@@ -65,8 +65,9 @@ typedef struct {int s0, s1, s2;} uint3;
       float sumf = 0.0f;
       float sum_minf = 0.0f;
 
-      __global const block_q4_Kx8 *restrict gB0_ = vx + (tile_x * 2 + 0) * nb;
-      __global const block_q4_Kx8 *restrict gB1_ = vx + (tile_x * 2 + 1) * nb;
+      __global const block_q4_Kx8 *restrict gB[2];
+      gB[0] = vx + (tile_x * 2 + 0) * nb;
+      gB[1] = vx + (tile_x * 2 + 1) * nb;
       __global const block_q4_Kx8 *restrict gA_ = vy + tile_y * nb;
 
       __local uint *restrict lBdst0 = (__local uint *)&lB[0];
@@ -76,8 +77,8 @@ typedef struct {int s0, s1, s2;} uint3;
       for (int b = 0; b < nb; ++b) {
         // 1.  Copy one q8 block (A) and two q4 blocks (B0/B1) to LDS
         {
-          __global const uint *gB0 = (__global const uint *)(gB0_ + b);
-          __global const uint *gB1 = (__global const uint *)(gB1_ + b);
+          __global const uint *gB0 = (__global const uint *)(gB[0] + b);
+          __global const uint *gB1 = (__global const uint *)(gB[1] + b);
           __global const uint *gA = (__global const uint *)(gA_ + b);
 
           const int vecsB = (int)(sizeof(block_q4_Kx8) / (16 * 4));
@@ -123,7 +124,7 @@ typedef struct {int s0, s1, s2;} uint3;
     #pragma unroll 16
         for (int k = 0; k < 16; ++k) {      // QK_K/(2*BLK_LEN)
           const int idxB = k * 64 + lj * 8; // 8 × 8 q4 block stride
-          const int idxA = (k >> 2) * 256 + (k & 3) * 32 + lane_m * 8;
+          const int idxA = k * 32 + lane_m * 8;
 
           const int sc0 = lbytes[(k / 4) * 32 + lj];
           const int sc1 = lbytes[(k / 4) * 32 + 16 + lj];
@@ -132,8 +133,8 @@ typedef struct {int s0, s1, s2;} uint3;
           char8 a0 = vload8(0, lA.qs + idxA);
           char8 a1 = vload8(0, lA.qs + idxA + 128);
 
-          uchar8 qlo = q & (uchar8)(0x0F); // low nibbles
-          uchar8 qhi = q >> (uchar8)4;     // high nibbles
+          uchar8 qlo = q & 0x0F; // low nibbles
+          uchar8 qhi = q >> 4;     // high nibbles
 
           short8 prod0 = convert_short8(qlo) * convert_short8(a0);
           short8 prod1 = convert_short8(qhi) * convert_short8(a1);
