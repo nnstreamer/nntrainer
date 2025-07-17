@@ -268,7 +268,7 @@ void sgemm_q4_k_cl2(const unsigned int M, const unsigned int N,
                     const unsigned int K, void *matAdata, void *matBdata,
                     float *matCdata) {
   ClContext::SharedPtrClKernel kernel =
-    blas_cc->registerClKernel(getQ4KGemmClKernel2(), "mat_mul_q4_K_8x8_q8_K");
+    blas_cc->registerClKernel(getQ4KGemmClKernel2(), "mat_mul_q4_K_8x8_q8_K2");
 
   if (!kernel) {
     ml_loge("Failed to register mat_mul_q4_K_8x8_q8_K");
@@ -310,8 +310,8 @@ void sgemm_q4_k_cl2(const unsigned int M, const unsigned int N,
     return;
   }
 
-  const int tile_size = 64;
-  const int work_groups_count[3] = {(int)(M / 4) * tile_size, (int)N / 16, 1};
+  const int tile_size = 128;
+  const int work_groups_count[3] = {(int)(M / 4) * tile_size, (int)N / 32, 1};
   const int work_group_size[3] = {tile_size, 1, 1};
 
   if (!opencl::CommandQueueManager::GetInstance().DispatchCommand(
