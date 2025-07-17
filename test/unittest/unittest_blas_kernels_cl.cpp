@@ -1409,25 +1409,6 @@ static void run_q_4_K_test(const uint32_t M, const uint32_t K,
   auto t2 = std::chrono::high_resolution_clock::now();
   auto dt = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
 
-  static constexpr size_t qk_k = 256;
-  static constexpr size_t sizeof_block_q8_K = 292;
-
-  unsigned int blocks_per_4_rows = (K + qk_k - 1) / qk_k;
-  unsigned int qa_4_rows_size = sizeof_block_q8_K * 4 * blocks_per_4_rows;
-  unsigned int M4 = ((M + 3) / 4);
-
-  std::memset(activations_f32_ptr, 0x00, M * K * sizeof(float));
-
-  if (M == 1) {
-    ::quantize_row_q8_K((float *)activation.data(), activations_f32_ptr, K);
-  } else {
-    for (int i = 0; i < static_cast<int>(M4); i++) {
-      ::ggml_quantize_mat_q8_K_4x8(
-        activation.data() + 4 * i * K,
-        reinterpret_cast<char *>(activations_f32_ptr) + i * qa_4_rows_size, K);
-    }
-  }
-
   // GPU Q4_K GEMM
   auto t3 = std::chrono::high_resolution_clock::now();
   for (unsigned int i = 0; i < run_count; ++i) {
@@ -1498,10 +1479,24 @@ static void run_q_4_K_test(const uint32_t M, const uint32_t K,
 // DECLARE_q_4_K_test_M_K_N(1, 768, 1024);
 
 DECLARE_q_4_K_test_M_K_N(256, 1024, 256);
-DECLARE_q_4_K_test_M_K_N(3072, 8192, 3072);
 DECLARE_q_4_K_test_M_K_N(256, 3072, 8192);
 DECLARE_q_4_K_test_M_K_N(256, 8192, 3072);
 DECLARE_q_4_K_test_M_K_N(256, 3072, 3072);
+
+DECLARE_q_4_K_test_M_K_N(255, 1024, 256);
+DECLARE_q_4_K_test_M_K_N(255, 3072, 8192);
+DECLARE_q_4_K_test_M_K_N(255, 8192, 3072);
+DECLARE_q_4_K_test_M_K_N(255, 3072, 3072);
+
+DECLARE_q_4_K_test_M_K_N(33, 1024, 256);
+DECLARE_q_4_K_test_M_K_N(33, 3072, 8192);
+DECLARE_q_4_K_test_M_K_N(33, 8192, 3072);
+DECLARE_q_4_K_test_M_K_N(33, 3072, 3072);
+
+DECLARE_q_4_K_test_M_K_N(32, 1024, 256);
+DECLARE_q_4_K_test_M_K_N(32, 3072, 8192);
+DECLARE_q_4_K_test_M_K_N(32, 8192, 3072);
+DECLARE_q_4_K_test_M_K_N(32, 3072, 3072);
 
 // DECLARE_q_4_K_test_M_K_N(256, 256, 3072);
 // DECLARE_q_4_K_test_M_K_N(3072, 256, 256);
