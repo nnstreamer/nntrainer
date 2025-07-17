@@ -21,6 +21,7 @@
 #include <nntrainer_log.h>
 #include <node_exporter.h>
 #include <util_func.h>
+#include <limits>
 
 namespace nntrainer {
 
@@ -30,7 +31,8 @@ enum FCParams { weight, bias };
 
 FullyConnectedLayerCl::FullyConnectedLayerCl() :
   LayerImplCl(), fc_props(props::Unit()) {
-  weight_idx.fill(std::numeric_limits<unsigned>::max());
+  //weight_idx.fill(std::numeric_limits<unsigned>::max());
+  weight_idx.fill(2);
 }
 
 void FullyConnectedLayerCl::finalize(InitLayerContext &context) {
