@@ -382,46 +382,4 @@ void softmax_row(float *qk_out, size_t start_row, size_t end_row,
   neon::softmax_row(qk_out, start_row, end_row, num_heads);
 }
 
-void compute_fp16vcache_fp32_transposed(int iter, const float *in,
-                                        const uint16_t *vcache, float *output,
-                                        int seq, int num_cache_head,
-                                        int gqa_size, int head_dim,
-                                        bool process_all) {
-#ifdef ARMV7
-  __fallback_compute_fp16vcache_fp32_transposed(iter, in, vcache, output, seq,
-                                                num_cache_head, gqa_size,
-                                                head_dim, process_all);
-#else
-  neon::compute_fp16vcache_fp32_transposed(
-    iter, in, reinterpret_cast<const __fp16 *>(vcache), output, seq,
-    num_cache_head, gqa_size, head_dim, process_all);
-#endif
-}
-
-template <>
-void compute_kcaches(const float *A, const uint16_t *B, float *output,
-                     int num_rows, int N, int chunk_size, int group_size,
-                     int tile_size) {
-#ifdef ARMV7
-  __fallback_compute_kcaches<uint16_t>(A, B, output, num_rows, N, chunk_size,
-                                       group_size, tile_size);
-#else
-  neon::compute_kcaches<__fp16>(A, reinterpret_cast<const __fp16 *>(B), output,
-                                num_rows, N, chunk_size, group_size, tile_size);
-#endif
-}
-
-void compute_rotary_emb_value(unsigned int width, unsigned int dim,
-                              unsigned int half_, float *inout, void *output,
-                              const float *cos_, const float *sin_,
-                              bool only_convert_to_fp16) {
-#ifdef ARMV7
-  __fallback_compute_rotary_emb_value(width, dim, half_, inout, output, cos_,
-                                      sin_, only_convert_to_fp16);
-#else
-  neon::compute_rotary_emb_value(width, dim, half_, inout, output, cos_, sin_,
-                                 only_convert_to_fp16);
-#endif
-}
-
 } /* namespace nntrainer */
