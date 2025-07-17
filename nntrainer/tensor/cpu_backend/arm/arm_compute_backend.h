@@ -387,6 +387,57 @@ void transpose_matrix(const unsigned int M, const unsigned int N,
 
 /**
  * @brief
+ * @param iter
+ * @param in
+ * @param vcache
+ * @param output
+ * @param seq
+ * @param num_cache_head
+ * @param gqa_size
+ * @param head_dim
+ * @param process_all
+ */
+void compute_fp16vcache_fp32_transposed(int iter, const float *in,
+                                        const uint16_t *vcache, float *output,
+                                        int seq, int num_cache_head,
+                                        int gqa_size, int head_dim,
+                                        bool process_all);
+
+/**
+ * @brief
+ * @tparam BType
+ * @param A
+ * @param B
+ * @param output
+ * @param num_rows
+ * @param N
+ * @param chunk_size
+ * @param group_size
+ * @param tile_size
+ */
+template <typename BType>
+void compute_kcaches(const float *A, const BType *B, float *output,
+                     int num_rows, int N, int chunk_size, int group_size,
+                     int tile_size);
+
+/**
+ * @brief
+ * @param width
+ * @param dim
+ * @param half_
+ * @param inout
+ * @param output
+ * @param cos_
+ * @param sin_
+ * @param only_convert_to_fp16
+ */
+void compute_rotary_emb_value(unsigned int width, unsigned int dim,
+                              unsigned int half_, float *inout, void *output,
+                              const float *cos_, const float *sin_,
+                              bool only_convert_to_fp16);
+
+/**
+ * @brief
  * @param qk_out _FP16 * input/output values
  * @param start_row start row number
  * @param end_row end row number
@@ -404,6 +455,7 @@ void softmax_row_inplace(_FP16 *qk_out, size_t start_row, size_t end_row,
  */
 void softmax_row(_FP16 *qk_out, size_t start_row, size_t end_row,
                  size_t num_heads);
+
 #endif
 
 /**
@@ -1018,57 +1070,6 @@ void softmax_row_inplace(float *qk_out, size_t start_row, size_t end_row,
  */
 void softmax_row(float *qk_out, size_t start_row, size_t end_row,
                  size_t num_heads);
-
-/**
- * @brief
- * @param iter
- * @param in
- * @param vcache
- * @param output
- * @param seq
- * @param num_cache_head
- * @param gqa_size
- * @param head_dim
- * @param process_all
- */
-void compute_fp16vcache_fp32_transposed(int iter, const float *in,
-                                        const uint16_t *vcache, float *output,
-                                        int seq, int num_cache_head,
-                                        int gqa_size, int head_dim,
-                                        bool process_all);
-
-/**
- * @brief
- * @tparam BType
- * @param A
- * @param B
- * @param output
- * @param num_rows
- * @param N
- * @param chunk_size
- * @param group_size
- * @param tile_size
- */
-template <typename BType>
-void compute_kcaches(const float *A, const BType *B, float *output,
-                     int num_rows, int N, int chunk_size, int group_size,
-                     int tile_size);
-
-/**
- * @brief
- * @param width
- * @param dim
- * @param half_
- * @param inout
- * @param output
- * @param cos_
- * @param sin_
- * @param only_convert_to_fp16
- */
-void compute_rotary_emb_value(unsigned int width, unsigned int dim,
-                              unsigned int half_, float *inout, void *output,
-                              const float *cos_, const float *sin_,
-                              bool only_convert_to_fp16);
 
 } /* namespace nntrainer */
 #endif /* __cplusplus */

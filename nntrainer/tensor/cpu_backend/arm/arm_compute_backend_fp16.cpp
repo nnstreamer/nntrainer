@@ -295,4 +295,30 @@ void softmax(const unsigned int N, _FP16 *X, _FP16 *Y) {
   nntrainer::neon::softmax(N, X, Y);
 }
 
+void compute_fp16vcache_fp32_transposed(int iter, const float *in,
+                                        const uint16_t *vcache, float *output,
+                                        int seq, int num_cache_head,
+                                        int gqa_size, int head_dim,
+                                        bool process_all) {
+  neon::compute_fp16vcache_fp32_transposed(
+    iter, in, reinterpret_cast<const __fp16 *>(vcache), output, seq,
+    num_cache_head, gqa_size, head_dim, process_all);
+}
+
+template <>
+void compute_kcaches(const float *A, const uint16_t *B, float *output,
+                     int num_rows, int N, int chunk_size, int group_size,
+                     int tile_size) {
+  neon::compute_kcaches<__fp16>(A, reinterpret_cast<const __fp16 *>(B), output,
+                                num_rows, N, chunk_size, group_size, tile_size);
+}
+
+void compute_rotary_emb_value(unsigned int width, unsigned int dim,
+                              unsigned int half_, float *inout, void *output,
+                              const float *cos_, const float *sin_,
+                              bool only_convert_to_fp16) {
+  neon::compute_rotary_emb_value(width, dim, half_, inout, output, cos_, sin_,
+                                 only_convert_to_fp16);
+}
+
 } /* namespace nntrainer */

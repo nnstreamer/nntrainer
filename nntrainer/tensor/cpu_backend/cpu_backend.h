@@ -388,6 +388,59 @@ extern void inv_sqrt_inplace(const unsigned int N, _FP16 *X);
 extern void transpose_matrix(const unsigned int M, const unsigned int N,
                              const _FP16 *src, unsigned int ld_src, _FP16 *dst,
                              unsigned int ld_dst);
+
+/**
+ * @brief
+ * @param iter
+ * @param in
+ * @param vcache
+ * @param output
+ * @param seq
+ * @param num_cache_head
+ * @param gqa_size
+ * @param head_dim
+ * @param process_all
+ */
+extern void compute_fp16vcache_fp32_transposed(int iter, const float *in,
+                                               const uint16_t *vcache,
+                                               float *output, int seq,
+                                               int num_cache_head, int gqa_size,
+                                               int head_dim, bool process_all);
+
+/**
+ * @brief
+ * @tparam BType
+ * @param A
+ * @param B
+ * @param output
+ * @param num_rows
+ * @param N
+ * @param chunk_size
+ * @param group_size
+ * @param tile_size
+ */
+template <typename BType>
+extern void compute_kcaches(const float *A, const BType *B, float *output,
+                            int num_rows, int N, int chunk_size, int group_size,
+                            int tile_size);
+
+/**
+ * @brief
+ * @param width
+ * @param dim
+ * @param half_
+ * @param inout
+ * @param output
+ * @param cos_
+ * @param sin_
+ * @param only_convert_to_fp16
+ */
+extern void compute_rotary_emb_value(unsigned int width, unsigned int dim,
+                                     unsigned int half_, float *inout,
+                                     void *output, const float *cos_,
+                                     const float *sin_,
+                                     bool only_convert_to_fp16);
+
 #endif
 /**
  * @brief Get half-sized angles, transform them into each cos, sin, and scopy in
@@ -826,57 +879,6 @@ extern void softmax_row_inplace(float *qk_out, size_t start_row, size_t end_row,
  */
 extern void softmax_row(float *qk_out, size_t start_row, size_t end_row,
                         size_t num_heads);
-
-/**
- * @brief
- * @param iter
- * @param in
- * @param vcache
- * @param output
- * @param seq
- * @param num_cache_head
- * @param gqa_size
- * @param head_dim
- * @param process_all
- */
-extern void compute_fp16vcache_fp32_transposed(int iter, const float *in,
-                                               const uint16_t *vcache,
-                                               float *output, int seq,
-                                               int num_cache_head, int gqa_size,
-                                               int head_dim, bool process_all);
-
-/**
- * @brief
- * @tparam BType
- * @param A
- * @param B
- * @param output
- * @param num_rows
- * @param N
- * @param chunk_size
- * @param group_size
- * @param tile_size
- */
-template <typename BType>
-void compute_kcaches(const float *A, const BType *B, float *output,
-                     int num_rows, int N, int chunk_size, int group_size,
-                     int tile_size);
-
-/**
- * @brief
- * @param width
- * @param dim
- * @param half_
- * @param inout
- * @param output
- * @param cos_
- * @param sin_
- * @param only_convert_to_fp16
- */
-void compute_rotary_emb_value(unsigned int width, unsigned int dim,
-                              unsigned int half_, float *inout, void *output,
-                              const float *cos_, const float *sin_,
-                              bool only_convert_to_fp16);
 
 #endif
 #endif
