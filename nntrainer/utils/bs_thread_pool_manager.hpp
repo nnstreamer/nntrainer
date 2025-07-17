@@ -51,6 +51,7 @@ public:
 private:
   BS::thread_pool<> pool_;
 };
-} // namespace nntrainer
+}
 
 #endif // THREAD_POOL_MANAGER_HPP
+

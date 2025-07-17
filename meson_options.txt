@@ -4,15 +4,15 @@ option('install-app', type: 'boolean', value: true)
 option('use_gym', type: 'boolean', value: false)
 option('enable-capi', type: 'feature', value: 'auto')
 option('enable-ccapi', type: 'boolean', value: true)
-option('enable-test', type: 'boolean', value: true)
-option('enable-logging', type: 'boolean', value: true)
-option('enable-tizen-feature-check', type: 'boolean', value: true)
+option('enable-test', type: 'boolean', value: false)
+option('enable-logging', type: 'boolean', value: false)
+option('enable-tizen-feature-check', type: 'boolean', value: false)
 option('enable-nnstreamer-backbone', type: 'boolean', value: false)
-option('enable-tflite-backbone', type: 'boolean', value: true)
+option('enable-tflite-backbone', type: 'boolean', value: false)
 option('enable-profile', type: 'boolean', value: false)
 option('enable-trace', type: 'boolean', value: false)
 option('enable-debug', type: 'boolean', value: false)
-option('enable-tflite-interpreter', type: 'boolean', value: true)
+option('enable-tflite-interpreter', type: 'boolean', value: false)
 option('enable-onnx-interpreter', type: 'boolean', value: false)
 option('enable-fsu', type: 'boolean', value: false)
 option('fsu-path', type: 'string', value: '')
@@ -27,10 +27,10 @@ option('capi-ml-common-actual', type: 'string', value: 'capi-ml-common',
         description: 'backward compatible dependency name of capi-ml-common. ignored if ml-api-support is disabled.')
 option('tizen-version-major', type: 'integer', min : 4, max : 9999, value: 9999) # 9999 means "not Tizen"
 option('tizen-version-minor', type: 'integer', min : 0, max : 9999, value: 0)
-option('openblas-num-threads', type: 'integer', min : 0, max : 9999, value: 0)
+option('openblas-num-threads', type: 'integer', min : 0, max : 9999, value: 6)
 #This is for the multi-threading in nntrainer
 option('nntr-num-threads', type: 'integer', min : 0, max : 9999, value: 1)
-option('omp-num-threads', type: 'integer', min : 0, max : 9999, value: 1)
+option('omp-num-threads', type: 'integer', min : 0, max : 9999, value: 6)
 option('hgemm-experimental-kernel', type: 'boolean', value: false)
 
 # test related option
@@ -38,7 +38,7 @@ option('reduce-tolerance', type: 'boolean', value: true)
 option('enable-long-test', type: 'boolean', value: false)
 
 # backend options
-option('enable-blas', type: 'boolean', value: true)
+option('enable-blas', type: 'boolean', value: false)
 option('enable-fp16', type: 'boolean', value: false)
 option('enable-cublas', type: 'boolean', value: false)
 option('enable-openmp', type: 'boolean', value: true)
@@ -46,8 +46,8 @@ option('enable-opencl', type: 'boolean', value: false)
 option('enable-biqgemm', type: 'boolean', value: false)
 option('biqgemm-path', type: 'string', value: '../BiQGEMM')
 option('enable-benchmarks', type: 'boolean', value : false)
-option('enable-ggml', type: 'boolean', value: false)
-option('ggml-thread-backend', type: 'string', value: 'openmp')
+option('enable-ggml', type: 'boolean', value: true)
+option('ggml-thread-backend', type: 'string', value: 'bsthread')
 
 # ml-api dependency (to enable, install capi-inference from github.com/nnstreamer/api )
 # To inter-operate with nnstreamer and ML-API packages, you need to enable this.
@@ -60,3 +60,5 @@ option('nnstreamer-subplugin-install-path', type: 'string', value: 'lib/nnstream
 
 # application related options
 option('enable_encoder', type: 'boolean', value: false)
+option('libiomp_root', type:'string', value: './libiomp_win')
+option('K-quant_multithreading_strategy', type: 'string', value: 'bs') 
