@@ -56,7 +56,7 @@ option('ml-api-support', type: 'feature', value: 'auto')
 # @todo : make them use 'feature' and depend on ml-api-support
 option('enable-nnstreamer-tensor-filter', type: 'feature', value: 'auto')
 option('enable-nnstreamer-tensor-trainer', type: 'feature', value: 'auto')
-option('nnstreamer-subplugin-install-path', type: 'string', value: '/usr/lib/nnstreamer') # where nnstreamer subplugin should be installed
+option('nnstreamer-subplugin-install-path', type: 'string', value: 'lib/nnstreamer') # where nnstreamer subplugin should be installed (after prefix)
 
 # application related options
 option('enable_encoder', type: 'boolean', value: false)

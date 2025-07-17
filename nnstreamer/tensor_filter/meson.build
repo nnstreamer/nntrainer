@@ -18,7 +18,7 @@ nntrainer_prefix = get_option('prefix')
 nnstreamer_filter_nntrainer_deps = [glib_dep, gmodule_dep, gst_dep, nntrainer_ccapi_dep, nnstreamer_dep]
 
 nnstreamer_libdir = nntrainer_prefix / get_option('libdir')
-subplugin_install_prefix = get_option('nnstreamer-subplugin-install-path')
+subplugin_install_prefix = nntrainer_prefix / get_option('nnstreamer-subplugin-install-path')
 filter_subplugin_install_dir = subplugin_install_prefix / 'filters'
 
 shared_library('nnstreamer_filter_nntrainer',
