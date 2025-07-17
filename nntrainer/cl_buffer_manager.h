@@ -41,7 +41,7 @@ private:
   /**
    * @brief Buffer size in bytes preset (256 mebibytes)
    */
-  const size_t buffer_size_bytes = 8192 * 8192 * sizeof(float);
+  const size_t buffer_size_bytes = sizeof(float);
 
   opencl::Buffer *inBufferA = nullptr;
   opencl::Buffer *inBufferB = nullptr;

@@ -25,6 +25,10 @@
 #include <swiglu_cl.h>
 #include <transpose_cl.h>
 
+#if defined(_WIN32)
+#include <windows.h>
+#endif
+
 namespace nntrainer {
 
 std::mutex cl_factory_mutex;
@@ -40,6 +44,7 @@ void ClContext::initialize() noexcept {
     initBlasClKernels();
     initAttentionClKernels();
     add_default_object();
+
   } catch (std::exception &e) {
     ml_loge("cl_context: registering layers failed!!, reason: %s", e.what());
   } catch (...) {
@@ -53,6 +58,7 @@ void ClContext::add_default_object() {
                     FullyConnectedLayerCl::type,
                     ml::train::LayerType::LAYER_FC);
   }
+
 
   if (AdditionLayerCL::registerClKernels(*this)) {
     registerFactory(nntrainer::createLayer<AdditionLayerCL>,

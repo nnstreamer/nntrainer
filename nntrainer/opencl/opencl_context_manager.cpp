@@ -180,14 +180,26 @@ bool ContextManager::CreateDefaultGPUDevice() {
   // Vendor ID of Intel : 0x8086
   // Vendor ID of NVidia : 0x10DE / 0x13B5
   constexpr static cl_uint intel_igpu_vendor_id = 0x8086;
+  constexpr static cl_device_type intel_igpu_device_type = CL_DEVICE_TYPE_GPU;
   constexpr static const char *const intel_igpu_device_name_pfx = "Intel";
+
+#define SEARCH_BY_NAME 1
 
   for (const std::pair<cl_platform_id, cl_device_id> &platform_device :
        platform_device_pairs) {
     cl_platform_id platform = platform_device.first;
     cl_device_id device = platform_device.second;
 
-#define SEARCH_BY_NAME 1
+    cl_device_type device_type = 0;
+    if (CL_SUCCESS != clGetDeviceInfo(device, CL_DEVICE_TYPE,
+                                      sizeof(cl_device_type), &device_type,
+                                      nullptr)) {
+      ml_loge("Failed to query for device type - skipping...");
+      continue;
+    }
+
+    const bool type_check = (device_type == intel_igpu_device_type);
+
 #if SEARCH_BY_NAME
     char device_name_buffer[1024];
     std::memset(device_name_buffer, 0x00, sizeof(device_name_buffer));
@@ -213,9 +225,10 @@ bool ContextManager::CreateDefaultGPUDevice() {
 
     const bool vendor_check = (vendor_id == intel_igpu_vendor_id);
 #endif
+
 #undef SEARCH_BY_NAME
 
-    if (vendor_check) {
+    if (vendor_check && type_check) {
       platform_id_ = platform;
       device_id_ = device;
 
