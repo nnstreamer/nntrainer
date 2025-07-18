@@ -8,7 +8,7 @@
  * manages the global configuration of the current environment
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
- * @bug	   No known bugs except for NYI items
+ * @bug    No known bugs except for NYI items
  *
  */
 
@@ -304,8 +304,14 @@ void AppContext::add_default_object() {
                   LayerType::LAYER_TANGENT);
   registerFactory(nntrainer::createLayer<MatMulLayer>, MatMulLayer::type,
                   LayerType::LAYER_MATMUL);
-  registerFactory(nntrainer::createLayer<NegLayer>, NegLayer::type,
-                  LayerType::LAYER_NEG);
+  registerFactory(nntrainer::createLayer<CastLayer>, CastLayer::type,
+                  LayerType::LAYER_CAST);
+  registerFactory(nntrainer::createLayer<GatherLayer>, GatherLayer::type,
+                  LayerType::LAYER_GATHER);
+  registerFactory(nntrainer::createLayer<SliceLayer>, SliceLayer::type,
+                  LayerType::LAYER_SLICE);
+  registerFactory(nntrainer::createLayer<NegativeLayer>, NegativeLayer::type,
+                  LayerType::LAYER_NEGATIVE);
   registerFactory(nntrainer::createLayer<FullyConnectedLayer>,
                   FullyConnectedLayer::type, LayerType::LAYER_FC);
   registerFactory(nntrainer::createLayer<BatchNormalizationLayer>,
