@@ -276,7 +276,7 @@ static void run_q_4K_gemm_test(int group_size, const uint32_t M, const uint32_t 
     // std::cout << " - nans : " << nans << " / " << M * N << " [ "
     //           << nans * 100.0f / float(M * N) << " %]" << std::endl;
     // std::cout << " - MSE : CPU = " << mean_squared_error_dst << std::endl;
-    // std::cout << " - MSE : GPU = " << mean_squared_error_dst_gpu << std::endl;
+    std::cout << " - MSE : GPU = " << mean_squared_error_dst_gpu << std::endl;
   }
 }
 
@@ -287,35 +287,80 @@ static void run_q_4K_gemm_test(int group_size, const uint32_t M, const uint32_t 
 
 // DECLARE_q_4_K_test_M_K_N(1, 768, 1024);
 
+DECLARE_q_4_K_test_G_M_K_N(256, 256, 1024, 256);
+DECLARE_q_4_K_test_G_M_K_N(128, 256, 1024, 256);
+
+DECLARE_q_4_K_test_G_M_K_N(256, 512, 1024, 256);
+DECLARE_q_4_K_test_G_M_K_N(128, 512, 1024, 256);
+
+DECLARE_q_4_K_test_G_M_K_N(256, 1024, 1024, 256);
+DECLARE_q_4_K_test_G_M_K_N(128, 1024, 1024, 256);
+
+DECLARE_q_4_K_test_G_M_K_N(256, 2048, 1024, 256);
+DECLARE_q_4_K_test_G_M_K_N(128, 2048, 1024, 256);
+
+DECLARE_q_4_K_test_G_M_K_N(256, 3072, 1024, 256);
+DECLARE_q_4_K_test_G_M_K_N(128, 3072, 1024, 256);
+
+DECLARE_q_4_K_test_G_M_K_N(256, 4096, 1024, 256);
+DECLARE_q_4_K_test_G_M_K_N(128, 4096, 1024, 256);
+
+
+DECLARE_q_4_K_test_G_M_K_N(256, 256, 3072, 3072);
+DECLARE_q_4_K_test_G_M_K_N(128, 256, 3072, 3072);
+
+DECLARE_q_4_K_test_G_M_K_N(256, 512, 3072, 3072);
+DECLARE_q_4_K_test_G_M_K_N(128, 512, 3072, 3072);
+
+DECLARE_q_4_K_test_G_M_K_N(256, 1024, 3072, 3072);
+DECLARE_q_4_K_test_G_M_K_N(128, 1024, 3072, 3072);
+
+DECLARE_q_4_K_test_G_M_K_N(256, 2048, 3072, 3072);
+DECLARE_q_4_K_test_G_M_K_N(128, 2048, 3072, 3072);
+
+DECLARE_q_4_K_test_G_M_K_N(256, 3072, 3072, 3072);
+DECLARE_q_4_K_test_G_M_K_N(128, 3072, 3072, 3072);
+
+DECLARE_q_4_K_test_G_M_K_N(256, 4096, 3072, 3072);
+DECLARE_q_4_K_test_G_M_K_N(128, 4096, 3072, 3072);
+
+
+DECLARE_q_4_K_test_G_M_K_N(256, 256, 3072, 8192);
+DECLARE_q_4_K_test_G_M_K_N(128, 256, 3072, 8192);
+
+DECLARE_q_4_K_test_G_M_K_N(256, 512, 3072, 8192);
+DECLARE_q_4_K_test_G_M_K_N(128, 512, 3072, 8192);
+
+DECLARE_q_4_K_test_G_M_K_N(256, 1024, 3072, 8192);
+DECLARE_q_4_K_test_G_M_K_N(128, 1024, 3072, 8192);
+
+DECLARE_q_4_K_test_G_M_K_N(256, 2048, 3072, 8192);
+DECLARE_q_4_K_test_G_M_K_N(128, 2048, 3072, 8192);
+
+DECLARE_q_4_K_test_G_M_K_N(256, 3072, 3072, 8192);
+DECLARE_q_4_K_test_G_M_K_N(128, 3072, 3072, 8192);
+
+DECLARE_q_4_K_test_G_M_K_N(256, 4096, 3072, 8192);
+DECLARE_q_4_K_test_G_M_K_N(128, 4096, 3072, 8192);
+
+
 DECLARE_q_4_K_test_G_M_K_N(256, 256, 8192, 3072);
 DECLARE_q_4_K_test_G_M_K_N(128, 256, 8192, 3072);
-DECLARE_q_4_K_test_G_M_K_N(64, 256, 8192, 3072);
-DECLARE_q_4_K_test_G_M_K_N(32, 256, 8192, 3072);
 
 DECLARE_q_4_K_test_G_M_K_N(256, 512, 8192, 3072);
 DECLARE_q_4_K_test_G_M_K_N(128, 512, 8192, 3072);
-DECLARE_q_4_K_test_G_M_K_N(64, 512, 8192, 3072);
-DECLARE_q_4_K_test_G_M_K_N(32, 512, 8192, 3072);
 
 DECLARE_q_4_K_test_G_M_K_N(256, 1024, 8192, 3072);
 DECLARE_q_4_K_test_G_M_K_N(128, 1024, 8192, 3072);
-DECLARE_q_4_K_test_G_M_K_N(64, 1024, 8192, 3072);
-DECLARE_q_4_K_test_G_M_K_N(32, 1024, 8192, 3072);
 
 DECLARE_q_4_K_test_G_M_K_N(256, 2048, 8192, 3072);
 DECLARE_q_4_K_test_G_M_K_N(128, 2048, 8192, 3072);
-DECLARE_q_4_K_test_G_M_K_N(64, 2048, 8192, 3072);
-DECLARE_q_4_K_test_G_M_K_N(32, 2048, 8192, 3072);
 
 DECLARE_q_4_K_test_G_M_K_N(256, 3072, 8192, 3072);
 DECLARE_q_4_K_test_G_M_K_N(128, 3072, 8192, 3072);
-DECLARE_q_4_K_test_G_M_K_N(64, 3072, 8192, 3072);
-DECLARE_q_4_K_test_G_M_K_N(32, 3072, 8192, 3072);
 
 DECLARE_q_4_K_test_G_M_K_N(256, 4096, 8192, 3072);
 DECLARE_q_4_K_test_G_M_K_N(128, 4096, 8192, 3072);
-DECLARE_q_4_K_test_G_M_K_N(64, 4096, 8192, 3072);
-DECLARE_q_4_K_test_G_M_K_N(32, 4096, 8192, 3072);
 
 // DECLARE_q_4_K_test_M_K_N(256, 256, 3072);
 // DECLARE_q_4_K_test_M_K_N(3072, 256, 256);

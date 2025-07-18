@@ -468,6 +468,7 @@ __kernel void mm_q4Kx8_q8Kx4_grpsize128(const int n, __global float *restrict s,
         sumf += (float)sumi * dB * dA;
       }
       // 4.  bias / min-d correction
+  #pragma unroll 8      
       for (int sb = 0; sb < 8; ++sb) {
         __local const uchar *mins = lbytes + 8 + sb * 16;
         __local const short *bsum = (__local const short *)&lA.bsums[0] + sb * 8 +
