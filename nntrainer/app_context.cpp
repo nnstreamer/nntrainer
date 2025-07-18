@@ -53,6 +53,7 @@
 #include <embedding.h>
 #include <fc_layer.h>
 #include <flatten_layer.h>
+#include <gather_layer.h>
 #include <gru.h>
 #include <grucell.h>
 #include <identity_layer.h>
@@ -71,7 +72,7 @@
 #include <multi_head_attention_layer.h>
 #include <multiout_layer.h>
 #include <multiply_layer.h>
-#include <neg_layer.h>
+#include <negative_layer.h>
 #include <nntrainer_error.h>
 #include <permute_layer.h>
 #include <plugged_layer.h>
@@ -87,6 +88,7 @@
 #include <rnn.h>
 #include <rnncell.h>
 #include <sine_layer.h>
+#include <slice_layer.h>
 #include <split_layer.h>
 #include <sqrt_layer.h>
 #include <subtract_layer.h>
