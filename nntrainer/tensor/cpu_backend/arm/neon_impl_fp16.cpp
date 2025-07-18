@@ -1381,15 +1381,24 @@ void softmax(const unsigned int N, __fp16 *X, __fp16 *Y) {
   }
 }
 
-void compute_fp16vcache_fp32_transposed(int iter, const float *in,
+static inline void load_fp16_4_to_chunk(const __fp16 *src, float *dst,
+                                        int chunk_size) {
+  int i = 0;
+  for (; i + 4 <= chunk_size; i += 4) {
+    float16x4_t half = vld1_f16(src + i);
+    float32x4_t f32 = vcvt_f32_f16(half);
+    vst1q_f32(dst + i, f32);
+  }
+  for (; i < chunk_size; ++i) {
+    dst[i] = src[i];
+  }
+}
+
+void compute_fp16vcache_fp32_transposed(int row_num, const float *in,
                                         const __fp16 *vcache, float *output,
-                                        int seq, int num_cache_head,
-                                        int gqa_size, int head_dim,
-                                        bool process_all) {
+                                        int num_cache_head, int gqa_size,
+                                        int head_dim) {
   std::vector<float> tmp_fp32(head_dim);
-  int a_row_start =
-    process_all ? ((iter * (iter + 1)) / 2) * num_cache_head * gqa_size : 0;
-  int out_offset = process_all ? iter : 0;
 
   for (int n = 0; n < num_cache_head; ++n) {
     int num_blocks = head_dim / 4;
@@ -1398,31 +1407,13 @@ void compute_fp16vcache_fp32_transposed(int iter, const float *in,
     std::vector<float32x4_t> sumVec(num_blocks * gqa_size, vdupq_n_f32(0.0f));
     std::vector<float> sumRem(gqa_size * rem, 0.0f);
 
-    for (int j = 0; j <= iter; ++j) {
-      if (j + 1 < seq) {
-        const __fp16 *next_vptr =
-          vcache + ((j + 1) * num_cache_head + n) * head_dim;
-        __builtin_prefetch(reinterpret_cast<const char *>(next_vptr), 0,
-                           3); // READ, L1 load
-      }
-
+    for (int j = 0; j <= row_num; ++j) {
       const __fp16 *vptr = vcache + (j * num_cache_head + n) * head_dim;
 
-      int d0 = 0;
-      for (; d0 + 4 <= head_dim; d0 += 4) {
-        float16x4_t half = vld1_f16(vptr + d0);
-        float32x4_t f32 = vcvt_f32_f16(half);
-        vst1q_f32(&tmp_fp32[d0], f32);
-      }
-      for (; d0 < head_dim; ++d0) {
-        tmp_fp32[d0] = vptr[d0];
-      }
+      load_fp16_4_to_chunk(vptr, tmp_fp32.data(), head_dim);
 
       for (int h = 0; h < gqa_size; ++h) {
-        // float a_val = in[a_row_start + (j * gqa_size + h) * num_cache_head +
-        // n];
-        float a_val =
-          in[a_row_start + (j * gqa_size * num_cache_head + n * gqa_size + h)];
+        float a_val = in[j * gqa_size * num_cache_head + n * gqa_size + h];
         float32x4_t inVec = vdupq_n_f32(a_val);
 
         for (int b = 0; b < num_blocks; ++b) {
@@ -1441,8 +1432,7 @@ void compute_fp16vcache_fp32_transposed(int iter, const float *in,
 
     for (int h = 0; h < gqa_size; ++h) {
       for (int b = 0; b < num_blocks; ++b) {
-        int out_base =
-          ((out_offset * num_cache_head + n) * gqa_size + h) * head_dim + b * 4;
+        int out_base = (n * gqa_size + h) * head_dim + b * 4;
         vst1q_f32(&output[out_base], sumVec[h * num_blocks + b]);
       }
 
@@ -1450,25 +1440,10 @@ void compute_fp16vcache_fp32_transposed(int iter, const float *in,
       // float *remPtr = &sumRem[h * rem];
       int base = num_blocks * 4;
       for (int r = 0; r < rem; ++r) {
-        int out_idx =
-          ((out_offset * num_cache_head + n) * gqa_size + h) * head_dim + base +
-          r;
+        int out_idx = (n * gqa_size + h) * head_dim + base + r;
         output[out_idx] = remPtr[r];
       }
     }
-  }
-}
-
-static inline void load_fp16_4_to_chunk_NEON(const __fp16 *b_src,
-                                             float *temp_row, int chunk_size) {
-  int i = 0;
-  for (; i + 4 <= chunk_size; i += 4) {
-    float16x4_t half = vld1_f16(b_src + i);
-    float32x4_t f32 = vcvt_f32_f16(half);
-    vst1q_f32(temp_row + i, f32);
-  }
-  for (; i < chunk_size; ++i) {
-    temp_row[i] = b_src[i];
   }
 }
 
@@ -1495,7 +1470,7 @@ void compute_kcaches(const float *A, const __fp16 *B, float *output,
           const BType *b_src =
             B + (row_tile_start + row) * row_stride + n * chunk_size;
           float *dst = temp_tile_buf.data() + row * chunk_size;
-          load_fp16_4_to_chunk_NEON(b_src, dst, chunk_size);
+          load_fp16_4_to_chunk(b_src, dst, chunk_size);
         }
       }
 
