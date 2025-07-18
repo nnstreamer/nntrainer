@@ -30,6 +30,82 @@ static ClContext *blas_cc =
 static ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
 
 /**
+ * @brief     Q6_K sgemv computation : Y = A*X
+ * @param[in] matAdata void * for Matrix A
+ * @param[in] vecXdata float * for Vector X
+ * @param[in] vecYdata float * for Vector Y
+ * @param[in] M number of rows in matrix A
+ * @param[in] N number of columns in matrix A
+ */
+void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
+                   unsigned int M, unsigned int N);
+
+/**
+ * @brief     Q6_K GEMM computation
+ * @param[in] M as descripted above
+ * @param[in] N as descripted above
+ * @param K as descripted above
+ * @param[in] matAdata void * for Matrix A; offline quantized and q4_kx8 packed
+ * @param[in] matBdata float * for Matrix B
+ * @param[in] matCdata float * for Matrix C
+ */
+void sgemm_q4_k_cl(const unsigned int M, const unsigned int N,
+                   const unsigned int K, void *matAdata, void *matBdata,
+                   float *matCdata);
+
+/**
+ * @brief     Q6_K GEMM computation
+ * @param[in] M number of rows in matrix A
+ * @param[in] N number of columns in matrix B
+ * @param[in] K number of columns in matrix A
+ * @param[in] matAdata void * for Matrix A; offline quantized and q4_kx8 packed
+ * @param[in] matBdata float * for Matrix B offline quantized and q8_k packed
+ * @param[in] matCdata float * for Matrix C
+ */
+void sgemm_q4_k_grpsize256_cl(const unsigned int M, const unsigned int N,
+                    const unsigned int K, void *matAdata, void *matBdata,
+                    float *matCdata);      
+
+/**
+ * @brief     Q6_K GEMM computation
+ * @param[in] M number of rows in matrix A
+ * @param[in] N number of columns in matrix B
+ * @param[in] K number of columns in matrix A
+ * @param[in] matAdata void * for Matrix A; offline quantized and q4_kx8 packed
+ * @param[in] matBdata float * for Matrix B offline quantized and q8_k packed
+ * @param[in] matCdata float * for Matrix C
+ */
+void sgemm_q4_k_grpsize128_cl(const unsigned int M, const unsigned int N,
+                    const unsigned int K, void *matAdata, void *matBdata,
+                    float *matCdata);       
+
+/**
+ * @brief     Q6_K GEMM computation
+ * @param[in] M number of rows in matrix A
+ * @param[in] N number of columns in matrix B
+ * @param[in] K number of columns in matrix A
+ * @param[in] matAdata void * for Matrix A; offline quantized and q4_kx8 packed
+ * @param[in] matBdata float * for Matrix B offline quantized and q8_k packed
+ * @param[in] matCdata float * for Matrix C
+ */
+void sgemm_q4_k_grpsize64_cl(const unsigned int M, const unsigned int N,
+                    const unsigned int K, void *matAdata, void *matBdata,
+                    float *matCdata);          
+
+/**
+ * @brief     Q6_K GEMM computation
+ * @param[in] M number of rows in matrix A
+ * @param[in] N number of columns in matrix B
+ * @param[in] K number of columns in matrix A
+ * @param[in] matAdata void * for Matrix A; offline quantized and q4_kx8 packed
+ * @param[in] matBdata float * for Matrix B offline quantized and q8_k packed
+ * @param[in] matCdata float * for Matrix C
+ */
+void sgemm_q4_k_grpsize32_cl(const unsigned int M, const unsigned int N,
+                    const unsigned int K, void *matAdata, void *matBdata,
+                    float *matCdata);          
+
+/**
  * @brief     sgemv computation : Y = A*X + Y
  * @param[in] matAdata float * for Matrix A
  * @param[in] vecXdata float * for Vector X
