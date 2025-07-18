@@ -16,7 +16,6 @@ layer_sources = [
   'cosine_layer.cpp',
   'tangent_layer.cpp',
   'matmul_layer.cpp',
-  'neg_layer.cpp',
   'cast_layer.cpp',
   'gather_layer.cpp',
   'slice_layer.cpp',

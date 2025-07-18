@@ -84,8 +84,8 @@ typedef enum {
   ML_TRAIN_LAYER_TYPE_SLICE = 47,      /**< SQRT Layer type (Since 9.0)*/
   ML_TRAIN_LAYER_TYPE_NEGATIVE = 48,   /**< Negative Layer type (Since 9.0)*/
   ML_TRAIN_LAYER_TYPE_REDUCE_SUM = 49, /**< ReduceSum Layer type (Since 9.0) */
-    ML_TRAIN_LAYER_TYPE_CHANNEL_SHUFFLE =
-    50,                         /**< Channel Shuffle Layer type (Since 9.0)*/
+  ML_TRAIN_LAYER_TYPE_CHANNEL_SHUFFLE =
+    50, /**< Channel Shuffle Layer type (Since 9.0)*/
   ML_TRAIN_LAYER_TYPE_PREPROCESS_FLIP =
     300, /**< Preprocess flip Layer (Since 6.5) */
   ML_TRAIN_LAYER_TYPE_PREPROCESS_TRANSLATE =

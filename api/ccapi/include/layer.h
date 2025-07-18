@@ -412,14 +412,6 @@ MatMulLayer(const std::vector<std::string> &properties = {}) {
 }
 
 /**
- * @brief Helper function to create neg layer
- */
-inline std::unique_ptr<Layer>
-NegLayer(const std::vector<std::string> &properties = {}) {
-  return createLayer(LayerType::LAYER_NEG, properties);
-}
-
-/**
  * @brief Helper function to create cast layer
  */
 inline std::unique_ptr<Layer>
