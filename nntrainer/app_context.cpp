@@ -52,6 +52,7 @@
 #include <embedding.h>
 #include <fc_layer.h>
 #include <flatten_layer.h>
+#include <gather_layer.h>
 #include <gru.h>
 #include <grucell.h>
 #include <identity_layer.h>
@@ -70,6 +71,7 @@
 #include <multi_head_attention_layer.h>
 #include <multiout_layer.h>
 #include <multiply_layer.h>
+#include <negative_layer.h>
 #include <nntrainer_error.h>
 #include <permute_layer.h>
 #include <plugged_layer.h>
@@ -84,6 +86,7 @@
 #include <rnn.h>
 #include <rnncell.h>
 #include <sine_layer.h>
+#include <slice_layer.h>
 #include <split_layer.h>
 #include <sqrt_layer.h>
 #include <subtract_layer.h>
@@ -290,6 +293,12 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_MATMUL);
   ac.registerFactory(nntrainer::createLayer<CastLayer>, CastLayer::type,
                      LayerType::LAYER_CAST);
+  ac.registerFactory(nntrainer::createLayer<GatherLayer>, GatherLayer::type,
+                     LayerType::LAYER_GATHER);
+  ac.registerFactory(nntrainer::createLayer<SliceLayer>, SliceLayer::type,
+                     LayerType::LAYER_SLICE);
+  ac.registerFactory(nntrainer::createLayer<NegativeLayer>, NegativeLayer::type,
+                     LayerType::LAYER_NEGATIVE);
   ac.registerFactory(nntrainer::createLayer<FullyConnectedLayer>,
                      FullyConnectedLayer::type, LayerType::LAYER_FC);
   ac.registerFactory(nntrainer::createLayer<BatchNormalizationLayer>,

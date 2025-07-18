@@ -72,14 +72,17 @@ typedef enum {
   ML_TRAIN_LAYER_TYPE_TRANSPOSE = 36, /**< Transpose Layer type */
   ML_TRAIN_LAYER_TYPE_CONV2D_TRANSPOSE =
     37, /**< Convolution 2D Transpose Layer (Since 9.0) */
-  ML_TRAIN_LAYER_TYPE_POW = 38,     /**< Pow Layer type (Since 9.0)*/
-  ML_TRAIN_LAYER_TYPE_TENSOR = 39,  /**< Tensor Layer type (Since 9.0)*/
-  ML_TRAIN_LAYER_TYPE_SQRT = 40,    /**< SQRT Layer type (Since 9.0)*/
-  ML_TRAIN_LAYER_TYPE_SINE = 41,    /**< Sine Layer type (Since 9.0)*/
-  ML_TRAIN_LAYER_TYPE_COSINE = 42,  /**< Cosine Layer type (Since 9.0)*/
-  ML_TRAIN_LAYER_TYPE_TANGENT = 43, /**< Tangent Layer type (Since 9.0)*/
-  ML_TRAIN_LAYER_TYPE_MATMUL = 44,  /**< MatMul Layer type (Since 9.0)*/
-  ML_TRAIN_LAYER_TYPE_CAST = 45,    /**< Cast Layer type (Since 9.0)*/
+  ML_TRAIN_LAYER_TYPE_POW = 38,      /**< Pow Layer type (Since 9.0)*/
+  ML_TRAIN_LAYER_TYPE_TENSOR = 39,   /**< Tensor Layer type (Since 9.0)*/
+  ML_TRAIN_LAYER_TYPE_SQRT = 40,     /**< SQRT Layer type (Since 9.0)*/
+  ML_TRAIN_LAYER_TYPE_SINE = 41,     /**< Sine Layer type (Since 9.0)*/
+  ML_TRAIN_LAYER_TYPE_COSINE = 42,   /**< Cosine Layer type (Since 9.0)*/
+  ML_TRAIN_LAYER_TYPE_TANGENT = 43,  /**< Tangent Layer type (Since 9.0)*/
+  ML_TRAIN_LAYER_TYPE_MATMUL = 44,   /**< MatMul Layer type (Since 9.0)*/
+  ML_TRAIN_LAYER_TYPE_CAST = 45,     /**< Cast Layer type (Since 9.0)*/
+  ML_TRAIN_LAYER_TYPE_GATHER = 46,   /**< Gather Layer type (Since 9.0)*/
+  ML_TRAIN_LAYER_TYPE_SLICE = 47,    /**< SQRT Layer type (Since 9.0)*/
+  ML_TRAIN_LAYER_TYPE_NEGATIVE = 48, /**< Negative Layer type (Since 9.0)*/
   ML_TRAIN_LAYER_TYPE_PREPROCESS_FLIP =
     300, /**< Preprocess flip Layer (Since 6.5) */
   ML_TRAIN_LAYER_TYPE_PREPROCESS_TRANSLATE =
