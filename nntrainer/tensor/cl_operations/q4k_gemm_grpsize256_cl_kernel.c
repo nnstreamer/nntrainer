@@ -17,8 +17,8 @@ typedef struct {
 
 #define QK_K 256
 #define TILE_H 4
-#define TILE_W 32
-#define WG_SIZE 128
+#define TILE_W 64
+#define WG_SIZE 256
 
 #define KMASK1 0x3f3f3f3fu
 #define KMASK2 0x0f0f0f0fu
@@ -46,7 +46,7 @@ inline float fp16_to_fp32(half h) { return convert_float(h); }
 #define REDUCE_ADD_SHORT8(v)                                                   \
   ((v).s0 + (v).s1 + (v).s2 + (v).s3 + (v).s4 + (v).s5 + (v).s6 + (v).s7)
 
-__kernel void mat_mul_q4_K_8x8_q8_K2(const int n, __global float *restrict s,
+__kernel void mm_q4Kx8_q8Kx4_grpsize256(const int n, __global float *restrict s,
                                      const int bs, // leading stride in s
                                      __global const block_q4_Kx8 *restrict vx,
                                      __global const block_q8_Kx4 *restrict vy,
@@ -55,13 +55,13 @@ __kernel void mat_mul_q4_K_8x8_q8_K2(const int n, __global float *restrict s,
   const int tile_x = get_group_id(1);
   const int grp_i = get_local_id(0);
   const int grp_y = grp_i / TILE_W; // 0-3  (row inside 4x32 tile)
-  const int grp_x = grp_i % TILE_W; // 0-31 (col inside 4x32 tile)
+  const int grp_x = grp_i % TILE_W; // 0-63 (col inside 4x32 tile)
 
   const int nb = n / QK_K; // #256-element blocks
 
-  __local block_q4_Kx8 lB[4];
+  __local block_q4_Kx8 lB[8];
   __local block_q8_Kx4 lA;
-  __local uint lutmp[4][32];
+  __local uint lutmp[8][32];
 
   float sumf = 0.0f;
   float sum_minf = 0.0f;
@@ -69,14 +69,20 @@ __kernel void mat_mul_q4_K_8x8_q8_K2(const int n, __global float *restrict s,
   for (int b = 0; b < nb; ++b) {
     // 1.  Copy one q8 block (A) and two q4 blocks (B0/B1) to LDS
     {
-      __global const uchar *gB[4];
-      gB[0] = (__global const uchar *)(vx + (tile_x * 4 + 0) * nb + b);
-      gB[1] = (__global const uchar *)(vx + (tile_x * 4 + 1) * nb + b);
-      gB[2] = (__global const uchar *)(vx + (tile_x * 4 + 2) * nb + b);
-      gB[3] = (__global const uchar *)(vx + (tile_x * 4 + 3) * nb + b);
+      __global const uchar *gB[8];
+      gB[0] = (__global const uchar *)(vx + (tile_x * 8 + 0) * nb + b);
+      gB[1] = (__global const uchar *)(vx + (tile_x * 8 + 1) * nb + b);
+      gB[2] = (__global const uchar *)(vx + (tile_x * 8 + 2) * nb + b);
+      gB[3] = (__global const uchar *)(vx + (tile_x * 8 + 3) * nb + b);
+      gB[4] = (__global const uchar *)(vx + (tile_x * 8 + 4) * nb + b);
+      gB[5] = (__global const uchar *)(vx + (tile_x * 8 + 5) * nb + b);
+      gB[6] = (__global const uchar *)(vx + (tile_x * 8 + 6) * nb + b);
+      gB[7] = (__global const uchar *)(vx + (tile_x * 8 + 7) * nb + b);
       __global const uchar *gA = (__global const uchar *)(vy + tile_y * nb + b);
 
-      __local uchar *lBdst[4] = {(__local uchar *)&lB[0], (__local uchar *)&lB[1], (__local uchar *)&lB[2], (__local uchar *)&lB[3]};
+      __local uchar *lBdst[8] = {
+        (__local uchar *)&lB[0], (__local uchar *)&lB[1], (__local uchar *)&lB[2], (__local uchar *)&lB[3],
+        (__local uchar *)&lB[4], (__local uchar *)&lB[5], (__local uchar *)&lB[6], (__local uchar *)&lB[7]};
       __local uchar *lAdst = (__local uchar *)&lA;
 
       const int vecsB = (int)(sizeof(block_q4_Kx8) / (16 * sizeof(uchar)));
@@ -87,6 +93,10 @@ __kernel void mat_mul_q4_K_8x8_q8_K2(const int n, __global float *restrict s,
         vstore16(vload16(0, gB[1] + v * 16), 0, lBdst[1] + v * 16);
         vstore16(vload16(0, gB[2] + v * 16), 0, lBdst[2] + v * 16);
         vstore16(vload16(0, gB[3] + v * 16), 0, lBdst[3] + v * 16);
+        vstore16(vload16(0, gB[4] + v * 16), 0, lBdst[4] + v * 16);
+        vstore16(vload16(0, gB[5] + v * 16), 0, lBdst[5] + v * 16);
+        vstore16(vload16(0, gB[6] + v * 16), 0, lBdst[6] + v * 16);
+        vstore16(vload16(0, gB[7] + v * 16), 0, lBdst[7] + v * 16);
       }
       for (int v = grp_i; v < vecsA; v += WG_SIZE) {
         vstore16(vload16(0, gA + v * 16), 0, lAdst + v * 16);
@@ -144,6 +154,7 @@ __kernel void mat_mul_q4_K_8x8_q8_K2(const int n, __global float *restrict s,
         sumf += (float)sumi * dB * dA;
       }
       // 4.  bias / min-d correction
+  
       for (int sb = 0; sb < 8; ++sb) {
         __local const uchar *mins = lbytes + 8 + sb * 16;
         __local const short *bsum = (__local const short *)&lA.bsums[0] + sb * 8 +

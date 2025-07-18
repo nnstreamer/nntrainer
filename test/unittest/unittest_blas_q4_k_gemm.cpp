@@ -105,7 +105,12 @@ generate_random_vector(size_t size, float min_val = -1.F, float max_val = 1.F) {
   return vec;
 }
 
-static void run_q_4K_gemm2_test(const uint32_t M, const uint32_t K,
+typedef void (*SGEMM_Q4K)(const unsigned int M, const unsigned int N,
+                    const unsigned int K, void *matAdata, void *matBdata,
+                    float *matCdata);
+
+
+static void run_q_4K_gemm_test(int group_size, const uint32_t M, const uint32_t K,
                                 const uint32_t N) {
   nntrainer::init_backend();
 
@@ -172,7 +177,9 @@ static void run_q_4K_gemm2_test(const uint32_t M, const uint32_t K,
 
   // CPU Q4_K GEMM
   auto t1 = std::chrono::high_resolution_clock::now();
-  for (unsigned int i = 0; i < run_count; ++i) {
+  nntrainer::gemm_q4_K(M, N, K, activations_f32_ptr, K, q4_weight_repack_ptr,
+                         N, cpu_q4_dst.data(), N);
+  for (unsigned int i = 1; i < run_count + 1; ++i) {
     nntrainer::gemm_q4_K(M, N, K, activations_f32_ptr, K, q4_weight_repack_ptr,
                          N, cpu_q4_dst.data(), N);
   }
@@ -199,11 +206,23 @@ static void run_q_4K_gemm2_test(const uint32_t M, const uint32_t K,
   }
 
   // GPU Q4_K GEMM
-  auto t3 = std::chrono::high_resolution_clock::now();
-  for (unsigned int i = 0; i < run_count; ++i) {
+  SGEMM_Q4K q4k_gemm_funcs[1025] = {};
+  q4k_gemm_funcs[32] = &nntrainer::sgemm_q4_k_grpsize32_cl;
+  q4k_gemm_funcs[64] = &nntrainer::sgemm_q4_k_grpsize64_cl;
+  q4k_gemm_funcs[128] = &nntrainer::sgemm_q4_k_grpsize128_cl;
+  q4k_gemm_funcs[256] = &nntrainer::sgemm_q4_k_grpsize256_cl;
 
-    nntrainer::sgemm_q4_k_cl2(M, N, K, q4_weight_repack_ptr, activations_f32_ptr,
-                             (float *)gpu_q4_dst);
+  auto sgemm_q4k = q4k_gemm_funcs[group_size];
+  if (!sgemm_q4k)
+  {
+    printf("No function for group size %d\n", group_size);
+    return;
+  }
+
+  sgemm_q4k(M, N, K, q4_weight_repack_ptr, activations_f32_ptr, (float *)gpu_q4_dst);
+  auto t3 = std::chrono::high_resolution_clock::now();
+  for (unsigned int i = 1; i < run_count + 1; ++i) {
+    sgemm_q4k(M, N, K, q4_weight_repack_ptr, activations_f32_ptr, (float *)gpu_q4_dst);
   }
   auto t4 = std::chrono::high_resolution_clock::now();
   auto gpu_dt = std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3);
@@ -234,44 +253,69 @@ static void run_q_4K_gemm2_test(const uint32_t M, const uint32_t K,
                   (float *)cpu_q4_dst.data(), M * N, false);
 
     const auto data_size_mb = data_size / (1024 * 1024.0f);
+    auto cpu_time = dt.count() / (run_count * 1.0f);
+    auto gpu_time = gpu_dt.count() / (run_count * 1.0f);
+    auto delta = (gpu_time / cpu_time - 1.0f) * 100.0f;
 
-    std::cout << "Q4_K GEMM : " << M << " x " << K << " x " << N << std::endl;
-    std::cout << " - q4_K data size : " << data_size_mb << " [MB]" << std::endl;
-    std::cout << " - time : CPU = " << dt.count() / (run_count * 1.0f) << " ms"
-              << std::endl;
-    std::cout << " - time : GPU = " << gpu_dt.count() / (run_count * 1.0f)
-              << " ms" << std::endl;
-    std::cout << " - sample : REF = ";
-    debug_print_beg_end(ref_dst.data());
-    std::cout << std::endl;
-    std::cout << " - sample : CPU = ";
-    debug_print_beg_end(cpu_q4_dst.data());
-    std::cout << std::endl;
-    std::cout << " - sample : GPU = ";
-    debug_print_beg_end((float *)gpu_q4_dst);
-    std::cout << std::endl;
-    std::cout << " - zeros : " << zeros << " / " << M * N << " [ "
-              << zeros * 100.0f / float(M * N) << " %] - first at [ "
-              << first_zero_index << " ]" << std::endl;
-    std::cout << " - nans : " << nans << " / " << M * N << " [ "
-              << nans * 100.0f / float(M * N) << " %]" << std::endl;
-    std::cout << " - MSE : CPU = " << mean_squared_error_dst << std::endl;
-    std::cout << " - MSE : GPU = " << mean_squared_error_dst_gpu << std::endl;
+    // std::cout << "group_size, M, K, N, data_size(MB), CPU, GPU, delta(%)" << std::endl;
+    // std::cout << group_size << ", " << M << ", " << K << ", " << N << ", " << data_size_mb << ", " << cpu_time << ", " << gpu_time << "," << delta << "%" << std::endl;
+    printf("%10s, %10s, %10s, %10s, %10s, %10s, %10s, %10s\n", "group_size", "M", "K", "N", "dsize(MB)", "CPU(ms)", "GPU(ms)", "delta(%)");
+    printf("%10d, %10d, %10d, %10d, %10f, %10f, %10f, %10f%\n", group_size , M , K , N , data_size_mb, cpu_time, gpu_time, delta);
+    // std::cout << " - sample : REF = ";
+    // debug_print_beg_end(ref_dst.data());
+    // std::cout << std::endl;
+    // std::cout << " - sample : CPU = ";
+    // debug_print_beg_end(cpu_q4_dst.data());
+    // std::cout << std::endl;
+    // std::cout << " - sample : GPU = ";
+    // debug_print_beg_end((float *)gpu_q4_dst);
+    // std::cout << std::endl;
+    // std::cout << " - zeros : " << zeros << " / " << M * N << " [ "
+    //           << zeros * 100.0f / float(M * N) << " %] - first at [ "
+    //           << first_zero_index << " ]" << std::endl;
+    // std::cout << " - nans : " << nans << " / " << M * N << " [ "
+    //           << nans * 100.0f / float(M * N) << " %]" << std::endl;
+    // std::cout << " - MSE : CPU = " << mean_squared_error_dst << std::endl;
+    // std::cout << " - MSE : GPU = " << mean_squared_error_dst_gpu << std::endl;
   }
 }
 
-#define DECLARE_q_4_K_test_M_K_N(M, K, N)                                      \
-  TEST(nntrainer_cpu_backend_standalone, run_q_4K_gemm2_##M##_##K##_##N) {         \
-    run_q_4K_gemm2_test(M, K, N);                                                   \
+#define DECLARE_q_4_K_test_G_M_K_N(G, M, K, N)                                      \
+  TEST(nntrainer_cpu_backend_standalone, run_q_4K_gemm_##G##_##M##_##K##_##N) {         \
+    run_q_4K_gemm_test(G, M, K, N);                                                   \
   }
 
 // DECLARE_q_4_K_test_M_K_N(1, 768, 1024);
 
-DECLARE_q_4_K_test_M_K_N(256, 1024, 256);
-DECLARE_q_4_K_test_M_K_N(3072, 8192, 3072);
-DECLARE_q_4_K_test_M_K_N(256, 3072, 8192);
-DECLARE_q_4_K_test_M_K_N(256, 8192, 3072);
-DECLARE_q_4_K_test_M_K_N(256, 3072, 3072);
+DECLARE_q_4_K_test_G_M_K_N(256, 256, 8192, 3072);
+DECLARE_q_4_K_test_G_M_K_N(128, 256, 8192, 3072);
+DECLARE_q_4_K_test_G_M_K_N(64, 256, 8192, 3072);
+DECLARE_q_4_K_test_G_M_K_N(32, 256, 8192, 3072);
+
+DECLARE_q_4_K_test_G_M_K_N(256, 512, 8192, 3072);
+DECLARE_q_4_K_test_G_M_K_N(128, 512, 8192, 3072);
+DECLARE_q_4_K_test_G_M_K_N(64, 512, 8192, 3072);
+DECLARE_q_4_K_test_G_M_K_N(32, 512, 8192, 3072);
+
+DECLARE_q_4_K_test_G_M_K_N(256, 1024, 8192, 3072);
+DECLARE_q_4_K_test_G_M_K_N(128, 1024, 8192, 3072);
+DECLARE_q_4_K_test_G_M_K_N(64, 1024, 8192, 3072);
+DECLARE_q_4_K_test_G_M_K_N(32, 1024, 8192, 3072);
+
+DECLARE_q_4_K_test_G_M_K_N(256, 2048, 8192, 3072);
+DECLARE_q_4_K_test_G_M_K_N(128, 2048, 8192, 3072);
+DECLARE_q_4_K_test_G_M_K_N(64, 2048, 8192, 3072);
+DECLARE_q_4_K_test_G_M_K_N(32, 2048, 8192, 3072);
+
+DECLARE_q_4_K_test_G_M_K_N(256, 3072, 8192, 3072);
+DECLARE_q_4_K_test_G_M_K_N(128, 3072, 8192, 3072);
+DECLARE_q_4_K_test_G_M_K_N(64, 3072, 8192, 3072);
+DECLARE_q_4_K_test_G_M_K_N(32, 3072, 8192, 3072);
+
+DECLARE_q_4_K_test_G_M_K_N(256, 4096, 8192, 3072);
+DECLARE_q_4_K_test_G_M_K_N(128, 4096, 8192, 3072);
+DECLARE_q_4_K_test_G_M_K_N(64, 4096, 8192, 3072);
+DECLARE_q_4_K_test_G_M_K_N(32, 4096, 8192, 3072);
 
 // DECLARE_q_4_K_test_M_K_N(256, 256, 3072);
 // DECLARE_q_4_K_test_M_K_N(3072, 256, 256);

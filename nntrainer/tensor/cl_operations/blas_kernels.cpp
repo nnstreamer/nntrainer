@@ -264,49 +264,112 @@ void sgemm_q4_k_cl(const unsigned int M, const unsigned int N,
   }
 }
 
-void sgemm_q4_k_cl2(const unsigned int M, const unsigned int N,
+void sgemm_q4_k_grpsize256_cl(const unsigned int M, const unsigned int N,
                     const unsigned int K, void *matAdata, void *matBdata,
                     float *matCdata) {
   ClContext::SharedPtrClKernel kernel =
-    blas_cc->registerClKernel(getQ4KGemmClKernel2(), "mat_mul_q4_K_8x8_q8_K2");
-
+    blas_cc->registerClKernel(getQ4KGemmGrpsize256ClKernel(), "mm_q4Kx8_q8Kx4_grpsize256");
+  
   if (!kernel) {
-    ml_loge("Failed to register mat_mul_q4_K_8x8_q8_K");
+    ml_loge("Failed to register mm_q4Kx8_q8Kx4_grpsize128");
     return;
   }
 
   if (!kernel->SetKernelArguments(0, &K, sizeof(int))) {
-    printf("Failed to set kernel argument 1 for mat_mul_q4_K_8x8_q8_K");
+    printf("Failed to set kernel argument 1 for mm_q4Kx8_q8Kx4_grpsize128");
     return;
   }
 
   if (!kernel->SetKernelSVMArguments(1, matCdata)) {
-    printf("Failed to set kernel SVM argument 0 for mat_mul_q4_K_8x8_q8_K");
+    printf("Failed to set kernel SVM argument 0 for mm_q4Kx8_q8Kx4_grpsize128");
     return;
   }
 
   if (!kernel->SetKernelArguments(2, &N, sizeof(int))) {
-    printf("Failed to set kernel argument 1 for mat_mul_q4_K_8x8_q8_K");
+    printf("Failed to set kernel argument 1 for mm_q4Kx8_q8Kx4_grpsize128");
     return;
   }
 
   if (!kernel->SetKernelSVMArguments(3, matAdata)) {
-    printf("Failed to set kernel SVM argument 2 for mat_mul_q4_K_8x8_q8_K");
+    printf("Failed to set kernel SVM argument 2 for mm_q4Kx8_q8Kx4_grpsize128");
     return;
   }
 
   if (!kernel->SetKernelSVMArguments(4, matBdata)) {
-    printf("Failed to set kernel SVM argument 3 for mat_mul_q4_K_8x8_q8_K");
+    printf("Failed to set kernel SVM argument 3 for mm_q4Kx8_q8Kx4_grpsize128");
     return;
   }
 
   if (!kernel->SetKernelArguments(5, &M, sizeof(int))) {
-    printf("Failed to set kernel argument 5 for mat_mul_q4_K_8x8_q8_K");
+    printf("Failed to set kernel argument 5 for mm_q4Kx8_q8Kx4_grpsize128");
     return;
   }
 
   if (!kernel->SetKernelArguments(6, &N, sizeof(int))) {
-    printf("Failed to set kernel argument 6 for mat_mul_q4_K_8x8_q8_K");
+    printf("Failed to set kernel argument 6 for mm_q4Kx8_q8Kx4_grpsize128");
+    return;
+  }
+
+  const int tile_size = 256;
+  const int work_groups_count[3] = {(int)(M / 4) * tile_size, (int)N / 64, 1};
+  const int work_group_size[3] = {tile_size, 1, 1};
+
+  if (!opencl::CommandQueueManager::GetInstance().DispatchCommand(
+        kernel, work_groups_count, work_group_size)) {
+    printf("Failed to dispatch kernel mm_q4Kx8_q8Kx4_grpsize128");
+    return;
+  }
+
+  if (!blas_cc->command_queue_inst_.enqueueSVMMap(
+        matCdata, M * N * sizeof(float), true)) {
+    printf("Failed to map output buffer for mm_q4Kx8_q8Kx4_grpsize128\n");
+    return;
+  }
+}
+
+void sgemm_q4_k_grpsize128_cl(const unsigned int M, const unsigned int N,
+                    const unsigned int K, void *matAdata, void *matBdata,
+                    float *matCdata) {
+  ClContext::SharedPtrClKernel kernel =
+    blas_cc->registerClKernel(getQ4KGemmGrpsize128ClKernel(), "mm_q4Kx8_q8Kx4_grpsize128");
+
+  if (!kernel) {
+    ml_loge("Failed to register mm_q4Kx8_q8Kx4_grpsize128");
+    return;
+  }
+
+  if (!kernel->SetKernelArguments(0, &K, sizeof(int))) {
+    printf("Failed to set kernel argument 1 for mm_q4Kx8_q8Kx4_grpsize128");
+    return;
+  }
+
+  if (!kernel->SetKernelSVMArguments(1, matCdata)) {
+    printf("Failed to set kernel SVM argument 0 for mm_q4Kx8_q8Kx4_grpsize128");
+    return;
+  }
+
+  if (!kernel->SetKernelArguments(2, &N, sizeof(int))) {
+    printf("Failed to set kernel argument 1 for mm_q4Kx8_q8Kx4_grpsize128");
+    return;
+  }
+
+  if (!kernel->SetKernelSVMArguments(3, matAdata)) {
+    printf("Failed to set kernel SVM argument 2 for mm_q4Kx8_q8Kx4_grpsize128");
+    return;
+  }
+
+  if (!kernel->SetKernelSVMArguments(4, matBdata)) {
+    printf("Failed to set kernel SVM argument 3 for mm_q4Kx8_q8Kx4_grpsize128");
+    return;
+  }
+
+  if (!kernel->SetKernelArguments(5, &M, sizeof(int))) {
+    printf("Failed to set kernel argument 5 for mm_q4Kx8_q8Kx4_grpsize128");
+    return;
+  }
+
+  if (!kernel->SetKernelArguments(6, &N, sizeof(int))) {
+    printf("Failed to set kernel argument 6 for mm_q4Kx8_q8Kx4_grpsize128");
     return;
   }
 
@@ -316,17 +379,142 @@ void sgemm_q4_k_cl2(const unsigned int M, const unsigned int N,
 
   if (!opencl::CommandQueueManager::GetInstance().DispatchCommand(
         kernel, work_groups_count, work_group_size)) {
-    printf("Failed to dispatch kernel mat_mul_q4_K_8x8_q8_K");
+    printf("Failed to dispatch kernel mm_q4Kx8_q8Kx4_grpsize128");
     return;
   }
 
   if (!blas_cc->command_queue_inst_.enqueueSVMMap(
         matCdata, M * N * sizeof(float), true)) {
-    printf("Failed to map output buffer for mat_mul_q4_K_8x8_q8_K\n");
+    printf("Failed to map output buffer for mm_q4Kx8_q8Kx4_grpsize128\n");
     return;
   }
-  
+}
 
+void sgemm_q4_k_grpsize64_cl(const unsigned int M, const unsigned int N,
+                    const unsigned int K, void *matAdata, void *matBdata,
+                    float *matCdata) {
+  ClContext::SharedPtrClKernel kernel =
+    blas_cc->registerClKernel(getQ4KGemmGrpsize64ClKernel(), "mm_q4Kx8_q8Kx4_grpsize64");
+
+  if (!kernel) {
+    ml_loge("Failed to register mm_q4Kx8_q8Kx4_grpsize64");
+    return;
+  }
+
+  if (!kernel->SetKernelArguments(0, &K, sizeof(int))) {
+    printf("Failed to set kernel argument 1 for mm_q4Kx8_q8Kx4_grpsize64");
+    return;
+  }
+
+  if (!kernel->SetKernelSVMArguments(1, matCdata)) {
+    printf("Failed to set kernel SVM argument 0 for mm_q4Kx8_q8Kx4_grpsize64");
+    return;
+  }
+
+  if (!kernel->SetKernelArguments(2, &N, sizeof(int))) {
+    printf("Failed to set kernel argument 1 for mm_q4Kx8_q8Kx4_grpsize64");
+    return;
+  }
+
+  if (!kernel->SetKernelSVMArguments(3, matAdata)) {
+    printf("Failed to set kernel SVM argument 2 for mm_q4Kx8_q8Kx4_grpsize64");
+    return;
+  }
+
+  if (!kernel->SetKernelSVMArguments(4, matBdata)) {
+    printf("Failed to set kernel SVM argument 3 for mm_q4Kx8_q8Kx4_grpsize64");
+    return;
+  }
+
+  if (!kernel->SetKernelArguments(5, &M, sizeof(int))) {
+    printf("Failed to set kernel argument 5 for mm_q4Kx8_q8Kx4_grpsize64");
+    return;
+  }
+
+  if (!kernel->SetKernelArguments(6, &N, sizeof(int))) {
+    printf("Failed to set kernel argument 6 for mm_q4Kx8_q8Kx4_grpsize64");
+    return;
+  }
+
+  const int tile_size = 64;
+  const int work_groups_count[3] = {(int)(M / 4) * tile_size, (int)N / 16, 1};
+  const int work_group_size[3] = {tile_size, 1, 1};
+
+  if (!opencl::CommandQueueManager::GetInstance().DispatchCommand(
+        kernel, work_groups_count, work_group_size)) {
+    printf("Failed to dispatch kernel mm_q4Kx8_q8Kx4_grpsize64");
+    return;
+  }
+
+  if (!blas_cc->command_queue_inst_.enqueueSVMMap(
+        matCdata, M * N * sizeof(float), true)) {
+    printf("Failed to map output buffer for mm_q4Kx8_q8Kx4_grpsize64\n");
+    return;
+  }
+}
+
+
+void sgemm_q4_k_grpsize32_cl(const unsigned int M, const unsigned int N,
+                    const unsigned int K, void *matAdata, void *matBdata,
+                    float *matCdata) {
+  ClContext::SharedPtrClKernel kernel =
+    blas_cc->registerClKernel(getQ4KGemmGrpsize32ClKernel(), "mm_q4Kx8_q8Kx4_grpsize32");
+
+  if (!kernel) {
+    ml_loge("Failed to register mm_q4Kx8_q8Kx4_grpsize32");
+    return;
+  }
+
+  if (!kernel->SetKernelArguments(0, &K, sizeof(int))) {
+    printf("Failed to set kernel argument 1 for mm_q4Kx8_q8Kx4_grpsize32");
+    return;
+  }
+
+  if (!kernel->SetKernelSVMArguments(1, matCdata)) {
+    printf("Failed to set kernel SVM argument 0 for mm_q4Kx8_q8Kx4_grpsize32");
+    return;
+  }
+
+  if (!kernel->SetKernelArguments(2, &N, sizeof(int))) {
+    printf("Failed to set kernel argument 1 for mm_q4Kx8_q8Kx4_grpsize32");
+    return;
+  }
+
+  if (!kernel->SetKernelSVMArguments(3, matAdata)) {
+    printf("Failed to set kernel SVM argument 2 for mm_q4Kx8_q8Kx4_grpsize32");
+    return;
+  }
+
+  if (!kernel->SetKernelSVMArguments(4, matBdata)) {
+    printf("Failed to set kernel SVM argument 3 for mm_q4Kx8_q8Kx4_grpsize32");
+    return;
+  }
+
+  if (!kernel->SetKernelArguments(5, &M, sizeof(int))) {
+    printf("Failed to set kernel argument 5 for mm_q4Kx8_q8Kx4_grpsize32");
+    return;
+  }
+
+  if (!kernel->SetKernelArguments(6, &N, sizeof(int))) {
+    printf("Failed to set kernel argument 6 for mm_q4Kx8_q8Kx4_grpsize32");
+    return;
+  }
+
+  const int tile_size = 32;
+  const int work_groups_count[3] = {(int)(M / 4) * tile_size, (int)N / 8, 1};
+  const int work_group_size[3] = {tile_size, 1, 1};
+
+  if (!opencl::CommandQueueManager::GetInstance().DispatchCommand(
+        kernel, work_groups_count, work_group_size)) {
+    printf("Failed to dispatch kernel mm_q4Kx8_q8Kx4_grpsize32");
+    return;
+  }
+
+  if (!blas_cc->command_queue_inst_.enqueueSVMMap(
+        matCdata, M * N * sizeof(float), true)) {
+    printf("Failed to map output buffer for mm_q4Kx8_q8Kx4_grpsize32\n");
+    return;
+  }
 }
 
 void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
