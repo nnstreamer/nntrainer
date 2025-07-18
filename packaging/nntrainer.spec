@@ -2,7 +2,7 @@
 %define         use_cblas 1
 %define         nnstreamer_filter 1
 %define         nnstreamer_trainer 1
-%define         nnstreamer_subplugin_path %{_prefix}/lib/nnstreamer
+%define         nnstreamer_subplugin_path lib/nnstreamer
 %define         use_gym 0
 %define         support_ccapi 1
 %define         support_nnstreamer_backbone 1
@@ -739,7 +739,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %manifest nntrainer.manifest
 %defattr(-,root,root,-)
 %license LICENSE
-%{nnstreamer_subplugin_path}/filters/libnnstreamer_filter_nntrainer.so
+%{_prefix}/%{nnstreamer_subplugin_path}/filters/libnnstreamer_filter_nntrainer.so
 
 %files -n nnstreamer-nntrainer-devel-static
 %manifest nntrainer.manifest
@@ -753,7 +753,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %manifest nntrainer.manifest
 %defattr(-,root,root,-)
 %license LICENSE
-%{nnstreamer_subplugin_path}/trainers/libnnstreamer_trainer_nntrainer.so
+%{_prefix}/%{nnstreamer_subplugin_path}/trainers/libnnstreamer_trainer_nntrainer.so
 
 %files -n nnstreamer-nntrainer-trainer-devel-static
 %manifest nntrainer.manifest
