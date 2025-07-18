@@ -295,14 +295,13 @@ void softmax(const unsigned int N, _FP16 *X, _FP16 *Y) {
   nntrainer::neon::softmax(N, X, Y);
 }
 
-void compute_fp16vcache_fp32_transposed(int iter, const float *in,
+void compute_fp16vcache_fp32_transposed(int row_num, const float *in,
                                         const uint16_t *vcache, float *output,
-                                        int seq, int num_cache_head,
-                                        int gqa_size, int head_dim,
-                                        bool process_all) {
+                                        int num_cache_head, int gqa_size,
+                                        int head_dim) {
   neon::compute_fp16vcache_fp32_transposed(
-    iter, in, reinterpret_cast<const __fp16 *>(vcache), output, seq,
-    num_cache_head, gqa_size, head_dim, process_all);
+    row_num, in, reinterpret_cast<const __fp16 *>(vcache), output,
+    num_cache_head, gqa_size, head_dim);
 }
 
 template <>

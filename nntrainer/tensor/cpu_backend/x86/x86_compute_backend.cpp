@@ -350,14 +350,12 @@ void softmax_row(float *qk_out, size_t start_row, size_t end_row,
   nntrainer::avx2::softmax_row(qk_out, start_row, end_row, num_heads);
 }
 
-void compute_fp16vcache_fp32_transposed(int iter, const float *in,
+void compute_fp16vcache_fp32_transposed(int row_num, const float *in,
                                         const uint16_t *vcache, float *output,
-                                        int seq, int num_cache_head,
-                                        int gqa_size, int head_dim,
-                                        bool process_all) {
+                                        int num_cache_head, int gqa_size,
+                                        int head_dim) {
   nntrainer::avx2::compute_fp16vcache_fp32_transposed(
-    iter, in, vcache, output, seq, num_cache_head, gqa_size, head_dim,
-    process_all);
+    row_num, in, vcache, output, num_cache_head, gqa_size, head_dim);
 }
 
 template <>
