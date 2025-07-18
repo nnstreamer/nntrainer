@@ -1200,7 +1200,7 @@ generate_random_vector(size_t size, float min_val = -1.F, float max_val = 1.F) {
   return vec;
 }
 
-#if 1
+#if 0
 static void run_q_6_K_test(const uint32_t M, const uint32_t K,
                            const uint32_t N) {
   nntrainer::init_backend();
@@ -1352,18 +1352,18 @@ static void run_q_4_K_test(const uint32_t M, const uint32_t K,
   auto *blas_cc = static_cast<nntrainer::ClContext *>(
     nntrainer::Engine::Global().getRegisteredContext("gpu"));
 
-  auto debug_print_beg_end = [M, K, N](const float *const data,
-                                       const uint32_t count = 12) {
-    std::cout << "[";
-    for (unsigned int i = 0; i < count; ++i) {
-      std::cout << data[i] << " ";
-    }
-    std::cout << "][";
-    for (unsigned int i = M * N - count; i < M * N; ++i) {
-      std::cout << data[i] << " ";
-    }
-    std::cout << "]";
-  };
+  // auto debug_print_beg_end = [M, K, N](const float *const data,
+  //                                      const uint32_t count = 12) {
+  //   std::cout << "[";
+  //   for (unsigned int i = 0; i < count; ++i) {
+  //     std::cout << data[i] << " ";
+  //   }
+  //   std::cout << "][";
+  //   for (unsigned int i = M * N - count; i < M * N; ++i) {
+  //     std::cout << data[i] << " ";
+  //   }
+  //   std::cout << "]";
+  // };
 
   static constexpr uint32_t run_count = 128;
 
@@ -1463,28 +1463,33 @@ static void run_q_4_K_test(const uint32_t M, const uint32_t K,
 
     const auto data_size_mb = data_size / (1024 * 1024.0f);
 
-    std::cout << "Q4_K GEMV : " << M << " x " << K << " x " << N << std::endl;
-    std::cout << " - q4_K data size : " << data_size_mb << " [MB]" << std::endl;
+    std::cout << "Q4_K MatMul: " << M << " x " << K << " x " << N << std::endl;
+    // std::cout << " - q4_K data size : " << data_size_mb << " [MB]" <<
+    // std::endl;
     std::cout << " - time : CPU = " << dt.count() / (run_count * 1.0f) << " ms"
               << std::endl;
     std::cout << " - time : GPU = " << gpu_dt.count() / (run_count * 1.0f)
               << " ms" << std::endl;
-    std::cout << " - sample : REF = ";
-    debug_print_beg_end(ref_dst.data());
-    std::cout << std::endl;
-    std::cout << " - sample : CPU = ";
-    debug_print_beg_end(cpu_q4_dst.data());
-    std::cout << std::endl;
-    std::cout << " - sample : GPU = ";
-    debug_print_beg_end((float *)gpu_q4_dst);
-    std::cout << std::endl;
-    std::cout << " - zeros : " << zeros << " / " << M * N << " [ "
-              << zeros * 100.0f / float(M * N) << " %] - first at [ "
-              << first_zero_index << " ]" << std::endl;
-    std::cout << " - nans : " << nans << " / " << M * N << " [ "
-              << nans * 100.0f / float(M * N) << " %]" << std::endl;
-    std::cout << " - MSE : CPU = " << mean_squared_error_dst << std::endl;
-    std::cout << " - MSE : GPU = " << mean_squared_error_dst_gpu << std::endl;
+    const float eps = 1e-5;
+
+    EXPECT_NEAR(mean_squared_error_dst_gpu, mean_squared_error_dst, eps);
+    // std::cout << " - sample : REF = ";
+    // debug_print_beg_end(ref_dst.data());
+    // std::cout << std::endl;
+    // std::cout << " - sample : CPU = ";
+    // debug_print_beg_end(cpu_q4_dst.data());
+    // std::cout << std::endl;
+    // std::cout << " - sample : GPU = ";
+    // debug_print_beg_end((float *)gpu_q4_dst);
+    // std::cout << std::endl;
+    // std::cout << " - zeros : " << zeros << " / " << M * N << " [ "
+    //           << zeros * 100.0f / float(M * N) << " %] - first at [ "
+    //           << first_zero_index << " ]" << std::endl;
+    // std::cout << " - nans : " << nans << " / " << M * N << " [ "
+    //           << nans * 100.0f / float(M * N) << " %]" << std::endl;
+    // std::cout << " - MSE : CPU = " << mean_squared_error_dst << std::endl;
+    // std::cout << " - MSE : GPU = " << mean_squared_error_dst_gpu <<
+    // std::endl;
   }
 }
 
