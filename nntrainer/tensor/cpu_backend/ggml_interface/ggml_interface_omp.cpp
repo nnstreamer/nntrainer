@@ -218,9 +218,9 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
 
     // Compute leftover 1 ~ 3 rows with multithreaded GEMV
     n_threads = 4;
-    for (unsigned int pb = M4 * 4; pb < M; pb++) {
 #pragma omp parallel for num_threads(n_threads)
-      for (int thread_idx = 0; thread_idx < n_threads; ++thread_idx) {
+for (int thread_idx = 0; thread_idx < n_threads; ++thread_idx) {
+    for (unsigned int pb = M4 * 4; pb < M; pb++) {
         unsigned int M_step_start = (thread_idx * N) / n_threads; // = 0
         unsigned int M_step_end =
           ((thread_idx + 1) * N) / n_threads; // ne01 = N
