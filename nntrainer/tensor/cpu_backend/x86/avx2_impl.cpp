@@ -792,20 +792,64 @@ void softmax_row(float *qk_out, size_t start_row, size_t end_row,
   delete[] sum_vals;
 }
 
-static inline float convert_scalar_f16_to_f32(uint16_t h) {
-  return nntrainer::compute_fp16_to_fp32(h);
+#ifdef _WIN32
+#define COMPUTE_FP16_TO_FP32(x)                                                \
+  _mm_cvtss_f32(_mm_cvtph_ps(_mm_cvtsi32_si128(x)))
+#define COMPUTE_FP32_TO_FP16(x)                                                \
+  _mm_extract_epi16(_mm_cvtps_ph(_mm_set_ss(x), 0), 0)
+#elif defined(__TIZEN__) && !defined(__F16C__)
+#define COMPUTE_FP16_TO_FP32(x) nntrainer::compute_fp16_to_fp32(x)
+#define COMPUTE_FP32_TO_FP16(x) nntrainer::compute_fp32_to_fp16(x)
+#else
+#define COMPUTE_FP16_TO_FP32(x) _cvtsh_ss(x)
+#define COMPUTE_FP32_TO_FP16(x) _cvtss_sh(x, 0)
+#endif
+
+static inline __m256 convert_vector_f16_to_f32(__m128i x) {
+#if defined(__TIZEN__) && !defined(__F16C__)
+  __m256 vec_f32;
+  float *f32_ptr = reinterpret_cast<float *>(&vec_f32);
+  uint16_t *u16_ptr = reinterpret_cast<uint16_t *>(&x);
+  for (int i = 0; i < 8; i++) {
+    f32_ptr[i] = nntrainer::compute_fp16_to_fp32(u16_ptr[i]);
+  }
+  return vec_f32;
+#else
+  return _mm256_cvtph_ps(x);
+#endif
 }
 
-void compute_fp16vcache_fp32_transposed(int iter, const float *in,
-                                        const uint16_t *vcache, float *output,
-                                        int seq, int num_cache_head,
-                                        int gqa_size, int head_dim,
-                                        bool process_all) {
+static inline __m128i convert_vector_f32_to_f16(__m256 x) {
 #if defined(__TIZEN__) && !defined(__F16C__)
-  __fallback_compute_fp16vcache_fp32_transposed(iter, in, vcache, output, seq,
-                                                num_cache_head, gqa_size,
-                                                head_dim, process_all);
+  __m128i vec_f16;
+  float *f32_ptr = reinterpret_cast<float *>(&x);
+  uint16_t *u16_ptr = reinterpret_cast<uint16_t *>(&vec_f16);
+  for (int i = 0; i < 8; i++) {
+    u16_ptr[i] = COMPUTE_FP32_TO_FP16(f32_ptr[i]);
+  }
+  return vec_f16;
 #else
+  return _mm256_cvtps_ph(x, 0);
+#endif
+}
+
+static inline void load_fp16_8_to_chunk(const uint16_t *src, float *dst,
+                                        int chunk_size) {
+  int i = 0;
+  for (; i + 8 <= chunk_size; i += 8) {
+    __m128i half = _mm_loadu_si128(reinterpret_cast<const __m128i *>(src + i));
+    __m256 f32 = convert_vector_f16_to_f32(half);
+    _mm256_storeu_ps(&dst[i], f32);
+  }
+  for (; i < chunk_size; ++i) {
+    dst[i] = nntrainer::compute_fp16_to_fp32(src[i]);
+  }
+}
+
+void compute_fp16vcache_fp32_transposed(int row_num, const float *in,
+                                        const uint16_t *vcache, float *output,
+                                        int num_cache_head, int gqa_size,
+                                        int head_dim) {
   // cpu_set_t cpu_set;
   // CPU_ZERO(&cpu_set);
   // std::vector<bool> affinity(8, false);
@@ -819,10 +863,6 @@ void compute_fp16vcache_fp32_transposed(int iter, const float *in,
   // pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpu_set);
 
   std::vector<float> tmp_fp32(head_dim);
-  int a_row_start =
-    process_all ? ((iter * (iter + 1)) / 2) * num_cache_head * gqa_size : 0;
-  int out_offset = process_all ? iter : 0;
-
   int num_blocks = head_dim / 8;
   __m256 *sumVec = new __m256[std::max(1, num_blocks * gqa_size)];
 
@@ -839,31 +879,14 @@ void compute_fp16vcache_fp32_transposed(int iter, const float *in,
     }
     std::vector<float> sumRem((size_t)gqa_size * rem, 0.0f);
 
-    for (int j = 0; j <= iter; ++j) {
-      if (j + 1 < seq) {
-        const uint16_t *next_vptr =
-          vcache + ((j + 1) * num_cache_head + n) * head_dim;
-        _mm_prefetch(reinterpret_cast<const char *>(next_vptr), _MM_HINT_T0);
-      }
-
+    for (int j = 0; j <= row_num; ++j) {
       const uint16_t *vptr = vcache + (j * num_cache_head + n) * head_dim;
-
-      int d0 = 0;
-      for (; d0 + 8 <= head_dim; d0 += 8) {
-        __m128i half =
-          _mm_loadu_si128(reinterpret_cast<const __m128i *>(vptr + d0));
-        __m256 f32 = _mm256_cvtph_ps(half);
-        _mm256_storeu_ps(&tmp_fp32[d0], f32);
-      }
-      for (; d0 < head_dim; ++d0) {
-        tmp_fp32[d0] = convert_scalar_f16_to_f32(vptr[d0]);
-      }
+      load_fp16_8_to_chunk(vptr, tmp_fp32.data(), head_dim);
 
       for (int h = 0; h < gqa_size; ++h) {
         // float a_val = in[a_row_start + (j * gqa_size + h) * num_cache_head +
         // n];
-        float a_val =
-          in[a_row_start + (j * gqa_size * num_cache_head + n * gqa_size + h)];
+        float a_val = in[j * gqa_size * num_cache_head + n * gqa_size + h];
         __m256 inVec = _mm256_set1_ps(a_val);
 
         for (int b = 0; b < num_blocks; ++b) {
@@ -882,8 +905,7 @@ void compute_fp16vcache_fp32_transposed(int iter, const float *in,
 
     for (int h = 0; h < gqa_size; ++h) {
       for (int b = 0; b < num_blocks; ++b) {
-        int out_base =
-          ((out_offset * num_cache_head + n) * gqa_size + h) * head_dim + b * 8;
+        int out_base = (n * gqa_size + h) * head_dim + b * 8;
         _mm256_storeu_ps(&output[out_base], sumVec[h * num_blocks + b]);
       }
 
@@ -891,51 +913,25 @@ void compute_fp16vcache_fp32_transposed(int iter, const float *in,
       // float *remPtr = &sumRem[h * rem];
       int base = num_blocks * 8;
       for (int r = 0; r < rem; ++r) {
-        int out_idx =
-          ((out_offset * num_cache_head + n) * gqa_size + h) * head_dim + base +
-          r;
+        int out_idx = (n * gqa_size + h) * head_dim + base + r;
         output[out_idx] = remPtr[r];
       }
     }
   }
   delete[] sumVec;
-#endif
 }
-
-#if !defined(__TIZEN__) || defined(__F16C__)
-static inline __m256 load_fp16_8_avx(const uint16_t *src) {
-  __m128i in = _mm_loadu_si128(reinterpret_cast<const __m128i *>(src));
-  return _mm256_cvtph_ps(in);
-}
-
-static inline void load_fp16_8_to_chunk(const uint16_t *b_src, float *temp_row,
-                                        int chunk_size) {
-  int i = 0;
-  for (; i + 8 <= chunk_size; i += 8) {
-    __m256 f32 = load_fp16_8_avx((const uint16_t *)(b_src + i));
-    _mm256_storeu_ps(temp_row + i, f32);
-  }
-  for (; i < chunk_size; ++i) {
-    temp_row[i] = convert_scalar_f16_to_f32(b_src[i]);
-  }
-}
-#endif
 
 template <>
 void compute_kcaches(const float *A, const uint16_t *B, float *output,
                      int num_rows, int N, int chunk_size, int group_size,
                      int tile_size) {
-#if defined(__TIZEN__) && !defined(__F16C__)
-  __fallback_compute_kcaches<uint16_t>(A, B, output, num_rows, N, chunk_size,
-                                       group_size, tile_size);
-#else
   using BType = uint16_t;
   int row_stride = N * chunk_size;
   const int group_stride = group_size * chunk_size;
   const int tile_count = (num_rows + tile_size - 1) / tile_size;
 
   // FP32 Cache Buffer
-  thread_local std::vector<float> temp_tile_buf((size_t)tile_size * chunk_size);
+  std::vector<float> temp_tile_buf((size_t)tile_size * chunk_size);
 
   for (int n = 0; n < N; ++n) {
     for (int t = 0; t < tile_count; ++t) {
@@ -988,27 +984,12 @@ void compute_kcaches(const float *A, const uint16_t *B, float *output,
       }
     }
   }
-#endif
 }
-
-#ifdef _WIN32
-#define COMPUTE_FP16_TO_FP32(x)                                                \
-  _mm_cvtss_f32(_mm_cvtph_ps(_mm_cvtsi32_si128(x)))
-#define COMPUTE_FP32_TO_FP16(x)                                                \
-  _mm_extract_epi16(_mm_cvtps_ph(_mm_set_ss(x), 0), 0)
-#else
-#define COMPUTE_FP16_TO_FP32(x) _cvtsh_ss(x)
-#define COMPUTE_FP32_TO_FP16(x) _cvtss_sh(x, 0)
-#endif
 
 void compute_rotary_emb_value(unsigned int width, unsigned int dim,
                               unsigned int half_, float *inout, void *output,
                               const float *cos_, const float *sin_,
                               bool only_convert_to_fp16) {
-#if defined(__TIZEN__) && !defined(__F16C__)
-  __fallback_compute_rotary_emb_value(width, dim, half_, inout, output, cos_,
-                                      sin_, only_convert_to_fp16);
-#else
   enum class OutputType { FP16, FP32 };
 
   OutputType out_type = OutputType::FP32;
@@ -1026,8 +1007,8 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
 
       if (only_convert_to_fp16) {
         if (out_type == OutputType::FP16) {
-          __m128i a_fp16 = _mm256_cvtps_ph(a, 0);
-          __m128i b_fp16 = _mm256_cvtps_ph(b, 0);
+          __m128i a_fp16 = convert_vector_f32_to_f16(a);
+          __m128i b_fp16 = convert_vector_f32_to_f16(b);
 
           _mm_storeu_si128(
             reinterpret_cast<__m128i *>(static_cast<uint16_t *>(output) + i0),
@@ -1047,8 +1028,8 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
           _mm256_add_ps(_mm256_mul_ps(a, sin_v), _mm256_mul_ps(b, cos_v));
 
         if (out_type == OutputType::FP16) {
-          __m128i out0_fp16 = _mm256_cvtps_ph(out0, 0);
-          __m128i out1_fp16 = _mm256_cvtps_ph(out1, 0);
+          __m128i out0_fp16 = convert_vector_f32_to_f16(out0);
+          __m128i out1_fp16 = convert_vector_f32_to_f16(out1);
 
           _mm_storeu_si128(
             reinterpret_cast<__m128i *>(static_cast<uint16_t *>(output) + i0),
@@ -1074,9 +1055,7 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
       if (only_convert_to_fp16) {
         static_cast<uint16_t *>(output)[i0] = COMPUTE_FP32_TO_FP16(a);
         static_cast<uint16_t *>(output)[i1] = COMPUTE_FP32_TO_FP16(b);
-
       } else {
-
         float c = cos_[k];
         float s = sin_[k];
 
@@ -1093,7 +1072,6 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
       }
     }
   }
-#endif
 }
 
 } // namespace nntrainer::avx2
