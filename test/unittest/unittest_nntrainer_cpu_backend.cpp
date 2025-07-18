@@ -41,7 +41,7 @@ generate_random_vector(size_t size, float min_val = -1.F, float max_val = 1.F) {
   return vec;
 }
 
-#ifdef ENABLE_FP16
+#if defined(ENABLE_FP16) || defined(__AVX2__)
 static inline std::vector<uint16_t>
 convert_vector_f32_to_f16_as_uint16(std::vector<float> f32_vec) {
   std::vector<uint16_t> vec(f32_vec.size());
@@ -777,7 +777,7 @@ TEST(nntrainer_cpu_backend_standalone, softmax_row) {
   }
 }
 
-#ifdef ENABLE_FP16
+#if defined(ENABLE_FP16) || defined(__AVX2__)
 TEST(nntrainer_cpu_backend_standalone, compute_kcaches) {
   int num_rows = 1;
   int N = 2;
@@ -892,19 +892,16 @@ TEST(nntrainer_cpu_backend_standalone, compute_rotary_emb_value_out_uint16) {
 }
 
 TEST(nntrainer_cpu_backend_standalone, compute_fp16vcache_fp32_transposed) {
-  int iter = 1;
-  int seq = 2;
+  int row_num = 1;
   int num_cache_head = 2;
   int gqa_size = 2;
   int head_dim = 9;
-  bool process_all = true;
   int max_iter = 2;
   size_t in_size = max_iter * max_iter * num_cache_head * gqa_size;
   size_t vcache_size = max_iter * num_cache_head * head_dim;
-  size_t output_size = max_iter * num_cache_head * gqa_size * head_dim;
+  size_t output_size = num_cache_head * gqa_size * head_dim;
 
-  std::vector<float> in = {-0.206718, -0.564412, -0.936332, -0.575698,
-                           0.092400,  -0.414656, -0.271581, -0.300455,
+  std::vector<float> in = {0.092400,  -0.414656, -0.271581, -0.300455,
                            0.317950,  -0.176271, 0.138504,  -0.361754,
                            -0.024215, -0.968064, 0.360932,  0.384471};
   std::vector<float> f32_vcache = {
@@ -917,22 +914,17 @@ TEST(nntrainer_cpu_backend_standalone, compute_fp16vcache_fp32_transposed) {
   std::vector<uint16_t> vcache =
     convert_vector_f32_to_f16_as_uint16(f32_vcache);
   std::vector<float> ref_out = {
-    0.000000,  0.000000,  0.000000,  0.000000,  0.000000,  0.000000,  0.000000,
-    0.000000,  0.000000,  0.000000,  0.000000,  0.000000,  0.000000,  0.000000,
-    0.000000,  0.000000,  0.000000,  0.000000,  0.000000,  0.000000,  0.000000,
-    0.000000,  0.000000,  0.000000,  0.000000,  0.000000,  0.000000,  0.000000,
-    0.000000,  0.000000,  0.000000,  0.000000,  0.000000,  0.000000,  0.000000,
-    0.000000,  0.109160,  0.150761,  -0.221623, -0.340605, 0.341716,  0.192903,
-    0.229677,  0.296728,  -0.246453, 0.030694,  -0.299190, -0.204716, 0.418990,
-    -0.358029, -0.310309, -0.199024, -0.234911, 0.386668,  -0.108879, 0.098724,
-    0.353685,  0.152306,  0.054675,  -0.253151, 0.121229,  -0.048077, 0.057462,
-    0.393775,  0.436868,  -0.115650, 0.494638,  -0.060525, -0.078396, 0.019140,
-    -0.078680, 0.571263};
+    0.109160,  0.150761,  -0.221623, -0.340605, 0.341716,  0.192903,
+    0.229677,  0.296728,  -0.246453, 0.030694,  -0.299190, -0.204716,
+    0.418990,  -0.358029, -0.310309, -0.199024, -0.234911, 0.386668,
+    -0.108879, 0.098724,  0.353685,  0.152306,  0.054675,  -0.253151,
+    0.121229,  -0.048077, 0.057462,  0.393775,  0.436868,  -0.115650,
+    0.494638,  -0.060525, -0.078396, 0.019140,  -0.078680, 0.571263};
   std::vector<float> output(output_size);
 
   nntrainer::compute_fp16vcache_fp32_transposed(
-    iter, in.data(), vcache.data(), output.data(), seq, num_cache_head,
-    gqa_size, head_dim, process_all);
+    row_num, in.data(), vcache.data(), output.data(), num_cache_head, gqa_size,
+    head_dim);
 
   for (size_t i = 0; i < output.size(); i++) {
     EXPECT_NEAR(ref_out[i], output[i], 0.0001f);
