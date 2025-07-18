@@ -26,5 +26,5 @@ auto semantic_cast_multi = LayerSemanticsParamType(
   {"tensor_dtype=FP16"},
   LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 2);
 
-GTEST_PARAMETER_TEST(Divide, LayerSemantics,
+GTEST_PARAMETER_TEST(Cast, LayerSemantics,
                      ::testing::Values(semantic_cast, semantic_cast_multi));

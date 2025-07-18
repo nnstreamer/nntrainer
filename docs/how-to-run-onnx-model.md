@@ -77,7 +77,7 @@ int main() {
   auto model = ml::train::createModel();
 
   try {
-    std::string path = "../../../../Applications/ONNX/jni/add_example.onnx";
+    std::string path = "../../../../Applications/ONNX/jni/llama_example.onnx";
     model->load(path, ml::train::ModelFormat::MODEL_FORMAT_ONNX);
   } catch (const std::exception &e) {
     std::cerr << "Error during load: " << e.what() << "\n";
@@ -113,7 +113,7 @@ cd build/Applications/ONNX/jni
 
 It will:
 
-- Load the provided ONNX model (`add_example.onnx`)
+- Load the provided ONNX model (`llama_example.onnx`)
 - Compile and initialize the model
 - Print a summary of the model structure
 
@@ -123,12 +123,25 @@ Then the output should look like this:
 ================================================================================
           Layer name          Layer type    Output dimension         Input layer
 ================================================================================
-               input               input             1:1:1:2                    
+         onnx__add_6               input             1:1:1:1
 --------------------------------------------------------------------------------
-                bias              weight             1:1:1:2                    
+ onnx__add_6/generat            multiout             1:1:1:1         onnx__add_6
 --------------------------------------------------------------------------------
-                 add                 add             1:1:1:2               input
-                                                                            bias
+                 sin               input            1:1:1:64
+--------------------------------------------------------------------------------
+ sin/generated_out_0            multiout            1:1:1:64                 sin
+--------------------------------------------------------------------------------
+
+...
+
+--------------------------------------------------------------------------------
+   model_norm_cast_1                cast          1:1:1:2048      model_norm_mul
+--------------------------------------------------------------------------------
+    model_norm_mul_1            multiply          1:1:1:2048   model_norm_weight
+                                                              model_norm_cast_1
+--------------------------------------------------------------------------------
+      lm_head_matmul              matmul         1:1:1:50304    model_norm_mul_1
+                                                               onnx__matmul_3531
 ================================================================================
 ```
 
