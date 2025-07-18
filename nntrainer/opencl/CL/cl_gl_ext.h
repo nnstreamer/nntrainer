@@ -14,19 +14,5 @@
  * limitations under the License.
  ******************************************************************************/
 
-#ifndef __OPENCL_H
-#define __OPENCL_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include <CL/cl.h>
 #include <CL/cl_gl.h>
-#include <CL/cl_ext.h>
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif  /* __OPENCL_H   */
+#pragma message("The extensions in cl_gl_ext.h have been moved into cl_gl.h.  Please include cl_gl.h directly.")

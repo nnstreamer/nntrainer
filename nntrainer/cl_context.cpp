@@ -153,6 +153,9 @@ void ClContext::initBlasClKernels() {
   registerClKernel(getSgemmClTransABKernel(), "sgemm_cl_transAB");
   registerClKernel(getAdditionClKernel(), "addition_cl");
   registerClKernel(getSscalClKernel(), "sscal_cl");
+  registerClKernel(getQ6KSgemvClKernel(), "kernel_mul_mv_q6_K_f32");
+  registerClKernel(getQ4KGemmClKernel(), "mat_mul_q4_K_8x8_q8_K");
+  registerClKernel(getQ4KGemvClKernel(), "mat_vec_mul_q4_K_8x8_q8_K");
 
 #ifdef ENABLE_FP16
   registerClKernel(getHgemvClKernel(), "sgemv_cl_fp16");
@@ -220,6 +223,8 @@ bool ClContext::clCreateKernel(std::string &kernel_string,
                        "_kernel.bin",
                      std::ios::binary | std::ios::in);
 
+    const std::string compiler_options = "-cl-std=CL3.0";
+
     if (fs.good()) {
       fs.seekg(0, std::ios::end);
       size_t binary_size = fs.tellg();
@@ -234,11 +239,12 @@ bool ClContext::clCreateKernel(std::string &kernel_string,
         chunk.data(),
         opencl::Program::DEFAULT_KERNEL_PATH + "/" + kernel_name +
           "_kernel.bin",
-        "");
+        compiler_options);
     } else {
       result = program.CreateCLProgram(
         opencl::ContextManager::GetInstance().GetContext(),
-        opencl::ContextManager::GetInstance().GetDeviceId(), kernel_string, "");
+        opencl::ContextManager::GetInstance().GetDeviceId(), kernel_string,
+        compiler_options);
     }
 
     if (!result) {
