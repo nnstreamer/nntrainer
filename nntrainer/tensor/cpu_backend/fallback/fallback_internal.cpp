@@ -455,9 +455,11 @@ void __fallback_softmax_row(float *qk_out, size_t start_row, size_t end_row,
   throw std::runtime_error("NYI : __fallback_softmax_row");
 }
 
-void __fallback_compute_fp16vcache_fp32_transposed(
-  int iter, const float *in, const uint16_t *vcache, float *output, int seq,
-  int num_cache_head, int gqa_size, int head_dim, bool process_all) {
+void __fallback_compute_fp16vcache_fp32_transposed(int row_num, const float *in,
+                                                   const uint16_t *vcache,
+                                                   float *output,
+                                                   int num_cache_head,
+                                                   int gqa_size, int head_dim) {
   throw std::runtime_error(
     "NYI : __fallback_compute_fp16vcache_fp32_transposed");
 }
