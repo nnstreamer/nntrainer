@@ -33,8 +33,6 @@ void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
     return;
   }
 
-  const size_t q6k_bytes = 210 * M * N / 256;
-
   result = blas_cc->command_queue_inst_.enqueueSVMUnmap(matAdata);
   if (!result) {
     ml_loge("Failed to write data to input buffer A for kernel_q6_k_sgemv_ptr");
@@ -315,6 +313,58 @@ void sgemm_q4_k_cl(const unsigned int M, const unsigned int N,
   }
 
   blas_cc->context_inst_.releaseSVMRegion(quantBdata);
+}
+
+void sgemv_q4_k_cl(const unsigned int M, const unsigned int N, void *matAdata,
+                   void *vecBdata, float *vecCdata) {
+  ClContext::SharedPtrClKernel kernel = blas_cc->registerClKernel(
+    getQ4KGemvClKernel(), "mat_vec_mul_q4_K_8x8_q8_K");
+
+  if (!kernel) {
+    ml_loge("Failed to register mat_vec_mul_q4_K_8x8_q8_K");
+    return;
+  }
+
+  if (!kernel->SetKernelArguments(0, &M, sizeof(int))) {
+    printf("Failed to set kernel argument 0 for mat_vec_mul_q4_K_8x8_q8_K");
+    return;
+  }
+
+  if (!kernel->SetKernelArguments(1, &N, sizeof(int))) {
+    printf("Failed to set kernel SVM argument 1 for mat_vec_mul_q4_K_8x8_q8_K");
+    return;
+  }
+
+  if (!kernel->SetKernelSVMArguments(2, vecCdata)) {
+    printf("Failed to set kernel argument 2 for mat_vec_mul_q4_K_8x8_q8_K");
+    return;
+  }
+
+  if (!kernel->SetKernelSVMArguments(3, matAdata)) {
+    printf("Failed to set kernel argument 3 for mat_vec_mul_q4_K_8x8_q8_K");
+    return;
+  }
+
+  if (!kernel->SetKernelSVMArguments(4, vecBdata)) {
+    printf("Failed to set kernel argument 4 for mat_vec_mul_q4_K_8x8_q8_K");
+    return;
+  }
+
+  const int tile_size = 16;
+  const int work_groups_count[3] = {(int)M, 1, 1};
+  const int work_group_size[3] = {tile_size, 1, 1};
+
+  if (!opencl::CommandQueueManager::GetInstance().DispatchCommand(
+        kernel, work_groups_count, work_group_size)) {
+    printf("Failed to dispatch kernel mat_vec_mul_q4_K_8x8_q8_K");
+    return;
+  }
+
+  if (!blas_cc->command_queue_inst_.enqueueSVMMap(vecCdata, N * sizeof(float),
+                                                  true)) {
+    printf("Failed to map output buffer for mat_vec_mul_q4_K_8x8_q8_K\n");
+    return;
+  }
 }
 
 void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,

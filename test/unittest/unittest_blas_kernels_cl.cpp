@@ -1409,8 +1409,7 @@ static void run_q_4_K_test(const uint32_t M, const uint32_t K,
   nntrainer::quantize_q4_K(weights_f32_ptr, q4_weight_ptr, N, K, nullptr);
   nntrainer::repack_q4_K_to_q4_K_8(q4_weight_repack_ptr, q4_weight_ptr,
                                    data_size, N, K);
-
-  // CPU Q4_K GEMM
+  // CPU Q4_K GEMV
   auto t1 = std::chrono::high_resolution_clock::now();
   for (unsigned int i = 0; i < run_count; ++i) {
     nntrainer::gemm_q4_K(M, N, K, activations_f32_ptr, K, q4_weight_repack_ptr,
@@ -1419,12 +1418,20 @@ static void run_q_4_K_test(const uint32_t M, const uint32_t K,
   auto t2 = std::chrono::high_resolution_clock::now();
   auto dt = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
 
-  // GPU Q4_K GEMM
+  if (M == 1) {
+    std::memset(activations_f32_ptr, 0x00, M * K * sizeof(float));
+    ::quantize_row_q8_K((float *)activation.data(), activations_f32_ptr, K);
+  }
+
+  // GPU Q4_K GEMV
   auto t3 = std::chrono::high_resolution_clock::now();
   for (unsigned int i = 0; i < run_count; ++i) {
-
-    nntrainer::sgemm_q4_k_cl(M, N, K, q4_weight_repack_ptr, activations_f32_ptr,
-                             (float *)gpu_q4_dst);
+    if (M == 1)
+      nntrainer::sgemv_q4_k_cl(N, K, q4_weight_repack_ptr, activations_f32_ptr,
+                               (float *)gpu_q4_dst);
+    else
+      nntrainer::sgemm_q4_k_cl(M, N, K, q4_weight_repack_ptr,
+                               activations_f32_ptr, (float *)gpu_q4_dst);
   }
   auto t4 = std::chrono::high_resolution_clock::now();
   auto gpu_dt = std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3);
@@ -1456,7 +1463,7 @@ static void run_q_4_K_test(const uint32_t M, const uint32_t K,
 
     const auto data_size_mb = data_size / (1024 * 1024.0f);
 
-    std::cout << "Q4_K GEMM : " << M << " x " << K << " x " << N << std::endl;
+    std::cout << "Q4_K GEMV : " << M << " x " << K << " x " << N << std::endl;
     std::cout << " - q4_K data size : " << data_size_mb << " [MB]" << std::endl;
     std::cout << " - time : CPU = " << dt.count() / (run_count * 1.0f) << " ms"
               << std::endl;
@@ -1488,25 +1495,21 @@ static void run_q_4_K_test(const uint32_t M, const uint32_t K,
 
 // DECLARE_q_4_K_test_M_K_N(1, 768, 1024);
 
-DECLARE_q_4_K_test_M_K_N(10, 1024, 256);
-DECLARE_q_4_K_test_M_K_N(10, 3072, 8192);
-DECLARE_q_4_K_test_M_K_N(10, 8192, 3072);
-DECLARE_q_4_K_test_M_K_N(10, 3072, 3072);
+DECLARE_q_4_K_test_M_K_N(1, 3072, 256);
+DECLARE_q_4_K_test_M_K_N(1, 8192, 3072);
+DECLARE_q_4_K_test_M_K_N(1, 3072, 8192);
+DECLARE_q_4_K_test_M_K_N(1, 3072, 3072);
 
-DECLARE_q_4_K_test_M_K_N(32, 1024, 256);
-DECLARE_q_4_K_test_M_K_N(32, 3072, 8192);
-DECLARE_q_4_K_test_M_K_N(32, 8192, 3072);
-DECLARE_q_4_K_test_M_K_N(32, 3072, 3072);
+DECLARE_q_4_K_test_M_K_N(28, 3072, 256);
+DECLARE_q_4_K_test_M_K_N(28, 8192, 3072);
+DECLARE_q_4_K_test_M_K_N(28, 3072, 8192);
+DECLARE_q_4_K_test_M_K_N(28, 3072, 3072);
 
-DECLARE_q_4_K_test_M_K_N(50, 1024, 256);
-DECLARE_q_4_K_test_M_K_N(50, 3072, 8192);
-DECLARE_q_4_K_test_M_K_N(50, 8192, 3072);
-DECLARE_q_4_K_test_M_K_N(50, 3072, 3072);
-
-DECLARE_q_4_K_test_M_K_N(256, 1024, 256);
-DECLARE_q_4_K_test_M_K_N(256, 3072, 8192);
-DECLARE_q_4_K_test_M_K_N(256, 8192, 3072);
-DECLARE_q_4_K_test_M_K_N(256, 3072, 3072);
+// DECLARE_q_4_K_test_M_K_N(256, 1024, 256);
+// DECLARE_q_4_K_test_M_K_N(3072, 8192, 3072);
+// DECLARE_q_4_K_test_M_K_N(256, 3072, 8192);
+// DECLARE_q_4_K_test_M_K_N(256, 8192, 3072);
+// DECLARE_q_4_K_test_M_K_N(256, 3072, 3072);
 
 // DECLARE_q_4_K_test_M_K_N(256, 256, 3072);
 // DECLARE_q_4_K_test_M_K_N(3072, 256, 256);

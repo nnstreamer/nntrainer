@@ -210,6 +210,193 @@ const std::string &getQ4KGemmClKernel() {
   return q4_k_gemm_cl_kernel;
 }
 
+const std::string &getQ4KGemvClKernel() {
+  static const std::string q4_k_gemv_cl_kernel =
+    R"(
+    #define QK_K 256
+    #define NCOL_I 16
+    #define BLK_LEN 8
+    #define WG_SIZE 16
+
+    #define KMASK1 0x3f3f3f3fu
+    #define KMASK2 0x0f0f0f0fu
+    #define KMASK3 0x03030303u
+
+    #ifdef cl_khr_fp16
+    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
+    #endif
+
+    // https://bashbaug.github.io/OpenCL-Docs/pdf/OpenCL_C.pdf#page=101&zoom=100,0,206
+    #pragma OPENCL EXTENSION cl_khr_integer_dot_product : enable
+
+    typedef struct {
+      half d[8];
+      half dmin[8];
+      uchar scales[96];
+      uchar qs[1024];
+    } block_q4_Kx8;
+
+    typedef struct {
+      float d;
+      char qs[QK_K];
+      short bsums[QK_K / 16];
+    } block_q8_K;
+
+    /// @note convert_float() does not work for Nvidia GPU
+    inline float fp16_to_fp32(half h) { return convert_float(h); }
+    #define REDUCE_ADD_SHORT8(v)                                                   \
+      ((v).s0 + (v).s1 + (v).s2 + (v).s3 + (v).s4 + (v).s5 + (v).s6 + (v).s7)
+
+    __kernel void mat_vec_mul_q4_K_8x8_q8_K(const int m,
+                                            const int n,
+                                            __global float *restrict dst,
+                                            __global const block_q4_Kx8 *restrict mat_A,
+                                            __global const block_q8_K *restrict vec_B) {
+      const int tile = get_group_id(0);
+      const int lane = get_local_id(0);
+
+      const int nb = n / QK_K; // #256-element blocks
+
+      __local block_q4_Kx8 lA[2];
+      __local block_q8_K lB;
+      __local uint lutmp[2][32];
+
+      float sumf = 0.0f;
+      float sum_minf = 0.0f;
+
+      for (int b = 0; b < nb; ++b) {
+        // 1.  Copy one q8 block (B) two q4 blocks (A0/A1) to LDS
+        {
+          __global const uchar *gA0 =
+            (__global const uchar *)(mat_A + (tile * 2 + 0) * nb + b);
+          __global const uchar *gA1 =
+            (__global const uchar *)(mat_A + (tile * 2 + 1) * nb + b);
+          __global const uchar *gB = (__global const uchar *)(vec_B + b);
+
+          __local uchar *lAdst0 = (__local uchar *)&lA[0];
+          __local uchar *lAdst1 = (__local uchar *)&lA[1];
+          __local uchar *lBdst = (__local uchar *)&lB;
+
+          const int vecsA = (int)(sizeof(block_q4_Kx8) / 16);
+          const int vecsB = (int)(sizeof(block_q8_K) / 4);
+
+          for (int v = lane; v < vecsA; v += WG_SIZE) {
+            vstore16(vload16(0, gA0 + v * 16), 0, lAdst0 + v * 16);
+            vstore16(vload16(0, gA1 + v * 16), 0, lAdst1 + v * 16);
+          }
+          for (int v = lane; v < vecsB; v += WG_SIZE) {
+            vstore4(vload4(0, gB + v * 4), 0, lBdst + v * 4);
+          }
+        }
+        barrier(CLK_LOCAL_MEM_FENCE);
+
+        // 2.  All 64 lanes build the two 8x4 LUTs
+        for (int v = lane; v < 128; v += WG_SIZE) {
+          const int blk = v >> 6;       // 0 | 1
+          const int sb = (v & 63) >> 3; // 0-7
+          __local const uchar *src =
+            (__local const uchar *)&lA[blk].scales[0] + sb * 12;
+          __local uint *dst = lutmp[blk] + sb * 4;
+
+          uint4 tmp4 = vload4(0, (const __local uint *)src);
+          vstore4(tmp4, 0, dst);
+
+          dst[3] = ((dst[2] >> 4) & KMASK2) | (((dst[1] >> 6) & KMASK3) << 4);
+          uint t = dst[1] & KMASK1;
+          dst[1] = (dst[2] & KMASK2) | (((dst[0] >> 6) & KMASK3) << 4);
+          dst[2] = t;
+          dst[0] &= KMASK1;
+        }
+        barrier(CLK_LOCAL_MEM_FENCE); // LUTs ready
+
+        // 3.  Each lane accumulates one C-tile element
+        const int blk = lane >> 3;
+        const int lj = lane & 7;
+
+        const float dA = fp16_to_fp32(lA[blk].d[lj]);
+        const float dA_min = fp16_to_fp32(lA[blk].dmin[lj]);
+        const float dB = lB.d;
+
+        __local const uchar *lbytes = (const __local uchar *)lutmp[blk];
+
+    #pragma unroll 16
+        for (int k = 0; k < 16; ++k) {      // QK_K/(2*BLK_LEN)
+          const int idxA = k * 64 + lj * 8; // 8 × 8 q4 block stride
+          const int idxB = (k >> 2) * 64 + (k & 3) * 8;
+
+          const int sc0 = lbytes[(k / 4) * 32 + lj];
+          const int sc1 = lbytes[(k / 4) * 32 + 16 + lj];
+
+          const uchar8 q = vload8(0, lA[blk].qs + idxA);
+
+          const char8 a0 = vload8(0, lB.qs + idxB);
+          const char8 a1 = vload8(0, lB.qs + idxB + 32);
+
+          const uchar8 qlo = q & (uchar8)(0x0F); // low nibbles
+          const uchar8 qhi = q >> (uchar8)4;     // high nibbles
+   
+#if defined(__opencl_c_integer_dot_product_input_4x8bit)
+          const char4* a0_arr = (const char4*)(&a0)
+          const char4* a1_arr = (const char4*)(&a1)
+
+          const uchar4* qlo_arr = (const uchar4*)(&qlo)
+          const uchar4* qhi_arr = (const uchar4*)(&qhi)
+
+          // int dot(uchar4 a, char4 b) from __opencl_c_integer_dot_product_input_4x8bit 
+          
+          /// Loop solution
+          #if 1
+            int prod0 = 0;
+            int prod1 = 0;
+
+            # pragma unroll 2
+            for(int prod_idx = 0; prod_idx < 2; prod_idx++)
+            {
+              prod0 += dot(qlo_arr[prod_idx], a0_arr[prod_idx])
+              prod1 += dot(qhi_arr[prod_idx], a1_arr[prod_idx])
+            }
+          #else
+            /// No loop solution
+            const int prod00 = dot(qlo_arr[0], a0_arr[0]);
+            const int prod10 = dot(qhi_arr[0], a1_arr[0]);
+            
+            const int prod01 = dot(qlo_arr[1], a0_arr[1]);
+            const int prod11 = dot(qhi_arr[1], a1_arr[1]);    
+            
+            const int prod0 = prod00 + prod01;
+            const int prod1 = prod10 + prod11;
+          #endif
+#else
+          const int prod0 = REDUCE_ADD_SHORT8(convert_short8(qlo) * convert_short8(a0));
+          const int prod1 = REDUCE_ADD_SHORT8(convert_short8(qhi) * convert_short8(a1));
+#endif
+
+          const int sumi = prod0 * sc0 + prod1 * sc1;
+
+          sumf += (float)sumi * dA * dB;
+        }
+
+        // 4.  bias / min-d correction
+        for (int sb = 0; sb < 8; ++sb) {
+          __local const uchar *mins = lbytes + 8 + sb * 16;
+          __local const short *bsum = (__local const short *)&lB.bsums[0] + sb * 2;
+
+          int macc = mins[lj] * (bsum[0] + bsum[1]);
+          sum_minf += (float)macc * dA_min * dB;
+        }
+
+        barrier(CLK_LOCAL_MEM_FENCE);
+      }
+
+      // 5.  write one result element
+      const int out_row = tile * 16 + lane;
+      dst[out_row] = sumf - sum_minf;
+  }
+  )";
+
+  return q4_k_gemv_cl_kernel;
+}
+
 const std::string &getQ6KSgemvClKernel() {
   static const std::string q6_k_sgemv_cl_kernel_ =
     R"(
