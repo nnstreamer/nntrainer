@@ -371,4 +371,15 @@ void repack_q4_K_to_q4_K_8(void *W, void *repacked_W, size_t data_size,
   __fallback_repack_q4_K_to_q4_K_8(W, repacked_W, data_size, M, N);
 #endif
 }
+
+void softmax_row_inplace(float *qk_out, size_t start_row, size_t end_row,
+                         size_t num_heads) {
+  neon::softmax_row_inplace(qk_out, start_row, end_row, num_heads);
+}
+
+void softmax_row(float *qk_out, size_t start_row, size_t end_row,
+                 size_t num_heads) {
+  neon::softmax_row(qk_out, start_row, end_row, num_heads);
+}
+
 } /* namespace nntrainer */

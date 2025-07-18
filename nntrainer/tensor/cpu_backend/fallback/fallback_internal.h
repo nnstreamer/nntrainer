@@ -837,6 +837,79 @@ void __fallback_repack_q4_K_to_q4_K_8(void *W, void *repacked_W,
                                       size_t data_size, const unsigned int M,
                                       const unsigned int N);
 
+/**
+ * @brief Multihead softmax, exp(x_i) / sum(exp(x_i)), inplace version
+ * @param[in/out] qk_out float* input/output values
+ * @param[in] start_row start row number
+ * @param[in] end_row end row number
+ * @param[in] num_heads heads number
+ */
+void __fallback_softmax_row_inplace(float *qk_out, size_t start_row,
+                                    size_t end_row, size_t num_heads);
+
+/**
+ * @brief Multihead softmax, exp(x_i) / sum(exp(x_i))
+ * @param[in/out] qk_out float* input/output values
+ * @param[in] start_row start row number
+ * @param[in] end_row end row number
+ * @param[in] num_heads heads number
+ */
+void __fallback_softmax_row(float *qk_out, size_t start_row, size_t end_row,
+                            size_t num_heads);
+
+/**
+ * @brief Compute vcache for one row transposed
+ * @param[in] row_num row number
+ * @param[in] in float* input vector
+ * @param[in] vcache uint16_t* input vector
+ * @param[out] output float* output vector
+ * @param[in] num_cache_head number head of cache
+ * @param[in] gqa_size size of group
+ * @param[in] head_dim head dimension
+ */
+void __fallback_compute_fp16vcache_fp32_transposed(int row_num, const float *in,
+                                                   const uint16_t *vcache,
+                                                   float *output,
+                                                   int num_cache_head,
+                                                   int gqa_size, int head_dim);
+
+/**
+ * @brief Compute kcaches
+ * @tparam BType type of B vector element
+ * @param[in] A float* input vector A
+ * @param[in] B BType* input vector B
+ * @param[out] output float* output float vector
+ * @param[in] num_rows number of row
+ * @param[in] N number of chunk
+ * @param[in] chunk_size size of chunk
+ * @param[in] group_size size of group
+ * @param[in] tile_size size of tile
+ */
+template <typename BType>
+void __fallback_compute_kcaches(const float *A, const BType *B, float *output,
+                                int num_rows, int N, int chunk_size,
+                                int group_size, int tile_size);
+
+/**
+ * @brief Compute rotary embedding value
+ * @param[in] width current w value from b, c, h, w
+ * @param[in] dim unit length of simd computation
+ * @param[in] half_ criterion for rotational direction of embedding
+ * @param[in/out] inout float* uesed also as output when expected output float*
+ * values
+ * @param[out] output void* output values, used when expected output __fp16*
+ * values
+ * @param[in] cos_ float* input con values
+ * @param[in] sin_ float* input sin values
+ * @param[in] only_convert_to_fp16 equal true if method is used only for
+ * conversion
+ */
+void __fallback_compute_rotary_emb_value(unsigned int width, unsigned int dim,
+                                         unsigned int half_, float *inout,
+                                         void *output, const float *cos_,
+                                         const float *sin_,
+                                         bool only_convert_to_fp16);
+
 } // namespace nntrainer
 #endif
 #endif
