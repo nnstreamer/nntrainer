@@ -16,6 +16,288 @@
 
 namespace nntrainer {
 
+const std::string &getQ4KSgemvClKernel() {
+  static const std::string q4_k_sgemv_cl_kernel =
+    R"(
+      // ---
+      // SETTINGS
+      // ---
+
+      #ifndef MMQ_X
+        #define MMQ_X 64   // TODO : check for best value based on device ...
+      #endif
+
+      #ifndef MMQ_Y
+        #define MMQ_Y  64  // TODO : check for best value based on device ...
+      #endif
+
+      #ifndef NWARPS
+        #define NWARPS 8   // TODO : check for best value based on device ...
+      #endif
+
+      // ---
+      // DEFINES
+      // ---
+
+      #define WARP_SIZE          32
+
+      #define QK_K               256
+      #define QK8_1              32
+
+      #define QR4_K              2
+      #define QI4_K              (QK_K / (4 * QR4_K))
+
+      #define QR8_1              1
+      #define QI8_1              (QK8_1 / (4 * QR8_1))
+
+      #define VDR_Q4_K_Q8_1_MMQ  8
+      #define MMQ_TILE_Y_K       (WARP_SIZE + WARP_SIZE / QI8_1) 
+
+      // ---
+      // STRUCT
+      // ---
+
+      typedef struct
+      {
+        int qs;
+        int dm;
+        int sc;
+      } tile_x_sizes;
+
+      // ---
+      // FUNCTIONS
+      // ---
+
+      tile_x_sizes mmq_get_dp4a_tile_x_sizes()
+      {
+        return (tile_x_sizes){
+          MMQ_Y * WARP_SIZE + MMQ_Y,
+          MMQ_Y * WARP_SIZE / QI4_K,
+          MMQ_Y * WARP_SIZE / 8 + MMQ_Y / 8};
+      }
+
+      int ggml_cuda_dp4a(const int a, const int b, const int c)
+      {
+        const char4 a_vec = *((const char4*)&a);
+        const char4 b_vec = *((const char4*)&a);
+
+        const int4 a_vec_i = convert_int4(a_vec);
+        const int4 b_vec_i = convert_int4(b_vec);
+
+        return c + 
+          a_vec_i.s0 * b_vec_i.s0 +
+          a_vec_i.s1 * b_vec_i.s1 +
+          a_vec_i.s2 * b_vec_i.s2 +
+          a_vec_i.s3 * b_vec_i.s3;
+      }
+
+      float vec_dot_q4_K_q8_1_impl_mmq(
+        __global const int     * restrict v,
+        __global const int     * restrict u,
+        __global const uchar   * restrict sc,
+        __global const uchar   * restrict m,
+        __global       half2   * restrict ds8,
+                 const half2              dm4)
+      {
+        float sumf_d = 0.0f;
+        float sumf_m = 0.0f;
+
+        for (int i = 0; i < QR4_K * VDR_Q4_K_Q8_1_MMQ / QI8_1; ++i)
+        {
+          int sumi_d = 0;
+
+          for (int j = 0; j < QI8_1; ++j)
+          {
+            sumi_d = ggml_cuda_dp4a((v[j] >> (4 * i)) & 0x0F0F0F0F, u[i * QI8_1 + j], sumi_d);
+          }
+          
+          const float2 ds8f = convert_float2(ds8[i]);
+
+          sumf_d += ds8f.x * (sc[i] * sumi_d);
+          sumf_m += ds8f.y * m[i];
+        }
+
+        const float2 dm4f = convert_float2(dm4);
+
+        return dm4f.x * sumf_d - dm4f.y * sumf_m;
+      }
+
+      // ---
+      // KERNEL
+      // ---
+
+      __kernel void kernel_mul_mv_q4_K_f32(
+        __global const int   * restrict x,
+        __global const int   * restrict y,
+        __global       float * restrict sum,
+                const  int              k00)
+      {
+        const tile_x_sizes txs = mmq_get_dp4a_tile_x_sizes();
+
+        __global const int   * x_qs = (__global int *)x;
+        __global const half2 * x_dm = (__global const half2 *)x_qs + txs.qs;
+        __global const int   * x_sc = (__global const int *)x_dm + txs.dm;
+
+        __global const int   * y_qs = (__global const int *)y + 4;
+        __global const half2 * y_ds = (__global const half2*)y;
+
+        const int tid_x = get_global_id(0); // TODO : check if not global ...
+        const int tid_y = get_global_id(1); // TODO : check if not global ...
+
+        for(int k01 = 0; k01 < WARP_SIZE; k01 += QR4_K * VDR_Q4_K_Q8_1_MMQ)
+        {
+          const int k0 = k00 + k01;
+
+          for(int j0 = 0; j0 < MMQ_X; j0 += NWARPS)
+          {
+            const int j = j0 + tid_y;
+
+            for(int i0 = 0; i0 < MMQ_Y; i0 += WARP_SIZE)
+            {
+              const int i = i0 + tid_x;
+
+              __global const uchar * sc = (__global const uchar *)&x_sc[i * (WARP_SIZE / 8) + i / 8 + k0 / 32] + 2 * (k01 / 16);
+
+              sum[j0 / NWARPS * MMQ_Y / WARP_SIZE + i0 / WARP_SIZE] += vec_dot_q4_K_q8_1_impl_mmq(
+                  &x_qs[i * (WARP_SIZE + 1) + k0 / 2],
+                  &y_qs[j * MMQ_TILE_Y_K + k01],
+                  sc,
+                  sc + 8,
+                  &y_ds[i * MMQ_TILE_Y_K + k01 / QI8_1],
+                  x_dm[i]);
+            }
+          }
+        }
+      }
+    )";
+
+  return q4_k_sgemv_cl_kernel;
+}
+
+const std::string &getQ6KSgemvClKernel() {
+  static const std::string q6_k_sgemv_cl_kernel_ =
+    R"(
+    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
+
+    #define QK_K 256
+    #define N_SIMDWIDTH 16
+    #define N_SIMDGROUP 2
+    #define N_DST 1
+    #define BLOCK_STRIDE (N_SIMDWIDTH / 16)
+
+    typedef char int8_t;
+    typedef uchar uint8_t;
+    typedef short int16_t;
+    typedef ushort uint16_t;
+    typedef int int32_t;
+    typedef uint uint32_t;
+
+    typedef struct {
+        uint8_t ql[QK_K / 2];
+        uint8_t qh[QK_K / 4];
+        int8_t  scales[QK_K / 16];
+        half d;
+    } block_q6_K;
+
+    kernel void kernel_mul_mv_q6_K_f32(
+        global void * src0,
+        ulong offset0,
+        global float * src1,
+        ulong offset1,
+        global float * dst,
+        ulong offsetd,
+        int ne00,
+        int ne01,
+        int ne02,
+        int ne10,
+        int ne12,
+        int ne0,
+        int ne1,
+        int r2,
+        int r3
+    ) {
+        __local float reduction_buf[N_SIMDGROUP][N_SIMDWIDTH];
+
+        src0 = (global void*)((global char*)src0 + offset0);
+        src1 = (global float*)((global char*)src1 + offset1);
+        dst = (global float*)((global char*)dst + offsetd);
+
+        int nb = ne00 / QK_K;
+
+        int r0 = get_group_id(0);
+        int r1 = get_group_id(1);
+        int im = get_group_id(2);
+        int lid = get_local_id(0);
+        int lsize = get_local_size(0);
+
+        int row_group = lid / N_SIMDWIDTH;
+        int lane = lid % N_SIMDWIDTH;
+        int row = r0 * N_SIMDGROUP + row_group;
+
+        int i12 = im % ne12;
+        int i13 = im / ne12;
+
+        ulong offset_src0 = (i12 / r2) * (nb * ne01) + (i13 / r3) * (nb * ne01 * ne02);
+
+        global block_q6_K * x = (global block_q6_K *) src0 + row * nb + offset_src0;
+        global float      * yy = (global float     *) src1 + r1 * ne10 + im * ne00 * ne1;
+
+        uchar kmask1 = 0x03, kmask2 = 0x0C, kmask3 = 0x30, kmask4 = 0xC0;
+
+        int tid  = lane / BLOCK_STRIDE;
+        int ix   = lane % BLOCK_STRIDE;
+        int ip   = tid / 8;
+        int il   = tid % 8;
+        int n    = 4;
+        int l0   = n * il;
+        int is   = 8 * ip + l0 / 16;
+
+        int y_offset = 128 * ip + l0;
+        int q_offset_l = 64 * ip + l0;
+        int q_offset_h = 32 * ip + l0;
+
+        float sumf = 0.0f;
+
+        for (int i = ix; i < nb; i += BLOCK_STRIDE) {
+            global uint8_t * q1 = x[i].ql + q_offset_l;
+            global uint8_t * q2 = q1 + QK_K / 8;
+            global uint8_t * qh = x[i].qh + q_offset_h;
+            global int8_t  * sc = x[i].scales + is;
+            global float   * y = yy + i * QK_K + y_offset;
+
+            float dall = x[i].d;
+            float4 sums = {0.f, 0.f, 0.f, 0.f};
+
+            for (int j = 0; j < 4; j++) {
+                sums.s0 += y[j + 0]   * ((float)((q1[j] & 0xF) | ((qh[j] & kmask1) << 4)) - 32.f);
+                sums.s1 += y[j + 32]  * ((float)((q2[j] & 0xF) | ((qh[j] & kmask2) << 2)) - 32.f);
+                sums.s2 += y[j + 64]  * ((float)((q1[j] >> 4) | ((qh[j] & kmask3) >> 0)) - 32.f);
+                sums.s3 += y[j + 96]  * ((float)((q2[j] >> 4) | ((qh[j] & kmask4) >> 2)) - 32.f);
+            }
+
+            sumf += dall * (sums.s0 * sc[0] + sums.s1 * sc[2] + sums.s2 * sc[4] + sums.s3 * sc[6]);
+        }
+
+        reduction_buf[row_group][lane] = sumf;
+        barrier(CLK_LOCAL_MEM_FENCE);
+
+        for (int offset = N_SIMDWIDTH / 2; offset > 0; offset >>= 1) {
+            if (lane < offset) {
+                reduction_buf[row_group][lane] += reduction_buf[row_group][lane + offset];
+            }
+            barrier(CLK_LOCAL_MEM_FENCE);
+        }
+
+        if (lane == 0) {
+            int global_row = r0 * N_SIMDGROUP + row_group;
+            dst[r1 * ne0 + im * ne0 * ne1 + global_row] = reduction_buf[row_group][0];
+        }
+    }
+    )";
+
+  return q6_k_sgemv_cl_kernel_;
+}
+
 const std::string &getSgemvClKernel() {
   static const std::string sgemv_cl_kernel_ =
     R"(__kernel void sgemv_cl(const __global float* A, const __global float* X,
