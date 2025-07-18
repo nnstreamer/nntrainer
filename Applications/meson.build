@@ -45,4 +45,7 @@ if host_machine.system() != 'windows'
   subdir('TransferLearning/CIFAR_Classification/jni')
   subdir('Custom')
   subdir('PicoGPT/jni')
+  if get_option('enable-tflite-interpreter')
+  subdir('TFlite_export')
+  endif
 endif
