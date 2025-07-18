@@ -113,6 +113,29 @@ public:
   std::string cleanName(std::string name);
 
   /**
+   * @brief Extracts an attribute value from an ONNX node and converts it to a
+   * string for NNTrainer's property format.
+   */
+  std::string extractAttribute(const onnx::NodeProto &node,
+                               const std::string &attr_name,
+                               const std::string &prefix = "",
+                               const std::string &separator = ",",
+                               const int start_offset = 0,
+                               const bool need_default_value = false,
+                               const std::string &default_value = "");
+
+  /**
+   * @brief Extracts an attribute value from an Constant node and converts it to
+   * a string for NNTrainer's property format.
+   */
+  std::string extractTensorAttribute(const onnx::NodeProto &node,
+                                     const std::string &attr_name,
+                                     const std::string &prefix = "",
+                                     const std::string &separator = ",",
+                                     const int start_offset = 0,
+                                     const int alpha = 0);
+
+  /**
    * @brief Transform dimension string to nntrainer's format.
    *
    * @param shape ONNX TensorShapeProto
@@ -142,12 +165,32 @@ private:
     layerOutputMap; // key: name of output, value: name of layer
 
   std::unordered_map<std::string, std::string> layerKeyMap = {
-    {"Add", "add"},           {"Sub", "subtract"},  {"Mul", "multiply"},
-    {"Div", "divide"},        {"MatMul", "matmul"}, {"Reshape", "reshape"},
-    {"Transpose", "permute"}, {"Cast", "cast"},     {"Softmax", "activation"}};
+    {"Add", "add"},
+    {"Sub", "subtract"},
+    {"Mul", "multiply"},
+    {"Div", "divide"},
+    {"MatMul", "matmul"},
+    {"ReduceMean", "reduce_mean"},
+    {"Reshape", "reshape"},
+    {"Transpose", "permute"},
+    {"Cast", "cast"},
+    {"Pow", "pow"},
+    {"Sqrt", "sqrt"},
+    {"Softmax", "activation"},
+    {"Sigmoid", "activation"},
+    {"Relu", "activation"},
+    {"Identity", "identity"},
+    {"Unsqueeze", "reshape"},
+    {"Gather", "gather"},
+    {"Cosine", "cosine"},
+    {"Sine", "sine"},
+    {"Tangent", "tangent"},
+    {"Slice", "slice"},
+    {"Neg", "negative"},
+    {"Concat", "concat"}};
 
   std::unordered_map<std::string, std::string> activationKeyMap = {
-    {"Softmax", "softmax"}, {"Relu", "relu"}};
+    {"Softmax", "softmax"}, {"Relu", "relu"}, {"Sigmoid", "sigmoid"}};
 };
 
 } // namespace nntrainer
