@@ -102,10 +102,9 @@ TfliteExportRealizer::realize_dropout(const GraphRepresentation &reference) {
                     input_node->getOutputConnection(i)->getName())) {
         input_node->setOutputConnection(
           i, node->getOutputConnection(i)->getName(), SINGLE_IN_IDX);
-
-                    }
-      input_node->getOutput(SINGLE_IN_IDX).setData(node->getOutput(SINGLE_IN_IDX).getMemoryData());
-
+      }
+      input_node->getOutput(SINGLE_IN_IDX)
+        .setData(node->getOutput(SINGLE_IN_IDX).getMemoryData());
     }
 
     auto &output_name = node->getOutputConnection(SINGLE_IN_IDX)->getName();
