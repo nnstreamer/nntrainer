@@ -48,6 +48,7 @@ void vcvt_f16_f32(unsigned int N, const _Float16 *input, float *output) {
     _mm256_storeu_ps(output, vec);
     output += 8;
   }
+
   // remaining half-precision floating point values to single-precision values
   while (idx < N) {
     *output = static_cast<float>(*data);

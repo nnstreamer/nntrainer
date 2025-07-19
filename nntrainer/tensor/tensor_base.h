@@ -13,6 +13,7 @@
 #define __TENSOR_BASE_H__
 #ifdef __cplusplus
 
+#include <climits>
 #include <memory>
 #include <stdexcept>
 
@@ -92,6 +93,9 @@ class SrcSharedTensorBase;
  */
 class TensorBase {
 public:
+  static constexpr float DEFAULT_TENSOR_SCALE = 1.0f;
+  static constexpr unsigned int DEFAULT_TENSOR_ZERO_POINT = 0u;
+  static constexpr size_t TENSOR_DATA_ALIGNMENT = 4;
   /**
    * @brief     Basic Constructor of Tensor
    */
@@ -184,12 +188,12 @@ public:
   /**
    * @copydoc Tensor::getData()
    */
-  virtual void *getData() const = 0;
+  virtual void *getData() const;
 
   /**
    * @copydoc Tensor::getData(size_t idx)
    */
-  virtual void *getData(size_t idx) const = 0;
+  virtual void *getData(size_t idx) const;
 
   /**
    * @copydoc Tensor::getScale()
@@ -210,6 +214,16 @@ public:
   }
 
   /**
+   * @copydoc Tensor::setScale(const float value)
+   */
+  void setScale(const float value);
+
+  /**
+   * @copydoc Tensor::hasScale()
+   */
+  virtual bool hasScale() const { return false; }
+
+  /**
    * @copydoc Tensor::getZeroPoint()
    */
   virtual unsigned int *getZeroPoint() const {
@@ -226,6 +240,16 @@ public:
       "Tensor::getZeroPoint() is not supported in tensor data type " +
       getStringDataType());
   }
+
+  /**
+   * @copydoc Tensor::setZeroPoint(const unsigned int value)
+   */
+  void setZeroPoint(const unsigned int value);
+
+  /**
+   * @copydoc Tensor::hasZeroPoint()
+   */
+  virtual bool hasZeroPoint() const { return false; }
 
   /**
    * @brief     i data index
@@ -279,7 +303,7 @@ public:
   /**
    * @copydoc Tensor::initialize()
    */
-  virtual void initialize() = 0;
+  virtual void initialize();
 
   /**
    * @copydoc Tensor::initialize(Initializer init)
@@ -811,6 +835,10 @@ public:
   static constexpr float epsilon = 1e-5f;
 
 protected:
+  virtual size_t getDataTypeBitsSize() const = 0;
+
+  void allocateInternal();
+
   TensorDim dim;
   std::array<size_t, TensorDim::MAXDIM> strides;
   bool contiguous;
