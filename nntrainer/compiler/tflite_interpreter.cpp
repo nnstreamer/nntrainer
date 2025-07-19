@@ -26,7 +26,7 @@
 #include <bn_realizer.h>
 #include <fc_layer.h>
 #include <layer_node.h>
-#include <loss_realizer.h>
+#include <tflite_export_realizer.h>
 #include <nntrainer_error.h>
 #include <node_exporter.h>
 #include <tensor.h>
@@ -814,8 +814,9 @@ void TfliteInterpreter::serialize(const GraphRepresentation &representation,
                                   const std::string &out) {
 
   /// 1. remove loss layer in GraphRepresentation
-  LossRealizer loss_realizer({});
-  GraphRepresentation graph = loss_realizer.realize(representation);
+  TfliteExportRealizer tflite_realizer({});
+  GraphRepresentation graph_loss = tflite_realizer.realize(representation);
+  GraphRepresentation graph = tflite_realizer.realize_dropout(graph_loss);
 
   /// 2. The graph must have weights, input dims, output dims set
   flatbuffers::FlatBufferBuilder fbb;

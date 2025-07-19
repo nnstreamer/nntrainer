@@ -18,7 +18,7 @@
 #include <connection.h>
 #include <flatten_realizer.h>
 #include <input_realizer.h>
-#include <loss_realizer.h>
+#include <tflite_export_realizer.h>
 #include <multiout_realizer.h>
 #include <nntrainer_error.h>
 #include <previous_input_realizer.h>
@@ -923,7 +923,7 @@ TEST(BnRealizer, bn_realizer_resblock_p) {
   EXPECT_NO_THROW(compileAndRealizeAndEqual(r, realizers, before, after));
 }
 
-TEST(LossRealizer, loss_realizer_p) {
+TEST(TfliteExportRealizer, loss_realizer_p) {
   /// realization without identifying custom input
   std::vector<LayerRepresentation> before = {
     {"fully_connected", {"name=fc1"}},
@@ -940,7 +940,7 @@ TEST(LossRealizer, loss_realizer_p) {
     {"activation", {"name=ac2", "activation=relu", "input_layers=fc2"}},
     {"fully_connected", {"name=fc3", "input_layers=ac2"}},
   };
-  LossRealizer r;
+  TfliteExportRealizer r;
   std::vector<std::unique_ptr<nntrainer::GraphRealizer>> realizers;
   EXPECT_NO_THROW(compileAndRealizeAndEqual(r, realizers, before, after));
 }
