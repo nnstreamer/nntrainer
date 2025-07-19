@@ -47,13 +47,12 @@ public:
   GraphRepresentation realize(const GraphRepresentation &reference) override;
 
   /**
-     * @brief graph realizer creates a shallow copied graph based on the reference
-     * @note drop_out realizer removes drop_out layers from GraphRepresentation
-     * @param reference GraphRepresentation to be realized
-     *
-  */
+   * @brief graph realizer creates a shallow copied graph based on the reference
+   * @note drop_out realizer removes drop_out layers from GraphRepresentation
+   * @param reference GraphRepresentation to be realized
+   *
+   */
   GraphRepresentation realize_dropout(const GraphRepresentation &reference);
-
 };
 
 } // namespace nntrainer
