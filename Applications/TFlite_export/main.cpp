@@ -28,7 +28,7 @@ const unsigned int data_size = 12;
 const unsigned int output_size = 9;
 
 std::vector<float *> input_data;
-unsigned int seed = 1234;
+unsigned int seed = 0;
 
 /**
  * @brief Run TF Lite model with given input_vector's data
@@ -118,7 +118,7 @@ int main(int argc, char *argv[]) {
     std::cout << element << ", ";
   }
   std::cout << "} " << std::endl;
-
+  std::cout << "Export & Compare Done" << std::endl;
   delete[] nntr_input;
   return 0;
 }
