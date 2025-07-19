@@ -1,282 +1,224 @@
 #!/usr/bin/env python3
 """
-Simple PyTorch to Q4_K Converter
-=================================
+Simple Q4_K Converter: FP32 -> Q4_K Binary
+==========================================
 
-이 스크립트는 PyTorch 모델을 Q4_K 형식으로 간단하게 변환할 수 있는 도구입니다.
-llama.cpp와 호환되는 형식으로 변환하여 메모리 사용량을 크게 줄일 수 있습니다.
+PyTorch 모델의 FP32 가중치를 Q4_K 형식으로 변환하여 바이너리 파일로 저장
 
-사용법:
-    python simple_q4k_converter.py --input model.pth --output model_q4k.bin
-    
-또는 Python 코드에서:
-    from simple_q4k_converter import convert_model_to_q4k
-    convert_model_to_q4k(model, "output.bin")
+Usage:
+    python simple_q4k_converter.py model.pth output.bin
 """
 
-import argparse
-import os
+import numpy as np
+import torch
+import struct
 import sys
 from pathlib import Path
-import torch
-import torch.nn as nn
 
-# 앞서 작성한 코드들을 임포트 (실제 사용시에는 별도 파일로 분리)
-from correct_q4k_converter import convert_to_q4k, save_q4k_weights
+# Q4_K 상수
+QK_K = 256  # 블록 크기 (8개 서브블록 × 32개 요소)
 
-def convert_model_to_q4k(model_or_path, output_path: str, model_name: str = "converted_model"):
+def quantize_q4k_block(x: np.ndarray) -> bytes:
     """
-    PyTorch 모델을 Q4_K 형식으로 변환하는 간단한 함수
+    256개 요소를 Q4_K 형식으로 양자화
     
-    Args:
-        model_or_path: torch.nn.Module 객체 또는 모델 파일 경로
-        output_path: 출력 파일 경로
-        model_name: 모델 이름 (메타데이터용)
+    구조:
+    - 8개 서브블록 (각 32개 요소)
+    - 각 서브블록: min, scale 계산 후 4비트 양자화
+    - 출력: [d_scale(2B), d_min(2B), scales(8B), mins(8B), quants(128B)] = 148 bytes
     """
+    assert len(x) == QK_K, f"블록 크기는 {QK_K}이어야 함"
     
-    print("🔄 Starting Q4_K conversion...")
+    # 8개 서브블록으로 분할 (각 32개)
+    sub_blocks = x.reshape(8, 32)
     
-    # 입력이 경로인 경우 모델 로드
-    if isinstance(model_or_path, (str, Path)):
-        print(f"📂 Loading model from: {model_or_path}")
+    # 각 서브블록의 min/max 계산
+    scales = np.zeros(8, dtype=np.float32)
+    mins = np.zeros(8, dtype=np.float32)
+    quants = np.zeros(QK_K // 2, dtype=np.uint8)  # 4비트 패킹
+    
+    for i in range(8):
+        block = sub_blocks[i]
+        min_val = float(np.min(block))
+        max_val = float(np.max(block))
         
-        if not os.path.exists(model_or_path):
-            raise FileNotFoundError(f"Model file not found: {model_or_path}")
-        
-        # 다양한 형식 지원
-        if str(model_or_path).endswith('.pth') or str(model_or_path).endswith('.pt'):
-            try:
-                # state_dict 형식 시도
-                state_dict = torch.load(model_or_path, map_location='cpu')
-                if isinstance(state_dict, dict) and 'state_dict' in state_dict:
-                    state_dict = state_dict['state_dict']
-                
-                # 간단한 래퍼 모델 생성
-                class StateDict(nn.Module):
-                    def __init__(self, state_dict):
-                        super().__init__()
-                        self._state_dict = state_dict
-                    
-                    def state_dict(self):
-                        return self._state_dict
-                
-                model = StateDict(state_dict)
-            except:
-                # 전체 모델 로드 시도
-                model = torch.load(model_or_path, map_location='cpu')
-                if hasattr(model, 'eval'):
-                    model.eval()
+        if max_val == min_val:
+            scale = 1.0
         else:
-            raise ValueError(f"Unsupported file format: {model_or_path}")
+            scale = (max_val - min_val) / 15.0  # 4비트 범위 0-15
+        
+        scales[i] = scale
+        mins[i] = min_val
+        
+        # 4비트 양자화
+        for j in range(32):
+            if scale > 0:
+                q = int(np.round((block[j] - min_val) / scale))
+                q = np.clip(q, 0, 15)
+            else:
+                q = 0
+            
+            # 2개씩 패킹 (4비트 + 4비트 = 1바이트)
+            idx = i * 32 + j
+            if j % 2 == 0:
+                quants[idx // 2] = q
+            else:
+                quants[idx // 2] |= (q << 4)
     
-    elif isinstance(model_or_path, nn.Module):
-        model = model_or_path
-        model.eval()
+    # 전역 스케일 계산
+    max_scale = np.max(scales) if np.max(scales) > 0 else 1.0
+    d_scale = max_scale
+    
+    min_min = np.min(mins)
+    max_min = np.max(mins)
+    d_min = min_min
+    
+    # 스케일 정규화 (0-255 범위로)
+    scales_norm = np.zeros(8, dtype=np.uint8)
+    mins_norm = np.zeros(8, dtype=np.uint8)
+    
+    for i in range(8):
+        if d_scale > 0:
+            scales_norm[i] = int(np.clip(scales[i] / d_scale * 255, 0, 255))
+        
+        if max_min != min_min:
+            mins_norm[i] = int(np.clip((mins[i] - min_min) / (max_min - min_min) * 255, 0, 255))
+    
+    # 바이너리 패킹
+    block_data = bytearray()
+    block_data.extend(struct.pack('<f', d_scale))      # 4 bytes
+    block_data.extend(struct.pack('<f', d_min))        # 4 bytes  
+    block_data.extend(scales_norm.tobytes())           # 8 bytes
+    block_data.extend(mins_norm.tobytes())             # 8 bytes
+    block_data.extend(quants.tobytes())                # 128 bytes
+    
+    return bytes(block_data)  # 총 152 bytes per block
+
+def convert_tensor_q4k(tensor: torch.Tensor) -> bytes:
+    """텐서를 Q4_K 바이너리로 변환"""
+    # CPU로 이동 및 FP32 변환
+    if tensor.is_cuda:
+        tensor = tensor.cpu()
+    
+    arr = tensor.numpy().astype(np.float32).flatten()
+    
+    # QK_K(256) 배수로 패딩
+    n_elements = len(arr)
+    n_blocks = (n_elements + QK_K - 1) // QK_K
+    padded_size = n_blocks * QK_K
+    
+    if padded_size > n_elements:
+        padded_arr = np.zeros(padded_size, dtype=np.float32)
+        padded_arr[:n_elements] = arr
     else:
-        raise ValueError("Input must be a PyTorch model or path to model file")
+        padded_arr = arr
     
-    # 모델 정보 출력
-    total_params = sum(p.numel() for p in model.state_dict().values() 
-                      if p.dtype in [torch.float32, torch.float16])
-    total_size_mb = sum(p.numel() * 4 for p in model.state_dict().values() 
-                       if p.dtype in [torch.float32, torch.float16]) / (1024 * 1024)
+    # 블록별로 양자화
+    result = bytearray()
+    blocks = padded_arr.reshape(n_blocks, QK_K)
     
-    print(f"📊 Model info:")
-    print(f"   Parameters: {total_params:,}")
-    print(f"   Original size: {total_size_mb:.1f} MB")
-    print(f"   Layers: {len(model.state_dict())}")
+    for block in blocks:
+        q_block = quantize_q4k_block(block)
+        result.extend(q_block)
     
-    # Q4_K로 변환
-    print(f"⚙️  Converting to Q4_K format...")
-    save_q4k_weights(model, output_path)
+    return bytes(result)
+
+def convert_model_q4k(model_path: str, output_path: str):
+    """모델을 Q4_K 바이너리로 변환"""
+    print(f"Loading model: {model_path}")
     
-    # 결과 확인
-    if os.path.exists(output_path):
-        compressed_size_mb = os.path.getsize(output_path) / (1024 * 1024)
-        compression_ratio = total_size_mb / compressed_size_mb
-        
-        print(f"✅ Conversion completed!")
-        print(f"   Output: {output_path}")
-        print(f"   Compressed size: {compressed_size_mb:.1f} MB")
-        print(f"   Compression ratio: {compression_ratio:.2f}x")
-        print(f"   Space saved: {total_size_mb - compressed_size_mb:.1f} MB ({(1 - compressed_size_mb/total_size_mb)*100:.1f}%)")
+    # 모델 로딩
+    if model_path.endswith('.safetensors'):
+        try:
+            from safetensors.torch import load_file
+            tensors = load_file(model_path)
+        except ImportError:
+            print("Error: safetensors not installed. Run: pip install safetensors")
+            return
     else:
-        print("❌ Conversion failed!")
-
-def convert_huggingface_model(model_name_or_path: str, output_path: str):
-    """
-    Hugging Face 모델을 Q4_K로 변환
-    
-    Args:
-        model_name_or_path: HF 모델 이름 또는 로컬 경로
-        output_path: 출력 파일 경로
-    """
-    try:
-        from transformers import AutoModel, AutoConfig
-    except ImportError:
-        raise ImportError("transformers library is required for Hugging Face models")
-    
-    print(f"🤗 Loading Hugging Face model: {model_name_or_path}")
-    
-    # 설정 로드
-    config = AutoConfig.from_pretrained(model_name_or_path)
-    print(f"   Model type: {config.model_type}")
-    print(f"   Architecture: {config.architectures}")
-    
-    # 모델 로드
-    model = AutoModel.from_pretrained(
-        model_name_or_path,
-        torch_dtype=torch.float32,  # Q4_K 변환을 위해 float32 사용
-        device_map="cpu",
-        trust_remote_code=True
-    )
-    
-    model_name = model_name_or_path.split('/')[-1] if '/' in model_name_or_path else model_name_or_path
-    convert_model_to_q4k(model, output_path, model_name)
-
-def validate_q4k_file(file_path: str):
-    """Q4_K 파일 유효성 검사"""
-    if not os.path.exists(file_path):
-        print(f"❌ File not found: {file_path}")
-        return False
-    
-    try:
-        from correct_q4k_converter import load_q4k_weights
-        weights = load_q4k_weights(file_path)
-        
-        print(f"✅ Q4_K file validation successful!")
-        print(f"   File: {file_path}")
-        print(f"   Size: {os.path.getsize(file_path) / (1024*1024):.1f} MB")
-        print(f"   Tensors: {len(weights)}")
-        
-        for i, weight in enumerate(weights[:3]):  # 처음 3개만 표시
-            print(f"   [{i+1}] {weight['name']}: {weight['original_shape']}")
-        
-        if len(weights) > 3:
-            print(f"   ... and {len(weights) - 3} more tensors")
-        
-        return True
-        
-    except Exception as e:
-        print(f"❌ Validation failed: {e}")
-        return False
-
-def main():
-    parser = argparse.ArgumentParser(
-        description="Convert PyTorch models to Q4_K quantized format",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # Convert PyTorch model file
-  python simple_q4k_converter.py --input model.pth --output model_q4k.bin
-  
-  # Convert Hugging Face model
-  python simple_q4k_converter.py --hf-model microsoft/DialoGPT-medium --output dialogpt_q4k.bin
-  
-  # Validate Q4_K file
-  python simple_q4k_converter.py --validate model_q4k.bin
-        """
-    )
-    
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--input', '-i', type=str, 
-                      help='Input PyTorch model file (.pth, .pt)')
-    group.add_argument('--hf-model', type=str,
-                      help='Hugging Face model name or path')
-    group.add_argument('--validate', type=str,
-                      help='Validate existing Q4_K file')
-    
-    parser.add_argument('--output', '-o', type=str,
-                       help='Output Q4_K file path (.bin)')
-    parser.add_argument('--name', type=str, default="converted_model",
-                       help='Model name for metadata')
-    
-    args = parser.parse_args()
-    
-    # 유효성 검사 모드
-    if args.validate:
-        validate_q4k_file(args.validate)
-        return
-    
-    # 출력 파일 경로 확인
-    if not args.output:
-        print("❌ Output path is required for conversion")
-        sys.exit(1)
-    
-    # 출력 디렉토리 생성
-    output_dir = os.path.dirname(args.output)
-    if output_dir and not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-        print(f"📁 Created output directory: {output_dir}")
-    
-    try:
-        # 변환 실행
-        if args.input:
-            convert_model_to_q4k(args.input, args.output, args.name)
-        elif args.hf_model:
-            convert_huggingface_model(args.hf_model, args.output)
-        
-        # 변환된 파일 검증
-        print(f"\n🔍 Validating converted file...")
-        validate_q4k_file(args.output)
-        
-    except Exception as e:
-        print(f"❌ Error during conversion: {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
-
-# 추가 유틸리티 함수들
-
-def quick_convert(model, output_name: str = None):
-    """
-    Jupyter notebook 등에서 빠르게 변환하기 위한 함수
-    
-    Usage:
-        model = torch.load('my_model.pth')
-        quick_convert(model, 'my_model_q4k')
-    """
-    if output_name is None:
-        output_name = "quick_converted_q4k.bin"
-    elif not output_name.endswith('.bin'):
-        output_name += '.bin'
-    
-    convert_model_to_q4k(model, output_name, "quick_convert")
-    return output_name
-
-def estimate_compression(model_or_path):
-    """
-    변환 전 압축률 추정
-    
-    Returns:
-        dict: 예상 압축 정보
-    """
-    if isinstance(model_or_path, (str, Path)):
-        model = torch.load(model_or_path, map_location='cpu')
-        if isinstance(model, dict):
-            params = model
+        checkpoint = torch.load(model_path, map_location='cpu')
+        if isinstance(checkpoint, dict):
+            tensors = checkpoint.get('state_dict', checkpoint)
         else:
-            params = model.state_dict()
-    else:
-        params = model_or_path.state_dict()
+            tensors = checkpoint.state_dict() if hasattr(checkpoint, 'state_dict') else checkpoint
     
-    total_params = sum(p.numel() for p in params.values() 
-                      if p.dtype in [torch.float32, torch.float16])
-    original_size_mb = sum(p.numel() * 4 for p in params.values() 
-                          if p.dtype in [torch.float32, torch.float16]) / (1024 * 1024)
+    # Float 텐서만 필터링
+    float_tensors = {k: v for k, v in tensors.items() 
+                    if v.dtype in [torch.float32, torch.float16, torch.bfloat16]}
     
-    # Q4_K는 평균적으로 4.5 bits per weight
-    estimated_size_mb = total_params * 4.5 / 8 / (1024 * 1024)
-    estimated_ratio = original_size_mb / estimated_size_mb
+    print(f"Found {len(float_tensors)} float tensors")
     
-    return {
-        'total_parameters': total_params,
-        'original_size_mb': original_size_mb,
-        'estimated_q4k_size_mb': estimated_size_mb,
-        'estimated_compression_ratio': estimated_ratio,
-        'estimated_space_saved_mb': original_size_mb - estimated_size_mb,
-        'estimated_space_saved_percent': (1 - estimated_size_mb/original_size_mb) * 100
-    }
+    # 텐서별로 변환 및 저장
+    with open(output_path, 'wb') as f:
+        # 헤더: 텐서 개수
+        f.write(struct.pack('<I', len(float_tensors)))
+        
+        for name, tensor in float_tensors.items():
+            print(f"Converting: {name} {list(tensor.shape)}")
+            
+            # 텐서 정보 저장 (이름 길이, 이름, 원본 shape, 원소 개수)
+            name_bytes = name.encode('utf-8')
+            f.write(struct.pack('<I', len(name_bytes)))  # 이름 길이
+            f.write(name_bytes)                          # 이름
+            f.write(struct.pack('<I', len(tensor.shape)))  # 차원 수
+            for dim in tensor.shape:
+                f.write(struct.pack('<I', dim))          # 각 차원 크기
+            
+            # Q4_K 변환 데이터
+            q4k_data = convert_tensor_q4k(tensor)
+            f.write(struct.pack('<I', len(q4k_data)))    # 데이터 크기
+            f.write(q4k_data)                            # Q4_K 데이터
+    
+    # 결과 출력
+    original_size = sum(t.numel() * 4 for t in float_tensors.values())  # FP32 기준
+    compressed_size = Path(output_path).stat().st_size
+    ratio = original_size / compressed_size
+    
+    print(f"\n✅ Conversion completed!")
+    print(f"Original size: {original_size / 1024**2:.1f} MB")
+    print(f"Q4_K size: {compressed_size / 1024**2:.1f} MB") 
+    print(f"Compression ratio: {ratio:.2f}x")
+    print(f"Output: {output_path}")
+
+def load_q4k_model(file_path: str) -> dict:
+    """Q4_K 바이너리 파일 로딩 (참고용)"""
+    tensors = {}
+    
+    with open(file_path, 'rb') as f:
+        # 텐서 개수 읽기
+        n_tensors = struct.unpack('<I', f.read(4))[0]
+        
+        for _ in range(n_tensors):
+            # 텐서 정보 읽기
+            name_len = struct.unpack('<I', f.read(4))[0]
+            name = f.read(name_len).decode('utf-8')
+            
+            n_dims = struct.unpack('<I', f.read(4))[0]
+            shape = []
+            for _ in range(n_dims):
+                shape.append(struct.unpack('<I', f.read(4))[0])
+            
+            # Q4_K 데이터 읽기
+            data_len = struct.unpack('<I', f.read(4))[0]
+            q4k_data = f.read(data_len)
+            
+            tensors[name] = {
+                'shape': tuple(shape),
+                'q4k_data': q4k_data
+            }
+    
+    return tensors
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) != 3:
+        print("Usage: python simple_q4k_converter.py <model.pth> <output.bin>")
+        sys.exit(1)
+    
+    model_path = sys.argv[1]
+    output_path = sys.argv[2]
+    
+    if not Path(model_path).exists():
+        print(f"Error: Model file not found: {model_path}")
+        sys.exit(1)
+    
+    convert_model_q4k(model_path, output_path)
