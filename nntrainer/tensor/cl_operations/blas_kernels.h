@@ -54,6 +54,19 @@ void sgemm_q4_k_cl(const unsigned int M, const unsigned int N,
                    float *matCdata);
 
 /**
+ * @brief     Q4_0 GEMM computation
+ * @param[in] M row dimension of Matrix A and C
+ * @param[in] N column dimension of Matrix B and C
+ * @param[in] K column dimension of Matrix A and row dimension of Matrix B
+ * @param[in] matAdata void * for input Matrix A; q4_0 packed
+ * @param[in] matBdata float * for input Matrix B
+ * @param[in] matCdata float * for output Matrix C
+ */
+void gemm_q4_0_cl(const unsigned int M, const unsigned int N,
+                  const unsigned int K, void *matAdata, float *matBdata,
+                  float *matCdata);
+
+/**
  * @brief     sgemv computation : Y = A*X + Y
  * @param[in] matAdata float * for Matrix A
  * @param[in] vecXdata float * for Vector X
