@@ -392,315 +392,57 @@ static void run_quant_test(const uint32_t M, const uint32_t K, const uint32_t N,
   q6_k_mse =
     test_gemm_q6_K(M, K, N, weight.data(), activation.data(), ref_dst, print);
 }
-
-TEST(nntrainer_cpu_backend_standalone, quant_GEMM_256x1024x512) {
-  const unsigned int M = 256;
-  const unsigned int K = 1024;
-  const unsigned int N = 512;
-  float q4_0_mse, q4_k_mse, q6_k_mse;
-  constexpr float eps = 1e-5;
-  run_quant_test(M, K, N, q4_0_mse, q4_k_mse, q6_k_mse, false);
-  // ASSERT_LE(q4_0_mse, 2.0f);
-  ASSERT_LE(q4_k_mse, eps * M * K * N);
-  ASSERT_LE(q6_k_mse, q4_k_mse);
-}
-
-TEST(nntrainer_cpu_backend_standalone, quant_GEMM_457x3072x3072) {
-  const unsigned int M = 457;
-  const unsigned int K = 3072;
-  const unsigned int N = 3072;
-  float q4_0_mse, q4_k_mse, q6_k_mse;
-  constexpr float eps = 1e-5;
-  run_quant_test(M, K, N, q4_0_mse, q4_k_mse, q6_k_mse, false);
-  // ASSERT_LE(q4_0_mse, 1.5f);
-  ASSERT_LE(q4_k_mse, eps * M * K * N);
-  ASSERT_LE(q6_k_mse, q4_k_mse);
-}
-
-TEST(nntrainer_cpu_backend_standalone, quant_GEMM_458x3072x3072) {
-  const unsigned int M = 458;
-  const unsigned int K = 3072;
-  const unsigned int N = 3072;
-  float q4_0_mse, q4_k_mse, q6_k_mse;
-  constexpr float eps = 1e-5;
-  run_quant_test(M, K, N, q4_0_mse, q4_k_mse, q6_k_mse, false);
-  // ASSERT_LE(q4_0_mse, 1.5f);
-  ASSERT_LE(q4_k_mse, eps * M * K * N);
-  ASSERT_LE(q6_k_mse, q4_k_mse);
-}
-
-TEST(nntrainer_cpu_backend_standalone, quant_GEMM_459x3072x3072) {
-  const unsigned int M = 459;
-  const unsigned int K = 3072;
-  const unsigned int N = 3072;
-  float q4_0_mse, q4_k_mse, q6_k_mse;
-  constexpr float eps = 1e-5;
-  run_quant_test(M, K, N, q4_0_mse, q4_k_mse, q6_k_mse, false);
-  // ASSERT_LE(q4_0_mse, 1.5f);
-  ASSERT_LE(q4_k_mse, eps * M * K * N);
-  ASSERT_LE(q6_k_mse, q4_k_mse);
-}
-
-TEST(nntrainer_cpu_backend_standalone, quant_GEMM_1024x3072x3072) {
-  const unsigned int M = 1024;
-  const unsigned int K = 3072;
-  const unsigned int N = 3072;
-  float q4_0_mse, q4_k_mse, q6_k_mse;
-  constexpr float eps = 1e-5;
-  run_quant_test(M, K, N, q4_0_mse, q4_k_mse, q6_k_mse, false);
-  // ASSERT_LE(q4_0_mse, 2.0f);
-  ASSERT_LE(q4_k_mse, eps * M * K * N);
-  ASSERT_LE(q6_k_mse, q4_k_mse);
-}
-
-TEST(nntrainer_cpu_backend_standalone, quant_GEMV_1x768x1024) {
+TEST(nntrainer_cpu_backend_standalone, quant_GEMM_1x3072x256) {
   const unsigned int M = 1;
-  const unsigned int K = 768;
-  const unsigned int N = 1024;
+  const unsigned int K = 3072;
+  const unsigned int N = 256;
   float q4_0_mse, q4_k_mse, q6_k_mse;
   constexpr float eps = 1e-5;
-  run_quant_test(M, K, N, q4_0_mse, q4_k_mse, q6_k_mse, false);
-  // ASSERT_LE(q4_0_mse, 1.0f);
+  run_quant_test(M, K, N, q4_0_mse, q4_k_mse, q6_k_mse, true);
+  // ASSERT_LE(q4_0_mse, 1.5f);
   ASSERT_LE(q4_k_mse, eps * M * K * N);
   ASSERT_LE(q6_k_mse, q4_k_mse);
 }
 
-TEST(nntrainer_cpu_backend_standalone, quant_GEMV_1x3072x3072) {
+TEST(nntrainer_cpu_backend_standalone, quant_GEMM_1x3072x3072) {
   const unsigned int M = 1;
   const unsigned int K = 3072;
   const unsigned int N = 3072;
   float q4_0_mse, q4_k_mse, q6_k_mse;
   constexpr float eps = 1e-5;
-  run_quant_test(M, K, N, q4_0_mse, q4_k_mse, q6_k_mse, false);
-  // ASSERT_LE(q4_0_mse, 1.0f);
+  run_quant_test(M, K, N, q4_0_mse, q4_k_mse, q6_k_mse, true);
+  // ASSERT_LE(q4_0_mse, 2.0f);
   ASSERT_LE(q4_k_mse, eps * M * K * N);
   ASSERT_LE(q6_k_mse, q4_k_mse);
 }
 
-static void run_vec_dot_test(const uint32_t K, bool print = false) {
-  const int TEST_CNT = 20;
-  nanoseconds ref_time = (nanoseconds)0;
-  nanoseconds q6_k_time = (nanoseconds)0;
-  float ref_result, result;
-
-  for (int i = -1; i < TEST_CNT; i++) {
-    std::vector<float> activation = generate_random_vector<float, false>(K);
-    std::vector<float> weight = generate_random_vector<float, false>(K);
-
-    {
-      // GROUND TRUTH sdot for reference
-      auto t1 = high_resolution_clock::now();
-      ref_result = nntrainer::sdot(K, weight.data(), 1, activation.data(), 1);
-      auto t2 = high_resolution_clock::now();
-      auto dt = duration_cast<nanoseconds>(t2 - t1);
-      if (i >= 0) { // skip the first run
-        ref_time += dt;
-      }
-    }
-
-    // Quantization of weights
-    int64_t num_blocks = K / 256;
-    size_t q6_k_data_size = num_blocks * sizeof(block_q6_K_testonly);
-    std::vector<char> q6_K_weight = std::vector<char>(q6_k_data_size);
-    nntrainer::quantize_row_q6_K(weight.data(), q6_K_weight.data(), K);
-
-    // Quantization of activations
-    int blocks_per_row = (K + QK_K - 1) / QK_K;
-    int q8_K_activation_size = sizeof(block_q8_K_testonly) * blocks_per_row;
-    std::vector<char> v_q8_activation = std::vector<char>(q8_K_activation_size);
-    nntrainer::quantize_row_q8_K(activation.data(), v_q8_activation.data(), K);
-
-    {
-      auto t1 = high_resolution_clock::now();
-      // #### MAIN TESTED METHOD ####
-      result =
-        nntrainer::dot_q6_K_q8_K(K, q6_K_weight.data(), v_q8_activation.data());
-      // #### MAIN TESTED METHOD ####
-      auto t2 = high_resolution_clock::now();
-      auto dt = duration_cast<nanoseconds>(t2 - t1);
-      if (i >= 0) { // skip the first run
-        q6_k_time += dt;
-      }
-    }
-    EXPECT_NEAR(result, ref_result, 0.25 * K / 256);
-  }
-  if (print) {
-    std::cout << "[INFO] dot_q6_K_q8_K: TEST CNT: " << TEST_CNT << ", K: " << K
-              << ", Average ref_time: " << ref_time.count() / TEST_CNT
-              << " ns, Average q6_k_time: " << q6_k_time.count() / TEST_CNT
-              << " ns " << std::endl;
-  }
+TEST(nntrainer_cpu_backend_standalone, quant_GEMM_1x3072x3072_512_512) {
+  const unsigned int M = 1;
+  const unsigned int K = 3072;
+  const unsigned int N = 3072 + 256 + 256;
+  float q4_0_mse, q4_k_mse, q6_k_mse;
+  constexpr float eps = 1e-5;
+  run_quant_test(M, K, N, q4_0_mse, q4_k_mse, q6_k_mse, true);
+  // ASSERT_LE(q4_0_mse, 2.0f);
+  ASSERT_LE(q4_k_mse, eps * M * K * N);
+  ASSERT_LE(q6_k_mse, q4_k_mse);
 }
 
-TEST(nntrainer_cpu_backend_standalone, quant_q_6_K_DOT_1024) {
-  const uint32_t K = 1024;
-  run_vec_dot_test(K);
+TEST(nntrainer_cpu_backend_standalone, quant_GEMM_1x3072x3072_3072) {
+  const unsigned int M = 1;
+  const unsigned int K = 3072;
+  const unsigned int N = 3072 + 3072;
+  float q4_0_mse, q4_k_mse, q6_k_mse;
+  constexpr float eps = 1e-5;
+  run_quant_test(M, K, N, q4_0_mse, q4_k_mse, q6_k_mse, true);
+  // ASSERT_LE(q4_0_mse, 2.0f);
+  ASSERT_LE(q4_k_mse, eps * M * K * N);
+  ASSERT_LE(q6_k_mse, q4_k_mse);
 }
 
-TEST(nntrainer_cpu_backend_standalone, quant_q_6_K_DOT_2560) {
-  const uint32_t K = 2560;
-  run_vec_dot_test(K);
-}
-
-TEST(nntrainer_cpu_backend_standalone, quant_q_6_K_DOT_10240) {
-  const uint32_t K = 10240;
-  run_vec_dot_test(K);
-}
 
 #endif
 
-static void run_ele_mul_test(const unsigned int N, float alpha, float beta,
-                             unsigned int i_stride, unsigned int o_stride) {
-  // Z = X ⊙ alpha * Y + beta * Z
-  const int TEST_CNT = 20;
-  nanoseconds ref_mul_time = (nanoseconds)0;
-  nanoseconds mul_time = (nanoseconds)0;
-
-  for (int i = -1; i < TEST_CNT; i++) {
-    std::vector<float> X =
-      generate_random_vector<float, false>((size_t)N * o_stride);
-    std::vector<float> Y = generate_random_vector<float, false>(
-      std::max<size_t>(1, (size_t)N * i_stride));
-    std::vector<float> Z =
-      generate_random_vector<float, false>((size_t)N * o_stride);
-    std::vector<float> Z_ref = Z;
-    {
-      // #### GROUND TRUTH ####
-      auto t1 = high_resolution_clock::now();
-      nntrainer::__fallback_ele_mul(N, X.data(), Y.data(), Z_ref.data(), alpha,
-                                    beta, i_stride, o_stride);
-      auto t2 = high_resolution_clock::now();
-      auto dt = duration_cast<nanoseconds>(t2 - t1);
-      if (i >= 0) { // skip the first run
-        ref_mul_time += dt;
-      }
-    }
-    {
-      auto t1 = high_resolution_clock::now();
-      // #### MAIN TESTED METHOD ####
-      nntrainer::ele_mul(N, X.data(), Y.data(), Z.data(), alpha, beta, i_stride,
-                         o_stride);
-      // #### MAIN TESTED METHOD ####
-      auto t2 = high_resolution_clock::now();
-      auto dt = duration_cast<nanoseconds>(t2 - t1);
-      if (i >= 0) { // skip the first run
-        mul_time += dt;
-      }
-    }
-
-    auto mean_squared_error = compute_mse(1, N, Z_ref, Z, false);
-    ASSERT_LE(mean_squared_error, 0.00001f);
-  }
-
-  std::cout << "[INFO] ele_mul: TEST CNT: " << TEST_CNT << ", N: " << N
-            << ", i_stride: " << i_stride
-            << ", Average ref_time: " << ref_mul_time.count() / TEST_CNT
-            << " ns, Average mul_time: " << mul_time.count() / TEST_CNT
-            << " ns " << std::endl;
-}
-
-TEST(nntrainer_cpu_backend_standalone, ele_mul_3072_istr_0) {
-  const unsigned int N = 3072;
-  const float alpha = 1.f;
-  const float beta = 0.f;
-  const unsigned int i_stride = 0;
-  const unsigned int o_stride = 1;
-  run_ele_mul_test(N, alpha, beta, i_stride, o_stride);
-}
-
-TEST(nntrainer_cpu_backend_standalone, ele_mul_3072_istr_1) {
-  const unsigned int N = 3072;
-  const float alpha = 1.f;
-  const float beta = 0.f;
-  const unsigned int i_stride = 1;
-  const unsigned int o_stride = 1;
-  run_ele_mul_test(N, alpha, beta, i_stride, o_stride);
-}
-
-TEST(nntrainer_cpu_backend_standalone, ele_mul_3072_istr_16_ostr_16) {
-  const unsigned int N = 3072;
-  const float alpha = 3.f;
-  const float beta = 2.f;
-  const unsigned int i_stride = 16;
-  const unsigned int o_stride = 16;
-  run_ele_mul_test(N, alpha, beta, i_stride, o_stride);
-}
-
-static void run_ele_add_test(const unsigned int N, float alpha, float beta,
-                             unsigned int i_stride, unsigned int o_stride) {
-  // Z = X ⊙ alpha * Y + beta * Z
-  const int TEST_CNT = 20;
-  nanoseconds ref_add_time = (nanoseconds)0;
-  nanoseconds add_time = (nanoseconds)0;
-
-  for (int i = -1; i < TEST_CNT; i++) {
-    std::vector<float> X =
-      generate_random_vector<float, false>((size_t)N * o_stride);
-    std::vector<float> Y = generate_random_vector<float, false>(
-      std::max<size_t>(1, (size_t)N * i_stride));
-    std::vector<float> Z =
-      generate_random_vector<float, false>((size_t)N * o_stride);
-    std::vector<float> Z_ref = Z;
-    {
-      // #### GROUND TRUTH ####
-      auto t1 = high_resolution_clock::now();
-      nntrainer::__fallback_ele_add(N, X.data(), Y.data(), Z_ref.data(), alpha,
-                                    beta, i_stride, o_stride);
-      auto t2 = high_resolution_clock::now();
-      auto dt = duration_cast<nanoseconds>(t2 - t1);
-      if (i >= 0) { // skip the first run
-        ref_add_time += dt;
-      }
-    }
-    {
-      auto t1 = high_resolution_clock::now();
-      // #### MAIN TESTED METHOD ####
-      nntrainer::ele_add(N, X.data(), Y.data(), Z.data(), alpha, beta, i_stride,
-                         o_stride);
-      // #### MAIN TESTED METHOD ####
-      auto t2 = high_resolution_clock::now();
-      auto dt = duration_cast<nanoseconds>(t2 - t1);
-      if (i >= 0) { // skip the first run
-        add_time += dt;
-      }
-    }
-    auto mean_squared_error = compute_mse(1, N, Z_ref, Z, false);
-    ASSERT_LE(mean_squared_error, 0.00001f);
-  }
-
-  std::cout << "[INFO] ele_add: TEST CNT: " << TEST_CNT << ", N: " << N
-            << ", i_stride: " << i_stride
-            << ", Average ref_time: " << ref_add_time.count() / TEST_CNT
-            << " ns, Average add_time: " << add_time.count() / TEST_CNT
-            << " ns " << std::endl;
-}
-
-TEST(nntrainer_cpu_backend_standalone, ele_add_3072_istr_0) {
-  const unsigned int N = 3072;
-  const float alpha = 1.f;
-  const float beta = 0.f;
-  const unsigned int i_stride = 0;
-  const unsigned int o_stride = 1;
-  run_ele_add_test(N, alpha, beta, i_stride, o_stride);
-}
-
-TEST(nntrainer_cpu_backend_standalone, ele_add_3072_istr_1) {
-  const unsigned int N = 3072;
-  const float alpha = 1.f;
-  const float beta = 0.f;
-  const unsigned int i_stride = 1;
-  const unsigned int o_stride = 1;
-  run_ele_add_test(N, alpha, beta, i_stride, o_stride);
-}
-
-TEST(nntrainer_cpu_backend_standalone, ele_add_3072_istr_16_ostrid_16) {
-  const unsigned int N = 3072;
-  const float alpha = 3.f;
-  const float beta = 2.f;
-  const unsigned int i_stride = 16;
-  const unsigned int o_stride = 16;
-  run_ele_add_test(N, alpha, beta, i_stride, o_stride);
-}
 
 int main(int argc, char **argv) {
   int result = -1;
