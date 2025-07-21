@@ -347,24 +347,67 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
                               bool only_convert_to_fp16);
 
 /**
- * @brief
- * @param qk_out _FP16 * input/output values
- * @param start_row start row number
- * @param end_row end row number
- * @param num_heads heads number
+ * @brief Multihead softmax, exp(x_i) / sum(exp(x_i)), inplace version
+ * @param[in/out] qk_out __fp16* input/output values
+ * @param[in] start_row start row number
+ * @param[in] end_row end row number
+ * @param[in] num_heads heads number
  */
 void softmax_row_inplace(_FP16 *qk_out, size_t start_row, size_t end_row,
                          size_t num_heads);
 
 /**
- * @brief
- * @param qk_out _FP16 * input/output values
- * @param start_row start row number
- * @param end_row end row number
- * @param num_heads heads number
+ * @brief Multihead softmax, exp(x_i) / sum(exp(x_i))
+ * @param[in/out] qk_out __fp16* input/output values
+ * @param[in] start_row start row number
+ * @param[in] end_row end row number
+ * @param[in] num_heads heads number
  */
 void softmax_row(_FP16 *qk_out, size_t start_row, size_t end_row,
                  size_t num_heads);
+
+/**
+ * @brief Compute vcache for one row transposed
+ * @param[in] row_num row number
+ * @param[in] in _FP16* input vector
+ * @param[in] vcache _FP16* input vector
+ * @param[out] output _FP16* output vector
+ * @param[in] num_cache_head number head of cache
+ * @param[in] gqa_size size of group
+ * @param[in] head_dim head dimension
+ */
+void compute_fp16vcache_transposed(int row_num, const _FP16 *in,
+                                   const _FP16 *vcache, _FP16 *output,
+                                   int num_cache_head, int gqa_size,
+                                   int head_dim);
+
+/**
+ * @brief Compute kcaches
+ * @param[in] A __fp16* input vector A
+ * @param[in] B __fp16* input vector B
+ * @param[out] output __fp16* output float vector
+ * @param[in] num_rows number of row
+ * @param[in] N number of chunk
+ * @param[in] chunk_size size of chunk
+ * @param[in] group_size size of group
+ * @param[in] tile_size size of tile
+ */
+void compute_kcaches(const _FP16 *A, const _FP16 *B, _FP16 *output,
+                     int num_rows, int N, int chunk_size, int group_size,
+                     int tile_size);
+
+/**
+ * @brief Compute rotary embedding value
+ * @param[in] width current w value from b, c, h, w
+ * @param[in] dim unit length of simd computation
+ * @param[in] half_ criterion for rotational direction of embedding
+ * @param[in/out] inout _FP16* used also as output
+ * @param[in] cos_ _FP16* input con values
+ * @param[in] sin_ _FP16* input sin values
+ */
+void compute_rotary_emb_value(unsigned int width, unsigned int dim,
+                              unsigned int half_, _FP16 *inout,
+                              const _FP16 *cos_, const _FP16 *sin_);
 
 #endif
 
