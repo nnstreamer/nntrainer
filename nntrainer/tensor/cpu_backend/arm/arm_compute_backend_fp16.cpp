@@ -300,7 +300,7 @@ void compute_fp16vcache_fp32_transposed(int row_num, const float *in,
                                         int num_cache_head, int gqa_size,
                                         int head_dim) {
   neon::compute_fp16vcache_fp32_transposed(
-    row_num, in, reinterpret_cast<const __fp16 *>(vcache), output,
+    row_num, in, reinterpret_cast<const _FP16 *>(vcache), output,
     num_cache_head, gqa_size, head_dim);
 }
 
@@ -308,8 +308,8 @@ template <>
 void compute_kcaches(const float *A, const uint16_t *B, float *output,
                      int num_rows, int N, int chunk_size, int group_size,
                      int tile_size) {
-  neon::compute_kcaches<__fp16>(A, reinterpret_cast<const __fp16 *>(B), output,
-                                num_rows, N, chunk_size, group_size, tile_size);
+  neon::compute_kcaches<_FP16>(A, reinterpret_cast<const _FP16 *>(B), output,
+                               num_rows, N, chunk_size, group_size, tile_size);
 }
 
 void compute_rotary_emb_value(unsigned int width, unsigned int dim,
@@ -318,6 +318,37 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
                               bool only_convert_to_fp16) {
   neon::compute_rotary_emb_value(width, dim, half_, inout, output, cos_, sin_,
                                  only_convert_to_fp16);
+}
+
+void softmax_row_inplace(_FP16 *qk_out, size_t start_row, size_t end_row,
+                         size_t num_heads) {
+  nntrainer::neon::softmax_row_inplace(qk_out, start_row, end_row, num_heads);
+}
+
+void softmax_row(_FP16 *qk_out, size_t start_row, size_t end_row,
+                 size_t num_heads) {
+  nntrainer::neon::softmax_row(qk_out, start_row, end_row, num_heads);
+}
+
+void compute_fp16vcache_transposed(int row_num, const _FP16 *in,
+                                   const _FP16 *vcache, _FP16 *output,
+                                   int num_cache_head, int gqa_size,
+                                   int head_dim) {
+  neon::compute_fp16vcache_transposed(row_num, in, vcache, output,
+                                      num_cache_head, gqa_size, head_dim);
+}
+
+void compute_kcaches(const _FP16 *A, const _FP16 *B, _FP16 *output,
+                     int num_rows, int N, int chunk_size, int group_size,
+                     int tile_size) {
+  nntrainer::neon::compute_kcaches(A, B, output, num_rows, N, chunk_size,
+                                   group_size, tile_size);
+}
+
+void compute_rotary_emb_value(unsigned int width, unsigned int dim,
+                              unsigned int half_, _FP16 *inout,
+                              const _FP16 *cos_, const _FP16 *sin_) {
+  neon::compute_rotary_emb_value(width, dim, half_, inout, cos_, sin_);
 }
 
 } /* namespace nntrainer */
