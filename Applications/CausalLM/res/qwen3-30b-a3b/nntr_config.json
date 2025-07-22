@@ -1,0 +1,21 @@
+{
+    "model_tensor_type": "FP32-FP32",
+    "model_file_name": "nntr_qwen3_30b_moe_fp32.bin",
+
+    "lora_rank" : 0,
+    "lora_alpha" : 0,
+    "lora_target": [],
+
+    "fc_layer_dtype" : "FP32",
+    "embedding_dtype" : "FP32",
+
+    "bad_word_ids": [],
+    "fsu": false,
+    "num_to_generate": 512,
+    "init_seq_len": 1024,
+    "max_seq_len": 2048,
+    "batch_size": 1,
+
+    "tokenizer_file": "/tmp/nntrainer/Applications/CausalLM/res/qwen3-30b-a3b/tokenizer.json",
+    "sample_input": "<|im_start|>user\nGive me a short introduction to large language model.<|im_end|>\n<|im_start|>assistant\n"
+}
