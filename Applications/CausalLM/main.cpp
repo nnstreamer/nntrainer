@@ -9,6 +9,7 @@
 
 #include "causal_lm.h"
 #include "qwen3_causallm.h"
+#include "qwen3_moe_causallm.h"
 
 using json = nlohmann::json;
 
@@ -24,6 +25,11 @@ int main(int argc, char *argv[]) {
     "Qwen3ForCausalLM", [](json cfg, json generation_cfg, json nntr_cfg) {
       return std::make_unique<causallm::Qwen3CausalLM>(cfg, generation_cfg,
                                                        nntr_cfg);
+    });
+  causallm::Factory::Instance().registerModel(
+    "Qwen3MoeForCausalLM", [](json cfg, json generation_cfg, json nntr_cfg) {
+      return std::make_unique<causallm::Qwen3MoECausalLM>(cfg, generation_cfg,
+                                                          nntr_cfg);
     });
 
   // Validate arguments
