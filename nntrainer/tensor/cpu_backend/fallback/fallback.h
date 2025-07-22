@@ -877,6 +877,17 @@ void repack_q4_K_to_q4_K_8(void *W, void *repacked_W, size_t data_size,
                            const unsigned int M, const unsigned int N);
 
 /**
+ * @brief repack q40 to q40x8
+ *
+ * @param W input q40
+ * @param repacked_W output q40x8
+ * @param data_size total weight size
+ * @param M number of rows
+ * @param N number of columns
+ */
+void repack_q4_0(void *W, void *repacked_W, size_t data_size,
+                        const unsigned int M, const unsigned int N);
+/**
  * @brief Multihead softmax, exp(x_i) / sum(exp(x_i)), inplace version
  * @param[in/out] qk_out float* input/output values
  * @param[in] start_row start row number
