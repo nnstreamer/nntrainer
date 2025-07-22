@@ -4,13 +4,11 @@ opencl_sources = [
     'opencl_context_manager.cpp',
     'opencl_kernel.cpp',
     'opencl_loader.cpp',
-    'opencl_program.cpp',
-    'opencl_op_interface.cpp'
+    'opencl_program.cpp'
 ]
 
 opencl_headers = [
   'CL/cl_platform.h',
-  'opencl_op_interface.h',
   'opencl_command_queue_manager.h',
   'opencl_context_manager.h',
   'opencl_kernel.h',
