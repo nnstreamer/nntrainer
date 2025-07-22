@@ -886,7 +886,7 @@ void repack_q4_K_to_q4_K_8(void *W, void *repacked_W, size_t data_size,
  * @param N number of columns
  */
 void repack_q4_0(void *W, void *repacked_W, size_t data_size,
-                        const unsigned int M, const unsigned int N);
+                 const unsigned int M, const unsigned int N);
 } /* namespace nntrainer */
 #endif /* __cplusplus */
 #endif /* __FALLBACK_H__ */
