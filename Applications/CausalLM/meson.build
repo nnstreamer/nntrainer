@@ -4,6 +4,10 @@ causallm_src = [
     meson.current_source_dir() / 'llm_util.cpp',
 ]
 
+causallm_src += [
+    meson.current_source_dir() / 'qwen3_causallm.cpp',
+]
+
 executable_src = [
     meson.current_source_dir() / 'main.cpp',
 ]
@@ -21,6 +25,7 @@ causallm_layer_dependencies = [
     causallm_swiglu_dep,
     causallm_mha_core_dep,
     causallm_embedding_layer_dep,
+    causallm_reshaped_rms_norm_dep,
 ]
 
 tokenizer_dependencies = []
