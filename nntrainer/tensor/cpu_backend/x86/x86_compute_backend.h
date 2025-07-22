@@ -1055,6 +1055,17 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
                               const float *cos_, const float *sin_,
                               bool only_convert_to_fp16);
 
+/**
+ * @brief repack q40 to q40x8
+ *
+ * @param W input q40
+ * @param repacked_W output q40x8
+ * @param data_size total weight size
+ * @param M number of rows
+ * @param N number of columns
+ */
+void repack_q4_0(void *W, void *repacked_W, size_t data_size,
+                        const unsigned int M, const unsigned int N);
 } /* namespace nntrainer */
 #endif /* __cplusplus */
 #endif /* __x86_COMPUTE_BACKEND_H__ */

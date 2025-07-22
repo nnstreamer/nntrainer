@@ -899,6 +899,7 @@ void __fallback_dequantize_row_q4_K(const void *x_raw, float *y, int64_t k);
 void __fallback_dequantize_row_q6_K(const void *x, float *y, int64_t k);
 
 /**
+ *
  * @brief dequantize row of q8_K data to float
  *
  * @param x input to be dequantized from q8_K to float
@@ -906,6 +907,19 @@ void __fallback_dequantize_row_q6_K(const void *x, float *y, int64_t k);
  * @param k number of elements in x
  */
 void __fallback_dequantize_row_q8_K(const void *x, float *y, int64_t k);
+
+/**
+ * @brief repack q40 to q40x8
+ *
+ * @param W input q40
+ * @param repacked_W output q40x8
+ * @param data_size total weight size
+ * @param M number of rows
+ * @param N number of columns
+ */
+void __fallback_repack_q4_0_to_q4_0_4(void *W, void *repacked_W,
+                                      size_t data_size, const unsigned int M,
+                                      const unsigned int N);
 
 /**
  * @brief repack q40 to q40x8

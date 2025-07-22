@@ -946,5 +946,28 @@ extern void softmax_row_inplace(float *qk_out, size_t start_row, size_t end_row,
 extern void softmax_row(float *qk_out, size_t start_row, size_t end_row,
                         size_t num_heads);
 
+/**
+ * @brief repack q40 to q40x8
+ *
+ * @param W input q40
+ * @param repacked_W output q40x8
+ * @param data_size total weight size
+ * @param M number of rows
+ * @param N number of columns
+ */
+extern void repack_q4_0(void *W, void *repacked_W, size_t data_size,
+                        const unsigned int M, const unsigned int N);
+
+/**
+ * @brief repack q4K to q4Kx8
+ *
+ * @param W input q4K
+ * @param repacked_W output q4Kx8
+ * @param data_size total weight size
+ * @param M number of rows
+ * @param N number of columns
+ */
+extern void repack_q4_K_to_q4_K_8(void *W, void *repacked_W, size_t data_size,
+                                  const unsigned int M, const unsigned int N);
 #endif
 #endif
