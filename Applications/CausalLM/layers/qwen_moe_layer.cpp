@@ -232,64 +232,52 @@ inline void MoELayer::compute_expert_forward_optimized(
   const nntrainer::Tensor &down_proj, unsigned int hidden_size) {
 
   const unsigned intermediate_size = gate_proj.width();
-  const float* input_data = input.getData<float>();
-  float* output_data = output.getData<float>();
+  const unsigned num_tokens = token_assignments.size();
   
-  const float* gate_data = gate_proj.getData<float>();
-  const float* up_data = up_proj.getData<float>();
-  const float* down_data = down_proj.getData<float>();
+  if (num_tokens == 0) return;
 
-  // Process each token assigned to this expert
-  for (const auto& assignment : token_assignments) {
-    const unsigned token_idx = assignment.first;
-    const float weight = assignment.second;
+  // Create tensor dimensions for single token processing
+  nntrainer::TensorDim token_input_dim({1, 1, 1, hidden_size}, input.getTensorType());
+  nntrainer::TensorDim intermediate_dim({1, 1, 1, intermediate_size}, input.getTensorType());
+  nntrainer::TensorDim token_output_dim({1, 1, 1, hidden_size}, input.getTensorType());
+
+  // Process each token individually to avoid memory copies
+  for (size_t i = 0; i < num_tokens; ++i) {
+    const unsigned token_idx = token_assignments[i].first;
+    const float weight = token_assignments[i].second;
     
-    // Get input token data pointer (avoiding getBatchSlice)
-    const float* token_input = input_data + token_idx * hidden_size;
-    float* token_output = output_data + token_idx * hidden_size;
+    // Create shared tensor for input token (no memory copy)
+    size_t token_offset = token_idx * hidden_size;
+    nntrainer::Tensor token_input = input.getSharedDataTensor(token_input_dim, token_offset, true);
     
-    // Temporary buffers for intermediate computations
-    std::vector<float> gate_out(intermediate_size);
-    std::vector<float> up_out(intermediate_size);
+    // Create intermediate tensors for this token
+    nntrainer::Tensor gate_out(intermediate_dim);
+    nntrainer::Tensor acti_out(intermediate_dim);
+    nntrainer::Tensor up_out(intermediate_dim);
     
-    // Gate projection: input * gate_proj
-    for (unsigned int i = 0; i < intermediate_size; ++i) {
-      float sum = 0.0f;
-      for (unsigned int j = 0; j < hidden_size; ++j) {
-        sum += token_input[j] * gate_data[j * intermediate_size + i];
-      }
-      gate_out[i] = sum;
-    }
+    // Gate projection using optimized dot operation
+    token_input.dot(gate_proj, gate_out);
     
-    // Apply activation (silu) in-place
-    for (unsigned int i = 0; i < intermediate_size; ++i) {
-      float x = gate_out[i];
-      gate_out[i] = x / (1.0f + std::exp(-x)); // silu activation
-    }
+    // Apply activation (silu)
+    acti_func.run_fn(gate_out, acti_out);
     
-    // Up projection: input * up_proj
-    for (unsigned int i = 0; i < intermediate_size; ++i) {
-      float sum = 0.0f;
-      for (unsigned int j = 0; j < hidden_size; ++j) {
-        sum += token_input[j] * up_data[j * intermediate_size + i];
-      }
-      up_out[i] = sum;
-    }
+    // Up projection using optimized dot operation
+    token_input.dot(up_proj, up_out);
     
-    // Element-wise multiply: gate_out * up_out
-    for (unsigned int i = 0; i < intermediate_size; ++i) {
-      gate_out[i] *= up_out[i];
-    }
+    // Element-wise multiply: silu(gate_out) * up_out
+    acti_out.multiply_i(up_out);
     
-    // Down projection and accumulate to output with weight
-    for (unsigned int i = 0; i < hidden_size; ++i) {
-      float sum = 0.0f;
-      for (unsigned int j = 0; j < intermediate_size; ++j) {
-        sum += gate_out[j] * down_data[j * hidden_size + i];
-      }
-      // Accumulate weighted result directly to output (thread-safe per token)
-      token_output[i] += sum * weight;
-    }
+    // Down projection using optimized dot operation
+    nntrainer::Tensor token_expert_output(token_output_dim);
+    acti_out.dot(down_proj, token_expert_output);
+    
+    // Apply weight and accumulate to final output using shared tensor
+    size_t output_offset = token_idx * hidden_size;
+    nntrainer::Tensor token_output = output.getSharedDataTensor(token_output_dim, output_offset, true);
+    
+    // Scale by weight and accumulate
+    token_expert_output.multiply_i(weight);
+    token_output.add_i(token_expert_output);
   }
 }
 
