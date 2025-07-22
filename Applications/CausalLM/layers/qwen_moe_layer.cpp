@@ -192,7 +192,8 @@ void MoELayer::forwarding(nntrainer::RunLayerContext &context, bool training) {
   }
 
   // Pre-compute expert token assignments for better cache locality
-  std::vector<std::vector<std::pair<unsigned, float>>> expert_assignments(num_experts);
+  std::vector<std::vector<std::pair<unsigned, float>>> expert_assignments(
+    num_experts);
   for (int i = 0; i < static_cast<int>(total_tokens); ++i) {
     for (int k = 0; k < static_cast<int>(topk); ++k) {
       unsigned expert_idx = indices_data[i * topk + k];
@@ -207,7 +208,7 @@ void MoELayer::forwarding(nntrainer::RunLayerContext &context, bool training) {
 #pragma omp for schedule(dynamic)
     for (int expert_idx = 0; expert_idx < static_cast<int>(num_experts);
          ++expert_idx) {
-      const auto& assignments = expert_assignments[expert_idx];
+      const auto &assignments = expert_assignments[expert_idx];
       if (assignments.empty())
         continue;
 
@@ -216,8 +217,7 @@ void MoELayer::forwarding(nntrainer::RunLayerContext &context, bool training) {
         input, output, assignments,
         context.getWeight(expert_gate_proj_indices[expert_idx]),
         context.getWeight(expert_up_proj_indices[expert_idx]),
-        context.getWeight(expert_down_proj_indices[expert_idx]),
-        hidden_size);
+        context.getWeight(expert_down_proj_indices[expert_idx]), hidden_size);
     }
   }
 
@@ -227,54 +227,60 @@ void MoELayer::forwarding(nntrainer::RunLayerContext &context, bool training) {
 
 inline void MoELayer::compute_expert_forward_optimized(
   const nntrainer::Tensor &input, nntrainer::Tensor &output,
-  const std::vector<std::pair<unsigned, float>>& token_assignments,
+  const std::vector<std::pair<unsigned, float>> &token_assignments,
   const nntrainer::Tensor &gate_proj, const nntrainer::Tensor &up_proj,
   const nntrainer::Tensor &down_proj, unsigned int hidden_size) {
 
   const unsigned intermediate_size = gate_proj.width();
   const unsigned num_tokens = token_assignments.size();
-  
-  if (num_tokens == 0) return;
+
+  if (num_tokens == 0)
+    return;
 
   // Create tensor dimensions for single token processing
-  nntrainer::TensorDim token_input_dim({1, 1, 1, hidden_size}, input.getTensorType());
-  nntrainer::TensorDim intermediate_dim({1, 1, 1, intermediate_size}, input.getTensorType());
-  nntrainer::TensorDim token_output_dim({1, 1, 1, hidden_size}, input.getTensorType());
+  nntrainer::TensorDim token_input_dim({1, 1, 1, hidden_size},
+                                       input.getTensorType());
+  nntrainer::TensorDim intermediate_dim({1, 1, 1, intermediate_size},
+                                        input.getTensorType());
+  nntrainer::TensorDim token_output_dim({1, 1, 1, hidden_size},
+                                        input.getTensorType());
 
   // Process each token individually to avoid memory copies
   for (size_t i = 0; i < num_tokens; ++i) {
     const unsigned token_idx = token_assignments[i].first;
     const float weight = token_assignments[i].second;
-    
+
     // Create shared tensor for input token (no memory copy)
     size_t token_offset = token_idx * hidden_size;
-    nntrainer::Tensor token_input = input.getSharedDataTensor(token_input_dim, token_offset, true);
-    
+    nntrainer::Tensor token_input =
+      input.getSharedDataTensor(token_input_dim, token_offset, true);
+
     // Create intermediate tensors for this token
     nntrainer::Tensor gate_out(intermediate_dim);
     nntrainer::Tensor acti_out(intermediate_dim);
     nntrainer::Tensor up_out(intermediate_dim);
-    
+
     // Gate projection using optimized dot operation
     token_input.dot(gate_proj, gate_out);
-    
+
     // Apply activation (silu)
     acti_func.run_fn(gate_out, acti_out);
-    
+
     // Up projection using optimized dot operation
     token_input.dot(up_proj, up_out);
-    
+
     // Element-wise multiply: silu(gate_out) * up_out
     acti_out.multiply_i(up_out);
-    
+
     // Down projection using optimized dot operation
     nntrainer::Tensor token_expert_output(token_output_dim);
     acti_out.dot(down_proj, token_expert_output);
-    
+
     // Apply weight and accumulate to final output using shared tensor
     size_t output_offset = token_idx * hidden_size;
-    nntrainer::Tensor token_output = output.getSharedDataTensor(token_output_dim, output_offset, true);
-    
+    nntrainer::Tensor token_output =
+      output.getSharedDataTensor(token_output_dim, output_offset, true);
+
     // Scale by weight and accumulate
     token_expert_output.multiply_i(weight);
     token_output.add_i(token_expert_output);
@@ -390,7 +396,8 @@ void MoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
     }
 
     // Pre-compute expert token assignments for better performance
-    std::vector<std::vector<std::pair<unsigned, float>>> expert_assignments(num_experts);
+    std::vector<std::vector<std::pair<unsigned, float>>> expert_assignments(
+      num_experts);
     for (int i = 0; i < static_cast<int>(total_tokens); ++i) {
       for (int k = 0; k < static_cast<int>(topk); ++k) {
         unsigned expert_idx = indices_data[i * topk + k];
@@ -402,7 +409,7 @@ void MoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
     // expert forwarding with optimized memory access
     for (int expert_idx = 0; expert_idx < static_cast<int>(num_experts);
          ++expert_idx) {
-      const auto& assignments = expert_assignments[expert_idx];
+      const auto &assignments = expert_assignments[expert_idx];
       if (assignments.empty())
         continue;
 
@@ -411,8 +418,7 @@ void MoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
         input, output, assignments,
         context.getWeight(expert_gate_proj_indices[expert_idx]),
         context.getWeight(expert_up_proj_indices[expert_idx]),
-        context.getWeight(expert_down_proj_indices[expert_idx]),
-        hidden_size);
+        context.getWeight(expert_down_proj_indices[expert_idx]), hidden_size);
     }
 
     // reshape output: [B*S,1,1,H] -> [B,1,S,H]
