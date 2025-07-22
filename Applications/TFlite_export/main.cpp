@@ -24,6 +24,7 @@
 
 const std::string INI_FILE_NAME = "./res/fc_model.ini";
 const std::string TF_LITE_MODEL_NAME = "fc_model.tflite";
+// const std::string BIN_FILE_NAME = "./res/saved_model.bin";
 const unsigned int data_size = 12;
 const unsigned int output_size = 9;
 
@@ -77,7 +78,8 @@ int main(int argc, char *argv[]) {
   std::cout << "Model Create Done" << std::endl;
 
   model->load(INI_FILE_NAME, ml::train::ModelFormat::MODEL_FORMAT_INI);
-  std::cout << "Model Load Done" << std::endl;
+
+  std::cout << "Model Load with ini file Done" << std::endl;
 
   auto optimizer = ml::train::createOptimizer("sgd");
   model->setOptimizer(std::move(optimizer));
@@ -87,8 +89,8 @@ int main(int argc, char *argv[]) {
   model->initialize();
   std::cout << "Model Initialize Done" << std::endl;
 
-  model->exports(ml::train::ExportMethods::METHOD_TFLITE, TF_LITE_MODEL_NAME);
-  std::cout << "Model Export Done" << std::endl;
+  // model->load(BIN_FILE_NAME, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+  std::cout << "Model Weight file Load Done" << std::endl;
 
   std::vector<float> tf_lite_input_data;
   float *nntr_input = new float[data_size];
@@ -111,6 +113,9 @@ int main(int argc, char *argv[]) {
   }
   std::cout << "} " << std::endl;
 
+  model->exports(ml::train::ExportMethods::METHOD_TFLITE, TF_LITE_MODEL_NAME);
+  std::cout << "Model Export Done" << std::endl;
+
   auto tf_lite_answer_f = run_tflite(TF_LITE_MODEL_NAME, tf_lite_input_data);
 
   std::cout << "TFLITE Output Data : { ";
@@ -119,6 +124,7 @@ int main(int argc, char *argv[]) {
   }
   std::cout << "} " << std::endl;
   std::cout << "Export & Compare Done" << std::endl;
+
   delete[] nntr_input;
   return 0;
 }
