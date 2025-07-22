@@ -191,45 +191,33 @@ void MoELayer::forwarding(nntrainer::RunLayerContext &context, bool training) {
     }
   }
 
-// expert forwarding
+  // Pre-compute expert token assignments for better cache locality
+  std::vector<std::vector<std::pair<unsigned, float>>> expert_assignments(
+    num_experts);
+  for (int i = 0; i < static_cast<int>(total_tokens); ++i) {
+    for (int k = 0; k < static_cast<int>(topk); ++k) {
+      unsigned expert_idx = indices_data[i * topk + k];
+      float weight = topk_values.getValue<float>(i, 0, 0, k);
+      expert_assignments[expert_idx].emplace_back(i, weight);
+    }
+  }
+
+// expert forwarding with optimized memory access
 #pragma omp parallel
   {
 #pragma omp for schedule(dynamic)
     for (int expert_idx = 0; expert_idx < static_cast<int>(num_experts);
          ++expert_idx) {
-      std::vector<unsigned> token_indices;
-      std::vector<float> topk_values_vector;
-
-      // get token indices for this expert
-      for (int i = 0; i < static_cast<int>(total_tokens); ++i) {
-        for (int k = 0; k < static_cast<int>(topk); ++k) {
-          if (expert_mask.getValue<float>(expert_idx, 0, k, i) > 0.5f) {
-            token_indices.push_back(i);
-            topk_values_vector.push_back(
-              topk_values.getValue<float>(i, 0, 0, k));
-          }
-        }
-      }
-      if (token_indices.empty())
+      const auto &assignments = expert_assignments[expert_idx];
+      if (assignments.empty())
         continue;
 
-      // slicing and computing expert forward pass
-      nntrainer::Tensor expert_output = compute_expert_forward(
-        input.getBatchSlice(token_indices), topk_values_vector,
+      // Use optimized expert forward computation without memory copies
+      compute_expert_forward(
+        input, output, assignments,
         context.getWeight(expert_gate_proj_indices[expert_idx]),
         context.getWeight(expert_up_proj_indices[expert_idx]),
-        context.getWeight(expert_down_proj_indices[expert_idx]));
-
-// acuumulate expert output into the main output tensor
-#pragma omp critical
-      {
-        for (int i = 0; i < static_cast<int>(token_indices.size()); ++i) {
-          unsigned idx = token_indices[i];
-          auto tgt_output = output.getBatchSlice(idx, 1);
-          // tgt_output.add_i(expert_output.getBatchSlice(i, 1));
-          tgt_output.copyData(expert_output.getBatchSlice(i, 1));
-        }
-      }
+        context.getWeight(expert_down_proj_indices[expert_idx]), hidden_size);
     }
   }
 
@@ -237,44 +225,66 @@ void MoELayer::forwarding(nntrainer::RunLayerContext &context, bool training) {
   output.reshape({batch_size, 1, seq_len, hidden_size});
 }
 
-inline nntrainer::Tensor MoELayer::compute_expert_forward(
-  const nntrainer::Tensor &input, const std::vector<float> &weights,
+inline void MoELayer::compute_expert_forward(
+  const nntrainer::Tensor &input, nntrainer::Tensor &output,
+  const std::vector<std::pair<unsigned, float>> &token_assignments,
   const nntrainer::Tensor &gate_proj, const nntrainer::Tensor &up_proj,
-  const nntrainer::Tensor &down_proj) {
+  const nntrainer::Tensor &down_proj, unsigned int hidden_size) {
 
-  const unsigned tokens = input.batch();
-  const unsigned hidden_size = input.width();
   const unsigned intermediate_size = gate_proj.width();
+  const unsigned num_tokens = token_assignments.size();
 
-  // Gate projection: [tokens,1,1,H] x [H,I] -> [tokens,1,1,I]
-  nntrainer::Tensor gate_out(tokens, 1, 1, intermediate_size);
-  nntrainer::Tensor acti_out(tokens, 1, 1, intermediate_size);
-  input.dot(gate_proj, gate_out);
+  if (num_tokens == 0)
+    return;
 
-  // Apply activation (silu)
-  ///@todo acti_func.run_fn(gate_out, gate_out); -> this inplace operation
-  /// doesn't work
-  acti_func.run_fn(gate_out, acti_out);
+  // Create tensor dimensions for single token processing
+  nntrainer::TensorDim token_input_dim({1, 1, 1, hidden_size},
+                                       input.getTensorType());
+  nntrainer::TensorDim intermediate_dim({1, 1, 1, intermediate_size},
+                                        input.getTensorType());
+  nntrainer::TensorDim token_output_dim({1, 1, 1, hidden_size},
+                                        input.getTensorType());
 
-  // Up projection: [tokens,1,1,H] x [H,I] -> [tokens,1,1,I]
-  nntrainer::Tensor up_out(tokens, 1, 1, intermediate_size);
-  input.dot(up_proj, up_out);
+  // Process each token individually to avoid memory copies
+  for (size_t i = 0; i < num_tokens; ++i) {
+    const unsigned token_idx = token_assignments[i].first;
+    const float weight = token_assignments[i].second;
 
-  // Multiply: silu(gate_out) * up_out
-  acti_out.multiply_i(up_out);
+    // Create shared tensor for input token (no memory copy)
+    size_t token_offset = token_idx * hidden_size;
+    nntrainer::Tensor token_input =
+      input.getSharedDataTensor(token_input_dim, token_offset, true);
 
-  // Down projection: [tokens,1,1,I] x [I,H] -> [tokens,1,1,H]
-  nntrainer::Tensor expert_output(tokens, 1, 1, hidden_size);
-  acti_out.dot(down_proj, expert_output);
+    // Create intermediate tensors for this token
+    nntrainer::Tensor gate_out(intermediate_dim);
+    nntrainer::Tensor acti_out(intermediate_dim);
+    nntrainer::Tensor up_out(intermediate_dim);
 
-  // Weight by routing scores (broadcast multiply)
-  for (unsigned i = 0; i < tokens; ++i) {
-    float weight_val = weights[i];
-    auto weighted_expert_output = expert_output.getBatchSlice(i, 1);
-    weighted_expert_output.multiply_i(weight_val);
+    // Gate projection using optimized dot operation
+    token_input.dot(gate_proj, gate_out);
+
+    // Apply activation (silu)
+    acti_func.run_fn(gate_out, acti_out);
+
+    // Up projection using optimized dot operation
+    token_input.dot(up_proj, up_out);
+
+    // Element-wise multiply: silu(gate_out) * up_out
+    acti_out.multiply_i(up_out);
+
+    // Down projection using optimized dot operation
+    nntrainer::Tensor token_expert_output(token_output_dim);
+    acti_out.dot(down_proj, token_expert_output);
+
+    // Apply weight and accumulate to final output using shared tensor
+    size_t output_offset = token_idx * hidden_size;
+    nntrainer::Tensor token_output =
+      output.getSharedDataTensor(token_output_dim, output_offset, true);
+
+    // Scale by weight and accumulate
+    token_expert_output.multiply_i(weight);
+    token_output.add_i(token_expert_output);
   }
-
-  return expert_output;
 }
 
 void MoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
@@ -338,53 +348,37 @@ void MoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
     topk_values.divide_i(topk_values.sum(3));
 
     const uint32_t *indices_data = topk_indices.getData<uint32_t>();
-    // #pragma omp parallel for collapse(2)
+    // Set expert mask
     for (int i = 0; i < static_cast<int>(total_tokens); ++i) {
       for (int k = 0; k < static_cast<int>(topk); ++k) {
         expert_mask.setValue(indices_data[i * topk + k], 0, k, i, 1.0f);
       }
     }
 
-    // expert forwarding
-    // #pragma omp parallel
-    {
-      // #pragma omp for schedule(dynamic)
-      for (int expert_idx = 0; expert_idx < static_cast<int>(num_experts);
-           ++expert_idx) {
-        std::vector<unsigned> token_indices;
-        std::vector<float> topk_values_vector;
-
-        // get token indices for this expert
-        for (int i = 0; i < static_cast<int>(total_tokens); ++i) {
-          for (int k = 0; k < static_cast<int>(topk); ++k) {
-            if (expert_mask.getValue<float>(expert_idx, 0, k, i) > 0.5f) {
-              token_indices.push_back(i);
-              topk_values_vector.push_back(
-                topk_values.getValue<float>(i, 0, 0, k));
-            }
-          }
-        }
-        if (token_indices.empty())
-          continue;
-
-        // slicing and computing expert forward pass
-        nntrainer::Tensor expert_output = compute_expert_forward(
-          input.getBatchSlice(token_indices), topk_values_vector,
-          context.getWeight(expert_gate_proj_indices[expert_idx]),
-          context.getWeight(expert_up_proj_indices[expert_idx]),
-          context.getWeight(expert_down_proj_indices[expert_idx]));
-
-        // acuumulate expert output into the main output tensor
-        // #pragma omp critical
-        {
-          for (int i = 0; i < static_cast<int>(token_indices.size()); ++i) {
-            unsigned idx = token_indices[i];
-            auto tgt_output = output.getBatchSlice(idx, 1);
-            tgt_output.add_i(expert_output.getBatchSlice(i, 1));
-            // tgt_output.copyData(expert_output.getBatchSlice(i, 1));
-          }
-        }
+    // Pre-compute expert token assignments for better performance
+    std::vector<std::vector<std::pair<unsigned, float>>> expert_assignments(
+      num_experts);
+    for (int i = 0; i < static_cast<int>(total_tokens); ++i) {
+      for (int k = 0; k < static_cast<int>(topk); ++k) {
+        unsigned expert_idx = indices_data[i * topk + k];
+        float weight = topk_values.getValue<float>(i, 0, 0, k);
+        expert_assignments[expert_idx].emplace_back(i, weight);
       }
+    }
+
+    // expert forwarding with optimized memory access
+    for (int expert_idx = 0; expert_idx < static_cast<int>(num_experts);
+         ++expert_idx) {
+      const auto &assignments = expert_assignments[expert_idx];
+      if (assignments.empty())
+        continue;
+
+      // Use optimized computation for incremental forwarding
+      compute_expert_forward(
+        input, output, assignments,
+        context.getWeight(expert_gate_proj_indices[expert_idx]),
+        context.getWeight(expert_up_proj_indices[expert_idx]),
+        context.getWeight(expert_down_proj_indices[expert_idx]), hidden_size);
     }
 
     // reshape output: [B*S,1,1,H] -> [B,1,S,H]

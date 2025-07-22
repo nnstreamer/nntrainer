@@ -152,12 +152,22 @@ private:
   unsigned int router_logits_idx;
   unsigned int expert_mask_idx;
 
-  inline nntrainer::Tensor
-  compute_expert_forward(const nntrainer::Tensor &input,
-                         const std::vector<float> &weights,
-                         const nntrainer::Tensor &gate_proj_weight,
-                         const nntrainer::Tensor &up_proj_weight,
-                         const nntrainer::Tensor &down_proj_weight);
+  /**
+   * @brief expert forward computation without memory copies
+   * @param input Input tensor (reshaped to [total_tokens, 1, 1, hidden_size])
+   * @param output Output tensor to accumulate results
+   * @param token_assignments Vector of (token_index, weight) pairs for this
+   * expert
+   * @param gate_proj Gate projection weight tensor
+   * @param up_proj Up projection weight tensor
+   * @param down_proj Down projection weight tensor
+   * @param hidden_size Hidden dimension size
+   */
+  inline void compute_expert_forward(
+    const nntrainer::Tensor &input, nntrainer::Tensor &output,
+    const std::vector<std::pair<unsigned, float>> &token_assignments,
+    const nntrainer::Tensor &gate_proj, const nntrainer::Tensor &up_proj,
+    const nntrainer::Tensor &down_proj, unsigned int hidden_size);
 };
 } // namespace causallm
 
