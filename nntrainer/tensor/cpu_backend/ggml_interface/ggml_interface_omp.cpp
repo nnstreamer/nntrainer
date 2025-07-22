@@ -94,7 +94,7 @@ void __ggml_quantize_row_q8_K(const float *src, void *dst, int64_t k) {
   ::quantize_row_q8_K(src, dst, k);
 }
 
-template<>
+template <>
 void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int K, const float *A,
                                const unsigned int lda, const void *B,
@@ -226,7 +226,6 @@ void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
     }
   }
 }
-
 
 void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int K, const float *A,
