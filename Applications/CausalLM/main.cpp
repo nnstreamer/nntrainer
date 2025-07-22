@@ -8,15 +8,22 @@
 #include <factory.h>
 
 #include "causal_lm.h"
+#include "qwen3_causallm.h"
 
 using json = nlohmann::json;
 
 int main(int argc, char *argv[]) {
 
+  /** Register all runnable causallm models to factory */
   causallm::Factory::Instance().registerModel(
     "LlamaForCausalLM", [](json cfg, json generation_cfg, json nntr_cfg) {
       return std::make_unique<causallm::CausalLM>(cfg, generation_cfg,
                                                   nntr_cfg);
+    });
+  causallm::Factory::Instance().registerModel(
+    "Qwen3ForCausalLM", [](json cfg, json generation_cfg, json nntr_cfg) {
+      return std::make_unique<causallm::Qwen3CausalLM>(cfg, generation_cfg,
+                                                       nntr_cfg);
     });
 
   // Validate arguments
