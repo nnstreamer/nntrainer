@@ -1047,7 +1047,7 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
  * @param N number of columns
  */
 void repack_q4_0(void *W, void *repacked_W, size_t data_size,
-                        const unsigned int M, const unsigned int N);
+                 const unsigned int M, const unsigned int N);
 } /* namespace nntrainer */
 #endif /* __cplusplus */
 #endif /* __FALLBACK_H__ */
