@@ -49,3 +49,5 @@ if host_machine.system() != 'windows'
   subdir('TFlite_export')
   endif
 endif
+
+subdir('CausalLM')
