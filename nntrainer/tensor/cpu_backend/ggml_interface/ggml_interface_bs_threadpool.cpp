@@ -97,6 +97,123 @@ void __ggml_quantize_row_q8_K(const float *src, void *dst, int64_t k) {
   ::quantize_row_q8_K(src, dst, k);
 }
 
+static inline void __ggml_q4_0_4x8_q8_0_GEMM_GEMV(
+  const unsigned int M, const unsigned int N, const unsigned int K,
+  const float *A, const unsigned int lda, const void *B, const unsigned int ldb,
+  float *C, const unsigned int ldc) {
+  int NB_COLS = 4;
+  int blocks_per_row = (K + QK8_0 - 1) / QK8_0;
+  int qa_size = sizeof(block_q8_0) * blocks_per_row;
+  std::vector<char> QA = std::vector<char>(qa_size);
+
+  auto qa_data = QA.data();
+
+  ::quantize_row_q8_0(A, qa_data, K);
+  int B_step = sizeof(block_q4_0) * (K / QK4_0);
+
+  auto &bs_thread_pool = ThreadPoolManager::getInstance();
+  int thread_num = bs_thread_pool.get_thread_count();
+  BS::multi_future<void> loop_future =
+    bs_thread_pool.submit_loop(0, thread_num, [=](int i) {
+      unsigned int M_step_start = (i * N) / thread_num;
+      unsigned int M_step_end = ((i + 1) * N) / thread_num;
+
+      M_step_start = (M_step_start % NB_COLS)
+                       ? M_step_start + NB_COLS - (M_step_start % NB_COLS)
+                       : M_step_start;
+      M_step_end = (M_step_end % NB_COLS)
+                     ? M_step_end + NB_COLS - (M_step_end % NB_COLS)
+                     : M_step_end;
+
+      ::ggml_gemv_q4_0_4x8_q8_0(K, (float *)(C + M_step_start), N,
+                                (void *)((char *)B + M_step_start * B_step),
+                                QA.data(), M, M_step_end - M_step_start);
+    });
+  loop_future.wait();
+}
+
+static inline void __ggml_q4_0_4x8_q8_0_GEMM_GEMM(
+  const unsigned int M, const unsigned int N, const unsigned int K,
+  const float *A, const unsigned int lda, const void *B, const unsigned int ldb,
+  float *C, const unsigned int ldc) {
+  int NB_COLS = 4;
+  auto &bs_thread_pool = ThreadPoolManager::getInstance();
+  unsigned int blocks_per_4_rows = (K + QK8_0 - 1) / QK8_0;
+  unsigned int qa_4_rows_size = sizeof(block_q8_0x4) * blocks_per_4_rows;
+  const size_t qa_row_size = (sizeof(block_q8_0) * K) / QK8_0;
+  unsigned int M4 = ((M - M % 4) / 4);
+  int B_step = sizeof(block_q4_0) * (K / QK4_0);
+
+  unsigned int qa_size = qa_4_rows_size * (((M >> 2) << 2) / 4 + 1);
+  std::vector<char> QA = std::vector<char>(qa_size);
+
+  // Quantize 4-divisible-M row portion with matrix-wise function
+  for (unsigned int i = 0; i < M4; i++) {
+    ::ggml_quantize_mat_q8_0_4x8(A + 4 * i * K, QA.data() + i * qa_4_rows_size,
+                                 K);
+  }
+  // Quantize leftover 1 ~ 3 rows with row-wise function
+  for (unsigned int i = M4 * 4; i < M; i++) {
+    ::quantize_row_q8_0(
+      (float *)A + i * K,
+      (QA.data() + (M4 * qa_4_rows_size) + (i - M4 * 4) * qa_row_size), K);
+  }
+
+  ///@todo Dynamic thread-number selection for GEMM problem size
+  int thread_num = bs_thread_pool.get_thread_count();
+  BS::multi_future<void> multi_future =
+    bs_thread_pool.submit_loop(0, thread_num, [=](int i) {
+      unsigned int M_step_start = (i * N) / thread_num;
+      unsigned int M_step_end = ((i + 1) * N) / thread_num;
+
+      M_step_start = (M_step_start % NB_COLS)
+                       ? M_step_start + NB_COLS - (M_step_start % NB_COLS)
+                       : M_step_start;
+      M_step_end = (M_step_end % NB_COLS)
+                     ? M_step_end + NB_COLS - (M_step_end % NB_COLS)
+                     : M_step_end;
+
+      ::ggml_gemm_q4_0_4x8_q8_0(
+        K, (C + (M_step_start)), ldc, ((char *)B + ((M_step_start)*B_step)),
+        QA.data(), M4 * 4, (M_step_end) - (M_step_start));
+    });
+  multi_future.wait();
+
+  for (unsigned int pb = M4 * 4; pb < M; pb++) {
+    BS::multi_future<void> loop_future =
+      bs_thread_pool.submit_loop(0, thread_num, [=](int i) {
+        unsigned int M_step_start = (i * N) / thread_num;
+        unsigned int M_step_end = ((i + 1) * N) / thread_num;
+
+        M_step_start = (M_step_start % 8)
+                         ? M_step_start + 8 - (M_step_start % 8)
+                         : M_step_start;
+        M_step_end =
+          (M_step_end % 8) ? M_step_end + 8 - (M_step_end % 8) : M_step_end;
+
+        ::ggml_gemv_q4_0_8x8_q8_0(
+          K, (float *)((C + ((pb - M4 * 4) * N) + (M4 * 4 * N)) + M_step_start),
+          N, (void *)((char *)B + M_step_start * B_step),
+          QA.data() + (M4 * qa_4_rows_size) + (pb - M4 * 4) * qa_row_size, 1,
+          M_step_end - M_step_start);
+      });
+    loop_future.wait();
+  }
+}
+
+template <>
+void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
+                               const unsigned int K, const float *A,
+                               const unsigned int lda, const void *B,
+                               const unsigned int ldb, float *C,
+                               const unsigned int ldc) {
+  if (M == 1) { // GEMV
+    __ggml_q4_0_4x8_q8_0_GEMM_GEMV(M, N, K, A, lda, B, ldb, C, ldc);
+  } else { // GEMM
+    __ggml_q4_0_4x8_q8_0_GEMM_GEMM(M, N, K, A, lda, B, ldb, C, ldc);
+  }
+}
+
 static inline void __ggml_q4_0_8x8_q8_0_GEMM_GEMV(
   const unsigned int M, const unsigned int N, const unsigned int K,
   const float *A, const unsigned int lda, const void *B, const unsigned int ldb,
