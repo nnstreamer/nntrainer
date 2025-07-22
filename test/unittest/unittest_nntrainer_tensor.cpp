@@ -974,6 +974,30 @@ TEST(nntrainer_Tensor, QTensor_18_p) {
 }
 #endif
 
+/**
+ * @brief Construct a Q4_0 Tensor with invalid size
+ */
+TEST(nntrainer_Tensor, QTensor_19_n) {
+  EXPECT_ANY_THROW(nntrainer::Tensor q4_0_tensor(
+    {1, 1, 256, 8, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::Q4_0}, true,
+    nntrainer::Initializer::NONE, "q4_0_tensor", nntrainer::QScheme::Q4_0));
+  EXPECT_ANY_THROW(nntrainer::Tensor q4_0_tensor(
+    {1, 1, 16, 16, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::Q4_0}, true,
+    nntrainer::Initializer::NONE, "q4_0_tensor", nntrainer::QScheme::Q4_0));
+}
+
+/**
+ * @brief Construct a Q4_0 Tensor
+ */
+TEST(nntrainer_Tensor, QTensor_20_p) {
+  nntrainer::Tensor q4_0_tensor(
+    {1, 1, 8, 256, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::Q4_0}, true,
+    nntrainer::Initializer::NONE, "q4_0_tensor", nntrainer::QScheme::Q4_0);
+
+  EXPECT_EQ(q4_0_tensor.q_scheme(), nntrainer::QScheme::Q4_0);
+  EXPECT_EQ(q4_0_tensor.size(), 1152);
+}
+
 TEST(nntrainer_Tensor, copy_01_n) {
   int batch = 3;
   int channel = 1;
