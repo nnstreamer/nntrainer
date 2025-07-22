@@ -690,7 +690,6 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/opencl_command_queue_manager.h
 %{_includedir}/nntrainer/opencl_context_manager.h
 %{_includedir}/nntrainer/opencl_kernel.h
-%{_includedir}/nntrainer/opencl_op_interface.h
 %{_includedir}/nntrainer/opencl_program.h
 %endif # gpu
 %files devel-static
