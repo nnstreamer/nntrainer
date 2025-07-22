@@ -73,6 +73,8 @@ warning_flags = [
   '-Wvla',
   '-Wpointer-arith',
   '-Wno-error=varargs',
+  '-Wno-error=ignored-attributes',
+  '-Wno-error=sign-compare',
   '-Wdefaulted-function-deleted',
   '-ftree-vectorize',
   '-Wno-unused-variable',
