@@ -473,52 +473,45 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
                       const unsigned int lda, const void *B,
                       const unsigned int ldb, float *C,
                       const unsigned int ldc) {
-  static constexpr const int32_t thread_count = 16;
-
-  static constexpr const int32_t bs = 1;  // unused in ::ggml_vec_dot_q6_K_q8_K
-  static constexpr const int32_t bx = 1;  // unused in ::ggml_vec_dot_q6_K_q8_K
-  static constexpr const int32_t by = 1;  // unused in ::ggml_vec_dot_q6_K_q8_K
-  static constexpr const int32_t nrc = 1; // unused in ::ggml_vec_dot_q6_K_q8_K
+  static constexpr const int32_t bs = 1;
+  static constexpr const int32_t bx = 1;
+  static constexpr const int32_t by = 1;
+  static constexpr const int32_t nrc = 1;
 
   const int32_t blocks_per_row = (K + QK_K - 1) / QK_K;
   const int32_t A_row_size = sizeof(block_q8_K) * blocks_per_row;
   const int32_t B_row_size = sizeof(block_q6_K) * blocks_per_row;
 
-  // GEMV
+  auto &tp = ThreadPoolManager::getInstance();
   if (M == 1) {
     std::vector<char> quantized_A(A_row_size);
     ::quantize_row_q8_K(A, quantized_A.data(), K);
+    const void *quantized_A_data = quantized_A.data();
 
-    const void *const quantized_A_data = quantized_A.data();
-
-#pragma omp parallel for collapse(1) num_threads(thread_count)
-    for (int32_t thread_job = 0; thread_job < static_cast<int>(N);
-         thread_job++) {
-      const int32_t B_row_data_offset = B_row_size * thread_job;
-
-      const void *const B_data = (void *)((char *)B + B_row_data_offset);
-
-      ::ggml_vec_dot_q6_K_q8_K(K, &C[thread_job], bs, B_data, bx,
-                               quantized_A_data, by, nrc);
-    }
-  } else { // GEMM
-    const int32_t A_total_size = A_row_size * M;
+    auto fut = tp.submit_loop(0, static_cast<int>(N), [&](int i) {
+      const void *bptr = (const char *)B + i * B_row_size;
+      ::ggml_vec_dot_q6_K_q8_K(K, &C[i], bs, bptr, bx, quantized_A_data, by,
+                               nrc);
+    });
+    fut.wait();
+  } else {
+    const int32_t A_total_size = A_row_size * static_cast<int32_t>(M);
     std::vector<char> quantized_A(A_total_size);
 
-    for (int32_t thread_job = 0; thread_job < static_cast<int>(M);
-         thread_job++) {
-      const int32_t A_row_data_offset = A_row_size * thread_job;
-      void *A_data = (void *)((char *)quantized_A.data() + A_row_data_offset);
-      ::quantize_row_q8_K(A + thread_job * K, A_data, K);
-
-      for (uint32_t j = 0; j < N; j++) {
-        const int32_t B_row_data_offset = B_row_size * j;
-        const void *const B_data = (void *)((char *)B + B_row_data_offset);
-
-        ::ggml_vec_dot_q6_K_q8_K(K, &C[thread_job * ldc + j], bs, B_data, bx,
-                                 A_data, by, nrc);
-      }
+    for (int i = 0; i < static_cast<int>(M); ++i) {
+      void *row_ptr = quantized_A.data() + i * A_row_size;
+      ::quantize_row_q8_K(A + i * K, row_ptr, K);
     }
+
+    auto fut = tp.submit_loop(0, static_cast<int>(M), [&](int i) {
+      const void *a_row = quantized_A.data() + i * A_row_size;
+      float *c_row = C + i * ldc;
+      for (unsigned int j = 0; j < N; ++j) {
+        const void *bptr = (const char *)B + j * B_row_size;
+        ::ggml_vec_dot_q6_K_q8_K(K, &c_row[j], bs, bptr, bx, a_row, by, nrc);
+      }
+    });
+    fut.wait();
   }
 }
 
