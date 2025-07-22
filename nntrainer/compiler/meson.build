@@ -43,20 +43,6 @@ if get_option('enable-tflite-interpreter')
 if not flatc_prog.found()
   error('flatc executable not found')
 endif
-  flat_header2 = custom_target('nntrainer-schema',
-                               input: 'nntrainer_schema.fbs',
-                               output: 'nntrainer_schema_generated.h',
-                               command: [flatc_prog, '-o', '@OUTDIR@', '-c', '@INPUT@'])
-
-  nntrainer_inc_abs += meson.current_build_dir()
-  nntrainer_inc += include_directories('.')
-
-  flat_header2_dep = declare_dependency(sources : flat_header2)
-
-  nntrainer_base_deps += flat_header2_dep
-  compiler_sources += [
-    'flatbuffer_interpreter.cpp'
-  ]
 endif
 
 foreach s : compiler_sources
