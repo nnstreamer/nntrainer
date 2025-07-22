@@ -453,6 +453,11 @@ meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
 ninja -C build %{?_smp_mflags}
 
 %if 0%{?unit_test}
+
+%if 0%{?testcoverage}
+lcov -i -c -o unittest_base.info -d build -b build --ignore-errors mismatch,source,gcov
+%endif
+
 export NNSTREAMER_CONF=$(pwd)/test/nnstreamer/nnstreamer-test.ini
 export NNSTREAMER_FILTERS=$(pwd)/build/nnstreamer/tensor_filter
 export NNSTREAMER_TRAINERS=$(pwd)/build/nnstreamer/tensor_trainer
@@ -522,21 +527,14 @@ find . -name "CMakeCXXCompilerId*.gcda" -delete
 #find . -path "/build/*.j
 
 # Generate report
-lcov -t 'NNTrainer Unit Test Coverage' -o unittest.info -c -d . -b %{_builddir}/%{name}-%{version}/build \
-    --include "*/nntrainer/*" \
-    --include "*/api/*" \
-    --exclude "*/tensorflow*" \
-    --exclude "*/Applications/*" \
-    --exclude "*/test/*" \
-    --exclude "*/nntrainer_logger.cpp" \
-    --exclude "*/tf_schema_generated.h" \
-    --exclude "*/nnstreamer_layer.*"
-
-#    --exclude "*/meson*/*" \
+lcov -t 'NNTrainer Unit Test Coverage' -c -o unittest_nntrainer.info -d build/nntrainer -b build --ignore-errors mismatch,source,empty,gcov
+lcov -c -o unittest_capi.info -d build/api/capi -b build --ignore-errors mismatch,source,empty,gcov
+lcov -a unittest_base.info -a unittest_nntrainer.info -a unittest_capi.info -o unittest_total.info --ignore-errors mismatch,empty,gcov
+lcov -r unittest_total.info "*/Applications/*" "*/nnstreamer/*" "*/meson*/*" "*/build/*" "*/test/*" "*/usr/*" "*/subprojects/*" -o unittest-filtered.info --ignore-errors unused,gcov
 # nnstreamer layer is untestable here
 
 # Visualize the report
-genhtml -o result unittest.info -t "nntrainer %{version}-%{release} ${VCS}" --ignore-errors source -p ${RPM_BUILD_DIR}
+genhtml -o result unittest-filtered.info -t "nntrainer %{version}-%{release} ${VCS}" --ignore-errors mismatch,source -p ${RPM_BUILD_DIR} --synthesize-missing
 
 mkdir -p %{buildroot}%{_datadir}/nntrainer/unittest/
 cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
