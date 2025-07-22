@@ -88,6 +88,26 @@ void __ggml_quantize_row_q8_K(const float *src, void *dst, int64_t k);
 /**
  * @brief A(M, K) * W.T(N, K) = (M, N)
  *
+ * @tparam T float or _FP16
+ * @param M as descripted above
+ * @param N as descripted above
+ * @param K as descripted above
+ * @param A Activation
+ * @param lda leading dimension of A
+ * @param B offline quantized and packed q4_0x8 Weight
+ * @param ldb leading dimension of B
+ * @param C dst matrix
+ * @param ldc leading dimension of C
+ */
+template <typename T>
+void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
+                               const unsigned int K, const T *A,
+                               const unsigned int lda, const void *B,
+                               const unsigned int ldb, T *C,
+                               const unsigned int ldc);
+/**
+ * @brief A(M, K) * W.T(N, K) = (M, N)
+ *
  * @param M as descripted above
  * @param N as descripted above
  * @param K as descripted above
@@ -149,7 +169,14 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
  */
 float __ggml_vec_dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
                                const void *v_q8_K);
-
+/**
+ * @brief (1xK)*(Kx1) dot product for q6_K and q8_K vectors
+ *
+ * @param K Length of vectors
+ * @param v_q6_K lhs vector - data stored in Q6_K format
+ * @param f rhs vector - data stored in float
+ * @return float Result of performing dot operation on v_q6_K and f
+ */
 float __ggml_vec_dot_q6_K_f32(const unsigned int K, const void *v_q6_K,
                               const float *f);
 
@@ -179,6 +206,18 @@ void __ggml_dequantize_row_q6_K(const void *x, float *y, int64_t k);
  * @param k data length
  */
 void __ggml_dequantize_row_q8_K(const void *x, float *y, int64_t k);
+
+/**
+ * @brief repack q40 to q40x8
+ *
+ * @param W input q40
+ * @param repacked_W output q40x8
+ * @param data_size total weight size
+ * @param M number of rows
+ * @param N number of columns
+ */
+void __ggml_repack_q4_0_to_q4_0_4(void *W, void *repacked_W, size_t data_size,
+                                  const unsigned int M, const unsigned int N);
 
 /**
  * @brief repack q40 to q40x8
