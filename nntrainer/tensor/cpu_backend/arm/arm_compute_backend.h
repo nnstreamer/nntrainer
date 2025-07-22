@@ -1114,6 +1114,17 @@ void softmax_row_inplace(float *qk_out, size_t start_row, size_t end_row,
 void softmax_row(float *qk_out, size_t start_row, size_t end_row,
                  size_t num_heads);
 
+  /**
+ * @brief repack q40 to q40x4
+ *
+ * @param W input q40
+ * @param repacked_W output q40x4
+ * @param data_size total weight size
+ * @param M number of rows
+ * @param N number of columns
+ */
+void repack_q4_0(void *W, void *repacked_W, size_t data_size,
+                        const unsigned int M, const unsigned int N);
 } /* namespace nntrainer */
 #endif /* __cplusplus */
 #endif /* __ARM_COMPUTE_BACKEND_H__ */
