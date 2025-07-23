@@ -29,7 +29,7 @@ public:
   Qwen3CausalLM(json &cfg, json &generation_cfg, json &nntr_cfg) :
     CausalLM(cfg, generation_cfg, nntr_cfg) {}
 
-  ~Qwen3CausalLM() = default;
+  virtual ~Qwen3CausalLM() = default;
 
   std::vector<LayerHandle> createAttention(const int layer_id, int seq_len,
                                            int n_heads, int head_dim,
