@@ -1,0 +1,74 @@
+From: Android Build Support Generator
+Date: Wed, 1 Jan 2025 00:00:00 +0000
+Subject: [PATCH] Add Android build support for CausalLM Application
+
+This patch adds Android build support for the CausalLM Application introduced in PR #3344.
+The patch includes JNI bindings, build scripts, and a complete Android application structure
+similar to the existing ResnetJNI application.
+
+Features:
+- JNI interface for CausalLM models (Llama, Qwen3, Qwen3-MoE)
+- Android application with UI for text generation
+- Build scripts that integrate with existing package_android.sh
+- Support for all CausalLM model types from PR #3344
+
+Files added:
+- Applications/Android/CausalLMJNI/ - Complete Android application
+- Applications/Android/CausalLMJNI/app/src/main/jni/ - JNI implementation
+- Applications/Android/CausalLMJNI/build_causallm_android.sh - Main build script
+
+Usage:
+1. Ensure Android NDK is installed and ANDROID_NDK is set
+2. Run: cd Applications/Android/CausalLMJNI && ./build_causallm_android.sh
+3. Install the generated APK and copy model files to device
+
+The build process:
+1. Calls tools/package_android.sh to build nntrainer for Android
+2. Extracts dependencies to JNI directory
+3. Builds JNI library using ndk-build
+4. Optionally builds Android APK using gradle
+
+Directory structure created:
+Applications/Android/CausalLMJNI/
+├── app/
+│   ├── build.gradle
+│   └── src/main/
+│       ├── AndroidManifest.xml
+│       ├── java/com/applications/causallmjni/MainActivity.java
+│       ├── jni/
+│       │   ├── Android.mk
+│       │   ├── Application.mk
+│       │   ├── causallm_jni.h
+│       │   ├── causallm_jni.cpp
+│       │   └── prepare_android_deps.sh
+│       └── res/ (layout, values, etc.)
+├── build.gradle
+├── settings.gradle
+├── gradle.properties
+├── gradlew*
+├── build_causallm_android.sh
+└── README.md
+
+JNI Interface:
+- createCausalLMModel() - Initialize model from config path
+- initializeModel() - Initialize model instance
+- loadWeights() - Load model weights
+- runInference() - Run text generation
+- destroyModel() - Clean up resources
+
+Android Application Features:
+- Simple UI for text input and output
+- Asynchronous model operations
+- Error handling and logging
+- Support for different model types
+
+Build Requirements:
+- Android NDK (ANDROID_NDK environment variable)
+- Android SDK API level 30+
+- Existing nntrainer build system
+- CausalLM implementation from PR #3344
+
+This patch enables Android developers to use CausalLM models in their applications
+following the same pattern as other nntrainer Android applications.
+
+Signed-off-by: Android Build Support Generator <android@nntrainer.ai>
