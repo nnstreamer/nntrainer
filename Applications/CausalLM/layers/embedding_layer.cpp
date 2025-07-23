@@ -50,8 +50,10 @@ void EmbeddingLayer::finalize(nntrainer::InitLayerContext &context) {
   auto &weight_decay =
     std::get<nntrainer::props::WeightDecay>(*layer_impl_props);
 
-  unsigned int in_dim = std::get<nntrainer::props::InDim>(embedding_props);
-  unsigned int out_dim = std::get<nntrainer::props::OutDim>(embedding_props);
+  size_t in_dim =
+    static_cast<size_t>(std::get<nntrainer::props::InDim>(embedding_props));
+  size_t out_dim =
+    static_cast<size_t>(std::get<nntrainer::props::OutDim>(embedding_props));
 
   nntrainer::TensorDim output_dim = input_dim;
 
@@ -116,7 +118,7 @@ void EmbeddingLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
 
 #pragma omp parallel for
     for (unsigned int i = from; i < to; ++i) {
-      unsigned int embed_idx = static_cast<unsigned int>(in_data[i]);
+      size_t embed_idx = static_cast<size_t>(in_data[i]);
       if (embed_idx >= in_dim) {
         throw std::invalid_argument("input word index is greater than in_dim");
       }
