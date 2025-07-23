@@ -698,9 +698,10 @@ Tensor &FloatTensor::dot(Tensor const &input, Tensor &output, bool trans,
   case Tdatatype::FP16:
     dotFloat32Float16(input, output, trans, trans_in, beta);
     break;
-  /** applying gemm_q4_k / gemm_q6_k */
+  /** applying gemm_q4_k / gemm_q6_k / gemm_q4_0 */
   case Tdatatype::Q4_K:
   case Tdatatype::Q6_K:
+  case Tdatatype::Q4_0:
     dotQnK(input, output, trans, trans_in, beta, input.getDataType());
     break;
   default:
@@ -863,6 +864,13 @@ Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
     gemm_q6_K(M, N, K, data, K, (void *)mdata, N, rdata, N);
 #endif
     break;
+  case Tdatatype::Q4_0:
+    M = getDim().height();
+    K = getDim().width();
+    N = input.getDim().width();
+    gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
+    break;
+
   default:
     throw std::invalid_argument("Error: unsupported datatype");
   }
