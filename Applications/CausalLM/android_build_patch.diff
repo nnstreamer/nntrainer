@@ -1,0 +1,31 @@
+diff --git a/Applications/CausalLM/meson.build b/Applications/CausalLM/meson.build
+index 1234567..abcdefg 100644
+--- a/Applications/CausalLM/meson.build
++++ b/Applications/CausalLM/meson.build
+@@ -1,3 +1,11 @@
++# Check if building for Android
++if get_option('platform') == 'android'
++  # Skip building CausalLM application for Android
++  # Android build is handled separately using ndk-build
++  message('Skipping CausalLM application build for Android platform')
++  subdir_done()
++endif
++
+ causallm_sources = [
+     'causal_lm.cpp',
+     'qwen3_causallm.cpp',
+@@ -60,6 +68,7 @@ tokenizer_dependencies = []
+ tokenizer_path = meson.current_source_dir() / 'lib' / 'libtokenizers_c.a'
+ 
++if get_option('platform') != 'android'
+ causallm = shared_library('causallm',
+     causallm_src,
+     dependencies: [
+@@ -84,4 +93,5 @@ e = executable('nntr_causallm',
+     executable_src,
+     include_directories: causallm_inc,
+     dependencies: [nntrainer_dep, nntrainer_ccapi_dep, causallm_layer_dependencies, causallm_dep],
+-)
+\ No newline at end of file
++)
++endif
