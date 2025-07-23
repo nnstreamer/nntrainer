@@ -119,8 +119,8 @@ void sgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
   delete[] B_;
   delete[] C_;
 #else
-  __fallback_sgemm(TStorageOrder, TransA, TransB, M, N, K, alpha, A_, lda, B_,
-                   ldb, beta, C_, ldc);
+  __fallback_sgemm(TStorageOrder, TransA, TransB, M, N, K, alpha, A, lda, B,
+                   ldb, beta, C, ldc);
 #endif
 }
 
@@ -140,7 +140,7 @@ void sgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
   scopy(lenX, X, 1, X_, 1);
   scopy(lenY, Y, 1, Y_, 1);
 
-  __cblas_sgemv(TStorageOrder, TransA, M, N, alpha, A, lda, X, incX, beta, Y,
+  __cblas_sgemv(TStorageOrder, TransA, M, N, alpha, A_, lda, X_, incX, beta, Y_,
                 incY);
 
   scopy(lenY, Y_, 1, Y, 1);
