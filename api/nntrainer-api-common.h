@@ -82,6 +82,7 @@ typedef enum {
   ML_TRAIN_LAYER_TYPE_CHANNEL_SHUFFLE =
     45,                         /**< Channel Shuffle Layer type (Since 9.0)*/
   ML_TRAIN_LAYER_TYPE_NEG = 46, /**< Neg Layer type (Since 9.0)*/
+  ML_TRAIN_LAYER_TYPE_UNSQUEEZE = 47, /**< Unsqueeze Layer type (Since 9.0)*/
   ML_TRAIN_LAYER_TYPE_PREPROCESS_FLIP =
     300, /**< Preprocess flip Layer (Since 6.5) */
   ML_TRAIN_LAYER_TYPE_PREPROCESS_TRANSLATE =
