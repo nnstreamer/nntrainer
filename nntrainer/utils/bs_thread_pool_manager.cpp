@@ -23,6 +23,7 @@ namespace nntrainer {
  *
  * @return BS::thread_pool<>
  */
+BS::thread_pool<> ThreadPoolManager::pool(std::thread::hardware_concurrency());
 
 std::size_t ThreadPoolManager::select_k_quant_thread_count(unsigned int M,
                                                            unsigned int N,
