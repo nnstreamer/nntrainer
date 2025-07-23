@@ -32,7 +32,7 @@ public:
     setupParameters(cfg, generation_cfg, nntr_cfg);
   }
 
-  ~Qwen3MoECausalLM() = default;
+  virtual ~Qwen3MoECausalLM() = default;
 
   std::vector<LayerHandle> createMlp(const int layer_id, int dim,
                                      int hidden_dim,
