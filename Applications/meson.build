@@ -37,6 +37,12 @@ subdir('ONNX/jni')
 subdir('SimpleFC/jni')
 
 subdir('LLaMA/jni')
+
+# CausalLM Application
+if get_option('enable-causallm-app') or get_option('enable-app')
+  subdir('CausalLM')
+endif
+
 if host_machine.system() != 'windows'
   subdir('KNN/jni')
   subdir('YOLOv2/jni')

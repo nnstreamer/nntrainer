@@ -1,0 +1,34 @@
+[binaries]
+c = 'ANDROID_NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android30-clang'
+cpp = 'ANDROID_NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android30-clang++'
+ar = 'ANDROID_NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar'
+strip = 'ANDROID_NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip'
+objcopy = 'ANDROID_NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-objcopy'
+ld = 'ANDROID_NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin/ld'
+pkgconfig = 'pkg-config'
+
+[host_machine]
+system = 'android'
+cpu_family = 'aarch64'
+cpu = 'armv8'
+endian = 'little'
+
+[target_machine]
+system = 'android'
+cpu_family = 'aarch64'
+cpu = 'armv8'
+endian = 'little'
+
+[properties]
+# Android-specific properties
+android_api_level = '30'
+android_ndk_api_level = '30'
+
+# Compiler and linker flags
+c_args = ['-DANDROID', '-fPIC', '-ffunction-sections', '-funwind-tables', '-fstack-protector-strong', '-no-canonical-prefixes']
+cpp_args = ['-DANDROID', '-fPIC', '-ffunction-sections', '-funwind-tables', '-fstack-protector-strong', '-no-canonical-prefixes', '-std=c++17']
+c_link_args = ['-Wl,--exclude-libs,libgcc.a', '-Wl,--exclude-libs,libatomic.a', '-static-libstdc++', '-Wl,--build-id', '-Wl,--warn-shared-textrel', '-Wl,--fatal-warnings']
+cpp_link_args = ['-Wl,--exclude-libs,libgcc.a', '-Wl,--exclude-libs,libatomic.a', '-static-libstdc++', '-Wl,--build-id', '-Wl,--warn-shared-textrel', '-Wl,--fatal-warnings']
+
+# Additional Android NDK paths
+sys_root = 'ANDROID_NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/sysroot'

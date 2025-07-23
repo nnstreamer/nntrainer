@@ -60,3 +60,4 @@ option('nnstreamer-subplugin-install-path', type: 'string', value: '/usr/lib/nns
 
 # application related options
 option('enable_encoder', type: 'boolean', value: false)
+option('enable-causallm-app', type: 'boolean', value: false, description: 'Enable CausalLM application build')
