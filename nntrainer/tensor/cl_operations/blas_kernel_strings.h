@@ -18,6 +18,12 @@
 
 namespace nntrainer {
 
+const std::string &getQ4KGemmClKernel();
+
+const std::string &getQ6KSgemvClKernel();
+
+const std::string &getQ4_0MulMatKernel();
+
 const std::string &getSgemvClKernel();
 
 const std::string &getSgemvClNoTransKernel();
