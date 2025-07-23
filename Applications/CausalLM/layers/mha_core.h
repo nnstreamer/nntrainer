@@ -245,9 +245,9 @@ private:
   unsigned int cache_index; /** idx of kv cache */
 
   /** intermal info */
-  unsigned int num_heads_Q;
-  unsigned int num_heads_KV;
-  unsigned int head_dim;
+  size_t num_heads_Q;
+  size_t num_heads_KV;
+  size_t head_dim;
   bool cache_shift;
   float theta;
 
