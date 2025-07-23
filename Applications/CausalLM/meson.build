@@ -1,9 +1,8 @@
 # CausalLM Application Build Configuration
-# Supports both native and Android builds
 
 causallm_src = [
   'causal_lm.cpp',
-  'huggingface_tokenizer.cpp',
+  'huggingface_tokenizer.cpp', 
   'qwen3_causallm.cpp',
   'qwen3_moe_causallm.cpp',
 ]
@@ -55,25 +54,9 @@ causallm_layer_dependencies = [
     causallm_moe_layer_dep,
 ]
 
-# Tokenizer dependencies - conditional for Android
 tokenizer_dependencies = []
-if get_option('platform') == 'android'
-  # For Android builds, use static tokenizer library
-  tokenizer_path = meson.current_source_dir() / 'lib' / 'android' / 'libtokenizers_c.a'
-  if fs.exists(tokenizer_path)
-    tokenizer_dependencies = [declare_dependency(link_args: [tokenizer_path])]
-  else
-    warning('Android tokenizer library not found at: ' + tokenizer_path)
-  endif
-else
-  # For native builds, use the existing tokenizer library
-  tokenizer_path = meson.current_source_dir() / 'lib' / 'libtokenizers_c.a'
-  if fs.exists(tokenizer_path)
-    tokenizer_dependencies = [declare_dependency(link_args: [tokenizer_path])]
-  endif
-endif
+tokenizer_path = meson.current_source_dir() / 'lib' / 'libtokenizers_c.a'
 
-# Build shared library for CausalLM
 causallm = shared_library('causallm',
     causallm_src,
     dependencies: [
@@ -86,9 +69,8 @@ causallm = shared_library('causallm',
     include_directories: causallm_inc,
     install: true,
     install_dir: application_install_dir,
-    cpp_args: ['-DPLUGGABLE'],
-    # Android-specific configurations
-    install_rpath: get_option('platform') == 'android' ? '' : get_option('prefix') / get_option('libdir')
+    link_args: [tokenizer_path],
+    cpp_args: '-DPLUGGABLE'
 )
 
 causallm_dep = declare_dependency(
@@ -96,13 +78,8 @@ causallm_dep = declare_dependency(
     include_directories: causallm_inc
 )
 
-# Build executable only for non-Android platforms
-if get_option('platform') != 'android'
-  e = executable('nntr_causallm',
-      executable_src,
-      include_directories: causallm_inc,
-      dependencies: [nntrainer_dep, nntrainer_ccapi_dep, causallm_layer_dependencies, causallm_dep],
-      install: get_option('install-app'),
-      install_dir: application_install_dir
-  )
-endif
+e = executable('nntr_causallm',
+    executable_src,
+    include_directories: causallm_inc,
+    dependencies: [nntrainer_dep, nntrainer_ccapi_dep, causallm_layer_dependencies, causallm_dep],
+)
