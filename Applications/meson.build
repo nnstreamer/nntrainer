@@ -46,3 +46,12 @@ if host_machine.system() != 'windows'
   subdir('Custom')
   subdir('PicoGPT/jni')
 endif
+
+# Add CausalLM support for both Android and native builds
+if get_option('platform') == 'android'
+  # For Android builds, use JNI wrapper
+  subdir('CausalLM/jni')
+elif get_option('platform') == 'none'
+  # For native builds, use main CausalLM
+  subdir('CausalLM')
+endif

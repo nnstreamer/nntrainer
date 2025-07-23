@@ -406,7 +406,7 @@ if get_option('enable-blas')
   extra_defines += '-DHGEMM_EXPERIMENTAL_KERNEL=@0@'.format(get_option('hgemm-experimental-kernel'))
 endif
 
-extra_defines += '-DNNTR_NUM_THREADS=@0@'.format(get_option('nntr-num-threads'))
+extra_defines += '-DNNTRAINER_NUM_THREADS=@0@'.format(get_option('nntr-num-threads'))
 message('set nntrainer num threads=@0@'.format(get_option('nntr-num-threads')))
 
 openmp_dep = dummy_dep
@@ -723,7 +723,9 @@ endif
 
 if get_option('enable-app')
   if get_option('platform') == 'android'
-    warning('android app is not supported for now, building app skipped')
+    # Enable Android application builds including CausalLM
+    message('building android applications')
+    subdir('Applications')
   else
     if host_machine.system() != 'windows'
       if not tflite_dep.found()
