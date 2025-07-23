@@ -874,8 +874,8 @@ TEST(nntrainer_Tensor, Q_Tensor_17_p) {
   /// with Q6_K tensor format
 
   const unsigned int M = 1;
-  uint32_t K = 5120; // height
-  uint32_t N = 3072; // width
+  uint32_t K = 2048; // height
+  uint32_t N = 1024; // width
 
   // Float tensor
   std::vector<float> weight = generate_random_vector<float>(K * N, -0.05, 0.05);
@@ -916,19 +916,20 @@ TEST(nntrainer_Tensor, Q_Tensor_17_p) {
 TEST(nntrainer_Tensor, QTensor_18_p) {
 
   ///@note this unittest verify Q6_K tensor dot
+  nntrainer::init_backend();
 
   const unsigned int M = 1;
-  uint32_t K = 3072;
-  uint32_t N = 5120;
+  uint32_t K = 2048;
+  uint32_t N = 1024;
 
-  std::vector<float> weight = generate_random_vector<float>(K * N, -0.05, 0.05);
+  std::vector<float> weight = generate_random_vector<float>(K * N);
   std::vector<float> activation =
     generate_random_vector<float>(M * K, -0.05, 0.05);
 
-  nntrainer::Tensor E_fp32(
+  nntrainer::Tensor W_fp32(
     1, 1, N, K,
     {ml::train::TensorDim::Format::NCHW, ml::train::TensorDim::DataType::FP32});
-  nntrainer::Tensor L_fp32(
+  nntrainer::Tensor W_T_fp32(
     1, 1, K, N,
     {ml::train::TensorDim::Format::NCHW, ml::train::TensorDim::DataType::FP32});
   nntrainer::Tensor A_fp32(
@@ -939,11 +940,11 @@ TEST(nntrainer_Tensor, QTensor_18_p) {
 
   for (uint32_t n = 0; n < N; ++n)
     for (uint32_t k = 0; k < K; ++k)
-      E_fp32.setValue(0, 0, n, k, weight[n * K + k]);
+      W_fp32.setValue(0, 0, n, k, weight[n * K + k]);
 
   for (uint32_t k = 0; k < K; ++k)
     for (uint32_t n = 0; n < N; ++n)
-      L_fp32.setValue(0, 0, k, n, weight[k * N + n]);
+      W_T_fp32.setValue(0, 0, k, n, weight[n * K + k]);
 
   for (uint32_t m = 0; m < M; ++m)
     for (uint32_t k = 0; k < K; ++k)
@@ -951,9 +952,67 @@ TEST(nntrainer_Tensor, QTensor_18_p) {
 
   std::vector<float> ref_dst(M * N);
   EXPECT_NO_THROW(nntrainer::quantize_q6_K(
-    E_fp32.getData<float>(), (void *)W_q6k.getData<uint8_t>(), N, K, nullptr));
+    W_fp32.getData<float>(), (void *)W_q6k.getData<uint8_t>(), N, K, nullptr));
 
-  nntrainer::Tensor out = A_fp32.dot(L_fp32, false, false);
+  nntrainer::Tensor out = A_fp32.dot(W_T_fp32, false, false);
+  nntrainer::Tensor out_q6k(
+    1, 1, M, N, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
+  A_fp32.dot(W_q6k, out_q6k, false, true);
+
+  std::cout << out << std::endl;
+  std::cout << out_q6k << std::endl;
+
+  const float eps = 1e-4;
+  auto mean_squared_error =
+    mse<float, float>(out.getData<float>(), out_q6k.getData<float>(), M * N);
+  EXPECT_NEAR(mean_squared_error, 0., eps * M * N);
+
+#ifdef DEBUG
+  for (int i = 0; i < 10; ++i) {
+    std::cout << "gemm_out[" << i << "] = " << out_q6k.getData<float>()[i]
+              << std::endl;
+    std::cout << "out_t[" << i << "] = " << out.getData<float>()[i]
+              << std::endl;
+  }
+#endif
+}
+
+TEST(nntrainer_Tensor, QTensor_19_p) {
+
+  ///@note this unittest verify Q6_K tensor dot
+
+  const unsigned int M = 1;
+  uint32_t K = 5120;
+  uint32_t N = 3072;
+
+  std::vector<float> weight = generate_random_vector<float>(K * N);
+  std::vector<float> activation =
+    generate_random_vector<float>(M * K, -0.05, 0.05);
+
+  nntrainer::Tensor W_fp32(
+    1, 1, K, N,
+    {ml::train::TensorDim::Format::NCHW, ml::train::TensorDim::DataType::FP32});
+  nntrainer::Tensor A_fp32(
+    1, 1, M, K,
+    {ml::train::TensorDim::Format::NCHW, ml::train::TensorDim::DataType::FP32});
+  nntrainer::Tensor W_q6k(
+    1, 1, K, N, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::Q6_K});
+
+  for (uint32_t n = 0; n < N; ++n)
+    for (uint32_t k = 0; k < K; ++k)
+      W_fp32.setValue(0, 0, n, k, weight[n * K + k]);
+
+  for (uint32_t m = 0; m < M; ++m)
+    for (uint32_t k = 0; k < K; ++k)
+      A_fp32.setValue(0, 0, m, k, activation[m * K + k]);
+
+  std::vector<float> ref_dst(M * N);
+  nntrainer::Tensor W_fp32_t = W_fp32.transpose("0:2:1");
+  EXPECT_NO_THROW(nntrainer::quantize_q6_K(W_fp32_t.getData<float>(),
+                                           (void *)W_q6k.getData<uint8_t>(), N,
+                                           K, nullptr));
+
+  nntrainer::Tensor out = A_fp32.dot(W_fp32);
   nntrainer::Tensor out_q6k(
     1, 1, M, N, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
   A_fp32.dot(W_q6k, out_q6k);
