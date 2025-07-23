@@ -126,7 +126,7 @@ public:
   WIN_EXPORT void
   save(std::ofstream &file, nntrainer::RunLayerContext &run_context,
        bool opt_var, ml::train::ExecutionMode mode, bool trainable,
-       nntrainer::TensorDim::DataType definedWeightDataType) const;
+       nntrainer::TensorDim::DataType definedWeightDataType) const override;
 
   using Layer::setProperty;
 

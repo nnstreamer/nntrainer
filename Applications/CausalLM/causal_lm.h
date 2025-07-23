@@ -82,7 +82,7 @@ public:
   /**
    * @brief Destroy the CausalLM object
    */
-  ~CausalLM() { free(ids_history); }
+  virtual ~CausalLM() { free(ids_history); }
 
   /**
    * @brief Initialize and Construct the CausalLM model
