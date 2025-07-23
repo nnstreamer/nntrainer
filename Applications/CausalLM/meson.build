@@ -1,85 +1,69 @@
 # CausalLM Application Build Configuration
 
-causallm_src = [
+# Main executable source
+executable_src = [
+  'main.cpp'
+]
+
+# CausalLM library sources - check if files exist
+causallm_src = []
+causallm_files = [
   'causal_lm.cpp',
   'huggingface_tokenizer.cpp', 
   'qwen3_causallm.cpp',
   'qwen3_moe_causallm.cpp',
 ]
 
-executable_src = [
-  'main.cpp'
-]
+# Check if CausalLM source files exist
+fs = import('fs')
+foreach src_file : causallm_files
+  if fs.exists(src_file)
+    causallm_src += src_file
+  endif
+endforeach
 
 causallm_inc = include_directories('.')
 causallm_inc += include_directories('layers')
 
-# Custom layer dependencies
-causallm_tie_word_embedding_dep = declare_dependency(
-  sources: ['layers/tie_word_embedding.cpp'],
-  include_directories: causallm_inc
-)
+# Custom layer dependencies - check if files exist before adding
+causallm_layer_dependencies = []
 
-causallm_swiglu_dep = declare_dependency(
-  sources: ['layers/swiglu.cpp'],
-  include_directories: causallm_inc
-)
-
-causallm_mha_core_dep = declare_dependency(
-  sources: ['layers/mha_core.cpp'],
-  include_directories: causallm_inc
-)
-
-causallm_embedding_layer_dep = declare_dependency(
-  sources: ['layers/embedding_layer.cpp'],
-  include_directories: causallm_inc
-)
-
-causallm_reshaped_rms_norm_dep = declare_dependency(
-  sources: ['layers/reshaped_rms_norm.cpp'],
-  include_directories: causallm_inc
-)
-
-causallm_moe_layer_dep = declare_dependency(
-  sources: ['layers/qwen_moe_layer.cpp'],
-  include_directories: causallm_inc
-)
-
-causallm_layer_dependencies = [
-    causallm_tie_word_embedding_dep,
-    causallm_swiglu_dep,
-    causallm_mha_core_dep,
-    causallm_embedding_layer_dep,
-    causallm_reshaped_rms_norm_dep,
-    causallm_moe_layer_dep,
+layer_files = [
+  'layers/tie_word_embedding.cpp',
+  'layers/swiglu.cpp',
+  'layers/mha_core.cpp',
+  'layers/embedding_layer.cpp',
+  'layers/reshaped_rms_norm.cpp',
+  'layers/qwen_moe_layer.cpp'
 ]
 
+layer_sources = []
+foreach layer_file : layer_files
+  if fs.exists(layer_file)
+    layer_sources += layer_file
+  endif
+endforeach
+
+# If we have layer sources, create dependencies
+if layer_sources.length() > 0
+  causallm_layer_dependencies += declare_dependency(
+    sources: layer_sources,
+    include_directories: causallm_inc
+  )
+endif
+
+# Tokenizer dependencies
 tokenizer_dependencies = []
 tokenizer_path = meson.current_source_dir() / 'lib' / 'libtokenizers_c.a'
+if fs.exists(tokenizer_path)
+  tokenizer_dependencies += declare_dependency(link_args: [tokenizer_path])
+endif
 
-causallm = shared_library('causallm',
-    causallm_src,
-    dependencies: [
-        nntrainer_dep,
-        nntrainer_ccapi_dep,
-        causallm_layer_dependencies, 
-        tokenizer_dependencies,
-        openmp_dep
-    ],
-    include_directories: causallm_inc,
-    install: true,
-    install_dir: application_install_dir,
-    link_args: [tokenizer_path],
-    cpp_args: '-DPLUGGABLE'
-)
-
-causallm_dep = declare_dependency(
-    link_with: [causallm],
-    include_directories: causallm_inc
-)
-
+# Build executable
 e = executable('nntr_causallm',
-    executable_src,
+    executable_src + causallm_src + layer_sources,
     include_directories: causallm_inc,
-    dependencies: [nntrainer_dep, nntrainer_ccapi_dep, causallm_layer_dependencies, causallm_dep],
+    dependencies: [nntrainer_dep, nntrainer_ccapi_dep, tokenizer_dependencies],
+    install: get_option('install-app'),
+    install_dir: application_install_dir
 )
