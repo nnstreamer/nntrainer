@@ -273,6 +273,7 @@ bool is_valid(const unsigned int N, const float *input) {
   return nntrainer::neon::is_valid(N, input);
 }
 
+template <>
 void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc) {
