@@ -166,4 +166,11 @@ void softmax(const unsigned int N, _FP16 *X, _FP16 *Y) {
   __fallback_softmax(N, X, Y);
 }
 
+template <>
+void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
+               const _FP16 *A, const unsigned int lda, const void *B,
+               const unsigned int ldb, _FP16 *C, const unsigned int ldc) {
+  return __fallback_gemm_q4_0<_FP16>(M, N, K, A, lda, B, ldb, C, ldc);
+}
+
 } /* namespace nntrainer */
