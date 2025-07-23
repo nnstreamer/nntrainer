@@ -1,3 +1,27 @@
+From 22100ecb8516b774bdc7f887e2574d1d44ef1759 Mon Sep 17 00:00:00 2001
+From: Grzegorz Kisala <g.kisala@samsung.com>
+Date: Fri, 30 May 2025 14:23:41 +0200
+Subject: [PATCH] nntrainer ggml patch
+
+---
+ CMakeLists.txt                    |  2 +-
+ include/ggml.h                    | 13 ++++++
+ src/ggml-cpu/CMakeLists.txt       | 10 ++++-
+ src/ggml-cpu/ggml-cpu-aarch64.cpp | 74 ++++++++++++++++++++++++++++---
+ src/ggml-cpu/ggml-cpu-quants.c    |  2 +-
+ src/ggml-quants.c                 |  2 +-
+ 6 files changed, 92 insertions(+), 11 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 61fe15a1..cf7aec3b 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,4 +1,4 @@
+-cmake_minimum_required(VERSION 3.14) # for add_link_options and implicit target directories.
++cmake_minimum_required(VERSION 3.16) # for add_link_options and implicit target directories.
+ project("ggml" C CXX)
+ include(CheckIncludeFileCXX)
+ 
 diff --git a/include/ggml.h b/include/ggml.h
 index 51aa5b3a..e6945f62 100644
 --- a/include/ggml.h
@@ -25,6 +49,27 @@ index 51aa5b3a..e6945f62 100644
  #ifdef  __cplusplus
  }
  #endif
+diff --git a/src/ggml-cpu/CMakeLists.txt b/src/ggml-cpu/CMakeLists.txt
+index 6a652738..fc178b98 100644
+--- a/src/ggml-cpu/CMakeLists.txt
++++ b/src/ggml-cpu/CMakeLists.txt
+@@ -60,7 +60,15 @@ function(ggml_add_cpu_backend_variant_impl tag_name)
+ 
+             target_link_libraries(${GGML_CPU_NAME} PRIVATE OpenMP::OpenMP_C OpenMP::OpenMP_CXX)
+         else()
+-            message(WARNING "OpenMP not found")
++            if (CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows" AND CMAKE_C_COMPILER_ID STREQUAL "Clang")
++                message("Apply workaround for OpenMP problem for clang build on windows")
++                target_compile_definitions(${GGML_CPU_NAME} PRIVATE GGML_USE_OPENMP)
++                set(OpenMP_C_FLAGS "-Xclang -fopenmp")
++                set(OpenMP_CXX_FLAGS "-Xclang -fopenmp")
++                target_link_libraries(${GGML_CPU_NAME} PRIVATE ${OpenMP_C_FLAGS} ${OpenMP_CXX_FLAGS})
++            else()
++                message(WARNING "OpenMP not found")
++            endif()
+         endif()
+     endif()
+ 
 diff --git a/src/ggml-cpu/ggml-cpu-aarch64.cpp b/src/ggml-cpu/ggml-cpu-aarch64.cpp
 index 175cba32..e82cdd39 100644
 --- a/src/ggml-cpu/ggml-cpu-aarch64.cpp
@@ -226,12 +271,12 @@ index 91a81bdc..4efdf4ad 100644
 --- a/src/ggml-cpu/ggml-cpu-quants.c
 +++ b/src/ggml-cpu/ggml-cpu-quants.c
 @@ -8679,7 +8679,7 @@ void ggml_vec_dot_q6_K_q8_K(int n, float * GGML_RESTRICT s, size_t bs, const voi
-
+ 
      for (int i = 0; i < nb; ++i) {
-
+ 
 -        const float d = y[i].d * GGML_FP16_TO_FP32(x[i].d);
 +        const float d = y[i].d * GGML_COMPUTE_FP16_TO_FP32(x[i].d);
-
+ 
          const uint8_t * GGML_RESTRICT q4 = x[i].ql;
          const uint8_t * GGML_RESTRICT qh = x[i].qh;
 diff --git a/src/ggml-quants.c b/src/ggml-quants.c
@@ -240,11 +285,11 @@ index ac918a60..7506d05a 100644
 +++ b/src/ggml-quants.c
 @@ -1692,7 +1692,7 @@ void dequantize_row_q6_K(const block_q6_K * GGML_RESTRICT x, float * GGML_RESTRI
      const int64_t nb = k / QK_K;
-
+ 
      for (int i = 0; i < nb; i++) {
 -        const float d = GGML_FP16_TO_FP32(x[i].d);
 +        const float d = GGML_COMPUTE_FP16_TO_FP32(x[i].d);
-
+ 
          const uint8_t * GGML_RESTRICT ql = x[i].ql;
          const uint8_t * GGML_RESTRICT qh = x[i].qh;
 -- 
