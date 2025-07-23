@@ -7,7 +7,6 @@
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Eunju Yang <ej.yang@samsung.com>
  * @bug    No known bugs except for NYI items
- * @note   Please refer to the following code :
  *
  */
 
@@ -19,6 +18,10 @@
 
 namespace causallm {
 
+/**
+ * @brief Qwen3MoECausalLM class
+ * @note  This class inherits Qwewn3CaUSALlm
+ */
 class Qwen3MoECausalLM : public Qwen3CausalLM {
 
 public:
