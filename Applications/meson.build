@@ -11,38 +11,39 @@ else
   run_command(['mkdir', '-p', nntr_app_resdir], check: true)
 endif
 
-subdir('utils')
-subdir('LogisticRegression/jni')
-if enable_ccapi
-  subdir('MNIST/jni')
-  if get_option('enable-fp16')
-    subdir('MixedPrecision/jni')
+if get_option('enable-app')
+  if get_option('enable-capi')
+    subdir('MNIST')
+    subdir('LogisticRegression')
+    subdir('ReinforcementLearning')
+    subdir('SimpleFC')
+    subdir('TransferLearning')
+    subdir('utils')
+    subdir('VGG')
+    subdir('AlexNet')
+    subdir('Resnet')
+    subdir('YOLOv2')
+    subdir('YOLOv3')
+    subdir('SimpleShot')
+    subdir('ProductRatings')
+    subdir('Multi_input')
+    subdir('MixedPrecision')
+    subdir('Layers')
+    subdir('KNN')
+    if get_option('enable-nnstreamer-backbone')
+      subdir('ONNX')
+    endif
+  endif
+
+  if get_option('enable-ccapi')
+    subdir('Tizen_native')
   endif
 endif
-subdir('VGG/jni')
-subdir('Resnet/jni')
-subdir('Multi_input/jni')
 
-# if enable_capi
-#   subdir('TransferLearning/Draw_Classification/jni')
-# endif
-
-subdir('ProductRatings/jni')
-subdir('AlexNet/jni')
-subdir('Layers/jni')
-if get_option('enable-tflite-backbone')
-  subdir('SimpleShot')
-endif
-subdir('ONNX/jni')
-subdir('SimpleFC/jni')
-
-subdir('LLaMA/jni')
 if host_machine.system() != 'windows'
-  subdir('KNN/jni')
-  subdir('YOLOv2/jni')
-  subdir('YOLOv3/jni')
-  subdir('ReinforcementLearning/DeepQ/jni')
-  subdir('TransferLearning/CIFAR_Classification/jni')
   subdir('Custom')
   subdir('PicoGPT/jni')
 endif
+
+# Always build CausalLM for both desktop and Android
+subdir('CausalLM')
