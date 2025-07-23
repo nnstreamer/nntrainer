@@ -18,6 +18,9 @@
 
 namespace causallm {
 
+/**
+ * @brief Qwen3CausalLM class
+ */
 class Qwen3CausalLM : public CausalLM {
 
 public:

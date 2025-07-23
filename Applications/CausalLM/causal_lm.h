@@ -64,6 +64,9 @@ using ModelHandle = std::unique_ptr<ml::train::Model>;
 
 using json = nlohmann::json;
 
+/**
+ * @brief CausalLM Class
+ */
 WIN_EXPORT class CausalLM {
 
 public:
