@@ -323,4 +323,12 @@ bool __fallback_isValid(const unsigned int N, const _FP16 *X) {
   return true;
 }
 
+template <>
+void __fallback_gemm_q4_0(const unsigned int M, const unsigned int N,
+                          const unsigned int K, const _FP16 *A,
+                          const unsigned int lda, const void *B,
+                          const unsigned int ldb, _FP16 *C,
+                          const unsigned int ldc) {
+  throw std::runtime_error("NYI : __fallback_gemm_q4_0");
+}
 } // namespace nntrainer
