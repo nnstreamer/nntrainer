@@ -1,3 +1,15 @@
+// SPDX-License-Identifier: Apache-2.0
+/**
+ * Copyright (C) 2025 Sungsik Kong <ss.kong@samsung.com>
+ *
+ * @file   ggml_impl_fp16.cpp
+ * @date   23 July 2025
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Sungsik Kong <ss.kong@samsung.com>
+ * @bug    No known bugs except for NYI items
+ * @brief  GGML kernels for FP16 activation flow
+ */
+
 #include "ggml-common.h"
 #include "ggml-cpu-quants.h"
 #include "ggml-cpu.h"
@@ -55,8 +67,7 @@ static inline uint16_t nntr_compute_fp32_to_fp16(float f) {
   return res;
 }
 
-static void __nntr_quantize_row_q8_0(const _FP16 *__restrict x, void *vy,
-                                     int64_t k) {
+void __nntr_quantize_row_q8_0(const _FP16 *__restrict x, void *vy, int64_t k) {
   assert(QK8_0 == 32);
   assert(k % QK8_0 == 0);
   const int nb = k / QK8_0;
@@ -297,9 +308,9 @@ void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
                      ? M_step_end + NB_COLS - (M_step_end % NB_COLS)
                      : M_step_end;
 
-      ::ggml_gemv_q4_0_4x8_q8_0(K, (float *)((C32.data()) + M_step_start), N,
-                                (void *)((char *)B + M_step_start * B_step),
-                                QA.data(), M, M_step_end - M_step_start);
+      ggml_gemv_q4_0_4x8_q8_0(K, (float *)((C32.data()) + M_step_start), N,
+                              (void *)((char *)B + M_step_start * B_step),
+                              QA.data(), M, M_step_end - M_step_start);
     }
   } else {
     int n_threads = 8;
@@ -326,7 +337,7 @@ void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
     }
 
 // Compute 4-divisible-M row portion with multithreaded GEMM
-#pragma omp parallel for collapse(1) num_threads(n_threads)
+#pragma omp parallel for num_threads(n_threads)
     for (int i = 0; i < n_threads; i++) {
       unsigned int src0_start = (i * N) / n_threads;
       unsigned int src0_end = ((i + 1) * N) / n_threads;
@@ -338,9 +349,9 @@ void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
                    ? src0_end + NB_COLS - (src0_end % NB_COLS)
                    : src0_end;
 
-      ::ggml_gemm_q4_0_4x8_q8_0(K, (float *)((C32.data()) + src0_start), ldc,
-                                (void *)((char *)B + src0_start * B_step),
-                                QA.data(), M4 * 4, src0_end - src0_start);
+      ggml_gemm_q4_0_4x8_q8_0(K, (float *)((C32.data()) + src0_start), ldc,
+                              (void *)((char *)B + src0_start * B_step),
+                              QA.data(), M4 * 4, src0_end - src0_start);
     }
 
     // Compute leftover 1 ~ 3 rows with multithreaded GEMV
@@ -359,7 +370,7 @@ void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
                        ? M_step_end + NB_COLS - (M_step_end % NB_COLS)
                        : M_step_end;
 
-        ::ggml_gemv_q4_0_4x8_q8_0(
+        ggml_gemv_q4_0_4x8_q8_0(
           K,
           (float *)(((C32.data()) + ((pb - M4 * 4) * N) + (M4 * 4 * N)) +
                     M_step_start),
