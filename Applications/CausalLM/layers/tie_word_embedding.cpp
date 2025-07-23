@@ -215,9 +215,9 @@ void TieWordEmbedding::incremental_forwarding_embedding(
     throw std::invalid_argument(
       "Tieword embedding is not supported yet for the data type");
 
-  unsigned int b_size = input_.batch();
+  size_t b_size = input_.batch();
 
-  for (unsigned int b = 0; b < b_size; ++b) {
+  for (size_t b = 0; b < b_size; ++b) {
     float *in_data =
       input_.getAddress<float>(b * input_.getDim().getFeatureLen());
 

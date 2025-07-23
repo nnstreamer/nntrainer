@@ -147,13 +147,15 @@ void MHACoreLayer::finalize(nntrainer::InitLayerContext &context) {
    *  @note If NumHeads_KV is set, then use the value. Otherwise,
    *        we initialize num_heads_KV with num_heads_Q.
    */
-  num_heads_Q = std::get<nntrainer::props::NumHeads>(mha_core_props).get();
-  num_heads_KV = std::get<props::NumHeads_KV>(mha_core_props).empty()
-                   ? num_heads_Q
-                   : std::get<props::NumHeads_KV>(mha_core_props).get();
+  num_heads_Q = static_cast<size_t>(
+    std::get<nntrainer::props::NumHeads>(mha_core_props).get());
+  num_heads_KV =
+    std::get<props::NumHeads_KV>(mha_core_props).empty()
+      ? num_heads_Q
+      : static_cast<size_t>(std::get<props::NumHeads_KV>(mha_core_props).get());
 
   // head_dim
-  head_dim = query_width / num_heads_Q;
+  head_dim = static_cast<size_t>(query_width) / num_heads_Q;
   NNTR_THROW_IF(head_dim != key_width / num_heads_KV, std::invalid_argument)
     << "num_heads_Q and num_heads_KV are not properly given. Please check the "
        "num_heads_* are set correctly so that the `head_dim`s are all same for "
