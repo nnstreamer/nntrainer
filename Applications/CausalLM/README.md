@@ -6,7 +6,7 @@ This application provides examples to run causal language model (LLM) inference 
 
 - **Cross-platform support**: Works on Linux, Android, and other platforms
 - **Multiple model architectures**: Supports Llama, Qwen3, Qwen3MoE models
-- **Simple executable**: Single executable for both native and Android platforms
+- **Android JNI support**: Native Android integration through JNI
 - **Efficient inference**: Optimized for mobile and embedded devices
 
 ## Supported Models
@@ -18,11 +18,11 @@ This application provides examples to run causal language model (LLM) inference 
 
 ## Android Build Support
 
-### Prerequisites for Android Builds
+### Prerequisites
 
 1. **Android NDK**: Version 21 or higher
 2. **Meson build system**: Version 0.55 or higher
-3. **Android tokenizer library**: Place in `lib/android/` directory (optional)
+3. **nntrainer**: Built and configured for Android
 
 ### Building for Android
 
@@ -41,12 +41,14 @@ This application provides examples to run causal language model (LLM) inference 
 
 3. **Deploy to Android device**:
    ```bash
-   adb push build_android/package/bin/nntr_causallm_android /data/local/tmp/
-   adb shell chmod +x /data/local/tmp/nntr_causallm_android
-   adb shell /data/local/tmp/nntr_causallm_android
+   # The script will provide deployment instructions
+   adb push build_android_causallm/package/bin/nntrainer_causallm /data/local/tmp/
+   adb push build_android_causallm/package/lib/*.so /data/local/tmp/
+   adb shell chmod +x /data/local/tmp/nntrainer_causallm
+   adb shell 'cd /data/local/tmp && LD_LIBRARY_PATH=. ./nntrainer_causallm'
    ```
 
-### Android Build Script Options
+### Android Build Options
 
 ```bash
 # Show help
@@ -86,56 +88,40 @@ ANDROID_ABI=armeabi-v7a ./build_android.sh
    ./nntr_causallm /path/to/model/config/folder/
    ```
 
-## Usage Examples
-
-### Native Linux
-```bash
-./nntr_causallm /home/user/models/qwen3-4b/
-```
-
-### Android
-```bash
-# Copy model to device first
-adb push /home/user/models/qwen3-4b/ /data/local/tmp/qwen3-4b/
-
-# Run on device
-adb shell /data/local/tmp/nntr_causallm_android /data/local/tmp/qwen3-4b/
-```
-
 ## Directory Structure
 
 ```
 Applications/CausalLM/
 ├── README.md                 # This file
-├── main.cpp                  # Main executable source
-├── meson.build              # Native build configuration
-├── meson_android.build      # Android build configuration
+├── meson.build              # Main build configuration
 ├── build_android.sh         # Android build script
+├── jni/                     # Android JNI wrapper
+│   ├── meson.build         # JNI build configuration
+│   └── main.cpp            # JNI main entry point
 ├── layers/                  # Custom layer implementations
-│   └── README.md           # Layer documentation
 ├── lib/                    # External libraries
-│   └── android/            # Android-specific libraries
-│       └── README.md       # Android library documentation
-└── res/                    # Model resources (when available)
+│   └── libtokenizers_c.a   # Tokenizer library
+└── res/                    # Model resources
 ```
 
 ## Build Configuration
 
 The build system automatically detects the target platform:
 
-- **Android builds**: Uses `meson_android.build` with Android-specific settings
-- **Native builds**: Uses main `meson.build` with full feature set
-- **Cross-compilation**: Supports various Android architectures (arm64-v8a, armeabi-v7a, x86, x86_64)
+- **Android builds**: Uses JNI wrapper in `jni/` directory
+- **Native builds**: Direct executable build with full feature set
+- **Platform detection**: Automatic based on `-Dplatform=android` option
 
 ## Dependencies
 
 ### Core Dependencies
-- nntrainer library (optional for Android builds)
-- Standard C++ library
+- nntrainer library
+- nntrainer C++ API
+- OpenMP (for parallel processing)
 
 ### Android-Specific Dependencies
 - Android NDK
-- Android logging library
+- Android system libraries
 
 ### Optional Dependencies
 - Tokenizer library (libtokenizers_c.a)
@@ -148,20 +134,39 @@ The build system automatically detects the target platform:
 1. **NDK not found**: Set `ANDROID_NDK_ROOT` environment variable
 2. **Build script permission**: Run `chmod +x build_android.sh`
 3. **Cross-compilation errors**: Ensure NDK version is 21 or higher
+4. **Missing dependencies**: Make sure nntrainer is built for Android first
 
 ### Runtime Issues
 
-1. **Permission denied**: Run `adb shell chmod +x /data/local/tmp/nntr_causallm_android`
-2. **Model loading**: Ensure model files are accessible on device
-3. **Library not found**: Check if required .so files are in the same directory
+1. **Permission denied**: Run `adb shell chmod +x /data/local/tmp/nntrainer_causallm`
+2. **Library not found**: Ensure all .so files are in the same directory and LD_LIBRARY_PATH is set
+3. **Model loading**: Ensure model files are accessible on device with proper permissions
+
+## Architecture
+
+### Android Build Flow
+
+1. **Main Build**: Uses nntrainer's main build system with `-Dplatform=android`
+2. **JNI Integration**: CausalLM includes JNI subdirectory for Android-specific code
+3. **Cross-compilation**: Automatic NDK toolchain setup and cross-compilation
+4. **Packaging**: Automatic executable and library packaging for deployment
+
+### Reference Implementation
+
+This implementation follows the reference patch style from commit `ae24db6e9c018a819841f5884defb2c9c1fc3a14`, providing:
+
+- Clean separation between native and Android builds
+- Minimal JNI wrapper for Android compatibility  
+- Integration with existing nntrainer build system
+- Automated build and deployment process
 
 ## Contributing
 
 Feel free to contribute improvements, especially for:
 - Additional model architectures
 - Performance optimizations
-- iOS support
 - Enhanced Android integration
+- iOS support
 
 ## License
 

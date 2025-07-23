@@ -1,13 +1,15 @@
 #!/bin/bash
 
 # CausalLM Android Build Script
-# This script builds CausalLM for Android independently from the main build system
+# This script builds CausalLM for Android using the main nntrainer build system
+# Following reference patch style: ae24db6e9c018a819841f5884defb2c9c1fc3a14
 
 set -e
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BUILD_DIR="${SCRIPT_DIR}/build_android"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+BUILD_DIR="${PROJECT_ROOT}/build_android_causallm"
 NDK_PATH=${ANDROID_NDK_ROOT:-$ANDROID_NDK}
 ABI=${ANDROID_ABI:-arm64-v8a}
 API_LEVEL=${ANDROID_API_LEVEL:-21}
@@ -67,24 +69,19 @@ create_cross_file() {
     echo_info "Creating Android cross-compilation file..."
     
     local cross_file="$BUILD_DIR/android-cross-file.txt"
-    local toolchain_prefix=""
     local target_triple=""
     
     case "$ABI" in
         arm64-v8a)
-            toolchain_prefix="aarch64-linux-android"
             target_triple="aarch64-linux-android"
             ;;
         armeabi-v7a)
-            toolchain_prefix="armv7a-linux-androideabi"
-            target_triple="arm-linux-androideabi"
+            target_triple="armv7a-linux-androideabi"
             ;;
         x86)
-            toolchain_prefix="i686-linux-android"
             target_triple="i686-linux-android"
             ;;
         x86_64)
-            toolchain_prefix="x86_64-linux-android"
             target_triple="x86_64-linux-android"
             ;;
         *)
@@ -120,73 +117,62 @@ EOF
 
 # Build for Android
 build_android() {
-    echo_info "Building CausalLM executable for Android..."
+    echo_info "Building CausalLM for Android..."
     echo_info "ABI: $ABI, API Level: $API_LEVEL"
     
     local cross_file="$BUILD_DIR/android-cross-file.txt"
-    local android_meson_file="$SCRIPT_DIR/meson_android.build"
     
-    # Check if Android meson file exists
-    if [ ! -f "$android_meson_file" ]; then
-        echo_error "Android meson build file not found: $android_meson_file"
-        exit 1
-    fi
-    
-    # Configure meson for Android using the separate build file
-    cd "$BUILD_DIR"
-    
-    # Copy the Android meson file as meson.build in build directory
-    cp "$android_meson_file" "$BUILD_DIR/meson.build"
-    
-    # Copy source files to build directory
-    echo_info "Copying source files..."
-    cp "$SCRIPT_DIR/main.cpp" "$BUILD_DIR/" 2>/dev/null || true
-    cp -r "$SCRIPT_DIR"/*.h "$BUILD_DIR/" 2>/dev/null || true
-    cp -r "$SCRIPT_DIR/layers" "$BUILD_DIR/" 2>/dev/null || true
-    cp -r "$SCRIPT_DIR/lib" "$BUILD_DIR/" 2>/dev/null || true
-    
-    # Setup meson build
-    meson setup build_temp \
+    # Configure meson for Android
+    cd "$PROJECT_ROOT"
+    meson setup "$BUILD_DIR" \
         --cross-file="$cross_file" \
+        -Dplatform=android \
+        -Denable-app=true \
+        -Denable-test=false \
+        -Denable-logging=true \
+        -Denable-openmp=true \
         -Dbuildtype=release
     
     # Build
-    cd build_temp
-    meson compile
+    meson compile -C "$BUILD_DIR"
     
-    echo_info "Android executable build completed successfully!"
-    echo_info "Executable location: $BUILD_DIR/build_temp/nntr_causallm_android"
+    echo_info "Android build completed successfully!"
+    echo_info "Build artifacts are in: $BUILD_DIR"
 }
 
-# Copy executable and create package
+# Package Android build
 package_android() {
-    echo_info "Packaging Android executable..."
+    echo_info "Packaging Android build..."
     
     local package_dir="$BUILD_DIR/package"
     mkdir -p "$package_dir/bin"
+    mkdir -p "$package_dir/lib"
     
-    # Copy executable
-    local exe_path="$BUILD_DIR/build_temp/nntr_causallm_android"
-    if [ -f "$exe_path" ]; then
-        cp "$exe_path" "$package_dir/bin/"
-        echo_info "Executable copied to package"
+    # Find and copy CausalLM executable
+    local causallm_exe=$(find "$BUILD_DIR" -name "nntrainer_causallm" -type f | head -1)
+    if [ -n "$causallm_exe" ] && [ -f "$causallm_exe" ]; then
+        cp "$causallm_exe" "$package_dir/bin/"
+        echo_info "CausalLM executable copied to package"
     else
-        echo_warn "Executable not found at: $exe_path"
+        echo_warn "CausalLM executable not found"
     fi
     
-    # Copy any shared libraries if they exist
-    find "$BUILD_DIR/build_temp" -name "*.so" -exec cp {} "$package_dir/bin/" \; 2>/dev/null || true
+    # Copy shared libraries
+    find "$BUILD_DIR" -name "*.so" -exec cp {} "$package_dir/lib/" \; 2>/dev/null || true
     
     echo_info "Android package created in: $package_dir"
+    echo_info ""
     echo_info "To deploy to Android device:"
-    echo_info "  adb push $package_dir/bin/nntr_causallm_android /data/local/tmp/"
-    echo_info "  adb shell chmod +x /data/local/tmp/nntr_causallm_android"
-    echo_info "  adb shell /data/local/tmp/nntr_causallm_android"
+    echo_info "  adb push $package_dir/bin/nntrainer_causallm /data/local/tmp/"
+    echo_info "  adb push $package_dir/lib/*.so /data/local/tmp/"
+    echo_info "  adb shell chmod +x /data/local/tmp/nntrainer_causallm"
+    echo_info "  adb shell 'cd /data/local/tmp && LD_LIBRARY_PATH=. ./nntrainer_causallm'"
 }
 
 # Main execution
 main() {
     echo_info "Starting CausalLM Android build..."
+    echo_info "Project root: $PROJECT_ROOT"
     echo_info "Script directory: $SCRIPT_DIR"
     
     check_prerequisites
