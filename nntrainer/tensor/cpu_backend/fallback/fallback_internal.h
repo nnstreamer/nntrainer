@@ -28,8 +28,8 @@ namespace nntrainer {
  * @param dst void* dst to store quantized data
  * @param k number of elements in src
  */
-void __fallback_quantize_row_q8_0(const _FP16 *__restrict src, void *__restrict dst,
-                       int64_t k);
+void __fallback_quantize_row_q8_0(const _FP16 *__restrict src,
+                                  void *__restrict dst, int64_t k);
 
 /**
  * @brief Quantize _FP16 to q8_0 Quantization format
@@ -43,7 +43,7 @@ void __fallback_quantize_row_q8_0(const _FP16 *__restrict src, void *__restrict 
  * @return size_t total size of quantized data
  */
 size_t __fallback_quantize_q8_0(const _FP16 *src, void *dst, int64_t nrow,
-                     int64_t n_per_row, const float *quant_weights);
+                                int64_t n_per_row, const float *quant_weights);
 /**
  * @brief q8_0 to _FP16 dequantize
  *
@@ -696,11 +696,11 @@ void __fallback_ele_div(const unsigned N, const float *X, const float *Y,
  * @param C float* output
  * @param ldc Leading dimension of C
  */
+template <typename T = float>
 void __fallback_gemm_q4_0(const unsigned int M, const unsigned int N,
-                          const unsigned int K, const float *A,
+                          const unsigned int K, const T *A,
                           const unsigned int lda, const void *B,
-                          const unsigned int ldb, float *C,
-                          const unsigned int ldc);
+                          const unsigned int ldb, T *C, const unsigned int ldc);
 
 /**
  * @brief q4_K GEMM : A (M,K) * W.T (N,K) = O (M,N)
