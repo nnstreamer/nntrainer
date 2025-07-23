@@ -580,10 +580,10 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/tensor_wrap_specs.h
 %{_includedir}/nntrainer/cpu_backend.h
 %{_includedir}/nntrainer/fallback_internal.h
-%if 0%{?enable_blas}
+%if 0%{?enable-blas}
 %{_includedir}/nntrainer/cblas_interface.h
 %endif
-%if 0%{?enable_ggml}
+%if 0%{?enable-ggml}
 %{_includedir}/nntrainer/ggml_interface.h
 %endif
 %{_includedir}/nntrainer/bs_thread_pool.h
