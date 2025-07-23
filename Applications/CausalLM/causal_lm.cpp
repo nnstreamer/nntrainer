@@ -50,8 +50,8 @@ CausalLM::CausalLM(json &cfg, json &generation_cfg, json &nntr_cfg) {
     output_list.push_back("");
 
   // allocate memory for the internal buffer
-  ids_history =
-    (unsigned int *)malloc(BATCH_SIZE * MAX_SEQ_LEN * sizeof(unsigned int));
+  ids_history = (unsigned int *)malloc(static_cast<size_t>(BATCH_SIZE) *
+                                       MAX_SEQ_LEN * sizeof(unsigned int));
 
   // prep tokenizer
   tokenizer = tokenizers::Tokenizer::FromBlobJSON(
@@ -308,8 +308,9 @@ void CausalLM::run(const WSTR prompt, bool do_sample) {
 
   for (unsigned int b = 0; b < BATCH_SIZE; ++b) {
     for (unsigned int i = 0; i < input_len; ++i) {
-      input_sample[b * MAX_SEQ_LEN + i] = static_cast<float>(init_input[i]);
-      ids_history[b * MAX_SEQ_LEN + i] = init_input[i];
+      input_sample[static_cast<size_t>(b) * MAX_SEQ_LEN + i] =
+        static_cast<float>(init_input[i]);
+      ids_history[static_cast<size_t>(b) * MAX_SEQ_LEN + i] = init_input[i];
     }
   }
 
@@ -346,7 +347,8 @@ void CausalLM::run(const WSTR prompt, bool do_sample) {
 
   // Update generated token by prefill as an input
   for (unsigned int b = 0; b < BATCH_SIZE; ++b)
-    input_sample[b * MAX_SEQ_LEN] = static_cast<float>(id_list[b]);
+    input_sample[static_cast<size_t>(b) * MAX_SEQ_LEN] =
+      static_cast<float>(id_list[b]);
 
   auto start_generation = std::chrono::high_resolution_clock::now();
 
@@ -360,13 +362,14 @@ void CausalLM::run(const WSTR prompt, bool do_sample) {
     std::vector<unsigned int> ids_list(generate(output_interval[0], do_sample));
     if (token_generation_idx < input_len) {
       for (unsigned int b = 0; b < BATCH_SIZE; ++b) {
-        input_sample[b * MAX_SEQ_LEN] =
+        input_sample[static_cast<size_t>(b) * MAX_SEQ_LEN] =
           static_cast<float>(init_input[token_generation_idx]);
       }
       registerOutputs(tokenizer, ids_list, token_generation_idx, eos_list);
     } else {
       for (unsigned int b = 0; b < BATCH_SIZE; ++b) {
-        input_sample[b * MAX_SEQ_LEN] = static_cast<float>(ids_list[b]);
+        input_sample[static_cast<size_t>(b) * MAX_SEQ_LEN] =
+          static_cast<float>(ids_list[b]);
       }
       registerOutputs(tokenizer, ids_list, token_generation_idx, eos_list);
     }
