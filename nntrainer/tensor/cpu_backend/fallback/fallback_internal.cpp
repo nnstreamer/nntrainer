@@ -359,6 +359,7 @@ void __fallback_softmax(const unsigned int N, float *X, float *Y) {
   }
 }
 
+template <>
 void __fallback_gemm_q4_0(const unsigned int M, const unsigned int N,
                           const unsigned int K, const float *A,
                           const unsigned int lda, const void *B,
