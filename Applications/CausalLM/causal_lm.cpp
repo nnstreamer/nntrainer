@@ -13,6 +13,7 @@
  * @author Hyeonseok Lee <hs89.lee@samsung.com>
  * @author Eunju Yang <ej.yang@samsung.com>
  * @bug    No known bugs except for NYI items
+ * @brief  This file defines CausalLM's basic actions
  * @note   This causal_lm.h constructs a class for Transformer-based Causal
  * Language Model (CausalLM). It aims to support AutoModelForCausalLM with
  * nntrainer. It supports the following models:
