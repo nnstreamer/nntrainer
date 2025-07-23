@@ -1,13 +1,5 @@
-"""
-SPDX-License-Identifier: Apache-2.0
-Copyright (C) 2025 Eunju Yang <ej.yang@samsung.com>
-
-@file weights_converter.py
-@date 08 May 2026
-@this script is tested on transformers 4.53.2
-@note Qwen3-moe-30b-a3b
-@author Eunju Yang <ej.yang@samsung.com>
-"""
+## @file weight_converter.py
+## @brief weight conversion script for qwen3_moe model
 
 import argparse
 import torch

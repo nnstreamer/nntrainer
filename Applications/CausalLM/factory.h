@@ -19,6 +19,9 @@
 
 namespace causallm {
 
+/**
+ * @brief Factory class
+ */
 class Factory {
 public:
   using Creator =
