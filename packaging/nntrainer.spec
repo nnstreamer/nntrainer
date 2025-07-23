@@ -587,7 +587,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %endif
 %if 0%{?enable_ggml}
 %{_includedir}/nntrainer/ggml_interface.h
-%if 0%{?enable_ggml}
+%endif
 %{_includedir}/nntrainer/bs_thread_pool.h
 %{_includedir}/nntrainer/bs_thread_pool_manager.hpp
 %ifarch %{ix86} x86_64
