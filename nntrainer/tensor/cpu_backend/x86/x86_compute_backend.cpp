@@ -240,6 +240,7 @@ void softmax(const unsigned int N, float *X, float *Y) {
   __fallback_softmax(N, X, Y);
 }
 
+template<>
 void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc) {
@@ -379,5 +380,4 @@ void repack_q4_K_to_q4_K_8(void *W, void *repacked_W, size_t data_size,
   __fallback_repack_q4_K_to_q4_K_8(W, repacked_W, data_size, M, N);
 #endif
 }
-
 } /* namespace nntrainer */

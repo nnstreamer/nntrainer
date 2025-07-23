@@ -22,6 +22,37 @@ namespace nntrainer {
 
 #ifdef ENABLE_FP16
 /**
+ * @brief Quantize float to q6_K Quantization format
+ *
+ * @param src float* src to be quantized
+ * @param dst void* dst to store quantized data
+ * @param k number of elements in src
+ */
+void __fallback_quantize_row_q8_0(const _FP16 *__restrict src, void *__restrict dst,
+                       int64_t k);
+
+/**
+ * @brief Quantize _FP16 to q8_0 Quantization format
+ *
+ * @param src input src to be quantized
+ * @param dst output destination for quantized data
+ * @param nrow number of row
+ * @param n_per_row number of elements per row
+ * @param quant_weights additional information for quantization. Currently in no
+ * use.
+ * @return size_t total size of quantized data
+ */
+size_t __fallback_quantize_q8_0(const _FP16 *src, void *dst, int64_t nrow,
+                     int64_t n_per_row, const float *quant_weights);
+/**
+ * @brief q8_0 to _FP16 dequantize
+ *
+ * @param x_raw input src to be dequantized
+ * @param y output destination for dequantized data
+ * @param k data length
+ */
+void __fallback_dequantize_row_q8_0(const void *x_raw, _FP16 *y, int64_t k);
+/**
  * @brief     sscal computation : X = alpha * X
  * @param[in] N number of elements in X
  * @param[in] X __fp16 * for Vector X

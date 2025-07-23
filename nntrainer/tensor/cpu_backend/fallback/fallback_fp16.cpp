@@ -16,6 +16,19 @@
 #include <nntrainer_error.h>
 
 namespace nntrainer {
+void quantize_row_q8_0(const _FP16 *__restrict src, void *__restrict dst,
+                       int64_t k) {
+  __fallback_quantize_row_q8_0(src, dst, k);
+}
+
+size_t quantize_q8_0(const _FP16 *src, void *dst, int64_t nrow,
+                     int64_t n_per_row, const float *quant_weights) {
+  return __fallback_quantize_q8_0(src, dst, nrow, n_per_row, quant_weights);
+}
+
+void dequantize_row_q8_0(const void *x_raw, _FP16 *y, int64_t k) {
+  __fallback_dequantize_row_q8_0(x_raw, y, k);
+}
 
 void sscal(const unsigned int N, const float alpha, _FP16 *X,
            const unsigned int incX) {
