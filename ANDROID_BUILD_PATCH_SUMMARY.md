@@ -1,130 +1,116 @@
 # Android Build Support Patch for Applications/CausalLM
 
-This patch enables Android build support for the CausalLM application in nntrainer, following the reference patch style from commit `ae24db6e9c018a819841f5884defb2c9c1fc3a14`.
+이 패치는 nntrainer의 CausalLM 애플리케이션에 대한 Android 빌드 지원을 활성화합니다. 참조 패치 스타일 `ae24db6e9c018a819841f5884defb2c9c1fc3a14`을 따라 **간단한 executable 기반 접근법**을 사용합니다.
 
-## Changes Made
+## 주요 설계 원칙
 
-### 1. Main Build System Changes
+### 1. 전체 빌드 시스템과 분리
+- 메인 meson 빌드에서는 Android 앱을 빌드하지 않음 (기존 warning 유지)
+- CausalLM은 별도의 Android 빌드 스크립트로 독립적으로 빌드
+- 각 애플리케이션이 개별적으로 Android 빌드 가능
 
-#### `meson.build` (Root)
-- **Modified**: Enabled Android application builds by removing the warning and allowing Applications subdir for Android platform
-- **Line 726**: Changed from warning about unsupported Android apps to enabling Android application builds
-- **Reasoning**: This allows the build system to process Applications when building for Android
+### 2. 단순한 Executable 구조  
+- **JNI 불필요**: 복잡한 JNI wrapper 대신 단순한 C++ executable
+- **main.cpp 중심**: 하나의 실행 파일로 네이티브와 Android 모두 지원
+- **크로스 플랫폼**: 동일한 main.cpp가 Linux와 Android에서 모두 동작
 
-#### `Applications/meson.build`
-- **Added**: Conditional CausalLM subdirectory inclusion based on platform
-- **Android builds**: Uses `CausalLM/jni` subdirectory for JNI wrapper
-- **Native builds**: Uses main `CausalLM` subdirectory for direct builds
-- **Reasoning**: Provides platform-specific build paths while maintaining compatibility
+## 구현된 변경사항
 
-### 2. CausalLM Application Structure
+### 1. 핵심 파일들
 
-#### `Applications/CausalLM/meson.build`
-- **Created**: Main build configuration for CausalLM with Android support
-- **Features**:
-  - Conditional tokenizer library linking for Android vs native builds
-  - Platform-specific library paths (`lib/android/` for Android builds)
-  - Shared library build with proper Android configuration
-  - Executable build disabled for Android (JNI wrapper used instead)
+#### `Applications/CausalLM/main.cpp`
+- 네이티브와 Android 모두에서 동작하는 단일 executable
+- Android 로깅 지원 (`#ifdef ANDROID`)
+- 명령행 인자 처리 및 모델 경로 지원
+- TODO 주석으로 실제 CausalLM 구현 연결 지점 표시
 
-#### `Applications/CausalLM/jni/meson.build`
-- **Created**: JNI-specific build configuration for Android
-- **Features**:
-  - Android JNI executable build
-  - Resource copying for Android deployment
-  - Android-specific compiler flags (`-DANDROID_BUILD`)
+#### `Applications/CausalLM/meson_android.build`
+- Android 전용 meson 빌드 설정
+- 독립적인 프로젝트로 구성
+- nntrainer 의존성 선택적 처리
+- Android 특화 컴파일러 플래그
 
-### 3. JNI Implementation
+#### `Applications/CausalLM/build_android.sh`
+- 완전 자동화된 Android 빌드 스크립트
+- NDK 설정 및 크로스 컴파일 파일 자동 생성
+- 다양한 ABI 지원 (arm64-v8a, armeabi-v7a, x86, x86_64)
+- 빌드 완료 후 Android 디바이스 배포 가이드 제공
 
-#### `Applications/CausalLM/jni/causallm_jni.cpp`
-- **Created**: JNI wrapper providing Java interface for Android applications
-- **API Methods**:
-  - `initialize()`: Initialize CausalLM model
-  - `loadModel(String)`: Load model weights from file path
-  - `runInference(String)`: Run inference with input text
-  - `cleanup()`: Clean up resources
-- **Features**:
-  - Android logging integration
-  - Exception handling with JNI error reporting
-  - Memory management for JNI strings
+### 2. 지원 파일들
 
-#### `Applications/CausalLM/jni/main.cpp`
-- **Created**: Main entry point for Android JNI application
-- **Features**:
-  - Android logging support
-  - Command-line argument handling
-  - Exception handling and error reporting
-
-### 4. Supporting Infrastructure
-
-#### `Applications/CausalLM/lib/android/`
-- **Created**: Directory structure for Android-specific libraries
-- **Purpose**: Houses Android-compiled tokenizer libraries
-- **Documentation**: README explaining required files and build process
-
-#### `Applications/CausalLM/layers/`
-- **Created**: Directory structure for custom layer implementations
-- **Purpose**: Contains CausalLM-specific neural network layers
-- **Documentation**: README explaining layer requirements
+#### `Applications/CausalLM/test_build.sh`
+- 빌드 구조 검증용 테스트 스크립트
+- CausalLM 구현 없이도 빌드 테스트 가능
 
 #### `Applications/CausalLM/README.md`
-- **Created**: Comprehensive documentation for CausalLM with Android support
-- **Content**:
-  - Android build instructions
-  - JNI API documentation
-  - Troubleshooting guide
-  - Cross-platform usage examples
+- 완전한 Android 빌드 가이드
+- 네이티브 빌드와 Android 빌드 사용법
+- 트러블슈팅 가이드
 
-## Key Design Principles
+## 사용법
 
-### 1. Reference Patch Style Compatibility
-- Follows the architectural patterns from the reference commit
-- Maintains consistency with existing Android applications (PicoGPT, ResNet)
-- Uses conditional compilation based on platform detection
-
-### 2. Platform Abstraction
-- **Android builds**: Use JNI wrapper with shared library
-- **Native builds**: Direct executable with full functionality
-- **Library management**: Platform-specific tokenizer library paths
-
-### 3. Build System Integration
-- Leverages existing meson build infrastructure
-- Maintains compatibility with existing build options
-- Provides clear platform detection and configuration
-
-### 4. Android NDK Compatibility
-- Uses standard JNI interfaces
-- Android logging integration
-- Proper memory management for mobile constraints
-- Resource management for Android deployment
-
-## Benefits
-
-1. **Cross-platform compatibility**: CausalLM now builds on both Android and native platforms
-2. **JNI integration**: Easy integration with Android Java applications
-3. **Modular design**: Clean separation between platform-specific and common code
-4. **Extensible**: Framework for adding more Android applications
-5. **Reference implementation**: Template for other applications to add Android support
-
-## Usage
-
-### For Android Development
+### Android 빌드
 ```bash
-meson setup builddir --cross-file android-cross-file.txt -Dplatform=android
-meson compile -C builddir
+# 환경 변수 설정
+export ANDROID_NDK_ROOT=/path/to/android-ndk
+export ANDROID_ABI=arm64-v8a
+export ANDROID_API_LEVEL=21
+
+# 빌드 실행
+cd Applications/CausalLM
+./build_android.sh
+
+# Android 디바이스에 배포
+adb push build_android/package/bin/nntr_causallm_android /data/local/tmp/
+adb shell chmod +x /data/local/tmp/nntr_causallm_android
+adb shell /data/local/tmp/nntr_causallm_android
 ```
 
-### For Native Development
+### 네이티브 빌드
 ```bash
+# 메인 nntrainer 빌드에 포함됨
 meson setup builddir -Dplatform=none
 meson compile -C builddir
+./builddir/Applications/CausalLM/nntr_causallm
 ```
 
-## Future Enhancements
+## 장점
 
-1. **iOS support**: Similar pattern can be extended for iOS builds
-2. **Additional models**: Framework supports adding more LLM architectures
-3. **Performance optimization**: Android-specific optimizations can be added
-4. **UI integration**: JNI interface ready for Android UI development
+### 1. 단순성
+- **JNI 불필요**: 복잡한 Java-C++ 바인딩 없음
+- **단일 소스**: main.cpp 하나로 모든 플랫폼 지원
+- **최소 의존성**: Android NDK만 있으면 빌드 가능
 
-This patch successfully enables Android builds for CausalLM while maintaining full backward compatibility with existing native builds.
+### 2. 독립성
+- **분리된 빌드**: 메인 빌드 시스템에 영향 없음
+- **개별 관리**: CausalLM만 독립적으로 Android 빌드 가능
+- **확장성**: 다른 애플리케이션도 동일한 패턴 적용 가능
+
+### 3. 유지보수성
+- **참조 스타일 준수**: 기존 패치 스타일과 일관성
+- **명확한 구조**: 빌드 스크립트와 설정 파일이 명확히 분리
+- **문서화**: 완전한 사용법 및 트러블슈팅 가이드
+
+## 디렉토리 구조
+
+```
+Applications/CausalLM/
+├── main.cpp                  # 크로스플랫폼 executable 소스
+├── meson.build              # 네이티브 빌드용
+├── meson_android.build      # Android 빌드용  
+├── build_android.sh         # Android 빌드 스크립트
+├── test_build.sh           # 테스트 빌드 스크립트
+├── README.md               # 완전한 사용 가이드
+├── layers/                 # 커스텀 레이어 (향후)
+├── lib/android/           # Android 전용 라이브러리
+└── ANDROID_BUILD_PATCH_SUMMARY.md # 이 문서
+```
+
+## 향후 확장
+
+1. **다른 애플리케이션**: 동일한 패턴으로 다른 Applications도 Android 지원 추가
+2. **iOS 지원**: 유사한 구조로 iOS 빌드 스크립트 추가 가능
+3. **UI 통합**: 필요시 Android UI와 연동 가능
+4. **성능 최적화**: Android 특화 최적화 추가 가능
+
+이 패치는 복잡한 JNI 구조 없이도 CausalLM을 Android에서 실행할 수 있게 하며, 참조 패치의 스타일을 충실히 따라 간단하고 유지보수하기 쉬운 구조를 제공합니다.

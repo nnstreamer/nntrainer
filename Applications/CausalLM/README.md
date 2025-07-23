@@ -6,7 +6,7 @@ This application provides examples to run causal language model (LLM) inference 
 
 - **Cross-platform support**: Works on Linux, Android, and other platforms
 - **Multiple model architectures**: Supports Llama, Qwen3, Qwen3MoE models
-- **Android JNI integration**: Full Android NDK support with JNI wrapper
+- **Simple executable**: Single executable for both native and Android platforms
 - **Efficient inference**: Optimized for mobile and embedded devices
 
 ## Supported Models
@@ -22,31 +22,42 @@ This application provides examples to run causal language model (LLM) inference 
 
 1. **Android NDK**: Version 21 or higher
 2. **Meson build system**: Version 0.55 or higher
-3. **Android tokenizer library**: Place in `lib/android/` directory
+3. **Android tokenizer library**: Place in `lib/android/` directory (optional)
 
 ### Building for Android
 
-1. **Configure for Android platform**:
+1. **Set environment variables**:
    ```bash
-   meson setup builddir --cross-file android-cross-file.txt -Dplatform=android
+   export ANDROID_NDK_ROOT=/path/to/android-ndk
+   export ANDROID_ABI=arm64-v8a  # or armeabi-v7a, x86, x86_64
+   export ANDROID_API_LEVEL=21
    ```
 
-2. **Build the application**:
+2. **Run the build script**:
    ```bash
-   meson compile -C builddir
+   cd Applications/CausalLM
+   ./build_android.sh
    ```
 
-3. **Install to device**:
+3. **Deploy to Android device**:
    ```bash
-   meson install -C builddir
+   adb push build_android/package/bin/nntr_causallm_android /data/local/tmp/
+   adb shell chmod +x /data/local/tmp/nntr_causallm_android
+   adb shell /data/local/tmp/nntr_causallm_android
    ```
 
-### Android-Specific Features
+### Android Build Script Options
 
-- **JNI Interface**: Native Java interface for Android apps
-- **Android logging**: Uses Android log system for debugging
-- **Resource management**: Automatic resource copying for Android
-- **Memory optimization**: Optimized for mobile memory constraints
+```bash
+# Show help
+./build_android.sh --help
+
+# Clean build directory
+./build_android.sh clean
+
+# Build with specific ABI
+ANDROID_ABI=armeabi-v7a ./build_android.sh
+```
 
 ## Native Build (Linux/Desktop)
 
@@ -64,6 +75,7 @@ This application provides examples to run causal language model (LLM) inference 
 
 3. Compile the application:
    ```bash
+   # From the main nntrainer directory
    meson setup builddir -Dplatform=none
    meson compile -C builddir
    ```
@@ -74,24 +86,20 @@ This application provides examples to run causal language model (LLM) inference 
    ./nntr_causallm /path/to/model/config/folder/
    ```
 
-## JNI API (Android)
+## Usage Examples
 
-The Android build provides the following JNI methods:
+### Native Linux
+```bash
+./nntr_causallm /home/user/models/qwen3-4b/
+```
 
-```java
-public class CausalLM {
-    // Initialize the CausalLM model
-    public native boolean initialize();
-    
-    // Load model weights from file
-    public native boolean loadModel(String modelPath);
-    
-    // Run inference with input text
-    public native String runInference(String input);
-    
-    // Cleanup resources
-    public native void cleanup();
-}
+### Android
+```bash
+# Copy model to device first
+adb push /home/user/models/qwen3-4b/ /data/local/tmp/qwen3-4b/
+
+# Run on device
+adb shell /data/local/tmp/nntr_causallm_android /data/local/tmp/qwen3-4b/
 ```
 
 ## Directory Structure
@@ -99,11 +107,10 @@ public class CausalLM {
 ```
 Applications/CausalLM/
 ├── README.md                 # This file
-├── meson.build              # Main build configuration
-├── jni/                     # Android JNI wrapper
-│   ├── meson.build         # JNI build configuration
-│   ├── main.cpp            # JNI main entry point
-│   └── causallm_jni.cpp    # JNI interface implementation
+├── main.cpp                  # Main executable source
+├── meson.build              # Native build configuration
+├── meson_android.build      # Android build configuration
+├── build_android.sh         # Android build script
 ├── layers/                  # Custom layer implementations
 │   └── README.md           # Layer documentation
 ├── lib/                    # External libraries
@@ -114,23 +121,21 @@ Applications/CausalLM/
 
 ## Build Configuration
 
-The build system automatically detects the target platform and configures accordingly:
+The build system automatically detects the target platform:
 
-- **Android builds**: Uses JNI wrapper, Android-specific libraries, and optimized settings
-- **Native builds**: Direct executable build with full feature set
-- **Cross-compilation**: Supports various target architectures
+- **Android builds**: Uses `meson_android.build` with Android-specific settings
+- **Native builds**: Uses main `meson.build` with full feature set
+- **Cross-compilation**: Supports various Android architectures (arm64-v8a, armeabi-v7a, x86, x86_64)
 
 ## Dependencies
 
 ### Core Dependencies
-- nntrainer library
-- nntrainer C++ API
-- OpenMP (for parallel processing)
+- nntrainer library (optional for Android builds)
+- Standard C++ library
 
 ### Android-Specific Dependencies
 - Android NDK
 - Android logging library
-- JNI headers
 
 ### Optional Dependencies
 - Tokenizer library (libtokenizers_c.a)
@@ -140,23 +145,23 @@ The build system automatically detects the target platform and configures accord
 
 ### Android Build Issues
 
-1. **Missing tokenizer library**: Place `libtokenizers_c.a` in `lib/android/`
-2. **NDK version**: Ensure Android NDK 21+ is installed
-3. **Architecture mismatch**: Build tokenizer for target Android architecture
+1. **NDK not found**: Set `ANDROID_NDK_ROOT` environment variable
+2. **Build script permission**: Run `chmod +x build_android.sh`
+3. **Cross-compilation errors**: Ensure NDK version is 21 or higher
 
 ### Runtime Issues
 
-1. **Model loading**: Ensure model files are accessible on device
-2. **Memory constraints**: Use appropriate model size for device capabilities
-3. **Permissions**: Ensure app has necessary file access permissions
+1. **Permission denied**: Run `adb shell chmod +x /data/local/tmp/nntr_causallm_android`
+2. **Model loading**: Ensure model files are accessible on device
+3. **Library not found**: Check if required .so files are in the same directory
 
 ## Contributing
 
 Feel free to contribute improvements, especially for:
 - Additional model architectures
 - Performance optimizations
-- Android UI integration
 - iOS support
+- Enhanced Android integration
 
 ## License
 

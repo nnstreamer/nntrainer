@@ -120,7 +120,7 @@ EOF
 
 # Build for Android
 build_android() {
-    echo_info "Building CausalLM for Android..."
+    echo_info "Building CausalLM executable for Android..."
     echo_info "ABI: $ABI, API Level: $API_LEVEL"
     
     local cross_file="$BUILD_DIR/android-cross-file.txt"
@@ -140,11 +140,12 @@ build_android() {
     
     # Copy source files to build directory
     echo_info "Copying source files..."
-    cp -r "$SCRIPT_DIR"/*.cpp "$BUILD_DIR/" 2>/dev/null || true
+    cp "$SCRIPT_DIR/main.cpp" "$BUILD_DIR/" 2>/dev/null || true
     cp -r "$SCRIPT_DIR"/*.h "$BUILD_DIR/" 2>/dev/null || true
     cp -r "$SCRIPT_DIR/layers" "$BUILD_DIR/" 2>/dev/null || true
     cp -r "$SCRIPT_DIR/lib" "$BUILD_DIR/" 2>/dev/null || true
     
+    # Setup meson build
     meson setup build_temp \
         --cross-file="$cross_file" \
         -Dbuildtype=release
@@ -153,27 +154,34 @@ build_android() {
     cd build_temp
     meson compile
     
-    echo_info "Android build completed successfully!"
-    echo_info "Build artifacts are in: $BUILD_DIR/build_temp"
+    echo_info "Android executable build completed successfully!"
+    echo_info "Executable location: $BUILD_DIR/build_temp/nntr_causallm_android"
 }
 
-# Copy libraries and create package
+# Copy executable and create package
 package_android() {
-    echo_info "Packaging Android build..."
+    echo_info "Packaging Android executable..."
     
     local package_dir="$BUILD_DIR/package"
-    mkdir -p "$package_dir/lib/$ABI"
-    mkdir -p "$package_dir/include"
+    mkdir -p "$package_dir/bin"
     
-    # Copy shared libraries
-    find "$BUILD_DIR" -name "*.so" -exec cp {} "$package_dir/lib/$ABI/" \;
-    
-    # Copy headers if needed
-    if [ -d "$SCRIPT_DIR/include" ]; then
-        cp -r "$SCRIPT_DIR/include"/* "$package_dir/include/"
+    # Copy executable
+    local exe_path="$BUILD_DIR/build_temp/nntr_causallm_android"
+    if [ -f "$exe_path" ]; then
+        cp "$exe_path" "$package_dir/bin/"
+        echo_info "Executable copied to package"
+    else
+        echo_warn "Executable not found at: $exe_path"
     fi
     
+    # Copy any shared libraries if they exist
+    find "$BUILD_DIR/build_temp" -name "*.so" -exec cp {} "$package_dir/bin/" \; 2>/dev/null || true
+    
     echo_info "Android package created in: $package_dir"
+    echo_info "To deploy to Android device:"
+    echo_info "  adb push $package_dir/bin/nntr_causallm_android /data/local/tmp/"
+    echo_info "  adb shell chmod +x /data/local/tmp/nntr_causallm_android"
+    echo_info "  adb shell /data/local/tmp/nntr_causallm_android"
 }
 
 # Main execution

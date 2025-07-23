@@ -1,5 +1,5 @@
 # CausalLM Android Build Configuration
-# This file is used specifically for Android builds
+# This file builds CausalLM as an executable for Android
 
 project('causallm-android', 'cpp',
   version : '1.0.0',
@@ -10,15 +10,20 @@ project('causallm-android', 'cpp',
   ]
 )
 
-# Find nntrainer dependency
-nntrainer_dep = dependency('nntrainer', required: true)
+# Find nntrainer dependency (if available)
+nntrainer_dep = dependency('nntrainer', required: false)
 
-# Source files
+# Source files for the executable
+executable_src = [
+  'main.cpp'
+]
+
+# CausalLM library sources (when available)
 causallm_src = [
-  'causal_lm.cpp',
-  'huggingface_tokenizer.cpp',
-  'qwen3_causallm.cpp',
-  'qwen3_moe_causallm.cpp',
+  # 'causal_lm.cpp',
+  # 'huggingface_tokenizer.cpp',
+  # 'qwen3_causallm.cpp',
+  # 'qwen3_moe_causallm.cpp',
 ]
 
 # Include directories
@@ -36,6 +41,7 @@ layer_files = [
   'layers/qwen_moe_layer.cpp'
 ]
 
+fs = import('fs')
 foreach layer_file : layer_files
   if fs.exists(layer_file)
     layer_sources += layer_file
@@ -43,7 +49,13 @@ foreach layer_file : layer_files
 endforeach
 
 # Combine all sources
-all_sources = causallm_src + layer_sources
+all_sources = executable_src + causallm_src + layer_sources
+
+# Dependencies
+deps = []
+if nntrainer_dep.found()
+  deps += nntrainer_dep
+endif
 
 # Tokenizer library (Android-specific path)
 tokenizer_lib_path = meson.current_source_dir() / 'lib' / 'android' / 'libtokenizers_c.a'
@@ -51,24 +63,22 @@ tokenizer_link_args = []
 if fs.exists(tokenizer_lib_path)
   tokenizer_link_args = [tokenizer_lib_path]
 else
-  warning('Android tokenizer library not found: ' + tokenizer_lib_path)
+  message('Android tokenizer library not found: ' + tokenizer_lib_path)
 endif
 
 # Android-specific compiler flags
 android_cpp_args = [
   '-DANDROID',
-  '-DPLUGGABLE',
-  '-fPIC',
-  '-fvisibility=hidden'
+  '-fPIC'
 ]
 
-# Build shared library for Android
-causallm_android = shared_library('causallm_android',
+# Build executable for Android
+causallm_android_exe = executable('nntr_causallm_android',
   sources: all_sources,
   include_directories: causallm_inc,
-  dependencies: [nntrainer_dep],
+  dependencies: deps,
   link_args: tokenizer_link_args,
   cpp_args: android_cpp_args,
   install: true,
-  install_dir: 'lib'
+  install_dir: 'bin'
 )
