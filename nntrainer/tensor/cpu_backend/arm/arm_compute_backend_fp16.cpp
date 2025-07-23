@@ -15,6 +15,7 @@
 #include <fallback_internal.h>
 #include <neon_impl.h>
 #include <nntrainer_error.h>
+#include <ggml_interface.h>
 
 #define ROW_MAJOR 0
 #define COL_MAJOR 1
@@ -287,4 +288,87 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
   neon::compute_rotary_emb_value(width, dim, half_, inout, cos_, sin_);
 }
 
+void compute_fp16vcache_fp32_transposed(int row_num, const float *in,
+                                        const uint16_t *vcache, float *output,
+                                        int num_cache_head, int gqa_size,
+                                        int head_dim) {
+  neon::compute_fp16vcache_fp32_transposed(
+    row_num, in, reinterpret_cast<const _FP16 *>(vcache), output,
+    num_cache_head, gqa_size, head_dim);
+}
+
+template <>
+void compute_kcaches(const float *A, const uint16_t *B, float *output,
+                     int num_rows, int N, int chunk_size, int group_size,
+                     int tile_size) {
+  neon::compute_kcaches<_FP16>(A, reinterpret_cast<const _FP16 *>(B), output,
+                               num_rows, N, chunk_size, group_size, tile_size);
+}
+
+void compute_rotary_emb_value(unsigned int width, unsigned int dim,
+                              unsigned int half_, float *inout, void *output,
+                              const float *cos_, const float *sin_,
+                              bool only_convert_to_fp16) {
+  neon::compute_rotary_emb_value(width, dim, half_, inout, output, cos_, sin_,
+                                 only_convert_to_fp16);
+}
+
+void softmax_row_inplace(_FP16 *qk_out, size_t start_row, size_t end_row,
+                         size_t num_heads) {
+  nntrainer::neon::softmax_row_inplace(qk_out, start_row, end_row, num_heads);
+}
+
+void softmax_row(_FP16 *qk_out, size_t start_row, size_t end_row,
+                 size_t num_heads) {
+  nntrainer::neon::softmax_row(qk_out, start_row, end_row, num_heads);
+}
+
+void compute_fp16vcache_transposed(int row_num, const _FP16 *in,
+                                   const _FP16 *vcache, _FP16 *output,
+                                   int num_cache_head, int gqa_size,
+                                   int head_dim) {
+  neon::compute_fp16vcache_transposed(row_num, in, vcache, output,
+                                      num_cache_head, gqa_size, head_dim);
+}
+
+void compute_kcaches(const _FP16 *A, const _FP16 *B, _FP16 *output,
+                     int num_rows, int N, int chunk_size, int group_size,
+                     int tile_size) {
+  nntrainer::neon::compute_kcaches(A, B, output, num_rows, N, chunk_size,
+                                   group_size, tile_size);
+}
+
+void compute_rotary_emb_value(unsigned int width, unsigned int dim,
+                              unsigned int half_, _FP16 *inout,
+                              const _FP16 *cos_, const _FP16 *sin_) {
+  neon::compute_rotary_emb_value(width, dim, half_, inout, cos_, sin_);
+}
+
+size_t quantize_q8_0(const _FP16 *src, void *dst, int64_t nrow,
+                     int64_t n_per_row, const float *quant_weights) {
+#ifdef ENABLE_GGML
+  return __nntr_quantize_q8_0(src, dst, nrow, n_per_row, quant_weights);
+#else
+  return __fallback_quantize_q8_0(src, dst, nrow, n_per_row, quant_weights);
+#endif
+}
+
+void dequantize_row_q8_0(const void *x_raw, _FP16 *y, int64_t k) {
+#ifdef ENABLE_GGML
+  __nntr_dequantize_row_q8_0(x_raw, y, k);
+#else
+  __fallback_dequantize_row_q8_0(x_raw, y, k);
+#endif
+}
+
+template<>
+void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
+               const _FP16 *A, const unsigned int lda, const void *B,
+               const unsigned int ldb, _FP16 *C, const unsigned int ldc) {
+#ifdef ENABLE_GGML
+  return __ggml_q4_0_4x8_q8_0_GEMM<_FP16>(M, N, K, A, lda, B, ldb, C, ldc);
+#else
+  return __fallback_gemm_q4_0(M, N, K, A, lda, B, ldb, C, ldc);
+#endif
+}
 } /* namespace nntrainer */
