@@ -17,6 +17,9 @@
 #include <nntrainer_error.h>
 #include <tensor_dim.h>
 #include <x86_compute_backend.h>
+#ifdef USE_BLAS
+#include <cblas_interface.h>
+#endif
 
 #define ROW_MAJOR 0
 #define COL_MAJOR 1
@@ -97,6 +100,8 @@ void sgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
            const float alpha, const _FP16 *A, const unsigned int lda,
            const _FP16 *B, const unsigned int ldb, const float beta, _FP16 *C,
            const unsigned int ldc) {
+#ifdef USE_BLAS
+
   float *A_ = new float[M * K];
   float *B_ = new float[N * K];
   float *C_ = new float[M * N];
@@ -107,17 +112,23 @@ void sgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
 
   __cblas_sgemm(TStorageOrder, TransA, TransB, M, N, K, alpha, A_, lda, B_, ldb,
                 beta, C_, ldc);
+
   scopy(M * N, C_, 1, C, 1);
 
   delete[] A_;
   delete[] B_;
   delete[] C_;
+#else
+  __fallback_sgemm(TStorageOrder, TransA, TransB, M, N, K, alpha, A_, lda, B_,
+                   ldb, beta, C_, ldc);
+#endif
 }
 
 void sgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
            const unsigned int N, const float alpha, const _FP16 *A,
            const unsigned int lda, const _FP16 *X, const unsigned int incX,
            const float beta, _FP16 *Y, const unsigned int incY) {
+#ifdef USE_BLAS
   unsigned int lenX = (TransA) ? 1 + (M - 1) * (incX) : 1 + (N - 1) * (incX);
   unsigned int lenY = (TransA) ? 1 + (N - 1) * (incY) : 1 + (M - 1) * (incY);
 
@@ -129,7 +140,7 @@ void sgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
   scopy(lenX, X, 1, X_, 1);
   scopy(lenY, Y, 1, Y_, 1);
 
-  __cblas_sgemv(TStorageOrder, TransA, M, N, alpha, A_, lda, X_, incX, beta, Y_,
+  __cblas_sgemv(TStorageOrder, TransA, M, N, alpha, A, lda, X, incX, beta, Y,
                 incY);
 
   scopy(lenY, Y_, 1, Y, 1);
@@ -137,6 +148,11 @@ void sgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
   delete[] A_;
   delete[] X_;
   delete[] Y_;
+
+#else
+  __fallback_sgemv(TStorageOrder, TransA, M, N, alpha, A, lda, X, incX, beta, Y,
+                   incY);
+#endif
 }
 
 void shgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
