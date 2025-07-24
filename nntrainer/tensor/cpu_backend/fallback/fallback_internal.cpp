@@ -388,6 +388,7 @@ float __fallback_dot_q6_K_f32(const unsigned int K, const void *v_q6_K,
   return 0;
 }
 
+template <>
 void __fallback_gemm_q6_K(const unsigned int M, const unsigned int N,
                           const unsigned int K, const float *A,
                           const unsigned int lda, const void *B,
@@ -426,10 +427,12 @@ void __fallback_quantize_row_q6_K(const float *src, void *dst, int64_t k) {
   throw std::runtime_error("NYI : __fallback_quantize_row_q6_K");
 }
 
+template <>
 void __fallback_quantize_row_q8_K(const float *src, void *dst, int64_t k) {
   throw std::runtime_error("NYI : __fallback_quantize_row_q8_K");
 }
 
+template <>
 void __fallback_dequantize_row_q8_K(const void *x, float *y, int64_t k) {
   throw std::runtime_error("NYI : __fallback_dequantize_row_q8_K");
 }
