@@ -730,14 +730,14 @@ void __fallback_gemm_q4_K(const unsigned int M, const unsigned int N,
  * @param lda Leading dimension of A
  * @param B (void*) (block_q4_K*) for Offline-quantized transposed weight
  * @param ldb Leading dimenstion of B
- * @param C float* output
+ * @param C T* output
  * @param ldc Leading dimension of C
  */
+template <typename T = float>
 void __fallback_gemm_q6_K(const unsigned int M, const unsigned int N,
-                          const unsigned int K, const float *A,
+                          const unsigned int K, const T *A,
                           const unsigned int lda, const void *B,
-                          const unsigned int ldb, float *C,
-                          const unsigned int ldc);
+                          const unsigned int ldb, T *C, const unsigned int ldc);
 /**
  * @brief (1xK)*(Kx1) dot product for q6_K and q8_K vectors
  *
@@ -813,7 +813,8 @@ void __fallback_quantize_row_q6_K(const float *src, void *dst, int64_t k);
  * @param dst void* dst to store quantized data
  * @param k number of elements in src
  */
-void __fallback_quantize_row_q8_K(const float *src, void *dst, int64_t k);
+template <typename T = float>
+void __fallback_quantize_row_q8_K(const T *src, void *dst, int64_t k);
 
 /**
  * @brief dequantize row of q4_K data to float
@@ -841,7 +842,8 @@ void __fallback_dequantize_row_q6_K(const void *x, float *y, int64_t k);
  * @param y dequantized data output
  * @param k number of elements in x
  */
-void __fallback_dequantize_row_q8_K(const void *x, float *y, int64_t k);
+template <typename T = float>
+void __fallback_dequantize_row_q8_K(const void *x, T *y, int64_t k);
 
 /**
  * @brief repack q40 to q40x8

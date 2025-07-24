@@ -752,7 +752,7 @@ bool is_valid(const unsigned int N, const float *X);
  * @param lda Leading dimension of A
  * @param B (void*) (block_q4_K*) for Offline-quantized transposed weight
  * @param ldb Leading dimenstion of B
- * @param C float* output
+ * @param C T* output
  * @param ldc Leading dimension of C
  */
 template <typename T = float>
@@ -785,28 +785,13 @@ void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
  * @param lda Leading dimension of A
  * @param B (void*) (block_q4_K*) for Offline-quantized transposed weight
  * @param ldb Leading dimenstion of B
- * @param C float* output
+ * @param C T* output
  * @param ldc Leading dimension of C
  */
+template <typename T = float>
 void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
-               const float *A, const unsigned int lda, const void *B,
-               const unsigned int ldb, float *C, const unsigned int ldc);
-/**
- * @brief (1xK)*(Kx1) dot product for q6_K and q8_K vectors
- *
- * @param M Original row size of output
- * @param N Original col size of output
- * @param K Hidden size
- * @param A Input activation to be online-runtime quantized to q6_K_MxN format
- * @param lda Leading dimension of A
- * @param B (void*) (block_q6_K*) for Offline-quantized transposed weight
- * @param ldb Leading dimenstion of B
- * @param C float* output
- * @param ldc Leading dimension of C
- */
-void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
-               const float *A, const unsigned int lda, const void *B,
-               const unsigned int ldb, float *C, const unsigned int ldc);
+               const T *A, const unsigned int lda, const void *B,
+               const unsigned int ldb, T *C, const unsigned int ldc);
 
 /**
  * @brief
@@ -882,7 +867,8 @@ void dequantize_row_q6_K(const void *x, float *y, int64_t k);
  * @param y dequantized data output
  * @param k number of elements in x
  */
-void dequantize_row_q8_K(const void *x, float *y, int64_t k);
+template <typename T = float>
+void dequantize_row_q8_K(const void *x, T *y, int64_t k);
 
 /**
  * @brief repack q40 to q40x8
