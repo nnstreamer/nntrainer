@@ -87,9 +87,6 @@ cd "build-android-$TARGET_ABI"
 ANDROID_PLATFORM="android-29"
 ANDROID_STL="c++_static"
 
-# Set Rust environment variables for cross-compilation
-export CARGO_TARGET_DIR="$BUILD_DIR/tokenizers-cpp/build-android-$TARGET_ABI/rust"
-
 # Detect platform for NDK paths
 if [[ "$OSTYPE" == "darwin"* ]]; then
     NDK_HOST="darwin-x86_64"
@@ -101,6 +98,16 @@ else
     echo "Warning: Unknown platform $OSTYPE, assuming linux-x86_64"
     NDK_HOST="linux-x86_64"
 fi
+
+# Set Rust environment variables for cross-compilation
+export CARGO_TARGET_DIR="$BUILD_DIR/tokenizers-cpp/build-android-$TARGET_ABI/rust"
+
+# Additional Rust configuration for Android
+export CARGO_BUILD_TARGET="$RUST_TARGET"
+export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$ANDROID_NDK/toolchains/llvm/prebuilt/$NDK_HOST/bin/aarch64-linux-android29-clang"
+export CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_LINKER="$ANDROID_NDK/toolchains/llvm/prebuilt/$NDK_HOST/bin/armv7a-linux-androideabi29-clang"
+export CARGO_TARGET_I686_LINUX_ANDROID_LINKER="$ANDROID_NDK/toolchains/llvm/prebuilt/$NDK_HOST/bin/i686-linux-android29-clang"
+export CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER="$ANDROID_NDK/toolchains/llvm/prebuilt/$NDK_HOST/bin/x86_64-linux-android29-clang"
 
 export CC_aarch64_linux_android="$ANDROID_NDK/toolchains/llvm/prebuilt/$NDK_HOST/bin/aarch64-linux-android29-clang"
 export CXX_aarch64_linux_android="$ANDROID_NDK/toolchains/llvm/prebuilt/$NDK_HOST/bin/aarch64-linux-android29-clang++"
@@ -125,53 +132,71 @@ cmake .. \
     -DCMAKE_BUILD_TYPE=Release \
     -DBUILD_SHARED_LIBS=OFF \
     -DTOKENIZERS_CPP_BUILD_TESTS=OFF \
-    -DTOKENIZERS_CPP_BUILD_EXAMPLES=OFF
+    -DTOKENIZERS_CPP_BUILD_EXAMPLES=OFF \
+    -DCMAKE_VERBOSE_MAKEFILE=ON
 
 # Build the library
 echo "Building tokenizers-cpp..."
-cmake --build . -j$(nproc)
+cmake --build . -j$(nproc) --verbose
+
+# Show what was actually built
+echo "Build complete. Checking build outputs..."
+echo "Contents of build directory:"
+ls -la
+echo ""
+echo "Looking for static libraries (.a files):"
+find . -name "*.a" -type f -ls
+echo ""
 
 # Find and copy the built library
-echo "Copying built library..."
+echo "Searching for built libraries..."
 mkdir -p "$SCRIPT_DIR/lib/$TARGET_ABI"
 
-# Find all the generated libraries
-LIBS_TO_COMBINE=""
+# Current directory is build-android-$TARGET_ABI
+CURRENT_BUILD_DIR="$BUILD_DIR/tokenizers-cpp/build-android-$TARGET_ABI"
 
-# Search for libraries in common locations
-for lib_name in "libtokenizers_cpp.a" "libtokenizers_c.a" "libsentencepiece.a"; do
-    for search_path in "." "rust" "src" "tokenizers_cpp" "sentencepiece/src" "target/$RUST_TARGET/release"; do
-        if [ -f "$search_path/$lib_name" ]; then
-            echo "Found $lib_name in $search_path"
-            LIBS_TO_COMBINE="$LIBS_TO_COMBINE $search_path/$lib_name"
-            break
-        fi
-    done
+# Find all the generated libraries
+echo "Looking for .a files in build directory..."
+find "$CURRENT_BUILD_DIR" -name "*.a" -type f | while read -r lib; do
+    echo "Found library: $lib"
 done
 
-# If no libraries found in expected locations, do a comprehensive search
+# Collect all libraries to combine
+LIBS_TO_COMBINE=""
+
+# Search for specific libraries with more flexible paths
+for lib_name in "libtokenizers_cpp.a" "libtokenizers_c.a" "libsentencepiece.a"; do
+    echo "Searching for $lib_name..."
+    lib_path=$(find "$CURRENT_BUILD_DIR" -name "$lib_name" -type f | head -n 1)
+    if [ -n "$lib_path" ]; then
+        echo "Found $lib_name at: $lib_path"
+        LIBS_TO_COMBINE="$LIBS_TO_COMBINE $lib_path"
+    fi
+done
+
+# If specific libraries not found, collect all .a files
 if [ -z "$LIBS_TO_COMBINE" ]; then
-    echo "Searching for built libraries..."
-    LIBS_TO_COMBINE=$(find . -name "*.a" -type f | grep -E "(tokenizers|sentencepiece)" | tr '\n' ' ')
+    echo "Specific libraries not found. Collecting all .a files..."
+    LIBS_TO_COMBINE=$(find "$CURRENT_BUILD_DIR" -name "*.a" -type f | grep -v "CMakeFiles" | tr '\n' ' ')
 fi
 
 # Combine all libraries into one
 if [ -n "$LIBS_TO_COMBINE" ]; then
-    echo "Combining libraries: $LIBS_TO_COMBINE"
+    echo "Libraries to combine: $LIBS_TO_COMBINE"
     
     # Create a temporary directory for extracting object files
     TEMP_DIR="$BUILD_DIR/temp_objs"
+    rm -rf "$TEMP_DIR"
     mkdir -p "$TEMP_DIR"
     cd "$TEMP_DIR"
     
     # Extract all object files from each library
     for lib in $LIBS_TO_COMBINE; do
-        lib_path="../build-android-$TARGET_ABI/$lib"
-        if [ -f "$lib_path" ]; then
+        if [ -f "$lib" ]; then
             echo "Extracting from $lib..."
-            "$ANDROID_NDK/toolchains/llvm/prebuilt/$NDK_HOST/bin/llvm-ar" x "$lib_path"
+            "$ANDROID_NDK/toolchains/llvm/prebuilt/$NDK_HOST/bin/llvm-ar" x "$lib"
         else
-            echo "Warning: Could not find $lib_path"
+            echo "Warning: Could not find $lib"
         fi
     done
     
@@ -179,11 +204,22 @@ if [ -n "$LIBS_TO_COMBINE" ]; then
     echo "Creating combined library..."
     if ls *.o 1> /dev/null 2>&1; then
         "$ANDROID_NDK/toolchains/llvm/prebuilt/$NDK_HOST/bin/llvm-ar" rcs "$SCRIPT_DIR/lib/$TARGET_ABI/libtokenizers_android_c.a" *.o
+        echo "Combined library created successfully"
     else
         echo "Error: No object files found to combine"
-        cd ..
-        rm -rf "$TEMP_DIR"
-        exit 1
+        echo "Checking if any libraries were built..."
+        
+        # If no object files, maybe the libraries are header-only or built differently
+        # Try to copy the first found library as-is
+        first_lib=$(echo $LIBS_TO_COMBINE | awk '{print $1}')
+        if [ -f "$first_lib" ]; then
+            echo "Copying $first_lib as libtokenizers_android_c.a"
+            cp "$first_lib" "$SCRIPT_DIR/lib/$TARGET_ABI/libtokenizers_android_c.a"
+        else
+            cd ..
+            rm -rf "$TEMP_DIR"
+            exit 1
+        fi
     fi
     
     # Clean up
@@ -191,6 +227,7 @@ if [ -n "$LIBS_TO_COMBINE" ]; then
     rm -rf "$TEMP_DIR"
 else
     echo "Error: No libraries found to combine"
+    echo "Build may have failed. Check the build output above."
     exit 1
 fi
 
