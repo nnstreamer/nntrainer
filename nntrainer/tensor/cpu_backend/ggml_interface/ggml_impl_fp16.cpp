@@ -160,9 +160,8 @@ static inline void __copy_f16_from_f32(const float *src, _FP16 *dst,
                                        int64_t k) {
 #if defined(__ARM_NEON)
   for (int i = 0; i < k; i += 8) {
-    vst1q_f16((dst + i),
-              vcombine_f16(vcvt_f16_f32(vld1q_f32((float *)(src + i))),
-                           vcvt_f16_f32(vld1q_f32((float *)(src + i + 4)))));
+    vst1q_f16((dst), vcombine_f16(vcvt_f16_f32(vld1q_f32((float *)(src))),
+                                  vcvt_f16_f32(vld1q_f32((float *)(src + 4)))));
     src += 8;
     dst += 8;
   }
@@ -456,7 +455,7 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
   std::vector<float> C32 = std::vector<float>(M * N);
   float *C32_ptr = C32.data();
 
-  static constexpr const int32_t thread_count = 16;
+  static constexpr const int32_t thread_count = 8;
 
   static constexpr const int32_t bs = 1;
   static constexpr const int32_t bx = 1;
@@ -615,19 +614,6 @@ void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
       }
     }
   }
-  // #if defined(__ARM_NEON)
-  //   for (int i = 0; i < M * N; i += 8) {
-  //     vst1q_f16(
-  //       (C + i),
-  //       vcombine_f16(vcvt_f16_f32(vld1q_f32((float *)(C32.data() + i))),
-  //                    vcvt_f16_f32(vld1q_f32((float *)(C32.data() + i +
-  //                    4)))));
-  //   }
-  // #else
-  //   for (unsigned int i = 0; i < M * N; i++) {
-  //     C[i] = static_cast<_FP16>(C32[i]);
-  //   }
-  // #endif
   __copy_f16_from_f32(C32.data(), C, M * N);
 }
 
