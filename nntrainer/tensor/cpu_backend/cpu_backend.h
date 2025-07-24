@@ -878,7 +878,7 @@ extern void dequantize_row_q8_K(const void *x, T *y, int64_t k);
  * @param k number of elements in x
  */
 template <typename T = float>
-void quantize_row_q8_K(const T *src, void *dst, int64_t k);
+extern void quantize_row_q8_K(const T *src, void *dst, int64_t k);
 
 /**
  * @brief repack q40 to q40x8

@@ -13,9 +13,9 @@
 #include <arm_compute_backend.h>
 #include <assert.h>
 #include <fallback_internal.h>
+#include <ggml_interface.h>
 #include <neon_impl.h>
 #include <nntrainer_error.h>
-#include <ggml_interface.h>
 
 #define ROW_MAJOR 0
 #define COL_MAJOR 1
@@ -361,7 +361,7 @@ void dequantize_row_q8_0(const void *x_raw, _FP16 *y, int64_t k) {
 #endif
 }
 
-template<>
+template <>
 void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
                const _FP16 *A, const unsigned int lda, const void *B,
                const unsigned int ldb, _FP16 *C, const unsigned int ldc) {
@@ -369,6 +369,33 @@ void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
   return __ggml_q4_0_4x8_q8_0_GEMM<_FP16>(M, N, K, A, lda, B, ldb, C, ldc);
 #else
   return __fallback_gemm_q4_0(M, N, K, A, lda, B, ldb, C, ldc);
+#endif
+}
+
+template <> void quantize_row_q8_K(const _FP16 *src, void *dst, int64_t k) {
+#ifdef ENABLE_GGML
+  __ggml_quantize_row_q8_K(src, dst, k);
+#else
+  __fallback_quantize_row_q8_K(src, dst, k);
+#endif
+}
+
+template <> void dequantize_row_q8_K(const void *x, _FP16 *y, int64_t k) {
+#ifdef ENABLE_GGML
+  __ggml_dequantize_row_q8_K(x, y, k);
+#else
+  __fallback_dequantize_row_q8_K(x, y, k);
+#endif
+}
+
+template <>
+void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
+               const _FP16 *A, const unsigned int lda, const void *B,
+               const unsigned int ldb, _FP16 *C, const unsigned int ldc) {
+#ifdef ENABLE_GGML
+  return __ggml_gemm_q6_K<_FP16>(M, N, K, A, lda, B, ldb, C, ldc);
+#else
+  return __fallback_gemm_q6_K(M, N, K, A, lda, B, ldb, C, ldc);
 #endif
 }
 } /* namespace nntrainer */
