@@ -250,7 +250,7 @@ LOCAL_EXPORT_C_INCLUDES  := $(LOCAL_C_INCLUDES)
 
 LOCAL_ARM_NEON      := true
 LOCAL_CFLAGS        += -pthread -fexceptions -fopenmp -static-openmp @MESON_CFLAGS@ @ML_API_COMMON@
-LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions @ML_API_COMMON@ @MESON_CXXFLAGS@
+LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions @ML_API_COMMON@ @MESON_CXXFLAGS@ -DENABLE_FP16=1 -march=armv8.2-a+fp16
 LOCAL_MODULE_TAGS   := optional
 
 LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp
@@ -278,7 +278,7 @@ LOCAL_EXPORT_C_INCLUDES := $(LOCAL_C_INCLUDES)
 
 LOCAL_ARM_NEON      := true
 LOCAL_CFLAGS        += -pthread -fexceptions -fopenmp -static-openmp @MESON_CFLAGS@ @ML_API_COMMON@
-LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions @ML_API_COMMON@ -DVERSION_MAJOR=@VERSION_MAJOR@ -DVERSION_MINOR=@VERSION_MINOR@ -DVERSION_MICRO=@VERSION_MICRO@ @MESON_CXXFLAGS@
+LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions @ML_API_COMMON@ -DVERSION_MAJOR=@VERSION_MAJOR@ -DVERSION_MINOR=@VERSION_MINOR@ -DVERSION_MICRO=@VERSION_MICRO@ @MESON_CXXFLAGS@ -DENABLE_FP16=1 -march=armv8.2-a+fp16
 LOCAL_MODULE_TAGS   := optional
 
 LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp
@@ -297,7 +297,7 @@ LOCAL_EXPORT_C_INCLUDES := $(LOCAL_C_INCLUDES)
 
 LOCAL_ARM_NEON      := true
 LOCAL_CFLAGS        += -pthread -fexceptions -fopenmp -static-openmp @MESON_CFLAGS@ @ML_API_COMMON@
-LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions @ML_API_COMMON@ @MESON_CXXFLAGS@
+LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions @ML_API_COMMON@ @MESON_CXXFLAGS@ -DENABLE_FP16=1 -march=armv8.2-a+fp16
 LOCAL_MODULE_TAGS   := optional
 
 LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp
