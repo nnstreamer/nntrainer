@@ -4,73 +4,67 @@
 set -e
 
 # Check if NDK path is set
-if [ -z "$ANDROID_NDK_ROOT" ]; then
-    echo "Error: ANDROID_NDK_ROOT is not set. Please set it to your Android NDK path."
+if [ -z "$ANDROID_NDK" ]; then
+    echo "Error: ANDROID_NDK is not set. Please set it to your Android NDK path."
+    echo "Example: export ANDROID_NDK=/path/to/android-ndk-r21d"
     exit 1
 fi
 
-# Configuration
-BUILD_DIR="build-android"
-INSTALL_DIR="install-android"
-NNTRAINER_ROOT=$(realpath "$(dirname "$0")/../..")
+# Set NNTRAINER_ROOT
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+NNTRAINER_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+export NNTRAINER_ROOT
 
-# Clean previous builds
-echo "Cleaning previous builds..."
-rm -rf $BUILD_DIR $INSTALL_DIR
+echo "NNTRAINER_ROOT: $NNTRAINER_ROOT"
+echo "ANDROID_NDK: $ANDROID_NDK"
 
-# First, build nntrainer for Android using meson
-echo "Building nntrainer for Android..."
-cd $NNTRAINER_ROOT
-
-# Create Android cross-compilation file
-cat > android-cross.ini << EOF
-[binaries]
-c = '$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang'
-cpp = '$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang++'
-ar = '$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar'
-strip = '$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip'
-
-[properties]
-sys_root = '$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/sysroot'
-
-[host_machine]
-system = 'android'
-cpu_family = 'aarch64'
-cpu = 'aarch64'
-endian = 'little'
-EOF
-
-# Configure meson build
-meson setup $BUILD_DIR \
-    --cross-file android-cross.ini \
-    --prefix=$PWD/$INSTALL_DIR \
-    -Denable-app=false \
-    -Denable-test=false \
-    -Denable-nnstreamer-plugin=false \
-    -Denable-nnstreamer-backbone=false \
-    -Dplatform=android
-
-# Build nntrainer
-ninja -C $BUILD_DIR
-ninja -C $BUILD_DIR install
-
-# Now build CausalLM application using ndk-build
-echo "Building CausalLM application..."
-cd Applications/CausalLM
-
-# Copy tokenizer library for the target architecture
-mkdir -p lib
-if [ ! -f "lib/libtokenizers_c.a" ]; then
-    echo "Warning: libtokenizers_c.a not found in lib directory."
-    echo "Please build or download the tokenizer library for Android arm64-v8a and place it in Applications/CausalLM/lib/"
+# Step 1: Build nntrainer for Android if not already built
+if [ ! -f "$NNTRAINER_ROOT/builddir/android_build_result/lib/libnntrainer.so" ]; then
+    echo "Building nntrainer for Android..."
+    cd "$NNTRAINER_ROOT"
+    ./tools/package_android.sh
+else
+    echo "nntrainer for Android already built."
 fi
 
+# Check if build was successful
+if [ ! -f "$NNTRAINER_ROOT/builddir/android_build_result/lib/libnntrainer.so" ]; then
+    echo "Error: nntrainer build failed. Please check the build logs."
+    exit 1
+fi
+
+# Copy libraries to the expected location for ndk-build
+echo "Copying libraries..."
+mkdir -p "$NNTRAINER_ROOT/libs/arm64-v8a"
+cp "$NNTRAINER_ROOT/builddir/android_build_result/lib/"*.so "$NNTRAINER_ROOT/libs/arm64-v8a/"
+
+# Step 2: Build tokenizer library if not present
+cd "$SCRIPT_DIR"
+if [ ! -f "lib/libtokenizers_c.a" ]; then
+    echo "Warning: libtokenizers_c.a not found in lib directory."
+    echo "Attempting to build tokenizer library..."
+    if [ -f "build_tokenizer_android.sh" ]; then
+        ./build_tokenizer_android.sh
+    else
+        echo "Error: tokenizer library not found and build script is missing."
+        echo "Please build or download the tokenizer library for Android arm64-v8a"
+        echo "and place it in: $SCRIPT_DIR/lib/libtokenizers_c.a"
+        exit 1
+    fi
+fi
+
+# Step 3: Build CausalLM application
+echo "Building CausalLM application..."
+cd "$SCRIPT_DIR/jni"
+
+# Clean previous builds
+rm -rf libs obj
+
 # Run ndk-build
-$ANDROID_NDK_ROOT/ndk-build \
-    APP_BUILD_SCRIPT=jni/Android.mk \
-    APP_PLATFORM=android-29 \
-    NDK_PROJECT_PATH=. \
-    NDK_APPLICATION_MK=jni/Application.mk
+ndk-build NDK_PROJECT_PATH=./ APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk -j $(nproc)
 
 echo "Build completed successfully!"
-echo "Output files are in: libs/arm64-v8a/"
+echo "Output files are in: $SCRIPT_DIR/jni/libs/arm64-v8a/"
+echo ""
+echo "Executable: nntrainer_causallm"
+echo "Libraries: libnntrainer.so, libccapi-nntrainer.so, libc++_shared.so"

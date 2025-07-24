@@ -1,12 +1,19 @@
 # Building CausalLM for Android
 
-This guide explains how to build and deploy the CausalLM application on Android devices.
+This guide explains how to build and deploy the CausalLM application on Android devices following the standard nntrainer Android build process.
 
 ## Prerequisites
 
-1. **Android NDK**: Download and install Android NDK (r21 or later recommended)
+1. **Android NDK**: Download and install Android NDK (r21d recommended)
    ```bash
-   export ANDROID_NDK_ROOT=/path/to/your/android-ndk
+   # Download NDK
+   wget https://dl.google.com/android/repository/android-ndk-r21d-linux-x86_64.zip
+   unzip android-ndk-r21d-linux-x86_64.zip
+   
+   # Set environment variables
+   export ANDROID_NDK=$(pwd)/android-ndk-r21d
+   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ANDROID_NDK
+   export PATH=$PATH:$ANDROID_NDK
    ```
 
 2. **Android SDK Tools**: Install ADB (Android Debug Bridge)
@@ -15,34 +22,38 @@ This guide explains how to build and deploy the CausalLM application on Android 
    ```
 
 3. **Build Tools**: 
-   - CMake 3.16 or later
+   - Meson build system
    - Ninja build system
    - Python 3.6+
-   - Meson build system
 
 4. **Tokenizer Library**: The pre-built `libtokenizers_c.a` for Android arm64-v8a
    - Place it in `Applications/CausalLM/lib/libtokenizers_c.a`
-   - You can build it from [huggingface/tokenizers](https://github.com/huggingface/tokenizers) with Rust cross-compilation
+   - You can build it using the provided script (requires Rust)
 
 ## Building
 
-### Step 1: Apply the Android build patch
+### Step 1: Build the tokenizer library (optional)
+
+If you don't have the pre-built tokenizer library:
 
 ```bash
 cd Applications/CausalLM
-patch -p2 < android_build_patch.diff
+chmod +x build_tokenizer_android.sh
+./build_tokenizer_android.sh
 ```
 
 ### Step 2: Build the application
 
 ```bash
+cd Applications/CausalLM
 chmod +x build_android.sh
 ./build_android.sh
 ```
 
 This script will:
-1. Build nntrainer core library for Android using Meson cross-compilation
-2. Build CausalLM application using Android NDK
+1. Build nntrainer core library for Android using `tools/package_android.sh` (if not already built)
+2. Copy the built libraries to the expected location
+3. Build CausalLM application using ndk-build
 
 ### Step 3: Install on Android device
 

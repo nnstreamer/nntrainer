@@ -4,10 +4,11 @@
 set -e
 
 # Configuration
-PACKAGE_NAME="org.nnstreamer.nntrainer.causallm"
 INSTALL_DIR="/data/local/tmp/nntrainer/causallm"
 MODEL_DIR="$INSTALL_DIR/models"
-LIB_DIR="/system/lib64"
+
+# Set SCRIPT_DIR
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Check if device is connected
 if ! adb devices | grep -q "device$"; then
@@ -16,8 +17,8 @@ if ! adb devices | grep -q "device$"; then
 fi
 
 # Check if build was successful
-if [ ! -f "libs/arm64-v8a/nntr_causallm" ]; then
-    echo "Error: nntr_causallm not found. Please run build_android.sh first."
+if [ ! -f "$SCRIPT_DIR/jni/libs/arm64-v8a/nntrainer_causallm" ]; then
+    echo "Error: nntrainer_causallm not found. Please run build_android.sh first."
     exit 1
 fi
 
@@ -29,26 +30,21 @@ adb shell "mkdir -p $MODEL_DIR"
 
 # Push executable
 echo "Pushing executable..."
-adb push libs/arm64-v8a/nntr_causallm $INSTALL_DIR/
-adb shell "chmod 755 $INSTALL_DIR/nntr_causallm"
+adb push "$SCRIPT_DIR/jni/libs/arm64-v8a/nntrainer_causallm" $INSTALL_DIR/
+adb shell "chmod 755 $INSTALL_DIR/nntrainer_causallm"
 
 # Push shared libraries
 echo "Pushing shared libraries..."
-adb push libs/arm64-v8a/libcausallm.so $INSTALL_DIR/
-adb push libs/arm64-v8a/libnntrainer.so $INSTALL_DIR/
-adb push libs/arm64-v8a/libccapi-nntrainer.so $INSTALL_DIR/
-
-# Push C++ STL library
-if [ -f "$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so" ]; then
-    adb push $ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so $INSTALL_DIR/
-fi
+adb push "$SCRIPT_DIR/jni/libs/arm64-v8a/libnntrainer.so" $INSTALL_DIR/
+adb push "$SCRIPT_DIR/jni/libs/arm64-v8a/libccapi-nntrainer.so" $INSTALL_DIR/
+adb push "$SCRIPT_DIR/jni/libs/arm64-v8a/libc++_shared.so" $INSTALL_DIR/
 
 # Create run script on device
 adb shell "cat > $INSTALL_DIR/run_causallm.sh << 'EOF'
 #!/system/bin/sh
 export LD_LIBRARY_PATH=$INSTALL_DIR:\$LD_LIBRARY_PATH
 cd $INSTALL_DIR
-./nntr_causallm \$@
+./nntrainer_causallm \$@
 EOF"
 
 adb shell "chmod 755 $INSTALL_DIR/run_causallm.sh"

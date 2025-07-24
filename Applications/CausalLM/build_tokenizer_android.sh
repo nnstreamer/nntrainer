@@ -11,8 +11,8 @@ if ! command -v rustc &> /dev/null; then
     exit 1
 fi
 
-if [ -z "$ANDROID_NDK_ROOT" ]; then
-    echo "Error: ANDROID_NDK_ROOT is not set. Please set it to your Android NDK path."
+if [ -z "$ANDROID_NDK" ]; then
+    echo "Error: ANDROID_NDK is not set. Please set it to your Android NDK path."
     exit 1
 fi
 
@@ -32,8 +32,8 @@ rustup target add aarch64-linux-android
 mkdir -p .cargo
 cat > .cargo/config.toml << EOF
 [target.aarch64-linux-android]
-ar = "$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
-linker = "$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang"
+ar = "$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+linker = "$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang"
 
 [build]
 target = "aarch64-linux-android"
@@ -44,10 +44,10 @@ echo "Building tokenizers C library..."
 cd tokenizers-c
 
 # Set environment variables
-export CC_aarch64_linux_android="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang"
-export CXX_aarch64_linux_android="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang++"
-export AR_aarch64_linux_android="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
-export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang"
+export CC_aarch64_linux_android="$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang"
+export CXX_aarch64_linux_android="$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang++"
+export AR_aarch64_linux_android="$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang"
 
 # Build the library
 cargo build --release --target aarch64-linux-android
