@@ -1,0 +1,28 @@
+version: 2
+test:
+  - name: NNTRAINER_GTEST
+    testCaseLanguage: CPP
+    testFW: GTEST
+    testCaseFolder:
+      - ./test/tizen_capi
+      - ./test/unittest
+
+    testFile:
+      - extension: cpp
+        any: true
+
+    testCase:
+      - condition:
+        - functionName:
+            starts:
+              - 'TEST'
+
+    negativeTestCase:
+      - condition:
+        - testName:
+            ends:
+              - _n
+
+    positiveTestCase:
+      - condition:
+        - inverse: negativeTestCase

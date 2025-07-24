@@ -1,0 +1,71 @@
+#!/usr/bin/make -f
+# See debhelper(7) (uncomment to enable)
+# output every command that modifies files on the build system.
+#export DH_VERBOSE = 1
+
+
+# see FEATURE AREAS in dpkg-buildflags(1)
+#export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+# see ENVIRONMENT in dpkg-buildflags(1)
+# package maintainers to append CFLAGS
+#export DEB_CFLAGS_MAINT_APPEND  = -Wall -pedantic
+# package maintainers to append LDFLAGS
+#export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
+
+ROOT_DIR:=$(shell pwd)
+export DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
+export DEB_HOST_ARCH ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
+ifdef unit_test
+	export ENABLE_REDUCE_TOLERANCE ?= false
+	export ENABLE_DEBUG?= true
+else
+	export ENABLE_REDUCE_TOLERANCE ?= true
+	export ENABLE_DEBUG?= false
+endif
+
+%:
+	dh $@ --parallel
+
+override_dh_auto_clean:
+	rm -rf build
+
+override_dh_auto_configure:
+	tar -xf packaging/ruy.tar.gz -C subprojects
+	mkdir -p build
+	meson --buildtype=plain --prefix=/usr --sysconfdir=/etc \
+		--libdir=lib/$(DEB_HOST_MULTIARCH) --bindir=lib/nntrainer/bin \
+		--includedir=include -Dinstall-app=true \
+		-Dreduce-tolerance=$(ENABLE_REDUCE_TOLERANCE) \
+		-Denable-debug=$(ENABLE_DEBUG) \
+		-Dml-api-support=enabled \
+		-Denable-nnstreamer-tensor-filter=enabled \
+		-Denable-nnstreamer-tensor-trainer=enabled \
+                -Denable-nnstreamer-backbone=true \
+                -Dcapi-ml-common-actual=capi-ml-common \
+                -Dcapi-ml-inference-actual=capi-ml-inference \
+                -Denable-capi=enabled \
+		build --wrap-mode=nodownload
+
+override_dh_auto_build:
+	ninja -C build
+
+override_dh_auto_test:
+	meson test -C build -t 2.0 --print-errorlogs
+
+override_dh_auto_install:
+	DESTDIR=$(CURDIR)/debian/tmp ninja -C build install
+
+override_dh_install:
+	dh_install --sourcedir=debian/tmp
+	if [ "$(DEB_HOST_ARCH)" = "amd64" ]; then \
+		dh_install /usr/bin/cpuid_dump; \
+	else \
+		echo "Skipping cpuid_dump on non-x86_64 architecture"; \
+	fi
+
+override_dh_missing:
+	dh_missing --fail-missing
+
+override_dh_clean:
+	dh_clean $@

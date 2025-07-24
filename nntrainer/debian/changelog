@@ -1,0 +1,41 @@
+nntrainer (0.6.0) unstable; urgency=medium
+
+  * 0.6.0 released
+
+ -- MyungJoo Ham <myungjoo.ham@samsung.com>  Thu, 23 Jan 2025 14:08:00 +0900
+
+nntrainer (0.5.0) unstable; urgency=medium
+
+  * 0.5.0 released
+
+ -- jijoongmoon <jijoong.moon@samsung.com>  Tue, 04 Apr 2023 08:57:24 +0900
+
+nntrainer (0.4.0) unstable; urgency=medium
+
+  * 0.4.0 released
+
+ -- jijoongmoon <jijoong.moon@samsung.com>  Mon, 26 Sep 2022 14:26:13 +0900
+
+nntrainer (0.3.0) unstable; urgency=medium
+
+  * 0.3.0 released
+
+ -- jijoongmoon <jijoong.moon@samsung.com>  Fri, 24 Sep 2021 13:50:17 +0900
+
+nntrainer (0.2.0) unstable; urgency=medium
+
+  * 0.2.0 released
+
+ -- jijoongmoon <jijoong.moon@samsung.com>  Wed, 02 Jun 2021 22:14:52 +0900
+
+nntrainer (0.1.1) unstable; urgency=medium
+
+  * 0.1.1 released
+
+ -- jijoong Moon <jijoong.moon@samsung.com>  Wed, 23 Sep 2020 15:26:32 +0900
+
+nntrainer (0.1.0.rc1) unstable; urgency=medium
+
+  * Initial debian dist files added
+
+ -- Jijoong Moon <jijoong.moon@samsung.com>  Mon, 10 Aug 2020 11:11:49 +0900

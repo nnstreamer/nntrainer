@@ -1,0 +1,88 @@
+# node exporter and its dependencies
+/usr/include/nntrainer/nntrainer_error.h
+/usr/include/nntrainer/connection.h
+/usr/include/nntrainer/common_properties.h
+/usr/include/nntrainer/base_properties.h
+/usr/include/nntrainer/node_exporter.h
+/usr/include/nntrainer/profiler.h
+/usr/include/nntrainer/nntr_threads.h
+# tensor headers
+/usr/include/nntrainer/memory_data.h
+/usr/include/nntrainer/tensor.h
+/usr/include/nntrainer/tensor_base.h
+/usr/include/nntrainer/q4_k_tensor.h
+/usr/include/nntrainer/q6_k_tensor.h
+/usr/include/nntrainer/int4_tensor.h
+/usr/include/nntrainer/uint4_tensor.h
+/usr/include/nntrainer/char_tensor.h
+/usr/include/nntrainer/short_tensor.h
+/usr/include/nntrainer/uint_tensor.h
+/usr/include/nntrainer/float_tensor.h
+/usr/include/nntrainer/tensor_wrap_specs.h
+/usr/include/nntrainer/fallback_internal.h 
+/usr/include/nntrainer/cblas_interface.h
+/usr/include/nntrainer/x86_compute_backend.h
+/usr/include/nntrainer/cpu_backend.h
+/usr/include/nntrainer/var_grad.h
+/usr/include/nntrainer/weight.h
+/usr/include/nntrainer/quantizer.h
+/usr/include/nntrainer/avx2_impl.h
+# todo: update dataset headers
+/usr/include/nntrainer/databuffer.h
+/usr/include/nntrainer/databuffer_factory.h
+# layer headers
+/usr/include/nntrainer/layer_context.h
+/usr/include/nntrainer/layer_devel.h
+/usr/include/nntrainer/layer_impl.h
+/usr/include/nntrainer/operation_layer.h
+/usr/include/nntrainer/acti_func.h
+/usr/include/nntrainer/loss_layer.h
+# custom layer kits
+/usr/include/nntrainer/app_context.h
+/usr/include/nntrainer/context.h
+/usr/include/nntrainer/engine.h
+# logger
+/usr/include/nntrainer/nntrainer_log.h
+/usr/include/nntrainer/nntrainer_logger.h
+# optimizer headers
+/usr/include/nntrainer/optimizer_context.h
+/usr/include/nntrainer/optimizer_devel.h
+/usr/include/nntrainer/lr_scheduler.h
+# pkg config and static binary
+/usr/lib/*/pkgconfig/nntrainer.pc
+/usr/lib/*/libnntrainer.a
+# update this to enable external applications
+# @todo filter out headers that should be hidden
+/usr/include/nntrainer/util_func.h
+/usr/include/nntrainer/bs_thread_pool.h
+/usr/include/nntrainer/bs_thread_pool_manager.hpp
+/usr/include/nntrainer/fp16.h
+/usr/include/nntrainer/util_simd.h
+/usr/include/nntrainer/dynamic_library_loader.h
+/usr/include/nntrainer/mman_windows.h
+# model
+/usr/include/nntrainer/neuralnet.h
+## neuralnet.h : forwarding() / backwarding() support
+/usr/include/nntrainer/compiler_fwd.h 
+/usr/include/nntrainer/dynamic_training_optimization.h
+/usr/include/nntrainer/layer_node.h
+/usr/include/nntrainer/graph_node.h
+/usr/include/nntrainer/model_common_properties.h
+/usr/include/nntrainer/network_graph.h
+/usr/include/nntrainer/graph_core.h
+/usr/include/nntrainer/graph_node.h
+/usr/include/nntrainer/manager.h
+/usr/include/nntrainer/basic_planner.h
+/usr/include/nntrainer/memory_planner.h
+/usr/include/nntrainer/tensor_pool.h
+/usr/include/nntrainer/cache_loader.h
+/usr/include/nntrainer/task.h
+/usr/include/nntrainer/task_executor.h
+/usr/include/nntrainer/cache_pool.h
+/usr/include/nntrainer/cache_elem.h
+/usr/include/nntrainer/memory_pool.h
+/usr/include/nntrainer/swap_device.h
+/usr/include/nntrainer/optimizer_wrapped.h
+/usr/include/nntrainer/mem_allocator.h
+/usr/include/nntrainer/tensor_layer.h
+/usr/include/nntrainer/weight_layer.h

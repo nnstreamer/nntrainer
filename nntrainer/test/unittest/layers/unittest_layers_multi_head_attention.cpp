@@ -1,0 +1,123 @@
+// SPDX-License-Identifier: Apache-2.0
+/**
+ * Copyright (C) 2022 hyeonseok Lee <hs89.lee@samsung.com>
+ *
+ * @file unittest_layers_mol_attention.cpp
+ * @date 13 July 2022
+ * @brief Multi Head Attention Layer Test
+ * @see	https://github.com/nnstreamer/nntrainer
+ * @author hyeonseok Lee <hs89.lee@samsung.com>
+ * @bug No known bugs except for NYI items
+ */
+#include <tuple>
+
+#include <gtest/gtest.h>
+
+#include <layers_common_tests.h>
+#include <multi_head_attention_layer.h>
+
+auto semantic_multi_head_attention = LayerSemanticsParamType(
+  nntrainer::createLayer<nntrainer::MultiHeadAttentionLayer>,
+  nntrainer::MultiHeadAttentionLayer::type,
+  {"num_heads=1", "projected_key_dim=1"},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 3);
+
+auto semantic_multi_head_attention_with_mask = LayerSemanticsParamType(
+  nntrainer::createLayer<nntrainer::MultiHeadAttentionLayer>,
+  nntrainer::MultiHeadAttentionLayer::type,
+  {"num_heads=1", "projected_key_dim=1"},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 4);
+
+GTEST_PARAMETER_TEST(
+  MultiHeadAttention, LayerSemantics,
+  ::testing::Values(semantic_multi_head_attention,
+                    semantic_multi_head_attention_with_mask));
+
+auto no_cos_sim_option = LayerGoldenTestParamOptions::SKIP_COSINE_SIMILARITY;
+auto inference_only_option =
+  LayerGoldenTestParamOptions::SKIP_COSINE_SIMILARITY |
+  LayerGoldenTestParamOptions::SKIP_CALC_DERIV |
+  LayerGoldenTestParamOptions::SKIP_CALC_GRAD;
+
+auto multi_head_attention_single_batch = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::MultiHeadAttentionLayer>,
+  {"num_heads=2", "projected_key_dim=3"}, "1:1:5:7,1:1:3:7,1:1:3:7",
+  "multi_head_attention_single_batch.nnlayergolden", no_cos_sim_option, "nchw",
+  "fp32", "fp32");
+
+auto multi_head_attention = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::MultiHeadAttentionLayer>,
+  {"num_heads=2", "projected_key_dim=3"}, "2:1:5:7,2:1:3:7,2:1:3:7",
+  "multi_head_attention.nnlayergolden", no_cos_sim_option, "nchw", "fp32",
+  "fp32");
+
+auto multi_head_attention_return_attention_scores = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::MultiHeadAttentionLayer>,
+  {"num_heads=2", "projected_key_dim=3", "return_attention_weight=before",
+   "average_attention_weight=false"},
+  "2:1:5:7,2:1:3:7,2:1:3:7",
+  "multi_head_attention_return_attention_scores.nnlayergolden",
+  no_cos_sim_option, "nchw", "fp32", "fp32");
+
+auto multi_head_attention_value_dim = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::MultiHeadAttentionLayer>,
+  {"num_heads=2", "projected_key_dim=3", "projected_value_dim=5"},
+  "2:1:5:7,2:1:3:7,2:1:3:7", "multi_head_attention_value_dim.nnlayergolden",
+  no_cos_sim_option, "nchw", "fp32", "fp32");
+
+auto multi_head_attention_output_shape = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::MultiHeadAttentionLayer>,
+  {"num_heads=2", "projected_key_dim=3", "output_shape=5"},
+  "2:1:5:7,2:1:3:7,2:1:3:7", "multi_head_attention_output_shape.nnlayergolden",
+  no_cos_sim_option, "nchw", "fp32", "fp32");
+
+GTEST_PARAMETER_TEST(
+  MultiHeadAttention, LayerGoldenTest,
+  ::testing::Values(multi_head_attention_single_batch, multi_head_attention,
+                    multi_head_attention_return_attention_scores,
+                    multi_head_attention_value_dim,
+                    multi_head_attention_output_shape));
+#ifdef ENABLE_FP16
+auto multi_head_attention_single_batch_w16a16 = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::MultiHeadAttentionLayer>,
+  {"num_heads=2", "projected_key_dim=3"}, "1:1:5:7,1:1:3:7,1:1:3:7",
+  "multi_head_attention_single_batch_w16a16.nnlayergolden",
+  inference_only_option, "nchw", "fp16", "fp16");
+
+auto multi_head_attention_w16a16 = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::MultiHeadAttentionLayer>,
+  {"num_heads=2", "projected_key_dim=3"}, "2:1:5:7,2:1:3:7,2:1:3:7",
+  "multi_head_attention_w16a16.nnlayergolden", inference_only_option, "nchw",
+  "fp16", "fp16");
+
+auto multi_head_attention_return_attention_scores_w16a16 =
+  LayerGoldenTestParamType(
+    nntrainer::createLayer<nntrainer::MultiHeadAttentionLayer>,
+    {"num_heads=2", "projected_key_dim=3", "return_attention_weight=before",
+     "average_attention_weight=false"},
+    "2:1:5:7,2:1:3:7,2:1:3:7",
+    "multi_head_attention_return_attention_scores_w16a16.nnlayergolden",
+    inference_only_option, "nchw", "fp16", "fp16");
+
+auto multi_head_attention_value_dim_w16a16 = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::MultiHeadAttentionLayer>,
+  {"num_heads=2", "projected_key_dim=3", "projected_value_dim=5"},
+  "2:1:5:7,2:1:3:7,2:1:3:7",
+  "multi_head_attention_value_dim_w16a16.nnlayergolden", inference_only_option,
+  "nchw", "fp16", "fp16");
+
+auto multi_head_attention_output_shape_w16a16 = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::MultiHeadAttentionLayer>,
+  {"num_heads=2", "projected_key_dim=3", "output_shape=5"},
+  "2:1:5:7,2:1:3:7,2:1:3:7",
+  "multi_head_attention_output_shape_w16a16.nnlayergolden",
+  inference_only_option, "nchw", "fp16", "fp16");
+
+GTEST_PARAMETER_TEST(
+  MultiHeadAttention16, LayerGoldenTest,
+  ::testing::Values(multi_head_attention_single_batch_w16a16,
+                    multi_head_attention_w16a16,
+                    multi_head_attention_return_attention_scores_w16a16,
+                    multi_head_attention_value_dim_w16a16,
+                    multi_head_attention_output_shape_w16a16));
+#endif

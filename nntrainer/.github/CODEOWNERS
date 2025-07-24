@@ -1,0 +1,10 @@
+# This is a comment. Each line is a file pattern followed by one or more owners.
+# For more details, visit https://help.github.com/articles/about-codeowners/
+#
+# Note that the current version of github.com (community edition) does not
+# translate "@org/team-name" correctly, although the GitHub webpage depicts how
+# to use "@org/team-name" as well as "@username" format. So, We need to append
+# all member IDs directly to avoid unexpected situations.
+
+# In order that all members of a repository are supposed to review each other
+* @nnstreamer/nnstreamer @myungjoo @jijoongmoon @again4you @jaeyun-jung @leemgs @wooksong @gichan-jang @anyj0527 @lhs8928 @songgot @jihochu @DonghakPark @SeoHyungjun @baek2sm @skykongkong8 @djeong20 @EunjuYang @dkjung @haehun

@@ -1,0 +1,97 @@
+name: "Build Test - Tizen/GBS"
+
+# ${{ github.event.pull_request.commits }} : # commits in this PR
+# - changed_file_list in GITHUB_ENV: the list of files updated in this pull-request.
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Tizen GBS build on Ubuntu
+    strategy:
+      matrix:
+        include:
+          - gbs_build_arch: "x86_64"
+            gbs_build_option: "--define \"unit_test 1\""
+          - gbs_build_arch: "armv7l"
+            gbs_build_option: "--define \"unit_test 0\""
+          - gbs_build_arch: "aarch64"
+            gbs_build_option: "--define \"unit_test 0\""
+
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+        fetch-depth: -${{ github.event.pull_request.commits }}
+    - name: Check if rebuild required
+      uses: ./.github/actions/check-rebuild
+      with:
+        mode: gbs
+    - uses: actions/setup-python@v1
+
+    - name: prepare GBS
+      if: env.rebuild == '1'
+      run: |
+        echo "deb [trusted=yes] http://download.tizen.org/tools/latest-release/Ubuntu_22.04/ /" | sudo tee /etc/apt/sources.list.d/tizen.list
+        sudo apt-get update && sudo apt-get install -y gbs
+        cp .github/workflows/tizen.gbs.conf ~/.gbs.conf
+
+    - name: get date
+      id: get-date
+      run: |
+        echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+    - name: restore gbs cache from main branch
+      if: env.rebuild == '1'
+      uses: actions/cache/restore@v4
+      with:
+        path: ~/GBS-ROOT/local/cache
+        key: gbs-cache-${{ matrix.gbs_build_arch }}-${{ steps.get-date.outputs.date }}
+        restore-keys: |
+          gbs-cache-${{ matrix.gbs_build_arch }}-
+
+    - name: run GBS
+      if: env.rebuild == '1'
+      run: |
+        gbs build --skip-srcrpm --define "_skip_debug_rpm 1" -A ${{ matrix.gbs_build_arch }} ${{ matrix.gbs_build_option }}
+
+    - name: get ML API
+      if: env.rebuild == '1'
+      uses: actions/checkout@v4
+      with:
+        repository: nnstreamer/api
+        path: api
+    - name: get ML Agent
+      if: env.rebuild == '1'
+      uses: actions/checkout@v4
+      with:
+        repository: nnstreamer/deviceMLOps.MLAgent
+        path: mlagent
+    - name: get NNStreamer
+      if: env.rebuild == '1'
+      uses: actions/checkout@v4
+      with:
+        repository: nnstreamer/nnstreamer
+        path: _nnstreamer
+    - name: build and test nnstreamer ml-api and ml-agent
+      if: env.rebuild == '1'
+      run: |
+        pushd _nnstreamer
+        echo "::group::Build and run unit-tests for NNStreamer"
+        gbs build --skip-srcrpm --define "_skip_debug_rpm 1" -A ${{ matrix.gbs_build_arch }} ${{ matrix.gbs_build_option }}
+        echo "::endgroup::"
+        popd
+        pushd api
+        echo "::group::Build and run unit-tests for ML API"
+        gbs build --skip-srcrpm --define "_skip_debug_rpm 1" -A ${{ matrix.gbs_build_arch }} ${{ matrix.gbs_build_option }}
+        echo "::endgroup::"
+        popd
+        pushd mlagent
+        echo "::group::Build and run unit-tests for ML Agent (deviceMLOps.MLAgent)"
+        gbs build --skip-srcrpm --define "_skip_debug_rpm 1" -A ${{ matrix.gbs_build_arch }} ${{ matrix.gbs_build_option }}
+        echo "::endgroup::"
+        popd

@@ -1,0 +1,351 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+  <LinearLayout
+      android:id ="@+id/linear"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      app:layout_constraintLeft_toLeftOf="parent"
+      app:layout_constraintRight_toRightOf="parent"
+      app:layout_constraintTop_toTopOf="parent" >
+
+    <Button
+        android:id="@+id/mkdir_data"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+	android:layout_weight="1"
+        android:text="Data" />
+
+
+    <Button
+        android:id="@+id/train_resnet"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+	android:layout_weight="1"
+        android:text="train" />
+    <Button
+        android:id="@+id/train_stop"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+	android:layout_weight="1"
+        android:text="Stop" />
+    <Button
+        android:id="@+id/testing_resnet"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+	android:layout_weight="1"
+        android:text="Test" />
+    <Button
+        android:id="@+id/infer_resnet"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+	android:layout_weight="1"
+        android:text="Infer" />
+    
+    
+  </LinearLayout>
+  
+  <LinearLayout
+      android:id="@+id/parameter"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:orientation="vertical"
+      app:layout_constraintTop_toBottomOf="@+id/linear" >
+
+      <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:gravity="center"
+          android:orientation="horizontal"
+          app:layout_constraintBottom_toBottomOf="@+id/parameter"
+          app:layout_constraintLeft_toLeftOf="@+id/parameter"
+          app:layout_constraintRight_toRightOf="@+id/parameter"
+          app:layout_constraintTop_toTopOf="@+id/parameter">
+
+
+          <LinearLayout
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:orientation="horizontal"
+              app:layout_constraintBottom_toBottomOf="@+id/parameter"
+              app:layout_constraintLeft_toLeftOf="@+id/parameter"
+              app:layout_constraintRight_toRightOf="@+id/parameter"
+              app:layout_constraintTop_toTopOf="@+id/parameter">
+
+              <EditText
+                  android:id="@+id/batch_size"
+                  android:layout_width="50dp"
+                  android:layout_height="wrap_content"
+                  android:layout_gravity="center"
+                  android:padding="10dp"
+                  android:text="16" />
+
+              <TextView
+                  android:id="@+id/batch_b"
+                  android:layout_width="60dp"
+                  android:layout_height="wrap_content"
+                  android:layout_gravity="center"
+                  android:text="batch" />
+          </LinearLayout>
+
+          <LinearLayout
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:orientation="horizontal"
+              android:paddingLeft="10dp"
+              app:layout_constraintBottom_toBottomOf="parent"
+              app:layout_constraintLeft_toLeftOf="parent"
+              app:layout_constraintRight_toRightOf="parent"
+              app:layout_constraintTop_toTopOf="parent">
+
+              <EditText
+                  android:id="@+id/data_split"
+                  android:layout_width="50dp"
+                  android:layout_height="wrap_content"
+                  android:layout_gravity="center"
+                  android:padding="10dp"
+                  android:text="1" />
+
+              <TextView
+                  android:id="@+id/split_b"
+                  android:layout_width="60dp"
+                  android:layout_height="wrap_content"
+                  android:layout_gravity="center"
+                  android:text="Split"/>
+
+          </LinearLayout>
+
+          <LinearLayout
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:orientation="horizontal"
+              android:paddingLeft="10dp"
+              app:layout_constraintBottom_toBottomOf="parent"
+              app:layout_constraintLeft_toLeftOf="parent"
+              app:layout_constraintRight_toRightOf="parent"
+              app:layout_constraintTop_toTopOf="parent">
+
+
+              <EditText
+                  android:id="@+id/epoch"
+                  android:layout_width="50dp"
+                  android:layout_height="wrap_content"
+                  android:layout_gravity="center"
+                  android:padding="10dp"
+                  android:text="1" />
+
+              <TextView
+                  android:id="@+id/epoch_b"
+                  android:layout_width="60dp"
+                  android:layout_height="wrap_content"
+                  android:layout_gravity="center"
+                  android:text="Ecpoch" />
+
+
+          </LinearLayout>
+
+      </LinearLayout>
+    
+    <LinearLayout
+        android:padding="10dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+	android:gravity="center"
+        app:layout_constraintBottom_toBottomOf="@+id/parameter"
+        app:layout_constraintLeft_toLeftOf="@+id/parameter"
+        app:layout_constraintRight_toRightOf="@+id/parameter"
+        app:layout_constraintTop_toTopOf="@+id/parameter" >
+      
+      <EditText
+          android:id="@+id/save"
+          android:padding="10dp"	  
+          android:orientation="horizontal"	  
+          android:layout_width="200dp"
+          android:layout_height="wrap_content"
+          android:text="weight.bin" />
+
+      <TextView
+          android:text="Save File Path"
+	  android:id="@+id/save_b"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content" />
+
+      
+    </LinearLayout>
+
+    <LinearLayout
+        android:padding="10dp"
+        android:layout_width="match_parent"	
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+	android:gravity="center"
+        app:layout_constraintBottom_toBottomOf="@+id/parameter"
+        app:layout_constraintLeft_toLeftOf="@+id/parameter"
+        app:layout_constraintRight_toRightOf="@+id/parameter"
+        app:layout_constraintTop_toTopOf="@+id/parameter" >
+      
+      <EditText
+          android:id="@+id/save_best"
+          android:padding="10dp"	  
+          android:orientation="horizontal"	  
+          android:layout_width="200dp"
+          android:layout_height="wrap_content"
+          android:text="resnet_best.bin" />
+      
+      <TextView
+          android:text="Save Best File Path"
+          android:id="@+id/save_best_b"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content" />
+
+      
+    </LinearLayout>
+
+    <LinearLayout
+        android:padding="10dp"
+        android:layout_width="match_parent"	
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+	android:gravity="center"
+        app:layout_constraintBottom_toBottomOf="@+id/parameter"
+        app:layout_constraintLeft_toLeftOf="@+id/parameter"
+        app:layout_constraintRight_toRightOf="@+id/parameter"
+        app:layout_constraintTop_toTopOf="@+id/parameter" >
+      
+      <EditText
+          android:id="@+id/save_path"
+          android:padding="10dp"	  
+          android:orientation="horizontal"	  
+          android:layout_width="200dp"
+          android:layout_height="wrap_content"
+          android:text="Data" />
+      
+      <TextView
+          android:text="Data Directory Path"
+          android:id="@+id/save_path_b"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content" />
+    </LinearLayout>
+    
+
+    <LinearLayout
+        android:padding="10dp"
+        android:layout_width="match_parent"		
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+	android:gravity="center"
+        app:layout_constraintBottom_toBottomOf="@+id/parameter"
+        app:layout_constraintLeft_toLeftOf="@+id/parameter"
+        app:layout_constraintRight_toRightOf="@+id/parameter"
+        app:layout_constraintTop_toTopOf="@+id/parameter" >
+      
+
+      <LinearLayout
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:orientation="horizontal"
+          app:layout_constraintBottom_toBottomOf="@+id/parameter"
+          app:layout_constraintLeft_toLeftOf="@+id/parameter"
+          app:layout_constraintRight_toRightOf="@+id/parameter"
+          app:layout_constraintTop_toTopOf="@+id/parameter" >
+
+	<EditText
+            android:id="@+id/in_w"
+            android:padding="10dp"	    
+            android:layout_gravity="center"	  
+            android:layout_width="50dp"
+            android:layout_height="wrap_content"
+            android:text="32" />
+	<TextView
+            android:id="@+id/in_w_b"	    
+            android:layout_gravity="center"
+            android:text="Width"
+            android:layout_width="50dp"
+            android:layout_height="wrap_content" />
+	
+
+      </LinearLayout>
+
+      <LinearLayout
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:orientation="horizontal"
+	  android:paddingLeft="10dp"	  
+          app:layout_constraintBottom_toBottomOf="parent"
+          app:layout_constraintLeft_toLeftOf="parent"
+          app:layout_constraintRight_toRightOf="parent"
+          app:layout_constraintTop_toTopOf="parent" >
+	
+
+	<EditText
+            android:id="@+id/in_h"
+	    android:layout_gravity="center"	  
+            android:layout_width="50dp"
+            android:layout_height="wrap_content"
+            android:text="32" />
+	
+	<TextView
+            android:id="@+id/in_h_b"	    
+            android:layout_gravity="center"
+            android:text="Height"
+            android:layout_width="50dp"
+            android:layout_height="wrap_content" />
+	
+      </LinearLayout>
+
+      <LinearLayout
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:orientation="horizontal"
+	  android:paddingLeft="10dp"	  
+          app:layout_constraintBottom_toBottomOf="parent"
+          app:layout_constraintLeft_toLeftOf="parent"
+          app:layout_constraintRight_toRightOf="parent"
+          app:layout_constraintTop_toTopOf="parent" >
+	<EditText
+            android:id="@+id/in_c"
+            android:padding="10dp"
+            android:layout_gravity="center"	  	  
+            android:layout_width="50dp"
+            android:layout_height="wrap_content"
+            android:text="3" />
+
+	<TextView
+            android:id="@+id/in_c_b"
+            android:layout_gravity="center"
+            android:text="Channel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+      </LinearLayout>
+
+    </LinearLayout>
+    
+  </LinearLayout>
+
+  <FrameLayout
+      android:layout_width="0dp"
+      android:layout_height="0dp"
+      android:id="@+id/frame"
+      app:layout_constraintLeft_toLeftOf="parent"
+      app:layout_constraintTop_toBottomOf="@+id/parameter"
+      app:layout_constraintRight_toRightOf="parent"
+      app:layout_constraintBottom_toBottomOf="parent">
+    
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="left"
+	android:maxLines = "10000"
+	android:scrollbars="vertical"
+        android:id="@+id/data_out"
+        android:text="DATA" />
+    </FrameLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,0 +1,71 @@
+##
+# @brief .gitignore list
+
+# ignore build directory
+/build
+/builddir
+.cache/
+.idea/
+
+# jni build files
+libs/
+obj/
+ml_api_common/
+
+# tflite for applications
+tensorflow-1.13.1
+tensorflow-2.3.0
+
+# data files for applications
+Applications/**/data
+cifar-100-binary*
+Applications/**/*.bin
+
+# CTag
+/tags
+/TAGS
+
+# vi files
+*.h~
+*.c~
+*.cc~
+*.sw?
+
+# vscode settings
+/.vscode
+
+# binary files
+*.out
+*.in
+*.info
+*.so
+*.o
+*.a
+# allow tokenizer lib only
+!Applications/CausalLM/lib/libtokenizers_c.a
+
+*.o.d
+*.nnlayergolden
+*.nnmodelgolden
+
+# log files
+*.log
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# flatbuffer compiled header
+*_generated.h
+
+# android build
+nntrainer_for_android.tar.gz
+
+# gtest
+test/jni/googletest/
+
+# encoder related files (download from resource repo)
+ctre-unicode.hpp
+encoder.hpp
+json.hpp

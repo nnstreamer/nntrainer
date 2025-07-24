@@ -1,0 +1,32 @@
+name: C++ Format Checker
+
+on: pull_request
+
+jobs:
+  cpp-linter:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: install dev packages
+        run: |
+          echo "Install mandatory dev packages to avoid false-positive reports from cpp-linter"
+          sudo apt-get update
+          sudo apt-get install libstdc++-*-dev
+      - uses: cpp-linter/cpp-linter-action@v2.9.0
+        id: linter
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          style: file
+          version: 14
+          lines-changed-only: true
+          file-annotations: false
+          step-summary: true
+          format-review: true
+          tidy-checks: '-*' # disable clang-tidy checks.
+
+      - name: failing fast
+        if: steps.linter.outputs.clang-format-checks-failed > 0
+        run: |
+          echo "This PR failed to pass the C++ source file format checks."
+          exit 1

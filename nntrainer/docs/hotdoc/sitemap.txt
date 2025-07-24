@@ -1,0 +1,11 @@
+index.md
+	docs/hotdoc/index.md
+		docs/getting-started.md
+		docs/how-to-run-examples.md
+		docs/how-to-use-testcases.md
+		docs/configuration-ini.md
+		docs/coding-convention.md
+		docs/contributing.md
+		CODE_OF_CONDUCT.md
+	Applications/README.md
+		Applications/KNN/README.md

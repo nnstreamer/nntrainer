@@ -1,0 +1,57 @@
+name: "Benchmarks - Ubuntu"
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+
+jobs:
+  meson_test:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-22.04, ubuntu-24.04]
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.10"
+    - name: install additional package from PPA for testing
+      run: sudo add-apt-repository -y ppa:nnstreamer/ppa && sudo apt-get update
+    - name: install minimal requirements
+      run: sudo apt-get update && sudo apt-get install -y gcc g++ pkg-config libopenblas-dev libiniparser-dev libjsoncpp-dev libcurl3-dev tensorflow2-lite-dev nnstreamer-dev libglib2.0-dev libgstreamer1.0-dev libgtest-dev ml-api-common-dev flatbuffers-compiler ml-inference-api-dev libunwind-dev libbenchmark-dev
+    - name: install additional packages for features
+      run: sudo apt-get install -y python3-dev python3-numpy python3
+    - name: Install submodules
+      run: git submodule sync && git submodule update --init --recursive
+    - name: install build systems
+      run: sudo apt install meson ninja-build
+    - run: meson setup build/
+      env:
+        CC: gcc
+    - run: |
+        meson \
+          --buildtype=plain \
+          --prefix=/usr \
+          --sysconfdir=/etc \
+          --libdir=lib/x86_64-linux-gnu \
+          --bindir=lib/nntrainer/bin \
+          --includedir=include \
+          -Dinstall-app=false \
+          -Dreduce-tolerance=false \
+          -Denable-debug=true \
+          -Dml-api-support=enabled \
+          -Denable-nnstreamer-tensor-filter=enabled \
+          -Denable-nnstreamer-tensor-trainer=enabled \
+          -Denable-nnstreamer-backbone=true \
+          -Dcapi-ml-common-actual=capi-ml-common \
+          -Dcapi-ml-inference-actual=capi-ml-inference \
+          -Denable-capi=enabled \
+          -Denable-benchmarks=true \
+          -Denable-app=false \
+          build_benchmarks
+    - run: ninja -C build_benchmarks
+    - name: run Benchmarks_ResNet
+      run: cd ./build_benchmarks/benchmarks/benchmark_application && ./Benchmark_ResNet

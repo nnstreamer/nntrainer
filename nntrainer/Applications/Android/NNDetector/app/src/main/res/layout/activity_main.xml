@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <androidx.camera.view.PreviewView
+        android:id="@+id/cameraPreview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabFinish"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:src="@drawable/controller_finish"
+        app:fabSize="mini"
+        app:layout_constraintTop_toTopOf="@id/fabControl"
+        app:layout_constraintBottom_toBottomOf="@id/fabControl"
+        app:layout_constraintStart_toStartOf="@id/fabControl"
+        app:layout_constraintEnd_toEndOf="@id/fabControl"
+        android:contentDescription="Finishing app" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabReset"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:src="@drawable/controller_clear"
+        app:fabSize="mini"
+        app:layout_constraintTop_toTopOf="@id/fabControl"
+        app:layout_constraintBottom_toBottomOf="@id/fabControl"
+        app:layout_constraintStart_toStartOf="@id/fabControl"
+        app:layout_constraintEnd_toEndOf="@id/fabControl"
+        android:contentDescription="Finishing app" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabTrainTest"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:src="@drawable/controller_forward"
+        app:fabSize="mini"
+        app:layout_constraintTop_toTopOf="@id/fabControl"
+        app:layout_constraintBottom_toBottomOf="@id/fabControl"
+        app:layout_constraintStart_toStartOf="@id/fabControl"
+        app:layout_constraintEnd_toEndOf="@id/fabControl"
+        android:contentDescription="Trying to test" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabControl"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:layout_marginEnd="16dp"
+        android:src="@drawable/controller_add"
+        android:scaleType="centerCrop"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:contentDescription="@string/app_controller" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
