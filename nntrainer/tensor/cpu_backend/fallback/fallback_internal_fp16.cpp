@@ -331,4 +331,23 @@ void __fallback_gemm_q4_0(const unsigned int M, const unsigned int N,
                           const unsigned int ldc) {
   throw std::runtime_error("NYI : __fallback_gemm_q4_0");
 }
+
+template <>
+void __fallback_dequantize_row_q8_K(const void *x, _FP16 *y, int64_t k) {
+  throw std::runtime_error("NYI : __fallback_dequantize_row_q8_K");
+}
+
+template <>
+void __fallback_quantize_row_q8_K(const _FP16 *src, void *dst, int64_t k) {
+  throw std::runtime_error("NYI : __fallback_quantize_row_q8_K");
+}
+
+template <>
+void __fallback_gemm_q6_K(const unsigned int M, const unsigned int N,
+                          const unsigned int K, const _FP16 *A,
+                          const unsigned int lda, const void *B,
+                          const unsigned int ldb, _FP16 *C,
+                          const unsigned int ldc) {
+  throw std::runtime_error("NYI : __fallback_gemm_q6_K");
+}
 } // namespace nntrainer
