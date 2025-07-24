@@ -36,6 +36,7 @@
 #include <acti_func.h>
 #include <bs_thread_pool_manager.hpp>
 #include <common_properties.h>
+#include <cpu_backend.h>
 #include <layer_impl.h>
 #include <limits.h>
 #include <util_simd.h>
@@ -311,19 +312,14 @@ private:
                int N, int chunk_size, int group_size, int tile_size,
                bool process_all);
 
-  void compute_kcaches(const float *in, const uint16_t *kcache, float *output,
-                       int seq, int num_cache_head, int group_size,
-                       int head_dim, bool process_all, BS::thread_pool<> &pool);
+  void compute_kcaches(nntrainer::Tensor &in, nntrainer::Tensor &cache,
+                       nntrainer::Tensor &out, unsigned int from,
+                       size_t sequence_len, unsigned int num_heads,
+                       unsigned int group_size, unsigned int head_dim,
+                       BS::thread_pool<> &pool);
 
-  void softmax_row_AVX2(float *qk_out, size_t start_row, size_t end_row,
-                        size_t num_heads);
-
-  void softmax_row_AVX2_inplace(float *qk_out, size_t start_row, size_t end_row,
-                                size_t num_heads);
-
-  void softmax_triangle_AVX2(nntrainer::Tensor &qk_out, size_t row,
-                             size_t num_heads, unsigned int from,
-                             BS::thread_pool<> &pool);
+  void softmax_triangle(nntrainer::Tensor &qk_out, size_t row, size_t num_heads,
+                        unsigned int from, BS::thread_pool<> &pool);
 
   void compute_vcaches(nntrainer::Tensor &in, nntrainer::Tensor &vcache,
                        nntrainer::Tensor &out, unsigned int from,
@@ -344,8 +340,6 @@ private:
    * @param context Context of the layer
    */
   void calcCommonDerivative(nntrainer::RunLayerContext &context);
-
-  size_t calc_attn_index(size_t i);
 
 }; // end of class MHACoreLayer
 } // end of namespace causallm
