@@ -871,6 +871,16 @@ template <typename T = float>
 void dequantize_row_q8_K(const void *x, T *y, int64_t k);
 
 /**
+ * @brief dequantize row of q8_K data to float
+ *
+ * @param x input to be dequantized from q8_K to float
+ * @param y dequantized data output
+ * @param k number of elements in x
+ */
+template <typename T = float>
+void quantize_row_q8_K(const T *x, void *y, int64_t k);
+
+/**
  * @brief repack q40 to q40x8
  *
  * @param W input q40
