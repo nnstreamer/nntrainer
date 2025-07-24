@@ -46,7 +46,12 @@ template <int K> constexpr int QK_0() {
   }
   return -1;
 }
-
+/**
+ * @brief block of 0-quantization
+ *
+ * @tparam K quant bit
+ * @tparam N number of blocks to be packed
+ */
 template <int K, int N> struct block {
   uint16_t d[N];                      // deltas for N qK_0 blocks
   int8_t qs[(QK_0<K>() * N * K) / 8]; // quants for N qK_0 blocks
@@ -142,6 +147,31 @@ static inline uint16_t nntr_compute_fp32_to_fp16(float f) {
          (shl1_w > UINT32_C(0xFF000000) ? UINT16_C(0x7E00) : nonsign);
 }
 #endif
+
+static inline int nearest_int(float fval) {
+  assert(fabsf(fval) <= 4194303.f);
+  float val = fval + 12582912.f;
+  int i;
+  memcpy(&i, &val, sizeof(int));
+  return (i & 0x007fffff) - 0x00400000;
+}
+
+static inline void __copy_f16_from_f32(const float *src, _FP16 *dst,
+                                       int64_t k) {
+#if defined(__ARM_NEON)
+  for (int i = 0; i < k; i += 8) {
+    vst1q_f16((dst + i),
+              vcombine_f16(vcvt_f16_f32(vld1q_f32((float *)(src + i))),
+                           vcvt_f16_f32(vld1q_f32((float *)(src + i + 4)))));
+    src += 8;
+    dst += 8;
+  }
+#else
+  for (unsigned int i = 0; i < k; i++) {
+    dst[i] = static_cast<_FP16>(src[i]);
+  }
+#endif
+}
 
 void __nntr_quantize_row_q8_0(const _FP16 *__restrict x, void *vy, int64_t k) {
   assert(QK8_0 == 32);
@@ -355,6 +385,135 @@ static void __nntr_quantize_mat_q8_0_4x8(const _FP16 *GGML_RESTRICT x,
 }
 
 template <>
+void __ggml_dequantize_row_q8_K(const void *GGML_RESTRICT _x,
+                                _FP16 *GGML_RESTRICT y, int64_t k) {
+  assert(k % QK_K == 0);
+  const int64_t nb = k / QK_K;
+  const block_q8_K *GGML_RESTRICT x = (const block_q8_K *GGML_RESTRICT)_x;
+
+  for (int i = 0; i < nb; i++) {
+    for (int j = 0; j < QK_K; ++j) {
+      *y++ = x[i].d * x[i].qs[j];
+    }
+  }
+}
+
+void __ggml_quantize_row_q8_K_ref(const _FP16 *GGML_RESTRICT x,
+                                  void *GGML_RESTRICT _y, int64_t k) {
+  assert(k % QK_K == 0);
+  const int64_t nb = k / QK_K;
+  block_q8_K *GGML_RESTRICT y = (block_q8_K * GGML_RESTRICT) _y;
+
+  for (int i = 0; i < nb; i++) {
+
+    float max = 0;
+    float amax = 0;
+    for (int j = 0; j < QK_K; ++j) {
+      float ax = fabsf(x[j]);
+      if (ax > amax) {
+        amax = ax;
+        max = x[j];
+      }
+    }
+    if (!amax) {
+      y[i].d = 0;
+      memset(y[i].qs, 0, QK_K);
+      x += QK_K;
+      continue;
+    }
+    // const float iscale = -128.f/max;
+    //  We need this change for IQ2_XXS, else the AVX implementation becomes
+    //  very awkward
+    const float iscale = -127.f / max;
+    for (int j = 0; j < QK_K; ++j) {
+      int v = nearest_int(iscale * x[j]);
+      y[i].qs[j] = MIN(127, v);
+    }
+    for (int j = 0; j < QK_K / 16; ++j) {
+      int sum = 0;
+      for (int ii = 0; ii < 16; ++ii) {
+        sum += y[i].qs[j * 16 + ii];
+      }
+      y[i].bsums[j] = sum;
+    }
+    y[i].d = 1 / iscale;
+    x += QK_K;
+  }
+}
+
+template <>
+void __ggml_quantize_row_q8_K(const _FP16 *GGML_RESTRICT x,
+                              void *GGML_RESTRICT y, int64_t k) {
+  __ggml_quantize_row_q8_K_ref(x, y, k);
+}
+
+template <>
+void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
+                      const unsigned int K, const _FP16 *A,
+                      const unsigned int lda, const void *B,
+                      const unsigned int ldb, _FP16 *C,
+                      const unsigned int ldc) {
+  std::vector<float> C32 = std::vector<float>(M * N);
+  float *C32_ptr = C32.data();
+
+  static constexpr const int32_t thread_count = 16;
+
+  static constexpr const int32_t bs = 1;
+  static constexpr const int32_t bx = 1;
+  static constexpr const int32_t by = 1;
+  static constexpr const int32_t nrc = 1;
+
+  const int32_t blocks_per_row = (K + QK_K - 1) / QK_K;
+  const int32_t A_row_size = sizeof(block_q8_K) * blocks_per_row;
+  const int32_t B_row_size = sizeof(block_q6_K) * blocks_per_row;
+
+  // GEMV
+  if (M == 1) {
+    std::vector<char> quantized_A(A_row_size);
+    __ggml_quantize_row_q8_K(A, (void *)quantized_A.data(), K);
+
+    const void *const quantized_A_data = quantized_A.data();
+
+#pragma omp parallel for collapse(1) num_threads(thread_count)
+    for (int32_t thread_job = 0; thread_job < static_cast<int>(N);
+         thread_job++) {
+      const int32_t B_row_data_offset = B_row_size * thread_job;
+
+      const void *const B_data = (void *)((char *)B + B_row_data_offset);
+
+      ggml_vec_dot_q6_K_q8_K(K, &C32_ptr[thread_job], bs, B_data, bx,
+                             quantized_A_data, by, nrc);
+    }
+  } else { // GEMM
+    const int32_t A_total_size = A_row_size * M;
+    std::vector<char> quantized_A(A_total_size);
+
+#pragma omp parallel for num_threads(thread_count)
+    for (int32_t thread_job = 0; thread_job < static_cast<int>(M);
+         thread_job++) {
+      const int32_t A_row_data_offset = A_row_size * thread_job;
+      void *A_data = (void *)((char *)quantized_A.data() + A_row_data_offset);
+      __ggml_quantize_row_q8_K(A + thread_job * K, A_data, K);
+    }
+#pragma omp parallel for num_threads(thread_count)
+    for (int32_t thread_job = 0; thread_job < static_cast<int>(M);
+         thread_job++) {
+      const int32_t A_row_data_offset = A_row_size * thread_job;
+      void *A_data = (void *)((char *)quantized_A.data() + A_row_data_offset);
+
+      for (uint32_t j = 0; j < N; j++) {
+        const int32_t B_row_data_offset = B_row_size * j;
+        const void *const B_data = (void *)((char *)B + B_row_data_offset);
+
+        ggml_vec_dot_q6_K_q8_K(K, &C32_ptr[thread_job * ldc + j], bs, B_data,
+                               bx, A_data, by, nrc);
+      }
+    }
+  }
+  __copy_f16_from_f32(C32_ptr, C, M * N);
+}
+
+template <>
 void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int K, const _FP16 *A,
                                const unsigned int lda, const void *B,
@@ -456,18 +615,20 @@ void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
       }
     }
   }
-#if defined(__ARM_NEON)
-  for (int i = 0; i < M * N; i += 8) {
-    vst1q_f16(
-      (C + i),
-      vcombine_f16(vcvt_f16_f32(vld1q_f32((float *)(C32.data() + i))),
-                   vcvt_f16_f32(vld1q_f32((float *)(C32.data() + i + 4)))));
-  }
-#else
-  for (unsigned int i = 0; i < M * N; i++) {
-    C[i] = static_cast<_FP16>(C32[i]);
-  }
-#endif
+  // #if defined(__ARM_NEON)
+  //   for (int i = 0; i < M * N; i += 8) {
+  //     vst1q_f16(
+  //       (C + i),
+  //       vcombine_f16(vcvt_f16_f32(vld1q_f32((float *)(C32.data() + i))),
+  //                    vcvt_f16_f32(vld1q_f32((float *)(C32.data() + i +
+  //                    4)))));
+  //   }
+  // #else
+  //   for (unsigned int i = 0; i < M * N; i++) {
+  //     C[i] = static_cast<_FP16>(C32[i]);
+  //   }
+  // #endif
+  __copy_f16_from_f32(C32.data(), C, M * N);
 }
 
 } // namespace nntrainer
