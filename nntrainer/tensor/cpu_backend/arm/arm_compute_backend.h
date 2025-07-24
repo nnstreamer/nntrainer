@@ -946,10 +946,10 @@ float dot_q6_K_f32(const unsigned int K, const void *v_q6_K, const float *f);
 size_t quantize_q4_0(const float *src, void *dst, int64_t nrow,
                      int64_t n_per_row, const float *quant_weights);
 /**
- * @brief quantize_q4_0 function
+ * @brief quantize_q8_0 function
  *
  * @param src float* to quantize
- * @param dst q4_0* to store quantized data
+ * @param dst q8_0* to store quantized data
  * @param nrow number of rows in src
  * @param n_per_row number of elements in each row of src
  * @param quant_weights unused for now -> imatrix
