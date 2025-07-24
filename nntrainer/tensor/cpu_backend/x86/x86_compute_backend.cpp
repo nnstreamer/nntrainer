@@ -240,7 +240,7 @@ void softmax(const unsigned int N, float *X, float *Y) {
   __fallback_softmax(N, X, Y);
 }
 
-template<>
+template <>
 void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc) {
@@ -278,6 +278,7 @@ float dot_q6_K_f32(const unsigned int K, const void *v_q6_K, const float *f) {
 #endif
 }
 
+template <>
 void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc) {
@@ -322,7 +323,7 @@ void quantize_row_q6_K(const float *src, void *dst, int64_t k) {
 #endif
 }
 
-void quantize_row_q8_K(const float *src, void *dst, int64_t k) {
+template <> void quantize_row_q8_K(const float *src, void *dst, int64_t k) {
 #ifdef ENABLE_GGML
   __ggml_quantize_row_q8_K(src, dst, k);
 #else
@@ -346,7 +347,7 @@ void dequantize_row_q6_K(const void *x, float *y, int64_t k) {
 #endif
 }
 
-void dequantize_row_q8_K(const void *x, float *y, int64_t k) {
+template <> void dequantize_row_q8_K(const void *x, float *y, int64_t k) {
 #ifdef ENABLE_GGML
   __ggml_dequantize_row_q8_K(x, y, k);
 #else

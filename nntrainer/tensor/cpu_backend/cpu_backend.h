@@ -35,7 +35,8 @@
  * @param dst void* dst to store quantized data
  * @param k number of elements in src
  */
-extern void quantize_row_q8_0(const _FP16 * __restrict src, void * __restrict dst, int64_t k);
+extern void quantize_row_q8_0(const _FP16 *__restrict src, void *__restrict dst,
+                              int64_t k);
 
 /**
  * @brief Quantize _FP16 to q8_0 Quantization format
@@ -760,7 +761,7 @@ extern bool is_valid(const unsigned int N, const float *X);
  * @param lda Leading dimension of A
  * @param B (void*) (block_q4_K*) for Offline-quantized transposed weight
  * @param ldb Leading dimenstion of B
- * @param C float* output
+ * @param C T* output
  * @param ldc Leading dimension of C
  */
 template <typename T = float>
@@ -797,13 +798,14 @@ extern void gemm_q4_K(const unsigned int M, const unsigned int N,
  * @param lda Leading dimension of A
  * @param B (void*) (block_q6_K*) for Offline-quantized transposed weight
  * @param ldb Leading dimenstion of B
- * @param C float* output
+ * @param C T* output
  * @param ldc Leading dimension of C
  */
+template <typename T = float>
 extern void gemm_q6_K(const unsigned int M, const unsigned int N,
-                      const unsigned int K, const float *A,
-                      const unsigned int lda, const void *B,
-                      const unsigned int ldb, float *C, const unsigned int ldc);
+                      const unsigned int K, const T *A, const unsigned int lda,
+                      const void *B, const unsigned int ldb, T *C,
+                      const unsigned int ldc);
 /**
  * @brief Quantize float to q6_K Quantization format
  *
@@ -865,7 +867,18 @@ extern void dequantize_row_q6_K(const void *x, float *y, int64_t k);
  * @param y dequantized data output
  * @param k number of elements in x
  */
-extern void dequantize_row_q8_K(const void *x, float *y, int64_t k);
+template <typename T = float>
+extern void dequantize_row_q8_K(const void *x, T *y, int64_t k);
+
+/**
+ * @brief quantize row of T data to q8_K
+ *
+ * @param src input to be quantized from T data to q8_K
+ * @param dst quantized data output
+ * @param k number of elements in x
+ */
+template <typename T = float>
+void quantize_row_q8_K(const T *src, void *dst, int64_t k);
 
 /**
  * @brief repack q40 to q40x8
