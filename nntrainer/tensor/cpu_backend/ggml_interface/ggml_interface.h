@@ -98,7 +98,7 @@ void __ggml_quantize_row_q6_K(const float *src, void *dst, int64_t k);
  * @param dst void* dst to store quantized data
  * @param k number of elements in src
  */
-template<typename T>
+template <typename T = float>
 void __ggml_quantize_row_q8_K(const T *src, void *dst, int64_t k);
 
 /**
@@ -132,7 +132,7 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
  * @param C dst matrix
  * @param ldc leading dimension of C
  */
-template <typename T>
+template <typename T = float>
 void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int K, const T *A,
                                const unsigned int lda, const void *B,
@@ -170,11 +170,11 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
  * @param C dst matrix
  * @param ldc leading dimension of C
  */
-template <typename T>
+template <typename T = float>
 void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
-                      const unsigned int K, const T *A,
-                      const unsigned int lda, const void *B,
-                      const unsigned int ldb, T *C, const unsigned int ldc);
+                      const unsigned int K, const T *A, const unsigned int lda,
+                      const void *B, const unsigned int ldb, T *C,
+                      const unsigned int ldc);
 /**
  * @brief (1xK)*(Kx1) dot product for q6_K and q8_K vectors
  *
@@ -239,7 +239,7 @@ void __ggml_dequantize_row_q6_K(const void *x, float *y, int64_t k);
  * @param y output destination for dequantized data
  * @param k data length
  */
-template <typename T>
+template <typename T = float>
 void __ggml_dequantize_row_q8_K(const void *x, T *y, int64_t k);
 
 /**

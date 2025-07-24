@@ -201,6 +201,7 @@ void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
   return __fallback_gemm_q4_K(M, N, K, A, lda, B, ldb, C, ldc);
 }
 
+template <>
 void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc) {
@@ -239,7 +240,7 @@ void dequantize_row_q6_K(const void *x, float *y, int64_t k) {
   return __fallback_dequantize_row_q6_K(x, y, k);
 }
 
-void dequantize_row_q8_K(const void *x, float *y, int64_t k) {
+template <> void dequantize_row_q8_K(const void *x, float *y, int64_t k) {
   return __fallback_dequantize_row_q8_K(x, y, k);
 }
 

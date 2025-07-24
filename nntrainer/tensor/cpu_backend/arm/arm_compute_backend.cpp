@@ -294,11 +294,12 @@ void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
 #endif
 }
 
+template <>
 void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc) {
 #ifdef ENABLE_GGML
-  return __ggml_gemm_q6_K(M, N, K, A, lda, B, ldb, C, ldc);
+  return __ggml_gemm_q6_K<float>(M, N, K, A, lda, B, ldb, C, ldc);
 #else
   return __fallback_gemm_q6_K(M, N, K, A, lda, B, ldb, C, ldc);
 #endif
@@ -355,6 +356,7 @@ void quantize_row_q6_K(const float *src, void *dst, int64_t k) {
 #endif
 }
 
+template <>
 void quantize_row_q8_K(const float *src, void *dst, int64_t k) {
 #ifdef ENABLE_GGML
   __ggml_quantize_row_q8_K(src, dst, k);
@@ -379,6 +381,7 @@ void dequantize_row_q6_K(const void *x, float *y, int64_t k) {
 #endif
 }
 
+template <>
 void dequantize_row_q8_K(const void *x, float *y, int64_t k) {
 #ifdef ENABLE_GGML
   __ggml_dequantize_row_q8_K(x, y, k);
