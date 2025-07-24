@@ -207,4 +207,19 @@ void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
   return __fallback_gemm_q4_0<_FP16>(M, N, K, A, lda, B, ldb, C, ldc);
 }
 
+template <> void dequantize_row_q8_K(const void *x, _FP16 *y, int64_t k) {
+  return __fallback_dequantize_row_q8_K(x, y, k);
+}
+
+template <> void quantize_row_q8_K(const void *x, _FP16 *y, int64_t k) {
+  return __fallback_quantize_row_q8_K(x, y, k);
+}
+
+template <>
+void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
+               const _FP16 *A, const unsigned int lda, const void *B,
+               const unsigned int ldb, _FP16 *C, const unsigned int ldc) {
+  return __fallback_gemm_q6_K<_FP16>(M, N, K, A, lda, B, ldb, C, ldc);
+}
+
 } /* namespace nntrainer */
