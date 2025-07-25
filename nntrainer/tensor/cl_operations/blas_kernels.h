@@ -120,6 +120,27 @@ void transpose_cl_axis(const float *in, float *res,
                        unsigned int input_batch_size,
                        unsigned int input_channels, unsigned int input_height,
                        unsigned int input_width, unsigned int axis);
+/**
+ * @brief  Separate the quantized bits and scale from block_q4_0
+ *
+ * @param src source pointer to the block_q4_0 data
+ * @param dst_q destination pointer for the quantized bits
+ * @param dst_d destination pointer for the scale
+ * @param num_blocks number of blocks to process
+ */
+void flatten_block_q4_0_cl(const void *src, void *dst_q, void *dst_d,
+                           unsigned int num_blocks);
+
+/**
+ * @brief Restore the original block_q4_0 from the quantized bits and scale
+ *
+ * @param src_q source pointer to the quantized bits
+ * @param src_d source pointer to the scale
+ * @param dst destination pointer for the restored block_q4_0
+ * @param num_blocks number of blocks to process
+ */
+void restore_block_q4_0_cl(const void *src_q, const void *src_d, void *dst,
+                           unsigned int num_blocks);
 
 #ifdef ENABLE_FP16
 
