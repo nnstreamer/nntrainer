@@ -335,166 +335,94 @@ void transpose_cl_axis(const float *in, float *res,
                                     input_height, input_width, axis);
 }
 
-void quantize_q8_1_cl(const float *input, void *output, unsigned int size) {
+void flatten_block_q4_0_cl(const void *src, void *dst_q, void *dst_d,
+                           unsigned int num_blocks) {
   bool result = false;
 
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
 
-  do {
-    ClContext::SharedPtrClKernel kernel_quantize_q8_1_ptr =
-      blas_cc->registerClKernel(getQuantizeQ8_1Kernel(), "quantize_q8_1_cl");
-    if (!kernel_quantize_q8_1_ptr) {
-      ml_loge("Failed to register kernel_quantize_q8_1_ptr");
-      break;
-    }
+  ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
+    getConvertBlockQ4_0Kernel(), "kernel_convert_block_q4_0_noshuffle");
+  if (!kernel_ptr) {
+    ml_loge("Failed to register kernel_ptr for flatten_block_q4_0_cl");
+    return;
+  }
 
-    if (size % 128 != 0) {
-      ml_loge("Size must be a multiple of 128 for quantize_q8_1_cl");
-      break;
-    }
-    const size_t input_size = size * sizeof(float);
-    const size_t output_size = (size / 128) * 144;
-    const int layout = 0;
+  int argIdx = 0;
 
-    result = clbuffInstance.getInBufferA()->WriteDataRegion(
-      blas_cc->command_queue_inst_, input_size, input);
-    if (!result) {
-      ml_loge("Failed to write data to input buffer A for "
-              "kernel_quantize_q8_1_ptr");
-      break;
-    }
+  result = kernel_ptr->SetKernelSVMArguments(argIdx++, src);
+  if (!result) {
+    ml_loge("Failed to set kernel argument 0 for flatten_block_q4_0_cl");
+    return;
+  }
 
-    result = kernel_quantize_q8_1_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      ml_loge("Failed to set kernel argument 0 for kernel_quantize_q8_1_ptr");
-      break;
-    }
+  result = kernel_ptr->SetKernelSVMArguments(argIdx++, dst_q);
+  if (!result) {
+    ml_loge("Failed to set kernel argument 1 for flatten_block_q4_0_cl");
+    return;
+  }
 
-    result = kernel_quantize_q8_1_ptr->SetKernelArguments(
-      1, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      ml_loge("Failed to set kernel argument 1 for kernel_quantize_q8_1_ptr");
-      break;
-    }
+  result = kernel_ptr->SetKernelSVMArguments(argIdx++, dst_d);
+  if (!result) {
+    ml_loge("Failed to set kernel argument 2 for flatten_block_q4_0_cl");
+    return;
+  }
 
-    result =
-      kernel_quantize_q8_1_ptr->SetKernelArguments(2, &size, sizeof(int));
-    if (!result) {
-      ml_loge("Failed to set kernel argument 2 for kernel_quantize_q8_1_ptr");
-      break;
-    }
+  const int work_groups_count[3] = {(int)num_blocks, 1, 1};
+  const int work_group_size[3] = {64, 1, 1};
 
-    result =
-      kernel_quantize_q8_1_ptr->SetKernelArguments(3, &layout, sizeof(int));
-    if (!result) {
-      ml_loge("Failed to set kernel argument 3 for kernel_quantize_q8_1_ptr");
-      break;
-    }
-
-    const int work_groups_count[3] = {(int)size / 4, 1, 1};
-    const int work_group_size[3] = {32, 1, 1};
-
-    result = blas_cc->command_queue_inst_.DispatchCommand(
-      kernel_quantize_q8_1_ptr, work_groups_count, work_group_size);
-    if (!result) {
-      ml_loge("Failed to dispatch quantize_q8_1 kernel");
-      break;
-    }
-
-    result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-      blas_cc->command_queue_inst_, output_size, output);
-    if (!result) {
-      ml_loge("Failed to read data from output buffer A for "
-              "kernel_quantize_q8_1_ptr");
-      break;
-    }
-
-  } while (false);
+  result = blas_cc->command_queue_inst_.DispatchCommand(
+    kernel_ptr, work_groups_count, work_group_size);
+  if (!result) {
+    ml_loge("Failed to dispatch kernel for flatten_block_q4_0_cl");
+    return;
+  }
 }
 
-void dequantize_q8_1_cl(const void *input, float *output, unsigned int size) {
+void restore_block_q4_0_cl(const void *src_q, const void *src_d, void *dst,
+                           unsigned int num_blocks) {
   bool result = false;
 
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
 
-  do {
-    ClContext::SharedPtrClKernel kernel_dequantize_q8_1_ptr =
-      blas_cc->registerClKernel(getDequantizeQ8_1Kernel(),
-                                "dequantize_q8_1_cl");
-    if (!kernel_dequantize_q8_1_ptr) {
-      ml_loge("Failed to register kernel_dequantize_q8_1_ptr");
-      break;
-    }
+  ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
+    getConvertBlockQ4_0Kernel(), "kernel_restore_block_q4_0");
+  if (!kernel_ptr) {
+    ml_loge("Failed to register kernel_ptr for restore_block_q4_0_cl");
+    return;
+  }
 
-    if (size % 128 != 0) {
-      ml_loge("Size must be a multiple of 128 for dequantize_q8_1_cl");
-      break;
-    }
-    size_t num_q8_1_block = size / 128;
-    size_t input_size_bytes = num_q8_1_block * 144;
-    size_t output_size_bytes = size * sizeof(float);
-    const int layout = 0;
+  int argIdx = 0;
 
-    result = clbuffInstance.getInBufferA()->WriteDataRegion(
-      blas_cc->command_queue_inst_, input_size_bytes, input);
-    if (!result) {
-      ml_loge("Failed to write data to input buffer A for "
-              "kernel_dequantize_q8_1_ptr");
-      break;
-    }
+  result = kernel_ptr->SetKernelSVMArguments(argIdx++, src_q);
+  if (!result) {
+    ml_loge("Failed to set kernel argument 0 for restore_block_q4_0_cl");
+    return;
+  }
 
-    result = kernel_dequantize_q8_1_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      ml_loge("Failed to set kernel argument 0 for kernel_dequantize_q8_1_ptr");
-      break;
-    }
+  result = kernel_ptr->SetKernelSVMArguments(argIdx++, src_d);
+  if (!result) {
+    ml_loge("Failed to set kernel argument 1 for restore_block_q4_0_cl");
+    return;
+  }
 
-    result = kernel_dequantize_q8_1_ptr->SetKernelArguments(
-      1, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      ml_loge("Failed to set kernel argument 1 for kernel_dequantize_q8_1_ptr");
-      break;
-    }
+  result = kernel_ptr->SetKernelSVMArguments(argIdx++, dst);
+  if (!result) {
+    ml_loge("Failed to set kernel argument 2 for restore_block_q4_0_cl");
+    return;
+  }
 
-    result =
-      kernel_dequantize_q8_1_ptr->SetKernelArguments(2, &size, sizeof(int));
-    if (!result) {
-      ml_loge("Failed to set kernel argument 2 for kernel_dequantize_q8_1_ptr");
-      break;
-    }
+  const int work_groups_count[3] = {(int)num_blocks, 1, 1};
+  const int work_group_size[3] = {1, 1, 1};
 
-    result =
-      kernel_dequantize_q8_1_ptr->SetKernelArguments(3, &layout, sizeof(int));
-    if (!result) {
-      ml_loge("Failed to set kernel argument 3 for kernel_dequantize_q8_1_ptr");
-      break;
-    }
-
-    const int work_groups_count[3] = {(int)size / 4, 1, 1};
-    const int work_group_size[3] = {32, 1, 1};
-
-    result = blas_cc->command_queue_inst_.DispatchCommand(
-      kernel_dequantize_q8_1_ptr, work_groups_count, work_group_size);
-    if (!result) {
-      ml_loge("Failed to dispatch dequantize_q8_1 kernel");
-      break;
-    }
-
-    result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-      blas_cc->command_queue_inst_, output_size_bytes, output);
-    if (!result) {
-      ml_loge("Failed to read data from output buffer A for "
-              "kernel_dequantize_q8_1_ptr");
-      break;
-    }
-
-  } while (false);
+  result = blas_cc->command_queue_inst_.DispatchCommand(
+    kernel_ptr, work_groups_count, work_group_size);
+  if (!result) {
+    ml_loge("Failed to dispatch kernel for restore_block_q4_0_cl");
+    return;
+  }
 }
 
 } // namespace nntrainer
