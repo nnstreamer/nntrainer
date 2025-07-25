@@ -221,7 +221,10 @@ bool Program::CreateCLProgram(const cl_context &context,
   }
 
   // building the created program
-  return BuildProgram(device_id, compiler_options);
+  return BuildProgram(device_id,
+                      compiler_options +
+                        "-cl-mad-enable -cl-unsafe-math-optimizations "
+                        "-cl-finite-math-only -cl-fast-relaxed-math");
 }
 
 /**
