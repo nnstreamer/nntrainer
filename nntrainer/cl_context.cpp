@@ -157,6 +157,11 @@ void ClContext::initBlasClKernels() {
   registerClKernel(getQuantizeQ8_1Kernel(), "quantize_q8_1_cl");
   registerClKernel(getDequantizeQ8_1Kernel(), "dequantize_q8_1_cl");
 
+  // register Q4_0 kernels
+  registerClKernel(getConvertBlockQ4_0Kernel(),
+                   "kernel_convert_block_q4_0_noshuffle");
+  registerClKernel(getRestoreBlockQ4_0Kernel(), "kernel_restore_block_q4_0");
+
 #ifdef ENABLE_FP16
   registerClKernel(getHgemvClKernel(), "sgemv_cl_fp16");
   registerClKernel(getHgemvClNoTransKernel(), "sgemv_cl_noTrans_fp16");

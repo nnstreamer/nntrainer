@@ -749,145 +749,112 @@ const std::string &getRMSNormClKernel() {
   return rmsnorm_cl_kernel_;
 }
 
-const std::string &getQuantizeQ8_1Kernel() {
-  static const std::string quantize_q8_1_kernel_ =
+const std::string &getConvertBlockQ4_0Kernel() {
+  static const std::string convert_q4_0_block_kernel_ =
     R"(
-    #pragma OPENCL EXTENSION cl_khr_subgroups : enable
     #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 
-    #define QK8_1 32
+    #ifdef cl_intel_required_subgroup_size
+    #pragma OPENCL EXTENSION cl_intel_required_subgroup_size : enable
+    #define INTEL_GPU 1
+    #define REQD_SUBGROUP_SIZE_16 __attribute__((intel_reqd_sub_group_size(16)))
+    #define REQD_SUBGROUP_SIZE_32 __attribute__((intel_reqd_sub_group_size(32)))
+    #elif defined(cl_qcom_reqd_sub_group_size)
+    #pragma OPENCL EXTENSION cl_qcom_reqd_sub_group_size : enable
+    #define ADRENO_GPU 1
+    #define REQD_SUBGROUP_SIZE_64 __attribute__((qcom_reqd_sub_group_size("half")))
+    #define REQD_SUBGROUP_SIZE_128 __attribute__((qcom_reqd_sub_group_size("full")))
+    #endif
 
-    #define MMQ_Q8_1_DS_LAYOUT_D4     0
-    #define MMQ_Q8_1_DS_LAYOUT_DS4    1
-    #define MMQ_Q8_1_DS_LAYOUT_D2S6   2
+    #define QK4_0 32
 
-    typedef struct {
-        union {
-            float  d[4];       // for D4
-            half2  ds4[4];     // for DS4
-            half   d2s6[8];    // for D2S6
-        };
-        char qs[4*QK8_1];
-    } block_q8_1_mmq;
+    typedef uchar uint8_t;
 
-    __kernel void quantize_q8_1_cl(
-        __global const float *x,       // input float vector
-        __global void *y_raw,          // output (cast to block_q8_1_mmq*)
-        int num_elements,              // total number of floats (must be multiple of 128)
-        int layout                     // quantization layout enum
+    struct block_q4_0 {
+      half d;
+      uint8_t qs[QK4_0 / 2];
+    };
+
+    //------------------------------------------------------------------------------
+    // kernel_convert_block_q4_0_noshuffle
+    // Flatten q4_0 weights and unshuffle the bits
+    //------------------------------------------------------------------------------
+
+    kernel void kernel_convert_block_q4_0_noshuffle(
+        global struct block_q4_0 * src0,
+        global uchar * dst_q,
+        global half  * dst_d
     ) {
-        int gid = get_global_id(0);    // one work-item per 4 floats
-        int i0 = gid * 4;
-        if (i0 >= num_elements) return;
+        global struct block_q4_0 * b = (global struct block_q4_0 *) src0 + get_global_id(0);
+        global uchar * q = (global uchar *) dst_q + QK4_0/2*get_global_id(0);
+        global half  * d = (global half *) dst_d + get_global_id(0);
 
-        float4 xi = (float4)(x[i0], x[i0+1], x[i0+2], x[i0+3]);
+        *d = b->d;
+        for (int i = 0; i < QK4_0/4; ++i) {
+            uchar x0 = b->qs[2*i + 0];
+            uchar x1 = b->qs[2*i + 1];
 
-        float amax = fmax(fabs(xi.x), fmax(fabs(xi.y), fmax(fabs(xi.z), fabs(xi.w))));
-        amax = sub_group_reduce_max(amax);
+            q[i + 0      ] = convert_uchar(x0 & 0x0F) | convert_uchar((x1 & 0x0F) << 4);
+            q[i + QK4_0/4] = convert_uchar((x0 & 0xF0) >> 4) | convert_uchar(x1 & 0xF0);
 
-        float sum = 0.0f;
-        if (layout != MMQ_Q8_1_DS_LAYOUT_D4) {
-            sum = xi.x + xi.y + xi.z + xi.w;
-            sum = sub_group_reduce_add(sum);
-        }
-
-        float d_inv = (amax != 0.0f) ? (127.0f / amax) : 0.0f;
-
-        char4 q;
-        q.x = (char)rint(xi.x * d_inv);
-        q.y = (char)rint(xi.y * d_inv);
-        q.z = (char)rint(xi.z * d_inv);
-        q.w = (char)rint(xi.w * d_inv);
-
-        __global block_q8_1_mmq *y = (__global block_q8_1_mmq *) y_raw;
-
-        int block_id = i0 / (4 * QK8_1); // block per 128 floats
-        int q_index  = i0 % (4 * QK8_1); // offset within block
-
-        __global char4 *yqs4 = (__global char4 *)(y[block_id].qs);
-        yqs4[q_index / 4] = q;
-
-        float d = (d_inv != 0.0f) ? (1.0f / d_inv) : 0.0f;
-
-        if (layout == MMQ_Q8_1_DS_LAYOUT_D2S6) {
-            if (q_index % 16 == 0 && q_index < 96)
-                y[block_id].d2s6[2 + q_index / 16] = (half)sum;
-            if (q_index % 64 == 0)
-                y[block_id].d2s6[q_index / 64] = (half)d;
-            return;
-        }
-
-        if (q_index % 32 != 0) return;
-
-        if (layout == MMQ_Q8_1_DS_LAYOUT_DS4) {
-            y[block_id].ds4[q_index / 32] = (half2)(d, sum);
-        } else {
-            y[block_id].d[q_index / 32] = d;
+    #ifdef ADRENO_GPU
+            // Workaround for adreno - must have the following printf statement for
+            // the kernel to work properly. Otherwise it produces incorrect result.
+            // convert_uchar above also seems necessary.
+            // Compare against a large number so that it does not print anything.
+            // get_sub_group_local_id() also works.
+            if (get_global_id(0) == 65536*4096) {
+                printf("%04x - %02x\n", *(global ushort*)d, ((x0 & 0xF0) >> 4) | (x1 & 0xF0));
+            }
+    #endif
         }
     }
     )";
-  return quantize_q8_1_kernel_;
+  return convert_q4_0_block_kernel_;
 }
 
-const std::string &getDequantizeQ8_1Kernel() {
-  static const std::string dequantize_q8_1_kernel_ =
+const std::string &getRestoreBlockQ4_0Kernel() {
+  static const std::string restore_q4_0_block_kernel_ =
     R"(
     #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 
-    #define QK8_1 32
+    #ifdef cl_intel_required_subgroup_size
+    #pragma OPENCL EXTENSION cl_intel_required_subgroup_size : enable
+    #define INTEL_GPU 1
+    #define REQD_SUBGROUP_SIZE_16 __attribute__((intel_reqd_sub_group_size(16)))
+    #define REQD_SUBGROUP_SIZE_32 __attribute__((intel_reqd_sub_group_size(32)))
+    #elif defined(cl_qcom_reqd_sub_group_size)
+    #pragma OPENCL EXTENSION cl_qcom_reqd_sub_group_size : enable
+    #define ADRENO_GPU 1
+    #define REQD_SUBGROUP_SIZE_64 __attribute__((qcom_reqd_sub_group_size("half")))
+    #define REQD_SUBGROUP_SIZE_128 __attribute__((qcom_reqd_sub_group_size("full")))
+    #endif
 
-    #define MMQ_Q8_1_DS_LAYOUT_D4     0
-    #define MMQ_Q8_1_DS_LAYOUT_DS4    1
-    #define MMQ_Q8_1_DS_LAYOUT_D2S6   2
+    #define QK4_0 32
+    
+    typedef uchar uint8_t;
 
-    typedef struct {
-        union {
-            float  d[4];       // for D4
-            half2  ds4[4];     // for DS4
-            half   d2s6[8];    // for D2S6
-        };
-        char qs[4*QK8_1];
-    } block_q8_1_mmq;
+    struct block_q4_0 {
+      half d;
+      uint8_t qs[QK4_0 / 2];
+    };
 
-    __kernel void dequantize_q8_1_cl(
-        __global const void *y_raw,   // input: quantized
-        __global float *x_out,        // output: dequantized
-        int num_elements,             // must match original float count
-        int layout                    // layout enum
-    ) {
-        int gid = get_global_id(0);
-        int i0 = gid * 4;
-        if (i0 >= num_elements) return;
+    // @todo: This kernel is not optimized for performance.
+    kernel void kernel_restore_block_q4_0(global uchar *src_q, global half *src_d,
+                                          global struct block_q4_0 *dst) {
+      global struct block_q4_0 *b =
+        (global struct block_q4_0 *)dst + get_global_id(0);
+      global uchar *q = (global uchar *)src_q + QK4_0 / 2 * get_global_id(0);
+      global half *d = (global half *)src_d + get_global_id(0);
 
-        int block_id = i0 / (4 * QK8_1);
-        int q_index  = i0 % (4 * QK8_1);
-
-        __global const block_q8_1_mmq *y = (__global const block_q8_1_mmq *) y_raw;
-        __global const char4 *yqs4 = (__global const char4 *)(y[block_id].qs);
-
-        char4 q = yqs4[q_index / 4];
-
-        float d = 1.0f;
-        float sum = 0.0f;
-
-        if (layout == MMQ_Q8_1_DS_LAYOUT_D2S6) {
-            d = (float)(y[block_id].d2s6[q_index / 64]);
-            sum = (float)(y[block_id].d2s6[2 + q_index / 16]);
-        } else if (layout == MMQ_Q8_1_DS_LAYOUT_DS4) {
-            half2 hs = y[block_id].ds4[q_index / 32];
-            d = (float)hs.s0;
-            sum = (float)hs.s1;
-        } else {
-            d = y[block_id].d[q_index / 32];
-        }
-
-        x_out[i0 + 0] = (float)(q.x) * d;
-        x_out[i0 + 1] = (float)(q.y) * d;
-        x_out[i0 + 2] = (float)(q.z) * d;
-        x_out[i0 + 3] = (float)(q.w) * d;
+      b->d = *d;
+      for (int i = 0; i < QK4_0 / 2; ++i) {
+        b->qs[i] = q[i];
+      }
     }
     )";
-  return dequantize_q8_1_kernel_;
+
+  return restore_q4_0_block_kernel_;
 }
 
 #ifdef ENABLE_FP16
