@@ -102,7 +102,8 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int K, const float *A,
                                const unsigned int lda, const void *B,
                                const unsigned int ldb, float *C,
-                               const unsigned int ldc);
+                               const unsigned int ldc,
+                               const unsigned int chunk_count = 8);
 
 /**
  * @brief A(M, K) * W.T(N, K) = (M, N)
@@ -121,7 +122,8 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int K, const float *A,
                                const unsigned int lda, const void *B,
                                const unsigned int ldb, float *C,
-                               const unsigned int ldc);
+                               const unsigned int ldc,
+                               const unsigned int chunk_count = 8);
 /**
  * @brief A(M, K) * W.T(N, K) = (M, N)
  *
@@ -138,7 +140,8 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
 void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
                       const unsigned int K, const float *A,
                       const unsigned int lda, const void *B,
-                      const unsigned int ldb, float *C, const unsigned int ldc);
+                      const unsigned int ldb, float *C, const unsigned int ldc,
+                      const unsigned int chunk_count = 8);
 /**
  * @brief (1xK)*(Kx1) dot product for q6_K and q8_K vectors
  *
