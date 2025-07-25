@@ -54,6 +54,18 @@ static inline double find_max_diff(T *src, T *src2, int M, int N) {
   return max_diff;
 }
 
+template<typename T>
+void print_start_and_end_matrix(const unsigned int M, const unsigned int N, T* C){
+  for (int i = 0; i < 3; ++i){
+    std::cout << float(C[i]) << "\t";
+  }
+  std::cout << " ... ";
+  for (int i = 0; i < 3; ++i){
+    std::cout << float(C[(N)*(M-1) + i]) << "\t";
+  }
+  std::cout << std::endl;
+}
+
 #define QK4_0 32
 /**
  * @brief q4_0 block
@@ -134,13 +146,14 @@ TEST(nntrainer_cpu_backend_standalone, ele_add) {
   }
 }
 
+template <typename T=float>
 float compute_mse(const uint32_t M, const uint32_t N,
-                  std::vector<float> &ref_dst, std::vector<float> &dst,
+                  std::vector<T> &ref_dst, std::vector<T> &dst,
                   bool print = false) {
   auto mean_squared_error =
-    mse<float, float>(ref_dst.data(), dst.data(), M * N);
-  auto cos_sim = cosine_similarity(ref_dst.data(), dst.data(), M * N);
-  auto max_differ = find_max_diff(ref_dst.data(), dst.data(), M, N);
+    mse<T, T>(ref_dst.data(), dst.data(), M * N);
+  auto cos_sim = cosine_similarity<T,T>(ref_dst.data(), dst.data(), M * N);
+  auto max_differ = find_max_diff<T>(ref_dst.data(), dst.data(), M, N);
 
   auto sum = std::accumulate(dst.begin(), dst.end(), 0.0);
   auto sum_gt = std::accumulate(ref_dst.begin(), ref_dst.end(), 0.0);
@@ -251,9 +264,8 @@ float test_gemm_q4_0(const uint32_t M, const uint32_t K, const uint32_t N,
   // Step2. Repack Weight to q4_K_8x8 layout (This happens when you load the
   // model weights. It's a one-time operation)
   std::vector<char> q4_0_repacked_qWeight = std::vector<char>(q4_0_data_size);
-  nntrainer::repack_q4_0_to_q4_0_8(q4_0_repacked_qWeight.data(),
-                                   q4_0_offline_qWeight_ptr, q4_0_data_size, N,
-                                   K);
+  nntrainer::repack_q4_0(q4_0_repacked_qWeight.data(), q4_0_offline_qWeight_ptr,
+                         q4_0_data_size, N, K);
 
   // Step3. Run GEMM! (Online activation quantization + kernel routine + return
   // float)

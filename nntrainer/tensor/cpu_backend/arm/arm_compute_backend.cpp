@@ -12,7 +12,9 @@
  */
 #include <arm_compute_backend.h>
 #include <assert.h>
+#ifdef USE_BLAS
 #include <cblas_interface.h>
+#endif
 #include <fallback_internal.h>
 #include <neon_impl.h>
 #include <nntrainer_error.h>
@@ -184,20 +186,33 @@ void ele_div(const unsigned N, const float *X, const float *Y, float *Z,
 
 void saxpy(const unsigned int N, const float alpha, const float *X,
            const unsigned int incX, float *Y, const unsigned int incY) {
+#ifdef USE_BLAS
   __cblas_saxpy(N, alpha, X, incX, Y, incY);
+#else
+  __fallback_saxpy(N, alpha, X, incX, Y, incY);
+#endif
 }
 
 void sgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
            const unsigned int N, const float alpha, const float *A,
            const unsigned int lda, const float *X, const unsigned int incX,
            const float beta, float *Y, const unsigned int incY) {
+#ifdef USE_BLAS
   __cblas_sgemv(TStorageOrder, TransA, M, N, alpha, A, lda, X, incX, beta, Y,
                 incY);
+#else
+  __fallback_sgemv(TStorageOrder, TransA, M, N, alpha, A, lda, X, incX, beta, Y,
+                   incY);
+#endif
 }
 
 float sdot(const unsigned int N, const float *X, const unsigned int incX,
            const float *Y, const unsigned int incY) {
+#ifdef USE_BLAS
   return __cblas_sdot(N, X, incX, Y, incY);
+#else
+  return __fallback_sdot(N, X, incX, Y, incY);
+#endif
 }
 
 void scopy(const unsigned int N, const float *X, const unsigned int incX,
@@ -210,11 +225,19 @@ void scopy(const unsigned int N, const float *X, const unsigned int incX,
 
 void sscal(const unsigned int N, const float alpha, float *X,
            const unsigned int incX) {
+#ifdef USE_BLAS
   __cblas_sscal(N, alpha, X, incX);
+#else
+  __fallback_sscal(N, alpha, X, incX);
+#endif
 }
 
 float snrm2(const unsigned int N, const float *X, const unsigned int incX) {
+#ifdef USE_BLAS
   return __cblas_snrm2(N, X, incX);
+#else
+  return __fallback_snrm2(N, X, incX);
+#endif
 }
 
 void sgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
@@ -222,13 +245,22 @@ void sgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
            const float alpha, const float *A, const unsigned int lda,
            const float *B, const unsigned int ldb, const float beta, float *C,
            const unsigned int ldc) {
+#ifdef USE_BLAS
   __cblas_sgemm(TStorageOrder, TransA, TransB, M, N, K, alpha, A, lda, B, ldb,
                 beta, C, ldc);
+#else
+  __fallback_sgemm(TStorageOrder, TransA, TransB, M, N, K, alpha, A, lda, B,
+                   ldb, beta, C, ldc);
+#endif
 }
 
 unsigned int isamax(const unsigned int N, const float *X,
                     const unsigned int incX) {
+#ifdef USE_BLAS
   return __cblas_isamax(N, X, incX);
+#else
+  return __fallback_isamax(N, X, incX);
+#endif
 }
 
 void transpose_matrix(const unsigned int M, const unsigned int N,
@@ -241,11 +273,12 @@ bool is_valid(const unsigned int N, const float *input) {
   return nntrainer::neon::is_valid(N, input);
 }
 
+template <>
 void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc) {
 #ifdef ENABLE_GGML
-  return __ggml_q4_0_8x8_q8_0_GEMM(M, N, K, A, lda, B, ldb, C, ldc);
+  return __ggml_q4_0_4x8_q8_0_GEMM<float>(M, N, K, A, lda, B, ldb, C, ldc);
 #else
   return __fallback_gemm_q4_0(M, N, K, A, lda, B, ldb, C, ldc);
 #endif
@@ -261,11 +294,12 @@ void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
 #endif
 }
 
+template <>
 void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc) {
 #ifdef ENABLE_GGML
-  return __ggml_gemm_q6_K(M, N, K, A, lda, B, ldb, C, ldc);
+  return __ggml_gemm_q6_K<float>(M, N, K, A, lda, B, ldb, C, ldc);
 #else
   return __fallback_gemm_q6_K(M, N, K, A, lda, B, ldb, C, ldc);
 #endif
@@ -322,6 +356,7 @@ void quantize_row_q6_K(const float *src, void *dst, int64_t k) {
 #endif
 }
 
+template <>
 void quantize_row_q8_K(const float *src, void *dst, int64_t k) {
 #ifdef ENABLE_GGML
   __ggml_quantize_row_q8_K(src, dst, k);
@@ -346,6 +381,7 @@ void dequantize_row_q6_K(const void *x, float *y, int64_t k) {
 #endif
 }
 
+template <>
 void dequantize_row_q8_K(const void *x, float *y, int64_t k) {
 #ifdef ENABLE_GGML
   __ggml_dequantize_row_q8_K(x, y, k);
@@ -360,6 +396,15 @@ void repack_q4_0_to_q4_0_8(void *W, void *repacked_W, size_t data_size,
   __ggml_repack_q4_0_to_q4_0_8(W, repacked_W, data_size, M, N);
 #else
   __fallback_repack_q4_0_to_q4_0_8(W, repacked_W, data_size, M, N);
+#endif
+}
+
+void repack_q4_0(void *W, void *repacked_W, size_t data_size,
+                 const unsigned int M, const unsigned int N) {
+#ifdef ENABLE_GGML
+  __ggml_repack_q4_0_to_q4_0_4(W, repacked_W, data_size, M, N);
+#else
+  __fallback_repack_q4_0_to_q4_0_4(W, repacked_W, data_size, M, N);
 #endif
 }
 
