@@ -687,4 +687,89 @@ void transpose_cl_axis(const float *in, float *res,
 
   } while (false);
 }
+
+void flatten_block_q4_0_cl(const void *src, void *dst_q, void *dst_d,
+                           unsigned int num_blocks) {
+  bool result = false;
+
+  ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
+    getConvertBlockQ4_0Kernel(), "kernel_convert_block_q4_0");
+  if (!kernel_ptr) {
+    ml_loge("Failed to register kernel_ptr for flatten_block_q4_0_cl");
+    return;
+  }
+
+  int argIdx = 0;
+
+  result = kernel_ptr->SetKernelSVMArguments(argIdx++, src);
+  if (!result) {
+    ml_loge("Failed to set kernel argument 0 for flatten_block_q4_0_cl");
+    return;
+  }
+
+  result = kernel_ptr->SetKernelSVMArguments(argIdx++, dst_q);
+  if (!result) {
+    ml_loge("Failed to set kernel argument 1 for flatten_block_q4_0_cl");
+    return;
+  }
+
+  result = kernel_ptr->SetKernelSVMArguments(argIdx++, dst_d);
+  if (!result) {
+    ml_loge("Failed to set kernel argument 2 for flatten_block_q4_0_cl");
+    return;
+  }
+
+  const int work_groups_count[3] = {(int)num_blocks, 1, 1};
+  const int work_group_size[3] = {64, 1, 1};
+
+  result = opencl::CommandQueueManager::GetInstance().DispatchCommand(
+    kernel_ptr, work_groups_count, work_group_size);
+  if (!result) {
+    ml_loge("Failed to dispatch kernel for flatten_block_q4_0_cl");
+    return;
+  }
+}
+
+void restore_block_q4_0_cl(const void *src_q, const void *src_d, void *dst,
+                           unsigned int num_blocks) {
+  bool result = false;
+
+  ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
+    getConvertBlockQ4_0Kernel(), "kernel_restore_block_q4_0");
+  if (!kernel_ptr) {
+    ml_loge("Failed to register kernel_ptr for restore_block_q4_0_cl");
+    return;
+  }
+
+  int argIdx = 0;
+
+  result = kernel_ptr->SetKernelSVMArguments(argIdx++, src_q);
+  if (!result) {
+    ml_loge("Failed to set kernel argument 0 for restore_block_q4_0_cl");
+    return;
+  }
+
+  result = kernel_ptr->SetKernelSVMArguments(argIdx++, src_d);
+  if (!result) {
+    ml_loge("Failed to set kernel argument 1 for restore_block_q4_0_cl");
+    return;
+  }
+
+  result = kernel_ptr->SetKernelSVMArguments(argIdx++, dst);
+  if (!result) {
+    ml_loge("Failed to set kernel argument 2 for restore_block_q4_0_cl");
+    return;
+  }
+
+  const int work_groups_count[3] = {(int)num_blocks, 1, 1};
+  const int work_group_size[3] = {1, 1, 1};
+
+  result = opencl::CommandQueueManager::GetInstance().DispatchCommand(
+    kernel_ptr, work_groups_count, work_group_size);
+  if (!result) {
+    ml_loge("Failed to dispatch kernel for restore_block_q4_0_cl");
+    return;
+  }
+}
+
 } // namespace nntrainer
