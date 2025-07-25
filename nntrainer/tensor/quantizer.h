@@ -36,6 +36,7 @@ enum class QScheme : uint16_t {
   BINARY_CODE_BASED = 0x02,
   Q4_Kx8 = 0x03,
   Q6_K = 0x4,
+  Q4_0 = 0x5,
   /** this is for custom use */
   CUSTOM_QUANTIZER_01 = 0x10,
   CUSTOM_QUANTIZER_02 = 0x11,

@@ -15,6 +15,7 @@
 #include <float_tensor.h>
 #include <int4_tensor.h>
 #include <lazy_tensor.h>
+#include <q4_0_tensor.h>
 #include <q4_k_tensor.h>
 #include <q6_k_tensor.h>
 #include <short_tensor.h>
@@ -120,6 +121,8 @@ Tensor::Tensor(std::string name_, Tformat fm, Tdatatype d_type) {
     itensor_ = std::make_unique<Q4_K_Tensor>(name_, fm);
   } else if (d_type == Tdatatype::Q6_K) {
     itensor_ = std::make_unique<Q6_K_Tensor>(name_, fm);
+  } else if (d_type == Tdatatype::Q4_0) {
+    itensor_ = std::make_unique<Q4_0_Tensor>(name_, fm);
   } else if (d_type == Tdatatype::UINT4) {
     itensor_ = std::make_unique<Uint4QTensor>(name_, fm);
   } else if (d_type == Tdatatype::UINT8) {
@@ -165,6 +168,8 @@ Tensor::Tensor(const TensorDim &d, bool alloc_now, Initializer init,
     itensor_ = std::make_unique<Q4_K_Tensor>(d, alloc_now, init, name);
   } else if (d.getDataType() == Tdatatype::Q6_K) {
     itensor_ = std::make_unique<Q6_K_Tensor>(d, alloc_now, init, name);
+  } else if (d.getDataType() == Tdatatype::Q4_0) {
+    itensor_ = std::make_unique<Q4_0_Tensor>(d, alloc_now, init, name);
   } else if (d.getDataType() == Tdatatype::UINT4) {
     if (qscheme != QScheme::Q4_Kx8) {
       itensor_ =
@@ -215,6 +220,8 @@ Tensor::Tensor(const TensorDim &d, const void *buf, QScheme qscheme) {
     itensor_ = std::make_unique<Q4_K_Tensor>(d, buf);
   } else if (d.getDataType() == Tdatatype::Q6_K) {
     itensor_ = std::make_unique<Q6_K_Tensor>(d, buf);
+  } else if (d.getDataType() == Tdatatype::Q4_0) {
+    itensor_ = std::make_unique<Q4_0_Tensor>(d, buf);
   } else if (d.getDataType() == Tdatatype::UINT4) {
     if (qscheme != QScheme::Q4_Kx8)
       itensor_ = std::make_unique<Uint4QTensor>(d, buf, qscheme);
@@ -260,6 +267,8 @@ Tensor::Tensor(const Tensor &rhs) {
     itensor_ = std::make_unique<Q4_K_Tensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::Q6_K) {
     itensor_ = std::make_unique<Q6_K_Tensor>(*rhs.itensor_);
+  } else if (rhs.getDataType() == Tdatatype::Q4_0) {
+    itensor_ = std::make_unique<Q4_0_Tensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::UINT4) {
     itensor_ = std::make_unique<Uint4QTensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::UINT8) {
@@ -333,6 +342,8 @@ Tensor &Tensor::operator=(const Tensor &rhs) {
     itensor_ = std::make_unique<Q4_K_Tensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::Q6_K) {
     itensor_ = std::make_unique<Q6_K_Tensor>(*rhs.itensor_);
+  } else if (rhs.getDataType() == Tdatatype::Q4_0) {
+    itensor_ = std::make_unique<Q4_0_Tensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::UINT4) {
     itensor_ = std::make_unique<Uint4QTensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::UINT8) {
@@ -376,6 +387,8 @@ bool Tensor::operator==(const Tensor &rhs) const {
       return itensorCompare<Q4_K_Tensor>(itensor_.get(), rhs.itensor_.get());
     } else if (getDataType() == Tdatatype::Q6_K) {
       return itensorCompare<Q6_K_Tensor>(itensor_.get(), rhs.itensor_.get());
+    } else if (getDataType() == Tdatatype::Q4_0) {
+      return itensorCompare<Q4_0_Tensor>(itensor_.get(), rhs.itensor_.get());
     } else if (getDataType() == Tdatatype::UINT4) {
       return itensorCompare<Uint4QTensor>(itensor_.get(), rhs.itensor_.get());
     } else if (getDataType() == Tdatatype::UINT8) {
@@ -1240,6 +1253,68 @@ Tensor Tensor::getBatchSlice(size_t offset, unsigned int size) const {
 
   return getSharedDataTensor(dim_, offset * this->getDim().getFeatureLen(),
                              true, "");
+}
+
+Tensor Tensor::getBatchSlice(const std::vector<unsigned int> &indices) const {
+
+  // Validate tensor contiguity
+  NNTR_THROW_IF(!this->getContiguous(), std::runtime_error)
+    << "getBatchSlice requires contiguous tensor layer";
+
+  // Validate indices vector is not empty
+  NNTR_THROW_IF(indices.empty(), std::invalid_argument)
+    << "Indices vector cannot be empty";
+
+  // Validate indices
+  const unsigned batch_size = getDim().batch();
+  for (auto idx : indices) {
+    NNTR_THROW_IF(idx >= batch_size, std::out_of_range)
+      << "Batch index " << idx << " out of range [0," << batch_size << ")";
+  }
+
+  // Get original tensor dimensions
+  const TensorDim &orig_dim = this->getDim();
+  const size_t element_size = orig_dim.getDataTypeSize();
+
+  // Calculate single batch size in elements
+  const size_t single_batch_size = orig_dim.getFeatureLen();
+
+  // Create output tensor with selected batches
+  TensorDim new_dim = orig_dim;
+  new_dim.batch(indices.size());
+  Tensor output(new_dim);
+
+  // Validate output tensor size
+  const size_t output_bytes = output.bytes();
+  const size_t single_batch_bytes = single_batch_size * element_size;
+
+  // Get raw data pointers
+  const unsigned char *src_data =
+    static_cast<const unsigned char *>(this->getData<unsigned char>());
+  unsigned char *dst_data =
+    static_cast<unsigned char *>(output.getData<void>());
+
+// Parallel copy using OpenMP
+#pragma omp parallel for schedule(static)
+  for (int i = 0; i < static_cast<int>(indices.size()); ++i) {
+    const unsigned batch_idx = indices[i];
+
+    // Calculate memory offsets
+    const size_t src_offset =
+      static_cast<size_t>(batch_idx) * single_batch_bytes;
+    const size_t dst_offset = static_cast<size_t>(i) * single_batch_bytes;
+
+    // Bounds check for destination buffer
+    NNTR_THROW_IF(dst_offset + single_batch_bytes > output_bytes,
+                  std::runtime_error)
+      << "Destination buffer overflow detected";
+
+    // Perform memory copy
+    std::memcpy(dst_data + dst_offset, src_data + src_offset,
+                single_batch_bytes);
+  }
+
+  return output;
 }
 
 Tensor Tensor::clone() const {

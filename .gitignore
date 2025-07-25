@@ -41,6 +41,9 @@ Applications/**/*.bin
 *.so
 *.o
 *.a
+# allow tokenizer lib only
+!Applications/CausalLM/lib/libtokenizers_c.a
+
 *.o.d
 *.nnlayergolden
 *.nnmodelgolden
