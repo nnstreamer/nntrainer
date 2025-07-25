@@ -19,6 +19,7 @@
 #include <filesystem>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <nntrainer_error.h>
 #include <string>
 #include <sys/stat.h>
@@ -143,6 +144,7 @@ public:
   }
 
 private:
+  mutable std::mutex mutex;
   std::string dev_path; /**< device path */
   int fd;               /**< device file description */
   std::vector<std::pair<size_t, size_t>> weight_offset;
