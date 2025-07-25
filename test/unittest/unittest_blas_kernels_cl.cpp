@@ -1267,6 +1267,82 @@ static void run_q_6_K_test(const uint32_t M, const uint32_t K,
 
 DECLARE_q_6_K_test_M_K_N(1, 3072, 105900);
 
+static void run_flat_q4_0_test(const uint32_t M, const uint32_t N) {
+  struct block_q4_0 {
+    uint16_t d;
+    uint8_t qs[16];
+  };
+
+  nntrainer::init_backend();
+
+  auto *blas_cc = static_cast<nntrainer::ClContext *>(
+    nntrainer::Engine::Global().getRegisteredContext("gpu"));
+
+  std::vector<float> float_data = generate_random_vector<float, false>(M * N);
+
+  const size_t num_blocks = M * (N / 32);
+  const size_t data_size = sizeof(block_q4_0) * num_blocks;
+  void *q4_0_data = blas_cc->context_inst_.createSVMRegion(data_size);
+  void *q4_0_data_cpu = blas_cc->context_inst_.createSVMRegion(data_size);
+  void *q4_0_dst = blas_cc->context_inst_.createSVMRegion(data_size);
+
+  void *scales =
+    blas_cc->context_inst_.createSVMRegion(num_blocks * sizeof(uint16_t));
+  void *qbit = blas_cc->context_inst_.createSVMRegion(num_blocks * 16);
+
+  nntrainer::quantize_q4_0(float_data.data(), q4_0_data, N, M, nullptr);
+
+#if 0
+  // CPU repack
+  auto t1 = std::chrono::high_resolution_clock::now();
+  for (unsigned int i = 0; i < 100; ++i) {
+    nntrainer::repack_q4_0_to_q4_0_8(q4_0_data_cpu, q4_0_data, data_size, N, M);
+  }
+
+  auto t2 = std::chrono::high_resolution_clock::now();
+  auto dt = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
+
+  // GPU flattening
+  auto t3 = std::chrono::high_resolution_clock::now();
+  for (unsigned int i = 0; i < 100; ++i) {
+    nntrainer::flatten_block_q4_0_cl(q4_0_data, qbit, scales, num_blocks);
+  }
+  auto t4 = std::chrono::high_resolution_clock::now();
+  auto gpu_dt = std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3);
+  std::cout << " - time : CPU = " << dt.count() / (100.0f) << " ms"
+            << std::endl;
+  std::cout << " - time : GPU = " << gpu_dt.count() / (100.0f) << " ms"
+            << std::endl;
+#endif
+
+  nntrainer::flatten_block_q4_0_cl(q4_0_data, qbit, scales, num_blocks);
+  nntrainer::restore_block_q4_0_cl(qbit, scales, q4_0_dst, num_blocks);
+
+  for (unsigned int i = 0; i < num_blocks; ++i) {
+    auto *q4_0_ptr = reinterpret_cast<block_q4_0 *>(q4_0_data) + i;
+    auto *q4_0_dst_ptr = reinterpret_cast<block_q4_0 *>(q4_0_dst) + i;
+    EXPECT_EQ(q4_0_ptr->d, q4_0_dst_ptr->d)
+      << "Mismatch at block " << i << ": d values do not match: " << q4_0_ptr->d
+      << " != " << q4_0_dst_ptr->d;
+    for (unsigned int j = 0; j < 16; ++j) {
+      EXPECT_EQ(q4_0_ptr->qs[j], q4_0_dst_ptr->qs[j])
+        << "Mismatch at block " << i << ", index " << j
+        << ": d values do not match: " << q4_0_ptr->qs[j]
+        << " != " << q4_0_dst_ptr->qs[j];
+    }
+  }
+}
+
+#define DECLARE_flat_q4_0_test_M_N(M, N)                                       \
+  TEST(nntrainer_blas_kernel, flat_q4_0_test_##M##_##N) {                      \
+    run_flat_q4_0_test(M, N);                                                  \
+  }
+
+DECLARE_flat_q4_0_test_M_N(3072, 8192);
+DECLARE_flat_q4_0_test_M_N(8192, 3072);
+DECLARE_flat_q4_0_test_M_N(3072, 3072);
+DECLARE_flat_q4_0_test_M_N(3072, 256);
+
 #endif // ENABLE_GGML
 
 GTEST_API_ int main(int argc, char **argv) {
