@@ -23,6 +23,7 @@ util_headers = [
   'mman_windows.h',
   'bs_thread_pool.h',
   'bs_thread_pool_manager.hpp',
+  'json.hpp',
 ]
 
 if get_option('enable-trace')
