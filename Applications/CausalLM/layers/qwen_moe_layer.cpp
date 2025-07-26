@@ -92,7 +92,7 @@ void MoELayer::finalize(nntrainer::InitLayerContext &context) {
     1, is_nchw ? 1 : num_experts, is_nchw ? hidden_size : 1,
     is_nchw ? num_experts : hidden_size,
     nntrainer::TensorDim::TensorType(context.getFormat(),
-                                     context.getWeightDataType()),
+                                     nntrainer::TensorDim::DataType::FP32),
     is_nchw ? 0b0011 : 0b0101);
 
   gate_idx = context.requestWeight(
