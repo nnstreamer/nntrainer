@@ -62,7 +62,7 @@ public:
 
 protected:
   inline static ClContext *global_cl_context =
-    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+    static_cast<ClContext *>(Engine::Global().maybeGetRegisteredContext("gpu"));
   inline static ClBufferManager &clbuffInstance =
     ClBufferManager::getInstance();
 };

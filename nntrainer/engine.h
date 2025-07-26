@@ -138,16 +138,33 @@ public:
    * @return Context Pointer : for register Object factory, casting might be
    * needed.
    */
-  nntrainer::Context *getRegisteredContext(std::string name) const {
+  nntrainer::Context *getRegisteredContext(const std::string &name) const {
+    auto context = maybeGetRegisteredContext(name);
+    if (context == nullptr) {
+      throw std::invalid_argument("[Engine] " + name +
+                                  " Context is not registered");
+    } else {
+      return context;
+    }
+  }
 
+  /**
+   * @brief get registered a Context
+   *
+   * @param name Registered Context Name
+   * @return Context Pointer : for register Object factory, casting might be
+   * needed. nullptr if no registered context with this name
+   */
+  nntrainer::Context *maybeGetRegisteredContext(std::string name) const {
     std::transform(name.begin(), name.end(), name.begin(),
                    [](unsigned char c) { return std::tolower(c); });
 
-    if (engines.find(name) == engines.end()) {
-      throw std::invalid_argument("[Engine] " + name +
-                                  " Context is not registered");
+    auto it = engines.find(name);
+    if (it == engines.end()) {
+      return nullptr;
+    } else {
+      return it->second;
     }
-    return engines.at(name);
   }
 
   std::unordered_map<std::string, std::shared_ptr<nntrainer::MemAllocator>>
