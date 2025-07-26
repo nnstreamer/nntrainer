@@ -44,11 +44,13 @@ function _untar_encoder {
   rm -f ${TAR_NAME}
 
   if [ ${TARGET_VERSION} == "0.1" ]; then
+    cp -f json.hpp ../nntrainer/utils/
     mv -f ctre-unicode.hpp json.hpp encoder.hpp ../Applications/PicoGPT/jni/
     echo "[Encoder] Finish moving encoder to PicoGPT\n"
   fi
 
   if [ ${TARGET_VERSION} == "0.2" ]; then
+    cp -f json.hpp ../nntrainer/utils/
     mv -f ctre-unicode.hpp json.hpp encoder.hpp ../Applications/LLaMA/jni/
     echo "[Encoder] Finish moving encoder to LLaMA\n"
   fi
