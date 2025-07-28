@@ -17,24 +17,24 @@
 #include <optimizer.h>
 
 TEST_P(OptimizerPluginCommonTest, DlRegisterOpen_p) {
-  ac.registerOptimizer(plugin_lib_name, NNTRAINER_PATH);
-  auto optimizer = ac.createObject<nntrainer::Optimizer>(optimizer_type_name);
+  ac->registerOptimizer(plugin_lib_name, NNTRAINER_PATH);
+  auto optimizer = ac->createObject<nntrainer::Optimizer>(optimizer_type_name);
 
   EXPECT_EQ(optimizer->getType(), optimizer_type_name);
 }
 
 TEST_P(OptimizerPluginCommonTest, DlRegisterWrongPath_n) {
-  EXPECT_THROW(ac.registerOptimizer("wrong_name.so"), std::invalid_argument);
+  EXPECT_THROW(ac->registerOptimizer("wrong_name.so"), std::invalid_argument);
 }
 
 TEST_P(OptimizerPluginCommonTest, DlRegisterDirectory_p) {
-  ac.registerPluggableFromDirectory(NNTRAINER_PATH);
-  auto optimizer = ac.createObject<nntrainer::Optimizer>(optimizer_type_name);
+  ac->registerPluggableFromDirectory(NNTRAINER_PATH);
+  auto optimizer = ac->createObject<nntrainer::Optimizer>(optimizer_type_name);
   EXPECT_EQ(optimizer->getType(), optimizer_type_name);
 }
 
 TEST_P(OptimizerPluginCommonTest, DlRegisterDirectory_n) {
-  EXPECT_THROW(ac.registerPluggableFromDirectory("wrong path"),
+  EXPECT_THROW(ac->registerPluggableFromDirectory("wrong path"),
                std::invalid_argument);
 }
 

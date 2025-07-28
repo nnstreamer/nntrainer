@@ -133,13 +133,12 @@ static inline void __ggml_q4_0_8x8_q8_0_GEMM_GEMM(
   const unsigned int M, const unsigned int N, const unsigned int K,
   const float *A, const unsigned int lda, const void *B, const unsigned int ldb,
   float *C, const unsigned int ldc) {
-  auto &bs_thread_pool = ThreadPoolManager::getInstance();
+  auto &bs_thread_pool = ThreadPoolManager::Global().getThreadPool();
   unsigned int blocks_per_4_rows = (K + QK8_0 - 1) / QK8_0;
   unsigned int qa_4_rows_size = sizeof(block_q8_0x4) * blocks_per_4_rows;
   const size_t qa_row_size = (sizeof(block_q8_0) * K) / QK8_0;
   unsigned int M4 = ((M - M % 4) / 4);
   int B_step = sizeof(block_q4_0) * (K / QK4_0);
-
   unsigned int qa_size = qa_4_rows_size * (((M >> 2) << 2) / 4 + 1);
   std::vector<char> QA = std::vector<char>(qa_size);
 
@@ -241,13 +240,12 @@ static inline void __ggml_q4_K_8x8_q8_K_GEMM_GEMM(
   const unsigned int M, const unsigned int N, const unsigned int K,
   const float *A, const unsigned int lda, const void *B, const unsigned int ldb,
   float *C, const unsigned int ldc) {
-  auto &bs_thread_pool = ThreadPoolManager::getInstance();
+  auto &bs_thread_pool = ThreadPoolManager::Global().getThreadPool();
   unsigned int blocks_per_4_rows = (K + QK_K - 1) / QK_K;
   unsigned int qa_4_rows_size = sizeof(block_q8_Kx4) * blocks_per_4_rows;
   const size_t qa_row_size = (sizeof(block_q8_K) * K) / QK_K;
   unsigned int M4 = ((M - M % 4) / 4);
   int B_step = sizeof(block_q4_K) * (K / QK_K);
-
   unsigned int qa_size = qa_4_rows_size * (((M >> 2) << 2) / 4 + 1);
   std::vector<char> QA = std::vector<char>(qa_size);
 

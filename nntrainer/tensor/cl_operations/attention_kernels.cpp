@@ -26,9 +26,13 @@ void rotary_emb_cl(float *in, float *out,
                    unsigned int in_size, unsigned int out_size) {
   bool result = false;
 
+  auto *cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &cl_buffer_manager = ClBufferManager::Global();
+
   do {
     ClContext::SharedPtrClKernel kernel_rotaryEmb_ptr =
-      attention_cc->registerClKernel(getRotaryEmbClKernel(), "rotary_emb_cl");
+      cl_context->registerClKernel(getRotaryEmbClKernel(), "rotary_emb_cl");
     if (!kernel_rotaryEmb_ptr) {
       break;
     }
@@ -55,86 +59,86 @@ void rotary_emb_cl(float *in, float *out,
       freqs_sin_flat.insert(freqs_sin_flat.end(), row.begin(), row.end());
     }
 
-    result = clbuffInstance.getInBufferA()->WriteDataRegion(
-      attention_cc->command_queue_inst_, dim1_size, in);
+    result = cl_buffer_manager.getInBufferA()->WriteDataRegion(
+      cl_context->command_queue_inst_, dim1_size, in);
     if (!result) {
       printf("Failed to write input data\n");
       break;
     }
 
-    result = clbuffInstance.getOutBufferA()->WriteDataRegion(
-      attention_cc->command_queue_inst_, dim2_size, out);
+    result = cl_buffer_manager.getOutBufferA()->WriteDataRegion(
+      cl_context->command_queue_inst_, dim2_size, out);
     if (!result) {
       printf("Failed to write output data\n");
       break;
     }
 
-    result = clbuffInstance.getInBufferB()->WriteDataRegion(
-      attention_cc->command_queue_inst_, dim5_size, freqs_cos_flat.data());
+    result = cl_buffer_manager.getInBufferB()->WriteDataRegion(
+      cl_context->command_queue_inst_, dim5_size, freqs_cos_flat.data());
     if (!result) {
       printf("Failed to write freqs cos data\n");
       break;
     }
 
-    result = clbuffInstance.getInBufferB()->WriteDataRegion(
-      attention_cc->command_queue_inst_, dim6_size, freqs_sin_flat.data(), 0,
+    result = cl_buffer_manager.getInBufferB()->WriteDataRegion(
+      cl_context->command_queue_inst_, dim6_size, freqs_sin_flat.data(), 0,
       dim5_size);
     if (!result) {
       printf("Failed to write freqs sin data\n");
       break;
     }
 
-    result = clbuffInstance.getInBufferC()->WriteDataRegion(
-      attention_cc->command_queue_inst_, dim3_size, cos_.data());
+    result = cl_buffer_manager.getInBufferC()->WriteDataRegion(
+      cl_context->command_queue_inst_, dim3_size, cos_.data());
     if (!result) {
       printf("Failed to write cos data\n");
       break;
     }
 
-    result = clbuffInstance.getInBufferC()->WriteDataRegion(
-      attention_cc->command_queue_inst_, dim4_size, sin_.data(), 0, dim3_size);
+    result = cl_buffer_manager.getInBufferC()->WriteDataRegion(
+      cl_context->command_queue_inst_, dim4_size, sin_.data(), 0, dim3_size);
     if (!result) {
       printf("Failed to write sin data\n");
       break;
     }
 
     result = kernel_rotaryEmb_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
+      0, cl_buffer_manager.getInBufferA(), sizeof(cl_mem));
     if (!result) {
       printf("Failed to set inputA argument\n");
       break;
     }
 
     result = kernel_rotaryEmb_ptr->SetKernelArguments(
-      1, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
+      1, cl_buffer_manager.getOutBufferA(), sizeof(cl_mem));
     if (!result) {
       printf("Failed to set inOutRes argument\n");
       break;
     }
 
     result = kernel_rotaryEmb_ptr->SetKernelArguments(
-      2, clbuffInstance.getInBufferB(), sizeof(cl_mem));
+      2, cl_buffer_manager.getInBufferB(), sizeof(cl_mem));
     if (!result) {
       printf("Failed to set freqs_cosBuf argument\n");
       break;
     }
 
     result = kernel_rotaryEmb_ptr->SetKernelArguments(
-      3, clbuffInstance.getInBufferB(), sizeof(cl_mem));
+      3, cl_buffer_manager.getInBufferB(), sizeof(cl_mem));
     if (!result) {
       printf("Failed to set freqs_sinBuf argument\n");
       break;
     }
 
     result = kernel_rotaryEmb_ptr->SetKernelArguments(
-      4, clbuffInstance.getInBufferC(), sizeof(cl_mem));
+      4, cl_buffer_manager.getInBufferC(), sizeof(cl_mem));
     if (!result) {
       printf("Failed to set cosBuf argument\n");
       break;
     }
 
     result = kernel_rotaryEmb_ptr->SetKernelArguments(
-      5, clbuffInstance.getInBufferC(), sizeof(cl_mem));
+      5, cl_buffer_manager.getInBufferC(), sizeof(cl_mem));
     if (!result) {
       printf("Failed to set sinBuf argument\n");
       break;
@@ -208,15 +212,15 @@ void rotary_emb_cl(float *in, float *out,
     const int work_groups_count[3] = {(int)batch, (int)channel, 1};
     /// @todo: create a group size by device & input
     const int work_group_size[3] = {1, 1, 1}; // test-value
-    result = attention_cc->command_queue_inst_.DispatchCommand(
+    result = cl_context->command_queue_inst_.DispatchCommand(
       kernel_rotaryEmb_ptr, work_groups_count, work_group_size);
     if (!result) {
       printf("Failed to dispatch command\n");
       break;
     }
 
-    result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-      attention_cc->command_queue_inst_, dim2_size, out);
+    result = cl_buffer_manager.getOutBufferA()->ReadDataRegion(
+      cl_context->command_queue_inst_, dim2_size, out);
     if (!result) {
       printf("Failed to read data\n");
       break;

@@ -17,6 +17,7 @@
 #include "CL/cl.h"
 #include "opencl_command_queue_manager.h"
 #include "opencl_context_manager.h"
+#include "utils/noncopyable.h"
 
 namespace nntrainer::opencl {
 
@@ -24,7 +25,7 @@ namespace nntrainer::opencl {
  * @class Buffer contains wrappers for managing OpenCL buffer
  * @brief OpenCL wrapper for buffer
  */
-class Buffer {
+class Buffer : public Noncopyable {
   /**
    * @brief cl_mem object to store the buffer
    *
@@ -71,18 +72,6 @@ public:
    * @return Buffer&
    */
   Buffer &operator=(Buffer &&buffer);
-
-  /**
-   * @brief Deleting copy constructor
-   *
-   */
-  Buffer(const Buffer &) = delete;
-
-  /**
-   * @brief Deleting operator overload
-   *
-   */
-  Buffer &operator=(const Buffer &) = delete;
 
   /**
    * @brief Destroy the Buffer object

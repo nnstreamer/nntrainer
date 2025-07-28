@@ -20,6 +20,8 @@
 
 #include <nntrainer_log.h>
 
+#include "utils/singleton.h"
+
 namespace nntrainer {
 
 /**
@@ -27,45 +29,27 @@ namespace nntrainer {
  * @brief Support for Buffer management
  */
 
-class ClBufferManager {
+class ClBufferManager : public Singleton<ClBufferManager> {
 
 private:
-  /**
-   * @brief Private constructor to prevent object creation
-   *
-   */
-  ClBufferManager() :
-    inBufferA(nullptr),
-    inBufferB(nullptr),
-    inBufferC(nullptr),
-    outBufferA(nullptr),
-    outBufferB(nullptr){};
-
   /**
    * @brief OpenCl context global instance
    *
    */
-  opencl::ContextManager &context_inst_ = opencl::ContextManager::GetInstance();
+  opencl::ContextManager &context_inst_ = opencl::ContextManager::Global();
 
   /**
    * @brief Buffer size in bytes preset (256 mebibytes)
    */
   const size_t buffer_size_bytes = 8192 * 8192 * sizeof(float);
 
-  opencl::Buffer *inBufferA;
-  opencl::Buffer *inBufferB;
-  opencl::Buffer *inBufferC;
-  opencl::Buffer *outBufferA;
-  opencl::Buffer *outBufferB;
+  opencl::Buffer *inBufferA = nullptr;
+  opencl::Buffer *inBufferB = nullptr;
+  opencl::Buffer *inBufferC = nullptr;
+  opencl::Buffer *outBufferA = nullptr;
+  opencl::Buffer *outBufferB = nullptr;
 
 public:
-  /**
-   * @brief Get Global ClBufferManager.
-   *
-   * @return ClBufferManager&
-   */
-  static ClBufferManager &getInstance();
-
   /**
    * @brief Initialize Buffer objects.
    */
