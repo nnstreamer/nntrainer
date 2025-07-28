@@ -104,6 +104,11 @@ public:
   explicit ErrorNotification(std::function<void()> cleanup_func_) :
     cleanup_func(cleanup_func_) {}
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4722) // MSVC: destructor never returns
+#endif
+
   /**
    * @brief Destroy the Error Notification object, Error is thrown when
    * destroying this
@@ -119,6 +124,10 @@ public:
     }
     throw Err(ss.str().c_str());
   }
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
   /**
    * @brief Error notification stream wrapper
