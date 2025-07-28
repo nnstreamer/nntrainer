@@ -30,6 +30,19 @@ static ClContext *blas_cc =
 static ClBufferManager &clbuffInstance = ClBufferManager::getInstance();
 
 /**
+ * @brief Q4_0 GEMM computation : C = A*B
+ *
+ * @param matAdata void * for quantized Matrix A
+ * @param matBdata float * for Matrix B
+ * @param matCdata float * for output Matrix C
+ * @param M
+ * @param K
+ * @param N
+ */
+void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
+                  unsigned int M, unsigned int N, unsigned int K);
+
+/**
  * @brief     Q6_K sgemv computation : Y = A*X
  * @param[in] matAdata void * for Matrix A
  * @param[in] vecXdata float * for Vector X
