@@ -38,27 +38,6 @@ static std::uniform_real_distribution<float> dist(-0.5, 0.5);
 
 double sqrtDouble(double x) { return sqrt(x); };
 
-float logFloat(float x) { return log(x + 1.0e-20); }
-
-float exp_util(float x) { return exp(x); }
-
-Tensor rotate_180(Tensor in) {
-  Tensor output(in.getDim());
-  output.setZero();
-  for (unsigned int i = 0; i < in.batch(); ++i) {
-    for (unsigned int j = 0; j < in.channel(); ++j) {
-      for (unsigned int k = 0; k < in.height(); ++k) {
-        for (unsigned int l = 0; l < in.width(); ++l) {
-          output.setValue(
-            i, j, k, l,
-            in.getValue(i, j, (in.height() - k - 1), (in.width() - l - 1)));
-        }
-      }
-    }
-  }
-  return output;
-}
-
 bool isFileExist(std::string file_name) {
   std::ifstream infile(file_name);
   return infile.good();
