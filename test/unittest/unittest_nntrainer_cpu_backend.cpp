@@ -75,18 +75,6 @@ static inline double find_max_diff(T *src, T *src2, int M, int N) {
   return max_diff;
 }
 
-template<typename T>
-void print_start_and_end_matrix(const unsigned int M, const unsigned int N, T* C){
-  for (int i = 0; i < 3; ++i){
-    std::cout << float(C[i]) << "\t";
-  }
-  std::cout << " ... ";
-  for (int i = 0; i < 3; ++i){
-    std::cout << float(C[(N)*(M-1) + i]) << "\t";
-  }
-  std::cout << std::endl;
-}
-
 #define QK4_0 32
 /**
  * @brief q4_0 block
