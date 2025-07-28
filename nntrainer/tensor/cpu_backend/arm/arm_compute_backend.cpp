@@ -356,8 +356,7 @@ void quantize_row_q6_K(const float *src, void *dst, int64_t k) {
 #endif
 }
 
-template <>
-void quantize_row_q8_K(const float *src, void *dst, int64_t k) {
+template <> void quantize_row_q8_K(const float *src, void *dst, int64_t k) {
 #ifdef ENABLE_GGML
   __ggml_quantize_row_q8_K(src, dst, k);
 #else
@@ -381,8 +380,7 @@ void dequantize_row_q6_K(const void *x, float *y, int64_t k) {
 #endif
 }
 
-template <>
-void dequantize_row_q8_K(const void *x, float *y, int64_t k) {
+template <> void dequantize_row_q8_K(const void *x, float *y, int64_t k) {
 #ifdef ENABLE_GGML
   __ggml_dequantize_row_q8_K(x, y, k);
 #else
