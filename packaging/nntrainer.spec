@@ -341,9 +341,11 @@ NNSteamer tensor trainer static package for nntrainer to support inference.
 Summary: Ruy support in NNTrainer
 %description -n ruy
 
+%if 0%{?enable_ggml}
 %package -n ggml
 Summary: GGML support in NNTrainer
 %description -n ggml
+%endif
 
 %if %{with gpu}
 %package -n clblast
@@ -441,7 +443,9 @@ ln -sf %{_libdir}/pkgconfig/capi-nnstreamer.pc %{_libdir}/pkgconfig/capi-ml-comm
 tar -xf packaging/ruy.tar.gz -C subprojects
 
 # Setup GGML
+%if 0%{?enable_ggml}
 tar -xf packaging/ggml.tar.gz -C subprojects
+%endif
 
 # Setup CLBlast
 %if %{with gpu}
@@ -791,6 +795,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %endif #x86_64
 
 # GGML
+%if 0%{?enable_ggml}
 %files -n ggml
 %manifest nntrainer.manifest
 %defattr(-,root,root,-)
@@ -798,6 +803,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_libdir}/libggml.so
 %{_libdir}/libggml_base.so
 %{_libdir}/libggml_cpu.so
+%endif
 
 # CLBlast
 %if %{with gpu}
