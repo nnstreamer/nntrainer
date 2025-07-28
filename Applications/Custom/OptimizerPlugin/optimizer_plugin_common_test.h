@@ -95,7 +95,7 @@ public:
     const auto &params = GetParam();
     plugin_lib_name = std::get<0>(params);
     optimizer_type_name = std::get<1>(params);
-    ac = nntrainer::AppContext();
+    ac = std::make_unique<nntrainer::AppContext>();
   };
 
   /**
@@ -105,8 +105,8 @@ public:
   virtual void TearDown(){};
 
 protected:
-  nntrainer::AppContext ac;        /**< AppContext          */
-  std::string plugin_lib_name;     /**< plugin library name */
-  std::string optimizer_type_name; /**< optimizer type name */
+  std::unique_ptr<nntrainer::AppContext> ac; /**< AppContext          */
+  std::string plugin_lib_name;               /**< plugin library name */
+  std::string optimizer_type_name;           /**< optimizer type name */
 };
 #endif // __OPTIMIZER_PLUGIN_COMMON_TEST_H__

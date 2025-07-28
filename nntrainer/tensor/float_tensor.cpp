@@ -70,11 +70,15 @@ void FloatTensor::allocate() {
     MemoryData *mem_data;
 
 #ifdef ENABLE_OPENCL
+    auto *blas_cc =
+      static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
     if (blas_cc != nullptr) {
       mem_data = new MemoryData(blas_cc->context_inst_.createSVMRegion(
         dim.getDataLen() * sizeof(float)));
 
       data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
+        auto *blas_cc = static_cast<ClContext *>(
+          Engine::Global().getRegisteredContext("gpu"));
         blas_cc->context_inst_.releaseSVMRegion(
           mem_data->template getAddr<float>());
       });

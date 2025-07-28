@@ -22,6 +22,9 @@ void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
                    unsigned int M, unsigned int N) {
   bool result = false;
 
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+
   ClContext::SharedPtrClKernel kernel_q6_k_sgemv_ptr;
 
   kernel_q6_k_sgemv_ptr =
@@ -183,7 +186,7 @@ void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
   /// @todo: create a group size by device & input
   const int work_group_size[3] = {32, 1, 1};
 
-  result = opencl::CommandQueueManager::GetInstance().DispatchCommand(
+  result = opencl::CommandQueueManager::Global().DispatchCommand(
     kernel_q6_k_sgemv_ptr, work_groups_count, work_group_size);
   if (!result) {
     ml_loge("Failed to dispatch kernel q6_k_sgemv");
@@ -206,6 +209,10 @@ void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
               unsigned int lda) {
 
   bool result = false;
+
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
 
   do {
     ClContext::SharedPtrClKernel kernel_sgemv_ptr;
@@ -275,7 +282,7 @@ void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
     /// @todo: create a group size by device & input
     const int work_group_size[3] = {1, 1, 1};
 
-    result = opencl::CommandQueueManager::GetInstance().DispatchCommand(
+    result = opencl::CommandQueueManager::Global().DispatchCommand(
       kernel_sgemv_ptr, work_groups_count, work_group_size);
     if (!result) {
       break;
@@ -293,6 +300,10 @@ void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
 float dot_cl(const float *vecAdata, const float *vecXdata, unsigned int dim1) {
 
   bool result = false;
+
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
 
   float cl_ret = 0;
 
@@ -384,6 +395,10 @@ void sgemm_cl(bool TransA, bool TransB, const float *A, const float *B,
 
   bool result = false;
 
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
   do {
     ClContext::SharedPtrClKernel kernel_sgemm_ptr =
       blas_cc->registerClKernel(sgemm_cl_kernel_, kernel_func_);
@@ -473,6 +488,10 @@ void addition_cl(const float *input, float *res, unsigned int size_input,
 
   bool result = false;
 
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
   do {
     ClContext::SharedPtrClKernel kernel_addition_ptr =
       blas_cc->registerClKernel(getAdditionClKernel(), "addition_cl");
@@ -539,6 +558,10 @@ void addition_cl(const float *input, float *res, unsigned int size_input,
 void sscal_cl(float *X, const unsigned int N, const float alpha) {
   bool result = false;
 
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
   do {
     ClContext::SharedPtrClKernel kernel_ptr =
       blas_cc->registerClKernel(getSscalClKernel(), "sscal_cl");
@@ -591,6 +614,10 @@ void transpose_cl_axis(const float *in, float *res,
                        unsigned int input_width, unsigned int axis) {
 
   bool result = false;
+
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
 
   do {
     ClContext::SharedPtrClKernel kernel_transpose_ptr;

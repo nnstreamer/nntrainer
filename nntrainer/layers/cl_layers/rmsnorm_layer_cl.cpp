@@ -29,7 +29,7 @@ enum RMSParams { gamma };
 
 RMSNormLayerCl::RMSNormLayerCl() : LayerImplCl() { wt_idx.fill(0); }
 
-bool RMSNormLayerCl::registerClKernels() {
+bool RMSNormLayerCl::registerClKernels(ClContext &cl_context) {
   auto &layer_kernel_ptrs = getLayerKernelPtrs();
 
   // check if already registered
@@ -41,7 +41,7 @@ bool RMSNormLayerCl::registerClKernels() {
   do {
 
     ClContext::SharedPtrClKernel kernel_rmsnorm_ptr =
-      global_cl_context->registerClKernel(getRMSNormClKernel(), "rmsnorm_cl");
+      cl_context.registerClKernel(getRMSNormClKernel(), "rmsnorm_cl");
     if (!kernel_rmsnorm_ptr) {
       ml_loge("OpenCL Error: Fail to register rmsnorm_cl kernel");
       break;
@@ -50,8 +50,7 @@ bool RMSNormLayerCl::registerClKernels() {
 
 #ifdef ENABLE_FP16
     ClContext::SharedPtrClKernel kernel_rmsnorm_fp16_ptr =
-      global_cl_context->registerClKernel(getRMSNormClKernelFP16(),
-                                          "rmsnorm_cl_fp16");
+      cl_context.registerClKernel(getRMSNormClKernelFP16(), "rmsnorm_cl_fp16");
     if (!kernel_rmsnorm_fp16_ptr) {
       ml_loge("OpenCL Error: Fail to register rmsnorm_cl_fp16 kernel");
       break;
@@ -108,6 +107,10 @@ void RMSNormLayerCl::rmsnormProcess(Tensor const &input, Tensor &result,
   int c = input.channel();
   int h = input.height();
   int w = input.width();
+
+  auto *global_cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
 
   do {
     const auto &kernel_rmsnorm_ptr = getLayerKernelPtrs()[Kernels::RMSNORM_CL];
@@ -201,6 +204,11 @@ void RMSNormLayerCl::rmsnormProcess_fp16(Tensor const &input, Tensor &result,
   int c = input.channel();
   int h = input.height();
   int w = input.width();
+
+  auto *global_cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
   do {
     auto kernel_rmsnorm_ptr = getLayerKernelPtrs()[Kernels::RMSNORM_CL_FP16];
 
