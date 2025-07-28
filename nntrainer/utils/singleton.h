@@ -47,11 +47,6 @@ public:
     std::call_once(initialized_, [&]() { this->initialize(); });
   }
 
-  /**
-   * @brief   Default destructor
-   */
-  virtual ~Singleton() = default;
-
 protected:
   /**
    * @brief   Default constructor
