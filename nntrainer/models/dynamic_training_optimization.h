@@ -165,12 +165,12 @@ public:
                     int iteration);
 
   /**< Different types of reduce operations */
-  static const std::string dft_opt_max;
-  static const std::string dft_opt_norm;
+  static constexpr const char *dft_opt_max = "max";
+  static constexpr const char *dft_opt_norm = "norm";
 
   /**< Different types of optimization modes */
-  static const std::string dft_opt_mode_gradient;
-  static const std::string dft_opt_mode_derivative;
+  static constexpr const char *dft_opt_mode_gradient = "gradient";
+  static constexpr const char *dft_opt_mode_derivative = "derivative";
 
 private:
   std::mt19937 rng; /**< random number generator */

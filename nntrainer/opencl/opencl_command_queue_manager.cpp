@@ -21,16 +21,6 @@
 namespace nntrainer::opencl {
 
 /**
- * @brief Get the global instance
- *
- * @return CommandQueueManager global instance
- */
-CommandQueueManager &CommandQueueManager::GetInstance() {
-  static CommandQueueManager instance;
-  return instance;
-}
-
-/**
  * @brief Create a Command Queue object
  *
  * @return true if creation is successful or false otherwise
@@ -44,7 +34,7 @@ bool CommandQueueManager::CreateCommandQueue() {
   }
 
   int error_code;
-  ContextManager &context_instance = ContextManager::GetInstance();
+  ContextManager &context_instance = ContextManager::Global();
 
   // OpenCL context is created
   cl_context context = context_instance.GetContext();
@@ -90,7 +80,7 @@ CommandQueueManager::~CommandQueueManager() {
 
     // releasing OpenCL context since it has been created by
     // CommandQueueManager::CreateCommandQueue
-    ContextManager::GetInstance().ReleaseContext();
+    ContextManager::Global().ReleaseContext();
   }
 }
 

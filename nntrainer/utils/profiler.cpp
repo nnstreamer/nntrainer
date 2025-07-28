@@ -254,11 +254,6 @@ void GenericProfileListener::report(std::ostream &out) const {
   out << "Average Memory Size = " << mem_average << std::endl;
 }
 
-Profiler &Profiler::Global() {
-  static Profiler instance;
-  return instance;
-}
-
 void Profiler::start(const int item) {
 #ifdef DEBUG
   /// @todo: consider race condition
@@ -369,8 +364,7 @@ void Profiler::alloc(const void *ptr, size_t size, const std::string &str,
   total_size += size;
 
   auto data = std::make_shared<ProfileEventData>(
-    0, size, total_size.load(), str, std::chrono::microseconds(0), policy,
-    fsu);
+    0, size, total_size.load(), str, std::chrono::microseconds(0), policy, fsu);
   notifyListeners(EVENT_MEM_ALLOC, data);
 }
 

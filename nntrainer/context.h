@@ -101,14 +101,6 @@ public:
 
   /**
    *
-   * @brief Get Global qnn context.
-   *
-   * @return Context&
-   */
-  virtual Context &Global() = 0;
-
-  /**
-   *
    * @brief Initialization of Context.
    *
    * @return status &

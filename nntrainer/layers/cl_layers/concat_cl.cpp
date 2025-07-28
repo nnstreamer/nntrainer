@@ -32,7 +32,7 @@ static constexpr size_t SINGLE_INOUT_IDX = 0;
 static constexpr size_t INPUT_IDX_1 = 0;
 static constexpr size_t INPUT_IDX_2 = 1;
 
-bool ConcatLayerCl::registerClKernels() {
+bool ConcatLayerCl::registerClKernels(ClContext &cl_context) {
   auto &layer_kernel_ptrs = getLayerKernelPtrs();
 
   // check if already registered
@@ -45,24 +45,24 @@ bool ConcatLayerCl::registerClKernels() {
 
     ClContext::SharedPtrClKernel kernel_concat_ptr = nullptr;
 
-    kernel_concat_ptr = global_cl_context->registerClKernel(
-      getConcatClAxis1Kernel(), "concat_cl_axis1");
+    kernel_concat_ptr =
+      cl_context.registerClKernel(getConcatClAxis1Kernel(), "concat_cl_axis1");
     if (!kernel_concat_ptr) {
       ml_loge("OpenCL Error: Fail to register concat_cl_axis1 kernel");
       break;
     }
     layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
 
-    kernel_concat_ptr = global_cl_context->registerClKernel(
-      getConcatClAxis2Kernel(), "concat_cl_axis2");
+    kernel_concat_ptr =
+      cl_context.registerClKernel(getConcatClAxis2Kernel(), "concat_cl_axis2");
     if (!kernel_concat_ptr) {
       ml_loge("OpenCL Error: Fail to register concat_cl_axis2 kernel");
       break;
     }
     layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
 
-    kernel_concat_ptr = global_cl_context->registerClKernel(
-      getConcatClAxis3Kernel(), "concat_cl_axis3");
+    kernel_concat_ptr =
+      cl_context.registerClKernel(getConcatClAxis3Kernel(), "concat_cl_axis3");
     if (!kernel_concat_ptr) {
       ml_loge("OpenCL Error: Fail to register concat_cl_axis3 kernel");
       break;
@@ -70,7 +70,7 @@ bool ConcatLayerCl::registerClKernels() {
     layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
 
 #ifdef ENABLE_FP16
-    kernel_concat_ptr = global_cl_context->registerClKernel(
+    kernel_concat_ptr = cl_context.registerClKernel(
       getConcatClAxis1KernelFP16(), "concat_cl_axis1_fp16");
     if (!kernel_concat_ptr) {
       ml_loge("OpenCL Error: Fail to register concat_cl_axis1_fp16 kernel");
@@ -78,7 +78,7 @@ bool ConcatLayerCl::registerClKernels() {
     }
     layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
 
-    kernel_concat_ptr = global_cl_context->registerClKernel(
+    kernel_concat_ptr = cl_context.registerClKernel(
       getConcatClAxis2KernelFP16(), "concat_cl_axis2_fp16");
     if (!kernel_concat_ptr) {
       ml_loge("OpenCL Error: Fail to register concat_cl_axis2_fp16 kernel");
@@ -86,7 +86,7 @@ bool ConcatLayerCl::registerClKernels() {
     }
     layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
 
-    kernel_concat_ptr = global_cl_context->registerClKernel(
+    kernel_concat_ptr = cl_context.registerClKernel(
       getConcatClAxis3KernelFP16(), "concat_cl_axis3_fp16");
     if (!kernel_concat_ptr) {
       ml_loge("OpenCL Error: Fail to register concat_cl_axis3_fp16 kernel");
@@ -230,6 +230,10 @@ void ConcatLayerCl::concat_cl_axis3(const float *matAdata,
 
   bool result = false;
 
+  auto *global_cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
   do {
 
     const auto &kernel_concat_ptr =
@@ -345,6 +349,10 @@ void ConcatLayerCl::concat_cl_axis2(const float *matAdata,
 
   bool result = false;
 
+  auto *global_cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
   do {
 
     const auto &kernel_concat_ptr =
@@ -458,6 +466,10 @@ void ConcatLayerCl::concat_cl_axis1(const float *matAdata,
                                     unsigned int input2_channels) {
 
   bool result = false;
+
+  auto *global_cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
 
   do {
     const auto &kernel_concat_ptr =
@@ -574,6 +586,10 @@ void ConcatLayerCl::concat_cl_axis3_fp16(const _FP16 *matAdata,
 
   bool result = false;
 
+  auto *global_cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
   do {
 
     const auto &kernel_concat_ptr =
@@ -689,6 +705,10 @@ void ConcatLayerCl::concat_cl_axis2_fp16(const _FP16 *matAdata,
 
   bool result = false;
 
+  auto *global_cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
   do {
     const auto &kernel_concat_ptr =
       getLayerKernelPtrs()[Kernels::CONCAT_CL_AXIS2_FP16];
@@ -801,6 +821,10 @@ void ConcatLayerCl::concat_cl_axis1_fp16(const _FP16 *matAdata,
                                          unsigned int input2_channels) {
 
   bool result = false;
+
+  auto *global_cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
 
   do {
 
