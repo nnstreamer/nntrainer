@@ -618,8 +618,6 @@ float NeuralNetwork::getLoss() {
   return loss;
 }
 
-void NeuralNetwork::setLoss(float l) { loss = l; }
-
 NeuralNetwork &NeuralNetwork::copy(NeuralNetwork &from) {
   if (this != &from) {
     model_props = from.model_props;
@@ -1206,12 +1204,6 @@ NeuralNetwork &NeuralNetwork::copyConfiguration(NeuralNetwork &from) {
     }
   }
   return *this;
-}
-
-NeuralNetwork::GraphType
-NeuralNetwork::getUnsortedLayers(const std::string &input_layer,
-                                 const std::string &output_layer) {
-  return model_graph.getUnsortedLayers(input_layer, output_layer);
 }
 
 int NeuralNetwork::setOptimizer(

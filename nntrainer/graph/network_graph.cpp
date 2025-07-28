@@ -117,10 +117,6 @@ void NetworkGraph::setExecutionOrder() {
   graph_exec_end = std::get<3>((*(cbegin()))->getExecutionOrder());
 }
 
-void NetworkGraph::addLayerNode(std::unique_ptr<Layer> layer) {
-  graph.addNode(std::make_unique<LayerNode>(std::move(layer)));
-}
-
 int NetworkGraph::addLossLayer(const std::string &loss_type_) {
   for (unsigned int i = 0; i < graph.getNumOutputNodes(); ++i) {
     auto output_layer_node = LNODE(graph.getOutputNode(i));
@@ -522,48 +518,6 @@ std::vector<TensorDim> NetworkGraph::getOutputDimension() const {
   /// for now, outputting label_dims works, later label dim will be different
   /// from output dimension
   return label_dims;
-}
-
-std::vector<std::shared_ptr<LayerNode>>
-NetworkGraph::getUnsortedLayers(const std::string &input_layer,
-                                const std::string &output_layer) const {
-  /// @fixme: this won't work if input, output layers are not in order
-  /// Further, this function must be removed. There should be rather
-  /// getAllNames and getLayerByName instead of getUnsortedLayers.
-
-  /** count layers after output layer */
-  unsigned int num_layers_remove_end = 0;
-  if (!output_layer.empty()) {
-    for (auto iter = graph.crbegin(); iter != graph.crend(); iter++) {
-      if ((*iter)->getName() != output_layer)
-        num_layers_remove_end++;
-      else
-        break;
-    }
-  }
-
-  if (num_layers_remove_end == graph.size())
-    return {};
-
-  /** count layers before input layer */
-  unsigned int num_layers_remove_start = 0;
-  if (!input_layer.empty()) {
-    for (auto iter = graph.cbegin();
-         iter != graph.cend() - num_layers_remove_end; iter++) {
-      if ((*iter)->getName() != input_layer)
-        num_layers_remove_start++;
-      else
-        break;
-    }
-  }
-
-  /** copy the graph and return */
-  std::vector<std::shared_ptr<LayerNode>> ret;
-  std::transform(graph.cbegin() + num_layers_remove_start,
-                 graph.cend() - num_layers_remove_end, std::back_inserter(ret),
-                 [](auto const &elem) { return LNODE(elem); });
-
-  return ret;
 }
 
 std::vector<std::shared_ptr<LayerNode>> NetworkGraph::getLayerNodes() const {

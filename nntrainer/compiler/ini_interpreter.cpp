@@ -217,8 +217,6 @@ referenced
 //   std::string output_layer =
 //     iniparser_getstring(ini, (sec_name + ":OutputLayer").c_str(), "");
 
-//   auto g = graph->getUnsortedLayers(input_layer, output_layer);
-
 //   NNTR_THROW_IF(g.empty(), std::invalid_argument)
 //     << FUNC_TAG << "backbone graph is empty";
 
