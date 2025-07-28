@@ -15,6 +15,7 @@
 #include <random>
 #include <type_traits>
 
+#include "blas_kernel_helper.h"
 #include "nntrainer_test_util.h"
 #include "util_func.h"
 #include <blas_kernel_interface.h>
@@ -1266,6 +1267,85 @@ static void run_q_6_K_test(const uint32_t M, const uint32_t K,
   }
 
 DECLARE_q_6_K_test_M_K_N(1, 3072, 105900);
+
+#define QK4_0 32
+/**
+ * @brief q4_0 block
+ *
+ */
+typedef struct {
+  uint16_t d;            // delta
+  uint8_t qs[QK4_0 / 2]; // nibbles / quants
+} block_q4_0_testonly;
+
+static void run_convert_q4_0x8_array_d_qs(const uint32_t K, const uint32_t N) {
+  nntrainer::init_backend();
+
+  auto *blas_cc = static_cast<nntrainer::ClContext *>(
+    nntrainer::Engine::Global().getRegisteredContext("gpu"));
+
+  // Step0. Allocate a temporary buffer for quantized weight
+  int64_t q4_0_type_size = sizeof(block_q4_0_testonly);
+  int64_t q4_0_block_size = 32;
+  int64_t q4_0_num_blocks = (K * N) / q4_0_block_size;
+  size_t q4_0_data_size = q4_0_type_size * N / q4_0_block_size;
+  q4_0_data_size *= K;
+  std::vector<char> q4_0_offline_qWeight = std::vector<char>(q4_0_data_size);
+
+  std::vector<unsigned short> scales = std::vector<unsigned short>(N * K / 8);
+  std::vector<unsigned char> qs = std::vector<unsigned char>(N * K / 2);
+
+  std::vector<unsigned short> scales2 = std::vector<unsigned short>(N * K / 8);
+  std::vector<unsigned char> qs2 = std::vector<unsigned char>(N * K / 2);
+
+  long long time_st_agg = 0, time_mt_agg = 0;
+
+  for (int i = 0; i < 100; ++i) {
+    std::vector<float> weights = generate_random_vector<float, false>(N * K);
+    // Step1. Supposed to be an offline Weight quantization from float to q4_K
+    // (Zero latency overhead for the model runtime)
+    char *q4_0_offline_qWeight_ptr = (char *)q4_0_offline_qWeight.data();
+    nntrainer::quantize_q4_0(weights.data(), (void *)q4_0_offline_qWeight_ptr,
+                             N, K, nullptr);
+
+    // Step2. Repack Weight to q4_K_8x8 layout (This happens when you load the
+    // model weights. It's a one-time operation)
+    std::vector<char> q4_0_repacked_qWeight = std::vector<char>(q4_0_data_size);
+    nntrainer::repack_q4_0_to_q4_0_8(q4_0_repacked_qWeight.data(),
+                                     q4_0_offline_qWeight_ptr, q4_0_data_size,
+                                     N, K);
+
+    auto t1 = std::chrono::high_resolution_clock::now();
+    nntrainer::convert_st(q4_0_repacked_qWeight.data(), scales.data(),
+                          qs.data(), N * K / 256);
+    auto t2 = std::chrono::high_resolution_clock::now();
+
+    auto t3 = std::chrono::high_resolution_clock::now();
+    nntrainer::convert_omp(q4_0_repacked_qWeight.data(), scales2.data(),
+                           qs2.data(), N * K / 256);
+    auto t4 = std::chrono::high_resolution_clock::now();
+
+    auto time_st =
+      std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
+    auto time_mt =
+      std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3);
+    time_st_agg += time_st.count();
+    time_mt_agg += time_mt.count();
+    ASSERT_EQ(scales, scales2);
+    ASSERT_EQ(qs, qs2);
+  }
+
+  std::cout << "convert q4_0x8" << std::endl;
+  std::cout << "st, mt" << std::endl;
+  std::cout << time_st_agg / 100.0f << ", " << time_mt_agg / 100.f << std::endl;
+}
+
+#define DECLARE_q_4_0_convert_M_K_N(K, N)                                      \
+  TEST(blas_kernels, q_4_K_convert_test_##K##_##N) {                           \
+    run_convert_q4_0x8_array_d_qs(K, N);                                       \
+  }
+
+DECLARE_q_4_0_convert_M_K_N(3072, 8192);
 
 #endif // ENABLE_GGML
 
