@@ -35,10 +35,12 @@ TaskExecutor::TaskExecutor(const std::string &n) :
     ml_logd("Task Thread(%s): start thread", name.c_str());
     while (run_thread) {
       std::unique_lock lk(task_mutex);
-      task_cv.wait(lk, [&] { return !task_queue.empty(); });
-      if (task_queue.empty())
-        return;
+      if (!task_cv.wait_for(lk, std::chrono::milliseconds(500),
+                            [&] { return !task_queue.empty(); }))
+        continue;
+
       auto &task_info = task_queue.front();
+      lk.unlock();
 
       const auto &id = std::get<int>(task_info);
       const auto &callback = std::get<CompleteCallback>(task_info);
@@ -46,7 +48,9 @@ TaskExecutor::TaskExecutor(const std::string &n) :
       auto status = worker(task_info);
       callback(id, status);
 
+      lk.lock();
       task_queue.pop_front();
+      lk.unlock();
     }
     ml_logd("Task Thread(%s): finish thread", name.c_str());
   });
