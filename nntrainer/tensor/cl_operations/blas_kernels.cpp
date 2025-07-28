@@ -18,6 +18,160 @@
 
 namespace nntrainer {
 
+void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
+                  unsigned int M, unsigned int N, unsigned int K) {
+  bool result = false;
+
+  const size_t num_blocks = N * (K / 32);
+
+  void *src0_q =
+    blas_cc->context_inst_.createSVMRegion(num_blocks * sizeof(uint8_t) * 16);
+  void *src0_d =
+    blas_cc->context_inst_.createSVMRegion(num_blocks * sizeof(uint16_t));
+
+  /// @todo This should be replaced with SIMD instruction to flatten the block
+  /// representation of Q4_0x8 to uint8_t * and uint16_t *.
+  flatten_block_q4_0_cl(matAdata, src0_q, src0_d, num_blocks);
+
+  ClContext::SharedPtrClKernel kernel_q4_0_mul_mat_ptr;
+
+  kernel_q4_0_mul_mat_ptr = blas_cc->registerClKernel(
+    getMulMatQ4_0Kernel(), "kernel_mul_mat_q4_0_f32_1d_16x_flat");
+
+  const int ne00 = K;
+  const int ne01 = N;
+  const int ne02 = 1;
+  const int ne10 = K;
+  const int ne11 = M;
+  const int ne12 = 1;
+  const int ne13 = 1;
+  const int ne0 = N;
+  const int ne1 = M;
+  const int r2 = 1;
+  const int r3 = 1;
+
+  int arg = 0;
+
+  result = kernel_q4_0_mul_mat_ptr->SetKernelSVMArguments(arg++, src0_q);
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel SVM argument 0 for kernel_q4_0_mul_mat_ptr");
+
+  result = kernel_q4_0_mul_mat_ptr->SetKernelSVMArguments(arg++, src0_d);
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel SVM argument 1 for kernel_q4_0_mul_mat_ptr");
+
+  result = kernel_q4_0_mul_mat_ptr->SetKernelSVMArguments(arg++, matBdata);
+
+  if (!result) {
+    throw std::runtime_error(
+      "Failed to set kernel SVM argument 2 for kernel_q4_0_mul_mat_ptr");
+  }
+
+  result = kernel_q4_0_mul_mat_ptr->SetKernelSVMArguments(arg++, matCdata);
+
+  if (!result) {
+    throw std::runtime_error(
+      "Failed to set kernel SVM argument 3 for kernel_q4_0_mul_mat_ptr");
+  }
+
+  result =
+    kernel_q4_0_mul_mat_ptr->SetKernelArguments(arg++, &ne00, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 4 for kernel_q4_0_mul_mat_ptr");
+    return;
+  }
+
+  result =
+    kernel_q4_0_mul_mat_ptr->SetKernelArguments(arg++, &ne01, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 5 for kernel_q4_0_mul_mat_ptr");
+    return;
+  }
+
+  result =
+    kernel_q4_0_mul_mat_ptr->SetKernelArguments(arg++, &ne02, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 6 for kernel_q4_0_mul_mat_ptr");
+    return;
+  }
+
+  result =
+    kernel_q4_0_mul_mat_ptr->SetKernelArguments(arg++, &ne10, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 7 for kernel_q4_0_mul_mat_ptr");
+    return;
+  }
+
+  result =
+    kernel_q4_0_mul_mat_ptr->SetKernelArguments(arg++, &ne12, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 8 for kernel_q4_0_mul_mat_ptr");
+    return;
+  }
+
+  result =
+    kernel_q4_0_mul_mat_ptr->SetKernelArguments(arg++, &ne0, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 9 for kernel_q4_0_mul_mat_ptr");
+    return;
+  }
+
+  result =
+    kernel_q4_0_mul_mat_ptr->SetKernelArguments(arg++, &ne1, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 10 for kernel_q4_0_mul_mat_ptr");
+    return;
+  }
+
+  result = kernel_q4_0_mul_mat_ptr->SetKernelArguments(arg++, &r2, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 11 for kernel_q4_0_mul_mat_ptr");
+    return;
+  }
+
+  result = kernel_q4_0_mul_mat_ptr->SetKernelArguments(arg++, &r3, sizeof(int));
+
+  if (!result) {
+    ml_loge("Failed to set kernel argument 12 for kernel_q4_0_mul_mat_ptr");
+    return;
+  }
+
+  const int nth0 = 16; // For Adreno, use 64
+  const int nth1 = 1;
+
+  const int work_groups_count[3] = {(ne01 + 15) / 16 * nth0, ne11 * nth1,
+                                    ne12 * ne13};
+  /// @todo: create a group size by device & input
+  const int work_group_size[3] = {nth0, nth1, 1};
+
+  result = opencl::CommandQueueManager::GetInstance().DispatchCommand(
+    kernel_q4_0_mul_mat_ptr, work_groups_count, work_group_size);
+  if (!result) {
+    ml_loge("Failed to dispatch kernel kernel_q4_0_mul_mat_ptr");
+    return;
+  }
+
+  result = blas_cc->command_queue_inst_.enqueueSVMMap(
+    matCdata, M * N * sizeof(float), true);
+
+  if (!result) {
+    ml_loge("Failed to read data from the output buffer for "
+            "kernel_q4_0_mul_mat_ptr");
+
+    return;
+  }
+}
+
 void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
                    unsigned int M, unsigned int N) {
   bool result = false;
