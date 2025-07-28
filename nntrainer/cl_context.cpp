@@ -44,7 +44,11 @@ void ClContext::initialize() noexcept {
     initBlasClKernels();
     initAttentionClKernels();
     add_default_object();
+    setMemAllocator(std::make_shared<MemAllocator>());
 
+    initBlasClKernels();
+    initAttentionClKernels();
+    add_default_object();
   } catch (std::exception &e) {
     ml_loge("cl_context: registering layers failed!!, reason: %s", e.what());
   } catch (...) {
@@ -58,7 +62,6 @@ void ClContext::add_default_object() {
                     FullyConnectedLayerCl::type,
                     ml::train::LayerType::LAYER_FC);
   }
-
 
   if (AdditionLayerCL::registerClKernels(*this)) {
     registerFactory(nntrainer::createLayer<AdditionLayerCL>,
