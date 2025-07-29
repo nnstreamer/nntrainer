@@ -46,8 +46,9 @@ static inline double find_max_diff(T *src, T *src2, int M, int N) {
   double err_sum = 0;
   for (int i = 0; i < M; ++i) {
     for (int j = 0; j < N; ++j) {
-      max_diff = std::max(max_diff, std::abs(src[i * N + j] - src2[i * N + j]));
-      err_sum += std::abs(src[i * N + j] - src2[i * N + j]);
+      max_diff = std::max(max_diff, std::abs(static_cast<float>(
+                                      src[i * N + j] - src2[i * N + j])));
+      err_sum += std::abs(static_cast<float>(src[i * N + j] - src2[i * N + j]));
     }
   }
   // std::cout << "err_sum : " << err_sum << std::endl;
@@ -241,7 +242,7 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMM_459x3072x3072) {
   const unsigned int N = 3072;
   float q4_0_mse, q6_k_mse;
   constexpr float eps = 1e-5;
-  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, false);
+  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, true);
   ASSERT_LE(q4_0_mse, eps * M * K * N);
   ASSERT_LE(q6_k_mse, q4_0_mse);
 }
@@ -252,7 +253,7 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMM_1024x3072x3072) {
   const unsigned int N = 3072;
   float q4_0_mse, q6_k_mse;
   constexpr float eps = 1e-5;
-  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, false);
+  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, true);
   ASSERT_LE(q4_0_mse, eps * M * K * N);
   ASSERT_LE(q6_k_mse, q4_0_mse);
 }
@@ -274,7 +275,7 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMV_1x3072x3072) {
   const unsigned int N = 3072;
   float q4_0_mse, q6_k_mse;
   constexpr float eps = 1e-5;
-  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, false);
+  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, true);
   ASSERT_LE(q4_0_mse, eps * M * K * N);
   ASSERT_LE(q6_k_mse, q4_0_mse);
 }
