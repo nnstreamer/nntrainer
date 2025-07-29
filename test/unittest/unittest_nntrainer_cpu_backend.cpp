@@ -134,13 +134,11 @@ TEST(nntrainer_cpu_backend_standalone, ele_add) {
   }
 }
 
-template <typename T=float>
-float compute_mse(const uint32_t M, const uint32_t N,
-                  std::vector<T> &ref_dst, std::vector<T> &dst,
-                  bool print = false) {
-  auto mean_squared_error =
-    mse<T, T>(ref_dst.data(), dst.data(), M * N);
-  auto cos_sim = cosine_similarity<T,T>(ref_dst.data(), dst.data(), M * N);
+template <typename T = float>
+float compute_mse(const uint32_t M, const uint32_t N, std::vector<T> &ref_dst,
+                  std::vector<T> &dst, bool print = false) {
+  auto mean_squared_error = mse<T, T>(ref_dst.data(), dst.data(), M * N);
+  auto cos_sim = cosine_similarity<T, T>(ref_dst.data(), dst.data(), M * N);
   auto max_differ = find_max_diff<T>(ref_dst.data(), dst.data(), M, N);
 
   auto sum = std::accumulate(dst.begin(), dst.end(), 0.0);
@@ -295,8 +293,8 @@ float test_gemm_q4_K(const uint32_t M, const uint32_t K, const uint32_t N,
   // Step2. Repack Weight to q4_K_8x8 layout (This happens when you load the
   // model weights. It's a one-time operation)
   std::vector<char> repacked_qWeight = std::vector<char>(data_size);
-  nntrainer::repack_q4_K_to_q4_K_8(repacked_qWeight.data(), offline_qWeight_ptr,
-                                   data_size, N, K);
+  nntrainer::repack_q4_K(repacked_qWeight.data(), offline_qWeight_ptr,
+                         data_size, N, K);
 
   // Step3. Run GEMM! (Online activation quantization + kernel routine + return
   // float)

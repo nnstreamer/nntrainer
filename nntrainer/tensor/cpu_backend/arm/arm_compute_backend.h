@@ -20,44 +20,7 @@
 
 namespace nntrainer {
 
-/**
- * @brief Initialization of ggml backend
- */
-void init_backend();
-
 #ifdef ENABLE_FP16
-/**
- * @brief Quantize float to q6_K Quantization format
- *
- * @param src float* src to be quantized
- * @param dst void* dst to store quantized data
- * @param k number of elements in src
- */
-void quantize_row_q8_0(const _FP16 *__restrict src, void *__restrict dst,
-                       int64_t k);
-
-/**
- * @brief Quantize _FP16 to q8_0 Quantization format
- *
- * @param src input src to be quantized
- * @param dst output destination for quantized data
- * @param nrow number of row
- * @param n_per_row number of elements per row
- * @param quant_weights additional information for quantization. Currently in no
- * use.
- * @return size_t total size of quantized data
- */
-size_t quantize_q8_0(const _FP16 *src, void *dst, int64_t nrow,
-                     int64_t n_per_row, const float *quant_weights);
-/**
- * @brief q8_0 to _FP16 dequantize
- *
- * @param x_raw input src to be dequantized
- * @param y output destination for dequantized data
- * @param k data length
- */
-void dequantize_row_q8_0(const void *x_raw, _FP16 *y, int64_t k);
-
 /**
  * @brief Accelerating function for rotary embedding layer forwarding
  *
@@ -109,10 +72,9 @@ void softmax(const unsigned int N, _FP16 *X, _FP16 *Y);
  * @param[out] bool false if not valid else true
  */
 bool is_valid(const unsigned int N, const _FP16 *X);
+
 /**
- * @brief
- *
- *
+ * @brief     sscal computation : X = alpha * X
  * @param[in] N number of elements in X
  * @param[in] X __fp16 * for Vector X
  * @param[in] alpha float number
@@ -182,7 +144,6 @@ void scopy_int8_to_float16(const unsigned int N, const uint8_t *X,
 void scopy_int8_to_float16(const unsigned int N, const int8_t *X,
                            const unsigned int incX, _FP16 *Y,
                            const unsigned int incY);
-
 /**
  * @brief     sdot computation : sum of all X * Y
  * @param[in] N number of elements in Y
@@ -327,6 +288,10 @@ void transpose_matrix(const unsigned int M, const unsigned int N,
                       const _FP16 *src, unsigned int ld_src, _FP16 *dst,
                       unsigned int ld_dst);
 #endif
+/**
+ * @brief Initialization of ggml backend
+ */
+void init_backend();
 
 /**
  * @brief Get half-sized angles, transform them into each cos, sin, and scopy in
@@ -368,6 +333,7 @@ float max_val(const unsigned int N, float *X);
  * @param Y  float * for Vector Y
  */
 void softmax(const unsigned int N, float *X, float *Y);
+
 /**
  * @brief Matrix transpose / 2D Tensor transpose
  *
@@ -395,6 +361,7 @@ void sscal(const unsigned int N, const float alpha, float *X,
  * @param[in] X float * for Vector X
  */
 float snrm2(const unsigned int N, const float *X, const unsigned int incX);
+
 /**
  * @brief     copy function : Y = X
  * @param[in] N number of elements in X
@@ -411,7 +378,13 @@ void scopy(const unsigned int N, const float *X, const unsigned int incX,
  */
 void scopy(const unsigned int N, const uint8_t *X, const unsigned int incX,
            uint8_t *Y, const unsigned int incY);
-
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X uint16_t * for Vector X
+ * @param[in] Y uint16_t * for Vector Y
+ */
+void copy_u16(const unsigned int N, const uint16_t *X, uint16_t *Y);
 /**
  * @brief     copy function : Y = X
  * @param[in] N number of elements in X
@@ -427,25 +400,6 @@ void scopy(const unsigned int N, const int8_t *X, const unsigned int incX,
  * @param[in] Y float * for Vector Y
  */
 void scopy_int4_to_float32(const unsigned int N, const uint8_t *X,
-                           const unsigned int incX, float *Y,
-                           const unsigned int incY);
-
-/**
- * @brief     copy function : Y = X
- * @param[in] N number of elements in X
- * @param[in] X uint8_t * for Vector X
- * @param[in] Y float * for Vector Y
- */
-void scopy_int8_to_float32(const unsigned int N, const uint8_t *X,
-                           const unsigned int incX, float *Y,
-                           const unsigned int incY);
-/**
- * @brief     copy function : Y = X
- * @param[in] N number of elements in X
- * @param[in] X int8_t * for Vector X
- * @param[in] Y float * for Vector Y
- */
-void scopy_int8_to_float32(const unsigned int N, const int8_t *X,
                            const unsigned int incX, float *Y,
                            const unsigned int incY);
 /**
@@ -516,76 +470,6 @@ void copy_fp32(const unsigned int N, const float *X, T *Y);
 /**
  * @brief     copy function : Y = X
  * @param[in] N number of elements in X
- * @param[in] X float * for Vector X
- * @param[in] Y T * for Vector Y
- */
-template <typename T>
-inline void copy_fp32(const unsigned int N, const float *X, T *Y) {
-  throw std::invalid_argument("copy_fp32 for the type is not supported");
-}
-
-/**
- * @brief     copy function : Y = X
- * @param[in] N number of elements in X
- * @param[in] X float * for Vector X
- * @param[in] Y uint32_t * for Vector Y
- */
-template <>
-inline void copy_fp32<uint32_t>(const unsigned int N, const float *X,
-                                uint32_t *Y) {
-  copy_fp32_u32(N, X, Y);
-}
-
-/**
- * @brief     copy function : Y = X
- * @param[in] N number of elements in X
- * @param[in] X float * for Vector X
- * @param[in] Y uint16_t * for Vector Y
- */
-template <>
-inline void copy_fp32<uint16_t>(const unsigned int N, const float *X,
-                                uint16_t *Y) {
-  copy_fp32_u16(N, X, Y);
-}
-
-/**
- * @brief     copy function : Y = X
- * @param[in] N number of elements in X
- * @param[in] X float * for Vector X
- * @param[in] Y uint16_t * for Vector Y
- */
-template <>
-inline void copy_fp32<uint8_t>(const unsigned int N, const float *X,
-                               uint8_t *Y) {
-  copy_fp32_u8(N, X, Y);
-}
-
-/**
- * @brief     copy function : Y = X
- * @param[in] N number of elements in X
- * @param[in] X float * for Vector X
- * @param[in] Y int16_t * for Vector Y
- */
-template <>
-inline void copy_fp32<int16_t>(const unsigned int N, const float *X,
-                               int16_t *Y) {
-  copy_fp32_s16(N, X, Y);
-}
-
-/**
- * @brief     copy function : Y = X
- * @param[in] N number of elements in X
- * @param[in] X float * for Vector X
- * @param[in] Y int8_t * for Vector Y
- */
-template <>
-inline void copy_fp32<int8_t>(const unsigned int N, const float *X, int8_t *Y) {
-  copy_fp32_s8(N, X, Y);
-}
-
-/**
- * @brief     copy function : Y = X
- * @param[in] N number of elements in X
  * @param[in] X int16_t * for Vector X
  * @param[in] Y int16_t * for Vector Y
  */
@@ -594,11 +478,21 @@ void copy_s16(const unsigned int N, const int16_t *X, int16_t *Y);
 /**
  * @brief     copy function : Y = X
  * @param[in] N number of elements in X
- * @param[in] X uint16_t * for Vector X
- * @param[in] Y uint16_t * for Vector Y
+ * @param[in] X uint8_t * for Vector X
+ * @param[in] Y float * for Vector Y
  */
-void copy_u16(const unsigned int N, const uint16_t *X, uint16_t *Y);
-
+void scopy_int8_to_float32(const unsigned int N, const uint8_t *X,
+                           const unsigned int incX, float *Y,
+                           const unsigned int incY);
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X uint8_t * for Vector X
+ * @param[in] Y float * for Vector Y
+ */
+void scopy_int8_to_float32(const unsigned int N, const int8_t *X,
+                           const unsigned int incX, float *Y,
+                           const unsigned int incY);
 /**
  * @brief     sdot computation : sum of all X * Y
  * @param[in] N number of elements in Y
@@ -607,6 +501,7 @@ void copy_u16(const unsigned int N, const uint16_t *X, uint16_t *Y);
  */
 float sdot(const unsigned int N, const float *X, const unsigned int incX,
            const float *Y, const unsigned int incY);
+
 /**
  * @brief     saxpy computation : Y = alpha*X + Y
  * @param[in] N number of elements in Y
@@ -635,7 +530,6 @@ void sgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
            const unsigned int ldc);
 /**
  * @brief     sgemv computation  : Y = alpha*A*X + beta*Y
-arch-dep:nntrainer/tensor/cpu_backend/arm/arm_compute_backend.h
  * @param[in] A float * for Matrix A
  * @param[in] X float * for Vector X
  * @param[in] Y float * for Vector Y
@@ -744,7 +638,6 @@ void ele_sub(const unsigned N, const float *X, const float *Y, float *Z,
 void ele_div(const unsigned N, const float *X, const float *Y, float *Z,
              float alpha = 1.f, float beta = 0.f, unsigned int i_stride = 1,
              unsigned int o_stride = 1);
-
 /**
  * @brief     check if X array has NaN or inf
  * @param[in] N  length of the vector
@@ -763,7 +656,7 @@ bool is_valid(const unsigned int N, const float *X);
  * @param lda Leading dimension of A
  * @param B (void*) (block_q4_K*) for Offline-quantized transposed weight
  * @param ldb Leading dimenstion of B
- * @param C float* output
+ * @param C T* output
  * @param ldc Leading dimension of C
  */
 template <typename T = float>
@@ -787,36 +680,24 @@ void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
 void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc);
+
 /**
- * @brief q4_K GEMM : A (M,K) * W.T (N,K) = O (M,N)
+ * @brief q6_K GEMM : A (M,K) * W.T (N,K) = O (M,N)
  *
  * @param M Original row size of output
  * @param N Original col size of output
  * @param K Hidden size
- * @param A Input activation to be online-runtime quantized to q8_K_MxN format
+ * @param A Input activation to be online-runtime quantized to q6_K_MxN format
  * @param lda Leading dimension of A
- * @param B (void*) (block_q4_K*) for Offline-quantized transposed weight
+ * @param B (void*) (block_q6_K*) for Offline-quantized transposed weight
  * @param ldb Leading dimenstion of B
- * @param C float* output
+ * @param C T* output
  * @param ldc Leading dimension of C
  */
 template <typename T = float>
 void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
                const T *A, const unsigned int lda, const void *B,
                const unsigned int ldb, T *C, const unsigned int ldc);
-
-/**
- * @brief (1xK)*(Kx1) dot product for q6_K and q8_K vectors
- *
- * @param K Length of vectors
- * @param v_q6_K lhs vector - data stored in Q6_K format
- * @param v_q8_K rhs vector - data stored in Q8_K format
- * @return float Result of performing dot operation on v_q6_K and v_q8_K
- */
-float dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
-                    const void *v_q8_K);
-
-float dot_q6_K_f32(const unsigned int K, const void *v_q6_K, const float *f);
 
 /**
  * @brief quantize_q4_0 function
@@ -831,18 +712,6 @@ float dot_q6_K_f32(const unsigned int K, const void *v_q6_K, const float *f);
 size_t quantize_q4_0(const float *src, void *dst, int64_t nrow,
                      int64_t n_per_row, const float *quant_weights);
 /**
- * @brief quantize_q8_0 function
- *
- * @param src float* to quantize
- * @param dst q8_0* to store quantized data
- * @param nrow number of rows in src
- * @param n_per_row number of elements in each row of src
- * @param quant_weights unused for now -> imatrix
- * @return size_t size of total quantized data in bytes
- */
-size_t quantize_q8_0(const float *src, void *dst, int64_t nrow,
-                     int64_t n_per_row, const float *quant_weights);
-/**
  * @brief quantize_q4_K function
  *
  * @param src float* to quantize
@@ -855,26 +724,18 @@ size_t quantize_q8_0(const float *src, void *dst, int64_t nrow,
 size_t quantize_q4_K(const float *src, void *dst, int64_t nrow,
                      int64_t n_per_row, const float *quant_weights);
 /**
- * @brief quantize_q6_K function
+ * @brief Quantize float to q6_K Quantization format
  *
- * @param src float* to quantize
- * @param dst q6_K* to store quantized data
- * @param nrow number of rows in src
- * @param n_per_row number of elements in each row of src
- * @param quant_weights unused for now -> imatrix
- * @return size_t size of total quantized data in bytes
+ * @param src input src to be quantized
+ * @param dst output destination for quantized data
+ * @param nrow number of row
+ * @param n_per_row number of elements per row
+ * @param quant_weights additional information for quantization. Currently in no
+ * use.
+ * @return size_t total size of quantized data
  */
 size_t quantize_q6_K(const float *src, void *dst, int64_t nrow,
                      int64_t n_per_row, const float *quant_weights);
-/**
- * @brief
- *
- * @param src input to be quantized from float to q6_K
- * @param dst quantized data output
- * @param k number of elements in src
- */
-void quantize_row_q6_K(const float *src, void *dst, int64_t k);
-
 /**
  * @brief Quantize float to q6_K Quantization format
  *
@@ -882,16 +743,29 @@ void quantize_row_q6_K(const float *src, void *dst, int64_t k);
  * @param dst void* dst to store quantized data
  * @param k number of elements in src
  */
-template <typename T = float>
-void quantize_row_q8_K(const T *src, void *dst, int64_t k);
+extern void quantize_row_q6_K(const float *src, void *dst, int64_t k);
+
 /**
- * @brief dequantize row of q8_0 data to float
+ * @brief (1xK)*(Kx1) dot product for q6_K and q8_K vectors
  *
- * @param x input to be dequantized from q8_0 to float
- * @param y dequantized data output
- * @param k number of elements in x
+ * @param K Length of vectors
+ * @param v_q6_K lhs vector - data stored in Q6_K format
+ * @param v_q8_K rhs vector - data stored in Q8_K format
+ * @return float Result of performing dot operation on v_q6_K and v_q8_K
  */
-void dequantize_row_q8_0(const void *x, float *y, int64_t k);
+float dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
+                    const void *v_q8_K);
+
+/**
+ * @brief (1xK)*(Kx1) dot product for q6_K and f32 vectors
+ *
+ * @param K Length of vectors
+ * @param v_q6_K lhs vector - data stored in Q6_K format
+ * @param f rhs vector - data stored in float format
+ * @return float Result of performing dot operation on v_q6_K and v_q8_K
+ */
+float dot_q6_K_f32(const unsigned int K, const void *v_q6_K, const float *f);
+
 /**
  * @brief dequantize row of q4_K data to float
  *
@@ -921,6 +795,16 @@ template <typename T = float>
 void dequantize_row_q8_K(const void *x, T *y, int64_t k);
 
 /**
+ * @brief quantize row of T data to q8_K
+ *
+ * @param src input to be quantized from T data to q8_K
+ * @param dst quantized data output
+ * @param k number of elements in x
+ */
+template <typename T = float>
+void quantize_row_q8_K(const T *src, void *dst, int64_t k);
+
+/**
  * @brief repack q40 to q40x8
  *
  * @param W input q40
@@ -941,19 +825,42 @@ void repack_q4_0(void *W, void *repacked_W, size_t data_size,
  * @param M number of rows
  * @param N number of columns
  */
-void repack_q4_K_to_q4_K_8(void *W, void *repacked_W, size_t data_size,
+void repack_q4_K(void *W, void *repacked_W, size_t data_size,
                            const unsigned int M, const unsigned int N);
 /**
- * @brief repack q40 to q40x8
+ * @brief Quantize float to q6_K Quantization format
  *
- * @param W input q40
- * @param repacked_W output q40x8
- * @param data_size total weight size
- * @param M number of rows
- * @param N number of columns
+ * @param src float* src to be quantized
+ * @param dst void* dst to store quantized data
+ * @param k number of elements in src
  */
-void repack_q4_0_to_q4_0_8(void *W, void *repacked_W, size_t data_size,
-                           const unsigned int M, const unsigned int N);
+template <typename T = float>
+void quantize_row_q8_0(const T *__restrict src, void *__restrict dst,
+                       int64_t k);
+
+/**
+ * @brief Quantize T to q8_0 Quantization format
+ *
+ * @param src input src to be quantized
+ * @param dst output destination for quantized data
+ * @param nrow number of row
+ * @param n_per_row number of elements per row
+ * @param quant_weights additional information for quantization. Currently in no
+ * use.
+ * @return size_t total size of quantized data
+ */
+template <typename T = float>
+size_t quantize_q8_0(const T *src, void *dst, int64_t nrow, int64_t n_per_row,
+                     const float *quant_weights);
+/**
+ * @brief q8_0 to T dequantize
+ *
+ * @param x_raw input src to be dequantized
+ * @param y output destination for dequantized data
+ * @param k data length
+ */
+template <typename T = float>
+void dequantize_row_q8_0(const void *x_raw, T *y, int64_t k);
 } /* namespace nntrainer */
 #endif /* __cplusplus */
 #endif /* __ARM_COMPUTE_BACKEND_H__ */
