@@ -33,9 +33,8 @@ namespace nntrainer {
  * @param sin_ precomputed sin_ for corresponding rotational indices
  */
 void compute_rotary_embedding_value(unsigned int dim, unsigned int half_,
-                                           unsigned int w, _FP16 *in,
-                                           _FP16 *out, float *cos_,
-                                           float *sin_);
+                                    unsigned int w, _FP16 *in, _FP16 *out,
+                                    float *cos_, float *sin_);
 /**
  * @brief swiglu function : X = (Y / (1 + exp( -Y ))) * Z
  *
@@ -81,15 +80,14 @@ bool is_valid(const unsigned int N, const _FP16 *X);
  * @param[in] alpha float number
  */
 void sscal(const unsigned int N, const float alpha, _FP16 *X,
-                  const unsigned int incX);
+           const unsigned int incX);
 
 /**
  * @brief     snrm2 computation : Euclidean norm
  * @param[in] N number of elements in X
  * @param[in] X __fp16 * for Vector X
  */
-_FP16 snrm2(const unsigned int N, const _FP16 *X,
-                   const unsigned int incX);
+_FP16 snrm2(const unsigned int N, const _FP16 *X, const unsigned int incX);
 
 /**
  * @brief     copy function : Y = X
@@ -98,7 +96,7 @@ _FP16 snrm2(const unsigned int N, const _FP16 *X,
  * @param[in] Y __fp16 * for Vector Y
  */
 void scopy(const unsigned int N, const _FP16 *X, const unsigned int incX,
-                  _FP16 *Y, const unsigned int incY);
+           _FP16 *Y, const unsigned int incY);
 
 /**
  * @brief     copy function : Y = X
@@ -107,7 +105,7 @@ void scopy(const unsigned int N, const _FP16 *X, const unsigned int incX,
  * @param[in] Y __fp16 * for Vector Y
  */
 void scopy(const unsigned int N, const float *X, const unsigned int incX,
-                  _FP16 *Y, const unsigned int incY);
+           _FP16 *Y, const unsigned int incY);
 
 /**
  * @brief     copy function : Y = X
@@ -116,7 +114,7 @@ void scopy(const unsigned int N, const float *X, const unsigned int incX,
  * @param[in] Y float * for Vector Y
  */
 void scopy(const unsigned int N, const _FP16 *X, const unsigned int incX,
-                  float *Y, const unsigned int incY);
+           float *Y, const unsigned int incY);
 
 /**
  * @brief     copy function : Y = X
@@ -125,8 +123,8 @@ void scopy(const unsigned int N, const _FP16 *X, const unsigned int incX,
  * @param[in] Y __fp16 * for Vector Y
  */
 void scopy_int4_to_float16(const unsigned int N, const uint8_t *X,
-                                  const unsigned int incX, _FP16 *Y,
-                                  const unsigned int incY);
+                           const unsigned int incX, _FP16 *Y,
+                           const unsigned int incY);
 
 /**
  * @brief     copy function : Y = X
@@ -135,8 +133,8 @@ void scopy_int4_to_float16(const unsigned int N, const uint8_t *X,
  * @param[in] Y __fp16 * for Vector Y
  */
 void scopy_int8_to_float16(const unsigned int N, const uint8_t *X,
-                                  const unsigned int incX, _FP16 *Y,
-                                  const unsigned int incY);
+                           const unsigned int incX, _FP16 *Y,
+                           const unsigned int incY);
 /**
  * @brief     copy function : Y = X
  * @param[in] N number of elements in X
@@ -144,8 +142,8 @@ void scopy_int8_to_float16(const unsigned int N, const uint8_t *X,
  * @param[in] Y __fp16 * for Vector Y
  */
 void scopy_int8_to_float16(const unsigned int N, const int8_t *X,
-                                  const unsigned int incX, _FP16 *Y,
-                                  const unsigned int incY);
+                           const unsigned int incX, _FP16 *Y,
+                           const unsigned int incY);
 /**
  * @brief     sdot computation : sum of all X * Y
  * @param[in] N number of elements in Y
@@ -153,7 +151,7 @@ void scopy_int8_to_float16(const unsigned int N, const int8_t *X,
  * @param[in] Y __fp16 * for Vector Y
  */
 _FP16 sdot(const unsigned int N, const _FP16 *X, const unsigned int incX,
-                  const _FP16 *Y, const unsigned int incY);
+           const _FP16 *Y, const unsigned int incY);
 
 /**
  * @brief     saxpy computation : Y = alpha*X + Y
@@ -163,7 +161,7 @@ _FP16 sdot(const unsigned int N, const _FP16 *X, const unsigned int incX,
  * @param[in] Y __fp16 * for Vector Y
  */
 void saxpy(const unsigned int N, const float alpha, const _FP16 *X,
-                  const unsigned int incX, _FP16 *Y, const unsigned int incY);
+           const unsigned int incX, _FP16 *Y, const unsigned int incY);
 
 /**
  * @brief     sgemm computation : Y = alpha*op(A)*op(B) + beta*C,
@@ -178,11 +176,10 @@ void saxpy(const unsigned int N, const float alpha, const _FP16 *X,
  * @param[in] beta float number
  */
 void sgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
-                  const unsigned int M, const unsigned int N,
-                  const unsigned int K, const float alpha, const _FP16 *A,
-                  const unsigned int lda, const _FP16 *B,
-                  const unsigned int ldb, const float beta, _FP16 *C,
-                  const unsigned int ldc);
+           const unsigned int M, const unsigned int N, const unsigned int K,
+           const float alpha, const _FP16 *A, const unsigned int lda,
+           const _FP16 *B, const unsigned int ldb, const float beta, _FP16 *C,
+           const unsigned int ldc);
 /**
  * @brief     sgemv computation : Y = alpha*A*X + beta*Y
  * @param[in] A float * for Matrix A
@@ -193,11 +190,10 @@ void sgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
  * @param[in] alpha float number
  * @param[in] beta float number
  */
-void sgemv(const unsigned int TStorageOrder, bool TransA,
-                  const unsigned int M, const unsigned int N, const float alpha,
-                  const _FP16 *A, const unsigned int lda, const _FP16 *X,
-                  const unsigned int incX, const float beta, _FP16 *Y,
-                  const unsigned int incY);
+void sgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
+           const unsigned int N, const float alpha, const _FP16 *A,
+           const unsigned int lda, const _FP16 *X, const unsigned int incX,
+           const float beta, _FP16 *Y, const unsigned int incY);
 /**
  * @brief     elementwise vector multiplication : Z = X ⊙ alpha * Y +
  * beta * Z
@@ -210,9 +206,9 @@ void sgemv(const unsigned int TStorageOrder, bool TransA,
  * @param[in] i_stride input stride
  * @param[in] o_stride output stride
  */
-void ele_mul(const unsigned int N, const _FP16 *X, const _FP16 *Y,
-                    _FP16 *Z, float alpha = 1.f, float beta = 0.f,
-                    unsigned int i_stride = 1, unsigned int o_stride = 1);
+void ele_mul(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
+             float alpha = 1.f, float beta = 0.f, unsigned int i_stride = 1,
+             unsigned int o_stride = 1);
 
 /**
  * @brief     elementwise vector addition : Z = X + alpha * Y + beta *
@@ -226,9 +222,9 @@ void ele_mul(const unsigned int N, const _FP16 *X, const _FP16 *Y,
  * @param[in] i_stride input stride
  * @param[in] o_stride output stride
  */
-void ele_add(const unsigned int N, const _FP16 *X, const _FP16 *Y,
-                    _FP16 *Z, float alpha = 1.f, float beta = 0.f,
-                    unsigned int i_stride = 1, unsigned int o_stride = 1);
+void ele_add(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
+             float alpha = 1.f, float beta = 0.f, unsigned int i_stride = 1,
+             unsigned int o_stride = 1);
 /**
  * @brief     elementwise vector subtraction with neon : Z = X - alpha * Y +
  * beta * Z
@@ -242,8 +238,8 @@ void ele_add(const unsigned int N, const _FP16 *X, const _FP16 *Y,
  * @param[in] o_stride output stride
  */
 void ele_sub(const unsigned N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
-                    float alpha = 1.f, float beta = 0.f,
-                    unsigned int i_stride = 1, unsigned int o_stride = 1);
+             float alpha = 1.f, float beta = 0.f, unsigned int i_stride = 1,
+             unsigned int o_stride = 1);
 
 /**
  * @brief     elementwise vector division with neon : Z = X / (alpha * Y) + beta
@@ -259,8 +255,8 @@ void ele_sub(const unsigned N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
  * @param[in] o_stride output stride
  */
 void ele_div(const unsigned N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
-                    float alpha = 1.f, float beta = 0.f,
-                    unsigned int i_stride = 1, unsigned int o_stride = 1);
+             float alpha = 1.f, float beta = 0.f, unsigned int i_stride = 1,
+             unsigned int o_stride = 1);
 
 /**
  * @brief     isamax function : index of first maxima
@@ -268,7 +264,7 @@ void ele_div(const unsigned N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
  * @param[in] X __fp16 * for Vector X
  */
 unsigned int isamax(const unsigned int N, const _FP16 *X,
-                           const unsigned int incX);
+                    const unsigned int incX);
 
 /**
  * @brief squared root transformation inplace : X = sqrt(X)
@@ -289,8 +285,8 @@ void inv_sqrt_inplace(const unsigned int N, _FP16 *X);
  * @param ld_dst data offset of output matrix
  */
 void transpose_matrix(const unsigned int M, const unsigned int N,
-                             const _FP16 *src, unsigned int ld_src, _FP16 *dst,
-                             unsigned int ld_dst);
+                      const _FP16 *src, unsigned int ld_src, _FP16 *dst,
+                      unsigned int ld_dst);
 #endif
 /**
  * @brief Initialization of ggml backend
@@ -308,9 +304,8 @@ void init_backend();
  * @param sin_ float* for sin_
  * @param alpha scaling factor
  */
-void calc_trigonometric_vals_dup(unsigned int N_half, float *angle,
-                                        float *cos_, float *sin_,
-                                        unsigned int alpha = 1.0);
+void calc_trigonometric_vals_dup(unsigned int N_half, float *angle, float *cos_,
+                                 float *sin_, unsigned int alpha = 1.0);
 /**
  * @brief swiglu function with neon : X = (Y / (1 + exp( -Y ))) * Z
  *
@@ -350,8 +345,8 @@ void softmax(const unsigned int N, float *X, float *Y);
  * @param ld_dst data offset of output matrix
  */
 void transpose_matrix(const unsigned int M, const unsigned int N,
-                             const float *src, unsigned int ld_src, float *dst,
-                             unsigned int ld_dst);
+                      const float *src, unsigned int ld_src, float *dst,
+                      unsigned int ld_dst);
 /**
  * @brief     sscal computation : X = alpha * X
  * @param[in] N number of elements in X
@@ -359,14 +354,13 @@ void transpose_matrix(const unsigned int M, const unsigned int N,
  * @param[in] alpha float number
  */
 void sscal(const unsigned int N, const float alpha, float *X,
-                  const unsigned int incX);
+           const unsigned int incX);
 /**
  * @brief     snrm2 computation : Euclidean norm
  * @param[in] N number of elements in X
  * @param[in] X float * for Vector X
  */
-float snrm2(const unsigned int N, const float *X,
-                   const unsigned int incX);
+float snrm2(const unsigned int N, const float *X, const unsigned int incX);
 
 /**
  * @brief     copy function : Y = X
@@ -375,15 +369,15 @@ float snrm2(const unsigned int N, const float *X,
  * @param[in] Y float * for Vector Y
  */
 void scopy(const unsigned int N, const float *X, const unsigned int incX,
-                  float *Y, const unsigned int incY);
+           float *Y, const unsigned int incY);
 /**
  * @brief     copy function : Y = X
  * @param[in] N number of elements in X
  * @param[in] X uint8_t * for Vector X
  * @param[in] Y uint8_t * for Vector Y
  */
-void scopy(const unsigned int N, const uint8_t *X,
-                  const unsigned int incX, uint8_t *Y, const unsigned int incY);
+void scopy(const unsigned int N, const uint8_t *X, const unsigned int incX,
+           uint8_t *Y, const unsigned int incY);
 
 /**
  * @brief     copy function : Y = X
@@ -391,8 +385,8 @@ void scopy(const unsigned int N, const uint8_t *X,
  * @param[in] X int8_t * for Vector X
  * @param[in] Y int8_t * for Vector Y
  */
-void scopy(const unsigned int N, const int8_t *X,
-                  const unsigned int incX, int8_t *Y, const unsigned int incY);
+void scopy(const unsigned int N, const int8_t *X, const unsigned int incX,
+           int8_t *Y, const unsigned int incY);
 /**
  * @brief     copy function : Y = X
  * @param[in] N number of elements in X
@@ -400,8 +394,8 @@ void scopy(const unsigned int N, const int8_t *X,
  * @param[in] Y float * for Vector Y
  */
 void scopy_int4_to_float32(const unsigned int N, const uint8_t *X,
-                                  const unsigned int incX, float *Y,
-                                  const unsigned int incY);
+                           const unsigned int incX, float *Y,
+                           const unsigned int incY);
 /**
  * @brief     copy function : Y = X
  * @param[in] N number of elements in X
@@ -490,8 +484,8 @@ void copy_u16(const unsigned int N, const uint16_t *X, uint16_t *Y);
  * @param[in] Y float * for Vector Y
  */
 void scopy_int8_to_float32(const unsigned int N, const uint8_t *X,
-                                  const unsigned int incX, float *Y,
-                                  const unsigned int incY);
+                           const unsigned int incX, float *Y,
+                           const unsigned int incY);
 /**
  * @brief     copy function : Y = X
  * @param[in] N number of elements in X
@@ -499,8 +493,8 @@ void scopy_int8_to_float32(const unsigned int N, const uint8_t *X,
  * @param[in] Y float * for Vector Y
  */
 void scopy_int8_to_float32(const unsigned int N, const int8_t *X,
-                                  const unsigned int incX, float *Y,
-                                  const unsigned int incY);
+                           const unsigned int incX, float *Y,
+                           const unsigned int incY);
 /**
  * @brief     sdot computation : sum of all X * Y
  * @param[in] N number of elements in Y
@@ -508,7 +502,7 @@ void scopy_int8_to_float32(const unsigned int N, const int8_t *X,
  * @param[in] Y float * for Vector Y
  */
 float sdot(const unsigned int N, const float *X, const unsigned int incX,
-                  const float *Y, const unsigned int incY);
+           const float *Y, const unsigned int incY);
 
 /**
  * @brief     saxpy computation : Y = alpha*X + Y
@@ -518,7 +512,7 @@ float sdot(const unsigned int N, const float *X, const unsigned int incX,
  * @param[in] Y float * for Vector Y
  */
 void saxpy(const unsigned int N, const float alpha, const float *X,
-                  const unsigned int incX, float *Y, const unsigned int incY);
+           const unsigned int incX, float *Y, const unsigned int incY);
 /**
  * @brief     sgemm computation  : Y = alpha*op(A)*op(B) + beta*C,
  * where op(X) is one of X or X**T
@@ -532,11 +526,10 @@ void saxpy(const unsigned int N, const float alpha, const float *X,
  * @param[in] beta float number
  */
 void sgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
-                  const unsigned int M, const unsigned int N,
-                  const unsigned int K, const float alpha, const float *A,
-                  const unsigned int lda, const float *B,
-                  const unsigned int ldb, const float beta, float *C,
-                  const unsigned int ldc);
+           const unsigned int M, const unsigned int N, const unsigned int K,
+           const float alpha, const float *A, const unsigned int lda,
+           const float *B, const unsigned int ldb, const float beta, float *C,
+           const unsigned int ldc);
 /**
  * @brief     sgemv computation  : Y = alpha*A*X + beta*Y
  * @param[in] A float * for Matrix A
@@ -547,18 +540,17 @@ void sgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
  * @param[in] alpha float number
  * @param[in] beta float number
  */
-void sgemv(const unsigned int TStorageOrder, bool TransA,
-                  const unsigned int M, const unsigned int N, const float alpha,
-                  const float *A, const unsigned int lda, const float *X,
-                  const unsigned int incX, const float beta, float *Y,
-                  const unsigned int incY);
+void sgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
+           const unsigned int N, const float alpha, const float *A,
+           const unsigned int lda, const float *X, const unsigned int incX,
+           const float beta, float *Y, const unsigned int incY);
 /**
  * @brief     isamax function : index of first maxima
  * @param[in] N number of elements in X
  * @param[in] X float * for Vector X
  */
 unsigned int isamax(const unsigned int N, const float *X,
-                           const unsigned int incX);
+                    const unsigned int incX);
 
 /**
  * @brief     sine with neon: Y = sin(alpha * X)
@@ -597,9 +589,9 @@ void inv_sqrt_inplace(const unsigned int N, float *X);
  * @param[in] i_stride input stride
  * @param[in] o_stride output stride
  */
-void ele_mul(const unsigned int N, const float *X, const float *Y,
-                    float *Z, float alpha = 1.f, float beta = 0.f,
-                    unsigned int i_stride = 1, unsigned int o_stride = 1);
+void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z,
+             float alpha = 1.f, float beta = 0.f, unsigned int i_stride = 1,
+             unsigned int o_stride = 1);
 
 /**
  * @brief     elementwise vector addition : Z = X + alpha * Y + beta *
@@ -613,9 +605,9 @@ void ele_mul(const unsigned int N, const float *X, const float *Y,
  * @param[in] i_stride input stride
  * @param[in] o_stride output stride
  */
-void ele_add(const unsigned int N, const float *X, const float *Y,
-                    float *Z, float alpha = 1.f, float beta = 0.f,
-                    unsigned int i_stride = 1, unsigned int o_stride = 1);
+void ele_add(const unsigned int N, const float *X, const float *Y, float *Z,
+             float alpha = 1.f, float beta = 0.f, unsigned int i_stride = 1,
+             unsigned int o_stride = 1);
 /**
  * @brief     elementwise vector subtraction with neon : Z = X - alpha * Y +
  * beta * Z
@@ -629,8 +621,8 @@ void ele_add(const unsigned int N, const float *X, const float *Y,
  * @param[in] o_stride output stride
  */
 void ele_sub(const unsigned N, const float *X, const float *Y, float *Z,
-                    float alpha = 1.f, float beta = 0.f,
-                    unsigned int i_stride = 1, unsigned int o_stride = 1);
+             float alpha = 1.f, float beta = 0.f, unsigned int i_stride = 1,
+             unsigned int o_stride = 1);
 
 /**
  * @brief     elementwise vector division with neon : Z = X / (alpha * Y) + beta
@@ -646,8 +638,8 @@ void ele_sub(const unsigned N, const float *X, const float *Y, float *Z,
  * @param[in] o_stride output stride
  */
 void ele_div(const unsigned N, const float *X, const float *Y, float *Z,
-                    float alpha = 1.f, float beta = 0.f,
-                    unsigned int i_stride = 1, unsigned int o_stride = 1);
+             float alpha = 1.f, float beta = 0.f, unsigned int i_stride = 1,
+             unsigned int o_stride = 1);
 /**
  * @brief     check if X array has NaN or inf
  * @param[in] N  length of the vector
@@ -670,10 +662,9 @@ bool is_valid(const unsigned int N, const float *X);
  * @param ldc Leading dimension of C
  */
 template <typename T = float>
-void gemm_q4_0(const unsigned int M, const unsigned int N,
-                      const unsigned int K, const T *A, const unsigned int lda,
-                      const void *B, const unsigned int ldb, T *C,
-                      const unsigned int ldc);
+void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
+               const T *A, const unsigned int lda, const void *B,
+               const unsigned int ldb, T *C, const unsigned int ldc);
 
 /**
  * @brief q4_K GEMM : A (M,K) * W.T (N,K) = O (M,N)
@@ -688,10 +679,9 @@ void gemm_q4_0(const unsigned int M, const unsigned int N,
  * @param C float* output
  * @param ldc Leading dimension of C
  */
-void gemm_q4_K(const unsigned int M, const unsigned int N,
-                      const unsigned int K, const float *A,
-                      const unsigned int lda, const void *B,
-                      const unsigned int ldb, float *C, const unsigned int ldc);
+void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
+               const float *A, const unsigned int lda, const void *B,
+               const unsigned int ldb, float *C, const unsigned int ldc);
 
 /**
  * @brief q6_K GEMM : A (M,K) * W.T (N,K) = O (M,N)
@@ -707,10 +697,9 @@ void gemm_q4_K(const unsigned int M, const unsigned int N,
  * @param ldc Leading dimension of C
  */
 template <typename T = float>
-void gemm_q6_K(const unsigned int M, const unsigned int N,
-                      const unsigned int K, const T *A, const unsigned int lda,
-                      const void *B, const unsigned int ldb, T *C,
-                      const unsigned int ldc);
+void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
+               const T *A, const unsigned int lda, const void *B,
+               const unsigned int ldb, T *C, const unsigned int ldc);
 
 /**
  * @brief quantize_q4_0 function
@@ -723,7 +712,7 @@ void gemm_q6_K(const unsigned int M, const unsigned int N,
  * @return size_t size of total quantized data in bytes
  */
 size_t quantize_q4_0(const float *src, void *dst, int64_t nrow,
-                            int64_t n_per_row, const float *quant_weights);
+                     int64_t n_per_row, const float *quant_weights);
 
 /**
  * @brief quantize_q4_K function
@@ -736,7 +725,7 @@ size_t quantize_q4_0(const float *src, void *dst, int64_t nrow,
  * @return size_t size of total quantized data in bytes
  */
 size_t quantize_q4_K(const float *src, void *dst, int64_t nrow,
-                            int64_t n_per_row, const float *quant_weights);
+                     int64_t n_per_row, const float *quant_weights);
 /**
  * @brief Quantize float to q6_K Quantization format
  *
@@ -749,7 +738,7 @@ size_t quantize_q4_K(const float *src, void *dst, int64_t nrow,
  * @return size_t total size of quantized data
  */
 size_t quantize_q6_K(const float *src, void *dst, int64_t nrow,
-                            int64_t n_per_row, const float *quant_weights);
+                     int64_t n_per_row, const float *quant_weights);
 
 /**
  * @brief (1xK)*(Kx1) dot product for q6_K and q8_K vectors
@@ -760,7 +749,7 @@ size_t quantize_q6_K(const float *src, void *dst, int64_t nrow,
  * @return float Result of performing dot operation on v_q6_K and v_q8_K
  */
 float dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
-                           const void *v_q8_K);
+                    const void *v_q8_K);
 
 /**
  * @brief (1xK)*(Kx1) dot product for q6_K and f32 vectors
@@ -770,8 +759,7 @@ float dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
  * @param f rhs vector - data stored in float format
  * @return float Result of performing dot operation on v_q6_K and v_q8_K
  */
-float dot_q6_K_f32(const unsigned int K, const void *v_q6_K,
-                          const float *f);
+float dot_q6_K_f32(const unsigned int K, const void *v_q6_K, const float *f);
 
 /**
  * @brief dequantize row of q4_K data to float
@@ -829,7 +817,7 @@ void quantize_row_q8_K(const T *src, void *dst, int64_t k);
  * @param N number of columns
  */
 void repack_q4_0(void *W, void *repacked_W, size_t data_size,
-                        const unsigned int M, const unsigned int N);
+                 const unsigned int M, const unsigned int N);
 
 /**
  * @brief repack q4K to q4Kx8
@@ -841,7 +829,7 @@ void repack_q4_0(void *W, void *repacked_W, size_t data_size,
  * @param N number of columns
  */
 void repack_q4_K(void *W, void *repacked_W, size_t data_size,
-                        const unsigned int M, const unsigned int N);
+                 const unsigned int M, const unsigned int N);
 /**
  * @brief Quantize float to q6_K Quantization format
  *
@@ -851,7 +839,7 @@ void repack_q4_K(void *W, void *repacked_W, size_t data_size,
  */
 template <typename T = float>
 void quantize_row_q8_0(const T *__restrict src, void *__restrict dst,
-                              int64_t k);
+                       int64_t k);
 
 /**
  * @brief Quantize T to q8_0 Quantization format
@@ -865,8 +853,8 @@ void quantize_row_q8_0(const T *__restrict src, void *__restrict dst,
  * @return size_t total size of quantized data
  */
 template <typename T = float>
-size_t quantize_q8_0(const T *src, void *dst, int64_t nrow,
-                            int64_t n_per_row, const float *quant_weights);
+size_t quantize_q8_0(const T *src, void *dst, int64_t nrow, int64_t n_per_row,
+                     const float *quant_weights);
 /**
  * @brief q8_0 to T dequantize
  *
