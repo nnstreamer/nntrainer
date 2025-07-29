@@ -18,6 +18,8 @@
 
 #include <nntrainer_log.h>
 
+#include <iostream>
+
 namespace nntrainer::opencl {
 
 /**
@@ -53,7 +55,8 @@ bool CommandQueueManager::CreateCommandQueue() {
   cl_device_id device_id = context_instance.GetDeviceId();
 
   // returns NULL with error code if fails
-  command_queue_ = clCreateCommandQueue(context, device_id, 0, &error_code);
+  command_queue_ = clCreateCommandQueue(context, device_id,
+                                        CL_QUEUE_PROFILING_ENABLE, &error_code);
   if (!command_queue_) {
     ml_loge("Failed to create a command queue. OpenCL error code: %d",
             error_code);
@@ -383,16 +386,37 @@ bool CommandQueueManager::DispatchCommand(
 
   cl_kernel kernel_ = kernel_ptr->GetKernel();
 
-  // returns NULL with error code if fails
+  cl_event ev;
   const int error_code = clEnqueueNDRangeKernel(
-    command_queue_, kernel_, 2, nullptr, global, local, 0, nullptr, event);
+    command_queue_, kernel_, 2, nullptr, global, local, 0, nullptr, &ev);
+  clWaitForEvents(1, &ev);
+
+  cl_ulong queued, submit, start, end, complete;
+
+  clGetEventProfilingInfo(ev, CL_PROFILING_COMMAND_QUEUED, sizeof(cl_ulong),
+                          &queued, 0);
+  clGetEventProfilingInfo(ev, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong),
+                          &submit, 0);
+  clGetEventProfilingInfo(ev, CL_PROFILING_COMMAND_START, sizeof(cl_ulong),
+                          &start, 0);
+  clGetEventProfilingInfo(ev, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &end,
+                          0);
+  clGetEventProfilingInfo(ev, CL_PROFILING_COMMAND_COMPLETE, sizeof(cl_ulong),
+                          &complete, 0);
+
+  double queued_time_ms = (submit - queued) / 1e6;
+  double submit_time_ms = (start - submit) / 1e6;
+  double exec_time_ms = (end - start) / 1e6;
+  double complete_time_ms = (complete - end) / 1e6;
+
   if (error_code != CL_SUCCESS) {
     ml_loge("Failed to clEnqueueNDRangeKernel. OpenCL error code: %d",
             error_code);
     return false;
   }
-
-  clFinish(command_queue_);
+  printf("%10s,%10s,%10s,%10s\n", "queued", "submit", "exec", "complete");
+  printf("%10f,%10f,%10f,%10f\n", queued_time_ms, submit_time_ms, exec_time_ms,
+         complete_time_ms);
 
   return true;
 }
