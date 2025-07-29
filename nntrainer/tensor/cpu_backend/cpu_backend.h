@@ -29,37 +29,6 @@
 
 #ifdef ENABLE_FP16
 /**
- * @brief Quantize float to q6_K Quantization format
- *
- * @param src float* src to be quantized
- * @param dst void* dst to store quantized data
- * @param k number of elements in src
- */
-extern void quantize_row_q8_0(const _FP16 *__restrict src, void *__restrict dst,
-                              int64_t k);
-
-/**
- * @brief Quantize _FP16 to q8_0 Quantization format
- *
- * @param src input src to be quantized
- * @param dst output destination for quantized data
- * @param nrow number of row
- * @param n_per_row number of elements per row
- * @param quant_weights additional information for quantization. Currently in no
- * use.
- * @return size_t total size of quantized data
- */
-extern size_t quantize_q8_0(const _FP16 *src, void *dst, int64_t nrow,
-                            int64_t n_per_row, const float *quant_weights);
-/**
- * @brief q8_0 to _FP16 dequantize
- *
- * @param x_raw input src to be dequantized
- * @param y output destination for dequantized data
- * @param k data length
- */
-extern void dequantize_row_q8_0(const void *x_raw, _FP16 *y, int64_t k);
-/**
  * @brief Accelerating function for rotary embedding layer forwarding
  *
  * @param dim unit length of simd computation
@@ -331,6 +300,11 @@ extern void transpose_matrix(const unsigned int M, const unsigned int N,
                              unsigned int ld_dst);
 #endif
 /**
+ * @brief Initialization of ggml backend
+ */
+extern void init_backend();
+
+/**
  * @brief Get half-sized angles, transform them into each cos, sin, and scopy in
  * the same vector : cos_ = cos(freq).extend(cos(freq)), sin_ =
  * sin(freq).extend(sin_(req))
@@ -454,10 +428,67 @@ extern void copy_u16_fp32(const unsigned int N, const uint16_t *X, float *Y);
 /**
  * @brief     copy function : Y = X
  * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y uint32_t * for Vector Y
+ */
+extern void copy_fp32_u32(const unsigned int N, const float *X, uint32_t *Y);
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y uint16_t * for Vector Y
+ */
+extern void copy_fp32_u16(const unsigned int N, const float *X, uint16_t *Y);
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y uint8_t * for Vector Y
+ */
+extern void copy_fp32_u8(const unsigned int N, const float *X, uint8_t *Y);
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y int16_t * for Vector Y
+ */
+extern void copy_fp32_s16(const unsigned int N, const float *X, int16_t *Y);
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y int8_t * for Vector Y
+ */
+extern void copy_fp32_s8(const unsigned int N, const float *X, int8_t *Y);
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y T * for Vector Y
+ */
+template <typename T>
+extern void copy_fp32(const unsigned int N, const float *X, T *Y);
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
  * @param[in] X int16_t * for Vector X
  * @param[in] Y int16_t * for Vector Y
  */
 extern void copy_s16(const unsigned int N, const int16_t *X, int16_t *Y);
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X uint16_t * for Vector X
+ * @param[in] Y uint16_t * for Vector Y
+ */
+extern void copy_u16(const unsigned int N, const uint16_t *X, uint16_t *Y);
 
 /**
  * @brief     copy function : Y = X
@@ -687,6 +718,32 @@ extern void gemm_q6_K(const unsigned int M, const unsigned int N,
                       const unsigned int K, const T *A, const unsigned int lda,
                       const void *B, const unsigned int ldb, T *C,
                       const unsigned int ldc);
+
+/**
+ * @brief quantize_q4_0 function
+ *
+ * @param src float* to quantize
+ * @param dst q4_0* to store quantized data
+ * @param nrow number of rows in src
+ * @param n_per_row number of elements in each row of src
+ * @param quant_weights unused for now -> imatrix
+ * @return size_t size of total quantized data in bytes
+ */
+extern size_t quantize_q4_0(const float *src, void *dst, int64_t nrow,
+                            int64_t n_per_row, const float *quant_weights);
+
+/**
+ * @brief quantize_q4_K function
+ *
+ * @param src float* to quantize
+ * @param dst q4_K* to store quantized data
+ * @param nrow number of rows in src
+ * @param n_per_row number of elements in each row of src
+ * @param quant_weights unused for now -> imatrix
+ * @return size_t size of total quantized data in bytes
+ */
+extern size_t quantize_q4_K(const float *src, void *dst, int64_t nrow,
+                            int64_t n_per_row, const float *quant_weights);
 /**
  * @brief Quantize float to q6_K Quantization format
  *
@@ -702,7 +759,7 @@ extern size_t quantize_q6_K(const float *src, void *dst, int64_t nrow,
                             int64_t n_per_row, const float *quant_weights);
 
 /**
- * @brief
+ * @brief (1xK)*(Kx1) dot product for q6_K and q8_K vectors
  *
  * @param K Length of vectors
  * @param v_q6_K lhs vector - data stored in Q6_K format
@@ -713,7 +770,7 @@ extern float dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
                            const void *v_q8_K);
 
 /**
- * @brief
+ * @brief (1xK)*(Kx1) dot product for q6_K and f32 vectors
  *
  * @param K Length of vectors
  * @param v_q6_K lhs vector - data stored in Q6_K format
@@ -752,6 +809,14 @@ template <typename T = float>
 extern void dequantize_row_q8_K(const void *x, T *y, int64_t k);
 
 /**
+ * @brief Quantize float to q6_K Quantization format
+ *
+ * @param src float* src to be quantized
+ * @param dst void* dst to store quantized data
+ * @param k number of elements in src
+ */
+extern void quantize_row_q6_K(const float *src, void *dst, int64_t k);
+/**
  * @brief quantize row of T data to q8_K
  *
  * @param src input to be quantized from T data to q8_K
@@ -782,7 +847,41 @@ extern void repack_q4_0(void *W, void *repacked_W, size_t data_size,
  * @param M number of rows
  * @param N number of columns
  */
-extern void repack_q4_K_to_q4_K_8(void *W, void *repacked_W, size_t data_size,
-                                  const unsigned int M, const unsigned int N);
+extern void repack_q4_K(void *W, void *repacked_W, size_t data_size,
+                        const unsigned int M, const unsigned int N);
+/**
+ * @brief Quantize float to q6_K Quantization format
+ *
+ * @param src float* src to be quantized
+ * @param dst void* dst to store quantized data
+ * @param k number of elements in src
+ */
+template <typename T = float>
+extern void quantize_row_q8_0(const T *__restrict src, void *__restrict dst,
+                              int64_t k);
+
+/**
+ * @brief Quantize T to q8_0 Quantization format
+ *
+ * @param src input src to be quantized
+ * @param dst output destination for quantized data
+ * @param nrow number of row
+ * @param n_per_row number of elements per row
+ * @param quant_weights additional information for quantization. Currently in no
+ * use.
+ * @return size_t total size of quantized data
+ */
+template <typename T = float>
+extern size_t quantize_q8_0(const T *src, void *dst, int64_t nrow,
+                            int64_t n_per_row, const float *quant_weights);
+/**
+ * @brief q8_0 to T dequantize
+ *
+ * @param x_raw input src to be dequantized
+ * @param y output destination for dequantized data
+ * @param k data length
+ */
+template <typename T = float>
+extern void dequantize_row_q8_0(const void *x_raw, T *y, int64_t k);
 #endif
 #endif
