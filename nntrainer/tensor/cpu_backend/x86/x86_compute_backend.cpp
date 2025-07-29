@@ -79,6 +79,57 @@ void copy_fp32_s8(const unsigned int N, const float *X, int8_t *Y) {
   __fallback_copy_fp32_s8(N, X, Y);
 }
 
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y uint32_t * for Vector Y
+ */
+template <> void copy_fp32(const unsigned int N, const float *X, uint32_t *Y) {
+  copy_fp32_u32(N, X, Y);
+}
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y uint16_t * for Vector Y
+ */
+template <> void copy_fp32(const unsigned int N, const float *X, uint16_t *Y) {
+  copy_fp32_u16(N, X, Y);
+}
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y uint16_t * for Vector Y
+ */
+template <> void copy_fp32(const unsigned int N, const float *X, uint8_t *Y) {
+  copy_fp32_u8(N, X, Y);
+}
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y int16_t * for Vector Y
+ */
+template <> void copy_fp32(const unsigned int N, const float *X, int16_t *Y) {
+  copy_fp32_s16(N, X, Y);
+}
+
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X float * for Vector X
+ * @param[in] Y int8_t * for Vector Y
+ */
+template <> void copy_fp32(const unsigned int N, const float *X, int8_t *Y) {
+  copy_fp32_s8(N, X, Y);
+}
+
 void scopy_int8_to_float32(const unsigned int N, const uint8_t *X,
                            const unsigned int incX, float *Y,
                            const unsigned int incY) {
@@ -373,7 +424,7 @@ void repack_q4_0_to_q4_0_8(void *W, void *repacked_W, size_t data_size,
 #endif
 }
 
-void repack_q4_K_to_q4_K_8(void *W, void *repacked_W, size_t data_size,
+void repack_q4_K(void *W, void *repacked_W, size_t data_size,
                            const unsigned int M, const unsigned int N) {
 #ifdef ENABLE_GGML
   __ggml_repack_q4_K_to_q4_K_8(W, repacked_W, data_size, M, N);
