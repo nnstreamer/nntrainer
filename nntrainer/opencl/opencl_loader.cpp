@@ -105,6 +105,7 @@ void LoadOpenCLFunctions(void *libopencl) {
   LoadFunction(clEnqueueSVMMap);
   LoadFunction(clEnqueueSVMUnmap);
   LoadFunction(clSetKernelArgSVMPointer);
+  LoadFunction(clWaitForEvents);
 }
 
 PFN_clGetPlatformIDs clGetPlatformIDs;
@@ -141,5 +142,5 @@ PFN_clSVMFree clSVMFree;
 PFN_clEnqueueSVMMap clEnqueueSVMMap;
 PFN_clEnqueueSVMUnmap clEnqueueSVMUnmap;
 PFN_clSetKernelArgSVMPointer clSetKernelArgSVMPointer;
-
+PFN_clWaitForEvents clWaitForEvents;
 } // namespace nntrainer::opencl
