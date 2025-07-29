@@ -72,7 +72,7 @@
 #include <rnn.h>
 #include <rnncell.h>
 #include <split_layer.h>
-#include <time_dist.h>
+// #include <time_dist.h>
 #include <upsample2d_layer.h>
 #include <weight_layer.h>
 #include <zoneout_lstmcell.h>
@@ -350,8 +350,9 @@ static void add_default_object(AppContext &ac) {
                      ConstantDerivativeLossLayer::type,
                      LayerType::LAYER_LOSS_CONSTANT_DERIVATIVE);
 
-  ac.registerFactory(nntrainer::createLayer<TimeDistLayer>, TimeDistLayer::type,
-                     LayerType::LAYER_TIME_DIST);
+  // ac.registerFactory(nntrainer::createLayer<TimeDistLayer>,
+  // TimeDistLayer::type,
+  //                    LayerType::LAYER_TIME_DIST);
 
   ac.registerFactory(AppContext::unknownFactory<nntrainer::Layer>, "unknown",
                      LayerType::LAYER_UNKNOWN);

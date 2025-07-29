@@ -30,7 +30,7 @@ layer_sources = [
   'lstmcell.cpp',
   'lstmcell_core.cpp',
   'zoneout_lstmcell.cpp',
-  'time_dist.cpp',
+  # 'time_dist.cpp',
   'common_properties.cpp',
   'split_layer.cpp',
   'permute_layer.cpp',
