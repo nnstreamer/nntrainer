@@ -721,8 +721,8 @@ TEST(nntrainer_Tensor, QTensor_13_p) {
     {1, 1, K, N, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::Q4_K}, true,
     nntrainer::Initializer::NONE, "q4_k_tensor", nntrainer::QScheme::Q4_Kx8);
 
-  EXPECT_NO_THROW(nntrainer::repack_q4_K_to_q4_K_8(W_q4k.getData<uint8_t>(),
-                                                   dst_ptr, data_size, N, K));
+  EXPECT_NO_THROW(
+    nntrainer::repack_q4_K(W_q4k.getData<uint8_t>(), dst_ptr, data_size, N, K));
 
   std::vector<float> ref_dst(M * N);
   nntrainer::gemm_q4_K(M, N, K, A_fp32.getData<float>(), K,
@@ -777,8 +777,8 @@ TEST(nntrainer_Tensor, QTensor_14_p) {
   EXPECT_NO_THROW(
     nntrainer::quantize_q4_K(src_ptr, (void *)dst_ptr, N, K, nullptr));
 
-  EXPECT_NO_THROW(nntrainer::repack_q4_K_to_q4_K_8(W_q4k.getData<uint8_t>(),
-                                                   dst_ptr, data_size, N, K));
+  EXPECT_NO_THROW(
+    nntrainer::repack_q4_K(W_q4k.getData<uint8_t>(), dst_ptr, data_size, N, K));
 
   /** save q4kx8 */
   std::ofstream save_file("fc_q4kx8.bin", std::ios::out | std::ios::binary);
