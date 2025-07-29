@@ -352,6 +352,7 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
   neon::compute_rotary_emb_value(width, dim, half_, inout, cos_, sin_);
 }
 
+template <>
 size_t quantize_q8_0(const _FP16 *src, void *dst, int64_t nrow,
                      int64_t n_per_row, const float *quant_weights) {
 #ifdef ENABLE_GGML
@@ -361,7 +362,7 @@ size_t quantize_q8_0(const _FP16 *src, void *dst, int64_t nrow,
 #endif
 }
 
-void dequantize_row_q8_0(const void *x_raw, _FP16 *y, int64_t k) {
+template <> void dequantize_row_q8_0(const void *x_raw, _FP16 *y, int64_t k) {
 #ifdef ENABLE_GGML
   __nntr_dequantize_row_q8_0(x_raw, y, k);
 #else
