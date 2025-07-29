@@ -96,52 +96,52 @@ static auto makeNonTrainableFcIdx1 = getFuncToMakeNonTrainableFc(1);
 static auto makeNonTrainableFcIdx2 = getFuncToMakeNonTrainableFc(2);
 static auto makeNonTrainableFcIdx3 = getFuncToMakeNonTrainableFc(3);
 
-static std::unique_ptr<NeuralNetwork> makeMolAttention() {
-  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
-  nn->setProperty({"batch_size=3"});
+// static std::unique_ptr<NeuralNetwork> makeMolAttention() {
+//   std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+//   nn->setProperty({"batch_size=3"});
 
-  auto outer_graph = makeGraph({
-    {"input", {"name=in3", "input_shape=1:1:5"}},
-    {"input", {"name=in2", "input_shape=1:4:6"}},
-    {"input", {"name=in1", "input_shape=1:1:6"}},
-    {"mol_attention",
-     {"name=mol", "input_layers=in1,in2,in3", "unit=8", "mol_k=5"}},
-    {"constant_derivative", {"name=loss1", "input_layers=mol(0)"}},
-    {"constant_derivative", {"name=loss2", "input_layers=mol(1)"}},
-  });
+//   auto outer_graph = makeGraph({
+//     {"input", {"name=in3", "input_shape=1:1:5"}},
+//     {"input", {"name=in2", "input_shape=1:4:6"}},
+//     {"input", {"name=in1", "input_shape=1:1:6"}},
+//     {"mol_attention",
+//      {"name=mol", "input_layers=in1,in2,in3", "unit=8", "mol_k=5"}},
+//     {"constant_derivative", {"name=loss1", "input_layers=mol(0)"}},
+//     {"constant_derivative", {"name=loss2", "input_layers=mol(1)"}},
+//   });
 
-  nn->setProperty({"label_layers=loss1,loss2"});
-  for (auto &node : outer_graph) {
-    nn->addLayer(node);
-  }
+//   nn->setProperty({"label_layers=loss1,loss2"});
+//   for (auto &node : outer_graph) {
+//     nn->addLayer(node);
+//   }
 
-  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
-  return nn;
-}
+//   nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate =
+//   0.1"})); return nn;
+// }
 
-static std::unique_ptr<NeuralNetwork> makeMolAttentionMasked() {
-  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
-  nn->setProperty({"batch_size=3"});
+// static std::unique_ptr<NeuralNetwork> makeMolAttentionMasked() {
+//   std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+//   nn->setProperty({"batch_size=3"});
 
-  auto outer_graph = makeGraph({
-    {"input", {"name=in4", "input_shape=1:1:1"}},
-    {"input", {"name=in3", "input_shape=1:1:5"}},
-    {"input", {"name=in2", "input_shape=1:4:6"}},
-    {"input", {"name=in1", "input_shape=1:1:6"}},
-    {"mol_attention",
-     {"name=mol", "input_layers=in1,in2,in3,in4", "unit=8", "mol_k=5"}},
-    {"constant_derivative", {"name=loss1", "input_layers=mol(0)"}},
-    {"constant_derivative", {"name=loss2", "input_layers=mol(1)"}},
-  });
+//   auto outer_graph = makeGraph({
+//     {"input", {"name=in4", "input_shape=1:1:1"}},
+//     {"input", {"name=in3", "input_shape=1:1:5"}},
+//     {"input", {"name=in2", "input_shape=1:4:6"}},
+//     {"input", {"name=in1", "input_shape=1:1:6"}},
+//     {"mol_attention",
+//      {"name=mol", "input_layers=in1,in2,in3,in4", "unit=8", "mol_k=5"}},
+//     {"constant_derivative", {"name=loss1", "input_layers=mol(0)"}},
+//     {"constant_derivative", {"name=loss2", "input_layers=mol(1)"}},
+//   });
 
-  nn->setProperty({"label_layers=loss1,loss2"});
-  for (auto &node : outer_graph) {
-    nn->addLayer(node);
-  }
+//   nn->setProperty({"label_layers=loss1,loss2"});
+//   for (auto &node : outer_graph) {
+//     nn->addLayer(node);
+//   }
 
-  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate = 0.1"}));
-  return nn;
-}
+//   nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate =
+//   0.1"})); return nn;
+// }
 
 static std::unique_ptr<NeuralNetwork>
 makeMultiHeadAttention_disable_need_weights() {
@@ -877,10 +877,10 @@ GTEST_PARAMETER_TEST(
   ::testing::ValuesIn({
     mkModelIniTc(reduce_mean_last, DIM_UNUSED, NOT_USED_,
                  ModelTestOption::COMPARE_V2),
-    mkModelTc_V2(makeMolAttention, "mol_attention",
-                 ModelTestOption::COMPARE_V2),
-    mkModelTc_V2(makeMolAttentionMasked, "mol_attention_masked",
-                 ModelTestOption::COMPARE_RUN_V2),
+    // mkModelTc_V2(makeMolAttention, "mol_attention",
+    //              ModelTestOption::COMPARE_V2),
+    // mkModelTc_V2(makeMolAttentionMasked, "mol_attention_masked",
+    //              ModelTestOption::COMPARE_RUN_V2),
     mkModelTc_V2(makeMultiHeadAttention_disable_need_weights,
                  "multi_head_attention_disable_need_weights",
                  ModelTestOption::ALL_V2),

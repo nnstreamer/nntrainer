@@ -88,8 +88,8 @@ TEST(ccapi_layer, construct_02_p) {
   EXPECT_NO_THROW(layer = ml::train::layer::MultiOut());
   EXPECT_EQ(layer->getType(), "multiout");
 
-  EXPECT_NO_THROW(layer = ml::train::layer::MoLAttention());
-  EXPECT_EQ(layer->getType(), "mol_attention");
+  // EXPECT_NO_THROW(layer = ml::train::layer::MoLAttention());
+  // EXPECT_EQ(layer->getType(), "mol_attention");
 
   EXPECT_NO_THROW(layer = ml::train::layer::ReduceMean());
   EXPECT_EQ(layer->getType(), "reduce_mean");
