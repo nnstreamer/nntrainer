@@ -55,7 +55,7 @@
 #include <lr_scheduler_step.h>
 #include <lstm.h>
 #include <lstmcell.h>
-#include <mol_attention_layer.h>
+// #include <mol_attention_layer.h>
 #include <mse_loss_layer.h>
 #include <multi_head_attention_layer.h>
 #include <multiout_layer.h>
@@ -298,8 +298,9 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_DROPOUT);
   ac.registerFactory(nntrainer::createLayer<AttentionLayer>,
                      AttentionLayer::type, LayerType::LAYER_ATTENTION);
-  ac.registerFactory(nntrainer::createLayer<MoLAttentionLayer>,
-                     MoLAttentionLayer::type, LayerType::LAYER_MOL_ATTENTION);
+  // ac.registerFactory(nntrainer::createLayer<MoLAttentionLayer>,
+  //                    MoLAttentionLayer::type,
+  //                    LayerType::LAYER_MOL_ATTENTION);
   ac.registerFactory(nntrainer::createLayer<MultiHeadAttentionLayer>,
                      MultiHeadAttentionLayer::type,
                      LayerType::LAYER_MULTI_HEAD_ATTENTION);
