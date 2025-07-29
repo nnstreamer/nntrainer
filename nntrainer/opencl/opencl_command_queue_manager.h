@@ -38,7 +38,7 @@ class CommandQueueManager {
    * @brief Private constructor to prevent object creation
    *
    */
-  CommandQueueManager(){};
+  CommandQueueManager() {};
 
 public:
   /**
@@ -206,9 +206,9 @@ public:
   /**
    * @brief Get the OpenCL Command Queue object
    *
-   * @return const cl_command_queue
+   * @return cl_command_queue
    */
-  const cl_command_queue GetCommandQueue();
+  cl_command_queue &GetCommandQueue();
 
   /**
    * @brief Deleting operator overload
