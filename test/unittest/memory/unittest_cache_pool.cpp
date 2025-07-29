@@ -10,7 +10,6 @@
  * @bug No known bugs except for NYI items
  */
 
-#include "optimized_v1_planner.h"
 #include <cstring>
 #include <random>
 #include <vector>
@@ -21,6 +20,9 @@
 #include <basic_planner.h>
 #include <cache_pool.h>
 #include <nntrainer_test_util.h>
+#include <optimized_v1_planner.h>
+#include <optimized_v2_planner.h>
+#include <optimized_v3_planner.h>
 
 constexpr float TEMP_DATA1 = (12345.12345);
 constexpr float TEMP_DATA2 = (67890.67890);
@@ -54,9 +56,13 @@ public:
 /**
  * @brief Cache pool test class
  */
-class CachePoolTest : public ::testing::Test {
+class CachePoolTest
+  : public ::testing::TestWithParam<std::shared_ptr<nntrainer::MemoryPlanner>> {
 public:
-  void SetUp(void) { pool = new MockCachePool("tmp pool"); }
+  void SetUp(void) {
+    pool = new MockCachePool("tmp pool");
+    planner = GetParam();
+  }
 
   void TearDown(void) {
     EXPECT_NO_THROW(pool->clear());
@@ -65,18 +71,19 @@ public:
   }
 
   MockCachePool *pool;
+  std::shared_ptr<nntrainer::MemoryPlanner> planner;
 };
 
 /**
  * @brief get cache memory
  */
-TEST_F(CachePoolTest, get_memory_01_p) {
+TEST_P(CachePoolTest, get_memory_01_p) {
   EXPECT_CALL(*pool, validate).Times(0);
   EXPECT_CALL(*pool, invalidate).Times(testing::AtLeast(1));
 
   std::shared_ptr<nntrainer::MemoryData> mem;
   auto idx = pool->requestMemory(1, 4, 5);
-  EXPECT_NO_THROW(pool->planLayout(nntrainer::BasicPlanner()));
+  EXPECT_NO_THROW(pool->planLayout(*planner.get()));
   EXPECT_NO_THROW(pool->allocate());
 
   EXPECT_NO_THROW(mem = pool->getMemory(idx));
@@ -92,13 +99,13 @@ TEST_F(CachePoolTest, get_memory_01_p) {
 /**
  * @brief validate
  */
-TEST_F(CachePoolTest, validate_01_p) {
+TEST_P(CachePoolTest, validate_01_p) {
   EXPECT_CALL(*pool, validate).Times(1);
   EXPECT_CALL(*pool, invalidate).Times(testing::AtLeast(1));
 
   std::shared_ptr<nntrainer::MemoryData> mem;
   auto idx = pool->requestMemory(1, 4, 5);
-  EXPECT_NO_THROW(pool->planLayout(nntrainer::BasicPlanner()));
+  EXPECT_NO_THROW(pool->planLayout(*planner.get()));
   EXPECT_NO_THROW(pool->allocate());
   EXPECT_NO_THROW(mem = pool->getMemory(idx));
   EXPECT_NE(mem, nullptr);
@@ -115,13 +122,13 @@ TEST_F(CachePoolTest, validate_01_p) {
 /**
  * @brief validate
  */
-TEST_F(CachePoolTest, validate_02_p) {
+TEST_P(CachePoolTest, validate_02_p) {
   EXPECT_CALL(*pool, validate).Times(1);
   EXPECT_CALL(*pool, invalidate).Times(testing::AtLeast(1));
 
   std::shared_ptr<nntrainer::MemoryData> mem;
   auto idx = pool->requestMemory(1, 4, 5);
-  EXPECT_NO_THROW(pool->planLayout(nntrainer::BasicPlanner()));
+  EXPECT_NO_THROW(pool->planLayout(*planner.get()));
   EXPECT_NO_THROW(pool->allocate());
   EXPECT_NO_THROW(mem = pool->getMemory(idx));
   EXPECT_NE(mem, nullptr);
@@ -142,13 +149,13 @@ TEST_F(CachePoolTest, validate_02_p) {
 /**
  * @brief invalidate
  */
-TEST_F(CachePoolTest, invalidate_01_p) {
+TEST_P(CachePoolTest, invalidate_01_p) {
   EXPECT_CALL(*pool, validate).Times(1);
   EXPECT_CALL(*pool, invalidate).Times(testing::AtLeast(2));
 
   std::shared_ptr<nntrainer::MemoryData> mem;
   auto idx = pool->requestMemory(1, 4, 5);
-  EXPECT_NO_THROW(pool->planLayout(nntrainer::BasicPlanner()));
+  EXPECT_NO_THROW(pool->planLayout(*planner.get()));
   EXPECT_NO_THROW(pool->allocate());
   EXPECT_NO_THROW(mem = pool->getMemory(idx));
   EXPECT_NE(mem, nullptr);
@@ -168,13 +175,13 @@ TEST_F(CachePoolTest, invalidate_01_p) {
 /**
  * @brief invalidate
  */
-TEST_F(CachePoolTest, invalidate_02_p) {
+TEST_P(CachePoolTest, invalidate_02_p) {
   EXPECT_CALL(*pool, validate).Times(1);
   EXPECT_CALL(*pool, invalidate).Times(testing::AtLeast(2));
 
   std::shared_ptr<nntrainer::MemoryData> mem;
   auto idx = pool->requestMemory(1, 4, 5);
-  EXPECT_NO_THROW(pool->planLayout(nntrainer::BasicPlanner()));
+  EXPECT_NO_THROW(pool->planLayout(*planner.get()));
   EXPECT_NO_THROW(pool->allocate());
   EXPECT_NO_THROW(mem = pool->getMemory(idx));
   EXPECT_NE(mem, nullptr);
@@ -197,13 +204,13 @@ TEST_F(CachePoolTest, invalidate_02_p) {
 /**
  * @brief validate & invalidate
  */
-TEST_F(CachePoolTest, validate_invalidate_01_p) {
+TEST_P(CachePoolTest, validate_invalidate_01_p) {
   EXPECT_CALL(*pool, validate).Times(2);
   EXPECT_CALL(*pool, invalidate).Times(testing::AtLeast(2));
 
   std::shared_ptr<nntrainer::MemoryData> mem;
   auto idx = pool->requestMemory(4, 4, 5);
-  EXPECT_NO_THROW(pool->planLayout(nntrainer::BasicPlanner()));
+  EXPECT_NO_THROW(pool->planLayout(*planner.get()));
   EXPECT_NO_THROW(pool->allocate());
   EXPECT_NO_THROW(mem = pool->getMemory(idx));
   EXPECT_NE(mem, nullptr);
@@ -232,7 +239,7 @@ TEST_F(CachePoolTest, validate_invalidate_01_p) {
  * @brief validate & invalidate
  *        ocuupy same space
  */
-TEST_F(CachePoolTest, validate_invalidate_02_n) {
+TEST_P(CachePoolTest, validate_invalidate_02_n) {
   EXPECT_CALL(*pool, validate).Times(6);
   EXPECT_CALL(*pool, invalidate).Times(testing::AtLeast(6));
 
@@ -240,9 +247,13 @@ TEST_F(CachePoolTest, validate_invalidate_02_n) {
   auto idx1 = pool->requestMemory(4, 1, 2);
   auto idx2 = pool->requestMemory(4, 3, 4);
   auto idx3 = pool->requestMemory(4, 5, 6);
-  EXPECT_NO_THROW(pool->planLayout(nntrainer::OptimizedV1Planner()));
+  EXPECT_NO_THROW(pool->planLayout(*planner.get()));
   EXPECT_NO_THROW(pool->allocate());
-  EXPECT_EQ(pool->size(), 4);
+  if (planner->getType() == nntrainer::BasicPlanner::type) {
+    EXPECT_EQ(pool->size(), 12);
+  } else {
+    EXPECT_EQ(pool->size(), 4);
+  }
   EXPECT_NO_THROW(mem1 = pool->getMemory(idx1));
   EXPECT_NO_THROW(mem2 = pool->getMemory(idx2));
   EXPECT_NO_THROW(mem3 = pool->getMemory(idx3));
@@ -285,8 +296,14 @@ TEST_F(CachePoolTest, validate_invalidate_02_n) {
   mem3->validate();
   EXPECT_NE(mem3->getAddr<float>(), nullptr);
 
-  EXPECT_EQ(*(mem1->getAddr<float>()), TEMP_DATA3);
-  EXPECT_EQ(*(mem2->getAddr<float>()), TEMP_DATA3);
+  if (planner->getType() == nntrainer::BasicPlanner::type) {
+    EXPECT_EQ(*(mem1->getAddr<float>()), TEMP_DATA1);
+    EXPECT_EQ(*(mem2->getAddr<float>()), TEMP_DATA2);
+  } else {
+    EXPECT_EQ(*(mem1->getAddr<float>()), TEMP_DATA3);
+    EXPECT_EQ(*(mem2->getAddr<float>()), TEMP_DATA3);
+  }
+
   EXPECT_EQ(*(mem3->getAddr<float>()), TEMP_DATA3);
 
   EXPECT_NO_THROW(pool->deallocate());
@@ -296,7 +313,7 @@ TEST_F(CachePoolTest, validate_invalidate_02_n) {
  * @brief validate & invalidate
  *        ocuupy different space
  */
-TEST_F(CachePoolTest, validate_invalidate_03_p) {
+TEST_P(CachePoolTest, validate_invalidate_03_p) {
   EXPECT_CALL(*pool, validate).Times(6);
   EXPECT_CALL(*pool, invalidate).Times(testing::AtLeast(6));
 
@@ -304,7 +321,7 @@ TEST_F(CachePoolTest, validate_invalidate_03_p) {
   auto idx1 = pool->requestMemory(4, 1, 5);
   auto idx2 = pool->requestMemory(4, 3, 8);
   auto idx3 = pool->requestMemory(4, 2, 4);
-  EXPECT_NO_THROW(pool->planLayout(nntrainer::OptimizedV1Planner()));
+  EXPECT_NO_THROW(pool->planLayout(*planner.get()));
   EXPECT_NO_THROW(pool->allocate());
   EXPECT_EQ(pool->size(), 12);
   EXPECT_NO_THROW(mem1 = pool->getMemory(idx1));
@@ -359,7 +376,7 @@ TEST_F(CachePoolTest, validate_invalidate_03_p) {
 /**
  * @brief flush cache data
  */
-TEST_F(CachePoolTest, flush_01_p) {
+TEST_P(CachePoolTest, flush_01_p) {
   EXPECT_CALL(*pool, validate).Times(3);
   EXPECT_CALL(*pool, invalidate).Times(testing::AtLeast(3));
 
@@ -367,7 +384,7 @@ TEST_F(CachePoolTest, flush_01_p) {
   auto idx1 = pool->requestMemory(4, 1, 5, {1, 2, 3, 4, 5});
   auto idx2 = pool->requestMemory(4, 3, 8, {3, 4, 5, 6, 7, 8});
   auto idx3 = pool->requestMemory(4, 2, 4, {2, 3, 4});
-  EXPECT_NO_THROW(pool->planLayout(nntrainer::OptimizedV1Planner()));
+  EXPECT_NO_THROW(pool->planLayout(*planner.get()));
   EXPECT_NO_THROW(pool->allocate());
   EXPECT_EQ(pool->size(), 12);
   EXPECT_NO_THROW(mem1 = pool->getMemory(idx1));
@@ -401,7 +418,7 @@ TEST_F(CachePoolTest, flush_01_p) {
 /**
  * @brief load cache data by execution order
  */
-TEST_F(CachePoolTest, loadExec_01_p) {
+TEST_P(CachePoolTest, loadExec_01_p) {
   EXPECT_CALL(*pool, validate).Times(14);
   EXPECT_CALL(*pool, invalidate).Times(testing::AtLeast(3));
 
@@ -409,7 +426,7 @@ TEST_F(CachePoolTest, loadExec_01_p) {
   auto idx1 = pool->requestMemory(4, 1, 5, {1, 2, 3, 4, 5});
   auto idx2 = pool->requestMemory(4, 3, 8, {3, 4, 5, 6, 7, 8});
   auto idx3 = pool->requestMemory(4, 2, 4, {2, 3, 4});
-  EXPECT_NO_THROW(pool->planLayout(nntrainer::OptimizedV1Planner()));
+  EXPECT_NO_THROW(pool->planLayout(*planner.get()));
   EXPECT_NO_THROW(pool->allocate());
   EXPECT_EQ(pool->size(), 12);
   EXPECT_NO_THROW(mem1 = pool->getMemory(idx1));
@@ -479,7 +496,7 @@ TEST_F(CachePoolTest, loadExec_01_p) {
 /**
  * @brief unload cache data by execution order
  */
-TEST_F(CachePoolTest, unloadExec_01_p) {
+TEST_P(CachePoolTest, unloadExec_01_p) {
   EXPECT_CALL(*pool, validate).Times(16);
   EXPECT_CALL(*pool, invalidate).Times(testing::AtLeast(16));
 
@@ -487,7 +504,7 @@ TEST_F(CachePoolTest, unloadExec_01_p) {
   auto idx1 = pool->requestMemory(4, 1, 5, {1, 2, 3, 4, 5});
   auto idx2 = pool->requestMemory(4, 3, 8, {3, 4, 5, 6, 7, 8});
   auto idx3 = pool->requestMemory(4, 2, 4, {2, 3, 4});
-  EXPECT_NO_THROW(pool->planLayout(nntrainer::OptimizedV1Planner()));
+  EXPECT_NO_THROW(pool->planLayout(*planner.get()));
   EXPECT_NO_THROW(pool->allocate());
   EXPECT_EQ(pool->size(), 12);
   EXPECT_NO_THROW(mem1 = pool->getMemory(idx1));
@@ -581,7 +598,7 @@ TEST_F(CachePoolTest, unloadExec_01_p) {
 /**
  * @brief load/unload active caches
  */
-TEST_F(CachePoolTest, load_unload_actives_01_p) {
+TEST_P(CachePoolTest, load_unload_actives_01_p) {
   EXPECT_CALL(*pool, validate).Times(3);
   EXPECT_CALL(*pool, invalidate).Times(testing::AtLeast(3));
 
@@ -589,7 +606,7 @@ TEST_F(CachePoolTest, load_unload_actives_01_p) {
   auto idx1 = pool->requestMemory(4, 1, 5, {1, 2, 3, 4, 5});
   auto idx2 = pool->requestMemory(4, 3, 8, {3, 4, 5, 6, 7, 8});
   auto idx3 = pool->requestMemory(4, 2, 4, {2, 3, 4});
-  EXPECT_NO_THROW(pool->planLayout(nntrainer::OptimizedV1Planner()));
+  EXPECT_NO_THROW(pool->planLayout(*planner.get()));
   EXPECT_NO_THROW(pool->allocate());
   EXPECT_EQ(pool->size(), 12);
   EXPECT_NO_THROW(mem1 = pool->getMemory(idx1));
@@ -636,3 +653,10 @@ TEST_F(CachePoolTest, load_unload_actives_01_p) {
 
   EXPECT_NO_THROW(pool->deallocate());
 }
+
+GTEST_PARAMETER_TEST(
+  CachePool, CachePoolTest,
+  ::testing::Values(std::make_shared<nntrainer::BasicPlanner>(),
+                    std::make_shared<nntrainer::OptimizedV1Planner>(),
+                    std::make_shared<nntrainer::OptimizedV2Planner>(),
+                    std::make_shared<nntrainer::OptimizedV3Planner>()));

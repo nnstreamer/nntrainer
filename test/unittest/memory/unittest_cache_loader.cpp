@@ -10,7 +10,6 @@
  * @bug No known bugs except for NYI items
  */
 
-#include "optimized_v1_planner.h"
 #include "task_executor.h"
 #include <cstring>
 
@@ -21,16 +20,21 @@
 #include <cache_loader.h>
 #include <cache_pool.h>
 #include <nntrainer_test_util.h>
+#include <optimized_v1_planner.h>
+#include <optimized_v2_planner.h>
+#include <optimized_v3_planner.h>
 
 /**
  * @brief Cache loader test class
  */
-class CacheLoaderTest : public ::testing::Test {
+class CacheLoaderTest
+  : public ::testing::TestWithParam<std::shared_ptr<nntrainer::MemoryPlanner>> {
 public:
   void SetUp(void) {
     pool = std::make_shared<nntrainer::CachePool>("tmp pool");
     loader = new nntrainer::CacheLoader(pool);
     loader->init();
+    planner = GetParam();
   }
 
   void TearDown(void) {
@@ -40,15 +44,16 @@ public:
 
   std::shared_ptr<nntrainer::CachePool> pool;
   nntrainer::CacheLoader *loader;
+  std::shared_ptr<nntrainer::MemoryPlanner> planner;
 };
 
 /**
  * @brief load synchronously
  */
-TEST_F(CacheLoaderTest, load_01_p) {
+TEST_P(CacheLoaderTest, load_01_p) {
   std::shared_ptr<nntrainer::MemoryData> mem;
   auto idx = pool->requestMemory(4, 1, 5, {1, 2, 3, 4, 5});
-  EXPECT_NO_THROW(pool->planLayout(nntrainer::OptimizedV1Planner()));
+  EXPECT_NO_THROW(pool->planLayout(*planner.get()));
   EXPECT_NO_THROW(pool->allocate());
   EXPECT_EQ(pool->size(), 4);
   EXPECT_NO_THROW(mem = pool->getMemory(idx));
@@ -84,12 +89,12 @@ TEST_F(CacheLoaderTest, load_01_p) {
 /**
  * @brief load synchronously multiple
  */
-TEST_F(CacheLoaderTest, load_02_p) {
+TEST_P(CacheLoaderTest, load_02_p) {
   std::shared_ptr<nntrainer::MemoryData> mem1, mem2, mem3;
   auto idx1 = pool->requestMemory(4, 1, 5, {1, 2, 3, 4, 5});
   auto idx2 = pool->requestMemory(4, 3, 8, {3, 4, 5, 6, 7, 8});
   auto idx3 = pool->requestMemory(4, 2, 4, {2, 3, 4});
-  EXPECT_NO_THROW(pool->planLayout(nntrainer::OptimizedV1Planner()));
+  EXPECT_NO_THROW(pool->planLayout(*planner.get()));
   EXPECT_NO_THROW(pool->allocate());
   EXPECT_EQ(pool->size(), 12);
   EXPECT_NO_THROW(mem1 = pool->getMemory(idx1));
@@ -161,10 +166,10 @@ TEST_F(CacheLoaderTest, load_02_p) {
 /**
  * @brief load asynchronously
  */
-TEST_F(CacheLoaderTest, load_async_01_p) {
+TEST_P(CacheLoaderTest, load_async_01_p) {
   std::shared_ptr<nntrainer::MemoryData> mem;
   auto idx = pool->requestMemory(4, 1, 5, {1, 2, 3, 4, 5});
-  EXPECT_NO_THROW(pool->planLayout(nntrainer::OptimizedV1Planner()));
+  EXPECT_NO_THROW(pool->planLayout(*planner.get()));
   EXPECT_NO_THROW(pool->allocate());
   EXPECT_EQ(pool->size(), 4);
   EXPECT_NO_THROW(mem = pool->getMemory(idx));
@@ -193,12 +198,12 @@ TEST_F(CacheLoaderTest, load_async_01_p) {
 /**
  * @brief load asynchronously
  */
-TEST_F(CacheLoaderTest, load_async_02_p) {
+TEST_P(CacheLoaderTest, load_async_02_p) {
   std::shared_ptr<nntrainer::MemoryData> mem1, mem2, mem3;
   auto idx1 = pool->requestMemory(4, 1, 5, {1, 2, 3, 4, 5});
   auto idx2 = pool->requestMemory(4, 3, 8, {3, 4, 5, 6, 7, 8});
   auto idx3 = pool->requestMemory(4, 2, 4, {2, 3, 4});
-  EXPECT_NO_THROW(pool->planLayout(nntrainer::OptimizedV1Planner()));
+  EXPECT_NO_THROW(pool->planLayout(*planner.get()));
   EXPECT_NO_THROW(pool->allocate());
   EXPECT_EQ(pool->size(), 12);
   EXPECT_NO_THROW(mem1 = pool->getMemory(idx1));
@@ -421,12 +426,12 @@ TEST_F(CacheLoaderTest, load_async_02_p) {
 /**
  * @brief load asynchronously (discontinous order)
  */
-TEST_F(CacheLoaderTest, load_async_03_p) {
+TEST_P(CacheLoaderTest, load_async_03_p) {
   std::shared_ptr<nntrainer::MemoryData> mem1, mem2, mem3;
   auto idx1 = pool->requestMemory(4, 1, 5, {1, 2, 5});
   auto idx2 = pool->requestMemory(4, 3, 8, {3, 4, 7, 8});
   auto idx3 = pool->requestMemory(4, 2, 4, {2, 3, 4});
-  EXPECT_NO_THROW(pool->planLayout(nntrainer::OptimizedV1Planner()));
+  EXPECT_NO_THROW(pool->planLayout(*planner.get()));
   EXPECT_NO_THROW(pool->allocate());
   EXPECT_EQ(pool->size(), 12);
   EXPECT_NO_THROW(mem1 = pool->getMemory(idx1));
@@ -645,6 +650,13 @@ TEST_F(CacheLoaderTest, load_async_03_p) {
 
   delete p;
 }
+
+GTEST_PARAMETER_TEST(
+  CacheLoader, CacheLoaderTest,
+  ::testing::Values(std::make_shared<nntrainer::BasicPlanner>(),
+                    std::make_shared<nntrainer::OptimizedV1Planner>(),
+                    std::make_shared<nntrainer::OptimizedV2Planner>(),
+                    std::make_shared<nntrainer::OptimizedV3Planner>()));
 
 /**
  * TODO: cancel and timeout logic test
