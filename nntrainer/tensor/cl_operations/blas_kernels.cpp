@@ -22,6 +22,10 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
                   unsigned int M, unsigned int N, unsigned int K) {
   bool result = false;
 
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
   const size_t num_blocks = N * (K / 32);
 
   /// @todo This should be replaced with SIMD instruction to flatten the block
@@ -157,7 +161,7 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
   /// @todo: create a group size by device & input
   const int work_group_size[3] = {nth0, nth1, 1};
 
-  result = opencl::CommandQueueManager::GetInstance().DispatchCommand(
+  result = opencl::CommandQueueManager::Global().DispatchCommand(
     kernel_q4_0_mul_mat_ptr, work_groups_count, work_group_size);
   if (!result) {
     ml_loge("Failed to dispatch kernel kernel_q4_0_mul_mat_ptr");
@@ -876,6 +880,10 @@ void flatten_block_q4_0_cl(const void *src, void *dst_q, void *dst_d,
                            unsigned int num_blocks) {
   bool result = false;
 
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
   ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
     getConvertBlockQ4_0Kernel(), "kernel_convert_block_q4_0");
   if (!kernel_ptr) {
@@ -908,7 +916,7 @@ void flatten_block_q4_0_cl(const void *src, void *dst_q, void *dst_d,
   const int work_groups_count[3] = {(int)num_blocks, 1, 1};
   const int work_group_size[3] = {64, 1, 1};
 
-  result = opencl::CommandQueueManager::GetInstance().DispatchCommand(
+  result = opencl::CommandQueueManager::Global().DispatchCommand(
     kernel_ptr, work_groups_count, work_group_size);
   if (!result) {
     ml_loge("Failed to dispatch kernel for flatten_block_q4_0_cl");
@@ -919,6 +927,9 @@ void flatten_block_q4_0_cl(const void *src, void *dst_q, void *dst_d,
 void restore_block_q4_0_cl(const void *src_q, const void *src_d, void *dst,
                            unsigned int num_blocks) {
   bool result = false;
+
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
 
   ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
     getConvertBlockQ4_0Kernel(), "kernel_restore_block_q4_0");
@@ -950,7 +961,7 @@ void restore_block_q4_0_cl(const void *src_q, const void *src_d, void *dst,
   const int work_groups_count[3] = {(int)num_blocks, 1, 1};
   const int work_group_size[3] = {1, 1, 1};
 
-  result = opencl::CommandQueueManager::GetInstance().DispatchCommand(
+  result = opencl::CommandQueueManager::Global().DispatchCommand(
     kernel_ptr, work_groups_count, work_group_size);
   if (!result) {
     ml_loge("Failed to dispatch kernel for restore_block_q4_0_cl");
