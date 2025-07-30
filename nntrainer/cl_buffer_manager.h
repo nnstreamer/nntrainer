@@ -48,15 +48,21 @@ private:
   opencl::ContextManager &context_inst_ = opencl::ContextManager::GetInstance();
 
   /**
-   * @brief Buffer size in bytes preset (256 mebibytes)
+   * @brief Buffer size in bytes preset (32 MB)
    */
-  const size_t buffer_size_bytes = 8192 * 8192 * sizeof(float);
+  const size_t buffer_size_bytes = 1024 * 8192 * sizeof(float);
+  const size_t unused_size = sizeof(float); /** temp size for unused buffer */
+  const size_t scale_size = 3072 * (8192 / 32) * 2; /** buffer size of quants */
+  const size_t quant_size =
+    3072 * (8192 / 32) * 16; /** buffer size of scales */
 
   opencl::Buffer *inBufferA;
   opencl::Buffer *inBufferB;
   opencl::Buffer *inBufferC;
   opencl::Buffer *outBufferA;
   opencl::Buffer *outBufferB;
+  opencl::Buffer *scaleBuffer;
+  opencl::Buffer *quantBuffer;
 
 public:
   /**
@@ -100,6 +106,16 @@ public:
    * @return opencl::Buffer* or nullptr if initBuffers() is not called
    */
   opencl::Buffer *getOutBufferB() { return outBufferB; }
+
+  /**
+   * @brief Get the Scale Buffer object
+   */
+  opencl::Buffer *getScaleBuffer() { return scaleBuffer; }
+
+  /**
+   * @brief Get the Quant Buffer object
+   */
+  opencl::Buffer *getQuantBuffer() { return quantBuffer; }
 
   /**
    * @brief Destroy Buffer pointers.
