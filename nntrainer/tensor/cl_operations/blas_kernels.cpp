@@ -24,14 +24,9 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
 
   const size_t num_blocks = N * (K / 32);
 
-  void *src0_q =
-    blas_cc->context_inst_.createSVMRegion(num_blocks * sizeof(uint8_t) * 16);
-  void *src0_d =
-    blas_cc->context_inst_.createSVMRegion(num_blocks * sizeof(uint16_t));
-
   /// @todo This should be replaced with SIMD instruction to flatten the block
   /// representation of Q4_0x8 to uint8_t * and uint16_t *.
-  flatten_block_q4_0_cl(matAdata, src0_q, src0_d, num_blocks);
+  flatten_block_q4_0_cl(matAdata, nullptr, nullptr, num_blocks);
 
   ClContext::SharedPtrClKernel kernel_q4_0_mul_mat_ptr;
 
@@ -52,28 +47,36 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
 
   int arg = 0;
 
-  result = kernel_q4_0_mul_mat_ptr->SetKernelSVMArguments(arg++, src0_q);
+  result = clbuffInstance.getInBufferA()->WriteDataRegion(
+    blas_cc->command_queue_inst_, M * K * sizeof(float), matBdata);
+
+  result = kernel_q4_0_mul_mat_ptr->SetKernelArguments(
+    arg++, clbuffInstance.getQuantBuffer(), sizeof(cl_mem));
   if (!result)
     throw std::runtime_error(
-      "Failed to set kernel SVM argument 0 for kernel_q4_0_mul_mat_ptr");
+      "Failed to set kernel argument 0 for kernel_q4_0_mul_mat_ptr");
 
-  result = kernel_q4_0_mul_mat_ptr->SetKernelSVMArguments(arg++, src0_d);
+  result = kernel_q4_0_mul_mat_ptr->SetKernelArguments(
+    arg++, clbuffInstance.getScaleBuffer(), sizeof(cl_mem));
+
   if (!result)
     throw std::runtime_error(
-      "Failed to set kernel SVM argument 1 for kernel_q4_0_mul_mat_ptr");
+      "Failed to set kernel argument 1 for kernel_q4_0_mul_mat_ptr");
 
-  result = kernel_q4_0_mul_mat_ptr->SetKernelSVMArguments(arg++, matBdata);
+  result = kernel_q4_0_mul_mat_ptr->SetKernelArguments(
+    arg++, clbuffInstance.getInBufferA(), sizeof(cl_mem));
 
   if (!result) {
     throw std::runtime_error(
-      "Failed to set kernel SVM argument 2 for kernel_q4_0_mul_mat_ptr");
+      "Failed to set kernel argument 2 for kernel_q4_0_mul_mat_ptr");
   }
 
-  result = kernel_q4_0_mul_mat_ptr->SetKernelSVMArguments(arg++, matCdata);
+  result = kernel_q4_0_mul_mat_ptr->SetKernelArguments(
+    arg++, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
 
   if (!result) {
     throw std::runtime_error(
-      "Failed to set kernel SVM argument 3 for kernel_q4_0_mul_mat_ptr");
+      "Failed to set kernel argument 3 for kernel_q4_0_mul_mat_ptr");
   }
 
   result =
@@ -161,8 +164,8 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
     return;
   }
 
-  result = blas_cc->command_queue_inst_.enqueueSVMMap(
-    matCdata, M * N * sizeof(float), true);
+  result = clbuffInstance.getOutBufferA()->ReadDataRegion(
+    blas_cc->command_queue_inst_, M * N * sizeof(float), matCdata);
 
   if (!result) {
     ml_loge("Failed to read data from the output buffer for "
@@ -888,13 +891,15 @@ void flatten_block_q4_0_cl(const void *src, void *dst_q, void *dst_d,
     return;
   }
 
-  result = kernel_ptr->SetKernelSVMArguments(argIdx++, dst_q);
+  result = kernel_ptr->SetKernelArguments(
+    argIdx++, clbuffInstance.getQuantBuffer(), sizeof(cl_mem));
   if (!result) {
     ml_loge("Failed to set kernel argument 1 for flatten_block_q4_0_cl");
     return;
   }
 
-  result = kernel_ptr->SetKernelSVMArguments(argIdx++, dst_d);
+  result = kernel_ptr->SetKernelArguments(
+    argIdx++, clbuffInstance.getScaleBuffer(), sizeof(cl_mem));
   if (!result) {
     ml_loge("Failed to set kernel argument 2 for flatten_block_q4_0_cl");
     return;
