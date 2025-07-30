@@ -13,11 +13,11 @@
 #include <iostream>
 #include <numeric>
 
+#include <chrono>
 #include <cpu_backend.h>
 #include <float_tensor.h>
 #include <tensor.h>
 #include <util_func.h>
-#include <chrono>
 
 #ifdef ENABLE_OPENCL
 #include "blas_kernels.h"
@@ -736,21 +736,21 @@ Tensor &FloatTensor::dot(Tensor const &input, Tensor &output, bool trans,
 void FloatTensor::dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
                       bool trans, bool trans_in, float beta) const {
 
-  float *data = (float*)getData();
+  float *data = (float *)getData();
   unsigned int M = getDim().height();
   unsigned int K = getDim().width();
 
   std::vector<unsigned int> Ns;
-  std::vector<void*> mdatas;
-  std::vector<float*> rdatas;
-  
-  for(unsigned int i=0;i<input.size();++i){
+  std::vector<void *> mdatas;
+  std::vector<float *> rdatas;
+
+  for (unsigned int i = 0; i < input.size(); ++i) {
     Ns.push_back(input[i]->getDim().width());
-    mdatas.push_back((void*)input[i]->getData<uint8_t>());
+    mdatas.push_back((void *)input[i]->getData<uint8_t>());
     rdatas.push_back(output[i]->getData<float>());
   }
-  
-  gemm_q4_K(M, Ns, K, data, K,  mdatas, Ns, rdatas, Ns);
+
+  gemm_q4_K(M, Ns, K, data, K, mdatas, Ns, rdatas, Ns);
 }
 
 Tensor &FloatTensor::dotFloat(Tensor const &input, Tensor &output, bool trans,
