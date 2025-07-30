@@ -82,6 +82,7 @@
 #include <preprocess_l2norm_layer.h>
 #include <preprocess_translate_layer.h>
 #include <reduce_mean_layer.h>
+#include <reduce_sum_layer.h>
 #include <rnn.h>
 #include <rnncell.h>
 #include <sine_layer.h>
@@ -351,6 +352,8 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_MULTI_HEAD_ATTENTION);
   ac.registerFactory(nntrainer::createLayer<ReduceMeanLayer>,
                      ReduceMeanLayer::type, LayerType::LAYER_REDUCE_MEAN);
+  ac.registerFactory(nntrainer::createLayer<ReduceSumLayer>,
+                     ReduceSumLayer::type, LayerType::LAYER_REDUCE_SUM);
   ac.registerFactory(nntrainer::createLayer<PositionalEncodingLayer>,
                      PositionalEncodingLayer::type,
                      LayerType::LAYER_POSITIONAL_ENCODING);
