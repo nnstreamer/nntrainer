@@ -217,13 +217,13 @@ void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
   }
 }
 
-template <typename T = float>
+template <>
 void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M,
                                std::vector<unsigned int> Ns,
-                               const unsigned int K, const T *A,
+                               const unsigned int K, const float *A,
                                const unsigned int lda, std::vector<void *> Bs,
                                std::vector<unsigned int> ldbs,
-                               std::vector<T *> C,
+                               std::vector<float *> C,
                                std::vector<unsigned int> ldcs) {
   auto &bs_thread_pool = ThreadPoolManager::getInstance();
   int thread_num = bs_thread_pool.get_thread_count();
@@ -468,13 +468,13 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
   }
 }
 
-template <typename T = float>
+template <>
 void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M,
                                std::vector<unsigned int> Ns,
-                               const unsigned int K, const T *A,
+                               const unsigned int K, const float *A,
                                const unsigned int lda, std::vector<void *> Bs,
                                std::vector<unsigned int> ldbs,
-                               std::vector<T *> C,
+                               std::vector<float *> C,
                                std::vector<unsigned int> ldcs) {
   auto &bs_thread_pool = ThreadPoolManager::getInstance();
   int thread_num = bs_thread_pool.get_thread_count();

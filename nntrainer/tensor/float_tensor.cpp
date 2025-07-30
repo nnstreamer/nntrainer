@@ -705,6 +705,33 @@ void FloatTensor::tan(Tensor &output, float alpha) {
 void FloatTensor::inv_sqrt(Tensor &out) {
   apply([](float val) -> float { return 1 / std::sqrt(val); }, out);
 }
+void FloatTensor::dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
+                      bool trans, bool trans_in, float beta) const {
+
+  float *data = (float *)getData();
+  unsigned int M = getDim().height();
+  unsigned int K = getDim().width();
+
+  std::vector<unsigned int> Ns;
+  std::vector<void *> mdatas;
+  std::vector<float *> rdatas;
+
+  for (unsigned int i = 0; i < input.size(); ++i) {
+    Ns.push_back(input[i]->getDim().width());
+    mdatas.push_back((void *)input[i]->getData<uint8_t>());
+    rdatas.push_back(output[i]->getData<float>());
+  }
+  switch (input[0]->getDataType()) {
+  case Tdatatype::Q4_K:
+    gemm_q4_K(M, Ns, K, data, K, mdatas, Ns, rdatas, Ns);
+    break;
+    // case Tdatatype::Q4_0:
+    // gemm_q4_0(M, Ns, K, data, K, mdatas, Ns, rdatas, Ns);
+    // break;
+  default:
+    throw std::invalid_argument("Error: unsupported datatype");
+  }
+}
 
 Tensor &FloatTensor::dot(Tensor const &input, Tensor &output, bool trans,
                          bool trans_in, float beta) const {

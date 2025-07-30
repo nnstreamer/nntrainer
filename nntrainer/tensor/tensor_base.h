@@ -442,7 +442,10 @@ public:
    */
   virtual Tensor &dot(Tensor const &input, Tensor &output, bool trans,
                       bool trans_in, float beta) const;
-
+                      
+ virtual void dot(std::vector<Tensor *> input,
+                            std::vector<Tensor *> output, bool trans,
+                            bool trans_in, float beta) const;
   /**
    * @copydoc Tensor::dropout_mask(float dropout)
    */
