@@ -19,11 +19,11 @@
 #include "ggml.h"
 
 #include <ggml_interface.h>
+#include <nntr_ggml_impl.h>
 #include <stdexcept>
 #include <string>
 #include <thread>
 #include <vector>
-#include <nntr_ggml_impl.h>
 
 namespace nntrainer {
 /**
@@ -230,6 +230,18 @@ void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
   }
 }
 
+template <>
+void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M,
+                               std::vector<unsigned int> Ns,
+                               const unsigned int K, const float *A,
+                               const unsigned int lda, std::vector<void *> Bs,
+                               std::vector<unsigned int> ldbs,
+                               std::vector<float *> C,
+                               std::vector<unsigned int> ldcs) {
+  throw std::runtime_error("nntrainer::__ggml_q4_0_4x8_q8_0_GEMM for "
+                           "multi-weights is not implemented yet");
+}
+
 void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int K, const float *A,
                                const unsigned int lda, const void *B,
@@ -317,6 +329,18 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
       }
     }
   }
+}
+
+template <>
+void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M,
+                               std::vector<unsigned int> Ns,
+                               const unsigned int K, const float *A,
+                               const unsigned int lda, std::vector<void *> Bs,
+                               std::vector<unsigned int> ldbs,
+                               std::vector<float *> C,
+                               std::vector<unsigned int> ldcs) {
+  throw std::runtime_error("nntrainer::__ggml_q4_0_8x8_q8_0_GEMM for "
+                           "multi-weights is not implemented yet");
 }
 
 void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,

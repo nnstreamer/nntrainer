@@ -301,6 +301,13 @@ void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
 #endif
 }
 
+void gemm_q4_0(const unsigned int M, std::vector<unsigned int> Ns,
+               const unsigned int K, const float *A, const unsigned int lda,
+               std::vector<void *> Bs, std::vector<unsigned int> ldbs,
+               std::vector<float *> Cs, std::vector<unsigned int> ldcs) {
+  std::cout << "Not implemented"<<std::endl;
+}
+
 void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc) {
@@ -308,6 +315,18 @@ void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
   return __ggml_q4_K_8x8_q8_K_GEMM(M, N, K, A, lda, B, ldb, C, ldc);
 #else
   return __fallback_gemm_q4_K(M, N, K, A, lda, B, ldb, C, ldc);
+#endif
+}
+
+void gemm_q4_K(const unsigned int M, std::vector<unsigned int> Ns,
+               const unsigned int K, const float *A, const unsigned int lda,
+               std::vector<void *> Bs, std::vector<unsigned int> ldbs,
+               std::vector<float *> Cs, std::vector<unsigned int> ldcs) {
+#ifdef ENABLE_GGML
+  return __ggml_q4_K_8x8_q8_K_GEMM(M, Ns, K, A, lda, Bs, ldbs, Cs, ldcs);
+#else
+  std::cout << "Not implemented"<<std::endl;
+  return ;
 #endif
 }
 
