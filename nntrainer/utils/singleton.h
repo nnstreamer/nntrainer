@@ -16,8 +16,8 @@
 
 #include <mutex>
 
-#include "utils/noncopyable.h"
-#include "utils/nonmovable.h"
+#include "noncopyable.h"
+#include "nonmovable.h"
 
 namespace nntrainer {
 
@@ -46,6 +46,11 @@ public:
   void initializeOnce() {
     std::call_once(initialized_, [&]() { this->initialize(); });
   }
+
+  /**
+   * @brief   Default destructor
+   */
+  virtual ~Singleton() = default;
 
 protected:
   /**
