@@ -10,26 +10,6 @@
 
 #if defined(__aarch64__)
 #include <arm_neon.h>
-
-void VDOTQ_S32(int32x4_t r, int8x16_t a, int8x16_t b) {
-  int16x8_t pl = vmull_s8(vget_low_s8(a), vget_low_s8(b));
-  int16x8_t ph = vmull_s8(vget_high_s8(a), vget_high_s8(b));
-  int16x4_t pl_lo = vget_low_s16(pl);
-  int16x4_t pl_hi = vget_high_s16(pl);
-  int16x4_t ph_lo = vget_low_s16(ph);
-  int16x4_t ph_hi = vget_high_s16(ph);
-  int32x2_t sum0 = vpaddl_s16(pl_lo);
-  int32x2_t sum1 = vpaddl_s16(pl_hi);
-  int32x2_t sum2 = vpaddl_s16(ph_lo);
-  int32x2_t sum3 = vpaddl_s16(ph_hi);
-  sum0 = vpadd_s32(sum0, sum0);
-  sum1 = vpadd_s32(sum1, sum1);
-  sum2 = vpadd_s32(sum2, sum2);
-  sum3 = vpadd_s32(sum3, sum3);
-  int32x4_t dot = vcombine_s32(vpadd_s32(sum0, sum1), vpadd_s32(sum2, sum3));
-  r = vaddq_s32(r, dot);
-  return;
-}
 #endif
 
 #define Q4_0 32
@@ -170,7 +150,8 @@ void nntr_gemv_q4_0_4x8_q8_0(int n, float *__restrict s, size_t bs,
 
   assert(n % qk == 0);
   assert(nc % ncols_interleaved == 0);
-
+///@note This kernel can be further optimized using vdotq_s32 intrinsic, but
+/// this is not compatible with current wide-spreaded ARM chips
 #if !((defined(_MSC_VER)) && !defined(__clang__)) && defined(__aarch64__) &&   \
   defined(__aarch64__)
   const void *b_ptr = vx;
