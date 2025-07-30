@@ -42,7 +42,7 @@ public:
   /**
    * @brief   Default destructor
    */
-  virtual ~Noncopyable() = default;
+  ~Noncopyable() = default;
 };
 
 } // namespace nntrainer
