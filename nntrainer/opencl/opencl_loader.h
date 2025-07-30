@@ -16,10 +16,6 @@
 
 #include "CL/cl.h"
 
-#define CL_API_ENTRY
-#define CL_API_CALL
-#define CL_CALLBACK
-
 namespace nntrainer::opencl {
 
 /**
@@ -198,6 +194,9 @@ typedef cl_int(CL_API_CALL *PFN_clEnqueueSVMUnmap)(
   cl_uint /**< num_events_in_wait_list */,
   const cl_event * /**< event_wait_list */, cl_event * /**< event */);
 
+typedef cl_int (CL_API_CALL *PFN_clWaitForEvents)(cl_uint num_events,
+    const cl_event* event_list);
+
 extern PFN_clGetPlatformIDs clGetPlatformIDs;
 extern PFN_clGetDeviceIDs clGetDeviceIDs;
 extern PFN_clGetDeviceInfo clGetDeviceInfo;
@@ -232,7 +231,7 @@ extern PFN_clSVMFree clSVMFree;
 extern PFN_clEnqueueSVMMap clEnqueueSVMMap;
 extern PFN_clEnqueueSVMUnmap clEnqueueSVMUnmap;
 extern PFN_clSetKernelArgSVMPointer clSetKernelArgSVMPointer;
-
+extern PFN_clWaitForEvents clWaitForEvents;
 } // namespace nntrainer::opencl
 
 #endif // __OPENCL_LOADER_H__
