@@ -18,7 +18,7 @@
 
 #include "CL/cl.h"
 
-#include "utils/singleton.h"
+#include <singleton.h>
 
 namespace nntrainer::opencl {
 
