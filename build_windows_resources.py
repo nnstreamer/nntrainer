@@ -123,7 +123,7 @@ def main():
 
     if os.path.exists(GGML_DIR):
         run_command(['git', 'apply', '--directory=subprojects/ggml', 'subprojects/packagefiles/ggml/0001-nntrainer-ggml-patch.patch'], REPO_DIR, exit_on_failure=False)
-        build_project(args.force_rebuild, GGML_DIR, GGML_BUILD_DIR, ['-DGGML_BUILD_TESTS=False', '-DGGML_BUILD_EXAMPLES=False', '-DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=True'])
+        build_project(args.force_rebuild, GGML_DIR, GGML_BUILD_DIR, ['-DGGML_BUILD_TESTS=False', '-DGGML_BUILD_EXAMPLES=False', '-DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=True','-DLIBIOMP5_ROOT=../../libiomp_win'])
         package_project(args.force_rebuild, os.path.join(GGML_BUILD_DIR, 'src', 'Release'), GGML_RESOURCES_DIR, ['ggml.lib', 'ggml-base.lib', 'ggml-cpu.lib'])
         package_project(args.force_rebuild, os.path.join(GGML_BUILD_DIR, 'bin', 'Release'), GGML_RESOURCES_DIR, ['ggml.dll', 'ggml-base.dll', 'ggml-cpu.dll'])
 
