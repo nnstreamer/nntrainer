@@ -42,7 +42,7 @@ public:
   /**
    * @brief   Default destructor
    */
-  virtual ~Nonmovable() = default;
+  ~Nonmovable() = default;
 };
 
 } // namespace nntrainer
