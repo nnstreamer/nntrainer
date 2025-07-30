@@ -1005,6 +1005,25 @@ static std::unique_ptr<NeuralNetwork> makeNegOperation() {
   return nn;
 }
 
+static std::unique_ptr<NeuralNetwork> makeReduceSumOperation() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+
+  auto outer_graph = makeGraph(
+    {{"input", {"name=in", "input_shape=1:3:2"}},
+     {"fully_connected", {"name=fc", "unit=7", "input_layers=in"}},
+     {"reduce_sum", {"name=reduce_sum_layer", "input_layers=fc", "axis=3"}},
+     {"mse", {"name=loss", "input_layers=reduce_sum_layer"}}});
+
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
+
+  nn->setProperty({"batch_size=1"});
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate=0.1"}));
+
+  return nn;
+}
+
 std::unique_ptr<NeuralNetwork> makeCosineOperation() {
   std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
 
@@ -1182,6 +1201,8 @@ GTEST_PARAMETER_TEST(
     mkModelTc_V2(makePowOperation, "pow_operation", ModelTestOption::ALL_V2),
     mkModelTc_V2(makeSQRTOperation, "sqrt_operation", ModelTestOption::ALL_V2),
     mkModelTc_V2(makeNegOperation, "neg_operation", ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeReduceSumOperation, "reduce_sum_operation",
+                 ModelTestOption::ALL_V2),
     mkModelTc_V2(makeSineOperation, "sine_operation", ModelTestOption::ALL_V2),
     mkModelTc_V2(makeCosineOperation, "cosine_operation",
                  ModelTestOption::ALL_V2),
