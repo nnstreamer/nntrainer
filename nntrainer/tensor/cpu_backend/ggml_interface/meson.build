@@ -1,7 +1,11 @@
 ggml_interface_headers = [
     'ggml_interface.h',
+    'nntr_ggml_impl.h',
 ]
-ggml_interface_sources = []
+
+ggml_interface_sources = [
+  'nntr_ggml_impl.cpp'
+]
 
 if get_option('ggml-thread-backend') == 'bsthread'
   ggml_interface_sources += 'ggml_interface_bs_threadpool.cpp'
@@ -13,7 +17,7 @@ else
 endif
 
 if get_option('enable-fp16')
-  ggml_interface_sources += 'ggml_impl_fp16.cpp'
+  ggml_interface_sources += 'ggml_interface_fp16.cpp'
 endif
 
 foreach s : ggml_interface_sources
