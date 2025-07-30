@@ -956,6 +956,15 @@ void Tensor::standardization_i() {
   this->divide_i(std_dev_by_batch);
 }
 
+void Tensor::dot(std::vector<Tensor *> input,
+                 std::vector<Tensor *> output, bool trans, bool trans_in,
+                 float beta) const {
+  NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
+    << getName() << " is not contiguous. Cannot dot product.";
+
+  itensor_->dot(input, output, trans, trans_in, beta);
+}
+
 Tensor Tensor::dot(Tensor const &input, bool trans, bool trans_in) const {
   Tensor output("", getFormat(), getDataType());
   dot(input, output, trans, trans_in);

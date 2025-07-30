@@ -1344,7 +1344,9 @@ public:
    */
   Tensor dot(Tensor const &input, bool trans = false,
              bool trans_in = false) const;
-
+void dot(std::vector<Tensor *> inputs,
+                       std::vector<Tensor *> outputs, bool trans = false,
+                       bool trans_in = false, float beta = 0.0f) const;
   /**
    * @brief     Dot Product of Tensor ( equal MxM )
    * @details   This applies dot of the last dimension of this and
