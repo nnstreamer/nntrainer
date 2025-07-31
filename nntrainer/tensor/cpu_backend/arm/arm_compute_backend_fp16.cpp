@@ -12,6 +12,7 @@
  */
 #include <arm_compute_backend.h>
 #include <assert.h>
+#include <cblas_interface.h>
 #include <fallback_internal.h>
 #include <neon_impl.h>
 #include <nntrainer_error.h>
@@ -149,6 +150,69 @@ void sgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
       nntrainer::neon::hgemv(A, X, Y, M, N, alpha, beta);
     }
   }
+}
+
+void shgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
+            const unsigned int M, const unsigned int N, const unsigned int K,
+            const float alpha, const float *A, const unsigned int lda,
+            const _FP16 *B, const unsigned int ldb, const float beta, float *C,
+            const unsigned int ldc) {
+  float *B_ = new float[N * K];
+  scopy(N * K, B, 1, B_, 1);
+
+  __cblas_sgemm(TStorageOrder, TransA, TransB, M, N, K, alpha, A, lda, B_, ldb,
+                beta, C, ldc);
+
+  delete[] B_;
+}
+
+void shgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
+            const unsigned int N, const float alpha, const float *A,
+            const unsigned int lda, const _FP16 *X, const unsigned int incX,
+            const float beta, float *Y, const unsigned int incY) {
+  unsigned int lenX = (TransA) ? 1 + (M - 1) * (incX) : 1 + (N - 1) * (incX);
+  unsigned int lenY = (TransA) ? 1 + (N - 1) * (incY) : 1 + (M - 1) * (incY);
+
+  float *X_ = new float[lenX];
+
+  scopy(lenX, X, 1, X_, 1);
+
+  __cblas_sgemv(TStorageOrder, TransA, M, N, alpha, A, lda, X_, incX, beta, Y,
+                incY);
+
+  delete[] X_;
+}
+
+void hsgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
+            const unsigned int M, const unsigned int N, const unsigned int K,
+            const float alpha, const _FP16 *A, const unsigned int lda,
+            const float *B, const unsigned int ldb, const float beta, float *C,
+            const unsigned int ldc) {
+  float *A_ = new float[M * K];
+
+  scopy(M * K, A, 1, A_, 1);
+
+  __cblas_sgemm(TStorageOrder, TransA, TransB, M, N, K, alpha, A_, lda, B, ldb,
+                beta, C, ldc);
+
+  delete[] A_;
+}
+
+void hsgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
+            const unsigned int N, const float alpha, const _FP16 *A,
+            const unsigned int lda, const float *X, const unsigned int incX,
+            const float beta, float *Y, const unsigned int incY) {
+  unsigned int lenX = (TransA) ? 1 + (M - 1) * (incX) : 1 + (N - 1) * (incX);
+  unsigned int lenY = (TransA) ? 1 + (N - 1) * (incY) : 1 + (M - 1) * (incY);
+
+  float *A_ = new float[M * N];
+
+  scopy(M * N, A, 1, A_, 1);
+
+  __cblas_sgemv(TStorageOrder, TransA, M, N, alpha, A_, lda, X, incX, beta, Y,
+                incY);
+
+  delete[] A_;
 }
 
 void ele_mul(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
