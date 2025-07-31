@@ -43,6 +43,7 @@ private:
     std::vector<std::deque<std::function<void()>>> deques;
     std::vector<std::mutex> deque_mutex;
     std::vector<std::atomic<size_t>> deque_sizes;
+    std::atomic<size_t> global_queue_items{0};
 
     std::condition_variable cv;
     std::mutex cv_mutex;
@@ -126,6 +127,7 @@ private:
                         task = std::move(deques[index].front());
                         deques[index].pop_front();
                         deque_sizes[index].fetch_sub(1, std::memory_order_relaxed);
+                        global_queue_items.fetch_sub(1, std::memory_order_relaxed);
                     }
                 }
                 if (task) {
@@ -152,6 +154,7 @@ private:
                             task = std::move(deques[best_i].back());
                             deques[best_i].pop_back();
                             deque_sizes[best_i].fetch_sub(1, std::memory_order_relaxed);
+                            global_queue_items.fetch_sub(1, std::memory_order_relaxed);
                         }
                     }
                     if (task) {
@@ -164,22 +167,8 @@ private:
             std::unique_lock<std::mutex> lock(cv_mutex);
             cv.wait(lock, [this, index]() {
                 if (stop_flag) return true;
-                size_t cap2 = threads_cap_global.load(std::memory_order_relaxed);
-                if (index < cap2) {
-                    // local deque
-                    {
-                        std::lock_guard<std::mutex> lk(deque_mutex[index]);
-                        if (!deques[index].empty()) return true;
-                    }
-                    // any other deque
-                    if (work_stealing_enabled.load(std::memory_order_relaxed)) {
-                        for (size_t i = 0; i < deques.size(); ++i) {
-                            std::lock_guard<std::mutex> lk(deque_mutex[i]);
-                            if (!deques[i].empty()) return true;
-                        }
-                    }
-                }
-                return false;
+                if (index >= threads_cap_global.load(std::memory_order_relaxed)) return true;
+                return global_queue_items.load(std::memory_order_relaxed) > 0;
             });
             if (stop_flag) break;
         }
@@ -258,6 +247,7 @@ private:
             if (s >= e) continue;
             
             // Guarantees each threads gets contiguous tasks
+            // size_t tid = i % n;
             size_t tid;
             if (i < large_group) tid = i / (tasks_per_threads + 1);
             else tid = number_of_threads_with_extra_tasks + (i - large_group) / tasks_per_threads;
@@ -285,6 +275,7 @@ private:
                 deque_sizes[tid].fetch_add(1, std::memory_order_relaxed);
             }
         }
+        global_queue_items.fetch_add(real_chunks, std::memory_order_release);
 
         cv.notify_all();
         if (real_chunks == 0) promise->set_value();
@@ -313,8 +304,9 @@ private:
             std::lock_guard<std::mutex> lk(deque_mutex[tid]);
             deques[tid].push_back(std::move(task));
             deque_sizes[tid].fetch_add(1, std::memory_order_relaxed);
+            global_queue_items.fetch_add(1, std::memory_order_relaxed);
         }
-        cv.notify_all();
+        cv.notify_one();
         return future;
     }
 
@@ -426,9 +418,10 @@ public:
             CPU_ZERO(&cpuset);
             CPU_SET(cpu, &cpuset);
             pthread_setaffinity_np(pool.workers[i].native_handle(), sizeof(cpu_set_t), &cpuset);
-        }
         #endif
+        }
     }
+    
 };
 
 } // namespace SP
