@@ -35,6 +35,13 @@ TEST(nntrainer_util_func, sqrtFloat_01_p) {
   EXPECT_NEAR(sx * sx, x, tolerance * 10);
 }
 
+TEST(nntrainer_util_func, absFloat_01_p) {
+  float x = -9871.0;
+  float sx = nntrainer::absFloat(x);
+
+  EXPECT_NEAR(sx, -1 * x, tolerance);
+}
+
 TEST(nntrainer_util_func, logFloat_01_p) {
   int batch = 1;
   int channel = 1;
@@ -54,6 +61,14 @@ TEST(nntrainer_util_func, logFloat_01_p) {
   for (int i = 0; i < batch * height * width; ++i) {
     EXPECT_NEAR(data[i], (float)log(indata[i]), tolerance);
   }
+}
+
+TEST(nntrainer_util_func, exp_util_01_p) {
+  float x = 1;
+  float ex = nntrainer::exp_util(x);
+  float ans = 2.718281828459;
+
+  EXPECT_NEAR(ex, ans, tolerance);
 }
 
 TEST(nntrainer_util_func, checkedRead_n) {

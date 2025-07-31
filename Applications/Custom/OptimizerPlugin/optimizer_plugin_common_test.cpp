@@ -72,3 +72,12 @@ TEST_P(OptimizerSemantics, gettersValidate_p) {
   EXPECT_NO_THROW(type = opt->getType());
   EXPECT_GT(type.size(), size_t(0));
 }
+
+TEST_P(OptimizerPluginCommonTest, save_p) {
+  std::string filepath = "optimizer_type.txt";
+  std::ofstream writeFile(filepath.data());
+  ac.registerOptimizer(plugin_lib_name, NNTRAINER_PATH);
+  auto optimizer = ac.createObject<nntrainer::Optimizer>(optimizer_type_name);
+  EXPECT_NO_THROW(optimizer->finalize());
+  EXPECT_NO_THROW(optimizer->save(writeFile));
+}
