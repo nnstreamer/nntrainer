@@ -32,8 +32,16 @@
 #include "causal_lm.h"
 #include "qwen3_causallm.h"
 #include "qwen3_moe_causallm.h"
+#include <sys/resource.h>
 
 using json = nlohmann::json;
+
+void printMemoryUsage() {
+  struct rusage usage;
+  getrusage(RUSAGE_SELF, &usage);
+  std::cout << "Max Resident Set Size: " << usage.ru_maxrss << " KB"
+            << std::endl;
+}
 
 int main(int argc, char *argv[]) {
 
@@ -100,6 +108,7 @@ int main(int argc, char *argv[]) {
 #else
     model->run(input_text, generation_cfg["do_sample"]);
 #endif
+    printMemoryUsage();
 
   } catch (const std::exception &e) {
     std::cerr << "\n[!] FATAL ERROR: " << e.what() << "\n";
