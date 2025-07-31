@@ -684,7 +684,8 @@ void NeuralNetwork::load(const std::string &file_path,
       /// this kind of type checking should be avoided
       if (tensor_data_type != TensorDim::DataType::FP32 &&
           tensor_data_type != TensorDim::DataType::FP16 &&
-          tensor_data_type != TensorDim::DataType::Q6_K) {
+          tensor_data_type != TensorDim::DataType::Q6_K &&
+          tensor_data_type != TensorDim::DataType::Q4_0) {
         // for tensor with qparam
         size += sizeof(uint16_t);
       }
