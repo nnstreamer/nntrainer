@@ -82,6 +82,14 @@ TEST_P(LayerSemantics, setBatchValidate_p) {
   }
 }
 
+TEST_P(LayerSemantics, exportTo_p) {
+  EXPECT_NO_THROW(layer->setProperty(valid_properties));
+
+  nntrainer::Exporter e;
+  EXPECT_NO_THROW(
+    layer->exportTo(e, ml::train::ExportMethods::METHOD_STRINGVECTOR));
+}
+
 #ifdef ENABLE_OPENCL
 TEST_P(LayerSemanticsGpu, setProperties_n) {
   /** must not crash */
