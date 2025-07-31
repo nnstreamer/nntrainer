@@ -273,10 +273,9 @@ int main(int argc, char** argv) {
 
     std::vector<unsigned int> task_counts = {64, 32, 16, 8, 4, 2, 1};
 
-    unsigned int single_thread_time;
-    double best_speed_up = 1.0;
+    unsigned int single_thread_time = -1;
     unsigned int best_tasks = 1;
-    unsigned int best_time;
+    unsigned int best_time = 1e9;
 
     std::cout << "\nBenchmarking for mode '" << mode << "' (" \
                 "M=" << M << ", K=" << K << ", N=" << N << ")\n";
@@ -317,12 +316,10 @@ int main(int argc, char** argv) {
 
         if (task == 1) {
             single_thread_time = mean;
-            best_time = single_thread_time;
         } else {
-            if (single_thread_time / mean > best_speed_up) {
-                best_speed_up = single_thread_time / mean;
-                best_tasks = task;
-                best_time = mean;
+            if (mean < best_time) {
+              best_time = mean;
+              best_tasks = task;
             }
         }
         std::cout << std::fixed << std::setprecision(3);
@@ -331,8 +328,12 @@ int main(int argc, char** argv) {
                     "    Std Dev: " << std::setw(10) << stddev << (to_milli ? " ms \n" : " us\n");
     }
 
-    std::cout << "Fastest time at " << best_time << (to_milli ? " ms " : " us ") << " with a speedup of " << best_speed_up
-              << "x, using " << best_tasks << " tasks." << std::endl << std::endl;
+    if (single_thread_time > 0) {
+      std::cout << "Fastest time at " << best_time << (to_milli ? " ms " : " us ") << " with a speedup of " << (double) single_thread_time / best_time
+                << "x, using " << best_tasks << " tasks." << std::endl << std::endl;
+    } else {
+      std::cout << "Speed up cannot be computed as single thread was not given as an option.";
+    }
 
     return 0;
 }
