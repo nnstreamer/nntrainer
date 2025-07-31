@@ -136,6 +136,58 @@ TEST(nntrainer_LayerNode, finalize_05_n) {
 }
 
 /**
+ * @brief finalize with invalid input_shape (1D)
+ */
+TEST(nntrainer_LayerNode, finalize_06_n) {
+  std::unique_ptr<nntrainer::LayerNode> lnode;
+
+  EXPECT_NO_THROW(lnode =
+                    nntrainer::createLayerNode(nntrainer::IdentityLayer::type));
+  EXPECT_NO_THROW(lnode->setProperty({"input_shape=1"}));
+
+  EXPECT_THROW(lnode->finalize(), std::invalid_argument);
+}
+
+/**
+ * @brief finalize with invalid input_shape (2D)
+ */
+TEST(nntrainer_LayerNode, finalize_07_n) {
+  std::unique_ptr<nntrainer::LayerNode> lnode;
+
+  EXPECT_NO_THROW(lnode =
+                    nntrainer::createLayerNode(nntrainer::IdentityLayer::type));
+  EXPECT_NO_THROW(lnode->setProperty({"input_shape=1:1"}));
+
+  EXPECT_THROW(lnode->finalize(), std::invalid_argument);
+}
+
+/**
+ * @brief finalize with missing input_shape
+ */
+TEST(nntrainer_LayerNode, finalize_08_n) {
+  std::unique_ptr<nntrainer::LayerNode> lnode;
+
+  EXPECT_NO_THROW(lnode =
+                    nntrainer::createLayerNode(nntrainer::IdentityLayer::type));
+  EXPECT_NO_THROW(lnode->setProperty({}));
+
+  EXPECT_THROW(lnode->finalize(), std::invalid_argument);
+}
+
+/**
+ * @brief finalize with invalid input_shape (negative value)
+ */
+TEST(nntrainer_LayerNode, finalize_09_n) {
+  std::unique_ptr<nntrainer::LayerNode> lnode;
+
+  EXPECT_NO_THROW(lnode =
+                    nntrainer::createLayerNode(nntrainer::IdentityLayer::type));
+  EXPECT_NO_THROW(lnode->setProperty({"input_shape=-1:1:1"}));
+
+  EXPECT_THROW(lnode->finalize(), std::invalid_argument);
+}
+
+/**
  * @brief getRunContext for empty run_context
  */
 TEST(nntrainer_LayerNode, getRunContext_01_n) {
