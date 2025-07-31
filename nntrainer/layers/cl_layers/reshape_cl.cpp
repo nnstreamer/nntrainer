@@ -169,13 +169,13 @@ void ReshapeLayerCl::copy_cl_fp16(const _FP16 *input, _FP16 *res,
     }
 
     result = kernel_copy_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
+      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
 
     result = kernel_copy_ptr->SetKernelArguments(
-      1, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
+      1, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -255,13 +255,13 @@ void ReshapeLayerCl::scopy_cl(const float *input, float *res,
     }
 
     result = kernel_copy_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
+      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
 
     result = kernel_copy_ptr->SetKernelArguments(
-      1, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
+      1, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }

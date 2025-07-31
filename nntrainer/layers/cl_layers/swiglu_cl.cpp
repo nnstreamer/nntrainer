@@ -147,19 +147,19 @@ void SwiGLULayerCl::swiglu_cl(const float *matAdata, const float *vecXdata,
     }
 
     result = kernel_swiglu_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
+      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
 
     result = kernel_swiglu_ptr->SetKernelArguments(
-      1, clbuffInstance.getInBufferB(), sizeof(cl_mem));
+      1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
 
     result = kernel_swiglu_ptr->SetKernelArguments(
-      2, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
+      2, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -219,19 +219,19 @@ void SwiGLULayerCl::swiglu_cl_fp16(const _FP16 *matAdata, const _FP16 *vecXdata,
     }
 
     result = kernel_swiglu_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
+      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
 
     result = kernel_swiglu_ptr->SetKernelArguments(
-      1, clbuffInstance.getInBufferB(), sizeof(cl_mem));
+      1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
 
     result = kernel_swiglu_ptr->SetKernelArguments(
-      2, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
+      2, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }

@@ -63,19 +63,19 @@ void sgemv_cl(const _FP16 *matAdata, const _FP16 *vecXdata, _FP16 *vecYdata,
     }
 
     result = kernel_sgemv_fp16_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
+      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
 
     result = kernel_sgemv_fp16_ptr->SetKernelArguments(
-      1, clbuffInstance.getInBufferB(), sizeof(cl_mem));
+      1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
 
     result = kernel_sgemv_fp16_ptr->SetKernelArguments(
-      2, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
+      2, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -142,13 +142,13 @@ _FP16 dot_cl(const _FP16 *vecAdata, const _FP16 *vecXdata, unsigned int dim1) {
     }
 
     result = kernel_dot_fp16_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
+      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
 
     result = kernel_dot_fp16_ptr->SetKernelArguments(
-      1, clbuffInstance.getInBufferB(), sizeof(cl_mem));
+      1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -159,7 +159,7 @@ _FP16 dot_cl(const _FP16 *vecAdata, const _FP16 *vecXdata, unsigned int dim1) {
     }
 
     result = kernel_dot_fp16_ptr->SetKernelArguments(
-      3, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
+      3, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -243,19 +243,19 @@ void sgemm_cl(bool TransA, bool TransB, const _FP16 *A, const _FP16 *B,
     }
 
     result = kernel_sgemm_fp16_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
+      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
 
     result = kernel_sgemm_fp16_ptr->SetKernelArguments(
-      1, clbuffInstance.getInBufferB(), sizeof(cl_mem));
+      1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
 
     result = kernel_sgemm_fp16_ptr->SetKernelArguments(
-      2, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
+      2, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -329,13 +329,13 @@ void addition_cl(const _FP16 *input, _FP16 *res, unsigned int size_input,
     }
 
     result = kernel_addition_fp16_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
+      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
 
     result = kernel_addition_fp16_ptr->SetKernelArguments(
-      1, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
+      1, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -395,7 +395,7 @@ void sscal_cl(_FP16 *X, const unsigned int N, const float alpha) {
     }
 
     result = kernel_sscal_fp16_ptr->SetKernelArguments(
-      0, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
+      0, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -475,13 +475,13 @@ void transpose_cl_axis(const _FP16 *in, _FP16 *res,
     }
 
     result = kernel_transpose_fp_16_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
+      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
 
     result = kernel_transpose_fp_16_ptr->SetKernelArguments(
-      1, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
+      1, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }

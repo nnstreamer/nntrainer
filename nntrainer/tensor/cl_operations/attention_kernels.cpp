@@ -103,42 +103,42 @@ void rotary_emb_cl(float *in, float *out,
     }
 
     result = kernel_rotaryEmb_ptr->SetKernelArguments(
-      0, cl_buffer_manager.getInBufferA(), sizeof(cl_mem));
+      0, cl_buffer_manager.getInBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       printf("Failed to set inputA argument\n");
       break;
     }
 
     result = kernel_rotaryEmb_ptr->SetKernelArguments(
-      1, cl_buffer_manager.getOutBufferA(), sizeof(cl_mem));
+      1, cl_buffer_manager.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       printf("Failed to set inOutRes argument\n");
       break;
     }
 
     result = kernel_rotaryEmb_ptr->SetKernelArguments(
-      2, cl_buffer_manager.getInBufferB(), sizeof(cl_mem));
+      2, cl_buffer_manager.getInBufferB()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       printf("Failed to set freqs_cosBuf argument\n");
       break;
     }
 
     result = kernel_rotaryEmb_ptr->SetKernelArguments(
-      3, cl_buffer_manager.getInBufferB(), sizeof(cl_mem));
+      3, cl_buffer_manager.getInBufferB()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       printf("Failed to set freqs_sinBuf argument\n");
       break;
     }
 
     result = kernel_rotaryEmb_ptr->SetKernelArguments(
-      4, cl_buffer_manager.getInBufferC(), sizeof(cl_mem));
+      4, cl_buffer_manager.getInBufferC()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       printf("Failed to set cosBuf argument\n");
       break;
     }
 
     result = kernel_rotaryEmb_ptr->SetKernelArguments(
-      5, cl_buffer_manager.getInBufferC(), sizeof(cl_mem));
+      5, cl_buffer_manager.getInBufferC()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       printf("Failed to set sinBuf argument\n");
       break;
