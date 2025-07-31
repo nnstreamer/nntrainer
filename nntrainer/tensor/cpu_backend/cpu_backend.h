@@ -30,7 +30,7 @@
 #ifdef ENABLE_FP16
 /**
  * @brief F32 * F16 = F32 GEMM
- * 
+ *
  * @param TStorageOrder Row major / Col major
  * @param TransA boolean flag for transpose A
  * @param TransB boolean flag for transpose B
@@ -47,13 +47,13 @@
  * @param ldc leading dimension of C
  */
 void shgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
-           const unsigned int M, const unsigned int N, const unsigned int K,
-           const float alpha, const float *A, const unsigned int lda,
-           const _FP16 *B, const unsigned int ldb, const float beta, float *C,
-           const unsigned int ldc);
+            const unsigned int M, const unsigned int N, const unsigned int K,
+            const float alpha, const float *A, const unsigned int lda,
+            const _FP16 *B, const unsigned int ldb, const float beta, float *C,
+            const unsigned int ldc);
 /**
  * @brief F32 * F16 = F32 GEMV
- * 
+ *
  * @param TStorageOrder Row major / Col major
  * @param TransA boolean flag for transpose A
  * @param TransB boolean flag for transpose B
@@ -70,12 +70,12 @@ void shgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
  * @param ldc leading dimension of C
  */
 void shgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
-           const unsigned int N, const float alpha, const float *A,
-           const unsigned int lda, const _FP16 *X, const unsigned int incX,
-           const float beta, float *Y, const unsigned int incY);
+            const unsigned int N, const float alpha, const float *A,
+            const unsigned int lda, const _FP16 *X, const unsigned int incX,
+            const float beta, float *Y, const unsigned int incY);
 /**
  * @brief F16 * F32 = F32 GEMM
- * 
+ *
  * @param TStorageOrder Row major / Col major
  * @param TransA boolean flag for transpose A
  * @param TransB boolean flag for transpose B
@@ -92,13 +92,13 @@ void shgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
  * @param ldc leading dimension of C
  */
 void hsgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
-           const unsigned int M, const unsigned int N, const unsigned int K,
-           const float alpha, const _FP16 *A, const unsigned int lda,
-           const float *B, const unsigned int ldb, const float beta, float *C,
-           const unsigned int ldc);
+            const unsigned int M, const unsigned int N, const unsigned int K,
+            const float alpha, const _FP16 *A, const unsigned int lda,
+            const float *B, const unsigned int ldb, const float beta, float *C,
+            const unsigned int ldc);
 /**
  * @brief F16 * F32 = F32 GEMV
- * 
+ *
  * @param TStorageOrder Row major / Col major
  * @param TransA boolean flag for transpose A
  * @param TransB boolean flag for transpose B
@@ -115,9 +115,9 @@ void hsgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
  * @param ldc leading dimension of C
  */
 void hsgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
-           const unsigned int N, const float alpha, const _FP16 *A,
-           const unsigned int lda, const float *X, const unsigned int incX,
-           const float beta, float *Y, const unsigned int incY); 
+            const unsigned int N, const float alpha, const _FP16 *A,
+            const unsigned int lda, const float *X, const unsigned int incX,
+            const float beta, float *Y, const unsigned int incY);
 /**
  * @brief Accelerating function for rotary embedding layer forwarding
  *
