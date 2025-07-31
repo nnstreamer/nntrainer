@@ -365,7 +365,7 @@ TEST(nntrainerInterpreterTflite, MNIST_FULL_TEST) {
 
   in_f.push_back(nntr_input);
   auto answer_f = nn_model->inference(1, in_f, l_f);
-  std::cout << "answer_length" << answer_f.size() << "\n";
+
   for (auto element : answer_f) {
     ans.push_back(*element);
   }
@@ -376,8 +376,8 @@ TEST(nntrainerInterpreterTflite, MNIST_FULL_TEST) {
 
   for (size_t i = 0; i < ans.size(); i++) {
     EXPECT_NEAR(out[i], ans[i], 0.000001f);
-    std::cout << "out : " << out[i] << " ans : " << ans[i] << std::endl;
   }
+
   if (remove("MNIST_FULL_TEST.tflite")) {
     const size_t error_buflen = 100;
     char error_buf[error_buflen];
@@ -386,4 +386,67 @@ TEST(nntrainerInterpreterTflite, MNIST_FULL_TEST) {
               << "failed, reason: "
               << SAFE_STRERROR(errno, error_buf, error_buflen);
   }
+}
+
+/**
+ * @brief Simple Fully Connected Layer export TEST with dropout Layer
+ */
+TEST(nntrainerInterpreterTflite, SIMPLE_FC_WITH_DROPOUT) {
+
+  nntrainer::TfliteInterpreter interpreter;
+
+  ModelHandle nn_model = ml::train::createModel(
+    ml::train::ModelType::NEURAL_NET, {nntrainer::withKey("loss", "mse")});
+
+  nn_model->addLayer(
+    createLayer("input", {nntrainer::withKey("name", "in0"),
+                          nntrainer::withKey("input_shape", "1:1:1:1")}));
+  nn_model->addLayer(
+    createLayer("fully_connected", {nntrainer::withKey("name", "fc0"),
+                                    nntrainer::withKey("unit", 2)}));
+  nn_model->addLayer(
+    createLayer("dropout", {nntrainer::withKey("name", "dropout_1"),
+                            nntrainer::withKey("dropout_rate", "0.3")}));
+  nn_model->addLayer(
+    createLayer("fully_connected", {nntrainer::withKey("name", "fc1"),
+                                    nntrainer::withKey("unit", 1)}));
+
+  auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
+  EXPECT_EQ(nn_model->setOptimizer(std::move(optimizer)), ML_ERROR_NONE);
+  EXPECT_EQ(nn_model->compile(), ML_ERROR_NONE);
+  EXPECT_EQ(nn_model->initialize(), ML_ERROR_NONE);
+
+  data_clear();
+  unsigned int data_size = 1 * 1 * 1 * 1;
+  std::vector<float> input_data;
+  float *nntr_input = new float[data_size];
+
+  for (unsigned int i = 0; i < data_size; i++) {
+    auto rand_float = static_cast<float>(rand_r(&seed) / (RAND_MAX + 1.0));
+    input_data.push_back(rand_float);
+    nntr_input[i] = rand_float;
+  }
+
+  in_f.push_back(nntr_input);
+  auto answer_f = nn_model->inference(1, in_f, l_f);
+  for (auto element : answer_f) {
+    ans.push_back(*element);
+  }
+  nn_model->exports(ml::train::ExportMethods::METHOD_TFLITE,
+                    "simple_fc_dropout.tflite");
+
+  out = run_tflite("simple_fc_dropout.tflite", input_data);
+
+  for (size_t i = 0; i < out.size(); i++)
+    EXPECT_NEAR(out[i], ans[i], 0.000001f);
+
+  const size_t error_buflen = 100;
+  char error_buf[error_buflen];
+  if (remove("simple_fc_dropout.tflite")) {
+    std::cerr << "remove tflite "
+              << "simple_fc_dropout.tflite"
+              << "failed, reason: "
+              << SAFE_STRERROR(errno, error_buf, error_buflen);
+  }
+  delete[] nntr_input;
 }
