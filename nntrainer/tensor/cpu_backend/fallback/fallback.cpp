@@ -252,4 +252,8 @@ void repack_q4_K_to_q4_K_8(void *W, void *repacked_W, size_t data_size,
   return __fallback_repack_q4_K_to_q4_K_8(W, repacked_W, data_size, M, N);
 }
 
+void set_task_count(const size_t task_count) {
+  (void) task_count;
+}
+
 } /* namespace nntrainer */

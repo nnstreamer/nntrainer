@@ -24,6 +24,15 @@
 #include <vector>
 
 namespace nntrainer {
+static int TASK_COUNT = 8;
+/**
+ * @brief FOR BENCHMARKING; sets task count for multi-threading
+ * 
+ * @param task_count number of sub-tasks to divide a big task into
+ */
+void __ggml_set_task_count(const size_t task_count) {
+  TASK_COUNT = task_count;
+}
 /**
  * @brief Continuously packed 4 q8_K
  *

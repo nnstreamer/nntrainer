@@ -7,6 +7,8 @@ if get_option('ggml-thread-backend') == 'bsthread'
   ggml_interface_sources += 'ggml_interface_bs_threadpool.cpp'
 elif get_option('ggml-thread-backend') == 'openmp'
   ggml_interface_sources += 'ggml_interface_omp.cpp'
+elif get_option('ggml-thread-backend') == 'spthread'
+  ggml_interface_sources += 'ggml_interface_sp_threadpool.cpp'
 else
   message('Unknown ggml-thread-backend meson option! Use openMP as a default.')
   ggml_interface_sources += 'ggml_interface_omp.cpp'

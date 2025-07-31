@@ -203,6 +203,13 @@ void __ggml_repack_q4_0_to_q4_0_8(void *W, void *repacked_W, size_t data_size,
  */
 void __ggml_repack_q4_K_to_q4_K_8(void *W, void *repacked_W, size_t data_size,
                                   const unsigned int M, const unsigned int N);
+
+/**
+ * @brief FOR BENCHMARKING; sets task count for multi-threading
+ * 
+ * @param task_count number of sub-tasks to divide a big task into
+ */
+void __ggml_set_task_count(const size_t task_count);
 } // namespace nntrainer
 
 #endif
