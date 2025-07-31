@@ -251,19 +251,19 @@ void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
     }
 
     result = kernel_sgemv_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
+      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
 
     result = kernel_sgemv_ptr->SetKernelArguments(
-      1, clbuffInstance.getInBufferB(), sizeof(cl_mem));
+      1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
 
     result = kernel_sgemv_ptr->SetKernelArguments(
-      2, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
+      2, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -329,13 +329,13 @@ float dot_cl(const float *vecAdata, const float *vecXdata, unsigned int dim1) {
     }
 
     result = kernel_dot_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
+      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
 
     result = kernel_dot_ptr->SetKernelArguments(
-      1, clbuffInstance.getInBufferB(), sizeof(cl_mem));
+      1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -346,7 +346,7 @@ float dot_cl(const float *vecAdata, const float *vecXdata, unsigned int dim1) {
     }
 
     result = kernel_dot_ptr->SetKernelArguments(
-      3, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
+      3, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -430,19 +430,19 @@ void sgemm_cl(bool TransA, bool TransB, const float *A, const float *B,
     }
 
     result = kernel_sgemm_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
+      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
 
     result = kernel_sgemm_ptr->SetKernelArguments(
-      1, clbuffInstance.getInBufferB(), sizeof(cl_mem));
+      1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
 
     result = kernel_sgemm_ptr->SetKernelArguments(
-      2, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
+      2, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -515,12 +515,12 @@ void addition_cl(const float *input, float *res, unsigned int size_input,
     }
 
     result = kernel_addition_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
+      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
     result = kernel_addition_ptr->SetKernelArguments(
-      1, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
+      1, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -578,8 +578,8 @@ void sscal_cl(float *X, const unsigned int N, const float alpha) {
       break;
     }
 
-    result = kernel_ptr->SetKernelArguments(0, clbuffInstance.getOutBufferA(),
-                                            sizeof(cl_mem));
+    result = kernel_ptr->SetKernelArguments(
+      0, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -658,13 +658,13 @@ void transpose_cl_axis(const float *in, float *res,
     }
 
     result = kernel_transpose_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
+      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }
 
     result = kernel_transpose_ptr->SetKernelArguments(
-      1, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
+      1, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!result) {
       break;
     }

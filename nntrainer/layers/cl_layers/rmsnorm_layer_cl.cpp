@@ -132,19 +132,19 @@ void RMSNormLayerCl::rmsnormProcess(Tensor const &input, Tensor &result,
     }
 
     ret = kernel_rmsnorm_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
+      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!ret) {
       break;
     }
 
     ret = kernel_rmsnorm_ptr->SetKernelArguments(
-      1, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
+      1, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!ret) {
       break;
     }
 
     ret = kernel_rmsnorm_ptr->SetKernelArguments(
-      2, clbuffInstance.getInBufferB(), sizeof(cl_mem));
+      2, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem));
     if (!ret) {
       break;
     }
@@ -230,19 +230,19 @@ void RMSNormLayerCl::rmsnormProcess_fp16(Tensor const &input, Tensor &result,
     }
 
     ret = kernel_rmsnorm_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA(), sizeof(cl_mem));
+      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!ret) {
       break;
     }
 
     ret = kernel_rmsnorm_ptr->SetKernelArguments(
-      1, clbuffInstance.getOutBufferA(), sizeof(cl_mem));
+      1, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
     if (!ret) {
       break;
     }
 
     ret = kernel_rmsnorm_ptr->SetKernelArguments(
-      2, clbuffInstance.getInBufferB(), sizeof(cl_mem));
+      2, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem));
     if (!ret) {
       break;
     }
