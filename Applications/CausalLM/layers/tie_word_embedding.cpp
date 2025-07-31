@@ -305,13 +305,8 @@ void TieWordEmbedding::incremental_forwarding_lmhead(
                   std::invalid_argument)
       << "weight type is not supported for custom tie word embedding layer";
 
-    if (weight.getDataType() == nntrainer::TensorDim::DataType::Q6_K) {
-      // Q6_K/Q4_K weight is already supported transposed dot internally.
-      input_step.dot(weight, hidden_step);
-    } else {
-      // dot with Transposed
-      input_step.dot(weight, hidden_step, false, true);
-    }
+    input_step.dot(weight, hidden_step, false, true);
+
     if (auto &disable_bias =
           std::get<nntrainer::props::DisableBias>(*layer_impl_props);
         disable_bias.empty() || disable_bias.get() == false) {
