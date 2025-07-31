@@ -126,6 +126,13 @@ Tensor::Tensor(const Tensor &rhs) {
   }
 }
 
+Tensor::Tensor(std::shared_ptr<TensorBase> rhs) {
+  NNTR_THROW_IF(rhs == nullptr, std::invalid_argument)
+    << "Error: received a nullptr. Tensor cannot be constructed";
+
+  itensor = rhs;
+}
+
 Tensor &Tensor::operator=(const Tensor &rhs) {
   if (rhs.getDataType() == Tdatatype::FP32) {
     itensor = std::shared_ptr<FloatTensor>(new FloatTensor(*rhs.itensor),
@@ -898,7 +905,7 @@ size_t Tensor::getOffset() const { return itensor->getOffset(); }
 
 void Tensor::copy(const Tensor &from) {
   /// @todo enable copy to non-contiguous tensor
-  if (!itensor->getContiguous()) {
+  if (!itensor->getContiguous() || !from.getContiguous()) {
     throw std::runtime_error("Cannot copy non-contiguous tensor");
   }
 

@@ -4692,11 +4692,53 @@ TEST(nntrainer_Tensor, transpose_nhwc_p) {
   }
 }
 
-TEST(nntrainer_Tensor, tranpose_dimension_not_match_nhwc_n) {
+TEST(nntrainer_Tensor, tranpose_dimension_not_match_nhwc_01_n) {
   nntrainer::Tensor a(3, 5, 2, 4, NHWC_, FP32_);
   nntrainer::Tensor b(3, 3, 1, 2, NHWC_, FP32_);
 
   EXPECT_THROW(a.transpose("0:1:2", b), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, tranpose_dimension_not_match_nhwc_02_n) {
+  nntrainer::Tensor a(3, 5, 2, 4, NHWC_, FP32_);
+  nntrainer::Tensor b(3, 3, 1, 2, NHWC_, FP32_);
+
+  EXPECT_THROW(a.transpose("0:1", b), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, tranpose_dimension_not_match_nhwc_03_n) {
+  nntrainer::Tensor a(3, 5, 2, 4, NHWC_, FP32_);
+  nntrainer::Tensor b(3, 3, 1, 2, NHWC_, FP32_);
+
+  EXPECT_THROW(a.transpose("1:2:3:4", b), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, tranpose_invalid_format_01_n) {
+  nntrainer::Tensor a(3, 5, 2, 4, NHWC_, FP32_);
+  nntrainer::Tensor b(3, 3, 1, 2, NHWC_, FP32_);
+
+  EXPECT_THROW(a.transpose("1<->4", b), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, tranpose_invalid_format_02_n) {
+  nntrainer::Tensor a(3, 5, 2, 4, NHWC_, FP32_);
+  nntrainer::Tensor b(3, 3, 1, 2, NHWC_, FP32_);
+
+  EXPECT_THROW(a.transpose("2,0,1,3", b), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, tranpose_invalid_format_03_n) {
+  nntrainer::Tensor a(3, 5, 2, 4, NHWC_, FP32_);
+  nntrainer::Tensor b(3, 3, 1, 2, NHWC_, FP32_);
+
+  EXPECT_THROW(a.transpose("2-0-1-3", b), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, tranpose_invalid_format_04_n) {
+  nntrainer::Tensor a(3, 5, 2, 4, NHWC_, FP32_);
+  nntrainer::Tensor b(3, 3, 1, 2, NHWC_, FP32_);
+
+  EXPECT_THROW(a.transpose("2/0/1/3", b), std::invalid_argument);
 }
 
 // /**

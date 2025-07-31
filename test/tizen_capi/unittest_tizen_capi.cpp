@@ -1617,6 +1617,29 @@ TEST(nntrainer_capi_nnmodel, get_input_output_dimension_06_n) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
+TEST(nntrainer_capi_nnmodel, save_01_p) {
+  ml_train_model_h handle = NULL;
+  ml_train_model_h handle2 = NULL;
+
+  std::string config_file = "model.ini";
+
+  int status = ML_ERROR_NONE;
+
+  ScopedIni s("capi_test_save_load_01_p",
+              {model_base, optimizer, dataset, inputlayer, outputlayer});
+  status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_train_model_compile(handle, NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status =
+    ml_train_model_save(handle, config_file.c_str(),
+                        ml_train_model_format_e::ML_TRAIN_MODEL_FORMAT_INI);
+
+  status = ml_train_model_destroy(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
 /**
  * @brief Main gtest
  */

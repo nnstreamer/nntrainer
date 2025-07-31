@@ -19,6 +19,8 @@
 #include <memory_pool.h>
 #include <nntrainer_test_util.h>
 #include <optimized_v1_planner.h>
+#include <optimized_v2_planner.h>
+#include <optimized_v3_planner.h>
 
 constexpr unsigned int MEM_BYTES = 128;
 constexpr unsigned int MEM_QUANT = 100;
@@ -393,4 +395,6 @@ TEST_P(MemoryPlannerValidate, validate_memory_partial_overlap) {
 GTEST_PARAMETER_TEST(
   MemoryPlanner, MemoryPlannerValidate,
   ::testing::Values(std::make_shared<nntrainer::BasicPlanner>(),
-                    std::make_shared<nntrainer::OptimizedV1Planner>()));
+                    std::make_shared<nntrainer::OptimizedV1Planner>(),
+                    std::make_shared<nntrainer::OptimizedV2Planner>(),
+                    std::make_shared<nntrainer::OptimizedV3Planner>()));

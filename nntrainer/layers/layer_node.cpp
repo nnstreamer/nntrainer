@@ -28,7 +28,7 @@
 #include <nntrainer_log.h>
 #include <node_exporter.h>
 #include <profiler.h>
-#include <time_dist.h>
+// #include <time_dist.h>
 #include <tracer.h>
 #include <util_func.h>
 
@@ -199,9 +199,9 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   loss(new props::Loss()),
   regularization_loss(0.0f),
   exec_order({0, 0, 0, 0}) {
-  if (layer && layer->getType() == TimeDistLayer::type) {
-    std::get<props::Distribute>(*layer_node_props).set(true);
-  }
+  // if (layer && layer->getType() == TimeDistLayer::type) {
+  //   std::get<props::Distribute>(*layer_node_props).set(true);
+  // }
 }
 
 void LayerNode::setProperty(const std::vector<std::string> &properties) {
@@ -404,17 +404,17 @@ bool LayerNode::getDistribute() const {
 }
 
 const nntrainer::Layer *LayerNode::getLayer() const {
-  if (run_context && getDistribute())
-    return static_cast<TimeDistLayer *>(layer.get())->getDistLayer();
-  else
-    return layer.get();
+  // if (run_context && getDistribute())
+  //   return static_cast<TimeDistLayer *>(layer.get())->getDistLayer();
+  // else
+  return layer.get();
 }
 
 nntrainer::Layer *LayerNode::getLayer() {
-  if (run_context && getDistribute())
-    return static_cast<TimeDistLayer *>(layer.get())->getDistLayer();
-  else
-    return layer.get();
+  // if (run_context && getDistribute())
+  //   return static_cast<TimeDistLayer *>(layer.get())->getDistLayer();
+  // else
+  return layer.get();
 }
 
 void LayerNode::setOutputLayers(const std::vector<std::string> &layers) {
@@ -598,14 +598,14 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims,
     << " num input dims: " << input_dims.size()
     << " num connections: " << getNumInputConnections();
 
-  /** manipulate layers if required */
-  if (getType() != TimeDistLayer::type && getDistribute()) {
-    std::unique_ptr<TimeDistLayer> dlayer(new TimeDistLayer());
-    NNTR_THROW_IF(!dlayer, std::invalid_argument)
-      << "Error creating time distribution layer";
-    dlayer->setDistLayer(std::move(layer));
-    layer = std::move(dlayer);
-  }
+  // /** manipulate layers if required */
+  // if (getType() != TimeDistLayer::type && getDistribute()) {
+  //   std::unique_ptr<TimeDistLayer> dlayer(new TimeDistLayer());
+  //   NNTR_THROW_IF(!dlayer, std::invalid_argument)
+  //     << "Error creating time distribution layer";
+  //   dlayer->setDistLayer(std::move(layer));
+  //   layer = std::move(dlayer);
+  // }
 
   const auto &scope = getSharedFrom().empty() ? getName() : getSharedFrom();
   float max_norm = 0.0;
@@ -703,14 +703,14 @@ LayerNode::refinalize(const std::vector<TensorDim> &input_dims) {
     << " num input dims: " << input_dims.size()
     << " num connections: " << getNumInputConnections();
 
-  /** manipulate layers if required */
-  if (getType() != TimeDistLayer::type && getDistribute()) {
-    std::unique_ptr<TimeDistLayer> dlayer(new TimeDistLayer());
-    NNTR_THROW_IF(!dlayer, std::invalid_argument)
-      << "Error creating time distribution layer";
-    dlayer->setDistLayer(std::move(layer));
-    layer = std::move(dlayer);
-  }
+  // /** manipulate layers if required */
+  // if (getType() != TimeDistLayer::type && getDistribute()) {
+  //   std::unique_ptr<TimeDistLayer> dlayer(new TimeDistLayer());
+  //   NNTR_THROW_IF(!dlayer, std::invalid_argument)
+  //     << "Error creating time distribution layer";
+  //   dlayer->setDistLayer(std::move(layer));
+  //   layer = std::move(dlayer);
+  // }
 
   const auto &scope = getSharedFrom().empty() ? getName() : getSharedFrom();
   float max_norm = 0.0;

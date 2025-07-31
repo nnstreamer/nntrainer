@@ -21,7 +21,7 @@
 #include <layer_node.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
-#include <time_dist.h>
+// #include <time_dist.h>
 #include <util_func.h>
 
 #if defined(ENABLE_NNSTREAMER_BACKBONE)
@@ -216,8 +216,6 @@ referenced
 //     iniparser_getstring(ini, (sec_name + ":InputLayer").c_str(), "");
 //   std::string output_layer =
 //     iniparser_getstring(ini, (sec_name + ":OutputLayer").c_str(), "");
-
-//   auto g = graph->getUnsortedLayers(input_layer, output_layer);
 
 //   NNTR_THROW_IF(g.empty(), std::invalid_argument)
 //     << FUNC_TAG << "backbone graph is empty";

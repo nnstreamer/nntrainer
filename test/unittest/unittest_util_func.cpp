@@ -35,6 +35,13 @@ TEST(nntrainer_util_func, sqrtFloat_01_p) {
   EXPECT_NEAR(sx * sx, x, tolerance * 10);
 }
 
+TEST(nntrainer_util_func, absFloat_01_p) {
+  float x = -9871.0;
+  float sx = nntrainer::absFloat(x);
+
+  EXPECT_NEAR(sx, -1 * x, tolerance);
+}
+
 TEST(nntrainer_util_func, logFloat_01_p) {
   int batch = 1;
   int channel = 1;
@@ -56,21 +63,13 @@ TEST(nntrainer_util_func, logFloat_01_p) {
   }
 }
 
-// TEST(nntrainer_util_func, rotate_180_p) {
-//   nntrainer::TensorDim dim(1, 1, 2, 3);
+TEST(nntrainer_util_func, exp_util_01_p) {
+  float x = 1;
+  float ex = nntrainer::exp_util(x);
+  float ans = 2.718281828459;
 
-//   float data[6] = {1, 2, 3, 4, 5, 6};
-//   float rotated_data[6] = {6, 5, 4, 3, 2, 1};
-
-//   nntrainer::Tensor tensor1(dim, data);
-//   nntrainer::Tensor tensor2 = nntrainer::rotate_180(tensor1);
-
-//   for (unsigned int i = 0, cnt = 0; i < dim.batch(); ++i)
-//     for (unsigned int j = 0; j < dim.channel(); ++j)
-//       for (unsigned int k = 0; k < dim.height(); ++k)
-//         for (unsigned int l = 0; l < dim.width(); ++l)
-//           EXPECT_EQ(tensor2.getValue(i, j, k, l), rotated_data[cnt++]);
-// }
+  EXPECT_NEAR(ex, ans, tolerance);
+}
 
 TEST(nntrainer_util_func, checkedRead_n) {
   std::ifstream file("not existing file");

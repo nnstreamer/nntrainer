@@ -426,6 +426,4 @@ TEST_P(LayerGoldenTest, run) {
 
   compareRunContext(rc, golden_file, skip_calc_grad, skip_calc_deriv,
                     dropout_compare_60_percent, skip_cos_sim);
-
-  EXPECT_TRUE(true); // stub test for tcm
 }

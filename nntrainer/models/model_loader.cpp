@@ -21,7 +21,7 @@
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <optimizer_wrapped.h>
-#include <time_dist.h>
+// #include <time_dist.h>
 #include <util_func.h>
 
 #if defined(ENABLE_NNSTREAMER_BACKBONE)

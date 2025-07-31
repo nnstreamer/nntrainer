@@ -18,8 +18,14 @@
 
 #include <gtest/gtest.h>
 
+#include <addition_layer.h>
+#include <app_context.h>
+#include <attention_layer.h>
+#include <embedding.h>
+#include <fc_layer.h>
 #include <input_layer.h>
 #include <layer.h>
+#include <layer_normalization_layer.h>
 #include <neuralnet.h>
 
 #include <models_golden_test.h>
@@ -1071,6 +1077,134 @@ TEST(nntrainerModels, read_save_01_n) {
 
   EXPECT_THROW(NN.load("model.bin"), std::runtime_error);
   EXPECT_THROW(NN.save("model.bin"), std::runtime_error);
+}
+
+/**
+ * @brief save ini with bin
+ */
+TEST(nntrainerModels, read_save_02_p) {
+  // auto &ac = nntrainer::AppContext::Global();
+  // nntrainer::NeuralNetwork NN(ac);
+
+  nntrainer::NeuralNetwork NN;
+
+  std::vector<std::shared_ptr<nntrainer::LayerNode>> vec;
+
+  std::shared_ptr<nntrainer::LayerNode> layer_node1 =
+    nntrainer::createLayerNode(nntrainer::InputLayer::type,
+                               {"input_shape=1:1:3"});
+  std::shared_ptr<nntrainer::LayerNode> layer_node2 =
+    nntrainer::createLayerNode(nntrainer::FullyConnectedLayer::type,
+                               {"unit=5"});
+
+  vec.push_back(layer_node1);
+  vec.push_back(layer_node2);
+
+  EXPECT_NO_THROW(NN.addLayer(layer_node1));
+  EXPECT_NO_THROW(NN.addLayer(layer_node2));
+  EXPECT_EQ(NN.getCompiled(), false);
+  EXPECT_EQ(NN.getInitialized(), false);
+  EXPECT_NO_THROW(NN.compile());
+  EXPECT_EQ(NN.getCompiled(), true);
+  EXPECT_EQ(NN.getInitialized(), false);
+  EXPECT_NO_THROW(NN.initialize(ml::train::ExecutionMode::INFERENCE));
+  EXPECT_EQ(NN.getCompiled(), true);
+  EXPECT_EQ(NN.getInitialized(), true);
+  EXPECT_EQ(NN.getLoadedFromConfig(), false);
+  EXPECT_EQ(NN.size(), 2);
+  EXPECT_EQ(vec, NN.getFlatGraph());
+  EXPECT_NO_THROW(
+    NN.save("model.bin", ml::train::ModelFormat::MODEL_FORMAT_INI_WITH_BIN));
+}
+
+/**
+ * @brief copy neural network
+ */
+TEST(nntrainerModels, copy_01_p) {
+  nntrainer::NeuralNetwork NN1, NN2;
+
+  std::shared_ptr<nntrainer::LayerNode> layer_node =
+    nntrainer::createLayerNode(nntrainer::InputLayer::type,
+                               {"input_shape=1:1:62720", "normalization=true"});
+  EXPECT_NO_THROW(NN1.addLayer(layer_node));
+  EXPECT_NO_THROW(NN1.compile());
+  EXPECT_NO_THROW(NN1.initialize());
+  EXPECT_NO_THROW(NN2.copy(NN1));
+}
+
+/**
+ * @brief for each
+ */
+TEST(nntrainerModels, foreach_01_p) {
+  nntrainer::NeuralNetwork NN;
+
+  std::shared_ptr<nntrainer::LayerNode> layer_node1 =
+    nntrainer::createLayerNode(nntrainer::FullyConnectedLayer::type,
+                               {"input_shape=1:1:3", "unit=10"});
+  std::shared_ptr<nntrainer::LayerNode> layer_node2 =
+    nntrainer::createLayerNode(nntrainer::FullyConnectedLayer::type,
+                               {"unit=5"});
+
+  EXPECT_NO_THROW(NN.addLayer(layer_node1));
+  EXPECT_NO_THROW(NN.addLayer(layer_node2));
+
+  NN.compile();
+  NN.initialize();
+
+  int fc_count = 0;
+
+  std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>
+    fn =
+      [](ml::train::Layer &l, nntrainer::RunLayerContext &context, void *idx) {
+        if (l.getType() == nntrainer::FullyConnectedLayer::type) {
+          int *ptr = (int *)idx;
+          (*ptr)++;
+        }
+      };
+
+  NN.forEachLayer(fn, &fc_count);
+  EXPECT_EQ(fc_count, 2);
+}
+
+/**
+ * @brief incremental inference
+ */
+TEST(nntrainerModels, incremental_inference_01_p) {
+  size_t input_len = 3;
+  size_t MAX_SEQ_LEN = 10;
+  std::vector<float *> input;
+  std::vector<float *> label;
+  float *input_sample = (float *)malloc(sizeof(float) * 3);
+  input.push_back(input_sample);
+
+  nntrainer::NeuralNetwork NN;
+
+  std::shared_ptr<nntrainer::LayerNode> embedding = nntrainer::createLayerNode(
+    nntrainer::EmbeddingLayer::type,
+    {"name=embedding", "input_shape=1:1:3", "in_dim=3", "out_dim=3"});
+  std::shared_ptr<nntrainer::LayerNode> fc1 = nntrainer::createLayerNode(
+    nntrainer::FullyConnectedLayer::type, {"name=fc1", "unit=2"});
+  std::shared_ptr<nntrainer::LayerNode> fc2 = nntrainer::createLayerNode(
+    nntrainer::FullyConnectedLayer::type,
+    {"name=fc2", "input_layers=embedding", "unit=2"});
+  std::shared_ptr<nntrainer::LayerNode> add = nntrainer::createLayerNode(
+    nntrainer::AdditionLayer::type, {"name=add", "input_layers=fc1, fc2"});
+  std::shared_ptr<nntrainer::LayerNode> attn = nntrainer::createLayerNode(
+    nntrainer::AttentionLayer::type, {"input_layers=add, add, add"});
+  std::shared_ptr<nntrainer::LayerNode> ln = nntrainer::createLayerNode(
+    nntrainer::LayerNormalizationLayer::type, {"name=ln", "axis=3"});
+
+  EXPECT_NO_THROW(NN.addLayer(embedding));
+  EXPECT_NO_THROW(NN.addLayer(fc1));
+  EXPECT_NO_THROW(NN.addLayer(fc2));
+  EXPECT_NO_THROW(NN.addLayer(add));
+  EXPECT_NO_THROW(NN.addLayer(attn));
+  EXPECT_NO_THROW(NN.addLayer(ln));
+
+  NN.compile();
+  NN.initialize();
+  EXPECT_NO_THROW(
+    NN.incremental_inference(1, input, label, MAX_SEQ_LEN, 0, input_len));
 }
 
 TEST(nntrainerModels, loadFromLayersBackbone_p) {

@@ -39,10 +39,16 @@ TEST_P(LayerPropertySemantics, setPropertiesInvalid_n) {
   EXPECT_THROW(layer->setProperty({valid_properties}), std::invalid_argument);
 }
 
-TEST_P(LayerSemantics, setPropertiesInvalid_n) {
+TEST_P(LayerSemantics, setPropertiesInvalid_01_n) {
   auto lnode = nntrainer::createLayerNode(expected_type);
   /** must not crash */
   EXPECT_THROW(layer->setProperty({"unknown_props=2"}), std::invalid_argument);
+}
+
+TEST_P(LayerSemantics, setPropertiesInvalid_02_n) {
+  auto lnode = nntrainer::createLayerNode(expected_type);
+  /** must not crash */
+  EXPECT_THROW(layer->setProperty({"unknown_props:2"}), std::invalid_argument);
 }
 
 TEST_P(LayerSemantics, finalizeValidateLayerNode_p) {

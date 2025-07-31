@@ -575,7 +575,15 @@ GTEST_PARAMETER_TEST(IterQueue, IterQueueScenarios,
                                        multi_slot_single_batch,
                                        single_slot_single_batch));
 
-TEST(IterQueue, constructEmptySlots_n) {
+TEST(IterQueue, constructEmptySlots_01_n) {
+  EXPECT_ANY_THROW(nntrainer::IterationQueue(0, {}, {}));
+}
+
+TEST(IterQueue, constructEmptySlots_02_n) {
+  EXPECT_ANY_THROW(nntrainer::IterationQueue(0, {}, {{1}}));
+}
+
+TEST(IterQueue, constructEmptySlots_03_n) {
   EXPECT_ANY_THROW(nntrainer::IterationQueue(0, {{1}}, {{1}}));
 }
 
@@ -583,17 +591,21 @@ TEST(IterQueue, constructEmptyInput_n) {
   EXPECT_ANY_THROW(nntrainer::IterationQueue(1, {}, {{1}}));
 }
 
-TEST(IterQueue, constructNotConsistentBatchSizeBetweenInputs_n) {
+TEST(IterQueue, constructNotConsistentBatchSizeBetweenInputs_01_n) {
   EXPECT_ANY_THROW(
     nntrainer::IterationQueue(1, {{3, 1, 1, 10}, {2, 1, 1, 10}}, {}));
 }
 
-TEST(IterQueue, constructNotConsistentBatchSizeInLabel_n) {
+TEST(IterQueue, constructNotConsistentBatchSizeBetweenInputs_02_n) {
+  EXPECT_ANY_THROW(nntrainer::IterationQueue(1, {{3, 1}, {2, 1}}, {{1, 0}}));
+}
+
+TEST(IterQueue, constructNotConsistentBatchSizeInLabel_01_n) {
   EXPECT_ANY_THROW(nntrainer::IterationQueue(1, {{3, 1, 1, 10}, {3, 1, 1, 10}},
                                              {{2, 1, 1, 10}}));
 }
 
-TEST(IterQueue, constructNotConsistentBatchSizeInLabel2_n) {
+TEST(IterQueue, constructNotConsistentBatchSizeInLabel_02_n) {
   EXPECT_ANY_THROW(nntrainer::IterationQueue(1, {{3, 1, 1, 10}, {3, 1, 1, 10}},
                                              {{3, 1, 1, 10}, {2, 1, 1, 10}}));
 }

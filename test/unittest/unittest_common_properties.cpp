@@ -144,6 +144,27 @@ TEST(InputConnection, invalidFormat_n_06) {
                std::invalid_argument);
 }
 
+TEST(InputConnection, invalidFormat_n_07) {
+  using namespace nntrainer::props;
+  InputConnection actual;
+  EXPECT_THROW(nntrainer::from_string("name:layer0", actual),
+               std::invalid_argument);
+}
+
+TEST(InputConnection, invalidFormat_n_08) {
+  using namespace nntrainer::props;
+  InputConnection actual;
+  EXPECT_THROW(nntrainer::from_string("name(layer0)", actual),
+               std::invalid_argument);
+}
+
+TEST(InputConnection, invalidFormat_n_09) {
+  using namespace nntrainer::props;
+  InputConnection actual;
+  EXPECT_THROW(nntrainer::from_string("name==layer0", actual),
+               std::invalid_argument);
+}
+
 TEST(DropOutRate, dropout_01_n) {
   nntrainer::props::DropOutRate dropout;
   EXPECT_THROW(dropout.set(-0.5), std::invalid_argument);

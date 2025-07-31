@@ -536,15 +536,6 @@ s   * @retval shared_ptr<const Tensor>
   NetworkGraphType getNetworkGraph() { return model_graph; }
 
   /**
-   * @brief get current graph from the model
-   * @note graph contains pointer to the actual nodes, which is not deeply
-   * copied.
-   * @retval current graph
-   */
-  GraphType getUnsortedLayers(const std::string &input_layer = "",
-                              const std::string &output_layer = "");
-
-  /**
    * @brief     Summarize the model
    * @param out std::ostream to get the model summary
    * @param verbosity verbosity of the summary
@@ -698,12 +689,6 @@ private:
   void print(std::ostream &out, unsigned int flags = 0,
              LayerNode::PrintPreset layerPrintPreset =
                LayerNode::PrintPreset::PRINT_SUMMARY);
-
-  /**
-   * @brief     Set Loss
-   * @param[in] l loss value
-   */
-  void setLoss(float l);
 
   /**
    * @brief     Run NeuralNetwork train

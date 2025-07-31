@@ -13,6 +13,7 @@
 
 #include "nntrainer_test_util.h"
 #include "util_func.h"
+#include <float_tensor.h>
 #include <fstream>
 #include <nntrainer_error.h>
 #include <tensor.h>
@@ -120,6 +121,70 @@ TEST(nntrainer_TensorDim, setTensorDim_04_p) {
   EXPECT_EQ(d.width(), 7u);
 }
 
+TEST(nntrainer_TensorDim, setTensorDim_05_n) {
+  nntrainer::TensorDim d;
+
+  EXPECT_THROW(d.setTensorDim(0, 0), std::invalid_argument);
+}
+
+TEST(nntrainer_TensorDim, setTensorDim_06_n) {
+  nntrainer::TensorDim d;
+
+  EXPECT_THROW(d.setTensorDim(1, 0), std::invalid_argument);
+}
+
+TEST(nntrainer_TensorDim, setTensorDim_07_n) {
+  nntrainer::TensorDim d;
+
+  EXPECT_THROW(d.setTensorDim(2, 0), std::invalid_argument);
+}
+
+TEST(nntrainer_TensorDim, setTensorDim_08_n) {
+  nntrainer::TensorDim d;
+
+  EXPECT_THROW(d.setTensorDim(3, 0), std::invalid_argument);
+}
+
+TEST(nntrainer_TensorDim, setTensorDim_09_n) {
+  nntrainer::TensorDim d;
+
+  EXPECT_THROW(d.setTensorDim("0"), std::invalid_argument);
+}
+
+TEST(nntrainer_TensorDim, setTensorDim_10_n) {
+  nntrainer::TensorDim d;
+
+  EXPECT_THROW(d.setTensorDim("1:0"), std::invalid_argument);
+}
+
+TEST(nntrainer_TensorDim, setTensorDim_11_n) {
+  nntrainer::TensorDim d;
+
+  EXPECT_THROW(d.setTensorDim("0:1:1"), std::invalid_argument);
+}
+
+TEST(nntrainer_TensorDim, setTensorDim_12_n) {
+  nntrainer::TensorDim d;
+
+  EXPECT_THROW(d.setTensorDim("1:1:1:0"), std::invalid_argument);
+}
+
+TEST(nntrainer_TensorDim, setTensorDim_13_n) {
+  int status = ML_ERROR_NONE;
+
+  nntrainer::TensorDim tensor_dim;
+  status = tensor_dim.setTensorDim("1:2:2:2:1");
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST(nntrainer_TensorDim, setTensorDim_14_n) {
+  int status = ML_ERROR_NONE;
+
+  nntrainer::TensorDim tensor_dim;
+  status = tensor_dim.setTensorDim("0:2:2:2:1");
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
 TEST(nntrainer_Tensor, Tensor_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::Tensor tensor = nntrainer::Tensor(1, 2, 3);
@@ -130,46 +195,27 @@ TEST(nntrainer_Tensor, Tensor_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
-// TEST(nntrainer_Tensor, Tensor_02_p) {
-//   int status = ML_ERROR_NONE;
-//   int height = 3;
-//   int width = 10;
-//   std::vector<std::vector<float>> in;
-//   for (int i = 0; i < height; ++i) {
-//     std::vector<float> tv;
-//     for (int j = 0; j < width; ++j) {
-//       tv.push_back(i * 2.0 + j);
-//     }
-//     in.push_back(tv);
-//   }
+TEST(nntrainer_Tensor, Tensor_02_p) {
+  int status = ML_ERROR_NONE;
+  int height = 3;
+  int width = 10;
+  std::vector<std::vector<float>> in;
+  for (int i = 0; i < height; ++i) {
+    std::vector<float> tv;
+    for (int j = 0; j < width; ++j) {
+      tv.push_back(i * 2.0 + j);
+    }
+    in.push_back(tv);
+  }
 
-//   nntrainer::Tensor tensor = nntrainer::Tensor(in);
-//   ASSERT_NE(nullptr, tensor.getData());
+  nntrainer::Tensor tensor = nntrainer::Tensor(
+    in, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
+  ASSERT_NE(nullptr, tensor.getData());
 
-//   if (tensor.getValue(0, 0, 0, 1) != 1.0)
-//     status = ML_ERROR_INVALID_PARAMETER;
-//   EXPECT_EQ(status, ML_ERROR_NONE);
-// }
-
-// TEST(nntrainer_Tensor, Tensor_02_nhwc_p) {
-//   int status = ML_ERROR_NONE;
-//   int width = 10;
-//   int channel = 3;
-//   std::vector<std::vector<float>> in;
-//   for (int i = 0; i < width; ++i) {
-//     std::vector<float> tv;
-//     for (int j = 0; j < channel; ++j) {
-//       tv.push_back(i * 2.0 + j);
-//     }
-//     in.push_back(tv);
-//   }
-
-//   nntrainer::Tensor tensor = nntrainer::Tensor(in, NHWC_);
-//   ASSERT_NE(nullptr, tensor.getData());
-
-//   if (tensor.getValue(0, 0, 0, 1) != 1.0)
-//     status = ML_ERROR_INVALID_PARAMETER;
-//   EXPECT_EQ(status, ML_ERROR_NONE);
+  if (tensor.getValue(0, 0, 0, 1) != 1.0)
+    status = ML_ERROR_INVALID_PARAMETER;
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
 
 TEST(nntrainer_Tensor, Tensor_03_p) {
   int status = ML_ERROR_NONE;
@@ -220,7 +266,7 @@ TEST(nntrainer_Tensor, Tensor_04_p) {
 
   nntrainer::Tensor tensor = nntrainer::Tensor(
     in, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
-  ASSERT_NE(nullptr, tensor.getData<int8_t>());
+  ASSERT_NE(nullptr, tensor.getData<int8_t>(0));
 
   if (tensor.getValue<int8_t>(0, 0, 0, 1) != 1)
     status = ML_ERROR_INVALID_PARAMETER;
@@ -236,7 +282,7 @@ TEST(nntrainer_Tensor, Tensor_05_p) {
 
   nntrainer::Tensor tensor = nntrainer::Tensor(
     in, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16});
-  ASSERT_NE(nullptr, tensor.getData<uint16_t>());
+  ASSERT_NE(nullptr, tensor.getData<uint16_t>(0));
 
   for (size_t b = 0; b < tensor.batch(); ++b) {
     for (size_t c = 0; c < tensor.channel(); ++c) {
@@ -269,6 +315,316 @@ TEST(nntrainer_Tensor, Tensor_05_p) {
 //     }
 //   }
 // }
+
+TEST(nntrainer_Tensor, Tensor_07_n) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int height = 3;
+  int width = 10;
+  std::vector<std::vector<std::vector<float>>> in;
+
+  for (int k = 0; k < batch; ++k) {
+    std::vector<std::vector<float>> ttv;
+    for (int i = 0; i < height; ++i) {
+      std::vector<float> tv;
+      ttv.push_back(tv);
+    }
+    in.push_back(ttv);
+  }
+
+  EXPECT_THROW(nntrainer::Tensor(
+                 in, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32}),
+               std::out_of_range);
+}
+
+TEST(nntrainer_Tensor, Tensor_08_n) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int height = 3;
+  int width = 10;
+  std::vector<std::vector<std::vector<int8_t>>> in;
+
+  for (int k = 0; k < batch; ++k) {
+    std::vector<std::vector<int8_t>> ttv;
+    for (int i = 0; i < height; ++i) {
+      std::vector<int8_t> tv;
+      ttv.push_back(tv);
+    }
+    in.push_back(ttv);
+  }
+
+  EXPECT_THROW(nntrainer::Tensor(
+                 in, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8}),
+               std::out_of_range);
+}
+
+TEST(nntrainer_Tensor, Tensor_09_n) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int height = 3;
+  int width = 10;
+  std::vector<std::vector<std::vector<uint16_t>>> in;
+
+  for (int k = 0; k < batch; ++k) {
+    std::vector<std::vector<uint16_t>> ttv;
+    for (int i = 0; i < height; ++i) {
+      std::vector<uint16_t> tv;
+      ttv.push_back(tv);
+    }
+    in.push_back(ttv);
+  }
+
+  EXPECT_THROW(nntrainer::Tensor(
+                 in, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16}),
+               std::out_of_range);
+}
+
+TEST(nntrainer_Tensor, copy_01_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor output(batch, channel, height, width);
+
+  // use copy() to copy non-contiguous tensor
+  EXPECT_THROW(output.copy(input.getSharedDataTensor({3, 1, 3, 5}, 0, false)),
+               std::runtime_error);
+}
+
+TEST(nntrainer_Tensor, copy_02_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor output(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
+
+  // use copy() to copy non-contiguous tensor
+  EXPECT_THROW(output.copy(input.getSharedDataTensor({3, 1, 3, 5}, 0, false)),
+               std::runtime_error);
+}
+
+TEST(nntrainer_Tensor, copy_03_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16});
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor output(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16});
+
+  // use copy() to copy non-contiguous tensor
+  EXPECT_THROW(output.copy(input.getSharedDataTensor({3, 1, 3, 5}, 0, false)),
+               std::runtime_error);
+}
+
+TEST(nntrainer_Tensor, copy_04_p) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor output(batch, channel, width, height);
+  output.copy(input);
+
+  EXPECT_EQ(input, output);
+}
+
+TEST(nntrainer_Tensor, copy_05_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor output(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
+
+  output.copy(input);
+
+  ASSERT_EQ(input, output);
+}
+
+TEST(nntrainer_Tensor, copy_06_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16});
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor output(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16});
+
+  output.copy(input);
+
+  ASSERT_EQ(input, output);
+}
+
+TEST(nntrainer_Tensor, copy_07_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor output(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
+
+  input.copyData(output);
+
+  ASSERT_NE(input, output);
+
+  for (unsigned int idx = 0; idx < input.size(); ++idx) {
+    if ((int)input.getValue<float>(idx) != output.getValue<int8_t>(idx))
+      status = ML_ERROR_RESULT_OUT_OF_RANGE;
+  }
+
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST(nntrainer_Tensor, copy_08_n) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor output(batch, channel, height, width);
+
+  // Currently, CharTensor does not support copyData of a different data type
+  EXPECT_THROW(input.copyData(output), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, copy_09_n) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16});
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor output(batch, channel, height, width);
+
+  // Currently, UINT Tensor does not support copyData of a different data type
+  EXPECT_THROW(input.copyData(output), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, copy_10_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor output(
+    batch, channel, height, width / 2,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8});
+
+  EXPECT_NO_THROW(output.copy_with_stride(input.getSharedDataTensor(
+    {3, 1, 3, 5, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8}, 0,
+    false)));
+
+  for (unsigned int b = 0; b < output.batch(); ++b) {
+    for (unsigned int c = 0; c < output.channel(); ++c) {
+      for (unsigned int h = 0; h < output.height(); ++h) {
+        for (unsigned int w = 0; w < output.width(); ++w) {
+          if (input.getValue<int8_t>(b, c, h, w) !=
+              output.getValue<int8_t>(b, c, h, w)) {
+            status = ML_ERROR_RESULT_OUT_OF_RANGE;
+          }
+        }
+      }
+    }
+  }
+
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST(nntrainer_Tensor, copy_11_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(
+    batch, channel, height, width,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16});
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor output(
+    batch, channel, height, width / 2,
+    {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16});
+
+  EXPECT_NO_THROW(output.copy_with_stride(input.getSharedDataTensor(
+    {3, 1, 3, 5, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16}, 0,
+    false)));
+
+  for (unsigned int b = 0; b < output.batch(); ++b) {
+    for (unsigned int c = 0; c < output.channel(); ++c) {
+      for (unsigned int h = 0; h < output.height(); ++h) {
+        for (unsigned int w = 0; w < output.width(); ++w) {
+          if (input.getValue<uint16_t>(b, c, h, w) !=
+              output.getValue<uint16_t>(b, c, h, w)) {
+            status = ML_ERROR_RESULT_OUT_OF_RANGE;
+          }
+        }
+      }
+    }
+  }
+
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
 
 TEST(nntrainer_Tensor, multiply_i_01_p) {
   int status = ML_ERROR_NONE;
@@ -334,6 +690,70 @@ TEST(nntrainer_Tensor, multiply_i_03_n) {
 
   nntrainer::Tensor target2(batch, channel, height - 2, width - 1);
   status = input.multiply_i(target2);
+
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST(nntrainer_Tensor, multiply_i_04_n) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor target(batch + 1, channel, height, width);
+  status = input.multiply_i(target);
+
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST(nntrainer_Tensor, multiply_i_05_n) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor target(batch, channel + 1, height, width);
+  status = input.multiply_i(target);
+
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST(nntrainer_Tensor, multiply_i_06_n) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor target(batch, channel, height + 1, width);
+  status = input.multiply_i(target);
+
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST(nntrainer_Tensor, multiply_i_07_n) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor target(batch, channel, height, width + 1);
+  status = input.multiply_i(target);
 
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
@@ -545,6 +965,13 @@ TEST(nntrainer_Tensor, multiply_i_broadcast_not_broadcastable_02_n) {
   EXPECT_EQ(target.multiply_i(target2), ML_ERROR_INVALID_PARAMETER);
 }
 
+TEST(nntrainer_Tensor, multiply_i_broadcast_not_broadcastable_03_n) {
+  nntrainer::Tensor target(1, 2, 1, 2);
+  nntrainer::Tensor target2(1, 2, 3, 1);
+
+  EXPECT_EQ(target.multiply_i(target2), ML_ERROR_INVALID_PARAMETER);
+}
+
 TEST(nntrainer_Tensor, multiply_01_p) {
   int status = ML_ERROR_NONE;
   int batch = 3;
@@ -679,6 +1106,66 @@ TEST(nntrainer_Tensor, multiply_08_n) {
   EXPECT_THROW(input.multiply(test, output), std::invalid_argument);
 }
 
+TEST(nntrainer_Tensor, multiply_10_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::Tensor input(dim);
+  nntrainer::Tensor test(batch + 1, channel, height, width);
+  nntrainer::Tensor output(dim, false);
+
+  EXPECT_THROW(input.multiply(test, output), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, multiply_11_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::Tensor input(dim);
+  nntrainer::Tensor test(batch, channel + 1, height, width);
+  nntrainer::Tensor output(dim, false);
+
+  EXPECT_THROW(input.multiply(test, output), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, multiply_12_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::Tensor input(dim);
+  nntrainer::Tensor test(batch, channel, height + 1, width);
+  nntrainer::Tensor output(dim, false);
+
+  EXPECT_THROW(input.multiply(test, output), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, multiply_13_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+
+  nntrainer::Tensor input(dim);
+  nntrainer::Tensor test(batch, channel, height, width + 1);
+  nntrainer::Tensor output(dim, false);
+
+  EXPECT_THROW(input.multiply(test, output), std::invalid_argument);
+}
+
 TEST(nntrainer_Tensor, multiply_float_01_p) {
   int batch = 3;
   int channel = 1;
@@ -769,6 +1256,66 @@ TEST(nntrainer_Tensor, divide_i_02_n) {
   nntrainer::Tensor original(batch, channel, height - 2, width - 1);
 
   status = input.divide_i(original);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST(nntrainer_Tensor, divide_i_03_n) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor divisor(batch, channel, height, width - 1);
+  status = input.divide_i(divisor);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST(nntrainer_Tensor, divide_i_04_n) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor divisor(batch, channel, height - 1, width);
+  status = input.divide_i(divisor);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST(nntrainer_Tensor, divide_i_05_n) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor divisor(batch - 1, channel, height, width);
+  status = input.divide_i(divisor);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST(nntrainer_Tensor, divide_i_06_n) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor divisor(batch, channel + 1, height, width);
+  status = input.divide_i(divisor);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -879,6 +1426,88 @@ TEST(nntrainer_Tensor, divide_08_n) {
   GEN_TEST_INPUT(test, i * (batch * height) + j * (width) + k + 2);
   nntrainer::Tensor output(dim, false);
 
+  EXPECT_THROW(input.divide(test, output), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, divide_09_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+  nntrainer::Tensor input(dim);
+  nntrainer::Tensor test(batch + 1, channel, height, width);
+  nntrainer::Tensor output(dim, false);
+  EXPECT_THROW(input.divide(test, output), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, divide_10_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+  nntrainer::Tensor input(dim);
+  nntrainer::Tensor test(batch, channel + 1, height, width);
+  nntrainer::Tensor output(dim, false);
+  EXPECT_THROW(input.divide(test, output), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, divide_11_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+  nntrainer::Tensor input(dim);
+  nntrainer::Tensor test(batch, channel, height + 1, width);
+  nntrainer::Tensor output(dim, false);
+  EXPECT_THROW(input.divide(test, output), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, divide_12_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+  nntrainer::Tensor input(dim);
+  nntrainer::Tensor test(batch, channel, height, width + 1);
+  nntrainer::Tensor output(dim, false);
+  EXPECT_THROW(input.divide(test, output), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, divide_13_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+  nntrainer::Tensor input(dim);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+  nntrainer::Tensor test(batch, channel, height, width + 1);
+  GEN_TEST_INPUT(test, 0);
+  nntrainer::Tensor output(dim, false);
+  EXPECT_THROW(input.divide(test, output), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, divide_14_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+  nntrainer::Tensor input(dim);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+  nntrainer::Tensor test(batch, channel, height, width + 1);
+  GEN_TEST_INPUT(test, i * (batch * height) + j * (width) + k);
+  nntrainer::Tensor output(dim, false);
   EXPECT_THROW(input.divide(test, output), std::invalid_argument);
 }
 
@@ -1191,6 +1820,13 @@ TEST(nntrainer_Tensor, divide_i_broadcast_not_broadcastable_02_n) {
   EXPECT_EQ(target.divide_i(target2), ML_ERROR_INVALID_PARAMETER);
 }
 
+TEST(nntrainer_Tensor, divide_i_broadcast_not_broadcastable_03_n) {
+  nntrainer::Tensor target(1, 2, 1, 2);
+  nntrainer::Tensor target2(1, 2, 3, 1);
+
+  EXPECT_EQ(target.divide_i(target2), ML_ERROR_INVALID_PARAMETER);
+}
+
 TEST(nntrainer_Tensor, add_i_01_p) {
   int status = ML_ERROR_NONE;
   int batch = 3;
@@ -1496,6 +2132,13 @@ TEST(nntrainer_Tensor, add_i_broadcast_not_broadcastable_02_n) {
   EXPECT_EQ(target.add_i(target2), ML_ERROR_INVALID_PARAMETER);
 }
 
+TEST(nntrainer_Tensor, add_i_broadcast_not_broadcastable_03_n) {
+  nntrainer::Tensor target(1, 2, 1, 2);
+  nntrainer::Tensor target2(1, 2, 3, 1);
+
+  EXPECT_EQ(target.add_i(target2), ML_ERROR_INVALID_PARAMETER);
+}
+
 TEST(nntrainer_Tensor, add_01_p) {
   int status = ML_ERROR_NONE;
   int batch = 3;
@@ -1641,8 +2284,59 @@ TEST(nntrainer_Tensor, add_08_n) {
   EXPECT_THROW(input.add(test, output), std::invalid_argument);
 }
 
-TEST(nntrainer_Tensor, pow_01_p) {
+TEST(nntrainer_Tensor, add_10_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
 
+  nntrainer::TensorDim dim(batch, channel, height, width);
+  nntrainer::Tensor input(dim);
+  nntrainer::Tensor test(batch + 1, channel, height, width);
+  nntrainer::Tensor output(dim, false);
+  EXPECT_THROW(input.add(test, output), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, add_11_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+  nntrainer::Tensor input(dim);
+  nntrainer::Tensor test(batch, channel + 1, height, width);
+  nntrainer::Tensor output(dim, false);
+  EXPECT_THROW(input.add(test, output), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, add_12_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+  nntrainer::Tensor input(dim);
+  nntrainer::Tensor test(batch, channel, height + 1, width);
+  nntrainer::Tensor output(dim, false);
+  EXPECT_THROW(input.add(test, output), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, add_13_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+  nntrainer::Tensor input(dim);
+  nntrainer::Tensor test(batch, channel, height, width + 1);
+  nntrainer::Tensor output(dim, false);
+  EXPECT_THROW(input.add(test, output), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, pow_01_p) {
   nntrainer::Tensor input = constant(4.0, 3, 2, 4, 5);
 
   nntrainer::Tensor actual, expected;
@@ -1658,6 +2352,27 @@ TEST(nntrainer_Tensor, pow_01_p) {
   actual = input.pow(-0.5f);
   expected = constant(0.5, 3, 2, 4, 5);
   EXPECT_EQ(actual, expected);
+}
+
+TEST(nntrainer_Tensor, subtract_i_broadcast_not_supported_01_n) {
+  nntrainer::Tensor target(3, 1, 3, 1);
+  nntrainer::Tensor target2(3, 1, 3, 3);
+
+  EXPECT_EQ(target.subtract_i(target2), ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST(nntrainer_Tensor, subtract_i_broadcast_not_broadcastable_02_n) {
+  nntrainer::Tensor target(3, 2, 4, 5);
+  nntrainer::Tensor target2(3, 2, 3, 1);
+
+  EXPECT_EQ(target.subtract_i(target2), ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST(nntrainer_Tensor, subtract_i_broadcast_not_broadcastable_03_n) {
+  nntrainer::Tensor target(1, 2, 1, 2);
+  nntrainer::Tensor target2(1, 2, 3, 1);
+
+  EXPECT_EQ(target.subtract_i(target2), ML_ERROR_INVALID_PARAMETER);
 }
 
 TEST(nntrainer_Tensor, subtract_i_01_p) {
@@ -1720,6 +2435,58 @@ TEST(nntrainer_Tensor, subtract_i_03_n) {
   nntrainer::Tensor target2(batch, channel, height - 1, width - 3);
 
   status = target.subtract_i(target2);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST(nntrainer_Tensor, subtract_i_04_n) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int height = 3;
+  int width = 10;
+  int channel = 1;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  nntrainer::Tensor target(batch + 1, channel, height, width);
+  status = input.subtract_i(target);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST(nntrainer_Tensor, subtract_i_05_n) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int height = 3;
+  int width = 10;
+  int channel = 1;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  nntrainer::Tensor target(batch, channel + 1, height, width);
+  status = input.subtract_i(target);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST(nntrainer_Tensor, subtract_i_06_n) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int height = 3;
+  int width = 10;
+  int channel = 1;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  nntrainer::Tensor target(batch, channel, height + 1, width);
+  status = input.subtract_i(target);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST(nntrainer_Tensor, subtract_i_07_n) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int height = 3;
+  int width = 10;
+  int channel = 1;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  nntrainer::Tensor target(batch, channel, height, width + 1);
+  status = input.subtract_i(target);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -1852,6 +2619,58 @@ TEST(nntrainer_Tensor, subtract_08_n) {
   GEN_TEST_INPUT(test, i * (batch * height) + j * (width) + k + 2);
   nntrainer::Tensor output(dim, false);
 
+  EXPECT_THROW(input.subtract(test, output), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, subtract_09_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+  nntrainer::Tensor input(dim);
+  nntrainer::Tensor test(batch + 1, channel, height, width);
+  nntrainer::Tensor output(dim, false);
+  EXPECT_THROW(input.subtract(test, output), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, subtract_10_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+  nntrainer::Tensor input(dim);
+  nntrainer::Tensor test(batch, channel + 1, height, width);
+  nntrainer::Tensor output(dim, false);
+  EXPECT_THROW(input.subtract(test, output), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, subtract_11_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+  nntrainer::Tensor input(dim);
+  nntrainer::Tensor test(batch, channel, height + 1, width);
+  nntrainer::Tensor output(dim, false);
+  EXPECT_THROW(input.subtract(test, output), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, subtract_12_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::TensorDim dim(batch, channel, height, width);
+  nntrainer::Tensor input(dim);
+  nntrainer::Tensor test(batch, channel, height, width + 1);
+  nntrainer::Tensor output(dim, false);
   EXPECT_THROW(input.subtract(test, output), std::invalid_argument);
 }
 
@@ -2437,6 +3256,36 @@ TEST(nntrainer_Tensor, dot_06_p) {
   }
 end_dot_01_p:
   EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST(nntrainer_Tensor, dot_07_n) {
+  nntrainer::Tensor input(3, 4, 5);
+  nntrainer::Tensor m(2, 4, 5);
+  EXPECT_THROW(nntrainer::Tensor result = input.dot(m), std::runtime_error);
+}
+
+TEST(nntrainer_Tensor, dot_08_n) {
+  nntrainer::Tensor input(2, 3, 4);
+  nntrainer::Tensor m(2, 1, 4);
+  EXPECT_THROW(nntrainer::Tensor result = input.dot(m), std::runtime_error);
+}
+
+TEST(nntrainer_Tensor, dot_09_n) {
+  nntrainer::Tensor input(4, 5, 6);
+  nntrainer::Tensor m(4, 5, 1);
+  EXPECT_THROW(nntrainer::Tensor result = input.dot(m), std::runtime_error);
+}
+
+TEST(nntrainer_Tensor, dot_10_n) {
+  nntrainer::Tensor input(2, 3, 4);
+  nntrainer::Tensor m(2, 3, 5);
+  EXPECT_THROW(nntrainer::Tensor result = input.dot(m), std::runtime_error);
+}
+
+TEST(nntrainer_Tensor, dot_11_n) {
+  nntrainer::Tensor input(3, 4, 5);
+  nntrainer::Tensor m(3, 4, 6);
+  EXPECT_THROW(nntrainer::Tensor result = input.dot(m), std::runtime_error);
 }
 
 TEST(nntrainer_Tensor, dot_transpose_p) {
@@ -3131,6 +3980,96 @@ TEST(nntrainer_Tensor, save_read_01_n) {
   ASSERT_EQ(status, 0);
 }
 
+TEST(nntrainer_Tensor, max_element_01_p) {
+  int batch = 3;
+  int channel = 1;
+  int height = 5;
+  int width = 6;
+  nntrainer::Tensor target(3, 1, 5, 6, nntrainer::Tformat::NCHW,
+                           nntrainer::Tdatatype::QINT8);
+
+  GEN_TEST_INPUT(target, i * (batch * height) + j * (width) + k + 1 - k * i);
+
+  EXPECT_EQ(target.argmax(), std::vector<unsigned int>({24, 0, 0}));
+}
+
+TEST(nntrainer_Tensor, max_element_02_p) {
+  int batch = 3;
+  int channel = 1;
+  int height = 5;
+  int width = 6;
+  nntrainer::Tensor target(3, 1, 5, 6, nntrainer::Tformat::NCHW,
+                           nntrainer::Tdatatype::UINT16);
+
+  GEN_TEST_INPUT(target, i * (batch * height) + j * (width) + k + 1 - k * i);
+
+  EXPECT_EQ(target.argmax(), std::vector<unsigned int>({24, 0, 0}));
+}
+
+TEST(nntrainer_Tensor, max_element_03_p) {
+  int batch = 3;
+  int channel = 1;
+  int height = 5;
+  int width = 6;
+  nntrainer::Tensor target(3, 1, 5, 6, nntrainer::Tformat::NCHW,
+                           nntrainer::Tdatatype::QINT8);
+
+  GEN_TEST_INPUT(target, i * (batch * height) + j * (width) + k + 1 - k * i);
+
+  EXPECT_EQ(target.max_abs(), 31);
+}
+
+TEST(nntrainer_Tensor, max_element_04_p) {
+  int batch = 3;
+  int channel = 1;
+  int height = 5;
+  int width = 6;
+  nntrainer::Tensor target(3, 1, 5, 6, nntrainer::Tformat::NCHW,
+                           nntrainer::Tdatatype::UINT16);
+
+  GEN_TEST_INPUT(target, i * (batch * height) + j * (width) + k + 1 - k * i);
+
+  EXPECT_EQ(target.max_abs(), 31);
+}
+
+TEST(nntrainer_Tensor, min_element_01_p) {
+  int batch = 3;
+  int channel = 1;
+  int height = 5;
+  int width = 1;
+  nntrainer::Tensor target(3, 1, 5, 1, nntrainer::Tformat::NCHW,
+                           nntrainer::Tdatatype::QINT8);
+
+  GEN_TEST_INPUT(target, i * (batch * height) + j * (width) + k + 1 - k * i);
+
+  EXPECT_EQ(target.minValue(), 1);
+
+  for (int idx = 0; idx < height; ++idx) {
+    target.addValue(0, 0, idx, 0, 15.5f, 1.0f);
+  }
+
+  EXPECT_EQ(target.minValue(), 16);
+}
+
+TEST(nntrainer_Tensor, min_element_02_p) {
+  int batch = 3;
+  int channel = 1;
+  int height = 5;
+  int width = 1;
+  nntrainer::Tensor target(3, 1, 5, 1, nntrainer::Tformat::NCHW,
+                           nntrainer::Tdatatype::UINT16);
+
+  GEN_TEST_INPUT(target, i * (batch * height) + j * (width) + k + 1);
+
+  EXPECT_EQ(target.minValue(), 1);
+
+  for (int idx = 0; idx < height; ++idx) {
+    target.addValue(0, 0, idx, 0, 15.5f, 1.0f);
+  }
+
+  EXPECT_EQ(target.minValue(), 16);
+}
+
 TEST(nntrainer_Tensor, copy_and_shares_variable_01_p) {
   nntrainer::Tensor A = constant(1.0f, 3, 4, 5, 6);
   nntrainer::Tensor B = A.clone();
@@ -3147,6 +4086,23 @@ TEST(nntrainer_Tensor, copy_and_shares_variable_01_p) {
 }
 
 TEST(nntrainer_Tensor, copy_and_shares_variable_02_p) {
+  nntrainer::Tensor A = constant(10, 3, 4, 5, 6, nntrainer::Tformat::NCHW,
+                                 nntrainer::Tdatatype::QINT8);
+  nntrainer::Tensor B = A.clone();
+  nntrainer::Tensor C = A;
+
+  C.setValue(1, 1, 1, 1, 9);
+
+  EXPECT_EQ(A, C);
+  EXPECT_NE(B, C);
+
+  C.reshape(nntrainer::TensorDim(3, 4, 6, 5, nntrainer::Tformat::NCHW,
+                                 nntrainer::Tdatatype::QINT8));
+  EXPECT_EQ(A.getDim(), B.getDim());
+  EXPECT_NE(A.getDim(), C.getDim());
+}
+
+TEST(nntrainer_Tensor, copy_and_shares_variable_03_p) {
   nntrainer::Tensor A = constant(10, 3, 4, 5, 6, nntrainer::Tformat::NCHW,
                                  nntrainer::Tdatatype::UINT16);
   nntrainer::Tensor B = A.clone();
@@ -3209,7 +4165,39 @@ TEST(nntrainer_Tensor, constructor_from_shared_const_ptr_shares_variable_n) {
   EXPECT_NE(A->getDim(), C.getDim());
 }
 
-TEST(nntrainer_Tensor, print_small_size) {
+TEST(nntrainer_Tensor, constructor_from_shared_ptr_tensor_base_n) {
+  std::shared_ptr<nntrainer::TensorBase> itensor = nullptr;
+
+  // create tensor with TensorBase pointer (nullptr)
+  EXPECT_THROW(nntrainer::Tensor tensor(itensor), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, constructor_from_shared_ptr_tensor_base_p) {
+  nntrainer::TensorDim dim(3, 2, 4, 5);
+
+  std::shared_ptr<nntrainer::TensorBase> itensor =
+    std::shared_ptr<nntrainer::FloatTensor>(
+      new nntrainer::FloatTensor(dim),
+      std::default_delete<nntrainer::FloatTensor>());
+
+  // create tensor with TensorBase pointer
+  nntrainer::Tensor tensor = nntrainer::Tensor(itensor);
+
+  EXPECT_NO_THROW(tensor.initialize(nntrainer::Initializer::ONES));
+
+  for (size_t b = 0; b < tensor.batch(); ++b) {
+    for (size_t c = 0; c < tensor.channel(); ++c) {
+      for (size_t h = 0; h < tensor.height(); ++h) {
+        for (size_t w = 0; w < tensor.width(); ++w) {
+          size_t idx = tensor.getIndex(b, c, h, w);
+          ASSERT_EQ(1, tensor.getValue<float>(idx));
+        }
+      }
+    }
+  }
+}
+
+TEST(nntrainer_Tensor, print_small_size_01) {
   nntrainer::Tensor target = constant(1.0, 3, 1, 2, 3);
 
   std::stringstream ss, expected;
@@ -3234,7 +4222,65 @@ TEST(nntrainer_Tensor, print_small_size) {
   EXPECT_EQ(ss.str(), expected.str());
 }
 
-TEST(nntrainer_Tensor, print_large_size) {
+TEST(nntrainer_Tensor, print_small_size_02) {
+  nntrainer::Tensor target = constant(1.0, 4, 1, 3, 2, nntrainer::Tformat::NCHW,
+                                      nntrainer::Tdatatype::QINT8);
+
+  std::stringstream ss, expected;
+  ss << target;
+
+  expected << '<' << typeid(target).name() << " at " << &target << ">\n"
+           << "data addr: " << target.getData() << '\n'
+           << "Shape: 4:1:3:2 [ QINT8 : NCHW ]\n"
+           << "         1          1 \n"
+           << "         1          1 \n"
+           << "         1          1 \n"
+           << "\n"
+           << "-------\n"
+           << "         1          1 \n"
+           << "         1          1 \n"
+           << "         1          1 \n"
+           << "\n"
+           << "-------\n"
+           << "         1          1 \n"
+           << "         1          1 \n"
+           << "         1          1 \n"
+           << "\n"
+           << "-------\n"
+           << "         1          1 \n"
+           << "         1          1 \n"
+           << "         1          1 \n"
+           << "\n"
+           << "-------\n";
+
+  EXPECT_EQ(ss.str(), expected.str());
+}
+
+TEST(nntrainer_Tensor, print_small_size_03) {
+  nntrainer::Tensor target = constant(1.0, 2, 1, 3, 3, nntrainer::Tformat::NCHW,
+                                      nntrainer::Tdatatype::UINT16);
+
+  std::stringstream ss, expected;
+  ss << target;
+
+  expected << '<' << typeid(target).name() << " at " << &target << ">\n"
+           << "data addr: " << target.getData() << '\n'
+           << "Shape: 2:1:3:3 [ UINT16 : NCHW ]\n"
+           << "         1          1          1 \n"
+           << "         1          1          1 \n"
+           << "         1          1          1 \n"
+           << "\n"
+           << "-------\n"
+           << "         1          1          1 \n"
+           << "         1          1          1 \n"
+           << "         1          1          1 \n"
+           << "\n"
+           << "-------\n";
+
+  EXPECT_EQ(ss.str(), expected.str());
+}
+
+TEST(nntrainer_Tensor, print_large_size_01) {
   nntrainer::Tensor target = constant(1.2, 3, 10, 10, 10);
 
   std::stringstream ss, expected;
@@ -3243,6 +4289,37 @@ TEST(nntrainer_Tensor, print_large_size) {
            << "data addr: " << target.getData() << '\n'
            << "Shape: 3:10:10:10 [ FP32 : NCHW ]\n"
            << "[1.2 1.2 1.2 ... 1.2 1.2 1.2]\n";
+  ss << target;
+
+  EXPECT_EQ(ss.str(), expected.str());
+}
+
+TEST(nntrainer_Tensor, print_large_size_02) {
+  nntrainer::Tensor target = constant(
+    7, 3, 3, 256, 256, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8);
+
+  std::stringstream ss, expected;
+
+  expected << '<' << typeid(target).name() << " at " << &target << ">\n"
+           << "data addr: " << target.getData() << '\n'
+           << "Shape: 3:3:256:256 [ QINT8 : NCHW ]\n"
+           << "[7 7 7 ... 7 7 7]\n";
+  ss << target;
+
+  EXPECT_EQ(ss.str(), expected.str());
+}
+
+TEST(nntrainer_Tensor, print_large_size_03) {
+  nntrainer::Tensor target =
+    constant(165, 1, 3, 128, 512, nntrainer::Tformat::NCHW,
+             nntrainer::Tdatatype::UINT16);
+
+  std::stringstream ss, expected;
+
+  expected << '<' << typeid(target).name() << " at " << &target << ">\n"
+           << "data addr: " << target.getData() << '\n'
+           << "Shape: 1:3:128:512 [ UINT16 : NCHW ]\n"
+           << "[165 165 165 ... 165 165 165]\n";
   ss << target;
 
   EXPECT_EQ(ss.str(), expected.str());
@@ -3276,12 +4353,6 @@ TEST(nntrainer_Tensor, fill_p) {
     target.fill(original, false);
 
     EXPECT_EQ(target, original);
-  }
-
-  /// same dimension, buffer size is different (not tested)
-  {
-    /// there is no way to make non contiguous tensor publicily yet
-    EXPECT_TRUE(true);
   }
 
   /// uninitialized with initialized flag is true
@@ -3367,6 +4438,9 @@ TEST(nntrainer_Tensor, allocate_04_p) {
 
   t.allocate();
   EXPECT_TRUE(t.isAllocated());
+
+  t.deallocate();
+  EXPECT_FALSE(t.isAllocated());
 }
 
 TEST(nntrainer_Tensor, allocate_05_p) {
@@ -3377,6 +4451,9 @@ TEST(nntrainer_Tensor, allocate_05_p) {
 
   t.allocate();
   EXPECT_TRUE(t.isAllocated());
+
+  t.deallocate();
+  EXPECT_FALSE(t.isAllocated());
 }
 
 TEST(nntrainer_Tensor, initialize_01_p) {
@@ -3509,6 +4586,16 @@ TEST(nntrainer_Tensor, initialize_10_p) {
 }
 
 TEST(nntrainer_Tensor, initialize_11_n) {
+  nntrainer::Tensor t(
+    {1, 2, 3, 4, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT8}},
+    true);
+
+  /// @note CharTensor does not support HE_NORMAL initialization
+  EXPECT_THROW(t.initialize(nntrainer::Initializer::HE_NORMAL),
+               std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, initialize_12_n) {
   nntrainer::Tensor t(
     {1, 2, 3, 4, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16}},
     true);
@@ -4015,6 +5102,61 @@ TEST(nntrainer_Tensor, cat_07_n) {
   EXPECT_THROW(nntrainer::Tensor::cat(inputs, 3), std::invalid_argument);
 }
 
+TEST(nntrainer_Tensor, cat_08_n) {
+  {
+    std::vector<nntrainer::Tensor> inputs;
+    inputs.reserve(2);
+    inputs.emplace_back(nntrainer::Tensor(1, 1, 1, 2));
+    inputs.emplace_back(nntrainer::Tensor(1, 2, 1, 2));
+    EXPECT_THROW(nntrainer::Tensor::cat(inputs, 0), std::invalid_argument);
+  }
+}
+
+TEST(nntrainer_Tensor, cat_09_n) {
+  {
+    std::vector<nntrainer::Tensor> inputs;
+    inputs.reserve(3);
+    inputs.emplace_back(nntrainer::Tensor(1, 1, 1, 2));
+    inputs.emplace_back(nntrainer::Tensor(1, 2, 1, 2));
+    inputs.emplace_back(nntrainer::Tensor(1, 2, 1, 2));
+    EXPECT_THROW(nntrainer::Tensor::cat(inputs, 0), std::invalid_argument);
+  }
+}
+
+TEST(nntrainer_Tensor, cat_10_n) {
+  {
+    std::vector<nntrainer::Tensor> inputs;
+    inputs.reserve(3);
+    inputs.emplace_back(nntrainer::Tensor(1, 1, 1, 2));
+    inputs.emplace_back(nntrainer::Tensor(1, 2, 1, 2));
+    inputs.emplace_back(nntrainer::Tensor(1, 2, 1, 2));
+    EXPECT_THROW(nntrainer::Tensor::cat(inputs, 2), std::invalid_argument);
+  }
+}
+
+TEST(nntrainer_Tensor, cat_11_n) {
+  {
+    std::vector<nntrainer::Tensor> inputs;
+    inputs.reserve(3);
+    inputs.emplace_back(nntrainer::Tensor(1, 1, 1, 2));
+    inputs.emplace_back(nntrainer::Tensor(1, 2, 1, 2));
+    inputs.emplace_back(nntrainer::Tensor(1, 2, 1, 2));
+    EXPECT_THROW(nntrainer::Tensor::cat(inputs, 3), std::invalid_argument);
+  }
+}
+
+TEST(nntrainer_Tensor, cat_12_n) {
+  {
+    std::vector<nntrainer::Tensor> inputs;
+    inputs.reserve(4);
+    inputs.emplace_back(nntrainer::Tensor(1, 1, 1, 2));
+    inputs.emplace_back(nntrainer::Tensor(1, 2, 1, 2));
+    inputs.emplace_back(nntrainer::Tensor(1, 2, 1, 2));
+    inputs.emplace_back(nntrainer::Tensor(1, 2, 1, 2));
+    EXPECT_THROW(nntrainer::Tensor::cat(inputs, 3), std::invalid_argument);
+  }
+}
+
 TEST(nntrainer_Tensor, zoneout_mask_01_n) {
   const float zoneout_rate = 0.3f;
   nntrainer::Tensor t(10, 10, 10, 10);
@@ -4432,6 +5574,61 @@ TEST(nntrainer_Tensor, multiply_strided_06_p) {
   }
 
   EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST(nntrainer_Tensor, func_FloatTensor_01_p) {
+  int status = ML_ERROR_NONE;
+  std::vector<std::vector<std::vector<std::vector<float>>>> in = {
+    {{{0, 1}, {14, 15}}}};
+  nntrainer::FloatTensor tensor =
+    nntrainer::FloatTensor(in, nntrainer::Tformat::NCHW);
+  ASSERT_EQ(int(tensor.max_abs()), 15);
+
+  nntrainer::Tensor out = nntrainer::Tensor(tensor.getDim());
+  tensor.erf(out);
+  for (size_t b = 0; b < out.batch(); ++b) {
+    for (size_t c = 0; c < out.channel(); ++c) {
+      for (size_t h = 0; h < out.height(); ++h) {
+        for (size_t w = 0; w < out.width(); ++w) {
+          size_t idx = out.getIndex(b, c, h, w);
+          ASSERT_EQ(out.getValue(idx), out.getValue(b, c, h, w));
+        }
+      }
+    }
+  }
+}
+
+TEST(nntrainer_Tensor, func_ShortTensor_02_p) {
+  int status = ML_ERROR_NONE;
+  nntrainer::TensorDim dim(1, 1, 1, 2);
+  nntrainer::ShortTensor tensor = nntrainer::ShortTensor(dim);
+  for (size_t b = 0; b < tensor.batch(); ++b) {
+    for (size_t c = 0; c < tensor.channel(); ++c) {
+      for (size_t h = 0; h < tensor.height(); ++h) {
+        for (size_t w = 0; w < tensor.width(); ++w) {
+          size_t idx = tensor.getIndex(b, c, h, w);
+          ASSERT_EQ(tensor.getValue(idx), tensor.getValue(b, c, h, w));
+
+          void *address1 = tensor.getAddress(idx);
+          const void *address2 = tensor.getAddress(idx);
+          ASSERT_EQ(address1, address2);
+        }
+      }
+    }
+  }
+}
+
+TEST(nntrainer_Tensor, fcall_VGrad_Weight_03_p) {
+  int status = ML_ERROR_NONE;
+  nntrainer::TensorDim dim(1, 1, 1, 2);
+  dim.reverse();
+  ASSERT_EQ(false, dim.isEmpty());
+  nntrainer::Var_Grad grad = nntrainer::Var_Grad(dim);
+  ASSERT_EQ(grad.isDependent(), false);
+
+  nntrainer::Weight w1 = nntrainer::Weight(dim);
+  nntrainer::Weight w2 = w1.clone();
+  ASSERT_EQ(w1.getNumOptVariable(), w2.getNumOptVariable());
 }
 
 // /**

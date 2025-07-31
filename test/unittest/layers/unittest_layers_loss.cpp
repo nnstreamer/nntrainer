@@ -13,9 +13,11 @@
 
 #include <gtest/gtest.h>
 
+#include <constant_derivative_loss_layer.h>
 #include <cross_entropy_loss_layer.h>
 #include <cross_entropy_sigmoid_loss_layer.h>
 #include <cross_entropy_softmax_loss_layer.h>
+#include <kld_loss_layer.h>
 #include <layers_common_tests.h>
 #include <mse_loss_layer.h>
 
@@ -34,6 +36,15 @@ auto semantic_loss_mse = LayerSemanticsParamType(
   nntrainer::MSELossLayer::type, {},
   LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
 
+auto semantic_loss_kld =
+  LayerSemanticsParamType(nntrainer::createLayer<nntrainer::KLDLossLayer>,
+                          nntrainer::KLDLossLayer::type, {}, 0, false, 1);
+
+auto semantic_loss_constant_derivative = LayerSemanticsParamType(
+  nntrainer::createLayer<nntrainer::ConstantDerivativeLossLayer>,
+  nntrainer::ConstantDerivativeLossLayer::type, {},
+  LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT, false, 1);
+
 auto semantic_loss_cross = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::CrossEntropyLossLayer>,
   nntrainer::CrossEntropyLossLayer::type, {}, 0, true, 1);
@@ -41,4 +52,6 @@ auto semantic_loss_cross = LayerSemanticsParamType(
 GTEST_PARAMETER_TEST(LossCross, LayerSemantics,
                      ::testing::Values(semantic_loss_cross, semantic_loss_mse,
                                        semantic_loss_cross_softmax,
-                                       semantic_loss_cross_sigmoid));
+                                       semantic_loss_cross_sigmoid,
+                                       semantic_loss_constant_derivative,
+                                       semantic_loss_kld));

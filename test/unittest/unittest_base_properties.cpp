@@ -383,6 +383,21 @@ TEST(BasicProperty, setNotValid_03_n) {
   EXPECT_THROW(d.set({3, 3, 2, 4}), std::invalid_argument);
 }
 
+TEST(BasicProperty, setNotValid_04_n) {
+  DimensionOfBanana d;
+  EXPECT_THROW(d.set({1, 2, 3, 4, 5}), std::invalid_argument);
+}
+
+TEST(BasicProperty, setNotValid_05_n) {
+  DimensionOfBanana d;
+  EXPECT_THROW(d.set({0}), std::invalid_argument);
+}
+
+TEST(BasicProperty, setNotValid_06_n) {
+  DimensionOfBanana d;
+  EXPECT_THROW(d.set({0, 1}), std::invalid_argument);
+}
+
 TEST(BasicProperty, fromStringNotValid_01_n) {
   NumBanana b;
   EXPECT_THROW(nntrainer::from_string("not integer", b), std::invalid_argument);

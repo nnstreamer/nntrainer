@@ -95,19 +95,6 @@ public:
   void addLayer(std::shared_ptr<LayerNode> layer);
 
   /**
-   * @brief get current flat graph from the model before sorting
-   * @note graph contains pointer to the actual nodes, which is not deeply
-   * copied.
-   * @retval current flat graph
-   *
-   * @todo remove getting unsorted layers from model loader, compile model
-   * loader
-   */
-  std::vector<std::shared_ptr<LayerNode>>
-  getUnsortedLayers(const std::string &input_layer,
-                    const std::string &output_layer) const;
-
-  /**
    * @brief getter of number of nodes
    * @param[out] number of nodes
    */
@@ -534,12 +521,6 @@ private:
    */
   void ensureName(std::shared_ptr<Layer> layer, const std::string &prefix = "",
                   const std::string &postfix = "", bool force_rename = false);
-
-  /**
-   * @brief Create new LayerNode and add into Graph
-   * @param[in] layer shared_ptr of Layer
-   */
-  void addLayerNode(std::unique_ptr<Layer> layer);
 
   /**
    * @brief finalize already added loss layers
