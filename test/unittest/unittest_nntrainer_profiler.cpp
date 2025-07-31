@@ -110,6 +110,13 @@ TEST_F(ProfileTest, subscribe_03_p) {
   EXPECT_NO_THROW(profiler->subscribe(listener));
 }
 
+TEST_F(ProfileTest, unsubscribe_01_p) {
+  EXPECT_CALL(*listener, notify(testing::_, testing::_)).Times(0);
+
+  EXPECT_NO_THROW(profiler->subscribe(listener));
+  EXPECT_NO_THROW(profiler->unsubscribe(listener));
+}
+
 TEST_F(ProfileTest, notify_01_p) {
   EXPECT_CALL(*listener, notify(testing::_, testing::_)).Times(3);
 
