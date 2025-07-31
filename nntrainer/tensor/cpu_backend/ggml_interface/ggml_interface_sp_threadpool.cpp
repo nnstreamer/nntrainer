@@ -33,6 +33,15 @@
 #include <chrono>
 
 namespace nntrainer {
+static int TASK_COUNT = 8;
+/**
+ * @brief FOR BENCHMARKING; sets task count for multi-threading
+ * 
+ * @param task_count number of sub-tasks to divide a big task into
+ */
+void __ggml_set_task_count(const size_t task_count) {
+  TASK_COUNT = task_count;
+}
 /**
  * @brief Continuously packed 4 q8_K
  *
@@ -125,7 +134,7 @@ void __ggml_quantize_row_q8_K(const float *src, void *dst, int64_t k) {
 static inline void __ggml_q4_0_8x8_q8_0_GEMM_GEMV(
   const unsigned int M, const unsigned int N, const unsigned int K,
   const float *A, const unsigned int lda, const void *B, const unsigned int ldb,
-  float *C, const unsigned int ldc, const unsigned int chunk_count) {
+  float *C, const unsigned int ldc) {
   int blocks_per_row = (K + QK8_0 - 1) / QK8_0;
   int qa_size = sizeof(block_q8_0) * blocks_per_row;
   std::vector<char> QA = std::vector<char>(qa_size);
@@ -136,9 +145,9 @@ static inline void __ggml_q4_0_8x8_q8_0_GEMM_GEMV(
   int B_step = sizeof(block_q4_0) * (K / QK4_0);
 
 
-  std::future<void> future = SP::ThreadPool::submit_task(0, chunk_count, chunk_count, [=](int i) {
-      unsigned int M_step_start = (i * N) / chunk_count;
-      unsigned int M_step_end = ((i + 1) * N) / chunk_count;
+  std::future<void> future = SP::ThreadPool::submit_task(0, TASK_COUNT, TASK_COUNT, [=](int i) {
+      unsigned int M_step_start = (i * N) / TASK_COUNT;
+      unsigned int M_step_end = ((i + 1) * N) / TASK_COUNT;
 
       M_step_start = (M_step_start % 8) ? M_step_start + 8 - (M_step_start % 8)
                                         : M_step_start;
@@ -155,7 +164,7 @@ static inline void __ggml_q4_0_8x8_q8_0_GEMM_GEMV(
 static inline void __ggml_q4_0_8x8_q8_0_GEMM_GEMM(
   const unsigned int M, const unsigned int N, const unsigned int K,
   const float *A, const unsigned int lda, const void *B, const unsigned int ldb,
-  float *C, const unsigned int ldc, const unsigned int chunk_count) {
+  float *C, const unsigned int ldc) {
   unsigned int blocks_per_4_rows = (K + QK8_0 - 1) / QK8_0;
   unsigned int qa_4_rows_size = sizeof(block_q8_0x4) * blocks_per_4_rows;
   const size_t qa_row_size = (sizeof(block_q8_0) * K) / QK8_0;
@@ -178,9 +187,9 @@ static inline void __ggml_q4_0_8x8_q8_0_GEMM_GEMM(
   }
 
   ///@todo Dynamic thread-number selection for GEMM problem size
-  std::future<void> future = SP::ThreadPool::submit_task(0, chunk_count, chunk_count, [=](int i) {
-      unsigned int M_step_start = (i * N) / chunk_count;
-      unsigned int M_step_end = ((i + 1) * N) / chunk_count;
+  std::future<void> future = SP::ThreadPool::submit_task(0, TASK_COUNT, TASK_COUNT, [=](int i) {
+      unsigned int M_step_start = (i * N) / TASK_COUNT;
+      unsigned int M_step_end = ((i + 1) * N) / TASK_COUNT;
 
       M_step_start = (M_step_start % 8) ? M_step_start + 8 - (M_step_start % 8)
                                         : M_step_start;
@@ -195,9 +204,9 @@ static inline void __ggml_q4_0_8x8_q8_0_GEMM_GEMM(
 
   for (unsigned int pb = M4 * 4; pb < M; pb++) {
 
-    future = SP::ThreadPool::submit_task_with_chunk_size(0, chunk_count, chunk_count, [=](int i) {
-        unsigned int M_step_start = (i * N) / chunk_count;
-        unsigned int M_step_end = ((i + 1) * N) / chunk_count;
+    future = SP::ThreadPool::submit_task_with_chunk_size(0, TASK_COUNT, TASK_COUNT, [=](int i) {
+        unsigned int M_step_start = (i * N) / TASK_COUNT;
+        unsigned int M_step_end = ((i + 1) * N) / TASK_COUNT;
 
         M_step_start = (M_step_start % 8)
                          ? M_step_start + 8 - (M_step_start % 8)
@@ -219,19 +228,18 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int K, const float *A,
                                const unsigned int lda, const void *B,
                                const unsigned int ldb, float *C,
-                               const unsigned int ldc,
-                               const unsigned int chunk_count) {
+                               const unsigned int ldc) {
   if (M == 1) { // GEMV
-    __ggml_q4_0_8x8_q8_0_GEMM_GEMV(M, N, K, A, lda, B, ldb, C, ldc, chunk_count);
+    __ggml_q4_0_8x8_q8_0_GEMM_GEMV(M, N, K, A, lda, B, ldb, C, ldc);
   } else { // GEMM
-    __ggml_q4_0_8x8_q8_0_GEMM_GEMM(M, N, K, A, lda, B, ldb, C, ldc, chunk_count);
+    __ggml_q4_0_8x8_q8_0_GEMM_GEMM(M, N, K, A, lda, B, ldb, C, ldc);
   }
 }
 
 static inline void __ggml_q4_K_8x8_q8_K_GEMM_GEMV(
   const unsigned int M, const unsigned int N, const unsigned int K,
   const float *A, const unsigned int lda, const void *B, const unsigned int ldb,
-  float *C, const unsigned int ldc, const unsigned int chunk_count) {
+  float *C, const unsigned int ldc) {
   int B_step = sizeof(block_q4_K) * (K / QK_K);
   int blocks_per_row = (K + QK_K - 1) / QK_K;
   int qa_size = sizeof(block_q8_K) * blocks_per_row;
@@ -240,9 +248,9 @@ static inline void __ggml_q4_K_8x8_q8_K_GEMM_GEMV(
   ::quantize_row_q8_K(A, qa_data, K);
 
   std::future<void> future =
-    SP::ThreadPool::submit_task(0, chunk_count, chunk_count, [=](int i) {
-      unsigned int M_step_start = (i * N) / chunk_count;
-      unsigned int M_step_end = ((i + 1) * N) / chunk_count;
+    SP::ThreadPool::submit_task(0, TASK_COUNT, TASK_COUNT, [=](int i) {
+      unsigned int M_step_start = (i * N) / TASK_COUNT;
+      unsigned int M_step_end = ((i + 1) * N) / TASK_COUNT;
 
       M_step_start = (M_step_start % 8) ? M_step_start + 8 - (M_step_start % 8)
                                         : M_step_start;
@@ -259,7 +267,7 @@ static inline void __ggml_q4_K_8x8_q8_K_GEMM_GEMV(
 static inline void __ggml_q4_K_8x8_q8_K_GEMM_GEMM(
   const unsigned int M, const unsigned int N, const unsigned int K,
   const float *A, const unsigned int lda, const void *B, const unsigned int ldb,
-  float *C, const unsigned int ldc, const unsigned int chunk_count) {
+  float *C, const unsigned int ldc) {
   unsigned int blocks_per_4_rows = (K + QK_K - 1) / QK_K;
   unsigned int qa_4_rows_size = sizeof(block_q8_Kx4) * blocks_per_4_rows;
   const size_t qa_row_size = (sizeof(block_q8_K) * K) / QK_K;
@@ -283,9 +291,9 @@ static inline void __ggml_q4_K_8x8_q8_K_GEMM_GEMM(
   }
 
   ///@todo Dynamic thread-number selection for GEMM problem size
-  std::future<void> future = SP::ThreadPool::submit_task(0, chunk_count, chunk_count, [=](int i){
-      unsigned int M_step_start = (i * N) / chunk_count;
-      unsigned int M_step_end = ((i + 1) * N) / chunk_count;
+  std::future<void> future = SP::ThreadPool::submit_task(0, TASK_COUNT, TASK_COUNT, [=](int i){
+      unsigned int M_step_start = (i * N) / TASK_COUNT;
+      unsigned int M_step_end = ((i + 1) * N) / TASK_COUNT;
 
       M_step_start = (M_step_start % 8) ? M_step_start + 8 - (M_step_start % 8)
                                         : M_step_start;
@@ -300,9 +308,9 @@ static inline void __ggml_q4_K_8x8_q8_K_GEMM_GEMM(
 
   for (unsigned int pb = M4 * 4; pb < M; pb++) {
     future =
-      SP::ThreadPool::submit_task(0, chunk_count, chunk_count, [=](int i){
-        unsigned int M_step_start = (i * N) / chunk_count;
-        unsigned int M_step_end = ((i + 1) * N) / chunk_count;
+      SP::ThreadPool::submit_task(0, TASK_COUNT, TASK_COUNT, [=](int i){
+        unsigned int M_step_start = (i * N) / TASK_COUNT;
+        unsigned int M_step_end = ((i + 1) * N) / TASK_COUNT;
         
         M_step_start = (M_step_start % 8)
                          ? M_step_start + 8 - (M_step_start % 8)
@@ -324,11 +332,11 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int K, const float *A,
                                const unsigned int lda, const void *B,
                                const unsigned int ldb, float *C,
-                               const unsigned int ldc, const unsigned int chunk_count) {
+                               const unsigned int ldc) {
   if (M == 1) { // GEMV
-    __ggml_q4_K_8x8_q8_K_GEMM_GEMV(M, N, K, A, lda, B, ldb, C, ldc, chunk_count);
+    __ggml_q4_K_8x8_q8_K_GEMM_GEMV(M, N, K, A, lda, B, ldb, C, ldc);
   } else { // GEMM
-    __ggml_q4_K_8x8_q8_K_GEMM_GEMM(M, N, K, A, lda, B, ldb, C, ldc, chunk_count);
+    __ggml_q4_K_8x8_q8_K_GEMM_GEMM(M, N, K, A, lda, B, ldb, C, ldc);
   }
 }
 
@@ -374,7 +382,7 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
                       const unsigned int K, const float *A,
                       const unsigned int lda, const void *B,
                       const unsigned int ldb, float *C,
-                      const unsigned int ldc, const unsigned int chunk_count) {
+                      const unsigned int ldc) {
   static constexpr const int32_t bs = 1;  // unused in ::ggml_vec_dot_q6_K_q8_K
   static constexpr const int32_t bx = 1;  // unused in ::ggml_vec_dot_q6_K_q8_K
   static constexpr const int32_t by = 1;  // unused in ::ggml_vec_dot_q6_K_q8_K
@@ -391,8 +399,7 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
     std::vector<char> quantized_A(A_row_size);
     ::quantize_row_q8_K(A, quantized_A.data(), K);
     
-    const int32_t adjusted_N = N;
-    std::future<void> future = SP::ThreadPool::submit_task(0, N, chunk_count, [=](size_t thread_job) {
+    std::future<void> future = SP::ThreadPool::submit_task(0, N, TASK_COUNT, [=](size_t thread_job) {
       if (thread_job < N) {
 
         const int32_t B_row_data_offset = B_row_size * thread_job;
@@ -405,20 +412,25 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
     });
     future.get();
   } else { // GEMM
-    const int32_t A_total_size = A_row_size * M;
+    const int32_t A_total_size = A_row_size * static_cast<int32_t>(M);
     std::vector<char> quantized_A(A_total_size);
 
-    std::future<void> future = SP::ThreadPool::submit_task(0, M, chunk_count, [=](size_t thread_job) {
-      const int32_t A_row_data_offset = A_row_size * thread_job;
-      void *A_data = (void *)((char *)quantized_A.data() + A_row_data_offset);
-      ::quantize_row_q8_K(A + thread_job * K, A_data, K);
+    std::future<void> future1 = SP::ThreadPool::submit_task(0, M, TASK_COUNT, [&](size_t thread_job){
+      void *row_ptr = quantized_A.data() + thread_job * A_row_size;
+      ::quantize_row_q8_K(A + thread_job * K, row_ptr, K);
+    });
+    future1.wait();
+    // for (int i = 0; i < static_cast<int>(M); ++i) {
+    //   void *row_ptr = quantized_A.data() + i * A_row_size;
+    //   ::quantize_row_q8_K(A + i * K, row_ptr, K);
+    // }
 
-      for (uint32_t j = 0; j < N; j++) {
-        const int32_t B_row_data_offset = B_row_size * j;
-        const void *const B_data = (void *)((char *)B + B_row_data_offset);
-
-        ::ggml_vec_dot_q6_K_q8_K(K, &C[thread_job * ldc + j], bs, B_data, bx,
-                                 A_data, by, nrc);
+    std::future<void> future = SP::ThreadPool::submit_task(0, M, TASK_COUNT, [&](size_t thread_job) {
+      const void *a_row = quantized_A.data() + thread_job * A_row_size;
+      float *c_row = C + thread_job * ldc;
+      for (unsigned int j = 0; j < N; ++j) {
+        const void *bptr = (const char *)B + j * B_row_size;
+        ::ggml_vec_dot_q6_K_q8_K(K, &c_row[j], bs, bptr, bx, a_row, by, nrc);
       }
     });
     future.wait();

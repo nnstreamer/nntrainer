@@ -9,14 +9,13 @@
 #include <sp_thread_pool.hpp>
 #include "nntrainer_test_util.h"
 #include <cpu_backend.h>
+#include <fallback_internal.h>
 
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <cerrno>
 #include <cstring>
-
-#include "ggml_interface.h"
 
 // #include "../../nntrainer/tensor/cpu_backend/ggml_interface/ggml_interface.h"
 
@@ -157,8 +156,9 @@ float test_gemm_q4_0(const uint32_t M, const uint32_t K, const uint32_t N,
   std::vector<float> dst(M * N);
   auto t1 = high_resolution_clock::now();
   // #### MAIN TESTED METHOD ####
-  nntrainer::__ggml_q4_0_8x8_q8_0_GEMM(M, N, K, activations, K,
-                       (void *)q4_0_repacked_qWeight.data(), N, dst.data(), N, task);
+  nntrainer::set_task_count(task);
+  nntrainer::gemm_q4_0(M, N, K, activations, K,
+                       (void *)q4_0_repacked_qWeight.data(), N, dst.data(), N);
   // #### MAIN TESTED METHOD ####
   auto t2 = high_resolution_clock::now();
   auto dt = duration_cast<nanoseconds>(t2 - t1);
@@ -198,8 +198,9 @@ float test_gemm_q4_K(const uint32_t M, const uint32_t K, const uint32_t N,
   std::vector<float> dst(M * N);
   auto t1 = high_resolution_clock::now();
   // #### MAIN TESTED METHOD ####
-  nntrainer::__ggml_q4_K_8x8_q8_K_GEMM(M, N, K, activations, K, (void *)repacked_qWeight.data(),
-                       N, dst.data(), N, task);
+  nntrainer::set_task_count(task);
+  nntrainer::gemm_q4_K(M, N, K, activations, K, (void *)repacked_qWeight.data(),
+                       N, dst.data(), N);
   // #### MAIN TESTED METHOD ####
   auto t2 = high_resolution_clock::now();
   auto dt = duration_cast<nanoseconds>(t2 - t1);
@@ -218,9 +219,9 @@ float test_gemm_q6_K(const uint32_t M, const uint32_t K, const uint32_t N,
   int64_t q6_k_block_size = 256;
   int64_t q6_k_type_size = sizeof(block_q6_K_testonly);
   int64_t num_blocks = (K * N) / q6_k_block_size;
-  size_t data_size = q6_k_type_size * N / q6_k_block_size;
+  double data_size = q6_k_type_size * N / (double) q6_k_block_size;
   data_size *= K;
-  std::vector<char> offline_qWeight = std::vector<char>(data_size);
+  std::vector<char> offline_qWeight = std::vector<char>((size_t) data_size);
   char *offline_qWeight_ptr = (char *)offline_qWeight.data();
 
   // Step1. Supposed to be an offline Weight quantization from float to q4_K
@@ -232,8 +233,9 @@ float test_gemm_q6_K(const uint32_t M, const uint32_t K, const uint32_t N,
   std::vector<float> dst(M * N);
   auto t1 = high_resolution_clock::now();
   // #### MAIN TESTED METHOD ####
-  nntrainer::__ggml_gemm_q6_K(M, N, K, activations, K, (void *)offline_qWeight_ptr, N,
-                       dst.data(), N, task);
+  nntrainer::set_task_count(task);
+  nntrainer::gemm_q6_K(M, N, K, activations, K, (void *)offline_qWeight_ptr, N,
+                       dst.data(), N);
   // #### MAIN TESTED METHOD ####
   auto t2 = high_resolution_clock::now();
   auto dt = duration_cast<nanoseconds>(t2 - t1);
@@ -266,8 +268,10 @@ int main(int argc, char** argv) {
     std::vector<double> times;
 
     SP::ThreadPool::soft_boot();
+    // SP::ThreadPool::set_processor_affinity();
+    // SP::ThreadPool::set_work_stealing(false);
 
-    std::vector<unsigned int> task_counts = {1, 2, 4, 8, 16, 32, 64};
+    std::vector<unsigned int> task_counts = {64, 32, 16, 8, 4, 2, 1};
 
     unsigned int single_thread_time;
     double best_speed_up = 1.0;
@@ -307,6 +311,7 @@ int main(int argc, char** argv) {
 
         double sum = std::accumulate(times.begin(), times.end(), 0.0);
         double mean = sum / runs;
+        auto min_it = std::min_element(times.begin(), times.end()); 
         double sq_sum = std::inner_product(times.begin(), times.end(), times.begin(), 0.0);
         double stddev = std::sqrt(sq_sum / runs - mean * mean);
 
@@ -320,9 +325,10 @@ int main(int argc, char** argv) {
                 best_time = mean;
             }
         }
-        
-        std::cout << task << " task: " << "  Mean    : " << mean << (to_milli ? " ms " : " us")
-                << "  Std Dev : " << stddev << (to_milli ? " ms \n" : " us\n");
+        std::cout << std::fixed << std::setprecision(3);
+        std::cout << std::setw(2) << task << " task: " << "   Min: " << std::setw(10) << *min_it << (to_milli ? " ms " : " us") <<
+                    "    Mean: " << std::setw(10) << mean << (to_milli ? " ms " : " us") << 
+                    "    Std Dev: " << std::setw(10) << stddev << (to_milli ? " ms \n" : " us\n");
     }
 
     std::cout << "Fastest time at " << best_time << (to_milli ? " ms " : " us ") << " with a speedup of " << best_speed_up
