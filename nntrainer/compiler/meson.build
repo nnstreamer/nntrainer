@@ -34,9 +34,6 @@ if get_option('enable-tflite-interpreter')
 if not flatc_prog.found()
   error('flatc executable not found')
 endif
-  compiler_sources += [
-    'flatbuffer_interpreter.cpp'
-  ]
 endif
 
 foreach s : compiler_sources
