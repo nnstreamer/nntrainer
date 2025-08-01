@@ -21,40 +21,12 @@
 #ifdef __cplusplus
 
 #include <acti_func.h>
+#include <causallm_common_properties.h>
 #include <common_properties.h>
 #include <layer_impl.h>
 
 namespace causallm {
 
-namespace props {
-/**
- * @brief MoE activation type
- */
-class MoEActivation final
-  : public nntrainer::EnumProperty<nntrainer::props::ActivationTypeInfo> {
-public:
-  using prop_tag = nntrainer::enum_class_prop_tag;
-  static constexpr const char *key = "moe_activation";
-};
-/**
- * @brief NumExperts,  Number of experts property
- */
-class NumExperts : public nntrainer::PositiveIntegerProperty {
-public:
-  static constexpr const char *key = "num_experts"; /**< unique key to access */
-  using prop_tag = nntrainer::uint_prop_tag;        /**< property type */
-};
-
-/**
- * @brief NumExpertsPerToken,  Number of experts per token property
- */
-class NumExpertsPerToken : public nntrainer::PositiveIntegerProperty {
-public:
-  static constexpr const char *key =
-    "num_experts_per_token";                 /**< unique key to access */
-  using prop_tag = nntrainer::uint_prop_tag; /**< property type */
-};
-} // namespace props
 /**
  * @class   MoELayer
  * @brief   Mixture of Expert Layer
