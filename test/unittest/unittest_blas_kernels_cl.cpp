@@ -841,6 +841,51 @@ TEST(blas_kernels, dotCL_sgemv_n_fp16) {
   EXPECT_THROW(dotCl(A_fp16, B_fp16, transA, transB), std::runtime_error);
 }
 
+TEST(blas_kernels, sgemv_3072_20120_noTrans) {
+  int batch = 1;
+  int channel = 1;
+  int height = 1;
+  int width = 3072;
+
+  int height_b = 3072;
+  int width_b = 20120;
+
+  bool transA = false;
+  bool transB = false;
+
+  const float alpha = 1e-1;
+  const int MOD = 10;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor A_fp32(batch, channel, height, width, t_type_nchw_fp32);
+  nntrainer::Tensor B_fp32(batch, channel, height_b, width_b, t_type_nchw_fp32);
+
+  GEN_TEST_INPUT(A_fp32, ((i * (batch * height * channel) +
+                           j * (batch * height) + k * (width) + l + 1) %
+                          MOD) *
+                           alpha);
+  GEN_TEST_INPUT_B(B_fp32, ((i * (batch * height_b * channel) +
+                             j * (batch * height_b) + k * (width_b) + l + 1) %
+                            MOD) *
+                             alpha);
+
+  nntrainer::Tensor C = dotCl(A_fp32, B_fp32, transA, transB);
+  nntrainer::Tensor C_fp32 = A_fp32.dot(B_fp32, transA, transB);
+
+  float mseError =
+    mse<float>(C.getData<float>(), C_fp32.getData<float>(), C.size());
+
+  double cosSim = cosine_similarity<float>(C.getData<float>(),
+                                           C_fp32.getData<float>(), C.size());
+
+  const float epsilon = 1e-3 * width;
+
+  EXPECT_IN_RANGE(mseError, 0, epsilon);
+  EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
+}
+
 TEST(blas_kernels, multiply_i) {
   int batch = 1;
   int channel = 1;

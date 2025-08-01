@@ -16,6 +16,8 @@
 #include "clblast.h"
 #include "clblast_interface.h"
 
+#include "opencl_loader.h"
+
 namespace nntrainer {
 
 void scal_cl(const unsigned int N, const float alpha, float *X,
@@ -182,7 +184,39 @@ void gemv_cl(const unsigned int layout, bool TransA, const unsigned int M,
              const unsigned int N, const float alpha, const float *A,
              const unsigned int lda, const float *X, const float beta, float *Y,
              unsigned int incX, unsigned int incY) {
-  throw std::runtime_error("gemv_cl is not implemented");
+  auto *clblast_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clBuffManagerInst = ClBufferManager::Global();
+  auto command_queue = clblast_cc->command_queue_inst_.GetCommandQueue();
+
+  clblast::Transpose transA =
+    (TransA) ? clblast::Transpose::kYes : clblast::Transpose::kNo;
+
+  const size_t a_size = M * N;
+  const size_t x_size = (TransA ? M : N) * incX;
+  const size_t y_size = (TransA ? N : M) * incY;
+
+  clBuffManagerInst.getInBufferA()->WriteDataRegion(
+    clblast_cc->command_queue_inst_, a_size * sizeof(float), A);
+
+  clBuffManagerInst.getOutBufferA()->WriteDataRegion(
+    clblast_cc->command_queue_inst_, y_size * sizeof(float), Y);
+
+  clBuffManagerInst.getInBufferB()->WriteDataRegion(
+    clblast_cc->command_queue_inst_, x_size * sizeof(float), X);
+
+  auto s = clblast::Gemv<float>(
+    clblast::Layout::kRowMajor, transA, M, N, alpha,
+    clBuffManagerInst.getInBufferA()->GetBuffer(), 0, lda,
+    clBuffManagerInst.getInBufferB()->GetBuffer(), 0, incX, beta,
+    clBuffManagerInst.getOutBufferA()->GetBuffer(), 0, incY, &command_queue);
+
+  opencl::clFinish(clblast_cc->command_queue_inst_.GetCommandQueue());
+
+  opencl::clEnqueueReadBuffer(clblast_cc->command_queue_inst_.GetCommandQueue(),
+                              clBuffManagerInst.getOutBufferA()->GetBuffer(),
+                              CL_TRUE, 0, y_size * sizeof(float), Y, 0, nullptr,
+                              nullptr);
 }
 
 void gemm_cl(const unsigned int layout, bool TransA, bool TransB,
