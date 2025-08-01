@@ -59,13 +59,7 @@ void BCQTensor::allocate() {
     /** as this memory is shared, do NOT initialize */
   } else {
     /// allocate new memory for the tensor data
-    MemoryData *mem_data;
-
-    mem_data = new MemoryData((void *)(new uint32_t[size() + scale_size()]{}));
-    data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-      delete[] mem_data->template getAddr<uint32_t>();
-      delete mem_data;
-    });
+    allocateInternal();
 
     offset = 0;
     initialize();
@@ -77,42 +71,16 @@ void BCQTensor::deallocate() {
   offset = 0;
 }
 
-void *BCQTensor::getData() const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return data->getAddr<uint32_t>() + offset;
-}
-
 void *BCQTensor::getData(size_t idx) const {
-  NNTR_THROW_IF(idx > dim.getDataLen(), std::invalid_argument)
-    << "Tensor::getData() index is not valid";
+  std::byte *data_ptr = static_cast<std::byte *>(getData());
 
-  if (!data)
+  if (!data_ptr) {
     return nullptr;
+  }
 
   data->validate();
-  return data->getAddr<uint32_t>() + offset + (idx / 32);
-}
 
-void *BCQTensor::getScale() const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return ((uint32_t *)getData()) + size();
-}
-
-void *BCQTensor::getScale(size_t idx) const {
-  NNTR_THROW_IF(idx > scale_size(), std::invalid_argument)
-    << "Tensor::getScale() index is not valid";
-
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return ((uint32_t *)getScale()) + idx;
+  return data_ptr + ((idx / 32) * getDataTypeBitsSize() / CHAR_BIT);
 }
 
 void *BCQTensor::getAddress(unsigned int i) {
@@ -173,6 +141,8 @@ void BCQTensor::setZero() {
 void BCQTensor::initialize() {
   if (empty() || !isAllocated())
     return;
+
+  TensorBase::initialize();
 
   /// @note Sampling from the normal/uniform distribution is invalid
   switch (initializer) {
