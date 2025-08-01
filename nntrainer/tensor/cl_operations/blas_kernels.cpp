@@ -204,10 +204,8 @@ void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
   }
 }
 
-void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
-              bool TransA, unsigned int dim1, unsigned int dim2,
-              unsigned int lda) {
-
+void sgemv_cl(float *matAdata, float *vecXdata, float *vecYdata, bool TransA,
+              unsigned int dim1, unsigned int dim2, unsigned int lda) {
   bool result = false;
 
   auto *blas_cc =
@@ -232,38 +230,27 @@ void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
     size_t dim1_size = sizeof(float) * dim1;
     size_t dim2_size = sizeof(float) * dim2;
 
-    result = clbuffInstance.getInBufferA()->WriteDataRegion(
-      blas_cc->command_queue_inst_, dim1 * dim2 * sizeof(float), matAdata);
+    result = blas_cc->command_queue_inst_.enqueueSVMUnmap(matAdata);
     if (!result) {
       break;
     }
 
-    result = clbuffInstance.getInBufferB()->WriteDataRegion(
-      blas_cc->command_queue_inst_, dim2_size, vecXdata);
+    result = blas_cc->command_queue_inst_.enqueueSVMUnmap(vecXdata);
     if (!result) {
       break;
     }
 
-    result = clbuffInstance.getOutBufferA()->WriteDataRegion(
-      blas_cc->command_queue_inst_, dim1_size, vecYdata);
+    result = kernel_sgemv_ptr->SetKernelSVMArguments(0, matAdata);
     if (!result) {
       break;
     }
 
-    result = kernel_sgemv_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
+    result = kernel_sgemv_ptr->SetKernelSVMArguments(1, vecXdata);
     if (!result) {
       break;
     }
 
-    result = kernel_sgemv_ptr->SetKernelArguments(
-      1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = kernel_sgemv_ptr->SetKernelArguments(
-      2, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
+    result = kernel_sgemv_ptr->SetKernelSVMArguments(2, vecYdata);
     if (!result) {
       break;
     }
@@ -288,8 +275,8 @@ void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
       break;
     }
 
-    result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-      blas_cc->command_queue_inst_, dim1_size, vecYdata);
+    result =
+      blas_cc->command_queue_inst_.enqueueSVMMap(vecYdata, dim1_size, true);
     if (!result) {
       break;
     }
