@@ -63,7 +63,119 @@
       Y[i * incY] = Y[i * incY] + static_cast<_FP16>(alpha) * X[i * incX];     \
   } while (0);
 
+#define hsgemv_loop(ci, cj, cM, cN)                                            \
+  do {                                                                         \
+    float y0;                                                                  \
+    unsigned int i, j;                                                         \
+    for (ci = 0; ci != cM; ci++) {                                             \
+      y0 = 0.0f;                                                               \
+      if (beta != 0.0f) {                                                      \
+        y0 = Y[ci * incY] * beta;                                              \
+      }                                                                        \
+      for (cj = 0; cj != cN; cj++)                                             \
+        y0 += static_cast<float>(A[i + j * lda]) * X[cj * incX];               \
+      Y[ci * incY] = y0;                                                       \
+    }                                                                          \
+  } while (0);
+
+#define hsgemm_loop()                                                          \
+  do {                                                                         \
+    for (unsigned int m = 0; m < M; ++m) {                                     \
+      for (unsigned int n = 0; n < N; ++n) {                                   \
+        float c = 0;                                                           \
+        float c_old = C[m * ldc + n];                                          \
+        for (unsigned int k = 0; k < K; ++k) {                                 \
+          _FP16 a;                                                             \
+          float b;                                                             \
+          a = ((TransA) ? A[k * lda + m] : A[m * lda + k]);                    \
+          b = ((TransB) ? B[n * ldb + k] : B[k * ldb + n]);                    \
+          c += static_cast<float>(a) * b;                                      \
+        }                                                                      \
+        C[m * ldc + n] = (alpha * c);                                          \
+        if (beta != 0.0f) {                                                    \
+          C[m * ldc + n] += (beta)*c_old;                                      \
+        }                                                                      \
+      }                                                                        \
+    }                                                                          \
+  } while (0);
+#define shgemv_loop(ci, cj, cM, cN)                                            \
+  do {                                                                         \
+    float y0;                                                                  \
+    unsigned int i, j;                                                         \
+    for (ci = 0; ci != cM; ci++) {                                             \
+      y0 = 0.0f;                                                               \
+      if (beta != 0.0f) {                                                      \
+        y0 = static_cast<float>(Y[ci * incY] * beta);                          \
+      }                                                                        \
+      for (cj = 0; cj != cN; cj++)                                             \
+        y0 += (A[i + j * lda] * static_cast<float>(X[cj * incX]));             \
+      Y[ci * incY] = y0;                                                       \
+    }                                                                          \
+  } while (0);
+
+#define shgemm_loop()                                                          \
+  do {                                                                         \
+    for (unsigned int m = 0; m < M; ++m) {                                     \
+      for (unsigned int n = 0; n < N; ++n) {                                   \
+        float c = 0;                                                           \
+        float c_old = C[m * ldc + n];                                          \
+        for (unsigned int k = 0; k < K; ++k) {                                 \
+          float a;                                                             \
+          _FP16 b;                                                             \
+          a = ((TransA) ? A[k * lda + m] : A[m * lda + k]);                    \
+          b = ((TransB) ? B[n * ldb + k] : B[k * ldb + n]);                    \
+          c += static_cast<float>(a * b);                                      \
+        }                                                                      \
+        C[m * ldc + n] = (alpha * c);                                          \
+        if (beta != 0.0f) {                                                    \
+          C[m * ldc + n] += (beta)*c_old;                                      \
+        }                                                                      \
+      }                                                                        \
+    }                                                                          \
+  } while (0);
 namespace nntrainer {
+void __fallback_shgemm(const unsigned int TStorageOrder, bool TransA,
+                       bool TransB, const unsigned int M, const unsigned int N,
+                       const unsigned int K, const float alpha, const float *A,
+                       const unsigned int lda, const _FP16 *B,
+                       const unsigned int ldb, const float beta, float *C,
+                       const unsigned int ldc) {
+  shgemm_loop();
+}
+
+void __fallback_shgemv(const unsigned int TStorageOrder, bool TransA,
+                       const unsigned int M, const unsigned int N,
+                       const float alpha, const float *A,
+                       const unsigned int lda, const _FP16 *X,
+                       const unsigned int incX, const float beta, float *Y,
+                       const unsigned int incY) {
+  if (TransA == true) {
+    shgemv_loop(i, j, N, M);
+  } else {
+    shgemv_loop(j, i, M, N);
+  }
+}
+
+void __fallback_hsgemm(const unsigned int TStorageOrder, bool TransA,
+                       bool TransB, const unsigned int M, const unsigned int N,
+                       const unsigned int K, const float alpha, const _FP16 *A,
+                       const unsigned int lda, const float *B,
+                       const unsigned int ldb, const float beta, float *C,
+                       const unsigned int ldc) {
+  hsgemm_loop();
+}
+void __fallback_hsgemv(const unsigned int TStorageOrder, bool TransA,
+                       const unsigned int M, const unsigned int N,
+                       const float alpha, const _FP16 *A,
+                       const unsigned int lda, const float *X,
+                       const unsigned int incX, const float beta, float *Y,
+                       const unsigned int incY) {
+  if (TransA == true) {
+    hsgemv_loop(i, j, N, M);
+  } else {
+    hsgemv_loop(j, i, M, N);
+  }
+}
 
 void __fallback_compute_rotary_embedding_value(unsigned int dim,
                                                unsigned int half_,
