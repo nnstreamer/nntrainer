@@ -341,6 +341,10 @@ NeuralNetwork::~NeuralNetwork() {
     std::cerr << "Error occurred during destroying NeuralNetwork: " << e.what()
               << std::endl;
   }
+
+  /** if neuralnet open fd */
+  if (model_file_fd != -1)
+    close(model_file_fd);
 }
 
 /**
@@ -726,6 +730,12 @@ void NeuralNetwork::load(const std::string &file_path,
 #endif
 
     if (exec_mode == ml::train::ExecutionMode::INFERENCE) {
+      if (!MMAP_READ){
+        ///@note for slim-tensor. This should be removed.
+        model_file_fd = open(f_path.c_str(), O_RDONLY);
+        NNTR_THROW_IF((model_file_fd == -1), std::invalid_argument)
+          << "Cannot open file : " << f_path;
+      }
       std::vector<std::future<void>> futures;
       for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
            ++iter) {
@@ -737,7 +747,7 @@ void NeuralNetwork::load(const std::string &file_path,
             auto local_model_file = checkedOpenStream<std::ifstream>(
               (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
             node->read(local_model_file, false, exec_mode, fsu_mode,
-                       std::numeric_limits<size_t>::max(), true);
+                       std::numeric_limits<size_t>::max(), true, model_file_fd);
           } else {
 #if defined(_WIN32)
             // Map per-task, then unmap immediately after: enables early release

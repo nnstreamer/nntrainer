@@ -203,6 +203,7 @@ public:
    * @param reg_const regularization constant for the weight
    * @param name name of the weight
    * @param trainable if the weight is trainable (require gradient or not)
+   * @param is_virtual if the weight is virtual (not allocate)
    * @return unsigned int index of the weight for its getter
    *
    * @todo Consider providing a guarantee that the returned indices will always
@@ -211,7 +212,8 @@ public:
   unsigned int requestWeight(const TensorDim &dim, const Initializer init,
                              const WeightRegularizer reg, const float reg_const,
                              const float decay, const std::string &name,
-                             bool trainable = true, unsigned int out_axis = 3) {
+                             bool trainable = true, bool is_virtual = false,
+                             unsigned int out_axis = 3) {
 
     /** @note : We assumes the gradient type is same with Activation data
      * type.*/
@@ -222,7 +224,8 @@ public:
     weights_spec.emplace_back(
       dim, dim_g, init, reg, reg_const, decay, clip_by_global_norm, trainable,
       prefix + ":" + name, out_axis, loss_scale,
-      (getWeightDataType() != ml::train::TensorDim::DataType::FP32));
+      (getWeightDataType() != ml::train::TensorDim::DataType::FP32),
+      is_virtual);
     return weights_spec.size() - 1;
   }
 
@@ -245,14 +248,16 @@ public:
                              const Initializer init,
                              const WeightRegularizer reg, const float reg_const,
                              const float decay, const std::string &name,
-                             bool trainable = true, unsigned int out_axis = 3) {
+                             bool trainable = true, unsigned int out_axis = 3,
+                             bool is_virtual = false) {
 
     /** @note : We assumes the gradient type is same with Activation data
      * type.*/
     weights_spec.emplace_back(
       dim, dim_g, init, reg, reg_const, decay, clip_by_global_norm, trainable,
       prefix + ":" + name, out_axis, loss_scale,
-      (getWeightDataType() != ml::train::TensorDim::DataType::FP32));
+      (getWeightDataType() != ml::train::TensorDim::DataType::FP32),
+      is_virtual);
     return weights_spec.size() - 1;
   }
 
