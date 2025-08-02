@@ -64,10 +64,12 @@ public:
    * @param init Initializer for the tensor
    * @param name Name of the tensor
    * @param qscheme_ Quantization scheme (only applies to Quantized Tensor)
+   * @param is_virtual virtual tensor boolean (default=false)
    */
   Tensor(const TensorDim &d, bool alloc_now,
          Initializer init = Initializer::NONE, std::string name = "",
-         QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE);
+         QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE,
+         bool is_virtual = false);
 
   /**
    * @brief     Constructor of Tensor with dimension/buf
@@ -1635,7 +1637,7 @@ public:
    * @param[in] file input file stream
    */
   void read(std::ifstream &file, size_t start_offset = 0,
-            bool read_from_offset = false);
+            bool read_from_offset = false, int file_fd = -1);
 
   /**
    * @brief     return argument index which value is max by batch
@@ -1954,10 +1956,25 @@ public:
    */
   bool isValid() const { return itensor_->isValid(); };
 
+  bool isVirtual() const { return is_virtual; }
+
+  void activate();
+
+  void deactivate();
+
   static constexpr float epsilon = 1e-5f;
 
 private:
   std::unique_ptr<TensorBase> itensor_;
+
+  /**
+   * @brief properties for virtual tensor
+   * @note This should be removed by defining VirutalTensor class
+   * */
+  bool is_virtual = false; /** flag to check virtual */
+  size_t read_offset;      /** save read_offset info for virtual */
+  int fd = -1;             /** save fd info for virtual */
+  void *buf = nullptr;     /** save mmap buf pointer for virtual */
 
   /**
    * @brief Set tensor variables

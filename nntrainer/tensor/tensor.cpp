@@ -31,6 +31,11 @@
 #include <bcq_tensor.h>
 #endif
 
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 namespace nntrainer {
 
 Tensor::Tensor(
@@ -153,8 +158,9 @@ Tensor::Tensor(std::string name_, Tformat fm, Tdatatype d_type) {
 }
 
 Tensor::Tensor(const TensorDim &d, bool alloc_now, Initializer init,
-               std::string name, QScheme qscheme) {
+               std::string name, QScheme qscheme, bool is_virtual) {
   itensor_ = nullptr;
+  this->is_virtual = is_virtual;
 
   if (d.getDataType() == Tdatatype::FP32) {
     itensor_ = std::make_unique<FloatTensor>(d, alloc_now, init, name);
@@ -291,6 +297,11 @@ Tensor::Tensor(const Tensor &rhs) {
                                 "Enable only if your system supports BiQGEMM.");
 #endif
   }
+
+  /** copy tensor properties */
+  this->is_virtual = rhs.is_virtual;
+  this->fd = rhs.fd;
+  this->read_offset = rhs.read_offset;
 }
 
 Tensor::Tensor(const std::unique_ptr<TensorBase> &rhs) {
@@ -1344,9 +1355,18 @@ void Tensor::save(std::ostream &file) {
 }
 
 void Tensor::read(std::ifstream &file, size_t start_offset,
-                  bool read_from_offset) {
+                  bool read_from_offset, int file_fd) {
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
     << getName() << " is not contiguous, cannot read.";
+
+  // save the start_offset_info
+  read_offset = start_offset;
+
+  // Do not read now but save file_fd in tensor
+  if (is_virtual) {
+    fd = file_fd;
+    return;
+  }
 
   itensor_->read(file, start_offset, read_from_offset);
 }
@@ -1559,6 +1579,39 @@ Tensor Tensor::getSharedDataTensor(const TensorDim dim_, size_t offset,
   itensor_->getSharedDataTensor(dim_, offset, reset_stride, name_,
                                 ret.itensor_.get());
   return ret;
+}
+
+void Tensor::activate() {
+
+  NNTR_THROW_IF(!is_virtual, std::invalid_argument)
+    << "non-virtual tensor cannot call activate()";
+
+  auto file_offset = getFileOffset();
+  size_t off = (file_offset / 4096) * 4096;
+  size_t diff = file_offset - off;
+  size_t len = getMemoryBytes() + diff;
+
+  buf = mmap(NULL, len, PROT_READ, MAP_SHARED, this->fd, off);
+  if (buf == MAP_FAILED) {
+    std::cerr << "[activate] mmap failed: " << strerror(errno) << std::endl;
+  }
+  itensor_->activate((void *)&((uint8_t *)buf)[diff]);
+}
+
+void Tensor::deactivate() {
+
+  NNTR_THROW_IF(!is_virtual, std::invalid_argument)
+    << "non-virtual tensor cannot call deactivate()";
+
+  auto file_offset = getFileOffset();
+  size_t off = (file_offset / 4096) * 4096;
+  size_t diff = file_offset - off;
+  size_t len = getMemoryBytes() + diff;
+  if (buf != nullptr && munmap((void *)buf, len) != 0) {
+    std::cerr << "[deactivate] munmap failed: " << strerror(errno) << std::endl;
+  };
+  buf = nullptr;
+  itensor_->deactivate();
 }
 
 void Tensor::setTensorVar(TensorDim d, void *buf, size_t offset) {
