@@ -15,7 +15,9 @@
 namespace nntrainer {
 
 Q4_0_Tensor::Q4_0_Tensor(std::string name_, Tformat fm) :
-  TensorBase(name_, fm) {}
+  TensorBase(name_, fm) {
+  offset = 0;
+}
 
 Q4_0_Tensor::Q4_0_Tensor(const TensorDim &d, bool alloc_now, Initializer init,
                          std::string name) :
@@ -27,6 +29,7 @@ Q4_0_Tensor::Q4_0_Tensor(const TensorDim &d, bool alloc_now, Initializer init,
 
   if (alloc_now)
     allocate();
+  offset = 0;
 }
 
 Q4_0_Tensor::Q4_0_Tensor(const TensorDim &d, const void *buf) :

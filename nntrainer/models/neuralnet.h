@@ -658,6 +658,7 @@ private:
   RigidPropTypes model_props;         /**< model props */
   FlexiblePropTypes model_flex_props; /**< model train props */
   std::string load_path; /**< path to load weights when initialize  */
+  int model_file_fd = -1;
 
   /**
    * @brief   Print Options when printing layer info
