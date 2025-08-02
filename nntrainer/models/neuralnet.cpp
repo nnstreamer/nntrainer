@@ -347,6 +347,10 @@ NeuralNetwork::~NeuralNetwork() {
     std::cerr << "Error occurred during destroying NeuralNetwork: " << e.what()
               << std::endl;
   }
+
+  /** if neuralnet open fd */
+  if (model_file_fd != -1)
+    close(model_file_fd);
 }
 
 /**
@@ -726,6 +730,10 @@ void NeuralNetwork::load(const std::string &file_path,
 
     auto model_file =
       checkedOpenStream<std::ifstream>(f_path, std::ios::in | std::ios::binary);
+    char *mmaped = nullptr;
+    size_t f_size = 0;
+    struct stat st {};
+    int fd = -1;
 
 #if defined(_WIN32)
     HANDLE hFile, hMap;
@@ -743,7 +751,7 @@ void NeuralNetwork::load(const std::string &file_path,
             auto local_model_file = checkedOpenStream<std::ifstream>(
               (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
             node->read(local_model_file, false, exec_mode, fsu_mode,
-                       std::numeric_limits<size_t>::max(), true);
+                       std::numeric_limits<size_t>::max(), true, model_file_fd);
           } else {
 #if defined(_WIN32)
             // Map per-task, then unmap immediately after: enables early release
