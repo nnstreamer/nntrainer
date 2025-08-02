@@ -13,11 +13,19 @@
 
 #include <assert.h>
 #include <avx2_impl.h>
+#ifdef USE_BLAS
 #include <cblas_interface.h>
+#endif
 #include <fallback_internal.h>
 #include <nntrainer_error.h>
 #include <tensor_dim.h>
 #include <x86_compute_backend.h>
+#ifdef USE_BLAS
+#include <cblas_interface.h>
+#endif
+#ifdef ENABLE_GGML
+#include <ggml_interface.h>
+#endif
 
 #define ROW_MAJOR 0
 #define COL_MAJOR 1
@@ -98,6 +106,8 @@ void sgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
            const float alpha, const _FP16 *A, const unsigned int lda,
            const _FP16 *B, const unsigned int ldb, const float beta, _FP16 *C,
            const unsigned int ldc) {
+#ifdef USE_BLAS
+
   float *A_ = new float[M * K];
   float *B_ = new float[N * K];
   float *C_ = new float[M * N];
@@ -108,17 +118,23 @@ void sgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
 
   __cblas_sgemm(TStorageOrder, TransA, TransB, M, N, K, alpha, A_, lda, B_, ldb,
                 beta, C_, ldc);
+
   scopy(M * N, C_, 1, C, 1);
 
   delete[] A_;
   delete[] B_;
   delete[] C_;
+#else
+  __fallback_sgemm(TStorageOrder, TransA, TransB, M, N, K, alpha, A, lda, B,
+                   ldb, beta, C, ldc);
+#endif
 }
 
 void sgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
            const unsigned int N, const float alpha, const _FP16 *A,
            const unsigned int lda, const _FP16 *X, const unsigned int incX,
            const float beta, _FP16 *Y, const unsigned int incY) {
+#ifdef USE_BLAS
   unsigned int lenX = (TransA) ? 1 + (M - 1) * (incX) : 1 + (N - 1) * (incX);
   unsigned int lenY = (TransA) ? 1 + (N - 1) * (incY) : 1 + (M - 1) * (incY);
 
@@ -138,6 +154,11 @@ void sgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
   delete[] A_;
   delete[] X_;
   delete[] Y_;
+
+#else
+  __fallback_sgemv(TStorageOrder, TransA, M, N, alpha, A, lda, X, incX, beta, Y,
+                   incY);
+#endif
 }
 
 void ele_mul(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,
@@ -201,4 +222,55 @@ void softmax(const unsigned int N, _FP16 *X, _FP16 *Y) {
   __fallback_softmax(N, X, Y);
 }
 
+template <> void dequantize_row_q8_0(const void *x_raw, _FP16 *y, int64_t k) {
+#ifdef ENABLE_GGML
+  __nntr_dequantize_row_q8_0(x_raw, y, k);
+#else
+  __fallback_dequantize_row_q8_0(x_raw, y, k);
+#endif
+}
+
+template <>
+size_t quantize_q8_0(const _FP16 *src, void *dst, int64_t nrow,
+                     int64_t n_per_row, const float *quant_weights) {
+#ifdef ENABLE_GGML
+  return __nntr_quantize_q8_0(src, dst, nrow, n_per_row, quant_weights);
+#else
+  return __fallback_quantize_q8_0(src, dst, nrow, n_per_row, quant_weights);
+#endif
+}
+
+template <>
+void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
+               const _FP16 *A, const unsigned int lda, const void *B,
+               const unsigned int ldb, _FP16 *C, const unsigned int ldc) {
+  return __fallback_gemm_q4_0(M, N, K, A, lda, B, ldb, C, ldc);
+}
+
+template <> void quantize_row_q8_K(const _FP16 *src, void *dst, int64_t k) {
+#ifdef ENABLE_GGML
+  __ggml_quantize_row_q8_K(src, dst, k);
+#else
+  __fallback_quantize_row_q8_K(src, dst, k);
+#endif
+}
+
+template <> void dequantize_row_q8_K(const void *x, _FP16 *y, int64_t k) {
+#ifdef ENABLE_GGML
+  __ggml_dequantize_row_q8_K(x, y, k);
+#else
+  __fallback_dequantize_row_q8_K(x, y, k);
+#endif
+}
+
+template <>
+void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
+               const _FP16 *A, const unsigned int lda, const void *B,
+               const unsigned int ldb, _FP16 *C, const unsigned int ldc) {
+#ifdef ENABLE_GGML
+  return __ggml_gemm_q6_K<_FP16>(M, N, K, A, lda, B, ldb, C, ldc);
+#else
+  return __fallback_gemm_q6_K(M, N, K, A, lda, B, ldb, C, ldc);
+#endif
+}
 } /* namespace nntrainer */

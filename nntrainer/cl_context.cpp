@@ -25,6 +25,10 @@
 #include <swiglu_cl.h>
 #include <transpose_cl.h>
 
+#if defined(_WIN32)
+#include <windows.h>
+#endif
+
 namespace nntrainer {
 
 std::mutex cl_factory_mutex;
@@ -35,6 +39,11 @@ void ClContext::initialize() noexcept {
       ml_loge("cl_context: opencl command queue creation failed");
     }
 
+    setMemAllocator(std::make_shared<MemAllocator>());
+
+    initBlasClKernels();
+    initAttentionClKernels();
+    add_default_object();
     setMemAllocator(std::make_shared<MemAllocator>());
 
     initBlasClKernels();

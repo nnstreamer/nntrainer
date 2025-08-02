@@ -37,7 +37,7 @@
 #include <opencl_kernel.h>
 #include <opencl_program.h>
 
-#include "utils/singleton.h"
+#include <singleton.h>
 
 namespace nntrainer {
 
@@ -291,7 +291,6 @@ private:
     bool result = command_queue_inst_.CreateCommandQueue();
     // initialize device buffers
     clbuffInstance.initBuffers();
-
     cl_initialized = result;
     return cl_initialized;
   };
