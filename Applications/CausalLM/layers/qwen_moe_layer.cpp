@@ -131,7 +131,7 @@ void MoELayer::finalize(nntrainer::InitLayerContext &context) {
     expert_gate_proj_indices.push_back(context.requestWeight(
       expert_gate_dim, weight_initializer, weight_regularizer,
       weight_regularizer_constant, weight_decay,
-      "expert_gate_" + std::to_string(i), true));
+      "expert_gate_" + std::to_string(i), false));
 
     // Down projection
     expert_down_proj_indices.push_back(context.requestWeight(
