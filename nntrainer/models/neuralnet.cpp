@@ -341,6 +341,10 @@ NeuralNetwork::~NeuralNetwork() {
     std::cerr << "Error occurred during destroying NeuralNetwork: " << e.what()
               << std::endl;
   }
+
+  /** if neuralnet open fd */
+  if (model_file_fd != -1)
+    close(model_file_fd);
 }
 
 /**
@@ -720,12 +724,47 @@ void NeuralNetwork::load(const std::string &file_path,
 
     auto model_file =
       checkedOpenStream<std::ifstream>(f_path, std::ios::in | std::ios::binary);
+    char *mmaped = nullptr;
+    size_t f_size = 0;
+    struct stat st {};
+    model_file_fd = -1;
 
 #if defined(_WIN32)
     HANDLE hFile, hMap;
 #endif
 
     if (exec_mode == ml::train::ExecutionMode::INFERENCE) {
+      if (MMAP_READ) {
+#if defined(_WIN32)
+        HANDLE hFile =
+          CreateFileA(f_path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL,
+                      OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        HANDLE hMap = CreateFileMapping(hFile, NULL, PAGE_READONLY, 0, 0, NULL);
+        mmaped = (char *)MapViewOfFile(hMap, FILE_MAP_READ, 0, 0, 0);
+#else
+        model_file_fd = open(f_path.c_str(), O_RDONLY);
+        NNTR_THROW_IF((model_file_fd == -1), std::invalid_argument)
+          << "Cannot open file : " << f_path;
+
+        NNTR_THROW_IF((fstat(model_file_fd, &st) == -1), std::invalid_argument)
+          << "Cannot get file info (fstat): " << f_path;
+
+        f_size = static_cast<size_t>(st.st_size);
+
+        void *mmap_ptr =
+          mmap(nullptr, f_size, PROT_READ, MAP_PRIVATE, model_file_fd, 0);
+        NNTR_THROW_IF((mmap_ptr == MAP_FAILED), std::runtime_error)
+          << " MMap failed";
+
+        mmaped = static_cast<char *>(mmap_ptr);
+#endif
+      } else {
+        ///@note for slim-tensor
+        model_file_fd = open(f_path.c_str(), O_RDONLY);
+        NNTR_THROW_IF((model_file_fd == -1), std::invalid_argument)
+          << "Cannot open file : " << f_path;
+      }
+
       std::vector<std::future<void>> futures;
       for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
            ++iter) {
@@ -737,7 +776,7 @@ void NeuralNetwork::load(const std::string &file_path,
             auto local_model_file = checkedOpenStream<std::ifstream>(
               (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
             node->read(local_model_file, false, exec_mode, fsu_mode,
-                       std::numeric_limits<size_t>::max(), true);
+                       std::numeric_limits<size_t>::max(), true, model_file_fd);
           } else {
 #if defined(_WIN32)
             // Map per-task, then unmap immediately after: enables early release
