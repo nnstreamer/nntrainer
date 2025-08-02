@@ -126,19 +126,19 @@ void SlimMoELayer::finalize(nntrainer::InitLayerContext &context) {
     expert_up_proj_indices.push_back(context.requestWeight(
       expert_gate_dim, // Same dimensions as gate projection
       weight_initializer, weight_regularizer, weight_regularizer_constant,
-      weight_decay, "expert_up_" + std::to_string(i), false));
+      weight_decay, "expert_up_" + std::to_string(i), false, true));
 
     // Gate projection
     expert_gate_proj_indices.push_back(context.requestWeight(
       expert_gate_dim, weight_initializer, weight_regularizer,
       weight_regularizer_constant, weight_decay,
-      "expert_gate_" + std::to_string(i), true));
+      "expert_gate_" + std::to_string(i), false, true));
 
     // Down projection
     expert_down_proj_indices.push_back(context.requestWeight(
       expert_down_dim, weight_initializer, weight_regularizer,
       weight_regularizer_constant, weight_decay,
-      "expert_down_" + std::to_string(i), false));
+      "expert_down_" + std::to_string(i), false, true));
   }
 
   // 6. Request intermediate tensors
@@ -467,18 +467,39 @@ void SlimMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
       }
     }
 
-#pragma omp parallel for schedule(dynamic)
     for (int expert_idx = 0; expert_idx < static_cast<int>(num_experts);
          ++expert_idx) {
       const auto &assignments = expert_assignments[expert_idx];
       if (assignments.empty())
         continue;
 
+      ///@note load expert layer for the expert_idx
+      nntrainer::Tensor expert_gate_proj =
+        context.getWeight(expert_gate_proj_indices[expert_idx]);
+      nntrainer::Tensor expert_up_proj =
+        context.getWeight(expert_up_proj_indices[expert_idx]);
+      nntrainer::Tensor expert_down_proj =
+        context.getWeight(expert_down_proj_indices[expert_idx]);
+
+      ///@note Please note that expert_gate_proj is virtual tensor,
+      ///      which is not allocated so far. It will be allocated when it is
+      ///      used. `activate(read=true)` will allocate its memory and will
+      ///      read from the original weight. activate is true by default. i.e.,
+      ///      mmap
+      expert_gate_proj.activate();
+      expert_up_proj.activate();
+      expert_down_proj.activate();
+
       compute_expert_forward_no_critical(
-        input, expert_outputs[expert_idx], assignments,
-        context.getWeight(expert_gate_proj_indices[expert_idx]),
-        context.getWeight(expert_up_proj_indices[expert_idx]),
-        context.getWeight(expert_down_proj_indices[expert_idx]), hidden_size);
+        input, expert_outputs[expert_idx], assignments, expert_gate_proj,
+        expert_up_proj, expert_down_proj, hidden_size);
+
+      ////@note Please note that the virtual tensor is deactivated after usage
+      ////      This will allocate and load data from the storage on-the-fly
+      ////      i.e., unmap
+      expert_gate_proj.deactivate();
+      expert_down_proj.deactivate();
+      expert_down_proj.deactivate();
     }
 
     // Combine expert outputs
