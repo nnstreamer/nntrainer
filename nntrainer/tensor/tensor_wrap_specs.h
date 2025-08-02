@@ -67,6 +67,8 @@ enum class TensorLifespan {
     0b100000,               /**< tensor is only used for only inference */
   MAX_LIFESPAN = 0b1111111, /**< tensor must not be reset until the end of the
                   model  execution, eg. layer weights */
+  VIRTUAL = 0b11111111,     /**< virtual lifespan, tensor exists but does not
+                               allocate memory */
 };
 
 /**
@@ -74,11 +76,14 @@ enum class TensorLifespan {
  *
  * @details The tuple values are dimension, initializer, regularizer,
  * regularizer_constant, decay, clip gradient constant, need_gradient property,
- * name, output axis of the tensor object and loss Scale Factor, is_mixed.
+ * name, output axis of the tensor object and loss Scale Factor, is_mixed,
+ * is_virtual.
+ *
+ * @note virtual tensor doesn't allocate any memory but create an empty tensor
  */
 typedef std::tuple<TensorDim, TensorDim, Initializer, WeightRegularizer, float,
                    float, float, bool, const std::string, unsigned int, float,
-                   bool>
+                   bool, bool>
   WeightSpec;
 
 /**

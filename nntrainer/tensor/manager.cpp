@@ -402,8 +402,8 @@ std::vector<Weight *> Manager::requestWeights(
 
   for (unsigned int i = 0; i < weights_spec.size(); ++i) {
     auto &[dim_v, dim_g, t_initializer, w_reg, w_reg_const, decay,
-           clip_by_global_norm, need_gradient, name, axis, loss_scale,
-           is_mixed] = weights_spec.at(i);
+           clip_by_global_norm, need_gradient, name, axis, loss_scale, is_mixed,
+           is_virtual] = weights_spec.at(i);
 
     std::vector<unsigned int> var_exec_order;
     for (auto order : default_var_exec_order) {
@@ -471,8 +471,13 @@ std::vector<Weight *> Manager::requestWeights(
           var_exec_order.push_back(std::max(lah_order, 0));
         }
       }
-      var =
-        weight_pool.request(name, dim_v, var_exec_order, var_ls, t_initializer);
+      if (is_virtual) {
+        var = weight_pool.request(name, dim_v, var_exec_order,
+                                  TensorLifespan::VIRTUAL, t_initializer);
+      } else {
+        var = weight_pool.request(name, dim_v, var_exec_order, var_ls,
+                                  t_initializer);
+      }
       // }
 
       if (trainable && need_gradient) {

@@ -34,8 +34,13 @@ Tensor *TensorPool::request(const std::string &name, const TensorDim &dim,
                             const std::vector<unsigned int> &exec_order,
                             TensorLifespan lifespan, const Initializer &init,
                             bool is_weight_grad) {
+
+  bool is_virtual = lifespan == TensorLifespan::VIRTUAL;
+  lifespan = is_virtual ? TensorLifespan::UNMANAGED : lifespan;
   return registerRequestSpec(
-    {is_weight_grad, std::make_unique<Tensor>(dim, false, init, name),
+    {is_weight_grad,
+     std::make_unique<Tensor>(dim, false, init, name,
+                              QScheme::PER_TENSOR_AFFINE, is_virtual),
      TensorPool::SourceDetails{0, lifespan, exec_order, {}}});
 }
 
