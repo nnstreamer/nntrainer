@@ -712,7 +712,7 @@ void NeuralNetwork::load(const std::string &file_path,
     auto model_file_name = (v.size() == 2) ? v[1] : v[0];
     auto model_file = checkedOpenStream<std::ifstream>(
       model_file_name, std::ios::in | std::ios::binary);
-    model_file_fd = open(model_file_name.c_str(), O_RDONLY);
+    model_file_fd = open(model_file_name.c_str(), O_RDONLY | O_DIRECT);
 
     if (exec_mode == ml::train::ExecutionMode::INFERENCE) {
       std::vector<std::future<void>> futures;
