@@ -1610,11 +1610,11 @@ void Tensor::activate() {
   size_t diff = file_offset - off;
   size_t len = getMemoryBytes() + diff;
 
-  buf = mmap(NULL, len, PROT_READ, MAP_SHARED, this->fd, off);
-  if (buf == MAP_FAILED) {
+  mapped_ptr = mmap(NULL, len, PROT_READ, MAP_PRIVATE, this->fd, off);
+  if (mapped_ptr == MAP_FAILED) {
     std::cerr << "[activate] mmap failed: " << strerror(errno) << std::endl;
   }
-  itensor_->activate((void *)&((uint8_t *)buf)[diff]);
+  itensor_->activate((void *)&((uint8_t *)mapped_ptr)[diff]);
 }
 
 void Tensor::deactivate() {
@@ -1622,14 +1622,22 @@ void Tensor::deactivate() {
   NNTR_THROW_IF(!is_virtual, std::invalid_argument)
     << "non-virtual tensor cannot call deactivate()";
 
+  if (mapped_ptr == nullptr) {
+    return;
+  };
+
   auto file_offset = getFileOffset();
   size_t off = (file_offset / 4096) * 4096;
   size_t diff = file_offset - off;
   size_t len = getMemoryBytes() + diff;
-  if (buf != nullptr && munmap((void *)buf, len) != 0) {
-    std::cerr << "[deactivate] munmap failed: " << strerror(errno) << std::endl;
-  };
-  buf = nullptr;
+
+  auto ret_munmap = munmap((void *)mapped_ptr, len) != 0;
+  const size_t error_buflen = 100;
+  char error_buf[error_buflen];
+  NNTR_THROW_IF(ret_munmap == -1, std::runtime_error)
+    << "[deactivate] munmap failed: " << SAFE_STRERROR(errno, error_buf, error_buflen);
+
+  mapped_ptr = nullptr;
   itensor_->deactivate();
 }
 

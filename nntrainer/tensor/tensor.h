@@ -1984,7 +1984,7 @@ private:
   bool is_virtual = false; /** flag to check virtual */
   size_t read_offset;      /** save read_offset info for virtual */
   int fd = -1;             /** save fd info for virtual */
-  void *buf = nullptr;     /** save mmap buf pointer for virtual */
+  void *mapped_ptr = nullptr;     /** save mmap buf pointer for virtual */
 
   /**
    * @brief Set tensor variables
