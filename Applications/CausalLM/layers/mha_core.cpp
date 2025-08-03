@@ -326,7 +326,7 @@ void MHACoreLayer::one_batch_incremental_forwarding(
 
   /** 1. Load Input Tensors of this batch : b_ denotes a Tensor for this batch
    * **/
-  auto &pool = nntrainer::ThreadPoolManager::getInstance();
+    auto &pool = nntrainer::ThreadPoolManager::Global().getThreadPool();
 
   std::vector<std::future<void>> p_futures;
 
