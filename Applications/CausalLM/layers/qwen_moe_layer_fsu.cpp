@@ -236,7 +236,7 @@ void SlimMoELayer::forwarding(nntrainer::RunLayerContext &context,
     ////      This will allocate and load data from the storage on-the-fly
     ////      i.e., unmap
     expert_gate_proj.deactivate();
-    expert_down_proj.deactivate();
+    expert_up_proj.deactivate();
     expert_down_proj.deactivate();
   }
 
@@ -498,7 +498,7 @@ void SlimMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
       ////      This will allocate and load data from the storage on-the-fly
       ////      i.e., unmap
       expert_gate_proj.deactivate();
-      expert_down_proj.deactivate();
+      expert_up_proj.deactivate();
       expert_down_proj.deactivate();
     }
 
