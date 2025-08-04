@@ -333,7 +333,7 @@ void gemm_q4_K(const unsigned int M, std::vector<unsigned int> Ns,
 float dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
                     const void *v_q8_K) {
 #ifdef ENABLE_GGML
-  return __ggml_vec_dot_q6_K_q8_K(K, v_q6_K, v_q8_K);
+  return __nntr_vec_dot_q6_K_q8_K(K, v_q6_K, v_q8_K);
 #else
   return __fallback_dot_q6_K_q8_K(K, v_q6_K, v_q8_K);
 #endif
