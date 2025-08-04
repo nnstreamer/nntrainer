@@ -302,6 +302,7 @@ Tensor::Tensor(const Tensor &rhs) {
   this->is_virtual = rhs.is_virtual;
   this->fd = rhs.fd;
   this->read_offset = rhs.read_offset;
+  this->mapped_ptr = rhs.mapped_ptr;
 }
 
 Tensor::Tensor(const std::unique_ptr<TensorBase> &rhs) {
@@ -341,6 +342,7 @@ Tensor::Tensor(const std::unique_ptr<TensorBase> &rhs) {
 }
 
 Tensor &Tensor::operator=(const Tensor &rhs) {
+  std::cout << "operator = is called" << std::endl;
   if (rhs.getDataType() == Tdatatype::FP32) {
     itensor_ = std::make_unique<FloatTensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::FP16) {
@@ -377,6 +379,12 @@ Tensor &Tensor::operator=(const Tensor &rhs) {
                                 "Enable only if your system supports BiQGEMM.");
 #endif
   }
+
+  /** copy tensor properties */
+  this->is_virtual = rhs.is_virtual;
+  this->fd = rhs.fd;
+  this->read_offset = rhs.read_offset;
+  this->mapped_ptr = rhs.mapped_ptr;
   return *this;
 }
 
@@ -1631,11 +1639,12 @@ void Tensor::deactivate() {
   size_t diff = file_offset - off;
   size_t len = getMemoryBytes() + diff;
 
-  auto ret_munmap = munmap((void *)mapped_ptr, len) != 0;
+  auto ret_munmap = munmap((void *)mapped_ptr, len);
   const size_t error_buflen = 100;
   char error_buf[error_buflen];
   NNTR_THROW_IF(ret_munmap == -1, std::runtime_error)
-    << "[deactivate] munmap failed: " << SAFE_STRERROR(errno, error_buf, error_buflen);
+    << "[deactivate] munmap failed: "
+    << SAFE_STRERROR(errno, error_buf, error_buflen);
 
   mapped_ptr = nullptr;
   itensor_->deactivate();
