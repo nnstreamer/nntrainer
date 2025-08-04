@@ -853,8 +853,8 @@ float __nntr_vec_dot_q6_K_q8_K(const unsigned int K,
                                const void *GGML_RESTRICT v_q8_K) {
   float result;
   int bs = 1, bx = 1, by = 1,
-      nrc = 1; // unused variables in nntr_vec_dot_q6_K_q8_K
-  nntr_vec_dot_q6_K_q8_K(K, &result, bs, v_q6_K, bx, v_q8_K, by, nrc);
+      nrc = 1; // unused variables in ggml_vec_dot_q6_K_q8_K
+  ggml_vec_dot_q6_K_q8_K(K, &result, bs, v_q6_K, bx, v_q8_K, by, nrc);
   return result;
 }
 
@@ -874,14 +874,14 @@ float __ggml_vec_dot_q6_K(const unsigned int K,
                           const float *GGML_RESTRICT activation) {
   float result;
   int bs = 1, bx = 1, by = 1,
-      nrc = 1; // unused variables in nntr_vec_dot_q6_K_q8_K
+      nrc = 1; // unused variables in ggml_vec_dot_q6_K_q8_K
 
   int blocks_per_row = (K + QK_K - 1) / QK_K;
   int q8_K_activation_size = sizeof(block_q8_K) * blocks_per_row;
   std::vector<char> v_q8_activation = std::vector<char>(q8_K_activation_size);
   __ggml_quantize_row_q8_K(activation, v_q8_activation.data(), K);
 
-  nntr_vec_dot_q6_K_q8_K(K, &result, bs, v_q6_K, bx, v_q8_activation.data(), by,
+  ggml_vec_dot_q6_K_q8_K(K, &result, bs, v_q6_K, bx, v_q8_activation.data(), by,
                          nrc);
   return result;
 }
@@ -909,7 +909,7 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
 
     auto fut = tp.submit_loop(0, static_cast<int>(N), [&](int i) {
       const void *bptr = (const char *)B + i * B_row_size;
-      nntr_vec_dot_q6_K_q8_K(K, &C[i], bs, bptr, bx, quantized_A_data, by, nrc);
+      ggml_vec_dot_q6_K_q8_K(K, &C[i], bs, bptr, bx, quantized_A_data, by, nrc);
     });
     fut.wait();
   } else {
@@ -926,7 +926,7 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
       float *c_row = C + i * ldc;
       for (unsigned int j = 0; j < N; ++j) {
         const void *bptr = (const char *)B + j * B_row_size;
-        nntr_vec_dot_q6_K_q8_K(K, &c_row[j], bs, bptr, bx, a_row, by, nrc);
+        ggml_vec_dot_q6_K_q8_K(K, &c_row[j], bs, bptr, bx, a_row, by, nrc);
       }
     });
     fut.wait();

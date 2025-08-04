@@ -450,8 +450,8 @@ float __nntr_vec_dot_q6_K_q8_K(const unsigned int K,
                                const void *GGML_RESTRICT v_q8_K) {
   float result;
   int bs = 1, bx = 1, by = 1,
-      nrc = 1; // unused variables in nntr_vec_dot_q6_K_q8_K
-  nntr_vec_dot_q6_K_q8_K(K, &result, bs, v_q6_K, bx, v_q8_K, by, nrc);
+      nrc = 1; // unused variables in ggml_vec_dot_q6_K_q8_K
+  ggml_vec_dot_q6_K_q8_K(K, &result, bs, v_q6_K, bx, v_q8_K, by, nrc);
   return result;
 }
 
@@ -471,14 +471,14 @@ float __ggml_vec_dot_q6_K(const unsigned int K,
                           const float *GGML_RESTRICT activation) {
   float result;
   int bs = 1, bx = 1, by = 1,
-      nrc = 1; // unused variables in nntr_vec_dot_q6_K_q8_K
+      nrc = 1; // unused variables in ggml_vec_dot_q6_K_q8_K
 
   int blocks_per_row = (K + QK_K - 1) / QK_K;
   int q8_K_activation_size = sizeof(block_q8_K) * blocks_per_row;
   std::vector<char> v_q8_activation = std::vector<char>(q8_K_activation_size);
   __ggml_quantize_row_q8_K(activation, v_q8_activation.data(), K);
 
-  nntr_vec_dot_q6_K_q8_K(K, &result, bs, v_q6_K, bx, v_q8_activation.data(), by,
+  ggml_vec_dot_q6_K_q8_K(K, &result, bs, v_q6_K, bx, v_q8_activation.data(), by,
                          nrc);
   return result;
 }
@@ -491,10 +491,10 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
                       const unsigned int ldc) {
   int32_t thread_count = std::thread::hardware_concurrency() / 2;
 
-  static constexpr const int32_t bs = 1;  // unused in nntr_vec_dot_q6_K_q8_K
-  static constexpr const int32_t bx = 1;  // unused in nntr_vec_dot_q6_K_q8_K
-  static constexpr const int32_t by = 1;  // unused in nntr_vec_dot_q6_K_q8_K
-  static constexpr const int32_t nrc = 1; // unused in nntr_vec_dot_q6_K_q8_K
+  static constexpr const int32_t bs = 1;  // unused in ggml_vec_dot_q6_K_q8_K
+  static constexpr const int32_t bx = 1;  // unused in ggml_vec_dot_q6_K_q8_K
+  static constexpr const int32_t by = 1;  // unused in ggml_vec_dot_q6_K_q8_K
+  static constexpr const int32_t nrc = 1; // unused in ggml_vec_dot_q6_K_q8_K
 
   const int32_t blocks_per_row = (K + QK_K - 1) / QK_K;
   const int32_t A_row_size = sizeof(block_q8_K) * blocks_per_row;
@@ -515,7 +515,7 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
 
       const void *const B_data = (void *)((char *)B + B_row_data_offset);
 
-      nntr_vec_dot_q6_K_q8_K(K, &C[thread_job], bs, B_data, bx,
+      ggml_vec_dot_q6_K_q8_K(K, &C[thread_job], bs, B_data, bx,
                              quantized_A_data, by, nrc);
     }
   } else { // GEMM
@@ -539,7 +539,7 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
         const int32_t B_row_data_offset = B_row_size * j;
         const void *const B_data = (void *)((char *)B + B_row_data_offset);
 
-        nntr_vec_dot_q6_K_q8_K(K, &C[thread_job * ldc + j], bs, B_data, bx,
+        ggml_vec_dot_q6_K_q8_K(K, &C[thread_job * ldc + j], bs, B_data, bx,
                                A_data, by, nrc);
       }
     }
