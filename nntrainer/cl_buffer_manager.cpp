@@ -19,9 +19,12 @@ namespace nntrainer {
 void ClBufferManager::initBuffers() {
   inBufferA = new opencl::Buffer(context_inst_, buffer_size_bytes, true);
   inBufferB = new opencl::Buffer(context_inst_, buffer_size_bytes, true);
-  inBufferC = new opencl::Buffer(context_inst_, buffer_size_bytes, true);
+  inBufferC = new opencl::Buffer(context_inst_, unused_size, true);
   outBufferA = new opencl::Buffer(context_inst_, buffer_size_bytes, false);
-  outBufferB = new opencl::Buffer(context_inst_, buffer_size_bytes, false);
+  outBufferB = new opencl::Buffer(context_inst_, unused_size, false);
+
+  scaleBuffer = new opencl::Buffer(context_inst_, scale_size, false);
+  quantBuffer = new opencl::Buffer(context_inst_, quant_size, false);
   ml_logi("ClBufferManager: Buffers initialized");
 }
 
@@ -31,6 +34,8 @@ ClBufferManager::~ClBufferManager() {
   delete inBufferC;
   delete outBufferA;
   delete outBufferB;
+  delete scaleBuffer;
+  delete quantBuffer;
   ml_logi("ClBufferManager: Buffers destroyed");
 }
 
