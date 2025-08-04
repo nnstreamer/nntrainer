@@ -467,6 +467,7 @@ void SlimMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
       }
     }
 
+#pragma omp parallel for schedule(dynamic)
     for (int expert_idx = 0; expert_idx < static_cast<int>(num_experts);
          ++expert_idx) {
       const auto &assignments = expert_assignments[expert_idx];
