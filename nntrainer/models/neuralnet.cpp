@@ -462,7 +462,6 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
     if (exec_mode == ExecutionMode::TRAIN or
         (exec_mode == ExecutionMode::INFERENCE and !fsu_mode)) {
       model_graph.flushCacheExcept(f);
-      auto t1 = high_resolution_clock::now();
       node->incremental_forwarding(from, to, training);
       // auto t2 = high_resolution_clock::now();
       // auto dt = duration_cast<nanoseconds>(t2 - t1);
@@ -471,13 +470,7 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
       //           << dt.count() / 1'000'000 << " ms " << std::endl;
     } else {
       model_graph.checkLoadComplete(f);
-      auto t1 = high_resolution_clock::now();
       node->incremental_forwarding(from, to, training);
-            auto t2 = high_resolution_clock::now();
-      auto dt = duration_cast<nanoseconds>(t2 - t1);
-      std::cout << "incremental forwarding of  " << node->getName() << " | "
-                << dt.count() << " ns " << dt.count() / 1'000 << " us "
-                << dt.count() / 1'000'000 << " ms " << std::endl;
       model_graph.inActive(f);
       model_graph.LoadTensors(f + lookahead);
     }
