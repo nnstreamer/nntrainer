@@ -4,121 +4,148 @@ title: How to run examples - Android
 
 # How to run examples - Android
 
-## Install NDK-Build
+If at any point of this guide, the user encounters an error or some unexpected behavior, the first step should be checking the *Troubleshooting* section at the end of this document.
 
-Prepare NDK tool chain to build.
-Download the ndk tool chain from official site of android which is https://developer.android.com/ndk/downloads
+## Pre-requisites
 
-Choose the ndk package which is proper to your platform. In this guide, we use Linux 64-bit(x86). We choose latest version (currently r21d).
-Once the download is finished, decompress the package and set the library path properly. You can also set the LD_LIBRARAY_PATH in bashrc.
+First, the user should make sure they have all necessary dependencies installed.
+
+```bash
+$ sudo apt-get update
+$ sudo apt-get install tar wget gzip libglib2.0-dev libjson-glib-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libunwind-dev googletest liborc-0.4-dev flex bison libopencv-dev pkg-config python3-dev python3-numpy python3 meson ninja-build libflatbuffers-dev flatbuffers-compiler protobuf-compiler
+```
+
+After that, it is necessary to configure the NDK tool chain to build the `nntrainer` library and its applications for Android. In this guide, the version for Linux x86/64 is used. It's also recommended to use release *r26d*.
+
+It can be downloaded from the [Google webpage](https://developer.android.com/ndk/downloads), or by executing the command below.
+
+```bash
+# note: it's possible to replace 'r26d' in URL with another correct release number, but versions before 'r23c' must also have platform 'linux-x86_64' instead of 'linux'
+$ wget https://dl.google.com/android/repository/android-ndk-r26d-linux.zip
+```
+
+After the NDK is downloaded, it needs to be unzipped & added to environment variables for later steps.
 
 ```bash
 $ ls
-android-ndk-r21d-linux-x86_64.zip
-$ unzip android-ndk-r21d-linux-86_64.zip
+android-ndk-r26d-linux.zip
+$ unzip android-ndk-r26d-linux.zip
 $ ls
-android-ndk-r21d
-$ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${PWD}/android-ndk-r21d/
-$ export PATH=$PATH:${PWD}/android-ndk-r21d/
-$ export ANDROID_NDK=${PWD}/android-ndk-r21d/
+android-ndk-r26d
+# note: exports below can also be added to ~/.bash_profile or ~/.bashrc to set them permanently
+$ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${PWD}/android-ndk-r26d/
+$ export PATH=$PATH:${PWD}/android-ndk-r26d/
+$ export ANDROID_NDK=${PWD}/android-ndk-r26d/
 ```
 
-## Build NNTrainer with NDK-Build
-Once you install NDK package, you can build the nntrainer.so for android as below.
-Currently, the APP_ABI is set arm64-v8a. If you want to use armeabi-v7a, you have to change in Application.mk file.
-There is 2 way to build nntrainer for android
+## Build `nntrainer`
+
+Once the NDK tool chain is configured, the user can build the `nntrainer.so` for Android.
+
+Currently, the architecture is set to `arm64-v8a` in the `APP_ABI` variable in `jni/Application.mk` file. If the user wishes to use `armeabi-v7a`, they need to make the modification in the file themself.
+
+There are two ways to build the `nntrainer` for Android.
 
 ### Build using shell script
 
+For the user's convenience, the build process has been automated in a shell script in `tools/package_android.sh`. It is the recommended way of building the library.
+
 ```bash
-$ ls
-api                 CONTRIBUTING.md  index.md  MAINTAINERS.md     nnstreamer        nntrainer.pc.in  RELEASE.md
-Applications        debian           jni       meson.build        nntrainer         packaging        test
-CODE_OF_CONDUCT.md  docs             LICENSE   meson_options.txt  nntrainer.ini.in  README.md        tools
-$
 $ ./tools/package_android.sh
 $ ls builddir/android_build_result
 Android.mk  conf  examples  include  lib
-$ ls builddir/android_build_result/libs/arm64-v8a
+$ ls builddir/android_build_result/lib/arm64-v8a
 libcapi-nntrainer.so  libccapi-nntrainer.so  libc++_shared.so  libnnstreamer-native.so  libnntrainer.so
 ```
 
-### Build using meson
+### Build using `meson`
+
+Build can also be conducted manually using `meson`.
 
 ```bash
-$ ls
-api                 CONTRIBUTING.md  index.md  MAINTAINERS.md     nnstreamer        nntrainer.pc.in  RELEASE.md
-Applications        debian           jni       meson.build        nntrainer         packaging        test
-CODE_OF_CONDUCT.md  docs             LICENSE   meson_options.txt  nntrainer.ini.in  README.md        tools
-$ meson build -Dplatform=android
-The Meson build system
-Version: 0.53.2
-Source dir: /home/hs89lee/workspace/git/nntrainer
-Build dir: /home/hs89lee/workspace/git/nntrainer/build
-Build type: native build
-Project name: nntrainer
-Project version: 0.3.0
-C compiler for the host machine: cc (gcc 9.4.0 "cc (Ubuntu 9.4.0-1ubuntu1~20.04.1) 9.4.0")
-C linker for the host machine: cc ld.bfd 2.34
-C++ compiler for the host machine: c++ (gcc 9.4.0 "c++ (Ubuntu 9.4.0-1ubuntu1~20.04.1) 9.4.0")
-...
-$ ninja -C build
-ninja: Entering directory 'build'
-[2/2] Generating ndk-build with a custom command.
-[arm64-v8a] Prebuilt       : libc++_shared.so <= <NDK>/sources/cxx-stl/llvm-libc++/libs/arm64-v8a/
-[arm64-v8a] Prebuilt       : libnnstreamer-native.so <= /home/hs89lee/workspace/git/nntrainer/build/ml-api-inference/lib/arm64-v8a/
-[arm64-v8a] Compile++      : nntrainer <= nntrainer_logger.cpp
-[arm64-v8a] Compile++      : nntrainer <= remap_realizer.cpp
-...
+$ meson setup build -Dplatform=android -Dopenblas-num-threads=1 -Denable-tflite-interpreter=false -Denable-tflite-backbone=false -Denable-fp16=true -Domp-num-threads=1 -Denable-opencl=true -Dhgemm-experimental-kernel=false -Denable-ggml=true
+$
+$ meson compile -C build
+$
 $ pushd build/jni
 $ ndk-build NDK_PROJECT_PATH=./ APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk -j $(nproc)
-[arm64-v8a] Prebuilt       : libc++_shared.so <= <NDK>/sources/cxx-stl/llvm-libc++/libs/arm64-v8a/
-[arm64-v8a] Prebuilt       : libnnstreamer-native.so <= /home/hs89lee/workspace/git/nntrainer/build/ml-api-inference/lib/arm64-v8a/
-[arm64-v8a] Compile++      : nntrainer <= nntrainer_logger.cpp
-[arm64-v8a] Compile++      : nntrainer <= remap_realizer.cpp
-[arm64-v8a] Compile++      : nntrainer <= previous_input_realizer.cpp
-...
 $ popd
+```
+
+Compiled libraries are located in the `build/jni/libs/<ARCH>` directory.
+
+```bash
 $ ls build/jni/libs/arm64-v8a
 libcapi-nntrainer.so  libccapi-nntrainer.so  libc++_shared.so  libnnstreamer-native.so  libnntrainer.so
 ```
 
-## Build NNTrainer Applications with NDK-Build
-Now you are ready to build nntrainer application in ${NNTRAINER_ROOT}/Applications
-If you want to build Application/LogisticRegression,
+## Build applications
+
+The user can also build applications located in the `Applications` directory. 
+
+In this document, `LogisticRegression` application is used as an example, but all applications containing files `jni/Application.mk` and `jni/Android.mk` can be build accordingly.
 
 ```bash
-$ cd ${NNTRAINER_ROOT}
 $ cd Applications/LogisticRegression/jni
 $ ls
 Android.mk  Application.mk  CMakeLists.txt  main.cpp  meson.build
+$
 $ ndk-build NDK_PROJECT_PATH=./ APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk -j $(nproc)
-[arm64-v8a] Prebuilt       : libnntrainer.so <= /libs/arm64-v8a/
-[arm64-v8a] Prebuilt       : libc++_shared.so <= <NDK>/sources/cxx-stl/llvm-libc++/libs/arm64-v8a/
-[arm64-v8a] Install        : libnntrainer.so => libs/arm64-v8a/libnntrainer.so
-[arm64-v8a] Install        : libc++_shared.so => libs/arm64-v8a/libc++_shared.so
-[arm64-v8a] Compile++      : nntrainer_logistic <= main.cpp
-In file included from ./main.cpp:36:
-...
+$
 $ ls
 Android.mk  Application.mk  CMakeLists.txt  libs  main.cpp  meson.build  obj
 $ ls libs/arm64-v8a
 libc++_shared.so  libnntrainer.so  nntrainer_logistic
 ```
 
-Now you can find the execution binary of nntrainer_logistic.
-You can copy execution binary and nntrainer.so libraries in a proper place of your android device using ADB.
+## Deploying on device & running
 
-Then you can run it using ADB shell.
+After successful compilation, the binary can be pushed to an Android device using `adb push`.
 
+```bash
+$ adb shell mkdir -p /data/local/tmp/nntrainer
+$ adb push <BINARY_NAME> /data/local/tmp/nntrainer/
+```
+
+Accordingly, all shared libraries inside compilation directory, and additional resources can also be pushed to the device.
+
+Then, it can be ran using ADB shell.
+
+```bash
+$ adb shell chmod +x /data/local/tmp/nntrainer/<BINARY_NAME>
+$ adb shell ./data/local/tmp/nntrainer/<BINARY_NAME>
+```
 
 ## Troubleshooting
 
-1. Check version of your ndk before executing the above commands.
-2. `ANDROID_NDK` not defined while bulding the particular application such as Logistic regression.
+If build process fails, the user should check if the `ANDROID_NDK` environment variable is set, and if the NDK toolkit location is added to `PATH` and `LD_LIBRARY_PATH` variables.
+
+___
+
+Some applications require the built libraries to be present in root directory of the repository, in directory `libs` (eg. `libs/arm64-v8a`). If the user gets an error 
+
+```
+Android NDK: ERROR:Android.mk:nntrainer: LOCAL_SRC_FILES points to a missing file
+```
+
+copying the compiled libraries from their build directory to `libs` in root directory may solve the problem. 
+
+___
+
+If deployment on mobile device fails, the user may try the command `adb devices` to make sure their mobile device is visible to ADB. 
+
+If it's not, make sure the Developer Options on the device are turned on, and *ADB Debugging* is enabled.
+
+___
+
+If after launching the application on device, shared libraries cannot be found during runtime, the user can add the deployment directory to `LD_LIBRARY_PATH` env variable, and then try launching the app.
 
 ```bash
-$ ndk-build NDK_PROJECT_PATH=./ APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk -j $(nproc)
-Android.mk:7: *** ANDROID_NDK is not defined!.  Stop.
+$ adb shell
+> export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/data/local/tmp/nntrainer
+> ./data/local/tmp/nntrainer/<BINARY_NAME>
 ```
-Fix: Check if the environment variable is loaded with `echo $ANDROID_NDK`. If not, then define it using `export` .
+
+___
+
+
