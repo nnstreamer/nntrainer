@@ -52,6 +52,15 @@
 #include <slice_realizer.h>
 #include <util_func.h>
 
+#include <chrono>
+#include <iostream>
+using std::chrono::duration_cast;
+using std::chrono::high_resolution_clock;
+using std::chrono::microseconds; // or microseconds
+using std::chrono::milliseconds; // or microseconds
+using std::chrono::nanoseconds;  // or microseconds
+using std::chrono::seconds;      // or microseconds
+
 #ifdef ENABLE_TFLITE_INTERPRETER
 #include <tflite_interpreter.h>
 #endif
@@ -453,10 +462,22 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
     if (exec_mode == ExecutionMode::TRAIN or
         (exec_mode == ExecutionMode::INFERENCE and !fsu_mode)) {
       model_graph.flushCacheExcept(f);
+      auto t1 = high_resolution_clock::now();
       node->incremental_forwarding(from, to, training);
+      // auto t2 = high_resolution_clock::now();
+      // auto dt = duration_cast<nanoseconds>(t2 - t1);
+      // std::cout << "incremental forwarding of  " << node->getName() << " | "
+      //           << dt.count() << " ns " << dt.count() / 1'000 << " us "
+      //           << dt.count() / 1'000'000 << " ms " << std::endl;
     } else {
       model_graph.checkLoadComplete(f);
+      auto t1 = high_resolution_clock::now();
       node->incremental_forwarding(from, to, training);
+            auto t2 = high_resolution_clock::now();
+      auto dt = duration_cast<nanoseconds>(t2 - t1);
+      std::cout << "incremental forwarding of  " << node->getName() << " | "
+                << dt.count() << " ns " << dt.count() / 1'000 << " us "
+                << dt.count() / 1'000'000 << " ms " << std::endl;
       model_graph.inActive(f);
       model_graph.LoadTensors(f + lookahead);
     }

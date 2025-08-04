@@ -429,8 +429,8 @@ export CXXFLAGS+=" -fprofile-arcs -ftest-coverage"
 %endif
 
 %if 0%{?enable_fp16}
-export CFLAGS+=" -march=armv8.2-a+fp16"
-export CXXFLAGS+=" -march=armv8.2-a+fp16"
+export CFLAGS+=" -march=armv8.2-a+fp16+dotprod"
+export CXXFLAGS+=" -march=armv8.2-a+fp16+dotprod"
 %endif
 
 # Add backward competibility for tizen < 6
