@@ -247,7 +247,7 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
  * @param v_q8_K rhs vector - data stored in Q8_K format
  * @return float Result of performing dot operation on v_q6_K and v_q8_K
  */
-float __ggml_vec_dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
+float __nntr_vec_dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
                                const void *v_q8_K);
 /**
  * @brief (1xK)*(Kx1) dot product for q6_K and q8_K vectors
