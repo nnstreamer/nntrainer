@@ -725,9 +725,9 @@ void FloatTensor::dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
   case Tdatatype::Q4_K:
     gemm_q4_K(M, Ns, K, data, K, mdatas, Ns, rdatas, Ns);
     break;
-    // case Tdatatype::Q4_0:
-    // gemm_q4_0(M, Ns, K, data, K, mdatas, Ns, rdatas, Ns);
-    // break;
+  case Tdatatype::Q4_0:
+    gemm_q4_0(M, Ns, K, data, K, mdatas, Ns, rdatas, Ns);
+    break;
   default:
     throw std::invalid_argument("Error: unsupported datatype");
   }
