@@ -45,8 +45,8 @@ bool CommandQueueManager::CreateCommandQueue() {
   // returns NULL with error code if fails
   command_queue_ = clCreateCommandQueue(context, device_id, 0, &error_code);
   if (!command_queue_) {
-    ml_loge("Failed to create a command queue. OpenCL error code: %d",
-            error_code);
+    ml_loge("Failed to create a command queue. OpenCL error code: %d : ",
+            error_code, OpenCLErrorCodeToString(error_code));
     return false;
   }
   ml_logi("opencl_command_queue_manager: Created command queue");
@@ -113,8 +113,8 @@ bool CommandQueueManager::EnqueueReadBuffer(cl_mem buffer, size_t size_in_bytes,
                         data, 0, nullptr, nullptr);
   if (error_code != CL_SUCCESS) {
     ml_loge("Failed to read data from GPU (clEnqueueReadBuffer). OpenCL error "
-            "code: %d",
-            error_code);
+            "code: %d : %s",
+            error_code, OpenCLErrorCodeToString(error_code));
     return false;
   }
 
@@ -146,10 +146,10 @@ bool CommandQueueManager::EnqueueReadBufferRegion(
     row_pitch, slice_pitch, row_pitch, slice_pitch, data, 0, nullptr, nullptr);
 
   if (error_code != CL_SUCCESS) {
-    ml_loge("Failed to write data region to GPU (clEnqueueWriteBufferRect). "
+    ml_loge("Failed to write data region to GPU (clEnqueueReadBufferRect). "
             "OpenCL error "
-            "code: %d",
-            error_code);
+            "code: %d : %s",
+            error_code, OpenCLErrorCodeToString(error_code));
     return false;
   }
 
@@ -178,8 +178,8 @@ bool CommandQueueManager::EnqueueWriteBuffer(cl_mem buffer,
 
   if (error_code != CL_SUCCESS) {
     ml_loge("Failed to upload data to GPU (clEnqueueWriteBuffer). OpenCL error "
-            "code: %d",
-            error_code);
+            "code: %d : %s",
+            error_code, OpenCLErrorCodeToString(error_code));
     return false;
   }
 
@@ -213,8 +213,8 @@ bool CommandQueueManager::EnqueueWriteBufferRegion(
   if (error_code != CL_SUCCESS) {
     ml_loge("Failed to write data region to GPU (clEnqueueWriteBufferRect). "
             "OpenCL error "
-            "code: %d",
-            error_code);
+            "code: %d : %s",
+            error_code, OpenCLErrorCodeToString(error_code));
     return false;
   }
 
@@ -253,8 +253,8 @@ void *CommandQueueManager::EnqueueMapBuffer(cl_mem buffer,
   if (error_code != CL_SUCCESS) {
     ml_loge(
       "Failed to map buffer to host memory(clEnqueueMapBuffer). OpenCL error "
-      "code: %d",
-      error_code);
+      "code: %d : %s",
+      error_code, OpenCLErrorCodeToString(error_code));
     return nullptr;
   }
   return host_mem_buf;
@@ -276,8 +276,8 @@ bool CommandQueueManager::EnqueueUnmapMemObject(cl_mem buffer, void *mapped_ptr,
   if (error_code != CL_SUCCESS) {
     ml_loge("Failed to unmap buffer from host memory(clEnqueueUnmapMemObject). "
             "OpenCL error "
-            "code: %d",
-            error_code);
+            "code: %d : %s",
+            error_code, OpenCLErrorCodeToString(error_code));
     return false;
   }
   return true;
@@ -292,8 +292,9 @@ bool CommandQueueManager::enqueueSVMMap(void *svm_ptr, size_t size,
                                       svm_ptr, size, 0, nullptr, nullptr);
 
   if (error_code != CL_SUCCESS) {
-    ml_loge("Failed to map SVM memory (clEnqueueSVMMap). OpenCL error code: %d",
-            error_code);
+    ml_loge(
+      "Failed to map SVM memory (clEnqueueSVMMap). OpenCL error code: %d : %s",
+      error_code, OpenCLErrorCodeToString(error_code));
     return false;
   }
   return true;
@@ -306,8 +307,8 @@ bool CommandQueueManager::enqueueSVMUnmap(void *svm_ptr, cl_event *event) {
   if (error_code != CL_SUCCESS) {
     ml_loge(
       "Failed to unmap SVM memory (clEnqueueSVMUnmap). OpenCL error code: "
-      "%d",
-      error_code);
+      "%d : %s",
+      error_code, OpenCLErrorCodeToString(error_code));
     return false;
   }
   return true;
@@ -347,8 +348,8 @@ bool CommandQueueManager::DispatchCommand(Kernel kernel,
   const int error_code = clEnqueueNDRangeKernel(
     command_queue_, kernel_, 2, nullptr, global, local, 0, nullptr, event);
   if (error_code != CL_SUCCESS) {
-    ml_loge("Failed to clEnqueueNDRangeKernel. OpenCL error code: %d",
-            error_code);
+    ml_loge("Failed to clEnqueueNDRangeKernel. OpenCL error code: %d : %s",
+            error_code, OpenCLErrorCodeToString(error_code));
     return false;
   }
 
@@ -377,8 +378,8 @@ bool CommandQueueManager::DispatchCommand(
   const int error_code = clEnqueueNDRangeKernel(
     command_queue_, kernel_, 2, nullptr, global, local, 0, nullptr, event);
   if (error_code != CL_SUCCESS) {
-    ml_loge("Failed to clEnqueueNDRangeKernel. OpenCL error code: %d",
-            error_code);
+    ml_loge("Failed to clEnqueueNDRangeKernel. OpenCL error code: %d : %s",
+            error_code, OpenCLErrorCodeToString(error_code));
     return false;
   }
 

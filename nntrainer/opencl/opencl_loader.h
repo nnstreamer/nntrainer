@@ -25,6 +25,13 @@ namespace nntrainer::opencl {
  */
 bool LoadOpenCL();
 
+/**
+ * @brief Retrieves string representation of OpenCL status code
+ *
+ * @return OpenCL status code as string
+ */
+const char *OpenCLErrorCodeToString(const cl_int code);
+
 typedef cl_int(CL_API_CALL *PFN_clGetPlatformIDs)(
   cl_uint /**< num_entries */, cl_platform_id * /**< platforms */,
   cl_uint * /**< num_platforms */);
