@@ -45,9 +45,10 @@ bool Program::BuildProgram(cl_device_id device_id,
   const int error_code = clBuildProgram(
     program_, 0, nullptr, compiler_options.c_str(), nullptr, nullptr);
   if (error_code != CL_SUCCESS) {
-    ml_loge("Failed to build program executable. OpenCL error code: %d. %s",
-            error_code,
-            (GetProgramBuildInfo(device_id, CL_PROGRAM_BUILD_LOG)).c_str());
+    ml_loge(
+      "Failed to build program executable. OpenCL error code: %d : %s. %s",
+      error_code, OpenCLErrorCodeToString(error_code),
+      (GetProgramBuildInfo(device_id, CL_PROGRAM_BUILD_LOG)).c_str());
     return false;
   }
 
@@ -78,8 +79,8 @@ bool Program::GetProgramInfo(cl_device_id device_id) {
                                 binaries_size.data(), nullptr);
 
   if (error_code != CL_SUCCESS) {
-    ml_loge("Failed to get program binary size. OpenCL error code: %d. %s",
-            error_code,
+    ml_loge("Failed to get program binary size. OpenCL error code: %d : %s. %s",
+            error_code, OpenCLErrorCodeToString(error_code),
             (GetProgramBuildInfo(device_id, CL_PROGRAM_BUILD_LOG)).c_str());
     return false;
   }
@@ -90,9 +91,10 @@ bool Program::GetProgramInfo(cl_device_id device_id) {
                                 &kernel_names_size);
 
   if (error_code != CL_SUCCESS) {
-    ml_loge("Failed to get program kernel name size. OpenCL error code: %d. %s",
-            error_code,
-            (GetProgramBuildInfo(device_id, CL_PROGRAM_BUILD_LOG)).c_str());
+    ml_loge(
+      "Failed to get program kernel name size. OpenCL error code: %d : %s. %s",
+      error_code, OpenCLErrorCodeToString(error_code),
+      (GetProgramBuildInfo(device_id, CL_PROGRAM_BUILD_LOG)).c_str());
     return false;
   }
 
@@ -103,9 +105,10 @@ bool Program::GetProgramInfo(cl_device_id device_id) {
                      kernel_names.data(), nullptr);
 
   if (error_code != CL_SUCCESS) {
-    ml_loge("Failed to get program kernel names. OpenCL error code: %d. %s",
-            error_code,
-            (GetProgramBuildInfo(device_id, CL_PROGRAM_BUILD_LOG)).c_str());
+    ml_loge(
+      "Failed to get program kernel names. OpenCL error code: %d : %s. %s",
+      error_code, OpenCLErrorCodeToString(error_code),
+      (GetProgramBuildInfo(device_id, CL_PROGRAM_BUILD_LOG)).c_str());
     return false;
   } else {
     ml_logi("Saving kernel binary for: %s",
@@ -125,8 +128,8 @@ bool Program::GetProgramInfo(cl_device_id device_id) {
                      binaries_ptr.data(), nullptr);
 
   if (error_code != CL_SUCCESS) {
-    ml_loge("Failed to get program binary data. OpenCL error code: %d. %s",
-            error_code,
+    ml_loge("Failed to get program binary data. OpenCL error code: %d : %s. %s",
+            error_code, OpenCLErrorCodeToString(error_code),
             (GetProgramBuildInfo(device_id, CL_PROGRAM_BUILD_LOG)).c_str());
 
     // cleanup
@@ -180,7 +183,8 @@ std::string Program::GetProgramBuildInfo(cl_device_id device_id,
   cl_int error_code =
     clGetProgramBuildInfo(program_, device_id, info, 0, nullptr, &size);
   if (error_code != CL_SUCCESS) {
-    ml_loge("Failed to GetProgramBuildInfo. OpenCL error code: %d", error_code);
+    ml_loge("Failed to GetProgramBuildInfo. OpenCL error code: %d : %s",
+            error_code, OpenCLErrorCodeToString(error_code));
     return "";
   }
 
@@ -189,7 +193,8 @@ std::string Program::GetProgramBuildInfo(cl_device_id device_id,
   error_code =
     clGetProgramBuildInfo(program_, device_id, info, size, &result[0], nullptr);
   if (error_code != CL_SUCCESS) {
-    ml_loge("Failed to GetProgramBuildInfo. OpenCL error code: %d", error_code);
+    ml_loge("Failed to GetProgramBuildInfo. OpenCL error code: %d : %s",
+            error_code, OpenCLErrorCodeToString(error_code));
     return "";
   }
   return result;
@@ -215,8 +220,8 @@ bool Program::CreateCLProgram(const cl_context &context,
   program_ =
     clCreateProgramWithSource(context, 1, &source, nullptr, &error_code);
   if (!program_ || error_code != CL_SUCCESS) {
-    ml_loge("Failed to create compute program. OpenCL error code: %d",
-            error_code);
+    ml_loge("Failed to create compute program. OpenCL error code: %d : %s",
+            error_code, OpenCLErrorCodeToString(error_code));
     return false;
   }
 
@@ -252,8 +257,8 @@ bool Program::CreateCLProgramWithBinary(const cl_context &context,
   program_ = clCreateProgramWithBinary(context, 1, device_list, lengths,
                                        binaries, NULL, &error_code);
   if (!program_ || error_code != CL_SUCCESS) {
-    ml_loge("Failed to create compute program. OpenCL error code: %d",
-            error_code);
+    ml_loge("Failed to create compute program. OpenCL error code: %d : %s",
+            error_code, OpenCLErrorCodeToString(error_code));
     return false;
   }
 

@@ -42,8 +42,8 @@ Buffer::Buffer(ContextManager &context_manager, size_t size_in_bytes,
   if (!mem_buf_) {
     size_ = 0;
     ml_loge("Failed to allocate device memory (clCreateBuffer). OpenCL error "
-            "code: %d",
-            error_code);
+            "code: %d : %s",
+            error_code, OpenCLErrorCodeToString(error_code));
   }
 }
 
