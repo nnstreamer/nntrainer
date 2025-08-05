@@ -1382,6 +1382,9 @@ void Tensor::read(std::ifstream &file, size_t start_offset,
   // Do not read now but save file_fd in tensor
   if (is_virtual) {
     fd = file_fd;
+    //pre-fetching page table
+    activate();
+    deactivate();
     return;
   }
 
@@ -1609,6 +1612,8 @@ void Tensor::activate() {
   size_t len = getMemoryBytes() + diff;
 
   mapped_ptr = mmap(NULL, len, PROT_READ, MAP_PRIVATE, this->fd, off);
+  madvise(mapped_ptr, len, MADV_SEQUENTIAL);
+  madvise(mapped_ptr, len, MADV_WILLNEED);
   if (mapped_ptr == MAP_FAILED) {
     std::cerr << "[activate] mmap failed: " << strerror(errno) << std::endl;
   }
