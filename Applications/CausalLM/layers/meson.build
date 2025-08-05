@@ -9,6 +9,7 @@ causallm_embedding_src_abs = [meson.current_source_dir() / 'embedding_layer.cpp'
 causallm_reshaped_rms_norm_src_abs = [meson.current_source_dir() / 'reshaped_rms_norm.cpp']
 causallm_moe_layer_src_abs = [meson.current_source_dir() / 'qwen_moe_layer.cpp']
 causallm_slim_moe_layer_src_abs = [meson.current_source_dir() / 'qwen_moe_layer_fsu.cpp']
+causallm_qkv_layer_src_abs = [meson.current_source_dir() / 'qkv_layer.cpp']
 
 
 openmp_dep = dependency('openmp')
@@ -115,5 +116,19 @@ causallm_slim_moe_layer = shared_library(
 
 causallm_slim_moe_layer_dep = declare_dependency(
     link_with: causallm_slim_moe_layer,
+    include_directories: causallm_layer_inc
+)
+
+causallm_qkv_layer = shared_library(
+    'qkv_layer',
+    causallm_qkv_layer_src_abs,
+    include_directories: causallm_layer_inc,
+    dependencies: [nntrainer_dep, nntrainer_ccapi_dep],
+    install: true,
+    install_dir: application_install_dir
+)
+
+causallm_qkv_layer_dep = declare_dependency(
+    link_with: causallm_qkv_layer,
     include_directories: causallm_layer_inc
 )
