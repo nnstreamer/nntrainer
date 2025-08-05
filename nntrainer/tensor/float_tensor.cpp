@@ -839,12 +839,12 @@ Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
     gemm_q4_K(M, N, K, data, K, (void *)mdata, N, rdata, N);
     break;
   case Tdatatype::Q6_K:
-#ifdef ENABLE_OPENCL
-    /// @note For Q6K, use OpenCL kernel by default when GPU is enabled
-    sgemv_q6_k_cl((void *)mdata, data, rdata, K, N);
-#else
+    // #ifdef ENABLE_OPENCL
+    // / @note For Q6K, use OpenCL kernel by default when GPU is enabled
+    // sgemv_q6_k_cl((void *)mdata, data, rdata, K, N);
+    // #else
     gemm_q6_K(M, N, K, data, K, (void *)mdata, N, rdata, N);
-#endif
+    // #endif
     break;
   case Tdatatype::Q4_0:
     gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
