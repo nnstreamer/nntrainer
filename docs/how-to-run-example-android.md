@@ -6,9 +6,9 @@ title: How to run examples - Android
 
 If at any point of this guide, the user encounters an error or some unexpected behavior, the first step should be checking the *Troubleshooting* section at the end of this document.
 
-## Pre-requisites
+## Prerequisites
 
-First, the user should make sure they have all necessary dependencies installed.
+First, the user should ensure they have all necessary dependencies installed.
 
 ```bash
 $ sudo apt-get update
