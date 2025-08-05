@@ -23,7 +23,6 @@
 #define WIN_EXPORT
 #endif
 
-#include <causallm_common_properties.h>
 #include <common_properties.h>
 #include <layer_impl.h>
 
