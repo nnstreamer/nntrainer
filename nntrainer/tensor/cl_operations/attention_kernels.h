@@ -41,14 +41,15 @@ namespace nntrainer {
  * @param[in] in_size size of input
  * @param[in] out_size size of output
  */
-void rotary_emb_cl(float *in, float *out,
-                   std::vector<std::vector<float>> freqs_cos,
-                   std::vector<std::vector<float>> freqs_sin,
-                   std::vector<float> cos_, std::vector<float> sin_,
-                   unsigned int batch, unsigned int channel,
-                   unsigned int height, unsigned int width, unsigned int dim,
-                   unsigned int from, unsigned int max_timestamp,
-                   unsigned int in_size, unsigned int out_size);
+void rotary_emb_cl(const float *in, float *out,
+                   const std::vector<std::vector<float>> &freqs_cos,
+                   const std::vector<std::vector<float>> &freqs_sin,
+                   const std::vector<float> &cos_,
+                   const std::vector<float> &sin_, unsigned int batch,
+                   unsigned int channel, unsigned int height,
+                   unsigned int width, unsigned int dim, unsigned int from,
+                   unsigned int max_timestamp, unsigned int in_size,
+                   unsigned int out_size);
 
 #ifdef ENABLE_FP16
 
@@ -70,14 +71,15 @@ void rotary_emb_cl(float *in, float *out,
  * @param[in] in_size size of input
  * @param[in] out_size size of output
  */
-void rotary_emb_cl(_FP16 *in, _FP16 *out,
-                   std::vector<std::vector<float>> freqs_cos,
-                   std::vector<std::vector<float>> freqs_sin,
-                   std::vector<float> cos_, std::vector<float> sin_,
-                   unsigned int batch, unsigned int channel,
-                   unsigned int height, unsigned int width, unsigned int dim,
-                   unsigned int from, unsigned int max_timestamp,
-                   unsigned int in_size, unsigned int out_size);
+void rotary_emb_cl(const _FP16 *in, _FP16 *out,
+                   const std::vector<std::vector<float>> &freqs_cos,
+                   const std::vector<std::vector<float>> &freqs_sin,
+                   const std::vector<float> &cos_,
+                   const std::vector<float> &sin_, unsigned int batch,
+                   unsigned int channel, unsigned int height,
+                   unsigned int width, unsigned int dim, unsigned int from,
+                   unsigned int max_timestamp, unsigned int in_size,
+                   unsigned int out_size);
 
 #endif
 

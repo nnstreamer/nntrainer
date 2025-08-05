@@ -176,8 +176,9 @@ void ClContext::initAttentionClKernels() {
 }
 
 const ClContext::SharedPtrClKernel
-ClContext::registerClKernel(std::string kernel_string,
-                            std::string kernel_name) {
+ClContext::registerClKernel(const std::string &kernel_string,
+                            const std::string &kernel_name,
+                            const std::string &compiler_options) {
   // check if created before
   if (ocl_kernel_map.find(kernel_name) != ocl_kernel_map.end()) {
     ml_logi("Kernel already registered and initialized: %s",
@@ -187,7 +188,8 @@ ClContext::registerClKernel(std::string kernel_string,
 
   // creating shared_ptr for kernel object
   SharedPtrClKernel kernelPtr = std::make_shared<opencl::Kernel>();
-  if (!clCreateKernel(kernel_string, kernel_name, kernelPtr)) {
+  if (!clCreateKernel(kernel_string, kernel_name, kernelPtr,
+                      compiler_options)) {
     ml_loge("Failed to register kernel %s", kernel_name.c_str());
     return nullptr;
   }
@@ -196,9 +198,10 @@ ClContext::registerClKernel(std::string kernel_string,
   return ocl_kernel_map[kernel_name];
 }
 
-bool ClContext::clCreateKernel(std::string &kernel_string,
-                               std::string &kernel_name,
-                               const SharedPtrClKernel &kernel_ptr_) {
+bool ClContext::clCreateKernel(const std::string &kernel_string,
+                               const std::string &kernel_name,
+                               const SharedPtrClKernel &kernel_ptr,
+                               const std::string &compiler_options) {
 
   ml_logi("Kernel initializing: %s", kernel_name.c_str());
 
@@ -226,18 +229,19 @@ bool ClContext::clCreateKernel(std::string &kernel_string,
         chunk.data(),
         opencl::Program::DEFAULT_KERNEL_PATH + "/" + kernel_name +
           "_kernel.bin",
-        "");
+        compiler_options);
     } else {
-      result = program.CreateCLProgram(
-        opencl::ContextManager::Global().GetContext(),
-        opencl::ContextManager::Global().GetDeviceId(), kernel_string, "");
+      result =
+        program.CreateCLProgram(opencl::ContextManager::Global().GetContext(),
+                                opencl::ContextManager::Global().GetDeviceId(),
+                                kernel_string, compiler_options);
     }
 
     if (!result) {
       break;
     }
 
-    result = kernel_ptr_->CreateKernelFromProgram(program, kernel_name);
+    result = kernel_ptr->CreateKernelFromProgram(program, kernel_name);
     if (!result) {
       break;
     }
