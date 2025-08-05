@@ -36,8 +36,9 @@ bool Kernel::CreateKernelFromProgram(Program program,
   kernel_ = clCreateKernel(prgm, function_name.c_str(), &error_code);
   if (!kernel_ || error_code != CL_SUCCESS) {
     kernel_ = nullptr;
-    ml_loge("Failed to create %s. OpenCL error code: %d", function_name.c_str(),
-            error_code);
+    ml_loge("Failed to create %s. OpenCL error code: %d : %s",
+            function_name.c_str(), error_code,
+            OpenCLErrorCodeToString(error_code));
     return false;
   }
   // increments the program reference count.
@@ -60,8 +61,9 @@ bool Kernel::SetKernelArguments(cl_uint arg_index, const void *arg_value,
   // returns NULL with error code if fails
   error_code = clSetKernelArg(kernel_, arg_index, size, arg_value);
   if (error_code != CL_SUCCESS) {
-    ml_loge("Failed to set argument: %u = %p. OpenCL error code: %d", arg_index,
-            arg_value, error_code);
+    ml_loge("Failed to set argument: %u = %p. OpenCL error code: %d : %s",
+            arg_index, arg_value, error_code,
+            OpenCLErrorCodeToString(error_code));
     return false;
   }
 
@@ -81,7 +83,8 @@ bool Kernel::SetKernelSVMArguments(cl_uint arg_index, const void *arg_value) {
   // returns NULL with error code if fails
   error_code = clSetKernelArgSVMPointer(kernel_, arg_index, arg_value);
   if (error_code != CL_SUCCESS) {
-    ml_loge("Failed to set argument. OpenCL error code: %d", error_code);
+    ml_loge("Failed to set argument. OpenCL error code: %d : %s", error_code,
+            OpenCLErrorCodeToString(error_code));
     return false;
   }
 

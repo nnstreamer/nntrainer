@@ -39,8 +39,8 @@ const cl_context &ContextManager::GetContext() {
     auto error_code = clRetainContext(context_);
     if (error_code != CL_SUCCESS) {
       ml_loge("Failed to specify the OpenCL context to retain. OpenCL error "
-              "code: %d",
-              error_code);
+              "code: %d : %s",
+              error_code, OpenCLErrorCodeToString(error_code));
     }
 
     return context_;
@@ -130,7 +130,8 @@ bool ContextManager::CreateDefaultGPUDevice() {
   cl_uint num_platforms = 0;
   cl_int status = clGetPlatformIDs(0, nullptr, &num_platforms);
   if (status != CL_SUCCESS) {
-    ml_loge("clGetPlatformIDs returned %d", status);
+    ml_loge("clGetPlatformIDs returned %d : %s", status,
+            OpenCLErrorCodeToString(status));
     return false;
   }
   if (num_platforms == 0) {
@@ -141,7 +142,8 @@ bool ContextManager::CreateDefaultGPUDevice() {
   std::vector<cl_platform_id> platforms(num_platforms);
   status = clGetPlatformIDs(num_platforms, platforms.data(), nullptr);
   if (status != CL_SUCCESS) {
-    ml_loge("clGetPlatformIDs returned %d", status);
+    ml_loge("clGetPlatformIDs returned %d : %s", status,
+            OpenCLErrorCodeToString(status));
     return false;
   }
 
@@ -153,7 +155,8 @@ bool ContextManager::CreateDefaultGPUDevice() {
     status = clGetDeviceIDs(platforms[i], kDefaultQueryDeviceType, 0, nullptr,
                             &num_devices);
     if (status != CL_SUCCESS) {
-      ml_loge("clGetDeviceIDs returned %d", status);
+      ml_loge("clGetDeviceIDs returned %d : %s", status,
+              OpenCLErrorCodeToString(status));
       continue;
     }
     if (num_devices == 0) {
@@ -165,7 +168,8 @@ bool ContextManager::CreateDefaultGPUDevice() {
     status = clGetDeviceIDs(platforms[i], kDefaultQueryDeviceType, num_devices,
                             devices.data(), nullptr);
     if (status != CL_SUCCESS) {
-      ml_loge("clGetDeviceIDs returned %d", status);
+      ml_loge("clGetDeviceIDs returned %d : %s", status,
+              OpenCLErrorCodeToString(status));
       continue;
     }
 
@@ -252,8 +256,8 @@ bool ContextManager::CreateCLContext() {
   context_ =
     clCreateContext(properties, 1, &device_id_, nullptr, nullptr, &error_code);
   if (!context_) {
-    ml_loge("Failed to create a compute context. OpenCL error code: %d",
-            error_code);
+    ml_loge("Failed to create a compute context. OpenCL error code: %d : %s",
+            error_code, OpenCLErrorCodeToString(error_code));
     return false;
   }
 
