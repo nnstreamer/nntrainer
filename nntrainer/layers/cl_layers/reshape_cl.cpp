@@ -172,35 +172,12 @@ void ReshapeLayerCl::copy_cl_fp16(const _FP16 *input, _FP16 *res,
     }
 
     result = kernel_copy_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = kernel_copy_ptr->SetKernelArguments(
-      1, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_copy_ptr->SetKernelArguments(2, &input_batch_size, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_copy_ptr->SetKernelArguments(3, &input_channels, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result = kernel_copy_ptr->SetKernelArguments(4, &input_height, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result = kernel_copy_ptr->SetKernelArguments(5, &input_width, sizeof(int));
+      {{0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem)},
+       {1, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem)},
+       {2, &input_batch_size, sizeof(int)},
+       {3, &input_channels, sizeof(int)},
+       {4, &input_height, sizeof(int)},
+       {5, &input_width, sizeof(int)}});
     if (!result) {
       break;
     }
@@ -258,35 +235,12 @@ void ReshapeLayerCl::scopy_cl(const float *input, float *res,
     }
 
     result = kernel_copy_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = kernel_copy_ptr->SetKernelArguments(
-      1, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_copy_ptr->SetKernelArguments(2, &input_batch_size, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_copy_ptr->SetKernelArguments(3, &input_channels, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result = kernel_copy_ptr->SetKernelArguments(4, &input_height, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result = kernel_copy_ptr->SetKernelArguments(5, &input_width, sizeof(int));
+      {{0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem)},
+       {1, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem)},
+       {2, &input_batch_size, sizeof(int)},
+       {3, &input_channels, sizeof(int)},
+       {4, &input_height, sizeof(int)},
+       {5, &input_width, sizeof(int)}});
     if (!result) {
       break;
     }
