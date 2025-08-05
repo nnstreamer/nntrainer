@@ -277,49 +277,14 @@ void ConcatLayerCl::concat_cl_axis3(const float *matAdata,
     }
 
     result = kernel_concat_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = kernel_concat_ptr->SetKernelArguments(
-      1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = kernel_concat_ptr->SetKernelArguments(
-      2, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(3, &input1_batch_size, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(4, &input1_channels, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(5, &input1_height, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(6, &input1_width, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(7, &input2_width, sizeof(int));
+      {{0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem)},
+       {1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem)},
+       {2, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem)},
+       {3, &input1_batch_size, sizeof(int)},
+       {4, &input1_channels, sizeof(int)},
+       {5, &input1_height, sizeof(int)},
+       {6, &input1_width, sizeof(int)},
+       {7, &input2_width, sizeof(int)}});
     if (!result) {
       break;
     }
@@ -394,50 +359,16 @@ void ConcatLayerCl::concat_cl_axis2(const float *matAdata,
     if (!result) {
       break;
     }
-    result = kernel_concat_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
 
     result = kernel_concat_ptr->SetKernelArguments(
-      1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = kernel_concat_ptr->SetKernelArguments(
-      2, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(3, &input1_batch_size, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(4, &input1_channels, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(5, &input1_height, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(6, &input2_height, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(7, &input1_width, sizeof(int));
+      {{0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem)},
+       {1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem)},
+       {2, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem)},
+       {3, &input1_batch_size, sizeof(int)},
+       {4, &input1_channels, sizeof(int)},
+       {5, &input1_height, sizeof(int)},
+       {6, &input2_height, sizeof(int)},
+       {7, &input1_width, sizeof(int)}});
     if (!result) {
       break;
     }
@@ -513,49 +444,14 @@ void ConcatLayerCl::concat_cl_axis1(const float *matAdata,
     }
 
     result = kernel_concat_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = kernel_concat_ptr->SetKernelArguments(
-      1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = kernel_concat_ptr->SetKernelArguments(
-      2, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(3, &input1_batch_size, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(4, &input1_channels, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(5, &input2_channels, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(6, &input1_height, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(7, &input1_width, sizeof(int));
+      {{0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem)},
+       {1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem)},
+       {2, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem)},
+       {3, &input1_batch_size, sizeof(int)},
+       {4, &input1_channels, sizeof(int)},
+       {5, &input2_channels, sizeof(int)},
+       {6, &input1_height, sizeof(int)},
+       {7, &input1_width, sizeof(int)}});
     if (!result) {
       break;
     }
@@ -633,49 +529,14 @@ void ConcatLayerCl::concat_cl_axis3_fp16(const _FP16 *matAdata,
     }
 
     result = kernel_concat_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = kernel_concat_ptr->SetKernelArguments(
-      1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = kernel_concat_ptr->SetKernelArguments(
-      2, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(3, &input1_batch_size, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(4, &input1_channels, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(5, &input1_height, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(6, &input1_width, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(7, &input2_width, sizeof(int));
+      {{0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem)},
+       {1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem)},
+       {2, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem)},
+       {3, &input1_batch_size, sizeof(int)},
+       {4, &input1_channels, sizeof(int)},
+       {5, &input1_height, sizeof(int)},
+       {6, &input1_width, sizeof(int)},
+       {7, &input2_width, sizeof(int)}});
     if (!result) {
       break;
     }
@@ -749,50 +610,16 @@ void ConcatLayerCl::concat_cl_axis2_fp16(const _FP16 *matAdata,
     if (!result) {
       break;
     }
-    result = kernel_concat_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
 
     result = kernel_concat_ptr->SetKernelArguments(
-      1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = kernel_concat_ptr->SetKernelArguments(
-      2, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(3, &input1_batch_size, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(4, &input1_channels, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(5, &input1_height, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(6, &input2_height, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(7, &input1_width, sizeof(int));
+      {{0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem)},
+       {1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem)},
+       {2, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem)},
+       {3, &input1_batch_size, sizeof(int)},
+       {4, &input1_channels, sizeof(int)},
+       {5, &input1_height, sizeof(int)},
+       {6, &input2_height, sizeof(int)},
+       {7, &input1_width, sizeof(int)}});
     if (!result) {
       break;
     }
@@ -869,49 +696,14 @@ void ConcatLayerCl::concat_cl_axis1_fp16(const _FP16 *matAdata,
     }
 
     result = kernel_concat_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = kernel_concat_ptr->SetKernelArguments(
-      1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = kernel_concat_ptr->SetKernelArguments(
-      2, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(3, &input1_batch_size, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(4, &input1_channels, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(5, &input2_channels, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(6, &input1_height, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result =
-      kernel_concat_ptr->SetKernelArguments(7, &input1_width, sizeof(int));
+      {{0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem)},
+       {1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem)},
+       {2, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem)},
+       {3, &input1_batch_size, sizeof(int)},
+       {4, &input1_channels, sizeof(int)},
+       {5, &input2_channels, sizeof(int)},
+       {6, &input1_height, sizeof(int)},
+       {7, &input1_width, sizeof(int)}});
     if (!result) {
       break;
     }
