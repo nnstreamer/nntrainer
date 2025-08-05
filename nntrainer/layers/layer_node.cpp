@@ -498,12 +498,13 @@ void LayerNode::exportTo(Exporter &exporter,
 
 void LayerNode::read(std::ifstream &file, bool opt_var,
                      ml::train::ExecutionMode mode, bool fsu,
-                     size_t start_offset, bool read_from_offset) {
+                     size_t start_offset, bool read_from_offset, int file_fd) {
   NNTR_THROW_IF(!run_context, std::runtime_error)
     << __func__ << " layer needs to be finalized first!";
   getLayer()->read(file, *run_context, opt_var, mode,
                    (getTrainable() && mode == ml::train::ExecutionMode::TRAIN),
-                   getWeightDataType(), fsu, start_offset, read_from_offset);
+                   getWeightDataType(), fsu, start_offset, read_from_offset,
+                   file_fd);
 }
 
 void LayerNode::save(std::ofstream &file, bool opt_var,
@@ -808,7 +809,6 @@ void LayerNode::incremental_forwarding(unsigned int from, unsigned int to,
                                        bool training) {
   loss->set(run_context->getRegularizationLoss());
   PROFILE_TIME_START(forward_event_key);
-  // std::cerr << getType() << "\n";
   layer->incremental_forwarding(*run_context, from, to, training);
   PROFILE_TIME_END(forward_event_key);
   TRACE_MEMORY() << getName() + ": F";

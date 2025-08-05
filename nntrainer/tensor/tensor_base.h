@@ -182,6 +182,23 @@ public:
   bool isAllocated() { return data != nullptr; }
 
   /**
+   * @brief activate function with the given pointer address
+   * @note This should be called for virtual tensor only.
+   */
+  void activate(void *addr) {
+    data = std::shared_ptr<MemoryData>(new MemoryData((void *)addr));
+  }
+
+  /**
+   * @brief deactivate
+   * @note This should be called for virtual tensor only.
+   */
+  void deactivate() {
+    data.reset();
+    data = nullptr;
+  }
+
+  /**
    * @copydoc Tensor::getData()
    */
   virtual void *getData() const = 0;

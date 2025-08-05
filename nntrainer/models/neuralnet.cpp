@@ -338,6 +338,10 @@ NeuralNetwork::~NeuralNetwork() {
     std::cerr << "Error occurred during destroying NeuralNetwork: " << e.what()
               << std::endl;
   }
+
+  /** if neuralnet open fd */
+  if (model_file_fd != -1)
+    close(model_file_fd);
 }
 
 /**
@@ -684,7 +688,8 @@ void NeuralNetwork::load(const std::string &file_path,
       /// this kind of type checking should be avoided
       if (tensor_data_type != TensorDim::DataType::FP32 &&
           tensor_data_type != TensorDim::DataType::FP16 &&
-          tensor_data_type != TensorDim::DataType::Q6_K) {
+          tensor_data_type != TensorDim::DataType::Q6_K &&
+          tensor_data_type != TensorDim::DataType::Q4_0) {
         // for tensor with qparam
         size += sizeof(uint16_t);
       }
@@ -704,8 +709,10 @@ void NeuralNetwork::load(const std::string &file_path,
       << "Cannot load if not initialized yet, path: " << file_path
       << " format: " << static_cast<unsigned>(format);
 
+    auto model_file_name = (v.size() == 2) ? v[1] : v[0];
     auto model_file = checkedOpenStream<std::ifstream>(
-      (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
+      model_file_name, std::ios::in | std::ios::binary);
+    model_file_fd = open(model_file_name.c_str(), O_RDONLY | O_DIRECT);
 
     if (exec_mode == ml::train::ExecutionMode::INFERENCE) {
       std::vector<std::future<void>> futures;
@@ -716,7 +723,8 @@ void NeuralNetwork::load(const std::string &file_path,
           auto local_model_file = checkedOpenStream<std::ifstream>(
             (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
           (*iter)->read(local_model_file, false, exec_mode, fsu_mode,
-                        std::numeric_limits<size_t>::max(), true);
+                        std::numeric_limits<size_t>::max(), true,
+                        model_file_fd);
         }));
       }
       for (auto &f : futures)
