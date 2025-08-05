@@ -23,6 +23,37 @@ namespace nntrainer {
 
 #ifdef ENABLE_FP16
 /**
+ * @brief Quantize float to q6_K Quantization format
+ *
+ * @param src float* src to be quantized
+ * @param dst void* dst to store quantized data
+ * @param k number of elements in src
+ */
+void quantize_row_q8_0(const _FP16 *__restrict src, void *__restrict dst,
+                       int64_t k);
+
+/**
+ * @brief Quantize _FP16 to q8_0 Quantization format
+ *
+ * @param src input src to be quantized
+ * @param dst output destination for quantized data
+ * @param nrow number of row
+ * @param n_per_row number of elements per row
+ * @param quant_weights additional information for quantization. Currently in no
+ * use.
+ * @return size_t total size of quantized data
+ */
+size_t quantize_q8_0(const _FP16 *src, void *dst, int64_t nrow,
+                     int64_t n_per_row, const float *quant_weights);
+/**
+ * @brief q8_0 to _FP16 dequantize
+ *
+ * @param x_raw input src to be dequantized
+ * @param y output destination for dequantized data
+ * @param k data length
+ */
+void dequantize_row_q8_0(const void *x_raw, _FP16 *y, int64_t k);
+/**
  * @brief Accelerating function for rotary embedding layer forwarding
  *
  * @param dim unit length of simd computation
@@ -721,12 +752,13 @@ bool is_valid(const unsigned int N, const float *X);
  * @param lda Leading dimension of A
  * @param B (void*) (block_q4_K*) for Offline-quantized transposed weight
  * @param ldb Leading dimenstion of B
- * @param C float* output
+ * @param C T* output
  * @param ldc Leading dimension of C
  */
+template <typename T = float>
 void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
-               const float *A, const unsigned int lda, const void *B,
-               const unsigned int ldb, float *C, const unsigned int ldc);
+               const T *A, const unsigned int lda, const void *B,
+               const unsigned int ldb, T *C, const unsigned int ldc);
 /**
  * @brief q4_K GEMM : A (M,K) * W.T (N,K) = O (M,N)
  *
@@ -753,28 +785,13 @@ void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
  * @param lda Leading dimension of A
  * @param B (void*) (block_q4_K*) for Offline-quantized transposed weight
  * @param ldb Leading dimenstion of B
- * @param C float* output
+ * @param C T* output
  * @param ldc Leading dimension of C
  */
+template <typename T = float>
 void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
-               const float *A, const unsigned int lda, const void *B,
-               const unsigned int ldb, float *C, const unsigned int ldc);
-/**
- * @brief (1xK)*(Kx1) dot product for q6_K and q8_K vectors
- *
- * @param M Original row size of output
- * @param N Original col size of output
- * @param K Hidden size
- * @param A Input activation to be online-runtime quantized to q6_K_MxN format
- * @param lda Leading dimension of A
- * @param B (void*) (block_q6_K*) for Offline-quantized transposed weight
- * @param ldb Leading dimenstion of B
- * @param C float* output
- * @param ldc Leading dimension of C
- */
-void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
-               const float *A, const unsigned int lda, const void *B,
-               const unsigned int ldb, float *C, const unsigned int ldc);
+               const T *A, const unsigned int lda, const void *B,
+               const unsigned int ldb, T *C, const unsigned int ldc);
 
 /**
  * @brief
@@ -850,7 +867,18 @@ void dequantize_row_q6_K(const void *x, float *y, int64_t k);
  * @param y dequantized data output
  * @param k number of elements in x
  */
-void dequantize_row_q8_K(const void *x, float *y, int64_t k);
+template <typename T = float>
+void dequantize_row_q8_K(const void *x, T *y, int64_t k);
+
+/**
+ * @brief dequantize row of q8_K data to float
+ *
+ * @param x input to be dequantized from q8_K to float
+ * @param y dequantized data output
+ * @param k number of elements in x
+ */
+template <typename T = float>
+void quantize_row_q8_K(const T *x, void *y, int64_t k);
 
 /**
  * @brief repack q40 to q40x8
@@ -876,6 +904,17 @@ void repack_q4_0_to_q4_0_8(void *W, void *repacked_W, size_t data_size,
 void repack_q4_K_to_q4_K_8(void *W, void *repacked_W, size_t data_size,
                            const unsigned int M, const unsigned int N);
 
+/**
+ * @brief repack q40 to q40x8
+ *
+ * @param W input q40
+ * @param repacked_W output q40x8
+ * @param data_size total weight size
+ * @param M number of rows
+ * @param N number of columns
+ */
+void repack_q4_0(void *W, void *repacked_W, size_t data_size,
+                 const unsigned int M, const unsigned int N);
 } /* namespace nntrainer */
 #endif /* __cplusplus */
 #endif /* __FALLBACK_H__ */

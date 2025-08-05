@@ -15,7 +15,7 @@
 
 #pragma once
 #include "bs_thread_pool.h"
-#include "utils/singleton.h"
+#include <singleton.h>
 
 namespace nntrainer {
 /**
@@ -54,3 +54,4 @@ private:
 } // namespace nntrainer
 
 #endif // THREAD_POOL_MANAGER_HPP
+

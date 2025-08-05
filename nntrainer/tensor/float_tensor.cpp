@@ -13,6 +13,7 @@
 #include <iostream>
 #include <numeric>
 
+#include <chrono>
 #include <cpu_backend.h>
 #include <float_tensor.h>
 #include <tensor.h>
@@ -69,11 +70,33 @@ void FloatTensor::allocate() {
     /// allocate new memory for the tensor data
     MemoryData *mem_data;
 
+#ifdef ENABLE_OPENCL
+    if (blas_cc != nullptr) {
+      mem_data = new MemoryData(blas_cc->context_inst_.createSVMRegion(
+        dim.getDataLen() * sizeof(float)));
+
+      data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
+        blas_cc->context_inst_.releaseSVMRegion(
+          mem_data->template getAddr<float>());
+      });
+
+      blas_cc->command_queue_inst_.enqueueSVMMap(
+        mem_data->template getAddr<float>(), dim.getDataLen() * sizeof(float),
+        false);
+    } else {
+      mem_data = new MemoryData((void *)(new float[dim.getDataLen()]{}));
+      data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
+        delete[] mem_data->template getAddr<float>();
+        delete mem_data;
+      });
+    }
+#else
     mem_data = new MemoryData((void *)(new float[dim.getDataLen()]{}));
     data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
       delete[] mem_data->template getAddr<float>();
       delete mem_data;
     });
+#endif
 
     offset = 0;
     initialize();
@@ -696,15 +719,36 @@ Tensor &FloatTensor::dot(Tensor const &input, Tensor &output, bool trans,
   case Tdatatype::FP16:
     dotFloat(input, output, trans, trans_in, beta);
     break;
-  /** applying gemm_q4_k / gemm_q6_k */
+  /** applying gemm_q4_k / gemm_q6_k / gemm_q4_0 */
   case Tdatatype::Q4_K:
   case Tdatatype::Q6_K:
+  case Tdatatype::Q4_0:
     dotQnK(input, output, trans, trans_in, beta, input.getDataType());
     break;
   default:
     throw std::invalid_argument("Error: unsupported datatype");
   }
   return output;
+}
+
+void FloatTensor::dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
+                      bool trans, bool trans_in, float beta) const {
+
+  float *data = (float *)getData();
+  unsigned int M = getDim().height();
+  unsigned int K = getDim().width();
+
+  std::vector<unsigned int> Ns;
+  std::vector<void *> mdatas;
+  std::vector<float *> rdatas;
+
+  for (unsigned int i = 0; i < input.size(); ++i) {
+    Ns.push_back(input[i]->getDim().width());
+    mdatas.push_back((void *)input[i]->getData<uint8_t>());
+    rdatas.push_back(output[i]->getData<float>());
+  }
+
+  gemm_q4_K(M, Ns, K, data, K, mdatas, Ns, rdatas, Ns);
 }
 
 Tensor &FloatTensor::dotFloat(Tensor const &input, Tensor &output, bool trans,
@@ -795,6 +839,13 @@ Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
     gemm_q6_K(M, N, K, data, K, (void *)mdata, N, rdata, N);
 #endif
     break;
+  case Tdatatype::Q4_0:
+    M = getDim().height();
+    K = getDim().width();
+    N = input.getDim().width();
+    gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
+    break;
+
   default:
     throw std::invalid_argument("Error: unsupported datatype");
   }
