@@ -7,7 +7,8 @@ causallm_src = [
 causallm_src += [
     meson.current_source_dir() / 'qwen3_causallm.cpp',
     meson.current_source_dir() / 'qwen3_moe_causallm.cpp',
-    meson.current_source_dir() / 'qwen3_slim_moe_causallm.cpp'
+    meson.current_source_dir() / 'qwen3_slim_moe_causallm.cpp',
+    meson.current_source_dir() / 'nntr_qwen3_causallm.cpp'
 ]
 
 executable_src = [
@@ -30,6 +31,7 @@ causallm_layer_dependencies = [
     causallm_reshaped_rms_norm_dep,
     causallm_moe_layer_dep,
     causallm_slim_moe_layer_dep,
+    causallm_qkv_layer_dep, 
 ]
 
 if (get_option('platform') == 'windows') and (build_machine.system() == 'windows')
