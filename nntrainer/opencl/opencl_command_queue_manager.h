@@ -16,7 +16,7 @@
 
 #include "CL/cl.h"
 #include "opencl_kernel.h"
-#include "utils/singleton.h"
+#include <singleton.h>
 #include <memory>
 
 namespace nntrainer::opencl {

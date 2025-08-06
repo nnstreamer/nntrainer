@@ -64,10 +64,12 @@ public:
    * @param init Initializer for the tensor
    * @param name Name of the tensor
    * @param qscheme_ Quantization scheme (only applies to Quantized Tensor)
+   * @param is_virtual virtual tensor boolean (default=false)
    */
   Tensor(const TensorDim &d, bool alloc_now,
          Initializer init = Initializer::NONE, std::string name = "",
-         QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE);
+         QScheme qscheme_ = QScheme::PER_TENSOR_AFFINE,
+         bool is_virtual = false);
 
   /**
    * @brief     Constructor of Tensor with dimension/buf
@@ -1344,7 +1346,9 @@ public:
    */
   Tensor dot(Tensor const &input, bool trans = false,
              bool trans_in = false) const;
-
+void dot(std::vector<Tensor *> inputs,
+                       std::vector<Tensor *> outputs, bool trans = false,
+                       bool trans_in = false, float beta = 0.0f) const;
   /**
    * @brief     Dot Product of Tensor ( equal MxM )
    * @details   This applies dot of the last dimension of this and
@@ -1574,6 +1578,38 @@ public:
   Tensor getBatchSlice(size_t offset, unsigned int size) const;
 
   /**
+   * @brief Extract sub-tensor containing specified batch indices
+   *
+   * @param indices List of batch indices to extract (0-based) Duplicates are
+   * allowed and will result in the same batch data being copied multiple times.
+   * @return Tensor New tensor containing only specified batches  (copied
+   * tensor!)
+   *
+   * @details
+   * This function creates a new tensor containing copies of data from
+   * specified batch indices of the original tensor. The operation:
+   * - Requires the original tensor to be contiguous in memory
+   * - Preserves channel/height/width dimensions
+   * - Maintains data ordering within each batch
+   * - Uses memcpy for efficient memory operations
+   *
+   * @note Duplicate indices: If the same index appears multiple times, the
+   * corresponding batch data will be copied to each position in the output
+   * tensor. Example: indices {0, 1, 1} creates output with 3 batches where
+   * positions 1 and 2 contain identical copies  of input batch 1.
+   *
+   * @note
+   * - Time complexity: O(k*C*H*W) where k = num_indices
+   * - Memory complexity: O(k*C*H*W)
+   * - Thread-safe when using different indices in parallel
+   *
+   * @throw std::runtime_error If:
+   * - Tensor is not contiguous
+   * - Any index is out of bounds
+   */
+  Tensor getBatchSlice(const std::vector<unsigned int> &indices) const;
+
+  /**
    * @brief     Convient wrapper for inplace copy of @a this.
    * @retval    Copied version of this
    */
@@ -1603,7 +1639,7 @@ public:
    * @param[in] file input file stream
    */
   void read(std::ifstream &file, size_t start_offset = 0,
-            bool read_from_offset = false);
+            bool read_from_offset = false, int file_fd = -1);
 
   /**
    * @brief     return argument index which value is max by batch
@@ -1922,10 +1958,25 @@ public:
    */
   bool isValid() const { return itensor_->isValid(); };
 
+  bool isVirtual() const { return is_virtual; }
+
+  void activate();
+
+  void deactivate();
+
   static constexpr float epsilon = 1e-5f;
 
 private:
   std::unique_ptr<TensorBase> itensor_;
+
+  /**
+   * @brief properties for virtual tensor
+   * @note This should be removed by defining VirutalTensor class
+   * */
+  bool is_virtual = false; /** flag to check virtual */
+  size_t read_offset;      /** save read_offset info for virtual */
+  int fd = -1;             /** save fd info for virtual */
+  void *mapped_ptr = nullptr;     /** save mmap buf pointer for virtual */
 
   /**
    * @brief Set tensor variables

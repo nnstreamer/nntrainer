@@ -15,6 +15,7 @@
 #include <float_tensor.h>
 #include <int4_tensor.h>
 #include <lazy_tensor.h>
+#include <q4_0_tensor.h>
 #include <q4_k_tensor.h>
 #include <q6_k_tensor.h>
 #include <short_tensor.h>
@@ -29,6 +30,11 @@
 #ifdef ENABLE_BIQGEMM
 #include <bcq_tensor.h>
 #endif
+
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 namespace nntrainer {
 
@@ -120,6 +126,8 @@ Tensor::Tensor(std::string name_, Tformat fm, Tdatatype d_type) {
     itensor_ = std::make_unique<Q4_K_Tensor>(name_, fm);
   } else if (d_type == Tdatatype::Q6_K) {
     itensor_ = std::make_unique<Q6_K_Tensor>(name_, fm);
+  } else if (d_type == Tdatatype::Q4_0) {
+    itensor_ = std::make_unique<Q4_0_Tensor>(name_, fm);
   } else if (d_type == Tdatatype::UINT4) {
     itensor_ = std::make_unique<Uint4QTensor>(name_, fm);
   } else if (d_type == Tdatatype::UINT8) {
@@ -150,8 +158,9 @@ Tensor::Tensor(std::string name_, Tformat fm, Tdatatype d_type) {
 }
 
 Tensor::Tensor(const TensorDim &d, bool alloc_now, Initializer init,
-               std::string name, QScheme qscheme) {
+               std::string name, QScheme qscheme, bool is_virtual) {
   itensor_ = nullptr;
+  this->is_virtual = is_virtual;
 
   if (d.getDataType() == Tdatatype::FP32) {
     itensor_ = std::make_unique<FloatTensor>(d, alloc_now, init, name);
@@ -165,6 +174,8 @@ Tensor::Tensor(const TensorDim &d, bool alloc_now, Initializer init,
     itensor_ = std::make_unique<Q4_K_Tensor>(d, alloc_now, init, name);
   } else if (d.getDataType() == Tdatatype::Q6_K) {
     itensor_ = std::make_unique<Q6_K_Tensor>(d, alloc_now, init, name);
+  } else if (d.getDataType() == Tdatatype::Q4_0) {
+    itensor_ = std::make_unique<Q4_0_Tensor>(d, alloc_now, init, name);
   } else if (d.getDataType() == Tdatatype::UINT4) {
     if (qscheme != QScheme::Q4_Kx8) {
       itensor_ =
@@ -215,6 +226,8 @@ Tensor::Tensor(const TensorDim &d, const void *buf, QScheme qscheme) {
     itensor_ = std::make_unique<Q4_K_Tensor>(d, buf);
   } else if (d.getDataType() == Tdatatype::Q6_K) {
     itensor_ = std::make_unique<Q6_K_Tensor>(d, buf);
+  } else if (d.getDataType() == Tdatatype::Q4_0) {
+    itensor_ = std::make_unique<Q4_0_Tensor>(d, buf);
   } else if (d.getDataType() == Tdatatype::UINT4) {
     if (qscheme != QScheme::Q4_Kx8)
       itensor_ = std::make_unique<Uint4QTensor>(d, buf, qscheme);
@@ -260,6 +273,8 @@ Tensor::Tensor(const Tensor &rhs) {
     itensor_ = std::make_unique<Q4_K_Tensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::Q6_K) {
     itensor_ = std::make_unique<Q6_K_Tensor>(*rhs.itensor_);
+  } else if (rhs.getDataType() == Tdatatype::Q4_0) {
+    itensor_ = std::make_unique<Q4_0_Tensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::UINT4) {
     itensor_ = std::make_unique<Uint4QTensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::UINT8) {
@@ -282,6 +297,12 @@ Tensor::Tensor(const Tensor &rhs) {
                                 "Enable only if your system supports BiQGEMM.");
 #endif
   }
+
+  /** copy tensor properties */
+  this->is_virtual = rhs.is_virtual;
+  this->fd = rhs.fd;
+  this->read_offset = rhs.read_offset;
+  this->mapped_ptr = rhs.mapped_ptr;
 }
 
 Tensor::Tensor(const std::unique_ptr<TensorBase> &rhs) {
@@ -321,6 +342,7 @@ Tensor::Tensor(const std::unique_ptr<TensorBase> &rhs) {
 }
 
 Tensor &Tensor::operator=(const Tensor &rhs) {
+  std::cout << "operator = is called" << std::endl;
   if (rhs.getDataType() == Tdatatype::FP32) {
     itensor_ = std::make_unique<FloatTensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::FP16) {
@@ -333,6 +355,8 @@ Tensor &Tensor::operator=(const Tensor &rhs) {
     itensor_ = std::make_unique<Q4_K_Tensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::Q6_K) {
     itensor_ = std::make_unique<Q6_K_Tensor>(*rhs.itensor_);
+  } else if (rhs.getDataType() == Tdatatype::Q4_0) {
+    itensor_ = std::make_unique<Q4_0_Tensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::UINT4) {
     itensor_ = std::make_unique<Uint4QTensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::UINT8) {
@@ -355,6 +379,12 @@ Tensor &Tensor::operator=(const Tensor &rhs) {
                                 "Enable only if your system supports BiQGEMM.");
 #endif
   }
+
+  /** copy tensor properties */
+  this->is_virtual = rhs.is_virtual;
+  this->fd = rhs.fd;
+  this->read_offset = rhs.read_offset;
+  this->mapped_ptr = rhs.mapped_ptr;
   return *this;
 }
 
@@ -376,6 +406,8 @@ bool Tensor::operator==(const Tensor &rhs) const {
       return itensorCompare<Q4_K_Tensor>(itensor_.get(), rhs.itensor_.get());
     } else if (getDataType() == Tdatatype::Q6_K) {
       return itensorCompare<Q6_K_Tensor>(itensor_.get(), rhs.itensor_.get());
+    } else if (getDataType() == Tdatatype::Q4_0) {
+      return itensorCompare<Q4_0_Tensor>(itensor_.get(), rhs.itensor_.get());
     } else if (getDataType() == Tdatatype::UINT4) {
       return itensorCompare<Uint4QTensor>(itensor_.get(), rhs.itensor_.get());
     } else if (getDataType() == Tdatatype::UINT8) {
@@ -956,6 +988,15 @@ void Tensor::standardization_i() {
   this->divide_i(std_dev_by_batch);
 }
 
+void Tensor::dot(std::vector<Tensor *> input,
+                 std::vector<Tensor *> output, bool trans, bool trans_in,
+                 float beta) const {
+  NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
+    << getName() << " is not contiguous. Cannot dot product.";
+
+  itensor_->dot(input, output, trans, trans_in, beta);
+}
+
 Tensor Tensor::dot(Tensor const &input, bool trans, bool trans_in) const {
   Tensor output("", getFormat(), getDataType());
   dot(input, output, trans, trans_in);
@@ -1242,6 +1283,68 @@ Tensor Tensor::getBatchSlice(size_t offset, unsigned int size) const {
                              true, "");
 }
 
+Tensor Tensor::getBatchSlice(const std::vector<unsigned int> &indices) const {
+
+  // Validate tensor contiguity
+  NNTR_THROW_IF(!this->getContiguous(), std::runtime_error)
+    << "getBatchSlice requires contiguous tensor layer";
+
+  // Validate indices vector is not empty
+  NNTR_THROW_IF(indices.empty(), std::invalid_argument)
+    << "Indices vector cannot be empty";
+
+  // Validate indices
+  const unsigned batch_size = getDim().batch();
+  for (auto idx : indices) {
+    NNTR_THROW_IF(idx >= batch_size, std::out_of_range)
+      << "Batch index " << idx << " out of range [0," << batch_size << ")";
+  }
+
+  // Get original tensor dimensions
+  const TensorDim &orig_dim = this->getDim();
+  const size_t element_size = orig_dim.getDataTypeSize();
+
+  // Calculate single batch size in elements
+  const size_t single_batch_size = orig_dim.getFeatureLen();
+
+  // Create output tensor with selected batches
+  TensorDim new_dim = orig_dim;
+  new_dim.batch(indices.size());
+  Tensor output(new_dim);
+
+  // Validate output tensor size
+  const size_t output_bytes = output.bytes();
+  const size_t single_batch_bytes = single_batch_size * element_size;
+
+  // Get raw data pointers
+  const unsigned char *src_data =
+    static_cast<const unsigned char *>(this->getData<unsigned char>());
+  unsigned char *dst_data =
+    static_cast<unsigned char *>(output.getData<void>());
+
+// Parallel copy using OpenMP
+#pragma omp parallel for schedule(static)
+  for (int i = 0; i < static_cast<int>(indices.size()); ++i) {
+    const unsigned batch_idx = indices[i];
+
+    // Calculate memory offsets
+    const size_t src_offset =
+      static_cast<size_t>(batch_idx) * single_batch_bytes;
+    const size_t dst_offset = static_cast<size_t>(i) * single_batch_bytes;
+
+    // Bounds check for destination buffer
+    NNTR_THROW_IF(dst_offset + single_batch_bytes > output_bytes,
+                  std::runtime_error)
+      << "Destination buffer overflow detected";
+
+    // Perform memory copy
+    std::memcpy(dst_data + dst_offset, src_data + src_offset,
+                single_batch_bytes);
+  }
+
+  return output;
+}
+
 Tensor Tensor::clone() const {
   Tensor output(getName(), getFormat(), getDataType());
   output.copy(*this);
@@ -1269,9 +1372,21 @@ void Tensor::save(std::ostream &file) {
 }
 
 void Tensor::read(std::ifstream &file, size_t start_offset,
-                  bool read_from_offset) {
+                  bool read_from_offset, int file_fd) {
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
     << getName() << " is not contiguous, cannot read.";
+
+  // save the start_offset_info
+  read_offset = start_offset;
+
+  // Do not read now but save file_fd in tensor
+  if (is_virtual) {
+    fd = file_fd;
+    //pre-fetching page table
+    activate();
+    deactivate();
+    return;
+  }
 
   itensor_->read(file, start_offset, read_from_offset);
 }
@@ -1484,6 +1599,50 @@ Tensor Tensor::getSharedDataTensor(const TensorDim dim_, size_t offset,
   itensor_->getSharedDataTensor(dim_, offset, reset_stride, name_,
                                 ret.itensor_.get());
   return ret;
+}
+
+void Tensor::activate() {
+
+  NNTR_THROW_IF(!is_virtual, std::invalid_argument)
+    << "non-virtual tensor cannot call activate()";
+
+  auto file_offset = getFileOffset();
+  size_t off = (file_offset / 4096) * 4096;
+  size_t diff = file_offset - off;
+  size_t len = getMemoryBytes() + diff;
+
+  mapped_ptr = mmap(NULL, len, PROT_READ, MAP_PRIVATE, this->fd, off);
+  madvise(mapped_ptr, len, MADV_SEQUENTIAL);
+  madvise(mapped_ptr, len, MADV_WILLNEED);
+  if (mapped_ptr == MAP_FAILED) {
+    std::cerr << "[activate] mmap failed: " << strerror(errno) << std::endl;
+  }
+  itensor_->activate((void *)&((uint8_t *)mapped_ptr)[diff]);
+}
+
+void Tensor::deactivate() {
+
+  NNTR_THROW_IF(!is_virtual, std::invalid_argument)
+    << "non-virtual tensor cannot call deactivate()";
+
+  if (mapped_ptr == nullptr) {
+    return;
+  };
+
+  auto file_offset = getFileOffset();
+  size_t off = (file_offset / 4096) * 4096;
+  size_t diff = file_offset - off;
+  size_t len = getMemoryBytes() + diff;
+
+  auto ret_munmap = munmap((void *)mapped_ptr, len);
+  const size_t error_buflen = 100;
+  char error_buf[error_buflen];
+  NNTR_THROW_IF(ret_munmap == -1, std::runtime_error)
+    << "[deactivate] munmap failed: "
+    << SAFE_STRERROR(errno, error_buf, error_buflen);
+
+  mapped_ptr = nullptr;
+  itensor_->deactivate();
 }
 
 void Tensor::setTensorVar(TensorDim d, void *buf, size_t offset) {

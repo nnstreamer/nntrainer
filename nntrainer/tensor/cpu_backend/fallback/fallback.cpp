@@ -188,10 +188,11 @@ void softmax(const unsigned int N, float *X, float *Y) {
   __fallback_softmax(N, X, Y);
 }
 
+template <>
 void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc) {
-  return __fallback_gemm_q4_0(M, N, K, A, lda, B, ldb, C, ldc);
+  return __fallback_gemm_q4_0<float>(M, N, K, A, lda, B, ldb, C, ldc);
 }
 
 void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
@@ -200,6 +201,7 @@ void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
   return __fallback_gemm_q4_K(M, N, K, A, lda, B, ldb, C, ldc);
 }
 
+template <>
 void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc) {
@@ -238,8 +240,17 @@ void dequantize_row_q6_K(const void *x, float *y, int64_t k) {
   return __fallback_dequantize_row_q6_K(x, y, k);
 }
 
-void dequantize_row_q8_K(const void *x, float *y, int64_t k) {
+template <> void dequantize_row_q8_K(const void *x, float *y, int64_t k) {
   return __fallback_dequantize_row_q8_K(x, y, k);
+}
+
+template <> void quantize_row_q8_K(const void *x, float *y, int64_t k) {
+  return __fallback_quantize_row_q8_K(x, y, k);
+}
+
+void repack_q4_0(void *W, void *repacked_W, size_t data_size,
+                 const unsigned int M, const unsigned int N) {
+  return __fallback_repack_q4_0_to_q4_0_8(W, repacked_W, data_size, M, N);
 }
 
 void repack_q4_0_to_q4_0_8(void *W, void *repacked_W, size_t data_size,
@@ -250,6 +261,40 @@ void repack_q4_0_to_q4_0_8(void *W, void *repacked_W, size_t data_size,
 void repack_q4_K_to_q4_K_8(void *W, void *repacked_W, size_t data_size,
                            const unsigned int M, const unsigned int N) {
   return __fallback_repack_q4_K_to_q4_K_8(W, repacked_W, data_size, M, N);
+}
+
+void softmax_row_inplace(float *qk_out, size_t start_row, size_t end_row,
+                         size_t num_heads) {
+  __fallback_softmax_row_inplace(qk_out, start_row, end_row, num_heads);
+}
+
+void softmax_row(float *qk_out, size_t start_row, size_t end_row,
+                 size_t num_heads) {
+  __fallback_softmax_row(qk_out, start_row, end_row, num_heads);
+}
+
+void compute_fp16vcache_fp32_transposed(int row_num, const float *in,
+                                        const uint16_t *vcache, float *output,
+                                        int num_cache_head, int gqa_size,
+                                        int head_dim) {
+  __fallback_compute_fp16vcache_fp32_transposed(
+    row_num, in, vcache, output, num_cache_head, gqa_size, head_dim);
+}
+
+template <>
+void compute_kcaches(const float *A, const uint16_t *B, float *output,
+                     int num_rows, int N, int chunk_size, int group_size,
+                     int tile_size) {
+  __fallback_compute_kcaches<uint16_t>(A, B, output, num_rows, N, chunk_size,
+                                       group_size, tile_size);
+}
+
+void compute_rotary_emb_value(unsigned int width, unsigned int dim,
+                              unsigned int half_, float *inout, void *output,
+                              const float *cos_, const float *sin_,
+                              bool only_convert_to_fp16) {
+  __fallback_compute_rotary_emb_value(width, dim, half_, inout, output, cos_,
+                                      sin_, only_convert_to_fp16);
 }
 
 } /* namespace nntrainer */

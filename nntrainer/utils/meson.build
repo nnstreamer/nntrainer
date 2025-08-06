@@ -22,7 +22,11 @@ util_headers = [
   'dynamic_library_loader.h',
   'mman_windows.h',
   'bs_thread_pool.h',
+  'singleton.h',
+  'noncopyable.h',
+  'nonmovable.h',
   'bs_thread_pool_manager.hpp',
+  'json.hpp',
 ]
 
 if get_option('enable-trace')
@@ -32,6 +36,12 @@ endif
 
 if get_option('enable-fp16')
   util_sources += 'util_simd_fp16.cpp'
+endif
+
+if (get_option('platform') == 'windows') and (build_machine.system() == 'windows')
+  run_command(powershell_prog, '-ExecutionPolicy', 'Bypass', '-File', join_paths(meson.source_root(), 'jni', 'prepare_encoder.ps1'), meson.build_root(), '0.2', check: true)
+elif get_option('platform') != 'tizen'
+  run_command([meson.source_root() / 'jni' / 'prepare_encoder.sh', meson.build_root(), '0.2'], check: true)
 endif
 
 foreach s : util_sources

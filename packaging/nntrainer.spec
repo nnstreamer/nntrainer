@@ -59,6 +59,17 @@
 %define fp16_support -Denable-fp16=false
 %endif # enable_fp16
 
+## GGML flag
+%define enable_ggml 1
+
+## ggml kernel usage from nntrainer relies on ggml
+%if 0%{?enable_ggml}
+%define ggml_support -Denable-ggml=true
+%else
+%define ggml_support -Denable-ggml=false
+%endif # enable_ggml
+
+
 ## GPU flag
 ## To enable OpenCL, pass the flag to gbs build with: --define "_with_gpu 1"
 %bcond_with gpu
@@ -330,9 +341,11 @@ NNSteamer tensor trainer static package for nntrainer to support inference.
 Summary: Ruy support in NNTrainer
 %description -n ruy
 
+%if 0%{?enable_ggml}
 %package -n ggml
 Summary: GGML support in NNTrainer
 %description -n ggml
+%endif
 
 %if %{with gpu}
 %package -n clblast
@@ -416,8 +429,8 @@ export CXXFLAGS+=" -fprofile-arcs -ftest-coverage"
 %endif
 
 %if 0%{?enable_fp16}
-export CFLAGS+=" -march=armv8.2-a+fp16"
-export CXXFLAGS+=" -march=armv8.2-a+fp16"
+export CFLAGS+=" -march=armv8.2-a+fp16+dotprod"
+export CXXFLAGS+=" -march=armv8.2-a+fp16+dotprod"
 %endif
 
 # Add backward competibility for tizen < 6
@@ -430,7 +443,9 @@ ln -sf %{_libdir}/pkgconfig/capi-nnstreamer.pc %{_libdir}/pkgconfig/capi-ml-comm
 tar -xf packaging/ruy.tar.gz -C subprojects
 
 # Setup GGML
+%if 0%{?enable_ggml}
 tar -xf packaging/ggml.tar.gz -C subprojects
+%endif
 
 # Setup CLBlast
 %if %{with gpu}
@@ -448,7 +463,7 @@ meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       %{enable_reduce_tolerance} %{configure_subplugin_install_path} %{enable_debug} \
       -Dml-api-support=enabled -Denable-nnstreamer-tensor-filter=enabled \
       -Denable-nnstreamer-tensor-trainer=enabled -Denable-capi=enabled \
-      -Denable-ggml=true %{fp16_support} %{opencl_support} build --wrap-mode=nodownload
+      %{ggml_support} %{fp16_support} %{opencl_support} build --wrap-mode=nodownload
 
 ninja -C build %{?_smp_mflags}
 
@@ -569,6 +584,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/tensor_base.h
 %{_includedir}/nntrainer/q4_k_tensor.h
 %{_includedir}/nntrainer/q6_k_tensor.h
+%{_includedir}/nntrainer/q4_0_tensor.h
 %{_includedir}/nntrainer/int4_tensor.h
 %{_includedir}/nntrainer/uint4_tensor.h
 %{_includedir}/nntrainer/char_tensor.h
@@ -581,8 +597,13 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/tensor_wrap_specs.h
 %{_includedir}/nntrainer/cpu_backend.h
 %{_includedir}/nntrainer/fallback_internal.h
+%if 0%{?use_cblas}
 %{_includedir}/nntrainer/cblas_interface.h
+%endif
+%if 0%{?enable_ggml}
 %{_includedir}/nntrainer/ggml_interface.h
+%{_includedir}/nntrainer/nntr_ggml_impl.h
+%endif
 %{_includedir}/nntrainer/bs_thread_pool.h
 %{_includedir}/nntrainer/bs_thread_pool_manager.hpp
 %ifarch %{ix86} x86_64
@@ -778,6 +799,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %endif #x86_64
 
 # GGML
+%if 0%{?enable_ggml}
 %files -n ggml
 %manifest nntrainer.manifest
 %defattr(-,root,root,-)
@@ -785,6 +807,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_libdir}/libggml.so
 %{_libdir}/libggml_base.so
 %{_libdir}/libggml_cpu.so
+%endif
 
 # CLBlast
 %if %{with gpu}

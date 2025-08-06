@@ -69,11 +69,33 @@ void FloatTensor::allocate() {
     /// allocate new memory for the tensor data
     MemoryData *mem_data;
 
+#ifdef ENABLE_OPENCL
+    if (blas_cc != nullptr) {
+      mem_data = new MemoryData(blas_cc->context_inst_.createSVMRegion(
+        dim.getDataLen() * sizeof(float)));
+
+      data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
+        blas_cc->context_inst_.releaseSVMRegion(
+          mem_data->template getAddr<float>());
+      });
+
+      blas_cc->command_queue_inst_.enqueueSVMMap(
+        mem_data->template getAddr<float>(), dim.getDataLen() * sizeof(float),
+        false);
+    } else {
+      mem_data = new MemoryData((void *)(new float[dim.getDataLen()]{}));
+      data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
+        delete[] mem_data->template getAddr<float>();
+        delete mem_data;
+      });
+    }
+#else
     mem_data = new MemoryData((void *)(new float[dim.getDataLen()]{}));
     data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
       delete[] mem_data->template getAddr<float>();
       delete mem_data;
     });
+#endif
 
     offset = 0;
     initialize();
@@ -683,6 +705,33 @@ void FloatTensor::tan(Tensor &output, float alpha) {
 void FloatTensor::inv_sqrt(Tensor &out) {
   apply([](float val) -> float { return 1 / std::sqrt(val); }, out);
 }
+void FloatTensor::dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
+                      bool trans, bool trans_in, float beta) const {
+
+  float *data = (float *)getData();
+  unsigned int M = getDim().height();
+  unsigned int K = getDim().width();
+
+  std::vector<unsigned int> Ns;
+  std::vector<void *> mdatas;
+  std::vector<float *> rdatas;
+
+  for (unsigned int i = 0; i < input.size(); ++i) {
+    Ns.push_back(input[i]->getDim().width());
+    mdatas.push_back((void *)input[i]->getData<uint8_t>());
+    rdatas.push_back(output[i]->getData<float>());
+  }
+  switch (input[0]->getDataType()) {
+  case Tdatatype::Q4_K:
+    gemm_q4_K(M, Ns, K, data, K, mdatas, Ns, rdatas, Ns);
+    break;
+  case Tdatatype::Q4_0:
+    gemm_q4_0(M, Ns, K, data, K, mdatas, Ns, rdatas, Ns);
+    break;
+  default:
+    throw std::invalid_argument("Error: unsupported datatype");
+  }
+}
 
 Tensor &FloatTensor::dot(Tensor const &input, Tensor &output, bool trans,
                          bool trans_in, float beta) const {
@@ -696,9 +745,10 @@ Tensor &FloatTensor::dot(Tensor const &input, Tensor &output, bool trans,
   case Tdatatype::FP16:
     dotFloat(input, output, trans, trans_in, beta);
     break;
-  /** applying gemm_q4_k / gemm_q6_k */
+  /** applying gemm_q4_k / gemm_q6_k / gemm_q4_0 */
   case Tdatatype::Q4_K:
   case Tdatatype::Q6_K:
+  case Tdatatype::Q4_0:
     dotQnK(input, output, trans, trans_in, beta, input.getDataType());
     break;
   default:
@@ -767,34 +817,39 @@ Tensor &FloatTensor::dotFloat(Tensor const &input, Tensor &output, bool trans,
 }
 Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
                             bool trans_in, float beta, Tdatatype dtype) const {
-  ///@note trans / trans_in is not yet applied
-  NNTR_THROW_IF(trans || trans_in, std::invalid_argument)
-    << "dotQnK does not support trans / trans_in";
+  ///@note Be cautious.
+  /// Qn_K does not support transpose in principle.
+  /// This trans option only aims to support Tensor Dimension only,
+  /// not data.
+  ///@note trans is not yet applied
+  NNTR_THROW_IF(trans, std::invalid_argument)
+    << "dotQnK does not support trans";
 
   float *data = (float *)getData();
   uint8_t *mdata = input.getData<uint8_t>();
   float *rdata = output.getData<float>();
 
   unsigned int M, N, K;
+  M = getDim().height();
+  K = getDim().width();
+  N = trans_in ? input.getDim().height() : input.getDim().width();
 
   switch (dtype) {
   case Tdatatype::Q4_K:
-    M = getDim().height();
-    K = getDim().width();
-    N = input.getDim().width();
     gemm_q4_K(M, N, K, data, K, (void *)mdata, N, rdata, N);
     break;
   case Tdatatype::Q6_K:
-    M = getDim().height();
-    K = getDim().width();
-    N = input.getDim().height();
-#ifdef ENABLE_OPENCL
-    /// @note For Q6K, use OpenCL kernel by default when GPU is enabled
-    sgemv_q6_k_cl((void *)mdata, data, rdata, K, N);
-#else
+    // #ifdef ENABLE_OPENCL
+    // / @note For Q6K, use OpenCL kernel by default when GPU is enabled
+    // sgemv_q6_k_cl((void *)mdata, data, rdata, K, N);
+    // #else
     gemm_q6_K(M, N, K, data, K, (void *)mdata, N, rdata, N);
-#endif
+    // #endif
     break;
+  case Tdatatype::Q4_0:
+    gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
+    break;
+
   default:
     throw std::invalid_argument("Error: unsupported datatype");
   }
