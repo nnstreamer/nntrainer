@@ -154,9 +154,6 @@ const char *OpenCLErrorCodeToString(const cl_int code) {
   default:
     return "(unknown)";
   }
-
-  return "(unknown)";
-
 #undef SWITCH_CASE_RETURN
 }
 
