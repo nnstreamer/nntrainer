@@ -8,7 +8,8 @@ causallm_src += [
     meson.current_source_dir() / 'qwen3_causallm.cpp',
     meson.current_source_dir() / 'qwen3_moe_causallm.cpp',
     meson.current_source_dir() / 'qwen3_slim_moe_causallm.cpp',
-    meson.current_source_dir() / 'nntr_qwen3_causallm.cpp'
+    meson.current_source_dir() / 'nntr_qwen3_causallm.cpp',
+    meson.current_source_dir() / 'nntr_qwen3_moe_causallm.cpp',
 ]
 
 executable_src = [
