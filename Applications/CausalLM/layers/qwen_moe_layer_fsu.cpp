@@ -391,7 +391,6 @@ void SlimMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
   nntrainer::Tensor &output_ = context.getOutput(SINGLE_INOUT_IDX);
 
   nntrainer::Tensor &router_logits_ = context.getTensor(router_logits_idx);
-  nntrainer::Tensor &expert_mask = context.getTensor(expert_mask_idx);
 
   nntrainer::TensorDim input_step_dim = input_.getDim();
   nntrainer::TensorDim output_step_dim = output_.getDim();
@@ -424,7 +423,6 @@ void SlimMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
     // reshape output: [B,1,S,H] -> [B*S,1,1,H]
     output.reshape({total_tokens, 1, 1, hidden_size});
     output.setZero();
-    expert_mask.setZero();
 
     // routing
     nntrainer::Tensor &gate_weights = context.getWeight(gate_idx);
@@ -438,16 +436,9 @@ void SlimMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
     topk_values.divide_i(topk_values.sum(3));
 
     const uint32_t *indices_data = topk_indices.getData<uint32_t>();
-    // Set expert mask
-    for (int i = 0; i < static_cast<int>(total_tokens); ++i) {
-      for (int k = 0; k < static_cast<int>(topk); ++k) {
-        expert_mask.setValue(indices_data[i * topk + k], 0, k, i, 1.0f);
-      }
-    }
-
-    // Pre-compute expert token assignments for better performance
     std::vector<std::vector<std::pair<unsigned, float>>> expert_assignments(
       num_experts);
+    // Set expert mask
     for (int i = 0; i < static_cast<int>(total_tokens); ++i) {
       for (int k = 0; k < static_cast<int>(topk); ++k) {
         unsigned expert_idx = indices_data[i * topk + k];
@@ -463,7 +454,6 @@ void SlimMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
       if (!expert_assignments[expert_idx].empty()) {
         expert_outputs[expert_idx] = nntrainer::Tensor(
           total_tokens, 1, 1, hidden_size, output.getTensorType());
-        expert_outputs[expert_idx].setZero();
       }
     }
 
@@ -474,33 +464,27 @@ void SlimMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
       if (assignments.empty())
         continue;
 
-      ///@note load expert layer for the expert_idx
-      nntrainer::Tensor expert_gate_proj =
-        context.getWeight(expert_gate_proj_indices[expert_idx]);
-      nntrainer::Tensor expert_up_proj =
-        context.getWeight(expert_up_proj_indices[expert_idx]);
-      nntrainer::Tensor expert_down_proj =
-        context.getWeight(expert_down_proj_indices[expert_idx]);
-
       ///@note Please note that expert_gate_proj is virtual tensor,
       ///      which is not allocated so far. It will be allocated when it is
       ///      used. `activate(read=true)` will allocate its memory and will
       ///      read from the original weight. activate is true by default. i.e.,
       ///      mmap
-      expert_gate_proj.activate();
-      expert_up_proj.activate();
-      expert_down_proj.activate();
+      context.getWeight(expert_gate_proj_indices[expert_idx]).activate();
+      context.getWeight(expert_up_proj_indices[expert_idx]).activate();
+      context.getWeight(expert_down_proj_indices[expert_idx]).activate();
 
       compute_expert_forward_no_critical(
-        input, expert_outputs[expert_idx], assignments, expert_gate_proj,
-        expert_up_proj, expert_down_proj, hidden_size);
+        input, expert_outputs[expert_idx], assignments,
+        context.getWeight(expert_gate_proj_indices[expert_idx]),
+        context.getWeight(expert_up_proj_indices[expert_idx]),
+        context.getWeight(expert_down_proj_indices[expert_idx]), hidden_size);
 
       ////@note Please note that the virtual tensor is deactivated after usage
       ////      This will allocate and load data from the storage on-the-fly
       ////      i.e., unmap
-      expert_gate_proj.deactivate();
-      expert_up_proj.deactivate();
-      expert_down_proj.deactivate();
+      context.getWeight(expert_gate_proj_indices[expert_idx]).deactivate();
+      context.getWeight(expert_up_proj_indices[expert_idx]).deactivate();
+      context.getWeight(expert_down_proj_indices[expert_idx]).deactivate();
     }
 
     // Combine expert outputs
