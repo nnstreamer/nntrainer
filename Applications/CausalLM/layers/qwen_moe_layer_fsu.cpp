@@ -407,7 +407,6 @@ void SlimMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
   output_step_dim.height(to - from);
 
   for (unsigned int b = 0; b < input_.batch(); ++b) {
-
     auto input = input_.getSharedDataTensor(
       input_step_dim, b * input_step_dim.getFeatureLen(), true);
     auto output = output_.getSharedDataTensor(
@@ -469,45 +468,217 @@ void SlimMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
       }
     }
 
-// #pragma omp parallel for schedule(dynamic)
-auto &pool = nntrainer::ThreadPoolManager::Global().getThreadPool();
+    if ((to - from) != -1) {
 
-    BS::multi_future<void> loop_future = pool.submit_loop(0, static_cast<int>(num_experts) ,[&](int expert_idx)
-    // for (int expert_idx = 0; expert_idx < static_cast<int>(num_experts); ++expert_idx)
-    {
-      const auto &assignments = expert_assignments[expert_idx];
-      if (assignments.empty())
-        return;
+#pragma omp parallel for schedule(dynamic)
+      for (int expert_idx = 0; expert_idx < static_cast<int>(num_experts);
+           ++expert_idx) {
+        const auto &assignments = expert_assignments[expert_idx];
+        if (assignments.empty())
+          continue;
 
-      ///@note load expert layer for the expert_idx
-      nntrainer::Tensor expert_gate_proj =
-        context.getWeight(expert_gate_proj_indices[expert_idx]);
-      nntrainer::Tensor expert_up_proj =
-        context.getWeight(expert_up_proj_indices[expert_idx]);
-      nntrainer::Tensor expert_down_proj =
-        context.getWeight(expert_down_proj_indices[expert_idx]);
+        ///@note load expert layer for the expert_idx
+        nntrainer::Tensor expert_gate_proj =
+          context.getWeight(expert_gate_proj_indices[expert_idx]);
+        nntrainer::Tensor expert_up_proj =
+          context.getWeight(expert_up_proj_indices[expert_idx]);
+        nntrainer::Tensor expert_down_proj =
+          context.getWeight(expert_down_proj_indices[expert_idx]);
 
-      ///@note Please note that expert_gate_proj is virtual tensor,
-      ///      which is not allocated so far. It will be allocated when it is
-      ///      used. `activate(read=true)` will allocate its memory and will
-      ///      read from the original weight. activate is true by default. i.e.,
-      ///      mmap
-      expert_gate_proj.activate();
-      expert_up_proj.activate();
-      expert_down_proj.activate();
+        ///@note Please note that expert_gate_proj is virtual tensor,
+        ///      which is not allocated so far. It will be allocated when it is
+        ///      used. `activate(read=true)` will allocate its memory and will
+        ///      read from the original weight. activate is true by default.
+        ///      i.e., mmap
+        expert_gate_proj.activate();
+        expert_up_proj.activate();
+        expert_down_proj.activate();
 
-      compute_expert_forward_no_critical(
-        input, expert_outputs[expert_idx], assignments, expert_gate_proj,
-        expert_up_proj, expert_down_proj, hidden_size);
+        compute_expert_forward_no_critical(
+          input, expert_outputs[expert_idx], assignments, expert_gate_proj,
+          expert_up_proj, expert_down_proj, hidden_size);
 
-      ////@note Please note that the virtual tensor is deactivated after usage
-      ////      This will allocate and load data from the storage on-the-fly
-      ////      i.e., unmap
-      expert_gate_proj.deactivate();
-      expert_up_proj.deactivate();
-      expert_down_proj.deactivate();
-    });
-    loop_future.wait();
+        ////@note Please note that the virtual tensor is deactivated after usage
+        ////      This will allocate and load data from the storage on-the-fly
+        ////      i.e., unmap
+        expert_gate_proj.deactivate();
+        expert_up_proj.deactivate();
+        expert_down_proj.deactivate();
+      }
+
+    } else {
+
+      std::vector<nntrainer::Tensor *> expert_gate_proj_vector;
+      std::vector<nntrainer::Tensor *> expert_up_proj_vector;
+      std::vector<nntrainer::Tensor *> expert_down_proj_vector;
+      std::vector<std::vector<std::pair<unsigned, float>>> assignments_vector;
+
+      std::vector<nntrainer::Tensor *> token_input_vector;
+      std::vector<float> weight_vector;
+      std::vector<int> expert_idx_vector;
+
+      for (int expert_idx = 0; expert_idx < static_cast<int>(num_experts);
+           ++expert_idx) {
+        if (expert_assignments[expert_idx].empty()) {
+          continue;
+        }
+        expert_idx_vector.emplace_back(expert_idx);
+      }
+
+      expert_gate_proj_vector.emplace_back(
+        &context.getWeight(expert_gate_proj_indices[expert_idx_vector[0]]));
+      expert_gate_proj_vector.emplace_back(
+        &context.getWeight(expert_gate_proj_indices[expert_idx_vector[1]]));
+      expert_gate_proj_vector.emplace_back(
+        &context.getWeight(expert_gate_proj_indices[expert_idx_vector[2]]));
+      expert_gate_proj_vector.emplace_back(
+        &context.getWeight(expert_gate_proj_indices[expert_idx_vector[3]]));
+      expert_gate_proj_vector.emplace_back(
+        &context.getWeight(expert_gate_proj_indices[expert_idx_vector[4]]));
+      expert_gate_proj_vector.emplace_back(
+        &context.getWeight(expert_gate_proj_indices[expert_idx_vector[5]]));
+      expert_gate_proj_vector.emplace_back(
+        &context.getWeight(expert_gate_proj_indices[expert_idx_vector[6]]));
+      expert_gate_proj_vector.emplace_back(
+        &context.getWeight(expert_gate_proj_indices[expert_idx_vector[7]]));
+
+      expert_up_proj_vector.emplace_back(
+        &context.getWeight(expert_up_proj_indices[expert_idx_vector[0]]));
+      expert_up_proj_vector.emplace_back(
+        &context.getWeight(expert_up_proj_indices[expert_idx_vector[1]]));
+      expert_up_proj_vector.emplace_back(
+        &context.getWeight(expert_up_proj_indices[expert_idx_vector[2]]));
+      expert_up_proj_vector.emplace_back(
+        &context.getWeight(expert_up_proj_indices[expert_idx_vector[3]]));
+      expert_up_proj_vector.emplace_back(
+        &context.getWeight(expert_up_proj_indices[expert_idx_vector[4]]));
+      expert_up_proj_vector.emplace_back(
+        &context.getWeight(expert_up_proj_indices[expert_idx_vector[5]]));
+      expert_up_proj_vector.emplace_back(
+        &context.getWeight(expert_up_proj_indices[expert_idx_vector[6]]));
+      expert_up_proj_vector.emplace_back(
+        &context.getWeight(expert_up_proj_indices[expert_idx_vector[7]]));
+
+      expert_down_proj_vector.emplace_back(
+        &context.getWeight(expert_down_proj_indices[expert_idx_vector[0]]));
+      expert_down_proj_vector.emplace_back(
+        &context.getWeight(expert_down_proj_indices[expert_idx_vector[1]]));
+      expert_down_proj_vector.emplace_back(
+        &context.getWeight(expert_down_proj_indices[expert_idx_vector[2]]));
+      expert_down_proj_vector.emplace_back(
+        &context.getWeight(expert_down_proj_indices[expert_idx_vector[3]]));
+      expert_down_proj_vector.emplace_back(
+        &context.getWeight(expert_down_proj_indices[expert_idx_vector[4]]));
+      expert_down_proj_vector.emplace_back(
+        &context.getWeight(expert_down_proj_indices[expert_idx_vector[5]]));
+      expert_down_proj_vector.emplace_back(
+        &context.getWeight(expert_down_proj_indices[expert_idx_vector[6]]));
+      expert_down_proj_vector.emplace_back(
+        &context.getWeight(expert_down_proj_indices[expert_idx_vector[7]]));
+
+#pragma omp parallel for schedule(dynamic)
+      for (int i = 0; i < 8; ++i) {
+
+        expert_gate_proj_vector[i]->activate();
+        expert_up_proj_vector[i]->activate();
+        expert_down_proj_vector[i]->activate();
+
+        assignments_vector.emplace_back(
+          expert_assignments[expert_idx_vector[i]]);
+        weight_vector.emplace_back(
+          expert_assignments[expert_idx_vector[i]][0].second);
+      }
+
+      // Always num_token = 1;
+      const unsigned num_tokens = 1;
+      const unsigned intermediate_size =
+        expert_gate_proj_vector.back()->width();
+
+      // Create tensor dimensions for single token processing
+      nntrainer::TensorDim token_input_dim({1, 1, 1, hidden_size},
+                                           input.getTensorType());
+      nntrainer::TensorDim intermediate_dim({1, 1, 1, intermediate_size},
+                                            input.getTensorType());
+      nntrainer::TensorDim token_output_dim({1, 1, 1, hidden_size},
+                                            input.getTensorType());
+      nntrainer::Tensor token_input =
+        input.getSharedDataTensor(token_input_dim, 0, true);
+
+      // Create intermediate tensors for this token
+
+      nntrainer::Tensor gate_out1(intermediate_dim);
+      nntrainer::Tensor gate_out2(intermediate_dim);
+      nntrainer::Tensor gate_out3(intermediate_dim);
+      nntrainer::Tensor gate_out4(intermediate_dim);
+      nntrainer::Tensor gate_out5(intermediate_dim);
+      nntrainer::Tensor gate_out6(intermediate_dim);
+      nntrainer::Tensor gate_out7(intermediate_dim);
+      nntrainer::Tensor gate_out8(intermediate_dim);
+      std::vector<nntrainer::Tensor *> gate_out_vector(
+        {&gate_out1, &gate_out2, &gate_out3, &gate_out4, &gate_out5, &gate_out6,
+         &gate_out7, &gate_out8});
+
+      nntrainer::Tensor acti_out1(intermediate_dim);
+      nntrainer::Tensor acti_out2(intermediate_dim);
+      nntrainer::Tensor acti_out3(intermediate_dim);
+      nntrainer::Tensor acti_out4(intermediate_dim);
+      nntrainer::Tensor acti_out5(intermediate_dim);
+      nntrainer::Tensor acti_out6(intermediate_dim);
+      nntrainer::Tensor acti_out7(intermediate_dim);
+      nntrainer::Tensor acti_out8(intermediate_dim);
+      std::vector<nntrainer::Tensor *> acti_out_vector(
+        {&acti_out1, &acti_out2, &acti_out3, &acti_out4, &acti_out5, &acti_out6,
+         &acti_out7, &acti_out8});
+
+      nntrainer::Tensor up_out1(intermediate_dim);
+      nntrainer::Tensor up_out2(intermediate_dim);
+      nntrainer::Tensor up_out3(intermediate_dim);
+      nntrainer::Tensor up_out4(intermediate_dim);
+      nntrainer::Tensor up_out5(intermediate_dim);
+      nntrainer::Tensor up_out6(intermediate_dim);
+      nntrainer::Tensor up_out7(intermediate_dim);
+      nntrainer::Tensor up_out8(intermediate_dim);
+      std::vector<nntrainer::Tensor *> up_out_vector(
+        {&up_out1, &up_out2, &up_out3, &up_out4, &up_out5, &up_out6, &up_out7,
+         &up_out8});
+
+      // Gate projection using optimized dot operation
+      token_input.dot(expert_gate_proj_vector, gate_out_vector);
+
+      // Up projection using optimized dot operation
+      token_input.dot(expert_up_proj_vector, up_out_vector);
+
+      // Down projection using optimized dot operation
+      nntrainer::Tensor token_expert_output1(token_output_dim);
+      nntrainer::Tensor token_expert_output2(token_output_dim);
+      nntrainer::Tensor token_expert_output3(token_output_dim);
+      nntrainer::Tensor token_expert_output4(token_output_dim);
+      nntrainer::Tensor token_expert_output5(token_output_dim);
+      nntrainer::Tensor token_expert_output6(token_output_dim);
+      nntrainer::Tensor token_expert_output7(token_output_dim);
+      nntrainer::Tensor token_expert_output8(token_output_dim);
+      std::vector<nntrainer::Tensor *> token_expert_output_vector(
+        {&token_expert_output1, &token_expert_output2, &token_expert_output3,
+         &token_expert_output4, &token_expert_output5, &token_expert_output6,
+         &token_expert_output7, &token_expert_output8});
+
+#pragma omp parallel for schedule(dynamic)
+      for (int i = 0; i < 8; i++) {
+        acti_func.run_fn(*gate_out_vector[i], *acti_out_vector[i]);
+        acti_out_vector[i]->multiply_i(*up_out_vector[i]);
+        acti_out_vector[i]->dot(*expert_down_proj_vector[i],
+                                *token_expert_output_vector[i]);
+        token_expert_output_vector[i]->multiply_i(weight_vector[i]);
+        nntrainer::Tensor token_output =
+          expert_outputs[expert_idx_vector[i]].getSharedDataTensor(token_output_dim, 0, true);
+
+        token_output.add_i(*token_expert_output_vector[i]);
+        expert_gate_proj_vector[i]->deactivate();
+        expert_up_proj_vector[i]->deactivate();
+        expert_down_proj_vector[i]->deactivate();
+      }
+    }
+
     // Combine expert outputs
     for (int expert_idx = 0; expert_idx < static_cast<int>(num_experts);
          ++expert_idx) {
