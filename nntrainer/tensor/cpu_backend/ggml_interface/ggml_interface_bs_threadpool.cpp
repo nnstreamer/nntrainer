@@ -282,7 +282,7 @@ void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M,
       loop_future.wait();
     }
   } else {
-    int n_threads = std::thread::hardware_concurrency() / 2;
+    int n_threads = 4;
     unsigned int qa_4_rows_size = sizeof(block_q8_0x4) * blocks_per_4_rows;
     const size_t qa_row_size = (sizeof(block_q8_0) * K) / QK8_0;
 
@@ -488,13 +488,13 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M,
     std::vector<char> QA = std::vector<char>(qa_size);
     auto qa_data = QA.data();
     quantize_row_q8_0(A, qa_data, K);
+    if (std::all_of(Ns.begin(), Ns.end(),
+                    [](unsigned int n) { return n <= 256; })) {
+      for (unsigned int num_w = 0; num_w < Ns.size(); ++num_w) {
+        unsigned int N = Ns[num_w];
+        float *C = Cs[num_w];
+        void *B = Bs[num_w];
 
-    for (unsigned int num_w = 0; num_w < Ns.size(); ++num_w) {
-      unsigned int N = Ns[num_w];
-      float *C = Cs[num_w];
-      void *B = Bs[num_w];
-
-      if (N <= 256) {
         unsigned int M_step_start = 0;
         unsigned int M_step_end = N;
         M_step_start = (M_step_start % 8)
@@ -507,31 +507,31 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M,
                                 (void *)((char *)B + M_step_start * B_step),
                                 QA.data(), M, M_step_end - M_step_start);
       }
+    } else {
+      BS::multi_future<void> loop_future =
+        bs_thread_pool.submit_loop(0, thread_num, [=](int i) {
+          for (unsigned int num_w = 0; num_w < Ns.size(); ++num_w) {
+            unsigned int N = Ns[num_w];
+            float *C = Cs[num_w];
+            void *B = Bs[num_w];
+            unsigned int M_step_start = (i * N) / thread_num;
+            unsigned int M_step_end = ((i + 1) * N) / thread_num;
+
+            M_step_start = (M_step_start % 8)
+                             ? M_step_start + 8 - (M_step_start % 8)
+                             : M_step_start;
+            M_step_end =
+              (M_step_end % 8) ? M_step_end + 8 - (M_step_end % 8) : M_step_end;
+
+            ggml_gemv_q4_0_8x8_q8_0(K, (float *)(C + M_step_start), N,
+                                    (void *)((char *)B + M_step_start * B_step),
+                                    QA.data(), M, M_step_end - M_step_start);
+          }
+        });
+      loop_future.wait();
     }
-
-    BS::multi_future<void> loop_future =
-      bs_thread_pool.submit_loop(0, thread_num, [=](int i) {
-        for (unsigned int num_w = 0; num_w < Ns.size(); ++num_w) {
-          unsigned int N = Ns[num_w];
-          float *C = Cs[num_w];
-          void *B = Bs[num_w];
-          unsigned int M_step_start = (i * N) / thread_num;
-          unsigned int M_step_end = ((i + 1) * N) / thread_num;
-
-          M_step_start = (M_step_start % 8)
-                           ? M_step_start + 8 - (M_step_start % 8)
-                           : M_step_start;
-          M_step_end =
-            (M_step_end % 8) ? M_step_end + 8 - (M_step_end % 8) : M_step_end;
-
-          ggml_gemv_q4_0_8x8_q8_0(K, (float *)(C + M_step_start), N,
-                                  (void *)((char *)B + M_step_start * B_step),
-                                  QA.data(), M, M_step_end - M_step_start);
-        }
-      });
-    loop_future.wait();
   } else {
-    int n_threads = std::thread::hardware_concurrency() / 2;
+    int n_threads = 4;
     unsigned int qa_4_rows_size = sizeof(block_q8_0x4) * blocks_per_4_rows;
     const size_t qa_row_size = (sizeof(block_q8_0) * K) / QK8_0;
 
@@ -775,7 +775,7 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M,
     }
   } else {
 
-    int n_threads = std::thread::hardware_concurrency() / 2;
+    int n_threads = 4;
     unsigned int qa_4_rows_size = sizeof(block_q8_Kx4) * blocks_per_4_rows;
     const size_t qa_row_size = (sizeof(block_q8_K) * K) / QK_K;
 
