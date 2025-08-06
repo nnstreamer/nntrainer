@@ -11,6 +11,8 @@
  *
  */
 
+#include "bs_thread_pool_manager.hpp"
+
 #include <cpu_backend.h>
 #include <layer_context.h>
 #include <nntrainer_error.h>
@@ -224,6 +226,8 @@ void TieWordEmbedding::incremental_forwarding_embedding(
     nntrainer::Tensor batchsliced_hidden = hidden_.getBatchSlice(b, 1);
 
 #pragma omp parallel for
+// auto &pool = nntrainer::ThreadPoolManager::Global().getThreadPool();
+    // BS::multi_future<void> loop_future = pool.submit_loop(from, to, [&](unsigned int i) {
     for (unsigned int i = from; i < to; ++i) {
       unsigned int embed_idx = static_cast<unsigned int>(in_data[i]);
       if (embed_idx >= in_dim) {
@@ -246,6 +250,7 @@ void TieWordEmbedding::incremental_forwarding_embedding(
         out_tensor.copyData(cur_weight);
       }
     }
+    // loop_future.wait();
 
 #ifdef DEBUG
     std::cout << context.getName() << " : "

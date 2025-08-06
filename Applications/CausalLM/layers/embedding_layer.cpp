@@ -11,6 +11,8 @@
  * @note   This embedding layer supports FP32/FP16/Q6_K data type only.
  */
 
+#include "bs_thread_pool_manager.hpp"
+
 #include <embedding_layer.h>
 #include <layer_context.h>
 #include <nntrainer_error.h>
@@ -117,6 +119,8 @@ void EmbeddingLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
     nntrainer::Tensor batchsliced_hidden = hidden_.getBatchSlice(b, 1);
 
 #pragma omp parallel for
+// auto &pool = nntrainer::ThreadPoolManager::Global().getThreadPool();
+    // BS::multi_future<void> loop_future = pool.submit_loop(from, to, [&](const unsigned int i) {
     for (unsigned int i = from; i < to; ++i) {
       size_t embed_idx = static_cast<size_t>(in_data[i]);
       if (embed_idx >= in_dim) {
@@ -139,6 +143,7 @@ void EmbeddingLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
         out_tensor.copyData(cur_weight);
       }
     }
+    // loop_future.wait();
 
 #ifdef DEBUG
     std::cout << context.getName() << " : "

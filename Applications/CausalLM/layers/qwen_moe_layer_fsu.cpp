@@ -23,6 +23,8 @@
  *
  */
 
+#include "bs_thread_pool_manager.hpp"
+
 #include <acti_func.h>
 #include <algorithm>
 #include <cmath>
@@ -467,12 +469,15 @@ void SlimMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
       }
     }
 
-#pragma omp parallel for schedule(dynamic)
-    for (int expert_idx = 0; expert_idx < static_cast<int>(num_experts);
-         ++expert_idx) {
+// #pragma omp parallel for schedule(dynamic)
+auto &pool = nntrainer::ThreadPoolManager::Global().getThreadPool();
+
+    BS::multi_future<void> loop_future = pool.submit_loop(0, static_cast<int>(num_experts) ,[&](int expert_idx)
+    // for (int expert_idx = 0; expert_idx < static_cast<int>(num_experts); ++expert_idx)
+    {
       const auto &assignments = expert_assignments[expert_idx];
       if (assignments.empty())
-        continue;
+        return;
 
       ///@note load expert layer for the expert_idx
       nntrainer::Tensor expert_gate_proj =
@@ -501,8 +506,8 @@ void SlimMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
       expert_gate_proj.deactivate();
       expert_up_proj.deactivate();
       expert_down_proj.deactivate();
-    }
-
+    });
+    loop_future.wait();
     // Combine expert outputs
     for (int expert_idx = 0; expert_idx < static_cast<int>(num_experts);
          ++expert_idx) {
