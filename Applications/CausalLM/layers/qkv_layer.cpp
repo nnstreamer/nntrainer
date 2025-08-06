@@ -146,7 +146,7 @@ void QKVLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
   input_step_dim.batch(1);
   input_step_dim.height(to - from);
 
-  auto &pool = nntrainer::ThreadPoolManager::getInstance();
+  auto &pool = nntrainer::ThreadPoolManager::Global().getThreadPool();
 
   nntrainer::Tensor input_step =
     input_.getSharedDataTensor(input_step_dim, 0, true);
