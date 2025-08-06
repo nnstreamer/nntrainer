@@ -99,6 +99,7 @@ void RMSNormLayerCl::forwarding(RunLayerContext &context, bool training) {
 
 void RMSNormLayerCl::rmsnormProcess(Tensor const &input, Tensor &result,
                                     Tensor const &gamma, const float epsilon) {
+  // TODO(mwlasiuk) :  insert ggml_kernels.cpp:ggml_rms_norm_cl here
   bool ret = false;
   int dim1 = input.batch() * input.height() * input.width() * input.channel();
   CREATE_IF_EMPTY_DIMS(result, input.batch(), input.channel(), input.height(),
