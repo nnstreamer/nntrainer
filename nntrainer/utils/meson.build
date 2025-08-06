@@ -22,6 +22,9 @@ util_headers = [
   'dynamic_library_loader.h',
   'mman_windows.h',
   'bs_thread_pool.h',
+  'singleton.h',
+  'noncopyable.h',
+  'nonmovable.h',
   'bs_thread_pool_manager.hpp',
   'json.hpp',
 ]

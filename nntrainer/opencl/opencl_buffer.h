@@ -17,7 +17,7 @@
 #include "CL/cl.h"
 #include "opencl_command_queue_manager.h"
 #include "opencl_context_manager.h"
-#include "utils/noncopyable.h"
+#include <noncopyable.h>
 
 namespace nntrainer::opencl {
 

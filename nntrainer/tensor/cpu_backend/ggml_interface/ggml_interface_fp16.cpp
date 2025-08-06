@@ -522,7 +522,7 @@ static inline void __ggml_q4_0_4x8_q8_0_GEMM_BSTP(
   std::vector<float> C32 = std::vector<float>(M * N);
   float *C = C32.data();
   int NB_COLS = 4;
-  auto &bs_thread_pool = ThreadPoolManager::getInstance();
+  auto &bs_thread_pool = nntrainer::ThreadPoolManager::Global().getThreadPool();
   unsigned int blocks_per_4_rows = (K + QK8_0 - 1) / QK8_0;
   unsigned int qa_4_rows_size = sizeof(block_q8_0x4) * blocks_per_4_rows;
   const size_t qa_row_size = (sizeof(block_q8_0) * K) / QK8_0;

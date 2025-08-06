@@ -16,8 +16,8 @@
 
 #include <mutex>
 
-#include "utils/noncopyable.h"
-#include "utils/nonmovable.h"
+#include <noncopyable.h>
+#include <nonmovable.h>
 
 namespace nntrainer {
 
