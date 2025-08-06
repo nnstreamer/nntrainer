@@ -18,6 +18,7 @@
 #include "ggml-quants.h"
 #include "ggml.h"
 
+#include <algorithm>
 #include <ggml_interface.h>
 #include <nntr_ggml_impl.h>
 #include <stdexcept>
@@ -340,37 +341,38 @@ void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M,
                                 QA.data(), M4 * 4, src0_end - src0_start);
       }
     }
-if (M4 * 4 != M){
-    n_threads = 4;
+    if (M4 * 4 != M) {
+      n_threads = 4;
 #pragma omp parallel for schedule(guided) num_threads(n_threads)
-    for (int thread_idx = 0; thread_idx < n_threads; ++thread_idx) {
-      for (unsigned int num_w = 0; num_w < Ns.size(); ++num_w) {
-        unsigned int N = Ns[num_w];
-        unsigned int ldc = ldcs[num_w];
-        float *C = Cs[num_w];
-        void *B = Bs[num_w];
+      for (int thread_idx = 0; thread_idx < n_threads; ++thread_idx) {
+        for (unsigned int num_w = 0; num_w < Ns.size(); ++num_w) {
+          unsigned int N = Ns[num_w];
+          unsigned int ldc = ldcs[num_w];
+          float *C = Cs[num_w];
+          void *B = Bs[num_w];
 
-        for (int pb = M4 * 4; pb < static_cast<int>(M); pb++) {
-          unsigned int M_step_start = (thread_idx * N) / n_threads;
-          unsigned int M_step_end = ((thread_idx + 1) * N) / n_threads;
-          M_step_start = (M_step_start % NB_COLS)
-                           ? M_step_start + NB_COLS - (M_step_start % NB_COLS)
-                           : M_step_start;
-          M_step_end = (M_step_end % NB_COLS)
-                         ? M_step_end + NB_COLS - (M_step_end % NB_COLS)
-                         : M_step_end;
+          for (int pb = M4 * 4; pb < static_cast<int>(M); pb++) {
+            unsigned int M_step_start = (thread_idx * N) / n_threads;
+            unsigned int M_step_end = ((thread_idx + 1) * N) / n_threads;
+            M_step_start = (M_step_start % NB_COLS)
+                             ? M_step_start + NB_COLS - (M_step_start % NB_COLS)
+                             : M_step_start;
+            M_step_end = (M_step_end % NB_COLS)
+                           ? M_step_end + NB_COLS - (M_step_end % NB_COLS)
+                           : M_step_end;
 
-          nntr_gemv_q4_0_4x8_q8_0(
-            K,
-            (float *)((C + ((pb - M4 * 4) * N) + (M4 * 4 * N)) + M_step_start),
-            N, (void *)((char *)B + M_step_start * B_step),
-            QA.data() + (M4 * qa_4_rows_size) + (pb - M4 * 4) * qa_row_size, 1,
-            M_step_end - M_step_start);
+            nntr_gemv_q4_0_4x8_q8_0(
+              K,
+              (float *)((C + ((pb - M4 * 4) * N) + (M4 * 4 * N)) +
+                        M_step_start),
+              N, (void *)((char *)B + M_step_start * B_step),
+              QA.data() + (M4 * qa_4_rows_size) + (pb - M4 * 4) * qa_row_size,
+              1, M_step_end - M_step_start);
+          }
         }
       }
     }
   }
-}
 }
 
 void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
