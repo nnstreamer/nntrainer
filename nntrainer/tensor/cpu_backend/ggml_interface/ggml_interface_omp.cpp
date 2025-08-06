@@ -25,6 +25,8 @@
 #include <thread>
 #include <vector>
 
+#include <iostream>
+
 namespace nntrainer {
 /**
  * @brief Continuously packed 4 q8_K
@@ -105,7 +107,7 @@ void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int ldc) {
   int NB_COLS = 4;
   if (M == 1) { // GEMV
-    int n_threads = 4;
+    int n_threads = 2;
     unsigned int B_step = sizeof(block_q4_0) * (K / QK4_0);
     unsigned int blocks_per_row = (K + QK8_0 - 1) / QK8_0;
     unsigned int qa_size = sizeof(block_q8_0) * blocks_per_row;
@@ -208,7 +210,7 @@ void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
       ggml_quantize_mat_q8_0_4x8(A + 4 * i * K, QA.data() + i * qa_4_rows_size,
                                  K);
     }
-    int thread_num = std::thread::hardware_concurrency() / 2;
+    int thread_num = 4;
     unsigned int B_step = sizeof(block_q4_0) * (K / QK4_0);
 
 #pragma omp parallel for num_threads(thread_num)
@@ -236,10 +238,139 @@ void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M,
                                const unsigned int K, const float *A,
                                const unsigned int lda, std::vector<void *> Bs,
                                std::vector<unsigned int> ldbs,
-                               std::vector<float *> C,
+                               std::vector<float *> Cs,
                                std::vector<unsigned int> ldcs) {
-  throw std::runtime_error("nntrainer::__ggml_q4_0_4x8_q8_0_GEMM for "
-                           "multi-weights is not implemented yet");
+  int NB_COLS = 4;
+  int B_step = sizeof(block_q4_0) * (K / QK4_0);
+  int blocks_per_4_rows = (K + QK8_0 - 1) / QK8_0;
+
+  if (M == 1) {
+    int qa_size = sizeof(block_q8_0) * blocks_per_4_rows;
+    std::vector<char> QA = std::vector<char>(qa_size);
+    auto qa_data = QA.data();
+    quantize_row_q8_0(A, qa_data, K);
+    if (std::all_of(Ns.begin(), Ns.end(),
+                    [](unsigned int n) { return n <= 256; })) {
+      for (unsigned int num_w = 0; num_w < Ns.size(); ++num_w) {
+        unsigned int N = Ns[num_w];
+        float *C = Cs[num_w];
+        void *B = Bs[num_w];
+
+        unsigned int M_step_start = 0;
+        unsigned int M_step_end = N;
+        M_step_start = (M_step_start % NB_COLS)
+                         ? M_step_start + NB_COLS - (M_step_start % NB_COLS)
+                         : M_step_start;
+        M_step_end = (M_step_end % NB_COLS)
+                       ? M_step_end + NB_COLS - (M_step_end % NB_COLS)
+                       : M_step_end;
+
+        nntr_gemv_q4_0_4x8_q8_0(K, (float *)(C + M_step_start), N,
+                                (void *)((char *)B + M_step_start * B_step),
+                                QA.data(), M, M_step_end - M_step_start);
+      }
+    } else {
+      int n_threads = 1;
+      // std::cout << "Parrallel gemv Ns.size(): " << Ns.size() << std::endl;
+#pragma omp parallel for num_threads(n_threads)
+      for (int i = 0; i < n_threads; ++i) {
+        for (unsigned int num_w = 0; num_w < Ns.size(); ++num_w) {
+          unsigned int N = Ns[num_w];
+          float *C = Cs[num_w];
+          void *B = Bs[num_w];
+          unsigned int M_step_start = (i * N) / n_threads;
+          unsigned int M_step_end = ((i + 1) * N) / n_threads;
+
+          M_step_start = (M_step_start % NB_COLS)
+                           ? M_step_start + NB_COLS - (M_step_start % NB_COLS)
+                           : M_step_start;
+          M_step_end = (M_step_end % NB_COLS)
+                         ? M_step_end + NB_COLS - (M_step_end % NB_COLS)
+                         : M_step_end;
+
+          nntr_gemv_q4_0_4x8_q8_0(K, (float *)(C + M_step_start), N,
+                                  (void *)((char *)B + M_step_start * B_step),
+                                  QA.data(), M, M_step_end - M_step_start);
+        }
+      }
+    }
+  } else {
+    int n_threads = 4;
+    unsigned int qa_4_rows_size = sizeof(block_q8_0x4) * blocks_per_4_rows;
+    const size_t qa_row_size = (sizeof(block_q8_0) * K) / QK8_0;
+
+    unsigned int M4 = ((M - M % 4) / 4);
+    unsigned int qa_size = qa_4_rows_size * (((M >> 2) << 2) / 4 + 1);
+
+    std::vector<char> QA = std::vector<char>(qa_size);
+
+    for (unsigned int i = 0; i < M4; i++) {
+      ggml_quantize_mat_q8_0_4x8(A + 4 * i * K, QA.data() + i * qa_4_rows_size,
+                                 K);
+    }
+
+    for (unsigned int i = M4 * 4; i < M; i++) {
+      quantize_row_q8_0(
+        (float *)A + i * K,
+        (QA.data() + (M4 * qa_4_rows_size) + (i - M4 * 4) * qa_row_size), K);
+    }
+
+#pragma omp parallel for schedule(guided) num_threads(n_threads)
+    for (int i = 0; i < n_threads; i++) {
+      for (unsigned int num_w = 0; num_w < Ns.size(); ++num_w) {
+        unsigned int N = Ns[num_w];
+        unsigned int ldc = ldcs[num_w];
+
+        float *C = Cs[num_w];
+        void *B = Bs[num_w];
+
+        unsigned int src0_start = (i * N) / n_threads;
+        unsigned int src0_end = ((i + 1) * N) / n_threads;
+
+        src0_start = (src0_start % NB_COLS)
+                       ? src0_start + NB_COLS - (src0_start % NB_COLS)
+                       : src0_start;
+
+        src0_end = (src0_end % NB_COLS)
+                     ? src0_end + NB_COLS - (src0_end % NB_COLS)
+                     : src0_end;
+
+        nntr_gemm_q4_0_4x8_q8_0(K, (float *)(C + src0_start), ldc,
+                                (void *)((char *)B + src0_start * B_step),
+                                QA.data(), M4 * 4, src0_end - src0_start);
+      }
+    }
+if (M4 * 4 != M){
+    n_threads = 4;
+#pragma omp parallel for schedule(guided) num_threads(n_threads)
+    for (int thread_idx = 0; thread_idx < n_threads; ++thread_idx) {
+      for (unsigned int num_w = 0; num_w < Ns.size(); ++num_w) {
+        unsigned int N = Ns[num_w];
+        unsigned int ldc = ldcs[num_w];
+        float *C = Cs[num_w];
+        void *B = Bs[num_w];
+
+        for (int pb = M4 * 4; pb < static_cast<int>(M); pb++) {
+          unsigned int M_step_start = (thread_idx * N) / n_threads;
+          unsigned int M_step_end = ((thread_idx + 1) * N) / n_threads;
+          M_step_start = (M_step_start % NB_COLS)
+                           ? M_step_start + NB_COLS - (M_step_start % NB_COLS)
+                           : M_step_start;
+          M_step_end = (M_step_end % NB_COLS)
+                         ? M_step_end + NB_COLS - (M_step_end % NB_COLS)
+                         : M_step_end;
+
+          nntr_gemv_q4_0_4x8_q8_0(
+            K,
+            (float *)((C + ((pb - M4 * 4) * N) + (M4 * 4 * N)) + M_step_start),
+            N, (void *)((char *)B + M_step_start * B_step),
+            QA.data() + (M4 * qa_4_rows_size) + (pb - M4 * 4) * qa_row_size, 1,
+            M_step_end - M_step_start);
+        }
+      }
+    }
+  }
+}
 }
 
 void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
@@ -270,7 +401,7 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
                               QA.data(), M, M_step_end - M_step_start);
     }
   } else { // GEMM
-    int n_threads = std::thread::hardware_concurrency() / 2;
+    int n_threads = 4;
     unsigned int blocks_per_4_rows = (K + QK8_0 - 1) / QK8_0;
     unsigned int qa_4_rows_size = sizeof(block_q8_0x4) * blocks_per_4_rows;
     const size_t qa_row_size = (sizeof(block_q8_0) * K) / QK8_0;
@@ -373,7 +504,7 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
                               QA.data(), M, M_step_end - M_step_start);
     }
   } else {
-    int n_threads = std::thread::hardware_concurrency() / 2;
+    int n_threads = 4;
     unsigned int blocks_per_4_rows = (K + QK_K - 1) / QK_K;
     unsigned int qa_4_rows_size = sizeof(block_q8_Kx4) * blocks_per_4_rows;
     const size_t qa_row_size = (sizeof(block_q8_K) * K) / QK_K;
@@ -489,7 +620,7 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
                       const unsigned int lda, const void *B,
                       const unsigned int ldb, float *C,
                       const unsigned int ldc) {
-  int32_t thread_count = std::thread::hardware_concurrency() / 2;
+  int32_t thread_count = 4;
 
   static constexpr const int32_t bs = 1;  // unused in ggml_vec_dot_q6_K_q8_K
   static constexpr const int32_t bx = 1;  // unused in ggml_vec_dot_q6_K_q8_K
