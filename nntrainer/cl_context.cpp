@@ -161,6 +161,8 @@ void ClContext::initBlasClKernels() {
   registerClKernel(getConvertBlockQ4_0Kernel(),
                    "kernel_convert_block_q4_0_noshuffle");
   registerClKernel(getRestoreBlockQ4_0Kernel(), "kernel_restore_block_q4_0");
+  registerClKernel(getTranspose16BitKernel(), "kernel_transpose_16");
+  registerClKernel(getTranspose32Bit16BitKernel(), "kernel_transpose_32_16");
 
 #ifdef ENABLE_FP16
   registerClKernel(getHgemvClKernel(), "sgemv_cl_fp16");
