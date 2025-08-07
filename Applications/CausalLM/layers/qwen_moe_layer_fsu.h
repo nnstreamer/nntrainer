@@ -118,12 +118,13 @@ private:
   std::vector<unsigned int> expert_gate_proj_indices;
   std::vector<unsigned int> expert_up_proj_indices;
   std::vector<unsigned int> expert_down_proj_indices;
+  std::deque<int> loaded_expert_deque;
+  std::vector<bool> need_load;
   unsigned int gate_idx;
 
   // Intermediate tensor indices
   unsigned int router_logits_idx;
   unsigned int expert_mask_idx;
-
   /**
    * @brief expert forward computation without memory copies
    * @param input Input tensor (reshaped to [total_tokens, 1, 1, hidden_size])
