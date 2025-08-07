@@ -25,6 +25,7 @@
 
 #include <acti_func.h>
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <node_exporter.h>
 #include <omp.h>
@@ -44,6 +45,8 @@ SlimMoELayer::SlimMoELayer() :
   expert_gate_proj_indices({}),
   expert_up_proj_indices({}),
   expert_down_proj_indices({}),
+  loaded_expert_deque({}),
+  need_load({}),
   gate_idx(std::numeric_limits<unsigned>::max()),
   router_logits_idx(std::numeric_limits<unsigned>::max()),
   expert_mask_idx(std::numeric_limits<unsigned>::max()) {}
@@ -139,6 +142,7 @@ void SlimMoELayer::finalize(nntrainer::InitLayerContext &context) {
       expert_down_dim, weight_initializer, weight_regularizer,
       weight_regularizer_constant, weight_decay,
       "expert_down_" + std::to_string(i), false, true));
+    need_load.push_back(true);
   }
 
   // 6. Request intermediate tensors
@@ -457,21 +461,50 @@ void SlimMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
       }
     }
 
-#pragma omp parallel for schedule(dynamic)
+    std::vector<int> target_idx_vector;
+
     for (int expert_idx = 0; expert_idx < static_cast<int>(num_experts);
          ++expert_idx) {
       const auto &assignments = expert_assignments[expert_idx];
       if (assignments.empty())
         continue;
 
-      ///@note Please note that expert_gate_proj is virtual tensor,
-      ///      which is not allocated so far. It will be allocated when it is
-      ///      used. `activate(read=true)` will allocate its memory and will
-      ///      read from the original weight. activate is true by default. i.e.,
-      ///      mmap
-      context.getWeight(expert_gate_proj_indices[expert_idx]).activate();
-      context.getWeight(expert_up_proj_indices[expert_idx]).activate();
-      context.getWeight(expert_down_proj_indices[expert_idx]).activate();
+      target_idx_vector.push_back(expert_idx);
+      // if (need_load[expert_idx]) {
+      //   context.getWeight(expert_gate_proj_indices[expert_idx]).activate();
+      //   context.getWeight(expert_up_proj_indices[expert_idx]).activate();
+      //   context.getWeight(expert_down_proj_indices[expert_idx]).activate();
+      //   loaded_expert_deque.push_back(expert_idx);
+      //   need_load[expert_idx] = false;
+      // }
+
+      // while (loaded_expert_deque.size() > 16) {
+      //   int target_idx = loaded_expert_deque.front();
+      //   for (auto element : target_idx_vector) {
+      //     if (element != target_idx) {
+      //       context.getWeight(expert_gate_proj_indices[target_idx]).deactivate();
+      //       context.getWeight(expert_up_proj_indices[target_idx]).deactivate();
+      //       context.getWeight(expert_down_proj_indices[target_idx]).deactivate();
+      //       loaded_expert_deque.pop_front();
+      //       need_load[target_idx] = true;
+      //     }
+      //   }
+      // }
+    }
+
+    for (int expert_idx : target_idx_vector) {
+      if (need_load[expert_idx]) {
+        context.getWeight(expert_gate_proj_indices[expert_idx]).activate();
+        context.getWeight(expert_up_proj_indices[expert_idx]).activate();
+        context.getWeight(expert_down_proj_indices[expert_idx]).activate();
+        loaded_expert_deque.push_back(expert_idx);
+        need_load[expert_idx] = false;
+      }
+    }
+
+#pragma omp parallel for schedule(dynamic)
+    for (int expert_idx : target_idx_vector) {
+      const auto &assignments = expert_assignments[expert_idx];
 
       compute_expert_forward_no_critical(
         input, expert_outputs[expert_idx], assignments,
@@ -479,12 +512,15 @@ void SlimMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
         context.getWeight(expert_up_proj_indices[expert_idx]),
         context.getWeight(expert_down_proj_indices[expert_idx]), hidden_size);
 
-      ////@note Please note that the virtual tensor is deactivated after usage
-      ////      This will allocate and load data from the storage on-the-fly
-      ////      i.e., unmap
-      context.getWeight(expert_gate_proj_indices[expert_idx]).deactivate();
-      context.getWeight(expert_up_proj_indices[expert_idx]).deactivate();
-      context.getWeight(expert_down_proj_indices[expert_idx]).deactivate();
+    }
+
+    while (loaded_expert_deque.size() > 24) {
+      int target_idx = loaded_expert_deque.at(0);
+      context.getWeight(expert_gate_proj_indices[target_idx]).deactivate();
+      context.getWeight(expert_up_proj_indices[target_idx]).deactivate();
+      context.getWeight(expert_down_proj_indices[target_idx]).deactivate();
+      loaded_expert_deque.pop_front();
+      need_load[target_idx] = true;
     }
 
     // Combine expert outputs
