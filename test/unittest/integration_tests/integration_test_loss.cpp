@@ -16,7 +16,6 @@
 
 #include <app_context.h>
 #include <layer.h>
-#include <lite/core/c/common.h>
 #include <model.h>
 #include <optimizer.h>
 
