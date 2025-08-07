@@ -60,6 +60,17 @@ typedef cl_mem(CL_API_CALL *PFN_clCreateBuffer)(cl_context /**< context */,
                                                 void * /**< host_ptr */,
                                                 cl_int * /**< errcode_ret */);
 
+typedef cl_mem(CL_API_CALL *PFN_clCreateSubBuffer)(
+  cl_mem /**< buffer */, cl_mem_flags /**< flags */,
+  cl_buffer_create_type /**< buffer_create_type */,
+  const void * /**< buffer_create_info */, cl_int * /**< errcode_ret */);
+
+typedef cl_mem(CL_API_CALL *PFN_clCreateImage)(
+  cl_context /**< context */, cl_mem_flags /**< flags */,
+  const cl_image_format * /**< image_format */,
+  const cl_image_desc * /**< image_desc */, void * /**<  host_ptr */,
+  cl_int * /**< errcode_ret */);
+
 typedef cl_int(CL_API_CALL *PFN_clEnqueueWriteBuffer)(
   cl_command_queue /**< command_queue */, cl_mem /**< buffer */,
   cl_bool /**< blocking_write */, size_t /**< offset */, size_t /**< size */,
@@ -204,6 +215,8 @@ extern PFN_clGetDeviceInfo clGetDeviceInfo;
 extern PFN_clCreateContext clCreateContext;
 extern PFN_clCreateCommandQueue clCreateCommandQueue;
 extern PFN_clCreateBuffer clCreateBuffer;
+extern PFN_clCreateSubBuffer clCreateSubBuffer;
+extern PFN_clCreateImage clCreateImage;
 extern PFN_clEnqueueWriteBuffer clEnqueueWriteBuffer;
 extern PFN_clEnqueueReadBuffer clEnqueueReadBuffer;
 extern PFN_clEnqueueMapBuffer clEnqueueMapBuffer;
