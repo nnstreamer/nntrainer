@@ -77,6 +77,8 @@ void LoadOpenCLFunctions(void *libopencl) {
   LoadFunction(clCreateContext);
   LoadFunction(clCreateCommandQueue);
   LoadFunction(clCreateBuffer);
+  LoadFunction(clCreateSubBuffer);
+  LoadFunction(clCreateImage);
   LoadFunction(clEnqueueWriteBuffer);
   LoadFunction(clEnqueueReadBuffer);
   LoadFunction(clEnqueueMapBuffer);
@@ -114,6 +116,8 @@ PFN_clGetDeviceInfo clGetDeviceInfo;
 PFN_clCreateContext clCreateContext;
 PFN_clCreateCommandQueue clCreateCommandQueue;
 PFN_clCreateBuffer clCreateBuffer;
+PFN_clCreateSubBuffer clCreateSubBuffer;
+PFN_clCreateImage clCreateImage;
 PFN_clEnqueueWriteBuffer clEnqueueWriteBuffer;
 PFN_clEnqueueReadBuffer clEnqueueReadBuffer;
 PFN_clEnqueueMapBuffer clEnqueueMapBuffer;
