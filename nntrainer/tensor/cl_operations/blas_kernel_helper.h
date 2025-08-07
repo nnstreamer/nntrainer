@@ -1,3 +1,15 @@
+/**
+ * Copyright (C) 2024 Daekyoung Jung <daekyoung.jung@gmail.com>
+ *
+ * @file	blas_kernel_helper.h
+ * @date	07 August 2025
+ * @brief	functions that are used for preprocessing of tensor
+ * @see		https://github.com/nnstreamer/nntrainer
+ * @author	Daekyoung Jung <daekyoung.jung@gmail.com>
+ * @bug		No known bugs except for NYI items
+ *
+ */
+
 #ifndef __BLAS_KERNELS_HELPER_H__
 #define __BLAS_KERNELS_HELPER_H__
 
@@ -12,7 +24,7 @@ namespace nntrainer {
  * @param K number of columns of the original weight matrix
  */
 void convert_q4_0x8_st(const void *x, unsigned short *d, unsigned char *qs,
-                       size_t N, int K);
+                       int N, int K);
 
 /**
  * @brief Convert array of block_q4_0x8 into two arrays of scale, qs (multi th)
@@ -23,7 +35,7 @@ void convert_q4_0x8_st(const void *x, unsigned short *d, unsigned char *qs,
  * @param K number of columns of the original weight matrix
  */
 void convert_q4_0x8_omp(const void *src, unsigned short *d, unsigned char *qs,
-                        size_t N, int K);
+                        int N, int K);
 
 } // namespace nntrainer
 

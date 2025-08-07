@@ -1,3 +1,15 @@
+/**
+ * Copyright (C) 2024 Daekyoung Jung <daekyoung.jung@gmail.com>
+ *
+ * @file	unittest_cl_helper.cpp
+ * @date	07 August 2025
+ * @brief	unittest for blas_kernel_helper.cpp
+ * @see		https://github.com/nnstreamer/nntrainer
+ * @author	Daekyoung Jung <daekyoung.jung@gmail.com>
+ * @bug		No known bugs except for NYI items
+ *
+ */
+
 #include "blas_kernel_helper.h"
 #include "blas_kernels.h"
 #include "nntrainer_test_util.h"
@@ -13,8 +25,8 @@ typedef unsigned long long ull;
 using namespace nntrainer;
 using namespace std::chrono;
 
-typedef void (*convert_q4_0x8)(const void *src, unsigned short *d,
-                               unsigned char *qs, size_t N, int K);
+typedef void (*convert_q4_0x8)(const void *, unsigned short *, unsigned char *,
+                               int, int);
 
 #ifdef ENABLE_GGML
 template <typename T, bool random_init = false>

@@ -1,3 +1,14 @@
+/**
+ * Copyright (C) 2024 Daekyoung Jung <daekyoung.jung@gmail.com>
+ *
+ * @file	blas_kernel_helper.cpp
+ * @date	07 August 2025
+ * @brief	functions that are used for preprocessing of tensor
+ * @see		https://github.com/nnstreamer/nntrainer
+ * @author	Daekyoung Jung <daekyoung.jung@gmail.com>
+ * @bug		No known bugs except for NYI items
+ *
+ */
 #include "blas_kernel_helper.h"
 
 #include <ggml-common.h>
@@ -21,12 +32,16 @@ template <int K> constexpr int QK_0() {
 
 typedef unsigned short ggml_half;
 typedef unsigned long long ull;
-typedef char int8_t;
-typedef unsigned char uint8_t;
 
+/**
+ * @brief struct for aggregated quantized block
+ *
+ * @tparam K number of bits per weight
+ * @tparam N number of blocks that are aggreated
+ */
 template <int K, int N> struct block {
   ggml_half d[N];                     // deltas for N qK_0 blocks
-  int8_t qs[(QK_0<K>() * N * K) / 8]; // quants for N qK_0 blocks
+  unsigned char qs[(QK_0<K>() * N * K) / 8]; // quants for N qK_0 blocks
 };
 
 // control size
@@ -46,26 +61,12 @@ using block_q8_0x8 = block<8, 8>;
 
 typedef struct {
   ggml_half d;
-  uint8_t qs[16];
+  unsigned char qs[16];
 } block_q4_0;
 
 namespace nntrainer {
-void convert_st(const void *src, unsigned short *d, unsigned char *qs,
-                size_t N) {
-  block_q4_0x8 *x = (block_q4_0x8 *)src;
-  for (int i = 0; i < N; ++i) {
-    std::memcpy(&d[i * 8], x[i].d, sizeof(unsigned short) * 8);
-    std::memcpy(&qs[i * 128], x[i].qs, sizeof(unsigned char) * 128);
-    for (int j = 0; j < 128; j += 8) {
-      ull *ptr = (ull *)&qs[i * 128 + j];
-      constexpr ull mask = 0x8888888888888888ULL;
-      *ptr ^= mask;
-    }
-  }
-}
-
 void convert_q4_0x8_st(const void *src, unsigned short *d, unsigned char *qs,
-                       size_t N, int K) {
+                       int N, int K) {
   block_q4_0x8 *x = (block_q4_0x8 *)src;
   int unit = K / 4;
 
@@ -96,7 +97,7 @@ void convert_q4_0x8_st(const void *src, unsigned short *d, unsigned char *qs,
 }
 
 void convert_q4_0x8_omp(const void *src, unsigned short *d, unsigned char *qs,
-                        size_t N, int K) {
+                        int N, int K) {
   block_q4_0x8 *x = (block_q4_0x8 *)src;
   int unit = K / 4;
 #pragma omp parallel for
