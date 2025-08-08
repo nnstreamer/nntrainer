@@ -41,13 +41,27 @@ private:
   /**
    * @brief Buffer size in bytes preset (256 mebibytes)
    */
-  const size_t buffer_size_bytes = sizeof(float);
+  const size_t buffer_size_bytes = 1024 * 8192 * sizeof(float);
+
+  /// @note this size might be changed
+  const size_t scale_q4_0_size =
+    3072 * (8192 / 32) * 2; /** buffer size of quants */
+  const size_t quant_q4_0_size =
+    3072 * (8192 / 32) * 16; /** buffer size of scales */
 
   opencl::Buffer *inBufferA = nullptr;
   opencl::Buffer *inBufferB = nullptr;
   opencl::Buffer *inBufferC = nullptr;
   opencl::Buffer *outBufferA = nullptr;
   opencl::Buffer *outBufferB = nullptr;
+
+  // OpenCL Buffer used for quants & scales in QK_K computation
+  opencl::Buffer *scaleBuffer;
+  opencl::Buffer *quantBuffer;
+
+  // OpenCL Image used for input & output
+  cl_mem input_image = nullptr;  /** created by inBufferC */
+  cl_mem output_image = nullptr; /** created by outBufferB */
 
 public:
   /**
@@ -84,6 +98,26 @@ public:
    * @return opencl::Buffer* or nullptr if initBuffers() is not called
    */
   opencl::Buffer *getOutBufferB() { return outBufferB; }
+
+  /**
+   * @brief Get the Scale Buffer object
+   */
+  opencl::Buffer *getScaleBuffer() { return scaleBuffer; }
+
+  /**
+   * @brief Get the Quant Buffer object
+   */
+  opencl::Buffer *getQuantBuffer() { return quantBuffer; }
+
+  /**
+   * @brief Get the input image mem (backend by inBufferC)
+   */
+  cl_mem &getInputImage() { return input_image; }
+
+  /**
+   * @brief Get the output image mem  (backend by outBufferB)
+   */
+  cl_mem &getOutputImage() { return output_image; }
 
   /**
    * @brief Destroy Buffer pointers.
