@@ -69,3 +69,5 @@ if get_option('enable-tflite-interpreter') or get_option('enable-nnstreamer-tens
     check: true
   )
 endif
+
+subdir('benchmark')

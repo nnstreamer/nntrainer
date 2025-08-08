@@ -416,6 +416,8 @@ if get_option('enable-openmp')
     extra_defines += '-DOMP_NUM_THREADS=@0@'.format(get_option('omp-num-threads'))
     message('set nntrainer omp threads=@0@'.format(get_option('omp-num-threads')))
   endif
+else
+  add_project_arguments('-Wno-unknown-pragmas', language:'cpp')
 endif
 
 if get_option('enable-profile')

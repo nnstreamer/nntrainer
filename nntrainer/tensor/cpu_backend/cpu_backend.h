@@ -716,5 +716,17 @@ extern void dequantize_row_q6_K(const void *x, float *y, int64_t k);
  * @param k number of elements in x
  */
 extern void dequantize_row_q8_K(const void *x, float *y, int64_t k);
+
+/**
+ * @brief FOR BENCHMARKING; sets task count for multi-threading
+ * 
+ * It does absolutely nothing when GGML is disabled.
+ * 
+ * @param task_count number of sub-tasks to divide a big task into
+ */
+#ifdef ENABLE_GGML
+extern void set_task_count(const size_t task_count);
+#endif
+
 #endif
 #endif
