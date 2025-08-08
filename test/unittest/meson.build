@@ -82,6 +82,7 @@ endif
 if get_option('enable-opencl')
   test_target += [['unittest_blas_kernels_cl', []]]
   test_target += [['unittest_attention_kernels_cl', []]]
+  test_target += [['unittest_q4_0_gemm_cl', []]]
 endif
 
 if get_option('enable-fp16')
