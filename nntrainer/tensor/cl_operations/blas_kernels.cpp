@@ -15,6 +15,140 @@
 
 namespace nntrainer {
 
+void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
+                  unsigned int M, unsigned int N, unsigned int K) {
+  bool result = false;
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
+  /// @todo Repleace this with CPU op
+  // 1. Preprocess matrix A
+  // 1.1 Flatten the Q4_0 matrix A to make a struct of array (src_q, src_d)
+  // 1.2. Transpose src_q, src_d as 4x4 tile
+  // void *dst_q =
+  //   blas_cc->context_inst_.createSVMRegion(N * (K / 8) * sizeof(float));
+  // void *dst_d = blas_cc->context_inst_.createSVMRegion(N * (K / 32) * 2);
+  // flatten_block_q4_0_cl(matAdata, dst_q, dst_d, N * (K / 32));
+
+  /// @todo Enable transpose_32_16
+  // 2. Preprocess matrix B
+  // 2.1. Create two images for the Matrix B (inputB, outputB)
+  // 2.2. Transpose the Matrix B as 4x4 tile, but convert to FP16
+  // note that since the mat mul will compute 8 elements at once, padding
+  // is needed if M is not multiple of 8.
+
+  // transpose_32_16(matBdata, M, K);
+
+  int padding = 0;
+  if (M % 8 > 0) {
+    padding = 8 - (M % 8);
+  }
+
+  int padded_M = M + padding;
+
+  // 3. Perform Matrix Multiplication
+  ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
+    getQ4_0_Ab_Bi_8x4_Kernel(), "kernel_mul_mat_Ab_Bi_8x4");
+  if (!kernel_ptr) {
+    throw std::runtime_error(
+      "Failed to get kernel_ptr for kernel_mul_mat_Ab_Bi_8x4");
+    return;
+  }
+
+  int arg = 0;
+
+  result = clbuffInstance.getInBufferA()->WriteDataRegion(
+    blas_cc->command_queue_inst_, N * (K / 8) * sizeof(float), matAdata /*
+    *dst_q */);
+  if (!result) {
+    throw std::runtime_error(
+      "Failed to write input quant for kernel_mul_mat_Ab_Bi_8x4");
+    return;
+  }
+
+  result = clbuffInstance.getInBufferB()->WriteDataRegion(
+    blas_cc->command_queue_inst_, N * (K / 32) * 2, matAdata /*
+    *dst_q */);
+  if (!result) {
+    throw std::runtime_error(
+      "Failed to write input quant for kernel_mul_mat_Ab_Bi_8x4");
+    return;
+  }
+
+  result = clbuffInstance.getOutBufferB()->WriteDataRegion(
+    blas_cc->command_queue_inst_, M * K * sizeof(uint16_t), matBdata /*
+    *dst_d */);
+  if (!result) {
+    throw std::runtime_error(
+      "Failed to write input quant for kernel_mul_mat_Ab_Bi_8x4");
+    return;
+  }
+
+  result = kernel_ptr->SetKernelArguments(arg++, clbuffInstance.getInBufferA(),
+                                          sizeof(cl_mem));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 0 for kernel_mul_mat_Ab_Bi_8x4");
+
+  result = kernel_ptr->SetKernelArguments(arg++, clbuffInstance.getInBufferB(),
+                                          sizeof(cl_mem));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 1 for kernel_mul_mat_Ab_Bi_8x4");
+
+  result = kernel_ptr->SetKernelArguments(
+    arg++, &clbuffInstance.getOutputImage(), sizeof(cl_mem));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 2 for kernel_mul_mat_Ab_Bi_8x4");
+
+  result = kernel_ptr->SetKernelArguments(arg++, clbuffInstance.getOutBufferA(),
+                                          sizeof(cl_mem));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 3 for kernel_mul_mat_Ab_Bi_8x4");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &N, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 4 for kernel_mul_mat_Ab_Bi_8x4");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &padded_M, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 5 for kernel_mul_mat_Ab_Bi_8x4");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &K, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 6 for kernel_mul_mat_Ab_Bi_8x4");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &M, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 7 for kernel_mul_mat_Ab_Bi_8x4");
+
+  const int work_groups_count[3] = {(int)ceil(M / 8.0f), (int)N / 4, 1};
+  const int work_group_size[3] = {1, 128, 1};
+
+  result = blas_cc->command_queue_inst_.DispatchCommand(
+    kernel_ptr, work_groups_count, work_group_size);
+  if (!result) {
+    throw std::runtime_error(
+      "Failed to dispatch kernel for kernel_mul_mat_Ab_Bi_8x4");
+    return;
+  }
+
+  result = clbuffInstance.getOutBufferA()->ReadDataRegion(
+    blas_cc->command_queue_inst_, M * N * sizeof(float), matCdata);
+  if (!result) {
+    throw std::runtime_error(
+      "Failed to read output data for kernel_mul_mat_Ab_Bi_8x4");
+    return;
+  }
+}
+
 void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
                    unsigned int M, unsigned int N) {
   bool result = false;
