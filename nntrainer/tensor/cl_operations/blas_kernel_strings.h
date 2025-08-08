@@ -56,6 +56,14 @@ const std::string &getConcatClAxis1Kernel();
 
 const std::string &getRMSNormClKernel();
 
+const std::string &getConvertBlockQ4_0Kernel();
+
+const std::string &getRestoreBlockQ4_0Kernel();
+
+const std::string &getTranspose16BitKernel();
+
+const std::string &getTranspose32Bit16BitKernel();
+
 #ifdef ENABLE_FP16
 
 const std::string &getHgemvClKernel();
