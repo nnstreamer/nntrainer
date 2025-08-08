@@ -10,7 +10,10 @@
  * @brief   This file contains global Buffer objects and manages them
  */
 
+#include <cstring>
+
 #include <cl_buffer_manager.h>
+#include <opencl_loader.h>
 
 namespace nntrainer {
 
@@ -22,7 +25,31 @@ void ClBufferManager::initBuffers() {
   inBufferC = new opencl::Buffer(context_inst_, buffer_size_bytes, true);
   outBufferA = new opencl::Buffer(context_inst_, buffer_size_bytes, false);
   outBufferB = new opencl::Buffer(context_inst_, buffer_size_bytes, false);
-  ml_logi("ClBufferManager: Buffers initialized");
+
+  /// @todo Change to read-only if preprocess is done on CPU
+  quantBuffer = new opencl::Buffer(context_inst_, quant_q4_0_size, false);
+  scaleBuffer = new opencl::Buffer(context_inst_, scale_q4_0_size, false);
+
+  // Initialize OpenCL images
+  cl_image_format img_fmt_1d = {CL_RGBA, CL_FLOAT};
+  cl_image_desc img_desc_1d;
+
+  memset(&img_desc_1d, 0, sizeof(img_desc_1d));
+  img_desc_1d.image_type = CL_MEM_OBJECT_IMAGE1D_BUFFER;
+  img_desc_1d.image_width = buffer_size_bytes;
+  img_desc_1d.buffer = inBufferC->GetBuffer();
+  input_image = opencl::clCreateImage(context_inst_.GetContext(), 0,
+                                      &img_fmt_1d, &img_desc_1d, NULL, NULL);
+
+  img_fmt_1d = {CL_RGBA, CL_HALF_FLOAT};
+  memset(&img_desc_1d, 0, sizeof(img_desc_1d));
+  img_desc_1d.image_type = CL_MEM_OBJECT_IMAGE1D_BUFFER;
+  img_desc_1d.image_width = buffer_size_bytes;
+  img_desc_1d.buffer = outBufferB->GetBuffer();
+  output_image = opencl::clCreateImage(context_inst_.GetContext(), 0,
+                                       &img_fmt_1d, &img_desc_1d, NULL, NULL);
+
+  ml_logi("ClBufferManager: Buffers & images initialized");
 }
 
 ClBufferManager::~ClBufferManager() {
@@ -31,6 +58,10 @@ ClBufferManager::~ClBufferManager() {
   delete inBufferC;
   delete outBufferA;
   delete outBufferB;
+  delete scaleBuffer;
+  delete quantBuffer;
+  opencl::clReleaseMemObject(input_image);
+  opencl::clReleaseMemObject(output_image);
   ml_logi("ClBufferManager: Buffers destroyed");
 }
 
