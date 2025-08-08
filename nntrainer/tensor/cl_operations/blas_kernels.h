@@ -137,6 +137,19 @@ void flatten_block_q4_0_cl(const void *src, void *dst_q, void *dst_d,
 void restore_block_q4_0_cl(const void *src_q, const void *src_d, void *dst,
                            unsigned int num_blocks);
 
+/**
+ * @brief This kernel load & store a 4x4 tile of elements
+ *
+ * @param data Input FP32 matrix data
+ * @param M width (row)
+ * @param K height (col)
+ *
+ * @note This kernel is only used for activations
+ * Activation is coverted to FP16 and adds zero padding for non multiple of 8
+ * Output is not returned and instead saved to outBufferB
+ */
+void transpose_32_16(float *data, int M, int K);
+
 #ifdef ENABLE_FP16
 
 /**
