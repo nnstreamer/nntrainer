@@ -138,24 +138,17 @@ void restore_block_q4_0_cl(const void *src_q, const void *src_d, void *dst,
                            unsigned int num_blocks);
 
 /**
- * @brief Quantize a float tensor to q8_1 format
+ * @brief This kernel load & store a 4x4 tile of elements
  *
- * @param input Float pointer to the input tensor
- * @param output Pointer to the output tensor in q8_1 format
- * @param size Size of the input tensor in elements
+ * @param data Input FP32 matrix data
+ * @param M width (row)
+ * @param K height (col)
  *
+ * @note This kernel is only used for activations
+ * Activation is coverted to FP16 and adds zero padding for non multiple of 8
+ * Output is not returned and instead saved to outBufferB
  */
-void quantize_q8_1_cl(const float *input, void *output, unsigned int size);
-
-/**
- * @brief Dequantize a float tensor to q8_1 format
- *
- * @param input Pointer to the input tensor  in q8_1 format
- * @param output Float pointer to the output tensor
- * @param size Size of the output tensor in elements
- *
- */
-void dequantize_q8_1_cl(const void *input, float *output, unsigned int size);
+void transpose_32_16(float *data, int M, int K);
 
 #ifdef ENABLE_FP16
 
