@@ -425,4 +425,78 @@ void restore_block_q4_0_cl(const void *src_q, const void *src_d, void *dst,
   }
 }
 
+void transpose_32_16(float *data, int M, int K) {
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
+  ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
+    getConvertBlockQ4_0Kernel(), "kernel_transpose_32_16");
+  if (!kernel_ptr) {
+    throw std::runtime_error(
+      "Failed to get kernel_ptr for kernel_transpose_32_16");
+    return;
+  }
+
+  int extra_elements = M % 8;
+  int padding = 0;
+  if (extra_elements > 0) {
+    padding = 8 - extra_elements;
+  }
+
+  int width = K / 4;
+  int height = M / 4;
+  if (height == 0) {
+    height = 1;
+  }
+  int padded_height = (M + padding) / 4;
+
+  int arg = 0;
+  bool result = false;
+
+  result = clbuffInstance.getInBufferC()->WriteDataRegion(
+    blas_cc->command_queue_inst_, M * K * sizeof(float), data);
+
+  if (!result)
+    throw std::runtime_error(
+      "Failed to write input data to buffer for kernel_transpose_32_16");
+
+  result = kernel_ptr->SetKernelArguments(
+    arg++, &clbuffInstance.getInputImage(), sizeof(cl_mem));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 0 for kernel_transpose_32_16");
+
+  result = kernel_ptr->SetKernelArguments(
+    arg++, &clbuffInstance.getOutputImage(), sizeof(cl_mem));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 1 for kernel_transpose_32_16");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &height, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 2 for kernel_transpose_32_16");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &width, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 3 for kernel_transpose_32_16");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &padded_height, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 4 for kernel_transpose_32_16");
+
+  const int work_groups_count[3] = {width, padded_height, 1};
+  const int work_group_size[3] = {1, 16, 1};
+
+  result = blas_cc->command_queue_inst_.DispatchCommand(
+    kernel_ptr, work_groups_count, work_group_size);
+  if (!result) {
+    ml_loge("Failed to dispatch kernel for kernel_transpose_32_16");
+    return;
+  }
+}
+
 } // namespace nntrainer
