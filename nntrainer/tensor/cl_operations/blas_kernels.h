@@ -24,6 +24,9 @@
 
 namespace nntrainer {
 
+void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
+                  unsigned int M, unsigned int N, unsigned int K);
+
 /**
  * @brief     Q6_K sgemv computation : Y = A*X
  * @param[in] matAdata void * for Matrix A
