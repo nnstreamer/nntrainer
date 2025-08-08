@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2024 Daekyoung Jung <daekyoung.jung@gmail.com>
+ * Copyright (C) 2025 Daekyoung Jung <daekyoung.jung@gmail.com>
  *
  * @file	blas_kernel_helper.h
  * @date	07 August 2025
@@ -34,7 +34,7 @@ void convert_q4_0x8_st(const void *x, unsigned short *d, unsigned char *qs,
  * @param N size of @param x
  * @param K number of columns of the original weight matrix
  */
-void convert_q4_0x8_omp(const void *src, unsigned short *d, unsigned char *qs,
+void convert_q4_0x8_omp(const void *x, unsigned short *d, unsigned char *qs,
                         int N, int K);
 
 } // namespace nntrainer

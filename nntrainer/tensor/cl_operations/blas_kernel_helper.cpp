@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2024 Daekyoung Jung <daekyoung.jung@gmail.com>
+ * Copyright (C) 2025 Daekyoung Jung <daekyoung.jung@gmail.com>
  *
  * @file	blas_kernel_helper.cpp
  * @date	07 August 2025
@@ -15,7 +15,6 @@
 #include <omp.h>
 
 #include <cassert>
-#include <cstring>
 
 #define QK4_0 32
 #define QK8_0 32
@@ -40,7 +39,7 @@ typedef unsigned long long ull;
  * @tparam N number of blocks that are aggreated
  */
 template <int K, int N> struct block {
-  ggml_half d[N];                     // deltas for N qK_0 blocks
+  ggml_half d[N];                            // deltas for N qK_0 blocks
   unsigned char qs[(QK_0<K>() * N * K) / 8]; // quants for N qK_0 blocks
 };
 

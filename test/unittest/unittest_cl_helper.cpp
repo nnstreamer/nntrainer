@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2024 Daekyoung Jung <daekyoung.jung@gmail.com>
+ * Copyright (C) 2025 Daekyoung Jung <daekyoung.jung@gmail.com>
  *
  * @file	unittest_cl_helper.cpp
  * @date	07 August 2025
