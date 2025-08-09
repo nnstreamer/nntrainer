@@ -28,6 +28,8 @@ void init_backend() {
 #else
   // TODO it needed.
 #endif
+  // Do not repeatedly call set_num_threads. It's a global config.
+  __openblas_set_num_threads(-1); // -1 = BLAS_NUM_THREADS if defined.
 }
 
 void calc_trigonometric_vals_dup(unsigned int N_half, float *angle, float *cos_,
