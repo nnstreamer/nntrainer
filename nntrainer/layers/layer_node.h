@@ -773,6 +773,18 @@ public:
             bool read_from_offset = false);
 
   /**
+   * @brief read layer Weight & Bias data from file
+   * @param src input file/mmaped stream
+   * @param fsu fsu type
+   * @param mode Execution mode
+   * @param opt_var read optimizer variables
+   */
+  void read(ReadSource src, bool opt_var = false,
+            ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN,
+            bool fsu = false, size_t start_offset = 0,
+            bool read_from_offset = false);
+
+  /**
    * @brief     save layer Weight & Bias data from file
    * @param file output file stream
    * @param bool save optimizer variables

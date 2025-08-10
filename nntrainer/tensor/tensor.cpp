@@ -991,9 +991,8 @@ Tensor &Tensor::dot(Tensor const &input, Tensor &output, bool trans,
   return output;
 }
 
-void Tensor::dot(std::vector<Tensor *> input,
-                 std::vector<Tensor *> output, bool trans, bool trans_in,
-                 float beta) const {
+void Tensor::dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
+                 bool trans, bool trans_in, float beta) const {
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
     << getName() << " is not contiguous. Cannot dot product.";
 
@@ -1002,7 +1001,6 @@ void Tensor::dot(std::vector<Tensor *> input,
   // for(unsigned int i=0;i<input.size();++i){
   //   itensor_->dot(*(input[i]), *(output[i]), trans, trans_in, beta);
   // }
-
 }
 
 Tensor &Tensor::dot_deriv_wrt_1(Tensor const &m, Tensor const &output_deriv,
@@ -1301,6 +1299,13 @@ void Tensor::read(std::ifstream &file, size_t start_offset,
     << getName() << " is not contiguous, cannot read.";
 
   itensor_->read(file, start_offset, read_from_offset);
+}
+
+void Tensor::read(ReadSource src, size_t start_offset, bool read_from_offset) {
+  NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
+    << getName() << " is not contiguous, cannot read.";
+
+  itensor_->read(src, start_offset, read_from_offset);
 }
 
 std::vector<unsigned int> Tensor::argmax() const {

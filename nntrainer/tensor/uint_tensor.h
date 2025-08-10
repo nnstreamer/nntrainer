@@ -237,6 +237,12 @@ public:
             bool read_from_offset) override;
 
   /**
+   * @copydoc Tensor::read(ReadSource src)
+   */
+  void read(ReadSource src, size_t start_offset,
+            bool read_from_offset) override;
+
+  /**
    * @copydoc Tensor::argmax()
    */
   std::vector<unsigned int> argmax() const override;
@@ -280,6 +286,12 @@ public:
    * @copydoc TensorBase::read_quantization_info()
    */
   void read_quantization_info(std::ifstream &file, size_t start_offset,
+                              bool read_from_offset) override;
+
+  /**
+   * @copydoc TensorBase::read_quantization_info()
+   */
+  void read_quantization_info(ReadSource src, size_t start_offset,
                               bool read_from_offset) override;
 
   /**

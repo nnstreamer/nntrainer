@@ -1610,6 +1610,13 @@ public:
             bool read_from_offset = false);
 
   /**
+   * @brief     ReadSource
+   * @param[in] ReadSource input file source
+   */
+  void read(ReadSource src, size_t start_offset = 0,
+            bool read_from_offset = false);
+
+  /**
    * @brief     return argument index which value is max by batch
    * @retval    unsigned int argument indices
    */

@@ -401,6 +401,29 @@ void UIntTensor<T>::read(std::ifstream &file, size_t start_offset,
   putData();
 }
 
+template <typename T>
+void UIntTensor<T>::read(ReadSource src, size_t start_offset,
+                         bool read_from_offset) {
+  if (start_offset == std::numeric_limits<size_t>::max()) {
+    start_offset = file_offset;
+  }
+  read_quantization_info(src, start_offset, read_from_offset);
+
+  std::streamsize sz = static_cast<std::streamsize>(getMemoryBytes());
+
+  NNTR_THROW_IF(sz < 0, std::invalid_argument)
+    << "read size: " << getMemoryBytes()
+    << " is too big. It cannot be represented by std::streamsize";
+
+  if (read_from_offset) {
+    start_offset += sizeof(uint16_t);
+  }
+
+  checkedRead(src, (char *)getData(), sz, "[UIntTensor::read] operation failed",
+              start_offset, read_from_offset);
+  putData();
+}
+
 template <typename T> std::vector<unsigned int> UIntTensor<T>::argmax() const {
   std::vector<unsigned int> result;
   const T *data = (T *)getData();
@@ -536,6 +559,14 @@ void UIntTensor<T>::read_quantization_info(std::ifstream &file,
                                            size_t start_offset,
                                            bool read_from_offset) {
   checkedRead(file, (char *)&qscheme, sizeof(uint16_t),
+              "[CharTensor::read] failed to read quantization information",
+              start_offset, read_from_offset);
+}
+
+template <typename T>
+void UIntTensor<T>::read_quantization_info(ReadSource src, size_t start_offset,
+                                           bool read_from_offset) {
+  checkedRead(src, (char *)&qscheme, sizeof(uint16_t),
               "[CharTensor::read] failed to read quantization information",
               start_offset, read_from_offset);
 }
