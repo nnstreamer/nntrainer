@@ -74,6 +74,22 @@ void TensorBase::read(std::ifstream &file, size_t start_offset,
   putData();
 }
 
+void TensorBase::read(ReadSource src, size_t start_offset,
+                      bool read_from_offset) {
+  if (start_offset == std::numeric_limits<size_t>::max()) {
+    start_offset = file_offset;
+  }
+  std::streamsize sz = static_cast<std::streamsize>(bytes());
+
+  NNTR_THROW_IF(sz < 0, std::invalid_argument)
+    << "read size: " << bytes()
+    << " is too big. It cannot be represented by std::streamsize";
+
+  checkedRead(src, (char *)getData(), sz, "[Tensor::read] operation failed",
+              start_offset, read_from_offset);
+  putData();
+}
+
 void TensorBase::readFSU() {}
 
 void TensorBase::putData() const {

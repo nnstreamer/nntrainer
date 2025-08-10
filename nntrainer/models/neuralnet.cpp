@@ -45,6 +45,7 @@
 #include <nntrainer_log.h>
 #include <node_exporter.h>
 #include <optimizer_context.h>
+#include <optional>
 #include <previous_input_realizer.h>
 #include <profiler.h>
 #include <recurrent_realizer.h>
@@ -62,6 +63,8 @@
 #define ML_TRAIN_SUMMARY_MODEL_TRAIN_LOSS 101
 #define ML_TRAIN_SUMMARY_MODEL_VALID_LOSS 102
 #define ML_TRAIN_SUMMARY_MODEL_VALID_ACCURACY 103
+
+#define MMAP_READ 0
 
 namespace nntrainer {
 
@@ -713,60 +716,114 @@ void NeuralNetwork::load(const std::string &file_path,
     NNTR_THROW_IF(!initialized, std::runtime_error)
       << "Cannot load if not initialized yet, path: " << file_path
       << " format: " << static_cast<unsigned>(format);
+    auto f_path = (v.size() == 2) ? v[1] : v[0];
 
-    auto model_file = checkedOpenStream<std::ifstream>(
-      (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
+    auto model_file =
+      checkedOpenStream<std::ifstream>(f_path, std::ios::in | std::ios::binary);
+    char *mmaped = nullptr;
+    size_t f_size = 0;
+    struct stat st {};
+    int fd = -1;
+
+#if defined(_WIN32)
+    HANDLE hFile, hMap;
+#endif
 
     if (exec_mode == ml::train::ExecutionMode::INFERENCE) {
+      if (MMAP_READ) {
+#if defined(_WIN32)
+        HANDLE hFile =
+          CreateFileA(f_path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL,
+                      OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        HANDLE hMap = CreateFileMapping(hFile, NULL, PAGE_READONLY, 0, 0, NULL);
+        mmaped = (char *)MapViewOfFile(hMap, FILE_MAP_READ, 0, 0, 0);
+#else
+        fd = open(f_path.c_str(), O_RDONLY);
+        NNTR_THROW_IF((fd == -1), std::invalid_argument)
+          << "Cannot open file : " << f_path;
+
+        NNTR_THROW_IF((fstat(fd, &st) == -1), std::invalid_argument)
+          << "Cannot get file info (fstat): " << f_path;
+
+        f_size = static_cast<size_t>(st.st_size);
+
+        void *mmap_ptr = mmap(nullptr, f_size, PROT_READ, MAP_PRIVATE, fd, 0);
+        NNTR_THROW_IF((mmap_ptr == MAP_FAILED), std::runtime_error)
+          << " MMap failed";
+
+        mmaped = static_cast<char *>(mmap_ptr);
+#endif
+      }
+
       std::vector<std::future<void>> futures;
       for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
            ++iter) {
+        auto node = *iter;
         auto exec_order = std::get<0>((*iter)->getExecutionOrder());
-        futures.emplace_back(std::async(std::launch::async, [=, this]() {
-          auto local_model_file = checkedOpenStream<std::ifstream>(
-            (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
-          (*iter)->read(local_model_file, false, exec_mode, fsu_mode,
-                        std::numeric_limits<size_t>::max(), true);
+        futures.emplace_back(std::async(std::launch::async, [&, node] {
+          if (!MMAP_READ) {
+            auto local_model_file = checkedOpenStream<std::ifstream>(
+              (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
+            node->read(&local_model_file, false, exec_mode, fsu_mode,
+                       std::numeric_limits<size_t>::max(), true);
+          } else {
+            node->read(mmaped, false, exec_mode, fsu_mode,
+                       std::numeric_limits<size_t>::max(), true);
+          }
         }));
       }
       for (auto &f : futures)
         f.get();
+      if (MMAP_READ) {
+#if defined(_WIN32)
+        UnmapViewOfFile(mmaped);
+        CloseHandle(hMap);
+        CloseHandle(hFile);
+#else
+        auto ret = munmap(mmaped, f_size);
+#endif
+      }
+
     } else {
       for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
            ++iter) {
         (*iter)->read(model_file, false, exec_mode, fsu_mode);
       }
-    }
-    try {
-      /// this is assuming that the failure is allowed at the end of the file
-      /// read. so, after this line, additional read shouldn't be called
-      if (opt && istrequal(opt->getType(), "adam")) {
-        std::string opt_type;
-        opt_type.resize(4);
-        model_file.read((char *)&opt_type[0], 4);
-        if (istrequal(opt_type, "adam")) {
-          for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
-               iter++) {
-            (*iter)->read(model_file, true, exec_mode);
+
+      try {
+        /// this is assuming that the failure is allowed at the end of the file
+        /// read. so, after this line, additional read shouldn't be called
+        if (opt && istrequal(opt->getType(), "adam")) {
+          std::string opt_type;
+          opt_type.resize(4);
+          model_file.read((char *)&opt_type[0], 4);
+
+          if (istrequal(opt_type, "adam")) {
+            for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
+                 iter++) {
+              (*iter)->read(model_file, true, exec_mode);
+            }
           }
         }
-      }
 
-      if (!fsu_mode && exec_mode == ml::train::ExecutionMode::TRAIN) {
-        checkedRead(model_file, (char *)&epoch_idx, sizeof(epoch_idx),
-                    "[NeuralNetwork::readModel] failed to read epoch_idx");
-        checkedRead(model_file, (char *)&iter, sizeof(iter),
-                    "[NeuralNetwork::readModel] failed to read iteration");
+        if (!fsu_mode && exec_mode == ml::train::ExecutionMode::TRAIN) {
+
+          checkedRead(model_file, (char *)&epoch_idx, sizeof(epoch_idx),
+                      "[NeuralNetwork::readModel] failed to read epoch_idx");
+          checkedRead(model_file, (char *)&iter, sizeof(iter),
+                      "[NeuralNetwork::readModel] failed to read iteration");
+        }
+      } catch (...) {
+        std::cerr << "failed to read additional data like optimizer variable, "
+                     "iteration, proceeding with default\n";
       }
-    } catch (...) {
-      std::cerr << "failed to read additional data like optimizer variable, "
-                   "iteration, proceeding with default\n";
     }
 
     ml_logi("read modelfile: %s",
             (v.size() == 2) ? v[1].c_str() : v[0].c_str());
     break;
   }
+
   case ml::train::ModelFormat::MODEL_FORMAT_INI_WITH_BIN: {
     int ret = loadFromConfig((v.size() == 2) ? v[1] : v[0]);
     throw_status(ret);

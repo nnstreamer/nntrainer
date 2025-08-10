@@ -426,9 +426,19 @@ public:
   virtual Tensor &dot(Tensor const &input, Tensor &output, bool trans,
                       bool trans_in, float beta) const;
 
-  virtual void dot(std::vector<Tensor *> input,
-                            std::vector<Tensor *> output, bool trans,
-                            bool trans_in, float beta) const;
+  /**
+   * @brief     Dot Product of Tensors ( equal MxMs )
+   * @details   This applies dot of the last dimension of this and
+   * second-last dimension of passed tensor m.
+   * @param[in] input Tensor
+   * @param[in] output output Tensors
+   * @param[in] trans Transpose
+   * @param[in] trans_in Transpose input
+   * @param[in] beta beta
+   * @retval    Calculated Tensor
+   */
+  virtual void dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
+                   bool trans, bool trans_in, float beta) const;
 
   /**
    * @copydoc Tensor::dropout_mask(float dropout)
@@ -507,6 +517,13 @@ public:
    * @param[in] file input file stream
    */
   virtual void read(std::ifstream &file, size_t start_offset = 0,
+                    bool read_from_offset = false);
+
+  /**
+   * @brief     Read the Tensor from file
+   * @param[in] file input file stream
+   */
+  virtual void read(ReadSource src, size_t start_offset = 0,
                     bool read_from_offset = false);
 
   /**
@@ -691,6 +708,12 @@ public:
    */
   virtual void read_quantization_info(std::ifstream &file,
                                       size_t start_offset = 0,
+                                      bool read_from_offset = false) {}
+
+  /**
+   * @brief     Read quantization information
+   */
+  virtual void read_quantization_info(ReadSource src, size_t start_offset = 0,
                                       bool read_from_offset = false) {}
 
   /**

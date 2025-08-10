@@ -403,6 +403,29 @@ void Uint4QTensor::read(std::ifstream &file, size_t start_offset,
   putData();
 }
 
+void Uint4QTensor::read(ReadSource src, size_t start_offset,
+                        bool read_from_offset) {
+  if (start_offset == std::numeric_limits<size_t>::max()) {
+    start_offset = file_offset;
+  }
+  read_quantization_info(src, start_offset, read_from_offset);
+
+  std::streamsize sz = static_cast<std::streamsize>(getMemoryBytes());
+
+  NNTR_THROW_IF(sz < 0, std::invalid_argument)
+    << "read size: " << getMemoryBytes()
+    << " is too big. It cannot be represented by std::streamsize";
+
+  if (read_from_offset) {
+    start_offset += sizeof(uint16_t);
+  }
+
+  checkedRead(src, (char *)getData(), sz,
+              "[Uint4QTensor::read] operation failed", start_offset,
+              read_from_offset);
+  putData();
+}
+
 std::vector<unsigned int> Uint4QTensor::argmax() const {
   std::vector<unsigned int> result;
   const uint8_t *data = (uint8_t *)getData();
@@ -619,6 +642,13 @@ void Uint4QTensor::read_quantization_info(std::ifstream &file,
                                           size_t start_offset,
                                           bool read_from_offset) {
   checkedRead(file, (char *)&qscheme, sizeof(uint16_t),
+              "[Uint4QTensor::read] failed to read quantization information",
+              start_offset, read_from_offset);
+}
+
+void Uint4QTensor::read_quantization_info(ReadSource src, size_t start_offset,
+                                          bool read_from_offset) {
+  checkedRead(src, (char *)&qscheme, sizeof(uint16_t),
               "[Uint4QTensor::read] failed to read quantization information",
               start_offset, read_from_offset);
 }

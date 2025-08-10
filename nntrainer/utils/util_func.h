@@ -31,6 +31,7 @@
 
 #include <nntrainer_error.h>
 #include <random>
+#include <variant>
 
 // /**
 //  * @brief     get the seed
@@ -39,6 +40,7 @@
 // unsigned int getSeed() { return 0; }
 
 namespace nntrainer {
+using ReadSource = std::variant<std::ifstream *, const char *>;
 
 #define NN_RETURN_STATUS()                                                     \
   do {                                                                         \
@@ -157,6 +159,19 @@ constexpr const char *default_error_msg =
 void checkedRead(std::ifstream &file, char *array, std::streamsize size,
                  const char *error_msg = default_error_msg,
                  size_t start_offset = 0, bool read_from_offset = false);
+
+/**
+ * @brief same as file.read except it checks if fail to read the file
+ *
+ * @param ReadSource Source to read
+ * @param array char * array
+ * @param size size of the array
+ * @param error_msg error msg to print when operation fail
+ * @throw std::runtime_error if file.fail() is true after read.
+ */
+void checkedRead(ReadSource src, char *array, std::streamsize size,
+                 const char *error_msg, size_t start_offset,
+                 bool read_from_offset);
 
 /**
  * @brief same as file.write except it checks if fail to write the file

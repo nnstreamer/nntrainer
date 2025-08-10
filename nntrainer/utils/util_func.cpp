@@ -82,6 +82,25 @@ void checkedRead(std::ifstream &file, char *array, std::streamsize size,
   checkFile(file, error_msg);
 }
 
+void checkedRead(ReadSource src, char *array, std::streamsize size,
+                 const char *error_msg, size_t start_offset,
+                 bool read_from_offset) {
+
+  if (auto f = std::get_if<std::ifstream *>(&src)) {
+    if (read_from_offset) {
+      (*f)->seekg(start_offset, std::ios::beg);
+    }
+    (*f)->read(static_cast<char *>(array), static_cast<std::streamsize>(size));
+    // checkFile((*f), error_msg);
+  } else if (auto p = std::get_if<const char *>(&src)) {
+    if (read_from_offset) {
+      std::memcpy(array, (*p) + start_offset, size);
+    } else {
+      std::memcpy(array, (*p), size);
+    }
+  }
+}
+
 void checkedWrite(std::ostream &file, const char *array, std::streamsize size,
                   const char *error_msg) {
   file.write(array, size);
