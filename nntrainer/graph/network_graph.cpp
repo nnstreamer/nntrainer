@@ -326,9 +326,9 @@ void NetworkGraph::setBatchSize(unsigned int batch_size) {
 
   /** update input and label dimensions */
   for (unsigned int idx = 0; idx < input_list.size(); idx++)
-    input_dims[idx] = tensor_manager->getTensor(input_list[idx])->getDim();
+    input_dims_[idx] = tensor_manager->getTensor(input_list[idx])->getDim();
   for (unsigned int idx = 0; idx < label_list.size(); idx++)
-    label_dims[idx] = tensor_manager->getTensor(label_list[idx])->getDim();
+    label_dims_[idx] = tensor_manager->getTensor(label_list[idx])->getDim();
 }
 
 void NetworkGraph::resetInputDimension(std::vector<TensorDim> dims) {
@@ -348,9 +348,9 @@ void NetworkGraph::resetInputDimension(std::vector<TensorDim> dims) {
 
   /** update input and label dimensions */
   for (unsigned int idx = 0; idx < input_list.size(); idx++)
-    input_dims[idx] = tensor_manager->getTensor(input_list[idx])->getDim();
+    input_dims_[idx] = tensor_manager->getTensor(input_list[idx])->getDim();
   for (unsigned int idx = 0; idx < label_list.size(); idx++)
-    label_dims[idx] = tensor_manager->getTensor(label_list[idx])->getDim();
+    label_dims_[idx] = tensor_manager->getTensor(label_list[idx])->getDim();
 }
 
 void NetworkGraph::applyGradients(
@@ -617,19 +617,19 @@ void NetworkGraph::allocateTensors(ExecutionMode exec_mode_) {
 }
 
 std::vector<TensorDim> NetworkGraph::getInputDimension() const {
-  NNTR_THROW_IF(input_dims.empty(), std::invalid_argument)
+  NNTR_THROW_IF(input_dims_.empty(), std::invalid_argument)
     << "[NetworkGraph] the graph has no node identified as input!";
-  return input_dims;
+  return input_dims_;
 }
 
 unsigned int NetworkGraph::getBatchSize() const { return batch_size; }
 
 std::vector<TensorDim> NetworkGraph::getOutputDimension() const {
-  NNTR_THROW_IF(label_dims.empty(), std::invalid_argument)
+  NNTR_THROW_IF(label_dims_.empty(), std::invalid_argument)
     << "[NetworkGraph] the graph has no node identified as output!";
-  /// for now, outputting label_dims works, later label dim will be different
+  /// for now, outputting label_dims_ works, later label dim will be different
   /// from output dimension
-  return label_dims;
+  return label_dims_;
 }
 
 std::vector<std::shared_ptr<LayerNode>>
@@ -1301,7 +1301,7 @@ int NetworkGraph::initialize(ExecutionMode mode,
       << num_input;
 
     input_list.push_back(node->getInput(0).getName());
-    input_dims.push_back(node->getInputDimensions()[0]);
+    input_dims_.push_back(node->getInputDimensions()[0]);
   };
 
   auto is_label_node = [](LayerNode *node) { return node->requireLabel(); };
@@ -1319,7 +1319,7 @@ int NetworkGraph::initialize(ExecutionMode mode,
     /// @todo implement and use getLabel(0) instead.
     output_list.push_back(node->getOutput(0).getName());
     label_list.push_back(node->getOutputGrad(0).getName());
-    label_dims.push_back(node->getOutputDimensions()[0]);
+    label_dims_.push_back(node->getOutputDimensions()[0]);
   };
 
   auto identify_external_tensors = [this](const std::vector<Connection> &conns,
@@ -1391,8 +1391,8 @@ int NetworkGraph::initialize(ExecutionMode mode,
 int NetworkGraph::reinitialize(
   const std::vector<Connection> &model_input_names,
   const std::vector<Connection> &model_label_names) {
-  input_dims.clear();
-  label_dims.clear();
+  input_dims_.clear();
+  label_dims_.clear();
   tensor_manager->reinitialize();
 
   /**
@@ -1513,7 +1513,7 @@ int NetworkGraph::reinitialize(
       << num_input;
 
     // input_list.push_back(node->getInput(0).getName());
-    input_dims.push_back(node->getInputDimensions()[0]);
+    input_dims_.push_back(node->getInputDimensions()[0]);
   };
 
   auto is_label_node = [](LayerNode *node) { return node->requireLabel(); };
@@ -1531,7 +1531,7 @@ int NetworkGraph::reinitialize(
     /// @todo implement and use getLabel(0) instead.
     // output_list.push_back(node->getOutput(0).getName());
     // label_list.push_back(node->getOutputGrad(0).getName());
-    label_dims.push_back(node->getOutputDimensions()[0]);
+    label_dims_.push_back(node->getOutputDimensions()[0]);
   };
 
   auto identify_external_tensors = [this](const std::vector<Connection> &conns,
