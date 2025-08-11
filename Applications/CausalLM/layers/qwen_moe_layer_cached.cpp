@@ -24,17 +24,18 @@
 
 #include <acti_func.h>
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <node_exporter.h>
 #include <omp.h>
-#include <qwen_moe_layer_fsu.h>
+#include <qwen_moe_layer_cached.h>
 #include <stdexcept>
 
 namespace causallm {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
-SlimMoELayer::SlimMoELayer() :
+CachedSlimMoELayer::CachedSlimMoELayer() :
   LayerImpl(),
   num_experts(0),
   topk(0),
@@ -43,11 +44,13 @@ SlimMoELayer::SlimMoELayer() :
   expert_gate_proj_indices({}),
   expert_up_proj_indices({}),
   expert_down_proj_indices({}),
+  loaded_expert_deque({}),
+  need_load({}),
   gate_idx(std::numeric_limits<unsigned>::max()),
   router_logits_idx(std::numeric_limits<unsigned>::max()),
   expert_mask_idx(std::numeric_limits<unsigned>::max()) {}
 
-void SlimMoELayer::finalize(nntrainer::InitLayerContext &context) {
+void CachedSlimMoELayer::finalize(nntrainer::InitLayerContext &context) {
 
   // 1. Validate input/output dimensions
   NNTR_THROW_IF(context.getNumInputs() != 1, std::invalid_argument)
@@ -138,6 +141,7 @@ void SlimMoELayer::finalize(nntrainer::InitLayerContext &context) {
       expert_down_dim, weight_initializer, weight_regularizer,
       weight_regularizer_constant, weight_decay,
       "expert_down_" + std::to_string(i), false, true));
+    need_load.push_back(true);
   }
 
   // 6. Request intermediate tensors
@@ -158,8 +162,8 @@ void SlimMoELayer::finalize(nntrainer::InitLayerContext &context) {
                           nntrainer::TensorLifespan::FORWARD_FUNC_LIFESPAN);
 }
 
-void SlimMoELayer::forwarding(nntrainer::RunLayerContext &context,
-                              bool training) {
+void CachedSlimMoELayer::forwarding(nntrainer::RunLayerContext &context,
+                                    bool training) {
   nntrainer::Tensor &input = context.getInput(SINGLE_INOUT_IDX);
   nntrainer::Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
 
@@ -243,7 +247,7 @@ void SlimMoELayer::forwarding(nntrainer::RunLayerContext &context,
   output.reshape({batch_size, 1, seq_len, hidden_size});
 }
 
-inline void SlimMoELayer::compute_expert_forward(
+inline void CachedSlimMoELayer::compute_expert_forward(
   const nntrainer::Tensor &input, nntrainer::Tensor &output,
   const std::vector<std::pair<unsigned, float>> &token_assignments,
   const nntrainer::Tensor &gate_proj, const nntrainer::Tensor &up_proj,
@@ -314,7 +318,7 @@ inline void SlimMoELayer::compute_expert_forward(
   output.add_i(expert_output);
 }
 
-inline void SlimMoELayer::compute_expert_forward_no_critical(
+inline void CachedSlimMoELayer::compute_expert_forward_no_critical(
   const nntrainer::Tensor &input, nntrainer::Tensor &expert_output,
   const std::vector<std::pair<unsigned, float>> &token_assignments,
   const nntrainer::Tensor &gate_proj, const nntrainer::Tensor &up_proj,
@@ -376,9 +380,9 @@ inline void SlimMoELayer::compute_expert_forward_no_critical(
   }
 }
 
-void SlimMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
-                                          unsigned int from, unsigned int to,
-                                          bool training) {
+void CachedSlimMoELayer::incremental_forwarding(
+  nntrainer::RunLayerContext &context, unsigned int from, unsigned int to,
+  bool training) {
   if (from) {
     NNTR_THROW_IF(to - from != 1, std::invalid_argument)
       << "incremental step size is not 1";
@@ -455,35 +459,108 @@ void SlimMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
           total_tokens, 1, 1, hidden_size, output.getTensorType());
       }
     }
+    std::vector<int> target_idx_vector;
 
-#pragma omp parallel for schedule(dynamic)
     for (int expert_idx = 0; expert_idx < static_cast<int>(num_experts);
          ++expert_idx) {
       const auto &assignments = expert_assignments[expert_idx];
       if (assignments.empty())
         continue;
 
-      ///@note Please note that expert_gate_proj is virtual tensor,
-      ///      which is not allocated so far. It will be allocated when it is
-      ///      used. `activate(read=true)` will allocate its memory and will
-      ///      read from the original weight. activate is true by default. i.e.,
-      ///      mmap
-      context.getWeight(expert_gate_proj_indices[expert_idx]).activate();
-      context.getWeight(expert_up_proj_indices[expert_idx]).activate();
-      context.getWeight(expert_down_proj_indices[expert_idx]).activate();
+      target_idx_vector.push_back(expert_idx);
+    }
+    // int hit_count = 0;
+    // int miss_count = 0;
+
+    for (int expert_idx : target_idx_vector) {
+      if (need_load[expert_idx]) {
+        // miss_count += 1;
+        context.getWeight(expert_gate_proj_indices[expert_idx]).activate();
+        context.getWeight(expert_up_proj_indices[expert_idx]).activate();
+        context.getWeight(expert_down_proj_indices[expert_idx]).activate();
+        loaded_expert_deque.push_back(expert_idx);
+        iteration_map[expert_idx] = --loaded_expert_deque.end();
+        need_load[expert_idx] = false;
+
+        // auto it = expert_predict_scores.find(expert_idx);
+        // if (it!= expert_predict_scores.end()) {
+        //   expert_predict_scores[expert_idx] = alpha * 0.0 + (1-alpha) *
+        //   expert_predict_scores[expert_idx];
+        // }
+      } else {
+        // hit_count += 1;
+        // move recently used index to back;
+        // ___________________________________________
+        // |old element <================ new elemnt |
+        // -------------------------------------------
+
+        // LRU Algorithm
+        if (iteration_map.find(expert_idx) != iteration_map.end()) {
+          loaded_expert_deque.erase(iteration_map[expert_idx]);
+        }
+        loaded_expert_deque.push_back(expert_idx);
+        iteration_map[expert_idx] = --loaded_expert_deque.end();
+        //
+        // auto it = expert_predict_scores.find(expert_idx);
+        // if (it!= expert_predict_scores.end()) {
+        //  expert_predict_scores[expert_idx] = 1.0;
+        // } else {
+        //   expert_predict_scores[expert_idx] = alpha * 1.0 + (1-alpha) *
+        //   expert_predict_scores[expert_idx];
+        // }
+
+        // if (expert_histories[expert_idx].size() >= 5) {
+        //   //remove oldest element
+        //   expert_histories[expert_idx].erase(expert_histories[expert_idx].begin());
+        // }
+        //   expert_histories[expert_idx].push_back(true);
+        // double score = 0.0;
+        // for (bool h : expert_histories[expert_idx]) {
+        //   score += h ? 1.0 : 0.0;
+        // }
+        // expert_predict_scores[expert_idx] = score /
+        // expert_histories[expert_idx].size();
+      }
+    }
+    // printf("hit count: %d, miss count: %d\n", hit_count, miss_count);
+
+#pragma omp parallel for schedule(dynamic)
+    for (int expert_idx : target_idx_vector) {
+      const auto &assignments = expert_assignments[expert_idx];
 
       compute_expert_forward_no_critical(
         input, expert_outputs[expert_idx], assignments,
         context.getWeight(expert_gate_proj_indices[expert_idx]),
         context.getWeight(expert_up_proj_indices[expert_idx]),
         context.getWeight(expert_down_proj_indices[expert_idx]), hidden_size);
+    }
 
-      ////@note Please note that the virtual tensor is deactivated after usage
-      ////      This will allocate and load data from the storage on-the-fly
-      ////      i.e., unmap
-      context.getWeight(expert_gate_proj_indices[expert_idx]).deactivate();
-      context.getWeight(expert_up_proj_indices[expert_idx]).deactivate();
-      context.getWeight(expert_down_proj_indices[expert_idx]).deactivate();
+    while (loaded_expert_deque.size() > 16) {
+      // auto it = loaded_expert_deque.begin();
+      // while ( it != loaded_expert_deque.end()) {
+      //   int target_idx = *it;
+      //   double score = expert_predict_scores[target_idx];
+      //   if ( score < evict_threshold) {
+      //     // int target_idx = loaded_expert_deque.front();
+      //     context.getWeight(expert_gate_proj_indices[target_idx]).deactivate();
+      //     context.getWeight(expert_up_proj_indices[target_idx]).deactivate();
+      //     context.getWeight(expert_down_proj_indices[target_idx]).deactivate();
+      //     loaded_expert_deque.erase(it);
+      //     iteration_map.erase(target_idx);
+      //     need_load[target_idx] = true;
+      //     break;
+      //   }
+      //   ++it;
+      // }
+      // if (it == loaded_expert_deque.end()) {
+      int target_idx = loaded_expert_deque.front();
+      context.getWeight(expert_gate_proj_indices[target_idx]).deactivate();
+      context.getWeight(expert_up_proj_indices[target_idx]).deactivate();
+      context.getWeight(expert_down_proj_indices[target_idx]).deactivate();
+      loaded_expert_deque.pop_front();
+      iteration_map.erase(target_idx);
+      need_load[target_idx] = true;
+      // }
     }
 
     // Combine expert outputs
@@ -499,23 +576,23 @@ void SlimMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
   }
 }
 
-void SlimMoELayer::setProperty(const std::vector<std::string> &values) {
+void CachedSlimMoELayer::setProperty(const std::vector<std::string> &values) {
   auto remain_props = loadProperties(values, moe_props);
   nntrainer::LayerImpl::setProperty(remain_props);
 }
 
-void SlimMoELayer::calcDerivative(nntrainer::RunLayerContext &context) {
+void CachedSlimMoELayer::calcDerivative(nntrainer::RunLayerContext &context) {
   // MoE layer does not support derivative calculation
   throw std::runtime_error("MoE layer does not support derivative calculation");
 }
 
-void SlimMoELayer::calcGradient(nntrainer::RunLayerContext &context) {
+void CachedSlimMoELayer::calcGradient(nntrainer::RunLayerContext &context) {
   // MoE layer does not support gradient calculation
   throw std::runtime_error("MoE layer does not support gradient calculation");
 }
 
-void SlimMoELayer::exportTo(nntrainer::Exporter &exporter,
-                            const ml::train::ExportMethods &method) const {
+void CachedSlimMoELayer::exportTo(
+  nntrainer::Exporter &exporter, const ml::train::ExportMethods &method) const {
   nntrainer::LayerImpl::exportTo(exporter, method);
   exporter.saveResult(moe_props, method, this); // Save MoE specific properties
 }

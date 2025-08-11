@@ -32,6 +32,7 @@
 #include "causal_lm.h"
 #include "nntr_qwen3_causallm.h"
 #include "nntr_qwen3_moe_causallm.h"
+#include "qwen3_cached_slim_moe_causallm.h"
 #include "qwen3_causallm.h"
 #include "qwen3_moe_causallm.h"
 #include "qwen3_slim_moe_causallm.h"
@@ -122,6 +123,12 @@ int main(int argc, char *argv[]) {
     "Qwen3SlimMoeForCausalLM",
     [](json cfg, json generation_cfg, json nntr_cfg) {
       return std::make_unique<causallm::Qwen3SlimMoECausalLM>(
+        cfg, generation_cfg, nntr_cfg);
+    });
+  causallm::Factory::Instance().registerModel(
+    "Qwen3CachedSlimMoeForCausalLM",
+    [](json cfg, json generation_cfg, json nntr_cfg) {
+      return std::make_unique<causallm::Qwen3CachedSlimMoECausalLM>(
         cfg, generation_cfg, nntr_cfg);
     });
   causallm::Factory::Instance().registerModel(
