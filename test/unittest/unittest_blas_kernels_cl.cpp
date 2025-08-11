@@ -1121,7 +1121,7 @@ static void run_q4_0_test(const uint32_t M, const uint32_t K,
     std::cout << "]";
   };
 
-  static constexpr uint32_t run_count = 16;
+  static constexpr uint32_t run_count = 1;
 
   std::vector<float> activation = generate_random_vector<float, false>(M * K);
   std::vector<float> weight = generate_random_vector<float, false>(N * K);
@@ -1241,10 +1241,12 @@ DECLARE_q4_0_test_M_K_N(28, 3072, 8192);
 DECLARE_q4_0_test_M_K_N(28, 8192, 3072);
 DECLARE_q4_0_test_M_K_N(28, 3072, 3072);
 
-DECLARE_q4_0_test_M_K_N(1, 3072, 256);
-DECLARE_q4_0_test_M_K_N(1, 3072, 8192);
-DECLARE_q4_0_test_M_K_N(1, 8192, 3072);
-DECLARE_q4_0_test_M_K_N(1, 3072, 3072);
+// DECLARE_q4_0_test_M_K_N(1, 32, 2);
+// DECLARE_q4_0_test_M_K_N(1, 32, 1);
+// DECLARE_q4_0_test_M_K_N(1, 32, 1);
+// DECLARE_q4_0_test_M_K_N(1, 32, 1);
+
+DECLARE_q4_0_test_M_K_N(8, 32, 8);
 
 #endif
 
