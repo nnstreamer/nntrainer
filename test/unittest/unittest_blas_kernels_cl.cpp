@@ -1183,7 +1183,7 @@ static void run_q4_0_test(const uint32_t M, const uint32_t K,
   // GPU Q4_0 GEMM
   auto t3 = std::chrono::high_resolution_clock::now();
   for (unsigned int i = 0; i < run_count; ++i) {
-    nntrainer::gemm_q4_0_cl(q4_weight_ptr, activations_f32_ptr,
+    nntrainer::gemm_q4_0_cl(q4_weight_repack_ptr, activations_f32_ptr,
                             (float *)gpu_q4_dst, M, N, K);
   }
   auto t4 = std::chrono::high_resolution_clock::now();
