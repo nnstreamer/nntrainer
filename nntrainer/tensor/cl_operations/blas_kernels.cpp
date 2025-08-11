@@ -22,23 +22,37 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
   auto &clbuffInstance = ClBufferManager::Global();
 
-  /// @todo Repleace this with CPU op
+  size_t q_size_bytes = N * (K / 2);
+  size_t d_size_bytes = N * (K / 32) * 2;
+
+  void *data_q = malloc(q_size_bytes);
+  void *data_d = malloc(d_size_bytes);
+
+  /// @todo Replace this with CPU op
   // 1. Preprocess matrix A
   // 1.1 Flatten the Q4_0 matrix A to make a struct of array (src_q, src_d)
-  // 1.2. Transpose src_q, src_d as 4x4 tile
-  // void *dst_q =
-  //   blas_cc->context_inst_.createSVMRegion(N * (K / 8) * sizeof(float));
-  // void *dst_d = blas_cc->context_inst_.createSVMRegion(N * (K / 32) * 2);
-  // flatten_block_q4_0_cl(matAdata, dst_q, dst_d, N * (K / 32));
+  /// @note This func write result to Scale/Quant buffers
+  flatten_block_q4_0_cl(matAdata, data_q, data_d, N * (K / 32));
 
-  /// @todo Enable transpose_32_16
-  // 2. Preprocess matrix B
-  // 2.1. Create two images for the Matrix B (inputB, outputB)
-  // 2.2. Transpose the Matrix B as 4x4 tile, but convert to FP16
-  // note that since the mat mul will compute 8 elements at once, padding
-  // is needed if M is not multiple of 8.
+  //// @todo Replace this with CPU op
+  // // 1.2. Transpose src_q, src_d
+  /// @note This func takes scale/quant image as input and write to output image
+  transpose_16(data_q, nullptr, K / 4 / 4, N / 4, q_size_bytes, true);
+  transpose_16(data_d, nullptr, K / 32 / 4, N / 4, d_size_bytes);
 
-  // transpose_32_16(matBdata, M, K);
+  free(data_q);
+  free(data_d);
+
+  /// @todo Replace this with CPU ops
+  // 2. Preprocess matrix B: Transpose the Matrix B and convert to FP16
+  /// @note mat mul will compute 8 elements at once, padding
+  // will be added if M is not multiple of 8.
+  transpose_32_16(matBdata, M, K);
+
+  void *src_B = malloc(M * K * sizeof(float));
+
+  clbuffInstance.getOutBufferB()->ReadDataRegion(blas_cc->command_queue_inst_,
+                                                 M * K * sizeof(float), src_B);
 
   int padding = 0;
   if (M % 8 > 0) {
@@ -58,41 +72,14 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
 
   int arg = 0;
 
-  result = clbuffInstance.getInBufferA()->WriteDataRegion(
-    blas_cc->command_queue_inst_, N * (K / 8) * sizeof(float), matAdata /*
-    *dst_q */);
-  if (!result) {
-    throw std::runtime_error(
-      "Failed to write input quant for kernel_mul_mat_Ab_Bi_8x4");
-    return;
-  }
-
-  result = clbuffInstance.getInBufferB()->WriteDataRegion(
-    blas_cc->command_queue_inst_, N * (K / 32) * 2, matAdata /*
-    *dst_q */);
-  if (!result) {
-    throw std::runtime_error(
-      "Failed to write input quant for kernel_mul_mat_Ab_Bi_8x4");
-    return;
-  }
-
-  result = clbuffInstance.getOutBufferB()->WriteDataRegion(
-    blas_cc->command_queue_inst_, M * K * sizeof(uint16_t), matBdata /*
-    *dst_d */);
-  if (!result) {
-    throw std::runtime_error(
-      "Failed to write input quant for kernel_mul_mat_Ab_Bi_8x4");
-    return;
-  }
-
-  result = kernel_ptr->SetKernelArguments(arg++, clbuffInstance.getInBufferA(),
-                                          sizeof(cl_mem));
+  result = kernel_ptr->SetKernelArguments(
+    arg++, clbuffInstance.getQuantBuffer(), sizeof(cl_mem));
   if (!result)
     throw std::runtime_error(
       "Failed to set kernel argument 0 for kernel_mul_mat_Ab_Bi_8x4");
 
-  result = kernel_ptr->SetKernelArguments(arg++, clbuffInstance.getInBufferB(),
-                                          sizeof(cl_mem));
+  result = kernel_ptr->SetKernelArguments(
+    arg++, clbuffInstance.getScaleBuffer(), sizeof(cl_mem));
   if (!result)
     throw std::runtime_error(
       "Failed to set kernel argument 1 for kernel_mul_mat_Ab_Bi_8x4");
@@ -475,6 +462,7 @@ void flatten_block_q4_0_cl(const void *src, void *dst_q, void *dst_d,
 
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
 
   ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
     getConvertBlockQ4_0Kernel(), "kernel_convert_block_q4_0_noshuffle");
@@ -491,13 +479,15 @@ void flatten_block_q4_0_cl(const void *src, void *dst_q, void *dst_d,
     return;
   }
 
-  result = kernel_ptr->SetKernelSVMArguments(argIdx++, dst_q);
+  result = kernel_ptr->SetKernelArguments(
+    argIdx++, clbuffInstance.getQuantBuffer(), sizeof(cl_mem));
   if (!result) {
     ml_loge("Failed to set kernel argument 1 for flatten_block_q4_0_cl");
     return;
   }
 
-  result = kernel_ptr->SetKernelSVMArguments(argIdx++, dst_d);
+  result = kernel_ptr->SetKernelArguments(
+    argIdx++, clbuffInstance.getScaleBuffer(), sizeof(cl_mem));
   if (!result) {
     ml_loge("Failed to set kernel argument 2 for flatten_block_q4_0_cl");
     return;
@@ -512,6 +502,12 @@ void flatten_block_q4_0_cl(const void *src, void *dst_q, void *dst_d,
     ml_loge("Failed to dispatch kernel for flatten_block_q4_0_cl");
     return;
   }
+
+  clbuffInstance.getQuantBuffer()->ReadDataRegion(blas_cc->command_queue_inst_,
+                                                  num_blocks * 16, dst_q);
+
+  clbuffInstance.getScaleBuffer()->ReadDataRegion(blas_cc->command_queue_inst_,
+                                                  num_blocks * 2, dst_d);
 }
 
 void restore_block_q4_0_cl(const void *src_q, const void *src_d, void *dst,
@@ -565,7 +561,7 @@ void transpose_32_16(float *data, int M, int K) {
   auto &clbuffInstance = ClBufferManager::Global();
 
   ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
-    getConvertBlockQ4_0Kernel(), "kernel_transpose_32_16");
+    getTranspose32Bit16BitKernel(), "kernel_transpose_32_16");
   if (!kernel_ptr) {
     throw std::runtime_error(
       "Failed to get kernel_ptr for kernel_transpose_32_16");
@@ -629,6 +625,68 @@ void transpose_32_16(float *data, int M, int K) {
     kernel_ptr, work_groups_count, work_group_size);
   if (!result) {
     ml_loge("Failed to dispatch kernel for kernel_transpose_32_16");
+    return;
+  }
+}
+
+void transpose_16(void *input, void *output, int width, int height,
+                  int size_bytes, bool isQuant) {
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
+  ClContext::SharedPtrClKernel kernel_ptr =
+    blas_cc->registerClKernel(getTranspose16BitKernel(), "kernel_transpose_16");
+  if (!kernel_ptr) {
+    throw std::runtime_error(
+      "Failed to get kernel_ptr for kernel_transpose_16");
+    return;
+  }
+
+  int arg = 0;
+  bool result = false;
+
+  result = clbuffInstance.getInBufferC()->WriteDataRegion(
+    blas_cc->command_queue_inst_, size_bytes, input);
+  if (!result)
+    throw std::runtime_error(
+      "Failed to write input data to buffer for kernel_transpose_16");
+
+  result = kernel_ptr->SetKernelArguments(
+    arg++, &clbuffInstance.getInputImage(), sizeof(cl_mem));
+
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 0 for kernel_transpose_16");
+
+  if (isQuant) {
+    result = kernel_ptr->SetKernelArguments(
+      arg++, &clbuffInstance.getQuantImage(), sizeof(cl_mem));
+  } else {
+    result = kernel_ptr->SetKernelArguments(
+      arg++, &clbuffInstance.getScaleImage(), sizeof(cl_mem));
+  }
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 1 for kernel_transpose_16");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &height, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 2 for kernel_transpose_16");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &width, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 3 for kernel_transpose_16");
+
+  const int work_groups_count[3] = {width, height, 1};
+  const int work_group_size[3] = {4, 16, 1};
+
+  result = blas_cc->command_queue_inst_.DispatchCommand(
+    kernel_ptr, work_groups_count, work_group_size);
+  if (!result) {
+    ml_loge("Failed to dispatch kernel for kernel_transpose_16");
     return;
   }
 }
