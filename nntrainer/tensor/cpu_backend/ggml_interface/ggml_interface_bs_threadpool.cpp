@@ -110,7 +110,7 @@ static inline void __ggml_q4_0_8x8_q8_0_GEMM_GEMV(
   ::quantize_row_q8_0(A, qa_data, K);
   int B_step = sizeof(block_q4_0) * (K / QK4_0);
 
-  auto &bs_thread_pool = ThreadPoolManager::getInstance();
+  auto &bs_thread_pool = ThreadPoolManager::Global().getThreadPool();
   int thread_num = bs_thread_pool.get_thread_count();
   BS::multi_future<void> loop_future =
     bs_thread_pool.submit_loop(0, thread_num, [=](int i) {
@@ -217,7 +217,7 @@ static inline void __ggml_q4_K_8x8_q8_K_GEMM_GEMV(
   auto qa_data = QA.data();
   ::quantize_row_q8_K(A, qa_data, K);
 
-  auto &bs_thread_pool = ThreadPoolManager::getInstance();
+  auto &bs_thread_pool = ThreadPoolManager::Global().getThreadPool();
   int thread_num = bs_thread_pool.get_thread_count();
   BS::multi_future<void> loop_future =
     bs_thread_pool.submit_loop(0, thread_num, [=](int i) {
