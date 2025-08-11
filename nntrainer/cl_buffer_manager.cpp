@@ -22,32 +22,15 @@ namespace nntrainer {
 void ClBufferManager::initBuffers() {
   inBufferA = new opencl::Buffer(context_inst_, buffer_size_bytes, true);
   inBufferB = new opencl::Buffer(context_inst_, buffer_size_bytes, true);
-  inBufferC = new opencl::Buffer(context_inst_, buffer_size_bytes, true);
+  inBufferC = new opencl::Buffer(context_inst_, unused_buffer_bytes, true);
   outBufferA = new opencl::Buffer(context_inst_, buffer_size_bytes, false);
-  outBufferB = new opencl::Buffer(context_inst_, buffer_size_bytes, false);
+  outBufferB = new opencl::Buffer(context_inst_, unused_buffer_bytes, false);
 
-  /// @todo Change to read-only if preprocess is done on CPU
-  quantBuffer = new opencl::Buffer(context_inst_, quant_q4_0_size, false);
-  scaleBuffer = new opencl::Buffer(context_inst_, scale_q4_0_size, false);
-
-  // Initialize OpenCL images
-  cl_image_format img_fmt_1d = {CL_RGBA, CL_FLOAT};
-  cl_image_desc img_desc_1d;
-
-  memset(&img_desc_1d, 0, sizeof(img_desc_1d));
-  img_desc_1d.image_type = CL_MEM_OBJECT_IMAGE1D_BUFFER;
-  img_desc_1d.image_width = buffer_size_bytes / 4;
-  img_desc_1d.buffer = inBufferC->GetBuffer();
-  input_image = opencl::clCreateImage(context_inst_.GetContext(), 0,
-                                      &img_fmt_1d, &img_desc_1d, NULL, NULL);
-
-  img_fmt_1d = {CL_RGBA, CL_HALF_FLOAT};
-  memset(&img_desc_1d, 0, sizeof(img_desc_1d));
-  img_desc_1d.image_type = CL_MEM_OBJECT_IMAGE1D_BUFFER;
-  img_desc_1d.image_width = buffer_size_bytes / 4;
-  img_desc_1d.buffer = outBufferB->GetBuffer();
-  output_image = opencl::clCreateImage(context_inst_.GetContext(), 0,
-                                       &img_fmt_1d, &img_desc_1d, NULL, NULL);
+  data_input = context_inst_.createSVMRegion(buffer_size_bytes);
+  data_scale = context_inst_.createSVMRegion(scale_q4_0_size);
+  data_scale_T = context_inst_.createSVMRegion(scale_q4_0_size);
+  data_quant = context_inst_.createSVMRegion(quant_q4_0_size);
+  data_quant_T = context_inst_.createSVMRegion(quant_q4_0_size);
 
   ml_logi("ClBufferManager: Buffers & images initialized");
 }
@@ -58,10 +41,13 @@ ClBufferManager::~ClBufferManager() {
   delete inBufferC;
   delete outBufferA;
   delete outBufferB;
-  delete scaleBuffer;
-  delete quantBuffer;
-  opencl::clReleaseMemObject(input_image);
-  opencl::clReleaseMemObject(output_image);
+
+  context_inst_.releaseSVMRegion(data_input);
+  context_inst_.releaseSVMRegion(data_scale);
+  context_inst_.releaseSVMRegion(data_quant);
+  context_inst_.releaseSVMRegion(data_scale_T);
+  context_inst_.releaseSVMRegion(data_quant_T);
+
   ml_logi("ClBufferManager: Buffers destroyed");
 }
 

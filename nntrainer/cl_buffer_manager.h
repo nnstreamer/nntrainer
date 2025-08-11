@@ -42,6 +42,7 @@ private:
    * @brief Buffer size in bytes preset (256 mebibytes)
    */
   const size_t buffer_size_bytes = 1024 * 8192 * sizeof(float);
+  const size_t unused_buffer_bytes = sizeof(float);
 
   /// @note this size might be changed
   const size_t scale_q4_0_size =
@@ -55,13 +56,11 @@ private:
   opencl::Buffer *outBufferA = nullptr;
   opencl::Buffer *outBufferB = nullptr;
 
-  // OpenCL Buffer used for quants & scales in QK_K computation
-  opencl::Buffer *scaleBuffer;
-  opencl::Buffer *quantBuffer;
-
-  // OpenCL Image used for input & output
-  cl_mem input_image = nullptr;  /** created by inBufferC */
-  cl_mem output_image = nullptr; /** created by outBufferB */
+  void *data_input = nullptr;
+  void *data_scale = nullptr;
+  void *data_scale_T = nullptr;
+  void *data_quant = nullptr;
+  void *data_quant_T = nullptr;
 
 public:
   /**
@@ -100,24 +99,29 @@ public:
   opencl::Buffer *getOutBufferB() { return outBufferB; }
 
   /**
-   * @brief Get the Scale Buffer object
+   * @brief Get the SVM pointer to data_input
    */
-  opencl::Buffer *getScaleBuffer() { return scaleBuffer; }
+  void *getSVMInput() { return data_input; }
 
   /**
-   * @brief Get the Quant Buffer object
+   * @brief Get the SVM pointer to data_input
    */
-  opencl::Buffer *getQuantBuffer() { return quantBuffer; }
+  void *getSVMScale() { return data_scale; }
 
   /**
-   * @brief Get the input image mem (backend by inBufferC)
+   * @brief Get the SVM pointer to data_input
    */
-  cl_mem &getInputImage() { return input_image; }
+  void *getSVMScaleT() { return data_scale_T; }
 
   /**
-   * @brief Get the output image mem  (backend by outBufferB)
+   * @brief Get the SVM pointer to data_input
    */
-  cl_mem &getOutputImage() { return output_image; }
+  void *getSVMQuant() { return data_quant; }
+
+  /**
+   * @brief Get the SVM pointer to data_input
+   */
+  void *getSVMQuantT() { return data_quant_T; }
 
   /**
    * @brief Destroy Buffer pointers.
