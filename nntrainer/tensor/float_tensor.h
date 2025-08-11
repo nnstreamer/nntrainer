@@ -398,7 +398,7 @@ public:
               float beta) const override;
 
   void dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
-                    bool trans, bool trans_in, float beta) const override;
+           bool trans, bool trans_in, float beta) const override;
 
   /**
    * @copydoc Tensor::dropout_mask(float dropout)
@@ -555,9 +555,9 @@ private:
    * @brief Float.dot(Q4K/Q6K)
    * @return Tensor& reference to the output tensor
    */
-  Tensor &dotQnK(Tensor const &input, Tensor &output, bool trans,
-                          bool trans_in, float beta, Tdatatype dtype) const;
-  };
+  Tensor &dotQnK(Tensor const &input, Tensor &output, bool trans, bool trans_in,
+                 float beta, Tdatatype dtype) const;
+};
 
 } // namespace nntrainer
 

@@ -294,30 +294,13 @@ index ac918a60..7506d05a 100644
          const uint8_t * GGML_RESTRICT qh = x[i].qh;
 -- 
 2.39.0.windows.2
-
-From 57ae9e8c5c23332c0becccc797d8342466904993 Mon Sep 17 00:00:00 2001
-From: "jijoong.moon" <jijoong.moon@samsung.com>
-Date: Wed, 30 Jul 2025 09:30:16 +0900
-Subject: [PATCH] [openmp5] using windows libopemp5 for ggml
-
-This PR enables the libopenmp5 for ggml
-
-**Self evaluation:**
-1. Build test:	 [X]Passed [ ]Failed [ ]Skipped
-2. Run test:	 [X]Passed [ ]Failed [ ]Skipped
-
-Signed-off-by: jijoong.moon <jijoong.moon@samsung.com>
----
- cmake/ggml-config.cmake.in | 15 +++++++++++++++
- 1 file changed, 15 insertions(+)
-
 diff --git a/cmake/ggml-config.cmake.in b/cmake/ggml-config.cmake.in
-index 8c2dc31c..86d364c4 100644
+index 8c2dc31c..100da1fc 100644
 --- a/cmake/ggml-config.cmake.in
 +++ b/cmake/ggml-config.cmake.in
-@@ -36,7 +36,21 @@ if (NOT GGML_SHARED_LIB)
+@@ -36,8 +36,24 @@ if (NOT GGML_SHARED_LIB)
      endif()
-
+ 
      if (GGML_OPENMP)
 +      if (WIN32)
 +	find_package(OpenMP REQUIRED)
@@ -336,7 +319,7 @@ index 8c2dc31c..86d364c4 100644
 +      else()
          find_package(OpenMP REQUIRED)
          list(APPEND GGML_CPU_INTERFACE_LINK_LIBRARIES OpenMP::OpenMP_C OpenMP::OpenMP_CXX)
++      endif()
      endif()
--
-2.34.1
-
+ 
+     if (GGML_CPU_HBM)

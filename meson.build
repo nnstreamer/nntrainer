@@ -575,8 +575,7 @@ if get_option('enable-ggml')
     ggml_options = cmake.subproject_options()
     ggml_root = subprojects_dir_absolute / 'ggml'
     ggml_flags = [
-      '-Wno-error=pointer-to-int-cast',
-    '-Wno-error=stringop-overflow'
+      '-Wno-error=pointer-to-int-cast'
       ]
     if cxx_compiler_id == 'clang'
       ggml_flags += '-Wno-error=uninitialized'

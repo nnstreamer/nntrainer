@@ -1359,9 +1359,8 @@ public:
   Tensor &dot(Tensor const &input, Tensor &output, bool trans = false,
               bool trans_in = false, float beta = 0.0f) const;
 
-  void dot(std::vector<Tensor *> inputs,
-                       std::vector<Tensor *> outputs, bool trans = false,
-                       bool trans_in = false, float beta = 0.0f) const;
+  void dot(std::vector<Tensor *> inputs, std::vector<Tensor *> outputs,
+           bool trans = false, bool trans_in = false, float beta = 0.0f) const;
 
   /**
    * @brief compute the derivative of this in the current tensor
