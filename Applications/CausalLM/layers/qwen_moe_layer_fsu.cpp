@@ -460,68 +460,108 @@ void SlimMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
           total_tokens, 1, 1, hidden_size, output.getTensorType());
       }
     }
+      std::vector<int> target_idx_vector;
 
-    std::vector<int> target_idx_vector;
+      for (int expert_idx = 0; expert_idx < static_cast<int>(num_experts);
+           ++expert_idx) {
+        const auto &assignments = expert_assignments[expert_idx];
+        if (assignments.empty())
+          continue;
 
-    for (int expert_idx = 0; expert_idx < static_cast<int>(num_experts);
-         ++expert_idx) {
-      const auto &assignments = expert_assignments[expert_idx];
-      if (assignments.empty())
-        continue;
-
-      target_idx_vector.push_back(expert_idx);
-      // if (need_load[expert_idx]) {
-      //   context.getWeight(expert_gate_proj_indices[expert_idx]).activate();
-      //   context.getWeight(expert_up_proj_indices[expert_idx]).activate();
-      //   context.getWeight(expert_down_proj_indices[expert_idx]).activate();
-      //   loaded_expert_deque.push_back(expert_idx);
-      //   need_load[expert_idx] = false;
-      // }
-
-      // while (loaded_expert_deque.size() > 16) {
-      //   int target_idx = loaded_expert_deque.front();
-      //   for (auto element : target_idx_vector) {
-      //     if (element != target_idx) {
-      //       context.getWeight(expert_gate_proj_indices[target_idx]).deactivate();
-      //       context.getWeight(expert_up_proj_indices[target_idx]).deactivate();
-      //       context.getWeight(expert_down_proj_indices[target_idx]).deactivate();
-      //       loaded_expert_deque.pop_front();
-      //       need_load[target_idx] = true;
-      //     }
-      //   }
-      // }
-    }
-
-    for (int expert_idx : target_idx_vector) {
-      if (need_load[expert_idx]) {
-        context.getWeight(expert_gate_proj_indices[expert_idx]).activate();
-        context.getWeight(expert_up_proj_indices[expert_idx]).activate();
-        context.getWeight(expert_down_proj_indices[expert_idx]).activate();
-        loaded_expert_deque.push_back(expert_idx);
-        need_load[expert_idx] = false;
+        target_idx_vector.push_back(expert_idx);
       }
-    }
+      // int hit_count = 0;
+      // int miss_count = 0;
+
+      for (int expert_idx : target_idx_vector) {
+        if (need_load[expert_idx]) {
+          // miss_count += 1;
+          context.getWeight(expert_gate_proj_indices[expert_idx]).activate();
+          context.getWeight(expert_up_proj_indices[expert_idx]).activate();
+          context.getWeight(expert_down_proj_indices[expert_idx]).activate();
+          loaded_expert_deque.push_back(expert_idx);
+          iteration_map[expert_idx] = --loaded_expert_deque.end();
+          need_load[expert_idx] = false;
+
+          // auto it = expert_predict_scores.find(expert_idx);
+          // if (it!= expert_predict_scores.end()) {
+          //   expert_predict_scores[expert_idx] = alpha * 0.0 + (1-alpha) * expert_predict_scores[expert_idx];
+          // }
+        } else {
+          // hit_count += 1;
+          //move recently used index to back;
+          // ___________________________________________
+          // |old element <================ new elemnt |
+          // -------------------------------------------
+
+          // LRU Algorithm
+          if (iteration_map.find(expert_idx) != iteration_map.end()) {
+            loaded_expert_deque.erase(iteration_map[expert_idx]);
+          }
+          loaded_expert_deque.push_back(expert_idx);
+          iteration_map[expert_idx] = --loaded_expert_deque.end();
+          //
+          // auto it = expert_predict_scores.find(expert_idx);
+          // if (it!= expert_predict_scores.end()) {
+          //  expert_predict_scores[expert_idx] = 1.0;
+          // } else {
+          //   expert_predict_scores[expert_idx] = alpha * 1.0 + (1-alpha) * expert_predict_scores[expert_idx];
+          // }
+
+          // if (expert_histories[expert_idx].size() >= 5) {
+          //   //remove oldest element
+          //   expert_histories[expert_idx].erase(expert_histories[expert_idx].begin());
+          // }
+          //   expert_histories[expert_idx].push_back(true);
+          // double score = 0.0;
+          // for (bool h : expert_histories[expert_idx]) {
+          //   score += h ? 1.0 : 0.0;
+          // }
+          // expert_predict_scores[expert_idx] = score / expert_histories[expert_idx].size();
+
+
+        }
+      }
+      // printf("hit count: %d, miss count: %d\n", hit_count, miss_count);
 
 #pragma omp parallel for schedule(dynamic)
-    for (int expert_idx : target_idx_vector) {
-      const auto &assignments = expert_assignments[expert_idx];
+      for (int expert_idx : target_idx_vector) {
+        const auto &assignments = expert_assignments[expert_idx];
 
-      compute_expert_forward_no_critical(
-        input, expert_outputs[expert_idx], assignments,
-        context.getWeight(expert_gate_proj_indices[expert_idx]),
-        context.getWeight(expert_up_proj_indices[expert_idx]),
-        context.getWeight(expert_down_proj_indices[expert_idx]), hidden_size);
+        compute_expert_forward_no_critical(
+          input, expert_outputs[expert_idx], assignments,
+          context.getWeight(expert_gate_proj_indices[expert_idx]),
+          context.getWeight(expert_up_proj_indices[expert_idx]),
+          context.getWeight(expert_down_proj_indices[expert_idx]), hidden_size);
+      }
 
-    }
-
-    while (loaded_expert_deque.size() > 24) {
-      int target_idx = loaded_expert_deque.at(0);
-      context.getWeight(expert_gate_proj_indices[target_idx]).deactivate();
-      context.getWeight(expert_up_proj_indices[target_idx]).deactivate();
-      context.getWeight(expert_down_proj_indices[target_idx]).deactivate();
-      loaded_expert_deque.pop_front();
-      need_load[target_idx] = true;
-    }
+      while (loaded_expert_deque.size() > 16) {
+        // auto it = loaded_expert_deque.begin();
+        // while ( it != loaded_expert_deque.end()) {
+        //   int target_idx = *it;
+        //   double score = expert_predict_scores[target_idx];
+        //   if ( score < evict_threshold) {
+        //     // int target_idx = loaded_expert_deque.front();
+        //     context.getWeight(expert_gate_proj_indices[target_idx]).deactivate();
+        //     context.getWeight(expert_up_proj_indices[target_idx]).deactivate();
+        //     context.getWeight(expert_down_proj_indices[target_idx]).deactivate();
+        //     loaded_expert_deque.erase(it);
+        //     iteration_map.erase(target_idx);
+        //     need_load[target_idx] = true;
+        //     break;
+        //   }
+        //   ++it;
+        // }
+        // if (it == loaded_expert_deque.end()) {
+          int target_idx = loaded_expert_deque.front();
+          context.getWeight(expert_gate_proj_indices[target_idx]).deactivate();
+          context.getWeight(expert_up_proj_indices[target_idx]).deactivate();
+          context.getWeight(expert_down_proj_indices[target_idx]).deactivate();
+          loaded_expert_deque.pop_front();
+          iteration_map.erase(target_idx);
+          need_load[target_idx] = true;
+        // }
+      }
 
     // Combine expert outputs
     for (int expert_idx = 0; expert_idx < static_cast<int>(num_experts);
