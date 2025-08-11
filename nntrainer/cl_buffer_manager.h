@@ -62,6 +62,8 @@ private:
   // OpenCL Image used for input & output
   cl_mem input_image = nullptr;  /** created by inBufferC */
   cl_mem output_image = nullptr; /** created by outBufferB */
+  cl_mem q_image = nullptr;      /** created by quantBuffer */
+  cl_mem d_image = nullptr;      /** created by scaleBuffer */
 
 public:
   /**
@@ -118,6 +120,16 @@ public:
    * @brief Get the output image mem  (backend by outBufferB)
    */
   cl_mem &getOutputImage() { return output_image; }
+
+  /**
+   * @brief Get the input image mem (backend by inBufferC)
+   */
+  cl_mem &getQuantImage() { return q_image; }
+
+  /**
+   * @brief Get the output image mem  (backend by outBufferB)
+   */
+  cl_mem &getScaleImage() { return d_image; }
 
   /**
    * @brief Destroy Buffer pointers.

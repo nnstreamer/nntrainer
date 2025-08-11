@@ -36,7 +36,7 @@ void ClBufferManager::initBuffers() {
 
   memset(&img_desc_1d, 0, sizeof(img_desc_1d));
   img_desc_1d.image_type = CL_MEM_OBJECT_IMAGE1D_BUFFER;
-  img_desc_1d.image_width = buffer_size_bytes;
+  img_desc_1d.image_width = buffer_size_bytes / 4;
   img_desc_1d.buffer = inBufferC->GetBuffer();
   input_image = opencl::clCreateImage(context_inst_.GetContext(), 0,
                                       &img_fmt_1d, &img_desc_1d, NULL, NULL);
@@ -44,10 +44,26 @@ void ClBufferManager::initBuffers() {
   img_fmt_1d = {CL_RGBA, CL_HALF_FLOAT};
   memset(&img_desc_1d, 0, sizeof(img_desc_1d));
   img_desc_1d.image_type = CL_MEM_OBJECT_IMAGE1D_BUFFER;
-  img_desc_1d.image_width = buffer_size_bytes;
+  img_desc_1d.image_width = buffer_size_bytes / 4;
   img_desc_1d.buffer = outBufferB->GetBuffer();
   output_image = opencl::clCreateImage(context_inst_.GetContext(), 0,
                                        &img_fmt_1d, &img_desc_1d, NULL, NULL);
+
+  img_fmt_1d = {CL_RGBA, CL_HALF_FLOAT};
+  memset(&img_desc_1d, 0, sizeof(img_desc_1d));
+  img_desc_1d.image_type = CL_MEM_OBJECT_IMAGE1D_BUFFER;
+  img_desc_1d.image_width = quant_q4_0_size / 4;
+  img_desc_1d.buffer = quantBuffer->GetBuffer();
+  q_image = opencl::clCreateImage(context_inst_.GetContext(), 0, &img_fmt_1d,
+                                  &img_desc_1d, NULL, NULL);
+
+  img_fmt_1d = {CL_RGBA, CL_HALF_FLOAT};
+  memset(&img_desc_1d, 0, sizeof(img_desc_1d));
+  img_desc_1d.image_type = CL_MEM_OBJECT_IMAGE1D_BUFFER;
+  img_desc_1d.image_width = scale_q4_0_size / 4;
+  img_desc_1d.buffer = scaleBuffer->GetBuffer();
+  d_image = opencl::clCreateImage(context_inst_.GetContext(), 0, &img_fmt_1d,
+                                  &img_desc_1d, NULL, NULL);
 
   ml_logi("ClBufferManager: Buffers & images initialized");
 }
