@@ -25,23 +25,17 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
   size_t q_size_bytes = N * (K / 2);
   size_t d_size_bytes = N * (K / 32) * 2;
 
-  void *data_q = malloc(q_size_bytes);
-  void *data_d = malloc(d_size_bytes);
-
   /// @todo Replace this with CPU op
   // 1. Preprocess matrix A
   // 1.1 Flatten the Q4_0 matrix A to make a struct of array (src_q, src_d)
   /// @note This func write result to Scale/Quant buffers
-  flatten_block_q4_0_cl(matAdata, data_q, data_d, N * (K / 32));
+  flatten_block_q4_0_cl(matAdata, nullptr, nullptr, N * (K / 32));
 
   //// @todo Replace this with CPU op
   // // 1.2. Transpose src_q, src_d
   /// @note This func takes scale/quant image as input and write to output image
-  transpose_16(data_q, nullptr, K / 4 / 4, N / 4, q_size_bytes, true);
-  transpose_16(data_d, nullptr, K / 32 / 4, N / 4, d_size_bytes);
-
-  free(data_q);
-  free(data_d);
+  transpose_16(nullptr, nullptr, K / 4 / 4, N / 4, q_size_bytes, true);
+  transpose_16(nullptr, nullptr, K / 32 / 4, N / 4, d_size_bytes);
 
   /// @todo Replace this with CPU ops
   // 2. Preprocess matrix B: Transpose the Matrix B and convert to FP16
@@ -67,26 +61,25 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
 
   int arg = 0;
 
-  result = kernel_ptr->SetKernelArguments(
-    arg++, clbuffInstance.getQuantBuffer(), sizeof(cl_mem));
+  result =
+    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMQuantT());
   if (!result)
     throw std::runtime_error(
       "Failed to set kernel argument 0 for kernel_mul_mat_Ab_Bi_8x4");
 
-  result = kernel_ptr->SetKernelArguments(
-    arg++, clbuffInstance.getScaleBuffer(), sizeof(cl_mem));
+  kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMScaleT());
   if (!result)
     throw std::runtime_error(
       "Failed to set kernel argument 1 for kernel_mul_mat_Ab_Bi_8x4");
 
-  result = kernel_ptr->SetKernelArguments(arg++, clbuffInstance.getOutBufferB(),
-                                          sizeof(cl_mem));
+  result =
+    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMInput());
+
   if (!result)
     throw std::runtime_error(
       "Failed to set kernel argument 2 for kernel_mul_mat_Ab_Bi_8x4");
 
-  result = kernel_ptr->SetKernelArguments(arg++, clbuffInstance.getOutBufferA(),
-                                          sizeof(cl_mem));
+  result = kernel_ptr->SetKernelSVMArguments(arg++, matCdata);
   if (!result)
     throw std::runtime_error(
       "Failed to set kernel argument 3 for kernel_mul_mat_Ab_Bi_8x4");
@@ -122,8 +115,9 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
     return;
   }
 
-  result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-    blas_cc->command_queue_inst_, M * N * sizeof(float), matCdata);
+  /// @todo synchronize when only needed
+  blas_cc->command_queue_inst_.enqueueSVMMap(matCdata, M * N * sizeof(float),
+                                             true);
   if (!result) {
     throw std::runtime_error(
       "Failed to read output data for kernel_mul_mat_Ab_Bi_8x4");
@@ -474,15 +468,15 @@ void flatten_block_q4_0_cl(const void *src, void *dst_q, void *dst_d,
     return;
   }
 
-  result = kernel_ptr->SetKernelArguments(
-    argIdx++, clbuffInstance.getQuantBuffer(), sizeof(cl_mem));
+  result =
+    kernel_ptr->SetKernelSVMArguments(argIdx++, clbuffInstance.getSVMQuant());
   if (!result) {
     ml_loge("Failed to set kernel argument 1 for flatten_block_q4_0_cl");
     return;
   }
 
-  result = kernel_ptr->SetKernelArguments(
-    argIdx++, clbuffInstance.getScaleBuffer(), sizeof(cl_mem));
+  result =
+    kernel_ptr->SetKernelSVMArguments(argIdx++, clbuffInstance.getSVMScale());
   if (!result) {
     ml_loge("Failed to set kernel argument 2 for flatten_block_q4_0_cl");
     return;
@@ -497,12 +491,6 @@ void flatten_block_q4_0_cl(const void *src, void *dst_q, void *dst_d,
     ml_loge("Failed to dispatch kernel for flatten_block_q4_0_cl");
     return;
   }
-
-  clbuffInstance.getQuantBuffer()->ReadDataRegion(blas_cc->command_queue_inst_,
-                                                  num_blocks * 16, dst_q);
-
-  clbuffInstance.getScaleBuffer()->ReadDataRegion(blas_cc->command_queue_inst_,
-                                                  num_blocks * 2, dst_d);
 }
 
 void restore_block_q4_0_cl(const void *src_q, const void *src_d, void *dst,
@@ -579,21 +567,14 @@ void transpose_32_16(float *data, int M, int K) {
   int arg = 0;
   bool result = false;
 
-  result = clbuffInstance.getInBufferA()->WriteDataRegion(
-    blas_cc->command_queue_inst_, M * K * sizeof(float), data);
-
-  if (!result)
-    throw std::runtime_error(
-      "Failed to write input data to buffer for kernel_transpose_32_16");
-
-  result = kernel_ptr->SetKernelArguments(arg++, clbuffInstance.getInBufferA(),
-                                          sizeof(cl_mem));
+  result = kernel_ptr->SetKernelSVMArguments(arg++, data);
   if (!result)
     throw std::runtime_error(
       "Failed to set kernel argument 0 for kernel_transpose_32_16");
 
-  result = kernel_ptr->SetKernelArguments(arg++, clbuffInstance.getOutBufferB(),
-                                          sizeof(cl_mem));
+  result =
+    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMInput());
+
   if (!result)
     throw std::runtime_error(
       "Failed to set kernel argument 1 for kernel_transpose_32_16");
@@ -641,29 +622,13 @@ void transpose_16(void *input, void *output, int width, int height,
   int arg = 0;
   bool result = false;
 
-  result = clbuffInstance.getInBufferA()->WriteDataRegion(
-    blas_cc->command_queue_inst_, size_bytes, input);
-  if (!result)
-    throw std::runtime_error(
-      "Failed to write input data to buffer for kernel_transpose_16");
-
-  result = kernel_ptr->SetKernelArguments(arg++, clbuffInstance.getInBufferA(),
-                                          sizeof(cl_mem));
-
-  if (!result)
-    throw std::runtime_error(
-      "Failed to set kernel argument 0 for kernel_transpose_16");
-
   if (isQuant) {
-    result = kernel_ptr->SetKernelArguments(
-      arg++, clbuffInstance.getQuantBuffer(), sizeof(cl_mem));
+    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMQuant());
+    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMQuantT());
   } else {
-    result = kernel_ptr->SetKernelArguments(
-      arg++, clbuffInstance.getScaleBuffer(), sizeof(cl_mem));
+    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMScale());
+    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMScaleT());
   }
-  if (!result)
-    throw std::runtime_error(
-      "Failed to set kernel argument 1 for kernel_transpose_16");
 
   result = kernel_ptr->SetKernelArguments(arg++, &height, sizeof(int));
   if (!result)
