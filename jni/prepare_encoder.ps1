@@ -58,6 +58,12 @@ function _untar_encoder {
         Move-Item -Path "ctre-unicode.hpp", "json.hpp", "encoder.hpp" -Destination "..\LLaMA\jni\"
         Write-Output "[Encoder] Finish moving encoder to LLaMA"
     }
+
+    if ($TargetVersion -eq "0.3") {
+            Move-Item -Path "json.hpp" -Destination "..\..\nntrainer\utils\"
+            Write-Output "[Encoder] Finish moving encoder to utils"
+    }
+
 }
 
 if (-Not (Test-Path "$TarPrefix")) {
