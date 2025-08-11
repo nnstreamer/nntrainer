@@ -24,6 +24,7 @@
 #include <causallm_common_properties.h>
 #include <common_properties.h>
 #include <layer_impl.h>
+#include <list>
 
 namespace causallm {
 
@@ -118,8 +119,12 @@ private:
   std::vector<unsigned int> expert_gate_proj_indices;
   std::vector<unsigned int> expert_up_proj_indices;
   std::vector<unsigned int> expert_down_proj_indices;
-  std::deque<int> loaded_expert_deque;
+
+  std::list<int> loaded_expert_deque;
+  std::unordered_map<int, std::list<int>::iterator> iteration_map;
+  std::unordered_map<int, double> expert_predict_scores;
   std::vector<bool> need_load;
+
   unsigned int gate_idx;
 
   // Intermediate tensor indices
