@@ -24,6 +24,7 @@
 #include <causallm_common_properties.h>
 #include <common_properties.h>
 #include <layer_impl.h>
+#include <list>
 
 namespace causallm {
 
@@ -31,29 +32,29 @@ namespace causallm {
  * @class   SlimMoELayer
  * @brief   Mixture of Expert Layer
  */
-class SlimMoELayer : public nntrainer::LayerImpl {
+class CachedSlimMoELayer : public nntrainer::LayerImpl {
 public:
   /**
    * @brief     Constructor of Mixture of Expert Layer
    */
-  SlimMoELayer();
+  CachedSlimMoELayer();
 
   /**
    * @brief     Destructor of Mixture of Expert Layer
    */
-  ~SlimMoELayer() = default;
+  ~CachedSlimMoELayer() = default;
 
   /**
    * @brief  Move constructor.
-   *  @param[in] SlimMoELayer &&
+   *  @param[in] CachedSlimMoELayer &&
    */
-  SlimMoELayer(SlimMoELayer &&rhs) noexcept = default;
+  CachedSlimMoELayer(CachedSlimMoELayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
-   * @param[in] rhs SlimMoELayer to be moved.
+   * @param[in] rhs CachedSlimMoELayer to be moved.
    */
-  SlimMoELayer &operator=(SlimMoELayer &&rhs) = default;
+  CachedSlimMoELayer &operator=(CachedSlimMoELayer &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
@@ -97,14 +98,17 @@ public:
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return SlimMoELayer::type; };
+  const std::string getType() const override {
+    return CachedSlimMoELayer::type;
+  };
 
   /**
    * @brief Layer::supportBackwarding()
    */
   bool supportBackwarding() const override { return false; }
 
-  static constexpr const char *type = "moe_slim"; /**< type of the layer */
+  static constexpr const char *type =
+    "moe_cached_slim"; /**< type of the layer */
 
 private:
   unsigned int num_experts;      /**< number of experts */
@@ -118,6 +122,12 @@ private:
   std::vector<unsigned int> expert_gate_proj_indices;
   std::vector<unsigned int> expert_up_proj_indices;
   std::vector<unsigned int> expert_down_proj_indices;
+
+  std::list<int> loaded_expert_deque;
+  std::unordered_map<int, std::list<int>::iterator> iteration_map;
+  std::unordered_map<int, double> expert_predict_scores;
+  std::vector<bool> need_load;
+
   unsigned int gate_idx;
 
   // Intermediate tensor indices
