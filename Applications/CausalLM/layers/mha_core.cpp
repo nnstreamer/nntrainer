@@ -337,7 +337,7 @@ void MHACoreLayer::compute_kcaches(const float *in, const uint16_t *kcache,
 
     int num_rows = process_all ? i + 1 : seq;
     size_t start_row =
-      local_window_size < num_rows ? num_rows - local_window_size : 0;
+      local_window_size < (size_t)num_rows ? num_rows - local_window_size : 0;
     int out_offset = calc_attn_index(i) * num_cache_head * gqa_size;
 
     for (int n = 0; n < num_cache_head; ++n) {
@@ -392,7 +392,7 @@ void MHACoreLayer::compute_kcaches(const float *in, const uint16_t *kcache,
             sum += a_ptr[i] * b_row[i];
 
           output[out_offset +
-                 (local_window_size == UINT_MAX || num_rows < local_window_size
+                 (local_window_size == UINT_MAX || (size_t)num_rows < local_window_size
                     ? row
                     : row - (num_rows - local_window_size)) *
                    num_cache_head * gqa_size +
@@ -429,7 +429,7 @@ void MHACoreLayer::one_batch_incremental_forwarding(
 
   /** 1. Load Input Tensors of this batch : b_ denotes a Tensor for this batch
    * **/
-  auto &pool = nntrainer::ThreadPoolManager::getInstance();
+  auto &pool = nntrainer::ThreadPoolManager::Global().getThreadPool();
 
   std::vector<std::future<void>> p_futures;
 
@@ -964,7 +964,7 @@ void MHACoreLayer::compute_fp16vcache_fp32_transposed(
       std::vector<__m256> sumVec(num_blocks * gqa_size, _mm256_setzero_ps());
       std::vector<float> sumRem(gqa_size * rem, 0.0f);
 
-      for (int j = i < local_window_size ? 0 : i + 1 - local_window_size;
+      for (int j = i < (int)local_window_size ? 0 : i + 1 - local_window_size;
            j <= i; ++j) {
         if (j + 1 < seq) {
           const uint16_t *next_vptr =
@@ -992,7 +992,7 @@ void MHACoreLayer::compute_fp16vcache_fp32_transposed(
             */
           float a_val =
             in[a_row_start +
-               ((local_window_size == UINT_MAX || i < local_window_size
+               ((local_window_size == UINT_MAX || i < (int)local_window_size
                    ? j
                    : j - (i + 1 - local_window_size)) *
                   gqa_size * num_cache_head +
