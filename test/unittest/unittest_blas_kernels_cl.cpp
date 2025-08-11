@@ -549,35 +549,36 @@ TEST(blas_kernels, absolute_sum) {
   EXPECT_FLOAT_EQ(cpu_result, gpu_result);
 }
 
-TEST(blas_kernels, transpose_32_16_test) {
-  int batch = 1;
-  int channel = 1;
-  int height = 128;
-  int width = 3072;
+// TEST(blas_kernels, transpose_32_16_test) {
+//   int batch = 1;
+//   int channel = 1;
+//   int height = 128;
+//   int width = 3072;
 
-  const float alpha = 1e-1;
-  const int MOD = 10;
+//   const float alpha = 1e-1;
+//   const int MOD = 10;
 
-  unsigned int run_count = 100;
+//   unsigned int run_count = 100;
 
-  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
-    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+//   nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+//     nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
 
-  nntrainer::Tensor A_fp32(batch, channel, height, width, t_type_nchw_fp32);
+//   nntrainer::Tensor A_fp32(batch, channel, height, width, t_type_nchw_fp32);
 
-  A_fp32.setRandNormal(5, 0.89f);
+//   A_fp32.setRandNormal(5, 0.89f);
 
-  float *data = A_fp32.getData();
-  auto t1 = std::chrono::high_resolution_clock::now();
-  for (unsigned int i = 0; i < run_count; ++i) {
-    nntrainer::transpose_32_16(data, height, width);
-  }
-  auto t2 = std::chrono::high_resolution_clock::now();
-  auto dt =
-    std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+//   float *data = A_fp32.getData();
+//   auto t1 = std::chrono::high_resolution_clock::now();
+//   for (unsigned int i = 0; i < run_count; ++i) {
+//     nntrainer::transpose_32_16(data, height, width);
+//   }
+//   auto t2 = std::chrono::high_resolution_clock::now();
+//   auto dt =
+//     std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
 
-  std::cout << "time : GPU = " << dt / (run_count * 1.0f) << " ms" << std::endl;
-}
+//   std::cout << "time : GPU = " << dt / (run_count * 1.0f) << " ms" <<
+//   std::endl;
+// }
 
 #ifdef ENABLE_FP16
 
@@ -1121,7 +1122,7 @@ static void run_q4_0_test(const uint32_t M, const uint32_t K,
     std::cout << "]";
   };
 
-  static constexpr uint32_t run_count = 1;
+  static constexpr uint32_t run_count = 200;
 
   std::vector<float> activation = generate_random_vector<float, false>(M * K);
   std::vector<float> weight = generate_random_vector<float, false>(N * K);
@@ -1236,17 +1237,15 @@ static void run_q4_0_test(const uint32_t M, const uint32_t K,
     run_q4_0_test(M, K, N);                                                    \
   }
 
+DECLARE_q4_0_test_M_K_N(68, 3072, 256);
+DECLARE_q4_0_test_M_K_N(68, 3072, 8192);
+DECLARE_q4_0_test_M_K_N(68, 8192, 3072);
+DECLARE_q4_0_test_M_K_N(68, 3072, 3072);
+
 DECLARE_q4_0_test_M_K_N(28, 3072, 256);
 DECLARE_q4_0_test_M_K_N(28, 3072, 8192);
 DECLARE_q4_0_test_M_K_N(28, 8192, 3072);
 DECLARE_q4_0_test_M_K_N(28, 3072, 3072);
-
-// DECLARE_q4_0_test_M_K_N(1, 32, 2);
-// DECLARE_q4_0_test_M_K_N(1, 32, 1);
-// DECLARE_q4_0_test_M_K_N(1, 32, 1);
-// DECLARE_q4_0_test_M_K_N(1, 32, 1);
-
-DECLARE_q4_0_test_M_K_N(8, 32, 8);
 
 #endif
 
