@@ -382,8 +382,6 @@ bool CommandQueueManager::DispatchCommand(
     return false;
   }
 
-  clFinish(command_queue_);
-
   return true;
 }
 

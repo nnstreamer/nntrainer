@@ -49,11 +49,6 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
   // will be added if M is not multiple of 8.
   transpose_32_16(matBdata, M, K);
 
-  void *src_B = malloc(M * K * sizeof(float));
-
-  clbuffInstance.getOutBufferB()->ReadDataRegion(blas_cc->command_queue_inst_,
-                                                 M * K * sizeof(float), src_B);
-
   int padding = 0;
   if (M % 8 > 0) {
     padding = 8 - (M % 8);
@@ -646,14 +641,14 @@ void transpose_16(void *input, void *output, int width, int height,
   int arg = 0;
   bool result = false;
 
-  result = clbuffInstance.getInBufferC()->WriteDataRegion(
+  result = clbuffInstance.getInBufferA()->WriteDataRegion(
     blas_cc->command_queue_inst_, size_bytes, input);
   if (!result)
     throw std::runtime_error(
       "Failed to write input data to buffer for kernel_transpose_16");
 
-  result = kernel_ptr->SetKernelArguments(
-    arg++, &clbuffInstance.getInputImage(), sizeof(cl_mem));
+  result = kernel_ptr->SetKernelArguments(arg++, clbuffInstance.getInBufferA(),
+                                          sizeof(cl_mem));
 
   if (!result)
     throw std::runtime_error(
@@ -661,10 +656,10 @@ void transpose_16(void *input, void *output, int width, int height,
 
   if (isQuant) {
     result = kernel_ptr->SetKernelArguments(
-      arg++, &clbuffInstance.getQuantImage(), sizeof(cl_mem));
+      arg++, clbuffInstance.getQuantBuffer(), sizeof(cl_mem));
   } else {
     result = kernel_ptr->SetKernelArguments(
-      arg++, &clbuffInstance.getScaleImage(), sizeof(cl_mem));
+      arg++, clbuffInstance.getScaleBuffer(), sizeof(cl_mem));
   }
   if (!result)
     throw std::runtime_error(
