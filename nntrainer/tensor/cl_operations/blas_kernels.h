@@ -153,6 +153,20 @@ void restore_block_q4_0_cl(const void *src_q, const void *src_d, void *dst,
  */
 void transpose_32_16(float *data, int M, int K);
 
+/**
+ * @brief This kernel transpose fp16 type
+ *
+ * @param data input fp16 matrix data
+ * @param output output fp16 matrix data
+ * @param width widh
+ * @param height height
+ * @param size_bytes data size in bytes
+ *
+ * @note this function should be replaced by CPU ops
+ */
+void transpose_16(void *data, void *output, int width, int height,
+                  int size_bytes, bool isQuant = false);
+
 #ifdef ENABLE_FP16
 
 /**
