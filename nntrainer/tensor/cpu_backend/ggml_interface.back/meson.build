@@ -1,14 +1,23 @@
 ggml_interface_headers = [
     'ggml_interface.h',
+    'nntr_ggml_impl.h',
 ]
-ggml_interface_sources = [ ]
 
-if get_option('K-quant_multithreading_strategy') == 'bs'
+ggml_interface_sources = [
+  'nntr_ggml_impl.cpp'
+]
+
+if get_option('ggml-thread-backend') == 'bsthread'
   ggml_interface_sources += 'ggml_interface_bs_threadpool.cpp'
-elif get_option('K-quant_multithreading_strategy') == 'omp'
+elif get_option('ggml-thread-backend') == 'openmp'
   ggml_interface_sources += 'ggml_interface_omp.cpp'
 else
+  message('Unknown ggml-thread-backend meson option! Use openMP as a default.')
   ggml_interface_sources += 'ggml_interface_omp.cpp'
+endif
+
+if get_option('enable-fp16')
+  ggml_interface_sources += 'ggml_interface_fp16.cpp'
 endif
 
 foreach s : ggml_interface_sources

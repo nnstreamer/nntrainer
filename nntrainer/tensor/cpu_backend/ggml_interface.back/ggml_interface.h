@@ -18,6 +18,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <tensor_dim.h>
 #include <vector>
 
 namespace nntrainer {
@@ -39,6 +40,20 @@ void __ggml_init();
  * @return size_t total size of quantized data
  */
 size_t __ggml_quantize_q4_0(const float *src, void *dst, int64_t nrow,
+                            int64_t n_per_row, const float *quant_weights);
+
+/**
+ * @brief Quantize float to q8_0 Quantization format
+ *
+ * @param src input src to be quantized
+ * @param dst output destination for quantized data
+ * @param nrow number of row
+ * @param n_per_row number of elements per row
+ * @param quant_weights additional information for quantization. Currently in no
+ * use.
+ * @return size_t total size of quantized data
+ */
+size_t __nntr_quantize_q8_0(const float *src, void *dst, int64_t nrow,
                             int64_t n_per_row, const float *quant_weights);
 
 /**
@@ -84,7 +99,8 @@ void __ggml_quantize_row_q6_K(const float *src, void *dst, int64_t k);
  * @param dst void* dst to store quantized data
  * @param k number of elements in src
  */
-void __ggml_quantize_row_q8_K(const float *src, void *dst, int64_t k);
+template <typename T = float>
+void __ggml_quantize_row_q8_K(const T *src, void *dst, int64_t k);
 
 /**
  * @brief A(M, K) * W.T(N, K) = (M, N)
@@ -104,7 +120,69 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int lda, const void *B,
                                const unsigned int ldb, float *C,
                                const unsigned int ldc);
+/**
+ * @brief A(M, K) * W.T(N, K) = (M, N)
+ *
+ * @param M as descripted above
+ * @param N as descripted above
+ * @param K as descripted above
+ * @param A Activation
+ * @param lda leading dimension of A
+ * @param Bs vector of offline quantized and packed q4_kx8 Weights
+ * @param ldbs vector of leading dimension of B
+ * @param C vector of dst matrices
+ * @param ldcs vector of leading dimension of C
+ */
+template <typename T = float>
+void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M,
+                               std::vector<unsigned int> Ns,
+                               const unsigned int K, const T *A,
+                               const unsigned int lda, std::vector<void *> Bs,
+                               std::vector<unsigned int> ldbs,
+                               std::vector<T *> C,
+                               std::vector<unsigned int> ldcs);
 
+/**
+ * @brief A(M, K) * W.T(N, K) = (M, N)
+ *
+ * @param M as descripted above
+ * @param N as descripted above
+ * @param K as descripted above
+ * @param A Activation
+ * @param lda leading dimension of A
+ * @param B offline quantized and packed q4_0x8 Weight
+ * @param ldb leading dimension of B
+ * @param C dst matrix
+ * @param ldc leading dimension of C
+ */
+template <typename T = float>
+void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
+                               const unsigned int K, const T *A,
+                               const unsigned int lda, const void *B,
+                               const unsigned int ldb, T *C,
+                               const unsigned int ldc);
+
+/**
+ * @brief A(M, K) * W.T(N, K) = (M, N)
+ *
+ * @param M as descripted above
+ * @param N as descripted above
+ * @param K as descripted above
+ * @param A Activation
+ * @param lda leading dimension of A
+ * @param Bs vector of offline quantized and packed q4_kx8 Weights
+ * @param ldbs vector of leading dimension of B
+ * @param C vector of dst matrices
+ * @param ldcs vector of leading dimension of C
+ */
+template <typename T = float>
+void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M,
+                               std::vector<unsigned int> Ns,
+                               const unsigned int K, const T *A,
+                               const unsigned int lda, std::vector<void *> Bs,
+                               std::vector<unsigned int> ldbs,
+                               std::vector<T *> C,
+                               std::vector<unsigned int> ldcs);
 /**
  * @brief A(M, K) * W.T(N, K) = (M, N)
  *
@@ -124,6 +202,19 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int ldb, float *C,
                                const unsigned int ldc);
 
+/**
+ * @brief A(M, K) * W.T(N, K) = (M, N)
+ *
+ * @param M as descripted above
+ * @param N as descripted above
+ * @param K as descripted above
+ * @param A Activation
+ * @param lda leading dimension of A
+ * @param Bs vector of offline quantized and packed q4_kx8 Weights
+ * @param ldbs vector of leading dimension of B
+ * @param C vector of dst matrices
+ * @param ldcs vector of leading dimension of C
+ */
 void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M,
                                std::vector<unsigned int> Ns,
                                const unsigned int K, const float *A,
@@ -144,10 +235,11 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M,
  * @param C dst matrix
  * @param ldc leading dimension of C
  */
+template <typename T = float>
 void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
-                      const unsigned int K, const float *A,
-                      const unsigned int lda, const void *B,
-                      const unsigned int ldb, float *C, const unsigned int ldc);
+                      const unsigned int K, const T *A, const unsigned int lda,
+                      const void *B, const unsigned int ldb, T *C,
+                      const unsigned int ldc);
 /**
  * @brief (1xK)*(Kx1) dot product for q6_K and q8_K vectors
  *
@@ -158,9 +250,34 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
  */
 float __ggml_vec_dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
                                const void *v_q8_K);
-
+/**
+ * @brief (1xK)*(Kx1) dot product for q6_K and q8_K vectors
+ *
+ * @param K Length of vectors
+ * @param v_q6_K lhs vector - data stored in Q6_K format
+ * @param f rhs vector - data stored in float
+ * @return float Result of performing dot operation on v_q6_K and f
+ */
 float __ggml_vec_dot_q6_K_f32(const unsigned int K, const void *v_q6_K,
                               const float *f);
+
+/**
+ * @brief q4_0 to float dequantize
+ *
+ * @param x_raw input src to be dequantized
+ * @param y output destination for dequantized data
+ * @param k data length
+ */
+void __ggml_dequantize_row_q4_0(const void *x_raw, float *y, int64_t k);
+
+/**
+ * @brief q8_0 to float dequantize
+ *
+ * @param x_raw input src to be dequantized
+ * @param y output destination for dequantized data
+ * @param k data length
+ */
+void __nntr_dequantize_row_q8_0(const void *x_raw, float *y, int64_t k);
 
 /**
  * @brief q4K to float dequantize
@@ -187,8 +304,20 @@ void __ggml_dequantize_row_q6_K(const void *x, float *y, int64_t k);
  * @param y output destination for dequantized data
  * @param k data length
  */
-void __ggml_dequantize_row_q8_K(const void *x, float *y, int64_t k);
+template <typename T = float>
+void __ggml_dequantize_row_q8_K(const void *x, T *y, int64_t k);
 
+/**
+ * @brief repack q40 to q40x8
+ *
+ * @param W input q40
+ * @param repacked_W output q40x8
+ * @param data_size total weight size
+ * @param M number of rows
+ * @param N number of columns
+ */
+void __ggml_repack_q4_0_to_q4_0_4(void *W, void *repacked_W, size_t data_size,
+                                  const unsigned int M, const unsigned int N);
 /**
  * @brief repack q40 to q40x8
  *
@@ -200,7 +329,6 @@ void __ggml_dequantize_row_q8_K(const void *x, float *y, int64_t k);
  */
 void __ggml_repack_q4_0_to_q4_0_8(void *W, void *repacked_W, size_t data_size,
                                   const unsigned int M, const unsigned int N);
-
 /**
  * @brief repack q4K to q4Kx8
  *
@@ -212,6 +340,40 @@ void __ggml_repack_q4_0_to_q4_0_8(void *W, void *repacked_W, size_t data_size,
  */
 void __ggml_repack_q4_K_to_q4_K_8(void *W, void *repacked_W, size_t data_size,
                                   const unsigned int M, const unsigned int N);
+
+#ifdef ENABLE_FP16
+/**
+ * @brief Quantize float to q6_K Quantization format
+ *
+ * @param src float* src to be quantized
+ * @param dst void* dst to store quantized data
+ * @param k number of elements in src
+ */
+void __nntr_quantize_row_q8_0(const _FP16 *__restrict src, void *__restrict dst,
+                              int64_t k);
+
+/**
+ * @brief Quantize _FP16 to q8_0 Quantization format
+ *
+ * @param src input src to be quantized
+ * @param dst output destination for quantized data
+ * @param nrow number of row
+ * @param n_per_row number of elements per row
+ * @param quant_weights additional information for quantization. Currently in no
+ * use.
+ * @return size_t total size of quantized data
+ */
+size_t __nntr_quantize_q8_0(const _FP16 *src, void *dst, int64_t nrow,
+                            int64_t n_per_row, const float *quant_weights);
+/**
+ * @brief q8_0 to _FP16 dequantize
+ *
+ * @param x_raw input src to be dequantized
+ * @param y output destination for dequantized data
+ * @param k data length
+ */
+void __nntr_dequantize_row_q8_0(const void *x_raw, _FP16 *y, int64_t k);
+#endif
 } // namespace nntrainer
 
 #endif
