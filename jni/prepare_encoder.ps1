@@ -50,11 +50,13 @@ function _untar_encoder {
     Remove-Item $TarName
 
     if ($TargetVersion -eq "0.1") {
+        Move-Item -Path "json.hpp" -Destination "..\..\nntrainer\utils\"
         Move-Item -Path "ctre-unicode.hpp", "json.hpp", "encoder.hpp" -Destination "..\PicoGPT\jni\"
         Write-Output "[Encoder] Finish moving encoder to PicoGPT"
     }
 
     if ($TargetVersion -eq "0.2") {
+        Move-Item -Path "json.hpp" -Destination "..\..\nntrainer\utils\"
         Move-Item -Path "ctre-unicode.hpp", "json.hpp", "encoder.hpp" -Destination "..\LLaMA\jni\"
         Write-Output "[Encoder] Finish moving encoder to LLaMA"
     }
