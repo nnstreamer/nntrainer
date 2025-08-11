@@ -79,8 +79,8 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
     throw std::runtime_error(
       "Failed to set kernel argument 1 for kernel_mul_mat_Ab_Bi_8x4");
 
-  result = kernel_ptr->SetKernelArguments(
-    arg++, &clbuffInstance.getOutputImage(), sizeof(cl_mem));
+  result = kernel_ptr->SetKernelArguments(arg++, clbuffInstance.getOutBufferB(),
+                                          sizeof(cl_mem));
   if (!result)
     throw std::runtime_error(
       "Failed to set kernel argument 2 for kernel_mul_mat_Ab_Bi_8x4");
@@ -579,21 +579,21 @@ void transpose_32_16(float *data, int M, int K) {
   int arg = 0;
   bool result = false;
 
-  result = clbuffInstance.getInBufferC()->WriteDataRegion(
+  result = clbuffInstance.getInBufferA()->WriteDataRegion(
     blas_cc->command_queue_inst_, M * K * sizeof(float), data);
 
   if (!result)
     throw std::runtime_error(
       "Failed to write input data to buffer for kernel_transpose_32_16");
 
-  result = kernel_ptr->SetKernelArguments(
-    arg++, &clbuffInstance.getInputImage(), sizeof(cl_mem));
+  result = kernel_ptr->SetKernelArguments(arg++, clbuffInstance.getInBufferA(),
+                                          sizeof(cl_mem));
   if (!result)
     throw std::runtime_error(
       "Failed to set kernel argument 0 for kernel_transpose_32_16");
 
-  result = kernel_ptr->SetKernelArguments(
-    arg++, &clbuffInstance.getOutputImage(), sizeof(cl_mem));
+  result = kernel_ptr->SetKernelArguments(arg++, clbuffInstance.getOutBufferB(),
+                                          sizeof(cl_mem));
   if (!result)
     throw std::runtime_error(
       "Failed to set kernel argument 1 for kernel_transpose_32_16");
