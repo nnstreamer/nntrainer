@@ -18,7 +18,7 @@ namespace tokenizers {
  *  depending on the constructor
  */
 class Tokenizer {
- public:
+public:
   /*! \brief virtual destructor */
   virtual ~Tokenizer() {}
 
@@ -27,18 +27,19 @@ class Tokenizer {
    * \param text The input text.
    * \returns The encoded token ids.
    */
-  virtual std::vector<int32_t> Encode(const std::string& text) = 0;
+  virtual std::vector<int32_t> Encode(const std::string &text) = 0;
 
   /*!
    * \brief Encode a batch of texts into ids.
    * \param texts The input texts.
    * \returns The encoded token ids.
    */
-  virtual std::vector<std::vector<int32_t>> EncodeBatch(const std::vector<std::string>& texts) {
+  virtual std::vector<std::vector<int32_t>>
+  EncodeBatch(const std::vector<std::string> &texts) {
     // Fall back when the derived class does not implement this function.
     std::vector<std::vector<int32_t>> ret;
     ret.reserve(texts.size());
-    for (const auto& text : texts) {
+    for (const auto &text : texts) {
       ret.push_back(Encode(text));
     }
     return ret;
@@ -49,7 +50,7 @@ class Tokenizer {
    * \param text The token ids.
    * \returns The decoded text.
    */
-  virtual std::string Decode(const std::vector<int32_t>& ids) = 0;
+  virtual std::string Decode(const std::vector<int32_t> &ids) = 0;
 
   /*!
    * \brief Returns the vocabulary size. Special tokens are considered.
@@ -57,15 +58,16 @@ class Tokenizer {
   virtual size_t GetVocabSize() = 0;
 
   /*!
-   * \brief Convert the given id to its corresponding token if it exists. If not, return an
-   * empty string.
+   * \brief Convert the given id to its corresponding token if it exists. If
+   * not, return an empty string.
    */
   virtual std::string IdToToken(int32_t token_id) = 0;
 
   /*!
-   * \brief Convert the given token to its corresponding id if it exists. If not, return -1.
+   * \brief Convert the given token to its corresponding id if it exists. If
+   * not, return -1.
    */
-  virtual int32_t TokenToId(const std::string& token) = 0;
+  virtual int32_t TokenToId(const std::string &token) = 0;
 
   //---------------------------------------------------
   // Factory functions from byte-blobs
@@ -78,7 +80,7 @@ class Tokenizer {
    * \param json_blob The json blob.
    * \return The created tokenzier.
    */
-  static std::unique_ptr<Tokenizer> FromBlobJSON(const std::string& json_blob);
+  static std::unique_ptr<Tokenizer> FromBlobJSON(const std::string &json_blob);
   /*!
    * \brief Create BPE tokenizer
    *
@@ -87,24 +89,27 @@ class Tokenizer {
    * \param added_tokens The added tokens.
    * \return The created tokenizer.
    */
-  static std::unique_ptr<Tokenizer> FromBlobByteLevelBPE(const std::string& vocab_blob,
-                                                         const std::string& merges_blob,
-                                                         const std::string& added_tokens = "");
+  static std::unique_ptr<Tokenizer>
+  FromBlobByteLevelBPE(const std::string &vocab_blob,
+                       const std::string &merges_blob,
+                       const std::string &added_tokens = "");
   /*!
    * \brief Create SentencePiece.
    *
    * \param model_blob The blob that contains vocabs.
    * \return The created tokenizer.
    */
-  static std::unique_ptr<Tokenizer> FromBlobSentencePiece(const std::string& model_blob);
+  static std::unique_ptr<Tokenizer>
+  FromBlobSentencePiece(const std::string &model_blob);
   /*!
    * \brief Create RWKVWorldTokenizer.
    *
    * \param model_blob The blob that contains vocabs.
    * \return The created tokenizer.
    */
-  static std::unique_ptr<Tokenizer> FromBlobRWKVWorld(const std::string& model_blob);
+  static std::unique_ptr<Tokenizer>
+  FromBlobRWKVWorld(const std::string &model_blob);
 };
 
-}  // namespace tokenizers
-#endif  // TOKENIZERS_CPP_H_
+} // namespace tokenizers
+#endif // TOKENIZERS_CPP_H_
