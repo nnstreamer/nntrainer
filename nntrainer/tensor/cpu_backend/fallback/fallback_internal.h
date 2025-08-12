@@ -148,7 +148,6 @@ size_t __fallback_quantize_q8_0(const _FP16 *src, void *dst, int64_t nrow,
  * @param k data length
  */
 void __fallback_dequantize_row_q8_0(const void *x_raw, _FP16 *y, int64_t k);
-
 /**
  * @brief     sscal computation : X = alpha * X
  * @param[in] N number of elements in X
@@ -1053,7 +1052,6 @@ void __fallback_compute_rotary_emb_value(unsigned int width, unsigned int dim,
                                          void *output, const float *cos_,
                                          const float *sin_,
                                          bool only_convert_to_fp16);
-
 } // namespace nntrainer
 #endif
 #endif

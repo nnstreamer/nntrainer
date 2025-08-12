@@ -301,6 +301,13 @@ void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
 #endif
 }
 
+void gemm_q4_0(const unsigned int M, std::vector<unsigned int> Ns,
+               const unsigned int K, const float *A, const unsigned int lda,
+               std::vector<void *> Bs, std::vector<unsigned int> ldbs,
+               std::vector<float *> Cs, std::vector<unsigned int> ldcs) {
+  std::cout << "Not implemented"<<std::endl;
+}
+
 void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc) {
@@ -318,15 +325,15 @@ void gemm_q4_K(const unsigned int M, std::vector<unsigned int> Ns,
 #ifdef ENABLE_GGML
   return __ggml_q4_K_8x8_q8_K_GEMM(M, Ns, K, A, lda, Bs, ldbs, Cs, ldcs);
 #else
-  std::cout << "Not implemented" << std::endl;
-  return;
+  std::cout << "Not implemented"<<std::endl;
+  return ;
 #endif
 }
 
 float dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
                     const void *v_q8_K) {
 #ifdef ENABLE_GGML
-  return __ggml_vec_dot_q6_K_q8_K(K, v_q6_K, v_q8_K);
+  return __nntr_vec_dot_q6_K_q8_K(K, v_q6_K, v_q8_K);
 #else
   return __fallback_dot_q6_K_q8_K(K, v_q6_K, v_q8_K);
 #endif
@@ -477,5 +484,4 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
   nntrainer::avx2::compute_rotary_emb_value(width, dim, half_, inout, output,
                                             cos_, sin_, only_convert_to_fp16);
 }
-
 } /* namespace nntrainer */

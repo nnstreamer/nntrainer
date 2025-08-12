@@ -113,38 +113,6 @@ void hsgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
             const float beta, float *Y, const unsigned int incY);
 
 /**
- * @brief Quantize float to q6_K Quantization format
- *
- * @param src float* src to be quantized
- * @param dst void* dst to store quantized data
- * @param k number of elements in src
- */
-void quantize_row_q8_0(const _FP16 *__restrict src, void *__restrict dst,
-                       int64_t k);
-
-/**
- * @brief Quantize _FP16 to q8_0 Quantization format
- *
- * @param src input src to be quantized
- * @param dst output destination for quantized data
- * @param nrow number of row
- * @param n_per_row number of elements per row
- * @param quant_weights additional information for quantization. Currently in no
- * use.
- * @return size_t total size of quantized data
- */
-size_t quantize_q8_0(const _FP16 *src, void *dst, int64_t nrow,
-                     int64_t n_per_row, const float *quant_weights);
-/**
- * @brief q8_0 to _FP16 dequantize
- *
- * @param x_raw input src to be dequantized
- * @param y output destination for dequantized data
- * @param k data length
- */
-void dequantize_row_q8_0(const void *x_raw, _FP16 *y, int64_t k);
-
-/**
  * @brief Accelerating function for rotary embedding layer forwarding
  *
  * @param dim unit length of simd computation
@@ -789,6 +757,10 @@ void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
                const T *A, const unsigned int lda, const void *B,
                const unsigned int ldb, T *C, const unsigned int ldc);
 
+void gemm_q4_0(const unsigned int M, std::vector<unsigned int> Ns,
+               const unsigned int K, const float *A, const unsigned int lda,
+               std::vector<void *> Bs, std::vector<unsigned int> ldbs,
+               std::vector<float *> Cs, std::vector<unsigned int> ldc);
 /**
  * @brief q4_K GEMM : A (M,K) * W.T (N,K) = O (M,N)
  *
@@ -810,7 +782,6 @@ void gemm_q4_K(const unsigned int M, std::vector<unsigned int> Ns,
                const unsigned int K, const float *A, const unsigned int lda,
                std::vector<void *> Bs, std::vector<unsigned int> ldbs,
                std::vector<float *> Cs, std::vector<unsigned int> ldc);
-
 /**
  * @brief q6_K GEMM : A (M,K) * W.T (N,K) = O (M,N)
  *
@@ -936,6 +907,64 @@ template <typename T = float>
 void quantize_row_q8_K(const T *src, void *dst, int64_t k);
 
 /**
+ * @brief repack q40 to q40x8
+ *
+ * @param W input q40
+ * @param repacked_W output q40x8
+ * @param data_size total weight size
+ * @param M number of rows
+ * @param N number of columns
+ */
+void repack_q4_0(void *W, void *repacked_W, size_t data_size,
+                 const unsigned int M, const unsigned int N);
+
+/**
+ * @brief repack q4K to q4Kx8
+ *
+ * @param W input q4K
+ * @param repacked_W output q4Kx8
+ * @param data_size total weight size
+ * @param M number of rows
+ * @param N number of columns
+ */
+void repack_q4_K(void *W, void *repacked_W, size_t data_size,
+                 const unsigned int M, const unsigned int N);
+/**
+ * @brief Quantize float to q6_K Quantization format
+ *
+ * @param src float* src to be quantized
+ * @param dst void* dst to store quantized data
+ * @param k number of elements in src
+ */
+template <typename T = float>
+void quantize_row_q8_0(const T *__restrict src, void *__restrict dst,
+                       int64_t k);
+
+/**
+ * @brief Quantize T to q8_0 Quantization format
+ *
+ * @param src input src to be quantized
+ * @param dst output destination for quantized data
+ * @param nrow number of row
+ * @param n_per_row number of elements per row
+ * @param quant_weights additional information for quantization. Currently in no
+ * use.
+ * @return size_t total size of quantized data
+ */
+template <typename T = float>
+size_t quantize_q8_0(const T *src, void *dst, int64_t nrow, int64_t n_per_row,
+                     const float *quant_weights);
+/**
+ * @brief q8_0 to T dequantize
+ *
+ * @param x_raw input src to be dequantized
+ * @param y output destination for dequantized data
+ * @param k data length
+ */
+template <typename T = float>
+void dequantize_row_q8_0(const void *x_raw, T *y, int64_t k);
+
+/**
  * @brief Multihead softmax, exp(x_i) / sum(exp(x_i)), inplace version
  * @param[in/out] qk_out float* input/output values
  * @param[in] start_row start row number
@@ -1005,64 +1034,6 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
                               unsigned int half_, float *inout, void *output,
                               const float *cos_, const float *sin_,
                               bool only_convert_to_fp16);
-
-/**
- * @brief repack q40 to q40x8
- *
- * @param W input q40
- * @param repacked_W output q40x8
- * @param data_size total weight size
- * @param M number of rows
- * @param N number of columns
- */
-void repack_q4_0(void *W, void *repacked_W, size_t data_size,
-                 const unsigned int M, const unsigned int N);
-
-/**
- * @brief repack q4K to q4Kx8
- *
- * @param W input q4K
- * @param repacked_W output q4Kx8
- * @param data_size total weight size
- * @param M number of rows
- * @param N number of columns
- */
-void repack_q4_K(void *W, void *repacked_W, size_t data_size,
-                 const unsigned int M, const unsigned int N);
-/**
- * @brief Quantize float to q6_K Quantization format
- *
- * @param src float* src to be quantized
- * @param dst void* dst to store quantized data
- * @param k number of elements in src
- */
-template <typename T = float>
-void quantize_row_q8_0(const T *__restrict src, void *__restrict dst,
-                       int64_t k);
-
-/**
- * @brief Quantize T to q8_0 Quantization format
- *
- * @param src input src to be quantized
- * @param dst output destination for quantized data
- * @param nrow number of row
- * @param n_per_row number of elements per row
- * @param quant_weights additional information for quantization. Currently in no
- * use.
- * @return size_t total size of quantized data
- */
-template <typename T = float>
-size_t quantize_q8_0(const T *src, void *dst, int64_t nrow, int64_t n_per_row,
-                     const float *quant_weights);
-/**
- * @brief q8_0 to T dequantize
- *
- * @param x_raw input src to be dequantized
- * @param y output destination for dequantized data
- * @param k data length
- */
-template <typename T = float>
-void dequantize_row_q8_0(const void *x_raw, T *y, int64_t k);
 } /* namespace nntrainer */
 #endif /* __cplusplus */
 #endif /* __x86_COMPUTE_BACKEND_H__ */

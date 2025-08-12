@@ -1112,8 +1112,8 @@ TEST(nntrainer_Tensor, QTensor_21_p) {
     {1, 1, K, N, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::Q4_0}, true,
     nntrainer::Initializer::NONE, "q4_0_tensor", nntrainer::QScheme::Q4_0);
 
-  EXPECT_NO_THROW(nntrainer::repack_q4_0_to_q4_0_8(W_q40.getData<uint8_t>(),
-                                                   dst_ptr, data_size, N, K));
+  EXPECT_NO_THROW(
+    nntrainer::repack_q4_0(W_q40.getData<uint8_t>(), dst_ptr, data_size, N, K));
 
   std::vector<float> ref_dst(M * N);
   nntrainer::gemm_q4_0(M, N, K, A_fp32.getData<float>(), K,

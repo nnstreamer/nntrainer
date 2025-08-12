@@ -697,4 +697,4 @@ void softmax_row(float *qk_out, size_t start_row, size_t end_row,
 } // namespace nntrainer::neon
 
 #endif /* __cplusplus */
-#endif /* __NEON_SINGLE_H__ */
+#endif /* __NEON_IMPL_H__ */

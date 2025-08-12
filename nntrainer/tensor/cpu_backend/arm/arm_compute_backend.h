@@ -111,38 +111,7 @@ void hsgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
             const unsigned int N, const float alpha, const _FP16 *A,
             const unsigned int lda, const float *X, const unsigned int incX,
             const float beta, float *Y, const unsigned int incY);
-/**
- * @brief Quantize float to q6_K Quantization format
- *
- * @param src float* src to be quantized
- * @param dst void* dst to store quantized data
- * @param k number of elements in src
- */
-void quantize_row_q8_0(const _FP16 *__restrict src, void *__restrict dst,
-                       int64_t k);
-
-/**
- * @brief Quantize _FP16 to q8_0 Quantization format
- *
- * @param src input src to be quantized
- * @param dst output destination for quantized data
- * @param nrow number of row
- * @param n_per_row number of elements per row
- * @param quant_weights additional information for quantization. Currently in no
- * use.
- * @return size_t total size of quantized data
- */
-size_t quantize_q8_0(const _FP16 *src, void *dst, int64_t nrow,
-                     int64_t n_per_row, const float *quant_weights);
-/**
- * @brief q8_0 to _FP16 dequantize
- *
- * @param x_raw input src to be dequantized
- * @param y output destination for dequantized data
- * @param k data length
- */
-void dequantize_row_q8_0(const void *x_raw, _FP16 *y, int64_t k);
-
+            
 /**
  * @brief Accelerating function for rotary embedding layer forwarding
  *
@@ -523,7 +492,6 @@ void compute_kcaches(const _FP16 *A, const _FP16 *B, _FP16 *output,
 void compute_rotary_emb_value(unsigned int width, unsigned int dim,
                               unsigned int half_, _FP16 *inout,
                               const _FP16 *cos_, const _FP16 *sin_);
-
 #endif
 /**
  * @brief Initialization of ggml backend
@@ -900,7 +868,10 @@ template <typename T = float>
 void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
                const T *A, const unsigned int lda, const void *B,
                const unsigned int ldb, T *C, const unsigned int ldc);
-
+void gemm_q4_0(const unsigned int M, std::vector<unsigned int> Ns,
+               const unsigned int K, const float *A, const unsigned int lda,
+               std::vector<void *> Bs, std::vector<unsigned int> ldbs,
+               std::vector<float *> Cs, std::vector<unsigned int> ldc);
 /**
  * @brief q4_K GEMM : A (M,K) * W.T (N,K) = O (M,N)
  *
@@ -917,7 +888,10 @@ void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
 void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc);
-
+void gemm_q4_K(const unsigned int M, std::vector<unsigned int> Ns,
+               const unsigned int K, const float *A, const unsigned int lda,
+               std::vector<void *> Bs, std::vector<unsigned int> ldbs,
+               std::vector<float *> Cs, std::vector<unsigned int> ldc);
 /**
  * @brief q6_K GEMM : A (M,K) * W.T (N,K) = O (M,N)
  *
@@ -1065,27 +1039,7 @@ void repack_q4_0(void *W, void *repacked_W, size_t data_size,
 void repack_q4_K(void *W, void *repacked_W, size_t data_size,
                  const unsigned int M, const unsigned int N);
 /**
- * @brief Multihead softmax, exp(x_i) / sum(exp(x_i)), inplace version
- * @param[in/out] qk_out float* input/output values
- * @param[in] start_row start row number
- * @param[in] end_row end row number
- * @param[in] num_heads heads number
- */
-void softmax_row_inplace(float *qk_out, size_t start_row, size_t end_row,
-                         size_t num_heads);
-
-/**
- * @brief Multihead softmax, exp(x_i) / sum(exp(x_i))
- * @param[in/out] qk_out float* input/output values
- * @param[in] start_row start row number
- * @param[in] end_row end row number
- * @param[in] num_heads heads number
- */
-void softmax_row(float *qk_out, size_t start_row, size_t end_row,
-                 size_t num_heads);
-
-/**
- * @brief repack q40 to q40x8
+ * @brief Quantize float to q6_K Quantization format
  *
  * @param src float* src to be quantized
  * @param dst void* dst to store quantized data
@@ -1118,6 +1072,7 @@ size_t quantize_q8_0(const T *src, void *dst, int64_t nrow, int64_t n_per_row,
  */
 template <typename T = float>
 void dequantize_row_q8_0(const void *x_raw, T *y, int64_t k);
+
 } /* namespace nntrainer */
 #endif /* __cplusplus */
 #endif /* __ARM_COMPUTE_BACKEND_H__ */
