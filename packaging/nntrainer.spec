@@ -664,6 +664,9 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 # update this to enable external applications
 # @todo filter out headers that should be hidden, and classifiy in the appropriate place if not
 %{_includedir}/nntrainer/util_func.h
+/usr/include/nntrainer/noncopyable.h
+/usr/include/nntrainer/nonmovable.h
+/usr/include/nntrainer/singleton.h
 %{_includedir}/nntrainer/fp16.h
 %{_includedir}/nntrainer/util_simd.h
 %{_includedir}/nntrainer/dynamic_library_loader.h
