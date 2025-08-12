@@ -394,17 +394,9 @@ const std::string &getSgemmClTransABKernel() {
 const std::string &getAdditionClKernel() {
   static const std::string addition_cl_kernel_ =
     R"(
-kernel void kernel_add(
+kernel void addition_cl(
         global char * src0,
-        ulong  offset0,
-        global char * src1,
-        ulong  offset1,
         global char * dst,
-        ulong  offsetd,
-        int   ne00, // unused
-        int   ne01, // unused
-        int   ne02, // unused
-        int   ne03, // unused
         ulong nb00,
         ulong nb01,
         ulong nb02,
@@ -413,23 +405,12 @@ kernel void kernel_add(
         int   ne11,
         int   ne12,
         int   ne13,
-        ulong nb10,
-        ulong nb11,
-        ulong nb12,
-        ulong nb13,
         int   ne0,
-        int   ne1, // unused
-        int   ne2, // unused
-        int   ne3, // unused
         ulong nb0,
         ulong nb1,
         ulong nb2,
         ulong nb3
 ) {
-    src0 = src0 + offset0;
-    src1 = src1 + offset1;
-    dst = dst + offsetd;
-
     int i03 = get_group_id(2);
     int i02 = get_group_id(1);
     int i01 = get_group_id(0);
@@ -439,21 +420,13 @@ kernel void kernel_add(
     int i11 = i01 % ne11;
 
     global char * src0_ptr = src0 + i03*nb03 + i02*nb02 + i01*nb01;
-    global char * src1_ptr = src1 + i13*nb13 + i12*nb12 + i11*nb11;
     global char * dst_ptr  = dst  + i03*nb3  + i02*nb2  + i01*nb1;
 
     for (int i0 = get_local_id(0); i0 < ne0; i0 += get_local_size(0)) {
         const int i10 = i0 % ne10;
-        *((global float *)(dst_ptr + i0*nb0)) = *((global float *)(src0_ptr + i0*nb00)) + *((global float *)(src1_ptr + i10*nb10));
+        *((global float *)(dst_ptr + i0*nb0)) += *((global float *)(src0_ptr + i0*nb00));
     }
-}    
-      // __kernel void addition_cl(const __global float* input, __global float* output, unsigned int size_input, unsigned int size_res) {
-      //   #pragma printf_support
-      //   size_t idx = get_global_id(0);
-      //   if (idx < size_res) {
-      //       output[idx] = output[idx] + input[idx % size_input];
-      //   }
-      // }
+}
     )";
   return addition_cl_kernel_;
 }

@@ -17,6 +17,7 @@
 #ifndef __BLAS_KERNELS_TEMPLATES_H__
 #define __BLAS_KERNELS_TEMPLATES_H__
 
+#include "CL/cl.h"
 #include <blas_kernel_strings.h>
 #include <blas_kernels.h>
 
@@ -280,58 +281,48 @@ addition_cl_internal(ClContext::SharedPtrClKernel kernel, const T *input,
     return;
   }
 
-  result = kernel->SetKernelArguments(0, clbuffInstance.getInBufferA(),
-                                      sizeof(cl_mem));
-  if (!result) {
+  // result = kernel->SetKernelArguments(0, clbuffInstance.getInBufferA(),
+  //                                     sizeof(cl_mem));
+  // if (!result) {
+  //   return;
+  // }
+  //
+  // result = kernel->SetKernelArguments(1, clbuffInstance.getOutBufferA(),
+  //                                     sizeof(cl_mem));
+  // if (!result) {
+  //   return;
+  // }
+  //
+  // result = kernel->SetKernelArguments(2, &size_input, sizeof(int));
+  // if (!result) {
+  //   return;
+  // }
+  //
+  // result = kernel->SetKernelArguments(3, &size_res, sizeof(int));
+  // if (!result) {
+  //   return;
+  // }
+
+  bool resulttt = true;
+  resulttt &= kernel->SetKernelArguments(0, nullptr, sizeof(cl_mem)/*global char * src0*/);
+  resulttt &= kernel->SetKernelArguments(1, nullptr, sizeof(cl_mem)/*global char * dst*/);
+  resulttt &= kernel->SetKernelArguments(2, nullptr, sizeof(unsigned long)/*unsigned long nb00*/);
+  resulttt &= kernel->SetKernelArguments(3, nullptr, sizeof(unsigned long)/*unsigned long nb01*/);
+  resulttt &= kernel->SetKernelArguments(4, nullptr, sizeof(unsigned long)/*unsigned long nb02*/);
+  resulttt &= kernel->SetKernelArguments(5, nullptr, sizeof(unsigned long)/*unsigned long nb03*/);
+  resulttt &= kernel->SetKernelArguments(6, nullptr, sizeof(int)/*int   ne10*/);
+  resulttt &= kernel->SetKernelArguments(7, nullptr, sizeof(int)/*int   ne11*/);
+  resulttt &= kernel->SetKernelArguments(8, nullptr, sizeof(int)/*int   ne12*/);
+  resulttt &= kernel->SetKernelArguments(9, nullptr, sizeof(int)/*int   ne13*/);
+  resulttt &= kernel->SetKernelArguments(10, nullptr, sizeof(int)/*int   ne0*/);
+  resulttt &= kernel->SetKernelArguments(11, nullptr, sizeof(unsigned long)/*unsigned long nb0*/);
+  resulttt &= kernel->SetKernelArguments(12, nullptr, sizeof(unsigned long)/*unsigned long nb1*/);
+  resulttt &= kernel->SetKernelArguments(13, nullptr, sizeof(unsigned long)/*unsigned long nb2*/);
+  resulttt &= kernel->SetKernelArguments(14, nullptr, sizeof(unsigned long)/*unsigned long nb3*/);
+
+  if (!resulttt) {
     return;
   }
-
-  result = kernel->SetKernelArguments(1, clbuffInstance.getOutBufferA(),
-                                      sizeof(cl_mem));
-  if (!result) {
-    return;
-  }
-
-  result = kernel->SetKernelArguments(2, &size_input, sizeof(int));
-  if (!result) {
-    return;
-  }
-
-  result = kernel->SetKernelArguments(3, &size_res, sizeof(int));
-  if (!result) {
-    return;
-  }
-
-  // global char * src0,
-  // ulong  offset0,
-  // global char * src1,
-  // ulong  offset1,
-  // global char * dst,
-  // ulong  offsetd,
-  // int   ne00, // unused
-  // int   ne01, // unused
-  // int   ne02, // unused
-  // int   ne03, // unused
-  // ulong nb00,
-  // ulong nb01,
-  // ulong nb02,
-  // ulong nb03,
-  // int   ne10,
-  // int   ne11,
-  // int   ne12,
-  // int   ne13,
-  // ulong nb10,
-  // ulong nb11,
-  // ulong nb12,
-  // ulong nb13,
-  // int   ne0,
-  // int   ne1, // unused
-  // int   ne2, // unused
-  // int   ne3, // unused
-  // ulong nb0,
-  // ulong nb1,
-  // ulong nb2,
-  // ulong nb3
 
   const int work_groups_count[3] = {(int)size_res, 1, 1};
   /// @todo: create a group size by device & input
