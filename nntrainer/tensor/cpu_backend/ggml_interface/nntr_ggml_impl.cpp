@@ -11,7 +11,6 @@
 #if defined(__aarch64__)
 #include <arm_neon.h>
 
-
 #elif defined(__AVX2__) || defined(__AVX__)
 #include <immintrin.h>
 #endif // !defined(__aarch64__)
