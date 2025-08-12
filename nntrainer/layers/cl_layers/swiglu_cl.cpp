@@ -140,33 +140,29 @@ void SwiGLULayerCl::swiglu_cl(const float *matAdata, const float *vecXdata,
       break;
     }
 
-    result = clbuffInstance.getOutBufferA()->WriteDataRegion(
-      global_cl_context->command_queue_inst_, dim * sizeof(float), vecYdata);
-    if (!result) {
+    auto bufferInA = clbuffInstance.getInBufferA()->GetBuffer();
+    auto bufferInB = clbuffInstance.getInBufferB()->GetBuffer();
+    auto bufferOutA = clbuffInstance.getOutBufferA()->GetBuffer();
+
+    bool set_result = true;
+    set_result &=
+      kernel_swiglu_ptr->SetKernelArguments(0, &bufferInA, sizeof(cl_mem));
+    set_result &=
+      kernel_swiglu_ptr->SetKernelArguments(1, &bufferInB, sizeof(cl_mem));
+    set_result &=
+      kernel_swiglu_ptr->SetKernelArguments(2, &bufferOutA, sizeof(cl_mem));
+    if (!set_result) {
       break;
     }
 
-    result = kernel_swiglu_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = kernel_swiglu_ptr->SetKernelArguments(
-      1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = kernel_swiglu_ptr->SetKernelArguments(
-      2, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
+    // NOTE(mwlasiuk) : local size can not be larger than global
+    const int32_t desired_local = 64;
+    const bool can_use_desired = dim >= desired_local;
+    const int32_t chosen_local = can_use_desired ? desired_local : dim;
 
     const int work_groups_count[3] = {dim, 1, 1};
     /// @todo: create a group size by device & input
-    const int work_group_size[3] = {1, 1, 1}; // test-value
+    const int work_group_size[3] = {chosen_local, 1, 1}; // test-value
 
     result = global_cl_context->command_queue_inst_.DispatchCommand(
       kernel_swiglu_ptr, work_groups_count, work_group_size);
@@ -212,33 +208,29 @@ void SwiGLULayerCl::swiglu_cl_fp16(const _FP16 *matAdata, const _FP16 *vecXdata,
       break;
     }
 
-    result = clbuffInstance.getOutBufferA()->WriteDataRegion(
-      global_cl_context->command_queue_inst_, dim * sizeof(_FP16), vecYdata);
-    if (!result) {
+    auto bufferInA = clbuffInstance.getInBufferA()->GetBuffer();
+    auto bufferInB = clbuffInstance.getInBufferB()->GetBuffer();
+    auto bufferOutA = clbuffInstance.getOutBufferA()->GetBuffer();
+
+    bool set_result = true;
+    set_result &=
+      kernel_swiglu_ptr->SetKernelArguments(0, &bufferInA, sizeof(cl_mem));
+    set_result &=
+      kernel_swiglu_ptr->SetKernelArguments(1, &bufferInB, sizeof(cl_mem));
+    set_result &=
+      kernel_swiglu_ptr->SetKernelArguments(2, &bufferOutA, sizeof(cl_mem));
+    if (!set_result) {
       break;
     }
 
-    result = kernel_swiglu_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = kernel_swiglu_ptr->SetKernelArguments(
-      1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = kernel_swiglu_ptr->SetKernelArguments(
-      2, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
+    // NOTE(mwlasiuk) : local size can not be larger than global
+    const int32_t desired_local = 64;
+    const bool can_use_desired = dim >= desired_local;
+    const int32_t chosen_local = can_use_desired ? desired_local : dim;
 
     const int work_groups_count[3] = {dim, 1, 1};
     /// @todo: create a group size by device & input
-    const int work_group_size[3] = {1, 1, 1}; // test-value
+    const int work_group_size[3] = {chosen_local, 1, 1}; // test-value
 
     result = global_cl_context->command_queue_inst_.DispatchCommand(
       kernel_swiglu_ptr, work_groups_count, work_group_size);
