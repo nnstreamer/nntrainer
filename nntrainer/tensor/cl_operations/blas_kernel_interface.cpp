@@ -225,7 +225,8 @@ void add_i_cl(Tensor &result, Tensor const &input) {
       const float *X = input.getData();
 
       for (unsigned int i = 0; i < result.batch() / input.batch(); ++i) {
-        axpy_cl(input.size(), 1.0f, X, Y);
+        // axpy_cl(input.size(), 1.0f, X, Y);
+        addition_cl(X, Y, input.size(), input.size());
         Y += input.size();
       }
     } else if (result.getDataType() == ml::train::TensorDim::DataType::FP16) {

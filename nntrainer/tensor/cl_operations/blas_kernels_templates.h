@@ -302,6 +302,37 @@ addition_cl_internal(ClContext::SharedPtrClKernel kernel, const T *input,
     return;
   }
 
+  // global char * src0,
+  // ulong  offset0,
+  // global char * src1,
+  // ulong  offset1,
+  // global char * dst,
+  // ulong  offsetd,
+  // int   ne00, // unused
+  // int   ne01, // unused
+  // int   ne02, // unused
+  // int   ne03, // unused
+  // ulong nb00,
+  // ulong nb01,
+  // ulong nb02,
+  // ulong nb03,
+  // int   ne10,
+  // int   ne11,
+  // int   ne12,
+  // int   ne13,
+  // ulong nb10,
+  // ulong nb11,
+  // ulong nb12,
+  // ulong nb13,
+  // int   ne0,
+  // int   ne1, // unused
+  // int   ne2, // unused
+  // int   ne3, // unused
+  // ulong nb0,
+  // ulong nb1,
+  // ulong nb2,
+  // ulong nb3
+
   const int work_groups_count[3] = {(int)size_res, 1, 1};
   /// @todo: create a group size by device & input
   const int work_group_size[3] = {1, 1, 1}; // test-value
