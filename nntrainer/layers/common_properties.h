@@ -357,6 +357,16 @@ public:
 };
 
 /**
+ * @brief K property, select k elements in topk layer.
+ *
+ */
+class K : public nntrainer::PositiveIntegerProperty {
+public:
+  static constexpr const char *key = "k"; /**< unique key to access */
+  using prop_tag = uint_prop_tag;         /**< property type */
+};
+
+/**
  * @brief StartDimension property, start dimension to be flatten
  *
  */

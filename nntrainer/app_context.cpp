@@ -91,6 +91,7 @@
 #include <tangent_layer.h>
 #include <tensor_layer.h>
 #include <time_dist.h>
+#include <topk_layer.h>
 #include <upsample2d_layer.h>
 #include <weight_layer.h>
 #include <zoneout_lstmcell.h>
@@ -372,6 +373,9 @@ void AppContext::add_default_object() {
 
   registerFactory(nntrainer::createLayer<ChannelShuffle>, ChannelShuffle::type,
                   LayerType::LAYER_CHANNEL_SHUFFLE);
+
+  registerFactory(nntrainer::createLayer<TopkLayer>, TopkLayer::type,
+                  LayerType::LAYER_TOPK);
 
 #ifdef ENABLE_NNSTREAMER_BACKBONE
   registerFactory(nntrainer::createLayer<NNStreamerLayer>,

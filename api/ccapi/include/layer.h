@@ -122,6 +122,7 @@ enum LayerType {
   LAYER_TRANSPOSE = ML_TRAIN_LAYER_TYPE_TRANSPOSE, /**< Transpose Layer type */
   LAYER_CHANNEL_SHUFFLE =
     ML_TRAIN_LAYER_TYPE_CHANNEL_SHUFFLE,      /**< Channel Shuffle Layer type */
+  LAYER_TOPK = ML_TRAIN_TYPE_TOPK,            /**< Topk Layer type */
   LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN /**< Unknown */
 };
 
@@ -703,6 +704,14 @@ Identity(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 Upsample2D(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_UPSAMPLE2D, properties);
+}
+
+/**
+ * @brief Helper function to create Topk layer
+ */
+inline std::unique_ptr<Layer>
+TopkLayer(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_TOPK, properties);
 }
 
 /**
