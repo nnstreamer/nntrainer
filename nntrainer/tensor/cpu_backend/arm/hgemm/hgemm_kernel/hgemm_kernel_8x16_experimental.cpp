@@ -21,139 +21,139 @@
 #include <armv7_neon.h>
 #endif
 
-#define INIT_KERNEL_8X16()       \
-  do {                           \
-    v0_7 = vdupq_n_f16(0.F);     \
-    v8_15 = vdupq_n_f16(0.F);    \
-    v16_23 = vdupq_n_f16(0.F);   \
-    v24_31 = vdupq_n_f16(0.F);   \
-    v32_39 = vdupq_n_f16(0.F);   \
-    v40_47 = vdupq_n_f16(0.F);   \
-    v48_55 = vdupq_n_f16(0.F);   \
-    v56_63 = vdupq_n_f16(0.F);   \
-    v64_71 = vdupq_n_f16(0.F);   \
-    v72_79 = vdupq_n_f16(0.F);   \
-    v80_87 = vdupq_n_f16(0.F);   \
-    v88_95 = vdupq_n_f16(0.F);   \
-    v96_103 = vdupq_n_f16(0.F);  \
-    v104_111 = vdupq_n_f16(0.F); \
-    v112_119 = vdupq_n_f16(0.F); \
-    v120_127 = vdupq_n_f16(0.F); \
+#define INIT_KERNEL_8X16()                                                     \
+  do {                                                                         \
+    v0_7 = vdupq_n_f16(0.F);                                                   \
+    v8_15 = vdupq_n_f16(0.F);                                                  \
+    v16_23 = vdupq_n_f16(0.F);                                                 \
+    v24_31 = vdupq_n_f16(0.F);                                                 \
+    v32_39 = vdupq_n_f16(0.F);                                                 \
+    v40_47 = vdupq_n_f16(0.F);                                                 \
+    v48_55 = vdupq_n_f16(0.F);                                                 \
+    v56_63 = vdupq_n_f16(0.F);                                                 \
+    v64_71 = vdupq_n_f16(0.F);                                                 \
+    v72_79 = vdupq_n_f16(0.F);                                                 \
+    v80_87 = vdupq_n_f16(0.F);                                                 \
+    v88_95 = vdupq_n_f16(0.F);                                                 \
+    v96_103 = vdupq_n_f16(0.F);                                                \
+    v104_111 = vdupq_n_f16(0.F);                                               \
+    v112_119 = vdupq_n_f16(0.F);                                               \
+    v120_127 = vdupq_n_f16(0.F);                                               \
   } while (0)
 
-#define KERNEL_8x16_ACC_N4(N)                            \
-  do {                                                   \
-    for (int i = 0; i < N; i += 4) {                     \
-      va0 = vld1q_f16(a + 8 * i);                        \
-      vb1 = vld1q_f16(b + 16 * i);                       \
-      vb2 = vld1q_f16(b + 16 * i + 8 * 1);               \
-      v0_7 = vfmaq_laneq_f16(v0_7, vb1, va0, 0);         \
-      v8_15 = vfmaq_laneq_f16(v8_15, vb1, va0, 1);       \
-      v16_23 = vfmaq_laneq_f16(v16_23, vb1, va0, 2);     \
-      v24_31 = vfmaq_laneq_f16(v24_31, vb1, va0, 3);     \
-      v32_39 = vfmaq_laneq_f16(v32_39, vb1, va0, 4);     \
-      v40_47 = vfmaq_laneq_f16(v40_47, vb1, va0, 5);     \
-      v48_55 = vfmaq_laneq_f16(v48_55, vb1, va0, 6);     \
-      v56_63 = vfmaq_laneq_f16(v56_63, vb1, va0, 7);     \
-      v64_71 = vfmaq_laneq_f16(v64_71, vb2, va0, 0);     \
-      v72_79 = vfmaq_laneq_f16(v72_79, vb2, va0, 1);     \
-      v80_87 = vfmaq_laneq_f16(v80_87, vb2, va0, 2);     \
-      v88_95 = vfmaq_laneq_f16(v88_95, vb2, va0, 3);     \
-      v96_103 = vfmaq_laneq_f16(v96_103, vb2, va0, 4);   \
-      v104_111 = vfmaq_laneq_f16(v104_111, vb2, va0, 5); \
-      v112_119 = vfmaq_laneq_f16(v112_119, vb2, va0, 6); \
-      v120_127 = vfmaq_laneq_f16(v120_127, vb2, va0, 7); \
-      va0 = vld1q_f16(a + 8 * i + 8 * 1);                \
-      vb1 = vld1q_f16(b + 16 * i + 8 * 2);               \
-      vb2 = vld1q_f16(b + 16 * i + 8 * 3);               \
-      v0_7 = vfmaq_laneq_f16(v0_7, vb1, va0, 0);         \
-      v8_15 = vfmaq_laneq_f16(v8_15, vb1, va0, 1);       \
-      v16_23 = vfmaq_laneq_f16(v16_23, vb1, va0, 2);     \
-      v24_31 = vfmaq_laneq_f16(v24_31, vb1, va0, 3);     \
-      v32_39 = vfmaq_laneq_f16(v32_39, vb1, va0, 4);     \
-      v40_47 = vfmaq_laneq_f16(v40_47, vb1, va0, 5);     \
-      v48_55 = vfmaq_laneq_f16(v48_55, vb1, va0, 6);     \
-      v56_63 = vfmaq_laneq_f16(v56_63, vb1, va0, 7);     \
-      v64_71 = vfmaq_laneq_f16(v64_71, vb2, va0, 0);     \
-      v72_79 = vfmaq_laneq_f16(v72_79, vb2, va0, 1);     \
-      v80_87 = vfmaq_laneq_f16(v80_87, vb2, va0, 2);     \
-      v88_95 = vfmaq_laneq_f16(v88_95, vb2, va0, 3);     \
-      v96_103 = vfmaq_laneq_f16(v96_103, vb2, va0, 4);   \
-      v104_111 = vfmaq_laneq_f16(v104_111, vb2, va0, 5); \
-      v112_119 = vfmaq_laneq_f16(v112_119, vb2, va0, 6); \
-      v120_127 = vfmaq_laneq_f16(v120_127, vb2, va0, 7); \
-      va0 = vld1q_f16(a + 8 * i + 8 * 2);                \
-      vb1 = vld1q_f16(b + 16 * i + 8 * 4);               \
-      vb2 = vld1q_f16(b + 16 * i + 8 * 5);               \
-      v0_7 = vfmaq_laneq_f16(v0_7, vb1, va0, 0);         \
-      v8_15 = vfmaq_laneq_f16(v8_15, vb1, va0, 1);       \
-      v16_23 = vfmaq_laneq_f16(v16_23, vb1, va0, 2);     \
-      v24_31 = vfmaq_laneq_f16(v24_31, vb1, va0, 3);     \
-      v32_39 = vfmaq_laneq_f16(v32_39, vb1, va0, 4);     \
-      v40_47 = vfmaq_laneq_f16(v40_47, vb1, va0, 5);     \
-      v48_55 = vfmaq_laneq_f16(v48_55, vb1, va0, 6);     \
-      v56_63 = vfmaq_laneq_f16(v56_63, vb1, va0, 7);     \
-      v64_71 = vfmaq_laneq_f16(v64_71, vb2, va0, 0);     \
-      v72_79 = vfmaq_laneq_f16(v72_79, vb2, va0, 1);     \
-      v80_87 = vfmaq_laneq_f16(v80_87, vb2, va0, 2);     \
-      v88_95 = vfmaq_laneq_f16(v88_95, vb2, va0, 3);     \
-      v96_103 = vfmaq_laneq_f16(v96_103, vb2, va0, 4);   \
-      v104_111 = vfmaq_laneq_f16(v104_111, vb2, va0, 5); \
-      v112_119 = vfmaq_laneq_f16(v112_119, vb2, va0, 6); \
-      v120_127 = vfmaq_laneq_f16(v120_127, vb2, va0, 7); \
-      va0 = vld1q_f16(a + 8 * i + 8 * 3);                \
-      vb1 = vld1q_f16(b + 16 * i + 8 * 6);               \
-      vb2 = vld1q_f16(b + 16 * i + 8 * 7);               \
-      v0_7 = vfmaq_laneq_f16(v0_7, vb1, va0, 0);         \
-      v8_15 = vfmaq_laneq_f16(v8_15, vb1, va0, 1);       \
-      v16_23 = vfmaq_laneq_f16(v16_23, vb1, va0, 2);     \
-      v24_31 = vfmaq_laneq_f16(v24_31, vb1, va0, 3);     \
-      v32_39 = vfmaq_laneq_f16(v32_39, vb1, va0, 4);     \
-      v40_47 = vfmaq_laneq_f16(v40_47, vb1, va0, 5);     \
-      v48_55 = vfmaq_laneq_f16(v48_55, vb1, va0, 6);     \
-      v56_63 = vfmaq_laneq_f16(v56_63, vb1, va0, 7);     \
-      v64_71 = vfmaq_laneq_f16(v64_71, vb2, va0, 0);     \
-      v72_79 = vfmaq_laneq_f16(v72_79, vb2, va0, 1);     \
-      v80_87 = vfmaq_laneq_f16(v80_87, vb2, va0, 2);     \
-      v88_95 = vfmaq_laneq_f16(v88_95, vb2, va0, 3);     \
-      v96_103 = vfmaq_laneq_f16(v96_103, vb2, va0, 4);   \
-      v104_111 = vfmaq_laneq_f16(v104_111, vb2, va0, 5); \
-      v112_119 = vfmaq_laneq_f16(v112_119, vb2, va0, 6); \
-      v120_127 = vfmaq_laneq_f16(v120_127, vb2, va0, 7); \
-    }                                                    \
-    l += N;                                              \
-    __builtin_prefetch(b + 16 * N, 0, 3);                \
-    __builtin_prefetch(a + 8 * N, 0, 3);                 \
-    b += 16 * N;                                         \
-    a += 8 * N;                                          \
+#define KERNEL_8x16_ACC_N4(N)                                                  \
+  do {                                                                         \
+    for (int i = 0; i < N; i += 4) {                                           \
+      va0 = vld1q_f16(a + 8 * i);                                              \
+      vb1 = vld1q_f16(b + 16 * i);                                             \
+      vb2 = vld1q_f16(b + 16 * i + 8 * 1);                                     \
+      v0_7 = vfmaq_laneq_f16(v0_7, vb1, va0, 0);                               \
+      v8_15 = vfmaq_laneq_f16(v8_15, vb1, va0, 1);                             \
+      v16_23 = vfmaq_laneq_f16(v16_23, vb1, va0, 2);                           \
+      v24_31 = vfmaq_laneq_f16(v24_31, vb1, va0, 3);                           \
+      v32_39 = vfmaq_laneq_f16(v32_39, vb1, va0, 4);                           \
+      v40_47 = vfmaq_laneq_f16(v40_47, vb1, va0, 5);                           \
+      v48_55 = vfmaq_laneq_f16(v48_55, vb1, va0, 6);                           \
+      v56_63 = vfmaq_laneq_f16(v56_63, vb1, va0, 7);                           \
+      v64_71 = vfmaq_laneq_f16(v64_71, vb2, va0, 0);                           \
+      v72_79 = vfmaq_laneq_f16(v72_79, vb2, va0, 1);                           \
+      v80_87 = vfmaq_laneq_f16(v80_87, vb2, va0, 2);                           \
+      v88_95 = vfmaq_laneq_f16(v88_95, vb2, va0, 3);                           \
+      v96_103 = vfmaq_laneq_f16(v96_103, vb2, va0, 4);                         \
+      v104_111 = vfmaq_laneq_f16(v104_111, vb2, va0, 5);                       \
+      v112_119 = vfmaq_laneq_f16(v112_119, vb2, va0, 6);                       \
+      v120_127 = vfmaq_laneq_f16(v120_127, vb2, va0, 7);                       \
+      va0 = vld1q_f16(a + 8 * i + 8 * 1);                                      \
+      vb1 = vld1q_f16(b + 16 * i + 8 * 2);                                     \
+      vb2 = vld1q_f16(b + 16 * i + 8 * 3);                                     \
+      v0_7 = vfmaq_laneq_f16(v0_7, vb1, va0, 0);                               \
+      v8_15 = vfmaq_laneq_f16(v8_15, vb1, va0, 1);                             \
+      v16_23 = vfmaq_laneq_f16(v16_23, vb1, va0, 2);                           \
+      v24_31 = vfmaq_laneq_f16(v24_31, vb1, va0, 3);                           \
+      v32_39 = vfmaq_laneq_f16(v32_39, vb1, va0, 4);                           \
+      v40_47 = vfmaq_laneq_f16(v40_47, vb1, va0, 5);                           \
+      v48_55 = vfmaq_laneq_f16(v48_55, vb1, va0, 6);                           \
+      v56_63 = vfmaq_laneq_f16(v56_63, vb1, va0, 7);                           \
+      v64_71 = vfmaq_laneq_f16(v64_71, vb2, va0, 0);                           \
+      v72_79 = vfmaq_laneq_f16(v72_79, vb2, va0, 1);                           \
+      v80_87 = vfmaq_laneq_f16(v80_87, vb2, va0, 2);                           \
+      v88_95 = vfmaq_laneq_f16(v88_95, vb2, va0, 3);                           \
+      v96_103 = vfmaq_laneq_f16(v96_103, vb2, va0, 4);                         \
+      v104_111 = vfmaq_laneq_f16(v104_111, vb2, va0, 5);                       \
+      v112_119 = vfmaq_laneq_f16(v112_119, vb2, va0, 6);                       \
+      v120_127 = vfmaq_laneq_f16(v120_127, vb2, va0, 7);                       \
+      va0 = vld1q_f16(a + 8 * i + 8 * 2);                                      \
+      vb1 = vld1q_f16(b + 16 * i + 8 * 4);                                     \
+      vb2 = vld1q_f16(b + 16 * i + 8 * 5);                                     \
+      v0_7 = vfmaq_laneq_f16(v0_7, vb1, va0, 0);                               \
+      v8_15 = vfmaq_laneq_f16(v8_15, vb1, va0, 1);                             \
+      v16_23 = vfmaq_laneq_f16(v16_23, vb1, va0, 2);                           \
+      v24_31 = vfmaq_laneq_f16(v24_31, vb1, va0, 3);                           \
+      v32_39 = vfmaq_laneq_f16(v32_39, vb1, va0, 4);                           \
+      v40_47 = vfmaq_laneq_f16(v40_47, vb1, va0, 5);                           \
+      v48_55 = vfmaq_laneq_f16(v48_55, vb1, va0, 6);                           \
+      v56_63 = vfmaq_laneq_f16(v56_63, vb1, va0, 7);                           \
+      v64_71 = vfmaq_laneq_f16(v64_71, vb2, va0, 0);                           \
+      v72_79 = vfmaq_laneq_f16(v72_79, vb2, va0, 1);                           \
+      v80_87 = vfmaq_laneq_f16(v80_87, vb2, va0, 2);                           \
+      v88_95 = vfmaq_laneq_f16(v88_95, vb2, va0, 3);                           \
+      v96_103 = vfmaq_laneq_f16(v96_103, vb2, va0, 4);                         \
+      v104_111 = vfmaq_laneq_f16(v104_111, vb2, va0, 5);                       \
+      v112_119 = vfmaq_laneq_f16(v112_119, vb2, va0, 6);                       \
+      v120_127 = vfmaq_laneq_f16(v120_127, vb2, va0, 7);                       \
+      va0 = vld1q_f16(a + 8 * i + 8 * 3);                                      \
+      vb1 = vld1q_f16(b + 16 * i + 8 * 6);                                     \
+      vb2 = vld1q_f16(b + 16 * i + 8 * 7);                                     \
+      v0_7 = vfmaq_laneq_f16(v0_7, vb1, va0, 0);                               \
+      v8_15 = vfmaq_laneq_f16(v8_15, vb1, va0, 1);                             \
+      v16_23 = vfmaq_laneq_f16(v16_23, vb1, va0, 2);                           \
+      v24_31 = vfmaq_laneq_f16(v24_31, vb1, va0, 3);                           \
+      v32_39 = vfmaq_laneq_f16(v32_39, vb1, va0, 4);                           \
+      v40_47 = vfmaq_laneq_f16(v40_47, vb1, va0, 5);                           \
+      v48_55 = vfmaq_laneq_f16(v48_55, vb1, va0, 6);                           \
+      v56_63 = vfmaq_laneq_f16(v56_63, vb1, va0, 7);                           \
+      v64_71 = vfmaq_laneq_f16(v64_71, vb2, va0, 0);                           \
+      v72_79 = vfmaq_laneq_f16(v72_79, vb2, va0, 1);                           \
+      v80_87 = vfmaq_laneq_f16(v80_87, vb2, va0, 2);                           \
+      v88_95 = vfmaq_laneq_f16(v88_95, vb2, va0, 3);                           \
+      v96_103 = vfmaq_laneq_f16(v96_103, vb2, va0, 4);                         \
+      v104_111 = vfmaq_laneq_f16(v104_111, vb2, va0, 5);                       \
+      v112_119 = vfmaq_laneq_f16(v112_119, vb2, va0, 6);                       \
+      v120_127 = vfmaq_laneq_f16(v120_127, vb2, va0, 7);                       \
+    }                                                                          \
+    l += N;                                                                    \
+    __builtin_prefetch(b + 16 * N, 0, 3);                                      \
+    __builtin_prefetch(a + 8 * N, 0, 3);                                       \
+    b += 16 * N;                                                               \
+    a += 8 * N;                                                                \
   } while (0)
 
-#define KERNEL_8x16_ACC1()                             \
-  do {                                                 \
-    va0 = vld1q_f16(a);                                \
-    vb1 = vld1q_f16(b);                                \
-    vb2 = vld1q_f16(b + 8);                            \
-    v0_7 = vfmaq_laneq_f16(v0_7, vb1, va0, 0);         \
-    v8_15 = vfmaq_laneq_f16(v8_15, vb1, va0, 1);       \
-    v16_23 = vfmaq_laneq_f16(v16_23, vb1, va0, 2);     \
-    v24_31 = vfmaq_laneq_f16(v24_31, vb1, va0, 3);     \
-    v32_39 = vfmaq_laneq_f16(v32_39, vb1, va0, 4);     \
-    v40_47 = vfmaq_laneq_f16(v40_47, vb1, va0, 5);     \
-    v48_55 = vfmaq_laneq_f16(v48_55, vb1, va0, 6);     \
-    v56_63 = vfmaq_laneq_f16(v56_63, vb1, va0, 7);     \
-    v64_71 = vfmaq_laneq_f16(v64_71, vb2, va0, 0);     \
-    v72_79 = vfmaq_laneq_f16(v72_79, vb2, va0, 1);     \
-    v80_87 = vfmaq_laneq_f16(v80_87, vb2, va0, 2);     \
-    v88_95 = vfmaq_laneq_f16(v88_95, vb2, va0, 3);     \
-    v96_103 = vfmaq_laneq_f16(v96_103, vb2, va0, 4);   \
-    v104_111 = vfmaq_laneq_f16(v104_111, vb2, va0, 5); \
-    v112_119 = vfmaq_laneq_f16(v112_119, vb2, va0, 6); \
-    v120_127 = vfmaq_laneq_f16(v120_127, vb2, va0, 7); \
-    l += 1;                                            \
-    __builtin_prefetch(b + 16, 0, 3);                  \
-    __builtin_prefetch(a + 8, 0, 3);                   \
-    b += 16 * 1;                                       \
-    a += 8 * 1;                                        \
+#define KERNEL_8x16_ACC1()                                                     \
+  do {                                                                         \
+    va0 = vld1q_f16(a);                                                        \
+    vb1 = vld1q_f16(b);                                                        \
+    vb2 = vld1q_f16(b + 8);                                                    \
+    v0_7 = vfmaq_laneq_f16(v0_7, vb1, va0, 0);                                 \
+    v8_15 = vfmaq_laneq_f16(v8_15, vb1, va0, 1);                               \
+    v16_23 = vfmaq_laneq_f16(v16_23, vb1, va0, 2);                             \
+    v24_31 = vfmaq_laneq_f16(v24_31, vb1, va0, 3);                             \
+    v32_39 = vfmaq_laneq_f16(v32_39, vb1, va0, 4);                             \
+    v40_47 = vfmaq_laneq_f16(v40_47, vb1, va0, 5);                             \
+    v48_55 = vfmaq_laneq_f16(v48_55, vb1, va0, 6);                             \
+    v56_63 = vfmaq_laneq_f16(v56_63, vb1, va0, 7);                             \
+    v64_71 = vfmaq_laneq_f16(v64_71, vb2, va0, 0);                             \
+    v72_79 = vfmaq_laneq_f16(v72_79, vb2, va0, 1);                             \
+    v80_87 = vfmaq_laneq_f16(v80_87, vb2, va0, 2);                             \
+    v88_95 = vfmaq_laneq_f16(v88_95, vb2, va0, 3);                             \
+    v96_103 = vfmaq_laneq_f16(v96_103, vb2, va0, 4);                           \
+    v104_111 = vfmaq_laneq_f16(v104_111, vb2, va0, 5);                         \
+    v112_119 = vfmaq_laneq_f16(v112_119, vb2, va0, 6);                         \
+    v120_127 = vfmaq_laneq_f16(v120_127, vb2, va0, 7);                         \
+    l += 1;                                                                    \
+    __builtin_prefetch(b + 16, 0, 3);                                          \
+    __builtin_prefetch(a + 8, 0, 3);                                           \
+    b += 16 * 1;                                                               \
+    a += 8 * 1;                                                                \
   } while (0)
 
 #define SAVE_KERNEL_8X16_F16_F32()                                             \

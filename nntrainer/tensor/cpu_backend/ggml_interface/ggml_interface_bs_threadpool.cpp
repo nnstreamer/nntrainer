@@ -68,7 +68,6 @@ template <int K, int N> struct block {
 using block_q4_0x4 = block<4, 4>;
 using block_q8_0x4 = block<8, 4>;
 
-
 static inline void __ggml_q4_0_4x8_q8_0_GEMM_GEMV(
   const unsigned int M, const unsigned int N, const unsigned int K,
   const float *A, const unsigned int lda, const void *B, const unsigned int ldb,
@@ -841,7 +840,8 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
 
     auto fut = tp.submit_loop(0, static_cast<int>(N), [&](int i) {
       const void *bptr = (const char *)B + i * B_row_size;
-      ::ggml_vec_dot_q6_K_q8_K(K, &C[i], bs, bptr, bx, quantized_A_data, by, nrc);
+      ::ggml_vec_dot_q6_K_q8_K(K, &C[i], bs, bptr, bx, quantized_A_data, by,
+                               nrc);
     });
     fut.wait();
   } else {

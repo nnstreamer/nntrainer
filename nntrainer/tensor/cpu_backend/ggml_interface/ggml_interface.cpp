@@ -13,7 +13,7 @@
 #include <vector>
 
 namespace nntrainer {
-    
+
 void __ggml_init() {
   // needed to initialize f16 tables
   struct ggml_init_params params = {0, NULL, false};
@@ -45,7 +45,6 @@ void __ggml_quantize_row_q8_K(const float *src, void *dst, int64_t k) {
   ::quantize_row_q8_K(src, dst, k);
 }
 
-
 float __nntr_vec_dot_q6_K_q8_K(const unsigned int K,
                                const void *__restrict v_q6_K,
                                const void *__restrict v_q8_K) {
@@ -67,8 +66,7 @@ float __ggml_vec_dot_q6_K_f32(const unsigned int K, const void *v_q6_K,
   return __nntr_vec_dot_q6_K_q8_K(K, v_q6_K, v_q8_activation.data());
 }
 
-float __ggml_vec_dot_q6_K(const unsigned int K,
-                          const void *__restrict v_q6_K,
+float __ggml_vec_dot_q6_K(const unsigned int K, const void *__restrict v_q6_K,
                           const float *__restrict activation) {
   float result;
   int bs = 1, bx = 1, by = 1,
@@ -79,11 +77,10 @@ float __ggml_vec_dot_q6_K(const unsigned int K,
   std::vector<char> v_q8_activation = std::vector<char>(q8_K_activation_size);
   __ggml_quantize_row_q8_K(activation, v_q8_activation.data(), K);
 
-  ::ggml_vec_dot_q6_K_q8_K(K, &result, bs, v_q6_K, bx, v_q8_activation.data(), by,
-                         nrc);
+  ::ggml_vec_dot_q6_K_q8_K(K, &result, bs, v_q6_K, bx, v_q8_activation.data(),
+                           by, nrc);
   return result;
 }
-
 
 void __ggml_dequantize_row_q4_K(const void *x_raw, float *y, int64_t k) {
   ::dequantize_row_q4_K((const block_q4_K *)x_raw, y, k);
@@ -113,4 +110,4 @@ void __ggml_repack_q4_K_to_q4_K_8(void *W, void *repacked_W, size_t data_size,
   ::ggml_repack_q4_K_to_q4_K_8_bl(W, 8, repacked_W, data_size, M, N);
 }
 
-}
+} // namespace nntrainer

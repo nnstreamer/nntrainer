@@ -16,22 +16,22 @@
 #include <cstdint>
 #include <mask_neon.h>
 
-#define TRANSPOSE_FP16_4x4(row0, row1, row2, row3)                           \
-  do {                                                                       \
-    float16x4x2_t row01 = vtrn_f16(row0, row1);                              \
-    float16x4x2_t row23 = vtrn_f16(row2, row3);                              \
-    row0 =                                                                   \
-      vcvt_f16_f32(vcombine_f32(vget_low_f32(vcvt_f32_f16(row01.val[0])),    \
-                                vget_low_f32(vcvt_f32_f16(row23.val[0]))));  \
-    row1 =                                                                   \
-      vcvt_f16_f32(vcombine_f32(vget_low_f32(vcvt_f32_f16(row01.val[1])),    \
-                                vget_low_f32(vcvt_f32_f16(row23.val[1]))));  \
-    row2 =                                                                   \
-      vcvt_f16_f32(vcombine_f32(vget_high_f32(vcvt_f32_f16(row01.val[0])),   \
-                                vget_high_f32(vcvt_f32_f16(row23.val[0])))); \
-    row3 =                                                                   \
-      vcvt_f16_f32(vcombine_f32(vget_high_f32(vcvt_f32_f16(row01.val[1])),   \
-                                vget_high_f32(vcvt_f32_f16(row23.val[1])))); \
+#define TRANSPOSE_FP16_4x4(row0, row1, row2, row3)                             \
+  do {                                                                         \
+    float16x4x2_t row01 = vtrn_f16(row0, row1);                                \
+    float16x4x2_t row23 = vtrn_f16(row2, row3);                                \
+    row0 =                                                                     \
+      vcvt_f16_f32(vcombine_f32(vget_low_f32(vcvt_f32_f16(row01.val[0])),      \
+                                vget_low_f32(vcvt_f32_f16(row23.val[0]))));    \
+    row1 =                                                                     \
+      vcvt_f16_f32(vcombine_f32(vget_low_f32(vcvt_f32_f16(row01.val[1])),      \
+                                vget_low_f32(vcvt_f32_f16(row23.val[1]))));    \
+    row2 =                                                                     \
+      vcvt_f16_f32(vcombine_f32(vget_high_f32(vcvt_f32_f16(row01.val[0])),     \
+                                vget_high_f32(vcvt_f32_f16(row23.val[0]))));   \
+    row3 =                                                                     \
+      vcvt_f16_f32(vcombine_f32(vget_high_f32(vcvt_f32_f16(row01.val[1])),     \
+                                vget_high_f32(vcvt_f32_f16(row23.val[1]))));   \
   } while (0)
 /**
  * @brief 4x4 sized kernel for matrix transpose in NEON
