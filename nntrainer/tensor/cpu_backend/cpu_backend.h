@@ -29,6 +29,25 @@
 
 #ifdef ENABLE_FP16
 /**
+ * @brief Multihead softmax, exp(x_i) / sum(exp(x_i)), inplace version
+ * @param[in/out] qk_out __fp16* input/output values
+ * @param[in] start_row start row number
+ * @param[in] end_row end row number
+ * @param[in] num_heads heads number
+ */
+extern void softmax_row_inplace(_FP16 *qk_out, size_t start_row, size_t end_row,
+                                size_t num_heads);
+
+/**
+ * @brief Multihead softmax, exp(x_i) / sum(exp(x_i))
+ * @param[in/out] qk_out __fp16* input/output values
+ * @param[in] start_row start row number
+ * @param[in] end_row end row number
+ * @param[in] num_heads heads number
+ */
+extern void softmax_row(_FP16 *qk_out, size_t start_row, size_t end_row,
+                        size_t num_heads);
+/**
  * @brief F32 * F16 = F32 GEMM
  *
  * @param TStorageOrder Row major / Col major
