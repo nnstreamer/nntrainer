@@ -16,6 +16,40 @@
 #include <nntrainer_error.h>
 
 namespace nntrainer {
+void shgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
+            const unsigned int M, const unsigned int N, const unsigned int K,
+            const float alpha, const float *A, const unsigned int lda,
+            const _FP16 *B, const unsigned int ldb, const float beta, float *C,
+            const unsigned int ldc) {
+  __fallback_shgemm(TStorageOrder, TransA, TransB, M, N, K, alpha, A, lda, B,
+                    ldb, beta, C, ldc);
+}
+
+void shgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
+            const unsigned int N, const float alpha, const float *A,
+            const unsigned int lda, const _FP16 *X, const unsigned int incX,
+            const float beta, float *Y, const unsigned int incY) {
+  __fallback_shgemv(TStorageOrder, TransA, M, N, alpha, A, lda, X, incX, beta,
+                    Y, incY);
+}
+
+void hsgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
+            const unsigned int M, const unsigned int N, const unsigned int K,
+            const float alpha, const _FP16 *A, const unsigned int lda,
+            const float *B, const unsigned int ldb, const float beta, float *C,
+            const unsigned int ldc) {
+  __fallback_hsgemm(TStorageOrder, TransA, TransB, M, N, K, alpha, A, lda, B,
+                    ldb, beta, C, ldc);
+}
+
+void hsgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
+            const unsigned int N, const float alpha, const _FP16 *A,
+            const unsigned int lda, const float *X, const unsigned int incX,
+            const float beta, float *Y, const unsigned int incY) {
+  __fallback_hsgemv(TStorageOrder, TransA, M, N, alpha, A, lda, X, incX, beta,
+                    Y, incY);
+}
+
 void quantize_row_q8_0(const _FP16 *__restrict src, void *__restrict dst,
                        int64_t k) {
   __fallback_quantize_row_q8_0(src, dst, k);
@@ -103,40 +137,6 @@ void sgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
            const float beta, _FP16 *Y, const unsigned int incY) {
   __fallback_sgemv(TStorageOrder, TransA, M, N, alpha, A, lda, X, incX, beta, Y,
                    incY);
-}
-
-void shgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
-            const unsigned int M, const unsigned int N, const unsigned int K,
-            const float alpha, const float *A, const unsigned int lda,
-            const _FP16 *B, const unsigned int ldb, const float beta, float *C,
-            const unsigned int ldc) {
-  __fallback_shgemm(TStorageOrder, TransA, TransB, M, N, K, alpha, A, lda, B,
-                    ldb, beta, C, ldc);
-}
-
-void shgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
-            const unsigned int N, const float alpha, const float *A,
-            const unsigned int lda, const _FP16 *X, const unsigned int incX,
-            const float beta, float *Y, const unsigned int incY) {
-  __fallback_shgemv(TStorageOrder, TransA, M, N, alpha, A, lda, X, incX, beta,
-                    Y, incY);
-}
-
-void hsgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
-            const unsigned int M, const unsigned int N, const unsigned int K,
-            const float alpha, const _FP16 *A, const unsigned int lda,
-            const float *B, const unsigned int ldb, const float beta, float *C,
-            const unsigned int ldc) {
-  __fallback_hsgemm(TStorageOrder, TransA, TransB, M, N, K, alpha, A, lda, B,
-                    ldb, beta, C, ldc);
-}
-
-void hsgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
-            const unsigned int N, const float alpha, const _FP16 *A,
-            const unsigned int lda, const float *X, const unsigned int incX,
-            const float beta, float *Y, const unsigned int incY) {
-  __fallback_hsgemv(TStorageOrder, TransA, M, N, alpha, A, lda, X, incX, beta,
-                    Y, incY);
 }
 
 void ele_mul(const unsigned int N, const _FP16 *X, const _FP16 *Y, _FP16 *Z,

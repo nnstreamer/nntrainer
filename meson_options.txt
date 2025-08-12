@@ -4,7 +4,7 @@ option('install-app', type: 'boolean', value: true)
 option('use_gym', type: 'boolean', value: false)
 option('enable-capi', type: 'feature', value: 'auto')
 option('enable-ccapi', type: 'boolean', value: true)
-option('enable-test', type: 'boolean', value: false)
+option('enable-test', type: 'boolean', value: true)
 option('enable-logging', type: 'boolean', value: false)
 option('enable-tizen-feature-check', type: 'boolean', value: false)
 option('enable-nnstreamer-backbone', type: 'boolean', value: false)
@@ -47,7 +47,7 @@ option('enable-biqgemm', type: 'boolean', value: false)
 option('biqgemm-path', type: 'string', value: '../BiQGEMM')
 option('enable-benchmarks', type: 'boolean', value : false)
 option('enable-ggml', type: 'boolean', value: true)
-option('ggml-thread-backend', type: 'string', value: 'bsthread')
+option('ggml-thread-backend', type: 'string', value: 'mixed')
 
 # ml-api dependency (to enable, install capi-inference from github.com/nnstreamer/api )
 # To inter-operate with nnstreamer and ML-API packages, you need to enable this.
@@ -61,4 +61,3 @@ option('nnstreamer-subplugin-install-path', type: 'string', value: 'lib/nnstream
 # application related options
 option('enable_encoder', type: 'boolean', value: false)
 option('libiomp_root', type:'string', value: './libiomp_win')
-option('K-quant_multithreading_strategy', type: 'string', value: 'bs') 

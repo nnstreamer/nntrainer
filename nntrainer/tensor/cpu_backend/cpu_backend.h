@@ -118,39 +118,6 @@ void hsgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
             const unsigned int N, const float alpha, const _FP16 *A,
             const unsigned int lda, const float *X, const unsigned int incX,
             const float beta, float *Y, const unsigned int incY);
-
-/**
- * @brief Quantize float to q6_K Quantization format
- *
- * @param src float* src to be quantized
- * @param dst void* dst to store quantized data
- * @param k number of elements in src
- */
-extern void quantize_row_q8_0(const _FP16 *__restrict src, void *__restrict dst,
-                              int64_t k);
-
-/**
- * @brief Quantize _FP16 to q8_0 Quantization format
- *
- * @param src input src to be quantized
- * @param dst output destination for quantized data
- * @param nrow number of row
- * @param n_per_row number of elements per row
- * @param quant_weights additional information for quantization. Currently in no
- * use.
- * @return size_t total size of quantized data
- */
-extern size_t quantize_q8_0(const _FP16 *src, void *dst, int64_t nrow,
-                            int64_t n_per_row, const float *quant_weights);
-/**
- * @brief q8_0 to _FP16 dequantize
- *
- * @param x_raw input src to be dequantized
- * @param y output destination for dequantized data
- * @param k data length
- */
-extern void dequantize_row_q8_0(const void *x_raw, _FP16 *y, int64_t k);
-
 /**
  * @brief Accelerating function for rotary embedding layer forwarding
  *
@@ -421,126 +388,7 @@ extern void inv_sqrt_inplace(const unsigned int N, _FP16 *X);
 extern void transpose_matrix(const unsigned int M, const unsigned int N,
                              const _FP16 *src, unsigned int ld_src, _FP16 *dst,
                              unsigned int ld_dst);
-
-/**
- * @brief Compute vcache for one row transposed
- * @param[in] row_num row number
- * @param[in] in float* input vector
- * @param[in] vcache uint16_t* input vector
- * @param[out] output float* output vector
- * @param[in] num_cache_head number head of cache
- * @param[in] gqa_size size of group
- * @param[in] head_dim head dimension
- */
-extern void compute_fp16vcache_fp32_transposed(int row_num, const float *in,
-                                               const uint16_t *vcache,
-                                               float *output,
-                                               int num_cache_head, int gqa_size,
-                                               int head_dim);
-
-/**
- * @brief Compute kcaches
- * @tparam BType type of B vector element
- * @param[in] A float* input vector A
- * @param[in] B BType* input vector B
- * @param[out] output float* output float vector
- * @param[in] num_rows number of row
- * @param[in] N number of chunk
- * @param[in] chunk_size size of chunk
- * @param[in] group_size size of group
- * @param[in] tile_size size of tile
- */
-template <typename BType>
-extern void compute_kcaches(const float *A, const BType *B, float *output,
-                            int num_rows, int N, int chunk_size, int group_size,
-                            int tile_size);
-
-/**
- * @brief Compute rotary embedding value
- * @param[in] width current w value from b, c, h, w
- * @param[in] dim unit length of simd computation
- * @param[in] half_ criterion for rotational direction of embedding
- * @param[in/out] inout float* uesed also as output when expected output float*
- * values
- * @param[out] output void* output values, used when expected output __fp16*
- * values
- * @param[in] cos_ float* input con values
- * @param[in] sin_ float* input sin values
- * @param[in] only_convert_to_fp16 equal true if method is used only for
- * conversion
- */
-extern void compute_rotary_emb_value(unsigned int width, unsigned int dim,
-                                     unsigned int half_, float *inout,
-                                     void *output, const float *cos_,
-                                     const float *sin_,
-                                     bool only_convert_to_fp16);
-
-/**
- * @brief Multihead softmax, exp(x_i) / sum(exp(x_i)), inplace version
- * @param[in/out] qk_out __fp16* input/output values
- * @param[in] start_row start row number
- * @param[in] end_row end row number
- * @param[in] num_heads heads number
- */
-extern void softmax_row_inplace(_FP16 *qk_out, size_t start_row, size_t end_row,
-                                size_t num_heads);
-
-/**
- * @brief Multihead softmax, exp(x_i) / sum(exp(x_i))
- * @param[in/out] qk_out __fp16* input/output values
- * @param[in] start_row start row number
- * @param[in] end_row end row number
- * @param[in] num_heads heads number
- */
-extern void softmax_row(_FP16 *qk_out, size_t start_row, size_t end_row,
-                        size_t num_heads);
-
-/**
- * @brief Compute vcache for one row transposed
- * @param[in] row_num row number
- * @param[in] in _FP16* input vector
- * @param[in] vcache _FP16* input vector
- * @param[out] output _FP16* output vector
- * @param[in] num_cache_head number head of cache
- * @param[in] gqa_size size of group
- * @param[in] head_dim head dimension
- */
-extern void compute_fp16vcache_transposed(int row_num, const _FP16 *in,
-                                          const _FP16 *vcache, _FP16 *output,
-                                          int num_cache_head, int gqa_size,
-                                          int head_dim);
-
-/**
- * @brief Compute kcaches
- * @tparam BType type of B vector element
- * @param[in] A float* input vector A
- * @param[in] B BType* input vector B
- * @param[out] output float* output float vector
- * @param[in] num_rows number of row
- * @param[in] N number of chunk
- * @param[in] chunk_size size of chunk
- * @param[in] group_size size of group
- * @param[in] tile_size size of tile
- */
-extern void compute_kcaches(const _FP16 *A, const _FP16 *B, _FP16 *output,
-                            int num_rows, int N, int chunk_size, int group_size,
-                            int tile_size);
-
-/**
- * @brief Compute rotary embedding value
- * @param[in] width current w value from b, c, h, w
- * @param[in] dim unit length of simd computation
- * @param[in] half_ criterion for rotational direction of embedding
- * @param[in/out] inout __fp16* used also as output
- * @param[in] cos_ __fp16* input con values
- * @param[in] sin_ __fp16* input sin values
- */
-extern void compute_rotary_emb_value(unsigned int width, unsigned int dim,
-                                     unsigned int half_, _FP16 *inout,
-                                     const _FP16 *cos_, const _FP16 *sin_);
-
 #endif
-
 /**
  * @brief Initialization of ggml backend
  */
@@ -1069,26 +917,6 @@ template <typename T = float>
 extern void quantize_row_q8_K(const T *src, void *dst, int64_t k);
 
 /**
- * @brief Multihead softmax, exp(x_i) / sum(exp(x_i)), inplace version
- * @param[in/out] qk_out float* input/output values
- * @param[in] start_row start row number
- * @param[in] end_row end row number
- * @param[in] num_heads heads number
- */
-extern void softmax_row_inplace(float *qk_out, size_t start_row, size_t end_row,
-                                size_t num_heads);
-
-/**
- * @brief Multihead softmax, exp(x_i) / sum(exp(x_i))
- * @param[in/out] qk_out float* input/output values
- * @param[in] start_row start row number
- * @param[in] end_row end row number
- * @param[in] num_heads heads number
- */
-extern void softmax_row(float *qk_out, size_t start_row, size_t end_row,
-                        size_t num_heads);
-
-/**
  * @brief repack q40 to q40x8
  *
  * @param W input q40
@@ -1145,5 +973,78 @@ extern size_t quantize_q8_0(const T *src, void *dst, int64_t nrow,
  */
 template <typename T = float>
 extern void dequantize_row_q8_0(const void *x_raw, T *y, int64_t k);
+
+/**
+ * @brief Multihead softmax, exp(x_i) / sum(exp(x_i)), inplace version
+ * @param[in/out] qk_out float* input/output values
+ * @param[in] start_row start row number
+ * @param[in] end_row end row number
+ * @param[in] num_heads heads number
+ */
+extern void softmax_row_inplace(float *qk_out, size_t start_row, size_t end_row,
+                                size_t num_heads);
+
+/**
+ * @brief Multihead softmax, exp(x_i) / sum(exp(x_i))
+ * @param[in/out] qk_out float* input/output values
+ * @param[in] start_row start row number
+ * @param[in] end_row end row number
+ * @param[in] num_heads heads number
+ */
+extern void softmax_row(float *qk_out, size_t start_row, size_t end_row,
+                        size_t num_heads);
+
+/**
+ * @brief Compute vcache for one row transposed
+ * @param[in] row_num row number
+ * @param[in] in float* input vector
+ * @param[in] vcache uint16_t* input vector
+ * @param[out] output float* output vector
+ * @param[in] num_cache_head number head of cache
+ * @param[in] gqa_size size of group
+ * @param[in] head_dim head dimension
+ */
+extern void compute_fp16vcache_fp32_transposed(int row_num, const float *in,
+                                               const uint16_t *vcache,
+                                               float *output,
+                                               int num_cache_head, int gqa_size,
+                                               int head_dim);
+
+/**
+ * @brief Compute kcaches
+ * @tparam BType type of B vector element
+ * @param[in] A float* input vector A
+ * @param[in] B BType* input vector B
+ * @param[out] output float* output float vector
+ * @param[in] num_rows number of row
+ * @param[in] N number of chunk
+ * @param[in] chunk_size size of chunk
+ * @param[in] group_size size of group
+ * @param[in] tile_size size of tile
+ */
+template <typename BType>
+extern void compute_kcaches(const float *A, const BType *B, float *output,
+                            int num_rows, int N, int chunk_size, int group_size,
+                            int tile_size);
+
+/**
+ * @brief Compute rotary embedding value
+ * @param[in] width current w value from b, c, h, w
+ * @param[in] dim unit length of simd computation
+ * @param[in] half_ criterion for rotational direction of embedding
+ * @param[in/out] inout float* uesed also as output when expected output float*
+ * values
+ * @param[out] output void* output values, used when expected output __fp16*
+ * values
+ * @param[in] cos_ float* input con values
+ * @param[in] sin_ float* input sin values
+ * @param[in] only_convert_to_fp16 equal true if method is used only for
+ * conversion
+ */
+extern void compute_rotary_emb_value(unsigned int width, unsigned int dim,
+                                     unsigned int half_, float *inout,
+                                     void *output, const float *cos_,
+                                     const float *sin_,
+                                     bool only_convert_to_fp16);
 #endif
 #endif
