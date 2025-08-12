@@ -5,7 +5,7 @@ ggml_interface_headers = [
 
 ggml_interface_sources = [
   'nntr_ggml_impl.cpp',
-  # 'ggml_interface.cpp'
+  'ggml_interface.cpp'
 ]
 
 if get_option('ggml-thread-backend') == 'bstp'
