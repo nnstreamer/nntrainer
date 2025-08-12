@@ -54,14 +54,14 @@ typedef struct {
 
 #if defined(__aarch64__)
 static inline float nntr_compute_fp16_to_fp32(uint16_t h) {
-  _FP16 tmp;
+  __fp16 tmp;
   memcpy(&tmp, &h, sizeof(uint16_t));
   return (float)tmp;
 }
 
 static inline uint16_t nntr_compute_fp32_to_fp16(float f) {
   uint16_t res;
-  _FP16 tmp = f;
+  __fp16 tmp = f;
   memcpy(&res, &tmp, sizeof(uint16_t));
   return res;
 }
