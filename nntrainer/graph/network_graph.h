@@ -564,8 +564,8 @@ private:
   std::vector<std::string> label_list;  /**< identifier for the model labels */
   std::vector<std::string> input_list;  /**< identifier for the model inputs */
   std::vector<std::string> output_list; /**< identifier for the model outputs */
-  std::vector<TensorDim> label_dims;    /**< graph label dimensions */
-  std::vector<TensorDim> input_dims;    /**< graph input dimensions */
+  std::vector<TensorDim> label_dims_;   /**< graph label dimensions */
+  std::vector<TensorDim> input_dims_;   /**< graph input dimensions */
 
   bool optimize_memory;    /**< optimize memory */
   ExecutionMode exec_mode; /**< execution mode with which the graph has been
