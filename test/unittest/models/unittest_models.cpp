@@ -1101,6 +1101,27 @@ static std::unique_ptr<NeuralNetwork> makeChannelShuffleOperation() {
   return nn;
 }
 
+std::unique_ptr<NeuralNetwork> makeTopkOperation() {
+
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+
+  auto outer_graph =
+
+    makeGraph({{"input", {"name=in", "input_shape=2:2"}},
+               {"fully_connected", {"name=fc", "unit=7", "input_layers=in"}},
+               {"topk", {"name=topk_layer", "k=4", "input_layers=fc"}},
+               {"mse", {"name=loss", "input_layers=topk_layer(0)"}}});
+
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
+
+  nn->setProperty({"batch_size=1"});
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate=0.1"}));
+
+  return nn;
+}
+
 GTEST_PARAMETER_TEST(
   model, nntrainerModelTest,
   ::testing::ValuesIn({
@@ -1191,6 +1212,8 @@ GTEST_PARAMETER_TEST(
                  ModelTestOption::ALL_V2),
     mkModelTc_V2(makeChannelShuffleOperation, "channel_shuffle",
                  ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeTopkOperation, "topk_operation",
+                 ModelTestOption::COMPARE_V2),
   }),
   [](const testing::TestParamInfo<nntrainerModelTest::ParamType> &info)
     -> const auto & { return std::get<1>(info.param); });

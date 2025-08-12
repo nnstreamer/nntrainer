@@ -623,6 +623,19 @@ class ChannelShuffle(torch.nn.Module):
         
         return out, loss
 
+class topkOperation(torch.nn.Module):
+    def __init__(self,k):
+        super().__init__()
+        self.fc=torch.nn.Linear(2,7)
+        self.k = k
+        self.loss=torch.nn.MSELoss()
+    
+    def forward(self,input,labels):
+        out = self.fc(input[0])
+        out = torch.topk(out,self.k)
+        loss = self.loss(out[0],labels[0]) 
+        return out, loss    
+
 
 if __name__ == "__main__":
     record_v2(
@@ -1042,3 +1055,15 @@ if __name__ == "__main__":
 
     #    Function to check the created golden test file
     inspect_file("channel_shuffle.nnmodelgolden")
+    
+    topk_operation = topkOperation(k=4)
+    record_v2(
+        topk_operation,
+        iteration=2,
+        input_dims=[(2,2)],
+        input_dtype=[float],
+        label_dims=[(2,4)],
+        name="topk_operation"
+    )
+    
+    inspect_file("topk_operation.nnmodelgolden")
