@@ -16,8 +16,12 @@
 #include <type_traits>
 #include <utility>
 
+#include "avx2_impl.h"
 #include "nntrainer_test_util.h"
+#include "swiglu_cl.h"
+#include "tensor_dim.h"
 #include "util_func.h"
+#include "x86_compute_backend.h"
 #include <blas_kernel_interface.h>
 #include <blas_kernels.h>
 #include <cl_context.h>
@@ -1368,6 +1372,185 @@ DECLARE_q4_0_test_M_K_N(28, 3072, 3072);
 #endif
 
 #endif // ENABLE_GGML
+
+#ifdef ENABLE_FP16
+TEST(blas_kernels, swiglu_layer_fp16) {
+  const int batch = 1;
+  const int channel = 1;
+  const int height = 4 * 1024;
+  const int width = 8 * 1024;
+
+  const int batch_b = 1;
+
+  const float alpha = 1e-1;
+  const int MOD = 10;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::Tensor A_fp16(batch, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor B_fp16(batch_b, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor out_cl_fp16(batch_b, channel, height, width,
+                                t_type_nchw_fp16);
+  nntrainer::Tensor out_ref_fp16(batch, channel, height, width,
+                                 t_type_nchw_fp16);
+
+  GEN_TEST_INPUT(A_fp16, ((i * (batch * height * channel) +
+                           j * (batch * height) + k * (width) + l + 1) %
+                          MOD) *
+                           alpha);
+  GEN_TEST_INPUT_C(B_fp16, ((i * (batch_b * height * channel) +
+                             j * (batch_b * height) + k * (width) + l + 1) %
+                            MOD) *
+                             alpha);
+
+  static constexpr uint32_t run_count = 8;
+
+  SwiGLULayerCl layer;
+
+  auto t1_cl = std::chrono::high_resolution_clock::now();
+  for (unsigned int i = 0; i < run_count; ++i) {
+    layer.swiglu_cl_fp16(A_fp16.getData<_FP16>(), B_fp16.getData<_FP16>(),
+                         out_cl_fp16.getData<_FP16>(), width, height);
+  }
+  auto t2_cl = std::chrono::high_resolution_clock::now();
+
+  auto t1_ref = std::chrono::high_resolution_clock::now();
+  for (unsigned int i = 0; i < run_count; ++i) {
+    nntrainer::swiglu(height * width, out_ref_fp16.getData<_FP16>(),
+                      A_fp16.getData<_FP16>(), B_fp16.getData<_FP16>());
+  }
+  auto t2_ref = std::chrono::high_resolution_clock::now();
+
+  auto dt_cl =
+    std::chrono::duration_cast<std::chrono::milliseconds>(t2_cl - t1_cl);
+  auto dt_ref =
+    std::chrono::duration_cast<std::chrono::milliseconds>(t2_ref - t1_ref);
+
+  std::cout << "Swiglu time : GPU = " << dt_cl.count() / (run_count * 1.0f)
+            << " ms" << std::endl;
+
+  std::cout << "Swiglu time : CPU = " << dt_ref.count() / (run_count * 1.0f)
+            << " ms" << std::endl;
+
+  float mseError = mse<_FP16>(out_cl_fp16.getData<_FP16>(),
+                              out_ref_fp16.getData<_FP16>(), height * width);
+
+  double cosSim =
+    cosine_similarity<_FP16>(out_cl_fp16.getData<_FP16>(),
+                             out_ref_fp16.getData<_FP16>(), height * width);
+
+  const float epsilon = 1e-3 * width;
+
+  EXPECT_IN_RANGE(mseError, 0, epsilon);
+  EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
+
+  uint32_t print_count = 4;
+
+  for (uint32_t i = 0; i < print_count; i++) {
+    auto from_ref = (float)out_ref_fp16.getData<_FP16>()[i];
+    auto from_cl = (float)out_cl_fp16.getData<_FP16>()[i];
+
+    std::cout << "CL : " << from_cl << " REF : " << from_ref << std::endl;
+  }
+
+  for (uint32_t i = 0; i < 32; i++) {
+    auto from_ref =
+      (float)out_ref_fp16.getData<_FP16>()[height * width - 1 - i];
+    auto from_cl = (float)out_cl_fp16.getData<_FP16>()[height * width - 1 - i];
+
+    std::cout << "CL : " << from_cl << " REF : " << from_ref << std::endl;
+  }
+}
+#endif
+
+TEST(blas_kernels, swiglu_layer_fp32) {
+  const int batch = 1;
+  const int channel = 1;
+  const int height = 4 * 1024;
+  const int width = 8 * 1024;
+
+  const int batch_b = 1;
+
+  const float alpha = 1e-1;
+  const int MOD = 10;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor A_fp32(batch, channel, height, width, t_type_nchw_fp32);
+  nntrainer::Tensor B_fp32(batch_b, channel, height, width, t_type_nchw_fp32);
+  nntrainer::Tensor out_cl_fp32(batch_b, channel, height, width,
+                                t_type_nchw_fp32);
+  nntrainer::Tensor out_ref_fp32(batch, channel, height, width,
+                                 t_type_nchw_fp32);
+
+  GEN_TEST_INPUT(A_fp32, ((i * (batch * height * channel) +
+                           j * (batch * height) + k * (width) + l + 1) %
+                          MOD) *
+                           alpha);
+  GEN_TEST_INPUT_C(B_fp32, ((i * (batch_b * height * channel) +
+                             j * (batch_b * height) + k * (width) + l + 1) %
+                            MOD) *
+                             alpha);
+
+  static constexpr uint32_t run_count = 8;
+
+  SwiGLULayerCl layer;
+
+  auto t1_cl = std::chrono::high_resolution_clock::now();
+  for (unsigned int i = 0; i < run_count; ++i) {
+    layer.swiglu_cl(A_fp32.getData(), B_fp32.getData(), out_cl_fp32.getData(),
+                    width, height);
+  }
+  auto t2_cl = std::chrono::high_resolution_clock::now();
+
+  auto t1_ref = std::chrono::high_resolution_clock::now();
+  for (unsigned int i = 0; i < run_count; ++i) {
+    nntrainer::swiglu(height * width, out_ref_fp32.getData(), A_fp32.getData(),
+                      B_fp32.getData());
+  }
+  auto t2_ref = std::chrono::high_resolution_clock::now();
+
+  auto dt_cl =
+    std::chrono::duration_cast<std::chrono::milliseconds>(t2_cl - t1_cl);
+  auto dt_ref =
+    std::chrono::duration_cast<std::chrono::milliseconds>(t2_ref - t1_ref);
+
+  std::cout << "Swiglu time : GPU = " << dt_cl.count() / (run_count * 1.0f)
+            << " ms" << std::endl;
+
+  std::cout << "Swiglu time : CPU = " << dt_ref.count() / (run_count * 1.0f)
+            << " ms" << std::endl;
+
+  float mseError = mse<float>(out_cl_fp32.getData<float>(),
+                              out_ref_fp32.getData<float>(), height * width);
+
+  double cosSim =
+    cosine_similarity<float>(out_cl_fp32.getData<float>(),
+                             out_ref_fp32.getData<float>(), height * width);
+
+  const float epsilon = 1e-3 * width;
+
+  EXPECT_IN_RANGE(mseError, 0, epsilon);
+  EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
+
+  uint32_t print_count = 4;
+
+  for (uint32_t i = 0; i < print_count; i++) {
+    auto from_ref = out_ref_fp32.getData()[i];
+    auto from_cl = out_cl_fp32.getData()[i];
+
+    std::cout << "CL : " << from_cl << " REF : " << from_ref << std::endl;
+  }
+
+  for (uint32_t i = 0; i < print_count; i++) {
+    auto from_ref = (float)out_ref_fp32.getData()[height * width - 1 - i];
+    auto from_cl = (float)out_cl_fp32.getData()[height * width - 1 - i];
+
+    std::cout << "CL : " << from_cl << " REF : " << from_ref << std::endl;
+  }
+}
 
 GTEST_API_ int main(int argc, char **argv) {
   int result = -1;

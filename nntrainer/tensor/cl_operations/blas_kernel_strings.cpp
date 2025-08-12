@@ -656,11 +656,23 @@ const std::string &getTransposeClKernelAxis2() {
 
 const std::string &getSwiGluClKernel() {
   static const std::string swiglu_cl_kernel_ =
-    R"(__kernel void swiglu_cl(__global const float *in1, __global const float *in2, __global float *out) {
-int i = get_global_id(0);
-float swish = in1[i] * exp(in1[i]) / (1 + exp(in1[i]));
-out[i] = swish * in2[i];
-})";
+    R"(
+    __kernel void swiglu_cl(
+      __global const float * restrict in1,
+      __global const float * restrict in2,
+      __global       float * restrict out)
+    {
+      const int i = get_global_id(0);
+
+      const float in1_val = in1[i];
+      const float in2_val = in2[i];
+
+      const float in1_exp = exp(in1_val);
+      
+      const float swish = in1_val * in1_exp / (1.0f + in1_exp);
+
+      out[i] = swish * in2_val;
+    })";
   return swiglu_cl_kernel_;
 }
 
@@ -1513,9 +1525,17 @@ const std::string &getSwiGluClKernelFP16() {
     R"(
     #pragma OPENCL EXTENSION cl_khr_fp16 : enable
     __kernel void swiglu_cl_fp16(__global const half *in1, __global const half *in2, __global half *out) {
-    int i = get_global_id(0);
-    half swish = in1[i] * exp((float)in1[i]) / (1 + exp((float)in1[i]));
-    out[i] = swish * in2[i];
+      const int i = get_global_id(0);
+
+      const half in1_val = in1[i];
+      const half in2_val = in2[i];
+
+      const half in1_exp = exp(in1_val);
+      
+      const half half_one = (half)(1.0f);
+      const half swish = in1_val * in1_exp / (half_one + in1_exp);
+
+      out[i] = swish * in2_val;    
 })";
   return swiglu_cl_kernel_fp16_;
 }
