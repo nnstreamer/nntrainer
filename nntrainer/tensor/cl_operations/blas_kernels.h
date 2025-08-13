@@ -25,6 +25,34 @@
 namespace nntrainer {
 
 /**
+ * @brief Q4_0 GEMM computation : C = A*B
+ *
+ * @param matAdata void * for quantized Matrix A
+ * @param matBdata float * for Matrix B
+ * @param matCdata float * for output Matrix C
+ * @param M
+ * @param K
+ * @param N
+ */
+void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
+                  unsigned int M, unsigned int N, unsigned int K);
+
+/**
+ * @brief Q4_0 GEMM computation : C = A*B
+ *
+ * @param matAValue void * for Matrix A Quantized values
+ * @param matAScale void * for Matrix A Scales
+ * @param matBdata float * for Matrix B
+ * @param matCdata float * for output Matrix C
+ * @param M
+ * @param K
+ * @param N
+ */
+void gemm_q4_0_cl2(void *matAValue, void *matAScale, float *matBdata,
+                   float *matCdata, unsigned int M, unsigned int N,
+                   unsigned int K);
+
+/**
  * @brief     Q6_K sgemv computation : Y = A*X
  * @param[in] matAdata void * for Matrix A
  * @param[in] vecXdata float * for Vector X
@@ -115,6 +143,27 @@ void transpose_cl_axis(const float *in, float *res,
                        unsigned int input_batch_size,
                        unsigned int input_channels, unsigned int input_height,
                        unsigned int input_width, unsigned int axis);
+/**
+ * @brief  Separate the quantized bits and scale from block_q4_0
+ *
+ * @param src source pointer to the block_q4_0 data
+ * @param dst_q destination pointer for the quantized bits
+ * @param dst_d destination pointer for the scale
+ * @param num_blocks number of blocks to process
+ */
+void flatten_block_q4_0_cl(const void *src, void *dst_q, void *dst_d,
+                           unsigned int num_blocks);
+
+/**
+ * @brief Restore the original block_q4_0 from the quantized bits and scale
+ *
+ * @param src_q source pointer to the quantized bits
+ * @param src_d source pointer to the scale
+ * @param dst destination pointer for the restored block_q4_0
+ * @param num_blocks number of blocks to process
+ */
+void restore_block_q4_0_cl(const void *src_q, const void *src_d, void *dst,
+                           unsigned int num_blocks);
 
 #ifdef ENABLE_FP16
 
