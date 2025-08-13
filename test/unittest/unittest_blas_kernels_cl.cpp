@@ -11,17 +11,13 @@
  */
 
 #include <cstring>
-#include <fstream>
 #include <gtest/gtest.h>
-#include <random>
-#include <type_traits>
 #include <utility>
 
-#include "avx2_impl.h"
+#include "fallback_internal.h"
 #include "nntrainer_test_util.h"
 #include "swiglu_cl.h"
 #include "tensor_dim.h"
-#include "util_func.h"
 #include "x86_compute_backend.h"
 #include <blas_kernel_interface.h>
 #include <blas_kernels.h>
@@ -1378,8 +1374,8 @@ DECLARE_q4_0_test_M_K_N(28, 3072, 3072);
 TEST(blas_kernels, swiglu_layer_fp16) {
   const int batch = 1;
   const int channel = 1;
-  const int height = 16;
-  const int width = 8;
+  const int height = 3072;
+  const int width = 3072;
 
   const int batch_b = 1;
 
@@ -1418,7 +1414,7 @@ TEST(blas_kernels, swiglu_layer_fp16) {
 
   auto t1_ref = std::chrono::high_resolution_clock::now();
   for (unsigned int i = 0; i < run_count; ++i) {
-    nntrainer::swiglu(height * width, out_ref_fp16.getData<_FP16>(),
+    __fallback_swiglu(height * width, out_ref_fp16.getData<_FP16>(),
                       A_fp16.getData<_FP16>(), B_fp16.getData<_FP16>());
   }
   auto t2_ref = std::chrono::high_resolution_clock::now();
@@ -1445,33 +1441,14 @@ TEST(blas_kernels, swiglu_layer_fp16) {
 
   EXPECT_IN_RANGE(mseError, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
-
-  uint32_t print_count = 64;
-
-  for (uint32_t i = 0; i < print_count; i++) {
-    auto from_ref = (float)out_ref_fp16.getData<_FP16>()[i];
-    auto from_cl = (float)out_cl_fp16.getData<_FP16>()[i];
-
-    std::cout << "CL : " << from_cl << " REF : " << from_ref << std::endl;
-  }
-
-  std::cout << "BRK" << std::endl;
-
-  for (uint32_t i = 0; i < print_count; i++) {
-    auto from_ref =
-      (float)out_ref_fp16.getData<_FP16>()[height * width - 1 - i];
-    auto from_cl = (float)out_cl_fp16.getData<_FP16>()[height * width - 1 - i];
-
-    std::cout << "CL : " << from_cl << " REF : " << from_ref << std::endl;
-  }
 }
 #endif
 
 TEST(blas_kernels, swiglu_layer_fp32) {
   const int batch = 1;
   const int channel = 1;
-  const int height = 16;
-  const int width = 8;
+  const int height = 3072;
+  const int width = 3072;
 
   const int batch_b = 1;
 
@@ -1510,7 +1487,7 @@ TEST(blas_kernels, swiglu_layer_fp32) {
 
   auto t1_ref = std::chrono::high_resolution_clock::now();
   for (unsigned int i = 0; i < run_count; ++i) {
-    nntrainer::swiglu(height * width, out_ref_fp32.getData(), A_fp32.getData(),
+    __fallback_swiglu(height * width, out_ref_fp32.getData(), A_fp32.getData(),
                       B_fp32.getData());
   }
   auto t2_ref = std::chrono::high_resolution_clock::now();
@@ -1537,31 +1514,13 @@ TEST(blas_kernels, swiglu_layer_fp32) {
 
   EXPECT_IN_RANGE(mseError, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
-
-  uint32_t print_count = 64;
-
-  for (uint32_t i = 0; i < print_count; i++) {
-    auto from_ref = out_ref_fp32.getData()[i];
-    auto from_cl = out_cl_fp32.getData()[i];
-
-    std::cout << "CL : " << from_cl << " REF : " << from_ref << std::endl;
-  }
-
-  std::cout << "BRK" << std::endl;
-
-  for (uint32_t i = 0; i < print_count; i++) {
-    auto from_ref = (float)out_ref_fp32.getData()[height * width - 1 - i];
-    auto from_cl = (float)out_cl_fp32.getData()[height * width - 1 - i];
-
-    std::cout << "CL : " << from_cl << " REF : " << from_ref << std::endl;
-  }
 }
 
 TEST(blas_kernels, swiglu_layer_fp32_svm) {
   const int batch = 1;
   const int channel = 1;
-  const int height = 16;
-  const int width = 8;
+  const int height = 3072;
+  const int width = 3072;
 
   const int dim = width * height;
 
@@ -1617,7 +1576,7 @@ TEST(blas_kernels, swiglu_layer_fp32_svm) {
 
   auto t1_ref = std::chrono::high_resolution_clock::now();
   for (unsigned int i = 0; i < run_count; ++i) {
-    nntrainer::swiglu(height * width, out_ref_fp32.getData(), A_fp32.getData(),
+    __fallback_swiglu(height * width, out_ref_fp32.getData(), A_fp32.getData(),
                       B_fp32.getData());
   }
   auto t2_ref = std::chrono::high_resolution_clock::now();
