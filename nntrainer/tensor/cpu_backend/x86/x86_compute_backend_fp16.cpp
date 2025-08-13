@@ -37,8 +37,13 @@ void shgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
   float *B_ = new float[N * K];
   scopy(N * K, B, 1, B_, 1);
 
+#ifdef USE_BLAS
   __cblas_sgemm(TStorageOrder, TransA, TransB, M, N, K, alpha, A, lda, B_, ldb,
                 beta, C, ldc);
+#else
+  __fallback_sgemm(TStorageOrder, TransA, TransB, M, N, K, alpha, A, lda, B_,
+                   ldb, beta, C, ldc);
+#endif
 
   delete[] B_;
 }
@@ -54,8 +59,13 @@ void shgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
 
   scopy(lenX, X, 1, X_, 1);
 
+#ifdef USE_BLAS
   __cblas_sgemv(TStorageOrder, TransA, M, N, alpha, A, lda, X_, incX, beta, Y,
                 incY);
+#else
+  __fallback_sgemv(TStorageOrder, TransA, M, N, alpha, A, lda, X_, incX, beta,
+                   Y, incY);
+#endif
 
   delete[] X_;
 }
@@ -69,8 +79,13 @@ void hsgemm(const unsigned int TStorageOrder, bool TransA, bool TransB,
 
   scopy(M * K, A, 1, A_, 1);
 
+#ifdef USE_BLAS
   __cblas_sgemm(TStorageOrder, TransA, TransB, M, N, K, alpha, A_, lda, B, ldb,
                 beta, C, ldc);
+#else
+  __fallback_sgemm(TStorageOrder, TransA, TransB, M, N, K, alpha, A_, lda, B,
+                   ldb, beta, C, ldc);
+#endif
 
   delete[] A_;
 }
@@ -86,8 +101,13 @@ void hsgemv(const unsigned int TStorageOrder, bool TransA, const unsigned int M,
 
   scopy(M * N, A, 1, A_, 1);
 
+#ifdef USE_BLAS
   __cblas_sgemv(TStorageOrder, TransA, M, N, alpha, A_, lda, X, incX, beta, Y,
                 incY);
+#else
+  __fallback_sgemv(TStorageOrder, TransA, M, N, alpha, A_, lda, X, incX, beta,
+                   Y, incY);
+#endif
 
   delete[] A_;
 }
