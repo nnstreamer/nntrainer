@@ -37,7 +37,7 @@
 #include <opencl_kernel.h>
 #include <opencl_program.h>
 
-#include <singleton.h>
+#include "singleton.h"
 
 namespace nntrainer {
 

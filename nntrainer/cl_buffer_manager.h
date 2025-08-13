@@ -20,7 +20,7 @@
 
 #include <nntrainer_log.h>
 
-#include <singleton.h>
+#include "singleton.h"
 
 namespace nntrainer {
 
