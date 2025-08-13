@@ -35,7 +35,7 @@
 #include <mem_allocator.h>
 #include <nntrainer_error.h>
 
-#include <singleton.h>
+#include "singleton.h"
 
 namespace nntrainer {
 
