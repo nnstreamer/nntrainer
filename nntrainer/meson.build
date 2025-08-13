@@ -54,12 +54,12 @@ nntrainer_elements = [
   'graph'
 ]
 
-if get_option('enable-opencl')
-  nntrainer_elements += 'opencl'
-  nntrainer_elements += 'layers/cl_layers'
+# if get_option('enable-opencl')
+  # nntrainer_elements += 'opencl'
+  # nntrainer_elements += 'layers/cl_layers'
 
-  nntrainer_inc_abs += meson.source_root() / 'subprojects' / 'CLBlast' / 'include'
-endif
+  # nntrainer_inc_abs += meson.source_root() / 'subprojects' / 'CLBlast' / 'include'
+# endif
 
 foreach elem : nntrainer_elements
   subdir(elem)
@@ -82,12 +82,12 @@ if get_option('enable-ggml')
   nntrainer_inc_abs += meson.source_root() / 'subprojects' / 'ggml' / 'src' / 'ggml-cpu'
 endif
 
-if get_option('enable-opencl')
-  nntrainer_headers += meson.current_source_dir() / 'cl_context.h'
-  nntrainer_headers += meson.current_source_dir() / 'cl_buffer_manager.h'
-  nntrainer_common_sources += 'cl_context.cpp'
-  nntrainer_common_sources += 'cl_buffer_manager.cpp'
-endif
+# if get_option('enable-opencl')
+  # nntrainer_headers += meson.current_source_dir() / 'cl_context.h'
+  # nntrainer_headers += meson.current_source_dir() / 'cl_buffer_manager.h'
+  # nntrainer_common_sources += 'cl_context.cpp'
+  # nntrainer_common_sources += 'cl_buffer_manager.cpp'
+# endif
 
 foreach s : nntrainer_common_sources
   nntrainer_sources += meson.current_source_dir() / s

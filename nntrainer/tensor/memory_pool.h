@@ -28,9 +28,11 @@
 #include <memory_planner.h>
 #include <tensor_wrap_specs.h>
 
+/**
 #ifdef ENABLE_OPENCL
 #include <cl_context.h>
 #endif
+*/
 
 #include <cstdlib>
 #include <dynamic_library_loader.h>
@@ -70,10 +72,12 @@ enum {
 
 namespace nntrainer {
 
+/**
 #ifdef ENABLE_OPENCL
 static ClContext *cl_context_ =
   static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
 #endif
+*/
 
 /**
  * @class   MemoryPool

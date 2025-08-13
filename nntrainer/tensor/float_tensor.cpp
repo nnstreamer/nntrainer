@@ -18,9 +18,11 @@
 #include <tensor.h>
 #include <util_func.h>
 
+/**
 #ifdef ENABLE_OPENCL
 #include "blas_kernels.h"
 #endif
+*/
 
 namespace nntrainer {
 
@@ -69,33 +71,33 @@ void FloatTensor::allocate() {
     /// allocate new memory for the tensor data
     MemoryData *mem_data;
 
-#ifdef ENABLE_OPENCL
-    if (blas_cc != nullptr) {
-      mem_data = new MemoryData(blas_cc->context_inst_.createSVMRegion(
-        dim.getDataLen() * sizeof(float)));
+    /**
+    #ifdef ENABLE_OPENCL
+        if (blas_cc != nullptr) {
+          mem_data = new MemoryData(blas_cc->context_inst_.createSVMRegion(
+            dim.getDataLen() * sizeof(float)));
 
-      data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-        blas_cc->context_inst_.releaseSVMRegion(
-          mem_data->template getAddr<float>());
-      });
+          data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
+            blas_cc->context_inst_.releaseSVMRegion(
+              mem_data->template getAddr<float>());
+          });
 
-      blas_cc->command_queue_inst_.enqueueSVMMap(
-        mem_data->template getAddr<float>(), dim.getDataLen() * sizeof(float),
-        false);
-    } else {
-      mem_data = new MemoryData((void *)(new float[dim.getDataLen()]{}));
-      data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-        delete[] mem_data->template getAddr<float>();
-        delete mem_data;
-      });
-    }
-#else
+          blas_cc->command_queue_inst_.enqueueSVMMap(
+            mem_data->template getAddr<float>(), dim.getDataLen() *
+    sizeof(float), false); } else { mem_data = new MemoryData((void *)(new
+    float[dim.getDataLen()]{})); data = std::shared_ptr<MemoryData>(mem_data,
+    [](auto *mem_data) { delete[] mem_data->template getAddr<float>(); delete
+    mem_data;
+          });
+        }
+    #else
+    */
     mem_data = new MemoryData((void *)(new float[dim.getDataLen()]{}));
     data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
       delete[] mem_data->template getAddr<float>();
       delete mem_data;
     });
-#endif
+    // #endif
 
     offset = 0;
     initialize();

@@ -80,11 +80,11 @@ if get_option('enable-biqgemm')
   endif
 endif
 
-if get_option('enable-opencl')
-  subdir('cl_operations')
-  nntrainer_inc += include_directories('cl_operations')
-  nntrainer_inc_abs += meson.current_source_dir() / 'cl_operations'
-endif
+# if get_option('enable-opencl')
+  # subdir('cl_operations')
+  # nntrainer_inc += include_directories('cl_operations')
+  # nntrainer_inc_abs += meson.current_source_dir() / 'cl_operations'
+# endif
 
 foreach s : tensor_sources
   nntrainer_sources += meson.current_source_dir() / s
