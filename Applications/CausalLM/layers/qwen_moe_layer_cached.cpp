@@ -397,7 +397,9 @@ void CachedSlimMoELayer::incremental_forwarding(
     from = 0;
     to = 1;
   }
+#ifdef DEBUG
   auto t1 = high_resolution_clock::now();
+#endif
 
   nntrainer::Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
   nntrainer::Tensor &output_ = context.getOutput(SINGLE_INOUT_IDX);
@@ -508,7 +510,9 @@ void CachedSlimMoELayer::incremental_forwarding(
       }
     }
 
+#ifdef DEBUG
     auto t1_hit = high_resolution_clock::now();
+#endif
 #pragma omp parallel for schedule(dynamic)
     for (int expert_idx : hit_idx_vector) {
       const auto &assignments = expert_assignments[expert_idx];
@@ -519,9 +523,11 @@ void CachedSlimMoELayer::incremental_forwarding(
         context.getWeight(expert_up_proj_indices[expert_idx]),
         context.getWeight(expert_down_proj_indices[expert_idx]), hidden_size);
     }
+#ifdef DEBUG
     auto t2_hit = high_resolution_clock::now();
 
     auto t1_miss = high_resolution_clock::now();
+#endif
 #pragma omp parallel for schedule(dynamic)
     for (int expert_idx : missed_idx_vector) {
       context.getWeight(expert_gate_proj_indices[expert_idx]).activate();
@@ -534,7 +540,9 @@ void CachedSlimMoELayer::incremental_forwarding(
         context.getWeight(expert_up_proj_indices[expert_idx]),
         context.getWeight(expert_down_proj_indices[expert_idx]), hidden_size);
     }
+#ifdef DEBUG
     auto t2_miss = high_resolution_clock::now();
+#endif
 
     while (loaded_expert_deque.size() > 16) {
       int target_idx = loaded_expert_deque.front();
@@ -544,14 +552,18 @@ void CachedSlimMoELayer::incremental_forwarding(
       evict_idx_vector.push_back(target_idx);
     }
 
+#ifdef DEBUG
     auto t1_evict = high_resolution_clock::now();
+#endif
 #pragma omp parallel for schedule(dynamic)
     for (int target_idx : evict_idx_vector) {
       context.getWeight(expert_gate_proj_indices[target_idx]).deactivate();
       context.getWeight(expert_up_proj_indices[target_idx]).deactivate();
       context.getWeight(expert_down_proj_indices[target_idx]).deactivate();
     }
+#ifdef DEBUG
     auto t2_evict = high_resolution_clock::now();
+#endif
 
     // Combine expert outputs
     for (int expert_idx = 0; expert_idx < static_cast<int>(num_experts);
