@@ -21,9 +21,10 @@
 
 #include <nntr_ggml_impl.h>
 
-#if defined(__aarch64__)
+#if defined(__ARM_NEON)
 #include <arm_neon.h>
-
+#elif defined (__ARM_ARCH_7A__) || defined (__arm__) || ARMV7
+#include <armv7_neon.h>
 #elif defined(__AVX2__) || defined(__AVX__)
 #include <immintrin.h>
 #endif // !defined(__aarch64__)
