@@ -1,3 +1,15 @@
+// SPDX-License-Identifier: Apache-2.0
+/**
+ * Copyright (C) 2025 Sungsik Kong <ss.kong@samsung.com>
+ *
+ * @file   ggml_interface.cpp
+ * @date   13 August 2025
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Sungsik Kong <ss.kong@samsung.com>
+ * @bug    No known bugs except for NYI items
+ * @brief  Function interface to use ggml lib from cpu_backend
+ */
+
 #include "ggml-common.h"
 #include "ggml-cpu-quants.h"
 #include "ggml-cpu.h"

@@ -3,7 +3,7 @@
  * Copyright (C) 2025 Michal Wlasiuk <testmailsmtp12345@gmail.com>
  * Copyright (C) 2025 Sungsik Kong <ss.kong@samsung.com>
  *
- * @file   ggml_interface.cpp
+ * @file   ggml_interface_bs_threadpool.cpp
  * @date   15 April 2025
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Michal Wlasiuk <testmailsmtp12345@gmail.com>
