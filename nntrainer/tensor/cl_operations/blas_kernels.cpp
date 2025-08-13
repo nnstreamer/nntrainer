@@ -30,14 +30,9 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
   // 1. Preprocess matrix A
   // 1.1 Flatten the Q4_0 matrix A to make a struct of array (src_q, src_d)
   /// @note This func write result to Scale/Quant buffers
-  if (K == 3072)
-    convert_q4_0x8_noshuffle_3072(
-      matAdata, (unsigned short *)clbuffInstance.getSVMScale(),
-      (unsigned char *)clbuffInstance.getSVMQuant(), N * (K / 32) / 8);
-  else if (K == 8192)
-    convert_q4_0x8_noshuffle_8192(
-      matAdata, (unsigned short *)clbuffInstance.getSVMScale(),
-      (unsigned char *)clbuffInstance.getSVMQuant(), N * (K / 32) / 8);
+  convert_q4_0x8_shuffle_dispatch(
+    matAdata, (unsigned short *)clbuffInstance.getSVMScale(),
+    (unsigned char *)clbuffInstance.getSVMQuant(), N * (K / 32) / 8, K);
 
   //// @todo Replace this with CPU op
   // // 1.2. Transpose src_q, src_d
