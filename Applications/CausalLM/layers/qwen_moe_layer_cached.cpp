@@ -31,6 +31,14 @@
 #include <qwen_moe_layer_cached.h>
 #include <stdexcept>
 
+#include <chrono>
+using std::chrono::duration_cast;
+using std::chrono::high_resolution_clock;
+using std::chrono::microseconds; // or microseconds
+using std::chrono::milliseconds; // or microseconds
+using std::chrono::nanoseconds;  // or microseconds
+using std::chrono::seconds;      // or microseconds
+
 namespace causallm {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
@@ -389,6 +397,7 @@ void CachedSlimMoELayer::incremental_forwarding(
     from = 0;
     to = 1;
   }
+  auto t1 = high_resolution_clock::now();
 
   nntrainer::Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
   nntrainer::Tensor &output_ = context.getOutput(SINGLE_INOUT_IDX);
@@ -469,26 +478,22 @@ void CachedSlimMoELayer::incremental_forwarding(
 
       target_idx_vector.push_back(expert_idx);
     }
-    // int hit_count = 0;
-    // int miss_count = 0;
+    int hit_count = 0;
+    int miss_count = 0;
+    std::vector<int> missed_idx_vector;
+    std::vector<int> hit_idx_vector;
+    std::vector<int> evict_idx_vector;
 
     for (int expert_idx : target_idx_vector) {
       if (need_load[expert_idx]) {
-        // miss_count += 1;
-        context.getWeight(expert_gate_proj_indices[expert_idx]).activate();
-        context.getWeight(expert_up_proj_indices[expert_idx]).activate();
-        context.getWeight(expert_down_proj_indices[expert_idx]).activate();
+        miss_count += 1;
         loaded_expert_deque.push_back(expert_idx);
+        missed_idx_vector.push_back(expert_idx);
         iteration_map[expert_idx] = --loaded_expert_deque.end();
         need_load[expert_idx] = false;
-
-        // auto it = expert_predict_scores.find(expert_idx);
-        // if (it!= expert_predict_scores.end()) {
-        //   expert_predict_scores[expert_idx] = alpha * 0.0 + (1-alpha) *
-        //   expert_predict_scores[expert_idx];
-        // }
       } else {
-        // hit_count += 1;
+        hit_count += 1;
+        hit_idx_vector.push_back(expert_idx);
         // move recently used index to back;
         // ___________________________________________
         // |old element <================ new elemnt |
@@ -500,32 +505,12 @@ void CachedSlimMoELayer::incremental_forwarding(
         }
         loaded_expert_deque.push_back(expert_idx);
         iteration_map[expert_idx] = --loaded_expert_deque.end();
-        //
-        // auto it = expert_predict_scores.find(expert_idx);
-        // if (it!= expert_predict_scores.end()) {
-        //  expert_predict_scores[expert_idx] = 1.0;
-        // } else {
-        //   expert_predict_scores[expert_idx] = alpha * 1.0 + (1-alpha) *
-        //   expert_predict_scores[expert_idx];
-        // }
-
-        // if (expert_histories[expert_idx].size() >= 5) {
-        //   //remove oldest element
-        //   expert_histories[expert_idx].erase(expert_histories[expert_idx].begin());
-        // }
-        //   expert_histories[expert_idx].push_back(true);
-        // double score = 0.0;
-        // for (bool h : expert_histories[expert_idx]) {
-        //   score += h ? 1.0 : 0.0;
-        // }
-        // expert_predict_scores[expert_idx] = score /
-        // expert_histories[expert_idx].size();
       }
     }
-    // printf("hit count: %d, miss count: %d\n", hit_count, miss_count);
 
+    auto t1_hit = high_resolution_clock::now();
 #pragma omp parallel for schedule(dynamic)
-    for (int expert_idx : target_idx_vector) {
+    for (int expert_idx : hit_idx_vector) {
       const auto &assignments = expert_assignments[expert_idx];
 
       compute_expert_forward_no_critical(
@@ -534,34 +519,39 @@ void CachedSlimMoELayer::incremental_forwarding(
         context.getWeight(expert_up_proj_indices[expert_idx]),
         context.getWeight(expert_down_proj_indices[expert_idx]), hidden_size);
     }
+    auto t2_hit = high_resolution_clock::now();
+
+    auto t1_miss = high_resolution_clock::now();
+#pragma omp parallel for schedule(dynamic)
+    for (int expert_idx : missed_idx_vector) {
+      context.getWeight(expert_gate_proj_indices[expert_idx]).activate();
+      context.getWeight(expert_up_proj_indices[expert_idx]).activate();
+      context.getWeight(expert_down_proj_indices[expert_idx]).activate();
+      const auto &assignments = expert_assignments[expert_idx];
+      compute_expert_forward_no_critical(
+        input, expert_outputs[expert_idx], assignments,
+        context.getWeight(expert_gate_proj_indices[expert_idx]),
+        context.getWeight(expert_up_proj_indices[expert_idx]),
+        context.getWeight(expert_down_proj_indices[expert_idx]), hidden_size);
+    }
+    auto t2_miss = high_resolution_clock::now();
 
     while (loaded_expert_deque.size() > 16) {
-      // auto it = loaded_expert_deque.begin();
-      // while ( it != loaded_expert_deque.end()) {
-      //   int target_idx = *it;
-      //   double score = expert_predict_scores[target_idx];
-      //   if ( score < evict_threshold) {
-      //     // int target_idx = loaded_expert_deque.front();
-      //     context.getWeight(expert_gate_proj_indices[target_idx]).deactivate();
-      //     context.getWeight(expert_up_proj_indices[target_idx]).deactivate();
-      //     context.getWeight(expert_down_proj_indices[target_idx]).deactivate();
-      //     loaded_expert_deque.erase(it);
-      //     iteration_map.erase(target_idx);
-      //     need_load[target_idx] = true;
-      //     break;
-      //   }
-      //   ++it;
-      // }
-      // if (it == loaded_expert_deque.end()) {
       int target_idx = loaded_expert_deque.front();
-      context.getWeight(expert_gate_proj_indices[target_idx]).deactivate();
-      context.getWeight(expert_up_proj_indices[target_idx]).deactivate();
-      context.getWeight(expert_down_proj_indices[target_idx]).deactivate();
       loaded_expert_deque.pop_front();
       iteration_map.erase(target_idx);
       need_load[target_idx] = true;
-      // }
+      evict_idx_vector.push_back(target_idx);
     }
+
+    auto t1_evict = high_resolution_clock::now();
+#pragma omp parallel for schedule(dynamic)
+    for (int target_idx : evict_idx_vector) {
+      context.getWeight(expert_gate_proj_indices[target_idx]).deactivate();
+      context.getWeight(expert_up_proj_indices[target_idx]).deactivate();
+      context.getWeight(expert_down_proj_indices[target_idx]).deactivate();
+    }
+    auto t2_evict = high_resolution_clock::now();
 
     // Combine expert outputs
     for (int expert_idx = 0; expert_idx < static_cast<int>(num_experts);
@@ -573,6 +563,26 @@ void CachedSlimMoELayer::incremental_forwarding(
 
     // reshape output: [B*S,1,1,H] -> [B,1,S,H]
     output.reshape({batch_size, 1, seq_len, hidden_size});
+
+#ifdef DEBUG
+    auto t2 = high_resolution_clock::now();
+    auto dt = duration_cast<nanoseconds>(t2 - t1);
+    auto dt_miss = duration_cast<nanoseconds>(t2_miss - t1_miss);
+    auto dt_hit = duration_cast<nanoseconds>(t2_hit - t1_hit);
+    auto dt_evict = duration_cast<nanoseconds>(t2_evict - t1_evict);
+    std::cout << context.getName() << " \t| " << dt.count() << " ns "
+              << "\t| " << dt.count() / 1'000 << " us "
+              << "\t| " << dt.count() / 1'000'000 << " ms "
+              << "\t| "
+              << "hit ratio: " << hit_count / 8.0 << "\t | "
+              << " miss ratio: " << miss_count / 8.0 << "\t | "
+              << "hit_compute: " << dt_hit.count() / 1'000'000 << " ms "
+              << "\t| "
+              << "miss_compute: " << dt_miss.count() / 1'000'000 << " ms "
+              << "\t| "
+              << "evict_time: " << dt_evict.count() / 1'000'000 << " ms "
+              << "\t| " std::cout << std::endl;
+#endif
   }
 }
 
