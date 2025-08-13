@@ -29,6 +29,8 @@ jobs:
       run: git submodule sync && git submodule update --init --recursive
     - name: Install build systems
       run: sudo apt install meson ninja-build
+    - name: Apply patches
+      run: meson subprojects packagefiles --apply
     - name: Prepare Build
       run: meson setup --native-file linux-native-clang.ini builddir
     - name: Run Build

@@ -39,6 +39,8 @@ jobs:
       run: git submodule sync && git submodule update --init --recursive
     - name: install build systems
       run: sudo apt install meson ninja-build
+    - name: Apply patches
+      run: meson subprojects packagefiles --apply
     - run: |
         meson \
           --buildtype=plain \
