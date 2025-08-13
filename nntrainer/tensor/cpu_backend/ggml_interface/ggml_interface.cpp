@@ -109,7 +109,7 @@ void __ggml_dequantize_row_q8_K(const void *x, float *y, int64_t k) {
 
 void __ggml_repack_q4_0_to_q4_0_4(void *W, void *repacked_W, size_t data_size,
                                   const unsigned int M, const unsigned int N) {
-  ::ggml_repack_q4_0_to_q4_0_4_bl(W, 8, repacked_W, data_size, M, N);
+  nntr_repack_q4_0_to_q4_0_4_bl(W, 8, repacked_W, data_size, M, N);
 }
 
 void __ggml_repack_q4_0_to_q4_0_8(void *W, void *repacked_W, size_t data_size,

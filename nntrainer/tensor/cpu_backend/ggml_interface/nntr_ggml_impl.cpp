@@ -21,9 +21,9 @@
 
 #include <nntr_ggml_impl.h>
 
-#if defined(__ARM_NEON)
+#if defined(__ARM_NEON) && (!ARMV7)
 #include <arm_neon.h>
-#elif defined (__ARM_ARCH_7A__) || defined (__arm__) || ARMV7
+#elif defined(__ARM_ARCH_7A__) || defined(__arm__) || ARMV7
 #include <armv7_neon.h>
 #elif defined(__AVX2__) || defined(__AVX__)
 #include <immintrin.h>
@@ -36,21 +36,35 @@
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #endif
 
+#define Q4_0 32
+#define Q8_0 32
+/**
+ * @brief block_q6_K
+ *
+ */
 struct block_q6_K {
   uint8_t ql[128];   // quants, lower 4 bits
   uint8_t qh[64];    // quants, upper 2 bits
   int8_t scales[16]; // scales, quantized with 8 bits
   uint16_t d;        // super-block scale
 };
-
+/**
+ * @brief block_q8_K
+ *
+ */
 typedef struct {
   float d;                 // delta
   int8_t qs[256];          // quants
   int16_t bsums[256 / 16]; // sum of quants in groups of 16
 } block_q8_K;
-
-#define Q4_0 32
-#define Q8_0 32
+/**
+ * @brief block_q4_0
+ *
+ */
+struct block_q4_0 {
+  uint16_t d;           // delta
+  uint8_t qs[Q4_0 / 2]; // nibbles / quants
+};
 
 #if defined(__aarch64__)
 static inline float nntr_compute_fp16_to_fp32(uint16_t h) {
@@ -1020,4 +1034,75 @@ void nntr_quantize_mat_q8_0_4x8(const float *__restrict x, void *__restrict vy,
     }
   }
 #endif
+}
+
+static block_q4_0x4 nntr_make_block_q4_0x4(block_q4_0 *in,
+                                           unsigned int blck_size_interleave) {
+  block_q4_0x4 out;
+
+  for (int i = 0; i < 4; i++) {
+    out.d[i] = in[i].d;
+  }
+
+  const int end = Q4_0 * 2 / blck_size_interleave;
+
+  if (blck_size_interleave == 8) {
+    const uint64_t xor_mask = 0x8888888888888888ULL;
+    for (int i = 0; i < end; ++i) {
+      int src_id = i % 4;
+      int src_offset = (i / 4) * blck_size_interleave;
+      int dst_offset = i * blck_size_interleave;
+
+      uint64_t elems;
+      // Using memcpy to avoid unaligned memory accesses
+      memcpy(&elems, &in[src_id].qs[src_offset], sizeof(uint64_t));
+      elems ^= xor_mask;
+      memcpy(&out.qs[dst_offset], &elems, sizeof(uint64_t));
+    }
+  } else if (blck_size_interleave == 4) {
+    const uint32_t xor_mask = 0x88888888;
+    for (int i = 0; i < end; ++i) {
+      int src_id = i % 4;
+      int src_offset = (i / 4) * blck_size_interleave;
+      int dst_offset = i * blck_size_interleave;
+
+      uint32_t elems;
+      memcpy(&elems, &in[src_id].qs[src_offset], sizeof(uint32_t));
+      elems ^= xor_mask;
+      memcpy(&out.qs[dst_offset], &elems, sizeof(uint32_t));
+    }
+  } else {
+    assert(false);
+  }
+
+  return out;
+}
+
+int nntr_repack_q4_0_to_q4_0_4_bl(void *__restrict dst, int interleave_block,
+                                  const void *__restrict data, size_t data_size,
+                                  size_t nrow, size_t k) {
+  assert(interleave_block == 4 || interleave_block == 8);
+  constexpr int nrows_interleaved = 4;
+
+  block_q4_0x4 *dst_ = (block_q4_0x4 *)dst;
+  const block_q4_0 *src = (const block_q4_0 *)data;
+  block_q4_0 dst_tmp[4];
+  int nblocks = k / Q4_0;
+
+  assert(data_size == nrow * nblocks * sizeof(block_q4_0));
+
+  if (nrow % nrows_interleaved != 0 || k % 8 != 0) {
+    return -1;
+  }
+
+  for (size_t b = 0; b < nrow; b += nrows_interleaved) {
+    for (int64_t x = 0; x < nblocks; x++) {
+      for (size_t i = 0; i < nrows_interleaved; i++) {
+        dst_tmp[i] = src[x + i * nblocks];
+      }
+      *dst_++ = nntr_make_block_q4_0x4(dst_tmp, interleave_block);
+    }
+    src += nrows_interleaved * nblocks;
+  }
+  return 0;
 }
