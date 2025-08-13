@@ -96,7 +96,7 @@ void addition_cl(const _FP16 *input, _FP16 *res, unsigned int size_input,
   }
 
   addition_cl_internal<_FP16>(kernel_addition_fp16_ptr, input, res, size_input,
-                              size_res);
+                              size_res, false);
 }
 
 void sscal_cl(_FP16 *X, const unsigned int N, const float alpha) {

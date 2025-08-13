@@ -387,4 +387,22 @@ bool CommandQueueManager::DispatchCommand(
   return true;
 }
 
+bool CommandQueueManager::DispatchCommandAndWait(
+  const cl_kernel kernel, const uint32_t work_dim,
+  const size_t *global_work_size, const size_t *local_work_size) {
+
+  const auto error_code = clEnqueueNDRangeKernel(
+    command_queue_, kernel, work_dim, nullptr, global_work_size,
+    local_work_size, 0, nullptr, nullptr);
+  if (error_code != CL_SUCCESS) {
+    ml_loge("Failed to clEnqueueNDRangeKernel. OpenCL error code: %d",
+            error_code);
+    return false;
+  }
+
+  clFinish(command_queue_);
+
+  return true;
+}
+
 } // namespace nntrainer::opencl

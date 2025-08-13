@@ -88,7 +88,7 @@ void sgemm_cl(bool TransA, bool TransB, const float *A, const float *B,
  * @param[in] size_res number of elements in result vector
  */
 void addition_cl(const float *input, float *res, unsigned int size_input,
-                 unsigned int size_res);
+                 unsigned int size_res, const bool use_svm = false);
 
 /**
  * @brief     sscal value element by element immediately
