@@ -1018,18 +1018,6 @@ Tensor &Tensor::dot(Tensor const &input, Tensor &output, bool trans,
   return output;
 }
 
-void Tensor::dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
-                 bool trans, bool trans_in, float beta) const {
-  NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
-    << getName() << " is not contiguous. Cannot dot product.";
-
-  itensor_->dot(input, output, trans, trans_in, beta);
-
-  // for(unsigned int i=0;i<input.size();++i){
-  //   itensor_->dot(*(input[i]), *(output[i]), trans, trans_in, beta);
-  // }
-}
-
 Tensor &Tensor::dot_deriv_wrt_1(Tensor const &m, Tensor const &output_deriv,
                                 bool trans, bool trans_m, float beta) {
   bool deriv_trans_m = true;
