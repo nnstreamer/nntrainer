@@ -23,3 +23,7 @@ void nntr_gemv_q4_0_4x8_q8_0(int n, float *__restrict s, size_t bs,
 
 void nntr_quantize_mat_q8_0_4x8(const float *__restrict x, void *__restrict vy,
                                 int64_t k);
+
+int nntr_repack_q4_0_to_q4_0_4_bl(void *__restrict dst, int interleave_block,
+                                  const void *__restrict data, size_t data_size,
+                                  size_t nrow, size_t k);
