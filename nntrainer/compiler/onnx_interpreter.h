@@ -176,7 +176,7 @@ private:
     {"Sqrt", "sqrt"},
     {"Softmax", "activation"},
     {"Sigmoid", "activation"},
-    {"Relu", "relu"},
+    {"Relu", "activation"},
     {"Identity", "identity"},
     {"Unsqueeze", "reshape"},
     {"Gather", "gather"},

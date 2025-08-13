@@ -134,6 +134,7 @@ void ONNXInterpreter::registerNodeHandlers() {
   registerBasicUnaryOp("Sqrt");
   registerBasicUnaryOp("Softmax");
   registerBasicUnaryOp("Sigmoid");
+  registerBasicUnaryOp("Relu");
   registerBasicUnaryOp("Identity");
   registerBasicUnaryOp("Gather");
   registerBasicUnaryOp("Cosine");
@@ -237,7 +238,7 @@ void ONNXInterpreter::loadInputsAndWeights(
     representation.push_back(createLayerNode(
       "weight",
       {withKey("name", cleanName(initializer.name())), withKey("dim", dim),
-       withKey("input_shape", dim),
+       withKey("weight_dim", dim),
        withKey("tensor_dtype", getDataTypeFromONNX(initializer.data_type())),
        withKey("weight_name", cleanName(initializer.name()))}));
   }
