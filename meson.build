@@ -561,16 +561,19 @@ ggml_dep = dummy_dep
 if get_option('enable-ggml')
   message('preparing ggml')
 
+  if get_option('platform') != 'android' and get_option('platform') != 'tizen'
+    ggml_dir_relative = subprojects_dir_relative / 'ggml'
+    ggml_patch_relative = subprojects_dir_relative / 'packagefiles' / 'ggml' / '0001-nntrainer-ggml-patch.patch'
+    ggml_patch_command = ['git', 'apply', '--directory=' + ggml_dir_relative, ggml_patch_relative]
+    run_command(ggml_patch_command, check: false)
+  endif
+
   if get_option('platform') == 'windows'
     ggml_lib_dir_absolute = windows_resource_dir_absolute / 'ggml'
     ggml_lib_dir_absolute_win = ggml_lib_dir_absolute.replace('/', '\\')
     run_command(['xcopy', '/C', '/Y', ggml_lib_dir_absolute_win, meson.current_build_dir()], check: true)
-    ggml_dir_relative = subprojects_dir_relative / 'ggml'
     ggml_include = include_directories(ggml_dir_relative / 'include', ggml_dir_relative / 'src', ggml_dir_relative / 'src' / 'ggml-cpu')
     ggml_dep = declare_dependency(include_directories: ggml_include, link_args:['ggml.lib', 'ggml-base.lib', 'ggml-cpu.lib'])
-    ggml_patch_relative = subprojects_dir_relative / 'packagefiles' / 'ggml' / '0001-nntrainer-ggml-patch.patch'
-    ggml_patch_command = ['git', 'apply', '--directory=' + ggml_dir_relative, ggml_patch_relative]
-    run_command(ggml_patch_command, check: false)
   else
     ggml_options = cmake.subproject_options()
     ggml_root = subprojects_dir_absolute / 'ggml'

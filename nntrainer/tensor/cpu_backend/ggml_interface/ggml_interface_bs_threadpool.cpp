@@ -256,72 +256,73 @@ static inline void __ggml_q4_K_8x8_q8_K_GEMM_GEMV(
   loop_future.wait();
 }
 
-static inline void __ggml_q4_K_8x8_q8_K_GEMM_GEMM(
-  const unsigned int M, const unsigned int N, const unsigned int K,
-  const float *A, const unsigned int lda, const void *B, const unsigned int ldb,
-  float *C, const unsigned int ldc) {
-  auto &bs_thread_pool = ThreadPoolManager::Global().getThreadPool();
-  unsigned int blocks_per_4_rows = (K + QK_K - 1) / QK_K;
-  unsigned int qa_4_rows_size = sizeof(block_q8_Kx4) * blocks_per_4_rows;
-  const size_t qa_row_size = (sizeof(block_q8_K) * K) / QK_K;
-  unsigned int M4 = ((M - M % 4) / 4);
-  int B_step = sizeof(block_q4_K) * (K / QK_K);
+// static inline void __ggml_q4_K_8x8_q8_K_GEMM_GEMM(
+//   const unsigned int M, const unsigned int N, const unsigned int K,
+//   const float *A, const unsigned int lda, const void *B, const unsigned int
+//   ldb, float *C, const unsigned int ldc) { auto &bs_thread_pool =
+//   ThreadPoolManager::Global().getThreadPool(); unsigned int blocks_per_4_rows
+//   = (K + QK_K - 1) / QK_K; unsigned int qa_4_rows_size = sizeof(block_q8_Kx4)
+//   * blocks_per_4_rows; const size_t qa_row_size = (sizeof(block_q8_K) * K) /
+//   QK_K; unsigned int M4 = ((M - M % 4) / 4); int B_step = sizeof(block_q4_K)
+//   * (K / QK_K);
 
-  unsigned int qa_size = qa_4_rows_size * (((M >> 2) << 2) / 4 + 1);
-  std::vector<char> QA = std::vector<char>(qa_size);
+//   unsigned int qa_size = qa_4_rows_size * (((M >> 2) << 2) / 4 + 1);
+//   std::vector<char> QA = std::vector<char>(qa_size);
 
-  // Quantize 4-divisible-M row portion with matrix-wise function
-  for (unsigned int i = 0; i < M4; i++) {
-    ::ggml_quantize_mat_q8_K_4x8(A + 4 * i * K, QA.data() + i * qa_4_rows_size,
-                                 K);
-  }
-  // Quantize leftover 1 ~ 3 rows with row-wise function
-  for (unsigned int i = M4 * 4; i < M; i++) {
-    ::quantize_row_q8_K(
-      (float *)A + i * K,
-      (QA.data() + (M4 * qa_4_rows_size) + (i - M4 * 4) * qa_row_size), K);
-  }
+//   // Quantize 4-divisible-M row portion with matrix-wise function
+//   for (unsigned int i = 0; i < M4; i++) {
+//     ::ggml_quantize_mat_q8_K_4x8(A + 4 * i * K, QA.data() + i *
+//     qa_4_rows_size,
+//                                  K);
+//   }
+//   // Quantize leftover 1 ~ 3 rows with row-wise function
+//   for (unsigned int i = M4 * 4; i < M; i++) {
+//     ::quantize_row_q8_K(
+//       (float *)A + i * K,
+//       (QA.data() + (M4 * qa_4_rows_size) + (i - M4 * 4) * qa_row_size), K);
+//   }
 
-  ///@todo Dynamic thread-number selection for GEMM problem size
-  int thread_num = bs_thread_pool.get_thread_count();
-  // std::cout << "thread_num : "<< thread_num<<std::endl;
-  BS::multi_future<void> multi_future =
-    bs_thread_pool.submit_loop(0, thread_num, [=](int i) {
-      unsigned int M_step_start = (i * N) / thread_num;
-      unsigned int M_step_end = ((i + 1) * N) / thread_num;
+//   ///@todo Dynamic thread-number selection for GEMM problem size
+//   int thread_num = bs_thread_pool.get_thread_count();
+//   // std::cout << "thread_num : "<< thread_num<<std::endl;
+//   BS::multi_future<void> multi_future =
+//     bs_thread_pool.submit_loop(0, thread_num, [=](int i) {
+//       unsigned int M_step_start = (i * N) / thread_num;
+//       unsigned int M_step_end = ((i + 1) * N) / thread_num;
 
-      M_step_start = (M_step_start % 8) ? M_step_start + 8 - (M_step_start % 8)
-                                        : M_step_start;
-      M_step_end =
-        (M_step_end % 8) ? M_step_end + 8 - (M_step_end % 8) : M_step_end;
+//       M_step_start = (M_step_start % 8) ? M_step_start + 8 - (M_step_start %
+//       8)
+//                                         : M_step_start;
+//       M_step_end =
+//         (M_step_end % 8) ? M_step_end + 8 - (M_step_end % 8) : M_step_end;
 
-      ::ggml_gemm_q4_K_8x8_q8_K(
-        K, (C + (M_step_start)), ldc, ((char *)B + ((M_step_start)*B_step)),
-        QA.data(), M4 * 4, (M_step_end) - (M_step_start));
-    });
-  multi_future.wait();
+//       ::ggml_gemm_q4_K_8x8_q8_K(
+//         K, (C + (M_step_start)), ldc, ((char *)B + ((M_step_start)*B_step)),
+//         QA.data(), M4 * 4, (M_step_end) - (M_step_start));
+//     });
+//   multi_future.wait();
 
-  for (unsigned int pb = M4 * 4; pb < M; pb++) {
-    BS::multi_future<void> loop_future =
-      bs_thread_pool.submit_loop(0, thread_num, [=](int i) {
-        unsigned int M_step_start = (i * N) / thread_num;
-        unsigned int M_step_end = ((i + 1) * N) / thread_num;
+//   for (unsigned int pb = M4 * 4; pb < M; pb++) {
+//     BS::multi_future<void> loop_future =
+//       bs_thread_pool.submit_loop(0, thread_num, [=](int i) {
+//         unsigned int M_step_start = (i * N) / thread_num;
+//         unsigned int M_step_end = ((i + 1) * N) / thread_num;
 
-        M_step_start = (M_step_start % 8)
-                         ? M_step_start + 8 - (M_step_start % 8)
-                         : M_step_start;
-        M_step_end =
-          (M_step_end % 8) ? M_step_end + 8 - (M_step_end % 8) : M_step_end;
+//         M_step_start = (M_step_start % 8)
+//                          ? M_step_start + 8 - (M_step_start % 8)
+//                          : M_step_start;
+//         M_step_end =
+//           (M_step_end % 8) ? M_step_end + 8 - (M_step_end % 8) : M_step_end;
 
-        ::ggml_gemv_q4_K_8x8_q8_K(
-          K, (float *)((C + ((pb - M4 * 4) * N) + (M4 * 4 * N)) + M_step_start),
-          N, (void *)((char *)B + M_step_start * B_step),
-          QA.data() + (M4 * qa_4_rows_size) + (pb - M4 * 4) * qa_row_size, 1,
-          M_step_end - M_step_start);
-      });
-    loop_future.wait();
-  }
-}
+//         ::ggml_gemv_q4_K_8x8_q8_K(
+//           K, (float *)((C + ((pb - M4 * 4) * N) + (M4 * 4 * N)) +
+//           M_step_start), N, (void *)((char *)B + M_step_start * B_step),
+//           QA.data() + (M4 * qa_4_rows_size) + (pb - M4 * 4) * qa_row_size, 1,
+//           M_step_end - M_step_start);
+//       });
+//     loop_future.wait();
+//   }
+// }
 
 void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int K, const float *A,
