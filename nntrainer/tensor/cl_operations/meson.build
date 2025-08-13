@@ -5,7 +5,10 @@ cl_op_sources = [
   'attention_kernel_interface.cpp',
   'attention_kernel_strings.cpp',
   'attention_kernels.cpp',
-  'clblast_interface.cpp'
+  'clblast_interface.cpp',
+  'ggml_kernel_interface.cpp',
+  'ggml_kernel_strings.cpp',
+  'ggml_kernels.cpp'
 ]
 
 cl_op_headers = [
@@ -13,7 +16,10 @@ cl_op_headers = [
   'blas_kernel_strings.h',
   'attention_kernel_interface.h',
   'attention_kernel_strings.h',
-  'clblast_interface.h'
+  'clblast_interface.h',
+  'ggml_kernel_interface.h',
+  'ggml_kernel_strings.h',
+  'ggml_kernels.h'
 ]
 
 if get_option('enable-fp16')
