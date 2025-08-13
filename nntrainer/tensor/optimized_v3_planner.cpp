@@ -38,11 +38,7 @@ struct MemoryRequest {
    */
   MemoryRequest(size_t s, const std::pair<unsigned int, unsigned int> &valid,
                 unsigned int idx) :
-    start(valid.first),
-    end(valid.second),
-    loc(idx),
-    size(s),
-    offset(0) {}
+    start(valid.first), end(valid.second), loc(idx), size(s), offset(0) {}
 };
 
 static size_t computeSpace(unsigned int exec_order,

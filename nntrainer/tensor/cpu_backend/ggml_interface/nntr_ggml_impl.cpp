@@ -1,3 +1,16 @@
+// SPDX-License-Identifier: Apache-2.0
+/**
+ * Copyright (C) 2025 Sungsik Kong <ss.kong@samsung.com>
+ *
+ * @file   nntr_ggml_impl.cpp
+ * @date   13 August 2025
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Sungsik Kong <ss.kong@samsung.com>
+ * @bug    No known bugs except for NYI items
+ * @brief  Custom-implemented functions to support ggml functions for internal
+ * uses in nntrainer
+ */
+
 #include <algorithm>
 #include <assert.h>
 #include <cstring>

@@ -59,9 +59,7 @@ public:
    *
    */
   explicit Task(Work w, void *user_data) :
-    state(CREATED),
-    work(w),
-    data(user_data) {}
+    state(CREATED), work(w), data(user_data) {}
 
   /**
    * @brief Task destructor
@@ -135,9 +133,7 @@ public:
    *
    */
   explicit TaskAsync(Work work, void *user_data) :
-    Task(work, user_data),
-    timeout(T::max()),
-    priority(Priority::MID) {}
+    Task(work, user_data), timeout(T::max()), priority(Priority::MID) {}
 
   /**
    * @brief TaskAsync destructor
