@@ -341,7 +341,8 @@ void gemm_q4_0(const unsigned int M, std::vector<unsigned int> Ns,
 #ifdef ENABLE_GGML
   return __ggml_q4_0_4x8_q8_0_GEMM<float>(M, Ns, K, A, lda, Bs, ldbs, Cs, ldcs);
 #else
-  std::cout << "Not implemented" << std::endl;
+    throw std::runtime_error(
+    "Error: NYI for gemm_q4_0 with vectored weights");
   return;
 #endif
 }
@@ -363,7 +364,8 @@ void gemm_q4_K(const unsigned int M, std::vector<unsigned int> Ns,
 #ifdef ENABLE_GGML
   return __ggml_q4_K_8x8_q8_K_GEMM(M, Ns, K, A, lda, Bs, ldbs, Cs, ldcs);
 #else
-  std::cout << "Not implemented" << std::endl;
+    throw std::runtime_error(
+    "Error : Not yet implemented : gemm_q4_K (with weight vectors) ");
   return;
 #endif
 }
