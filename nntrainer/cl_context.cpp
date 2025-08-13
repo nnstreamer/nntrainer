@@ -45,10 +45,6 @@ void ClContext::initialize() noexcept {
     initAttentionClKernels();
     add_default_object();
     setMemAllocator(std::make_shared<MemAllocator>());
-
-    initBlasClKernels();
-    initAttentionClKernels();
-    add_default_object();
   } catch (std::exception &e) {
     ml_loge("cl_context: registering layers failed!!, reason: %s", e.what());
   } catch (...) {
