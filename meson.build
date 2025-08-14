@@ -140,7 +140,7 @@ if get_option('enable-fp16')
      # comaptible with armv8.0 machines.
      if cxx.has_argument('-mfp16-format=ieee')
        add_project_arguments('-mfp16-format=ieee', language: ['c', 'cpp'])
-       add_project_arguments('-march=armv8.2-a+fp16+dotprod', language: ['c', 'cpp'])
+       add_project_arguments('-march=armv8.2-a+fp16', language: ['c', 'cpp'])
      else
        message ('The compiler does not support -mfp16-format=ieee. However, according to https://gcc.gnu.org/onlinedocs/gcc-9.1.0/gcc/Half-Precision.html, gcc may use IEEE fp16 anyway. Thus, we will proceed without the option for FP16 support.')
      endif
@@ -561,16 +561,19 @@ ggml_dep = dummy_dep
 if get_option('enable-ggml')
   message('preparing ggml')
 
+  if get_option('platform') != 'android' and get_option('platform') != 'tizen'
+    ggml_dir_relative = subprojects_dir_relative / 'ggml'
+    ggml_patch_relative = subprojects_dir_relative / 'packagefiles' / 'ggml' / '0001-nntrainer-ggml-patch.patch'
+    ggml_patch_command = ['git', 'apply', '--directory=' + ggml_dir_relative, ggml_patch_relative]
+    run_command(ggml_patch_command, check: false)
+  endif
+
   if get_option('platform') == 'windows'
     ggml_lib_dir_absolute = windows_resource_dir_absolute / 'ggml'
     ggml_lib_dir_absolute_win = ggml_lib_dir_absolute.replace('/', '\\')
     run_command(['xcopy', '/C', '/Y', ggml_lib_dir_absolute_win, meson.current_build_dir()], check: true)
-    ggml_dir_relative = subprojects_dir_relative / 'ggml'
     ggml_include = include_directories(ggml_dir_relative / 'include', ggml_dir_relative / 'src', ggml_dir_relative / 'src' / 'ggml-cpu')
     ggml_dep = declare_dependency(include_directories: ggml_include, link_args:['ggml.lib', 'ggml-base.lib', 'ggml-cpu.lib'])
-    ggml_patch_relative = subprojects_dir_relative / 'packagefiles' / 'ggml' / '0001-nntrainer-ggml-patch.patch'
-    ggml_patch_command = ['git', 'apply', '--directory=' + ggml_dir_relative, ggml_patch_relative]
-    run_command(ggml_patch_command, check: false)
   else
     ggml_options = cmake.subproject_options()
     ggml_root = subprojects_dir_absolute / 'ggml'
