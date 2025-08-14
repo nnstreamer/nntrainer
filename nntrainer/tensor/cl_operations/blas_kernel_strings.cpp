@@ -879,33 +879,94 @@ const std::string &getConcatClAxis1Kernel() {
 
 const std::string &getRMSNormClKernel() {
   static const std::string rmsnorm_cl_kernel_ =
-    R"(__kernel void rmsnorm_cl(
+    R"(
+  #pragma OPENCL EXTENSION cl_intel_subgroups : enable  
+  #pragma OPENCL EXTENSION cl_intel_required_subgroup_size : enable
+
+ __attribute__((intel_reqd_sub_group_size(32)))
+ // __attribute__((reqd_work_group_size(32, 1, 1))) // For some reason gives worse performance, although should be necessary
+  __kernel void rmsnorm_cl(
     __global const float *input,  // Input tensor
     __global float *output,    // Output tensor
     __global const float *alpha,  // Alpha values (one for each width)
     float epsilon,
-    int B,                  // Number of batches
-    int C,                  // Number of channels
     int H,                  // Height of feature map
     int W                   // Width of feature map
 ) {
     // Compute the corresponding batch, height, and channel indices
-    int n = get_global_id(0) / C;
-    int c = get_global_id(0) % C;
-    int h = get_global_id(1);
-    int index = ((n * C + c) * H + h) * W;
+    int h = get_group_id(0);
+    int index = h * W;
     // Calculate RMS norm for the current channel, height, and batch
-    float sum_squares = 0.0f;
-    for (int j = 0; j < W; ++j) {
-        sum_squares += input[index+j] * input[index+j];
+    __global const float4 *in = (__global const float4*)(input + index);
+    float4 sum_squares_4 = 0.0f;
+    for (int i = get_local_id(0); i < W / 4; i += get_local_size(0)) {
+        sum_squares_4 += in[i] * in[i];
     }
-    sum_squares /= W;
-    float rms_norm = sqrt(sum_squares + epsilon);
-    // Each work item processes all width elements for its specific n, h, c
-    for (int w = 0; w < W; ++w) {
-        output[index+w] = (input[index+w] / rms_norm) * alpha[w];
+
+    float sum_squares = sum_squares_4.x + sum_squares_4.y + sum_squares_4.z + sum_squares_4.w;
+    sum_squares = sub_group_reduce_add(sum_squares);
+
+    const float mean  = sum_squares / W;
+    const float scale = 1.0f / sqrt(mean + epsilon);
+
+    __global float4 *out = (__global float4*)(output + index);
+    __global const float4 *a = (__global const float4*)(alpha);
+    for (int i = get_local_id(0); i < W / 4; i += get_local_size(0)) {
+        out[i] = in[i] * scale * a[i];
     }
 }
+
+// This is alternate version to test on NUC
+//   #pragma OPENCL EXTENSION cl_intel_subgroups : enable  
+//   #pragma OPENCL EXTENSION cl_intel_required_subgroup_size : enable
+
+//  __attribute__((intel_reqd_sub_group_size(32)))
+//  __attribute__((reqd_work_group_size(64, 1, 1)))
+//   __kernel void rmsnorm_cl(
+//     __global const float *input,  // Input tensor
+//     __global float *output,    // Output tensor
+//     __global const float *alpha,  // Alpha values (one for each width)
+//     float epsilon,
+//     int B,                  // Number of batches
+//     int C,                  // Number of channels
+//     int H,                  // Height of feature map
+//     int W                   // Width of feature map
+// ) {
+//     // Compute the corresponding batch, height, and channel indices
+//     int h = get_group_id(0);
+//     int c = get_group_id(1);
+//     int b = get_group_id(2);
+//     int index = ((b * C + c) * H + h) * W;
+//     // Calculate RMS norm for the current channel, height, and batch
+//     __global const float4 *in = (__global const float4*)(input + index);
+//     float4 sum_squares_4 = 0.0f;
+//     for (int i = get_local_id(0); i < W / 4; i += get_local_size(0)) {
+//         sum_squares_4 += in[i] * in[i];
+//     }
+
+//     float sum_squares = sum_squares_4.x + sum_squares_4.y + sum_squares_4.z + sum_squares_4.w;
+//     sum_squares = sub_group_reduce_add(sum_squares);
+
+//     __local float sum[2];
+//     if (sub_group_elect()) {
+//       sum[get_sub_group_id()] = sum_squares;
+//     }
+//     barrier(CLK_LOCAL_MEM_FENCE);
+
+//     if (get_local_id(0) == 0) {
+//       sum[0] = (sum[0] + sum[1]) / W;
+//     }
+//     barrier(CLK_LOCAL_MEM_FENCE);
+
+//     const float mean  = sum[0];
+//     const float scale = 1.0f / sqrt(mean + epsilon);
+
+//     __global float4 *out = (__global float4*)(output + index);
+//     __global const float4 *a = (__global const float4*)(alpha);
+//     for (int i = get_local_id(0); i < W / 4; i += get_local_size(0)) {
+//         out[i] = in[i] * scale * a[i];
+//     }
+// }
 )";
 
   return rmsnorm_cl_kernel_;

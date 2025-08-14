@@ -320,6 +320,90 @@ addition_cl_internal(ClContext::SharedPtrClKernel kernel, const T *input,
 }
 
 template <typename T>
+inline static void rmsnorm_cl_internal(ClContext::SharedPtrClKernel kernel,
+                                       const T *input, const T *gamma,
+                                       T *result, const T epsilon,
+                                       unsigned int height, unsigned int width,
+                                       const bool use_svm) {
+  unsigned dim_in = height * width;
+  unsigned dim_gamma = width;
+  unsigned size_in = dim_in * sizeof(T);
+  unsigned size_gamma = dim_gamma * sizeof(T);
+
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+
+  if (use_svm) {
+    blas_cc->command_queue_inst_.enqueueSVMMap(const_cast<T *>(input), size_in,
+                                               true);
+    blas_cc->command_queue_inst_.enqueueSVMMap(const_cast<T *>(gamma),
+                                               size_gamma, true);
+
+    if (!kernel->SetKernelSVMArguments(0, input)) {
+      return;
+    }
+    if (!kernel->SetKernelSVMArguments(1, result)) {
+      return;
+    }
+    if (!kernel->SetKernelSVMArguments(2, gamma)) {
+      return;
+    }
+  } else {
+    auto &clbuffInstance = ClBufferManager::Global();
+    if (!clbuffInstance.getInBufferA()->WriteDataRegion(
+          blas_cc->command_queue_inst_, size_in, input)) {
+      return;
+    }
+    if (!clbuffInstance.getInBufferB()->WriteDataRegion(
+          blas_cc->command_queue_inst_, size_gamma, gamma)) {
+      return;
+    }
+
+    if (!kernel->SetKernelArguments(
+          0, &clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem))) {
+      return;
+    }
+    if (!kernel->SetKernelArguments(
+          1, &clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem))) {
+      return;
+    }
+    if (!kernel->SetKernelArguments(
+          2, &clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem))) {
+      return;
+    }
+  }
+
+  if (!kernel->SetKernelArguments(3, &epsilon, sizeof(float))) {
+    return;
+  }
+  if (!kernel->SetKernelArguments(4, &height, sizeof(int))) {
+    return;
+  }
+  if (!kernel->SetKernelArguments(5, &width, sizeof(int))) {
+    return;
+  }
+  const int work_groups_count[3] = {static_cast<int>(height) * 32, 1, 1};
+
+  const int work_group_size[3] = {32, 1, 1}; // test-value
+  if (!blas_cc->command_queue_inst_.DispatchCommand(kernel, work_groups_count,
+                                                    work_group_size)) {
+    return;
+  }
+
+  if (use_svm) {
+    if (!blas_cc->command_queue_inst_.enqueueSVMUnmap(result)) {
+      return;
+    }
+  } else {
+    auto &clbuffInstance = ClBufferManager::Global();
+    if (!clbuffInstance.getOutBufferA()->ReadDataRegion(
+          blas_cc->command_queue_inst_, size_in, result)) {
+      return;
+    }
+  }
+}
+
+template <typename T>
 inline static void sscal_cl_internal(ClContext::SharedPtrClKernel kernel, T *X,
                                      const unsigned int N, const float alpha) {
   bool result = false;

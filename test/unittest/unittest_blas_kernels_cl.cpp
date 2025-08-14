@@ -579,6 +579,120 @@ TEST(blas_kernels, absolute_sum) {
 //   std::cout << "time : GPU = " << dt / (run_count * 1.0f) << " ms" <<
 //   std::endl;
 // }
+TEST(blas_kernels, rmsnorm_fp32) {
+  const int batch = 1;
+  const int channel = 1;
+  const int height = 3072;
+  const int width = 3072;
+
+  const float alpha = 1e-1;
+  const int MOD = 10;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor in_fp32(batch, channel, height, width, t_type_nchw_fp32);
+  nntrainer::Tensor gamma_fp32(1, 1, 1, width, t_type_nchw_fp32);
+  nntrainer::Tensor out_cl_fp32(batch, channel, height, width,
+                                t_type_nchw_fp32);
+  nntrainer::Tensor out_ref_fp32(batch, channel, height, width,
+                                 t_type_nchw_fp32);
+
+  GEN_TEST_INPUT(in_fp32, ((i * (batch * height * channel) +
+                            j * (batch * height) + k * (width) + l + 1) %
+                           MOD) *
+                            alpha);
+  for (int l = 0; l < width; ++l) {
+    float val = ((l + 1) % MOD) * alpha;
+    gamma_fp32.setValue(0, 0, 0, l, val);
+  }
+
+  auto *cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+
+  void *in_fp32_svm =
+    cl_context->context_inst_.createSVMRegion(in_fp32.size() * sizeof(float));
+  void *gamma_fp32_svm = cl_context->context_inst_.createSVMRegion(
+    gamma_fp32.size() * sizeof(float));
+  void *out_fp32_svm = cl_context->context_inst_.createSVMRegion(
+    out_cl_fp32.size() * sizeof(float));
+
+  cl_context->command_queue_inst_.enqueueSVMMap(
+    in_fp32_svm, in_fp32.size() * sizeof(float), false);
+  cl_context->command_queue_inst_.enqueueSVMMap(
+    gamma_fp32_svm, gamma_fp32.size() * sizeof(float), false);
+
+  std::memcpy(in_fp32_svm, in_fp32.getData<float>(),
+              in_fp32.size() * sizeof(float));
+  std::memcpy(gamma_fp32_svm, gamma_fp32.getData<float>(),
+              gamma_fp32.size() * sizeof(float));
+
+  cl_context->command_queue_inst_.enqueueSVMUnmap(in_fp32_svm);
+  cl_context->command_queue_inst_.enqueueSVMUnmap(gamma_fp32_svm);
+
+  static constexpr uint32_t run_count = 50;
+  static constexpr float kEpsilon = 0.001f;
+
+  auto t1_cl = std::chrono::high_resolution_clock::now();
+  for (unsigned int i = 0; i < run_count; ++i) {
+    rmsnorm_cl((float *)in_fp32_svm, (float *)gamma_fp32_svm,
+               (float *)out_fp32_svm, kEpsilon,
+               in_fp32.batch() * in_fp32.channel() * in_fp32.height(),
+               in_fp32.width(), true);
+  }
+  auto t2_cl = std::chrono::high_resolution_clock::now();
+
+  auto t1_ref = std::chrono::high_resolution_clock::now();
+  for (unsigned int i = 0; i < run_count; ++i) {
+    std::function<float(float)> f = [](float x) { return 1 / std::sqrt(x); };
+    auto t = in_fp32.multiply(in_fp32).average(3).add(kEpsilon);
+    t.apply_i(f);
+    in_fp32.multiply(t, out_ref_fp32);
+    out_ref_fp32.multiply_i(gamma_fp32);
+  }
+  auto t2_ref = std::chrono::high_resolution_clock::now();
+
+  auto dt_cl =
+    std::chrono::duration_cast<std::chrono::milliseconds>(t2_cl - t1_cl);
+  auto dt_ref =
+    std::chrono::duration_cast<std::chrono::milliseconds>(t2_ref - t1_ref);
+
+  std::cout << "RMSNorm time : GPU = " << dt_cl.count() / (run_count * 1.0f)
+            << " ms" << std::endl;
+
+  std::cout << "RMSNorm time : CPU = " << dt_ref.count() / (run_count * 1.0f)
+            << " ms" << std::endl;
+
+  float mseError = mse<float>((float *)out_fp32_svm,
+                              out_ref_fp32.getData<float>(), height * width);
+
+  double cosSim = cosine_similarity<float>(
+    (float *)out_fp32_svm, out_ref_fp32.getData<float>(), height * width);
+
+  const float epsilon = 1e-3 * width;
+
+  EXPECT_IN_RANGE(mseError, 0, epsilon);
+  EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
+
+  for (uint32_t i = 0; i < 16; i++) {
+    auto from_ref = out_ref_fp32.getData()[i];
+    auto from_cl = ((float *)out_fp32_svm)[i];
+
+    std::cout << "CL : " << from_cl << " REF : " << from_ref << std::endl;
+  }
+
+  int size = height * width * batch * channel;
+  for (uint32_t i = 0; i < 16; i++) {
+    auto from_ref = out_ref_fp32.getData()[size - 16 + i];
+    auto from_cl = ((float *)out_fp32_svm)[size - 16 + i];
+
+    std::cout << "CL : " << from_cl << " REF : " << from_ref << std::endl;
+  }
+
+  cl_context->context_inst_.releaseSVMRegion(in_fp32_svm);
+  cl_context->context_inst_.releaseSVMRegion(gamma_fp32_svm);
+  cl_context->context_inst_.releaseSVMRegion(out_fp32_svm);
+}
 
 #ifdef ENABLE_FP16
 
