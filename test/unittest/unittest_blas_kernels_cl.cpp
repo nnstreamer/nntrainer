@@ -1168,8 +1168,7 @@ static void run_q4_0_test(const uint32_t M, const uint32_t K,
 
   /// Quantize weight data
   nntrainer::quantize_q4_0(weights_f32_ptr, q4_weight_ptr, N, K, nullptr);
-  nntrainer::repack_q4_0_to_q4_0_8(q4_weight_repack_ptr, q4_weight_ptr,
-                                   data_size, N, K);
+  nntrainer::repack_q4_0(q4_weight_repack_ptr, q4_weight_ptr, data_size, N, K);
 
   // CPU Q4_0 GEMM
   auto t1 = std::chrono::high_resolution_clock::now();
