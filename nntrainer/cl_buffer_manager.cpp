@@ -10,7 +10,10 @@
  * @brief   This file contains global Buffer objects and manages them
  */
 
+#include <cstring>
+
 #include <cl_buffer_manager.h>
+#include <opencl_loader.h>
 
 namespace nntrainer {
 
@@ -19,10 +22,17 @@ namespace nntrainer {
 void ClBufferManager::initBuffers() {
   inBufferA = new opencl::Buffer(context_inst_, buffer_size_bytes, true);
   inBufferB = new opencl::Buffer(context_inst_, buffer_size_bytes, true);
-  inBufferC = new opencl::Buffer(context_inst_, buffer_size_bytes, true);
+  inBufferC = new opencl::Buffer(context_inst_, unused_buffer_bytes, true);
   outBufferA = new opencl::Buffer(context_inst_, buffer_size_bytes, false);
-  outBufferB = new opencl::Buffer(context_inst_, buffer_size_bytes, false);
-  ml_logi("ClBufferManager: Buffers initialized");
+  outBufferB = new opencl::Buffer(context_inst_, unused_buffer_bytes, false);
+
+  data_input = context_inst_.createSVMRegion(buffer_size_bytes);
+  data_scale = context_inst_.createSVMRegion(scale_q4_0_size);
+  data_scale_T = context_inst_.createSVMRegion(scale_q4_0_size);
+  data_quant = context_inst_.createSVMRegion(quant_q4_0_size);
+  data_quant_T = context_inst_.createSVMRegion(quant_q4_0_size);
+
+  ml_logi("ClBufferManager: Buffers & images initialized");
 }
 
 ClBufferManager::~ClBufferManager() {
@@ -31,6 +41,13 @@ ClBufferManager::~ClBufferManager() {
   delete inBufferC;
   delete outBufferA;
   delete outBufferB;
+
+  context_inst_.releaseSVMRegion(data_input);
+  context_inst_.releaseSVMRegion(data_scale);
+  context_inst_.releaseSVMRegion(data_quant);
+  context_inst_.releaseSVMRegion(data_scale_T);
+  context_inst_.releaseSVMRegion(data_quant_T);
+
   ml_logi("ClBufferManager: Buffers destroyed");
 }
 

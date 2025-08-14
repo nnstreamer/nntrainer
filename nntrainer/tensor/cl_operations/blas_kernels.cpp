@@ -11,9 +11,122 @@
  *
  */
 
+#include "blas_kernel_helper.h"
 #include "blas_kernels_templates.h"
 
 namespace nntrainer {
+
+void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
+                  unsigned int M, unsigned int N, unsigned int K) {
+  bool result = false;
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
+  size_t q_size_bytes = N * (K / 2);
+  size_t d_size_bytes = N * (K / 32) * 2;
+
+  /// @todo Replace this with CPU op
+  // 1. Preprocess matrix A
+  // 1.1 Flatten the Q4_0 matrix A to make a struct of array (src_q, src_d)
+  /// @note This func write result to Scale/Quant buffers
+  convert_q4_0x8_shuffle_dispatch(
+    matAdata, (unsigned short *)clbuffInstance.getSVMScale(),
+    (unsigned char *)clbuffInstance.getSVMQuant(), N * (K / 32) / 8, K);
+
+  //// @todo Replace this with CPU op
+  // // 1.2. Transpose src_q, src_d
+  /// @note This func takes scale/quant image as input and write to output image
+  transpose_16(nullptr, nullptr, K / 4 / 4, N / 4, q_size_bytes, true);
+  transpose_16(nullptr, nullptr, K / 32 / 4, N / 4, d_size_bytes);
+
+  /// @todo Replace this with CPU ops
+  // 2. Preprocess matrix B: Transpose the Matrix B and convert to FP16
+  /// @note mat mul will compute 8 elements at once, padding
+  // will be added if M is not multiple of 8.
+  transpose_32_16(matBdata, M, K);
+
+  int padding = 0;
+  if (M % 8 > 0) {
+    padding = 8 - (M % 8);
+  }
+
+  int padded_M = M + padding;
+
+  // 3. Perform Matrix Multiplication
+  ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
+    getQ4_0_Ab_Bi_8x4_Kernel(), "kernel_mul_mat_Ab_Bi_8x4");
+  if (!kernel_ptr) {
+    throw std::runtime_error(
+      "Failed to get kernel_ptr for kernel_mul_mat_Ab_Bi_8x4");
+    return;
+  }
+
+  int arg = 0;
+
+  result =
+    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMQuantT());
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 0 for kernel_mul_mat_Ab_Bi_8x4");
+
+  kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMScaleT());
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 1 for kernel_mul_mat_Ab_Bi_8x4");
+
+  result =
+    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMInput());
+
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 2 for kernel_mul_mat_Ab_Bi_8x4");
+
+  result = kernel_ptr->SetKernelSVMArguments(arg++, matCdata);
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 3 for kernel_mul_mat_Ab_Bi_8x4");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &N, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 4 for kernel_mul_mat_Ab_Bi_8x4");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &padded_M, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 5 for kernel_mul_mat_Ab_Bi_8x4");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &K, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 6 for kernel_mul_mat_Ab_Bi_8x4");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &M, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 7 for kernel_mul_mat_Ab_Bi_8x4");
+
+  const int work_groups_count[3] = {(int)ceil(M / 8.0f), (int)N / 4, 1};
+  const int work_group_size[3] = {1, 128, 1};
+
+  result = blas_cc->command_queue_inst_.DispatchCommand(
+    kernel_ptr, work_groups_count, work_group_size);
+  if (!result) {
+    throw std::runtime_error(
+      "Failed to dispatch kernel for kernel_mul_mat_Ab_Bi_8x4");
+    return;
+  }
+
+  /// @todo synchronize when only needed
+  blas_cc->command_queue_inst_.enqueueSVMMap(matCdata, M * N * sizeof(float),
+                                             true);
+  if (!result) {
+    throw std::runtime_error(
+      "Failed to read output data for kernel_mul_mat_Ab_Bi_8x4");
+    return;
+  }
+}
 
 void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
                    unsigned int M, unsigned int N) {
@@ -334,4 +447,211 @@ void transpose_cl_axis(const float *in, float *res,
                                     input_batch_size, input_channels,
                                     input_height, input_width, axis);
 }
+
+void flatten_block_q4_0_cl(const void *src, void *dst_q, void *dst_d,
+                           unsigned int num_blocks) {
+  bool result = false;
+
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
+  ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
+    getConvertBlockQ4_0Kernel(), "kernel_convert_block_q4_0_noshuffle");
+  if (!kernel_ptr) {
+    ml_loge("Failed to register kernel_ptr for flatten_block_q4_0_cl");
+    return;
+  }
+
+  int argIdx = 0;
+
+  result = kernel_ptr->SetKernelSVMArguments(argIdx++, src);
+  if (!result) {
+    ml_loge("Failed to set kernel argument 0 for flatten_block_q4_0_cl");
+    return;
+  }
+
+  result =
+    kernel_ptr->SetKernelSVMArguments(argIdx++, clbuffInstance.getSVMQuant());
+  if (!result) {
+    ml_loge("Failed to set kernel argument 1 for flatten_block_q4_0_cl");
+    return;
+  }
+
+  result =
+    kernel_ptr->SetKernelSVMArguments(argIdx++, clbuffInstance.getSVMScale());
+  if (!result) {
+    ml_loge("Failed to set kernel argument 2 for flatten_block_q4_0_cl");
+    return;
+  }
+
+  const int work_groups_count[3] = {(int)num_blocks, 1, 1};
+  const int work_group_size[3] = {64, 1, 1};
+
+  result = blas_cc->command_queue_inst_.DispatchCommand(
+    kernel_ptr, work_groups_count, work_group_size);
+  if (!result) {
+    ml_loge("Failed to dispatch kernel for flatten_block_q4_0_cl");
+    return;
+  }
+}
+
+void restore_block_q4_0_cl(const void *src_q, const void *src_d, void *dst,
+                           unsigned int num_blocks) {
+  bool result = false;
+
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+
+  ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
+    getConvertBlockQ4_0Kernel(), "kernel_restore_block_q4_0");
+  if (!kernel_ptr) {
+    ml_loge("Failed to register kernel_ptr for restore_block_q4_0_cl");
+    return;
+  }
+
+  int argIdx = 0;
+
+  result = kernel_ptr->SetKernelSVMArguments(argIdx++, src_q);
+  if (!result) {
+    ml_loge("Failed to set kernel argument 0 for restore_block_q4_0_cl");
+    return;
+  }
+
+  result = kernel_ptr->SetKernelSVMArguments(argIdx++, src_d);
+  if (!result) {
+    ml_loge("Failed to set kernel argument 1 for restore_block_q4_0_cl");
+    return;
+  }
+
+  result = kernel_ptr->SetKernelSVMArguments(argIdx++, dst);
+  if (!result) {
+    ml_loge("Failed to set kernel argument 2 for restore_block_q4_0_cl");
+    return;
+  }
+
+  const int work_groups_count[3] = {(int)num_blocks, 1, 1};
+  const int work_group_size[3] = {1, 1, 1};
+
+  result = blas_cc->command_queue_inst_.DispatchCommand(
+    kernel_ptr, work_groups_count, work_group_size);
+  if (!result) {
+    ml_loge("Failed to dispatch kernel for restore_block_q4_0_cl");
+    return;
+  }
+}
+
+void transpose_32_16(float *data, int M, int K) {
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
+  ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
+    getTranspose32Bit16BitKernel(), "kernel_transpose_32_16");
+  if (!kernel_ptr) {
+    throw std::runtime_error(
+      "Failed to get kernel_ptr for kernel_transpose_32_16");
+    return;
+  }
+
+  int extra_elements = M % 8;
+  int padding = 0;
+  if (extra_elements > 0) {
+    padding = 8 - extra_elements;
+  }
+
+  int width = K / 4;
+  int height = M / 4;
+  if (height == 0) {
+    height = 1;
+  }
+  int padded_height = (M + padding) / 4;
+
+  int arg = 0;
+  bool result = false;
+
+  result = kernel_ptr->SetKernelSVMArguments(arg++, data);
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 0 for kernel_transpose_32_16");
+
+  result =
+    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMInput());
+
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 1 for kernel_transpose_32_16");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &height, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 2 for kernel_transpose_32_16");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &width, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 3 for kernel_transpose_32_16");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &padded_height, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 4 for kernel_transpose_32_16");
+
+  const int work_groups_count[3] = {width, padded_height, 1};
+  const int work_group_size[3] = {1, 16, 1};
+
+  result = blas_cc->command_queue_inst_.DispatchCommand(
+    kernel_ptr, work_groups_count, work_group_size);
+  if (!result) {
+    ml_loge("Failed to dispatch kernel for kernel_transpose_32_16");
+    return;
+  }
+}
+
+void transpose_16(void *input, void *output, int width, int height,
+                  int size_bytes, bool isQuant) {
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
+  ClContext::SharedPtrClKernel kernel_ptr =
+    blas_cc->registerClKernel(getTranspose16BitKernel(), "kernel_transpose_16");
+  if (!kernel_ptr) {
+    throw std::runtime_error(
+      "Failed to get kernel_ptr for kernel_transpose_16");
+    return;
+  }
+
+  int arg = 0;
+  bool result = false;
+
+  if (isQuant) {
+    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMQuant());
+    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMQuantT());
+  } else {
+    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMScale());
+    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMScaleT());
+  }
+
+  result = kernel_ptr->SetKernelArguments(arg++, &height, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 2 for kernel_transpose_16");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &width, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 3 for kernel_transpose_16");
+
+  const int work_groups_count[3] = {width, height, 1};
+  const int work_group_size[3] = {4, 16, 1};
+
+  result = blas_cc->command_queue_inst_.DispatchCommand(
+    kernel_ptr, work_groups_count, work_group_size);
+  if (!result) {
+    ml_loge("Failed to dispatch kernel for kernel_transpose_16");
+    return;
+  }
+}
+
 } // namespace nntrainer

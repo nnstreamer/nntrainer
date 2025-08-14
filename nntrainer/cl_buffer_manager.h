@@ -41,13 +41,26 @@ private:
   /**
    * @brief Buffer size in bytes preset (256 mebibytes)
    */
-  const size_t buffer_size_bytes = sizeof(float);
+  const size_t buffer_size_bytes = 1024 * 8192 * sizeof(float);
+  const size_t unused_buffer_bytes = sizeof(float);
+
+  /// @note this size might be changed
+  const size_t scale_q4_0_size =
+    3072 * (8192 / 32) * 2; /** buffer size of quants */
+  const size_t quant_q4_0_size =
+    3072 * (8192 / 32) * 16; /** buffer size of scales */
 
   opencl::Buffer *inBufferA = nullptr;
   opencl::Buffer *inBufferB = nullptr;
   opencl::Buffer *inBufferC = nullptr;
   opencl::Buffer *outBufferA = nullptr;
   opencl::Buffer *outBufferB = nullptr;
+
+  void *data_input = nullptr;
+  void *data_scale = nullptr;
+  void *data_scale_T = nullptr;
+  void *data_quant = nullptr;
+  void *data_quant_T = nullptr;
 
 public:
   /**
@@ -84,6 +97,31 @@ public:
    * @return opencl::Buffer* or nullptr if initBuffers() is not called
    */
   opencl::Buffer *getOutBufferB() { return outBufferB; }
+
+  /**
+   * @brief Get the SVM pointer to data_input
+   */
+  void *getSVMInput() { return data_input; }
+
+  /**
+   * @brief Get the SVM pointer to data_input
+   */
+  void *getSVMScale() { return data_scale; }
+
+  /**
+   * @brief Get the SVM pointer to data_input
+   */
+  void *getSVMScaleT() { return data_scale_T; }
+
+  /**
+   * @brief Get the SVM pointer to data_input
+   */
+  void *getSVMQuant() { return data_quant; }
+
+  /**
+   * @brief Get the SVM pointer to data_input
+   */
+  void *getSVMQuantT() { return data_quant_T; }
 
   /**
    * @brief Destroy Buffer pointers.
