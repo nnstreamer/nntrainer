@@ -13,6 +13,7 @@
  */
 
 #include <blas_kernel_strings.h>
+#include <blas_kernels.h>
 #include <common_properties.h>
 #include <layer_context.h>
 #include <lazy_tensor.h>
@@ -99,96 +100,9 @@ void RMSNormLayerCl::forwarding(RunLayerContext &context, bool training) {
 
 void RMSNormLayerCl::rmsnormProcess(Tensor const &input, Tensor &result,
                                     Tensor const &gamma, const float epsilon) {
-  bool ret = false;
-  int dim1 = input.batch() * input.height() * input.width() * input.channel();
-  CREATE_IF_EMPTY_DIMS(result, input.batch(), input.channel(), input.height(),
-                       input.width(), input.getTensorType());
-  int b = input.batch();
-  int c = input.channel();
-  int h = input.height();
-  int w = input.width();
-
-  auto *global_cl_context =
-    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
-
-  do {
-    const auto &kernel_rmsnorm_ptr = getLayerKernelPtrs()[Kernels::RMSNORM_CL];
-
-    const float *data = input.getData();
-    float *rdata = result.getData();
-    const float *gdata = gamma.getData();
-    ret = clbuffInstance.getInBufferA()->WriteDataRegion(
-      global_cl_context->command_queue_inst_, dim1 * sizeof(float), data);
-    if (!ret) {
-      break;
-    }
-
-    ret = clbuffInstance.getInBufferB()->WriteDataRegion(
-      global_cl_context->command_queue_inst_, input.width() * sizeof(float),
-      gdata);
-    if (!ret) {
-      break;
-    }
-
-    ret = kernel_rmsnorm_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
-    if (!ret) {
-      break;
-    }
-
-    ret = kernel_rmsnorm_ptr->SetKernelArguments(
-      1, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
-    if (!ret) {
-      break;
-    }
-
-    ret = kernel_rmsnorm_ptr->SetKernelArguments(
-      2, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem));
-    if (!ret) {
-      break;
-    }
-    ret = kernel_rmsnorm_ptr->SetKernelArguments(4, &b, sizeof(int));
-
-    if (!ret) {
-      break;
-    }
-
-    ret = kernel_rmsnorm_ptr->SetKernelArguments(3, &epsilon, sizeof(float));
-    if (!ret) {
-      break;
-    }
-
-    ret = kernel_rmsnorm_ptr->SetKernelArguments(5, &c, sizeof(int));
-    if (!ret) {
-      break;
-    }
-
-    ret = kernel_rmsnorm_ptr->SetKernelArguments(6, &h, sizeof(int));
-    if (!ret) {
-      break;
-    }
-    ret = kernel_rmsnorm_ptr->SetKernelArguments(7, &w, sizeof(int));
-    if (!ret) {
-      break;
-    }
-    const int work_groups_count[3] = {b * c, h, 1};
-    /// @todo: create a group size by device & input
-    const int work_group_size[3] = {w, 1, 1}; // test-value
-
-    ret = global_cl_context->command_queue_inst_.DispatchCommand(
-      kernel_rmsnorm_ptr, work_groups_count, work_group_size);
-    if (!ret) {
-      break;
-    }
-
-    ret = clbuffInstance.getOutBufferA()->ReadDataRegion(
-      global_cl_context->command_queue_inst_, dim1 * sizeof(float), rdata);
-    if (!ret) {
-      break;
-    }
-
-  } while (false);
+  rmsnorm_cl(input.getData<float>(), gamma.getData<float>(),
+             result.getData<float>(), epsilon,
+             input.batch() * input.channel() * input.height(), input.width());
 }
 
 #ifdef ENABLE_FP16
