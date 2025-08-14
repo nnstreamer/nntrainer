@@ -192,6 +192,19 @@ public:
                        cl_event *event = nullptr);
 
   /**
+   * @brief Overloaded function to initiate execution of the command queue.
+   *
+   * @param kernel OpenCL kernel
+   * @param global_work_size Total number of work items that will execute the
+   * kernel function
+   * @param local_work_size Number of work items that make up a work group
+   * @return true if command queue execution is successful or false otherwise
+   */
+  bool DispatchCommandAndWait(const cl_kernel kernel, const uint32_t work_dim,
+                              const size_t *global_work_size,
+                              const size_t *local_work_size);
+
+  /**
    * @brief Get the OpenCL Command Queue object
    *
    * @return const cl_command_queue
