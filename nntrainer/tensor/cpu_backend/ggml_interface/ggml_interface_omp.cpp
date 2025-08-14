@@ -22,6 +22,8 @@
 #include <algorithm>
 #include <ggml_interface.h>
 #include <nntr_ggml_impl.h>
+
+#include <algorithm>
 #include <stdexcept>
 #include <string>
 #include <thread>
