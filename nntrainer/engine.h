@@ -34,7 +34,7 @@
 #include <cl_context.h>
 #endif
 
-#include <singleton.h>
+#include "singleton.h"
 
 namespace nntrainer {
 

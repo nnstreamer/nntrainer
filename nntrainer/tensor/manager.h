@@ -36,8 +36,8 @@
 #include <var_grad.h>
 #include <weight.h>
 
-#include "utils/noncopyable.h"
-#include "utils/nonmovable.h"
+#include "noncopyable.h"
+#include "nonmovable.h"
 
 namespace nntrainer {
 using ExecutionMode = ml::train::ExecutionMode;
