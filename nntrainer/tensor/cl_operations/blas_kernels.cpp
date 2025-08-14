@@ -399,6 +399,22 @@ void addition_cl(const float *input, float *res, unsigned int size_input,
                               size_res);
 }
 
+void rmsnorm_cl(const float *input, const float *gamma, float *result,
+                const float epsilon, unsigned int height, unsigned int width,
+                bool use_svm) {
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+
+  ClContext::SharedPtrClKernel kernel_rmsnorm_ptr =
+    blas_cc->registerClKernel(getRMSNormClKernel(), "rmsnorm_cl");
+  if (!kernel_rmsnorm_ptr) {
+    return;
+  }
+
+  rmsnorm_cl_internal<float>(kernel_rmsnorm_ptr, input, gamma, result, epsilon,
+                             height, width, use_svm);
+}
+
 void sscal_cl(float *X, const unsigned int N, const float alpha) {
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
