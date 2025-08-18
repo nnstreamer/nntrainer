@@ -886,12 +886,8 @@ Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
 #endif
     break;
   case Tdatatype::Q4_0:
-    M = getDim().height();
-    K = getDim().width();
-    N = input.getDim().width();
     gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
     break;
-
   default:
     throw std::invalid_argument("Error: unsupported datatype");
   }
