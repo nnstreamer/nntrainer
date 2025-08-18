@@ -5,6 +5,7 @@ ggml_interface_headers = [
 
 ggml_interface_sources = [
   'nntr_ggml_impl.cpp',
+  'nntr_ggml_impl_quant.cpp',
   'ggml_interface.cpp'
 ]
 

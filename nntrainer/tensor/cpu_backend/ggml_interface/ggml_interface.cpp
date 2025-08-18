@@ -35,26 +35,26 @@ void __ggml_init() {
 
 size_t __ggml_quantize_q4_0(const float *src, void *dst, int64_t nrow,
                             int64_t n_per_row, const float *quant_weights) {
-  return ::quantize_q4_0(src, dst, nrow, n_per_row, quant_weights);
+  return nntr_quantize_q4_0(src, dst, nrow, n_per_row, quant_weights);
 }
 
 size_t __ggml_quantize_q4_K(const float *src, void *dst, int64_t nrow,
                             int64_t n_per_row, const float *quant_weights) {
-  return ::quantize_q4_K(src, dst, nrow, n_per_row, quant_weights);
+  return nntr_quantize_q4_K(src, dst, nrow, n_per_row, quant_weights);
 }
 
 size_t __ggml_quantize_q6_K(const float *src, void *dst, int64_t nrow,
                             int64_t n_per_row, const float *quant_weights) {
-  return ::quantize_q6_K(src, dst, nrow, n_per_row, quant_weights);
+  return nntr_quantize_q6_K(src, dst, nrow, n_per_row, quant_weights);
 }
 
 void __ggml_quantize_row_q6_K(const float *src, void *dst, int64_t k) {
-  ::quantize_q6_K(src, dst, 1, k, nullptr);
+  __ggml_quantize_q6_K(src, dst, 1, k, nullptr);
 }
 
 template <>
 void __ggml_quantize_row_q8_K(const float *src, void *dst, int64_t k) {
-  ::quantize_row_q8_K(src, dst, k);
+  nntr_quantize_row_q8_K(src, dst, k);
 }
 
 float __nntr_vec_dot_q6_K_q8_K(const unsigned int K,

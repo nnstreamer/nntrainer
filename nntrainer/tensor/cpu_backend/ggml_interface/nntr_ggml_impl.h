@@ -12,6 +12,7 @@
  */
 
 #include <stddef.h>
+#include <stdint.h>
 
 void nntr_gemm_q4_0_4x8_q8_0(int n, float *__restrict s, size_t bs,
                              const void *__restrict vx,
@@ -27,3 +28,18 @@ void nntr_quantize_mat_q8_0_4x8(const float *__restrict x, void *__restrict vy,
 int nntr_repack_q4_0_to_q4_0_4_bl(void *__restrict dst, int interleave_block,
                                   const void *__restrict data, size_t data_size,
                                   size_t nrow, size_t k);
+
+size_t nntr_quantize_q4_0(const float *__restrict src, void *__restrict dst,
+                          int64_t nrows, int64_t n_per_row,
+                          const float *imatrix);
+
+size_t nntr_quantize_q4_K(const float *__restrict src, void *__restrict dst,
+                          int64_t nrows, int64_t n_per_row,
+                          const float *imatrix);
+
+size_t nntr_quantize_q6_K(const float *__restrict src, void *__restrict dst,
+                          int64_t nrows, int64_t n_per_row,
+                          const float *imatrix);
+
+void nntr_quantize_row_q8_K(const float *__restrict x, void *__restrict y,
+                            int64_t k);
