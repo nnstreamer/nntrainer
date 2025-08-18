@@ -19,6 +19,7 @@
 #include "ggml-quants.h"
 #include "ggml.h"
 
+#include <algorithm>
 #include <ggml_interface.h>
 #include <nntr_ggml_impl.h>
 #include <stdexcept>
