@@ -51,8 +51,8 @@
 
 #include <limits.h>
 
+#include "json.hpp"
 #include <fstream>
-#include <json.hpp>
 #include <tokenizers_c.h>
 #include <tokenizers_cpp.h>
 

@@ -392,7 +392,8 @@ void MHACoreLayer::compute_kcaches(const float *in, const uint16_t *kcache,
             sum += a_ptr[i] * b_row[i];
 
           output[out_offset +
-                 (local_window_size == UINT_MAX || (size_t)num_rows < local_window_size
+                 (local_window_size == UINT_MAX ||
+                      (size_t)num_rows < local_window_size
                     ? row
                     : row - (num_rows - local_window_size)) *
                    num_cache_head * gqa_size +
