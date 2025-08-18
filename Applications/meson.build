@@ -36,7 +36,6 @@ endif
 subdir('ONNX/jni')
 subdir('SimpleFC/jni')
 
-subdir('LLaMA/jni')
 if host_machine.system() != 'windows'
   subdir('KNN/jni')
   subdir('YOLOv2/jni')
@@ -44,10 +43,17 @@ if host_machine.system() != 'windows'
   subdir('ReinforcementLearning/DeepQ/jni')
   subdir('TransferLearning/CIFAR_Classification/jni')
   subdir('Custom')
-  subdir('PicoGPT/jni')
   if get_option('enable-tflite-interpreter')
   subdir('TFlite_export')
   endif
 endif
 
-subdir('CausalLM')
+if get_option('enable_encoder')
+  subdir('LLaMA/jni')
+  if host_machine.system() != 'windows'
+  subdir('PicoGPT/jni')
+  endif
+  if (get_option('platform') != 'tizen') and (get_option('platform') != 'windows')
+    subdir('CausalLM')
+  endif
+endif

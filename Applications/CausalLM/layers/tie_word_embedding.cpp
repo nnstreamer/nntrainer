@@ -224,7 +224,7 @@ void TieWordEmbedding::incremental_forwarding_embedding(
     nntrainer::Tensor batchsliced_hidden = hidden_.getBatchSlice(b, 1);
 
 #pragma omp parallel for
-    for (unsigned int i = from; i < to; ++i) {
+    for (int i = from; i < to; ++i) {
       unsigned int embed_idx = static_cast<unsigned int>(in_data[i]);
       if (embed_idx >= in_dim) {
         throw std::invalid_argument("input word index is greater than in_dim");

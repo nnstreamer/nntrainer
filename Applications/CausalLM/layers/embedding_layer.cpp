@@ -117,7 +117,7 @@ void EmbeddingLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
     nntrainer::Tensor batchsliced_hidden = hidden_.getBatchSlice(b, 1);
 
 #pragma omp parallel for
-    for (unsigned int i = from; i < to; ++i) {
+    for (int i = from; i < to; ++i) {
       size_t embed_idx = static_cast<size_t>(in_data[i]);
       if (embed_idx >= in_dim) {
         throw std::invalid_argument("input word index is greater than in_dim");
