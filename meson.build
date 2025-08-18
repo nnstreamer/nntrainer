@@ -176,6 +176,8 @@ if get_option('enable-mmap')
   extra_defines += '-DUSE_MMAP=1'
 endif
 
+dummy_dep = dependency('', required: false)
+
 if get_option('enable-opencl')
   if get_option('platform') == 'android'
   endif
@@ -203,6 +205,13 @@ if get_option('enable-opencl')
     clblast_options.add_cmake_defines({'CMAKE_POLICY_VERSION_MINIMUM': '3.10'})
     clblast_proj = cmake.subproject('clblast', options: clblast_options, required: true)
     clblast_dep = clblast_proj.dependency('clblast')
+  endif
+else 
+  # When OpenCL is disabled, set clblast_dep to dummy_dep for Android
+  if get_option('platform') == 'android'
+    clblast_dep = dummy_dep
+    clblast_root = ''
+    opencl_root = ''
   endif
 endif
 
@@ -313,7 +322,6 @@ nntrainer_conf.set('INCLUDE_INSTALL_DIR', nntrainer_includedir / '..')
 nntrainer_conf.set('FLASH_STORAGE_UTILIZATION', nntrainer_enable_fsu)
 nntrainer_conf.set('FLASH_STORAGE_UTILIZATION_PATH', nntrainer_fsudir)
 
-dummy_dep = dependency('', required: false)
 ml_api_common_flag = '-DML_API_COMMON=0'
 
 # if ml-api-support is disabled, enable dummy common api interfaces and disable related dependencies.

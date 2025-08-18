@@ -45,6 +45,14 @@ endif
 #   error('blas is needed for the android build')
 # endif
 
+if get_option('enable-opencl')
+  and_conf.set('MESON_OPENCL_SHARED_LIBS', 'opencl')
+  and_conf.set('MESON_OPENCL_STATIC_LIBS', 'clblast')
+else
+  and_conf.set('MESON_OPENCL_SHARED_LIBS', '')
+  and_conf.set('MESON_OPENCL_STATIC_LIBS', '')
+endif
+
 if ml_api_common_dep.found()
   and_conf.set('MESON_ML_API_COMMON_ROOT', ml_api_common_root)
 else
