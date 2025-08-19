@@ -1805,25 +1805,44 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
 }
 
 void compute_rotary_emb_value(unsigned int width, unsigned int dim,
-                              unsigned int half_, __fp16 *inout,
+                              unsigned int half_, __fp16 *inout, __fp16 *output,
                               const __fp16 *cos_, const __fp16 *sin_) {
   for (unsigned int w = 0; w < width; w += dim) {
     unsigned int k = 0;
-    for (; k + 7 < half_; k += 8) {
-      unsigned int i0 = w + k;
-      unsigned int i1 = w + k + half_;
+    if (output != nullptr) {
+      for (; k + 7 < half_; k += 8) {
+        unsigned int i0 = w + k;
+        unsigned int i1 = w + k + half_;
 
-      float16x8_t a = vld1q_f16(&inout[i0]);
-      float16x8_t b = vld1q_f16(&inout[i1]);
+        float16x8_t a = vld1q_f16(&inout[i0]);
+        float16x8_t b = vld1q_f16(&inout[i1]);
 
-      float16x8_t cos_v = vld1q_f16(&cos_[k]);
-      float16x8_t sin_v = vld1q_f16(&sin_[k]);
+        float16x8_t cos_v = vld1q_f16(&cos_[k]);
+        float16x8_t sin_v = vld1q_f16(&sin_[k]);
 
-      float16x8_t out0 = vsubq_f16(vmulq_f16(a, cos_v), vmulq_f16(b, sin_v));
-      float16x8_t out1 = vaddq_f16(vmulq_f16(a, sin_v), vmulq_f16(b, cos_v));
+        float16x8_t out0 = vsubq_f16(vmulq_f16(a, cos_v), vmulq_f16(b, sin_v));
+        float16x8_t out1 = vaddq_f16(vmulq_f16(a, sin_v), vmulq_f16(b, cos_v));
 
-      vst1q_f16(&inout[i0], out0);
-      vst1q_f16(&inout[i1], out1);
+        vst1q_f16(&output[i0], out0);
+        vst1q_f16(&output[i1], out1);
+      }
+    } else {
+      for (; k + 7 < half_; k += 8) {
+        unsigned int i0 = w + k;
+        unsigned int i1 = w + k + half_;
+
+        float16x8_t a = vld1q_f16(&inout[i0]);
+        float16x8_t b = vld1q_f16(&inout[i1]);
+
+        float16x8_t cos_v = vld1q_f16(&cos_[k]);
+        float16x8_t sin_v = vld1q_f16(&sin_[k]);
+
+        float16x8_t out0 = vsubq_f16(vmulq_f16(a, cos_v), vmulq_f16(b, sin_v));
+        float16x8_t out1 = vaddq_f16(vmulq_f16(a, sin_v), vmulq_f16(b, cos_v));
+
+        vst1q_f16(&inout[i0], out0);
+        vst1q_f16(&inout[i1], out1);
+      }
     }
 
     for (; k < half_; ++k) {
@@ -1836,8 +1855,16 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
       __fp16 c = cos_[k];
       __fp16 s = sin_[k];
 
-      inout[i0] = a * c - b * s;
-      inout[i1] = a * s + b * c;
+      __fp16 out0 = a * c - b * s;
+      __fp16 out1 = a * s + b * c;
+
+      if (output != nullptr) {
+        output[i0] = out0;
+        output[i1] = out1;
+      } else {
+        inout[i0] = out0;
+        inout[i1] = out1;
+      }
     }
   }
 }

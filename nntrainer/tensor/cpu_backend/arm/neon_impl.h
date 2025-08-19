@@ -393,11 +393,13 @@ void compute_kcaches(const __fp16 *A, const __fp16 *B, __fp16 *output,
  * @param[in] dim unit length of simd computation
  * @param[in] half_ criterion for rotational direction of embedding
  * @param[in/out] inout __fp16* used also as output
+ * @param[out] output _FP16* output, if it is equal nullptr then inout is used
+ * as output
  * @param[in] cos_ __fp16* input con values
  * @param[in] sin_ __fp16* input sin values
  */
 void compute_rotary_emb_value(unsigned int width, unsigned int dim,
-                              unsigned int half_, __fp16 *inout,
+                              unsigned int half_, __fp16 *inout, __fp16 *output,
                               const __fp16 *cos_, const __fp16 *sin_);
 
 #endif

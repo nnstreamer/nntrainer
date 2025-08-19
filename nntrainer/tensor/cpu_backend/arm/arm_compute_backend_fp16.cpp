@@ -425,8 +425,8 @@ void compute_kcaches(const _FP16 *A, const _FP16 *B, _FP16 *output,
 }
 
 void compute_rotary_emb_value(unsigned int width, unsigned int dim,
-                              unsigned int half_, _FP16 *inout,
+                              unsigned int half_, _FP16 *inout, _FP16 *output,
                               const _FP16 *cos_, const _FP16 *sin_) {
-  neon::compute_rotary_emb_value(width, dim, half_, inout, cos_, sin_);
+  neon::compute_rotary_emb_value(width, dim, half_, inout, output, cos_, sin_);
 }
 } /* namespace nntrainer */
