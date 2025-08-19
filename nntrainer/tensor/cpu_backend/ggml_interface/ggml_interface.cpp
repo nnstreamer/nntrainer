@@ -57,7 +57,20 @@ void __ggml_quantize_row_q8_K(const float *src, void *dst, int64_t k) {
   nntr_quantize_row_q8_K(src, dst, k);
 }
 
-float __nntr_vec_dot_q6_K_q8_K(const unsigned int K,
+void __ggml_dequantize_row_q4_K(const void *x_raw, float *y, int64_t k) {
+  nntr_dequantize_row_q4_K(x_raw, y, k);
+}
+
+void __ggml_dequantize_row_q6_K(const void *x, float *y, int64_t k) {
+  nntr_dequantize_row_q6_K(x, y, k);
+}
+
+template <>
+void __ggml_dequantize_row_q8_K(const void *x, float *y, int64_t k) {
+  nntr_dequantize_row_q8_K(x, y, k);
+}
+
+float __ggml_vec_dot_q6_K_q8_K(const unsigned int K,
                                const void *__restrict v_q6_K,
                                const void *__restrict v_q8_K) {
   float result;
@@ -73,9 +86,9 @@ float __ggml_vec_dot_q6_K_f32(const unsigned int K, const void *v_q6_K,
   int blocks_per_row = (K + QK_K - 1) / QK_K;
   int q8_K_activation_size = sizeof(block_q8_K) * blocks_per_row;
   std::vector<char> v_q8_activation = std::vector<char>(q8_K_activation_size);
-  ::quantize_row_q8_K(f, v_q8_activation.data(), K);
+  __ggml_quantize_row_q8_K(f, v_q8_activation.data(), K);
 
-  return __nntr_vec_dot_q6_K_q8_K(K, v_q6_K, v_q8_activation.data());
+  return __ggml_vec_dot_q6_K_q8_K(K, v_q6_K, v_q8_activation.data());
 }
 
 float __ggml_vec_dot_q6_K(const unsigned int K, const void *__restrict v_q6_K,
@@ -92,19 +105,6 @@ float __ggml_vec_dot_q6_K(const unsigned int K, const void *__restrict v_q6_K,
   ::ggml_vec_dot_q6_K_q8_K(K, &result, bs, v_q6_K, bx, v_q8_activation.data(),
                            by, nrc);
   return result;
-}
-
-void __ggml_dequantize_row_q4_K(const void *x_raw, float *y, int64_t k) {
-  ::dequantize_row_q4_K((const block_q4_K *)x_raw, y, k);
-}
-
-void __ggml_dequantize_row_q6_K(const void *x, float *y, int64_t k) {
-  ::dequantize_row_q6_K((const block_q6_K *)x, y, k);
-}
-
-template <>
-void __ggml_dequantize_row_q8_K(const void *x, float *y, int64_t k) {
-  ::dequantize_row_q8_K((const block_q8_K *)x, y, k);
 }
 
 void __ggml_repack_q4_0_to_q4_0_4(void *W, void *repacked_W, size_t data_size,

@@ -41,5 +41,17 @@ size_t nntr_quantize_q6_K(const float *__restrict src, void *__restrict dst,
                           int64_t nrows, int64_t n_per_row,
                           const float *imatrix);
 
+void nntr_quantize_row_q8_0(const float *__restrict x, void *__restrict y,
+                            int64_t k);
+
 void nntr_quantize_row_q8_K(const float *__restrict x, void *__restrict y,
                             int64_t k);
+
+void nntr_dequantize_row_q4_K(const void *__restrict x, float *__restrict y,
+                              int64_t k);
+
+void nntr_dequantize_row_q6_K(const void *__restrict x, float *__restrict y,
+                              int64_t k);
+
+void nntr_dequantize_row_q8_K(const void *__restrict x, float *__restrict y,
+                              int64_t k);
