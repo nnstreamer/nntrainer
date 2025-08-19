@@ -568,9 +568,6 @@ LOCAL_MODULE := unittest_nntrainer_cpu_backend
 LOCAL_CFLAGS := -Igoogletest/include -I../include -I../unittest/layers -I../../nntrainer/layers/loss -pthread -fexceptions -fopenmp -static-openmp -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -march=armv8.2-a+fp16+dotprod -O3 -frtti -DNDK_BUILD=1 -DENABLE_FP16=1 -DUSE__FP16=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions -DENABLE_GGML
 LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp
-ifeq ( $(MESON_ENABLE_OPENCL), 1)
-LOCAL_CFLAGS += -DEANBLE_OPENCL=1
-endif
 
 LOCAL_SRC_FILES := \
 	 ../unittest/unittest_nntrainer_cpu_backend.cpp
@@ -587,9 +584,6 @@ LOCAL_MODULE := unittest_nntrainer_cpu_backend_fp16
 LOCAL_CFLAGS := -Igoogletest/include -I../include -I../unittest/layers -I../../nntrainer/layers/loss -pthread -fexceptions -fopenmp -static-openmp -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -march=armv8.2-a+fp16+dotprod -O3 -frtti -DNDK_BUILD=1 -DENABLE_FP16=1 -DUSE__FP16=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions -DENABLE_GGML
 LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp
-ifeq ( $(MESON_ENABLE_OPENCL), 1)
-LOCAL_CFLAGS += -DEANBLE_OPENCL=1
-endif
 
 LOCAL_SRC_FILES := \
 	 ../unittest/unittest_nntrainer_cpu_backend_fp16.cpp
