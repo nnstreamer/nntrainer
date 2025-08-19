@@ -663,6 +663,9 @@ TEST(blas_kernels, rmsnorm_fp32) {
   std::cout << "RMSNorm time : CPU = " << dt_ref.count() / (run_count * 1.0f)
             << " ms" << std::endl;
 
+  cl_context->command_queue_inst_.enqueueSVMMap(
+    out_fp32_svm, out_cl_fp32.size() * sizeof(float), false);
+
   float mseError = mse<float>((float *)out_fp32_svm,
                               out_ref_fp32.getData<float>(), height * width);
 
@@ -688,6 +691,8 @@ TEST(blas_kernels, rmsnorm_fp32) {
 
     std::cout << "CL : " << from_cl << " REF : " << from_ref << std::endl;
   }
+
+  cl_context->command_queue_inst_.enqueueSVMUnmap(out_fp32_svm);
 
   cl_context->context_inst_.releaseSVMRegion(in_fp32_svm);
   cl_context->context_inst_.releaseSVMRegion(gamma_fp32_svm);
