@@ -17,6 +17,7 @@
 #include <mutex>
 
 #include "CL/cl.h"
+#include "opencl_device_info.h"
 
 #include "singleton.h"
 
@@ -28,9 +29,6 @@ namespace nntrainer::opencl {
  *
  */
 class ContextManager : public Singleton<ContextManager> {
-  cl_platform_id platform_id_{nullptr};
-  cl_device_id device_id_{nullptr};
-  cl_context context_{nullptr};
 
   /**
    * @brief Create a Default GPU Device object
@@ -68,6 +66,13 @@ public:
   const cl_device_id GetDeviceId();
 
   /**
+   * @brief Get the Device Info
+   *
+   * @return const DeviceInfo *
+   */
+  const DeviceInfo *getDeviceInfo() const { return device_info_.get(); }
+
+  /**
    * @brief allocate SVM memory
    *
    * @param size size of the memory to be allocated
@@ -87,6 +92,12 @@ public:
    *
    */
   ~ContextManager();
+
+private:
+  cl_platform_id platform_id_ = nullptr;
+  cl_device_id device_id_ = nullptr;
+  cl_context context_ = nullptr;
+  std::unique_ptr<DeviceInfo> device_info_;
 };
 } // namespace nntrainer::opencl
 #endif // __OPENCL_CONTEXT_MANAGER_H__

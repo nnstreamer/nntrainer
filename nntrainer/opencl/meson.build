@@ -2,6 +2,7 @@ opencl_sources = [
     'opencl_buffer.cpp',
     'opencl_command_queue_manager.cpp',
     'opencl_context_manager.cpp',
+    'opencl_device_info.cpp',
     'opencl_kernel.cpp',
     'opencl_loader.cpp',
     'opencl_program.cpp'
