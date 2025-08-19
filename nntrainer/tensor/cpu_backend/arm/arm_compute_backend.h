@@ -517,6 +517,12 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
 void init_backend();
 
 /**
+ * @copydoc convert_q4_0x8_shuffle_dispatch in cpu_backend.h
+ */
+void convert_q4_0x8_shuffle_dispatch(const void *src, uint16_t *d_out,
+                                     uint8_t *qs_out, int N, int K);
+
+/**
  * @brief Get half-sized angles, transform them into each cos, sin, and scopy in
  * the same vector : cos_ = cos(freq).extend(cos(freq)), sin_ =
  * sin(freq).extend(sin_(req))

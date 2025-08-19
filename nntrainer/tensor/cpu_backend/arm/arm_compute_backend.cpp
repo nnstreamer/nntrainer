@@ -32,6 +32,11 @@ void init_backend() {
 #endif
 }
 
+void convert_q4_0x8_shuffle_dispatch(const void *src, uint16_t *d_out,
+                                     uint8_t *qs_out, int N, int K) {
+  __fallback_convert_q4_0x8_shuffle_dispatch(src, d_out, qs_out, N, K);
+}
+
 void calc_trigonometric_vals_dup(unsigned int N_half, float *angle, float *cos_,
                                  float *sin_, unsigned int alpha) {
   nntrainer::neon::calc_trigonometric_vals_dup(N_half, angle, cos_, sin_,

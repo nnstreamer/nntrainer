@@ -323,6 +323,12 @@ bool __fallback_isValid(const unsigned int N, const float *X) {
   return true;
 }
 
+void __fallback_convert_q4_0x8_shuffle_dispatch(const void *src,
+                                                uint16_t *d_out,
+                                                uint8_t *qs_out, int N, int K) {
+  throw std::runtime_error("Error: convert q4_0x8 is NYI as a fallback");
+}
+
 void __fallback_calc_trigonometric_vals_dup(unsigned int N_half, float *angle,
                                             float *cos_, float *sin_,
                                             unsigned int alpha) {
