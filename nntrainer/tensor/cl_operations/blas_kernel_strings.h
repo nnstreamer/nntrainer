@@ -56,8 +56,6 @@ const std::string &getConcatClAxis2Kernel();
 
 const std::string &getConcatClAxis1Kernel();
 
-const std::string &getRMSNormClKernel();
-
 const std::string &getConvertBlockQ4_0Kernel();
 
 const std::string &getRestoreBlockQ4_0Kernel();
