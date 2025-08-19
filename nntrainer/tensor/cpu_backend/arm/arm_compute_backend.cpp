@@ -30,6 +30,8 @@ void init_backend() {
 #else
   // TODO it needed.
 #endif
+  // Do not repeatedly call set_num_threads. It's a global config.
+  __openblas_set_num_threads(-1); // -1 = BLAS_NUM_THREADS if defined.
 }
 
 void convert_q4_0x8_shuffle_dispatch(const void *src, uint16_t *d_out,
