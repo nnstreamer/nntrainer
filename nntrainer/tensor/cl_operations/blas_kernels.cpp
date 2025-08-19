@@ -11,7 +11,6 @@
  *
  */
 
-#include "blas_kernel_helper.h"
 #include "blas_kernels_templates.h"
 
 namespace nntrainer {

@@ -13,8 +13,7 @@ cl_op_headers = [
   'blas_kernel_strings.h',
   'attention_kernel_interface.h',
   'attention_kernel_strings.h',
-  'clblast_interface.h',
-  'blas_kernel_helper.h'
+  'clblast_interface.h'
 ]
 
 if get_option('enable-fp16')

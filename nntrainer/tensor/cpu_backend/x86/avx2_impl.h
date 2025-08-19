@@ -52,6 +52,12 @@ bool is_valid(const unsigned int N, const _Float16 *X);
 #endif
 
 /**
+ * @copydoc convert_q4_0x8_shuffle_dispatch in cpu_backend.h
+ */
+void convert_q4_0x8_shuffle_dispatch_avx(const void *src, uint16_t *d_out,
+                                         uint8_t *qs_out, int N, int K);
+
+/**
  * @brief     check if the X has NaN value
  * @note it compare (x!=x || x == inf)
  * @param[in] N  length of the vector

@@ -414,6 +414,18 @@ extern void transpose_matrix(const unsigned int M, const unsigned int N,
 extern void init_backend();
 
 /**
+ * @brief Unpack Q4_0x8 data
+ *
+ * @param src q4_0 data
+ * @param d_out scale data
+ * @param qs_out quantized data
+ * @param N number of block
+ * @param K dim K
+ */
+extern void convert_q4_0x8_shuffle_dispatch(const void *src, uint16_t *d_out,
+                                            uint8_t *qs_out, int N, int K);
+
+/**
  * @brief Get half-sized angles, transform them into each cos, sin, and scopy in
  * the same vector : cos_ = cos(freq).extend(cos(freq)), sin_ =
  * sin(freq).extend(sin_(req))
