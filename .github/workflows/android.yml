@@ -8,6 +8,9 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     name: Android NDK build on Ubuntu for arm64-v8a
+    strategy:
+      matrix:
+        cl_options: [ "-Denable-opencl=false", "-Denable-opencl=true" ]
     steps:
     - uses: actions/checkout@v4
       with:
@@ -36,7 +39,7 @@ jobs:
       if: env.rebuild == '1'
       run: |
         echo "::group::Run package_android.sh"
-        ./tools/package_android.sh
+        ./tools/package_android.sh ${{ matrix.cl_options }}
         echo "::endgroup::"
     - name: Install built binaries for application build
       if: env.rebuild == '1'

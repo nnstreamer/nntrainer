@@ -206,13 +206,6 @@ if get_option('enable-opencl')
     clblast_proj = cmake.subproject('clblast', options: clblast_options, required: true)
     clblast_dep = clblast_proj.dependency('clblast')
   endif
-else 
-  # When OpenCL is disabled, set clblast_dep to dummy_dep for Android
-  if get_option('platform') == 'android'
-    clblast_dep = dummy_dep
-    clblast_root = ''
-    opencl_root = ''
-  endif
 endif
 
 if get_option('opencl-kernel-path') != ''
