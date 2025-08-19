@@ -475,8 +475,20 @@ TEST(blas_kernels, addition_i) {
                             MOD) *
                              alpha);
 
+  auto t1 = std::chrono::high_resolution_clock::now();
   A_fp32.add_i(B_fp32);
+  auto t2 = std::chrono::high_resolution_clock::now();
+  auto dt_cpu = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
+
+  auto t3 = std::chrono::high_resolution_clock::now();
   add_i_cl(C_fp32, D_fp32);
+  auto t4 = std::chrono::high_resolution_clock::now();
+  auto dt_gpu = std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3);
+
+  std::cout << "FP32 ADD : N: " << batch << " C: " << channel
+            << " H: " << height << " W: " << width << std::endl;
+  std::cout << " - time : CPU = " << dt_cpu.count() << " us" << std::endl;
+  std::cout << " - time : GPU = " << dt_gpu.count() << " us" << std::endl;
 
   float mseError =
     mse<float>(A_fp32.getData<float>(), C_fp32.getData<float>(), A_fp32.size());
@@ -485,6 +497,100 @@ TEST(blas_kernels, addition_i) {
     A_fp32.getData<float>(), C_fp32.getData<float>(), A_fp32.size());
 
   const float epsilon = 1e-3 * width;
+
+  EXPECT_IN_RANGE(mseError, 0, epsilon);
+  EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
+}
+
+TEST(blas_kernels, addition_i_svm) {
+  const int batch = 12;
+  const int channel = 1;
+  const int height = 3072;
+  const int width = 3072;
+
+  const int batch_b = 1;
+
+  const float alpha = 1e-1;
+  const int MOD = 10;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor A_fp32(batch, channel, height, width, t_type_nchw_fp32);
+  nntrainer::Tensor B_fp32(batch_b, channel, height, width, t_type_nchw_fp32);
+  nntrainer::Tensor C_fp32(batch, channel, height, width, t_type_nchw_fp32);
+  nntrainer::Tensor D_fp32(batch_b, channel, height, width, t_type_nchw_fp32);
+
+  GEN_TEST_INPUT(A_fp32, ((i * (batch * height * channel) +
+                           j * (batch * height) + k * (width) + l + 1) %
+                          MOD) *
+                           alpha);
+  GEN_TEST_INPUT_C(B_fp32, ((i * (batch_b * height * channel) +
+                             j * (batch_b * height) + k * (width) + l + 1) %
+                            MOD) *
+                             alpha);
+  GEN_TEST_INPUT(C_fp32, ((i * (batch * height * channel) +
+                           j * (batch * height) + k * (width) + l + 1) %
+                          MOD) *
+                           alpha);
+  GEN_TEST_INPUT_C(D_fp32, ((i * (batch_b * height * channel) +
+                             j * (batch_b * height) + k * (width) + l + 1) %
+                            MOD) *
+                             alpha);
+
+  auto t1 = std::chrono::high_resolution_clock::now();
+  A_fp32.add_i(B_fp32);
+  auto t2 = std::chrono::high_resolution_clock::now();
+  auto dt_cpu = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
+
+  auto *cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+
+  const auto c_buffer_size = C_fp32.size() * sizeof(float);
+  const auto d_buffer_size = D_fp32.size() * sizeof(float);
+  void *c_fp32_svm = cl_context->context_inst_.createSVMRegion(c_buffer_size);
+  void *d_fp32_svm = cl_context->context_inst_.createSVMRegion(d_buffer_size);
+
+  cl_context->command_queue_inst_.enqueueSVMMap(
+    c_fp32_svm, C_fp32.size() * sizeof(float), false);
+  cl_context->command_queue_inst_.enqueueSVMMap(
+    d_fp32_svm, D_fp32.size() * sizeof(float), false);
+
+  std::memcpy(c_fp32_svm, C_fp32.getData<float>(), c_buffer_size);
+  std::memcpy(d_fp32_svm, D_fp32.getData<float>(), d_buffer_size);
+
+  cl_context->command_queue_inst_.enqueueSVMUnmap(c_fp32_svm);
+  cl_context->command_queue_inst_.enqueueSVMUnmap(d_fp32_svm);
+
+  auto t3 = std::chrono::high_resolution_clock::now();
+  addition_cl((float *)d_fp32_svm, (float *)c_fp32_svm, D_fp32.size(),
+              C_fp32.size(), true);
+  auto t4 = std::chrono::high_resolution_clock::now();
+  auto dt_gpu = std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3);
+
+  std::cout << "FP32 ADD : N: " << batch << " C: " << channel
+            << " H: " << height << " W: " << width << std::endl;
+  std::cout << " - time : CPU = " << dt_cpu.count() << " us" << std::endl;
+  std::cout << " - time : GPU = " << dt_gpu.count() << " us" << std::endl;
+
+  cl_context->command_queue_inst_.enqueueSVMMap(
+    c_fp32_svm, C_fp32.size() * sizeof(float), false);
+  cl_context->command_queue_inst_.enqueueSVMMap(
+    d_fp32_svm, D_fp32.size() * sizeof(float), false);
+
+  float mseError =
+    mse<float>(A_fp32.getData<float>(), (float *)c_fp32_svm, A_fp32.size());
+
+  double cosSim = cosine_similarity<float>(A_fp32.getData<float>(),
+                                           (float *)c_fp32_svm, A_fp32.size());
+
+  const float epsilon = 1e-3 * width;
+
+  cl_context->command_queue_inst_.enqueueSVMUnmap(c_fp32_svm);
+  cl_context->command_queue_inst_.enqueueSVMUnmap(d_fp32_svm);
+
+  cl_context->context_inst_.releaseSVMRegion(c_fp32_svm);
+  cl_context->context_inst_.releaseSVMRegion(d_fp32_svm);
 
   EXPECT_IN_RANGE(mseError, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
