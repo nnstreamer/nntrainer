@@ -190,40 +190,23 @@ bool ContextManager::CreateDefaultGPUDevice() {
     cl_platform_id platform = platform_device.first;
     cl_device_id device = platform_device.second;
 
-    cl_device_type device_type = 0;
-    if (CL_SUCCESS != clGetDeviceInfo(device, CL_DEVICE_TYPE,
-                                      sizeof(cl_device_type), &device_type,
-                                      nullptr)) {
-      ml_loge("Failed to query for device type - skipping...");
-      continue;
+    auto device_info = std::make_unique<DeviceInfo>();
+    if (!device_info->read(device)) {
+      ml_loge("Failed to read device info");
+      return false;
     }
 
-    const bool type_check = (device_type == intel_igpu_device_type);
+    const bool type_check =
+      (device_info->getDeviceType() == intel_igpu_device_type);
 
 #if SEARCH_BY_NAME
-    char device_name_buffer[1024];
-    std::memset(device_name_buffer, 0x00, sizeof(device_name_buffer));
-
-    if (CL_SUCCESS != clGetDeviceInfo(device, CL_DEVICE_NAME,
-                                      sizeof(device_name_buffer),
-                                      &device_name_buffer, NULL)) {
-      ml_loge("Failed to query for device name ...");
-    }
-
-    std::string device_name(device_name_buffer);
     std::string device_name_query(intel_igpu_device_name_pfx);
 
-    const bool vendor_check =
-      (device_name.find(device_name_query) != std::string::npos);
+    const bool vendor_check = (device_info->getDeviceName().find(
+                                 device_name_query) != std::string::npos);
 #else
-    cl_uint vendor_id = 0;
-    if (CL_SUCCESS != clGetDeviceInfo(device, CL_DEVICE_VENDOR_ID,
-                                      sizeof(cl_uint), &vendor_id, nullptr)) {
-      ml_loge("Failed to query for device vendor ID - skipping...");
-      continue;
-    }
-
-    const bool vendor_check = (vendor_id == intel_igpu_vendor_id);
+    const bool vendor_check =
+      (device_info->getDeviceVendorID() == intel_igpu_vendor_id);
 #endif
 
 #undef SEARCH_BY_NAME
@@ -231,7 +214,7 @@ bool ContextManager::CreateDefaultGPUDevice() {
     if (vendor_check && type_check) {
       platform_id_ = platform;
       device_id_ = device;
-
+      device_info_ = std::move(device_info);
       break;
     }
   }
@@ -240,51 +223,16 @@ bool ContextManager::CreateDefaultGPUDevice() {
     ml_loge("No suitable platform / device found - using default (first)");
     platform_id_ = platform_device_pairs[0].first;
     device_id_ = platform_device_pairs[0].second;
+    device_info_ = std::make_unique<DeviceInfo>();
+    if (!device_info_->read(device_id_)) {
+      ml_loge("Failed to read device info");
+      return false;
+    }
   }
 
   // Raport device name
-  {
-    char device_name_buffer[1024];
-    std::memset(device_name_buffer, 0x00, sizeof(device_name_buffer));
-
-    if (CL_SUCCESS != clGetDeviceInfo(device_id_, CL_DEVICE_NAME,
-                                      sizeof(device_name_buffer),
-                                      &device_name_buffer, NULL)) {
-      ml_loge("Failed to query for device name ...");
-    }
-
-    ml_logi("Using device : %s", device_name_buffer);
-  }
-
-#ifdef ENABLE_FP16
-  /// @note This is working incorrectly. For CUDA devices, cl_khr_fp16 is not
-  /// listed, but compilation with half-precision works.
-
-  // check for fp16 (half) support available on device
-  // getting extensions
-  // size_t extension_size;
-  // status =
-  //   clGetDeviceInfo(device_id_, CL_DEVICE_EXTENSIONS, 0, NULL,
-  //   &extension_size);
-  // if (status != CL_SUCCESS) {
-  //   ml_loge("clGetDeviceInfo returned %d", status);
-  //   return false;
-  // }
-
-  // std::vector<char> extensions(extension_size);
-  // status = clGetDeviceInfo(device_id_, CL_DEVICE_EXTENSIONS, extension_size,
-  //                          extensions.data(), NULL);
-  // if (status != CL_SUCCESS) {
-  //   ml_loge("clGetDeviceInfo returned %d", status);
-  //   return false;
-  // }
-
-  // if (std::string(extensions.data()).find("cl_khr_fp16") ==
-  // std::string::npos) {
-  //   ml_loge("fp16 (half) is not supported by device");
-  //   return false;
-  // }
-#endif
+  ml_logi("Using device\n%s", device_info_->getDeviceName().data());
+  device_info_->print();
 
   return true;
 }
