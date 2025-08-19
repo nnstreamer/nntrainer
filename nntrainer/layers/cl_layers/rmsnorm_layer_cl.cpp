@@ -14,6 +14,7 @@
 
 #include <blas_kernel_strings.h>
 #include <blas_kernels.h>
+#include <cl_kernels/rmsnorm.h>
 #include <common_properties.h>
 #include <layer_context.h>
 #include <lazy_tensor.h>
@@ -42,7 +43,7 @@ bool RMSNormLayerCl::registerClKernels(ClContext &cl_context) {
   do {
 
     ClContext::SharedPtrClKernel kernel_rmsnorm_ptr =
-      cl_context.registerClKernel(getRMSNormClKernel(), "rmsnorm_cl");
+      cl_context.registerClKernel(rmsnorm_kernel, "rmsnorm_cl");
     if (!kernel_rmsnorm_ptr) {
       ml_loge("OpenCL Error: Fail to register rmsnorm_cl kernel");
       break;

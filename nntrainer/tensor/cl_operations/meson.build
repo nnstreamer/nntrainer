@@ -21,6 +21,8 @@ if get_option('enable-fp16')
   cl_op_sources += 'attention_kernels_fp16.cpp'
 endif
 
+subdir('cl_kernels')
+
 foreach s : cl_op_sources
   nntrainer_sources += meson.current_source_dir() / s
 endforeach
