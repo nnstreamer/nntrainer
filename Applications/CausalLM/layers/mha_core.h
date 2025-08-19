@@ -283,6 +283,10 @@ private:
   inline static std::vector<std::vector<float>> *freqs_cos = {};
   inline static std::vector<std::vector<float>> *freqs_sin = {};
   inline static std::vector<float> thetas;
+#ifdef ENABLE_FP16
+  inline static std::vector<std::vector<_FP16>> *freqs_cos_fp16 = {};
+  inline static std::vector<std::vector<_FP16>> *freqs_sin_fp16 = {};
+#endif
 
   /**
    * @brief pre_compute frequencies for Rotary Embedding.
@@ -297,12 +301,11 @@ private:
   /**
    * @brief     apply rotary embedding
    * @param[in] in input tensor
+   * @param[out] out output tensor
    * @param[in] dim hidden dim size
    * @param[in] from sequence order
+   * @param[in] convert_only - conversion only
    */
-  void apply_rotary_emb_tensor(nntrainer::Tensor &in, unsigned int dim,
-                               unsigned int from);
-
   void apply_rotary_emb_tensor_v2(nntrainer::Tensor &in, nntrainer::Tensor &out,
                                   unsigned int dim, unsigned int from,
                                   bool convert_only = false);
@@ -326,12 +329,12 @@ private:
                        size_t sequence_len, unsigned int num_heads,
                        unsigned int group_size, unsigned int head_dim);
 
-  void compute_fp16vcache_fp32_transposed(const float *in,
-                                          const uint16_t *vcache, float *output,
-                                          int seq, int num_cache_head,
-                                          int gqa_size, int head_dim,
-                                          bool process_all,
-                                          BS::thread_pool<> &pool);
+  void compute_fp16vcache_transposed(nntrainer::Tensor &in,
+                                     nntrainer::Tensor &vcache,
+                                     nntrainer::Tensor &output, int seq,
+                                     int num_cache_head, int gqa_size,
+                                     int head_dim, bool process_all,
+                                     BS::thread_pool<> &pool);
 
   /************** END OF  ROTARY EMBEDDING *************/
 
