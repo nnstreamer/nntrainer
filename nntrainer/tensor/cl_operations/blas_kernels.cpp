@@ -375,7 +375,7 @@ void sgemm_cl(bool TransA, bool TransB, const float *A, const float *B,
 }
 
 void addition_cl(const float *input, float *res, unsigned int size_input,
-                 unsigned int size_res) {
+                 unsigned int size_res, const bool use_svm) {
   bool result = false;
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
@@ -387,7 +387,7 @@ void addition_cl(const float *input, float *res, unsigned int size_input,
   }
 
   addition_cl_internal<float>(kernel_addition_ptr, input, res, size_input,
-                              size_res);
+                              size_res, use_svm);
 }
 
 void rmsnorm_cl(const float *input, const float *gamma, float *result,

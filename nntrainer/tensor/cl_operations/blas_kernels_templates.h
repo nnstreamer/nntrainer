@@ -258,38 +258,52 @@ sgemm_cl_internal(ClContext::SharedPtrClKernel kernel, bool TransA, bool TransB,
 template <typename T = float>
 inline static void
 addition_cl_internal(ClContext::SharedPtrClKernel kernel, const T *input,
-                     T *res, unsigned int size_input, unsigned int size_res) {
+                     T *res, unsigned int size_input, unsigned int size_res,
+                     const bool use_svm) {
   bool result = false;
 
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
 
   size_t dim1_size = sizeof(T) * size_input;
   size_t dim2_size = sizeof(T) * size_res;
 
-  result = clbuffInstance.getInBufferA()->WriteDataRegion(
-    blas_cc->command_queue_inst_, dim1_size, input);
-  if (!result) {
-    return;
-  }
+  if (use_svm) {
+    result = kernel->SetKernelSVMArguments(0, input);
+    if (!result) {
+      return;
+    }
 
-  result = clbuffInstance.getOutBufferA()->WriteDataRegion(
-    blas_cc->command_queue_inst_, dim2_size, res);
-  if (!result) {
-    return;
-  }
+    result = kernel->SetKernelSVMArguments(1, res);
+    if (!result) {
+      return;
+    }
+  } else {
+    auto &clbuffInstance = ClBufferManager::Global();
+    result = clbuffInstance.getInBufferA()->WriteDataRegion(
+      blas_cc->command_queue_inst_, dim1_size, input);
+    if (!result) {
+      return;
+    }
 
-  result = kernel->SetKernelArguments(0, clbuffInstance.getInBufferA(),
-                                      sizeof(cl_mem));
-  if (!result) {
-    return;
-  }
+    result = clbuffInstance.getOutBufferA()->WriteDataRegion(
+      blas_cc->command_queue_inst_, dim2_size, res);
+    if (!result) {
+      return;
+    }
 
-  result = kernel->SetKernelArguments(1, clbuffInstance.getOutBufferA(),
-                                      sizeof(cl_mem));
-  if (!result) {
-    return;
+    auto bufferInA = clbuffInstance.getInBufferA()->GetBuffer();
+    auto bufferOutA = clbuffInstance.getOutBufferA()->GetBuffer();
+
+    result = kernel->SetKernelArguments(0, &bufferInA, sizeof(cl_mem));
+    if (!result) {
+      return;
+    }
+
+    result = kernel->SetKernelArguments(1, &bufferOutA, sizeof(cl_mem));
+    if (!result) {
+      return;
+    }
   }
 
   result = kernel->SetKernelArguments(2, &size_input, sizeof(int));
@@ -302,20 +316,27 @@ addition_cl_internal(ClContext::SharedPtrClKernel kernel, const T *input,
     return;
   }
 
-  const int work_groups_count[3] = {(int)size_res, 1, 1};
-  /// @todo: create a group size by device & input
-  const int work_group_size[3] = {1, 1, 1}; // test-value
-  result = blas_cc->command_queue_inst_.DispatchCommand(
-    kernel, work_groups_count, work_group_size);
+  std::array<size_t, 3> global_work_size = {size_res, 1, 1};
+  cl_event addition_wait;
+
+  result = blas_cc->command_queue_inst_.enqueueKernel(
+    kernel->GetKernel(), global_work_size.size(), global_work_size.data(),
+    nullptr, 0, nullptr, &addition_wait);
+
   if (!result) {
     return;
   }
 
-  result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-    blas_cc->command_queue_inst_, dim2_size, res);
+  blas_cc->command_queue_inst_.waitForEvent(1, &addition_wait);
 
-  if (!result) {
-    return;
+  if (!use_svm) {
+    auto &clbuffInstance = ClBufferManager::Global();
+    result = clbuffInstance.getOutBufferA()->ReadDataRegion(
+      blas_cc->command_queue_inst_, dim2_size, res);
+
+    if (!result) {
+      return;
+    }
   }
 }
 
