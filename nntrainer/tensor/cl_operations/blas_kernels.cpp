@@ -12,6 +12,7 @@
  */
 
 #include "blas_kernels_templates.h"
+#include <cl_kernels/cl_kernels.h>
 
 namespace nntrainer {
 
@@ -397,7 +398,7 @@ void rmsnorm_cl(const float *input, const float *gamma, float *result,
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
 
   ClContext::SharedPtrClKernel kernel_rmsnorm_ptr =
-    blas_cc->registerClKernel(getRMSNormClKernel(), "rmsnorm_cl");
+    blas_cc->registerClKernel(rmsnorm_kernel, "rmsnorm_cl");
   if (!kernel_rmsnorm_ptr) {
     return;
   }

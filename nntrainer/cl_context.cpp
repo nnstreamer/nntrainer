@@ -18,6 +18,7 @@
 #include <attention_kernel_strings.h>
 #include <blas_kernel_strings.h>
 #include <cl_context.h>
+#include <cl_kernels/cl_kernels.h>
 #include <concat_cl.h>
 #include <fc_layer_cl.h>
 #include <reshape_cl.h>
