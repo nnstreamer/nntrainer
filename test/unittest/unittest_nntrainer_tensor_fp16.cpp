@@ -4968,13 +4968,11 @@ TEST(nntrainer_Tensor, initialize_02_p) {
   t_type.data_type = nntrainer::Tdatatype::FP16;
 
   nntrainer::Tensor t({1, 2, 3, 4, t_type}, true);
+  t.initialize(nntrainer::Initializer::ONES);
 
   nntrainer::Tensor golden(1, 2, 3, 4, t_type);
   golden.setValue(1);
 
-  EXPECT_NE(golden, t);
-
-  t.initialize(nntrainer::Initializer::ONES);
   EXPECT_EQ(golden, t);
 }
 

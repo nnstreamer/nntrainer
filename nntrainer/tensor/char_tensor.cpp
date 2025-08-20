@@ -64,12 +64,7 @@ CharTensor::CharTensor(
   NNTR_THROW_IF(scales.size() != scale_size(), std::invalid_argument)
     << "invalid scale factor size " << scales.size();
 
-  MemoryData *mem_data = new MemoryData(
-    (void *)(new int8_t[dim.getDataLen() + sizeof(float) * scale_size()]()));
-  data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
-    delete[] mem_data->getAddr<int8_t>();
-    delete mem_data;
-  });
+  allocateInternal();
 
   offset = 0;
 
@@ -127,14 +122,7 @@ void CharTensor::allocate() {
     /** as this memory is shared, do NOT initialize */
   } else {
     /// allocate new memory for the tensor data
-    MemoryData *mem_data;
-
-    mem_data = new MemoryData(
-      (void *)(new int8_t[dim.getDataLen() + 4 * scale_size()]{}));
-    data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-      delete[] mem_data->template getAddr<int8_t>();
-      delete mem_data;
-    });
+    allocateInternal();
 
     offset = 0;
     initialize();
@@ -144,41 +132,6 @@ void CharTensor::allocate() {
 void CharTensor::deallocate() {
   data = nullptr;
   offset = 0;
-}
-
-void *CharTensor::getData() const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return data->getAddr<int8_t>() + offset;
-}
-
-void *CharTensor::getData(size_t idx) const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return data->getAddr<int8_t>() + offset + idx;
-}
-
-void *CharTensor::getScale() const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return ((int8_t *)getData()) + size();
-}
-
-void *CharTensor::getScale(size_t idx) const {
-  NNTR_THROW_IF(idx > scale_size(), std::invalid_argument)
-    << "Tensor::getScale() index is not valid";
-
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return ((float *)getScale()) + idx;
 }
 
 void *CharTensor::getAddress(unsigned int i) {
@@ -244,6 +197,8 @@ void CharTensor::initialize() {
   if (empty() || !isAllocated())
     return;
 
+  TensorBase::initialize();
+
   /// @note Sampling from the normal/uniform distribution is invalid
   switch (initializer) {
   case Initializer::ZEROS:
@@ -288,8 +243,8 @@ Tensor &CharTensor::multiply(Tensor const &input, Tensor &output,
     << "Multiplication other than per tensor affine quantization scheme is "
        "NYI.";
 
-  float lhs_scale = *(float *)getScale();
-  float rhs_scale = *input.getScale<float>();
+  float lhs_scale = *getScale();
+  float rhs_scale = *input.getScale();
 
   /// @note current impl assumes pre-established quantization parameters are set
   /// @todo 1. verify result_scale is valid 2. calculate qparams if not given
@@ -313,7 +268,7 @@ Tensor &CharTensor::multiply(Tensor const &input, Tensor &output,
       std::max(-128, std::min((int)std::lround(multiplier * accum_val), 127));
   }
 
-  *output.getScale<float>() = scale;
+  *output.getScale() = scale;
 
   return output;
 }
@@ -330,8 +285,8 @@ Tensor &CharTensor::add(Tensor const &input, Tensor &output,
     << "Tensor addition other than per tensor affine quantization scheme is "
        "NYI.";
 
-  float lhs_scale = *(float *)getScale();
-  float rhs_scale = *input.getScale<float>();
+  float lhs_scale = *getScale();
+  float rhs_scale = *input.getScale();
 
   /// @note current impl assumes pre-established quantization parameters are set
   /// @todo 1. verify result_scale is valid 2. calculate qparams if not given
@@ -361,7 +316,7 @@ Tensor &CharTensor::add(Tensor const &input, Tensor &output,
       }
     }
   }
-  *output.getScale<float>() = scale;
+  *output.getScale() = scale;
 
   return output;
 }
