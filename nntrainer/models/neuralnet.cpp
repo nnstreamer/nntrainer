@@ -764,7 +764,7 @@ void NeuralNetwork::load(const std::string &file_path,
           if (!MMAP_READ) {
             auto local_model_file = checkedOpenStream<std::ifstream>(
               (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
-            node->read(&local_model_file, false, exec_mode, fsu_mode,
+            node->read(local_model_file, false, exec_mode, fsu_mode,
                        std::numeric_limits<size_t>::max(), true);
           } else {
             node->read(mmaped, false, exec_mode, fsu_mode,
