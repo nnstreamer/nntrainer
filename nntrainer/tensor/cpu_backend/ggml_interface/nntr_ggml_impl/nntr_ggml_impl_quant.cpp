@@ -19,64 +19,9 @@ enum ggml_type {
   GGML_TYPE_COUNT = 39,
 };
 
-struct ggml_type_traits {
-  const char *type_name;
-  int64_t blck_size;
-  int64_t blck_size_interleave; // interleave elements in blocks
-  size_t type_size;
-  bool is_quantized;
-  // ggml_to_float_t to_float;
-  // ggml_from_float_t from_float_ref;
-};
-
-static const std::unordered_map<ggml_type, ggml_type_traits> type_traits = {
-  {GGML_TYPE_Q4_0,
-   ggml_type_traits{
-     "q4_0",
-     QK4_0,
-     sizeof(block_q4_0),
-     true,
-   }},
-  {GGML_TYPE_Q8_0,
-   ggml_type_traits{
-     "q4_0",
-     QK8_0,
-     sizeof(block_q8_0),
-     true,
-   }},
-  {GGML_TYPE_Q4_K,
-   ggml_type_traits{
-     "q4_K",
-     QK_K,
-     sizeof(block_q4_K),
-     true,
-   }},
-  {GGML_TYPE_Q6_K,
-   ggml_type_traits{
-     "q6_K",
-     QK_K,
-     sizeof(block_q6_K),
-     true,
-   }},
-  {GGML_TYPE_Q8_K,
-   ggml_type_traits{
-     "q8_K",
-     QK_K,
-     sizeof(block_q8_K),
-     true,
-   }},
-};
-
 //
 // ===================== Helper functions
 //
-static inline int nearest_int(float fval) {
-  assert(fabsf(fval) <= 4194303.f);
-  float val = fval + 12582912.f;
-  int i;
-  memcpy(&i, &val, sizeof(int));
-  return (i & 0x007fffff) - 0x00400000;
-}
 
 static float make_qx_quants(int n, int nmax, const float *__restrict x,
                             int8_t *__restrict L, int rmse_type,
@@ -563,11 +508,55 @@ static inline uint32_t fp32_to_bits(float f) {
 }
 
 int64_t ggml_blck_size(enum ggml_type type) {
-  return type_traits.at(type).blck_size;
+
+  switch (type) {
+  case GGML_TYPE_Q4_0: {
+    return QK4_0;
+  }
+  case GGML_TYPE_Q8_0: {
+    return QK8_0;
+  }
+  case GGML_TYPE_Q4_K: {
+    return QK_K;
+  }
+  case GGML_TYPE_Q6_K: {
+    return QK_K;
+  }
+  case GGML_TYPE_Q8_K: {
+    return QK_K;
+  }
+  default: {
+    break;
+  }
+  }
+
+  return -1;
 }
 
 size_t ggml_type_size(enum ggml_type type) {
-  return type_traits.at(type).type_size;
+
+  switch (type) {
+  case GGML_TYPE_Q4_0: {
+    return sizeof(block_q4_0);
+  }
+  case GGML_TYPE_Q8_0: {
+    return sizeof(block_q8_0);
+  }
+  case GGML_TYPE_Q4_K: {
+    return sizeof(block_q4_K);
+  }
+  case GGML_TYPE_Q6_K: {
+    return sizeof(block_q6_K);
+  }
+  case GGML_TYPE_Q8_K: {
+    return sizeof(block_q8_K);
+  }
+  default: {
+    break;
+  }
+  }
+
+  return -1;
 }
 
 size_t ggml_row_size(enum ggml_type type, int64_t ne) {

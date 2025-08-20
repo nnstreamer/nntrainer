@@ -1,5 +1,6 @@
 ggml_impl_interface_headers = [
     'nntr_ggml_impl.h',
+    'nntr_ggml_impl_common.h',
     'nntr_ggml_impl_utils.h',
 ]
 

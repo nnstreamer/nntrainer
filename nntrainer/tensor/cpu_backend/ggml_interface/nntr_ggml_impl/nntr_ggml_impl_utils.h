@@ -7,8 +7,7 @@
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Pawel Debski <p.debski2@samsung.com>
  * @bug    No known bugs except for NYI items
- * @brief  Common structutures & functions definitions to be used in ggml
- * functions implementations
+ * @brief  Platform-specific logic and helper functions for ggml implementation
  */
 
 #ifndef __NNTR_GGML_IMPL_INTERNAL__
@@ -16,6 +15,8 @@
 
 #include <cstring>
 #include <stdint.h>
+
+#include <nntr_ggml_impl_common.h>
 
 #ifdef __ARM_FEATURE_SVE
 #include <arm_sve.h>
@@ -28,121 +29,6 @@
 #elif defined(__AVX2__) || defined(__AVX__)
 #include <immintrin.h>
 #endif // !defined(__aarch64__)
-
-typedef uint16_t nntr_fp16_t;
-
-typedef uint16_t nntr_half;
-typedef uint32_t nntr_half2;
-
-#ifndef MIN
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-#endif
-
-#ifndef MAX
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
-#endif
-
-#define GROUP_MAX_EPS 1e-15f
-
-#define K_SCALE_SIZE 12
-
-#define Q4_0 32
-#define Q8_0 32
-
-#define QK_K 256
-
-#define QK4_0 32
-#define QK8_0 32
-
-typedef struct {
-  union {
-    struct {
-      uint16_t d;    // super-block scale for quantized scales
-      uint16_t dmin; // super-block scale for quantized mins
-    } data;
-    uint32_t dm;
-  } data;
-  uint8_t scales[12];   // scales and mins, quantized with 6 bits
-  uint8_t qs[QK_K / 2]; // 4--bit quants
-} block_q4_K;
-
-/**
- * @brief block_q6_K
- *
- */
-typedef struct {
-  uint8_t ql[QK_K / 2];     // quants, lower 4 bits
-  uint8_t qh[QK_K / 4];     // quants, upper 2 bits
-  int8_t scales[QK_K / 16]; // scales, quantized with 8 bits
-  nntr_half d;              // super-block scale
-} block_q6_K;
-/**
- * @brief block_q8_K
- *
- */
-typedef struct {
-  float d;                  // delta
-  int8_t qs[QK_K];          // quants
-  int16_t bsums[QK_K / 16]; // sum of quants in groups of 16
-} block_q8_K;
-/**
- * @brief block_q4_0
- *
- */
-typedef struct {
-  nntr_half d;           // delta
-  uint8_t qs[QK4_0 / 2]; // nibbles / quants
-} block_q4_0;
-
-typedef struct {
-  nntr_half d;      // delta
-  int8_t qs[QK8_0]; // quants
-} block_q8_0;
-
-/**
- * @brief struct template for q4_0 and q8_0
- *
- * @tparam K 4 or 8
- * @return constexpr int number of elements in the quantized block
- */
-template <int K> constexpr int QK_0() {
-  if constexpr (K == 4) {
-    return Q4_0;
-  }
-  if constexpr (K == 8) {
-    return Q8_0;
-  }
-  return -1;
-}
-
-/**
- * @brief block of q4_0 or q8_0 block
- *
- * @tparam K 4 or 8
- * @tparam N number of blocks to be packed
- */
-template <int K, int N> struct block {
-  uint16_t d[N];                      // deltas for N qK_0 blocks
-  int8_t qs[(QK_0<K>() * N * K) / 8]; // quants for N qK_0 blocks
-};
-
-using block_q4_0x4 = block<4, 4>;
-using block_q4_0x8 = block<4, 8>;
-using block_q8_0x4 = block<8, 4>;
-using block_q8_0x8 = block<8, 8>;
-
-struct block_q4_Kx8 {
-  uint16_t d[8];      // super-block scale for quantized scales
-  uint16_t dmin[8];   // super-block scale for quantized mins
-  uint8_t scales[96]; // scales and mins, quantized with 6 bits
-  uint8_t qs[1024];   // 4--bit quants
-};
-
-float nntr_fp16_to_fp32(nntr_fp16_t h);
-nntr_fp16_t nntr_fp32_to_fp16(float f);
-
-float nntr_compute_fp16_to_fp32(nntr_fp16_t h);
-nntr_fp16_t nntr_compute_fp32_to_fp16(float f);
 
 // some compilers don't provide _mm256_set_m128i, e.g. gcc 7
 #define MM256_SET_M128I(a, b)                                                  \
@@ -865,15 +751,15 @@ static inline __m256i mul_sum_i8_pairs_acc_int32x8(const __m256i acc,
     _mm_shuffle_epi8(_mm_loadu_si128((const __m128i *)x), arrangeMask))
 #else
 #if defined(__AVX512F__)
-static inline __m512 __avx512_f32cx8x2_load(ggml_fp16_t *x, ggml_fp16_t *y) {
+static inline __m512 __avx512_f32cx8x2_load(nntr_fp16_t *x, nntr_fp16_t *y) {
   float tmp[16];
 
   for (int i = 0; i < 8; i++) {
-    tmp[i] = nntr_compute_fp16_to_fp32(x[i]);
+    tmp[i] = nntr_fp16_to_fp32(x[i]);
   }
 
   for (int i = 0; i < 8; i++) {
-    tmp[i + 8] = nntr_compute_fp16_to_fp32(y[i]);
+    tmp[i + 8] = nntr_fp16_to_fp32(y[i]);
   }
 
   return _mm512_loadu_ps(tmp);
@@ -884,35 +770,35 @@ static inline __m512 __avx512_repeat_f32cx16_load(__m128i x) {
   _mm_storeu_si128((__m128i *)tmphalf, x);
 
   for (int i = 0; i < 4; i++) {
-    tmp[i] = nntr_compute_fp16_to_fp32(tmphalf[i]);
-    tmp[i + 4] = nntr_compute_fp16_to_fp32(tmphalf[i]);
-    tmp[i + 8] = nntr_compute_fp16_to_fp32(tmphalf[i]);
-    tmp[i + 12] = nntr_compute_fp16_to_fp32(tmphalf[i]);
+    tmp[i] = nntr_fp16_to_fp32(tmphalf[i]);
+    tmp[i + 4] = nntr_fp16_to_fp32(tmphalf[i]);
+    tmp[i + 8] = nntr_fp16_to_fp32(tmphalf[i]);
+    tmp[i + 12] = nntr_fp16_to_fp32(tmphalf[i]);
   }
 
   return _mm512_loadu_ps(tmp);
 }
 #endif
-static inline __m256 __avx_f32cx8_load(ggml_fp16_t *x) {
+static inline __m256 __avx_f32cx8_load(nntr_fp16_t *x) {
   float tmp[8];
 
   for (int i = 0; i < 8; i++) {
-    tmp[i] = nntr_compute_fp16_to_fp32(x[i]);
+    tmp[i] = nntr_fp16_to_fp32(x[i]);
   }
 
   return _mm256_loadu_ps(tmp);
 }
-static inline __m256 __avx_repeat_f32cx8_load(ggml_fp16_t *x) {
+static inline __m256 __avx_repeat_f32cx8_load(nntr_fp16_t *x) {
   float tmp[8];
 
   for (int i = 0; i < 4; i++) {
-    tmp[i] = nntr_compute_fp16_to_fp32(x[i]);
-    tmp[i + 4] = nntr_compute_fp16_to_fp32(x[i]);
+    tmp[i] = nntr_fp16_to_fp32(x[i]);
+    tmp[i + 4] = nntr_fp16_to_fp32(x[i]);
   }
 
   return _mm256_loadu_ps(tmp);
 }
-static inline __m256 __avx_rearranged_f32cx8_load(ggml_fp16_t *x,
+static inline __m256 __avx_rearranged_f32cx8_load(nntr_fp16_t *x,
                                                   __m128i arrangeMask) {
   uint16_t tmphalf[8];
   float tmp[8];
@@ -921,18 +807,20 @@ static inline __m256 __avx_rearranged_f32cx8_load(ggml_fp16_t *x,
     (__m128i *)tmphalf,
     _mm_shuffle_epi8(_mm_loadu_si128((const __m128i *)x), arrangeMask));
   for (int i = 0; i < 8; i++) {
-    tmp[i] = nntr_compute_fp16_to_fp32(tmphalf[i]);
+    tmp[i] = nntr_fp16_to_fp32(tmphalf[i]);
   }
 
   return _mm256_loadu_ps(tmp);
 }
 
-#define GGML_F32Cx8_LOAD(x) __avx_f32cx8_load(x)
-#define GGML_F32Cx8_REPEAT_LOAD(x, loadMask) __avx_repeat_f32cx8_load(x)
+#define GGML_F32Cx8_LOAD(x) __avx_f32cx8_load((nntr_fp16_t *)(x))
+#define GGML_F32Cx8_REPEAT_LOAD(x, loadMask)                                   \
+  __avx_repeat_f32cx8_load((nntr_fp16_t *)(x))
 #define GGML_F32Cx8_REARRANGE_LOAD(x, arrangeMask)                             \
-  __avx_rearranged_f32cx8_load(x, arrangeMask)
+  __avx_rearranged_f32cx8_load((nntr_fp16_t *)(x), arrangeMask)
 #if defined(__AVX512F__)
-#define GGML_F32Cx8x2_LOAD(x, y) __avx512_f32cx8x2_load(x, y)
+#define GGML_F32Cx8x2_LOAD(x, y)                                               \
+  __avx512_f32cx8x2_load((nntr_fp16_t *)(x), (nntr_fp16_t *)(y))
 #define GGML_F32Cx16_REPEAT_LOAD(x) __avx512_repeat_f32cx16_load(x)
 #endif
 #endif
