@@ -877,40 +877,6 @@ const std::string &getConcatClAxis1Kernel() {
   return concat_cl_axis1_kernel_;
 }
 
-const std::string &getRMSNormClKernel() {
-  static const std::string rmsnorm_cl_kernel_ =
-    R"(__kernel void rmsnorm_cl(
-    __global const float *input,  // Input tensor
-    __global float *output,    // Output tensor
-    __global const float *alpha,  // Alpha values (one for each width)
-    float epsilon,
-    int B,                  // Number of batches
-    int C,                  // Number of channels
-    int H,                  // Height of feature map
-    int W                   // Width of feature map
-) {
-    // Compute the corresponding batch, height, and channel indices
-    int n = get_global_id(0) / C;
-    int c = get_global_id(0) % C;
-    int h = get_global_id(1);
-    int index = ((n * C + c) * H + h) * W;
-    // Calculate RMS norm for the current channel, height, and batch
-    float sum_squares = 0.0f;
-    for (int j = 0; j < W; ++j) {
-        sum_squares += input[index+j] * input[index+j];
-    }
-    sum_squares /= W;
-    float rms_norm = sqrt(sum_squares + epsilon);
-    // Each work item processes all width elements for its specific n, h, c
-    for (int w = 0; w < W; ++w) {
-        output[index+w] = (input[index+w] / rms_norm) * alpha[w];
-    }
-}
-)";
-
-  return rmsnorm_cl_kernel_;
-}
-
 const std::string &getConvertBlockQ4_0Kernel() {
   static const std::string convert_q4_0_block_kernel_ =
     R"(

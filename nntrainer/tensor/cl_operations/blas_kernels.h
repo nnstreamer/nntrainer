@@ -103,6 +103,20 @@ void addition_cl(const float *input, float *res, unsigned int size_input,
                  unsigned int size_res);
 
 /**
+ * @brief rmsnorm each row of the tensor
+ * @param[in] input float * for input
+ * @param[in] gamma float * for gamma multiplier for each row
+ * @param[in] result float * for result
+ * @param[in] epsilon epsilon to add to each row sum to prevent division by zero
+ * @param[in] height height of the tensor
+ * @param[in] width width of the tensor
+ * @param[in] use_svm whether to treat pointers as SVM
+ */
+void rmsnorm_cl(const float *input, const float *gamma, float *result,
+                const float epsilon, unsigned int height, unsigned int width,
+                const bool use_svm = false);
+
+/**
  * @brief     sscal value element by element immediately
  * @param[in] X float * input
  * @param[in] N unsigned int number of elements
