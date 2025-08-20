@@ -52,7 +52,7 @@ size_t __ggml_quantize_q4_0(const float *src, void *dst, int64_t nrow,
  * use.
  * @return size_t total size of quantized data
  */
-size_t __nntr_quantize_q8_0(const float *src, void *dst, int64_t nrow,
+size_t __ggml_quantize_q8_0(const float *src, void *dst, int64_t nrow,
                             int64_t n_per_row, const float *quant_weights);
 
 /**
@@ -119,6 +119,7 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int lda, const void *B,
                                const unsigned int ldb, float *C,
                                const unsigned int ldc);
+
 /**
  * @brief A(M, K) * W.T(N, K) = (M, N)
  *
@@ -348,7 +349,7 @@ void __ggml_repack_q4_K_to_q4_K_8(void *W, void *repacked_W, size_t data_size,
  * @param dst void* dst to store quantized data
  * @param k number of elements in src
  */
-void __nntr_quantize_row_q8_0(const _FP16 *__restrict src, void *__restrict dst,
+void __ggml_quantize_row_q8_0(const _FP16 *__restrict src, void *__restrict dst,
                               int64_t k);
 
 /**
@@ -362,7 +363,7 @@ void __nntr_quantize_row_q8_0(const _FP16 *__restrict src, void *__restrict dst,
  * use.
  * @return size_t total size of quantized data
  */
-size_t __nntr_quantize_q8_0(const _FP16 *src, void *dst, int64_t nrow,
+size_t __ggml_quantize_q8_0(const _FP16 *src, void *dst, int64_t nrow,
                             int64_t n_per_row, const float *quant_weights);
 /**
  * @brief q8_0 to _FP16 dequantize

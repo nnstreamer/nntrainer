@@ -10,28 +10,18 @@
  * @brief  Function interface to use ggml lib from cpu_backend
  */
 
-#include "ggml-common.h"
-#include "ggml-cpu-quants.h"
-#include "ggml-cpu.h"
-#include "ggml-quants.h"
-#include "ggml.h"
-
 #include <algorithm>
 #include <cmath>
 #include <ggml_interface.h>
 #include <nntr_ggml_impl.h>
+#include <nntr_ggml_impl_utils.h>
 #include <string>
 #include <thread>
 #include <vector>
 
 namespace nntrainer {
 
-void __ggml_init() {
-  // needed to initialize f16 tables
-  struct ggml_init_params params = {0, NULL, false};
-  struct ggml_context *ctx = ggml_init(params);
-  ggml_free(ctx);
-}
+void __ggml_init() { nntr_ggml_init(); }
 
 size_t __ggml_quantize_q4_0(const float *src, void *dst, int64_t nrow,
                             int64_t n_per_row, const float *quant_weights) {
@@ -46,6 +36,11 @@ size_t __ggml_quantize_q4_K(const float *src, void *dst, int64_t nrow,
 size_t __ggml_quantize_q6_K(const float *src, void *dst, int64_t nrow,
                             int64_t n_per_row, const float *quant_weights) {
   return nntr_quantize_q6_K(src, dst, nrow, n_per_row, quant_weights);
+}
+
+size_t __ggml_quantize_q8_0(const float *src, void *dst, int64_t nrow,
+                            int64_t n_per_row, const float *quant_weights) {
+  return nntr_quantize_q8_0(src, dst, nrow, n_per_row, quant_weights);
 }
 
 void __ggml_quantize_row_q6_K(const float *src, void *dst, int64_t k) {
@@ -76,7 +71,7 @@ float __ggml_vec_dot_q6_K_q8_K(const unsigned int K,
   float result;
   int bs = 1, bx = 1, by = 1,
       nrc = 1; // unused variables in ggml_vec_dot_q6_K_q8_K
-  ::ggml_vec_dot_q6_K_q8_K(K, &result, bs, v_q6_K, bx, v_q8_K, by, nrc);
+  nntr_vec_dot_q6_K_q8_K(K, &result, bs, v_q6_K, bx, v_q8_K, by, nrc);
   return result;
 }
 
@@ -102,8 +97,8 @@ float __ggml_vec_dot_q6_K(const unsigned int K, const void *__restrict v_q6_K,
   std::vector<char> v_q8_activation = std::vector<char>(q8_K_activation_size);
   __ggml_quantize_row_q8_K(activation, v_q8_activation.data(), K);
 
-  ::ggml_vec_dot_q6_K_q8_K(K, &result, bs, v_q6_K, bx, v_q8_activation.data(),
-                           by, nrc);
+  nntr_vec_dot_q6_K_q8_K(K, &result, bs, v_q6_K, bx, v_q8_activation.data(), by,
+                         nrc);
   return result;
 }
 
@@ -114,12 +109,12 @@ void __ggml_repack_q4_0_to_q4_0_4(void *W, void *repacked_W, size_t data_size,
 
 void __ggml_repack_q4_0_to_q4_0_8(void *W, void *repacked_W, size_t data_size,
                                   const unsigned int M, const unsigned int N) {
-  ::ggml_repack_q4_0_to_q4_0_8_bl(W, 8, repacked_W, data_size, M, N);
+  nntr_repack_q4_0_to_q4_0_8_bl(W, 8, repacked_W, data_size, M, N);
 }
 
 void __ggml_repack_q4_K_to_q4_K_8(void *W, void *repacked_W, size_t data_size,
                                   const unsigned int M, const unsigned int N) {
-  ::ggml_repack_q4_K_to_q4_K_8_bl(W, 8, repacked_W, data_size, M, N);
+  nntr_repack_q4_K_to_q4_K_8_bl(W, 8, repacked_W, data_size, M, N);
 }
 
 } // namespace nntrainer

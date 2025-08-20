@@ -175,7 +175,7 @@ static inline void __copy_f16_from_f32(const float *src, _FP16 *dst,
 #endif
 }
 
-void __nntr_quantize_row_q8_0(const _FP16 *__restrict x, void *vy, int64_t k) {
+void __ggml_quantize_row_q8_0(const _FP16 *__restrict x, void *vy, int64_t k) {
   assert(QK8_0 == 32);
   assert(k % QK8_0 == 0);
   const int nb = k / QK8_0;
@@ -245,10 +245,10 @@ void __nntr_quantize_row_q8_0(const _FP16 *__restrict x, void *vy, int64_t k) {
 #endif
 }
 
-size_t __nntr_quantize_q8_0(const _FP16 *src, void *dst, int64_t nrow,
+size_t __ggml_quantize_q8_0(const _FP16 *src, void *dst, int64_t nrow,
                             int64_t n_per_row, const float *quant_weights) {
   const size_t row_size = ggml_row_size(GGML_TYPE_Q8_0, n_per_row);
-  __nntr_quantize_row_q8_0(src, dst, (int64_t)nrow * n_per_row);
+  __ggml_quantize_row_q8_0(src, dst, (int64_t)nrow * n_per_row);
   return nrow * row_size;
 }
 
@@ -539,7 +539,7 @@ static inline void __ggml_q4_0_4x8_q8_0_GEMM_BSTP(
   }
   // Quantize leftover 1 ~ 3 rows with row-wise function
   for (unsigned int i = M4 * 4; i < M; i++) {
-    __nntr_quantize_row_q8_0(
+    __ggml_quantize_row_q8_0(
       (_FP16 *)A + i * K,
       (QA.data() + (M4 * qa_4_rows_size) + (i - M4 * 4) * qa_row_size), K);
   }
@@ -604,7 +604,7 @@ void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
     unsigned int blocks_per_row = (K + QK8_0 - 1) / QK8_0;
     unsigned int qa_size = sizeof(block_q8_0) * blocks_per_row;
     std::vector<char> QA = std::vector<char>(qa_size);
-    __nntr_quantize_row_q8_0(A, (void *)QA.data(), K);
+    __ggml_quantize_row_q8_0(A, (void *)QA.data(), K);
 
 #pragma omp parallel for num_threads(n_threads)
     for (int thread_idx = 0; thread_idx < n_threads; ++thread_idx) {
@@ -641,7 +641,7 @@ void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
     }
     // Quantize leftover 1 ~ 3 rows with row-wise function
     for (unsigned int i = M4 * 4; i < M; i++) {
-      __nntr_quantize_row_q8_0(A + i * K,
+      __ggml_quantize_row_q8_0(A + i * K,
                                (void *)(QA.data() + (M4 * qa_4_rows_size) +
                                         (i - M4 * 4) * qa_row_size),
                                K);

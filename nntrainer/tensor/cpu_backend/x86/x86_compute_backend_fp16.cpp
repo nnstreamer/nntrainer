@@ -314,7 +314,7 @@ template <>
 size_t quantize_q8_0(const _FP16 *src, void *dst, int64_t nrow,
                      int64_t n_per_row, const float *quant_weights) {
 #ifdef ENABLE_GGML
-  return __nntr_quantize_q8_0(src, dst, nrow, n_per_row, quant_weights);
+  return __ggml_quantize_q8_0(src, dst, nrow, n_per_row, quant_weights);
 #else
   return __fallback_quantize_q8_0(src, dst, nrow, n_per_row, quant_weights);
 #endif

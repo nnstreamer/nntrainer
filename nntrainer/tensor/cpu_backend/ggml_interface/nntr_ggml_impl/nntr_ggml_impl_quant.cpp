@@ -1,110 +1,11 @@
 #include <nntr_ggml_impl.h>
+#include <nntr_ggml_impl_utils.h>
 
 #include <assert.h>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <unordered_map>
-
-#ifdef __ARM_FEATURE_SVE
-#include <arm_sve.h>
-#endif // __ARM_FEATURE_SVE
-
-#if defined(__ARM_NEON) && !defined(__CUDACC__) && !defined(__MUSACC__)
-// if YCM cannot find <arm_neon.h>, make a symbolic link to it, for example:
-//
-//   $ ln -sfn
-//   /Library/Developer/CommandLineTools/usr/lib/clang/13.1.6/include/arm_neon.h
-//   ./src/
-//
-#include <arm_neon.h>
-#endif
-
-#if defined(__F16C__)
-#include <immintrin.h>
-#endif
-
-typedef uint16_t ggml_half;
-typedef uint32_t ggml_half2;
-
-typedef uint16_t ggml_fp16_t;
-
-typedef void (*ggml_to_float_t)(const void *__restrict x, float *__restrict y,
-                                int64_t k);
-typedef void (*ggml_from_float_t)(const float *__restrict x, void *__restrict y,
-                                  int64_t k);
-
-#ifndef MIN
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-#endif
-
-#ifndef MAX
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
-#endif
-
-#define GROUP_MAX_EPS 1e-15f
-
-#define QK_K 256
-#define K_SCALE_SIZE 12
-
-#define QK4_0 32
-typedef struct {
-  ggml_half d;           // delta
-  uint8_t qs[QK4_0 / 2]; // nibbles / quants
-} block_q4_0;
-
-static_assert(sizeof(block_q4_0) == sizeof(ggml_half) + QK4_0 / 2,
-              "wrong q4_0 block size/padding");
-
-#define QK8_0 32
-typedef struct {
-  ggml_half d;      // delta
-  int8_t qs[QK8_0]; // quants
-} block_q8_0;
-
-static_assert(sizeof(block_q8_0) == sizeof(ggml_half) + QK8_0,
-              "wrong q8_0 block size/padding");
-
-typedef struct {
-  union {
-    struct {
-      ggml_half d;    // super-block scale for quantized scales
-      ggml_half dmin; // super-block scale for quantized mins
-    };
-    ggml_half2 dm;
-  };
-  uint8_t scales[K_SCALE_SIZE]; // scales and mins, quantized with 6 bits
-  uint8_t qs[QK_K / 2];         // 4--bit quants
-} block_q4_K;
-
-static_assert(sizeof(block_q4_K) ==
-                2 * sizeof(ggml_half) + K_SCALE_SIZE + QK_K / 2,
-              "wrong q4_K block size/padding");
-
-// 6-bit quantization
-// weight is represented as x = a * q
-// 16 blocks of 16 elements each
-// Effectively 6.5625 bits per weight
-typedef struct {
-  uint8_t ql[QK_K / 2];     // quants, lower 4 bits
-  uint8_t qh[QK_K / 4];     // quants, upper 2 bits
-  int8_t scales[QK_K / 16]; // scales, quantized with 8 bits
-  ggml_half d;              // super-block scale
-} block_q6_K;
-
-static_assert(sizeof(block_q6_K) ==
-                sizeof(ggml_half) + QK_K / 16 + 3 * QK_K / 4,
-              "wrong q6_K block size/padding");
-
-typedef struct {
-  float d;                  // delta
-  int8_t qs[QK_K];          // quants
-  int16_t bsums[QK_K / 16]; // sum of quants in groups of 16
-} block_q8_K;
-
-static_assert(sizeof(block_q8_K) ==
-                sizeof(float) + QK_K + QK_K / 16 * sizeof(int16_t),
-              "wrong q8_K block size/padding");
 
 enum ggml_type {
   GGML_TYPE_F32 = 0,
@@ -124,8 +25,8 @@ struct ggml_type_traits {
   int64_t blck_size_interleave; // interleave elements in blocks
   size_t type_size;
   bool is_quantized;
-  ggml_to_float_t to_float;
-  ggml_from_float_t from_float_ref;
+  // ggml_to_float_t to_float;
+  // ggml_from_float_t from_float_ref;
 };
 
 static const std::unordered_map<ggml_type, ggml_type_traits> type_traits = {
@@ -661,68 +562,6 @@ static inline uint32_t fp32_to_bits(float f) {
   return fp32.as_bits;
 }
 
-static inline float ggml_compute_fp16_to_fp32(ggml_fp16_t h) {
-  const uint32_t w = (uint32_t)h << 16;
-  const uint32_t sign = w & UINT32_C(0x80000000);
-  const uint32_t two_w = w + w;
-
-  const uint32_t exp_offset = UINT32_C(0xE0) << 23;
-#if (defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) ||             \
-     defined(__GNUC__) && !defined(__STRICT_ANSI__)) &&                        \
-  (!defined(__cplusplus) || __cplusplus >= 201703L)
-  const float exp_scale = 0x1.0p-112f;
-#else
-  const float exp_scale = fp32_from_bits(UINT32_C(0x7800000));
-#endif
-  const float normalized_value =
-    fp32_from_bits((two_w >> 4) + exp_offset) * exp_scale;
-
-  const uint32_t magic_mask = UINT32_C(126) << 23;
-  const float magic_bias = 0.5f;
-  const float denormalized_value =
-    fp32_from_bits((two_w >> 17) | magic_mask) - magic_bias;
-
-  const uint32_t denormalized_cutoff = UINT32_C(1) << 27;
-  const uint32_t result =
-    sign | (two_w < denormalized_cutoff ? fp32_to_bits(denormalized_value)
-                                        : fp32_to_bits(normalized_value));
-  return fp32_from_bits(result);
-}
-
-static inline ggml_fp16_t ggml_compute_fp32_to_fp16(float f) {
-#if (defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) ||             \
-     defined(__GNUC__) && !defined(__STRICT_ANSI__)) &&                        \
-  (!defined(__cplusplus) || __cplusplus >= 201703L)
-  const float scale_to_inf = 0x1.0p+112f;
-  const float scale_to_zero = 0x1.0p-110f;
-#else
-  const float scale_to_inf = fp32_from_bits(UINT32_C(0x77800000));
-  const float scale_to_zero = fp32_from_bits(UINT32_C(0x08800000));
-#endif
-  float base = (fabsf(f) * scale_to_inf) * scale_to_zero;
-
-  const uint32_t w = fp32_to_bits(f);
-  const uint32_t shl1_w = w + w;
-  const uint32_t sign = w & UINT32_C(0x80000000);
-  uint32_t bias = shl1_w & UINT32_C(0xFF000000);
-  if (bias < UINT32_C(0x71000000)) {
-    bias = UINT32_C(0x71000000);
-  }
-
-  base = fp32_from_bits((bias >> 1) + UINT32_C(0x07800000)) + base;
-  const uint32_t bits = fp32_to_bits(base);
-  const uint32_t exp_bits = (bits >> 13) & UINT32_C(0x00007C00);
-  const uint32_t mantissa_bits = bits & UINT32_C(0x00000FFF);
-  const uint32_t nonsign = exp_bits + mantissa_bits;
-  return (sign >> 16) |
-         (shl1_w > UINT32_C(0xFF000000) ? UINT16_C(0x7E00) : nonsign);
-}
-
-#define GGML_COMPUTE_FP16_TO_FP32(x) ggml_compute_fp16_to_fp32(x)
-#define GGML_COMPUTE_FP32_TO_FP16(x) ggml_compute_fp32_to_fp16(x)
-#define GGML_FP16_TO_FP32(x) GGML_COMPUTE_FP16_TO_FP32(x)
-#define GGML_FP32_TO_FP16(x) GGML_COMPUTE_FP32_TO_FP16(x)
-
 int64_t ggml_blck_size(enum ggml_type type) {
   return type_traits.at(type).blck_size;
 }
@@ -761,7 +600,7 @@ void quantize_row_q4_0_ref(const float *__restrict x, block_q4_0 *__restrict y,
     const float d = max / -8;
     const float id = d ? 1.0f / d : 0.0f;
 
-    y[i].d = GGML_FP32_TO_FP16(d);
+    y[i].d = nntr_fp32_to_fp16(d);
 
     for (int j = 0; j < qk / 2; ++j) {
       const float x0 = x[i * qk + 0 + j] * id;
@@ -801,7 +640,7 @@ static void quantize_row_q4_0_impl(const float *__restrict x,
     for (int j = 0; j < QK4_0; ++j)
       weight[j] = qw[j] * sqrtf(sigma2 + xb[j] * xb[j]);
     float d = make_qx_quants(QK4_0, 8, xb, L, 1, weight);
-    y[ib].d = GGML_FP32_TO_FP16(d);
+    y[ib].d = nntr_fp32_to_fp16(d);
     for (int j = 0; j < 16; ++j) {
       y[ib].qs[j] = L[j] | (L[j + 16] << 4);
     }
@@ -843,7 +682,7 @@ void quantize_row_q8_0_ref(const float *__restrict x, block_q8_0 *__restrict y,
     const float d = amax / ((1 << 7) - 1);
     const float id = d ? 1.0f / d : 0.0f;
 
-    y[i].d = GGML_FP32_TO_FP16(d);
+    y[i].d = nntr_fp32_to_fp16(d);
 
     for (int j = 0; j < QK8_0; ++j) {
       const float x0 = x[i * QK8_0 + j] * id;
@@ -853,9 +692,9 @@ void quantize_row_q8_0_ref(const float *__restrict x, block_q8_0 *__restrict y,
   }
 }
 
-size_t quantize_q8_0(const float *__restrict src, void *__restrict dst,
-                     int64_t nrow, int64_t n_per_row,
-                     const float *quant_weights) {
+size_t nntr_quantize_q8_0(const float *__restrict src, void *__restrict dst,
+                          int64_t nrow, int64_t n_per_row,
+                          const float *quant_weights) {
   (void)quant_weights; // not used
   const size_t row_size = ggml_row_size(GGML_TYPE_Q8_0, n_per_row);
   quantize_row_q8_0_ref(src, (block_q8_0 *)dst, (int64_t)nrow * n_per_row);
@@ -893,7 +732,7 @@ void nntr_quantize_row_q8_0(const float *__restrict x, void *__restrict vy,
     const float d = amax / ((1 << 7) - 1);
     const float id = d ? 1.0f / d : 0.0f;
 
-    y[i].d = GGML_FP32_TO_FP16(d);
+    y[i].d = nntr_fp32_to_fp16(d);
 
     for (int j = 0; j < 8; j++) {
       const float32x4_t v = vmulq_n_f32(srcv[j], id);
@@ -931,7 +770,7 @@ void nntr_quantize_row_q8_0(const float *__restrict x, void *__restrict vy,
     const float d = amax / ((1 << 7) - 1);
     const float id = d ? 1.0f / d : 0.0f;
 
-    y[i].d = GGML_FP32_TO_FP16(d);
+    y[i].d = nntr_fp32_to_fp16(d);
 
     for (int j = 0; j < 8; j++) {
       const v128_t v = wasm_f32x4_mul(srcv[j], wasm_f32x4_splat(id));
@@ -967,7 +806,7 @@ void nntr_quantize_row_q8_0(const float *__restrict x, void *__restrict vy,
 
     // Quantize these floats
     const float d = maxScalar / 127.f;
-    y[i].d = GGML_FP32_TO_FP16(d);
+    y[i].d = nntr_fp32_to_fp16(d);
     const float id = (maxScalar != 0.0f) ? 127.f / maxScalar : 0.0f;
     const __m256 mul = _mm256_set1_ps(id);
 
@@ -1048,7 +887,7 @@ void nntr_quantize_row_q8_0(const float *__restrict x, void *__restrict vy,
     const float d = amax / ((1 << 7) - 1);
     const float id = d ? 1.0f / d : 0.0f;
 
-    y[i].d = GGML_FP32_TO_FP16(d);
+    y[i].d = nntr_fp32_to_fp16(d);
 
     vfloat32m8_t x0 = __riscv_vfmul_vf_f32m8(v_x, id, vl);
 
@@ -1087,7 +926,7 @@ void nntr_quantize_row_q8_0(const float *__restrict x, void *__restrict vy,
     const float id = d ? 1.0f / d : 0.0f;
     const vector float vid = vec_splats(id);
 
-    y[i].d = GGML_FP32_TO_FP16(d);
+    y[i].d = nntr_fp32_to_fp16(d);
 
     for (int j = 0; j < 8; j++) {
       const vector float v = vec_round(vec_mul(srcv[j], vid));
@@ -1128,7 +967,7 @@ void nntr_quantize_row_q8_0(const float *__restrict x, void *__restrict vy,
 
     // Quantize these floats
     const float d = max_scalar / 127.f;
-    y[i].d = GGML_FP32_TO_FP16(d);
+    y[i].d = nntr_fp32_to_fp16(d);
     const float id = (max_scalar != 0.0f) ? 127.f / max_scalar : 0.0f;
     const __m256 mul = (__m256)__lasx_xvreplfr2vr_s(id);
 
@@ -1189,7 +1028,7 @@ void nntr_quantize_row_q8_0(const float *__restrict x, void *__restrict vy,
     const float d = amax / ((1 << 7) - 1);
     const float id = d ? 1.0f / d : 0.0f;
 
-    y[i].d = GGML_FP32_TO_FP16(d);
+    y[i].d = nntr_fp32_to_fp16(d);
 
     for (int j = 0; j < 8; j++) {
       const __vector float v = vec_mul(srcv[j], vec_splats(id));
@@ -1261,16 +1100,16 @@ void quantize_row_q4_K_ref(const float *__restrict x, block_q4_K *__restrict y,
         y[i].scales[j - 0] |= ((lm >> 4) << 6);
       }
     }
-    y[i].d = GGML_FP32_TO_FP16(max_scale / 63.f);
-    y[i].dmin = GGML_FP32_TO_FP16(max_min / 63.f);
+    y[i].data.data.d = nntr_fp32_to_fp16(max_scale / 63.f);
+    y[i].data.data.dmin = nntr_fp32_to_fp16(max_min / 63.f);
 
     uint8_t sc, m;
     for (int j = 0; j < QK_K / 32; ++j) {
       get_scale_min_k4(j, y[i].scales, &sc, &m);
-      const float d = GGML_FP16_TO_FP32(y[i].d) * sc;
+      const float d = nntr_fp16_to_fp32(y[i].data.data.d) * sc;
       if (!d)
         continue;
-      const float dm = GGML_FP16_TO_FP32(y[i].dmin) * m;
+      const float dm = nntr_fp16_to_fp32(y[i].data.data.dmin) * m;
       for (int ii = 0; ii < 32; ++ii) {
         int l = nearest_int((x[32 * j + ii] + dm) / d);
         l = MAX(0, MIN(15, l));
@@ -1343,16 +1182,16 @@ static void quantize_row_q4_K_impl(const float *__restrict x,
         y[i].scales[j - 0] |= ((lm >> 4) << 6);
       }
     }
-    y[i].d = GGML_FP32_TO_FP16(d_block);
-    y[i].dmin = GGML_FP32_TO_FP16(m_block);
+    y[i].data.data.d = nntr_fp32_to_fp16(d_block);
+    y[i].data.data.dmin = nntr_fp32_to_fp16(m_block);
 
     uint8_t sc, m;
     for (int j = 0; j < QK_K / 32; ++j) {
       get_scale_min_k4(j, y[i].scales, &sc, &m);
-      const float d = GGML_FP16_TO_FP32(y[i].d) * sc;
+      const float d = nntr_fp16_to_fp32(y[i].data.data.d) * sc;
       if (!d)
         continue;
-      const float dm = GGML_FP16_TO_FP32(y[i].dmin) * m;
+      const float dm = nntr_fp16_to_fp32(y[i].data.data.dmin) * m;
       for (int ii = 0; ii < 32; ++ii) {
         int l = nearest_int((x[32 * j + ii] + dm) / d);
         l = MAX(0, MIN(15, l));
@@ -1395,8 +1234,8 @@ void dequantize_row_q4_K_impl(const block_q4_K *__restrict x,
   for (int i = 0; i < nb; i++) {
     const uint8_t *q = x[i].qs;
 
-    const float d = GGML_FP16_TO_FP32(x[i].d);
-    const float min = GGML_FP16_TO_FP32(x[i].dmin);
+    const float d = nntr_fp16_to_fp32(x[i].data.data.d);
+    const float min = nntr_fp16_to_fp32(x[i].data.data.dmin);
 
     int is = 0;
     uint8_t sc, m;
@@ -1452,19 +1291,19 @@ void quantize_row_q6_K_ref(const float *__restrict x, block_q6_K *__restrict y,
 
     if (max_abs_scale < GROUP_MAX_EPS) {
       memset(&y[i], 0, sizeof(block_q6_K));
-      y[i].d = GGML_FP32_TO_FP16(0.f);
+      y[i].d = nntr_fp32_to_fp16(0.f);
       x += QK_K;
       continue;
     }
 
     float iscale = -128.f / max_scale;
-    y[i].d = GGML_FP32_TO_FP16(1 / iscale);
+    y[i].d = nntr_fp32_to_fp16(1 / iscale);
     for (int ib = 0; ib < QK_K / 16; ++ib) {
       y[i].scales[ib] = MIN(127, nearest_int(iscale * scales[ib]));
     }
 
     for (int j = 0; j < QK_K / 16; ++j) {
-      float d = GGML_FP16_TO_FP32(y[i].d) * y[i].scales[j];
+      float d = nntr_fp16_to_fp32(y[i].d) * y[i].scales[j];
       if (!d) {
         continue;
       }
@@ -1538,19 +1377,19 @@ static void quantize_row_q6_K_impl(const float *__restrict x,
 
     if (max_abs_scale < GROUP_MAX_EPS) {
       memset(&y[i], 0, sizeof(block_q6_K));
-      y[i].d = GGML_FP32_TO_FP16(0.f);
+      y[i].d = nntr_fp32_to_fp16(0.f);
       x += QK_K;
       continue;
     }
 
     float iscale = -128.f / max_scale;
-    y[i].d = GGML_FP32_TO_FP16(1 / iscale);
+    y[i].d = nntr_fp32_to_fp16(1 / iscale);
     for (int ib = 0; ib < QK_K / 16; ++ib) {
       y[i].scales[ib] = MIN(127, nearest_int(iscale * scales[ib]));
     }
 
     for (int j = 0; j < QK_K / 16; ++j) {
-      float d = GGML_FP16_TO_FP32(y[i].d) * y[i].scales[j];
+      float d = nntr_fp16_to_fp32(y[i].d) * y[i].scales[j];
       if (!d) {
         continue;
       }
@@ -1605,7 +1444,7 @@ void dequantize_row_q6_K_impl(const block_q6_K *__restrict x,
   const int64_t nb = k / QK_K;
 
   for (int i = 0; i < nb; i++) {
-    const float d = GGML_COMPUTE_FP16_TO_FP32(x[i].d);
+    const float d = nntr_compute_fp16_to_fp32(x[i].d);
 
     const uint8_t *__restrict ql = x[i].ql;
     const uint8_t *__restrict qh = x[i].qh;
