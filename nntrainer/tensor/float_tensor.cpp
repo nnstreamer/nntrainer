@@ -723,12 +723,20 @@ void FloatTensor::dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
   std::vector<float *> rdatas;
 
   for (unsigned int i = 0; i < input.size(); ++i) {
-    Ns.push_back(input[i]->getDim().width());
-    mdatas.push_back((void *)input[i]->getData<uint8_t>());
-    rdatas.push_back(output[i]->getData<float>());
+    int N = input[i]->getDim().width();
+    void *mdata = (void *)input[i]->getData<uint8_t>();
+    float *rdata = output[i]->getData<float>();
+#ifdef ENABLE_OPENCL
+    if (M == 1) {
+      gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
+    } else {
+      gemm_q4_0_cl((void *)mdata, data, rdata, M, N, K);
+    }
+#else
+    /// @todo Support multi-weight q4_0 for x64
+    gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
+#endif
   }
-
-  gemm_q4_K(M, Ns, K, data, K, mdatas, Ns, rdatas, Ns);
 }
 
 Tensor &FloatTensor::dotFloat(Tensor const &input, Tensor &output, bool trans,
@@ -878,18 +886,21 @@ Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
     gemm_q4_K(M, N, K, data, K, (void *)mdata, N, rdata, N);
     break;
   case Tdatatype::Q6_K:
-#ifdef ENABLE_OPENCL
-    /// @note For Q6K, use OpenCL kernel by default when GPU is enabled
-    sgemv_q6_k_cl((void *)mdata, data, rdata, K, N);
-#else
     gemm_q6_K(M, N, K, data, K, (void *)mdata, N, rdata, N);
-#endif
     break;
   case Tdatatype::Q4_0:
     M = getDim().height();
     K = getDim().width();
     N = input.getDim().width();
+#ifdef ENABLE_OPENCL
+    if (M == 1) {
+      gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
+    } else {
+      gemm_q4_0_cl((void *)mdata, data, rdata, M, N, K);
+    }
+#else
     gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
+#endif
     break;
 
   default:
