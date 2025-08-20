@@ -379,11 +379,8 @@ struct ggml_context *ggml_init(struct ggml_init_params params) {
     ggml_time_init();
 
     for (int i = 0; i < (1 << 16); ++i) {
-      union {
-        uint16_t u16;
-        nntr_fp16_t fp16;
-      } u = {i};
-      ggml_table_f32_f16[i] = NNTR_COMPUTE_FP16_TO_FP32(u.fp16);
+      nntr_fp16_t fp16 = (nntr_fp16_t)(i);
+      ggml_table_f32_f16[i] = NNTR_COMPUTE_FP16_TO_FP32(fp16);
     }
 
     is_first_call = false;
