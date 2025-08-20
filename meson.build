@@ -611,6 +611,8 @@ if get_option('enable-ggml')
 endif
 
 # Configure the Ruy project (CMake)
+ruy_dep = dummy_dep
+if get_option('enable-ruy')
 if get_option('platform') == 'android'
   ruy_root = subprojects_dir_absolute / 'ruy'
   ruy_dep = declare_dependency()
@@ -634,8 +636,10 @@ else
     ruy_flags += '-Wno-error=uninitialized'
   else
     ruy_flags += '-Wno-error=maybe-uninitialized'
-    ruy_flags += '-Wno-error=stringop-overread'
-    ruy_flags += '-Wno-error=array-parameter'
+    if cxx.has_argument('-Wno-error=stringop-overread') and cxx.has_argument('-Wno-error=array-parameter')
+      ruy_flags += '-Wno-error=stringop-overread'
+      ruy_flags += '-Wno-error=array-parameter'
+    endif
   endif
   
   ruy_options.append_compile_args('c', '-Wno-implicit-function-declaration')
@@ -645,6 +649,7 @@ else
   ruy_proj = cmake.subproject('ruy', options: ruy_options, required: true)
   ruy_dep = ruy_proj.dependency('ruy').partial_dependency(includes: true)
 endif
+endif # enable ruy
 
 if get_option('platform') == 'android'
   message('preparing ml api')

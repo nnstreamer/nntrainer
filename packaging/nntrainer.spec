@@ -4,6 +4,9 @@
 %define         nnstreamer_trainer 1
 %define         nnstreamer_subplugin_path lib/nnstreamer
 %define         use_gym 0
+%define         use_ggml 1
+%define         use_ruy 1
+%define         use_biqgemm 0
 %define         support_ccapi 1
 %define         support_nnstreamer_backbone 1
 %define         support_tflite_backbone 1
@@ -58,16 +61,6 @@
 %else
 %define fp16_support -Denable-fp16=false
 %endif # enable_fp16
-
-## GGML flag
-%define enable_ggml 1
-
-## ggml kernel usage from nntrainer relies on ggml
-%if 0%{?enable_ggml}
-%define ggml_support -Denable-ggml=true
-%else
-%define ggml_support -Denable-ggml=false
-%endif # enable_ggml
 
 
 ## GPU flag
@@ -337,14 +330,17 @@ Requires:	nnstreamer-nntrainer-trainer = %{version}-%{release}
 NNSteamer tensor trainer static package for nntrainer to support inference.
 %endif #nnstreamer_trainer
 
+%if 0%{?use_ruy}
 %package -n ruy
 Summary: Ruy support in NNTrainer
 %description -n ruy
+%endif
 
-%if 0%{?enable_ggml}
+%if 0%{?use_ggml}
 %package -n ggml
 Summary: GGML support in NNTrainer
 %description -n ggml
+%endif
 %endif
 
 %if %{with gpu}
@@ -389,6 +385,24 @@ Summary: CLBlast as an OpenCL backend for BLAS operations in NNTrainer
 # Using cblas for Matrix calculation
 %if 0%{?use_cblas}
 %define enable_cblas -Denable-blas=true
+%endif
+
+%if 0%{?use_ggml}
+%define enable_ggml -Denable-ggml=true
+%else
+%define enable_ggml -Denable-ggml=false
+%endif
+
+%if 0%{?use_ruy}
+%define enable_ruy -Denable-ruy=true
+%else
+%define enable_ruy -Denable-ruy=false
+%endif
+
+%if 0%{?use_biqgemm}
+%define enable_biqgemm -Denable-biqgemm=true
+%else
+%define enable_biqgemm -Denable-biqgemm=false
 %endif
 
 %if 0%{?support_nnstreamer_backbone}
@@ -440,11 +454,14 @@ ln -sf %{_libdir}/pkgconfig/capi-nnstreamer.pc %{_libdir}/pkgconfig/capi-ml-comm
 %endif
 
 # Setup Ruy
+%if 0%{?use_ruy}
 tar -xf packaging/ruy.tar.gz -C subprojects
+%endif
 
 # Setup GGML
-%if 0%{?enable_ggml}
+%if 0%{?use_ggml}
 tar -xf packaging/ggml.tar.gz -C subprojects
+%endif
 %endif
 
 # Setup CLBlast
@@ -463,7 +480,7 @@ meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       %{enable_reduce_tolerance} %{configure_subplugin_install_path} %{enable_debug} \
       -Dml-api-support=enabled -Denable-nnstreamer-tensor-filter=enabled \
       -Denable-nnstreamer-tensor-trainer=enabled -Denable-capi=enabled \
-      %{ggml_support} %{fp16_support} %{opencl_support} build --wrap-mode=nodownload
+      %{enable_ggml} %{enable_ruy} %{enable_biqgemm} %{fp16_support} %{opencl_support} build --wrap-mode=nodownload
 
 ninja -C build %{?_smp_mflags}
 
@@ -580,15 +597,20 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/memory_data.h
 %{_includedir}/nntrainer/tensor.h
 %{_includedir}/nntrainer/tensor_base.h
+%if 0%{?use_ggml}
 %{_includedir}/nntrainer/q4_k_tensor.h
 %{_includedir}/nntrainer/q6_k_tensor.h
 %{_includedir}/nntrainer/q4_0_tensor.h
+%endif
 %{_includedir}/nntrainer/int4_tensor.h
 %{_includedir}/nntrainer/uint4_tensor.h
 %{_includedir}/nntrainer/char_tensor.h
 %{_includedir}/nntrainer/short_tensor.h
 %{_includedir}/nntrainer/uint_tensor.h
 %{_includedir}/nntrainer/float_tensor.h
+%if 0%{?use_biqgemm}
+%{_includedir}/nntrainer/bcq_tensor.h
+%endif
 %if 0%{?enable_fp16}
 %{_includedir}/nntrainer/half_tensor.h
 %endif
@@ -598,7 +620,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %if 0%{?use_cblas}
 %{_includedir}/nntrainer/cblas_interface.h
 %endif
-%if 0%{?enable_ggml}
+%if 0%{?use_ggml}
 %{_includedir}/nntrainer/ggml_interface.h
 %{_includedir}/nntrainer/nntr_ggml_impl.h
 %endif
@@ -664,9 +686,9 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 # update this to enable external applications
 # @todo filter out headers that should be hidden, and classifiy in the appropriate place if not
 %{_includedir}/nntrainer/util_func.h
-/usr/include/nntrainer/noncopyable.h
-/usr/include/nntrainer/nonmovable.h
-/usr/include/nntrainer/singleton.h
+%{_includedir}/nntrainer/noncopyable.h
+%{_includedir}/nntrainer/nonmovable.h
+%{_includedir}/nntrainer/singleton.h
 %{_includedir}/nntrainer/fp16.h
 %{_includedir}/nntrainer/util_simd.h
 %{_includedir}/nntrainer/dynamic_library_loader.h
@@ -784,6 +806,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %endif #nnstreamer_trainer
 
 # Ruy
+%if 0%{?use_ruy}
 %files -n ruy
 %manifest nntrainer.manifest
 %defattr(-,root,root,-)
@@ -797,9 +820,10 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %ifarch x86_64
 %{_bindir}/cpuid_dump
 %endif #x86_64
+%endif #ruy
 
 # GGML
-%if 0%{?enable_ggml}
+%if 0%{?use_ggml}
 %files -n ggml
 %manifest nntrainer.manifest
 %defattr(-,root,root,-)
@@ -807,6 +831,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_libdir}/libggml.so
 %{_libdir}/libggml_base.so
 %{_libdir}/libggml_cpu.so
+%endif
 %endif
 
 # CLBlast
