@@ -25,7 +25,8 @@ util_headers = [
   'bs_thread_pool_manager.hpp',
   'singleton.h',
   'nonmovable.h',
-  'noncopyable.h'
+  'noncopyable.h',
+  'json.hpp',
 ]
 
 if get_option('enable-trace')
