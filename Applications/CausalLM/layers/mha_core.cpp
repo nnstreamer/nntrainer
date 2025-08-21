@@ -16,20 +16,13 @@
 #include <thread>
 #include <vector>
 
-#ifdef _WIN32
-#include <chrono>
-#endif
-
 #include <fp16.h>
 #include <layer_context.h>
 #include <mha_core.h>
 #include <nntrainer_error.h>
 #include <node_exporter.h>
 
-#include <cassert>
-#include <chrono>
 #include <cstdint>
-#include <type_traits>
 
 inline float convert_scalar(uint16_t h) {
   return nntrainer::compute_fp16_to_fp32(h);
@@ -237,7 +230,6 @@ void MHACoreLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
     get_step_dim(cache_value_dim); // (B, 1, from-to, n_heads_KV * head_dim)
 
   unsigned int batch_size = (_from) ? 1 : query_dim.batch();
-  // auto start_time = std::chrono::high_resolution_clock::now();
   // do the incremental forwarding
   for (unsigned int batch = 0; batch < batch_size; ++batch) {
     one_batch_incremental_forwarding(
@@ -327,8 +319,6 @@ void MHACoreLayer::one_batch_incremental_forwarding(
   /** 1. Load Input Tensors of this batch : b_ denotes a Tensor for this batch
    * **/
   auto &pool = nntrainer::ThreadPoolManager::Global().getThreadPool();
-
-  std::vector<std::future<void>> p_futures;
 
   nntrainer::Tensor b_projected_query_step = query.getSharedDataTensor(
     query_step_dim, batch * query_dim.getFeatureLen(), true);
