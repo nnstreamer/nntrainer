@@ -1644,25 +1644,26 @@ void compute_kcaches(const float *in, const __fp16 *kcache, float *output,
 
   for (int n = 0; n < num_cache_head; ++n) {
     for (int row = start_row; row < num_rows; ++row) {
+      if (row + 1 < num_rows) {
+        const __fp16 *next_kptr =
+          kcache + ((row + 1) * num_cache_head + n) * head_dim;
+        __builtin_prefetch(next_kptr, 0, 3); // Read, L1 cache
+      }
+
       const __fp16 *kptr = kcache + (row * num_cache_head + n) * head_dim;
 
       load_fp16_4_to_chunk(kptr, tmp_fp32.data(), head_dim);
 
       for (int g = 0; g < gqa_size; ++g) {
-        const float *a_ptr = in + n * gqa_size * head_dim + g * head_dim;
-        const float *b_row;
-        if constexpr (std::is_same<__fp16, float>::value) {
-          b_row = reinterpret_cast<const float *>(kcache + n * head_dim);
-        } else {
-          b_row = tmp_fp32.data();
-        }
+        const float *in_ptr = in + n * gqa_size * head_dim + g * head_dim;
+        const float *k_row = tmp_fp32.data();
 
         float sum = 0.0f;
         int i = 0;
         float32x4_t acc = vdupq_n_f32(0.0f);
         for (; i + 4 <= head_dim; i += 4) {
-          float32x4_t va = vld1q_f32(a_ptr + i);
-          float32x4_t vb = vld1q_f32(b_row + i);
+          float32x4_t va = vld1q_f32(in_ptr + i);
+          float32x4_t vb = vld1q_f32(k_row + i);
           acc = vfmaq_f32(acc, va, vb);
         }
 
@@ -1671,7 +1672,7 @@ void compute_kcaches(const float *in, const __fp16 *kcache, float *output,
         sum += vgetq_lane_f32(acc, 0);
 
         for (; i < head_dim; ++i)
-          sum += a_ptr[i] * b_row[i];
+          sum += in_ptr[i] * k_row[i];
 
         output[(local_window_size == UINT_MAX || num_rows < local_window_size
                   ? row
@@ -1691,18 +1692,23 @@ void compute_kcaches(const __fp16 *in, const __fp16 *kcache, __fp16 *output,
 
   for (int n = 0; n < num_cache_head; ++n) {
     for (int row = start_row; row < num_rows; ++row) {
-      const __fp16 *kptr = kcache + (row * num_cache_head + n) * head_dim;
+      if (row + 1 < num_rows) {
+        const __fp16 *next_kptr =
+          kcache + ((row + 1) * num_cache_head + n) * head_dim;
+        __builtin_prefetch(next_kptr, 0, 3); // Read, L1 cache
+      }
+
+      const __fp16 *k_row = kcache + (row * num_cache_head + n) * head_dim;
 
       for (int g = 0; g < gqa_size; ++g) {
-        const __fp16 *a_ptr = in + n * gqa_size * head_dim + g * head_dim;
-        const __fp16 *b_row = kcache + n * head_dim;
+        const __fp16 *in_ptr = in + n * gqa_size * head_dim + g * head_dim;
 
         __fp16 sum = 0.0f;
         int i = 0;
         float16x8_t acc = vdupq_n_f16(0.0);
         for (; i + 8 <= head_dim; i += 8) {
-          float16x8_t va = vld1q_f16(a_ptr + i);
-          float16x8_t vb = vld1q_f16(b_row + i);
+          float16x8_t va = vld1q_f16(in_ptr + i);
+          float16x8_t vb = vld1q_f16(k_row + i);
           acc = vfmaq_f16(acc, va, vb);
         }
 
@@ -1712,7 +1718,7 @@ void compute_kcaches(const __fp16 *in, const __fp16 *kcache, __fp16 *output,
         sum += vgetq_lane_f16(acc, 0);
 
         for (; i < head_dim; ++i)
-          sum += a_ptr[i] * b_row[i];
+          sum += in_ptr[i] * k_row[i];
 
         output[(local_window_size == UINT_MAX || num_rows < local_window_size
                   ? row
