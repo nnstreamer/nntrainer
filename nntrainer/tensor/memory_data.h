@@ -28,28 +28,33 @@ public:
   /**
    * @brief  Constructor of Memory Data
    * @param[in] addr Memory data
+   * @param[in] use_svm Memory allocated by OpenCL SVM
    */
-  explicit MemoryData(void *addr) :
+  explicit MemoryData(void *addr, const bool use_svm = false) :
     valid(true),
     id(0),
     address(addr),
     validate_cb([](unsigned int) {}),
-    invalidate_cb([](unsigned int) {}) {}
+    invalidate_cb([](unsigned int) {}),
+    use_svm_(use_svm) {}
 
   /**
    * @brief  Constructor of Memory Data
    * @param[in] mem_id validate callback.
    * @param[in] v_cb validate callback.
    * @param[in] i_cb invalidate callback.
+   * @param[in] memory_ptr raw memory pointer
+   * @param[in] use_svm Memory allocated by OpenCL SVM
    */
   explicit MemoryData(unsigned int mem_id, MemoryDataValidateCallback v_cb,
                       MemoryDataValidateCallback i_cb,
-                      void *memory_ptr = nullptr) :
+                      void *memory_ptr = nullptr, const bool use_svm = false) :
     valid(false),
     id(mem_id),
     address(memory_ptr),
     validate_cb(v_cb),
-    invalidate_cb(i_cb) {}
+    invalidate_cb(i_cb),
+    use_svm_(use_svm) {}
 
   /**
    * @brief  Deleted constructor of Memory Data
@@ -109,12 +114,15 @@ public:
    */
   void setValid(bool v) { valid = v; }
 
+  bool useSVM() const { return use_svm_; }
+
 private:
   bool valid;
   unsigned int id;
   void *address;
   MemoryDataValidateCallback validate_cb;
   MemoryDataValidateCallback invalidate_cb;
+  bool use_svm_ = false;
 };
 
 } // namespace nntrainer
