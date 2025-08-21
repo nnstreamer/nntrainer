@@ -16,6 +16,7 @@
 #ifdef __cplusplus
 
 #include <cstdint>
+#include <limits.h>
 #include <tensor_dim.h>
 
 namespace nntrainer {
@@ -1018,29 +1019,30 @@ void __fallback_softmax_row(float *qk_out, size_t start_row, size_t end_row,
  * @param[in] num_cache_head number head of cache
  * @param[in] gqa_size size of group
  * @param[in] head_dim head dimension
+ * @param[in] local_window_size windows size for local attention
  */
-void __fallback_compute_fp16vcache_fp32_transposed(int row_num, const float *in,
-                                                   const uint16_t *vcache,
-                                                   float *output,
-                                                   int num_cache_head,
-                                                   int gqa_size, int head_dim);
+void __fallback_compute_fp16vcache_fp32_transposed(
+  int row_num, const float *in, const uint16_t *vcache, float *output,
+  int num_cache_head, int gqa_size, int head_dim,
+  size_t local_window_size = UINT_MAX);
 
 /**
  * @brief Compute kcaches
  * @tparam BType type of B vector element
- * @param[in] A float* input vector A
- * @param[in] B BType* input vector B
+ * @param[in] in float* input vector
+ * @param[in] kcache BType* input vector with keys cache
  * @param[out] output float* output float vector
  * @param[in] num_rows number of row
- * @param[in] N number of chunk
- * @param[in] chunk_size size of chunk
- * @param[in] group_size size of group
- * @param[in] tile_size size of tile
+ * @param[in] num_cache_head number head of cache
+ * @param[in] head_dim head dimension
+ * @param[in] gqa_size size of group
+ * @param[in] local_window_size windows size for local attention
  */
 template <typename BType>
-void __fallback_compute_kcaches(const float *A, const BType *B, float *output,
-                                int num_rows, int N, int chunk_size,
-                                int group_size, int tile_size);
+void __fallback_compute_kcaches(const float *in, const BType *kcache,
+                                float *output, int num_rows, int num_cache_head,
+                                int head_dim, int gqa_size,
+                                size_t local_window_size = UINT_MAX);
 
 /**
  * @brief Compute rotary embedding value
