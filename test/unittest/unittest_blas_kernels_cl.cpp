@@ -1602,24 +1602,6 @@ TEST(blas_kernels, swiglu_layer_fp32_svm) {
 
   EXPECT_IN_RANGE(mseError, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
-
-  uint32_t print_count = 64;
-
-  for (uint32_t i = 0; i < print_count; i++) {
-    auto from_ref = out_ref_fp32.getData()[i];
-    auto from_cl = ((float *)gpu_dst)[i];
-
-    std::cout << "CL : " << from_cl << " REF : " << from_ref << std::endl;
-  }
-
-  std::cout << "BRK" << std::endl;
-
-  for (uint32_t i = 0; i < print_count; i++) {
-    auto from_ref = (float)out_ref_fp32.getData()[height * width - 1 - i];
-    auto from_cl = (float)((float *)gpu_dst)[height * width - 1 - i];
-
-    std::cout << "CL : " << from_cl << " REF : " << from_ref << std::endl;
-  }
 }
 
 GTEST_API_ int main(int argc, char **argv) {
