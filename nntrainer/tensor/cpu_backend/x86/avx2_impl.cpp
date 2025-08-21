@@ -1275,7 +1275,8 @@ static inline void load_fp16_8_to_chunk(const uint16_t *src, float *dst,
 void compute_fp16vcache_fp32_transposed(int row_num, const float *in,
                                         const uint16_t *vcache, float *output,
                                         int num_cache_head, int gqa_size,
-                                        int head_dim) {
+                                        int head_dim,
+                                        size_t local_window_size) {
   // cpu_set_t cpu_set;
   // CPU_ZERO(&cpu_set);
   // std::vector<bool> affinity(8, false);
@@ -1305,14 +1306,19 @@ void compute_fp16vcache_fp32_transposed(int row_num, const float *in,
     }
     std::vector<float> sumRem((size_t)gqa_size * rem, 0.0f);
 
-    for (int j = 0; j <= row_num; ++j) {
+    for (int j = row_num < local_window_size ? 0
+                                             : row_num + 1 - local_window_size;
+         j <= row_num; ++j) {
       const uint16_t *vptr = vcache + (j * num_cache_head + n) * head_dim;
       load_fp16_8_to_chunk(vptr, tmp_fp32.data(), head_dim);
 
       for (int h = 0; h < gqa_size; ++h) {
-        // float a_val = in[a_row_start + (j * gqa_size + h) * num_cache_head +
-        // n];
-        float a_val = in[j * gqa_size * num_cache_head + n * gqa_size + h];
+        float a_val = in[(row_num < local_window_size
+                            ? j
+                            : j - (row_num + 1 - local_window_size)) *
+                           gqa_size * num_cache_head +
+                         n * gqa_size + h];
+
         __m256 inVec = _mm256_set1_ps(a_val);
 
         for (int b = 0; b < num_blocks; ++b) {
@@ -1348,65 +1354,58 @@ void compute_fp16vcache_fp32_transposed(int row_num, const float *in,
 }
 
 template <>
-void compute_kcaches(const float *A, const uint16_t *B, float *output,
-                     int num_rows, int N, int chunk_size, int group_size,
-                     int tile_size) {
-  using BType = uint16_t;
-  int row_stride = N * chunk_size;
-  const int group_stride = group_size * chunk_size;
-  const int tile_count = (num_rows + tile_size - 1) / tile_size;
+void compute_kcaches(const float *in, const uint16_t *kcache, float *output,
+                     int num_rows, int num_cache_head, int head_dim,
+                     int gqa_size, size_t local_window_size) {
+  std::vector<float> tmp_fp32(head_dim);
 
-  // FP32 Cache Buffer
-  std::vector<float> temp_tile_buf((size_t)tile_size * chunk_size);
+  size_t start_row =
+    local_window_size < num_rows ? num_rows - local_window_size : 0;
 
-  for (int n = 0; n < N; ++n) {
-    for (int t = 0; t < tile_count; ++t) {
-      int row_tile_start = t * tile_size;
-      int tile_rows = std::min(tile_size, num_rows - row_tile_start);
-
-      // FP16 to FP32 Conversion : preprocessing (row unit)
-      if constexpr (!std::is_same<BType, float>::value) {
-        for (int row = 0; row < tile_rows; ++row) {
-          const BType *b_src =
-            B + (row_tile_start + row) * row_stride + n * chunk_size;
-          float *dst = temp_tile_buf.data() + row * chunk_size;
-          load_fp16_8_to_chunk(b_src, dst, chunk_size);
-        }
+  for (int n = 0; n < num_cache_head; ++n) {
+    for (int row = start_row; row < num_rows; ++row) {
+      if (row + 1 < num_rows) {
+        const uint16_t *next_kptr =
+          kcache + ((row + 1) * num_cache_head + n) * head_dim;
+        _mm_prefetch(reinterpret_cast<const char *>(next_kptr), _MM_HINT_T0);
       }
 
-      for (int g = 0; g < group_size; ++g) {
-        const float *a_ptr = A + n * group_stride + g * chunk_size;
-        for (int row = 0; row < tile_rows; ++row) {
-          const float *b_row;
-          if constexpr (std::is_same<BType, float>::value) {
-            b_row = reinterpret_cast<const float *>(
-              B + (row_tile_start + row) * row_stride + n * chunk_size);
-          } else {
-            b_row = temp_tile_buf.data() + row * chunk_size;
-          }
+      const uint16_t *kptr = kcache + (row * num_cache_head + n) * head_dim;
+      load_fp16_8_to_chunk(kptr, tmp_fp32.data(), head_dim);
 
-          float sum = 0.0f;
-          int i = 0;
-          __m256 acc = _mm256_setzero_ps();
-          for (; i + 8 <= chunk_size; i += 8) {
-            __m256 va = _mm256_loadu_ps(a_ptr + i);
-            __m256 vb = _mm256_loadu_ps(b_row + i);
-            acc = _mm256_fmadd_ps(va, vb, acc);
-          }
-
-          __m128 low = _mm256_castps256_ps128(acc);
-          __m128 high = _mm256_extractf128_ps(acc, 1);
-          __m128 sum128 = _mm_add_ps(low, high);
-          sum128 = _mm_hadd_ps(sum128, sum128);
-          sum128 = _mm_hadd_ps(sum128, sum128);
-          sum += _mm_cvtss_f32(sum128);
-
-          for (; i < chunk_size; ++i)
-            sum += a_ptr[i] * b_row[i];
-
-          output[(row_tile_start + row) * N * group_size + n * group_size + g] =
-            sum / sqrt((float)chunk_size);
+      for (int g = 0; g < gqa_size; ++g) {
+        const float *a_ptr = in + n * gqa_size * head_dim + g * head_dim;
+        const float *b_row;
+        if constexpr (std::is_same<uint16_t, float>::value) {
+          b_row = reinterpret_cast<const float *>(kcache + n * head_dim);
+        } else {
+          b_row = tmp_fp32.data();
         }
+
+        float sum = 0.0f;
+        int i = 0;
+        __m256 acc = _mm256_setzero_ps();
+        for (; i + 8 <= head_dim; i += 8) {
+          __m256 va = _mm256_loadu_ps(a_ptr + i);
+          __m256 vb = _mm256_loadu_ps(b_row + i);
+          acc = _mm256_fmadd_ps(va, vb, acc);
+        }
+
+        __m128 low = _mm256_castps256_ps128(acc);
+        __m128 high = _mm256_extractf128_ps(acc, 1);
+        __m128 sum128 = _mm_add_ps(low, high);
+        sum128 = _mm_hadd_ps(sum128, sum128);
+        sum128 = _mm_hadd_ps(sum128, sum128);
+        sum += _mm_cvtss_f32(sum128);
+
+        for (; i < head_dim; ++i)
+          sum += a_ptr[i] * b_row[i];
+
+        output[(local_window_size == UINT_MAX || num_rows < local_window_size
+                  ? row
+                  : row - (num_rows - local_window_size)) *
+                 num_cache_head * gqa_size +
+               n * gqa_size + g] = sum / sqrt((float)head_dim);
       }
     }
   }
