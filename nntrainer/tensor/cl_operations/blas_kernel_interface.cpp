@@ -226,12 +226,14 @@ void add_i_cl(Tensor &result, Tensor const &input) {
     if (result.getDataType() == ml::train::TensorDim::DataType::FP32) {
       const auto *data_input = input.getData<float>();
       auto *data_res = result.getData<float>();
-      addition_cl(data_input, data_res, size_input, size_res, false);
+      addition_cl(data_input, data_res, size_input, size_res,
+                  input.getMemoryData()->useSVM());
     } else if (result.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
       const auto *data_input = input.getData<_FP16>();
       auto *data_res = result.getData<_FP16>();
-      addition_cl(data_input, data_res, size_input, size_res, false);
+      addition_cl(data_input, data_res, size_input, size_res,
+                  input.getMemoryData()->useSVM());
 #else
       throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif

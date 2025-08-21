@@ -516,10 +516,44 @@ TEST(blas_kernels, addition_i_svm) {
   nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
     nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
 
-  nntrainer::Tensor A_fp32(batch, channel, height, width, t_type_nchw_fp32);
-  nntrainer::Tensor B_fp32(batch_b, channel, height, width, t_type_nchw_fp32);
-  nntrainer::Tensor C_fp32(batch, channel, height, width, t_type_nchw_fp32);
-  nntrainer::Tensor D_fp32(batch_b, channel, height, width, t_type_nchw_fp32);
+  nntrainer::TensorPool pool;
+  auto A_fp32_pool = pool.request(
+    "A", nntrainer::TensorDim(batch, channel, height, width, t_type_nchw_fp32),
+    {0}, nntrainer::TensorLifespan::MAX_LIFESPAN);
+  auto B_fp32_pool = pool.request(
+    "B",
+    nntrainer::TensorDim(batch_b, channel, height, width, t_type_nchw_fp32),
+    {1}, nntrainer::TensorLifespan::MAX_LIFESPAN);
+  auto C_fp32_pool = pool.request(
+    "C", nntrainer::TensorDim(batch, channel, height, width, t_type_nchw_fp32),
+    {2}, nntrainer::TensorLifespan::MAX_LIFESPAN);
+  auto D_fp32_pool = pool.request(
+    "D",
+    nntrainer::TensorDim(batch_b, channel, height, width, t_type_nchw_fp32),
+    {3}, nntrainer::TensorLifespan::MAX_LIFESPAN);
+
+  pool.finalize(nntrainer::BasicPlanner(), 0, 4);
+  pool.allocate();
+
+  auto A_fp32 = *A_fp32_pool;
+  auto B_fp32 = *B_fp32_pool;
+  auto C_fp32 = *C_fp32_pool;
+  auto D_fp32 = *D_fp32_pool;
+
+  const auto a_buffer_size = A_fp32.size() * sizeof(float);
+  const auto b_buffer_size = B_fp32.size() * sizeof(float);
+
+  auto *cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+
+  cl_context->command_queue_inst_.enqueueSVMMap(A_fp32.getData<float>(),
+                                                a_buffer_size, false);
+  cl_context->command_queue_inst_.enqueueSVMMap(B_fp32.getData<float>(),
+                                                b_buffer_size, false);
+  cl_context->command_queue_inst_.enqueueSVMMap(C_fp32.getData<float>(),
+                                                a_buffer_size, false);
+  cl_context->command_queue_inst_.enqueueSVMMap(D_fp32.getData<float>(),
+                                                b_buffer_size, false);
 
   GEN_TEST_INPUT(A_fp32, ((i * (batch * height * channel) +
                            j * (batch * height) + k * (width) + l + 1) %
@@ -538,33 +572,18 @@ TEST(blas_kernels, addition_i_svm) {
                             MOD) *
                              alpha);
 
+  cl_context->command_queue_inst_.enqueueSVMUnmap(A_fp32.getData<float>());
+  cl_context->command_queue_inst_.enqueueSVMUnmap(B_fp32.getData<float>());
+  cl_context->command_queue_inst_.enqueueSVMUnmap(C_fp32.getData<float>());
+  cl_context->command_queue_inst_.enqueueSVMUnmap(D_fp32.getData<float>());
+
   auto t1 = std::chrono::high_resolution_clock::now();
   A_fp32.add_i(B_fp32);
   auto t2 = std::chrono::high_resolution_clock::now();
   auto dt_cpu = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
 
-  auto *cl_context =
-    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-
-  const auto c_buffer_size = C_fp32.size() * sizeof(float);
-  const auto d_buffer_size = D_fp32.size() * sizeof(float);
-  void *c_fp32_svm = cl_context->context_inst_.createSVMRegion(c_buffer_size);
-  void *d_fp32_svm = cl_context->context_inst_.createSVMRegion(d_buffer_size);
-
-  cl_context->command_queue_inst_.enqueueSVMMap(
-    c_fp32_svm, C_fp32.size() * sizeof(float), false);
-  cl_context->command_queue_inst_.enqueueSVMMap(
-    d_fp32_svm, D_fp32.size() * sizeof(float), false);
-
-  std::memcpy(c_fp32_svm, C_fp32.getData<float>(), c_buffer_size);
-  std::memcpy(d_fp32_svm, D_fp32.getData<float>(), d_buffer_size);
-
-  cl_context->command_queue_inst_.enqueueSVMUnmap(c_fp32_svm);
-  cl_context->command_queue_inst_.enqueueSVMUnmap(d_fp32_svm);
-
   auto t3 = std::chrono::high_resolution_clock::now();
-  addition_cl((float *)d_fp32_svm, (float *)c_fp32_svm, D_fp32.size(),
-              C_fp32.size(), true);
+  add_i_cl(C_fp32, D_fp32);
   auto t4 = std::chrono::high_resolution_clock::now();
   auto dt_gpu = std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3);
 
@@ -573,24 +592,21 @@ TEST(blas_kernels, addition_i_svm) {
   std::cout << " - time : CPU = " << dt_cpu.count() << " us" << std::endl;
   std::cout << " - time : GPU = " << dt_gpu.count() << " us" << std::endl;
 
-  cl_context->command_queue_inst_.enqueueSVMMap(
-    c_fp32_svm, C_fp32.size() * sizeof(float), false);
-  cl_context->command_queue_inst_.enqueueSVMMap(
-    d_fp32_svm, D_fp32.size() * sizeof(float), false);
+  cl_context->command_queue_inst_.enqueueSVMMap(C_fp32.getData<float>(),
+                                                a_buffer_size, false);
+  cl_context->command_queue_inst_.enqueueSVMMap(D_fp32.getData<float>(),
+                                                b_buffer_size, false);
 
   float mseError =
-    mse<float>(A_fp32.getData<float>(), (float *)c_fp32_svm, A_fp32.size());
+    mse<float>(A_fp32.getData<float>(), C_fp32.getData<float>(), A_fp32.size());
 
-  double cosSim = cosine_similarity<float>(A_fp32.getData<float>(),
-                                           (float *)c_fp32_svm, A_fp32.size());
+  double cosSim = cosine_similarity<float>(
+    A_fp32.getData<float>(), C_fp32.getData<float>(), A_fp32.size());
+
+  cl_context->command_queue_inst_.enqueueSVMUnmap(C_fp32.getData<float>());
+  cl_context->command_queue_inst_.enqueueSVMUnmap(D_fp32.getData<float>());
 
   const float epsilon = 1e-3 * width;
-
-  cl_context->command_queue_inst_.enqueueSVMUnmap(c_fp32_svm);
-  cl_context->command_queue_inst_.enqueueSVMUnmap(d_fp32_svm);
-
-  cl_context->context_inst_.releaseSVMRegion(c_fp32_svm);
-  cl_context->context_inst_.releaseSVMRegion(d_fp32_svm);
 
   EXPECT_IN_RANGE(mseError, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
