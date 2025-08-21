@@ -252,13 +252,21 @@ void MemoryPool::allocateFSU() {
  */
 std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
 
+  bool use_svm = false;
+
+#ifdef ENABLE_OPENCL
+  use_svm = true;
+#endif
+
 #if defined(__ANDROID__)
-  auto mem_data = std::make_shared<MemoryData>((void *)memory_ptrs.at(idx - 1));
+  auto mem_data =
+    std::make_shared<MemoryData>((void *)memory_ptrs.at(idx - 1), use_svm);
 #else
   if (mem_pool == nullptr)
     throw std::invalid_argument("Getting memory before allocation");
 
-  auto mem_data = std::make_shared<MemoryData>((void *)memory_ptrs.at(idx - 1));
+  auto mem_data =
+    std::make_shared<MemoryData>((void *)memory_ptrs.at(idx - 1), use_svm);
 #endif
   return mem_data;
 }
