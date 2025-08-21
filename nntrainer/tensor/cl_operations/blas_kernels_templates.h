@@ -398,19 +398,24 @@ inline static void rmsnorm_cl_internal(ClContext::SharedPtrClKernel kernel,
   if (!kernel->SetKernelArguments(5, &width, sizeof(int))) {
     return;
   }
+
 #ifdef __ANDROID__
   constexpr int SUBGROUP_SIZE = 64;
 #else
   constexpr int SUBGROUP_SIZE = 32;
 #endif
-  const int work_groups_count[3] = {static_cast<int>(height) * SUBGROUP_SIZE, 1,
-                                    1};
 
-  const int work_group_size[3] = {SUBGROUP_SIZE, 1, 1};
-  if (!blas_cc->command_queue_inst_.DispatchCommand(kernel, work_groups_count,
-                                                    work_group_size)) {
-    return;
+  std::array<size_t, 3> global_work_size = {height * SUBGROUP_SIZE, 1, 1};
+  std::array<size_t, 3> local_work_size = {SUBGROUP_SIZE, 1, 1};
+
+  cl_event rmsnorm_wait;
+
+  if (!blas_cc->command_queue_inst_.enqueueKernel(
+        kernel->GetKernel(), global_work_size.size(), global_work_size.data(),
+        local_work_size.data(), 0, nullptr, &rmsnorm_wait)) {
   }
+
+  blas_cc->command_queue_inst_.waitForEvent(1, &rmsnorm_wait);
 
   if (!use_svm) {
     auto &clbuffInstance = ClBufferManager::Global();
