@@ -471,19 +471,18 @@ void __fallback_softmax_row(float *qk_out, size_t start_row, size_t end_row,
   throw std::runtime_error("NYI : __fallback_softmax_row");
 }
 
-void __fallback_compute_fp16vcache_fp32_transposed(int row_num, const float *in,
-                                                   const uint16_t *vcache,
-                                                   float *output,
-                                                   int num_cache_head,
-                                                   int gqa_size, int head_dim) {
+void __fallback_compute_fp16vcache_fp32_transposed(
+  int row_num, const float *in, const uint16_t *vcache, float *output,
+  int num_cache_head, int gqa_size, int head_dim, size_t local_window_size) {
   throw std::runtime_error(
     "NYI : __fallback_compute_fp16vcache_fp32_transposed");
 }
 
 template <>
-void __fallback_compute_kcaches(const float *A, const uint16_t *B,
-                                float *output, int num_rows, int N,
-                                int chunk_size, int group_size, int tile_size) {
+void __fallback_compute_kcaches(const float *in, const uint16_t *kcache,
+                                float *output, int num_rows, int num_cache_head,
+                                int head_dim, int gqa_size,
+                                size_t local_window_size) {
   throw std::runtime_error("NYI : __fallback_compute_kcaches");
 }
 

@@ -779,13 +779,12 @@ TEST(nntrainer_cpu_backend_standalone, softmax_row) {
 TEST(nntrainer_cpu_backend_standalone, compute_kcaches) {
   int num_rows = 1;
   int N = 2;
-  int chunk_size = 10;
+  int head_dim = 10;
   int group_size = 4;
-  int tile_size = 8;
-  size_t A_size = N * group_size * chunk_size;
-  size_t B_size = num_rows * N * chunk_size;
+  size_t in_size = N * group_size * head_dim;
+  size_t kcache_size = num_rows * N * head_dim;
   size_t output_size = num_rows * N * group_size;
-  std::vector<float> A = {
+  std::vector<float> in = {
     -2.509198, 5.930860,  9.014286,  -6.331305, 4.639878,  5.593820,  1.973170,
     1.937003,  -6.879627, -1.083345, -6.880110, -8.000502, -8.838327, -0.815022,
     7.323523,  -3.325828, 2.022300,  -7.142663, 4.161452,  3.017770,  -9.588310,
@@ -798,16 +797,15 @@ TEST(nntrainer_cpu_backend_standalone, compute_kcaches) {
     -0.990015, -8.698968, -9.734701, 8.977711,  8.844034,  9.312640,  1.265764,
     6.167947,  -2.291670, -3.907725, -9.680675, -8.046557, -5.382123, 3.684660,
     -5.179491, -1.196950, 3.665271};
-  std::vector<uint16_t> B = {3751, 7967, 9507, 1842, 7322, 7799, 5990,
-                             5972, 1568, 4463, 1568, 1008, 590,  4597,
-                             8663, 3343, 6015, 1437, 7083, 6512};
+  std::vector<uint16_t> kcache = {3751, 7967, 9507, 1842, 7322, 7799, 5990,
+                                  5972, 1568, 4463, 1568, 1008, 590,  4597,
+                                  8663, 3343, 6015, 1437, 7083, 6512};
   std::vector<float> ref_out = {0.089252,  -0.072949, 0.058948,  -0.045583,
                                 -0.025812, -0.002068, -0.014971, -0.028027};
   std::vector<float> output(output_size);
 
-  nntrainer::compute_kcaches<uint16_t>(A.data(), B.data(), output.data(),
-                                       num_rows, N, chunk_size, group_size,
-                                       tile_size);
+  nntrainer::compute_kcaches<uint16_t>(in.data(), kcache.data(), output.data(),
+                                       num_rows, N, head_dim, group_size);
 
   for (size_t i = 0; i < output_size; i++) {
     EXPECT_NEAR(ref_out[i], output[i], 0.0001f);
@@ -985,13 +983,12 @@ TEST(nntrainer_cpu_backend_standalone, softmax_row_fp16) {
 TEST(nntrainer_cpu_backend_standalone, compute_kcaches_fp16) {
   int num_rows = 1;
   int N = 2;
-  int chunk_size = 10;
+  int head_dim = 10;
   int group_size = 4;
-  int tile_size = 8;
-  size_t A_size = N * group_size * chunk_size;
-  size_t B_size = num_rows * N * chunk_size;
+  size_t in_size = N * group_size * head_dim;
+  size_t kcache_size = num_rows * N * head_dim;
   size_t output_size = num_rows * N * group_size;
-  std::vector<__fp16> A = {
+  std::vector<__fp16> in = {
     -2.509198, 5.930860,  9.014286,  -6.331305, 4.639878,  5.593820,  1.973170,
     1.937003,  -6.879627, -1.083345, -6.880110, -8.000502, -8.838327, -0.815022,
     7.323523,  -3.325828, 2.022300,  -7.142663, 4.161452,  3.017770,  -9.588310,
@@ -1004,16 +1001,16 @@ TEST(nntrainer_cpu_backend_standalone, compute_kcaches_fp16) {
     -0.990015, -8.698968, -9.734701, 8.977711,  8.844034,  9.312640,  1.265764,
     6.167947,  -2.291670, -3.907725, -9.680675, -8.046557, -5.382123, 3.684660,
     -5.179491, -1.196950, 3.665271};
-  std::vector<__fp16> B = {0.000406, 0.006954, 0.020065, 0.000110, 0.004494,
-                           0.006313, 0.001806, 0.001789, 0.000093, 0.000663,
-                           0.000093, 0.000060, 0.000035, 0.000727, 0.011406,
-                           0.000309, 0.001830, 0.000086, 0.003744, 0.002655};
+  std::vector<__fp16> kcache = {
+    0.000406, 0.006954, 0.020065, 0.000110, 0.004494, 0.006313, 0.001806,
+    0.001789, 0.000093, 0.000663, 0.000093, 0.000060, 0.000035, 0.000727,
+    0.011406, 0.000309, 0.001830, 0.000086, 0.003744, 0.002655};
   std::vector<__fp16> ref_out = {0.089252,  -0.072949, 0.058948,  -0.045583,
                                  -0.025812, -0.002068, -0.014971, -0.028027};
   std::vector<__fp16> output(output_size);
 
-  nntrainer::compute_kcaches(A.data(), B.data(), output.data(), num_rows, N,
-                             chunk_size, group_size, tile_size);
+  nntrainer::compute_kcaches(in.data(), kcache.data(), output.data(), num_rows,
+                             N, head_dim, group_size);
 
   for (size_t i = 0; i < output_size; i++) {
     EXPECT_NEAR(ref_out[i], output[i], 0.0001f);
