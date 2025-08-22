@@ -3,10 +3,12 @@
  * Copyright (C) 2025 Jijoong Moon <jijoong.moon@samsung.com>
  *
  * @file   mha_core.h
- * @date   02 September 2024
+ * @date   11 July 2025
  * @see    https://github.com/nnstreamer/nntrainer
  *         https://arxiv.org/abs/1706.03762
  * @author Jijoong Moon <jijoong.moon@samsung.com>
+ * @author Maciej Nalewaj <m.nalewaj@samsung.com>
+ * @author Eunju Yang <ej.yang@samsung.com>
  * @bug    No known bugs except for NYI items
  * @brief  This is custom_mha_core layer supports
  *         the work of multi_head_attention.
@@ -137,7 +139,8 @@ public:
    *  @brief  Move constructor of CustomMultiHeadAttentionLayer.
    *  @param[in] CustomMultiHeadAttentionLayer &&
    */
-  WIN_EXPORT MHACoreLayer(MHACoreLayer &&rhs) noexcept = default;
+  WIN_EXPORT
+  MHACoreLayer(MHACoreLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
@@ -158,20 +161,17 @@ public:
                              bool training) override;
 
   /**
-   * @copydoc Layer::incremental_forwarding
+   * @brief incremental forwarding for one batch
    */
-  WIN_EXPORT void one_batch_incremental_forwarding(
+  void one_batch_incremental_forwarding(
     const unsigned int batch, const unsigned int _from, const unsigned int from,
-    const unsigned int to, nntrainer::Tensor &query, nntrainer::Tensor &key,
-    nntrainer::Tensor &value, nntrainer::Tensor &output,
-    nntrainer::Tensor &cache_key, nntrainer::Tensor &cache_value,
-    ml::train::TensorDim &query_dim, ml::train::TensorDim &query_step_dim,
-    ml::train::TensorDim &key_dim, ml::train::TensorDim &value_dim,
-    ml::train::TensorDim &cache_key_dim,
+    const unsigned int to, nntrainer::Tensor &query_step,
+    nntrainer::Tensor &key_step, nntrainer::Tensor &value_step,
+    nntrainer::Tensor &attention_output_step, nntrainer::Tensor &cache_key,
+    nntrainer::Tensor &cache_value, ml::train::TensorDim &cache_key_dim,
     ml::train::TensorDim &cache_key_step_dim,
     ml::train::TensorDim &cache_value_dim,
-    ml::train::TensorDim &cache_value_step_dim,
-    ml::train::TensorDim &output_dim, ml::train::TensorDim &output_step_dim);
+    ml::train::TensorDim &cache_value_step_dim);
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
@@ -345,6 +345,6 @@ private:
   void calcCommonDerivative(nntrainer::RunLayerContext &context);
 
 }; // end of class MHACoreLayer
-} // end of namespace causallm
+} // namespace causallm
 
 #endif
