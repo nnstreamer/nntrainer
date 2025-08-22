@@ -277,7 +277,7 @@ void __ggml_dequantize_row_q4_0(const void *x_raw, float *y, int64_t k);
  * @param y output destination for dequantized data
  * @param k data length
  */
-void __nntr_dequantize_row_q8_0(const void *x_raw, float *y, int64_t k);
+void __ggml_dequantize_row_q8_0(const void *x_raw, float *y, int64_t k);
 
 /**
  * @brief q4K to float dequantize
@@ -372,7 +372,7 @@ size_t __ggml_quantize_q8_0(const _FP16 *src, void *dst, int64_t nrow,
  * @param y output destination for dequantized data
  * @param k data length
  */
-void __nntr_dequantize_row_q8_0(const void *x_raw, _FP16 *y, int64_t k);
+void __ggml_dequantize_row_q8_0(const void *x_raw, _FP16 *y, int64_t k);
 #endif
 } // namespace nntrainer
 

@@ -304,7 +304,7 @@ void softmax(const unsigned int N, _FP16 *X, _FP16 *Y) {
 
 template <> void dequantize_row_q8_0(const void *x_raw, _FP16 *y, int64_t k) {
 #ifdef ENABLE_GGML
-  __nntr_dequantize_row_q8_0(x_raw, y, k);
+  __ggml_dequantize_row_q8_0(x_raw, y, k);
 #else
   __fallback_dequantize_row_q8_0(x_raw, y, k);
 #endif

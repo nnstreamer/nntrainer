@@ -7,18 +7,6 @@
 #include <cstring>
 #include <unordered_map>
 
-enum ggml_type {
-  GGML_TYPE_F32 = 0,
-  GGML_TYPE_F16 = 1,
-  GGML_TYPE_Q4_0 = 2,
-  GGML_TYPE_Q4_1 = 3,
-  GGML_TYPE_Q8_0 = 8,
-  GGML_TYPE_Q4_K = 12,
-  GGML_TYPE_Q6_K = 14,
-  GGML_TYPE_Q8_K = 15,
-  GGML_TYPE_COUNT = 39,
-};
-
 //
 // ===================== Helper functions
 //
@@ -505,63 +493,6 @@ static inline uint32_t fp32_to_bits(float f) {
   } fp32;
   fp32.as_value = f;
   return fp32.as_bits;
-}
-
-int64_t ggml_blck_size(enum ggml_type type) {
-
-  switch (type) {
-  case GGML_TYPE_Q4_0: {
-    return QK4_0;
-  }
-  case GGML_TYPE_Q8_0: {
-    return QK8_0;
-  }
-  case GGML_TYPE_Q4_K: {
-    return QK_K;
-  }
-  case GGML_TYPE_Q6_K: {
-    return QK_K;
-  }
-  case GGML_TYPE_Q8_K: {
-    return QK_K;
-  }
-  default: {
-    break;
-  }
-  }
-
-  return -1;
-}
-
-size_t ggml_type_size(enum ggml_type type) {
-
-  switch (type) {
-  case GGML_TYPE_Q4_0: {
-    return sizeof(block_q4_0);
-  }
-  case GGML_TYPE_Q8_0: {
-    return sizeof(block_q8_0);
-  }
-  case GGML_TYPE_Q4_K: {
-    return sizeof(block_q4_K);
-  }
-  case GGML_TYPE_Q6_K: {
-    return sizeof(block_q6_K);
-  }
-  case GGML_TYPE_Q8_K: {
-    return sizeof(block_q8_K);
-  }
-  default: {
-    break;
-  }
-  }
-
-  return -1;
-}
-
-size_t ggml_row_size(enum ggml_type type, int64_t ne) {
-  assert(ne % ggml_blck_size(type) == 0);
-  return ggml_type_size(type) * ne / ggml_blck_size(type);
 }
 
 // -------- Q4_0 -----------------
