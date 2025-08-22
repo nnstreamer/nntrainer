@@ -28,7 +28,7 @@
 // https://github.com/ggml-org/llama.cpp/pull/10616 for     MUSA compilers , we
 // use uint16_t: ref https://github.com/ggml-org/llama.cpp/pull/11843
 //
-#if defined(__ARM_NEON) &&                                                     \
+#if defined(__ARM_NEON) && defined(ENABLE_FP16) &&                             \
   !(defined(__CUDACC__) && __CUDACC_VER_MAJOR__ <= 11) && !defined(__MUSACC__)
 #define NNTR_COMPUTE_FP16_TO_FP32(x) nntr_compute_fp16_to_fp32_impl(x)
 #define NNTR_COMPUTE_FP32_TO_FP16(x) nntr_compute_fp32_to_fp16_impl(x)

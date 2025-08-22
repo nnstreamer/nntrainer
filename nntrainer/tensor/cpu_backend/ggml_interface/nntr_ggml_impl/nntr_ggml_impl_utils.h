@@ -873,6 +873,8 @@ inline static int32_t vaddvq_s32(int32x4_t v) {
          vgetq_lane_s32(v, 3);
 }
 
+#if not(defined(ARMV7)) || !(ARMV7)
+
 inline static float vaddvq_f32(float32x4_t v) {
   return vgetq_lane_f32(v, 0) + vgetq_lane_f32(v, 1) + vgetq_lane_f32(v, 2) +
          vgetq_lane_f32(v, 3);
@@ -893,6 +895,8 @@ inline static int32x4_t vcvtnq_s32_f32(float32x4_t v) {
 
   return res;
 }
+
+#endif
 
 inline static uint8x8_t vzip1_u8(uint8x8_t a, uint8x8_t b) {
   uint8x8_t res;
