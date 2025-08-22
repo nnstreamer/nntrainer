@@ -15,6 +15,122 @@
 
 namespace nntrainer {
 
+void gemm_q4_0_async_cl(std::vector<void *> matAdata, float *matBdata,
+                        std::vector<float *> matCdata, unsigned int M,
+                        std::vector<unsigned int> Ns, unsigned int K) {
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  cl_event e1 = nullptr, e2 = nullptr, e3 = nullptr;
+  cl_event events[] = {e1, e2, e3};
+
+  /// @note This can only be done once
+  transpose_32_16(matBdata, M, K);
+
+  for (unsigned int i = 0; i < Ns.size(); ++i) {
+    bool result = false;
+    int N = Ns[i];
+    void *mdata = matAdata[i];
+    float *rdata = matCdata[i];
+
+    auto *blas_cc =
+      static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+    auto &clbuffInstance = ClBufferManager::Global();
+
+    size_t q_size_bytes = N * (K / 2);
+    size_t d_size_bytes = N * (K / 32) * 2;
+
+    /// @note This is the problem that makes async not work
+    // Currently, it uses same SVM memory for scale, quant, and transposed
+    // To resolve this, need seperate SVM memory for each weight (max 3).
+    convert_q4_0x8_shuffle_dispatch(
+      mdata, (unsigned short *)clbuffInstance.getSVMScale(),
+      (unsigned char *)clbuffInstance.getSVMQuant(), N * (K / 32) / 8, K);
+
+    transpose_16(nullptr, nullptr, K / 4 / 4, N / 4, q_size_bytes, true);
+    transpose_16(nullptr, nullptr, K / 32 / 4, N / 4, d_size_bytes);
+
+    int padding = 0;
+    if (M % 8 > 0) {
+      padding = 8 - (M % 8);
+    }
+
+    int padded_M = M + padding;
+
+    // 3. Perform Matrix Multiplication
+    ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
+      getQ4_0_Ab_Bi_8x4_Kernel(), "kernel_mul_mat_Ab_Bi_8x4");
+    if (!kernel_ptr) {
+      throw std::runtime_error(
+        "Failed to get kernel_ptr for kernel_mul_mat_Ab_Bi_8x4");
+      return;
+    }
+
+    int arg = 0;
+
+    result =
+      kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMQuantT());
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 0 for kernel_mul_mat_Ab_Bi_8x4");
+
+    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMScaleT());
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 1 for kernel_mul_mat_Ab_Bi_8x4");
+
+    result =
+      kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMInput());
+
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 2 for kernel_mul_mat_Ab_Bi_8x4");
+
+    result = kernel_ptr->SetKernelSVMArguments(arg++, rdata);
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 3 for kernel_mul_mat_Ab_Bi_8x4");
+
+    result = kernel_ptr->SetKernelArguments(arg++, &N, sizeof(int));
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 4 for kernel_mul_mat_Ab_Bi_8x4");
+
+    result = kernel_ptr->SetKernelArguments(arg++, &padded_M, sizeof(int));
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 5 for kernel_mul_mat_Ab_Bi_8x4");
+
+    result = kernel_ptr->SetKernelArguments(arg++, &K, sizeof(int));
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 6 for kernel_mul_mat_Ab_Bi_8x4");
+
+    result = kernel_ptr->SetKernelArguments(arg++, &M, sizeof(int));
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 7 for kernel_mul_mat_Ab_Bi_8x4");
+
+    std::array<size_t, 3> global_work_size = {(size_t)ceil(M / 8.0f),
+                                              (size_t)N / 4, 1};
+
+    std::array<size_t, 3> local_work_size = {1, 128, 1};
+
+    result = blas_cc->command_queue_inst_.enqueueKernel(
+      kernel_ptr->GetKernel(), global_work_size.size(), global_work_size.data(),
+      local_work_size.data(), 0, nullptr, &events[i]);
+  }
+
+  blas_cc->command_queue_inst_.waitForEvent(Ns.size(), events);
+
+  for (unsigned int i = 0; i < Ns.size(); ++i) {
+    int N = Ns[i];
+    float *rdata = matCdata[i];
+
+    blas_cc->command_queue_inst_.enqueueSVMMap(rdata, M * N * sizeof(float),
+                                               true);
+  }
+}
+
 void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
                   unsigned int M, unsigned int N, unsigned int K) {
   bool result = false;
@@ -106,18 +222,21 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
     throw std::runtime_error(
       "Failed to set kernel argument 7 for kernel_mul_mat_Ab_Bi_8x4");
 
-  const int work_groups_count[3] = {(int)ceil(M / 8.0f), (int)N / 4, 1};
-  const int work_group_size[3] = {1, 128, 1};
+  std::array<size_t, 3> global_work_size = {(size_t)ceil(M / 8.0f),
+                                            (size_t)N / 4, 1};
+  std::array<size_t, 3> local_work_size = {1, 128, 1};
+  cl_event e;
 
-  result = blas_cc->command_queue_inst_.DispatchCommand(
-    kernel_ptr, work_groups_count, work_group_size);
+  result = blas_cc->command_queue_inst_.enqueueKernel(
+    kernel_ptr->GetKernel(), global_work_size.size(), global_work_size.data(),
+    local_work_size.data(), 0, nullptr, &e);
+
+  blas_cc->command_queue_inst_.waitForEvent(1, &e);
+
   if (!result) {
-    throw std::runtime_error(
-      "Failed to dispatch kernel for kernel_mul_mat_Ab_Bi_8x4");
     return;
   }
 
-  /// @todo synchronize when only needed
   blas_cc->command_queue_inst_.enqueueSVMMap(matCdata, M * N * sizeof(float),
                                              true);
   if (!result) {

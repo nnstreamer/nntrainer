@@ -11,8 +11,8 @@
  *
  */
 
-#include "swiglu_cl.h"
 #include "nntrainer_log.h"
+#include "swiglu_cl.h"
 #include <blas_kernel_strings.h>
 #include <iostream>
 
@@ -158,7 +158,7 @@ void SwiGLULayerCl::swiglu_cl(float *matAdata, float *vecXdata, float *vecYdata,
     }
   }
 
-  std::array<size_t, 3> global_work_size = {dim, 1, 1};
+  std::array<size_t, 3> global_work_size = {(size_t)dim, 1, 1};
 
   cl_event swiglu_wait;
 
