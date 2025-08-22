@@ -43,7 +43,8 @@ bool CommandQueueManager::CreateCommandQueue() {
   cl_device_id device_id = context_instance.GetDeviceId();
 
   // returns NULL with error code if fails
-  command_queue_ = clCreateCommandQueue(context, device_id, 0, &error_code);
+  command_queue_ = clCreateCommandQueue(
+    context, device_id, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, &error_code);
   if (!command_queue_) {
     ml_loge("Failed to create a command queue. OpenCL error code: %d : ",
             error_code, OpenCLErrorCodeToString(error_code));
@@ -380,6 +381,38 @@ bool CommandQueueManager::DispatchCommand(
   if (error_code != CL_SUCCESS) {
     ml_loge("Failed to clEnqueueNDRangeKernel. OpenCL error code: %d : %s",
             error_code, OpenCLErrorCodeToString(error_code));
+    return false;
+  }
+
+  return true;
+}
+
+bool CommandQueueManager::enqueueKernel(const cl_kernel kernel,
+                                        const cl_uint work_dim,
+                                        const size_t *global_work_size,
+                                        const size_t *local_work_size,
+                                        cl_uint num_events_in_wait_list,
+                                        const cl_event *event_wait_list,
+                                        cl_event *event) {
+
+  const auto error_code = clEnqueueNDRangeKernel(
+    command_queue_, kernel, work_dim, nullptr, global_work_size,
+    local_work_size, num_events_in_wait_list, event_wait_list, event);
+
+  if (error_code != CL_SUCCESS) {
+    ml_loge("clEnqueueNDRangeKernel failed. OpenCL error code: %d", error_code);
+    return false;
+  }
+
+  return true;
+}
+
+bool CommandQueueManager::waitForEvent(cl_uint num_events,
+                                       const cl_event *event_list) {
+  const auto error_code = clWaitForEvents(num_events, event_list);
+
+  if (error_code != CL_SUCCESS) {
+    ml_loge("clWaitForEvents failed. OpenCL error code: %d", error_code);
     return false;
   }
 

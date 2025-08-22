@@ -77,7 +77,7 @@ public:
    * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
   void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override {};
+                const ml::train::ExportMethods &method) const override{};
 
   /**
    * @copydoc Layer::getType()
@@ -106,9 +106,11 @@ public:
    * @param[in] vecYdata float * for Output Vector Y
    * @param[in] dim1 number of elements in input vector A
    * @param[in] dim1 number of elements in input vector X
+   * @param[in] use_svm input pointers allocated by OpenCL SVM
    */
   void swiglu_cl(float *matAdata, float *vecXdata, float *vecYdata,
-                 unsigned int dim1, unsigned int dim2, bool svm = false);
+                 unsigned int dim1, unsigned int dim2,
+                 const bool use_svm = false);
 
 #ifdef ENABLE_FP16
   /**
