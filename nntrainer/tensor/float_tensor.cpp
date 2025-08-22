@@ -468,7 +468,12 @@ Tensor &FloatTensor::add(Tensor const &m, Tensor &output,
     ele_add(e.buffer_size, buf, m_buf, out_buf, alpha, 0, e.strides[3],
             strides[3]);
   };
-  apply_broadcast(m, f, output);
+
+  if (m.height() == 1) {
+    apply_broadcast(m, f, output);
+  } else {
+    addition_cl(m.getData(), output.getData(), m.size(), output.size());
+  }
   return output;
 }
 
