@@ -4,7 +4,7 @@ Copyright (C) 2025 Sachin Singh <sachin.3@samsung.com>
 
 @file modelling_qwen3.py
 @date 13 August 2025
-@breif This is a Qwen3 1.7B modeling file that is compatible with Hugging Face and supports conversion
+@brief This is a Qwen3 1.7B modeling file that is compatible with Hugging Face and supports conversion
        from PyTorch to ONNX to NNTrainer. It does not include masking and caching for token generation.
 @note This script has been tested with transformers version 4.55.0 and PyTorch version 2.8.0
 
@@ -87,7 +87,7 @@ def rotate_half(x):
     return torch.cat((-x2, x1), dim=3) # -1 changed to 3
 
 
-def apply_rotary_pos_emb(q, k, cos, sin, position_ids=None, unsqueeze_dim=1):
+def apply_rotary_pos_emb(q, k, cos, sin):
 
     q_embed = (q * cos) + (rotate_half(q) * sin)
     k_embed = (k * cos) + (rotate_half(k) * sin)
