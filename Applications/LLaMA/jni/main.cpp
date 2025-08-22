@@ -33,7 +33,7 @@
 #include <swiglu.h>
 #include <transpose_layer.h>
 
-#if defined(ENABLE_ENCODER)
+#if defined(ENABLE_TRANSFORMER)
 #include "json.hpp"
 #include <codecvt>
 #include <encoder.hpp>
@@ -564,7 +564,7 @@ void run(std::string text, std::string vocab_file_path,
 
   unsigned int init_len;
 
-#if defined(ENABLE_ENCODER)
+#if defined(ENABLE_TRANSFORMER)
   auto tokenizer = unwrap(GPT2Encoder::load(vocab_file_path, merge_file_path),
                           "Error initializing GPT2 tokenizer\n");
 
@@ -606,7 +606,7 @@ void run(std::string text, std::string vocab_file_path,
   std::cout << " Progress Reading: 100 % " << std::endl;
   std::cout << std::endl << "### Output : " << std::endl;
   if (init_len < INIT_SEQ_LEN) {
-#if defined(ENABLE_ENCODER)
+#if defined(ENABLE_TRANSFORMER)
     auto decoded_str = tokenizer.decode({static_cast<int64_t>(ids)});
     std::cout << decoded_str << " ";
     std::cout.flush();
@@ -623,7 +623,7 @@ void run(std::string text, std::string vocab_file_path,
       input_sample[0] = static_cast<float>(init_input[i]);
     } else {
       input_sample[0] = static_cast<float>(ids);
-#if defined(ENABLE_ENCODER)
+#if defined(ENABLE_TRANSFORMER)
       auto decoded_str = tokenizer.decode({static_cast<int64_t>(ids)});
       std::cout << decoded_str << " ";
       std::cout.flush();
@@ -674,7 +674,7 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
   g_model->load(weight_path);
 }
 
-#if defined(ENABLE_ENCODER)
+#if defined(ENABLE_TRANSFORMER)
 std::wstring decodeUnicodeEscape(const std::wstring &input) {
   std::wstringstream result;
 
@@ -704,7 +704,7 @@ int main(int argc, char *argv[]) {
 
   std::string text = "";
 
-#if defined(ENABLE_ENCODER)
+#if defined(ENABLE_TRANSFORMER)
   // Getting arguments From terminal
   std::wstring input;
   std::getline(std::wcin, input);

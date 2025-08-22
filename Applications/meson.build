@@ -48,7 +48,7 @@ if host_machine.system() != 'windows'
   endif
 endif
 
-if get_option('enable_encoder')
+if get_option('enable-transformer')
   subdir('LLaMA/jni')
   if host_machine.system() != 'windows'
   subdir('PicoGPT/jni')

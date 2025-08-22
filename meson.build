@@ -58,8 +58,8 @@ if get_option('platform') == 'tizen'
   endif
 endif
 
-if get_option('enable_encoder')
-  add_project_arguments('-DENABLE_ENCODER=1', language: ['c', 'cpp'])
+if get_option('enable-transformer')
+  add_project_arguments('-DENABLE_TRANSFORMER=1', language: ['c', 'cpp'])
 endif
 
 warning_flags = [
