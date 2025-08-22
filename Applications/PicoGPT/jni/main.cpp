@@ -17,7 +17,7 @@
 #include <string.h>
 #include <tensor.h>
 
-#if defined(ENABLE_ENCODER)
+#if defined(ENABLE_TRANSFORMER)
 #include "encoder.hpp"
 #endif
 
@@ -43,7 +43,7 @@ bool optimize = false;
 // bool optimize = true;
 bool optimize_attention = false;
 
-#if defined(ENABLE_ENCODER)
+#if defined(ENABLE_TRANSFORMER)
 template <typename T>
 T unwrap(std::optional<T> &&value, const std::string &error_msg) {
   if (value.has_value()) {
@@ -321,7 +321,7 @@ int main(int argc, char *argv[]) {
 
     std::vector<int64_t> init_input;
 
-#if defined(ENABLE_ENCODER)
+#if defined(ENABLE_TRANSFORMER)
 
     std::string vocab_file_name = "../Applications/PicoGPT/jni/vocab.json";
     std::string merge_file_name = "../Applications/PicoGPT/jni/merges.txt";
@@ -375,7 +375,7 @@ int main(int argc, char *argv[]) {
 
       ((unsigned int *)(wpe_input))[0] = i;
 
-#if defined(ENABLE_ENCODER)
+#if defined(ENABLE_TRANSFORMER)
       std::vector<int64_t> token_ids;
       for (auto element : ids) {
         token_ids.push_back(static_cast<int64_t>(element));
