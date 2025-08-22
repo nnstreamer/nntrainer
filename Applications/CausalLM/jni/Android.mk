@@ -68,9 +68,8 @@ LOCAL_SRC_FILES := ../main.cpp \
     ../layers/rms_norm.cpp \
     ../layers/swiglu.cpp \
     ../layers/tie_word_embedding.cpp\
-    ../layers/qwen_moe_layer_fsu.cpp \
     ../layers/qwen_moe_layer_cached.cpp \
-    ../layers/qkv_layer.cpp 
+    ../layers/qkv_layer.cpp \
     ../layers/qwen_moe_layer_fsu.cpp 
 
 LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer nntrainer-ggml
