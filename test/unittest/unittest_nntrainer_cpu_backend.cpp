@@ -1020,7 +1020,7 @@ TEST(nntrainer_cpu_backend_standalone, compute_kcaches_fp16) {
   }
 }
 
-TEST(nntrainer_cpu_backend_standalone, compute_rotary_emb_value_fp16) {
+TEST(nntrainer_cpu_backend_standalone, compute_rotary_emb_value_out_null_fp16) {
   unsigned int width = 40;
   unsigned int dim = 20;
   unsigned int half_ = 10;
@@ -1046,11 +1046,46 @@ TEST(nntrainer_cpu_backend_standalone, compute_rotary_emb_value_fp16) {
     0.205859,  0.266457,  -0.454117, 0.581280,  0.181472,  0.204634,  -0.646542,
     0.020328,  0.556058,  1.354487,  -0.087349, -0.396113};
 
-  nntrainer::compute_rotary_emb_value(width, dim, half_, inout.data(),
+  nntrainer::compute_rotary_emb_value(width, dim, half_, inout.data(), nullptr,
                                       cos_.data(), sin_.data());
 
   for (size_t i = 0; i < inout.size(); i++) {
     EXPECT_NEAR(ref_out[i], inout[i], 0.001f);
+  }
+}
+
+TEST(nntrainer_cpu_backend_standalone, compute_rotary_emb_value_fp16) {
+  unsigned int width = 40;
+  unsigned int dim = 20;
+  unsigned int half_ = 10;
+
+  std::vector<__fp16> inout = {
+    -0.250920, 0.593086,  0.901429,  -0.633130, 0.463988,  0.559382,  0.197317,
+    0.193700,  -0.687963, -0.108334, -0.688011, -0.800050, -0.883833, -0.081502,
+    0.732352,  -0.332583, 0.202230,  -0.714266, 0.416145,  0.301777,  -0.958831,
+    -0.887177, 0.939820,  0.443998,  0.664885,  0.877105,  -0.575322, -0.998442,
+    -0.636350, 0.984423,  -0.633191, 0.234963,  -0.391515, 0.223306,  0.049513,
+    -0.985867, -0.136110, -0.953875, -0.417542, 0.049549};
+  std::vector<__fp16> cos_ = {-0.508061, 0.998221,  -0.733869, 0.164825,
+                              0.297530,  -0.591437, -0.165907, -0.999895,
+                              -0.163179, 0.249787};
+  std::vector<__fp16> sin_ = {0.809128,  -0.390829, -0.112627, 0.377992,
+                              -0.994569, -0.641599, -0.927266, -0.401338,
+                              0.244335,  -0.414953};
+  std::vector<__fp16> ref_out = {
+    0.684172,  0.279348,  -0.761074, -0.073549, 0.866425,  -0.544224, 0.154785,
+    -0.480342, 0.010582,  0.098163,  0.146526,  -1.030422, 0.547092,  -0.252752,
+    -0.243571, -0.162197, -0.216517, 0.636452,  -0.236000, 0.120334,  0.999478,
+    -0.793769, -0.733800, -0.011226, 0.247067,  -1.151284, -0.030760, 0.615511,
+    0.205859,  0.266457,  -0.454117, 0.581280,  0.181472,  0.204634,  -0.646542,
+    0.020328,  0.556058,  1.354487,  -0.087349, -0.396113};
+  std::vector<__fp16> output(width);
+
+  nntrainer::compute_rotary_emb_value(width, dim, half_, inout.data(),
+                                      output.data(), cos_.data(), sin_.data());
+
+  for (size_t i = 0; i < output.size(); i++) {
+    EXPECT_NEAR(ref_out[i], output[i], 0.001f);
   }
 }
 
