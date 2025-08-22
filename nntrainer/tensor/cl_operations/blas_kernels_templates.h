@@ -268,26 +268,12 @@ addition_cl_internal(ClContext::SharedPtrClKernel kernel, const T *input,
   size_t dim1_size = sizeof(T) * size_input;
   size_t dim2_size = sizeof(T) * size_res;
 
-  result = clbuffInstance.getInBufferA()->WriteDataRegion(
-    blas_cc->command_queue_inst_, dim1_size, input);
+  result = kernel->SetKernelSVMArguments(0, input);
   if (!result) {
     return;
   }
 
-  result = clbuffInstance.getOutBufferA()->WriteDataRegion(
-    blas_cc->command_queue_inst_, dim2_size, res);
-  if (!result) {
-    return;
-  }
-
-  result = kernel->SetKernelArguments(0, clbuffInstance.getInBufferA(),
-                                      sizeof(cl_mem));
-  if (!result) {
-    return;
-  }
-
-  result = kernel->SetKernelArguments(1, clbuffInstance.getOutBufferA(),
-                                      sizeof(cl_mem));
+  result = kernel->SetKernelSVMArguments(1, res);
   if (!result) {
     return;
   }
@@ -302,21 +288,18 @@ addition_cl_internal(ClContext::SharedPtrClKernel kernel, const T *input,
     return;
   }
 
-  const int work_groups_count[3] = {(int)size_res, 1, 1};
-  /// @todo: create a group size by device & input
-  const int work_group_size[3] = {1, 1, 1}; // test-value
-  result = blas_cc->command_queue_inst_.DispatchCommand(
-    kernel, work_groups_count, work_group_size);
-  if (!result) {
-    return;
-  }
+  std::array<size_t, 3> global_work_size = {size_res, 1, 1};
+  cl_event addition_wait;
 
-  result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-    blas_cc->command_queue_inst_, dim2_size, res);
+  result = blas_cc->command_queue_inst_.enqueueKernel(
+    kernel->GetKernel(), global_work_size.size(), global_work_size.data(),
+    nullptr, 0, nullptr, &addition_wait);
 
   if (!result) {
     return;
   }
+
+  blas_cc->command_queue_inst_.waitForEvent(1, &addition_wait);
 }
 
 template <typename T>
@@ -397,6 +380,8 @@ inline static void rmsnorm_cl_internal(ClContext::SharedPtrClKernel kernel,
           blas_cc->command_queue_inst_, size_in, result)) {
       return;
     }
+  } else {
+    blas_cc->command_queue_inst_.enqueueSVMMap(result, size_in, true);
   }
 }
 
