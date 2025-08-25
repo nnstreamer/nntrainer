@@ -37,6 +37,14 @@
   } while (0);
 namespace nntrainer {
 
+/**
+ * @brief struct of q4_0x8 block
+ */
+struct block_q4_0x8 {
+  uint16_t d[8];   // 16B
+  uint8_t qs[128]; // 16 x u64
+};
+
 void __fallback_sscal(const unsigned int N, const float alpha, float *X,
                       const unsigned int incX) {
   assert(incX > 0);
@@ -323,10 +331,71 @@ bool __fallback_isValid(const unsigned int N, const float *X) {
   return true;
 }
 
-void __fallback_convert_q4_0x8_shuffle_dispatch(const void *src,
-                                                uint16_t *d_out,
-                                                uint8_t *qs_out, int N, int K) {
-  throw std::runtime_error("Error: convert q4_0x8 is NYI as a fallback");
+void __fallback_unpack_q4_0x8_transpose16(const void *src,
+                                          unsigned short *__restrict dT,
+                                          unsigned short *__restrict qsT, int N,
+                                          int K, int CT = 64) {
+  const auto *x = static_cast<const block_q4_0x8 *>(src);
+
+  const int groups_N8 = N / 8;    // # of 8-row groups
+  const int cols_scales = K / 32; // # subblocks along K (scales columns)
+  const uint64_t mask = 0x8888888888888888ULL; // flip MSB of each nibble
+
+  // Tile over columns to keep working set small.
+  for (int c0 = 0; c0 < cols_scales; c0 += CT) {
+    const int c1 = std::min(c0 + CT, cols_scales);
+
+    // Process rows in natural 8-row groups for source-friendly access
+    for (int b = 0; b < groups_N8; ++b) {
+      // For each column in the tile, read the source block contiguously
+      for (int c = c0; c < c1; ++c) {
+        const block_q4_0x8 &blk = x[b * cols_scales + c];
+
+        // Precompute column bases in the transposed outputs
+        unsigned short *__restrict dT_c = dT + c * N; // column c in dT
+        unsigned short *__restrict qsT_c0 =
+          qsT + (c * 8) * N; // first of 8 columns for this subblock
+
+        // Walk the 8 rows inside this block group
+        for (int off = 0; off < 8; ++off) {
+          const int r = b * 8 + off; // absolute row index in [0..N-1]
+
+          // ---------- SCALES (fp16), transposed on the fly ----------
+          dT_c[r] = blk.d[off];
+
+          // ---------- QUANTS (bytes → XOR → swizzle → 8×u16), transposed
+          // ---------- load two u64 chunks for this row
+          uint64_t v0, v1;
+          std::memcpy(&v0, blk.qs + 8 * off, 8);
+          std::memcpy(&v1, blk.qs + 8 * (off + 8), 8);
+          v0 ^= mask;
+          v1 ^= mask;
+
+          unsigned char in[16];
+          std::memcpy(in + 0, &v0, 8);
+          std::memcpy(in + 8, &v1, 8);
+
+          // nibble-lane swizzle (identical to your reference)
+          unsigned char out[16];
+          for (int i = 0; i < 8; ++i) {
+            const unsigned char x0 = in[2 * i + 0];
+            const unsigned char x1 = in[2 * i + 1];
+            out[i + 0] = (unsigned char)((x0 & 0x0F) | ((x1 & 0x0F) << 4));
+            out[i + 8] = (unsigned char)(((x0 & 0xF0) >> 4) | (x1 & 0xF0));
+          }
+
+          // pack to 8×u16 and store to transposed columns j = c*8 .. c*8+7 at
+          // row r
+          for (int t = 0; t < 8; ++t) {
+            const unsigned short w =
+              (unsigned short)((unsigned short)out[2 * t + 0] |
+                               ((unsigned short)out[2 * t + 1] << 8));
+            qsT_c0[t * N + r] = w; // column (c*8 + t), row r
+          }
+        } // off
+      }   // c in tile
+    }     // b
+  }       // c0 tiles
 }
 
 void __fallback_calc_trigonometric_vals_dup(unsigned int N_half, float *angle,

@@ -25,21 +25,12 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
   size_t q_size_bytes = N * (K / 2);
   size_t d_size_bytes = N * (K / 32) * 2;
 
-  /// @todo Replace this with CPU op
   // 1. Preprocess matrix A
-  // 1.1 Flatten the Q4_0 matrix A to make a struct of array (src_q, src_d)
-  /// @note This func write result to Scale/Quant buffers
-  convert_q4_0x8_shuffle_dispatch(
-    matAdata, (unsigned short *)clbuffInstance.getSVMScale(),
-    (unsigned char *)clbuffInstance.getSVMQuant(), N * (K / 32) / 8, K);
+  // 1.1 Unpack the Q4_0x8 matrix A to make a struct of array (src_q, src_d)
+  // 1.2 Perform 2D 16-bit transpose src_q, src_d
+  unpack_q4_0x8_transpose16(matAdata, (uint16_t *)clbuffInstance.getSVMScaleT(),
+                            (uint16_t *)clbuffInstance.getSVMQuantT(), N, K);
 
-  //// @todo Replace this with CPU op
-  // // 1.2. Transpose src_q, src_d
-  /// @note This func takes scale/quant image as input and write to output image
-  transpose_16(nullptr, nullptr, K / 4 / 4, N / 4, q_size_bytes, true);
-  transpose_16(nullptr, nullptr, K / 32 / 4, N / 4, d_size_bytes);
-
-  /// @todo Replace this with CPU ops
   // 2. Preprocess matrix B: Transpose the Matrix B and convert to FP16
   /// @note mat mul will compute 8 elements at once, padding
   // will be added if M is not multiple of 8.
