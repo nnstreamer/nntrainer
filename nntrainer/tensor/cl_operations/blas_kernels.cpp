@@ -28,8 +28,8 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
   // 1. Preprocess matrix A
   // 1.1 Unpack the Q4_0x8 matrix A to make a struct of array (src_q, src_d)
   // 1.2 Perform 2D 16-bit transpose src_q, src_d
-  unpack_q4_0x8_transpose16(matAdata, (uint16_t *)clbuffInstance.getSVMScaleT(),
-                            (uint16_t *)clbuffInstance.getSVMQuantT(), N, K);
+  unpack_q4_0x8_transpose16(matAdata, (uint16_t *)clbuffInstance.getSVMScale(),
+                            (uint16_t *)clbuffInstance.getSVMQuant(), N, K);
 
   // 2. Preprocess matrix B: Transpose the Matrix B and convert to FP16
   /// @note mat mul will compute 8 elements at once, padding
@@ -55,12 +55,12 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
   int arg = 0;
 
   result =
-    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMQuantT());
+    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMQuant());
   if (!result)
     throw std::runtime_error(
       "Failed to set kernel argument 0 for kernel_mul_mat_Ab_Bi_8x4");
 
-  kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMScaleT());
+  kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMScale());
   if (!result)
     throw std::runtime_error(
       "Failed to set kernel argument 1 for kernel_mul_mat_Ab_Bi_8x4");
@@ -614,6 +614,7 @@ void transpose_32_16(float *data, int M, int K) {
   }
 }
 
+/** @todo Enable transpose_16 with proper fix.
 void transpose_16(void *input, void *output, int width, int height,
                   int size_bytes, bool isQuant) {
   auto *blas_cc =
@@ -621,7 +622,8 @@ void transpose_16(void *input, void *output, int width, int height,
   auto &clbuffInstance = ClBufferManager::Global();
 
   ClContext::SharedPtrClKernel kernel_ptr =
-    blas_cc->registerClKernel(getTranspose16BitKernel(), "kernel_transpose_16");
+    blas_cc->registerClKernel(getTranspose16BitKernel(),
+    "kernel_transpose_16");
   if (!kernel_ptr) {
     throw std::runtime_error(
       "Failed to get kernel_ptr for kernel_transpose_16");
@@ -659,5 +661,5 @@ void transpose_16(void *input, void *output, int width, int height,
     return;
   }
 }
-
+*/
 } // namespace nntrainer
