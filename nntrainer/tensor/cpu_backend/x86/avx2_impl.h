@@ -54,6 +54,15 @@ bool is_valid(const unsigned int N, const _Float16 *X);
 /**
  * @copydoc unpack_q4_0x8_transpose16 in cpu_backend.h
  */
+void unpack_q4_0x8_transpose16(const void *src, unsigned short *__restrict dT,
+                               unsigned short *__restrict qsT, int N, int K,
+                               int CT = 1);
+
+/**
+ * @brief convert q4_0x8 data to quants and scales
+ *
+ * @note this func is reserved for the performance comparison
+ */
 void convert_q4_0x8_shuffle_dispatch_avx(const void *src, uint16_t *d_out,
                                          uint8_t *qs_out, int N, int K);
 

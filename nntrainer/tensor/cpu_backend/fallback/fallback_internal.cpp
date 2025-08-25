@@ -332,9 +332,9 @@ bool __fallback_isValid(const unsigned int N, const float *X) {
 }
 
 void __fallback_unpack_q4_0x8_transpose16(const void *src,
-                                          unsigned short *__restrict dT,
-                                          unsigned short *__restrict qsT, int N,
-                                          int K, int CT = 64) {
+                                          uint16_t *__restrict dT,
+                                          uint16_t *__restrict qsT, int N,
+                                          int K, int CT) {
   const auto *x = static_cast<const block_q4_0x8 *>(src);
 
   const int groups_N8 = N / 8;    // # of 8-row groups
