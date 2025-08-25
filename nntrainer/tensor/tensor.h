@@ -1966,10 +1966,26 @@ public:
    */
   bool isValid() const { return itensor_->isValid(); };
 
+  /**
+   * @brief check if tensor is virtual
+   * @param[out] bool false if tensor is not virtual else true
+   */
   bool isVirtual() const { return is_virtual; }
 
+  /**
+   * @brief activate virtual tensor
+   * @note if the tensor is virtual, this method activates virtual tensor, which
+   * means allocate the tensor memory and read the corresponding value from the
+   * file descriptor
+   * @todo it is not supported on Windows yet
+   */
   void activate();
 
+  /**
+   * @brief deactivate virtual tensor
+   * @note if the tensor is virtual and already activated, the tensor is
+   * deallocated.
+   */
   void deactivate();
 
   static constexpr float epsilon = 1e-5f;
@@ -1981,10 +1997,10 @@ private:
    * @brief properties for virtual tensor
    * @note This should be removed by defining VirutalTensor class
    * */
-  bool is_virtual = false; /** flag to check virtual */
-  size_t read_offset;      /** save read_offset info for virtual */
-  int fd = -1;             /** save fd info for virtual */
-  void *mapped_ptr = nullptr;     /** save mmap buf pointer for virtual */
+  bool is_virtual = false;    /** flag to check virtual */
+  size_t read_offset;         /** save read_offset info for virtual */
+  int fd = -1;                /** save fd info for virtual */
+  void *mapped_ptr = nullptr; /** save mmap buf pointer for virtual */
 
   /**
    * @brief Set tensor variables

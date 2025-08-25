@@ -145,7 +145,7 @@ public:
             ml::train::ExecutionMode mode, bool trainable,
             TensorDim::DataType definedWeightDataType, bool fsu = false,
             size_t start_offset = 0, bool read_from_offset = false,
-            int file_fd = -1);
+            int file_fd = -1) override;
 
   /**
    * @copydoc Layer::read(ReadSource src, RunLayerContext &context, bool
