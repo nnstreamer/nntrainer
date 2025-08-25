@@ -57,14 +57,18 @@
 #include <tflite_interpreter.h>
 #endif
 
+#ifdef ENABLE_MMAP_LOAD
+#define MMAP_READ 1
+#else
+#define MMAP_READ 0
+#endif
+
 /**
  * @brief Internal enum values for nntrainer to summarize model accuracy & loss
  */
 #define ML_TRAIN_SUMMARY_MODEL_TRAIN_LOSS 101
 #define ML_TRAIN_SUMMARY_MODEL_VALID_LOSS 102
 #define ML_TRAIN_SUMMARY_MODEL_VALID_ACCURACY 103
-
-#define MMAP_READ 0
 
 namespace nntrainer {
 

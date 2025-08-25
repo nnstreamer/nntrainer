@@ -38,11 +38,11 @@ option('reduce-tolerance', type: 'boolean', value: true)
 option('enable-long-test', type: 'boolean', value: false)
 
 # backend options
-option('enable-blas', type: 'boolean', value: true)
+option('enable-blas', type: 'boolean', value: false)
 option('enable-fp16', type: 'boolean', value: false)
 option('enable-cublas', type: 'boolean', value: false)
 option('enable-openmp', type: 'boolean', value: true)
-option('enable-opencl', type: 'boolean', value: false)
+option('enable-opencl', type: 'boolean', value: true)
 option('enable-biqgemm', type: 'boolean', value: false)
 option('biqgemm-path', type: 'string', value: '../BiQGEMM')
 option('enable-benchmarks', type: 'boolean', value : false)
@@ -61,3 +61,6 @@ option('nnstreamer-subplugin-install-path', type: 'string', value: 'lib/nnstream
 # application related options
 option('enable_encoder', type: 'boolean', value: false)
 option('libiomp_root', type:'string', value: './libiomp_win')
+
+# load model using mmap : default false, set to true to enable mmap loading of models.
+option('enable-mmap-load', type: 'boolean', value: true)
