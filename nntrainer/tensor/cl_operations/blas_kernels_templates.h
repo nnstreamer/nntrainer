@@ -21,7 +21,7 @@
 #include <blas_kernels.h>
 
 namespace nntrainer {
-template <typename T>
+template <typename T = float>
 inline static void sgemv_cl_internal(ClContext::SharedPtrClKernel kernel,
                                      const T *matAdata, const T *vecXdata,
                                      T *vecYdata, unsigned int dim1,
@@ -98,7 +98,7 @@ inline static void sgemv_cl_internal(ClContext::SharedPtrClKernel kernel,
   }
 }
 
-template <typename T>
+template <typename T = float>
 T dot_cl_internal(ClContext::SharedPtrClKernel kernel, const T *vecAdata,
                   const T *vecXdata, unsigned int dim1) {
   bool result = false;
@@ -167,7 +167,7 @@ T dot_cl_internal(ClContext::SharedPtrClKernel kernel, const T *vecAdata,
   return cl_ret;
 }
 
-template <typename T>
+template <typename T = float>
 inline static void
 sgemm_cl_internal(ClContext::SharedPtrClKernel kernel, bool TransA, bool TransB,
                   const T *A, const T *B, T *C, unsigned int M, unsigned int N,
@@ -255,7 +255,7 @@ sgemm_cl_internal(ClContext::SharedPtrClKernel kernel, bool TransA, bool TransB,
   }
 }
 
-template <typename T>
+template <typename T = float>
 inline static void
 addition_cl_internal(ClContext::SharedPtrClKernel kernel, const T *input,
                      T *res, unsigned int size_input, unsigned int size_res) {
@@ -319,12 +319,12 @@ addition_cl_internal(ClContext::SharedPtrClKernel kernel, const T *input,
   }
 }
 
-template <typename T>
+template <typename T = float>
 inline static void rmsnorm_cl_internal(ClContext::SharedPtrClKernel kernel,
                                        const T *input, const T *gamma,
                                        T *result, const T epsilon,
                                        unsigned int height, unsigned int width,
-                                       const bool use_svm) {
+                                       const bool use_svm = true) {
   unsigned dim_in = height * width;
   unsigned dim_gamma = width;
   unsigned size_in = dim_in * sizeof(T);
@@ -397,10 +397,12 @@ inline static void rmsnorm_cl_internal(ClContext::SharedPtrClKernel kernel,
           blas_cc->command_queue_inst_, size_in, result)) {
       return;
     }
+  } else {
+    blas_cc->command_queue_inst_.enqueueSVMMap(result, size_in, false);
   }
 }
 
-template <typename T>
+template <typename T = float>
 inline static void sscal_cl_internal(ClContext::SharedPtrClKernel kernel, T *X,
                                      const unsigned int N, const float alpha) {
   bool result = false;
@@ -444,7 +446,7 @@ inline static void sscal_cl_internal(ClContext::SharedPtrClKernel kernel, T *X,
   }
 }
 
-template <typename T>
+template <typename T = float>
 inline static void transpose_cl_axis_internal(
   ClContext::SharedPtrClKernel kernel, const T *in, T *res,
   unsigned int input_batch_size, unsigned int input_channels,

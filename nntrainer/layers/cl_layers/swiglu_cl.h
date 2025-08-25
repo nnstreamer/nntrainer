@@ -77,7 +77,7 @@ public:
    * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
   void exportTo(Exporter &exporter,
-                const ml::train::ExportMethods &method) const override {};
+                const ml::train::ExportMethods &method) const override{};
 
   /**
    * @copydoc Layer::getType()
@@ -108,7 +108,7 @@ public:
    * @param[in] dim1 number of elements in input vector X
    */
   void swiglu_cl(float *matAdata, float *vecXdata, float *vecYdata,
-                 unsigned int dim1, unsigned int dim2, bool svm = false);
+                 unsigned int dim1, unsigned int dim2, bool svm = true);
 
 #ifdef ENABLE_FP16
   /**
@@ -120,7 +120,7 @@ public:
    * @param[in] dim1 number of elements in input vector X
    */
   void swiglu_cl_fp16(_FP16 *matAdata, _FP16 *vecXdata, _FP16 *vecYdata,
-                      unsigned int dim1, unsigned int dim2, bool svm = false);
+                      unsigned int dim1, unsigned int dim2, bool svm = true);
 #endif
 
   /**
