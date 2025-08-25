@@ -688,6 +688,10 @@ if get_option('enable-tflite-interpreter')
   extra_defines += '-DENABLE_TFLITE_INTERPRETER=1'
 endif
 
+if get_option('enable-mmap-load')
+  extra_defines += '-DENABLE_MMAP_LOAD=1'
+endif
+
 if get_option('enable-onnx-interpreter')
   extra_defines += '-DENABLE_ONNX_INTERPRETER=1'
 endif

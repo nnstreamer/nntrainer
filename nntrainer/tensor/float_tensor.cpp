@@ -721,21 +721,32 @@ void FloatTensor::dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
   std::vector<unsigned int> Ns;
   std::vector<void *> mdatas;
   std::vector<float *> rdatas;
+  // we assume the datatype of inputs are same.
+  Tdatatype dtype = input[0]->getDataType();
 
-  for (unsigned int i = 0; i < input.size(); ++i) {
-    int N = input[i]->getDim().width();
-    void *mdata = (void *)input[i]->getData<uint8_t>();
-    float *rdata = output[i]->getData<float>();
-#ifdef ENABLE_OPENCL
-    if (M == 1) {
-      gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
-    } else {
-      gemm_q4_0_cl((void *)mdata, data, rdata, M, N, K);
+  if (dtype == Tdatatype::Q4_K) {
+    for (unsigned int i = 0; i < input.size(); ++i) {
+      Ns.push_back(input[i]->getDim().width());
+      mdatas.push_back((void *)input[i]->getData<uint8_t>());
+      rdatas.push_back(output[i]->getData<float>());
     }
+    gemm_q4_K(M, Ns, K, data, K, mdatas, Ns, rdatas, Ns);
+  } else if (dtype == Tdatatype::Q4_0) {
+    for (unsigned int i = 0; i < input.size(); ++i) {
+      int N = input[i]->getDim().width();
+      void *mdata = (void *)input[i]->getData<uint8_t>();
+      float *rdata = output[i]->getData<float>();
+#ifdef ENABLE_OPENCL
+      if (M == 1) {
+        gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
+      } else {
+        gemm_q4_0_cl((void *)mdata, data, rdata, M, N, K);
+      }
 #else
-    /// @todo Support multi-weight q4_0 for x64
-    gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
+      /// @todo Support multi-weight q4_0 for x64
+      gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
 #endif
+    }
   }
 }
 
