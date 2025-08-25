@@ -197,8 +197,6 @@ ClContext::registerClKernel(std::string kernel_string,
                             std::string kernel_name) {
   // check if created before
   if (ocl_kernel_map.find(kernel_name) != ocl_kernel_map.end()) {
-    ml_logi("Kernel already registered and initialized: %s",
-            kernel_name.c_str());
     return ocl_kernel_map[kernel_name];
   }
 
