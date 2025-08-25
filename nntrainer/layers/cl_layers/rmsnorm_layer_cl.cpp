@@ -102,7 +102,8 @@ void RMSNormLayerCl::rmsnormProcess(Tensor const &input, Tensor &result,
                                     Tensor const &gamma, const float epsilon) {
   rmsnorm_cl(input.getData<float>(), gamma.getData<float>(),
              result.getData<float>(), epsilon,
-             input.batch() * input.channel() * input.height(), input.width());
+             input.batch() * input.channel() * input.height(), input.width(),
+             input.useSVM() && gamma.useSVM() && result.useSVM());
 }
 
 #ifdef ENABLE_FP16

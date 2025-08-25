@@ -142,9 +142,8 @@ public:
    * @param event Optional event object that can be used to query or wait for
    * the mapping operation to complete. If not provided, the mapping will be
    * blocking.
-   * @return true if mapping is successful, false otherwise.
    */
-  bool enqueueSVMMap(void *svm_ptr, size_t size, bool read_only,
+  void enqueueSVMMap(void *svm_ptr, size_t size, bool read_only,
                      cl_event *event = nullptr);
 
   /**
@@ -156,9 +155,8 @@ public:
    * @param event  Optional event object that can be used to query or wait for
    * the mapping operation to complete. If not provided, the mapping will be
    * blocking.
-   * @return true if unmapping is successful, false otherwise.
    */
-  bool enqueueSVMUnmap(void *svm_ptr, cl_event *event = nullptr);
+  void enqueueSVMUnmap(void *svm_ptr, cl_event *event = nullptr);
 
   /**
    * @brief Function to initiate execution of the command queue.
@@ -207,10 +205,8 @@ public:
    * command can be executed
    * @param event event object that identifies this command and can be used to
    * query or wait for this command to complete
-   *
-   * @return true if execution is successful or false otherwise
    */
-  bool enqueueKernel(const cl_kernel kernel, const cl_uint work_dim,
+  void enqueueKernel(const cl_kernel kernel, const cl_uint work_dim,
                      const size_t *global_work_size,
                      const size_t *local_work_size,
                      cl_uint num_events_in_wait_list = 0,
@@ -223,10 +219,15 @@ public:
    *
    * @param num_events  Number of events.
    * @param event_list  Pointer to a list of event object handles
-   *
-   * @return true if execution is successful or false otherwise
    */
-  bool waitForEvent(cl_uint num_events, const cl_event *event_list);
+  void waitForEvent(cl_uint num_events, const cl_event *event_list);
+
+  /**
+   * @brief Wrapper to OpenCL function which release event
+   *
+   * @param event  event object.
+   */
+  void releaseEvent(cl_event event);
 
   /**
    * @brief Get the OpenCL Command Queue object

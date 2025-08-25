@@ -114,6 +114,12 @@ public:
    */
   void setValid(bool v) { valid = v; }
 
+  /**
+   * @brief   Check if tensor memory was allocated by OpenCL SVM
+   *
+   * @return  true if memory allocated by OpenCL SVM, false otherwise
+   *
+   */
   bool useSVM() const { return use_svm_; }
 
 private:
