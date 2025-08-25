@@ -32,9 +32,12 @@
 #endif
 
 #include <fcntl.h>
+
+#if defined(__unix__) || defined(__ANDROID__) || defined(__arm__)
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#endif
 
 namespace nntrainer {
 
@@ -342,7 +345,6 @@ Tensor::Tensor(const std::unique_ptr<TensorBase> &rhs) {
 }
 
 Tensor &Tensor::operator=(const Tensor &rhs) {
-  std::cout << "operator = is called" << std::endl;
   if (rhs.getDataType() == Tdatatype::FP32) {
     itensor_ = std::make_unique<FloatTensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::FP16) {
@@ -1608,6 +1610,10 @@ void Tensor::activate() {
 
   NNTR_THROW_IF(!is_virtual, std::invalid_argument)
     << "non-virtual tensor cannot call activate()";
+#if defined(_WIN32)
+  NNTR_THROW_IF(true, std::invalid_argument)
+    << "[Error/VirtualTensor] virtual tensor is not supported on Windows";
+#else
 
   auto file_offset = getFileOffset();
   size_t off = (file_offset / 4096) * 4096;
@@ -1622,12 +1628,17 @@ void Tensor::activate() {
     std::cerr << "[activate] mmap failed: " << strerror(errno) << std::endl;
   }
   itensor_->activate((void *)&((uint8_t *)mapped_ptr)[diff]);
+#endif
 }
 
 void Tensor::deactivate() {
 
   NNTR_THROW_IF(!is_virtual, std::invalid_argument)
     << "non-virtual tensor cannot call deactivate()";
+#if defined(_WIN32)
+  NNTR_THROW_IF(true, std::invalid_argument)
+    << "[Error/VirtualTensor] virtual tensor is not supported on Windows";
+#else
 
   if (mapped_ptr == nullptr) {
     return;
@@ -1647,6 +1658,7 @@ void Tensor::deactivate() {
 
   mapped_ptr = nullptr;
   itensor_->deactivate();
+#endif
 }
 
 void Tensor::setTensorVar(TensorDim d, void *buf, size_t offset) {
