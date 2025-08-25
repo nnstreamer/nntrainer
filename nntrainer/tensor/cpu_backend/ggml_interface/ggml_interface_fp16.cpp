@@ -10,154 +10,24 @@
  * @brief  GGML kernels for FP16 activation flow
  */
 
-#include "ggml-common.h"
-#include "ggml-cpu-quants.h"
-#include "ggml-cpu.h"
-#include "ggml-quants.h"
-#include "ggml.h"
+#include <ggml_interface.h>
+#include <nntr_ggml_impl.h>
+#include <nntr_ggml_impl_common.h>
+
 #include <algorithm>
 #include <assert.h>
 #include <bs_thread_pool_manager.hpp>
-
 #include <cmath>
 #include <cstring>
-#include <ggml_interface.h>
 #include <iostream>
 #include <math.h>
-#include <nntr_ggml_impl.h>
 #include <stdint.h>
 
 #if defined(__ARM_NEON)
 #include <arm_neon.h>
 #endif
 
-#ifndef MAX
-#define MAX(x, y) (((x) > (y)) ? (x) : (y))
-#endif
-#ifndef MIN
-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
-#endif
-
 namespace nntrainer {
-
-template <int K> constexpr int QK_0() {
-  if constexpr (K == 4) {
-    return QK4_0;
-  }
-  if constexpr (K == 8) {
-    return QK8_0;
-  }
-  return -1;
-}
-/**
- * @brief block of 0-quantization
- *
- * @tparam K quant bit
- * @tparam N number of blocks to be packed
- */
-template <int K, int N> struct block {
-  uint16_t d[N];                      // deltas for N qK_0 blocks
-  int8_t qs[(QK_0<K>() * N * K) / 8]; // quants for N qK_0 blocks
-};
-
-using block_q8_0x4 = block<8, 4>;
-#if defined(__ARM_NEON)
-static inline float nntr_compute_fp16_to_fp32(uint16_t h) {
-  _FP16 tmp;
-  memcpy(&tmp, &h, sizeof(uint16_t));
-  return (float)tmp;
-}
-
-static inline uint16_t nntr_compute_fp32_to_fp16(float f) {
-  uint16_t res;
-  _FP16 tmp = f;
-  memcpy(&res, &tmp, sizeof(uint16_t));
-  return res;
-}
-#else
-static inline float fp32_from_bits(uint32_t w) {
-  union {
-    uint32_t as_bits;
-    float as_value;
-  } fp32;
-  fp32.as_bits = w;
-  return fp32.as_value;
-}
-
-static inline uint32_t fp32_to_bits(float f) {
-  union {
-    float as_value;
-    uint32_t as_bits;
-  } fp32;
-  fp32.as_value = f;
-  return fp32.as_bits;
-}
-
-static inline float nntr_compute_fp16_to_fp32(uint16_t h) {
-  const uint32_t w = (uint32_t)h << 16;
-  const uint32_t sign = w & UINT32_C(0x80000000);
-  const uint32_t two_w = w + w;
-
-  const uint32_t exp_offset = UINT32_C(0xE0) << 23;
-#if (defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) ||             \
-     defined(__GNUC__) && !defined(__STRICT_ANSI__)) &&                        \
-  (!defined(__cplusplus) || __cplusplus >= 201703L)
-  const float exp_scale = 0x1.0p-112f;
-#else
-  const float exp_scale = fp32_from_bits(UINT32_C(0x7800000));
-#endif
-  const float normalized_value =
-    fp32_from_bits((two_w >> 4) + exp_offset) * exp_scale;
-
-  const uint32_t magic_mask = UINT32_C(126) << 23;
-  const float magic_bias = 0.5f;
-  const float denormalized_value =
-    fp32_from_bits((two_w >> 17) | magic_mask) - magic_bias;
-
-  const uint32_t denormalized_cutoff = UINT32_C(1) << 27;
-  const uint32_t result =
-    sign | (two_w < denormalized_cutoff ? fp32_to_bits(denormalized_value)
-                                        : fp32_to_bits(normalized_value));
-  return fp32_from_bits(result);
-}
-
-static inline uint16_t nntr_compute_fp32_to_fp16(float f) {
-#if (defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) ||             \
-     defined(__GNUC__) && !defined(__STRICT_ANSI__)) &&                        \
-  (!defined(__cplusplus) || __cplusplus >= 201703L)
-  const float scale_to_inf = 0x1.0p+112f;
-  const float scale_to_zero = 0x1.0p-110f;
-#else
-  const float scale_to_inf = fp32_from_bits(UINT32_C(0x77800000));
-  const float scale_to_zero = fp32_from_bits(UINT32_C(0x08800000));
-#endif
-  float base = (fabsf(f) * scale_to_inf) * scale_to_zero;
-
-  const uint32_t w = fp32_to_bits(f);
-  const uint32_t shl1_w = w + w;
-  const uint32_t sign = w & UINT32_C(0x80000000);
-  uint32_t bias = shl1_w & UINT32_C(0xFF000000);
-  if (bias < UINT32_C(0x71000000)) {
-    bias = UINT32_C(0x71000000);
-  }
-
-  base = fp32_from_bits((bias >> 1) + UINT32_C(0x07800000)) + base;
-  const uint32_t bits = fp32_to_bits(base);
-  const uint32_t exp_bits = (bits >> 13) & UINT32_C(0x00007C00);
-  const uint32_t mantissa_bits = bits & UINT32_C(0x00000FFF);
-  const uint32_t nonsign = exp_bits + mantissa_bits;
-  return (sign >> 16) |
-         (shl1_w > UINT32_C(0xFF000000) ? UINT16_C(0x7E00) : nonsign);
-}
-#endif
-
-static inline int nearest_int(float fval) {
-  assert(fabsf(fval) <= 4194303.f);
-  float val = fval + 12582912.f;
-  int i;
-  memcpy(&i, &val, sizeof(int));
-  return (i & 0x007fffff) - 0x00400000;
-}
 
 static inline void __copy_f16_from_f32(const float *src, _FP16 *dst,
                                        int64_t k) {
@@ -175,7 +45,7 @@ static inline void __copy_f16_from_f32(const float *src, _FP16 *dst,
 #endif
 }
 
-void __nntr_quantize_row_q8_0(const _FP16 *__restrict x, void *vy, int64_t k) {
+void __ggml_quantize_row_q8_0(const _FP16 *__restrict x, void *vy, int64_t k) {
   assert(QK8_0 == 32);
   assert(k % QK8_0 == 0);
   const int nb = k / QK8_0;
@@ -245,14 +115,14 @@ void __nntr_quantize_row_q8_0(const _FP16 *__restrict x, void *vy, int64_t k) {
 #endif
 }
 
-size_t __nntr_quantize_q8_0(const _FP16 *src, void *dst, int64_t nrow,
+size_t __ggml_quantize_q8_0(const _FP16 *src, void *dst, int64_t nrow,
                             int64_t n_per_row, const float *quant_weights) {
   const size_t row_size = ggml_row_size(GGML_TYPE_Q8_0, n_per_row);
-  __nntr_quantize_row_q8_0(src, dst, (int64_t)nrow * n_per_row);
+  __ggml_quantize_row_q8_0(src, dst, (int64_t)nrow * n_per_row);
   return nrow * row_size;
 }
 
-void __nntr_dequantize_row_q8_0(const void *_x, _FP16 *__restrict y,
+void __ggml_dequantize_row_q8_0(const void *_x, _FP16 *__restrict y,
                                 int64_t k) {
   static const int qk = QK8_0;
   const block_q8_0 *__restrict x = (const block_q8_0 *__restrict)_x;
@@ -271,13 +141,13 @@ void __nntr_dequantize_row_q8_0(const void *_x, _FP16 *__restrict y,
   }
 }
 
-static void __nntr_quantize_mat_q8_0_4x8(const _FP16 *GGML_RESTRICT x,
-                                         void *GGML_RESTRICT vy, int64_t k) {
+static void __ggml_quantize_mat_q8_0_4x8(const _FP16 *__restrict x,
+                                         void *__restrict vy, int64_t k) {
   assert(QK8_0 == 32);
   assert(k % QK8_0 == 0);
   const int nb = k / QK8_0;
 
-  block_q8_0x4 *GGML_RESTRICT y = (block_q8_0x4 *)vy;
+  block_q8_0x4 *__restrict y = (block_q8_0x4 *)vy;
 
 #if defined(__ARM_NEON)
   float16x8_t srcv[4][4];
@@ -387,11 +257,11 @@ static void __nntr_quantize_mat_q8_0_4x8(const _FP16 *GGML_RESTRICT x,
 }
 
 template <>
-void __ggml_dequantize_row_q8_K(const void *GGML_RESTRICT _x,
-                                _FP16 *GGML_RESTRICT y, int64_t k) {
+void __ggml_dequantize_row_q8_K(const void *__restrict _x, _FP16 *__restrict y,
+                                int64_t k) {
   assert(k % QK_K == 0);
   const int64_t nb = k / QK_K;
-  const block_q8_K *GGML_RESTRICT x = (const block_q8_K *GGML_RESTRICT)_x;
+  const block_q8_K *__restrict x = (const block_q8_K *__restrict)_x;
 
   for (int i = 0; i < nb; i++) {
     for (int j = 0; j < QK_K; ++j) {
@@ -400,11 +270,11 @@ void __ggml_dequantize_row_q8_K(const void *GGML_RESTRICT _x,
   }
 }
 
-void __ggml_quantize_row_q8_K_ref(const _FP16 *GGML_RESTRICT x,
-                                  void *GGML_RESTRICT _y, int64_t k) {
+void __ggml_quantize_row_q8_K_ref(const _FP16 *__restrict x,
+                                  void *__restrict _y, int64_t k) {
   assert(k % QK_K == 0);
   const int64_t nb = k / QK_K;
-  block_q8_K *GGML_RESTRICT y = (block_q8_K * GGML_RESTRICT) _y;
+  block_q8_K *__restrict y = (block_q8_K *__restrict)_y;
 
   for (int i = 0; i < nb; i++) {
 
@@ -444,8 +314,8 @@ void __ggml_quantize_row_q8_K_ref(const _FP16 *GGML_RESTRICT x,
 }
 
 template <>
-void __ggml_quantize_row_q8_K(const _FP16 *GGML_RESTRICT x,
-                              void *GGML_RESTRICT y, int64_t k) {
+void __ggml_quantize_row_q8_K(const _FP16 *__restrict x, void *__restrict y,
+                              int64_t k) {
   __ggml_quantize_row_q8_K_ref(x, y, k);
 }
 
@@ -483,7 +353,7 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
 
       const void *const B_data = (void *)((char *)B + B_row_data_offset);
 
-      ggml_vec_dot_q6_K_q8_K(K, &C32_ptr[thread_job], bs, B_data, bx,
+      nntr_vec_dot_q6_K_q8_K(K, &C32_ptr[thread_job], bs, B_data, bx,
                              quantized_A_data, by, nrc);
     }
   } else { // GEMM
@@ -507,7 +377,7 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
         const int32_t B_row_data_offset = B_row_size * j;
         const void *const B_data = (void *)((char *)B + B_row_data_offset);
 
-        ggml_vec_dot_q6_K_q8_K(K, &C32_ptr[thread_job * ldc + j], bs, B_data,
+        nntr_vec_dot_q6_K_q8_K(K, &C32_ptr[thread_job * ldc + j], bs, B_data,
                                bx, A_data, by, nrc);
       }
     }
@@ -534,12 +404,12 @@ static inline void __ggml_q4_0_4x8_q8_0_GEMM_BSTP(
 
   // Quantize 4-divisible-M row portion with matrix-wise function
   for (unsigned int i = 0; i < M4; i++) {
-    __nntr_quantize_mat_q8_0_4x8(A + 4 * i * K, QA.data() + i * qa_4_rows_size,
+    __ggml_quantize_mat_q8_0_4x8(A + 4 * i * K, QA.data() + i * qa_4_rows_size,
                                  K);
   }
   // Quantize leftover 1 ~ 3 rows with row-wise function
   for (unsigned int i = M4 * 4; i < M; i++) {
-    __nntr_quantize_row_q8_0(
+    __ggml_quantize_row_q8_0(
       (_FP16 *)A + i * K,
       (QA.data() + (M4 * qa_4_rows_size) + (i - M4 * 4) * qa_row_size), K);
   }
@@ -604,7 +474,7 @@ void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
     unsigned int blocks_per_row = (K + QK8_0 - 1) / QK8_0;
     unsigned int qa_size = sizeof(block_q8_0) * blocks_per_row;
     std::vector<char> QA = std::vector<char>(qa_size);
-    __nntr_quantize_row_q8_0(A, (void *)QA.data(), K);
+    __ggml_quantize_row_q8_0(A, (void *)QA.data(), K);
 
 #pragma omp parallel for num_threads(n_threads)
     for (int thread_idx = 0; thread_idx < n_threads; ++thread_idx) {
@@ -636,12 +506,12 @@ void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
 
     // Quantize 4-divisible-M row portion with matrix-wise function
     for (unsigned int i = 0; i < M4; i++) {
-      __nntr_quantize_mat_q8_0_4x8(A + 4 * i * K,
+      __ggml_quantize_mat_q8_0_4x8(A + 4 * i * K,
                                    (void *)(QA.data() + i * qa_4_rows_size), K);
     }
     // Quantize leftover 1 ~ 3 rows with row-wise function
     for (unsigned int i = M4 * 4; i < M; i++) {
-      __nntr_quantize_row_q8_0(A + i * K,
+      __ggml_quantize_row_q8_0(A + i * K,
                                (void *)(QA.data() + (M4 * qa_4_rows_size) +
                                         (i - M4 * 4) * qa_row_size),
                                K);
