@@ -1,3 +1,15 @@
+// SPDX-License-Identifier: Apache-2.0
+/**
+ * Copyright (C) 2025 Pawel Debski <p.debski2@samsung.com>
+ *
+ * @file   nntr_ggml_impl_fp16_fp32.cpp
+ * @date   25 August 2025
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Pawel Debski <p.debski2@samsung.com>
+ * @bug    No known bugs except for NYI items
+ * @brief  Implementations of GGML init & fp16-fp32 conversions
+ */
+
 #include <nntr_ggml_impl.h>
 #include <nntr_ggml_impl_utils.h>
 
@@ -64,7 +76,7 @@ static inline nntr_fp16_t nntr_compute_fp32_to_fp16_impl(float f) {
 
 #define NNTR_COMPUTE_FP16_TO_FP32(x) nntr_compute_fp16_to_fp32_impl(x)
 #define NNTR_COMPUTE_FP32_TO_FP16(x) nntr_compute_fp32_to_fp16_impl(x)
-/* the inline asm below is about 12% faster than the lookup method */
+/** the inline asm below is about 12% faster than the lookup method */
 #define NNTR_FP16_TO_FP32(x) NNTR_COMPUTE_FP16_TO_FP32(x)
 #define NNTR_FP32_TO_FP16(x) NNTR_COMPUTE_FP32_TO_FP16(x)
 
@@ -75,24 +87,24 @@ static inline float nntr_compute_fp16_to_fp32_impl(nntr_fp16_t h) {
           "xscvhpdp %0,%0\n"
           "frsp %1,%0\n"
           :
-          /* temp */ "=d"(d),
-          /* out */ "=f"(f)
+          /** temp */ "=d"(d),
+          /** out */ "=f"(f)
           :
-          /* in */ "r"(h));
+          /** in */ "r"(h));
   return f;
 }
 
 static inline nntr_fp16_t nntr_compute_fp32_to_fp16_impl(float f) {
   double d;
   nntr_fp16_t r;
-  __asm__(/* xscvdphp can work on double or single precision */
+  __asm__(/** xscvdphp can work on double or single precision */
           "xscvdphp %0,%2\n"
           "mffprd %1,%0\n"
           :
-          /* temp */ "=d"(d),
-          /* out */ "=r"(r)
+          /** temp */ "=d"(d),
+          /** out */ "=r"(r)
           :
-          /* in */ "f"(f));
+          /** in */ "f"(f));
   return r;
 }
 
@@ -248,12 +260,18 @@ nntr_fp16_t nntr_compute_fp32_to_fp16(float f) {
 // ggml object
 //
 
+/**
+ * @brief Internal enum for GGML object type
+ */
 enum ggml_object_type {
   GGML_OBJECT_TYPE_TENSOR,
   GGML_OBJECT_TYPE_GRAPH,
   GGML_OBJECT_TYPE_WORK_BUFFER
 };
 
+/**
+ * @brief Internal structure definition for ggml_context struct
+ */
 struct ggml_object {
   size_t offs;
   size_t size;
@@ -271,6 +289,9 @@ static const size_t GGML_OBJECT_SIZE = sizeof(struct ggml_object);
 // ggml context
 //
 
+/**
+ * @brief Internal structure returned by GGML initialization function
+ */
 struct ggml_context {
   size_t mem_size;
   void *mem_buffer;
@@ -283,6 +304,9 @@ struct ggml_context {
   struct ggml_object *objects_end;
 };
 
+/**
+ * @brief Internal structure for GGML initialization function
+ */
 struct ggml_init_params {
   // memory pool
   size_t mem_size;  // bytes
@@ -402,15 +426,15 @@ struct ggml_context *ggml_init(struct ggml_init_params params) {
   //                             : GGML_PAD(params.mem_size, GGML_MEM_ALIGN);
 
   //   *ctx = (struct ggml_context){
-  //     /*.mem_size           =*/mem_size,
-  //     /*.mem_buffer         =*/params.mem_buffer ? params.mem_buffer
+  //     /**.mem_size           =*/mem_size,
+  //     /**.mem_buffer         =*/params.mem_buffer ? params.mem_buffer
   //                                                :
   //                                                ggml_aligned_malloc(mem_size),
-  //     /*.mem_buffer_owned   =*/params.mem_buffer ? false : true,
-  //     /*.no_alloc           =*/params.no_alloc,
-  //     /*.n_objects          =*/0,
-  //     /*.objects_begin      =*/NULL,
-  //     /*.objects_end        =*/NULL,
+  //     /**.mem_buffer_owned   =*/params.mem_buffer ? false : true,
+  //     /**.no_alloc           =*/params.no_alloc,
+  //     /**.n_objects          =*/0,
+  //     /**.objects_begin      =*/NULL,
+  //     /**.objects_end        =*/NULL,
   //   };
 
   //   GGML_ASSERT(ctx->mem_buffer != NULL);

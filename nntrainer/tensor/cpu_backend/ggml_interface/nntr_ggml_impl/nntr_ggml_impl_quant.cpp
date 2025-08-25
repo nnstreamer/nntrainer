@@ -1,3 +1,15 @@
+// SPDX-License-Identifier: Apache-2.0
+/**
+ * Copyright (C) 2025 Pawel Debski <p.debski2@samsung.com>
+ *
+ * @file   nntr_ggml_impl_quant.cpp
+ * @date   25 August 2025
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Pawel Debski <p.debski2@samsung.com>
+ * @bug    No known bugs except for NYI items
+ * @brief  Implementations of GGML quantization functions
+ */
+
 #include <nntr_ggml_impl.h>
 #include <nntr_ggml_impl_utils.h>
 

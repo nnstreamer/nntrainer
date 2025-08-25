@@ -60,6 +60,9 @@ template <int K> constexpr int QK_0() {
   return -1;
 }
 
+/**
+ * @brief block_q4_K
+ */
 typedef struct {
   union {
     struct {
@@ -91,9 +94,9 @@ typedef struct {
   int8_t qs[QK_K];          // quants
   int16_t bsums[QK_K / 16]; // sum of quants in groups of 16
 } block_q8_K;
+
 /**
  * @brief block_q4_0
- *
  */
 typedef struct {
   nntr_half d;           // delta
@@ -121,6 +124,9 @@ using block_q4_0x8 = block<4, 8>;
 using block_q8_0x4 = block<8, 4>;
 using block_q8_0x8 = block<8, 8>;
 
+/**
+ * @brief block_q4_Kx8
+ */
 struct block_q4_Kx8 {
   nntr_half d[8];     // super-block scale for quantized scales
   nntr_half dmin[8];  // super-block scale for quantized mins
@@ -128,6 +134,9 @@ struct block_q4_Kx8 {
   uint8_t qs[1024];   // 4--bit quants
 };
 
+/**
+ * @brief block_q8_Kx4
+ */
 struct block_q8_Kx4 {
   float d[4];              // delta
   int8_t qs[QK_K * 4];     // quants
@@ -148,6 +157,9 @@ inline int nearest_int(float fval) {
   return (i & 0x007fffff) - 0x00400000;
 }
 
+/**
+ * @brief enum of ggml tensor type
+ */
 enum ggml_type {
   GGML_TYPE_F32 = 0,
   GGML_TYPE_F16 = 1,
