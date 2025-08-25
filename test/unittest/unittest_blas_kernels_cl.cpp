@@ -18,6 +18,7 @@
 #include "nntrainer_test_util.h"
 #include "swiglu_cl.h"
 #include "tensor_dim.h"
+#include "timer.h"
 #include "x86_compute_backend.h"
 #include <blas_kernel_interface.h>
 #include <blas_kernels.h>
@@ -569,15 +570,12 @@ TEST(blas_kernels, absolute_sum) {
 //   A_fp32.setRandNormal(5, 0.89f);
 
 //   float *data = A_fp32.getData();
-//   auto t1 = std::chrono::high_resolution_clock::now();
+//   Timer timer1{};
 //   for (unsigned int i = 0; i < run_count; ++i) {
 //     nntrainer::transpose_32_16(data, height, width);
 //   }
-//   auto t2 = std::chrono::high_resolution_clock::now();
-//   auto dt =
-//     std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
-
-//   std::cout << "time : GPU = " << dt / (run_count * 1.0f) << " ms" <<
+//   auto t2 = timer1.GetElapsedMilliseconds();
+//   std::cout << "time : GPU = " << t2 / (run_count * 1.0f) << " ms" <<
 //   std::endl;
 // }
 TEST(blas_kernels, rmsnorm_fp32) {
@@ -634,16 +632,16 @@ TEST(blas_kernels, rmsnorm_fp32) {
   static constexpr uint32_t run_count = 50;
   static constexpr float kEpsilon = 0.001f;
 
-  auto t1_cl = std::chrono::high_resolution_clock::now();
+  Timer timer1{};
   for (unsigned int i = 0; i < run_count; ++i) {
     rmsnorm_cl((float *)in_fp32_svm, (float *)gamma_fp32_svm,
                (float *)out_fp32_svm, kEpsilon,
                in_fp32.batch() * in_fp32.channel() * in_fp32.height(),
                in_fp32.width(), true);
   }
-  auto t2_cl = std::chrono::high_resolution_clock::now();
+  auto t2_cl = timer1.GetElapsedMilliseconds();
 
-  auto t1_ref = std::chrono::high_resolution_clock::now();
+  Timer timer2{};
   for (unsigned int i = 0; i < run_count; ++i) {
     std::function<float(float)> f = [](float x) { return 1 / std::sqrt(x); };
     auto t = in_fp32.multiply(in_fp32).average(3).add(kEpsilon);
@@ -651,18 +649,13 @@ TEST(blas_kernels, rmsnorm_fp32) {
     in_fp32.multiply(t, out_ref_fp32);
     out_ref_fp32.multiply_i(gamma_fp32);
   }
-  auto t2_ref = std::chrono::high_resolution_clock::now();
+  auto t2_ref = timer2.GetElapsedMilliseconds();
 
-  auto dt_cl =
-    std::chrono::duration_cast<std::chrono::milliseconds>(t2_cl - t1_cl);
-  auto dt_ref =
-    std::chrono::duration_cast<std::chrono::milliseconds>(t2_ref - t1_ref);
+  std::cout << "RMSNorm time : GPU = " << t2_cl / (run_count * 1.0f) << " ms"
+            << std::endl;
 
-  std::cout << "RMSNorm time : GPU = " << dt_cl.count() / (run_count * 1.0f)
-            << " ms" << std::endl;
-
-  std::cout << "RMSNorm time : CPU = " << dt_ref.count() / (run_count * 1.0f)
-            << " ms" << std::endl;
+  std::cout << "RMSNorm time : CPU = " << t2_ref / (run_count * 1.0f) << " ms"
+            << std::endl;
 
   cl_context->command_queue_inst_.enqueueSVMMap(
     out_fp32_svm, out_cl_fp32.size() * sizeof(float), false);
@@ -1148,22 +1141,20 @@ static void run_q_6_K_test(const uint32_t M, const uint32_t K,
   nntrainer::quantize_q6_K(weights_f32_ptr, q6_weight_ptr, N, K, nullptr);
 
   // CPU Q6_K GEMV
-  auto t1 = std::chrono::high_resolution_clock::now();
+  Timer timer1{};
   for (unsigned int i = 0; i < run_count; ++i) {
     nntrainer::gemm_q6_K(M, N, K, activations_f32_ptr, K, q6_weight_ptr, N,
                          cpu_q6_dst.data(), N);
   }
-  auto t2 = std::chrono::high_resolution_clock::now();
-  auto dt = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
+  auto t2 = timer1.GetElapsedMilliseconds();
 
   // GPU Q6_K GEMV
-  auto t3 = std::chrono::high_resolution_clock::now();
+  Timer timer2{};
   for (unsigned int i = 0; i < run_count; ++i) {
     nntrainer::sgemv_q6_k_cl(q6_weight_ptr, activations_f32_ptr,
                              (float *)gpu_q6_dst, K, N);
   }
-  auto t4 = std::chrono::high_resolution_clock::now();
-  auto gpu_dt = std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3);
+  auto t4 = timer2.GetElapsedMilliseconds();
 
   // Compute raports
   {
@@ -1193,10 +1184,10 @@ static void run_q_6_K_test(const uint32_t M, const uint32_t K,
 
     std::cout << "Q6_K GEMV : " << M << " x " << K << " x " << N << std::endl;
     std::cout << " - q6_K data size : " << data_size_mb << " [MB]" << std::endl;
-    std::cout << " - time : CPU = " << dt.count() / (run_count * 1.0f) << " ms"
+    std::cout << " - time : CPU = " << t2 / (run_count * 1.0f) << " ms"
               << std::endl;
-    std::cout << " - time : GPU = " << gpu_dt.count() / (run_count * 1.0f)
-              << " ms" << std::endl;
+    std::cout << " - time : GPU = " << t4 / (run_count * 1.0f) << " ms"
+              << std::endl;
     std::cout << " - sample : CPU = ";
     debug_print_beg_end(cpu_q6_dst.data());
     std::cout << std::endl;
@@ -1291,22 +1282,21 @@ static void run_q4_0_test(const uint32_t M, const uint32_t K,
   nntrainer::repack_q4_0(q4_weight_repack_ptr, q4_weight_ptr, data_size, N, K);
 
   // CPU Q4_0 GEMM
-  auto t1 = std::chrono::high_resolution_clock::now();
+
+  Timer timer1{};
   for (unsigned int i = 0; i < run_count; ++i) {
     nntrainer::gemm_q4_0(M, N, K, activations_f32_ptr, K, q4_weight_repack_ptr,
                          N, cpu_q4_dst.data(), N);
   }
-  auto t2 = std::chrono::high_resolution_clock::now();
-  auto dt = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
+  auto t2 = timer1.GetElapsedMilliseconds();
 
   // GPU Q4_0 GEMM
-  auto t3 = std::chrono::high_resolution_clock::now();
+  Timer timer2{};
   for (unsigned int i = 0; i < run_count; ++i) {
     nntrainer::gemm_q4_0_cl(q4_weight_repack_ptr, activations_f32_ptr,
                             (float *)gpu_q4_dst, M, N, K);
   }
-  auto t4 = std::chrono::high_resolution_clock::now();
-  auto gpu_dt = std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3);
+  auto t4 = timer2.GetElapsedMilliseconds();
 
   // Compute raports
   {
@@ -1330,10 +1320,10 @@ static void run_q4_0_test(const uint32_t M, const uint32_t K,
     const auto data_size_mb = data_size / (1024 * 1024.0f);
 
     std::cout << "Q4_0 GEMM : " << M << " x " << K << " x " << N << std::endl;
-    std::cout << " - time : CPU = " << dt.count() / (run_count * 1.0f) << " ms"
+    std::cout << " - time : CPU = " << t2 / (run_count * 1.0f) << " ms"
               << std::endl;
-    std::cout << " - time : GPU = " << gpu_dt.count() / (run_count * 1.0f)
-              << " ms" << std::endl;
+    std::cout << " - time : GPU = " << t4 / (run_count * 1.0f) << " ms"
+              << std::endl;
     std::cout << " - sample : REF = ";
     debug_print_beg_end(ref_dst.data());
     std::cout << std::endl;
@@ -1405,30 +1395,25 @@ TEST(blas_kernels, swiglu_layer_fp16) {
 
   SwiGLULayerCl layer;
 
-  auto t1_cl = std::chrono::high_resolution_clock::now();
+  Timer timer1{};
   for (unsigned int i = 0; i < run_count; ++i) {
     layer.swiglu_cl_fp16(A_fp16.getData<_FP16>(), B_fp16.getData<_FP16>(),
                          out_cl_fp16.getData<_FP16>(), width, height);
   }
-  auto t2_cl = std::chrono::high_resolution_clock::now();
+  auto t2_cl = timer1.GetElapsedMilliseconds();
 
-  auto t1_ref = std::chrono::high_resolution_clock::now();
+  Timer timer2{};
   for (unsigned int i = 0; i < run_count; ++i) {
     __fallback_swiglu(height * width, out_ref_fp16.getData<_FP16>(),
                       A_fp16.getData<_FP16>(), B_fp16.getData<_FP16>());
   }
-  auto t2_ref = std::chrono::high_resolution_clock::now();
+  auto t2_ref = timer2.GetElapsedMilliseconds();
 
-  auto dt_cl =
-    std::chrono::duration_cast<std::chrono::milliseconds>(t2_cl - t1_cl);
-  auto dt_ref =
-    std::chrono::duration_cast<std::chrono::milliseconds>(t2_ref - t1_ref);
+  std::cout << "Swiglu time : GPU = " << t2_cl / (run_count * 1.0f) << " ms"
+            << std::endl;
 
-  std::cout << "Swiglu time : GPU = " << dt_cl.count() / (run_count * 1.0f)
-            << " ms" << std::endl;
-
-  std::cout << "Swiglu time : CPU = " << dt_ref.count() / (run_count * 1.0f)
-            << " ms" << std::endl;
+  std::cout << "Swiglu time : CPU = " << t2_ref / (run_count * 1.0f) << " ms"
+            << std::endl;
 
   float mseError = mse<_FP16>(out_cl_fp16.getData<_FP16>(),
                               out_ref_fp16.getData<_FP16>(), height * width);
@@ -1478,30 +1463,25 @@ TEST(blas_kernels, swiglu_layer_fp32) {
 
   SwiGLULayerCl layer;
 
-  auto t1_cl = std::chrono::high_resolution_clock::now();
+  Timer timer1{};
   for (unsigned int i = 0; i < run_count; ++i) {
     layer.swiglu_cl(A_fp32.getData(), B_fp32.getData(), out_cl_fp32.getData(),
                     width, height);
   }
-  auto t2_cl = std::chrono::high_resolution_clock::now();
+  float t2_cl = timer1.GetElapsedMilliseconds();
 
-  auto t1_ref = std::chrono::high_resolution_clock::now();
+  Timer timer2{};
   for (unsigned int i = 0; i < run_count; ++i) {
     __fallback_swiglu(height * width, out_ref_fp32.getData(), A_fp32.getData(),
                       B_fp32.getData());
   }
-  auto t2_ref = std::chrono::high_resolution_clock::now();
+  float t2_ref = timer2.GetElapsedMilliseconds();
 
-  auto dt_cl =
-    std::chrono::duration_cast<std::chrono::milliseconds>(t2_cl - t1_cl);
-  auto dt_ref =
-    std::chrono::duration_cast<std::chrono::milliseconds>(t2_ref - t1_ref);
+  std::cout << "Swiglu time : GPU = " << t2_cl / (run_count * 1.0f) << " ms"
+            << std::endl;
 
-  std::cout << "Swiglu time : GPU = " << dt_cl.count() / (run_count * 1.0f)
-            << " ms" << std::endl;
-
-  std::cout << "Swiglu time : CPU = " << dt_ref.count() / (run_count * 1.0f)
-            << " ms" << std::endl;
+  std::cout << "Swiglu time : CPU = " << t2_ref / (run_count * 1.0f) << " ms"
+            << std::endl;
 
   float mseError = mse<float>(out_cl_fp32.getData<float>(),
                               out_ref_fp32.getData<float>(), height * width);
@@ -1567,30 +1547,25 @@ TEST(blas_kernels, swiglu_layer_fp32_svm) {
 
   SwiGLULayerCl layer;
 
-  auto t1_cl = std::chrono::high_resolution_clock::now();
+  Timer timer1{};
   for (unsigned int i = 0; i < run_count; ++i) {
     layer.swiglu_cl((float *)gpu_in1, (float *)gpu_in2, (float *)gpu_dst, width,
                     height, true);
   }
-  auto t2_cl = std::chrono::high_resolution_clock::now();
+  auto t2_cl = timer1.GetElapsedMilliseconds();
 
-  auto t1_ref = std::chrono::high_resolution_clock::now();
+  Timer timer2{};
   for (unsigned int i = 0; i < run_count; ++i) {
     __fallback_swiglu(height * width, out_ref_fp32.getData(), A_fp32.getData(),
                       B_fp32.getData());
   }
-  auto t2_ref = std::chrono::high_resolution_clock::now();
+  auto t2_ref = timer2.GetElapsedMilliseconds();
 
-  auto dt_cl =
-    std::chrono::duration_cast<std::chrono::milliseconds>(t2_cl - t1_cl);
-  auto dt_ref =
-    std::chrono::duration_cast<std::chrono::milliseconds>(t2_ref - t1_ref);
+  std::cout << "Swiglu time : GPU = " << t2_cl / (run_count * 1.0f) << " ms"
+            << std::endl;
 
-  std::cout << "Swiglu time : GPU = " << dt_cl.count() / (run_count * 1.0f)
-            << " ms" << std::endl;
-
-  std::cout << "Swiglu time : CPU = " << dt_ref.count() / (run_count * 1.0f)
-            << " ms" << std::endl;
+  std::cout << "Swiglu time : CPU = " << t2_ref / (run_count * 1.0f) << " ms"
+            << std::endl;
 
   float mseError =
     mse<float>((float *)gpu_dst, out_ref_fp32.getData<float>(), height * width);
