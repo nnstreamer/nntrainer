@@ -275,10 +275,11 @@ bool is_valid(const unsigned int N, const float *input) {
   return nntrainer::avx2::is_valid(N, input);
 }
 
-void convert_q4_0x8_shuffle_dispatch(const void *src, uint16_t *d_out,
-                                     uint8_t *qs_out, int N, int K) {
-  return nntrainer::avx2::convert_q4_0x8_shuffle_dispatch_avx(src, d_out,
-                                                              qs_out, N, K);
+void unpack_q4_0x8_transpose16(const void *src, uint16_t *d_out,
+                               uint16_t *qs_out, int N, int K) {
+  /// @todo replace with AVX2 func
+  return nntrainer::avx2::convert_q4_0x8_shuffle_dispatch_avx(
+    src, d_out, (uint8_t *)qs_out, N, K);
 }
 
 void calc_trigonometric_vals_dup(unsigned int N_half, float *angle, float *cos_,
