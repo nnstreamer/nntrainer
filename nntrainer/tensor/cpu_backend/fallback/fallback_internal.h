@@ -428,8 +428,10 @@ void __fallback_softmax(const unsigned int N, _FP16 *X, _FP16 *Y);
 /**
  * @copydoc unpack_q4_0x8_transpose16 in cpu_backend.h
  */
-void __fallback_unpack_q4_0x8_transpose16(const void *src, uint16_t *d_out,
-                                          uint16_t *qs_out, int N, int K);
+void __fallback_unpack_q4_0x8_transpose16(const void *src,
+                                          uint16_t *__restrict d_out,
+                                          uint16_t *__restrict qs_out, int N,
+                                          int K, int CT = 1);
 
 /**
  * @brief Get half-sized angles, transform them into each cos, sin, and scopy in
