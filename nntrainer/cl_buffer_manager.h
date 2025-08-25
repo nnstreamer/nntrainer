@@ -58,9 +58,7 @@ private:
 
   void *data_input = nullptr;
   void *data_scale = nullptr;
-  void *data_scale_T = nullptr;
   void *data_quant = nullptr;
-  void *data_quant_T = nullptr;
 
 public:
   /**
@@ -111,17 +109,7 @@ public:
   /**
    * @brief Get the SVM pointer to data_input
    */
-  void *getSVMScaleT() { return data_scale_T; }
-
-  /**
-   * @brief Get the SVM pointer to data_input
-   */
   void *getSVMQuant() { return data_quant; }
-
-  /**
-   * @brief Get the SVM pointer to data_input
-   */
-  void *getSVMQuantT() { return data_quant_T; }
 
   /**
    * @brief Destroy Buffer pointers.

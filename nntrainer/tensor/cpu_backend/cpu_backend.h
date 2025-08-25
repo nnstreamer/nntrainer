@@ -422,8 +422,8 @@ extern void init_backend();
  * @param N number of block
  * @param K dim K
  */
-extern void convert_q4_0x8_shuffle_dispatch(const void *src, uint16_t *d_out,
-                                            uint8_t *qs_out, int N, int K);
+extern void unpack_q4_0x8_transpose16(const void *src, uint16_t *d_out,
+                                      uint16_t *qs_out, int N, int K);
 
 /**
  * @brief Get half-sized angles, transform them into each cos, sin, and scopy in

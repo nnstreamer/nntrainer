@@ -185,10 +185,10 @@ void transpose_32_16(float *data, int M, int K);
  * @param height height
  * @param size_bytes data size in bytes
  *
- * @note this function should be replaced by CPU ops
+ * @note Temporary disable transpose 16
  */
-void transpose_16(void *data, void *output, int width, int height,
-                  int size_bytes, bool isQuant = false);
+// void transpose_16(void *data, void *output, int width, int height,
+//                   int size_bytes, bool isQuant = false);
 
 #ifdef ENABLE_FP16
 

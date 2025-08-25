@@ -385,10 +385,10 @@ void transpose_matrix(const unsigned int M, const unsigned int N,
 void init_backend();
 
 /**
- * @copydoc convert_q4_0x8_shuffle_dispatch in cpu_backend.h
+ * @copydoc unpack_q4_0x8_transpose16 in cpu_backend.h
  */
-void convert_q4_0x8_shuffle_dispatch(const void *src, uint16_t *d_out,
-                                     uint8_t *qs_out, int N, int K);
+void unpack_q4_0x8_transpose16(const void *src, uint16_t *d_out,
+                               uint16_t *qs_out, int N, int K);
 
 /**
  * @brief Get half-sized angles, transform them into each cos, sin, and scopy in

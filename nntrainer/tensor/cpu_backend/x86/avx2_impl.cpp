@@ -322,6 +322,217 @@ struct block_q4_0x8 {
   uint8_t qs[128]; // 16 x u64
 };
 
+#define USE_NONTEMPORAL_STORES 1
+
+static inline void store256_u16(void *dst, __m256i v) {
+#if defined(USE_NONTEMPORAL_STORES)
+  // use NT only if 32B-aligned; otherwise fall back (correctness first)
+  if (((uintptr_t)dst & 31u) == 0) {
+    _mm256_stream_si256((__m256i *)dst, v);
+    return;
+  }
+#endif
+  _mm256_storeu_si256((__m256i *)dst, v);
+}
+
+void unpack_q4_0x8_transpose16(const void *src, unsigned short *__restrict dT,
+                               unsigned short *__restrict qsT, int N, int K,
+                               int CT) // column tile (in units of 32-cols)
+{
+  assert((K % 256) == 0);
+  assert((N % 8) == 0);
+
+  const auto *__restrict x = static_cast<const block_q4_0x8 *>(src);
+
+  const int groups_N8 = N / 8;    // number of 8-row groups
+  const int cols_scales = K / 32; // K subblocks
+
+  // AVX2 constants
+  const __m128i v88 = _mm_set1_epi8((char)0x88);
+  const __m128i v0f = _mm_set1_epi8((char)0x0F);
+  const __m128i vF0 = _mm_set1_epi8((char)0xF0);
+
+  const __m128i idx_even =
+    _mm_setr_epi8(0, 2, 4, 6, 8, 10, 12, 14, (char)0xFF, (char)0xFF, (char)0xFF,
+                  (char)0xFF, (char)0xFF, (char)0xFF, (char)0xFF, (char)0xFF);
+  const __m128i idx_odd =
+    _mm_setr_epi8(1, 3, 5, 7, 9, 11, 13, 15, (char)0xFF, (char)0xFF, (char)0xFF,
+                  (char)0xFF, (char)0xFF, (char)0xFF, (char)0xFF, (char)0xFF);
+  const __m128i idx_0246 =
+    _mm_setr_epi8(0, 2, 4, 6, (char)0xFF, (char)0xFF, (char)0xFF, (char)0xFF,
+                  (char)0xFF, (char)0xFF, (char)0xFF, (char)0xFF, (char)0xFF,
+                  (char)0xFF, (char)0xFF, (char)0xFF);
+  const __m128i idx_1357 =
+    _mm_setr_epi8(1, 3, 5, 7, (char)0xFF, (char)0xFF, (char)0xFF, (char)0xFF,
+                  (char)0xFF, (char)0xFF, (char)0xFF, (char)0xFF, (char)0xFF,
+                  (char)0xFF, (char)0xFF, (char)0xFF);
+
+  auto pack_row8 = [&](const unsigned char *qs0, const unsigned char *qs1,
+                       int off) -> __m128i {
+    __m128i lo8 = _mm_loadl_epi64((const __m128i *)(qs0 + 8 * off));
+    __m128i hi8 = _mm_loadl_epi64((const __m128i *)(qs1 + 8 * off));
+    __m128i v = _mm_unpacklo_epi64(lo8, hi8);
+    v = _mm_xor_si128(v, v88);
+    __m128i lo = _mm_and_si128(v, v0f);
+    __m128i hi = _mm_and_si128(_mm_srli_epi16(v, 4), v0f);
+    __m128i lo_e = _mm_shuffle_epi8(lo, idx_even);
+    __m128i lo_o = _mm_shuffle_epi8(lo, idx_odd);
+    __m128i hi_e = _mm_shuffle_epi8(hi, idx_even);
+    __m128i hi_o = _mm_shuffle_epi8(hi, idx_odd);
+    __m128i low_lane =
+      _mm_or_si128(lo_e, _mm_and_si128(_mm_slli_epi16(lo_o, 4), vF0));
+    __m128i high_lane =
+      _mm_or_si128(hi_e, _mm_and_si128(_mm_slli_epi16(hi_o, 4), vF0));
+    __m128i low_e2 = _mm_shuffle_epi8(low_lane, idx_0246);
+    __m128i low_o2 = _mm_shuffle_epi8(low_lane, idx_1357);
+    __m128i high_e2 = _mm_shuffle_epi8(high_lane, idx_0246);
+    __m128i high_o2 = _mm_shuffle_epi8(high_lane, idx_1357);
+    __m128i pack_lo = _mm_unpacklo_epi8(low_e2, low_o2);   // 4×u16 (w0..w3)
+    __m128i pack_hi = _mm_unpacklo_epi8(high_e2, high_o2); // 4×u16 (w4..w7)
+    return _mm_unpacklo_epi64(pack_lo, pack_hi);           // 8×u16 (w0..w7)
+  };
+
+  auto transpose8x8_epi16 =
+    [](__m128i r0, __m128i r1, __m128i r2, __m128i r3, __m128i r4, __m128i r5,
+       __m128i r6, __m128i r7, __m128i &c0, __m128i &c1, __m128i &c2,
+       __m128i &c3, __m128i &c4, __m128i &c5, __m128i &c6, __m128i &c7) {
+      __m128i t0 = _mm_unpacklo_epi16(r0, r1);
+      __m128i t1 = _mm_unpackhi_epi16(r0, r1);
+      __m128i t2 = _mm_unpacklo_epi16(r2, r3);
+      __m128i t3 = _mm_unpackhi_epi16(r2, r3);
+      __m128i t4 = _mm_unpacklo_epi16(r4, r5);
+      __m128i t5 = _mm_unpackhi_epi16(r4, r5);
+      __m128i t6 = _mm_unpacklo_epi16(r6, r7);
+      __m128i t7 = _mm_unpackhi_epi16(r6, r7);
+
+      __m128i u0 = _mm_unpacklo_epi32(t0, t2);
+      __m128i u1 = _mm_unpackhi_epi32(t0, t2);
+      __m128i u2 = _mm_unpacklo_epi32(t1, t3);
+      __m128i u3 = _mm_unpackhi_epi32(t1, t3);
+      __m128i u4 = _mm_unpacklo_epi32(t4, t6);
+      __m128i u5 = _mm_unpackhi_epi32(t4, t6);
+      __m128i u6 = _mm_unpacklo_epi32(t5, t7);
+      __m128i u7 = _mm_unpackhi_epi32(t5, t7);
+
+      c0 = _mm_unpacklo_epi64(u0, u4);
+      c1 = _mm_unpackhi_epi64(u0, u4);
+      c2 = _mm_unpacklo_epi64(u1, u5);
+      c3 = _mm_unpackhi_epi64(u1, u5);
+      c4 = _mm_unpacklo_epi64(u2, u6);
+      c5 = _mm_unpackhi_epi64(u2, u6);
+      c6 = _mm_unpacklo_epi64(u3, u7);
+      c7 = _mm_unpackhi_epi64(u3, u7);
+    };
+
+  // -------- pair-processing path: handle two 8-row groups (16 rows) per pass
+  // --------
+  const int groups_pairs = groups_N8 / 2;
+
+#pragma omp parallel for collapse(2) schedule(static)
+  for (int c0 = 0; c0 < cols_scales; c0 += CT) {
+    for (int bp = 0; bp < groups_pairs; ++bp) {
+      const int b0 = 2 * bp;
+      const int b1 = b0 + 1;
+      const int r0 = b0 * 8; // 16 rows: r0..r0+15
+      const int c1 = std::min(c0 + CT, cols_scales);
+
+      for (int c = c0; c < c1; ++c) {
+        const block_q4_0x8 &A = x[b0 * cols_scales + c];
+        const block_q4_0x8 &B = x[b1 * cols_scales + c];
+
+        unsigned short *__restrict dT_c = dT + c * N;
+        unsigned short *__restrict qsT_c0 = qsT + (c * 8) * N;
+
+        // scales: pack two 8×u16 vectors → one 256b store to dT[c, r0..r0+15]
+        __m128i sd0 = _mm_loadu_si128((const __m128i *)A.d);
+        __m128i sd1 = _mm_loadu_si128((const __m128i *)B.d);
+        __m256i sdp = _mm256_set_m128i(sd1, sd0);
+        store256_u16(dT_c + r0, sdp);
+
+        // pre-split stripes
+        const unsigned char *__restrict A0 = A.qs;      // + 8*off
+        const unsigned char *__restrict A1 = A.qs + 64; // + 8*off
+        const unsigned char *__restrict B0 = B.qs;
+        const unsigned char *__restrict B1 = B.qs + 64;
+
+        // build 8 rows for A and 8 rows for B
+        __m128i Ra[8], Rb[8];
+        for (int off = 0; off < 8; ++off) {
+          Ra[off] = pack_row8(A0, A1, off);
+          Rb[off] = pack_row8(B0, B1, off);
+        }
+
+        // 8×8 transpose → columns (each 8×u16) for A and B
+        __m128i Ca0, Ca1, Ca2, Ca3, Ca4, Ca5, Ca6, Ca7;
+        __m128i Cb0, Cb1, Cb2, Cb3, Cb4, Cb5, Cb6, Cb7;
+        transpose8x8_epi16(Ra[0], Ra[1], Ra[2], Ra[3], Ra[4], Ra[5], Ra[6],
+                           Ra[7], Ca0, Ca1, Ca2, Ca3, Ca4, Ca5, Ca6, Ca7);
+        transpose8x8_epi16(Rb[0], Rb[1], Rb[2], Rb[3], Rb[4], Rb[5], Rb[6],
+                           Rb[7], Cb0, Cb1, Cb2, Cb3, Cb4, Cb5, Cb6, Cb7);
+
+        // pair and store 32B per column t: rows r0..r0+15 are contiguous
+        unsigned short *__restrict base = qsT_c0 + r0;
+        const int S = N;
+        store256_u16(base + 0 * S, _mm256_set_m128i(Cb0, Ca0));
+        store256_u16(base + 1 * S, _mm256_set_m128i(Cb1, Ca1));
+        store256_u16(base + 2 * S, _mm256_set_m128i(Cb2, Ca2));
+        store256_u16(base + 3 * S, _mm256_set_m128i(Cb3, Ca3));
+        store256_u16(base + 4 * S, _mm256_set_m128i(Cb4, Ca4));
+        store256_u16(base + 5 * S, _mm256_set_m128i(Cb5, Ca5));
+        store256_u16(base + 6 * S, _mm256_set_m128i(Cb6, Ca6));
+        store256_u16(base + 7 * S, _mm256_set_m128i(Cb7, Ca7));
+      }
+    }
+  }
+
+  // -------- tail: if odd number of 8-row groups, process the last one (8 rows)
+  // --------
+  if (groups_N8 & 1) {
+    const int b = groups_N8 - 1;
+    const int r0 = b * 8;
+
+#pragma omp parallel for schedule(static)
+    for (int c0 = 0; c0 < cols_scales; c0 += CT) {
+      const int c1 = std::min(c0 + CT, cols_scales);
+      for (int c = c0; c < c1; ++c) {
+        const block_q4_0x8 &A = x[b * cols_scales + c];
+        unsigned short *__restrict dT_c = dT + c * N;
+        unsigned short *__restrict qsT_c0 = qsT + (c * 8) * N;
+
+        // scales (8×u16)
+        __m128i sd0 = _mm_loadu_si128((const __m128i *)A.d);
+        _mm_storeu_si128((__m128i *)(dT_c + r0), sd0);
+
+        const unsigned char *__restrict A0 = A.qs;
+        const unsigned char *__restrict A1 = A.qs + 64;
+
+        __m128i R[8];
+        for (int off = 0; off < 8; ++off)
+          R[off] = pack_row8(A0, A1, off);
+
+        __m128i C0, C1, C2, C3, C4, C5, C6, C7;
+        transpose8x8_epi16(R[0], R[1], R[2], R[3], R[4], R[5], R[6], R[7], C0,
+                           C1, C2, C3, C4, C5, C6, C7);
+
+        unsigned short *__restrict base = qsT_c0 + r0;
+        const int S = N;
+        _mm_storeu_si128((__m128i *)(base + 0 * S), C0);
+        _mm_storeu_si128((__m128i *)(base + 1 * S), C1);
+        _mm_storeu_si128((__m128i *)(base + 2 * S), C2);
+        _mm_storeu_si128((__m128i *)(base + 3 * S), C3);
+        _mm_storeu_si128((__m128i *)(base + 4 * S), C4);
+        _mm_storeu_si128((__m128i *)(base + 5 * S), C5);
+        _mm_storeu_si128((__m128i *)(base + 6 * S), C6);
+        _mm_storeu_si128((__m128i *)(base + 7 * S), C7);
+      }
+    }
+  }
+
+#if defined(USE_NONTEMPORAL_STORES)
+  _mm_sfence(); // ensure NT stores are globally visible before returning
+#endif
+}
+
 static inline __m256i butterfly32(__m256i a) {
   const __m256i SHUF_EVEN = _mm256_setr_epi8(
     0, 2, 4, 6, 8, 10, 12, 14, (char)0x80, (char)0x80, (char)0x80, (char)0x80,
