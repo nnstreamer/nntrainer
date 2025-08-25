@@ -14,16 +14,14 @@
 #include <gtest/gtest.h>
 #include <utility>
 
-#include "fallback_internal.h"
-#include "nntrainer_test_util.h"
-#include "swiglu_cl.h"
-#include "tensor_dim.h"
-#include "x86_compute_backend.h"
 #include <blas_kernel_interface.h>
 #include <blas_kernels.h>
 #include <cl_context.h>
 #include <cpu_backend.h>
+#include <fallback_internal.h>
 #include <layer_context.h>
+#include <nntrainer_test_util.h>
+#include <swiglu_cl.h>
 #include <tensor.h>
 
 #define EXPECT_IN_RANGE(VAL, MIN, MAX)                                         \
