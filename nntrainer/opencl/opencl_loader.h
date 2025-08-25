@@ -212,8 +212,10 @@ typedef cl_int(CL_API_CALL *PFN_clEnqueueSVMUnmap)(
   cl_uint /**< num_events_in_wait_list */,
   const cl_event * /**< event_wait_list */, cl_event * /**< event */);
 
-typedef cl_int (CL_API_CALL *PFN_clWaitForEvents)(cl_uint num_events,
-    const cl_event* event_list);
+typedef cl_int(CL_API_CALL *PFN_clWaitForEvents)(cl_uint num_events,
+                                                 const cl_event *event_list);
+
+typedef cl_int(CL_API_CALL *PFN_clReleaseEvent)(cl_event);
 
 extern PFN_clGetPlatformIDs clGetPlatformIDs;
 extern PFN_clGetDeviceIDs clGetDeviceIDs;
@@ -252,6 +254,7 @@ extern PFN_clEnqueueSVMMap clEnqueueSVMMap;
 extern PFN_clEnqueueSVMUnmap clEnqueueSVMUnmap;
 extern PFN_clSetKernelArgSVMPointer clSetKernelArgSVMPointer;
 extern PFN_clWaitForEvents clWaitForEvents;
+extern PFN_clReleaseEvent clReleaseEvent;
 } // namespace nntrainer::opencl
 
 #endif // __OPENCL_LOADER_H__

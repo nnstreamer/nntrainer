@@ -100,7 +100,7 @@ void sgemm_cl(bool TransA, bool TransB, const float *A, const float *B,
  * @param[in] size_res number of elements in result vector
  */
 void addition_cl(const float *input, float *res, unsigned int size_input,
-                 unsigned int size_res);
+                 unsigned int size_res, const bool use_svm);
 
 /**
  * @brief rmsnorm each row of the tensor
@@ -114,7 +114,7 @@ void addition_cl(const float *input, float *res, unsigned int size_input,
  */
 void rmsnorm_cl(const float *input, const float *gamma, float *result,
                 const float epsilon, unsigned int height, unsigned int width,
-                const bool use_svm = false);
+                const bool use_svm);
 
 /**
  * @brief     sscal value element by element immediately
@@ -245,7 +245,7 @@ void sgemm_cl(bool TransA, bool TransB, const _FP16 *A, const _FP16 *B,
  * @param[in] size_res number of elements in result vector
  */
 void addition_cl(const _FP16 *input, _FP16 *res, unsigned int size_input,
-                 unsigned int size_res);
+                 unsigned int size_res, const bool use_svm);
 
 /**
  * @brief     fp16 sscal value element by element immediately
