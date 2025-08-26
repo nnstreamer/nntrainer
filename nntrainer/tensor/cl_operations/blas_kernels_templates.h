@@ -256,40 +256,54 @@ sgemm_cl_internal(ClContext::SharedPtrClKernel kernel, bool TransA, bool TransB,
 }
 
 template <typename T>
-inline static void
-addition_cl_internal(ClContext::SharedPtrClKernel kernel, const T *input,
-                     T *res, unsigned int size_input, unsigned int size_res) {
+inline static void addition_cl_internal(
+  ClContext::SharedPtrClKernel kernel, const T *input, T *res,
+  unsigned int size_input, unsigned int size_res, const bool use_svm,
+  const cl_event *event_wait_list = nullptr, cl_event *event = nullptr) {
   bool result = false;
 
-  auto *blas_cc =
+  auto cl_context =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
 
   size_t dim1_size = sizeof(T) * size_input;
   size_t dim2_size = sizeof(T) * size_res;
 
-  result = clbuffInstance.getInBufferA()->WriteDataRegion(
-    blas_cc->command_queue_inst_, dim1_size, input);
-  if (!result) {
-    return;
-  }
+  if (use_svm) {
+    result = kernel->SetKernelSVMArguments(0, input);
+    if (!result) {
+      return;
+    }
 
-  result = clbuffInstance.getOutBufferA()->WriteDataRegion(
-    blas_cc->command_queue_inst_, dim2_size, res);
-  if (!result) {
-    return;
-  }
+    result = kernel->SetKernelSVMArguments(1, res);
+    if (!result) {
+      return;
+    }
+  } else {
+    auto &clbuffInstance = ClBufferManager::Global();
+    result = clbuffInstance.getInBufferA()->WriteDataRegion(
+      cl_context->command_queue_inst_, dim1_size, input);
+    if (!result) {
+      return;
+    }
 
-  result = kernel->SetKernelArguments(0, clbuffInstance.getInBufferA(),
-                                      sizeof(cl_mem));
-  if (!result) {
-    return;
-  }
+    result = clbuffInstance.getOutBufferA()->WriteDataRegion(
+      cl_context->command_queue_inst_, dim2_size, res);
+    if (!result) {
+      return;
+    }
 
-  result = kernel->SetKernelArguments(1, clbuffInstance.getOutBufferA(),
-                                      sizeof(cl_mem));
-  if (!result) {
-    return;
+    auto bufferInA = clbuffInstance.getInBufferA()->GetBuffer();
+    auto bufferOutA = clbuffInstance.getOutBufferA()->GetBuffer();
+
+    result = kernel->SetKernelArguments(0, &bufferInA, sizeof(cl_mem));
+    if (!result) {
+      return;
+    }
+
+    result = kernel->SetKernelArguments(1, &bufferOutA, sizeof(cl_mem));
+    if (!result) {
+      return;
+    }
   }
 
   result = kernel->SetKernelArguments(2, &size_input, sizeof(int));
@@ -302,20 +316,30 @@ addition_cl_internal(ClContext::SharedPtrClKernel kernel, const T *input,
     return;
   }
 
-  const int work_groups_count[3] = {(int)size_res, 1, 1};
-  /// @todo: create a group size by device & input
-  const int work_group_size[3] = {1, 1, 1}; // test-value
-  result = blas_cc->command_queue_inst_.DispatchCommand(
-    kernel, work_groups_count, work_group_size);
-  if (!result) {
-    return;
+  std::array<size_t, 3> global_work_size = {size_res, 1, 1};
+
+  if (event != nullptr) {
+    cl_context->command_queue_inst_.enqueueKernel(
+      kernel->GetKernel(), global_work_size.size(), global_work_size.data(),
+      nullptr, 0, event_wait_list, event);
+  } else {
+    cl_event addition_wait;
+
+    cl_context->command_queue_inst_.enqueueKernel(
+      kernel->GetKernel(), global_work_size.size(), global_work_size.data(),
+      nullptr, 0, nullptr, &addition_wait);
+    cl_context->command_queue_inst_.waitForEvent(1, &addition_wait);
+    cl_context->command_queue_inst_.releaseEvent(addition_wait);
   }
 
-  result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-    blas_cc->command_queue_inst_, dim2_size, res);
+  if (!use_svm) {
+    auto &clbuffInstance = ClBufferManager::Global();
+    result = clbuffInstance.getOutBufferA()->ReadDataRegion(
+      cl_context->command_queue_inst_, dim2_size, res);
 
-  if (!result) {
-    return;
+    if (!result) {
+      return;
+    }
   }
 }
 
@@ -330,7 +354,7 @@ inline static void rmsnorm_cl_internal(ClContext::SharedPtrClKernel kernel,
   unsigned size_in = dim_in * sizeof(T);
   unsigned size_gamma = dim_gamma * sizeof(T);
 
-  auto *blas_cc =
+  auto cl_context =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
 
   if (use_svm) {
@@ -346,11 +370,11 @@ inline static void rmsnorm_cl_internal(ClContext::SharedPtrClKernel kernel,
   } else {
     auto &clbuffInstance = ClBufferManager::Global();
     if (!clbuffInstance.getInBufferA()->WriteDataRegion(
-          blas_cc->command_queue_inst_, size_in, input)) {
+          cl_context->command_queue_inst_, size_in, input)) {
       return;
     }
     if (!clbuffInstance.getInBufferB()->WriteDataRegion(
-          blas_cc->command_queue_inst_, size_gamma, gamma)) {
+          cl_context->command_queue_inst_, size_gamma, gamma)) {
       return;
     }
 
@@ -377,24 +401,27 @@ inline static void rmsnorm_cl_internal(ClContext::SharedPtrClKernel kernel,
   if (!kernel->SetKernelArguments(5, &width, sizeof(int))) {
     return;
   }
+
 #ifdef __ANDROID__
   constexpr int SUBGROUP_SIZE = 64;
 #else
   constexpr int SUBGROUP_SIZE = 32;
 #endif
-  const int work_groups_count[3] = {static_cast<int>(height) * SUBGROUP_SIZE, 1,
-                                    1};
 
-  const int work_group_size[3] = {SUBGROUP_SIZE, 1, 1};
-  if (!blas_cc->command_queue_inst_.DispatchCommand(kernel, work_groups_count,
-                                                    work_group_size)) {
-    return;
-  }
+  std::array<size_t, 3> global_work_size = {height * SUBGROUP_SIZE, 1, 1};
+  std::array<size_t, 3> local_work_size = {SUBGROUP_SIZE, 1, 1};
+  cl_event rmsnorm_wait;
+
+  cl_context->command_queue_inst_.enqueueKernel(
+    kernel->GetKernel(), global_work_size.size(), global_work_size.data(),
+    local_work_size.data(), 0, nullptr, &rmsnorm_wait);
+  cl_context->command_queue_inst_.waitForEvent(1, &rmsnorm_wait);
+  cl_context->command_queue_inst_.releaseEvent(rmsnorm_wait);
 
   if (!use_svm) {
     auto &clbuffInstance = ClBufferManager::Global();
     if (!clbuffInstance.getOutBufferA()->ReadDataRegion(
-          blas_cc->command_queue_inst_, size_in, result)) {
+          cl_context->command_queue_inst_, size_in, result)) {
       return;
     }
   }

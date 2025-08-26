@@ -21,6 +21,7 @@
 #include "CL/cl.h"
 #include "opencl_loader.h"
 
+#include <nntrainer_error.h>
 #include <nntrainer_log.h>
 
 namespace nntrainer::opencl {
@@ -87,13 +88,21 @@ void ContextManager::ReleaseContext() {
 const cl_device_id ContextManager::GetDeviceId() { return device_id_; }
 
 void *ContextManager::createSVMRegion(size_t size) {
-  return clSVMAlloc(context_, CL_MEM_READ_WRITE, size, 0);
+  auto svm_ptr = clSVMAlloc(context_, CL_MEM_READ_WRITE, size, 0);
+
+  NNTR_THROW_IF(svm_ptr == nullptr, std::runtime_error) << "clSVMAlloc failed";
+  // std::cout << "clSVMAlloc: 0x" << std::hex << svm_ptr << ", size: " <<
+  // std::dec
+  //           << size << std::endl;
+  return svm_ptr;
 }
 
 void ContextManager::releaseSVMRegion(void *svm_ptr) {
   if (svm_ptr) {
     // deallocates the SVM memory
     clSVMFree(context_, svm_ptr);
+    // std::cout << "clSVMFree: 0x" << std::hex << svm_ptr << std::dec
+    //           << std::endl;
   } else {
     ml_logw("Attempted to deallocate a null pointer");
   }

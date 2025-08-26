@@ -420,8 +420,14 @@ sharedConstTensors NetworkGraph::incremental_forwarding(
   unsigned int from, unsigned int to, bool training,
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op,
   std::function<bool(void *userdata)> stop_cb, void *userdata) {
+
+  std::cout << "Size: " << size() << std::endl;
   for (auto iter = cbegin(); iter != cend() && !stop_cb(userdata); iter++) {
     auto &ln = *iter;
+
+    std::cout << "Graph node: " << ln->getName() << ", type: " << ln->getType()
+              << ", order: " << std::get<0>(ln->getExecutionOrder())
+              << std::endl;
     PROFILE_TIME_START(profile_keys.at(ln->getType()));
     forwarding_op(*iter, training);
     PROFILE_TIME_END(profile_keys.at(ln->getType()));

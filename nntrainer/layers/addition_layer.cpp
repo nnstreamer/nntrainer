@@ -17,6 +17,7 @@
 #include <node_exporter.h>
 #include <util_func.h>
 
+#include "blas_kernel_interface.h"
 #include <layer_context.h>
 
 namespace nntrainer {
@@ -36,7 +37,7 @@ void AdditionLayer::forwarding(RunLayerContext &context, bool training) {
     if (!idx) {
       hidden_.copy(input_);
     } else {
-      hidden_.add_i(input_);
+      add_i_cl(hidden_, input_);
     }
   }
 }
@@ -112,5 +113,23 @@ void AdditionLayer::updateTensorsByInputDimensions(
   }
   context.updateOutput(SINGLE_INOUT_IDX, input_dimensions[0]);
 }
+
+void AdditionLayer::forwardingAsync(RunLayerContext &context, bool training,
+                                    const cl_event *event_wait_list,
+                                    cl_event *event) {
+  Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
+
+  /** @todo check possibility for in-place of addition layer */
+  for (unsigned int idx = 0; idx < context.getNumInputs(); ++idx) {
+    const Tensor &input_ = context.getInput(idx);
+    if (!idx) {
+      hidden_.copy(input_);
+    } else {
+      add_i_cl(hidden_, input_, event_wait_list, event);
+    }
+  }
+};
+
+bool AdditionLayer::runAsync() { return true; }
 
 } /* namespace nntrainer */

@@ -206,7 +206,8 @@ void multiplyCl(Tensor &input, float const &value) {
   }
 }
 
-void add_i_cl(Tensor &result, Tensor const &input) {
+void add_i_cl(Tensor &result, Tensor const &input,
+              const cl_event *event_wait_list, cl_event *event) {
 
   NNTR_THROW_IF(input.getData() == nullptr, std::invalid_argument)
     << input.getName() << " is not allocated";
@@ -220,23 +221,20 @@ void add_i_cl(Tensor &result, Tensor const &input) {
        result.channel() == input.channel() &&
        result.height() == input.height() && result.width() == input.width())) {
 
-    if (result.getDataType() == ml::train::TensorDim::DataType::FP32) {
-      float *Y = result.getData();
-      const float *X = input.getData();
+    const unsigned int size_input = input.size();
+    const unsigned int size_res = result.size();
 
-      for (unsigned int i = 0; i < result.batch() / input.batch(); ++i) {
-        axpy_cl(input.size(), 1.0f, X, Y);
-        Y += input.size();
-      }
+    if (result.getDataType() == ml::train::TensorDim::DataType::FP32) {
+      const auto *data_input = input.getData<float>();
+      auto *data_res = result.getData<float>();
+      addition_cl(data_input, data_res, size_input, size_res,
+                  input.useSVM() && result.useSVM(), event_wait_list, event);
     } else if (result.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
-      unsigned int size_res = result.size();
-      unsigned int size_input = input.size();
-      _FP16 *data_res = result.getData<_FP16>();
-      const _FP16 *data_input = input.getData<_FP16>();
-
-      addition_cl(data_input, data_res, size_input, size_res);
-
+      const auto *data_input = input.getData<_FP16>();
+      auto *data_res = result.getData<_FP16>();
+      addition_cl(data_input, data_res, size_input, size_res,
+                  input.useSVM() && result.useSVM());
 #else
       throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
