@@ -654,22 +654,55 @@ const std::string &getTransposeClKernelAxis2() {
   return transpose_cl_kernel_axis2;
 }
 
+const std::string &getSwiGluCombinedClKernel() {
+  static const std::string swiglu_combined_cl_kernel_ =
+    R"(
+    #define TYPE float
+
+    __kernel void swiglu_combined_cl(
+      __global const TYPE * restrict in1,
+      __global       TYPE * restrict out,
+      uint element_offset)
+    {
+      for (uint j = 0; j < 8; j++)
+      {
+        const int i = get_global_id(0) * 8 + j;
+
+        const TYPE one = (TYPE)(1.0f);
+
+        const TYPE in1_val = in1[i];
+        const TYPE in2_val = in1[i + element_offset];
+
+        const TYPE in1_exp = native_exp(in1_val);
+        
+        const TYPE swish = in1_val * in1_exp * native_recip(one + in1_exp);
+
+        out[i] = swish * in2_val;
+      }
+    })";
+  return swiglu_combined_cl_kernel_;
+}
+
 const std::string &getSwiGluClKernel() {
   static const std::string swiglu_cl_kernel_ =
     R"(
+    #define TYPE float8
+
     __kernel void swiglu_cl(
-      __global const float * restrict in1,
-      __global const float * restrict in2,
-      __global       float * restrict out)
+      __global const TYPE * restrict in1,
+      __global const TYPE * restrict in2,
+      __global       TYPE * restrict out)
     {
       const int i = get_global_id(0);
 
-      const float in1_val = in1[i];
-      const float in2_val = in2[i];
+      const TYPE one = (TYPE)(1.0f);
 
-      const float in1_exp = exp(in1_val);
+      const TYPE in1_val = in1[i];
+      const TYPE in2_val = in2[i];
+
+      const TYPE in1_exp = native_exp(in1_val);
       
-      const float swish = in1_val * in1_exp / (1.0f + in1_exp);
+      const TYPE swish = in1_val * in1_exp * native_recip(one + in1_exp);
 
       out[i] = swish * in2_val;
     })";
@@ -1524,19 +1557,26 @@ const std::string &getSwiGluClKernelFP16() {
   static const std::string swiglu_cl_kernel_fp16_ =
     R"(
     #pragma OPENCL EXTENSION cl_khr_fp16 : enable
-    __kernel void swiglu_cl_fp16(__global const half *in1, __global const half *in2, __global half *out) {
+    #define TYPE half8
+
+    __kernel void swiglu_cl_fp16(
+      __global const TYPE * restrict in1,
+      __global const TYPE * restrict in2,
+      __global       TYPE * restrict out)
+    {
       const int i = get_global_id(0);
 
-      const half in1_val = in1[i];
-      const half in2_val = in2[i];
+      const TYPE one = (TYPE)(1.0f);
 
-      const half in1_exp = exp(in1_val);
+      const TYPE in1_val = in1[i];
+      const TYPE in2_val = in2[i];
+
+      const TYPE in1_exp = native_exp(in1_val);
       
-      const half half_one = (half)(1.0f);
-      const half swish = in1_val * in1_exp / (half_one + in1_exp);
+      const TYPE swish = in1_val * in1_exp * native_recip(one + in1_exp);
 
-      out[i] = swish * in2_val;    
-})";
+      out[i] = swish * in2_val;
+    })";
   return swiglu_cl_kernel_fp16_;
 }
 

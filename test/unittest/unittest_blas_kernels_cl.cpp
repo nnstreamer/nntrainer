@@ -678,21 +678,6 @@ TEST(blas_kernels, rmsnorm_fp32) {
   EXPECT_IN_RANGE(mseError, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
 
-  for (uint32_t i = 0; i < 16; i++) {
-    auto from_ref = out_ref_fp32.getData()[i];
-    auto from_cl = ((float *)out_fp32_svm)[i];
-
-    std::cout << "CL : " << from_cl << " REF : " << from_ref << std::endl;
-  }
-
-  int size = height * width * batch * channel;
-  for (uint32_t i = 0; i < 16; i++) {
-    auto from_ref = out_ref_fp32.getData()[size - 16 + i];
-    auto from_cl = ((float *)out_fp32_svm)[size - 16 + i];
-
-    std::cout << "CL : " << from_cl << " REF : " << from_ref << std::endl;
-  }
-
   cl_context->command_queue_inst_.enqueueSVMUnmap(out_fp32_svm);
 
   cl_context->context_inst_.releaseSVMRegion(in_fp32_svm);
@@ -1374,8 +1359,8 @@ DECLARE_q4_0_test_M_K_N(28, 3072, 3072);
 TEST(blas_kernels, swiglu_layer_fp16) {
   const int batch = 1;
   const int channel = 1;
-  const int height = 3072;
-  const int width = 3072;
+  const int height = 1024 * 3;
+  const int width = 1024 * 3;
 
   const int batch_b = 1;
 
@@ -1447,8 +1432,8 @@ TEST(blas_kernels, swiglu_layer_fp16) {
 TEST(blas_kernels, swiglu_layer_fp32) {
   const int batch = 1;
   const int channel = 1;
-  const int height = 3072;
-  const int width = 3072;
+  const int height = 1024 * 3;
+  const int width = 1024 * 3;
 
   const int batch_b = 1;
 
@@ -1519,8 +1504,8 @@ TEST(blas_kernels, swiglu_layer_fp32) {
 TEST(blas_kernels, swiglu_layer_fp32_svm) {
   const int batch = 1;
   const int channel = 1;
-  const int height = 3072;
-  const int width = 3072;
+  const int height = 1024 * 3;
+  const int width = 1024 * 3;
 
   const int dim = width * height;
 
@@ -1602,24 +1587,93 @@ TEST(blas_kernels, swiglu_layer_fp32_svm) {
 
   EXPECT_IN_RANGE(mseError, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
+}
 
-  uint32_t print_count = 64;
+TEST(blas_kernels, swiglu_layer_fp32_combined_svm) {
+  const int batch = 1;
+  const int channel = 1;
+  const int height = 1024 * 3;
+  const int width = 1024 * 3;
 
-  for (uint32_t i = 0; i < print_count; i++) {
-    auto from_ref = out_ref_fp32.getData()[i];
-    auto from_cl = ((float *)gpu_dst)[i];
+  const int dim = width * height;
 
-    std::cout << "CL : " << from_cl << " REF : " << from_ref << std::endl;
+  const int batch_b = 1;
+
+  const float alpha = 1e-1;
+  const int MOD = 10;
+
+  nntrainer::init_backend();
+
+  auto *blas_cc = static_cast<nntrainer::ClContext *>(
+    nntrainer::Engine::Global().getRegisteredContext("gpu"));
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::Tensor A_fp32(batch, channel, height, width, t_type_nchw_fp32);
+  nntrainer::Tensor B_fp32(batch_b, channel, height, width, t_type_nchw_fp32);
+  nntrainer::Tensor out_ref_fp32(batch, channel, height, width,
+                                 t_type_nchw_fp32);
+
+  GEN_TEST_INPUT(A_fp32, ((i * (batch * height * channel) +
+                           j * (batch * height) + k * (width) + l + 1) %
+                          MOD) *
+                           alpha);
+  GEN_TEST_INPUT_C(B_fp32, ((i * (batch_b * height * channel) +
+                             j * (batch_b * height) + k * (width) + l + 1) %
+                            MOD) *
+                             alpha);
+
+  void *gpu_in1 =
+    blas_cc->context_inst_.createSVMRegion(2 * dim * sizeof(float));
+  void *gpu_dst = blas_cc->context_inst_.createSVMRegion(dim * sizeof(float));
+
+  blas_cc->command_queue_inst_.enqueueSVMMap(gpu_in1, 2 * dim * sizeof(float),
+                                             false);
+
+  std::memcpy(gpu_in1, A_fp32.getData(), dim * sizeof(float));
+  std::memcpy((char*)(gpu_in1) + dim * sizeof(float), B_fp32.getData(),
+              dim * sizeof(float));
+
+  static constexpr uint32_t run_count = 8;
+
+  SwiGLULayerCl layer;
+
+  auto t1_cl = std::chrono::high_resolution_clock::now();
+  for (unsigned int i = 0; i < run_count; ++i) {
+    layer.swiglu_combined_cl((float *)gpu_in1, (float *)gpu_dst, width, height,
+                             true);
   }
+  auto t2_cl = std::chrono::high_resolution_clock::now();
 
-  std::cout << "BRK" << std::endl;
-
-  for (uint32_t i = 0; i < print_count; i++) {
-    auto from_ref = (float)out_ref_fp32.getData()[height * width - 1 - i];
-    auto from_cl = (float)((float *)gpu_dst)[height * width - 1 - i];
-
-    std::cout << "CL : " << from_cl << " REF : " << from_ref << std::endl;
+  auto t1_ref = std::chrono::high_resolution_clock::now();
+  for (unsigned int i = 0; i < run_count; ++i) {
+    __fallback_swiglu(height * width, out_ref_fp32.getData(), A_fp32.getData(),
+                      B_fp32.getData());
   }
+  auto t2_ref = std::chrono::high_resolution_clock::now();
+
+  auto dt_cl =
+    std::chrono::duration_cast<std::chrono::milliseconds>(t2_cl - t1_cl);
+  auto dt_ref =
+    std::chrono::duration_cast<std::chrono::milliseconds>(t2_ref - t1_ref);
+
+  std::cout << "Swiglu time : GPU = " << dt_cl.count() / (run_count * 1.0f)
+            << " ms" << std::endl;
+
+  std::cout << "Swiglu time : CPU = " << dt_ref.count() / (run_count * 1.0f)
+            << " ms" << std::endl;
+
+  float mseError =
+    mse<float>((float *)gpu_dst, out_ref_fp32.getData<float>(), height * width);
+
+  double cosSim = cosine_similarity<float>(
+    (float *)gpu_dst, out_ref_fp32.getData<float>(), height * width);
+
+  const float epsilon = 1e-3 * width;
+
+  EXPECT_IN_RANGE(mseError, 0, epsilon);
+  EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
 }
 
 GTEST_API_ int main(int argc, char **argv) {

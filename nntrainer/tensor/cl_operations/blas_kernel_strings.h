@@ -46,6 +46,8 @@ const std::string &getTransposeClKernelAxis1();
 
 const std::string &getTransposeClKernelAxis2();
 
+const std::string &getSwiGluCombinedClKernel();
+
 const std::string &getSwiGluClKernel();
 
 const std::string &getCopyClKernel();
