@@ -206,7 +206,8 @@ void multiplyCl(Tensor &input, float const &value) {
   }
 }
 
-void add_i_cl(Tensor &result, Tensor const &input) {
+void add_i_cl(Tensor &result, Tensor const &input,
+              const cl_event *event_wait_list, cl_event *event) {
 
   NNTR_THROW_IF(input.getData() == nullptr, std::invalid_argument)
     << input.getName() << " is not allocated";
@@ -227,7 +228,7 @@ void add_i_cl(Tensor &result, Tensor const &input) {
       const auto *data_input = input.getData<float>();
       auto *data_res = result.getData<float>();
       addition_cl(data_input, data_res, size_input, size_res,
-                  input.useSVM() && result.useSVM());
+                  input.useSVM() && result.useSVM(), event_wait_list, event);
     } else if (result.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
       const auto *data_input = input.getData<_FP16>();

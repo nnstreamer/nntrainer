@@ -14,6 +14,7 @@
 #ifndef __BLAS_KERNEL_INTERFACE_H__
 #define __BLAS_KERNEL_INTERFACE_H__
 
+#include "CL/cl.h"
 #include <string>
 #include <tensor.h>
 
@@ -67,7 +68,9 @@ void multiplyCl(Tensor &input, float const &value);
  * @param[in] result Tensor
  * @param[in] input Tensor
  */
-void add_i_cl(Tensor &result, Tensor const &input);
+void add_i_cl(Tensor &result, Tensor const &input,
+              const cl_event *event_wait_list = nullptr,
+              cl_event *event = nullptr);
 
 /**
  * @brief Process data and dimensions for transpose operation

@@ -96,6 +96,12 @@ public:
     nntrainer::RunLayerContext &context,
     std::vector<nntrainer::TensorDim> input_dimensions) override;
 
+  void forwardingAsync(RunLayerContext &context, bool training,
+                       const cl_event *event_wait_list = nullptr,
+                       cl_event *event = nullptr) override;
+
+  bool runAsync() override;
+
   std::tuple<props::Print>
     add_props; /**< fc layer properties : unit - number of output neurons */
 

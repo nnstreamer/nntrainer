@@ -794,7 +794,12 @@ void LayerNode::forwarding(bool training) {
     }
   }
 
-  layer->forwarding(*run_context, training);
+  if (layer->runAsync()) {
+    // TODO pass events here
+    layer->forwardingAsync(*run_context, training);
+  } else {
+    layer->forwarding(*run_context, training);
+  }
   reStoreData(false);
   PROFILE_TIME_END(forward_event_key);
   TRACE_MEMORY() << getName() + ": F";

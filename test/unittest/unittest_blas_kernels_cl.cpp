@@ -15,6 +15,7 @@
 #include <utility>
 
 #include "fallback_internal.h"
+#include "input_layer.h"
 #include "nntrainer_test_util.h"
 #include "swiglu_cl.h"
 #include "tensor_dim.h"
@@ -437,6 +438,69 @@ TEST(blas_kernels, dot_gemm_50_768_2048_transAB) {
 
   EXPECT_IN_RANGE(mseError, 0, epsilon);
   EXPECT_IN_RANGE(cosSim, 0.99, 1);
+}
+
+TEST(blas_kernels, asynch_execution) {
+  bool result = true;
+
+  auto cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+
+  auto model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
+
+  model->addLayer(ml::train::createLayer(
+    "input", {nntrainer::withKey("name", "input0"),
+              nntrainer::withKey("input_shape", "1:1:1:16")}));
+
+  model->addLayer(ml::train::createLayer(
+    "input", {nntrainer::withKey("name", "input1"),
+              nntrainer::withKey("input_shape", "1:1:1:16")}));
+
+  model->addLayer(ml::train::layer::Addition(
+    {nntrainer::withKey("name", "addition"),
+     nntrainer::withKey("input_layers", {"input0", "input1"}),
+     nntrainer::withKey("input_shape", {"1:1:1:16", "1:1:1:16"})}));
+
+  model->setProperty({nntrainer::withKey("batch_size", 1),
+                      nntrainer::withKey("epochs", 1),
+                      nntrainer::withKey("fsu", "false"),
+                      nntrainer::withKey("model_tensor_type", "FP32-FP32")});
+
+  int status = model->compile(ml::train::ExecutionMode::INFERENCE);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = model->initialize(ml::train::ExecutionMode::INFERENCE);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  float input0[16];
+  float input1[16];
+
+  for (unsigned int i = 0; i < 16; ++i) {
+    input0[i] = i;
+    input1[i] = i;
+  }
+
+  std::vector<float *> in;
+  std::vector<float *> ans;
+
+  in.push_back(input0);
+  in.push_back(input1);
+
+  ans = model->inference(1, in);
+
+  std::cout << "size: " << ans.size() << std::endl;
+  // std::cout << *ans[0] << std::endl;
+  // std::cout << *(ans[0] + 1) << std::endl;
+
+  auto ans_ptr = ans[0];
+  for (int i = 0; i < 16; ++i) {
+    std::cout << *(ans_ptr + i) << std::endl;
+  }
+
+  in.clear();
+  ans.clear();
+
+  EXPECT_EQ(result, true);
 }
 
 TEST(blas_kernels, addition_i) {

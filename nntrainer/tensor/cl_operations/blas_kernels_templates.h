@@ -256,10 +256,10 @@ sgemm_cl_internal(ClContext::SharedPtrClKernel kernel, bool TransA, bool TransB,
 }
 
 template <typename T>
-inline static void
-addition_cl_internal(ClContext::SharedPtrClKernel kernel, const T *input,
-                     T *res, unsigned int size_input, unsigned int size_res,
-                     const bool use_svm) {
+inline static void addition_cl_internal(
+  ClContext::SharedPtrClKernel kernel, const T *input, T *res,
+  unsigned int size_input, unsigned int size_res, const bool use_svm,
+  const cl_event *event_wait_list = nullptr, cl_event *event = nullptr) {
   bool result = false;
 
   auto cl_context =
@@ -317,13 +317,20 @@ addition_cl_internal(ClContext::SharedPtrClKernel kernel, const T *input,
   }
 
   std::array<size_t, 3> global_work_size = {size_res, 1, 1};
-  cl_event addition_wait;
 
-  cl_context->command_queue_inst_.enqueueKernel(
-    kernel->GetKernel(), global_work_size.size(), global_work_size.data(),
-    nullptr, 0, nullptr, &addition_wait);
-  cl_context->command_queue_inst_.waitForEvent(1, &addition_wait);
-  cl_context->command_queue_inst_.releaseEvent(addition_wait);
+  if (event != nullptr) {
+    cl_context->command_queue_inst_.enqueueKernel(
+      kernel->GetKernel(), global_work_size.size(), global_work_size.data(),
+      nullptr, 0, event_wait_list, event);
+  } else {
+    cl_event addition_wait;
+
+    cl_context->command_queue_inst_.enqueueKernel(
+      kernel->GetKernel(), global_work_size.size(), global_work_size.data(),
+      nullptr, 0, nullptr, &addition_wait);
+    cl_context->command_queue_inst_.waitForEvent(1, &addition_wait);
+    cl_context->command_queue_inst_.releaseEvent(addition_wait);
+  }
 
   if (!use_svm) {
     auto &clbuffInstance = ClBufferManager::Global();

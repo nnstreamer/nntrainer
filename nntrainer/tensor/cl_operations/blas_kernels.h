@@ -100,7 +100,9 @@ void sgemm_cl(bool TransA, bool TransB, const float *A, const float *B,
  * @param[in] size_res number of elements in result vector
  */
 void addition_cl(const float *input, float *res, unsigned int size_input,
-                 unsigned int size_res, const bool use_svm);
+                 unsigned int size_res, const bool use_svm,
+                 const cl_event *event_wait_list = nullptr,
+                 cl_event *event = nullptr);
 
 /**
  * @brief rmsnorm each row of the tensor

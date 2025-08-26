@@ -27,6 +27,7 @@
 #include <string>
 #include <vector>
 
+#include "CL/cl.h"
 #include <base_properties.h>
 #include <common.h>
 #include <layer_context.h>
@@ -472,6 +473,12 @@ public:
       }
     }
   }
+
+  virtual void forwardingAsync(RunLayerContext &context, bool training,
+                               const cl_event *event_wait_list = nullptr,
+                               cl_event *event = nullptr){};
+
+  virtual bool runAsync() { return false; }
 
 protected:
   bool is_inplace = false; /**< whether this layer is in-place or not */
