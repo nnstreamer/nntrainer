@@ -189,6 +189,7 @@ protected:
   unsigned int TOP_K;
   float TOP_P;
   unsigned int SLIDING_WINDOW = UINT_MAX;
+  unsigned int SLIDING_WINDOW_PATTERN = 5;
   unsigned int ROPE_THETA = 10000; /**< RoPE theta value */
   float NORM_EPS = 1e-5;           /**< RMSNorm epsilon value */
   int GQA_SIZE;
