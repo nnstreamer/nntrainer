@@ -33,15 +33,25 @@ bool SwiGLULayerCl::registerClKernels(ClContext &cl_context) {
 
   do {
     ClContext::SharedPtrClKernel kernel_swiglu_ptr = nullptr;
+    ClContext::SharedPtrClKernel kernel_swiglu_combined_ptr = nullptr;
 
     kernel_swiglu_ptr =
       cl_context.registerClKernel(getSwiGluClKernel(), "swiglu_cl");
+
+    kernel_swiglu_combined_ptr = cl_context.registerClKernel(
+      getSwiGluCombinedClKernel(), "swiglu_combined_cl");
 
     if (!kernel_swiglu_ptr) {
       ml_loge("OpenCL Error: Fail to register swiglu_cl kernel");
       break;
     }
+
+    if (!kernel_swiglu_combined_ptr) {
+      ml_loge("OpenCL Error: Fail to register swiglu_combined_cl kernel");
+      break;
+    }
     layer_kernel_ptrs.emplace_back(kernel_swiglu_ptr);
+    layer_kernel_ptrs.emplace_back(kernel_swiglu_combined_ptr);
 
 #ifdef ENABLE_FP16
     kernel_swiglu_ptr =
@@ -172,11 +182,11 @@ void SwiGLULayerCl::swiglu_cl(float *matAdata, float *vecXdata, float *vecYdata,
     }
 
     // NOTE(mwlasiuk) : local size can not be larger than global
-    const int32_t desired_local = 64;
+    const int32_t desired_local = 32;
     const bool can_use_desired = dim >= desired_local;
     const int32_t chosen_local = can_use_desired ? desired_local : dim;
 
-    const int work_groups_count[3] = {dim, 1, 1};
+    const int work_groups_count[3] = {dim / 8, 1, 1};
     /// @todo: create a group size by device & input
     const int work_group_size[3] = {chosen_local, 1, 1}; // test-value
 
@@ -192,6 +202,99 @@ void SwiGLULayerCl::swiglu_cl(float *matAdata, float *vecXdata, float *vecYdata,
             vecYdata)) {
         break;
       }
+    } else {
+      if (!global_cl_context->command_queue_inst_.enqueueSVMMap(
+            vecYdata, dim * sizeof(float), true)) {
+        ml_loge("Failed to unmap svm");
+        break;
+      }
+    }
+
+  } while (false);
+}
+
+void SwiGLULayerCl::swiglu_combined_cl(float *matAdata, float *vecYdata,
+                                       unsigned int dim1, unsigned int dim2,
+                                       bool svm) {
+  auto *global_cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
+  do {
+    const auto &kernel_swiglu_ptr =
+      getLayerKernelPtrs()[Kernels::SWIGLU_COMBINED_CL];
+    uint32_t dim = uint32_t(dim1 * dim2);
+
+    if (!svm) {
+      // bool write_result = true;
+      //
+      // write_result &= clbuffInstance.getInBufferA()->WriteDataRegion(
+      //   global_cl_context->command_queue_inst_, dim * sizeof(float),
+      //   matAdata);
+      // write_result &= clbuffInstance.getInBufferB()->WriteDataRegion(
+      //   global_cl_context->command_queue_inst_, dim * sizeof(float),
+      //   vecXdata);
+      // if (!write_result) {
+      //   break;
+      // }
+      //
+      // auto bufferInA = clbuffInstance.getInBufferA()->GetBuffer();
+      // auto bufferInB = clbuffInstance.getInBufferB()->GetBuffer();
+      // auto bufferOutA = clbuffInstance.getOutBufferA()->GetBuffer();
+      //
+      // bool set_result = true;
+      // set_result &=
+      //   kernel_swiglu_ptr->SetKernelArguments(0, &bufferInA, sizeof(cl_mem));
+      // set_result &=
+      //   kernel_swiglu_ptr->SetKernelArguments(1, &bufferInB, sizeof(cl_mem));
+      // set_result &=
+      //   kernel_swiglu_ptr->SetKernelArguments(2, &bufferOutA,
+      //   sizeof(cl_mem));
+      // if (!set_result) {
+      //   break;
+      // }
+    } else {
+      bool map_result = true;
+      map_result &=
+        global_cl_context->command_queue_inst_.enqueueSVMUnmap(matAdata);
+      if (!map_result) {
+        ml_loge("Failed to map svm");
+        break;
+      }
+
+      uint32_t offset_elements = dim;
+
+      bool set_svm_result = true;
+      set_svm_result &= kernel_swiglu_ptr->SetKernelSVMArguments(0, matAdata);
+      set_svm_result &= kernel_swiglu_ptr->SetKernelSVMArguments(1, vecYdata);
+      set_svm_result &= kernel_swiglu_ptr->SetKernelArguments(2, &offset_elements, sizeof(uint32_t));
+      if (!set_svm_result) {
+        ml_loge("Failed to set svm");
+        break;
+      }
+    }
+
+    // NOTE(mwlasiuk) : local size can not be larger than global
+    const int32_t desired_local = 32;
+    const bool can_use_desired = dim >= desired_local;
+    const int32_t chosen_local = can_use_desired ? desired_local : dim;
+
+    const int work_groups_count[3] = {dim / 8, 1, 1};
+    /// @todo: create a group size by device & input
+    const int work_group_size[3] = {chosen_local, 1, 1}; // test-value
+
+    if (!global_cl_context->command_queue_inst_.DispatchCommand(
+          kernel_swiglu_ptr, work_groups_count, work_group_size)) {
+      ml_loge("Failed to run");
+      break;
+    }
+
+    if (!svm) {
+      // if (!clbuffInstance.getOutBufferA()->ReadDataRegion(
+      //       global_cl_context->command_queue_inst_, dim * sizeof(float),
+      //       vecYdata)) {
+      //   break;
+      // }
     } else {
       if (!global_cl_context->command_queue_inst_.enqueueSVMMap(
             vecYdata, dim * sizeof(float), true)) {
@@ -252,7 +355,7 @@ void SwiGLULayerCl::swiglu_cl_fp16(_FP16 *matAdata, _FP16 *vecXdata,
     const bool can_use_desired = dim >= desired_local;
     const int32_t chosen_local = can_use_desired ? desired_local : dim;
 
-    const int work_groups_count[3] = {dim, 1, 1};
+    const int work_groups_count[3] = {dim / 8, 1, 1};
     /// @todo: create a group size by device & input
     const int work_group_size[3] = {chosen_local, 1, 1}; // test-value
 

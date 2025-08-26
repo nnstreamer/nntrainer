@@ -99,6 +99,9 @@ public:
    */
   void swigluProcess(Tensor const &in1, Tensor const &in2, Tensor &result);
 
+  void swiglu_combined_cl(float *matAdata, float *vecYdata, unsigned int dim1,
+                          unsigned int dim2, bool svm);
+
   /**
    * @brief     swiglu computation
    * @param[in] matAdata float * for Input Vector A
@@ -134,7 +137,11 @@ private:
 
   static std::vector<ClContext::SharedPtrClKernel> &getLayerKernelPtrs();
 
-  enum Kernels { SWIGLU_CL, SWIGLU_CL_FP16 }; /** kernels enum */
+  enum Kernels {
+    SWIGLU_CL,
+    SWIGLU_COMBINED_CL,
+    SWIGLU_CL_FP16
+  }; /** kernels enum */
 };
 
 } // namespace nntrainer
