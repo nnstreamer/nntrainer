@@ -120,11 +120,6 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
   /// @todo synchronize when only needed
   blas_cc->command_queue_inst_.enqueueSVMMap(matCdata, M * N * sizeof(float),
                                              true);
-  if (!result) {
-    throw std::runtime_error(
-      "Failed to read output data for kernel_mul_mat_Ab_Bi_8x4");
-    return;
-  }
 }
 
 void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
@@ -146,17 +141,8 @@ void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
 
   const size_t q6k_bytes = 210 * M * N / 256;
 
-  result = blas_cc->command_queue_inst_.enqueueSVMUnmap(matAdata);
-  if (!result) {
-    ml_loge("Failed to write data to input buffer A for kernel_q6_k_sgemv_ptr");
-    return;
-  }
-
-  result = blas_cc->command_queue_inst_.enqueueSVMUnmap(vecXdata);
-  if (!result) {
-    ml_loge("Failed to write data to input buffer B for kernel_q6_k_sgemv_ptr");
-    return;
-  }
+  blas_cc->command_queue_inst_.enqueueSVMUnmap(matAdata);
+  blas_cc->command_queue_inst_.enqueueSVMUnmap(vecXdata);
 
   int ne00 = M; // number of rows in matrix X
   int ne01 = N; // number of columns in matrix X
@@ -302,15 +288,7 @@ void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
     return;
   }
 
-  result = blas_cc->command_queue_inst_.enqueueSVMMap(vecYdata,
-                                                      N * sizeof(float), true);
-
-  if (!result) {
-    ml_loge(
-      "Failed to read data from the output buffer for kernel_q6_k_sgemv_ptr");
-
-    return;
-  }
+  blas_cc->command_queue_inst_.enqueueSVMMap(vecYdata, N * sizeof(float), true);
 }
 
 void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,

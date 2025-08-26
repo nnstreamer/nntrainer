@@ -16,6 +16,7 @@
 #include "opencl_context_manager.h"
 #include "opencl_loader.h"
 
+#include <nntrainer_error.h>
 #include <nntrainer_log.h>
 
 namespace nntrainer::opencl {
@@ -283,7 +284,7 @@ bool CommandQueueManager::EnqueueUnmapMemObject(cl_mem buffer, void *mapped_ptr,
   return true;
 }
 
-bool CommandQueueManager::enqueueSVMMap(void *svm_ptr, size_t size,
+void CommandQueueManager::enqueueSVMMap(void *svm_ptr, size_t size,
                                         bool read_only, cl_event *event) {
   // managing read/write flags
   const cl_map_flags map_flag = read_only ? CL_MAP_READ : CL_MAP_WRITE;
@@ -291,27 +292,24 @@ bool CommandQueueManager::enqueueSVMMap(void *svm_ptr, size_t size,
   cl_int error_code = clEnqueueSVMMap(command_queue_, CL_TRUE, map_flag,
                                       svm_ptr, size, 0, nullptr, nullptr);
 
-  if (error_code != CL_SUCCESS) {
-    ml_loge(
-      "Failed to map SVM memory (clEnqueueSVMMap). OpenCL error code: %d : %s",
-      error_code, OpenCLErrorCodeToString(error_code));
-    return false;
-  }
-  return true;
+  NNTR_THROW_IF(error_code != CL_SUCCESS, std::runtime_error)
+    << "clEnqueueSVMMap failed. OpenCL error code: " << error_code
+    << ", error: " << OpenCLErrorCodeToString(error_code);
+
+  // std::cout << "clEnqueueSVMMap: 0x" << std::hex << svm_ptr
+  //           << ", size: " << std::dec << size << std::endl;
 }
 
-bool CommandQueueManager::enqueueSVMUnmap(void *svm_ptr, cl_event *event) {
+void CommandQueueManager::enqueueSVMUnmap(void *svm_ptr, cl_event *event) {
   cl_int error_code =
     clEnqueueSVMUnmap(command_queue_, svm_ptr, 0, nullptr, event);
 
-  if (error_code != CL_SUCCESS) {
-    ml_loge(
-      "Failed to unmap SVM memory (clEnqueueSVMUnmap). OpenCL error code: "
-      "%d : %s",
-      error_code, OpenCLErrorCodeToString(error_code));
-    return false;
-  }
-  return true;
+  NNTR_THROW_IF(error_code != CL_SUCCESS, std::runtime_error)
+    << "clEnqueueSVMUnmap failed. OpenCL error code: " << error_code
+    << ", error: " << OpenCLErrorCodeToString(error_code);
+
+  // std::cout << "clEnqueueSVMUnmap: 0x" << std::hex << svm_ptr << std::dec
+  //           << std::endl;
 }
 
 /**
@@ -386,7 +384,7 @@ bool CommandQueueManager::DispatchCommand(
   return true;
 }
 
-bool CommandQueueManager::enqueueKernel(const cl_kernel kernel,
+void CommandQueueManager::enqueueKernel(const cl_kernel kernel,
                                         const cl_uint work_dim,
                                         const size_t *global_work_size,
                                         const size_t *local_work_size,
@@ -398,24 +396,26 @@ bool CommandQueueManager::enqueueKernel(const cl_kernel kernel,
     command_queue_, kernel, work_dim, nullptr, global_work_size,
     local_work_size, num_events_in_wait_list, event_wait_list, event);
 
-  if (error_code != CL_SUCCESS) {
-    ml_loge("clEnqueueNDRangeKernel failed. OpenCL error code: %d", error_code);
-    return false;
-  }
-
-  return true;
+  NNTR_THROW_IF(error_code != CL_SUCCESS, std::runtime_error)
+    << "clEnqueueNDRangeKernel failed. OpenCL error code: " << error_code
+    << ", error: " << OpenCLErrorCodeToString(error_code);
 }
 
-bool CommandQueueManager::waitForEvent(cl_uint num_events,
+void CommandQueueManager::waitForEvent(cl_uint num_events,
                                        const cl_event *event_list) {
   const auto error_code = clWaitForEvents(num_events, event_list);
 
-  if (error_code != CL_SUCCESS) {
-    ml_loge("clWaitForEvents failed. OpenCL error code: %d", error_code);
-    return false;
-  }
+  NNTR_THROW_IF(error_code != CL_SUCCESS, std::runtime_error)
+    << "clWaitForEvents failed. OpenCL error code: " << error_code
+    << ", error: " << OpenCLErrorCodeToString(error_code);
+}
 
-  return true;
+void CommandQueueManager::releaseEvent(cl_event event) {
+  const auto error_code = clReleaseEvent(event);
+
+  NNTR_THROW_IF(error_code != CL_SUCCESS, std::runtime_error)
+    << "clReleaseEvent failed. OpenCL error code: " << error_code
+    << ", error: " << OpenCLErrorCodeToString(error_code);
 }
 
 } // namespace nntrainer::opencl

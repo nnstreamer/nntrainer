@@ -114,7 +114,7 @@ void addition_cl(const float *input, float *res, unsigned int size_input,
  */
 void rmsnorm_cl(const float *input, const float *gamma, float *result,
                 const float epsilon, unsigned int height, unsigned int width,
-                const bool use_svm = false);
+                const bool use_svm);
 
 /**
  * @brief     sscal value element by element immediately
