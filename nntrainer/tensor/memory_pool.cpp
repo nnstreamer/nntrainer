@@ -168,17 +168,20 @@ void MemoryPool::allocate() {
 #else
 
 #ifdef ENABLE_OPENCL
-  auto *cl_context =
+  auto cl_context =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  mem_pool = cl_context->context_inst_.createSVMRegion(pool_size);
 
-  if (mem_pool == nullptr) {
-    throw std::runtime_error("Failed to allocate SVM memory pool of size " +
-                             std::to_string(pool_size) + " bytes");
+  memory_ptrs.resize(memory_size.size(), nullptr);
+
+  for (size_t i = 0; i < memory_size.size(); ++i) {
+    memory_ptrs[i] = cl_context->context_inst_.createSVMRegion(memory_size[i]);
+    memory_offset[i] = 0;
   }
+
+  // Make mem_pool not null
+  mem_pool = calloc(1, 1);
 #else
   mem_pool = calloc(pool_size, 1);
-#endif
 
   unsigned int idx = 1;
   for (auto &s : memory_offset) {
@@ -186,6 +189,8 @@ void MemoryPool::allocate() {
     memory_ptrs.push_back(ptr);
     idx++;
   }
+#endif
+
 #endif
 
 #ifdef PROFILE
@@ -252,22 +257,19 @@ void MemoryPool::allocateFSU() {
  */
 std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
 
-  bool use_svm = false;
+#if not defined(__ANDROID__)
+  if (mem_pool == nullptr)
+    throw std::invalid_argument("Getting memory before allocation");
+#endif
 
+  bool use_svm = false;
 #ifdef ENABLE_OPENCL
   use_svm = true;
 #endif
 
-#if defined(__ANDROID__)
   auto mem_data =
     std::make_shared<MemoryData>((void *)memory_ptrs.at(idx - 1), use_svm);
-#else
-  if (mem_pool == nullptr)
-    throw std::invalid_argument("Getting memory before allocation");
 
-  auto mem_data =
-    std::make_shared<MemoryData>((void *)memory_ptrs.at(idx - 1), use_svm);
-#endif
   return mem_data;
 }
 
@@ -277,13 +279,17 @@ std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
  */
 void MemoryPool::deallocate() {
   if (mem_pool != nullptr) {
-#ifdef ENABLE_OPENCL
-    auto *cl_context =
-      static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-    cl_context->context_inst_.releaseSVMRegion(mem_pool);
-#else
     free(mem_pool);
+
+#ifdef ENABLE_OPENCL
+    auto cl_context =
+      static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+
+    for (auto mem_ptr : memory_ptrs) {
+      cl_context->context_inst_.releaseSVMRegion(mem_ptr);
+    }
 #endif
+
     memory_size.clear();
     memory_validity.clear();
     memory_exec_order.clear();
@@ -295,6 +301,7 @@ void MemoryPool::deallocate() {
 
     memory_ptrs.clear();
   }
+
   mem_pool = nullptr;
 }
 

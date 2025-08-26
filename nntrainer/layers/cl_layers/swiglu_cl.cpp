@@ -102,7 +102,8 @@ void SwiGLULayerCl::swigluProcess(Tensor const &in1, Tensor const &in2,
     float *data1 = in1.getData();
     float *data2 = in2.getData();
     float *rdata = result.getData();
-    swiglu_cl(data1, data2, rdata, dim1, dim2);
+    swiglu_cl(data1, data2, rdata, dim1, dim2,
+              in1.useSVM() && in2.useSVM() && result.useSVM());
   } else if (in1.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
     _FP16 *data1 = in1.getData<_FP16>();
@@ -116,91 +117,64 @@ void SwiGLULayerCl::swigluProcess(Tensor const &in1, Tensor const &in2,
 }
 
 void SwiGLULayerCl::swiglu_cl(float *matAdata, float *vecXdata, float *vecYdata,
-                              unsigned int dim1, unsigned int dim2, bool svm) {
-  auto *global_cl_context =
+                              unsigned int dim1, unsigned int dim2,
+                              const bool use_svm) {
+  auto cl_context =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
 
-  do {
-    const auto &kernel_swiglu_ptr = getLayerKernelPtrs()[Kernels::SWIGLU_CL];
-    int dim = int(dim1 * dim2);
+  const auto &kernel = getLayerKernelPtrs()[Kernels::SWIGLU_CL];
+  const size_t dim = dim1 * dim2;
 
-    if (!svm) {
-      bool write_result = true;
+  if (!use_svm) {
+    bool write_result = true;
+    auto &clbuffInstance = ClBufferManager::Global();
 
-      write_result &= clbuffInstance.getInBufferA()->WriteDataRegion(
-        global_cl_context->command_queue_inst_, dim * sizeof(float), matAdata);
-      write_result &= clbuffInstance.getInBufferB()->WriteDataRegion(
-        global_cl_context->command_queue_inst_, dim * sizeof(float), vecXdata);
-      if (!write_result) {
-        break;
-      }
-
-      auto bufferInA = clbuffInstance.getInBufferA()->GetBuffer();
-      auto bufferInB = clbuffInstance.getInBufferB()->GetBuffer();
-      auto bufferOutA = clbuffInstance.getOutBufferA()->GetBuffer();
-
-      bool set_result = true;
-      set_result &=
-        kernel_swiglu_ptr->SetKernelArguments(0, &bufferInA, sizeof(cl_mem));
-      set_result &=
-        kernel_swiglu_ptr->SetKernelArguments(1, &bufferInB, sizeof(cl_mem));
-      set_result &=
-        kernel_swiglu_ptr->SetKernelArguments(2, &bufferOutA, sizeof(cl_mem));
-      if (!set_result) {
-        break;
-      }
-    } else {
-      bool map_result = true;
-      map_result &=
-        global_cl_context->command_queue_inst_.enqueueSVMUnmap(matAdata);
-      map_result &=
-        global_cl_context->command_queue_inst_.enqueueSVMUnmap(vecXdata);
-      if (!map_result) {
-        ml_loge("Failed to map svm");
-        break;
-      }
-
-      bool set_svm_result = true;
-      set_svm_result &= kernel_swiglu_ptr->SetKernelSVMArguments(0, matAdata);
-      set_svm_result &= kernel_swiglu_ptr->SetKernelSVMArguments(1, vecXdata);
-      set_svm_result &= kernel_swiglu_ptr->SetKernelSVMArguments(2, vecYdata);
-      if (!set_svm_result) {
-        ml_loge("Failed to set svm");
-        break;
-      }
+    write_result &= clbuffInstance.getInBufferA()->WriteDataRegion(
+      cl_context->command_queue_inst_, dim * sizeof(float), matAdata);
+    write_result &= clbuffInstance.getInBufferB()->WriteDataRegion(
+      cl_context->command_queue_inst_, dim * sizeof(float), vecXdata);
+    if (!write_result) {
+      return;
     }
 
-    // NOTE(mwlasiuk) : local size can not be larger than global
-    const int32_t desired_local = 64;
-    const bool can_use_desired = dim >= desired_local;
-    const int32_t chosen_local = can_use_desired ? desired_local : dim;
+    auto bufferInA = clbuffInstance.getInBufferA()->GetBuffer();
+    auto bufferInB = clbuffInstance.getInBufferB()->GetBuffer();
+    auto bufferOutA = clbuffInstance.getOutBufferA()->GetBuffer();
 
-    const int work_groups_count[3] = {dim, 1, 1};
-    /// @todo: create a group size by device & input
-    const int work_group_size[3] = {chosen_local, 1, 1}; // test-value
-
-    if (!global_cl_context->command_queue_inst_.DispatchCommand(
-          kernel_swiglu_ptr, work_groups_count, work_group_size)) {
-      ml_loge("Failed to run");
-      break;
+    bool set_result = true;
+    set_result &= kernel->SetKernelArguments(0, &bufferInA, sizeof(cl_mem));
+    set_result &= kernel->SetKernelArguments(1, &bufferInB, sizeof(cl_mem));
+    set_result &= kernel->SetKernelArguments(2, &bufferOutA, sizeof(cl_mem));
+    if (!set_result) {
+      return;
     }
-
-    if (!svm) {
-      if (!clbuffInstance.getOutBufferA()->ReadDataRegion(
-            global_cl_context->command_queue_inst_, dim * sizeof(float),
-            vecYdata)) {
-        break;
-      }
-    } else {
-      if (!global_cl_context->command_queue_inst_.enqueueSVMMap(
-            vecYdata, dim * sizeof(float), true)) {
-        ml_loge("Failed to unmap svm");
-        break;
-      }
+  } else {
+    bool set_svm_result = true;
+    set_svm_result &= kernel->SetKernelSVMArguments(0, matAdata);
+    set_svm_result &= kernel->SetKernelSVMArguments(1, vecXdata);
+    set_svm_result &= kernel->SetKernelSVMArguments(2, vecYdata);
+    if (!set_svm_result) {
+      ml_loge("Failed to set svm");
+      return;
     }
+  }
 
-  } while (false);
+  std::array<size_t, 3> global_work_size = {dim, 1, 1};
+  cl_event swiglu_wait;
+
+  cl_context->command_queue_inst_.enqueueKernel(
+    kernel->GetKernel(), global_work_size.size(), global_work_size.data(),
+    nullptr, 0, nullptr, &swiglu_wait);
+  cl_context->command_queue_inst_.waitForEvent(1, &swiglu_wait);
+  cl_context->command_queue_inst_.releaseEvent(swiglu_wait);
+
+  if (!use_svm) {
+    auto &clbuffInstance = ClBufferManager::Global();
+    if (!clbuffInstance.getOutBufferA()->ReadDataRegion(
+          cl_context->command_queue_inst_, dim * sizeof(float), vecYdata)) {
+      return;
+    }
+  }
 }
 
 #ifdef ENABLE_FP16

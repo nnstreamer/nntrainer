@@ -1964,6 +1964,14 @@ public:
    */
   bool isValid() const { return itensor_->isValid(); };
 
+  /**
+   * @brief   Check if tensor memory was allocated by OpenCL SVM
+   *
+   * @return  true if memory allocated by OpenCL SVM, false otherwise
+   *
+   */
+  bool useSVM() const { return getMemoryData()->useSVM(); }
+
   static constexpr float epsilon = 1e-5f;
 
 private:

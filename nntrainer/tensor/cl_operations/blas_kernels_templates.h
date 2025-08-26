@@ -262,7 +262,7 @@ addition_cl_internal(ClContext::SharedPtrClKernel kernel, const T *input,
                      const bool use_svm) {
   bool result = false;
 
-  auto *blas_cc =
+  auto cl_context =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
 
   size_t dim1_size = sizeof(T) * size_input;
@@ -281,13 +281,13 @@ addition_cl_internal(ClContext::SharedPtrClKernel kernel, const T *input,
   } else {
     auto &clbuffInstance = ClBufferManager::Global();
     result = clbuffInstance.getInBufferA()->WriteDataRegion(
-      blas_cc->command_queue_inst_, dim1_size, input);
+      cl_context->command_queue_inst_, dim1_size, input);
     if (!result) {
       return;
     }
 
     result = clbuffInstance.getOutBufferA()->WriteDataRegion(
-      blas_cc->command_queue_inst_, dim2_size, res);
+      cl_context->command_queue_inst_, dim2_size, res);
     if (!result) {
       return;
     }
@@ -319,20 +319,16 @@ addition_cl_internal(ClContext::SharedPtrClKernel kernel, const T *input,
   std::array<size_t, 3> global_work_size = {size_res, 1, 1};
   cl_event addition_wait;
 
-  result = blas_cc->command_queue_inst_.enqueueKernel(
+  cl_context->command_queue_inst_.enqueueKernel(
     kernel->GetKernel(), global_work_size.size(), global_work_size.data(),
     nullptr, 0, nullptr, &addition_wait);
-
-  if (!result) {
-    return;
-  }
-
-  blas_cc->command_queue_inst_.waitForEvent(1, &addition_wait);
+  cl_context->command_queue_inst_.waitForEvent(1, &addition_wait);
+  cl_context->command_queue_inst_.releaseEvent(addition_wait);
 
   if (!use_svm) {
     auto &clbuffInstance = ClBufferManager::Global();
     result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-      blas_cc->command_queue_inst_, dim2_size, res);
+      cl_context->command_queue_inst_, dim2_size, res);
 
     if (!result) {
       return;
@@ -351,7 +347,7 @@ inline static void rmsnorm_cl_internal(ClContext::SharedPtrClKernel kernel,
   unsigned size_in = dim_in * sizeof(T);
   unsigned size_gamma = dim_gamma * sizeof(T);
 
-  auto *blas_cc =
+  auto cl_context =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
 
   if (use_svm) {
@@ -367,11 +363,11 @@ inline static void rmsnorm_cl_internal(ClContext::SharedPtrClKernel kernel,
   } else {
     auto &clbuffInstance = ClBufferManager::Global();
     if (!clbuffInstance.getInBufferA()->WriteDataRegion(
-          blas_cc->command_queue_inst_, size_in, input)) {
+          cl_context->command_queue_inst_, size_in, input)) {
       return;
     }
     if (!clbuffInstance.getInBufferB()->WriteDataRegion(
-          blas_cc->command_queue_inst_, size_gamma, gamma)) {
+          cl_context->command_queue_inst_, size_gamma, gamma)) {
       return;
     }
 
@@ -398,28 +394,29 @@ inline static void rmsnorm_cl_internal(ClContext::SharedPtrClKernel kernel,
   if (!kernel->SetKernelArguments(5, &width, sizeof(int))) {
     return;
   }
+
 #ifdef __ANDROID__
   constexpr int SUBGROUP_SIZE = 64;
 #else
   constexpr int SUBGROUP_SIZE = 32;
 #endif
-  const int work_groups_count[3] = {static_cast<int>(height) * SUBGROUP_SIZE, 1,
-                                    1};
 
-  const int work_group_size[3] = {SUBGROUP_SIZE, 1, 1};
-  if (!blas_cc->command_queue_inst_.DispatchCommand(kernel, work_groups_count,
-                                                    work_group_size)) {
-    return;
-  }
+  std::array<size_t, 3> global_work_size = {height * SUBGROUP_SIZE, 1, 1};
+  std::array<size_t, 3> local_work_size = {SUBGROUP_SIZE, 1, 1};
+  cl_event rmsnorm_wait;
+
+  cl_context->command_queue_inst_.enqueueKernel(
+    kernel->GetKernel(), global_work_size.size(), global_work_size.data(),
+    local_work_size.data(), 0, nullptr, &rmsnorm_wait);
+  cl_context->command_queue_inst_.waitForEvent(1, &rmsnorm_wait);
+  cl_context->command_queue_inst_.releaseEvent(rmsnorm_wait);
 
   if (!use_svm) {
     auto &clbuffInstance = ClBufferManager::Global();
     if (!clbuffInstance.getOutBufferA()->ReadDataRegion(
-          blas_cc->command_queue_inst_, size_in, result)) {
+          cl_context->command_queue_inst_, size_in, result)) {
       return;
     }
-  } else {
-    blas_cc->command_queue_inst_.enqueueSVMMap(result, size_in, false);
   }
 }
 
