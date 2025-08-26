@@ -559,59 +559,6 @@ else
   endif
 endif
 
-ggml_dep = dummy_dep
-
-if get_option('enable-ggml')
-  message('preparing ggml')
-
-  if get_option('platform') != 'android' and get_option('platform') != 'tizen'
-    ggml_dir_relative = subprojects_dir_relative / 'ggml'
-    ggml_patch_relative = subprojects_dir_relative / 'packagefiles' / 'ggml' / '0001-nntrainer-ggml-patch.patch'
-    ggml_patch_command = ['git', 'apply', '--directory=' + ggml_dir_relative, ggml_patch_relative]
-    run_command(ggml_patch_command, check: false)
-  endif
-
-  if get_option('platform') == 'windows'
-    ggml_lib_dir_absolute = windows_resource_dir_absolute / 'ggml'
-    ggml_lib_dir_absolute_win = ggml_lib_dir_absolute.replace('/', '\\')
-    run_command(['xcopy', '/C', '/Y', ggml_lib_dir_absolute_win, meson.current_build_dir()], check: true)
-    ggml_include = include_directories(ggml_dir_relative / 'include', ggml_dir_relative / 'src', ggml_dir_relative / 'src' / 'ggml-cpu')
-    ggml_dep = declare_dependency(include_directories: ggml_include, link_args:['ggml.lib', 'ggml-base.lib', 'ggml-cpu.lib'])
-  else
-    ggml_options = cmake.subproject_options()
-    ggml_root = subprojects_dir_absolute / 'ggml'
-    ggml_flags = [
-      '-Wno-error=pointer-to-int-cast'
-      ]
-    if cxx_compiler_id == 'clang'
-      ggml_flags += '-Wno-error=uninitialized'
-    else 
-      ggml_flags += '-Wno-error=maybe-uninitialized'
-    endif
-    ggml_options.append_compile_args('c', ggml_flags)
-    ggml_options.append_compile_args('cpp', ggml_flags)        
-    ggml_options.add_cmake_defines({'BUILD_SHARED_LIBS': true})
-    ggml_options.add_cmake_defines({'GGML_BUILD_TESTS': false})
-    ggml_options.add_cmake_defines({'GGML_BUILD_EXAMPLES': false})
-    if get_option('platform') == 'android'
-      ggml_options.add_cmake_defines({'CMAKE_INSTALL_LIBDIR': nntrainer_libdir / 'arm64-v8a'})
-    endif
-
-    ggml_proj = cmake.subproject('ggml', options: ggml_options, required: true)
-    ggml_dep = [
-      ggml_proj.dependency('ggml-base'),
-      ggml_proj.dependency('ggml-cpu'),
-      ggml_proj.dependency('ggml')]
-
-    if get_option('platform') == 'android'
-      message('preparing ggml for Android')
-      run_command([meson.source_root() / 'jni' / 'prepare_ggml.sh', ggml_root ], check: true)
-  endif
-  endif
-
-  extra_defines += '-DENABLE_GGML=1'
-endif
-
 # Configure the Ruy project (CMake)
 if get_option('platform') == 'android'
   ruy_root = subprojects_dir_absolute / 'ruy'
