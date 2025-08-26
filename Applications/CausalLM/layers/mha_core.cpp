@@ -258,7 +258,7 @@ void MHACoreLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
       output_step_dim, batch * output_dim.getFeatureLen(), true);
 
     if (query_step.getDataType() == ml::train::TensorDim::DataType::FP32) {
-#if defined(ENABLE_FP16) && defined(__ANDROID__)
+#if defined(ENABLE_FP16) && defined(__ANDROID__) && 0
       nntrainer::TensorDim Q_step_dim = query_step_dim;
       nntrainer::TensorDim K_step_dim = key_step_dim;
       nntrainer::TensorDim V_step_dim = value_step_dim;
