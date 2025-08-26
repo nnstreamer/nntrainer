@@ -15,6 +15,104 @@
 
 namespace nntrainer {
 
+void gemm_q4_0_async_cl(std::vector<void *> matAdata, float *matBdata,
+                        std::vector<float *> matCdata, unsigned int M,
+                        std::vector<unsigned int> Ns, unsigned int K) {
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
+  int padding = 0;
+  if (M % 8 > 0) {
+    padding = 8 - (M % 8);
+  }
+
+  int padded_M = M + padding;
+
+  ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
+    getQ4_0_Ab_Bi_8x4_Kernel(), "kernel_mul_mat_Ab_Bi_8x4");
+  if (!kernel_ptr) {
+    throw std::runtime_error(
+      "Failed to get kernel_ptr for kernel_mul_mat_Ab_Bi_8x4");
+    return;
+  }
+
+  bool result = false;
+
+  /// @note Transpose fp32 input. This can only be done once
+  transpose_32_16(matBdata, M, K);
+
+  const int work_group_size[3] = {1, 128, 1};
+
+  for (unsigned int i = 0; i < Ns.size(); ++i) {
+    int N = Ns[i];
+    void *mdata = matAdata[i];
+    float *rdata = matCdata[i];
+
+    unpack_q4_0x8_transpose16(mdata, (uint16_t *)clbuffInstance.getSVMScale(i),
+                              (uint16_t *)clbuffInstance.getSVMQuant(i), N, K);
+
+    int arg = 0;
+
+    result =
+      kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMQuant(i));
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 0 for kernel_mul_mat_Ab_Bi_8x4");
+
+    result =
+      kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMScale(i));
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 1 for kernel_mul_mat_Ab_Bi_8x4");
+
+    result =
+      kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMInput());
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 2 for kernel_mul_mat_Ab_Bi_8x4");
+
+    result = kernel_ptr->SetKernelSVMArguments(arg++, rdata);
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 3 for kernel_mul_mat_Ab_Bi_8x4");
+
+    result = kernel_ptr->SetKernelArguments(arg++, &N, sizeof(int));
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 4 for kernel_mul_mat_Ab_Bi_8x4");
+
+    result = kernel_ptr->SetKernelArguments(arg++, &padded_M, sizeof(int));
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 5 for kernel_mul_mat_Ab_Bi_8x4");
+
+    result = kernel_ptr->SetKernelArguments(arg++, &K, sizeof(int));
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 6 for kernel_mul_mat_Ab_Bi_8x4");
+
+    result = kernel_ptr->SetKernelArguments(arg++, &M, sizeof(int));
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 7 for kernel_mul_mat_Ab_Bi_8x4");
+    const int work_groups_count[3] = {(int)ceil(M / 8.0f), (int)N / 4, 1};
+
+    // Perform Matrix Multiplication
+    result = blas_cc->command_queue_inst_.DispatchCommand(
+      kernel_ptr, work_groups_count, work_group_size);
+    if (!result) {
+      throw std::runtime_error(
+        "Failed to dispatch kernel for kernel_mul_mat_Ab_Bi_8x4");
+    }
+  }
+
+  for (unsigned int i = 0; i < Ns.size(); ++i) {
+    blas_cc->command_queue_inst_.enqueueSVMMap(matCdata[i],
+                                               M * Ns[i] * sizeof(float), true);
+  }
+}
+
 void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
                   unsigned int M, unsigned int N, unsigned int K) {
   bool result = false;

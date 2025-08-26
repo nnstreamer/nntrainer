@@ -24,6 +24,10 @@
 
 namespace nntrainer {
 
+void gemm_q4_0_async_cl(std::vector<void *> matAdata, float *matBdata,
+                        std::vector<float *> matCdata, unsigned int M,
+                        std::vector<unsigned int> N, unsigned int K);
+
 /**
  * @brief     Q4_0 gemm computation : C = A*B
  * @param[in] matAdata void * for Matrix A

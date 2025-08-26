@@ -43,6 +43,7 @@ private:
    */
   const size_t buffer_size_bytes = 1024 * 8192 * sizeof(float);
   const size_t unused_buffer_bytes = sizeof(float);
+  const unsigned int max_qs = 3;
 
   /// @note this size might be changed
   const size_t scale_q4_0_size =
@@ -57,8 +58,8 @@ private:
   opencl::Buffer *outBufferB = nullptr;
 
   void *data_input = nullptr;
-  void *data_scale = nullptr;
-  void *data_quant = nullptr;
+  std::vector<void *> scale_vec;
+  std::vector<void *> quant_vec;
 
 public:
   /**
@@ -104,12 +105,22 @@ public:
   /**
    * @brief Get the SVM pointer to data_input
    */
-  void *getSVMScale() { return data_scale; }
+  void *getSVMScale(unsigned int idx = 0) {
+    if (idx >= scale_vec.size())
+      return nullptr;
+
+    return scale_vec[idx];
+  }
 
   /**
    * @brief Get the SVM pointer to data_input
    */
-  void *getSVMQuant() { return data_quant; }
+  void *getSVMQuant(unsigned int idx = 0) {
+    if (idx >= quant_vec.size())
+      return nullptr;
+
+    return quant_vec[idx];
+  }
 
   /**
    * @brief Destroy Buffer pointers.
