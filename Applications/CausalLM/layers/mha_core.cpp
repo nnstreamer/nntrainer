@@ -81,6 +81,9 @@ void MHACoreLayer::finalize(nntrainer::InitLayerContext &context) {
   const unsigned int max_position_embeddings =
     std::get<props::MaxPositionEmbeddings>(mha_core_props).get();
 
+  /** local window size */
+  local_window_size = std::get<props::SlidingWindow>(mha_core_props).get();
+
   /** query_dim = (B, 1, seq_len, H_Q * Head_Dim ) */
   const unsigned int batch_size = query_dim.batch();
   const unsigned int query_width = query_dim.width();
@@ -107,12 +110,21 @@ void MHACoreLayer::finalize(nntrainer::InitLayerContext &context) {
 
   /** Tensor for KV-Cache */
 
+#ifdef ENABLE_FP16
+  ml::train::TensorDim cache_key_dim(
+    {batch_size, 1, max_timestep, num_heads_KV * head_dim},
+    {context.getFormat(), ml::train::TensorDim::DataType::FP16});
+  ml::train::TensorDim cache_value_dim(
+    {batch_size, 1, max_timestep, num_heads_KV * head_dim},
+    {context.getFormat(), ml::train::TensorDim::DataType::FP16});
+#else
   ml::train::TensorDim cache_key_dim(
     {batch_size, 1, max_timestep, num_heads_KV * head_dim},
     {context.getFormat(), ml::train::TensorDim::DataType::UINT16});
   ml::train::TensorDim cache_value_dim(
     {batch_size, 1, max_timestep, num_heads_KV * head_dim},
     {context.getFormat(), ml::train::TensorDim::DataType::UINT16});
+#endif
 
   weight_idx[AttentionParams::cache_key] = context.requestTensor(
     cache_key_dim, "cache_key", nntrainer::Initializer::NONE, false,
@@ -221,6 +233,8 @@ void MHACoreLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
 
   ml::train::TensorDim query_step_dim =
     get_step_dim(query_dim); // (B, 1, from-to, n_heads_Q * head_dim)
+  ml::train::TensorDim key_step_dim = get_step_dim(key_dim);
+  ml::train::TensorDim value_step_dim = get_step_dim(value_dim);
   ml::train::TensorDim output_step_dim =
     get_step_dim(output_dim); // (B, 1, from-to, n_heads_Q * head_dim)
   ml::train::TensorDim cache_key_step_dim =
@@ -232,12 +246,56 @@ void MHACoreLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
   unsigned int batch_size = (_from) ? 1 : query_dim.batch();
   // do the incremental forwarding
   for (unsigned int batch = 0; batch < batch_size; ++batch) {
-    one_batch_incremental_forwarding(
-      batch, _from, from, to, query, key, value, output, cache_key, cache_value,
-      query_dim, query_step_dim, key_dim, value_dim, cache_key_dim,
-      cache_key_step_dim, cache_value_dim, cache_value_step_dim, output_dim,
-      output_step_dim);
+
+    // preparing step tensors
+    nntrainer::Tensor query_step = query.getSharedDataTensor(
+      query_step_dim, batch * query_dim.getFeatureLen(), true);
+    nntrainer::Tensor key_step = key.getSharedDataTensor(
+      key_step_dim, batch * key_dim.getFeatureLen(), true);
+    nntrainer::Tensor value_step = value.getSharedDataTensor(
+      value_step_dim, batch * value_dim.getFeatureLen(), true);
+    nntrainer::Tensor output_step = output.getSharedDataTensor(
+      output_step_dim, batch * output_dim.getFeatureLen(), true);
+
+    if (query_step.getDataType() == ml::train::TensorDim::DataType::FP32) {
+#if defined(ENABLE_FP16) && defined(__ANDROID__)
+      nntrainer::TensorDim Q_step_dim = query_step_dim;
+      nntrainer::TensorDim K_step_dim = key_step_dim;
+      nntrainer::TensorDim V_step_dim = value_step_dim;
+      nntrainer::TensorDim O_step_dim = output_step_dim;
+      Q_step_dim.setDataType(ml::train::TensorDim::DataType::FP16);
+      K_step_dim.setDataType(ml::train::TensorDim::DataType::FP16);
+      V_step_dim.setDataType(ml::train::TensorDim::DataType::FP16);
+      O_step_dim.setDataType(ml::train::TensorDim::DataType::FP16);
+
+      nntrainer::Tensor Q_step = nntrainer::Tensor(Q_step_dim, true);
+      nntrainer::Tensor K_step = nntrainer::Tensor(K_step_dim, true);
+      nntrainer::Tensor V_step = nntrainer::Tensor(V_step_dim, true);
+      nntrainer::Tensor O_step = nntrainer::Tensor(O_step_dim, true);
+
+      Q_step.copyData(query_step);
+      K_step.copyData(key_step);
+      V_step.copyData(value_step);
+
+      one_batch_incremental_forwarding(batch, _from, from, to, Q_step, K_step,
+                                       V_step, O_step, cache_key, cache_value,
+                                       cache_key_dim, cache_key_step_dim,
+                                       cache_value_dim, cache_value_step_dim);
+      output_step.copyData(O_step);
+#else
+      one_batch_incremental_forwarding(
+        batch, _from, from, to, query_step, key_step, value_step, output_step,
+        cache_key, cache_value, cache_key_dim, cache_key_step_dim,
+        cache_value_dim, cache_value_step_dim);
+#endif
+    } else {
+      one_batch_incremental_forwarding(
+        batch, _from, from, to, query_step, key_step, value_step, output_step,
+        cache_key, cache_value, cache_key_dim, cache_key_step_dim,
+        cache_value_dim, cache_value_step_dim);
+    }
   }
+
   if (!_from) {
     batch_size = query_dim.batch();
     nntrainer::Tensor cache_key_0_step =
@@ -267,42 +325,71 @@ void MHACoreLayer::compute_kcaches(
   unsigned int from, size_t sequence_len, unsigned int num_head,
   unsigned int group_size, unsigned int head_dim, BS::thread_pool<> &pool) {
 
-  if (from) {
-    nntrainer::compute_kcaches<uint16_t>(
-      in.getData<float>(), cache.getData<uint16_t>(), out.getData<float>(),
-      from + 1, num_head / group_size, head_dim, group_size, 16);
-  } else {
-    std::vector<std::future<void>> futures;
-    for (unsigned int i = 0; i < sequence_len; ++i) {
-      float *input_addr = in.getData<float>() + num_head * head_dim * i;
-      uint16_t *cache_addr = cache.getData<uint16_t>();
-      int row_to_compute = i + 1;
-      size_t out_start_row = (i + 1) * i / 2;
+  if (in.getDataType() == ml::train::TensorDim::DataType::FP32) {
+    if (from) {
+      nntrainer::compute_kcaches<uint16_t>(
+        in.getData<float>(), cache.getData<uint16_t>(), out.getData<float>(),
+        from + 1, num_head / group_size, head_dim, group_size,
+        local_window_size);
+    } else {
+      std::vector<std::future<void>> futures;
+      for (unsigned int i = 0; i < sequence_len; ++i) {
+        float *input_addr = in.getData<float>() + num_head * head_dim * i;
+        uint16_t *cache_addr = cache.getData<uint16_t>();
+        int row_to_compute = i + 1;
+        size_t out_start_row = calc_attn_index(i);
 
-      float *output_addr = out.getData<float>() + out_start_row * num_head;
+        float *output_addr = out.getData<float>() + out_start_row * num_head;
 
-      futures.emplace_back(pool.submit_task([=]() {
-        nntrainer::compute_kcaches<uint16_t>(
-          input_addr, cache_addr, output_addr, row_to_compute,
-          num_head / group_size, head_dim, group_size, 16);
-      }));
+        futures.emplace_back(pool.submit_task([=]() {
+          nntrainer::compute_kcaches<uint16_t>(
+            input_addr, cache_addr, output_addr, row_to_compute,
+            num_head / group_size, head_dim, group_size, local_window_size);
+        }));
+      }
+      for (auto &fut : futures)
+        fut.get();
     }
-    for (auto &fut : futures)
-      fut.get();
+  } else if (in.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    if (from) {
+      nntrainer::compute_kcaches(in.getData<_FP16>(), cache.getData<_FP16>(),
+                                 out.getData<_FP16>(), from + 1,
+                                 num_head / group_size, head_dim, group_size,
+                                 local_window_size);
+    } else {
+      std::vector<std::future<void>> futures;
+      for (unsigned int i = 0; i < sequence_len; ++i) {
+        _FP16 *input_addr = in.getData<_FP16>() + num_head * head_dim * i;
+        _FP16 *cache_addr = cache.getData<_FP16>();
+        int row_to_compute = i + 1;
+        size_t out_start_row = calc_attn_index(i);
+
+        _FP16 *output_addr = out.getData<_FP16>() + out_start_row * num_head;
+
+        futures.emplace_back(pool.submit_task([=]() {
+          nntrainer::compute_kcaches(input_addr, cache_addr, output_addr,
+                                     row_to_compute, num_head / group_size,
+                                     head_dim, group_size, local_window_size);
+        }));
+      }
+      for (auto &fut : futures)
+        fut.get();
+    }
+#else
+    NNTR_THROW_IF(true, std::invalid_argument) << "enable-fp16 is not set!";
+#endif
   }
 }
-
 void MHACoreLayer::one_batch_incremental_forwarding(
   const unsigned int batch, const unsigned int _from, const unsigned int from,
-  const unsigned int to, nntrainer::Tensor &query, nntrainer::Tensor &key,
-  nntrainer::Tensor &value, nntrainer::Tensor &output,
-  nntrainer::Tensor &cache_key, nntrainer::Tensor &cache_value,
-  ml::train::TensorDim &query_dim, ml::train::TensorDim &query_step_dim,
-  ml::train::TensorDim &key_dim, ml::train::TensorDim &value_dim,
-  ml::train::TensorDim &cache_key_dim, ml::train::TensorDim &cache_key_step_dim,
+  const unsigned int to, nntrainer::Tensor &query_step,
+  nntrainer::Tensor &key_step, nntrainer::Tensor &value_step,
+  nntrainer::Tensor &attention_output_step, nntrainer::Tensor &cache_key,
+  nntrainer::Tensor &cache_value, ml::train::TensorDim &cache_key_dim,
+  ml::train::TensorDim &cache_key_step_dim,
   ml::train::TensorDim &cache_value_dim,
-  ml::train::TensorDim &cache_value_step_dim, ml::train::TensorDim &output_dim,
-  ml::train::TensorDim &output_step_dim) {
+  ml::train::TensorDim &cache_value_step_dim) {
 
   /**
    *  cache_key
@@ -320,34 +407,30 @@ void MHACoreLayer::one_batch_incremental_forwarding(
    * **/
   auto &pool = nntrainer::ThreadPoolManager::Global().getThreadPool();
 
-  nntrainer::Tensor b_projected_query_step = query.getSharedDataTensor(
-    query_step_dim, batch * query_dim.getFeatureLen(), true);
-
-  apply_rotary_emb_tensor_v2(b_projected_query_step, b_projected_query_step,
-                             head_dim, _from, false);
   nntrainer::Tensor b_cache_key_step = cache_key.getSharedDataTensor(
     cache_key_step_dim,
     batch * cache_key_dim.getFeatureLen() + from * cache_key_dim.width(), true);
-
-  ml::train::TensorDim key_step_dim = key.getDim();
-  key_step_dim.height(to - from);
-
-  nntrainer::Tensor key_step = key.getSharedDataTensor(
-    key_step_dim, batch * key_dim.getFeatureLen(), true);
-
-  apply_rotary_emb_tensor_v2(key_step, b_cache_key_step, head_dim, _from,
-                             false);
-
   nntrainer::Tensor b_cache_value_step = cache_value.getSharedDataTensor(
     cache_value_step_dim,
     batch * cache_value_dim.getFeatureLen() + from * cache_value_dim.width(),
     true);
 
-  nntrainer::Tensor value_step = value.getSharedDataTensor(
-    key_step_dim, batch * value_dim.getFeatureLen(), true);
+  apply_rotary_emb_tensor_v2(query_step, query_step, head_dim, _from, false);
 
-  apply_rotary_emb_tensor_v2(value_step, b_cache_value_step, head_dim, _from,
-                             true);
+  apply_rotary_emb_tensor_v2(key_step, b_cache_key_step, head_dim, _from,
+                             false);
+
+  if (query_step.getDataType() == ml::train::TensorDim::DataType::FP32) {
+    apply_rotary_emb_tensor_v2(value_step, b_cache_value_step, head_dim, _from,
+                               true);
+  } else if (query_step.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    b_cache_value_step.copyData(value_step);
+#else
+    NNTR_THROW_IF(true, std::invalid_argument) << "enable-fp16 is not set!";
+#endif
+  }
+
   ml::train::TensorDim cached_key_dim = cache_key_dim;
   ml::train::TensorDim cached_value_dim = cache_value_dim;
   cached_key_dim.height(to);
@@ -358,24 +441,19 @@ void MHACoreLayer::one_batch_incremental_forwarding(
   nntrainer::Tensor b_cached_value = cache_value.getSharedDataTensor(
     cached_value_dim, batch * cache_value_dim.getFeatureLen(), true);
 
-  nntrainer::Tensor attention_output_step = output.getSharedDataTensor(
-    output_step_dim, batch * output_dim.getFeatureLen(), true);
-
-  nntrainer::Tensor out_(1, 1,
-                         (from) ? to : ((to - from) * (to - from + 1) / 2),
-                         num_heads_Q, b_projected_query_step.getTensorType());
+  nntrainer::Tensor out_(1, 1, (from) ? to : calc_attn_index(to), num_heads_Q,
+                         query_step.getTensorType());
 
   unsigned int gqa_size = num_heads_Q / num_heads_KV;
 
-  compute_kcaches(b_projected_query_step, b_cached_key, out_, _from, to - from,
-                  num_heads_Q, gqa_size, head_dim, pool);
+  compute_kcaches(query_step, b_cached_key, out_, _from, to - from, num_heads_Q,
+                  gqa_size, head_dim, pool);
 
   softmax_triangle(out_, to - from, num_heads_Q, from, pool);
 
-  compute_fp16vcache_fp32_transposed(
-    out_.getData<float>(), b_cached_value.getData<uint16_t>(),
-    attention_output_step.getData<float>(), to, num_heads_KV, gqa_size,
-    head_dim, (from) ? false : true, pool);
+  compute_fp16vcache_transposed(out_, b_cached_value, attention_output_step, to,
+                                num_heads_KV, gqa_size, head_dim,
+                                (from) ? false : true, pool);
 }
 
 /************************************************************** */
@@ -423,6 +501,22 @@ void MHACoreLayer::precompute_freqs(int head_dim, unsigned int seq_len,
   }
   freqs_cos = cos;
   freqs_sin = sin;
+
+#ifdef ENABLE_FP16
+  // cos / sin for FP16
+  auto cos_fp16 = new std::vector<std::vector<_FP16>>();
+  cos_fp16->assign(seq_len, std::vector<_FP16>(head_dim, 0));
+  auto sin_fp16 = new std::vector<std::vector<_FP16>>();
+  sin_fp16->assign(seq_len, std::vector<_FP16>(head_dim, 0));
+  for (unsigned int i = 0; i < seq_len; ++i) {
+    for (unsigned int j = 0; j < head_dim; ++j) {
+      (*cos_fp16)[i][j] = (_FP16)(*cos)[i][j];
+      (*sin_fp16)[i][j] = (_FP16)(*sin)[i][j];
+    }
+  }
+  freqs_cos_fp16 = cos_fp16;
+  freqs_sin_fp16 = sin_fp16;
+#endif
 };
 
 void MHACoreLayer::apply_rotary_emb_tensor_v2(nntrainer::Tensor &in,
@@ -434,126 +528,10 @@ void MHACoreLayer::apply_rotary_emb_tensor_v2(nntrainer::Tensor &in,
   unsigned int max_timestep =
     std::get<nntrainer::props::MaxTimestep>(mha_core_props).get();
 
-  std::vector<float> *cos_ = nullptr;
-  std::vector<float> *sin_ = nullptr;
-
-  for (unsigned int b = 0; b < in.batch(); b++) {
-    for (unsigned int c = 0; c < in.channel(); c++) {
-      for (unsigned int h = 0; h < in.height(); h++) {
-        if (from < max_timestep) {
-          cos_ = &(*freqs_cos)[from + h];
-          sin_ = &(*freqs_sin)[from + h];
-        }
-        float *in_ptr = in.getData<float>() +
-                        b * in.channel() * in.height() * in.width() +
-                        c * in.height() * in.width() + h * in.width();
-
-        if (out.getDataType() == ml::train::TensorDim::DataType::FP32) {
-
-          nntrainer::compute_rotary_emb_value(in.width(), dim, half_, in_ptr,
-                                              nullptr, cos_->data(),
-                                              sin_->data(), convert_only);
-        } else if (out.getDataType() ==
-                   ml::train::TensorDim::DataType::UINT16) {
-          uint16_t *out_ptr = out.getData<uint16_t>() +
-                              b * out.channel() * out.height() * out.width() +
-                              c * out.height() * out.width() + h * out.width();
-
-          nntrainer::compute_rotary_emb_value(in.width(), dim, half_, in_ptr,
-                                              out_ptr, cos_->data(),
-                                              sin_->data(), convert_only);
-        }
-      }
-    }
-  }
-}
-
-void MHACoreLayer::softmax_triangle(nntrainer::Tensor &qk_out, size_t row,
-                                    size_t num_head, unsigned int from,
-                                    BS::thread_pool<> &pool) {
-
-  float *qk_out_ = qk_out.getData<float>();
-
-  if (from) {
-    size_t start_row = 0;
-    size_t end_row = from + 1;
-    nntrainer::softmax_row_inplace(qk_out_, start_row, end_row, num_head);
-  } else {
-    std::vector<std::future<void>> futures;
-    for (size_t i = 0; i < row; ++i) {
-      size_t start_row = (i * (i + 1)) / 2;
-      size_t end_row = ((i + 1) * (i + 2)) / 2;
-      futures.push_back(pool.submit_task([=]() {
-        nntrainer::softmax_row(qk_out_, start_row, end_row, num_head);
-      }));
-    }
-    for (auto &fut : futures) {
-      fut.get();
-    }
-  }
-}
-
-void MHACoreLayer::compute_fp16vcache_fp32_transposed(
-  const float *in, const uint16_t *vcache, float *output, int seq,
-  int num_cache_head, int gqa_size, int head_dim, bool process_all,
-  BS::thread_pool<> &pool) {
-
-  if (process_all) {
-    std::vector<std::future<void>> futures;
-    futures.reserve(seq);
-
-    for (int i = 0; i < seq; ++i) {
-      futures.push_back(pool.submit_task([=]() {
-        const float *input =
-          in + ((i * (i + 1)) / 2) * num_cache_head * gqa_size;
-        float *out = output + i * (num_cache_head * gqa_size * head_dim);
-        nntrainer::compute_fp16vcache_fp32_transposed(
-          i, input, vcache, out, num_cache_head, gqa_size, head_dim);
-      }));
-    }
-    for (auto &fut : futures)
-      fut.get();
-  } else {
-    nntrainer::compute_fp16vcache_fp32_transposed(
-      seq - 1, in, vcache, output, num_cache_head, gqa_size, head_dim);
-  }
-}
-
-/**
- * @brief rotary embedding-related member function
- */
-void MHACoreLayer::apply_rotary_emb_tensor(nntrainer::Tensor &in,
-                                           unsigned int dim,
-                                           unsigned int from) {
-  nntrainer::Tensor out(in.getDim());
-  float value = 0;
-  float transformed_value = 0.0;
-  unsigned int half_ = dim / 2;
-  unsigned int max_timestep =
-    std::get<nntrainer::props::MaxTimestep>(mha_core_props).get();
-
-  std::vector<float> *cos_ = nullptr;
-  std::vector<float> *sin_ = nullptr;
-
-  if (from >= max_timestep) {
-    cos_ = new std::vector<float>(dim);
-    sin_ = new std::vector<float>(dim);
-#ifdef USE_NEON
-    nntrainer::calc_trigonometric_vals_dup(half_, thetas.data(), cos_->data(),
-                                           sin_->data(), from);
-#else
-    for (unsigned int i = 0; i < half_; ++i) {
-      float angle = from * thetas[i];
-      (*cos_)[i] = std::cos(angle);
-      (*cos_)[i + half_] = std::cos(angle); // repeated 2 times
-
-      (*sin_)[i] = std::sin(angle);
-      (*sin_)[i + half_] = std::sin(angle); // repeated 2 times
-    }
-#endif
-  }
-
   if (in.getDataType() == ml::train::TensorDim::DataType::FP32) {
+    std::vector<float> *cos_ = nullptr;
+    std::vector<float> *sin_ = nullptr;
+
     for (unsigned int b = 0; b < in.batch(); b++) {
       for (unsigned int c = 0; c < in.channel(); c++) {
         for (unsigned int h = 0; h < in.height(); h++) {
@@ -561,72 +539,171 @@ void MHACoreLayer::apply_rotary_emb_tensor(nntrainer::Tensor &in,
             cos_ = &(*freqs_cos)[from + h];
             sin_ = &(*freqs_sin)[from + h];
           }
+          float *in_ptr = in.getData<float>() +
+                          b * in.channel() * in.height() * in.width() +
+                          c * in.height() * in.width() + h * in.width();
 
-          for (unsigned int w = 0; w < in.width(); w = w + dim) {
-            for (unsigned int k = 0; k < dim; k++) {
-              unsigned int span = w + k;
-              value = in.getValue<float>(b, c, h, span);
+          if (out.getDataType() == ml::train::TensorDim::DataType::FP32) {
 
-              if (k < half_) {
-                transformed_value =
-                  -1.0 * in.getValue<float>(b, c, h, span + half_);
-              } else {
-                transformed_value = in.getValue<float>(b, c, h, span - half_);
-              }
-              value = value * (*cos_)[k] + transformed_value * (*sin_)[k];
-              out.setValue(b, c, h, span, value);
-            }
+            nntrainer::compute_rotary_emb_value(in.width(), dim, half_, in_ptr,
+                                                nullptr, cos_->data(),
+                                                sin_->data(), convert_only);
+          } else if (out.getDataType() ==
+                       ml::train::TensorDim::DataType::UINT16 ||
+                     out.getDataType() ==
+                       ml::train::TensorDim::DataType::FP16) {
+            uint16_t *out_ptr = out.getData<uint16_t>() +
+                                b * out.channel() * out.height() * out.width() +
+                                c * out.height() * out.width() +
+                                h * out.width();
+
+            nntrainer::compute_rotary_emb_value(in.width(), dim, half_, in_ptr,
+                                                out_ptr, cos_->data(),
+                                                sin_->data(), convert_only);
           }
         }
       }
     }
   } else if (in.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
+    std::vector<_FP16> *cos_ = nullptr;
+    std::vector<_FP16> *sin_ = nullptr;
+
     for (unsigned int b = 0; b < in.batch(); b++) {
       for (unsigned int c = 0; c < in.channel(); c++) {
         for (unsigned int h = 0; h < in.height(); h++) {
           if (from < max_timestep) {
-            cos_ = &(*freqs_cos)[from + h];
-            sin_ = &(*freqs_sin)[from + h];
+            cos_ = &(*freqs_cos_fp16)[from + h];
+            sin_ = &(*freqs_sin_fp16)[from + h];
           }
-          for (unsigned int w = 0; w < in.width(); w = w + dim) {
-#ifdef USE_NEON
-            nntrainer::compute_rotary_embedding_value(
-              dim, half_, w, in.getData<_FP16>() + in.getIndex(b, c, h, 0),
-              out.getData<_FP16>() + out.getIndex(b, c, h, 0), cos_->data(),
-              sin_->data());
-#else
-            for (unsigned int k = 0; k < dim; k++) {
-              unsigned int span = w + k;
-              value = static_cast<float>(in.getValue<_FP16>(b, c, h, span));
+          _FP16 *in_ptr = in.getData<_FP16>() +
+                          b * in.channel() * in.height() * in.width() +
+                          c * in.height() * in.width() + h * in.width();
+          _FP16 *out_ptr = out.getData<_FP16>() +
+                           b * out.channel() * out.height() * out.width() +
+                           c * out.height() * out.width() + h * out.width();
 
-              if (k < half_) {
-                transformed_value =
-                  -1.0 *
-                  static_cast<float>(in.getValue<_FP16>(b, c, h, half_ + span));
-              } else {
-                transformed_value =
-                  static_cast<float>(in.getValue<_FP16>(b, c, h, span - half_));
-              }
-              out.setValue(b, c, h, span,
-                           static_cast<_FP16>(value * (*cos_)[k] +
-                                              transformed_value * (*sin_)[k]));
-            }
-#endif
-          }
+          nntrainer::compute_rotary_emb_value(in.width(), dim, half_, in_ptr,
+                                              out_ptr, cos_->data(),
+                                              sin_->data());
         }
       }
     }
 #else
-    throw std::invalid_argument("Error: enable-fp16 is not enabled");
+    NNTR_THROW_IF(true, std::invalid_argument) << "enable-fp16 is not set!";
 #endif
   }
+}
 
-  if (from >= max_timestep) {
-    delete cos_;
-    delete sin_;
+void MHACoreLayer::softmax_triangle(nntrainer::Tensor &qk_out, size_t row,
+                                    size_t num_head, unsigned int from,
+                                    BS::thread_pool<> &pool) {
+  if (qk_out.getDataType() == ml::train::TensorDim::DataType::FP32) {
+    float *qk_out_ = qk_out.getData<float>();
+
+    if (from) {
+      size_t start_row = 0;
+      size_t end_row = from < local_window_size ? from + 1 : local_window_size;
+      nntrainer::softmax_row_inplace(qk_out_, start_row, end_row, num_head);
+    } else {
+      std::vector<std::future<void>> futures;
+
+      for (int i = row - 1; i >= 0; --i) {
+        size_t start_row = calc_attn_index(i);
+        size_t end_row = calc_attn_index(i + 1);
+        futures.push_back(pool.submit_task([=]() {
+          nntrainer::softmax_row(qk_out_, start_row, end_row, num_head);
+        }));
+      }
+      for (auto &fut : futures) {
+        fut.get();
+      }
+    }
+  } else if (qk_out.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    _FP16 *qk_out_ = qk_out.getData<_FP16>();
+
+    if (from) {
+      size_t start_row = 0;
+      size_t end_row = from < local_window_size ? from + 1 : local_window_size;
+      nntrainer::softmax_row_inplace(qk_out_, start_row, end_row, num_head);
+    } else {
+      std::vector<std::future<void>> futures;
+      for (int i = row - 1; i >= 0; --i) {
+        size_t start_row = calc_attn_index(i);
+        size_t end_row = calc_attn_index(i + 1);
+        futures.push_back(pool.submit_task([=]() {
+          nntrainer::softmax_row(qk_out_, start_row, end_row, num_head);
+        }));
+      }
+      for (auto &fut : futures) {
+        fut.get();
+      }
+    }
+#else
+    NNTR_THROW_IF(true, std::invalid_argument) << "enable-fp16 is not set!";
+#endif
   }
-  in.copy(out);
+}
+
+void MHACoreLayer::compute_fp16vcache_transposed(
+  nntrainer::Tensor &in, nntrainer::Tensor &vcache, nntrainer::Tensor &output,
+  int seq, int num_cache_head, int gqa_size, int head_dim, bool process_all,
+  BS::thread_pool<> &pool) {
+
+  if (in.getDataType() == ml::train::TensorDim::DataType::FP32) {
+    if (process_all) {
+      std::vector<std::future<void>> futures;
+      futures.reserve(seq);
+
+      for (int i = seq - 1; i >= 0; --i) {
+        futures.push_back(pool.submit_task([=]() {
+          const float *input = in.getData<float>() +
+                               calc_attn_index(i) * num_cache_head * gqa_size;
+          float *out = output.getData<float>() +
+                       i * (num_cache_head * gqa_size * head_dim);
+          nntrainer::compute_fp16vcache_fp32_transposed(
+            i, input, vcache.getData<uint16_t>(), out, num_cache_head, gqa_size,
+            head_dim, local_window_size);
+        }));
+      }
+      for (auto &fut : futures)
+        fut.get();
+    } else {
+      nntrainer::compute_fp16vcache_fp32_transposed(
+        seq - 1, in.getData<float>(), vcache.getData<uint16_t>(),
+        output.getData<float>(), num_cache_head, gqa_size, head_dim,
+        local_window_size);
+    }
+  } else if (in.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+    if (process_all) {
+      std::vector<std::future<void>> futures;
+      futures.reserve(seq);
+
+      for (int i = seq - 1; i >= 0; --i) {
+        futures.push_back(pool.submit_task([=]() {
+          const _FP16 *input = in.getData<_FP16>() +
+                               calc_attn_index(i) * num_cache_head * gqa_size;
+          _FP16 *out = output.getData<_FP16>() +
+                       i * (num_cache_head * gqa_size * head_dim);
+          nntrainer::compute_fp16vcache_transposed(
+            i, input, vcache.getData<_FP16>(), out, num_cache_head, gqa_size,
+            head_dim, local_window_size);
+        }));
+      }
+      for (auto &fut : futures)
+        fut.get();
+    } else {
+      nntrainer::compute_fp16vcache_transposed(
+        seq - 1, in.getData<_FP16>(), vcache.getData<_FP16>(),
+        output.getData<_FP16>(), num_cache_head, gqa_size, head_dim,
+        local_window_size);
+    }
+#else
+    NNTR_THROW_IF(true, std::invalid_argument) << "enable-fp16 is not set!";
+#endif
+  }
 }
 
 void MHACoreLayer::setBatch(nntrainer::RunLayerContext &context,
@@ -658,7 +735,11 @@ void MHACoreLayer::updateTensorsByInputDimensions(
   kv_dim.width(kv_dim.width() / (num_heads_Q / num_heads_KV));
 
   ml::train::TensorDim kv_cache_dim = kv_dim;
+#ifdef ENABLE_FP16
+  kv_cache_dim.setDataType(ml::train::TensorDim::DataType::FP16);
+#else
   kv_cache_dim.setDataType(ml::train::TensorDim::DataType::UINT16);
+#endif
   kv_cache_dim.height(max_timestep);
 
   precompute_freqs(head_dim, max_position_embeddings, theta);
@@ -686,6 +767,16 @@ void MHACoreLayer::setProperty(const std::vector<std::string> &values) {
   auto remain_props = loadProperties(values, mha_core_props);
   LayerImpl::setProperty(remain_props);
 }
+
+size_t MHACoreLayer::calc_attn_index(size_t i) {
+
+  if (local_window_size == UINT_MAX || i < local_window_size) {
+    return (i * (i + 1)) / 2;
+  } else {
+    return (local_window_size * (local_window_size + 1)) / 2 +
+           (i - local_window_size) * local_window_size;
+  }
+};
 
 #ifdef PLUGGABLE
 

@@ -93,10 +93,13 @@ void CausalLM::setupParameters(json &cfg, json &generation_cfg,
   NUM_KEY_VALUE_HEADS = cfg.contains("num_key_value_heads")
                           ? cfg["num_key_value_heads"].get<int>()
                           : NUM_HEADS;
-  SLIDING_WINDOW = cfg.contains("sliding_window") &&
-                       nntr_cfg["sliding_window"] != json::value_t::null
-                     ? cfg["sliding_window"].get<unsigned int>()
-                     : UINT_MAX;
+  SLIDING_WINDOW =
+    cfg.contains("sliding_window") && !cfg["sliding_window"].is_null()
+      ? cfg["sliding_window"].get<unsigned int>()
+      : UINT_MAX;
+  SLIDING_WINDOW_PATTERN = cfg.contains("sliding_window_pattern")
+                             ? cfg["sliding_window_pattern"].get<unsigned int>()
+                             : 1;
   MAX_POSITION_EMBEDDINGS = cfg["max_position_embeddings"].get<unsigned int>();
   ROPE_THETA = cfg["rope_theta"].get<unsigned int>();
   TIE_WORD_EMBEDDINGS = cfg["tie_word_embeddings"].get<bool>();
@@ -562,7 +565,9 @@ CausalLM::createAttention(const int layer_id, int seq_len, int n_heads,
     withKey("num_heads", n_heads),
     withKey("num_heads_kv", n_heads / GQA_SIZE),
     withKey("max_timestep", std::to_string(INIT_SEQ_LEN + NUM_TO_GENERATE)),
-    withKey("sliding_window", SLIDING_WINDOW),
+    withKey("sliding_window", (layer_id + 1) % SLIDING_WINDOW_PATTERN
+                                ? SLIDING_WINDOW
+                                : UINT_MAX),
     withKey("rope_theta", ROPE_THETA),
     withKey("max_new_tokens", std::to_string(NUM_TO_GENERATE)),
     withKey("input_layers", {Q, K, V})};
