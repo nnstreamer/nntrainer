@@ -137,7 +137,8 @@ public:
    *  @brief  Move constructor of CustomMultiHeadAttentionLayer.
    *  @param[in] CustomMultiHeadAttentionLayer &&
    */
-  WIN_EXPORT MHACoreLayer(MHACoreLayer &&rhs) noexcept = default;
+  WIN_EXPORT
+  MHACoreLayer(MHACoreLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
@@ -157,21 +158,15 @@ public:
   WIN_EXPORT void forwarding(nntrainer::RunLayerContext &context,
                              bool training) override;
 
-  /**
-   * @copydoc Layer::incremental_forwarding
-   */
-  WIN_EXPORT void one_batch_incremental_forwarding(
+  void one_batch_incremental_forwarding(
     const unsigned int batch, const unsigned int _from, const unsigned int from,
-    const unsigned int to, nntrainer::Tensor &query, nntrainer::Tensor &key,
-    nntrainer::Tensor &value, nntrainer::Tensor &output,
-    nntrainer::Tensor &cache_key, nntrainer::Tensor &cache_value,
-    ml::train::TensorDim &query_dim, ml::train::TensorDim &query_step_dim,
-    ml::train::TensorDim &key_dim, ml::train::TensorDim &value_dim,
-    ml::train::TensorDim &cache_key_dim,
+    const unsigned int to, nntrainer::Tensor &query_step,
+    nntrainer::Tensor &key_step, nntrainer::Tensor &value_step,
+    nntrainer::Tensor &attention_output_step, nntrainer::Tensor &cache_key,
+    nntrainer::Tensor &cache_value, ml::train::TensorDim &cache_key_dim,
     ml::train::TensorDim &cache_key_step_dim,
     ml::train::TensorDim &cache_value_dim,
-    ml::train::TensorDim &cache_value_step_dim,
-    ml::train::TensorDim &output_dim, ml::train::TensorDim &output_step_dim);
+    ml::train::TensorDim &cache_value_step_dim);
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
@@ -251,6 +246,7 @@ private:
   size_t head_dim;
   bool cache_shift;
   float theta;
+  size_t local_window_size;
 
   enum INOUT_INDEX {
     /** input index */
@@ -283,6 +279,10 @@ private:
   inline static std::vector<std::vector<float>> *freqs_cos = {};
   inline static std::vector<std::vector<float>> *freqs_sin = {};
   inline static std::vector<float> thetas;
+#ifdef ENABLE_FP16
+  inline static std::vector<std::vector<_FP16>> *freqs_cos_fp16 = {};
+  inline static std::vector<std::vector<_FP16>> *freqs_sin_fp16 = {};
+#endif
 
   /**
    * @brief pre_compute frequencies for Rotary Embedding.
@@ -297,12 +297,11 @@ private:
   /**
    * @brief     apply rotary embedding
    * @param[in] in input tensor
+   * @param[out] out output tensor
    * @param[in] dim hidden dim size
    * @param[in] from sequence order
+   * @param[in] convert_only - conversion only
    */
-  void apply_rotary_emb_tensor(nntrainer::Tensor &in, unsigned int dim,
-                               unsigned int from);
-
   void apply_rotary_emb_tensor_v2(nntrainer::Tensor &in, nntrainer::Tensor &out,
                                   unsigned int dim, unsigned int from,
                                   bool convert_only = false);
@@ -326,12 +325,12 @@ private:
                        size_t sequence_len, unsigned int num_heads,
                        unsigned int group_size, unsigned int head_dim);
 
-  void compute_fp16vcache_fp32_transposed(const float *in,
-                                          const uint16_t *vcache, float *output,
-                                          int seq, int num_cache_head,
-                                          int gqa_size, int head_dim,
-                                          bool process_all,
-                                          BS::thread_pool<> &pool);
+  void compute_fp16vcache_transposed(nntrainer::Tensor &in,
+                                     nntrainer::Tensor &vcache,
+                                     nntrainer::Tensor &output, int seq,
+                                     int num_cache_head, int gqa_size,
+                                     int head_dim, bool process_all,
+                                     BS::thread_pool<> &pool);
 
   /************** END OF  ROTARY EMBEDDING *************/
 
@@ -341,7 +340,9 @@ private:
    */
   void calcCommonDerivative(nntrainer::RunLayerContext &context);
 
+  size_t calc_attn_index(size_t i);
+
 }; // end of class MHACoreLayer
-} // end of namespace causallm
+} // namespace causallm
 
 #endif
