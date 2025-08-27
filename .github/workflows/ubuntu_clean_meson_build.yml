@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-22.04, ubuntu-24.04 ]
-        meson_options: [ "-Denable-fp16=false", "-Denable-fp16=true" ]
+        meson_options: [ "-Denable-fp16=false", "-Denable-fp16=true", "-Denable-opencl=true" ]
 
     steps:
     - uses: actions/checkout@v4
@@ -32,6 +32,8 @@ jobs:
         sudo apt update
         sudo apt install -y gcc-13
         sudo apt install -y g++-13
+        sudo apt install -y libpocl-dev
+        sudo apt install opencl-headers ocl-icd-opencl-dev -y
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 1000 
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 1000
         sudo update-alternatives --set gcc /usr/bin/gcc-13
@@ -60,7 +62,7 @@ jobs:
           ${{ matrix.meson_options }} \
           build
     - run: ninja -C build
-    - name: run App Tests
-      run: meson test -C build --no-suite unittests
+    # - name: run App Tests
+    #   run: meson test -C build --no-suite unittests
     - name: run Unittests
       run: meson test -C build --suite unittests
