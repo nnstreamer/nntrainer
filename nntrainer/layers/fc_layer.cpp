@@ -94,9 +94,13 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
   // global configuration
 
   /** Bias Dimension : (1, 1, 1, unit) */
+  /// @note bias is directly added to activation
+  /// since we have no dequantizer for add operation,
+  /// we have to set its data type as same as activation.
+  /// This should be updated when the dequantizer is supported.
   TensorDim bias_dim(
     1, is_nchw ? 1 : unit, 1, is_nchw ? unit : 1,
-    TensorDim::TensorType(context.getFormat(), context.getWeightDataType()),
+    TensorDim::TensorType(context.getFormat(), context.getActivationDataType()),
     is_nchw ? 0b0001 : 0b0100);
 
   /** Weight Dimension : (1, 1, in_dim.width(), unit)*/
