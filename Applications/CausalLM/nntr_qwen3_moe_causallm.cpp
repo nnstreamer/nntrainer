@@ -26,7 +26,7 @@
 
 #include <app_context.h>
 #include <engine.h>
-#include <qwen_moe_layer_fsu.h>
+#include <qwen_moe_layer_cached.h>
 
 namespace causallm {
 
@@ -51,7 +51,7 @@ NNTRQwen3MoECausalLM::createMlp(const int layer_id, int dim, int hidden_dim,
 
   std::vector<LayerHandle> layers;
   layers.push_back(createLayer(
-    "moe_slim",
+    "moe_cached_slim",
     {withKey("name", "layer" + std::to_string(layer_id) + "_ffn_down"),
      withKey("input_layers", input_name), withKey("unit", hidden_dim),
      withKey("num_experts", NUM_EXPERTS),
@@ -70,7 +70,7 @@ void NNTRQwen3MoECausalLM::registerCustomLayers() {
 
   try {
     app_context->registerFactory(
-      nntrainer::createLayer<causallm::SlimMoELayer>);
+      nntrainer::createLayer<causallm::CachedSlimMoELayer>);
   } catch (std::invalid_argument &e) {
     std::cerr << "failed to register factory, reason: " << e.what()
               << std::endl;
