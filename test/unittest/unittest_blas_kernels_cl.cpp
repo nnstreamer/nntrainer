@@ -132,6 +132,28 @@ dot_gemm_fp16(const int batch, const int channel, const int height,
 }
 #endif
 
+void *allocateSVM(size_t size_bytes) {
+  auto *blas_cc = static_cast<nntrainer::ClContext *>(
+    nntrainer::Engine::Global().getRegisteredContext("gpu"));
+
+  void *ptr = blas_cc->context_inst_.createSVMRegion(size_bytes);
+
+  if (ptr == nullptr) {
+    throw std::runtime_error(
+      "Failed to allocated SVM for the OpenCL BLAS unit test.");
+  }
+
+  return ptr;
+}
+
+void freeSVM(void *ptr) {
+  auto *blas_cc = static_cast<nntrainer::ClContext *>(
+    nntrainer::Engine::Global().getRegisteredContext("gpu"));
+
+  blas_cc->context_inst_.releaseSVMRegion(ptr);
+  ptr = nullptr;
+}
+
 // -----
 // Tests
 // -----
@@ -582,12 +604,9 @@ TEST(blas_kernels, rmsnorm_fp32_67_3072) {
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
 
   /// Initialize GPU input/ouput data
-  void *in_fp32_svm =
-    blas_cc->context_inst_.createSVMRegion(in_fp32.size() * sizeof(float));
-  void *gamma_fp32_svm =
-    blas_cc->context_inst_.createSVMRegion(gamma_fp32.size() * sizeof(float));
-  void *out_fp32_svm =
-    blas_cc->context_inst_.createSVMRegion(out_cl_fp32.size() * sizeof(float));
+  void *in_fp32_svm = allocateSVM(in_fp32.size() * sizeof(float));
+  void *gamma_fp32_svm = allocateSVM(gamma_fp32.size() * sizeof(float));
+  void *out_fp32_svm = allocateSVM(out_cl_fp32.size() * sizeof(float));
 
   blas_cc->command_queue_inst_.enqueueSVMMap(
     in_fp32_svm, in_fp32.size() * sizeof(float), false);
@@ -646,10 +665,9 @@ TEST(blas_kernels, rmsnorm_fp32_67_3072) {
 
   const float epsilon = 1e-3 * width;
 
-  blas_cc->command_queue_inst_.enqueueSVMUnmap(out_fp32_svm);
-  blas_cc->context_inst_.releaseSVMRegion(in_fp32_svm);
-  blas_cc->context_inst_.releaseSVMRegion(gamma_fp32_svm);
-  blas_cc->context_inst_.releaseSVMRegion(out_fp32_svm);
+  freeSVM(out_fp32_svm);
+  freeSVM(in_fp32_svm);
+  freeSVM(gamma_fp32_svm);
 
   EXPECT_IN_RANGE(mseError, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
@@ -692,9 +710,9 @@ TEST(blas_kernels, swiglu_layer_fp32_67_3072) {
                              alpha);
 
   /// Initialize GPU input/output
-  void *gpu_in1 = blas_cc->context_inst_.createSVMRegion(dim * sizeof(float));
-  void *gpu_in2 = blas_cc->context_inst_.createSVMRegion(dim * sizeof(float));
-  void *gpu_dst = blas_cc->context_inst_.createSVMRegion(dim * sizeof(float));
+  void *gpu_in1 = allocateSVM(dim * sizeof(float));
+  void *gpu_in2 = allocateSVM(dim * sizeof(float));
+  void *gpu_dst = allocateSVM(dim * sizeof(float));
 
   blas_cc->command_queue_inst_.enqueueSVMMap(gpu_in1, dim * sizeof(float),
                                              false);
@@ -741,9 +759,9 @@ TEST(blas_kernels, swiglu_layer_fp32_67_3072) {
 
   const float epsilon = 1e-3 * width;
 
-  blas_cc->context_inst_.releaseSVMRegion(gpu_in1);
-  blas_cc->context_inst_.releaseSVMRegion(gpu_in2);
-  blas_cc->context_inst_.releaseSVMRegion(gpu_dst);
+  freeSVM(gpu_in1);
+  freeSVM(gpu_in2);
+  freeSVM(gpu_dst);
 
   EXPECT_IN_RANGE(mseError, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
@@ -1174,17 +1192,15 @@ static void run_q_6_K_test(const uint32_t M, const uint32_t K,
                    weight.data(), K, 0.F, ref_dst.data(), N);
 
   // Initialize data
-  void *gpu_q6_dst =
-    blas_cc->context_inst_.createSVMRegion(M * N * sizeof(float));
+  void *gpu_q6_dst = allocateSVM(M * N * sizeof(float));
 
-  void *q6_weight_ptr = blas_cc->context_inst_.createSVMRegion(data_size);
+  void *q6_weight_ptr = allocateSVM(data_size);
 
   blas_cc->command_queue_inst_.enqueueSVMMap(q6_weight_ptr, data_size, false);
 
   float *weights_f32_ptr = weight.data();
 
-  float *activations_f32_ptr =
-    (float *)blas_cc->context_inst_.createSVMRegion(M * K * sizeof(float));
+  float *activations_f32_ptr = (float *)allocateSVM(M * K * sizeof(float));
 
   blas_cc->command_queue_inst_.enqueueSVMMap(activations_f32_ptr,
                                              M * K * sizeof(float), false);
@@ -1233,15 +1249,7 @@ static void run_q_6_K_test(const uint32_t M, const uint32_t K,
       }
     }
 
-    // const auto mean_squared_error_dst_gpu =
-    //   compute_mse(M, N, ref_dst, gpu_q6_dst, false);
-    // const auto mean_squared_error_dst =
-    //   compute_mse(M, N, ref_dst, cpu_q6_dst, false);
-
-    const auto data_size_mb = data_size / (1024 * 1024.0f);
-
     std::cout << "Q6_K GEMV : " << M << " x " << K << " x " << N << std::endl;
-    std::cout << " - q6_K data size : " << data_size_mb << " [MB]" << std::endl;
     std::cout << " - time : CPU = " << dt.count() / (run_count * 1.0f) << " ms"
               << std::endl;
     std::cout << " - time : GPU = " << gpu_dt.count() / (run_count * 1.0f)
@@ -1257,9 +1265,10 @@ static void run_q_6_K_test(const uint32_t M, const uint32_t K,
               << first_zero_index << " ]" << std::endl;
     std::cout << " - nans : " << nans << " / " << M * N << " [ "
               << nans * 100.0f / float(M * N) << " %]" << std::endl;
-    // std::cout << " - MSE : CPU = " << mean_squared_error_dst << std::endl;
-    // std::cout << " - MSE : GPU = " << mean_squared_error_dst_gpu <<
-    // std::endl;
+
+    freeSVM(gpu_q6_dst);
+    freeSVM(q6_weight_ptr);
+    freeSVM(activations_f32_ptr);
   }
 }
 
@@ -1314,19 +1323,16 @@ static void run_q4_0_test(const uint32_t M, const uint32_t K,
                    weight.data(), K, 0.F, ref_dst.data(), N);
 
   // Initialize data
-  void *gpu_q4_dst =
-    blas_cc->context_inst_.createSVMRegion(M * N * sizeof(float));
+  void *gpu_q4_dst = allocateSVM(M * N * sizeof(float));
 
-  void *q4_weight_ptr = blas_cc->context_inst_.createSVMRegion(data_size);
-  void *q4_weight_repack_ptr =
-    blas_cc->context_inst_.createSVMRegion(data_size);
+  void *q4_weight_ptr = allocateSVM(data_size);
+  void *q4_weight_repack_ptr = allocateSVM(data_size);
 
   blas_cc->command_queue_inst_.enqueueSVMMap(q4_weight_ptr, data_size, false);
 
   float *weights_f32_ptr = weight.data();
 
-  float *activations_f32_ptr =
-    (float *)blas_cc->context_inst_.createSVMRegion(M * K * sizeof(float));
+  float *activations_f32_ptr = (float *)allocateSVM(M * K * sizeof(float));
 
   blas_cc->command_queue_inst_.enqueueSVMMap(activations_f32_ptr,
                                              M * K * sizeof(float), false);
@@ -1397,6 +1403,11 @@ static void run_q4_0_test(const uint32_t M, const uint32_t K,
               << first_zero_index << " ]" << std::endl;
     std::cout << " - nans : " << nans << " / " << M * N << " [ "
               << nans * 100.0f / float(M * N) << " %]" << std::endl;
+
+    freeSVM(gpu_q4_dst);
+    freeSVM(q4_weight_ptr);
+    freeSVM(q4_weight_repack_ptr);
+    freeSVM(activations_f32_ptr);
   }
 }
 
