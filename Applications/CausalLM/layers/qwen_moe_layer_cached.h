@@ -164,8 +164,8 @@ private:
   inline void compute_expert_forward_no_critical(
     const nntrainer::Tensor &input, nntrainer::Tensor &expert_output,
     const std::vector<std::pair<unsigned, float>> &token_assignments,
-    const nntrainer::Tensor &gate_proj, const nntrainer::Tensor &up_proj,
-    const nntrainer::Tensor &down_proj, unsigned int hidden_size);
+    nntrainer::Tensor &gate_proj, nntrainer::Tensor &up_proj,
+    nntrainer::Tensor &down_proj, unsigned int hidden_size);
 };
 } // namespace causallm
 

@@ -30,6 +30,7 @@
 #include <omp.h>
 #include <qwen_moe_layer_cached.h>
 #include <stdexcept>
+#include <vector>
 
 #include <chrono>
 using std::chrono::duration_cast;
@@ -328,8 +329,8 @@ inline void CachedSlimMoELayer::compute_expert_forward(
 inline void CachedSlimMoELayer::compute_expert_forward_no_critical(
   const nntrainer::Tensor &input, nntrainer::Tensor &expert_output,
   const std::vector<std::pair<unsigned, float>> &token_assignments,
-  const nntrainer::Tensor &gate_proj, const nntrainer::Tensor &up_proj,
-  const nntrainer::Tensor &down_proj, unsigned int hidden_size) {
+  nntrainer::Tensor &gate_proj, nntrainer::Tensor &up_proj,
+  nntrainer::Tensor &down_proj, unsigned int hidden_size) {
 
   const unsigned intermediate_size = gate_proj.width();
   const unsigned num_tokens = token_assignments.size();
@@ -360,14 +361,19 @@ inline void CachedSlimMoELayer::compute_expert_forward_no_critical(
     nntrainer::Tensor acti_out(intermediate_dim);
     nntrainer::Tensor up_out(intermediate_dim);
 
+#if defined(__ANDROID__) && defined(PARALLEL_FFN)
+    std::vector<nntrainer::Tensor *> Weights({&gate_proj, &up_proj});
+    std::vector<nntrainer::Tensor *> Outputs({&gate_out, &up_out});
+    token_input.dot(Weights, Outputs);
+#else
     // Gate projection using optimized dot operation
     token_input.dot(gate_proj, gate_out);
 
-    // Apply activation (silu)
-    acti_func.run_fn(gate_out, acti_out);
-
     // Up projection using optimized dot operation
     token_input.dot(up_proj, up_out);
+#endif
+    // Apply activation (silu)
+    acti_func.run_fn(gate_out, acti_out);
 
     // Element-wise multiply: silu(gate_out) * up_out
     acti_out.multiply_i(up_out);
