@@ -27,8 +27,10 @@ void ClBufferManager::initBuffers() {
   outBufferB = new opencl::Buffer(context_inst_, unused_buffer_bytes, false);
 
   data_input = context_inst_.createSVMRegion(buffer_size_bytes);
-  data_scale = context_inst_.createSVMRegion(scale_q4_0_size);
-  data_quant = context_inst_.createSVMRegion(quant_q4_0_size);
+  for (unsigned int i = 0; i < max_qs; ++i) {
+    scale_vec.push_back(context_inst_.createSVMRegion(scale_q4_0_size));
+    quant_vec.push_back(context_inst_.createSVMRegion(quant_q4_0_size));
+  }
 
   ml_logi("ClBufferManager: Buffers & images initialized");
 }
@@ -41,8 +43,10 @@ ClBufferManager::~ClBufferManager() {
   delete outBufferB;
 
   context_inst_.releaseSVMRegion(data_input);
-  context_inst_.releaseSVMRegion(data_scale);
-  context_inst_.releaseSVMRegion(data_quant);
+  for (unsigned int i = 0; i < max_qs; ++i) {
+    context_inst_.releaseSVMRegion(scale_vec[i]);
+    context_inst_.releaseSVMRegion(quant_vec[i]);
+  }
 
   ml_logi("ClBufferManager: Buffers destroyed");
 }

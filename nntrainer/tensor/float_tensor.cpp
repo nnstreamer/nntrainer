@@ -730,13 +730,21 @@ void FloatTensor::dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
     if (M == 1) {
       gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
     } else {
-      gemm_q4_0_cl((void *)mdata, data, rdata, M, N, K);
+      Ns.push_back(N);
+      mdatas.push_back(mdata);
+      rdatas.push_back(rdata);
     }
 #else
     /// @todo Support multi-weight q4_0 for x64
     gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
 #endif
   }
+
+#ifdef ENABLE_OPENCL
+  if (M != 1) {
+    gemm_q4_0_async_cl(mdatas, data, rdatas, M, Ns, K);
+  }
+#endif
 }
 
 Tensor &FloatTensor::dotFloat(Tensor const &input, Tensor &output, bool trans,
