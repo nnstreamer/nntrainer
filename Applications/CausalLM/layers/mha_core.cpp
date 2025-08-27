@@ -323,7 +323,7 @@ void MHACoreLayer::compute_kcaches(
     if (from) {
       nntrainer::compute_kcaches<uint16_t>(
         in.getData<float>(), cache.getData<uint16_t>(), out.getData<float>(),
-        from + 1, num_head / group_size, head_dim, group_size, 8);
+        from + 1, num_head / group_size, head_dim, group_size, 4);
     } else {
       std::vector<std::future<void>> futures;
       for (unsigned int i = 0; i < sequence_len; ++i) {
@@ -337,7 +337,7 @@ void MHACoreLayer::compute_kcaches(
         futures.emplace_back(pool.submit_task([=]() {
           nntrainer::compute_kcaches<uint16_t>(
             input_addr, cache_addr, output_addr, row_to_compute,
-            num_head / group_size, head_dim, group_size, 8);
+            num_head / group_size, head_dim, group_size, 4);
         }));
       }
       for (auto &fut : futures)
@@ -348,7 +348,7 @@ void MHACoreLayer::compute_kcaches(
     if (from) {
       nntrainer::compute_kcaches(
         in.getData<_FP16>(), cache.getData<_FP16>(), out.getData<_FP16>(),
-        from + 1, num_head / group_size, head_dim, group_size, 8);
+        from + 1, num_head / group_size, head_dim, group_size, 4);
     } else {
       std::vector<std::future<void>> futures;
       for (unsigned int i = 0; i < sequence_len; ++i) {
@@ -362,7 +362,7 @@ void MHACoreLayer::compute_kcaches(
         futures.emplace_back(pool.submit_task([=]() {
           nntrainer::compute_kcaches(input_addr, cache_addr, output_addr,
                                      row_to_compute, num_head / group_size,
-                                     head_dim, group_size, 8);
+                                     head_dim, group_size, 4);
         }));
       }
       for (auto &fut : futures)
