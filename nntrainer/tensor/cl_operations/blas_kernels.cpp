@@ -12,6 +12,7 @@
  */
 
 #include "blas_kernels_templates.h"
+#include <cstdint>
 
 namespace nntrainer {
 
@@ -52,50 +53,24 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
     return;
   }
 
-  int arg = 0;
+  uint32_t arg = 0;
 
   result =
-    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMQuant());
-  if (!result)
-    throw std::runtime_error(
-      "Failed to set kernel argument 0 for kernel_mul_mat_Ab_Bi_8x4");
-
-  kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMScale());
-  if (!result)
-    throw std::runtime_error(
-      "Failed to set kernel argument 1 for kernel_mul_mat_Ab_Bi_8x4");
-
-  result =
-    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMInput());
+    kernel_ptr->SetKernelSVMArguments({{arg++, clbuffInstance.getSVMQuant()},
+                                       {arg++, clbuffInstance.getSVMScale()},
+                                       {arg++, clbuffInstance.getSVMInput()}});
 
   if (!result)
     throw std::runtime_error(
-      "Failed to set kernel argument 2 for kernel_mul_mat_Ab_Bi_8x4");
+      "Failed to set kernel SVM arguments for kernel_mul_mat_Ab_Bi_8x4");
 
-  result = kernel_ptr->SetKernelSVMArguments(arg++, matCdata);
+  result = kernel_ptr->SetKernelArguments({{arg++, &N, sizeof(int)},
+                                           {arg++, &padded_M, sizeof(int)},
+                                           {arg++, &K, sizeof(int)},
+                                           {arg++, &M, sizeof(int)}});
   if (!result)
     throw std::runtime_error(
-      "Failed to set kernel argument 3 for kernel_mul_mat_Ab_Bi_8x4");
-
-  result = kernel_ptr->SetKernelArguments(arg++, &N, sizeof(int));
-  if (!result)
-    throw std::runtime_error(
-      "Failed to set kernel argument 4 for kernel_mul_mat_Ab_Bi_8x4");
-
-  result = kernel_ptr->SetKernelArguments(arg++, &padded_M, sizeof(int));
-  if (!result)
-    throw std::runtime_error(
-      "Failed to set kernel argument 5 for kernel_mul_mat_Ab_Bi_8x4");
-
-  result = kernel_ptr->SetKernelArguments(arg++, &K, sizeof(int));
-  if (!result)
-    throw std::runtime_error(
-      "Failed to set kernel argument 6 for kernel_mul_mat_Ab_Bi_8x4");
-
-  result = kernel_ptr->SetKernelArguments(arg++, &M, sizeof(int));
-  if (!result)
-    throw std::runtime_error(
-      "Failed to set kernel argument 7 for kernel_mul_mat_Ab_Bi_8x4");
+      "Failed to set kernel arguments for kernel_mul_mat_Ab_Bi_8x4");
 
   const int work_groups_count[3] = {(int)ceil(M / 8.0f), (int)N / 4, 1};
   const int work_group_size[3] = {1, 128, 1};
@@ -169,111 +144,26 @@ void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
   cl_ulong offset1 = 0;
   cl_ulong offsetd = 0;
 
-  result = kernel_q6_k_sgemv_ptr->SetKernelSVMArguments(0, matAdata);
-
-  if (!result) {
-    ml_loge("Failed to set kernel argument 0 for kernel_q6_k_sgemv_ptr");
-    return;
-  }
-
   result =
-    kernel_q6_k_sgemv_ptr->SetKernelArguments(1, &offset0, sizeof(cl_ulong));
-
+    kernel_q6_k_sgemv_ptr->SetKernelArguments({{1, &offset0, sizeof(cl_ulong)},
+                                               {3, &offset1, sizeof(cl_ulong)},
+                                               {5, &offsetd, sizeof(cl_ulong)},
+                                               {6, &ne00, sizeof(int)},
+                                               {7, &ne01, sizeof(int)},
+                                               {8, &ne02, sizeof(int)},
+                                               {9, &ne10, sizeof(int)},
+                                               {10, &ne12, sizeof(int)},
+                                               {11, &ne0, sizeof(int)},
+                                               {12, &ne1, sizeof(int)},
+                                               {13, &r2, sizeof(int)},
+                                               {14, &r3, sizeof(int)}});
   if (!result) {
-    ml_loge("Failed to set kernel argument 1 for kernel_q6_k_sgemv_ptr");
     return;
   }
 
-  result = kernel_q6_k_sgemv_ptr->SetKernelSVMArguments(2, vecXdata);
-
+  result = kernel_q6_k_sgemv_ptr->SetKernelSVMArguments(
+    {{0, matAdata}, {2, vecXdata}, {4, vecYdata}});
   if (!result) {
-    ml_loge("Failed to set kernel argument 2 for kernel_q6_k_sgemv_ptr");
-    return;
-  }
-
-  result =
-    kernel_q6_k_sgemv_ptr->SetKernelArguments(3, &offset1, sizeof(cl_ulong));
-
-  if (!result) {
-    ml_loge("Failed to set kernel argument 3 for kernel_q6_k_sgemv_ptr");
-    return;
-  }
-
-  result = kernel_q6_k_sgemv_ptr->SetKernelSVMArguments(4, vecYdata);
-
-  if (!result) {
-    ml_loge("Failed to set kernel argument 4 for kernel_q6_k_sgemv_ptr");
-    return;
-  }
-
-  result =
-    kernel_q6_k_sgemv_ptr->SetKernelArguments(5, &offsetd, sizeof(cl_ulong));
-
-  if (!result) {
-    ml_loge("Failed to set kernel argument 5 for kernel_q6_k_sgemv_ptr");
-    return;
-  }
-
-  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(6, &ne00, sizeof(int));
-
-  if (!result) {
-    ml_loge("Failed to set kernel argument 6 for kernel_q6_k_sgemv_ptr");
-    return;
-  }
-
-  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(7, &ne01, sizeof(int));
-
-  if (!result) {
-    ml_loge("Failed to set kernel argument 7 for kernel_q6_k_sgemv_ptr");
-    return;
-  }
-
-  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(8, &ne02, sizeof(int));
-
-  if (!result) {
-    ml_loge("Failed to set kernel argument 8 for kernel_q6_k_sgemv_ptr");
-    return;
-  }
-
-  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(9, &ne10, sizeof(int));
-
-  if (!result) {
-    ml_loge("Failed to set kernel argument 9 for kernel_q6_k_sgemv_ptr");
-    return;
-  }
-
-  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(10, &ne12, sizeof(int));
-
-  if (!result) {
-    ml_loge("Failed to set kernel argument 10 for kernel_q6_k_sgemv_ptr");
-    return;
-  }
-
-  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(11, &ne0, sizeof(int));
-
-  if (!result) {
-    ml_loge("Failed to set kernel argument 11 for kernel_q6_k_sgemv_ptr");
-    return;
-  }
-
-  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(12, &ne1, sizeof(int));
-
-  if (!result) {
-    ml_loge("Failed to set kernel argument 12 for kernel_q6_k_sgemv_ptr");
-    return;
-  }
-
-  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(13, &r2, sizeof(int));
-
-  if (!result) {
-    ml_loge("Failed to set kernel argument 13 for kernel_q6_k_sgemv_ptr");
-    return;
-  }
-
-  result = kernel_q6_k_sgemv_ptr->SetKernelArguments(14, &r3, sizeof(int));
-
-  if (!result) {
-    ml_loge("Failed to set kernel argument 14 for kernel_q6_k_sgemv_ptr");
     return;
   }
 
@@ -469,25 +359,14 @@ void flatten_block_q4_0_cl(const void *src, void *dst_q, void *dst_d,
     return;
   }
 
-  int argIdx = 0;
+  uint32_t argIdx = 0;
 
-  result = kernel_ptr->SetKernelSVMArguments(argIdx++, src);
+  result = kernel_ptr->SetKernelSVMArguments(
+    {{argIdx++, src},
+     {argIdx++, clbuffInstance.getSVMQuant()},
+     {argIdx++, clbuffInstance.getSVMScale()}});
   if (!result) {
-    ml_loge("Failed to set kernel argument 0 for flatten_block_q4_0_cl");
-    return;
-  }
-
-  result =
-    kernel_ptr->SetKernelSVMArguments(argIdx++, clbuffInstance.getSVMQuant());
-  if (!result) {
-    ml_loge("Failed to set kernel argument 1 for flatten_block_q4_0_cl");
-    return;
-  }
-
-  result =
-    kernel_ptr->SetKernelSVMArguments(argIdx++, clbuffInstance.getSVMScale());
-  if (!result) {
-    ml_loge("Failed to set kernel argument 2 for flatten_block_q4_0_cl");
+    ml_loge("Failed to set kernel arguments for flatten_block_q4_0_cl");
     return;
   }
 
@@ -516,21 +395,10 @@ void restore_block_q4_0_cl(const void *src_q, const void *src_d, void *dst,
     return;
   }
 
-  int argIdx = 0;
+  uint32_t argIdx = 0;
 
-  result = kernel_ptr->SetKernelSVMArguments(argIdx++, src_q);
-  if (!result) {
-    ml_loge("Failed to set kernel argument 0 for restore_block_q4_0_cl");
-    return;
-  }
-
-  result = kernel_ptr->SetKernelSVMArguments(argIdx++, src_d);
-  if (!result) {
-    ml_loge("Failed to set kernel argument 1 for restore_block_q4_0_cl");
-    return;
-  }
-
-  result = kernel_ptr->SetKernelSVMArguments(argIdx++, dst);
+  result = kernel_ptr->SetKernelSVMArguments(
+    {{argIdx++, src_q}, {argIdx++, src_d}, {argIdx++, dst}});
   if (!result) {
     ml_loge("Failed to set kernel argument 2 for restore_block_q4_0_cl");
     return;
@@ -573,35 +441,23 @@ void transpose_32_16(float *data, int M, int K) {
   }
   int padded_height = (M + padding) / 4;
 
-  int arg = 0;
+  uint32_t arg = 0;
   bool result = false;
 
-  result = kernel_ptr->SetKernelSVMArguments(arg++, data);
+  result = kernel_ptr->SetKernelSVMArguments(
+    {{arg++, data}, {arg++, clbuffInstance.getSVMInput()}});
+
   if (!result)
     throw std::runtime_error(
-      "Failed to set kernel argument 0 for kernel_transpose_32_16");
+      "Failed to set kernel SVM arguments for kernel_transpose_32_16");
 
   result =
-    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMInput());
-
+    kernel_ptr->SetKernelArguments({{arg++, &height, sizeof(int)},
+                                    {arg++, &width, sizeof(int)},
+                                    {arg++, &padded_height, sizeof(int)}});
   if (!result)
     throw std::runtime_error(
-      "Failed to set kernel argument 1 for kernel_transpose_32_16");
-
-  result = kernel_ptr->SetKernelArguments(arg++, &height, sizeof(int));
-  if (!result)
-    throw std::runtime_error(
-      "Failed to set kernel argument 2 for kernel_transpose_32_16");
-
-  result = kernel_ptr->SetKernelArguments(arg++, &width, sizeof(int));
-  if (!result)
-    throw std::runtime_error(
-      "Failed to set kernel argument 3 for kernel_transpose_32_16");
-
-  result = kernel_ptr->SetKernelArguments(arg++, &padded_height, sizeof(int));
-  if (!result)
-    throw std::runtime_error(
-      "Failed to set kernel argument 4 for kernel_transpose_32_16");
+      "Failed to set kernel arguments for kernel_transpose_32_16");
 
   const int work_groups_count[3] = {width, padded_height, 1};
   const int work_group_size[3] = {1, 16, 1};
@@ -630,26 +486,22 @@ void transpose_16(void *input, void *output, int width, int height,
     return;
   }
 
-  int arg = 0;
+  uint32_t arg = 0;
   bool result = false;
 
   if (isQuant) {
-    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMQuant());
-    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMQuantT());
+    kernel_ptr->SetKernelSVMArguments({{arg++, clbuffInstance.getSVMQuant()},
+                                       {arg++, clbuffInstance.getSVMQuantT()}});
   } else {
-    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMScale());
-    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMScaleT());
+    kernel_ptr->SetKernelSVMArguments({{arg++, clbuffInstance.getSVMScale()},
+                                       {arg++, clbuffInstance.getSVMScaleT()}});
   }
 
-  result = kernel_ptr->SetKernelArguments(arg++, &height, sizeof(int));
+  result = kernel_ptr->SetKernelArguments(
+    {{arg++, &height, sizeof(int)}, {arg++, &width, sizeof(int)}});
   if (!result)
     throw std::runtime_error(
-      "Failed to set kernel argument 2 for kernel_transpose_16");
-
-  result = kernel_ptr->SetKernelArguments(arg++, &width, sizeof(int));
-  if (!result)
-    throw std::runtime_error(
-      "Failed to set kernel argument 3 for kernel_transpose_16");
+      "Failed to set kernel arguments for kernel_transpose_16");
 
   const int work_groups_count[3] = {width, height, 1};
   const int work_group_size[3] = {4, 16, 1};
