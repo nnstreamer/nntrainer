@@ -30,10 +30,76 @@
 #include <factory.h>
 
 #include "causal_lm.h"
+#include "nntr_qwen3_causallm.h"
+#include "nntr_qwen3_moe_causallm.h"
+#include "qwen3_cached_slim_moe_causallm.h"
 #include "qwen3_causallm.h"
 #include "qwen3_moe_causallm.h"
+#include "qwen3_slim_moe_causallm.h"
+#include <sys/resource.h>
+
+#include <atomic>
+#include <chrono>
+#include <thread>
 
 using json = nlohmann::json;
+
+std::atomic<size_t> peak_rss_kb{0};
+std::atomic<bool> tracking_enabled{true};
+
+void printMemoryUsage() {
+  struct rusage usage;
+  getrusage(RUSAGE_SELF, &usage);
+  std::cout << "Max Resident Set Size: " << usage.ru_maxrss << " KB"
+            << std::endl;
+}
+
+size_t read_vm_rss_kb() {
+  std::ifstream status("/proc/self/status");
+  std::string line;
+  while (std::getline(status, line)) {
+    if (line.find("VmRSS:") == 0) {
+      size_t kb = 0;
+      sscanf(line.c_str(), "VmRSS: %zu kB", &kb);
+      return kb;
+    }
+  }
+  return 0;
+}
+
+size_t read_private_rss_kb() {
+  std::ifstream smaps("/proc/self/smaps_rollup");
+  std::string line;
+  size_t total = 0;
+  while (std::getline(smaps, line)) {
+    if (line.find("Private_Clean:") == 0 || line.find("Private_Dirty:") == 0) {
+      size_t kb;
+      sscanf(line.c_str(), "%*s %zu", &kb);
+      total += kb;
+    }
+  }
+  return total;
+}
+
+void start_peak_tracker() {
+  std::thread([] {
+    while (tracking_enabled.load()) {
+      size_t current = read_private_rss_kb();
+      size_t prev = peak_rss_kb.load();
+      if (current > prev) {
+        peak_rss_kb.store(current);
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+  }).detach();
+}
+
+void stop_and_print_peak() {
+  tracking_enabled.store(false);
+  std::this_thread::sleep_for(std::chrono::milliseconds(20));
+  std::cout << "Peak memory usage (VmRSS): " << peak_rss_kb.load() << " KB"
+            << std::endl;
+}
 
 int main(int argc, char *argv[]) {
 
@@ -52,6 +118,28 @@ int main(int argc, char *argv[]) {
     "Qwen3MoeForCausalLM", [](json cfg, json generation_cfg, json nntr_cfg) {
       return std::make_unique<causallm::Qwen3MoECausalLM>(cfg, generation_cfg,
                                                           nntr_cfg);
+    });
+  causallm::Factory::Instance().registerModel(
+    "Qwen3SlimMoeForCausalLM",
+    [](json cfg, json generation_cfg, json nntr_cfg) {
+      return std::make_unique<causallm::Qwen3SlimMoECausalLM>(
+        cfg, generation_cfg, nntr_cfg);
+    });
+  causallm::Factory::Instance().registerModel(
+    "Qwen3CachedSlimMoeForCausalLM",
+    [](json cfg, json generation_cfg, json nntr_cfg) {
+      return std::make_unique<causallm::Qwen3CachedSlimMoECausalLM>(
+        cfg, generation_cfg, nntr_cfg);
+    });
+  causallm::Factory::Instance().registerModel(
+    "NNTRQwen3ForCausalLM", [](json cfg, json generation_cfg, json nntr_cfg) {
+      return std::make_unique<causallm::NNTRQwen3CausalLM>(cfg, generation_cfg,
+                                                           nntr_cfg);
+    });
+  causallm::Factory::Instance().registerModel(
+    "NNTRQwen3MoECausalLM", [](json cfg, json generation_cfg, json nntr_cfg) {
+      return std::make_unique<causallm::NNTRQwen3MoECausalLM>(
+        cfg, generation_cfg, nntr_cfg);
     });
 
   // Validate arguments
@@ -95,11 +183,18 @@ int main(int argc, char *argv[]) {
     model->initialize();
     model->load_weight(weight_file);
 
+#ifdef PROFILE
+    start_peak_tracker();
+#endif
 #if defined(_WIN32)
     model->run(input_text.c_str(), generation_cfg["do_sample"]);
 #else
     model->run(input_text, generation_cfg["do_sample"]);
 #endif
+#ifdef PROFILE
+    stop_and_print_peak();
+#endif
+    printMemoryUsage();
 
   } catch (const std::exception &e) {
     std::cerr << "\n[!] FATAL ERROR: " << e.what() << "\n";
