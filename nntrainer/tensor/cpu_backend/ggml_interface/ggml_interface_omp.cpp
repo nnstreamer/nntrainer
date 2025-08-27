@@ -13,15 +13,9 @@
  * only with openMP
  */
 
-#include "ggml-common.h"
-#include "ggml-cpu-quants.h"
-#include "ggml-cpu.h"
-#include "ggml-quants.h"
-#include "ggml.h"
-
-#include <algorithm>
 #include <ggml_interface.h>
 #include <nntr_ggml_impl.h>
+#include <nntr_ggml_impl_utils.h>
 
 #include <algorithm>
 #include <stdexcept>
@@ -30,45 +24,6 @@
 #include <vector>
 
 namespace nntrainer {
-/**
- * @brief Continuously packed 4 q8_K
- *
- */
-struct block_q8_Kx4 {
-  float d[4];              // delta
-  int8_t qs[QK_K * 4];     // quants
-  int16_t bsums[QK_K / 4]; // sum of quants in groups of 16
-};
-
-/**
- * @brief struct template for q4_0 and q8_0
- *
- * @tparam K 4 or 8
- * @return constexpr int number of elements in the quantized block
- */
-template <int K> constexpr int QK_0() {
-  if constexpr (K == 4) {
-    return QK4_0;
-  }
-  if constexpr (K == 8) {
-    return QK8_0;
-  }
-  return -1;
-}
-
-/**
- * @brief block of q4_0 or q8_0 block
- *
- * @tparam K 4 or 8
- * @tparam N number of blocks to be packed
- */
-template <int K, int N> struct block {
-  ggml_half d[N];                     // deltas for N qK_0 blocks
-  int8_t qs[(QK_0<K>() * N * K) / 8]; // quants for N qK_0 blocks
-};
-
-using block_q4_0x4 = block<4, 4>;
-using block_q8_0x4 = block<8, 4>;
 
 template <>
 void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
@@ -83,7 +38,7 @@ void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
     unsigned int blocks_per_row = (K + QK8_0 - 1) / QK8_0;
     unsigned int qa_size = sizeof(block_q8_0) * blocks_per_row;
     std::vector<char> QA = std::vector<char>(qa_size);
-    ::quantize_row_q8_0(A, QA.data(), K);
+    nntr_quantize_row_q8_0(A, QA.data(), K);
 
 #pragma omp parallel for num_threads(n_threads)
     for (int thread_idx = 0; thread_idx < n_threads; ++thread_idx) {
@@ -114,12 +69,12 @@ void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
 
     // Quantize 4-divisible-M row portion with matrix-wise function
     for (unsigned int i = 0; i < M4; i++) {
-      ggml_quantize_mat_q8_0_4x8(A + 4 * i * K, QA.data() + i * qa_4_rows_size,
+      nntr_quantize_mat_q8_0_4x8(A + 4 * i * K, QA.data() + i * qa_4_rows_size,
                                  K);
     }
     // Quantize leftover 1 ~ 3 rows with row-wise function
     for (unsigned int i = M4 * 4; i < M; i++) {
-      ::quantize_row_q8_0(
+      nntr_quantize_row_q8_0(
         (float *)A + i * K,
         (QA.data() + (M4 * qa_4_rows_size) + (i - M4 * 4) * qa_row_size), K);
     }
@@ -178,7 +133,7 @@ void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
     /// run-time quantization hurts model latency
     // #pragma omp parallel for num_threads(16)
     for (int i = 0; i < static_cast<int>(M4); i++) {
-      ggml_quantize_mat_q8_0_4x8(A + 4 * i * K, QA.data() + i * qa_4_rows_size,
+      nntr_quantize_mat_q8_0_4x8(A + 4 * i * K, QA.data() + i * qa_4_rows_size,
                                  K);
     }
     int thread_num = std::thread::hardware_concurrency() / 2;
@@ -219,7 +174,7 @@ void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M,
     int qa_size = sizeof(block_q8_0) * blocks_per_4_rows;
     std::vector<char> QA = std::vector<char>(qa_size);
     auto qa_data = QA.data();
-    quantize_row_q8_0(A, qa_data, K);
+    nntr_quantize_row_q8_0(A, qa_data, K);
     if (std::all_of(Ns.begin(), Ns.end(),
                     [](unsigned int n) { return n <= 256; })) {
       for (unsigned int num_w = 0; num_w < Ns.size(); ++num_w) {
@@ -276,12 +231,12 @@ void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M,
     std::vector<char> QA = std::vector<char>(qa_size);
 
     for (unsigned int i = 0; i < M4; i++) {
-      ggml_quantize_mat_q8_0_4x8(A + 4 * i * K, QA.data() + i * qa_4_rows_size,
+      nntr_quantize_mat_q8_0_4x8(A + 4 * i * K, QA.data() + i * qa_4_rows_size,
                                  K);
     }
 
     for (unsigned int i = M4 * 4; i < M; i++) {
-      quantize_row_q8_0(
+      nntr_quantize_row_q8_0(
         (float *)A + i * K,
         (QA.data() + (M4 * qa_4_rows_size) + (i - M4 * 4) * qa_row_size), K);
     }
@@ -356,7 +311,7 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
     unsigned int blocks_per_row = (K + QK8_0 - 1) / QK8_0;
     unsigned int qa_size = sizeof(block_q8_0) * blocks_per_row;
     std::vector<char> QA = std::vector<char>(qa_size);
-    ::quantize_row_q8_0(A, QA.data(), K);
+    nntr_quantize_row_q8_0(A, QA.data(), K);
 
 #pragma omp parallel for num_threads(n_threads)
     for (int thread_idx = 0; thread_idx < n_threads; ++thread_idx) {
@@ -368,7 +323,7 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
       M_step_end =
         (M_step_end % 8) ? M_step_end + 8 - (M_step_end % 8) : M_step_end;
 
-      ggml_gemv_q4_0_8x8_q8_0(K, (float *)((C) + M_step_start), N,
+      nntr_gemv_q4_0_8x8_q8_0(K, (float *)((C) + M_step_start), N,
                               (void *)((char *)B + M_step_start * B_step),
                               QA.data(), M, M_step_end - M_step_start);
     }
@@ -385,12 +340,12 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
 
     // Quantize 4-divisible-M row portion with matrix-wise function
     for (unsigned int i = 0; i < M4; i++) {
-      ggml_quantize_mat_q8_0_4x8(A + 4 * i * K, QA.data() + i * qa_4_rows_size,
+      nntr_quantize_mat_q8_0_4x8(A + 4 * i * K, QA.data() + i * qa_4_rows_size,
                                  K);
     }
     // Quantize leftover 1 ~ 3 rows with row-wise function
     for (unsigned int i = M4 * 4; i < M; i++) {
-      ::quantize_row_q8_0(
+      nntr_quantize_row_q8_0(
         (float *)A + i * K,
         (QA.data() + (M4 * qa_4_rows_size) + (i - M4 * 4) * qa_row_size), K);
     }
@@ -405,7 +360,7 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
         (src0_start % 8) ? src0_start + 8 - (src0_start % 8) : src0_start;
       src0_end = (src0_end % 8) ? src0_end + 8 - (src0_end % 8) : src0_end;
 
-      ggml_gemm_q4_0_8x8_q8_0(K, (float *)(C + src0_start), ldc,
+      nntr_gemm_q4_0_8x8_q8_0(K, (float *)(C + src0_start), ldc,
                               (void *)((char *)B + src0_start * B_step),
                               QA.data(), M4 * 4, src0_end - src0_start);
     }
@@ -424,7 +379,7 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
         M_step_end =
           (M_step_end % 8) ? M_step_end + 8 - (M_step_end % 8) : M_step_end;
 
-        ggml_gemv_q4_0_8x8_q8_0(
+        nntr_gemv_q4_0_8x8_q8_0(
           K, (float *)((C + ((pb - M4 * 4) * N) + (M4 * 4 * N)) + M_step_start),
           N, (void *)((char *)B + M_step_start * B_step),
           QA.data() + (M4 * qa_4_rows_size) + (pb - M4 * 4) * qa_row_size, 1,
@@ -459,7 +414,7 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
 
     std::vector<char> QA = std::vector<char>(qa_size);
 
-    ::quantize_row_q8_K(A, QA.data(), K);
+    nntr_quantize_row_q8_K(A, QA.data(), K);
 
 #pragma omp parallel for num_threads(n_threads)
     for (int thread_idx = 0; thread_idx < n_threads; ++thread_idx) {
@@ -471,7 +426,7 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
       M_step_end =
         (M_step_end % 8) ? M_step_end + 8 - (M_step_end % 8) : M_step_end;
 
-      ggml_gemv_q4_K_8x8_q8_K(K, (float *)((C) + M_step_start), N,
+      nntr_gemv_q4_K_8x8_q8_K(K, (float *)((C) + M_step_start), N,
                               (void *)((char *)B + M_step_start * B_step),
                               QA.data(), M, M_step_end - M_step_start);
     }
@@ -488,12 +443,12 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
 
     // Quantize 4-divisible-M row portion with matrix-wise function
     for (unsigned int i = 0; i < M4; i++) {
-      ggml_quantize_mat_q8_K_4x8(A + 4 * i * K, QA.data() + i * qa_4_rows_size,
+      nntr_quantize_mat_q8_K_4x8(A + 4 * i * K, QA.data() + i * qa_4_rows_size,
                                  K);
     }
     // Quantize leftover 1 ~ 3 rows with row-wise function
     for (unsigned int i = M4 * 4; i < M; i++) {
-      ::quantize_row_q8_K(
+      nntr_quantize_row_q8_K(
         (float *)A + i * K,
         (QA.data() + (M4 * qa_4_rows_size) + (i - M4 * 4) * qa_row_size), K);
     }
@@ -508,7 +463,7 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
         (src0_start % 8) ? src0_start + 8 - (src0_start % 8) : src0_start;
       src0_end = (src0_end % 8) ? src0_end + 8 - (src0_end % 8) : src0_end;
 
-      ggml_gemm_q4_K_8x8_q8_K(K, (float *)(C + src0_start), ldc,
+      nntr_gemm_q4_K_8x8_q8_K(K, (float *)(C + src0_start), ldc,
                               (void *)((char *)B + src0_start * B_step),
                               QA.data(), M4 * 4, src0_end - src0_start);
     }
@@ -527,7 +482,7 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M, const unsigned int N,
         M_step_end =
           (M_step_end % 8) ? M_step_end + 8 - (M_step_end % 8) : M_step_end;
 
-        ggml_gemv_q4_K_8x8_q8_K(
+        nntr_gemv_q4_K_8x8_q8_K(
           K, (float *)((C + ((pb - M4 * 4) * N) + (M4 * 4 * N)) + M_step_start),
           N, (void *)((char *)B + M_step_start * B_step),
           QA.data() + (M4 * qa_4_rows_size) + (pb - M4 * 4) * qa_row_size, 1,
@@ -569,7 +524,7 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
   if (M == 1) {
     thread_count = 4;
     std::vector<char> quantized_A(A_row_size);
-    ::quantize_row_q8_K(A, quantized_A.data(), K);
+    nntr_quantize_row_q8_K(A, quantized_A.data(), K);
 
     const void *const quantized_A_data = quantized_A.data();
 
@@ -580,7 +535,7 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
 
       const void *const B_data = (void *)((char *)B + B_row_data_offset);
 
-      ggml_vec_dot_q6_K_q8_K(K, &C[thread_job], bs, B_data, bx,
+      nntr_vec_dot_q6_K_q8_K(K, &C[thread_job], bs, B_data, bx,
                              quantized_A_data, by, nrc);
     }
   } else { // GEMM
@@ -592,7 +547,7 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
          thread_job++) {
       const int32_t A_row_data_offset = A_row_size * thread_job;
       void *A_data = (void *)((char *)quantized_A.data() + A_row_data_offset);
-      ::quantize_row_q8_K(A + thread_job * K, A_data, K);
+      nntr_quantize_row_q8_K(A + thread_job * K, A_data, K);
     }
 #pragma omp parallel for num_threads(thread_count)
     for (int32_t thread_job = 0; thread_job < static_cast<int>(M);
@@ -604,7 +559,7 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
         const int32_t B_row_data_offset = B_row_size * j;
         const void *const B_data = (void *)((char *)B + B_row_data_offset);
 
-        ggml_vec_dot_q6_K_q8_K(K, &C[thread_job * ldc + j], bs, B_data, bx,
+        nntr_vec_dot_q6_K_q8_K(K, &C[thread_job * ldc + j], bs, B_data, bx,
                                A_data, by, nrc);
       }
     }
