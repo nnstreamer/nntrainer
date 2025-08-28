@@ -781,6 +781,7 @@ TEST(nntrainer_cpu_backend_standalone, compute_kcaches) {
   int N = 2;
   int head_dim = 10;
   int group_size = 4;
+  int tile_size = 16;
   size_t in_size = N * group_size * head_dim;
   size_t kcache_size = num_rows * N * head_dim;
   size_t output_size = num_rows * N * group_size;
@@ -805,7 +806,8 @@ TEST(nntrainer_cpu_backend_standalone, compute_kcaches) {
   std::vector<float> output(output_size);
 
   nntrainer::compute_kcaches<uint16_t>(in.data(), kcache.data(), output.data(),
-                                       num_rows, N, head_dim, group_size);
+                                       num_rows, N, head_dim, group_size,
+                                       tile_size);
 
   for (size_t i = 0; i < output_size; i++) {
     EXPECT_NEAR(ref_out[i], output[i], 0.0001f);
@@ -985,6 +987,7 @@ TEST(nntrainer_cpu_backend_standalone, compute_kcaches_fp16) {
   int N = 2;
   int head_dim = 10;
   int group_size = 4;
+  int tile_size = 16;
   size_t in_size = N * group_size * head_dim;
   size_t kcache_size = num_rows * N * head_dim;
   size_t output_size = num_rows * N * group_size;
@@ -1010,7 +1013,7 @@ TEST(nntrainer_cpu_backend_standalone, compute_kcaches_fp16) {
   std::vector<__fp16> output(output_size);
 
   nntrainer::compute_kcaches(in.data(), kcache.data(), output.data(), num_rows,
-                             N, head_dim, group_size);
+                             N, head_dim, group_size, tile_size);
 
   for (size_t i = 0; i < output_size; i++) {
     EXPECT_NEAR(ref_out[i], output[i], 0.0001f);

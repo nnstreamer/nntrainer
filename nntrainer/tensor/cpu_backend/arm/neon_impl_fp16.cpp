@@ -1637,48 +1637,53 @@ void compute_fp16vcache_transposed(int row_num, const __fp16 *in,
 template <>
 void compute_kcaches(const float *in, const __fp16 *kcache, float *output,
                      int num_rows, int num_cache_head, int head_dim,
-                     int gqa_size, size_t local_window_size) {
+                     int gqa_size, int tile_size, size_t local_window_size) {
   std::vector<float> tmp_fp32(head_dim);
-  size_t start_row =
-    local_window_size < num_rows ? num_rows - local_window_size : 0;
+
+  int start_row =
+    num_rows < local_window_size ? 0 : num_rows - local_window_size;
+  int row_cnt = num_rows < local_window_size ? num_rows : local_window_size;
+  const int tile_count = (row_cnt + tile_size - 1) / tile_size;
 
   for (int n = 0; n < num_cache_head; ++n) {
-    for (int row = start_row; row < num_rows; ++row) {
-      if (row + 1 < num_rows) {
-        const __fp16 *next_kptr =
-          kcache + ((row + 1) * num_cache_head + n) * head_dim;
-        __builtin_prefetch(next_kptr, 0, 3); // Read, L1 cache
-      }
-
-      const __fp16 *kptr = kcache + (row * num_cache_head + n) * head_dim;
-
-      load_fp16_4_to_chunk(kptr, tmp_fp32.data(), head_dim);
+    for (int t = 0; t < tile_count; ++t) {
+      int row_tile_start = t * tile_size;
+      int tile_rows = std::min(tile_size, row_cnt - row_tile_start);
 
       for (int g = 0; g < gqa_size; ++g) {
         const float *in_ptr = in + n * gqa_size * head_dim + g * head_dim;
-        const float *k_row = tmp_fp32.data();
+        for (int t_row = 0; t_row < tile_rows; ++t_row) {
+          int row = start_row + row_tile_start + t_row;
+          if (t_row + 1 < tile_rows) {
+            const __fp16 *next_kptr =
+              kcache + ((row + 1) * num_cache_head + n) * head_dim;
+            __builtin_prefetch(next_kptr, 0, 3); // Read, L1 cache
+          }
+          const __fp16 *kptr = kcache + (row * num_cache_head + n) * head_dim;
 
-        float sum = 0.0f;
-        int i = 0;
-        float32x4_t acc = vdupq_n_f32(0.0f);
-        for (; i + 4 <= head_dim; i += 4) {
-          float32x4_t va = vld1q_f32(in_ptr + i);
-          float32x4_t vb = vld1q_f32(k_row + i);
-          acc = vfmaq_f32(acc, va, vb);
+          load_fp16_4_to_chunk(kptr, tmp_fp32.data(), head_dim);
+
+          const float *k_row = tmp_fp32.data();
+
+          float sum = 0.0f;
+          int i = 0;
+          float32x4_t acc = vdupq_n_f32(0.0f);
+          for (; i + 4 <= head_dim; i += 4) {
+            float32x4_t va = vld1q_f32(in_ptr + i);
+            float32x4_t vb = vld1q_f32(k_row + i);
+            acc = vfmaq_f32(acc, va, vb);
+          }
+
+          acc = vpaddq_f32(acc, acc);
+          acc = vpaddq_f32(acc, acc);
+          sum += vgetq_lane_f32(acc, 0);
+
+          for (; i < head_dim; ++i)
+            sum += in_ptr[i] * k_row[i];
+
+          output[(row - start_row) * num_cache_head * gqa_size + n * gqa_size +
+                 g] = sum / sqrt((float)head_dim);
         }
-
-        acc = vpaddq_f32(acc, acc);
-        acc = vpaddq_f32(acc, acc);
-        sum += vgetq_lane_f32(acc, 0);
-
-        for (; i < head_dim; ++i)
-          sum += in_ptr[i] * k_row[i];
-
-        output[(local_window_size == UINT_MAX || num_rows < local_window_size
-                  ? row
-                  : row - (num_rows - local_window_size)) *
-                 num_cache_head * gqa_size +
-               n * gqa_size + g] = sum / sqrt((float)head_dim);
       }
     }
   }
@@ -1686,45 +1691,49 @@ void compute_kcaches(const float *in, const __fp16 *kcache, float *output,
 
 void compute_kcaches(const __fp16 *in, const __fp16 *kcache, __fp16 *output,
                      int num_rows, int num_cache_head, int head_dim,
-                     int gqa_size, size_t local_window_size) {
-  size_t start_row =
-    local_window_size < num_rows ? num_rows - local_window_size : 0;
+                     int gqa_size, int tile_size, size_t local_window_size) {
+
+  int start_row =
+    num_rows < local_window_size ? 0 : num_rows - local_window_size;
+  int row_cnt = num_rows < local_window_size ? num_rows : local_window_size;
+  const int tile_count = (row_cnt + tile_size - 1) / tile_size;
 
   for (int n = 0; n < num_cache_head; ++n) {
-    for (int row = start_row; row < num_rows; ++row) {
-      if (row + 1 < num_rows) {
-        const __fp16 *next_kptr =
-          kcache + ((row + 1) * num_cache_head + n) * head_dim;
-        __builtin_prefetch(next_kptr, 0, 3); // Read, L1 cache
-      }
-
-      const __fp16 *k_row = kcache + (row * num_cache_head + n) * head_dim;
+    for (int t = 0; t < tile_count; ++t) {
+      int row_tile_start = t * tile_size;
+      int tile_rows = std::min(tile_size, row_cnt - row_tile_start);
 
       for (int g = 0; g < gqa_size; ++g) {
         const __fp16 *in_ptr = in + n * gqa_size * head_dim + g * head_dim;
+        for (int t_row = 0; t_row < tile_rows; ++t_row) {
+          int row = start_row + row_tile_start + t_row;
+          if (t_row + 1 < tile_rows) {
+            const __fp16 *next_kptr =
+              kcache + ((row + 1) * num_cache_head + n) * head_dim;
+            __builtin_prefetch(next_kptr, 0, 3); // Read, L1 cache
+          }
+          const __fp16 *k_row = kcache + (row * num_cache_head + n) * head_dim;
 
-        __fp16 sum = 0.0f;
-        int i = 0;
-        float16x8_t acc = vdupq_n_f16(0.0);
-        for (; i + 8 <= head_dim; i += 8) {
-          float16x8_t va = vld1q_f16(in_ptr + i);
-          float16x8_t vb = vld1q_f16(k_row + i);
-          acc = vfmaq_f16(acc, va, vb);
+          __fp16 sum = 0.0f;
+          int i = 0;
+          float16x8_t acc = vdupq_n_f16(0.0);
+          for (; i + 8 <= head_dim; i += 8) {
+            float16x8_t va = vld1q_f16(in_ptr + i);
+            float16x8_t vb = vld1q_f16(k_row + i);
+            acc = vfmaq_f16(acc, va, vb);
+          }
+
+          acc = vpaddq_f16(acc, acc);
+          acc = vpaddq_f16(acc, acc);
+          acc = vpaddq_f16(acc, acc);
+          sum += vgetq_lane_f16(acc, 0);
+
+          for (; i < head_dim; ++i)
+            sum += in_ptr[i] * k_row[i];
+
+          output[(row - start_row) * num_cache_head * gqa_size + n * gqa_size +
+                 g] = sum / sqrt((float)head_dim);
         }
-
-        acc = vpaddq_f16(acc, acc);
-        acc = vpaddq_f16(acc, acc);
-        acc = vpaddq_f16(acc, acc);
-        sum += vgetq_lane_f16(acc, 0);
-
-        for (; i < head_dim; ++i)
-          sum += in_ptr[i] * k_row[i];
-
-        output[(local_window_size == UINT_MAX || num_rows < local_window_size
-                  ? row
-                  : row - (num_rows - local_window_size)) *
-                 num_cache_head * gqa_size +
-               n * gqa_size + g] = sum / sqrt((float)head_dim);
       }
     }
   }
