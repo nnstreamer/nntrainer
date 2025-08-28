@@ -504,4 +504,10 @@ void softmax_row(float *qk_out, size_t start_row, size_t end_row,
                  size_t num_heads) {
   neon::softmax_row(qk_out, start_row, end_row, num_heads);
 }
+
+void rms_norm_wrt_width_fp32_intrinsic(const float *__restrict X,
+                                       float *__restrict Y, size_t H, size_t W,
+                                       float epsilon) {
+  neon::rms_norm_wrt_width_fp32_intrinsic(X, Y, H, W, epsilon);
+}
 } /* namespace nntrainer */
