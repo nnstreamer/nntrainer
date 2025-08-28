@@ -490,4 +490,10 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
   nntrainer::avx2::compute_rotary_emb_value(width, dim, half_, inout, output,
                                             cos_, sin_, only_convert_to_fp16);
 }
+
+void rms_norm_wrt_width_fp32_intrinsic(const float *__restrict X,
+                                       float *__restrict Y, size_t H, size_t W,
+                                       float epsilon) {
+  nntrainer::avx2::rms_norm_wrt_width_fp32_intrinsic(X, Y, H, W, epsilon);
+}
 } /* namespace nntrainer */
