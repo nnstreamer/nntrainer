@@ -550,7 +550,7 @@ void __fallback_compute_fp16vcache_fp32_transposed(
 template <>
 void __fallback_compute_kcaches(const float *in, const uint16_t *kcache,
                                 float *output, int num_rows, int num_cache_head,
-                                int head_dim, int gqa_size,
+                                int head_dim, int gqa_size, int tile_size,
                                 size_t local_window_size) {
   throw std::runtime_error("NYI : __fallback_compute_kcaches");
 }
