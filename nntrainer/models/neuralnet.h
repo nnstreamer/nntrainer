@@ -35,6 +35,7 @@
 
 #include <common_properties.h>
 #include <compiler_fwd.h>
+#include <computational_graph.h>
 #include <dynamic_training_optimization.h>
 #include <engine.h>
 #include <layer_node.h>
@@ -700,6 +701,8 @@ private:
     nullptr; /** Configurations bound to current engine */
 
   NetworkGraph model_graph; /** Network Model Graph */
+
+  ComputationalGraph computational_graph_ = {};
 
   GraphRepresentation graph_representation; /** Unsorted graph representation */
 

@@ -456,9 +456,27 @@ TEST(blas_kernels, asynch_execution) {
     "input", {nntrainer::withKey("name", "input1"),
               nntrainer::withKey("input_shape", "1:1:1:16")}));
 
+  model->addLayer(ml::train::createLayer(
+    "input", {nntrainer::withKey("name", "input2"),
+              nntrainer::withKey("input_shape", "1:1:1:16")}));
+
+  model->addLayer(ml::train::createLayer(
+    "input", {nntrainer::withKey("name", "input3"),
+              nntrainer::withKey("input_shape", "1:1:1:16")}));
+
   model->addLayer(ml::train::layer::Addition(
-    {nntrainer::withKey("name", "addition"),
+    {nntrainer::withKey("name", "addition0"),
      nntrainer::withKey("input_layers", {"input0", "input1"}),
+     nntrainer::withKey("input_shape", {"1:1:1:16", "1:1:1:16"})}));
+
+  model->addLayer(ml::train::layer::Addition(
+    {nntrainer::withKey("name", "addition1"),
+     nntrainer::withKey("input_layers", {"input2", "input3"}),
+     nntrainer::withKey("input_shape", {"1:1:1:16", "1:1:1:16"})}));
+
+  model->addLayer(ml::train::layer::Addition(
+    {nntrainer::withKey("name", "addition2"),
+     nntrainer::withKey("input_layers", {"addition0", "addition1"}),
      nntrainer::withKey("input_shape", {"1:1:1:16", "1:1:1:16"})}));
 
   model->setProperty({nntrainer::withKey("batch_size", 1),
@@ -474,10 +492,14 @@ TEST(blas_kernels, asynch_execution) {
 
   float input0[16];
   float input1[16];
+  float input2[16];
+  float input3[16];
 
   for (unsigned int i = 0; i < 16; ++i) {
-    input0[i] = i;
-    input1[i] = i;
+    input0[i] = 0;
+    input1[i] = 1;
+    input2[i] = 2;
+    input3[i] = 3;
   }
 
   std::vector<float *> in;
@@ -485,17 +507,16 @@ TEST(blas_kernels, asynch_execution) {
 
   in.push_back(input0);
   in.push_back(input1);
+  in.push_back(input2);
+  in.push_back(input3);
 
   ans = model->inference(1, in);
 
-  std::cout << "size: " << ans.size() << std::endl;
-  // std::cout << *ans[0] << std::endl;
-  // std::cout << *(ans[0] + 1) << std::endl;
-
-  auto ans_ptr = ans[0];
-  for (int i = 0; i < 16; ++i) {
-    std::cout << *(ans_ptr + i) << std::endl;
-  }
+  // std::cout << "size: " << ans.size() << std::endl;
+  // auto ans_ptr = ans[0];
+  // for (int i = 0; i < 16; ++i) {
+  //   std::cout << *(ans_ptr + i) << std::endl;
+  // }
 
   in.clear();
   ans.clear();

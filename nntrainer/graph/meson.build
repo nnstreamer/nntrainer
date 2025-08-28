@@ -1,4 +1,5 @@
 graph_sources = [
+  'computational_graph.cpp',
   'network_graph.cpp',
   'graph_core.cpp',
   'connection.cpp'

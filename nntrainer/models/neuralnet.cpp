@@ -293,6 +293,9 @@ int NeuralNetwork::initialize(ExecutionMode mode) {
     load(load_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
   }
 
+  computational_graph_.initialize(model_graph);
+  computational_graph_.serialize("model.json");
+
   return status;
 }
 
