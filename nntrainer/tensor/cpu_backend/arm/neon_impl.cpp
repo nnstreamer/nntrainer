@@ -1027,6 +1027,19 @@ void softmax_row(float *qk_out, size_t start_row, size_t end_row,
   delete[] sum_vals;
 }
 
+static float hsum_f32x4(float32x4_t v) {
+#if defined(__aarch64__)
+  return vaddvq_f32(v);
+#else
+  float32x2_t vlow = vget_low_f32(v);
+  float32x2_t vhigh = vget_high_f32(v);
+  vlow = vadd_f32(vlow, vhigh);
+  float32x2_t sum2 = vpadd_f32(vlow, vlow);
+  return vget_lane_f32(sum2, 0);
+#endif
+}
+
+
 void rms_norm_wrt_width_fp32_intrinsic(const float *__restrict X, float *__restrict Y,
                              size_t H, size_t W, float epsilon) {
   for (std::size_t h = 0; h < H; ++h) {
