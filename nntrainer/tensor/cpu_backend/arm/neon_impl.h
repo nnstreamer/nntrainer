@@ -696,6 +696,18 @@ void softmax_row_inplace(float *qk_out, size_t start_row, size_t end_row,
  */
 void softmax_row(float *qk_out, size_t start_row, size_t end_row,
                  size_t num_heads);
+/**
+ * @brief rms normalization computation w.r.t. width in H*W matrix input
+ *
+ * @param X input
+ * @param Y output
+ * @param H height of input matrix
+ * @param W width of input matrix
+ * @param epsilon epsilon of root mean squared dividing scale
+ */
+void rms_norm_wrt_width_fp32_intrinsic(const float *__restrict X,
+                                       float *__restrict Y, size_t H, size_t W,
+                                       float epsilon);
 } // namespace nntrainer::neon
 
 #endif /* __cplusplus */
