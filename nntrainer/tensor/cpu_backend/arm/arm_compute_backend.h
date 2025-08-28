@@ -426,11 +426,13 @@ void compute_fp16vcache_transposed(int row_num, const _FP16 *in,
  * @param[in] num_cache_head number head of cache
  * @param[in] head_dim head dimension
  * @param[in] gqa_size size of group
+ * @param[in] tile_size size of tile
  * @param[in] local_window_size windows size for local attention
  */
 void compute_kcaches(const _FP16 *in, const _FP16 *kcache, _FP16 *output,
                      int num_rows, int num_cache_head, int head_dim,
-                     int gqa_size, size_t local_window_size = UINT_MAX);
+                     int gqa_size, int tile_size,
+                     size_t local_window_size = UINT_MAX);
 
 /**
  * @brief Compute rotary embedding value
@@ -493,12 +495,14 @@ void compute_fp16vcache_fp32_transposed(int row_num, const float *in,
  * @param[in] num_cache_head number head of cache
  * @param[in] head_dim head dimension
  * @param[in] gqa_size size of group
+ * @param[in] tile_size size of tile
  * @param[in] local_window_size windows size for local attention
  */
 template <typename BType>
 void compute_kcaches(const float *in, const BType *kcache, float *output,
                      int num_rows, int num_cache_head, int head_dim,
-                     int gqa_size, size_t local_window_size = UINT_MAX);
+                     int gqa_size, int tile_size,
+                     size_t local_window_size = UINT_MAX);
 
 /**
  * @brief Compute rotary embedding value

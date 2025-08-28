@@ -1145,56 +1145,56 @@ void compute_fp16vcache_fp32_transposed(int row_num, const float *in,
 template <>
 void compute_kcaches(const float *in, const uint16_t *kcache, float *output,
                      int num_rows, int num_cache_head, int head_dim,
-                     int gqa_size, size_t local_window_size) {
+                     int gqa_size, int tile_size, size_t local_window_size) {
   std::vector<float> tmp_fp32(head_dim);
 
-  size_t start_row =
-    local_window_size < num_rows ? num_rows - local_window_size : 0;
+  int start_row =
+    num_rows < local_window_size ? 0 : num_rows - local_window_size;
+  int row_cnt = num_rows < local_window_size ? num_rows : local_window_size;
+  const int tile_count = (row_cnt + tile_size - 1) / tile_size;
 
   for (int n = 0; n < num_cache_head; ++n) {
-    for (int row = start_row; row < num_rows; ++row) {
-      if (row + 1 < num_rows) {
-        const uint16_t *next_kptr =
-          kcache + ((row + 1) * num_cache_head + n) * head_dim;
-        _mm_prefetch(reinterpret_cast<const char *>(next_kptr), _MM_HINT_T0);
-      }
-
-      const uint16_t *kptr = kcache + (row * num_cache_head + n) * head_dim;
-      load_fp16_8_to_chunk(kptr, tmp_fp32.data(), head_dim);
+    for (int t = 0; t < tile_count; ++t) {
+      int row_tile_start = t * tile_size;
+      int tile_rows = std::min(tile_size, row_cnt - row_tile_start);
 
       for (int g = 0; g < gqa_size; ++g) {
-        const float *a_ptr = in + n * gqa_size * head_dim + g * head_dim;
-        const float *b_row;
-        if constexpr (std::is_same<uint16_t, float>::value) {
-          b_row = reinterpret_cast<const float *>(kcache + n * head_dim);
-        } else {
-          b_row = tmp_fp32.data();
+        const float *in_ptr = in + n * gqa_size * head_dim + g * head_dim;
+        for (int t_row = 0; t_row < tile_rows; ++t_row) {
+          int row = start_row + row_tile_start + t_row;
+          if (row + 1 < num_rows) {
+            const uint16_t *next_kptr =
+              kcache + ((row + 1) * num_cache_head + n) * head_dim;
+            _mm_prefetch(reinterpret_cast<const char *>(next_kptr),
+                         _MM_HINT_T0);
+          }
+          const uint16_t *kptr = kcache + (row * num_cache_head + n) * head_dim;
+          load_fp16_8_to_chunk(kptr, tmp_fp32.data(), head_dim);
+
+          const float *k_row = tmp_fp32.data();
+
+          float sum = 0.0f;
+          int i = 0;
+          __m256 acc = _mm256_setzero_ps();
+          for (; i + 8 <= head_dim; i += 8) {
+            __m256 va = _mm256_loadu_ps(in_ptr + i);
+            __m256 vb = _mm256_loadu_ps(k_row + i);
+            acc = _mm256_fmadd_ps(va, vb, acc);
+          }
+
+          __m128 low = _mm256_castps256_ps128(acc);
+          __m128 high = _mm256_extractf128_ps(acc, 1);
+          __m128 sum128 = _mm_add_ps(low, high);
+          sum128 = _mm_hadd_ps(sum128, sum128);
+          sum128 = _mm_hadd_ps(sum128, sum128);
+          sum += _mm_cvtss_f32(sum128);
+
+          for (; i < head_dim; ++i)
+            sum += in_ptr[i] * k_row[i];
+
+          output[(row - start_row) * num_cache_head * gqa_size + n * gqa_size +
+                 g] = sum / sqrt((float)head_dim);
         }
-
-        float sum = 0.0f;
-        int i = 0;
-        __m256 acc = _mm256_setzero_ps();
-        for (; i + 8 <= head_dim; i += 8) {
-          __m256 va = _mm256_loadu_ps(a_ptr + i);
-          __m256 vb = _mm256_loadu_ps(b_row + i);
-          acc = _mm256_fmadd_ps(va, vb, acc);
-        }
-
-        __m128 low = _mm256_castps256_ps128(acc);
-        __m128 high = _mm256_extractf128_ps(acc, 1);
-        __m128 sum128 = _mm_add_ps(low, high);
-        sum128 = _mm_hadd_ps(sum128, sum128);
-        sum128 = _mm_hadd_ps(sum128, sum128);
-        sum += _mm_cvtss_f32(sum128);
-
-        for (; i < head_dim; ++i)
-          sum += a_ptr[i] * b_row[i];
-
-        output[(local_window_size == UINT_MAX || num_rows < local_window_size
-                  ? row
-                  : row - (num_rows - local_window_size)) *
-                 num_cache_head * gqa_size +
-               n * gqa_size + g] = sum / sqrt((float)head_dim);
       }
     }
   }
