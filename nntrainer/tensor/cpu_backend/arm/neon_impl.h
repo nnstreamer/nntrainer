@@ -401,7 +401,19 @@ void compute_kcaches(const __fp16 *A, const __fp16 *B, __fp16 *output,
 void compute_rotary_emb_value(unsigned int width, unsigned int dim,
                               unsigned int half_, __fp16 *inout, __fp16 *output,
                               const __fp16 *cos_, const __fp16 *sin_);
-
+/**
+ * @brief rms normalization computation w.r.t. width in H*W matrix FP32 input,
+ * but computed with FP16 intrinsics
+ *
+ * @param X input
+ * @param Y output
+ * @param H height of input matrix
+ * @param W width of input matrix
+ * @param epsilon epsilon of root mean squared dividing scale
+ */
+void rms_norm_wrt_width_fp16_intrinsic(const float *__restrict X,
+                                       float *__restrict Y, size_t H, size_t W,
+                                       float epsilon);
 #endif
 
 /**
