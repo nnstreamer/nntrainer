@@ -21,6 +21,12 @@
 
 namespace nntrainer::avx2 {
 
+void rms_norm_wrt_width_fp16_intrinsic(const float *__restrict X,
+                                       float *__restrict Y, size_t H, size_t W,
+                                       float epsilon) {
+  return;
+}
+
 void vcvt_f16_f32(unsigned int N, const _Float16 *input, float *output) {
   assert(N != 0);
   assert(input != NULL);

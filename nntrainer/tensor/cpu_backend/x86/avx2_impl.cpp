@@ -313,7 +313,11 @@ avx2_approx_swiglu(__m256 x, __m256 s) noexcept -> __m256 {
 } // namespace
 
 namespace nntrainer::avx2 {
-
+void rms_norm_wrt_width_fp32_intrinsic(const float *__restrict X,
+                                       float *__restrict Y, size_t H, size_t W,
+                                       float epsilon) {
+  return;
+}
 /**
  * @brief struct of q4_0x8 block
  */

@@ -49,6 +49,19 @@ void vcvt_f32_f16(unsigned int N, const float *input, _Float16 *output);
  * @param[out] false if it has NaN or inf
  */
 bool is_valid(const unsigned int N, const _Float16 *X);
+
+/**
+ * @brief rms normalization computation w.r.t. width in H*W matrix input
+ *
+ * @param X input
+ * @param Y output
+ * @param H height of input matrix
+ * @param W width of input matrix
+ * @param epsilon epsilon of root mean squared dividing scale
+ */
+void rms_norm_wrt_width_fp16_intrinsic(const float *__restrict X,
+                                       float *__restrict Y, size_t H, size_t W,
+                                       float epsilon);
 #endif
 
 /**
@@ -203,6 +216,18 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
                               const float *cos_, const float *sin_,
                               bool only_convert_to_fp16);
 
+/**
+ * @brief rms normalization computation w.r.t. width in H*W matrix input
+ *
+ * @param X input
+ * @param Y output
+ * @param H height of input matrix
+ * @param W width of input matrix
+ * @param epsilon epsilon of root mean squared dividing scale
+ */
+void rms_norm_wrt_width_fp32_intrinsic(const float *__restrict X,
+                                       float *__restrict Y, size_t H, size_t W,
+                                       float epsilon);
 } // namespace nntrainer::avx2
 
 #endif /* __cplusplus */
