@@ -12,6 +12,7 @@
  */
 
 #include "attention_kernels_templates.h"
+#include <cl_kernels/rotary_emb.h>
 
 namespace nntrainer {
 
@@ -28,7 +29,7 @@ void rotary_emb_cl(float *in, float *out,
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
 
   ClContext::SharedPtrClKernel kernel_rotaryEmb_ptr =
-    cl_context->registerClKernel(getRotaryEmbClKernel(), "rotary_emb_cl");
+    cl_context->registerClKernel(rotary_emb_kernel, "rotary_emb_cl");
   if (!kernel_rotaryEmb_ptr) {
     return;
   }

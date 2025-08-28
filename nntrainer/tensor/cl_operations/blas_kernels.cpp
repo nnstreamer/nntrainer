@@ -46,7 +46,7 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
 
   // 3. Perform Matrix Multiplication
   ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
-    getQ4_0_Ab_Bi_8x4_Kernel(), "kernel_mul_mat_Ab_Bi_8x4");
+    q4_0_ab_bi_8x4_kernel, "kernel_mul_mat_Ab_Bi_8x4");
   if (!kernel_ptr) {
     throw std::runtime_error(
       "Failed to get kernel_ptr for kernel_mul_mat_Ab_Bi_8x4");
@@ -129,7 +129,7 @@ void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
   ClContext::SharedPtrClKernel kernel_q6_k_sgemv_ptr;
 
   kernel_q6_k_sgemv_ptr =
-    blas_cc->registerClKernel(getQ6KSgemvClKernel(), "kernel_mul_mv_q6_K_f32");
+    blas_cc->registerClKernel(q6_k_sgemv_kernel, "kernel_mul_mv_q6_K_f32");
 
   if (!kernel_q6_k_sgemv_ptr) {
     ml_loge("Failed to register kernel_q6_k_sgemv_ptr");
@@ -314,11 +314,10 @@ void sgemv_cl(const float *matAdata, const float *vecXdata, float *vecYdata,
   ClContext::SharedPtrClKernel kernel_sgemv_ptr;
 
   if (TransA) {
-    kernel_sgemv_ptr =
-      blas_cc->registerClKernel(getSgemvClKernel(), "sgemv_cl");
+    kernel_sgemv_ptr = blas_cc->registerClKernel(sgemv_kernel, "sgemv_cl");
   } else {
     kernel_sgemv_ptr =
-      blas_cc->registerClKernel(getSgemvClNoTransKernel(), "sgemv_cl_noTrans");
+      blas_cc->registerClKernel(sgemv_no_trans_kernel, "sgemv_cl_noTrans");
   }
 
   if (!kernel_sgemv_ptr) {
@@ -334,7 +333,7 @@ float dot_cl(const float *vecAdata, const float *vecXdata, unsigned int dim1) {
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
 
   ClContext::SharedPtrClKernel kernel_dot_ptr =
-    blas_cc->registerClKernel(getDotClKernel(), "dot_cl");
+    blas_cc->registerClKernel(dot_kernel, "dot_cl");
   if (!kernel_dot_ptr) {
     return {};
   }
@@ -350,16 +349,16 @@ void sgemm_cl(bool TransA, bool TransB, const float *A, const float *B,
 
   if (!TransA && !TransB) {
     kernel_func_ = "sgemm_cl_noTrans";
-    sgemm_cl_kernel_ = getSgemmClNoTransKernel();
+    sgemm_cl_kernel_ = sgemm_no_trans_kernel;
   } else if (TransA && !TransB) {
     kernel_func_ = "sgemm_cl_transA";
-    sgemm_cl_kernel_ = getSgemmClTransAKernel();
+    sgemm_cl_kernel_ = sgemm_trans_a_kernel;
   } else if (!TransA && TransB) {
     kernel_func_ = "sgemm_cl_transB";
-    sgemm_cl_kernel_ = getSgemmClTransBKernel();
+    sgemm_cl_kernel_ = sgemm_trans_b_kernel;
   } else {
     kernel_func_ = "sgemm_cl_transAB";
-    sgemm_cl_kernel_ = getSgemmClTransABKernel();
+    sgemm_cl_kernel_ = sgemm_trans_ab_kernel;
   }
 
   auto *blas_cc =
@@ -382,7 +381,7 @@ void addition_cl(const float *input, float *res, unsigned int size_input,
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
 
   ClContext::SharedPtrClKernel kernel_addition_ptr =
-    blas_cc->registerClKernel(getAdditionClKernel(), "addition_cl");
+    blas_cc->registerClKernel(addition_kernel, "addition_cl");
   if (!kernel_addition_ptr) {
     return;
   }
@@ -412,7 +411,7 @@ void sscal_cl(float *X, const unsigned int N, const float alpha) {
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
 
   ClContext::SharedPtrClKernel kernel_ptr =
-    blas_cc->registerClKernel(getSscalClKernel(), "sscal_cl");
+    blas_cc->registerClKernel(sscal_kernel, "sscal_cl");
 
   if (!kernel_ptr) {
     return;
@@ -431,16 +430,16 @@ void transpose_cl_axis(const float *in, float *res,
   ClContext::SharedPtrClKernel kernel_transpose_ptr;
   switch (axis) {
   case 0:
-    kernel_transpose_ptr = blas_cc->registerClKernel(
-      getTransposeClKernelAxis0(), "transpose_cl_axis0");
+    kernel_transpose_ptr =
+      blas_cc->registerClKernel(transpose_axis_0_kernel, "transpose_cl_axis0");
     break;
   case 1:
-    kernel_transpose_ptr = blas_cc->registerClKernel(
-      getTransposeClKernelAxis1(), "transpose_cl_axis1");
+    kernel_transpose_ptr =
+      blas_cc->registerClKernel(transpose_axis_1_kernel, "transpose_cl_axis1");
     break;
   case 2:
-    kernel_transpose_ptr = blas_cc->registerClKernel(
-      getTransposeClKernelAxis2(), "transpose_cl_axis2");
+    kernel_transpose_ptr =
+      blas_cc->registerClKernel(transpose_axis_2_kernel, "transpose_cl_axis2");
     break;
   default:
     throw std::invalid_argument("failed to register CL kernel");
@@ -464,7 +463,7 @@ void flatten_block_q4_0_cl(const void *src, void *dst_q, void *dst_d,
   auto &clbuffInstance = ClBufferManager::Global();
 
   ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
-    getConvertBlockQ4_0Kernel(), "kernel_convert_block_q4_0_noshuffle");
+    convert_block_q4_0_kernel, "kernel_convert_block_q4_0_noshuffle");
   if (!kernel_ptr) {
     ml_loge("Failed to register kernel_ptr for flatten_block_q4_0_cl");
     return;
@@ -511,7 +510,7 @@ void restore_block_q4_0_cl(const void *src_q, const void *src_d, void *dst,
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
 
   ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
-    getConvertBlockQ4_0Kernel(), "kernel_restore_block_q4_0");
+    convert_block_q4_0_kernel, "kernel_restore_block_q4_0");
   if (!kernel_ptr) {
     ml_loge("Failed to register kernel_ptr for restore_block_q4_0_cl");
     return;
@@ -554,7 +553,7 @@ void transpose_32_16(float *data, int M, int K) {
   auto &clbuffInstance = ClBufferManager::Global();
 
   ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
-    getTranspose32Bit16BitKernel(), "kernel_transpose_32_16");
+    transpose_32bit_16bit_kernel, "kernel_transpose_32_16");
   if (!kernel_ptr) {
     throw std::runtime_error(
       "Failed to get kernel_ptr for kernel_transpose_32_16");
@@ -623,7 +622,7 @@ void transpose_16(void *input, void *output, int width, int height,
   auto &clbuffInstance = ClBufferManager::Global();
 
   ClContext::SharedPtrClKernel kernel_ptr =
-    blas_cc->registerClKernel(getTranspose16BitKernel(),
+    blas_cc->registerClKernel(transpose_16bit_kernel,
     "kernel_transpose_16");
   if (!kernel_ptr) {
     throw std::runtime_error(

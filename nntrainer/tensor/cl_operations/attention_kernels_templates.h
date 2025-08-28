@@ -17,7 +17,6 @@
 #ifndef __ATTENTION_KERNELS_TEMPLATES_H__
 #define __ATTENTION_KERNELS_TEMPLATES_H__
 
-#include <attention_kernel_strings.h>
 #include <attention_kernels.h>
 
 namespace nntrainer {

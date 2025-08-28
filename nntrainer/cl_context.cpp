@@ -15,8 +15,6 @@
  */
 
 #include <addition_layer_cl.h>
-#include <attention_kernel_strings.h>
-#include <blas_kernel_strings.h>
 #include <cl_context.h>
 #include <cl_kernels/cl_kernels.h>
 #include <concat_cl.h>
@@ -145,35 +143,35 @@ void ClContext::initBlasClKernels() {
     return;
   }
 
-  registerClKernel(getSgemvClKernel(), "sgemv_cl");
-  registerClKernel(getSgemvClNoTransKernel(), "sgemv_cl_noTrans");
-  registerClKernel(getDotClKernel(), "dot_cl");
-  registerClKernel(getSgemmClNoTransKernel(), "sgemm_cl_noTrans");
-  registerClKernel(getSgemmClTransAKernel(), "sgemm_cl_transA");
-  registerClKernel(getSgemmClTransBKernel(), "sgemm_cl_transB");
-  registerClKernel(getSgemmClTransABKernel(), "sgemm_cl_transAB");
-  registerClKernel(getAdditionClKernel(), "addition_cl");
-  registerClKernel(getSscalClKernel(), "sscal_cl");
-  registerClKernel(getQ6KSgemvClKernel(), "kernel_mul_mv_q6_K_f32");
+  registerClKernel(sgemv_kernel, "sgemv_cl");
+  registerClKernel(sgemv_no_trans_kernel, "sgemv_cl_noTrans");
+  registerClKernel(dot_kernel, "dot_cl");
+  registerClKernel(sgemm_no_trans_kernel, "sgemm_cl_noTrans");
+  registerClKernel(sgemm_trans_a_kernel, "sgemm_cl_transA");
+  registerClKernel(sgemm_trans_b_kernel, "sgemm_cl_transB");
+  registerClKernel(sgemm_trans_ab_kernel, "sgemm_cl_transAB");
+  registerClKernel(addition_kernel, "addition_cl");
+  registerClKernel(sscal_kernel, "sscal_cl");
+  registerClKernel(q6_k_sgemv_kernel, "kernel_mul_mv_q6_K_f32");
 
   // register Q4_0 kernels
-  registerClKernel(getConvertBlockQ4_0Kernel(),
+  registerClKernel(convert_block_q4_0_kernel,
                    "kernel_convert_block_q4_0_noshuffle");
-  registerClKernel(getRestoreBlockQ4_0Kernel(), "kernel_restore_block_q4_0");
-  registerClKernel(getTranspose16BitKernel(), "kernel_transpose_16");
-  registerClKernel(getTranspose32Bit16BitKernel(), "kernel_transpose_32_16");
-  registerClKernel(getQ4_0_Ab_Bi_8x4_Kernel(), "kernel_mul_mat_Ab_Bi_8x4");
+  registerClKernel(restore_block_q4_0_kernel, "kernel_restore_block_q4_0");
+  registerClKernel(transpose_16bit_kernel, "kernel_transpose_16");
+  registerClKernel(transpose_32bit_16bit_kernel, "kernel_transpose_32_16");
+  registerClKernel(q4_0_ab_bi_8x4_kernel, "kernel_mul_mat_Ab_Bi_8x4");
 
 #ifdef ENABLE_FP16
-  registerClKernel(getHgemvClKernel(), "sgemv_cl_fp16");
-  registerClKernel(getHgemvClNoTransKernel(), "sgemv_cl_noTrans_fp16");
-  registerClKernel(getDotClKernelFP16(), "dot_cl_fp16");
-  registerClKernel(getHgemmClNoTransKernel(), "sgemm_cl_noTrans_fp16");
-  registerClKernel(getHgemmClTransAKernel(), "sgemm_cl_transA_fp16");
-  registerClKernel(getHgemmClTransBKernel(), "sgemm_cl_transB_fp16");
-  registerClKernel(getHgemmClTransABKernel(), "sgemm_cl_transAB_fp16");
-  registerClKernel(getAdditionClKernelFP16(), "addition_cl_fp16");
-  registerClKernel(getHscalClKernel(), "sscal_cl_fp16");
+  registerClKernel(hgemv_kernel, "sgemv_cl_fp16");
+  registerClKernel(hgemv_no_trans_kernel, "sgemv_cl_noTrans_fp16");
+  registerClKernel(dot_fp16_kernel, "dot_cl_fp16");
+  registerClKernel(hgemm_no_trans_kernel, "sgemm_cl_noTrans_fp16");
+  registerClKernel(hgemm_trans_a_kernel, "sgemm_cl_transA_fp16");
+  registerClKernel(hgemm_trans_b_kernel, "sgemm_cl_transB_fp16");
+  registerClKernel(hgemm_trans_ab_kernel, "sgemm_cl_transAB_fp16");
+  registerClKernel(addition_fp16_kernel, "addition_cl_fp16");
+  registerClKernel(hscal_kernel, "sscal_cl_fp16");
 #endif
   blas_kernels_initialized = true;
 }
@@ -185,10 +183,10 @@ void ClContext::initAttentionClKernels() {
     return;
   }
 
-  registerClKernel(getRotaryEmbClKernel(), "rotary_emb_cl");
+  registerClKernel(rotary_emb_kernel, "rotary_emb_cl");
 
 #ifdef ENABLE_FP16
-  registerClKernel(getRotaryEmbClKernelFP16(), "rotary_emb_cl_fp16");
+  registerClKernel(rotary_emb_fp16_kernel, "rotary_emb_cl_fp16");
 #endif
   attention_kernels_initialized = true;
 }

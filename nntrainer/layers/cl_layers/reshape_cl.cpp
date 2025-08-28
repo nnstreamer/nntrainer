@@ -12,7 +12,10 @@
 
 #include <iostream>
 
-#include <blas_kernel_strings.h>
+#include <cl_kernels/copy.h>
+#ifdef ENABLE_FP16
+#include <cl_kernels/copy_fp16.h>
+#endif
 #include <clblast_interface.h>
 #include <layer_context.h>
 #include <nntrainer_error.h>
@@ -36,7 +39,7 @@ bool ReshapeLayerCl::registerClKernels(ClContext &cl_context) {
   do {
     ClContext::SharedPtrClKernel kernel_copy_ptr = nullptr;
 
-    kernel_copy_ptr = cl_context.registerClKernel(getCopyClKernel(), "copy_cl");
+    kernel_copy_ptr = cl_context.registerClKernel(copy_kernel, "copy_cl");
     if (!kernel_copy_ptr) {
       ml_loge("OpenCL Error: Fail to register copy_cl kernel");
       break;
@@ -45,7 +48,7 @@ bool ReshapeLayerCl::registerClKernels(ClContext &cl_context) {
 
 #ifdef ENABLE_FP16
     kernel_copy_ptr =
-      cl_context.registerClKernel(getCopyClKernelFP16(), "copy_cl_fp16");
+      cl_context.registerClKernel(copy_fp16_kernel, "copy_cl_fp16");
     if (!kernel_copy_ptr) {
       ml_loge("OpenCL Error: Fail to register copy_cl_fp16 kernel");
       break;

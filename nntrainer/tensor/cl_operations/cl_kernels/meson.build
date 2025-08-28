@@ -1,8 +1,56 @@
 fs = import('fs')
 
 cl_op_kernels = [
+  'addition.cl',
+  'concat_axis_1.cl',
+  'concat_axis_2.cl',
+  'concat_axis_3.cl',
+  'convert_block_q4_0.cl',
+  'copy.cl',
+  'dot.cl',
+  'q4_0_ab_bi_8x4.cl',
+  'q6_k_sgemv.cl',
+  'restore_block_q4_0.cl',
   'rmsnorm.cl',
+  'rotary_emb.cl',
+  'sgemm_no_trans.cl',
+  'sgemm_trans_a.cl',
+  'sgemm_trans_ab.cl',
+  'sgemm_trans_b.cl',
+  'sgemv_no_trans.cl',
+  'sgemv.cl',
+  'sscal.cl',
+  'swiglu.cl',
+  'transpose_16bit.cl',
+  'transpose_32bit_16bit.cl',
+  'transpose_axis_0.cl',
+  'transpose_axis_1.cl',
+  'transpose_axis_2.cl'
 ]
+
+if get_option('enable-fp16')
+  cl_op_kernels += [
+    'addition_fp16.cl',
+    'concat_axis_1_fp16.cl',
+    'concat_axis_2_fp16.cl',
+    'concat_axis_3_fp16.cl',
+    'copy_fp16.cl',
+    'dot_fp16.cl',
+    'hgemm_no_trans.cl',
+    'hgemm_trans_a.cl',
+    'hgemm_trans_ab.cl',
+    'hgemm_trans_b.cl',
+    'hgemv_no_trans.cl',
+    'hgemv.cl',
+    'hscal.cl',
+    'rmsnorm_fp16.cl',
+    'rotary_emb_fp16.cl',
+    'swiglu_fp16.cl',
+    'transpose_axis_0_fp16.cl',
+    'transpose_axis_1_fp16.cl',
+    'transpose_axis_2_fp16.cl'
+  ]
+endif
 
 all_includes = ''
 foreach k : cl_op_kernels
