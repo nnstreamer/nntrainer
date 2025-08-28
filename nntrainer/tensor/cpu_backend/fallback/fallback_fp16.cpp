@@ -222,4 +222,10 @@ void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
   return __fallback_gemm_q6_K<_FP16>(M, N, K, A, lda, B, ldb, C, ldc);
 }
 
+void rms_norm_wrt_width_fp16_intrinsic(const float *__restrict X,
+                                       float *__restrict Y, size_t H, size_t W,
+                                       float epsilon) {
+  __fallback_rms_norm_wrt_width_fp16_intrinsic(X, Y, H, W, epsilon);
+}
+
 } /* namespace nntrainer */

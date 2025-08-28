@@ -423,6 +423,19 @@ _FP16 __fallback_max(const unsigned int N, _FP16 *X);
  * @param Y  _FP16 * for Vector Y
  */
 void __fallback_softmax(const unsigned int N, _FP16 *X, _FP16 *Y);
+
+/**
+ * @brief rms normalization computation w.r.t. width in H*W matrix input
+ *
+ * @param X input
+ * @param Y output
+ * @param H height of input matrix
+ * @param W width of input matrix
+ * @param epsilon epsilon of root mean squared dividing scale
+ */
+void __fallback_rms_norm_wrt_width_fp16_intrinsic(const float *__restrict X,
+                                                  float *__restrict Y, size_t H,
+                                                  size_t W, float epsilon);
 #endif
 
 /**
@@ -1060,6 +1073,19 @@ void __fallback_compute_rotary_emb_value(unsigned int width, unsigned int dim,
                                          void *output, const float *cos_,
                                          const float *sin_,
                                          bool only_convert_to_fp16);
+
+/**
+ * @brief rms normalization computation w.r.t. width in H*W matrix input
+ *
+ * @param X input
+ * @param Y output
+ * @param H height of input matrix
+ * @param W width of input matrix
+ * @param epsilon epsilon of root mean squared dividing scale
+ */
+void __fallback_rms_norm_wrt_width_fp32_intrinsic(const float *__restrict X,
+                                                  float *__restrict Y, size_t H,
+                                                  size_t W, float epsilon);
 } // namespace nntrainer
 #endif
 #endif

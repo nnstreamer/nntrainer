@@ -495,4 +495,11 @@ void __fallback_compute_rotary_emb_value(unsigned int width, unsigned int dim,
   throw std::runtime_error("NYI : __fallback_compute_rotary_emb_value");
 }
 
+void __fallback_rms_norm_wrt_width_fp32_intrinsic(const float *__restrict X,
+                                                  float *__restrict Y, size_t H,
+                                                  size_t W, float epsilon) {
+  throw std::runtime_error(
+    "NYI : __fallback_rms_norm_wrt_width_fp32_intrinsic");
+}
+
 } // namespace nntrainer
