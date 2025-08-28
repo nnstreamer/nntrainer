@@ -14,6 +14,7 @@ REQD_SUBGROUP_SIZE_32
 #elif defined(ADRENO_GPU)
 REQD_SUBGROUP_SIZE_64
 #endif
+
 __kernel void
 rmsnorm_cl(__global const float *input, // Input tensor
            __global float *output,      // Output tensor

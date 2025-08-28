@@ -17,7 +17,6 @@
 #ifndef __BLAS_KERNELS_TEMPLATES_H__
 #define __BLAS_KERNELS_TEMPLATES_H__
 
-#include <blas_kernel_strings.h>
 #include <blas_kernels.h>
 
 namespace nntrainer {

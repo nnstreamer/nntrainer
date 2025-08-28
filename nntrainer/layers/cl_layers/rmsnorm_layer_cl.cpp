@@ -12,9 +12,11 @@
  *
  */
 
-#include <blas_kernel_strings.h>
 #include <blas_kernels.h>
 #include <cl_kernels/rmsnorm.h>
+#ifdef ENABLE_FP16
+#include <cl_kernels/rmsnorm_fp16.h>
+#endif
 #include <common_properties.h>
 #include <layer_context.h>
 #include <lazy_tensor.h>
@@ -52,7 +54,7 @@ bool RMSNormLayerCl::registerClKernels(ClContext &cl_context) {
 
 #ifdef ENABLE_FP16
     ClContext::SharedPtrClKernel kernel_rmsnorm_fp16_ptr =
-      cl_context.registerClKernel(getRMSNormClKernelFP16(), "rmsnorm_cl_fp16");
+      cl_context.registerClKernel(rmsnorm_fp16_kernel, "rmsnorm_cl_fp16");
     if (!kernel_rmsnorm_fp16_ptr) {
       ml_loge("OpenCL Error: Fail to register rmsnorm_cl_fp16 kernel");
       break;
