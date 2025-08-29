@@ -464,8 +464,8 @@ extern void compute_rotary_emb_value(unsigned int width, unsigned int dim,
  * @param epsilon epsilon of root mean squared dividing scale
  */
 extern void rms_norm_wrt_width_fp16_intrinsic(const float *__restrict X,
-                                       float *__restrict Y, size_t H, size_t W,
-                                       float epsilon);
+                                              float *__restrict Y, size_t H,
+                                              size_t W, float epsilon);
 #endif
 /**
  * @brief Initialization of ggml backend
@@ -1147,7 +1147,7 @@ extern void compute_rotary_emb_value(unsigned int width, unsigned int dim,
  * @param epsilon epsilon of root mean squared dividing scale
  */
 extern void rms_norm_wrt_width_fp32_intrinsic(const float *__restrict X,
-                                       float *__restrict Y, size_t H, size_t W,
-                                       float epsilon);
+                                              float *__restrict Y, size_t H,
+                                              size_t W, float epsilon);
 #endif
 #endif

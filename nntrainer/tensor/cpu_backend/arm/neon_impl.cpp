@@ -1039,9 +1039,9 @@ static float hsum_f32x4(float32x4_t v) {
 #endif
 }
 
-
-void rms_norm_wrt_width_fp32_intrinsic(const float *__restrict X, float *__restrict Y,
-                             size_t H, size_t W, float epsilon) {
+void rms_norm_wrt_width_fp32_intrinsic(const float *__restrict X,
+                                       float *__restrict Y, size_t H, size_t W,
+                                       float epsilon) {
   for (std::size_t h = 0; h < H; ++h) {
     const float *rowX = X + h * W;
     float *rowY = Y + h * W;

@@ -90,7 +90,7 @@ void ReshapedRMSNormLayer::incremental_forwarding(
 
     if (in_step.getDataType() == ml::train::TensorDim::DataType::FP32) {
       ///@todo rms_norm_wrt_width_something() should be refactored to
-      ///nntrainer::Tensor operation.
+      /// nntrainer::Tensor operation.
 #ifdef ENABLE_FP16
       nntrainer::rms_norm_wrt_width_fp16_intrinsic(
         in_step.getData<float>(), out_step.getData<float>(),
