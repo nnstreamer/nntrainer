@@ -341,6 +341,10 @@ NeuralNetwork::~NeuralNetwork() {
     std::cerr << "Error occurred during destroying NeuralNetwork: " << e.what()
               << std::endl;
   }
+
+  /** if neuralnet open fd */
+  if (model_file_fd != -1)
+    close(model_file_fd);
 }
 
 /**
@@ -723,7 +727,7 @@ void NeuralNetwork::load(const std::string &file_path,
     char *mmaped = nullptr;
     size_t f_size = 0;
     struct stat st {};
-    int fd = -1;
+    model_file_fd = -1;
 
 #if defined(_WIN32)
     HANDLE hFile, hMap;
@@ -738,21 +742,27 @@ void NeuralNetwork::load(const std::string &file_path,
         HANDLE hMap = CreateFileMapping(hFile, NULL, PAGE_READONLY, 0, 0, NULL);
         mmaped = (char *)MapViewOfFile(hMap, FILE_MAP_READ, 0, 0, 0);
 #else
-        fd = open(f_path.c_str(), O_RDONLY);
-        NNTR_THROW_IF((fd == -1), std::invalid_argument)
+        model_file_fd = open(f_path.c_str(), O_RDONLY);
+        NNTR_THROW_IF((model_file_fd == -1), std::invalid_argument)
           << "Cannot open file : " << f_path;
 
-        NNTR_THROW_IF((fstat(fd, &st) == -1), std::invalid_argument)
+        NNTR_THROW_IF((fstat(model_file_fd, &st) == -1), std::invalid_argument)
           << "Cannot get file info (fstat): " << f_path;
 
         f_size = static_cast<size_t>(st.st_size);
 
-        void *mmap_ptr = mmap(nullptr, f_size, PROT_READ, MAP_PRIVATE, fd, 0);
+        void *mmap_ptr =
+          mmap(nullptr, f_size, PROT_READ, MAP_PRIVATE, model_file_fd, 0);
         NNTR_THROW_IF((mmap_ptr == MAP_FAILED), std::runtime_error)
           << " MMap failed";
 
         mmaped = static_cast<char *>(mmap_ptr);
 #endif
+      } else {
+        ///@note for slim-tensor
+        model_file_fd = open(f_path.c_str(), O_RDONLY);
+        NNTR_THROW_IF((model_file_fd == -1), std::invalid_argument)
+          << "Cannot open file : " << f_path;
       }
 
       std::vector<std::future<void>> futures;
@@ -765,7 +775,7 @@ void NeuralNetwork::load(const std::string &file_path,
             auto local_model_file = checkedOpenStream<std::ifstream>(
               (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
             node->read(local_model_file, false, exec_mode, fsu_mode,
-                       std::numeric_limits<size_t>::max(), true);
+                       std::numeric_limits<size_t>::max(), true, model_file_fd);
           } else {
             node->read(mmaped, false, exec_mode, fsu_mode,
                        std::numeric_limits<size_t>::max(), true);

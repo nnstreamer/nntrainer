@@ -1,0 +1,22 @@
+{
+    "model_tensor_type": "Q4_0-FP32",
+    "model_file_name": "qwen3-4b-q6k-q40-fp32-x86.bin",
+
+    "fc_layer_dtype" : "Q4_0",
+    "embedding_dtype" : "Q6_K",
+
+    "lora_rank" : 0,
+    "lora_alpha" : 0,
+    "lora_target": [],
+
+    "bad_word_ids": [],
+    "fsu": false,
+    "fsu_lookahead": 2,
+    "num_to_generate": 512,
+    "init_seq_len": 1024,
+    "max_seq_len": 2048,
+    "batch_size": 1,
+
+    "tokenizer_file": "/tmp/nntrainer/Applications/CausalLM/res/qwen3-4b/tokenizer.json",
+    "sample_input": "<|im_start|>user\nGive me a short introduction to large language model.<|im_end|>\n<|im_start|>assistant\n"
+}

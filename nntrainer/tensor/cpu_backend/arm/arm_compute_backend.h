@@ -435,12 +435,27 @@ void compute_kcaches(const _FP16 *A, const _FP16 *B, _FP16 *output,
  * @param[in] dim unit length of simd computation
  * @param[in] half_ criterion for rotational direction of embedding
  * @param[in/out] inout _FP16* used also as output
+ * @param[out] output _FP16* output, if it is equal nullptr then inout is used
+ * as output
  * @param[in] cos_ _FP16* input con values
  * @param[in] sin_ _FP16* input sin values
  */
 void compute_rotary_emb_value(unsigned int width, unsigned int dim,
-                              unsigned int half_, _FP16 *inout,
+                              unsigned int half_, _FP16 *inout, _FP16 *output,
                               const _FP16 *cos_, const _FP16 *sin_);
+/**
+ * @brief rms normalization computation w.r.t. width in H*W matrix FP32 input,
+ * but computed with FP16 intrinsics
+ *
+ * @param X input
+ * @param Y output
+ * @param H height of input matrix
+ * @param W width of input matrix
+ * @param epsilon epsilon of root mean squared dividing scale
+ */
+void rms_norm_wrt_width_fp16_intrinsic(const float *__restrict X,
+                                       float *__restrict Y, size_t H, size_t W,
+                                       float epsilon);
 #endif
 /**
  * @brief Multihead softmax, exp(x_i) / sum(exp(x_i)), inplace version
@@ -1097,6 +1112,18 @@ size_t quantize_q8_0(const T *src, void *dst, int64_t nrow, int64_t n_per_row,
 template <typename T = float>
 void dequantize_row_q8_0(const void *x_raw, T *y, int64_t k);
 
+/**
+ * @brief rms normalization computation w.r.t. width in H*W matrix input
+ *
+ * @param X input
+ * @param Y output
+ * @param H height of input matrix
+ * @param W width of input matrix
+ * @param epsilon epsilon of root mean squared dividing scale
+ */
+void rms_norm_wrt_width_fp32_intrinsic(const float *__restrict X,
+                                       float *__restrict Y, size_t H, size_t W,
+                                       float epsilon);
 } /* namespace nntrainer */
 #endif /* __cplusplus */
 #endif /* __ARM_COMPUTE_BACKEND_H__ */
