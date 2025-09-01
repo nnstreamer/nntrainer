@@ -15,6 +15,7 @@
 #define __OPENCL_PROGRAM_H__
 
 #include <string>
+#include <vector>
 
 #include "CL/cl.h"
 
@@ -40,14 +41,6 @@ class Program {
                     bool binaryCreated = false);
 
   /**
-   * @brief Utility to get program info and save kernel binaries
-   *
-   * @param device_id OpenCL device id
-   * @return true if successful or false otherwise
-   */
-  bool GetProgramInfo(cl_device_id device_id);
-
-  /**
    * @brief Get the information on the program build
    *
    * @param device_id OpenCL device id
@@ -56,6 +49,14 @@ class Program {
    */
   std::string GetProgramBuildInfo(cl_device_id device_id,
                                   cl_program_build_info info);
+
+  /**
+   * @brief Get default compiler options for the kernel - setting CL version and
+   * optimizations
+   *
+   * @return Default compiler options, blank space at the end
+   */
+  std::string GetDefaultCompilerOptions() const;
 
 public:
   static const std::string DEFAULT_KERNEL_PATH;
@@ -85,9 +86,28 @@ public:
    * @return true if successful or false otherwise
    */
   bool CreateCLProgramWithBinary(const cl_context &context,
-                                 const cl_device_id &device_id, size_t size,
-                                 unsigned char *binary, std::string binary_name,
+                                 const cl_device_id &device_id,
+                                 const std::vector<std::byte> &binary,
+                                 std::string binary_name,
                                  const std::string &compiler_options);
+
+  /**
+   * @brief Utility to get program binary
+   *
+   * @param device_id OpenCL device id
+   * @return vector of bytes if successful, empty if there was an error
+   */
+  std::vector<std::byte> GetProgramBinary(cl_device_id device_id);
+
+  /**
+   * @brief Calculate te hash of given kernel source given compiler options
+   *
+   * @param code kernel source code string
+   * @param compiler_options string compiler options
+   * @return hash of the code
+   */
+  std::size_t GetKernelHash(const std::string &code,
+                            const std::string &compiler_options);
 
   /**
    * @brief Get the Program object
