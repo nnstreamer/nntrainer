@@ -105,6 +105,13 @@ public:
   using prop_tag = nntrainer::uint_prop_tag;       /**< property type */
 };
 
+class UseSink : public nntrainer::Property<bool> {
+public:
+  UseSink(bool value = false) { set(value); };
+  static constexpr const char *key = "use_sink"; /**< unique key to access */
+  using prop_tag = nntrainer::bool_prop_tag;     /**< property type */
+};
+
 }; // namespace props
 
 /**
@@ -231,7 +238,7 @@ private:
     nntrainer::props::ReturnAttentionWeight,
     nntrainer::props::AverageAttentionWeight, nntrainer::props::MaxTimestep,
     props::SlidingWindow, props::MaxNewTokens, props::RopeTheta,
-    props::MaxPositionEmbeddings>
+    props::MaxPositionEmbeddings, props::UseSink>
     mha_core_props; /**< mha_core layer properties */
 
   /** softmax activation operation */
@@ -247,6 +254,7 @@ private:
   bool cache_shift;
   float theta;
   size_t local_window_size;
+  bool use_sink = false;
 
   enum INOUT_INDEX {
     /** input index */
@@ -272,7 +280,8 @@ private:
     dropout_mask,
     attention_output,
   };
-  std::array<unsigned int, 7> weight_idx;
+  std::array<unsigned int, 7> tensor_idx;
+  unsigned int sink_idx;
 
   /****************** ROTARY EMBEDDING *****************/
   /** static variable - they are all expected to be initialized once */
