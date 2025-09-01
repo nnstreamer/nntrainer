@@ -30,6 +30,8 @@ inline float convert_scalar(uint16_t h) {
 
 namespace causallm {
 
+#define tile_size 4
+
 /************************************************************** */
 
 /**
@@ -329,7 +331,7 @@ void MHACoreLayer::compute_kcaches(
     if (from) {
       nntrainer::compute_kcaches<uint16_t>(
         in.getData<float>(), cache.getData<uint16_t>(), out.getData<float>(),
-        from + 1, num_head / group_size, head_dim, group_size,
+        from + 1, num_head / group_size, head_dim, group_size, tile_size,
         local_window_size);
     } else {
       std::vector<std::future<void>> futures;
@@ -344,7 +346,8 @@ void MHACoreLayer::compute_kcaches(
         futures.emplace_back(pool.submit_task([=]() {
           nntrainer::compute_kcaches<uint16_t>(
             input_addr, cache_addr, output_addr, row_to_compute,
-            num_head / group_size, head_dim, group_size, local_window_size);
+            num_head / group_size, head_dim, group_size, tile_size,
+            local_window_size);
         }));
       }
       for (auto &fut : futures)
@@ -356,7 +359,7 @@ void MHACoreLayer::compute_kcaches(
       nntrainer::compute_kcaches(in.getData<_FP16>(), cache.getData<_FP16>(),
                                  out.getData<_FP16>(), from + 1,
                                  num_head / group_size, head_dim, group_size,
-                                 local_window_size);
+                                 tile_size, local_window_size);
     } else {
       std::vector<std::future<void>> futures;
       for (unsigned int i = 0; i < sequence_len; ++i) {
@@ -370,7 +373,8 @@ void MHACoreLayer::compute_kcaches(
         futures.emplace_back(pool.submit_task([=]() {
           nntrainer::compute_kcaches(input_addr, cache_addr, output_addr,
                                      row_to_compute, num_head / group_size,
-                                     head_dim, group_size, local_window_size);
+                                     head_dim, group_size, tile_size,
+                                     local_window_size);
         }));
       }
       for (auto &fut : futures)
