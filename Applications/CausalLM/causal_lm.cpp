@@ -109,9 +109,15 @@ void CausalLM::setupParameters(json &cfg, json &generation_cfg,
   EOS_TOKEN_ID =
     generation_cfg["eos_token_id"].get<std::vector<unsigned int>>();
   BOS_TOKEN_ID = generation_cfg["bos_token_id"].get<unsigned int>();
-  TOP_K = generation_cfg["top_k"];
-  TOP_P = generation_cfg["top_p"];
-  TEMPERATURE = generation_cfg["temperature"];
+  TOP_K = generation_cfg.contains("top_k")
+            ? generation_cfg["top_k"].get<unsigned int>()
+            : 20;
+  TOP_P = generation_cfg.contains("top_p")
+            ? generation_cfg["top_p"].get<float>()
+            : 0.95;
+  TEMPERATURE = generation_cfg.contains("temperature")
+                  ? generation_cfg["temperature"].get<float>()
+                  : 0.7;
 
   return;
 };
@@ -575,9 +581,8 @@ CausalLM::createAttention(const int layer_id, int seq_len, int n_heads,
 
   // O layer
   std::vector<std::string> o_params = {
-    withKey("name", O), withKey("unit", head_dim * n_heads),
-    withKey("disable_bias", "true"), withKey("input_layers", A),
-    withKey("weight_initializer", "ones")};
+    withKey("name", O), withKey("unit", DIM), withKey("disable_bias", "true"),
+    withKey("input_layers", A), withKey("weight_initializer", "ones")};
   layers.push_back(createLayer("fully_connected", o_params));
 
   return layers;
