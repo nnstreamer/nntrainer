@@ -64,7 +64,7 @@
 #define ML_TRAIN_SUMMARY_MODEL_VALID_LOSS 102
 #define ML_TRAIN_SUMMARY_MODEL_VALID_ACCURACY 103
 
-#define MMAP_READ 0
+#define MMAP_READ 1
 
 namespace nntrainer {
 
@@ -720,46 +720,18 @@ void NeuralNetwork::load(const std::string &file_path,
 
     auto model_file =
       checkedOpenStream<std::ifstream>(f_path, std::ios::in | std::ios::binary);
-    char *mmaped = nullptr;
-    size_t f_size = 0;
-    struct stat st {};
-    int fd = -1;
 
 #if defined(_WIN32)
     HANDLE hFile, hMap;
 #endif
 
     if (exec_mode == ml::train::ExecutionMode::INFERENCE) {
-      if (MMAP_READ) {
-#if defined(_WIN32)
-        HANDLE hFile =
-          CreateFileA(f_path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL,
-                      OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-        HANDLE hMap = CreateFileMapping(hFile, NULL, PAGE_READONLY, 0, 0, NULL);
-        mmaped = (char *)MapViewOfFile(hMap, FILE_MAP_READ, 0, 0, 0);
-#else
-        fd = open(f_path.c_str(), O_RDONLY);
-        NNTR_THROW_IF((fd == -1), std::invalid_argument)
-          << "Cannot open file : " << f_path;
-
-        NNTR_THROW_IF((fstat(fd, &st) == -1), std::invalid_argument)
-          << "Cannot get file info (fstat): " << f_path;
-
-        f_size = static_cast<size_t>(st.st_size);
-
-        void *mmap_ptr = mmap(nullptr, f_size, PROT_READ, MAP_PRIVATE, fd, 0);
-        NNTR_THROW_IF((mmap_ptr == MAP_FAILED), std::runtime_error)
-          << " MMap failed";
-
-        mmaped = static_cast<char *>(mmap_ptr);
-#endif
-      }
-
       std::vector<std::future<void>> futures;
       for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
            ++iter) {
         auto node = *iter;
         auto exec_order = std::get<0>((*iter)->getExecutionOrder());
+
         futures.emplace_back(std::async(std::launch::async, [&, node] {
           if (!MMAP_READ) {
             auto local_model_file = checkedOpenStream<std::ifstream>(
@@ -767,23 +739,66 @@ void NeuralNetwork::load(const std::string &file_path,
             node->read(local_model_file, false, exec_mode, fsu_mode,
                        std::numeric_limits<size_t>::max(), true);
           } else {
-            node->read(mmaped, false, exec_mode, fsu_mode,
+#if defined(_WIN32)
+            // Map per-task, then unmap immediately after: enables early release
+            // of pages
+            HANDLE hFile =
+              CreateFileA(f_path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL,
+                          OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+            NNTR_THROW_IF((hFile == INVALID_HANDLE_VALUE), std::runtime_error)
+              << "CreateFileA failed";
+
+            HANDLE hMap =
+              CreateFileMapping(hFile, NULL, PAGE_READONLY, 0, 0, NULL);
+            NNTR_THROW_IF((hMap == NULL), std::runtime_error)
+              << "CreateFileMapping failed";
+
+            char *view =
+              static_cast<char *>(MapViewOfFile(hMap, FILE_MAP_READ, 0, 0, 0));
+            NNTR_THROW_IF((view == nullptr), std::runtime_error)
+              << "MapViewOfFile failed";
+
+            node->read(view, false, exec_mode, fsu_mode,
                        std::numeric_limits<size_t>::max(), true);
+
+            // Early unmap: let the OS reclaim the working set ASAP
+            UnmapViewOfFile(view);
+            CloseHandle(hMap);
+            CloseHandle(hFile);
+#else
+      // POSIX: map per-task, advise kernel, drop pages, unmap
+      int fd = ::open(f_path.c_str(), O_RDONLY);
+      NNTR_THROW_IF((fd == -1), std::invalid_argument)
+        << "Cannot open file : " << f_path;
+
+      struct stat st {};
+      NNTR_THROW_IF((::fstat(fd, &st) == -1), std::invalid_argument)
+        << "Cannot get file info (fstat): " << f_path;
+
+      size_t f_size = static_cast<size_t>(st.st_size);
+      void *mmap_ptr = ::mmap(nullptr, f_size, PROT_READ, MAP_PRIVATE, fd, 0);
+      ::close(fd); // fd not needed after mmap
+      NNTR_THROW_IF((mmap_ptr == MAP_FAILED), std::runtime_error)
+        << "mmap failed";
+
+      // Hint: many model loads touch scattered regions -> RANDOM helps reduce readahead
+      (void)::posix_madvise(mmap_ptr, f_size, POSIX_MADV_RANDOM);
+
+      char *view = static_cast<char *>(mmap_ptr);
+      node->read(view, false, exec_mode, fsu_mode,
+                 std::numeric_limits<size_t>::max(), true);
+
+      // Early drop: pages no longer needed; helps lower peak RSS during overlap
+      (void)::posix_madvise(mmap_ptr, f_size, POSIX_MADV_DONTNEED);
+
+      ::munmap(mmap_ptr, f_size);
+#endif
           }
         }));
       }
+
       for (auto &f : futures)
         f.get();
-      if (MMAP_READ) {
-#if defined(_WIN32)
-        UnmapViewOfFile(mmaped);
-        CloseHandle(hMap);
-        CloseHandle(hFile);
-#else
-        auto ret = munmap(mmaped, f_size);
-#endif
-      }
-
     } else {
       for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
            ++iter) {
