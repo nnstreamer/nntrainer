@@ -25,6 +25,8 @@
 #include <swiglu_cl.h>
 #include <transpose_cl.h>
 
+#include <filesystem>
+
 #if defined(_WIN32)
 #include <windows.h>
 #endif
@@ -33,11 +35,41 @@ namespace nntrainer {
 
 std::mutex cl_factory_mutex;
 
+std::vector<std::byte> readBinaryFile(const std::string &path) {
+  // reading binary
+  std::ifstream fs(path, std::ios::binary | std::ios::in);
+
+  if (fs.good()) {
+    fs.seekg(0, std::ios::end);
+    size_t binary_size = fs.tellg();
+    fs.seekg(0, std::ios::beg);
+
+    std::vector<std::byte> data(binary_size);
+    fs.read(reinterpret_cast<char *>(data.data()), binary_size);
+    return data;
+  } else {
+    return {};
+  }
+}
+
+bool writeBinaryFile(const std::string &path,
+                     const std::vector<std::byte> &data) {
+  std::ofstream fs(path, std::ios::out | std::ios::binary);
+  if (!fs) {
+    ml_loge("Failed to open file for writing: %s", path.c_str());
+    return false;
+  }
+
+  fs.write(reinterpret_cast<const char *>(data.data()), data.size());
+  return true;
+}
+
 void ClContext::initialize() noexcept {
   try {
     if (!clInit()) {
       ml_loge("cl_context: opencl command queue creation failed");
     }
+    std::filesystem::create_directories(opencl::Program::DEFAULT_KERNEL_PATH);
 
     setMemAllocator(std::make_shared<MemAllocator>());
 
@@ -219,45 +251,46 @@ bool ClContext::clCreateKernel(std::string &kernel_string,
 
   bool result = false;
 
-  do {
-    opencl::Program program;
+  opencl::Program program;
 
-    // reading binary
-    std::ifstream fs(opencl::Program::DEFAULT_KERNEL_PATH + "/" + kernel_name +
-                       "_kernel.bin",
-                     std::ios::binary | std::ios::in);
+  // reading binary
+  std::string binary_file_path =
+    opencl::Program::DEFAULT_KERNEL_PATH + "/" +
+    std::to_string(program.GetKernelHash(kernel_string, "")) + ".cl.bin";
+  auto binary_data = readBinaryFile(binary_file_path);
 
-    if (fs.good()) {
-      fs.seekg(0, std::ios::end);
-      size_t binary_size = fs.tellg();
-      fs.seekg(0, std::ios::beg);
+  if (!binary_data.empty()) {
+    ml_logi("Using cached version of kernel: %s at path %s",
+            kernel_name.c_str(), binary_file_path.c_str());
+    result = program.CreateCLProgramWithBinary(
+      opencl::ContextManager::Global().GetContext(),
+      opencl::ContextManager::Global().GetDeviceId(), binary_data,
+      binary_file_path, "");
+  } else {
+    ml_logi("Binary for kernel %s not found, compiling from source...",
+            kernel_name.c_str());
+    result = program.CreateCLProgram(
+      opencl::ContextManager::Global().GetContext(),
+      opencl::ContextManager::Global().GetDeviceId(), kernel_string, "");
 
-      std::vector<unsigned char> chunk(binary_size);
-      fs.read((char *)chunk.data(), binary_size);
+    if (result) {
+      auto binary = program.GetProgramBinary(
+        opencl::ContextManager::Global().GetDeviceId());
 
-      result = program.CreateCLProgramWithBinary(
-        opencl::ContextManager::Global().GetContext(),
-        opencl::ContextManager::Global().GetDeviceId(), binary_size,
-        chunk.data(),
-        opencl::Program::DEFAULT_KERNEL_PATH + "/" + kernel_name +
-          "_kernel.bin",
-        "");
-    } else {
-      result = program.CreateCLProgram(
-        opencl::ContextManager::Global().GetContext(),
-        opencl::ContextManager::Global().GetDeviceId(), kernel_string, "");
+      if (binary.empty()) {
+        ml_loge("Failed retrieving binary for kernel %s", kernel_name.c_str());
+        result = false;
+      } else {
+        result &= writeBinaryFile(binary_file_path, binary);
+      }
     }
+  }
 
-    if (!result) {
-      break;
-    }
+  if (!result) {
+    return false;
+  }
 
-    result = kernel_ptr_->CreateKernelFromProgram(program, kernel_name);
-    if (!result) {
-      break;
-    }
-
-  } while (false);
+  result = kernel_ptr_->CreateKernelFromProgram(program, kernel_name);
 
   return result;
 }
