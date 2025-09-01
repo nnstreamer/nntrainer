@@ -45,7 +45,7 @@ MHACoreLayer::MHACoreLayer() :
     nntrainer::props::ReturnAttentionWeight(),
     nntrainer::props::AverageAttentionWeight(), nntrainer::props::MaxTimestep(),
     props::SlidingWindow(), props::MaxNewTokens(), props::RopeTheta(),
-    props::MaxPositionEmbeddings()),
+    props::MaxPositionEmbeddings(), props::UseSink()),
   sm(nntrainer::ActivationType::ACT_SOFTMAX),
   epsilon(1e-3),
   cache_index(0),
@@ -53,7 +53,7 @@ MHACoreLayer::MHACoreLayer() :
   num_heads_KV(0),
   head_dim(0),
   cache_shift(false) {
-  weight_idx.fill(std::numeric_limits<unsigned>::max());
+  tensor_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
 MHACoreLayer::~MHACoreLayer() {}
@@ -110,8 +110,20 @@ void MHACoreLayer::finalize(nntrainer::InitLayerContext &context) {
        "num_heads_* are set correctly so that the `head_dim`s are all same for "
        "query / key / value";
 
-  /** Tensor for KV-Cache */
+  /** Weight for Sink */
+  ///@todo use_sink action should be implemented.
+  use_sink = std::get<props::UseSink>(mha_core_props).get();
+  if (use_sink) {
+    nntrainer::TensorDim sink_dim(
+      1, 1, 1, num_heads_Q,
+      nntrainer::TensorDim::TensorType(context.getFormat(),
+                                       context.getActivationDataType()));
+    sink_idx = context.requestWeight(sink_dim, nntrainer::Initializer::ZEROS,
+                                     nntrainer::WeightRegularizer::NONE, 0.0f,
+                                     0.0f, "sink");
+  }
 
+  /** Tensor for KV-Cache */
 #ifdef ENABLE_FP16
   ml::train::TensorDim cache_key_dim(
     {batch_size, 1, max_timestep, num_heads_KV * head_dim},
@@ -128,10 +140,10 @@ void MHACoreLayer::finalize(nntrainer::InitLayerContext &context) {
     {context.getFormat(), ml::train::TensorDim::DataType::UINT16});
 #endif
 
-  weight_idx[AttentionParams::cache_key] = context.requestTensor(
+  tensor_idx[AttentionParams::cache_key] = context.requestTensor(
     cache_key_dim, "cache_key", nntrainer::Initializer::NONE, false,
     nntrainer::TensorLifespan::MAX_LIFESPAN);
-  weight_idx[AttentionParams::cache_value] = context.requestTensor(
+  tensor_idx[AttentionParams::cache_value] = context.requestTensor(
     cache_value_dim, "cache_value", nntrainer::Initializer::NONE, false,
     nntrainer::TensorLifespan::MAX_LIFESPAN);
 
@@ -213,9 +225,9 @@ void MHACoreLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
     context.getOutput(INOUT_INDEX::OUTPUT); // output to be projected
 
   nntrainer::Tensor &cache_key =
-    context.getTensor(weight_idx[AttentionParams::cache_key]);
+    context.getTensor(tensor_idx[AttentionParams::cache_key]);
   nntrainer::Tensor &cache_value =
-    context.getTensor(weight_idx[AttentionParams::cache_value]);
+    context.getTensor(tensor_idx[AttentionParams::cache_value]);
 
   const unsigned int num_heads_Q =
     std::get<nntrainer::props::NumHeads>(mha_core_props).get();
@@ -715,11 +727,11 @@ void MHACoreLayer::setBatch(nntrainer::RunLayerContext &context,
 
   const float dropout_rate =
     std::get<nntrainer::props::DropOutRate>(mha_core_props).get();
-  context.updateTensor(weight_idx[AttentionParams::cache_key], batch);
-  context.updateTensor(weight_idx[AttentionParams::cache_value], batch);
-  // context.updateTensor(weight_idx[AttentionParams::attention_weight], batch);
+  context.updateTensor(tensor_idx[AttentionParams::cache_key], batch);
+  context.updateTensor(tensor_idx[AttentionParams::cache_value], batch);
+  // context.updateTensor(tensor_idx[AttentionParams::attention_weight], batch);
   if (dropout_rate > epsilon) {
-    context.updateTensor(weight_idx[AttentionParams::dropout_mask], batch);
+    context.updateTensor(tensor_idx[AttentionParams::dropout_mask], batch);
   }
 }
 
@@ -753,8 +765,8 @@ void MHACoreLayer::updateTensorsByInputDimensions(
   context.updateInput(INOUT_INDEX::VALUE, kv_dim);
   context.updateOutput(0, input_dimensions[0]);
 
-  context.updateTensor(weight_idx[AttentionParams::cache_key], kv_cache_dim);
-  context.updateTensor(weight_idx[AttentionParams::cache_value], kv_cache_dim);
+  context.updateTensor(tensor_idx[AttentionParams::cache_key], kv_cache_dim);
+  context.updateTensor(tensor_idx[AttentionParams::cache_value], kv_cache_dim);
 }
 
 void MHACoreLayer::calcDerivative(nntrainer::RunLayerContext &context) {}
