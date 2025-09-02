@@ -45,7 +45,8 @@ MHACoreLayer::MHACoreLayer() :
     nntrainer::props::ReturnAttentionWeight(),
     nntrainer::props::AverageAttentionWeight(), nntrainer::props::MaxTimestep(),
     props::SlidingWindow(), props::MaxNewTokens(), props::RopeTheta(),
-    props::MaxPositionEmbeddings(), props::UseSink()),
+    props::MaxPositionEmbeddings(), props::UseSink(), props::RopeScalingType(),
+    props::RopeScalingFactor(), props::RopeScalingMaxPositionEmbeddings()),
   sm(nntrainer::ActivationType::ACT_SOFTMAX),
   epsilon(1e-3),
   cache_index(0),
@@ -80,11 +81,18 @@ void MHACoreLayer::finalize(nntrainer::InitLayerContext &context) {
     std::get<nntrainer::props::MaxTimestep>(mha_core_props).get();
 
   /** max position embeddings */
-  const unsigned int max_position_embeddings =
+  unsigned int max_position_embeddings =
     std::get<props::MaxPositionEmbeddings>(mha_core_props).get();
 
   /** local window size */
   local_window_size = std::get<props::SlidingWindow>(mha_core_props).get();
+
+  /** attention scaling computation */
+  rope_scaling_type = std::get<props::RopeScalingType>(mha_core_props).get();
+  scale = std::get<props::RopeScalingFactor>(mha_core_props).get();
+  if (rope_scaling_type == "yarn")
+    original_max_position_embeddings =
+      std::get<props::RopeScalingMaxPositionEmbeddings>(mha_core_props).get();
 
   /** query_dim = (B, 1, seq_len, H_Q * Head_Dim ) */
   const unsigned int batch_size = query_dim.batch();
@@ -228,6 +236,9 @@ void MHACoreLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
     context.getTensor(tensor_idx[AttentionParams::cache_key]);
   nntrainer::Tensor &cache_value =
     context.getTensor(tensor_idx[AttentionParams::cache_value]);
+
+  if (use_sink)
+    nntrainer::Tensor &sink = context.getWeight(sink_idx);
 
   const unsigned int num_heads_Q =
     std::get<nntrainer::props::NumHeads>(mha_core_props).get();
@@ -484,15 +495,15 @@ void MHACoreLayer::precompute_freqs(int head_dim, unsigned int seq_len,
   if (freqs_cos != nullptr && freqs_cos->size() == seq_len)
     return;
 
-  // theta_i = 10000^(-2(i-1)/dim) for i = [1, 2, ... , dim/2]
-  // head_dim should be divisible by 2
-  unsigned int half_ = head_dim / 2;
-  for (unsigned int i = 0; i < half_; ++i) {
-    thetas.push_back(1.0 /
-                     (std::pow(theta, (2 * i) / static_cast<float>(head_dim))));
-  }
+  if (rope_scaling_type == "default")
+    _compute_default_parameters(head_dim, theta);
+  else if (rope_scaling_type == "yarn")
+    _compute_yarn_parameters(head_dim, theta);
+  else
+    NNTR_THROW_IF(true, std::invalid_argument) << "Unsupported rope type!";
 
   // cos / sin
+  unsigned int half_ = head_dim / 2;
   auto cos = new std::vector<std::vector<float>>();
   cos->assign(seq_len, std::vector<float>(head_dim, 0));
   auto sin = new std::vector<std::vector<float>>();
@@ -507,11 +518,13 @@ void MHACoreLayer::precompute_freqs(int head_dim, unsigned int seq_len,
 #else
     for (unsigned int j = 0; j < half_; ++j) {
       float angle = i * thetas[j];
-      (*cos)[i][j] = std::cos(angle);
-      (*cos)[i][j + half_] = std::cos(angle); // repeated 2 times
+      (*cos)[i][j] = std::cos(angle) * attention_scaling;
+      (*cos)[i][j + half_] =
+        std::cos(angle) * attention_scaling; // repeated 2 times
 
-      (*sin)[i][j] = std::sin(angle);
-      (*sin)[i][j + half_] = std::sin(angle); // repeated 2 times
+      (*sin)[i][j] = std::sin(angle) * attention_scaling;
+      (*sin)[i][j + half_] =
+        std::sin(angle) * attention_scaling; // repeated 2 times
     }
 #endif
   }
@@ -534,6 +547,114 @@ void MHACoreLayer::precompute_freqs(int head_dim, unsigned int seq_len,
   freqs_sin_fp16 = sin_fp16;
 #endif
 };
+
+void MHACoreLayer::_compute_default_parameters(int head_dim, float theta) {
+
+  // no attention scaling
+  attention_scaling = 1.0f;
+
+  // theta_i = 10000^(-2(i-1)/dim) for i = [1, 2, ... , dim/2]
+  // head_dim should be divisible by 2
+  unsigned int half_ = head_dim / 2;
+  for (unsigned int i = 0; i < half_; ++i) {
+    thetas.push_back(1.0 /
+                     (std::pow(theta, (2 * i) / static_cast<float>(head_dim))));
+  }
+}
+
+void MHACoreLayer::_compute_yarn_parameters(int head_dim, float theta) {
+
+  // Config parameters
+  ///@todo partial_rotary_factor should be generalized to fully support
+  ///transformers's implementation
+  // const float partial_rotary_factor = has_partial_rotary_factor ?
+  // config_partial_rotary_factor : 1.0f;
+  const float partial_rotary_factor = 1.0f;
+  const int dim = static_cast<int>(head_dim * partial_rotary_factor);
+  const float base = theta;
+
+  // Handle max position embeddings
+
+  // Attention scaling calculation (simplified from Python version)
+  auto get_mscale = [](float scale, float mscale = 1.0f) {
+    return (scale <= 1.0f) ? 1.0f : (0.1f * mscale * std::log(scale) + 1.0f);
+  };
+
+  ///@todo attention_scaling should be generalized to fully support
+  ///transformers's implementation
+  // if (has_mscale && has_mscale_all_dim) {
+  // attention_scaling = get_mscale(factor, mscale) / get_mscale(factor,
+  // mscale_all_dim);
+  // } else {
+  // attention_scaling = get_mscale(factor);
+  // }
+  attention_scaling = get_mscale(scale);
+
+  ///@todo attention_scaling should be generalized to fully support
+  ///transformers's implementation
+  // const float beta_fast = has_beta_fast ? config_beta_fast : 32.0f;
+  // const float beta_slow = has_beta_slow ? config_beta_slow : 1.0f;
+  // const bool truncate = has_truncate ? config_truncate : true;
+  // Beta parameters
+  const float beta_fast = 32.0f;
+  const float beta_slow = 1.0f;
+  const bool truncate = false;
+
+  // Helper functions
+  auto find_correction_dim = [&](float num_rotations) {
+    return (dim * std::log(original_max_position_embeddings /
+                           (num_rotations * 2 * M_PI))) /
+           (2 * std::log(base));
+  };
+
+  auto [low, high] = [&]() {
+    float low_val = find_correction_dim(beta_fast);
+    float high_val = find_correction_dim(beta_slow);
+    if (truncate) {
+      low_val = std::floor(low_val);
+      high_val = std::ceil(high_val);
+    }
+    return std::make_pair(low_val, high_val);
+  }();
+
+  // Compute position frequencies
+  thetas.resize(dim / 2);
+
+  // Compute interpolation and extrapolation frequencies
+  std::vector<float> inv_freq_interpolation;
+  std::vector<float> inv_freq_extrapolation;
+  for (size_t i = 0; i < dim / 2; ++i) {
+    inv_freq_extrapolation.push_back(
+      1.0 / (std::pow(theta, (2 * i) / static_cast<float>(head_dim))));
+    inv_freq_interpolation.push_back(
+      1.0 / (scale * std::pow(theta, (2 * i) / static_cast<float>(head_dim))));
+  }
+
+  auto linear_ramp_factor = [](float min, float max, int size) {
+    if (min == max) {
+      max += 0.001f; // Prevent singularity
+    }
+    std::vector<float> ramp(size);
+    for (int i = 0; i < size; ++i) {
+      float val = (i - min) / (max - min);
+      ramp[i] = std::clamp(val, 0.0f, 1.0f);
+    }
+    return ramp;
+  };
+
+  std::vector<float> inv_freq_extrapolation_factor =
+    linear_ramp_factor(low, high, dim / 2);
+  for (auto &val : inv_freq_extrapolation_factor) {
+    val = 1.0f - val;
+  }
+
+  // Combine frequencies
+  for (size_t i = 0; i < thetas.size(); ++i) {
+    thetas[i] =
+      inv_freq_extrapolation[i] * inv_freq_extrapolation_factor[i] +
+      inv_freq_interpolation[i] * (1.0f - inv_freq_extrapolation_factor[i]);
+  }
+}
 
 void MHACoreLayer::apply_rotary_emb_tensor_v2(nntrainer::Tensor &in,
                                               nntrainer::Tensor &out,
