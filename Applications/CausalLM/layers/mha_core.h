@@ -105,11 +105,49 @@ public:
   using prop_tag = nntrainer::uint_prop_tag;       /**< property type */
 };
 
+/**
+ * @brief UseSink property
+ */
 class UseSink : public nntrainer::Property<bool> {
 public:
   UseSink(bool value = false) { set(value); };
   static constexpr const char *key = "use_sink"; /**< unique key to access */
   using prop_tag = nntrainer::bool_prop_tag;     /**< property type */
+};
+
+/**
+ * @brief RopeScalingType
+ * - default
+ * - yarn
+ */
+class RopeScalingType : public nntrainer::Property<std::string> {
+public:
+  RopeScalingType(std::string value = "default") { set(value); };
+  static constexpr const char *key =
+    "rope_scaling_type";                    /**< unique key to access */
+  using prop_tag = nntrainer::str_prop_tag; /**< property type */
+};
+/**
+ * @brief RopeScalingFactor
+ */
+class RopeScalingFactor : public nntrainer::Property<float> {
+public:
+  RopeScalingFactor(float value = 1.0) { set(value); };
+  static constexpr const char *key =
+    "rope_scaling_factor";                    /**< unique key to access */
+  using prop_tag = nntrainer::float_prop_tag; /**< property type */
+};
+
+/**
+ * @brief RopeScalingMaxPositionEmbeddings
+ */
+class RopeScalingMaxPositionEmbeddings
+  : public nntrainer::Property<unsigned int> {
+public:
+  RopeScalingMaxPositionEmbeddings(unsigned int value = 4096) { set(value); };
+  static constexpr const char *key =
+    "rope_scaling_max_position_embeddings";  /**< unique key to access */
+  using prop_tag = nntrainer::uint_prop_tag; /**< property type */
 };
 
 }; // namespace props
@@ -238,7 +276,8 @@ private:
     nntrainer::props::ReturnAttentionWeight,
     nntrainer::props::AverageAttentionWeight, nntrainer::props::MaxTimestep,
     props::SlidingWindow, props::MaxNewTokens, props::RopeTheta,
-    props::MaxPositionEmbeddings, props::UseSink>
+    props::MaxPositionEmbeddings, props::UseSink, props::RopeScalingType,
+    props::RopeScalingFactor, props::RopeScalingMaxPositionEmbeddings>
     mha_core_props; /**< mha_core layer properties */
 
   /** softmax activation operation */
@@ -283,6 +322,16 @@ private:
   std::array<unsigned int, 7> tensor_idx;
   unsigned int sink_idx;
 
+  /** attention parameters */
+  unsigned int max_position_embeddings;
+
+  /** rope_scaling parameters */
+  std::string rope_scaling_type;
+  float attention_scaling = 1.0f;
+  float mscale = 1.0f;
+  float scale = 1.0f;
+  unsigned int original_max_position_embeddings = 4096;
+
   /****************** ROTARY EMBEDDING *****************/
   /** static variable - they are all expected to be initialized once */
   inline static std::vector<std::vector<float>> *freqs_cos = {};
@@ -302,6 +351,16 @@ private:
    */
   void precompute_freqs(int head_dim, unsigned int seq_len,
                         float theta = 10000.0);
+
+  /**
+   * @brief _compute frequency parameters for default ROPE
+   */
+  void _compute_default_parameters(int head_dim, float theta);
+
+  /**
+   * @brief _compute frequency parameters for default ROPE
+   */
+  void _compute_yarn_parameters(int head_dim, float theta);
 
   /**
    * @brief     apply rotary embedding
