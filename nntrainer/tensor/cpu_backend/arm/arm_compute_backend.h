@@ -557,6 +557,16 @@ void calc_trigonometric_vals_dup(unsigned int N_half, float *angle, float *cos_,
 void swiglu(const unsigned int N, float *X, float *Y, float *Z);
 
 /**
+ * @brief swiglu function with alpha : X = (Y / (1 + exp(- alpha * Y))) * Z
+ * @param N number of elements in X
+ * @param X float* for Vector X
+ * @param Y float* for Vector Y
+ * @param Z float* for Vector Z
+ * @param alpha float
+ */
+void swiglu(const unsigned int N, float *X, float *Y, float *Z, float alpha);
+
+/**
  * @brief returns maximum value of the vector X
  *
  * @param N number of elements in X

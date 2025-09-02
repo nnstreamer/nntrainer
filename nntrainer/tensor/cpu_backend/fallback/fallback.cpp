@@ -187,6 +187,10 @@ void swiglu(const unsigned int N, float *X, float *Y, float *Z) {
   __fallback_swiglu(N, X, Y, Z);
 }
 
+void swiglu(const unsigned int N, float *X, float *Y, float *Z, float alpha) {
+  __fallback_swiglu(N, X, Y, Z, alpha);
+}
+
 float max_val(const unsigned int N, float *X) { return __fallback_max(N, X); }
 
 void softmax(const unsigned int N, float *X, float *Y) {
