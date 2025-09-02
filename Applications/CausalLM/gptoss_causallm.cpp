@@ -27,7 +27,7 @@
 
 #include <app_context.h>
 #include <engine.h>
-#include <qwen_moe_layer_cached.h>
+#include <gpt_oss_moe_layer.h>
 
 namespace causallm {
 
@@ -81,6 +81,9 @@ std::vector<LayerHandle> GptOssForCausalLM::createAttention(
     withKey("max_position_embeddings", MAX_POSITION_EMBEDDINGS),
     withKey("max_new_tokens", std::to_string(NUM_TO_GENERATE)),
     withKey("use_sink", "true"),
+    withKey("rope_scaling_factor", ATTENTION_ROPE_SCALING_FACTOR),
+    withKey("rope_scaling_type", "yarn"),
+    withKey("rope_scaling_max_position_embeddings", 4096),
     withKey("input_layers", {Q, K, V})};
   layers.push_back(createLayer("mha_core", a_params));
 
@@ -99,12 +102,14 @@ std::vector<LayerHandle> GptOssForCausalLM::createMlp(const int layer_id,
 
   std::vector<LayerHandle> layers;
   layers.push_back(createLayer(
-    "moe_cached_slim",
-    {withKey("name", "layer" + std::to_string(layer_id) + "_ffn_down"),
-     withKey("input_layers", input_name), withKey("unit", hidden_dim),
-     withKey("num_experts", NUM_EXPERTS),
-     withKey("num_experts_per_token", NUM_EXPERTS_PER_TOK),
-     withKey("moe_activation", "swish")}));
+    "gpt_oss_moe",
+    {
+      withKey("name", "layer" + std::to_string(layer_id) + "_ffn_down"),
+      withKey("input_layers", input_name),
+      withKey("unit", hidden_dim),
+      withKey("num_experts", NUM_EXPERTS),
+      withKey("num_experts_per_token", NUM_EXPERTS_PER_TOK),
+    }));
 
   return layers;
 }
@@ -117,6 +122,7 @@ void GptOssForCausalLM::setupParameters(json &cfg, json &generation_cfg,
     NUM_EXPERTS = cfg["num_local_experts"].get<unsigned int>();
     NUM_EXPERTS_PER_TOK = cfg["num_experts_per_tok"].get<unsigned int>();
     LAYER_TYPES = cfg["layer_types"].get<std::vector<std::string>>();
+    ATTENTION_ROPE_SCALING_FACTOR = cfg["rope_scaling"]["factor"];
   } catch (const std::exception &e) {
     throw std::runtime_error("GptOssForCausalLM: config parsing error");
   }
@@ -130,7 +136,7 @@ void GptOssForCausalLM::registerCustomLayers() {
 
   try {
     app_context->registerFactory(
-      nntrainer::createLayer<causallm::CachedSlimMoELayer>);
+      nntrainer::createLayer<causallm::GptOssMoELayer>);
   } catch (std::invalid_argument &e) {
     std::cerr << "failed to register factory, reason: " << e.what()
               << std::endl;
