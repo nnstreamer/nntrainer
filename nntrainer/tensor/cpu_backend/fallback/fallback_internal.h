@@ -459,6 +459,17 @@ void __fallback_calc_trigonometric_vals_dup(unsigned int N_half, float *angle,
 void __fallback_swiglu(const unsigned int N, float *X, float *Y, float *Z);
 
 /**
+ * @brief swiglu function with alpha : X = (Y / (1 + exp(- alpha * Y))) * Z
+ * @param N number of elements in X
+ * @param X float* for Vector X
+ * @param Y float* for Vector Y
+ * @param Z float* for Vector Z
+ * @param alpha float
+ */
+void __fallback_swiglu(const unsigned int N, float *X, float *Y, float *Z,
+                       float alpha);
+
+/**
  * @brief returns maximum value of the vector X
  *
  * @param N number of elements in X
@@ -1042,8 +1053,8 @@ void __fallback_compute_fp16vcache_fp32_transposed(
 template <typename BType>
 void __fallback_compute_kcaches(const float *in, const BType *kcache,
                                 float *output, int num_rows, int num_cache_head,
-                                int head_dim, int gqa_size,
-                                int tile_size, size_t local_window_size = UINT_MAX);
+                                int head_dim, int gqa_size, int tile_size,
+                                size_t local_window_size = UINT_MAX);
 
 /**
  * @brief Compute rotary embedding value
