@@ -47,6 +47,10 @@ void swiglu(const unsigned int N, float *X, float *Y, float *Z) {
   nntrainer::neon::swiglu(N, X, Y, Z);
 }
 
+void swiglu(const unsigned int N, float *X, float *Y, float *Z, float alpha) {
+  nntrainer::neon::swiglu(N, X, Y, Z, alpha);
+}
+
 float max_val(const unsigned int N, float *X) {
   return nntrainer::neon::max_val(N, X);
 }
