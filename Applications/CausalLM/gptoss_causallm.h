@@ -64,6 +64,7 @@ private:
   unsigned int NUM_EXPERTS;
   unsigned int NUM_EXPERTS_PER_TOK;
   std::vector<std::string> LAYER_TYPES;
+  float ATTENTION_ROPE_SCALING_FACTOR;
 };
 
 } // namespace causallm
