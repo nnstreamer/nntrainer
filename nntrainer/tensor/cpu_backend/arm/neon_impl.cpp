@@ -854,6 +854,29 @@ void swiglu(const unsigned int N, float *X, float *Y, float *Z) {
   }
 }
 
+void swiglu(const unsigned int N, float *X, float *Y, float *Z, float alpha) {
+  unsigned int i = 0;
+  float32x4_t alpha_vec = vmovq_n_f32(alpha);
+  float32x4_t neg_alpha_vec = vmovq_n_f32(-alpha);
+
+  for (; N - i >= 4; i += 4) {
+    float32x4_t y0_3 = vld1q_f32(&Y[i]);
+    float32x4_t z0_3 = vld1q_f32(&Z[i]);
+    float32x4_t alpha_y0_3 = vmulq_f32(y0_3, neg_alpha_vec);
+    float32x4_t exp0_3 = exp_ps(alpha_y0_3);
+
+    exp0_3 = vaddq_f32(exp0_3, vmovq_n_f32(1.f));
+    exp0_3 = vdivq_f32(y0_3, exp0_3);
+    exp0_3 = vmulq_f32(exp0_3, z0_3);
+
+    vst1q_f32(&X[i], exp0_3);
+  }
+  while (i < N) {
+    X[i] = (Y[i] / (1.f + std::exp(-alpha * Y[i]))) * Z[i];
+    ++i;
+  }
+}
+
 float max_val(const unsigned int N, float *X) {
   unsigned int i = 0;
   float ret = X[i];

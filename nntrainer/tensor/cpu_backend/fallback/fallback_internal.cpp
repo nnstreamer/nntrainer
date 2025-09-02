@@ -345,6 +345,15 @@ void __fallback_swiglu(const unsigned int N, float *X, float *Y, float *Z) {
   }
 }
 
+void __fallback_swiglu(const unsigned int N, float *X, float *Y, float *Z,
+                       float alpha) {
+  unsigned int i = 0;
+  while (i < N) {
+    X[i] = (Y[i] / (1.f + std::exp(-alpha * Y[i]))) * Z[i];
+    ++i;
+  }
+}
+
 float __fallback_max(const unsigned int N, float *X) {
   std::vector<float> v(X, X + N);
   return *std::max_element(v.begin(), v.end());

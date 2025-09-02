@@ -310,6 +310,16 @@ avx2_approx_swiglu(__m256 x, __m256 s) noexcept -> __m256 {
   auto swiglu_nonscaled = _mm256_div_ps(x, inv_sigmoid);
   return _mm256_mul_ps(swiglu_nonscaled, s);
 }
+
+_nnt_ATTR_ALWAYS_INLINE _nnt_ATTR_FLATTEN auto _nnt_CC_VECTORCALL
+avx2_approx_swiglu_alpha(__m256 x, __m256 s, __m256 alpha) noexcept -> __m256 {
+  auto alpha_x = _mm256_mul_ps(alpha, x);
+  auto neg_alpha_x = avx2_negate_ps(alpha_x);
+  auto inv_sigmoid = _mm256_add_ps(avx2_approx_exp_e2lookup<8>(neg_alpha_x),
+                                   _mm256_set1_ps(1.0f));
+  auto swiglu_nonscaled = _mm256_div_ps(x, inv_sigmoid);
+  return _mm256_mul_ps(swiglu_nonscaled, s);
+}
 } // namespace
 
 namespace nntrainer::avx2 {
@@ -704,6 +714,46 @@ void swiglu(const unsigned int N, float *X, const float *Y, const float *Z) {
       auto ym = _mm256_maskload_ps(Y + i, vmask);
       auto zm = _mm256_maskload_ps(Z + i, vmask);
       _mm256_maskstore_ps(X + i, vmask, avx2_approx_swiglu(ym, zm));
+    }
+  _mm_setcsr(oldcsr);
+}
+
+void swiglu(const unsigned int N, float *X, const float *Y, const float *Z,
+            float alpha) {
+  size_t i = 0;
+
+  auto oldcsr = _mm_getcsr();
+  // We don't need denormals, enable:
+  // DAZ = Denormals Are Zero
+  // FTZ = Flush To Zero
+  _mm_setcsr(oldcsr | 0x8040);
+
+  auto alpha_vec = _mm256_set1_ps(alpha);
+
+  for (; i + 16 < N; i += 16) {
+    auto y0 = _mm256_loadu_ps(Y + i);
+    auto y1 = _mm256_loadu_ps(Y + i + 8);
+    auto z0 = _mm256_loadu_ps(Z + i);
+    auto z1 = _mm256_loadu_ps(Z + i + 8);
+
+    _mm256_storeu_ps(X + i, avx2_approx_swiglu_alpha(y0, z0, alpha_vec));
+    _mm256_storeu_ps(X + i + 8, avx2_approx_swiglu_alpha(y1, z1, alpha_vec));
+  }
+
+  if (i + 8 < N)
+    UNLIKELY {
+      auto y0 = _mm256_loadu_ps(Y + i);
+      auto z0 = _mm256_loadu_ps(Z + i);
+      _mm256_storeu_ps(X + i, avx2_approx_swiglu_alpha(y0, z0, alpha_vec));
+      i += 8;
+    }
+
+  if (i < N)
+    UNLIKELY {
+      // Process remaining elements
+      for (; i < N; ++i) {
+        X[i] = (Y[i] / (1.0f + std::exp(-alpha * Y[i]))) * Z[i];
+      }
     }
   _mm_setcsr(oldcsr);
 }
