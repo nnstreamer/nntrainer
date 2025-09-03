@@ -109,10 +109,21 @@ public:
     nntrainer::RunLayerContext &context,
     std::vector<nntrainer::TensorDim> input_dimensions) override;
 
+  /**
+   * @brief Get input tensor data type
+   * @note In cases where the initial value of InputTensorDataType is not given,
+   * be sure to check if it is empty before using it.
+   */
+  props::InputTensorDataType getInputTensorDataType() {
+    return std::get<props::InputTensorDataType>(input_props);
+  }
+
   static constexpr const char *type = "input";
 
 private:
-  std::tuple<props::Normalization, props::Standardization> input_props;
+  std::tuple<props::Normalization, props::Standardization,
+             props::InputTensorDataType, props::TensorDataType>
+    input_props;
 };
 } // namespace nntrainer
 
