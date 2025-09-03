@@ -81,6 +81,16 @@ void rotary_emb_cl(_FP16 *in, _FP16 *out,
                    unsigned int max_timestamp, unsigned int in_size,
                    unsigned int out_size);
 
+void flash_attention_cl_fp16(
+  // clang-format off
+                               void *q, void *k, void *v, void *o,
+                               const uint32_t q_width, const uint32_t q_height, const uint32_t q_channels, const uint32_t q_batches,
+                               const uint32_t k_width, const uint32_t k_height, const uint32_t k_channels, const uint32_t k_batches,
+                               const uint32_t v_width, const uint32_t v_height, const uint32_t v_channels, const uint32_t v_batches,
+                               const uint32_t o_width, const uint32_t o_height, const uint32_t o_channels, const uint32_t o_batches
+  // clang-format on
+);
+
 #endif
 
 } // namespace nntrainer
