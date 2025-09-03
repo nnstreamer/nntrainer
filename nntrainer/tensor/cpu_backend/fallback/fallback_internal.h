@@ -16,6 +16,7 @@
 #ifdef __cplusplus
 
 #include <cstdint>
+#include <limits.h>
 #include <tensor_dim.h>
 
 namespace nntrainer {
@@ -442,11 +443,13 @@ void __fallback_unpack_q4_0x8_transpose16(const void *src,
  * @param freqs float* for Vector angle
  * @param cos_ float* for cos_
  * @param sin_ float* for sin_
- * @param alpha scaling factor
+ * @param from from starting index for angle calculation
+ * @param attention_scaling scaling factor to apply to cos and sin values
  */
 void __fallback_calc_trigonometric_vals_dup(unsigned int N_half, float *angle,
                                             float *cos_, float *sin_,
-                                            unsigned int alpha = 1.0);
+                                            unsigned int from = 0,
+                                            float attention_scaling = 1.0f);
 /**
  * @brief swiglu function with neon : X = (Y / (1 + exp( -Y ))) * Z
  *
@@ -456,6 +459,17 @@ void __fallback_calc_trigonometric_vals_dup(unsigned int N_half, float *angle,
  * @param Z float * for Vector Z
  */
 void __fallback_swiglu(const unsigned int N, float *X, float *Y, float *Z);
+
+/**
+ * @brief swiglu function with alpha : X = (Y / (1 + exp(- alpha * Y))) * Z
+ * @param N number of elements in X
+ * @param X float* for Vector X
+ * @param Y float* for Vector Y
+ * @param Z float* for Vector Z
+ * @param alpha float
+ */
+void __fallback_swiglu(const unsigned int N, float *X, float *Y, float *Z,
+                       float alpha);
 
 /**
  * @brief returns maximum value of the vector X
@@ -1018,29 +1032,31 @@ void __fallback_softmax_row(float *qk_out, size_t start_row, size_t end_row,
  * @param[in] num_cache_head number head of cache
  * @param[in] gqa_size size of group
  * @param[in] head_dim head dimension
+ * @param[in] local_window_size windows size for local attention
  */
-void __fallback_compute_fp16vcache_fp32_transposed(int row_num, const float *in,
-                                                   const uint16_t *vcache,
-                                                   float *output,
-                                                   int num_cache_head,
-                                                   int gqa_size, int head_dim);
+void __fallback_compute_fp16vcache_fp32_transposed(
+  int row_num, const float *in, const uint16_t *vcache, float *output,
+  int num_cache_head, int gqa_size, int head_dim,
+  size_t local_window_size = UINT_MAX);
 
 /**
  * @brief Compute kcaches
  * @tparam BType type of B vector element
- * @param[in] A float* input vector A
- * @param[in] B BType* input vector B
+ * @param[in] in float* input vector
+ * @param[in] kcache BType* input vector with keys cache
  * @param[out] output float* output float vector
  * @param[in] num_rows number of row
- * @param[in] N number of chunk
- * @param[in] chunk_size size of chunk
- * @param[in] group_size size of group
+ * @param[in] num_cache_head number head of cache
+ * @param[in] head_dim head dimension
+ * @param[in] gqa_size size of group
  * @param[in] tile_size size of tile
+ * @param[in] local_window_size windows size for local attention
  */
 template <typename BType>
-void __fallback_compute_kcaches(const float *A, const BType *B, float *output,
-                                int num_rows, int N, int chunk_size,
-                                int group_size, int tile_size);
+void __fallback_compute_kcaches(const float *in, const BType *kcache,
+                                float *output, int num_rows, int num_cache_head,
+                                int head_dim, int gqa_size, int tile_size,
+                                size_t local_window_size = UINT_MAX);
 
 /**
  * @brief Compute rotary embedding value

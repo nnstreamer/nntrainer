@@ -400,7 +400,8 @@ void __fallback_unpack_q4_0x8_transpose16(const void *src,
 
 void __fallback_calc_trigonometric_vals_dup(unsigned int N_half, float *angle,
                                             float *cos_, float *sin_,
-                                            unsigned int alpha) {
+                                            unsigned int from,
+                                            float attention_scaling) {
   throw std::runtime_error(
     "Error: No implementation of rotary embedding layer incremental_forwarding "
     "with SIMD acceleration except for NEON!");
@@ -410,6 +411,15 @@ void __fallback_swiglu(const unsigned int N, float *X, float *Y, float *Z) {
   unsigned int i = 0;
   while (i < N) {
     X[i] = (Y[i] / (1.f + std::exp(-Y[i]))) * Z[i];
+    ++i;
+  }
+}
+
+void __fallback_swiglu(const unsigned int N, float *X, float *Y, float *Z,
+                       float alpha) {
+  unsigned int i = 0;
+  while (i < N) {
+    X[i] = (Y[i] / (1.f + std::exp(-alpha * Y[i]))) * Z[i];
     ++i;
   }
 }
@@ -540,19 +550,18 @@ void __fallback_softmax_row(float *qk_out, size_t start_row, size_t end_row,
   throw std::runtime_error("NYI : __fallback_softmax_row");
 }
 
-void __fallback_compute_fp16vcache_fp32_transposed(int row_num, const float *in,
-                                                   const uint16_t *vcache,
-                                                   float *output,
-                                                   int num_cache_head,
-                                                   int gqa_size, int head_dim) {
+void __fallback_compute_fp16vcache_fp32_transposed(
+  int row_num, const float *in, const uint16_t *vcache, float *output,
+  int num_cache_head, int gqa_size, int head_dim, size_t local_window_size) {
   throw std::runtime_error(
     "NYI : __fallback_compute_fp16vcache_fp32_transposed");
 }
 
 template <>
-void __fallback_compute_kcaches(const float *A, const uint16_t *B,
-                                float *output, int num_rows, int N,
-                                int chunk_size, int group_size, int tile_size) {
+void __fallback_compute_kcaches(const float *in, const uint16_t *kcache,
+                                float *output, int num_rows, int num_cache_head,
+                                int head_dim, int gqa_size, int tile_size,
+                                size_t local_window_size) {
   throw std::runtime_error("NYI : __fallback_compute_kcaches");
 }
 

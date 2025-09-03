@@ -76,6 +76,9 @@ void CausalLM::setupParameters(json &cfg, json &generation_cfg,
                     ? nntr_cfg["fsu_lookahead"].get<unsigned int>()
                     : 1;
   EMBEDDING_DTYPE = nntr_cfg["embedding_dtype"];
+  LMHEAD_DTYPE = nntr_cfg.contains("lmhead_dtype")
+                   ? nntr_cfg["lmhead_dtype"]
+                   : nntr_cfg["embedding_dtype"];
   FC_LAYER_DTYPE = nntr_cfg["fc_layer_dtype"];
 
   /** Initialize model parameters */
@@ -90,10 +93,13 @@ void CausalLM::setupParameters(json &cfg, json &generation_cfg,
   NUM_KEY_VALUE_HEADS = cfg.contains("num_key_value_heads")
                           ? cfg["num_key_value_heads"].get<int>()
                           : NUM_HEADS;
-  SLIDING_WINDOW = cfg.contains("sliding_window") &&
-                       nntr_cfg["sliding_window"] != json::value_t::null
-                     ? cfg["sliding_window"].get<unsigned int>()
-                     : UINT_MAX;
+  SLIDING_WINDOW =
+    cfg.contains("sliding_window") && !cfg["sliding_window"].is_null()
+      ? cfg["sliding_window"].get<unsigned int>()
+      : UINT_MAX;
+  SLIDING_WINDOW_PATTERN = cfg.contains("sliding_window_pattern")
+                             ? cfg["sliding_window_pattern"].get<unsigned int>()
+                             : 1;
   MAX_POSITION_EMBEDDINGS = cfg["max_position_embeddings"].get<unsigned int>();
   ROPE_THETA = cfg["rope_theta"].get<unsigned int>();
   TIE_WORD_EMBEDDINGS = cfg["tie_word_embeddings"].get<bool>();
@@ -103,9 +109,15 @@ void CausalLM::setupParameters(json &cfg, json &generation_cfg,
   EOS_TOKEN_ID =
     generation_cfg["eos_token_id"].get<std::vector<unsigned int>>();
   BOS_TOKEN_ID = generation_cfg["bos_token_id"].get<unsigned int>();
-  TOP_K = generation_cfg["top_k"];
-  TOP_P = generation_cfg["top_p"];
-  TEMPERATURE = generation_cfg["temperature"];
+  TOP_K = generation_cfg.contains("top_k")
+            ? generation_cfg["top_k"].get<unsigned int>()
+            : 20;
+  TOP_P = generation_cfg.contains("top_p")
+            ? generation_cfg["top_p"].get<float>()
+            : 0.95;
+  TEMPERATURE = generation_cfg.contains("temperature")
+                  ? generation_cfg["temperature"].get<float>()
+                  : 0.7;
 
   return;
 };
@@ -193,7 +205,7 @@ void CausalLM::constructModel() {
     withKey("unit", NUM_VOCAB),
     withKey("disable_bias", "true"),
     withKey("input_layers", "output_norm"),
-    withKey("weight_dtype", EMBEDDING_DTYPE),
+    withKey("weight_dtype", LMHEAD_DTYPE),
   };
   if (TIE_WORD_EMBEDDINGS)
     lmhead_prop.emplace_back(withKey("shared_from", "embedding0"));
@@ -559,7 +571,9 @@ CausalLM::createAttention(const int layer_id, int seq_len, int n_heads,
     withKey("num_heads", n_heads),
     withKey("num_heads_kv", n_heads / GQA_SIZE),
     withKey("max_timestep", std::to_string(INIT_SEQ_LEN + NUM_TO_GENERATE)),
-    withKey("sliding_window", SLIDING_WINDOW),
+    withKey("sliding_window", (layer_id + 1) % SLIDING_WINDOW_PATTERN
+                                ? SLIDING_WINDOW
+                                : UINT_MAX),
     withKey("rope_theta", ROPE_THETA),
     withKey("max_new_tokens", std::to_string(NUM_TO_GENERATE)),
     withKey("input_layers", {Q, K, V})};
@@ -567,9 +581,8 @@ CausalLM::createAttention(const int layer_id, int seq_len, int n_heads,
 
   // O layer
   std::vector<std::string> o_params = {
-    withKey("name", O), withKey("unit", head_dim * n_heads),
-    withKey("disable_bias", "true"), withKey("input_layers", A),
-    withKey("weight_initializer", "ones")};
+    withKey("name", O), withKey("unit", DIM), withKey("disable_bias", "true"),
+    withKey("input_layers", A), withKey("weight_initializer", "ones")};
   layers.push_back(createLayer("fully_connected", o_params));
 
   return layers;

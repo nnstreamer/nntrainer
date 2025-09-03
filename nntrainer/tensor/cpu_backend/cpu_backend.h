@@ -407,6 +407,57 @@ extern void inv_sqrt_inplace(const unsigned int N, _FP16 *X);
 extern void transpose_matrix(const unsigned int M, const unsigned int N,
                              const _FP16 *src, unsigned int ld_src, _FP16 *dst,
                              unsigned int ld_dst);
+
+/**
+ * @brief Compute vcache for one row transposed
+ * @param[in] row_num row number
+ * @param[in] in _FP16* input vector
+ * @param[in] vcache _FP16* input vector
+ * @param[out] output _FP16* output vector
+ * @param[in] num_cache_head number head of cache
+ * @param[in] gqa_size size of group
+ * @param[in] head_dim head dimension
+ * @param[in] local_window_size windows size for local attention
+ */
+extern void compute_fp16vcache_transposed(int row_num, const _FP16 *in,
+                                          const _FP16 *vcache, _FP16 *output,
+                                          int num_cache_head, int gqa_size,
+                                          int head_dim,
+                                          size_t local_window_size = UINT_MAX);
+
+/**
+ * @brief Compute kcaches
+ * @param[in] in _FP16* input vector
+ * @param[in] kcache _FP16* input vector with keys cache
+ * @param[out] output _FP16* output float vector
+ * @param[in] num_rows number of row
+ * @param[in] num_cache_head number head of cache
+ * @param[in] head_dim head dimension
+ * @param[in] gqa_size size of group
+ * @param[in] tile_size size of tile
+ * @param[in] local_window_size windows size for local attention
+ */
+extern void compute_kcaches(const _FP16 *in, const _FP16 *kcache, _FP16 *output,
+                            int num_rows, int num_cache_head, int head_dim,
+                            int gqa_size, int tile_size,
+                            size_t local_window_size = UINT_MAX);
+
+/**
+ * @brief Compute rotary embedding value
+ * @param[in] width current w value from b, c, h, w
+ * @param[in] dim unit length of simd computation
+ * @param[in] half_ criterion for rotational direction of embedding
+ * @param[in/out] inout __fp16* used also as output
+ * @param[out] output _FP16* output, if it is equal nullptr then inout is used
+ * as output
+ * @param[in] cos_ __fp16* input con values
+ * @param[in] sin_ __fp16* input sin values
+ */
+extern void compute_rotary_emb_value(unsigned int width, unsigned int dim,
+                                     unsigned int half_, _FP16 *inout,
+                                     _FP16 *output, const _FP16 *cos_,
+                                     const _FP16 *sin_);
+
 #endif
 /**
  * @brief Initialization of ggml backend
@@ -434,11 +485,13 @@ extern void unpack_q4_0x8_transpose16(const void *src, uint16_t *d_out,
  * @param freqs float* for Vector angle
  * @param cos_ float* for cos_
  * @param sin_ float* for sin_
- * @param alpha scaling factor
+ * @param from from starting index for angle calculation
+ * @param attention_scaling scaling factor to apply to cos and sin values
  */
 extern void calc_trigonometric_vals_dup(unsigned int N_half, float *angle,
                                         float *cos_, float *sin_,
-                                        unsigned int alpha = 1.0);
+                                        unsigned int from = 0,
+                                        float attention_scaling = 1.0f);
 /**
  * @brief swiglu function with neon : X = (Y / (1 + exp( -Y ))) * Z
  *
@@ -448,6 +501,17 @@ extern void calc_trigonometric_vals_dup(unsigned int N_half, float *angle,
  * @param Z float * for Vector Z
  */
 extern void swiglu(const unsigned int N, float *X, float *Y, float *Z);
+
+/**
+ * @brief swiglu function with alpha : X = (Y / (1 + exp(- alpha * Y))) * Z
+ * @param N number of elements in X
+ * @param X float* for Vector X
+ * @param Y float* for Vector Y
+ * @param Z float* for Vector Z
+ * @param alpha float
+ */
+extern void swiglu(const unsigned int N, float *X, float *Y, float *Z,
+                   float alpha);
 
 /**
  * @brief returns maximum value of the vector X
@@ -1034,29 +1098,31 @@ extern void softmax_row(float *qk_out, size_t start_row, size_t end_row,
  * @param[in] num_cache_head number head of cache
  * @param[in] gqa_size size of group
  * @param[in] head_dim head dimension
+ * @param[in] local_window_size windows size for local attention
  */
-extern void compute_fp16vcache_fp32_transposed(int row_num, const float *in,
-                                               const uint16_t *vcache,
-                                               float *output,
-                                               int num_cache_head, int gqa_size,
-                                               int head_dim);
+extern void compute_fp16vcache_fp32_transposed(
+  int row_num, const float *in, const uint16_t *vcache, float *output,
+  int num_cache_head, int gqa_size, int head_dim,
+  size_t local_window_size = UINT_MAX);
 
 /**
  * @brief Compute kcaches
  * @tparam BType type of B vector element
- * @param[in] A float* input vector A
- * @param[in] B BType* input vector B
+ * @param[in] in float* input vector
+ * @param[in] kcache BType* input vector with keys cache
  * @param[out] output float* output float vector
  * @param[in] num_rows number of row
- * @param[in] N number of chunk
- * @param[in] chunk_size size of chunk
- * @param[in] group_size size of group
+ * @param[in] num_cache_head number head of cache
+ * @param[in] head_dim head dimension
+ * @param[in] gqa_size size of group
  * @param[in] tile_size size of tile
+ * @param[in] local_window_size windows size for local attention
  */
 template <typename BType>
-extern void compute_kcaches(const float *A, const BType *B, float *output,
-                            int num_rows, int N, int chunk_size, int group_size,
-                            int tile_size);
+extern void compute_kcaches(const float *in, const BType *kcache, float *output,
+                            int num_rows, int num_cache_head, int head_dim,
+                            int gqa_size, int tile_size,
+                            size_t local_window_size = UINT_MAX);
 
 /**
  * @brief Compute rotary embedding value
