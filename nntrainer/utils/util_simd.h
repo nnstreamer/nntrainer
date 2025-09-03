@@ -27,11 +27,13 @@ namespace nntrainer {
  * @param freqs float* for Vector angle
  * @param cos_ float* for cos_
  * @param sin_ float* for sin_
- * @param alpha scaling factor
+ * @param from from starting index for angle calculation
+ * @param attention_scaling scaling factor to apply to cos and sin values
  */
 void calc_trigonometric_vals_dup_util(unsigned int N_half, float *angle,
                                       float *cos_, float *sin_,
-                                      unsigned int alpha = 1.0);
+                                      unsigned int from = 0,
+                                      float attention_scaling = 1.0f);
 /**
  * @brief swiglu function with neon : X = (Y / (1 + exp( -Y ))) * Z
  *

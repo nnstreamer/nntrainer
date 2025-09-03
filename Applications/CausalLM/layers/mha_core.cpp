@@ -513,8 +513,9 @@ void MHACoreLayer::precompute_freqs(int head_dim, unsigned int seq_len,
   for (unsigned int i = 0; i < seq_len; ++i) {
 
 #ifdef USE_NEON
-    nntrainer::calc_trigonometric_vals_dup(
-      half_, thetas.data(), (*cos)[i].data(), (*sin)[i].data(), i);
+    nntrainer::calc_trigonometric_vals_dup(half_, thetas.data(),
+                                           (*cos)[i].data(), (*sin)[i].data(),
+                                           i, attention_scaling);
 #else
     for (unsigned int j = 0; j < half_; ++j) {
       float angle = i * thetas[j];
@@ -566,7 +567,7 @@ void MHACoreLayer::_compute_yarn_parameters(int head_dim, float theta) {
 
   // Config parameters
   ///@todo partial_rotary_factor should be generalized to fully support
-  ///transformers's implementation
+  /// transformers's implementation
   // const float partial_rotary_factor = has_partial_rotary_factor ?
   // config_partial_rotary_factor : 1.0f;
   const float partial_rotary_factor = 1.0f;
@@ -581,7 +582,7 @@ void MHACoreLayer::_compute_yarn_parameters(int head_dim, float theta) {
   };
 
   ///@todo attention_scaling should be generalized to fully support
-  ///transformers's implementation
+  /// transformers's implementation
   // if (has_mscale && has_mscale_all_dim) {
   // attention_scaling = get_mscale(factor, mscale) / get_mscale(factor,
   // mscale_all_dim);
@@ -591,7 +592,7 @@ void MHACoreLayer::_compute_yarn_parameters(int head_dim, float theta) {
   attention_scaling = get_mscale(scale);
 
   ///@todo attention_scaling should be generalized to fully support
-  ///transformers's implementation
+  /// transformers's implementation
   // const float beta_fast = has_beta_fast ? config_beta_fast : 32.0f;
   // const float beta_slow = has_beta_slow ? config_beta_slow : 1.0f;
   // const bool truncate = has_truncate ? config_truncate : true;
