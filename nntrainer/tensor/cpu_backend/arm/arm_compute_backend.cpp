@@ -38,9 +38,10 @@ void unpack_q4_0x8_transpose16(const void *src, uint16_t *d_out,
 }
 
 void calc_trigonometric_vals_dup(unsigned int N_half, float *angle, float *cos_,
-                                 float *sin_, unsigned int alpha) {
-  nntrainer::neon::calc_trigonometric_vals_dup(N_half, angle, cos_, sin_,
-                                               alpha);
+                                 float *sin_, unsigned int from,
+                                 float attention_scaling) {
+  nntrainer::neon::calc_trigonometric_vals_dup(N_half, angle, cos_, sin_, from,
+                                               attention_scaling);
 }
 
 void swiglu(const unsigned int N, float *X, float *Y, float *Z) {
