@@ -18,8 +18,10 @@ namespace nntrainer {
 
 void calc_trigonometric_vals_dup_util(unsigned int N_half, float *angle,
                                       float *cos_, float *sin_,
-                                      unsigned int alpha) {
-  calc_trigonometric_vals_dup(N_half, angle, cos_, sin_, alpha);
+                                      unsigned int from,
+                                      float attention_scaling) {
+  calc_trigonometric_vals_dup(N_half, angle, cos_, sin_, from,
+                              attention_scaling);
 }
 
 void swiglu_util(const unsigned int N, float *X, float *Y, float *Z) {
