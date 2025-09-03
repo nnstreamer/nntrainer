@@ -60,10 +60,6 @@ void TieWordEmbedding::finalize_embedding(
   NNTR_THROW_IF(input_dim.channel() != 1, std::invalid_argument)
     << "Embedding layer takes only one for channel size";
 
-  NNTR_THROW_IF(input_dim.getDataType() != nntrainer::TensorDim::DataType::FP32,
-                std::invalid_argument)
-    << "Embedding layer takes only FP32 input data";
-
   auto &weight_regularizer =
     std::get<nntrainer::props::WeightRegularizer>(*layer_impl_props);
   auto &weight_regularizer_constant =
@@ -218,33 +214,68 @@ void TieWordEmbedding::incremental_forwarding_embedding(
   size_t b_size = input_.batch();
 
   for (size_t b = 0; b < b_size; ++b) {
-    float *in_data =
-      input_.getAddress<float>(b * input_.getDim().getFeatureLen());
+    if (input_.getDataType() == ml::train::TensorDim::DataType::FP32) {
+      float *in_data =
+        input_.getAddress<float>(b * input_.getDim().getFeatureLen());
 
-    nntrainer::Tensor batchsliced_hidden = hidden_.getBatchSlice(b, 1);
+      nntrainer::Tensor batchsliced_hidden = hidden_.getBatchSlice(b, 1);
 
 #pragma omp parallel for
-    for (int i = from; i < to; ++i) {
-      unsigned int embed_idx = static_cast<unsigned int>(in_data[i]);
-      if (embed_idx >= in_dim) {
-        throw std::invalid_argument("input word index is greater than in_dim");
-      }
+      for (int i = from; i < to; ++i) {
+        unsigned int embed_idx = static_cast<unsigned int>(in_data[i]);
+        if (embed_idx >= in_dim) {
+          throw std::invalid_argument("input word index is greater than in_dim");
+        }
 
-      nntrainer::Tensor cur_weight =
-        weight.getSharedDataTensor(out_tensor_dim, out_dim * embed_idx);
-      nntrainer::Tensor out_tensor = batchsliced_hidden.getSharedDataTensor(
-        out_tensor_dim, out_dim * (i - from));
+        nntrainer::Tensor cur_weight =
+          weight.getSharedDataTensor(out_tensor_dim, out_dim * embed_idx);
+        nntrainer::Tensor out_tensor = batchsliced_hidden.getSharedDataTensor(
+          out_tensor_dim, out_dim * (i - from));
 
-      if (weight.getDataType() == nntrainer::TensorDim::DataType::Q6_K) {
-        ///@note this should be replaced with quantizer operation
-        int num_blocks_per_row = (weight.width() + 256 - 1) / 256;
-        nntrainer::dequantize_row_q6_K(
-          (void *)((char *)weight.getData<uint8_t>() +
-                   (210 * num_blocks_per_row) * embed_idx),
-          out_tensor.getData(), out_dim);
-      } else {
-        out_tensor.copyData(cur_weight);
+        if (weight.getDataType() == nntrainer::TensorDim::DataType::Q6_K) {
+          ///@note this should be replaced with quantizer operation
+          int num_blocks_per_row = (weight.width() + 256 - 1) / 256;
+          nntrainer::dequantize_row_q6_K(
+            (void *)((char *)weight.getData<uint8_t>() +
+                    (210 * num_blocks_per_row) * embed_idx),
+            out_tensor.getData(), out_dim);
+        } else {
+          out_tensor.copyData(cur_weight);
+        }
       }
+    } else if (input_.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+      _FP16 *in_data =
+        input_.getAddress<_FP16>(b * input_.getDim().getFeatureLen());
+
+      nntrainer::Tensor batchsliced_hidden = hidden_.getBatchSlice(b, 1);
+
+#pragma omp parallel for
+      for (int i = from; i < to; ++i) {
+        unsigned int embed_idx = static_cast<unsigned int>(in_data[i]);
+        if (embed_idx >= in_dim) {
+          throw std::invalid_argument("input word index is greater than in_dim");
+        }
+
+        nntrainer::Tensor cur_weight =
+          weight.getSharedDataTensor(out_tensor_dim, out_dim * embed_idx);
+        nntrainer::Tensor out_tensor = batchsliced_hidden.getSharedDataTensor(
+          out_tensor_dim, out_dim * (i - from));
+
+        if (weight.getDataType() == nntrainer::TensorDim::DataType::Q6_K) {
+          ///@note this should be replaced with quantizer operation
+          int num_blocks_per_row = (weight.width() + 256 - 1) / 256;
+          nntrainer::dequantize_row_q6_K(
+            (void *)((char *)weight.getData<uint8_t>() +
+                    (210 * num_blocks_per_row) * embed_idx),
+            out_tensor.getData(), out_dim);
+        } else {
+          out_tensor.copyData(cur_weight);
+        }
+      }
+#else
+      throw std::invalid_argument("enable-fp16 is not set");
+#endif
     }
 
 #ifdef DEBUG

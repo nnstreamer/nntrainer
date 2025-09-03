@@ -40,10 +40,6 @@ void EmbeddingLayer::finalize(InitLayerContext &context) {
   NNTR_THROW_IF(input_dim.channel() != 1, std::invalid_argument)
     << "Embedding layer takes only one for channel size";
 
-  NNTR_THROW_IF(input_dim.getDataType() != TensorDim::DataType::FP32,
-                std::invalid_argument)
-    << "Embedding layer takes only FP32 input data";
-
   auto &weight_regularizer =
     std::get<props::WeightRegularizer>(*layer_impl_props);
   auto &weight_regularizer_constant =
@@ -93,21 +89,44 @@ void EmbeddingLayer::forwarding(RunLayerContext &context, bool training) {
     TensorDim({1, 1, 1, out_dim}, hidden_.getTensorType());
 
   for (unsigned int b = 0; b < input_.batch(); ++b) {
-    float *in_data =
-      input_.getAddress<float>(b * input_.getDim().getFeatureLen());
+    if (input_.getDataType() == ml::train::TensorDim::DataType::FP32) {
+      float *in_data =
+        input_.getAddress<float>(b * input_.getDim().getFeatureLen());
 
-    Tensor batchsliced_hidden = hidden_.getBatchSlice(b, 1);
-    for (unsigned int i = 0; i < input_.width(); ++i) {
-      unsigned int embed_idx = static_cast<unsigned int>(in_data[i]);
-      if (embed_idx >= in_dim) {
-        throw std::invalid_argument("input word index is greater than in_dim");
+      Tensor batchsliced_hidden = hidden_.getBatchSlice(b, 1);
+      for (unsigned int i = 0; i < input_.width(); ++i) {
+        unsigned int embed_idx = static_cast<unsigned int>(in_data[i]);
+        if (embed_idx >= in_dim) {
+          throw std::invalid_argument("input word index is greater than in_dim");
+        }
+
+        Tensor cur_weight =
+          weight.getSharedDataTensor(out_tensor_dim, out_dim * embed_idx);
+        Tensor out_tensor =
+          batchsliced_hidden.getSharedDataTensor(out_tensor_dim, out_dim * i);
+        out_tensor.copyData(cur_weight);
       }
+    } else if (input_.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+      _FP16 *in_data =
+        input_.getAddress<_FP16>(b * input_.getDim().getFeatureLen());
 
-      Tensor cur_weight =
-        weight.getSharedDataTensor(out_tensor_dim, out_dim * embed_idx);
-      Tensor out_tensor =
-        batchsliced_hidden.getSharedDataTensor(out_tensor_dim, out_dim * i);
-      out_tensor.copyData(cur_weight);
+      Tensor batchsliced_hidden = hidden_.getBatchSlice(b, 1);
+      for (unsigned int i = 0; i < input_.width(); ++i) {
+        unsigned int embed_idx = static_cast<unsigned int>(in_data[i]);
+        if (embed_idx >= in_dim) {
+          throw std::invalid_argument("input word index is greater than in_dim");
+        }
+
+        Tensor cur_weight =
+          weight.getSharedDataTensor(out_tensor_dim, out_dim * embed_idx);
+        Tensor out_tensor =
+          batchsliced_hidden.getSharedDataTensor(out_tensor_dim, out_dim * i);
+        out_tensor.copyData(cur_weight);
+      }
+#else
+      throw std::invalid_argument("enable-fp16 is not set");
+#endif
     }
   }
 }
@@ -135,23 +154,48 @@ void EmbeddingLayer::incremental_forwarding(RunLayerContext &context,
     TensorDim({1, 1, 1, out_dim}, hidden_.getTensorType());
 
   for (unsigned int b = 0; b < input_.batch(); ++b) {
-    float *in_data =
-      input_.getAddress<float>(b * input_.getDim().getFeatureLen());
+    if (input_.getDataType() == ml::train::TensorDim::DataType::FP32) {
+      float *in_data =
+        input_.getAddress<float>(b * input_.getDim().getFeatureLen());
 
-    Tensor batchsliced_hidden = hidden_.getBatchSlice(b, 1);
-    for (unsigned int i = from; i < to; ++i) {
-      unsigned int embed_idx = static_cast<unsigned int>(in_data[i]);
-      if (embed_idx >= in_dim) {
-        throw std::invalid_argument("input word index is greater than in_dim");
+      Tensor batchsliced_hidden = hidden_.getBatchSlice(b, 1);
+      for (unsigned int i = from; i < to; ++i) {
+        unsigned int embed_idx = static_cast<unsigned int>(in_data[i]);
+        if (embed_idx >= in_dim) {
+          throw std::invalid_argument("input word index is greater than in_dim");
+        }
+
+        Tensor cur_weight =
+          weight.getSharedDataTensor(out_tensor_dim, out_dim * embed_idx);
+
+        Tensor out_tensor = batchsliced_hidden.getSharedDataTensor(
+          out_tensor_dim, out_dim * (i - from));
+
+        out_tensor.copyData(cur_weight);
       }
+    } else if (input_.getDataType() == ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+      _FP16 *in_data =
+        input_.getAddress<_FP16>(b * input_.getDim().getFeatureLen());
 
-      Tensor cur_weight =
-        weight.getSharedDataTensor(out_tensor_dim, out_dim * embed_idx);
+      Tensor batchsliced_hidden = hidden_.getBatchSlice(b, 1);
+      for (unsigned int i = from; i < to; ++i) {
+        unsigned int embed_idx = static_cast<unsigned int>(in_data[i]);
+        if (embed_idx >= in_dim) {
+          throw std::invalid_argument("input word index is greater than in_dim");
+        }
 
-      Tensor out_tensor = batchsliced_hidden.getSharedDataTensor(
-        out_tensor_dim, out_dim * (i - from));
+        Tensor cur_weight =
+          weight.getSharedDataTensor(out_tensor_dim, out_dim * embed_idx);
 
-      out_tensor.copyData(cur_weight);
+        Tensor out_tensor = batchsliced_hidden.getSharedDataTensor(
+          out_tensor_dim, out_dim * (i - from));
+
+        out_tensor.copyData(cur_weight);
+      }
+#else
+      throw std::invalid_argument("enable-fp16 is not set");
+#endif
     }
   }
 }
