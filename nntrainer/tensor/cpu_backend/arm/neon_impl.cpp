@@ -814,11 +814,33 @@ void transpose_matrix(const unsigned int M, const unsigned int N,
 }
 
 void calc_trigonometric_vals_dup(unsigned int N_half, float *angle, float *cos_,
-                                 float *sin_, unsigned int from) {
+                                 float *sin_, unsigned int from,
+                                 float attention_scaling) {
   cosine(N_half, angle, cos_, from);
   sine(N_half, angle, sin_, from);
 
   unsigned int N = 2 * N_half;
+
+  // Apply attention scaling to the computed cos and sin values
+  if (attention_scaling != 1.0f) {
+    // Apply scaling to first half
+    unsigned int j = 0;
+    for (; N_half - j >= 4; j += 4) {
+      float32x4_t cos_vals = vld1q_f32(&cos_[j]);
+      float32x4_t sin_vals = vld1q_f32(&sin_[j]);
+      cos_vals = vmulq_n_f32(cos_vals, attention_scaling);
+      sin_vals = vmulq_n_f32(sin_vals, attention_scaling);
+      vst1q_f32(&cos_[j], cos_vals);
+      vst1q_f32(&sin_[j], sin_vals);
+    }
+    while (j < N_half) {
+      cos_[j] *= attention_scaling;
+      sin_[j] *= attention_scaling;
+      ++j;
+    }
+  }
+
+  // Copy values to second half (duplicate)
   unsigned int i = N_half;
   unsigned int i_half = 0;
 
