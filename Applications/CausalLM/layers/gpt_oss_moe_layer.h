@@ -123,8 +123,8 @@ private:
   unsigned int expert_mask_idx;
   bool enable_bias = false;
 
-  const float alpha = 1.702;
-  const float limit = 7.0;
+  float alpha = 1.702;
+  float limit = 7.0;
 
   /**
    * @brief expert forward computation without memory copies
