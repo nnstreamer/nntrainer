@@ -3,10 +3,12 @@
  * Copyright (C) 2025 Jijoong Moon <jijoong.moon@samsung.com>
  *
  * @file   mha_core.h
- * @date   02 September 2024
+ * @date   11 July 2025
  * @see    https://github.com/nnstreamer/nntrainer
  *         https://arxiv.org/abs/1706.03762
  * @author Jijoong Moon <jijoong.moon@samsung.com>
+ * @author Maciej Nalewaj <m.nalewaj@samsung.com>
+ * @author Eunju Yang <ej.yang@samsung.com>
  * @bug    No known bugs except for NYI items
  * @brief  This is custom_mha_core layer supports
  *         the work of multi_head_attention.
@@ -36,6 +38,7 @@
 #include <acti_func.h>
 #include <bs_thread_pool_manager.hpp>
 #include <common_properties.h>
+#include <cpu_backend.h>
 #include <layer_impl.h>
 #include <limits.h>
 #include <util_simd.h>
@@ -136,7 +139,8 @@ public:
    *  @brief  Move constructor of CustomMultiHeadAttentionLayer.
    *  @param[in] CustomMultiHeadAttentionLayer &&
    */
-  WIN_EXPORT MHACoreLayer(MHACoreLayer &&rhs) noexcept = default;
+  WIN_EXPORT
+  MHACoreLayer(MHACoreLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
@@ -157,20 +161,17 @@ public:
                              bool training) override;
 
   /**
-   * @copydoc Layer::incremental_forwarding
+   * @brief incremental forwarding for one batch
    */
-  WIN_EXPORT void one_batch_incremental_forwarding(
+  void one_batch_incremental_forwarding(
     const unsigned int batch, const unsigned int _from, const unsigned int from,
-    const unsigned int to, nntrainer::Tensor &query, nntrainer::Tensor &key,
-    nntrainer::Tensor &value, nntrainer::Tensor &output,
-    nntrainer::Tensor &cache_key, nntrainer::Tensor &cache_value,
-    ml::train::TensorDim &query_dim, ml::train::TensorDim &query_step_dim,
-    ml::train::TensorDim &key_dim, ml::train::TensorDim &value_dim,
-    ml::train::TensorDim &cache_key_dim,
+    const unsigned int to, nntrainer::Tensor &query_step,
+    nntrainer::Tensor &key_step, nntrainer::Tensor &value_step,
+    nntrainer::Tensor &attention_output_step, nntrainer::Tensor &cache_key,
+    nntrainer::Tensor &cache_value, ml::train::TensorDim &cache_key_dim,
     ml::train::TensorDim &cache_key_step_dim,
     ml::train::TensorDim &cache_value_dim,
-    ml::train::TensorDim &cache_value_step_dim,
-    ml::train::TensorDim &output_dim, ml::train::TensorDim &output_step_dim);
+    ml::train::TensorDim &cache_value_step_dim);
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
@@ -282,6 +283,10 @@ private:
   inline static std::vector<std::vector<float>> *freqs_cos = {};
   inline static std::vector<std::vector<float>> *freqs_sin = {};
   inline static std::vector<float> thetas;
+#ifdef ENABLE_FP16
+  inline static std::vector<std::vector<_FP16>> *freqs_cos_fp16 = {};
+  inline static std::vector<std::vector<_FP16>> *freqs_sin_fp16 = {};
+#endif
 
   /**
    * @brief pre_compute frequencies for Rotary Embedding.
@@ -296,12 +301,11 @@ private:
   /**
    * @brief     apply rotary embedding
    * @param[in] in input tensor
+   * @param[out] out output tensor
    * @param[in] dim hidden dim size
    * @param[in] from sequence order
+   * @param[in] convert_only - conversion only
    */
-  void apply_rotary_emb_tensor(nntrainer::Tensor &in, unsigned int dim,
-                               unsigned int from);
-
   void apply_rotary_emb_tensor_v2(nntrainer::Tensor &in, nntrainer::Tensor &out,
                                   unsigned int dim, unsigned int from,
                                   bool convert_only = false);
@@ -311,31 +315,26 @@ private:
                int N, int chunk_size, int group_size, int tile_size,
                bool process_all);
 
-  void compute_kcaches(const float *in, const uint16_t *kcache, float *output,
-                       int seq, int num_cache_head, int group_size,
-                       int head_dim, bool process_all, BS::thread_pool<> &pool);
+  void compute_kcaches(nntrainer::Tensor &in, nntrainer::Tensor &cache,
+                       nntrainer::Tensor &out, unsigned int from,
+                       size_t sequence_len, unsigned int num_heads,
+                       unsigned int group_size, unsigned int head_dim,
+                       BS::thread_pool<> &pool);
 
-  void softmax_row_AVX2(float *qk_out, size_t start_row, size_t end_row,
-                        size_t num_heads);
-
-  void softmax_row_AVX2_inplace(float *qk_out, size_t start_row, size_t end_row,
-                                size_t num_heads);
-
-  void softmax_triangle_AVX2(nntrainer::Tensor &qk_out, size_t row,
-                             size_t num_heads, unsigned int from,
-                             BS::thread_pool<> &pool);
+  void softmax_triangle(nntrainer::Tensor &qk_out, size_t row, size_t num_heads,
+                        unsigned int from, BS::thread_pool<> &pool);
 
   void compute_vcaches(nntrainer::Tensor &in, nntrainer::Tensor &vcache,
                        nntrainer::Tensor &out, unsigned int from,
                        size_t sequence_len, unsigned int num_heads,
                        unsigned int group_size, unsigned int head_dim);
 
-  void compute_fp16vcache_fp32_transposed(const float *in,
-                                          const uint16_t *vcache, float *output,
-                                          int seq, int num_cache_head,
-                                          int gqa_size, int head_dim,
-                                          bool process_all,
-                                          BS::thread_pool<> &pool);
+  void compute_fp16vcache_transposed(nntrainer::Tensor &in,
+                                     nntrainer::Tensor &vcache,
+                                     nntrainer::Tensor &output, int seq,
+                                     int num_cache_head, int gqa_size,
+                                     int head_dim, bool process_all,
+                                     BS::thread_pool<> &pool);
 
   /************** END OF  ROTARY EMBEDDING *************/
 
@@ -345,9 +344,7 @@ private:
    */
   void calcCommonDerivative(nntrainer::RunLayerContext &context);
 
-  size_t calc_attn_index(size_t i);
-
 }; // end of class MHACoreLayer
-} // end of namespace causallm
+} // namespace causallm
 
 #endif

@@ -58,8 +58,8 @@ if get_option('platform') == 'tizen'
   endif
 endif
 
-if get_option('enable_encoder')
-  add_project_arguments('-DENABLE_ENCODER=1', language: ['c', 'cpp'])
+if get_option('enable-transformer')
+  add_project_arguments('-DENABLE_TRANSFORMER=1', language: ['c', 'cpp'])
 endif
 
 warning_flags = [
@@ -123,6 +123,10 @@ elif arch == 'x86' or arch == 'x86_64'
     add_project_arguments(['-mavx2', '-mfma'], language: ['c','cpp'])
     message('-march=native added for AVX hardware acceleration.')
   endif
+endif
+
+if get_option('enable-npu')
+     extra_defines += '-DENABLE_NPU=1'
 endif
 
 if get_option('enable-fp16')

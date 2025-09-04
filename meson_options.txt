@@ -19,6 +19,7 @@ option('fsu-path', type: 'string', value: '')
 option('test-timeout', type: 'integer', value: 60)
 option('opencl-kernel-path', type: 'string', value: 'nntrainer_opencl_kernels')
 option('enable-mmap', type: 'boolean', value: true)
+option('enable-npu', type: 'boolean', value: false)
 
 # dependency conflict resolution
 option('capi-ml-inference-actual', type: 'string', value: 'capi-ml-inference',
@@ -59,5 +60,5 @@ option('enable-nnstreamer-tensor-trainer', type: 'feature', value: 'auto')
 option('nnstreamer-subplugin-install-path', type: 'string', value: 'lib/nnstreamer') # where nnstreamer subplugin should be installed (after prefix)
 
 # application related options
-option('enable_encoder', type: 'boolean', value: false)
+option('enable-transformer', type: 'boolean', value: false)
 option('libiomp_root', type:'string', value: './libiomp_win')
