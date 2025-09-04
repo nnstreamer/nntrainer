@@ -12,6 +12,7 @@
  * @author Seungbaek Hong <sb92.hong@samsung.com>
  * @author Hyeonseok Lee <hs89.lee@samsung.com>
  * @author Eunju Yang <ej.yang@samsung.com>
+ * @author Donghak Park <donghak.park@samsung.com>
  * @bug    No known bugs except for NYI items
  * @brief  This file defines CausalLM's basic actions
  * @note   This causal_lm.h constructs a class for Transformer-based Causal
@@ -267,6 +268,7 @@ void CausalLM::run(const WSTR prompt, bool do_sample) {
   }
 
   output_list.clear();
+  pending_ids_.clear();
   for (unsigned int b = 0; b < BATCH_SIZE; ++b) {
     output_list.push_back("");
   }
@@ -681,7 +683,6 @@ std::vector<LayerHandle> CausalLM::createMlp(const int layer_id, int dim,
 }
 
 void CausalLM::registerCustomLayers() {
-  ///
   const auto &ct_engine = nntrainer::Engine::Global();
   const auto app_context =
     static_cast<nntrainer::AppContext *>(ct_engine.getRegisteredContext("cpu"));

@@ -12,6 +12,7 @@
  * @author Seungbaek Hong <sb92.hong@samsung.com>
  * @author Hyeonseok Lee <hs89.lee@samsung.com>
  * @author Eunju Yang <ej.yang@samsung.com>
+ * @author Donghak Park <donghak.park@samsung.com>
  * @bug    No known bugs except for NYI items
  * @note   This causal_lm.h constructs a class for Transformer-based Causal
  * Language Model (CausalLM). It aims to support AutoModelForCausalLM with
@@ -216,6 +217,8 @@ protected:
   std::string PRE_COMPUTED_CACHE_PATH;
   std::string TAIL_PROMPT;
   bool SAVE_KVCACHE;
+
+  std::vector<int> pending_ids_;
 
   std::mt19937 rng; /**< Random Number Gen */
 };
