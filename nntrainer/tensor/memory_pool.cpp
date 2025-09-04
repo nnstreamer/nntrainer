@@ -124,7 +124,7 @@ void MemoryPool::allocate() {
   if (mem_pool != nullptr)
     throw std::runtime_error("Memory pool is already allocated");
 
-#if defined(__ANDROID__)
+#if defined(__ANDROID__) && ENABLE_NPU
   int i = 0;
 #define RPCMEM_HEAP_ID_SYSTEM 25
 #define RPCMEM_DEFAULT_FLAGS 1
