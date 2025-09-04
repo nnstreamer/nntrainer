@@ -381,26 +381,6 @@ void transpose_matrix(const unsigned int M, const unsigned int N,
                       unsigned int ld_dst);
 
 /**
- * @brief Multihead softmax, exp(x_i) / sum(exp(x_i)), inplace version
- * @param[in/out] qk_out __fp16* input/output values
- * @param[in] start_row start row number
- * @param[in] end_row end row number
- * @param[in] num_heads heads number
- */
-void softmax_row_inplace(_FP16 *qk_out, size_t start_row, size_t end_row,
-                         size_t num_heads);
-
-/**
- * @brief Multihead softmax, exp(x_i) / sum(exp(x_i))
- * @param[in/out] qk_out __fp16* input/output values
- * @param[in] start_row start row number
- * @param[in] end_row end row number
- * @param[in] num_heads heads number
- */
-void softmax_row(_FP16 *qk_out, size_t start_row, size_t end_row,
-                 size_t num_heads);
-
-/**
  * @brief Compute vcache for one row transposed
  * @param[in] row_num row number
  * @param[in] in _FP16* input vector
@@ -456,8 +436,9 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
  * @param[in] end_row end row number
  * @param[in] num_heads heads number
  */
-void softmax_row_inplace(float *qk_out, size_t start_row, size_t end_row,
-                         size_t num_heads);
+template <typename T = float>
+void softmax_row_inplace(T *qk_out, size_t start_row, size_t end_row,
+                         size_t num_heads, T *sink = nullptr);
 
 /**
  * @brief Multihead softmax, exp(x_i) / sum(exp(x_i))
@@ -466,8 +447,9 @@ void softmax_row_inplace(float *qk_out, size_t start_row, size_t end_row,
  * @param[in] end_row end row number
  * @param[in] num_heads heads number
  */
-void softmax_row(float *qk_out, size_t start_row, size_t end_row,
-                 size_t num_heads);
+template <typename T = float>
+void softmax_row(T *qk_out, size_t start_row, size_t end_row, size_t num_heads,
+                 T *sink = nullptr);
 /**
  * @brief Compute vcache for one row transposed
  * @param[in] row_num row number
