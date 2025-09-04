@@ -26,7 +26,11 @@
 #ifdef USE__FP16
 #define _FP16 __fp16
 #else
+#if defined(_WIN32)
+#define _FP16 uint16_t
+#else
 #define _FP16 _Float16
+#endif
 #endif
 #endif
 
