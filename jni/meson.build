@@ -84,13 +84,6 @@ else
   error('ml api common dep is needed for the android build')
 endif
 
-if get_option('enable-ggml')
-  and_conf.set('MESON_HAS_GGML', 1)
-  and_conf.set('MESON_GGML_ROOT', ggml_root)
-else
-  and_conf.set('MESON_HAS_GGML', 0)
-endif
-
 configure_file(input: 'Android.mk.in', output: 'Android.mk',
   configuration: and_conf
 )
