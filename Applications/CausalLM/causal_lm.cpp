@@ -12,6 +12,7 @@
  * @author Seungbaek Hong <sb92.hong@samsung.com>
  * @author Hyeonseok Lee <hs89.lee@samsung.com>
  * @author Eunju Yang <ej.yang@samsung.com>
+ * @author Donghak Park <donghak.park@samsung.com>
  * @bug    No known bugs except for NYI items
  * @brief  This file defines CausalLM's basic actions
  * @note   This causal_lm.h constructs a class for Transformer-based Causal
@@ -76,6 +77,9 @@ void CausalLM::setupParameters(json &cfg, json &generation_cfg,
                     ? nntr_cfg["fsu_lookahead"].get<unsigned int>()
                     : 1;
   EMBEDDING_DTYPE = nntr_cfg["embedding_dtype"];
+  LMHEAD_DTYPE = nntr_cfg.contains("lmhead_dtype")
+                   ? nntr_cfg["lmhead_dtype"]
+                   : nntr_cfg["embedding_dtype"];
   FC_LAYER_DTYPE = nntr_cfg["fc_layer_dtype"];
 
   /** Initialize model parameters */
@@ -193,7 +197,7 @@ void CausalLM::constructModel() {
     withKey("unit", NUM_VOCAB),
     withKey("disable_bias", "true"),
     withKey("input_layers", "output_norm"),
-    withKey("weight_dtype", EMBEDDING_DTYPE),
+    withKey("weight_dtype", LMHEAD_DTYPE),
   };
   if (TIE_WORD_EMBEDDINGS)
     lmhead_prop.emplace_back(withKey("shared_from", "embedding0"));
@@ -243,6 +247,7 @@ void CausalLM::run(const WSTR prompt, bool do_sample) {
   }
 
   output_list.clear();
+  pending_ids_.clear();
   for (unsigned int b = 0; b < BATCH_SIZE; ++b) {
     output_list.push_back("");
   }
@@ -273,6 +278,7 @@ void CausalLM::run(const WSTR prompt, bool do_sample) {
   std::cout << prompt << std::endl;
   // std::wstring text = converter.from_bytes(prompt);
   auto _input = tokenizer->Encode(prompt);
+
 #endif
 
   // _input.insert(_input.begin(), BOS_TOKEN_ID);
@@ -613,7 +619,6 @@ std::vector<LayerHandle> CausalLM::createMlp(const int layer_id, int dim,
 }
 
 void CausalLM::registerCustomLayers() {
-  ///
   const auto &ct_engine = nntrainer::Engine::Global();
   const auto app_context =
     static_cast<nntrainer::AppContext *>(ct_engine.getRegisteredContext("cpu"));
@@ -640,18 +645,31 @@ void CausalLM::registerOutputs(
   std::vector<unsigned int> ids, unsigned int pos,
   const std::vector<bool> &eos_list) {
 
-  for (unsigned int i = 0; i < ids.size(); ++i) {
-    if (!eos_list[i]) {
-      auto decoded_str = tokenizer->Decode({static_cast<int>(ids[i])});
+  static const std::vector<char> puncts{',', '!', ':', ';', '?'};
+
+  for (size_t b = 0; b < ids.size(); ++b) {
+    if (!eos_list[b]) {
+      pending_ids_.push_back(static_cast<int>(ids[b]));
+      ids_history[b * MAX_SEQ_LEN + pos] = ids[b];
+      std::string decoded_str = tokenizer->Decode(pending_ids_);
+
+      if (std::find(puncts.begin(), puncts.end(), decoded_str.back()) !=
+          puncts.end()) {
+        // last symbol is a punctuation, hold on
+      } else if (decoded_str.size() >= 3 &&
+                 decoded_str.compare(decoded_str.size() - 3, 3, "�") == 0) {
+        // ends with an incomplete token, hold on
+      } else {
 #if defined(_WIN32)
-      std::wcout << L"" << utf9_to_wstring(decoded_str);
-      std::wcout.flush();
+        std::wcout << L"" << utf9_to_wstring(decoded_str);
+        std::wcout.flush();
 #else
-      std::cout << decoded_str;
-      std::cout.flush();
+        std::cout << decoded_str;
+        std::cout.flush();
 #endif
-      output_list[i] += decoded_str;
-      ids_history[i * MAX_SEQ_LEN + pos] = ids[i];
+        output_list[b].append(decoded_str);
+        pending_ids_.clear();
+      }
     }
   }
 }

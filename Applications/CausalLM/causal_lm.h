@@ -12,6 +12,7 @@
  * @author Seungbaek Hong <sb92.hong@samsung.com>
  * @author Hyeonseok Lee <hs89.lee@samsung.com>
  * @author Eunju Yang <ej.yang@samsung.com>
+ * @author Donghak Park <donghak.park@samsung.com>
  * @bug    No known bugs except for NYI items
  * @note   This causal_lm.h constructs a class for Transformer-based Causal
  * Language Model (CausalLM). It aims to support AutoModelForCausalLM with
@@ -181,6 +182,7 @@ protected:
   int NUM_TO_GENERATE;
   std::string MODEL_TENSOR_TYPE;
   std::string EMBEDDING_DTYPE; /** embedding dtype */
+  std::string LMHEAD_DTYPE;    /** embedding dtype */
   std::string FC_LAYER_DTYPE;  /** custom_fc_lora */
   std::vector<unsigned int> EOS_TOKEN_ID;
   unsigned int BOS_TOKEN_ID;
@@ -199,6 +201,8 @@ protected:
   unsigned int MAX_POSITION_EMBEDDINGS;   /**< max position embeddings */
   bool MEMORY_SWAP;                       /**< Memory swap option */
   unsigned int FSU_LOOKAHEAD;
+
+  std::vector<int> pending_ids_;
 
   std::mt19937 rng; /**< Random Number Gen */
 };
