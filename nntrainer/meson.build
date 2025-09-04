@@ -24,7 +24,6 @@ nntrainer_headers = [
 
 nntrainer_base_deps=[
   blas_dep,
-  ggml_dep,
   iniparser_dep,
   libdl_dep,
   libm_dep,
@@ -75,12 +74,6 @@ nntrainer_common_sources = [
 ]
 
 nntrainer_inc_abs += meson.source_root() / 'subprojects' / 'ruy'
-
-if get_option('enable-ggml')
-  nntrainer_inc_abs += meson.source_root() / 'subprojects' / 'ggml' / 'include'
-  nntrainer_inc_abs += meson.source_root() / 'subprojects' / 'ggml' / 'src'
-  nntrainer_inc_abs += meson.source_root() / 'subprojects' / 'ggml' / 'src' / 'ggml-cpu'
-endif
 
 if get_option('enable-opencl')
   nntrainer_headers += meson.current_source_dir() / 'cl_context.h'
