@@ -1,10 +1,12 @@
+subdir('nntr_ggml_impl')
+nntrainer_inc += include_directories('nntr_ggml_impl')
+nntrainer_inc_abs += meson.current_source_dir() / 'nntr_ggml_impl'
+
 ggml_interface_headers = [
     'ggml_interface.h',
-    'nntr_ggml_impl.h',
 ]
 
 ggml_interface_sources = [
-  'nntr_ggml_impl.cpp',
   'ggml_interface.cpp'
 ]
 
