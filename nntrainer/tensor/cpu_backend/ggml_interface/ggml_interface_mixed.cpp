@@ -12,61 +12,17 @@
  * knowned to be optimized for GB devices on Windows
  */
 
-#include "ggml-common.h"
-#include "ggml-cpu-quants.h"
-#include "ggml-cpu.h"
-#include "ggml-quants.h"
-#include "ggml.h"
-
 #include <algorithm>
 #include <bs_thread_pool_manager.hpp>
 #include <cmath>
 #include <ggml_interface.h>
 #include <nntr_ggml_impl.h>
+#include <nntr_ggml_impl_utils.h>
 #include <string>
 #include <thread>
 #include <vector>
 
 namespace nntrainer {
-/**
- * @brief Continuously packed 4 q8_K
- *
- */
-struct block_q8_Kx4 {
-  float d[4];              // delta
-  int8_t qs[QK_K * 4];     // quants
-  int16_t bsums[QK_K / 4]; // sum of quants in groups of 16
-};
-
-/**
- * @brief struct template for q4_0 and q8_0
- *
- * @tparam K 4 or 8
- * @return constexpr int number of elements in the quantized block
- */
-template <int K> constexpr int QK_0() {
-  if constexpr (K == 4) {
-    return QK4_0;
-  }
-  if constexpr (K == 8) {
-    return QK8_0;
-  }
-  return -1;
-}
-
-/**
- * @brief block of q4_0 or q8_0 block
- *
- * @tparam K 4 or 8
- * @tparam N number of blocks to be packed
- */
-template <int K, int N> struct block {
-  ggml_half d[N];                     // deltas for N qK_0 blocks
-  int8_t qs[(QK_0<K>() * N * K) / 8]; // quants for N qK_0 blocks
-};
-
-using block_q4_0x4 = block<4, 4>;
-using block_q8_0x4 = block<8, 4>;
 
 static inline void __ggml_q4_0_4x8_q8_0_GEMM_GEMV(
   const unsigned int M, const unsigned int N, const unsigned int K,
@@ -79,7 +35,7 @@ static inline void __ggml_q4_0_4x8_q8_0_GEMM_GEMV(
 
   auto qa_data = QA.data();
 
-  quantize_row_q8_0(A, qa_data, K);
+  nntr_quantize_row_q8_0(A, qa_data, K);
   int B_step = sizeof(block_q4_0) * (K / QK4_0);
 
   auto &bs_thread_pool = ThreadPoolManager::Global().getThreadPool();
@@ -125,7 +81,7 @@ static inline void __ggml_q4_0_4x8_q8_0_GEMM_GEMM(
   }
   // Quantize leftover 1 ~ 3 rows with row-wise function
   for (unsigned int i = M4 * 4; i < M; i++) {
-    ::quantize_row_q8_0(
+    nntr_quantize_row_q8_0(
       (float *)A + i * K,
       (QA.data() + (M4 * qa_4_rows_size) + (i - M4 * 4) * qa_row_size), K);
   }
@@ -205,7 +161,7 @@ void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M,
     int qa_size = sizeof(block_q8_0) * blocks_per_4_rows;
     std::vector<char> QA = std::vector<char>(qa_size);
     auto qa_data = QA.data();
-    quantize_row_q8_0(A, qa_data, K);
+    nntr_quantize_row_q8_0(A, qa_data, K);
     if (std::all_of(Ns.begin(), Ns.end(),
                     [](unsigned int n) { return n <= 256; })) {
       for (unsigned int num_w = 0; num_w < Ns.size(); ++num_w) {
@@ -266,7 +222,7 @@ void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M,
     }
 
     for (unsigned int i = M4 * 4; i < M; i++) {
-      quantize_row_q8_0(
+      nntr_quantize_row_q8_0(
         (float *)A + i * K,
         (QA.data() + (M4 * qa_4_rows_size) + (i - M4 * 4) * qa_row_size), K);
     }
@@ -338,7 +294,7 @@ static inline void __ggml_q4_0_8x8_q8_0_GEMM_GEMV(
 
   auto qa_data = QA.data();
 
-  quantize_row_q8_0(A, qa_data, K);
+  nntr_quantize_row_q8_0(A, qa_data, K);
   int B_step = sizeof(block_q4_0) * (K / QK4_0);
 
   auto &bs_thread_pool = ThreadPoolManager::Global().getThreadPool();
@@ -353,7 +309,7 @@ static inline void __ggml_q4_0_8x8_q8_0_GEMM_GEMV(
       M_step_end =
         (M_step_end % 8) ? M_step_end + 8 - (M_step_end % 8) : M_step_end;
 
-      ggml_gemv_q4_0_8x8_q8_0(K, (float *)(C + M_step_start), N,
+      nntr_gemv_q4_0_8x8_q8_0(K, (float *)(C + M_step_start), N,
                               (void *)((char *)B + M_step_start * B_step),
                               QA.data(), M, M_step_end - M_step_start);
     });
@@ -381,7 +337,7 @@ static inline void __ggml_q4_0_8x8_q8_0_GEMM_GEMM(
   }
   // Quantize leftover 1 ~ 3 rows with row-wise function
   for (unsigned int i = M4 * 4; i < M; i++) {
-    quantize_row_q8_0(
+    nntr_quantize_row_q8_0(
       (float *)A + i * K,
       (QA.data() + (M4 * qa_4_rows_size) + (i - M4 * 4) * qa_row_size), K);
   }
@@ -398,7 +354,7 @@ static inline void __ggml_q4_0_8x8_q8_0_GEMM_GEMM(
       M_step_end =
         (M_step_end % 8) ? M_step_end + 8 - (M_step_end % 8) : M_step_end;
 
-      ggml_gemm_q4_0_8x8_q8_0(K, (C + (M_step_start)), ldc,
+      nntr_gemm_q4_0_8x8_q8_0(K, (C + (M_step_start)), ldc,
                               ((char *)B + ((M_step_start)*B_step)), QA.data(),
                               M4 * 4, (M_step_end) - (M_step_start));
     });
@@ -416,7 +372,7 @@ static inline void __ggml_q4_0_8x8_q8_0_GEMM_GEMM(
         M_step_end =
           (M_step_end % 8) ? M_step_end + 8 - (M_step_end % 8) : M_step_end;
 
-        ggml_gemv_q4_0_8x8_q8_0(
+        nntr_gemv_q4_0_8x8_q8_0(
           K, (float *)((C + ((pb - M4 * 4) * N) + (M4 * 4 * N)) + M_step_start),
           N, (void *)((char *)B + M_step_start * B_step),
           QA.data() + (M4 * qa_4_rows_size) + (pb - M4 * 4) * qa_row_size, 1,
@@ -456,7 +412,7 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M,
     int qa_size = sizeof(block_q8_0) * blocks_per_4_rows;
     std::vector<char> QA = std::vector<char>(qa_size);
     auto qa_data = QA.data();
-    quantize_row_q8_0(A, qa_data, K);
+    nntr_quantize_row_q8_0(A, qa_data, K);
 
     for (unsigned int num_w = 0; num_w < Ns.size(); ++num_w) {
       unsigned int N = Ns[num_w];
@@ -472,7 +428,7 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M,
         M_step_end =
           (M_step_end % 8) ? M_step_end + 8 - (M_step_end % 8) : M_step_end;
 
-        ggml_gemv_q4_0_8x8_q8_0(K, (float *)(C + M_step_start), N,
+        nntr_gemv_q4_0_8x8_q8_0(K, (float *)(C + M_step_start), N,
                                 (void *)((char *)B + M_step_start * B_step),
                                 QA.data(), M, M_step_end - M_step_start);
       }
@@ -493,7 +449,7 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M,
           M_step_end =
             (M_step_end % 8) ? M_step_end + 8 - (M_step_end % 8) : M_step_end;
 
-          ggml_gemv_q4_0_8x8_q8_0(K, (float *)(C + M_step_start), N,
+          nntr_gemv_q4_0_8x8_q8_0(K, (float *)(C + M_step_start), N,
                                   (void *)((char *)B + M_step_start * B_step),
                                   QA.data(), M, M_step_end - M_step_start);
         }
@@ -515,7 +471,7 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M,
     }
 
     for (unsigned int i = M4 * 4; i < M; i++) {
-      ::quantize_row_q8_0(
+      nntr_quantize_row_q8_0(
         (float *)A + i * K,
         (QA.data() + (M4 * qa_4_rows_size) + (i - M4 * 4) * qa_row_size), K);
     }
@@ -537,9 +493,9 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M,
 
         src0_end = (src0_end % 8) ? src0_end + 8 - (src0_end % 8) : src0_end;
 
-        ::ggml_gemm_q4_0_8x8_q8_0(K, (float *)(C + src0_start), ldc,
-                                  (void *)((char *)B + src0_start * B_step),
-                                  QA.data(), M4 * 4, src0_end - src0_start);
+        nntr_gemm_q4_0_8x8_q8_0(K, (float *)(C + src0_start), ldc,
+                                (void *)((char *)B + src0_start * B_step),
+                                QA.data(), M4 * 4, src0_end - src0_start);
       }
     }
 
@@ -561,7 +517,7 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M,
           M_step_end =
             (M_step_end % 8) ? M_step_end + 8 - (M_step_end % 8) : M_step_end;
 
-          ::ggml_gemv_q4_0_8x8_q8_0(
+          nntr_gemv_q4_0_8x8_q8_0(
             K,
             (float *)((C + ((pb - M4 * 4) * N) + (M4 * 4 * N)) + M_step_start),
             N, (void *)((char *)B + M_step_start * B_step),
@@ -582,7 +538,7 @@ static inline void __ggml_q4_K_8x8_q8_K_GEMM_GEMV(
   int qa_size = sizeof(block_q8_K) * blocks_per_row;
   std::vector<char> QA = std::vector<char>(qa_size);
   auto qa_data = QA.data();
-  ::quantize_row_q8_K(A, qa_data, K);
+  nntr_quantize_row_q8_K(A, qa_data, K);
 
   auto &bs_thread_pool = ThreadPoolManager::Global().getThreadPool();
   int thread_num = bs_thread_pool.get_thread_count();
@@ -596,9 +552,9 @@ static inline void __ggml_q4_K_8x8_q8_K_GEMM_GEMV(
       M_step_end =
         (M_step_end % 8) ? M_step_end + 8 - (M_step_end % 8) : M_step_end;
 
-      ::ggml_gemv_q4_K_8x8_q8_K(K, (float *)(C + M_step_start), N,
-                                (void *)((char *)B + M_step_start * B_step),
-                                QA.data(), M, M_step_end - M_step_start);
+      nntr_gemv_q4_K_8x8_q8_K(K, (float *)(C + M_step_start), N,
+                              (void *)((char *)B + M_step_start * B_step),
+                              QA.data(), M, M_step_end - M_step_start);
     });
   loop_future.wait();
 }
@@ -619,12 +575,12 @@ static inline void __ggml_q4_K_8x8_q8_K_GEMM_GEMM(
 
   // Quantize 4-divisible-M row portion with matrix-wise function
   for (unsigned int i = 0; i < M4; i++) {
-    ::ggml_quantize_mat_q8_K_4x8(A + 4 * i * K, QA.data() + i * qa_4_rows_size,
-                                 K);
+    nntr_quantize_mat_q8_K_4x8(A + 4 * i * K, QA.data() + i * qa_4_rows_size,
+                               K);
   }
   // Quantize leftover 1 ~ 3 rows with row-wise function
   for (unsigned int i = M4 * 4; i < M; i++) {
-    ::quantize_row_q8_K(
+    nntr_quantize_row_q8_K(
       (float *)A + i * K,
       (QA.data() + (M4 * qa_4_rows_size) + (i - M4 * 4) * qa_row_size), K);
   }
@@ -641,9 +597,9 @@ static inline void __ggml_q4_K_8x8_q8_K_GEMM_GEMM(
       M_step_end =
         (M_step_end % 8) ? M_step_end + 8 - (M_step_end % 8) : M_step_end;
 
-      ::ggml_gemm_q4_K_8x8_q8_K(
-        K, (C + (M_step_start)), ldc, ((char *)B + ((M_step_start)*B_step)),
-        QA.data(), M4 * 4, (M_step_end) - (M_step_start));
+      nntr_gemm_q4_K_8x8_q8_K(K, (C + (M_step_start)), ldc,
+                              ((char *)B + ((M_step_start)*B_step)), QA.data(),
+                              M4 * 4, (M_step_end) - (M_step_start));
     });
   multi_future.wait();
 
@@ -659,7 +615,7 @@ static inline void __ggml_q4_K_8x8_q8_K_GEMM_GEMM(
         M_step_end =
           (M_step_end % 8) ? M_step_end + 8 - (M_step_end % 8) : M_step_end;
 
-        ::ggml_gemv_q4_K_8x8_q8_K(
+        nntr_gemv_q4_K_8x8_q8_K(
           K, (float *)((C + ((pb - M4 * 4) * N) + (M4 * 4 * N)) + M_step_start),
           N, (void *)((char *)B + M_step_start * B_step),
           QA.data() + (M4 * qa_4_rows_size) + (pb - M4 * 4) * qa_row_size, 1,
@@ -699,7 +655,7 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M,
     int qa_size = sizeof(block_q8_K) * blocks_per_4_rows;
     std::vector<char> QA = std::vector<char>(qa_size);
     auto qa_data = QA.data();
-    ::quantize_row_q8_K(A, qa_data, K);
+    nntr_quantize_row_q8_K(A, qa_data, K);
     if (std::all_of(Ns.begin(), Ns.end(),
                     [](unsigned int n) { return n <= 256; })) {
       for (unsigned int num_w = 0; num_w < Ns.size(); ++num_w) {
@@ -715,9 +671,9 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M,
         M_step_end =
           (M_step_end % 8) ? M_step_end + 8 - (M_step_end % 8) : M_step_end;
 
-        ::ggml_gemv_q4_K_8x8_q8_K(K, (float *)(C + M_step_start), N,
-                                  (void *)((char *)B + M_step_start * B_step),
-                                  QA.data(), M, M_step_end - M_step_start);
+        nntr_gemv_q4_K_8x8_q8_K(K, (float *)(C + M_step_start), N,
+                                (void *)((char *)B + M_step_start * B_step),
+                                QA.data(), M, M_step_end - M_step_start);
       }
     } else {
       BS::multi_future<void> loop_future =
@@ -735,10 +691,9 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M,
             M_step_end =
               (M_step_end % 8) ? M_step_end + 8 - (M_step_end % 8) : M_step_end;
 
-            ::ggml_gemv_q4_K_8x8_q8_K(
-              K, (float *)(C + M_step_start), N,
-              (void *)((char *)B + M_step_start * B_step), QA.data(), M,
-              M_step_end - M_step_start);
+            nntr_gemv_q4_K_8x8_q8_K(K, (float *)(C + M_step_start), N,
+                                    (void *)((char *)B + M_step_start * B_step),
+                                    QA.data(), M, M_step_end - M_step_start);
           }
         });
       loop_future.wait();
@@ -755,12 +710,12 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M,
     std::vector<char> QA = std::vector<char>(qa_size);
 
     for (unsigned int i = 0; i < M4; i++) {
-      ::ggml_quantize_mat_q8_K_4x8(A + 4 * i * K,
-                                   QA.data() + i * qa_4_rows_size, K);
+      nntr_quantize_mat_q8_K_4x8(A + 4 * i * K, QA.data() + i * qa_4_rows_size,
+                                 K);
     }
 
     for (unsigned int i = M4 * 4; i < M; i++) {
-      quantize_row_q8_K(
+      nntr_quantize_row_q8_K(
         (float *)A + i * K,
         (QA.data() + (M4 * qa_4_rows_size) + (i - M4 * 4) * qa_row_size), K);
     }
@@ -782,9 +737,9 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M,
 
         src0_end = (src0_end % 8) ? src0_end + 8 - (src0_end % 8) : src0_end;
 
-        ::ggml_gemm_q4_K_8x8_q8_K(K, (float *)(C + src0_start), ldc,
-                                  (void *)((char *)B + src0_start * B_step),
-                                  QA.data(), M4 * 4, src0_end - src0_start);
+        nntr_gemm_q4_K_8x8_q8_K(K, (float *)(C + src0_start), ldc,
+                                (void *)((char *)B + src0_start * B_step),
+                                QA.data(), M4 * 4, src0_end - src0_start);
       }
     }
 
@@ -806,7 +761,7 @@ void __ggml_q4_K_8x8_q8_K_GEMM(const unsigned int M,
           M_step_end =
             (M_step_end % 8) ? M_step_end + 8 - (M_step_end % 8) : M_step_end;
 
-          ::ggml_gemv_q4_K_8x8_q8_K(
+          nntr_gemv_q4_K_8x8_q8_K(
             K,
             (float *)((C + ((pb - M4 * 4) * N) + (M4 * 4 * N)) + M_step_start),
             N, (void *)((char *)B + M_step_start * B_step),
@@ -836,13 +791,12 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
   auto &tp = ThreadPoolManager::Global().getThreadPool();
   if (M == 1) {
     std::vector<char> quantized_A(A_row_size);
-    ::quantize_row_q8_K(A, quantized_A.data(), K);
+    nntr_quantize_row_q8_K(A, quantized_A.data(), K);
     const void *quantized_A_data = quantized_A.data();
 
     auto fut = tp.submit_loop(0, static_cast<int>(N), [&](int i) {
       const void *bptr = (const char *)B + i * B_row_size;
-      ::ggml_vec_dot_q6_K_q8_K(K, &C[i], bs, bptr, bx, quantized_A_data, by,
-                               nrc);
+      nntr_vec_dot_q6_K_q8_K(K, &C[i], bs, bptr, bx, quantized_A_data, by, nrc);
     });
     fut.wait();
   } else {
@@ -851,7 +805,7 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
 
     for (int i = 0; i < static_cast<int>(M); ++i) {
       void *row_ptr = quantized_A.data() + i * A_row_size;
-      ::quantize_row_q8_K(A + i * K, row_ptr, K);
+      nntr_quantize_row_q8_K(A + i * K, row_ptr, K);
     }
 
     auto fut = tp.submit_loop(0, static_cast<int>(M), [&](int i) {
@@ -859,7 +813,7 @@ void __ggml_gemm_q6_K(const unsigned int M, const unsigned int N,
       float *c_row = C + i * ldc;
       for (unsigned int j = 0; j < N; ++j) {
         const void *bptr = (const char *)B + j * B_row_size;
-        ::ggml_vec_dot_q6_K_q8_K(K, &c_row[j], bs, bptr, bx, a_row, by, nrc);
+        nntr_vec_dot_q6_K_q8_K(K, &c_row[j], bs, bptr, bx, a_row, by, nrc);
       }
     });
     fut.wait();
