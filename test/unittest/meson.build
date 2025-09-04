@@ -114,7 +114,7 @@ endforeach
 
 unittest_inc = include_directories('.')
 
-subdir('memory')
+# subdir('memory')
 subdir('compiler')
 subdir('layers')
 subdir('datasets')

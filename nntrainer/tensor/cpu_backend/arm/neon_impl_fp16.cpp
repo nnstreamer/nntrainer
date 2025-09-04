@@ -1390,8 +1390,9 @@ inline static float16x8_t exp_f16x8(float16x8_t x) {
   return vcombine_f16(vcvt_f16_f32(res_low), vcvt_f16_f32(res_high));
 }
 
+template <>
 void softmax_row_inplace(__fp16 *qk_out, size_t start_row, size_t end_row,
-                         size_t num_heads) {
+                         size_t num_heads, __fp16 *sink) {
   size_t row_range = end_row - start_row;
   const size_t full_blocks = (num_heads / 8) * 8;
   // const size_t remainder = num_heads % 8;
@@ -1449,8 +1450,9 @@ void softmax_row_inplace(__fp16 *qk_out, size_t start_row, size_t end_row,
   delete[] sum_vals;
 }
 
+template <>
 void softmax_row(__fp16 *qk_out, size_t start_row, size_t end_row,
-                 size_t num_heads) {
+                 size_t num_heads, __fp16 *sink) {
   const size_t full_block = (num_heads / 8) * 8;
 
   __fp16 *max_vals = new __fp16[num_heads];
