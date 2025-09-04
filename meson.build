@@ -125,6 +125,10 @@ elif arch == 'x86' or arch == 'x86_64'
   endif
 endif
 
+if get_option('enable-npu')
+     extra_defines += '-DENABLE_NPU=1'
+endif
+
 if get_option('enable-fp16')
    if get_option('platform') == 'android'
      add_project_arguments('-mfp16-format=ieee', language: ['c', 'cpp'])

@@ -19,6 +19,7 @@ option('fsu-path', type: 'string', value: '')
 option('test-timeout', type: 'integer', value: 60)
 option('opencl-kernel-path', type: 'string', value: 'nntrainer_opencl_kernels')
 option('enable-mmap', type: 'boolean', value: true)
+option('enable-npu', type: 'boolean', value: false)
 
 # dependency conflict resolution
 option('capi-ml-inference-actual', type: 'string', value: 'capi-ml-inference',
