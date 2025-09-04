@@ -152,8 +152,9 @@ void ele_add(const unsigned int N, const float *X, const float *Y, float *Z,
  * @param[in] end_row end row number
  * @param[in] num_heads heads number
  */
-void softmax_row_inplace(float *qk_out, size_t start_row, size_t end_row,
-                         size_t num_heads);
+template <typename T = float>
+void softmax_row_inplace(T *qk_out, size_t start_row, size_t end_row,
+                         size_t num_heads, T *sink = nullptr);
 
 /**
  * @brief Multihead softmax, exp(x_i) / sum(exp(x_i))
@@ -162,8 +163,9 @@ void softmax_row_inplace(float *qk_out, size_t start_row, size_t end_row,
  * @param[in] end_row end row number
  * @param[in] num_heads heads number
  */
+template <typename T = float>
 void softmax_row(float *qk_out, size_t start_row, size_t end_row,
-                 size_t num_heads);
+                 size_t num_heads, T *sink = nullptr);
 
 /**
  * @brief Compute vcache for one row transposed

@@ -941,8 +941,8 @@ static inline __m256 exp256_ps(__m256 x) {
   return _mm256_mul_ps(y, pow2n);
 }
 
-void softmax_row_inplace(float *qk_out, size_t start_row, size_t end_row,
-                         size_t num_heads) {
+static void softmax_row_inplace(float *qk_out, size_t start_row, size_t end_row,
+                                size_t num_heads) {
   size_t row_range = end_row - start_row;
   const size_t full_blocks = (num_heads / 8) * 8;
   // const size_t remainder = num_heads % 8;
@@ -999,8 +999,80 @@ void softmax_row_inplace(float *qk_out, size_t start_row, size_t end_row,
   delete[] sum_vals;
 }
 
-void softmax_row(float *qk_out, size_t start_row, size_t end_row,
-                 size_t num_heads) {
+static void softmax_row_with_sink_inplace(float *qk_out, size_t start_row,
+                                          size_t end_row, size_t num_heads,
+                                          float *sink) {
+  size_t row_range = end_row - start_row;
+  const size_t full_blocks = (num_heads / 8) * 8;
+  // const size_t remainder = num_heads % 8;
+
+  float *max_vals = new float[num_heads];
+  float *sum_vals = new float[num_heads];
+  // 1. max
+  for (size_t c = 0; c < num_heads; ++c) {
+    float max_val = -INFINITY;
+    for (size_t r = start_row; r < end_row; ++r)
+      max_val = std::max(max_val, qk_out[r * num_heads + c]);
+    max_vals[c] = std::max(sink[c], max_val);
+  }
+
+  // 2. inplace exp + sum
+  for (size_t c = 0; c < full_blocks; c += 8) {
+    __m256 maxv = _mm256_loadu_ps(&max_vals[c]);
+    __m256 sum = _mm256_loadu_ps(&sink[c]);
+    // __m256 sum = _mm256_setzero_ps();
+    for (size_t r = 0; r < row_range; ++r) {
+      float *ptr = &qk_out[(start_row + r) * num_heads + c];
+      __m256 val = _mm256_loadu_ps(ptr);
+      __m256 e = exp256_ps(_mm256_sub_ps(val, maxv));
+      _mm256_storeu_ps(ptr, e); // overwrite qk_out
+      sum = _mm256_add_ps(sum, e);
+    }
+    _mm256_storeu_ps(&sum_vals[c], sum);
+  }
+
+  for (size_t c = full_blocks; c < num_heads; ++c) {
+    float sum = sink[c];
+    // float sum = 0.0f;
+    float maxv = max_vals[c];
+    for (size_t r = 0; r < row_range; ++r) {
+      float &a = qk_out[(start_row + r) * num_heads + c];
+      a = std::exp(a - maxv); // overwrite qk_out
+      sum += a;
+    }
+    sum_vals[c] = sum;
+  }
+  // 3. softmax = exp / sum (inplace)
+  for (size_t r = 0; r < row_range; ++r) {
+    for (size_t c = 0; c < full_blocks; c += 8) {
+      float *ptr = &qk_out[(start_row + r) * num_heads + c];
+      __m256 val = _mm256_loadu_ps(ptr); // already exp(x - max)
+      __m256 sumv = _mm256_loadu_ps(&sum_vals[c]);
+      __m256 soft = _mm256_div_ps(val, sumv);
+      _mm256_storeu_ps(ptr, soft);
+    }
+    for (size_t c = full_blocks; c < num_heads; ++c) {
+      qk_out[(start_row + r) * num_heads + c] /= sum_vals[c];
+    }
+  }
+
+  delete[] max_vals;
+  delete[] sum_vals;
+}
+
+template <>
+void softmax_row_inplace(float *qk_out, size_t start_row, size_t end_row,
+                         size_t num_heads, float *sink) {
+  if (sink == nullptr) {
+    return softmax_row_inplace(qk_out, start_row, end_row, num_heads);
+  } else {
+    return softmax_row_with_sink_inplace(qk_out, start_row, end_row, num_heads,
+                                         sink);
+  }
+}
+
+static void softmax_row(float *qk_out, size_t start_row, size_t end_row,
+                        size_t num_heads) {
   const size_t full_block = (num_heads / 8) * 8;
 
   float *max_vals = new float[num_heads];
@@ -1057,6 +1129,74 @@ void softmax_row(float *qk_out, size_t start_row, size_t end_row,
   delete[] sum_vals;
 }
 
+static void softmax_row_with_sink(float *qk_out, size_t start_row,
+                                  size_t end_row, size_t num_heads,
+                                  float *sink) {
+  const size_t full_block = (num_heads / 8) * 8;
+
+  float *max_vals = new float[num_heads];
+  float *sum_vals = new float[num_heads];
+
+  // 1. Find Max along with col
+  for (size_t c = 0; c < num_heads; ++c) {
+    float max_val = -INFINITY;
+    for (size_t r = start_row; r < end_row; ++r) {
+      max_val = std::max(max_val, qk_out[r * num_heads + c]);
+    }
+    max_vals[c] = std::max(max_val, sink[c]);
+  }
+
+  // 2. Compute sum along with col (exp vectorized)
+  for (size_t c = 0; c < full_block; c += 8) {
+    __m256 maxv = _mm256_loadu_ps(&max_vals[c]);
+    __m256 sum = _mm256_loadu_ps(&sink[c]);
+    for (size_t r = start_row; r < end_row; ++r) {
+      __m256 val = _mm256_loadu_ps(&qk_out[r * num_heads + c]);
+      __m256 sub = _mm256_sub_ps(val, maxv);
+      __m256 e = exp256_ps(sub);
+      sum = _mm256_add_ps(sum, e);
+    }
+    _mm256_storeu_ps(&sum_vals[c], sum);
+  }
+
+  for (size_t c = full_block; c < num_heads; ++c) {
+    float sum = sink[c];
+    for (size_t r = start_row; r < end_row; ++r) {
+      sum += std::exp(qk_out[r * num_heads + c] - max_vals[c]);
+    }
+    sum_vals[c] = sum;
+  }
+
+  // 3. apply softmax
+  for (size_t r = start_row; r < end_row; ++r) {
+    for (size_t c = 0; c < full_block; c += 8) {
+      __m256 val = _mm256_loadu_ps(&qk_out[r * num_heads + c]);
+      __m256 maxv = _mm256_loadu_ps(&max_vals[c]);
+      __m256 sub = _mm256_sub_ps(val, maxv);
+      __m256 e = exp256_ps(sub);
+      __m256 sumv = _mm256_loadu_ps(&sum_vals[c]);
+      __m256 softmax = _mm256_div_ps(e, sumv);
+      _mm256_storeu_ps(&qk_out[r * num_heads + c], softmax);
+    }
+    for (size_t c = full_block; c < num_heads; ++c) {
+      qk_out[r * num_heads + c] =
+        std::exp(qk_out[r * num_heads + c] - max_vals[c]) / sum_vals[c];
+    }
+  }
+
+  delete[] max_vals;
+  delete[] sum_vals;
+}
+
+template <>
+void softmax_row(float *qk_out, size_t start_row, size_t end_row,
+                 size_t num_heads, float *sink) {
+  if (sink == nullptr) {
+    return softmax_row(qk_out, start_row, end_row, num_heads);
+  } else {
+    return softmax_row_with_sink(qk_out, start_row, end_row, num_heads, sink);
+  }
+}
 #ifdef _WIN32
 #define COMPUTE_FP16_TO_FP32(x)                                                \
   _mm_cvtss_f32(_mm_cvtph_ps(_mm_cvtsi32_si128(x)))
