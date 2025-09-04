@@ -1133,6 +1133,8 @@ static void softmax_row_with_sink(float *qk_out, size_t start_row,
                                   size_t end_row, size_t num_heads,
                                   float *sink) {
   const size_t full_block = (num_heads / 8) * 8;
+  std::cout<< " softmax_row_with_sink | " << "  num_heads : " << num_heads << ", full_block : " << full_block << ", start_row : " << start_row << " , end_row : " << end_row << std::endl;
+
 
   float *max_vals = new float[num_heads];
   float *sum_vals = new float[num_heads];
