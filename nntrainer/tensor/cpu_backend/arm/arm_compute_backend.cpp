@@ -500,13 +500,15 @@ void repack_q4_K(void *W, void *repacked_W, size_t data_size,
 #endif
 }
 
+template <>
 void softmax_row_inplace(float *qk_out, size_t start_row, size_t end_row,
-                         size_t num_heads) {
-  neon::softmax_row_inplace(qk_out, start_row, end_row, num_heads);
+                         size_t num_heads, float *sink) {
+  neon::softmax_row_inplace(qk_out, start_row, end_row, num_heads, sink);
 }
 
+template <>
 void softmax_row(float *qk_out, size_t start_row, size_t end_row,
-                 size_t num_heads) {
-  neon::softmax_row(qk_out, start_row, end_row, num_heads);
+                 size_t num_heads, float *sink) {
+  neon::softmax_row(qk_out, start_row, end_row, num_heads, sink);
 }
 } /* namespace nntrainer */

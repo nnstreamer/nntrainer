@@ -401,14 +401,18 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
                                  only_convert_to_fp16);
 }
 
+template <>
 void softmax_row_inplace(_FP16 *qk_out, size_t start_row, size_t end_row,
-                         size_t num_heads) {
-  nntrainer::neon::softmax_row_inplace(qk_out, start_row, end_row, num_heads);
+                         size_t num_heads, _FP16 *sink) {
+  nntrainer::neon::softmax_row_inplace<_FP16>(qk_out, start_row, end_row,
+                                              num_heads, sink);
 }
 
+template <>
 void softmax_row(_FP16 *qk_out, size_t start_row, size_t end_row,
-                 size_t num_heads) {
-  nntrainer::neon::softmax_row(qk_out, start_row, end_row, num_heads);
+                 size_t num_heads, _FP16 *sink) {
+  nntrainer::neon::softmax_row<_FP16>(qk_out, start_row, end_row, num_heads,
+                                      sink);
 }
 
 void compute_fp16vcache_transposed(int row_num, const _FP16 *in,
@@ -424,7 +428,8 @@ void compute_kcaches(const _FP16 *in, const _FP16 *kcache, _FP16 *output,
                      int num_rows, int num_cache_head, int head_dim,
                      int gqa_size, int tile_size, size_t local_window_size) {
   nntrainer::neon::compute_kcaches(in, kcache, output, num_rows, num_cache_head,
-                                   head_dim, gqa_size, tile_size, local_window_size);
+                                   head_dim, gqa_size, tile_size,
+                                   local_window_size);
 }
 
 void compute_rotary_emb_value(unsigned int width, unsigned int dim,

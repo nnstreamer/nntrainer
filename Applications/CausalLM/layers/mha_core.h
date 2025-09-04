@@ -213,6 +213,15 @@ public:
     ml::train::TensorDim &cache_value_dim,
     ml::train::TensorDim &cache_value_step_dim);
 
+  void one_batch_incremental_forwarding(
+    const unsigned int batch, const unsigned int _from, const unsigned int from,
+    const unsigned int to, nntrainer::Tensor &query_step,
+    nntrainer::Tensor &key_step, nntrainer::Tensor &value_step,
+    nntrainer::Tensor &attention_output_step, nntrainer::Tensor &cache_key,
+    nntrainer::Tensor &cache_value, ml::train::TensorDim &cache_key_dim,
+    ml::train::TensorDim &cache_key_step_dim,
+    ml::train::TensorDim &cache_value_dim,
+    ml::train::TensorDim &cache_value_step_dim, nntrainer::Tensor &sink_step);
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
@@ -387,6 +396,10 @@ private:
 
   void softmax_triangle(nntrainer::Tensor &qk_out, size_t row, size_t num_heads,
                         unsigned int from, BS::thread_pool<> &pool);
+
+  void softmax_triangle(nntrainer::Tensor &qk_out, size_t row, size_t num_heads,
+                        unsigned int from, BS::thread_pool<> &pool,
+                        nntrainer::Tensor &sink_step);
 
   void compute_vcaches(nntrainer::Tensor &in, nntrainer::Tensor &vcache,
                        nntrainer::Tensor &out, unsigned int from,
