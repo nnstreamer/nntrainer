@@ -76,6 +76,9 @@ void CausalLM::setupParameters(json &cfg, json &generation_cfg,
                     ? nntr_cfg["fsu_lookahead"].get<unsigned int>()
                     : 1;
   EMBEDDING_DTYPE = nntr_cfg["embedding_dtype"];
+  LMHEAD_DTYPE = nntr_cfg.contains("lmhead_dtype")
+                   ? nntr_cfg["lmhead_dtype"]
+                   : nntr_cfg["embedding_dtype"];
   FC_LAYER_DTYPE = nntr_cfg["fc_layer_dtype"];
 
   /** Initialize model parameters */
@@ -193,7 +196,7 @@ void CausalLM::constructModel() {
     withKey("unit", NUM_VOCAB),
     withKey("disable_bias", "true"),
     withKey("input_layers", "output_norm"),
-    withKey("weight_dtype", EMBEDDING_DTYPE),
+    withKey("weight_dtype", LMHEAD_DTYPE),
   };
   if (TIE_WORD_EMBEDDINGS)
     lmhead_prop.emplace_back(withKey("shared_from", "embedding0"));

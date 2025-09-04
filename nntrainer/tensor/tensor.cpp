@@ -31,6 +31,14 @@
 #include <bcq_tensor.h>
 #endif
 
+#include <fcntl.h>
+
+#if defined(__unix__) || defined(__ANDROID__) || defined(__arm__)
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
+
 namespace nntrainer {
 
 Tensor::Tensor(
@@ -153,8 +161,9 @@ Tensor::Tensor(std::string name_, Tformat fm, Tdatatype d_type) {
 }
 
 Tensor::Tensor(const TensorDim &d, bool alloc_now, Initializer init,
-               std::string name, QScheme qscheme) {
+               std::string name, QScheme qscheme, bool is_virtual) {
   itensor_ = nullptr;
+  this->is_virtual = is_virtual;
 
   if (d.getDataType() == Tdatatype::FP32) {
     itensor_ = std::make_unique<FloatTensor>(d, alloc_now, init, name);
@@ -291,6 +300,12 @@ Tensor::Tensor(const Tensor &rhs) {
                                 "Enable only if your system supports BiQGEMM.");
 #endif
   }
+
+  /** copy tensor properties */
+  this->is_virtual = rhs.is_virtual;
+  this->fd = rhs.fd;
+  this->read_offset = rhs.read_offset;
+  this->mapped_ptr = rhs.mapped_ptr;
 }
 
 Tensor::Tensor(const std::unique_ptr<TensorBase> &rhs) {
@@ -330,6 +345,7 @@ Tensor::Tensor(const std::unique_ptr<TensorBase> &rhs) {
 }
 
 Tensor &Tensor::operator=(const Tensor &rhs) {
+  std::cout << "operator = is called" << std::endl;
   if (rhs.getDataType() == Tdatatype::FP32) {
     itensor_ = std::make_unique<FloatTensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::FP16) {
@@ -366,6 +382,12 @@ Tensor &Tensor::operator=(const Tensor &rhs) {
                                 "Enable only if your system supports BiQGEMM.");
 #endif
   }
+
+  /** copy tensor properties */
+  this->is_virtual = rhs.is_virtual;
+  this->fd = rhs.fd;
+  this->read_offset = rhs.read_offset;
+  this->mapped_ptr = rhs.mapped_ptr;
   return *this;
 }
 
@@ -969,6 +991,14 @@ void Tensor::standardization_i() {
   this->divide_i(std_dev_by_batch);
 }
 
+void Tensor::dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
+                 bool trans, bool trans_in, float beta) const {
+  NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
+    << getName() << " is not contiguous. Cannot dot product.";
+
+  itensor_->dot(input, output, trans, trans_in, beta);
+}
+
 Tensor Tensor::dot(Tensor const &input, bool trans, bool trans_in) const {
   Tensor output("", getFormat(), getDataType());
   dot(input, output, trans, trans_in);
@@ -989,18 +1019,6 @@ Tensor &Tensor::dot(Tensor const &input, Tensor &output, bool trans,
 
   itensor_->dot(input, output, trans, trans_in, beta);
   return output;
-}
-
-void Tensor::dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
-                 bool trans, bool trans_in, float beta) const {
-  NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
-    << getName() << " is not contiguous. Cannot dot product.";
-
-  itensor_->dot(input, output, trans, trans_in, beta);
-
-  // for(unsigned int i=0;i<input.size();++i){
-  //   itensor_->dot(*(input[i]), *(output[i]), trans, trans_in, beta);
-  // }
 }
 
 Tensor &Tensor::dot_deriv_wrt_1(Tensor const &m, Tensor const &output_deriv,
@@ -1356,9 +1374,18 @@ void Tensor::save(std::ostream &file) {
 }
 
 void Tensor::read(std::ifstream &file, size_t start_offset,
-                  bool read_from_offset) {
+                  bool read_from_offset, int file_fd) {
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
     << getName() << " is not contiguous, cannot read.";
+
+  // save the start_offset_info
+  read_offset = start_offset;
+
+  // Do not read now but save file_fd in tensor
+  if (is_virtual) {
+    fd = file_fd;
+    return;
+  }
 
   itensor_->read(file, start_offset, read_from_offset);
 }
@@ -1578,6 +1605,61 @@ Tensor Tensor::getSharedDataTensor(const TensorDim dim_, size_t offset,
   itensor_->getSharedDataTensor(dim_, offset, reset_stride, name_,
                                 ret.itensor_.get());
   return ret;
+}
+
+void Tensor::activate() {
+
+  NNTR_THROW_IF(!is_virtual, std::invalid_argument)
+    << "non-virtual tensor cannot call activate()";
+#if defined(_WIN32)
+  NNTR_THROW_IF(true, std::invalid_argument)
+    << "[Error/VirtualTensor] virtual tensor is not supported on Windows";
+#else
+
+  auto file_offset = getFileOffset();
+  size_t off = (file_offset / 4096) * 4096;
+  size_t diff = file_offset - off;
+  size_t len = getMemoryBytes() + diff;
+
+  mapped_ptr = mmap(NULL, len, PROT_READ, MAP_PRIVATE, this->fd, off);
+#ifdef __ANDROID__
+  madvise(mapped_ptr, len, MADV_WILLNEED);
+#endif
+  if (mapped_ptr == MAP_FAILED) {
+    std::cerr << "[activate] mmap failed: " << strerror(errno) << std::endl;
+  }
+  itensor_->activate((void *)&((uint8_t *)mapped_ptr)[diff]);
+#endif
+}
+
+void Tensor::deactivate() {
+
+  NNTR_THROW_IF(!is_virtual, std::invalid_argument)
+    << "non-virtual tensor cannot call deactivate()";
+#if defined(_WIN32)
+  NNTR_THROW_IF(true, std::invalid_argument)
+    << "[Error/VirtualTensor] virtual tensor is not supported on Windows";
+#else
+
+  if (mapped_ptr == nullptr) {
+    return;
+  };
+
+  auto file_offset = getFileOffset();
+  size_t off = (file_offset / 4096) * 4096;
+  size_t diff = file_offset - off;
+  size_t len = getMemoryBytes() + diff;
+
+  auto ret_munmap = munmap((void *)mapped_ptr, len);
+  const size_t error_buflen = 100;
+  char error_buf[error_buflen];
+  NNTR_THROW_IF(ret_munmap == -1, std::runtime_error)
+    << "[deactivate] munmap failed: "
+    << SAFE_STRERROR(errno, error_buf, error_buflen);
+
+  mapped_ptr = nullptr;
+  itensor_->deactivate();
+#endif
 }
 
 void Tensor::setTensorVar(TensorDim d, void *buf, size_t offset) {
