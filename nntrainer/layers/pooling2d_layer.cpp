@@ -96,7 +96,7 @@ void Pooling2DLayer::finalize(InitLayerContext &context) {
     << "[Pooling2D] Failed to initialize: in size + padding is smaller than "
        "effective kernel";
 
-  unsigned int IM = std::numeric_limits<int>::max();
+  unsigned int IM = (std::numeric_limits<unsigned int>::max)();
 
   NNTR_THROW_IF(eff_in_height - pt - pool_size[0] > IM ||
                   eff_in_width - pl - pool_size[1] > IM,

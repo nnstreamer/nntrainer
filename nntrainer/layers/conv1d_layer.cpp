@@ -32,7 +32,7 @@ Conv1DLayer::Conv1DLayer() :
   LayerImpl(),
   conv_props(props::FilterSize(), props::KernelSize(), props::Stride(),
              props::Padding1D(), props::Dilation()) {
-  wt_idx.fill(std::numeric_limits<unsigned>::max());
+  wt_idx.fill((std::numeric_limits<unsigned>::max)());
   conv2d_layer = std::make_unique<Conv2DLayer>();
 }
 

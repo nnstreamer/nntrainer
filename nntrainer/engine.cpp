@@ -41,7 +41,7 @@ void Engine::add_default_object() {
   /// createLayer/createOptimizer class is created
 
   auto &app_context = nntrainer::AppContext::Global();
-
+  
   init_backend(); // initialize cpu backend
   registerContext("cpu", &app_context);
 

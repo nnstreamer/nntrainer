@@ -39,6 +39,14 @@
 #include <unistd.h>
 #endif
 
+#if defined(_WIN32)
+#include <Memoryapi.h>
+#include <Sysinfoapi.h>
+#include "utils/mman_windows.h"
+#include <io.h>
+#define O_SYNC 0UL
+#endif
+
 namespace nntrainer {
 
 Tensor::Tensor(
@@ -1609,37 +1617,35 @@ Tensor Tensor::getSharedDataTensor(const TensorDim dim_, size_t offset,
 
 void Tensor::activate() {
 
+#if defined(_WIN32)
+  SYSTEM_INFO sysInfo;
+  GetSystemInfo(&sysInfo);
+  auto page_size = sysInfo.dwAllocationGranularity;
+#else
+  auto page_size = sysconf(_SC_PAGE_SIZE);
+#endif  
   NNTR_THROW_IF(!is_virtual, std::invalid_argument)
     << "non-virtual tensor cannot call activate()";
-#if defined(_WIN32)
-  NNTR_THROW_IF(true, std::invalid_argument)
-    << "[Error/VirtualTensor] virtual tensor is not supported on Windows";
-#else
-
   auto file_offset = getFileOffset();
-  size_t off = (file_offset / 4096) * 4096;
+  size_t off = (file_offset / page_size) * page_size;
   size_t diff = file_offset - off;
   size_t len = getMemoryBytes() + diff;
+  mapped_ptr = (mmap(NULL, len, PROT_READ, MAP_PRIVATE, this->fd, off));
 
-  mapped_ptr = mmap(NULL, len, PROT_READ, MAP_PRIVATE, this->fd, off);
 #ifdef __ANDROID__
   madvise(mapped_ptr, len, MADV_WILLNEED);
 #endif
+
   if (mapped_ptr == MAP_FAILED) {
     std::cerr << "[activate] mmap failed: " << strerror(errno) << std::endl;
   }
   itensor_->activate((void *)&((uint8_t *)mapped_ptr)[diff]);
-#endif
 }
 
 void Tensor::deactivate() {
 
   NNTR_THROW_IF(!is_virtual, std::invalid_argument)
     << "non-virtual tensor cannot call deactivate()";
-#if defined(_WIN32)
-  NNTR_THROW_IF(true, std::invalid_argument)
-    << "[Error/VirtualTensor] virtual tensor is not supported on Windows";
-#else
 
   if (mapped_ptr == nullptr) {
     return;
@@ -1659,7 +1665,6 @@ void Tensor::deactivate() {
 
   mapped_ptr = nullptr;
   itensor_->deactivate();
-#endif
 }
 
 void Tensor::setTensorVar(TensorDim d, void *buf, size_t offset) {

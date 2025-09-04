@@ -277,4 +277,40 @@ float fixedPointAndExponentToFloat(int fixedpoint, int exponent) {
   return std::ldexp(mantissa, exponent);
 }
 
+std::string fd_to_filename(int fd){
+#if defined(_WIN32)
+  HANDLE hFile = reinterpret_cast<HANDLE>(_get_osfhandle(fd));
+  if(hFile == INVALID_HANDLE_VALUE || hFile == nullptr){
+    return{};
+  }
+  DWORD need = GetFinalPathNameByHandleW(hFile, nullptr, 0, FILE_NAME_NORMALIZED);
+  if(need == 0) return {};
+
+  std::wstring wpath;
+  wpath.resize(need);
+  DWORD got = GetFinalPathNameByHandleW(hFile, wpath.data(), need, FILE_NAME_NORMALIZED);
+  if(got ==0 || got >=need) return{};
+  wpath.resize(got);
+
+  const std::wstring prefix = L"\\\\?\\";
+  if(wpath.rfind(prefix, 0)==0){
+    wpath.erase(0, prefix.size());
+  }
+  int u8len = WideCharToMultiByte(CP_UTF8, 0, wpath.c_str(), static_cast<int>(wpath.size()), nullptr, 0, nullptr, nullptr);
+  if (u8len <=0) return {};
+  std::string path_utf8;
+  path_utf8.resize(u8len);
+  WideCharToMultiByte(CP_UTF8, 0, wpath.c_str(), static_cast<int>(wpath.size()), path_utf8.data(), u8len, nullptr, nullptr);
+  return path_utf8;
+#else
+  char linkpath[64];
+  std::snpringf(linkpath, sizeof(linkpath), "/proc/self/fd/%d", fd);
+  std::vector<char> buf(4096, '\0');
+  ssize_t n = readlink(linkpath, buf.data(), buf.size() -1);
+  if(n<0) return {};
+  buf[n] = '\0';
+  return std::string(buf.data());
+#endif  
+}
+
 } // namespace nntrainer

@@ -32,7 +32,14 @@
 #include <nntrainer_error.h>
 #include <random>
 #include <variant>
-
+#if defined(_WIN32)
+ #define NOMINMAX
+ #include <windows.h>
+ #include <io.h>
+#else
+ #include <unistd.h>
+ #include <cstdio>
+#endif
 // /**
 //  * @brief     get the seed
 //  * @return    seed
@@ -445,6 +452,8 @@ void floatToFixedPointAndExponent(float input, int &fixedpoint, int &exponent);
  * @return floating point result
  */
 float fixedPointAndExponentToFloat(int fixedpoint, int exponent);
+
+std::string fd_to_filename(int fd);
 
 } /* namespace nntrainer */
 

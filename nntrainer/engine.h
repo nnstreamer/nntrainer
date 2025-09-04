@@ -63,8 +63,7 @@ protected:
   void registerContext(std::string name, nntrainer::Context *context) {
     const std::lock_guard<std::mutex> lock(engine_mutex);
     static int registerCount = 0;
-
-    std::transform(name.begin(), name.end(), name.begin(),
+      std::transform(name.begin(), name.end(), name.begin(),
                    [](unsigned char c) { return std::tolower(c); });
 
     if (engines.find(name) != engines.end()) {
@@ -73,8 +72,7 @@ protected:
       throw std::invalid_argument(ss.str().c_str());
     }
     engines.insert(std::make_pair(name, context));
-
-    if (registerCount < RegisterContextMax) {
+      if (registerCount < RegisterContextMax) {
       nntrainerRegisteredContext[registerCount] = context;
       registerCount++;
     }

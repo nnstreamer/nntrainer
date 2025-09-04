@@ -49,7 +49,7 @@ public:
                                        std::vector<Tensor> & /** labels */)>;
 
   constexpr inline static unsigned int SIZE_UNDEFINED =
-    std::numeric_limits<unsigned int>::max();
+    (std::numeric_limits<unsigned int>::max)();
 
   /**
    * @brief Destroy the Data Loader object
