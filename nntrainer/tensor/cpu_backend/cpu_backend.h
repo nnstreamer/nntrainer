@@ -29,25 +29,6 @@
 
 #ifdef ENABLE_FP16
 /**
- * @brief Multihead softmax, exp(x_i) / sum(exp(x_i)), inplace version
- * @param[in/out] qk_out __fp16* input/output values
- * @param[in] start_row start row number
- * @param[in] end_row end row number
- * @param[in] num_heads heads number
- */
-extern void softmax_row_inplace(_FP16 *qk_out, size_t start_row, size_t end_row,
-                                size_t num_heads);
-
-/**
- * @brief Multihead softmax, exp(x_i) / sum(exp(x_i))
- * @param[in/out] qk_out __fp16* input/output values
- * @param[in] start_row start row number
- * @param[in] end_row end row number
- * @param[in] num_heads heads number
- */
-extern void softmax_row(_FP16 *qk_out, size_t start_row, size_t end_row,
-                        size_t num_heads);
-/**
  * @brief F32 * F16 = F32 GEMM
  *
  * @param TStorageOrder Row major / Col major
@@ -1076,8 +1057,9 @@ extern void dequantize_row_q8_0(const void *x_raw, T *y, int64_t k);
  * @param[in] end_row end row number
  * @param[in] num_heads heads number
  */
-extern void softmax_row_inplace(float *qk_out, size_t start_row, size_t end_row,
-                                size_t num_heads);
+template <typename T = float>
+extern void softmax_row_inplace(T *qk_out, size_t start_row, size_t end_row,
+                                size_t num_heads, T *sink = nullptr);
 
 /**
  * @brief Multihead softmax, exp(x_i) / sum(exp(x_i))
@@ -1086,8 +1068,9 @@ extern void softmax_row_inplace(float *qk_out, size_t start_row, size_t end_row,
  * @param[in] end_row end row number
  * @param[in] num_heads heads number
  */
-extern void softmax_row(float *qk_out, size_t start_row, size_t end_row,
-                        size_t num_heads);
+template <typename T = float>
+extern void softmax_row(T *qk_out, size_t start_row, size_t end_row,
+                        size_t num_heads, T *sink = nullptr);
 
 /**
  * @brief Compute vcache for one row transposed
