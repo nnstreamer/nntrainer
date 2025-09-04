@@ -237,8 +237,10 @@ void MHACoreLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
   nntrainer::Tensor &cache_value =
     context.getTensor(tensor_idx[AttentionParams::cache_value]);
 
-  if (use_sink)
-    nntrainer::Tensor &sink = context.getWeight(sink_idx);
+  nntrainer::Tensor sink;
+  if (use_sink) {
+    sink = context.getWeight(sink_idx);
+  }
 
   const unsigned int num_heads_Q =
     std::get<nntrainer::props::NumHeads>(mha_core_props).get();
@@ -301,17 +303,30 @@ void MHACoreLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
       Q_step.copyData(query_step);
       K_step.copyData(key_step);
       V_step.copyData(value_step);
-
-      one_batch_incremental_forwarding(batch, _from, from, to, Q_step, K_step,
-                                       V_step, O_step, cache_key, cache_value,
-                                       cache_key_dim, cache_key_step_dim,
-                                       cache_value_dim, cache_value_step_dim);
+      if (use_sink) {
+        one_batch_incremental_forwarding(
+          batch, _from, from, to, Q_step, K_step, V_step, O_step, cache_key,
+          cache_value, cache_key_dim, cache_key_step_dim, cache_value_dim,
+          cache_value_step_dim, sink);
+      } else {
+        one_batch_incremental_forwarding(batch, _from, from, to, Q_step, K_step,
+                                         V_step, O_step, cache_key, cache_value,
+                                         cache_key_dim, cache_key_step_dim,
+                                         cache_value_dim, cache_value_step_dim);
+      }
       output_step.copyData(O_step);
 #else
-      one_batch_incremental_forwarding(
-        batch, _from, from, to, query_step, key_step, value_step, output_step,
-        cache_key, cache_value, cache_key_dim, cache_key_step_dim,
-        cache_value_dim, cache_value_step_dim);
+      if (use_sink) {
+        one_batch_incremental_forwarding(
+          batch, _from, from, to, query_step, key_step, value_step, output_step,
+          cache_key, cache_value, cache_key_dim, cache_key_step_dim,
+          cache_value_dim, cache_value_step_dim, sink);
+      } else {
+        one_batch_incremental_forwarding(
+          batch, _from, from, to, query_step, key_step, value_step, output_step,
+          cache_key, cache_value, cache_key_dim, cache_key_step_dim,
+          cache_value_dim, cache_value_step_dim);
+      }
 #endif
     } else {
       one_batch_incremental_forwarding(
@@ -408,6 +423,7 @@ void MHACoreLayer::compute_kcaches(
 #endif
   }
 }
+
 void MHACoreLayer::one_batch_incremental_forwarding(
   const unsigned int batch, const unsigned int _from, const unsigned int from,
   const unsigned int to, nntrainer::Tensor &query_step,
@@ -477,6 +493,7 @@ void MHACoreLayer::one_batch_incremental_forwarding(
                   gqa_size, head_dim, pool);
 
   softmax_triangle(out_, to - from, num_heads_Q, from, pool);
+  out_.print(std::cout);
 
   compute_fp16vcache_transposed(out_, b_cached_value, attention_output_step, to,
                                 num_heads_KV, gqa_size, head_dim,
@@ -491,8 +508,7 @@ void MHACoreLayer::one_batch_incremental_forwarding(
   nntrainer::Tensor &cache_value, ml::train::TensorDim &cache_key_dim,
   ml::train::TensorDim &cache_key_step_dim,
   ml::train::TensorDim &cache_value_dim,
-  ml::train::TensorDim &cache_value_step_dim,
-                        nntrainer::Tensor &sink_step) {
+  ml::train::TensorDim &cache_value_step_dim, nntrainer::Tensor &sink_step) {
 
   /**
    *  cache_key
@@ -551,14 +567,29 @@ void MHACoreLayer::one_batch_incremental_forwarding(
 
   compute_kcaches(query_step, b_cached_key, out_, _from, to - from, num_heads_Q,
                   gqa_size, head_dim, pool);
-
+  std::cout << "SINK\n";
+  sink_step.print(std::cout);
+  std::cout << "INPUT OF SFTMX\n";
+  out_.print(std::cout);
+  for (int i = 0; i < 64; ++i){
+    std::cout << *(out_.getData() + i) << "\t";
+  }
+  std::cout << std::endl;
   softmax_triangle(out_, to - from, num_heads_Q, from, pool, sink_step);
+  std::cout << "OUTPUT OF SFTMX\n";
+  out_.print(std::cout);
+  for (int i = 0; i < 64; ++i){
+    std::cout << *(out_.getData() + i) << "\t";
+  }
+  std::cout << std::endl;
+  std::cout << "END\n";
+
+
 
   compute_fp16vcache_transposed(out_, b_cached_value, attention_output_step, to,
                                 num_heads_KV, gqa_size, head_dim,
                                 (from) ? false : true, pool);
 }
-
 
 /************************************************************** */
 
@@ -863,14 +894,16 @@ void MHACoreLayer::softmax_triangle(nntrainer::Tensor &qk_out, size_t row,
 
 void MHACoreLayer::softmax_triangle(nntrainer::Tensor &qk_out, size_t row,
                                     size_t num_head, unsigned int from,
-                                    BS::thread_pool<> &pool, nntrainer::Tensor &sink_step) {
+                                    BS::thread_pool<> &pool,
+                                    nntrainer::Tensor &sink_step) {
   if (qk_out.getDataType() == ml::train::TensorDim::DataType::FP32) {
     float *qk_out_ = qk_out.getData<float>();
 
     if (from) {
       size_t start_row = 0;
       size_t end_row = from < local_window_size ? from + 1 : local_window_size;
-      nntrainer::softmax_row_inplace(qk_out_, start_row, end_row, num_head, sink_step.data());
+      nntrainer::softmax_row_inplace(qk_out_, start_row, end_row, num_head,
+                                     sink_step.getData());
     } else {
       std::vector<std::future<void>> futures;
 
@@ -878,7 +911,8 @@ void MHACoreLayer::softmax_triangle(nntrainer::Tensor &qk_out, size_t row,
         size_t start_row = calc_attn_index(i);
         size_t end_row = calc_attn_index(i + 1);
         futures.push_back(pool.submit_task([=]() {
-          nntrainer::softmax_row(qk_out_, start_row, end_row, num_head);
+          nntrainer::softmax_row(qk_out_, start_row, end_row, num_head,
+                                     sink_step.getData());
         }));
       }
       for (auto &fut : futures) {
