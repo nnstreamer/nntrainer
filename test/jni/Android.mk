@@ -28,7 +28,7 @@ NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
 	$(NNTRAINER_ROOT)/api/ccapi/include \
 	${ML_API_COMMON_INCLUDES}
 
-ifeq ( $(MESON_ENABLE_OPENCL), 1)
+ifeq ($(MESON_ENABLE_OPENCL), 1)
 NNTRAINER_INCLUDES += $(NNTRAINER_ROOT)/nntrainer/opencl \
 	$(NNTRAINER_ROOT)/nntrainer/tensor/cl_operations \
 	$(NNTRAINER_ROOT)/nntrainer/layers/cl_layers 
@@ -54,7 +54,7 @@ LOCAL_SRC_FILES := $(NNTRAINER_ROOT)/builddir/obj/local/$(TARGET_ARCH_ABI)/libru
 
 include $(PREBUILT_STATIC_LIBRARY)
 
-ifeq ( $(MESON_ENABLE_OPENCL), 1)
+ifeq ($(MESON_ENABLE_OPENCL), 1)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := opencl
@@ -108,8 +108,15 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer $(MESON_OPENCL_SHARED_LIBS)
-LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer $(MESON_OPENCL_STATIC_LIBS)
+
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
+
+ifeq ($(MESON_ENABLE_OPENCL), 1)
+LOCAL_SHARED_LIBRARIES += opencl
+LOCAL_STATIC_LIBRARIES += clblast
+endif
+
 include $(BUILD_EXECUTABLE)
 
 
@@ -125,8 +132,14 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer $(MESON_OPENCL_SHARED_LIBS)
-LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer $(MESON_OPENCL_STATIC_LIBS)
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
+
+ifeq ($(MESON_ENABLE_OPENCL), 1)
+LOCAL_SHARED_LIBRARIES += opencl
+LOCAL_STATIC_LIBRARIES += clblast
+endif
+
 include $(BUILD_EXECUTABLE)
 
 
@@ -142,8 +155,14 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer $(MESON_OPENCL_SHARED_LIBS)
-LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer $(MESON_OPENCL_STATIC_LIBS)
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
+
+ifeq ($(MESON_ENABLE_OPENCL), 1)
+LOCAL_SHARED_LIBRARIES += opencl
+LOCAL_STATIC_LIBRARIES += clblast
+endif
+
 include $(BUILD_EXECUTABLE)
 
 
@@ -159,8 +178,15 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer $(MESON_OPENCL_SHARED_LIBS)
-LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer $(MESON_OPENCL_STATIC_LIBS)
+
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
+
+ifeq ($(MESON_ENABLE_OPENCL), 1)
+LOCAL_SHARED_LIBRARIES += opencl
+LOCAL_STATIC_LIBRARIES += clblast
+endif
+
 include $(BUILD_EXECUTABLE)
 
 
@@ -176,8 +202,15 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer $(MESON_OPENCL_SHARED_LIBS)
-LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer $(MESON_OPENCL_STATIC_LIBS)
+
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
+
+ifeq ($(MESON_ENABLE_OPENCL), 1)
+LOCAL_SHARED_LIBRARIES += opencl
+LOCAL_STATIC_LIBRARIES += clblast
+endif
+
 include $(BUILD_EXECUTABLE)
 
 
@@ -193,8 +226,15 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer $(MESON_OPENCL_SHARED_LIBS)
-LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer $(MESON_OPENCL_STATIC_LIBS)
+
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
+
+ifeq ($(MESON_ENABLE_OPENCL), 1)
+LOCAL_SHARED_LIBRARIES += opencl
+LOCAL_STATIC_LIBRARIES += clblast
+endif
+
 include $(BUILD_EXECUTABLE)
 
 
@@ -210,8 +250,15 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer $(MESON_OPENCL_SHARED_LIBS)
-LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer $(MESON_OPENCL_STATIC_LIBS)
+
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
+
+ifeq ($(MESON_ENABLE_OPENCL), 1)
+LOCAL_SHARED_LIBRARIES += opencl
+LOCAL_STATIC_LIBRARIES += clblast
+endif
+
 include $(BUILD_EXECUTABLE)
 
 
@@ -227,8 +274,14 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer $(MESON_OPENCL_SHARED_LIBS)
-LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer $(MESON_OPENCL_STATIC_LIBS)
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
+
+ifeq ($(MESON_ENABLE_OPENCL), 1)
+LOCAL_SHARED_LIBRARIES += opencl
+LOCAL_STATIC_LIBRARIES += clblast
+endif
+
 include $(BUILD_EXECUTABLE)
 
 
@@ -244,8 +297,14 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer $(MESON_OPENCL_SHARED_LIBS)
-LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer $(MESON_OPENCL_STATIC_LIBS)
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
+
+ifeq ($(MESON_ENABLE_OPENCL), 1)
+LOCAL_SHARED_LIBRARIES += opencl
+LOCAL_STATIC_LIBRARIES += clblast
+endif
+
 include $(BUILD_EXECUTABLE)
 
 
@@ -261,8 +320,14 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer $(MESON_OPENCL_SHARED_LIBS)
-LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer $(MESON_OPENCL_STATIC_LIBS)
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
+
+ifeq ($(MESON_ENABLE_OPENCL), 1)
+LOCAL_SHARED_LIBRARIES += opencl
+LOCAL_STATIC_LIBRARIES += clblast
+endif
+
 include $(BUILD_EXECUTABLE)
 
 
@@ -278,8 +343,14 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer $(MESON_OPENCL_SHARED_LIBS)
-LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer $(MESON_OPENCL_STATIC_LIBS)
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
+
+ifeq ($(MESON_ENABLE_OPENCL), 1)
+LOCAL_SHARED_LIBRARIES += opencl
+LOCAL_STATIC_LIBRARIES += clblast
+endif
+
 include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
@@ -294,8 +365,14 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer $(MESON_OPENCL_SHARED_LIBS)
-LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer $(MESON_OPENCL_STATIC_LIBS)
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
+
+ifeq ($(MESON_ENABLE_OPENCL), 1)
+LOCAL_SHARED_LIBRARIES += opencl
+LOCAL_STATIC_LIBRARIES += clblast
+endif
+
 include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
@@ -310,8 +387,14 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer $(MESON_OPENCL_SHARED_LIBS)
-LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer $(MESON_OPENCL_SHARED_LIBS)
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
+
+ifeq ($(MESON_ENABLE_OPENCL), 1)
+LOCAL_SHARED_LIBRARIES += opencl
+LOCAL_STATIC_LIBRARIES += clblast
+endif
+
 include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
@@ -326,8 +409,14 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer $(MESON_OPENCL_SHARED_LIBS)
-LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer $(MESON_OPENCL_STATIC_LIBS)
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
+
+ifeq ($(MESON_ENABLE_OPENCL), 1)
+LOCAL_SHARED_LIBRARIES += opencl
+LOCAL_STATIC_LIBRARIES += clblast
+endif
+
 include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
@@ -342,8 +431,14 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer $(MESON_OPENCL_SHARED_LIBS)
-LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer $(MESON_OPENCL_STATIC_LIBS)
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
+
+ifeq ($(MESON_ENABLE_OPENCL), 1)
+LOCAL_SHARED_LIBRARIES += opencl
+LOCAL_STATIC_LIBRARIES += clblast
+endif
+
 include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
@@ -358,8 +453,14 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer $(MESON_OPENCL_SHARED_LIBS)
-LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer $(MESON_OPENCL_STATIC_LIBS)
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
+
+ifeq ($(MESON_ENABLE_OPENCL), 1)
+LOCAL_SHARED_LIBRARIES += opencl
+LOCAL_STATIC_LIBRARIES += clblast
+endif
+
 include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
@@ -374,8 +475,14 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer $(MESON_OPENCL_SHARED_LIBS)
-LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer $(MESON_OPENCL_STATIC_LIBS)
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
+
+ifeq ($(MESON_ENABLE_OPENCL), 1)
+LOCAL_SHARED_LIBRARIES += opencl
+LOCAL_STATIC_LIBRARIES += clblast
+endif
+
 include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
@@ -392,8 +499,14 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer $(MESON_OPENCL_SHARED_LIBS)
-LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer $(MESON_OPENCL_STATIC_LIBS)
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
+
+ifeq ($(MESON_ENABLE_OPENCL), 1)
+LOCAL_SHARED_LIBRARIES += opencl
+LOCAL_STATIC_LIBRARIES += clblast
+endif
+
 include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
@@ -410,8 +523,14 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer $(MESON_OPENCL_SHARED_LIBS)
-LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer $(MESON_OPENCL_STATIC_LIBS)
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
+
+ifeq ($(MESON_ENABLE_OPENCL), 1)
+LOCAL_SHARED_LIBRARIES += opencl
+LOCAL_STATIC_LIBRARIES += clblast
+endif
+
 include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
@@ -430,8 +549,14 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer $(MESON_OPENCL_SHARED_LIBS)
-LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer $(MESON_OPENCL_STATIC_LIBS)
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
+
+ifeq ($(MESON_ENABLE_OPENCL), 1)
+LOCAL_SHARED_LIBRARIES += opencl
+LOCAL_STATIC_LIBRARIES += clblast
+endif
+
 include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
@@ -454,8 +579,14 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer $(MESON_OPENCL_SHARED_LIBS)
-LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer $(MESON_OPENCL_STATIC_LIBS)
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
+
+ifeq ($(MESON_ENABLE_OPENCL), 1)
+LOCAL_SHARED_LIBRARIES += opencl
+LOCAL_STATIC_LIBRARIES += clblast
+endif
+
 include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
@@ -464,7 +595,7 @@ LOCAL_MODULE := unittest_layers
 LOCAL_CFLAGS := -Igoogletest/include -I../include -I../unittest/layers -I../../nntrainer/layers/loss -pthread -fexceptions -fopenmp -static-openmp -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -march=armv8.2-a+fp16+dotprod -O3 -frtti -DNDK_BUILD=1 -DENABLE_FP16=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid -fopenmp -static-openmp
-ifeq ( $(MESON_ENABLE_OPENCL), 1)
+ifeq ($(MESON_ENABLE_OPENCL), 1)
 LOCAL_CFLAGS += -DEANBLE_OPENCL=1
 endif
 
@@ -504,7 +635,8 @@ LOCAL_SRC_FILES := \
 	 ../unittest/layers/unittest_layers_multi_head_attention.cpp \
 	 ../unittest/layers/unittest_layers_positional_encoding.cpp \
 
-ifeq ( $(MESON_ENABLE_OPENCL), 1)
+ifeq ($(MESON_ENABLE_OPENCL), 1)
+
 LOCAL_SRC_FILES += \
 	 ../unittest/layers/unittest_layers_transpose_cl.cpp \
 	 ../unittest/layers/unittest_layers_concat_cl.cpp \
@@ -517,11 +649,17 @@ endif
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer $(MESON_OPENCL_SHARED_LIBS)
-LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer $(MESON_OPENCL_STATIC_LIBS)
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
+
+ifeq ($(MESON_ENABLE_OPENCL), 1)
+LOCAL_SHARED_LIBRARIES += opencl
+LOCAL_STATIC_LIBRARIES += clblast
+endif
+
 include $(BUILD_EXECUTABLE)
 
-ifeq ( $(MESON_ENABLE_OPENCL), 1)
+ifeq ($(MESON_ENABLE_OPENCL), 1)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := unittest_blas_kernels_cl
@@ -534,8 +672,14 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer $(MESON_OPENCL_SHARED_LIBS)
-LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer $(MESON_OPENCL_STATIC_LIBS)
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
+
+ifeq ($(MESON_ENABLE_OPENCL), 1)
+LOCAL_SHARED_LIBRARIES += opencl
+LOCAL_STATIC_LIBRARIES += clblast
+endif
+
 include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
@@ -550,8 +694,15 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer $(MESON_OPENCL_SHARED_LIBS)
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer 
 LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
+
+
+ifeq ($(MESON_ENABLE_OPENCL), 1)
+LOCAL_SHARED_LIBRARIES += opencl
+LOCAL_STATIC_LIBRARIES += clblast
+endif
+
 include $(BUILD_EXECUTABLE)
 endif
 
@@ -567,8 +718,14 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer $(MESON_OPENCL_SHARED_LIBS)
-LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer $(MESON_OPENCL_STATIC_LIBS)
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
+
+ifeq ($(MESON_ENABLE_OPENCL), 1)
+LOCAL_SHARED_LIBRARIES += opencl
+LOCAL_STATIC_LIBRARIES += clblast
+endif
+
 include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
@@ -583,8 +740,14 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer $(MESON_OPENCL_SHARED_LIBS)
-LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer $(MESON_OPENCL_STATIC_LIBS)
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
+
+ifeq ($(MESON_ENABLE_OPENCL), 1)
+LOCAL_SHARED_LIBRARIES += opencl
+LOCAL_STATIC_LIBRARIES += clblast
+endif
+
 include $(BUILD_EXECUTABLE)
 
 # unittest_ccapi
@@ -600,6 +763,12 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer $(MESON_OPENCL_SHARED_LIBS)
-LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer $(MESON_OPENCL_STATIC_LIBS)
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_STATIC_LIBRARIES := googletest_main test_util ruy-nntrainer
+
+ifeq ($(MESON_ENABLE_OPENCL), 1)
+LOCAL_SHARED_LIBRARIES += opencl
+LOCAL_STATIC_LIBRARIES += clblast
+endif
+
 include $(BUILD_EXECUTABLE)
