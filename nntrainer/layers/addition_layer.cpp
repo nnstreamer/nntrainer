@@ -130,6 +130,6 @@ void AdditionLayer::forwardingAsync(RunLayerContext &context, bool training,
   }
 };
 
-bool AdditionLayer::runAsync() { return true; }
+bool AdditionLayer::isGPU() { return true; }
 
 } /* namespace nntrainer */

@@ -513,7 +513,7 @@ public:
    */
   template <typename T = float>
   static Tensor Map(T *buf, unsigned int bytes, const TensorDim &d,
-                    size_t offset = 0) {
+                    size_t offset = 0, bool use_svm = false) {
     if (d.getDataLen() == 0 || buf == nullptr) {
       throw std::invalid_argument(
         "[Tensor::Map] empty tensor dim is not allowed");

@@ -295,6 +295,7 @@ int NeuralNetwork::initialize(ExecutionMode mode) {
 
   computational_graph_.initialize(model_graph);
   computational_graph_.serialize("model.json");
+  computational_graph_.topologicalSort();
 
   return status;
 }
@@ -405,7 +406,20 @@ sharedConstTensors NeuralNetwork::forwarding(
     }
   };
 
-  return model_graph.forwarding(training, forwarding_op, stop_cb, userdata);
+  if (!training) {
+
+    std::function<void(std::shared_ptr<LayerNode>, bool, const cl_event *,
+                       cl_event *)>
+      forwarding_op_async = [](std::shared_ptr<LayerNode> node, bool training,
+                               const cl_event *event_wait_list,
+                               cl_event *event) -> void {
+      node->forwarding(training, event_wait_list, event);
+    };
+
+    return computational_graph_.forwarding(training, forwarding_op_async);
+  } else {
+    return model_graph.forwarding(training, forwarding_op, stop_cb, userdata);
+  }
 }
 
 /**
@@ -1027,7 +1041,7 @@ NeuralNetwork::inference(unsigned int batch_size,
   for (unsigned int idx = 0; idx < in_dim.size(); idx++) {
     in_dim[idx].batch(batch_size);
     input_tensors.emplace_back(MAKE_SHARED_TENSOR(Tensor::Map(
-      input[idx], in_dim[idx].getDataLen() * sizeof(float), in_dim[idx], 0)));
+      input[idx], in_dim[idx].getDataLen() * sizeof(float), in_dim[idx], 0, true)));
   }
 
   if (!label.empty()) {

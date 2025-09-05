@@ -100,7 +100,7 @@ public:
                        const cl_event *event_wait_list = nullptr,
                        cl_event *event = nullptr) override;
 
-  bool runAsync() override;
+  bool isGPU() override;
 
   std::tuple<props::Print>
     add_props; /**< fc layer properties : unit - number of output neurons */

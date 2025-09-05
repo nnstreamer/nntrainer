@@ -478,7 +478,7 @@ public:
                                const cl_event *event_wait_list = nullptr,
                                cl_event *event = nullptr){};
 
-  virtual bool runAsync() { return false; }
+  virtual bool isGPU() { return false; }
 
 protected:
   bool is_inplace = false; /**< whether this layer is in-place or not */

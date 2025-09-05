@@ -775,7 +775,8 @@ LayerNode::refinalize(const std::vector<TensorDim> &input_dims) {
 /**
  * @brief     Forward Propagation of a layer
  */
-void LayerNode::forwarding(bool training) {
+void LayerNode::forwarding(bool training, const cl_event *event_wait_list,
+                           cl_event *event) {
   loss->set(run_context->getRegularizationLoss());
 
   PROFILE_TIME_START(forward_event_key);
@@ -794,9 +795,8 @@ void LayerNode::forwarding(bool training) {
     }
   }
 
-  if (layer->runAsync()) {
-    // TODO pass events here
-    layer->forwardingAsync(*run_context, training);
+  if (layer->isGPU()) {
+    layer->forwardingAsync(*run_context, training, event_wait_list, event);
   } else {
     layer->forwarding(*run_context, training);
   }
