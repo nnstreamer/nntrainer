@@ -11,8 +11,11 @@
  *
  */
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wredundant-decls"
 #include <cblas.h>
 #include <cblas_interface.h>
+#pragma GCC diagnostic pop
 
 namespace nntrainer {
 void __cblas_saxpy(const unsigned int N, const float alpha, const float *X,
