@@ -341,20 +341,6 @@ void ggml_aligned_free(void *ptr, size_t size) {
 #endif
 }
 
-inline static void *ggml_malloc(size_t size) {
-  if (size == 0) {
-    ml_logw(
-      "Behavior may be unexpected when allocating 0 bytes for ggml_malloc!\n");
-    return NULL;
-  }
-  void *result = malloc(size);
-
-  NNTR_THROW_IF(result == NULL, std::runtime_error)
-    << "failed to allocate memory in ggml_malloc, fatal error";
-
-  return result;
-}
-
 #if defined(_MSC_VER) || defined(__MINGW32__)
 static int64_t timer_freq, timer_start;
 void ggml_time_init(void) {
@@ -413,35 +399,6 @@ struct ggml_context *ggml_init(struct ggml_init_params params) {
   ggml_critical_section_end();
 
   struct ggml_context *ctx = nullptr;
-
-  //   struct ggml_context *ctx = GGML_MALLOC(sizeof(struct ggml_context));
-
-  //   // allow to call ggml_init with 0 size
-  //   if (params.mem_size == 0) {
-  //     params.mem_size = GGML_MEM_ALIGN;
-  //   }
-
-  //   const size_t mem_size = params.mem_buffer
-  //                             ? params.mem_size
-  //                             : GGML_PAD(params.mem_size, GGML_MEM_ALIGN);
-
-  //   *ctx = (struct ggml_context){
-  //     /**.mem_size           =*/mem_size,
-  //     /**.mem_buffer         =*/params.mem_buffer ? params.mem_buffer
-  //                                                :
-  //                                                ggml_aligned_malloc(mem_size),
-  //     /**.mem_buffer_owned   =*/params.mem_buffer ? false : true,
-  //     /**.no_alloc           =*/params.no_alloc,
-  //     /**.n_objects          =*/0,
-  //     /**.objects_begin      =*/NULL,
-  //     /**.objects_end        =*/NULL,
-  //   };
-
-  //   GGML_ASSERT(ctx->mem_buffer != NULL);
-
-  //   GGML_ASSERT_ALIGNED(ctx->mem_buffer);
-
-  //   GGML_PRINT_DEBUG("%s: context initialized\n", __func__);
 
   return ctx;
 }
