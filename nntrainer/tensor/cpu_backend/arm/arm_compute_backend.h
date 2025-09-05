@@ -391,16 +391,6 @@ void softmax_row_inplace(_FP16 *qk_out, size_t start_row, size_t end_row,
                          size_t num_heads);
 
 /**
- * @brief Multihead softmax, exp(x_i) / sum(exp(x_i))
- * @param[in/out] qk_out __fp16* input/output values
- * @param[in] start_row start row number
- * @param[in] end_row end row number
- * @param[in] num_heads heads number
- */
-void softmax_row(_FP16 *qk_out, size_t start_row, size_t end_row,
-                 size_t num_heads);
-
-/**
  * @brief Compute vcache for one row transposed
  * @param[in] row_num row number
  * @param[in] in _FP16* input vector
@@ -409,12 +399,13 @@ void softmax_row(_FP16 *qk_out, size_t start_row, size_t end_row,
  * @param[in] num_cache_head number head of cache
  * @param[in] gqa_size size of group
  * @param[in] head_dim head dimension
+ * @param[in] chunk_size size of chunk
  * @param[in] local_window_size windows size for local attention
  */
 void compute_fp16vcache_transposed(int row_num, const _FP16 *in,
                                    const _FP16 *vcache, _FP16 *output,
                                    int num_cache_head, int gqa_size,
-                                   int head_dim,
+                                   int head_dim, int chunk_size,
                                    size_t local_window_size = UINT_MAX);
 
 /**
@@ -426,12 +417,13 @@ void compute_fp16vcache_transposed(int row_num, const _FP16 *in,
  * @param[in] num_cache_head number head of cache
  * @param[in] head_dim head dimension
  * @param[in] gqa_size size of group
+ * @param[in] tile_off offset of tile
  * @param[in] tile_size size of tile
  * @param[in] local_window_size windows size for local attention
  */
 void compute_kcaches(const _FP16 *in, const _FP16 *kcache, _FP16 *output,
                      int num_rows, int num_cache_head, int head_dim,
-                     int gqa_size, int tile_size,
+                     int gqa_size, int tile_off, int tile_size,
                      size_t local_window_size = UINT_MAX);
 
 /**
