@@ -100,7 +100,6 @@ float compute_mse(const uint32_t M, const uint32_t N, std::vector<T> &ref_dst,
   return mean_squared_error;
 }
 
-#ifdef ENABLE_GGML
 float test_gemm_q4_0_fp16(const uint32_t M, const uint32_t K, const uint32_t N,
                           const float *weights, const _FP16 *activations,
                           std::vector<_FP16> &ref_dst, bool print = false) {
@@ -279,8 +278,6 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMV_1x3072x3072) {
   ASSERT_LE(q4_0_mse, eps * M * K * N);
   ASSERT_LE(q6_k_mse, q4_0_mse);
 }
-
-#endif
 
 int main(int argc, char **argv) {
   int result = -1;

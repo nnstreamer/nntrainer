@@ -1154,7 +1154,6 @@ TEST(blas_kernels, addition_i_fp16) {
 
 #endif
 
-#ifdef ENABLE_GGML
 template <typename T, bool random_init = false>
 static inline std::vector<T>
 generate_random_vector(size_t size, float min_val = -1.F, float max_val = 1.F) {
@@ -1651,8 +1650,6 @@ TEST(nntrainer_blas_kernel, q4_0_async_test2) {
   freeSVM(async_out0);
   freeSVM(async_out1);
 }
-
-#endif // ENABLE_GGML
 
 #ifdef ENABLE_FP16
 TEST(blas_kernels, swiglu_layer_fp16) {
