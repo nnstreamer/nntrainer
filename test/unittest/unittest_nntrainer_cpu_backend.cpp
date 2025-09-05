@@ -172,7 +172,6 @@ float compute_mse(const uint32_t M, const uint32_t N, std::vector<T> &ref_dst,
   return mean_squared_error;
 }
 
-#ifdef ENABLE_GGML
 TEST(nntrainer_cpu_backend_standalone, q4_K_quantization) {
   nntrainer::init_backend();
 
@@ -564,8 +563,6 @@ TEST(nntrainer_cpu_backend_standalone, quant_q_6_K_DOT_10240) {
   const uint32_t K = 10240;
   run_vec_dot_test(K);
 }
-
-#endif
 
 static void run_ele_mul_test(const unsigned int N, float alpha, float beta,
                              unsigned int i_stride, unsigned int o_stride,

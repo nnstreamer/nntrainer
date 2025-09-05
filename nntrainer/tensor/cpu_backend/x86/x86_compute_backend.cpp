@@ -18,24 +18,16 @@
 #include <cblas_interface.h>
 #endif
 #include <fallback_internal.h>
+#include <ggml_interface.h>
 #include <nntrainer_error.h>
 #include <x86_compute_backend.h>
-#ifdef ENABLE_GGML
-#include <ggml_interface.h>
-#endif
 
 #define ROW_MAJOR 0
 #define COL_MAJOR 1
 
 namespace nntrainer {
 
-void init_backend() {
-#ifdef ENABLE_GGML
-  __ggml_init();
-#else
-  // TODO it needed.
-#endif
-}
+void init_backend() { __ggml_init(); }
 
 void scopy_int4_to_float32(const unsigned int N, const uint8_t *X,
                            const unsigned int incX, float *Y,
@@ -299,11 +291,7 @@ template <>
 void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc) {
-#ifdef ENABLE_GGML
   return __ggml_q4_0_8x8_q8_0_GEMM(M, N, K, A, lda, B, ldb, C, ldc);
-#else
-  return __fallback_gemm_q4_0(M, N, K, A, lda, B, ldb, C, ldc);
-#endif
 }
 
 void gemm_q4_0(const unsigned int M, std::vector<unsigned int> Ns,
@@ -316,144 +304,80 @@ void gemm_q4_0(const unsigned int M, std::vector<unsigned int> Ns,
 void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc) {
-#ifdef ENABLE_GGML
   return __ggml_q4_K_8x8_q8_K_GEMM(M, N, K, A, lda, B, ldb, C, ldc);
-#else
-  return __fallback_gemm_q4_K(M, N, K, A, lda, B, ldb, C, ldc);
-#endif
 }
 
 void gemm_q4_K(const unsigned int M, std::vector<unsigned int> Ns,
                const unsigned int K, const float *A, const unsigned int lda,
                std::vector<void *> Bs, std::vector<unsigned int> ldbs,
                std::vector<float *> Cs, std::vector<unsigned int> ldcs) {
-#ifdef ENABLE_GGML
   return __ggml_q4_K_8x8_q8_K_GEMM(M, Ns, K, A, lda, Bs, ldbs, Cs, ldcs);
-#else
-  throw std::runtime_error("Error: NYI for gemm_q4_K with vectored weights");
-  return;
-#endif
 }
 
 float dot_q6_K_q8_K(const unsigned int K, const void *v_q6_K,
                     const void *v_q8_K) {
-#ifdef ENABLE_GGML
   return __ggml_vec_dot_q6_K_q8_K(K, v_q6_K, v_q8_K);
-#else
-  return __fallback_dot_q6_K_q8_K(K, v_q6_K, v_q8_K);
-#endif
 }
 
 float dot_q6_K_f32(const unsigned int K, const void *v_q6_K, const float *f) {
-#ifdef ENABLE_GGML
   return __ggml_vec_dot_q6_K_f32(K, v_q6_K, f);
-#else
-  return __fallback_dot_q6_K_f32(K, v_q6_K, f);
-#endif
 }
 
 template <>
 void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc) {
-#ifdef ENABLE_GGML
   return __ggml_gemm_q6_K(M, N, K, A, lda, B, ldb, C, ldc);
-#else
-  return __fallback_gemm_q6_K(M, N, K, A, lda, B, ldb, C, ldc);
-#endif
 }
 
 size_t quantize_q4_0(const float *src, void *dst, int64_t nrow,
                      int64_t n_per_row, const float *quant_weights) {
-#ifdef ENABLE_GGML
   return __ggml_quantize_q4_0(src, dst, nrow, n_per_row, quant_weights);
-#else
-  return __fallback_quantize_q4_0(src, dst, nrow, n_per_row, quant_weights);
-#endif
 }
 
 size_t quantize_q4_K(const float *src, void *dst, int64_t nrow,
                      int64_t n_per_row, const float *quant_weights) {
-#ifdef ENABLE_GGML
   return __ggml_quantize_q4_K(src, dst, nrow, n_per_row, quant_weights);
-#else
-  return __fallback_quantize_q4_K(src, dst, nrow, n_per_row, quant_weights);
-#endif
 }
 
 size_t quantize_q6_K(const float *src, void *dst, int64_t nrow,
                      int64_t n_per_row, const float *quant_weights) {
-#ifdef ENABLE_GGML
   return __ggml_quantize_q6_K(src, dst, nrow, n_per_row, quant_weights);
-#endif
-  return __fallback_quantize_q6_K(src, dst, nrow, n_per_row, quant_weights);
 }
 
 void quantize_row_q6_K(const float *src, void *dst, int64_t k) {
-#ifdef ENABLE_GGML
   __ggml_quantize_row_q6_K(src, dst, k);
-#else
-  __fallback_quantize_row_q6_K(src, dst, k);
-#endif
 }
 
 template <> void quantize_row_q8_K(const float *src, void *dst, int64_t k) {
-#ifdef ENABLE_GGML
   __ggml_quantize_row_q8_K(src, dst, k);
-#else
-  __fallback_quantize_row_q8_K(src, dst, k);
-#endif
 }
 
 void dequantize_row_q4_K(const void *x_raw, float *y, int64_t k) {
-#ifdef ENABLE_GGML
   __ggml_dequantize_row_q4_K(x_raw, y, k);
-#else
-  __fallback_dequantize_row_q4_K(x_raw, y, k);
-#endif
 }
 
 void dequantize_row_q6_K(const void *x, float *y, int64_t k) {
-#ifdef ENABLE_GGML
   __ggml_dequantize_row_q6_K(x, y, k);
-#else
-  __fallback_dequantize_row_q6_K(x, y, k);
-#endif
 }
 
 template <> void dequantize_row_q8_K(const void *x, float *y, int64_t k) {
-#ifdef ENABLE_GGML
   __ggml_dequantize_row_q8_K(x, y, k);
-#else
-  __fallback_dequantize_row_q8_K(x, y, k);
-#endif
 }
 
 void repack_q4_0(void *W, void *repacked_W, size_t data_size,
                  const unsigned int M, const unsigned int N) {
-#ifdef ENABLE_GGML
   __ggml_repack_q4_0_to_q4_0_8(W, repacked_W, data_size, M, N);
-#else
-  __fallback_repack_q4_0_to_q4_0_8(W, repacked_W, data_size, M, N);
-#endif
 }
 
 void repack_q4_0_to_q4_0_8(void *W, void *repacked_W, size_t data_size,
                            const unsigned int M, const unsigned int N) {
-#ifdef ENABLE_GGML
   __ggml_repack_q4_0_to_q4_0_8(W, repacked_W, data_size, M, N);
-#else
-  __fallback_repack_q4_0_to_q4_0_8(W, repacked_W, data_size, M, N);
-#endif
 }
 
 void repack_q4_K(void *W, void *repacked_W, size_t data_size,
                  const unsigned int M, const unsigned int N) {
-#ifdef ENABLE_GGML
   __ggml_repack_q4_K_to_q4_K_8(W, repacked_W, data_size, M, N);
-#else
-  __fallback_repack_q4_K_to_q4_K_8(W, repacked_W, data_size, M, N);
-#endif
 }
 
 void softmax_row_inplace(float *qk_out, size_t start_row, size_t end_row,

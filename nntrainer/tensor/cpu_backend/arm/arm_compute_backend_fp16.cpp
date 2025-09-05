@@ -321,57 +321,33 @@ void softmax(const unsigned int N, _FP16 *X, _FP16 *Y) {
 template <>
 size_t quantize_q8_0(const _FP16 *src, void *dst, int64_t nrow,
                      int64_t n_per_row, const float *quant_weights) {
-#ifdef ENABLE_GGML
   return __ggml_quantize_q8_0(src, dst, nrow, n_per_row, quant_weights);
-#else
-  return __fallback_quantize_q8_0(src, dst, nrow, n_per_row, quant_weights);
-#endif
 }
 
 template <> void dequantize_row_q8_0(const void *x_raw, _FP16 *y, int64_t k) {
-#ifdef ENABLE_GGML
   __ggml_dequantize_row_q8_0(x_raw, y, k);
-#else
-  __fallback_dequantize_row_q8_0(x_raw, y, k);
-#endif
 }
 
 template <>
 void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
                const _FP16 *A, const unsigned int lda, const void *B,
                const unsigned int ldb, _FP16 *C, const unsigned int ldc) {
-#ifdef ENABLE_GGML
   return __ggml_q4_0_4x8_q8_0_GEMM<_FP16>(M, N, K, A, lda, B, ldb, C, ldc);
-#else
-  return __fallback_gemm_q4_0(M, N, K, A, lda, B, ldb, C, ldc);
-#endif
 }
 
 template <> void quantize_row_q8_K(const _FP16 *src, void *dst, int64_t k) {
-#ifdef ENABLE_GGML
   __ggml_quantize_row_q8_K(src, dst, k);
-#else
-  __fallback_quantize_row_q8_K(src, dst, k);
-#endif
 }
 
 template <> void dequantize_row_q8_K(const void *x, _FP16 *y, int64_t k) {
-#ifdef ENABLE_GGML
   __ggml_dequantize_row_q8_K(x, y, k);
-#else
-  __fallback_dequantize_row_q8_K(x, y, k);
-#endif
 }
 
 template <>
 void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
                const _FP16 *A, const unsigned int lda, const void *B,
                const unsigned int ldb, _FP16 *C, const unsigned int ldc) {
-#ifdef ENABLE_GGML
   return __ggml_gemm_q6_K<_FP16>(M, N, K, A, lda, B, ldb, C, ldc);
-#else
-  return __fallback_gemm_q6_K(M, N, K, A, lda, B, ldb, C, ldc);
-#endif
 }
 
 void compute_fp16vcache_fp32_transposed(int row_num, const float *in,
