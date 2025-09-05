@@ -201,4 +201,26 @@ void QKVLayer::updateTensorsByInputDimensions(
   context.updateOutput(QKVParams::K, Koutput_dim);
   context.updateOutput(QKVParams::V, Voutput_dim);
 }
+
+#ifdef PLUGGABLE
+
+nntrainer::Layer *create_qkv_layer() {
+  auto layer = new QKVLayer();
+  std::cout << "qkv layer created\n";
+  return layer;
+}
+
+void destroy_qkv_layer(nntrainer::Layer *layer) {
+  std::cout << "qkv layer is deleted\n";
+  delete layer;
+}
+
+extern "C" {
+nntrainer::LayerPluggable ml_train_layer_pluggable{create_qkv_layer,
+                                                   destroy_qkv_layer};
+}
+
+#endif
+
+
 } // namespace causallm

@@ -520,4 +520,23 @@ void SlimMoELayer::exportTo(nntrainer::Exporter &exporter,
   exporter.saveResult(moe_props, method, this); // Save MoE specific properties
 }
 
+#ifdef PLUGGABLE
+
+nntrainer::Layer *create_slim_moe_layer() {
+  auto layer = new SlimMoELayer();
+  std::cout << "slim moe layer created\n";
+  return layer;
+}
+
+void destroy_slim_moe_layer(nntrainer::Layer *layer) {
+  std::cout << "slim moe layer is deleted\n";
+  delete layer;
+}
+
+extern "C" {
+nntrainer::LayerPluggable ml_train_layer_pluggable{create_slim_moe_layer,
+                                                   destroy_slim_moe_layer};
+}
+
+#endif
 } // namespace causallm

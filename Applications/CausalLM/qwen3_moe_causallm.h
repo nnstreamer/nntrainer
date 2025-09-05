@@ -13,6 +13,13 @@
 #ifndef __QWEN_MOE_CAUSAL_LM_H__
 #define __QWEN_MOE_CAUSAL_LM_H__
 
+#pragma once
+#ifdef _WIN32
+#define WIN_EXPORT __declspec(dllexport)
+#else
+#define WIN_EXPORT
+#endif
+
 #include <causal_lm.h>
 #include <qwen3_causallm.h>
 
@@ -22,26 +29,26 @@ namespace causallm {
  * @brief Qwen3MoECausalLM class
  * @note  This class inherits Qwewn3CaUSALlm
  */
-class Qwen3MoECausalLM : public Qwen3CausalLM {
+WIN_EXPORT class Qwen3MoECausalLM : public Qwen3CausalLM {
 
 public:
   static constexpr const char *architectures = "Qwen3MoeForCausalLM";
 
-  Qwen3MoECausalLM(json &cfg, json &generation_cfg, json &nntr_cfg) :
+  WIN_EXPORT Qwen3MoECausalLM(json &cfg, json &generation_cfg, json &nntr_cfg) :
     Qwen3CausalLM(cfg, generation_cfg, nntr_cfg) {
     setupParameters(cfg, generation_cfg, nntr_cfg);
   }
 
-  virtual ~Qwen3MoECausalLM() = default;
+  WIN_EXPORT virtual ~Qwen3MoECausalLM() = default;
 
-  std::vector<LayerHandle> createMlp(const int layer_id, int dim,
+  WIN_EXPORT std::vector<LayerHandle> createMlp(const int layer_id, int dim,
                                      int hidden_dim,
                                      std::string input_name) override;
 
-  void setupParameters(json &cfg, json &generation_cfg,
+  WIN_EXPORT void setupParameters(json &cfg, json &generation_cfg,
                        json &nntr_cfg) override;
 
-  void registerCustomLayers() override;
+  WIN_EXPORT void registerCustomLayers() override;
 
 private:
   unsigned int NUM_EXPERTS;

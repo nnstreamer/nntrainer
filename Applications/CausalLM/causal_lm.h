@@ -77,54 +77,54 @@ public:
    * (generation_config.json)
    * @param nntr_cfg Configuration for nntrainer (nntrainer_config.json)
    */
-  CausalLM(json &cfg, json &generation_cfg, json &nntr_cfg);
+  WIN_EXPORT CausalLM(json &cfg, json &generation_cfg, json &nntr_cfg);
 
   /**
    * @brief Destroy the CausalLM object
    */
-  virtual ~CausalLM() { free(ids_history); }
+  WIN_EXPORT virtual ~CausalLM() { free(ids_history); }
 
   /**
    * @brief Initialize and Construct the CausalLM model
    */
-  void initialize();
+  WIN_EXPORT void initialize();
 
   /**
    * @brief Load the model weights from a file
    */
-  void load_weight(const std::string &weight_path);
+  WIN_EXPORT void load_weight(const std::string &weight_path);
 
   /**
    * @brief Save the weight to a file
    */
-  void save_weight(const std::string &weight_path);
+  WIN_EXPORT void save_weight(const std::string &weight_path);
 
   /**
    * @brief run the CausalLM model
    */
-  void run(const WSTR prompt, bool do_sample = false);
+  WIN_EXPORT void run(const WSTR prompt, bool do_sample = false);
 
 protected:
   /**
    * @brief Setup the parameters for the CausalLM model
    */
-  virtual void setupParameters(json &cfg, json &generation_cfg, json &nntr_cfg);
+  WIN_EXPORT virtual void setupParameters(json &cfg, json &generation_cfg, json &nntr_cfg);
 
   /**
    * @brief Construct Model
    */
-  virtual void constructModel();
+  WIN_EXPORT virtual void constructModel();
 
   /**
    * @brief create Decoder Part
    */
-  virtual std::vector<LayerHandle>
+  WIN_EXPORT virtual std::vector<LayerHandle>
   createTransformerDecoderBlock(const int layer_id, std::string input_name);
 
   /**
    * @brief create Attention Layer
    */
-  virtual std::vector<LayerHandle>
+  WIN_EXPORT virtual std::vector<LayerHandle>
   createAttention(const int layer_id, int seq_len, int n_heads, int head_dim,
                   std::string query_name, std::string key_name,
                   std::string value_name);
@@ -132,19 +132,19 @@ protected:
   /**
    * @brief create Feed Forward Layer
    */
-  virtual std::vector<LayerHandle> createMlp(const int layer_id, int dim,
+  WIN_EXPORT virtual std::vector<LayerHandle> createMlp(const int layer_id, int dim,
                                              int hidden_dim,
                                              std::string input_name);
 
   /**
    * @brief register CustomLayers
    */
-  virtual void registerCustomLayers();
+  WIN_EXPORT virtual void registerCustomLayers();
 
   /**
    * @brief register Outputs
    */
-  virtual void
+  WIN_EXPORT virtual void
   registerOutputs(std::unique_ptr<tokenizers::Tokenizer> &tokenizer,
                   std::vector<unsigned int> ids, unsigned int pos,
                   const std::vector<bool> &eos_list);
@@ -152,7 +152,7 @@ protected:
   /**
    * @brief generate
    */
-  std::vector<unsigned int> generate(float *logits, bool do_sample,
+  WIN_EXPORT std::vector<unsigned int> generate(float *logits, bool do_sample,
                                      float repetition_penalty = 1,
                                      unsigned int *input_ids = nullptr,
                                      unsigned int NUM_INPUT_IDS = 0);
@@ -210,7 +210,7 @@ protected:
  * @return JSON object
  * @throws std::runtime_error on file open or parse failure
  */
-inline json LoadJsonFile(const std::string &file_path) {
+WIN_EXPORT inline json LoadJsonFile(const std::string &file_path) {
   std::ifstream file(file_path);
   if (!file.is_open()) {
     throw std::runtime_error("Failed to open file: " + file_path +

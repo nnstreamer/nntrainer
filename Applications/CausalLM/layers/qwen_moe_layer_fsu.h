@@ -16,9 +16,16 @@
  * @todo   This layer does not support backwarding yet.
  */
 
-#ifndef __MOE_LAYER_H__
-#define __MOE_LAYER_H__
+#ifndef __SLIM_MOE_LAYER_H__
+#define __SLIM_MOE_LAYER_H__
 #ifdef __cplusplus
+
+#pragma once
+#ifdef _WIN32
+#define WIN_EXPORT __declspec(dllexport)
+#else
+#define WIN_EXPORT
+#endif
 
 #include <acti_func.h>
 #include <causallm_common_properties.h>
@@ -31,78 +38,78 @@ namespace causallm {
  * @class   SlimMoELayer
  * @brief   Mixture of Expert Layer
  */
-class SlimMoELayer : public nntrainer::LayerImpl {
+WIN_EXPORT class SlimMoELayer : public nntrainer::LayerImpl {
 public:
   /**
    * @brief     Constructor of Mixture of Expert Layer
    */
-  SlimMoELayer();
+WIN_EXPORT SlimMoELayer();
 
   /**
    * @brief     Destructor of Mixture of Expert Layer
    */
-  ~SlimMoELayer() = default;
+  WIN_EXPORT ~SlimMoELayer() = default;
 
   /**
    * @brief  Move constructor.
    *  @param[in] SlimMoELayer &&
    */
-  SlimMoELayer(SlimMoELayer &&rhs) noexcept = default;
+  WIN_EXPORT SlimMoELayer(SlimMoELayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @param[in] rhs SlimMoELayer to be moved.
    */
-  SlimMoELayer &operator=(SlimMoELayer &&rhs) = default;
+  WIN_EXPORT SlimMoELayer &operator=(SlimMoELayer &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(nntrainer::InitLayerContext &context) override;
+  WIN_EXPORT void finalize(nntrainer::InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(nntrainer::RunLayerContext &context, bool training) override;
+  WIN_EXPORT void forwarding(nntrainer::RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::incremental_forwarding(RunLayerContext &context, unsigned)
    */
-  void incremental_forwarding(nntrainer::RunLayerContext &context,
+  WIN_EXPORT void incremental_forwarding(nntrainer::RunLayerContext &context,
                               unsigned int from, unsigned int to,
                               bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(nntrainer::RunLayerContext &context) override;
+  WIN_EXPORT void calcDerivative(nntrainer::RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::calcGradient(RunLayerContext &context)
    */
-  void calcGradient(nntrainer::RunLayerContext &context) override;
+  WIN_EXPORT void calcGradient(nntrainer::RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  void setProperty(const std::vector<std::string> &values) override;
+  WIN_EXPORT void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, const ml::train::ExportMethods
    * &methods)
    */
-  void exportTo(nntrainer::Exporter &exporter,
+  WIN_EXPORT void exportTo(nntrainer::Exporter &exporter,
                 const ml::train::ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return SlimMoELayer::type; };
+  WIN_EXPORT const std::string getType() const override { return SlimMoELayer::type; };
 
   /**
    * @brief Layer::supportBackwarding()
    */
-  bool supportBackwarding() const override { return false; }
+  WIN_EXPORT bool supportBackwarding() const override { return false; }
 
   static constexpr const char *type = "moe_slim"; /**< type of the layer */
 
@@ -134,7 +141,7 @@ private:
    * @param down_proj Down projection weight tensor
    * @param hidden_size Hidden dimension size
    */
-  inline void compute_expert_forward(
+  WIN_EXPORT inline void compute_expert_forward(
     const nntrainer::Tensor &input, nntrainer::Tensor &output,
     const std::vector<std::pair<unsigned, float>> &token_assignments,
     const nntrainer::Tensor &gate_proj, const nntrainer::Tensor &up_proj,
@@ -151,7 +158,7 @@ private:
    * @param down_proj Down projection weight tensor
    * @param hidden_size Hidden dimension size
    */
-  inline void compute_expert_forward_no_critical(
+  WIN_EXPORT inline void compute_expert_forward_no_critical(
     const nntrainer::Tensor &input, nntrainer::Tensor &expert_output,
     const std::vector<std::pair<unsigned, float>> &token_assignments,
     const nntrainer::Tensor &gate_proj, const nntrainer::Tensor &up_proj,

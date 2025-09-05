@@ -36,7 +36,14 @@
 #include "qwen3_causallm.h"
 #include "qwen3_moe_causallm.h"
 #include "qwen3_slim_moe_causallm.h"
+
+#if defined(_WIN32)
+#define NOMINMAX
+#include <windows.h>
+#include <psapi.h>
+#else
 #include <sys/resource.h>
+#endif
 
 #include <atomic>
 #include <chrono>
@@ -48,10 +55,17 @@ std::atomic<size_t> peak_rss_kb{0};
 std::atomic<bool> tracking_enabled{true};
 
 void printMemoryUsage() {
+  #if defined(_WIN32)
+  PROCESS_MEMORY_COUNTERS info;
+  GetProcessMemoryInfo(GetCurrentProcess(), &info, sizeof(info));
+  SIZE_T peakMem = info.PeakWorkingSetSize;
+  std::cout << "Max Resident Set Size: "<< peakMem / 1024 << " KB" << std::endl;
+  #else
   struct rusage usage;
   getrusage(RUSAGE_SELF, &usage);
   std::cout << "Max Resident Set Size: " << usage.ru_maxrss << " KB"
             << std::endl;
+  #endif
 }
 
 size_t read_vm_rss_kb() {
@@ -100,7 +114,18 @@ void stop_and_print_peak() {
   std::cout << "Peak memory usage (VmRSS): " << peak_rss_kb.load() << " KB"
             << std::endl;
 }
+#if defined(_WIN32)
+std::wstring to_wstring(const char* str){
+  if(!str)return L"";
+  int len = MultiByteToWideChar(CP_UTF8, 0, str, -1, nullptr, 0);
+  if (len == 0) return L"";
 
+  std::wstring result(len-1, L'\0');
+  MultiByteToWideChar(CP_UTF8, 0, str, -1, &result[0], len);
+  return result;
+}
+
+#endif
 int main(int argc, char *argv[]) {
 
   /** Register all runnable causallm models to factory */
@@ -152,7 +177,11 @@ int main(int argc, char *argv[]) {
   }
 
   const std::string model_path = argv[1];
+  #if defined(_WIN32)
+  std::wstring input_text;
+  #else
   std::string input_text;
+  #endif
 
   std::cout << model_path << std::endl;
 
@@ -165,9 +194,17 @@ int main(int argc, char *argv[]) {
 
     // Determine input text
     if (argc >= 3) {
+      #if defined(_WIN32)
+      input_text = to_wstring(argv[2]);
+      #else
       input_text = argv[2];
+      #endif
     } else {
-      input_text = nntr_cfg["sample_input"].get<std::string>();
+      #if defined(_WIN32)
+      input_text = to_wstring(nntr_cfg["sample_input"].get<std::string>().c_str());      
+      #else
+      input_text = nntr_cfg["sample_input"].get<std::string>();      
+      #endif
     }
 
     // Construct weight file path

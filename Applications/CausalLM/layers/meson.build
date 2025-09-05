@@ -21,7 +21,8 @@ causallm_rms_norm = shared_library(
     include_directories: causallm_layer_inc, 
     dependencies: [nntrainer_dep, nntrainer_ccapi_dep],
     install: true,
-    install_dir: application_install_dir
+    install_dir: application_install_dir,
+    cpp_args: '-DPLUGGABLE'           
 )
 causallm_rms_norm_dep = declare_dependency(
     link_with: causallm_rms_norm,
@@ -34,7 +35,8 @@ causallm_swiglu = shared_library(
     include_directories: causallm_layer_inc,
     dependencies: [nntrainer_dep, nntrainer_ccapi_dep],
     install: true,
-    install_dir: application_install_dir
+    install_dir: application_install_dir,
+    cpp_args: '-DPLUGGABLE'           
 )
 causallm_swiglu_dep = declare_dependency(
     link_with: causallm_swiglu,
@@ -47,7 +49,8 @@ causallm_tie_word_embedding = shared_library(
     include_directories: causallm_layer_inc,
     dependencies: [nntrainer_dep, nntrainer_ccapi_dep, openmp_dep],
     install: true,
-    install_dir: application_install_dir
+    install_dir: application_install_dir,
+    cpp_args: '-DPLUGGABLE'           
 )
 causallm_tie_word_embedding_dep = declare_dependency(
     link_with: causallm_tie_word_embedding,
@@ -60,7 +63,8 @@ causallm_mha_core = shared_library(
     include_directories: causallm_layer_inc,
     dependencies: [nntrainer_dep, nntrainer_ccapi_dep, openmp_dep],
     install: true,
-    install_dir: application_install_dir
+    install_dir: application_install_dir,
+    cpp_args: '-DPLUGGABLE'       
 )
 causallm_mha_core_dep = declare_dependency(
     link_with: causallm_mha_core,
@@ -73,7 +77,8 @@ causallm_embedding_layer = shared_library(
     include_directories: causallm_layer_inc,
     dependencies: [nntrainer_dep, nntrainer_ccapi_dep, openmp_dep],
     install: true,
-    install_dir: application_install_dir
+    install_dir: application_install_dir,
+    cpp_args: '-DPLUGGABLE'           
 )
 causallm_embedding_layer_dep = declare_dependency(
     link_with: causallm_embedding_layer,
@@ -86,7 +91,8 @@ causallm_reshaped_rms_norm = shared_library(
     include_directories: causallm_layer_inc, 
     dependencies: [nntrainer_dep, nntrainer_ccapi_dep],
     install: true,
-    install_dir: application_install_dir
+    install_dir: application_install_dir,
+    cpp_args: '-DPLUGGABLE'           
 )
 causallm_reshaped_rms_norm_dep = declare_dependency(
     link_with: causallm_reshaped_rms_norm,
@@ -99,7 +105,8 @@ causallm_moe_layer = shared_library(
     include_directories: causallm_layer_inc,
     dependencies: [nntrainer_dep, nntrainer_ccapi_dep, openmp_dep],
     install: true,
-    install_dir: application_install_dir
+    install_dir: application_install_dir,
+    cpp_args: '-DPLUGGABLE'           
 )
 causallm_moe_layer_dep = declare_dependency(
     link_with: causallm_moe_layer,
@@ -112,7 +119,9 @@ causallm_slim_moe_layer = shared_library(
     include_directories: causallm_layer_inc,
     dependencies: [nntrainer_dep, nntrainer_ccapi_dep, openmp_dep],
     install: true,
-    install_dir: application_install_dir
+    install_dir: application_install_dir,
+    cpp_args: '-DPLUGGABLE'        
+
 )
 causallm_slim_moe_layer_dep = declare_dependency(
     link_with: causallm_slim_moe_layer,
@@ -125,7 +134,8 @@ causallm_cached_slim_moe_layer = shared_library(
     include_directories: causallm_layer_inc,
     dependencies: [nntrainer_dep, nntrainer_ccapi_dep, openmp_dep],
     install: true,
-    install_dir: application_install_dir
+    install_dir: application_install_dir,
+    cpp_args: '-DPLUGGABLE'           
 )
 causallm_cached_slim_moe_layer_dep = declare_dependency(
     link_with: causallm_cached_slim_moe_layer,
@@ -138,7 +148,8 @@ causallm_qkv_layer = shared_library(
     include_directories: causallm_layer_inc,
     dependencies: [nntrainer_dep, nntrainer_ccapi_dep],
     install: true,
-    install_dir: application_install_dir
+    install_dir: application_install_dir,
+    cpp_args: '-DPLUGGABLE'           
 )
 
 causallm_qkv_layer_dep = declare_dependency(

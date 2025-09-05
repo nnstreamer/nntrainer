@@ -529,4 +529,25 @@ void MoELayer::exportTo(nntrainer::Exporter &exporter,
   exporter.saveResult(moe_props, method, this); // Save MoE specific properties
 }
 
+#ifdef PLUGGABLE
+
+nntrainer::Layer *create_moe_layer() {
+  auto layer = new MoELayer();
+  std::cout << "moe layer created\n";
+  return layer;
+}
+
+void destroy_moe_layer(nntrainer::Layer *layer) {
+  std::cout << "moelayer is deleted\n";
+  delete layer;
+}
+
+extern "C" {
+nntrainer::LayerPluggable ml_train_layer_pluggable{create_moe_layer,
+                                                   destroy_moe_layer};
+}
+
+#endif
+
+
 } // namespace causallm

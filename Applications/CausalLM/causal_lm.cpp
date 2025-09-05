@@ -35,6 +35,7 @@
 #include <rms_norm.h>
 #include <swiglu.h>
 #include <tie_word_embedding.h>
+#include <codecvt>
 
 namespace causallm {
 
@@ -268,8 +269,8 @@ void CausalLM::run(const WSTR prompt, bool do_sample) {
   std::vector<float *> label;
 
 #if defined(_WIN32)
-  std::wcout << L"" << text_ << std::endl;
-  // auto _input = tokenizer.encode(prompt);
+  std::wcout << L"" << prompt << std::endl;
+  std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
   auto _input = tokenizer->Encode(converter.to_bytes(prompt));
 #else
   // print input text
@@ -638,6 +639,13 @@ void CausalLM::registerCustomLayers() {
   }
 }
 
+#if defined(_WIN32)
+std::wstring utf8_to_wstring(const std::string &str) {
+  std::wstring_convert<std::codecvt_utf8<wchar_t>> conv;
+  return conv.from_bytes(str);
+}
+#endif
+
 void CausalLM::registerOutputs(
   std::unique_ptr<tokenizers::Tokenizer> &tokenizer,
   std::vector<unsigned int> ids, unsigned int pos,
@@ -647,7 +655,7 @@ void CausalLM::registerOutputs(
     if (!eos_list[i]) {
       auto decoded_str = tokenizer->Decode({static_cast<int>(ids[i])});
 #if defined(_WIN32)
-      std::wcout << L"" << utf9_to_wstring(decoded_str);
+      std::wcout << L"" << utf8_to_wstring(decoded_str);
       std::wcout.flush();
 #else
       std::cout << decoded_str;

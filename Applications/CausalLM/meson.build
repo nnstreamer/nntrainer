@@ -34,32 +34,45 @@ causallm_layer_dependencies = [
     causallm_moe_layer_dep,
     causallm_slim_moe_layer_dep,
     causallm_cached_slim_moe_layer_dep,
-    causallm_qkv_layer_dep, 
+    causallm_qkv_layer_dep,
 ]
 
-if (get_option('platform') == 'windows') and (build_machine.system() == 'windows')
-    run_command(powershell_prog, '-ExecutionPolicy', 'Bypass', '-File', join_paths(meson.source_root(), 'jni', 'prepare_encoder.ps1'), meson.build_root(), '0.2', check: true)
-elif get_option('platform') != 'tizen'
-    run_command([meson.source_root() / 'jni' / 'prepare_encoder.sh', meson.build_root(), '0.2'], check: true)
-endif
+#if (get_option('platform') == 'windows') and (build_machine.system() == 'windows')
+#    run_command(powershell_prog, '-ExecutionPolicy', 'Bypass', '-File', join_paths(meson.source_root(), 'jni', 'prepare_encoder.ps1'), meson.build_root(), '0.2', check: true)
+#elif get_option('platform') != 'tizen'
+#    run_command([meson.source_root() / 'jni' / 'prepare_encoder.sh', meson.build_root(), '0.2'], check: true)
+#endif
 
 tokenizer_dependencies = []
-tokenizer_path = meson.current_source_dir() / 'lib' / 'libtokenizers_c.a'
+tokenizer_path=''
+
+if host_machine.system() == 'windows'
+  ws2_dep = cc.find_library('ws2_32', required: true)
+  ntdll_dep = cc.find_library('ntdll', required: true)
+  bcrypt_dep = cc.find_library('bcrypt', required: true)
+  userenv_dep = cc.find_library('userenv', required: true)
+  tokenizer_dependencies += ws2_dep
+  tokenizer_dependencies += ntdll_dep
+  tokenizer_dependencies += bcrypt_dep
+  tokenizer_dependencies += userenv_dep
+  tokenizer_path = meson.current_source_dir() / 'lib' / 'tokenizers_c.lib'
+else
+  tokenizer_path = meson.current_source_dir() / 'lib' / 'libtokenizers_c.a'
+endif
 
 causallm = shared_library('causallm',
     causallm_src,
     dependencies: [
         nntrainer_dep,
         nntrainer_ccapi_dep,
-        causallm_layer_dependencies, 
+        causallm_layer_dependencies,
         tokenizer_dependencies,
         openmp_dep
     ],
     include_directories: causallm_inc,
     install: true,
     install_dir: application_install_dir,
-    link_args: [tokenizer_path],
-    cpp_args: '-DPLUGGABLE'
+    link_args: [tokenizer_path]
 )
 
 causallm_dep = declare_dependency(
@@ -71,4 +84,6 @@ e = executable('nntr_causallm',
     executable_src,
     include_directories: causallm_inc,
     dependencies: [nntrainer_dep, nntrainer_ccapi_dep, causallm_layer_dependencies, causallm_dep],
+    install: get_option('install-app'),
+    install_dir: application_install_dir,
 )
