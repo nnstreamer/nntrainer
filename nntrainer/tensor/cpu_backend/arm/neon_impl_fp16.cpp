@@ -1449,64 +1449,6 @@ void softmax_row_inplace(__fp16 *qk_out, size_t start_row, size_t end_row,
   delete[] sum_vals;
 }
 
-void softmax_row(__fp16 *qk_out, size_t start_row, size_t end_row,
-                 size_t num_heads) {
-  const size_t full_block = (num_heads / 8) * 8;
-
-  __fp16 *max_vals = new __fp16[num_heads];
-  __fp16 *sum_vals = new __fp16[num_heads];
-
-  // 1. Find Max along with col
-  for (size_t c = 0; c < num_heads; ++c) {
-    __fp16 max_val = -INFINITY;
-    for (size_t r = start_row; r < end_row; ++r) {
-      max_val = std::max<__fp16>(max_val, qk_out[r * num_heads + c]);
-    }
-    max_vals[c] = max_val;
-  }
-
-  // 2. Compute sum along with col (exp vectorized)
-  for (size_t c = 0; c < full_block; c += 8) {
-    float16x8_t sum = vdupq_n_f16(0.0f);
-    for (size_t r = start_row; r < end_row; ++r) {
-      float16x8_t val = vld1q_f16(&qk_out[r * num_heads + c]);
-      float16x8_t maxv = vld1q_f16(&max_vals[c]);
-      float16x8_t sub = vsubq_f16(val, maxv);
-      float16x8_t e = exp_f16x8(sub);
-      sum = vaddq_f16(sum, e);
-    }
-    vst1q_f16(&sum_vals[c], sum);
-  }
-
-  for (size_t c = full_block; c < num_heads; ++c) {
-    float sum = 0.0f;
-    for (size_t r = start_row; r < end_row; ++r) {
-      sum += std::exp(qk_out[r * num_heads + c] - max_vals[c]);
-    }
-    sum_vals[c] = sum;
-  }
-
-  // 3. apply softmax
-  for (size_t r = start_row; r < end_row; ++r) {
-    for (size_t c = 0; c < full_block; c += 8) {
-      float16x8_t val = vld1q_f16(&qk_out[r * num_heads + c]);
-      float16x8_t maxv = vld1q_f16(&max_vals[c]);
-      float16x8_t sub = vsubq_f16(val, maxv);
-      float16x8_t e = exp_f16x8(sub);
-      float16x8_t sumv = vld1q_f16(&sum_vals[c]);
-      float16x8_t softmax = vdivq_f16(e, sumv);
-      vst1q_f16(&qk_out[r * num_heads + c], softmax);
-    }
-    for (size_t c = full_block; c < num_heads; ++c) {
-      qk_out[r * num_heads + c] =
-        std::exp(qk_out[r * num_heads + c] - max_vals[c]) / sum_vals[c];
-    }
-  }
-
-  delete[] max_vals;
-  delete[] sum_vals;
-}
-
 static inline void load_fp16_4_to_chunk(const __fp16 *src, float *dst,
                                         int chunk_size) {
   int i = 0;
@@ -1523,7 +1465,8 @@ static inline void load_fp16_4_to_chunk(const __fp16 *src, float *dst,
 void compute_fp16vcache_fp32_transposed(int row_num, const float *in,
                                         const __fp16 *vcache, float *output,
                                         int num_cache_head, int gqa_size,
-                                        int head_dim) {
+                                        int head_dim,
+                                        size_t local_window_size) {
   std::vector<float> tmp_fp32(head_dim);
 
   for (int n = 0; n < num_cache_head; ++n) {
@@ -1533,13 +1476,20 @@ void compute_fp16vcache_fp32_transposed(int row_num, const float *in,
     std::vector<float32x4_t> sumVec(num_blocks * gqa_size, vdupq_n_f32(0.0f));
     std::vector<float> sumRem(gqa_size * rem, 0.0f);
 
-    for (int j = 0; j <= row_num; ++j) {
+    for (int j = row_num < local_window_size ? 0
+                                             : row_num + 1 - local_window_size;
+         j <= row_num; ++j) {
       const __fp16 *vptr = vcache + (j * num_cache_head + n) * head_dim;
 
       load_fp16_4_to_chunk(vptr, tmp_fp32.data(), head_dim);
 
       for (int h = 0; h < gqa_size; ++h) {
-        float a_val = in[j * gqa_size * num_cache_head + n * gqa_size + h];
+        float a_val = in[(row_num < local_window_size
+                            ? j
+                            : j - (row_num + 1 - local_window_size)) *
+                           gqa_size * num_cache_head +
+                         n * gqa_size + h];
+
         float32x4_t inVec = vdupq_n_f32(a_val);
 
         for (int b = 0; b < num_blocks; ++b) {
@@ -1575,95 +1525,89 @@ void compute_fp16vcache_fp32_transposed(int row_num, const float *in,
 void compute_fp16vcache_transposed(int row_num, const __fp16 *in,
                                    const __fp16 *vcache, __fp16 *output,
                                    int num_cache_head, int gqa_size,
-                                   int head_dim) {
-  for (int n = 0; n < num_cache_head; ++n) {
-    int num_blocks = head_dim / 8;
-    int rem = head_dim % 8;
+                                   int head_dim, int chunk_size,
+                                   size_t local_window_size) {
+  int start_row =
+    row_num < local_window_size ? 0 : row_num + 1 - local_window_size;
 
-    std::vector<float16x8_t> sumVec(num_blocks * gqa_size, vdupq_n_f16(0.0f));
-    std::vector<__fp16> sumRem(gqa_size * rem, 0.0f);
+  int num_blocks = chunk_size / 8;
+  int rem = chunk_size % 8;
 
-    for (int j = 0; j <= row_num; ++j) {
-      const __fp16 *vptr = vcache + (j * num_cache_head + n) * head_dim;
+  std::vector<float16x8_t> sumVec(num_blocks * gqa_size, vdupq_n_f16(0.0f));
+  std::vector<__fp16> sumRem(gqa_size * rem, 0.0f);
 
-      for (int h = 0; h < gqa_size; ++h) {
-        __fp16 a_val = in[j * gqa_size * num_cache_head + n * gqa_size + h];
-        float16x8_t inVec = vdupq_n_f16(a_val);
-
-        for (int b = 0; b < num_blocks; ++b) {
-          float16x8_t bVec = vld1q_f16(&vptr[b * 8]);
-          sumVec[h * num_blocks + b] =
-            vfmaq_f16(sumVec[h * num_blocks + b], inVec, bVec);
-        }
-
-        __fp16 *remPtr = &sumRem.data()[h * rem];
-        int base = num_blocks * 8;
-        for (int r = 0; r < rem; ++r) {
-          remPtr[r] += a_val * vptr[base + r];
-        }
-      }
-    }
+  for (int j = start_row; j <= row_num; ++j) {
+    const __fp16 *vptr = vcache + j * num_cache_head * head_dim;
 
     for (int h = 0; h < gqa_size; ++h) {
+      __fp16 in_val = in[(row_num < local_window_size ? j : j - start_row) *
+                           gqa_size * num_cache_head +
+                         h];
+      float16x8_t inVec = vdupq_n_f16(in_val);
+
       for (int b = 0; b < num_blocks; ++b) {
-        int out_base = (n * gqa_size + h) * head_dim + b * 8;
-        vst1q_f16(&output[out_base], sumVec[h * num_blocks + b]);
+        float16x8_t bVec = vld1q_f16(&vptr[b * 8]);
+        sumVec[h * num_blocks + b] =
+          vfmaq_f16(sumVec[h * num_blocks + b], inVec, bVec);
       }
 
       __fp16 *remPtr = &sumRem.data()[h * rem];
       int base = num_blocks * 8;
       for (int r = 0; r < rem; ++r) {
-        int out_idx = (n * gqa_size + h) * head_dim + base + r;
-        output[out_idx] = remPtr[r];
+        remPtr[r] += in_val * vptr[base + r];
       }
+    }
+  }
+
+  for (int h = 0; h < gqa_size; ++h) {
+    for (int b = 0; b < num_blocks; ++b) {
+      vst1q_f16(&output[h * head_dim + b * 8], sumVec[h * num_blocks + b]);
+    }
+
+    __fp16 *remPtr = &sumRem.data()[h * rem];
+    for (int r = 0; r < rem; ++r) {
+      output[h * head_dim + num_blocks * 8 + r] = remPtr[r];
     }
   }
 }
 
 template <>
-void compute_kcaches(const float *A, const __fp16 *B, float *output,
-                     int num_rows, int N, int chunk_size, int group_size,
-                     int tile_size) {
-  using BType = __fp16;
-  int row_stride = N * chunk_size;
-  const int group_stride = group_size * chunk_size;
-  const int tile_count = (num_rows + tile_size - 1) / tile_size;
+void compute_kcaches(const float *in, const __fp16 *kcache, float *output,
+                     int num_rows, int num_cache_head, int head_dim,
+                     int gqa_size, int tile_size, size_t local_window_size) {
+  std::vector<float> tmp_fp32(head_dim);
 
-  // FP32 Cache Buffer
-  thread_local std::vector<float> temp_tile_buf(tile_size * chunk_size);
+  int start_row =
+    num_rows < local_window_size ? 0 : num_rows - local_window_size;
+  int row_cnt = num_rows < local_window_size ? num_rows : local_window_size;
+  const int tile_count = (row_cnt + tile_size - 1) / tile_size;
 
-  for (int n = 0; n < N; ++n) {
+  for (int n = 0; n < num_cache_head; ++n) {
     for (int t = 0; t < tile_count; ++t) {
       int row_tile_start = t * tile_size;
-      int tile_rows = std::min(tile_size, num_rows - row_tile_start);
+      int tile_rows = std::min(tile_size, row_cnt - row_tile_start);
 
-      // FP16 to FP32 Conversion : preprocessing (row unit)
-      if constexpr (!std::is_same<BType, float>::value) {
-        for (int row = 0; row < tile_rows; ++row) {
-          const BType *b_src =
-            B + (row_tile_start + row) * row_stride + n * chunk_size;
-          float *dst = temp_tile_buf.data() + row * chunk_size;
-          load_fp16_4_to_chunk(b_src, dst, chunk_size);
-        }
-      }
-
-      for (int g = 0; g < group_size; ++g) {
-        const float *a_ptr = A + n * group_stride + g * chunk_size;
-        for (int row = 0; row < tile_rows; ++row) {
-          const float *b_row;
-          if constexpr (std::is_same<BType, float>::value) {
-            b_row = reinterpret_cast<const float *>(
-              B + (row_tile_start + row) * row_stride + n * chunk_size);
-          } else {
-            b_row = temp_tile_buf.data() + row * chunk_size;
+      for (int g = 0; g < gqa_size; ++g) {
+        const float *in_ptr = in + n * gqa_size * head_dim + g * head_dim;
+        for (int t_row = 0; t_row < tile_rows; ++t_row) {
+          int row = start_row + row_tile_start + t_row;
+          if (t_row + 1 < tile_rows) {
+            const __fp16 *next_kptr =
+              kcache + ((row + 1) * num_cache_head + n) * head_dim;
+            __builtin_prefetch(next_kptr, 0, 3); // Read, L1 cache
           }
+          const __fp16 *kptr = kcache + (row * num_cache_head + n) * head_dim;
+
+          load_fp16_4_to_chunk(kptr, tmp_fp32.data(), head_dim);
+
+          const float *k_row = tmp_fp32.data();
 
           float sum = 0.0f;
           int i = 0;
           float32x4_t acc = vdupq_n_f32(0.0f);
-          for (; i + 4 <= chunk_size; i += 4) {
-            float32x4_t va = vld1q_f32(a_ptr + i);
-            float32x4_t vb = vld1q_f32(b_row + i);
+          for (; i + 4 <= head_dim; i += 4) {
+            float32x4_t va = vld1q_f32(in_ptr + i);
+            float32x4_t vb = vld1q_f32(k_row + i);
             acc = vfmaq_f32(acc, va, vb);
           }
 
@@ -1671,56 +1615,63 @@ void compute_kcaches(const float *A, const __fp16 *B, float *output,
           acc = vpaddq_f32(acc, acc);
           sum += vgetq_lane_f32(acc, 0);
 
-          for (; i < chunk_size; ++i)
-            sum += a_ptr[i] * b_row[i];
+          for (; i < head_dim; ++i)
+            sum += in_ptr[i] * k_row[i];
 
-          output[(row_tile_start + row) * N * group_size + n * group_size + g] =
-            sum / sqrt((float)chunk_size);
+          output[(row - start_row) * num_cache_head * gqa_size + n * gqa_size +
+                 g] = sum / sqrt((float)head_dim);
         }
       }
     }
   }
 }
 
-void compute_kcaches(const __fp16 *A, const __fp16 *B, __fp16 *output,
-                     int num_rows, int N, int chunk_size, int group_size,
-                     int tile_size) {
-  int row_stride = N * chunk_size;
-  const int group_stride = group_size * chunk_size;
-  const int tile_count = (num_rows + tile_size - 1) / tile_size;
+static inline __fp16 compute_kcaches_core(const __fp16 *in_ptr,
+                                          const __fp16 *k_row, int head_dim) {
+  int i = 0;
+  float16x8_t acc = vdupq_n_f16(0.0);
+  for (; i + 8 <= head_dim; i += 8) {
+    float16x8_t va = vld1q_f16(in_ptr + i);
+    float16x8_t vb = vld1q_f16(k_row + i);
+    acc = vfmaq_f16(acc, va, vb);
+  }
 
-  for (int n = 0; n < N; ++n) {
-    for (int t = 0; t < tile_count; ++t) {
-      int row_tile_start = t * tile_size;
-      int tile_rows = std::min(tile_size, num_rows - row_tile_start);
+  acc = vpaddq_f16(acc, acc);
+  acc = vpaddq_f16(acc, acc);
+  acc = vpaddq_f16(acc, acc);
+  __fp16 sum = vgetq_lane_f16(acc, 0);
 
-      for (int g = 0; g < group_size; ++g) {
-        const __fp16 *a_ptr = A + n * group_stride + g * chunk_size;
-        for (int row = 0; row < tile_rows; ++row) {
-          const __fp16 *b_row =
-            B + (row_tile_start + row) * row_stride + n * chunk_size;
+  for (; i < head_dim; ++i)
+    sum += in_ptr[i] * k_row[i];
 
-          __fp16 sum = 0.0f;
-          int i = 0;
-          float16x8_t acc = vdupq_n_f16(0.0);
-          for (; i + 8 <= chunk_size; i += 8) {
-            float16x8_t va = vld1q_f16(a_ptr + i);
-            float16x8_t vb = vld1q_f16(b_row + i);
-            acc = vfmaq_f16(acc, va, vb);
-          }
+  return sum / sqrt((float)head_dim);
+}
 
-          acc = vpaddq_f16(acc, acc);
-          acc = vpaddq_f16(acc, acc);
-          acc = vpaddq_f16(acc, acc);
-          sum += vgetq_lane_f16(acc, 0);
+void compute_kcaches(const __fp16 *in, const __fp16 *kcache, __fp16 *output,
+                     int num_rows, int num_cache_head, int head_dim,
+                     int gqa_size, int tile_off, int tile_size,
+                     size_t local_window_size) {
+  int start_row =
+    num_rows < local_window_size ? 0 : num_rows - local_window_size;
+  int row_cnt = num_rows < local_window_size ? num_rows : local_window_size;
+  const int tile_count = (row_cnt + tile_size - 1) / tile_size;
 
-          for (; i < chunk_size; ++i)
-            sum += a_ptr[i] * b_row[i];
+  int row_tile_start = tile_off * tile_size;
+  int tile_rows = std::min(tile_size, row_cnt - row_tile_start);
 
-          output[(row_tile_start + row) * N * group_size + n * group_size + g] =
-            sum / sqrt((float)chunk_size);
-        }
+  for (int g = 0; g < gqa_size; ++g) {
+    const __fp16 *in_ptr = in + g * head_dim;
+    for (int t_row = 0; t_row < tile_rows; ++t_row) {
+      int row = start_row + row_tile_start + t_row;
+      if (t_row + 1 < tile_rows) {
+        const __fp16 *next_kptr =
+          kcache + (row + 1) * num_cache_head * head_dim;
+        __builtin_prefetch(next_kptr, 0, 3); // Read, L1 cache
       }
+      const __fp16 *k_row = kcache + row * num_cache_head * head_dim;
+
+      output[(row - start_row) * num_cache_head * gqa_size + g] =
+        compute_kcaches_core(in_ptr, k_row, head_dim);
     }
   }
 }
@@ -1805,25 +1756,44 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
 }
 
 void compute_rotary_emb_value(unsigned int width, unsigned int dim,
-                              unsigned int half_, __fp16 *inout,
+                              unsigned int half_, __fp16 *inout, __fp16 *output,
                               const __fp16 *cos_, const __fp16 *sin_) {
   for (unsigned int w = 0; w < width; w += dim) {
     unsigned int k = 0;
-    for (; k + 7 < half_; k += 8) {
-      unsigned int i0 = w + k;
-      unsigned int i1 = w + k + half_;
+    if (output != nullptr) {
+      for (; k + 7 < half_; k += 8) {
+        unsigned int i0 = w + k;
+        unsigned int i1 = w + k + half_;
 
-      float16x8_t a = vld1q_f16(&inout[i0]);
-      float16x8_t b = vld1q_f16(&inout[i1]);
+        float16x8_t a = vld1q_f16(&inout[i0]);
+        float16x8_t b = vld1q_f16(&inout[i1]);
 
-      float16x8_t cos_v = vld1q_f16(&cos_[k]);
-      float16x8_t sin_v = vld1q_f16(&sin_[k]);
+        float16x8_t cos_v = vld1q_f16(&cos_[k]);
+        float16x8_t sin_v = vld1q_f16(&sin_[k]);
 
-      float16x8_t out0 = vsubq_f16(vmulq_f16(a, cos_v), vmulq_f16(b, sin_v));
-      float16x8_t out1 = vaddq_f16(vmulq_f16(a, sin_v), vmulq_f16(b, cos_v));
+        float16x8_t out0 = vsubq_f16(vmulq_f16(a, cos_v), vmulq_f16(b, sin_v));
+        float16x8_t out1 = vaddq_f16(vmulq_f16(a, sin_v), vmulq_f16(b, cos_v));
 
-      vst1q_f16(&inout[i0], out0);
-      vst1q_f16(&inout[i1], out1);
+        vst1q_f16(&output[i0], out0);
+        vst1q_f16(&output[i1], out1);
+      }
+    } else {
+      for (; k + 7 < half_; k += 8) {
+        unsigned int i0 = w + k;
+        unsigned int i1 = w + k + half_;
+
+        float16x8_t a = vld1q_f16(&inout[i0]);
+        float16x8_t b = vld1q_f16(&inout[i1]);
+
+        float16x8_t cos_v = vld1q_f16(&cos_[k]);
+        float16x8_t sin_v = vld1q_f16(&sin_[k]);
+
+        float16x8_t out0 = vsubq_f16(vmulq_f16(a, cos_v), vmulq_f16(b, sin_v));
+        float16x8_t out1 = vaddq_f16(vmulq_f16(a, sin_v), vmulq_f16(b, cos_v));
+
+        vst1q_f16(&inout[i0], out0);
+        vst1q_f16(&inout[i1], out1);
+      }
     }
 
     for (; k < half_; ++k) {
@@ -1836,8 +1806,16 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
       __fp16 c = cos_[k];
       __fp16 s = sin_[k];
 
-      inout[i0] = a * c - b * s;
-      inout[i1] = a * s + b * c;
+      __fp16 out0 = a * c - b * s;
+      __fp16 out1 = a * s + b * c;
+
+      if (output != nullptr) {
+        output[i0] = out0;
+        output[i1] = out1;
+      } else {
+        inout[i0] = out0;
+        inout[i1] = out1;
+      }
     }
   }
 }
