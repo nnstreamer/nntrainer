@@ -1,0 +1,6 @@
+#pragma once
+#include <string> 
+
+namespace @namespace@ {
+extern const std::string @variable_name@;
+} // namespace @namespace

@@ -15,7 +15,14 @@
 #include <iostream>
 #include <vector>
 
-#include <blas_kernel_strings.h>
+#include <cl_kernels/concat_axis_1.h>
+#include <cl_kernels/concat_axis_2.h>
+#include <cl_kernels/concat_axis_3.h>
+#ifdef ENABLE_FP16
+#include <cl_kernels/concat_axis_1_fp16.h>
+#include <cl_kernels/concat_axis_2_fp16.h>
+#include <cl_kernels/concat_axis_3_fp16.h>
+#endif
 #include <concat_cl.h>
 #include <layer_context.h>
 #include <nntr_threads.h>
@@ -46,7 +53,7 @@ bool ConcatLayerCl::registerClKernels(ClContext &cl_context) {
     ClContext::SharedPtrClKernel kernel_concat_ptr = nullptr;
 
     kernel_concat_ptr =
-      cl_context.registerClKernel(getConcatClAxis1Kernel(), "concat_cl_axis1");
+      cl_context.registerClKernel(concat_axis_1_kernel, "concat_cl_axis1");
     if (!kernel_concat_ptr) {
       ml_loge("OpenCL Error: Fail to register concat_cl_axis1 kernel");
       break;
@@ -54,7 +61,7 @@ bool ConcatLayerCl::registerClKernels(ClContext &cl_context) {
     layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
 
     kernel_concat_ptr =
-      cl_context.registerClKernel(getConcatClAxis2Kernel(), "concat_cl_axis2");
+      cl_context.registerClKernel(concat_axis_2_kernel, "concat_cl_axis2");
     if (!kernel_concat_ptr) {
       ml_loge("OpenCL Error: Fail to register concat_cl_axis2 kernel");
       break;
@@ -62,7 +69,7 @@ bool ConcatLayerCl::registerClKernels(ClContext &cl_context) {
     layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
 
     kernel_concat_ptr =
-      cl_context.registerClKernel(getConcatClAxis3Kernel(), "concat_cl_axis3");
+      cl_context.registerClKernel(concat_axis_3_kernel, "concat_cl_axis3");
     if (!kernel_concat_ptr) {
       ml_loge("OpenCL Error: Fail to register concat_cl_axis3 kernel");
       break;
@@ -70,24 +77,24 @@ bool ConcatLayerCl::registerClKernels(ClContext &cl_context) {
     layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
 
 #ifdef ENABLE_FP16
-    kernel_concat_ptr = cl_context.registerClKernel(
-      getConcatClAxis1KernelFP16(), "concat_cl_axis1_fp16");
+    kernel_concat_ptr = cl_context.registerClKernel(concat_axis_1_fp16_kernel,
+                                                    "concat_cl_axis1_fp16");
     if (!kernel_concat_ptr) {
       ml_loge("OpenCL Error: Fail to register concat_cl_axis1_fp16 kernel");
       break;
     }
     layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
 
-    kernel_concat_ptr = cl_context.registerClKernel(
-      getConcatClAxis2KernelFP16(), "concat_cl_axis2_fp16");
+    kernel_concat_ptr = cl_context.registerClKernel(concat_axis_2_fp16_kernel,
+                                                    "concat_cl_axis2_fp16");
     if (!kernel_concat_ptr) {
       ml_loge("OpenCL Error: Fail to register concat_cl_axis2_fp16 kernel");
       break;
     }
     layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
 
-    kernel_concat_ptr = cl_context.registerClKernel(
-      getConcatClAxis3KernelFP16(), "concat_cl_axis3_fp16");
+    kernel_concat_ptr = cl_context.registerClKernel(concat_axis_3_fp16_kernel,
+                                                    "concat_cl_axis3_fp16");
     if (!kernel_concat_ptr) {
       ml_loge("OpenCL Error: Fail to register concat_cl_axis3_fp16 kernel");
       break;

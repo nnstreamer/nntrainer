@@ -43,8 +43,8 @@ tensor_headers = [
   'q4_k_tensor.h',
   'q4_0_tensor.h',
   'weight.h',
-  'var_grad.h',    
-  'quantizer.h',    
+  'var_grad.h',
+  'quantizer.h',
   'tensor_wrap_specs.h',
   'manager.h',
   'basic_planner.h',
@@ -82,6 +82,7 @@ endif
 
 if get_option('enable-opencl')
   subdir('cl_operations')
+  subdir('cl_kernels')
   nntrainer_inc += include_directories('cl_operations')
   nntrainer_inc_abs += meson.current_source_dir() / 'cl_operations'
 endif

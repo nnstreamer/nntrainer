@@ -1,0 +1,7 @@
+#include "@header_path@"
+
+namespace @namespace@ {
+const std::string @variable_name@ = { R"(
+@kernel_code@
+)"};
+} // namespace @namespace@

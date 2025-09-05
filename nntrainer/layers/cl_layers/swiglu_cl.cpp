@@ -13,7 +13,10 @@
 
 #include "swiglu_cl.h"
 #include "nntrainer_log.h"
-#include <blas_kernel_strings.h>
+#include <cl_kernels/swiglu.h>
+#ifdef ENABLE_FP16
+#include <cl_kernels/swiglu_fp16.h>
+#endif
 #include <iostream>
 
 namespace nntrainer {
@@ -34,8 +37,7 @@ bool SwiGLULayerCl::registerClKernels(ClContext &cl_context) {
   do {
     ClContext::SharedPtrClKernel kernel_swiglu_ptr = nullptr;
 
-    kernel_swiglu_ptr =
-      cl_context.registerClKernel(getSwiGluClKernel(), "swiglu_cl");
+    kernel_swiglu_ptr = cl_context.registerClKernel(swiglu_kernel, "swiglu_cl");
 
     if (!kernel_swiglu_ptr) {
       ml_loge("OpenCL Error: Fail to register swiglu_cl kernel");
@@ -45,7 +47,7 @@ bool SwiGLULayerCl::registerClKernels(ClContext &cl_context) {
 
 #ifdef ENABLE_FP16
     kernel_swiglu_ptr =
-      cl_context.registerClKernel(getSwiGluClKernelFP16(), "swiglu_cl_fp16");
+      cl_context.registerClKernel(swiglu_fp16_kernel, "swiglu_cl_fp16");
 
     if (!kernel_swiglu_ptr) {
       ml_loge("OpenCL Error: Fail to register swiglu_cl_fp16 kernel");

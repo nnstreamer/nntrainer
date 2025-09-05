@@ -1,18 +1,14 @@
 cl_op_sources = [
   'blas_kernels.cpp',
   'blas_kernel_interface.cpp',
-  'blas_kernel_strings.cpp',
   'attention_kernel_interface.cpp',
-  'attention_kernel_strings.cpp',
   'attention_kernels.cpp',
   'clblast_interface.cpp'
 ]
 
 cl_op_headers = [
   'blas_kernel_interface.h',
-  'blas_kernel_strings.h',
   'attention_kernel_interface.h',
-  'attention_kernel_strings.h',
   'clblast_interface.h'
 ]
 

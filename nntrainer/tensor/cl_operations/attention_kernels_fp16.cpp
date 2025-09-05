@@ -12,6 +12,7 @@
  */
 
 #include "attention_kernels_templates.h"
+#include <cl_kernels/rotary_emb_fp16.h>
 
 namespace nntrainer {
 
@@ -31,8 +32,7 @@ void rotary_emb_cl(_FP16 *in, _FP16 *out,
   auto &cl_buffer_manager = ClBufferManager::Global();
 
   ClContext::SharedPtrClKernel kernel_rotaryEmb_fp16_ptr =
-    cl_context->registerClKernel(getRotaryEmbClKernelFP16(),
-                                 "rotary_emb_cl_fp16");
+    cl_context->registerClKernel(rotary_emb_fp16_kernel, "rotary_emb_cl_fp16");
   if (!kernel_rotaryEmb_fp16_ptr) {
     return;
   }
