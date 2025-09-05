@@ -40,9 +40,13 @@ GptOssMoELayer::GptOssMoELayer() :
   moe_props(props::NumExperts(), props::NumExpertsPerToken(),
             nntrainer::props::Unit()),
   expert_gate_proj_indices({}),
+  expert_gate_bias_indices({}),
   expert_up_proj_indices({}),
+  expert_up_bias_indices({}),
   expert_down_proj_indices({}),
+  expert_down_bias_indices({}),
   gate_idx(std::numeric_limits<unsigned>::max()),
+  gate_bias_idx(std::numeric_limits<unsigned>::max()),
   router_logits_idx(std::numeric_limits<unsigned>::max()),
   expert_mask_idx(std::numeric_limits<unsigned>::max()) {}
 
@@ -99,6 +103,9 @@ void GptOssMoELayer::finalize(nntrainer::InitLayerContext &context) {
   expert_gate_proj_indices.reserve(num_experts);
   expert_up_proj_indices.reserve(num_experts);
   expert_down_proj_indices.reserve(num_experts);
+  expert_gate_bias_indices.reserve(num_experts);
+  expert_up_bias_indices.reserve(num_experts);
+  expert_down_bias_indices.reserve(num_experts);
 
   nntrainer::TensorDim expert_gate_dim(
     1, is_nchw ? 1 : intermediate_size, is_nchw ? hidden_size : 1,
