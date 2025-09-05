@@ -1,6 +1,5 @@
 causallm_src = [
     meson.current_source_dir() / 'causal_lm.cpp',
-    meson.current_source_dir() / 'huggingface_tokenizer.cpp',
     meson.current_source_dir() / 'llm_util.cpp',
 ]
 
@@ -47,22 +46,19 @@ elif get_option('platform') != 'tizen'
     run_command([meson.source_root() / 'jni' / 'prepare_encoder.sh', meson.build_root(), '0.2'], check: true)
 endif
 
-tokenizer_dependencies = []
-tokenizer_path = meson.current_source_dir() / 'lib' / 'libtokenizers_c.a'
-
 causallm = shared_library('causallm',
     causallm_src,
     dependencies: [
         nntrainer_dep,
         nntrainer_ccapi_dep,
-        causallm_layer_dependencies, 
-        tokenizer_dependencies,
+        causallm_layer_dependencies,
+        llm_tokenizer_dep,
         openmp_dep
     ],
     include_directories: causallm_inc,
     install: true,
     install_dir: application_install_dir,
-    link_args: [tokenizer_path],
+    link_args: [],
     cpp_args: '-DPLUGGABLE'
 )
 
@@ -74,5 +70,5 @@ causallm_dep = declare_dependency(
 e = executable('nntr_causallm',
     executable_src,
     include_directories: causallm_inc,
-    dependencies: [nntrainer_dep, nntrainer_ccapi_dep, causallm_layer_dependencies, causallm_dep],
+    dependencies: [nntrainer_dep, nntrainer_ccapi_dep, causallm_layer_dependencies, causallm_dep, llm_tokenizer_dep],
 )
