@@ -30,6 +30,7 @@
 #include <factory.h>
 
 #include "causal_lm.h"
+#include "gptoss_cached_slim_causallm.h"
 #include "gptoss_causallm.h"
 #include "nntr_qwen3_causallm.h"
 #include "nntr_qwen3_moe_causallm.h"
@@ -144,6 +145,12 @@ int main(int argc, char *argv[]) {
     });
   causallm::Factory::Instance().registerModel(
     "GptOssForCausalLM", [](json cfg, json generation_cfg, json nntr_cfg) {
+      return std::make_unique<causallm::GptOssForCausalLM>(cfg, generation_cfg,
+                                                           nntr_cfg);
+    });
+  causallm::Factory::Instance().registerModel(
+    "GptOssCachedSlimCausalLM",
+    [](json cfg, json generation_cfg, json nntr_cfg) {
       return std::make_unique<causallm::GptOssForCausalLM>(cfg, generation_cfg,
                                                            nntr_cfg);
     });
