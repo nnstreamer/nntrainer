@@ -46,6 +46,7 @@ Applications/**/res/*
 
 # allow tokenizer lib only
 !Applications/utils/llm_tokenizer/libs/
+!Applications/utils/llm_tokenizer/libs/**
 
 *.o.d
 *.nnlayergolden
