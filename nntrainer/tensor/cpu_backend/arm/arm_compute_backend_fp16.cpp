@@ -418,17 +418,19 @@ void softmax_row(_FP16 *qk_out, size_t start_row, size_t end_row,
 void compute_fp16vcache_transposed(int row_num, const _FP16 *in,
                                    const _FP16 *vcache, _FP16 *output,
                                    int num_cache_head, int gqa_size,
-                                   int head_dim, size_t local_window_size) {
+                                   int head_dim, int chunk_size,
+                                   size_t local_window_size) {
   neon::compute_fp16vcache_transposed(row_num, in, vcache, output,
                                       num_cache_head, gqa_size, head_dim,
-                                      local_window_size);
+                                      chunk_size, local_window_size);
 }
 
 void compute_kcaches(const _FP16 *in, const _FP16 *kcache, _FP16 *output,
                      int num_rows, int num_cache_head, int head_dim,
-                     int gqa_size, int tile_size, size_t local_window_size) {
+                     int gqa_size, int tile_off, int tile_size,
+                     size_t local_window_size) {
   nntrainer::neon::compute_kcaches(in, kcache, output, num_rows, num_cache_head,
-                                   head_dim, gqa_size, tile_size,
+                                   head_dim, gqa_size, tile_off, tile_size,
                                    local_window_size);
 }
 

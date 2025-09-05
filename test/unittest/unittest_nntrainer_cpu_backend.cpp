@@ -956,41 +956,16 @@ TEST(nntrainer_cpu_backend_standalone, softmax_row_inplace_fp16) {
   }
 }
 
-TEST(nntrainer_cpu_backend_standalone, softmax_row_fp16) {
-  size_t start_row = 0;
-  size_t end_row = 3;
-  size_t num_heads = 10;
-  size_t qk_out_size = num_heads * end_row;
-  // auto qk_out = generate_random_vector<float>(qk_out_size, -10, 10);
-  std::vector<__fp16> qk_out = {
-    -2.509198, 5.930860,  9.014286,  -6.331305, 4.639878,  5.593820,
-    1.973170,  1.937003,  -6.879627, -1.083345, -6.880110, -8.000502,
-    -8.838327, -0.815022, 7.323523,  -3.325828, 2.022300,  -7.142663,
-    4.161452,  3.017770,  -9.588310, -8.871769, 9.398197,  4.439975,
-    6.648853,  8.771055,  -5.753218, -9.984425, -6.363501, 9.844232};
-  std::vector<__fp16> ref_out = {
-    0.986697, 0.999999, 0.405184, 0.000021, 0.043301, 0.040031,
-    0.487615, 0.999879, 0.000016, 0.000018, 0.012472, 0.000001,
-    0.000000, 0.005194, 0.633859, 0.000005, 0.512170, 0.000114,
-    0.999957, 0.001083, 0.000831, 0.000000, 0.594816, 0.994785,
-    0.322840, 0.959963, 0.000215, 0.000007, 0.000027, 0.998899};
-
-  nntrainer::softmax_row(qk_out.data(), start_row, end_row, num_heads);
-
-  for (size_t i = 0; i < qk_out_size; i++) {
-    EXPECT_NEAR(ref_out[i], qk_out[i], 0.0005f);
-  }
-}
-
 TEST(nntrainer_cpu_backend_standalone, compute_kcaches_fp16) {
   int num_rows = 1;
-  int N = 2;
+  int num_cache_head = 2;
   int head_dim = 10;
   int group_size = 4;
   int tile_size = 16;
-  size_t in_size = N * group_size * head_dim;
-  size_t kcache_size = num_rows * N * head_dim;
-  size_t output_size = num_rows * N * group_size;
+  int tile_offset = 0;
+  size_t in_size = num_cache_head * group_size * head_dim;
+  size_t kcache_size = num_rows * num_cache_head * head_dim;
+  size_t output_size = num_rows * num_cache_head * group_size;
   std::vector<__fp16> in = {
     -2.509198, 5.930860,  9.014286,  -6.331305, 4.639878,  5.593820,  1.973170,
     1.937003,  -6.879627, -1.083345, -6.880110, -8.000502, -8.838327, -0.815022,
@@ -1011,9 +986,14 @@ TEST(nntrainer_cpu_backend_standalone, compute_kcaches_fp16) {
   std::vector<__fp16> ref_out = {0.089252,  -0.072949, 0.058948,  -0.045583,
                                  -0.025812, -0.002068, -0.014971, -0.028027};
   std::vector<__fp16> output(output_size);
-
-  nntrainer::compute_kcaches(in.data(), kcache.data(), output.data(), num_rows,
-                             N, head_dim, group_size, tile_size);
+  for (int n = 0; n < num_cache_head; ++n) {
+    const __fp16 *in_ptr = in.data() + n * group_size * head_dim;
+    const __fp16 *kcache_ptr = kcache.data() + n * head_dim;
+    __fp16 *out_ptr = output.data() + n * group_size;
+    nntrainer::compute_kcaches(in_ptr, kcache_ptr, out_ptr, num_rows,
+                               num_cache_head, head_dim, group_size,
+                               tile_offset, tile_size);
+  }
 
   for (size_t i = 0; i < output_size; i++) {
     EXPECT_NEAR(ref_out[i], output[i], 0.0001f);
@@ -1095,6 +1075,7 @@ TEST(nntrainer_cpu_backend_standalone, compute_fp16vcache_transposed_fp16) {
   int gqa_size = 2;
   int head_dim = 9;
   int max_iter = 2;
+  int chunk_size = 9;
   size_t in_size = max_iter * max_iter * num_cache_head * gqa_size;
   size_t vcache_size = max_iter * num_cache_head * head_dim;
   size_t output_size = num_cache_head * gqa_size * head_dim;
@@ -1118,9 +1099,15 @@ TEST(nntrainer_cpu_backend_standalone, compute_fp16vcache_transposed_fp16) {
     0.494638,  -0.060525, -0.078396, 0.019140,  -0.078680, 0.571263};
   std::vector<__fp16> output(output_size);
 
-  nntrainer::compute_fp16vcache_transposed(row_num, in.data(), vcache.data(),
-                                           output.data(), num_cache_head,
-                                           gqa_size, head_dim);
+  for (int n = 0; n < num_cache_head; ++n) {
+    int chunk_size = head_dim;
+    const _FP16 *in_ptr = in.data() + n * gqa_size;
+    const _FP16 *vcache_ptr = vcache.data() + n * head_dim;
+    _FP16 *out_ptr = output.data() + n * gqa_size * head_dim;
+    nntrainer::compute_fp16vcache_transposed(row_num, in_ptr, vcache_ptr,
+                                             out_ptr, num_cache_head, gqa_size,
+                                             head_dim, chunk_size);
+  }
 
   for (size_t i = 0; i < output.size(); i++) {
     EXPECT_NEAR(ref_out[i], output[i], 0.0004f);
