@@ -350,12 +350,13 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
  * @param[in] num_cache_head number head of cache
  * @param[in] gqa_size size of group
  * @param[in] head_dim head dimension
+ * @param[in] chunk_size size of chunk
  * @param[in] local_window_size windows size for local attention
  */
 void compute_fp16vcache_transposed(int row_num, const __fp16 *in,
                                    const __fp16 *vcache, __fp16 *output,
                                    int num_cache_head, int gqa_size,
-                                   int head_dim,
+                                   int head_dim, int chunk_size,
                                    size_t local_window_size = UINT_MAX);
 
 /**
@@ -367,12 +368,13 @@ void compute_fp16vcache_transposed(int row_num, const __fp16 *in,
  * @param[in] num_cache_head number head of cache
  * @param[in] head_dim head dimension
  * @param[in] gqa_size size of group
+ * @param[in] tile_off offset of tile
  * @param[in] tile_size size of tile
  * @param[in] local_window_size windows size for local attention
  */
 void compute_kcaches(const __fp16 *in, const __fp16 *kcache, __fp16 *output,
                      int num_rows, int num_cache_head, int head_dim,
-                     int gqa_size, int tile_size,
+                     int gqa_size, int tile_off, int tile_size,
                      size_t local_window_size = UINT_MAX);
 
 /**
