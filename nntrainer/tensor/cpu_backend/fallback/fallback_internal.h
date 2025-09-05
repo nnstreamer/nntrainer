@@ -1042,8 +1042,8 @@ void __fallback_compute_fp16vcache_fp32_transposed(
 template <typename BType>
 void __fallback_compute_kcaches(const float *in, const BType *kcache,
                                 float *output, int num_rows, int num_cache_head,
-                                int head_dim, int gqa_size,
-                                int tile_size, size_t local_window_size = UINT_MAX);
+                                int head_dim, int gqa_size, int tile_size,
+                                size_t local_window_size = UINT_MAX);
 
 /**
  * @brief Compute rotary embedding value
