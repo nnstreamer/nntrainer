@@ -493,7 +493,6 @@ void MHACoreLayer::one_batch_incremental_forwarding(
                   gqa_size, head_dim, pool);
 
   softmax_triangle(out_, to - from, num_heads_Q, from, pool);
-  out_.print(std::cout);
 
   compute_fp16vcache_transposed(out_, b_cached_value, attention_output_step, to,
                                 num_heads_KV, gqa_size, head_dim,
@@ -567,24 +566,8 @@ void MHACoreLayer::one_batch_incremental_forwarding(
 
   compute_kcaches(query_step, b_cached_key, out_, _from, to - from, num_heads_Q,
                   gqa_size, head_dim, pool);
-  std::cout << "SINK\n";
-  sink_step.print(std::cout);
-  std::cout << "INPUT OF SFTMX\n";
-  out_.print(std::cout);
-  for (int i = 0; i < 64; ++i){
-    std::cout << *(out_.getData() + i) << "\t";
-  }
-  std::cout << std::endl;
+
   softmax_triangle(out_, to - from, num_heads_Q, from, pool, sink_step);
-  std::cout << "OUTPUT OF SFTMX\n";
-  out_.print(std::cout);
-  for (int i = 0; i < 64; ++i){
-    std::cout << *(out_.getData() + i) << "\t";
-  }
-  std::cout << std::endl;
-  std::cout << "END\n";
-
-
 
   compute_fp16vcache_transposed(out_, b_cached_value, attention_output_step, to,
                                 num_heads_KV, gqa_size, head_dim,
@@ -912,7 +895,7 @@ void MHACoreLayer::softmax_triangle(nntrainer::Tensor &qk_out, size_t row,
         size_t end_row = calc_attn_index(i + 1);
         futures.push_back(pool.submit_task([=]() {
           nntrainer::softmax_row(qk_out_, start_row, end_row, num_head,
-                                     sink_step.getData());
+                                 sink_step.getData());
         }));
       }
       for (auto &fut : futures) {
