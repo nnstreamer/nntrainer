@@ -1004,7 +1004,6 @@ static void softmax_row_with_sink_inplace(float *qk_out, size_t start_row,
                                           float *sink) {
   size_t row_range = end_row - start_row;
   const size_t full_blocks = (num_heads / 8) * 8;
-  // const size_t remainder = num_heads % 8;
 
   float *max_vals = new float[num_heads];
   float *sum_vals = new float[num_heads];
@@ -1020,7 +1019,7 @@ static void softmax_row_with_sink_inplace(float *qk_out, size_t start_row,
   for (size_t c = 0; c < full_blocks; c += 8) {
     __m256 maxv = _mm256_loadu_ps(&max_vals[c]);
     __m256 sum = _mm256_loadu_ps(&sink[c]);
-    // __m256 sum = _mm256_setzero_ps();
+    sum = exp256_ps(_mm256_sub_ps(sum, maxv));
     for (size_t r = 0; r < row_range; ++r) {
       float *ptr = &qk_out[(start_row + r) * num_heads + c];
       __m256 val = _mm256_loadu_ps(ptr);
@@ -1032,9 +1031,8 @@ static void softmax_row_with_sink_inplace(float *qk_out, size_t start_row,
   }
 
   for (size_t c = full_blocks; c < num_heads; ++c) {
-    float sum = sink[c];
-    // float sum = 0.0f;
     float maxv = max_vals[c];
+    float sum = std::exp(sink[c] - maxv);
     for (size_t r = 0; r < row_range; ++r) {
       float &a = qk_out[(start_row + r) * num_heads + c];
       a = std::exp(a - maxv); // overwrite qk_out
@@ -1133,8 +1131,6 @@ static void softmax_row_with_sink(float *qk_out, size_t start_row,
                                   size_t end_row, size_t num_heads,
                                   float *sink) {
   const size_t full_block = (num_heads / 8) * 8;
-  std::cout<< " softmax_row_with_sink | " << "  num_heads : " << num_heads << ", full_block : " << full_block << ", start_row : " << start_row << " , end_row : " << end_row << std::endl;
-
 
   float *max_vals = new float[num_heads];
   float *sum_vals = new float[num_heads];
@@ -1152,6 +1148,8 @@ static void softmax_row_with_sink(float *qk_out, size_t start_row,
   for (size_t c = 0; c < full_block; c += 8) {
     __m256 maxv = _mm256_loadu_ps(&max_vals[c]);
     __m256 sum = _mm256_loadu_ps(&sink[c]);
+    sum = _mm256_sub_ps(sum, maxv);
+    sum = exp256_ps(sum);
     for (size_t r = start_row; r < end_row; ++r) {
       __m256 val = _mm256_loadu_ps(&qk_out[r * num_heads + c]);
       __m256 sub = _mm256_sub_ps(val, maxv);
@@ -1162,7 +1160,7 @@ static void softmax_row_with_sink(float *qk_out, size_t start_row,
   }
 
   for (size_t c = full_block; c < num_heads; ++c) {
-    float sum = sink[c];
+    float sum = std::exp(sink[c] - max_vals[c]);
     for (size_t r = start_row; r < end_row; ++r) {
       sum += std::exp(qk_out[r * num_heads + c] - max_vals[c]);
     }
