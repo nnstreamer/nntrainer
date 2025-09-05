@@ -668,7 +668,6 @@ TEST(nntrainer_Tensor, QTensor_12_p) {
   EXPECT_NE(q4_k_tensor.getData<uint8_t>(), nullptr);
 }
 
-#ifdef ENABLE_GGML
 /**
  * @brief Construct a Q4_K Tensor
  */
@@ -831,7 +830,6 @@ TEST(nntrainer_Tensor, QTensor_14_p) {
   status = std::remove("fc_q4kx8.bin");
   ASSERT_EQ(status, 0);
 }
-#endif
 
 /**
  * @brief Construct a Q6_K Tensor with invalid size
@@ -864,7 +862,6 @@ TEST(nntrainer_Tensor, QTensor_16_p) {
   EXPECT_NE(q6_k_tensor.getData<uint8_t>(), nullptr);
 }
 
-#ifdef ENABLE_GGML
 TEST(nntrainer_Tensor, Q_Tensor_17_p) {
 
   ///@note this unittest check quantization and dequantization with Q6_K tensor
@@ -1031,7 +1028,6 @@ TEST(nntrainer_Tensor, QTensor_19_p) {
   }
 #endif
 }
-#endif
 
 /**
  * @brief Construct a Q4_0 Tensor with invalid size
@@ -1057,7 +1053,6 @@ TEST(nntrainer_Tensor, QTensor_20_p) {
   EXPECT_EQ(q4_0_tensor.size(), 1152);
 }
 
-#ifdef ENABLE_GGML
 /**
  * @brief Construct a Q4_0 Tensor
  */
@@ -1131,7 +1126,6 @@ TEST(nntrainer_Tensor, QTensor_21_p) {
     out_t.getData<float>(), out_q40_t.getData<float>(), M * N);
   EXPECT_NEAR(mean_squared_error_tensor, 0., eps * M * N);
 }
-#endif
 
 TEST(nntrainer_Tensor, getBatchSlice_float_p) {
   // Create input tensor: batch=2, channel=1, height=1, width=3
