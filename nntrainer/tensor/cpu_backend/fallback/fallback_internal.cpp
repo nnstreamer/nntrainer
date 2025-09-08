@@ -588,4 +588,12 @@ void __fallback_rms_norm_wrt_width_fp16_intrinsic(const float *__restrict X,
     "NYI : __fallback_rms_norm_wrt_width_fp16_intrinsic");
 }
 
+template <>
+void __fallback_clamp(const float *input, float *output, size_t length,
+                      float lower_bound, float upper_bound) {
+  for (int i = 0; i < length; ++i) {
+    output[i] = std::clamp(input[i], lower_bound, upper_bound);
+  }
+}
+
 } // namespace nntrainer

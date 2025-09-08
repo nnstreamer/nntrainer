@@ -326,4 +326,10 @@ void rms_norm_wrt_width_fp16_intrinsic(const float *__restrict X,
   __fallback_rms_norm_wrt_width_fp16_intrinsic(X, Y, H, W, epsilon);
 }
 
+template <>
+void clamp(const float *input, float *output, size_t length, float lower_bound,
+           float upper_bound) {
+  __fallback_clamp(input, output, length, lower_bound, upper_bound);
+}
+
 } /* namespace nntrainer */
