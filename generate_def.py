@@ -74,19 +74,37 @@ def get_args():
     parser.add_argument('--working_dir', type=str, required=True, help='Path to working directory')
     return parser.parse_args()
 
-def run_command(args, cwd, exit_on_failure=True):
-    cmd = ' '.join(args)
 
-    print('Running command: {}'.format(cmd))
+def split_files(files):
+    length = len(' '.join(files))
+    if length > 30000:
+        half = len(files) // 2
+        return [*split_files(files[:half]), *split_files(files[half:])]
+    else:
+        return [files]
 
-    returncode = subprocess.run(args, cwd=cwd, check=exit_on_failure).returncode
+def run_command(args, files, cwd, exit_on_failure=True):
+    # On Windows, for some reason, when long paths are disabled:
+    # https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation?tabs=registry#registry-setting-to-enable-long-paths
+    # There is a limit to how many files/how long the command line passed to dumpbin can be
+    # This limit seems to be 32 768, but I'm not sure whether it's for sum of files or for all of command line arguments
+    # To remedy this problem we split files so that each batch of concatenated files is no longer than 30k characters
+    # For each batch we run dumpbin and then concatenate the results
+    out = bytearray()
+    split = split_files(files)
+    for s in split:
+        command = args + s
+        print('Running command: {}'.format(command))
+        ret = subprocess.run(command, cwd=cwd, check=exit_on_failure, capture_output=True)
+        out.extend(ret.stdout)
+        returncode = ret.returncode
 
-    if exit_on_failure and returncode != 0:
-        print('Application {} failed with returncode {}. Exiting...'.format(
-            args[0], returncode))
-        sys.exit(returncode)
+        if exit_on_failure and returncode != 0:
+            print('Application {} failed with returncode {}. Exiting...'.format(
+                args[0], returncode))
+            sys.exit(returncode)
 
-    return returncode
+    return out
 
 def list_files(path, extension):
     file_list = []
@@ -105,9 +123,11 @@ def main():
     def_file = os.path.join(args.working_dir, 'nntrainer.def')
     files = list_files(args.objects_dir, '.obj')
 
-    dumpbin_command = ['dumpbin', '/symbols', '/out:{}'.format(sym_file)] + files
+    dumpbin_command = ['dumpbin', '/symbols']
 
-    run_command(dumpbin_command, REPO_DIR)
+    out = run_command(dumpbin_command, files, REPO_DIR)
+    with open(sym_file, 'wb') as f:
+        f.write(out)
 
     defs = defaultdict()
     extract_syms(sym_file, defs)
