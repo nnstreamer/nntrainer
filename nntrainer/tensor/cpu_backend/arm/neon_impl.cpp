@@ -1014,7 +1014,7 @@ static void softmax_row_inplace(float *qk_out, size_t start_row, size_t end_row,
   delete[] sum_vals;
 }
 
-static void softmax_with_sink_row_inplace(float *qk_out, size_t start_row,
+static void softmax_row_with_sink_inplace(float *qk_out, size_t start_row,
                                           size_t end_row, size_t num_heads,
                                           float *sink) {
   size_t row_range = end_row - start_row;
@@ -1025,18 +1025,15 @@ static void softmax_with_sink_row_inplace(float *qk_out, size_t start_row,
 
   // 1. max
   for (size_t c = 0; c < num_heads; ++c) {
-    float max_val = -INFINITY;
+    float max_val = sink[c];
     for (size_t r = start_row; r < end_row; ++r)
       max_val = std::max(max_val, qk_out[r * num_heads + c]);
-    max_vals[c] = std::max(max_val, sink[c]);
   }
 
   // 2. inplace exp + sum
   for (size_t c = 0; c < full_blocks; c += 4) {
     float32x4_t maxv = vld1q_f32(&max_vals[c]);
-    // float32x4_t sinkv = vld1q_f32(&sink[c]);
-    // float32x4_t sum = vdupq_n_f32(0.0f);
-    float32x4_t sum = vld1q_f32(&sink[c]);
+    float32x4_t sum = exp_ps(vsubq_f32(vld1q_f32(&sink[c]), maxv));
 
     for (size_t r = 0; r < row_range; ++r) {
       float *ptr = &qk_out[(start_row + r) * num_heads + c];
@@ -1049,9 +1046,9 @@ static void softmax_with_sink_row_inplace(float *qk_out, size_t start_row,
   }
 
   for (size_t c = full_blocks; c < num_heads; ++c) {
-    // float sum = 0.0f;
-    float sum = sink[c];
     float maxv = max_vals[c];
+    float sum = std::exp(sink[c] - maxv);
+
     for (size_t r = 0; r < row_range; ++r) {
       float &a = qk_out[(start_row + r) * num_heads + c];
       a = std::exp(a - maxv); // overwrite qk_out
@@ -1083,7 +1080,7 @@ void softmax_row_inplace(float *qk_out, size_t start_row, size_t end_row,
   if (sink == nullptr) {
     return softmax_row_inplace(qk_out, start_row, end_row, num_heads);
   } else {
-    return softmax_with_sink_row_inplace(qk_out, start_row, end_row, num_heads,
+    return softmax_row_with_sink_inplace(qk_out, start_row, end_row, num_heads,
                                          sink);
   }
 }
@@ -1156,7 +1153,7 @@ static void softmax_with_sink_row(float *qk_out, size_t start_row,
 
   // 1. Find Max along with col
   for (size_t c = 0; c < num_heads; ++c) {
-    float max_val = -INFINITY;
+    float max_val = sink[c];
     for (size_t r = start_row; r < end_row; ++r) {
       max_val = std::max(max_val, qk_out[r * num_heads + c]);
     }
@@ -1165,10 +1162,11 @@ static void softmax_with_sink_row(float *qk_out, size_t start_row,
 
   // 2. Compute sum along with col (exp vectorized)
   for (size_t c = 0; c < full_block; c += 4) {
-    float32x4_t sum = vdupq_n_f32(0.0f);
+    float32x4_t maxv = vld1q_f32(&max_vals[c]);
+    float32x4_t sum = exp_ps(vsubq_f32(vld1q_f32(&sink[c]), maxv));
+
     for (size_t r = start_row; r < end_row; ++r) {
       float32x4_t val = vld1q_f32(&qk_out[r * num_heads + c]);
-      float32x4_t maxv = vld1q_f32(&max_vals[c]);
       float32x4_t sub = vsubq_f32(val, maxv);
       float32x4_t e = exp_ps(sub);
       sum = vaddq_f32(sum, e);
@@ -1177,7 +1175,7 @@ static void softmax_with_sink_row(float *qk_out, size_t start_row,
   }
 
   for (size_t c = full_block; c < num_heads; ++c) {
-    float sum = 0.0f;
+    float sum = std::exp(sink[c] - max_vals[c]);
     for (size_t r = start_row; r < end_row; ++r) {
       sum += std::exp(qk_out[r * num_heads + c] - max_vals[c]);
     }
