@@ -1213,4 +1213,75 @@ void softmax_row(float *qk_out, size_t start_row, size_t end_row,
   }
 }
 
+static float hsum_f32x4(float32x4_t v) {
+#if defined(__aarch64__)
+  return vaddvq_f32(v);
+#else
+  float32x2_t vlow = vget_low_f32(v);
+  float32x2_t vhigh = vget_high_f32(v);
+  vlow = vadd_f32(vlow, vhigh);
+  float32x2_t sum2 = vpadd_f32(vlow, vlow);
+  return vget_lane_f32(sum2, 0);
+#endif
+}
+
+void rms_norm_wrt_width_fp32_intrinsic(const float *__restrict X,
+                                       float *__restrict Y, size_t H, size_t W,
+                                       float epsilon) {
+  for (std::size_t h = 0; h < H; ++h) {
+    const float *rowX = X + h * W;
+    float *rowY = Y + h * W;
+
+    std::size_t i = 0;
+    float32x4_t acc0 = vdupq_n_f32(0.f);
+    float32x4_t acc1 = vdupq_n_f32(0.f);
+    float32x4_t acc2 = vdupq_n_f32(0.f);
+    float32x4_t acc3 = vdupq_n_f32(0.f);
+
+    for (; i + 16 <= W; i += 16) {
+      float32x4_t x0 = vld1q_f32(rowX + i + 0);
+      float32x4_t x1 = vld1q_f32(rowX + i + 4);
+      float32x4_t x2 = vld1q_f32(rowX + i + 8);
+      float32x4_t x3 = vld1q_f32(rowX + i + 12);
+      acc0 = vfmaq_f32(acc0, x0, x0);
+      acc1 = vfmaq_f32(acc1, x1, x1);
+      acc2 = vfmaq_f32(acc2, x2, x2);
+      acc3 = vfmaq_f32(acc3, x3, x3);
+    }
+    for (; i + 4 <= W; i += 4) {
+      float32x4_t x = vld1q_f32(rowX + i);
+      acc0 = vfmaq_f32(acc0, x, x);
+    }
+    float sumsq =
+      hsum_f32x4(acc0) + hsum_f32x4(acc1) + hsum_f32x4(acc2) + hsum_f32x4(acc3);
+    for (; i < W; ++i) {
+      float v = rowX[i];
+      sumsq += v * v;
+    }
+
+    float mean = sumsq / static_cast<float>(W);
+    float scale = 1.0f / std::sqrt(mean + epsilon);
+    float32x4_t vscale = vdupq_n_f32(scale);
+
+    i = 0;
+    for (; i + 16 <= W; i += 16) {
+      float32x4_t x0 = vld1q_f32(rowX + i + 0);
+      float32x4_t x1 = vld1q_f32(rowX + i + 4);
+      float32x4_t x2 = vld1q_f32(rowX + i + 8);
+      float32x4_t x3 = vld1q_f32(rowX + i + 12);
+      vst1q_f32(rowY + i + 0, vmulq_f32(x0, vscale));
+      vst1q_f32(rowY + i + 4, vmulq_f32(x1, vscale));
+      vst1q_f32(rowY + i + 8, vmulq_f32(x2, vscale));
+      vst1q_f32(rowY + i + 12, vmulq_f32(x3, vscale));
+    }
+    for (; i + 4 <= W; i += 4) {
+      float32x4_t x = vld1q_f32(rowX + i);
+      vst1q_f32(rowY + i, vmulq_f32(x, vscale));
+    }
+    for (; i < W; ++i) {
+      rowY[i] = rowX[i] * scale;
+    }
+  }
+}
+
 } // namespace nntrainer::neon
