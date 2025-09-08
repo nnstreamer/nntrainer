@@ -313,4 +313,17 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
                                       sin_, only_convert_to_fp16);
 }
 
+void rms_norm_wrt_width_fp32_intrinsic(const float *__restrict X,
+                                       float *__restrict Y, size_t H, size_t W,
+                                       float epsilon) {
+  __fallback_rms_norm_wrt_width_fp32_intrinsic(X, Y, H, W, epsilon);
+}
+
+template <>
+void rms_norm_wrt_width_fp16_intrinsic(const float *__restrict X,
+                                       float *__restrict Y, size_t H, size_t W,
+                                       float epsilon) {
+  __fallback_rms_norm_wrt_width_fp16_intrinsic(X, Y, H, W, epsilon);
+}
+
 } /* namespace nntrainer */
