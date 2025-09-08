@@ -151,8 +151,8 @@ int main(int argc, char *argv[]) {
   causallm::Factory::Instance().registerModel(
     "GptOssCachedSlimCausalLM",
     [](json cfg, json generation_cfg, json nntr_cfg) {
-      return std::make_unique<causallm::GptOssForCausalLM>(cfg, generation_cfg,
-                                                           nntr_cfg);
+      return std::make_unique<causallm::GptOssCachedSlimCausalLM>(
+        cfg, generation_cfg, nntr_cfg);
     });
 
   // Validate arguments

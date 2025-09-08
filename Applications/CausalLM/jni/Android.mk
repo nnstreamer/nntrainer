@@ -60,6 +60,7 @@ LOCAL_SRC_FILES := ../main.cpp \
     ../nntr_qwen3_causallm.cpp \
     ../nntr_qwen3_moe_causallm.cpp \
     ../gptoss_causallm.cpp \
+    ../gptoss_cached_slim_causallm.cpp \
     ../huggingface_tokenizer.cpp \
     ../llm_util.cpp \
     ../layers/embedding_layer.cpp \
@@ -72,7 +73,8 @@ LOCAL_SRC_FILES := ../main.cpp \
     ../layers/qwen_moe_layer_cached.cpp \
     ../layers/qkv_layer.cpp \
     ../layers/qwen_moe_layer_fsu.cpp \
-    ../layers/gpt_oss_moe_layer.cpp 
+    ../layers/gpt_oss_moe_layer.cpp \
+    ../layers/gpt_oss_moe_layer_cached.cpp \
 
 LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer nntrainer-ggml
 LOCAL_STATIC_LIBRARIES := tokenizers_c

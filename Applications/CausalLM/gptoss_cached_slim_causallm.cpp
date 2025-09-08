@@ -27,7 +27,7 @@
 
 #include <app_context.h>
 #include <engine.h>
-#include <gpt_oss_moe_layer.h>
+#include <gpt_oss_moe_layer_cached.h>
 
 namespace causallm {
 
@@ -136,7 +136,7 @@ void GptOssCachedSlimCausalLM::registerCustomLayers() {
 
   try {
     app_context->registerFactory(
-      nntrainer::createLayer<causallm::GptOssMoELayer>);
+      nntrainer::createLayer<causallm::CachedSlimGptOssMoELayer>);
   } catch (std::invalid_argument &e) {
     std::cerr << "failed to register factory, reason: " << e.what()
               << std::endl;
