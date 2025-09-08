@@ -1478,4 +1478,74 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
   }
 }
 
+static float hsum_avx(__m256 v) {
+  __m128 vlow = _mm256_castps256_ps128(v);
+  __m128 vhigh = _mm256_extractf128_ps(v, 1);
+  vlow = _mm_add_ps(vlow, vhigh);
+  __m128 shuf = _mm_movehdup_ps(vlow);
+  __m128 sums = _mm_add_ps(vlow, shuf);
+  shuf = _mm_movehl_ps(shuf, sums);
+  sums = _mm_add_ss(sums, shuf);
+  return _mm_cvtss_f32(sums);
+}
+
+void rms_norm_wrt_width_fp32_intrinsic(const float *__restrict X,
+                                       float *__restrict Y, size_t H, size_t W,
+                                       float epsilon) {
+  for (std::size_t h = 0; h < H; ++h) {
+    const float *rowX = X + h * W;
+    float *rowY = Y + h * W;
+
+    std::size_t i = 0;
+    __m256 acc0 = _mm256_setzero_ps();
+    __m256 acc1 = _mm256_setzero_ps();
+    __m256 acc2 = _mm256_setzero_ps();
+    __m256 acc3 = _mm256_setzero_ps();
+
+    for (; i + 32 <= W; i += 32) {
+      __m256 x0 = _mm256_loadu_ps(rowX + i);
+      __m256 x1 = _mm256_loadu_ps(rowX + i + 8);
+      __m256 x2 = _mm256_loadu_ps(rowX + i + 16);
+      __m256 x3 = _mm256_loadu_ps(rowX + i + 24);
+      acc0 = _mm256_fmadd_ps(x0, x0, acc0);
+      acc1 = _mm256_fmadd_ps(x1, x1, acc1);
+      acc2 = _mm256_fmadd_ps(x2, x2, acc2);
+      acc3 = _mm256_fmadd_ps(x3, x3, acc3);
+    }
+    for (; i + 8 <= W; i += 8) {
+      __m256 x = _mm256_loadu_ps(rowX + i);
+      acc0 = _mm256_fmadd_ps(x, x, acc0);
+    }
+    float sumsq =
+      hsum_avx(acc0) + hsum_avx(acc1) + hsum_avx(acc2) + hsum_avx(acc3);
+    for (; i < W; ++i) {
+      float v = rowX[i];
+      sumsq += v * v;
+    }
+
+    float mean = sumsq / static_cast<float>(W);
+    float scale = 1.0f / std::sqrt(mean + epsilon);
+    __m256 vscale = _mm256_set1_ps(scale);
+
+    i = 0;
+    for (; i + 32 <= W; i += 32) {
+      __m256 x0 = _mm256_loadu_ps(rowX + i);
+      __m256 x1 = _mm256_loadu_ps(rowX + i + 8);
+      __m256 x2 = _mm256_loadu_ps(rowX + i + 16);
+      __m256 x3 = _mm256_loadu_ps(rowX + i + 24);
+      _mm256_storeu_ps(rowY + i, _mm256_mul_ps(x0, vscale));
+      _mm256_storeu_ps(rowY + i + 8, _mm256_mul_ps(x1, vscale));
+      _mm256_storeu_ps(rowY + i + 16, _mm256_mul_ps(x2, vscale));
+      _mm256_storeu_ps(rowY + i + 24, _mm256_mul_ps(x3, vscale));
+    }
+    for (; i + 8 <= W; i += 8) {
+      __m256 x = _mm256_loadu_ps(rowX + i);
+      _mm256_storeu_ps(rowY + i, _mm256_mul_ps(x, vscale));
+    }
+    for (; i < W; ++i) {
+      rowY[i] = rowX[i] * scale;
+    }
+  }
+}
+
 } // namespace nntrainer::avx2
