@@ -13,8 +13,11 @@
 
 #include "blas_kernels_templates.h"
 
+#include "opencl_loader.h"
+
 namespace nntrainer {
 
+#ifndef __ANDROID__
 void gemm_q4_0_async_cl(std::vector<void *> matAdata, float *matBdata,
                         std::vector<float *> matCdata, unsigned int M,
                         std::vector<unsigned int> Ns, unsigned int K) {
@@ -215,6 +218,7 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
     return;
   }
 }
+#endif
 
 void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
                    unsigned int M, unsigned int N) {
@@ -711,6 +715,411 @@ void transpose_32_16(float *data, int M, int K) {
     return;
   }
 }
+
+#ifdef __ANDROID__
+void gemm_q4_0_async_cl(std::vector<void *> matAdata, float *matBdata,
+                        std::vector<float *> matCdata, unsigned int M,
+                        std::vector<unsigned int> Ns, unsigned int K) {
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
+  ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
+    getQ4_0_Ab_Bi_8x4_Kernel(), "kernel_mul_mat_Ab_Bi_8x4");
+  if (!kernel_ptr) {
+    throw std::runtime_error(
+      "Failed to get kernel_ptr for kernel_mul_mat_Ab_Bi_8x4");
+    return;
+  }
+
+  bool result = false;
+
+  int padding = 0;
+  if (M % 8 > 0) {
+    padding = 8 - (M % 8);
+  }
+
+  int padded_M = M + padding;
+
+  size_t input_width = K * M / 4;
+  size_t input_bytes = input_width * sizeof(cl_float4);
+
+  /// @note Transpose fp32 input. This can only be done once
+  // Create input image of matBdata
+  cl_int err = CL_SUCCESS;
+  cl_mem input_buf = opencl::clCreateBuffer(
+    blas_cc->context_inst_.GetContext(), CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+    input_bytes, matBdata, &err);
+
+  cl_image_format fmt;
+  fmt.image_channel_order = CL_RGBA;
+  fmt.image_channel_data_type = CL_FLOAT;
+
+  cl_image_desc desc;
+  memset(&desc, 0, sizeof(desc));
+  desc.image_type = CL_MEM_OBJECT_IMAGE1D_BUFFER;
+  desc.image_width = input_width;
+  desc.buffer = input_buf;
+
+  cl_mem input_img = opencl::clCreateImage(
+    blas_cc->context_inst_.GetContext(), CL_MEM_READ_ONLY, &fmt, &desc,
+    NULL, // host_ptr must be NULL for IMAGE1D_BUFFER
+    &err);
+
+  // Create matBdata output image for transpose32_16
+  size_t width = K * padded_M / 4;
+  size_t bytes = width * sizeof(cl_half4);
+
+  cl_mem buf = opencl::clCreateBuffer(blas_cc->context_inst_.GetContext(),
+                                      CL_MEM_READ_WRITE, bytes, NULL, &err);
+
+  fmt.image_channel_order = CL_RGBA;
+  fmt.image_channel_data_type = CL_HALF_FLOAT;
+
+  memset(&desc, 0, sizeof(desc));
+  desc.image_type = CL_MEM_OBJECT_IMAGE1D_BUFFER;
+  desc.image_width = width;
+  desc.buffer = buf;
+
+  cl_mem img =
+    opencl::clCreateImage(blas_cc->context_inst_.GetContext(),
+                          CL_MEM_READ_WRITE, &fmt, &desc, NULL, &err);
+
+  ClContext::SharedPtrClKernel kernel_trans_ptr = blas_cc->registerClKernel(
+    getTranspose32Bit16BitKernel(), "kernel_transpose_32_16");
+  if (!kernel_trans_ptr) {
+    throw std::runtime_error(
+      "Failed to get kernel_trans_ptr for kernel_transpose_32_16");
+    return;
+  }
+
+  int trans_in_width = K / 4;
+  int trans_in_height = M / 4;
+  if (trans_in_height == 0) {
+    trans_in_height = 1;
+  }
+  int padded_height = (M + padding) / 4;
+
+  int arg = 0;
+
+  result =
+    kernel_trans_ptr->SetKernelArguments(arg++, &input_img, sizeof(cl_mem));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 0 for kernel_transpose_32_16");
+
+  result = kernel_trans_ptr->SetKernelArguments(arg++, &img, sizeof(cl_mem));
+
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 1 for kernel_transpose_32_16");
+
+  result =
+    kernel_trans_ptr->SetKernelArguments(arg++, &trans_in_height, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 2 for kernel_transpose_32_16");
+
+  result =
+    kernel_trans_ptr->SetKernelArguments(arg++, &trans_in_width, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 3 for kernel_transpose_32_16");
+
+  result =
+    kernel_trans_ptr->SetKernelArguments(arg++, &padded_height, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 4 for kernel_transpose_32_16");
+
+  const int work_groups_count_2[3] = {trans_in_width, padded_height, 1};
+  const int work_group_size_2[3] = {1, 16, 1};
+
+  result = blas_cc->command_queue_inst_.DispatchCommand(
+    kernel_trans_ptr, work_groups_count_2, work_group_size_2);
+  if (!result) {
+    ml_loge("Failed to dispatch kernel for kernel_transpose_32_16");
+    return;
+  }
+
+  const int work_group_size[3] = {1, 128, 1};
+
+  for (unsigned int i = 0; i < Ns.size(); ++i) {
+    int N = Ns[i];
+    void *mdata = matAdata[i];
+    float *rdata = matCdata[i];
+
+    unpack_q4_0x8_transpose16(mdata, (uint16_t *)clbuffInstance.getSVMScale(i),
+                              (uint16_t *)clbuffInstance.getSVMQuant(i), N, K);
+
+    int arg = 0;
+
+    result =
+      kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMQuant(i));
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 0 for kernel_mul_mat_Ab_Bi_8x4");
+
+    result =
+      kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMScale(i));
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 1 for kernel_mul_mat_Ab_Bi_8x4");
+
+    result = kernel_ptr->SetKernelArguments(arg++, &img, sizeof(cl_mem));
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 2 for kernel_mul_mat_Ab_Bi_8x4");
+
+    result = kernel_ptr->SetKernelSVMArguments(arg++, rdata);
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 3 for kernel_mul_mat_Ab_Bi_8x4");
+
+    result = kernel_ptr->SetKernelArguments(arg++, &N, sizeof(int));
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 4 for kernel_mul_mat_Ab_Bi_8x4");
+
+    result = kernel_ptr->SetKernelArguments(arg++, &padded_M, sizeof(int));
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 5 for kernel_mul_mat_Ab_Bi_8x4");
+
+    result = kernel_ptr->SetKernelArguments(arg++, &K, sizeof(int));
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 6 for kernel_mul_mat_Ab_Bi_8x4");
+
+    result = kernel_ptr->SetKernelArguments(arg++, &M, sizeof(int));
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 7 for kernel_mul_mat_Ab_Bi_8x4");
+    const int work_groups_count[3] = {(int)ceil(M / 8.0f), (int)N / 4, 1};
+
+    // Perform Matrix Multiplication
+    result = blas_cc->command_queue_inst_.DispatchCommand(
+      kernel_ptr, work_groups_count, work_group_size);
+    if (!result) {
+      throw std::runtime_error(
+        "Failed to dispatch kernel for kernel_mul_mat_Ab_Bi_8x4");
+    }
+  }
+
+  for (unsigned int i = 0; i < Ns.size(); ++i) {
+    blas_cc->command_queue_inst_.enqueueSVMMap(matCdata[i],
+                                               M * Ns[i] * sizeof(float), true);
+  }
+
+  /// Release buffers and images
+  opencl::clReleaseMemObject(input_buf);
+  opencl::clReleaseMemObject(input_img);
+  opencl::clReleaseMemObject(buf);
+  opencl::clReleaseMemObject(img);
+}
+
+void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
+                  unsigned int M, unsigned int N, unsigned int K) {
+  bool result = false;
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
+  size_t q_size_bytes = N * (K / 2);
+  size_t d_size_bytes = N * (K / 32) * 2;
+
+  // 1. Preprocess matrix A
+  // 1.1 Unpack the Q4_0x8 matrix A to make a struct of array (src_q, src_d)
+  // 1.2 Perform 2D 16-bit transpose src_q, src_d
+  unpack_q4_0x8_transpose16(matAdata, (uint16_t *)clbuffInstance.getSVMScale(),
+                            (uint16_t *)clbuffInstance.getSVMQuant(), N, K);
+
+  // 2. Preprocess matrix B: Transpose the Matrix B and convert to FP16
+  /// @note mat mul will compute 8 elements at once, padding
+  // will be added if M is not multiple of 8.
+  int padding = 0;
+  if (M % 8 > 0) {
+    padding = 8 - (M % 8);
+  }
+
+  int padded_M = M + padding;
+
+  size_t input_width = K * M / 4;
+  size_t input_bytes = input_width * sizeof(cl_float4);
+
+  // Create input image of matBdata
+  cl_int err = CL_SUCCESS;
+  cl_mem input_buf = opencl::clCreateBuffer(
+    blas_cc->context_inst_.GetContext(), CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+    input_bytes, matBdata, &err);
+
+  cl_image_format fmt;
+  fmt.image_channel_order = CL_RGBA;
+  fmt.image_channel_data_type = CL_FLOAT;
+
+  cl_image_desc desc;
+  memset(&desc, 0, sizeof(desc));
+  desc.image_type = CL_MEM_OBJECT_IMAGE1D_BUFFER;
+  desc.image_width = input_width;
+  desc.buffer = input_buf;
+
+  cl_mem input_img = opencl::clCreateImage(
+    blas_cc->context_inst_.GetContext(), CL_MEM_READ_ONLY, &fmt, &desc,
+    NULL, // host_ptr must be NULL for IMAGE1D_BUFFER
+    &err);
+
+  // Create matBdata output image for transpose32_16
+  size_t width = K * padded_M / 4;
+  size_t bytes = width * sizeof(cl_half4);
+
+  cl_mem buf = opencl::clCreateBuffer(blas_cc->context_inst_.GetContext(),
+                                      CL_MEM_READ_WRITE, bytes, NULL, &err);
+
+  fmt.image_channel_order = CL_RGBA;
+  fmt.image_channel_data_type = CL_HALF_FLOAT;
+
+  memset(&desc, 0, sizeof(desc));
+  desc.image_type = CL_MEM_OBJECT_IMAGE1D_BUFFER;
+  desc.image_width = width;
+  desc.buffer = buf;
+
+  cl_mem img =
+    opencl::clCreateImage(blas_cc->context_inst_.GetContext(),
+                          CL_MEM_READ_WRITE, &fmt, &desc, NULL, &err);
+
+  ClContext::SharedPtrClKernel kernel_trans_ptr = blas_cc->registerClKernel(
+    getTranspose32Bit16BitKernel(), "kernel_transpose_32_16");
+  if (!kernel_trans_ptr) {
+    throw std::runtime_error(
+      "Failed to get kernel_trans_ptr for kernel_transpose_32_16");
+    return;
+  }
+
+  int trans_in_width = K / 4;
+  int trans_in_height = M / 4;
+  if (trans_in_height == 0) {
+    trans_in_height = 1;
+  }
+  int padded_height = (M + padding) / 4;
+
+  int arg = 0;
+
+  result =
+    kernel_trans_ptr->SetKernelArguments(arg++, &input_img, sizeof(cl_mem));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 0 for kernel_transpose_32_16");
+
+  result = kernel_trans_ptr->SetKernelArguments(arg++, &img, sizeof(cl_mem));
+
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 1 for kernel_transpose_32_16");
+
+  result =
+    kernel_trans_ptr->SetKernelArguments(arg++, &trans_in_height, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 2 for kernel_transpose_32_16");
+
+  result =
+    kernel_trans_ptr->SetKernelArguments(arg++, &trans_in_width, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 3 for kernel_transpose_32_16");
+
+  result =
+    kernel_trans_ptr->SetKernelArguments(arg++, &padded_height, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 4 for kernel_transpose_32_16");
+
+  const int work_groups_count_2[3] = {trans_in_width, padded_height, 1};
+  const int work_group_size_2[3] = {1, 16, 1};
+
+  result = blas_cc->command_queue_inst_.DispatchCommand(
+    kernel_trans_ptr, work_groups_count_2, work_group_size_2);
+  if (!result) {
+    ml_loge("Failed to dispatch kernel for kernel_transpose_32_16");
+    return;
+  }
+
+  // 3. Perform Matrix Multiplication
+  ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
+    getQ4_0_Ab_Bi_8x4_Kernel(), "kernel_mul_mat_Ab_Bi_8x4");
+  if (!kernel_ptr) {
+    throw std::runtime_error(
+      "Failed to get kernel_ptr for kernel_mul_mat_Ab_Bi_8x4");
+    return;
+  }
+
+  arg = 0;
+
+  result =
+    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMQuant());
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 0 for kernel_mul_mat_Ab_Bi_8x4");
+
+  kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMScale());
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 1 for kernel_mul_mat_Ab_Bi_8x4");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &img, sizeof(cl_mem));
+
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 2 for kernel_mul_mat_Ab_Bi_8x4");
+
+  result = kernel_ptr->SetKernelSVMArguments(arg++, matCdata);
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 3 for kernel_mul_mat_Ab_Bi_8x4");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &N, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 4 for kernel_mul_mat_Ab_Bi_8x4");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &padded_M, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 5 for kernel_mul_mat_Ab_Bi_8x4");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &K, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 6 for kernel_mul_mat_Ab_Bi_8x4");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &M, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 7 for kernel_mul_mat_Ab_Bi_8x4");
+
+  const int work_groups_count[3] = {(int)ceil(M / 8.0f), (int)N / 4, 1};
+  const int work_group_size[3] = {1, 128, 1};
+
+  result = blas_cc->command_queue_inst_.DispatchCommand(
+    kernel_ptr, work_groups_count, work_group_size);
+  if (!result) {
+    throw std::runtime_error(
+      "Failed to dispatch kernel for kernel_mul_mat_Ab_Bi_8x4");
+    return;
+  }
+
+  /// @todo synchronize when only needed
+  blas_cc->command_queue_inst_.enqueueSVMMap(matCdata, M * N * sizeof(float),
+                                             true);
+
+  /// Release buffers and images
+  opencl::clReleaseMemObject(input_buf);
+  opencl::clReleaseMemObject(input_img);
+  opencl::clReleaseMemObject(buf);
+  opencl::clReleaseMemObject(img);
+}
+
+#endif
 
 /** @todo Enable transpose_16 with proper fix.
 void transpose_16(void *input, void *output, int width, int height,
