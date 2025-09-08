@@ -212,8 +212,7 @@ typedef cl_int(CL_API_CALL *PFN_clEnqueueSVMUnmap)(
   cl_uint /**< num_events_in_wait_list */,
   const cl_event * /**< event_wait_list */, cl_event * /**< event */);
 
-typedef cl_int(CL_API_CALL *PFN_clWaitForEvents)(cl_uint num_events,
-                                                 const cl_event *event_list);
+typedef cl_int(CL_API_CALL *PFN_clWaitForEvents)(cl_uint, const cl_event *);
 
 typedef cl_int(CL_API_CALL *PFN_clReleaseEvent)(cl_event);
 

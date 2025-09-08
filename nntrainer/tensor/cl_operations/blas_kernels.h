@@ -34,7 +34,8 @@ namespace nntrainer {
  * @param[in] N output dimension
  */
 void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
-                  unsigned int M, unsigned int N, unsigned int K);
+                  unsigned int M, unsigned int N, unsigned int K,
+                  SynchronizationInfo *synchronization_info = nullptr);
 
 /**
  * @brief     Q6_K sgemv computation : Y = A*X
@@ -101,8 +102,7 @@ void sgemm_cl(bool TransA, bool TransB, const float *A, const float *B,
  */
 void addition_cl(const float *input, float *res, unsigned int size_input,
                  unsigned int size_res, const bool use_svm,
-                 const cl_event *event_wait_list = nullptr,
-                 cl_event *event = nullptr);
+                 SynchronizationInfo *synchronization_info = nullptr);
 
 /**
  * @brief rmsnorm each row of the tensor
@@ -116,7 +116,8 @@ void addition_cl(const float *input, float *res, unsigned int size_input,
  */
 void rmsnorm_cl(const float *input, const float *gamma, float *result,
                 const float epsilon, unsigned int height, unsigned int width,
-                const bool use_svm);
+                const bool use_svm,
+                SynchronizationInfo *synchronization_info = nullptr);
 
 /**
  * @brief     sscal value element by element immediately

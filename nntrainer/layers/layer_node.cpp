@@ -775,7 +775,8 @@ LayerNode::refinalize(const std::vector<TensorDim> &input_dims) {
 /**
  * @brief     Forward Propagation of a layer
  */
-void LayerNode::forwarding(bool training) {
+void LayerNode::forwarding(bool training,
+                           SynchronizationInfo *synchronization_info) {
   loss->set(run_context->getRegularizationLoss());
 
   PROFILE_TIME_START(forward_event_key);
@@ -794,9 +795,8 @@ void LayerNode::forwarding(bool training) {
     }
   }
 
-  if (layer->runAsync()) {
-    // TODO pass events here
-    layer->forwardingAsync(*run_context, training);
+  if (layer->isGPU()) {
+    layer->forwardingAsync(*run_context, training, synchronization_info);
   } else {
     layer->forwarding(*run_context, training);
   }
@@ -819,12 +819,20 @@ void LayerNode::forwarding(bool training) {
 /**
  * @brief     Incremental forward Propagation of a layer
  */
-void LayerNode::incremental_forwarding(unsigned int from, unsigned int to,
-                                       bool training) {
+void LayerNode::incremental_forwarding(
+  unsigned int from, unsigned int to, bool training,
+  SynchronizationInfo *synchronization_info) {
   loss->set(run_context->getRegularizationLoss());
   PROFILE_TIME_START(forward_event_key);
   // std::cerr << getType() << "\n";
-  layer->incremental_forwarding(*run_context, from, to, training);
+
+  if (layer->isGPU()) {
+    layer->incrementalForwardingAsync(*run_context, from, to, training,
+                                      synchronization_info);
+  } else {
+    layer->incremental_forwarding(*run_context, from, to, training);
+  }
+
   PROFILE_TIME_END(forward_event_key);
   TRACE_MEMORY() << getName() + ": F";
   TRACE_TIME() << getName() + ": F";

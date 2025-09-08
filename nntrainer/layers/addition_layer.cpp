@@ -115,8 +115,7 @@ void AdditionLayer::updateTensorsByInputDimensions(
 }
 
 void AdditionLayer::forwardingAsync(RunLayerContext &context, bool training,
-                                    const cl_event *event_wait_list,
-                                    cl_event *event) {
+                                    SynchronizationInfo *synchronization_info) {
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
 
   /** @todo check possibility for in-place of addition layer */
@@ -125,11 +124,50 @@ void AdditionLayer::forwardingAsync(RunLayerContext &context, bool training,
     if (!idx) {
       hidden_.copy(input_);
     } else {
-      add_i_cl(hidden_, input_, event_wait_list, event);
+      add_i_cl(hidden_, input_, synchronization_info);
     }
   }
 };
 
-bool AdditionLayer::runAsync() { return true; }
+void AdditionLayer::incrementalForwardingAsync(
+  RunLayerContext &context, unsigned int from, unsigned int to, bool training,
+  SynchronizationInfo *synchronization_info) {
+  Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
+  TensorDim hidden_dim = hidden_.getDim();
+  TensorDim hidden_step_dim = hidden_dim;
+
+  if (from) {
+    NNTR_THROW_IF(to - from != 1, std::invalid_argument)
+      << "incremental step size is not 1";
+    from = 0;
+    to = 1;
+  }
+
+  hidden_step_dim.batch(1);
+  hidden_step_dim.height(to - from);
+
+  for (unsigned int b = 0; b < hidden_.batch(); ++b) {
+    Tensor hidden_step = hidden_.getSharedDataTensor(
+      hidden_step_dim, b * hidden_dim.getFeatureLen(), true);
+
+    /** @todo check possibility for in-place of addition layer */
+    for (unsigned int idx = 0; idx < context.getNumInputs(); ++idx) {
+      const Tensor &input_ = context.getInput(idx);
+      TensorDim input_dim = input_.getDim();
+
+      TensorDim input_step_dim = input_dim;
+      input_step_dim.batch(1);
+      input_step_dim.height(to - from);
+
+      Tensor input_step = input_.getSharedDataTensor(
+        input_step_dim, b * input_dim.getFeatureLen(), true);
+      if (!idx) {
+        hidden_step.copy(input_step);
+      } else {
+        add_i_cl(hidden_, input_, synchronization_info);
+      }
+    }
+  }
+}
 
 } /* namespace nntrainer */

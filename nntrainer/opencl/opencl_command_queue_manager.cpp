@@ -44,7 +44,8 @@ bool CommandQueueManager::CreateCommandQueue() {
   cl_device_id device_id = context_instance.GetDeviceId();
 
   // returns NULL with error code if fails
-  command_queue_ = clCreateCommandQueue(context, device_id, 0, &error_code);
+  command_queue_ = clCreateCommandQueue(
+    context, device_id, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, &error_code);
   if (!command_queue_) {
     ml_loge("Failed to create a command queue. OpenCL error code: %d : ",
             error_code, OpenCLErrorCodeToString(error_code));

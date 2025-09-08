@@ -295,6 +295,7 @@ int NeuralNetwork::initialize(ExecutionMode mode) {
 
   computational_graph_.initialize(model_graph);
   computational_graph_.serialize("model.json");
+  computational_graph_.topologicalSort();
 
   return status;
 }
@@ -405,7 +406,19 @@ sharedConstTensors NeuralNetwork::forwarding(
     }
   };
 
-  return model_graph.forwarding(training, forwarding_op, stop_cb, userdata);
+  if (!training) {
+
+    std::function<void(std::shared_ptr<LayerNode>, bool, SynchronizationInfo *)>
+      forwarding_op_async =
+        [](std::shared_ptr<LayerNode> node, bool training,
+           SynchronizationInfo *synchronization_info) -> void {
+      node->forwarding(training, synchronization_info);
+    };
+
+    return computational_graph_.forwarding(training, forwarding_op_async);
+  } else {
+    return model_graph.forwarding(training, forwarding_op, stop_cb, userdata);
+  }
 }
 
 /**
@@ -473,8 +486,22 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
     }
   };
 
-  return model_graph.incremental_forwarding(from, to, training, forwarding_op,
-                                            stop_cb, userdata);
+  // TODO GK here
+
+  if (!training) {
+
+    std::function<void(std::shared_ptr<LayerNode>, bool, SynchronizationInfo *)>
+      forwarding_op_async =
+        [from, to](std::shared_ptr<LayerNode> node, bool training,
+                   SynchronizationInfo *synchronization_info) -> void {
+      node->incremental_forwarding(from, to, training, synchronization_info);
+    };
+
+    return computational_graph_.forwarding(training, forwarding_op_async);
+  } else {
+    return model_graph.incremental_forwarding(from, to, training, forwarding_op,
+                                              stop_cb, userdata);
+  }
 }
 
 sharedConstTensors
@@ -1026,8 +1053,9 @@ NeuralNetwork::inference(unsigned int batch_size,
   input_tensors.reserve(input.size());
   for (unsigned int idx = 0; idx < in_dim.size(); idx++) {
     in_dim[idx].batch(batch_size);
-    input_tensors.emplace_back(MAKE_SHARED_TENSOR(Tensor::Map(
-      input[idx], in_dim[idx].getDataLen() * sizeof(float), in_dim[idx], 0)));
+    input_tensors.emplace_back(MAKE_SHARED_TENSOR(
+      Tensor::Map(input[idx], in_dim[idx].getDataLen() * sizeof(float),
+                  in_dim[idx], 0, true)));
   }
 
   if (!label.empty()) {

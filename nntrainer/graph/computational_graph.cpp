@@ -12,7 +12,7 @@ void ComputationalGraph::initialize(const NetworkGraph &network_graph) {
   for (size_t i = 0; i < network_graph.size(); ++i) {
     const auto &network_graph_node = network_graph.getSortedLayerNode(i);
 
-    nodes_[i].node = network_graph_node.get();
+    nodes_[i].node = network_graph_node;
     nodes_map_[network_graph_node->getName()] = &nodes_[i];
 
     if (network_graph_node->getType() == "input") {
@@ -22,6 +22,12 @@ void ComputationalGraph::initialize(const NetworkGraph &network_graph) {
 
   for (const auto node_ptr : input_nodes_) {
     evaluateNode(node_ptr, nullptr);
+  }
+
+  for (auto &node : nodes_) {
+    if (node.outputs.empty()) {
+      output_nodes_.push_back(&node);
+    }
   }
 }
 
@@ -174,7 +180,7 @@ void ComputationalGraph::evaluateNode(ComputationalGraphNode *node,
                                       ComputationalGraphNode *input_node) {
 
   if (input_node) {
-    node->inputs.push_back(input_node);
+    node->inputs.insert(input_node);
   }
 
   if (node->evaluated) {
@@ -187,13 +193,136 @@ void ComputationalGraph::evaluateNode(ComputationalGraphNode *node,
     auto iter = nodes_map_.find(output_name);
 
     if (iter != nodes_map_.end()) {
-      node->outputs.push_back(iter->second);
+      node->outputs.insert(iter->second);
     }
   }
 
   for (const auto output_node : node->outputs) {
     evaluateNode(output_node, node);
   }
+}
+
+void ComputationalGraph::topologicalSort() {
+  std::cout << "Topological sort:" << std::endl;
+
+  sorted_nodes_.clear();
+  std::deque<ComputationalGraphNode *> node_set;
+
+  for (auto node : input_nodes_) {
+    node->order = 0;
+    node_set.push_back(node);
+  }
+
+  while (!node_set.empty()) {
+    auto node = node_set.front();
+    node_set.pop_front();
+    sorted_nodes_.push_back(node);
+
+    for (auto out_node : node->outputs) {
+      out_node->in_orders.push_back(node->order);
+      out_node->inputs.erase(node);
+
+      if (out_node->inputs.empty()) {
+        int max_order = 0;
+        for (auto order : out_node->in_orders) {
+          max_order = std::max(max_order, order);
+        }
+        out_node->order = max_order + 1;
+
+        node_set.push_back(out_node);
+      }
+    }
+  }
+
+  for (const auto node : sorted_nodes_) {
+    std::cout << node->node->getName() << ", " << node->node->getType()
+              << ", order: " << node->order << ", execution order: "
+              << std::get<0>(node->node->getExecutionOrder())
+              << ", isGPU: " << node->node->getLayer()->isGPU() << std::endl;
+  }
+}
+
+#define LNODE(x) std::static_pointer_cast<LayerNode>(x)
+
+sharedConstTensors ComputationalGraph::forwarding(
+  bool training,
+  std::function<void(std::shared_ptr<LayerNode>, bool, SynchronizationInfo *)>
+    forwarding_op) {
+
+  bool inside_gpu_block = false;
+
+  for (int i = 0; i < sorted_nodes_.size(); ++i) {
+    auto node = sorted_nodes_[i];
+
+    if (node->node->getLayer()->isGPU() && !inside_gpu_block) {
+      inside_gpu_block = true;
+      // std::cout << "Gpu block begin, " << node->node->getName() << std::endl;
+    }
+
+    if (!node->node->getLayer()->isGPU() && inside_gpu_block) {
+      inside_gpu_block = false;
+      // std::cout << "Gpu block end, " << node->node->getName() << std::endl;
+    }
+
+    std::vector<ComputationalGraphNode *> paralell_run;
+    paralell_run.push_back(node);
+    auto i_next = i + 1;
+    while ((i_next < sorted_nodes_.size()) &&
+           (sorted_nodes_[i_next]->order == node->order) &&
+           sorted_nodes_[i_next]->node->getLayer()->isGPU()) {
+      paralell_run.push_back(sorted_nodes_[i_next]);
+      ++i_next;
+    }
+
+    if (paralell_run.size() > 1) {
+      auto cl_context =
+        static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+
+      std::vector<std::unique_ptr<SynchronizationInfo>>
+        synchronization_info_vec(paralell_run.size());
+
+      std::vector<cl_event> events;
+
+      for (int p = 0; p < paralell_run.size(); ++p) {
+
+        synchronization_info_vec[p] =
+          std::move(std::make_unique<SynchronizationInfo>());
+        // std::cout << "|ENQ->" << paralell_run.at(p)->node->getName() << ","
+        //           << paralell_run.at(p)->node->getType() << "|";
+        forwarding_op(paralell_run.at(p)->node, training,
+                      synchronization_info_vec.at(p).get());
+
+        if (synchronization_info_vec.at(p)->wait_for_event) {
+          events.push_back(synchronization_info_vec.at(p)->event);
+        }
+      }
+
+      if (!events.empty()) {
+        cl_context->command_queue_inst_.waitForEvent(events.size(),
+                                                     events.data());
+
+        for (int p = 0; p < events.size(); ++p) {
+          cl_context->command_queue_inst_.releaseEvent(events.at(p));
+        }
+      }
+
+      i += paralell_run.size() - 1;
+    } else {
+      // std::cout << "|RUN->" << node->node->getName() << ","
+      //           << node->node->getType() << "|";
+      forwarding_op(node->node, training, nullptr);
+    }
+  }
+
+  sharedConstTensors out;
+
+  for (auto node : output_nodes_) {
+    for (unsigned int j = 0; j < node->node->getNumOutputs(); ++j) {
+      out.push_back(MAKE_SHARED_TENSOR(node->node->getOutput(j)));
+    }
+  }
+
+  return out;
 }
 
 } // namespace nntrainer

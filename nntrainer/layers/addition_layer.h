@@ -96,11 +96,15 @@ public:
     nntrainer::RunLayerContext &context,
     std::vector<nntrainer::TensorDim> input_dimensions) override;
 
-  void forwardingAsync(RunLayerContext &context, bool training,
-                       const cl_event *event_wait_list = nullptr,
-                       cl_event *event = nullptr) override;
+  void
+  forwardingAsync(RunLayerContext &context, bool training,
+                  SynchronizationInfo *synchronization_info = nullptr) override;
 
-  bool runAsync() override;
+  void incrementalForwardingAsync(
+    RunLayerContext &context, unsigned int from, unsigned int to, bool training,
+    SynchronizationInfo *synchronization_info = nullptr) override;
+
+  bool isGPU() override { return true; }
 
   std::tuple<props::Print>
     add_props; /**< fc layer properties : unit - number of output neurons */

@@ -72,6 +72,13 @@ enum class InPlaceDirection {
   RIGHT, /**< right side of the layer is in-place */
 };
 
+struct SynchronizationInfo {
+  cl_uint num_events_in_wait_list = 0;
+  cl_event *event_wait_list = nullptr;
+  cl_event event = {};
+  bool wait_for_event = true;
+};
+
 /**
  * @class   Layer Base class for layers
  * @brief   Base class for all layers
@@ -208,6 +215,12 @@ public:
    */
   virtual void forwarding(RunLayerContext &context, bool training) = 0;
 
+  virtual void
+  forwardingAsync(RunLayerContext &context, bool training,
+                  SynchronizationInfo *synchronization_info = nullptr) {
+    NNTR_THROW_IF(true, std::runtime_error) << "Unimplemented method";
+  };
+
   /**
    * @brief     Incremental forward Propagation of a layer
    * @param     context Context of the layer
@@ -224,7 +237,13 @@ public:
                                       unsigned int from, unsigned int to,
                                       bool training) {
     forwarding(context, training);
-  };
+  }
+
+  virtual void incrementalForwardingAsync(
+    RunLayerContext &context, unsigned int from, unsigned int to, bool training,
+    SynchronizationInfo *synchronization_info = nullptr) {
+    NNTR_THROW_IF(true, std::runtime_error) << "Unimplemented method";
+  }
 
   /**
    * @brief     calc the derivative to be passed to the previous layer
@@ -474,11 +493,7 @@ public:
     }
   }
 
-  virtual void forwardingAsync(RunLayerContext &context, bool training,
-                               const cl_event *event_wait_list = nullptr,
-                               cl_event *event = nullptr){};
-
-  virtual bool runAsync() { return false; }
+  virtual bool isGPU() { return false; }
 
 protected:
   bool is_inplace = false; /**< whether this layer is in-place or not */

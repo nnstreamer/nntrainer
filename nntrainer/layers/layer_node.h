@@ -302,7 +302,8 @@ public:
    * outputs, and tensors (if any) for the layer. Input and output dimensions
    * can be access from the inputs/outputs tensors themselves.
    */
-  void forwarding(bool training = true);
+  void forwarding(bool training = true,
+                  SynchronizationInfo *synchronization_info = nullptr);
 
   /**
    * @brief     Incremental forward Propagation of a layer
@@ -314,8 +315,10 @@ public:
    * outputs, and tensors (if any) for the layer. Input and output dimensions
    * can be access from the inputs/outputs tensors themselves.
    */
-  void incremental_forwarding(unsigned int from, unsigned int to,
-                              bool training = true);
+  void
+  incremental_forwarding(unsigned int from, unsigned int to,
+                         bool training = true,
+                         SynchronizationInfo *synchronization_info = nullptr);
 
   /**
    * @brief     calc the derivative to be passed to the previous layer
@@ -994,6 +997,22 @@ public:
     return "cpu";
   }
 
+  /**
+   * @brief   Get the effective layer managed by this layer node
+   *
+   * @details this is layer inside the distribution layer if this layer node
+   * is distributed.
+   */
+  const nntrainer::Layer *getLayer() const;
+
+  /**
+   * @brief   Get the effective layer managed by this layer node
+   *
+   * @details this is layer inside the distribution layer if this layer node
+   * is distributed.
+   */
+  nntrainer::Layer *getLayer();
+
 private:
   /**
    * @brief     Get the Input Layers object
@@ -1071,22 +1090,6 @@ properties in the context/graph unless intended. */
                                  output  */
 
   std::array<TensorDim::DataType, 2> data_type;
-
-  /**
-   * @brief   Get the effective layer managed by this layer node
-   *
-   * @details this is layer inside the distribution layer if this layer node
-   * is distributed.
-   */
-  const nntrainer::Layer *getLayer() const;
-
-  /**
-   * @brief   Get the effective layer managed by this layer node
-   *
-   * @details this is layer inside the distribution layer if this layer node
-   * is distributed.
-   */
-  nntrainer::Layer *getLayer();
 
   /**
    * @brief anchor point to override if PRINT_SHAPE_INFO is enabled for

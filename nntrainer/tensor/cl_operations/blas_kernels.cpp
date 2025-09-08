@@ -16,7 +16,8 @@
 namespace nntrainer {
 
 void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
-                  unsigned int M, unsigned int N, unsigned int K) {
+                  unsigned int M, unsigned int N, unsigned int K,
+                  SynchronizationInfo *synchronization_info) {
   bool result = false;
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
@@ -106,18 +107,27 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
     throw std::runtime_error(
       "Failed to set kernel argument 7 for kernel_mul_mat_Ab_Bi_8x4");
 
-  const int work_groups_count[3] = {(int)ceil(M / 8.0f), (int)N / 4, 1};
-  const int work_group_size[3] = {1, 128, 1};
+  std::array<size_t, 3> global_work_size = {(size_t)ceil(M / 8.0f),
+                                            (size_t)N / 4, 1};
+  std::array<size_t, 3> local_work_size = {1, 128, 1};
 
-  result = blas_cc->command_queue_inst_.DispatchCommand(
-    kernel_ptr, work_groups_count, work_group_size);
-  if (!result) {
-    throw std::runtime_error(
-      "Failed to dispatch kernel for kernel_mul_mat_Ab_Bi_8x4");
-    return;
+  if (synchronization_info != nullptr) {
+    blas_cc->command_queue_inst_.enqueueKernel(
+      kernel_ptr->GetKernel(), global_work_size.size(), global_work_size.data(),
+      nullptr, synchronization_info->num_events_in_wait_list,
+      synchronization_info->event_wait_list, &synchronization_info->event);
+  } else {
+    cl_event addition_wait;
+
+    blas_cc->command_queue_inst_.enqueueKernel(
+      kernel_ptr->GetKernel(), global_work_size.size(), global_work_size.data(),
+      nullptr, 0, nullptr, &addition_wait);
+    blas_cc->command_queue_inst_.waitForEvent(1, &addition_wait);
+    blas_cc->command_queue_inst_.releaseEvent(addition_wait);
   }
 
   /// @todo synchronize when only needed
+  // TODO GK
   blas_cc->command_queue_inst_.enqueueSVMMap(matCdata, M * N * sizeof(float),
                                              true);
 }
@@ -363,7 +373,7 @@ void sgemm_cl(bool TransA, bool TransB, const float *A, const float *B,
 
 void addition_cl(const float *input, float *res, unsigned int size_input,
                  unsigned int size_res, const bool use_svm,
-                 const cl_event *event_wait_list, cl_event *event) {
+                 SynchronizationInfo *synchronization_info) {
   bool result = false;
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
@@ -375,12 +385,12 @@ void addition_cl(const float *input, float *res, unsigned int size_input,
   }
 
   addition_cl_internal<float>(kernel_addition_ptr, input, res, size_input,
-                              size_res, use_svm, event_wait_list, event);
+                              size_res, use_svm, synchronization_info);
 }
 
 void rmsnorm_cl(const float *input, const float *gamma, float *result,
                 const float epsilon, unsigned int height, unsigned int width,
-                bool use_svm) {
+                bool use_svm, SynchronizationInfo *synchronization_info) {
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
 
@@ -391,7 +401,7 @@ void rmsnorm_cl(const float *input, const float *gamma, float *result,
   }
 
   rmsnorm_cl_internal<float>(kernel_rmsnorm_ptr, input, gamma, result, epsilon,
-                             height, width, use_svm);
+                             height, width, use_svm, synchronization_info);
 }
 
 void sscal_cl(float *X, const unsigned int N, const float alpha) {

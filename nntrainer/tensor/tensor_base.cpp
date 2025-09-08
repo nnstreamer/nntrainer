@@ -9,6 +9,8 @@
  * @bug		No known bugs except for NYI items
  */
 
+#include <cl_context.h>
+#include <engine.h>
 #include <tensor.h>
 #include <tensor_base.h>
 
@@ -43,8 +45,21 @@ bool TensorBase::operator==(const TensorBase &rhs) const {
 void TensorBase::setTensorVar(TensorDim d, void *buf, size_t offset) {
   dim = d;
   strides = d.computeStrides();
+
+  auto cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+
+  auto tensor_size = d.height() * d.width() * sizeof(float);
+  void *data_svm = cl_context->context_inst_.createSVMRegion(tensor_size);
+
+  cl_context->command_queue_inst_.enqueueSVMMap(data_svm, tensor_size, false);
+
+  std::memcpy(data_svm, buf, tensor_size);
+
+  cl_context->command_queue_inst_.enqueueSVMUnmap(data_svm);
+
   /// Tensor does not own the memory
-  data = std::make_shared<MemoryData>(buf);
+  data = std::make_shared<MemoryData>(data_svm, true);
   this->offset = offset;
 }
 

@@ -6,10 +6,12 @@
 namespace nntrainer {
 
 struct ComputationalGraphNode {
-  LayerNode *node = nullptr;
-  std::vector<ComputationalGraphNode *> inputs;
-  std::vector<ComputationalGraphNode *> outputs;
+  std::shared_ptr<LayerNode> node = nullptr;
+  std::set<ComputationalGraphNode *> inputs;
+  std::set<ComputationalGraphNode *> outputs;
   bool evaluated = false;
+  std::vector<int> in_orders;
+  int order = 0;
 };
 
 class ComputationalGraph {
@@ -18,6 +20,13 @@ public:
 
   void serialize(const std::string &file_name);
 
+  void topologicalSort();
+
+  sharedConstTensors forwarding(
+    bool training,
+    std::function<void(std::shared_ptr<LayerNode>, bool, SynchronizationInfo *)>
+      forwarding_op);
+
 private:
   void evaluateNode(ComputationalGraphNode *node,
                     ComputationalGraphNode *input_node);
@@ -25,6 +34,8 @@ private:
   std::map<std::string, ComputationalGraphNode *> nodes_map_;
   std::vector<ComputationalGraphNode> nodes_;
   std::vector<ComputationalGraphNode *> input_nodes_;
+  std::vector<ComputationalGraphNode *> output_nodes_;
+  std::vector<ComputationalGraphNode *> sorted_nodes_;
 };
 
 } // namespace nntrainer

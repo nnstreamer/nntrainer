@@ -256,10 +256,11 @@ sgemm_cl_internal(ClContext::SharedPtrClKernel kernel, bool TransA, bool TransB,
 }
 
 template <typename T>
-inline static void addition_cl_internal(
-  ClContext::SharedPtrClKernel kernel, const T *input, T *res,
-  unsigned int size_input, unsigned int size_res, const bool use_svm,
-  const cl_event *event_wait_list = nullptr, cl_event *event = nullptr) {
+inline static void
+addition_cl_internal(ClContext::SharedPtrClKernel kernel, const T *input,
+                     T *res, unsigned int size_input, unsigned int size_res,
+                     const bool use_svm,
+                     SynchronizationInfo *synchronization_info = nullptr) {
   bool result = false;
 
   auto cl_context =
@@ -318,10 +319,11 @@ inline static void addition_cl_internal(
 
   std::array<size_t, 3> global_work_size = {size_res, 1, 1};
 
-  if (event != nullptr) {
+  if (synchronization_info != nullptr) {
     cl_context->command_queue_inst_.enqueueKernel(
       kernel->GetKernel(), global_work_size.size(), global_work_size.data(),
-      nullptr, 0, event_wait_list, event);
+      nullptr, synchronization_info->num_events_in_wait_list,
+      synchronization_info->event_wait_list, &synchronization_info->event);
   } else {
     cl_event addition_wait;
 
@@ -344,11 +346,11 @@ inline static void addition_cl_internal(
 }
 
 template <typename T>
-inline static void rmsnorm_cl_internal(ClContext::SharedPtrClKernel kernel,
-                                       const T *input, const T *gamma,
-                                       T *result, const T epsilon,
-                                       unsigned int height, unsigned int width,
-                                       const bool use_svm) {
+inline static void
+rmsnorm_cl_internal(ClContext::SharedPtrClKernel kernel, const T *input,
+                    const T *gamma, T *result, const T epsilon,
+                    unsigned int height, unsigned int width, const bool use_svm,
+                    SynchronizationInfo *synchronization_info = nullptr) {
   unsigned dim_in = height * width;
   unsigned dim_gamma = width;
   unsigned size_in = dim_in * sizeof(T);
@@ -410,13 +412,21 @@ inline static void rmsnorm_cl_internal(ClContext::SharedPtrClKernel kernel,
 
   std::array<size_t, 3> global_work_size = {height * SUBGROUP_SIZE, 1, 1};
   std::array<size_t, 3> local_work_size = {SUBGROUP_SIZE, 1, 1};
-  cl_event rmsnorm_wait;
 
-  cl_context->command_queue_inst_.enqueueKernel(
-    kernel->GetKernel(), global_work_size.size(), global_work_size.data(),
-    local_work_size.data(), 0, nullptr, &rmsnorm_wait);
-  cl_context->command_queue_inst_.waitForEvent(1, &rmsnorm_wait);
-  cl_context->command_queue_inst_.releaseEvent(rmsnorm_wait);
+  if (synchronization_info != nullptr) {
+    cl_context->command_queue_inst_.enqueueKernel(
+      kernel->GetKernel(), global_work_size.size(), global_work_size.data(),
+      local_work_size.data(), synchronization_info->num_events_in_wait_list,
+      synchronization_info->event_wait_list, &synchronization_info->event);
+  } else {
+    cl_event rmsnorm_wait;
+
+    cl_context->command_queue_inst_.enqueueKernel(
+      kernel->GetKernel(), global_work_size.size(), global_work_size.data(),
+      local_work_size.data(), 0, nullptr, &rmsnorm_wait);
+    cl_context->command_queue_inst_.waitForEvent(1, &rmsnorm_wait);
+    cl_context->command_queue_inst_.releaseEvent(rmsnorm_wait);
+  }
 
   if (!use_svm) {
     auto &clbuffInstance = ClBufferManager::Global();

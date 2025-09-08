@@ -448,36 +448,111 @@ TEST(blas_kernels, asynch_execution) {
 
   auto model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
 
+  const size_t height = 256;
+  const size_t width = 256;
+
+  std::string dim_string =
+    "1:1:" + std::to_string(height) + ":" + std::to_string(width);
+
   model->addLayer(ml::train::createLayer(
     "input", {nntrainer::withKey("name", "input0"),
-              nntrainer::withKey("input_shape", "1:1:1:16")}));
+              nntrainer::withKey("input_shape", dim_string)}));
 
-  model->addLayer(ml::train::createLayer(
-    "input", {nntrainer::withKey("name", "input1"),
-              nntrainer::withKey("input_shape", "1:1:1:16")}));
+  model->addLayer(ml::train::layer::NegLayer(
+    {nntrainer::withKey("name", "neg0"),
+     nntrainer::withKey("input_layers", {"input0"}),
+     nntrainer::withKey("input_shape", {dim_string})}));
 
-  model->addLayer(ml::train::createLayer(
-    "input", {nntrainer::withKey("name", "input2"),
-              nntrainer::withKey("input_shape", "1:1:1:16")}));
+  model->addLayer(
+    ml::train::layer::MultiOut({nntrainer::withKey("name", "multiout0")}));
 
-  model->addLayer(ml::train::createLayer(
-    "input", {nntrainer::withKey("name", "input3"),
-              nntrainer::withKey("input_shape", "1:1:1:16")}));
+  /* 0 level */
 
   model->addLayer(ml::train::layer::Addition(
     {nntrainer::withKey("name", "addition0"),
-     nntrainer::withKey("input_layers", {"input0", "input1"}),
-     nntrainer::withKey("input_shape", {"1:1:1:16", "1:1:1:16"})}));
+     nntrainer::withKey("input_layers", {"multiout0(0)", "multiout0(1)"}),
+     nntrainer::withKey("input_shape", {dim_string, dim_string})}));
 
   model->addLayer(ml::train::layer::Addition(
     {nntrainer::withKey("name", "addition1"),
-     nntrainer::withKey("input_layers", {"input2", "input3"}),
-     nntrainer::withKey("input_shape", {"1:1:1:16", "1:1:1:16"})}));
+     nntrainer::withKey("input_layers", {"multiout0(2)", "multiout0(3)"}),
+     nntrainer::withKey("input_shape", {dim_string, dim_string})}));
 
   model->addLayer(ml::train::layer::Addition(
     {nntrainer::withKey("name", "addition2"),
+     nntrainer::withKey("input_layers", {"multiout0(4)", "multiout0(5)"}),
+     nntrainer::withKey("input_shape", {dim_string, dim_string})}));
+
+  model->addLayer(ml::train::layer::Addition(
+    {nntrainer::withKey("name", "addition3"),
+     nntrainer::withKey("input_layers", {"multiout0(6)", "multiout0(7)"}),
+     nntrainer::withKey("input_shape", {dim_string, dim_string})}));
+
+  model->addLayer(ml::train::layer::Addition(
+    {nntrainer::withKey("name", "addition4"),
+     nntrainer::withKey("input_layers", {"multiout0(8)", "multiout0(9)"}),
+     nntrainer::withKey("input_shape", {dim_string, dim_string})}));
+
+  model->addLayer(ml::train::layer::Addition(
+    {nntrainer::withKey("name", "addition5"),
+     nntrainer::withKey("input_layers", {"multiout0(10)", "multiout0(11)"}),
+     nntrainer::withKey("input_shape", {dim_string, dim_string})}));
+
+  model->addLayer(ml::train::layer::Addition(
+    {nntrainer::withKey("name", "addition6"),
+     nntrainer::withKey("input_layers", {"multiout0(12)", "multiout0(13)"}),
+     nntrainer::withKey("input_shape", {dim_string, dim_string})}));
+
+  model->addLayer(ml::train::layer::Addition(
+    {nntrainer::withKey("name", "addition7"),
+     nntrainer::withKey("input_layers", {"multiout0(14)", "multiout0(15)"}),
+     nntrainer::withKey("input_shape", {dim_string, dim_string})}));
+
+  /* 1 level */
+
+  model->addLayer(ml::train::layer::Addition(
+    {nntrainer::withKey("name", "addition8"),
      nntrainer::withKey("input_layers", {"addition0", "addition1"}),
-     nntrainer::withKey("input_shape", {"1:1:1:16", "1:1:1:16"})}));
+     nntrainer::withKey("input_shape", {dim_string, dim_string})}));
+
+  model->addLayer(ml::train::layer::Addition(
+    {nntrainer::withKey("name", "addition9"),
+     nntrainer::withKey("input_layers", {"addition2", "addition3"}),
+     nntrainer::withKey("input_shape", {dim_string, dim_string})}));
+
+  model->addLayer(ml::train::layer::Addition(
+    {nntrainer::withKey("name", "addition10"),
+     nntrainer::withKey("input_layers", {"addition4", "addition5"}),
+     nntrainer::withKey("input_shape", {dim_string, dim_string})}));
+
+  model->addLayer(ml::train::layer::Addition(
+    {nntrainer::withKey("name", "addition11"),
+     nntrainer::withKey("input_layers", {"addition6", "addition7"}),
+     nntrainer::withKey("input_shape", {dim_string, dim_string})}));
+
+  /* 2 level */
+
+  model->addLayer(ml::train::layer::Addition(
+    {nntrainer::withKey("name", "addition12"),
+     nntrainer::withKey("input_layers", {"addition8", "addition9"}),
+     nntrainer::withKey("input_shape", {dim_string, dim_string})}));
+
+  model->addLayer(ml::train::layer::Addition(
+    {nntrainer::withKey("name", "addition13"),
+     nntrainer::withKey("input_layers", {"addition10", "addition11"}),
+     nntrainer::withKey("input_shape", {dim_string, dim_string})}));
+
+  /* 3 level */
+
+  model->addLayer(ml::train::layer::Addition(
+    {nntrainer::withKey("name", "addition14"),
+     nntrainer::withKey("input_layers", {"addition12", "addition13"}),
+     nntrainer::withKey("input_shape", {dim_string, dim_string})}));
+
+  model->addLayer(ml::train::layer::NegLayer(
+    {nntrainer::withKey("name", "neg1"),
+     nntrainer::withKey("input_layers", {"addition14"}),
+     nntrainer::withKey("input_shape", {dim_string})}));
 
   model->setProperty({nntrainer::withKey("batch_size", 1),
                       nntrainer::withKey("epochs", 1),
@@ -490,33 +565,31 @@ TEST(blas_kernels, asynch_execution) {
   status = model->initialize(ml::train::ExecutionMode::INFERENCE);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  float input0[16];
-  float input1[16];
-  float input2[16];
-  float input3[16];
+  std::vector<float> input0(height * width);
 
-  for (unsigned int i = 0; i < 16; ++i) {
-    input0[i] = 0;
-    input1[i] = 1;
-    input2[i] = 2;
-    input3[i] = 3;
+  for (unsigned int i = 0; i < height * width; ++i) {
+    input0[i] = 1;
   }
 
   std::vector<float *> in;
   std::vector<float *> ans;
 
-  in.push_back(input0);
-  in.push_back(input1);
-  in.push_back(input2);
-  in.push_back(input3);
+  in.push_back(input0.data());
 
-  ans = model->inference(1, in);
+  auto t1 = std::chrono::high_resolution_clock::now();
+  // ans = model->inference(1, in);
 
-  // std::cout << "size: " << ans.size() << std::endl;
-  // auto ans_ptr = ans[0];
-  // for (int i = 0; i < 16; ++i) {
-  //   std::cout << *(ans_ptr + i) << std::endl;
-  // }
+  ans = model->incremental_inference(1, in, {}, 1, 0, 1);
+  auto t2 = std::chrono::high_resolution_clock::now();
+  auto dt = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
+
+  std::cout << "Time = " << dt.count() << " us" << std::endl;
+
+  std::cout << "size: " << ans.size() << std::endl;
+  auto ans_ptr = ans[0];
+  for (int i = 0; i < 16; ++i) {
+    std::cout << *(ans_ptr + i) << std::endl;
+  }
 
   in.clear();
   ans.clear();
