@@ -463,4 +463,12 @@ void __fallback_gemm_q6_K(const unsigned int M, const unsigned int N,
                           const unsigned int ldc) {
   throw std::runtime_error("NYI : __fallback_gemm_q6_K");
 }
+
+template <>
+void __fallback_rms_norm_wrt_width_fp16_intrinsic(const _FP16 *__restrict X,
+                                                  _FP16 *__restrict Y, size_t H,
+                                                  size_t W, float epsilon) {
+  throw std::runtime_error(
+    "NYI : __fallback_rms_norm_wrt_width_fp16_intrinsic");
+}
 } // namespace nntrainer
