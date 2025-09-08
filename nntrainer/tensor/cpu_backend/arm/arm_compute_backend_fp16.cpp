@@ -450,4 +450,11 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
                               const _FP16 *cos_, const _FP16 *sin_) {
   neon::compute_rotary_emb_value(width, dim, half_, inout, output, cos_, sin_);
 }
+
+template <>
+void rms_norm_wrt_width_fp16_intrinsic(const _FP16 *__restrict X,
+                                       _FP16 *__restrict Y, size_t H, size_t W,
+                                       float epsilon) {
+  __fallback_rms_norm_wrt_width_fp16_intrinsic<_FP16>(X, Y, H, W, epsilon);
+}
 } /* namespace nntrainer */
