@@ -108,24 +108,148 @@ struct block_q4_0x4 {
   uint8_t qs[64];
 };
 
+#ifndef PF_C
+#define PF_C 2
+#endif
+#ifndef PF_LOCALITY
+#define PF_LOCALITY 1
+#endif
+
+// ---- Row swizzle: 16B -> 8×u16 lanes (matches scalar exactly) ----
+static inline uint16x8_t
+swizzle_pack_row_neon_vec(const uint8_t *__restrict p0, // blk.qs + 8*off4
+                          const uint8_t *__restrict p1, // blk.qs + 8*(off4 + 4)
+                          const uint8x8_t m88, const uint8x8_t m0F,
+                          const uint8x8_t mF0) {
+
+  uint8x8_t a = vld1_u8(p0);
+  uint8x8_t b8 = vld1_u8(p1);
+  a = veor_u8(a, m88);
+  b8 = veor_u8(b8, m88);
+
+  // even={in0,in2,...,in14}, odd={in1,in3,...,in15}
+  uint8x8x2_t eo = vuzp_u8(a, b8);
+  uint8x8_t even = eo.val[0];
+  uint8x8_t odd = eo.val[1];
+
+  // low/high nibble lanes
+  uint8x8_t loB = vorr_u8(vand_u8(even, m0F), vshl_n_u8(vand_u8(odd, m0F), 4));
+  uint8x8_t hiB = vorr_u8(vshr_n_u8(even, 4), vand_u8(odd, mF0));
+
+  // widen to u16
+  uint16x8_t lo16 = vmovl_u8(loB);
+  uint16x8_t hi16 = vmovl_u8(hiB);
+
+  // split even/odd lanes
+  uint16x8_t lo_even_q = vuzp1q_u16(lo16, lo16);
+  uint16x8_t lo_odd_q = vuzp2q_u16(lo16, lo16);
+  uint16x8_t hi_even_q = vuzp1q_u16(hi16, hi16);
+  uint16x8_t hi_odd_q = vuzp2q_u16(hi16, hi16);
+
+  // take low 4 lanes and pack exactly like scalar
+  uint16x4_t lo_even = vget_low_u16(lo_even_q);
+  uint16x4_t lo_odd = vget_low_u16(lo_odd_q);
+  uint16x4_t hi_even = vget_low_u16(hi_even_q);
+  uint16x4_t hi_odd = vget_low_u16(hi_odd_q);
+
+  uint16x4_t w_lo4 = vorr_u16(lo_even, vshl_n_u16(lo_odd, 8));
+  uint16x4_t w_hi4 = vorr_u16(hi_even, vshl_n_u16(hi_odd, 8));
+  return vcombine_u16(w_lo4, w_hi4); // lanes 0..7
+}
+
+// ---- Transpose 8×8 of u16 lanes using zip1/zip2 (no vtrnq_u64) ----
+static inline void
+transpose8x8_u16(const uint16x8_t r0, const uint16x8_t r1, const uint16x8_t r2,
+                 const uint16x8_t r3, const uint16x8_t r4, const uint16x8_t r5,
+                 const uint16x8_t r6, const uint16x8_t r7, uint16x8_t &c0,
+                 uint16x8_t &c1, uint16x8_t &c2, uint16x8_t &c3, uint16x8_t &c4,
+                 uint16x8_t &c5, uint16x8_t &c6, uint16x8_t &c7) {
+
+  // 16-bit interleave (transpose within 2-row groups)
+  uint16x8x2_t t01 = vtrnq_u16(r0, r1);
+  uint16x8x2_t t23 = vtrnq_u16(r2, r3);
+  uint16x8x2_t t45 = vtrnq_u16(r4, r5);
+  uint16x8x2_t t67 = vtrnq_u16(r6, r7);
+
+  // 32-bit interleave (transpose within 4-row groups)
+  uint32x4x2_t u02 = vtrnq_u32(vreinterpretq_u32_u16(t01.val[0]),
+                               vreinterpretq_u32_u16(t23.val[0]));
+  uint32x4x2_t u13 = vtrnq_u32(vreinterpretq_u32_u16(t01.val[1]),
+                               vreinterpretq_u32_u16(t23.val[1]));
+  uint32x4x2_t u46 = vtrnq_u32(vreinterpretq_u32_u16(t45.val[0]),
+                               vreinterpretq_u32_u16(t67.val[0]));
+  uint32x4x2_t u57 = vtrnq_u32(vreinterpretq_u32_u16(t45.val[1]),
+                               vreinterpretq_u32_u16(t67.val[1]));
+
+  // 64-bit interleave (final 8-row transpose) using zip1/zip2
+  const uint64x2_t a00 = vreinterpretq_u64_u32(u02.val[0]);
+  const uint64x2_t a01 = vreinterpretq_u64_u32(u02.val[1]);
+  const uint64x2_t a10 = vreinterpretq_u64_u32(u13.val[0]);
+  const uint64x2_t a11 = vreinterpretq_u64_u32(u13.val[1]);
+  const uint64x2_t b00 = vreinterpretq_u64_u32(u46.val[0]);
+  const uint64x2_t b01 = vreinterpretq_u64_u32(u46.val[1]);
+  const uint64x2_t b10 = vreinterpretq_u64_u32(u57.val[0]);
+  const uint64x2_t b11 = vreinterpretq_u64_u32(u57.val[1]);
+
+  const uint64x2_t v04_0 = vzip1q_u64(a00, b00); // columns 0 & 4 (low halves)
+  const uint64x2_t v04_1 = vzip2q_u64(a00, b00); // columns 0 & 4 (high halves)
+  const uint64x2_t v26_0 = vzip1q_u64(a01, b01); // columns 2 & 6
+  const uint64x2_t v26_1 = vzip2q_u64(a01, b01);
+  const uint64x2_t v15_0 = vzip1q_u64(a10, b10); // columns 1 & 5
+  const uint64x2_t v15_1 = vzip2q_u64(a10, b10);
+  const uint64x2_t v37_0 = vzip1q_u64(a11, b11); // columns 3 & 7
+  const uint64x2_t v37_1 = vzip2q_u64(a11, b11);
+
+  c0 = vreinterpretq_u16_u64(v04_0);
+  c4 = vreinterpretq_u16_u64(v04_1);
+  c2 = vreinterpretq_u16_u64(v26_0);
+  c6 = vreinterpretq_u16_u64(v26_1);
+  c1 = vreinterpretq_u16_u64(v15_0);
+  c5 = vreinterpretq_u16_u64(v15_1);
+  c3 = vreinterpretq_u16_u64(v37_0);
+  c7 = vreinterpretq_u16_u64(v37_1);
+}
+
+// ---- Full kernel: 8-row contiguous stores version ----
 void unpack_q4_0x8_transpose16(const void *src, uint16_t *__restrict dT,
                                uint16_t *__restrict qsT, int N, int K, int CT) {
   using u16 = unsigned short;
-  const auto *x = static_cast<const block_q4_0x4 *>(src);
+  const block_q4_0x4 *__restrict x = static_cast<const block_q4_0x4 *>(src);
 
-  const int groups_N8 = N / 8;    // still process in 8-row bands
-  const int cols_scales = K / 32; // same: one subblock per 32 cols
-  const uint64_t mask = 0x8888888888888888ULL;
+  const int groups_N8 = N / 8;    // process in 8-row bands
+  const int cols_scales = K / 32; // one subblock per 32 cols
+
+  const uint8x8_t m88 = vdup_n_u8(0x88);
+  const uint8x8_t m0F = vdup_n_u8(0x0F);
+  const uint8x8_t mF0 = vdup_n_u8(0xF0);
+
+  if (CT <= 0)
+    CT = 4;
 
   for (int c0 = 0; c0 < cols_scales; c0 += CT) {
     const int c1 = std::min(c0 + CT, cols_scales);
 
+#pragma omp parallel for collapse(2) schedule(static)
     for (int b = 0; b < groups_N8; ++b) {
-      // two x4 blocks cover this 8-row band:
-      const int blkrow4_lo = 2 * b;
-      const int blkrow4_hi = 2 * b + 1;
-
       for (int c = c0; c < c1; ++c) {
+        const int blkrow4_lo = 2 * b;
+        const int blkrow4_hi = 2 * b + 1;
+
+        // Prefetch a few columns ahead within the tile
+        const int c_pf = std::min(c + PF_C, c1 - 1);
+        __builtin_prefetch(&x[blkrow4_lo * cols_scales + c_pf], 0, PF_LOCALITY);
+        __builtin_prefetch(&x[blkrow4_hi * cols_scales + c_pf], 0, PF_LOCALITY);
+        __builtin_prefetch(dT + c_pf * N + b * 8, 1, PF_LOCALITY);
+        uint16_t *pf_qs_base = qsT + (c_pf * 8) * N + b * 8;
+        __builtin_prefetch(pf_qs_base + 0 * N, 1, PF_LOCALITY);
+        __builtin_prefetch(pf_qs_base + 1 * N, 1, PF_LOCALITY);
+        __builtin_prefetch(pf_qs_base + 2 * N, 1, PF_LOCALITY);
+        __builtin_prefetch(pf_qs_base + 3 * N, 1, PF_LOCALITY);
+        __builtin_prefetch(pf_qs_base + 4 * N, 1, PF_LOCALITY);
+        __builtin_prefetch(pf_qs_base + 5 * N, 1, PF_LOCALITY);
+        __builtin_prefetch(pf_qs_base + 6 * N, 1, PF_LOCALITY);
+        __builtin_prefetch(pf_qs_base + 7 * N, 1, PF_LOCALITY);
+
         const block_q4_0x4 &blk_lo =
           x[blkrow4_lo * cols_scales + c]; // rows 0..3
         const block_q4_0x4 &blk_hi =
@@ -134,48 +258,49 @@ void unpack_q4_0x8_transpose16(const void *src, uint16_t *__restrict dT,
         u16 *__restrict dT_c = dT + c * N;          // column c in dT
         u16 *__restrict qsT_c0 = qsT + (c * 8) * N; // first of 8 qs columns
 
-        for (int off = 0; off < 8; ++off) {
-          const int r = b * 8 + off; // absolute row
-          const bool hi = (off >= 4);
-          const int off4 = off & 3; // 0..3 inside the chosen x4 block
-          const block_q4_0x4 &blk = hi ? blk_hi : blk_lo;
+        // ---- SCALES: store 8 rows contiguously ----
+        uint16x4_t s_lo =
+          vld1_u16(reinterpret_cast<const uint16_t *>(blk_lo.d));
+        uint16x4_t s_hi =
+          vld1_u16(reinterpret_cast<const uint16_t *>(blk_hi.d));
+        uint16x8_t s8 = vcombine_u16(s_lo, s_hi);
+        vst1q_u16(reinterpret_cast<uint16_t *>(dT_c + b * 8), s8);
 
-          // ------------ SCALES (fp16) ------------
-          dT_c[r] = blk.d[off4];
+        // ---- QUANTS: compute 8 rows, then transpose to columns ----
+        uint16x8_t r0 = swizzle_pack_row_neon_vec(
+          blk_lo.qs + 8 * 0, blk_lo.qs + 8 * (0 + 4), m88, m0F, mF0);
+        uint16x8_t r1 = swizzle_pack_row_neon_vec(
+          blk_lo.qs + 8 * 1, blk_lo.qs + 8 * (1 + 4), m88, m0F, mF0);
+        uint16x8_t r2 = swizzle_pack_row_neon_vec(
+          blk_lo.qs + 8 * 2, blk_lo.qs + 8 * (2 + 4), m88, m0F, mF0);
+        uint16x8_t r3 = swizzle_pack_row_neon_vec(
+          blk_lo.qs + 8 * 3, blk_lo.qs + 8 * (3 + 4), m88, m0F, mF0);
+        uint16x8_t r4 = swizzle_pack_row_neon_vec(
+          blk_hi.qs + 8 * 0, blk_hi.qs + 8 * (0 + 4), m88, m0F, mF0);
+        uint16x8_t r5 = swizzle_pack_row_neon_vec(
+          blk_hi.qs + 8 * 1, blk_hi.qs + 8 * (1 + 4), m88, m0F, mF0);
+        uint16x8_t r6 = swizzle_pack_row_neon_vec(
+          blk_hi.qs + 8 * 2, blk_hi.qs + 8 * (2 + 4), m88, m0F, mF0);
+        uint16x8_t r7 = swizzle_pack_row_neon_vec(
+          blk_hi.qs + 8 * 3, blk_hi.qs + 8 * (3 + 4), m88, m0F, mF0);
 
-          // ------------ QUANTS (two 8B chunks for this row inside x4)
-          // ------------
-          uint64_t v0, v1;
-          std::memcpy(&v0, blk.qs + 8 * off4, 8);       // first 8 bytes
-          std::memcpy(&v1, blk.qs + 8 * (off4 + 4), 8); // second 8 bytes
-          v0 ^= mask;
-          v1 ^= mask;
+        uint16x8_t c0v, c1v, c2v, c3v, c4v, c5v, c6v, c7v;
+        transpose8x8_u16(r0, r1, r2, r3, r4, r5, r6, r7, c0v, c1v, c2v, c3v,
+                         c4v, c5v, c6v, c7v);
 
-          unsigned char in[16];
-          std::memcpy(in + 0, &v0, 8);
-          std::memcpy(in + 8, &v1, 8);
-
-          // nibble-lane swizzle (unchanged)
-          unsigned char out[16];
-          for (int i = 0; i < 8; ++i) {
-            const unsigned char x0 = in[2 * i + 0];
-            const unsigned char x1 = in[2 * i + 1];
-            out[i + 0] = (unsigned char)((x0 & 0x0F) | ((x1 & 0x0F) << 4));
-            out[i + 8] = (unsigned char)(((x0 & 0xF0) >> 4) | (x1 & 0xF0));
-          }
-
-          // pack to 8×u16 and store at columns (c*8..c*8+7), row r
-          for (int t = 0; t < 8; ++t) {
-            const u16 w =
-              (u16)((u16)out[2 * t + 0] | ((u16)out[2 * t + 1] << 8));
-            qsT_c0[t * N + r] = w;
-          }
-        } // off
-      }   // c
-    }     // b
-  }       // c0 tiles
+        // store 8 columns, each as 8 contiguous rows
+        vst1q_u16(qsT_c0 + 0 * N + b * 8, c0v);
+        vst1q_u16(qsT_c0 + 1 * N + b * 8, c1v);
+        vst1q_u16(qsT_c0 + 2 * N + b * 8, c2v);
+        vst1q_u16(qsT_c0 + 3 * N + b * 8, c3v);
+        vst1q_u16(qsT_c0 + 4 * N + b * 8, c4v);
+        vst1q_u16(qsT_c0 + 5 * N + b * 8, c5v);
+        vst1q_u16(qsT_c0 + 6 * N + b * 8, c6v);
+        vst1q_u16(qsT_c0 + 7 * N + b * 8, c7v);
+      }
+    }
+  }
 }
-
 bool is_valid(const unsigned int N, const float *X) {
   size_t i = 0;
   float inf_s = std::numeric_limits<float>::infinity();

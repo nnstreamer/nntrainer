@@ -565,7 +565,7 @@ void copy_u16(const unsigned int N, const uint16_t *X, uint16_t *Y);
  */
 void unpack_q4_0x8_transpose16(const void *src, uint16_t *__restrict dT,
                                uint16_t *__restrict qsT, int N, int K,
-                               int CT = 1);
+                               int CT = 4);
 
 /**
  * @brief     check if the X has NaN value or Inf

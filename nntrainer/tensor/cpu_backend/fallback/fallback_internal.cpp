@@ -45,6 +45,14 @@ struct block_q4_0x8 {
   uint8_t qs[128]; // 16 x u64
 };
 
+/**
+ * @brief struct of q4_0x8 block
+ */
+struct block_q4_0x4 {
+  uint16_t d[4];  // 16B
+  uint8_t qs[64]; // 16 x u64
+};
+
 void __fallback_sscal(const unsigned int N, const float alpha, float *X,
                       const unsigned int incX) {
   assert(incX > 0);
@@ -394,6 +402,76 @@ void __fallback_unpack_q4_0x8_transpose16(const void *src,
           }
         } // off
       }   // c in tile
+    }     // b
+  }       // c0 tiles
+}
+
+void __fallback_unpack_q4_0x4_transpose16(const void *src,
+                                          uint16_t *__restrict dT,
+                                          uint16_t *__restrict qsT, int N,
+                                          int K, int CT) {
+  using u16 = unsigned short;
+  const auto *x = static_cast<const block_q4_0x4 *>(src);
+
+  const int groups_N8 = N / 8;    // still process in 8-row bands
+  const int cols_scales = K / 32; // same: one subblock per 32 cols
+  const uint64_t mask = 0x8888888888888888ULL;
+
+  for (int c0 = 0; c0 < cols_scales; c0 += CT) {
+    const int c1 = std::min(c0 + CT, cols_scales);
+
+    for (int b = 0; b < groups_N8; ++b) {
+      // two x4 blocks cover this 8-row band:
+      const int blkrow4_lo = 2 * b;
+      const int blkrow4_hi = 2 * b + 1;
+
+      for (int c = c0; c < c1; ++c) {
+        const block_q4_0x4 &blk_lo =
+          x[blkrow4_lo * cols_scales + c]; // rows 0..3
+        const block_q4_0x4 &blk_hi =
+          x[blkrow4_hi * cols_scales + c]; // rows 4..7
+
+        u16 *__restrict dT_c = dT + c * N;          // column c in dT
+        u16 *__restrict qsT_c0 = qsT + (c * 8) * N; // first of 8 qs columns
+
+        for (int off = 0; off < 8; ++off) {
+          const int r = b * 8 + off; // absolute row
+          const bool hi = (off >= 4);
+          const int off4 = off & 3; // 0..3 inside the chosen x4 block
+          const block_q4_0x4 &blk = hi ? blk_hi : blk_lo;
+
+          // ------------ SCALES (fp16) ------------
+          dT_c[r] = blk.d[off4];
+
+          // ------------ QUANTS (two 8B chunks for this row inside x4)
+          // ------------
+          uint64_t v0, v1;
+          std::memcpy(&v0, blk.qs + 8 * off4, 8);       // first 8 bytes
+          std::memcpy(&v1, blk.qs + 8 * (off4 + 4), 8); // second 8 bytes
+          v0 ^= mask;
+          v1 ^= mask;
+
+          unsigned char in[16];
+          std::memcpy(in + 0, &v0, 8);
+          std::memcpy(in + 8, &v1, 8);
+
+          // nibble-lane swizzle (unchanged)
+          unsigned char out[16];
+          for (int i = 0; i < 8; ++i) {
+            const unsigned char x0 = in[2 * i + 0];
+            const unsigned char x1 = in[2 * i + 1];
+            out[i + 0] = (unsigned char)((x0 & 0x0F) | ((x1 & 0x0F) << 4));
+            out[i + 8] = (unsigned char)(((x0 & 0xF0) >> 4) | (x1 & 0xF0));
+          }
+
+          // pack to 8×u16 and store at columns (c*8..c*8+7), row r
+          for (int t = 0; t < 8; ++t) {
+            const u16 w =
+              (u16)((u16)out[2 * t + 0] | ((u16)out[2 * t + 1] << 8));
+            qsT_c0[t * N + r] = w;
+          }
+        } // off
+      }   // c
     }     // b
   }       // c0 tiles
 }

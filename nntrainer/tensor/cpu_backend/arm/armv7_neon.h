@@ -92,12 +92,68 @@ static inline uint32_t vaddvq_u32(uint32x4_t a) {
   return ret;
 }
 
+/**
+ * @brief vcvtnq_s32_f32
+ *
+ * @param a input vector
+ * @return int32x4_t
+ */
 static inline int32x4_t vcvtnq_s32_f32(float32x4_t a) {
   int32x4_t ret;
   for (unsigned int i = 0; i < 4; ++i) {
     ret[i] = std::lround(a[i]);
   }
   return ret;
+}
+
+/**
+ * @brief vuzp1q_u16 macro
+ *
+ * @param a input vector
+ * @param b input vector
+ * @return uint16x8_t
+ */
+static inline uint16x8_t vuzp1q_u16(uint16x8_t a, uint16x8_t b) {
+  uint16x8x2_t t = vuzpq_u16(a, b);
+  return t.val[0];
+}
+
+/**
+ * @brief vuzp2q_u16 macro
+ *
+ * @param a input vector
+ * @param b input vector
+ * @return uint16x8_t
+ */
+static inline uint16x8_t vuzp2q_u16(uint16x8_t a, uint16x8_t b) {
+  uint16x8x2_t t = vuzpq_u16(a, b);
+  return t.val[1];
+}
+
+/**
+ * @brief vzip1q_u64 macro
+ *
+ * @param a input vector
+ * @param b input vector
+ * @return uint64x2_t
+ */
+static inline uint64x2_t vzip1q_u64(uint64x2_t a, uint64x2_t b) {
+  uint64x1_t al = vget_low_u64(a);
+  uint64x1_t bl = vget_low_u64(b);
+  return vcombine_u64(al, bl);
+}
+
+/**
+ * @brief vzip2q_u64 macro
+ *
+ * @param a input vector
+ * @param b input vector
+ * @return uint64x2_t
+ */
+static inline uint64x2_t vzip2q_u64(uint64x2_t a, uint64x2_t b) {
+  uint64x1_t ah = vget_high_u64(a);
+  uint64x1_t bh = vget_high_u64(b);
+  return vcombine_u64(ah, bh);
 }
 
 #ifdef ENABLE_FP16
