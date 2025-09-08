@@ -345,7 +345,6 @@ Tensor::Tensor(const std::unique_ptr<TensorBase> &rhs) {
 }
 
 Tensor &Tensor::operator=(const Tensor &rhs) {
-  std::cout << "operator = is called" << std::endl;
   if (rhs.getDataType() == Tdatatype::FP32) {
     itensor_ = std::make_unique<FloatTensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::FP16) {
