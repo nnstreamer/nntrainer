@@ -1152,5 +1152,30 @@ extern void compute_rotary_emb_value(unsigned int width, unsigned int dim,
                                      void *output, const float *cos_,
                                      const float *sin_,
                                      bool only_convert_to_fp16);
+/**
+ * @brief rms normalization computation w.r.t. width in H*W matrix input
+ *
+ * @param X input
+ * @param Y output
+ * @param H height of input matrix
+ * @param W width of input matrix
+ * @param epsilon epsilon of root mean squared dividing scale
+ */
+extern void rms_norm_wrt_width_fp32_intrinsic(const float *__restrict X,
+                                              float *__restrict Y, size_t H,
+                                              size_t W, float epsilon);
+/**
+ * @brief rms normalization computation w.r.t. width in H*W matrix input
+ *
+ * @param X input
+ * @param Y output
+ * @param H height of input matrix
+ * @param W width of input matrix
+ * @param epsilon epsilon of root mean squared dividing scale
+ */
+template <typename T = float>
+extern void rms_norm_wrt_width_fp16_intrinsic(const T *__restrict X,
+                                              T *__restrict Y, size_t H,
+                                              size_t W, float epsilon);
 #endif
 #endif
