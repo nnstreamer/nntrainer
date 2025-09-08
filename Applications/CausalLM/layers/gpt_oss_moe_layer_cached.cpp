@@ -381,6 +381,9 @@ void CachedSlimGptOssMoELayer::incremental_forwarding(
       context.getWeight(expert_gate_proj_indices[target_idx]).deactivate();
       context.getWeight(expert_up_proj_indices[target_idx]).deactivate();
       context.getWeight(expert_down_proj_indices[target_idx]).deactivate();
+      context.getWeight(expert_gate_bias_indices[target_idx]).deactivate();
+      context.getWeight(expert_up_bias_indices[target_idx]).deactivate();
+      context.getWeight(expert_down_bias_indices[target_idx]).deactivate();
     }
 #ifdef DEBUG
     auto t2_evict = high_resolution_clock::now();
