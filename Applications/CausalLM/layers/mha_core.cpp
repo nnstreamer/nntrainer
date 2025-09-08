@@ -119,7 +119,6 @@ void MHACoreLayer::finalize(nntrainer::InitLayerContext &context) {
        "query / key / value";
 
   /** Weight for Sink */
-  ///@todo use_sink action should be implemented.
   use_sink = std::get<props::UseSink>(mha_core_props).get();
   if (use_sink) {
     nntrainer::TensorDim sink_dim(
