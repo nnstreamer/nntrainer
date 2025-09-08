@@ -34,7 +34,7 @@ void init_backend() {
 
 void unpack_q4_0x8_transpose16(const void *src, uint16_t *d_out,
                                uint16_t *qs_out, int N, int K) {
-  __fallback_unpack_q4_0x8_transpose16(src, d_out, qs_out, N, K);
+  nntrainer::neon::unpack_q4_0x8_transpose16(src, d_out, qs_out, N, K);
 }
 
 void calc_trigonometric_vals_dup(unsigned int N_half, float *angle, float *cos_,

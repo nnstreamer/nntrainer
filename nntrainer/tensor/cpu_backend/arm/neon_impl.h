@@ -559,6 +559,15 @@ void copy_s16(const unsigned int N, const int16_t *X, int16_t *Y);
 void copy_u16(const unsigned int N, const uint16_t *X, uint16_t *Y);
 
 /**
+ * @copydoc unpack_q4_0x8_transpose16 in cpu_backend.h
+ *
+ * @note unlike x64, this function unpacks q4_0x4
+ */
+void unpack_q4_0x8_transpose16(const void *src, uint16_t *__restrict dT,
+                               uint16_t *__restrict qsT, int N, int K,
+                               int CT = 1);
+
+/**
  * @brief     check if the X has NaN value or Inf
  * @note it compare (x!=x || x == inf)
  * @param[in] N  length of the vector
