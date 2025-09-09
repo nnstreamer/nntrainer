@@ -1,4 +1,7 @@
 subdir('jni')
 subdir('datagen/cifar')
 subdir('npy_reader')
-subdir('llm_tokenizer')
+
+if (get_option('platform') != 'tizen')
+    subdir('llm_tokenizer')
+endif

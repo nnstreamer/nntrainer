@@ -13,11 +13,19 @@
 #include <nntr_tokenizer_util.h>
 
 namespace nntrainer {
+
+#if defined(_WIN32)
+std::wstring utf8_to_wstring(const std::string &str) {
+  std::wstring_convert<std::codecvt_utf8<wchar_t>> conv;
+  return conv.from_bytes(str);
+}
+#endif
+
 void Tokenizer_Util::registerOutputs(
-   std::unique_ptr<tokenizers::Tokenizer> &tokenizer,
-   std::vector<unsigned int> ids, unsigned int pos,
-   const std::vector<bool> &eos_list, unsigned int *ids_history,
-   unsigned int MAX_SEQ_LEN, std::vector<std::string> &output_list) {
+  std::unique_ptr<tokenizers::Tokenizer> &tokenizer,
+  std::vector<unsigned int> ids, unsigned int pos,
+  const std::vector<bool> &eos_list, unsigned int *ids_history,
+  unsigned int MAX_SEQ_LEN, std::vector<std::string> &output_list) {
 
   static const std::vector<char> puncts{',', '!', ':', ';', '?'};
 
@@ -35,7 +43,7 @@ void Tokenizer_Util::registerOutputs(
         // ends with an incomplete token, hold on
       } else {
 #if defined(_WIN32)
-        std::wcout << L"" << utf9_to_wstring(decoded_str);
+        std::wcout << L"" << utf8_to_wstring(decoded_str);
         std::wcout.flush();
 #else
         std::cout << decoded_str;
