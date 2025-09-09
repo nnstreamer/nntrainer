@@ -1284,4 +1284,28 @@ void rms_norm_wrt_width_fp32_intrinsic(const float *__restrict X,
   }
 }
 
+template <>
+void clamp(const float *input, float *output, size_t length, float lower_bound,
+           float upper_bound) {
+  const size_t step = 4;
+  const float32x4_t vLo = vdupq_n_f32(lower_bound);
+  const float32x4_t vHi = vdupq_n_f32(upper_bound);
+
+  size_t i = 0;
+  for (; i + step <= length; i += step) {
+    float32x4_t v = vld1q_f32(input + i);
+    v = vmaxq_f32(v, vLo);
+    v = vminq_f32(v, vHi);
+    vst1q_f32(output + i, v);
+  }
+  if (i < length) {
+    for (size_t k = i; k < length; ++k) {
+      float v = input[k];
+      // If v is NaN, the comparisons below will yield false; we keep NaN.
+      // This matches most framework "pass-through NaN" behavior.
+      output[k] =
+        (v < lower_bound) ? lower_bound : ((v > upper_bound) ? upper_bound : v);
+    }
+  }
+
 } // namespace nntrainer::neon
