@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <limits.h>
+#include <limits>
 #include <stdexcept>
 #include <tensor_dim.h>
 
