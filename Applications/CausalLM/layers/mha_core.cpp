@@ -934,14 +934,16 @@ void MHACoreLayer::softmax_triangle(nntrainer::Tensor &qk_out, size_t row,
     if (from) {
       size_t start_row = 0;
       size_t end_row = from < local_window_size ? from + 1 : local_window_size;
-      nntrainer::softmax_row_inplace(qk_out_, start_row, end_row, num_head);
+      nntrainer::softmax_row_inplace(qk_out_, start_row, end_row, num_head,
+                                     sink_step.getData());
     } else {
       std::vector<std::future<void>> futures;
       for (int i = row - 1; i >= 0; --i) {
         size_t start_row = calc_attn_index(i);
         size_t end_row = calc_attn_index(i + 1);
         futures.push_back(pool.submit_task([=]() {
-          nntrainer::softmax_row_inplace(qk_out_, start_row, end_row, num_head);
+          nntrainer::softmax_row_inplace(qk_out_, start_row, end_row, num_head,
+                                         sink_step.getData());
         }));
       }
       for (auto &fut : futures) {
