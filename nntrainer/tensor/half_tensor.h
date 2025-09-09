@@ -516,6 +516,18 @@ private:
   std::string getStringDataType() const override { return "FP16"; }
 
   /**
+   * @brief dotHalf
+   */
+  Tensor &dotHalf(Tensor const &input, Tensor &output, bool trans,
+                  bool trans_in, float beta) const;
+
+  /**
+   * @brief dotQnK
+   */
+  Tensor &dotQnK(Tensor const &input, Tensor &output, bool trans, bool trans_in,
+                 float beta, Tdatatype dtype) const;
+
+  /**
    * @copydoc Tensor::isValid()
    */
   bool isValid() const override;
