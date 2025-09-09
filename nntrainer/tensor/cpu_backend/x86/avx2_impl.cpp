@@ -1548,4 +1548,29 @@ void rms_norm_wrt_width_fp32_intrinsic(const float *__restrict X,
   }
 }
 
+template <>
+void clamp(const float *input, float *output, size_t length, float lower_bound,
+           float upper_bound) {
+  const size_t step = 8;
+  const __m256 vLo = _mm256_set1_ps(lower_bound);
+  const __m256 vHi = _mm256_set1_ps(upper_bound);
+
+  size_t i = 0;
+  for (; i + step <= length; i += step) {
+    __m256 v = _mm256_loadu_ps(input + i);
+    v = _mm256_max_ps(v, vLo);
+    v = _mm256_min_ps(v, vHi);
+    _mm256_storeu_ps(output + i, v);
+  }
+  if (i < length) {
+    for (size_t k = i; k < length; ++k) {
+      float v = input[k];
+      // If v is NaN, the comparisons below will yield false; we keep NaN.
+      // This matches most framework "pass-through NaN" behavior.
+      output[k] =
+        (v < lower_bound) ? lower_bound : ((v > upper_bound) ? upper_bound : v);
+    }
+  }
+}
+
 } // namespace nntrainer::avx2

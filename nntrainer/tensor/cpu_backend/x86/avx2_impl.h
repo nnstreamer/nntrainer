@@ -233,6 +233,21 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
 void rms_norm_wrt_width_fp32_intrinsic(const float *__restrict X,
                                        float *__restrict Y, size_t H, size_t W,
                                        float epsilon);
+
+/**
+ * @brief fallback for clamping function.
+ *
+ * @tparam T Type of input data
+ * @param input input vector
+ * @param output output vector
+ * @param length length of IO
+ * @param lower_bound ditto
+ * @param upper_bound ditto
+ */
+template <typename T = float>
+void clamp(const T *input, T *output, size_t length,
+           T lower_bound = std::numeric_limits<T>::lowest(),
+           T upper_bound = std::numeric_limits<T>::max());
 } // namespace nntrainer::avx2
 
 #endif /* __cplusplus */
