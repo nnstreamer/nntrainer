@@ -143,14 +143,6 @@ protected:
   virtual void registerCustomLayers();
 
   /**
-   * @brief register Outputs
-   */
-  virtual void
-  registerOutputs(std::unique_ptr<tokenizers::Tokenizer> &tokenizer,
-                  std::vector<unsigned int> ids, unsigned int pos,
-                  const std::vector<bool> &eos_list);
-
-  /**
    * @brief save kv cache
    */
   WIN_EXPORT virtual void save_kvcache(std::string path, int to);
@@ -178,7 +170,6 @@ protected:
 
   /** tokenizer */
   std::unique_ptr<tokenizers::Tokenizer> tokenizer;
-  std::vector<int> pending_ids_;
 
   unsigned int NUM_VOCAB;
   int DIM;
@@ -217,8 +208,6 @@ protected:
   std::string PRE_COMPUTED_CACHE_PATH;
   std::string TAIL_PROMPT;
   bool SAVE_KVCACHE;
-
-  std::vector<int> pending_ids_;
 
   std::mt19937 rng; /**< Random Number Gen */
 };
