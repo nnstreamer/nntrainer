@@ -415,6 +415,17 @@ void softmax_row(_FP16 *qk_out, size_t start_row, size_t end_row,
                                       sink);
 }
 
+// Overloaded function for __fp16 with float sink (mixed precision)
+void softmax_row_inplace(__fp16 *qk_out, size_t start_row, size_t end_row,
+                         size_t num_heads, float *sink) {
+  neon::softmax_row_inplace(qk_out, start_row, end_row, num_heads, sink);
+}
+
+void softmax_row(__fp16 *qk_out, size_t start_row, size_t end_row,
+                 size_t num_heads, float *sink) {
+  neon::softmax_row(qk_out, start_row, end_row, num_heads, sink);
+}
+
 void compute_fp16vcache_transposed(int row_num, const _FP16 *in,
                                    const _FP16 *vcache, _FP16 *output,
                                    int num_cache_head, int gqa_size,
