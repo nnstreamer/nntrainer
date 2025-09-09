@@ -444,7 +444,6 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
 
   unsigned int lookahead = std::get<props::FsuLookahead>(model_flex_props);
   bool fsu_mode = std::get<props::Fsu>(model_flex_props);
-
   if (fsu_mode) {
     for (unsigned int i = 0; i < lookahead; ++i) {
       model_graph.LoadTensors(i);
@@ -731,7 +730,7 @@ void NeuralNetwork::load(const std::string &file_path,
     char *mmaped = nullptr;
     size_t f_size = 0;
     struct stat st {};
-    int fd = -1;
+    int model_file_fd = -1;
 
 #if defined(_WIN32)
     HANDLE hFile, hMap;
@@ -743,6 +742,7 @@ void NeuralNetwork::load(const std::string &file_path,
            ++iter) {
         auto node = *iter;
         auto exec_order = std::get<0>((*iter)->getExecutionOrder());
+        model_file_fd = ::open(f_path.c_str(), O_RDONLY);
 
         futures.emplace_back(std::async(std::launch::async, [&, node] {
           if (!MMAP_READ) {
@@ -769,17 +769,15 @@ void NeuralNetwork::load(const std::string &file_path,
               static_cast<char *>(MapViewOfFile(hMap, FILE_MAP_READ, 0, 0, 0));
             NNTR_THROW_IF((view == nullptr), std::runtime_error)
               << "MapViewOfFile failed";
-
             node->read(view, false, exec_mode, fsu_mode,
-                       std::numeric_limits<size_t>::max(), true);
-
+                       std::numeric_limits<size_t>::max(), true, model_file_fd);
             // Early unmap: let the OS reclaim the working set ASAP
             UnmapViewOfFile(view);
             CloseHandle(hMap);
             CloseHandle(hFile);
 #else
       // POSIX: map per-task, advise kernel, drop pages, unmap
-      int fd = ::open(f_path.c_str(), O_RDONLY);
+
       NNTR_THROW_IF((fd == -1), std::invalid_argument)
         << "Cannot open file : " << f_path;
 
@@ -798,7 +796,7 @@ void NeuralNetwork::load(const std::string &file_path,
 
       char *view = static_cast<char *>(mmap_ptr);
       node->read(view, false, exec_mode, fsu_mode,
-                 std::numeric_limits<size_t>::max(), true);
+                 std::numeric_limits<size_t>::max(), true, model_file_fd);
 
       // Early drop: pages no longer needed; helps lower peak RSS during overlap
       (void)::posix_madvise(mmap_ptr, f_size, POSIX_MADV_DONTNEED);

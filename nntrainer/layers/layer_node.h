@@ -782,7 +782,7 @@ public:
   void read(ReadSource src, bool opt_var = false,
             ml::train::ExecutionMode mode = ml::train::ExecutionMode::TRAIN,
             bool fsu = false, size_t start_offset = 0,
-            bool read_from_offset = false);
+            bool read_from_offset = false, int file_fd=-1);
 
   /**
    * @brief     save layer Weight & Bias data from file

@@ -155,7 +155,8 @@ public:
   void read(ReadSource src, RunLayerContext &context, bool opt_var,
             ml::train::ExecutionMode mode, bool trainable,
             TensorDim::DataType definedWeightDataType, bool fsu = false,
-            size_t start_offset = 0, bool read_from_offset = false) override;
+            size_t start_offset = 0, bool read_from_offset = false,
+            int file_fd = -1) override;
 
 private:
   float divider; /**< size of the axes of the reduced */

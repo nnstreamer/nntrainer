@@ -353,7 +353,6 @@ Tensor::Tensor(const std::unique_ptr<TensorBase> &rhs) {
 }
 
 Tensor &Tensor::operator=(const Tensor &rhs) {
-  std::cout << "operator = is called" << std::endl;
   if (rhs.getDataType() == Tdatatype::FP32) {
     itensor_ = std::make_unique<FloatTensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::FP16) {
@@ -1398,10 +1397,14 @@ void Tensor::read(std::ifstream &file, size_t start_offset,
   itensor_->read(file, start_offset, read_from_offset);
 }
 
-void Tensor::read(ReadSource src, size_t start_offset, bool read_from_offset) {
+void Tensor::read(ReadSource src, size_t start_offset, bool read_from_offset, int file_fd) {
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
     << getName() << " is not contiguous, cannot read.";
-
+  // Do not read now but save file_fd in tensor
+  if (is_virtual) {
+    fd = file_fd;
+    return;
+  }
   itensor_->read(src, start_offset, read_from_offset);
 }
 
@@ -1621,6 +1624,7 @@ void Tensor::activate() {
   SYSTEM_INFO sysInfo;
   GetSystemInfo(&sysInfo);
   auto page_size = sysInfo.dwAllocationGranularity;
+
 #else
   auto page_size = sysconf(_SC_PAGE_SIZE);
 #endif  
@@ -1637,6 +1641,7 @@ void Tensor::activate() {
 #endif
 
   if (mapped_ptr == MAP_FAILED) {
+    std::cerr <<getName() << " fd : "<< this->fd <<" len : "<<len << " off: "<<off << " file_offset : " << file_offset << " diff : "<< diff<<" getMemBytes() : "<<getMemoryBytes()<<std::endl;
     std::cerr << "[activate] mmap failed: " << strerror(errno) << std::endl;
   }
   itensor_->activate((void *)&((uint8_t *)mapped_ptr)[diff]);

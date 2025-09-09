@@ -1647,7 +1647,7 @@ public:
    * @param[in] ReadSource input file source
    */
   void read(ReadSource src, size_t start_offset = 0,
-            bool read_from_offset = false);
+            bool read_from_offset = false, int file_fd = -1);
 
   /**
    * @brief     return argument index which value is max by batch
