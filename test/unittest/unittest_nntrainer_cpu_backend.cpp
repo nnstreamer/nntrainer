@@ -1115,6 +1115,57 @@ TEST(nntrainer_cpu_backend_standalone, compute_fp16vcache_transposed_fp16) {
 }
 #endif
 
+static void run_clamp_test(const unsigned int N, float lower_bound,
+                           float upper_bound, bool print = false) {
+  const int TEST_CNT = 20;
+  nanoseconds ref_mul_time = (nanoseconds)0;
+  nanoseconds mul_time = (nanoseconds)0;
+
+  for (int i = -1; i < TEST_CNT; i++) {
+    std::vector<float> X = generate_random_vector<float, false>(N, -10, 10);
+    std::vector<float> Y = generate_random_vector<float, false>(N);
+    std::vector<float> Y_ref = generate_random_vector<float, false>(N);
+    {
+      // #### GROUND TRUTH ####
+      auto t1 = high_resolution_clock::now();
+      nntrainer::__fallback_clamp(X.data(), Y_ref.data(), N, lower_bound,
+                                  upper_bound);
+      auto t2 = high_resolution_clock::now();
+      auto dt = duration_cast<nanoseconds>(t2 - t1);
+      if (i >= 0) { // skip the first run
+        ref_mul_time += dt;
+      }
+    }
+    {
+      auto t1 = high_resolution_clock::now();
+      // #### MAIN TESTED METHOD ####
+      nntrainer::clamp(X.data(), Y.data(), N, lower_bound, upper_bound);
+      // #### MAIN TESTED METHOD ####
+      auto t2 = high_resolution_clock::now();
+      auto dt = duration_cast<nanoseconds>(t2 - t1);
+      if (i >= 0) { // skip the first run
+        mul_time += dt;
+      }
+    }
+
+    auto mean_squared_error = compute_mse(1, N, Y_ref, Y, print);
+    ASSERT_LE(mean_squared_error, 0.00001f);
+  }
+
+  if (print) {
+    std::cout << "[INFO] clamp: TEST CNT: " << TEST_CNT << ", N: " << N
+              << ", Average ref_time: " << ref_mul_time.count() / TEST_CNT
+              << " ns, Average mul_time: " << mul_time.count() / TEST_CNT
+              << " ns " << std::endl;
+  }
+}
+
+TEST(nntrainer_cpu_backend_standalone, clamp_3072_0_1) {
+  const unsigned int N = 3072;
+  float lower_bound = 0.F;
+  float upper_bound = 1.F;
+  run_clamp_test(N, lower_bound, upper_bound, false);
+}
 int main(int argc, char **argv) {
   int result = -1;
 
