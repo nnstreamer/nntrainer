@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <limits.h>
+#include <limits>
 #include <stddef.h>
 
 namespace nntrainer::avx2 {
