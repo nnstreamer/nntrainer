@@ -639,8 +639,8 @@ void HalfTensor::inv_sqrt(Tensor &out) {
   }
 }
 
-Tensor &HalfTensor::dot(Tensor const &input, Tensor &output, bool trans,
-                        bool trans_in, float beta) const {
+Tensor &HalfTensor::dotHalf(Tensor const &input, Tensor &output, bool trans,
+                            bool trans_in, float beta) const {
   // Comment out with intension to support the calculation wrt. batch and height
   // direction. It supposes to have this->dim as [ BxCxH,W ] and input.dim is
   // [BxCxH,W] as well if (input.dim.rank() > 2) {
@@ -697,6 +697,39 @@ Tensor &HalfTensor::dot(Tensor const &input, Tensor &output, bool trans,
   }
 
   return output;
+}
+
+Tensor &HalfTensor::dot(Tensor const &input, Tensor &output, bool trans,
+                        bool trans_in, float beta) const {
+  switch (input.getDataType()) {
+  case Tdatatype::FP16:
+    dotHalf(input, output, trans, trans_in, beta);
+    break;
+  case Tdatatype::Q4_0:
+    break;
+  default:
+    throw std::invalid_argument("Error: unsupported datatype");
+  }
+  return output;
+}
+
+Tensor &HalfTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
+                           bool trans_in, float beta, Tdatatype dtype) const {
+  _FP16 *data = (_FP16 *)getData();
+  uint8_t *mdata = input.getData<uint8_t>();
+  _FP16 *rdata = output.getData<_FP16>();
+
+  unsigned int M, N, K;
+  M = getDim().height();
+  K = getDim().width();
+  N = trans_in ? input.getDim().height() : input.getDim().width();
+  switch (dtype) {
+  case Tdatatype::Q4_0:
+    gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
+    break;
+  default:
+    throw std::invalid_argument("Error: unsupported datatype");
+  }
 }
 
 void HalfTensor::dropout_mask(float dropout) {
