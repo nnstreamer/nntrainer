@@ -235,7 +235,7 @@ bool ContextManager::CreateDefaultGPUDevice() {
   }
 
   // Raport device name
-  ml_logi("Using device\n%s", device_info_->getDeviceName().data());
+  ml_logi("Using device %s", device_info_->getDeviceName().data());
   device_info_->print();
 
   return true;
