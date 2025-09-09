@@ -6,6 +6,7 @@
  * @date    06 Feb 2024
  * @see     https://github.com/nnstreamer/nntrainer
  * @author  Debadri Samaddar <s.debadri@samsung.com>
+ * @author  Donghyeon Jeong <dhyeon.jeong@samsung.com>
  * @bug     No known bugs except for NYI items
  * @brief   Load required OpenCL functions
  *
@@ -86,6 +87,21 @@ typedef cl_int(CL_API_CALL *PFN_clEnqueueReadBuffer)(
   void * /**< ptr */, cl_uint /**< num_events_in_wait_list */,
   const cl_event * /**< event_wait_list */, cl_event * /**< event */);
 
+typedef cl_int(CL_API_CALL *PFN_clEnqueueWriteImage)(
+  cl_command_queue /**<command_queue*/, cl_mem /**<image*/,
+  cl_bool /**<blocking_write*/, const size_t * /**<origin*/,
+  const size_t * /**<region*/, size_t /**<input_row_pitch*/,
+  size_t /**<input_slice_pitch*/, const void * /**<ptr*/,
+  cl_uint /**<num_events_in_wait_list*/, const cl_event * /**<event_wait_list*/,
+  cl_event * /**<event */);
+
+typedef cl_int(CL_API_CALL *PFN_clEnqueueReadImage)(
+  cl_command_queue /**<command_queue*/, cl_mem /**<image*/,
+  cl_bool /**<blocking_read*/, const size_t * /**<origin*/,
+  const size_t * /**<region*/, size_t /**<row_pitch*/, size_t /**<slice_pitch*/,
+  void * /**<ptr*/, cl_uint /**<num_events_in_wait_list*/,
+  const cl_event * /**<event_wait_list*/, cl_event * /**<event */);
+
 typedef void *(CL_API_CALL *PFN_clEnqueueMapBuffer)(
   cl_command_queue /**< command_queue */, cl_mem /**< buffer */,
   cl_bool /**< blocking_map */, cl_map_flags /**< map_flags */,
@@ -94,6 +110,15 @@ typedef void *(CL_API_CALL *PFN_clEnqueueMapBuffer)(
   const cl_event * /**< event_wait_list */, cl_event * /**< event */,
   cl_int * /**< errcode_ret */
 );
+
+typedef void *(CL_API_CALL *PFN_clEnqueueMapImage)(
+  cl_command_queue /**< command_queue */, cl_mem /**< image */,
+  cl_bool /**< blocking_map */, cl_map_flags /**< map_flags */,
+  const size_t * /**< origin */, const size_t * /**< region */,
+  size_t * /**< image_row_pitch */, size_t * /**< image_slice_pitch */,
+  cl_uint /**< num_events_in_wait_list */,
+  const cl_event * /**< event_wait_list */, cl_event * /**< event */,
+  cl_int * /**< errcode_ret */);
 
 typedef cl_int(CL_API_CALL *PFN_clEnqueueUnmapMemObject)(
   cl_command_queue /**< command_queue */, cl_mem /**< memobj */,
@@ -212,8 +237,8 @@ typedef cl_int(CL_API_CALL *PFN_clEnqueueSVMUnmap)(
   cl_uint /**< num_events_in_wait_list */,
   const cl_event * /**< event_wait_list */, cl_event * /**< event */);
 
-typedef cl_int (CL_API_CALL *PFN_clWaitForEvents)(cl_uint num_events,
-    const cl_event* event_list);
+typedef cl_int(CL_API_CALL *PFN_clWaitForEvents)(cl_uint num_events,
+                                                 const cl_event *event_list);
 
 extern PFN_clGetPlatformIDs clGetPlatformIDs;
 extern PFN_clGetDeviceIDs clGetDeviceIDs;
@@ -225,7 +250,10 @@ extern PFN_clCreateSubBuffer clCreateSubBuffer;
 extern PFN_clCreateImage clCreateImage;
 extern PFN_clEnqueueWriteBuffer clEnqueueWriteBuffer;
 extern PFN_clEnqueueReadBuffer clEnqueueReadBuffer;
+extern PFN_clEnqueueWriteImage clEnqueueWriteImage;
+extern PFN_clEnqueueReadImage clEnqueueReadImage;
 extern PFN_clEnqueueMapBuffer clEnqueueMapBuffer;
+extern PFN_clEnqueueMapImage clEnqueueMapImage;
 extern PFN_clEnqueueUnmapMemObject clEnqueueUnmapMemObject;
 extern PFN_clEnqueueWriteBufferRect clEnqueueWriteBufferRect;
 extern PFN_clEnqueueReadBufferRect clEnqueueReadBufferRect;
