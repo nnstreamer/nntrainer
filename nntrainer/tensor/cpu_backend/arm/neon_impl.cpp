@@ -1285,5 +1285,6 @@ void clamp(const float *input, float *output, size_t length, float lower_bound,
         (v < lower_bound) ? lower_bound : ((v > upper_bound) ? upper_bound : v);
     }
   }
+}
 
 } // namespace nntrainer::neon
