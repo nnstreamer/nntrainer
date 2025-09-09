@@ -185,28 +185,26 @@ void DeviceInfo::print() const {
       oss << "UNKNOWN";
       break;
     }
-    oss << std::endl;
     ml_logi("%s", oss.str().data());
   }
 
   {
     std::ostringstream oss;
     oss << "    CL_DEVICE_VENDOR_ID: " << std::hex << "0x"
-        << getDeviceVendorId() << std::endl;
+        << getDeviceVendorId();
     ml_logi("%s", oss.str().data());
   }
 
   {
     std::ostringstream oss;
-    oss << "    CL_DEVICE_MAX_COMPUTE_UNITS: " << getDeviceMaxComputeUnits()
-        << std::endl;
+    oss << "    CL_DEVICE_MAX_COMPUTE_UNITS: " << getDeviceMaxComputeUnits();
     ml_logi("%s", oss.str().data());
   }
 
   {
     std::ostringstream oss;
     oss << "    CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS: "
-        << getDeviceMaxWorkItemDimensions() << std::endl;
+        << getDeviceMaxWorkItemDimensions();
     ml_logi("%s", oss.str().data());
   }
 
@@ -216,45 +214,42 @@ void DeviceInfo::print() const {
     for (auto size : getDeviceMaxWorkItemSizes()) {
       oss << " " << size;
     }
-    oss << std::endl;
     ml_logi("%s", oss.str().data());
   }
 
   {
     std::ostringstream oss;
-    oss << "    CL_DEVICE_MAX_WORK_GROUP_SIZE: " << getDeviceMaxWorkGroupSize()
-        << std::endl;
+    oss << "    CL_DEVICE_MAX_WORK_GROUP_SIZE: " << getDeviceMaxWorkGroupSize();
     ml_logi("%s", oss.str().data());
   }
 
   {
     std::ostringstream oss;
-    oss << "    CL_DEVICE_MAX_MEM_ALLOC_SIZE: " << getDeviceMaxMemAllocSize()
-        << std::endl;
+    oss << "    CL_DEVICE_MAX_MEM_ALLOC_SIZE: " << getDeviceMaxMemAllocSize();
     ml_logi("%s", oss.str().data());
   }
 
   {
     std::ostringstream oss;
-    oss << "    CL_DEVICE_NAME: " << getDeviceName() << std::endl;
+    oss << "    CL_DEVICE_NAME: " << getDeviceName();
     ml_logi("%s", oss.str().data());
   }
 
   {
     std::ostringstream oss;
-    oss << "    CL_DEVICE_VENDOR: " << getDeviceVendor() << std::endl;
+    oss << "    CL_DEVICE_VENDOR: " << getDeviceVendor();
     ml_logi("%s", oss.str().data());
   }
 
   {
     std::ostringstream oss;
-    oss << "    CL_DRIVER_VERSION: " << getDriverVersion() << std::endl;
+    oss << "    CL_DRIVER_VERSION: " << getDriverVersion();
     ml_logi("%s", oss.str().data());
   }
 
   {
     std::ostringstream oss;
-    oss << "    CL_DEVICE_EXTENSIONS: " << getDeviceExtensions() << std::endl;
+    oss << "    CL_DEVICE_EXTENSIONS: " << getDeviceExtensions();
     ml_logi("%s", oss.str().data());
   }
 
@@ -273,7 +268,6 @@ void DeviceInfo::print() const {
     if (getDeviceSVMCapabilities() & CL_DEVICE_SVM_ATOMICS) {
       oss << "CL_DEVICE_SVM_ATOMICS ";
     }
-    oss << std::endl;
     ml_logi("%s", oss.str().data());
   }
 }
