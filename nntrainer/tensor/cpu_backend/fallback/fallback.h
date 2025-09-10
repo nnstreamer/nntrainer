@@ -963,6 +963,15 @@ size_t quantize_q6_K(const float *src, void *dst, int64_t nrow,
 void dequantize_row_q4_K(const void *x, float *y, int64_t k);
 
 /**
+ * @brief dequantize row of q4_0 data to float
+ *
+ * @param x input to be dequantized from q4_0 to float
+ * @param y dequantized data output
+ * @param k number of elements in x
+ */
+void dequantize_row_q4_0(const void *x, float *y, int64_t k);
+
+/**
  * @brief dequantize row of q6_K data to float
  *
  * @param x input to be dequantized from q6_K to float
