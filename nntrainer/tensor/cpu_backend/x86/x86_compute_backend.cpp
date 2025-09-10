@@ -280,6 +280,7 @@ void unpack_q4_0x8_transpose16(const void *src, uint16_t *d_out,
   return nntrainer::avx2::unpack_q4_0x8_transpose16(src, d_out, qs_out, N, K);
 }
 
+template <>
 void calc_trigonometric_vals_dup(unsigned int N_half, float *angle, float *cos_,
                                  float *sin_, unsigned int from,
                                  float attention_scaling) {

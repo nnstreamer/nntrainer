@@ -32,9 +32,9 @@ void init_backend() {
 #endif
 }
 
-void unpack_q4_0x8_transpose16(const void *src, uint16_t *d_out,
-                               uint16_t *qs_out, int N, int K) {
-  __fallback_unpack_q4_0x8_transpose16(src, d_out, qs_out, N, K);
+void convert_q4_0x8_shuffle_dispatch(const void *src, uint16_t *d_out,
+                                     uint8_t *qs_out, int N, int K) {
+  __fallback_convert_q4_0x8_shuffle_dispatch(src, d_out, qs_out, N, K);
 }
 
 template <>
@@ -197,12 +197,14 @@ void scopy_int8_to_float32(const unsigned int N, const int8_t *X,
   }
 }
 
-void sine(const unsigned int N, float *X, float *Y, float alpha) {
-  nntrainer::neon::sine(N, X, Y, alpha);
+template <>
+void sine(const unsigned int N, float *X, float *Y, float alpha, float beta) {
+  nntrainer::neon::sine(N, X, Y, alpha, beta);
 }
 
-void cosine(const unsigned int N, float *X, float *Y, float alpha) {
-  nntrainer::neon::cosine(N, X, Y, alpha);
+template <>
+void cosine(const unsigned int N, float *X, float *Y, float alpha, float beta) {
+  nntrainer::neon::cosine(N, X, Y, alpha, beta);
 }
 
 void inv_sqrt_inplace(const unsigned int N, float *X) {
@@ -511,24 +513,5 @@ template <>
 void softmax_row(float *qk_out, size_t start_row, size_t end_row,
                  size_t num_heads, float *sink) {
   neon::softmax_row(qk_out, start_row, end_row, num_heads, sink);
-}
-
-void rms_norm_wrt_width_fp32_intrinsic(const float *__restrict X,
-                                       float *__restrict Y, size_t H, size_t W,
-                                       float epsilon) {
-  neon::rms_norm_wrt_width_fp32_intrinsic(X, Y, H, W, epsilon);
-}
-
-template <>
-void rms_norm_wrt_width_fp16_intrinsic(const float *__restrict X,
-                                       float *__restrict Y, size_t H, size_t W,
-                                       float epsilon) {
-  neon::rms_norm_wrt_width_fp16_intrinsic(X, Y, H, W, epsilon);
-}
-
-template <>
-void clamp(const float *input, float *output, size_t length, float lower_bound,
-           float upper_bound) {
-  neon::clamp(input, output, length, lower_bound, upper_bound);
 }
 } /* namespace nntrainer */

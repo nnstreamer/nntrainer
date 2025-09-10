@@ -2,26 +2,25 @@
 /**
  * Copyright (C) 2024 Sungsik Kong <ss.kong@samsung.com>
  *
- * @file   x86_compute_backend.h
+ * @file ARM_compute_backend.h
  * @date   23 April 2024
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Sungsik Kong <ss.kong@samsung.com>
  * @bug    No known bugs except for NYI items
- * @brief  Compute backend for x86
+ * @brief  Compute backend for ARM
  *
  */
-
-#ifndef __x86_COMPUTE_BACKEND_H__
-#define __x86_COMPUTE_BACKEND_H__
+#ifndef __ARM_COMPUTE_BACKEND_H__
+#define __ARM_COMPUTE_BACKEND_H__
 #ifdef __cplusplus
 
 #include <cstdint>
 #include <limits.h>
-#include <limits>
 #include <stdexcept>
 #include <tensor_dim.h>
 
 namespace nntrainer {
+
 #ifdef ENABLE_FP16
 /**
  * @brief F32 * F16 = F32 GEMM
@@ -380,17 +379,168 @@ void inv_sqrt_inplace(const unsigned int N, _FP16 *X);
 void transpose_matrix(const unsigned int M, const unsigned int N,
                       const _FP16 *src, unsigned int ld_src, _FP16 *dst,
                       unsigned int ld_dst);
+
+/**
+ * @brief Compute vcache for one row transposed
+ * @param[in] row_num row number
+ * @param[in] in _FP16* input vector
+ * @param[in] vcache _FP16* input vector
+ * @param[out] output _FP16* output vector
+ * @param[in] num_cache_head number head of cache
+ * @param[in] gqa_size size of group
+ * @param[in] head_dim head dimension
+ * @param[in] chunk_size size of chunk
+ * @param[in] local_window_size windows size for local attention
+ */
+void compute_fp16vcache_transposed(int row_num, const _FP16 *in,
+                                   const _FP16 *vcache, _FP16 *output,
+                                   int num_cache_head, int gqa_size,
+                                   int head_dim, int chunk_size,
+                                   size_t local_window_size = UINT_MAX);
+
+/**
+ * @brief Compute kcaches
+ * @param[in] in _FP16* input vector
+ * @param[in] kcache _FP16* input vector with keys cache
+ * @param[out] output _FP16* output float vector
+ * @param[in] num_rows number of row
+ * @param[in] num_cache_head number head of cache
+ * @param[in] head_dim head dimension
+ * @param[in] gqa_size size of group
+ * @param[in] tile_off offset of tile
+ * @param[in] tile_size size of tile
+ * @param[in] local_window_size windows size for local attention
+ */
+void compute_kcaches(const _FP16 *in, const _FP16 *kcache, _FP16 *output,
+                     int num_rows, int num_cache_head, int head_dim,
+                     int gqa_size, int tile_off, int tile_size,
+                     size_t local_window_size = UINT_MAX);
+
+/**
+ * @brief Compute rotary embedding value
+ * @param[in] width current w value from b, c, h, w
+ * @param[in] dim unit length of simd computation
+ * @param[in] half_ criterion for rotational direction of embedding
+ * @param[in/out] inout _FP16* used also as output
+ * @param[out] output _FP16* output, if it is equal nullptr then inout is used
+ * as output
+ * @param[in] cos_ _FP16* input con values
+ * @param[in] sin_ _FP16* input sin values
+ */
+void compute_rotary_emb_value(unsigned int width, unsigned int dim,
+                              unsigned int half_, _FP16 *inout, _FP16 *output,
+                              const _FP16 *cos_, const _FP16 *sin_);
 #endif
+/**
+ * @brief Multihead softmax, exp(x_i) / sum(exp(x_i)), inplace version
+ * @param[in/out] qk_out __fp16* input/output values
+ * @param[in] start_row start row number
+ * @param[in] end_row end row number
+ * @param[in] num_heads heads number
+ */
+template <typename T = float>
+void softmax_row_inplace(T *qk_out, size_t start_row, size_t end_row,
+                         size_t num_heads, T *sink = nullptr);
+
+/**
+ * @brief Multihead softmax, exp(x_i) / sum(exp(x_i))
+ * @param[in/out] qk_out __fp16* input/output values
+ * @param[in] start_row start row number
+ * @param[in] end_row end row number
+ * @param[in] num_heads heads number
+ */
+template <typename T = float>
+void softmax_row(T *qk_out, size_t start_row, size_t end_row, size_t num_heads,
+                 T *sink = nullptr);
+
+#ifdef ENABLE_FP16
+/**
+ * @brief Multihead softmax with mixed precision, inplace version (overload)
+ * @param[in/out] qk_out __fp16* input/output values
+ * @param[in] start_row start row number
+ * @param[in] end_row end row number
+ * @param[in] num_heads heads number
+ * @param[in] sink float* sink values for attention (can be nullptr)
+ */
+void softmax_row_inplace(__fp16 *qk_out, size_t start_row, size_t end_row,
+                         size_t num_heads, float *sink);
+
+/**
+ * @brief Multihead softmax with mixed precision (overload)
+ * @param[in/out] qk_out __fp16* input/output values
+ * @param[in] start_row start row number
+ * @param[in] end_row end row number
+ * @param[in] num_heads heads number
+ * @param[in] sink float* sink values for attention (can be nullptr)
+ */
+void softmax_row(__fp16 *qk_out, size_t start_row, size_t end_row,
+                 size_t num_heads, float *sink);
+#endif
+
+/**
+ * @brief Compute vcache for one row transposed
+ * @param[in] row_num row number
+ * @param[in] in float* input vector
+ * @param[in] vcache uint16_t* input vector
+ * @param[out] output float* output vector
+ * @param[in] num_cache_head number head of cache
+ * @param[in] gqa_size size of group
+ * @param[in] head_dim head dimension
+ * @param[in] local_window_size windows size for local attention
+ */
+void compute_fp16vcache_fp32_transposed(int row_num, const float *in,
+                                        const uint16_t *vcache, float *output,
+                                        int num_cache_head, int gqa_size,
+                                        int head_dim,
+                                        size_t local_window_size = UINT_MAX);
+
+/**
+ * @brief Compute kcaches
+ * @tparam BType type of B vector element
+ * @param[in] in float* input vector
+ * @param[in] kcache BType* input vector with keys cache
+ * @param[out] output float* output float vector
+ * @param[in] num_rows number of row
+ * @param[in] num_cache_head number head of cache
+ * @param[in] head_dim head dimension
+ * @param[in] gqa_size size of group
+ * @param[in] tile_size size of tile
+ * @param[in] local_window_size windows size for local attention
+ */
+template <typename BType>
+void compute_kcaches(const float *in, const BType *kcache, float *output,
+                     int num_rows, int num_cache_head, int head_dim,
+                     int gqa_size, int tile_size,
+                     size_t local_window_size = UINT_MAX);
+
+/**
+ * @brief Compute rotary embedding value
+ * @param[in] width current w value from b, c, h, w
+ * @param[in] dim unit length of simd computation
+ * @param[in] half_ criterion for rotational direction of embedding
+ * @param[in/out] inout float* uesed also as output when expected output float*
+ * values
+ * @param[out] output void* output values, used when expected output __fp16*
+ * values
+ * @param[in] cos_ float* input con values
+ * @param[in] sin_ float* input sin values
+ * @param[in] only_convert_to_fp16 equal true if method is used only for
+ * conversion
+ */
+void compute_rotary_emb_value(unsigned int width, unsigned int dim,
+                              unsigned int half_, float *inout, void *output,
+                              const float *cos_, const float *sin_,
+                              bool only_convert_to_fp16);
 /**
  * @brief Initialization of ggml backend
  */
 void init_backend();
 
 /**
- * @copydoc unpack_q4_0x8_transpose16 in cpu_backend.h
+ * @copydoc convert_q4_0x8_shuffle_dispatch in cpu_backend.h
  */
-void unpack_q4_0x8_transpose16(const void *src, uint16_t *d_out,
-                               uint16_t *qs_out, int N, int K);
+void convert_q4_0x8_shuffle_dispatch(const void *src, uint16_t *d_out,
+                                     uint8_t *qs_out, int N, int K);
 
 /**
  * @brief Get half-sized angles, transform them into each cos, sin, and scopy in
@@ -490,7 +640,13 @@ void scopy(const unsigned int N, const float *X, const unsigned int incX,
  */
 void scopy(const unsigned int N, const uint8_t *X, const unsigned int incX,
            uint8_t *Y, const unsigned int incY);
-
+/**
+ * @brief     copy function : Y = X
+ * @param[in] N number of elements in X
+ * @param[in] X uint16_t * for Vector X
+ * @param[in] Y uint16_t * for Vector Y
+ */
+void copy_u16(const unsigned int N, const uint16_t *X, uint16_t *Y);
 /**
  * @brief     copy function : Y = X
  * @param[in] N number of elements in X
@@ -584,14 +740,6 @@ void copy_s16(const unsigned int N, const int16_t *X, int16_t *Y);
 /**
  * @brief     copy function : Y = X
  * @param[in] N number of elements in X
- * @param[in] X uint16_t * for Vector X
- * @param[in] Y uint16_t * for Vector Y
- */
-void copy_u16(const unsigned int N, const uint16_t *X, uint16_t *Y);
-
-/**
- * @brief     copy function : Y = X
- * @param[in] N number of elements in X
  * @param[in] X uint8_t * for Vector X
  * @param[in] Y float * for Vector Y
  */
@@ -671,7 +819,9 @@ unsigned int isamax(const unsigned int N, const float *X,
  * @param[in] Y float * for Vector Y
  * @param[in] alpha float * for scaling angle (radian)
  */
-void sine(const unsigned int N, float *X, float *Y, float alpha = 1.f);
+template <typename T = float>
+void sine(const unsigned int N, T *X, T *Y, float alpha = 1.f,
+          float beta = 1.f);
 
 /**
  * @brief     cosine with neon: Y = cos(alpha * X)
@@ -680,7 +830,9 @@ void sine(const unsigned int N, float *X, float *Y, float alpha = 1.f);
  * @param[in] Y float * for Vector Y
  * @param[in] alpha float * for scaling angle (radian)
  */
-void cosine(const unsigned int N, float *X, float *Y, float alpha = 1.f);
+template <typename T = float>
+void cosine(const unsigned int N, T *X, T *Y, float alpha = 1.f,
+            float beta = 1.f);
 
 /**
  * @brief inversed squared root transformation inplace : X = 1 / sqrt(X)
@@ -777,7 +929,6 @@ template <typename T = float>
 void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
                const T *A, const unsigned int lda, const void *B,
                const unsigned int ldb, T *C, const unsigned int ldc);
-
 void gemm_q4_0(const unsigned int M, std::vector<unsigned int> Ns,
                const unsigned int K, const float *A, const unsigned int lda,
                std::vector<void *> Bs, std::vector<unsigned int> ldbs,
@@ -798,7 +949,6 @@ void gemm_q4_0(const unsigned int M, std::vector<unsigned int> Ns,
 void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc);
-
 void gemm_q4_K(const unsigned int M, std::vector<unsigned int> Ns,
                const unsigned int K, const float *A, const unsigned int lda,
                std::vector<void *> Bs, std::vector<unsigned int> ldbs,
@@ -833,7 +983,6 @@ void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
  */
 size_t quantize_q4_0(const float *src, void *dst, int64_t nrow,
                      int64_t n_per_row, const float *quant_weights);
-
 /**
  * @brief quantize_q4_K function
  *
@@ -859,6 +1008,14 @@ size_t quantize_q4_K(const float *src, void *dst, int64_t nrow,
  */
 size_t quantize_q6_K(const float *src, void *dst, int64_t nrow,
                      int64_t n_per_row, const float *quant_weights);
+/**
+ * @brief Quantize float to q6_K Quantization format
+ *
+ * @param src float* src to be quantized
+ * @param dst void* dst to store quantized data
+ * @param k number of elements in src
+ */
+extern void quantize_row_q6_K(const float *src, void *dst, int64_t k);
 
 /**
  * @brief (1xK)*(Kx1) dot product for q6_K and q8_K vectors
@@ -909,14 +1066,6 @@ void dequantize_row_q6_K(const void *x, float *y, int64_t k);
 template <typename T = float>
 void dequantize_row_q8_K(const void *x, T *y, int64_t k);
 
-/**
- * @brief Quantize float to q6_K Quantization format
- *
- * @param src float* src to be quantized
- * @param dst void* dst to store quantized data
- * @param k number of elements in src
- */
-void quantize_row_q6_K(const float *src, void *dst, int64_t k);
 /**
  * @brief quantize row of T data to q8_K
  *
@@ -985,121 +1134,6 @@ size_t quantize_q8_0(const T *src, void *dst, int64_t nrow, int64_t n_per_row,
 template <typename T = float>
 void dequantize_row_q8_0(const void *x_raw, T *y, int64_t k);
 
-/**
- * @brief Multihead softmax, exp(x_i) / sum(exp(x_i)), inplace version
- * @param[in/out] qk_out float* input/output values
- * @param[in] start_row start row number
- * @param[in] end_row end row number
- * @param[in] num_heads heads number
- */
-template <typename T = float>
-void softmax_row_inplace(T *qk_out, size_t start_row, size_t end_row,
-                         size_t num_heads, T *sink = nullptr);
-
-/**
- * @brief Multihead softmax, exp(x_i) / sum(exp(x_i))
- * @param[in/out] qk_out float* input/output values
- * @param[in] start_row start row number
- * @param[in] end_row end row number
- * @param[in] num_heads heads number
- */
-template <typename T = float>
-void softmax_row(T *qk_out, size_t start_row, size_t end_row, size_t num_heads,
-                 T *sink = nullptr);
-
-/**
- * @brief Compute vcache for one row transposed
- * @param[in] row_num row number
- * @param[in] in float* input vector
- * @param[in] vcache uint16_t* input vector
- * @param[out] output float* output vector
- * @param[in] num_cache_head number head of cache
- * @param[in] gqa_size size of group
- * @param[in] head_dim head dimension
- * @param[in] local_window_size windows size for local attention
- */
-void compute_fp16vcache_fp32_transposed(int row_num, const float *in,
-                                        const uint16_t *vcache, float *output,
-                                        int num_cache_head, int gqa_size,
-                                        int head_dim,
-                                        size_t local_window_size = UINT_MAX);
-
-/**
- * @brief Compute kcaches
- * @tparam BType type of B vector element
- * @param[in] in float* input vector
- * @param[in] kcache BType* input vector with keys cache
- * @param[out] output float* output float vector
- * @param[in] num_rows number of row
- * @param[in] num_cache_head number head of cache
- * @param[in] head_dim head dimension
- * @param[in] gqa_size size of group
- * @param[in] tile_size size of tile
- * @param[in] local_window_size windows size for local attention
- */
-template <typename BType>
-void compute_kcaches(const float *in, const BType *kcache, float *output,
-                     int num_rows, int num_cache_head, int head_dim,
-                     int gqa_size, int tile_size,
-                     size_t local_window_size = UINT_MAX);
-
-/**
- * @brief Compute rotary embedding value
- * @param[in] width current w value from b, c, h, w
- * @param[in] dim unit length of simd computation
- * @param[in] half_ criterion for rotational direction of embedding
- * @param[in/out] inout float* uesed also as output when expected output float*
- * values
- * @param[out] output void* output values, used when expected output __fp16*
- * values
- * @param[in] cos_ float* input con values
- * @param[in] sin_ float* input sin values
- * @param[in] only_convert_to_fp16 equal true if method is used only for
- * conversion
- */
-void compute_rotary_emb_value(unsigned int width, unsigned int dim,
-                              unsigned int half_, float *inout, void *output,
-                              const float *cos_, const float *sin_,
-                              bool only_convert_to_fp16);
-/**
- * @brief rms normalization computation w.r.t. width in H*W matrix input
- *
- * @param X input
- * @param Y output
- * @param H height of input matrix
- * @param W width of input matrix
- * @param epsilon epsilon of root mean squared dividing scale
- */
-void rms_norm_wrt_width_fp32_intrinsic(const float *__restrict X,
-                                       float *__restrict Y, size_t H, size_t W,
-                                       float epsilon);
-/**
- * @brief rms normalization computation w.r.t. width in H*W matrix input
- *
- * @param X input
- * @param Y output
- * @param H height of input matrix
- * @param W width of input matrix
- * @param epsilon epsilon of root mean squared dividing scale
- */
-template <typename T = float>
-void rms_norm_wrt_width_fp16_intrinsic(const T *__restrict X, T *__restrict Y,
-                                       size_t H, size_t W, float epsilon);
-
-/**
- * @brief fallback for clamping function.
- *
- * @tparam T Type of input data
- * @param input input vector
- * @param output output vector
- * @param length length of IO
- * @param lower_bound ditto
- * @param upper_bound ditto
- */
-template <typename T = float>
-void clamp(const T *input, T *output, size_t length,
-           T lower_bound = std::numeric_limits<T>::lowest(),
-           T upper_bound = std::numeric_limits<T>::max());
 } /* namespace nntrainer */
 #endif /* __cplusplus */
-#endif /* __x86_COMPUTE_BACKEND_H__ */
+#endif /* __ARM_COMPUTE_BACKEND_H__ */
