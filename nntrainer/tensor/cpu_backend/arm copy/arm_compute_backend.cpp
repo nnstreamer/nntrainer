@@ -2,30 +2,25 @@
 /**
  * Copyright (C) 2024 Sungsik Kong <ss.kong@samsung.com>
  *
- * @file   x86_compute_backend.cpp
+ * @file arm_compute_backend.cpp
  * @date   23 April 2024
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Sungsik Kong <ss.kong@samsung.com>
  * @bug    No known bugs except for NYI items
- * @brief  Compute backend for x86
+ * @brief  Compute backend for arm
  *
  */
-
+#include <arm_compute_backend.h>
 #include <assert.h>
-
-#include <avx2_impl.h>
 #ifdef USE_BLAS
 #include <cblas_interface.h>
 #endif
 #include <fallback_internal.h>
+#include <neon_impl.h>
 #include <nntrainer_error.h>
-#include <x86_compute_backend.h>
 #ifdef ENABLE_GGML
 #include <ggml_interface.h>
 #endif
-
-#define ROW_MAJOR 0
-#define COL_MAJOR 1
 
 namespace nntrainer {
 
@@ -37,26 +32,61 @@ void init_backend() {
 #endif
 }
 
+void convert_q4_0x8_shuffle_dispatch(const void *src, uint16_t *d_out,
+                                     uint8_t *qs_out, int N, int K) {
+  __fallback_convert_q4_0x8_shuffle_dispatch(src, d_out, qs_out, N, K);
+}
+
+template <>
+void calc_trigonometric_vals_dup(unsigned int N_half, float *angle, float *cos_,
+                                 float *sin_, unsigned int from,
+                                 float attention_scaling) {
+  nntrainer::neon::calc_trigonometric_vals_dup(N_half, angle, cos_, sin_, from,
+                                               attention_scaling);
+}
+
+void swiglu(const unsigned int N, float *X, float *Y, float *Z) {
+  nntrainer::neon::swiglu(N, X, Y, Z);
+}
+
+void swiglu(const unsigned int N, float *X, float *Y, float *Z, float alpha) {
+  nntrainer::neon::swiglu(N, X, Y, Z, alpha);
+}
+
+float max_val(const unsigned int N, float *X) {
+  return nntrainer::neon::max_val(N, X);
+}
+
+void softmax(const unsigned int N, float *X, float *Y) {
+  nntrainer::neon::softmax(N, X, Y);
+}
+
+void scopy(const unsigned int N, const uint8_t *X, const unsigned int incX,
+           uint8_t *Y, const unsigned int incY) {
+  if (incX == 1 && incY == 1) {
+    nntrainer::neon::copy_int8_or_int4(N, X, Y);
+  } else {
+    __fallback_scopy(N, X, incX, Y, incY);
+  }
+}
+
+void scopy(const unsigned int N, const int8_t *X, const unsigned int incX,
+           int8_t *Y, const unsigned int incY) {
+  if (incX == 1 && incY == 1) {
+    nntrainer::neon::copy_s8(N, X, Y);
+  } else {
+    __fallback_scopy(N, X, incX, Y, incY);
+  }
+}
+
 void scopy_int4_to_float32(const unsigned int N, const uint8_t *X,
                            const unsigned int incX, float *Y,
                            const unsigned int incY) {
-  __fallback_scopy_int4_to_float32(N, X, incX, Y, incY);
-}
-
-void copy_s16(const unsigned int N, const int16_t *X, int16_t *Y) {
-  __fallback_copy_s16(N, X, Y);
-}
-
-void copy_u16(const unsigned int N, const uint16_t *X, uint16_t *Y) {
-  __fallback_copy_u16(N, X, Y);
-}
-
-void copy_s16_fp32(const unsigned int N, const int16_t *X, float *Y) {
-  __fallback_copy_s16_fp32(N, X, Y);
-}
-
-void copy_u16_fp32(const unsigned int N, const uint16_t *X, float *Y) {
-  __fallback_copy_u16_fp32(N, X, Y);
+  if (incX == 1 && incY == 1) {
+    nntrainer::neon::copy_int4_to_fp32(N, X, Y);
+  } else {
+    __fallback_scopy_int4_to_float32(N, X, incX, Y, incY);
+  }
 }
 
 void copy_fp32_u32(const unsigned int N, const float *X, uint32_t *Y) {
@@ -129,52 +159,92 @@ template <> void copy_fp32(const unsigned int N, const float *X, int8_t *Y) {
   copy_fp32_s8(N, X, Y);
 }
 
+void copy_s16_fp32(const unsigned int N, const int16_t *X, float *Y) {
+  nntrainer::neon::copy_s16_fp32(N, X, Y);
+}
+
+void copy_u16_fp32(const unsigned int N, const uint16_t *X, float *Y) {
+  nntrainer::neon::copy_u16_fp32(N, X, Y);
+}
+
+void copy_s16(const unsigned int N, const int16_t *X, int16_t *Y) {
+  nntrainer::neon::copy_s16(N, X, Y);
+}
+
+void copy_u16(const unsigned int N, const uint16_t *X, uint16_t *Y) {
+  nntrainer::neon::copy_u16(N, X, Y);
+}
+
 void scopy_int8_to_float32(const unsigned int N, const uint8_t *X,
                            const unsigned int incX, float *Y,
                            const unsigned int incY) {
-  __fallback_scopy_uint8_to_float32(N, X, incX, Y, incY);
+
+  if (incX == 1 && incY == 1) {
+    nntrainer::neon::copy_int8_to_fp32(N, X, Y);
+  } else {
+    __fallback_scopy_uint8_to_float32(N, X, incX, Y, incY);
+  }
 }
 
 void scopy_int8_to_float32(const unsigned int N, const int8_t *X,
                            const unsigned int incX, float *Y,
                            const unsigned int incY) {
-  __fallback_scopy_int8_to_float32(N, X, incX, Y, incY);
+
+  if (incX == 1 && incY == 1) {
+    nntrainer::neon::copy_int8_to_fp32(N, X, Y);
+  } else {
+    __fallback_scopy_int8_to_float32(N, X, incX, Y, incY);
+  }
 }
 
-void sine(const unsigned int N, float *X, float *Y, float alpha) {
-  __fallback_sine(N, X, Y, alpha);
+template <>
+void sine(const unsigned int N, float *X, float *Y, float alpha, float beta) {
+  nntrainer::neon::sine(N, X, Y, alpha, beta);
 }
 
-void cosine(const unsigned int N, float *X, float *Y, float alpha) {
-  __fallback_cosine(N, X, Y, alpha);
+template <>
+void cosine(const unsigned int N, float *X, float *Y, float alpha, float beta) {
+  nntrainer::neon::cosine(N, X, Y, alpha, beta);
 }
 
 void inv_sqrt_inplace(const unsigned int N, float *X) {
-  __fallback_inv_sqrt_inplace(N, X);
+  nntrainer::neon::inv_sqrt_inplace(N, X);
 }
 
 void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z,
              float alpha, float beta, unsigned int i_stride,
              unsigned int o_stride) {
-  nntrainer::avx2::ele_mul(N, X, Y, Z, alpha, beta, i_stride, o_stride);
+  if (i_stride == 1 && o_stride == 1) {
+    nntrainer::neon::ele_mul(N, X, Y, Z, alpha, beta);
+  } else
+    __fallback_ele_mul(N, X, Y, Z, alpha, beta, i_stride, o_stride);
 }
 
 void ele_add(const unsigned int N, const float *X, const float *Y, float *Z,
              float alpha, float beta, unsigned int i_stride,
              unsigned int o_stride) {
-  nntrainer::avx2::ele_add(N, X, Y, Z, alpha, beta, i_stride, o_stride);
+  if (i_stride == 1 && o_stride == 1) {
+    nntrainer::neon::ele_add(N, X, Y, Z, alpha, beta);
+  } else
+    __fallback_ele_add(N, X, Y, Z, alpha, beta, i_stride, o_stride);
 }
 
 void ele_sub(const unsigned N, const float *X, const float *Y, float *Z,
              float alpha, float beta, unsigned int i_stride,
              unsigned int o_stride) {
-  __fallback_ele_sub(N, X, Y, Z, alpha, beta, i_stride, o_stride);
+  if (i_stride == 1 && o_stride == 1) {
+    nntrainer::neon::ele_sub(N, X, Y, Z, alpha, beta);
+  } else
+    __fallback_ele_sub(N, X, Y, Z, alpha, beta, i_stride, o_stride);
 }
 
 void ele_div(const unsigned N, const float *X, const float *Y, float *Z,
              float alpha, float beta, unsigned int i_stride,
              unsigned int o_stride) {
-  __fallback_ele_div(N, X, Y, Z, alpha, beta, i_stride, o_stride);
+  if (i_stride == 1 && o_stride == 1) {
+    nntrainer::neon::ele_div(N, X, Y, Z, alpha, beta);
+  } else
+    __fallback_ele_div(N, X, Y, Z, alpha, beta, i_stride, o_stride);
 }
 
 void saxpy(const unsigned int N, const float alpha, const float *X,
@@ -208,22 +278,12 @@ float sdot(const unsigned int N, const float *X, const unsigned int incX,
 #endif
 }
 
-void scopy(const unsigned int N, const uint8_t *X, const unsigned int incX,
-           uint8_t *Y, const unsigned int incY) {
-  __fallback_scopy(N, X, incX, Y, incY);
-}
-
-void scopy(const unsigned int N, const int8_t *X, const unsigned int incX,
-           int8_t *Y, const unsigned int incY) {
-  __fallback_scopy(N, X, incX, Y, incY);
-}
-
 void scopy(const unsigned int N, const float *X, const unsigned int incX,
            float *Y, const unsigned int incY) {
   /// @note cblas_scopy is evoking SIGSEGV for some reason. Use custom
   /// implementation instead.
   // __cblas_scopy(N, X, incX, Y, incY);
-  nntrainer::avx2::custom_scopy(N, X, incX, Y, incY);
+  nntrainer::neon::custom_scopy(N, X, incX, Y, incY);
 }
 
 void sscal(const unsigned int N, const float alpha, float *X,
@@ -265,41 +325,15 @@ unsigned int isamax(const unsigned int N, const float *X,
   return __fallback_isamax(N, X, incX);
 #endif
 }
+
 void transpose_matrix(const unsigned int M, const unsigned int N,
                       const float *src, unsigned int ld_src, float *dst,
                       unsigned int ld_dst) {
-  nntrainer::avx2::transpose_matrix(M, N, src, ld_src, dst, ld_dst);
+  nntrainer::neon::transpose_matrix(M, N, src, ld_src, dst, ld_dst);
 }
 
 bool is_valid(const unsigned int N, const float *input) {
-  return nntrainer::avx2::is_valid(N, input);
-}
-
-void unpack_q4_0x8_transpose16(const void *src, uint16_t *d_out,
-                               uint16_t *qs_out, int N, int K) {
-  return nntrainer::avx2::unpack_q4_0x8_transpose16(src, d_out, qs_out, N, K);
-}
-
-template <>
-void calc_trigonometric_vals_dup(unsigned int N_half, float *angle, float *cos_,
-                                 float *sin_, unsigned int from,
-                                 float attention_scaling) {
-  __fallback_calc_trigonometric_vals_dup(N_half, angle, cos_, sin_, from,
-                                         attention_scaling);
-}
-
-void swiglu(const unsigned int N, float *X, float *Y, float *Z) {
-  nntrainer::avx2::swiglu(N, X, Y, Z);
-}
-
-void swiglu(const unsigned int N, float *X, float *Y, float *Z, float alpha) {
-  nntrainer::avx2::swiglu(N, X, Y, Z, alpha);
-}
-
-float max_val(const unsigned int N, float *X) { return __fallback_max(N, X); }
-
-void softmax(const unsigned int N, float *X, float *Y) {
-  __fallback_softmax(N, X, Y);
+  return nntrainer::neon::is_valid(N, input);
 }
 
 template <>
@@ -307,7 +341,7 @@ void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc) {
 #ifdef ENABLE_GGML
-  return __ggml_q4_0_8x8_q8_0_GEMM(M, N, K, A, lda, B, ldb, C, ldc);
+  return __ggml_q4_0_4x8_q8_0_GEMM<float>(M, N, K, A, lda, B, ldb, C, ldc);
 #else
   return __fallback_gemm_q4_0(M, N, K, A, lda, B, ldb, C, ldc);
 #endif
@@ -317,7 +351,12 @@ void gemm_q4_0(const unsigned int M, std::vector<unsigned int> Ns,
                const unsigned int K, const float *A, const unsigned int lda,
                std::vector<void *> Bs, std::vector<unsigned int> ldbs,
                std::vector<float *> Cs, std::vector<unsigned int> ldcs) {
+#ifdef ENABLE_GGML
+  return __ggml_q4_0_4x8_q8_0_GEMM<float>(M, Ns, K, A, lda, Bs, ldbs, Cs, ldcs);
+#else
   throw std::runtime_error("Error: NYI for gemm_q4_0 with vectored weights");
+  return;
+#endif
 }
 
 void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
@@ -337,8 +376,20 @@ void gemm_q4_K(const unsigned int M, std::vector<unsigned int> Ns,
 #ifdef ENABLE_GGML
   return __ggml_q4_K_8x8_q8_K_GEMM(M, Ns, K, A, lda, Bs, ldbs, Cs, ldcs);
 #else
-  throw std::runtime_error("Error: NYI for gemm_q4_K with vectored weights");
+  throw std::runtime_error(
+    "Error : Not yet implemented : gemm_q4_K (with weight vectors) ");
   return;
+#endif
+}
+
+template <>
+void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
+               const float *A, const unsigned int lda, const void *B,
+               const unsigned int ldb, float *C, const unsigned int ldc) {
+#ifdef ENABLE_GGML
+  return __ggml_gemm_q6_K<float>(M, N, K, A, lda, B, ldb, C, ldc);
+#else
+  return __fallback_gemm_q6_K(M, N, K, A, lda, B, ldb, C, ldc);
 #endif
 }
 
@@ -356,17 +407,6 @@ float dot_q6_K_f32(const unsigned int K, const void *v_q6_K, const float *f) {
   return __ggml_vec_dot_q6_K_f32(K, v_q6_K, f);
 #else
   return __fallback_dot_q6_K_f32(K, v_q6_K, f);
-#endif
-}
-
-template <>
-void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
-               const float *A, const unsigned int lda, const void *B,
-               const unsigned int ldb, float *C, const unsigned int ldc) {
-#ifdef ENABLE_GGML
-  return __ggml_gemm_q6_K(M, N, K, A, lda, B, ldb, C, ldc);
-#else
-  return __fallback_gemm_q6_K(M, N, K, A, lda, B, ldb, C, ldc);
 #endif
 }
 
@@ -420,14 +460,6 @@ void dequantize_row_q4_K(const void *x_raw, float *y, int64_t k) {
 #endif
 }
 
-void dequantize_row_q4_0(const void *x_raw, float *y, int64_t k) {
-#ifdef ENABLE_GGML
-  __ggml_dequantize_row_q4_0(x_raw, y, k);
-#else
-  __fallback_dequantize_row_q4_0(x_raw, y, k);
-#endif
-}
-
 void dequantize_row_q6_K(const void *x, float *y, int64_t k) {
 #ifdef ENABLE_GGML
   __ggml_dequantize_row_q6_K(x, y, k);
@@ -444,8 +476,8 @@ template <> void dequantize_row_q8_K(const void *x, float *y, int64_t k) {
 #endif
 }
 
-void repack_q4_0(void *W, void *repacked_W, size_t data_size,
-                 const unsigned int M, const unsigned int N) {
+void repack_q4_0_to_q4_0_8(void *W, void *repacked_W, size_t data_size,
+                           const unsigned int M, const unsigned int N) {
 #ifdef ENABLE_GGML
   __ggml_repack_q4_0_to_q4_0_8(W, repacked_W, data_size, M, N);
 #else
@@ -453,12 +485,12 @@ void repack_q4_0(void *W, void *repacked_W, size_t data_size,
 #endif
 }
 
-void repack_q4_0_to_q4_0_8(void *W, void *repacked_W, size_t data_size,
-                           const unsigned int M, const unsigned int N) {
+void repack_q4_0(void *W, void *repacked_W, size_t data_size,
+                 const unsigned int M, const unsigned int N) {
 #ifdef ENABLE_GGML
-  __ggml_repack_q4_0_to_q4_0_8(W, repacked_W, data_size, M, N);
+  __ggml_repack_q4_0_to_q4_0_4(W, repacked_W, data_size, M, N);
 #else
-  __fallback_repack_q4_0_to_q4_0_8(W, repacked_W, data_size, M, N);
+  __fallback_repack_q4_0_to_q4_0_4(W, repacked_W, data_size, M, N);
 #endif
 }
 
@@ -474,60 +506,12 @@ void repack_q4_K(void *W, void *repacked_W, size_t data_size,
 template <>
 void softmax_row_inplace(float *qk_out, size_t start_row, size_t end_row,
                          size_t num_heads, float *sink) {
-  nntrainer::avx2::softmax_row_inplace<float>(qk_out, start_row, end_row,
-                                              num_heads, sink);
+  neon::softmax_row_inplace(qk_out, start_row, end_row, num_heads, sink);
 }
 
 template <>
 void softmax_row(float *qk_out, size_t start_row, size_t end_row,
                  size_t num_heads, float *sink) {
-  nntrainer::avx2::softmax_row<float>(qk_out, start_row, end_row, num_heads,
-                                      sink);
-}
-
-void compute_fp16vcache_fp32_transposed(int row_num, const float *in,
-                                        const uint16_t *vcache, float *output,
-                                        int num_cache_head, int gqa_size,
-                                        int head_dim,
-                                        size_t local_window_size) {
-  nntrainer::avx2::compute_fp16vcache_fp32_transposed(
-    row_num, in, vcache, output, num_cache_head, gqa_size, head_dim,
-    local_window_size);
-}
-
-template <>
-void compute_kcaches(const float *in, const uint16_t *kcache, float *output,
-                     int num_rows, int num_cache_head, int head_dim,
-                     int gqa_size, int tile_size, size_t local_window_size) {
-  nntrainer::avx2::compute_kcaches<uint16_t>(in, kcache, output, num_rows,
-                                             num_cache_head, head_dim, gqa_size,
-                                             tile_size, local_window_size);
-}
-
-void compute_rotary_emb_value(unsigned int width, unsigned int dim,
-                              unsigned int half_, float *inout, void *output,
-                              const float *cos_, const float *sin_,
-                              bool only_convert_to_fp16) {
-  nntrainer::avx2::compute_rotary_emb_value(width, dim, half_, inout, output,
-                                            cos_, sin_, only_convert_to_fp16);
-}
-
-void rms_norm_wrt_width_fp32_intrinsic(const float *__restrict X,
-                                       float *__restrict Y, size_t H, size_t W,
-                                       float epsilon) {
-  nntrainer::avx2::rms_norm_wrt_width_fp32_intrinsic(X, Y, H, W, epsilon);
-}
-
-template <>
-void rms_norm_wrt_width_fp16_intrinsic(const float *__restrict X,
-                                       float *__restrict Y, size_t H, size_t W,
-                                       float epsilon) {
-  __fallback_rms_norm_wrt_width_fp16_intrinsic(X, Y, H, W, epsilon);
-}
-
-template <>
-void clamp(const float *input, float *output, size_t length, float lower_bound,
-           float upper_bound) {
-  nntrainer::avx2::clamp(input, output, length, lower_bound, upper_bound);
+  neon::softmax_row(qk_out, start_row, end_row, num_heads, sink);
 }
 } /* namespace nntrainer */

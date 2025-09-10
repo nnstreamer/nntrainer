@@ -16,7 +16,6 @@
 
 #include <cstdint>
 #include <limits.h>
-#include <limits>
 #include <stdexcept>
 #include <tensor_dim.h>
 
@@ -538,10 +537,10 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
 void init_backend();
 
 /**
- * @copydoc unpack_q4_0x8_transpose16 in cpu_backend.h
+ * @copydoc convert_q4_0x8_shuffle_dispatch in cpu_backend.h
  */
-void unpack_q4_0x8_transpose16(const void *src, uint16_t *d_out,
-                               uint16_t *qs_out, int N, int K);
+void convert_q4_0x8_shuffle_dispatch(const void *src, uint16_t *d_out,
+                                     uint8_t *qs_out, int N, int K);
 
 /**
  * @brief Get half-sized angles, transform them into each cos, sin, and scopy in
@@ -820,7 +819,9 @@ unsigned int isamax(const unsigned int N, const float *X,
  * @param[in] Y float * for Vector Y
  * @param[in] alpha float * for scaling angle (radian)
  */
-void sine(const unsigned int N, float *X, float *Y, float alpha = 1.f);
+template <typename T = float>
+void sine(const unsigned int N, T *X, T *Y, float alpha = 1.f,
+          float beta = 1.f);
 
 /**
  * @brief     cosine with neon: Y = cos(alpha * X)
@@ -829,7 +830,9 @@ void sine(const unsigned int N, float *X, float *Y, float alpha = 1.f);
  * @param[in] Y float * for Vector Y
  * @param[in] alpha float * for scaling angle (radian)
  */
-void cosine(const unsigned int N, float *X, float *Y, float alpha = 1.f);
+template <typename T = float>
+void cosine(const unsigned int N, T *X, T *Y, float alpha = 1.f,
+            float beta = 1.f);
 
 /**
  * @brief inversed squared root transformation inplace : X = 1 / sqrt(X)
@@ -1045,15 +1048,6 @@ float dot_q6_K_f32(const unsigned int K, const void *v_q6_K, const float *f);
 void dequantize_row_q4_K(const void *x, float *y, int64_t k);
 
 /**
- * @brief dequantize row of q4_0 data to float
- *
- * @param x input to be dequantized from q4_0 to float
- * @param y dequantized data output
- * @param k number of elements in x
- */
-void dequantize_row_q4_0(const void *x, float *y, int64_t k);
-
-/**
  * @brief dequantize row of q6_K data to float
  *
  * @param x input to be dequantized from q6_K to float
@@ -1140,45 +1134,6 @@ size_t quantize_q8_0(const T *src, void *dst, int64_t nrow, int64_t n_per_row,
 template <typename T = float>
 void dequantize_row_q8_0(const void *x_raw, T *y, int64_t k);
 
-/**
- * @brief rms normalization computation w.r.t. width in H*W matrix input
- *
- * @param X input
- * @param Y output
- * @param H height of input matrix
- * @param W width of input matrix
- * @param epsilon epsilon of root mean squared dividing scale
- */
-void rms_norm_wrt_width_fp32_intrinsic(const float *__restrict X,
-                                       float *__restrict Y, size_t H, size_t W,
-                                       float epsilon);
-/**
- * @brief rms normalization computation w.r.t. width in H*W matrix input
- *
- * @param X input
- * @param Y output
- * @param H height of input matrix
- * @param W width of input matrix
- * @param epsilon epsilon of root mean squared dividing scale
- */
-template <typename T = float>
-void rms_norm_wrt_width_fp16_intrinsic(const T *__restrict X, T *__restrict Y,
-                                       size_t H, size_t W, float epsilon);
-
-/**
- * @brief fallback for clamping function.
- *
- * @tparam T Type of input data
- * @param input input vector
- * @param output output vector
- * @param length length of IO
- * @param lower_bound ditto
- * @param upper_bound ditto
- */
-template <typename T = float>
-void clamp(const T *input, T *output, size_t length,
-           T lower_bound = std::numeric_limits<T>::lowest(),
-           T upper_bound = std::numeric_limits<T>::max());
 } /* namespace nntrainer */
 #endif /* __cplusplus */
 #endif /* __ARM_COMPUTE_BACKEND_H__ */
