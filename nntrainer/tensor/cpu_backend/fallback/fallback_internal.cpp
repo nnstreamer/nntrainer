@@ -244,18 +244,20 @@ unsigned int __fallback_isamax(const unsigned int N, const float *X,
   return max_idx;
 }
 
-void __fallback_sine(const unsigned int N, float *X, float *Y, float alpha) {
+void __fallback_sine(const unsigned int N, float *X, float *Y, float alpha,
+                     float beta) {
   unsigned int i = 0;
   while (i < N) {
-    Y[i] = std::sin(alpha * X[i]);
+    Y[i] = std::sin(alpha * X[i]) * beta;
     ++i;
   }
 }
 
-void __fallback_cosine(const unsigned int N, float *X, float *Y, float alpha) {
+void __fallback_cosine(const unsigned int N, float *X, float *Y, float alpha,
+                       float beta) {
   unsigned int i = 0;
   while (i < N) {
-    Y[i] = std::cos(alpha * X[i]);
+    Y[i] = std::cos(alpha * X[i]) * beta;
     ++i;
   }
 }
