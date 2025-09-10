@@ -951,6 +951,15 @@ void __fallback_quantize_row_q8_K(const T *src, void *dst, int64_t k);
 void __fallback_dequantize_row_q4_K(const void *x_raw, float *y, int64_t k);
 
 /**
+ * @brief dequantize row of q4_0 data to float
+ *
+ * @param x input to be dequantized from q4_0 to float
+ * @param y dequantized data output
+ * @param k number of elements in x
+ */
+void __fallback_dequantize_row_q4_0(const void *x_raw, float *y, int64_t k);
+
+/**
  * @brief dequantize row of q6_K data to float
  *
  * @param x input to be dequantized from q6_K to float
