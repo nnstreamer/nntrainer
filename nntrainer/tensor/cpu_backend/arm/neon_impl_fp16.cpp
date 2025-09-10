@@ -2420,6 +2420,15 @@ static inline float16x8_t cos_ph(float16x8_t x) {
   return c;
 }
 
+static inline float16x8x2_t sincosx2_ph(float16x8_t x) {
+  float16x8_t s, c;
+  float16x8x2_t sc;
+  sincos_ph(x, &s, &c);
+  sc.val[0] = s;
+  sc.val[1] = c;
+  return sc;
+}
+
 template <>
 void sine(const unsigned int N, _FP16 *X, _FP16 *Y, float alpha, float beta) {
   unsigned int i = 0;
@@ -2456,4 +2465,50 @@ void cosine(const unsigned int N, _FP16 *X, _FP16 *Y, float alpha, float beta) {
   }
 }
 
+static inline void sinecosine(const unsigned int N, _FP16 *X, _FP16 *Ys,
+                              _FP16 *Yc, float alpha, float beta) {
+  unsigned int i = 0;
+  for (; N - i >= 8; i += 8) {
+    float16x8_t x0_3 = vld1q_f16(&X[i]);
+    if (std::fpclassify(alpha - 1.F) != FP_ZERO)
+      x0_3 = vmulq_n_f32(x0_3, alpha);
+    float16x8x2_t sincosx0_3 = sincosx2_ph(x0_3);
+    float16x8_t sin0_3 = sincosx0_3.val[0];
+    float16x8_t cos0_3 = sincosx0_3.val[1];
+    if (std::fpclassify(beta - 1.F) != FP_ZERO) {
+      sin0_3 = vmulq_n_f32(sin0_3, beta);
+      cos0_3 = vmulq_n_f32(cos0_3, beta);
+    }
+    vst1q_f16(&Ys[i], sin0_3);
+    vst1q_f16(&Yc[i], cos0_3);
+  }
+  while (i < N) {
+    Yc[i] = std::cos(alpha * X[i]) * beta;
+    ++i;
+  }
+}
+
+template <>
+void calc_trigonometric_vals_dup(unsigned int N_half, _FP16 *angle, _FP16 *cos_,
+                                 _FP16 *sin_, unsigned int from,
+                                 float attention_scaling) {
+  sinecosine(N_half, angle, sin_, cos_, from, attention_scaling);
+
+  unsigned int N = 2 * N_half;
+
+  // Copy values to second half (duplicate)
+  unsigned int i = N_half;
+  unsigned int i_half = 0;
+
+  for (; (N - i >= 8) && (N_half - i_half >= 8); i += 8, i_half += 8) {
+    vst1q_f16(&cos_[i], vld1q_f16(&cos_[i_half]));
+    vst1q_f16(&sin_[i], vld1q_f16(&sin_[i_half]));
+  }
+  while (i < N || i_half < N_half) {
+    cos_[i] = cos_[i_half];
+    sin_[i] = sin_[i_half];
+    ++i;
+    ++i_half;
+  }
+}
 } // namespace nntrainer::neon

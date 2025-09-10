@@ -457,4 +457,12 @@ void rms_norm_wrt_width_fp16_intrinsic(const _FP16 *__restrict X,
                                        float epsilon) {
   __fallback_rms_norm_wrt_width_fp16_intrinsic<_FP16>(X, Y, H, W, epsilon);
 }
+
+template <>
+void calc_trigonometric_vals_dup(unsigned int N_half, _FP16 *angle, _FP16 *cos_,
+                                 _FP16 *sin_, unsigned int from,
+                                 float attention_scaling) {
+  nntrainer::neon::calc_trigonometric_vals_dup<_FP16>(N_half, angle, cos_, sin_,
+                                                      from, attention_scaling);
+}
 } /* namespace nntrainer */
