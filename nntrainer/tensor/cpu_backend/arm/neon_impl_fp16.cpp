@@ -2346,7 +2346,8 @@ static inline float16x8_t vdupq_n_f16_const(float c) {
 #define H_COSCOF_P1 (-1.388731625493765E-003f)
 #define H_COSCOF_P2 (+4.166664568298827E-002f)
 
-inline void sincos_ph(float16x8_t x, float16x8_t *ysin, float16x8_t *ycos) {
+static inline void sincos_ph(float16x8_t x, float16x8_t *ysin,
+                             float16x8_t *ycos) {
   uint16x8_t sign_mask_sin = vcltq_f16(x, vdupq_n_f16(0));
   x = vabsq_f16(x);
 
@@ -2407,25 +2408,52 @@ inline void sincos_ph(float16x8_t x, float16x8_t *ysin, float16x8_t *ycos) {
   *ycos = vbslq_f16_u16(sign_mask_cos, yc, vnegq_f16(yc));
 }
 
-inline float16x8_t sin_ph(float16x8_t x) {
+static inline float16x8_t sin_ph(float16x8_t x) {
   float16x8_t s, c;
   sincos_ph(x, &s, &c);
   return s;
 }
 
-inline float16x8_t cos_ph(float16x8_t x) {
+static inline float16x8_t cos_ph(float16x8_t x) {
   float16x8_t s, c;
   sincos_ph(x, &s, &c);
   return c;
 }
 
-inline float16x8x2_t sincosx2_ph(float16x8_t x) {
-  float16x8_t s, c;
-  float16x8x2_t sc;
-  sincos_ph(x, &s, &c);
-  sc.val[0] = s;
-  sc.val[1] = c;
-  return sc;
+template <>
+void sine(const unsigned int N, _FP16 *X, _FP16 *Y, float alpha, float beta) {
+  unsigned int i = 0;
+  for (; N - i >= 8; i += 8) {
+    float16x8_t x0_3 = vld1q_f16(&X[i]);
+    if (std::fpclassify(alpha - 1.F) != FP_ZERO)
+      x0_3 = vmulq_n_f16(x0_3, alpha);
+    float16x8_t sinx0_3 = sin_ph(x0_3);
+    if (std::fpclassify(beta - 1.F) != FP_ZERO)
+      sinx0_3 = vmulq_n_f16(sinx0_3, beta);
+    vst1q_f16(&Y[i], sinx0_3);
+  }
+  while (i < N) {
+    Y[i] = std::sin(alpha * X[i]) * beta;
+    ++i;
+  }
+}
+
+template <>
+void cosine(const unsigned int N, _FP16 *X, _FP16 *Y, float alpha, float beta) {
+  unsigned int i = 0;
+  for (; N - i >= 8; i += 8) {
+    float16x8_t x0_3 = vld1q_f16(&X[i]);
+    if (std::fpclassify(alpha - 1.F) != FP_ZERO)
+      x0_3 = vmulq_n_f32(x0_3, alpha);
+    float16x8_t cosx0_3 = cos_ph(x0_3);
+    if (std::fpclassify(beta - 1.F) != FP_ZERO)
+      cosx0_3 = vmulq_n_f32(cosx0_3, beta);
+    vst1q_f16(&Y[i], cosx0_3);
+  }
+  while (i < N) {
+    Y[i] = std::cos(alpha * X[i]) * beta;
+    ++i;
+  }
 }
 
 } // namespace nntrainer::neon
