@@ -230,19 +230,19 @@ inline void CachedSlimMoELayer::compute_expert_forward(
   // Up projection using optimized dot operation
   token_input.dot(up_proj, up_out);
 
-// Apply activation (silu)
-#pragma omp parallel for schedule(dynamic)
-  for (size_t i = 0; i < num_tokens; ++i) {
-    nntrainer::Tensor gate_out_step =
-      gate_out.getSharedDataTensor(step_dim, i * intermediate_size, true);
-    nntrainer::Tensor acti_step =
-      acti_out.getSharedDataTensor(step_dim, i * intermediate_size, true);
-    nntrainer::Tensor up_out_step =
-      up_out.getSharedDataTensor(step_dim, i * intermediate_size, true);
-
-    acti_func.run_fn(gate_out_step, acti_step);
+  if (num_tokens == 1) {
+    // Apply activation (silu)
+    acti_func.run_fn(gate_out, acti_out);
     // Element-wise multiply: silu(gate_out) * up_out
-    acti_step.multiply_i(up_out_step);
+    acti_out.multiply_i(up_out);
+  } else {
+    for (size_t i = 0; i < num_tokens; ++i) {
+      nntrainer::swiglu(
+        acti_out.width(),
+        acti_out.getData<float>() + acti_out.getIndex(0, 0, i, 0),
+        gate_out.getData<float>() + gate_out.getIndex(0, 0, i, 0),
+        up_out.getData<float>() + up_out.getIndex(0, 0, i, 0));
+    }
   }
 
   acti_out.dot(down_proj, token_expert_output);
@@ -469,7 +469,7 @@ void CachedSlimMoELayer::incremental_forwarding(
               << "miss_compute: " << dt_miss.count() / 1'000'000 << " ms "
               << "\t| "
               << "evict_time: " << dt_evict.count() / 1'000'000 << " ms "
-              << "\t| " std::cout << std::endl;
+              << "\t| " << std::endl;
 #endif
   }
 }
@@ -493,6 +493,20 @@ void CachedSlimMoELayer::exportTo(
   nntrainer::Exporter &exporter, const ml::train::ExportMethods &method) const {
   nntrainer::LayerImpl::exportTo(exporter, method);
   exporter.saveResult(moe_props, method, this); // Save MoE specific properties
+}
+
+void CachedSlimMoELayer::updateTensorsByInputDimensions(
+  nntrainer::RunLayerContext &context,
+  std::vector<nntrainer::TensorDim> input_dimensions) {
+  ml::train::TensorDim input_dim = context.getInput(SINGLE_INOUT_IDX).getDim();
+  ml::train::TensorDim output_dim =
+    context.getOutput(SINGLE_INOUT_IDX).getDim();
+
+  input_dim.height(input_dimensions[0].height());
+  output_dim.height(input_dimensions[0].height());
+
+  context.updateInput(SINGLE_INOUT_IDX, input_dim);
+  context.updateOutput(SINGLE_INOUT_IDX, output_dim);
 }
 
 } // namespace causallm
