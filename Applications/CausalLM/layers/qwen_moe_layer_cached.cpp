@@ -188,7 +188,6 @@ void CachedSlimMoELayer::forwarding(nntrainer::RunLayerContext &context,
 
   // reshape output: [B,1,S,H] -> [B*S,1,1,H]
   output.reshape({total_tokens, 1, 1, hidden_size});
-  output.setZero();
 
   // routing
   nntrainer::Tensor &gate_weights = context.getWeight(gate_idx);
@@ -364,11 +363,11 @@ inline void CachedSlimMoELayer::compute_expert_forward_no_critical(
     // Gate projection using optimized dot operation
     token_input.dot(gate_proj, gate_out);
 
-    // Apply activation (silu)
-    acti_func.run_fn(gate_out, acti_out);
-
     // Up projection using optimized dot operation
     token_input.dot(up_proj, up_out);
+
+    // Apply activation (silu)
+    acti_func.run_fn(gate_out, acti_out);
 
     // Element-wise multiply: silu(gate_out) * up_out
     acti_out.multiply_i(up_out);
@@ -544,7 +543,7 @@ void CachedSlimMoELayer::incremental_forwarding(
     auto t2_miss = high_resolution_clock::now();
 #endif
 
-    while (loaded_expert_deque.size() > 16) {
+    while (loaded_expert_deque.size() > 32) {
       int target_idx = loaded_expert_deque.front();
       loaded_expert_deque.pop_front();
       iteration_map.erase(target_idx);
@@ -566,9 +565,12 @@ void CachedSlimMoELayer::incremental_forwarding(
 #endif
 
     // Combine expert outputs
-    for (int expert_idx = 0; expert_idx < static_cast<int>(num_experts);
-         ++expert_idx) {
-      if (!expert_assignments[expert_idx].empty()) {
+    int init = 0;
+    for (int expert_idx : target_idx_vector) {
+      if (!init) {
+        output.copyData(expert_outputs[expert_idx]);
+        ++init;
+      } else {
         output.add_i(expert_outputs[expert_idx]);
       }
     }
