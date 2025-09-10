@@ -765,7 +765,8 @@ unsigned int isamax(const unsigned int N, const float *X,
  * @param[in] Y float * for Vector Y
  * @param[in] alpha float * for scaling angle (radian)
  */
-void sine(const unsigned int N, float *X, float *Y, float alpha = 1.f,
+template <typename T = float>
+void sine(const unsigned int N, T *X, T *Y, float alpha = 1.f,
           float beta = 1.f);
 
 /**
@@ -775,7 +776,8 @@ void sine(const unsigned int N, float *X, float *Y, float alpha = 1.f,
  * @param[in] Y float * for Vector Y
  * @param[in] alpha float * for scaling angle (radian)
  */
-void cosine(const unsigned int N, float *X, float *Y, float alpha = 1.f,
+template <typename T = float>
+void cosine(const unsigned int N, T *X, T *Y, float alpha = 1.f,
             float beta = 1.f);
 
 /**

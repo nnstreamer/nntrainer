@@ -197,10 +197,12 @@ void scopy_int8_to_float32(const unsigned int N, const int8_t *X,
   }
 }
 
+template <>
 void sine(const unsigned int N, float *X, float *Y, float alpha, float beta) {
   nntrainer::neon::sine(N, X, Y, alpha, beta);
 }
 
+template <>
 void cosine(const unsigned int N, float *X, float *Y, float alpha, float beta) {
   nntrainer::neon::cosine(N, X, Y, alpha, beta);
 }
