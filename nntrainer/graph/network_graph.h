@@ -473,7 +473,7 @@ public:
    * @param order execution order to prefetch
    * @param lookahead prefetch order + lookahead
    */
-  void WeightPreFetch(unsigned int order, unsigned int lookahead);
+  void WeightPreFetch(unsigned int order, unsigned int lookahead = 1);
 
   /**
    * @brief Load data of order to the device

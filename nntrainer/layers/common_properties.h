@@ -1337,6 +1337,20 @@ public:
 };
 
 /**
+ * @brief fsu weight property, set tensor as virtual
+ */
+class FsuWeight : public nntrainer::Property<bool> {
+public:
+  /**
+   * @brief Construct a new FsuWeight object
+   * @param value true or false
+   */
+  FsuWeight(bool value = false);
+  static constexpr const char *key = "fsu_weight";
+  using prop_tag = bool_prop_tag;
+};
+
+/**
  * @brief Print object
  *
  */
