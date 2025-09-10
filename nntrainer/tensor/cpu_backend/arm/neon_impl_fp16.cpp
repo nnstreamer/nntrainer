@@ -2324,4 +2324,104 @@ void rms_norm_wrt_width_fp16_intrinsic(const float *__restrict X,
   }
 }
 
+
+static inline float16x8_t vbslq_f16_u16(uint16x8_t m, float16x8_t a, float16x8_t b) {
+  return vbslq_f16(m, a, b);
+}
+
+// Constants as __fp16 (half). Precision is limited, but acceptable for approx trig.
+static inline float16x8_t vdupq_n_f16_const(float c) { return vdupq_n_f16((__fp16)c); }
+
+#define H_CEPPHES_FOPI (1.27323954473516f) // 4 / pi
+#define H_MINUS_DP1 (-0.78515625f)
+#define H_MINUS_DP2 (-2.4187564849853515625e-4f)
+#define H_MINUS_DP3 (-3.77489497744594108e-8f)
+#define H_SINCOF_P0 (-1.9515295891E-4f)
+#define H_SINCOF_P1 (+8.3321608736E-3f)
+#define H_SINCOF_P2 (-1.6666654611E-1f)
+#define H_COSCOF_P0 (+2.443315711809948E-005f)
+#define H_COSCOF_P1 (-1.388731625493765E-003f)
+#define H_COSCOF_P2 (+4.166664568298827E-002f)
+
+void sincos_ph(float16x8_t x, float16x8_t* ysin, float16x8_t* ycos) {
+  uint16x8_t sign_mask_sin = vcltq_f16(x, vdupq_n_f16(0));
+  x = vabsq_f16(x);
+
+  float16x8_t y = vmulq_f16(x, vdupq_n_f16_const(H_CEPPHES_FOPI));
+
+  int16x8_t tmpi = vcvtq_s16_f16(y);
+  float16x8_t tmpf = vcvtq_f16_s16(tmpi);
+  uint16x8_t gt_mask = vcgtq_f16(tmpf, y);
+  tmpi = vsubq_s16(tmpi, vreinterpretq_s16_u16(vandq_u16(gt_mask, vdupq_n_u16(1))));
+
+  int16x8_t emm2_s16 = vaddq_s16(tmpi, vdupq_n_s16(1));
+  emm2_s16 = vandq_s16(emm2_s16, vdupq_n_s16((int16_t)~1));
+  uint16x8_t emm2 = vreinterpretq_u16_s16(emm2_s16);
+
+  y = vcvtq_f16_s16(emm2_s16);
+
+  float16x8_t xmm1 = vmulq_f16(y, vdupq_n_f16_const(H_MINUS_DP1));
+  float16x8_t xmm2 = vmulq_f16(y, vdupq_n_f16_const(H_MINUS_DP2));
+  float16x8_t xmm3 = vmulq_f16(y, vdupq_n_f16_const(H_MINUS_DP3));
+  x = vaddq_f16(x, xmm1);
+  x = vaddq_f16(x, xmm2);
+  x = vaddq_f16(x, xmm3);
+
+  uint16x8_t poly_mask = vtstq_u16(emm2, vdupq_n_u16(2));
+
+  sign_mask_sin = veorq_u16(sign_mask_sin, vtstq_u16(emm2, vdupq_n_u16(4)));
+  uint16x8_t sign_mask_cos = vtstq_u16(vreinterpretq_u16_s16(vsubq_s16(emm2_s16, vdupq_n_s16(2))),
+                                       vdupq_n_u16(4));
+
+  float16x8_t z = vmulq_f16(x, x);
+
+  float16x8_t y1 = vmulq_f16(z, vdupq_n_f16_const(H_COSCOF_P0));
+  float16x8_t y2 = vmulq_f16(z, vdupq_n_f16_const(H_SINCOF_P0));
+
+  y1 = vaddq_f16(y1, vdupq_n_f16_const(H_COSCOF_P1));
+  y2 = vaddq_f16(y2, vdupq_n_f16_const(H_SINCOF_P1));
+
+  y1 = vmulq_f16(y1, z);
+  y2 = vmulq_f16(y2, z);
+
+  y1 = vaddq_f16(y1, vdupq_n_f16_const(H_COSCOF_P2));
+  y2 = vaddq_f16(y2, vdupq_n_f16_const(H_SINCOF_P2));
+
+  y1 = vmulq_f16(y1, z);
+  y2 = vmulq_f16(y2, z);
+
+  y1 = vmulq_f16(y1, z);
+  y2 = vaddq_f16(y2, x);
+
+  y1 = vsubq_f16(y1, vmulq_f16(z, vdupq_n_f16((__fp16)0.5f)));
+  y1 = vaddq_f16(y1, vdupq_n_f16((__fp16)1.0f));
+
+  float16x8_t ys = vbslq_f16_u16(poly_mask, y1, y2);
+  float16x8_t yc = vbslq_f16_u16(poly_mask, y2, y1);
+
+  *ysin = vbslq_f16_u16(sign_mask_sin, vnegq_f16(ys), ys);
+  *ycos = vbslq_f16_u16(sign_mask_cos, yc, vnegq_f16(yc));
+}
+
+float16x8_t sin_ph(float16x8_t x) {
+  float16x8_t s, c;
+  sincos_ph(x, &s, &c);
+  return s;
+}
+
+float16x8_t cos_ph(float16x8_t x) {
+  float16x8_t s, c;
+  sincos_ph(x, &s, &c);
+  return c;
+}
+
+float16x8x2_t sincosx2_ph(float16x8_t x) {
+  float16x8_t s, c;
+  float16x8x2_t sc;
+  sincos_ph(x, &s, &c);
+  sc.val[0] = s;
+  sc.val[1] = c;
+  return sc;
+}
+
 } // namespace nntrainer::neon
