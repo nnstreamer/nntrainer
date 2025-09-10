@@ -507,6 +507,7 @@ void copy_int8_or_int4(const unsigned int N, const uint8_t *X, uint8_t *Y) {
   }
 }
 
+template <>
 void sine(const unsigned int N, float *X, float *Y, float alpha, float beta) {
   unsigned int i = 0;
   for (; N - i >= 4; i += 4) {
@@ -524,6 +525,7 @@ void sine(const unsigned int N, float *X, float *Y, float alpha, float beta) {
   }
 }
 
+template <>
 void cosine(const unsigned int N, float *X, float *Y, float alpha, float beta) {
   unsigned int i = 0;
   for (; N - i >= 4; i += 4) {
