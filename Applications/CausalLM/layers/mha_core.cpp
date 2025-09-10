@@ -616,6 +616,55 @@ void MHACoreLayer::one_batch_incremental_forwarding(
  * @brief rotary embedding-related member function
  * @note seq_len -> max_position_embeddings
  */
+#if defined(ENABLE_FP16) && defined(USE_NEON)
+void MHACoreLayer::precompute_freqs(int head_dim, unsigned int seq_len,
+                                    float theta) {
+  // compute the freqs only when it is the first time to call this function
+  if (freqs_cos_fp16 != nullptr && freqs_cos_fp16->size() == seq_len)
+    return;
+
+  if (rope_scaling_type == "default")
+    _compute_default_parameters(head_dim, theta);
+  else if (rope_scaling_type == "yarn")
+    _compute_yarn_parameters(head_dim, theta);
+  else
+    NNTR_THROW_IF(true, std::invalid_argument) << "Unsupported rope type!";
+
+  // cos / sin
+  unsigned int half_ = head_dim / 2;
+  auto cos_fp16 = new std::vector<std::vector<_FP16>>();
+  cos_fp16->assign(seq_len, std::vector<_FP16>(head_dim, 0));
+  auto sin_fp16 = new std::vector<std::vector<_FP16>>();
+  sin_fp16->assign(seq_len, std::vector<_FP16>(head_dim, 0));
+
+  ///@todo Compute FP16 theta beforehand
+  for (unsigned int j = 0; j < half_; ++j) {
+    thetas_fp16.push_back(thetas[j]);
+  }
+
+  // update cos / sin frequency
+  for (unsigned int i = 0; i < seq_len; ++i) {
+#ifdef USE_NEON
+    nntrainer::calc_trigonometric_vals_dup<_FP16>(
+      half_, thetas_fp16.data(), (*cos_fp16)[i].data(), (*sin_fp16)[i].data(),
+      i, attention_scaling);
+#else
+    for (unsigned int j = 0; j < half_; ++j) {
+      float angle = i * thetas[j];
+      (*cos_fp16)[i][j] = std::cos(angle) * attention_scaling;
+      (*cos_fp16)[i][j + half_] =
+        std::cos(angle) * attention_scaling; // repeated 2 times
+
+      (*sin_fp16)[i][j] = std::sin(angle) * attention_scaling;
+      (*sin_fp16)[i][j + half_] =
+        std::sin(angle) * attention_scaling; // repeated 2 times
+    }
+#endif
+  }
+  freqs_cos_fp16 = cos_fp16;
+  freqs_sin_fp16 = sin_fp16;
+};
+#else
 void MHACoreLayer::precompute_freqs(int head_dim, unsigned int seq_len,
                                     float theta) {
   // compute the freqs only when it is the first time to call this function
@@ -675,7 +724,7 @@ void MHACoreLayer::precompute_freqs(int head_dim, unsigned int seq_len,
   freqs_sin_fp16 = sin_fp16;
 #endif
 };
-
+#endif
 void MHACoreLayer::_compute_default_parameters(int head_dim, float theta) {
 
   // no attention scaling
