@@ -277,6 +277,13 @@ public:
   virtual void setBatch(RunLayerContext &context, unsigned int batch) {}
 
   /**
+   * @brief activate Weight
+   * @param context Context of the layer
+   * @details Activate virtual Weight with mmap
+   */
+  virtual void activateWeight(RunLayerContext &context) {}
+
+  /**
    * @brief Update the tensor dimensions of layer by input dimensions
    * @param     context Context of the layer
    * @param     input_dimensions input dimensions of layer

@@ -352,6 +352,13 @@ public:
   void setBatch(unsigned int batch);
 
   /**
+   * @brief activate virtual Weight
+   *
+   * @details Activate virtual Weight with mmap
+   */
+  void activateWeight();
+
+  /**
    * @brief Update the tensors dimensions of the layer by input dimensions
    * @param     input_dimensions input dimensions of the layer
    * @details Update the dimensions of inputs, outputs, weights, tensors based

@@ -1639,7 +1639,9 @@ void NetworkGraph::flushCacheExcept(unsigned int order) {
 }
 
 void NetworkGraph::WeightPreFetch(unsigned int order, unsigned int lookahead) {
-  getLayerNodes()[order]->activateWeight();
+  if (order < getLayerNodes().size()) {
+    getLayerNodes()[order]->activateWeight();
+  }
 }
 
 void NetworkGraph::LoadTensors(unsigned int order, unsigned int lookahead) {
