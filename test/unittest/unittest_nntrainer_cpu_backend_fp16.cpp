@@ -282,6 +282,67 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMV_1x3072x3072) {
 
 #endif
 
+static void run_trigonometric_values_test(const unsigned int N,
+                                          bool print = false) {
+  const int TEST_CNT = 20;
+  nanoseconds ref_mul_time = (nanoseconds)0;
+  nanoseconds mul_time = (nanoseconds)0;
+
+  for (int i = -1; i < TEST_CNT; i++) {
+    std::vector<_FP16> X = generate_random_vector<_FP16, false>(N);
+    std::vector<float> X_ref = generate_random_vector<float, false>(N);
+    std::vector<_FP16> Y = generate_random_vector<_FP16, false>(N);
+    std::vector<float> Y_ref = generate_random_vector<float, false>(N);
+
+    std::vector<_FP16> X2 = generate_random_vector<_FP16, false>(N);
+    std::vector<float> X2_ref = generate_random_vector<float, false>(N);
+    std::vector<_FP16> Y2 = generate_random_vector<_FP16, false>(N);
+    std::vector<float> Y2_ref = generate_random_vector<float, false>(N);
+    {
+      // #### GROUND TRUTH ####
+      auto t1 = high_resolution_clock::now();
+      nntrainer::sine(N, X_ref.data(), Y_ref.data());
+      nntrainer::cosine(N, X2_ref.data(), Y2_ref.data());
+      auto t2 = high_resolution_clock::now();
+      auto dt = duration_cast<nanoseconds>(t2 - t1);
+      if (i >= 0) { // skip the first run
+        ref_mul_time += dt;
+      }
+    }
+    {
+      auto t1 = high_resolution_clock::now();
+      // #### MAIN TESTED METHOD ####
+      nntrainer::sine(N, X.data(), Y.data());
+      nntrainer::cosine(N, X2.data(), Y2.data());
+      // #### MAIN TESTED METHOD ####
+      auto t2 = high_resolution_clock::now();
+      auto dt = duration_cast<nanoseconds>(t2 - t1);
+      if (i >= 0) { // skip the first run
+        mul_time += dt;
+      }
+    }
+
+    auto mean_squared_error = mse<float, _FP16>(Y_ref.data(), Y.data(), N);
+    auto cos_sim = cosine_similarity<float, _FP16>(Y2_ref.data(), Y2.data(), N);
+
+    ASSERT_LE(mean_squared_error, 1e-3);
+    ASSERT_GE(cos_sim, 0.99);
+  }
+
+  if (print) {
+    std::cout << "[INFO] trigonometric_values: TEST CNT: " << TEST_CNT
+              << ", N: " << N
+              << ", Average ref_time: " << ref_mul_time.count() / TEST_CNT
+              << " ns, Average test_time: " << mul_time.count() / TEST_CNT
+              << " ns " << std::endl;
+  }
+}
+
+TEST(nntrainer_cpu_backend_standalone, sincos16_3072) {
+  const unsigned int N = 3072;
+  run_trigonometric_values_test(N);
+}
+
 int main(int argc, char **argv) {
   int result = -1;
 
