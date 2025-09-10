@@ -730,6 +730,7 @@ Tensor &HalfTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
   default:
     throw std::invalid_argument("Error: unsupported datatype");
   }
+  return output;
 }
 
 void HalfTensor::dropout_mask(float dropout) {
