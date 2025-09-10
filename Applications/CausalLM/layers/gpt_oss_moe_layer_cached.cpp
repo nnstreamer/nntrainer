@@ -465,11 +465,15 @@ inline void CachedSlimGptOssMoELayer::compute_expert_forward(
     token_input.dot(gate_proj, gate_out);
     gate_out.add(gate_bias, gate_out);
     // gate_out.clamp(min=None, max=limit)
+    nntrainer::clamp(gate_out.getData(), gate_out.getData(), intermediate_size,
+                     std::numeric_limits<float>::lowest(), limit);
 
     // Up projection using optimized dot operation
     token_input.dot(up_proj, up_out);
     up_out.add_i(up_bias);
     // up_out.clamp(min=-limit, max=limit)
+    nntrainer::clamp(up_out.getData(), up_out.getData(), intermediate_size,
+                     -limit, limit);
 
     // Apply activation (silu)
     // (up + 1) * (gate * torch.sigmoid(gate * alpha))
