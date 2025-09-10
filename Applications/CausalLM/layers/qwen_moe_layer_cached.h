@@ -149,23 +149,6 @@ private:
     const std::vector<std::pair<unsigned, float>> &token_assignments,
     const nntrainer::Tensor &gate_proj, const nntrainer::Tensor &up_proj,
     const nntrainer::Tensor &down_proj, unsigned int hidden_size);
-
-  /**
-   * @brief expert forward computation without critical section
-   * @param input Input tensor (reshaped to [total_tokens, 1, 1, hidden_size])
-   * @param expert_output Expert-specific output tensor
-   * @param token_assignments Vector of (token_index, weight) pairs for this
-   * expert
-   * @param gate_proj Gate projection weight tensor
-   * @param up_proj Up projection weight tensor
-   * @param down_proj Down projection weight tensor
-   * @param hidden_size Hidden dimension size
-   */
-  inline void compute_expert_forward_no_critical(
-    const nntrainer::Tensor &input, nntrainer::Tensor &expert_output,
-    const std::vector<std::pair<unsigned, float>> &token_assignments,
-    const nntrainer::Tensor &gate_proj, const nntrainer::Tensor &up_proj,
-    const nntrainer::Tensor &down_proj, unsigned int hidden_size);
 };
 } // namespace causallm
 
