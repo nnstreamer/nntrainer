@@ -20,6 +20,8 @@
 #include <armv7_neon.h>
 #endif
 
+#include <iostream>
+
 namespace nntrainer::neon {
 bool is_valid(const unsigned int N, const __fp16 *input) {
   const uint16_t inf_bits = 0x7C00;
@@ -2453,10 +2455,10 @@ void cosine(const unsigned int N, _FP16 *X, _FP16 *Y, float alpha, float beta) {
   for (; N - i >= 8; i += 8) {
     float16x8_t x0_3 = vld1q_f16(&X[i]);
     if (std::fpclassify(alpha - 1.F) != FP_ZERO)
-      x0_3 = vmulq_n_f32(x0_3, alpha);
+      x0_3 = vmulq_n_f16(x0_3, alpha);
     float16x8_t cosx0_3 = cos_ph(x0_3);
     if (std::fpclassify(beta - 1.F) != FP_ZERO)
-      cosx0_3 = vmulq_n_f32(cosx0_3, beta);
+      cosx0_3 = vmulq_n_f16(cosx0_3, beta);
     vst1q_f16(&Y[i], cosx0_3);
   }
   while (i < N) {
@@ -2465,24 +2467,26 @@ void cosine(const unsigned int N, _FP16 *X, _FP16 *Y, float alpha, float beta) {
   }
 }
 
-static inline void sinecosine(const unsigned int N, _FP16 *X, _FP16 *Ys,
+inline void sinecosine(const unsigned int N, _FP16 *X, _FP16 *Ys,
                               _FP16 *Yc, float alpha, float beta) {
   unsigned int i = 0;
   for (; N - i >= 8; i += 8) {
     float16x8_t x0_3 = vld1q_f16(&X[i]);
-    if (std::fpclassify(alpha - 1.F) != FP_ZERO)
-      x0_3 = vmulq_n_f32(x0_3, alpha);
+    if (std::fpclassify(alpha - 1.F) != FP_ZERO){
+      x0_3 = vmulq_n_f16(x0_3, alpha);
+    }
     float16x8x2_t sincosx0_3 = sincosx2_ph(x0_3);
     float16x8_t sin0_3 = sincosx0_3.val[0];
     float16x8_t cos0_3 = sincosx0_3.val[1];
     if (std::fpclassify(beta - 1.F) != FP_ZERO) {
-      sin0_3 = vmulq_n_f32(sin0_3, beta);
-      cos0_3 = vmulq_n_f32(cos0_3, beta);
+      sin0_3 = vmulq_n_f16(sin0_3, beta);
+      cos0_3 = vmulq_n_f16(cos0_3, beta);
     }
     vst1q_f16(&Ys[i], sin0_3);
     vst1q_f16(&Yc[i], cos0_3);
   }
   while (i < N) {
+    Ys[i] = std::sin(alpha * X[i]) * beta;
     Yc[i] = std::cos(alpha * X[i]) * beta;
     ++i;
   }
