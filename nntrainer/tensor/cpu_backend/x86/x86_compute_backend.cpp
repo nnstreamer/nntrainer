@@ -141,12 +141,12 @@ void scopy_int8_to_float32(const unsigned int N, const int8_t *X,
   __fallback_scopy_int8_to_float32(N, X, incX, Y, incY);
 }
 
-void sine(const unsigned int N, float *X, float *Y, float alpha) {
-  __fallback_sine(N, X, Y, alpha);
+void sine(const unsigned int N, float *X, float *Y, float alpha, float beta) {
+  __fallback_sine(N, X, Y, alpha, beta);
 }
 
-void cosine(const unsigned int N, float *X, float *Y, float alpha) {
-  __fallback_cosine(N, X, Y, alpha);
+void cosine(const unsigned int N, float *X, float *Y, float alpha, float beta) {
+  __fallback_cosine(N, X, Y, alpha, beta);
 }
 
 void inv_sqrt_inplace(const unsigned int N, float *X) {

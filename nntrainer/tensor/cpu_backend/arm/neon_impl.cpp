@@ -507,32 +507,36 @@ void copy_int8_or_int4(const unsigned int N, const uint8_t *X, uint8_t *Y) {
   }
 }
 
-void sine(const unsigned int N, float *X, float *Y, float alpha) {
+void sine(const unsigned int N, float *X, float *Y, float alpha, float beta) {
   unsigned int i = 0;
   for (; N - i >= 4; i += 4) {
     float32x4_t x0_3 = vld1q_f32(&X[i]);
     if (std::fpclassify(alpha - 1.F) != FP_ZERO)
       x0_3 = vmulq_n_f32(x0_3, alpha);
     float32x4_t sinx0_3 = sin_ps(x0_3);
+    if (std::fpclassify(beta - 1.F) != FP_ZERO)
+      sinx0_3 = vmulq_n_f32(sinx0_3, beta);
     vst1q_f32(&Y[i], sinx0_3);
   }
   while (i < N) {
-    Y[i] = std::sin(alpha * X[i]);
+    Y[i] = std::sin(alpha * X[i]) * beta;
     ++i;
   }
 }
 
-void cosine(const unsigned int N, float *X, float *Y, float alpha) {
+void cosine(const unsigned int N, float *X, float *Y, float alpha, float beta) {
   unsigned int i = 0;
   for (; N - i >= 4; i += 4) {
     float32x4_t x0_3 = vld1q_f32(&X[i]);
     if (std::fpclassify(alpha - 1.F) != FP_ZERO)
       x0_3 = vmulq_n_f32(x0_3, alpha);
     float32x4_t cosx0_3 = cos_ps(x0_3);
+    if (std::fpclassify(beta - 1.F) != FP_ZERO)
+      cosx0_3 = vmulq_n_f32(cosx0_3, beta);
     vst1q_f32(&Y[i], cosx0_3);
   }
   while (i < N) {
-    Y[i] = std::cos(alpha * X[i]);
+    Y[i] = std::cos(alpha * X[i]) * beta;
     ++i;
   }
 }
