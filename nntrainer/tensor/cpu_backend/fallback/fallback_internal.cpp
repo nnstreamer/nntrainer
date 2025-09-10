@@ -244,6 +244,7 @@ unsigned int __fallback_isamax(const unsigned int N, const float *X,
   return max_idx;
 }
 
+template <>
 void __fallback_sine(const unsigned int N, float *X, float *Y, float alpha,
                      float beta) {
   unsigned int i = 0;
@@ -253,6 +254,7 @@ void __fallback_sine(const unsigned int N, float *X, float *Y, float alpha,
   }
 }
 
+template <>
 void __fallback_cosine(const unsigned int N, float *X, float *Y, float alpha,
                        float beta) {
   unsigned int i = 0;

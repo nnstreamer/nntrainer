@@ -2324,13 +2324,16 @@ void rms_norm_wrt_width_fp16_intrinsic(const float *__restrict X,
   }
 }
 
-
-static inline float16x8_t vbslq_f16_u16(uint16x8_t m, float16x8_t a, float16x8_t b) {
+static inline float16x8_t vbslq_f16_u16(uint16x8_t m, float16x8_t a,
+                                        float16x8_t b) {
   return vbslq_f16(m, a, b);
 }
 
-// Constants as __fp16 (half). Precision is limited, but acceptable for approx trig.
-static inline float16x8_t vdupq_n_f16_const(float c) { return vdupq_n_f16((__fp16)c); }
+// Constants as __fp16 (half). Precision is limited, but acceptable for approx
+// trig.
+static inline float16x8_t vdupq_n_f16_const(float c) {
+  return vdupq_n_f16((__fp16)c);
+}
 
 #define H_CEPPHES_FOPI (1.27323954473516f) // 4 / pi
 #define H_MINUS_DP1 (-0.78515625f)
@@ -2343,7 +2346,7 @@ static inline float16x8_t vdupq_n_f16_const(float c) { return vdupq_n_f16((__fp1
 #define H_COSCOF_P1 (-1.388731625493765E-003f)
 #define H_COSCOF_P2 (+4.166664568298827E-002f)
 
-void sincos_ph(float16x8_t x, float16x8_t* ysin, float16x8_t* ycos) {
+inline void sincos_ph(float16x8_t x, float16x8_t *ysin, float16x8_t *ycos) {
   uint16x8_t sign_mask_sin = vcltq_f16(x, vdupq_n_f16(0));
   x = vabsq_f16(x);
 
@@ -2352,7 +2355,8 @@ void sincos_ph(float16x8_t x, float16x8_t* ysin, float16x8_t* ycos) {
   int16x8_t tmpi = vcvtq_s16_f16(y);
   float16x8_t tmpf = vcvtq_f16_s16(tmpi);
   uint16x8_t gt_mask = vcgtq_f16(tmpf, y);
-  tmpi = vsubq_s16(tmpi, vreinterpretq_s16_u16(vandq_u16(gt_mask, vdupq_n_u16(1))));
+  tmpi =
+    vsubq_s16(tmpi, vreinterpretq_s16_u16(vandq_u16(gt_mask, vdupq_n_u16(1))));
 
   int16x8_t emm2_s16 = vaddq_s16(tmpi, vdupq_n_s16(1));
   emm2_s16 = vandq_s16(emm2_s16, vdupq_n_s16((int16_t)~1));
@@ -2370,8 +2374,8 @@ void sincos_ph(float16x8_t x, float16x8_t* ysin, float16x8_t* ycos) {
   uint16x8_t poly_mask = vtstq_u16(emm2, vdupq_n_u16(2));
 
   sign_mask_sin = veorq_u16(sign_mask_sin, vtstq_u16(emm2, vdupq_n_u16(4)));
-  uint16x8_t sign_mask_cos = vtstq_u16(vreinterpretq_u16_s16(vsubq_s16(emm2_s16, vdupq_n_s16(2))),
-                                       vdupq_n_u16(4));
+  uint16x8_t sign_mask_cos = vtstq_u16(
+    vreinterpretq_u16_s16(vsubq_s16(emm2_s16, vdupq_n_s16(2))), vdupq_n_u16(4));
 
   float16x8_t z = vmulq_f16(x, x);
 
@@ -2403,19 +2407,19 @@ void sincos_ph(float16x8_t x, float16x8_t* ysin, float16x8_t* ycos) {
   *ycos = vbslq_f16_u16(sign_mask_cos, yc, vnegq_f16(yc));
 }
 
-float16x8_t sin_ph(float16x8_t x) {
+inline float16x8_t sin_ph(float16x8_t x) {
   float16x8_t s, c;
   sincos_ph(x, &s, &c);
   return s;
 }
 
-float16x8_t cos_ph(float16x8_t x) {
+inline float16x8_t cos_ph(float16x8_t x) {
   float16x8_t s, c;
   sincos_ph(x, &s, &c);
   return c;
 }
 
-float16x8x2_t sincosx2_ph(float16x8_t x) {
+inline float16x8x2_t sincosx2_ph(float16x8_t x) {
   float16x8_t s, c;
   float16x8x2_t sc;
   sincos_ph(x, &s, &c);
