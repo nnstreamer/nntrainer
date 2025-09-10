@@ -507,13 +507,16 @@ void copy_int8_or_int4(const unsigned int N, const uint8_t *X, uint8_t *Y) {
   }
 }
 
-void sine(const unsigned int N, float *X, float *Y, float alpha) {
+template <>
+void sine(const unsigned int N, float *X, float *Y, float alpha, float beta) {
   unsigned int i = 0;
   for (; N - i >= 4; i += 4) {
     float32x4_t x0_3 = vld1q_f32(&X[i]);
     if (std::fpclassify(alpha - 1.F) != FP_ZERO)
       x0_3 = vmulq_n_f32(x0_3, alpha);
     float32x4_t sinx0_3 = sin_ps(x0_3);
+    if (std::fpclassify(beta - 1.F) != FP_ZERO)
+      sinx0_3 = vmulq_n_f32(sinx0_3, beta);
     vst1q_f32(&Y[i], sinx0_3);
   }
   while (i < N) {
@@ -522,13 +525,16 @@ void sine(const unsigned int N, float *X, float *Y, float alpha) {
   }
 }
 
-void cosine(const unsigned int N, float *X, float *Y, float alpha) {
+template <>
+void cosine(const unsigned int N, float *X, float *Y, float alpha, float beta) {
   unsigned int i = 0;
   for (; N - i >= 4; i += 4) {
     float32x4_t x0_3 = vld1q_f32(&X[i]);
     if (std::fpclassify(alpha - 1.F) != FP_ZERO)
       x0_3 = vmulq_n_f32(x0_3, alpha);
     float32x4_t cosx0_3 = cos_ps(x0_3);
+    if (std::fpclassify(beta - 1.F) != FP_ZERO)
+      cosx0_3 = vmulq_n_f32(cosx0_3, beta);
     vst1q_f32(&Y[i], cosx0_3);
   }
   while (i < N) {
@@ -817,29 +823,10 @@ template <>
 void calc_trigonometric_vals_dup(unsigned int N_half, float *angle, float *cos_,
                                  float *sin_, unsigned int from,
                                  float attention_scaling) {
-  cosine(N_half, angle, cos_, from);
-  sine(N_half, angle, sin_, from);
+  cosine(N_half, angle, cos_, from, attention_scaling);
+  sine(N_half, angle, sin_, from, attention_scaling);
 
   unsigned int N = 2 * N_half;
-
-  // Apply attention scaling to the computed cos and sin values
-  if (attention_scaling != 1.0f) {
-    // Apply scaling to first half
-    unsigned int j = 0;
-    for (; N_half - j >= 4; j += 4) {
-      float32x4_t cos_vals = vld1q_f32(&cos_[j]);
-      float32x4_t sin_vals = vld1q_f32(&sin_[j]);
-      cos_vals = vmulq_n_f32(cos_vals, attention_scaling);
-      sin_vals = vmulq_n_f32(sin_vals, attention_scaling);
-      vst1q_f32(&cos_[j], cos_vals);
-      vst1q_f32(&sin_[j], sin_vals);
-    }
-    while (j < N_half) {
-      cos_[j] *= attention_scaling;
-      sin_[j] *= attention_scaling;
-      ++j;
-    }
-  }
 
   // Copy values to second half (duplicate)
   unsigned int i = N_half;
@@ -1211,102 +1198,6 @@ void softmax_row(float *qk_out, size_t start_row, size_t end_row,
     return softmax_row(qk_out, start_row, end_row, num_heads);
   } else {
     return softmax_with_sink_row(qk_out, start_row, end_row, num_heads, sink);
-  }
-}
-
-static float hsum_f32x4(float32x4_t v) {
-#if defined(__aarch64__)
-  return vaddvq_f32(v);
-#else
-  float32x2_t vlow = vget_low_f32(v);
-  float32x2_t vhigh = vget_high_f32(v);
-  vlow = vadd_f32(vlow, vhigh);
-  float32x2_t sum2 = vpadd_f32(vlow, vlow);
-  return vget_lane_f32(sum2, 0);
-#endif
-}
-
-void rms_norm_wrt_width_fp32_intrinsic(const float *__restrict X,
-                                       float *__restrict Y, size_t H, size_t W,
-                                       float epsilon) {
-  for (std::size_t h = 0; h < H; ++h) {
-    const float *rowX = X + h * W;
-    float *rowY = Y + h * W;
-
-    std::size_t i = 0;
-    float32x4_t acc0 = vdupq_n_f32(0.f);
-    float32x4_t acc1 = vdupq_n_f32(0.f);
-    float32x4_t acc2 = vdupq_n_f32(0.f);
-    float32x4_t acc3 = vdupq_n_f32(0.f);
-
-    for (; i + 16 <= W; i += 16) {
-      float32x4_t x0 = vld1q_f32(rowX + i + 0);
-      float32x4_t x1 = vld1q_f32(rowX + i + 4);
-      float32x4_t x2 = vld1q_f32(rowX + i + 8);
-      float32x4_t x3 = vld1q_f32(rowX + i + 12);
-      acc0 = vfmaq_f32(acc0, x0, x0);
-      acc1 = vfmaq_f32(acc1, x1, x1);
-      acc2 = vfmaq_f32(acc2, x2, x2);
-      acc3 = vfmaq_f32(acc3, x3, x3);
-    }
-    for (; i + 4 <= W; i += 4) {
-      float32x4_t x = vld1q_f32(rowX + i);
-      acc0 = vfmaq_f32(acc0, x, x);
-    }
-    float sumsq =
-      hsum_f32x4(acc0) + hsum_f32x4(acc1) + hsum_f32x4(acc2) + hsum_f32x4(acc3);
-    for (; i < W; ++i) {
-      float v = rowX[i];
-      sumsq += v * v;
-    }
-
-    float mean = sumsq / static_cast<float>(W);
-    float scale = 1.0f / std::sqrt(mean + epsilon);
-    float32x4_t vscale = vdupq_n_f32(scale);
-
-    i = 0;
-    for (; i + 16 <= W; i += 16) {
-      float32x4_t x0 = vld1q_f32(rowX + i + 0);
-      float32x4_t x1 = vld1q_f32(rowX + i + 4);
-      float32x4_t x2 = vld1q_f32(rowX + i + 8);
-      float32x4_t x3 = vld1q_f32(rowX + i + 12);
-      vst1q_f32(rowY + i + 0, vmulq_f32(x0, vscale));
-      vst1q_f32(rowY + i + 4, vmulq_f32(x1, vscale));
-      vst1q_f32(rowY + i + 8, vmulq_f32(x2, vscale));
-      vst1q_f32(rowY + i + 12, vmulq_f32(x3, vscale));
-    }
-    for (; i + 4 <= W; i += 4) {
-      float32x4_t x = vld1q_f32(rowX + i);
-      vst1q_f32(rowY + i, vmulq_f32(x, vscale));
-    }
-    for (; i < W; ++i) {
-      rowY[i] = rowX[i] * scale;
-    }
-  }
-}
-
-template <>
-void clamp(const float *input, float *output, size_t length, float lower_bound,
-           float upper_bound) {
-  const size_t step = 4;
-  const float32x4_t vLo = vdupq_n_f32(lower_bound);
-  const float32x4_t vHi = vdupq_n_f32(upper_bound);
-
-  size_t i = 0;
-  for (; i + step <= length; i += step) {
-    float32x4_t v = vld1q_f32(input + i);
-    v = vmaxq_f32(v, vLo);
-    v = vminq_f32(v, vHi);
-    vst1q_f32(output + i, v);
-  }
-  if (i < length) {
-    for (size_t k = i; k < length; ++k) {
-      float v = input[k];
-      // If v is NaN, the comparisons below will yield false; we keep NaN.
-      // This matches most framework "pass-through NaN" behavior.
-      output[k] =
-        (v < lower_bound) ? lower_bound : ((v > upper_bound) ? upper_bound : v);
-    }
   }
 }
 

@@ -17,7 +17,6 @@
 
 #include <arm_neon.h>
 #include <cmath>
-#include <limits>
 #include <neon_mathfun.h>
 #include <tensor_dim.h>
 
@@ -599,7 +598,9 @@ void copy_int4_to_fp32(const unsigned int N, const uint8_t *X, float *Y);
  * @param[in] Y float * for Vector Y
  * @param[in] alpha float * for scaling angle (radian)
  */
-void sine(const unsigned int N, float *X, float *Y, float alpha = 1.f);
+template <typename T = float>
+void sine(const unsigned int N, T *X, T *Y, float alpha = 1.f,
+          float beta = 1.F);
 
 /**
  * @brief     cosine with neon: Y = cos(alpha * X)
@@ -608,7 +609,9 @@ void sine(const unsigned int N, float *X, float *Y, float alpha = 1.f);
  * @param[in] Y float * for Vector Y
  * @param[in] alpha float * for scaling angle (radian)
  */
-void cosine(const unsigned int N, float *X, float *Y, float alpha = 1.f);
+template <typename T = float>
+void cosine(const unsigned int N, T *X, T *Y, float alpha = 1.f,
+            float beta = 1.F);
 
 /**
  * @brief inversed squared root transformation with neon : X = 1 / sqrt(X)
@@ -727,47 +730,6 @@ void softmax_row_inplace(__fp16 *qk_out, size_t start_row, size_t end_row,
 void softmax_row(__fp16 *qk_out, size_t start_row, size_t end_row,
                  size_t num_heads, float *sink);
 #endif
-
-/**
- * @brief rms normalization computation w.r.t. width in H*W matrix input
- *
- * @param X input
- * @param Y output
- * @param H height of input matrix
- * @param W width of input matrix
- * @param epsilon epsilon of root mean squared dividing scale
- */
-void rms_norm_wrt_width_fp32_intrinsic(const float *__restrict X,
-                                       float *__restrict Y, size_t H, size_t W,
-                                       float epsilon);
-
-/**
- * @brief rms normalization computation w.r.t. width in H*W matrix input
- *
- * @param X input
- * @param Y output
- * @param H height of input matrix
- * @param W width of input matrix
- * @param epsilon epsilon of root mean squared dividing scale
- */
-template <typename T = float>
-void rms_norm_wrt_width_fp16_intrinsic(const T *__restrict X, T *__restrict Y,
-                                       size_t H, size_t W, float epsilon);
-
-/**
- * @brief fallback for clamping function.
- *
- * @tparam T Type of input data
- * @param input input vector
- * @param output output vector
- * @param length length of IO
- * @param lower_bound ditto
- * @param upper_bound ditto
- */
-template <typename T = float>
-void clamp(const T *input, T *output, size_t length,
-           T lower_bound = std::numeric_limits<T>::lowest(),
-           T upper_bound = std::numeric_limits<T>::max());
 } // namespace nntrainer::neon
 
 #endif /* __cplusplus */
