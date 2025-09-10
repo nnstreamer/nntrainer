@@ -742,7 +742,8 @@ extern unsigned int isamax(const unsigned int N, const float *X,
  * @param[in] Y float * for Vector Y
  * @param[in] alpha float * for scaling angle (radian)
  */
-extern void sine(const unsigned int N, float *X, float *Y, float alpha = 1.f);
+extern void sine(const unsigned int N, float *X, float *Y, float alpha = 1.f,
+                 float beta = 1.f);
 
 /**
  * @brief     cosine with neon: Y = cos(alpha * X)
@@ -751,7 +752,8 @@ extern void sine(const unsigned int N, float *X, float *Y, float alpha = 1.f);
  * @param[in] Y float * for Vector Y
  * @param[in] alpha float * for scaling angle (radian)
  */
-extern void cosine(const unsigned int N, float *X, float *Y, float alpha = 1.f);
+extern void cosine(const unsigned int N, float *X, float *Y, float alpha = 1.f,
+                   float beta = 1.f);
 
 /**
  * @brief inversed squared root transformation inplace : X = 1 / sqrt(X)

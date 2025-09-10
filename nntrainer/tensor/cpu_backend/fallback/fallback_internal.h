@@ -722,7 +722,8 @@ unsigned int __fallback_isamax(const unsigned int N, const float *X,
  * @param[in] Y float * for Vector Y
  * @param[in] alpha float * for scaling angle (radian)
  */
-void __fallback_sine(const unsigned int N, float *X, float *Y, float alpha);
+void __fallback_sine(const unsigned int N, float *X, float *Y,
+                     float alpha = 1.F, float beta = 1.F);
 
 /**
  * @brief     cosine with neon: Y = cos(alpha * X)
@@ -731,7 +732,8 @@ void __fallback_sine(const unsigned int N, float *X, float *Y, float alpha);
  * @param[in] Y float * for Vector Y
  * @param[in] alpha float * for scaling angle (radian)
  */
-void __fallback_cosine(const unsigned int N, float *X, float *Y, float alpha);
+void __fallback_cosine(const unsigned int N, float *X, float *Y,
+                       float alpha = 1.F, float beta = 1.F);
 
 /**
  * @brief inversed squared root transformation inplace : X  / sqrt(X)
