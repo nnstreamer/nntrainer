@@ -398,6 +398,7 @@ void __fallback_unpack_q4_0x8_transpose16(const void *src,
   }       // c0 tiles
 }
 
+template <>
 void __fallback_calc_trigonometric_vals_dup(unsigned int N_half, float *angle,
                                             float *cos_, float *sin_,
                                             unsigned int from,

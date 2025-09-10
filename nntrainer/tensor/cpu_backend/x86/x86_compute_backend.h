@@ -404,8 +404,9 @@ void unpack_q4_0x8_transpose16(const void *src, uint16_t *d_out,
  * @param from from starting index for angle calculation
  * @param attention_scaling scaling factor to apply to cos and sin values
  */
-void calc_trigonometric_vals_dup(unsigned int N_half, float *angle, float *cos_,
-                                 float *sin_, unsigned int from = 0,
+template <typename T = float>
+void calc_trigonometric_vals_dup(unsigned int N_half, T *angle, T *cos_,
+                                 T *sin_, unsigned int from = 0,
                                  float attention_scaling = 1.0f);
 /**
  * @brief swiglu function with neon : X = (Y / (1 + exp( -Y ))) * Z
