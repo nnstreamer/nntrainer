@@ -394,7 +394,7 @@ void MHACoreLayer::compute_kcaches(
 #ifdef ENABLE_FP16
     int num_cache_head = num_head / group_size;
     if (from) {
-      tile_size = 192; // the best value on the base test on gauss B1 & B3
+      tile_size = 300; // the best value on the base test on gauss B1 & B3
       std::vector<std::future<void>> futures;
       int num_rows = from + 1;
       int row_cnt = num_rows < local_window_size ? num_rows : local_window_size;
