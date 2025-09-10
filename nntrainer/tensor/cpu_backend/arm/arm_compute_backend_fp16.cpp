@@ -459,6 +459,16 @@ void rms_norm_wrt_width_fp16_intrinsic(const _FP16 *__restrict X,
 }
 
 template <>
+void sine(const unsigned int N, _FP16 *X, _FP16 *Y, float alpha, float beta) {
+  nntrainer::neon::sine<_FP16>(N, X, Y, alpha, beta);
+}
+
+template <>
+void cosine(const unsigned int N, _FP16 *X, _FP16 *Y, float alpha, float beta) {
+  nntrainer::neon::cosine<_FP16>(N, X, Y, alpha, beta);
+}
+
+template <>
 void calc_trigonometric_vals_dup(unsigned int N_half, _FP16 *angle, _FP16 *cos_,
                                  _FP16 *sin_, unsigned int from,
                                  float attention_scaling) {
