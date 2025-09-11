@@ -52,6 +52,10 @@ void __ggml_quantize_row_q8_K(const float *src, void *dst, int64_t k) {
   nntr_quantize_row_q8_K(src, dst, k);
 }
 
+void __ggml_dequantize_row_q4_0(const void *x_raw, float *y, int64_t k) {
+  nntr_dequantize_row_q4_0(x_raw, y, k);
+}
+
 void __ggml_dequantize_row_q4_K(const void *x_raw, float *y, int64_t k) {
   nntr_dequantize_row_q4_K(x_raw, y, k);
 }
