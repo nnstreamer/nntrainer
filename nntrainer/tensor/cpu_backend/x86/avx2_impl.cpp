@@ -1503,11 +1503,12 @@ void compute_fp16vcache_fp32_transposed(int row_num, const float *in,
       load_fp16_8_to_chunk(vptr, tmp_fp32.data(), head_dim);
 
       for (int h = 0; h < gqa_size; ++h) {
-        float a_val = in[(row_num < local_window_size
-                            ? j
-                            : j - (row_num + 1 - local_window_size)) *
-                           gqa_size * num_cache_head +
-                         n * gqa_size + h];
+        float a_val =
+          in[(row_num < local_window_size
+                ? j
+                : (unsigned long)(j - (row_num + 1 - local_window_size))) *
+               (unsigned long)(gqa_size * num_cache_head) +
+             (unsigned long)(n * gqa_size) + h];
 
         __m256 inVec = _mm256_set1_ps(a_val);
 
