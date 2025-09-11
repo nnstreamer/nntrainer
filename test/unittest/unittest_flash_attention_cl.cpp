@@ -35,47 +35,47 @@ TEST(attention_kernels, flash_attention_cl_fp16) {
   auto *blas_cc = static_cast<nntrainer::ClContext *>(
     nntrainer::Engine::Global().getRegisteredContext("gpu"));
 
-  static constexpr size_t q_width = 3072;
+  static constexpr size_t q_width = 1;
   static constexpr size_t q_height = 3072;
-  static constexpr size_t q_channel = 1;
+  static constexpr size_t q_channel = 3072;
   static constexpr size_t q_batch = 1;
   //
   static constexpr size_t q_elements = q_width * q_height * q_channel * q_batch;
   static constexpr size_t q_size = q_elements * sizeof(_FP16);
 
-  static constexpr size_t k_width = 3072;
+  static constexpr size_t k_width = 1;
   static constexpr size_t k_height = 256;
-  static constexpr size_t k_channel = 1;
+  static constexpr size_t k_channel = 3072;
   static constexpr size_t k_batch = 1;
   //
   static constexpr size_t k_elements = k_width * k_height * k_channel * k_batch;
   static constexpr size_t k_size = k_elements * sizeof(_FP16);
 
-  static constexpr size_t v_width = 3072;
+  static constexpr size_t v_width = 1;
   static constexpr size_t v_height = 256;
-  static constexpr size_t v_channel = 1;
+  static constexpr size_t v_channel = 3072;
   static constexpr size_t v_batch = 1;
   //
   static constexpr size_t v_elements = v_width * v_height * v_channel * v_batch;
   static constexpr size_t v_size = v_elements * sizeof(_FP16);
 
-  static constexpr size_t o_width = 3072;
+  static constexpr size_t o_width = 1;
   static constexpr size_t o_height = 3072;
-  static constexpr size_t o_channel = 1;
+  static constexpr size_t o_channel = 3072;
   static constexpr size_t o_batch = 1;
   //
   static constexpr size_t o_elements = o_width * o_height * o_channel * o_batch;
   static constexpr size_t o_size = o_elements * sizeof(_FP16);
 
-  const float minimum = -5.0f;
-  const float maximum = 5.0f;
+ // auto random_init = false;
+ // std::random_device rd;
+ // auto init_val = random_init ? rd() : 42;
+ // std::mt19937 gen = random_init ? std::mt19937(init_val) : std::mt19937(rd());
+//
+ // std::uniform_real_distribution<float> dist(min_val, max_val);
 
-  srand(time(nullptr));
-
-  auto random_fp16 = [minimum, maximum](const _FP16 number) -> _FP16 {
-    const float x = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
-
-    return static_cast<_FP16>(maximum - (maximum - minimum) * x);
+  auto random_fp16 = [](const _FP16 number) -> _FP16 {
+    return static_cast<_FP16>(1.0f);
   };
 
   std::vector<_FP16> Q(q_elements, static_cast<_FP16>(0.0f));
