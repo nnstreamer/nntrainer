@@ -866,7 +866,6 @@ void swiglu(const unsigned int N, float *X, float *Y, float *Z) {
 
 void swiglu(const unsigned int N, float *X, float *Y, float *Z, float alpha) {
   unsigned int i = 0;
-  float32x4_t alpha_vec = vmovq_n_f32(alpha);
   float32x4_t neg_alpha_vec = vmovq_n_f32(-alpha);
 
   for (; N - i >= 4; i += 4) {
