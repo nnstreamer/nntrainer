@@ -844,10 +844,16 @@ void gemm_q4_0_async_cl(std::vector<void *> matAdata, float *matBdata,
 
   const int work_group_size[3] = {1, 128, 1};
 
+  std::vector<cl_mem> output_buffers;
+
   for (unsigned int i = 0; i < Ns.size(); ++i) {
     int N = Ns[i];
     void *mdata = matAdata[i];
-    float *rdata = matCdata[i];
+
+    output_buffers.push_back(
+      opencl::clCreateBuffer(blas_cc->context_inst_.GetContext(),
+                             CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR,
+                             M * N * sizeof(float), matCdata[i], &err));
 
     unpack_q4_0x8_transpose16(mdata, (uint16_t *)clbuffInstance.getSVMScale(i),
                               (uint16_t *)clbuffInstance.getSVMQuant(i), N, K);
@@ -871,7 +877,8 @@ void gemm_q4_0_async_cl(std::vector<void *> matAdata, float *matBdata,
       throw std::runtime_error(
         "Failed to set kernel argument 2 for kernel_mul_mat_Ab_Bi_8x4");
 
-    result = kernel_ptr->SetKernelSVMArguments(arg++, rdata);
+    result =
+      kernel_ptr->SetKernelArguments(arg++, &output_buffers[i], sizeof(cl_mem));
     if (!result)
       throw std::runtime_error(
         "Failed to set kernel argument 3 for kernel_mul_mat_Ab_Bi_8x4");
@@ -907,8 +914,9 @@ void gemm_q4_0_async_cl(std::vector<void *> matAdata, float *matBdata,
   }
 
   for (unsigned int i = 0; i < Ns.size(); ++i) {
-    blas_cc->command_queue_inst_.enqueueSVMMap(matCdata[i],
-                                               M * Ns[i] * sizeof(float), true);
+    matCdata[i] = (float *)blas_cc->command_queue_inst_.EnqueueMapBuffer(
+      output_buffers[i], 0, M * Ns[i] * sizeof(float), false, false, nullptr);
+    opencl::clReleaseMemObject(output_buffers[i]);
   }
 
   /// Release buffers and images
@@ -1055,6 +1063,11 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
 
   arg = 0;
 
+  cl_mem output_buf =
+    opencl::clCreateBuffer(blas_cc->context_inst_.GetContext(),
+                           CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR,
+                           M * N * sizeof(float), matCdata, &err);
+
   result =
     kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMQuant());
   if (!result)
@@ -1067,12 +1080,11 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
       "Failed to set kernel argument 1 for kernel_mul_mat_Ab_Bi_8x4");
 
   result = kernel_ptr->SetKernelArguments(arg++, &img, sizeof(cl_mem));
-
   if (!result)
     throw std::runtime_error(
       "Failed to set kernel argument 2 for kernel_mul_mat_Ab_Bi_8x4");
 
-  result = kernel_ptr->SetKernelSVMArguments(arg++, matCdata);
+  result = kernel_ptr->SetKernelArguments(arg++, &output_buf, sizeof(cl_mem));
   if (!result)
     throw std::runtime_error(
       "Failed to set kernel argument 3 for kernel_mul_mat_Ab_Bi_8x4");
@@ -1108,15 +1120,15 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
     return;
   }
 
-  /// @todo synchronize when only needed
-  blas_cc->command_queue_inst_.enqueueSVMMap(matCdata, M * N * sizeof(float),
-                                             true);
+  matCdata = (float *)blas_cc->command_queue_inst_.EnqueueMapBuffer(
+    output_buf, 0, M * N * sizeof(float), false, false, nullptr);
 
   /// Release buffers and images
   opencl::clReleaseMemObject(input_buf);
   opencl::clReleaseMemObject(input_img);
   opencl::clReleaseMemObject(buf);
   opencl::clReleaseMemObject(img);
+  opencl::clReleaseMemObject(output_buf);
 }
 
 #endif

@@ -64,6 +64,7 @@
 #define ML_TRAIN_SUMMARY_MODEL_VALID_LOSS 102
 #define ML_TRAIN_SUMMARY_MODEL_VALID_ACCURACY 103
 
+/// @note Need to fix when the platform is Android
 #define MMAP_READ 1
 
 namespace nntrainer {
