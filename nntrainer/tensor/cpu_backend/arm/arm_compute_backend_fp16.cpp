@@ -475,4 +475,12 @@ void calc_trigonometric_vals_dup(unsigned int N_half, _FP16 *angle, _FP16 *cos_,
   nntrainer::neon::calc_trigonometric_vals_dup<_FP16>(N_half, angle, cos_, sin_,
                                                       from, attention_scaling);
 }
+
+template <>
+void rms_norm_wrt_width_fp16_intrinsic(const float *__restrict X,
+                                       float *__restrict Y, size_t H, size_t W,
+                                       float epsilon) {
+  neon::rms_norm_wrt_width_fp16_intrinsic(X, Y, H, W, epsilon);
+}
+
 } /* namespace nntrainer */
