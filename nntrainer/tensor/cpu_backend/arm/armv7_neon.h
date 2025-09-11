@@ -100,10 +100,12 @@ static inline int32x4_t vcvtnq_s32_f32(float32x4_t a) {
   return ret;
 }
 
-static inline __attribute__((gnu_inline)) float32x4_t
-vfmaq_f32(float32x4_t a, float32x4_t b, float32x4_t c) {
+#if !defined(__ARM_FEATURE_FP16_VECTOR_ARITHMETIC)
+static inline float32x4_t vfmaq_f32(float32x4_t a, float32x4_t b,
+                                    float32x4_t c) {
   return vaddq_f32(a, vmulq_f32(b, c));
 }
+#endif
 
 #ifdef ENABLE_FP16
 /**
