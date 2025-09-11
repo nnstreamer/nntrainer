@@ -530,13 +530,6 @@ void rms_norm_wrt_width_fp32_intrinsic(const float *__restrict X,
 }
 
 template <>
-void rms_norm_wrt_width_fp16_intrinsic(const float *__restrict X,
-                                       float *__restrict Y, size_t H, size_t W,
-                                       float epsilon) {
-  neon::rms_norm_wrt_width_fp16_intrinsic(X, Y, H, W, epsilon);
-}
-
-template <>
 void clamp(const float *input, float *output, size_t length, float lower_bound,
            float upper_bound) {
   neon::clamp(input, output, length, lower_bound, upper_bound);
