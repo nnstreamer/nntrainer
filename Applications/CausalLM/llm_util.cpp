@@ -82,20 +82,5 @@ float applyTKP(float *logits, int len, float temperature, unsigned int top_k,
   sort(top_indices_and_logits.begin(), top_indices_and_logits.end(),
        [](auto &a, auto &b) { return a.second > b.second; });
 
-  // Accumulate logits
-  float cum_prob = 0;
-  unsigned int top_index = 0;
-  while (cum_prob <= top_p && top_index < top_k) {
-    cum_prob += top_indices_and_logits[top_index].second;
-    ++top_index;
-  }
-
-  // Apply Top-K and Top-P
-  std::fill_n(logits, sizeof(len), -INFINITY);
-  for (unsigned int i = 0; i < top_index; ++i) {
-    logits[top_indices_and_logits[top_index].first] =
-      top_indices_and_logits[top_index].second;
-  }
-
   return top_indices_and_logits[0].second;
 }
