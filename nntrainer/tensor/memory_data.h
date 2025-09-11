@@ -28,28 +28,33 @@ public:
   /**
    * @brief  Constructor of Memory Data
    * @param[in] addr Memory data
+   * @param[in] svm_alloc True when MemoryData is a SVM
    */
-  explicit MemoryData(void *addr) :
+  explicit MemoryData(void *addr, const bool svm_alloc = false) :
     valid(true),
     id(0),
     address(addr),
     validate_cb([](unsigned int) {}),
-    invalidate_cb([](unsigned int) {}) {}
+    invalidate_cb([](unsigned int) {}),
+    svm_allocation(svm_alloc) {}
 
   /**
    * @brief  Constructor of Memory Data
    * @param[in] mem_id validate callback.
    * @param[in] v_cb validate callback.
    * @param[in] i_cb invalidate callback.
+   * @param[in] svm_alloc True when MemoryData is a SVM
    */
   explicit MemoryData(unsigned int mem_id, MemoryDataValidateCallback v_cb,
                       MemoryDataValidateCallback i_cb,
-                      void *memory_ptr = nullptr) :
+                      void *memory_ptr = nullptr,
+                      const bool svm_alloc = false) :
     valid(false),
     id(mem_id),
     address(memory_ptr),
     validate_cb(v_cb),
-    invalidate_cb(i_cb) {}
+    invalidate_cb(i_cb),
+    svm_allocation(svm_alloc) {}
 
   /**
    * @brief  Deleted constructor of Memory Data
@@ -94,7 +99,7 @@ public:
       validate_cb(id);
   }
 
-  /**
+  /**p
    * @brief  Invalidate memory data
    */
   void invalidate() {
@@ -109,12 +114,18 @@ public:
    */
   void setValid(bool v) { valid = v; }
 
+  /**
+   * @brief   Check if data is a shared virtual memory
+   */
+  bool isSVM() const { return svm_allocation; }
+
 private:
   bool valid;
   unsigned int id;
   void *address;
   MemoryDataValidateCallback validate_cb;
   MemoryDataValidateCallback invalidate_cb;
+  bool svm_allocation;
 };
 
 } // namespace nntrainer

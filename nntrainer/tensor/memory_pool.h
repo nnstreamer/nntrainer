@@ -320,6 +320,10 @@ private:
 
   size_t n_wgrad;
 
+#ifdef ENABLE_OPENCL
+  bool svm_allocation = true;
+#endif
+
   std::unordered_map<std::string, std::shared_ptr<nntrainer::MemAllocator>>
     allocators;
 #if defined(__ANDROID__)
