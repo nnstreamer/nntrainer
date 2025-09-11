@@ -2467,12 +2467,12 @@ void cosine(const unsigned int N, _FP16 *X, _FP16 *Y, float alpha, float beta) {
   }
 }
 
-inline void sinecosine(const unsigned int N, _FP16 *X, _FP16 *Ys,
-                              _FP16 *Yc, float alpha, float beta) {
+inline void sinecosine(const unsigned int N, _FP16 *X, _FP16 *Ys, _FP16 *Yc,
+                       float alpha, float beta) {
   unsigned int i = 0;
   for (; N - i >= 8; i += 8) {
     float16x8_t x0_3 = vld1q_f16(&X[i]);
-    if (std::fpclassify(alpha - 1.F) != FP_ZERO){
+    if (std::fpclassify(alpha - 1.F) != FP_ZERO) {
       x0_3 = vmulq_n_f16(x0_3, alpha);
     }
     float16x8x2_t sincosx0_3 = sincosx2_ph(x0_3);
