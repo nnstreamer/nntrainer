@@ -208,13 +208,16 @@ inline void CachedSlimMoELayer::compute_expert_forward(
   float weight = token_assignments[0].second;
 
   if (num_tokens > 1) {
-/** if prefill, copy data to make a batch */
-#pragma omp parallel for schedule(dynamic)
+    /** if prefill, copy data to make a batch */
+#pragma omp parallel for schedule(static) if (num_tokens > 4)
     for (size_t i = 0; i < num_tokens; ++i) {
       const unsigned token_idx = token_assignments[i].first;
-      std::memcpy(token_input.getData<float>() + i * hidden_size,
-                  input.getData<float>() + token_idx * hidden_size,
-                  sizeof(float) * hidden_size);
+      // Use tensor's optimized copy operation
+      nntrainer::Tensor src_view = input.getSharedDataTensor(
+        {1, 1, 1, hidden_size}, token_idx * hidden_size, true);
+      nntrainer::Tensor dst_view = token_input.getSharedDataTensor(
+        {1, 1, 1, hidden_size}, i * hidden_size, true);
+      dst_view.copyData(src_view);
     }
   } else {
     /** if token generation, do not copy but get the shared tensor */
@@ -236,12 +239,12 @@ inline void CachedSlimMoELayer::compute_expert_forward(
     // Element-wise multiply: silu(gate_out) * up_out
     acti_out.multiply_i(up_out);
   } else {
+#pragma omp parallel for schedule(static) if (num_tokens > 4)
     for (size_t i = 0; i < num_tokens; ++i) {
-      nntrainer::swiglu(
-        acti_out.width(),
-        acti_out.getData<float>() + acti_out.getIndex(0, 0, i, 0),
-        gate_out.getData<float>() + gate_out.getIndex(0, 0, i, 0),
-        up_out.getData<float>() + up_out.getIndex(0, 0, i, 0));
+      const unsigned offset = acti_out.getIndex(0, 0, i, 0);
+      nntrainer::swiglu(acti_out.width(), acti_out.getData<float>() + offset,
+                        gate_out.getData<float>() + offset,
+                        up_out.getData<float>() + offset);
     }
   }
 
@@ -336,6 +339,7 @@ void CachedSlimMoELayer::incremental_forwarding(
 
     // Parallel processing for multiple tokens with many active experts
     std::vector<nntrainer::Tensor> expert_outputs(num_experts);
+#pragma omp parallel for schedule(static)
     for (int expert_idx = 0; expert_idx < static_cast<int>(num_experts);
          ++expert_idx) {
       if (!expert_assignments[expert_idx].empty()) {
@@ -386,8 +390,9 @@ void CachedSlimMoELayer::incremental_forwarding(
 #ifdef DEBUG
     auto t1_hit = high_resolution_clock::now();
 #endif
-#pragma omp parallel for schedule(dynamic)
-    for (int expert_idx : hit_idx_vector) {
+#pragma omp parallel for schedule(static) if (hit_idx_vector.size() > 2)
+    for (size_t i = 0; i < hit_idx_vector.size(); ++i) {
+      int expert_idx = hit_idx_vector[i];
       const auto &assignments = expert_assignments[expert_idx];
 
       compute_expert_forward(
@@ -401,8 +406,9 @@ void CachedSlimMoELayer::incremental_forwarding(
 
     auto t1_miss = high_resolution_clock::now();
 #endif
-#pragma omp parallel for schedule(dynamic)
-    for (int expert_idx : missed_idx_vector) {
+#pragma omp parallel for schedule(static) if (missed_idx_vector.size() > 2)
+    for (size_t i = 0; i < missed_idx_vector.size(); ++i) {
+      int expert_idx = missed_idx_vector[i];
       context.getWeight(expert_gate_proj_indices[expert_idx]).activate();
       context.getWeight(expert_up_proj_indices[expert_idx]).activate();
       context.getWeight(expert_down_proj_indices[expert_idx]).activate();
