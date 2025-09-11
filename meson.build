@@ -129,6 +129,17 @@ if get_option('enable-npu')
      extra_defines += '-DENABLE_NPU=1'
 endif
 
+if get_option('mmap-read')
+  if get_option('enable-transformer')
+    message('mmap-read cannot be enabled with enable-transformer. mmap-read is turned off.')
+    extra_defines += '-DMMAP_READ=0'
+  else
+    extra_defines += '-DMMAP_READ=1'
+  endif
+else
+    extra_defines += '-DMMAP_READ=0'
+endif
+
 if get_option('enable-fp16')
    if get_option('platform') == 'android'
      add_project_arguments('-mfp16-format=ieee', language: ['c', 'cpp'])

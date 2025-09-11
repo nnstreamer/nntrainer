@@ -64,8 +64,6 @@
 #define ML_TRAIN_SUMMARY_MODEL_VALID_LOSS 102
 #define ML_TRAIN_SUMMARY_MODEL_VALID_ACCURACY 103
 
-#define MMAP_READ 1
-
 namespace nntrainer {
 
 NeuralNetwork::NeuralNetwork() :
@@ -730,7 +728,7 @@ void NeuralNetwork::load(const std::string &file_path,
 #endif
 
     if (exec_mode == ml::train::ExecutionMode::INFERENCE) {
-      if (!MMAP_READ){
+      if (!MMAP_READ) {
         ///@note for slim-tensor. This should be removed.
         model_file_fd = open(f_path.c_str(), O_RDONLY);
         NNTR_THROW_IF((model_file_fd == -1), std::invalid_argument)
