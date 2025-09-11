@@ -434,6 +434,14 @@ void __fallback_unpack_q4_0x8_transpose16(const void *src,
                                           int K, int CT = 1);
 
 /**
+ * @copydoc unpack_q4_0x4_transpose16 in cpu_backend.h
+ */
+void __fallback_unpack_q4_0x4_transpose16(const void *src,
+                                          uint16_t *__restrict d_out,
+                                          uint16_t *__restrict qs_out, int N,
+                                          int K, int CT = 1);
+
+/**
  * @brief Get half-sized angles, transform them into each cos, sin, and scopy in
  * the same vector : cos_ = cos(freq).extend(cos(freq)), sin_ =
  * sin(freq).extend(sin_(req))

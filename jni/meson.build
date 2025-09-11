@@ -48,16 +48,10 @@ if get_option('enable-opencl')
     and_conf.set('MESON_CLBLAST_ROOT', clblast_root)
     and_conf.set('MESON_CL_ROOT', opencl_root)
   endif
-  # Set library dependencies
-  and_conf.set('MESON_OPENCL_SHARED_LIBS', 'LOCAL_SHARED_LIBRARIES := OpenCL')
-  and_conf.set('MESON_OPENCL_STATIC_LIBS', 'clblast')
 else
   # Disable OpenCL
   and_conf.set('MESON_ENABLE_OPENCL', 0)
   # No OpenCL libraries needed
-  and_conf.set('MESON_OPENCL_SHARED_LIBS', '')
-  and_conf.set('MESON_OPENCL_STATIC_LIBS', '')
-  # Set dummy paths to avoid undefined variables
   and_conf.set('MESON_CLBLAST_ROOT', '')
   and_conf.set('MESON_CL_ROOT', '')
 endif

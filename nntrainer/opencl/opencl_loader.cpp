@@ -6,6 +6,7 @@
  * @date    06 Feb 2024
  * @see     https://github.com/nnstreamer/nntrainer
  * @author  Debadri Samaddar <s.debadri@samsung.com>
+ * @author  Donghyeon Jeong <dhyeon.jeong@samsung.com>
  * @bug     No known bugs except for NYI items
  * @brief   Load required OpenCL functions
  *
@@ -173,7 +174,10 @@ void LoadOpenCLFunctions(void *libopencl) {
   LoadFunction(clCreateImage);
   LoadFunction(clEnqueueWriteBuffer);
   LoadFunction(clEnqueueReadBuffer);
+  LoadFunction(clEnqueueReadImage);
+  LoadFunction(clEnqueueWriteImage);
   LoadFunction(clEnqueueMapBuffer);
+  LoadFunction(clEnqueueMapImage);
   LoadFunction(clEnqueueUnmapMemObject);
   LoadFunction(clEnqueueWriteBufferRect);
   LoadFunction(clEnqueueReadBufferRect);
@@ -212,7 +216,10 @@ PFN_clCreateSubBuffer clCreateSubBuffer;
 PFN_clCreateImage clCreateImage;
 PFN_clEnqueueWriteBuffer clEnqueueWriteBuffer;
 PFN_clEnqueueReadBuffer clEnqueueReadBuffer;
+PFN_clEnqueueWriteImage clEnqueueWriteImage;
+PFN_clEnqueueReadImage clEnqueueReadImage;
 PFN_clEnqueueMapBuffer clEnqueueMapBuffer;
+PFN_clEnqueueMapImage clEnqueueMapImage;
 PFN_clEnqueueUnmapMemObject clEnqueueUnmapMemObject;
 PFN_clEnqueueWriteBufferRect clEnqueueWriteBufferRect;
 PFN_clEnqueueReadBufferRect clEnqueueReadBufferRect;

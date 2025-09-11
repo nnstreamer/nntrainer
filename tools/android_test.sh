@@ -3,7 +3,22 @@
 # This is a script to run NNTrainer unit tests on Android devices
 # Note that this script assumes to be run on the nntrainer root path.
 
-./tools/package_android.sh
+
+opencl_arg="-Denable-opencl=true"  
+enable_gpu=0
+filtered_args=()
+
+for arg in "$@"; do
+    if [[ $arg == -D* ]]; then
+	    filtered_args+=("$arg")
+    fi
+
+    if [[ "$arg" == "$opencl_arg" ]]; then
+      enable_gpu=1
+    fi
+done
+
+./tools/package_android.sh ${filtered_args[@]}
 
 # You can modify test/jni/Android.mk to choose module that you wish to build
 pushd test/jni
@@ -13,7 +28,11 @@ if [ ! -d $ANDROID_NDK ]; then
   exit 1
 fi
 
-ndk-build -j$(nproc)
+if [[ $enable_gpu -eq 1 ]]; then  
+  ndk-build -j$(nproc) MESON_ENABLE_OPENCL=1
+else
+  ndk-build -j$(nproc)
+fi
 
 if [ $? != 0 ]; then
   echo "ndk-build failed"
