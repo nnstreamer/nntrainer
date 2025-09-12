@@ -25,11 +25,6 @@ LOCAL_MODULE := ccapi-nntrainer
 LOCAL_SRC_FILES := $(NNTRAINER_ROOT)/builddir/android_build_result/lib/$(TARGET_ARCH_ABI)/libccapi-nntrainer.so
 include $(PREBUILT_SHARED_LIBRARY)
 
-include $(CLEAR_VARS)
-LOCAL_MODULE := nntrainer-ggml
-LOCAL_SRC_FILES := $(NNTRAINER_ROOT)/builddir/android_build_result/lib/$(TARGET_ARCH_ABI)/libggml.so
-include $(PREBUILT_SHARED_LIBRARY)
-
 # Tokenizer library
 include $(CLEAR_VARS)
 LOCAL_MODULE := tokenizers_c
@@ -76,7 +71,7 @@ LOCAL_SRC_FILES := ../main.cpp \
     ../layers/gpt_oss_moe_layer.cpp \
     ../layers/gpt_oss_moe_layer_cached.cpp \
 
-LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer nntrainer-ggml
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer 
 LOCAL_STATIC_LIBRARIES := tokenizers_c
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES) \
