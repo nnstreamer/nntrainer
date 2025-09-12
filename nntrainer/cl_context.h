@@ -289,6 +289,11 @@ private:
 
     // getContext() called inside createCommandQueue which creates clContext
     bool result = command_queue_inst_.CreateCommandQueue();
+
+    // Return false when creating command queue fails
+    if (!result)
+      return result;
+
     // initialize device buffers
     clbuffInstance.initBuffers();
     cl_initialized = result;

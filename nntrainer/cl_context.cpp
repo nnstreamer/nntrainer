@@ -36,19 +36,15 @@ std::mutex cl_factory_mutex;
 void ClContext::initialize() noexcept {
   try {
     if (!clInit()) {
-      ml_loge("cl_context: opencl command queue creation failed");
+      ml_loge("Error: ClContext::initialize() failed");
+      return;
     }
 
-    setMemAllocator(std::make_shared<MemAllocator>());
-
     initBlasClKernels();
     initAttentionClKernels();
     add_default_object();
     setMemAllocator(std::make_shared<MemAllocator>());
 
-    initBlasClKernels();
-    initAttentionClKernels();
-    add_default_object();
   } catch (std::exception &e) {
     ml_loge("cl_context: registering layers failed!!, reason: %s", e.what());
   } catch (...) {

@@ -32,6 +32,8 @@ void LoadOpenCLFunctions(void *libopencl);
 
 static bool open_cl_initialized = false;
 
+static bool opencl_init_failed = false;
+
 /**
  * @brief Loading OpenCL libraries and required function
  *
@@ -41,6 +43,10 @@ bool LoadOpenCL() {
   // check if already loaded
   if (open_cl_initialized) {
     return true;
+  }
+  // if OpenCL is not available
+  if (opencl_init_failed) {
+    return false;
   }
 
   void *libopencl = nullptr;
@@ -61,7 +67,8 @@ bool LoadOpenCL() {
 
   // record error
   std::string error(DynamicLibraryLoader::getLastError());
-  ml_loge("Can not open OpenCL library on this device - %s", error.c_str());
+  ml_loge("Cannot open OpenCL library on this device - %s", error.c_str());
+  opencl_init_failed = true;
   return false;
 }
 
