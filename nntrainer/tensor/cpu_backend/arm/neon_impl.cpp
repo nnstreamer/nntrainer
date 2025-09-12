@@ -24,6 +24,12 @@
 #include <fallback_internal.h>
 #include <util_func.h>
 
+#ifdef ARMV7
+#define VFMAQ_F32(_X, _Y, _Z) vaddq_f32(_X, vmulq_f32(_Y, _Z))
+#else
+#define VFMAQ_F32(_X, _Y, _Z) vfmaq_f32(_X, _Y, _Z)
+#endif
+
 namespace nntrainer::neon {
 static inline void __ele_qmul_kernel(int8_t *lhs, int8_t *rhs, int8_t *res,
                                      unsigned int data_len,
@@ -1230,14 +1236,14 @@ void rms_norm_wrt_width_fp32_intrinsic(const float *__restrict X,
       float32x4_t x1 = vld1q_f32(rowX + i + 4);
       float32x4_t x2 = vld1q_f32(rowX + i + 8);
       float32x4_t x3 = vld1q_f32(rowX + i + 12);
-      acc0 = vfmaq_f32(acc0, x0, x0);
-      acc1 = vfmaq_f32(acc1, x1, x1);
-      acc2 = vfmaq_f32(acc2, x2, x2);
-      acc3 = vfmaq_f32(acc3, x3, x3);
+      acc0 = VFMAQ_F32(acc0, x0, x0);
+      acc1 = VFMAQ_F32(acc1, x1, x1);
+      acc2 = VFMAQ_F32(acc2, x2, x2);
+      acc3 = VFMAQ_F32(acc3, x3, x3);
     }
     for (; i + 4 <= W; i += 4) {
       float32x4_t x = vld1q_f32(rowX + i);
-      acc0 = vfmaq_f32(acc0, x, x);
+      acc0 = VFMAQ_F32(acc0, x, x);
     }
     float sumsq =
       hsum_f32x4(acc0) + hsum_f32x4(acc1) + hsum_f32x4(acc2) + hsum_f32x4(acc3);
