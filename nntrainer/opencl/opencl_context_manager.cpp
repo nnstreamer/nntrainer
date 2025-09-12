@@ -32,7 +32,12 @@ namespace nntrainer::opencl {
  */
 const cl_context &ContextManager::GetContext() {
   // loading the OpenCL library and required functions
-  LoadOpenCL();
+  bool result = LoadOpenCL();
+
+  if (!result) {
+    context_ = nullptr;
+    return context_;
+  }
 
   if (context_) {
     // increments the context reference count
@@ -45,8 +50,6 @@ const cl_context &ContextManager::GetContext() {
 
     return context_;
   }
-
-  bool result = true;
 
   do {
     result = CreateDefaultGPUDevice();
@@ -87,7 +90,10 @@ void ContextManager::ReleaseContext() {
 const cl_device_id ContextManager::GetDeviceId() { return device_id_; }
 
 void *ContextManager::createSVMRegion(size_t size) {
-  return clSVMAlloc(context_, CL_MEM_READ_WRITE, size, 0);
+  if (context_)
+    return clSVMAlloc(context_, CL_MEM_READ_WRITE, size, 0);
+  else
+    return nullptr;
 }
 
 void ContextManager::releaseSVMRegion(void *svm_ptr) {

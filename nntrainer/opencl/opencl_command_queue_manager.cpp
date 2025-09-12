@@ -39,6 +39,11 @@ bool CommandQueueManager::CreateCommandQueue() {
   // OpenCL context is created
   cl_context context = context_instance.GetContext();
 
+  // If context is invalid, return false
+  if (context == nullptr) {
+    return false;
+  }
+
   // getting GPU device ID
   cl_device_id device_id = context_instance.GetDeviceId();
 
