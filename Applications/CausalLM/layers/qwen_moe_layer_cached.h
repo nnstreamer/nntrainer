@@ -131,6 +131,7 @@ private:
   std::unordered_map<int, std::list<int>::iterator> iteration_map;
   std::unordered_map<int, double> expert_predict_scores;
   std::vector<bool> need_load;
+  std::mutex cache_mutex;
 
   unsigned int gate_idx;
 
