@@ -135,6 +135,13 @@ void EmbeddingLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
           (void *)((char *)weight.getData<uint8_t>() +
                    (210 * num_blocks_per_row) * embed_idx),
           out_tensor.getData(), out_dim);
+      } else if (weight.getDataType() == nntrainer::TensorDim::DataType::Q4_0) {
+        ///@note this should be replaced with quantizer operation
+        int num_blocks_per_row = (weight.width() + 32 - 1) / 32;
+        nntrainer::dequantize_row_q4_0(
+          (void *)((char *)weight.getData<uint8_t>() +
+                   (18 * num_blocks_per_row) * embed_idx),
+          out_tensor.getData(), out_dim);
       } else {
         out_tensor.copyData(cur_weight);
       }
