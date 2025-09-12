@@ -778,16 +778,16 @@ void NeuralNetwork::load(const std::string &file_path,
 #else
       // POSIX: map per-task, advise kernel, drop pages, unmap
 
-      NNTR_THROW_IF((fd == -1), std::invalid_argument)
+      NNTR_THROW_IF((model_file_fd == -1), std::invalid_argument)
         << "Cannot open file : " << f_path;
 
       struct stat st {};
-      NNTR_THROW_IF((::fstat(fd, &st) == -1), std::invalid_argument)
+      NNTR_THROW_IF((::fstat(model_file_fd, &st) == -1), std::invalid_argument)
         << "Cannot get file info (fstat): " << f_path;
 
       size_t f_size = static_cast<size_t>(st.st_size);
-      void *mmap_ptr = ::mmap(nullptr, f_size, PROT_READ, MAP_PRIVATE, fd, 0);
-      ::close(fd); // fd not needed after mmap
+      void *mmap_ptr = ::mmap(nullptr, f_size, PROT_READ, MAP_PRIVATE, model_file_fd, 0);
+      ::close(model_file_fd); // fd not needed after mmap
       NNTR_THROW_IF((mmap_ptr == MAP_FAILED), std::runtime_error)
         << "mmap failed";
 
@@ -1100,6 +1100,8 @@ sharedConstTensors NeuralNetwork::incremental_inference(
     model_graph.allocateTensors(ExecutionMode::INFERENCE);
   }
 
+
+
   int nn_foward;
   PROFILE_TIME_REGISTER_EVENT(nn_foward, "nn_forward");
   PROFILE_TIME_START(nn_foward);
@@ -1152,7 +1154,7 @@ std::vector<float *> NeuralNetwork::incremental_inference(
   // auto end_increment = std::chrono::high_resolution_clock::now();
   std::vector<float *> output;
 
-  unsigned int step = from ? 0 : to - 1;
+  unsigned int step = ((to-from)==0) ? 0 : (to-from) - 1;
 
   for (auto &out : output_tensors) {
     auto out_t = *out.get();
@@ -1216,9 +1218,13 @@ int NeuralNetwork::setDataset(const DatasetModeType &mode,
 }
 
 int NeuralNetwork::allocate(ExecutionMode mode) {
-  model_graph.deallocateTensors();
-  model_graph.allocateTensors(mode);
-
+  if(mode == ExecutionMode::INFERENCE){
+      model_graph.allocateTensors(mode);
+  } else {
+    model_graph.deallocateTensors();
+    model_graph.allocateTensors(mode);    
+  }
+  
   return ML_ERROR_NONE;
 }
 

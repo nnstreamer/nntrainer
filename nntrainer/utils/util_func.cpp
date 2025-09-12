@@ -304,7 +304,7 @@ std::string fd_to_filename(int fd){
   return path_utf8;
 #else
   char linkpath[64];
-  std::snpringf(linkpath, sizeof(linkpath), "/proc/self/fd/%d", fd);
+  std::snprintf(linkpath, sizeof(linkpath), "/proc/self/fd/%d", fd);
   std::vector<char> buf(4096, '\0');
   ssize_t n = readlink(linkpath, buf.data(), buf.size() -1);
   if(n<0) return {};

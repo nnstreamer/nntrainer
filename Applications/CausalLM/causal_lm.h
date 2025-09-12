@@ -108,7 +108,8 @@ protected:
   /**
    * @brief Setup the parameters for the CausalLM model
    */
-  WIN_EXPORT virtual void setupParameters(json &cfg, json &generation_cfg, json &nntr_cfg);
+  WIN_EXPORT virtual void setupParameters(json &cfg, json &generation_cfg,
+                                          json &nntr_cfg);
 
   /**
    * @brief Construct Model
@@ -132,9 +133,9 @@ protected:
   /**
    * @brief create Feed Forward Layer
    */
-  WIN_EXPORT virtual std::vector<LayerHandle> createMlp(const int layer_id, int dim,
-                                             int hidden_dim,
-                                             std::string input_name);
+  WIN_EXPORT virtual std::vector<LayerHandle> createMlp(const int layer_id,
+                                                        int dim, int hidden_dim,
+                                                        std::string input_name);
 
   /**
    * @brief register CustomLayers
@@ -150,12 +151,21 @@ protected:
                   const std::vector<bool> &eos_list);
 
   /**
+   * @brief save kv cache
+   */
+  WIN_EXPORT virtual void save_kvcache(std::string path, int to);
+
+  /**
+   * @brief load kv cache
+   */
+  WIN_EXPORT virtual void load_kvcache(std::string path, int to);
+
+  /**
    * @brief generate
    */
-  WIN_EXPORT std::vector<unsigned int> generate(float *logits, bool do_sample,
-                                     float repetition_penalty = 1,
-                                     unsigned int *input_ids = nullptr,
-                                     unsigned int NUM_INPUT_IDS = 0);
+  WIN_EXPORT std::vector<unsigned int>
+  generate(float *logits, bool do_sample, float repetition_penalty = 1,
+           unsigned int *input_ids = nullptr, unsigned int NUM_INPUT_IDS = 0);
 
   bool is_initialized = false; /**< Flag to check if the model is initialized */
   ModelHandle model;
@@ -167,6 +177,7 @@ protected:
 
   /** tokenizer */
   std::unique_ptr<tokenizers::Tokenizer> tokenizer;
+  std::vector<int> pending_ids_;
 
   unsigned int NUM_VOCAB;
   int DIM;
@@ -200,6 +211,10 @@ protected:
   unsigned int MAX_POSITION_EMBEDDINGS;   /**< max position embeddings */
   bool MEMORY_SWAP;                       /**< Memory swap option */
   unsigned int FSU_LOOKAHEAD;
+  unsigned int SYS_PROMP_LEN;
+  std::string PRE_COMPUTED_CACHE_PATH;
+  std::string TAIL_PROMPT;
+  bool SAVE_KVCACHE;
 
   std::mt19937 rng; /**< Random Number Gen */
 };

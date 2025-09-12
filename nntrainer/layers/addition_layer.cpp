@@ -48,13 +48,6 @@ void AdditionLayer::incremental_forwarding(RunLayerContext &context,
   TensorDim hidden_dim = hidden_.getDim();
   TensorDim hidden_step_dim = hidden_dim;
 
-  if (from) {
-    NNTR_THROW_IF(to - from != 1, std::invalid_argument)
-      << "incremental step size is not 1";
-    from = 0;
-    to = 1;
-  }
-
   hidden_step_dim.batch(1);
   hidden_step_dim.height(to - from);
 

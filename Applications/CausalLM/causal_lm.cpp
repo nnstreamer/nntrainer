@@ -30,12 +30,12 @@
 #include <llm_util.hpp>
 #include <tokenizers_cpp.h>
 
+#include <codecvt>
 #include <embedding_layer.h>
 #include <mha_core.h>
 #include <rms_norm.h>
 #include <swiglu.h>
 #include <tie_word_embedding.h>
-#include <codecvt>
 
 namespace causallm {
 
@@ -81,6 +81,18 @@ void CausalLM::setupParameters(json &cfg, json &generation_cfg,
                    ? nntr_cfg["lmhead_dtype"]
                    : nntr_cfg["embedding_dtype"];
   FC_LAYER_DTYPE = nntr_cfg["fc_layer_dtype"];
+
+  PRE_COMPUTED_CACHE_PATH = nntr_cfg.value("pre_computed_cache_path", "");
+
+  SYS_PROMP_LEN = nntr_cfg.contains("sys_prompt_token_size")
+                    ? nntr_cfg["sys_prompt_token_size"].get<unsigned int>()
+                    : 0;
+
+  TAIL_PROMPT = nntr_cfg.value("tail_prompt", "");
+
+  SAVE_KVCACHE = nntr_cfg.contains("save_kvcache")
+                   ? nntr_cfg["save_kvcache"].get<bool>()
+                   : false;
 
   /** Initialize model parameters */
   NUM_VOCAB = cfg["vocab_size"];
@@ -270,20 +282,26 @@ void CausalLM::run(const WSTR prompt, bool do_sample) {
 
 #if defined(_WIN32)
   std::wcout << L"" << prompt << std::endl;
+  std::wstring prompt_ = prmpt;
+  if (!SAVE_KVCACHE)
+    prompt_ += TAIL_PROMPT;
   std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-  auto _input = tokenizer->Encode(converter.to_bytes(prompt));
+  auto _input = tokenizer->Encode(converter.to_bytes(prompt_));
 #else
   // print input text
   std::cout << prompt << std::endl;
+  std::string prompt_ = prompt;
+  if (!SAVE_KVCACHE)
+    prompt_ += TAIL_PROMPT;
   // std::wstring text = converter.from_bytes(prompt);
-  auto _input = tokenizer->Encode(prompt);
+  auto _input = tokenizer->Encode(prompt_);
 #endif
 
   // _input.insert(_input.begin(), BOS_TOKEN_ID);
 
-  // | <------- MAX_SEQ_LEN -------> |
-  //               ||
-  // |<-- input -->||<-- generate -->|
+  // | <------------------- MAX_SEQ_LEN -------------------> |
+  //                       ||             ||
+  // |<-- System prompt -->||<-- input -->||<-- generate -->|
 
   std::vector<int64_t> init_input;
   unsigned int _len = _input.size();
@@ -330,10 +348,45 @@ void CausalLM::run(const WSTR prompt, bool do_sample) {
   // ml::train::TensorDim input_dim(1, 1, input_len, DIM);
   // input_dims.push_back(input_dim);
   // model->resetInputDimension(input_dims);
-
   auto start_prefill = std::chrono::high_resolution_clock::now();
-  auto output = model->incremental_inference(BATCH_SIZE, input, label,
-                                             input_len, 0, input_len, false);
+
+  std::vector<float *> output;
+
+  if (!SAVE_KVCACHE) {
+
+    if (!PRE_COMPUTED_CACHE_PATH.empty()) {
+      load_kvcache(PRE_COMPUTED_CACHE_PATH, SYS_PROMP_LEN);
+    } else {
+      SYS_PROMP_LEN = 0;
+    }
+
+    output = model->incremental_inference(BATCH_SIZE, input, label, init_len,
+                                          SYS_PROMP_LEN,
+                                          SYS_PROMP_LEN + input_len, false);
+  } else {
+    //@note This is for the save the kv cache. precomputed kv cache should be
+    // always located at the begining of the prompt.
+    // Therefore, it start from 0. and system prompt should be saved in the
+    // init_input, so that we can compute system prompt size properly
+    //
+    // The structure of this precomputed K,V Cache is :
+    //
+    //  //<-- System Prompt -->/<-- Input Tokens -->/<-- Tail prompt --> //
+    //  //< Precomputed cache >/<--given as input-->/<--- from json ---->//
+    //
+
+    output = model->incremental_inference(BATCH_SIZE, input, label, input_len,
+                                          0, input_len, false);
+
+    SYS_PROMP_LEN = input_len;
+    save_kvcache(PRE_COMPUTED_CACHE_PATH, SYS_PROMP_LEN);
+    std::cout
+      << "kv caches are saved in " << PRE_COMPUTED_CACHE_PATH
+      << "and the size of prompt is " << SYS_PROMP_LEN
+      << ". You may need this prompt lenth to set the \"sys_prompt_token_size\""
+      << std::endl;
+    return;
+  }
 
   // post process of model output
   std::vector<unsigned int> id_list(generate_multi_tokens(
@@ -350,6 +403,7 @@ void CausalLM::run(const WSTR prompt, bool do_sample) {
    * TOKEN GENERATION
    */
 
+  input_len += SYS_PROMP_LEN;
   // Update generated token by prefill as an input
   for (unsigned int b = 0; b < BATCH_SIZE; ++b)
     input_sample[static_cast<size_t>(b) * MAX_SEQ_LEN] =
@@ -368,7 +422,7 @@ void CausalLM::run(const WSTR prompt, bool do_sample) {
     if (token_generation_idx < input_len) {
       for (unsigned int b = 0; b < BATCH_SIZE; ++b) {
         input_sample[static_cast<size_t>(b) * MAX_SEQ_LEN] =
-          static_cast<float>(init_input[token_generation_idx]);
+          static_cast<float>(init_input[token_generation_idx - SYS_PROMP_LEN]);
       }
       registerOutputs(tokenizer, ids_list, token_generation_idx, eos_list);
     } else {
@@ -651,20 +705,91 @@ void CausalLM::registerOutputs(
   std::vector<unsigned int> ids, unsigned int pos,
   const std::vector<bool> &eos_list) {
 
-  for (unsigned int i = 0; i < ids.size(); ++i) {
-    if (!eos_list[i]) {
-      auto decoded_str = tokenizer->Decode({static_cast<int>(ids[i])});
+  static const std::vector<char> puncts{',', '!', ':', ';', '?'};
+  for (size_t b = 0; b < ids.size(); ++b) {
+    if (!eos_list[b]) {
+      pending_ids_.push_back(static_cast<int>(ids[b]));
+      ids_history[b * MAX_SEQ_LEN + pos] = ids[b];
+      std::string decoded_str = tokenizer->Decode(pending_ids_);
+
+      if (std::find(puncts.begin(), puncts.end(), decoded_str.back()) !=
+          puncts.end()) {
+        // last symbol is a punctuation, hold on
+      } else if (decoded_str.size() >= 3 &&
+                 decoded_str.compare(decoded_str.size() - 3, 3, "�") == 0) {
+        // ends with an incomplete token, hold on
+      } else {
 #if defined(_WIN32)
-      std::wcout << L"" << utf8_to_wstring(decoded_str);
-      std::wcout.flush();
+        std::wcout << L"" << utf8_to_wstring(decoded_str);
+        std::wcout.flush();
 #else
-      std::cout << decoded_str;
-      std::cout.flush();
+        std::cout << decoded_str;
+        std::cout.flush();
 #endif
-      output_list[i] += decoded_str;
-      ids_history[i * MAX_SEQ_LEN + pos] = ids[i];
+        output_list[b].append(decoded_str);
+        pending_ids_.clear();
+      }
     }
   }
+}
+
+void CausalLM::save_kvcache(std::string path, int to_) {
+  auto f = nntrainer::checkedOpenStream<std::ofstream>(
+    path, std::ios::out | std::ios::binary | std::ios::trunc);
+
+  std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>
+    fn = [&f](ml::train::Layer &l, nntrainer::RunLayerContext &context,
+              void *idx) {
+      if (l.getType() == causallm::MHACoreLayer::type) {
+        int to = static_cast<int>(reinterpret_cast<intptr_t>(idx));
+        auto k_cache = context.getTensor(0);
+        auto v_cache = context.getTensor(1);
+        ml::train::TensorDim k_dim = k_cache.getDim();
+        ml::train::TensorDim v_dim = v_cache.getDim();
+        k_dim.height(to);
+        v_dim.height(to);
+        nntrainer::Tensor k_cache_prompt =
+          k_cache.getSharedDataTensor(k_dim, 0, true);
+        nntrainer::Tensor v_cache_prompt =
+          v_cache.getSharedDataTensor(v_dim, 0, true);
+        k_cache_prompt.save(f);
+        v_cache_prompt.save(f);
+      }
+    };
+  void *arg = reinterpret_cast<void *>(static_cast<intptr_t>(to_));
+  model->forEachLayer(fn, arg);
+  f.close();
+}
+
+void CausalLM::load_kvcache(std::string path, int to_) {
+  auto f = nntrainer::checkedOpenStream<std::ifstream>(
+    path, std::ios::in | std::ios::binary);
+
+  model->allocate(ml::train::ExecutionMode::INFERENCE);
+
+  std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>
+    fn = [&f](ml::train::Layer &l, nntrainer::RunLayerContext &context,
+              void *idx) {
+      if (l.getType() == causallm::MHACoreLayer::type) {
+        int to = static_cast<int>(reinterpret_cast<intptr_t>(idx));
+        auto k_cache = context.getTensor(0);
+        auto v_cache = context.getTensor(1);
+        ml::train::TensorDim k_dim = k_cache.getDim();
+        ml::train::TensorDim v_dim = v_cache.getDim();
+        k_dim.height(to);
+        v_dim.height(to);
+        nntrainer::Tensor k_cache_prompt =
+          k_cache.getSharedDataTensor(k_dim, 0, true);
+        nntrainer::Tensor v_cache_prompt =
+          v_cache.getSharedDataTensor(v_dim, 0, true);
+        k_cache_prompt.read(f);
+        v_cache_prompt.read(f);
+      }
+    };
+  void *arg = reinterpret_cast<void *>(static_cast<intptr_t>(to_));
+
+  model->forEachLayer(fn, arg);
+  f.close();
 }
 
 std::string LoadBytesFromFile(const std::string &path) {

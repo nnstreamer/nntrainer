@@ -162,12 +162,6 @@ void MHACoreLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
                                           unsigned int _from, unsigned int _to,
                                           bool training) {
 
-  if (_from && (_to - _from != 1)) {
-    throw std::invalid_argument(
-      "if it is not initial forwarding, then step size(difference between to "
-      "and from) should be 1");
-  }
-
   unsigned int max_timestep =
     std::get<nntrainer::props::MaxTimestep>(mha_core_props).get();
 
@@ -275,7 +269,7 @@ void MHACoreLayer::compute_kcaches(
   unsigned int from, size_t sequence_len, unsigned int num_head,
   unsigned int group_size, unsigned int head_dim, BS::thread_pool<> &pool) {
 
-  if (from) {
+  if (sequence_len == 1) {
     nntrainer::compute_kcaches<uint16_t>(
       in.getData<float>(), cache.getData<uint16_t>(), out.getData<float>(),
       from + 1, num_head / group_size, head_dim, group_size, 16);
@@ -284,8 +278,9 @@ void MHACoreLayer::compute_kcaches(
     for (unsigned int i = 0; i < sequence_len; ++i) {
       float *input_addr = in.getData<float>() + num_head * head_dim * i;
       uint16_t *cache_addr = cache.getData<uint16_t>();
-      int row_to_compute = i + 1;
-      size_t out_start_row = (i + 1) * i / 2;
+      int row_to_compute = from + i + 1;
+      size_t out_start_row =
+        (from + i + 1) * (from + i) / 2 - (from + 1) * (from) / 2;
 
       float *output_addr = out.getData<float>() + out_start_row * num_head;
 
@@ -371,9 +366,10 @@ void MHACoreLayer::one_batch_incremental_forwarding(
   nntrainer::Tensor attention_output_step = output.getSharedDataTensor(
     output_step_dim, batch * output_dim.getFeatureLen(), true);
 
-  nntrainer::Tensor out_(1, 1,
-                         (from) ? to : ((to - from) * (to - from + 1) / 2),
-                         num_heads_Q, b_projected_query_step.getTensorType());
+  size_t out_h = ((to) * (to + 1) / 2) - (from * (from + 1) / 2);
+
+  nntrainer::Tensor out_(1, 1, ((to - from) == 1) ? to : out_h, num_heads_Q,
+                         b_projected_query_step.getTensorType());
 
   unsigned int gqa_size = num_heads_Q / num_heads_KV;
 
@@ -384,8 +380,8 @@ void MHACoreLayer::one_batch_incremental_forwarding(
 
   compute_fp16vcache_fp32_transposed(
     out_.getData<float>(), b_cached_value.getData<uint16_t>(),
-    attention_output_step.getData<float>(), to, num_heads_KV, gqa_size,
-    head_dim, (from) ? false : true, pool);
+    attention_output_step.getData<float>(), from, num_heads_KV, gqa_size,
+    head_dim, (to), pool);
 }
 
 /************************************************************** */
@@ -484,15 +480,17 @@ void MHACoreLayer::softmax_triangle(nntrainer::Tensor &qk_out, size_t row,
 
   float *qk_out_ = qk_out.getData<float>();
 
-  if (from) {
+  if (row == 1) {
     size_t start_row = 0;
     size_t end_row = from + 1;
     nntrainer::softmax_row_inplace(qk_out_, start_row, end_row, num_head);
   } else {
     std::vector<std::future<void>> futures;
     for (size_t i = 0; i < row; ++i) {
-      size_t start_row = (i * (i + 1)) / 2;
-      size_t end_row = ((i + 1) * (i + 2)) / 2;
+      size_t start_row =
+        ((i + from) * (i + from + 1)) / 2 - ((from) * (from + 1) / 2);
+      size_t end_row =
+        ((i + from + 1) * (i + from + 2)) / 2 - ((from) * (from + 1) / 2);
       futures.push_back(pool.submit_task([=]() {
         nntrainer::softmax_row(qk_out_, start_row, end_row, num_head);
       }));
@@ -504,28 +502,29 @@ void MHACoreLayer::softmax_triangle(nntrainer::Tensor &qk_out, size_t row,
 }
 
 void MHACoreLayer::compute_fp16vcache_fp32_transposed(
-  const float *in, const uint16_t *vcache, float *output, int seq,
-  int num_cache_head, int gqa_size, int head_dim, bool process_all,
+  const float *in, const uint16_t *vcache, float *output, int from,
+  int num_cache_head, int gqa_size, int head_dim, int to,
   BS::thread_pool<> &pool) {
 
-  if (process_all) {
+  if (to - from != 1) {
     std::vector<std::future<void>> futures;
-    futures.reserve(seq);
+    futures.reserve(to - from);
 
-    for (int i = 0; i < seq; ++i) {
+    for (int i = 0; i < to - from; ++i) {
       futures.push_back(pool.submit_task([=]() {
-        const float *input =
-          in + ((i * (i + 1)) / 2) * num_cache_head * gqa_size;
+        size_t start_idx =
+          ((from + i) * (from + i + 1) / 2) - ((from) * (from + 1) / 2);
+        const float *input = in + start_idx * num_cache_head * gqa_size;
         float *out = output + i * (num_cache_head * gqa_size * head_dim);
         nntrainer::compute_fp16vcache_fp32_transposed(
-          i, input, vcache, out, num_cache_head, gqa_size, head_dim);
+          from + i, input, vcache, out, num_cache_head, gqa_size, head_dim);
       }));
     }
     for (auto &fut : futures)
       fut.get();
   } else {
     nntrainer::compute_fp16vcache_fp32_transposed(
-      seq - 1, in, vcache, output, num_cache_head, gqa_size, head_dim);
+      to - 1, in, vcache, output, num_cache_head, gqa_size, head_dim);
   }
 }
 

@@ -392,12 +392,7 @@ inline void CachedSlimMoELayer::compute_expert_forward_no_critical(
 void CachedSlimMoELayer::incremental_forwarding(
   nntrainer::RunLayerContext &context, unsigned int from, unsigned int to,
   bool training) {
-  if (from) {
-    NNTR_THROW_IF(to - from != 1, std::invalid_argument)
-      << "incremental step size is not 1";
-    from = 0;
-    to = 1;
-  }
+
 #ifdef DEBUG
   auto t1 = high_resolution_clock::now();
 #endif
@@ -515,7 +510,7 @@ void CachedSlimMoELayer::incremental_forwarding(
     auto t1_hit = high_resolution_clock::now();
 #endif
 #pragma omp parallel for schedule(dynamic)
-    for(int i =0; i < hit_idx_vector.size(); i++){
+    for (int i = 0; i < hit_idx_vector.size(); i++) {
       int expert_idx = hit_idx_vector[i];
       const auto &assignments = expert_assignments[expert_idx];
 
@@ -531,7 +526,7 @@ void CachedSlimMoELayer::incremental_forwarding(
     auto t1_miss = high_resolution_clock::now();
 #endif
 #pragma omp parallel for schedule(dynamic)
-    for(int i =0; i < missed_idx_vector.size(); i++){
+    for (int i = 0; i < missed_idx_vector.size(); i++) {
       int expert_idx = missed_idx_vector[i];
       context.getWeight(expert_gate_proj_indices[expert_idx]).activate();
       context.getWeight(expert_up_proj_indices[expert_idx]).activate();
@@ -559,8 +554,8 @@ void CachedSlimMoELayer::incremental_forwarding(
     auto t1_evict = high_resolution_clock::now();
 #endif
 #pragma omp parallel for schedule(dynamic)
-    for(int i =0; i < evict_idx_vector.size(); i++){
-      int target_idx = evict_idx_vector[i];    
+    for (int i = 0; i < evict_idx_vector.size(); i++) {
+      int target_idx = evict_idx_vector[i];
       context.getWeight(expert_gate_proj_indices[target_idx]).deactivate();
       context.getWeight(expert_up_proj_indices[target_idx]).deactivate();
       context.getWeight(expert_down_proj_indices[target_idx]).deactivate();
@@ -637,8 +632,8 @@ void destroy_cached_slim_moe_layer(nntrainer::Layer *layer) {
 }
 
 extern "C" {
-nntrainer::LayerPluggable ml_train_layer_pluggable{create_cached_slim_moe_layer,
-                                                   destroy_cached_slim_moe_layer};
+nntrainer::LayerPluggable ml_train_layer_pluggable{
+  create_cached_slim_moe_layer, destroy_cached_slim_moe_layer};
 }
 
 #endif

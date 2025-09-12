@@ -328,9 +328,8 @@ private:
 
   void compute_fp16vcache_fp32_transposed(const float *in,
                                           const uint16_t *vcache, float *output,
-                                          int seq, int num_cache_head,
-                                          int gqa_size, int head_dim,
-                                          bool process_all,
+                                          int from, int num_cache_head,
+                                          int gqa_size, int head_dim, int to,
                                           BS::thread_pool<> &pool);
 
   /************** END OF  ROTARY EMBEDDING *************/
