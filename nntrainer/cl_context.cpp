@@ -190,6 +190,9 @@ void ClContext::initBlasClKernels() {
   registerClKernel(transpose_32bit_16bit_kernel, "kernel_transpose_32_16");
   registerClKernel(q4_0_ab_bi_8x4_kernel, "kernel_mul_mat_Ab_Bi_8x4");
 
+  // register INT4 computation kernels
+  registerClKernel(int4_gemv_kernel, "fully_connected_gpu_int4_gemv");
+
 #ifdef ENABLE_FP16
   registerClKernel(hgemv_kernel, "sgemv_cl_fp16");
   registerClKernel(hgemv_no_trans_kernel, "sgemv_cl_noTrans_fp16");

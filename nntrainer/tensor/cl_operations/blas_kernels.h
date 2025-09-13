@@ -24,6 +24,27 @@
 
 namespace nntrainer {
 
+/**
+ * @brief     signed 4-bit integer gemv computation : C = A*B
+ * @param[in] weight char * for int4 quantized weight
+ * @param[in] scale uint16_t * for scales
+ * @param[in] input uint16_t * for input
+ * @param[in] output uint16_t * for output
+ * @param[in] K hidden dimension
+ * @param[in] N output dimension
+ */
+void gemv_int4_cl(char *weight, uint16_t *scale, uint16_t *input,
+                  uint16_t *output, unsigned int K, unsigned int N);
+
+/**
+ * @brief     Q4_0 gemm async computation : C = A*B
+ * @param[in] matAdata std::vector<void *> for Matrix A
+ * @param[in] matBdata float * for Matrix B
+ * @param[in] matCdata std::vector<float *> for Matrix C
+ * @param[in] M input dimension
+ * @param[in] N output dimensions of As
+ * @param[in] K hidden dimension
+ */
 void gemm_q4_0_async_cl(std::vector<void *> matAdata, float *matBdata,
                         std::vector<float *> matCdata, unsigned int M,
                         std::vector<unsigned int> N, unsigned int K);
