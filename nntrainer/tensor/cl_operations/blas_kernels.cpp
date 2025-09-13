@@ -16,6 +16,74 @@
 
 namespace nntrainer {
 
+void gemv_int4_cl(char *weight, uint16_t *scale, uint16_t *input,
+                  uint16_t *output, unsigned int K, unsigned int N) {
+  bool result = false;
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
+  ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
+    int4_gemv_kernel, "fully_connected_gpu_int4_gemv");
+  if (!kernel_ptr) {
+    throw std::runtime_error(
+      "Failed to get kernel_ptr for fully_connected_gpu_int4_gemv");
+    return;
+  }
+
+  int arg = 0;
+
+  result = kernel_ptr->SetKernelSVMArguments(arg++, input);
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 0 for fully_connected_gpu_int4_gemv");
+
+  kernel_ptr->SetKernelSVMArguments(arg++, scale);
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 1 for fully_connected_gpu_int4_gemv");
+
+  result = kernel_ptr->SetKernelSVMArguments(arg++, output);
+
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 2 for fully_connected_gpu_int4_gemv");
+
+  result = kernel_ptr->SetKernelSVMArguments(arg++, weight);
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 3 for fully_connected_gpu_int4_gemv");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &K, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 4 for fully_connected_gpu_int4_gemv");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &N, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 5 for fully_connected_gpu_int4_gemv");
+
+  const int work_groups_count[3] = {(int)(N / 2), 1, 16};
+  const int work_group_size[3] = {16, 1, 16};
+
+  result = blas_cc->command_queue_inst_.DispatchCommand(
+    kernel_ptr, work_groups_count, work_group_size);
+  if (!result) {
+    throw std::runtime_error(
+      "Failed to dispatch kernel for fully_connected_gpu_int4_gemv");
+    return;
+  }
+
+  /// @todo synchronize when only needed
+  blas_cc->command_queue_inst_.enqueueSVMMap(output, N * sizeof(float), true);
+  if (!result) {
+    throw std::runtime_error(
+      "Failed to read output data for fully_connected_gpu_int4_gemv");
+    return;
+  }
+}
+
 void gemm_q4_0_async_cl(std::vector<void *> matAdata, float *matBdata,
                         std::vector<float *> matCdata, unsigned int M,
                         std::vector<unsigned int> Ns, unsigned int K) {
