@@ -16,7 +16,6 @@
 #ifdef __cplusplus
 
 #include <cstdint>
-#include <limits.h>
 #include <limits>
 #include <tensor_dim.h>
 
@@ -136,8 +135,8 @@ void __fallback_quantize_row_q8_0(const _FP16 *__restrict src,
  * @param dst output destination for quantized data
  * @param nrow number of row
  * @param n_per_row number of elements per row
- * @param quant_weights additional information for quantization. Currently in no
- * use.
+ * @param quant_weights additional information for quantization. Currently in
+ * no use.
  * @return size_t total size of quantized data
  */
 size_t __fallback_quantize_q8_0(const _FP16 *src, void *dst, int64_t nrow,
@@ -327,7 +326,8 @@ void __fallback_ele_sub(const unsigned N, const _FP16 *X, const _FP16 *Y,
                         unsigned int i_stride, unsigned int o_stride);
 
 /**
- * @brief     elementwise vector division with neon : Z = X / (alpha * Y) + beta
+ * @brief     elementwise vector division with neon : Z = X / (alpha * Y) +
+ * beta
  * * Z
  * @note ZeroDivisionError is not guaranteed in this function
  * @param[in] N  length of the vector
@@ -436,8 +436,8 @@ void __fallback_unpack_q4_0x8_transpose16(const void *src,
                                           int K, int CT = 1);
 
 /**
- * @brief Get half-sized angles, transform them into each cos, sin, and scopy in
- * the same vector : cos_ = cos(freq).extend(cos(freq)), sin_ =
+ * @brief Get half-sized angles, transform them into each cos, sin, and scopy
+ * in the same vector : cos_ = cos(freq).extend(cos(freq)), sin_ =
  * sin(freq).extend(sin_(req))
  *
  * @param N_half : size of angle
@@ -792,7 +792,8 @@ void __fallback_ele_sub(const unsigned N, const float *X, const float *Y,
                         unsigned int i_stride, unsigned int o_stride);
 
 /**
- * @brief     elementwise vector division with neon : Z = X / (alpha * Y) + beta
+ * @brief     elementwise vector division with neon : Z = X / (alpha * Y) +
+ * beta
  * * Z
  * @note ZeroDivisionError is not guaranteed in this function
  * @param[in] N  length of the vector
@@ -1078,8 +1079,8 @@ void __fallback_compute_kcaches(const float *in, const BType *kcache,
  * @param[in] width current w value from b, c, h, w
  * @param[in] dim unit length of simd computation
  * @param[in] half_ criterion for rotational direction of embedding
- * @param[in/out] inout float* uesed also as output when expected output float*
- * values
+ * @param[in/out] inout float* uesed also as output when expected output
+ * float* values
  * @param[out] output void* output values, used when expected output __fp16*
  * values
  * @param[in] cos_ float* input con values
@@ -1131,6 +1132,46 @@ template <typename T = float>
 void __fallback_clamp(const T *input, T *output, size_t length,
                       T lower_bound = std::numeric_limits<T>::lowest(),
                       T upper_bound = std::numeric_limits<T>::max());
+/**
+ * @brief qs4cx quantization of (n*k) matrix. Typically a weight quantization,
+ * and generally regard the weight is already transposed, and quantize it as it
+ * is. qs4cx refers to quantized symmetric 4-bit quantization of channelwise x
+ * groups.
+ *
+ * @param n N length of the matrix
+ * @param k K length of the matrix
+ * @param rhs_native_mtx_f32 matrix data before quantization to load
+ * @param rhs_native_mtx_qs4cx matrix data after quantization to stroe
+ * @param rhs_scales_f32 matrix quant scale after quantization to stroe
+ * @param transB
+ */
+void __fallback_nntr_quant_qs4cx_f32(size_t n, size_t k,
+                                     void *rhs_native_mtx_f32,
+                                     void *rhs_native_mtx_qs4cx,
+                                     void *rhs_scales_f32, bool transB = true);
+/**
+ * @brief GEMM of qai8dxp runtime-quantized activation and offline qs4cx
+ * quantized weight
+ *
+ * @tparam T dataType of input activation and output matrices
+ * @param m M length of the matrix
+ * @param n N length of the matrix
+ * @param k K length of the matrix
+ * @param lhs_native_mtx activation (not quantized)
+ * @param rhs_native_mtx_qs4cx offline quantized weight
+ * @param rhs_scales scale factor vector of quantized weight
+ * @param dst_mtx dst matrix
+ * @param lower_bound lower bound to clamp
+ * @param upper_bound upper bound to clamp
+ * @param transB Choose weight data to be transposed or not. Default value
+ * regards the weight to be transpoed.
+ */
+template <typename T = float>
+void __fallback_nntr_gemm_qai8dxp_qsi4cxp(
+  size_t m, size_t n, size_t k, void *lhs_native_mtx,
+  void *rhs_native_mtx_qs4cx, void *rhs_scales, T *dst_mtx, bool transB = true,
+  T lower_bound = std::numeric_limits<T>::lowest(),
+  T upper_bound = std::numeric_limits<T>::max());
 } // namespace nntrainer
 #endif
 #endif
