@@ -350,7 +350,6 @@ private:
 #ifdef ENABLE_FP16
   inline static std::vector<std::vector<_FP16>> *freqs_cos_fp16 = {};
   inline static std::vector<std::vector<_FP16>> *freqs_sin_fp16 = {};
-  inline static std::vector<_FP16> thetas_fp16;
 #endif
 
   /**
