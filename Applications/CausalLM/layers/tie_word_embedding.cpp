@@ -195,13 +195,6 @@ void TieWordEmbedding::incremental_forwarding_embedding(
 
   unsigned int _from = from;
 
-  if (from) {
-    NNTR_THROW_IF(to - from != 1, std::invalid_argument)
-      << "incremental step size is not 1";
-    from = 0;
-    to = 1;
-  }
-
   nntrainer::Tensor &weight =
     context.getWeight(weight_idx[TieWordEmbeddingParams::weight]);
   nntrainer::Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
@@ -225,7 +218,7 @@ void TieWordEmbedding::incremental_forwarding_embedding(
 
 #pragma omp parallel for
     for (int i = from; i < to; ++i) {
-      unsigned int embed_idx = static_cast<unsigned int>(in_data[i]);
+      unsigned int embed_idx = static_cast<unsigned int>(in_data[i - from]);
       if (embed_idx >= in_dim) {
         throw std::invalid_argument("input word index is greater than in_dim");
       }
