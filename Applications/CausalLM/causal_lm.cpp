@@ -290,7 +290,7 @@ void CausalLM::run(const WSTR prompt, bool do_sample) {
 
 #if defined(_WIN32)
   std::wcout << L"" << text_ << std::endl;
-  std::wstring prompt_ = prmpt;
+  std::wstring prompt_ = prompt;
   if (!SAVE_KVCACHE)
     prompt_ += TAIL_PROMPT;
   std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;

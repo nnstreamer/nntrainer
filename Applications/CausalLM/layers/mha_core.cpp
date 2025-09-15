@@ -1017,7 +1017,7 @@ void MHACoreLayer::compute_fp16vcache_transposed(
           const _FP16 *input =
             in.getData<_FP16>() + start_idx * num_cache_head * gqa_size;
           _FP16 *out = output.getData<_FP16>() +
-                       start_idx * (num_cache_head * gqa_size * head_dim);
+                       i * (num_cache_head * gqa_size * head_dim);
           for (int n = 0; n < num_cache_head; ++n) {
             int chunk_size = head_dim;
             const _FP16 *in_ptr = input + n * gqa_size;
