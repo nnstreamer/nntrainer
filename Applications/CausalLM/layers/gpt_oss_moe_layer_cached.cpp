@@ -250,7 +250,6 @@ void CachedSlimGptOssMoELayer::incremental_forwarding(
     input.dot(gate_weights, router_logits);
     router_logits.apply(nntrainer::ActiFunc::softmax<float>, router_logits);
 
-
     // get extra topK
     auto extra_topk_result = router_logits.topK(topk + 3);
     auto extra_topk_values = std::get<0>(extra_topk_result);
@@ -260,8 +259,8 @@ void CachedSlimGptOssMoELayer::incremental_forwarding(
     const uint32_t *extra_indices_data = extra_topk_indices.getData<uint32_t>();
 
     // get extra topk
-    for (int i = 0; i < static_cast<int>(total_tokens); ++i) {
-      for (int k = topk; k < static_cast<int>(topk + 3); ++k) {
+    for (int i = static_cast<int>(total_tokens) - 1; i >= 0; --i) {
+      for (int k = 0; k < static_cast<int>(topk + 3); ++k) {
         unsigned expert_idx = extra_indices_data[i * topk + k];
         extra_top_k.push_back(expert_idx);
       }
@@ -353,11 +352,6 @@ void CachedSlimGptOssMoELayer::incremental_forwarding(
 #endif
         {
           std::lock_guard<std::mutex> lock(cache_mutex);
-          if (iteration_map.find(expert_idx) != iteration_map.end()) {
-            loaded_expert_deque.erase(iteration_map[expert_idx]);
-            loaded_expert_deque.push_back(expert_idx);
-            iteration_map[expert_idx] = --loaded_expert_deque.end();
-          }
           hit_count += 1;
         }
 
