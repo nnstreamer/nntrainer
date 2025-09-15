@@ -82,13 +82,6 @@ void SwiGLULayer::incremental_forwarding(nntrainer::RunLayerContext &context,
   nntrainer::Tensor &in2 = context.getInput(INPUT_IDX_2);
   nntrainer::Tensor &out = context.getOutput(OUT_IDX);
 
-  if (from) {
-    NNTR_THROW_IF(to - from != 1, std::invalid_argument)
-      << "incremental step size is not 1";
-    from = 0;
-    to = 1;
-  }
-
   if (in1.getDataType() == ml::train::TensorDim::DataType::FP32) {
     for (unsigned int b = 0; b < in1.batch(); b++) {
       for (unsigned int c = 0; c < in1.channel(); c++) {

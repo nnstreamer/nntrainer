@@ -267,12 +267,7 @@ inline void CachedSlimMoELayer::compute_expert_forward(
 void CachedSlimMoELayer::incremental_forwarding(
   nntrainer::RunLayerContext &context, unsigned int from, unsigned int to,
   bool training) {
-  if (from) {
-    NNTR_THROW_IF(to - from != 1, std::invalid_argument)
-      << "incremental step size is not 1";
-    from = 0;
-    to = 1;
-  }
+
 #ifdef DEBUG
   auto t1 = high_resolution_clock::now();
 #endif

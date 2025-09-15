@@ -410,9 +410,9 @@ private:
 
   void compute_fp16vcache_transposed(nntrainer::Tensor &in,
                                      nntrainer::Tensor &vcache,
-                                     nntrainer::Tensor &output, int seq,
+                                     nntrainer::Tensor &output, int from,
                                      int num_cache_head, int gqa_size,
-                                     int head_dim, bool process_all,
+                                     int head_dim, int to,
                                      BS::thread_pool<> &pool);
 
   /************** END OF  ROTARY EMBEDDING *************/

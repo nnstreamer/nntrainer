@@ -150,6 +150,16 @@ protected:
                   const std::vector<bool> &eos_list);
 
   /**
+   * @brief save kv cache
+   */
+  WIN_EXPORT virtual void save_kvcache(std::string path, int to);
+
+  /**
+   * @brief load kv cache
+   */
+  WIN_EXPORT virtual void load_kvcache(std::string path, int to);
+
+  /**
    * @brief generate
    */
   std::vector<unsigned int> generate(float *logits, bool do_sample,
@@ -167,6 +177,7 @@ protected:
 
   /** tokenizer */
   std::unique_ptr<tokenizers::Tokenizer> tokenizer;
+  std::vector<int> pending_ids_;
 
   unsigned int NUM_VOCAB;
   int DIM;
@@ -201,6 +212,10 @@ protected:
   unsigned int MAX_POSITION_EMBEDDINGS;   /**< max position embeddings */
   bool MEMORY_SWAP;                       /**< Memory swap option */
   unsigned int FSU_LOOKAHEAD;
+  unsigned int SYS_PROMP_LEN;
+  std::string PRE_COMPUTED_CACHE_PATH;
+  std::string TAIL_PROMPT;
+  bool SAVE_KVCACHE;
 
   std::mt19937 rng; /**< Random Number Gen */
 };

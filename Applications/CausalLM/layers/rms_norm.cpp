@@ -52,13 +52,6 @@ void RMSNormLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
 
   unsigned int _from = from;
 
-  if (from) {
-    NNTR_THROW_IF(to - from != 1, std::invalid_argument)
-      << "incremental step size is not 1";
-    from = 0;
-    to = 1;
-  }
-
   in_step_dim.batch(1);
   in_step_dim.height(to - from);
   out_step_dim.batch(1);
