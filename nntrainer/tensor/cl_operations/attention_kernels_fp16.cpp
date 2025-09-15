@@ -12,7 +12,7 @@
  */
 
 #include "attention_kernels_templates.h"
-#include <cl_kernels/rotary_emb_fp16.h>
+#include <cl_kernels/cl_kernels.h>
 
 #include <cassert>
 
@@ -67,7 +67,7 @@ void flash_attention_cl_fp16(
   // clang-format off
   auto *cl_context        = static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
   auto &cl_buffer_manager = ClBufferManager::Global();
-  ClContext::SharedPtrClKernel kernel = cl_context->registerClKernel(getFlashAttentionClKernelFP16(), "flash_attn_f16");
+  ClContext::SharedPtrClKernel kernel = cl_context->registerClKernel(flash_attn_f16_kernel, "flash_attn_f16");
   // clang-format on
 
   if (!kernel) {

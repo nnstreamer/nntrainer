@@ -67,25 +67,10 @@ TEST(attention_kernels, flash_attention_cl_fp16) {
   static constexpr size_t o_elements = o_width * o_height * o_channel * o_batch;
   static constexpr size_t o_size = o_elements * sizeof(_FP16);
 
- // auto random_init = false;
- // std::random_device rd;
- // auto init_val = random_init ? rd() : 42;
- // std::mt19937 gen = random_init ? std::mt19937(init_val) : std::mt19937(rd());
-//
- // std::uniform_real_distribution<float> dist(min_val, max_val);
-
-  auto random_fp16 = [](const _FP16 number) -> _FP16 {
-    return static_cast<_FP16>(1.0f);
-  };
-
-  std::vector<_FP16> Q(q_elements, static_cast<_FP16>(0.0f));
-  std::vector<_FP16> K(k_elements, static_cast<_FP16>(0.0f));
-  std::vector<_FP16> V(v_elements, static_cast<_FP16>(0.0f));
+  std::vector<_FP16> Q(q_elements, static_cast<_FP16>(1.0f));
+  std::vector<_FP16> K(k_elements, static_cast<_FP16>(2.0f));
+  std::vector<_FP16> V(v_elements, static_cast<_FP16>(3.0f));
   std::vector<_FP16> O(o_elements, static_cast<_FP16>(0.0f));
-
-  std::transform(std::begin(Q), std::end(Q), std::begin(Q), random_fp16);
-  std::transform(std::begin(K), std::end(K), std::begin(K), random_fp16);
-  std::transform(std::begin(V), std::end(V), std::begin(V), random_fp16);
 
   // for (size_t i = 0; i < elements; i++) {
   //   Q[i] = static_cast<_FP16>(5.0f - 10.0f * rand() / RAND_MAX);
