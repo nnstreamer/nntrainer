@@ -1203,6 +1203,93 @@ TEST(nntrainer_cpu_backend_standalone, clamp_3072_0_1) {
   float upper_bound = 1.F;
   run_clamp_test(N, lower_bound, upper_bound, false);
 }
+float test_gemm_qai8dxp_qsi4cxp(const uint32_t M, const uint32_t K,
+                                const uint32_t N, const float *weights,
+                                const float *activations,
+                                std::vector<float> &ref_dst, bool transB = true,
+                                bool print = false) {
+  // Step1. Set qai8dxp_qsi4cxp quant test components
+  const size_t lhs_ref_size_qa8dx = M * (K + sizeof(int32_t) + sizeof(float));
+  const size_t rhs_native_size_qs4cx =
+    transB ? N * (((K + 2 - 1) / 2) * 2 / 2) * sizeof(uint8_t)
+           : K * (((N + 2 - 1) / 2) * 2 / 2) * sizeof(uint8_t);
+  const size_t rhs_scales_size_f32 = N * sizeof(float);
+  
+  uint8_t *rhs_native_mtx_qs4cx = new uint8_t[rhs_native_size_qs4cx];
+  uint8_t *rhs_scales_f32 = new uint8_t[rhs_scales_size_f32];
+  uint8_t *lhs_ref_mtx_qa8dx = new uint8_t[lhs_ref_size_qa8dx];
+
+  // Step2. 4-bit Weight quantization, for qs4cx format, with fp32 scale
+  nntrainer::__fallback_nntr_quant_qs4cx_f32(N, K, (void *)weights,
+                                             (void *)rhs_native_mtx_qs4cx,
+                                             rhs_scales_f32, transB);
+
+  // Step3. Run GEMM! (Online activation quantization + kernel routine + return
+  // float)
+  std::vector<float> dst(M * N);
+  auto t1 = high_resolution_clock::now();
+  // #### MAIN TESTED METHOD ####
+  nntrainer::__fallback_nntr_gemm_qai8dxp_qsi4cxp(M, N, K, (void*)activations,
+                       (void *)rhs_native_mtx_qs4cx, (void *)rhs_scales_f32, dst.data(), transB);
+  // #### MAIN TESTED METHOD ####
+  auto t2 = high_resolution_clock::now();
+  auto dt = duration_cast<nanoseconds>(t2 - t1);
+  if (print) {
+    std::cout << "[INFO] __fallback_nntr_gemm_qai8dxp_qsi4cxp: " << dt.count() << " ns "
+              << dt.count() / 1'000 << " us " << dt.count() / 1'000'000
+              << " ms " << std::endl;
+  }
+
+  // Step4. Compute quantization error
+  auto mean_squared_error = compute_mse(M, N, ref_dst, dst, print);
+  delete[] rhs_native_mtx_qs4cx;
+  delete[] rhs_scales_f32;
+  delete[] lhs_ref_mtx_qa8dx;
+
+  return mean_squared_error;
+}
+
+static void run_qai8dxp_qsi4cxp_test(const uint32_t M, const uint32_t K,
+                                     const uint32_t N,
+                                     float &qai8dxp_qsi4cxp_mse,
+                                     bool transB = true, bool print = false) {
+  if (print) {
+    std::cout << "[INFO] qai8dxp_qsi4cxp Test (M:" << M << ", K:" << K
+              << ", N:" << N << ")" << std::endl;
+  }
+  ///@note A(M, K) * W.T(N, K) = (M, N)
+  ///@note A(sizez, sizex) * W.T(sizey, sizex) = (sizez, sizey)
+
+  ///@note q4_K GEMM is a Row-Major, transB GEMM
+  std::vector<float> activation = generate_random_vector<float>(M * K);
+  std::vector<float> weight = generate_random_vector<float>(N * K);
+  std::vector<float> ref_dst(M * N);
+
+  // GROUND TRUTH TRANSB SGEMM for reference
+  auto t1 = high_resolution_clock::now();
+  nntrainer::sgemm(0, false, true, M, N, K, 1.F, activation.data(), K,
+                   weight.data(), K, 0.F, ref_dst.data(), N);
+  auto t2 = high_resolution_clock::now();
+  auto dt = duration_cast<nanoseconds>(t2 - t1);
+  if (print) {
+    std::cout << "[INFO] sgemm :    " << dt.count() << " ns "
+              << dt.count() / 1'000 << " us " << dt.count() / 1'000'000
+              << " ms " << std::endl;
+  }
+  qai8dxp_qsi4cxp_mse = test_gemm_qai8dxp_qsi4cxp(
+    M, K, N, weight.data(), activation.data(), ref_dst, transB, print);
+}
+
+TEST(nntrainer_cpu_backend_standalone, qai8dxp_qsi4cxp_3072x768x1024) {
+  const unsigned int M = 3072;
+  const unsigned int K = 768;
+  const unsigned int N = 1024;
+  float qai8dxp_qsi4cxp_q4_0_mse;
+  constexpr float eps = 1e-5;
+  run_qai8dxp_qsi4cxp_test(M, K, N, qai8dxp_qsi4cxp_q4_0_mse, true, true);
+  ASSERT_LE(qai8dxp_qsi4cxp_q4_0_mse, eps * M * K * N);
+}
+
 int main(int argc, char **argv) {
   int result = -1;
 
