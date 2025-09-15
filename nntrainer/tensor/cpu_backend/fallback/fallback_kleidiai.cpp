@@ -7,9 +7,10 @@
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Sungsik Kong
  *
- * @brief  Modified computational backend components of matmul_clamp_f32_qai8dxp_qsi4cxp.
- *         Portions of this file are derived from Arm Limited code licensed
- *         under the Apache License, Version 2.0, with modifications
+ * @brief  Modified computational backend components of
+ * matmul_clamp_f32_qai8dxp_qsi4cxp.cpp Portions of this file are derived from
+ * Arm Limited code licensed under the Apache License, Version 2.0, with
+ * modifications
  *
  * @note   Licensed under the Apache License, Version 2.0 (the "License");
  *         you may not use this file except in compliance with the License.
@@ -36,12 +37,10 @@
 #define INT4_MIN (-8)
 #define INT4_MAX (7)
 
-
-
 static size_t roundup(size_t a, size_t b) { return ((a + b - 1) / b) * b; }
 
 void ref_quant_qa8dx_f32(size_t m, size_t k, const float *lhs_f32,
-                                int8_t *lhs_qa8dx) {
+                         int8_t *lhs_qa8dx) {
   const size_t dst_stride =
     (k * sizeof(int8_t) + sizeof(float) + sizeof(int32_t));
 
@@ -237,8 +236,8 @@ static void quant_kxn_qs4cx_f32(size_t n, size_t k, const float *rhs_f32,
 };
 
 void quant_qs4cx_f32(size_t n, size_t k, rhs_format format,
-                            const float *rhs_f32, uint8_t *rhs_qs4cx,
-                            float *rhs_scales_f32) {
+                     const float *rhs_f32, uint8_t *rhs_qs4cx,
+                     float *rhs_scales_f32) {
   if (rhs_format::nxk == format) {
     quant_nxk_qs4cx_f32(n, k, rhs_f32, rhs_qs4cx, rhs_scales_f32);
   } else {
@@ -382,11 +381,11 @@ static void ref_matmul_mxn_mxk_kxn_f32_qa8dx_qs4cx( // noTrans
   }
 };
 
-void
-ref_matmul_f32_qa8dx_qs4cx(size_t m, size_t n, size_t k, rhs_format format,
-                           const int8_t *lhs_qa8dx, const uint8_t *rhs_qs4cx,
-                           const float *rhs_scales_f32, float *dst_f32,
-                           float scalar_min, float scalar_max) {
+void ref_matmul_f32_qa8dx_qs4cx(size_t m, size_t n, size_t k, rhs_format format,
+                                const int8_t *lhs_qa8dx,
+                                const uint8_t *rhs_qs4cx,
+                                const float *rhs_scales_f32, float *dst_f32,
+                                float scalar_min, float scalar_max) {
   const size_t lhs_stride =
     k * sizeof(int8_t) + sizeof(float) + sizeof(int32_t);
 

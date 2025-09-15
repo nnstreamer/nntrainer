@@ -1214,30 +1214,31 @@ float test_gemm_qai8dxp_qsi4cxp(const uint32_t M, const uint32_t K,
     transB ? N * (((K + 2 - 1) / 2) * 2 / 2) * sizeof(uint8_t)
            : K * (((N + 2 - 1) / 2) * 2 / 2) * sizeof(uint8_t);
   const size_t rhs_scales_size_f32 = N * sizeof(float);
-  
+
   uint8_t *rhs_native_mtx_qs4cx = new uint8_t[rhs_native_size_qs4cx];
   uint8_t *rhs_scales_f32 = new uint8_t[rhs_scales_size_f32];
   uint8_t *lhs_ref_mtx_qa8dx = new uint8_t[lhs_ref_size_qa8dx];
 
   // Step2. 4-bit Weight quantization, for qs4cx format, with fp32 scale
-  nntrainer::__fallback_nntr_quant_qs4cx_f32(N, K, (void *)weights,
-                                             (void *)rhs_native_mtx_qs4cx,
-                                             rhs_scales_f32, transB);
+  nntrainer::nntr_quant_qs4cx_f32(N, K, (void *)weights,
+                                  (void *)rhs_native_mtx_qs4cx, rhs_scales_f32,
+                                  transB);
 
   // Step3. Run GEMM! (Online activation quantization + kernel routine + return
   // float)
   std::vector<float> dst(M * N);
   auto t1 = high_resolution_clock::now();
   // #### MAIN TESTED METHOD ####
-  nntrainer::__fallback_nntr_gemm_qai8dxp_qsi4cxp(M, N, K, (void*)activations,
-                       (void *)rhs_native_mtx_qs4cx, (void *)rhs_scales_f32, dst.data(), transB);
+  nntrainer::nntr_gemm_qai8dxp_qsi4cxp(
+    M, N, K, (void *)activations, (void *)rhs_native_mtx_qs4cx,
+    (void *)rhs_scales_f32, dst.data(), transB);
   // #### MAIN TESTED METHOD ####
   auto t2 = high_resolution_clock::now();
   auto dt = duration_cast<nanoseconds>(t2 - t1);
   if (print) {
-    std::cout << "[INFO] __fallback_nntr_gemm_qai8dxp_qsi4cxp: " << dt.count() << " ns "
-              << dt.count() / 1'000 << " us " << dt.count() / 1'000'000
-              << " ms " << std::endl;
+    std::cout << "[INFO] __fallback_nntr_gemm_qai8dxp_qsi4cxp: " << dt.count()
+              << " ns " << dt.count() / 1'000 << " us "
+              << dt.count() / 1'000'000 << " ms " << std::endl;
   }
 
   // Step4. Compute quantization error
