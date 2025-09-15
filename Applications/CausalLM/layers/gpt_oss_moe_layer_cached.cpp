@@ -249,6 +249,24 @@ void CachedSlimGptOssMoELayer::incremental_forwarding(
     nntrainer::Tensor &gate_weights = context.getWeight(gate_idx);
     input.dot(gate_weights, router_logits);
     router_logits.apply(nntrainer::ActiFunc::softmax<float>, router_logits);
+
+
+    // get extra topK
+    auto extra_topk_result = router_logits.topK(topk + 3);
+    auto extra_topk_values = std::get<0>(extra_topk_result);
+    auto extra_topk_indices = std::get<1>(extra_topk_result);
+    std::deque<int> extra_top_k = {};
+    extra_topk_values.divide_i(extra_topk_values.sum(3));
+    const uint32_t *extra_indices_data = extra_topk_indices.getData<uint32_t>();
+
+    // get extra topk
+    for (int i = 0; i < static_cast<int>(total_tokens); ++i) {
+      for (int k = topk; k < static_cast<int>(topk + 3); ++k) {
+        unsigned expert_idx = extra_indices_data[i * topk + k];
+        extra_top_k.push_back(expert_idx);
+      }
+    }
+
     auto topk_result = router_logits.topK(topk);
     auto topk_values = std::get<0>(topk_result);
     auto topk_indices = std::get<1>(topk_result);
@@ -270,6 +288,7 @@ void CachedSlimGptOssMoELayer::incremental_forwarding(
 
     // Parallel processing for multiple tokens with many active experts
     std::vector<nntrainer::Tensor> expert_outputs(num_experts);
+#pragma omp parallel for schedule(static)
     for (int expert_idx = 0; expert_idx < static_cast<int>(num_experts);
          ++expert_idx) {
       if (!expert_assignments[expert_idx].empty()) {
@@ -287,96 +306,99 @@ void CachedSlimGptOssMoELayer::incremental_forwarding(
 
       target_idx_vector.push_back(expert_idx);
     }
+
     int hit_count = 0;
     int miss_count = 0;
-    std::vector<int> missed_idx_vector;
-    std::vector<int> hit_idx_vector;
-    std::vector<int> evict_idx_vector;
 
+#pragma omp parallel for schedule(dynamic)
     for (int expert_idx : target_idx_vector) {
+      const auto &assignments = expert_assignments[expert_idx];
       if (need_load[expert_idx]) {
-        miss_count += 1;
-        loaded_expert_deque.push_back(expert_idx);
-        missed_idx_vector.push_back(expert_idx);
-        iteration_map[expert_idx] = --loaded_expert_deque.end();
-        need_load[expert_idx] = false;
-      } else {
-        hit_count += 1;
-        hit_idx_vector.push_back(expert_idx);
-        // move recently used index to back;
-        // ___________________________________________
-        // |old element <================ new elemnt |
-        // -------------------------------------------
 
-        // LRU Algorithm
-        if (iteration_map.find(expert_idx) != iteration_map.end()) {
-          loaded_expert_deque.erase(iteration_map[expert_idx]);
+#ifdef DEBUG
+        auto t1_miss = high_resolution_clock::now();
+#endif
+
+        context.getWeight(expert_gate_proj_indices[expert_idx]).activate();
+        context.getWeight(expert_up_proj_indices[expert_idx]).activate();
+        context.getWeight(expert_down_proj_indices[expert_idx]).activate();
+
+        context.getWeight(expert_gate_bias_indices[expert_idx]).activate();
+        context.getWeight(expert_up_bias_indices[expert_idx]).activate();
+        context.getWeight(expert_down_bias_indices[expert_idx]).activate();
+
+        {
+          std::lock_guard<std::mutex> lock(cache_mutex);
+          loaded_expert_deque.push_back(expert_idx);
+          iteration_map[expert_idx] = --loaded_expert_deque.end();
+          need_load[expert_idx] = false;
+          miss_count += 1;
         }
-        loaded_expert_deque.push_back(expert_idx);
-        iteration_map[expert_idx] = --loaded_expert_deque.end();
+
+        compute_expert_forward(
+          input, expert_outputs[expert_idx], assignments,
+          context.getWeight(expert_gate_proj_indices[expert_idx]),
+          context.getWeight(expert_up_proj_indices[expert_idx]),
+          context.getWeight(expert_down_proj_indices[expert_idx]),
+          context.getWeight(expert_gate_bias_indices[expert_idx]),
+          context.getWeight(expert_up_bias_indices[expert_idx]),
+          context.getWeight(expert_down_bias_indices[expert_idx]), hidden_size);
+#ifdef DEBUG
+        auto t2_miss = high_resolution_clock::now();
+#endif
+      } else {
+
+#ifdef DEBUG
+        auto t1_hit = high_resolution_clock::now();
+#endif
+        {
+          std::lock_guard<std::mutex> lock(cache_mutex);
+          if (iteration_map.find(expert_idx) != iteration_map.end()) {
+            loaded_expert_deque.erase(iteration_map[expert_idx]);
+            loaded_expert_deque.push_back(expert_idx);
+            iteration_map[expert_idx] = --loaded_expert_deque.end();
+          }
+          hit_count += 1;
+        }
+
+        compute_expert_forward(
+          input, expert_outputs[expert_idx], assignments,
+          context.getWeight(expert_gate_proj_indices[expert_idx]),
+          context.getWeight(expert_up_proj_indices[expert_idx]),
+          context.getWeight(expert_down_proj_indices[expert_idx]),
+          context.getWeight(expert_gate_bias_indices[expert_idx]),
+          context.getWeight(expert_up_bias_indices[expert_idx]),
+          context.getWeight(expert_down_bias_indices[expert_idx]), hidden_size);
+
+#ifdef DEBUG
+        auto t2_hit = high_resolution_clock::now();
+#endif
       }
     }
 
-#ifdef DEBUG
-    auto t1_hit = high_resolution_clock::now();
-#endif
-// run hit experts
-#pragma omp parallel for schedule(dynamic)
-    for (int expert_idx : hit_idx_vector) {
-      const auto &assignments = expert_assignments[expert_idx];
-
-      compute_expert_forward(
-        input, expert_outputs[expert_idx], assignments,
-        context.getWeight(expert_gate_proj_indices[expert_idx]),
-        context.getWeight(expert_up_proj_indices[expert_idx]),
-        context.getWeight(expert_down_proj_indices[expert_idx]),
-        context.getWeight(expert_gate_bias_indices[expert_idx]),
-        context.getWeight(expert_up_bias_indices[expert_idx]),
-        context.getWeight(expert_down_bias_indices[expert_idx]), hidden_size);
-    }
-#ifdef DEBUG
-    auto t2_hit = high_resolution_clock::now();
-
-    auto t1_miss = high_resolution_clock::now();
-#endif
-#pragma omp parallel for schedule(dynamic)
-    for (int expert_idx : missed_idx_vector) {
-      context.getWeight(expert_gate_proj_indices[expert_idx]).activate();
-      context.getWeight(expert_up_proj_indices[expert_idx]).activate();
-      context.getWeight(expert_down_proj_indices[expert_idx]).activate();
-
-      context.getWeight(expert_gate_bias_indices[expert_idx]).activate();
-      context.getWeight(expert_up_bias_indices[expert_idx]).activate();
-      context.getWeight(expert_down_bias_indices[expert_idx]).activate();
-
-      const auto &assignments = expert_assignments[expert_idx];
-
-      compute_expert_forward(
-        input, expert_outputs[expert_idx], assignments,
-        context.getWeight(expert_gate_proj_indices[expert_idx]),
-        context.getWeight(expert_up_proj_indices[expert_idx]),
-        context.getWeight(expert_down_proj_indices[expert_idx]),
-        context.getWeight(expert_gate_bias_indices[expert_idx]),
-        context.getWeight(expert_up_bias_indices[expert_idx]),
-        context.getWeight(expert_down_bias_indices[expert_idx]), hidden_size);
-    }
-#ifdef DEBUG
-    auto t2_miss = high_resolution_clock::now();
-#endif
-
-    while (loaded_expert_deque.size() > 8) {
-      int target_idx = loaded_expert_deque.front();
-      loaded_expert_deque.pop_front();
-      iteration_map.erase(target_idx);
-      need_load[target_idx] = true;
-      evict_idx_vector.push_back(target_idx);
+    for (int i = extra_top_k.size() - 1; i >= 0; i--) {
+      if (iteration_map.find(extra_top_k[i]) != iteration_map.end()) {
+        loaded_expert_deque.erase(iteration_map[extra_top_k[i]]);
+        loaded_expert_deque.push_back(extra_top_k[i]);
+        iteration_map[extra_top_k[i]] = --loaded_expert_deque.end();
+      }
     }
 
 #ifdef DEBUG
     auto t1_evict = high_resolution_clock::now();
 #endif
-#pragma omp parallel for schedule(dynamic)
-    for (int target_idx : evict_idx_vector) {
+
+// Evict experts
+#pragma omp parallel
+    while (loaded_expert_deque.size() > 8) {
+      int target_idx;
+      {
+        std::lock_guard<std::mutex> lock(cache_mutex);
+        target_idx = loaded_expert_deque.front();
+        loaded_expert_deque.pop_front();
+        iteration_map.erase(target_idx);
+        need_load[target_idx] = true;
+      }
       context.getWeight(expert_gate_proj_indices[target_idx]).deactivate();
       context.getWeight(expert_up_proj_indices[target_idx]).deactivate();
       context.getWeight(expert_down_proj_indices[target_idx]).deactivate();
@@ -384,6 +406,7 @@ void CachedSlimGptOssMoELayer::incremental_forwarding(
       context.getWeight(expert_up_bias_indices[target_idx]).deactivate();
       context.getWeight(expert_down_bias_indices[target_idx]).deactivate();
     }
+
 #ifdef DEBUG
     auto t2_evict = high_resolution_clock::now();
 #endif
