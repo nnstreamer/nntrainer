@@ -1205,5 +1205,46 @@ template <typename T = float>
 extern void clamp(const T *input, T *output, size_t length,
                   T lower_bound = std::numeric_limits<T>::lowest(),
                   T upper_bound = std::numeric_limits<T>::max());
+
+/**
+ * @brief qs4cx quantization of (n*k) matrix. Typically a weight quantization,
+ * and generally regard the weight is already transposed, and quantize it as it
+ * is. qs4cx refers to quantized symmetric 4-bit quantization of channelwise x
+ * groups.
+ *
+ * @param n N length of the matrix
+ * @param k K length of the matrix
+ * @param rhs_native_mtx_f32 matrix data before quantization to load
+ * @param rhs_native_mtx_qs4cx matrix data after quantization to stroe
+ * @param rhs_scales_f32 matrix quant scale after quantization to stroe
+ * @param transB
+ */
+extern void nntr_quant_qs4cx_f32(size_t n, size_t k, void *rhs_native_mtx_f32,
+                                 void *rhs_native_mtx_qs4cx,
+                                 void *rhs_scales_f32, bool transB = true);
+/**
+ * @brief GEMM of qai8dxp runtime-quantized activation and offline qs4cx
+ * quantized weight
+ *
+ * @tparam T dataType of input activation and output matrices
+ * @param m M length of the matrix
+ * @param n N length of the matrix
+ * @param k K length of the matrix
+ * @param lhs_native_mtx activation (not quantized)
+ * @param rhs_native_mtx_qs4cx offline quantized weight
+ * @param rhs_scales scale factor vector of quantized weight
+ * @param dst_mtx dst matrix
+ * @param lower_bound lower bound to clamp
+ * @param upper_bound upper bound to clamp
+ * @param transB Choose weight data to be transposed or not. Default value
+ * regards the weight to be transpoed.
+ */
+template <typename T = float>
+extern void
+nntr_gemm_qai8dxp_qsi4cxp(size_t m, size_t n, size_t k, void *lhs_native_mtx,
+                          void *rhs_native_mtx_qs4cx, void *rhs_scales,
+                          T *dst_mtx, bool transB = true,
+                          T lower_bound = std::numeric_limits<T>::lowest(),
+                          T upper_bound = std::numeric_limits<T>::max());
 #endif
 #endif

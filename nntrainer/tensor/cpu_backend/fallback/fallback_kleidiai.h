@@ -8,9 +8,10 @@
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Sungsik Kong
  *
- * @brief  Modified computational backend components of matmul_clamp_f32_qai8dxp_qsi4cxp.
- *         Portions of this file are derived from Arm Limited code licensed
- *         under the Apache License, Version 2.0, with modifications
+ * @brief  Modified computational backend components of
+ * matmul_clamp_f32_qai8dxp_qsi4cxp. Portions of this file are derived from Arm
+ * Limited code licensed under the Apache License, Version 2.0, with
+ * modifications
  *
  * @note   Licensed under the Apache License, Version 2.0 (the "License");
  *         you may not use this file except in compliance with the License.
