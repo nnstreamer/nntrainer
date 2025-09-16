@@ -1209,10 +1209,12 @@ float test_gemm_qai8dxp_qsi4cxp(const uint32_t M, const uint32_t K,
                                 std::vector<float> &ref_dst, bool transB = true,
                                 bool print = false) {
   // Step1. Set qai8dxp_qsi4cxp quant test components
-  const size_t lhs_ref_size_qa8dx = M * (K + sizeof(int32_t) + sizeof(float));
+  const size_t lhs_ref_size_qa8dx =
+    static_cast<size_t>(M) * (K + sizeof(int32_t) + sizeof(float));
   const size_t rhs_native_size_qs4cx =
-    transB ? N * (((K + 2 - 1) / 2) * 2 / 2) * sizeof(uint8_t)
-           : K * (((N + 2 - 1) / 2) * 2 / 2) * sizeof(uint8_t);
+    transB
+      ? static_cast<size_t>(N) * (((K + 2 - 1) / 2) * 2 / 2) * sizeof(uint8_t)
+      : static_cast<size_t>(K) * (((N + 2 - 1) / 2) * 2 / 2) * sizeof(uint8_t);
   const size_t rhs_scales_size_f32 = N * sizeof(float);
 
   uint8_t *rhs_native_mtx_qs4cx = new uint8_t[rhs_native_size_qs4cx];
@@ -1226,7 +1228,7 @@ float test_gemm_qai8dxp_qsi4cxp(const uint32_t M, const uint32_t K,
 
   // Step3. Run GEMM! (Online activation quantization + kernel routine + return
   // float)
-  std::vector<float> dst(M * N);
+  std::vector<float> dst(static_cast<size_t>(M) * N);
   auto t1 = high_resolution_clock::now();
   // #### MAIN TESTED METHOD ####
   nntrainer::nntr_gemm_qai8dxp_qsi4cxp(
@@ -1262,9 +1264,11 @@ static void run_qai8dxp_qsi4cxp_test(const uint32_t M, const uint32_t K,
   ///@note A(sizez, sizex) * W.T(sizey, sizex) = (sizez, sizey)
 
   ///@note q4_K GEMM is a Row-Major, transB GEMM
-  std::vector<float> activation = generate_random_vector<float>(M * K);
-  std::vector<float> weight = generate_random_vector<float>(N * K);
-  std::vector<float> ref_dst(M * N);
+  std::vector<float> activation =
+    generate_random_vector<float>(static_cast<std::size_t>(M) * K);
+  std::vector<float> weight =
+    generate_random_vector<float>(static_cast<std::size_t>(N) * K);
+  std::vector<float> ref_dst(static_cast<std::size_t>(M) * N);
 
   // GROUND TRUTH TRANSB SGEMM for reference
   auto t1 = high_resolution_clock::now();
@@ -1287,7 +1291,7 @@ TEST(nntrainer_cpu_backend_standalone, qai8dxp_qsi4cxp_3072x768x1024) {
   const unsigned int N = 1024;
   float qai8dxp_qsi4cxp_q4_0_mse;
   constexpr float eps = 1e-5;
-  run_qai8dxp_qsi4cxp_test(M, K, N, qai8dxp_qsi4cxp_q4_0_mse, true, true);
+  run_qai8dxp_qsi4cxp_test(M, K, N, qai8dxp_qsi4cxp_q4_0_mse, true, false);
   ASSERT_LE(qai8dxp_qsi4cxp_q4_0_mse, eps * M * K * N);
 }
 
