@@ -5,11 +5,11 @@
  * @file   fallback_kleidiai.h
  * @date   15 September 2025
  * @see    https://github.com/nnstreamer/nntrainer
- * @author Sungsik Kong
- * @brief  Modified computational backend components of
- * matmul_clamp_f32_qai8dxp_qsi4cxp. Portions of this file are derived from Arm
- * Limited code licensed under the Apache License, Version 2.0, with
- * modifications
+ * @author Sungsik Kong <ss.kong@samsung.com>
+ * @brief  Modified computational backend components of kleidiai. Portions of
+ * this file are derived from Arm Limited code licensed under the Apache
+ * License, Version 2.0, with modifications
+ * @bug    No known bugs except for NYI items
  * @note   Licensed under the Apache License, Version 2.0 (the "License");
  *         you may not use this file except in compliance with the License.
  *         You may obtain a copy of the License at
@@ -19,12 +19,15 @@
  *   - [2025-09-15] Integrated and adapted Arm-provided code into
  *     nntrainer CPU backend
  *
- * @bug    No known bugs except for NYI items
  */
 
 #include <cstdint>
 #include <stddef.h>
 
+/**
+ * @brief rhs transpose indicator
+ *
+ */
 enum class rhs_format {
   nxk,
   kxn,
