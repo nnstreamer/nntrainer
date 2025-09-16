@@ -251,7 +251,6 @@ void MemoryPool::allocateFSU() {
  *
  */
 std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
-
 #if defined(__ANDROID__)
   auto mem_data = std::make_shared<MemoryData>((void *)memory_ptrs.at(idx - 1));
 #else
