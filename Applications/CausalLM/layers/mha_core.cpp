@@ -603,9 +603,9 @@ void MHACoreLayer::one_batch_incremental_forwarding(
 
   softmax_triangle(out_, to - from, num_heads_Q, from, pool, sink_step);
 
-  compute_fp16vcache_transposed(out_, b_cached_value, attention_output_step, to,
-                                num_heads_KV, gqa_size, head_dim,
-                                (from) ? false : true, pool);
+  compute_fp16vcache_transposed(out_, b_cached_value, attention_output_step,
+                                from, num_heads_KV, gqa_size, head_dim, to,
+                                pool);
 }
 
 /************************************************************** */
