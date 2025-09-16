@@ -203,6 +203,10 @@ int main(int argc, char *argv[]) {
     model->run(input_text.c_str(), generation_cfg["do_sample"]);
 #else
     model->run(input_text, generation_cfg["do_sample"]);
+
+    std::string second_input_text = "<|im_start|>user\n 아까 한 내용 요약해줘. <|im_end|>\n<|im_start|>assistant\n <think> \n </think> ";
+    model->run(second_input_text.c_str(), generation_cfg["do_sample"]);
+
 #endif
 #ifdef PROFILE
     stop_and_print_peak();

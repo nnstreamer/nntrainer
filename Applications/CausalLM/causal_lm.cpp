@@ -130,7 +130,7 @@ void CausalLM::setupParameters(json &cfg, json &generation_cfg,
   TEMPERATURE = generation_cfg.contains("temperature")
                   ? generation_cfg["temperature"].get<float>()
                   : 0.7;
-
+  global_token_len = 0;
   return;
 };
 
@@ -369,8 +369,8 @@ void CausalLM::run(const WSTR prompt, bool do_sample) {
     }
 
     output = model->incremental_inference(BATCH_SIZE, input, label, init_len,
-                                          SYS_PROMP_LEN,
-                                          SYS_PROMP_LEN + input_len, false);
+                                          SYS_PROMP_LEN + global_token_len,
+                                          SYS_PROMP_LEN + input_len + global_token_len, false);
   } else {
     //@note This is for the save the kv cache. precomputed kv cache should be
     // always located at the begining of the prompt.
@@ -384,7 +384,7 @@ void CausalLM::run(const WSTR prompt, bool do_sample) {
     //
 
     output = model->incremental_inference(BATCH_SIZE, input, label, input_len,
-                                          0, input_len, false);
+                                          0 + global_token_len, input_len + global_token_len, false);
 
     SYS_PROMP_LEN = input_len;
     save_kvcache(PRE_COMPUTED_CACHE_PATH, SYS_PROMP_LEN);
@@ -425,8 +425,8 @@ void CausalLM::run(const WSTR prompt, bool do_sample) {
        ++token_generation_idx) {
 
     auto output_interval = model->incremental_inference(
-      BATCH_SIZE, input, label, input_len, token_generation_idx - 1,
-      token_generation_idx);
+      BATCH_SIZE, input, label, input_len, token_generation_idx - 1 + global_token_len,
+      token_generation_idx + global_token_len);
     std::vector<unsigned int> ids_list(generate(output_interval[0], do_sample));
     if (token_generation_idx < input_len) {
       for (unsigned int b = 0; b < BATCH_SIZE; ++b) {
@@ -464,6 +464,8 @@ void CausalLM::run(const WSTR prompt, bool do_sample) {
       break;
     }
   }
+
+  global_token_len += (generation_cnt+ init_len);
 
   auto finish_generation = std::chrono::high_resolution_clock::now();
   auto generation_duration =

@@ -216,6 +216,7 @@ protected:
   std::string PRE_COMPUTED_CACHE_PATH;
   std::string TAIL_PROMPT;
   bool SAVE_KVCACHE;
+  unsigned int global_token_len;
 
   std::mt19937 rng; /**< Random Number Gen */
 };
