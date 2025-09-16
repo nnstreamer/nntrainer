@@ -3,17 +3,24 @@ arm_compute_backend_headers = [
     'neon_impl.h',
     'neon_setting.h',
     'neon_mathfun.h',
-    'neon_mathfun.hxx'
+    'neon_mathfun.hxx',
+    'neon_kleidiai.h'
 ]
 arm_compute_backend_sources = [
     'arm_compute_backend.cpp',
-    'neon_impl.cpp'
+    'neon_impl.cpp',
+    'neon_kleidiai.cpp'
 ]
 
 
 subdir('matrix_transpose_neon')
 nntrainer_inc += include_directories('matrix_transpose_neon')
 nntrainer_inc_abs += meson.current_source_dir() / 'matrix_transpose_neon'
+
+subdir('kai')
+nntrainer_inc += include_directories('kai')
+nntrainer_inc_abs += meson.current_source_dir() / 'kai'
+
 
 if get_option('enable-fp16')
   arm_compute_backend_sources += 'arm_compute_backend_fp16.cpp'
