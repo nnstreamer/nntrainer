@@ -31,7 +31,7 @@ void gemm_q4_0_async_cl(std::vector<void *> matAdata, float *matBdata,
   int padded_M = M + padding;
 
   ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
-    getQ4_0_Ab_Bi_8x4_Kernel(), "kernel_mul_mat_Ab_Bi_8x4");
+    q4_0_ab_bi_8x4_kernel, "kernel_mul_mat_Ab_Bi_8x4");
   if (!kernel_ptr) {
     throw std::runtime_error(
       "Failed to get kernel_ptr for kernel_mul_mat_Ab_Bi_8x4");
