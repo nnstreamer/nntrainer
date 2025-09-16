@@ -215,6 +215,10 @@ void ClContext::initAttentionClKernels() {
 
 #ifdef ENABLE_FP16
   registerClKernel(rotary_emb_fp16_kernel, "rotary_emb_cl_fp16");
+
+  registerClKernel(flash_attn_f16_kernel, "flash_attn_f16");
+  
+  // registerClKernel(getFlashAttentionClQ1KernelFP16(), "flash_attn_f16_q1");
 #endif
   attention_kernels_initialized = true;
 }

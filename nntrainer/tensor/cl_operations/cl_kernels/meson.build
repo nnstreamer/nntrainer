@@ -48,7 +48,8 @@ if get_option('enable-fp16')
     'swiglu_fp16.cl',
     'transpose_axis_0_fp16.cl',
     'transpose_axis_1_fp16.cl',
-    'transpose_axis_2_fp16.cl'
+    'transpose_axis_2_fp16.cl',
+    'flash_attn_f16.cl'
   ]
 endif
 
