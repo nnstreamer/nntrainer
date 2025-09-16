@@ -99,7 +99,7 @@ void ref_quant_qa8dx_f32(size_t m, size_t k, const float *lhs_f32,
       const float src0_0 = src_ptr[k_idx];
 
       // Scale the values
-      int32_t v0_s32 = (int32_t)(round(src0_0 * scale0));
+      int32_t v0_s32 = (int32_t)(std::round(src0_0 * scale0));
 
       v0_s32 = v0_s32 + nudged_zero_point0;
       v0_s32 = std::max(v0_s32, static_cast<int32_t>(INT8_MIN));
@@ -148,7 +148,7 @@ static void quant_nxk_qs4cx_f32(size_t n, size_t k, const float *rhs_f32,
       const float src0_0 = src_ptr[k_idx];
 
       // Scale the values
-      int32_t v0_s32 = (int32_t)(round(src0_0 * scale0));
+      int32_t v0_s32 = (int32_t)(std::round(src0_0 * scale0));
 
       // Maximum/minimum int4 values
       v0_s32 = std::max(v0_s32, static_cast<int32_t>(INT4_MIN));
@@ -209,7 +209,7 @@ static void quant_kxn_qs4cx_f32(size_t n, size_t k, const float *rhs_f32,
       const float src0_0 = src_ptr[k_idx];
 
       // Scale the values
-      int32_t v0_s32 = (int32_t)(round(src0_0 * scale0));
+      int32_t v0_s32 = (int32_t)(std::round(src0_0 * scale0));
 
       // Maximum/minimum int4 values
       v0_s32 = std::max(v0_s32, static_cast<int32_t>(INT4_MIN));
