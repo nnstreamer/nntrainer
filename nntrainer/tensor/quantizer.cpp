@@ -143,7 +143,7 @@ Tensor &PerTensorAffineQuantizer::quantize(const Tensor &input, Tensor &output,
       }
     }
   }
-  *output.getScale<float>() = *scales;
+  *output.getScale() = *scales;
 
   if (output.getDataType() == Tdatatype::UINT4 ||
       output.getDataType() == Tdatatype::UINT8 ||
@@ -163,7 +163,7 @@ Tensor PerTensorAffineQuantizer::dequantize(const Tensor &input,
     output.subtract_i(*input.getZeroPoint());
   }
 
-  output.multiply_i(*input.getScale<float>());
+  output.multiply_i(*input.getScale());
 
   return output;
 }

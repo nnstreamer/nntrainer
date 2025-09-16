@@ -47,25 +47,11 @@ void Q6_K_Tensor::allocate() {
     /** as this memory is shared, do NOT initialize */
   } else {
     /// allocate new memory for the tensor data
-    MemoryData *mem_data;
-
-    mem_data = new MemoryData((void *)(new uint8_t[size()]{}));
-    data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-      delete[] mem_data->template getAddr<uint8_t>();
-      delete mem_data;
-    });
+    allocateInternal();
 
     offset = 0;
     initialize();
   }
-}
-
-void *Q6_K_Tensor::getData() const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return data->getAddr<uint8_t>() + offset;
 }
 
 size_t Q6_K_Tensor::size() const {
@@ -94,6 +80,8 @@ void Q6_K_Tensor::setZero() {
 void Q6_K_Tensor::initialize() {
   if (empty() || !isAllocated())
     return;
+
+  TensorBase::initialize();
 
   setZero();
   putData();

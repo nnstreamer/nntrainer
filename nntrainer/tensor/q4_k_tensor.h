@@ -72,9 +72,25 @@ public:
   Q4_K_Tensor(TensorBase &rhs) : Uint4QTensor(rhs, QScheme::Q4_Kx8) {}
 
   /**
+   * @brief     Comparison operator overload
+   * @param[in] rhs Tensor to be compared with
+   */
+  bool operator==(const Q4_K_Tensor &rhs) const;
+
+  /**
    * @copydoc Tensor::allocate()
    */
   void allocate() override;
+
+  /**
+   * @copydoc Tensor::hasScale()
+   */
+  bool hasScale() const override { return false; }
+
+  /**
+   * @copydoc Tensor::hasZeroPoint()
+   */
+  bool hasZeroPoint() const override { return false; }
 
   /**
    * @copydoc TensorBase::size()
@@ -110,6 +126,10 @@ private:
    * @copydoc Tensor::isValid()
    */
   bool isValid() const override { return true; }
+
+  std::size_t getDataTypeBitsSize() const override {
+    return sizeof(uint8_t) * CHAR_BIT;
+  }
 
 }; // class Q4_K_Tensor
 

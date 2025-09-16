@@ -277,4 +277,9 @@ float fixedPointAndExponentToFloat(int fixedpoint, int exponent) {
   return std::ldexp(mantissa, exponent);
 }
 
+size_t roundNumberTo(const size_t number, const size_t round_to) {
+  return ((number / round_to) + (((number % round_to) != 0) ? 1 : 0)) *
+         round_to;
+}
+
 } // namespace nntrainer
