@@ -6,12 +6,10 @@
  * @date   15 September 2025
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Sungsik Kong
- *
  * @brief  Modified computational backend components of
- * matmul_clamp_f32_qai8dxp_qsi4cxp.cpp Portions of this file are derived from
- * Arm Limited code licensed under the Apache License, Version 2.0, with
+ * matmul_clamp_f32_qai8dxp_qsi4cxp. Portions of this file are derived from Arm
+ * Limited code licensed under the Apache License, Version 2.0, with
  * modifications
- *
  * @note   Licensed under the Apache License, Version 2.0 (the "License");
  *         you may not use this file except in compliance with the License.
  *         You may obtain a copy of the License at
@@ -105,8 +103,8 @@ void ref_quant_qa8dx_f32(size_t m, size_t k, const float *lhs_f32,
       int32_t v0_s32 = (int32_t)(round(src0_0 * scale0));
 
       v0_s32 = v0_s32 + nudged_zero_point0;
-      v0_s32 = std::max(v0_s32, INT8_MIN);
-      v0_s32 = std::min(v0_s32, INT8_MAX);
+      v0_s32 = std::max(v0_s32, static_cast<int32_t>(INT8_MIN));
+      v0_s32 = std::min(v0_s32, static_cast<int32_t>(INT8_MAX));
       dst_ptr[0] = (int8_t)v0_s32;
       dst_ptr += sizeof(int8_t);
     }
@@ -154,8 +152,8 @@ static void quant_nxk_qs4cx_f32(size_t n, size_t k, const float *rhs_f32,
       int32_t v0_s32 = (int32_t)(round(src0_0 * scale0));
 
       // Maximum/minimum int4 values
-      v0_s32 = std::max(v0_s32, INT4_MIN);
-      v0_s32 = std::min(v0_s32, INT4_MAX);
+      v0_s32 = std::max(v0_s32, static_cast<int32_t>(INT4_MIN));
+      v0_s32 = std::min(v0_s32, static_cast<int32_t>(INT4_MAX));
 
       const uint8_t v0_u8 = (uint8_t)(v0_s32 + 8);
 
@@ -215,8 +213,8 @@ static void quant_kxn_qs4cx_f32(size_t n, size_t k, const float *rhs_f32,
       int32_t v0_s32 = (int32_t)(round(src0_0 * scale0));
 
       // Maximum/minimum int4 values
-      v0_s32 = std::max(v0_s32, INT4_MIN);
-      v0_s32 = std::min(v0_s32, INT4_MAX);
+      v0_s32 = std::max(v0_s32, static_cast<int32_t>(INT4_MIN));
+      v0_s32 = std::min(v0_s32, static_cast<int32_t>(INT4_MAX));
 
       const uint8_t v0_u8 = (uint8_t)(v0_s32 + 8);
 

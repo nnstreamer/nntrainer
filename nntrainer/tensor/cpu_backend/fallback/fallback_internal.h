@@ -16,6 +16,7 @@
 #ifdef __cplusplus
 
 #include <cstdint>
+#include <limits.h>
 #include <limits>
 #include <tensor_dim.h>
 
