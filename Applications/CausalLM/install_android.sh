@@ -38,7 +38,6 @@ echo "Pushing shared libraries..."
 adb push "$SCRIPT_DIR/jni/libs/arm64-v8a/libnntrainer.so" $INSTALL_DIR/
 adb push "$SCRIPT_DIR/jni/libs/arm64-v8a/libccapi-nntrainer.so" $INSTALL_DIR/
 adb push "$SCRIPT_DIR/jni/libs/arm64-v8a/libc++_shared.so" $INSTALL_DIR/
-adb push "$SCRIPT_DIR/jni/libs/arm64-v8a/libggml.so" $INSTALL_DIR/
 
 # Create run script on device
 adb shell "cat > $INSTALL_DIR/run_causallm.sh << 'EOF'
