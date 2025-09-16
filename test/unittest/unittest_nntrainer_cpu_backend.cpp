@@ -1235,13 +1235,14 @@ float test_gemm_qai8dxp_qsi4cxp(const uint32_t M, const uint32_t K,
   auto t2 = high_resolution_clock::now();
   auto dt = duration_cast<nanoseconds>(t2 - t1);
   if (print) {
-    std::cout << "[INFO] __fallback_nntr_gemm_qai8dxp_qsi4cxp: " << dt.count()
+    std::cout << "[INFO] test_gemm_qai8dxp_qsi4cxp: " << dt.count()
               << " ns " << dt.count() / 1'000 << " us "
               << dt.count() / 1'000'000 << " ms " << std::endl;
   }
 
   // Step4. Compute quantization error
   auto mean_squared_error = compute_mse(M, N, ref_dst, dst, print);
+
   delete[] rhs_native_mtx_qs4cx;
   delete[] rhs_scales_f32;
   delete[] lhs_ref_mtx_qa8dx;
@@ -1282,14 +1283,68 @@ static void run_qai8dxp_qsi4cxp_test(const uint32_t M, const uint32_t K,
     M, K, N, weight.data(), activation.data(), ref_dst, transB, print);
 }
 
-TEST(nntrainer_cpu_backend_standalone, qai8dxp_qsi4cxp_3072x768x1024) {
-  const unsigned int M = 3072;
-  const unsigned int K = 768;
-  const unsigned int N = 1024;
+TEST(nntrainer_cpu_backend_standalone, qai8dxp_qsi4cxp_1x3072x3072) {
+  const unsigned int M = 1;
+  const unsigned int K = 3072;
+  const unsigned int N = 3072;
   float qai8dxp_qsi4cxp_q4_0_mse;
   constexpr float eps = 1e-5;
   run_qai8dxp_qsi4cxp_test(M, K, N, qai8dxp_qsi4cxp_q4_0_mse, true, false);
   ASSERT_LE(qai8dxp_qsi4cxp_q4_0_mse, eps * M * K * N);
+}
+
+TEST(nntrainer_cpu_backend_standalone, qai8dxp_qsi4cxp_1x3072x8192) {
+  const unsigned int M = 1;
+  const unsigned int K = 3072;
+  const unsigned int N = 8192;
+  float qai8dxp_qsi4cxp_q4_0_mse;
+  constexpr float eps = 1e-5;
+  run_qai8dxp_qsi4cxp_test(M, K, N, qai8dxp_qsi4cxp_q4_0_mse, true, true);
+  ASSERT_LE(qai8dxp_qsi4cxp_q4_0_mse, eps * M * K * N);
+}
+
+TEST(nntrainer_cpu_backend_standalone, qai8dxp_qsi4cxp_768x3072x3072) {
+  const unsigned int M = 768;
+  const unsigned int K = 3072;
+  const unsigned int N = 3072;
+  float qai8dxp_qsi4cxp_q4_0_mse;
+  constexpr float eps = 1e-5;
+  run_qai8dxp_qsi4cxp_test(M, K, N, qai8dxp_qsi4cxp_q4_0_mse, true, true);
+  ASSERT_LE(qai8dxp_qsi4cxp_q4_0_mse, eps * M * K * N);
+}
+
+TEST(nntrainer_cpu_backend_standalone, qai8dxp_qsi4cxp_3072x8192x8192) {
+  const unsigned int M = 3072;
+  const unsigned int K = 8192;
+  const unsigned int N = 8192;
+  float qai8dxp_qsi4cxp_q4_0_mse;
+  constexpr float eps = 1e-5;
+  run_qai8dxp_qsi4cxp_test(M, K, N, qai8dxp_qsi4cxp_q4_0_mse, true, true);
+  ASSERT_LE(qai8dxp_qsi4cxp_q4_0_mse, eps * M * K * N);
+}
+
+TEST(nntrainer_cpu_backend_standalone, quant_GEMM_768x3072x3072) {
+  const unsigned int M = 768;
+  const unsigned int K = 3072;
+  const unsigned int N = 3072;
+  float q4_0_mse, q4_k_mse, q6_k_mse;
+  constexpr float eps = 1e-5;
+  run_quant_test(M, K, N, q4_0_mse, q4_k_mse, q6_k_mse, true);
+  ASSERT_LE(q4_0_mse, eps * M * K * N);
+  ASSERT_LE(q4_k_mse, q4_0_mse);
+  ASSERT_LE(q6_k_mse, q4_k_mse);
+}
+
+TEST(nntrainer_cpu_backend_standalone, quant_GEMM_3072x8192x8192) {
+  const unsigned int M = 3072;
+  const unsigned int K = 8192;
+  const unsigned int N = 8192;
+  float q4_0_mse, q4_k_mse, q6_k_mse;
+  constexpr float eps = 1e-5;
+  run_quant_test(M, K, N, q4_0_mse, q4_k_mse, q6_k_mse, true);
+  ASSERT_LE(q4_0_mse, eps * M * K * N);
+  ASSERT_LE(q4_k_mse, q4_0_mse);
+  ASSERT_LE(q6_k_mse, q4_k_mse);
 }
 
 int main(int argc, char **argv) {
