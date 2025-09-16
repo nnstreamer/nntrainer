@@ -81,17 +81,20 @@ void CausalLM::setupParameters(json &cfg, json &generation_cfg,
                    : nntr_cfg["embedding_dtype"];
   FC_LAYER_DTYPE = nntr_cfg["fc_layer_dtype"];
 
-  PRE_COMPUTED_CACHE_PATH = nntr_cfg.value("pre_computed_cache_path", "");
+  USE_KVCACHE = false;
+  PRE_COMPUTED_CACHE_PATH = "";
+  SYS_PROMP_LEN = 0;
 
-  SYS_PROMP_LEN = nntr_cfg.contains("sys_prompt_token_size")
-                    ? nntr_cfg["sys_prompt_token_size"].get<unsigned int>()
-                    : 0;
-
-  TAIL_PROMPT = nntr_cfg.value("tail_prompt", "");
-
-  SAVE_KVCACHE = nntr_cfg.contains("save_kvcache")
-                   ? nntr_cfg["save_kvcache"].get<bool>()
-                   : false;
+  if (nntr_cfg.contains("system_prompt") &&
+      nntr_cfg["system_prompt"].contains("kvcache")) {
+    USE_KVCACHE = true;
+    PRE_COMPUTED_CACHE_PATH =
+      nntr_cfg["system_prompt"]["kvcache"]["pre_computed_cache_path"];
+    if (nntr_cfg["system_prompt"]["kvcache"].contains("sys_prompt_token_size"))
+      SYS_PROMP_LEN =
+        nntr_cfg["system_prompt"]["kvcache"]["sys_prompt_token_size"]
+          .get<unsigned int>();
+  }
 
   /** Initialize model parameters */
   NUM_VOCAB = cfg["vocab_size"];
@@ -259,7 +262,8 @@ void CausalLM::save_weight(const std::string &weight_path) {
   }
 };
 
-void CausalLM::run(const WSTR prompt, bool do_sample) {
+void CausalLM::run(const WSTR prompt, bool do_sample, const WSTR system_prompt,
+                   const WSTR tail_prompt) {
 
   if (!is_initialized) {
     throw std::runtime_error("CausalLM model is not initialized. Please call "
@@ -288,8 +292,16 @@ void CausalLM::run(const WSTR prompt, bool do_sample) {
   std::vector<float *> input;
   std::vector<float *> label;
 
+  /**
+   * SAVE_KVCACHE ?
+   *  if USE_KVCACHE && system_prompt is given && but the
+   * PRE_COMPUTED_CACHE_PATH does not exist
+   */
+  SAVE_KVCACHE = (USE_KVCACHE && system_prompt != "" &&
+                  !std::filesystem::exists(PRE_COMPUTED_CACHE_PATH));
+
 #if defined(_WIN32)
-  std::wcout << L"" << text_ << std::endl;
+  std::wcout << L"" << system_prompt << L"" << text_ << std::endl;
   std::wstring prompt_ = prompt;
   if (!SAVE_KVCACHE)
     prompt_ += TAIL_PROMPT;
@@ -297,12 +309,20 @@ void CausalLM::run(const WSTR prompt, bool do_sample) {
   auto _input = tokenizer->Encode(converter.to_bytes(prompt_));
 #else
   // print input text
-  std::cout << prompt << std::endl;
+  std::cout << system_prompt << prompt << tail_prompt << std::endl;
 
-  std::string prompt_ = prompt;
-  if (!SAVE_KVCACHE)
-    prompt_ += TAIL_PROMPT;
-  // std::wstring text = converter.from_bytes(prompt);
+  // actual prompt to be used in computation
+  std::string prompt_;
+
+  if (USE_KVCACHE) {
+    prompt_ = SAVE_KVCACHE ? system_prompt : (prompt + tail_prompt);
+  } else {
+    prompt_ = system_prompt + prompt + tail_prompt;
+  }
+
+  if (USE_KVCACHE && !SAVE_KVCACHE && SYS_PROMP_LEN == 0)
+    SYS_PROMP_LEN = tokenizer->Encode(system_prompt).size();
+
   auto _input = tokenizer->Encode(prompt_);
 #endif
 
@@ -360,18 +380,7 @@ void CausalLM::run(const WSTR prompt, bool do_sample) {
 
   std::vector<float *> output;
 
-  if (!SAVE_KVCACHE) {
-
-    if (!PRE_COMPUTED_CACHE_PATH.empty()) {
-      load_kvcache(PRE_COMPUTED_CACHE_PATH, SYS_PROMP_LEN);
-    } else {
-      SYS_PROMP_LEN = 0;
-    }
-
-    output = model->incremental_inference(BATCH_SIZE, input, label, init_len,
-                                          SYS_PROMP_LEN + global_token_len,
-                                          SYS_PROMP_LEN + input_len + global_token_len, false);
-  } else {
+  if (SAVE_KVCACHE) {
     //@note This is for the save the kv cache. precomputed kv cache should be
     // always located at the begining of the prompt.
     // Therefore, it start from 0. and system prompt should be saved in the
@@ -383,18 +392,30 @@ void CausalLM::run(const WSTR prompt, bool do_sample) {
     //  //< Precomputed cache >/<--given as input-->/<--- from json ---->//
     //
 
+    std::cout << "\n==============[KV CACHE SAVE MODE]================\n";
     output = model->incremental_inference(BATCH_SIZE, input, label, input_len,
                                           0 + global_token_len, input_len + global_token_len, false);
 
     SYS_PROMP_LEN = input_len;
     save_kvcache(PRE_COMPUTED_CACHE_PATH, SYS_PROMP_LEN);
+
     std::cout
-      << "kv caches are saved in " << PRE_COMPUTED_CACHE_PATH
-      << "and the size of prompt is " << SYS_PROMP_LEN
-      << ". You may need this prompt lenth to set the \"sys_prompt_token_size\""
+      << "kv caches are saved in " << PRE_COMPUTED_CACHE_PATH << std::endl
+      << "and the size of prompt is " << SYS_PROMP_LEN << ".\n"
+      << "You may need this prompt lenth to set the \"sys_prompt_token_size\""
+      << "\n==================================================\n"
       << std::endl;
     return;
   }
+
+  if (USE_KVCACHE) {
+    load_kvcache(PRE_COMPUTED_CACHE_PATH, SYS_PROMP_LEN);
+  } else {
+    SYS_PROMP_LEN = 0;
+  }
+  output = model->incremental_inference(BATCH_SIZE, input, label, init_len,
+                                        SYS_PROMP_LEN,
+                                        SYS_PROMP_LEN + input_len, false);
 
   // post process of model output
   std::vector<unsigned int> id_list(generate_multi_tokens(

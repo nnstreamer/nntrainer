@@ -102,7 +102,8 @@ public:
   /**
    * @brief run the CausalLM model
    */
-  void run(const WSTR prompt, bool do_sample = false);
+  void run(const WSTR prompt, bool do_sample = false,
+           const WSTR system_prompt = "", const WSTR tail_prompt = "");
 
 protected:
   /**
@@ -216,6 +217,7 @@ protected:
   std::string PRE_COMPUTED_CACHE_PATH;
   std::string TAIL_PROMPT;
   bool SAVE_KVCACHE;
+  bool USE_KVCACHE;
   unsigned int global_token_len;
 
   std::mt19937 rng; /**< Random Number Gen */

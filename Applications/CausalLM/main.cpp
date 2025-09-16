@@ -166,6 +166,8 @@ int main(int argc, char *argv[]) {
 
   const std::string model_path = argv[1];
   std::string input_text;
+  std::string system_head_prompt = "";
+  std::string system_tail_prompt = "";
 
   std::cout << model_path << std::endl;
 
@@ -181,6 +183,13 @@ int main(int argc, char *argv[]) {
       input_text = argv[2];
     } else {
       input_text = nntr_cfg["sample_input"].get<std::string>();
+    }
+
+    if (nntr_cfg.contains("system_prompt")) {
+      system_head_prompt =
+        nntr_cfg["system_prompt"]["head_prompt"].get<std::string>();
+      system_tail_prompt =
+        nntr_cfg["system_prompt"]["tail_prompt"].get<std::string>();
     }
 
     // Construct weight file path
@@ -200,12 +209,17 @@ int main(int argc, char *argv[]) {
     start_peak_tracker();
 #endif
 #if defined(_WIN32)
-    model->run(input_text.c_str(), generation_cfg["do_sample"]);
+    model->run(input_text.c_str(), generation_cfg["do_sample"],
+               system_head_prompt.c_str(), system_tail_prompt.c_str());
 #else
-    model->run(input_text, generation_cfg["do_sample"]);
+    model->run(input_text, generation_cfg["do_sample"], system_head_prompt,
+               system_tail_prompt);
 
-    std::string second_input_text = "<|im_start|>user\n 아까 한 내용 요약해줘. <|im_end|>\n<|im_start|>assistant\n <think> \n </think> ";
-    model->run(second_input_text.c_str(), generation_cfg["do_sample"]);
+    // Multi Turn Example
+    // std::string second_input_text = "<|im_start|>user\n 아까 한 내용
+    // 요약해줘. <|im_end|>\n<|im_start|>assistant\n <think> \n </think> ";
+    // model->run(second_input_text.c_str(), generation_cfg["do_sample"], " ", "
+    // ");
 
 #endif
 #ifdef PROFILE
