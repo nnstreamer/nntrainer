@@ -33,13 +33,50 @@ enum class rhs_format {
   kxn,
 };
 
+/**
+ * @brief qs4cx quantization of (n*k) matrix. Typically a weight quantization,
+ * and generally regard the weight is already transposed, and quantize it as it
+ * is. qs4cx refers to quantized symmetric 4-bit quantization of channelwise x
+ * groups.
+ *
+ * @param n N length of the matrix
+ * @param k K length of the matrix
+ * @param format whether rhs matrix is transpoed or not
+ * @param rhs_f32 matrix data before quantization to load
+ * @param rhs_qs4cx matrix data after quantization to store
+ * @param rhs_scales_f32  matrix quant scale after quantization to store
+ */
 void quant_qs4cx_f32(size_t n, size_t k, rhs_format format,
                      const float *rhs_f32, uint8_t *rhs_qs4cx,
                      float *rhs_scales_f32);
-
+/**
+ * @brief qa8dx quantization of (m*k) matrix. Typically a runtime activation
+ * quantization. qa8dx refer to quantized asymmetric 8bit per-dimension
+ * quantization
+ *
+ * @param m M length of the matrix
+ * @param k K length of the matrix
+ * @param lhs_f32 matrix data before quantization to load
+ * @param lhs_qa8dx matrix data after quantization to store
+ */
 void ref_quant_qa8dx_f32(size_t m, size_t k, const float *lhs_f32,
                          int8_t *lhs_qa8dx);
 
+/**
+ * @brief GEMM of qai8dxp runtime-quantized activation and offline qs4cx
+ * quantized weight
+ *
+ * @param m M length of the matrix
+ * @param n N length of the matrix
+ * @param k K length of the matrix
+ * @param format whether rhs matrix is transpoed or not
+ * @param lhs_qa8dx activation
+ * @param rhs_qs4cx weight
+ * @param rhs_scales_f32 weight scale factor
+ * @param dst_f32 dst matrix
+ * @param scalar_min lower bound to clamp
+ * @param scalar_max upper bound to clamp
+ */
 void ref_matmul_f32_qa8dx_qs4cx(size_t m, size_t n, size_t k, rhs_format format,
                                 const int8_t *lhs_qa8dx,
                                 const uint8_t *rhs_qs4cx,

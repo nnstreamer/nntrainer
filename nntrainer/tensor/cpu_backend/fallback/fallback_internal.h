@@ -1141,8 +1141,8 @@ void __fallback_clamp(const T *input, T *output, size_t length,
  * @param n N length of the matrix
  * @param k K length of the matrix
  * @param rhs_native_mtx_f32 matrix data before quantization to load
- * @param rhs_native_mtx_qs4cx matrix data after quantization to stroe
- * @param rhs_scales_f32 matrix quant scale after quantization to stroe
+ * @param rhs_native_mtx_qs4cx matrix data after quantization to store
+ * @param rhs_scales_f32 matrix quant scale after quantization to store
  * @param transB
  */
 void __fallback_nntr_quant_qs4cx_f32(size_t n, size_t k,
