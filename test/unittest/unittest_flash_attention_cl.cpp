@@ -44,16 +44,16 @@ TEST(attention_kernels, flash_attention_cl_fp16) {
   static constexpr size_t q_size = q_elements * sizeof(_FP16);
 
   static constexpr size_t k_width = 1;
-  static constexpr size_t k_height = 256;
-  static constexpr size_t k_channel = 3072;
+  static constexpr size_t k_height = 3072;
+  static constexpr size_t k_channel =256 ;
   static constexpr size_t k_batch = 1;
   //
   static constexpr size_t k_elements = k_width * k_height * k_channel * k_batch;
   static constexpr size_t k_size = k_elements * sizeof(_FP16);
 
   static constexpr size_t v_width = 1;
-  static constexpr size_t v_height = 256;
-  static constexpr size_t v_channel = 3072;
+  static constexpr size_t v_height = 3072;
+  static constexpr size_t v_channel = 256;
   static constexpr size_t v_batch = 1;
   //
   static constexpr size_t v_elements = v_width * v_height * v_channel * v_batch;

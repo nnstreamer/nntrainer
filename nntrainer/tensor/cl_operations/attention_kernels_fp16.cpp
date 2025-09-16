@@ -106,7 +106,7 @@ void flash_attention_cl_fp16(
   const int n_kv = k_ne1 ;          // k->ne[1];
   const int n_head_kv = k_ne2 ;     // k->ne[2];
   //
-  const int d_head_v = o_ne0 ;      // v->ne[0];
+  const int d_head_v = v_ne0 ;      // v->ne[0];
   // clang-format on
 
   // clang-format off
@@ -172,6 +172,8 @@ void flash_attention_cl_fp16(
   CL_CHECK(kernel->SetKernelArguments(/*     [30] const        int     n_head_kv     */ 26, &n_head_kv, sizeof(int)));
   // clang-format on
 
+  std::printf(" - d_head_q =         %d\n", d_head_q);
+  std::printf(" - d_head_v =         %d\n", d_head_v);
   std::printf(" - q =                %p\n", q);
   std::printf(" - k =                %p\n", k);
   std::printf(" - v =                %p\n", v);
