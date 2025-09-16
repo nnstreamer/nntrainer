@@ -331,10 +331,10 @@ bool CommandQueueManager::enqueueSVMUnmap(void *svm_ptr, cl_event *event) {
  * or wait for this command to complete
  * @return true if command queue execution is successful or false otherwise
  */
-bool CommandQueueManager::DispatchCommand(Kernel kernel,
-                                          const int (&work_groups_count)[3],
-                                          const int (&work_group_size)[3],
-                                          cl_event *event) {
+bool CommandQueueManager::DispatchCommand(
+  Kernel kernel, const int (&work_groups_count)[3],
+  const int (&work_group_size)[3], cl_event *event,
+  std::vector<cl_event> events_to_wait) {
 
   // work_dim of 2 has been hardcoded, might be modified later based on
   // requirements
@@ -353,8 +353,9 @@ bool CommandQueueManager::DispatchCommand(Kernel kernel,
   cl_kernel kernel_ = kernel.GetKernel();
 
   // returns NULL with error code if fails
-  const int error_code = clEnqueueNDRangeKernel(
-    command_queue_, kernel_, 3, nullptr, global, local, 0, nullptr, event);
+  const int error_code =
+    clEnqueueNDRangeKernel(command_queue_, kernel_, 3, nullptr, global, local,
+                           events_to_wait.size(), events_to_wait.data(), event);
   if (error_code != CL_SUCCESS) {
     ml_loge("Failed to clEnqueueNDRangeKernel. OpenCL error code: %d : %s",
             error_code, OpenCLErrorCodeToString(error_code));
@@ -366,7 +367,8 @@ bool CommandQueueManager::DispatchCommand(Kernel kernel,
 
 bool CommandQueueManager::DispatchCommand(
   const std::shared_ptr<Kernel> &kernel_ptr, const int (&work_groups_count)[3],
-  const int (&work_group_size)[3], cl_event *event) {
+  const int (&work_group_size)[3], cl_event *event,
+  std::vector<cl_event> events_to_wait) {
 
   // work_dim of 2 has been hardcoded, might be modified later based on
   // requirements
@@ -385,8 +387,9 @@ bool CommandQueueManager::DispatchCommand(
   cl_kernel kernel_ = kernel_ptr->GetKernel();
 
   // returns NULL with error code if fails
-  const int error_code = clEnqueueNDRangeKernel(
-    command_queue_, kernel_, 3, nullptr, global, local, 0, nullptr, event);
+  const int error_code =
+    clEnqueueNDRangeKernel(command_queue_, kernel_, 3, nullptr, global, local,
+                           events_to_wait.size(), events_to_wait.data(), event);
   if (error_code != CL_SUCCESS) {
     ml_loge("Failed to clEnqueueNDRangeKernel. OpenCL error code: %d : %s",
             error_code, OpenCLErrorCodeToString(error_code));

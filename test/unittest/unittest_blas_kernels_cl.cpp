@@ -631,6 +631,155 @@ TEST(nntrainer_blas_kernel, int4_gemv_async_test) {
   freeSVM(async_out2);
 }
 
+static void run_int4_gemm_test_(const uint32_t M, const uint32_t K,
+                                const uint32_t N) {
+  auto *blas_cc = static_cast<nntrainer::ClContext *>(
+    nntrainer::Engine::Global().getRegisteredContext("gpu"));
+
+  static constexpr uint32_t run_count = 200;
+  const int scale_group_size = 128;
+
+  // Allocate & initialize data
+  std::vector<float> input = generate_random_vector<float, false>(M * K);
+  std::vector<float> weight = generate_random_vector<float, false>(N * K);
+
+  std::vector<float> ref_dst(M * N, 0.0f);
+
+  nntrainer::sgemm(0, false, true, M, N, K, 1.F, input.data(), K, weight.data(),
+                   K, 0.F, ref_dst.data(), N);
+
+  uint16_t *input_ptr = (uint16_t *)allocateSVM(M * K * sizeof(uint16_t));
+  int8_t *weight_ptr = (int8_t *)allocateSVM(K * N / 2);
+  uint16_t *scale_ptr =
+    (uint16_t *)allocateSVM(K * N * sizeof(uint16_t) / scale_group_size);
+  uint16_t *output_ptr = (uint16_t *)allocateSVM(M * N * sizeof(uint16_t));
+
+  blas_cc->command_queue_inst_.enqueueSVMMap(input_ptr,
+                                             M * K * sizeof(uint16_t), false);
+  blas_cc->command_queue_inst_.enqueueSVMMap(weight_ptr, K * N / 2, false);
+  blas_cc->command_queue_inst_.enqueueSVMMap(
+    scale_ptr, K * N * sizeof(uint16_t) / scale_group_size, false);
+
+  auto quantization = quantize_int4_os_is_yx_osv32_isv2(weight.data(), N, K);
+
+  for (unsigned int i = 0; i < M * K; ++i) {
+    input_ptr[i] = compute_fp32_to_fp16((input.data())[i]);
+  }
+
+  for (unsigned int i = 0; i < K * N / scale_group_size; ++i) {
+    scale_ptr[i] = quantization.second[i];
+  }
+
+  for (unsigned int i = 0; i < N * K / 2; ++i) {
+    weight_ptr[i] = quantization.first[i];
+  }
+
+  blas_cc->command_queue_inst_.enqueueSVMUnmap(input_ptr);
+  blas_cc->command_queue_inst_.enqueueSVMUnmap(weight_ptr);
+  blas_cc->command_queue_inst_.enqueueSVMUnmap(scale_ptr);
+  // GPU INT4 GEMM
+  auto t3 = std::chrono::high_resolution_clock::now();
+  for (unsigned int i = 0; i < run_count; ++i) {
+    nntrainer::openvino_gemm_cl(input_ptr, weight_ptr, scale_ptr, output_ptr, M,
+                                N, K);
+  }
+
+  auto t4 = std::chrono::high_resolution_clock::now();
+  auto gpu_dt =
+    std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3).count();
+
+  // Compute raports
+  {
+    uint32_t first_zero_index = UINT32_MAX;
+    uint32_t first_nonzero_index = UINT32_MAX;
+    int zeros = 0;
+    int non_zeros = 0;
+    int nans = 0;
+
+    for (uint32_t i = 0; i < M * N; ++i) {
+      if (compute_fp16_to_fp32(output_ptr[i]) == 0) {
+        zeros++;
+        if (first_zero_index == UINT32_MAX) {
+          first_zero_index = i;
+        }
+      } else {
+        non_zeros++;
+        if (first_nonzero_index == UINT32_MAX) {
+          first_nonzero_index = i;
+        }
+      }
+
+      if (std::isnan(compute_fp16_to_fp32(output_ptr[i]))) {
+        nans++;
+      }
+    }
+
+    auto debug_print_beg_end = [M, K, N](const uint16_t *const data,
+                                         const uint32_t count = 5) {
+      std::cout << "[";
+      for (unsigned int i = 0; i < count; ++i) {
+        std::cout << compute_fp16_to_fp32(data[i]) << " ";
+      }
+      std::cout << "][";
+      for (unsigned int i = M * N - count; i < M * N; ++i) {
+        std::cout << compute_fp16_to_fp32(data[i]) << " ";
+      }
+      std::cout << "]";
+    };
+
+    auto debug_print_beg_end_float = [M, K, N](const float *const data,
+                                               const uint32_t count = 5) {
+      std::cout << "[";
+      for (unsigned int i = 0; i < count; ++i) {
+        std::cout << data[i] << " ";
+      }
+      std::cout << "][";
+      for (unsigned int i = M * N - count; i < M * N; ++i) {
+        std::cout << data[i] << " ";
+      }
+      std::cout << "]";
+    };
+
+    std::cout << "INT4 GEMM : " << M << " x " << K << " x " << N << std::endl;
+    std::cout << " - time : GPU = " << gpu_dt / (run_count * 1.0f) << " ms"
+              << std::endl;
+    std::cout << " - sample : GPU = ";
+    debug_print_beg_end(output_ptr);
+    std::cout << std::endl;
+    std::cout << " - sample: REF = ";
+    debug_print_beg_end_float(ref_dst.data());
+    std::cout << std::endl;
+    std::cout << " - zeros : " << zeros << " / " << M * N << " [ "
+              << zeros * 100.0f / float(M * N) << " %] - first at [ "
+              << first_zero_index << " ]" << std::endl;
+    std::cout << " - non zeros : " << non_zeros << " / " << M * N << " [ "
+              << non_zeros * 100.0f / float(M * N) << " %] - first at [ "
+              << first_nonzero_index << " ]" << std::endl;
+    std::cout << " - nans : " << nans << " / " << M * N << " [ "
+              << nans * 100.0f / float(M * N) << " %]" << std::endl;
+
+    freeSVM(weight_ptr);
+    freeSVM(scale_ptr);
+    freeSVM(input_ptr);
+    freeSVM(output_ptr);
+  }
+}
+
+#define DECLARE_int4_gemm_test_K_N(M, K, N)                                    \
+  TEST(nntrainer_blas_kernel, int4_gemm_test_##M##_##K##_##N) {                \
+    run_int4_gemm_test_(M, K, N);                                              \
+  }
+
+DECLARE_int4_gemm_test_K_N(28, 3072, 256);
+DECLARE_int4_gemm_test_K_N(28, 3072, 8192);
+DECLARE_int4_gemm_test_K_N(28, 8192, 3072);
+DECLARE_int4_gemm_test_K_N(28, 3072, 3072);
+
+DECLARE_int4_gemm_test_K_N(68, 3072, 256);
+DECLARE_int4_gemm_test_K_N(68, 3072, 8192);
+DECLARE_int4_gemm_test_K_N(68, 8192, 3072);
+DECLARE_int4_gemm_test_K_N(68, 3072, 3072);
+
 TEST(blas_kernels, dotCL_sgemv_M_1_1) {
   const int batch = 1;
   const int channel = 1;
@@ -1606,7 +1755,6 @@ TEST(blas_kernels, addition_i_fp16) {
   EXPECT_IN_RANGE(mseError, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
 }
-
 #endif
 
 static void run_q_6_K_test(const uint32_t M, const uint32_t K,
