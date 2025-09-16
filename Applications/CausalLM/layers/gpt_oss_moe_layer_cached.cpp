@@ -199,12 +199,6 @@ void CachedSlimGptOssMoELayer::forwarding(nntrainer::RunLayerContext &context,
 void CachedSlimGptOssMoELayer::incremental_forwarding(
   nntrainer::RunLayerContext &context, unsigned int from, unsigned int to,
   bool training) {
-  if (from) {
-    NNTR_THROW_IF(to - from != 1, std::invalid_argument)
-      << "incremental step size is not 1";
-    from = 0;
-    to = 1;
-  }
 #ifdef DEBUG
   auto t1 = high_resolution_clock::now();
 #endif
@@ -384,7 +378,7 @@ void CachedSlimGptOssMoELayer::incremental_forwarding(
 
 // Evict experts
 #pragma omp parallel
-    while (loaded_expert_deque.size() > 8) {
+    while (loaded_expert_deque.size() > 16) {
       int target_idx;
       {
         std::lock_guard<std::mutex> lock(cache_mutex);
