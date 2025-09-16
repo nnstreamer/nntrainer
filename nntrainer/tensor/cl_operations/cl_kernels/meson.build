@@ -9,6 +9,7 @@ cl_op_kernels = [
   'copy.cl',
   'dot.cl',
   'int4_gemv.cl',
+  'openvino_gemm.cl',
   'q4_0_ab_bi_8x4.cl',
   'q6_k_sgemv.cl',
   'restore_block_q4_0.cl',
@@ -26,7 +27,7 @@ cl_op_kernels = [
   'transpose_32bit_16bit.cl',
   'transpose_axis_0.cl',
   'transpose_axis_1.cl',
-  'transpose_axis_2.cl'
+  'transpose_axis_2.cl',
 ]
 
 if get_option('enable-fp16')
@@ -49,19 +50,24 @@ if get_option('enable-fp16')
     'swiglu_fp16.cl',
     'transpose_axis_0_fp16.cl',
     'transpose_axis_1_fp16.cl',
-    'transpose_axis_2_fp16.cl'
+    'transpose_axis_2_fp16.cl',
   ]
 endif
 
 all_includes = ''
 foreach k : cl_op_kernels
   basename = fs.stem(k)
+  kernel_code = fs.read(k).split('\n')
+  modified_code = []
+  foreach line : kernel_code
+    modified_code += ('R"(' + line + ')"' + ' "\\n"')
+  endforeach
   conf_data = configuration_data(
     {
       'namespace': 'nntrainer',
       'variable_name': basename + '_kernel',
       'header_path': basename + '.h',
-      'kernel_code': fs.read(k),
+      'kernel_code': '\n'.join(modified_code),
     },
   )
 

@@ -16,8 +16,8 @@
 
 #include "CL/cl.h"
 #include "opencl_kernel.h"
-#include <memory>
 #include "singleton.h"
+#include <memory>
 
 namespace nntrainer::opencl {
 
@@ -173,7 +173,8 @@ public:
    */
   bool DispatchCommand(Kernel kernel, const int (&work_groups_count)[3],
                        const int (&work_group_size)[3],
-                       cl_event *event = nullptr);
+                       cl_event *event = nullptr,
+                       std::vector<cl_event> events_to_wait = {});
 
   /**
    * @brief Overloaded function to initiate execution of the command queue.
@@ -189,7 +190,8 @@ public:
   bool DispatchCommand(const std::shared_ptr<Kernel> &kernel_ptr,
                        const int (&work_groups_count)[3],
                        const int (&work_group_size)[3],
-                       cl_event *event = nullptr);
+                       cl_event *event = nullptr,
+                       std::vector<cl_event> events_to_wait = {});
 
   /**
    * @brief Get the OpenCL Command Queue object
