@@ -183,12 +183,13 @@ void ClContext::initBlasClKernels() {
   registerClKernel(q6_k_sgemv_kernel, "kernel_mul_mv_q6_K_f32");
 
   // register Q4_0 kernels
+  registerClKernel(convert_q4_0_kernel, "kernel_convert_q4_0_to_y_x_yblock16");
   registerClKernel(convert_block_q4_0_kernel,
                    "kernel_convert_block_q4_0_noshuffle");
   registerClKernel(restore_block_q4_0_kernel, "kernel_restore_block_q4_0");
   registerClKernel(transpose_16bit_kernel, "kernel_transpose_16");
   registerClKernel(transpose_32bit_16bit_kernel, "kernel_transpose_32_16");
-  registerClKernel(q4_0_ab_bi_8x4_kernel, "kernel_mul_mat_Ab_Bi_8x4");
+  registerClKernel(q4_0_ab_bi_8x4_kernel, "fc_bf_tiled_kernel_default");
 
 #ifdef ENABLE_FP16
   registerClKernel(hgemv_kernel, "sgemv_cl_fp16");

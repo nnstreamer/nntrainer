@@ -31,10 +31,10 @@ void gemm_q4_0_async_cl(std::vector<void *> matAdata, float *matBdata,
   int padded_M = M + padding;
 
   ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
-    q4_0_ab_bi_8x4_kernel, "kernel_mul_mat_Ab_Bi_8x4");
+    q4_0_ab_bi_8x4_kernel, "fc_bf_tiled_kernel_default");
   if (!kernel_ptr) {
     throw std::runtime_error(
-      "Failed to get kernel_ptr for kernel_mul_mat_Ab_Bi_8x4");
+      "Failed to get kernel_ptr for fc_bf_tiled_kernel_default");
     return;
   }
 
@@ -59,44 +59,44 @@ void gemm_q4_0_async_cl(std::vector<void *> matAdata, float *matBdata,
       kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMQuant(i));
     if (!result)
       throw std::runtime_error(
-        "Failed to set kernel argument 0 for kernel_mul_mat_Ab_Bi_8x4");
+        "Failed to set kernel argument 0 for fc_bf_tiled_kernel_default");
 
     result =
       kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMScale(i));
     if (!result)
       throw std::runtime_error(
-        "Failed to set kernel argument 1 for kernel_mul_mat_Ab_Bi_8x4");
+        "Failed to set kernel argument 1 for fc_bf_tiled_kernel_default");
 
     result =
       kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMInput());
     if (!result)
       throw std::runtime_error(
-        "Failed to set kernel argument 2 for kernel_mul_mat_Ab_Bi_8x4");
+        "Failed to set kernel argument 2 for fc_bf_tiled_kernel_default");
 
     result = kernel_ptr->SetKernelSVMArguments(arg++, rdata);
     if (!result)
       throw std::runtime_error(
-        "Failed to set kernel argument 3 for kernel_mul_mat_Ab_Bi_8x4");
+        "Failed to set kernel argument 3 for fc_bf_tiled_kernel_default");
 
     result = kernel_ptr->SetKernelArguments(arg++, &N, sizeof(int));
     if (!result)
       throw std::runtime_error(
-        "Failed to set kernel argument 4 for kernel_mul_mat_Ab_Bi_8x4");
+        "Failed to set kernel argument 4 for fc_bf_tiled_kernel_default");
 
     result = kernel_ptr->SetKernelArguments(arg++, &padded_M, sizeof(int));
     if (!result)
       throw std::runtime_error(
-        "Failed to set kernel argument 5 for kernel_mul_mat_Ab_Bi_8x4");
+        "Failed to set kernel argument 5 for fc_bf_tiled_kernel_default");
 
     result = kernel_ptr->SetKernelArguments(arg++, &K, sizeof(int));
     if (!result)
       throw std::runtime_error(
-        "Failed to set kernel argument 6 for kernel_mul_mat_Ab_Bi_8x4");
+        "Failed to set kernel argument 6 for fc_bf_tiled_kernel_default");
 
     result = kernel_ptr->SetKernelArguments(arg++, &M, sizeof(int));
     if (!result)
       throw std::runtime_error(
-        "Failed to set kernel argument 7 for kernel_mul_mat_Ab_Bi_8x4");
+        "Failed to set kernel argument 7 for fc_bf_tiled_kernel_default");
     const int work_groups_count[3] = {(int)ceil(M / 8.0f), (int)N / 4, 1};
 
     // Perform Matrix Multiplication
@@ -104,7 +104,7 @@ void gemm_q4_0_async_cl(std::vector<void *> matAdata, float *matBdata,
       kernel_ptr, work_groups_count, work_group_size);
     if (!result) {
       throw std::runtime_error(
-        "Failed to dispatch kernel for kernel_mul_mat_Ab_Bi_8x4");
+        "Failed to dispatch kernel for fc_bf_tiled_kernel_default");
     }
   }
 
@@ -121,14 +121,51 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
   auto &clbuffInstance = ClBufferManager::Global();
 
-  size_t q_size_bytes = N * (K / 2);
-  size_t d_size_bytes = N * (K / 32) * 2;
+  {
+    ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
+      convert_q4_0_kernel, "kernel_convert_q4_0_to_y_x_yblock16");
+    if (!kernel_ptr) {
+      throw std::runtime_error(
+        "Failed to get kernel_ptr for kernel_convert_q4_0_to_y_x_yblock16");
+      return;
+    }
 
-  // 1. Preprocess matrix A
-  // 1.1 Unpack the Q4_0x8 matrix A to make a struct of array (src_q, src_d)
-  // 1.2 Perform 2D 16-bit transpose src_q, src_d
-  unpack_q4_0x8_transpose16(matAdata, (uint16_t *)clbuffInstance.getSVMScale(),
-                            (uint16_t *)clbuffInstance.getSVMQuant(), N, K);
+    int arg = 0;
+
+    result = kernel_ptr->SetKernelSVMArguments(arg++, matAdata);
+
+    if (!result)
+      throw std::runtime_error("Failed to set kernel argument 0 for "
+                               "kernel_convert_q4_0_to_y_x_yblock16");
+
+    result =
+      kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMQuant());
+    if (!result)
+      throw std::runtime_error("Failed to set kernel argument 1 for "
+                               "kernel_convert_q4_0_to_y_x_yblock16");
+
+    result =
+      kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMScale());
+    if (!result)
+      throw std::runtime_error("Failed to set kernel argument 2 for "
+                               "kernel_convert_q4_0_to_y_x_yblock16");
+
+    result = kernel_ptr->SetKernelArguments(arg++, &N, sizeof(int));
+    if (!result)
+      throw std::runtime_error("Failed to set kernel argument 3 for "
+                               "kernel_convert_q4_0_to_y_x_yblock16");
+
+    const int work_groups_count[3] = {(int)N / 2, (int)ceil(K), 1};
+    const int work_group_size[3] = {16, 4, 1};
+
+    result = blas_cc->command_queue_inst_.DispatchCommand(
+      kernel_ptr, work_groups_count, work_group_size);
+    if (!result) {
+      throw std::runtime_error(
+        "Failed to dispatch kernel for kernel_convert_q4_0_to_y_x_yblock16");
+      return;
+    }
+  }
 
   // 2. Preprocess matrix B: Transpose the Matrix B and convert to FP16
   /// @note mat mul will compute 8 elements at once, padding
@@ -144,66 +181,67 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
 
   // 3. Perform Matrix Multiplication
   ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
-    q4_0_ab_bi_8x4_kernel, "kernel_mul_mat_Ab_Bi_8x4");
+    q4_0_ab_bi_8x4_kernel, "fc_bf_tiled_kernel_default");
   if (!kernel_ptr) {
     throw std::runtime_error(
-      "Failed to get kernel_ptr for kernel_mul_mat_Ab_Bi_8x4");
+      "Failed to get kernel_ptr for fc_bf_tiled_kernel_default");
     return;
   }
 
   int arg = 0;
 
   result =
-    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMQuant());
-  if (!result)
-    throw std::runtime_error(
-      "Failed to set kernel argument 0 for kernel_mul_mat_Ab_Bi_8x4");
-
-  kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMScale());
-  if (!result)
-    throw std::runtime_error(
-      "Failed to set kernel argument 1 for kernel_mul_mat_Ab_Bi_8x4");
-
-  result =
     kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMInput());
 
   if (!result)
     throw std::runtime_error(
-      "Failed to set kernel argument 2 for kernel_mul_mat_Ab_Bi_8x4");
+      "Failed to set kernel argument 0 for fc_bf_tiled_kernel_default");
+
+  result =
+    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMScale());
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 1 for fc_bf_tiled_kernel_default");
 
   result = kernel_ptr->SetKernelSVMArguments(arg++, matCdata);
   if (!result)
     throw std::runtime_error(
-      "Failed to set kernel argument 3 for kernel_mul_mat_Ab_Bi_8x4");
+      "Failed to set kernel argument 2 for fc_bf_tiled_kernel_default");
 
-  result = kernel_ptr->SetKernelArguments(arg++, &N, sizeof(int));
+  result =
+    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMQuant());
   if (!result)
     throw std::runtime_error(
-      "Failed to set kernel argument 4 for kernel_mul_mat_Ab_Bi_8x4");
+      "Failed to set kernel argument 3 for fc_bf_tiled_kernel_default");
 
-  result = kernel_ptr->SetKernelArguments(arg++, &padded_M, sizeof(int));
-  if (!result)
-    throw std::runtime_error(
-      "Failed to set kernel argument 5 for kernel_mul_mat_Ab_Bi_8x4");
+  // result = kernel_ptr->SetKernelArguments(arg++, &N, sizeof(int));
+  // if (!result)
+  //   throw std::runtime_error(
+  //     "Failed to set kernel argument 4 for fc_bf_tiled_kernel_default");
 
-  result = kernel_ptr->SetKernelArguments(arg++, &K, sizeof(int));
-  if (!result)
-    throw std::runtime_error(
-      "Failed to set kernel argument 6 for kernel_mul_mat_Ab_Bi_8x4");
+  // result = kernel_ptr->SetKernelArguments(arg++, &padded_M, sizeof(int));
+  // if (!result)
+  //   throw std::runtime_error(
+  //     "Failed to set kernel argument 5 for fc_bf_tiled_kernel_default");
 
-  result = kernel_ptr->SetKernelArguments(arg++, &M, sizeof(int));
-  if (!result)
-    throw std::runtime_error(
-      "Failed to set kernel argument 7 for kernel_mul_mat_Ab_Bi_8x4");
+  // result = kernel_ptr->SetKernelArguments(arg++, &K, sizeof(int));
+  // if (!result)
+  //   throw std::runtime_error(
+  //     "Failed to set kernel argument 6 for fc_bf_tiled_kernel_default");
 
-  const int work_groups_count[3] = {(int)ceil(M / 8.0f), (int)N / 4, 1};
-  const int work_group_size[3] = {1, 128, 1};
+  // result = kernel_ptr->SetKernelArguments(arg++, &M, sizeof(int));
+  // if (!result)
+  //   throw std::runtime_error(
+  //     "Failed to set kernel argument 7 for fc_bf_tiled_kernel_default");
+
+  const int work_groups_count[3] = {(int)ceil(K) * 16, 1, (int)(M)};
+  const int work_group_size[3] = {16, 1, 8};
 
   result = blas_cc->command_queue_inst_.DispatchCommand(
     kernel_ptr, work_groups_count, work_group_size);
   if (!result) {
     throw std::runtime_error(
-      "Failed to dispatch kernel for kernel_mul_mat_Ab_Bi_8x4");
+      "Failed to dispatch kernel for fc_bf_tiled_kernel_default");
     return;
   }
 
@@ -212,7 +250,7 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
                                              true);
   if (!result) {
     throw std::runtime_error(
-      "Failed to read output data for kernel_mul_mat_Ab_Bi_8x4");
+      "Failed to read output data for fc_bf_tiled_kernel_default");
     return;
   }
 }

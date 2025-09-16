@@ -6,6 +6,7 @@ cl_op_kernels = [
   'concat_axis_2.cl',
   'concat_axis_3.cl',
   'convert_block_q4_0.cl',
+  'convert_q4_0.cl',
   'copy.cl',
   'dot.cl',
   'q4_0_ab_bi_8x4.cl',
@@ -25,7 +26,7 @@ cl_op_kernels = [
   'transpose_32bit_16bit.cl',
   'transpose_axis_0.cl',
   'transpose_axis_1.cl',
-  'transpose_axis_2.cl'
+  'transpose_axis_2.cl',
 ]
 
 if get_option('enable-fp16')
@@ -48,7 +49,7 @@ if get_option('enable-fp16')
     'swiglu_fp16.cl',
     'transpose_axis_0_fp16.cl',
     'transpose_axis_1_fp16.cl',
-    'transpose_axis_2_fp16.cl'
+    'transpose_axis_2_fp16.cl',
   ]
 endif
 
