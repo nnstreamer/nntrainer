@@ -892,40 +892,44 @@ void transpose_matrix(const unsigned int M, const unsigned int N,
 void swiglu(const unsigned int N, float *X, const float *Y, const float *Z) {
   size_t i = 0;
 
-  auto oldcsr = _mm_getcsr();
-  // We don't need denormals, enable:
-  // DAZ = Denormals Are Zero
-  // FTZ = Flush To Zero
-  _mm_setcsr(oldcsr | 0x8040);
+  const auto oldcsr = _mm_getcsr();
+  _mm_setcsr(oldcsr | 0x8040); // DAZ | FTZ
 
-  for (; i + 16 < N; i += 16) {
-    auto y0 = _mm256_loadu_ps(Y + i);
-    auto y1 = _mm256_loadu_ps(Y + i + 8);
-    auto z0 = _mm256_loadu_ps(Z + i);
-    auto z1 = _mm256_loadu_ps(Z + i + 8);
+  // 16-wide blocks
+  for (; i + 16 <= N; i += 16) {
+    const __m256 y0 = _mm256_loadu_ps(Y + i);
+    const __m256 y1 = _mm256_loadu_ps(Y + i + 8);
+    const __m256 z0 = _mm256_loadu_ps(Z + i);
+    const __m256 z1 = _mm256_loadu_ps(Z + i + 8);
 
     _mm256_storeu_ps(X + i, avx2_approx_swiglu(y0, z0));
     _mm256_storeu_ps(X + i + 8, avx2_approx_swiglu(y1, z1));
   }
 
-  if (i + 8 < N)
-    UNLIKELY {
-      auto y0 = _mm256_loadu_ps(Y + i);
-      auto z0 = _mm256_loadu_ps(Z + i);
-      _mm256_storeu_ps(X + i, avx2_approx_swiglu(y0, z0));
-      i += 8;
-    }
+  // One 8-wide block if available
+  if (i + 8 <= N) {
+    const __m256 y0 = _mm256_loadu_ps(Y + i);
+    const __m256 z0 = _mm256_loadu_ps(Z + i);
+    _mm256_storeu_ps(X + i, avx2_approx_swiglu(y0, z0));
+    i += 8;
+  }
 
-  if (i > N)
-    UNLIKELY {
-      alignas(64) int mask[] = {-1, -1, -1, -1, -1, -1, -1, -1,
-                                0,  0,  0,  0,  0,  0,  0,  0};
+  // Remaining 1..7 elements via maskload/maskstore
+  if (i < N) {
+    const int remain = static_cast<int>(N - i); // 1..7
 
-      auto vmask = _mm256_loadu_si256((__m256i *)(mask + (i & 7)));
-      auto ym = _mm256_maskload_ps(Y + i, vmask);
-      auto zm = _mm256_maskload_ps(Z + i, vmask);
-      _mm256_maskstore_ps(X + i, vmask, avx2_approx_swiglu(ym, zm));
-    }
+    alignas(64) const int mtab[16] = {-1, -1, -1, -1, -1, -1, -1, -1,
+                                      0,  0,  0,  0,  0,  0,  0,  0};
+    // Start so that we take 'remain' ones then zeros.
+    const int off = 8 - remain; // in [1..7], or 0 if remain==8
+    const __m256i vmask = _mm256_loadu_si256((const __m256i *)(mtab + off));
+
+    const __m256 y = _mm256_maskload_ps(Y + i, vmask);
+    const __m256 z = _mm256_maskload_ps(Z + i, vmask);
+    const __m256 r = avx2_approx_swiglu(y, z);
+    _mm256_maskstore_ps(X + i, vmask, r);
+  }
+
   _mm_setcsr(oldcsr);
 }
 
@@ -933,39 +937,47 @@ void swiglu(const unsigned int N, float *X, const float *Y, const float *Z,
             float alpha) {
   size_t i = 0;
 
-  auto oldcsr = _mm_getcsr();
-  // We don't need denormals, enable:
-  // DAZ = Denormals Are Zero
-  // FTZ = Flush To Zero
-  _mm_setcsr(oldcsr | 0x8040);
+  const auto oldcsr = _mm_getcsr();
+  _mm_setcsr(oldcsr | 0x8040); // DAZ | FTZ
 
-  auto alpha_vec = _mm256_set1_ps(alpha);
+  const __m256 alpha_vec = _mm256_set1_ps(alpha);
 
-  for (; i + 16 < N; i += 16) {
-    auto y0 = _mm256_loadu_ps(Y + i);
-    auto y1 = _mm256_loadu_ps(Y + i + 8);
-    auto z0 = _mm256_loadu_ps(Z + i);
-    auto z1 = _mm256_loadu_ps(Z + i + 8);
+  // 16-wide blocks
+  for (; i + 16 <= N; i += 16) {
+    const __m256 y0 = _mm256_loadu_ps(Y + i);
+    const __m256 y1 = _mm256_loadu_ps(Y + i + 8);
+    const __m256 z0 = _mm256_loadu_ps(Z + i);
+    const __m256 z1 = _mm256_loadu_ps(Z + i + 8);
 
     _mm256_storeu_ps(X + i, avx2_approx_swiglu_alpha(y0, z0, alpha_vec));
     _mm256_storeu_ps(X + i + 8, avx2_approx_swiglu_alpha(y1, z1, alpha_vec));
   }
 
-  if (i + 8 < N)
-    UNLIKELY {
-      auto y0 = _mm256_loadu_ps(Y + i);
-      auto z0 = _mm256_loadu_ps(Z + i);
-      _mm256_storeu_ps(X + i, avx2_approx_swiglu_alpha(y0, z0, alpha_vec));
-      i += 8;
-    }
+  // One 8-wide block if present
+  if (i + 8 <= N) {
+    const __m256 y0 = _mm256_loadu_ps(Y + i);
+    const __m256 z0 = _mm256_loadu_ps(Z + i);
+    _mm256_storeu_ps(X + i, avx2_approx_swiglu_alpha(y0, z0, alpha_vec));
+    i += 8;
+  }
 
-  if (i < N)
-    UNLIKELY {
-      // Process remaining elements
-      for (; i < N; ++i) {
-        X[i] = (Y[i] / (1.0f + std::exp(-alpha * Y[i]))) * Z[i];
-      }
-    }
+  // Remaining 1..7 elements via masked AVX (no stray stores)
+  if (i < N) {
+    const int remain = static_cast<int>(N - i); // 1..7
+
+    alignas(64) const int mtab[16] = {
+      -1, -1, -1, -1, -1, -1, -1, -1, // ones
+      0,  0,  0,  0,  0,  0,  0,  0   // zeros
+    };
+    const int off = 8 - remain; // choose first `remain` lanes active
+    const __m256i vmask = _mm256_loadu_si256((const __m256i *)(mtab + off));
+
+    const __m256 y = _mm256_maskload_ps(Y + i, vmask);
+    const __m256 z = _mm256_maskload_ps(Z + i, vmask);
+    const __m256 r = avx2_approx_swiglu_alpha(y, z, alpha_vec);
+    _mm256_maskstore_ps(X + i, vmask, r);
+  }
+
   _mm_setcsr(oldcsr);
 }
 
