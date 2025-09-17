@@ -172,9 +172,10 @@ void MemoryPool::allocate() {
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
   mem_pool = cl_context->context_inst_.createSVMRegion(pool_size);
 
+  // If SVM allocation fails, use calloc()
   if (mem_pool == nullptr) {
-    throw std::runtime_error("Failed to allocate SVM memory pool of size " +
-                             std::to_string(pool_size) + " bytes");
+    svm_allocation = false;
+    mem_pool = calloc(pool_size, 1);
   }
 #else
   mem_pool = calloc(pool_size, 1);
@@ -258,6 +259,14 @@ std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
   if (mem_pool == nullptr)
     throw std::invalid_argument("Getting memory before allocation");
 
+#ifdef ENABLE_OPENCL
+  if (svm_allocation) {
+    auto mem_data =
+      std::make_shared<MemoryData>((void *)memory_ptrs.at(idx - 1), true);
+    return mem_data;
+  }
+#endif
+
   auto mem_data = std::make_shared<MemoryData>((void *)memory_ptrs.at(idx - 1));
 #endif
   return mem_data;
@@ -270,9 +279,13 @@ std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
 void MemoryPool::deallocate() {
   if (mem_pool != nullptr) {
 #ifdef ENABLE_OPENCL
-    auto *cl_context =
-      static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-    cl_context->context_inst_.releaseSVMRegion(mem_pool);
+    if (svm_allocation) {
+      auto *cl_context =
+        static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+      cl_context->context_inst_.releaseSVMRegion(mem_pool);
+    } else {
+      free(mem_pool);
+    }
 #else
     free(mem_pool);
 #endif
