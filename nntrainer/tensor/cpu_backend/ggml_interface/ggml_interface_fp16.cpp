@@ -257,8 +257,7 @@ static void __ggml_quantize_mat_q8_0_4x8(const _FP16 *__restrict x,
 }
 
 template <>
-void __ggml_dequantize_row_q8_K(const void *__restrict _x, _FP16 *__restrict y,
-                                int64_t k) {
+void __ggml_dequantize_row_q8_K(const void *_x, _FP16 *y, int64_t k) {
   assert(k % QK_K == 0);
   const int64_t nb = k / QK_K;
   const block_q8_K *__restrict x = (const block_q8_K *__restrict)_x;
@@ -313,9 +312,7 @@ void __ggml_quantize_row_q8_K_ref(const _FP16 *__restrict x,
   }
 }
 
-template <>
-void __ggml_quantize_row_q8_K(const _FP16 *__restrict x, void *__restrict y,
-                              int64_t k) {
+template <> void __ggml_quantize_row_q8_K(const _FP16 *x, void *y, int64_t k) {
   __ggml_quantize_row_q8_K_ref(x, y, k);
 }
 
