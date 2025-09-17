@@ -394,7 +394,8 @@ void CausalLM::run(const WSTR prompt, bool do_sample, const WSTR system_prompt,
 
     std::cout << "\n==============[KV CACHE SAVE MODE]================\n";
     output = model->incremental_inference(BATCH_SIZE, input, label, input_len,
-                                          0 + global_token_len, input_len + global_token_len, false);
+                                          0 + global_token_len,
+                                          input_len + global_token_len, false);
 
     SYS_PROMP_LEN = input_len;
     save_kvcache(PRE_COMPUTED_CACHE_PATH, SYS_PROMP_LEN);
@@ -445,9 +446,10 @@ void CausalLM::run(const WSTR prompt, bool do_sample, const WSTR system_prompt,
        token_generation_idx < input_len + 1 + NUM_TO_GENERATE;
        ++token_generation_idx) {
 
-    auto output_interval = model->incremental_inference(
-      BATCH_SIZE, input, label, input_len, token_generation_idx - 1 + global_token_len,
-      token_generation_idx + global_token_len);
+    auto output_interval =
+      model->incremental_inference(BATCH_SIZE, input, label, input_len,
+                                   token_generation_idx - 1 + global_token_len,
+                                   token_generation_idx + global_token_len);
     std::vector<unsigned int> ids_list(generate(output_interval[0], do_sample));
     if (token_generation_idx < input_len) {
       for (unsigned int b = 0; b < BATCH_SIZE; ++b) {
@@ -486,7 +488,7 @@ void CausalLM::run(const WSTR prompt, bool do_sample, const WSTR system_prompt,
     }
   }
 
-  global_token_len += (generation_cnt+ init_len);
+  global_token_len += (generation_cnt + init_len);
 
   auto finish_generation = std::chrono::high_resolution_clock::now();
   auto generation_duration =

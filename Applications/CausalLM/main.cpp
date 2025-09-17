@@ -214,13 +214,6 @@ int main(int argc, char *argv[]) {
 #else
     model->run(input_text, generation_cfg["do_sample"], system_head_prompt,
                system_tail_prompt);
-
-    // Multi Turn Example
-    // std::string second_input_text = "<|im_start|>user\n 아까 한 내용
-    // 요약해줘. <|im_end|>\n<|im_start|>assistant\n <think> \n </think> ";
-    // model->run(second_input_text.c_str(), generation_cfg["do_sample"], " ", "
-    // ");
-
 #endif
 #ifdef PROFILE
     stop_and_print_peak();

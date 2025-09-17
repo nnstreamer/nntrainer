@@ -35,7 +35,7 @@
 
 #define ALIGNED_ALLOC(size) _aligned_malloc(size, GET_SYSTEM_ALIGMENT())
 #define ALIGNED_FREE(ptr) _aligned_free(ptr)
-#elif defined(__ANDROID__)
+#elif defined(__ANDROID__) && ENABLE_NPU
 #define RPCMEM_HEAP_ID_SYSTEM 25
 #define RPCMEM_DEFAULT_FLAGS 1
 #define ALIGNED_ALLOC(size)                                                    \
