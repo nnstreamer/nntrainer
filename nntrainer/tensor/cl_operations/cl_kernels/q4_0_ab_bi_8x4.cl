@@ -6,10 +6,14 @@
 
 #define DECOMPRESSION_SCALE_TERM 1
 #define DECOMPRESSION_SCALE_GROUPS_NUM 96
+// #define DECOMPRESSION_SCALE_BATCH_NUM 3072
+// #define DECOMPRESSION_SCALE_BATCH_PITCH 3072
+// #define DECOMPRESSION_SCALE_FEATURE_PITCH 96
 #define DECOMPRESSION_SCALE_BATCH_NUM 3072
-#define DECOMPRESSION_SCALE_BATCH_PITCH 3072
-#define DECOMPRESSION_SCALE_FEATURE_PITCH 96
+#define DECOMPRESSION_SCALE_BATCH_PITCH 96
+#define DECOMPRESSION_SCALE_FEATURE_PITCH 1
 #define DECOMPRESSION_SCALE_GROUP_SIZE 32
+#define DECOMPRESSION_SCALE_LENGTH 294912
 
 #define INPUT0_TYPE half
 #define OUTPUT_TYPE float
@@ -22,7 +26,7 @@
 #define OUTPUT_BATCH_NUM 3072
 #define IFM_SIZE 3072
 
-#define ACCUMULATOR_TYPE int
+#define ACCUMULATOR_TYPE float
 #define ACTIVATION_TYPE float
 
 #define INT4_PACKED_TYPE = int4x8_t
@@ -58,7 +62,7 @@
 #define NUM_LOOP_IN_DYN_QUAN_GROUP 1
 #define REALIGN_FP16_OFFSET 0
 #define TILE_OUT_F_NUM 3072
-#define TILE_OUT_F_PITCH 3072
+#define TILE_OUT_F_PITCH 1
 #define TILE_IN_B_PITCH 3072
 #define TILE_OUT_B_PITCH 3072
 #define BATCH_SIZE (OUTPUT_BATCH_NUM)
@@ -1028,10 +1032,9 @@ inline uchar8 unpack_to_uchar_osv32_isv2(uint4x8_t v)
 // if they laid in bs_fs_bsv_fsv format, these macros describe fsv and bsv
 // factors;
 
-#if FC_KERNEL_DYNAMIC_QUANTIZE
-KERNEL(quantize_input)(const __global INPUT0_TYPE *input,
-                       __global DQ_TYPE *quantized_input,
-                       __global INPUT0_TYPE *quan_var) {
+kernel void quantize_input(const __global INPUT0_TYPE *input,
+                           __global DQ_TYPE *quantized_input,
+                           __global INPUT0_TYPE *quan_var) {
   const uint offset = get_global_id(0);
 
   const uint input_offset = offset * QUANTIZE_GROUP_SIZE;
@@ -1076,7 +1079,6 @@ KERNEL(quantize_input)(const __global INPUT0_TYPE *input,
   quan_var[(offset * 2) + 1] = convert_half(quantized_sum);
 #endif
 }
-#else // !FC_KERNEL_DYNAMIC_QUANTIZE
 
 // Verify JIT parameters.
 #if SIMD != 8 && SIMD != 16
@@ -1218,7 +1220,7 @@ inline void fc_bf_tiled_kernel_dyn_quan(
 #endif
 ) {
   uint gid = (uint)get_group_id(0);
-  uint local_id = (uint)get_local_id(2);
+  uint local_id = (uint)get_local_id(1);
   uint sglid = (uint)get_sub_group_local_id();
 
   // Dispatch as bs_fs_bsv_fsv, where bsv = DISPATCH_BSV and fsv = DISPATCH_FSV.
@@ -1240,7 +1242,7 @@ inline void fc_bf_tiled_kernel_dyn_quan(
   FILTER_VEC_TYPE wei = 0;
 
   uint out_f = gid * (TILE_OFM * SIMD);
-  uint out_b = LWS_BATCHES * TILE_B * (uint)get_group_id(2) + local_id * TILE_B;
+  uint out_b = LWS_BATCHES * TILE_B * (uint)get_group_id(1) + local_id * TILE_B;
 
 #if OUTPUT_3D
   uint out_b0 = out_b / OUTPUT_FEATURE_NUM;
@@ -1858,4 +1860,3 @@ kernel void fc_bf_tiled_kernel_default(
 #endif
   );
 }
-#endif // !FC_KERNEL_DYNAMIC_QUANTIZE

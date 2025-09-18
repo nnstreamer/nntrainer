@@ -172,12 +172,45 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
   // will be added if M is not multiple of 8.
   transpose_32_16(matBdata, M, K);
 
-  int padding = 0;
-  if (M % 8 > 0) {
-    padding = 8 - (M % 8);
-  }
+  {
+    ClContext::SharedPtrClKernel kernel_ptr =
+      blas_cc->registerClKernel(q4_0_ab_bi_8x4_kernel, "quantize_input");
+    if (!kernel_ptr) {
+      throw std::runtime_error("Failed to get kernel_ptr for quantize_input");
+      return;
+    }
 
-  int padded_M = M + padding;
+    int arg = 0;
+
+    result =
+      kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMInput());
+
+    if (!result)
+      throw std::runtime_error("Failed to set kernel argument 0 for "
+                               "quantize_input");
+
+    result =
+      kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMQuant(1));
+    if (!result)
+      throw std::runtime_error("Failed to set kernel argument 1 for "
+                               "quantize_input");
+
+    result =
+      kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMScale(1));
+    if (!result)
+      throw std::runtime_error("Failed to set kernel argument 2 for "
+                               "quantize_input");
+
+    const int work_groups_count[3] = {(int)(N * K), 1, 1};
+    const int work_group_size[3] = {1, 1, 1};
+
+    result = blas_cc->command_queue_inst_.DispatchCommand(
+      kernel_ptr, work_groups_count, work_group_size);
+    if (!result) {
+      throw std::runtime_error("Failed to dispatch kernel for quantize_input");
+      return;
+    }
+  }
 
   // 3. Perform Matrix Multiplication
   ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
@@ -214,28 +247,20 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
     throw std::runtime_error(
       "Failed to set kernel argument 3 for fc_bf_tiled_kernel_default");
 
-  // result = kernel_ptr->SetKernelArguments(arg++, &N, sizeof(int));
-  // if (!result)
-  //   throw std::runtime_error(
-  //     "Failed to set kernel argument 4 for fc_bf_tiled_kernel_default");
+  result =
+    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMQuant(1));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 4 for fc_bf_tiled_kernel_default");
 
-  // result = kernel_ptr->SetKernelArguments(arg++, &padded_M, sizeof(int));
-  // if (!result)
-  //   throw std::runtime_error(
-  //     "Failed to set kernel argument 5 for fc_bf_tiled_kernel_default");
+  result =
+    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMScale(1));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 5 for fc_bf_tiled_kernel_default");
 
-  // result = kernel_ptr->SetKernelArguments(arg++, &K, sizeof(int));
-  // if (!result)
-  //   throw std::runtime_error(
-  //     "Failed to set kernel argument 6 for fc_bf_tiled_kernel_default");
-
-  // result = kernel_ptr->SetKernelArguments(arg++, &M, sizeof(int));
-  // if (!result)
-  //   throw std::runtime_error(
-  //     "Failed to set kernel argument 7 for fc_bf_tiled_kernel_default");
-
-  const int work_groups_count[3] = {(int)ceil(K) * 16, 1, (int)(M)};
-  const int work_group_size[3] = {16, 1, 8};
+  const int work_groups_count[3] = {(int)(K / 2), (int)(M / 8), 1};
+  const int work_group_size[3] = {16, 8, 1};
 
   result = blas_cc->command_queue_inst_.DispatchCommand(
     kernel_ptr, work_groups_count, work_group_size);
