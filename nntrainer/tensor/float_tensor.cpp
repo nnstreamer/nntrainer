@@ -21,6 +21,8 @@
 
 #ifdef ENABLE_OPENCL
 #include "blas_kernels.h"
+#include <cl_context.h>
+#include <engine.h>
 #endif
 
 namespace nntrainer {
@@ -705,6 +707,11 @@ Tensor &FloatTensor::dot(Tensor const &input, Tensor &output, bool trans,
   case Tdatatype::Q4_0:
     dotQnK(input, output, trans, trans_in, beta, input.getDataType());
     break;
+  case Tdatatype::QINT16:
+  case Tdatatype::QINT8:
+  case Tdatatype::QINT4:
+    dotQInteger(input, output, trans, trans_in, beta, input.getDataType());
+    break;
   default:
     throw std::invalid_argument("Error: unsupported datatype");
   }
@@ -913,6 +920,26 @@ Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
 
   default:
     throw std::invalid_argument("Error: unsupported datatype");
+  }
+
+  return output;
+}
+
+Tensor &FloatTensor::dotQInteger(Tensor const &input, Tensor &output,
+                                 bool trans, bool trans_in, float beta,
+                                 Tdatatype dtype) const {
+  float *data = (float *)getData();
+  char *mdata = input.getData<char>();
+  float *rdata = output.getData<float>();
+
+  unsigned int M = getDim().height();
+  unsigned int K = getDim().width();
+  unsigned int N = input.getDim().width();
+  /// @todo need to verify copy fp32 -> fp16
+
+  /// @note this should be if (M == 1) else
+  for (int i = 0; i < M; ++i) {
+    gemv_int4_cl(mdata, input.getScale<uint16_t>(), data + i * N, rdata, K, N);
   }
 
   return output;

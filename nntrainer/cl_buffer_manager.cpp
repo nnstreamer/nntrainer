@@ -27,6 +27,7 @@ void ClBufferManager::initBuffers() {
   outBufferB = new opencl::Buffer(context_inst_, unused_buffer_bytes, false);
 
   data_input = context_inst_.createSVMRegion(buffer_size_bytes);
+  data_output = context_inst_.createSVMRegion(buffer_size_bytes);
   for (unsigned int i = 0; i < max_qs; ++i) {
     scale_vec.push_back(context_inst_.createSVMRegion(scale_q4_0_size));
     quant_vec.push_back(context_inst_.createSVMRegion(quant_q4_0_size));
@@ -43,6 +44,7 @@ ClBufferManager::~ClBufferManager() {
   delete outBufferB;
 
   context_inst_.releaseSVMRegion(data_input);
+  context_inst_.releaseSVMRegion(data_output);
   for (unsigned int i = 0; i < max_qs; ++i) {
     context_inst_.releaseSVMRegion(scale_vec[i]);
     context_inst_.releaseSVMRegion(quant_vec[i]);

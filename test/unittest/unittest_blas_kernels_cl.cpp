@@ -279,6 +279,68 @@ static void run_int4_gemv_test_(const uint32_t K, const uint32_t N) {
   freeSVM(output_ptr);
 }
 
+static void run_int4_sgemv_test_(const uint32_t K, const uint32_t N) {
+  auto *blas_cc = static_cast<nntrainer::ClContext *>(
+    nntrainer::Engine::Global().getRegisteredContext("gpu"));
+
+  static constexpr uint32_t run_count = 200;
+
+  const int scale_group_size = 128;
+
+  // Allocate & initialize data
+  char *weight_ptr = (char *)allocateSVM(K * N / 2);
+  uint16_t *scale_ptr =
+    (uint16_t *)allocateSVM(K * N / scale_group_size * sizeof(uint16_t));
+  float *input_ptr = (float *)allocateSVM(K * sizeof(float));
+  float *output_ptr = (float *)allocateSVM(N * sizeof(float));
+
+  std::vector<char> weight =
+    generate_random_vector<char, false>(K * N / 2, 0, 15);
+  std::vector<float> scale =
+    generate_random_vector<float, false>(K * N / scale_group_size, -2.0f, 2.0f);
+  std::vector<float> input =
+    generate_random_vector<float, false>(K, -2.0f, 2.0f);
+
+  for (unsigned int i = 0; i < K; ++i) {
+    input_ptr[i] = (input.data())[i];
+  }
+
+  for (unsigned int i = 0; i < K * N / scale_group_size; ++i) {
+    scale_ptr[i] = compute_fp32_to_fp16((scale.data())[i]);
+  }
+
+  for (unsigned int i = 0; i < N * K / 2; ++i) {
+    weight_ptr[i] = (weight.data())[i];
+  }
+
+  // GPU INT4 GEMV
+  auto t3 = std::chrono::high_resolution_clock::now();
+  for (unsigned int i = 0; i < run_count; ++i) {
+    nntrainer::gemv_int4_cl(weight_ptr, scale_ptr, input_ptr, output_ptr, K, N);
+  }
+  auto t4 = std::chrono::high_resolution_clock::now();
+  auto gpu_dt = std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3);
+
+  std::cout << "INT4 GEMV : " << K << " x " << N << std::endl;
+  std::cout << " - time : GPU = " << gpu_dt.count() / (run_count * 1.0f)
+            << " ms" << std::endl;
+
+  std::cout << " - sample : [";
+  for (unsigned int i = 0; i < 5; ++i) {
+    std::cout << output_ptr[i] << " ";
+  }
+  std::cout << "][";
+  for (unsigned int i = N - 5; i < N; ++i) {
+    std::cout << output_ptr[i] << " ";
+  }
+  std::cout << "]" << std::endl;
+
+  freeSVM(weight_ptr);
+  freeSVM(scale_ptr);
+  freeSVM(input_ptr);
+  freeSVM(output_ptr);
+}
+
 #define DECLARE_int4_gemv_test_K_N(K, N)                                       \
   TEST(nntrainer_blas_kernel, int4_gemv_test_##K##_##N) {                      \
     run_int4_gemv_test_(K, N);                                                 \
@@ -288,6 +350,16 @@ DECLARE_int4_gemv_test_K_N(3072, 256);
 DECLARE_int4_gemv_test_K_N(3072, 8192);
 DECLARE_int4_gemv_test_K_N(8192, 3072);
 DECLARE_int4_gemv_test_K_N(3072, 3072);
+
+#define DECLARE_int4_sgemv_test_K_N(K, N)                                      \
+  TEST(nntrainer_blas_kernel, int4_sgemv_test_##K##_##N) {                     \
+    run_int4_sgemv_test_(K, N);                                                \
+  }
+
+DECLARE_int4_sgemv_test_K_N(3072, 256);
+DECLARE_int4_sgemv_test_K_N(3072, 8192);
+DECLARE_int4_sgemv_test_K_N(8192, 3072);
+DECLARE_int4_sgemv_test_K_N(3072, 3072);
 
 TEST(blas_kernels, dotCL_sgemv_M_1_1) {
   const int batch = 1;

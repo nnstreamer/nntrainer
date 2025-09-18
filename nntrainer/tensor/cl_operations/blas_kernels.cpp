@@ -14,7 +14,105 @@
 #include "blas_kernels_templates.h"
 #include <cl_kernels/cl_kernels.h>
 
+/// @todo remove this when fp16 is enabled on Windows
+#include <fp16.h>
+
 namespace nntrainer {
+
+/// @todo replace this when fp16 is enabled on Windows
+void f16_f32(unsigned int N, const uint16_t *input, float *output) {
+  unsigned int idx = 0;
+  const uint16_t *data = (const uint16_t *)input;
+
+  // 16 half-precision floating point values to single-precision values
+  for (; N - idx >= 16; idx += 16) {
+    const __m256 vec0 = _mm256_cvtph_ps(_mm_loadu_si128((const __m128i *)data));
+    const __m256 vec1 =
+      _mm256_cvtph_ps(_mm_loadu_si128((const __m128i *)(data + 8)));
+    data += 16;
+
+    _mm256_storeu_ps(output, vec0);
+    _mm256_storeu_ps(output + 8, vec1);
+    output += 16;
+  }
+  // 8 half-precision floating point values to single-precision values
+  for (; N - idx >= 8; idx += 8) {
+    const __m256 vec = _mm256_cvtph_ps(_mm_loadu_si128((const __m128i *)data));
+    data += 8;
+
+    _mm256_storeu_ps(output, vec);
+    output += 8;
+  }
+  // remaining half-precision floating point values to single-precision values
+  while (idx < N) {
+    *output = compute_fp32_to_fp16(*data);
+    ++output;
+    ++data;
+    ++idx;
+  }
+}
+
+/// @todo replace this when fp16 is enabled on Windows
+void f32_f16(unsigned int N, const float *input, uint16_t *output) {
+  unsigned int idx = 0;
+  uint16_t *out_data = (uint16_t *)output;
+
+  // 16 single-precision floating point values to half-precision values
+  for (; N - idx >= 16; idx += 16) {
+    const __m256 vec0 = _mm256_loadu_ps(input);
+    const __m256 vec1 = _mm256_loadu_ps(input + 8);
+    input += 16;
+
+    _mm_storeu_si128((__m128i *)out_data,
+                     _mm256_cvtps_ph(vec0, _MM_FROUND_TO_NEAREST_INT));
+    _mm_storeu_si128((__m128i *)(out_data + 8),
+                     _mm256_cvtps_ph(vec1, _MM_FROUND_TO_NEAREST_INT));
+    out_data += 16;
+  }
+  // 8 single-precision floating point values to half-precision values
+  for (; N - idx >= 8; idx += 8) {
+    const __m256 vec = _mm256_loadu_ps(input);
+    input += 8;
+
+    _mm_storeu_si128((__m128i *)out_data,
+                     _mm256_cvtps_ph(vec, _MM_FROUND_TO_NEAREST_INT));
+    out_data += 8;
+  }
+  // 4 single-precision floating point values to half-precision values
+  for (; N - idx >= 4; idx += 4) {
+    const __m128 vec = _mm_loadu_ps(input);
+    input += 4;
+
+    _mm_storeu_si64((__m128i *)out_data,
+                    _mm_cvtps_ph(vec, _MM_FROUND_TO_NEAREST_INT));
+    out_data += 4;
+  }
+  // remaining single-precision floating point values to half-precision values
+  while (idx < N) {
+    *out_data = compute_fp16_to_fp32(*input);
+    ++out_data;
+    ++input;
+    ++idx;
+  }
+}
+
+///  @note remove this when fp16 is enabled on Windows
+void gemv_int4_cl(char *weight, uint16_t *scale, float *input, float *output,
+                  unsigned int K, unsigned int N) {
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
+  // copy fp32 input to fp16
+  f32_f16(K, input, (uint16_t *)clbuffInstance.getSVMInput());
+
+  // perform int4 matmul
+  gemv_int4_cl(weight, scale, (uint16_t *)clbuffInstance.getSVMInput(),
+               (uint16_t *)clbuffInstance.getSVMOutput(), K, N);
+
+  // copy fp16 output to fp32
+  f16_f32(N, (uint16_t *)clbuffInstance.getSVMOutput(), output);
+}
 
 void gemv_int4_cl(char *weight, uint16_t *scale, uint16_t *input,
                   uint16_t *output, unsigned int K, unsigned int N) {
