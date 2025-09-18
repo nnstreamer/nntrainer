@@ -352,7 +352,7 @@ public:
   void setBatch(unsigned int batch);
 
   /**
-   * @brief activate virtual Weight
+   * @brief activate FSU Weight (mmap Weight)
    *
    * @details Activate virtual Weight with mmap
    */
