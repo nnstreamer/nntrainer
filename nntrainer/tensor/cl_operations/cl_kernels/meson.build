@@ -9,6 +9,7 @@ cl_op_kernels = [
   'convert_q4_0.cl',
   'copy.cl',
   'dot.cl',
+  'openvino_gemm.cl',
   'q4_0_ab_bi_8x4.cl',
   'q6_k_sgemv.cl',
   'restore_block_q4_0.cl',

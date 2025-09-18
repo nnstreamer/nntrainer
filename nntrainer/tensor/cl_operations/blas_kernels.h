@@ -41,6 +41,18 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
                   unsigned int M, unsigned int N, unsigned int K);
 
 /**
+ * @brief     Q4_0 gemm computation : C = A*B
+ * @param[in] matAdata void * for Matrix A
+ * @param[in] matBdata float * for Matrix B
+ * @param[in] matCdata float * for Matrix C
+ * @param[in] M input dimension
+ * @param[in] K hidden dimension
+ * @param[in] N output dimension
+ */
+void openvino_gemm_cl(void *matAdata, float *matBdata, float *matCdata,
+                      unsigned int M, unsigned int N, unsigned int K);
+
+/**
  * @brief     Q6_K sgemv computation : Y = A*X
  * @param[in] matAdata void * for Matrix A
  * @param[in] vecXdata float * for Vector X

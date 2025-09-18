@@ -121,6 +121,109 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
   auto &clbuffInstance = ClBufferManager::Global();
 
+  size_t q_size_bytes = N * (K / 2);
+  size_t d_size_bytes = N * (K / 32) * 2;
+
+  // 1. Preprocess matrix A
+  // 1.1 Unpack the Q4_0x8 matrix A to make a struct of array (src_q, src_d)
+  // 1.2 Perform 2D 16-bit transpose src_q, src_d
+  unpack_q4_0x8_transpose16(matAdata, (uint16_t *)clbuffInstance.getSVMScale(),
+                            (uint16_t *)clbuffInstance.getSVMQuant(), N, K);
+
+  // 2. Preprocess matrix B: Transpose the Matrix B and convert to FP16
+  /// @note mat mul will compute 8 elements at once, padding
+  // will be added if M is not multiple of 8.
+  transpose_32_16(matBdata, M, K);
+
+  int padding = 0;
+  if (M % 8 > 0) {
+    padding = 8 - (M % 8);
+  }
+
+  int padded_M = M + padding;
+
+  // 3. Perform Matrix Multiplication
+  ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
+    q4_0_ab_bi_8x4_kernel, "kernel_mul_mat_Ab_Bi_8x4");
+  if (!kernel_ptr) {
+    throw std::runtime_error(
+      "Failed to get kernel_ptr for kernel_mul_mat_Ab_Bi_8x4");
+    return;
+  }
+
+  int arg = 0;
+
+  result =
+    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMQuant());
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 0 for kernel_mul_mat_Ab_Bi_8x4");
+
+  kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMScale());
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 1 for kernel_mul_mat_Ab_Bi_8x4");
+
+  result =
+    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMInput());
+
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 2 for kernel_mul_mat_Ab_Bi_8x4");
+
+  result = kernel_ptr->SetKernelSVMArguments(arg++, matCdata);
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 3 for kernel_mul_mat_Ab_Bi_8x4");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &N, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 4 for kernel_mul_mat_Ab_Bi_8x4");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &padded_M, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 5 for kernel_mul_mat_Ab_Bi_8x4");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &K, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 6 for kernel_mul_mat_Ab_Bi_8x4");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &M, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 7 for kernel_mul_mat_Ab_Bi_8x4");
+
+  const int work_groups_count[3] = {(int)ceil(M / 8.0f), (int)N / 4, 1};
+  const int work_group_size[3] = {1, 128, 1};
+
+  result = blas_cc->command_queue_inst_.DispatchCommand(
+    kernel_ptr, work_groups_count, work_group_size);
+  if (!result) {
+    throw std::runtime_error(
+      "Failed to dispatch kernel for kernel_mul_mat_Ab_Bi_8x4");
+    return;
+  }
+
+  /// @todo synchronize when only needed
+  blas_cc->command_queue_inst_.enqueueSVMMap(matCdata, M * N * sizeof(float),
+                                             true);
+  if (!result) {
+    throw std::runtime_error(
+      "Failed to read output data for kernel_mul_mat_Ab_Bi_8x4");
+    return;
+  }
+}
+
+void openvino_gemm_cl(void *matAdata, float *matBdata, float *matCdata,
+                      unsigned int M, unsigned int N, unsigned int K) {
+  bool result = false;
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
   {
     ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
       convert_q4_0_kernel, "kernel_convert_q4_0_to_y_x_yblock16");
@@ -174,7 +277,7 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
 
   {
     ClContext::SharedPtrClKernel kernel_ptr =
-      blas_cc->registerClKernel(q4_0_ab_bi_8x4_kernel, "quantize_input");
+      blas_cc->registerClKernel(openvino_gemm_kernel, "quantize_input");
     if (!kernel_ptr) {
       throw std::runtime_error("Failed to get kernel_ptr for quantize_input");
       return;
@@ -214,7 +317,7 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
 
   // 3. Perform Matrix Multiplication
   ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
-    q4_0_ab_bi_8x4_kernel, "fc_bf_tiled_kernel_default");
+    openvino_gemm_kernel, "fc_bf_tiled_kernel_default");
   if (!kernel_ptr) {
     throw std::runtime_error(
       "Failed to get kernel_ptr for fc_bf_tiled_kernel_default");

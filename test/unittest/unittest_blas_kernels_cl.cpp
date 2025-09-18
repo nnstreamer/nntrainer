@@ -1363,8 +1363,8 @@ static void run_q4_0_test(const uint32_t M, const uint32_t K,
   // GPU Q4_0 GEMM
   Timer timer2{};
   for (unsigned int i = 0; i < run_count; ++i) {
-    nntrainer::gemm_q4_0_cl(q4_weight_ptr, activations_f32_ptr,
-                            (float *)gpu_q4_dst, M, N, K);
+    nntrainer::openvino_gemm_cl(q4_weight_ptr, activations_f32_ptr,
+                                (float *)gpu_q4_dst, M, N, K);
   }
   auto t4 = timer2.GetElapsedMilliseconds();
 
