@@ -524,7 +524,7 @@ void Int4QTensor::print(std::ostream &out) const {
 
 size_t Int4QTensor::getMemoryBytes() const {
   return ((size() + 1) / 2) * dim.getDataTypeSize() +
-         scale_size() * sizeof(float);
+         scale_size() * sizeof(uint16_t);
 }
 
 size_t Int4QTensor::scale_size() const {
@@ -533,7 +533,7 @@ size_t Int4QTensor::scale_size() const {
     return 1;
     break;
   case QScheme::PER_CHANNEL_AFFINE:
-    return height();
+    return height() * width() / 128;
     break;
   default:
     break;

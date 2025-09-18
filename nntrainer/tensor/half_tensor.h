@@ -528,6 +528,13 @@ private:
                  float beta, Tdatatype dtype) const;
 
   /**
+   * @brief Float.dot(QINT4/QINT8/QINT16)
+   * @return Tensor& reference to the output tensor
+   */
+  Tensor &dotQInteger(Tensor const &input, Tensor &output, bool trans,
+                      bool trans_in, float beta, Tdatatype dtype) const;
+
+  /**
    * @copydoc Tensor::isValid()
    */
   bool isValid() const override;
