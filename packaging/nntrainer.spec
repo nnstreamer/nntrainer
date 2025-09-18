@@ -4,7 +4,6 @@
 %define         nnstreamer_trainer 1
 %define         nnstreamer_subplugin_path lib/nnstreamer
 %define         use_gym 0
-%define         use_ggml 1
 %define         use_ruy 1
 %define         use_biqgemm 0
 %define         support_ccapi 1
@@ -380,11 +379,6 @@ Summary: CLBlast as an OpenCL backend for BLAS operations in NNTrainer
 %define enable_cblas -Denable-blas=true
 %endif
 
-%if 0%{?use_ggml}
-%define enable_ggml -Denable-ggml=true
-%else
-%define enable_ggml -Denable-ggml=false
-%endif
 
 %if 0%{?use_ruy}
 %define enable_ruy -Denable-ruy=true
@@ -584,11 +578,9 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/memory_data.h
 %{_includedir}/nntrainer/tensor.h
 %{_includedir}/nntrainer/tensor_base.h
-%if 0%{?use_ggml}
 %{_includedir}/nntrainer/q4_k_tensor.h
 %{_includedir}/nntrainer/q6_k_tensor.h
 %{_includedir}/nntrainer/q4_0_tensor.h
-%endif
 %{_includedir}/nntrainer/int4_tensor.h
 %{_includedir}/nntrainer/uint4_tensor.h
 %{_includedir}/nntrainer/char_tensor.h
