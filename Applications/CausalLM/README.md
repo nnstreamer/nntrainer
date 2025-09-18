@@ -2,13 +2,13 @@
 
 - This application provides examples to run causal llm models using nntrainer.
 - This example only provides *inference* mode, not *training* mode yet.
-- **Parameter-efficient Training** mode will be supported soon.
 
 ## Supported models
 
 - Llama
 - Qwen3 (1.7b/4b/7b/14b)
 - Qwen3MoE (30b-A3b)
+- Gpt-Oss-20b 
 - You can try your own model with custom layers! 
 - Feel free to contribute! 😊
 
@@ -43,7 +43,7 @@ $ ./nntr_causallm /tmp/nntrainer/Applications/CausalLM/res/qwen3-4b/
 
 - PC test
 ```
-$ meson build -Denable-ggml=true -Denable-fp16=true -Dggml-thread-backend=omp -Denable-transformer=true -Domp-num-threads=4
+$ meson build -Denable-fp16=true -Dggml-thread-backend=omp -Denable-transformer=true -Domp-num-threads=4
 $ export OMP_THREAD_LIMIT=16 && export OMP_WAIT_POLICY=active && export OMP_PROC_BIND=true && export OMP_PLACES=cores && export OMP_NUM_THREADS=4
 ```
 
@@ -56,7 +56,10 @@ $ ./tools/package_android.sh -Domp-num-threads=4 -Dggml-thread-backend=omp
 
 - qwen3_causallm : basic implementation of qwen3 model
 - qwen3_moe_causallm : basic implementation of qwen3 moe model
-- qwen3_slim_moe_causallm : nntrainer's FSU-scheme-activated qwen3 moe model
-- nntr_qwen3_moe_causallm : nntrainer's Q/K/V parallelized qwen3 moe model
-- nntr_qwen3_causallm : nntrainer's Q/K/V parallelized qwen3 model
+- qwen3_slim_moe_causallm : nntrainer's FSU-scheme-activated qwen3 moe model (not recommended)
+- nntr_qwen3_moe_causallm : nntrainer's Q/K/V parallelized qwen3 moe model (not recommended)
+- nntr_qwen3_causallm : nntrainer's Q/K/V parallelized qwen3 model (not recommended)
+- qwen3_cached_slim_moe_causallm : nntrainer's MoE-specific FSU-based qwen3 moe model
+- gptoss_causallm : basic implementation of gpt oss model
+- gptoss_cached_slim_causallm : nntrainer's MoE-specific FSU-based gpt-oss moe model
 
