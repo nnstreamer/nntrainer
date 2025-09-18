@@ -83,7 +83,7 @@ public:
   explicit MemoryPool() :
     mem_pool(nullptr), pool_size(0), min_pool_size(0), n_wgrad(0) {
 
-#if defined(__ANDROID__)
+#if defined(__ANDROID__) && ENABLE_NPU
     void *handle =
       DynamicLibraryLoader::loadLibrary("libcdsprpc.so", DL_NOW | DL_LOCAL);
     const char *error_msg = DynamicLibraryLoader::getLastError();
@@ -322,7 +322,7 @@ private:
 
   std::unordered_map<std::string, std::shared_ptr<nntrainer::MemAllocator>>
     allocators;
-#if defined(__ANDROID__)
+#if defined(__ANDROID__) && ENABLE_NPU
   RpcMemAllocFn_t rpcmem_alloc;
   RpcMemFreeFn_t rpcmem_free;
 #endif

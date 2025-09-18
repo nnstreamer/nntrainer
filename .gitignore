@@ -21,6 +21,7 @@ Applications/**/data
 cifar-100-binary*
 Applications/**/*.bin
 Applications/**/res/*
+Applications/**/tokenizers-cpp-build/*
 
 # CTag
 /tags
