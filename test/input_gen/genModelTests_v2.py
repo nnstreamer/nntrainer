@@ -27,6 +27,19 @@ class ReduceMeanLast(torch.nn.Module):
         return out, loss
 
 
+class ReduceSumOperation(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc = torch.nn.Linear(2, 7)
+        self.loss = torch.nn.MSELoss()
+
+    def forward(self, inputs, labels):
+        out = self.fc(inputs[0])
+        out = torch.sum(out, dim=-1)
+        loss = self.loss(out, labels[0])
+        return out, loss
+
+
 class MolAttention(torch.nn.Module):
     def __init__(self, query_size):
         super(MolAttention, self).__init__()
@@ -641,6 +654,24 @@ if __name__ == "__main__":
             )
         ],
         name="reduce_mean_last",
+    )
+
+    record_v2(
+        ReduceSumOperation(),
+        iteration=2,
+        input_dims=[
+            (
+                3,
+                2,
+            )
+        ],
+        label_dims=[
+            (
+                3,
+                1,
+            )
+        ],
+        name="reduce_sum_operation",
     )
 
     record_v2(
