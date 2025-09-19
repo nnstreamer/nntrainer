@@ -17,6 +17,9 @@
 #include <tensor.h>
 #include <util_func.h>
 
+#ifdef ENABLE_OPENCL
+#include "blas_kernels.h"
+#endif
 namespace nntrainer {
 
 HalfTensor::HalfTensor(std::string name_, Tformat fm) :
@@ -706,6 +709,12 @@ Tensor &HalfTensor::dot(Tensor const &input, Tensor &output, bool trans,
     dotHalf(input, output, trans, trans_in, beta);
     break;
   case Tdatatype::Q4_0:
+    dotQnK(input, output, trans, trans_in, beta, input.getDataType());
+    break;
+  case Tdatatype::QINT16:
+  case Tdatatype::QINT8:
+  case Tdatatype::QINT4:
+    dotQInteger(input, output, trans, trans_in, beta, input.getDataType());
     break;
   default:
     throw std::invalid_argument("Error: unsupported datatype");
@@ -730,6 +739,42 @@ Tensor &HalfTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
   default:
     throw std::invalid_argument("Error: unsupported datatype");
   }
+  return output;
+}
+
+Tensor &HalfTensor::dotQInteger(Tensor const &input, Tensor &output, bool trans,
+                                bool trans_in, float beta,
+                                Tdatatype dtype) const {
+  _FP16 *data = (_FP16 *)getData();
+  char *mdata = input.getData<char>();
+  _FP16 *rdata = output.getData<_FP16>();
+
+  unsigned int M, N, K;
+
+  switch (dtype) {
+  case Tdatatype::QINT4:
+    M = getDim().height();
+    K = getDim().width();
+    N = input.getDim().width();
+#ifdef ENABLE_OPENCL
+    if (M == 1) {
+      gemv_int4_cl(mdata, input.getScale<uint16_t>(), (uint16_t *)data,
+                   (uint16_t *)rdata, K, N);
+    } else {
+      throw std::invalid_argument("Error: FP16.dot(QINT4) is NYI");
+    }
+#else
+    throw std::invalid_argument("Error: FP16.dot(QINT4) is NYI");
+#endif
+    break;
+  case Tdatatype::QINT8:
+    throw std::invalid_argument("Error: FP16.dot(QINT8) is NYI");
+    break;
+
+  default:
+    throw std::invalid_argument("Error: unsupported datatype");
+  }
+
   return output;
 }
 
