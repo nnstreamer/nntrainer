@@ -73,6 +73,11 @@ void gemm_q4_0_async_cl(std::vector<void *> matAdata, float *matBdata,
 void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
                   unsigned int M, unsigned int N, unsigned int K);
 
+void openvino_gemm_cl(float *input, char *weights, uint16_t *scale,
+                      float *output, unsigned int M, unsigned int N,
+                      unsigned int K,
+                      unsigned int quantization_group_size = 128);
+
 void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
                       unsigned int M, unsigned int N, unsigned int K,
                       unsigned int quantization_group_size = 128);

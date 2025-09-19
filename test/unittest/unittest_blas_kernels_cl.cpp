@@ -1338,20 +1338,6 @@ TEST(blas_kernels, addition_i_fp16) {
 }
 #endif
 
-template <typename T, bool random_init = false>
-static inline std::vector<T>
-generate_random_vector(size_t size, float min_val = -1.F, float max_val = 1.F) {
-  std::random_device rd;
-  auto init_val = random_init ? rd() : 42;
-  std::mt19937 gen(init_val);
-  std::uniform_real_distribution<float> dist(min_val, max_val);
-  std::vector<T> vec(size);
-  for (auto &val : vec) {
-    val = static_cast<T>(dist(gen));
-  }
-  return vec;
-}
-
 static inline int ceil_div(int a, int b) { return (a + b - 1) / b; }
 
 // Clamp to signed INT4 range [-8, 7]

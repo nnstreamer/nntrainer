@@ -383,6 +383,25 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
   }
 }
 
+///  @note remove this when fp16 is enabled on Windows
+void openvino_gemm_cl(float *input, char *weight, uint16_t *scale,
+                      float *output, unsigned int M, unsigned int N,
+                      unsigned int K, unsigned int quantization_group_size) {
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
+  // copy fp32 input to fp16
+  f32_f16(M * K, input, (uint16_t *)clbuffInstance.getSVMInput());
+
+  // perform int4 matmul
+  openvino_gemm_cl(clbuffInstance.getSVMInput(), weight, scale,
+                   clbuffInstance.getSVMOutput(), M, N, K);
+
+  // copy fp16 output to fp32
+  f16_f32(M * N, (uint16_t *)clbuffInstance.getSVMOutput(), output);
+}
+
 void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
                       unsigned int M, unsigned int N, unsigned int K,
                       unsigned int quantization_group_size) {
