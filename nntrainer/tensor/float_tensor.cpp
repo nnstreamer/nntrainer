@@ -721,37 +721,46 @@ Tensor &FloatTensor::dot(Tensor const &input, Tensor &output, bool trans,
 void FloatTensor::dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
                       bool trans, bool trans_in, float beta) const {
 
-  float *data = (float *)getData();
-  unsigned int M = getDim().height();
-  unsigned int K = getDim().width();
+  if (input[0]->getDataType() == Tdatatype::Q4_0) {
+    float *data = (float *)getData();
+    unsigned int M = getDim().height();
+    unsigned int K = getDim().width();
 
-  std::vector<unsigned int> Ns;
-  std::vector<void *> mdatas;
-  std::vector<float *> rdatas;
+    std::vector<unsigned int> Ns;
+    std::vector<void *> mdatas;
+    std::vector<float *> rdatas;
 
-  for (unsigned int i = 0; i < input.size(); ++i) {
-    int N = input[i]->getDim().width();
-    void *mdata = (void *)input[i]->getData<uint8_t>();
-    float *rdata = output[i]->getData<float>();
+    for (unsigned int i = 0; i < input.size(); ++i) {
+      int N = input[i]->getDim().width();
+      void *mdata = (void *)input[i]->getData<uint8_t>();
+      float *rdata = output[i]->getData<float>();
 #ifdef ENABLE_OPENCL
-    if (M == 1) {
-      gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
-    } else {
-      Ns.push_back(N);
-      mdatas.push_back(mdata);
-      rdatas.push_back(rdata);
-    }
+      if (M == 1) {
+        gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
+      } else {
+        Ns.push_back(N);
+        mdatas.push_back(mdata);
+        rdatas.push_back(rdata);
+      }
 #else
-    /// @todo Support multi-weight q4_0 for x64
-    gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
+      /// @todo Support multi-weight q4_0 for x64
+      gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
 #endif
-  }
+    }
 
 #ifdef ENABLE_OPENCL
-  if (M != 1) {
-    gemm_q4_0_async_cl(mdatas, data, rdatas, M, Ns, K);
-  }
+    if (M != 1) {
+      gemm_q4_0_async_cl(mdatas, data, rdatas, M, Ns, K);
+    }
 #endif
+  } else if (input[0]->getDataType() == Tdatatype::QINT4) {
+    for (unsigned int i = 0; i < input.size(); ++i) {
+      dotQInteger(*input[i], *output[i], trans, trans_in, beta,
+                  Tdatatype::QINT4);
+    }
+  } else {
+    throw std::runtime_error("unsupported data type");
+  }
 }
 
 Tensor &FloatTensor::dotFloat(Tensor const &input, Tensor &output, bool trans,
@@ -935,13 +944,15 @@ Tensor &FloatTensor::dotQInteger(Tensor const &input, Tensor &output,
   unsigned int M = getDim().height();
   unsigned int K = getDim().width();
   unsigned int N = input.getDim().width();
-  /// @todo need to verify copy fp32 -> fp16
 
   /// @note this should be if (M == 1) else
-  for (int i = 0; i < M; ++i) {
-    gemv_int4_cl(mdata, input.getScale<uint16_t>(), data + i * N, rdata, K, N);
-  }
-
+#ifdef ENABLE_OPENCL
+  for (int j = 0; j < M; ++j)
+    gemv_int4_cl(mdata, input.getScale<uint16_t>(), &data[j * K], &rdata[j * N],
+                 K, N);
+#else
+  throw std::runtime_error("unsupported data type");
+#endif
   return output;
 }
 
