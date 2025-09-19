@@ -6,7 +6,6 @@ cl_op_kernels = [
   'concat_axis_2.cl',
   'concat_axis_3.cl',
   'convert_block_q4_0.cl',
-  'convert_q4_0.cl',
   'copy.cl',
   'dot.cl',
   'openvino_gemm.cl',
