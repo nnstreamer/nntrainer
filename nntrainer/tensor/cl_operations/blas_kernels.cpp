@@ -217,9 +217,8 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
   }
 }
 
-void openvino_gemm_cl(_FP16 *input, int8_t *weights, _FP16 *scales,
-                      _FP16 *output, unsigned int M, unsigned int N,
-                      unsigned int K) {
+void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
+                      unsigned int M, unsigned int N, unsigned int K) {
   bool result = false;
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));

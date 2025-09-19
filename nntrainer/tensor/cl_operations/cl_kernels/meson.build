@@ -56,12 +56,17 @@ endif
 all_includes = ''
 foreach k : cl_op_kernels
   basename = fs.stem(k)
+  kernel_code = fs.read(k).split('\n')
+  modified_code = []
+  foreach line : kernel_code
+    modified_code += ('R"(' + line + ')"' + ' "\\n"')
+  endforeach
   conf_data = configuration_data(
     {
       'namespace': 'nntrainer',
       'variable_name': basename + '_kernel',
       'header_path': basename + '.h',
-      'kernel_code': fs.read(k),
+      'kernel_code': '\n'.join(modified_code),
     },
   )
 

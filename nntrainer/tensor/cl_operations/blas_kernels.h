@@ -40,9 +40,8 @@ void gemm_q4_0_async_cl(std::vector<void *> matAdata, float *matBdata,
 void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
                   unsigned int M, unsigned int N, unsigned int K);
 
-void openvino_gemm_cl(_FP16 *input, int8_t *weights, _FP16 *scales,
-                      _FP16 *output, unsigned int M, unsigned int N,
-                      unsigned int K);
+void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
+                      unsigned int M, unsigned int N, unsigned int K);
 
 /**
  * @brief     Q6_K sgemv computation : Y = A*X

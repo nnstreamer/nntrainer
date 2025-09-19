@@ -23,6 +23,7 @@
 #include <blas_kernels.h>
 #include <cl_context.h>
 #include <cpu_backend.h>
+#include <fp16.h>
 #include <layer_context.h>
 #include <tensor.h>
 
@@ -1097,6 +1098,91 @@ TEST(blas_kernels, dot_gemm_50_768_2048_transAB_fp16) {
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
 }
 
+template <typename T, bool random_init = false>
+static inline std::vector<T>
+generate_random_vector(size_t size, float min_val = -1.F, float max_val = 1.F) {
+  std::random_device rd;
+  auto init_val = random_init ? rd() : 42;
+  std::mt19937 gen(init_val);
+  std::uniform_real_distribution<float> dist(min_val, max_val);
+  std::vector<T> vec(size);
+  for (auto &val : vec) {
+    val = static_cast<T>(dist(gen));
+  }
+  return vec;
+}
+
+static void run_int4_gemm_test_(const uint32_t M, const uint32_t K,
+                                const uint32_t N) {
+  auto *blas_cc = static_cast<nntrainer::ClContext *>(
+    nntrainer::Engine::Global().getRegisteredContext("gpu"));
+
+  static constexpr uint32_t run_count = 200;
+
+  // Allocate & initialize data
+  char *weight_ptr = (char *)allocateSVM(K * N / 2);
+  uint16_t *scale_ptr = (uint16_t *)allocateSVM(N * sizeof(uint16_t));
+  uint16_t *input_ptr = (uint16_t *)allocateSVM(M * K * sizeof(uint16_t));
+  uint16_t *output_ptr = (uint16_t *)allocateSVM(M * N * sizeof(uint16_t));
+
+  std::vector<char> weight =
+    generate_random_vector<char, false>(K * N / 2, 0, 15);
+  std::vector<float> scale =
+    generate_random_vector<float, false>(N, -2.0f, 2.0f);
+  std::vector<float> input =
+    generate_random_vector<float, false>(M * K, -2.0f, 2.0f);
+
+  for (unsigned int i = 0; i < M * K; ++i) {
+    input_ptr[i] = compute_fp32_to_fp16((input.data())[i]);
+  }
+
+  for (unsigned int i = 0; i < N; ++i) {
+    scale_ptr[i] = compute_fp32_to_fp16((scale.data())[i]);
+  }
+
+  for (unsigned int i = 0; i < N * K / 2; ++i) {
+    weight_ptr[i] = (weight.data())[i];
+  }
+
+  // GPU INT4 GEMV
+  auto t3 = std::chrono::high_resolution_clock::now();
+  for (unsigned int i = 0; i < run_count; ++i) {
+    nntrainer::openvino_gemm_cl(input_ptr, weight_ptr, scale_ptr, output_ptr, M,
+                                N, K);
+  }
+  auto t4 = std::chrono::high_resolution_clock::now();
+  auto gpu_dt = std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3);
+
+  std::cout << "INT4 GEMM : " << K << " x " << N << std::endl;
+  std::cout << " - time : GPU = " << gpu_dt.count() / (run_count * 1.0f)
+            << " ms" << std::endl;
+
+  std::cout << " - sample : [";
+  for (unsigned int i = 0; i < 5; ++i) {
+    std::cout << compute_fp16_to_fp32(output_ptr[i]) << " ";
+  }
+  std::cout << "][";
+  for (unsigned int i = N - 5; i < N; ++i) {
+    std::cout << compute_fp16_to_fp32(output_ptr[i]) << " ";
+  }
+  std::cout << "]" << std::endl;
+
+  freeSVM(weight_ptr);
+  freeSVM(scale_ptr);
+  freeSVM(input_ptr);
+  freeSVM(output_ptr);
+}
+
+#define DECLARE_int4_gemm_test_K_N(M, K, N)                                    \
+  TEST(nntrainer_blas_kernel, int4_gemv_test_##K##_##N) {                      \
+    run_int4_gemm_test_(M, K, N);                                              \
+  }
+
+DECLARE_int4_gemm_test_K_N(68, 3072, 256);
+DECLARE_int4_gemm_test_K_N(68, 3072, 8192);
+DECLARE_int4_gemm_test_K_N(68, 8192, 3072);
+DECLARE_int4_gemm_test_K_N(68, 3072, 3072);
+
 TEST(blas_kernels, addition_i_fp16) {
   const int batch = 12;
   const int channel = 1;
@@ -1149,20 +1235,6 @@ TEST(blas_kernels, addition_i_fp16) {
 }
 
 #endif
-
-template <typename T, bool random_init = false>
-static inline std::vector<T>
-generate_random_vector(size_t size, float min_val = -1.F, float max_val = 1.F) {
-  std::random_device rd;
-  auto init_val = random_init ? rd() : 42;
-  std::mt19937 gen(init_val);
-  std::uniform_real_distribution<float> dist(min_val, max_val);
-  std::vector<T> vec(size);
-  for (auto &val : vec) {
-    val = static_cast<T>(dist(gen));
-  }
-  return vec;
-}
 
 static void run_q_6_K_test(const uint32_t M, const uint32_t K,
                            const uint32_t N) {
