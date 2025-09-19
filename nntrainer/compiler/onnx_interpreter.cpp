@@ -29,7 +29,12 @@ std::string ONNXInterpreter::extractAttribute(const onnx::NodeProto &node,
 
       switch (attr.type()) {
       case onnx::AttributeProto::INT:
-        oss << attr.i();
+      // onnx and nntrainer axis standards are opposite
+        if(attr.name() == "axis") {
+          oss << 4 - attr.i();
+        }
+        else 
+          oss << attr.i();
         break;
       case onnx::AttributeProto::INTS:
         for (int i = start_offset; i < attr.ints_size(); ++i) {
