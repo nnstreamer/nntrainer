@@ -211,7 +211,8 @@ public:
    * @return std::shared_ptr<opencl::Kernel>
    */
   const SharedPtrClKernel registerClKernel(std::string kernel_string,
-                                           std::string kernel_name);
+                                           std::string kernel_name,
+                                           std::string compile_options = {});
 
   /**
    * @brief Initialize and register all blas OpenCl kernels
@@ -308,6 +309,7 @@ private:
    * @return true if successful, false otherwise
    */
   bool clCreateKernel(std::string &kernel_string, std::string &kernel_name,
+                      std::string &compile_options,
                       const SharedPtrClKernel &kernel_ptr_);
 };
 
