@@ -23,6 +23,7 @@
 #include <blas_kernels.h>
 #include <cl_context.h>
 #include <cpu_backend.h>
+#include <fp16.h>
 #include <layer_context.h>
 #include <tensor.h>
 
@@ -168,9 +169,269 @@ auto debug_print_data = [](const float *const data, const unsigned int len,
   std::cout << "]";
 };
 
+/**
+ * @brief Helper function to generate random data
+ *
+ * @tparam T data type
+ * @tparam random_init True if want random
+ * @param size data length
+ * @param min_val minimum value
+ * @param max_val maximum value
+ * @return std::vector<T> random vector
+ */
+template <typename T, bool random_init = false>
+static inline std::vector<T>
+generate_random_vector(size_t size, float min_val = -1.F, float max_val = 1.F) {
+  std::random_device rd;
+  auto init_val = random_init ? rd() : 42;
+  std::mt19937 gen(init_val);
+  std::uniform_real_distribution<float> dist(min_val, max_val);
+  std::vector<T> vec(size);
+  for (auto &val : vec) {
+    val = static_cast<T>(dist(gen));
+  }
+  return vec;
+}
+
+/**
+ * @brief Helper function to print data
+ *
+ * @param data
+ * @param size
+ * @param count
+ */
+template <typename T = float>
+static void debug_print_beg_end(const T *const data, const unsigned int size,
+                                const uint32_t count = 5) {
+  std::cout << "[";
+  for (unsigned int i = 0; i < count; ++i) {
+    std::cout << std::fixed << std::setprecision(3) << data[i] << " ";
+  }
+  std::cout << "][";
+  for (unsigned int i = size - count; i < size; ++i) {
+    std::cout << std::fixed << std::setprecision(3) << data[i] << " ";
+  }
+  std::cout << "]" << std::endl;
+};
+
+static inline int ceil_div(int a, int b) { return (a + b - 1) / b; }
+
+// Clamp to signed INT4 range [-8, 7]
+static inline int clamp_int4(int v) {
+  if (v < -8)
+    return -8;
+  if (v > 7)
+    return 7;
+  return v;
+}
+
+// Input:
+//   W  : pointer to FP32 weights in row-major [O, I]
+//   O,I: dimensions
+// Output:
+//   returns {packed_int4, scales_fp16_bits}
+//     - packed_int4 is laid out as OS_IS_YX_OSV32_ISV2 (Y=X=1), two int4 per
+//     byte
+//     - scales_fp16_bits has size O * ceil_div(I, 128), one scale per (o,
+//     128-wide I-group)
+std::pair<std::vector<uint8_t>, std::vector<uint16_t>>
+quantize_int4_os_is_yx_osv32_isv2(const float *W, int O, int I) {
+  const int O_blk = 32;
+  const int I_blk = 2;
+  const int group = 128; // per-group along I for scales
+
+  if (O <= 0 || I <= 0) {
+    return {std::vector<uint8_t>{}, std::vector<uint16_t>{}};
+  }
+
+  const int G = ceil_div(I, group); // groups per row (per O)
+
+  // 1) Compute scales (float), size O*G
+  std::vector<float> scales_f;
+  scales_f.resize(size_t(O) * size_t(G), 1.0f);
+
+  for (int o = 0; o < O; ++o) {
+    const float *row = W + size_t(o) * size_t(I);
+    for (int g = 0; g < G; ++g) {
+      const int i0 = g * group;
+      const int i1 = std::min(I, i0 + group);
+      float max_abs = 0.0f;
+      for (int i_idx = i0; i_idx < i1; ++i_idx) {
+        float w = row[i_idx];
+        if (!std::isfinite(w))
+          w = 0.0f;
+        float a = std::fabs(w);
+        if (a > max_abs)
+          max_abs = a;
+      }
+      float s = (max_abs == 0.0f) ? 1.0f : (max_abs / 7.0f);
+      scales_f[size_t(o) * size_t(G) + size_t(g)] = s;
+    }
+  }
+
+  // 2) Convert scales to FP16 bit patterns
+  std::vector<uint16_t> scales_fp16;
+  scales_fp16.resize(scales_f.size());
+  for (size_t idx = 0; idx < scales_f.size(); ++idx) {
+    scales_fp16[idx] = compute_fp32_to_fp16(scales_f[idx]);
+  }
+
+  // 3) Prepare output buffer in OS_IS_YX_OSV32_ISV2 layout (Y=X=1)
+  const int O_pad = ceil_div(O, O_blk) * O_blk;
+  const int I_pad = ceil_div(I, I_blk) * I_blk;
+  const int O_blocks = O_pad / O_blk;
+  const int I_blocks = I_pad / I_blk;
+
+  const size_t total_int4 =
+    size_t(O_pad) * size_t(I_pad);           // number of 4-bit values
+  const size_t total_bytes = total_int4 / 2; // 2 nibbles per byte
+  std::vector<uint8_t> packed;
+  packed.resize(total_bytes, 0);
+
+  // 4) Emit in the exact physical order:
+  //    for O_block, I_block, o_inner in [0..31], pack i_inner=0 (lo nibble) +
+  //    i_inner=1 (hi nibble)
+  size_t out_idx = 0; // byte index into 'packed'
+
+  for (int ob = 0; ob < O_blocks; ++ob) {
+    for (int ib = 0; ib < I_blocks; ++ib) {
+      for (int oi = 0; oi < O_blk; ++oi) {
+        uint8_t lo = 0, hi = 0; // two INT4 nibbles
+        const int o_abs = ob * O_blk + oi;
+
+        if (o_abs < O) {
+          // i_inner = 0
+          {
+            const int i_abs = ib * I_blk + 0;
+            if (i_abs < I) {
+              const float s =
+                scales_f[size_t(o_abs) * size_t(G) + size_t(i_abs / group)];
+              float w = W[size_t(o_abs) * size_t(I) + size_t(i_abs)];
+              if (!std::isfinite(w))
+                w = 0.0f;
+              int q = clamp_int4((int)std::nearbyintf(w / s));
+              lo = uint8_t(q & 0xF);
+            } else {
+              lo = 0; // padding
+            }
+          }
+          // i_inner = 1
+          {
+            const int i_abs = ib * I_blk + 1;
+            if (i_abs < I) {
+              const float s =
+                scales_f[size_t(o_abs) * size_t(G) + size_t(i_abs / group)];
+              float w = W[size_t(o_abs) * size_t(I) + size_t(i_abs)];
+              if (!std::isfinite(w))
+                w = 0.0f;
+              int q = clamp_int4((int)std::nearbyintf(w / s));
+              hi = uint8_t(q & 0xF);
+            } else {
+              hi = 0; // padding
+            }
+          }
+        } else {
+          // O padding -> both nibbles 0
+          lo = hi = 0;
+        }
+
+        packed[out_idx++] = uint8_t((hi << 4) | lo);
+      }
+    }
+  }
+
+  return {std::move(packed), std::move(scales_fp16)};
+}
+
 // -----
 // Tests
 // -----
+static void run_int4_gemv_test_(const uint32_t K, const uint32_t N) {
+  auto *blas_cc = static_cast<nntrainer::ClContext *>(
+    nntrainer::Engine::Global().getRegisteredContext("gpu"));
+
+  static constexpr uint32_t run_count = 200;
+
+  const int scale_group_size = 128;
+
+  // Allocate & initialize group-wise int4 data
+  char *weight_ptr = (char *)allocateSVM(K * N / 2);
+  uint16_t *scale_ptr =
+    (uint16_t *)allocateSVM(K * N / scale_group_size * sizeof(uint16_t));
+  uint16_t *input_ptr = (uint16_t *)allocateSVM(K * sizeof(uint16_t));
+  uint16_t *output_ptr = (uint16_t *)allocateSVM(N * sizeof(uint16_t));
+
+  std::vector<float> weight_fp32 =
+    generate_random_vector<float, false>(N * K, -2.0f, 2.0f);
+  std::vector<float> input =
+    generate_random_vector<float, false>(K, -2.0f, 2.0f);
+
+  auto quant_res = quantize_int4_os_is_yx_osv32_isv2(weight_fp32.data(), N, K);
+
+  for (unsigned int i = 0; i < K; ++i) {
+    input_ptr[i] = compute_fp32_to_fp16((input.data())[i]);
+  }
+
+  for (unsigned int i = 0; i < K * N / scale_group_size; ++i) {
+    scale_ptr[i] = quant_res.second[i];
+  }
+
+  for (unsigned int i = 0; i < N * K / 2; ++i) {
+    weight_ptr[i] = quant_res.first[i];
+  }
+
+  // Initialize reference q4_0 data
+  std::vector<float> ref_dst(N);
+  std::vector<float> q4_weight(N * K);
+  std::vector<float> q4_weight_repack(N * K);
+  nntrainer::quantize_q4_0(weight_fp32.data(), q4_weight.data(), N, K, nullptr);
+  nntrainer::repack_q4_0(q4_weight_repack.data(), q4_weight.data(),
+                         K * N / 32 * 18, N, K);
+  nntrainer::gemm_q4_0(1, N, K, input.data(), K, q4_weight_repack.data(), N,
+                       ref_dst.data(), N);
+
+  // GPU INT4 GEMV
+  auto t3 = std::chrono::high_resolution_clock::now();
+  for (unsigned int i = 0; i < run_count; ++i) {
+    nntrainer::gemv_int4_cl(weight_ptr, scale_ptr, input_ptr, output_ptr, K, N);
+  }
+  auto t4 = std::chrono::high_resolution_clock::now();
+  auto gpu_dt = std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3);
+
+  std::cout << "INT4 GEMV : " << K << " x " << N << std::endl;
+  std::cout << " - time : GPU = " << gpu_dt.count() / (run_count * 1.0f)
+            << " ms" << std::endl;
+
+  std::cout << " - sample : [";
+  for (unsigned int i = 0; i < 5; ++i) {
+    std::cout << std::fixed << std::setprecision(3)
+              << compute_fp16_to_fp32(output_ptr[i]) << " ";
+  }
+  std::cout << "][";
+  for (unsigned int i = N - 5; i < N; ++i) {
+    std::cout << std::fixed << std::setprecision(3)
+              << compute_fp16_to_fp32(output_ptr[i]) << " ";
+  }
+  std::cout << "]" << std::endl;
+
+  std::cout << " - q4_0 :   ";
+  debug_print_beg_end(ref_dst.data(), N);
+
+  freeSVM(weight_ptr);
+  freeSVM(scale_ptr);
+  freeSVM(input_ptr);
+  freeSVM(output_ptr);
+}
+
+#define DECLARE_int4_gemv_test_K_N(K, N)                                       \
+  TEST(nntrainer_blas_kernel, int4_gemv_test_##K##_##N) {                      \
+    run_int4_gemv_test_(K, N);                                                 \
+  }
+
+DECLARE_int4_gemv_test_K_N(3072, 256);
+DECLARE_int4_gemv_test_K_N(3072, 8192);
+DECLARE_int4_gemv_test_K_N(8192, 3072);
+DECLARE_int4_gemv_test_K_N(3072, 3072);
 
 TEST(blas_kernels, dotCL_sgemv_M_1_1) {
   const int batch = 1;
@@ -1150,39 +1411,12 @@ TEST(blas_kernels, addition_i_fp16) {
 
 #endif
 
-template <typename T, bool random_init = false>
-static inline std::vector<T>
-generate_random_vector(size_t size, float min_val = -1.F, float max_val = 1.F) {
-  std::random_device rd;
-  auto init_val = random_init ? rd() : 42;
-  std::mt19937 gen(init_val);
-  std::uniform_real_distribution<float> dist(min_val, max_val);
-  std::vector<T> vec(size);
-  for (auto &val : vec) {
-    val = static_cast<T>(dist(gen));
-  }
-  return vec;
-}
-
 static void run_q_6_K_test(const uint32_t M, const uint32_t K,
                            const uint32_t N) {
   nntrainer::init_backend();
 
   auto *blas_cc = static_cast<nntrainer::ClContext *>(
     nntrainer::Engine::Global().getRegisteredContext("gpu"));
-
-  auto debug_print_beg_end = [M, K, N](const float *const data,
-                                       const uint32_t count = 5) {
-    std::cout << "[";
-    for (unsigned int i = 0; i < count; ++i) {
-      std::cout << data[i] << " ";
-    }
-    std::cout << "][";
-    for (unsigned int i = M * N - count; i < M * N; ++i) {
-      std::cout << data[i] << " ";
-    }
-    std::cout << "]";
-  };
 
   static constexpr uint32_t run_count = 10;
 
@@ -1261,11 +1495,9 @@ static void run_q_6_K_test(const uint32_t M, const uint32_t K,
     std::cout << " - time : GPU = " << t4 / (run_count * 1.0f) << " ms"
               << std::endl;
     std::cout << " - sample : CPU = ";
-    debug_print_beg_end(cpu_q6_dst.data());
-    std::cout << std::endl;
+    debug_print_beg_end(cpu_q6_dst.data(), M * N);
     std::cout << " - sample : GPU = ";
-    debug_print_beg_end((float *)gpu_q6_dst);
-    std::cout << std::endl;
+    debug_print_beg_end((float *)gpu_q6_dst, M * N);
     std::cout << " - zeros : " << zeros << " / " << M * N << " [ "
               << zeros * 100.0f / float(M * N) << " %] - first at [ "
               << first_zero_index << " ]" << std::endl;
@@ -1292,19 +1524,6 @@ static void run_q4_0_test(const uint32_t M, const uint32_t K,
 
   auto *blas_cc = static_cast<nntrainer::ClContext *>(
     nntrainer::Engine::Global().getRegisteredContext("gpu"));
-
-  auto debug_print_beg_end = [M, K, N](const float *const data,
-                                       const uint32_t count = 12) {
-    std::cout << "[";
-    for (unsigned int i = 0; i < count; ++i) {
-      std::cout << data[i] << " ";
-    }
-    std::cout << "][";
-    for (unsigned int i = M * N - count; i < M * N; ++i) {
-      std::cout << data[i] << " ";
-    }
-    std::cout << "]";
-  };
 
   static constexpr uint32_t run_count = 200;
 
@@ -1395,14 +1614,11 @@ static void run_q4_0_test(const uint32_t M, const uint32_t K,
     std::cout << " - time : GPU = " << t4 / (run_count * 1.0f) << " ms"
               << std::endl;
     std::cout << " - sample : REF = ";
-    debug_print_beg_end(ref_dst.data());
-    std::cout << std::endl;
+    debug_print_beg_end(ref_dst.data(), M * N);
     std::cout << " - sample : CPU = ";
-    debug_print_beg_end(cpu_q4_dst.data());
-    std::cout << std::endl;
+    debug_print_beg_end(cpu_q4_dst.data(), M * N);
     std::cout << " - sample : GPU = ";
-    debug_print_beg_end((float *)gpu_q4_dst);
-    std::cout << std::endl;
+    debug_print_beg_end((float *)gpu_q4_dst, M * N);
     std::cout << " - zeros : " << zeros << " / " << M * N << " [ "
               << zeros * 100.0f / float(M * N) << " %] - first at [ "
               << first_zero_index << " ]" << std::endl;
@@ -1430,8 +1646,6 @@ DECLARE_q4_0_test_M_K_N(28, 3072, 256);
 DECLARE_q4_0_test_M_K_N(28, 3072, 8192);
 DECLARE_q4_0_test_M_K_N(28, 8192, 3072);
 DECLARE_q4_0_test_M_K_N(28, 3072, 3072);
-
-#endif
 
 TEST(nntrainer_blas_kernel, q4_0_async_test) {
 
@@ -1643,6 +1857,8 @@ TEST(nntrainer_blas_kernel, q4_0_async_test2) {
   freeSVM(async_out0);
   freeSVM(async_out1);
 }
+
+#endif
 
 #ifdef ENABLE_FP16
 TEST(blas_kernels, swiglu_layer_fp16) {
