@@ -1098,6 +1098,58 @@ TEST(blas_kernels, dot_gemm_50_768_2048_transAB_fp16) {
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
 }
 
+TEST(blas_kernels, addition_i_fp16) {
+  const int batch = 12;
+  const int channel = 1;
+  const int height = 26;
+  const int width = 26;
+
+  const int batch_b = 1;
+
+  const float alpha = 1e-1;
+  const int MOD = 10;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+
+  nntrainer::Tensor A_fp16(batch, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor B_fp16(batch_b, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor C_fp16(batch, channel, height, width, t_type_nchw_fp16);
+  nntrainer::Tensor D_fp16(batch_b, channel, height, width, t_type_nchw_fp16);
+
+  GEN_TEST_INPUT(A_fp16, ((i * (batch * height * channel) +
+                           j * (batch * height) + k * (width) + l + 1) %
+                          MOD) *
+                           alpha);
+  GEN_TEST_INPUT_C(B_fp16, ((i * (batch_b * height * channel) +
+                             j * (batch_b * height) + k * (width) + l + 1) %
+                            MOD) *
+                             alpha);
+  GEN_TEST_INPUT(C_fp16, ((i * (batch * height * channel) +
+                           j * (batch * height) + k * (width) + l + 1) %
+                          MOD) *
+                           alpha);
+  GEN_TEST_INPUT_C(D_fp16, ((i * (batch_b * height * channel) +
+                             j * (batch_b * height) + k * (width) + l + 1) %
+                            MOD) *
+                             alpha);
+
+  A_fp16.add_i(B_fp16);
+  add_i_cl(C_fp16, D_fp16);
+
+  float mseError =
+    mse<_FP16>(A_fp16.getData<_FP16>(), C_fp16.getData<_FP16>(), A_fp16.size());
+
+  double cosSim = cosine_similarity<_FP16>(
+    A_fp16.getData<_FP16>(), C_fp16.getData<_FP16>(), A_fp16.size());
+
+  const float epsilon = 1e-3 * width;
+
+  EXPECT_IN_RANGE(mseError, 0, epsilon);
+  EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
+}
+#endif
+
 template <typename T, bool random_init = false>
 static inline std::vector<T>
 generate_random_vector(size_t size, float min_val = -1.F, float max_val = 1.F) {
@@ -1298,10 +1350,6 @@ static void run_int4_gemm_test_(const uint32_t M, const uint32_t K,
   auto gpu_dt =
     std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3).count();
 
-  auto to_fp32 = [](const uint16_t *const data, const uint32_t index) -> float {
-    return (
-      static_cast<float>((reinterpret_cast<const _FP16 *const>(data))[index]));
-  };
   // Compute raports
   {
     uint32_t first_zero_index = UINT32_MAX;
@@ -1311,7 +1359,7 @@ static void run_int4_gemm_test_(const uint32_t M, const uint32_t K,
     int nans = 0;
 
     for (uint32_t i = 0; i < M * N; ++i) {
-      if (to_fp32(output_ptr, i) == 0) {
+      if (compute_fp16_to_fp32(output_ptr[i]) == 0) {
         zeros++;
         if (first_zero_index == UINT32_MAX) {
           first_zero_index = i;
@@ -1323,20 +1371,20 @@ static void run_int4_gemm_test_(const uint32_t M, const uint32_t K,
         }
       }
 
-      if (std::isnan(to_fp32(output_ptr, i))) {
+      if (std::isnan(compute_fp16_to_fp32(output_ptr[i]))) {
         nans++;
       }
     }
 
-    auto debug_print_beg_end = [M, K, N, &to_fp32](const uint16_t *const data,
-                                                   const uint32_t count = 5) {
+    auto debug_print_beg_end = [M, K, N](const uint16_t *const data,
+                                         const uint32_t count = 5) {
       std::cout << "[";
       for (unsigned int i = 0; i < count; ++i) {
-        std::cout << to_fp32(data, i) << " ";
+        std::cout << compute_fp16_to_fp32(data[i]) << " ";
       }
       std::cout << "][";
       for (unsigned int i = M * N - count; i < M * N; ++i) {
-        std::cout << to_fp32(data, i) << " ";
+        std::cout << compute_fp16_to_fp32(data[i]) << " ";
       }
       std::cout << "]";
     };
@@ -1380,7 +1428,7 @@ static void run_int4_gemm_test_(const uint32_t M, const uint32_t K,
 }
 
 #define DECLARE_int4_gemm_test_K_N(M, K, N)                                    \
-  TEST(nntrainer_blas_kernel, int4_gemv_test_##M##_##K##_##N) {                \
+  TEST(nntrainer_blas_kernel, int4_gemm_test_##M##_##K##_##N) {                \
     run_int4_gemm_test_(M, K, N);                                              \
   }
 
@@ -1393,59 +1441,6 @@ DECLARE_int4_gemm_test_K_N(68, 3072, 256);
 DECLARE_int4_gemm_test_K_N(68, 3072, 8192);
 DECLARE_int4_gemm_test_K_N(68, 8192, 3072);
 DECLARE_int4_gemm_test_K_N(68, 3072, 3072);
-
-TEST(blas_kernels, addition_i_fp16) {
-  const int batch = 12;
-  const int channel = 1;
-  const int height = 26;
-  const int width = 26;
-
-  const int batch_b = 1;
-
-  const float alpha = 1e-1;
-  const int MOD = 10;
-
-  nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
-    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
-
-  nntrainer::Tensor A_fp16(batch, channel, height, width, t_type_nchw_fp16);
-  nntrainer::Tensor B_fp16(batch_b, channel, height, width, t_type_nchw_fp16);
-  nntrainer::Tensor C_fp16(batch, channel, height, width, t_type_nchw_fp16);
-  nntrainer::Tensor D_fp16(batch_b, channel, height, width, t_type_nchw_fp16);
-
-  GEN_TEST_INPUT(A_fp16, ((i * (batch * height * channel) +
-                           j * (batch * height) + k * (width) + l + 1) %
-                          MOD) *
-                           alpha);
-  GEN_TEST_INPUT_C(B_fp16, ((i * (batch_b * height * channel) +
-                             j * (batch_b * height) + k * (width) + l + 1) %
-                            MOD) *
-                             alpha);
-  GEN_TEST_INPUT(C_fp16, ((i * (batch * height * channel) +
-                           j * (batch * height) + k * (width) + l + 1) %
-                          MOD) *
-                           alpha);
-  GEN_TEST_INPUT_C(D_fp16, ((i * (batch_b * height * channel) +
-                             j * (batch_b * height) + k * (width) + l + 1) %
-                            MOD) *
-                             alpha);
-
-  A_fp16.add_i(B_fp16);
-  add_i_cl(C_fp16, D_fp16);
-
-  float mseError =
-    mse<_FP16>(A_fp16.getData<_FP16>(), C_fp16.getData<_FP16>(), A_fp16.size());
-
-  double cosSim = cosine_similarity<_FP16>(
-    A_fp16.getData<_FP16>(), C_fp16.getData<_FP16>(), A_fp16.size());
-
-  const float epsilon = 1e-3 * width;
-
-  EXPECT_IN_RANGE(mseError, 0, epsilon);
-  EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
-}
-
-#endif
 
 static void run_q_6_K_test(const uint32_t M, const uint32_t K,
                            const uint32_t N) {
