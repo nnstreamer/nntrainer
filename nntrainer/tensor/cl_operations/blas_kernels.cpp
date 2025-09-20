@@ -76,7 +76,8 @@ void gemv_int4_cl(char *weight, uint16_t *scale, uint16_t *input,
   }
 
   /// @todo synchronize when only needed
-  blas_cc->command_queue_inst_.enqueueSVMMap(output, N * sizeof(float), true);
+  blas_cc->command_queue_inst_.enqueueSVMMap(output, N * sizeof(uint16_t),
+                                             true);
   if (!result) {
     throw std::runtime_error(
       "Failed to read output data for fully_connected_gpu_int4_gemv");
