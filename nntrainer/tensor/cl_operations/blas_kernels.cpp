@@ -84,6 +84,136 @@ void gemv_int4_cl(char *weight, uint16_t *scale, uint16_t *input,
   }
 }
 
+void gemm_int4_cl(char *weight, uint16_t *scale, uint16_t *input,
+                  uint16_t *output, unsigned int M, unsigned int K,
+                  unsigned int N) {
+  bool result = false;
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
+  ClContext::SharedPtrClKernel kernel_ptr =
+    blas_cc->registerClKernel(int4_gemm_kernel, "fc_bf_tiled_kernel_dyn_quan");
+  if (!kernel_ptr) {
+    throw std::runtime_error(
+      "Failed to get kernel_ptr for fc_bf_tiled_kernel_dyn_quan");
+    return;
+  }
+
+  /// Dynamically quantize input
+  quantize_input(input, M * K);
+
+  int arg = 0;
+
+  result =
+    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMQuant());
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 0 for fc_bf_tiled_kernel_dyn_quan");
+
+  result =
+    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMScale());
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 1 for fc_bf_tiled_kernel_dyn_quan");
+
+  result = kernel_ptr->SetKernelSVMArguments(arg++, scale);
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 2 for fc_bf_tiled_kernel_dyn_quan");
+
+  result = kernel_ptr->SetKernelSVMArguments(arg++, output);
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 3 for fc_bf_tiled_kernel_dyn_quan");
+
+  result = kernel_ptr->SetKernelSVMArguments(arg++, weight);
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 4 for fc_bf_tiled_kernel_dyn_quan");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &M, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 5 for fc_bf_tiled_kernel_dyn_quan");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &N, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 6 for fc_bf_tiled_kernel_dyn_quan");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &K, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 7 for fc_bf_tiled_kernel_dyn_quan");
+
+  /// @note check global work size
+  const int work_groups_count[3] = {(int)ceil(N / 16.0f), 1, 1};
+  const int work_group_size[3] = {16, 1, 1};
+
+  result = blas_cc->command_queue_inst_.DispatchCommand(
+    kernel_ptr, work_groups_count, work_group_size);
+  if (!result) {
+    throw std::runtime_error(
+      "Failed to dispatch kernel for fc_bf_tiled_kernel_dyn_quan");
+    return;
+  }
+
+  /// @todo synchronize when only needed
+  blas_cc->command_queue_inst_.enqueueSVMMap(output, N * M * sizeof(uint16_t),
+                                             true);
+  if (!result) {
+    throw std::runtime_error(
+      "Failed to read output data for fc_bf_tiled_kernel_dyn_quan");
+    return;
+  }
+}
+
+void quantize_input(uint16_t *input, unsigned int size) {
+  bool result = false;
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
+  ClContext::SharedPtrClKernel kernel_ptr =
+    blas_cc->registerClKernel(int4_gemm_kernel, "quantize_input");
+  if (!kernel_ptr) {
+    throw std::runtime_error("Failed to get kernel_ptr for quantize_input");
+    return;
+  }
+
+  /// Dynamically quantize input
+  int arg = 0;
+
+  result = kernel_ptr->SetKernelSVMArguments(arg++, input);
+
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 0 for quantize_input");
+
+  result =
+    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMQuant());
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 1 for quantize_input");
+
+  result =
+    kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMScale());
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 2 for quantize_input");
+
+  const int work_groups_count[3] = {(int)(size / 128), 1, 1};
+  const int work_group_size[3] = {1, 1, 1};
+
+  result = blas_cc->command_queue_inst_.DispatchCommand(
+    kernel_ptr, work_groups_count, work_group_size);
+  if (!result) {
+    throw std::runtime_error("Failed to dispatch kernel for quantize_input");
+    return;
+  }
+}
+
 void gemm_q4_0_async_cl(std::vector<void *> matAdata, float *matBdata,
                         std::vector<float *> matCdata, unsigned int M,
                         std::vector<unsigned int> Ns, unsigned int K) {
