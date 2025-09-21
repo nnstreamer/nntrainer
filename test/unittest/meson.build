@@ -89,6 +89,10 @@ if get_option('enable-fp16')
   test_target += [['unittest_nntrainer_tensor_pool_fp16', []]]
 endif
 
+if get_option('enable-opencl') and get_option('enable-fp16') 
+  test_target += [['unittest_attention_cl', []]]
+endif
+
 if get_option('enable-profile')
   if gmock_dep.version().version_compare('>=1.10.0')
     test_target += [['unittest_nntrainer_profiler', []]]

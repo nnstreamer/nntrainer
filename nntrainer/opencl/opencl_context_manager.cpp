@@ -216,7 +216,7 @@ bool ContextManager::CreateDefaultGPUDevice() {
                                  device_name_query) != std::string::npos);
 #else
     const bool vendor_check =
-      (device_info->getDeviceVendorID() == intel_igpu_vendor_id);
+      (device_info->getDeviceVendorId() == intel_igpu_vendor_id);
 #endif
 
 #undef SEARCH_BY_NAME
