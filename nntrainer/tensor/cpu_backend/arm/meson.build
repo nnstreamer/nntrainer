@@ -4,12 +4,10 @@ arm_compute_backend_headers = [
     'neon_setting.h',
     'neon_mathfun.h',
     'neon_mathfun.hxx',
-    'neon_kleidiai.h'
 ]
 arm_compute_backend_sources = [
     'arm_compute_backend.cpp',
     'neon_impl.cpp',
-    'neon_kleidiai.cpp'
 ]
 
 
@@ -21,6 +19,8 @@ nntrainer_inc_abs += meson.current_source_dir() / 'matrix_transpose_neon'
 if get_option('enable-fp16')
   arm_compute_backend_sources += 'arm_compute_backend_fp16.cpp'
   arm_compute_backend_sources += 'neon_impl_fp16.cpp'
+  arm_compute_backend_sources += 'neon_kleidiai.cpp'
+  arm_compute_backend_headers += 'neon_kleidiai.h'
 
   subdir('hgemm')
   nntrainer_inc += include_directories('hgemm')
