@@ -47,9 +47,8 @@ private:
 
   /// @note this size might be changed
   const size_t scale_q4_0_size =
-    3072 * (8192 / 32) * 2; /** buffer size of quants */
-  const size_t quant_q4_0_size =
-    3072 * (8192 / 32) * 16; /** buffer size of scales */
+    3072 * (8192 / 32) * 2;                   /** buffer size of quants */
+  const size_t quant_q4_0_size = 3072 * 8192; /** buffer size of scales */
 
   opencl::Buffer *inBufferA = nullptr;
   opencl::Buffer *inBufferB = nullptr;
