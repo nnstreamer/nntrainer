@@ -225,8 +225,7 @@ void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
   auto &clbuffInstance = ClBufferManager::Global();
   std::string compile_options =
-    "-D SIZE_M=" + std::to_string(M) + " -D SIZE_N=" + std::to_string(N) +
-    " -D SIZE_K=" + std::to_string(K) +
+    "-D SIZE_N=" + std::to_string(N) + " -D SIZE_K=" + std::to_string(K) +
     " -D SIZE_QUANTIZATION_GROUP=" + std::to_string(quantization_group_size);
 
   auto ceil_div = [](unsigned int a, unsigned int b) -> unsigned int {

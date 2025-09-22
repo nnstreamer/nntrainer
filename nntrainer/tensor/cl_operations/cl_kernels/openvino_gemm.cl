@@ -21,7 +21,6 @@
 #define INPUT0_OFFSET 0
 #define OUTPUT_OFFSET 0
 
-#define OUTPUT_BATCH_NUM SIZE_M
 #define IFM_SIZE SIZE_K
 
 #define ACCUMULATOR_TYPE float
@@ -62,7 +61,6 @@
 #define TILE_OUT_F_PITCH 1
 #define TILE_IN_B_PITCH SIZE_K
 #define TILE_OUT_B_PITCH SIZE_N
-#define BATCH_SIZE (OUTPUT_BATCH_NUM)
 
 #define ACTIVATION_FUNC_TYPED(input, params) (input)
 #define ACTIVATION_PARAMS_TYPED 0
