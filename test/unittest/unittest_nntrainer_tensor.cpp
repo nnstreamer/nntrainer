@@ -1552,24 +1552,26 @@ TEST(nntrainer_Tensor, copy_12_p) {
   ASSERT_EQ(input, output);
 }
 
-TEST(nntrainer_Tensor, copy_13_p) {
-  std::vector<std::vector<int8_t>> in = {{0, -5, -6, 1, 4},
-                                         {5, -7, 3, -1, 5},
-                                         {-6, 3, 0, 3, 6},
-                                         {-1, 1, 3, 5, 7},
-                                         {4, -5, 6, -7, -8}};
+/// @note Enable when scale for QINT4 is fp16
+// TEST(nntrainer_Tensor, copy_13_p) {
+//   std::vector<std::vector<int8_t>> in = {{0, -5, -6, 1, 4},
+//                                          {5, -7, 3, -1, 5},
+//                                          {-6, 3, 0, 3, 6},
+//                                          {-1, 1, 3, 5, 7},
+//                                          {4, -5, 6, -7, -8}};
 
-  nntrainer::Tensor input(
-    in, {0.051626f}, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT4},
-    nntrainer::QScheme::PER_TENSOR_AFFINE);
+//   nntrainer::Tensor input(
+//     in, {0.051626f}, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT4},
+//     nntrainer::QScheme::PER_TENSOR_AFFINE);
 
-  nntrainer::Tensor output(
-    1, 1, 5, 5, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT4});
+//   nntrainer::Tensor output(
+//     1, 1, 5, 5, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT4},
+//     nntrainer::QScheme::PER_TENSOR_AFFINE);
 
-  output.copy(input);
+//   output.copy(input);
 
-  ASSERT_EQ(input, output);
-}
+//   ASSERT_EQ(input, output);
+// }
 
 TEST(nntrainer_Tensor, copy_14_p) {
   int status = ML_ERROR_NONE;

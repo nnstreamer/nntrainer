@@ -433,6 +433,192 @@ DECLARE_int4_gemv_test_K_N(3072, 8192);
 DECLARE_int4_gemv_test_K_N(8192, 3072);
 DECLARE_int4_gemv_test_K_N(3072, 3072);
 
+TEST(blas_kernels, tensor_dot_qint4) {
+  const int batch = 1;
+  const int channel = 1;
+  const int height = 68;
+  const int width = 3072;
+
+  const int height_2 = 3072;
+  const int width_2 = 256;
+
+  const float alpha = 1e-1;
+  const int MOD = 10;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_qint4 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT4};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  /// Tensor A, B
+  nntrainer::TensorPool pool;
+  auto A_fp32_pool = pool.request(
+    "A", nntrainer::TensorDim(batch, channel, height, width, t_type_nchw_fp32),
+    {0}, nntrainer::TensorLifespan::MAX_LIFESPAN);
+
+  /// FP32 weight (1 x 1 x 3072 x 256)
+  auto B_fp32_pool = pool.request(
+    "B",
+    nntrainer::TensorDim(batch, channel, height_2, width_2, t_type_nchw_fp32),
+    {0}, nntrainer::TensorLifespan::MAX_LIFESPAN);
+
+  /// Tensor C, D
+  auto C_fp32_pool = pool.request(
+    "C", nntrainer::TensorDim(batch, channel, height, width, t_type_nchw_fp32),
+    {0}, nntrainer::TensorLifespan::MAX_LIFESPAN);
+
+  /// QINT4 weight  (1 x 1 x 3072 x 256)
+  auto D_fp32_pool = pool.request(
+    "D",
+    nntrainer::TensorDim(batch, channel, height_2, width_2, t_type_nchw_qint4),
+    {0}, nntrainer::TensorLifespan::MAX_LIFESPAN);
+
+  /// FP32 outputs E, F
+  auto E_fp32_pool = pool.request(
+    "E",
+    nntrainer::TensorDim(batch, channel, height, width_2, t_type_nchw_fp32),
+    {0}, nntrainer::TensorLifespan::MAX_LIFESPAN);
+  auto F_fp32_pool = pool.request(
+    "F",
+    nntrainer::TensorDim(batch, channel, height, width_2, t_type_nchw_fp32),
+    {0}, nntrainer::TensorLifespan::MAX_LIFESPAN);
+
+  pool.finalize(nntrainer::BasicPlanner(), 0, 4);
+  pool.allocate();
+
+  auto A_fp32 = *A_fp32_pool;
+  auto B_fp32 = *B_fp32_pool;
+  auto C_fp32 = *C_fp32_pool;
+  auto D_fp32 = *D_fp32_pool;
+  auto E_fp32 = *E_fp32_pool;
+  auto F_fp32 = *F_fp32_pool;
+
+  const int M = height;  // 68
+  const int K = width;   // 3072
+  const int N = width_2; // 256
+
+  std::vector<float> weight_fp32 =
+    generate_random_vector<float, false>(N * K, -1.0f, 1.0f);
+  std::vector<float> input =
+    generate_random_vector<float, false>(M * K, -1.0f, 1.0f);
+
+  // Initialize A, C (fp32) input
+  for (unsigned int i = 0; i < K * M; ++i) {
+    A_fp32.getData()[i] = input[i];
+    C_fp32.getData()[i] = input[i];
+  }
+
+  // Initialize B (fp32)
+  for (unsigned int i = 0; i < K * N; ++i) {
+    B_fp32.getData()[i] = weight_fp32[i];
+  }
+
+  nntrainer::Tensor tmp(1, 1, 256, 3072, t_type_nchw_fp32);
+
+  /// Initialize D (QINT4)
+  /// @note Must Transpose B before quantization
+  B_fp32.transpose("0:2:1", tmp);
+
+  std::vector<float> weight_fp32_T(N * K);
+  for (unsigned int i = 0; i < K * N; ++i) {
+    weight_fp32_T[i] = tmp.getData()[i];
+  }
+
+  auto quantization =
+    quantize_int4_os_is_yx_osv32_isv2(weight_fp32_T.data(), N, K);
+
+  int8_t *qdata = D_fp32.getData<int8_t>();
+  uint16_t *scales = D_fp32.getScale<uint16_t>();
+
+  for (unsigned int i = 0; i < N * K / 2; ++i) {
+    qdata[i] = quantization.first[i];
+  }
+  for (unsigned int i = 0; i < K * N / 128; ++i) {
+    scales[i] = quantization.second[i];
+  }
+
+  /// Perform dot mul
+  A_fp32.dot(B_fp32, E_fp32);
+  C_fp32.dot(D_fp32, F_fp32);
+
+  // Compare output
+  E_fp32.print(std::cout);
+  F_fp32.print(std::cout);
+}
+
+static void run_int4_sgemv_test_(const uint32_t K, const uint32_t N) {
+  auto *blas_cc = static_cast<nntrainer::ClContext *>(
+    nntrainer::Engine::Global().getRegisteredContext("gpu"));
+
+  static constexpr uint32_t run_count = 200;
+
+  const int scale_group_size = 128;
+
+  // Allocate & initialize data
+  char *weight_ptr = (char *)allocateSVM(K * N / 2);
+  uint16_t *scale_ptr =
+    (uint16_t *)allocateSVM(K * N / scale_group_size * sizeof(uint16_t));
+  float *input_ptr = (float *)allocateSVM(K * sizeof(float));
+  float *output_ptr = (float *)allocateSVM(N * sizeof(float));
+
+  std::vector<float> weight_fp32 =
+    generate_random_vector<float, false>(N * K, -2.0f, 2.0f);
+  std::vector<float> input =
+    generate_random_vector<float, false>(K, -2.0f, 2.0f);
+
+  auto quant_res = quantize_int4_os_is_yx_osv32_isv2(weight_fp32.data(), N, K);
+
+  for (unsigned int i = 0; i < K; ++i) {
+    input_ptr[i] = (input.data())[i];
+  }
+
+  for (unsigned int i = 0; i < K * N / scale_group_size; ++i) {
+    scale_ptr[i] = quant_res.second[i];
+  }
+
+  for (unsigned int i = 0; i < N * K / 2; ++i) {
+    weight_ptr[i] = quant_res.first[i];
+  }
+
+  // GPU INT4 GEMV
+  auto t3 = std::chrono::high_resolution_clock::now();
+  for (unsigned int i = 0; i < run_count; ++i) {
+    nntrainer::gemv_int4_cl(weight_ptr, scale_ptr, input_ptr, output_ptr, K, N);
+  }
+  auto t4 = std::chrono::high_resolution_clock::now();
+  auto gpu_dt = std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3);
+
+  std::cout << "INT4 GEMV : " << K << " x " << N << std::endl;
+  std::cout << " - time : GPU = " << gpu_dt.count() / (run_count * 1.0f)
+            << " ms" << std::endl;
+
+  std::cout << " - sample : [";
+  for (unsigned int i = 0; i < 5; ++i) {
+    std::cout << output_ptr[i] << " ";
+  }
+  std::cout << "][";
+  for (unsigned int i = N - 5; i < N; ++i) {
+    std::cout << output_ptr[i] << " ";
+  }
+  std::cout << "]" << std::endl;
+
+  freeSVM(weight_ptr);
+  freeSVM(scale_ptr);
+  freeSVM(input_ptr);
+  freeSVM(output_ptr);
+}
+
+#define DECLARE_int4_sgemv_test_K_N(K, N)                                      \
+  TEST(nntrainer_blas_kernel, int4_sgemv_test_##K##_##N) {                     \
+    run_int4_sgemv_test_(K, N);                                                \
+  }
+
+DECLARE_int4_sgemv_test_K_N(3072, 256);
+DECLARE_int4_sgemv_test_K_N(3072, 8192);
+DECLARE_int4_sgemv_test_K_N(8192, 3072);
+DECLARE_int4_sgemv_test_K_N(3072, 3072);
+
 TEST(nntrainer_blas_kernel, int4_gemv_async_test) {
   auto *blas_cc = static_cast<nntrainer::ClContext *>(
     nntrainer::Engine::Global().getRegisteredContext("gpu"));
@@ -715,7 +901,7 @@ static void run_int4_gemm_test_(const uint32_t M, const uint32_t K,
     }
 
     auto debug_print_beg_end = [M, K, N](const uint16_t *const data,
-                                         const uint32_t count = 5) {
+                                         const uint32_t count = 20) {
       std::cout << "[";
       for (unsigned int i = 0; i < count; ++i) {
         std::cout << compute_fp16_to_fp32(data[i]) << " ";
@@ -728,7 +914,7 @@ static void run_int4_gemm_test_(const uint32_t M, const uint32_t K,
     };
 
     auto debug_print_beg_end_float = [M, K, N](const float *const data,
-                                               const uint32_t count = 5) {
+                                               const uint32_t count = 20) {
       std::cout << "[";
       for (unsigned int i = 0; i < count; ++i) {
         std::cout << data[i] << " ";
@@ -857,12 +1043,12 @@ TEST(nntrainer_blas_kernel, int4_gemm_async_test) {
   // In-order kernel execution
   auto t1 = std::chrono::high_resolution_clock::now();
   for (unsigned int i = 0; i < run_count; ++i) {
-    nntrainer::openvino_gemm_cl(activations_f32_ptr, (char *)wq0,
-                                (uint16_t *)ws0, out0, M, N0, K);
-    nntrainer::openvino_gemm_cl(activations_f32_ptr, (char *)wq1,
-                                (uint16_t *)ws1, out1, M, N1, K);
-    nntrainer::openvino_gemm_cl(activations_f32_ptr, (char *)wq2,
-                                (uint16_t *)ws2, out2, M, N1, K);
+    nntrainer::openvino_sgemm_cl(activations_f32_ptr, (char *)wq0,
+                                 (uint16_t *)ws0, out0, M, N0, K);
+    nntrainer::openvino_sgemm_cl(activations_f32_ptr, (char *)wq1,
+                                 (uint16_t *)ws1, out1, M, N1, K);
+    nntrainer::openvino_sgemm_cl(activations_f32_ptr, (char *)wq2,
+                                 (uint16_t *)ws2, out2, M, N1, K);
   }
   auto t2 = std::chrono::high_resolution_clock::now();
   auto dt = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
