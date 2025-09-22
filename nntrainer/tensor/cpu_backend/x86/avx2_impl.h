@@ -258,6 +258,25 @@ template <typename T = float>
 void clamp(const T *input, T *output, size_t length,
            T lower_bound = std::numeric_limits<T>::lowest(),
            T upper_bound = std::numeric_limits<T>::max());
+
+/**
+ * @brief Copy uint16_t to float
+ *
+ * @param N length of the vector
+ * @param input input data
+ * @param output output data
+ */
+void copy_f16_f32(unsigned int N, const uint16_t *input, float *output);
+
+/**
+ * @brief Copy float to uint16_t
+ *
+ * @param N length of the vector
+ * @param input input data
+ * @param output output data
+ */
+void copy_f32_f16(unsigned int N, const float *input, uint16_t *output);
+
 } // namespace nntrainer::avx2
 
 #endif /* __cplusplus */
