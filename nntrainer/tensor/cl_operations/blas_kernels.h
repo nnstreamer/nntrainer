@@ -65,6 +65,18 @@ void gemv_int4_cl(char *weight, uint16_t *scale, uint16_t *input,
                   uint16_t *output, unsigned int K, unsigned int N);
 
 /**
+ * @brief     signed 4-bit integer gemv computation : C = A*B
+ * @param[in] weight char * for int4 quantized weight
+ * @param[in] scale uint16_t * for scales
+ * @param[in] input float * for input
+ * @param[in] output float * for output
+ * @param[in] K hidden dimension
+ * @param[in] N output dimension
+ */
+void gemv_int4_cl(char *weight, uint16_t *scale, float *input, float *output,
+                  unsigned int K, unsigned int N);
+
+/**
  * @brief     Q4_0 gemm async computation : C = A*B
  * @param[in] matAdata std::vector<void *> for Matrix A
  * @param[in] matBdata float * for Matrix B
@@ -89,10 +101,10 @@ void gemm_q4_0_async_cl(std::vector<void *> matAdata, float *matBdata,
 void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
                   unsigned int M, unsigned int N, unsigned int K);
 
-void openvino_gemm_cl(float *input, char *weight, uint16_t *scale,
-                      float *output, unsigned int M, unsigned int N,
-                      unsigned int K,
-                      unsigned int quantization_group_size = 128);
+void openvino_sgemm_cl(float *input, char *weight, uint16_t *scale,
+                       float *output, unsigned int M, unsigned int N,
+                       unsigned int K,
+                       unsigned int quantization_group_size = 128);
 
 void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
                       unsigned int M, unsigned int N, unsigned int K,

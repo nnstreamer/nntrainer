@@ -14,6 +14,8 @@
 #include "blas_kernels_templates.h"
 #include <cl_kernels/cl_kernels.h>
 
+#include <fp16.h>
+
 namespace nntrainer {
 
 /// @todo Remove this functions when enable-fp16 is true on Windows
@@ -43,7 +45,7 @@ void f16_f32(unsigned int N, const uint16_t *input, float *output) {
   }
   // remaining half-precision floating point values to single-precision values
   while (idx < N) {
-    *output = static_cast<float>(*data);
+    *output = compute_fp16_to_fp32(*data);
     ++output;
     ++data;
     ++idx;
@@ -86,7 +88,7 @@ void f32_f16(unsigned int N, const float *input, uint16_t *output) {
   }
   // remaining single-precision floating point values to half-precision values
   while (idx < N) {
-    *out_data = static_cast<_Float16>(*input);
+    *out_data = compute_fp32_to_fp16(*input);
     ++out_data;
     ++input;
     ++idx;
@@ -262,6 +264,23 @@ void gemv_int4_async_cl(std::vector<void *> weights,
   for (int i = 0; i < Ns.size(); ++i) {
     f16_f32(Ns[i], (uint16_t *)clbuffInstance.getSVMOutput(i), outputs[i]);
   }
+}
+
+void gemv_int4_cl(char *weight, uint16_t *scale, float *input, float *output,
+                  unsigned int K, unsigned int N) {
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
+  // copy fp32 input to fp16
+  f32_f16(K, input, (uint16_t *)clbuffInstance.getSVMInput());
+
+  // perform int4 matmul
+  gemv_int4_cl(weight, scale, (uint16_t *)clbuffInstance.getSVMInput(),
+               (uint16_t *)clbuffInstance.getSVMOutput(), K, N);
+
+  // copy fp16 output to fp32
+  f16_f32(N, (uint16_t *)clbuffInstance.getSVMOutput(), output);
 }
 
 void gemm_q4_0_async_cl(std::vector<void *> matAdata, float *matBdata,
@@ -487,10 +506,10 @@ void openvino_gemm_async_cl(float *input, std::vector<void *> weights,
   // copy fp32 input to fp16
   f32_f16(M * K, input, (uint16_t *)clbuffInstance.getSVMInput());
 
+  std::vector<cl_event> quantize_event(1);
   {
-
     std::string compile_options =
-      "-D SIZE_M=" + std::to_string(M) + " -D SIZE_N=" + std::to_string(Ns[0]) +
+      " -D SIZE_N=" + std::to_string(Ns[0]) +
       " -D SIZE_K=" + std::to_string(K) +
       " -D SIZE_QUANTIZATION_GROUP=" + std::to_string(quantization_group_size);
 
@@ -526,7 +545,7 @@ void openvino_gemm_async_cl(float *input, std::vector<void *> weights,
     const int work_group_size[3] = {64, 1, 1};
 
     result = blas_cc->command_queue_inst_.DispatchCommand(
-      kernel_ptr, work_groups_count, work_group_size);
+      kernel_ptr, work_groups_count, work_group_size, &quantize_event.front());
     if (!result) {
       throw std::runtime_error("Failed to dispatch kernel for quantize_input");
       return;
@@ -537,8 +556,7 @@ void openvino_gemm_async_cl(float *input, std::vector<void *> weights,
     int N = Ns[i];
 
     std::string compile_options =
-      "-D SIZE_M=" + std::to_string(M) + " -D SIZE_N=" + std::to_string(N) +
-      " -D SIZE_K=" + std::to_string(K) +
+      " -D SIZE_N=" + std::to_string(N) + " -D SIZE_K=" + std::to_string(K) +
       " -D SIZE_QUANTIZATION_GROUP=" + std::to_string(quantization_group_size);
 
     ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
@@ -586,12 +604,17 @@ void openvino_gemm_async_cl(float *input, std::vector<void *> weights,
       throw std::runtime_error(
         "Failed to set kernel argument 5 for fc_bf_tiled_kernel_default");
 
+    result = kernel_ptr->SetKernelArguments(arg++, &M, sizeof(int));
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 6 for fc_bf_tiled_kernel_default");
+
     const int work_groups_count[3] = {(int)(N / 2),
                                       (int)(align(ceil_div(M, 8), 8)), 1};
     const int work_group_size[3] = {16, 8, 1};
 
     result = blas_cc->command_queue_inst_.DispatchCommand(
-      kernel_ptr, work_groups_count, work_group_size, nullptr);
+      kernel_ptr, work_groups_count, work_group_size, nullptr, quantize_event);
     if (!result) {
       throw std::runtime_error(
         "Failed to dispatch kernel for fc_bf_tiled_kernel_default");
@@ -609,9 +632,9 @@ void openvino_gemm_async_cl(float *input, std::vector<void *> weights,
 }
 
 ///  @note remove this when fp16 is enabled on Windows
-void openvino_gemm_cl(float *input, char *weight, uint16_t *scale,
-                      float *output, unsigned int M, unsigned int N,
-                      unsigned int K, unsigned int quantization_group_size) {
+void openvino_sgemm_cl(float *input, char *weight, uint16_t *scale,
+                       float *output, unsigned int M, unsigned int N,
+                       unsigned int K, unsigned int quantization_group_size) {
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
   auto &clbuffInstance = ClBufferManager::Global();
@@ -635,8 +658,7 @@ void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
   auto &clbuffInstance = ClBufferManager::Global();
   std::string compile_options =
-    "-D SIZE_M=" + std::to_string(M) + " -D SIZE_N=" + std::to_string(N) +
-    " -D SIZE_K=" + std::to_string(K) +
+    " -D SIZE_N=" + std::to_string(N) + " -D SIZE_K=" + std::to_string(K) +
     " -D SIZE_QUANTIZATION_GROUP=" + std::to_string(quantization_group_size);
 
   auto ceil_div = [](unsigned int a, unsigned int b) -> unsigned int {
@@ -731,6 +753,11 @@ void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
   if (!result)
     throw std::runtime_error(
       "Failed to set kernel argument 5 for fc_bf_tiled_kernel_default");
+
+  result = kernel_ptr->SetKernelArguments(arg++, &M, sizeof(int));
+  if (!result)
+    throw std::runtime_error(
+      "Failed to set kernel argument 6 for fc_bf_tiled_kernel_default");
 
   const int work_groups_count[3] = {(int)(N / 2),
                                     (int)(align(ceil_div(M, 8), 8)), 1};

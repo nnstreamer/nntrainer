@@ -369,6 +369,29 @@ void Int4QTensor::read(std::ifstream &file, size_t start_offset,
   putData();
 }
 
+void Int4QTensor::read(ReadSource src, size_t start_offset,
+                       bool read_from_offset) {
+  if (start_offset == std::numeric_limits<size_t>::max()) {
+    start_offset = file_offset;
+  }
+  read_quantization_info(src, start_offset, read_from_offset);
+
+  std::streamsize sz = static_cast<std::streamsize>(getMemoryBytes());
+
+  NNTR_THROW_IF(sz < 0, std::invalid_argument)
+    << "read size: " << getMemoryBytes()
+    << " is too big. It cannot be represented by std::streamsize";
+
+  if (read_from_offset) {
+    start_offset += sizeof(uint16_t);
+  }
+
+  checkedRead(src, (char *)getData(), sz,
+              "[Int4QTensor::read] operation failed", start_offset,
+              read_from_offset);
+  putData();
+}
+
 std::vector<unsigned int> Int4QTensor::argmax() const {
   std::vector<unsigned int> result;
   const int8_t *data = (int8_t *)getData();
@@ -524,7 +547,7 @@ void Int4QTensor::print(std::ostream &out) const {
 
 size_t Int4QTensor::getMemoryBytes() const {
   return ((size() + 1) / 2) * dim.getDataTypeSize() +
-         scale_size() * sizeof(float);
+         scale_size() * sizeof(uint16_t);
 }
 
 size_t Int4QTensor::scale_size() const {
@@ -533,7 +556,7 @@ size_t Int4QTensor::scale_size() const {
     return 1;
     break;
   case QScheme::PER_CHANNEL_AFFINE:
-    return height();
+    return height() * width() / 128;
     break;
   default:
     break;
@@ -567,6 +590,13 @@ void Int4QTensor::read_quantization_info(std::ifstream &file,
                                          size_t start_offset,
                                          bool read_from_offset) {
   checkedRead(file, (char *)&qscheme, sizeof(uint16_t),
+              "[Int4QTensor::read] failed to read quantization information",
+              start_offset, read_from_offset);
+}
+
+void Int4QTensor::read_quantization_info(ReadSource src, size_t start_offset,
+                                         bool read_from_offset) {
+  checkedRead(src, (char *)&qscheme, sizeof(uint16_t),
               "[Int4QTensor::read] failed to read quantization information",
               start_offset, read_from_offset);
 }

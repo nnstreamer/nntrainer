@@ -21,7 +21,6 @@
 #define INPUT0_OFFSET 0
 #define OUTPUT_OFFSET 0
 
-#define OUTPUT_BATCH_NUM SIZE_M
 #define IFM_SIZE SIZE_K
 
 #define ACCUMULATOR_TYPE float
@@ -62,7 +61,6 @@
 #define TILE_OUT_F_PITCH 1
 #define TILE_IN_B_PITCH SIZE_K
 #define TILE_OUT_B_PITCH SIZE_N
-#define BATCH_SIZE (OUTPUT_BATCH_NUM)
 
 #define ACTIVATION_FUNC_TYPED(input, params) (input)
 #define ACTIVATION_PARAMS_TYPED 0
@@ -1206,16 +1204,15 @@ inline void fc_bf_tiled_kernel_dyn_quan(
   const __global DECOMPRESSION_ZP_TYPE *decompression_zp,
 #endif
   __global OUTPUT_TYPE *output, const __global FILTER_TYPE *weights,
-  __local uint *wei_local_mem
+  __local uint *wei_local_mem,
 #if BIAS_TERM
-  ,
-  const __global BIAS_TYPE *biases
+  , const __global BIAS_TYPE *biases
 #endif
 #if HAS_FUSED_OPS_DECLS
   ,
   FUSED_OPS_DECLS
 #endif
-) {
+  const int BATCH_SIZE) {
   uint gid = (uint)get_group_id(0);
   uint local_id = (uint)get_local_id(1);
   uint sglid = (uint)get_sub_group_local_id();
@@ -1778,8 +1775,8 @@ inline void fc_bf_tiled_kernel_dyn_quan(
     uint output_offset =
       out_f * TILE_OUT_F_PITCH + out_b * TILE_OUT_B_PITCH + OUTPUT_OFFSET;
 
-    if (USE_BLOCK_WRITE && (TILE_OUT_F_NUM % (TILE_OFM * SIMD) == 0 ||
-                            out_f + (TILE_OFM * SIMD) <= TILE_OUT_F_NUM)) {
+    if ((TILE_OUT_F_NUM % (TILE_OFM * SIMD) == 0 ||
+         out_f + (TILE_OFM * SIMD) <= TILE_OUT_F_NUM)) {
 #if IS_DYNAMIC
 #define WRITE_OUTPUT(bi)                                                       \
   do {                                                                         \
@@ -1840,7 +1837,8 @@ kernel void fc_bf_tiled_kernel_default(
   ,
   __global DQ_TYPE *quantized_input, __global INPUT0_TYPE *quan_var
 #endif
-) {
+  ,
+  const int M) {
   __local uint dq_wei_local_mem[SIMD * TILE_OFM * SIMD];
   fc_bf_tiled_kernel_dyn_quan(OPTIONAL_SHAPE_INFO_TENSOR input, quantized_input,
                               quan_var,
@@ -1850,10 +1848,9 @@ kernel void fc_bf_tiled_kernel_default(
 #if DECOMPRESSION_ZP_TERM && !DECOMPRESSION_ZP_SCALAR
                               decompression_zp,
 #endif
-                              output, weights, dq_wei_local_mem
+                              output, weights, dq_wei_local_mem,
 #if BIAS_TERM
-                              ,
-                              biases
+                              , biases
 #endif
-  );
+                                  M);
 }

@@ -705,6 +705,11 @@ Tensor &FloatTensor::dot(Tensor const &input, Tensor &output, bool trans,
   case Tdatatype::Q4_0:
     dotQnK(input, output, trans, trans_in, beta, input.getDataType());
     break;
+  case Tdatatype::QINT16:
+  case Tdatatype::QINT8:
+  case Tdatatype::QINT4:
+    dotQInteger(input, output, trans, trans_in, beta, input.getDataType());
+    break;
   default:
     throw std::invalid_argument("Error: unsupported datatype");
   }
@@ -746,11 +751,11 @@ void FloatTensor::dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
     }
 #endif
   } else if (input[0]->getDataType() == Tdatatype::QINT4) {
-    std::vector<uint16_t *> scales;
-
 #ifndef ENABLE_OPENCL
     throw std::runtime_error("Error: QINT4 Dot is not supported on CPU");
 #else
+    std::vector<uint16_t *> scales;
+
     for (unsigned int i = 0; i < input.size(); ++i) {
       int N = input[i]->getDim().width();
       void *mdata = (void *)input[i]->getData<uint8_t>();
@@ -942,6 +947,32 @@ Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
   default:
     throw std::invalid_argument("Error: unsupported datatype");
   }
+
+  return output;
+}
+
+Tensor &FloatTensor::dotQInteger(Tensor const &input, Tensor &output,
+                                 bool trans, bool trans_in, float beta,
+                                 Tdatatype dtype) const {
+#ifndef ENABLE_OPENCL
+  throw std::runtime_error("Error: QINT4 Dot is not supported on CPU");
+#else
+
+  float *data = (float *)getData();
+  char *mdata = input.getData<char>();
+  float *rdata = output.getData<float>();
+
+  unsigned int M = getDim().height();
+  unsigned int K = getDim().width();
+  unsigned int N = input.getDim().width();
+
+  /// @note this should be if (M == 1) else
+  if (M == 1) {
+    gemv_int4_cl(mdata, input.getScale<uint16_t>(), data, rdata, K, N);
+  } else {
+    openvino_sgemm_cl(data, mdata, input.getScale<uint16_t>(), rdata, M, N, K);
+  }
+#endif
 
   return output;
 }
