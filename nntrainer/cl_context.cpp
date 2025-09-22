@@ -31,7 +31,11 @@
 #endif
 
 namespace nntrainer {
-
+#if KERNEL_CACHE
+static constexpr bool KERNEL_CACHE_ENABLED = true;
+#else
+static constexpr bool KERNEL_CACHE_ENABLED = false;
+#endif
 std::mutex cl_factory_mutex;
 
 std::vector<std::byte> readBinaryFile(const std::string &path) {
@@ -69,7 +73,9 @@ void ClContext::initialize() noexcept {
       ml_loge("Error: ClContext::initialize() failed");
       return;
     }
-    std::filesystem::create_directories(opencl::Program::DEFAULT_KERNEL_PATH);
+    if (KERNEL_CACHE_ENABLED) {
+      std::filesystem::create_directories(opencl::Program::DEFAULT_KERNEL_PATH);
+    }
 
     initBlasClKernels();
     initAttentionClKernels();
@@ -252,9 +258,10 @@ bool ClContext::clCreateKernel(std::string &kernel_string,
   std::string binary_file_path =
     opencl::Program::DEFAULT_KERNEL_PATH + "/" +
     std::to_string(program.GetKernelHash(kernel_string, "")) + ".cl.bin";
-  auto binary_data = readBinaryFile(binary_file_path);
+  auto binary_data = KERNEL_CACHE_ENABLED ? readBinaryFile(binary_file_path)
+                                          : std::vector<std::byte>();
 
-  if (!binary_data.empty()) {
+  if (KERNEL_CACHE_ENABLED && !binary_data.empty()) {
     ml_logi("Using cached version of kernel: %s at path %s",
             kernel_name.c_str(), binary_file_path.c_str());
     result = program.CreateCLProgramWithBinary(
@@ -268,7 +275,7 @@ bool ClContext::clCreateKernel(std::string &kernel_string,
       opencl::ContextManager::Global().GetContext(),
       opencl::ContextManager::Global().GetDeviceId(), kernel_string, "");
 
-    if (result) {
+    if (KERNEL_CACHE_ENABLED && result) {
       auto binary = program.GetProgramBinary(
         opencl::ContextManager::Global().GetDeviceId());
 

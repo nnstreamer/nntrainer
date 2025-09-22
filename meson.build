@@ -140,6 +140,12 @@ else
     extra_defines += '-DMMAP_READ=0'
 endif
 
+if get_option('enable-kernel-caching')
+  extra_defines += '-DKERNEL_CACHE=1'
+else
+  extra_defines += '-DKERNEL_CACHE=0'
+endif
+
 if get_option('enable-fp16')
    if get_option('platform') == 'android'
      add_project_arguments('-mfp16-format=ieee', language: ['c', 'cpp'])
