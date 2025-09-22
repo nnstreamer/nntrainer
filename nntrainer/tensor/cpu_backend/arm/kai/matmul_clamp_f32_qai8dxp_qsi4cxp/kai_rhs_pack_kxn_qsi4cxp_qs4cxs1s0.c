@@ -144,7 +144,7 @@ void kai_run_rhs_pack_kxn_qsi4cxp_qs4cxs1s0(
 
         // The following operations where we extract the values from the bytes
         // can be also written in the following and less efficient manner:
-        /*
+        /**
             uint8_t src_x0_lo = 0;
             uint8_t src_x0_hi = 0;
 

@@ -23,6 +23,10 @@
 extern "C" {
 #endif
 
+/**
+ * @brief kai_rhs_pack_kxn_qsi4cxp_qs4cxs1s0_params
+ *
+ */
 struct kai_rhs_pack_kxn_qsi4cxp_qs4cxs1s0_params {
   int8_t lhs_zero_point;
   uint8_t rhs_zero_point;
