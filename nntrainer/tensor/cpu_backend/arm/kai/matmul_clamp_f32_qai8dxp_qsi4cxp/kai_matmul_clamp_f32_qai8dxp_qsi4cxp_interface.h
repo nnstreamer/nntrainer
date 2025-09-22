@@ -49,6 +49,9 @@ typedef void (*kai_matmul_clamp_f32_qai8dxp_qsi4cxp_run_matmul_func_t)(
   float scalar_max);
 
 /// Micro-kernel interface
+/**
+ * @brief  kai_matmul_clamp_f32_qai8dxp_qsi4cxp_ukernel
+ */
 struct kai_matmul_clamp_f32_qai8dxp_qsi4cxp_ukernel {
   kai_matmul_clamp_f32_qai8dxp_qsi4cxp_get_m_step_func_t get_m_step;
   kai_matmul_clamp_f32_qai8dxp_qsi4cxp_get_n_step_func_t get_n_step;

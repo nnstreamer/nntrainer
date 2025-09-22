@@ -9,7 +9,7 @@
  * @author Sungsik Kong
  *
  * @brief  Modified computational backend components of
- * matmul_clamp_f32_qai8dxp_qsi4cxp. Portions of this file are derived from Arm
+ * kleidiai. Portions of this file are derived from Arm
  * Limited code licensed under the Apache License, Version 2.0, with
  * modifications
  *

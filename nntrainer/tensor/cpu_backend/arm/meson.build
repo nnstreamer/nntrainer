@@ -17,10 +17,6 @@ subdir('matrix_transpose_neon')
 nntrainer_inc += include_directories('matrix_transpose_neon')
 nntrainer_inc_abs += meson.current_source_dir() / 'matrix_transpose_neon'
 
-subdir('kai')
-nntrainer_inc += include_directories('kai')
-nntrainer_inc_abs += meson.current_source_dir() / 'kai'
-
 
 if get_option('enable-fp16')
   arm_compute_backend_sources += 'arm_compute_backend_fp16.cpp'
@@ -29,6 +25,10 @@ if get_option('enable-fp16')
   subdir('hgemm')
   nntrainer_inc += include_directories('hgemm')
   nntrainer_inc_abs += meson.current_source_dir() / 'hgemm'
+
+  subdir('kai')
+  nntrainer_inc += include_directories('kai')
+  nntrainer_inc_abs += meson.current_source_dir() / 'kai'
 endif
 
 arch = host_machine.cpu_family()
