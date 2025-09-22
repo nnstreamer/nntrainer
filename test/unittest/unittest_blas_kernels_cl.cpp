@@ -1616,6 +1616,142 @@ DECLARE_int4_gemm_test_K_N(68, 3072, 8192);
 DECLARE_int4_gemm_test_K_N(68, 8192, 3072);
 DECLARE_int4_gemm_test_K_N(68, 3072, 3072);
 
+TEST(nntrainer_blas_kernel, int4_gemm_async_test) {
+  auto *blas_cc = static_cast<nntrainer::ClContext *>(
+    nntrainer::Engine::Global().getRegisteredContext("gpu"));
+
+  static constexpr uint32_t run_count = 200;
+
+  const int M = 68;
+  const int K = 3072;
+  const int N0 = 3072, N1 = 256;
+
+  // Initialize Activation
+  std::vector<float> activation = generate_random_vector<float, false>(M * K);
+  float *activations_f32_ptr = (float *)allocateSVM(M * K * sizeof(float));
+  blas_cc->command_queue_inst_.enqueueSVMMap(activations_f32_ptr,
+                                             M * K * sizeof(float), false);
+  for (unsigned int i = 0; i < M * K; ++i) {
+    activations_f32_ptr[i] = activation[i];
+  }
+
+  // Initialize Weight
+  std::vector<float> weight0 = generate_random_vector<float, true>(N0 * K);
+  std::vector<float> weight1 = generate_random_vector<float, true>(N1 * K);
+  std::vector<float> weight2 = generate_random_vector<float, true>(N1 * K);
+  size_t data_size_n0 = N0 * K * sizeof(uint16_t);
+  size_t data_size_n1 = N1 * K * sizeof(uint16_t);
+
+  // weight 0 (3072 x 3072)
+
+  void *ws0 = allocateSVM(data_size_n0 / 128);
+  void *wq0 = allocateSVM(data_size_n0 / 2);
+  blas_cc->command_queue_inst_.enqueueSVMMap(wq0, data_size_n0 / 2, false);
+  auto quantization = quantize_int4_os_is_yx_osv32_isv2(weight0.data(), N0, K);
+
+  for (unsigned int i = 0; i < K * N0 / 128; ++i) {
+    ((uint16_t *)ws0)[i] = quantization.second[i];
+  }
+
+  for (unsigned int i = 0; i < N0 * K / 2; ++i) {
+    ((int8_t *)wq0)[i] = quantization.first[i];
+  }
+
+  // weight 1 (3072 x 256)
+  void *ws1 = allocateSVM(data_size_n1 / 128);
+  void *wq1 = allocateSVM(data_size_n1 / 2);
+  blas_cc->command_queue_inst_.enqueueSVMMap(wq1, data_size_n1 / 2, false);
+  quantization = quantize_int4_os_is_yx_osv32_isv2(weight1.data(), N1, K);
+
+  for (unsigned int i = 0; i < K * N1 / 128; ++i) {
+    ((uint16_t *)ws1)[i] = quantization.second[i];
+  }
+
+  for (unsigned int i = 0; i < N1 * K / 2; ++i) {
+    ((int8_t *)wq1)[i] = quantization.first[i];
+  }
+
+  // weight 2 (3072 x 256)
+  void *ws2 = allocateSVM(data_size_n1 / 128);
+  void *wq2 = allocateSVM(data_size_n1 / 2);
+  blas_cc->command_queue_inst_.enqueueSVMMap(wq2, data_size_n1 / 2, false);
+  quantization = quantize_int4_os_is_yx_osv32_isv2(weight2.data(), N1, K);
+
+  for (unsigned int i = 0; i < K * N1 / 128; ++i) {
+    ((uint16_t *)ws2)[i] = quantization.second[i];
+  }
+
+  for (unsigned int i = 0; i < N1 * K / 2; ++i) {
+    ((int8_t *)wq2)[i] = quantization.first[i];
+  }
+
+  // Initialize Output data
+  float *out0 = (float *)allocateSVM(M * N0 * sizeof(float));
+  float *out1 = (float *)allocateSVM(M * N1 * sizeof(float));
+  float *out2 = (float *)allocateSVM(M * N1 * sizeof(float));
+
+  // In-order kernel execution
+  auto t1 = std::chrono::high_resolution_clock::now();
+  for (unsigned int i = 0; i < run_count; ++i) {
+    nntrainer::openvino_gemm_cl(activations_f32_ptr, (char *)wq0,
+                                (uint16_t *)ws0, out0, M, N0, K);
+    nntrainer::openvino_gemm_cl(activations_f32_ptr, (char *)wq1,
+                                (uint16_t *)ws1, out1, M, N1, K);
+    nntrainer::openvino_gemm_cl(activations_f32_ptr, (char *)wq2,
+                                (uint16_t *)ws2, out2, M, N1, K);
+  }
+  auto t2 = std::chrono::high_resolution_clock::now();
+  auto dt = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
+
+  float *async_out0 = (float *)allocateSVM(M * N0 * sizeof(float));
+  float *async_out1 = (float *)allocateSVM(M * N1 * sizeof(float));
+  float *async_out2 = (float *)allocateSVM(M * N1 * sizeof(float));
+
+  std::vector<void *> weight_vec = {wq0, wq1, wq2};
+  std::vector<uint16_t *> scale_vec = {(uint16_t *)ws0, (uint16_t *)ws1,
+                                       (uint16_t *)ws2};
+  std::vector<float *> out_vec = {async_out0, async_out1, async_out2};
+  std::vector<unsigned int> n_vec = {N0, N1, N1};
+
+  // Async
+  auto t3 = std::chrono::high_resolution_clock::now();
+  for (unsigned int i = 0; i < run_count; ++i) {
+    nntrainer::openvino_gemm_async_cl(activations_f32_ptr, weight_vec,
+                                      scale_vec, out_vec, M, n_vec, K);
+  }
+  auto t4 = std::chrono::high_resolution_clock::now();
+  auto gpu_dt = std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3);
+
+  std::cout << "Q4_0 GEMM : " << M << " x " << K << " x " << N1 << std::endl;
+  std::cout << " - time : Orig = " << dt.count() / (run_count * 1.0f) << " ms"
+            << std::endl;
+  std::cout << " - time : Async = " << gpu_dt.count() / (run_count * 1.0f)
+            << " ms" << std::endl;
+
+  debug_print_beg_end(out0, M * N0);
+  debug_print_beg_end(out1, M * N1);
+  debug_print_beg_end(out2, M * N1);
+
+  debug_print_beg_end(async_out0, M * N0);
+  debug_print_beg_end(async_out1, M * N1);
+  debug_print_beg_end(async_out2, M * N1);
+
+  // Free allocated SVM
+  freeSVM(activations_f32_ptr);
+  freeSVM(ws0);
+  freeSVM(wq0);
+  freeSVM(ws1);
+  freeSVM(wq1);
+  freeSVM(ws2);
+  freeSVM(wq2);
+  freeSVM(out0);
+  freeSVM(out1);
+  freeSVM(out2);
+  freeSVM(async_out0);
+  freeSVM(async_out1);
+  freeSVM(async_out2);
+}
+
 static void run_q_6_K_test(const uint32_t M, const uint32_t K,
                            const uint32_t N) {
   nntrainer::init_backend();

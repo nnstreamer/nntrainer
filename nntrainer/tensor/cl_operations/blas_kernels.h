@@ -82,6 +82,11 @@ void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
                       unsigned int M, unsigned int N, unsigned int K,
                       unsigned int quantization_group_size = 128);
 
+void openvino_gemm_async_cl(float *input, std::vector<void *> weights,
+                            std::vector<uint16_t *> scales,
+                            std::vector<float *> matCdata, unsigned int M,
+                            std::vector<unsigned int> Ns, unsigned int K);
+
 /**
  * @brief     Q6_K sgemv computation : Y = A*X
  * @param[in] matAdata void * for Matrix A

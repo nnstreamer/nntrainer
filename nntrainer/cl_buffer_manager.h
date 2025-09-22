@@ -57,9 +57,9 @@ private:
   opencl::Buffer *outBufferB = nullptr;
 
   void *data_input = nullptr;
-  void *data_output = nullptr;
   std::vector<void *> scale_vec;
   std::vector<void *> quant_vec;
+  std::vector<void *> output_vec;
 
 public:
   /**
@@ -107,7 +107,12 @@ public:
    *
    * @note remove this when fp16 is enabled on Windows
    */
-  void *getSVMOutput() { return data_output; }
+  void *getSVMOutput(unsigned int idx = 0) {
+    if (idx >= output_vec.size())
+      return nullptr;
+
+    return output_vec[idx];
+  }
 
   /**
    * @brief Get the SVM pointer to data_input

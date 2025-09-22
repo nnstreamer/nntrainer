@@ -383,6 +383,149 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
   }
 }
 
+void openvino_gemm_async_cl(float *input, std::vector<void *> weights,
+                            std::vector<uint16_t *> scales,
+                            std::vector<float *> matCdata, unsigned int M,
+                            std::vector<unsigned int> Ns, unsigned int K) {
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
+  int quantization_group_size = 128;
+  bool result = false;
+
+  auto ceil_div = [](unsigned int a, unsigned int b) -> unsigned int {
+    return (a + b - 1) / b;
+  };
+
+  auto align = [](unsigned int a, unsigned int b) -> unsigned int {
+    return (a % b == 0) ? a : a - a % b + b;
+  };
+
+  // copy fp32 input to fp16
+  f32_f16(M * K, input, (uint16_t *)clbuffInstance.getSVMInput());
+
+  {
+
+    std::string compile_options =
+      "-D SIZE_M=" + std::to_string(M) + " -D SIZE_N=" + std::to_string(Ns[0]) +
+      " -D SIZE_K=" + std::to_string(K) +
+      " -D SIZE_QUANTIZATION_GROUP=" + std::to_string(quantization_group_size);
+
+    ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
+      openvino_gemm_kernel, "quantize_input", compile_options);
+    if (!kernel_ptr) {
+      throw std::runtime_error("Failed to get kernel_ptr for quantize_input");
+      return;
+    }
+
+    int arg = 0;
+
+    result =
+      kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMInput());
+    if (!result)
+      throw std::runtime_error("Failed to set kernel argument 0 for "
+                               "quantize_input");
+
+    result =
+      kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMQuant());
+    if (!result)
+      throw std::runtime_error("Failed to set kernel argument 1 for "
+                               "quantize_input");
+
+    result =
+      kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMScale());
+    if (!result)
+      throw std::runtime_error("Failed to set kernel argument 2 for "
+                               "quantize_input");
+
+    const int work_groups_count[3] = {
+      (int)align((M * K) / quantization_group_size, 64), 1, 1};
+    const int work_group_size[3] = {64, 1, 1};
+
+    result = blas_cc->command_queue_inst_.DispatchCommand(
+      kernel_ptr, work_groups_count, work_group_size);
+    if (!result) {
+      throw std::runtime_error("Failed to dispatch kernel for quantize_input");
+      return;
+    }
+  }
+
+  for (unsigned int i = 0; i < Ns.size(); ++i) {
+    int N = Ns[i];
+
+    std::string compile_options =
+      "-D SIZE_M=" + std::to_string(M) + " -D SIZE_N=" + std::to_string(N) +
+      " -D SIZE_K=" + std::to_string(K) +
+      " -D SIZE_QUANTIZATION_GROUP=" + std::to_string(quantization_group_size);
+
+    ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
+      openvino_gemm_kernel, "fc_bf_tiled_kernel_default", compile_options);
+    if (!kernel_ptr) {
+      throw std::runtime_error(
+        "Failed to get kernel_ptr for fc_bf_tiled_kernel_default");
+      return;
+    }
+
+    int arg = 0;
+
+    result =
+      kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMInput());
+
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 0 for fc_bf_tiled_kernel_default");
+
+    result = kernel_ptr->SetKernelSVMArguments(arg++, scales[i]);
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 1 for fc_bf_tiled_kernel_default");
+
+    result =
+      kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMOutput(i));
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 2 for fc_bf_tiled_kernel_default");
+
+    result = kernel_ptr->SetKernelSVMArguments(arg++, weights[i]);
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 3 for fc_bf_tiled_kernel_default");
+
+    result =
+      kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMQuant());
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 4 for fc_bf_tiled_kernel_default");
+
+    result =
+      kernel_ptr->SetKernelSVMArguments(arg++, clbuffInstance.getSVMScale());
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 5 for fc_bf_tiled_kernel_default");
+
+    const int work_groups_count[3] = {(int)(N / 2),
+                                      (int)(align(ceil_div(M, 8), 8)), 1};
+    const int work_group_size[3] = {16, 8, 1};
+
+    result = blas_cc->command_queue_inst_.DispatchCommand(
+      kernel_ptr, work_groups_count, work_group_size, nullptr);
+    if (!result) {
+      throw std::runtime_error(
+        "Failed to dispatch kernel for fc_bf_tiled_kernel_default");
+      return;
+    }
+  }
+
+  for (unsigned int i = 0; i < Ns.size(); ++i) {
+    blas_cc->command_queue_inst_.enqueueSVMMap(
+      clbuffInstance.getSVMOutput(i), M * Ns[i] * sizeof(uint16_t), true);
+
+    // copy fp16 output to fp32
+    f16_f32(M * Ns[i], (uint16_t *)clbuffInstance.getSVMOutput(i), matCdata[i]);
+  }
+}
+
 ///  @note remove this when fp16 is enabled on Windows
 void openvino_gemm_cl(float *input, char *weight, uint16_t *scale,
                       float *output, unsigned int M, unsigned int N,

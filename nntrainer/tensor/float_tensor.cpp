@@ -720,15 +720,15 @@ Tensor &FloatTensor::dot(Tensor const &input, Tensor &output, bool trans,
 
 void FloatTensor::dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
                       bool trans, bool trans_in, float beta) const {
+  float *data = (float *)getData();
+  unsigned int M = getDim().height();
+  unsigned int K = getDim().width();
+
+  std::vector<unsigned int> Ns;
+  std::vector<void *> mdatas;
+  std::vector<float *> rdatas;
 
   if (input[0]->getDataType() == Tdatatype::Q4_0) {
-    float *data = (float *)getData();
-    unsigned int M = getDim().height();
-    unsigned int K = getDim().width();
-
-    std::vector<unsigned int> Ns;
-    std::vector<void *> mdatas;
-    std::vector<float *> rdatas;
 
     for (unsigned int i = 0; i < input.size(); ++i) {
       int N = input[i]->getDim().width();
@@ -754,9 +754,32 @@ void FloatTensor::dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
     }
 #endif
   } else if (input[0]->getDataType() == Tdatatype::QINT4) {
+    std::vector<uint16_t *> scales;
+
     for (unsigned int i = 0; i < input.size(); ++i) {
-      dotQInteger(*input[i], *output[i], trans, trans_in, beta,
-                  Tdatatype::QINT4);
+      int N = input[i]->getDim().width();
+      void *mdata = (void *)input[i]->getData<uint8_t>();
+      float *rdata = output[i]->getData<float>();
+      uint16_t *scale = input[i]->getScale<uint16_t>();
+
+#ifdef ENABLE_OPENCL
+      if (M == 1) {
+        gemv_int4_cl(input[i]->getData<char>(), input[i]->getScale<uint16_t>(),
+                     data, rdata, K, N);
+      } else {
+        Ns.push_back(N);
+        mdatas.push_back(mdata);
+        rdatas.push_back(rdata);
+        scales.push_back(scale);
+      }
+#else
+      /// @todo Support multi-weight q4_0 for x64
+      throw std::runtime_error("unsupported data type");
+#endif
+    }
+
+    if (M != 1) {
+      openvino_gemm_async_cl(data, mdatas, scales, rdatas, M, Ns, K);
     }
   } else {
     throw std::runtime_error("unsupported data type");
