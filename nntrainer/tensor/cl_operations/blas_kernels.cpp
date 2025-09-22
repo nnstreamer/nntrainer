@@ -16,6 +16,83 @@
 
 namespace nntrainer {
 
+void gemv_int4_async_cl(std::vector<void *> weights,
+                        std::vector<uint16_t *> scales, uint16_t *input,
+                        std::vector<uint16_t *> outputs, unsigned int K,
+                        std::vector<unsigned int> Ns) {
+  bool result = false;
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  auto &clbuffInstance = ClBufferManager::Global();
+
+  ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
+    int4_gemv_kernel, "fully_connected_gpu_int4_gemv");
+  if (!kernel_ptr) {
+    throw std::runtime_error(
+      "Failed to get kernel_ptr for fully_connected_gpu_int4_gemv");
+    return;
+  }
+
+  const int work_group_size[3] = {16, 1, 16};
+
+  for (unsigned int i = 0; i < Ns.size(); ++i) {
+    int arg = 0;
+    int N = Ns[i];
+    void *weight = weights[i];
+    uint16_t *scale = scales[i];
+    uint16_t *output = outputs[i];
+    result = kernel_ptr->SetKernelSVMArguments(arg++, input);
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 0 for fully_connected_gpu_int4_gemv");
+
+    kernel_ptr->SetKernelSVMArguments(arg++, scale);
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 1 for fully_connected_gpu_int4_gemv");
+
+    result = kernel_ptr->SetKernelSVMArguments(arg++, output);
+
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 2 for fully_connected_gpu_int4_gemv");
+
+    result = kernel_ptr->SetKernelSVMArguments(arg++, weight);
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 3 for fully_connected_gpu_int4_gemv");
+
+    result = kernel_ptr->SetKernelArguments(arg++, &K, sizeof(int));
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 4 for fully_connected_gpu_int4_gemv");
+
+    result = kernel_ptr->SetKernelArguments(arg++, &N, sizeof(int));
+    if (!result)
+      throw std::runtime_error(
+        "Failed to set kernel argument 5 for fully_connected_gpu_int4_gemv");
+
+    const int work_groups_count[3] = {(int)(N / 2), 1, 16};
+    result = blas_cc->command_queue_inst_.DispatchCommand(
+      kernel_ptr, work_groups_count, work_group_size);
+    if (!result) {
+      throw std::runtime_error(
+        "Failed to dispatch kernel for fully_connected_gpu_int4_gemv");
+      return;
+    }
+  }
+
+  for (unsigned int i = 0; i < Ns.size(); ++i) {
+    blas_cc->command_queue_inst_.enqueueSVMMap(outputs[i],
+                                               Ns[i] * sizeof(uint16_t), true);
+  }
+  if (!result) {
+    throw std::runtime_error(
+      "Failed to read output data for fully_connected_gpu_int4_gemv");
+    return;
+  }
+}
+
 void gemv_int4_cl(char *weight, uint16_t *scale, uint16_t *input,
                   uint16_t *output, unsigned int K, unsigned int N) {
   bool result = false;
