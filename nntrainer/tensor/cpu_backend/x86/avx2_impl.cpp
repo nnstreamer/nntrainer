@@ -1435,13 +1435,19 @@ void softmax_row(float *qk_out, size_t start_row, size_t end_row,
 
 static inline __m256 convert_vector_f16_to_f32(__m128i x) {
 #if defined(__TIZEN__) && !defined(__F16C__)
-  __m256 vec_f32;
-  float *f32_ptr = reinterpret_cast<float *>(&vec_f32);
-  uint16_t *u16_ptr = reinterpret_cast<uint16_t *>(&x);
+  alignas(32) uint16_t u16_array[8]; // 32-byte aligned storage
+  alignas(32) float f32_array[8];    // 32-byte aligned storage
+
+  // Safely store __m128i to array (avoids aliasing)
+  _mm_storeu_si128(reinterpret_cast<__m128i *>(u16_array), x);
+
+  // Convert each FP16 value to FP32
   for (int i = 0; i < 8; i++) {
-    f32_ptr[i] = nntrainer::compute_fp16_to_fp32(u16_ptr[i]);
+    f32_array[i] = COMPUTE_FP16_TO_FP32(u16_array[i]);
   }
-  return vec_f32;
+
+  // Load aligned array into __m256
+  return _mm256_load_ps(f32_array);
 #else
   return _mm256_cvtph_ps(x);
 #endif
@@ -1458,6 +1464,21 @@ static inline __m128i convert_vector_f32_to_f16(__m256 x) {
   return vec_f16;
 #else
   return _mm256_cvtps_ph(x, 0);
+#endif
+}
+
+static inline __m128i convert_vector_f32_to_f16(__m128 x) {
+#if defined(__TIZEN__) && !defined(__F16C__)
+  __m128i vec_f16;
+  float *f32_ptr = reinterpret_cast<float *>(&x);
+  uint16_t *u16_ptr = reinterpret_cast<uint16_t *>(&vec_f16);
+
+  for (int i = 0; i < 4; i++) {
+    u16_ptr[i] = COMPUTE_FP32_TO_FP16(f32_ptr[i]);
+  }
+  return vec_f16;
+#else
+  return _mm_cvtps_ph(x, 0);
 #endif
 }
 
@@ -1794,6 +1815,80 @@ void clamp(const float *input, float *output, size_t length, float lower_bound,
       output[k] =
         (v < lower_bound) ? lower_bound : ((v > upper_bound) ? upper_bound : v);
     }
+  }
+}
+
+void copy_f16_f32(unsigned int N, const uint16_t *input, float *output) {
+  unsigned int idx = 0;
+  const uint16_t *data = (const uint16_t *)input;
+
+  // 16 half-precision floating point values to single-precision values
+  for (; N - idx >= 16; idx += 16) {
+    const __m256 vec0 =
+      convert_vector_f16_to_f32(_mm_loadu_si128((const __m128i *)data));
+    const __m256 vec1 =
+      convert_vector_f16_to_f32(_mm_loadu_si128((const __m128i *)(data + 8)));
+    data += 16;
+
+    _mm256_storeu_ps(output, vec0);
+    _mm256_storeu_ps(output + 8, vec1);
+    output += 16;
+  }
+  // 8 half-precision floating point values to single-precision values
+  for (; N - idx >= 8; idx += 8) {
+    const __m256 vec =
+      convert_vector_f16_to_f32(_mm_loadu_si128((const __m128i *)data));
+    data += 8;
+
+    _mm256_storeu_ps(output, vec);
+    output += 8;
+  }
+  // remaining half-precision floating point values to single-precision values
+  while (idx < N) {
+    *output = compute_fp16_to_fp32(*data);
+    ++output;
+    ++data;
+    ++idx;
+  }
+}
+
+void copy_f32_f16(unsigned int N, const float *input, uint16_t *output) {
+  unsigned int idx = 0;
+  uint16_t *out_data = (uint16_t *)output;
+
+  // 16 single-precision floating point values to half-precision values
+  for (; N - idx >= 16; idx += 16) {
+    const __m256 vec0 = _mm256_loadu_ps(input);
+    const __m256 vec1 = _mm256_loadu_ps(input + 8);
+    input += 16;
+
+    _mm_storeu_si128((__m128i *)out_data, convert_vector_f32_to_f16(vec0));
+    _mm_storeu_si128((__m128i *)(out_data + 8),
+                     convert_vector_f32_to_f16(vec1));
+    out_data += 16;
+  }
+  // 8 single-precision floating point values to half-precision values
+  for (; N - idx >= 8; idx += 8) {
+    const __m256 vec = _mm256_loadu_ps(input);
+    input += 8;
+
+    _mm_storeu_si128((__m128i *)out_data, convert_vector_f32_to_f16(vec));
+    out_data += 8;
+  }
+  // 4 single-precision floating point values to half-precision values
+  for (; N - idx >= 4; idx += 4) {
+    const __m128 vec = _mm_loadu_ps(input);
+    input += 4;
+
+    _mm_storeu_si64((__m128i *)out_data, convert_vector_f32_to_f16(vec));
+    out_data += 4;
+  }
+  // remaining single-precision floating point values to half-precision values
+  while (idx < N) {
+    *out_data = compute_fp32_to_fp16(*input);
+    ++out_data;
+    ++input;
+    ++idx;
   }
 }
 

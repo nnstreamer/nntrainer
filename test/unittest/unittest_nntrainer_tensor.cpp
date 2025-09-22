@@ -16,6 +16,7 @@
 #include <cmath>
 #include <cpu_backend.h>
 #include <float_tensor.h>
+#include <fp16.h>
 #include <fstream>
 #include <nntrainer_error.h>
 #include <tensor.h>
@@ -1456,8 +1457,9 @@ TEST(nntrainer_Tensor, copy_09_p) {
     for (unsigned int c = 0; c < output.channel(); ++c)
       for (unsigned int h = 0; h < output.height(); ++h)
         for (unsigned int w = 0; w < output.height(); ++w)
-          EXPECT_EQ(input.getValue<uint16_t>(b, c, h, w),
-                    output.getValue<float>(b, c, h, w));
+          EXPECT_FLOAT_EQ(nntrainer::compute_fp16_to_fp32(
+                            input.getValue<uint16_t>(b, c, h, w)),
+                          output.getValue<float>(b, c, h, w));
 }
 
 TEST(nntrainer_Tensor, copy_10_p) {

@@ -48,7 +48,7 @@ void copy_s16_fp32(const unsigned int N, const int16_t *X, float *Y) {
 }
 
 void copy_u16_fp32(const unsigned int N, const uint16_t *X, float *Y) {
-  __fallback_copy_u16_fp32(N, X, Y);
+  nntrainer::avx2::copy_f16_f32(N, X, Y);
 }
 
 void copy_fp32_u32(const unsigned int N, const float *X, uint32_t *Y) {
@@ -56,7 +56,7 @@ void copy_fp32_u32(const unsigned int N, const float *X, uint32_t *Y) {
 }
 
 void copy_fp32_u16(const unsigned int N, const float *X, uint16_t *Y) {
-  __fallback_copy_fp32_u16(N, X, Y);
+  nntrainer::avx2::copy_f32_f16(N, X, Y);
 }
 
 void copy_fp32_u8(const unsigned int N, const float *X, uint8_t *Y) {

@@ -18,84 +18,6 @@
 
 namespace nntrainer {
 
-/// @todo Remove this functions when enable-fp16 is true on Windows
-#if defined(__x86_COMPUTE_BACKEND_H__)
-void f16_f32(unsigned int N, const uint16_t *input, float *output) {
-  unsigned int idx = 0;
-  const uint16_t *data = (const uint16_t *)input;
-
-  // 16 half-precision floating point values to single-precision values
-  for (; N - idx >= 16; idx += 16) {
-    const __m256 vec0 = _mm256_cvtph_ps(_mm_loadu_si128((const __m128i *)data));
-    const __m256 vec1 =
-      _mm256_cvtph_ps(_mm_loadu_si128((const __m128i *)(data + 8)));
-    data += 16;
-
-    _mm256_storeu_ps(output, vec0);
-    _mm256_storeu_ps(output + 8, vec1);
-    output += 16;
-  }
-  // 8 half-precision floating point values to single-precision values
-  for (; N - idx >= 8; idx += 8) {
-    const __m256 vec = _mm256_cvtph_ps(_mm_loadu_si128((const __m128i *)data));
-    data += 8;
-
-    _mm256_storeu_ps(output, vec);
-    output += 8;
-  }
-  // remaining half-precision floating point values to single-precision values
-  while (idx < N) {
-    *output = compute_fp16_to_fp32(*data);
-    ++output;
-    ++data;
-    ++idx;
-  }
-}
-
-void f32_f16(unsigned int N, const float *input, uint16_t *output) {
-  unsigned int idx = 0;
-  uint16_t *out_data = (uint16_t *)output;
-
-  // 16 single-precision floating point values to half-precision values
-  for (; N - idx >= 16; idx += 16) {
-    const __m256 vec0 = _mm256_loadu_ps(input);
-    const __m256 vec1 = _mm256_loadu_ps(input + 8);
-    input += 16;
-
-    _mm_storeu_si128((__m128i *)out_data,
-                     _mm256_cvtps_ph(vec0, _MM_FROUND_TO_NEAREST_INT));
-    _mm_storeu_si128((__m128i *)(out_data + 8),
-                     _mm256_cvtps_ph(vec1, _MM_FROUND_TO_NEAREST_INT));
-    out_data += 16;
-  }
-  // 8 single-precision floating point values to half-precision values
-  for (; N - idx >= 8; idx += 8) {
-    const __m256 vec = _mm256_loadu_ps(input);
-    input += 8;
-
-    _mm_storeu_si128((__m128i *)out_data,
-                     _mm256_cvtps_ph(vec, _MM_FROUND_TO_NEAREST_INT));
-    out_data += 8;
-  }
-  // 4 single-precision floating point values to half-precision values
-  for (; N - idx >= 4; idx += 4) {
-    const __m128 vec = _mm_loadu_ps(input);
-    input += 4;
-
-    _mm_storeu_si64((__m128i *)out_data,
-                    _mm_cvtps_ph(vec, _MM_FROUND_TO_NEAREST_INT));
-    out_data += 4;
-  }
-  // remaining single-precision floating point values to half-precision values
-  while (idx < N) {
-    *out_data = compute_fp32_to_fp16(*input);
-    ++out_data;
-    ++input;
-    ++idx;
-  }
-}
-#endif
-
 void gemv_int4_async_cl(std::vector<void *> weights,
                         std::vector<uint16_t *> scales, uint16_t *input,
                         std::vector<uint16_t *> outputs, unsigned int K,
@@ -251,7 +173,7 @@ void gemv_int4_async_cl(std::vector<void *> weights,
   auto &clbuffInstance = ClBufferManager::Global();
 
   // copy fp32 input to fp16
-  f32_f16(K, input, (uint16_t *)clbuffInstance.getSVMInput());
+  copy_fp32_u16(K, input, (uint16_t *)clbuffInstance.getSVMInput());
   std::vector<uint16_t *> output_vec;
 
   for (int i = 0; i < Ns.size(); ++i) {
@@ -262,7 +184,8 @@ void gemv_int4_async_cl(std::vector<void *> weights,
                      output_vec, K, Ns);
 
   for (int i = 0; i < Ns.size(); ++i) {
-    f16_f32(Ns[i], (uint16_t *)clbuffInstance.getSVMOutput(i), outputs[i]);
+    copy_u16_fp32(Ns[i], (uint16_t *)clbuffInstance.getSVMOutput(i),
+                  outputs[i]);
   }
 }
 
@@ -273,14 +196,14 @@ void gemv_int4_cl(char *weight, uint16_t *scale, float *input, float *output,
   auto &clbuffInstance = ClBufferManager::Global();
 
   // copy fp32 input to fp16
-  f32_f16(K, input, (uint16_t *)clbuffInstance.getSVMInput());
+  copy_fp32_u16(K, input, (uint16_t *)clbuffInstance.getSVMInput());
 
   // perform int4 matmul
   gemv_int4_cl(weight, scale, (uint16_t *)clbuffInstance.getSVMInput(),
                (uint16_t *)clbuffInstance.getSVMOutput(), K, N);
 
   // copy fp16 output to fp32
-  f16_f32(N, (uint16_t *)clbuffInstance.getSVMOutput(), output);
+  copy_u16_fp32(N, (uint16_t *)clbuffInstance.getSVMOutput(), output);
 }
 
 void gemm_q4_0_async_cl(std::vector<void *> matAdata, float *matBdata,
@@ -504,7 +427,7 @@ void openvino_gemm_async_cl(float *input, std::vector<void *> weights,
   };
 
   // copy fp32 input to fp16
-  f32_f16(M * K, input, (uint16_t *)clbuffInstance.getSVMInput());
+  copy_fp32_u16(M * K, input, (uint16_t *)clbuffInstance.getSVMInput());
 
   std::vector<cl_event> quantize_event(1);
   {
@@ -627,7 +550,8 @@ void openvino_gemm_async_cl(float *input, std::vector<void *> weights,
       clbuffInstance.getSVMOutput(i), M * Ns[i] * sizeof(uint16_t), true);
 
     // copy fp16 output to fp32
-    f16_f32(M * Ns[i], (uint16_t *)clbuffInstance.getSVMOutput(i), matCdata[i]);
+    copy_u16_fp32(M * Ns[i], (uint16_t *)clbuffInstance.getSVMOutput(i),
+                  matCdata[i]);
   }
 }
 
@@ -640,14 +564,14 @@ void openvino_sgemm_cl(float *input, char *weight, uint16_t *scale,
   auto &clbuffInstance = ClBufferManager::Global();
 
   // copy fp32 input to fp16
-  f32_f16(M * K, input, (uint16_t *)clbuffInstance.getSVMInput());
+  copy_fp32_u16(M * K, input, (uint16_t *)clbuffInstance.getSVMInput());
 
   // perform int4 matmul
   openvino_gemm_cl(clbuffInstance.getSVMInput(), weight, scale,
                    clbuffInstance.getSVMOutput(), M, N, K);
 
   // copy fp16 output to fp32
-  f16_f32(M * N, (uint16_t *)clbuffInstance.getSVMOutput(), output);
+  copy_u16_fp32(M * N, (uint16_t *)clbuffInstance.getSVMOutput(), output);
 }
 
 void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
