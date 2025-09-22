@@ -30,6 +30,7 @@ void ClBufferManager::initBuffers() {
   for (unsigned int i = 0; i < max_qs; ++i) {
     scale_vec.push_back(context_inst_.createSVMRegion(scale_q4_0_size));
     quant_vec.push_back(context_inst_.createSVMRegion(quant_q4_0_size));
+    output_vec.push_back(context_inst_.createSVMRegion(buffer_size_bytes));
   }
 
   ml_logi("ClBufferManager: Buffers & images initialized");
@@ -46,6 +47,7 @@ ClBufferManager::~ClBufferManager() {
   for (unsigned int i = 0; i < max_qs; ++i) {
     context_inst_.releaseSVMRegion(scale_vec[i]);
     context_inst_.releaseSVMRegion(quant_vec[i]);
+    context_inst_.releaseSVMRegion(output_vec[i]);
   }
 
   ml_logi("ClBufferManager: Buffers destroyed");

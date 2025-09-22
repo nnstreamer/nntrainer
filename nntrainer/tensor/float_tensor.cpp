@@ -713,7 +713,6 @@ Tensor &FloatTensor::dot(Tensor const &input, Tensor &output, bool trans,
 
 void FloatTensor::dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
                       bool trans, bool trans_in, float beta) const {
-
   float *data = (float *)getData();
   unsigned int M = getDim().height();
   unsigned int K = getDim().width();
@@ -722,29 +721,58 @@ void FloatTensor::dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
   std::vector<void *> mdatas;
   std::vector<float *> rdatas;
 
-  for (unsigned int i = 0; i < input.size(); ++i) {
-    int N = input[i]->getDim().width();
-    void *mdata = (void *)input[i]->getData<uint8_t>();
-    float *rdata = output[i]->getData<float>();
+  if (input[0]->getDataType() == Tdatatype::Q4_0) {
+    for (unsigned int i = 0; i < input.size(); ++i) {
+      int N = input[i]->getDim().width();
+      void *mdata = (void *)input[i]->getData<uint8_t>();
+      float *rdata = output[i]->getData<float>();
 #ifdef ENABLE_OPENCL
-    if (M == 1) {
+      if (M == 1) {
+        gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
+      } else {
+        Ns.push_back(N);
+        mdatas.push_back(mdata);
+        rdatas.push_back(rdata);
+      }
+#else
+      /// @todo Support multi-weight q4_0 for x64
       gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
-    } else {
+#endif
+    }
+
+#ifdef ENABLE_OPENCL
+    if (M != 1) {
+      gemm_q4_0_async_cl(mdatas, data, rdatas, M, Ns, K);
+    }
+#endif
+  } else if (input[0]->getDataType() == Tdatatype::QINT4) {
+    std::vector<uint16_t *> scales;
+
+#ifndef ENABLE_OPENCL
+    throw std::runtime_error("Error: QINT4 Dot is not supported on CPU");
+#else
+    for (unsigned int i = 0; i < input.size(); ++i) {
+      int N = input[i]->getDim().width();
+      void *mdata = (void *)input[i]->getData<uint8_t>();
+      float *rdata = output[i]->getData<float>();
+      uint16_t *scale = input[i]->getScale<uint16_t>();
+
       Ns.push_back(N);
       mdatas.push_back(mdata);
       rdatas.push_back(rdata);
+      scales.push_back(scale);
     }
-#else
-    /// @todo Support multi-weight q4_0 for x64
-    gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
-#endif
-  }
 
-#ifdef ENABLE_OPENCL
-  if (M != 1) {
-    gemm_q4_0_async_cl(mdatas, data, rdatas, M, Ns, K);
-  }
+    /// Asynchronous execution
+    if (M == 1) {
+      gemv_int4_async_cl(mdatas, scales, data, rdatas, K, Ns);
+    } else {
+      openvino_gemm_async_cl(data, mdatas, scales, rdatas, M, Ns, K);
+    }
 #endif
+  } else {
+    throw std::runtime_error("unsupported data type");
+  }
 }
 
 Tensor &FloatTensor::dotFloat(Tensor const &input, Tensor &output, bool trans,
