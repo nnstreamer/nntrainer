@@ -1,3 +1,13 @@
+/**
+ * @file kai_rhs_pack_nxk_qsi4cxp_qs4cxs1s0.h
+ * @date   22 Septemer 2025
+ * @see    https://github.com/ARM-software/kleidiai
+ * @author Sungsik Kong <ss.kong@samsung.com>
+ * @bug    No known bugs except for NYI items
+ * @brief  kai_rhs_pack_nxk_qsi4cxp_qs4cxs1s0.h
+ * copied from kleidiai
+ *
+ */
 //
 // SPDX-FileCopyrightText: Copyright 2024 Arm Limited and/or its affiliates
 // <open-source-office@arm.com>

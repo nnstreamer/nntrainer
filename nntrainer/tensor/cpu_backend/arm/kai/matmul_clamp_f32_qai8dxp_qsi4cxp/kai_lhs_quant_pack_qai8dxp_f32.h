@@ -1,3 +1,12 @@
+/**
+ * @file kai_lhs_quant_pack_qai8dxp_f32.h
+ * @date   22 Septemer 2025
+ * @see    https://github.com/ARM-software/kleidiai
+ * @author Sungsik Kong <ss.kong@samsung.com>
+ * @bug    No known bugs except for NYI items
+ * @brief  kai_lhs_quant_pack_qai8dxp_f32.h copied from kleidiai
+ *
+ */
 //
 // SPDX-FileCopyrightText: Copyright 2024 Arm Limited and/or its affiliates
 // <open-source-office@arm.com>
