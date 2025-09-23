@@ -210,13 +210,13 @@ if get_option('enable-opencl')
     clblast_root = subprojects_dir_absolute / 'CLBlast'
     opencl_root = meson.build_root() / 'opencl'
     clblast_dep = declare_dependency()
-  elif get_option('platform') == 'windows'
-    clblast_lib_dir_absolute = windows_resource_dir_absolute / 'CLBlast'
-    clblast_lib_dir_absolute_win = clblast_lib_dir_absolute.replace('/', '\\')
-    run_command(['xcopy', '/C', '/Y', clblast_lib_dir_absolute_win, meson.current_build_dir()], check: true)
-    clblast_dir_relative = subprojects_dir_relative / 'CLBlast'
-    clblast_include = include_directories(clblast_dir_relative / 'include')
-    clblast_dep = declare_dependency(include_directories: clblast_include, link_args:['clblast.lib'])
+  # elif get_option('platform') == 'windows'
+  #   clblast_lib_dir_absolute = windows_resource_dir_absolute / 'CLBlast'
+  #   clblast_lib_dir_absolute_win = clblast_lib_dir_absolute.replace('/', '\\')
+  #   run_command(['xcopy', '/C', '/Y', clblast_lib_dir_absolute_win, meson.current_build_dir()], check: true)
+  #   clblast_dir_relative = subprojects_dir_relative / 'CLBlast'
+  #   clblast_include = include_directories(clblast_dir_relative / 'include')
+  #   clblast_dep = declare_dependency(include_directories: clblast_include, link_args:['clblast.lib'])
   else 
     clblast_options = cmake.subproject_options()
     clblast_options.add_cmake_defines({'CMAKE_POLICY_VERSION_MINIMUM': '3.10'})
@@ -553,13 +553,13 @@ thread_dep = dependency('threads') # pthread for tensorflow-lite
 if get_option('platform') == 'android'
   iniparser_root = subprojects_dir_absolute / 'iniparser'
   iniparser_dep = declare_dependency()
-elif get_option('platform') == 'windows'
-  iniparser_lib_dir_absolute = windows_resource_dir_absolute / 'iniparser'
-  iniparser_lib_dir_absolute_win = iniparser_lib_dir_absolute.replace('/', '\\')
-  run_command(['xcopy', '/C', '/Y', iniparser_lib_dir_absolute_win, meson.current_build_dir()], check: true)
-  iniparser_dir_relative = subprojects_dir_relative / 'iniparser'
-  iniparser_include = include_directories(iniparser_dir_relative / 'src')
-  iniparser_dep = declare_dependency(include_directories: iniparser_include, link_args:['iniparser.lib'])
+# elif get_option('platform') == 'windows'
+#   iniparser_lib_dir_absolute = windows_resource_dir_absolute / 'iniparser'
+#   iniparser_lib_dir_absolute_win = iniparser_lib_dir_absolute.replace('/', '\\')
+#   run_command(['xcopy', '/C', '/Y', iniparser_lib_dir_absolute_win, meson.current_build_dir()], check: true)
+#   iniparser_dir_relative = subprojects_dir_relative / 'iniparser'
+#   iniparser_include = include_directories(iniparser_dir_relative / 'src')
+#   iniparser_dep = declare_dependency(include_directories: iniparser_include, link_args:['iniparser.lib'])
 else
   iniparser_dep = dependency('iniparser', required : false, version : '>=3.2') # iniparser
 
@@ -751,4 +751,18 @@ endif
 
 if get_option('enable-benchmarks')
   subdir('benchmarks')
+endif
+
+if get_option('default_library') == 'static'
+  # >>> Patch iniparser for static build
+  iniparser_dir_relative = subprojects_dir_relative / 'iniparser'
+  iniparser_patch_relative = subprojects_dir_relative / 'iniparser-nntrainer-static.patch'
+  iniparser_patch_command = ['git', 'apply', '--reject', '--whitespace=fix', '--directory=' + iniparser_dir_relative, iniparser_patch_relative]
+  run_command(iniparser_patch_command, check: false)
+
+  # >>> Patch clblast for static build
+  clblast_dir_relative = subprojects_dir_relative / 'CLBlast'
+  clblast_patch_relative = subprojects_dir_relative / 'clblast-nntrainer-static.patch'
+  clblast_patch_command = ['git', 'apply', '--reject', '--whitespace=fix', '--directory=' + clblast_dir_relative, clblast_patch_relative]
+  run_command(clblast_patch_command, check: false)
 endif

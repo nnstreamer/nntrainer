@@ -6,7 +6,7 @@ upsample_layer = shared_library('upsample_layer',
   include_directories: include_directories('./'),
   install: true,
   install_dir: application_install_dir,
-  cpp_args: '-DPLUGGABLE'
+  cpp_args: '-DPLUGGABLE_DISABLE'
 )
 
 upsample_layer_dep = declare_dependency(

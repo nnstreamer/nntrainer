@@ -5,7 +5,7 @@ transpose_layer = static_library('transpose',
   include_directories: include_directories('./'),
   install: true,
   install_dir: application_install_dir,
-  cpp_args: '-DPLUGGABLE'
+  cpp_args: '-DPLUGGABLE_DISABLE'
 )
 transpose_dep = declare_dependency(
   link_with: transpose_layer,
@@ -25,7 +25,7 @@ rms_norm_layer = static_library('rms_norm',
   include_directories: include_directories('./'),
   install: true,
   install_dir: application_install_dir,
-  cpp_args: '-DPLUGGABLE'
+  cpp_args: '-DPLUGGABLE_DISABLE'
 )
 rms_norm_dep = declare_dependency(
   link_with: rms_norm_layer,
@@ -39,7 +39,7 @@ swiglu_layer = static_library('swiglu',
   include_directories: include_directories('./'),
   install: true,
   install_dir: application_install_dir,
-  cpp_args: '-DPLUGGABLE'
+  cpp_args: '-DPLUGGABLE_DISABLE'
 )
 swiglu_dep = declare_dependency(
   link_with: swiglu_layer,
@@ -53,7 +53,7 @@ rotary_emb_layer = static_library('rotary_embedding',
   include_directories: include_directories('./'),
   install: true,
   install_dir: application_install_dir,
-  cpp_args: '-DPLUGGABLE'
+  cpp_args: '-DPLUGGABLE_DISABLE'
 )
 rotary_emb_dep = declare_dependency(
   link_with: rotary_emb_layer,
@@ -67,7 +67,7 @@ mha_layer = static_library('custom_multi_head_attention_layer',
   include_directories: include_directories('./'),
   install: true,
   install_dir: application_install_dir,
-  cpp_args: '-DPLUGGABLE'
+  cpp_args: '-DPLUGGABLE_DISABLE'
 )
 mha_dep = declare_dependency(
   link_with: mha_layer,

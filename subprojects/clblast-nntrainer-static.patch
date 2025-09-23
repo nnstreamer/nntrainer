@@ -1,0 +1,25 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 4a4b92c2..8e6ca41d 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -12,7 +12,7 @@
+ cmake_minimum_required(VERSION 2.8.11)
+ 
+ # Overrides for MSVC static runtime
+-option(OVERRIDE_MSVC_FLAGS_TO_MT "Override compiler flags for MSVC to build with a static runtime (/MT instead of /MD)" ON)
++option(OVERRIDE_MSVC_FLAGS_TO_MT "Override compiler flags for MSVC to build with a static runtime (/MT instead of /MD)" OFF)
+ if(OVERRIDE_MSVC_FLAGS_TO_MT)
+   set(CMAKE_USER_MAKE_RULES_OVERRIDE ${CMAKE_CURRENT_SOURCE_DIR}/cmake/c_flag_overrides.cmake)
+   set(CMAKE_USER_MAKE_RULES_OVERRIDE_CXX ${CMAKE_CURRENT_SOURCE_DIR}/cmake/cxx_flag_overrides.cmake)
+@@ -32,9 +32,9 @@ IF(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.12.0")
+ ENDIF(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.12.0")
+ 
+ # Options and their default values
+-option(BUILD_SHARED_LIBS "Build a shared (ON) or static library (OFF)" ON)
++option(BUILD_SHARED_LIBS "Build a shared (ON) or static library (OFF)" OFF)
+ option(SAMPLES "Enable compilation of the examples" OFF)
+-option(TUNERS "Enable compilation of the tuners" ON)
++option(TUNERS "Enable compilation of the tuners" OFF)
+ option(CLIENTS "Enable compilation of the clients to test and compare performance" OFF)
+ option(TESTS "Enable compilation of the correctness tests" OFF)
+ option(CUBLAS "Enables performance comparison against cuBLAS on NVIDIA GPUs" OFF)
