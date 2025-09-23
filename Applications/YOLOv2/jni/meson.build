@@ -6,7 +6,7 @@ yolov2_loss_layer = shared_library('yolov2_loss_layer',
   include_directories: include_directories('./'),
   install: true,
   install_dir: nntrainer_libdir/'nntrainer'/'layers',
-  cpp_args: '-DPLUGGABLE'
+  cpp_args: '-DPLUGGABLE_DISABLE'
 )
 yolov2_loss_layer_dep = declare_dependency(
   link_with: yolov2_loss_layer,
@@ -21,7 +21,7 @@ reorg_layer = shared_library('reorg_layer',
   include_directories: include_directories('./'),
   install: true,
   install_dir: nntrainer_libdir/'nntrainer'/'layers',
-  cpp_args: '-DPLUGGABLE'
+  cpp_args: '-DPLUGGABLE_DISABLE'
 )
 reorg_layer_dep = declare_dependency(
   link_with: reorg_layer,
