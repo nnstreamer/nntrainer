@@ -5,7 +5,7 @@ momentum_optimizer = shared_library('momentum_optimizer',
   include_directories: layer_example_inc,
   install: true,
   install_dir: application_install_dir,
-  cpp_args: '-DPLUGGABLE'
+  cpp_args: '-DPLUGGABLE_DISABLE'
 )
 
 momentum_optimizer_dep = declare_dependency(

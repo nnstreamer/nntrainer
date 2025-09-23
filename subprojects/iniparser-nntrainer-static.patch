@@ -1,0 +1,33 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 4f7fdba..a308fce 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -16,21 +16,21 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+ option(
+   BUILD_SHARED_LIBS
+   "Build using shared libraries"
+-  ON)
++  OFF)
+ # For packaging by tools like bitbake, shared and static libs should be build at
+ # once
++# if(BUILD_SHARED_LIBS)
++#   list(
++#     APPEND
++#     TARGET_TYPES
++#     "shared")
++# endif()
+ cmake_dependent_option(
+   BUILD_STATIC_LIBS
+   "Build static libs"
+   ON
+   "BUILD_SHARED_LIBS"
+   OFF)
+-if(BUILD_SHARED_LIBS)
+-  list(
+-    APPEND
+-    TARGET_TYPES
+-    "shared")
+-endif()
+ if(BUILD_STATIC_LIBS OR NOT BUILD_SHARED_LIBS)
+   list(
+     APPEND

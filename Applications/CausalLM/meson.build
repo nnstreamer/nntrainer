@@ -63,7 +63,7 @@ causallm = shared_library('causallm',
     install: true,
     install_dir: application_install_dir,
     link_args: [tokenizer_path],
-    cpp_args: '-DPLUGGABLE'
+    cpp_args: '-DPLUGGABLE_DISABLE'
 )
 
 causallm_dep = declare_dependency(
