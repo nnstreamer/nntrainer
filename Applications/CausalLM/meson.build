@@ -50,6 +50,12 @@ endif
 tokenizer_dependencies = []
 tokenizer_path = meson.current_source_dir() / 'lib' / 'libtokenizers_c.a'
 
+cpp_args = []
+
+if get_option('enable-pluggable')
+    cpp_args += [ '-DPLUGGABLE' ]
+endif
+
 causallm = shared_library('causallm',
     causallm_src,
     dependencies: [
@@ -63,7 +69,7 @@ causallm = shared_library('causallm',
     install: true,
     install_dir: application_install_dir,
     link_args: [tokenizer_path],
-    cpp_args: '-DPLUGGABLE_DISABLE'
+    cpp_args: cpp_args
 )
 
 causallm_dep = declare_dependency(
