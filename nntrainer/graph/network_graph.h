@@ -468,6 +468,13 @@ public:
   void flushCacheExcept(const unsigned int order);
 
   /**
+   * @brief Prefetch Weight at order with mmap
+   *
+   * @param order execution order to prefetch
+   */
+  void prefetchWeight(const unsigned int order);
+
+  /**
    * @brief Load data of order to the device
    *
    * @param order execution order
