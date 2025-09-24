@@ -254,7 +254,8 @@ bool ClContext::clCreateKernel(std::string &kernel_string,
     std::to_string(program.GetKernelHash(kernel_string, "")) + ".cl.bin";
   auto binary_data = readBinaryFile(binary_file_path);
 
-  if (!binary_data.empty()) {
+  // if (!binary_data.empty()) {
+  if (false) {
     ml_logi("Using cached version of kernel: %s at path %s",
             kernel_name.c_str(), binary_file_path.c_str());
     result = program.CreateCLProgramWithBinary(
@@ -268,7 +269,8 @@ bool ClContext::clCreateKernel(std::string &kernel_string,
       opencl::ContextManager::Global().GetContext(),
       opencl::ContextManager::Global().GetDeviceId(), kernel_string, "");
 
-    if (result) {
+    // if (result) {
+    if (false) {
       auto binary = program.GetProgramBinary(
         opencl::ContextManager::Global().GetDeviceId());
 
