@@ -760,9 +760,11 @@ if get_option('default_library') == 'static'
   iniparser_patch_command = ['git', 'apply', '--reject', '--whitespace=fix', '--directory=' + iniparser_dir_relative, iniparser_patch_relative]
   run_command(iniparser_patch_command, check: false)
 
-  # >>> Patch clblast for static build
-  clblast_dir_relative = subprojects_dir_relative / 'CLBlast'
-  clblast_patch_relative = subprojects_dir_relative / 'clblast-nntrainer-static.patch'
-  clblast_patch_command = ['git', 'apply', '--reject', '--whitespace=fix', '--directory=' + clblast_dir_relative, clblast_patch_relative]
-  run_command(clblast_patch_command, check: false)
+  if get_option('enable-opencl')
+    # >>> Patch clblast for static build
+    clblast_dir_relative = subprojects_dir_relative / 'CLBlast'
+    clblast_patch_relative = subprojects_dir_relative / 'clblast-nntrainer-static.patch'
+    clblast_patch_command = ['git', 'apply', '--reject', '--whitespace=fix', '--directory=' + clblast_dir_relative, clblast_patch_relative]
+    run_command(clblast_patch_command, check: false)
+  endif
 endif

@@ -45,21 +45,24 @@ endif
 if get_option('platform') == 'android'
   nntrainer_capi_dep = declare_dependency(include_directories: capi_inc)
 else
-  shared_library('capi-nntrainer',
-    capi_src,
-    dependencies: capi_deps,
-    include_directories: capi_inc,
-    install: true,
-    install_dir: nntrainer_libdir,
-  )
 
-  nntrainer_capi_lib = static_library('capi-nntrainer',
-    capi_src,
-    dependencies: capi_deps,
-    include_directories: capi_inc,
-    install: true,
-    install_dir: nntrainer_libdir,
-  )
+  if get_option('default_library') == 'static'
+    nntrainer_capi_lib = static_library('capi-nntrainer',
+      capi_src,
+      dependencies: capi_deps,
+      include_directories: capi_inc,
+      install: true,
+      install_dir: nntrainer_libdir,
+    )
+  else
+    nntrainer_capi_lib = shared_library('capi-nntrainer',
+      capi_src,
+      dependencies: capi_deps,
+      include_directories: capi_inc,
+      install: true,
+      install_dir: nntrainer_libdir,
+    )
+  endif
 
   nntrainer_capi_dep = declare_dependency(link_with: nntrainer_capi_lib,
     dependencies: capi_deps,

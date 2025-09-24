@@ -99,10 +99,19 @@ else
         install_dir: nntrainer_libdir
       )
     else
+      # NOTE(mwlasiuk) : this looks incorrect ?
+      nntrainer_lib_static = static_library('nntrainer',
+        nntrainer_sources,
+        dependencies: nntrainer_base_deps,
+        include_directories: nntrainer_inc,
+        install: true,
+        install_dir: nntrainer_libdir
+      )
+
       nntrainer_def = custom_target('nntrainer_def',
         command : ['python', meson.source_root() / 'generate_def.py', '--objects_dir', meson.build_root() / 'nntrainer' / 'libnntrainer.a.p', '--working_dir', meson.current_build_dir()],
         output: 'nntrainer.def',
-        depends: nntrainer_static,
+        depends: nntrainer_lib_static,
       )
 
       nntrainer_lib = shared_library('nntrainer',

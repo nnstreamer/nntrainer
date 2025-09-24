@@ -26,21 +26,24 @@ ccapi_deps = [
 if get_option('platform') == 'android'
   nntrainer_ccapi_dep = declare_dependency(include_directories: ccapi_inc)
 else
-  shared_library('ccapi-nntrainer',
-    ccapi_src,
-    dependencies: ccapi_deps,
-    include_directories: ccapi_inc,
-    install: true,
-    install_dir: nntrainer_libdir,
-  )
 
-  nntrainer_ccapi_lib = static_library('ccapi-nntrainer',
-    ccapi_src,
-    dependencies: ccapi_deps,
-    include_directories: ccapi_inc,
-    install: true,
-    install_dir: nntrainer_libdir,
-  )
+  if get_option('default_library') == 'static'
+    nntrainer_ccapi_lib = static_library('ccapi-nntrainer',
+      ccapi_src,
+      dependencies: ccapi_deps,
+      include_directories: ccapi_inc,
+      install: true,
+      install_dir: nntrainer_libdir,
+    )
+  else
+    nntrainer_ccapi_lib = shared_library('ccapi-nntrainer',
+      ccapi_src,
+      dependencies: ccapi_deps,
+      include_directories: ccapi_inc,
+      install: true,
+      install_dir: nntrainer_libdir,
+    )
+  endif
 
   nntrainer_ccapi_dep = declare_dependency(link_with: nntrainer_ccapi_lib,
     dependencies: ccapi_deps,

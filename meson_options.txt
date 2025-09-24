@@ -63,3 +63,6 @@ option('nnstreamer-subplugin-install-path', type: 'string', value: 'lib/nnstream
 # application related options
 option('enable-transformer', type: 'boolean', value: false)
 option('libiomp_root', type:'string', value: './libiomp_win')
+
+# use layers as pluggable modules
+option('enable-pluggable', type: 'boolean', value: false)

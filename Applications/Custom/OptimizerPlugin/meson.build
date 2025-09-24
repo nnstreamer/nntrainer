@@ -1,11 +1,18 @@
 # build command for libmomentum_optimizer.so
+
+cpp_args = []
+
+if get_option('enable-pluggable')
+    cpp_args += [ '-DPLUGGABLE' ]
+endif
+
 momentum_optimizer = shared_library('momentum_optimizer',
   optimizer_example_momentum_src,
   dependencies: [nntrainer_dep, nntrainer_ccapi_dep],
   include_directories: layer_example_inc,
   install: true,
   install_dir: application_install_dir,
-  cpp_args: '-DPLUGGABLE_DISABLE'
+  cpp_args: cpp_args
 )
 
 momentum_optimizer_dep = declare_dependency(

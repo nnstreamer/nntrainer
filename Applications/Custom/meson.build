@@ -8,5 +8,7 @@ layer_example_inc = include_directories('./')
 optimizer_example_inc = include_directories('./')
 
 subdir('LayerClient/jni')
-subdir('LayerPlugin')
-subdir('OptimizerPlugin')
+if get_option('enable-pluggable')
+    subdir('LayerPlugin')
+    subdir('OptimizerPlugin')
+endif
