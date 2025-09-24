@@ -1,11 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2025 Sungsik Kong <ss.kong@samsung.com>
+ * Copyright (c) 2023-2024 The ggml authors
  *
- * @file   nntr_ggml_impl.cpp
- * @date   13 August 2025
+ * Portions of this file are derived from llama.cpp
+ * (https://github.com/ggml-org/llama.cpp), licensed under the MIT License.
+ * Copyright (c) Contributors to llama.cpp
+ *
+ * Modified by Sungsik Kong, 2025: Adapted for CPU backend integration
+ *
+ * @file   nntr_ggml_impl_internal.h
+ * @date   20 August 2025
  * @see    https://github.com/nnstreamer/nntrainer
- * @author Sungsik Kong <ss.kong@samsung.com>
+ * @author  Sungsik Kong <ss.kong@samsung.com>
  * @bug    No known bugs except for NYI items
  * @brief  Custom-implemented functions to support ggml functions for internal
  * uses in nntrainer
