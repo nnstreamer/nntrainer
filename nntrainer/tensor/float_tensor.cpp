@@ -727,12 +727,14 @@ void FloatTensor::dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
     void *mdata = (void *)input[i]->getData<uint8_t>();
     float *rdata = output[i]->getData<float>();
 #ifdef ENABLE_OPENCL
-    if (M == 1) {
-      gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
-    } else {
+    if (input[i]->getMemoryData()->isSVM() &&
+        output[i]->getMemoryData()->isSVM() && getMemoryData()->isSVM() &&
+        M != 1) {
       Ns.push_back(N);
       mdatas.push_back(mdata);
       rdatas.push_back(rdata);
+    } else {
+      gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
     }
 #else
     /// @todo Support multi-weight q4_0 for x64
@@ -741,7 +743,9 @@ void FloatTensor::dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
   }
 
 #ifdef ENABLE_OPENCL
-  if (M != 1) {
+  if (input[0]->getMemoryData()->isSVM() &&
+      output[0]->getMemoryData()->isSVM() && getMemoryData()->isSVM() &&
+      M != 1) {
     gemm_q4_0_async_cl(mdatas, data, rdatas, M, Ns, K);
   }
 #endif
@@ -901,10 +905,11 @@ Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
     K = getDim().width();
     N = input.getDim().width();
 #ifdef ENABLE_OPENCL
-    if (M == 1) {
-      gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
-    } else {
+    if (input.getMemoryData()->isSVM() && output.getMemoryData()->isSVM() &&
+        getMemoryData()->isSVM() && M != 1) {
       gemm_q4_0_cl((void *)mdata, data, rdata, M, N, K);
+    } else {
+      gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
     }
 #else
     gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
