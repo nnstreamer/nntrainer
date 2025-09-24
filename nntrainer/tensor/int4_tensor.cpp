@@ -17,19 +17,22 @@
 
 namespace nntrainer {
 
-Int4QTensor::Int4QTensor(std::string name_, Tformat fm, QScheme qscheme_) :
-  TensorBase(name_, fm, Tdatatype::QINT4), qscheme(qscheme_) {}
+Int4QTensor::Int4QTensor(std::string name_, Tformat fm, QScheme qscheme_,
+                         size_t g_size) :
+  TensorBase(name_, fm, Tdatatype::QINT4),
+  qscheme(qscheme_),
+  group_size(g_size) {}
 
 Int4QTensor::Int4QTensor(const TensorDim &d, bool alloc_now, Initializer init,
-                         std::string name, QScheme qscheme_) :
-  TensorBase(d, alloc_now, init, name), qscheme(qscheme_) {
+                         std::string name, QScheme qscheme_, size_t g_size) :
+  TensorBase(d, alloc_now, init, name), qscheme(qscheme_), group_size(g_size) {
   if (alloc_now)
     allocate();
 }
 
-Int4QTensor::Int4QTensor(const TensorDim &d, const void *buf,
-                         QScheme qscheme_) :
-  Int4QTensor(d, true, Initializer::NONE, "", qscheme_) {
+Int4QTensor::Int4QTensor(const TensorDim &d, const void *buf, QScheme qscheme_,
+                         size_t g_size) :
+  Int4QTensor(d, true, Initializer::NONE, "", qscheme_, g_size) {
   if (d.getDataLen() != 0) {
     if (buf != nullptr)
       copy(buf);
@@ -38,8 +41,9 @@ Int4QTensor::Int4QTensor(const TensorDim &d, const void *buf,
 
 Int4QTensor::Int4QTensor(
   std::vector<std::vector<std::vector<std::vector<int8_t>>>> const &d,
-  std::vector<float> const &scales, Tformat fm, QScheme qscheme_) :
-  qscheme(qscheme_) {
+  std::vector<float> const &scales, Tformat fm, QScheme qscheme_,
+  size_t g_size) :
+  qscheme(qscheme_), group_size(g_size) {
   if (d.empty() || d[0].empty() || d[0][0].empty() || d[0][0][0].empty()) {
     throw std::out_of_range(
       "[Tensor] trying to initialize Int4QTensor from empty vector");
@@ -556,7 +560,10 @@ size_t Int4QTensor::scale_size() const {
     return 1;
     break;
   case QScheme::PER_CHANNEL_AFFINE:
-    return height() * width() / 128;
+    /// @todo fix me
+    /// @note Need to support PER_GROUP_32, PER_GROUP_64, PER_GROUP_128
+    // return height();
+    return height() * width() / 32;
     break;
   default:
     break;
@@ -592,6 +599,7 @@ void Int4QTensor::read_quantization_info(std::ifstream &file,
   checkedRead(file, (char *)&qscheme, sizeof(uint16_t),
               "[Int4QTensor::read] failed to read quantization information",
               start_offset, read_from_offset);
+  group_size = 32; /// Remove me
 }
 
 void Int4QTensor::read_quantization_info(ReadSource src, size_t start_offset,
@@ -599,6 +607,7 @@ void Int4QTensor::read_quantization_info(ReadSource src, size_t start_offset,
   checkedRead(src, (char *)&qscheme, sizeof(uint16_t),
               "[Int4QTensor::read] failed to read quantization information",
               start_offset, read_from_offset);
+  group_size = 32; /// Remove me
 }
 
 } // namespace nntrainer

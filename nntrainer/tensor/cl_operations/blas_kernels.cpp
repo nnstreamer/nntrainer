@@ -21,14 +21,18 @@ namespace nntrainer {
 void gemv_int4_async_cl(std::vector<void *> weights,
                         std::vector<uint16_t *> scales, uint16_t *input,
                         std::vector<uint16_t *> outputs, unsigned int K,
-                        std::vector<unsigned int> Ns) {
+                        std::vector<unsigned int> Ns,
+                        unsigned int quantization_group_size) {
   bool result = false;
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
   auto &clbuffInstance = ClBufferManager::Global();
 
+  std::string compile_options =
+    " -D SIZE_QUANTIZATION_GROUP=" + std::to_string(quantization_group_size);
+
   ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
-    int4_gemv_kernel, "fully_connected_gpu_int4_gemv");
+    int4_gemv_kernel, "fully_connected_gpu_int4_gemv", compile_options);
   if (!kernel_ptr) {
     throw std::runtime_error(
       "Failed to get kernel_ptr for fully_connected_gpu_int4_gemv");
@@ -96,14 +100,18 @@ void gemv_int4_async_cl(std::vector<void *> weights,
 }
 
 void gemv_int4_cl(char *weight, uint16_t *scale, uint16_t *input,
-                  uint16_t *output, unsigned int K, unsigned int N) {
+                  uint16_t *output, unsigned int K, unsigned int N,
+                  unsigned int quantization_group_size) {
   bool result = false;
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
   auto &clbuffInstance = ClBufferManager::Global();
 
+  std::string compile_options =
+    " -D SIZE_QUANTIZATION_GROUP=" + std::to_string(quantization_group_size);
+
   ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
-    int4_gemv_kernel, "fully_connected_gpu_int4_gemv");
+    int4_gemv_kernel, "fully_connected_gpu_int4_gemv", compile_options);
   if (!kernel_ptr) {
     throw std::runtime_error(
       "Failed to get kernel_ptr for fully_connected_gpu_int4_gemv");
@@ -167,7 +175,8 @@ void gemv_int4_cl(char *weight, uint16_t *scale, uint16_t *input,
 void gemv_int4_async_cl(std::vector<void *> weights,
                         std::vector<uint16_t *> scales, float *input,
                         std::vector<float *> outputs, unsigned int K,
-                        std::vector<unsigned int> Ns) {
+                        std::vector<unsigned int> Ns,
+                        unsigned int quantization_group_size) {
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
   auto &clbuffInstance = ClBufferManager::Global();
@@ -181,7 +190,7 @@ void gemv_int4_async_cl(std::vector<void *> weights,
   }
 
   gemv_int4_async_cl(weights, scales, (uint16_t *)clbuffInstance.getSVMInput(),
-                     output_vec, K, Ns);
+                     output_vec, K, Ns, quantization_group_size);
 
   for (int i = 0; i < Ns.size(); ++i) {
     copy_u16_fp32(Ns[i], (uint16_t *)clbuffInstance.getSVMOutput(i),
@@ -190,7 +199,8 @@ void gemv_int4_async_cl(std::vector<void *> weights,
 }
 
 void gemv_int4_cl(char *weight, uint16_t *scale, float *input, float *output,
-                  unsigned int K, unsigned int N) {
+                  unsigned int K, unsigned int N,
+                  unsigned int quantization_group_size) {
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
   auto &clbuffInstance = ClBufferManager::Global();
@@ -200,7 +210,8 @@ void gemv_int4_cl(char *weight, uint16_t *scale, float *input, float *output,
 
   // perform int4 matmul
   gemv_int4_cl(weight, scale, (uint16_t *)clbuffInstance.getSVMInput(),
-               (uint16_t *)clbuffInstance.getSVMOutput(), K, N);
+               (uint16_t *)clbuffInstance.getSVMOutput(), K, N,
+               quantization_group_size);
 
   // copy fp16 output to fp32
   copy_u16_fp32(N, (uint16_t *)clbuffInstance.getSVMOutput(), output);
@@ -410,12 +421,12 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
 void openvino_gemm_async_cl(float *input, std::vector<void *> weights,
                             std::vector<uint16_t *> scales,
                             std::vector<float *> matCdata, unsigned int M,
-                            std::vector<unsigned int> Ns, unsigned int K) {
+                            std::vector<unsigned int> Ns, unsigned int K,
+                            unsigned int quantization_group_size) {
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
   auto &clbuffInstance = ClBufferManager::Global();
 
-  int quantization_group_size = 128;
   bool result = false;
 
   auto ceil_div = [](unsigned int a, unsigned int b) -> unsigned int {

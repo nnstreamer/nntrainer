@@ -36,7 +36,8 @@ namespace nntrainer {
 void gemv_int4_async_cl(std::vector<void *> weights,
                         std::vector<uint16_t *> scales, uint16_t *input,
                         std::vector<uint16_t *> outputs, unsigned int K,
-                        std::vector<unsigned int> Ns);
+                        std::vector<unsigned int> Ns,
+                        unsigned int quantization_group_size = 128);
 
 /**
  * @brief     signed 4-bit integer gemv async computation : C = A*B
@@ -50,7 +51,8 @@ void gemv_int4_async_cl(std::vector<void *> weights,
 void gemv_int4_async_cl(std::vector<void *> weights,
                         std::vector<uint16_t *> scales, float *input,
                         std::vector<float *> outputs, unsigned int K,
-                        std::vector<unsigned int> Ns);
+                        std::vector<unsigned int> Ns,
+                        unsigned int quantization_group_size = 128);
 
 /**
  * @brief     signed 4-bit integer gemv computation : C = A*B
@@ -62,7 +64,8 @@ void gemv_int4_async_cl(std::vector<void *> weights,
  * @param[in] N output dimension
  */
 void gemv_int4_cl(char *weight, uint16_t *scale, uint16_t *input,
-                  uint16_t *output, unsigned int K, unsigned int N);
+                  uint16_t *output, unsigned int K, unsigned int N,
+                  unsigned int quantization_group_size = 128);
 
 /**
  * @brief     signed 4-bit integer gemv computation : C = A*B
@@ -74,7 +77,8 @@ void gemv_int4_cl(char *weight, uint16_t *scale, uint16_t *input,
  * @param[in] N output dimension
  */
 void gemv_int4_cl(char *weight, uint16_t *scale, float *input, float *output,
-                  unsigned int K, unsigned int N);
+                  unsigned int K, unsigned int N,
+                  unsigned int quantization_group_size = 128);
 
 /**
  * @brief     Q4_0 gemm async computation : C = A*B
@@ -101,19 +105,28 @@ void gemm_q4_0_async_cl(std::vector<void *> matAdata, float *matBdata,
 void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
                   unsigned int M, unsigned int N, unsigned int K);
 
+/**
+ * @brief INT4 GEMM computation for float input / output
+ */
 void openvino_sgemm_cl(float *input, char *weight, uint16_t *scale,
                        float *output, unsigned int M, unsigned int N,
                        unsigned int K,
                        unsigned int quantization_group_size = 128);
-
+/**
+ * @brief INT4 GEMM computation for fp16 input / output
+ */
 void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
                       unsigned int M, unsigned int N, unsigned int K,
                       unsigned int quantization_group_size = 128);
 
+/**
+ * @brief INT4 GEMM async computation
+ */
 void openvino_gemm_async_cl(float *input, std::vector<void *> weights,
                             std::vector<uint16_t *> scales,
                             std::vector<float *> matCdata, unsigned int M,
-                            std::vector<unsigned int> Ns, unsigned int K);
+                            std::vector<unsigned int> Ns, unsigned int K,
+                            unsigned int quantization_group_size = 128);
 
 /**
  * @brief     Q6_K sgemv computation : Y = A*X
