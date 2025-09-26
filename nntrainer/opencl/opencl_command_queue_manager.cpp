@@ -324,31 +324,17 @@ bool CommandQueueManager::enqueueSVMUnmap(void *svm_ptr, cl_event *event) {
  * @brief Function to initiate execution of the command queue.
  *
  * @param kernel OpenCL kernel
- * @param work_groups_count Total number of work items that will execute the
- * kernel function
- * @param work_group_size Number of work items that make up a work group
+ * @param sizes Sizes for the dispatch
  * @param event Object that identifies this command and can be used to query
  * or wait for this command to complete
  * @return true if command queue execution is successful or false otherwise
  */
 bool CommandQueueManager::DispatchCommand(
-  Kernel kernel, const int (&work_groups_count)[3],
-  const int (&work_group_size)[3], cl_event *event,
-  std::vector<cl_event> events_to_wait) {
+  Kernel kernel, const DispatchSize &sizes, cl_event *event,
+  const std::vector<cl_event> &events_to_wait) {
 
-  // work_dim of 2 has been hardcoded, might be modified later based on
-  // requirements
-
-  // setting the local_work_size referred to as the size of the
-  // work-group
-  const size_t local[3] = {static_cast<size_t>(work_group_size[0]),
-                           static_cast<size_t>(work_group_size[1]),
-                           static_cast<size_t>(work_group_size[2])};
-
-  // setting the global_work_size that describe the number of global work-items
-  const size_t global[3] = {static_cast<size_t>(work_groups_count[0]),
-                            static_cast<size_t>(work_groups_count[1]),
-                            static_cast<size_t>(work_groups_count[2])};
+  const size_t local[3] = {sizes.local_x, sizes.local_y, sizes.local_z};
+  const size_t global[3] = {sizes.global_x, sizes.global_y, sizes.global_z};
 
   cl_kernel kernel_ = kernel.GetKernel();
 
@@ -365,24 +351,21 @@ bool CommandQueueManager::DispatchCommand(
   return true;
 }
 
+/**
+ * @brief Overloaded function to initiate execution of the command queue.
+ *
+ * @param kernel_ptr reference of OpenCL kernel shared_ptr
+ * @param sizes Sizes for the dispatch
+ * @param event Object that identifies this command and can be used to query
+ * or wait for this command to complete
+ * @return true if command queue execution is successful or false otherwise
+ */
 bool CommandQueueManager::DispatchCommand(
-  const std::shared_ptr<Kernel> &kernel_ptr, const int (&work_groups_count)[3],
-  const int (&work_group_size)[3], cl_event *event,
-  std::vector<cl_event> events_to_wait) {
+  const std::shared_ptr<Kernel> &kernel_ptr, const DispatchSize &sizes,
+  cl_event *event, const std::vector<cl_event> &events_to_wait) {
 
-  // work_dim of 2 has been hardcoded, might be modified later based on
-  // requirements
-
-  // setting the local_work_size referred to as the size of the
-  // work-group
-  const size_t local[3] = {static_cast<size_t>(work_group_size[0]),
-                           static_cast<size_t>(work_group_size[1]),
-                           static_cast<size_t>(work_group_size[2])};
-
-  // setting the global_work_size that describe the number of global work-items
-  const size_t global[3] = {static_cast<size_t>(work_groups_count[0]),
-                            static_cast<size_t>(work_groups_count[1]),
-                            static_cast<size_t>(work_groups_count[2])};
+  const size_t local[3] = {sizes.local_x, sizes.local_y, sizes.local_z};
+  const size_t global[3] = {sizes.global_x, sizes.global_y, sizes.global_z};
 
   cl_kernel kernel_ = kernel_ptr->GetKernel();
 

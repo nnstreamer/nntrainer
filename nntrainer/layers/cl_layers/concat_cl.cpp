@@ -324,12 +324,16 @@ void ConcatLayerCl::concat_cl_axis3(const float *matAdata,
       break;
     }
 
-    const int work_groups_count[3] = {dim, 1, 1};
-    /// @todo: create a group size by device & input
-    const int work_group_size[3] = {1, 1, 1}; // test-value
+    opencl::DispatchSize sizes{};
+    sizes.local_x = 1;
+    sizes.local_y = 1;
+    sizes.local_z = 1;
+    sizes.global_x = dim;
+    sizes.global_y = 1;
+    sizes.global_z = 1;
 
     result = global_cl_context->command_queue_inst_.DispatchCommand(
-      kernel_concat_ptr, work_groups_count, work_group_size);
+      kernel_concat_ptr, sizes);
     if (!result) {
       break;
     }
@@ -442,12 +446,16 @@ void ConcatLayerCl::concat_cl_axis2(const float *matAdata,
       break;
     }
 
-    const int work_groups_count[3] = {dim, 1, 1};
-    /// @todo: create a group size by device & input
-    const int work_group_size[3] = {1, 1, 1}; // test-value
+    opencl::DispatchSize sizes{};
+    sizes.local_x = 1;
+    sizes.local_y = 1;
+    sizes.local_z = 1;
+    sizes.global_x = dim;
+    sizes.global_y = 1;
+    sizes.global_z = 1;
 
     result = global_cl_context->command_queue_inst_.DispatchCommand(
-      kernel_concat_ptr, work_groups_count, work_group_size);
+      kernel_concat_ptr, sizes);
     if (!result) {
       break;
     }
@@ -560,12 +568,16 @@ void ConcatLayerCl::concat_cl_axis1(const float *matAdata,
       break;
     }
 
-    const int work_groups_count[3] = {dim, 1, 1};
-    /// @todo: create a group size by device & input
-    const int work_group_size[3] = {1, 1, 1}; // test-value
+    opencl::DispatchSize sizes{};
+    sizes.local_x = 1;
+    sizes.local_y = 1;
+    sizes.local_z = 1;
+    sizes.global_x = dim;
+    sizes.global_y = 1;
+    sizes.global_z = 1;
 
     result = global_cl_context->command_queue_inst_.DispatchCommand(
-      kernel_concat_ptr, work_groups_count, work_group_size);
+      kernel_concat_ptr, sizes);
     if (!result) {
       break;
     }
@@ -680,12 +692,16 @@ void ConcatLayerCl::concat_cl_axis3_fp16(const _FP16 *matAdata,
       break;
     }
 
-    const int work_groups_count[3] = {dim, 1, 1};
-    /// @todo: create a group size by device & input
-    const int work_group_size[3] = {1, 1, 1}; // test-value
+    opencl::DispatchSize sizes{};
+    sizes.local_x = 1;
+    sizes.local_y = 1;
+    sizes.local_z = 1;
+    sizes.global_x = dim;
+    sizes.global_y = 1;
+    sizes.global_z = 1;
 
     result = global_cl_context->command_queue_inst_.DispatchCommand(
-      kernel_concat_ptr, work_groups_count, work_group_size);
+      kernel_concat_ptr, sizes);
     if (!result) {
       break;
     }
@@ -797,12 +813,16 @@ void ConcatLayerCl::concat_cl_axis2_fp16(const _FP16 *matAdata,
       break;
     }
 
-    const int work_groups_count[3] = {dim, 1, 1};
-    /// @todo: create a group size by device & input
-    const int work_group_size[3] = {1, 1, 1}; // test-value
+    opencl::DispatchSize sizes{};
+    sizes.local_x = 1;
+    sizes.local_y = 1;
+    sizes.local_z = 1;
+    sizes.global_x = dim;
+    sizes.global_y = 1;
+    sizes.global_z = 1;
 
     result = global_cl_context->command_queue_inst_.DispatchCommand(
-      kernel_concat_ptr, work_groups_count, work_group_size);
+      kernel_concat_ptr, sizes);
     if (!result) {
       break;
     }
@@ -916,12 +936,16 @@ void ConcatLayerCl::concat_cl_axis1_fp16(const _FP16 *matAdata,
       break;
     }
 
-    const int work_groups_count[3] = {dim, 1, 1};
-    /// @todo: create a group size by device & input
-    const int work_group_size[3] = {1, 1, 1}; // test-value
+    opencl::DispatchSize sizes{};
+    sizes.local_x = 1;
+    sizes.local_y = 1;
+    sizes.local_z = 1;
+    sizes.global_x = dim;
+    sizes.global_y = 1;
+    sizes.global_z = 1;
 
     result = global_cl_context->command_queue_inst_.DispatchCommand(
-      kernel_concat_ptr, work_groups_count, work_group_size);
+      kernel_concat_ptr, sizes);
     if (!result) {
       break;
     }

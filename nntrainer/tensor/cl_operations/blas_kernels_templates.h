@@ -81,11 +81,15 @@ inline static void sgemv_cl_internal(ClContext::SharedPtrClKernel kernel,
     return;
   }
 
-  const int work_groups_count[3] = {(int)dim1, 1, 1};
-  const int work_group_size[3] = {1, 1, 1};
+  opencl::DispatchSize sizes{};
+  sizes.local_x = 1;
+  sizes.local_y = 1;
+  sizes.local_z = 1;
+  sizes.global_x = dim1;
+  sizes.global_y = 1;
+  sizes.global_z = 1;
 
-  result = opencl::CommandQueueManager::Global().DispatchCommand(
-    kernel, work_groups_count, work_group_size);
+  result = opencl::CommandQueueManager::Global().DispatchCommand(kernel, sizes);
   if (!result) {
     return;
   }
@@ -146,11 +150,15 @@ T dot_cl_internal(ClContext::SharedPtrClKernel kernel, const T *vecAdata,
       break;
     }
 
-    const int work_groups_count[3] = {(int)dim1, 1, 1};
-    const int work_group_size[3] = {1, 1, 1};
+    opencl::DispatchSize sizes{};
+    sizes.local_x = 1;
+    sizes.local_y = 1;
+    sizes.local_z = 1;
+    sizes.global_x = dim1;
+    sizes.global_y = 1;
+    sizes.global_z = 1;
 
-    result = blas_cc->command_queue_inst_.DispatchCommand(
-      kernel, work_groups_count, work_group_size);
+    result = blas_cc->command_queue_inst_.DispatchCommand(kernel, sizes);
     if (!result) {
       break;
     }
@@ -234,15 +242,17 @@ sgemm_cl_internal(ClContext::SharedPtrClKernel kernel, bool TransA, bool TransB,
     return;
   }
 
-  const int tiled_size = 16;
-  const int work_groups_count[3] = {
-    (int)((N + tiled_size - 1) / tiled_size) * tiled_size,
-    (int)((M + tiled_size - 1) / tiled_size) * tiled_size, 1}; // test-value
+  const auto tiled_size = 16;
 
-  const int work_group_size[3] = {tiled_size, tiled_size, 1}; // test-value
+  opencl::DispatchSize sizes{};
+  sizes.local_x = tiled_size;
+  sizes.local_y = tiled_size;
+  sizes.local_z = 1;
+  sizes.global_x = ((N + tiled_size - 1) / tiled_size) * tiled_size;
+  sizes.global_y = ((M + tiled_size - 1) / tiled_size) * tiled_size;
+  sizes.global_z = 1;
 
-  result = blas_cc->command_queue_inst_.DispatchCommand(
-    kernel, work_groups_count, work_group_size);
+  result = blas_cc->command_queue_inst_.DispatchCommand(kernel, sizes);
   if (!result) {
     return;
   }
@@ -301,11 +311,15 @@ addition_cl_internal(ClContext::SharedPtrClKernel kernel, const T *input,
     return;
   }
 
-  const int work_groups_count[3] = {(int)size_res, 1, 1};
-  /// @todo: create a group size by device & input
-  const int work_group_size[3] = {1, 1, 1}; // test-value
-  result = blas_cc->command_queue_inst_.DispatchCommand(
-    kernel, work_groups_count, work_group_size);
+  opencl::DispatchSize sizes{};
+  sizes.local_x = 1;
+  sizes.local_y = 1;
+  sizes.local_z = 1;
+  sizes.global_x = size_res;
+  sizes.global_y = 1;
+  sizes.global_z = 1;
+
+  result = blas_cc->command_queue_inst_.DispatchCommand(kernel, sizes);
   if (!result) {
     return;
   }
@@ -381,12 +395,16 @@ inline static void rmsnorm_cl_internal(ClContext::SharedPtrClKernel kernel,
 #else
   constexpr int SUBGROUP_SIZE = 32;
 #endif
-  const int work_groups_count[3] = {static_cast<int>(height) * SUBGROUP_SIZE, 1,
-                                    1};
 
-  const int work_group_size[3] = {SUBGROUP_SIZE, 1, 1};
-  if (!blas_cc->command_queue_inst_.DispatchCommand(kernel, work_groups_count,
-                                                    work_group_size)) {
+  opencl::DispatchSize sizes{};
+  sizes.local_x = SUBGROUP_SIZE;
+  sizes.local_y = 1;
+  sizes.local_z = 1;
+  sizes.global_x = static_cast<int>(height) * SUBGROUP_SIZE;
+  sizes.global_y = 1;
+  sizes.global_z = 1;
+
+  if (!blas_cc->command_queue_inst_.DispatchCommand(kernel, sizes)) {
     return;
   }
 
@@ -429,11 +447,15 @@ inline static void sscal_cl_internal(ClContext::SharedPtrClKernel kernel, T *X,
     return;
   }
 
-  const int work_groups_count[3] = {(int)N, 1, 1};
-  const int work_group_size[3] = {1, 1, 1};
+  opencl::DispatchSize sizes{};
+  sizes.local_x = 1;
+  sizes.local_y = 1;
+  sizes.local_z = 1;
+  sizes.global_x = N;
+  sizes.global_y = 1;
+  sizes.global_z = 1;
 
-  result = blas_cc->command_queue_inst_.DispatchCommand(
-    kernel, work_groups_count, work_group_size);
+  result = blas_cc->command_queue_inst_.DispatchCommand(kernel, sizes);
   if (!result) {
     return;
   }
@@ -504,14 +526,15 @@ inline static void transpose_cl_axis_internal(
     return;
   }
 
-  int work_groups_count[3] = {(int)input_height, (int)input_width, 1};
-  if (axis == 2)
-    work_groups_count[0] = (int)input_channels;
+  opencl::DispatchSize sizes{};
+  sizes.local_x = 1;
+  sizes.local_y = 1;
+  sizes.local_z = 1;
+  sizes.global_x = input_height;
+  sizes.global_y = (axis == 2) ? input_channels : input_width;
+  sizes.global_z = 1;
 
-  const int work_group_size[3] = {1, 1, 1};
-
-  result = blas_cc->command_queue_inst_.DispatchCommand(
-    kernel, work_groups_count, work_group_size);
+  result = blas_cc->command_queue_inst_.DispatchCommand(kernel, sizes);
   if (!result) {
     return;
   }

@@ -41,8 +41,6 @@ void gemv_int4_async_cl(std::vector<void *> weights,
     return;
   }
 
-  const int work_group_size[3] = {16, 1, 16};
-
   for (unsigned int i = 0; i < Ns.size(); ++i) {
     int arg = 0;
     int N = Ns[i];
@@ -80,9 +78,15 @@ void gemv_int4_async_cl(std::vector<void *> weights,
       throw std::runtime_error(
         "Failed to set kernel argument 5 for fully_connected_gpu_int4_gemv");
 
-    const int work_groups_count[3] = {(int)(N / 2), 1, 16};
-    result = blas_cc->command_queue_inst_.DispatchCommand(
-      kernel_ptr, work_groups_count, work_group_size);
+    opencl::DispatchSize sizes{};
+    sizes.local_x = 16;
+    sizes.local_y = 1;
+    sizes.local_z = 16;
+    sizes.global_x = N / 2;
+    sizes.global_y = 1;
+    sizes.global_z = 16;
+
+    result = blas_cc->command_queue_inst_.DispatchCommand(kernel_ptr, sizes);
     if (!result) {
       throw std::runtime_error(
         "Failed to dispatch kernel for fully_connected_gpu_int4_gemv");
@@ -155,11 +159,15 @@ void gemv_int4_cl(char *weight, uint16_t *scale, uint16_t *input,
     throw std::runtime_error(
       "Failed to set kernel argument 5 for fully_connected_gpu_int4_gemv");
 
-  const int work_groups_count[3] = {(int)(N / 2), 1, 16};
-  const int work_group_size[3] = {16, 1, 16};
+  opencl::DispatchSize sizes{};
+  sizes.local_x = 16;
+  sizes.local_y = 1;
+  sizes.local_z = 16;
+  sizes.global_x = N / 2;
+  sizes.global_y = 1;
+  sizes.global_z = 16;
 
-  result = blas_cc->command_queue_inst_.DispatchCommand(
-    kernel_ptr, work_groups_count, work_group_size);
+  result = blas_cc->command_queue_inst_.DispatchCommand(kernel_ptr, sizes);
   if (!result) {
     throw std::runtime_error(
       "Failed to dispatch kernel for fully_connected_gpu_int4_gemv");
@@ -248,8 +256,6 @@ void gemm_q4_0_async_cl(std::vector<void *> matAdata, float *matBdata,
   /// @note Transpose fp32 input. This can only be done once
   transpose_32_16(matBdata, M, K);
 
-  const int work_group_size[3] = {1, 128, 1};
-
   for (unsigned int i = 0; i < Ns.size(); ++i) {
     int N = Ns[i];
     void *mdata = matAdata[i];
@@ -302,11 +308,17 @@ void gemm_q4_0_async_cl(std::vector<void *> matAdata, float *matBdata,
     if (!result)
       throw std::runtime_error(
         "Failed to set kernel argument 7 for kernel_mul_mat_Ab_Bi_8x4");
-    const int work_groups_count[3] = {(int)ceil(M / 8.0f), (int)N / 4, 1};
+
+    opencl::DispatchSize sizes{};
+    sizes.local_x = 1;
+    sizes.local_y = 128;
+    sizes.local_z = 1;
+    sizes.global_x = ceil(M / 8.0f);
+    sizes.global_y = N;
+    sizes.global_z = 1;
 
     // Perform Matrix Multiplication
-    result = blas_cc->command_queue_inst_.DispatchCommand(
-      kernel_ptr, work_groups_count, work_group_size);
+    result = blas_cc->command_queue_inst_.DispatchCommand(kernel_ptr, sizes);
     if (!result) {
       throw std::runtime_error(
         "Failed to dispatch kernel for kernel_mul_mat_Ab_Bi_8x4");
@@ -401,11 +413,15 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
     throw std::runtime_error(
       "Failed to set kernel argument 7 for kernel_mul_mat_Ab_Bi_8x4");
 
-  const int work_groups_count[3] = {(int)ceil(M / 8.0f), (int)N / 4, 1};
-  const int work_group_size[3] = {1, 128, 1};
+  opencl::DispatchSize sizes{};
+  sizes.local_x = 1;
+  sizes.local_y = 128;
+  sizes.local_z = 1;
+  sizes.global_x = ceil(M / 8.0f);
+  sizes.global_y = N / 4;
+  sizes.global_z = 1;
 
-  result = blas_cc->command_queue_inst_.DispatchCommand(
-    kernel_ptr, work_groups_count, work_group_size);
+  result = blas_cc->command_queue_inst_.DispatchCommand(kernel_ptr, sizes);
   if (!result) {
     throw std::runtime_error(
       "Failed to dispatch kernel for kernel_mul_mat_Ab_Bi_8x4");
@@ -478,12 +494,16 @@ void openvino_gemm_async_cl(float *input, std::vector<void *> weights,
       throw std::runtime_error("Failed to set kernel argument 2 for "
                                "quantize_input");
 
-    const int work_groups_count[3] = {
-      (int)align((M * K) / quantization_group_size, 64), 1, 1};
-    const int work_group_size[3] = {64, 1, 1};
+    opencl::DispatchSize sizes{};
+    sizes.local_x = 64;
+    sizes.local_y = 1;
+    sizes.local_z = 1;
+    sizes.global_x = align((M * K) / quantization_group_size, 64);
+    sizes.global_y = 1;
+    sizes.global_z = 1;
 
     result = blas_cc->command_queue_inst_.DispatchCommand(
-      kernel_ptr, work_groups_count, work_group_size, &quantize_event.front());
+      kernel_ptr, sizes, &quantize_event.front());
     if (!result) {
       throw std::runtime_error("Failed to dispatch kernel for quantize_input");
       return;
@@ -549,12 +569,16 @@ void openvino_gemm_async_cl(float *input, std::vector<void *> weights,
       throw std::runtime_error(
         "Failed to set kernel argument 6 for fc_bf_tiled_kernel_default");
 
-    const int work_groups_count[3] = {(int)(N / 2),
-                                      (int)(align(ceil_div(M, 8), 8)), 1};
-    const int work_group_size[3] = {16, 8, 1};
+    opencl::DispatchSize sizes{};
+    sizes.local_x = 16;
+    sizes.local_y = 8;
+    sizes.local_z = 1;
+    sizes.global_x = (int)(N / 2);
+    sizes.global_y = align(ceil_div(M, 8), 8);
+    sizes.global_z = 1;
 
     result = blas_cc->command_queue_inst_.DispatchCommand(
-      kernel_ptr, work_groups_count, work_group_size, nullptr, quantize_event);
+      kernel_ptr, sizes, nullptr, quantize_event);
     if (!result) {
       throw std::runtime_error(
         "Failed to dispatch kernel for fc_bf_tiled_kernel_default");
@@ -642,12 +666,16 @@ void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
       throw std::runtime_error("Failed to set kernel argument 2 for "
                                "quantize_input");
 
-    const int work_groups_count[3] = {
-      (int)align((M * K) / quantization_group_size, 64), 1, 1};
-    const int work_group_size[3] = {64, 1, 1};
+    opencl::DispatchSize sizes{};
+    sizes.local_x = 64;
+    sizes.local_y = 1;
+    sizes.local_z = 1;
+    sizes.global_x = align((M * K) / quantization_group_size, 64);
+    sizes.global_y = 1;
+    sizes.global_z = 1;
 
     result = blas_cc->command_queue_inst_.DispatchCommand(
-      kernel_ptr, work_groups_count, work_group_size, &quantize_event.front());
+      kernel_ptr, sizes, &quantize_event.front());
     if (!result) {
       throw std::runtime_error("Failed to dispatch kernel for quantize_input");
       return;
@@ -703,12 +731,16 @@ void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
     throw std::runtime_error(
       "Failed to set kernel argument 6 for fc_bf_tiled_kernel_default");
 
-  const int work_groups_count[3] = {(int)(N / 2),
-                                    (int)(align(ceil_div(M, 8), 8)), 1};
-  const int work_group_size[3] = {16, 8, 1};
+  opencl::DispatchSize sizes{};
+  sizes.local_x = 16;
+  sizes.local_y = 8;
+  sizes.local_z = 1;
+  sizes.global_x = (int)(N / 2);
+  sizes.global_y = align(ceil_div(M, 8), 8);
+  sizes.global_z = 1;
 
   result = blas_cc->command_queue_inst_.DispatchCommand(
-    kernel_ptr, work_groups_count, work_group_size, nullptr, quantize_event);
+    kernel_ptr, sizes, nullptr, quantize_event);
   if (!result) {
     throw std::runtime_error(
       "Failed to dispatch kernel for fc_bf_tiled_kernel_default");
@@ -887,14 +919,17 @@ void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
 #define N_SIMDWIDTH 16
 #define N_SIMDGROUP 2
 
-  const int work_groups_count[3] = {((ne0 + N_SIMDGROUP - 1) / N_SIMDGROUP) *
-                                      (N_SIMDGROUP * N_SIMDWIDTH),
-                                    ne1, 1};
-  /// @todo: create a group size by device & input
-  const int work_group_size[3] = {32, 1, 1};
+  opencl::DispatchSize sizes{};
+  sizes.local_x = 32;
+  sizes.local_y = 1;
+  sizes.local_z = 1;
+  sizes.global_x =
+    ((ne0 + N_SIMDGROUP - 1) / N_SIMDGROUP) * (N_SIMDGROUP * N_SIMDWIDTH);
+  sizes.global_y = ne1;
+  sizes.global_z = 1;
 
   result = opencl::CommandQueueManager::Global().DispatchCommand(
-    kernel_q6_k_sgemv_ptr, work_groups_count, work_group_size);
+    kernel_q6_k_sgemv_ptr, sizes);
   if (!result) {
     ml_loge("Failed to dispatch kernel q6_k_sgemv");
     return;
@@ -1097,11 +1132,15 @@ void flatten_block_q4_0_cl(const void *src, void *dst_q, void *dst_d,
     return;
   }
 
-  const int work_groups_count[3] = {(int)num_blocks, 1, 1};
-  const int work_group_size[3] = {64, 1, 1};
+  opencl::DispatchSize sizes{};
+  sizes.local_x = 64;
+  sizes.local_y = 1;
+  sizes.local_z = 1;
+  sizes.global_x = num_blocks;
+  sizes.global_y = 1;
+  sizes.global_z = 1;
 
-  result = blas_cc->command_queue_inst_.DispatchCommand(
-    kernel_ptr, work_groups_count, work_group_size);
+  result = blas_cc->command_queue_inst_.DispatchCommand(kernel_ptr, sizes);
   if (!result) {
     ml_loge("Failed to dispatch kernel for flatten_block_q4_0_cl");
     return;
@@ -1142,11 +1181,15 @@ void restore_block_q4_0_cl(const void *src_q, const void *src_d, void *dst,
     return;
   }
 
-  const int work_groups_count[3] = {(int)num_blocks, 1, 1};
-  const int work_group_size[3] = {1, 1, 1};
+  opencl::DispatchSize sizes{};
+  sizes.local_x = 1;
+  sizes.local_y = 1;
+  sizes.local_z = 1;
+  sizes.global_x = num_blocks;
+  sizes.global_y = 1;
+  sizes.global_z = 1;
 
-  result = blas_cc->command_queue_inst_.DispatchCommand(
-    kernel_ptr, work_groups_count, work_group_size);
+  result = blas_cc->command_queue_inst_.DispatchCommand(kernel_ptr, sizes);
   if (!result) {
     ml_loge("Failed to dispatch kernel for restore_block_q4_0_cl");
     return;
@@ -1209,11 +1252,15 @@ void transpose_32_16(float *data, int M, int K) {
     throw std::runtime_error(
       "Failed to set kernel argument 4 for kernel_transpose_32_16");
 
-  const int work_groups_count[3] = {width, padded_height, 1};
-  const int work_group_size[3] = {1, 16, 1};
+  opencl::DispatchSize sizes{};
+  sizes.local_x = 1;
+  sizes.local_y = 16;
+  sizes.local_z = 1;
+  sizes.global_x = width;
+  sizes.global_y = padded_height;
+  sizes.global_z = 1;
 
-  result = blas_cc->command_queue_inst_.DispatchCommand(
-    kernel_ptr, work_groups_count, work_group_size);
+  result = blas_cc->command_queue_inst_.DispatchCommand(kernel_ptr, sizes);
   if (!result) {
     ml_loge("Failed to dispatch kernel for kernel_transpose_32_16");
     return;
@@ -1257,11 +1304,16 @@ void transpose_16(void *input, void *output, int width, int height,
     throw std::runtime_error(
       "Failed to set kernel argument 3 for kernel_transpose_16");
 
-  const int work_groups_count[3] = {width, height, 1};
-  const int work_group_size[3] = {4, 16, 1};
+  opencl::DispatchSize sizes{};
+  sizes.local_x = 4;
+  sizes.local_y = 16;
+  sizes.local_z = 1;
+  sizes.global_x = width;
+  sizes.global_y = height;
+  sizes.global_z = 1;
 
   result = blas_cc->command_queue_inst_.DispatchCommand(
-    kernel_ptr, work_groups_count, work_group_size);
+    kernel_ptr, sizes);
   if (!result) {
     ml_loge("Failed to dispatch kernel for kernel_transpose_16");
     return;

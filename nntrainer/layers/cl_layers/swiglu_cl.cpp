@@ -178,12 +178,16 @@ void SwiGLULayerCl::swiglu_cl(float *matAdata, float *vecXdata, float *vecYdata,
     const bool can_use_desired = dim >= desired_local;
     const int32_t chosen_local = can_use_desired ? desired_local : dim;
 
-    const int work_groups_count[3] = {dim, 1, 1};
-    /// @todo: create a group size by device & input
-    const int work_group_size[3] = {chosen_local, 1, 1}; // test-value
+    opencl::DispatchSize sizes{};
+    sizes.local_x = chosen_local;
+    sizes.local_y = 1;
+    sizes.local_z = 1;
+    sizes.global_x = dim;
+    sizes.global_y = 1;
+    sizes.global_z = 1;
 
     if (!global_cl_context->command_queue_inst_.DispatchCommand(
-          kernel_swiglu_ptr, work_groups_count, work_group_size)) {
+          kernel_swiglu_ptr, sizes)) {
       ml_loge("Failed to run");
       break;
     }
@@ -254,12 +258,16 @@ void SwiGLULayerCl::swiglu_cl_fp16(_FP16 *matAdata, _FP16 *vecXdata,
     const bool can_use_desired = dim >= desired_local;
     const int32_t chosen_local = can_use_desired ? desired_local : dim;
 
-    const int work_groups_count[3] = {dim, 1, 1};
-    /// @todo: create a group size by device & input
-    const int work_group_size[3] = {chosen_local, 1, 1}; // test-value
+    opencl::DispatchSize sizes{};
+    sizes.local_x = chosen_local;
+    sizes.local_y = 1;
+    sizes.local_z = 1;
+    sizes.global_x = dim;
+    sizes.global_y = 1;
+    sizes.global_z = 1;
 
     result = global_cl_context->command_queue_inst_.DispatchCommand(
-      kernel_swiglu_ptr, work_groups_count, work_group_size);
+      kernel_swiglu_ptr, sizes);
     if (!result) {
       break;
     }
