@@ -205,14 +205,18 @@ void ReshapeLayerCl::copy_cl_fp16(const _FP16 *input, _FP16 *res,
       break;
     }
 
-    const int work_groups_count[3] = {
-      (int)(input_batch_size * input_height * input_width * input_channels), 1,
-      1};
-    /// @todo: create a group size by device & input
-    const int work_group_size[3] = {1, 1, 1}; // test-value
+    auto dim = input_batch_size * input_height * input_width * input_channels;
+
+    opencl::DispatchSize sizes{};
+    sizes.local_x = 1;
+    sizes.local_y = 1;
+    sizes.local_z = 1;
+    sizes.global_x = dim;
+    sizes.global_y = 1;
+    sizes.global_z = 1;
 
     result = global_cl_context->command_queue_inst_.DispatchCommand(
-      kernel_copy_ptr, work_groups_count, work_group_size);
+      kernel_copy_ptr, sizes);
     if (!result) {
       break;
     }
@@ -291,14 +295,18 @@ void ReshapeLayerCl::scopy_cl(const float *input, float *res,
       break;
     }
 
-    const int work_groups_count[3] = {
-      (int)(input_batch_size * input_height * input_width * input_channels), 1,
-      1};
-    /// @todo: create a group size by device & input
-    const int work_group_size[3] = {1, 1, 1}; // test-value
+    auto dim = input_batch_size * input_height * input_width * input_channels;
+
+    opencl::DispatchSize sizes{};
+    sizes.local_x = 1;
+    sizes.local_y = 1;
+    sizes.local_z = 1;
+    sizes.global_x = dim;
+    sizes.global_y = 1;
+    sizes.global_z = 1;
 
     result = global_cl_context->command_queue_inst_.DispatchCommand(
-      kernel_copy_ptr, work_groups_count, work_group_size);
+      kernel_copy_ptr, sizes);
     if (!result) {
       break;
     }
