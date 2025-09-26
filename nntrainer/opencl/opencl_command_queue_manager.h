@@ -22,6 +22,21 @@
 namespace nntrainer::opencl {
 
 /**
+ * @struct DispatchSize contains wrappers for managing OpenCL command
+ * queue
+ * @brief Sizes for OpenCL kernel enqueue function
+ *
+ */
+struct DispatchSize {
+  size_t local_x = 0;
+  size_t local_y = 0;
+  size_t local_z = 0;
+  size_t global_x = 0;
+  size_t global_y = 0;
+  size_t global_z = 0;
+};
+
+/**
  * @class CommandQueueManager contains wrappers for managing OpenCL command
  * queue
  * @brief OpenCL command queue wrapper
@@ -164,34 +179,27 @@ public:
    * @brief Function to initiate execution of the command queue.
    *
    * @param kernel OpenCL kernel
-   * @param work_groups_count Total number of work items that will execute the
-   * kernel function
-   * @param work_group_size Number of work items that make up a work group
+   * @param sizes Sizes for the dispatch
    * @param event Object that identifies this command and can be used to query
    * or wait for this command to complete
    * @return true if command queue execution is successful or false otherwise
    */
-  bool DispatchCommand(Kernel kernel, const int (&work_groups_count)[3],
-                       const int (&work_group_size)[3],
+  bool DispatchCommand(Kernel kernel, const DispatchSize &sizes,
                        cl_event *event = nullptr,
-                       std::vector<cl_event> events_to_wait = {});
+                       const std::vector<cl_event> &events_to_wait = {});
 
   /**
    * @brief Overloaded function to initiate execution of the command queue.
    *
    * @param kernel_ptr reference of OpenCL kernel shared_ptr
-   * @param work_groups_count Total number of work items that will execute the
-   * kernel function
-   * @param work_group_size Number of work items that make up a work group
+   * @param sizes Sizes for the dispatch
    * @param event Object that identifies this command and can be used to query
    * or wait for this command to complete
    * @return true if command queue execution is successful or false otherwise
    */
   bool DispatchCommand(const std::shared_ptr<Kernel> &kernel_ptr,
-                       const int (&work_groups_count)[3],
-                       const int (&work_group_size)[3],
-                       cl_event *event = nullptr,
-                       std::vector<cl_event> events_to_wait = {});
+                       const DispatchSize &sizes, cl_event *event = nullptr,
+                       const std::vector<cl_event> &events_to_wait = {});
 
   /**
    * @brief Get the OpenCL Command Queue object
