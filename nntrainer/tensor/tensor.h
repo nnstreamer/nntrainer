@@ -447,7 +447,11 @@ public:
   /**
    * @brief Basic Destructor
    */
-  ~Tensor() = default;
+  ~Tensor() noexcept {
+    if (is_virtual && mapped_ptr != nullptr) {
+      deactivate();
+    }
+  };
 
   /**
    *  @brief  Copy constructor of Tensor.
