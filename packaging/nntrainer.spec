@@ -4,7 +4,7 @@
 %define         nnstreamer_trainer 1
 %define         nnstreamer_subplugin_path lib/nnstreamer
 %define         use_gym 0
-%define         use_ruy 1
+%define         use_ruy 0
 %define         use_biqgemm 0
 %define         support_ccapi 1
 %define         support_nnstreamer_backbone 1

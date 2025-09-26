@@ -37,8 +37,10 @@ if iniparser_dep.found()
   and_conf.set('MESON_INIPARSER_ROOT', iniparser_root)
 endif
 
-if ruy_dep.found()
-  and_conf.set('MESON_RUY_ROOT', ruy_root)
+if get_option('enable-ruy')
+  if ruy_dep.found()
+    and_conf.set('MESON_RUY_ROOT', ruy_root)
+  endif
 endif
 
 if get_option('enable-opencl')

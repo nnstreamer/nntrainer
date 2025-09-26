@@ -1,4 +1,3 @@
-/usr/lib/*/libruy*.a
 /usr/lib/*/libclog.a
 /usr/lib/*/libcpuinfo.a
 /usr/bin/cache_info

@@ -31,7 +31,6 @@ override_dh_auto_clean:
 	rm -rf build
 
 override_dh_auto_configure:
-	tar -xf packaging/ruy.tar.gz -C subprojects
 	mkdir -p build
 	meson --buildtype=plain --prefix=/usr --sysconfdir=/etc \
 		--libdir=lib/$(DEB_HOST_MULTIARCH) --bindir=lib/nntrainer/bin \
