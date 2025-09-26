@@ -1,0 +1,46 @@
+# Suppress known false positives from glib
+{
+   glib_slice_allocator
+   Memcheck:Leak
+   match-leak-kinds: definite
+   ...
+   fun:g_slice_alloc*
+}
+{
+   glib_type_system
+   Memcheck:Leak
+   match-leak-kinds: definite
+   ...
+   fun:g_type_*
+}
+{
+   glib_quark_system
+   Memcheck:Leak
+   match-leak-kinds: definite
+   ...
+   fun:g_quark_*
+}
+# Suppress gtest-related allocations
+{
+   gtest_framework
+   Memcheck:Leak
+   match-leak-kinds: definite
+   ...
+   fun:*testing*
+}
+# Suppress pthread-related false positives
+{
+   pthread_create
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   fun:pthread_create*
+}
+# Suppress dlopen-related allocations
+{
+   dlopen_leak
+   Memcheck:Leak
+   match-leak-kinds: definite
+   ...
+   fun:dlopen*
+}
