@@ -29,6 +29,18 @@
 #include <stddef.h>
 
 /**
+ * @brief get size of memory to allocate for rhs weight packing of qsi4cxp to
+ * qs4cxs1s0
+ *
+ * @param n row length if not transposed
+ * @param k col length if not transposed
+ * @return size_t size of memory to allocate
+ */
+size_t nntr_kai_get_rhs_packed_size_rhs_pack_qsi4cxp_qs4cxs1s0(size_t n,
+                                                               size_t k,
+                                                               bool transB);
+
+/**
  * @brief rhs matrix packing for qsi4cxp format
  *
  * @param n row length if not transposed
