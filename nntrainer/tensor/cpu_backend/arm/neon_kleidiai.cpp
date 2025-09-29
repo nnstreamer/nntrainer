@@ -274,9 +274,6 @@ void nntr_gemm_qai8dxp_qsi4cxp_rtp(size_t m, size_t n, size_t k,
         n, k, nr, kr, sr);
     }
 
-    const size_t dst_size =
-      ukernel_variants[idx_variant].ukernel.get_dst_size(m, n);
-
     // Allocate the matrices
     uint8_t *lhs_packed_mtx_qa8dx = new uint8_t[lhs_packed_size];
     uint8_t *rhs_packed_mtx_qs4cx = new uint8_t[rhs_packed_size];
@@ -355,5 +352,111 @@ void nntr_gemm_qai8dxp_qsi4cxp_rtp(size_t m, size_t n, size_t k,
 
     delete[] lhs_packed_mtx_qa8dx;
     delete[] rhs_packed_mtx_qs4cx;
+  }
+}
+
+void nntr_qsi4cxp_qs4cxs1s0_rhs_pack(size_t n, size_t k,
+                                     void *rhs_packed_mtx_qs4cx,
+                                     void *rhs_native_mtx_qs4cx,
+                                     void *rhs_scales_f32, bool transB) {
+  ///@note Packing arguments are identical among all ukernel idx_variants
+  uint32_t idx_variant = 0;
+  rhs_format format = rhs_format::nxk;
+  if (!transB) {
+    format = rhs_format::kxn;
+  }
+
+  const size_t nr = ukernel_variants[idx_variant].ukernel.get_nr();
+  const size_t kr = ukernel_variants[idx_variant].ukernel.get_kr();
+  const size_t sr = ukernel_variants[idx_variant].ukernel.get_sr();
+
+  size_t rhs_packed_size = 0;
+  if (format == rhs_format::nxk) {
+    rhs_packed_size =
+      kai_get_rhs_packed_size_rhs_pack_nxk_qsi4cxp_qs4cxs1s0(n, k, nr, kr, sr);
+
+  } else {
+    rhs_packed_size =
+      kai_get_rhs_packed_size_rhs_pack_kxn_qsi4cxp_qs4cxs1s0(n, k, nr, kr, sr);
+  }
+
+  if (format == rhs_format::nxk) {
+    struct kai_rhs_pack_nxk_qsi4cxp_qs4cxs1s0_params nxk_params;
+
+    nxk_params.lhs_zero_point = 1;
+    nxk_params.rhs_zero_point = 8;
+    // RHS packing
+    kai_run_rhs_pack_nxk_qsi4cxp_qs4cxs1s0(
+      1, n, k, nr, kr, sr,                     // Packing arguments
+      (const uint8_t *)(rhs_native_mtx_qs4cx), // RHS
+      NULL,                                    // Bias
+      (const float *)(rhs_scales_f32),         // Scale
+      rhs_packed_mtx_qs4cx,                    // RHS packed
+      0, &nxk_params);
+
+  } else {
+    struct kai_rhs_pack_kxn_qsi4cxp_qs4cxs1s0_params kxn_params;
+    kxn_params.lhs_zero_point = 1;
+    kxn_params.rhs_zero_point = 8;
+    // RHS packing
+    kai_run_rhs_pack_kxn_qsi4cxp_qs4cxs1s0(
+      1, n, k, nr, kr, sr,                     // Packing arguments
+      (const uint8_t *)(rhs_native_mtx_qs4cx), // RHS
+      NULL,                                    // Bias
+      (const float *)(rhs_scales_f32),         // Scale
+      rhs_packed_mtx_qs4cx,                    // RHS packed
+      0, &kxn_params);
+  }
+}
+
+void nntr_gemm_qai8dxp_qsi4cxp_olp(size_t m, size_t n, size_t k,
+                                   void *lhs_native_mtx_f32,
+                                   void *rhs_packed_mtx_qs4cx,
+                                   float *dst_act_mtx_f32, uint32_t idx_variant,
+                                   bool transB, float lower_bound,
+                                   float upper_bound) {
+  rhs_format format = rhs_format::nxk;
+  if (!transB) {
+    format = rhs_format::kxn;
+  }
+
+  const size_t mr = ukernel_variants[idx_variant].ukernel.get_mr();
+  const size_t nr = ukernel_variants[idx_variant].ukernel.get_nr();
+  const size_t kr = ukernel_variants[idx_variant].ukernel.get_kr();
+  const size_t sr = ukernel_variants[idx_variant].ukernel.get_sr();
+
+  // LHS packing
+  const size_t lhs_packed_size =
+    kai_get_lhs_packed_size_lhs_quant_pack_qai8dxp_f32(m, k, mr, kr, sr);
+  uint8_t *lhs_packed_mtx_qa8dx = new uint8_t[lhs_packed_size];
+  kai_run_lhs_quant_pack_qai8dxp_f32(m, k, mr, kr, sr, 0, // Packing arguments
+                                     (const float *)lhs_native_mtx_f32, // LHS
+                                     k * sizeof(float),     // LHS stride
+                                     lhs_packed_mtx_qa8dx); // LHS packed
+
+  {
+    const size_t dst_stride = n * sizeof(float);
+    const size_t lhs_offset =
+      ukernel_variants[idx_variant].ukernel.get_lhs_packed_offset(0, k);
+    const size_t rhs_offset =
+      ukernel_variants[idx_variant].ukernel.get_rhs_packed_offset(0, k);
+    const size_t dst_offset =
+      ukernel_variants[idx_variant].ukernel.get_dst_offset(0, 0, dst_stride);
+
+    const void *lhs_ptr =
+      (const void *)((const char *)lhs_packed_mtx_qa8dx + lhs_offset);
+    const void *rhs_ptr =
+      (const void *)((const char *)rhs_packed_mtx_qs4cx + rhs_offset);
+    float *dst_ptr = (float *)((uint8_t *)dst_act_mtx_f32 + dst_offset);
+
+    ukernel_variants[idx_variant].ukernel.run_matmul(
+      m, n, k,                 // Dimensions
+      lhs_ptr,                 // LHS packed
+      rhs_ptr,                 // RHS packed
+      dst_ptr,                 // DST
+      dst_stride,              // DST stride (row)
+      sizeof(float),           // DST stride (col)
+      lower_bound, upper_bound // Min and max for the clamp operation
+    );
   }
 }

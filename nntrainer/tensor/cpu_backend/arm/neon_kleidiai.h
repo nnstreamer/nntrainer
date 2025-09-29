@@ -28,9 +28,56 @@
 #include <cstdint>
 #include <stddef.h>
 
+/**
+ * @brief rhs matrix packing for qsi4cxp format
+ *
+ * @param n row length if not transposed
+ * @param k col length if not transposed
+ * @param rhs_packed_mtx_qs4cx dst* to store results
+ * @param rhs_native_mtx_qs4cx input matrix data
+ * @param rhs_scales_f32 input qparam data
+ * @param transB rather the matrix is transposed or not
+ */
+void nntr_qsi4cxp_qs4cxs1s0_rhs_pack(size_t n, size_t k,
+                                     void *rhs_packed_mtx_qs4cx,
+                                     void *rhs_native_mtx_qs4cx,
+                                     void *rhs_scales_f32, bool transB);
+/**
+ * @brief run qai8dxp_qsi4cxp GEMM with runtime weight packing
+ *
+ * @param m M for (M, K) * (K, N) = (M, N) in noTrans GEMM
+ * @param n N for (M, K) * (K, N) = (M, N) in noTrans GEMM
+ * @param k K for (M, K) * (K, N) = (M, N) in noTrans GEMM
+ * @param lhs_native_mtx_f32 activation
+ * @param rhs_native_mtx_qs4cx qs4cx quantized weight matrix data
+ * @param rhs_scales_f32 qs4cx quantized weight matrix scale data
+ * @param dst_act_mtx_f32 dst data
+ * @param transB rather the weight matrix is transposed or not
+ * @param lower_bound clipping param
+ * @param upper_bound clipping param
+ */
 void nntr_gemm_qai8dxp_qsi4cxp_rtp(size_t m, size_t n, size_t k,
                                    void *lhs_native_mtx_f32,
                                    void *rhs_native_mtx_qs4cx,
                                    void *rhs_scales_f32, float *dst_act_mtx_f32,
+                                   bool transB, float lower_bound,
+                                   float upper_bound);
+/**
+ * @brief run qai8dxp_qsi4cxp GEMM with offline weight packing
+ *
+ * @param m M for (M, K) * (K, N) = (M, N) in noTrans GEMM
+ * @param n N for (M, K) * (K, N) = (M, N) in noTrans GEMM
+ * @param k K for (M, K) * (K, N) = (M, N) in noTrans GEMM
+ * @param lhs_native_mtx_f32 activation
+ * @param rhs_packed_mtx_qs4cx qs4cx quantized weight, packed already
+ * @param dst_act_mtx_f32 dst data
+ * @param transB rather the weight matrix is transposed or not
+ * @param lower_bound clipping param
+ * @param upper_bound clipping param
+ */
+void nntr_gemm_qai8dxp_qsi4cxp_olp(size_t m, size_t n, size_t k,
+                                   void *lhs_native_mtx_f32,
+                                   void *rhs_packed_mtx_qs4cx,
+                                   float *dst_act_mtx_f32, uint32_t idx_variant,
                                    bool transB, float lower_bound,
                                    float upper_bound);
