@@ -1524,22 +1524,38 @@ TEST(blas_kernels, absolute_sum) {
   EXPECT_FLOAT_EQ(cpu_result, gpu_result);
 }
 
-TEST(blas_kernels, rmsnorm_fp32) {
+#if defined(_WIN32)
+#define NNTR_COMPUTE_FP16_TO_FP32(x) compute_fp16_to_fp32(x)
+#define NNTR_COMPUTE_FP32_TO_FP16(x) compute_fp32_to_fp16(x)
+#else
+#define NNTR_COMPUTE_FP16_TO_FP32(x) x
+#define NNTR_COMPUTE_FP32_TO_FP16(x) x
+#endif
+
+template <typename T>
+static void rmsnorm_67_3072(const nntrainer::TensorDim::DataType data_type) {
   const int batch = 1;
   const int channel = 1;
   const int height = 67;
   const int width = 3072;
 
-  const float alpha = 1e-1;
+  const float alpha = 1e-1f;
   const int MOD = 10;
 
+  nntrainer::TensorDim::TensorType t_type_nchw = {nntrainer::Tformat::NCHW,
+                                                  data_type};
+
+  nntrainer::Tensor in(batch, channel, height, width, t_type_nchw);
+  nntrainer::Tensor gamma(1, 1, 1, width, t_type_nchw);
+  nntrainer::Tensor out_cl(batch, channel, height, width, t_type_nchw);
+
+  // Use FP32 CPU as reference implementation (FP16 CPU does not exist on
+  // Windows platform)
   nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
     nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
 
   nntrainer::Tensor in_fp32(batch, channel, height, width, t_type_nchw_fp32);
   nntrainer::Tensor gamma_fp32(1, 1, 1, width, t_type_nchw_fp32);
-  nntrainer::Tensor out_cl_fp32(batch, channel, height, width,
-                                t_type_nchw_fp32);
   nntrainer::Tensor out_ref_fp32(batch, channel, height, width,
                                  t_type_nchw_fp32);
 
@@ -1548,41 +1564,52 @@ TEST(blas_kernels, rmsnorm_fp32) {
                             j * (batch * height) + k * (width) + l + 1) %
                            MOD) *
                             alpha);
+
+  for (int b = 0; b < batch; ++b) {
+    for (int c = 0; c < channel; ++c) {
+      for (int h = 0; h < height; ++h) {
+        for (int w = 0; w < width; ++w) {
+          in.setValue(b, c, h, w,
+                      NNTR_COMPUTE_FP32_TO_FP16(in_fp32.getValue(b, c, h, w)));
+        }
+      }
+    }
+  }
+
   for (int l = 0; l < width; ++l) {
     float val = ((l + 1) % MOD) * alpha;
     gamma_fp32.setValue(0, 0, 0, l, val);
+    gamma.setValue(0, 0, 0, l, NNTR_COMPUTE_FP32_TO_FP16(val));
   }
 
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
 
   /// Initialize GPU input/ouput data
-  void *in_fp32_svm = allocateSVM(in_fp32.size() * sizeof(float));
-  void *gamma_fp32_svm = allocateSVM(gamma_fp32.size() * sizeof(float));
-  void *out_fp32_svm = allocateSVM(out_cl_fp32.size() * sizeof(float));
+  void *in_svm = allocateSVM(in.size() * sizeof(T));
+  void *gamma_svm = allocateSVM(gamma.size() * sizeof(T));
+  void *out_svm = allocateSVM(out_cl.size() * sizeof(T));
+  float *out_svm_fp32 = new float[out_cl.size()];
 
-  blas_cc->command_queue_inst_.enqueueSVMMap(
-    in_fp32_svm, in_fp32.size() * sizeof(float), false);
-  blas_cc->command_queue_inst_.enqueueSVMMap(
-    gamma_fp32_svm, gamma_fp32.size() * sizeof(float), false);
+  blas_cc->command_queue_inst_.enqueueSVMMap(in_svm, in.size() * sizeof(T),
+                                             false);
+  blas_cc->command_queue_inst_.enqueueSVMMap(gamma_svm,
+                                             gamma.size() * sizeof(T), false);
 
-  std::memcpy(in_fp32_svm, in_fp32.getData<float>(),
-              in_fp32.size() * sizeof(float));
-  std::memcpy(gamma_fp32_svm, gamma_fp32.getData<float>(),
-              gamma_fp32.size() * sizeof(float));
+  std::memcpy(in_svm, in.getData<T>(), in.size() * sizeof(T));
+  std::memcpy(gamma_svm, gamma.getData<T>(), gamma.size() * sizeof(T));
 
-  blas_cc->command_queue_inst_.enqueueSVMUnmap(in_fp32_svm);
-  blas_cc->command_queue_inst_.enqueueSVMUnmap(gamma_fp32_svm);
+  blas_cc->command_queue_inst_.enqueueSVMUnmap(in_svm);
+  blas_cc->command_queue_inst_.enqueueSVMUnmap(gamma_svm);
 
   static constexpr uint32_t run_count = 500;
   static constexpr float kEpsilon = 0.001f;
 
   Timer timer1{};
   for (unsigned int i = 0; i < run_count; ++i) {
-    rmsnorm_cl((float *)in_fp32_svm, (float *)gamma_fp32_svm,
-               (float *)out_fp32_svm, kEpsilon,
-               in_fp32.batch() * in_fp32.channel() * in_fp32.height(),
-               in_fp32.width(), true);
+    rmsnorm_cl((T *)in_svm, (T *)gamma_svm, (T *)out_svm,
+               NNTR_COMPUTE_FP32_TO_FP16(kEpsilon), in.height(), in.width(),
+               true);
   }
   auto t2_cl = timer1.GetElapsedMilliseconds();
 
@@ -1602,24 +1629,39 @@ TEST(blas_kernels, rmsnorm_fp32) {
   std::cout << "RMSNorm time : CPU = " << t2_ref / (run_count * 1.0f) << " ms"
             << std::endl;
 
-  blas_cc->command_queue_inst_.enqueueSVMMap(
-    out_fp32_svm, out_cl_fp32.size() * sizeof(float), false);
+  blas_cc->command_queue_inst_.enqueueSVMMap(out_svm, out_cl.size() * sizeof(T),
+                                             false);
 
-  float mseError = mse<float>((float *)out_fp32_svm,
-                              out_ref_fp32.getData<float>(), height * width);
+  for (int i = 0; i < out_cl.size(); ++i) {
+    out_svm_fp32[i] = NNTR_COMPUTE_FP16_TO_FP32(((T *)out_svm)[i]);
+  }
+
+  float mseError =
+    mse<float>(out_svm_fp32, out_ref_fp32.getData<float>(), height * width);
 
   double cosSim = cosine_similarity<float>(
-    (float *)out_fp32_svm, out_ref_fp32.getData<float>(), height * width);
+    out_svm_fp32, out_ref_fp32.getData<float>(), height * width);
 
-  const float epsilon = 1e-3 * width;
+  const float epsilon = 1e-3f;
 
-  freeSVM(out_fp32_svm);
-  freeSVM(in_fp32_svm);
-  freeSVM(gamma_fp32_svm);
+  freeSVM(out_svm);
+  freeSVM(in_svm);
+  freeSVM(gamma_svm);
+  delete[] out_svm_fp32;
 
   EXPECT_IN_RANGE(mseError, 0, epsilon);
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
 }
+
+TEST(blas_kernels, rmsnorm_fp32_67_3072) {
+  rmsnorm_67_3072<float>(nntrainer::Tdatatype::FP32);
+}
+
+#ifdef ENABLE_FP16
+TEST(blas_kernels, rmsnorm_fp16_67_3072) {
+  rmsnorm_67_3072<_FP16>(nntrainer::Tdatatype::FP16);
+}
+#endif
 
 TEST(blas_kernels, swiglu_layer_fp32_67_3072) {
   const int batch = 1;
