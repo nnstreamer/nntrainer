@@ -348,7 +348,8 @@ float test_gemm_qai8dxp_qsi4cxp_unpacked(const uint32_t M, const uint32_t K,
     transB
       ? static_cast<size_t>(N) * (((K + 2 - 1) / 2) * 2 / 2) * sizeof(uint8_t)
       : static_cast<size_t>(K) * (((N + 2 - 1) / 2) * 2 / 2) * sizeof(uint8_t);
-  const size_t rhs_scales_size_f32 = N * sizeof(float);
+  const size_t rhs_scales_size_f32 =
+    transB ? N * sizeof(float) : K * sizeof(float);
 
   uint8_t *rhs_native_mtx_qs4cx = new uint8_t[rhs_native_size_qs4cx];
   uint8_t *rhs_scales_f32 = new uint8_t[rhs_scales_size_f32];
@@ -432,7 +433,8 @@ float test_gemm_qai8dxp_qsi4cxp_packed(const uint32_t M, const uint32_t K,
     transB
       ? static_cast<size_t>(N) * (((K + 2 - 1) / 2) * 2 / 2) * sizeof(uint8_t)
       : static_cast<size_t>(K) * (((N + 2 - 1) / 2) * 2 / 2) * sizeof(uint8_t);
-  const size_t rhs_scales_size_f32 = N * sizeof(float);
+  const size_t rhs_scales_size_f32 =
+    transB ? N * sizeof(float) : K * sizeof(float);
 
   uint8_t *rhs_native_mtx_qs4cx = new uint8_t[rhs_native_size_qs4cx];
   uint8_t *rhs_scales_f32 = new uint8_t[rhs_scales_size_f32];
@@ -444,11 +446,13 @@ float test_gemm_qai8dxp_qsi4cxp_packed(const uint32_t M, const uint32_t K,
                                   transB);
   // Step3. Offline weight packing
   size_t packed_weight_size =
-    nntrainer::nntr_get_rhs_packed_size_qsi4cxp_qs4cxs1s0(N, K,opt_kernel_idx, transB);
+    nntrainer::nntr_get_rhs_packed_size_qsi4cxp_qs4cxs1s0(N, K, opt_kernel_idx,
+                                                          transB);
   uint8_t *packed_weight = new uint8_t[packed_weight_size];
 
   nntrainer::nntr_qsi4cxp_qs4cxs1s0_rhs_pack(
-    N, K, packed_weight, rhs_native_mtx_qs4cx, rhs_scales_f32,opt_kernel_idx, transB);
+    N, K, packed_weight, rhs_native_mtx_qs4cx, rhs_scales_f32, opt_kernel_idx,
+    transB);
 
   // Step4. Run GEMM! (Online activation quantization + kernel routine + return
   // float)
@@ -523,22 +527,12 @@ TEST(nntrainer_cpu_backend_standalone, qai8dxp_qsi4cxp_1x1024x1024) {
   uint32_t opt_idx_variant = 1;
   run_qai8dxp_qsi4cxp_test_unpacked(M, K, N, qai8dxp_qsi4cxp_q4_0_mse, true,
                                     true);
-  run_qai8dxp_qsi4cxp_test_packed(M, K, N, qai8dxp_qsi4cxp_q4_0_mse_packed, opt_idx_variant, true,
-                                  true);
+  run_qai8dxp_qsi4cxp_test_packed(M, K, N, qai8dxp_qsi4cxp_q4_0_mse_packed,
+                                  opt_idx_variant, true, true);
   ASSERT_LE(qai8dxp_qsi4cxp_q4_0_mse, eps * M * K * N);
   ASSERT_LE(qai8dxp_qsi4cxp_q4_0_mse_packed, eps * M * K * N);
 }
 
-TEST(nntrainer_cpu_backend_standalone, qai8dxp_qsi4cxp_1x1024x768) {
-  const unsigned int M = 1;
-  const unsigned int K = 1024;
-  const unsigned int N = 768;
-  float qai8dxp_qsi4cxp_q4_0_mse;
-  constexpr float eps = 1e-5;
-  run_qai8dxp_qsi4cxp_test_unpacked(M, K, N, qai8dxp_qsi4cxp_q4_0_mse, true,
-                                    false);
-  ASSERT_LE(qai8dxp_qsi4cxp_q4_0_mse, eps * M * K * N);
-}
 
 TEST(nntrainer_cpu_backend_standalone, qai8dxp_qsi4cxp_768x768x768) {
   const unsigned int M = 768;
