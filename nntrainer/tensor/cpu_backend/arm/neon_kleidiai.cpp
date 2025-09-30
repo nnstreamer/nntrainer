@@ -187,7 +187,7 @@ kai_matmul_ukernel_f32_qa8dxp_qs4cxp ukernel_variants[] = {
 
 static size_t roundup(size_t a, size_t b) { return ((a + b - 1) / b) * b; }
 
-void nntr_gemm_qai8dxp_qsi4cxp_rtp(size_t m, size_t n, size_t k,
+void nntr_kai_gemm_qai8dxp_qsi4cxp_rtp(size_t m, size_t n, size_t k,
                                    void *lhs_native_mtx_f32,
                                    void *rhs_native_mtx_qs4cx,
                                    void *rhs_scales_f32, float *dst_act_mtx_f32,
@@ -260,6 +260,7 @@ void nntr_gemm_qai8dxp_qsi4cxp_rtp(size_t m, size_t n, size_t k,
     std::cout << "  Weight packing duration for kernel# " << idx_variant
               << " | " << dt.count() << " ns " << dt.count() / 1'000 << " us "
               << dt.count() / 1'000'000 << " ms " << std::endl;
+
     // LHS packing
     kai_run_lhs_quant_pack_qai8dxp_f32(m, k, mr, kr, sr, 0, // Packing arguments
                                        (const float *)lhs_native_mtx_f32, // LHS
@@ -303,11 +304,9 @@ void nntr_gemm_qai8dxp_qsi4cxp_rtp(size_t m, size_t n, size_t k,
   }
 }
 
-size_t nntr_kai_get_rhs_packed_size_rhs_pack_qsi4cxp_qs4cxs1s0(size_t n,
-                                                               size_t k,
-                                                               bool transB) {
+size_t nntr_kai_get_rhs_packed_size_qsi4cxp_qs4cxs1s0(size_t n, size_t k, uint32_t idx_variant,
+                                                      bool transB) {
   ///@note Packing arguments are identical among all ukernel idx_variants
-  uint32_t idx_variant = 0;
   const size_t nr = ukernel_variants[idx_variant].ukernel.get_nr();
   const size_t kr = ukernel_variants[idx_variant].ukernel.get_kr();
   const size_t sr = ukernel_variants[idx_variant].ukernel.get_sr();
@@ -320,12 +319,11 @@ size_t nntr_kai_get_rhs_packed_size_rhs_pack_qsi4cxp_qs4cxs1s0(size_t n,
   }
 }
 
-void nntr_qsi4cxp_qs4cxs1s0_rhs_pack(size_t n, size_t k,
+void nntr_kai_qsi4cxp_qs4cxs1s0_rhs_pack(size_t n, size_t k,
                                      void *rhs_packed_mtx_qs4cx,
                                      void *rhs_native_mtx_qs4cx,
-                                     void *rhs_scales_f32, bool transB) {
+                                     void *rhs_scales_f32, uint32_t idx_variant, bool transB) {
   ///@note Packing arguments are identical among all ukernel idx_variants
-  uint32_t idx_variant = 0;
   rhs_format format = rhs_format::nxk;
   if (!transB) {
     format = rhs_format::kxn;
@@ -364,7 +362,7 @@ void nntr_qsi4cxp_qs4cxs1s0_rhs_pack(size_t n, size_t k,
   }
 }
 
-void nntr_gemm_qai8dxp_qsi4cxp_olp(size_t m, size_t n, size_t k,
+void nntr_kai_gemm_qai8dxp_qsi4cxp_olp(size_t m, size_t n, size_t k,
                                    void *lhs_native_mtx_f32,
                                    void *rhs_packed_mtx_qs4cx,
                                    float *dst_act_mtx_f32, uint32_t idx_variant,
@@ -388,7 +386,6 @@ void nntr_gemm_qai8dxp_qsi4cxp_olp(size_t m, size_t n, size_t k,
                                      (const float *)lhs_native_mtx_f32, // LHS
                                      k * sizeof(float),     // LHS stride
                                      lhs_packed_mtx_qa8dx); // LHS packed
-
   {
     const size_t dst_stride = n * sizeof(float);
     const size_t lhs_offset =
@@ -414,4 +411,6 @@ void nntr_gemm_qai8dxp_qsi4cxp_olp(size_t m, size_t n, size_t k,
       lower_bound, upper_bound // Min and max for the clamp operation
     );
   }
+
+  delete[] lhs_packed_mtx_qa8dx;
 }
