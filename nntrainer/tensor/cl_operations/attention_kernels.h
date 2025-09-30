@@ -81,6 +81,10 @@ void rotary_emb_cl(_FP16 *in, _FP16 *out,
                    unsigned int max_timestamp, unsigned int in_size,
                    unsigned int out_size);
 
+void attention_cl_fp16(void *q, void *k, void *s, void *v, void *o,
+                             const uint32_t m, const uint32_t n,
+                             const uint32_t d_k, const uint32_t d_v);
+
 #endif
 
 } // namespace nntrainer
