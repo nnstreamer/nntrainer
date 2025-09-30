@@ -1157,7 +1157,7 @@ void nntr_quant_qs4cx_f32(size_t n, size_t k, void *rhs_native_mtx_f32,
  * regards the weight to be transpoed.
  */
 template <typename T = float>
-void nntr_gemm_qai8dxp_qsi4cxp(size_t m, size_t n, size_t k,
+void nntr_gemm_qai8dxp_qsi4cxp_unpacked(size_t m, size_t n, size_t k,
                                void *lhs_native_mtx, void *rhs_native_mtx_qs4cx,
                                void *rhs_scales, T *dst_mtx, bool transB = true,
                                T lower_bound = std::numeric_limits<T>::lowest(),

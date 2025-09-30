@@ -36,9 +36,8 @@
  * @param k col length if not transposed
  * @return size_t size of memory to allocate
  */
-size_t nntr_kai_get_rhs_packed_size_rhs_pack_qsi4cxp_qs4cxs1s0(size_t n,
-                                                               size_t k,
-                                                               bool transB);
+size_t nntr_kai_get_rhs_packed_size_qsi4cxp_qs4cxs1s0(size_t n, size_t k, uint32_t idx_variant,
+                                                      bool transB);
 
 /**
  * @brief rhs matrix packing for qsi4cxp format
@@ -50,10 +49,10 @@ size_t nntr_kai_get_rhs_packed_size_rhs_pack_qsi4cxp_qs4cxs1s0(size_t n,
  * @param rhs_scales_f32 input qparam data
  * @param transB rather the matrix is transposed or not
  */
-void nntr_qsi4cxp_qs4cxs1s0_rhs_pack(size_t n, size_t k,
-                                     void *rhs_packed_mtx_qs4cx,
-                                     void *rhs_native_mtx_qs4cx,
-                                     void *rhs_scales_f32, bool transB);
+void nntr_kai_qsi4cxp_qs4cxs1s0_rhs_pack(size_t n, size_t k,
+                                         void *rhs_packed_mtx_qs4cx,
+                                         void *rhs_native_mtx_qs4cx,
+                                         void *rhs_scales_f32,uint32_t idx_variant, bool transB);
 /**
  * @brief run qai8dxp_qsi4cxp GEMM with runtime weight packing
  *
@@ -68,12 +67,12 @@ void nntr_qsi4cxp_qs4cxs1s0_rhs_pack(size_t n, size_t k,
  * @param lower_bound clipping param
  * @param upper_bound clipping param
  */
-void nntr_gemm_qai8dxp_qsi4cxp_rtp(size_t m, size_t n, size_t k,
-                                   void *lhs_native_mtx_f32,
-                                   void *rhs_native_mtx_qs4cx,
-                                   void *rhs_scales_f32, float *dst_act_mtx_f32,
-                                   bool transB, float lower_bound,
-                                   float upper_bound);
+void nntr_kai_gemm_qai8dxp_qsi4cxp_rtp(size_t m, size_t n, size_t k,
+                                       void *lhs_native_mtx_f32,
+                                       void *rhs_native_mtx_qs4cx,
+                                       void *rhs_scales_f32,
+                                       float *dst_act_mtx_f32, bool transB,
+                                       float lower_bound, float upper_bound);
 /**
  * @brief run qai8dxp_qsi4cxp GEMM with offline weight packing
  *
@@ -87,9 +86,9 @@ void nntr_gemm_qai8dxp_qsi4cxp_rtp(size_t m, size_t n, size_t k,
  * @param lower_bound clipping param
  * @param upper_bound clipping param
  */
-void nntr_gemm_qai8dxp_qsi4cxp_olp(size_t m, size_t n, size_t k,
-                                   void *lhs_native_mtx_f32,
-                                   void *rhs_packed_mtx_qs4cx,
-                                   float *dst_act_mtx_f32, uint32_t idx_variant,
-                                   bool transB, float lower_bound,
-                                   float upper_bound);
+void nntr_kai_gemm_qai8dxp_qsi4cxp_olp(size_t m, size_t n, size_t k,
+                                       void *lhs_native_mtx_f32,
+                                       void *rhs_packed_mtx_qs4cx,
+                                       float *dst_act_mtx_f32,
+                                       uint32_t idx_variant, bool transB,
+                                       float lower_bound, float upper_bound);
