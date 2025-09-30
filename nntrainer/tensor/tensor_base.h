@@ -13,6 +13,7 @@
 #define __TENSOR_BASE_H__
 #ifdef __cplusplus
 
+#include <climits>
 #include <memory>
 #include <stdexcept>
 
@@ -92,6 +93,9 @@ class SrcSharedTensorBase;
  */
 class TensorBase {
 public:
+  static constexpr float DEFAULT_TENSOR_SCALE = 1.0f;
+  static constexpr unsigned int DEFAULT_TENSOR_ZERO_POINT = 0u;
+
   /**
    * @brief     Basic Constructor of Tensor
    */
@@ -186,7 +190,7 @@ public:
    * @note This should be called for virtual tensor only.
    */
   void activate(void *addr) {
-    data = std::shared_ptr<MemoryData>(new MemoryData((void *)addr));
+    data = std::make_shared<MemoryData>(addr, false);
   }
 
   /**
@@ -201,48 +205,101 @@ public:
   /**
    * @copydoc Tensor::getData()
    */
-  virtual void *getData() const = 0;
+  virtual void *getData() const;
 
   /**
    * @copydoc Tensor::getData(size_t idx)
    */
-  virtual void *getData(size_t idx) const = 0;
+  virtual void *getData(size_t idx) const;
 
   /**
    * @copydoc Tensor::getScale()
    */
-  virtual void *getScale() const {
-    throw std::invalid_argument(
-      "Tensor::getScale() is not supported in tensor data type " +
-      getStringDataType());
+  virtual float *getScale() const {
+    if (hasScale()) {
+      if (!data) {
+        return nullptr;
+      }
+
+      data->validate();
+      return (float *)((std::byte *)getData() + getDataBytesSize());
+    } else {
+      throw std::invalid_argument(
+        "Tensor::getScale() is not supported in tensor data type " +
+        getStringDataType());
+    }
   }
 
   /**
    * @copydoc Tensor::getScale(size_t idx)
    */
-  virtual void *getScale(size_t idx) const {
-    throw std::invalid_argument(
-      "Tensor::getScale() is not supported in tensor data type " +
-      getStringDataType());
+  virtual float *getScale(size_t idx) const {
+    if (hasScale()) {
+      NNTR_THROW_IF(idx > scale_size(), std::invalid_argument)
+        << "Tensor::getScale() index is not valid";
+
+      return getScale() + idx;
+    } else {
+      throw std::invalid_argument(
+        "Tensor::getScale() is not supported in tensor data type " +
+        getStringDataType());
+    }
   }
+
+  /**
+   * @copydoc Tensor::setScale(const float value)
+   */
+  void setScale(const float value);
+
+  /**
+   * @copydoc Tensor::hasScale()
+   */
+  virtual bool hasScale() const { return false; }
 
   /**
    * @copydoc Tensor::getZeroPoint()
    */
   virtual unsigned int *getZeroPoint() const {
-    throw std::invalid_argument(
-      "Tensor::getZeroPoint() is not supported in tensor data type " +
-      getStringDataType());
+    if (hasZeroPoint()) {
+      if (!data) {
+        return nullptr;
+      }
+
+      data->validate();
+      return (unsigned int *)((std::byte *)getData() + getDataBytesSize() +
+                              getScaleBytesSize());
+    } else {
+      throw std::invalid_argument(
+        "Tensor::getZeroPoint() is not supported in tensor data type " +
+        getStringDataType());
+    }
   }
 
   /**
    * @copydoc Tensor::getZeroPoint(size_t idx)
    */
   virtual unsigned int *getZeroPoint(size_t idx) const {
-    throw std::invalid_argument(
-      "Tensor::getZeroPoint() is not supported in tensor data type " +
-      getStringDataType());
+    if (hasZeroPoint()) {
+      NNTR_THROW_IF(idx > scale_size(), std::invalid_argument)
+        << "Tensor::getZeroPoint() index is not valid";
+
+      return getZeroPoint() + idx;
+    } else {
+      throw std::invalid_argument(
+        "Tensor::getZeroPoint() is not supported in tensor data type " +
+        getStringDataType());
+    }
   }
+
+  /**
+   * @copydoc Tensor::setZeroPoint(const unsigned int value)
+   */
+  void setZeroPoint(const unsigned int value);
+
+  /**
+   * @copydoc Tensor::hasZeroPoint()
+   */
+  virtual bool hasZeroPoint() const { return false; }
 
   /**
    * @brief     i data index
@@ -296,7 +353,7 @@ public:
   /**
    * @copydoc Tensor::initialize()
    */
-  virtual void initialize() = 0;
+  virtual void initialize();
 
   /**
    * @copydoc Tensor::initialize(Initializer init)
@@ -855,6 +912,10 @@ public:
   static constexpr float epsilon = 1e-5f;
 
 protected:
+  virtual size_t getDataTypeBitsSize() const = 0;
+
+  void allocateInternal();
+
   TensorDim dim;
   std::array<size_t, TensorDim::MAXDIM> strides;
   bool contiguous;
@@ -941,6 +1002,25 @@ protected:
    * this function in the derived class to the corresponding data type.
    */
   virtual std::string getStringDataType() const { return "Undefined type"; }
+
+  size_t getDataTypeAlignment() const {
+    return roundNumberTo(getDataTypeBitsSize(), CHAR_BIT) / CHAR_BIT;
+  }
+
+  size_t getDataBytesSize() const {
+    const size_t data_bits_size = size() * getDataTypeBitsSize();
+    const size_t rounded_data_bits_size =
+      roundNumberTo(data_bits_size, CHAR_BIT);
+    return rounded_data_bits_size / CHAR_BIT;
+  }
+
+  size_t getScaleBytesSize() const {
+    return hasScale() ? scale_size() * sizeof(float) : 0;
+  }
+
+  size_t getZeroPointBytesSize() const {
+    return hasZeroPoint() ? scale_size() * sizeof(unsigned int) : 0;
+  }
 };
 
 /**

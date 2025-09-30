@@ -68,13 +68,8 @@ void FloatTensor::allocate() {
     /** as this memory is shared, do NOT initialize */
   } else {
     /// allocate new memory for the tensor data
-    MemoryData *mem_data;
 
-    mem_data = new MemoryData((void *)(new float[dim.getDataLen()]{}));
-    data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-      delete[] mem_data->template getAddr<float>();
-      delete mem_data;
-    });
+    allocateInternal();
 
     offset = 0;
     initialize();
@@ -84,22 +79,6 @@ void FloatTensor::allocate() {
 void FloatTensor::deallocate() {
   data = nullptr;
   offset = 0;
-}
-
-void *FloatTensor::getData() const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return data->getAddr<float>() + offset;
-}
-
-void *FloatTensor::getData(size_t idx) const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return data->getAddr<float>() + offset + idx;
 }
 
 void *FloatTensor::getAddress(unsigned int i) {
@@ -182,6 +161,8 @@ void FloatTensor::setRandBernoulli(float probability) {
 void FloatTensor::initialize() {
   if (empty() || !isAllocated())
     return;
+
+  TensorBase::initialize();
 
   unsigned int fan_in, fan_out;
 

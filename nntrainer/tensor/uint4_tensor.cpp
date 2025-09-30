@@ -68,15 +68,7 @@ Uint4QTensor::Uint4QTensor(
   initializer = Initializer::NONE;
   qscheme = qscheme_;
 
-  /// @note sizeof(float) * scale_size() assumes scale factors are in
-  /// full-precision fp.
-  MemoryData *mem_data = new MemoryData((
-    void
-      *)(new uint8_t[(dim.getDataLen() + 1) / 2 + sizeof(float) * scale_size() +
-                     sizeof(unsigned int) * scale_size()]()));
-  data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
-    delete[] mem_data->getAddr<uint8_t>();
-  });
+  allocateInternal();
 
   offset = 0;
 
@@ -138,17 +130,7 @@ void Uint4QTensor::allocate() {
     /** as this memory is shared, do NOT initialize */
   } else {
     /// allocate new memory for the tensor data
-    MemoryData *mem_data;
-
-    /// quantized 4-bit is stored as a 8-bit signed integer (uint4x2)
-    mem_data = new MemoryData(
-      (void *)(new uint8_t[(dim.getDataLen() + 1) / 2 +
-                           sizeof(float) * scale_size() +
-                           sizeof(unsigned int) * scale_size()]{}));
-    data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-      delete[] mem_data->template getAddr<uint8_t>();
-      delete mem_data;
-    });
+    allocateInternal();
 
     offset = 0;
     initialize();
@@ -158,65 +140,6 @@ void Uint4QTensor::allocate() {
 void Uint4QTensor::deallocate() {
   data = nullptr;
   offset = 0;
-}
-
-void *Uint4QTensor::getData() const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return data->getAddr<uint8_t>() + offset;
-}
-
-void *Uint4QTensor::getData(size_t idx) const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return data->getAddr<uint8_t>() + offset + (idx / 2);
-}
-
-void *Uint4QTensor::getScale() const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return ((uint8_t *)getData()) + (size() + 1) / 2;
-}
-
-void *Uint4QTensor::getScale(size_t idx) const {
-  NNTR_THROW_IF(idx > scale_size(), std::invalid_argument)
-    << "Tensor::getScale() index is not valid";
-
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return ((float *)getScale()) + idx;
-}
-
-unsigned int *Uint4QTensor::getZeroPoint() const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return ((unsigned int *)((float *)((uint8_t *)getData() +
-                                     ((size() + 1) / 2)))) +
-         scale_size();
-}
-
-unsigned int *Uint4QTensor::getZeroPoint(size_t idx) const {
-  NNTR_THROW_IF(idx > scale_size(), std::invalid_argument)
-    << "Uint4QTensor::getZeroPoint() index is not valid";
-
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return (((unsigned int *)((float *)((uint8_t *)getData() +
-                                      ((size() + 1) / 2)))) +
-          scale_size()) +
-         idx;
 }
 
 void *Uint4QTensor::getAddress(unsigned int i) {
@@ -304,6 +227,8 @@ void Uint4QTensor::setZero() {
 void Uint4QTensor::initialize() {
   if (empty() || !isAllocated())
     return;
+
+  TensorBase::initialize();
 
   /// @note Sampling from the normal/uniform distribution is invalid
   switch (initializer) {

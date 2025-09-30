@@ -71,13 +71,7 @@ UIntTensor<T>::UIntTensor(
   contiguous = true;
   initializer = Initializer::NONE;
 
-  MemoryData *mem_data = new MemoryData(
-    (void *)(new T[dim.getDataLen() + (sizeof(float) + sizeof(unsigned int)) /
-                                        sizeof(T) * scale_size()]()));
-  data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
-    delete[] mem_data->getAddr<T>();
-    delete mem_data;
-  });
+  allocateInternal();
 
   offset = 0;
 
@@ -151,15 +145,7 @@ template <typename T> void UIntTensor<T>::allocate() {
     /** as this memory is shared, do NOT initialize */
   } else {
     /// allocate new memory for the tensor data
-    MemoryData *mem_data;
-
-    mem_data = new MemoryData(
-      (void *)(new T[dim.getDataLen() + (sizeof(float) + sizeof(unsigned int)) /
-                                          sizeof(T) * scale_size()]{}));
-    data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-      delete[] mem_data->template getAddr<T>();
-      delete mem_data;
-    });
+    allocateInternal();
 
     offset = 0;
     initialize();
@@ -169,62 +155,6 @@ template <typename T> void UIntTensor<T>::allocate() {
 template <typename T> void UIntTensor<T>::deallocate() {
   data = nullptr;
   offset = 0;
-}
-template <typename T> void *UIntTensor<T>::getData() const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return data->getAddr<T>() + offset;
-}
-
-template <typename T> void *UIntTensor<T>::getData(size_t idx) const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return data->getAddr<T>() + offset + idx;
-}
-
-template <typename T> void *UIntTensor<T>::getScale() const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return ((T *)getData()) + size();
-}
-
-template <typename T> void *UIntTensor<T>::getScale(size_t idx) const {
-  NNTR_THROW_IF(idx > scale_size(), std::invalid_argument)
-    << "Tensor::getScale() index is not valid";
-
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return (float *)((T *)getData() + size()) + idx;
-}
-
-template <typename T> unsigned int *UIntTensor<T>::getZeroPoint() const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return ((unsigned int *)((float *)((T *)getData() + size()))) + scale_size();
-}
-
-template <typename T>
-unsigned int *UIntTensor<T>::getZeroPoint(size_t idx) const {
-  NNTR_THROW_IF(idx > scale_size(), std::invalid_argument)
-    << "Tensor::getZeroPoint() index is not valid";
-
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return (((unsigned int *)((float *)((T *)getData() + size()))) +
-          scale_size()) +
-         idx;
 }
 
 template <typename T> void *UIntTensor<T>::getAddress(unsigned int i) {
@@ -294,6 +224,8 @@ template <typename T> void UIntTensor<T>::setZero() {
 template <typename T> void UIntTensor<T>::initialize() {
   if (empty() || !isAllocated())
     return;
+
+  TensorBase::initialize();
 
   /// @note Sampling from the normal/uniform distribution is invalid
   switch (initializer) {

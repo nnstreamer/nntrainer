@@ -446,6 +446,8 @@ void floatToFixedPointAndExponent(float input, int &fixedpoint, int &exponent);
  */
 float fixedPointAndExponentToFloat(int fixedpoint, int exponent);
 
+size_t roundNumberTo(const size_t number, const size_t round_to);
+
 } /* namespace nntrainer */
 
 #endif /* __cplusplus */
