@@ -67,7 +67,7 @@ void nntr_kai_qsi4cxp_qs4cxs1s0_rhs_pack(size_t n, size_t k,
  * @param lower_bound clipping param
  * @param upper_bound clipping param
  */
-void nntr_kai_gemm_qai8dxp_qsi4cxp_rtp(size_t m, size_t n, size_t k,
+uint32_t nntr_kai_gemm_qai8dxp_qsi4cxp_rtp(size_t m, size_t n, size_t k,
                                        void *lhs_native_mtx_f32,
                                        void *rhs_native_mtx_qs4cx,
                                        void *rhs_scales_f32,

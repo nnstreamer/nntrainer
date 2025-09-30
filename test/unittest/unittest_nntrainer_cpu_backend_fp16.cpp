@@ -14,6 +14,7 @@
 #include <gtest/gtest.h>
 #include <numeric>
 #include <random>
+#include <tuple>
 #include <vector>
 
 #include <chrono>
@@ -335,12 +336,10 @@ static void run_trigonometric_values_test(const unsigned int N,
   }
 }
 
-float test_gemm_qai8dxp_qsi4cxp_unpacked(const uint32_t M, const uint32_t K,
-                                         const uint32_t N, const float *weights,
-                                         const float *activations,
-                                         std::vector<float> &ref_dst,
-                                         bool transB = true,
-                                         bool print = false) {
+std::tuple<float, uint32_t> test_gemm_qai8dxp_qsi4cxp_unpacked(
+  const uint32_t M, const uint32_t K, const uint32_t N, const float *weights,
+  const float *activations, std::vector<float> &ref_dst, bool transB = true,
+  bool print = false) {
   // Step1. Set qai8dxp_qsi4cxp quant test components
   const size_t lhs_ref_size_qa8dx =
     static_cast<size_t>(M) * (K + sizeof(int32_t) + sizeof(float));
@@ -365,9 +364,10 @@ float test_gemm_qai8dxp_qsi4cxp_unpacked(const uint32_t M, const uint32_t K,
   std::vector<float> dst(static_cast<size_t>(M) * N);
   auto t1 = high_resolution_clock::now();
   // #### MAIN TESTED METHOD ####
-  nntrainer::nntr_gemm_qai8dxp_qsi4cxp_unpacked(
-    M, N, K, (void *)activations, (void *)rhs_native_mtx_qs4cx,
-    (void *)rhs_scales_f32, dst.data(), transB);
+  uint32_t opt_kernel_variant_idx =
+    nntrainer::nntr_gemm_qai8dxp_qsi4cxp_unpacked(
+      M, N, K, (void *)activations, (void *)rhs_native_mtx_qs4cx,
+      (void *)rhs_scales_f32, dst.data(), transB);
   // #### MAIN TESTED METHOD ####
   auto t2 = high_resolution_clock::now();
   auto dt = duration_cast<nanoseconds>(t2 - t1);
@@ -384,10 +384,10 @@ float test_gemm_qai8dxp_qsi4cxp_unpacked(const uint32_t M, const uint32_t K,
   delete[] rhs_scales_f32;
   delete[] lhs_ref_mtx_qa8dx;
 
-  return mean_squared_error;
+  return {mean_squared_error, opt_kernel_variant_idx};
 }
 
-static void
+static uint32_t
 run_qai8dxp_qsi4cxp_test_unpacked(const uint32_t M, const uint32_t K,
                                   const uint32_t N, float &qai8dxp_qsi4cxp_mse,
                                   bool transB = true, bool print = false) {
@@ -416,8 +416,12 @@ run_qai8dxp_qsi4cxp_test_unpacked(const uint32_t M, const uint32_t K,
               << dt.count() / 1'000 << " us " << dt.count() / 1'000'000
               << " ms " << std::endl;
   }
-  qai8dxp_qsi4cxp_mse = test_gemm_qai8dxp_qsi4cxp_unpacked(
+  const auto [mse, opt_kernel_variant_idx] = test_gemm_qai8dxp_qsi4cxp_unpacked(
     M, K, N, weight.data(), activation.data(), ref_dst, transB, print);
+
+  qai8dxp_qsi4cxp_mse = mse;
+
+  return opt_kernel_variant_idx;
 }
 
 float test_gemm_qai8dxp_qsi4cxp_packed(const uint32_t M, const uint32_t K,
@@ -524,24 +528,63 @@ TEST(nntrainer_cpu_backend_standalone, qai8dxp_qsi4cxp_1x1024x1024) {
   float qai8dxp_qsi4cxp_q4_0_mse;
   float qai8dxp_qsi4cxp_q4_0_mse_packed;
   constexpr float eps = 1e-5;
-  uint32_t opt_idx_variant = 1;
-  run_qai8dxp_qsi4cxp_test_unpacked(M, K, N, qai8dxp_qsi4cxp_q4_0_mse, true,
-                                    true);
+  uint32_t opt_idx_variant = run_qai8dxp_qsi4cxp_test_unpacked(
+    M, K, N, qai8dxp_qsi4cxp_q4_0_mse, true, false);
   run_qai8dxp_qsi4cxp_test_packed(M, K, N, qai8dxp_qsi4cxp_q4_0_mse_packed,
-                                  opt_idx_variant, true, true);
+                                  opt_idx_variant, true, false);
   ASSERT_LE(qai8dxp_qsi4cxp_q4_0_mse, eps * M * K * N);
   ASSERT_LE(qai8dxp_qsi4cxp_q4_0_mse_packed, eps * M * K * N);
 }
 
+TEST(nntrainer_cpu_backend_standalone, quant_GEMV_768x768x768_CMP) {
+  const unsigned int M = 768;
+  const unsigned int K = 768;
+  const unsigned int N = 768;
+  float q4_0_mse, q6_k_mse;
+  constexpr float eps = 1e-5;
+  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, true);
+  ASSERT_LE(q4_0_mse, eps * M * K * N);
+  ASSERT_LE(q6_k_mse, q4_0_mse);
+}
 
-TEST(nntrainer_cpu_backend_standalone, qai8dxp_qsi4cxp_768x768x768) {
+TEST(nntrainer_cpu_backend_standalone, qai8dxp_qsi4cxp_768x768x768_CMP) {
   const unsigned int M = 768;
   const unsigned int K = 768;
   const unsigned int N = 768;
   float qai8dxp_qsi4cxp_q4_0_mse;
+  float qai8dxp_qsi4cxp_q4_0_mse_packed;
   constexpr float eps = 1e-5;
+  uint32_t opt_idx_variant = run_qai8dxp_qsi4cxp_test_unpacked(
+    M, K, N, qai8dxp_qsi4cxp_q4_0_mse, true, true);
+  run_qai8dxp_qsi4cxp_test_packed(M, K, N, qai8dxp_qsi4cxp_q4_0_mse_packed,
+                                  opt_idx_variant, true, true);
+  ASSERT_LE(qai8dxp_qsi4cxp_q4_0_mse, eps * M * K * N);
+}
+
+TEST(nntrainer_cpu_backend_standalone, quant_GEMV_3072x512x512_CMP) {
+  const unsigned int M = 3072;
+  const unsigned int K = 512;
+  const unsigned int N = 512;
+  float q4_0_mse, q6_k_mse;
+  constexpr float eps = 1e-5;
+  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, true);
+  ASSERT_LE(q4_0_mse, eps * M * K * N);
+  ASSERT_LE(q6_k_mse, q4_0_mse);
+}
+
+TEST(nntrainer_cpu_backend_standalone, qai8dxp_qsi4cxp_3072x512x512_CMP) {
+  const unsigned int M = 3072;
+  const unsigned int K = 512;
+  const unsigned int N = 512;
+  float qai8dxp_qsi4cxp_q4_0_mse;
+  float qai8dxp_qsi4cxp_q4_0_mse_packed;
+  constexpr float eps = 1e-5;
+  uint32_t opt_idx_variant = 1;
+
   run_qai8dxp_qsi4cxp_test_unpacked(M, K, N, qai8dxp_qsi4cxp_q4_0_mse, true,
-                                    false);
+                                    true);
+  run_qai8dxp_qsi4cxp_test_packed(M, K, N, qai8dxp_qsi4cxp_q4_0_mse_packed,
+                                  opt_idx_variant, true, true);
   ASSERT_LE(qai8dxp_qsi4cxp_q4_0_mse, eps * M * K * N);
 }
 
