@@ -12,26 +12,48 @@ if cxx.get_id() != 'msvc'
   endif
 endif
 
-nntrainer_layer_common_standalone_tests_lib = shared_library(
-  'nntrainer_layer_common_standalone_tests',
-  'layers_standalone_common_tests.cpp',
-  cpp_args : cpp_args_str,
-  dependencies: [nntrainer_dep, gtest_dep], # nntrainer_devel_dep
-  include_directories: layer_common_test_inc
-)
+
+if get_option('default_library') == 'static'
+  nntrainer_layer_common_standalone_tests_lib = static_library(
+    'nntrainer_layer_common_standalone_tests',
+    'layers_standalone_common_tests.cpp',
+    cpp_args : cpp_args_str,
+    dependencies: [nntrainer_dep, gtest_dep], # nntrainer_devel_dep
+    include_directories: layer_common_test_inc
+  )
+else
+  nntrainer_layer_common_standalone_tests_lib = shared_library(
+    'nntrainer_layer_common_standalone_tests',
+    'layers_standalone_common_tests.cpp',
+    cpp_args : cpp_args_str,
+    dependencies: [nntrainer_dep, gtest_dep], # nntrainer_devel_dep
+    include_directories: layer_common_test_inc
+  )
+endif
 
 nntrainer_layer_common_standalone_tests_dep = declare_dependency(
   link_with: nntrainer_layer_common_standalone_tests_lib,
   include_directories: layer_common_test_inc
   )
 
-nntrainer_layer_common_dependent_tests_lib = shared_library(
-  'nntrainer_layer_common_dependent_tests',
-  'layers_dependent_common_tests.cpp',
-  cpp_args : cpp_args_str,
-  dependencies: [nntrainer_dep, gtest_dep], # nntrainer_devel_dep
-  include_directories: layer_common_test_inc
-)
+
+if get_option('default_library') == 'static'
+  nntrainer_layer_common_dependent_tests_lib = static_library(
+    'nntrainer_layer_common_dependent_tests',
+    'layers_dependent_common_tests.cpp',
+    cpp_args : cpp_args_str,
+    dependencies: [nntrainer_dep, gtest_dep], # nntrainer_devel_dep
+    include_directories: layer_common_test_inc
+  )
+else
+  nntrainer_layer_common_dependent_tests_lib = shared_library(
+    'nntrainer_layer_common_dependent_tests',
+    'layers_dependent_common_tests.cpp',
+    cpp_args : cpp_args_str,
+    dependencies: [nntrainer_dep, gtest_dep], # nntrainer_devel_dep
+    include_directories: layer_common_test_inc
+  )
+endif
 
 nntrainer_layer_common_dependent_tests_dep = declare_dependency(
   link_with: nntrainer_layer_common_dependent_tests_lib,
