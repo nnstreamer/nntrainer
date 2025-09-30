@@ -187,17 +187,15 @@ kai_matmul_ukernel_f32_qa8dxp_qs4cxp ukernel_variants[] = {
 
 static size_t roundup(size_t a, size_t b) { return ((a + b - 1) / b) * b; }
 
-void nntr_kai_gemm_qai8dxp_qsi4cxp_rtp(size_t m, size_t n, size_t k,
-                                   void *lhs_native_mtx_f32,
-                                   void *rhs_native_mtx_qs4cx,
-                                   void *rhs_scales_f32, float *dst_act_mtx_f32,
-                                   bool transB, float lower_bound,
-                                   float upper_bound) {
+uint32_t nntr_kai_gemm_qai8dxp_qsi4cxp_rtp(
+  size_t m, size_t n, size_t k, void *lhs_native_mtx_f32,
+  void *rhs_native_mtx_qs4cx, void *rhs_scales_f32, float *dst_act_mtx_f32,
+  bool transB, float lower_bound, float upper_bound) {
+  uint32_t ret_idx = 0;
+  uint64_t min_latency = INT64_MAX;
   ///@todo check for optimal variant, or check for optimal variant config for
   /// specific M-N-K combination
   for (int idx_variant = 0; idx_variant < 8; idx_variant++) {
-    auto t1 = high_resolution_clock::now();
-
     rhs_format format = rhs_format::nxk;
     if (!transB) {
       format = rhs_format::kxn;
@@ -256,10 +254,6 @@ void nntr_kai_gemm_qai8dxp_qsi4cxp_rtp(size_t m, size_t n, size_t k,
         0, &kxn_params);
     }
     auto t2 = high_resolution_clock::now();
-    auto dt = duration_cast<nanoseconds>(t2 - t1);
-    std::cout << "  Weight packing duration for kernel# " << idx_variant
-              << " | " << dt.count() << " ns " << dt.count() / 1'000 << " us "
-              << dt.count() / 1'000'000 << " ms " << std::endl;
 
     // LHS packing
     kai_run_lhs_quant_pack_qai8dxp_f32(m, k, mr, kr, sr, 0, // Packing arguments
@@ -299,12 +293,19 @@ void nntr_kai_gemm_qai8dxp_qsi4cxp_rtp(size_t m, size_t n, size_t k,
               << dt2.count() << " ns " << dt2.count() / 1'000 << " us "
               << dt2.count() / 1'000'000 << " ms " << std::endl;
 
+    uint64_t casted_time = static_cast<uint64_t>(dt2.count());
+    min_latency = (min_latency > casted_time) ? casted_time : min_latency;
+    ret_idx = (min_latency > casted_time) ? idx_variant : ret_idx;
+    
     delete[] lhs_packed_mtx_qa8dx;
     delete[] rhs_packed_mtx_qs4cx;
   }
+
+  return ret_idx;
 }
 
-size_t nntr_kai_get_rhs_packed_size_qsi4cxp_qs4cxs1s0(size_t n, size_t k, uint32_t idx_variant,
+size_t nntr_kai_get_rhs_packed_size_qsi4cxp_qs4cxs1s0(size_t n, size_t k,
+                                                      uint32_t idx_variant,
                                                       bool transB) {
   ///@note Packing arguments are identical among all ukernel idx_variants
   const size_t nr = ukernel_variants[idx_variant].ukernel.get_nr();
@@ -320,9 +321,10 @@ size_t nntr_kai_get_rhs_packed_size_qsi4cxp_qs4cxs1s0(size_t n, size_t k, uint32
 }
 
 void nntr_kai_qsi4cxp_qs4cxs1s0_rhs_pack(size_t n, size_t k,
-                                     void *rhs_packed_mtx_qs4cx,
-                                     void *rhs_native_mtx_qs4cx,
-                                     void *rhs_scales_f32, uint32_t idx_variant, bool transB) {
+                                         void *rhs_packed_mtx_qs4cx,
+                                         void *rhs_native_mtx_qs4cx,
+                                         void *rhs_scales_f32,
+                                         uint32_t idx_variant, bool transB) {
   ///@note Packing arguments are identical among all ukernel idx_variants
   rhs_format format = rhs_format::nxk;
   if (!transB) {
@@ -363,11 +365,11 @@ void nntr_kai_qsi4cxp_qs4cxs1s0_rhs_pack(size_t n, size_t k,
 }
 
 void nntr_kai_gemm_qai8dxp_qsi4cxp_olp(size_t m, size_t n, size_t k,
-                                   void *lhs_native_mtx_f32,
-                                   void *rhs_packed_mtx_qs4cx,
-                                   float *dst_act_mtx_f32, uint32_t idx_variant,
-                                   bool transB, float lower_bound,
-                                   float upper_bound) {
+                                       void *lhs_native_mtx_f32,
+                                       void *rhs_packed_mtx_qs4cx,
+                                       float *dst_act_mtx_f32,
+                                       uint32_t idx_variant, bool transB,
+                                       float lower_bound, float upper_bound) {
   rhs_format format = rhs_format::nxk;
   if (!transB) {
     format = rhs_format::kxn;
