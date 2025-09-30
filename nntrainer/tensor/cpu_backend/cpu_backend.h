@@ -500,7 +500,7 @@ extern void nntr_qsi4cxp_qs4cxs1s0_rhs_pack(size_t n, size_t k,
  * regards the weight to be transpoed.
  */
 template <typename T = float>
-extern void nntr_gemm_qai8dxp_qsi4cxp_unpacked(
+extern uint32_t nntr_gemm_qai8dxp_qsi4cxp_unpacked(
   size_t m, size_t n, size_t k, void *lhs_native_mtx,
   void *rhs_native_mtx_qs4cx, void *rhs_scales, T *dst_mtx, bool transB = true,
   T lower_bound = std::numeric_limits<T>::lowest(),
