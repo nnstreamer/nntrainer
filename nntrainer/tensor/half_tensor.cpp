@@ -61,13 +61,7 @@ void HalfTensor::allocate() {
     /** as this memory is shared, do NOT initialize */
   } else {
     /// allocate new memory for the tensor data
-    MemoryData *mem_data;
-
-    mem_data = new MemoryData((void *)(new _FP16[dim.getDataLen()]{}));
-    data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-      delete[] mem_data->template getAddr<_FP16>();
-      delete mem_data;
-    });
+    allocateInternal();
 
     offset = 0;
     initialize();
@@ -77,22 +71,6 @@ void HalfTensor::allocate() {
 void HalfTensor::deallocate() {
   data = nullptr;
   offset = 0;
-}
-
-void *HalfTensor::getData() const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return data->getAddr<_FP16>() + offset;
-}
-
-void *HalfTensor::getData(size_t idx) const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return data->getAddr<_FP16>() + offset + idx;
 }
 
 void *HalfTensor::getAddress(unsigned int i) {
@@ -175,6 +153,8 @@ void HalfTensor::setRandBernoulli(float probability) {
 void HalfTensor::initialize() {
   if (empty() || !isAllocated())
     return;
+
+  TensorBase::initialize();
 
   unsigned int fan_in, fan_out;
 
