@@ -289,14 +289,14 @@ uint32_t nntr_kai_gemm_qai8dxp_qsi4cxp_rtp(
 
     auto t3 = high_resolution_clock::now();
     auto dt2 = duration_cast<nanoseconds>(t3 - t2);
-    std::cout << "  ukernel duration for kernel# " << idx_variant << " | "
-              << dt2.count() << " ns " << dt2.count() / 1'000 << " us "
-              << dt2.count() / 1'000'000 << " ms " << std::endl;
+    // std::cout << "  ukernel duration for kernel# " << idx_variant << " | "
+    //           << dt2.count() << " ns " << dt2.count() / 1'000 << " us "
+    //           << dt2.count() / 1'000'000 << " ms " << std::endl;
 
     uint64_t casted_time = static_cast<uint64_t>(dt2.count());
-    min_latency = (min_latency > casted_time) ? casted_time : min_latency;
     ret_idx = (min_latency > casted_time) ? idx_variant : ret_idx;
-    
+    min_latency = (min_latency > casted_time) ? casted_time : min_latency;
+
     delete[] lhs_packed_mtx_qa8dx;
     delete[] rhs_packed_mtx_qs4cx;
   }
@@ -364,12 +364,10 @@ void nntr_kai_qsi4cxp_qs4cxs1s0_rhs_pack(size_t n, size_t k,
   }
 }
 
-void nntr_kai_gemm_qai8dxp_qsi4cxp_olp(size_t m, size_t n, size_t k,
-                                       void *lhs_native_mtx_f32,
-                                       void *rhs_packed_mtx_qs4cx,
-                                       float *dst_act_mtx_f32,
-                                       uint32_t idx_variant, bool transB,
-                                       float lower_bound, float upper_bound) {
+void nntr_kai_gemm_qai8dxp_qsi4cxp_olp_single_thread(
+  size_t m, size_t n, size_t k, void *lhs_native_mtx_f32,
+  void *rhs_packed_mtx_qs4cx, float *dst_act_mtx_f32, uint32_t idx_variant,
+  bool transB, float lower_bound, float upper_bound) {
   rhs_format format = rhs_format::nxk;
   if (!transB) {
     format = rhs_format::kxn;
@@ -405,6 +403,70 @@ void nntr_kai_gemm_qai8dxp_qsi4cxp_olp(size_t m, size_t n, size_t k,
 
     ukernel_variants[idx_variant].ukernel.run_matmul(
       m, n, k,                 // Dimensions
+      lhs_ptr,                 // LHS packed
+      rhs_ptr,                 // RHS packed
+      dst_ptr,                 // DST
+      dst_stride,              // DST stride (row)
+      sizeof(float),           // DST stride (col)
+      lower_bound, upper_bound // Min and max for the clamp operation
+    );
+  }
+
+  delete[] lhs_packed_mtx_qa8dx;
+}
+
+void nntr_kai_gemm_qai8dxp_qsi4cxp_olp(size_t m, size_t n, size_t k,
+                                       void *lhs_native_mtx_f32,
+                                       void *rhs_packed_mtx_qs4cx,
+                                       float *dst_act_mtx_f32,
+                                       uint32_t idx_variant, bool transB,
+                                       float lower_bound, float upper_bound) {
+  if (m == 1) {
+    return nntr_kai_gemm_qai8dxp_qsi4cxp_olp_single_thread(
+      m, n, k, lhs_native_mtx_f32, rhs_packed_mtx_qs4cx, dst_act_mtx_f32,
+      idx_variant, transB, lower_bound, upper_bound);
+  }
+
+  rhs_format format = rhs_format::nxk;
+  if (!transB) {
+    format = rhs_format::kxn;
+  }
+
+  const size_t mr = ukernel_variants[idx_variant].ukernel.get_mr();
+  const size_t nr = ukernel_variants[idx_variant].ukernel.get_nr();
+  const size_t kr = ukernel_variants[idx_variant].ukernel.get_kr();
+  const size_t sr = ukernel_variants[idx_variant].ukernel.get_sr();
+
+  // LHS packing
+  const size_t lhs_packed_size =
+    kai_get_lhs_packed_size_lhs_quant_pack_qai8dxp_f32(m, k, mr, kr, sr);
+  uint8_t *lhs_packed_mtx_qa8dx = new uint8_t[lhs_packed_size];
+  kai_run_lhs_quant_pack_qai8dxp_f32(m, k, mr, kr, sr, 0, // Packing arguments
+                                     (const float *)lhs_native_mtx_f32, // LHS
+                                     k * sizeof(float),     // LHS stride
+                                     lhs_packed_mtx_qa8dx); // LHS packed
+  int n_threads = 4;
+  size_t n_ukernel = n / n_threads;
+#pragma omp parallel for num_thread(n_threads)
+  for (int current_thread = 0; current_thread < n_threads; ++current_thread) {
+    const size_t dst_stride = n * sizeof(float);
+    const size_t lhs_offset =
+      ukernel_variants[idx_variant].ukernel.get_lhs_packed_offset(0, k);
+    const size_t rhs_offset =
+      ukernel_variants[idx_variant].ukernel.get_rhs_packed_offset(
+        n_ukernel * current_thread, k);
+    const size_t dst_offset =
+      ukernel_variants[idx_variant].ukernel.get_dst_offset(
+        0, n_ukernel * current_thread, dst_stride);
+
+    const void *lhs_ptr =
+      (const void *)((const char *)lhs_packed_mtx_qa8dx + lhs_offset);
+    const void *rhs_ptr =
+      (const void *)((const char *)rhs_packed_mtx_qs4cx + rhs_offset);
+    float *dst_ptr = (float *)((uint8_t *)dst_act_mtx_f32 + dst_offset);
+
+    ukernel_variants[idx_variant].ukernel.run_matmul(
+      m, n / n_threads, k,     // Dimensions
       lhs_ptr,                 // LHS packed
       rhs_ptr,                 // RHS packed
       dst_ptr,                 // DST
