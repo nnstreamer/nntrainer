@@ -522,19 +522,27 @@ void run_qai8dxp_qsi4cxp_test_packed(const uint32_t M, const uint32_t K,
                                      ref_dst, opt_kernel_idx, transB, print);
 }
 
-TEST(nntrainer_cpu_backend_standalone, qai8dxp_qsi4cxp_1x3072x512_CMP) {
-  const unsigned int M = 1;
-  const unsigned int K = 3072;
-  const unsigned int N = 512;
-  float qai8dxp_qsi4cxp_q4_0_mse;
-  float qai8dxp_qsi4cxp_q4_0_mse_packed;
-  constexpr float eps = 1e-5;
-  uint32_t opt_idx_variant = run_qai8dxp_qsi4cxp_test_unpacked(
-    M, K, N, qai8dxp_qsi4cxp_q4_0_mse, true, false);
-  run_qai8dxp_qsi4cxp_test_packed(M, K, N, qai8dxp_qsi4cxp_q4_0_mse_packed,
-                                  opt_idx_variant, true, true);
-  ASSERT_LE(qai8dxp_qsi4cxp_q4_0_mse, eps * M * K * N);
-  ASSERT_LE(qai8dxp_qsi4cxp_q4_0_mse_packed, eps * M * K * N);
+std::pair<uint32_t, size_t> most_frequent(const std::vector<uint32_t> &data) {
+  // Range is fixed 0–7, so use a small fixed array for counting
+  std::array<size_t, 8> counts{};
+  counts.fill(0);
+
+  for (uint32_t v : data) {
+    if (v <= 7) {
+      counts[v]++;
+    }
+  }
+
+  uint32_t most_value = 0;
+  size_t most_count = 0;
+  for (uint32_t i = 0; i < counts.size(); ++i) {
+    if (counts[i] > most_count) {
+      most_count = counts[i];
+      most_value = i;
+    }
+  }
+
+  return {most_value, most_count};
 }
 
 TEST(nntrainer_cpu_backend_standalone, quant_GEMV_1x3072x512_CMP) {
@@ -546,6 +554,30 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMV_1x3072x512_CMP) {
   run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, true);
   ASSERT_LE(q4_0_mse, eps * M * K * N);
   ASSERT_LE(q6_k_mse, q4_0_mse);
+}
+
+TEST(nntrainer_cpu_backend_standalone, qai8dxp_qsi4cxp_1x3072x512_CMP) {
+  const unsigned int M = 1;
+  const unsigned int K = 3072;
+  const unsigned int N = 512;
+  float qai8dxp_qsi4cxp_mse;
+  float qai8dxp_qsi4cxp_mse_packed;
+  constexpr float eps = 1e-5;
+  const uint32_t TC = 20;
+  std::vector<uint32_t> opt_idx_variant_candidates;
+  uint32_t opt_idx_variant = 0;
+  for (uint32_t tc = 0; tc < TC; ++tc) {
+    opt_idx_variant = run_qai8dxp_qsi4cxp_test_unpacked(
+      M, K, N, qai8dxp_qsi4cxp_mse, true, false);
+    opt_idx_variant_candidates.push_back(opt_idx_variant);
+  }
+  auto result = most_frequent(opt_idx_variant_candidates);
+  opt_idx_variant = result.first;
+
+  run_qai8dxp_qsi4cxp_test_packed(M, K, N, qai8dxp_qsi4cxp_mse_packed,
+                                  opt_idx_variant, true, true);
+  ASSERT_LE(qai8dxp_qsi4cxp_mse, eps * M * K * N);
+  ASSERT_LE(qai8dxp_qsi4cxp_mse_packed, eps * M * K * N);
 }
 
 TEST(nntrainer_cpu_backend_standalone, quant_GEMV_768x768x768_CMP) {
@@ -563,14 +595,59 @@ TEST(nntrainer_cpu_backend_standalone, qai8dxp_qsi4cxp_768x768x768_CMP) {
   const unsigned int M = 768;
   const unsigned int K = 768;
   const unsigned int N = 768;
-  float qai8dxp_qsi4cxp_q4_0_mse;
-  float qai8dxp_qsi4cxp_q4_0_mse_packed;
+  float qai8dxp_qsi4cxp_mse;
+  float qai8dxp_qsi4cxp_mse_packed;
   constexpr float eps = 1e-5;
-  uint32_t opt_idx_variant = run_qai8dxp_qsi4cxp_test_unpacked(
-    M, K, N, qai8dxp_qsi4cxp_q4_0_mse, true, false);
-  run_qai8dxp_qsi4cxp_test_packed(M, K, N, qai8dxp_qsi4cxp_q4_0_mse_packed,
+  const uint32_t TC = 20;
+  std::vector<uint32_t> opt_idx_variant_candidates;
+  uint32_t opt_idx_variant = 0;
+  for (uint32_t tc = 0; tc < TC; ++tc) {
+    opt_idx_variant = run_qai8dxp_qsi4cxp_test_unpacked(
+      M, K, N, qai8dxp_qsi4cxp_mse, true, false);
+    opt_idx_variant_candidates.push_back(opt_idx_variant);
+  }
+  auto result = most_frequent(opt_idx_variant_candidates);
+  opt_idx_variant = result.first;
+
+  run_qai8dxp_qsi4cxp_test_packed(M, K, N, qai8dxp_qsi4cxp_mse_packed,
                                   opt_idx_variant, true, true);
-  ASSERT_LE(qai8dxp_qsi4cxp_q4_0_mse, eps * M * K * N);
+  ASSERT_LE(qai8dxp_qsi4cxp_mse, eps * M * K * N);
+  ASSERT_LE(qai8dxp_qsi4cxp_mse_packed, eps * M * K * N);
+}
+
+TEST(nntrainer_cpu_backend_standalone, quant_GEMV_512x768x2048_CMP) {
+  const unsigned int M = 512;
+  const unsigned int K = 768;
+  const unsigned int N = 2048;
+  float q4_0_mse, q6_k_mse;
+  constexpr float eps = 1e-5;
+  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, true);
+  ASSERT_LE(q4_0_mse, eps * M * K * N);
+  ASSERT_LE(q6_k_mse, q4_0_mse);
+}
+
+TEST(nntrainer_cpu_backend_standalone, qai8dxp_qsi4cxp_512x768x2048_CMP) {
+  const unsigned int M = 512;
+  const unsigned int K = 768;
+  const unsigned int N = 2048;
+  float qai8dxp_qsi4cxp_mse;
+  float qai8dxp_qsi4cxp_mse_packed;
+  constexpr float eps = 1e-5;
+  const uint32_t TC = 20;
+  std::vector<uint32_t> opt_idx_variant_candidates;
+  uint32_t opt_idx_variant = 0;
+  for (uint32_t tc = 0; tc < TC; ++tc) {
+    opt_idx_variant = run_qai8dxp_qsi4cxp_test_unpacked(
+      M, K, N, qai8dxp_qsi4cxp_mse, true, false);
+    opt_idx_variant_candidates.push_back(opt_idx_variant);
+  }
+  auto result = most_frequent(opt_idx_variant_candidates);
+  opt_idx_variant = result.first;
+
+  run_qai8dxp_qsi4cxp_test_packed(M, K, N, qai8dxp_qsi4cxp_mse_packed,
+                                  opt_idx_variant, true, true);
+  ASSERT_LE(qai8dxp_qsi4cxp_mse, eps * M * K * N);
+  ASSERT_LE(qai8dxp_qsi4cxp_mse_packed, eps * M * K * N);
 }
 
 TEST(nntrainer_cpu_backend_standalone, quant_GEMV_3072x512x512_CMP) {
@@ -588,14 +665,24 @@ TEST(nntrainer_cpu_backend_standalone, qai8dxp_qsi4cxp_3072x512x512_CMP) {
   const unsigned int M = 3072;
   const unsigned int K = 512;
   const unsigned int N = 512;
-  float qai8dxp_qsi4cxp_q4_0_mse;
-  float qai8dxp_qsi4cxp_q4_0_mse_packed;
+  float qai8dxp_qsi4cxp_mse;
+  float qai8dxp_qsi4cxp_mse_packed;
   constexpr float eps = 1e-5;
-  uint32_t opt_idx_variant = run_qai8dxp_qsi4cxp_test_unpacked(
-    M, K, N, qai8dxp_qsi4cxp_q4_0_mse, true, false);
-  run_qai8dxp_qsi4cxp_test_packed(M, K, N, qai8dxp_qsi4cxp_q4_0_mse_packed,
+  const uint32_t TC = 20;
+  std::vector<uint32_t> opt_idx_variant_candidates;
+  uint32_t opt_idx_variant = 0;
+  for (uint32_t tc = 0; tc < TC; ++tc) {
+    opt_idx_variant = run_qai8dxp_qsi4cxp_test_unpacked(
+      M, K, N, qai8dxp_qsi4cxp_mse, true, false);
+    opt_idx_variant_candidates.push_back(opt_idx_variant);
+  }
+  auto result = most_frequent(opt_idx_variant_candidates);
+  opt_idx_variant = result.first;
+
+  run_qai8dxp_qsi4cxp_test_packed(M, K, N, qai8dxp_qsi4cxp_mse_packed,
                                   opt_idx_variant, true, true);
-  ASSERT_LE(qai8dxp_qsi4cxp_q4_0_mse, eps * M * K * N);
+  ASSERT_LE(qai8dxp_qsi4cxp_mse, eps * M * K * N);
+  ASSERT_LE(qai8dxp_qsi4cxp_mse_packed, eps * M * K * N);
 }
 
 TEST(nntrainer_cpu_backend_standalone, sincos16_3072) {
