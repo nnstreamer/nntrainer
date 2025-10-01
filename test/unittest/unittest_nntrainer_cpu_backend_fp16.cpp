@@ -522,18 +522,17 @@ void run_qai8dxp_qsi4cxp_test_packed(const uint32_t M, const uint32_t K,
                                      ref_dst, opt_kernel_idx, transB, print);
 }
 
-std::pair<uint32_t, size_t> most_frequent(const std::vector<uint32_t> &data) {
+template <typename T = uint32_t>
+std::pair<T, size_t> most_frequent(const std::vector<T> &data) {
   // Range is fixed 0–7, so use a small fixed array for counting
   std::array<size_t, 8> counts{};
   counts.fill(0);
 
-  for (uint32_t v : data) {
-    if (v <= 7) {
-      counts[v]++;
-    }
+  for (T v : data) {
+    counts[v]++;
   }
 
-  uint32_t most_value = 0;
+  T most_value = 0;
   size_t most_count = 0;
   for (uint32_t i = 0; i < counts.size(); ++i) {
     if (counts[i] > most_count) {

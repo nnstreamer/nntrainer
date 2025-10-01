@@ -32,6 +32,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
+#include <assert.h>
 #include <cassert>
 #include <cfloat>
 #include <cmath>
@@ -415,18 +416,10 @@ void nntr_kai_gemm_qai8dxp_qsi4cxp_olp_single_thread(
   delete[] lhs_packed_mtx_qa8dx;
 }
 
-void nntr_kai_gemm_qai8dxp_qsi4cxp_olp(size_t m, size_t n, size_t k,
-                                       void *lhs_native_mtx_f32,
-                                       void *rhs_packed_mtx_qs4cx,
-                                       float *dst_act_mtx_f32,
-                                       uint32_t idx_variant, bool transB,
-                                       float lower_bound, float upper_bound) {
-  if (m == 1) {
-    return nntr_kai_gemm_qai8dxp_qsi4cxp_olp_single_thread(
-      m, n, k, lhs_native_mtx_f32, rhs_packed_mtx_qs4cx, dst_act_mtx_f32,
-      idx_variant, transB, lower_bound, upper_bound);
-  }
-
+void nntr_kai_gemm_qai8dxp_qsi4cxp_olp_n_parallel(
+  size_t m, size_t n, size_t k, void *lhs_native_mtx_f32,
+  void *rhs_packed_mtx_qs4cx, float *dst_act_mtx_f32, uint32_t idx_variant,
+  bool transB, float lower_bound, float upper_bound) {
   rhs_format format = rhs_format::nxk;
   if (!transB) {
     format = rhs_format::kxn;
@@ -446,6 +439,7 @@ void nntr_kai_gemm_qai8dxp_qsi4cxp_olp(size_t m, size_t n, size_t k,
                                      k * sizeof(float),     // LHS stride
                                      lhs_packed_mtx_qa8dx); // LHS packed
   int n_threads = 4;
+  assert(n % n_threads == 0);
   size_t n_ukernel = n / n_threads;
 #pragma omp parallel for num_thread(n_threads)
   for (int current_thread = 0; current_thread < n_threads; ++current_thread) {
@@ -477,4 +471,21 @@ void nntr_kai_gemm_qai8dxp_qsi4cxp_olp(size_t m, size_t n, size_t k,
   }
 
   delete[] lhs_packed_mtx_qa8dx;
+}
+
+void nntr_kai_gemm_qai8dxp_qsi4cxp_olp(size_t m, size_t n, size_t k,
+                                       void *lhs_native_mtx_f32,
+                                       void *rhs_packed_mtx_qs4cx,
+                                       float *dst_act_mtx_f32,
+                                       uint32_t idx_variant, bool transB,
+                                       float lower_bound, float upper_bound) {
+  if (m == 1) {
+    return nntr_kai_gemm_qai8dxp_qsi4cxp_olp_single_thread(
+      m, n, k, lhs_native_mtx_f32, rhs_packed_mtx_qs4cx, dst_act_mtx_f32,
+      idx_variant, transB, lower_bound, upper_bound);
+  } else {
+    return nntr_kai_gemm_qai8dxp_qsi4cxp_olp_n_parallel(
+      m, n, k, lhs_native_mtx_f32, rhs_packed_mtx_qs4cx, dst_act_mtx_f32,
+      idx_variant, transB, lower_bound, upper_bound);
+  }
 }
