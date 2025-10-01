@@ -875,6 +875,11 @@ void LayerNode::calcGradient() {
 }
 
 /**
+ * @brief activate Weight at Layer
+ */
+void LayerNode::activateWeight() { getLayer()->activateWeight(*run_context); }
+
+/**
  * @brief Set the batch for the layer
  */
 void LayerNode::setBatch(unsigned int batch) {
