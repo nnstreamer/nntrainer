@@ -17,7 +17,6 @@
 #include <cmath>
 #include <cstdint>
 #include <fallback_internal.h>
-#include <fallback_kleidiai.h>
 #include <limits>
 #include <stdexcept>
 #include <tensor_dim.h>
@@ -605,45 +604,6 @@ void __fallback_clamp(const float *input, float *output, size_t length,
   for (int i = 0; i < length; ++i) {
     output[i] = std::clamp(input[i], lower_bound, upper_bound);
   }
-}
-
-void __fallback_nntr_quant_qs4cx_f32(size_t n, size_t k,
-                                     void *rhs_native_mtx_f32,
-                                     void *rhs_native_mtx_qs4cx,
-                                     void *rhs_scales_f32, bool transB) {
-  rhs_format format = rhs_format::nxk;
-  if (!transB) {
-    format = rhs_format::kxn;
-  }
-
-  quant_qs4cx_f32(n, k, format, (const float *)rhs_native_mtx_f32,
-                  (uint8_t *)rhs_native_mtx_qs4cx, (float *)rhs_scales_f32);
-}
-
-template <>
-void __fallback_nntr_gemm_qai8dxp_qsi4cxp_unpacked(
-  size_t m, size_t n, size_t k, void *lhs_native_mtx_f32,
-  void *rhs_native_mtx_qs4cx, void *rhs_scales_f32, float *dst_mtx_f32,
-  bool transB, float lower_bound, float upper_bound) {
-
-  rhs_format format = rhs_format::nxk;
-  if (!transB) {
-    format = rhs_format::kxn;
-  }
-
-  const size_t lhs_ref_size_qa8dx = m * (k + sizeof(int32_t) + sizeof(float));
-
-  uint8_t *lhs_ref_mtx_qa8dx = new uint8_t[lhs_ref_size_qa8dx];
-
-  ref_quant_qa8dx_f32(m, k, (const float *)lhs_native_mtx_f32,
-                      (int8_t *)lhs_ref_mtx_qa8dx);
-
-  ref_matmul_f32_qa8dx_qs4cx(m, n, k, format, (const int8_t *)lhs_ref_mtx_qa8dx,
-                             (const uint8_t *)rhs_native_mtx_qs4cx,
-                             (const float *)rhs_scales_f32,
-                             (float *)dst_mtx_f32, lower_bound, upper_bound);
-
-  delete[] lhs_ref_mtx_qa8dx;
 }
 
 } // namespace nntrainer
