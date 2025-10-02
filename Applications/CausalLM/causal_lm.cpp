@@ -12,6 +12,7 @@
  * @author Seungbaek Hong <sb92.hong@samsung.com>
  * @author Hyeonseok Lee <hs89.lee@samsung.com>
  * @author Eunju Yang <ej.yang@samsung.com>
+ * @author Donghak Park <donghak.park@samsung.com>
  * @bug    No known bugs except for NYI items
  * @brief  This file defines CausalLM's basic actions
  * @note   This causal_lm.h constructs a class for Transformer-based Causal
@@ -32,6 +33,7 @@
 
 #include <embedding_layer.h>
 #include <mha_core.h>
+#include <nntr_tokenizer_util.h>
 #include <rms_norm.h>
 #include <swiglu.h>
 #include <tie_word_embedding.h>
@@ -271,6 +273,8 @@ void CausalLM::run(const WSTR prompt, bool do_sample, const WSTR system_prompt,
   }
 
   output_list.clear();
+  auto tokenizer_util = nntrainer::Tokenizer_Util();
+
   for (unsigned int b = 0; b < BATCH_SIZE; ++b) {
     output_list.push_back("");
   }
@@ -423,7 +427,8 @@ void CausalLM::run(const WSTR prompt, bool do_sample, const WSTR system_prompt,
     output[0], NUM_VOCAB, BATCH_SIZE, 1, ids_history, _len));
 
   if (init_len < INIT_SEQ_LEN)
-    registerOutputs(tokenizer, id_list, init_len, eos_list);
+    tokenizer_util.registerOutputs(tokenizer, id_list, init_len, eos_list,
+                                   ids_history, MAX_SEQ_LEN, output_list);
 
   auto finish_prefill = std::chrono::high_resolution_clock::now();
   auto prefill_duration = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -456,13 +461,17 @@ void CausalLM::run(const WSTR prompt, bool do_sample, const WSTR system_prompt,
         input_sample[static_cast<size_t>(b) * MAX_SEQ_LEN] =
           static_cast<float>(init_input[token_generation_idx - SYS_PROMP_LEN]);
       }
-      registerOutputs(tokenizer, ids_list, token_generation_idx, eos_list);
+      tokenizer_util.registerOutputs(tokenizer, ids_list, token_generation_idx,
+                                     eos_list, ids_history, MAX_SEQ_LEN,
+                                     output_list);
     } else {
       for (unsigned int b = 0; b < BATCH_SIZE; ++b) {
         input_sample[static_cast<size_t>(b) * MAX_SEQ_LEN] =
           static_cast<float>(ids_list[b]);
       }
-      registerOutputs(tokenizer, ids_list, token_generation_idx, eos_list);
+      tokenizer_util.registerOutputs(tokenizer, ids_list, token_generation_idx,
+                                     eos_list, ids_history, MAX_SEQ_LEN,
+                                     output_list);
     }
     ++generation_cnt;
 
@@ -706,7 +715,6 @@ std::vector<LayerHandle> CausalLM::createMlp(const int layer_id, int dim,
 }
 
 void CausalLM::registerCustomLayers() {
-  ///
   const auto &ct_engine = nntrainer::Engine::Global();
   const auto app_context =
     static_cast<nntrainer::AppContext *>(ct_engine.getRegisteredContext("cpu"));
@@ -725,39 +733,6 @@ void CausalLM::registerCustomLayers() {
   } catch (std::invalid_argument &e) {
     std::cerr << "failed to register factory, reason: " << e.what()
               << std::endl;
-  }
-}
-
-void CausalLM::registerOutputs(
-  std::unique_ptr<tokenizers::Tokenizer> &tokenizer,
-  std::vector<unsigned int> ids, unsigned int pos,
-  const std::vector<bool> &eos_list) {
-
-  static const std::vector<char> puncts{',', '!', ':', ';', '?'};
-  for (size_t b = 0; b < ids.size(); ++b) {
-    if (!eos_list[b]) {
-      pending_ids_.push_back(static_cast<int>(ids[b]));
-      ids_history[b * MAX_SEQ_LEN + pos] = ids[b];
-      std::string decoded_str = tokenizer->Decode(pending_ids_);
-
-      if (std::find(puncts.begin(), puncts.end(), decoded_str.back()) !=
-          puncts.end()) {
-        // last symbol is a punctuation, hold on
-      } else if (decoded_str.size() >= 3 &&
-                 decoded_str.compare(decoded_str.size() - 3, 3, "�") == 0) {
-        // ends with an incomplete token, hold on
-      } else {
-#if defined(_WIN32)
-        std::wcout << L"" << utf8_to_wstring(decoded_str);
-        std::wcout.flush();
-#else
-        std::cout << decoded_str;
-        std::cout.flush();
-#endif
-        output_list[b].append(decoded_str);
-        pending_ids_.clear();
-      }
-    }
   }
 }
 

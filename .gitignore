@@ -43,8 +43,11 @@ Applications/**/tokenizers-cpp-build/*
 *.so
 *.o
 *.a
+
+
 # allow tokenizer lib only
-!Applications/CausalLM/lib/libtokenizers_c.a
+!Applications/utils/llm_tokenizer/libs/
+!Applications/utils/llm_tokenizer/libs/**
 
 *.o.d
 *.nnlayergolden
