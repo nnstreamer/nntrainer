@@ -313,24 +313,10 @@ void CachedSlimMoELayer::incremental_forwarding(
     nntrainer::Tensor &gate_weights = context.getWeight(gate_idx);
     input.dot(gate_weights, router_logits);
     router_logits.apply(nntrainer::ActiFunc::softmax<float>, router_logits);
+    const int alpha = 2; // number of expert to be additionally cached
 
     // get extra topK
-    auto extra_topk_result = router_logits.topK(topk + 5);
-    auto extra_topk_values = std::get<0>(extra_topk_result);
-    auto extra_topk_indices = std::get<1>(extra_topk_result);
-    std::deque<int> extra_top_k = {};
-    extra_topk_values.divide_i(extra_topk_values.sum(3));
-    const uint32_t *extra_indices_data = extra_topk_indices.getData<uint32_t>();
-
-    // get extra topk
-    for (int i = static_cast<int>(total_tokens) - 1; i >= 0; --i) {
-      for (int k = 0; k < static_cast<int>(topk + 5); ++k) {
-        unsigned expert_idx = extra_indices_data[i * topk + k];
-        extra_top_k.push_back(expert_idx);
-      }
-    }
-
-    auto topk_result = router_logits.topK(topk);
+    auto topk_result = router_logits.topK(topk + alpha);
     auto topk_values = std::get<0>(topk_result);
     auto topk_indices = std::get<1>(topk_result);
 
@@ -340,17 +326,31 @@ void CachedSlimMoELayer::incremental_forwarding(
     const uint32_t *indices_data = topk_indices.getData<uint32_t>();
     std::vector<std::vector<std::pair<unsigned, float>>> expert_assignments(
       num_experts);
-    // Set expert mask
+
+    // Set expert mask & cache log
     for (int i = 0; i < static_cast<int>(total_tokens); ++i) {
-      for (int k = 0; k < static_cast<int>(topk); ++k) {
-        unsigned expert_idx = indices_data[i * topk + k];
+      for (int k = static_cast<int>(topk) + alpha - 1; k >= 0; --k) {
+        unsigned expert_idx = indices_data[i * (topk + alpha) + k];
         float weight = topk_values.getValue<float>(i, 0, 0, k);
-        expert_assignments[expert_idx].emplace_back(i, weight);
+
+        if (k < static_cast<int>(topk))
+          expert_assignments[expert_idx].emplace_back(i, weight);
+
+        // Update cache log first
+        // please note that need_load is not updated here!
+        // need_load would be updated only when actual activate()/deactivate()
+        // is called.
+        if (iteration_map.find(expert_idx) != iteration_map.end())
+          loaded_expert_deque.erase(iteration_map[expert_idx]);
+        loaded_expert_deque.push_back(expert_idx);
+        iteration_map[expert_idx] = --loaded_expert_deque.end();
       }
     }
 
     // Parallel processing for multiple tokens with many active experts
     std::vector<nntrainer::Tensor> expert_outputs(num_experts);
+    std::vector<int> target_idx_vector;
+    std::vector<int> need_load_idx;
 #pragma omp parallel for schedule(static)
     for (int expert_idx = 0; expert_idx < static_cast<int>(num_experts);
          ++expert_idx) {
@@ -359,98 +359,72 @@ void CachedSlimMoELayer::incremental_forwarding(
           total_tokens, 1, 1, hidden_size, output.getTensorType());
       }
     }
-    std::vector<int> target_idx_vector;
-
     for (int expert_idx = 0; expert_idx < static_cast<int>(num_experts);
          ++expert_idx) {
-      const auto &assignments = expert_assignments[expert_idx];
-      if (assignments.empty())
-        continue;
-
-      target_idx_vector.push_back(expert_idx);
+      if (!expert_assignments[expert_idx].empty()) {
+        target_idx_vector.push_back(expert_idx);
+        if (need_load[expert_idx])
+          need_load_idx.push_back(expert_idx);
+      }
     }
-
+#ifdef DEBUG
     int hit_count = 0;
     int miss_count = 0;
+#endif
+
+#pragma omp parallel for schedule(static) if (need_load_idx.size() > 2)
+    for (int expert_idx : need_load_idx) {
+      context.getWeight(expert_gate_proj_indices[expert_idx]).activate();
+      context.getWeight(expert_up_proj_indices[expert_idx]).activate();
+      context.getWeight(expert_down_proj_indices[expert_idx]).activate();
+      need_load[expert_idx] = false;
+    }
 
 #pragma omp parallel for schedule(dynamic)
     for (int expert_idx : target_idx_vector) {
       const auto &assignments = expert_assignments[expert_idx];
-      if (need_load[expert_idx]) {
-
-#ifdef DEBUG
-        auto t1_miss = high_resolution_clock::now();
-#endif
-
-        context.getWeight(expert_gate_proj_indices[expert_idx]).activate();
-        context.getWeight(expert_up_proj_indices[expert_idx]).activate();
-        context.getWeight(expert_down_proj_indices[expert_idx]).activate();
-
-        {
-          std::lock_guard<std::mutex> lock(cache_mutex);
-          loaded_expert_deque.push_back(expert_idx);
-          iteration_map[expert_idx] = --loaded_expert_deque.end();
-          need_load[expert_idx] = false;
-          miss_count += 1;
-        }
-
-        compute_expert_forward(
-          input, expert_outputs[expert_idx], assignments,
-          context.getWeight(expert_gate_proj_indices[expert_idx]),
-          context.getWeight(expert_up_proj_indices[expert_idx]),
-          context.getWeight(expert_down_proj_indices[expert_idx]), hidden_size);
-#ifdef DEBUG
-        auto t2_miss = high_resolution_clock::now();
-#endif
-      } else {
-
-#ifdef DEBUG
-        auto t1_hit = high_resolution_clock::now();
-#endif
-        {
-          std::lock_guard<std::mutex> lock(cache_mutex);
-          hit_count += 1;
-        }
-
-        compute_expert_forward(
-          input, expert_outputs[expert_idx], assignments,
-          context.getWeight(expert_gate_proj_indices[expert_idx]),
-          context.getWeight(expert_up_proj_indices[expert_idx]),
-          context.getWeight(expert_down_proj_indices[expert_idx]), hidden_size);
-
-#ifdef DEBUG
-        auto t2_hit = high_resolution_clock::now();
-#endif
-      }
+      compute_expert_forward(
+        input, expert_outputs[expert_idx], assignments,
+        context.getWeight(expert_gate_proj_indices[expert_idx]),
+        context.getWeight(expert_up_proj_indices[expert_idx]),
+        context.getWeight(expert_down_proj_indices[expert_idx]), hidden_size);
     }
 
-    for (int i = extra_top_k.size() - 1; i >= 0; i--) {
-      if (iteration_map.find(extra_top_k[i]) != iteration_map.end()) {
-        loaded_expert_deque.erase(iteration_map[extra_top_k[i]]);
-        loaded_expert_deque.push_back(extra_top_k[i]);
-        iteration_map[extra_top_k[i]] = --loaded_expert_deque.end();
-      }
-    }
-
-#ifdef DEBUG
-    auto t1_evict = high_resolution_clock::now();
-#endif
-
-// Evict experts
-#pragma omp parallel
-    while (loaded_expert_deque.size() > 32) {
+    // Evict experts
+    std::vector<int> evict_idx_list;
+    while (loaded_expert_deque.size() > 8) {
       int target_idx;
-      {
-        std::lock_guard<std::mutex> lock(cache_mutex);
-        target_idx = loaded_expert_deque.front();
-        loaded_expert_deque.pop_front();
-        iteration_map.erase(target_idx);
-        need_load[target_idx] = true;
-      }
+      target_idx = loaded_expert_deque.front();
+      loaded_expert_deque.pop_front();
+      iteration_map.erase(target_idx);
 
+      if (!need_load[target_idx]) {
+        evict_idx_list.emplace_back(target_idx);
+      }
+      need_load[target_idx] = true;
+    }
+
+#pragma omp parallel for schedule(dynamic)
+    for (int target_idx : evict_idx_list) {
       context.getWeight(expert_gate_proj_indices[target_idx]).deactivate();
       context.getWeight(expert_up_proj_indices[target_idx]).deactivate();
       context.getWeight(expert_down_proj_indices[target_idx]).deactivate();
+    }
+
+    // caching additional alpha experts - lazy loading
+    std::vector<int> alpha_cache_list;
+    for (auto expert_idx : loaded_expert_deque) {
+      if (need_load[expert_idx]) {
+        alpha_cache_list.emplace_back(expert_idx);
+        need_load[expert_idx] = false;
+      }
+    }
+
+#pragma omp parallel for schedule(dynamic)
+    for (int expert_idx : alpha_cache_list) {
+      context.getWeight(expert_gate_proj_indices[expert_idx]).activate();
+      context.getWeight(expert_up_proj_indices[expert_idx]).activate();
+      context.getWeight(expert_down_proj_indices[expert_idx]).activate();
     }
 
 #ifdef DEBUG
