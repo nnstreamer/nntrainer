@@ -204,10 +204,15 @@ inline static void rotary_emb_cl_internal(
       break;
     }
 
-    const int work_groups_count[3] = {(int)batch, (int)channel, 1};
-    const int work_group_size[3] = {1, 1, 1};
-    result = cl_context->command_queue_inst_.DispatchCommand(
-      kernel, work_groups_count, work_group_size);
+    opencl::DispatchSize sizes{};
+    sizes.local_x = 1;
+    sizes.local_y = 1;
+    sizes.local_z = 1;
+    sizes.global_x = batch;
+    sizes.global_y = channel;
+    sizes.global_z = 1;
+
+    result = cl_context->command_queue_inst_.DispatchCommand(kernel, sizes);
     if (!result) {
       printf("Failed to dispatch command\n");
       break;
