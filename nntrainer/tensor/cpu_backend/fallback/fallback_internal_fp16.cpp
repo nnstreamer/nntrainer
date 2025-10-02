@@ -495,7 +495,7 @@ void __fallback_nntr_quant_qs4cx_f32(size_t n, size_t k,
 }
 
 template <>
-void __fallback_nntr_gemm_qai8dxp_qsi4cxp_unpacked(
+uint32_t __fallback_nntr_gemm_qai8dxp_qsi4cxp_unpacked(
   size_t m, size_t n, size_t k, void *lhs_native_mtx_f32,
   void *rhs_native_mtx_qs4cx, void *rhs_scales_f32, float *dst_mtx_f32,
   bool transB, float lower_bound, float upper_bound) {
@@ -518,13 +518,8 @@ void __fallback_nntr_gemm_qai8dxp_qsi4cxp_unpacked(
                              (float *)dst_mtx_f32, lower_bound, upper_bound);
 
   delete[] lhs_ref_mtx_qa8dx;
-}
 
-void __fallback_nntr_quant_qs4cx_f32(size_t n, size_t k,
-                                     void *rhs_native_mtx_f32,
-                                     void *rhs_native_mtx_qs4cx,
-                                     void *rhs_scales_f32, bool transB = true) {
-  throw std::runtime_error("NYI : __fallback_nntr_quant_qs4cx_f32");
+  return 1;
 }
 
 size_t __fallback_nntr_get_rhs_packed_size_qsi4cxp_qs4cxs1s0(
