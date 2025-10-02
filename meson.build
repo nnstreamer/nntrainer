@@ -120,7 +120,7 @@ elif arch == 'x86' or arch == 'x86_64'
    add_project_arguments(['cpp_args=/MT'], language: ['c','cpp'] )
   else
     add_project_arguments(['-march=native'], language: ['c','cpp'])
-    add_project_arguments(['-mavx2', '-mfma'], language: ['c','cpp'])
+    add_project_arguments(['-mavx2', '-mavxvnni', '-mfma'], language: ['c','cpp'])
     message('-march=native added for AVX hardware acceleration.')
   endif
 endif
