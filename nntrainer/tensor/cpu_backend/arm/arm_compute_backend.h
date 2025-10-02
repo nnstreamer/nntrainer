@@ -456,7 +456,8 @@ void nntr_quant_qs4cx_f32(size_t n, size_t k, void *rhs_native_mtx_f32,
  * @param k col length if not transposed
  * @return size_t size of memory to allocate
  */
-size_t nntr_get_rhs_packed_size_qsi4cxp_qs4cxs1s0(size_t n, size_t k,uint32_t idx_variant,
+size_t nntr_get_rhs_packed_size_qsi4cxp_qs4cxs1s0(size_t n, size_t k,
+                                                  uint32_t idx_variant,
                                                   bool transB);
 /**
  * @brief rhs matrix packing for qsi4cxp format
@@ -471,7 +472,8 @@ size_t nntr_get_rhs_packed_size_qsi4cxp_qs4cxs1s0(size_t n, size_t k,uint32_t id
 void nntr_qsi4cxp_qs4cxs1s0_rhs_pack(size_t n, size_t k,
                                      void *rhs_packed_mtx_qs4cx,
                                      void *rhs_native_mtx_qs4cx,
-                                     void *rhs_scales_f32,uint32_t idx_variant, bool transB);
+                                     void *rhs_scales_f32, uint32_t idx_variant,
+                                     bool transB);
 /**
  * @brief GEMM of qai8dxp runtime-quantized activation and offline qs4cx
  * quantized weight

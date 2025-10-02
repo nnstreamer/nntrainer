@@ -209,7 +209,7 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMM_256x1024x512) {
   const unsigned int N = 512;
   float q4_0_mse, q6_k_mse;
   constexpr float eps = 1e-5;
-  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, true);
+  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, false);
   ASSERT_LE(q4_0_mse, eps * M * K * N);
   ASSERT_LE(q6_k_mse, q4_0_mse);
 }
@@ -220,7 +220,7 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMM_457x3072x3072) {
   const unsigned int N = 3072;
   float q4_0_mse, q6_k_mse;
   constexpr float eps = 1e-5;
-  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, true);
+  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, false);
   ASSERT_LE(q4_0_mse, eps * M * K * N);
   ASSERT_LE(q6_k_mse, q4_0_mse);
 }
@@ -231,7 +231,7 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMM_458x3072x3072) {
   const unsigned int N = 3072;
   float q4_0_mse, q6_k_mse;
   constexpr float eps = 1e-5;
-  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, true);
+  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, false);
   ASSERT_LE(q4_0_mse, eps * M * K * N);
   ASSERT_LE(q6_k_mse, q4_0_mse);
 }
@@ -242,7 +242,7 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMM_459x3072x3072) {
   const unsigned int N = 3072;
   float q4_0_mse, q6_k_mse;
   constexpr float eps = 1e-5;
-  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, true);
+  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, false);
   ASSERT_LE(q4_0_mse, eps * M * K * N);
   ASSERT_LE(q6_k_mse, q4_0_mse);
 }
@@ -253,7 +253,7 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMM_1024x3072x3072) {
   const unsigned int N = 3072;
   float q4_0_mse, q6_k_mse;
   constexpr float eps = 1e-5;
-  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, true);
+  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, false);
   ASSERT_LE(q4_0_mse, eps * M * K * N);
   ASSERT_LE(q6_k_mse, q4_0_mse);
 }
@@ -264,7 +264,7 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMV_1x768x1024) {
   const unsigned int N = 1024;
   float q4_0_mse, q6_k_mse;
   constexpr float eps = 1e-5;
-  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, true);
+  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, false);
   ASSERT_LE(q4_0_mse, eps * M * K * N);
   ASSERT_LE(q6_k_mse, q4_0_mse);
 }
@@ -275,7 +275,7 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMV_1x3072x3072) {
   const unsigned int N = 3072;
   float q4_0_mse, q6_k_mse;
   constexpr float eps = 1e-5;
-  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, true);
+  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, false);
   ASSERT_LE(q4_0_mse, eps * M * K * N);
   ASSERT_LE(q6_k_mse, q4_0_mse);
 }
@@ -550,7 +550,7 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMV_1x3072x512_CMP) {
   const unsigned int N = 512;
   float q4_0_mse, q6_k_mse;
   constexpr float eps = 1e-5;
-  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, true);
+  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, false);
   ASSERT_LE(q4_0_mse, eps * M * K * N);
   ASSERT_LE(q6_k_mse, q4_0_mse);
 }
@@ -574,7 +574,7 @@ TEST(nntrainer_cpu_backend_standalone, qai8dxp_qsi4cxp_1x3072x512_CMP) {
   opt_idx_variant = result.first;
 
   run_qai8dxp_qsi4cxp_test_packed(M, K, N, qai8dxp_qsi4cxp_mse_packed,
-                                  opt_idx_variant, true, true);
+                                  opt_idx_variant, true, false);
   ASSERT_LE(qai8dxp_qsi4cxp_mse, eps * M * K * N);
   ASSERT_LE(qai8dxp_qsi4cxp_mse_packed, eps * M * K * N);
 }
@@ -585,7 +585,7 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMV_768x768x768_CMP) {
   const unsigned int N = 768;
   float q4_0_mse, q6_k_mse;
   constexpr float eps = 1e-5;
-  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, true);
+  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, false);
   ASSERT_LE(q4_0_mse, eps * M * K * N);
   ASSERT_LE(q6_k_mse, q4_0_mse);
 }
@@ -609,7 +609,7 @@ TEST(nntrainer_cpu_backend_standalone, qai8dxp_qsi4cxp_768x768x768_CMP) {
   opt_idx_variant = result.first;
 
   run_qai8dxp_qsi4cxp_test_packed(M, K, N, qai8dxp_qsi4cxp_mse_packed,
-                                  opt_idx_variant, true, true);
+                                  opt_idx_variant, true, false);
   ASSERT_LE(qai8dxp_qsi4cxp_mse, eps * M * K * N);
   ASSERT_LE(qai8dxp_qsi4cxp_mse_packed, eps * M * K * N);
 }
@@ -620,7 +620,7 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMV_512x768x2048_CMP) {
   const unsigned int N = 2048;
   float q4_0_mse, q6_k_mse;
   constexpr float eps = 1e-5;
-  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, true);
+  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, false);
   ASSERT_LE(q4_0_mse, eps * M * K * N);
   ASSERT_LE(q6_k_mse, q4_0_mse);
 }
@@ -644,7 +644,7 @@ TEST(nntrainer_cpu_backend_standalone, qai8dxp_qsi4cxp_512x768x2048_CMP) {
   opt_idx_variant = result.first;
 
   run_qai8dxp_qsi4cxp_test_packed(M, K, N, qai8dxp_qsi4cxp_mse_packed,
-                                  opt_idx_variant, true, true);
+                                  opt_idx_variant, true, false);
   ASSERT_LE(qai8dxp_qsi4cxp_mse, eps * M * K * N);
   ASSERT_LE(qai8dxp_qsi4cxp_mse_packed, eps * M * K * N);
 }
@@ -655,7 +655,7 @@ TEST(nntrainer_cpu_backend_standalone, quant_GEMV_3072x512x512_CMP) {
   const unsigned int N = 512;
   float q4_0_mse, q6_k_mse;
   constexpr float eps = 1e-5;
-  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, true);
+  run_quant_test_fp16(M, K, N, q4_0_mse, q6_k_mse, false);
   ASSERT_LE(q4_0_mse, eps * M * K * N);
   ASSERT_LE(q6_k_mse, q4_0_mse);
 }
@@ -679,7 +679,7 @@ TEST(nntrainer_cpu_backend_standalone, qai8dxp_qsi4cxp_3072x512x512_CMP) {
   opt_idx_variant = result.first;
 
   run_qai8dxp_qsi4cxp_test_packed(M, K, N, qai8dxp_qsi4cxp_mse_packed,
-                                  opt_idx_variant, true, true);
+                                  opt_idx_variant, true, false);
   ASSERT_LE(qai8dxp_qsi4cxp_mse, eps * M * K * N);
   ASSERT_LE(qai8dxp_qsi4cxp_mse_packed, eps * M * K * N);
 }
