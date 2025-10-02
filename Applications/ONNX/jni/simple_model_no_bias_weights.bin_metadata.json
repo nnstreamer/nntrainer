@@ -1,0 +1,26 @@
+{
+  "fc1": {
+    "tensor_name": "fc1.weight",
+    "clean_name": "fc1",
+    "dtype": "float32",
+    "onnx_dtype": "FLOAT",
+    "shape": [
+      4,
+      8
+    ],
+    "offset": 0,
+    "size": 128
+  },
+  "fc2": {
+    "tensor_name": "fc2.weight",
+    "clean_name": "fc2",
+    "dtype": "float32",
+    "onnx_dtype": "FLOAT",
+    "shape": [
+      8,
+      2
+    ],
+    "offset": 128,
+    "size": 64
+  }
+}

@@ -2,6 +2,10 @@ onnx_example_sources = [
   'main.cpp',
 ]
 
+test_simple_model_no_bias_poc_sources = [
+  'test_simple_model_no_bias_poc.cpp',
+]
+
 onnx_example_dependencies = [app_utils_dep,
   iniparser_dep,
   nntrainer_dep,
@@ -14,6 +18,14 @@ endif
 
 e = executable('nntrainer_onnx_example',
   onnx_example_sources,
+  include_directories: [include_directories('.')],
+  dependencies: onnx_example_dependencies,
+  install: get_option('install-app'),
+  install_dir: application_install_dir
+)
+
+test_simple_model_no_bias_poc_e = executable('nntrainer_test_simple_model_no_bias_poc',
+  test_simple_model_no_bias_poc_sources,
   include_directories: [include_directories('.')],
   dependencies: onnx_example_dependencies,
   install: get_option('install-app'),

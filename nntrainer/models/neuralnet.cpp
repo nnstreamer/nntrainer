@@ -53,6 +53,11 @@
 #include <slice_realizer.h>
 #include <util_func.h>
 
+#ifdef ENABLE_JSON
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+#endif
+
 #ifdef ENABLE_TFLITE_INTERPRETER
 #include <tflite_interpreter.h>
 #endif
@@ -728,6 +733,17 @@ void NeuralNetwork::load(const std::string &file_path,
 #endif
 
     if (exec_mode == ml::train::ExecutionMode::INFERENCE) {
+#ifdef ENABLE_JSON
+      ml_logi("Attempting to load weights from single bin file: %s", f_path.c_str());
+      // Try to load as single binary file with metadata
+      if (loadWeightsFromSingleBin(f_path)) {
+        ml_logi("Loaded weights from single bin file: %s", f_path.c_str());
+        break;
+      }
+      ml_logi("Single bin loading failed, falling back to original behavior");
+      // If single bin loading fails, fall back to original behavior
+#endif
+
       if (!MMAP_READ) {
         ///@note for slim-tensor. This should be removed.
         model_file_fd = open(f_path.c_str(), O_RDONLY);
@@ -1881,4 +1897,111 @@ void NeuralNetwork::exports(const ml::train::ExportMethods &method,
     throw std::runtime_error{"Unsupported export method"};
   }
 }
+
+#ifdef ENABLE_JSON
+/**
+ * @brief Load weights from a single binary file with metadata
+ * @param bin_path Path to the single binary file
+ * @return true if successful, false otherwise
+ */
+bool NeuralNetwork::loadWeightsFromSingleBin(const std::string& bin_path) {
+  try {
+    ml_logi("Attempting to load weights from single bin file: %s", bin_path.c_str());
+    
+    // Derive metadata path from bin path
+    std::string metadata_path = bin_path + "_metadata.json";
+    
+    // Check if metadata file exists
+    std::ifstream metadata_test(metadata_path);
+    if (!metadata_test.is_open()) {
+      // If no metadata file, fall back to original behavior
+      ml_logw("No metadata file found for single bin loading: %s", metadata_path.c_str());
+      return false;
+    }
+    metadata_test.close();
+    
+    // Load metadata
+    std::ifstream metadata_file(metadata_path);
+    if (!metadata_file.is_open()) {
+      ml_logw("Could not open metadata file: %s", metadata_path.c_str());
+      return false;
+    }
+    
+    json metadata;
+    metadata_file >> metadata;
+    metadata_file.close();
+    
+    // Load the single bin file into memory
+    std::ifstream bin_file(bin_path, std::ios::binary);
+    if (!bin_file.is_open()) {
+      ml_logw("Could not open bin file: %s", bin_path.c_str());
+      return false;
+    }
+    
+    // Get file size
+    bin_file.seekg(0, std::ios::end);
+    size_t file_size = bin_file.tellg();
+    bin_file.seekg(0, std::ios::beg);
+    
+    // Load entire file into memory
+    std::vector<char> bin_data(file_size);
+    bin_file.read(bin_data.data(), file_size);
+    bin_file.close();
+    
+    ml_logi("Loading weights from single bin file: %s (size: %zu bytes)", bin_path.c_str(), file_size);
+    
+    // Load weights for each layer specified in metadata
+    for (auto& [layer_name, weight_info] : metadata.items()) {
+      size_t offset = weight_info["offset"];
+      size_t size = weight_info["size"];
+      
+      ml_logi("Processing layer from metadata: %s (offset: %zu, size: %zu)", 
+              layer_name.c_str(), offset, size);
+      
+      // Validate offset and size
+      if (offset + size > bin_data.size()) {
+        ml_logw("Invalid offset/size for layer %s in single bin file", layer_name.c_str());
+        continue;
+      }
+      
+      // Get the layer by name
+      auto layer_node = model_graph.getLayerNode(layer_name);
+      if (!layer_node) {
+        ml_logw("Could not find layer %s in model graph", layer_name.c_str());
+        continue;
+      }
+      
+      // Get weights from the layer
+      auto weights = layer_node->getRunContext().getWeights();
+      if (weights.empty()) {
+        ml_logw("No weights found for layer %s", layer_name.c_str());
+        continue;
+      }
+      
+      // For now, we assume the first weight is the one we want to load
+      // In a more complex scenario, we might need to match by name
+      auto weight = weights[0];
+      
+      // Create a tensor from the binary data
+      Tensor weight_tensor = Tensor::Map(
+        reinterpret_cast<float*>(bin_data.data() + offset),
+        size,
+        weight->getDim(),
+        0  // file offset
+      );
+      
+      // Copy the data to the weight variable
+      weight->getVariableRef().copy(weight_tensor);
+      
+      ml_logi("Successfully loaded weights for layer: %s", layer_name.c_str());
+    }
+    
+    return true;
+  } catch (const std::exception& e) {
+    ml_logw("Error loading weights from single bin file: %s", e.what());
+    return false;
+  }
+}
+#endif
+
 } /* namespace nntrainer */
