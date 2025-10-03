@@ -771,6 +771,8 @@ private:
    * @retval true if matches, false is error
    */
   bool validateInput(sharedConstTensors X);
+  
+  bool loadWeightsFromSingleBin(const std::string& bin_path);
 };
 
 } /* namespace nntrainer */
