@@ -236,7 +236,7 @@ static inline int clamp_int4(int v) {
 //     - scales_fp16_bits has size O * ceil_div(I, group_size)
 std::pair<std::vector<uint8_t>, std::vector<uint16_t>>
 quantize_int4_os_is_yx_osv32_isv2(const float *W, int O, int I,
-                                  int group_size = 128) {
+                                  int group_size) {
   const int O_blk = 32;
   const int I_blk = 2;
 
@@ -397,7 +397,8 @@ static void run_int4_gemv_test_(const uint32_t K, const uint32_t N,
   // GPU INT4 GEMV
   auto t3 = std::chrono::high_resolution_clock::now();
   for (unsigned int i = 0; i < run_count; ++i) {
-    nntrainer::gemv_int4_cl(weight_ptr, scale_ptr, input_ptr, output_ptr, K, N);
+    nntrainer::gemv_int4_cl(weight_ptr, scale_ptr, input_ptr, output_ptr, K, N,
+                            scale_group_size);
   }
   auto t4 = std::chrono::high_resolution_clock::now();
   auto gpu_dt = std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3);
@@ -591,7 +592,8 @@ static void run_int4_sgemv_test_(const uint32_t K, const uint32_t N,
   // GPU INT4 GEMV
   auto t3 = std::chrono::high_resolution_clock::now();
   for (unsigned int i = 0; i < run_count; ++i) {
-    nntrainer::gemv_int4_cl(weight_ptr, scale_ptr, input_ptr, output_ptr, K, N);
+    nntrainer::gemv_int4_cl(weight_ptr, scale_ptr, input_ptr, output_ptr, K, N,
+                            scale_group_size);
   }
   auto t4 = std::chrono::high_resolution_clock::now();
   auto gpu_dt = std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3);
@@ -629,6 +631,7 @@ TEST(nntrainer_blas_kernel, int4_gemv_async_test) {
     nntrainer::Engine::Global().getRegisteredContext("gpu"));
 
   static constexpr uint32_t run_count = 200;
+  static constexpr int scale_group_size = 32;
 
   const int M = 1;
   const int K = 3072;
@@ -652,12 +655,13 @@ TEST(nntrainer_blas_kernel, int4_gemv_async_test) {
 
   // weight 0 (3072 x 3072)
 
-  void *ws0 = allocateSVM(data_size_n0 / 128);
+  void *ws0 = allocateSVM(data_size_n0 / scale_group_size);
   void *wq0 = allocateSVM(data_size_n0 / 2);
   blas_cc->command_queue_inst_.enqueueSVMMap(wq0, data_size_n0 / 2, false);
-  auto quantization = quantize_int4_os_is_yx_osv32_isv2(weight0.data(), N0, K);
+  auto quantization =
+    quantize_int4_os_is_yx_osv32_isv2(weight0.data(), N0, K, scale_group_size);
 
-  for (unsigned int i = 0; i < K * N0 / 128; ++i) {
+  for (unsigned int i = 0; i < K * N0 / scale_group_size; ++i) {
     ((uint16_t *)ws0)[i] = quantization.second[i];
   }
 
@@ -666,12 +670,13 @@ TEST(nntrainer_blas_kernel, int4_gemv_async_test) {
   }
 
   // weight 1 (3072 x 256)
-  void *ws1 = allocateSVM(data_size_n1 / 128);
+  void *ws1 = allocateSVM(data_size_n1 / scale_group_size);
   void *wq1 = allocateSVM(data_size_n1 / 2);
   blas_cc->command_queue_inst_.enqueueSVMMap(wq1, data_size_n1 / 2, false);
-  quantization = quantize_int4_os_is_yx_osv32_isv2(weight1.data(), N1, K);
+  quantization =
+    quantize_int4_os_is_yx_osv32_isv2(weight1.data(), N1, K, scale_group_size);
 
-  for (unsigned int i = 0; i < K * N1 / 128; ++i) {
+  for (unsigned int i = 0; i < K * N1 / scale_group_size; ++i) {
     ((uint16_t *)ws1)[i] = quantization.second[i];
   }
 
@@ -680,12 +685,13 @@ TEST(nntrainer_blas_kernel, int4_gemv_async_test) {
   }
 
   // weight 2 (3072 x 256)
-  void *ws2 = allocateSVM(data_size_n1 / 128);
+  void *ws2 = allocateSVM(data_size_n1 / scale_group_size);
   void *wq2 = allocateSVM(data_size_n1 / 2);
   blas_cc->command_queue_inst_.enqueueSVMMap(wq2, data_size_n1 / 2, false);
-  quantization = quantize_int4_os_is_yx_osv32_isv2(weight2.data(), N1, K);
+  quantization =
+    quantize_int4_os_is_yx_osv32_isv2(weight2.data(), N1, K, scale_group_size);
 
-  for (unsigned int i = 0; i < K * N1 / 128; ++i) {
+  for (unsigned int i = 0; i < K * N1 / scale_group_size; ++i) {
     ((uint16_t *)ws2)[i] = quantization.second[i];
   }
 
@@ -701,9 +707,12 @@ TEST(nntrainer_blas_kernel, int4_gemv_async_test) {
   // In-order kernel execution
   auto t1 = std::chrono::high_resolution_clock::now();
   for (unsigned int i = 0; i < run_count; ++i) {
-    nntrainer::gemv_int4_cl((char *)wq0, (uint16_t *)ws0, input, out0, K, N0);
-    nntrainer::gemv_int4_cl((char *)wq1, (uint16_t *)ws1, input, out1, K, N1);
-    nntrainer::gemv_int4_cl((char *)wq2, (uint16_t *)ws2, input, out2, K, N1);
+    nntrainer::gemv_int4_cl((char *)wq0, (uint16_t *)ws0, input, out0, K, N0,
+                            scale_group_size);
+    nntrainer::gemv_int4_cl((char *)wq1, (uint16_t *)ws1, input, out1, K, N1,
+                            scale_group_size);
+    nntrainer::gemv_int4_cl((char *)wq2, (uint16_t *)ws2, input, out2, K, N1,
+                            scale_group_size);
   }
   auto t2 = std::chrono::high_resolution_clock::now();
   auto dt = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
@@ -722,7 +731,7 @@ TEST(nntrainer_blas_kernel, int4_gemv_async_test) {
   auto t3 = std::chrono::high_resolution_clock::now();
   for (unsigned int i = 0; i < run_count; ++i) {
     nntrainer::gemv_int4_async_cl(weight_vec, scale_vec, input, out_vec, K,
-                                  n_vec);
+                                  n_vec, scale_group_size);
   }
   auto t4 = std::chrono::high_resolution_clock::now();
   auto gpu_dt = std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3);
@@ -872,7 +881,7 @@ static void run_int4_gemm_test_(const uint32_t M, const uint32_t K,
   auto t3 = std::chrono::high_resolution_clock::now();
   for (unsigned int i = 0; i < run_count; ++i) {
     nntrainer::openvino_gemm_cl(input_ptr, weight_ptr, scale_ptr, output_ptr, M,
-                                N, K);
+                                N, K, scale_group_size);
   }
 
   auto t4 = std::chrono::high_resolution_clock::now();
@@ -981,6 +990,7 @@ TEST(nntrainer_blas_kernel, int4_gemm_async_test) {
     nntrainer::Engine::Global().getRegisteredContext("gpu"));
 
   static constexpr uint32_t run_count = 200;
+  static constexpr int scale_group_size = 32;
 
   const int M = 68;
   const int K = 3072;
@@ -1003,12 +1013,13 @@ TEST(nntrainer_blas_kernel, int4_gemm_async_test) {
   size_t data_size_n1 = N1 * K * sizeof(uint16_t);
 
   // weight 0 (3072 x 3072)
-  void *ws0 = allocateSVM(data_size_n0 / 128);
+  void *ws0 = allocateSVM(data_size_n0 / scale_group_size);
   void *wq0 = allocateSVM(data_size_n0 / 2);
   blas_cc->command_queue_inst_.enqueueSVMMap(wq0, data_size_n0 / 2, false);
-  auto quantization = quantize_int4_os_is_yx_osv32_isv2(weight0.data(), N0, K);
+  auto quantization =
+    quantize_int4_os_is_yx_osv32_isv2(weight0.data(), N0, K, scale_group_size);
 
-  for (unsigned int i = 0; i < K * N0 / 128; ++i) {
+  for (unsigned int i = 0; i < K * N0 / scale_group_size; ++i) {
     ((uint16_t *)ws0)[i] = quantization.second[i];
   }
 
@@ -1017,12 +1028,13 @@ TEST(nntrainer_blas_kernel, int4_gemm_async_test) {
   }
 
   // weight 1 (3072 x 256)
-  void *ws1 = allocateSVM(data_size_n1 / 128);
+  void *ws1 = allocateSVM(data_size_n1 / scale_group_size);
   void *wq1 = allocateSVM(data_size_n1 / 2);
   blas_cc->command_queue_inst_.enqueueSVMMap(wq1, data_size_n1 / 2, false);
-  quantization = quantize_int4_os_is_yx_osv32_isv2(weight1.data(), N1, K);
+  quantization =
+    quantize_int4_os_is_yx_osv32_isv2(weight1.data(), N1, K, scale_group_size);
 
-  for (unsigned int i = 0; i < K * N1 / 128; ++i) {
+  for (unsigned int i = 0; i < K * N1 / scale_group_size; ++i) {
     ((uint16_t *)ws1)[i] = quantization.second[i];
   }
 
@@ -1031,12 +1043,13 @@ TEST(nntrainer_blas_kernel, int4_gemm_async_test) {
   }
 
   // weight 2 (3072 x 256)
-  void *ws2 = allocateSVM(data_size_n1 / 128);
+  void *ws2 = allocateSVM(data_size_n1 / scale_group_size);
   void *wq2 = allocateSVM(data_size_n1 / 2);
   blas_cc->command_queue_inst_.enqueueSVMMap(wq2, data_size_n1 / 2, false);
-  quantization = quantize_int4_os_is_yx_osv32_isv2(weight2.data(), N1, K);
+  quantization =
+    quantize_int4_os_is_yx_osv32_isv2(weight2.data(), N1, K, scale_group_size);
 
-  for (unsigned int i = 0; i < K * N1 / 128; ++i) {
+  for (unsigned int i = 0; i < K * N1 / scale_group_size; ++i) {
     ((uint16_t *)ws2)[i] = quantization.second[i];
   }
 
@@ -1053,11 +1066,14 @@ TEST(nntrainer_blas_kernel, int4_gemm_async_test) {
   auto t1 = std::chrono::high_resolution_clock::now();
   for (unsigned int i = 0; i < run_count; ++i) {
     nntrainer::openvino_sgemm_cl(activations_f32_ptr, (char *)wq0,
-                                 (uint16_t *)ws0, out0, M, N0, K);
+                                 (uint16_t *)ws0, out0, M, N0, K,
+                                 scale_group_size);
     nntrainer::openvino_sgemm_cl(activations_f32_ptr, (char *)wq1,
-                                 (uint16_t *)ws1, out1, M, N1, K);
+                                 (uint16_t *)ws1, out1, M, N1, K,
+                                 scale_group_size);
     nntrainer::openvino_sgemm_cl(activations_f32_ptr, (char *)wq2,
-                                 (uint16_t *)ws2, out2, M, N1, K);
+                                 (uint16_t *)ws2, out2, M, N1, K,
+                                 scale_group_size);
   }
   auto t2 = std::chrono::high_resolution_clock::now();
   auto dt = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
@@ -1076,7 +1092,8 @@ TEST(nntrainer_blas_kernel, int4_gemm_async_test) {
   auto t3 = std::chrono::high_resolution_clock::now();
   for (unsigned int i = 0; i < run_count; ++i) {
     nntrainer::openvino_gemm_async_cl(activations_f32_ptr, weight_vec,
-                                      scale_vec, out_vec, M, n_vec, K);
+                                      scale_vec, out_vec, M, n_vec, K,
+                                      scale_group_size);
   }
   auto t4 = std::chrono::high_resolution_clock::now();
   auto gpu_dt = std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3);
