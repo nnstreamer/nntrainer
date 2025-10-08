@@ -267,11 +267,20 @@ static void run_int4_gemv_test_(const uint32_t K, const uint32_t N,
                        N, q4_output_fp32.data(), N);
 
   // GPU INT4 GEMV
-
   std::vector<uint8_t> quantized_weights;
   std::vector<uint16_t> quantized_scales;
   Int4Utils::quantizeAndRepack(weight_fp32.data(), N, K, scale_group_size,
                                quantized_weights, quantized_scales);
+
+  std::vector<float> dequantized_weights;
+  Int4Utils::dequantizePacked(quantized_weights, quantized_scales, N, K,
+                              scale_group_size, dequantized_weights);
+
+  float mse_dequantized =
+    mse<float>(weight_fp32.data(), dequantized_weights.data(), N * K);
+
+  std::cout << "MSE dequantized: " << std::setprecision(10) << mse_dequantized
+            << std::endl;
 
   for (unsigned int i = 0; i < K; ++i) {
     input_ptr[i] = compute_fp32_to_fp16((input_fp32.data())[i]);
