@@ -15,6 +15,7 @@
 #include <utility>
 
 #include "fallback_internal.h"
+#include "int4_utils.h"
 #include "nntrainer_test_util.h"
 #include "swiglu_cl.h"
 #include "tensor_dim.h"
@@ -193,6 +194,20 @@ generate_random_vector(size_t size, float min_val = -1.F, float max_val = 1.F) {
   return vec;
 }
 
+static inline std::vector<float> generate_vector(const size_t size,
+                                                 float min_val, float max_val) {
+  const float step = (max_val - min_val) / (float)size;
+  float current_value = min_val;
+  std::vector<float> vec(size, 0.0f);
+
+  for (int i = 0; i < vec.size(); ++i) {
+    vec[i] = current_value;
+    current_value += step;
+  }
+
+  return vec;
+}
+
 /**
  * @brief Helper function to print data
  *
@@ -214,139 +229,6 @@ static void debug_print_beg_end(const T *const data, const unsigned int size,
   std::cout << "]" << std::endl;
 };
 
-static inline int ceil_div(int a, int b) { return (a + b - 1) / b; }
-
-// Clamp to signed INT4 range [-8, 7]
-static inline int clamp_int4(int v) {
-  if (v < -8)
-    return -8;
-  if (v > 7)
-    return 7;
-  return v;
-}
-
-// Input:
-//   W  : pointer to FP32 weights in row-major [O, I]
-//   O,I: dimensions
-//   group_size: 32, 64, or 128 (per-group along I for scales)
-// Output:
-//   returns {packed_int4, scales_fp16_bits}
-//     - packed_int4 is laid out as OS_IS_YX_OSV32_ISV2 (Y=X=1), two int4 per
-//     byte
-//     - scales_fp16_bits has size O * ceil_div(I, group_size)
-std::pair<std::vector<uint8_t>, std::vector<uint16_t>>
-quantize_int4_os_is_yx_osv32_isv2(const float *W, int O, int I,
-                                  int group_size) {
-  const int O_blk = 32;
-  const int I_blk = 2;
-
-  if (O <= 0 || I <= 0) {
-    return {std::vector<uint8_t>{}, std::vector<uint16_t>{}};
-  }
-  // Accept only 32, 64, 128 (all multiples of I_blk=2)
-  if (!(group_size == 32 || group_size == 64 || group_size == 128)) {
-    // You can choose to clamp or throw; here we clamp to nearest allowed.
-    // Alternatively, replace with: throw std::invalid_argument("group_size must
-    // be 32/64/128");
-    group_size = (group_size < 48) ? 32 : (group_size < 96 ? 64 : 128);
-  }
-
-  const int G = ceil_div(I, group_size); // groups per row (per O)
-
-  // 1) Compute scales (float), size O*G
-  std::vector<float> scales_f(size_t(O) * size_t(G), 1.0f);
-
-  for (int o = 0; o < O; ++o) {
-    const float *row = W + size_t(o) * size_t(I);
-    for (int g = 0; g < G; ++g) {
-      const int i0 = g * group_size;
-      const int i1 = std::min(I, i0 + group_size);
-      float max_abs = 0.0f;
-      for (int i_idx = i0; i_idx < i1; ++i_idx) {
-        float w = row[i_idx];
-        if (!std::isfinite(w))
-          w = 0.0f;
-        float a = std::fabs(w);
-        if (a > max_abs)
-          max_abs = a;
-      }
-      float s = (max_abs == 0.0f) ? 1.0f : (max_abs / 7.0f);
-      scales_f[size_t(o) * size_t(G) + size_t(g)] = s;
-    }
-  }
-
-  // 2) Convert scales to FP16 bit patterns
-  std::vector<uint16_t> scales_fp16(scales_f.size());
-  for (size_t idx = 0; idx < scales_f.size(); ++idx) {
-    scales_fp16[idx] = nntrainer::compute_fp32_to_fp16(scales_f[idx]);
-  }
-
-  // 3) Prepare output buffer in OS_IS_YX_OSV32_ISV2 layout (Y=X=1)
-  const int O_pad = ceil_div(O, O_blk) * O_blk;
-  const int I_pad = ceil_div(I, I_blk) * I_blk;
-  const int O_blocks = O_pad / O_blk;
-  const int I_blocks = I_pad / I_blk;
-
-  const size_t total_int4 =
-    size_t(O_pad) * size_t(I_pad);           // number of 4-bit values
-  const size_t total_bytes = total_int4 / 2; // 2 nibbles per byte
-  std::vector<uint8_t> packed(total_bytes, 0);
-
-  // 4) Emit in the exact physical order:
-  //    for O_block, I_block, o_inner in [0..31], pack i_inner=0 (lo nibble) +
-  //    i_inner=1 (hi nibble)
-  size_t out_idx = 0; // byte index into 'packed'
-
-  for (int ob = 0; ob < O_blocks; ++ob) {
-    for (int ib = 0; ib < I_blocks; ++ib) {
-      for (int oi = 0; oi < O_blk; ++oi) {
-        uint8_t lo = 0, hi = 0; // two INT4 nibbles
-        const int o_abs = ob * O_blk + oi;
-
-        if (o_abs < O) {
-          // i_inner = 0
-          {
-            const int i_abs = ib * I_blk + 0;
-            if (i_abs < I) {
-              const float s = scales_f[size_t(o_abs) * size_t(G) +
-                                       size_t(i_abs / group_size)];
-              float w = W[size_t(o_abs) * size_t(I) + size_t(i_abs)];
-              if (!std::isfinite(w))
-                w = 0.0f;
-              int q = clamp_int4((int)std::nearbyintf(w / s));
-              lo = uint8_t(q & 0xF);
-            } else {
-              lo = 0; // padding
-            }
-          }
-          // i_inner = 1
-          {
-            const int i_abs = ib * I_blk + 1;
-            if (i_abs < I) {
-              const float s = scales_f[size_t(o_abs) * size_t(G) +
-                                       size_t(i_abs / group_size)];
-              float w = W[size_t(o_abs) * size_t(I) + size_t(i_abs)];
-              if (!std::isfinite(w))
-                w = 0.0f;
-              int q = clamp_int4((int)std::nearbyintf(w / s));
-              hi = uint8_t(q & 0xF);
-            } else {
-              hi = 0; // padding
-            }
-          }
-        } else {
-          // O padding -> both nibbles 0
-          lo = hi = 0;
-        }
-
-        packed[out_idx++] = uint8_t((hi << 4) | lo);
-      }
-    }
-  }
-
-  return {std::move(packed), std::move(scales_fp16)};
-}
-
 // -----
 // Tests
 // -----
@@ -364,37 +246,45 @@ static void run_int4_gemv_test_(const uint32_t K, const uint32_t N,
   uint16_t *input_ptr = (uint16_t *)allocateSVM(K * sizeof(uint16_t));
   uint16_t *output_ptr = (uint16_t *)allocateSVM(N * sizeof(uint16_t));
 
-  std::vector<float> weight_fp32 =
-    generate_random_vector<float, false>(N * K, -2.0f, 2.0f);
-  std::vector<float> input =
-    generate_random_vector<float, false>(K, -2.0f, 2.0f);
+  std::vector<float> weight_fp32 = generate_vector(N * K, -2.0f, 2.0f);
+  std::vector<float> input_fp32 = generate_vector(K, -2.0f, 2.0f);
+  std::vector<float> output_fp32(N);
 
-  auto quant_res = quantize_int4_os_is_yx_osv32_isv2(weight_fp32.data(), N, K,
-                                                     scale_group_size);
+  // Reference FP32 GENV
+  std::vector<float> reference_output_fp32(N);
 
-  for (unsigned int i = 0; i < K; ++i) {
-    input_ptr[i] = compute_fp32_to_fp16((input.data())[i]);
-  }
+  nntrainer::sgemv(0, false, N, K, 1.0f, weight_fp32.data(), K,
+                   input_fp32.data(), 1, 0.0f, reference_output_fp32.data(), 1);
 
-  for (unsigned int i = 0; i < K * N / scale_group_size; ++i) {
-    scale_ptr[i] = quant_res.second[i];
-  }
-
-  for (unsigned int i = 0; i < N * K / 2; ++i) {
-    weight_ptr[i] = quant_res.first[i];
-  }
-
-  // Initialize reference q4_0 data
-  std::vector<float> ref_dst(N);
+  // Q4_0 GENV
+  std::vector<float> q4_output_fp32(N);
   std::vector<float> q4_weight(N * K);
   std::vector<float> q4_weight_repack(N * K);
   nntrainer::quantize_q4_0(weight_fp32.data(), q4_weight.data(), N, K, nullptr);
   nntrainer::repack_q4_0(q4_weight_repack.data(), q4_weight.data(),
                          K * N / 32 * 18, N, K);
-  nntrainer::gemm_q4_0(1, N, K, input.data(), K, q4_weight_repack.data(), N,
-                       ref_dst.data(), N);
+  nntrainer::gemm_q4_0(1, N, K, input_fp32.data(), K, q4_weight_repack.data(),
+                       N, q4_output_fp32.data(), N);
 
   // GPU INT4 GEMV
+
+  std::vector<uint8_t> quantized_weights;
+  std::vector<uint16_t> quantized_scales;
+  Int4Utils::quantizeAndRepack(weight_fp32.data(), N, K, scale_group_size,
+                               quantized_weights, quantized_scales);
+
+  for (unsigned int i = 0; i < K; ++i) {
+    input_ptr[i] = compute_fp32_to_fp16((input_fp32.data())[i]);
+  }
+
+  for (unsigned int i = 0; i < K * N / scale_group_size; ++i) {
+    scale_ptr[i] = quantized_scales[i];
+  }
+
+  for (unsigned int i = 0; i < N * K / 2; ++i) {
+    weight_ptr[i] = quantized_weights[i];
+  }
+
   auto t3 = std::chrono::high_resolution_clock::now();
   for (unsigned int i = 0; i < run_count; ++i) {
     nntrainer::gemv_int4_cl(weight_ptr, scale_ptr, input_ptr, output_ptr, K, N,
@@ -403,24 +293,30 @@ static void run_int4_gemv_test_(const uint32_t K, const uint32_t N,
   auto t4 = std::chrono::high_resolution_clock::now();
   auto gpu_dt = std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3);
 
+  for (unsigned int i = 0; i < N; ++i) {
+    output_fp32[i] = compute_fp16_to_fp32(output_ptr[i]);
+  }
+
   std::cout << "INT4 GEMV : " << K << " x " << N << std::endl;
   std::cout << " - time : GPU = " << gpu_dt.count() / (run_count * 1.0f)
             << " ms" << std::endl;
 
-  std::cout << " - sample : [";
-  for (unsigned int i = 0; i < 5; ++i) {
-    std::cout << std::fixed << std::setprecision(3)
-              << compute_fp16_to_fp32(output_ptr[i]) << " ";
-  }
-  std::cout << "][";
-  for (unsigned int i = N - 5; i < N; ++i) {
-    std::cout << std::fixed << std::setprecision(3)
-              << compute_fp16_to_fp32(output_ptr[i]) << " ";
-  }
-  std::cout << "]" << std::endl;
+  std::cout << " - fp32 :   ";
+  debug_print_beg_end(reference_output_fp32.data(), N);
 
   std::cout << " - q4_0 :   ";
-  debug_print_beg_end(ref_dst.data(), N);
+  debug_print_beg_end(q4_output_fp32.data(), N);
+
+  std::cout << " - int4 :   ";
+  debug_print_beg_end(output_fp32.data(), N);
+
+  float mse_int4_err =
+    mse<float>(reference_output_fp32.data(), output_fp32.data(), N);
+  float mse_q4_0_err =
+    mse<float>(reference_output_fp32.data(), q4_output_fp32.data(), N);
+
+  std::cout << "MSE q4_0: " << mse_q4_0_err << std::endl;
+  std::cout << "MSE int4: " << mse_int4_err << std::endl;
 
   freeSVM(weight_ptr);
   freeSVM(scale_ptr);
@@ -533,17 +429,19 @@ TEST(nntrainer_blas_kernel, tensor_dot_qint4) {
     weight_fp32_T[i] = tmp.getData()[i];
   }
 
-  auto quantization =
-    quantize_int4_os_is_yx_osv32_isv2(weight_fp32_T.data(), N, K, 32);
+  std::vector<uint8_t> quantized_weights;
+  std::vector<uint16_t> quantized_scales;
+  Int4Utils::quantizeAndRepack(weight_fp32.data(), N, K, 32, quantized_weights,
+                               quantized_scales);
 
   int8_t *qdata = D_fp32.getData<int8_t>();
   uint16_t *scales = D_fp32.getScale<uint16_t>();
 
   for (unsigned int i = 0; i < N * K / 2; ++i) {
-    qdata[i] = quantization.first[i];
+    qdata[i] = quantized_weights[i];
   }
   for (unsigned int i = 0; i < K * N / 32; ++i) {
-    scales[i] = quantization.second[i];
+    scales[i] = quantized_scales[i];
   }
 
   /// Perform dot mul
@@ -574,19 +472,21 @@ static void run_int4_sgemv_test_(const uint32_t K, const uint32_t N,
   std::vector<float> input =
     generate_random_vector<float, false>(K, -2.0f, 2.0f);
 
-  auto quant_res = quantize_int4_os_is_yx_osv32_isv2(weight_fp32.data(), N, K,
-                                                     scale_group_size);
+  std::vector<uint8_t> quantized_weights;
+  std::vector<uint16_t> quantized_scales;
+  Int4Utils::quantizeAndRepack(weight_fp32.data(), N, K, scale_group_size,
+                               quantized_weights, quantized_scales);
 
   for (unsigned int i = 0; i < K; ++i) {
     input_ptr[i] = (input.data())[i];
   }
 
   for (unsigned int i = 0; i < K * N / scale_group_size; ++i) {
-    scale_ptr[i] = quant_res.second[i];
+    scale_ptr[i] = quantized_scales[i];
   }
 
   for (unsigned int i = 0; i < N * K / 2; ++i) {
-    weight_ptr[i] = quant_res.first[i];
+    weight_ptr[i] = quantized_weights[i];
   }
 
   // GPU INT4 GEMV
@@ -658,45 +558,54 @@ TEST(nntrainer_blas_kernel, int4_gemv_async_test) {
   void *ws0 = allocateSVM(data_size_n0 / scale_group_size);
   void *wq0 = allocateSVM(data_size_n0 / 2);
   blas_cc->command_queue_inst_.enqueueSVMMap(wq0, data_size_n0 / 2, false);
-  auto quantization =
-    quantize_int4_os_is_yx_osv32_isv2(weight0.data(), N0, K, scale_group_size);
+
+  std::vector<uint8_t> quantized_weights0;
+  std::vector<uint16_t> quantized_scales0;
+  Int4Utils::quantizeAndRepack(weight0.data(), N0, K, scale_group_size,
+                               quantized_weights0, quantized_scales0);
 
   for (unsigned int i = 0; i < K * N0 / scale_group_size; ++i) {
-    ((uint16_t *)ws0)[i] = quantization.second[i];
+    ((uint16_t *)ws0)[i] = quantized_scales0[i];
   }
 
   for (unsigned int i = 0; i < N0 * K / 2; ++i) {
-    ((int8_t *)wq0)[i] = quantization.first[i];
+    ((int8_t *)wq0)[i] = quantized_weights0[i];
   }
 
   // weight 1 (3072 x 256)
   void *ws1 = allocateSVM(data_size_n1 / scale_group_size);
   void *wq1 = allocateSVM(data_size_n1 / 2);
   blas_cc->command_queue_inst_.enqueueSVMMap(wq1, data_size_n1 / 2, false);
-  quantization =
-    quantize_int4_os_is_yx_osv32_isv2(weight1.data(), N1, K, scale_group_size);
+
+  std::vector<uint8_t> quantized_weights1;
+  std::vector<uint16_t> quantized_scales1;
+  Int4Utils::quantizeAndRepack(weight1.data(), N1, K, scale_group_size,
+                               quantized_weights1, quantized_scales1);
 
   for (unsigned int i = 0; i < K * N1 / scale_group_size; ++i) {
-    ((uint16_t *)ws1)[i] = quantization.second[i];
+    ((uint16_t *)ws1)[i] = quantized_scales1[i];
   }
 
   for (unsigned int i = 0; i < N1 * K / 2; ++i) {
-    ((int8_t *)wq1)[i] = quantization.first[i];
+    ((int8_t *)wq1)[i] = quantized_weights1[i];
   }
 
   // weight 2 (3072 x 256)
   void *ws2 = allocateSVM(data_size_n1 / scale_group_size);
   void *wq2 = allocateSVM(data_size_n1 / 2);
   blas_cc->command_queue_inst_.enqueueSVMMap(wq2, data_size_n1 / 2, false);
-  quantization =
-    quantize_int4_os_is_yx_osv32_isv2(weight2.data(), N1, K, scale_group_size);
+
+  std::vector<uint8_t> quantized_weights2;
+  std::vector<uint16_t> quantized_scales2;
+  Int4Utils::quantizeAndRepack(weight2.data(), N1, K, scale_group_size,
+                               quantized_weights2, quantized_scales2);
 
   for (unsigned int i = 0; i < K * N1 / scale_group_size; ++i) {
-    ((uint16_t *)ws2)[i] = quantization.second[i];
+    ((uint16_t *)ws2)[i] = quantized_scales2[i];
   }
 
   for (unsigned int i = 0; i < N1 * K / 2; ++i) {
-    ((int8_t *)wq2)[i] = quantization.first[i];
+    ((int8_t *)wq2)[i] = quantized_weights2[i];
   }
 
   // Initialize Output data
@@ -859,19 +768,21 @@ static void run_int4_gemm_test_(const uint32_t M, const uint32_t K,
   blas_cc->command_queue_inst_.enqueueSVMMap(
     scale_ptr, K * N * sizeof(uint16_t) / scale_group_size, false);
 
-  auto quantization =
-    quantize_int4_os_is_yx_osv32_isv2(weight.data(), N, K, scale_group_size);
+  std::vector<uint8_t> quantized_weights;
+  std::vector<uint16_t> quantized_scales;
+  Int4Utils::quantizeAndRepack(weight.data(), N, K, scale_group_size,
+                               quantized_weights, quantized_scales);
 
   for (unsigned int i = 0; i < M * K; ++i) {
     input_ptr[i] = compute_fp32_to_fp16((input.data())[i]);
   }
 
   for (unsigned int i = 0; i < K * N / scale_group_size; ++i) {
-    scale_ptr[i] = quantization.second[i];
+    scale_ptr[i] = quantized_scales[i];
   }
 
   for (unsigned int i = 0; i < N * K / 2; ++i) {
-    weight_ptr[i] = quantization.first[i];
+    weight_ptr[i] = quantized_weights[i];
   }
 
   blas_cc->command_queue_inst_.enqueueSVMUnmap(input_ptr);
@@ -1016,45 +927,54 @@ TEST(nntrainer_blas_kernel, int4_gemm_async_test) {
   void *ws0 = allocateSVM(data_size_n0 / scale_group_size);
   void *wq0 = allocateSVM(data_size_n0 / 2);
   blas_cc->command_queue_inst_.enqueueSVMMap(wq0, data_size_n0 / 2, false);
-  auto quantization =
-    quantize_int4_os_is_yx_osv32_isv2(weight0.data(), N0, K, scale_group_size);
+
+  std::vector<uint8_t> quantized_weights0;
+  std::vector<uint16_t> quantized_scales0;
+  Int4Utils::quantizeAndRepack(weight0.data(), N0, K, scale_group_size,
+                               quantized_weights0, quantized_scales0);
 
   for (unsigned int i = 0; i < K * N0 / scale_group_size; ++i) {
-    ((uint16_t *)ws0)[i] = quantization.second[i];
+    ((uint16_t *)ws0)[i] = quantized_scales0[i];
   }
 
   for (unsigned int i = 0; i < N0 * K / 2; ++i) {
-    ((int8_t *)wq0)[i] = quantization.first[i];
+    ((int8_t *)wq0)[i] = quantized_weights0[i];
   }
 
   // weight 1 (3072 x 256)
   void *ws1 = allocateSVM(data_size_n1 / scale_group_size);
   void *wq1 = allocateSVM(data_size_n1 / 2);
   blas_cc->command_queue_inst_.enqueueSVMMap(wq1, data_size_n1 / 2, false);
-  quantization =
-    quantize_int4_os_is_yx_osv32_isv2(weight1.data(), N1, K, scale_group_size);
+
+  std::vector<uint8_t> quantized_weights1;
+  std::vector<uint16_t> quantized_scales1;
+  Int4Utils::quantizeAndRepack(weight1.data(), N1, K, scale_group_size,
+                               quantized_weights1, quantized_scales1);
 
   for (unsigned int i = 0; i < K * N1 / scale_group_size; ++i) {
-    ((uint16_t *)ws1)[i] = quantization.second[i];
+    ((uint16_t *)ws1)[i] = quantized_scales1[i];
   }
 
   for (unsigned int i = 0; i < N1 * K / 2; ++i) {
-    ((int8_t *)wq1)[i] = quantization.first[i];
+    ((int8_t *)wq1)[i] = quantized_weights1[i];
   }
 
   // weight 2 (3072 x 256)
   void *ws2 = allocateSVM(data_size_n1 / scale_group_size);
   void *wq2 = allocateSVM(data_size_n1 / 2);
   blas_cc->command_queue_inst_.enqueueSVMMap(wq2, data_size_n1 / 2, false);
-  quantization =
-    quantize_int4_os_is_yx_osv32_isv2(weight2.data(), N1, K, scale_group_size);
+
+  std::vector<uint8_t> quantized_weights2;
+  std::vector<uint16_t> quantized_scales2;
+  Int4Utils::quantizeAndRepack(weight2.data(), N1, K, scale_group_size,
+                               quantized_weights2, quantized_scales2);
 
   for (unsigned int i = 0; i < K * N1 / scale_group_size; ++i) {
-    ((uint16_t *)ws2)[i] = quantization.second[i];
+    ((uint16_t *)ws2)[i] = quantized_scales2[i];
   }
 
   for (unsigned int i = 0; i < N1 * K / 2; ++i) {
-    ((int8_t *)wq2)[i] = quantization.first[i];
+    ((int8_t *)wq2)[i] = quantized_weights2[i];
   }
 
   // Initialize Output data
