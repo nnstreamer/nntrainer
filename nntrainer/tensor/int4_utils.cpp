@@ -130,8 +130,6 @@ void Int4Utils::quantizeAndRepack(const float *weights, const size_t rows_count,
     out_scales[scale_id] = compute_fp32_to_fp16(scales_fp32[scale_id]);
   }
 
-  const auto groups_per_row = columns_count / group_size;
-
   NNTR_THROW_IF(rows_count % ROW_BLOCK_SIZE, std::invalid_argument)
     << "Rows size not divisible by row block size";
 
@@ -139,6 +137,7 @@ void Int4Utils::quantizeAndRepack(const float *weights, const size_t rows_count,
     << "Columns size not divisible by column block size";
 
   // Prepare output buffer in OS_IS_YX_OSV32_ISV2 layout
+  const auto groups_per_row = columns_count / group_size;
   const auto row_blocks_count = rows_count / ROW_BLOCK_SIZE;
   const auto column_blocks_count = columns_count / COLUMN_BLOCK_SIZE;
   out_weights.resize((rows_count * columns_count) / 2, 0);
@@ -187,6 +186,56 @@ int Int4Utils::convertInt4ToInt(const uint8_t int4_value) {
                          -8, -7, -6, -5, -4, -3, -2, -1};
 
   return lookup[int4_value];
+}
+
+void Int4Utils::dequantizePacked(const std::vector<uint8_t> &weights,
+                                 const std::vector<uint16_t> &scales,
+                                 const size_t rows_count,
+                                 const size_t columns_count,
+                                 const size_t group_size,
+                                 std::vector<float> &dequantized_weights) {
+  const auto groups_per_row = columns_count / group_size;
+  const auto row_blocks_count = rows_count / ROW_BLOCK_SIZE;
+  const auto column_blocks_count = columns_count / COLUMN_BLOCK_SIZE;
+
+  dequantized_weights.resize(rows_count * columns_count);
+
+  size_t out_idx = 0;
+
+  for (size_t row_block_id = 0; row_block_id < row_blocks_count;
+       ++row_block_id) {
+    for (size_t column_block_id = 0; column_block_id < column_blocks_count;
+         ++column_block_id) {
+      for (size_t i = 0; i < ROW_BLOCK_SIZE; ++i) {
+        uint8_t lo = 0, hi = 0;
+        const auto row_id_absolute = (row_block_id * ROW_BLOCK_SIZE) + i;
+        const auto column_id_absolute_lo =
+          (column_block_id * COLUMN_BLOCK_SIZE);
+        const auto column_id_absolute_hi = column_id_absolute_lo + 1;
+
+        const auto scale_lo =
+          scales[row_id_absolute +
+                 ((column_id_absolute_lo / group_size) * rows_count)];
+
+        const auto scale_hi =
+          scales[row_id_absolute +
+                 ((column_id_absolute_hi / group_size) * rows_count)];
+
+        const auto weight = weights[out_idx++];
+        const auto weight_lo = weight & 0xF;
+        const auto weight_hi = (weight >> 4) & 0xF;
+
+        dequantized_weights[(row_id_absolute * columns_count) +
+                            column_id_absolute_lo] =
+          Int4Utils::convertInt4ToInt(weight_lo) *
+          nntrainer::compute_fp16_to_fp32(scale_lo);
+        dequantized_weights[(row_id_absolute * columns_count) +
+                            column_id_absolute_hi] =
+          Int4Utils::convertInt4ToInt(weight_hi) *
+          nntrainer::compute_fp16_to_fp32(scale_hi);
+      }
+    }
+  }
 }
 
 } // namespace nntrainer
