@@ -5,6 +5,19 @@
 #include <cstdint>
 #include <vector>
 
+// TODO those structures should be defined in one place
+#define QK4_0 32
+
+struct block_q4_0x8 {
+  uint16_t d[8];   // 16B
+  uint8_t qs[128]; // 16 x u64
+};
+
+struct block_q4_0 {
+  uint16_t d;            // delta
+  uint8_t qs[QK4_0 / 2]; // nibbles / quants
+};
+
 namespace nntrainer {
 
 class Int4Utils {
@@ -45,6 +58,21 @@ public:
                                const size_t columns_count,
                                const size_t group_size,
                                std::vector<float> &dequantized_weights);
+
+  // TODO begin
+  // temporary put Q4_0 depack here in order to be able to run it both in tests
+  // and llm inference
+  static void nntr_depack_block_q4_0x8(const block_q4_0x8 *in, block_q4_0 *dst,
+                                       unsigned int blck_size_interleave);
+
+  static void nntr_depack_q4_0_8_bl_to_q4_0(void *__restrict dst,
+                                            const void *__restrict data,
+                                            size_t data_size, size_t nrow,
+                                            size_t k);
+
+  static void dequantize_q4_0(void *q4_weight_repack, float *weight_fp32_out,
+                              int N, int K);
+  // TODO end
 };
 
 } // namespace nntrainer
