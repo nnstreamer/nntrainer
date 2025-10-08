@@ -2,6 +2,7 @@
 #define __NNTRAINER_INT4_UTILS_H__
 
 #include <algorithm>
+#include <cstdint>
 #include <vector>
 
 namespace nntrainer {

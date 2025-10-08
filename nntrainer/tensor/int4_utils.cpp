@@ -171,7 +171,14 @@ void Int4Utils::quantizeAndRepack(const float *weights, const size_t rows_count,
 }
 
 uint8_t Int4Utils::quantizeToInt4(const float weight, const float scale) {
-  int quantized = clampToInt4((int)std::nearbyintf(weight / scale));
+  auto div = std::nearbyintf(weight / scale);
+
+  if (std::isnan(div)) {
+    div = 0.0f;
+  }
+
+  div = std::clamp(div, -8.0f, 7.0f);
+  int quantized = (int)div;
   return uint8_t(quantized & 0xF);
 }
 
