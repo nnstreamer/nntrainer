@@ -767,9 +767,11 @@ static void run_int4_gemm_test_(const uint32_t M, const uint32_t K,
   static constexpr uint32_t run_count = 200;
 
   // Allocate & initialize data
-  std::vector<float> input = generate_random_vector<float, false>(M * K);
-  std::vector<float> weight = generate_random_vector<float, false>(N * K);
-
+  // std::vector<float> input = generate_random_vector<float, false>(M * K);
+  // std::vector<float> weight = generate_random_vector<float, false>(N * K);
+  std::vector<float> input = generate_vector(M * K, -2.0f, 2.0f);
+  std::vector<float> weight = generate_vector(N * K, -2.0f, 2.0f);
+  std::vector<float> output_fp32(M * N);
   std::vector<float> ref_dst(M * N, 0.0f);
 
   nntrainer::sgemm(0, false, true, M, N, K, 1.F, input.data(), K, weight.data(),
@@ -820,6 +822,13 @@ static void run_int4_gemm_test_(const uint32_t M, const uint32_t K,
 
   // Compute raports
   {
+    for (unsigned int i = 0; i < M * N; ++i) {
+      output_fp32[i] = compute_fp16_to_fp32(output_ptr[i]);
+    }
+
+    float mse_int4_err = mse<float>(ref_dst.data(), output_fp32.data(), M * N);
+    std::cout << "MSE int4: " << mse_int4_err << std::endl;
+
     uint32_t first_zero_index = UINT32_MAX;
     uint32_t first_nonzero_index = UINT32_MAX;
     int zeros = 0;
