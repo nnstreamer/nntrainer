@@ -190,8 +190,7 @@ int Int4Utils::convertInt4ToInt(const uint8_t int4_value) {
   return lookup[int4_value];
 }
 
-void Int4Utils::dequantizePacked(const std::vector<uint8_t> &weights,
-                                 const std::vector<uint16_t> &scales,
+void Int4Utils::dequantizePacked(const uint8_t *weights, const uint16_t *scales,
                                  const size_t rows_count,
                                  const size_t columns_count,
                                  const size_t group_size,

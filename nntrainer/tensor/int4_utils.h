@@ -52,8 +52,7 @@ public:
 
   static int convertInt4ToInt(const uint8_t int4_value);
 
-  static void dequantizePacked(const std::vector<uint8_t> &weights,
-                               const std::vector<uint16_t> &scales,
+  static void dequantizePacked(const uint8_t *weights, const uint16_t *scales,
                                const size_t rows_count,
                                const size_t columns_count,
                                const size_t group_size,

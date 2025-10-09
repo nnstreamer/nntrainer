@@ -16,12 +16,15 @@
 #include <chrono>
 #include <cpu_backend.h>
 #include <float_tensor.h>
+#include <int4_utils.h>
 #include <tensor.h>
 #include <util_func.h>
 
 #ifdef ENABLE_OPENCL
 #include "blas_kernels.h"
 #endif
+
+#include <fp16.h>
 
 namespace nntrainer {
 
@@ -716,6 +719,28 @@ Tensor &FloatTensor::dot(Tensor const &input, Tensor &output, bool trans,
   return output;
 }
 
+void *allocateSVM(size_t size_bytes) {
+  auto *blas_cc = static_cast<nntrainer::ClContext *>(
+    nntrainer::Engine::Global().getRegisteredContext("gpu"));
+
+  void *ptr = blas_cc->context_inst_.createSVMRegion(size_bytes);
+
+  if (ptr == nullptr) {
+    throw std::runtime_error(
+      "Failed to allocated SVM for the OpenCL BLAS unit test.");
+  }
+
+  return ptr;
+}
+
+void freeSVM(void *ptr) {
+  auto *blas_cc = static_cast<nntrainer::ClContext *>(
+    nntrainer::Engine::Global().getRegisteredContext("gpu"));
+
+  blas_cc->context_inst_.releaseSVMRegion(ptr);
+  ptr = nullptr;
+}
+
 void FloatTensor::dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
                       bool trans, bool trans_in, float beta) const {
   float *data = (float *)getData();
@@ -725,15 +750,57 @@ void FloatTensor::dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
   std::vector<unsigned int> Ns;
   std::vector<void *> mdatas;
   std::vector<float *> rdatas;
+  std::vector<std::vector<float>> rdatas_int4;
 
   if (input[0]->getDataType() == Tdatatype::Q4_0) {
-    for (unsigned int i = 0; i < input.size(); ++i) {
-      int N = input[i]->getDim().width();
-      void *mdata = (void *)input[i]->getData<uint8_t>();
-      float *rdata = output[i]->getData<float>();
+    for (unsigned int input_id = 0; input_id < input.size(); ++input_id) {
+      int N = input[input_id]->getDim().width();
+      uint8_t *mdata = input[input_id]->getData<uint8_t>();
+      float *rdata = output[input_id]->getData<float>();
+
 #ifdef ENABLE_OPENCL
       if (M == 1) {
-        gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
+        uint16_t *scale_ptr = (uint16_t *)allocateSVM(
+          K * N / DEFAULT_INT4_QUANTIZATION_GROUP_SIZE * sizeof(uint16_t));
+        char *weight_ptr = (char *)allocateSVM(K * N / 2);
+        uint16_t *input_ptr = (uint16_t *)allocateSVM(K * sizeof(uint16_t));
+        uint16_t *output_ptr = (uint16_t *)allocateSVM(N * sizeof(uint16_t));
+
+        for (unsigned int i = 0; i < K; ++i) {
+          input_ptr[i] = compute_fp32_to_fp16(data[i]);
+        }
+
+        std::vector<float> dequantized_weights_q4(N * K);
+        Int4Utils::dequantize_q4_0(mdata, dequantized_weights_q4.data(), N, K);
+
+        std::vector<uint8_t> quantized_weights_int4;
+        std::vector<uint16_t> quantized_scales_int4;
+        Int4Utils::quantizeAndRepack(dequantized_weights_q4.data(), N, K,
+                                     DEFAULT_INT4_QUANTIZATION_GROUP_SIZE,
+                                     quantized_weights_int4,
+                                     quantized_scales_int4);
+
+        for (unsigned int i = 0;
+             i < K * N / DEFAULT_INT4_QUANTIZATION_GROUP_SIZE; ++i) {
+          scale_ptr[i] = quantized_scales_int4[i];
+        }
+
+        for (unsigned int i = 0; i < N * K / 2; ++i) {
+          weight_ptr[i] = quantized_weights_int4[i];
+        }
+
+        nntrainer::gemv_int4_cl(weight_ptr, scale_ptr, input_ptr, output_ptr, K,
+                                N, DEFAULT_INT4_QUANTIZATION_GROUP_SIZE);
+
+        for (unsigned int i = 0; i < N; ++i) {
+          rdata[i] = compute_fp16_to_fp32(output_ptr[i]);
+        }
+
+        freeSVM(scale_ptr);
+        freeSVM(weight_ptr);
+        freeSVM(input_ptr);
+        freeSVM(output_ptr);
+
       } else {
         Ns.push_back(N);
         mdatas.push_back(mdata);
@@ -747,9 +814,60 @@ void FloatTensor::dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
 
 #ifdef ENABLE_OPENCL
     if (M != 1) {
-      gemm_q4_0_async_cl(mdatas, data, rdatas, M, Ns, K);
+
+      for (int input_id = 0; input_id < Ns.size(); ++input_id) {
+
+        uint16_t *scale_ptr = (uint16_t *)allocateSVM(
+          K * Ns[input_id] / DEFAULT_INT4_QUANTIZATION_GROUP_SIZE *
+          sizeof(uint16_t));
+        char *weight_ptr = (char *)allocateSVM(K * Ns[input_id] / 2);
+        uint16_t *input_ptr = (uint16_t *)allocateSVM(K * sizeof(uint16_t));
+        uint16_t *output_ptr =
+          (uint16_t *)allocateSVM(Ns[input_id] * sizeof(uint16_t));
+
+        std::vector<float> dequantized_weights_q4(Ns[input_id] * K);
+        Int4Utils::dequantize_q4_0(
+          mdatas[input_id], dequantized_weights_q4.data(), Ns[input_id], K);
+
+        std::vector<uint8_t> quantized_weights_int4;
+        std::vector<uint16_t> quantized_scales_int4;
+        Int4Utils::quantizeAndRepack(
+          dequantized_weights_q4.data(), Ns[input_id], K,
+          DEFAULT_INT4_QUANTIZATION_GROUP_SIZE, quantized_weights_int4,
+          quantized_scales_int4);
+
+        for (unsigned int i = 0;
+             i < K * Ns[input_id] / DEFAULT_INT4_QUANTIZATION_GROUP_SIZE; ++i) {
+          scale_ptr[i] = quantized_scales_int4[i];
+        }
+
+        for (unsigned int i = 0; i < Ns[input_id] * K / 2; ++i) {
+          weight_ptr[i] = quantized_weights_int4[i];
+        }
+
+        for (int m_id = 0; m_id < M; ++m_id) {
+          for (unsigned int i = 0; i < K; ++i) {
+            input_ptr[i] = compute_fp32_to_fp16((data + (K * m_id))[i]);
+          }
+
+          nntrainer::gemv_int4_cl(weight_ptr, scale_ptr, input_ptr, output_ptr,
+                                  K, Ns[input_id],
+                                  DEFAULT_INT4_QUANTIZATION_GROUP_SIZE);
+
+          for (unsigned int i = 0; i < Ns[input_id]; ++i) {
+            (rdatas[input_id] + (Ns[input_id] * m_id))[i] =
+              compute_fp16_to_fp32(output_ptr[i]);
+          }
+        }
+
+        freeSVM(scale_ptr);
+        freeSVM(weight_ptr);
+        freeSVM(input_ptr);
+        freeSVM(output_ptr);
+      }
     }
 #endif
+
   } else if (input[0]->getDataType() == Tdatatype::QINT4) {
 #ifndef ENABLE_OPENCL
     throw std::runtime_error("Error: QINT4 Dot is not supported on CPU");
@@ -937,10 +1055,95 @@ Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
     N = input.getDim().width();
 #ifdef ENABLE_OPENCL
     if (M == 1) {
-      gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
+      uint16_t *scale_ptr = (uint16_t *)allocateSVM(
+        K * N / DEFAULT_INT4_QUANTIZATION_GROUP_SIZE * sizeof(uint16_t));
+      char *weight_ptr = (char *)allocateSVM(K * N / 2);
+      uint16_t *input_ptr = (uint16_t *)allocateSVM(K * sizeof(uint16_t));
+      uint16_t *output_ptr = (uint16_t *)allocateSVM(N * sizeof(uint16_t));
+
+      for (unsigned int i = 0; i < K; ++i) {
+        input_ptr[i] = compute_fp32_to_fp16(data[i]);
+      }
+
+      std::vector<float> dequantized_weights_q4(N * K);
+      Int4Utils::dequantize_q4_0(mdata, dequantized_weights_q4.data(), N, K);
+
+      std::vector<uint8_t> quantized_weights_int4;
+      std::vector<uint16_t> quantized_scales_int4;
+      Int4Utils::quantizeAndRepack(dequantized_weights_q4.data(), N, K,
+                                   DEFAULT_INT4_QUANTIZATION_GROUP_SIZE,
+                                   quantized_weights_int4,
+                                   quantized_scales_int4);
+
+      for (unsigned int i = 0; i < K * N / DEFAULT_INT4_QUANTIZATION_GROUP_SIZE;
+           ++i) {
+        scale_ptr[i] = quantized_scales_int4[i];
+      }
+
+      for (unsigned int i = 0; i < N * K / 2; ++i) {
+        weight_ptr[i] = quantized_weights_int4[i];
+      }
+
+      nntrainer::gemv_int4_cl(weight_ptr, scale_ptr, input_ptr, output_ptr, K,
+                              N, DEFAULT_INT4_QUANTIZATION_GROUP_SIZE);
+
+      for (unsigned int i = 0; i < N; ++i) {
+        rdata[i] = compute_fp16_to_fp32(output_ptr[i]);
+      }
+
+      freeSVM(scale_ptr);
+      freeSVM(weight_ptr);
+      freeSVM(input_ptr);
+      freeSVM(output_ptr);
+
+      // gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
     } else {
-      gemm_q4_0_cl((void *)mdata, data, rdata, M, N, K);
+
+      uint16_t *scale_ptr = (uint16_t *)allocateSVM(
+        K * N / DEFAULT_INT4_QUANTIZATION_GROUP_SIZE * sizeof(uint16_t));
+      char *weight_ptr = (char *)allocateSVM(K * N / 2);
+      uint16_t *input_ptr = (uint16_t *)allocateSVM(K * sizeof(uint16_t));
+      uint16_t *output_ptr = (uint16_t *)allocateSVM(N * sizeof(uint16_t));
+
+      std::vector<float> dequantized_weights_q4(N * K);
+      Int4Utils::dequantize_q4_0(mdata, dequantized_weights_q4.data(), N, K);
+
+      std::vector<uint8_t> quantized_weights_int4;
+      std::vector<uint16_t> quantized_scales_int4;
+      Int4Utils::quantizeAndRepack(dequantized_weights_q4.data(), N, K,
+                                   DEFAULT_INT4_QUANTIZATION_GROUP_SIZE,
+                                   quantized_weights_int4,
+                                   quantized_scales_int4);
+
+      for (unsigned int i = 0; i < K * N / DEFAULT_INT4_QUANTIZATION_GROUP_SIZE;
+           ++i) {
+        scale_ptr[i] = quantized_scales_int4[i];
+      }
+
+      for (unsigned int i = 0; i < N * K / 2; ++i) {
+        weight_ptr[i] = quantized_weights_int4[i];
+      }
+
+      for (int m_id = 0; m_id < M; ++m_id) {
+        for (unsigned int i = 0; i < K; ++i) {
+          input_ptr[i] = compute_fp32_to_fp16((data + (K * m_id))[i]);
+        }
+
+        nntrainer::gemv_int4_cl(weight_ptr, scale_ptr, input_ptr, output_ptr, K,
+                                N, DEFAULT_INT4_QUANTIZATION_GROUP_SIZE);
+
+        for (unsigned int i = 0; i < N; ++i) {
+          (rdata + (N * m_id))[i] = compute_fp16_to_fp32(output_ptr[i]);
+        }
+      }
+
+      freeSVM(scale_ptr);
+      freeSVM(weight_ptr);
+      freeSVM(input_ptr);
+      freeSVM(output_ptr);
+      // gemm_q4_0_cl((void *)mdata, data, rdata, M, N, K);
     }
+
 #else
     gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
 #endif

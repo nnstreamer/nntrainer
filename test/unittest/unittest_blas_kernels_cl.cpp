@@ -283,8 +283,8 @@ static void run_int4_gemv_test_(const uint32_t K, const uint32_t N,
                                quantized_weights, quantized_scales);
 
   std::vector<float> dequantized_weights;
-  Int4Utils::dequantizePacked(quantized_weights, quantized_scales, N, K,
-                              scale_group_size, dequantized_weights);
+  Int4Utils::dequantizePacked(quantized_weights.data(), quantized_scales.data(),
+                              N, K, scale_group_size, dequantized_weights);
 
   float mse_dequantized =
     mse<float>(weight_fp32.data(), dequantized_weights.data(), N * K);
