@@ -498,6 +498,93 @@ void inv_sqrt_inplace(const unsigned int N, _FP16 *X);
 void transpose_matrix(const unsigned int M, const unsigned int N,
                       const _FP16 *src, unsigned int ld_src, _FP16 *dst,
                       unsigned int ld_dst);
+
+/**
+ * @brief qs4cx quantization of (n*k) matrix. Typically a weight quantization,
+ * and generally regard the weight is already transposed, and quantize it as it
+ * is. qs4cx refers to quantized symmetric 4-bit quantization of channelwise x
+ * groups.
+ *
+ * @param n N length of the matrix
+ * @param k K length of the matrix
+ * @param rhs_native_mtx_f32 matrix data before quantization to load
+ * @param rhs_native_mtx_qs4cx matrix data after quantization to stroe
+ * @param rhs_scales_f32 matrix quant scale after quantization to stroe
+ * @param transB
+ */
+void nntr_quant_qs4cx_f32(size_t n, size_t k, void *rhs_native_mtx_f32,
+                          void *rhs_native_mtx_qs4cx, void *rhs_scales_f32,
+                          bool transB = true);
+
+/**
+ * @brief get size of memory to allocate for rhs weight packing of qsi4cxp to
+ * qs4cxs1s0
+ *
+ * @param n row length if not transposed
+ * @param k col length if not transposed
+ * @return size_t size of memory to allocate
+ */
+size_t nntr_get_rhs_packed_size_qsi4cxp_qs4cxs1s0(size_t n, size_t k,
+                                                  uint32_t idx_variant,
+                                                  bool transB);
+/**
+ * @brief rhs matrix packing for qsi4cxp format
+ *
+ * @param n row length if not transposed
+ * @param k col length if not transposed
+ * @param rhs_packed_mtx_qs4cx dst* to store results
+ * @param rhs_native_mtx_qs4cx input matrix data
+ * @param rhs_scales_f32 input qparam data
+ * @param transB rather the matrix is transposed or not
+ */
+void nntr_qsi4cxp_qs4cxs1s0_rhs_pack(size_t n, size_t k,
+                                     void *rhs_packed_mtx_qs4cx,
+                                     void *rhs_native_mtx_qs4cx,
+                                     void *rhs_scales_f32, uint32_t idx_variant,
+                                     bool transB);
+/**
+ * @brief GEMM of qai8dxp runtime-quantized activation and offline qs4cx
+ * quantized weight
+ *
+ * @tparam T dataType of input activation and output matrices
+ * @param m M length of the matrix
+ * @param n N length of the matrix
+ * @param k K length of the matrix
+ * @param lhs_native_mtx activation (not quantized)
+ * @param rhs_native_mtx_qs4cx offline quantized weight
+ * @param rhs_scales scale factor vector of quantized weight
+ * @param dst_mtx dst matrix
+ * @param lower_bound lower bound to clamp
+ * @param upper_bound upper bound to clamp
+ * @param transB Choose weight data to be transposed or not. Default value
+ * regards the weight to be transpoed.
+ */
+template <typename T = float>
+uint32_t nntr_gemm_qai8dxp_qsi4cxp_unpacked(
+  size_t m, size_t n, size_t k, void *lhs_native_mtx,
+  void *rhs_native_mtx_qs4cx, void *rhs_scales, T *dst_mtx, bool transB = true,
+  T lower_bound = std::numeric_limits<T>::lowest(),
+  T upper_bound = std::numeric_limits<T>::max());
+
+/**
+ * @brief run qai8dxp_qsi4cxp GEMM with offline weight packing
+ *
+ * @param m M for (M, K) * (K, N) = (M, N) in noTrans GEMM
+ * @param n N for (M, K) * (K, N) = (M, N) in noTrans GEMM
+ * @param k K for (M, K) * (K, N) = (M, N) in noTrans GEMM
+ * @param lhs_native_mtx_f32 activation
+ * @param rhs_packed_mtx_qs4cx qs4cx quantized weight, packed already
+ * @param dst_act_mtx_f32 dst data
+ * @param transB rather the weight matrix is transposed or not
+ * @param lower_bound clipping param
+ * @param upper_bound clipping param
+ */
+template <typename T = float>
+void nntr_gemm_qai8dxp_qsi4cxp_packed(
+  size_t m, size_t n, size_t k, void *lhs_native_mtx_f32,
+  void *rhs_packed_mtx_qs4cx, T *dst_act_mtx_f32, uint32_t idx_variant,
+  bool transB = true, T lower_bound = std::numeric_limits<T>::lowest(),
+  T upper_bound = std::numeric_limits<T>::max());
 #endif
 
 /**
