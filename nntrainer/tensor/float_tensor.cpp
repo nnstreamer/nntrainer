@@ -959,9 +959,6 @@ Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
 Tensor &FloatTensor::dotQInteger(Tensor const &input, Tensor &output,
                                  bool trans, bool trans_in, float beta,
                                  Tdatatype dtype) const {
-#ifndef ENABLE_OPENCL
-  throw std::runtime_error("Error: QINT4 Dot is not supported on CPU");
-#else
 
   float *data = (float *)getData();
   char *mdata = input.getData<char>();
@@ -971,6 +968,21 @@ Tensor &FloatTensor::dotQInteger(Tensor const &input, Tensor &output,
   unsigned int K = getDim().width();
   unsigned int N = output.getDim().width();
 
+#ifndef ENABLE_OPENCL
+#ifdef ENABLE_FP16
+  if (input.q_scheme() == QScheme::PER_CHANNEL_AFFINE) {
+    uint32_t opt_kernel_idx = (M == 1) ? 1 : 5;
+    nntr_gemm_qai8dxp_qsi4cxp_packed(
+      M, N, K, (void *)data, (void *)mdata, rdata, opt_kernel_idx,
+      true); /// @todo kernel supports both trans / noTrans situation
+  } else {
+    throw std::runtime_error(
+      "Error: QINT4 Dot on CPU only supports PER_CHANNEL_AFFINE scheme");
+  }
+#endif
+  throw std::runtime_error(
+    "Error: FP16 should be enabled for QINT4 Dot on CPU");
+#else
   /// @note this should be if (M == 1) else
   if (M == 1) {
     gemv_int4_cl(mdata, input.getScale<uint16_t>(), data, rdata, K, N,
