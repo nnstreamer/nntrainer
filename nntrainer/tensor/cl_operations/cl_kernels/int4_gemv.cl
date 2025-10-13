@@ -141,6 +141,8 @@ DECLARE_BLOCK_READ_EMULATION(1, 8)
 DECLARE_BLOCK_READ_EMULATION(1, 16)
 #endif
 
+#define SCALE_ROW_MAJOR 0
+
 #define SIMD 16
 #define SUBGROUP_SIZE SIMD
 #define DECOMPRESSION_GROUP_SIZE SIZE_QUANTIZATION_GROUP
@@ -202,8 +204,12 @@ fully_connected_gpu_int4_gemv(__global half *input, const __global half *scales,
   __local float all_sum_even[16][16]; // [wi_id, thr_id]
   __local float all_sum_odd[16][16];
 
+#if SCALE_ROW_MAJOR
+  scales += ((n / 32) * 32 + (n % 32) / 2) * SCALE_GROUP_NUM;
+#else
   // Scale layout is fbyx
   scales += (n / 32) * 32 + (n % 32) / 2;
+#endif
 
   float2 sum_all = 0;
   for (int gk = gk0; gk < gk1; gk++) {
@@ -213,8 +219,14 @@ fully_connected_gpu_int4_gemv(__global half *input, const __global half *scales,
                                       WEIGHTS_K, WEIGHTS_N, 32);
 
     GEMV_ACCUMULATOR_VEC_TYPE sum = 0;
+
+#if SCALE_ROW_MAJOR
+    float scale_0 = convert_float(scales[gk]);
+    float scale_1 = convert_float(scales[gk + 16 * SCALE_GROUP_NUM]);
+#else
     float scale_0 = convert_float(scales[gk * WEIGHTS_N]);
     float scale_1 = convert_float(scales[gk * WEIGHTS_N + 16]);
+#endif
 
     __attribute__((opencl_unroll_hint(4))) for (int g = 0;
                                                 g < DECOMPRESSION_GROUP_SIZE;
