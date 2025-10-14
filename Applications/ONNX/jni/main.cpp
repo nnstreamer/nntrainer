@@ -22,7 +22,7 @@ int main() {
 
   std::cout << "--------------------------------------Create Model Done--------------------------------------" << std::endl;
   try {
-    std::string path = "model_path(onnx)";
+    std::string path = "/storage_data/snap/sumon/sumon-98/nntrainer/Applications/ONNX/jni/qwen3_model_one_layer_no_cast.onnx";
     model->load(path, ml::train::ModelFormat::MODEL_FORMAT_ONNX);
   } catch (const std::exception &e) {
     std::cerr << "Error during load: " << e.what() << "\n";
@@ -50,7 +50,7 @@ int main() {
 
   std::cout << "--------------------------------------Summarize Model Done--------------------------------------" << std::endl;
 
-  std::string weight_path = "model_weights_path(dir)";
+  std::string weight_path = "/storage_data/snap/sumon/sumon-98/nntrainer/Applications/ONNX/jni/qwen_weights_one_layer_no_cast/";
   try {
         model->load(weight_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
       } catch (std::exception &e) {
@@ -58,12 +58,24 @@ int main() {
         return 1;
       }
 
-  float *input1 = new float[4];
-  for(int i = 0; i < 4; i++){
-    input1[i] = (i + 1);
+  float *input = new float[1];
+  float *sin = new float[128];
+  float *cos = new float[128];
+  float *epsilon = new float[1];
+
+  input[0] = 2;
+
+  for(int i = 0; i < 128; i++){
+    sin[i] = 0.2;
+    cos[i] = 0.3;
   }
+  epsilon[0] = 0.05;
+
   std::vector<float *> in; 
-  in.push_back(input1);
+  in.push_back(input);
+  in.push_back(sin);
+  in.push_back(cos);
+  in.push_back(epsilon);
   auto ans = model->inference(1, in);
 
   std::cout << "-------------------------------------------Inference Done--------------------------------------------" << std::endl;

@@ -426,10 +426,12 @@ loadProperties(const std::vector<std::string> &string_vector, Tuple &&props) {
   std::vector<std::string> string_vector_splited;
   string_vector_splited.reserve(string_vector.size());
   for (auto &item : string_vector) {
+    // std::cout << "Value: " << item << std::endl;
     auto splited = split(item, std::regex("\\|"));
     string_vector_splited.insert(string_vector_splited.end(), splited.begin(),
                                  splited.end());
   }
+  // std::cout << "----------------------------------" << std::endl;
 
   std::vector<std::pair<std::string, std::string>> left;
   left.reserve(string_vector_splited.size());
@@ -445,6 +447,7 @@ loadProperties(const std::vector<std::string> &string_vector, Tuple &&props) {
 
   auto callable = [&left](auto &&prop, size_t index) {
     std::string prop_key = getPropKey(prop);
+    // std::cout << "Prop: "  << prop_key << std::endl;
 
     for (auto iter = left.begin(); iter < left.end();) {
       if (istrequal(prop_key, iter->first) == true) {
@@ -457,6 +460,7 @@ loadProperties(const std::vector<std::string> &string_vector, Tuple &&props) {
   };
 
   iterate_prop(callable, props);
+  // std::cout << std::endl;
 
   std::vector<std::string> remainder;
   remainder.reserve(left.size());

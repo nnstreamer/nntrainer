@@ -114,7 +114,7 @@ void NetworkGraph::setExecutionOrder() {
     if (node->getTrainable())
       backward_order++;
     auto apply_gradient_order = backward_order++;
-
+    // sumon: execution order is set here
     node->setExecutionOrder({forward_order, calc_gradient_order,
                              calc_derivative_order, apply_gradient_order});
   }

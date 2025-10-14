@@ -689,6 +689,7 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims,
     actual_input_dims, out_info, getInPlaceType() != InPlaceType::NONE,
     getName(), scope, max_norm, tensor_type, loss_scale, mode, compute_engine);
 
+  // std::cout << "Layer Name:   " << layer->getType() << std::endl;
   layer->finalize(context);
 
 #ifdef ENABLE_TEST
@@ -785,6 +786,7 @@ LayerNode::refinalize(const std::vector<TensorDim> &input_dims) {
                                   getInPlaceType() != InPlaceType::NONE,
                                   getName(), scope, max_norm);
 
+  // std::cout << layer->getType() << std::endl;
   layer->finalize(context);
 
 #ifdef ENABLE_TEST
@@ -828,6 +830,14 @@ void LayerNode::forwarding(bool training) {
     }
   }
 
+  std::cout << "-------------------" << run_context->getName() << "--------------------"<< std::endl;
+  // std::cout << "Output size: " << run_context->getNumOutputs() << std::endl;
+  // for (unsigned int idx = 0; idx < run_context->getNumOutputs(); idx++) 
+  //   std::cout << run_context->getOutput(idx).getDim();
+  // std::cout << "Input size: " << run_context->getNumInputs() << std::endl;
+  // for (unsigned int idx = 0; idx < run_context->getNumInputs(); idx++) 
+  //   std::cout << run_context->getInput(idx).getDim();
+ 
   layer->forwarding(*run_context, training);
   reStoreData(false);
   PROFILE_TIME_END(forward_event_key);

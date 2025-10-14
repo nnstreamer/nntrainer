@@ -689,10 +689,12 @@ void NeuralNetwork::load(const std::string &file_path,
   size_t start_from = 0;
   std::vector<std::pair<size_t, size_t>> file_offset;
   for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
+    // std::cout << (*iter)->getRunContext().getName() << std::endl;
     start_from = 0;
     auto weights = (*iter)->getRunContext().getWeights();
     for (auto weight : weights) {
       size_t size = weight->getVariable().getMemoryBytes();
+      // std::cout << size << std::endl;
       auto tensor_data_type = weight->getDim().getDataType();
       weight->getVariableRef().setFileOffset(start_from);
       ///@todo instead of checking the data type,
@@ -768,6 +770,7 @@ void NeuralNetwork::load(const std::string &file_path,
               (v.size() == 2) ? temp2: temp1, std::ios::in | std::ios::binary);
             node->read(local_model_file, false, exec_mode, fsu_mode,
                        std::numeric_limits<size_t>::max(), true, model_file_fd);
+            // local_model_file.close();
           } else {
 #if defined(_WIN32)
             // Map per-task, then unmap immediately after: enables early release
@@ -1065,9 +1068,15 @@ NeuralNetwork::inference(unsigned int batch_size,
   sharedConstTensors input_tensors, output_tensors;
   auto in_dim = getInputDimension();
 
+  // std::cout << "INDIM: +++++++++++++++++++++++++++++++++++++++++" <<
+  // std::endl; for(auto it: in_dim) {
+  //   std::cout << it << std::endl;
+  // }
+
   input_tensors.reserve(input.size());
   for (unsigned int idx = 0; idx < in_dim.size(); idx++) {
     in_dim[idx].batch(batch_size);
+    // std::cout << in_dim[idx].getDataLen() << std::endl;
     input_tensors.emplace_back(MAKE_SHARED_TENSOR(Tensor::Map(
       input[idx], in_dim[idx].getDataLen() * sizeof(float), in_dim[idx], 0)));
   }
@@ -1742,8 +1751,8 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
   }
 
   if (flags & PRINT_GRAPH_INFO) {
-    unsigned int total_col_size = 80;
-    std::vector<unsigned int> column_size = {20, 20, 20, 20};
+    unsigned int total_col_size = 180;
+    std::vector<unsigned int> column_size = {70, 20, 20, 70};
     auto print_graph_layer_info =
       [column_size](std::ostream &out, std::vector<std::string> layer_info) {
         const auto &trim_string = [](std::string str,

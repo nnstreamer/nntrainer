@@ -67,6 +67,8 @@ void WeightLayer::setProperty(const std::vector<std::string> &values) {
 
 void WeightLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &weight = context.getWeight(weight_idx);
+  // std::cout << context.getName() << std::endl;
+  // std::cout << weight << std::endl;
   Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
   output.copy(weight);
 }
