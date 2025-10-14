@@ -47,7 +47,7 @@ public:
    * @brief Destroy the ONNXInterpreter object
    *
    */
-  ~ONNXInterpreter(){};
+  ~ONNXInterpreter() {};
 
   void handleUnaryOp(const onnx::NodeProto &node,
                      GraphRepresentation &representation,
@@ -169,6 +169,7 @@ private:
     {"Div", "divide"},
     {"MatMul", "matmul"},
     {"ReduceMean", "reduce_mean"},
+    {"ReduceSum", "reduce_sum"},
     {"Reshape", "reshape"},
     {"Transpose", "permute"},
     {"Cast", "cast"},
@@ -179,7 +180,7 @@ private:
     {"Relu", "activation"},
     {"Identity", "identity"},
     {"Unsqueeze", "reshape"},
-    {"Gather", "gather"},
+    {"GatherElements", "gather"},
     {"Cosine", "cosine"},
     {"Sine", "sine"},
     {"Tangent", "tanget"},
