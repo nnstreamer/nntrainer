@@ -70,6 +70,7 @@ void FloatTensor::allocate() {
     /// allocate new memory for the tensor data
     MemoryData *mem_data;
 
+    // sumon: tensor data is set here
     mem_data = new MemoryData((void *)(new float[dim.getDataLen()]{}));
     data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
       delete[] mem_data->template getAddr<float>();
@@ -1430,6 +1431,7 @@ void FloatTensor::print(std::ostream &out) const {
   unsigned int len = size();
   out << "data addr: " << data << '\n';
   out << dim;
+  // out << "Size: " << len << "\n";
 
   if (len > 100) {
     out << '[' << data[0] << ' ' << data[1] << ' ' << data[2] << " ... "

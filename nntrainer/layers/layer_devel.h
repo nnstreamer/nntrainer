@@ -388,6 +388,7 @@ public:
    * @param bool fsu flag
    *
    */
+  // used to load weight for each layer
   virtual void read(std::ifstream &file, RunLayerContext &run_context,
                     bool opt_var, ml::train::ExecutionMode mode, bool trainable,
                     TensorDim::DataType defineWeightDataType, bool fsu,
@@ -415,6 +416,8 @@ public:
         for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
           /// @note shared weights are only be read at the first acecss
           if (run_context.isGradientFirstAccess(i)) {
+            // std::cout << "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$" << std::endl;
+            // std::cout << run_context.getName() << std::endl;
             run_context.getWeight(i).read(file, start_offset, read_from_offset,
                                           file_fd);
             if (run_context.isMixedPrecision(i) && trainable &&
@@ -504,6 +507,10 @@ template <typename T,
 std::unique_ptr<Layer> createLayer(const std::vector<std::string> &props = {}) {
   std::unique_ptr<Layer> ptr = std::make_unique<T>();
   ptr->setProperty(props);
+  // std::cout << "Props: " << std::endl;
+  // for(auto prop: props) {
+  //   std::cout << prop << std::endl;
+  // }
   return ptr;
 }
 

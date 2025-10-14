@@ -55,6 +55,8 @@ void TensorBase::save(std::ostream &file) {
     << " is too big. It cannot be represented by std::streamsize";
 
   checkedWrite(file, (char *)getData(), sz, "[Tensor::save] operation failed");
+  // print(std::cout);
+  // std::cout << "-----------------------------------------------" << std::endl;
   putData();
 }
 
@@ -71,6 +73,10 @@ void TensorBase::read(std::ifstream &file, size_t start_offset,
 
   checkedRead(file, (char *)getData(), sz, "[Tensor::read] operation failed",
               start_offset, read_from_offset);
+  print(std::cout);
+  std::cout << "-----------------------------------------------" << std::endl;
+  // std::cout.flush();
+  // std::cout << std::endl;
   putData();
 }
 
@@ -124,6 +130,8 @@ void TensorBase::reshape(const TensorDim &d) {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << " is not contiguous, cannot reshape.";
 
+  // std::cout << d.getDataLen() << " " << dim.getDataLen() << std::endl;
+  // std::cout << d << " " << dim << std::endl;
   NNTR_THROW_IF(d.getDataLen() != dim.getDataLen(), std::invalid_argument)
     << "[Tensor]: reshape cannot change the buffer size, trying reshaping "
        "\nfrom "

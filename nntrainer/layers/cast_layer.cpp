@@ -32,6 +32,7 @@ void CastLayer::finalize(InitLayerContext &context) {
 
 void CastLayer::forwarding_operation(const Tensor &input, Tensor &output) {
   // Casting type is performed in copyData function
+  std::cout << input.getDim() << output.getDim() << std::endl;
   output.copyData(input);
 }
 

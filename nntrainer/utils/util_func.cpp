@@ -31,6 +31,8 @@
 #include <acti_func.h>
 #include <nntrainer_log.h>
 #include <util_func.h>
+// #include <mutex>
+// std::mutex mtx; 
 
 namespace nntrainer {
 
@@ -66,11 +68,13 @@ bool isFileExist(std::string file_name) {
 
 template <typename T>
 static void checkFile(const T &file, const char *error_msg) {
+  // std::cout << file.bad() << " " << file.eof() << " " << file.good() << " " << file.fail() << std::endl;
   if (file.bad() || file.eof() || !file.good() || file.fail()) {
     throw std::runtime_error(error_msg);
   }
 }
 
+// this is the place where we can modify for onnx: not sure though
 void checkedRead(std::ifstream &file, char *array, std::streamsize size,
                  const char *error_msg, size_t start_offset,
                  bool read_from_offset) {

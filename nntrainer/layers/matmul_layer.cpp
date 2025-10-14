@@ -24,7 +24,10 @@ namespace nntrainer {
 void MatMulLayer::finalize(InitLayerContext &context) {
   TensorDim inputDim0 = context.getInputDimensions()[0];
   TensorDim inputDim1 = context.getInputDimensions()[1];
-
+  // std::cout << context.getName() << std::endl;
+  // std::cout << inputDim0 << inputDim1 << std::endl;
+  // inputDim0 is empty or not
+  // std::cout << inputDim0.isEmpty() << std::endl;
   if (inputDim0[1] != inputDim1[1]) {
     throw std::invalid_argument("MatMulLayer requires matching channel size. ");
   } else if (inputDim0[3] != inputDim1[2]) {

@@ -52,6 +52,14 @@ void ConcatLayer::finalize(InitLayerContext &context) {
   const TensorDim &input_dim_0 = input_dims[SINGLE_INOUT_IDX];
   unsigned int concat_dim_val = input_dim_0.getTensorDim(concat_dimension);
 
+  // std::cout << context.getName() << std::endl;
+  // std::cout << concat_dimension << std::endl;
+  // for(int i = 0; i < context.getNumInputs(); i++){
+  //   std::cout << input_dims[i] << std::endl;
+  //   std::cout << input_dims[i].getDataLen() << " " << input_dims[i].getDim() << std::endl;
+  //   std::cout << "$$$$$$$$$$$$$$$$$$$" << std::endl;
+  // }
+
   for (unsigned int idx = 1; idx < input_dims.size(); ++idx) {
     const TensorDim &dim = input_dims[idx];
 
@@ -144,9 +152,11 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
    * @todo avoid copy by creating input here as a shared_tensor of the output
    * here and then this layer can be in_place as well
    */
+  // std::cout << "++++++++++++++++++++++++" << context.getName() << "+++++++++++++++++++++++" << std::endl;
   Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
 
   const TensorDim out_dim = output.getDim();
+  // std::cout << "Output: " << output.getDim() << std::endl;
   output.reshape(output_reshape_helper);
   unsigned int output_width_offset = 0;
   TensorDim::TensorType tensor_type = output.getTensorType();
@@ -155,6 +165,10 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
     Tensor &input = context.getInput(idx);
     const TensorDim in_dim = input.getDim();
     auto const &irh = input_reshape_helper[idx];
+    // std::cout << "----------------Input----------------\n" << in_dim << std::endl;
+    // std::cout << in_dim.getDataLen() << std::endl;
+    // std::cout << irh << std::endl;
+    // std::cout << irh.getDataLen() << "\n-----------------------------------------------"<< std::endl;
     input.reshape(irh);
     unsigned int data_copy_size = irh.width();
 
