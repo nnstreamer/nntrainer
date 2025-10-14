@@ -33,11 +33,14 @@ void SliceLayer::finalize(InitLayerContext &context) {
 
   for (unsigned int i = 0; i < 4; ++i) {
     if (i == axis) {
-      outputDim[i] = end - start;
+      outputDim.setTensorDim(i, end - start);
     } else {
-      outputDim[i] = in_dim[i];
+      outputDim.setTensorDim(i, in_dim[i]);
     }
   }
+
+  std::cout << "Slice layer: " << std::endl;
+  std::cout << outputDim << outputDim.getDataLen() << std::endl;
 
   context.setOutputDimensions({outputDim});
 }

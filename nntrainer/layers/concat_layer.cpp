@@ -31,6 +31,7 @@ ConcatLayer::ConcatLayer() : Layer(), leading_helper_dim(1) {}
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 void ConcatLayer::finalize(InitLayerContext &context) {
+  std::cout << "*********************** " << context.getName() << " **********************" << std::endl;
   auto &concat_dimension_prop = std::get<props::ConcatDimension>(concat_props);
   /** for backward compatibility, default concat dimension will be channel */
   /// @todo this is hacky way to force concat dimension to width if channel
@@ -52,13 +53,11 @@ void ConcatLayer::finalize(InitLayerContext &context) {
   const TensorDim &input_dim_0 = input_dims[SINGLE_INOUT_IDX];
   unsigned int concat_dim_val = input_dim_0.getTensorDim(concat_dimension);
 
-  // std::cout << context.getName() << std::endl;
   // std::cout << concat_dimension << std::endl;
-  // for(int i = 0; i < context.getNumInputs(); i++){
-  //   std::cout << input_dims[i] << std::endl;
-  //   std::cout << input_dims[i].getDataLen() << " " << input_dims[i].getDim() << std::endl;
-  //   std::cout << "$$$$$$$$$$$$$$$$$$$" << std::endl;
-  // }
+  for(int i = 0; i < context.getNumInputs(); i++){
+    std::cout << input_dims[i] << std::endl;
+    std::cout << input_dims[i].getDataLen() << std::endl;
+  }
 
   for (unsigned int idx = 1; idx < input_dims.size(); ++idx) {
     const TensorDim &dim = input_dims[idx];
@@ -77,6 +76,8 @@ void ConcatLayer::finalize(InitLayerContext &context) {
   output_dim.setTensorDim(concat_dimension, concat_dim_val);
 
   context.setOutputDimensions({output_dim});
+
+  std::cout << "-------------------------------------------------------------" << std::endl;
 
   /**
    * The following helper shapes facilitate efficient concatenation and split of
@@ -133,6 +134,7 @@ void ConcatLayer::finalize(InitLayerContext &context) {
   }
 
   setBatch(input_dims[SINGLE_INOUT_IDX].batch());
+  std::cout << "******************************************************************" << std::endl;
 }
 
 void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
@@ -165,10 +167,10 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
     Tensor &input = context.getInput(idx);
     const TensorDim in_dim = input.getDim();
     auto const &irh = input_reshape_helper[idx];
-    // std::cout << "----------------Input----------------\n" << in_dim << std::endl;
-    // std::cout << in_dim.getDataLen() << std::endl;
-    // std::cout << irh << std::endl;
-    // std::cout << irh.getDataLen() << "\n-----------------------------------------------"<< std::endl;
+    std::cout << "----------------Input----------------\n" << in_dim << std::endl;
+    std::cout << in_dim.getDataLen() << std::endl;
+    std::cout << irh << std::endl;
+    std::cout << irh.getDataLen() << "\n-----------------------------------------------"<< std::endl;
     input.reshape(irh);
     unsigned int data_copy_size = irh.width();
 

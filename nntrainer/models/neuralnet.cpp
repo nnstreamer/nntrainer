@@ -765,7 +765,6 @@ void NeuralNetwork::load(const std::string &file_path,
                 temp1.append(".bin");
               }
             }
-            std::cout << "Appended Layer: " << temp1 << std::endl;
             auto local_model_file = checkedOpenStream<std::ifstream>(
               (v.size() == 2) ? temp2: temp1, std::ios::in | std::ios::binary);
             node->read(local_model_file, false, exec_mode, fsu_mode,

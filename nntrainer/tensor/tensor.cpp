@@ -1015,7 +1015,7 @@ Tensor &Tensor::dot(Tensor const &input, Tensor &output, bool trans,
                     bool trans_in, float beta) const {
   NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
     << getName() << " is not contiguous. Cannot dot product.";
-
+  
   itensor_->dot(input, output, trans, trans_in, beta);
   return output;
 }

@@ -107,6 +107,8 @@ void ONNXInterpreter::handleBinaryOp(const onnx::NodeProto &node,
                                      const std::string &op_type,
                                      std::vector<std::string> &props) {
   std::vector<std::string> inputNames = createOutputRemap(node);
+  
+
   props.push_back("name=" + cleanName(node.name()));
   props.push_back("input_layers=" + inputNames[0] + "," + inputNames[1]);
   representation.push_back(
@@ -208,6 +210,9 @@ void ONNXInterpreter::registerNodeHandlers() {
                                   GraphRepresentation &rep) {
     std::vector<std::string> props;
     // std::cout << node.name() << std::endl;
+    // auto const &input_dims = getInputDimenstions();
+    // std::cout << input_dims[0] << std::endl;
+    // std::cout << input_dims[0].getDataLen() << std::endl;
     props.push_back(extractAttribute(node, "axis", "axis"));
     handleBinaryOp(node, rep, layerKeyMap[node.op_type()], props);
   };
