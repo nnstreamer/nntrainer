@@ -73,8 +73,8 @@ void TensorBase::read(std::ifstream &file, size_t start_offset,
 
   checkedRead(file, (char *)getData(), sz, "[Tensor::read] operation failed",
               start_offset, read_from_offset);
-  print(std::cout);
-  std::cout << "-----------------------------------------------" << std::endl;
+  // print(std::cout);
+  // std::cout << "-----------------------------------------------" << std::endl;
   // std::cout.flush();
   // std::cout << std::endl;
   putData();
@@ -328,22 +328,26 @@ void TensorBase::calculateFlattenDot(
   unsigned int &M, unsigned int &N, unsigned int &K, unsigned int &lda,
   unsigned int &ldb, unsigned int &ldc) const {
 
+  std::cout<<"Enter calFDot"<<dim.rank()<<std::endl;
+
   if (trans && dim.rank() > 2) {
     ml_logw("Warning: support only for rank of dot matrix <= 2 with trans");
   }
 
   if (getFormat() == Tformat::NHWC) {
     first_three_flat = batch() * height() * width();
+    std::cout<<"NHWC"<<batch()<<" "<<height()<<" "<<width()<<" "<<channel();
     last_axis = channel();
     input_first_three_flat = input.batch() * input.height() * input.width();
     input_last_axis = input.channel();
   } else {
     first_three_flat = batch() * channel() * height();
+    std::cout<<"NCHW"<<batch()<<" "<<channel()<<" "<<height()<<" "<<width();
     last_axis = width();
     input_first_three_flat = input.batch() * input.channel() * input.height();
     input_last_axis = input.width();
   }
-
+  std::flush(std::cout);
   if (!trans && !trans_in) {
     if (last_axis != input_first_three_flat)
       throw std::runtime_error(

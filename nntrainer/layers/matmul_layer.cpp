@@ -43,7 +43,10 @@ void MatMulLayer::finalize(InitLayerContext &context) {
 
 void MatMulLayer::forwarding_operation(const Tensor &input0,
                                        const Tensor &input1, Tensor &output) {
+  std::cout << "$$$$ Matmul Layer" << std::endl;
+  std::cout << input0.getDim() << input1.getDim() << output.getDim();
   input0.dot(input1, output);
+  
 }
 
 void MatMulLayer::calcDerivative(RunLayerContext &context) {
