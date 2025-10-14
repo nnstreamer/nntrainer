@@ -13,7 +13,7 @@ custom_model.load_state_dict(official_model.state_dict(),strict=False)
 
 rotary_emb = Qwen3RotaryEmbedding(qwenConfig)
 
-x = torch.tensor([[3,],]).view(-1, 1)
+x = torch.tensor([[52,],]).view(-1, 1)
 position_ids = torch.arange(1).reshape(1, -1)
 cos, sin = rotary_emb(x, position_ids)
 cos, sin = torch.tensor(cos.numpy()), torch.tensor(sin.numpy())
