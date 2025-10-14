@@ -55,8 +55,6 @@ void TensorBase::save(std::ostream &file) {
     << " is too big. It cannot be represented by std::streamsize";
 
   checkedWrite(file, (char *)getData(), sz, "[Tensor::save] operation failed");
-  // print(std::cout);
-  // std::cout << "-----------------------------------------------" << std::endl;
   putData();
 }
 
@@ -73,10 +71,6 @@ void TensorBase::read(std::ifstream &file, size_t start_offset,
 
   checkedRead(file, (char *)getData(), sz, "[Tensor::read] operation failed",
               start_offset, read_from_offset);
-  // print(std::cout);
-  // std::cout << "-----------------------------------------------" << std::endl;
-  // std::cout.flush();
-  // std::cout << std::endl;
   putData();
 }
 
@@ -130,8 +124,6 @@ void TensorBase::reshape(const TensorDim &d) {
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << " is not contiguous, cannot reshape.";
 
-  // std::cout << d.getDataLen() << " " << dim.getDataLen() << std::endl;
-  // std::cout << d << " " << dim << std::endl;
   NNTR_THROW_IF(d.getDataLen() != dim.getDataLen(), std::invalid_argument)
     << "[Tensor]: reshape cannot change the buffer size, trying reshaping "
        "\nfrom "
@@ -328,26 +320,21 @@ void TensorBase::calculateFlattenDot(
   unsigned int &M, unsigned int &N, unsigned int &K, unsigned int &lda,
   unsigned int &ldb, unsigned int &ldc) const {
 
-  std::cout<<"Enter calFDot"<<dim.rank()<<std::endl;
-
   if (trans && dim.rank() > 2) {
     ml_logw("Warning: support only for rank of dot matrix <= 2 with trans");
   }
 
   if (getFormat() == Tformat::NHWC) {
     first_three_flat = batch() * height() * width();
-    std::cout<<"NHWC"<<batch()<<" "<<height()<<" "<<width()<<" "<<channel();
     last_axis = channel();
     input_first_three_flat = input.batch() * input.height() * input.width();
     input_last_axis = input.channel();
   } else {
     first_three_flat = batch() * channel() * height();
-    std::cout<<"NCHW"<<batch()<<" "<<channel()<<" "<<height()<<" "<<width();
     last_axis = width();
     input_first_three_flat = input.batch() * input.channel() * input.height();
     input_last_axis = input.width();
   }
-  std::flush(std::cout);
   if (!trans && !trans_in) {
     if (last_axis != input_first_three_flat)
       throw std::runtime_error(
