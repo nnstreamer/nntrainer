@@ -15,6 +15,18 @@
 
 namespace nntrainer {
 
+std::string ONNXInterpreter::getDataType(int onnx_type) {
+  switch (onnx_type) {
+  case onnx::TensorProto::FLOAT:
+    return "FP32";
+  case onnx::TensorProto::FLOAT16:
+    return "FP16";
+  default:
+    throw std::runtime_error("Unsupported ONNX tensor data type: " +
+                             std::to_string(onnx_type));
+  }
+}
+
 void ONNXInterpreter::serialize(const GraphRepresentation &representation,
                                 const std::string &out){};
 
@@ -40,7 +52,9 @@ GraphRepresentation ONNXInterpreter::deserialize(const std::string &in) {
     // weight layer should be modified not to use input_shape as a parameter
     graph.push_back(createLayerNode(
       "weight", {withKey("name", cleanName(initializer.name())),
-                 withKey("dim", dim), withKey("input_shape", dim)}));
+                 withKey("dim", dim), withKey("input_shape", dim),
+                 withKey("tensor_dtype", getDataType(initializer.data_type())),
+                 withKey("weight_name", cleanName(initializer.name()))}));
   }
 
   // Create input & constant tensor layer
