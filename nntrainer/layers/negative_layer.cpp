@@ -23,8 +23,6 @@ namespace nntrainer {
 
 void NegativeLayer::finalize(InitLayerContext &context) {
   context.setOutputDimensions({context.getInputDimensions()[0]});
-  std::cout << "Neg Layer:" << std::endl;
-  std::cout << context.getInputDimensions()[0] << " "  << context.getInputDimensions()[0].getDataLen() << std::endl;
 }
 
 void NegativeLayer::forwarding_operation(const Tensor &input, Tensor &hidden) {
