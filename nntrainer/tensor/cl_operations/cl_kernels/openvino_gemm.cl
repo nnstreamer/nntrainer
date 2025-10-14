@@ -4,8 +4,6 @@
 #define COMPRESSED_WEIGHTS_INT4 1
 #define FILTER_LAYOUT_OS_IS_YX_OSV32_ISV2 1
 
-#define DECOMPRESSION_SCALE_ROW_MAJOR 0
-
 #define DECOMPRESSION_SCALE_TERM 1
 #define DECOMPRESSION_SCALE_GROUP_SIZE SIZE_QUANTIZATION_GROUP
 #define DECOMPRESSION_SCALE_GROUPS_NUM (SIZE_K / DECOMPRESSION_SCALE_GROUP_SIZE)
@@ -1679,7 +1677,7 @@ inline void fc_bf_tiled_kernel_dyn_quan(
             const uint offset_ofm = out_f + fi * SIMD + sglid;
 
 #if DECOMPRESSION_SCALE_GROUPS_NUM > 1
-#if DECOMPRESSION_SCALE_ROW_MAJOR
+#if SCALE_ROW_MAJOR
             const uint scale_offset =
               (offset_ofm % DECOMPRESSION_SCALE_BATCH_NUM) *
                 DECOMPRESSION_SCALE_BATCH_PITCH +
@@ -1707,7 +1705,7 @@ inline void fc_bf_tiled_kernel_dyn_quan(
                              (float)de_quantize_scale[bi]);
 #else
             ((ACCUMULATOR_TYPE *)(&acc[bi]))[fi] +=
-              convert_half(((int *)(&acc_tmp[fi]))[bi]) * ds *
+              convert_float(((int *)(&acc_tmp[fi]))[bi]) * ds *
               de_quantize_scale[bi];
 #endif
             acc_tmp[fi][bi] = 0;
