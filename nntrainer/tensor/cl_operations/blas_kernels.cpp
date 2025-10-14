@@ -28,8 +28,10 @@ void gemv_int4_async_cl(std::vector<void *> weights,
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
   auto &clbuffInstance = ClBufferManager::Global();
 
+  const bool scale_row_major = false;
   std::string compile_options =
-    " -D SIZE_QUANTIZATION_GROUP=" + std::to_string(quantization_group_size);
+    " -D SIZE_QUANTIZATION_GROUP=" + std::to_string(quantization_group_size) +
+    " -D SCALE_ROW_MAJOR=" + std::to_string(scale_row_major);
 
   ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
     int4_gemv_kernel, "fully_connected_gpu_int4_gemv", compile_options);
@@ -107,8 +109,10 @@ void gemv_int4_cl(char *weight, uint16_t *scale, uint16_t *input,
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
   auto &clbuffInstance = ClBufferManager::Global();
 
+  const bool scale_row_major = false;
   std::string compile_options =
-    " -D SIZE_QUANTIZATION_GROUP=" + std::to_string(quantization_group_size);
+    " -D SIZE_QUANTIZATION_GROUP=" + std::to_string(quantization_group_size) +
+    " -D SCALE_ROW_MAJOR=" + std::to_string(scale_row_major);
 
   ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
     int4_gemv_kernel, "fully_connected_gpu_int4_gemv", compile_options);
@@ -489,9 +493,11 @@ void openvino_gemm_async_cl(float *input, std::vector<void *> weights,
   for (unsigned int i = 0; i < Ns.size(); ++i) {
     int N = Ns[i];
 
+    const bool scale_row_major = false;
     std::string compile_options =
       " -D SIZE_N=" + std::to_string(N) + " -D SIZE_K=" + std::to_string(K) +
-      " -D SIZE_QUANTIZATION_GROUP=" + std::to_string(quantization_group_size);
+      " -D SIZE_QUANTIZATION_GROUP=" + std::to_string(quantization_group_size) +
+      " -D SCALE_ROW_MAJOR=" + std::to_string(scale_row_major);
 
     ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
       openvino_gemm_kernel, "fc_bf_tiled_kernel_default", compile_options);
@@ -593,9 +599,11 @@ void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
   auto &clbuffInstance = ClBufferManager::Global();
+  const bool scale_row_major = false;
   std::string compile_options =
     " -D SIZE_N=" + std::to_string(N) + " -D SIZE_K=" + std::to_string(K) +
-    " -D SIZE_QUANTIZATION_GROUP=" + std::to_string(quantization_group_size);
+    " -D SIZE_QUANTIZATION_GROUP=" + std::to_string(quantization_group_size) +
+    " -D SCALE_ROW_MAJOR=" + std::to_string(scale_row_major);
 
   auto ceil_div = [](unsigned int a, unsigned int b) -> unsigned int {
     return (a + b - 1) / b;
