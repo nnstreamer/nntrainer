@@ -36,6 +36,7 @@
 #include <addition_layer.h>
 #include <attention_layer.h>
 #include <bn_layer.h>
+#include <cast_layer.h>
 #include <centroid_knn.h>
 #include <channel_shuffle.h>
 #include <concat_layer.h>
@@ -303,6 +304,8 @@ void AppContext::add_default_object() {
                   LayerType::LAYER_MATMUL);
   registerFactory(nntrainer::createLayer<NegLayer>, NegLayer::type,
                   LayerType::LAYER_NEG);
+  registerFactory(nntrainer::createLayer<CastLayer>, CastLayer::type,
+                     LayerType::LAYER_CAST);
   registerFactory(nntrainer::createLayer<FullyConnectedLayer>,
                   FullyConnectedLayer::type, LayerType::LAYER_FC);
   registerFactory(nntrainer::createLayer<BatchNormalizationLayer>,
