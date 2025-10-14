@@ -31,6 +31,8 @@
 #include <iomanip>
 #include <sstream>
 
+#include <int4_utils.h>
+
 #include <activation_realizer.h>
 #include <common_properties.h>
 #include <databuffer.h>
@@ -53,6 +55,8 @@
 #include <slice_realizer.h>
 #include <util_func.h>
 
+#define DEFAULT_INT4_QUANTIZATION_GROUP_SIZE 32
+
 #ifdef ENABLE_TFLITE_INTERPRETER
 #include <tflite_interpreter.h>
 #endif
@@ -65,6 +69,28 @@
 #define ML_TRAIN_SUMMARY_MODEL_VALID_ACCURACY 103
 
 namespace nntrainer {
+
+static inline void *allocateSVM(size_t size_bytes) {
+  auto *blas_cc = static_cast<nntrainer::ClContext *>(
+    nntrainer::Engine::Global().getRegisteredContext("gpu"));
+
+  void *ptr = blas_cc->context_inst_.createSVMRegion(size_bytes);
+
+  if (ptr == nullptr) {
+    throw std::runtime_error(
+      "Failed to allocated SVM for the OpenCL BLAS unit test.");
+  }
+
+  return ptr;
+}
+
+static inline void freeSVM(void *ptr) {
+  auto *blas_cc = static_cast<nntrainer::ClContext *>(
+    nntrainer::Engine::Global().getRegisteredContext("gpu"));
+
+  blas_cc->context_inst_.releaseSVMRegion(ptr);
+  ptr = nullptr;
+}
 
 NeuralNetwork::NeuralNetwork() :
   model_props(props::LossType(), {}, {}, props::ClipGradByGlobalNorm(),
@@ -683,6 +709,32 @@ void NeuralNetwork::load(const std::string &file_path,
   const std::regex reg_("\\s*\\:\\s*");
   auto v = split(file_path, reg_);
 
+  size_t total = 0;
+  size_t total_FP32 = 0;
+  size_t total_FP16 = 0;
+  size_t total_Q6_K = 0;
+  size_t total_Q4_0 = 0;
+
+  auto f_path = (v.size() == 2) ? v[1] : v[0];
+
+  HANDLE file_handle =
+    CreateFileA(f_path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL,
+                OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+  NNTR_THROW_IF((file_handle == INVALID_HANDLE_VALUE), std::runtime_error)
+    << "CreateFileA failed";
+
+  HANDLE map_handle =
+    CreateFileMapping(file_handle, NULL, PAGE_READONLY, 0, 0, NULL);
+  NNTR_THROW_IF((map_handle == NULL), std::runtime_error)
+    << "CreateFileMapping failed";
+
+  char *file_view =
+    static_cast<char *>(MapViewOfFile(map_handle, FILE_MAP_READ, 0, 0, 0));
+  NNTR_THROW_IF((file_view == nullptr), std::runtime_error)
+    << "MapViewOfFile failed";
+
+  std::ofstream output("model_basic.bin", std::ios::out | std::ios::binary);
+
   size_t start_from = 0;
   std::vector<std::pair<size_t, size_t>> file_offset;
   for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
@@ -703,10 +755,70 @@ void NeuralNetwork::load(const std::string &file_path,
         // for tensor with qparam
         size += sizeof(uint16_t);
       }
+
+      if (tensor_data_type == TensorDim::DataType::FP32) {
+        output.write(file_view + start_from, size);
+      }
+
+      if (tensor_data_type == TensorDim::DataType::FP16) {
+        output.write(file_view + start_from, size);
+      }
+
+      if (tensor_data_type == TensorDim::DataType::Q6_K) {
+        output.write(file_view + start_from, size);
+      }
+
+      if (tensor_data_type == TensorDim::DataType::Q4_0) {
+        const auto width = weight->getDim().width();
+        const auto height = weight->getDim().height();
+        // std::cout << width << ' ' << height << std::endl;
+
+        const auto N = width;
+        const auto K = height;
+
+        // output.write(file_view + start_from, size);
+
+        std::vector<float> dequantized_weights_q4(N * K);
+        Int4Utils::dequantize_q4_0(file_view + start_from,
+                                   dequantized_weights_q4.data(), N, K);
+        std::vector<uint8_t> quantized_weights_int4;
+        std::vector<uint16_t> quantized_scales_int4;
+        Int4Utils::quantizeAndRepack(dequantized_weights_q4.data(), N, K,
+                                     DEFAULT_INT4_QUANTIZATION_GROUP_SIZE,
+                                     quantized_weights_int4,
+                                     quantized_scales_int4);
+
+        output.write((char *)quantized_weights_int4.data(),
+                     quantized_weights_int4.size() * sizeof(uint8_t));
+        output.write((char *)quantized_scales_int4.data(),
+                     quantized_scales_int4.size() * sizeof(uint16_t));
+
+        // __debugbreak();
+      }
+
+      total += 1;
+      total_FP32 += tensor_data_type == TensorDim::DataType::FP32;
+      total_FP16 += tensor_data_type == TensorDim::DataType::FP16;
+      total_Q6_K += tensor_data_type == TensorDim::DataType::Q6_K;
+      total_Q4_0 += tensor_data_type == TensorDim::DataType::Q4_0;
+
       file_offset.emplace_back(std::make_pair(start_from, size));
       start_from += size;
     }
   }
+
+  output.flush();
+  output.close();
+
+  UnmapViewOfFile(file_view);
+  CloseHandle(map_handle);
+  CloseHandle(file_handle);
+
+  std::cout << "total : " << total << std::endl;
+  std::cout << "total_FP32 : " << total_FP32 << std::endl;
+  std::cout << "total_FP16 : " << total_FP16 << std::endl;
+  std::cout << "total_Q6_K : " << total_Q6_K << std::endl;
+  std::cout << "total_Q4_0 : " << total_Q4_0 << std::endl;
 
   if (exec_mode == ExecutionMode::INFERENCE && fsu_mode) {
     model_graph.setFsuWeightPath((v.size() == 2) ? v[1] : v[0]);
@@ -734,79 +846,48 @@ void NeuralNetwork::load(const std::string &file_path,
         NNTR_THROW_IF((model_file_fd == -1), std::invalid_argument)
           << "Cannot open file : " << f_path;
       }
-      std::vector<std::future<void>> futures;
+      // std::vector<std::future<void>> futures;
       for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
            ++iter) {
         auto node = *iter;
         auto exec_order = std::get<0>((*iter)->getExecutionOrder());
 
-        futures.emplace_back(std::async(std::launch::async, [&, node] {
-          if (!MMAP_READ) {
-            auto local_model_file = checkedOpenStream<std::ifstream>(
-              (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
-            node->read(local_model_file, false, exec_mode, fsu_mode,
-                       std::numeric_limits<size_t>::max(), true, model_file_fd);
-          } else {
-#if defined(_WIN32)
-            // Map per-task, then unmap immediately after: enables early release
-            // of pages
-            HANDLE hFile =
-              CreateFileA(f_path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL,
-                          OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-            NNTR_THROW_IF((hFile == INVALID_HANDLE_VALUE), std::runtime_error)
-              << "CreateFileA failed";
+        if (!MMAP_READ) {
+          auto local_model_file = checkedOpenStream<std::ifstream>(
+            (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
+          node->read(local_model_file, false, exec_mode, fsu_mode,
+                     std::numeric_limits<size_t>::max(), true, model_file_fd);
+        } else {
+          // Map per-task, then unmap immediately after: enables early release
+          // of pages
+          HANDLE hFile =
+            CreateFileA(f_path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL,
+                        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+          NNTR_THROW_IF((hFile == INVALID_HANDLE_VALUE), std::runtime_error)
+            << "CreateFileA failed";
 
-            HANDLE hMap =
-              CreateFileMapping(hFile, NULL, PAGE_READONLY, 0, 0, NULL);
-            NNTR_THROW_IF((hMap == NULL), std::runtime_error)
-              << "CreateFileMapping failed";
+          HANDLE hMap =
+            CreateFileMapping(hFile, NULL, PAGE_READONLY, 0, 0, NULL);
+          NNTR_THROW_IF((hMap == NULL), std::runtime_error)
+            << "CreateFileMapping failed";
 
-            char *view =
-              static_cast<char *>(MapViewOfFile(hMap, FILE_MAP_READ, 0, 0, 0));
-            NNTR_THROW_IF((view == nullptr), std::runtime_error)
-              << "MapViewOfFile failed";
+          char *view =
+            static_cast<char *>(MapViewOfFile(hMap, FILE_MAP_READ, 0, 0, 0));
+          NNTR_THROW_IF((view == nullptr), std::runtime_error)
+            << "MapViewOfFile failed";
 
-            node->read(view, false, exec_mode, fsu_mode,
-                       std::numeric_limits<size_t>::max(), true);
+          node->read(view, false, exec_mode, fsu_mode,
+                     std::numeric_limits<size_t>::max(), true);
 
-            // Early unmap: let the OS reclaim the working set ASAP
-            UnmapViewOfFile(view);
-            CloseHandle(hMap);
-            CloseHandle(hFile);
-#else
-      // POSIX: map per-task, advise kernel, drop pages, unmap
-      int fd = ::open(f_path.c_str(), O_RDONLY);
-      NNTR_THROW_IF((fd == -1), std::invalid_argument)
-        << "Cannot open file : " << f_path;
-
-      struct stat st {};
-      NNTR_THROW_IF((::fstat(fd, &st) == -1), std::invalid_argument)
-        << "Cannot get file info (fstat): " << f_path;
-
-      size_t f_size = static_cast<size_t>(st.st_size);
-      void *mmap_ptr = ::mmap(nullptr, f_size, PROT_READ, MAP_PRIVATE, fd, 0);
-      ::close(fd); // fd not needed after mmap
-      NNTR_THROW_IF((mmap_ptr == MAP_FAILED), std::runtime_error)
-        << "mmap failed";
-
-      // Hint: many model loads touch scattered regions -> RANDOM helps reduce readahead
-      (void)::posix_madvise(mmap_ptr, f_size, POSIX_MADV_RANDOM);
-
-      char *view = static_cast<char *>(mmap_ptr);
-      node->read(view, false, exec_mode, fsu_mode,
-                 std::numeric_limits<size_t>::max(), true);
-
-      // Early drop: pages no longer needed; helps lower peak RSS during overlap
-      (void)::posix_madvise(mmap_ptr, f_size, POSIX_MADV_DONTNEED);
-
-      ::munmap(mmap_ptr, f_size);
-#endif
-          }
-        }));
+          // Early unmap: let the OS reclaim the working set ASAP
+          UnmapViewOfFile(view);
+          CloseHandle(hMap);
+          CloseHandle(hFile);
+        }
       }
 
-      for (auto &f : futures)
-        f.get();
+      // for (auto &f : futures)
+      //   f.get();
     } else {
       for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
            ++iter) {
