@@ -37,8 +37,7 @@ void GatherLayer::finalize(InitLayerContext &context) {
       "The batch size of the input and index should be same.");
   }
 
-  TensorDim outputDim =
-    TensorDim(indexDim.batch(), indexDim.width(), inputDim.width());
+  TensorDim outputDim = context.getInputDimensions()[1];
   context.setOutputDimensions({outputDim});
 }
 

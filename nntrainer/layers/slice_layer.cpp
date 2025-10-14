@@ -39,9 +39,6 @@ void SliceLayer::finalize(InitLayerContext &context) {
     }
   }
 
-  std::cout << "Slice layer: " << std::endl;
-  std::cout << outputDim << outputDim.getDataLen() << std::endl;
-
   context.setOutputDimensions({outputDim});
 }
 
