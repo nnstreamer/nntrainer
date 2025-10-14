@@ -689,6 +689,7 @@ void NeuralNetwork::load(const std::string &file_path,
   size_t start_from = 0;
   std::vector<std::pair<size_t, size_t>> file_offset;
   for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
+    start_from = 0;
     auto weights = (*iter)->getRunContext().getWeights();
     for (auto weight : weights) {
       size_t size = weight->getVariable().getMemoryBytes();
@@ -737,16 +738,34 @@ void NeuralNetwork::load(const std::string &file_path,
         NNTR_THROW_IF((model_file_fd == -1), std::invalid_argument)
           << "Cannot open file : " << f_path;
       }
-      std::vector<std::future<void>> futures;
+      // std::vector<std::future<void>> futures;
       for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
            ++iter) {
         auto node = *iter;
         auto exec_order = std::get<0>((*iter)->getExecutionOrder());
 
-        futures.emplace_back(std::async(std::launch::async, [&, node] {
-          if (!MMAP_READ) {
+        // futures.emplace_back(std::async(std::launch::async, [&, node] {
+          if (1 || !MMAP_READ) {
+            // append this to v and pass it
+            //  std::cout << "Weight layer name: " <<
+            //  (*iter)->getRunContext().getName() << "  \nPath: " << v[0] <<
+            //  std::endl;
+            std::string temp1 = v[0];
+            std::string temp2;
+            if (v.size() == 2)
+              temp2 = v[1];
+            if ((*iter)->getRunContext().getNumWeights()) {
+              if (v.size() == 2) {
+                temp2.append((*iter)->getRunContext().getName());
+                temp2.append(".bin");
+              } else {
+                temp1.append((*iter)->getRunContext().getName());
+                temp1.append(".bin");
+              }
+            }
+            std::cout << "Appended Layer: " << temp1 << std::endl;
             auto local_model_file = checkedOpenStream<std::ifstream>(
-              (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
+              (v.size() == 2) ? temp2: temp1, std::ios::in | std::ios::binary);
             node->read(local_model_file, false, exec_mode, fsu_mode,
                        std::numeric_limits<size_t>::max(), true, model_file_fd);
           } else {
@@ -805,11 +824,11 @@ void NeuralNetwork::load(const std::string &file_path,
       ::munmap(mmap_ptr, f_size);
 #endif
           }
-        }));
+        // }));
       }
 
-      for (auto &f : futures)
-        f.get();
+      // for (auto &f : futures)
+      //   f.get();
     } else {
       for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
            ++iter) {
