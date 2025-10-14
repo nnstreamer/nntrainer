@@ -391,8 +391,8 @@ void Int4QTensor::read(ReadSource src, size_t start_offset,
   }
 
   checkedRead(src, (char *)getData(), sz,
-              "[Int4QTensor::read] operation failed", start_offset,
-              read_from_offset);
+              "[Int4QTensor::read] operation failed",
+              start_offset - sizeof(uint16_t), read_from_offset);
   putData();
 }
 
@@ -607,6 +607,8 @@ void Int4QTensor::read_quantization_info(ReadSource src, size_t start_offset,
   checkedRead(src, (char *)&qscheme, sizeof(uint16_t),
               "[Int4QTensor::read] failed to read quantization information",
               start_offset, read_from_offset);
+
+  qscheme = QScheme::PER_CHANNEL_AFFINE;
   group_size = 32; /// Remove me
 }
 
