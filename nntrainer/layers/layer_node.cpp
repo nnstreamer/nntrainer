@@ -830,7 +830,7 @@ void LayerNode::forwarding(bool training) {
     }
   }
 
-  std::cout << "-------------------" << run_context->getName() << "--------------------"<< std::endl;
+  //std::cout << "-------------------" << run_context->getName() << "--------------------"<< std::endl;
   // std::cout << "Output size: " << run_context->getNumOutputs() << std::endl;
   // for (unsigned int idx = 0; idx < run_context->getNumOutputs(); idx++) 
   //   std::cout << run_context->getOutput(idx).getDim();
