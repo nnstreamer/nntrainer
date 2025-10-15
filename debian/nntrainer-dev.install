@@ -13,7 +13,9 @@
 /usr/include/nntrainer/q4_k_tensor.h
 /usr/include/nntrainer/q6_k_tensor.h
 /usr/include/nntrainer/q4_0_tensor.h
+/usr/include/nntrainer/q4_0_utils.h
 /usr/include/nntrainer/int4_tensor.h
+/usr/include/nntrainer/int4_utils.h
 /usr/include/nntrainer/uint4_tensor.h
 /usr/include/nntrainer/char_tensor.h
 /usr/include/nntrainer/short_tensor.h

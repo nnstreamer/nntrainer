@@ -1,3 +1,13 @@
+// SPDX-License-Identifier: Apache-2.0
+/**
+ * @file	int4_utils.cpp
+ * @date	15 October 2025
+ * @brief	This is Int4Utils class for utils for INT4 quantization format.
+ * @see		https://github.com/nnstreamer/nntrainer
+ * @author	Grzegorz Kisala <gkisala@gmail.com>
+ * @bug		No known bugs
+ */
+
 #include "int4_utils.h"
 
 #include <cassert>
