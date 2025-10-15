@@ -16,6 +16,7 @@ tensor_sources = [
   'q4_k_tensor.cpp',
   'q6_k_tensor.cpp',
   'q4_0_tensor.cpp',
+  'q4_0_utils.cpp',
   'tensor_dim.cpp',
   'var_grad.cpp',
   'weight.cpp',

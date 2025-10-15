@@ -17,6 +17,7 @@
 #include "fallback_internal.h"
 #include "int4_utils.h"
 #include "nntrainer_test_util.h"
+#include "q4_0_utils.h"
 #include "swiglu_cl.h"
 #include "tensor_dim.h"
 #include "timer.h"
@@ -267,8 +268,8 @@ static void run_int4_gemv_test_(const uint32_t K, const uint32_t N,
                        N, q4_output_fp32.data(), N);
 
   std::vector<float> dequantized_weights_q4(N * K);
-  Int4Utils::dequantize_q4_0(q4_weight_repack.data(),
-                             dequantized_weights_q4.data(), N, K);
+  Q4_0Utils::dequantizeQ4_0x8(q4_weight_repack.data(), N, K,
+                              dequantized_weights_q4.data());
 
   float mse_dequantized_q4 =
     mse<float>(weight_fp32.data(), dequantized_weights_q4.data(), N * K);

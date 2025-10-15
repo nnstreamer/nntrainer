@@ -56,45 +56,6 @@ void Int4Utils::computeScales(const float *weights, const size_t rows_count,
   }
 }
 
-void Int4Utils::quantize(const float *weights, const size_t rows_count,
-                         const size_t columns_count, const size_t group_size,
-                         std::vector<uint8_t> &out_weights,
-                         std::vector<uint16_t> &out_scales) {
-  NNTR_THROW_IF(!weights, std::invalid_argument) << "Weight cannot be null";
-
-  NNTR_THROW_IF((rows_count <= 0), std::invalid_argument)
-    << "Rows count needs to be greater than 0";
-
-  NNTR_THROW_IF((columns_count <= 0), std::invalid_argument)
-    << "Columns count needs to be greater than 0";
-
-  NNTR_THROW_IF((!(group_size == 32 || group_size == 64 || group_size == 128)),
-                std::invalid_argument)
-    << "Group size must be 32/64/128";
-
-  std::vector<float> scales_fp32;
-  computeScales(weights, rows_count, columns_count, group_size, scales_fp32);
-
-  out_scales.resize(scales_fp32.size());
-  for (size_t scale_id = 0; scale_id < scales_fp32.size(); ++scale_id) {
-    out_scales[scale_id] = compute_fp32_to_fp16(scales_fp32[scale_id]);
-  }
-
-  out_weights.resize(rows_count * columns_count);
-
-  for (size_t row_id = 0; row_id < rows_count; ++row_id) {
-    for (size_t column_id = 0; column_id < columns_count; ++column_id) {
-
-      const float weight = weights[(row_id * columns_count) + column_id];
-      const float scale =
-        scales_fp32[row_id + ((column_id / group_size) * rows_count)];
-
-      out_weights[(row_id * columns_count) + column_id] =
-        quantizeToInt4(weight, scale);
-    }
-  }
-}
-
 uint8_t Int4Utils::pack(const float *weights, const float *scales,
                         const size_t row_id, const size_t column_id,
                         const size_t groups_per_row, const size_t group_size,
@@ -238,64 +199,6 @@ void Int4Utils::dequantizePacked(const std::vector<uint8_t> &weights,
       }
     }
   }
-}
-
-void Int4Utils::nntr_depack_block_q4_0x8(const block_q4_0x8 *in,
-                                         block_q4_0 *dst,
-                                         unsigned int blck_size_interleave) {
-  for (int i = 0; i < 8; i++) {
-    dst[i].d = in->d[i];
-  }
-
-  const int end = QK4_0 * 4 / blck_size_interleave;
-  const uint64_t xor_mask = 0x8888888888888888ULL;
-
-  for (int i = 0; i < end; ++i) {
-    int dst_id = i % 8;
-    int dst_offset = (i / 8) * blck_size_interleave;
-    int src_offset = i * blck_size_interleave;
-
-    uint64_t elems;
-    memcpy(&elems, &in->qs[src_offset], sizeof(uint64_t));
-    elems ^= xor_mask;
-    memcpy(&dst[dst_id].qs[dst_offset], &elems, sizeof(uint64_t));
-  }
-}
-
-void Int4Utils::nntr_depack_q4_0_8_bl_to_q4_0(void *__restrict dst,
-                                              const void *__restrict data,
-                                              size_t data_size, size_t nrow,
-                                              size_t k) {
-  int interleave_block = 8;
-
-  const block_q4_0x8 *src_ = (const block_q4_0x8 *)data;
-  block_q4_0 *dst_ = (block_q4_0 *)dst;
-  block_q4_0 dst_tmp[8];
-  int nblocks = k / QK4_0;
-
-  assert(data_size == (nrow / 8) * nblocks * sizeof(block_q4_0x8));
-
-  for (size_t b = 0; b < nrow; b += interleave_block) {
-    for (int64_t x = 0; x < nblocks; x++) {
-      nntr_depack_block_q4_0x8(src_++, dst_tmp, interleave_block);
-
-      for (size_t i = 0; i < interleave_block; i++) {
-        dst_[x + i * nblocks] = dst_tmp[i];
-      }
-    }
-    dst_ += interleave_block * nblocks;
-  }
-}
-
-void Int4Utils::dequantize_q4_0(void *q4_weight_repack, float *weight_fp32_out,
-                                int N, int K) {
-  std::vector<float> q4_weight_out(N * K);
-  nntr_depack_q4_0_8_bl_to_q4_0(q4_weight_out.data(), q4_weight_repack,
-                                (K / QK4_0) * (N / 8) * sizeof(block_q4_0x8), N,
-                                K);
-
-  nntrainer::dequantize_row_q4_0((const void *)q4_weight_out.data(),
-                                 weight_fp32_out, K * N);
 }
 
 } // namespace nntrainer
