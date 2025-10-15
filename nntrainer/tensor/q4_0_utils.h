@@ -2,7 +2,7 @@
 /**
  * @file	q4_0_utils.h
  * @date	15 October 2025
- * @brief	This is Q4_0Utils class for some utils for Q4_0 quantization format.
+ * @brief	This is Q4_0Utils class for utils for Q4_0 quantization format.
  * @see		https://github.com/nnstreamer/nntrainer
  * @author	Maciej Nalewaj <m.nalewaj@samsung.com>
  * @bug		No known bugs

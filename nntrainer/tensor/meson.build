@@ -45,6 +45,7 @@ tensor_headers = [
   'uint_tensor.h',
   'q4_k_tensor.h',
   'q4_0_tensor.h',
+  'q4_0_utils.h',
   'weight.h',
   'var_grad.h',    
   'quantizer.h',    
