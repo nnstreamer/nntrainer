@@ -17,15 +17,18 @@
 
 namespace nntrainer {
 
+size_t Int4QTensor::group_size = 32;
+
 Int4QTensor::Int4QTensor(std::string name_, Tformat fm, QScheme qscheme_,
                          size_t g_size) :
-  TensorBase(name_, fm, Tdatatype::QINT4),
-  qscheme(qscheme_),
-  group_size(g_size) {}
+  TensorBase(name_, fm, Tdatatype::QINT4), qscheme(qscheme_) {
+  group_size = g_size;
+}
 
 Int4QTensor::Int4QTensor(const TensorDim &d, bool alloc_now, Initializer init,
                          std::string name, QScheme qscheme_, size_t g_size) :
-  TensorBase(d, alloc_now, init, name), qscheme(qscheme_), group_size(g_size) {
+  TensorBase(d, alloc_now, init, name), qscheme(qscheme_) {
+  group_size = g_size;
   if (alloc_now)
     allocate();
 }
@@ -43,7 +46,8 @@ Int4QTensor::Int4QTensor(
   std::vector<std::vector<std::vector<std::vector<int8_t>>>> const &d,
   std::vector<float> const &scales, Tformat fm, QScheme qscheme_,
   size_t g_size) :
-  qscheme(qscheme_), group_size(g_size) {
+  qscheme(qscheme_) {
+  group_size = g_size;
   if (d.empty() || d[0].empty() || d[0][0].empty() || d[0][0][0].empty()) {
     throw std::out_of_range(
       "[Tensor] trying to initialize Int4QTensor from empty vector");
@@ -609,5 +613,7 @@ void Int4QTensor::read_quantization_info(ReadSource src, size_t start_offset,
               start_offset, read_from_offset);
   group_size = 32; /// Remove me
 }
+
+size_t Int4QTensor::getGroupSize() { return group_size; }
 
 } // namespace nntrainer

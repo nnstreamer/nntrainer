@@ -22,8 +22,6 @@
 
 #include <string>
 
-#define DEFAULT_INT4_QUANTIZATION_GROUP_SIZE 32
-
 namespace nntrainer {
 
 /**

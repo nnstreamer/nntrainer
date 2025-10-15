@@ -16,6 +16,7 @@
 #include <chrono>
 #include <cpu_backend.h>
 #include <float_tensor.h>
+#include <int4_tensor.h>
 #include <tensor.h>
 #include <util_func.h>
 
@@ -771,10 +772,10 @@ void FloatTensor::dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
     /// Asynchronous execution
     if (M == 1) {
       gemv_int4_async_cl(mdatas, scales, data, rdatas, K, Ns,
-                         DEFAULT_INT4_QUANTIZATION_GROUP_SIZE);
+                         Int4QTensor::getGroupSize());
     } else {
       openvino_gemm_async_cl(data, mdatas, scales, rdatas, M, Ns, K,
-                             DEFAULT_INT4_QUANTIZATION_GROUP_SIZE);
+                             Int4QTensor::getGroupSize());
     }
 #endif
   } else {
@@ -971,10 +972,10 @@ Tensor &FloatTensor::dotQInteger(Tensor const &input, Tensor &output,
   /// @note this should be if (M == 1) else
   if (M == 1) {
     gemv_int4_cl(mdata, input.getScale<uint16_t>(), data, rdata, K, N,
-                 DEFAULT_INT4_QUANTIZATION_GROUP_SIZE);
+                 Int4QTensor::getGroupSize());
   } else {
     openvino_sgemm_cl(data, mdata, input.getScale<uint16_t>(), rdata, M, N, K,
-                      DEFAULT_INT4_QUANTIZATION_GROUP_SIZE);
+                      Int4QTensor::getGroupSize());
   }
 #endif
 
