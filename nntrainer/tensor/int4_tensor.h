@@ -300,6 +300,11 @@ public:
    */
   QScheme q_scheme() const override;
 
+  /**
+   * @brief Returns quantization group size
+   */
+  static size_t getGroupSize();
+
 private:
   /**
    * @brief quantization scheme
@@ -311,7 +316,7 @@ private:
    *
    * @note need to properly define this
    */
-  size_t group_size;
+  static size_t group_size;
 
   /**
    * @brief copy a buffer to @a this, the caller has to ensure that @a this is
