@@ -1120,6 +1120,67 @@ static std::unique_ptr<NeuralNetwork> makeChannelShuffleOperation() {
   return nn;
 }
 
+static std::unique_ptr<NeuralNetwork> makeFCSGD() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  nn->setProperty({"batch_size=2"});
+
+  auto outer_graph = makeGraph({
+    {"input", {"name=in", "input_shape=1:1:3"}},
+    {"fully_connected", {"name=fc", "unit=4"}},
+    {"mse", {"name=loss"}},
+  });
+
+  nn->setProperty({"label_layers=loss"});
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
+
+  nn->setOptimizer(ml::train::createOptimizer("sgd", {"learning_rate=0.001"}));
+  return nn;
+}
+
+static std::unique_ptr<NeuralNetwork> makeFCAdam() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  nn->setProperty({"batch_size=2"});
+
+  auto outer_graph = makeGraph({
+    {"input", {"name=in", "input_shape=1:1:3"}},
+    {"fully_connected", {"name=fc", "unit=4"}},
+    {"mse", {"name=loss"}},
+  });
+
+  nn->setProperty({"label_layers=loss"});
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
+
+  nn->setOptimizer(ml::train::createOptimizer(
+    "adam", {"learning_rate=0.1", "beta1=0.9", "beta2=0.999", "epsilon=1e-8"}));
+  return nn;
+}
+
+static std::unique_ptr<NeuralNetwork> makeFCAdamW() {
+  std::unique_ptr<NeuralNetwork> nn(new NeuralNetwork());
+  nn->setProperty({"batch_size=2"});
+
+  auto outer_graph = makeGraph({
+    {"input", {"name=in", "input_shape=1:1:3"}},
+    {"fully_connected",
+     {"name=fc", "unit=4", "weight_decay=0.01", "bias_decay=0.01"}},
+    {"mse", {"name=loss"}},
+  });
+
+  nn->setProperty({"label_layers=loss"});
+  for (auto &node : outer_graph) {
+    nn->addLayer(node);
+  }
+
+  nn->setOptimizer(
+    ml::train::createOptimizer("adamw", {"learning_rate=0.1", "beta1=0.9",
+                                         "beta2=0.999", "epsilon=1e-8"}));
+  return nn;
+}
+
 GTEST_PARAMETER_TEST(
   model, nntrainerModelTest,
   ::testing::ValuesIn({
@@ -1212,6 +1273,9 @@ GTEST_PARAMETER_TEST(
                  ModelTestOption::ALL_V2),
     mkModelTc_V2(makeChannelShuffleOperation, "channel_shuffle",
                  ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeFCSGD, "fc_sgd", ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeFCAdam, "fc_adam", ModelTestOption::ALL_V2),
+    mkModelTc_V2(makeFCAdamW, "fc_adamw", ModelTestOption::ALL_V2),
   }),
   [](const testing::TestParamInfo<nntrainerModelTest::ParamType> &info)
     -> const auto & { return std::get<1>(info.param); });

@@ -102,6 +102,11 @@ public:
    */
   void applyLossScale(Tensor &fp32_grad);
 
+  /**
+   * @brief     Calculate gradient from the decay of the weight
+   */
+  void calcWeightDecayGradient();
+
 private:
   Weight *weight;       /**< weights for the optimizer */
   size_t iteration;     /**< iteration number */

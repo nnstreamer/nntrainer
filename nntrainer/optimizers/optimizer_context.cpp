@@ -62,4 +62,8 @@ void RunOptimizerContext::applyLossScale(Tensor &fp32_grad) {
   float loss_scale = weight->getLossScale();
   fp32_grad.divide_i(loss_scale);
 }
+
+void RunOptimizerContext::calcWeightDecayGradient() {
+  weight->calcWeightDecayGradient();
+}
 } // namespace nntrainer
