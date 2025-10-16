@@ -32,6 +32,7 @@
 #include <sstream>
 
 #include <activation_realizer.h>
+#include <adamw.h>
 #include <common_properties.h>
 #include <databuffer.h>
 #include <flatten_realizer.h>
@@ -587,7 +588,9 @@ void NeuralNetwork::backwarding(int iteration,
       model_graph.applyGradients(
         node.get(), [iteration, opt_ = opt.get()](Weight &w) {
           w.calcRegularizationGradient();
-          w.calcWeightDecayGradient();
+          if (opt_->getType() != AdamW::type) {
+            w.calcWeightDecayGradient();
+          }
           RunOptimizerContext opt_context(&w, iteration,
                                           opt_->getLearningRate(iteration));
           opt_->applyGradient(opt_context);

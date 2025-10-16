@@ -84,14 +84,14 @@ void AdamW::applyGradient(RunOptimizerContext &context) {
   wv.multiply_i(beta2);
   wv.add_i(x_grad.multiply(x_grad), 1.0f - beta2);
 
-  wv.divide_i(sqrtFloat(biasCorrection2));
+  wv.divide_i(biasCorrection2);
   std::function<double(double)> sqrtEps = [epsilon](double f) {
     return 1 / (sqrtDouble(f) + epsilon);
   };
-  wv.apply<float>(sqrtEps);
-  x_grad = wv;
+  x_grad = wv.apply<float>(sqrtEps, x_grad);
   x_grad.divide_i(biasCorrection1);
   x_grad.multiply_i(wm);
+  context.calcWeightDecayGradient();
 
   context.applyGradient(context.getLearningRate(), x_grad);
 }
