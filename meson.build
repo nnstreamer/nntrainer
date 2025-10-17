@@ -220,6 +220,7 @@ if get_option('enable-opencl')
   else 
     clblast_options = cmake.subproject_options()
     clblast_options.add_cmake_defines({'CMAKE_POLICY_VERSION_MINIMUM': '3.10'})
+    clblast_options.add_cmake_defines({'CMAKE_CXX_STANDARD': '17'})
     clblast_proj = cmake.subproject('clblast', options: clblast_options, required: true)
     clblast_dep = clblast_proj.dependency('clblast')
   endif
