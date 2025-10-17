@@ -756,19 +756,10 @@ void NeuralNetwork::load(const std::string &file_path,
         size += sizeof(uint16_t);
       }
 
-      if (tensor_data_type == TensorDim::DataType::FP32) {
-        output.write(file_view + start_from, size);
-      }
+      std::cout << "Name: " << iter->getName() << ", Type: " << iter->getType()
+                << std::endl;
 
-      if (tensor_data_type == TensorDim::DataType::FP16) {
-        output.write(file_view + start_from, size);
-      }
-
-      if (tensor_data_type == TensorDim::DataType::Q6_K) {
-        output.write(file_view + start_from, size);
-      }
-
-      if (tensor_data_type == TensorDim::DataType::Q4_0) {
+      if (iter->getType() == "custom_fc_lora") {
         const auto width = weight->getDim().width();
         const auto height = weight->getDim().height();
         // std::cout << width << ' ' << height << std::endl;
@@ -776,14 +767,12 @@ void NeuralNetwork::load(const std::string &file_path,
         const auto N = width;
         const auto K = height;
 
-        // output.write(file_view + start_from, size);
+        std::cout << "Size: " << size << ", N x K: " << N << " x " << K
+                  << std::endl;
 
-        std::vector<float> dequantized_weights_q4(N * K);
-        Int4Utils::dequantize_q4_0(file_view + start_from,
-                                   dequantized_weights_q4.data(), N, K);
         std::vector<uint8_t> quantized_weights_int4;
         std::vector<uint16_t> quantized_scales_int4;
-        Int4Utils::quantizeAndRepack(dequantized_weights_q4.data(), N, K,
+        Int4Utils::quantizeAndRepack((float *)(file_view + start_from), N, K,
                                      DEFAULT_INT4_QUANTIZATION_GROUP_SIZE,
                                      quantized_weights_int4,
                                      quantized_scales_int4);
@@ -793,7 +782,12 @@ void NeuralNetwork::load(const std::string &file_path,
         output.write((char *)quantized_scales_int4.data(),
                      quantized_scales_int4.size() * sizeof(uint16_t));
 
-        // __debugbreak();
+        size = quantized_weights_int4.size() * sizeof(uint8_t) +
+               quantized_scales_int4.size() * sizeof(uint16_t);
+
+        std::cout << "New size: " << size << std::endl;
+      } else {
+        output.write(file_view + start_from, size);
       }
 
       total += 1;

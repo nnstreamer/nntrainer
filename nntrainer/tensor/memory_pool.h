@@ -299,6 +299,10 @@ private:
    */
   std::vector<unsigned int> getSortedPermutation();
 
+  void *allocBytes(const size_t bytes_size);
+
+  void freeBytes(void *memory);
+
   std::vector<size_t> memory_size; /**< various sizes memory requested */
   std::vector<void *> memory_ptrs; /**< various pointers memory requested */
 

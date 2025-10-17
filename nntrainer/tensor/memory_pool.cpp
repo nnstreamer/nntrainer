@@ -118,16 +118,15 @@ double MemoryPool::planLayout(const MemoryPlanner &planner) {
  *
  */
 void MemoryPool::allocate() {
-  if (pool_size == 0)
+  if (pool_size == 0) {
     throw std::runtime_error("Allocating memory pool with size 0");
+  }
 
-  if (mem_pool != nullptr)
+  if (mem_pool != nullptr) {
     throw std::runtime_error("Memory pool is already allocated");
+  }
 
-#if defined(__ANDROID__) && ENABLE_NPU
   int i = 0;
-#define RPCMEM_HEAP_ID_SYSTEM 25
-#define RPCMEM_DEFAULT_FLAGS 1
   std::map<size_t, void *> offset_ptr;     // offset : ptr
   std::map<size_t, size_t> allocated_size; // offset : memory size
   std::map<size_t, std::vector<int>>
@@ -137,8 +136,7 @@ void MemoryPool::allocate() {
     size_t current_size = memory_size.at(i);
     auto it = offset_ptr.find(s);
     if (it == offset_ptr.end()) {
-      void *ptr =
-        rpcmem_alloc(RPCMEM_HEAP_ID_SYSTEM, RPCMEM_DEFAULT_FLAGS, current_size);
+      void *ptr = allocBytes(current_size);
       memory_ptrs.push_back(ptr);
       offset_ptr[s] = ptr;
       allocated_size[s] = current_size;
@@ -147,13 +145,12 @@ void MemoryPool::allocate() {
       void *existing_ptr = it->second;
       size_t max_size = allocated_size[s];
       if (max_size < current_size) {
-        void *new_ptr = rpcmem_alloc(RPCMEM_HEAP_ID_SYSTEM,
-                                     RPCMEM_DEFAULT_FLAGS, current_size);
+        void *new_ptr = allocBytes(current_size);
 
         for (int idx : offset_indices[s]) {
           memory_ptrs[idx] = new_ptr;
         }
-        rpcmem_free(existing_ptr);
+        freeBytes(existing_ptr);
         offset_ptr[s] = new_ptr;
         allocated_size[s] = current_size;
       }
@@ -164,29 +161,6 @@ void MemoryPool::allocate() {
   }
 
   mem_pool = calloc(1, 1);
-
-#else
-
-#ifdef ENABLE_OPENCL
-  auto *cl_context =
-    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  mem_pool = cl_context->context_inst_.createSVMRegion(pool_size);
-
-  if (mem_pool == nullptr) {
-    throw std::runtime_error("Failed to allocate SVM memory pool of size " +
-                             std::to_string(pool_size) + " bytes");
-  }
-#else
-  mem_pool = calloc(pool_size, 1);
-#endif
-
-  unsigned int idx = 1;
-  for (auto &s : memory_offset) {
-    char *ptr = static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
-    memory_ptrs.push_back(ptr);
-    idx++;
-  }
-#endif
 
 #ifdef PROFILE
   static long long seq = 0;
@@ -488,5 +462,33 @@ void MemoryPool::clear() {
  * @return true if the memory is allocated, else false
  */
 bool MemoryPool::isAllocated() const { return mem_pool != nullptr; }
+
+void *MemoryPool::allocBytes(const size_t bytes_size) {
+#if defined(__ANDROID__) && ENABLE_NPU
+  return rpcmem_alloc(RPCMEM_HEAP_ID_SYSTEM, RPCMEM_DEFAULT_FLAGS, bytes_size);
+#else
+#ifdef ENABLE_OPENCL
+  auto *cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  return cl_context->context_inst_.createSVMRegion(bytes_size);
+#else
+  return = calloc(bytes_size, 1);
+#endif
+#endif
+}
+
+void MemoryPool::freeBytes(void *memory) {
+#if defined(__ANDROID__) && ENABLE_NPU
+  rpcmem_free(memory);
+#else
+#ifdef ENABLE_OPENCL
+  auto *cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  cl_context->context_inst_.releaseSVMRegion(memory);
+#else
+  free(memory);
+#endif
+#endif
+}
 
 } // namespace nntrainer
