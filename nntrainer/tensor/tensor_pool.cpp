@@ -40,7 +40,7 @@ Tensor *TensorPool::request(const std::string &name, const TensorDim &dim,
   return registerRequestSpec(
     {is_weight_grad,
      std::make_unique<Tensor>(dim, false, init, name,
-                              QScheme::PER_TENSOR_AFFINE, is_virtual),
+                              QScheme::PER_CHANNEL_AFFINE, is_virtual),
      TensorPool::SourceDetails{0, lifespan, exec_order, {}}});
 }
 
@@ -188,25 +188,15 @@ void TensorPool::finalize(const MemoryPlanner &planner,
      * 3. requestMemory for all the tensors and set their tokens
      * @note +1 is to make the validity_end exlusive in the interval range
      */
-    size_t tensor_bytes =
-      spec.tensor->bytes() + spec.tensor->scale_size() * sizeof(float);
-
-    /// @note this is a temporal way to reserve memory space for zero point
-    if (spec.tensor->getDataType() == Tdatatype::UINT8 ||
-        spec.tensor->getDataType() == Tdatatype::UINT16 ||
-        spec.tensor->getDataType() == Tdatatype::UINT32) {
-      tensor_bytes += spec.tensor->scale_size() * sizeof(unsigned int);
-    }
-
     details->token = mem_pool->requestMemory(
-      tensor_bytes, validity_start, validity_end + 1, details->exec_order,
-      details->lifespan, spec.is_weight_grad);
+      spec.tensor->getMemoryBytes(), validity_start, validity_end + 1,
+      details->exec_order, details->lifespan, spec.is_weight_grad);
 #ifdef DEBUG
     if (details->token == 0)
       throw std::runtime_error("Received invalid token from memory pool");
 #endif
 
-    bytes_requested += tensor_bytes;
+    bytes_requested += spec.tensor->getMemoryBytes();
   }
 
   /** 4. finalizeLayout for the memory pool. */
