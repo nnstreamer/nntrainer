@@ -756,6 +756,12 @@ void NeuralNetwork::load(const std::string &file_path,
         size += sizeof(uint16_t);
       }
 
+      if (tensor_data_type == TensorDim::DataType::Q4_0) {
+        const uint16_t scheme = (uint16_t)QScheme::PER_CHANNEL_AFFINE;
+        output.write((char *)&scheme,
+                     sizeof(uint16_t));
+      }
+
       if (tensor_data_type == TensorDim::DataType::FP32) {
         output.write(file_view + start_from, size);
       }
