@@ -569,19 +569,27 @@ public:
 
   /**
    * @brief     return scale pointer of Tensor
-   * @retval    template T pointer
+   * @retval    float pointer
    */
-  template <typename T = float> T *getScale() const {
-    return (T *)itensor_->getScale();
-  }
+  float *getScale() const { return itensor_->getScale(); }
 
   /**
    * @brief     return scale pointer of Tensor
-   * @retval    template T pointer
+   * @retval    float pointer
    */
-  template <typename T = float> T *getScale(size_t idx) const {
-    return (T *)itensor_->getScale(idx);
-  }
+  float *getScale(size_t idx) const { return itensor_->getScale(idx); }
+
+  /**
+   * @brief     set scale of Tensor to given const value
+   * @param[in] value of scale to set
+   */
+  void setScale(const float value) { itensor_->setScale(value); }
+
+  /**
+   * @brief     check if tensor have scale
+   * @retval    tensor has scale flag
+   */
+  bool hasScale() const { return itensor_->hasScale(); }
 
   /**
    * @brief     return zero point pointer of Tensor
@@ -596,6 +604,18 @@ public:
   unsigned int *getZeroPoint(size_t idx) const {
     return itensor_->getZeroPoint(idx);
   }
+
+  /**
+   * @brief     set zero points of Tensor to given const value
+   * @param[in] value of zero point to set
+   */
+  void setZeroPoint(const unsigned int value) { itensor_->setZeroPoint(value); }
+
+  /**
+   * @brief     check if tensor have zero point
+   * @retval    tensor has zero point flag
+   */
+  bool hasZeroPoint() const { return itensor_->hasZeroPoint(); }
 
   /**
    * @brief     i data index

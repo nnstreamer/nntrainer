@@ -83,12 +83,7 @@ public:
     contiguous = true;
     initializer = Initializer::NONE;
 
-    MemoryData *mem_data =
-      new MemoryData((void *)(new _FP16[dim.getDataLen()]()));
-    data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
-      delete[] mem_data->getAddr<_FP16>();
-      delete mem_data;
-    });
+    allocateInternal();
 
     offset = 0;
 
@@ -145,16 +140,6 @@ public:
    * @copydoc Tensor::deallocate()
    */
   void deallocate() override;
-
-  /**
-   * @copydoc Tensor::getData()
-   */
-  void *getData() const override;
-
-  /**
-   * @copydoc Tensor::getData(size_t idx)
-   */
-  void *getData(size_t idx) const override;
 
   /**
    * @brief     i data index
@@ -531,6 +516,10 @@ private:
    * @copydoc Tensor::isValid()
    */
   bool isValid() const override;
+
+  std::size_t getDataTypeBitsSize() const override {
+    return sizeof(_FP16) * CHAR_BIT;
+  }
 };
 
 } // namespace nntrainer

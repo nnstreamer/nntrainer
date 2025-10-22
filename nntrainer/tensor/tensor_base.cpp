@@ -12,6 +12,8 @@
 #include <tensor.h>
 #include <tensor_base.h>
 
+#include <cstdlib>
+
 namespace nntrainer {
 
 TensorBase::TensorBase(const TensorDim &d, bool alloc_now, Initializer init,
@@ -44,8 +46,31 @@ void TensorBase::setTensorVar(TensorDim d, void *buf, size_t offset) {
   dim = d;
   strides = d.computeStrides();
   /// Tensor does not own the memory
-  data = std::make_shared<MemoryData>(buf);
+  data = std::make_shared<MemoryData>(buf, false);
   this->offset = offset;
+}
+
+void *TensorBase::getData() const {
+  if (!data) {
+    return nullptr;
+  }
+
+  data->validate();
+
+  return reinterpret_cast<std::byte *>(data->getAddr()) +
+         (offset * getDataTypeAlignment());
+}
+
+void *TensorBase::getData(size_t idx) const {
+  std::byte *data_ptr = static_cast<std::byte *>(getData());
+
+  if (!data_ptr) {
+    return nullptr;
+  }
+
+  data->validate();
+
+  return data_ptr + ((idx * getDataTypeBitsSize()) / CHAR_BIT);
 }
 
 void TensorBase::save(std::ostream &file) {
@@ -56,6 +81,25 @@ void TensorBase::save(std::ostream &file) {
 
   checkedWrite(file, (char *)getData(), sz, "[Tensor::save] operation failed");
   putData();
+}
+
+void TensorBase::setScale(const float value) {
+  NNTR_THROW_IF(!hasScale(), std::logic_error)
+    << "Tensor does not support scale";
+  NNTR_THROW_IF(scale_size() == 0, std::logic_error) << "Incorrect scale size";
+
+  auto *scale = (float *)getScale();
+  std::fill(scale, scale + scale_size(), value);
+}
+
+void TensorBase::setZeroPoint(const unsigned int value) {
+  NNTR_THROW_IF(!hasZeroPoint(), std::logic_error)
+    << "Tensor does not support zero point";
+  NNTR_THROW_IF(scale_size() == 0, std::logic_error)
+    << "Incorrect zero point size";
+
+  auto *zero_point = (unsigned int *)getZeroPoint();
+  std::fill(zero_point, zero_point + scale_size(), value);
 }
 
 void TensorBase::read(std::ifstream &file, size_t start_offset,
@@ -424,6 +468,16 @@ void TensorBase::setRandBernoulli(float probability) {
                               getStringDataType());
 }
 
+void TensorBase::initialize() {
+  if (hasScale() && (scale_size() != 0)) {
+    setScale(DEFAULT_TENSOR_SCALE);
+  }
+
+  if (hasZeroPoint() && (scale_size() != 0)) {
+    setZeroPoint(DEFAULT_TENSOR_ZERO_POINT);
+  }
+}
+
 Tensor TensorBase::multiply_strided(Tensor const &m, Tensor &output,
                                     const float beta) const {
   throw std::invalid_argument("Tensor::multiply_strided() is currently not "
@@ -646,6 +700,23 @@ Tensor &TensorBase::transpose(const std::string &direction, Tensor &out) const {
   throw std::invalid_argument(
     "Tensor::transpose() is currently not supported in tensor data type " +
     getStringDataType());
+}
+
+void TensorBase::allocateInternal() {
+  const auto data_bytes_size = getDataBytesSize();
+  const auto scale_bytes_size = getScaleBytesSize();
+  const auto zero_point_bits_size = getZeroPointBytesSize();
+
+  const auto total_bytes_size =
+    data_bytes_size + scale_bytes_size + zero_point_bits_size;
+
+#if defined(_WIN32)
+  data = std::make_shared<MemoryData>(
+    _aligned_malloc(total_bytes_size, getDataTypeAlignment()), true);
+#else
+  data = std::make_shared<MemoryData>(
+    std::aligned_alloc(getDataTypeAlignment(), total_bytes_size), true);
+#endif
 }
 
 } // namespace nntrainer
