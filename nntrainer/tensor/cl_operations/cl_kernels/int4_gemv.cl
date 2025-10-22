@@ -189,7 +189,8 @@ fully_connected_gpu_int4_gemv(__global half *input, const __global half *scales,
                               __global half *output,
                               const __global char *weights, const int WEIGHTS_K,
                               const int WEIGHTS_N) {
-  const int SCALE_GROUP_NUM = WEIGHTS_K / SIZE_QUANTIZATION_GROUP;
+  const int SCALE_GROUP_NUM = (WEIGHTS_K + SIZE_QUANTIZATION_GROUP - 1) / 
+                              SIZE_QUANTIZATION_GROUP;
 
   int n = get_global_id(0) * 2;         // N
   int thr_id = get_local_id(2);         // 0~15
@@ -212,9 +213,9 @@ fully_connected_gpu_int4_gemv(__global half *input, const __global half *scales,
   float2 sum_all = 0;
   for (int gk = gk0; gk < gk1; gk++) {
     __global half *A = input + gk * DECOMPRESSION_GROUP_SIZE;
-    const __global char *B =
-      weights + get_4bit_weight_index(gk * DECOMPRESSION_GROUP_SIZE, n,
-                                      WEIGHTS_K, WEIGHTS_N, 32);
+    int w_id = get_4bit_weight_index(gk * DECOMPRESSION_GROUP_SIZE, n, WEIGHTS_K, WEIGHTS_N, 32);
+
+    const __global char *B = weights + w_id;
 
     GEMV_ACCUMULATOR_VEC_TYPE sum = 0;
 

@@ -4,9 +4,15 @@
 #define COMPRESSED_WEIGHTS_INT4 1
 #define FILTER_LAYOUT_OS_IS_YX_OSV32_ISV2 1
 
+#define CEIL_DIV(a, b) (((a) + (b) - 1) / (b))
+#define ALIGN(a, b) (CEIL_DIV(a, b) * (b))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define CLAMP(v, l, u) MAX((l), MIN((v), (u)))
+
 #define DECOMPRESSION_SCALE_TERM 1
 #define DECOMPRESSION_SCALE_GROUP_SIZE SIZE_QUANTIZATION_GROUP
-#define DECOMPRESSION_SCALE_GROUPS_NUM (SIZE_K / DECOMPRESSION_SCALE_GROUP_SIZE)
+#define DECOMPRESSION_SCALE_GROUPS_NUM CEIL_DIV(SIZE_K, DECOMPRESSION_SCALE_GROUP_SIZE)
 
 #define DECOMPRESSION_SCALE_BATCH_NUM SIZE_N
 #define DECOMPRESSION_SCALE_BATCH_PITCH DECOMPRESSION_SCALE_GROUPS_NUM
@@ -153,11 +159,6 @@ inline int imad_SW(int acc, uchar4 input, uchar4 weight)
 #endif
 
 #define unroll_for __attribute__((opencl_unroll_hint)) for
-#define CEIL_DIV(a, b) (((a) + (b) - 1) / (b))
-#define ALIGN(a, b) (CEIL_DIV(a, b) * (b))
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
-#define CLAMP(v, l, u) MAX((l), MIN((v), (u)))
 
 // Creates vector type.
 #define MAKE_VECTOR_TYPE_IMPL_1(elem_type) elem_type
@@ -1336,15 +1337,14 @@ inline void fc_bf_tiled_kernel_dyn_quan(
     // =====================================================================================================================================
     // Main computation loop
     const uint iterations =
-      MAIN_LOOP_ELEMENTS_COUNT /
-      TILE_IFM_ELEMENTS_SIZE; // TILE_IFM_ELEMENTS_SIZE : (TILE_IFM * SIMD)
+      CEIL_DIV(MAIN_LOOP_ELEMENTS_COUNT, TILE_IFM_ELEMENTS_SIZE); // TILE_IFM_ELEMENTS_SIZE : (TILE_IFM * SIMD)
     // Each sub-group loads 2 Batch
     const uint idx_sglid =
       (sglid * TILE_K) %
       TILE_IFM_ELEMENTS_SIZE; // same index for sglid 0~7 : to tile_k direction
     const uint batch_sglid =
       (sglid * TILE_K) / TILE_IFM_ELEMENTS_SIZE; // 0 to 1 : to batch direction
-    const uint scale_pitch = (TILE_IN_B_PITCH / QUANTIZE_GROUP_SIZE);
+    const uint scale_pitch = CEIL_DIV(TILE_IN_B_PITCH, QUANTIZE_GROUP_SIZE);
 
 #if PER_TOKEN_SIZE_DYN_QUANTIZE
     // Each token is quantized by once. So, all MAIN_LOOP_ELEMENTS_COUNT share
@@ -1379,7 +1379,7 @@ inline void fc_bf_tiled_kernel_dyn_quan(
                                                 ++ni) {
       uint in_offset =
         input_offset + (idx_sglid + batch_sglid * TILE_IN_B_PITCH);
-      uint scale_offset = input_offset / QUANTIZE_GROUP_SIZE;
+      uint scale_offset = CEIL_DIV(input_offset, QUANTIZE_GROUP_SIZE);
       for (uint bi = 0; bi < HALF_TILE_B; ++bi) {
         // Load quantizing info from pre-quantizing kernel
         tiled_input_0[bi] = vload4(0, &quantized_input[in_offset]);

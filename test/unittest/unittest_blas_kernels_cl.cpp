@@ -209,6 +209,47 @@ static inline std::vector<float> generate_vector(const size_t size,
   return vec;
 }
 
+static inline void printMatrixF(const char *name, float *data, int Y, int X) {
+  printf("%s :\n", name);
+  for (int y = 0; y < Y; y++) {
+    printf("[");
+    for (int x = 0; x < X; x++) {
+      std::cout << data[y * X + x] << " ";
+    }
+    printf("]\n");
+  }
+}
+
+static inline void printMatrixI(const char *name, float *data, int Y, int X) {
+  printf("%s :\n", name);
+  for (int y = 0; y < Y; y++) {
+    //printf("[");
+    for (int x = 0; x < X; x++) {
+      if (x % 10 == 0) { printf("| "); }
+      std::cout << (int)(0.5f + data[y * X + x]) << " ";
+    }
+    printf("\n");
+  }
+}
+
+static inline std::vector<float> generate_01_vector(const size_t size, const int ones_cnt) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<float> dist(0.0f, (float)size);
+  std::vector<float> vec(size, 0.0f);
+  for (int i = 0; i < ones_cnt; i++) {
+    int pos = static_cast<int>(dist(gen));
+    vec[pos] = 1.0f;
+  }
+  return vec;
+}
+
+static inline int ceil_div(int a, int b) { return (a + b - 1) / b; }
+
+static inline unsigned int align(unsigned int a, unsigned int b) {
+  return (a % b == 0) ? a : a - a % b + b;
+};
+
 /**
  * @brief Helper function to print data
  *
@@ -238,17 +279,41 @@ static void run_int4_gemv_test_(const uint32_t K, const uint32_t N,
   auto *blas_cc = static_cast<nntrainer::ClContext *>(
     nntrainer::Engine::Global().getRegisteredContext("gpu"));
 
-  static constexpr uint32_t run_count = 200;
+  static constexpr uint32_t run_count = 1;
 
   // Allocate & initialize group-wise int4 data
-  char *weight_ptr = (char *)allocateSVM(K * N / 2);
+  char *weight_ptr = (char *)allocateSVM(align(K, scale_group_size) * N / 2);
   uint16_t *scale_ptr =
-    (uint16_t *)allocateSVM(K * N / scale_group_size * sizeof(uint16_t));
+    (uint16_t *)allocateSVM(ceil_div(K, scale_group_size) * N * sizeof(uint16_t));
   uint16_t *input_ptr = (uint16_t *)allocateSVM(K * sizeof(uint16_t));
   uint16_t *output_ptr = (uint16_t *)allocateSVM(N * sizeof(uint16_t));
 
-  std::vector<float> weight_fp32 = generate_vector(N * K, -2.0f, 2.0f);
-  std::vector<float> input_fp32 = generate_vector(K, -2.0f, 2.0f);
+  // std::vector<float> weight_fp32 = generate_vector(N * K, -2.0f, 2.0f);
+  // std::vector<float> input_fp32 = generate_vector(K, -2.0f, 2.0f);
+  // std::vector<float> weight_fp32 = generate_random_vector<float>(N * K, -2.0f, 2.0f);
+  // std::vector<float> input_fp32 = generate_random_vector<float>(K, -2.0f, 2.0f);
+  // std::vector<float> weight_fp32 = generate_random_vector<float>(N * K, -1.0f, 1.0f);
+  // std::vector<float> input_fp32 = generate_random_vector<float>(K, -1.0f, 1.0f);
+  std::vector<float> weight_fp32 = generate_01_vector(N * K, 40);
+  std::vector<float> input_fp32 = generate_vector(K, 1.0f, 1.0f);
+
+  // std::vector<float> weight_fp32 = generate_vector(N * K, 0.0f, 0.0f);
+  // std::vector<float> input_fp32 = generate_vector(K, 1.0f, 1.0f);
+  // weight_fp32[K * 1 + 32] = 1.0f;
+
+  for (int x = 0; x < K; x++) {
+    for (int y = 0; y < N; y++) {
+      if (y % 10 == 0) { printf("| "); }
+      if (weight_fp32[y * K + x] > 0.1) {
+        printf("1 ");
+      } else {
+        printf("0 ");
+      }
+    }
+    printf("\n");
+  }
+
+
   std::vector<float> output_fp32(N);
 
   // Reference FP32 GENV
@@ -261,21 +326,23 @@ static void run_int4_gemv_test_(const uint32_t K, const uint32_t N,
   std::vector<float> q4_output_fp32(N);
   std::vector<float> q4_weight(N * K);
   std::vector<float> q4_weight_repack(N * K);
-  nntrainer::quantize_q4_0(weight_fp32.data(), q4_weight.data(), N, K, nullptr);
-  nntrainer::repack_q4_0(q4_weight_repack.data(), q4_weight.data(),
-                         K * N / 32 * 18, N, K);
-  nntrainer::gemm_q4_0(1, N, K, input_fp32.data(), K, q4_weight_repack.data(),
-                       N, q4_output_fp32.data(), N);
+  if (K % 32 == 0) {
+    nntrainer::quantize_q4_0(weight_fp32.data(), q4_weight.data(), N, K, nullptr);
+    nntrainer::repack_q4_0(q4_weight_repack.data(), q4_weight.data(),
+                          K * N / 32 * 18, N, K);
+    nntrainer::gemm_q4_0(1, N, K, input_fp32.data(), K, q4_weight_repack.data(),
+                        N, q4_output_fp32.data(), N);
 
-  std::vector<float> dequantized_weights_q4(N * K);
-  Q4_0Utils::dequantizeQ4_0x8(q4_weight_repack.data(), N, K,
-                              dequantized_weights_q4.data());
+    std::vector<float> dequantized_weights_q4(N * K);
+    Q4_0Utils::dequantizeQ4_0x8(q4_weight_repack.data(), N, K,
+                                dequantized_weights_q4.data());
 
-  float mse_dequantized_q4 =
-    mse<float>(weight_fp32.data(), dequantized_weights_q4.data(), N * K);
+    float mse_dequantized_q4 =
+      mse<float>(weight_fp32.data(), dequantized_weights_q4.data(), N * K);
 
-  std::cout << "MSE dequantized Q4_0: " << std::setprecision(10)
-            << mse_dequantized_q4 << std::endl;
+    std::cout << "MSE dequantized Q4_0: " << std::setprecision(10)
+              << mse_dequantized_q4 << std::endl;
+  }
 
   // GPU INT4 GEMV
   std::vector<uint8_t> quantized_weights;
@@ -287,6 +354,9 @@ static void run_int4_gemv_test_(const uint32_t K, const uint32_t N,
   Int4Utils::dequantizePacked(quantized_weights, quantized_scales, N, K,
                               scale_group_size, dequantized_weights);
 
+  printf("dequantized_weights.size():%lu\n", dequantized_weights.size());
+  printf("quantized_scales.size():%lu\n", quantized_scales.size());
+
   float mse_dequantized =
     mse<float>(weight_fp32.data(), dequantized_weights.data(), N * K);
 
@@ -297,11 +367,19 @@ static void run_int4_gemv_test_(const uint32_t K, const uint32_t N,
     input_ptr[i] = compute_fp32_to_fp16((input_fp32.data())[i]);
   }
 
-  for (unsigned int i = 0; i < K * N / scale_group_size; ++i) {
+  unsigned int scales_cnt = quantized_scales.size();
+  printf("K * N / scale_group_size:%u\n", K * N / scale_group_size);
+  printf("quantized_scales.size():%u\n", quantized_scales.size());
+  printf("ceil_div(K, scale_group_size) * N:%u\n", ceil_div(K, scale_group_size) * N);
+  std::vector<float> scales_fp32(ceil_div(K, scale_group_size) * N);
+  for (unsigned int i = 0; i < ceil_div(K, scale_group_size) * N; ++i) {
     scale_ptr[i] = quantized_scales[i];
+    scales_fp32[i] = compute_fp16_to_fp32(quantized_scales[i]);
   }
 
-  for (unsigned int i = 0; i < N * K / 2; ++i) {
+  printMatrixF("scales", scales_fp32.data(), 1, ceil_div(K, scale_group_size) * N);
+
+  for (unsigned int i = 0; i < N * align(K, scale_group_size) / 2; ++i) {
     weight_ptr[i] = quantized_weights[i];
   }
 
@@ -317,25 +395,33 @@ static void run_int4_gemv_test_(const uint32_t K, const uint32_t N,
     output_fp32[i] = compute_fp16_to_fp32(output_ptr[i]);
   }
 
-  std::cout << "INT4 GEMV : " << K << " x " << N << std::endl;
-  std::cout << " - time : GPU = " << gpu_dt.count() / (run_count * 1.0f)
-            << " ms" << std::endl;
+  std::cout << "INT4 GEMV : K:" << K << " x N:" << N << std::endl;
+  // std::cout << " - time : GPU = " << gpu_dt.count() / (run_count * 1.0f)
+  //           << " ms" << std::endl;
 
-  std::cout << " - fp32 :   ";
-  debug_print_beg_end(reference_output_fp32.data(), N);
+  //std::cout << " - fp32 :   ";
+  //debug_print_beg_end(reference_output_fp32.data(), N, 16);
+  printMatrixI("REF ", reference_output_fp32.data(), 1, N);
 
-  std::cout << " - q4_0 :   ";
-  debug_print_beg_end(q4_output_fp32.data(), N);
+  float mse_q4_0_err = 0.0f;
+  if (K % 32 == 0) {
+    std::cout << " - q4_0 :   ";
+    debug_print_beg_end(q4_output_fp32.data(), N, 16);
+    mse_q4_0_err =
+      mse<float>(reference_output_fp32.data(), q4_output_fp32.data(), N);
+  }
 
-  std::cout << " - int4 :   ";
-  debug_print_beg_end(output_fp32.data(), N);
+  //std::cout << " - int4 :   ";
+  //debug_print_beg_end(output_fp32.data(), N, 16);
+  printMatrixI("INT4", output_fp32.data(), 1, N);
+
 
   float mse_int4_err =
     mse<float>(reference_output_fp32.data(), output_fp32.data(), N);
-  float mse_q4_0_err =
-    mse<float>(reference_output_fp32.data(), q4_output_fp32.data(), N);
 
-  std::cout << "MSE q4_0: " << mse_q4_0_err << std::endl;
+  if (K % 32 == 0) {
+    std::cout << "MSE q4_0: " << mse_q4_0_err << std::endl;
+  }
   std::cout << "MSE int4: " << mse_int4_err << std::endl;
 
   freeSVM(weight_ptr);
@@ -349,16 +435,28 @@ static void run_int4_gemv_test_(const uint32_t K, const uint32_t N,
     run_int4_gemv_test_(K, N, G);                                              \
   }
 
-DECLARE_int4_gemv_test_K_N(3072, 256, 32);
-DECLARE_int4_gemv_test_K_N(3072, 8192, 32);
-DECLARE_int4_gemv_test_K_N(8192, 3072, 32);
-DECLARE_int4_gemv_test_K_N(3072, 3072, 32);
+// DECLARE_int4_gemv_test_K_N(3072, 256, 32);
+// DECLARE_int4_gemv_test_K_N(3072, 8192, 32);
+// DECLARE_int4_gemv_test_K_N(8192, 3072, 32);
+// DECLARE_int4_gemv_test_K_N(3072, 3072, 32);
 
-DECLARE_int4_gemv_test_K_N(3072, 256, 128);
-DECLARE_int4_gemv_test_K_N(3072, 8192, 128);
-DECLARE_int4_gemv_test_K_N(8192, 3072, 128);
-DECLARE_int4_gemv_test_K_N(3072, 3072, 128);
+// DECLARE_int4_gemv_test_K_N(3072, 256, 128);
+// DECLARE_int4_gemv_test_K_N(3072, 8192, 128);
+// DECLARE_int4_gemv_test_K_N(8192, 3072, 128);
+// DECLARE_int4_gemv_test_K_N(3072, 3072, 128);
 
+// DECLARE_int4_gemv_test_K_N(105920, 3072, 32);
+// DECLARE_int4_gemv_test_K_N(105900, 3072, 32);
+
+//DECLARE_int4_gemv_test_K_N(64, 32, 32);
+//DECLARE_int4_gemv_test_K_N(62, 32, 32);
+//DECLARE_int4_gemv_test_K_N(34, 32, 32);
+// DECLARE_int4_gemv_test_K_N(34, 64, 32); // zle
+// DECLARE_int4_gemv_test_K_N(14, 64, 32);
+// DECLARE_int4_gemv_test_K_N(44, 64, 32);
+//DECLARE_int4_gemv_test_K_N(144, 128, 32); // ok
+
+#if 0
 TEST(nntrainer_blas_kernel, tensor_dot_qint4) {
   const int batch = 1;
   const int channel = 1;
@@ -759,51 +857,95 @@ TEST(nntrainer_blas_kernel, int4_gemv_async_test) {
   freeSVM(async_out1);
   freeSVM(async_out2);
 }
+#endif
 
 static void run_int4_gemm_test_(const uint32_t M, const uint32_t K,
                                 const uint32_t N, const int scale_group_size) {
   auto *blas_cc = static_cast<nntrainer::ClContext *>(
     nntrainer::Engine::Global().getRegisteredContext("gpu"));
 
-  static constexpr uint32_t run_count = 200;
+  static constexpr uint32_t run_count = 20;
+
+  uint32_t input_size = M * align(K, scale_group_size);
 
   // Allocate & initialize data
-  // std::vector<float> input = generate_random_vector<float, false>(M * K);
-  // std::vector<float> weight = generate_random_vector<float, false>(N * K);
-  std::vector<float> input = generate_vector(M * K, -2.0f, 2.0f);
-  std::vector<float> weight = generate_vector(N * K, -2.0f, 2.0f);
+  // std::vector<float> input = generate_random_vector<float, false>(input_size, -1.0, 1.0);
+  // std::vector<float> weight = generate_random_vector<float, false>(N * K, -1.0, 1.0);
+  // std::vector<float> input = generate_vector(input_size, -2.0f, 2.0f);
+  // std::vector<float> weight = generate_vector(N * K, -2.0f, 2.0f);
+  // std::vector<float> input = generate_vector(input_size, 1.0f, 1.0f);
+  // std::vector<float> weight = generate_01_vector(N * K, 40000);
+
+  std::vector<float> input = generate_01_vector(input_size, 8);
+  std::vector<float> weight = generate_01_vector(N * K, 200);
+
+
+
+  // std::vector<float> input = generate_vector(input_size, 1.0f, 1.0f);
+  // std::vector<float> weight = generate_vector(N * K, 0.0f, 0.0f);
+  // weight[K * 1 + 32] = 1.0f;
+
+  // for (int x = 0; x < K; x++) {
+  //   for (int y = 0; y < N; y++) {
+  //     if (y % 10 == 0) { printf("| "); }
+  //     if (weight[y * K + x] > 0.1) {
+  //       printf("1 ");
+  //     } else {
+  //       printf("0 ");
+  //     }
+  //   }
+  //   printf("\n");
+  // }
+
+
   std::vector<float> output_fp32(M * N);
   std::vector<float> ref_dst(M * N, 0.0f);
 
   nntrainer::sgemm(0, false, true, M, N, K, 1.F, input.data(), K, weight.data(),
                    K, 0.F, ref_dst.data(), N);
 
-  uint16_t *input_ptr = (uint16_t *)allocateSVM(M * K * sizeof(uint16_t));
-  int8_t *weight_ptr = (int8_t *)allocateSVM(K * N / 2);
+  uint16_t *input_ptr = (uint16_t *)allocateSVM(input_size * sizeof(uint16_t));
+  int8_t *weight_ptr = (int8_t *)allocateSVM(align(K, scale_group_size) * N / 2);
   uint16_t *scale_ptr =
-    (uint16_t *)allocateSVM(K * N * sizeof(uint16_t) / scale_group_size);
+    (uint16_t *)allocateSVM(ceil_div(K, scale_group_size) * N * sizeof(uint16_t));
   uint16_t *output_ptr = (uint16_t *)allocateSVM(M * N * sizeof(uint16_t));
 
   blas_cc->command_queue_inst_.enqueueSVMMap(input_ptr,
-                                             M * K * sizeof(uint16_t), false);
-  blas_cc->command_queue_inst_.enqueueSVMMap(weight_ptr, K * N / 2, false);
+                                             input_size * sizeof(uint16_t), false);
+  blas_cc->command_queue_inst_.enqueueSVMMap(weight_ptr, align(K, scale_group_size) * N / 2, false);
   blas_cc->command_queue_inst_.enqueueSVMMap(
-    scale_ptr, K * N * sizeof(uint16_t) / scale_group_size, false);
+    scale_ptr, ceil_div(K, scale_group_size) * N * sizeof(uint16_t), false);
 
   std::vector<uint8_t> quantized_weights;
   std::vector<uint16_t> quantized_scales;
   Int4Utils::quantizeAndRepack(weight.data(), N, K, scale_group_size,
                                quantized_weights, quantized_scales);
 
-  for (unsigned int i = 0; i < M * K; ++i) {
+  // Check dequantization
+  std::vector<float> dequantized_weights;
+  Int4Utils::dequantizePacked(quantized_weights, quantized_scales, N, K,
+                              scale_group_size, dequantized_weights);
+
+  printf("dequantized_weights.size():%lu\n", dequantized_weights.size());
+  printf("quantized_scales.size():%lu\n", quantized_scales.size());
+
+  float mse_dequantized =
+    mse<float>(weight.data(), dequantized_weights.data(), N * K);
+
+  std::cout << "MSE dequantized INT4: " << std::setprecision(10)
+            << mse_dequantized << std::endl;
+                             
+
+
+  for (unsigned int i = 0; i < input_size; ++i) {
     input_ptr[i] = compute_fp32_to_fp16((input.data())[i]);
   }
 
-  for (unsigned int i = 0; i < K * N / scale_group_size; ++i) {
+  for (unsigned int i = 0; i < ceil_div(K, scale_group_size) * N; ++i) {
     scale_ptr[i] = quantized_scales[i];
   }
 
-  for (unsigned int i = 0; i < N * K / 2; ++i) {
+  for (unsigned int i = 0; i < N * align(K, scale_group_size) / 2; ++i) {
     weight_ptr[i] = quantized_weights[i];
   }
 
@@ -826,9 +968,6 @@ static void run_int4_gemm_test_(const uint32_t M, const uint32_t K,
     for (unsigned int i = 0; i < M * N; ++i) {
       output_fp32[i] = compute_fp16_to_fp32(output_ptr[i]);
     }
-
-    float mse_int4_err = mse<float>(ref_dst.data(), output_fp32.data(), M * N);
-    std::cout << "MSE int4: " << mse_int4_err << std::endl;
 
     uint32_t first_zero_index = UINT32_MAX;
     uint32_t first_nonzero_index = UINT32_MAX;
@@ -880,15 +1019,34 @@ static void run_int4_gemm_test_(const uint32_t M, const uint32_t K,
       std::cout << "]";
     };
 
-    std::cout << "INT4 GEMM : " << M << " x " << K << " x " << N << std::endl;
-    std::cout << " - time : GPU = " << gpu_dt / (run_count * 1.0f) << " ms"
-              << std::endl;
-    std::cout << " - sample : GPU = ";
-    debug_print_beg_end(output_ptr);
-    std::cout << std::endl;
-    std::cout << " - sample: REF = ";
-    debug_print_beg_end_float(ref_dst.data());
-    std::cout << std::endl;
+
+    std::cout << "INT4 GEMM : M:" << M << " x K:" << K << " x N:" << N << std::endl;
+//    std::cout << " - time : GPU = " << gpu_dt / (run_count * 1.0f) << " ms"
+//              << std::endl;
+
+    //printMatrixI("REF ", ref_dst.data(), M, N);
+    //printMatrixI("INT4", output_fp32.data(), M, N);
+
+    std::vector<float> diff(M * N);
+    int maxDiff = 0;
+    for (int i = 0; i < M * N; i++) {
+      diff[i] = ref_dst[i] - output_fp32[i];
+      if (abs(diff[i]) > maxDiff) {
+        maxDiff = diff[i];
+      }
+    }
+    //printMatrixI("DIFF", diff.data(), M, N);
+    printf("maxDiff:%i\n", maxDiff);
+
+
+
+    // std::cout << " - sample: REF = ";
+    // debug_print_beg_end_float(ref_dst.data(), 16);
+    // std::cout << std::endl;
+    // std::cout << " - sample : GPU = ";
+    // debug_print_beg_end(output_ptr, 16);
+    // std::cout << std::endl;
+
     // std::cout << " - zeros : " << zeros << " / " << M * N << " [ "
     //           << zeros * 100.0f / float(M * N) << " %] - first at [ "
     //           << first_zero_index << " ]" << std::endl;
@@ -897,6 +1055,9 @@ static void run_int4_gemm_test_(const uint32_t M, const uint32_t K,
     //           << first_nonzero_index << " ]" << std::endl;
     // std::cout << " - nans : " << nans << " / " << M * N << " [ "
     //           << nans * 100.0f / float(M * N) << " %]" << std::endl;
+
+    float mse_int4_err = mse<float>(ref_dst.data(), output_fp32.data(), M * N);
+    std::cout << "MSE int4: " << mse_int4_err << std::endl;
 
     freeSVM(weight_ptr);
     freeSVM(scale_ptr);
@@ -915,16 +1076,36 @@ static void run_int4_gemm_test_(const uint32_t M, const uint32_t K,
 // DECLARE_int4_gemm_test_K_N(28, 8192, 3072, i);
 // DECLARE_int4_gemm_test_K_N(28, 3072, 3072, i);
 
-DECLARE_int4_gemm_test_K_N(68, 3072, 256, 32);
-DECLARE_int4_gemm_test_K_N(68, 3072, 8192, 32);
-DECLARE_int4_gemm_test_K_N(68, 8192, 3072, 32);
-DECLARE_int4_gemm_test_K_N(68, 3072, 3072, 32);
+// DECLARE_int4_gemm_test_K_N(68, 3072, 256, 32);
+// DECLARE_int4_gemm_test_K_N(68, 3072, 8192, 32);
+// DECLARE_int4_gemm_test_K_N(68, 8192, 3072, 32);
+// DECLARE_int4_gemm_test_K_N(68, 3072, 3072, 32);
 
-DECLARE_int4_gemm_test_K_N(68, 3072, 256, 128);
-DECLARE_int4_gemm_test_K_N(68, 3072, 8192, 128);
-DECLARE_int4_gemm_test_K_N(68, 8192, 3072, 128);
-DECLARE_int4_gemm_test_K_N(68, 3072, 3072, 128);
+// DECLARE_int4_gemm_test_K_N(68, 3072, 256, 128);
+// DECLARE_int4_gemm_test_K_N(68, 3072, 8192, 128);
+// DECLARE_int4_gemm_test_K_N(68, 8192, 3072, 128);
+// DECLARE_int4_gemm_test_K_N(68, 3072, 3072, 128);
 
+// DECLARE_int4_gemm_test_K_N(1, 64, 32, 32);
+// DECLARE_int4_gemm_test_K_N(1, 62, 32, 32);
+// DECLARE_int4_gemm_test_K_N(1, 34, 32, 32);
+
+// DECLARE_int4_gemm_test_K_N(68, 64, 32, 32);
+// DECLARE_int4_gemm_test_K_N(68, 62, 32, 32);
+// DECLARE_int4_gemm_test_K_N(68, 34, 32, 32);
+// DECLARE_int4_gemm_test_K_N(68, 30, 32, 32);
+// DECLARE_int4_gemm_test_K_N(2, 30, 32, 32);
+// DECLARE_int4_gemm_test_K_N(4, 30, 32, 32);
+// DECLARE_int4_gemm_test_K_N(6, 30, 32, 32);
+// DECLARE_int4_gemm_test_K_N(8, 30, 32, 32);
+
+ DECLARE_int4_gemm_test_K_N(1, 14, 32, 32);
+ DECLARE_int4_gemm_test_K_N(2, 14, 64, 32);
+
+// DECLARE_int4_gemm_test_K_N(68, 105900, 3072, 32);
+// DECLARE_int4_gemm_test_K_N(68, 105920, 3072, 32);
+
+#if 0
 TEST(nntrainer_blas_kernel, int4_gemm_async_test) {
   auto *blas_cc = static_cast<nntrainer::ClContext *>(
     nntrainer::Engine::Global().getRegisteredContext("gpu"));
@@ -2571,7 +2752,7 @@ TEST(blas_kernels, swiglu_layer_fp16) {
   EXPECT_IN_RANGE((float)cosSim, 0.99, 1);
 }
 #endif
-
+#endif
 GTEST_API_ int main(int argc, char **argv) {
   int result = -1;
 

@@ -18,6 +18,14 @@
 
 namespace nntrainer {
 
+static inline unsigned int ceil_div(unsigned int a, unsigned int b) {
+  return (a + b - 1) / b;
+};
+
+static inline unsigned int align(unsigned int a, unsigned int b) {
+  return (a % b == 0) ? a : a - a % b + b;
+};
+
 void gemv_int4_async_cl(std::vector<void *> weights,
                         std::vector<uint16_t *> scales, uint16_t *input,
                         std::vector<uint16_t *> outputs, unsigned int K,
@@ -104,6 +112,14 @@ void gemv_int4_async_cl(std::vector<void *> weights,
 void gemv_int4_cl(char *weight, uint16_t *scale, uint16_t *input,
                   uint16_t *output, unsigned int K, unsigned int N,
                   unsigned int quantization_group_size) {
+  bool USE_PADDING = true;
+  if (USE_PADDING) {
+    const auto K_GROUP_SIZE = quantization_group_size; // due to input data format
+    const auto N_GROUP_SIZE = 32; // due to input data format
+    K = align(K, K_GROUP_SIZE);
+    N = align(N, N_GROUP_SIZE);
+  }
+  printf("gemv_int4_cl() K:%u, N:%u\n", K, N);
   bool result = false;
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
@@ -433,14 +449,6 @@ void openvino_gemm_async_cl(float *input, std::vector<void *> weights,
 
   bool result = false;
 
-  auto ceil_div = [](unsigned int a, unsigned int b) -> unsigned int {
-    return (a + b - 1) / b;
-  };
-
-  auto align = [](unsigned int a, unsigned int b) -> unsigned int {
-    return (a % b == 0) ? a : a - a % b + b;
-  };
-
   // copy fp32 input to fp16
   copy_fp32_u16(M * K, input, (uint16_t *)clbuffInstance.getSVMInput());
 
@@ -595,6 +603,14 @@ void openvino_sgemm_cl(float *input, char *weight, uint16_t *scale,
 void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
                       unsigned int M, unsigned int N, unsigned int K,
                       unsigned int quantization_group_size) {
+  bool USE_PADDING = true;
+  if (USE_PADDING) {
+    const auto K_GROUP_SIZE = quantization_group_size; // due to input data format
+    const auto N_GROUP_SIZE = 32; // due to input data format
+    K = align(K, K_GROUP_SIZE);
+    N = align(N, N_GROUP_SIZE);
+  }
+
   bool result = false;
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
@@ -604,14 +620,6 @@ void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
     " -D SIZE_N=" + std::to_string(N) + " -D SIZE_K=" + std::to_string(K) +
     " -D SIZE_QUANTIZATION_GROUP=" + std::to_string(quantization_group_size) +
     " -D SCALE_ROW_MAJOR=" + std::to_string(scale_row_major);
-
-  auto ceil_div = [](unsigned int a, unsigned int b) -> unsigned int {
-    return (a + b - 1) / b;
-  };
-
-  auto align = [](unsigned int a, unsigned int b) -> unsigned int {
-    return (a % b == 0) ? a : a - a % b + b;
-  };
 
   std::vector<cl_event> quantize_event(1);
   {
@@ -643,7 +651,7 @@ void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
                                "quantize_input");
 
     const int work_groups_count[3] = {
-      (int)align((M * K) / quantization_group_size, 64), 1, 1};
+      (int)align((M * ceil_div(K, quantization_group_size)), 64), 1, 1};
     const int work_group_size[3] = {64, 1, 1};
 
     result = blas_cc->command_queue_inst_.DispatchCommand(
