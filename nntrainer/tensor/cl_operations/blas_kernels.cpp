@@ -18,6 +18,14 @@
 
 namespace nntrainer {
 
+static inline unsigned int ceil_div(unsigned int a, unsigned int b) {
+  return (a + b - 1) / b;
+};
+
+static inline unsigned int align(unsigned int a, unsigned int b) {
+  return (a % b == 0) ? a : a - a % b + b;
+};
+
 void gemv_int4_async_cl(std::vector<void *> weights,
                         std::vector<uint16_t *> scales, uint16_t *input,
                         std::vector<uint16_t *> outputs, unsigned int K,
@@ -104,6 +112,9 @@ void gemv_int4_async_cl(std::vector<void *> weights,
 void gemv_int4_cl(char *weight, uint16_t *scale, uint16_t *input,
                   uint16_t *output, unsigned int K, unsigned int N,
                   unsigned int quantization_group_size) {
+  const auto N_GROUP_SIZE = 32; // due to input data format
+  const unsigned int alignN = align(N, N_GROUP_SIZE);
+
   bool result = false;
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
@@ -155,7 +166,7 @@ void gemv_int4_cl(char *weight, uint16_t *scale, uint16_t *input,
     throw std::runtime_error(
       "Failed to set kernel argument 5 for fully_connected_gpu_int4_gemv");
 
-  const int work_groups_count[3] = {(int)(N / 2), 1, 16};
+  const int work_groups_count[3] = {(int)(alignN / 2), 1, 16};
   const int work_group_size[3] = {16, 1, 16};
 
   result = blas_cc->command_queue_inst_.DispatchCommand(
@@ -433,14 +444,6 @@ void openvino_gemm_async_cl(float *input, std::vector<void *> weights,
 
   bool result = false;
 
-  auto ceil_div = [](unsigned int a, unsigned int b) -> unsigned int {
-    return (a + b - 1) / b;
-  };
-
-  auto align = [](unsigned int a, unsigned int b) -> unsigned int {
-    return (a % b == 0) ? a : a - a % b + b;
-  };
-
   // copy fp32 input to fp16
   copy_fp32_u16(M * K, input, (uint16_t *)clbuffInstance.getSVMInput());
 
@@ -592,9 +595,54 @@ void openvino_sgemm_cl(float *input, char *weight, uint16_t *scale,
   copy_u16_fp32(M * N, (uint16_t *)clbuffInstance.getSVMOutput(), output);
 }
 
+// TODO remove it
+void *allocateSVM(size_t size_bytes) {
+  auto *blas_cc = static_cast<nntrainer::ClContext *>(
+    nntrainer::Engine::Global().getRegisteredContext("gpu"));
+
+  void *ptr = blas_cc->context_inst_.createSVMRegion(size_bytes);
+
+  if (ptr == nullptr) {
+    throw std::runtime_error(
+      "Failed to allocated SVM for the OpenCL BLAS unit test.");
+  }
+
+  return ptr;
+}
+
+// TODO remove it
+void freeSVM(void *ptr) {
+  auto *blas_cc = static_cast<nntrainer::ClContext *>(
+    nntrainer::Engine::Global().getRegisteredContext("gpu"));
+
+  blas_cc->context_inst_.releaseSVMRegion(ptr);
+  ptr = nullptr;
+}
+
 void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
                       unsigned int M, unsigned int N, unsigned int K,
                       unsigned int quantization_group_size) {
+
+  int alignK = align(K, quantization_group_size);
+  const auto N_GROUP_SIZE = 32; // due to input data format
+  int alignN = align(N, N_GROUP_SIZE);
+  // Padding input data - TODO remove this and do this in kernel quantize_input
+  uint16_t *input_ptr;
+  if (alignK != K) {
+    uint32_t padded_input_size = M * alignK;
+    input_ptr = (uint16_t *)allocateSVM(padded_input_size * sizeof(uint16_t));
+    for (int y = 0; y < M; y++) {
+      for (int x = 0; x < K; x++) {
+        input_ptr[y * alignK + x] = ((uint16_t *)input)[y * K + x];
+      }
+      for (int x = K; x < alignK; x++) {
+        input_ptr[y * alignK + x] = compute_fp32_to_fp16(0.f);
+      }
+    }
+  } else {
+    input_ptr = (uint16_t *)input;
+  }
+
   bool result = false;
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
@@ -604,14 +652,6 @@ void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
     " -D SIZE_N=" + std::to_string(N) + " -D SIZE_K=" + std::to_string(K) +
     " -D SIZE_QUANTIZATION_GROUP=" + std::to_string(quantization_group_size) +
     " -D SCALE_ROW_MAJOR=" + std::to_string(scale_row_major);
-
-  auto ceil_div = [](unsigned int a, unsigned int b) -> unsigned int {
-    return (a + b - 1) / b;
-  };
-
-  auto align = [](unsigned int a, unsigned int b) -> unsigned int {
-    return (a % b == 0) ? a : a - a % b + b;
-  };
 
   std::vector<cl_event> quantize_event(1);
   {
@@ -624,7 +664,7 @@ void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
 
     int arg = 0;
 
-    result = kernel_ptr->SetKernelSVMArguments(arg++, input);
+    result = kernel_ptr->SetKernelSVMArguments(arg++, input_ptr);
 
     if (!result)
       throw std::runtime_error("Failed to set kernel argument 0 for "
@@ -643,7 +683,7 @@ void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
                                "quantize_input");
 
     const int work_groups_count[3] = {
-      (int)align((M * K) / quantization_group_size, 64), 1, 1};
+      (int)align((M * ceil_div(K, quantization_group_size)), 64), 1, 1};
     const int work_group_size[3] = {64, 1, 1};
 
     result = blas_cc->command_queue_inst_.DispatchCommand(
@@ -665,7 +705,7 @@ void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
 
   int arg = 0;
 
-  result = kernel_ptr->SetKernelSVMArguments(arg++, input);
+  result = kernel_ptr->SetKernelSVMArguments(arg++, input_ptr);
 
   if (!result)
     throw std::runtime_error(
@@ -703,7 +743,7 @@ void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
     throw std::runtime_error(
       "Failed to set kernel argument 6 for fc_bf_tiled_kernel_default");
 
-  const int work_groups_count[3] = {(int)(N / 2),
+  const int work_groups_count[3] = {(int)(alignN / 2),
                                     (int)(align(ceil_div(M, 8), 8)), 1};
   const int work_group_size[3] = {16, 8, 1};
 
@@ -722,6 +762,10 @@ void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
     throw std::runtime_error(
       "Failed to read output data for fc_bf_tiled_kernel_default");
     return;
+  }
+
+  if (alignK != K) {
+    freeSVM(input_ptr);
   }
 }
 
