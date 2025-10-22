@@ -15,7 +15,7 @@
 #define CAT(x, y) __CAT(x, y)
 
 #define unroll_for __attribute__((opencl_unroll_hint)) for
-#define CEIL_DIV(a, b) (((a) + (b) - 1) / (b))
+#define CEIL_DIV(a, b) (((a) + (b)-1) / (b))
 #define ALIGN(a, b) (CEIL_DIV(a, b) * (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
@@ -78,8 +78,8 @@
   CAT(BLOCK_READN_FUNC_size, type_size)(vector_size)
 
 #define BLOCK_READN_RAW(type_size, vector_size, addr_space, ptr, offset)       \
-  BLOCK_READN_FUNC(type_size, vector_size)(                                    \
-    (const addr_space BLOCK_READ_TYPE(type_size) *)(ptr) + (offset))
+  BLOCK_READN_FUNC(type_size, vector_size)                                     \
+  ((const addr_space BLOCK_READ_TYPE(type_size) *)(ptr) + (offset))
 
 #define BLOCK_READN(type, vector_size, ptr, offset)                            \
   AS_TYPE(                                                                     \
@@ -189,7 +189,9 @@ fully_connected_gpu_int4_gemv(__global half *input, const __global half *scales,
                               __global half *output,
                               const __global char *weights, const int WEIGHTS_K,
                               const int WEIGHTS_N) {
-  const int SCALE_GROUP_NUM = WEIGHTS_K / SIZE_QUANTIZATION_GROUP;
+  const int SCALE_GROUP_NUM = CEIL_DIV(WEIGHTS_K, SIZE_QUANTIZATION_GROUP);
+  int ALIGN_WEIGHTS_N = ALIGN(WEIGHTS_N, 32);
+  int ALIGN_WEIGHTS_K = ALIGN(WEIGHTS_K, SIZE_QUANTIZATION_GROUP);
 
   int n = get_global_id(0) * 2;         // N
   int thr_id = get_local_id(2);         // 0~15
@@ -212,9 +214,10 @@ fully_connected_gpu_int4_gemv(__global half *input, const __global half *scales,
   float2 sum_all = 0;
   for (int gk = gk0; gk < gk1; gk++) {
     __global half *A = input + gk * DECOMPRESSION_GROUP_SIZE;
-    const __global char *B =
-      weights + get_4bit_weight_index(gk * DECOMPRESSION_GROUP_SIZE, n,
-                                      WEIGHTS_K, WEIGHTS_N, 32);
+    int w_id = get_4bit_weight_index(gk * DECOMPRESSION_GROUP_SIZE, n,
+                                     ALIGN_WEIGHTS_K, ALIGN_WEIGHTS_N, 32);
+
+    const __global char *B = weights + w_id;
 
     GEMV_ACCUMULATOR_VEC_TYPE sum = 0;
 
@@ -222,8 +225,8 @@ fully_connected_gpu_int4_gemv(__global half *input, const __global half *scales,
     float scale_0 = convert_float(scales[gk]);
     float scale_1 = convert_float(scales[gk + 16 * SCALE_GROUP_NUM]);
 #else
-    float scale_0 = convert_float(scales[gk * WEIGHTS_N]);
-    float scale_1 = convert_float(scales[gk * WEIGHTS_N + 16]);
+    float scale_0 = convert_float(scales[gk * ALIGN_WEIGHTS_N]);
+    float scale_1 = convert_float(scales[gk * ALIGN_WEIGHTS_N + 16]);
 #endif
 
     __attribute__((opencl_unroll_hint(4))) for (int g = 0;
