@@ -579,7 +579,8 @@ void openvino_sgemm_cl(float *input, char *weight, uint16_t *scale,
 
   // perform int4 matmul
   openvino_gemm_cl(clbuffInstance.getSVMInput(), weight, scale,
-                   clbuffInstance.getSVMOutput(), M, N, K);
+                   clbuffInstance.getSVMOutput(), M, N, K,
+                   quantization_group_size);
 
   // copy fp16 output to fp32
   copy_u16_fp32(M * N, (uint16_t *)clbuffInstance.getSVMOutput(), output);
