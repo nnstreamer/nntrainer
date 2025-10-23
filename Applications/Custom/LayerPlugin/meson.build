@@ -1,11 +1,18 @@
 # build command for libpow_layer.so
+
+cpp_args = []
+
+if get_option('default_library') == 'shared'
+    cpp_args += [ '-DPLUGGABLE' ]
+endif
+
 pow_layer = shared_library('pow_layer',
   layer_example_pow_src,
   dependencies: [nntrainer_dep, nntrainer_ccapi_dep],
   include_directories: layer_example_inc,
   install: true,
   install_dir: application_install_dir,
-  cpp_args: '-DPLUGGABLE'
+  cpp_args: cpp_args
 )
 
 # build command for libmae_loss_layer.so
@@ -15,7 +22,7 @@ mae_loss_layer  = shared_library('mae_loss_layer',
   include_directories: layer_example_inc,
   install: true,
   install_dir: application_install_dir,
-  cpp_args: '-DPLUGGABLE'
+  cpp_args: cpp_args
 )
 
 # build command for librnnt_loss_layer.so
@@ -25,7 +32,7 @@ rnnt_loss_layer  = shared_library('rnnt_loss_layer',
   include_directories: layer_example_inc,
   install: true,
   install_dir: application_install_dir,
-  cpp_args: '-DPLUGGABLE'
+  cpp_args: cpp_args
 )
 
 pow_layer_dep = declare_dependency(

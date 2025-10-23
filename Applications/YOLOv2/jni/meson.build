@@ -1,28 +1,62 @@
 # build command for lib_yolov2_loss_layer.so
+
+cpp_args = []
+
+if get_option('default_library') == 'shared'
+    cpp_args += [ '-DPLUGGABLE' ]
+endif
+
 yolov2_loss_src = files('yolo_v2_loss.cpp')
-yolov2_loss_layer = shared_library('yolov2_loss_layer',
-  yolov2_loss_src,
-  dependencies: [nntrainer_dep, nntrainer_ccapi_dep],
-  include_directories: include_directories('./'),
-  install: true,
-  install_dir: nntrainer_libdir/'nntrainer'/'layers',
-  cpp_args: '-DPLUGGABLE'
-)
+
+if get_option('default_library') == 'static'
+  yolov2_loss_layer = static_library('yolov2_loss_layer',
+    yolov2_loss_src,
+    dependencies: [nntrainer_dep, nntrainer_ccapi_dep],
+    include_directories: include_directories('./'),
+    install: true,
+    install_dir: nntrainer_libdir/'nntrainer'/'layers',
+    cpp_args: cpp_args
+  )
+else
+  yolov2_loss_layer = shared_library('yolov2_loss_layer',
+    yolov2_loss_src,
+    dependencies: [nntrainer_dep, nntrainer_ccapi_dep],
+    include_directories: include_directories('./'),
+    install: true,
+    install_dir: nntrainer_libdir/'nntrainer'/'layers',
+    cpp_args: cpp_args
+  )
+endif
+
 yolov2_loss_layer_dep = declare_dependency(
   link_with: yolov2_loss_layer,
   include_directories: include_directories('./')
 )
 
 # build command for lib_reorg_layer.so
+
 layer_reorg_src = files('reorg_layer.cpp')
-reorg_layer = shared_library('reorg_layer',
-  layer_reorg_src,
-  dependencies: [nntrainer_dep, nntrainer_ccapi_dep],
-  include_directories: include_directories('./'),
-  install: true,
-  install_dir: nntrainer_libdir/'nntrainer'/'layers',
-  cpp_args: '-DPLUGGABLE'
-)
+
+if get_option('default_library') == 'static'
+  reorg_layer = static_library('reorg_layer',
+    layer_reorg_src,
+    dependencies: [nntrainer_dep, nntrainer_ccapi_dep],
+    include_directories: include_directories('./'),
+    install: true,
+    install_dir: nntrainer_libdir/'nntrainer'/'layers',
+    cpp_args: cpp_args
+  )
+else
+  reorg_layer = shared_library('reorg_layer',
+    layer_reorg_src,
+    dependencies: [nntrainer_dep, nntrainer_ccapi_dep],
+    include_directories: include_directories('./'),
+    install: true,
+    install_dir: nntrainer_libdir/'nntrainer'/'layers',
+    cpp_args: cpp_args
+  )
+endif
+
 reorg_layer_dep = declare_dependency(
   link_with: reorg_layer,
   include_directories: include_directories('./')
