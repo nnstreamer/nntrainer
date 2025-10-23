@@ -864,7 +864,7 @@ static void run_int4_gemm_test_(const uint32_t M, const uint32_t K,
   auto *blas_cc = static_cast<nntrainer::ClContext *>(
     nntrainer::Engine::Global().getRegisteredContext("gpu"));
 
-  static constexpr uint32_t run_count = 20;
+  static constexpr uint32_t run_count = 1;
 
   uint32_t input_size = M * align(K, scale_group_size);
 

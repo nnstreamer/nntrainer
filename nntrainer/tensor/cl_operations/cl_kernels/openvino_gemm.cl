@@ -12,7 +12,8 @@
 
 #define DECOMPRESSION_SCALE_TERM 1
 #define DECOMPRESSION_SCALE_GROUP_SIZE SIZE_QUANTIZATION_GROUP
-#define DECOMPRESSION_SCALE_GROUPS_NUM CEIL_DIV(SIZE_K, DECOMPRESSION_SCALE_GROUP_SIZE)
+#define DECOMPRESSION_SCALE_GROUPS_NUM                                         \
+  CEIL_DIV(SIZE_K, DECOMPRESSION_SCALE_GROUP_SIZE)
 
 #define DECOMPRESSION_SCALE_BATCH_NUM SIZE_N
 #define DECOMPRESSION_SCALE_BATCH_PITCH DECOMPRESSION_SCALE_GROUPS_NUM
@@ -1076,6 +1077,39 @@ kernel void quantize_input(const __global INPUT0_TYPE *input,
 #endif
 }
 
+kernel void quantize_input_pad(const __global half *restrict input,
+                               __global char *restrict quantized_input,
+                               __global half *restrict quan_var) {
+  const uint offset = get_global_id(0);
+  const uint input_offset = offset * QUANTIZE_GROUP_SIZE;
+  const uint quantize_block = QUANTIZE_GROUP_SIZE / 4;
+  half4 input_0;
+  char4 quantized_value;
+  half max[quantize_block];
+
+  unroll_for(uint i = 0; i < quantize_block; ++i) {
+    input_0 = vload4(0, &input[input_offset + (i * 4)]);
+    max[i] = fmax(fmax(fabs(input_0[0]), fabs(input_0[1])),
+                  fmax(fabs(input_0[2]), fabs(input_0[3])));
+  }
+
+  half max_value = fmax(fmax(fmax(max[0], max[1]), fmax(max[2], max[3])),
+                        fmax(fmax(max[4], max[5]), fmax(max[6], max[7])));
+  max_value = fmax(max_value, 0.001h);
+
+  float quan_scale = convert_float(max_value) / 127.0f;
+
+  for (uint i = 0; i < quantize_block; ++i) {
+    input_0 = vload4(0, &input[input_offset + (i * 4)]);
+    float4 buff = convert_float4(input_0) / quan_scale;
+    quantized_value = convert_char4_rte(buff);
+    vstore4(quantized_value, 0, &quantized_input[input_offset + (i * 4)]);
+  }
+
+  // Pair of quantizing_scale and quantized activation_sum for each group
+  quan_var[offset * 2] = convert_half(quan_scale);
+}
+
 // Verify JIT parameters.
 #if SIMD != 8 && SIMD != 16
 #error "fully_connected_gpu_bf_tiled.cl - SIMD must be one of {8, 16}"
@@ -1336,8 +1370,9 @@ inline void fc_bf_tiled_kernel_dyn_quan(
 
     // =====================================================================================================================================
     // Main computation loop
-    const uint iterations =
-      CEIL_DIV(MAIN_LOOP_ELEMENTS_COUNT, TILE_IFM_ELEMENTS_SIZE); // TILE_IFM_ELEMENTS_SIZE : (TILE_IFM * SIMD)
+    const uint iterations = CEIL_DIV(
+      MAIN_LOOP_ELEMENTS_COUNT,
+      TILE_IFM_ELEMENTS_SIZE); // TILE_IFM_ELEMENTS_SIZE : (TILE_IFM * SIMD)
     // Each sub-group loads 2 Batch
     const uint idx_sglid =
       (sglid * TILE_K) %
@@ -1684,8 +1719,7 @@ inline void fc_bf_tiled_kernel_dyn_quan(
               ni_offset;
 #else
             const uint scale_offset =
-              (offset_ofm % DECOMPRESSION_SCALE_BATCH_NUM) +
-              ni_offset * SIZE_N;
+              (offset_ofm % DECOMPRESSION_SCALE_BATCH_NUM) + ni_offset * SIZE_N;
 #endif
             ACCUMULATOR_TYPE ds = decompression_scale[scale_offset];
 #else

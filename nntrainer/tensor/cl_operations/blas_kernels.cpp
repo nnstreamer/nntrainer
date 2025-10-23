@@ -666,7 +666,7 @@ void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
   std::vector<cl_event> quantize_event(1);
   {
     ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
-      openvino_gemm_kernel, "quantize_input", compile_options);
+      openvino_gemm_kernel, "quantize_input_pad", compile_options);
     if (!kernel_ptr) {
       throw std::runtime_error("Failed to get kernel_ptr for quantize_input");
       return;
@@ -692,16 +692,12 @@ void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
       throw std::runtime_error("Failed to set kernel argument 2 for "
                                "quantize_input");
 
-    const int work_groups_count[3] = {
-      (int)align((M * ceil_div(K, quantization_group_size)), 64), 1, 1};
-    const int work_group_size[3] = {64, 1, 1};
+    std::array<size_t, 3> global_work_size = {
+      align((M * K) / quantization_group_size, quantization_group_size), 1, 1};
 
-    result = blas_cc->command_queue_inst_.DispatchCommand(
-      kernel_ptr, work_groups_count, work_group_size, &quantize_event.front());
-    if (!result) {
-      throw std::runtime_error("Failed to dispatch kernel for quantize_input");
-      return;
-    }
+    blas_cc->command_queue_inst_.enqueueKernel(
+      kernel_ptr->GetKernel(), global_work_size.size(), global_work_size.data(),
+      nullptr, 0, nullptr, &quantize_event.front());
   }
 
   // 3. Perform Matrix Multiplication
