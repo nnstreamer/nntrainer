@@ -600,14 +600,56 @@ void openvino_sgemm_cl(float *input, char *weight, uint16_t *scale,
   copy_u16_fp32(M * N, (uint16_t *)clbuffInstance.getSVMOutput(), output);
 }
 
+// TODO remove it
+void *allocateSVM(size_t size_bytes) {
+  auto *blas_cc = static_cast<nntrainer::ClContext *>(
+    nntrainer::Engine::Global().getRegisteredContext("gpu"));
+
+  void *ptr = blas_cc->context_inst_.createSVMRegion(size_bytes);
+
+  if (ptr == nullptr) {
+    throw std::runtime_error(
+      "Failed to allocated SVM for the OpenCL BLAS unit test.");
+  }
+
+  return ptr;
+}
+
+// TODO remove it
+void freeSVM(void *ptr) {
+  auto *blas_cc = static_cast<nntrainer::ClContext *>(
+    nntrainer::Engine::Global().getRegisteredContext("gpu"));
+
+  blas_cc->context_inst_.releaseSVMRegion(ptr);
+  ptr = nullptr;
+}
+
 void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
                       unsigned int M, unsigned int N, unsigned int K,
                       unsigned int quantization_group_size) {
+
+  int alignK = align(K, quantization_group_size);
+  // Padding input data - TODO remove this and do this in kernel quantize_input
+  uint16_t *input_ptr;
+  if (alignK != K) {
+    uint32_t padded_input_size = M * alignK;
+    input_ptr = (uint16_t *)allocateSVM(padded_input_size * sizeof(uint16_t));
+    for (int y = 0; y < M; y++) {
+      for (int x = 0; x < K; x++) {
+        input_ptr[y * alignK + x] = ((uint16_t*)input)[y * K + x];
+      }
+      for (int x = K; x < alignK; x++) {
+        input_ptr[y * alignK + x] = compute_fp32_to_fp16(0.f);
+      }
+    }
+  } else {
+    input_ptr = (uint16_t *)input;
+  }
+
   bool USE_PADDING = true;
   if (USE_PADDING) {
-    const auto K_GROUP_SIZE = quantization_group_size; // due to input data format
+    K = alignK;
     const auto N_GROUP_SIZE = 32; // due to input data format
-    K = align(K, K_GROUP_SIZE);
     N = align(N, N_GROUP_SIZE);
   }
 
@@ -632,7 +674,7 @@ void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
 
     int arg = 0;
 
-    result = kernel_ptr->SetKernelSVMArguments(arg++, input);
+    result = kernel_ptr->SetKernelSVMArguments(arg++, input_ptr);
 
     if (!result)
       throw std::runtime_error("Failed to set kernel argument 0 for "
@@ -673,7 +715,7 @@ void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
 
   int arg = 0;
 
-  result = kernel_ptr->SetKernelSVMArguments(arg++, input);
+  result = kernel_ptr->SetKernelSVMArguments(arg++, input_ptr);
 
   if (!result)
     throw std::runtime_error(
@@ -730,6 +772,10 @@ void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
     throw std::runtime_error(
       "Failed to read output data for fc_bf_tiled_kernel_default");
     return;
+  }
+
+  if (alignK != K) {
+    freeSVM(input_ptr);
   }
 }
 
