@@ -54,8 +54,8 @@ void Int4Utils::computeScales(const float *weights, const size_t rows_count,
                               const size_t columns_count,
                               const size_t group_size,
                               std::vector<float> &scales) {
-  // NNTR_THROW_IF(columns_count % group_size, std::invalid_argument)
-  //   << "Columns size not divisible by group size";
+  NNTR_THROW_IF(columns_count % 4, std::invalid_argument)
+    << "Columns size not divisible by 4";
 
   const auto full_groups_per_row = columns_count / group_size;
   const auto last_group_size = columns_count % group_size;

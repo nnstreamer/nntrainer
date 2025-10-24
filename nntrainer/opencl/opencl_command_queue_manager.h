@@ -205,6 +205,30 @@ public:
    *
    */
   ~CommandQueueManager();
+
+  /**
+   * @brief Wrapper to OpenCL function to enqueue a command to execute a kernel
+   * on a device
+   *
+   * @param kernel OpenCL kernel
+   * @param work_dim Number of dimensions used to specify the global work-items
+   * and work-items in the work-group
+   * @param global_work_size Total number of work items that will execute the
+   * kernel function
+   * @param local_work_size Number of work items that make up a work group
+   * @param num_events_in_wait_list Number of events that need to complete
+   * before this particular command can be executed
+   * @param event_wait_list Events that need to complete before this particular
+   * command can be executed
+   * @param event event object that identifies this command and can be used to
+   * query or wait for this command to complete
+   */
+  void enqueueKernel(const cl_kernel kernel, const cl_uint work_dim,
+                     const size_t *global_work_size,
+                     const size_t *local_work_size,
+                     cl_uint num_events_in_wait_list = 0,
+                     const cl_event *event_wait_list = nullptr,
+                     cl_event *event = nullptr);
 };
 } // namespace nntrainer::opencl
 
