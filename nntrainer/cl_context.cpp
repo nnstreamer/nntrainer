@@ -192,6 +192,8 @@ void ClContext::initBlasClKernels() {
 
   // register INT4 computation kernels
   registerClKernel(int4_gemv_kernel, "fully_connected_gpu_int4_gemv");
+  registerClKernel(int4_quantize_input_kernel, "quantize_input_int4");
+  registerClKernel(int4_quantize_input_kernel, "quantize_input_int4_pad");
 
 #ifdef ENABLE_FP16
   registerClKernel(hgemv_kernel, "sgemv_cl_fp16");

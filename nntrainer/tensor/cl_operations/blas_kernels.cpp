@@ -667,8 +667,16 @@ void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
 
   std::vector<cl_event> quantize_event(1);
   {
+    std::string kernel_name;
+
+    if (K == origK) {
+      kernel_name = "quantize_input_int4";
+    } else {
+      kernel_name = "quantize_input_int4_pad";
+    }
+
     ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
-      openvino_gemm_kernel, "quantize_input_pad", compile_options);
+      int4_quantize_input_kernel, kernel_name, compile_options);
     if (!kernel_ptr) {
       throw std::runtime_error("Failed to get kernel_ptr for quantize_input");
       return;
