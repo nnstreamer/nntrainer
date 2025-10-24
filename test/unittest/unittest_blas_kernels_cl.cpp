@@ -2160,7 +2160,6 @@ static void run_q_6_K_test(const uint32_t M, const uint32_t K,
 
 DECLARE_q_6_K_test_M_K_N(1, 3072, 105900);
 
-#if 1
 static void run_q4_0_test(const uint32_t M, const uint32_t K,
                           const uint32_t N) {
   nntrainer::init_backend();
