@@ -1099,8 +1099,8 @@ static void run_int4_gemm_test_(const uint32_t M, const uint32_t K,
 // DECLARE_int4_gemm_test_K_N(6, 30, 32, 32);
 // DECLARE_int4_gemm_test_K_N(8, 30, 32, 32);
 
- DECLARE_int4_gemm_test_K_N(1, 14, 32, 32);
- DECLARE_int4_gemm_test_K_N(2, 14, 64, 32);
+ DECLARE_int4_gemm_test_K_N(1, 16, 32, 32);
+ DECLARE_int4_gemm_test_K_N(2, 16, 64, 32);
 
 // DECLARE_int4_gemm_test_K_N(68, 105900, 3072, 32);
 // DECLARE_int4_gemm_test_K_N(68, 105920, 3072, 32);

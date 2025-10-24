@@ -20,7 +20,9 @@
 namespace nntrainer {
 
 static inline int ceil_div(int a, int b) { return (a + b - 1) / b; }
-static inline unsigned int align(unsigned int a, unsigned int b) { return (a % b == 0) ? a : a - a % b + b; };
+static inline unsigned int align(unsigned int a, unsigned int b) {
+  return (a % b == 0) ? a : a - a % b + b;
+};
 
 float Int4Utils::computeScaleForGroup(const float *group_weights,
                                       const size_t group_size) {
@@ -52,8 +54,8 @@ void Int4Utils::computeScales(const float *weights, const size_t rows_count,
                               const size_t columns_count,
                               const size_t group_size,
                               std::vector<float> &scales) {
-  // NNTR_THROW_IF(columns_count % group_size, std::invalid_argument)
-  //   << "Columns size not divisible by group size";
+  NNTR_THROW_IF(columns_count % 4, std::invalid_argument)
+    << "Columns size not divisible by 4";
 
   const auto full_groups_per_row = columns_count / group_size;
   const auto last_group_size = columns_count % group_size;
@@ -71,7 +73,8 @@ void Int4Utils::computeScales(const float *weights, const size_t rows_count,
 
     // Compute scale for the last padded group
     if (last_group_size > 0) {
-      const auto *weights_group = weights_row + (full_groups_per_row * group_size);
+      const auto *weights_group =
+        weights_row + (full_groups_per_row * group_size);
       scales[(full_groups_per_row * rows_count) + row_id] =
         computeScaleForGroup(weights_group, last_group_size);
     }
@@ -122,9 +125,10 @@ void Int4Utils::quantizeAndRepack(const float *weights, const size_t rows_count,
   const auto groups_per_row = ceil_div(columns_count, group_size);
   const auto row_blocks_count = ceil_div(rows_count, ROW_BLOCK_SIZE);
   auto columns_count_pad = align(columns_count, group_size);
-  const auto column_blocks_count = ceil_div(columns_count_pad, COLUMN_BLOCK_SIZE);
+  const auto column_blocks_count =
+    ceil_div(columns_count_pad, COLUMN_BLOCK_SIZE);
   const auto rows_count_pad = row_blocks_count * ROW_BLOCK_SIZE;
-  
+
   out_weights.resize((rows_count_pad * columns_count_pad) / 2, 0);
 
   size_t out_idx = 0;
@@ -141,14 +145,14 @@ void Int4Utils::quantizeAndRepack(const float *weights, const size_t rows_count,
             (column_block_id * COLUMN_BLOCK_SIZE);
           if (column_id_absolute_lo < columns_count) {
             lo = pack(weights, scales_fp32.data(), row_id_absolute,
-                      column_id_absolute_lo, groups_per_row, group_size, rows_count,
-                      columns_count);
+                      column_id_absolute_lo, groups_per_row, group_size,
+                      rows_count, columns_count);
 
             const auto column_id_absolute_hi = column_id_absolute_lo + 1;
             if (column_id_absolute_hi < columns_count) {
               hi = pack(weights, scales_fp32.data(), row_id_absolute,
-                        column_id_absolute_hi, groups_per_row, group_size, rows_count,
-                        columns_count);
+                        column_id_absolute_hi, groups_per_row, group_size,
+                        rows_count, columns_count);
             }
           }
         }

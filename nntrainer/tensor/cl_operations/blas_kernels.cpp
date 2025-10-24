@@ -114,7 +114,8 @@ void gemv_int4_cl(char *weight, uint16_t *scale, uint16_t *input,
                   unsigned int quantization_group_size) {
   bool USE_PADDING = true;
   if (USE_PADDING) {
-    const auto K_GROUP_SIZE = quantization_group_size; // due to input data format
+    const auto K_GROUP_SIZE =
+      quantization_group_size;    // due to input data format
     const auto N_GROUP_SIZE = 32; // due to input data format
     K = align(K, K_GROUP_SIZE);
     N = align(N, N_GROUP_SIZE);
@@ -627,24 +628,24 @@ void freeSVM(void *ptr) {
 void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
                       unsigned int M, unsigned int N, unsigned int K,
                       unsigned int quantization_group_size) {
-
+  int origK = K;
   int alignK = align(K, quantization_group_size);
   // Padding input data - TODO remove this and do this in kernel quantize_input
   uint16_t *input_ptr;
-  if (alignK != K) {
-    uint32_t padded_input_size = M * alignK;
-    input_ptr = (uint16_t *)allocateSVM(padded_input_size * sizeof(uint16_t));
-    for (int y = 0; y < M; y++) {
-      for (int x = 0; x < K; x++) {
-        input_ptr[y * alignK + x] = ((uint16_t*)input)[y * K + x];
-      }
-      for (int x = K; x < alignK; x++) {
-        input_ptr[y * alignK + x] = compute_fp32_to_fp16(0.f);
-      }
-    }
-  } else {
-    input_ptr = (uint16_t *)input;
-  }
+  // if (alignK != K) {
+  //   uint32_t padded_input_size = M * alignK;
+  //   input_ptr = (uint16_t *)allocateSVM(padded_input_size *
+  //   sizeof(uint16_t)); for (int y = 0; y < M; y++) {
+  //     for (int x = 0; x < K; x++) {
+  //       input_ptr[y * alignK + x] = ((uint16_t *)input)[y * K + x];
+  //     }
+  //     for (int x = K; x < alignK; x++) {
+  //       input_ptr[y * alignK + x] = compute_fp32_to_fp16(0.f);
+  //     }
+  //   }
+  // } else {
+  input_ptr = (uint16_t *)input;
+  //}
 
   bool USE_PADDING = true;
   if (USE_PADDING) {
@@ -660,6 +661,7 @@ void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
   const bool scale_row_major = false;
   std::string compile_options =
     " -D SIZE_N=" + std::to_string(N) + " -D SIZE_K=" + std::to_string(K) +
+    " -D SIZE_K_ORIG=" + std::to_string(origK) +
     " -D SIZE_QUANTIZATION_GROUP=" + std::to_string(quantization_group_size) +
     " -D SCALE_ROW_MAJOR=" + std::to_string(scale_row_major);
 
@@ -692,8 +694,8 @@ void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
       throw std::runtime_error("Failed to set kernel argument 2 for "
                                "quantize_input");
 
-    std::array<size_t, 3> global_work_size = {
-      align((M * K) / quantization_group_size, quantization_group_size), 1, 1};
+    std::array<size_t, 3> global_work_size = {(M * K) / quantization_group_size,
+                                              1, 1};
 
     blas_cc->command_queue_inst_.enqueueKernel(
       kernel_ptr->GetKernel(), global_work_size.size(), global_work_size.data(),
