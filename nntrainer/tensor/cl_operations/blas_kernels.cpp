@@ -871,7 +871,7 @@ void transpose_32_16(float *data, int M, int K) {
   bool result = false;
 
   kernel_ptr->SetKernelSVMArguments(
-    {{9, data}, {1, clbuffInstance.getSVMInput()}});
+    {{0, data}, {1, clbuffInstance.getSVMInput()}});
   kernel_ptr->SetKernelArguments({{2, &height, sizeof(int)},
                                   {3, &width, sizeof(int)},
                                   {4, &padded_height, sizeof(int)}});
