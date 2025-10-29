@@ -52,10 +52,8 @@
 #include <unistd.h>
 #endif
 
-#include <dynamic_library_loader.h>
-#include <engine.h>
 #include <iostream>
-#include <mem_allocator.h>
+#include <map>
 #include <set>
 
 static const std::string func_tag = "[MemoryPool] ";
@@ -81,7 +79,7 @@ public:
    *
    */
   explicit MemoryPool() :
-    mem_pool(nullptr), pool_size(0), min_pool_size(0), n_wgrad(0) {
+    is_allocated_(false), pool_size_(0), min_pool_size_(0), n_wgrad_(0) {
 
 #if defined(__ANDROID__) && ENABLE_NPU
     void *handle =
@@ -100,8 +98,6 @@ public:
                             std::invalid_argument, close_dl)
         << func_tag << "open rpc mem failed";
     }
-#else
-    allocators = Engine::Global().getAllocators();
 #endif
   }
 
@@ -209,14 +205,7 @@ public:
    *
    * @return memory ptrs vector
    */
-  std::vector<void *> getMemoryPtrs() { return memory_ptrs; }
-
-  /**
-   * @brief Get the memory pool address.
-   *
-   * @return MemoryPool address.
-   */
-  void *getMemoryPoolAddress() { return mem_pool; }
+  std::vector<void *> getMemoryPtrs() { return memory_ptrs_; }
 
   /**
    * @brief set FSU weight path
@@ -237,27 +226,23 @@ protected:
   /**
    * @brief  Get memory offset
    */
-  std::vector<size_t> &getMemoryOffset() { return memory_offset; }
+  std::vector<size_t> &getMemoryOffset() { return memory_offset_; }
 
 protected:
   /**
-   * @brief  Get file offset
-   */
-  std::vector<size_t> &getFileOffset() { return file_offset; }
-
-  /**
    * @brief  Get memory size
    */
-  std::vector<size_t> &getMemorySize() { return memory_size; }
+  std::vector<size_t> &getMemorySize() { return memory_size_; }
 
   /**
    * @brief  Get memory execution order
    */
   std::vector<std::vector<unsigned int>> &getMemoryExecOrder() {
-    return memory_exec_order;
+    return memory_exec_order_;
   }
 
 private:
+  void allocateInternal(const size_t alignment);
   /**
    * @brief Validate the provided layout
    */
@@ -299,29 +284,29 @@ private:
    */
   std::vector<unsigned int> getSortedPermutation();
 
-  std::vector<size_t> memory_size; /**< various sizes memory requested */
-  std::vector<void *> memory_ptrs; /**< various pointers memory requested */
+  void *allocBytes(const size_t bytes_size, const size_t alignment);
+
+  void freeBytes(void *memory);
+
+  bool is_allocated_ = false;
+  std::vector<size_t> memory_size_; /**< various sizes memory requested */
+  std::vector<void *> memory_ptrs_; /**< various pointers memory requested */
+  std::map<size_t, void *> allocated_ptrs_;
 
   std::vector<std::pair<unsigned int, unsigned int>>
-    memory_validity; /**< validity intervals for each requested memory */
-  std::vector<size_t> memory_offset; /**< offsets for the memory requested */
-  std::vector<size_t> file_offset;   /**< offsets for the bin file */
+    memory_validity_; /**< validity intervals for each requested memory */
+  std::vector<size_t> memory_offset_; /**< offsets for the memory requested */
   std::vector<std::vector<unsigned int>>
-    memory_exec_order; /**< execution order for the requested memory */
+    memory_exec_order_; /**< execution order for the requested memory */
 
   std::vector<bool>
-    memory_is_wgrad; /**< index for identification of weight gradient */
+    memory_is_wgrad_; /**< index for identification of weight gradient */
 
-  void *mem_pool; /**< memory pool allocated at once */
+  size_t pool_size_; /**< memory requirement for this pool */
 
-  size_t pool_size; /**< memory requirement for this pool */
+  size_t min_pool_size_; /**< minimum theoretical memory requirement */
 
-  size_t min_pool_size; /**< minimum theoretical memory requirement */
-
-  size_t n_wgrad;
-
-  std::unordered_map<std::string, std::shared_ptr<nntrainer::MemAllocator>>
-    allocators;
+  size_t n_wgrad_;
 #if defined(__ANDROID__) && ENABLE_NPU
   RpcMemAllocFn_t rpcmem_alloc;
   RpcMemFreeFn_t rpcmem_free;

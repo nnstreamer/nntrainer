@@ -10,20 +10,18 @@
  * @brief  This is Memory Pool Class
  */
 
-#include <cstdlib>
-#include <limits>
+#include <memory_pool.h>
 
+#include <cstdlib>
+
+#include <limits>
+#include <map>
 #include <numeric>
 #include <vector>
 
-#include <map>
-
-#include <memory_pool.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
-#include <numeric>
 #include <profiler.h>
-#include <vector>
 
 #if defined(_WIN32)
 #define GET_SYSTEM_ALIGMENT()                                                  \
@@ -32,20 +30,13 @@
     GetSystemInfo(&sysInfo);                                                   \
     return sysInfo.dwPageSize;                                                 \
   })()
-
-#define ALIGNED_ALLOC(size) _aligned_malloc(size, GET_SYSTEM_ALIGMENT())
-#define ALIGNED_FREE(ptr) _aligned_free(ptr)
 #elif defined(__ANDROID__) && ENABLE_NPU
 #define RPCMEM_HEAP_ID_SYSTEM 25
 #define RPCMEM_DEFAULT_FLAGS 1
-#define ALIGNED_ALLOC(size)                                                    \
-  rpcmem_alloc(RPCMEM_HEAP_ID_SYSTEM, RPCMEM_DEFAULT_FLAGS, size)
-#define ALIGNED_FREE(ptr) rpcmem_free(ptr)
 #else
 #define GET_SYSTEM_ALIGMENT()                                                  \
   ([]() -> size_t { return sysconf(_SC_PAGE_SIZE); })()
-#define ALIGNED_ALLOC(size) std::aligned_alloc(GET_SYSTEM_ALIGMENT(), size)
-#define ALIGNED_FREE(ptr) free(ptr)
+
 #endif
 
 namespace nntrainer {
@@ -61,7 +52,7 @@ unsigned int MemoryPool::requestMemory(size_t bytes, unsigned int start_time,
   if (bytes == 0)
     throw std::invalid_argument("Requesting memory of 0 size");
 
-  if (mem_pool != nullptr)
+  if (is_allocated_)
     throw std::invalid_argument(
       "Deallocate memory pool before requesting more memory");
 
@@ -69,17 +60,17 @@ unsigned int MemoryPool::requestMemory(size_t bytes, unsigned int start_time,
     throw std::invalid_argument(
       "Invalid validity range for the requested memory");
 
-  memory_size.push_back(bytes);
-  memory_validity.push_back({start_time, end_time});
-  memory_exec_order.push_back(exec_order);
-  memory_is_wgrad.push_back(is_wgrad);
+  memory_size_.push_back(bytes);
+  memory_validity_.push_back({start_time, end_time});
+  memory_exec_order_.push_back(exec_order);
+  memory_is_wgrad_.push_back(is_wgrad);
   if (is_wgrad)
-    n_wgrad++;
+    n_wgrad_++;
 
   /** invalidate min_pool_size if already there */
-  min_pool_size = 0;
+  min_pool_size_ = 0;
 
-  return memory_size.size();
+  return memory_size_.size();
 }
 
 /**
@@ -94,172 +85,90 @@ unsigned int MemoryPool::requestMemory(size_t bytes, unsigned int start_time,
  * Subsequent call to this function will overwrite any existing layout.
  */
 double MemoryPool::planLayout(const MemoryPlanner &planner) {
-  if (mem_pool != nullptr)
+  if (is_allocated_)
     /** mem_pool must be deallocated when planLayout is being called */
     throw std::runtime_error("Planning memory layout after allocation");
 
-  if (memory_size.empty())
+  if (memory_size_.empty()) {
     throw std::runtime_error("Planning memory layout for empty pool");
+  }
 
   /** calculate min_pool_size if not already calculated */
-  if (min_pool_size == 0)
-    min_pool_size = calcMinMemoryRequirement();
+  if (min_pool_size_ == 0)
+    min_pool_size_ = calcMinMemoryRequirement();
 
-  pool_size = planner.planLayout(memory_size, memory_validity, memory_offset,
-                                 memory_is_wgrad, n_wgrad);
-  if (pool_size < min_pool_size || !validateLayout())
+  pool_size_ = planner.planLayout(memory_size_, memory_validity_,
+                                  memory_offset_, memory_is_wgrad_, n_wgrad_);
+  if (pool_size_ < min_pool_size_ || !validateLayout())
     throw std::runtime_error("Planned layout is not feasible");
 
-  return double(min_pool_size) / double(pool_size);
+  return double(min_pool_size_) / double(pool_size_);
 }
 
 /**
  * @brief Do the allocation of memory
  *
  */
-void MemoryPool::allocate() {
-  if (pool_size == 0)
+void MemoryPool::allocate() { allocateInternal(alignof(max_align_t)); }
+
+void MemoryPool::allocateInternal(const size_t alignment) {
+  if (pool_size_ == 0) {
     throw std::runtime_error("Allocating memory pool with size 0");
+  }
 
-  if (mem_pool != nullptr)
+  if (is_allocated_) {
     throw std::runtime_error("Memory pool is already allocated");
+  }
 
-#if defined(__ANDROID__) && ENABLE_NPU
   int i = 0;
-#define RPCMEM_HEAP_ID_SYSTEM 25
-#define RPCMEM_DEFAULT_FLAGS 1
-  std::map<size_t, void *> offset_ptr;     // offset : ptr
+
   std::map<size_t, size_t> allocated_size; // offset : memory size
   std::map<size_t, std::vector<int>>
     offset_indices; // offset : list of index which has same offset
 
-  for (auto &s : memory_offset) {
-    size_t current_size = memory_size.at(i);
-    auto it = offset_ptr.find(s);
-    if (it == offset_ptr.end()) {
-      void *ptr =
-        rpcmem_alloc(RPCMEM_HEAP_ID_SYSTEM, RPCMEM_DEFAULT_FLAGS, current_size);
-      memory_ptrs.push_back(ptr);
-      offset_ptr[s] = ptr;
+  for (auto &s : memory_offset_) {
+    size_t current_size = memory_size_.at(i);
+    auto it = allocated_ptrs_.find(s);
+    if (it == allocated_ptrs_.end()) {
+      void *ptr = allocBytes(current_size, alignment);
+      memory_ptrs_.push_back(ptr);
+      allocated_ptrs_[s] = ptr;
       allocated_size[s] = current_size;
       offset_indices[s].push_back(i);
     } else {
       void *existing_ptr = it->second;
       size_t max_size = allocated_size[s];
       if (max_size < current_size) {
-        void *new_ptr = rpcmem_alloc(RPCMEM_HEAP_ID_SYSTEM,
-                                     RPCMEM_DEFAULT_FLAGS, current_size);
+        void *new_ptr = allocBytes(current_size, alignment);
 
         for (int idx : offset_indices[s]) {
-          memory_ptrs[idx] = new_ptr;
+          memory_ptrs_[idx] = new_ptr;
         }
-        rpcmem_free(existing_ptr);
-        offset_ptr[s] = new_ptr;
+        freeBytes(existing_ptr);
+        allocated_ptrs_[s] = new_ptr;
         allocated_size[s] = current_size;
       }
-      memory_ptrs.push_back(offset_ptr[s]);
+      memory_ptrs_.push_back(allocated_ptrs_[s]);
       offset_indices[s].push_back(i);
     }
     i++;
   }
 
-  mem_pool = calloc(1, 1);
-
-#else
-
-#ifdef ENABLE_OPENCL
-  auto *cl_context =
-    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  mem_pool = cl_context->context_inst_.createSVMRegion(pool_size);
-
-  if (mem_pool == nullptr) {
-    throw std::runtime_error("Failed to allocate SVM memory pool of size " +
-                             std::to_string(pool_size) + " bytes");
-  }
-#else
-  mem_pool = calloc(pool_size, 1);
-#endif
-
-  unsigned int idx = 1;
-  for (auto &s : memory_offset) {
-    char *ptr = static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
-    memory_ptrs.push_back(ptr);
-    idx++;
-  }
-#endif
-
-#ifdef PROFILE
-  static long long seq = 0;
-
-  std::string msg("MemoryPool #");
-  msg.append(std::to_string(seq++));
-  PROFILE_MEM_ALLOC(mem_pool, pool_size, msg);
-#endif
+  is_allocated_ = true;
 }
 
-void MemoryPool::allocateFSU() {
-  if (pool_size == 0)
-    throw std::runtime_error("Allocating memory pool with size 0");
-
-  if (mem_pool != nullptr)
-    throw std::runtime_error("Memory pool is already allocated");
-
-  int i = 0;
-  std::map<size_t, void *> offset_ptr;     // offset : ptr
-  std::map<size_t, size_t> allocated_size; // offset : memory size
-  std::map<size_t, std::vector<int>>
-    offset_indices; // offset : list of index which has same offset
-
-  for (auto &s : memory_offset) {
-    size_t current_size = memory_size.at(i);
-    auto it = offset_ptr.find(s);
-    if (it == offset_ptr.end()) {
-      void *ptr = ALIGNED_ALLOC(current_size);
-      memory_ptrs.push_back(ptr);
-      offset_ptr[s] = ptr;
-      allocated_size[s] = current_size;
-      offset_indices[s].push_back(i);
-
-    } else {
-      void *existing_ptr = it->second;
-      size_t max_size = allocated_size[s];
-      if (max_size < current_size) {
-        void *new_ptr = ALIGNED_ALLOC(current_size);
-
-        for (int idx : offset_indices[s]) {
-          memory_ptrs[idx] = new_ptr;
-        }
-        ALIGNED_FREE(existing_ptr);
-        offset_ptr[s] = new_ptr;
-        allocated_size[s] = current_size;
-      }
-      memory_ptrs.push_back(offset_ptr[s]);
-      offset_indices[s].push_back(i);
-    }
-    i++;
-  }
-
-  mem_pool = calloc(1, 1);
-
-  if (mem_pool == nullptr)
-    throw std::runtime_error(
-      "Failed to allocate memory: " + std::to_string(pool_size) + "bytes");
-}
+void MemoryPool::allocateFSU() { allocateInternal(GET_SYSTEM_ALIGMENT()); }
 
 /**
  * @brief Get the allocated memory
  *
  */
 std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
-#if defined(__ANDROID__)
-  auto mem_data = std::make_shared<MemoryData>((void *)memory_ptrs.at(idx - 1));
-#else
-  if (mem_pool == nullptr)
+  if (!is_allocated_) {
     throw std::invalid_argument("Getting memory before allocation");
+  }
 
-  auto mem_data = std::make_shared<MemoryData>((void *)memory_ptrs.at(idx - 1));
-#endif
-  return mem_data;
+  return std::make_shared<MemoryData>((void *)memory_ptrs_.at(idx - 1));
 }
 
 /**
@@ -267,43 +176,37 @@ std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
  *
  */
 void MemoryPool::deallocate() {
-  if (mem_pool != nullptr) {
-#ifdef ENABLE_OPENCL
-    auto *cl_context =
-      static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-    cl_context->context_inst_.releaseSVMRegion(mem_pool);
-#else
-    free(mem_pool);
-#endif
-    memory_size.clear();
-    memory_validity.clear();
-    memory_exec_order.clear();
-    memory_is_wgrad.clear();
+  if (is_allocated_) {
+    for (auto &memory_pointer : allocated_ptrs_) {
+      freeBytes(memory_pointer.second);
+    }
 
-#ifdef PROFILE
-    PROFILE_MEM_DEALLOC(mem_pool);
-#endif
+    memory_ptrs_.clear();
+    memory_size_.clear();
+    allocated_ptrs_.clear();
+    memory_validity_.clear();
+    memory_exec_order_.clear();
+    memory_is_wgrad_.clear();
 
-    memory_ptrs.clear();
+    is_allocated_ = false;
   }
-  mem_pool = nullptr;
 }
 
 /**
  * @brief Get the maximum real memory requirement
  *
  */
-size_t MemoryPool::size() { return pool_size; }
+size_t MemoryPool::size() { return pool_size_; }
 
 /**
  * @brief Get the minimum theoretical memory requirement
  *
  */
 size_t MemoryPool::minMemoryRequirement() {
-  if (memory_size.size() && min_pool_size == 0)
-    min_pool_size = calcMinMemoryRequirement();
+  if (memory_size_.size() && min_pool_size_ == 0)
+    min_pool_size_ = calcMinMemoryRequirement();
 
-  return min_pool_size;
+  return min_pool_size_;
 }
 
 /**
@@ -311,11 +214,13 @@ size_t MemoryPool::minMemoryRequirement() {
  * overlap interval has overlapping memories
  */
 bool MemoryPool::validateLayout() {
-  if (memory_offset.size() != memory_size.size())
+  if (memory_offset_.size() != memory_size_.size()) {
     return false;
+  }
 
-  if (memory_size.empty())
-    return pool_size == 0;
+  if (memory_size_.empty()) {
+    return pool_size_ == 0;
+  }
 
   return validateOverflow() && validateOverlap();
 }
@@ -325,8 +230,8 @@ bool MemoryPool::validateLayout() {
  * size of the memory pool
  */
 bool MemoryPool::validateOverflow() {
-  for (unsigned int idx = 0; idx < memory_size.size(); idx++)
-    if (memory_offset[idx] + memory_size[idx] > pool_size)
+  for (unsigned int idx = 0; idx < memory_size_.size(); idx++)
+    if (memory_offset_[idx] + memory_size_[idx] > pool_size_)
       return false;
 
   return true;
@@ -365,18 +270,18 @@ bool MemoryPool::validateOverlap() {
   size_t len = perm.size();
   for (unsigned int i = 0; i < len; i++) {
     unsigned int idx = perm[i];
-    size_t mem_start = memory_offset[idx], mem_size = memory_size[idx];
-    unsigned int valid_start = memory_validity[idx].first,
-                 valid_end = memory_validity[idx].second;
+    size_t mem_start = memory_offset_[idx], mem_size = memory_size_[idx];
+    unsigned int valid_start = memory_validity_[idx].first,
+                 valid_end = memory_validity_[idx].second;
     for (unsigned int match = idx + 1; match < len; match++) {
-      if (overlap(mem_start, mem_start + mem_size, memory_offset[match],
-                  memory_offset[match] + memory_size[match])) {
+      if (overlap(mem_start, mem_start + mem_size, memory_offset_[match],
+                  memory_offset_[match] + memory_size_[match])) {
         /**
          * if the memories given to two requests overlap, then their valid
          * range should not overlap
          */
-        if (overlap(valid_start, valid_end, memory_validity[match].first,
-                    memory_validity[match].second))
+        if (overlap(valid_start, valid_end, memory_validity_[match].first,
+                    memory_validity_[match].second))
           return false;
       } else {
         /**
@@ -398,14 +303,14 @@ bool MemoryPool::validateOverlap() {
  * as the start and the memory offset + memory size as the end of the interval.
  */
 std::vector<unsigned int> MemoryPool::getSortedPermutation() {
-  std::vector<unsigned int> perm(memory_size.size());
+  std::vector<unsigned int> perm(memory_size_.size());
   std::iota(perm.begin(), perm.end(), 0);
   /** sorted by memory_offset first and then memory_offset + memory_size next */
   std::sort(perm.begin(), perm.end(), [&](auto const &idx1, auto const &idx2) {
-    if (memory_offset[idx1] == memory_offset[idx2])
-      return memory_size[idx1] < memory_size[idx2];
+    if (memory_offset_[idx1] == memory_offset_[idx2])
+      return memory_size_[idx1] < memory_size_[idx2];
 
-    return memory_offset[idx1] < memory_offset[idx2];
+    return memory_offset_[idx1] < memory_offset_[idx2];
   });
 
   return perm;
@@ -421,7 +326,7 @@ std::vector<unsigned int> MemoryPool::getSortedPermutation() {
  */
 size_t MemoryPool::calcMinMemoryRequirement() {
   auto max_interval =
-    *std::max_element(memory_validity.begin(), memory_validity.end(),
+    *std::max_element(memory_validity_.begin(), memory_validity_.end(),
                       [](auto const &val1, auto const &val2) {
                         return val1.second < val2.second;
                       });
@@ -432,7 +337,7 @@ size_t MemoryPool::calcMinMemoryRequirement() {
    */
   if (last_interval == (std::numeric_limits<unsigned int>::max)()) {
     max_interval = *std::max_element(
-      memory_validity.begin(), memory_validity.end(),
+      memory_validity_.begin(), memory_validity_.end(),
       [last_interval](auto const &val1, auto const &val2) {
         return ((val2.second != last_interval) && (val1.second < val2.second));
       });
@@ -452,11 +357,11 @@ size_t MemoryPool::calcMinMemoryRequirement() {
    * memory request for each interval because each interval is mapped to a node
    * in the graph.
    */
-  for (unsigned int idx = 0; idx < memory_size.size(); idx++) {
-    for (unsigned int interval = memory_validity[idx].first;
-         interval < std::min(memory_validity[idx].second, last_interval);
+  for (unsigned int idx = 0; idx < memory_size_.size(); idx++) {
+    for (unsigned int interval = memory_validity_[idx].first;
+         interval < std::min(memory_validity_[idx].second, last_interval);
          interval++) {
-      interval_req[interval] += memory_size[idx];
+      interval_req[interval] += memory_size_[idx];
     }
   }
 
@@ -468,18 +373,18 @@ size_t MemoryPool::calcMinMemoryRequirement() {
  *
  */
 void MemoryPool::clear() {
-  if (mem_pool != nullptr)
+  if (is_allocated_) {
     throw std::invalid_argument("Cannot clear allocated memory pool");
+  }
 
-  memory_size.clear();
-  memory_validity.clear();
-  memory_offset.clear();
-  file_offset.clear();
-  memory_is_wgrad.clear();
+  memory_size_.clear();
+  memory_validity_.clear();
+  memory_offset_.clear();
+  memory_is_wgrad_.clear();
 
-  pool_size = 0;
-  min_pool_size = 0;
-  n_wgrad = 0;
+  pool_size_ = 0;
+  min_pool_size_ = 0;
+  n_wgrad_ = 0;
 }
 
 /**
@@ -487,6 +392,58 @@ void MemoryPool::clear() {
  *
  * @return true if the memory is allocated, else false
  */
-bool MemoryPool::isAllocated() const { return mem_pool != nullptr; }
+bool MemoryPool::isAllocated() const { return is_allocated_; }
+
+void *MemoryPool::allocBytes(const size_t bytes_size, const size_t alignment) {
+  void *memory = nullptr;
+#if defined(__ANDROID__) && ENABLE_NPU
+  memory =
+    rpcmem_alloc(RPCMEM_HEAP_ID_SYSTEM, RPCMEM_DEFAULT_FLAGS, bytes_size);
+#elif ENABLE_OPENCL
+  auto *cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  memory = cl_context->context_inst_.createSVMRegion(bytes_size);
+#else
+
+#if defined(_WIN32)
+  memory = _aligned_malloc(bytes_size, alignment);
+#else
+  memory = std::aligned_alloc(alignment, bytes_size);
+#endif
+
+#endif
+
+#ifdef PROFILE
+  static long long seq = 0;
+
+  std::string msg("MemoryPool #");
+  msg.append(std::to_string(seq++));
+  PROFILE_MEM_ALLOC(memory, bytes_size, msg);
+#endif
+
+  return memory;
+}
+
+void MemoryPool::freeBytes(void *memory) {
+#ifdef PROFILE
+  PROFILE_MEM_DEALLOC(memory);
+#endif
+
+#if defined(__ANDROID__) && ENABLE_NPU
+  rpcmem_free(memory);
+#elif ENABLE_OPENCL
+  auto *cl_context =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  cl_context->context_inst_.releaseSVMRegion(memory);
+#else
+
+#if defined(_WIN32)
+  _aligned_free(memory);
+#else
+  std::free(memory);
+#endif
+
+#endif
+}
 
 } // namespace nntrainer
