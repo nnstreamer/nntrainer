@@ -564,10 +564,8 @@ size_t Int4QTensor::scale_size() const {
     return 1;
     break;
   case QScheme::PER_CHANNEL_AFFINE:
-    /// @todo fix me
-    /// @note Need to support PER_GROUP_32, PER_GROUP_64, PER_GROUP_128
-    // return height();
-    return height() * width() / 32;
+    return align(height(), group_size) * align(width(), group_size) /
+           group_size;
     break;
   default:
     break;

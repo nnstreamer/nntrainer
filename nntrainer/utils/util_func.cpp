@@ -42,6 +42,12 @@ float logFloat(float x) { return log(x + 1.0e-20); }
 
 float exp_util(float x) { return exp(x); }
 
+uint32_t ceilDiv(uint32_t a, uint32_t b) { return (a + b - 1) / b; };
+
+uint32_t align(uint32_t a, uint32_t b) {
+  return (a % b == 0) ? a : a - a % b + b;
+};
+
 Tensor rotate_180(Tensor in) {
   Tensor output(in.getDim());
   output.setZero();
