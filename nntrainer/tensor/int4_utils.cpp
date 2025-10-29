@@ -16,13 +16,9 @@
 #include "cpu_backend.h"
 #include "fp16.h"
 #include "nntrainer_error.h"
+#include "util_func.h"
 
 namespace nntrainer {
-
-static inline int ceil_div(int a, int b) { return (a + b - 1) / b; }
-static inline unsigned int align(unsigned int a, unsigned int b) {
-  return (a % b == 0) ? a : a - a % b + b;
-};
 
 float Int4Utils::computeScaleForGroup(const float *group_weights,
                                       const size_t group_size) {
@@ -56,10 +52,12 @@ void Int4Utils::computeScales(const float *weights, const size_t rows_count,
                               std::vector<float> &scales) {
   // NNTR_THROW_IF(columns_count % group_size, std::invalid_argument)
   //   << "Columns size not divisible by group size";
+  NNTR_THROW_IF(columns_count % 4, std::invalid_argument)
+    << "Columns size not divisible by 4";
 
   const auto full_groups_per_row = columns_count / group_size;
   const auto last_group_size = columns_count % group_size;
-  const auto padded_groups_per_row = ceil_div(columns_count, group_size);
+  const auto padded_groups_per_row = ceilDiv(columns_count, group_size);
   const auto rows_count_pad = align(rows_count, ROW_BLOCK_SIZE);
   scales.resize(rows_count_pad * padded_groups_per_row, 1.0f);
 
@@ -124,11 +122,11 @@ void Int4Utils::quantizeAndRepack(const float *weights, const size_t rows_count,
     << "Columns size not divisible by column block size";
 
   // Prepare output buffer in OS_IS_YX_OSV32_ISV2 layout
-  const auto groups_per_row = ceil_div(columns_count, group_size);
-  const auto row_blocks_count = ceil_div(rows_count, ROW_BLOCK_SIZE);
+  const auto groups_per_row = ceilDiv(columns_count, group_size);
+  const auto row_blocks_count = ceilDiv(rows_count, ROW_BLOCK_SIZE);
   const auto columns_count_pad = align(columns_count, group_size);
   const auto column_blocks_count =
-    ceil_div(columns_count_pad, COLUMN_BLOCK_SIZE);
+    ceilDiv(columns_count_pad, COLUMN_BLOCK_SIZE);
   const auto rows_count_pad = row_blocks_count * ROW_BLOCK_SIZE;
 
   out_weights.resize((rows_count_pad * columns_count_pad) / 2, 0);
@@ -190,12 +188,12 @@ void Int4Utils::dequantizePacked(const std::vector<uint8_t> &weights,
                                  const size_t columns_count,
                                  const size_t group_size,
                                  std::vector<float> &dequantized_weights) {
-  const auto groups_per_row = ceil_div(columns_count, group_size);
+  const auto groups_per_row = ceilDiv(columns_count, group_size);
   const auto rows_count_pad = align(rows_count, group_size);
-  const auto row_blocks_count = ceil_div(rows_count, ROW_BLOCK_SIZE);
+  const auto row_blocks_count = ceilDiv(rows_count, ROW_BLOCK_SIZE);
   const auto columns_count_pad = align(columns_count, group_size);
   const auto column_blocks_count =
-    ceil_div(columns_count_pad, COLUMN_BLOCK_SIZE);
+    ceilDiv(columns_count_pad, COLUMN_BLOCK_SIZE);
 
   dequantized_weights.resize(rows_count * columns_count);
 

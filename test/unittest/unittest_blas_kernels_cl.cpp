@@ -253,12 +253,6 @@ static inline std::vector<float> generate_01_vector(const size_t size,
   }
 }
 
-static inline int ceil_div(int a, int b) { return (a + b - 1) / b; }
-
-static inline unsigned int align(unsigned int a, unsigned int b) {
-  return (a % b == 0) ? a : a - a % b + b;
-};
-
 /**
  * @brief Helper function to print data
  *
@@ -315,7 +309,6 @@ static void run_dequantization_test_(const uint32_t K, const uint32_t N) {
   int scale_group_size = 32;
   std::vector<uint8_t> quantized_weights;
   std::vector<uint16_t> quantized_scales;
-  printf("weight_fp32.size():%lld\n", weight_fp32.size());
   Int4Utils::quantizeAndRepack(weight_fp32.data(), N, K, scale_group_size,
                                quantized_weights, quantized_scales);
 
@@ -359,7 +352,7 @@ static void run_int4_gemv_test_(const uint32_t K, const uint32_t N,
 
   // Allocate & initialize group-wise int4 data
   char *weight_ptr = (char *)allocateSVM(alignK * alignN / 2);
-  uint16_t *scale_ptr = (uint16_t *)allocateSVM(ceil_div(K, scale_group_size) *
+  uint16_t *scale_ptr = (uint16_t *)allocateSVM(ceilDiv(K, scale_group_size) *
                                                 alignN * sizeof(uint16_t));
   uint16_t *input_ptr = (uint16_t *)allocateSVM(K * sizeof(uint16_t));
   uint16_t *output_ptr = (uint16_t *)allocateSVM(alignN * sizeof(uint16_t));
@@ -427,15 +420,12 @@ static void run_int4_gemv_test_(const uint32_t K, const uint32_t N,
   }
 
   unsigned int scales_cnt = quantized_scales.size();
-  std::vector<float> scales_fp32(ceil_div(K, scale_group_size) * alignN);
+  std::vector<float> scales_fp32(ceilDiv(K, scale_group_size) * alignN);
 
-  for (unsigned int i = 0; i < ceil_div(K, scale_group_size) * alignN; ++i) {
+  for (unsigned int i = 0; i < ceilDiv(K, scale_group_size) * alignN; ++i) {
     scale_ptr[i] = quantized_scales[i];
     scales_fp32[i] = compute_fp16_to_fp32(quantized_scales[i]);
   }
-
-  // printMatrixF("scales", scales_fp32.data(), 1, ceil_div(K, scale_group_size)
-  // * alignN);
 
   for (unsigned int i = 0; i < alignN * alignK / 2; ++i) {
     weight_ptr[i] = quantized_weights[i];
@@ -1001,7 +991,7 @@ static void run_int4_gemm_test_(const uint32_t M, const uint32_t K,
   // Int4 GEMM - THE MAIN TEST
   uint16_t *input_ptr = (uint16_t *)allocateSVM(input_size * sizeof(uint16_t));
   int8_t *weight_ptr = (int8_t *)allocateSVM(alignK * alignN / 2);
-  uint16_t *scale_ptr = (uint16_t *)allocateSVM(ceil_div(K, scale_group_size) *
+  uint16_t *scale_ptr = (uint16_t *)allocateSVM(ceilDiv(K, scale_group_size) *
                                                 alignN * sizeof(uint16_t));
   uint16_t *output_ptr = (uint16_t *)allocateSVM(M * alignN * sizeof(uint16_t));
 
@@ -1010,8 +1000,7 @@ static void run_int4_gemm_test_(const uint32_t M, const uint32_t K,
   blas_cc->command_queue_inst_.enqueueSVMMap(weight_ptr, alignK * alignN / 2,
                                              false);
   blas_cc->command_queue_inst_.enqueueSVMMap(
-    scale_ptr, ceil_div(K, scale_group_size) * alignN * sizeof(uint16_t),
-    false);
+    scale_ptr, ceilDiv(K, scale_group_size) * alignN * sizeof(uint16_t), false);
 
   std::vector<uint8_t> quantized_weights;
   std::vector<uint16_t> quantized_scales;
@@ -1022,7 +1011,7 @@ static void run_int4_gemm_test_(const uint32_t M, const uint32_t K,
     input_ptr[i] = compute_fp32_to_fp16((input.data())[i]);
   }
 
-  for (unsigned int i = 0; i < ceil_div(K, scale_group_size) * alignN; ++i) {
+  for (unsigned int i = 0; i < ceilDiv(K, scale_group_size) * alignN; ++i) {
     scale_ptr[i] = quantized_scales[i];
   }
 

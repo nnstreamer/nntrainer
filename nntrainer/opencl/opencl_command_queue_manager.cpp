@@ -16,6 +16,7 @@
 #include "opencl_context_manager.h"
 #include "opencl_loader.h"
 
+#include <nntrainer_error.h>
 #include <nntrainer_log.h>
 
 namespace nntrainer::opencl {
@@ -397,6 +398,23 @@ bool CommandQueueManager::DispatchCommand(
   }
 
   return true;
+}
+
+void CommandQueueManager::enqueueKernel(const cl_kernel kernel,
+                                        const cl_uint work_dim,
+                                        const size_t *global_work_size,
+                                        const size_t *local_work_size,
+                                        cl_uint num_events_in_wait_list,
+                                        const cl_event *event_wait_list,
+                                        cl_event *event) {
+
+  const auto error_code = clEnqueueNDRangeKernel(
+    command_queue_, kernel, work_dim, nullptr, global_work_size,
+    local_work_size, num_events_in_wait_list, event_wait_list, event);
+
+  NNTR_THROW_IF(error_code != CL_SUCCESS, std::runtime_error)
+    << "clEnqueueNDRangeKernel failed. OpenCL error code: " << error_code
+    << ", error: " << OpenCLErrorCodeToString(error_code);
 }
 
 } // namespace nntrainer::opencl
