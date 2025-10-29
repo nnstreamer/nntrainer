@@ -12,6 +12,7 @@
  * @author Seungbaek Hong <sb92.hong@samsung.com>
  * @author Hyeonseok Lee <hs89.lee@samsung.com>
  * @author Eunju Yang <ej.yang@samsung.com>
+ * @author Donghak Park <donghak.park@samsung.com>
  * @bug    No known bugs except for NYI items
  * @note   This causal_lm.h constructs a class for Transformer-based Causal
  * Language Model (CausalLM). It aims to support AutoModelForCausalLM with
@@ -143,14 +144,6 @@ protected:
   virtual void registerCustomLayers();
 
   /**
-   * @brief register Outputs
-   */
-  virtual void
-  registerOutputs(std::unique_ptr<tokenizers::Tokenizer> &tokenizer,
-                  std::vector<unsigned int> ids, unsigned int pos,
-                  const std::vector<bool> &eos_list);
-
-  /**
    * @brief save kv cache
    */
   WIN_EXPORT virtual void save_kvcache(std::string path, int to);
@@ -178,7 +171,6 @@ protected:
 
   /** tokenizer */
   std::unique_ptr<tokenizers::Tokenizer> tokenizer;
-  std::vector<int> pending_ids_;
 
   unsigned int NUM_VOCAB;
   int DIM;
