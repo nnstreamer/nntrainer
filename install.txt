@@ -1,0 +1,539 @@
+[1/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_base.a.p/absl_base_internal_unscaledcycleclock.cc.o
+[2/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_base.a.p/absl_base_internal_poison.cc.o
+[3/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_profiling.a.p/absl_profiling_internal_periodic_sampler.cc.o
+[4/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_base.a.p/absl_base_internal_cycleclock.cc.o
+[5/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_base.a.p/absl_base_internal_spinlock_wait.cc.o
+[6/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_profiling.a.p/absl_profiling_internal_exponential_biased.cc.o
+[7/393] Linking static target subprojects/abseil-cpp-20250814.1/libabsl_profiling.a
+[8/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_base.a.p/absl_base_internal_strerror.cc.o
+[9/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_base.a.p/absl_base_log_severity.cc.o
+[10/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_base.a.p/absl_base_internal_scoped_set_env.cc.o
+[11/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_base.a.p/absl_base_internal_raw_logging.cc.o
+[12/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_crc.a.p/absl_crc_internal_cpu_detect.cc.o
+[13/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_internal_damerau_levenshtein_distance.cc.o
+[14/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_internal_ostringstream.cc.o
+[15/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_hash.a.p/absl_hash_internal_city.cc.o
+[16/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_base.a.p/absl_base_internal_spinlock.cc.o
+[17/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_base.a.p/absl_base_internal_throw_delegate.cc.o
+[18/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_internal_pow10_helper.cc.o
+[19/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_internal_charconv_parse.cc.o
+[20/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_base.a.p/absl_base_internal_thread_identity.cc.o
+[21/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_crc.a.p/absl_crc_internal_crc_x86_arm_combined.cc.o
+[22/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_internal_cordz_functions.cc.o
+[23/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_internal_memutil.cc.o
+[24/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_internal_utf8.cc.o
+[25/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_ascii.cc.o
+[26/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_base.a.p/absl_base_internal_sysinfo.cc.o
+[27/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_internal_escaping.cc.o
+[28/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_crc.a.p/absl_crc_internal_crc.cc.o
+[29/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_base.a.p/absl_base_internal_low_level_alloc.cc.o
+[30/393] Linking static target subprojects/abseil-cpp-20250814.1/libabsl_base.a
+[31/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_crc.a.p/absl_crc_internal_crc_memcpy_x86_arm_combined.cc.o
+[32/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_internal_cordz_handle.cc.o
+[33/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_internal_stringify_sink.cc.o
+[34/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_crc.a.p/absl_crc_crc32c.cc.o
+[35/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_internal_str_format_extension.cc.o
+[36/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_debugging.a.p/absl_debugging_internal_utf8_for_code_point.cc.o
+[37/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_internal_str_format_output.cc.o
+[38/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_crc.a.p/absl_crc_internal_crc_memcpy_fallback.cc.o
+[39/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_debugging.a.p/absl_debugging_leak_check.cc.o
+[40/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_string_view.cc.o
+[41/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_numeric.a.p/absl_numeric_int128.cc.o
+[42/393] Linking static target subprojects/abseil-cpp-20250814.1/libabsl_numeric.a
+[43/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_debugging.a.p/absl_debugging_internal_address_is_readable.cc.o
+[44/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_debugging.a.p/absl_debugging_failure_signal_handler.cc.o
+[45/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_match.cc.o
+[46/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_charconv.cc.o
+[47/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_internal_cord_rep_btree_reader.cc.o
+[48/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_hash.a.p/absl_hash_internal_hash.cc.o
+[49/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_random.a.p/absl_random_internal_randen_round_keys.cc.o
+[50/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_debugging.a.p/absl_debugging_internal_decode_rust_punycode.cc.o
+[51/393] Linking static target subprojects/abseil-cpp-20250814.1/libabsl_hash.a
+[52/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_internal_cord_rep_crc.cc.o
+[53/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_internal_cord_rep_consume.cc.o
+[54/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_debugging.a.p/absl_debugging_internal_stack_consumption.cc.o
+[55/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_debugging.a.p/absl_debugging_internal_demangle_rust.cc.o
+[56/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_str_split.cc.o
+[57/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_debugging.a.p/absl_debugging_internal_elf_mem_image.cc.o
+[58/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_internal_cord_rep_btree_navigator.cc.o
+[59/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_internal_cordz_sample_token.cc.o
+[60/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_internal_cord_internal.cc.o
+[61/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_debugging.a.p/absl_debugging_internal_vdso_support.cc.o
+[62/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_crc.a.p/absl_crc_internal_crc_cord_state.cc.o
+[63/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_escaping.cc.o
+[64/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_debugging.a.p/absl_debugging_internal_examine_stack.cc.o
+[65/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_random.a.p/absl_random_internal_randen.cc.o
+[66/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_str_replace.cc.o
+[67/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_str_cat.cc.o
+[68/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_crc.a.p/absl_crc_internal_crc_non_temporal_memcpy.cc.o
+[69/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_debugging.a.p/absl_debugging_stacktrace.cc.o
+[70/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_internal_cordz_info.cc.o
+[71/393] Linking static target subprojects/abseil-cpp-20250814.1/libabsl_crc.a
+[72/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_random.a.p/absl_random_internal_randen_detect.cc.o
+[73/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_substitute.cc.o
+[74/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_cord_analysis.cc.o
+[75/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_random.a.p/absl_random_internal_chi_square.cc.o
+[76/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_random.a.p/absl_random_gaussian_distribution.cc.o
+[77/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_internal_str_format_bind.cc.o
+[78/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_random.a.p/absl_random_seed_gen_exception.cc.o
+[79/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_synchronization.a.p/absl_synchronization_internal_win32_waiter.cc.o
+[80/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_internal_str_format_parser.cc.o
+[81/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_internal_charconv_bigint.cc.o
+[82/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_random.a.p/absl_random_internal_entropy_pool.cc.o
+[83/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_time.a.p/absl_time_internal_cctz_src_time_zone_posix.cc.o
+[84/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_random.a.p/absl_random_discrete_distribution.cc.o
+[85/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_time.a.p/absl_time_internal_cctz_src_time_zone_fixed.cc.o
+[86/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_flags.a.p/absl_flags_internal_commandlineflag.cc.o
+[87/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_time.a.p/absl_time_clock.cc.o
+[88/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_time.a.p/absl_time_internal_cctz_src_zone_info_source.cc.o
+[89/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_random.a.p/absl_random_internal_randen_slow.cc.o
+[90/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_debugging.a.p/absl_debugging_symbolize.cc.o
+[91/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_time.a.p/absl_time_format.cc.o
+[92/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_time.a.p/absl_time_internal_cctz_src_civil_time_detail.cc.o
+[93/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_time.a.p/absl_time_internal_cctz_src_time_zone_if.cc.o
+[94/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_time.a.p/absl_time_internal_cctz_src_time_zone_lookup.cc.o
+[95/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_numbers.cc.o
+[96/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_internal_str_format_arg.cc.o
+[97/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_random.a.p/absl_random_seed_sequences.cc.o
+[98/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_random.a.p/absl_random_internal_seed_material.cc.o
+[99/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_time.a.p/absl_time_internal_cctz_src_time_zone_libc.cc.o
+[100/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_synchronization.a.p/absl_synchronization_barrier.cc.o
+[101/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_synchronization.a.p/absl_synchronization_internal_futex_waiter.cc.o
+[102/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_synchronization.a.p/absl_synchronization_blocking_counter.cc.o
+[103/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_synchronization.a.p/absl_synchronization_internal_per_thread_sem.cc.o
+[104/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_synchronization.a.p/absl_synchronization_internal_sem_waiter.cc.o
+[105/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_time.a.p/absl_time_internal_cctz_src_time_zone_impl.cc.o
+[106/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_synchronization.a.p/absl_synchronization_internal_create_thread_identity.cc.o
+[107/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_synchronization.a.p/absl_synchronization_internal_waiter_base.cc.o
+[108/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_internal_str_format_float_conversion.cc.o
+[109/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_synchronization.a.p/absl_synchronization_internal_pthread_waiter.cc.o
+[110/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_synchronization.a.p/absl_synchronization_internal_kernel_timeout.cc.o
+[111/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_log.a.p/absl_log_internal_conditions.cc.o
+[112/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_synchronization.a.p/absl_synchronization_notification.cc.o
+[113/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_flags.a.p/absl_flags_commandlineflag.cc.o
+[114/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_synchronization.a.p/absl_synchronization_internal_stdcpp_waiter.cc.o
+[115/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_random.a.p/absl_random_internal_randen_hwaes.cc.o
+[116/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_log.a.p/absl_log_internal_nullguard.cc.o
+[117/393] Linking static target subprojects/abseil-cpp-20250814.1/libabsl_random.a
+[118/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_debugging.a.p/absl_debugging_internal_demangle.cc.o
+[119/393] Linking static target subprojects/abseil-cpp-20250814.1/libabsl_debugging.a
+[120/393] Compiling C object subprojects/protobuf-25.2/libutf8-range.a.p/third_party_utf8_range_naive.c.o
+[121/393] Compiling C object subprojects/protobuf-25.2/libutf8-range.a.p/third_party_utf8_range_range-avx2.c.o
+[122/393] Compiling C object subprojects/protobuf-25.2/libutf8-range.a.p/third_party_utf8_range_range-neon.c.o
+[123/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_flags.a.p/absl_flags_internal_private_handle_accessor.cc.o
+[124/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_time.a.p/absl_time_duration.cc.o
+[125/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_container.a.p/absl_container_internal_hashtablez_sampler_force_weak_definition.cc.o
+[126/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_synchronization.a.p/absl_synchronization_internal_graphcycles.cc.o
+[127/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_flags.a.p/absl_flags_internal_program_name.cc.o
+[128/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_time.a.p/absl_time_civil_time.cc.o
+[129/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_log.a.p/absl_log_internal_fnmatch.cc.o
+[130/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_time.a.p/absl_time_time.cc.o
+[131/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_container.a.p/absl_container_internal_hashtablez_sampler.cc.o
+[132/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_log.a.p/absl_log_initialize.cc.o
+[133/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf-lite.a.p/src_google_protobuf_arenaz_sampler.cc.o
+[134/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_flags.a.p/absl_flags_usage.cc.o
+[135/393] Compiling C object subprojects/protobuf-25.2/libutf8-range.a.p/third_party_utf8_range_range-sse.c.o
+[136/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf-lite.a.p/src_google_protobuf_io_io_win32.cc.o
+[137/393] Compiling C++ object subprojects/protobuf-25.2/libutf8-range.a.p/third_party_utf8_range_utf8_validity.cc.o
+[138/393] Linking static target subprojects/protobuf-25.2/libutf8-range.a
+[139/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_log.a.p/absl_log_internal_proto.cc.o
+[140/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_log.a.p/absl_log_internal_globals.cc.o
+[141/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_log.a.p/absl_log_internal_structured_proto.cc.o
+[142/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_flags.a.p/absl_flags_usage_config.cc.o
+[143/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_log.a.p/absl_log_die_if_null.cc.o
+[144/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf-lite.a.p/src_google_protobuf_port.cc.o
+[145/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_synchronization.a.p/absl_synchronization_mutex.cc.o
+[146/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_log.a.p/absl_log_log_sink.cc.o
+[147/393] Linking static target subprojects/abseil-cpp-20250814.1/libabsl_synchronization.a
+[148/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_time.a.p/absl_time_internal_cctz_src_time_zone_format.cc.o
+[149/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_flags.a.p/absl_flags_internal_flag.cc.o
+[150/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_log.a.p/absl_log_flags.cc.o
+[151/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_log.a.p/absl_log_internal_log_sink_set.cc.o
+[152/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf-lite.a.p/src_google_protobuf_raw_ptr.cc.o
+[153/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_log.a.p/absl_log_internal_log_format.cc.o
+[154/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_internal_cord_rep_btree.cc.o
+[155/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_log.a.p/absl_log_internal_check_op.cc.o
+[156/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf-lite.a.p/src_google_protobuf_arena_align.cc.o
+[157/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_log.a.p/absl_log_globals.cc.o
+[158/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_log.a.p/absl_log_log_entry.cc.o
+[159/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_status.a.p/absl_status_status_payload_printer.cc.o
+[160/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_time.a.p/absl_time_internal_cctz_src_time_zone_info.cc.o
+[161/393] Linking static target subprojects/abseil-cpp-20250814.1/libabsl_time.a
+[162/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_strings.a.p/absl_strings_cord.cc.o
+In file included from ../subprojects/abseil-cpp-20250814.1/absl/container/inlined_vector.h:55,
+                 from ../subprojects/abseil-cpp-20250814.1/absl/strings/internal/str_format/bind.h:24,
+                 from ../subprojects/abseil-cpp-20250814.1/absl/strings/str_format.h:84,
+                 from ../subprojects/abseil-cpp-20250814.1/absl/crc/crc32c.h:32,
+                 from ../subprojects/abseil-cpp-20250814.1/absl/crc/internal/crc_cord_state.h:23,
+                 from ../subprojects/abseil-cpp-20250814.1/absl/strings/cord.h:80,
+                 from ../subprojects/abseil-cpp-20250814.1/absl/strings/cord.cc:15:
+In member function ‘absl::lts_20250814::inlined_vector_internal::SizeType<A> absl::lts_20250814::inlined_vector_internal::Storage<T, N, A>::GetAllocatedCapacity() const [with T = absl::lts_20250814::cord_internal::CordRep*; long unsigned int N = 2; A = std::allocator<absl::lts_20250814::cord_internal::CordRep*>]’,
+    inlined from ‘void absl::lts_20250814::inlined_vector_internal::Storage<T, N, A>::DeallocateIfAllocated() [with T = absl::lts_20250814::cord_internal::CordRep*; long unsigned int N = 2; A = std::allocator<absl::lts_20250814::cord_internal::CordRep*>]’ at ../subprojects/abseil-cpp-20250814.1/absl/container/internal/inlined_vector.h:524:35,
+    inlined from ‘absl::lts_20250814::inlined_vector_internal::Storage<T, N, A>::~Storage() [with T = absl::lts_20250814::cord_internal::CordRep*; long unsigned int N = 2; A = std::allocator<absl::lts_20250814::cord_internal::CordRep*>]’ at ../subprojects/abseil-cpp-20250814.1/absl/container/internal/inlined_vector.h:354:28,
+    inlined from ‘absl::lts_20250814::InlinedVector<T, N, A>::~InlinedVector() [with T = absl::lts_20250814::cord_internal::CordRep*; long unsigned int N = 2; A = std::allocator<absl::lts_20250814::cord_internal::CordRep*>]’ at ../subprojects/abseil-cpp-20250814.1/absl/container/inlined_vector.h:299:21,
+    inlined from ‘bool absl::lts_20250814::VerifyNode(cord_internal::CordRep*, cord_internal::CordRep*)’ at ../subprojects/abseil-cpp-20250814.1/absl/strings/cord.cc:1550:1:
+../subprojects/abseil-cpp-20250814.1/absl/container/internal/inlined_vector.h:406:28: warning: ‘worklist.absl::lts_20250814::InlinedVector<absl::lts_20250814::cord_internal::CordRep*, 2, std::allocator<absl::lts_20250814::cord_internal::CordRep*> >::storage_.absl::lts_20250814::inlined_vector_internal::Storage<absl::lts_20250814::cord_internal::CordRep*, 2, std::allocator<absl::lts_20250814::cord_internal::CordRep*> >::data_.absl::lts_20250814::inlined_vector_internal::Storage<absl::lts_20250814::cord_internal::CordRep*, 2, std::allocator<absl::lts_20250814::cord_internal::CordRep*> >::Data::allocated.absl::lts_20250814::inlined_vector_internal::Storage<absl::lts_20250814::cord_internal::CordRep*, 2, std::allocator<absl::lts_20250814::cord_internal::CordRep*> >::Allocated::allocated_capacity’ may be used uninitialized [-Wmaybe-uninitialized]
+  406 |     return data_.allocated.allocated_capacity;
+      |                            ^~~~~~~~~~~~~~~~~~
+../subprojects/abseil-cpp-20250814.1/absl/strings/cord.cc: In function ‘bool absl::lts_20250814::VerifyNode(cord_internal::CordRep*, cord_internal::CordRep*)’:
+../subprojects/abseil-cpp-20250814.1/absl/strings/cord.cc:1513:49: note: ‘worklist’ declared here
+ 1513 |   absl::InlinedVector<CordRep* absl_nonnull, 2> worklist;
+      |                                                 ^~~~~~~~
+[163/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_arenaz_sampler.cc.o
+[164/393] Linking static target subprojects/abseil-cpp-20250814.1/libabsl_strings.a
+[165/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_log.a.p/absl_log_internal_log_message.cc.o
+[166/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_flags.a.p/absl_flags_marshalling.cc.o
+[167/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_status.a.p/absl_status_status.cc.o
+[168/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_status.a.p/absl_status_statusor.cc.o
+[169/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_log.a.p/absl_log_internal_vlog_config.cc.o
+[170/393] Linking static target subprojects/abseil-cpp-20250814.1/libabsl_log.a
+[171/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_flags.a.p/absl_flags_internal_usage.cc.o
+[172/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_status.a.p/absl_status_internal_status_internal.cc.o
+[173/393] Linking static target subprojects/abseil-cpp-20250814.1/libabsl_status.a
+[174/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_arena_align.cc.o
+[175/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf-lite.a.p/src_google_protobuf_any_lite.cc.o
+[176/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_container.a.p/absl_container_internal_raw_hash_set.cc.o
+[177/393] Linking static target subprojects/abseil-cpp-20250814.1/libabsl_container.a
+[178/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf-lite.a.p/src_google_protobuf_inlined_string_field.cc.o
+[179/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf-lite.a.p/src_google_protobuf_arenastring.cc.o
+[180/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf-lite.a.p/src_google_protobuf_implicit_weak_message.cc.o
+[181/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf-lite.a.p/src_google_protobuf_io_zero_copy_stream_impl.cc.o
+[182/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf-lite.a.p/src_google_protobuf_generated_message_util.cc.o
+[183/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf-lite.a.p/src_google_protobuf_io_zero_copy_stream.cc.o
+[184/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf-lite.a.p/src_google_protobuf_stubs_common.cc.o
+[185/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf-lite.a.p/src_google_protobuf_repeated_field.cc.o
+[186/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf-lite.a.p/src_google_protobuf_generated_enum_util.cc.o
+[187/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_flags.a.p/absl_flags_reflection.cc.o
+[188/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_io_gzip_stream.cc.o
+[189/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_io_io_win32.cc.o
+[190/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf-lite.a.p/src_google_protobuf_arena.cc.o
+[191/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_any_lite.cc.o
+[192/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf-lite.a.p/src_google_protobuf_repeated_ptr_field.cc.o
+[193/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf-lite.a.p/src_google_protobuf_io_coded_stream.cc.o
+[194/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf-lite.a.p/src_google_protobuf_io_zero_copy_stream_impl_lite.cc.o
+[195/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_any.cc.o
+[196/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_arenastring.cc.o
+[197/393] Compiling C++ object subprojects/abseil-cpp-20250814.1/libabsl_flags.a.p/absl_flags_parse.cc.o
+[198/393] Linking static target subprojects/abseil-cpp-20250814.1/libabsl_flags.a
+[199/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf-lite.a.p/src_google_protobuf_wire_format_lite.cc.o
+[200/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_any.pb.cc.o
+[201/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf-lite.a.p/src_google_protobuf_message_lite.cc.o
+../subprojects/protobuf-25.2/src/google/protobuf/message_lite.cc: In member function ‘int google::protobuf::MessageLite::GetCachedSize() const’:
+../subprojects/protobuf-25.2/src/google/protobuf/message_lite.cc:69:70: warning: ‘int google::protobuf::MessageLite::ByteSize() const’ is deprecated: Please use ByteSizeLong() instead [-Wdeprecated-declarations]
+   69 |   if (PROTOBUF_PREDICT_FALSE(cached_size == nullptr)) return ByteSize();
+      |                                                              ~~~~~~~~^~
+In file included from ../subprojects/protobuf-25.2/src/google/protobuf/message_lite.cc:13:
+../subprojects/protobuf-25.2/src/google/protobuf/message_lite.h:454:59: note: declared here
+  454 |   [[deprecated("Please use ByteSizeLong() instead")]] int ByteSize() const {
+      |                                                           ^~~~~~~~
+[202/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf-lite.a.p/src_google_protobuf_map.cc.o
+[203/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_arena.cc.o
+[204/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_empty.pb.cc.o
+[205/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_duration.pb.cc.o
+[206/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_io_strtod.cc.o
+[207/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_api.pb.cc.o
+[208/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_cpp_features.pb.cc.o
+[209/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_generated_enum_util.cc.o
+[210/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf-lite.a.p/src_google_protobuf_parse_context.cc.o
+[211/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_generated_message_bases.cc.o
+[212/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_port.cc.o
+[213/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_inlined_string_field.cc.o
+[214/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_reflection_mode.cc.o
+[215/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_io_zero_copy_sink.cc.o
+[216/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_field_mask.pb.cc.o
+[217/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_generated_message_util.cc.o
+[218/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_raw_ptr.cc.o
+[219/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_implicit_weak_message.cc.o
+[220/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_generated_message_tctable_full.cc.o
+[221/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_compiler_importer.cc.o
+[222/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_io_zero_copy_stream_impl.cc.o
+[223/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_internal_message_util.cc.o
+[224/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_io_zero_copy_stream.cc.o
+[225/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_io_coded_stream.cc.o
+[226/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_service.cc.o
+[227/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_extension_set_heavy.cc.o
+[228/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_json_internal_writer.cc.o
+[229/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_json_internal_message_path.cc.o
+[230/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_json_internal_zero_copy_buffered_stream.cc.o
+[231/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_io_zero_copy_stream_impl_lite.cc.o
+[232/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_dynamic_message.cc.o
+[233/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_io_tokenizer.cc.o
+[234/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_repeated_field.cc.o
+[235/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_stubs_common.cc.o
+[236/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_feature_resolver.cc.o
+[237/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_json_json.cc.o
+[238/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_allowlists_editions.cc.o
+[239/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_repeated_ptr_field.cc.o
+[240/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_util_delimited_message_util.cc.o
+[241/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_generated_message_tctable_gen.cc.o
+[242/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_map.cc.o
+[243/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_allowlists_open_enum.cc.o
+[244/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_allowlists_empty_package.cc.o
+[245/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_source_context.pb.cc.o
+[246/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_message_lite.cc.o
+../subprojects/protobuf-25.2/src/google/protobuf/message_lite.cc: In member function ‘int google::protobuf::MessageLite::GetCachedSize() const’:
+../subprojects/protobuf-25.2/src/google/protobuf/message_lite.cc:69:70: warning: ‘int google::protobuf::MessageLite::ByteSize() const’ is deprecated: Please use ByteSizeLong() instead [-Wdeprecated-declarations]
+   69 |   if (PROTOBUF_PREDICT_FALSE(cached_size == nullptr)) return ByteSize();
+      |                                                              ~~~~~~~~^~
+In file included from ../subprojects/protobuf-25.2/src/google/protobuf/message_lite.cc:13:
+../subprojects/protobuf-25.2/src/google/protobuf/message_lite.h:454:59: note: declared here
+  454 |   [[deprecated("Please use ByteSizeLong() instead")]] int ByteSize() const {
+      |                                                           ^~~~~~~~
+[247/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_allowlists_unused_imports.cc.o
+[248/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_allowlists_weak_imports.cc.o
+[249/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_json_internal_lexer.cc.o
+[250/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_timestamp.pb.cc.o
+[251/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_unknown_field_set.cc.o
+[252/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf-lite.a.p/src_google_protobuf_extension_set.cc.o
+[253/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_reflection_ops.cc.o
+[254/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_parse_context.cc.o
+[255/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_util_field_comparator.cc.o
+[256/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_wire_format_lite.cc.o
+[257/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_util_time_util.cc.o
+[258/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_io_printer.cc.o
+[259/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_type.pb.cc.o
+[260/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_map_field.cc.o
+[261/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_struct.pb.cc.o
+[262/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_wrappers.pb.cc.o
+[263/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_extension_set.cc.o
+[264/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_compiler_parser.cc.o
+[265/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_util_type_resolver_util.cc.o
+[266/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_util_field_mask_util.cc.o
+[267/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_code_generator.cc.o
+[268/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf-lite.a.p/src_google_protobuf_generated_message_tctable_lite.cc.o
+In file included from ../subprojects/protobuf-25.2/src/google/protobuf/generated_message_tctable_decl.h:22,
+                 from ../subprojects/protobuf-25.2/src/google/protobuf/generated_message_tctable_lite.cc:22:
+../subprojects/protobuf-25.2/src/google/protobuf/parse_context.h:1125:1: warning: ‘always_inline’ function might not be inlinable [-Wattributes]
+ 1125 | ParseContext::ParseLengthDelimitedInlined(const char* ptr, const Func& func) {
+      | ^~~~~~~~~~~~
+../subprojects/protobuf-25.2/src/google/protobuf/parse_context.h:1125:1: warning: ‘always_inline’ function might not be inlinable [-Wattributes]
+../subprojects/protobuf-25.2/src/google/protobuf/generated_message_tctable_lite.cc:830:36: warning: ‘always_inline’ function might not be inlinable [-Wattributes]
+  830 | PROTOBUF_ALWAYS_INLINE const char* TcParser::FastVarintS1(
+      |                                    ^~~~~~~~
+../subprojects/protobuf-25.2/src/google/protobuf/generated_message_tctable_lite.cc:830:36: warning: ‘always_inline’ function might not be inlinable [-Wattributes]
+../subprojects/protobuf-25.2/src/google/protobuf/generated_message_tctable_lite.cc:753:29: warning: ‘always_inline’ function might not be inlinable [-Wattributes]
+  753 | PROTOBUF_ALWAYS_INLINE bool EnumIsValidAux(int32_t val, uint16_t xform_val,
+      |                             ^~~~~~~~~~~~~~
+../subprojects/protobuf-25.2/src/google/protobuf/generated_message_tctable_lite.cc:741:29: warning: ‘always_inline’ function might not be inlinable [-Wattributes]
+  741 | PROTOBUF_ALWAYS_INLINE void PrefetchEnumData(uint16_t xform_val,
+      |                             ^~~~~~~~~~~~~~~~
+[269/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_message.cc.o
+[270/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_descriptor_database.cc.o
+[271/393] Linking static target subprojects/protobuf-25.2/libprotobuf-lite.a
+[272/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_json_internal_untyped_message.cc.o
+[273/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_descriptor.pb.cc.o
+[274/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_json_internal_unparser.cc.o
+[275/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_generated_message_reflection.cc.o
+[276/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_csharp_csharp_doc_comment.cc.o
+[277/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_json_internal_parser.cc.o
+[278/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_wire_format.cc.o
+[279/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_cpp_extension.cc.o
+[280/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_csharp_csharp_generator.cc.o
+[281/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_generated_message_tctable_lite.cc.o
+In file included from ../subprojects/protobuf-25.2/src/google/protobuf/generated_message_tctable_decl.h:22,
+                 from ../subprojects/protobuf-25.2/src/google/protobuf/generated_message_tctable_lite.cc:22:
+../subprojects/protobuf-25.2/src/google/protobuf/parse_context.h:1125:1: warning: ‘always_inline’ function might not be inlinable [-Wattributes]
+ 1125 | ParseContext::ParseLengthDelimitedInlined(const char* ptr, const Func& func) {
+      | ^~~~~~~~~~~~
+../subprojects/protobuf-25.2/src/google/protobuf/parse_context.h:1125:1: warning: ‘always_inline’ function might not be inlinable [-Wattributes]
+../subprojects/protobuf-25.2/src/google/protobuf/generated_message_tctable_lite.cc:830:36: warning: ‘always_inline’ function might not be inlinable [-Wattributes]
+  830 | PROTOBUF_ALWAYS_INLINE const char* TcParser::FastVarintS1(
+      |                                    ^~~~~~~~
+../subprojects/protobuf-25.2/src/google/protobuf/generated_message_tctable_lite.cc:830:36: warning: ‘always_inline’ function might not be inlinable [-Wattributes]
+../subprojects/protobuf-25.2/src/google/protobuf/generated_message_tctable_lite.cc:753:29: warning: ‘always_inline’ function might not be inlinable [-Wattributes]
+  753 | PROTOBUF_ALWAYS_INLINE bool EnumIsValidAux(int32_t val, uint16_t xform_val,
+      |                             ^~~~~~~~~~~~~~
+../subprojects/protobuf-25.2/src/google/protobuf/generated_message_tctable_lite.cc:741:29: warning: ‘always_inline’ function might not be inlinable [-Wattributes]
+  741 | PROTOBUF_ALWAYS_INLINE void PrefetchEnumData(uint16_t xform_val,
+      |                             ^~~~~~~~~~~~~~~~
+[282/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_cpp_padding_optimizer.cc.o
+[283/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_csharp_csharp_enum_field.cc.o
+[284/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_cpp_field_generators_cord_field.cc.o
+[285/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_cpp_service.cc.o
+[286/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_text_format.cc.o
+[287/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_csharp_csharp_helpers.cc.o
+[288/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_cpp_field_generators_enum_field.cc.o
+[289/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_cpp_tracker.cc.o
+[290/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_cpp_field_generators_primitive_field.cc.o
+[291/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_cpp_field.cc.o
+[292/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_csharp_csharp_map_field.cc.o
+[293/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_cpp_field_generators_string_field.cc.o
+[294/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_csharp_csharp_enum.cc.o
+[295/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_cpp_field_generators_map_field.cc.o
+[296/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_cpp_generator.cc.o
+[297/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_csharp_csharp_repeated_primitive_field.cc.o
+[298/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_csharp_csharp_repeated_enum_field.cc.o
+[299/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_csharp_csharp_source_generator_base.cc.o
+[300/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_cpp_field_generators_message_field.cc.o
+[301/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_csharp_csharp_message_field.cc.o
+[302/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_cpp_parse_function_generator.cc.o
+[303/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_csharp_names.cc.o
+[304/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_cpp_enum.cc.o
+[305/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_csharp_csharp_repeated_message_field.cc.o
+[306/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_csharp_csharp_reflection_class.cc.o
+[307/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_csharp_csharp_wrapper_field.cc.o
+[308/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_csharp_csharp_message.cc.o
+[309/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_util_message_differencer.cc.o
+[310/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_csharp_csharp_primitive_field.cc.o
+[311/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_csharp_csharp_field_base.cc.o
+[312/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_java_features.pb.cc.o
+[313/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_generator_factory.cc.o
+[314/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_doc_comment.cc.o
+[315/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_context.cc.o
+[316/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_extension_lite.cc.o
+[317/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_kotlin_generator.cc.o
+[318/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_generator.cc.o
+[319/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_cpp_helpers.cc.o
+[320/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_message_serialization.cc.o
+[321/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_enum.cc.o
+[322/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_names.cc.o
+[323/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_enum_field_lite.cc.o
+[324/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_objectivec_line_consumer.cc.o
+[325/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_extension.cc.o
+[326/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_enum_field.cc.o
+[327/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_enum_lite.cc.o
+[328/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_name_resolver.cc.o
+[329/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_file.cc.o
+[330/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_command_line_interface.cc.o
+[331/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_message_builder_lite.cc.o
+[332/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_helpers.cc.o
+[333/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_field.cc.o
+[334/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_shared_code_generator.cc.o
+[335/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_map_field_lite.cc.o
+[336/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_message_field.cc.o
+[337/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_message_field_lite.cc.o
+[338/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_message_builder.cc.o
+[339/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_map_field.cc.o
+[340/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_objectivec_text_format_decode_data.cc.o
+[341/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_message_lite.cc.o
+[342/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_primitive_field.cc.o
+[343/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_service.cc.o
+[344/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_objectivec_extension.cc.o
+[345/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_objectivec_generator.cc.o
+[346/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_string_field_lite.cc.o
+[347/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_message.cc.o
+[348/393] Generating subprojects/protobuf-25.2/src/proto_includes_link with a custom command
+creating symlink subprojects/protobuf-25.2/src/include -> ../../../../subprojects/protobuf-25.2/src
+[349/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_primitive_field_lite.cc.o
+[350/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_objectivec_helpers.cc.o
+[351/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_objectivec_enum_field.cc.o
+[352/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_objectivec_enum.cc.o
+[353/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_objectivec_import_writer.cc.o
+[354/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_java_string_field.cc.o
+[355/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_php_names.cc.o
+[356/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_objectivec_field.cc.o
+[357/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_plugin.cc.o
+[358/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_python_helpers.cc.o
+[359/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_rust_relative_path.cc.o
+[360/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_objectivec_primitive_field.cc.o
+[361/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_zip_writer.cc.o
+[362/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_rust_accessors_unsupported_field.cc.o
+[363/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_plugin.pb.cc.o
+[364/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_objectivec_map_field.cc.o
+[365/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_rust_accessors_accessors.cc.o
+[366/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_subprocess.cc.o
+[367/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_objectivec_oneof.cc.o
+[368/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_objectivec_file.cc.o
+[369/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_objectivec_message_field.cc.o
+[370/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_rust_naming.cc.o
+[371/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_rust_accessors_singular_message.cc.o
+[372/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_retention.cc.o
+[373/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_rust_context.cc.o
+[374/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_objectivec_names.cc.o
+[375/393] Compiling C++ object subprojects/protobuf-25.2/src/protoc.p/google_protobuf_compiler_main.cc.o
+[376/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_rust_accessors_singular_scalar.cc.o
+[377/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_rust_accessors_singular_string.cc.o
+[378/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_cpp_message.cc.o
+[379/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_cpp_file.cc.o
+[380/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_ruby_ruby_generator.cc.o
+[381/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_rust_oneof.cc.o
+[382/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_objectivec_message.cc.o
+[383/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_python_pyi_generator.cc.o
+[384/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_rust_message.cc.o
+[385/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_python_generator.cc.o
+[386/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_rust_generator.cc.o
+[387/393] Compiling C++ object subprojects/protobuf-25.2/libprotoc.a.p/src_google_protobuf_compiler_php_php_generator.cc.o
+[388/393] Compiling C++ object subprojects/protobuf-25.2/libprotobuf.a.p/src_google_protobuf_descriptor.cc.o
+[389/393] Linking static target subprojects/protobuf-25.2/libprotoc.a
+[390/393] Linking static target subprojects/protobuf-25.2/libprotobuf.a
+[391/393] Linking target subprojects/protobuf-25.2/src/protoc
+[392/393] Generating jni/ndk-build with a custom command
+FAILED: jni/arm64-v8a 
+/home/code/Android/Ndk/android-ndk-r26d/ndk-build NDK_LIBS_OUT=/storage_data/snap/sumon/sumon-98/nntrainer/builddir/jni -j40
+[arm64-v8a] Compile++      : nntrainer <= uint_tensor.cpp
+[arm64-v8a] Prebuilt       : libnnstreamer-native.so <= /storage_data/snap/sumon/sumon-98/nntrainer/builddir/ml-api-inference/lib/arm64-v8a/
+[arm64-v8a] Install /storage_data/snap/sumon/sumon-98/nntrainer/builddir/jni/arm64-v8a/libc++_shared.so:
+[arm64-v8a] Compile++      : nntrainer <= basic_planner.cpp
+[arm64-v8a] Compile++      : nntrainer <= mem_allocator.cpp
+[arm64-v8a] Compile++      : nntrainer <= arm_compute_backend.cpp
+[arm64-v8a] Compile++      : nntrainer <= arm_compute_backend_fp16.cpp
+[arm64-v8a] Compile++      : nntrainer <= q4_k_tensor.cpp
+[arm64-v8a] Compile++      : nntrainer <= nntrainer_logger.cpp
+[arm64-v8a] Compile++      : nntrainer <= optimized_v1_planner.cpp
+[arm64-v8a] Compile++      : nntrainer <= cache_elem.cpp
+[arm64-v8a] Compile++      : nntrainer <= optimized_v3_planner.cpp
+[arm64-v8a] Compile++      : nntrainer <= neon_impl.cpp
+[arm64-v8a] Compile++      : nntrainer <= swap_device.cpp
+[arm64-v8a] Compile++      : nntrainer <= quantizer.cpp
+[arm64-v8a] Compile++      : nntrainer <= q4_0_tensor.cpp
+[arm64-v8a] Compile++      : nntrainer <= weight.cpp
+[arm64-v8a] Compile++      : nntrainer <= optimized_v2_planner.cpp
+[arm64-v8a] Compile++      : nntrainer <= short_tensor.cpp
+[arm64-v8a] Compile++      : nntrainer <= char_tensor.cpp
+[arm64-v8a] Compile++      : nntrainer <= var_grad.cpp
+[arm64-v8a] Compile++      : nntrainer <= q6_k_tensor.cpp
+[arm64-v8a] Compile++      : nntrainer <= tensor_base.cpp
+[arm64-v8a] Compile++      : nntrainer <= int4_tensor.cpp
+[arm64-v8a] Compile++      : nntrainer <= task_executor.cpp
+[arm64-v8a] Compile++      : nntrainer <= uint4_tensor.cpp
+[arm64-v8a] Compile++      : nntrainer <= neon_impl_fp16.cpp
+[arm64-v8a] Compile++      : nntrainer <= lazy_tensor.cpp
+[arm64-v8a] Compile++      : nntrainer <= onnx_interpreter.cpp
+In file included from /storage_data/snap/sumon/sumon-98/nntrainer/nntrainer/compiler/onnx_interpreter.cpp:14:
+In file included from /storage_data/snap/sumon/sumon-98/nntrainer/nntrainer/compiler/onnx_interpreter.h:25:
+/storage_data/snap/sumon/sumon-98/nntrainer/nntrainer/schema/onnx.pb.h:10:10: fatal error: 'google/protobuf/port_def.inc' file not found
+#include <google/protobuf/port_def.inc>
+         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1 error generated.
+make: *** [/home/code/Android/Ndk/android-ndk-r26d/build/core/build-binary.mk:415: obj/local/arm64-v8a/objs/nntrainer//storage_data/snap/sumon/sumon-98/nntrainer/nntrainer/compiler/onnx_interpreter.o] Error 1
+make: *** Waiting for unfinished jobs....
+[arm64-v8a] Compile++      : nntrainer <= tensor_dim.cpp
+[arm64-v8a] Compile++      : nntrainer <= data_iteration.cpp
+[arm64-v8a] Compile++      : nntrainer <= iteration_queue.cpp
+[arm64-v8a] Compile++      : nntrainer <= activation_realizer.cpp
+[arm64-v8a] Compile++      : nntrainer <= tensor.cpp
+[arm64-v8a] Compile++      : ccapi-nntrainer <= factory.cpp
+[arm64-v8a] Compile++      : nntrainer <= engine.cpp
+[arm64-v8a] Compile++      : nntrainer <= float_tensor.cpp
+[arm64-v8a] Compile++      : nntrainer <= flatten_realizer.cpp
+[arm64-v8a] Compile++      : nntrainer <= half_tensor.cpp
+[arm64-v8a] Compile++      : nntrainer <= remap_realizer.cpp
+[arm64-v8a] Compile++      : nntrainer <= cache_loader.cpp
+[arm64-v8a] Compile++      : nntrainer <= ini_interpreter.cpp
+[arm64-v8a] Compile++      : nntrainer <= tensor_pool.cpp
+[arm64-v8a] Compile++      : nntrainer <= previous_input_realizer.cpp
+[arm64-v8a] Compile++      : nntrainer <= memory_pool.cpp
+[arm64-v8a] Compile++      : nntrainer <= input_realizer.cpp
+[arm64-v8a] Compile++      : nntrainer <= bn_realizer.cpp
+[arm64-v8a] Compile++      : nntrainer <= tflite_export_realizer.cpp
+[arm64-v8a] Compile++      : nntrainer <= slice_realizer.cpp
+[arm64-v8a] Compile++      : nntrainer <= raw_file_data_producer.cpp
+[arm64-v8a] Compile++      : nntrainer <= databuffer_factory.cpp
+[arm64-v8a] Compile++      : nntrainer <= cache_pool.cpp
+[arm64-v8a] Compile++      : nntrainer <= dir_data_producers.cpp
+[arm64-v8a] Compile++      : nntrainer <= func_data_producer.cpp
+[arm64-v8a] Compile++      : nntrainer <= mse_loss_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= loss_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= kld_loss_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= multiout_realizer.cpp
+[arm64-v8a] Compile++      : nntrainer <= databuffer.cpp
+[arm64-v8a] Compile++      : nntrainer <= random_data_producers.cpp
+[arm64-v8a] Compile++      : nntrainer <= cross_entropy_softmax_loss_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= constant_derivative_loss_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= cross_entropy_sigmoid_loss_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= manager.cpp
+[arm64-v8a] Compile++      : nntrainer <= recurrent_realizer.cpp
+[arm64-v8a] Compile++      : nntrainer <= weight_layer.cpp
+[arm64-v8a] Compile++      : nntrainer <= app_context.cpp
+[arm64-v8a] Compile++      : nntrainer <= activation_layer.cpp
+ninja: build stopped: subcommand failed.

@@ -86,6 +86,30 @@ else
   error('ml api common dep is needed for the android build')
 endif
 
+# Set protobuf root for Android build when ONNX interpreter is enabled
+if get_option('enable-onnx-interpreter')
+  protobuf_root = meson.current_build_dir() / 'protobuf-25.2'
+  and_conf.set('MESON_PROTOBUF_ROOT', protobuf_root)
+  
+  # For Android builds, prepare protobuf libraries
+  if get_option('platform') == 'android'
+    protobuf_version = '25.2'
+    message('preparing protobuf ' + protobuf_version + ' for Android')
+    # Get Android NDK path from option (user must specify it explicitly if needed)
+    android_ndk_path = get_option('android-ndk-path')
+    if android_ndk_path == ''
+      # Try common locations
+      if fs.exists('/opt/android-ndk')
+        android_ndk_path = '/opt/android-ndk'
+      elif fs.exists('/usr/local/android-ndk')
+        android_ndk_path = '/usr/local/android-ndk'
+      endif
+    endif
+    message('Using Android NDK path: ' + android_ndk_path)
+    run_command(join_paths(meson.source_root(), 'jni', 'prepare_protobuf.sh'), protobuf_version, meson.build_root(), android_ndk_path, check: true)
+  endif
+endif
+
 configure_file(input: 'Android.mk.in', output: 'Android.mk',
   configuration: and_conf
 )
@@ -138,4 +162,3 @@ ndk_result = custom_target('ndk-build',
                            install: true,
                            install_dir: nntrainer_libdir,
                            command: [ndk_build_command])
-

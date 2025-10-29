@@ -18,9 +18,7 @@
 #include <neon_impl.h>
 #include <neon_setting.h>
 #include <nntrainer_error.h>
-#ifdef ARMV7
-#include <armv7_neon.h>
-#endif
+#include <arm_neon.h>
 #include <fallback_internal.h>
 #include <util_func.h>
 
@@ -36,6 +34,7 @@ static inline void __ele_qmul_kernel(int8_t *lhs, int8_t *rhs, int8_t *res,
                                      const float lhs_scale,
                                      const float rhs_scale,
                                      const float res_scale) {
+#ifdef __aarch64__
   float32x4_t multiplier = vdupq_n_f32(lhs_scale * rhs_scale / res_scale);
   int8x16_t int8_max = vdupq_n_s8(127);
   int8x16_t int8_min = vdupq_n_s8(-128);
@@ -82,6 +81,17 @@ static inline void __ele_qmul_kernel(int8_t *lhs, int8_t *rhs, int8_t *res,
     vst1q_s8(res, output);
     res += 16;
   }
+#else
+  // Fallback for ARMv7
+  unsigned int N16 = (data_len >> 4) << 4;
+  for (unsigned int n = 0; n < N16; n += 16) {
+    for (unsigned int i = 0; i < 16; ++i) {
+      res[n + i] = std::max(
+        -128, std::min(127, (int)std::lround(lhs[n + i] * rhs[n + i] * lhs_scale *
+                                             rhs_scale / res_scale)));
+    }
+  }
+#endif
   for (unsigned int n = N16; n < data_len; ++n) {
     res[n] = std::max(
       -128, std::min(127, (int)std::lround(lhs[n] * rhs[n] * lhs_scale *
@@ -111,6 +121,7 @@ void ele_qmul(int8_t *lhs, int8_t *rhs, int8_t *res, unsigned int data_len,
 
 bool is_valid(const unsigned int N, const float *X) {
   size_t i = 0;
+#ifdef __aarch64__
   float inf_s = std::numeric_limits<float>::infinity();
   float32x4_t inf = vdupq_n_f32(inf_s);
   uint32x4_t zero = vdupq_n_u32(0);
@@ -129,6 +140,20 @@ bool is_valid(const unsigned int N, const float *X) {
     if (vaddvq_u32(vcmp))
       return false;
   }
+#else
+  // Fallback for ARMv7
+  float inf_s = std::numeric_limits<float>::infinity();
+  for (; N - i >= 4; i += 4) {
+    if (!isFloatValid(X[i]) || !isFloatValid(X[i+1]) || 
+        !isFloatValid(X[i+2]) || !isFloatValid(X[i+3])) {
+      return false;
+    }
+    if (X[i] == inf_s || X[i+1] == inf_s || 
+        X[i+2] == inf_s || X[i+3] == inf_s) {
+      return false;
+    }
+  }
+#endif
 
   while (i < N) {
     if (!isFloatValid(X[i])) {
@@ -144,6 +169,7 @@ void sgemv(const float *A, const float *X, float *Y, uint32_t rows,
            uint32_t cols, float alpha, float beta) {
   const float *__restrict x;
 
+#ifdef __aarch64__
   for (unsigned int i = 0; i < rows; ++i) {
     Y[i] = Y[i] * beta;
   }
@@ -255,6 +281,141 @@ void sgemv(const float *A, const float *X, float *Y, uint32_t rows,
       }
     }
   }
+#else
+  // Fallback for ARMv7
+  for (unsigned int i = 0; i < rows; ++i) {
+    Y[i] = Y[i] * beta;
+  }
+
+  if (cols % 16 == 0) {
+    for (unsigned i = 0; i < cols; i += 16) {
+      float x0 = X[i];
+      float x1 = X[i + 1];
+      float x2 = X[i + 2];
+      float x3 = X[i + 3];
+      float x4 = X[i + 4];
+      float x5 = X[i + 5];
+      float x6 = X[i + 6];
+      float x7 = X[i + 7];
+      float x8 = X[i + 8];
+      float x9 = X[i + 9];
+      float x10 = X[i + 10];
+      float x11 = X[i + 11];
+      float x12 = X[i + 12];
+      float x13 = X[i + 13];
+      float x14 = X[i + 14];
+      float x15 = X[i + 15];
+
+      if (std::fpclassify(alpha - 1.F) != FP_ZERO) {
+        x0 *= alpha;
+        x1 *= alpha;
+        x2 *= alpha;
+        x3 *= alpha;
+        x4 *= alpha;
+        x5 *= alpha;
+        x6 *= alpha;
+        x7 *= alpha;
+        x8 *= alpha;
+        x9 *= alpha;
+        x10 *= alpha;
+        x11 *= alpha;
+        x12 *= alpha;
+        x13 *= alpha;
+        x14 *= alpha;
+        x15 *= alpha;
+      }
+
+      for (unsigned int j = 0; j < rows; ++j) {
+        const float *__restrict w = &A[j * cols + i];
+        float y0 = 0;
+
+        y0 += w[0] * x0;
+        y0 += w[1] * x1;
+        y0 += w[2] * x2;
+        y0 += w[3] * x3;
+        y0 += w[4] * x4;
+        y0 += w[5] * x5;
+        y0 += w[6] * x6;
+        y0 += w[7] * x7;
+        y0 += w[8] * x8;
+        y0 += w[9] * x9;
+        y0 += w[10] * x10;
+        y0 += w[11] * x11;
+        y0 += w[12] * x12;
+        y0 += w[13] * x13;
+        y0 += w[14] * x14;
+        y0 += w[15] * x15;
+
+        Y[j] = Y[j] + y0;
+      }
+    }
+
+  } else if (cols % 8 == 0) {
+    for (unsigned i = 0; i < cols; i += 8) {
+      float x0 = X[i];
+      float x1 = X[i + 1];
+      float x2 = X[i + 2];
+      float x3 = X[i + 3];
+      float x4 = X[i + 4];
+      float x5 = X[i + 5];
+      float x6 = X[i + 6];
+      float x7 = X[i + 7];
+
+      if (std::fpclassify(alpha - 1.F) != FP_ZERO) {
+        x0 *= alpha;
+        x1 *= alpha;
+        x2 *= alpha;
+        x3 *= alpha;
+        x4 *= alpha;
+        x5 *= alpha;
+        x6 *= alpha;
+        x7 *= alpha;
+      }
+
+      for (unsigned int j = 0; j < rows; ++j) {
+        const float *__restrict w = &A[j * cols + i];
+        float y0 = 0;
+
+        y0 += w[0] * x0;
+        y0 += w[1] * x1;
+        y0 += w[2] * x2;
+        y0 += w[3] * x3;
+        y0 += w[4] * x4;
+        y0 += w[5] * x5;
+        y0 += w[6] * x6;
+        y0 += w[7] * x7;
+
+        Y[j] = Y[j] + y0;
+      }
+    }
+  } else if (cols % 4 == 0) {
+    for (unsigned i = 0; i < cols; i += 4) {
+      float x0 = X[i];
+      float x1 = X[i + 1];
+      float x2 = X[i + 2];
+      float x3 = X[i + 3];
+
+      if (std::fpclassify(alpha - 1.F) != FP_ZERO) {
+        x0 *= alpha;
+        x1 *= alpha;
+        x2 *= alpha;
+        x3 *= alpha;
+      }
+
+      for (unsigned int j = 0; j < rows; ++j) {
+        const float *__restrict w = &A[j * cols + i];
+        float y0 = 0;
+
+        y0 += w[0] * x0;
+        y0 += w[1] * x1;
+        y0 += w[2] * x2;
+        y0 += w[3] * x3;
+
+        Y[j] = Y[j] + y0;
+      }
+    }
+  }
+#endif
 }
 
 void sgemv_transpose(const float *A, const float *X, float *Y, uint32_t rows,
@@ -516,6 +677,7 @@ void copy_int8_or_int4(const unsigned int N, const uint8_t *X, uint8_t *Y) {
 template <>
 void sine(const unsigned int N, float *X, float *Y, float alpha, float beta) {
   unsigned int i = 0;
+#ifdef __aarch64__
   for (; N - i >= 4; i += 4) {
     float32x4_t x0_3 = vld1q_f32(&X[i]);
     if (std::fpclassify(alpha - 1.F) != FP_ZERO)
@@ -525,6 +687,7 @@ void sine(const unsigned int N, float *X, float *Y, float alpha, float beta) {
       sinx0_3 = vmulq_n_f32(sinx0_3, beta);
     vst1q_f32(&Y[i], sinx0_3);
   }
+#endif
   while (i < N) {
     Y[i] = std::sin(alpha * X[i]) * beta;
     ++i;
@@ -534,6 +697,7 @@ void sine(const unsigned int N, float *X, float *Y, float alpha, float beta) {
 template <>
 void cosine(const unsigned int N, float *X, float *Y, float alpha, float beta) {
   unsigned int i = 0;
+#ifdef __aarch64__
   for (; N - i >= 4; i += 4) {
     float32x4_t x0_3 = vld1q_f32(&X[i]);
     if (std::fpclassify(alpha - 1.F) != FP_ZERO)
@@ -543,6 +707,7 @@ void cosine(const unsigned int N, float *X, float *Y, float alpha, float beta) {
       cosx0_3 = vmulq_n_f32(cosx0_3, beta);
     vst1q_f32(&Y[i], cosx0_3);
   }
+#endif
   while (i < N) {
     Y[i] = std::cos(alpha * X[i]) * beta;
     ++i;
@@ -551,6 +716,7 @@ void cosine(const unsigned int N, float *X, float *Y, float alpha, float beta) {
 
 void inv_sqrt_inplace(const unsigned int N, float *X) {
   unsigned int i = 0;
+#ifdef __aarch64__
   for (; N - i >= 4; i += 4) {
     float32x4_t x0_7 = vld1q_f32(&X[i]);
     float32x4_t x0_7_sqrt = vsqrtq_f32(x0_7);
@@ -558,6 +724,7 @@ void inv_sqrt_inplace(const unsigned int N, float *X) {
     float32x4_t x0_7_sqrt_div = vdivq_f32(ones, x0_7_sqrt);
     vst1q_f32(&X[i], x0_7_sqrt_div);
   }
+#endif
   while (i < N) {
     X[i] = (1 / std::sqrt(static_cast<float>(X[i])));
     ++i;
@@ -567,6 +734,7 @@ void inv_sqrt_inplace(const unsigned int N, float *X) {
 void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z,
              float alpha, float beta) {
   unsigned int i = 0;
+#ifdef __aarch64__
   float32x4_t alpha_vec = vdupq_n_f32(alpha);
   float32x4_t beta_vec = vdupq_n_f32(beta);
   for (; N - i >= 4; i += 4) {
@@ -582,6 +750,7 @@ void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z,
     } else
       vst1q_f32(&Z[i], xy0_3);
   }
+#endif
   while (i < N) {
     if (std::abs(beta) > __FLT_MIN__)
       Z[i] = alpha * X[i] * Y[i] + beta * Z[i];
@@ -594,6 +763,7 @@ void ele_mul(const unsigned int N, const float *X, const float *Y, float *Z,
 void ele_add(const unsigned int N, const float *X, const float *Y, float *Z,
              float alpha, float beta) {
   unsigned int i = 0;
+#ifdef __aarch64__
   float32x4_t alpha_vec = vdupq_n_f32(alpha);
   float32x4_t beta_vec = vdupq_n_f32(beta);
   for (; N - i >= 4; i += 4) {
@@ -609,6 +779,8 @@ void ele_add(const unsigned int N, const float *X, const float *Y, float *Z,
     } else
       vst1q_f32(&Z[i], xy0_3);
   }
+#else
+  // Fallback for ARMv7
   while (i < N) {
     if (std::abs(beta) > __FLT_MIN__)
       Z[i] = X[i] + alpha * Y[i] + beta * Z[i];
@@ -616,11 +788,13 @@ void ele_add(const unsigned int N, const float *X, const float *Y, float *Z,
       Z[i] = X[i] + alpha * Y[i];
     ++i;
   }
+#endif
 }
 
 void ele_sub(const unsigned N, const float *X, const float *Y, float *Z,
              float alpha, float beta) {
   unsigned int i = 0;
+#ifdef __aarch64__
   float32x4_t alpha_vec = vdupq_n_f32(alpha);
   float32x4_t beta_vec = vdupq_n_f32(beta);
   for (; N - i >= 4; i += 4) {
@@ -636,6 +810,8 @@ void ele_sub(const unsigned N, const float *X, const float *Y, float *Z,
     } else
       vst1q_f32(&Z[i], xy0_3);
   }
+#else
+  // Fallback for ARMv7
   while (i < N) {
     if (std::abs(beta) > __FLT_MIN__)
       Z[i] = X[i] - alpha * Y[i] + beta * Z[i];
@@ -643,11 +819,13 @@ void ele_sub(const unsigned N, const float *X, const float *Y, float *Z,
       Z[i] = X[i] - alpha * Y[i];
     ++i;
   }
+#endif
 }
 
 void ele_div(const unsigned N, const float *X, const float *Y, float *Z,
              float alpha, float beta) {
   unsigned int i = 0;
+#ifdef __aarch64__
   float32x4_t alpha_vec = vdupq_n_f32(alpha);
   float32x4_t beta_vec = vdupq_n_f32(beta);
   for (; N - i >= 4; i += 4) {
@@ -663,6 +841,8 @@ void ele_div(const unsigned N, const float *X, const float *Y, float *Z,
     } else
       vst1q_f32(&Z[i], xy0_3);
   }
+#else
+  // Fallback for ARMv7
   while (i < N) {
     if (std::abs(beta) > __FLT_MIN__)
       Z[i] = X[i] / (alpha * Y[i]) + beta * Z[i];
@@ -670,6 +850,7 @@ void ele_div(const unsigned N, const float *X, const float *Y, float *Z,
       Z[i] = X[i] / (alpha * Y[i]);
     ++i;
   }
+#endif
 }
 
 static inline void __scopy_kernel(const float *X, float *Y) {

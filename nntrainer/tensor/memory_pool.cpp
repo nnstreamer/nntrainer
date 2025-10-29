@@ -25,6 +25,10 @@
 #include <profiler.h>
 #include <vector>
 
+#if defined(__ANDROID__)
+#include <malloc.h>
+#endif
+
 #if defined(_WIN32)
 #define GET_SYSTEM_ALIGMENT()                                                  \
   ([]() -> size_t {                                                            \
@@ -41,6 +45,10 @@
 #define ALIGNED_ALLOC(size)                                                    \
   rpcmem_alloc(RPCMEM_HEAP_ID_SYSTEM, RPCMEM_DEFAULT_FLAGS, size)
 #define ALIGNED_FREE(ptr) rpcmem_free(ptr)
+#elif defined(__ANDROID__)
+#define GET_SYSTEM_ALIGMENT() (4096) // Default page size for Android
+#define ALIGNED_ALLOC(size) memalign(GET_SYSTEM_ALIGMENT(), size)
+#define ALIGNED_FREE(ptr) free(ptr)
 #else
 #define GET_SYSTEM_ALIGMENT()                                                  \
   ([]() -> size_t { return sysconf(_SC_PAGE_SIZE); })()

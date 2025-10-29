@@ -4,6 +4,9 @@
 # ignore build directory
 /build
 /builddir
+/third_party
+/protobuf-25.2
+/subprojects
 .cache/
 .idea/
 
@@ -71,3 +74,8 @@ test/jni/googletest/
 ctre-unicode.hpp
 encoder.hpp
 json.hpp
+
+*.bin
+onnx__*
+*.onnx
+*.weight

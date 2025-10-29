@@ -7,6 +7,8 @@
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Sachin Singh <sachin.3@samsung.com>
  * @bug    No known bugs except for NYI items
+ *
+ * Updated on 16 Oct 2025 to add debug output for Android execution
  */
 
 #include <fstream>
@@ -37,8 +39,8 @@ int main() {
                "Done--------------------------------------"
             << std::endl;
   try {
-    std::string path =
-      "../../../../Applications/ONNX/python/qwen3/qwen3_model.onnx";
+    // std::string path = "/storage_data/snap/sumon/sumon-98/nntrainer/Applications/ONNX/jni/qwen3_model_one_layer_no_cast.onnx";
+    std::string path = "./qwen3_model_one_layer_no_cast.onnx";
     model->load(path, ml::train::ModelFormat::MODEL_FORMAT_ONNX);
   } catch (const std::exception &e) {
     std::cerr << "Error during load: " << e.what() << "\n";
@@ -65,27 +67,29 @@ int main() {
     return 1;
   }
 
-  std::cout << "--------------------------------------Initialize Model "
-               "Done--------------------------------------"
-            << std::endl;
+  std::cout << "--------------------------------------Initialize Model Done--------------------------------------" << std::endl;
+  std::cout << "Skipping model summary..." << std::endl;
+
+  std::cout << "Starting model summary..." << std::endl;
   model->summarize(std::cout, ML_TRAIN_SUMMARY_MODEL);
+  std::cout << "Finished model summary." << std::endl;
 
   std::cout << "--------------------------------------Summarize Model "
                "Done--------------------------------------"
             << std::endl;
 
-  std::string weight_path = "../../../../Applications/ONNX/python/qwen3/bins/";
+  std::cout << "Loading weights..." << std::endl;
+  std::string weight_path = "./qwen_weights_one_layer_no_cast/";
+  std::cout << "Loading weights from: " << weight_path << std::endl;
+  std::cout << "Loading weights from: " << weight_path << std::endl;
   try {
-    model->load(weight_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
-  } catch (std::exception &e) {
-    std::cerr << "Error during loading weights: " << e.what() << "\n";
-    return 1;
-  }
-
-  std::cout << "--------------------------------------Loading weights "
-               "Done--------------------------------------"
-            << std::endl;
-
+        model->load(weight_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+        std::cout << "Weights loaded successfully" << std::endl;
+      } catch (std::exception &e) {
+        std::cerr << "Error during loading weights: " << e.what() << "\n";
+        return 1;
+      }
+  std::cout<<"starting inferencing!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
   float *input = new float[1];
   float *sin = new float[128];
   float *cos = new float[128];

@@ -185,6 +185,8 @@ unsigned int TensorDim::getDataTypeSize() const {
 void TensorDim::resetLen() {
   feature_len = dim[1] * dim[2] * dim[3];
   len = dim[0] * feature_len;
+  //std::cout << "Len: " << len << std::endl;
+  //std::cout << "Dims: " << dim[0] << " " << dim[1] << " " << dim[2] << " " << dim[3] << std::endl;
 }
 
 const size_t TensorDim::getTensorDim(unsigned int idx) const {

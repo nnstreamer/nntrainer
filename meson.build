@@ -63,7 +63,6 @@ if get_option('enable-transformer')
 endif
 
 warning_flags = [
-  '-Wredundant-decls',
   '-Wwrite-strings',
   '-Wformat',
   '-Wformat-nonliteral',
@@ -574,12 +573,20 @@ else
   endif
 endif
 
+#protobuf_include = include_directories('third_party/protobuf/include')
+# protobuf_lib = cc.find_library('protobuf', dirs: ['/storage_data/snap/sumon/sumon-98/nntrainer/third_party/protobuf/build'])
+
+#protobuf_dep = declare_dependency(
+#  include_directories: protobuf_include,
+#)
+
 # Configure the Ruy project (CMake)
 ruy_dep = dummy_dep
 if get_option('enable-ruy')
 if get_option('platform') == 'android'
   ruy_root = subprojects_dir_absolute / 'ruy'
-  ruy_dep = declare_dependency()
+  ruy_include = include_directories(subprojects_dir_relative / 'ruy')
+  ruy_dep = declare_dependency(include_directories: ruy_include)
 elif get_option('platform') == 'windows'
   ruy_dir_relative = subprojects_dir_relative / 'ruy'
   ruy_include = include_directories(ruy_dir_relative)

@@ -1,0 +1,238 @@
+The Meson build system
+Version: 1.3.2
+Source dir: /storage_data/snap/sumon/sumon-98/nntrainer
+Build dir: /storage_data/snap/sumon/sumon-98/nntrainer/builddir
+Build type: native build
+Project name: nntrainer
+Project version: 0.6.0
+C compiler for the host machine: cc (gcc 13.2.0 "cc (Ubuntu 13.2.0-23ubuntu4) 13.2.0")
+C linker for the host machine: cc ld.bfd 2.42
+C++ compiler for the host machine: c++ (gcc 13.2.0 "c++ (Ubuntu 13.2.0-23ubuntu4) 13.2.0")
+C++ linker for the host machine: c++ ld.bfd 2.42
+Host machine cpu family: x86_64
+Host machine cpu: x86_64
+Program powershell found: NO
+Program nproc found: YES (/usr/bin/nproc)
+Program cmd.exe found: NO
+Message: Build for ARM architecture
+Message: MMAP enabled
+Message: OpenCL kernel path set to: nntrainer_opencl_kernels
+Compiler for C supports arguments -Wredundant-decls: YES 
+Compiler for C++ supports arguments -Wredundant-decls: YES 
+Compiler for C supports arguments -Wwrite-strings: YES 
+Compiler for C++ supports arguments -Wwrite-strings: YES 
+Compiler for C supports arguments -Wformat: YES 
+Compiler for C++ supports arguments -Wformat: YES 
+Compiler for C supports arguments -Wformat-nonliteral: YES 
+Compiler for C++ supports arguments -Wformat-nonliteral: YES 
+Compiler for C supports arguments -Wformat-security: YES 
+Compiler for C++ supports arguments -Wformat-security: YES 
+Compiler for C supports arguments -Winit-self: YES 
+Compiler for C++ supports arguments -Winit-self: YES 
+Compiler for C supports arguments -Waddress: YES 
+Compiler for C++ supports arguments -Waddress: YES 
+Compiler for C supports arguments -Wvla: YES 
+Compiler for C++ supports arguments -Wvla: YES 
+Compiler for C supports arguments -Wpointer-arith: YES 
+Compiler for C++ supports arguments -Wpointer-arith: YES 
+Compiler for C supports arguments -Wno-error=varargs: YES 
+Compiler for C++ supports arguments -Wno-error=varargs: YES 
+Compiler for C supports arguments -Wno-error=ignored-attributes: YES 
+Compiler for C++ supports arguments -Wno-error=ignored-attributes: YES 
+Compiler for C supports arguments -Wno-error=sign-compare: YES 
+Compiler for C++ supports arguments -Wno-error=sign-compare: YES 
+Compiler for C supports arguments -Wdefaulted-function-deleted: NO 
+Compiler for C++ supports arguments -Wdefaulted-function-deleted: NO 
+Compiler for C supports arguments -ftree-vectorize: YES 
+Compiler for C++ supports arguments -ftree-vectorize: YES 
+Compiler for C supports arguments -Wno-unused-variable: YES 
+Compiler for C++ supports arguments -Wno-unused-variable: YES 
+Compiler for C supports arguments -Wno-comment: YES 
+Compiler for C++ supports arguments -Wno-comment: YES 
+Compiler for C supports arguments -Wno-ignored-attributes: YES 
+Compiler for C++ supports arguments -Wno-ignored-attributes: YES 
+Compiler for C supports arguments -Wno-sign-compare: YES 
+Compiler for C++ supports arguments -Wno-sign-compare: YES 
+Compiler for C supports arguments -Wno-maybe-uninitialized: YES 
+Compiler for C++ supports arguments -Wno-maybe-uninitialized: YES 
+Compiler for C supports arguments -Wmissing-declarations: YES 
+Compiler for C supports arguments -Wmissing-include-dirs: YES 
+Compiler for C supports arguments -Wmissing-prototypes: YES 
+Compiler for C supports arguments -Wnested-externs: YES 
+Compiler for C supports arguments -Waggregate-return: YES 
+Compiler for C supports arguments -Wold-style-definition: YES 
+Compiler for C supports arguments -Wdeclaration-after-statement: YES 
+Compiler for C supports arguments -Wno-error=varargs: YES (cached)
+Found pkg-config: YES (/usr/bin/pkg-config) 1.8.1
+Run-time dependency capi-ml-common found: YES 1.8.8
+Run-time dependency capi-ml-inference found: YES 1.8.8
+Message: preparing blas
+Message: set openblas num threads=1
+Message: set nntrainer num threads=1
+Run-time dependency OpenMP found: YES 4.5
+Message: set nntrainer omp threads=1
+Run-time dependency GMock found: YES (building self)
+Run-time dependency GTest found: YES 1.14.0
+Run-time dependency GTest found: YES 1.14.0
+Library m found: YES
+Library dl found: YES
+Run-time dependency threads found: YES
+Message: preparing ml api
+Program flatc found: YES (/usr/bin/flatc)
+Configuring nntrainer.pc using configuration
+Configuring nntrainer.ini using configuration
+meson.build:687: WARNING: The variable(s) 'FLASH_STORAGE_UTILIZATION_LOOKAHEAD' in the input file 'nntrainer.ini.in' are not present in the given configuration data.
+Message: NNTRAINER_CONF_PATH=/storage_data/snap/sumon/sumon-98/nntrainer/builddir/android_build_result/conf/nntrainer.ini
+Message: extra defines are:-DMIN_CPP_VERSION=201703L -DMMAP_READ=1 -DENABLE_FP16=1 -DUSE__FP16=1 -DUSE_MMAP=1 -DOPENCL_KERNEL_PATH=nntrainer_opencl_kernels -DML_API_COMMON=1 -DNNSTREAMER_AVAILABLE=1 -DUSE_BLAS=1 -DBLAS_NUM_THREADS=1 -DHGEMM_EXPERIMENTAL_KERNEL=false -DNNTR_NUM_THREADS=1 -DOMP_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 -DENABLE_ONNX_INTERPRETER=1
+Message: building for android ----------------------------------------
+
+Executing subproject abseil-cpp 
+
+abseil-cpp| Project name: abseil-cpp
+abseil-cpp| Project version: 20250814.1
+abseil-cpp| C++ compiler for the host machine: c++ (gcc 13.2.0 "c++ (Ubuntu 13.2.0-23ubuntu4) 13.2.0")
+abseil-cpp| C++ linker for the host machine: c++ ld.bfd 2.42
+abseil-cpp| Compiler for C++ supports arguments /DNOMINMAX: NO
+abseil-cpp| Compiler for C++ supports arguments -Wcast-qual: YES
+abseil-cpp| Compiler for C++ supports arguments -Wconversion-null: YES
+abseil-cpp| Compiler for C++ supports arguments -Wmissing-declarations: YES
+abseil-cpp| Compiler for C++ supports arguments -Wno-comma: NO
+abseil-cpp| Compiler for C++ supports arguments -Wno-conversion: YES
+abseil-cpp| Compiler for C++ supports arguments -Wno-double-promotion: YES
+abseil-cpp| Compiler for C++ supports arguments -Wno-float-promotion: NO
+abseil-cpp| Compiler for C++ supports arguments -Wno-format-literal: NO
+abseil-cpp| Compiler for C++ supports arguments -Wno-gcc-compat: NO
+abseil-cpp| Compiler for C++ supports arguments -Wno-old-style-cast: YES
+abseil-cpp| Compiler for C++ supports arguments -Wno-packed: YES
+abseil-cpp| Compiler for C++ supports arguments -Wno-padded: YES
+abseil-cpp| Compiler for C++ supports arguments -Wno-pedantic: YES
+abseil-cpp| Compiler for C++ supports arguments -Wno-range-loop-analysis: NO
+abseil-cpp| Compiler for C++ supports arguments -Wno-sign-compare: YES (cached)
+abseil-cpp| Compiler for C++ supports arguments -Woverlength-strings: YES
+abseil-cpp| Compiler for C++ supports arguments -Wpointer-arith: YES (cached)
+abseil-cpp| Compiler for C++ supports arguments -Wswitch-enums: NO
+abseil-cpp| Compiler for C++ supports arguments -Wunused-local-typedefs: YES
+abseil-cpp| Compiler for C++ supports arguments -Wunused-result: YES
+abseil-cpp| Compiler for C++ supports arguments -Wvarargs: YES
+abseil-cpp| Compiler for C++ supports arguments -Wvla: YES (cached)
+abseil-cpp| Compiler for C++ supports arguments -Wwrite-strings: YES (cached)
+abseil-cpp| Compiler for C++ supports arguments -maes: YES
+abseil-cpp| Compiler for C++ supports arguments -msse4.1: YES
+abseil-cpp| Checking if "atomic builtins" : links: YES
+abseil-cpp| Dependency threads found: YES unknown (cached)
+abseil-cpp| Run-time dependency appleframeworks found: NO (tried framework)
+abseil-cpp| Build targets in project: 14
+abseil-cpp| Subproject abseil-cpp finished.
+
+WARNING: Variable 'absl_dep' in the subproject 'subprojects/abseil-cpp-20250814.1' is not found
+Dependency absl_strings from subproject subprojects/abseil-cpp-20250814.1 found: NO
+
+Executing subproject protobuf 
+
+protobuf| Project name: protobuf
+protobuf| Project version: 25.2
+protobuf| C compiler for the host machine: cc (gcc 13.2.0 "cc (Ubuntu 13.2.0-23ubuntu4) 13.2.0")
+protobuf| C linker for the host machine: cc ld.bfd 2.42
+protobuf| C++ compiler for the host machine: c++ (gcc 13.2.0 "c++ (Ubuntu 13.2.0-23ubuntu4) 13.2.0")
+protobuf| C++ linker for the host machine: c++ ld.bfd 2.42
+protobuf| Dependency absl_string_view from subproject subprojects/abseil-cpp-20250814.1 found: YES 20250814.1
+protobuf| Dependency absl_base from subproject subprojects/abseil-cpp-20250814.1 found: YES 20250814.1
+protobuf| Dependency absl_cord from subproject subprojects/abseil-cpp-20250814.1 found: YES 20250814.1
+protobuf| Dependency absl_die_if_null from subproject subprojects/abseil-cpp-20250814.1 found: YES 20250814.1
+protobuf| Dependency absl_hash from subproject subprojects/abseil-cpp-20250814.1 found: YES 20250814.1
+protobuf| Dependency absl_log from subproject subprojects/abseil-cpp-20250814.1 found: YES 20250814.1
+protobuf| Dependency absl_log_internal_check_op from subproject subprojects/abseil-cpp-20250814.1 found: YES 20250814.1
+protobuf| Dependency absl_log_internal_message from subproject subprojects/abseil-cpp-20250814.1 found: YES 20250814.1
+protobuf| Dependency absl_numeric from subproject subprojects/abseil-cpp-20250814.1 found: YES 20250814.1
+protobuf| Dependency absl_raw_hash_set from subproject subprojects/abseil-cpp-20250814.1 found: YES 20250814.1
+protobuf| Dependency absl_status from subproject subprojects/abseil-cpp-20250814.1 found: YES 20250814.1
+protobuf| Dependency absl_statusor from subproject subprojects/abseil-cpp-20250814.1 found: YES 20250814.1
+protobuf| Dependency absl_str_format from subproject subprojects/abseil-cpp-20250814.1 found: YES 20250814.1
+protobuf| Dependency absl_strings from subproject subprojects/abseil-cpp-20250814.1 found: YES 20250814.1
+protobuf| Dependency absl_synchronization from subproject subprojects/abseil-cpp-20250814.1 found: YES 20250814.1
+protobuf| Dependency threads found: YES unknown (cached)
+protobuf| Library dbghelp found: NO
+protobuf| Program python3 found: YES (/usr/bin/python3)
+protobuf| Dependency absl_log_initialize from subproject subprojects/abseil-cpp-20250814.1 found: YES 20250814.1
+protobuf| Dependency threads found: YES unknown (cached)
+protobuf| Build targets in project: 20
+protobuf| Subproject protobuf finished.
+
+nntrainer/schema/meson.build:13: WARNING: include_directories sandbox violation!
+The project is trying to access the directory '../../subprojects/protobuf-25.2/src' which belongs to a different
+subproject. This is a problem as it hardcodes the relative paths of these two projects.
+This makes it impossible to compile the project in any other directory layout and also
+prevents the subproject from changing its own directory layout.
+
+Instead of poking directly at the internals the subproject should be executed and
+it should set a variable that the caller can then use. Something like:
+
+# In subproject
+some_dep = declare_dependency(include_directories: include_directories('include'))
+
+# In subproject wrap file
+[provide]
+some = some_dep
+
+# In parent project
+some_dep = dependency('some')
+executable(..., dependencies: [some_dep])
+
+This warning will become a hard error in a future Meson release.
+
+nntrainer/schema/meson.build:13: WARNING: include_directories sandbox violation!
+The project is trying to access the directory '../../subprojects/protobuf-25.2' which belongs to a different
+subproject. This is a problem as it hardcodes the relative paths of these two projects.
+This makes it impossible to compile the project in any other directory layout and also
+prevents the subproject from changing its own directory layout.
+
+Instead of poking directly at the internals the subproject should be executed and
+it should set a variable that the caller can then use. Something like:
+
+# In subproject
+some_dep = declare_dependency(include_directories: include_directories('include'))
+
+# In subproject wrap file
+[provide]
+some = some_dep
+
+# In parent project
+some_dep = dependency('some')
+executable(..., dependencies: [some_dep])
+
+This warning will become a hard error in a future Meson release.
+
+Program protoc found: YES (overridden)
+Configuring ccapi-ml-training.pc using configuration
+Configuring capi-ml-training.pc using configuration
+meson.build:715: WARNING: test is not supported in android build, test skipped
+meson.build:727: WARNING: android app is not supported for now, building app skipped
+meson.build:743: WARNING: android nnstreamer-filter and nnstreamer-trainer are not yet supported, building them is skipped
+Message: compile flags are:-march=armv8.2-a+fp16+dotprod -O3
+Configuring Android.mk using configuration
+jni/meson.build:87: WARNING: The variable(s) 'MESON_TFLITE_ROOT' in the input file 'jni/Android.mk.in' are not present in the given configuration data.
+Program ndk-build found: YES (/home/code/Android/Ndk/android-ndk-r26d/ndk-build)
+Message: building for android
+Build targets in project: 22
+NOTICE: Future-deprecated features used:
+ * 0.56.0: {'meson.build_root', 'meson.source_root'}
+ * 0.64.0: {'copy arg in configure_file'}
+
+nntrainer 0.6.0
+
+  Subprojects
+    abseil-cpp               : YES
+    protobuf                 : YES
+
+  User defined options
+    enable-fp16              : true
+    enable-onnx-interpreter  : true
+    enable-tflite-backbone   : false
+    enable-tflite-interpreter: false
+    hgemm-experimental-kernel: false
+    omp-num-threads          : 1
+    openblas-num-threads     : 1
+    platform                 : android
+
+Found ninja-1.11.1 at /usr/bin/ninja
+WARNING: Running the setup command as `meson [options]` instead of `meson setup [options]` is ambiguous and deprecated.
