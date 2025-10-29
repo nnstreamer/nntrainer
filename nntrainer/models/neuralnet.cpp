@@ -683,7 +683,7 @@ void NeuralNetwork::load(const std::string &file_path,
 
   bool fsu_mode = std::get<props::Fsu>(model_flex_props);
 
-  const std::regex reg_("\\s*\\:\\s*");
+  const std::regex reg_("\\s*\\;\\s*");
   auto v = split(file_path, reg_);
 
   size_t start_from = 0;

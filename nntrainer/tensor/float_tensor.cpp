@@ -779,7 +779,9 @@ void FloatTensor::dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
     }
 #endif
   } else {
-    throw std::runtime_error("unsupported data type");
+    for (unsigned int i = 0; i < input.size(); ++i) {
+      dot(*input[i], *output[i], trans, trans_in, beta);
+    }
   }
 }
 
