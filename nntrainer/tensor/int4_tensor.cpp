@@ -18,6 +18,7 @@
 namespace nntrainer {
 
 size_t Int4QTensor::group_size = 32;
+size_t Int4QTensor::height_block_size = 32;
 
 Int4QTensor::Int4QTensor(std::string name_, Tformat fm, QScheme qscheme_,
                          size_t g_size) :
@@ -77,8 +78,7 @@ Int4QTensor::Int4QTensor(
   /// @note sizeof(float) * scale_size() assumes scale factors are in
   /// full-precision fp.
   MemoryData *mem_data =
-    new MemoryData((void *)(new int8_t[(dim.getDataLen() + 1) / 2 +
-                                       sizeof(float) * scale_size()]()));
+    new MemoryData((void *)(new int8_t[dim.channel() * getMemoryBytes()]()));
   data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
     delete[] mem_data->getAddr<int8_t>();
     delete mem_data;
@@ -141,8 +141,7 @@ void Int4QTensor::allocate() {
 
     /// quantized 4-bit is stored as a 8-bit signed integer (int4x2)
     mem_data =
-      new MemoryData((void *)(new int8_t[(dim.getDataLen() + 1) / 2 +
-                                         sizeof(float) * scale_size()]{}));
+      new MemoryData((void *)(new int8_t[dim.channel() * getMemoryBytes()]{}));
     data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
       delete[] mem_data->template getAddr<int8_t>();
       delete mem_data;
@@ -207,6 +206,10 @@ const void *Int4QTensor::getAddress(unsigned int i) const {
     return nullptr;
   }
   return &((int8_t *)getData())[i / 2];
+}
+
+size_t Int4QTensor::size() const {
+  return align(height(), height_block_size) * align(width(), group_size);
 }
 
 const int8_t Int4QTensor::getValue(unsigned int i) const {
@@ -564,7 +567,7 @@ size_t Int4QTensor::scale_size() const {
     return 1;
     break;
   case QScheme::PER_CHANNEL_AFFINE:
-    return align(height(), group_size) * align(width(), group_size) /
+    return align(height(), height_block_size) * align(width(), group_size) /
            group_size;
     break;
   default:

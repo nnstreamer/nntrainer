@@ -609,8 +609,8 @@ TEST(nntrainer_blas_kernel, tensor_dot_qint4) {
 
   std::vector<uint8_t> quantized_weights;
   std::vector<uint16_t> quantized_scales;
-  Int4Utils::quantizeAndRepack(weight_fp32.data(), N, K, 32, quantized_weights,
-                               quantized_scales);
+  Int4Utils::quantizeAndRepack(weight_fp32_T.data(), N, K, 32,
+                               quantized_weights, quantized_scales);
 
   int8_t *qdata = D_fp32.getData<int8_t>();
   uint16_t *scales = D_fp32.getScale<uint16_t>();
@@ -629,6 +629,119 @@ TEST(nntrainer_blas_kernel, tensor_dot_qint4) {
   // Compare output
   debug_print_beg_end(E_fp32.getData(), E_fp32.size());
   debug_print_beg_end(F_fp32.getData(), F_fp32.size());
+}
+
+TEST(nntrainer_blas_kernel, tensor_dot_qint4_ones) {
+  const int batch = 1;
+  const int channel = 1;
+  const int M = 68;
+  const int K = 56;
+  const int N = 136;
+  const int scale_group_size = 32;
+  const int n_block_size = 32;
+
+  const int alignK = align(K, scale_group_size);
+  const int alignN = align(N, n_block_size);
+
+  const float alpha = 1e-1;
+  const int MOD = 10;
+
+  nntrainer::TensorDim::TensorType t_type_nchw_qint4 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::QINT4};
+
+  nntrainer::TensorDim::TensorType t_type_nchw_fp32 = {
+    nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32};
+
+  nntrainer::TensorPool pool;
+  auto t_input_fp32A = pool.request(
+    "input_fp32A", nntrainer::TensorDim(batch, channel, M, K, t_type_nchw_fp32),
+    {0}, nntrainer::TensorLifespan::MAX_LIFESPAN);
+
+  auto t_weight_fp32 = pool.request(
+    "weight_fp32", nntrainer::TensorDim(batch, channel, K, N, t_type_nchw_fp32),
+    {0}, nntrainer::TensorLifespan::MAX_LIFESPAN);
+
+  auto t_input_fp32B = pool.request(
+    "input_fp32B", nntrainer::TensorDim(batch, channel, M, K, t_type_nchw_fp32),
+    {0}, nntrainer::TensorLifespan::MAX_LIFESPAN);
+
+  auto t_weight_int4 =
+    pool.request("weight_int4",
+                 nntrainer::TensorDim(batch, channel, K, N, t_type_nchw_qint4),
+                 {0}, nntrainer::TensorLifespan::MAX_LIFESPAN);
+
+  auto t_output_fp32 = pool.request(
+    "output_fp32", nntrainer::TensorDim(batch, channel, M, N, t_type_nchw_fp32),
+    {0}, nntrainer::TensorLifespan::MAX_LIFESPAN);
+  auto t_output_int4 = pool.request(
+    "output_int4", nntrainer::TensorDim(batch, channel, M, N, t_type_nchw_fp32),
+    {0}, nntrainer::TensorLifespan::MAX_LIFESPAN);
+
+  pool.finalize(nntrainer::BasicPlanner(), 0, 4);
+  pool.allocate();
+
+  std::vector<float> weight_fp32;
+  std::vector<float> input_fp32;
+  bool use_ones = true;
+  if (use_ones) {
+    float ones_ratio = 0.1;
+    weight_fp32 = generate_01_vector(N * K, ones_ratio);
+    input_fp32 = generate_01_vector(M * K, ones_ratio);
+  } else {
+    weight_fp32 = generate_random_vector<float, false>(N * K);
+    input_fp32 = generate_random_vector<float, false>(M * K);
+  }
+
+  for (unsigned int i = 0; i < K * M; ++i) {
+    t_input_fp32A->getData()[i] = input_fp32[i];
+    t_input_fp32B->getData()[i] = input_fp32[i];
+  }
+
+  for (unsigned int i = 0; i < K * N; ++i) {
+    t_weight_fp32->getData()[i] = weight_fp32[i];
+  }
+
+  nntrainer::Tensor tmp(1, 1, N, K, t_type_nchw_fp32);
+
+  /// Initialize D (QINT4)
+  /// @note Must Transpose B before quantization
+  t_weight_fp32->transpose("0:2:1", tmp);
+
+  std::vector<float> weight_fp32_T(N * K);
+  for (unsigned int i = 0; i < K * N; ++i) {
+    weight_fp32_T[i] = tmp.getData()[i];
+  }
+
+  std::vector<uint8_t> quantized_weights;
+  std::vector<uint16_t> quantized_scales;
+  Int4Utils::quantizeAndRepack(weight_fp32_T.data(), N, K, 32,
+                               quantized_weights, quantized_scales);
+
+  int8_t *qdata = t_weight_int4->getData<int8_t>();
+  uint16_t *scales = t_weight_int4->getScale<uint16_t>();
+
+  for (unsigned int i = 0; i < t_weight_int4->size() / 2; ++i) {
+    qdata[i] = quantized_weights[i];
+  }
+  for (unsigned int i = 0; i < t_weight_int4->scale_size(); ++i) {
+    scales[i] = quantized_scales[i];
+  }
+
+  /// Perform dot mul
+  t_input_fp32A->dot(*t_weight_fp32, *t_output_fp32); // reference
+  t_input_fp32B->dot(*t_weight_int4, *t_output_int4); // Int4
+
+  // Compare output
+  debug_print_beg_end(t_output_fp32->getData(), t_output_fp32->size());
+  debug_print_beg_end(t_output_int4->getData(), t_output_int4->size());
+
+  float mse_int4_err =
+    mse<float>(t_output_fp32->getData(), t_output_int4->getData(), M * N);
+  std::cout << "MSE int4: " << mse_int4_err << std::endl;
+
+  if (use_ones) {
+    EXPECT_IN_RANGE(mse_int4_err, 0.0f, 0.0001f);
+  }
 }
 
 static void run_int4_sgemv_test_(const uint32_t K, const uint32_t N,
