@@ -316,13 +316,30 @@ static void run_dequantization_test_(const uint32_t K, const uint32_t N) {
   Int4Utils::dequantizePacked(quantized_weights, quantized_scales, N, K,
                               scale_group_size, dequantized_weights_int4);
 
+  // Dequantize QINT4 by row
+  std::vector<float> dequantized_weights_int4_row(N * K, 0);
+  for (int row_idx = 0; row_idx < N; ++row_idx) {
+    Int4Utils::dequantizePackedRow(
+      quantized_weights.data(), quantized_scales.data(), N, K, scale_group_size,
+      row_idx, dequantized_weights_int4_row.data() + (K * row_idx));
+  }
+
   float mse_dequantized_int4 =
     mse<float>(weight_fp32.data(), dequantized_weights_int4.data(), N * K);
 
+  float mse_dequantized_int4_row =
+    mse<float>(dequantized_weights_int4_row.data(), weight_fp32.data(), N * K);
+
   std::cout << "MSE dequantized INT4: " << std::setprecision(10)
             << mse_dequantized_int4 << std::endl;
+  std::cout << "MSE dequantized INT4 by row: " << std::setprecision(10)
+            << mse_dequantized_int4_row << std::endl;
 
   EXPECT_IN_RANGE(mse_dequantized_int4, 0, epsilon);
+  EXPECT_IN_RANGE(mse_dequantized_int4_row, 0, epsilon);
+
+  // This must be equal
+  EXPECT_FLOAT_EQ(mse_dequantized_int4, mse_dequantized_int4_row);
 }
 
 #define DECLARE_dequantization_test_K_N(K, N)                                  \

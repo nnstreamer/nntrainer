@@ -564,8 +564,7 @@ size_t Int4QTensor::scale_size() const {
     return 1;
     break;
   case QScheme::PER_CHANNEL_AFFINE:
-    return align(height(), group_size) * align(width(), group_size) /
-           group_size;
+    return height() * width() / group_size;
     break;
   default:
     break;
