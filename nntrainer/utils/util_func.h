@@ -117,6 +117,10 @@ template <typename T = float> T logFloat(T x) {
  */
 template <typename T = float> T exp_util(T x) { return static_cast<T>(exp(x)); }
 
+uint32_t ceilDiv(uint32_t a, uint32_t b);
+
+uint32_t align(uint32_t a, uint32_t b);
+
 #ifdef _WIN32
 #ifdef _Float16
 template <> _Float16 exp_util<_Float16>(_Float16 x) {

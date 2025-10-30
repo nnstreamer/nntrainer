@@ -143,6 +143,11 @@ public:
   const void *getAddress(unsigned int i) const override;
 
   /**
+   * @copydoc TensorBase::size()
+   */
+  size_t size() const override;
+
+  /**
    * @brief     return value at specific location
    * @param[in] i index
    */
@@ -317,6 +322,11 @@ private:
    * @note need to properly define this
    */
   static size_t group_size;
+
+  /**
+   * @brief Height block size
+   */
+  static size_t height_block_size;
 
   /**
    * @brief copy a buffer to @a this, the caller has to ensure that @a this is

@@ -9,6 +9,7 @@ cl_op_kernels = [
   'copy.cl',
   'dot.cl',
   'int4_gemv.cl',
+  'int4_quantize_input.cl',
   'openvino_gemm.cl',
   'q4_0_ab_bi_8x4.cl',
   'q6_k_sgemv.cl',
