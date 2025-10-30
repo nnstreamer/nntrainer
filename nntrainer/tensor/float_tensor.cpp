@@ -969,7 +969,7 @@ Tensor &FloatTensor::dotQInteger(Tensor const &input, Tensor &output,
 
   unsigned int M = getDim().height();
   unsigned int K = getDim().width();
-  unsigned int N = input.getDim().width();
+  unsigned int N = output.getDim().width();
 
   /// @note this should be if (M == 1) else
   if (M == 1) {

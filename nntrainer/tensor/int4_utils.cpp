@@ -243,4 +243,60 @@ void Int4Utils::dequantizePacked(const std::vector<uint8_t> &weights,
   }
 }
 
+void Int4Utils::dequantizePackedRow(uint8_t *weights, uint16_t *scales,
+                                    const size_t rows_count,
+                                    const size_t columns_count,
+                                    const size_t group_size,
+                                    const size_t row_index,
+                                    float *dequantized_row) {
+  // --- Validate ---
+  NNTR_THROW_IF(rows_count == 0 || columns_count == 0, std::invalid_argument)
+    << "rows_count and columns_count must be > 0";
+  NNTR_THROW_IF(row_index >= rows_count, std::out_of_range)
+    << "row_index out of range";
+  NNTR_THROW_IF(!(group_size == 32 || group_size == 64 || group_size == 128),
+                std::invalid_argument)
+    << "group_size must be 32/64/128";
+
+  // --- Layout ---
+  const size_t rows_count_pad = align(rows_count, ROW_BLOCK_SIZE);
+  const size_t columns_count_pad = align(columns_count, group_size);
+  const size_t column_blocks_count =
+    ceilDiv(columns_count_pad, COLUMN_BLOCK_SIZE); // COLUMN_BLOCK_SIZE == 2
+  const size_t padded_groups_per_row = ceilDiv(columns_count, group_size);
+
+  // Address the bytes for this row
+  const size_t row_block_id = row_index / ROW_BLOCK_SIZE;
+  const size_t i_in_block = row_index % ROW_BLOCK_SIZE;
+  const size_t bytes_per_row_block_span = column_blocks_count * ROW_BLOCK_SIZE;
+  const size_t row_block_base =
+    row_block_id * bytes_per_row_block_span + i_in_block;
+
+  for (size_t column_block_id = 0; column_block_id < column_blocks_count;
+       ++column_block_id) {
+    const size_t weights_idx =
+      row_block_base + column_block_id * ROW_BLOCK_SIZE;
+    const uint8_t packed_byte = weights[weights_idx];
+
+    const size_t col_lo = column_block_id * COLUMN_BLOCK_SIZE;
+    const size_t col_hi = col_lo + 1;
+
+    const int q_lo = Int4Utils::convertInt4ToInt(packed_byte & 0xF);
+    const int q_hi = Int4Utils::convertInt4ToInt((packed_byte >> 4) & 0xF);
+
+    if (col_lo < columns_count) {
+      const size_t g_lo = col_lo / group_size;
+      const float s_lo = nntrainer::compute_fp16_to_fp32(
+        scales[row_index + g_lo * rows_count_pad]);
+      dequantized_row[col_lo] = static_cast<float>(q_lo) * s_lo;
+    }
+    if (col_hi < columns_count) {
+      const size_t g_hi = col_hi / group_size;
+      const float s_hi = nntrainer::compute_fp16_to_fp32(
+        scales[row_index + g_hi * rows_count_pad]);
+      dequantized_row[col_hi] = static_cast<float>(q_hi) * s_hi;
+    }
+  }
+}
+
 } // namespace nntrainer

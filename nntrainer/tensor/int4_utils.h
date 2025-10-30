@@ -120,6 +120,24 @@ public:
                                const size_t columns_count,
                                const size_t group_size,
                                std::vector<float> &dequantized_weights);
+
+  /**
+   * @brief Dequantize weights in osv32_isv2 layout by row
+   *
+   * @param weights quantized weights in osv32_isv2 layout
+   * @param scales fp16 scales
+   * @param rows_count number of rows of data
+   * @param columns_count number of columns of data
+   * @param group_size group size (32 or 64 or 128)
+   * @param row_index row index to dequantize
+   * @param dequantized_row dequantized_weights
+   */
+  static void dequantizePackedRow(uint8_t *weights, uint16_t *scales,
+                                  const size_t rows_count,
+                                  const size_t columns_count,
+                                  const size_t group_size,
+                                  const size_t row_index,
+                                  float *dequantized_row);
 };
 
 } // namespace nntrainer
