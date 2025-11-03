@@ -11,6 +11,10 @@ project('nntrainer', 'c', 'cpp',
   ]
 )
 
+if get_option('enable-hwloc')
+  subproject('hwloc')
+endif
+
 cmake_build_type = 'Release'
 if get_option('buildtype') == 'debug'
   cmake_build_type = 'Debug'
