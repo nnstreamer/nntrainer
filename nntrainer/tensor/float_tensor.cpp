@@ -979,9 +979,10 @@ Tensor &FloatTensor::dotQInteger(Tensor const &input, Tensor &output,
     throw std::runtime_error(
       "Error: QINT4 Dot on CPU only supports PER_CHANNEL_AFFINE scheme");
   }
-#endif
+#else
   throw std::runtime_error(
     "Error: FP16 should be enabled for QINT4 Dot on CPU");
+#endif
 #else
   /// @note this should be if (M == 1) else
   if (M == 1) {
