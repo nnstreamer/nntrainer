@@ -39,7 +39,35 @@ void MatMulLayer::finalize(InitLayerContext &context) {
 
 void MatMulLayer::forwarding_operation(const Tensor &input0,
                                        const Tensor &input1, Tensor &output) {
-  input0.dot(input1, output);
+
+  if (input0.channel() == 16 && input0.height() == 256 &&
+      input0.width() == 128) {
+
+    Tensor newInput0 = input0;
+    newInput0.reshape(TensorDim({16, 1, 256, 128}));
+
+    Tensor newInput1 = input1;
+    newInput1 = newInput1.transpose("0:2:1");
+    newInput1.reshape(TensorDim({16, 1, 256, 128}));
+
+    output.reshape(TensorDim({16, 1, 256, 256}));
+    newInput0.dotBatched(newInput1, output, false, true);
+    output.reshape(TensorDim({1, 16, 256, 256}));
+  } else if (input0.channel() == 16 && input0.height() == 256 &&
+             input0.width() == 256) {
+
+    Tensor newInput0 = input0;
+    newInput0.reshape(TensorDim({16, 1, 256, 256}));
+
+    Tensor newInput1 = input1;
+    newInput1.reshape(TensorDim({16, 1, 256, 128}));
+
+    output.reshape(TensorDim({16, 1, 256, 128}));
+    newInput0.dotBatched(newInput1, output);
+    output.reshape(TensorDim({1, 16, 256, 128}));
+
+  } else
+    input0.dot(input1, output);
 }
 
 void MatMulLayer::calcDerivative(RunLayerContext &context) {
