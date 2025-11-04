@@ -500,23 +500,6 @@ void transpose_matrix(const unsigned int M, const unsigned int N,
                       unsigned int ld_dst);
 
 /**
- * @brief qs4cx quantization of (n*k) matrix. Typically a weight quantization,
- * and generally regard the weight is already transposed, and quantize it as it
- * is. qs4cx refers to quantized symmetric 4-bit quantization of channelwise x
- * groups.
- *
- * @param n N length of the matrix
- * @param k K length of the matrix
- * @param rhs_native_mtx_f32 matrix data before quantization to load
- * @param rhs_native_mtx_qs4cx matrix data after quantization to stroe
- * @param rhs_scales_f32 matrix quant scale after quantization to stroe
- * @param transB
- */
-void nntr_quant_qs4cx_f32(size_t n, size_t k, void *rhs_native_mtx_f32,
-                          void *rhs_native_mtx_qs4cx, void *rhs_scales_f32,
-                          bool transB = true);
-
-/**
  * @brief get size of memory to allocate for rhs weight packing of qsi4cxp to
  * qs4cxs1s0
  *
