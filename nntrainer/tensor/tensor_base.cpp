@@ -337,7 +337,7 @@ void TensorBase::calculateFlattenDot(
   }
 
   if (!trans && !trans_in) {
-    if (last_axis != input_first_three_flat)
+    if (last_axis != input.batch() * input.height())
       throw std::runtime_error(
         "Error: incompatible dimensions for dot product");
     K = input_first_three_flat; /** == last_axis */
