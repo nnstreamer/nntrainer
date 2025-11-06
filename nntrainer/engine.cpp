@@ -170,4 +170,43 @@ int Engine::registerContext(const std::string &library_path,
   return 0;
 }
 
+void Engine::setKernelsCachePath(
+  [[maybe_unused]] const std::string &kernels_cache_path) {
+#ifdef ENABLE_OPENCL
+  auto *global_cl_context =
+    static_cast<ClContext *>(getRegisteredContext("gpu"));
+
+  NNTR_THROW_IF(global_cl_context == nullptr, std::runtime_error)
+    << "GPU context not registered";
+
+  global_cl_context->setKernelsCachePath(kernels_cache_path);
+#endif
+}
+
+const std::string Engine::getKernelsCachePath() const {
+#ifdef ENABLE_OPENCL
+  auto *global_cl_context =
+    static_cast<ClContext *>(getRegisteredContext("gpu"));
+
+  NNTR_THROW_IF(global_cl_context == nullptr, std::runtime_error)
+    << "GPU context not registered";
+
+  return global_cl_context->getKernelsCachePath();
+#else
+  return std::string();
+#endif
+}
+
+void Engine::initializeKernels() {
+#ifdef ENABLE_OPENCL
+  auto *global_cl_context =
+    static_cast<ClContext *>(getRegisteredContext("gpu"));
+
+  NNTR_THROW_IF(global_cl_context == nullptr, std::runtime_error)
+    << "GPU context not registered";
+
+  global_cl_context->initializeKernels();
+#endif
+}
+
 } // namespace nntrainer

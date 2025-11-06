@@ -33,45 +33,6 @@ enum RMSParams { gamma };
 
 RMSNormLayerCl::RMSNormLayerCl() : LayerImplCl() { wt_idx.fill(0); }
 
-bool RMSNormLayerCl::registerClKernels(ClContext &cl_context) {
-  auto &layer_kernel_ptrs = getLayerKernelPtrs();
-
-  // check if already registered
-  if (!layer_kernel_ptrs.empty()) {
-    ml_loge("kernels for reshape layer are already registered");
-    return false;
-  }
-
-  do {
-
-    ClContext::SharedPtrClKernel kernel_rmsnorm_ptr =
-      cl_context.registerClKernel(rmsnorm_kernel, "rmsnorm_cl");
-    if (!kernel_rmsnorm_ptr) {
-      ml_loge("OpenCL Error: Fail to register rmsnorm_cl kernel");
-      break;
-    }
-    layer_kernel_ptrs.emplace_back(kernel_rmsnorm_ptr);
-
-#ifdef ENABLE_FP16
-    ClContext::SharedPtrClKernel kernel_rmsnorm_fp16_ptr =
-      cl_context.registerClKernel(rmsnorm_fp16_kernel, "rmsnorm_cl_fp16");
-    if (!kernel_rmsnorm_fp16_ptr) {
-      ml_loge("OpenCL Error: Fail to register rmsnorm_cl_fp16 kernel");
-      break;
-    }
-    layer_kernel_ptrs.emplace_back(kernel_rmsnorm_ptr);
-#endif
-
-    return true;
-
-  } while (false);
-
-  // clear all registered kernels if any error occurs during registration
-  // layer_kernel_ptrs.clear();
-
-  return false;
-}
-
 void RMSNormLayerCl::finalize(InitLayerContext &context) {
   std::vector<TensorDim> dim = context.getInputDimensions();
   context.setOutputDimensions(dim);
@@ -127,7 +88,8 @@ void RMSNormLayerCl::rmsnormProcess_fp16(Tensor const &input, Tensor &result,
   auto &clbuffInstance = ClBufferManager::Global();
 
   do {
-    auto kernel_rmsnorm_ptr = getLayerKernelPtrs()[Kernels::RMSNORM_CL_FP16];
+    auto kernel_rmsnorm_ptr = global_cl_context->registerClKernel(
+      rmsnorm_fp16_kernel, "rmsnorm_cl_fp16");
 
     const _FP16 *data = input.getData<_FP16>();
     _FP16 *rdata = result.getData<_FP16>();
@@ -261,13 +223,6 @@ void RMSNormLayerCl::exportTo(Exporter &exporter,
 void RMSNormLayerCl::setProperty(const std::vector<std::string> &values) {
   auto remain_props = loadProperties(values, rmsnorm_props);
   LayerImpl::setProperty(remain_props);
-}
-
-std::vector<ClContext::SharedPtrClKernel> &
-RMSNormLayerCl::getLayerKernelPtrs() {
-  /**< kernel list relevant with this layer */
-  static std::vector<ClContext::SharedPtrClKernel> layer_kernel_ptrs;
-  return layer_kernel_ptrs;
 }
 
 } // namespace nntrainer

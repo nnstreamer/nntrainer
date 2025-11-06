@@ -39,79 +39,6 @@ static constexpr size_t SINGLE_INOUT_IDX = 0;
 static constexpr size_t INPUT_IDX_1 = 0;
 static constexpr size_t INPUT_IDX_2 = 1;
 
-bool ConcatLayerCl::registerClKernels(ClContext &cl_context) {
-  auto &layer_kernel_ptrs = getLayerKernelPtrs();
-
-  // check if already registered
-  if (!layer_kernel_ptrs.empty()) {
-    ml_loge("kernels for concat layer are already registered");
-    return false;
-  }
-
-  do {
-
-    ClContext::SharedPtrClKernel kernel_concat_ptr = nullptr;
-
-    kernel_concat_ptr =
-      cl_context.registerClKernel(concat_axis_1_kernel, "concat_cl_axis1");
-    if (!kernel_concat_ptr) {
-      ml_loge("OpenCL Error: Fail to register concat_cl_axis1 kernel");
-      break;
-    }
-    layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
-
-    kernel_concat_ptr =
-      cl_context.registerClKernel(concat_axis_2_kernel, "concat_cl_axis2");
-    if (!kernel_concat_ptr) {
-      ml_loge("OpenCL Error: Fail to register concat_cl_axis2 kernel");
-      break;
-    }
-    layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
-
-    kernel_concat_ptr =
-      cl_context.registerClKernel(concat_axis_3_kernel, "concat_cl_axis3");
-    if (!kernel_concat_ptr) {
-      ml_loge("OpenCL Error: Fail to register concat_cl_axis3 kernel");
-      break;
-    }
-    layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
-
-#ifdef ENABLE_FP16
-    kernel_concat_ptr = cl_context.registerClKernel(concat_axis_1_fp16_kernel,
-                                                    "concat_cl_axis1_fp16");
-    if (!kernel_concat_ptr) {
-      ml_loge("OpenCL Error: Fail to register concat_cl_axis1_fp16 kernel");
-      break;
-    }
-    layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
-
-    kernel_concat_ptr = cl_context.registerClKernel(concat_axis_2_fp16_kernel,
-                                                    "concat_cl_axis2_fp16");
-    if (!kernel_concat_ptr) {
-      ml_loge("OpenCL Error: Fail to register concat_cl_axis2_fp16 kernel");
-      break;
-    }
-    layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
-
-    kernel_concat_ptr = cl_context.registerClKernel(concat_axis_3_fp16_kernel,
-                                                    "concat_cl_axis3_fp16");
-    if (!kernel_concat_ptr) {
-      ml_loge("OpenCL Error: Fail to register concat_cl_axis3_fp16 kernel");
-      break;
-    }
-    layer_kernel_ptrs.emplace_back(kernel_concat_ptr);
-#endif
-
-    return true;
-
-  } while (false);
-
-  // clear all registered kernels if any error occurs during registration
-  layer_kernel_ptrs.clear();
-
-  return false;
-}
-
 void ConcatLayerCl::finalize(InitLayerContext &context) {
   auto &concat_dimension_prop = std::get<props::ConcatDimension>(concat_props);
   /** for backward compatibility, default concat dimension will be channel */
@@ -243,8 +170,8 @@ void ConcatLayerCl::concat_cl_axis3(const float *matAdata,
 
   do {
 
-    const auto &kernel_concat_ptr =
-      getLayerKernelPtrs()[Kernels::CONCAT_CL_AXIS3];
+    const auto &kernel_concat_ptr = global_cl_context->registerClKernel(
+      concat_axis_3_kernel, "concat_cl_axis3");
 
     int dim = int(input1_batch_size * input1_channels * input1_height *
                   (input1_width + input2_width));
@@ -361,9 +288,8 @@ void ConcatLayerCl::concat_cl_axis2(const float *matAdata,
   auto &clbuffInstance = ClBufferManager::Global();
 
   do {
-
-    const auto &kernel_concat_ptr =
-      getLayerKernelPtrs()[Kernels::CONCAT_CL_AXIS2];
+    const auto &kernel_concat_ptr = global_cl_context->registerClKernel(
+      concat_axis_2_kernel, "concat_cl_axis2");
 
     int dim = int(input1_batch_size * input1_channels * input1_width *
                   (input1_height + input2_height));
@@ -479,8 +405,8 @@ void ConcatLayerCl::concat_cl_axis1(const float *matAdata,
   auto &clbuffInstance = ClBufferManager::Global();
 
   do {
-    const auto &kernel_concat_ptr =
-      getLayerKernelPtrs()[Kernels::CONCAT_CL_AXIS1];
+    const auto &kernel_concat_ptr = global_cl_context->registerClKernel(
+      concat_axis_1_kernel, "concat_cl_axis1");
 
     int dim = int(input1_batch_size * input1_width * input1_height *
                   (input1_channels + input2_channels));
@@ -599,8 +525,8 @@ void ConcatLayerCl::concat_cl_axis3_fp16(const _FP16 *matAdata,
 
   do {
 
-    const auto &kernel_concat_ptr =
-      getLayerKernelPtrs()[Kernels::CONCAT_CL_AXIS3_FP16];
+    const auto &kernel_concat_ptr = global_cl_context->registerClKernel(
+      concat_axis_3_fp16_kernel, "concat_cl_axis3_fp16");
 
     int dim = int(input1_batch_size * input1_channels * input1_height *
                   (input1_width + input2_width));
@@ -717,8 +643,8 @@ void ConcatLayerCl::concat_cl_axis2_fp16(const _FP16 *matAdata,
   auto &clbuffInstance = ClBufferManager::Global();
 
   do {
-    const auto &kernel_concat_ptr =
-      getLayerKernelPtrs()[Kernels::CONCAT_CL_AXIS2_FP16];
+    const auto &kernel_concat_ptr = global_cl_context->registerClKernel(
+      concat_axis_2_fp16_kernel, "concat_cl_axis2_fp16");
 
     int dim = int(input1_batch_size * input1_channels * input1_width *
                   (input1_height + input2_height));
@@ -834,9 +760,8 @@ void ConcatLayerCl::concat_cl_axis1_fp16(const _FP16 *matAdata,
   auto &clbuffInstance = ClBufferManager::Global();
 
   do {
-
-    const auto &kernel_concat_ptr =
-      getLayerKernelPtrs()[Kernels::CONCAT_CL_AXIS1_FP16];
+    const auto &kernel_concat_ptr = global_cl_context->registerClKernel(
+      concat_axis_1_fp16_kernel, "concat_cl_axis1_fp16");
 
     int dim = int(input1_batch_size * input1_width * input1_height *
                   (input1_channels + input2_channels));
@@ -956,12 +881,6 @@ void ConcatLayerCl::exportTo(Exporter &exporter,
                              const ml::train::ExportMethods &method) const {
   Layer::exportTo(exporter, method);
   exporter.saveResult(concat_props, method, this);
-}
-
-std::vector<ClContext::SharedPtrClKernel> &ConcatLayerCl::getLayerKernelPtrs() {
-  /**< kernel list relevant with this layer */
-  static std::vector<ClContext::SharedPtrClKernel> layer_kernel_ptrs;
-  return layer_kernel_ptrs;
 }
 
 } /* namespace nntrainer */

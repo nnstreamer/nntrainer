@@ -27,45 +27,6 @@ namespace nntrainer {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
-bool ReshapeLayerCl::registerClKernels(ClContext &cl_context) {
-  auto &layer_kernel_ptrs = getLayerKernelPtrs();
-
-  // check if already registered
-  if (!layer_kernel_ptrs.empty()) {
-    ml_loge("kernels for reshape layer are already registered");
-    return false;
-  }
-
-  do {
-    ClContext::SharedPtrClKernel kernel_copy_ptr = nullptr;
-
-    kernel_copy_ptr = cl_context.registerClKernel(copy_kernel, "copy_cl");
-    if (!kernel_copy_ptr) {
-      ml_loge("OpenCL Error: Fail to register copy_cl kernel");
-      break;
-    }
-    layer_kernel_ptrs.emplace_back(kernel_copy_ptr);
-
-#ifdef ENABLE_FP16
-    kernel_copy_ptr =
-      cl_context.registerClKernel(copy_fp16_kernel, "copy_cl_fp16");
-    if (!kernel_copy_ptr) {
-      ml_loge("OpenCL Error: Fail to register copy_cl_fp16 kernel");
-      break;
-    }
-    layer_kernel_ptrs.emplace_back(kernel_copy_ptr);
-#endif
-
-    return true;
-
-  } while (false);
-
-  // claer all registered kernels if any error occurs during registration
-  layer_kernel_ptrs.clear();
-
-  return false;
-};
-
 void ReshapeLayerCl::finalize(InitLayerContext &context) {
   NNTR_THROW_IF(context.getNumInputs() != 1, std::invalid_argument)
     << "Reshape only supports 1 input for now";
@@ -153,7 +114,8 @@ void ReshapeLayerCl::copy_cl_fp16(const _FP16 *input, _FP16 *res,
   auto &clbuffInstance = ClBufferManager::Global();
 
   do {
-    const auto &kernel_copy_ptr = getLayerKernelPtrs()[Kernels::COPY_CL];
+    const auto &kernel_copy_ptr =
+      global_cl_context->registerClKernel(copy_fp16_kernel, "copy_cl_fp16");
 
     size_t dim_size = sizeof(_FP16) * input_batch_size * input_height *
                       input_width * input_channels;
@@ -240,7 +202,8 @@ void ReshapeLayerCl::scopy_cl(const float *input, float *res,
   auto &clbuffInstance = ClBufferManager::Global();
 
   do {
-    const auto &kernel_copy_ptr = getLayerKernelPtrs()[Kernels::COPY_CL];
+    const auto &kernel_copy_ptr =
+      global_cl_context->registerClKernel(copy_kernel, "copy_cl");
 
     size_t dim_size = sizeof(float) * input_batch_size * input_height *
                       input_width * input_channels;
@@ -331,13 +294,6 @@ void ReshapeLayerCl::setProperty(const std::vector<std::string> &values) {
 void ReshapeLayerCl::exportTo(Exporter &exporter,
                               const ml::train::ExportMethods &method) const {
   exporter.saveResult(reshape_props, method, this);
-}
-
-std::vector<ClContext::SharedPtrClKernel> &
-ReshapeLayerCl::getLayerKernelPtrs() {
-  /**< kernel list relevant with this layer */
-  static std::vector<ClContext::SharedPtrClKernel> layer_kernel_ptrs;
-  return layer_kernel_ptrs;
 }
 
 } /* namespace nntrainer */

@@ -123,18 +123,9 @@ public:
                       unsigned int dim1, unsigned int dim2, bool svm = true);
 #endif
 
-  /**
-   * @brief     Register OpenCL kernels for SwiGLU layer. This should be called
-   */
-  static bool registerClKernels(ClContext &cl_context);
-
 private:
   std::tuple<props::Print> swiglu_props; /**< swiglu layer properties : unit -
                                             number of output neurons */
-
-  static std::vector<ClContext::SharedPtrClKernel> &getLayerKernelPtrs();
-
-  enum Kernels { SWIGLU_CL, SWIGLU_CL_FP16 }; /** kernels enum */
 };
 
 } // namespace nntrainer
