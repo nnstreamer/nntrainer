@@ -91,8 +91,8 @@ def rotate_half(x):
 
 def apply_rotary_pos_emb(q, k, cos, sin):
     
-    cos = cos.reshape(256,128)
-    sin = sin.reshape(256,128)
+    cos = cos.reshape(1,256,128)
+    sin = sin.reshape(1,256,128)
 
     q_embed = (q * cos) + (rotate_half(q) * sin)
     k_embed = (k * cos) + (rotate_half(k) * sin)
@@ -128,7 +128,7 @@ class Qwen3Attention(nn.Module):
         causal_mask = torch.full((1, 1, self.config.max_position_embeddings, self.config.max_position_embeddings), float("-inf"))
         causal_mask = torch.triu(causal_mask, diagonal=1) 
         self.register_buffer("attention_mask",causal_mask)
-        self.register_buffer("scaling_factor", torch.tensor(self.scaling, dtype=torch.float32))
+        self.register_buffer("scaling_factor", torch.tensor([self.scaling], dtype=torch.float32))
 
         self.q_proj = nn.Linear(
             config.hidden_size, config.num_attention_heads * self.head_dim, bias=config.attention_bias
@@ -233,7 +233,7 @@ class Qwen3Model(PreTrainedModel):
         eps,
     ):
       
-        input_ids = self.broadcast * input_ids.reshape(self.config.max_position_embeddings,1)
+        input_ids = self.broadcast * input_ids
         hidden_states = torch.gather(self.vocab_weights,0,input_ids)
                
         for decoder_layer in self.layers[:self.config.num_hidden_layers]:
