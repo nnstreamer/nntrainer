@@ -35,23 +35,42 @@ public:
   std::size_t select_k_quant_thread_count(unsigned int M, unsigned int N,
                                           unsigned int K);
 
-  BS::thread_pool<> &getThreadPool() { return pool_; }
+  BS::thread_pool<> &getThreadPool() {
+    if (reset_) {
+      reset_ = false;
+      pool_->reset(std::thread::hardware_concurrency());
+    }
+
+    return *pool_;
+  }
 
   /**
    * @brief Construct a new Thread Pool Manager object
    *
    */
-  ThreadPoolManager() : pool_(std::thread::hardware_concurrency()) {}
+  ThreadPoolManager() : reset_(false) {
+    pool_ =
+      std::make_unique<BS::thread_pool<>>(std::thread::hardware_concurrency());
+  }
+
   /**
    * @brief Destroy the Thread Pool Manager object
-   *
    */
   ~ThreadPoolManager() = default;
 
+  void shutdown() {
+    if (!pool_)
+      return;
+
+    pool_->purge();
+    pool_->reset();
+    reset_ = true;
+  }
+
 private:
-  BS::thread_pool<> pool_;
+  std::unique_ptr<BS::thread_pool<>> pool_;
+  bool reset_;
 };
 } // namespace nntrainer
 
 #endif // THREAD_POOL_MANAGER_HPP
-
