@@ -77,9 +77,6 @@ void ClContext::initialize() noexcept {
       std::filesystem::create_directories(opencl::Program::DEFAULT_KERNEL_PATH);
     }
 
-    initBlasClKernels();
-    initAttentionClKernels();
-    add_default_object();
     setMemAllocator(std::make_shared<MemAllocator>());
 
   } catch (std::exception &e) {
