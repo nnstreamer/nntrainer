@@ -28,9 +28,9 @@ std::vector<nntrainer::TensorDim> input_shapes = {{1, 2, 4, 5}, {1, 2, 3, 4}};
 std::vector<nntrainer::TensorDim> label_shapes = {{1, 1, 1, 10}, {1, 1, 1, 2}};
 int user_data = 0;
 
-int getSample(float **outVec, float **outLabel, bool *last, void *user_data) {
+int getSample(float **outVec, float **outLabel, bool *last, void *data) {
   /** test user data is given correctly */
-  int *ud = reinterpret_cast<int *>(user_data);
+  int *ud = reinterpret_cast<int *>(data);
   *ud += 1;
 
   /** first input/label is all zero, second input/label is all one */
@@ -57,7 +57,7 @@ int getSample(float **outVec, float **outLabel, bool *last, void *user_data) {
 };
 
 int getSample_error(float **outVec, float **outLabel, bool *last,
-                    void *user_data) {
+                    void *data) {
   return -1;
 }
 

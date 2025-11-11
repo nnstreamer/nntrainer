@@ -197,7 +197,7 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
 
   auto compare_percentage_tensors = [](const Tensor &t1, const Tensor &t2,
                                        unsigned int match_percentage,
-                                       bool skip_cos_sim) -> bool {
+                                       bool _skip_cos_sim) -> bool {
     if (t1.getDim() != t2.getDim())
       return false;
 
@@ -209,7 +209,7 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
 
       if (match_percentage == 100) {
 
-        if (!skip_cos_sim) {
+        if (!_skip_cos_sim) {
           auto tensor = t1.clone();
           auto answer = t2.clone();
           const float epsilon = 1e-6;
@@ -250,7 +250,7 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
         float mse_range = 1e-3;
         mse_range *= tensor.size();
 
-        if (!skip_cos_sim) {
+        if (!_skip_cos_sim) {
           auto cos_sim = cosine_similarity<_FP16>(
             answer.getData<_FP16>(), tensor.getData<_FP16>(), tensor.size());
           EXPECT_IN_RANGE(cos_sim, 1 - cos_sim_range, 1 + cos_sim_range);
@@ -299,7 +299,7 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
 
   auto compare_tensors = [&file, compare_percentage_tensors](
                            unsigned length, auto tensor_getter, auto pred,
-                           bool skip_compare, bool skip_cos_sim,
+                           bool skip_compare, bool _skip_cos_sim,
                            const std::string &name, TensorDim::DataType d_type,
                            unsigned int match_percentage = 100) {
     for (unsigned i = 0; i < length; ++i) {
@@ -315,7 +315,7 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
       }
       EXPECT_TRUE(compare_percentage_tensors(
         tensor.getDataType() != d_type ? tensor.clone(d_type) : tensor, answer,
-        match_percentage, skip_cos_sim))
+        match_percentage, _skip_cos_sim))
         << name << " at " << std::to_string(i);
     }
   };

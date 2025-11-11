@@ -97,8 +97,8 @@ public:
    * if the owner of these tensors free the tensors.
    */
   explicit Var_Grad(const Tensor &v, const Tensor &g, const std::string &n = "",
-                    bool is_dependent = false) :
-    is_dependent(is_dependent),
+                    bool _is_dependent = false) :
+    is_dependent(_is_dependent),
     is_first_access_gradient(false),
     is_last_access_gradient(false),
     var(
@@ -116,8 +116,8 @@ public:
    * @param g ptr to already created gradient tensor
    * @param is_dependent true if the given var grad is dependent
    */
-  explicit Var_Grad(Tensor *v, Tensor *g, bool is_dependent = false) :
-    is_dependent(is_dependent),
+  explicit Var_Grad(Tensor *v, Tensor *g, bool _is_dependent = false) :
+    is_dependent(_is_dependent),
     is_first_access_gradient(false),
     is_last_access_gradient(false),
     var(std::shared_ptr<Tensor>(v, [](void *) {})),

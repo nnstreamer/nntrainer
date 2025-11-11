@@ -369,12 +369,12 @@ NNTrainer::TensorsQueue::TensorsQueue(unsigned int _num_of_samples,
   ml_logd("queue_size:%d", queue_size);
   queue.reserve(queue_size);
 
-  unsigned int idx = 0, i = 0;
-  for (i = 0; i < num_of_inputs; i++) {
+  unsigned int idx = 0;
+  for (unsigned int i = 0; i < num_of_inputs; i++) {
     input_size[i] = _tensors_size[idx++];
     ml_logd("input_size[%d]=%d", i, input_size[i]);
   }
-  for (i = 0; i < num_of_labels; i++) {
+  for (unsigned int i = 0; i < num_of_labels; i++) {
     label_size[i] = _tensors_size[idx++];
     ml_logd("label_size[%d]=%d", i, label_size[i]);
   }

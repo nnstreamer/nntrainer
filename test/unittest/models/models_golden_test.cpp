@@ -61,16 +61,16 @@ TEST_P(nntrainerModelTest, model_test_save_load_compare) {
     nn->save(saved_ini_name, ml::train::ModelFormat::MODEL_FORMAT_INI));
 
   auto creator = [&saved_ini_name]() {
-    std::unique_ptr<nntrainer::NeuralNetwork> nn(
+    std::unique_ptr<nntrainer::NeuralNetwork> n(
       new nntrainer::NeuralNetwork());
-    nn->load(saved_ini_name, ml::train::ModelFormat::MODEL_FORMAT_INI);
+    n->load(saved_ini_name, ml::train::ModelFormat::MODEL_FORMAT_INI);
     if (remove(saved_ini_name.c_str())) {
       const size_t error_buflen = 100;
       char error_buf[error_buflen];
       std::cerr << "remove ini " << saved_ini_name << "failed, reason: "
                 << SAFE_STRERROR(errno, error_buf, error_buflen);
     }
-    return nn;
+    return n;
   };
 
   compare(false, creator);
@@ -93,16 +93,16 @@ TEST_P(nntrainerModelTest, model_test_save_load_verify) {
   nn->save(saved_ini_name, ml::train::ModelFormat::MODEL_FORMAT_INI);
 
   auto creator = [&saved_ini_name]() {
-    std::unique_ptr<nntrainer::NeuralNetwork> nn(
+    std::unique_ptr<nntrainer::NeuralNetwork> n(
       new nntrainer::NeuralNetwork());
-    nn->load(saved_ini_name, ml::train::ModelFormat::MODEL_FORMAT_INI);
+    n->load(saved_ini_name, ml::train::ModelFormat::MODEL_FORMAT_INI);
     if (remove(saved_ini_name.c_str())) {
       const size_t error_buflen = 100;
       char error_buf[error_buflen];
       std::cerr << "remove ini " << saved_ini_name << "failed, reason: "
                 << SAFE_STRERROR(errno, error_buf, error_buflen);
     }
-    return nn;
+    return n;
   };
 
   validate(false, creator);

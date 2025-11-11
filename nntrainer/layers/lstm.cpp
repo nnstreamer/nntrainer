@@ -43,10 +43,10 @@ enum LSTMParams {
 };
 
 void LSTMLayer::forwardingBatchFirstLSTM(
-  unsigned int NUM_GATE, const unsigned int batch_size,
+  unsigned int _NUM_GATE, const unsigned int batch_size,
   const unsigned int feature_size, const bool disable_bias,
-  const unsigned int unit, const bool integrate_bias, ActiFunc &acti_func,
-  ActiFunc &recurrent_acti_func, const bool enable_dropout,
+  const unsigned int unit, const bool integrate_bias, ActiFunc &_acti_func,
+  ActiFunc &_recurrent_acti_func, const bool enable_dropout,
   const float dropout_rate, const unsigned int max_timestep, const bool reverse,
   const Tensor &input_, const Tensor &weight_ih, const Tensor &weight_hh,
   const Tensor &bias_h, const Tensor &bias_ih, const Tensor &bias_hh,
@@ -57,7 +57,7 @@ void LSTMLayer::forwardingBatchFirstLSTM(
   TensorDim::TensorType tensor_type = weight_ih.getTensorType();
   TensorDim input_tensor_dim({feature_size}, tensor_type);
   TensorDim unit_tensor_dim({unit}, tensor_type);
-  TensorDim num_gate_unit_tensor_dim({NUM_GATE * unit}, tensor_type);
+  TensorDim num_gate_unit_tensor_dim({_NUM_GATE * unit}, tensor_type);
 
   for (unsigned int batch = 0; batch < batch_size; ++batch) {
     const Tensor input_sample = input_.getBatchSlice(batch, 1);
@@ -93,10 +93,10 @@ void LSTMLayer::forwardingBatchFirstLSTM(
         unit_tensor_dim, (reverse ? max_timestep - 1 - t : t) * unit);
       Tensor ifgo = ifgo_sample.getSharedDataTensor(
         num_gate_unit_tensor_dim,
-        (reverse ? max_timestep - 1 - t : t) * NUM_GATE * unit);
+        (reverse ? max_timestep - 1 - t : t) * _NUM_GATE * unit);
 
-      forwardLSTM(1, unit, disable_bias, integrate_bias, acti_func,
-                  recurrent_acti_func, input, prev_hidden_state,
+      forwardLSTM(1, unit, disable_bias, integrate_bias, _acti_func,
+                  _recurrent_acti_func, input, prev_hidden_state,
                   prev_cell_state, hidden_state, cell_state, weight_ih,
                   weight_hh, bias_h, bias_ih, bias_hh, ifgo);
 
@@ -112,10 +112,10 @@ void LSTMLayer::forwardingBatchFirstLSTM(
 }
 
 void LSTMLayer::calcGradientBatchFirstLSTM(
-  unsigned int NUM_GATE, const unsigned int batch_size,
+  unsigned int _NUM_GATE, const unsigned int batch_size,
   const unsigned int feature_size, const bool disable_bias,
-  const unsigned int unit, const bool integrate_bias, ActiFunc &acti_func,
-  ActiFunc &recurrent_acti_func, const bool return_sequences,
+  const unsigned int unit, const bool integrate_bias, ActiFunc &_acti_func,
+  ActiFunc &_recurrent_acti_func, const bool return_sequences,
   const bool bidirectional, const bool enable_dropout, const float dropout_rate,
   const unsigned int max_timestep, const bool reverse, const Tensor &input_,
   const Tensor &incoming_derivative, Tensor &d_weight_ih,
@@ -142,7 +142,7 @@ void LSTMLayer::calcGradientBatchFirstLSTM(
   TensorDim::TensorType tensor_type = weight_hh.getTensorType();
   TensorDim unit_tensor_dim({unit}, tensor_type);
   TensorDim feature_size_tensor_dim({feature_size}, tensor_type);
-  TensorDim num_gate_tensor_dim({NUM_GATE * unit}, tensor_type);
+  TensorDim num_gate_tensor_dim({_NUM_GATE * unit}, tensor_type);
 
   if (return_sequences && !bidirectional && !reverse) {
     if (incoming_derivative.getDataType() == TensorDim::DataType::FP32) {
@@ -278,10 +278,10 @@ void LSTMLayer::calcGradientBatchFirstLSTM(
 
           Tensor ifgo = ifgo_sample.getSharedDataTensor(
             num_gate_tensor_dim,
-            (reverse ? max_timestep - 1 - t : t) * NUM_GATE * unit);
+            (reverse ? max_timestep - 1 - t : t) * _NUM_GATE * unit);
           Tensor d_ifgo = d_ifgo_sample.getSharedDataTensor(
             num_gate_tensor_dim,
-            (reverse ? max_timestep - 1 - t : t) * NUM_GATE * unit);
+            (reverse ? max_timestep - 1 - t : t) * _NUM_GATE * unit);
 
           // Temporary variable for d_prev_hidden_state. d_prev_hidden_state
           // already have precalculated values from incomming derivatives
@@ -290,8 +290,8 @@ void LSTMLayer::calcGradientBatchFirstLSTM(
                    tensor_type.data_type);
 
           calcGradientLSTM(
-            1, unit, disable_bias, integrate_bias, acti_func,
-            recurrent_acti_func, input, prev_hidden_state,
+            1, unit, disable_bias, integrate_bias, _acti_func,
+            _recurrent_acti_func, input, prev_hidden_state,
             d_prev_hidden_state_temp, prev_cell_state, d_prev_cell_state,
             d_hidden_state, cell_state, d_cell_state, p_d_weight_ih, weight_hh,
             p_d_weight_hh, p_d_bias_h, p_d_bias_ih, p_d_bias_hh, ifgo, d_ifgo);
@@ -383,10 +383,10 @@ void LSTMLayer::calcGradientBatchFirstLSTM(
 
         Tensor ifgo = ifgo_sample.getSharedDataTensor(
           num_gate_tensor_dim,
-          (reverse ? max_timestep - 1 - t : t) * NUM_GATE * unit);
+          (reverse ? max_timestep - 1 - t : t) * _NUM_GATE * unit);
         Tensor d_ifgo = d_ifgo_sample.getSharedDataTensor(
           num_gate_tensor_dim,
-          (reverse ? max_timestep - 1 - t : t) * NUM_GATE * unit);
+          (reverse ? max_timestep - 1 - t : t) * _NUM_GATE * unit);
 
         // Temporary variable for d_prev_hidden_state. d_prev_hidden_state
         // already have precalculated values from incomming derivatives
@@ -394,8 +394,8 @@ void LSTMLayer::calcGradientBatchFirstLSTM(
           Tensor("d_prev_hidden_state_temp", tensor_type.format,
                  tensor_type.data_type);
 
-        calcGradientLSTM(1, unit, disable_bias, integrate_bias, acti_func,
-                         recurrent_acti_func, input, prev_hidden_state,
+        calcGradientLSTM(1, unit, disable_bias, integrate_bias, _acti_func,
+                         _recurrent_acti_func, input, prev_hidden_state,
                          d_prev_hidden_state_temp, prev_cell_state,
                          d_prev_cell_state, d_hidden_state, cell_state,
                          d_cell_state, d_weight_ih, weight_hh, d_weight_hh,

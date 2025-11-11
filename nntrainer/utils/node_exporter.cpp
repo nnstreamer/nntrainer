@@ -56,8 +56,8 @@ Exporter::Exporter() : stored_result(nullptr), is_exported(false) {
  * @brief Construct a new Exporter object with flatbuffer builder
  *
  */
-Exporter::Exporter(flatbuffers::FlatBufferBuilder *fbb) :
-  fbb(fbb), stored_result(nullptr), is_exported(false) {}
+Exporter::Exporter(flatbuffers::FlatBufferBuilder *_fbb) :
+  fbb(_fbb), stored_result(nullptr), is_exported(false) {}
 #endif
 
 /**

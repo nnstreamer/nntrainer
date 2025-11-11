@@ -381,8 +381,8 @@ GTEST_PARAMETER_TEST(
     //  mkIniTc("unknown_loss_p", {nw_base_cross + "loss=", adam, input, out+"input_layers=inputlayer"}, SUCCESS), // Remove temporally.
      mkIniTc("mse_with_relu_p", {nw_base_mse, sgd, input, out+"input_layers=inputlayer", act_relu}, SUCCESS),
      mkIniTc("no_loss_with_relu_p", {nw_base, sgd, input, out+"input_layers=inputlayer", act_relu}, SUCCESS)
-), [](const testing::TestParamInfo<nntrainerIniTest::ParamType>& info){
- return std::get<0>(info.param);
+), [](const testing::TestParamInfo<nntrainerIniTest::ParamType>& i){
+ return std::get<0>(i.param);
 });
 
 GTEST_PARAMETER_TEST(
@@ -425,8 +425,8 @@ GTEST_PARAMETER_TEST(
     mkIniTc("no_trainingSet_n", {nw_base_cross, adam, dataset + "-TrainData", input, out+"input_layers=inputlayer"}, ALLFAIL),
 
     mkIniTc("backbone_filemissing_n", {nw_base_cross, adam, backbone_random, out+"input_layers=inputlayer"}, ALLFAIL)
-), [](const testing::TestParamInfo<nntrainerIniTest::ParamType>& info){
- return std::get<0>(info.param);
+), [](const testing::TestParamInfo<nntrainerIniTest::ParamType>& i){
+ return std::get<0>(i.param);
 });
 
 // clang-format on

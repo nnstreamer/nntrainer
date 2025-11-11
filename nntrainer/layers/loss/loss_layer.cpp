@@ -31,14 +31,14 @@ void LossLayer::finalize(InitLayerContext &context) {
     is_inplace = false;
 }
 
-void LossLayer::updateLoss(RunLayerContext &context, const Tensor &l) {
+void LossLayer::updateLoss(RunLayerContext &context, const Tensor &_l) {
   float loss_sum = 0.0f;
-  const float *data = l.getData();
+  const float *data = _l.getData();
 
-  for (unsigned int i = 0; i < l.batch(); i++) {
+  for (unsigned int i = 0; i < _l.batch(); i++) {
     loss_sum += data[i];
   }
-  context.setLoss(loss_sum / (float)l.batch());
+  context.setLoss(loss_sum / (float)_l.batch());
 }
 
 void LossLayer::applyLossScale(RunLayerContext &context, Tensor &ret_deriv) {

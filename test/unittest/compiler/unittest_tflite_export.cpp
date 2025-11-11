@@ -200,11 +200,11 @@ TEST(nntrainerInterpreterTflite, flatten_test) {
 
   out = run_tflite("flatten_test.tflite", input_data);
 
-  std::vector<float> ans = {0, 8,  16, 1, 9,  17, 2, 10, 18, 3, 11, 19,
+  std::vector<float> answer = {0, 8,  16, 1, 9,  17, 2, 10, 18, 3, 11, 19,
                             4, 12, 20, 5, 13, 21, 6, 14, 22, 7, 15, 23};
 
   for (size_t i = 0; i < out.size(); i++)
-    EXPECT_NEAR(out[i], ans[i], 0.000001f);
+    EXPECT_NEAR(out[i], answer[i], 0.000001f);
 
   const size_t error_buflen = 100;
   char error_buf[error_buflen];

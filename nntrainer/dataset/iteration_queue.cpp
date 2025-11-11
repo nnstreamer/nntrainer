@@ -82,7 +82,7 @@ ScopedView<Sample> IterationQueue::requestEmptySlot() {
       current_being_filed->markSampleFilled();
     },
     [this, current_being_filled = this->being_filled] {
-      std::unique_lock lg(empty_mutex);
+      std::unique_lock _lg(empty_mutex);
       this->markEmpty(current_being_filled);
       num_being_filled--;
       notify_emptied_cv.notify_all();
@@ -119,7 +119,7 @@ ScopedView<Iteration> IterationQueue::requestFilledSlot() {
   return ScopedView<Iteration>(
     &iteration->get(), [this, iteration] { markEmpty(iteration); },
     [this, iteration] {
-      std::unique_lock lock(filled_mutex);
+      std::unique_lock _lock(filled_mutex);
       flow_state.store(FlowState::FLOW_STATE_STOPPED);
       markEmpty(iteration);
     });
@@ -167,8 +167,8 @@ void IterationQueue::markEmpty(MarkableIteration *iteration) {
 
 IterationQueue::MarkableIteration::MarkableIteration(
   const std::vector<ml::train::TensorDim> &input_dims,
-  const std::vector<ml::train::TensorDim> &label_dims, IterationQueue *iq) :
-  num_observed(0), iteration(input_dims, label_dims), iq(iq) {}
+  const std::vector<ml::train::TensorDim> &label_dims, IterationQueue *_iq) :
+  num_observed(0), iteration(input_dims, label_dims), iq(_iq) {}
 
 IterationQueue::MarkableIteration::MarkableIteration(MarkableIteration &&rhs) :
   iteration(std::move(rhs.iteration)), iq(rhs.iq) {

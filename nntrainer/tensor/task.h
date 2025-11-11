@@ -132,8 +132,8 @@ public:
    * @brief TaskAsync constructor
    *
    */
-  explicit TaskAsync(Work work, void *user_data) :
-    Task(work, user_data), timeout(T::max()), priority(Priority::MID) {}
+  explicit TaskAsync(Work _work, void *user_data) :
+    Task(_work, user_data), timeout(T::max()), priority(Priority::MID) {}
 
   /**
    * @brief TaskAsync destructor

@@ -59,15 +59,15 @@ bool updateIteration(unsigned int &iteration, unsigned int data_size) {
 
 } // namespace
 
-RandomDataLoader::RandomDataLoader(const std::vector<TensorDim> &input_shapes,
-                                   const std::vector<TensorDim> &output_shapes,
+RandomDataLoader::RandomDataLoader(const std::vector<TensorDim> &_input_shapes,
+                                   const std::vector<TensorDim> &_output_shapes,
                                    int data_size_) :
   iteration(0),
   data_size(data_size_),
-  input_shapes(input_shapes),
-  output_shapes(output_shapes),
+  input_shapes(_input_shapes),
+  output_shapes(_output_shapes),
   input_dist(0, 255),
-  label_dist(0, output_shapes.front().width() - 1) {
+  label_dist(0, _output_shapes.front().width() - 1) {
   NNTR_THROW_IF(output_shapes.empty(), std::invalid_argument)
     << "output_shape size empty not supported";
   NNTR_THROW_IF(output_shapes.size() > 1, std::invalid_argument)
@@ -75,18 +75,18 @@ RandomDataLoader::RandomDataLoader(const std::vector<TensorDim> &input_shapes,
 }
 
 void RandomDataLoader::next(float **input, float **label, bool *last) {
-  auto fill_input = [this](float *input, unsigned int length) {
+  auto fill_input = [this](float *in, unsigned int length) {
     for (unsigned int i = 0; i < length; ++i) {
-      *input = input_dist(rng);
-      input++;
+      *in= input_dist(rng);
+      in++;
     }
   };
 
-  auto fill_label = [this](float *label, unsigned int batch,
+  auto fill_label = [this](float *l, unsigned int batch,
                            unsigned int length) {
     unsigned int generated_label = label_dist(rng);
-    fillLabel(label, length, generated_label);
-    label += length;
+    fillLabel(l, length, generated_label);
+    l += length;
   };
 
   if (updateIteration(iteration, data_size)) {

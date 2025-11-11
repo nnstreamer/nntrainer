@@ -98,14 +98,14 @@ std::vector<LayerHandle> yoloBlock(const std::string &block_name,
   };
 
   auto createConv = [&with_name, filters](const std::string &name,
-                                          int kernel_size, int stride,
+                                          int k_size, int stride,
                                           const std::string &padding,
                                           const std::string &input_layer) {
     std::vector<std::string> props{
       with_name(name),
       nntrainer::withKey("stride", {stride, stride}),
       nntrainer::withKey("filters", filters),
-      nntrainer::withKey("kernel_size", {kernel_size, kernel_size}),
+      nntrainer::withKey("kernel_size", {k_size, k_size}),
       nntrainer::withKey("padding", padding),
       nntrainer::withKey("disable_bias", "true"),
       nntrainer::withKey("input_layers", input_layer)};

@@ -26,8 +26,8 @@ Int4QTensor::Int4QTensor(std::string name_, Tformat fm, QScheme qscheme_,
 }
 
 Int4QTensor::Int4QTensor(const TensorDim &d, bool alloc_now, Initializer init,
-                         std::string name, QScheme qscheme_, size_t g_size) :
-  TensorBase(d, alloc_now, init, name), qscheme(qscheme_) {
+                         std::string tensor_name, QScheme qscheme_, size_t g_size) :
+  TensorBase(d, alloc_now, init, tensor_name), qscheme(qscheme_) {
   group_size = g_size;
   if (alloc_now)
     allocate();
@@ -79,9 +79,9 @@ Int4QTensor::Int4QTensor(
   MemoryData *mem_data =
     new MemoryData((void *)(new int8_t[(dim.getDataLen() + 1) / 2 +
                                        sizeof(float) * scale_size()]()));
-  data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
-    delete[] mem_data->getAddr<int8_t>();
-    delete mem_data;
+  data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *ptr) {
+    delete[] ptr->getAddr<int8_t>();
+    delete ptr;
   });
 
   offset = 0;
@@ -143,9 +143,9 @@ void Int4QTensor::allocate() {
     mem_data =
       new MemoryData((void *)(new int8_t[(dim.getDataLen() + 1) / 2 +
                                          sizeof(float) * scale_size()]{}));
-    data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-      delete[] mem_data->template getAddr<int8_t>();
-      delete mem_data;
+    data = std::shared_ptr<MemoryData>(mem_data, [](auto *ptr) {
+      delete[] ptr->template getAddr<int8_t>();
+      delete ptr;
     });
 
     offset = 0;
@@ -235,8 +235,8 @@ void Int4QTensor::setValue(float value) {
     << "Value must be in range [-8, 7]. Input value: " << value;
 
   int8_t val = value;
-  int8_t *data = (int8_t *)getData();
-  std::fill(data, data + (size() + 1) / 2, (val << 4) | (val & 0x0f));
+  int8_t *_data = (int8_t *)getData();
+  std::fill(_data, _data + (size() + 1) / 2, (val << 4) | (val & 0x0f));
 }
 
 /// @todo this func should be template function
@@ -402,7 +402,7 @@ void Int4QTensor::read(ReadSource src, size_t start_offset,
 
 std::vector<unsigned int> Int4QTensor::argmax() const {
   std::vector<unsigned int> result;
-  const int8_t *data = (int8_t *)getData();
+  const int8_t *_data = (int8_t *)getData(); // @todo Unused. Check if getData really required.
   size_t batch_size = batch();
   size_t feature_len = dim.getFeatureLen();
   result.resize(batch_size);
@@ -425,7 +425,7 @@ std::vector<unsigned int> Int4QTensor::argmax() const {
 
 std::vector<unsigned int> Int4QTensor::argmin() const {
   std::vector<unsigned int> result;
-  const int8_t *data = (int8_t *)getData();
+  const int8_t *_data = (int8_t *)getData(); // @todo Unused. Check if getData really required.
   size_t batch_size = batch();
   size_t feature_len = dim.getFeatureLen();
   result.resize(batch_size);
@@ -492,9 +492,9 @@ float Int4QTensor::minValue() const {
 }
 
 void Int4QTensor::print(std::ostream &out) const {
-  const int8_t *data = (int8_t *)getData();
+  const int8_t *_data = (int8_t *)getData();
   unsigned int len = size();
-  out << "data addr: " << reinterpret_cast<const float *>(data) << '\n';
+  out << "data addr: " << reinterpret_cast<const float *>(_data) << '\n';
   out << dim;
 
   if (len > 100) {
