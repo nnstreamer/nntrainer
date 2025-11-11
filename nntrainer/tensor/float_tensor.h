@@ -86,9 +86,9 @@ public:
 
     MemoryData *mem_data =
       new MemoryData((void *)(new float[dim.getDataLen()]()));
-    data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
-      delete[] mem_data->getAddr<float>();
-      delete mem_data;
+    data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *ptr) {
+      delete[] ptr->getAddr<float>();
+      delete ptr;
     });
 
     offset = 0;
