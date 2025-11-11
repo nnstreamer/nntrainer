@@ -523,8 +523,8 @@ public:
    * @brief Construct a new Padding2D object
    *
    */
-  Padding2D(const std::string &value = "valid") :
-    nntrainer::Property<std::string>(value) {} /**< default value if any */
+  Padding2D(const std::string &_value = "valid") :
+    nntrainer::Property<std::string>(_value) {} /**< default value if any */
   bool isValid(const std::string &v) const override;
   static constexpr const char *key = "padding"; /**< unique key to access */
   using prop_tag = str_prop_tag;                /**< property type */
@@ -561,8 +561,8 @@ public:
    * @brief Construct a new Padding1D object
    *
    */
-  Padding1D(const std::string &value = "valid") :
-    nntrainer::Property<std::string>(value) {} /**< default value if any */
+  Padding1D(const std::string &_value = "valid") :
+    nntrainer::Property<std::string>(_value) {} /**< default value if any */
   bool isValid(const std::string &v) const override;
   static constexpr const char *key = "padding"; /**< unique key to access */
   using prop_tag = str_prop_tag;                /**< property type */
@@ -625,7 +625,7 @@ public:
    * @brief Construct a new DropOutRate object with a default value 0.0
    *
    */
-  DropOutRate(float value = 0.0) : nntrainer::Property<float>(value) {}
+  DropOutRate(float _value = 0.0) : nntrainer::Property<float>(_value) {}
   static constexpr const char *key =
     "dropout_rate";                /**< unique key to access */
   using prop_tag = float_prop_tag; /**< property type */
@@ -808,7 +808,7 @@ public:
    * @brief Construct a new ResetAfter object with a default value true
    *
    */
-  ResetAfter(bool value = true) : nntrainer::Property<bool>(value) {}
+  ResetAfter(bool _value = true) : nntrainer::Property<bool>(_value) {}
   static constexpr const char *key = "reset_after"; /**< unique key to access */
   using prop_tag = bool_prop_tag;                   /**< property type */
 };
@@ -1346,7 +1346,7 @@ public:
    * @brief Construct a new Print object
    *
    */
-  Print(bool value = false) { set(value); }
+  Print(bool _value = false) { set(_value); }
   static constexpr const char *key = "print";
   using prop_tag = bool_prop_tag;
 };
@@ -1640,8 +1640,8 @@ public:
    * @brief Construct a new ReturnAttentionWeight object
    *
    */
-  TensorLife(TensorLifeInfo::Enum value = TensorLifeInfo::Enum::MAX_LIFESPAN) {
-    set(value);
+  TensorLife(TensorLifeInfo::Enum _value = TensorLifeInfo::Enum::MAX_LIFESPAN) {
+    set(_value);
   };
 };
 

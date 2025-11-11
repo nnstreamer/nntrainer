@@ -17,8 +17,8 @@
 #include <vector>
 
 namespace nntrainer {
-bool PositiveIntegerProperty::isValid(const unsigned int &value) const {
-  return value > 0;
+bool PositiveIntegerProperty::isValid(const unsigned int &v) const {
+  return v > 0;
 }
 
 template <>

@@ -29,16 +29,16 @@ namespace props {
 
 Name::Name() : nntrainer::Property<std::string>() {}
 
-Name::Name(const std::string &value) { set(value); }
+Name::Name(const std::string &_value) { set(_value); }
 
-void Name::set(const std::string &value) {
+void Name::set(const std::string &_value) {
   auto to_lower = [](const std::string &str) {
     std::string ret = str;
     std::transform(ret.begin(), ret.end(), ret.begin(),
                    [](unsigned char c) { return std::tolower(c); });
     return ret;
   };
-  nntrainer::Property<std::string>::set(to_lower(value));
+  nntrainer::Property<std::string>::set(to_lower(_value));
 }
 
 bool Name::isValid(const std::string &v) const {
@@ -46,14 +46,14 @@ bool Name::isValid(const std::string &v) const {
   return !v.empty() && std::regex_match(v, allowed);
 }
 
-Normalization::Normalization(bool value) { set(value); }
+Normalization::Normalization(bool _value) { set(_value); }
 
-Standardization::Standardization(bool value) { set(value); }
+Standardization::Standardization(bool _value) { set(_value); }
 
 bool DropOutRate::isValid(const float &v) const { return v >= 0.0; }
 
-void RandomTranslate::set(const float &value) {
-  Property<float>::set(std::abs(value));
+void RandomTranslate::set(const float &_value) {
+  Property<float>::set(std::abs(_value));
 }
 
 bool FilePath::isValid(const std::string &v) const {
@@ -69,8 +69,8 @@ void FilePath::set(const std::string &v) {
 
 std::ifstream::pos_type FilePath::file_size() { return cached_pos_size; }
 
-bool LossScaleForMixed::isValid(const float &value) const {
-  return (value != 0);
+bool LossScaleForMixed::isValid(const float &_value) const {
+  return (_value != 0);
 }
 
 bool DirPath::isValid(const std::string &v) const {
@@ -80,53 +80,53 @@ bool DirPath::isValid(const std::string &v) const {
 
 void DirPath::set(const std::string &v) { Property<std::string>::set(v); }
 
-ReturnSequences::ReturnSequences(bool value) { set(value); }
+ReturnSequences::ReturnSequences(bool _value) { set(_value); }
 
-Bidirectional::Bidirectional(bool value) { set(value); }
+Bidirectional::Bidirectional(bool _value) { set(_value); }
 
 bool NumClass::isValid(const unsigned int &v) const { return v > 0; }
 
 InputConnection::InputConnection() : nntrainer::Property<Connection>() {}
-InputConnection::InputConnection(const Connection &value) :
-  nntrainer::Property<Connection>(value) {} /**< default value if any */
+InputConnection::InputConnection(const Connection &_value) :
+  nntrainer::Property<Connection>(_value) {} /**< default _value if any */
 
-Epsilon::Epsilon(float value) { set(value); }
+Epsilon::Epsilon(float _value) { set(_value); }
 
-Exponent::Exponent(float value) { set(value); }
+Exponent::Exponent(float _value) { set(_value); }
 
-bool Epsilon::isValid(const float &value) const { return value > 0.0f; }
+bool Epsilon::isValid(const float &_value) const { return _value > 0.0f; }
 
-Momentum::Momentum(float value) { set(value); }
+Momentum::Momentum(float _value) { set(_value); }
 
-bool Momentum::isValid(const float &value) const {
-  return value > 0.0f && value < 1.0f;
+bool Momentum::isValid(const float &_value) const {
+  return _value > 0.0f && _value < 1.0f;
 }
 
-bool Axis::isValid(const unsigned int &value) const {
-  return value < ml::train::TensorDim::MAXDIM;
+bool Axis::isValid(const unsigned int &_value) const {
+  return _value < ml::train::TensorDim::MAXDIM;
 }
 
-StartDimension::StartDimension(unsigned int value) { set(value); }
+StartDimension::StartDimension(unsigned int _value) { set(_value); }
 
-bool StartDimension::isValid(const unsigned int &value) const {
-  return value > 0 && value < ml::train::TensorDim::MAXDIM;
+bool StartDimension::isValid(const unsigned int &_value) const {
+  return _value > 0 && _value < ml::train::TensorDim::MAXDIM;
 }
 
-EndDimension::EndDimension(unsigned int value) { set(value); }
+EndDimension::EndDimension(unsigned int _value) { set(_value); }
 
-bool EndDimension::isValid(const unsigned int &value) const {
-  return value > 0 && value < ml::train::TensorDim::MAXDIM;
+bool EndDimension::isValid(const unsigned int &_value) const {
+  return _value > 0 && _value < ml::train::TensorDim::MAXDIM;
 }
 
-bool SplitDimension::isValid(const unsigned int &value) const {
-  return value > 0 && value < ml::train::TensorDim::MAXDIM;
+bool SplitDimension::isValid(const unsigned int &_value) const {
+  return _value > 0 && _value < ml::train::TensorDim::MAXDIM;
 }
 
-PoolSize::PoolSize(unsigned int value) { set(value); }
+PoolSize::PoolSize(unsigned int _value) { set(_value); }
 
-Stride::Stride(unsigned int value) { set(value); }
+Stride::Stride(unsigned int _value) { set(_value); }
 
-Dilation::Dilation(unsigned int value) { set(value); }
+Dilation::Dilation(unsigned int _value) { set(_value); }
 
 /**
  * @brief unsigned integer property, internally used to parse padding values
@@ -177,9 +177,9 @@ Padding2D::compute(const TensorDim &input, const TensorDim &kernel,
   /// are assigned to the other side
   if (istrequal(padding_repr, "same")) {
     auto calculate_padding = [](unsigned input_, unsigned kernel_,
-                                unsigned stride, unsigned dilation) {
+                                unsigned stride, unsigned _dilation) {
       /// ceil(input / stride)
-      unsigned int eff_kernel = (kernel_ - 1) * dilation + 1;
+      unsigned int eff_kernel = (kernel_ - 1) * _dilation + 1;
       auto out = (input_ + stride - 1) / stride;
       auto req_input = (out - 1) * stride + eff_kernel;
       return req_input >= input_ ? req_input - input_ : 0;
@@ -245,12 +245,12 @@ std::array<unsigned int, 2> Padding1D::compute(const TensorDim &input_dim,
                                                const unsigned int &dilation) {
   auto &padding_repr = get(); /// padding representation
 
-  auto calculate_padding = [](unsigned input, unsigned kernel, unsigned stride,
-                              unsigned dilation) {
+  auto calculate_padding = [](unsigned input, unsigned _kernel, unsigned _stride,
+                              unsigned _dilation) {
     /// ceil(input / stride)
-    unsigned int eff_kernel = (kernel - 1) * dilation + 1;
-    auto out = (input + stride - 1) / stride;
-    auto req_input = (out - 1) * stride + eff_kernel;
+    unsigned int eff_kernel = (_kernel - 1) * _dilation + 1;
+    auto out = (input + _stride - 1) / _stride;
+    auto req_input = (out - 1) * _stride + eff_kernel;
     return req_input >= input ? req_input - input : 0;
   };
 
@@ -285,17 +285,17 @@ std::array<unsigned int, 2> Padding1D::compute(const TensorDim &input_dim,
   }
 }
 
-BasicRegularizerConstant::BasicRegularizerConstant(float value) { set(value); }
+BasicRegularizerConstant::BasicRegularizerConstant(float _value) { set(_value); }
 
-WeightRegularizerConstant::WeightRegularizerConstant(float value) :
-  BasicRegularizerConstant(value) {}
-WeightDecay::WeightDecay(float value) : BasicRegularizerConstant(value) {}
-BiasDecay::BiasDecay(float value) : BasicRegularizerConstant(value) {}
+WeightRegularizerConstant::WeightRegularizerConstant(float _value) :
+  BasicRegularizerConstant(_value) {}
+WeightDecay::WeightDecay(float _value) : BasicRegularizerConstant(_value) {}
+BiasDecay::BiasDecay(float _value) : BasicRegularizerConstant(_value) {}
 
 PropsUserData::PropsUserData(void *user_data) { set(user_data); }
 
-bool BasicRegularizerConstant::isValid(const float &value) const {
-  return value >= 0.0f;
+bool BasicRegularizerConstant::isValid(const float &_value) const {
+  return _value >= 0.0f;
 }
 
 OutputLayer::OutputLayer() : Name() {}
@@ -304,42 +304,42 @@ OutputLayer::OutputLayer(const std::string &name) : Name(name) {}
 LabelLayer::LabelLayer() : Name() {}
 LabelLayer::LabelLayer(const std::string &name) : Name(name) {}
 
-HiddenStateActivation::HiddenStateActivation(ActivationTypeInfo::Enum value) {
-  set(value);
+HiddenStateActivation::HiddenStateActivation(ActivationTypeInfo::Enum _value) {
+  set(_value);
 };
 
-RecurrentActivation::RecurrentActivation(ActivationTypeInfo::Enum value) {
-  set(value);
+RecurrentActivation::RecurrentActivation(ActivationTypeInfo::Enum _value) {
+  set(_value);
 };
 
-WeightInitializer::WeightInitializer(Initializer value) { set(value); }
+WeightInitializer::WeightInitializer(Initializer _value) { set(_value); }
 
-BiasInitializer::BiasInitializer(Initializer value) { set(value); }
+BiasInitializer::BiasInitializer(Initializer _value) { set(_value); }
 
-MuInitializer::MuInitializer(Initializer value) { set(value); }
+MuInitializer::MuInitializer(Initializer _value) { set(_value); }
 
-VarInitializer::VarInitializer(Initializer value) { set(value); }
+VarInitializer::VarInitializer(Initializer _value) { set(_value); }
 
-GammaInitializer::GammaInitializer(Initializer value) { set(value); }
+GammaInitializer::GammaInitializer(Initializer _value) { set(_value); }
 
-BetaInitializer::BetaInitializer(Initializer value) { set(value); }
+BetaInitializer::BetaInitializer(Initializer _value) { set(_value); }
 
-BasicRegularizer::BasicRegularizer(nntrainer::WeightRegularizer value) {
-  set(value);
+BasicRegularizer::BasicRegularizer(nntrainer::WeightRegularizer _value) {
+  set(_value);
 }
 
-WeightRegularizer::WeightRegularizer(nntrainer::WeightRegularizer value) :
-  BasicRegularizer(value) {}
+WeightRegularizer::WeightRegularizer(nntrainer::WeightRegularizer _value) :
+  BasicRegularizer(_value) {}
 
 bool BasicRegularizer::isValid(
-  const nntrainer::WeightRegularizer &value) const {
-  return value != nntrainer::WeightRegularizer::UNKNOWN;
+  const nntrainer::WeightRegularizer &_value) const {
+  return _value != nntrainer::WeightRegularizer::UNKNOWN;
 }
 
-FlipDirection::FlipDirection(FlipDirectionInfo::Enum value) { set(value); }
+FlipDirection::FlipDirection(FlipDirectionInfo::Enum _value) { set(_value); }
 
-void GenericShape::set(const TensorDim &value) {
-  TensorDim ret = value;
+void GenericShape::set(const TensorDim &_value) {
+  TensorDim ret = _value;
   ret.setDynDimFlag(0b1000);
   if (ret.batch() != 1) {
     ml_logw("Batch size set with dimension %zu is ignored."
@@ -350,15 +350,15 @@ void GenericShape::set(const TensorDim &value) {
   Property<TensorDim>::set(ret);
 }
 
-ScaledDotProduct::ScaledDotProduct(bool value) { set(value); }
+ScaledDotProduct::ScaledDotProduct(bool _value) { set(_value); }
 
-CausalMask::CausalMask(bool value) { set(value); }
+CausalMask::CausalMask(bool _value) { set(_value); }
 
-NumHeads::NumHeads(unsigned int value) { set(value); }
+NumHeads::NumHeads(unsigned int _value) { set(_value); }
 
 ReturnAttentionWeight::ReturnAttentionWeight(
-  ReturnAttentionWeightInfo::Enum value) {
-  set(value);
+  ReturnAttentionWeightInfo::Enum _value) {
+  set(_value);
 }
 
 } // namespace props

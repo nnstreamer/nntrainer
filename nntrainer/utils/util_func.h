@@ -73,10 +73,10 @@ inline void throw_status(int status) {
 }
 
 static auto rng = [] {
-  std::mt19937 rng;
-  // rng.seed(getSeed());
-  rng.seed(0);
-  return rng;
+  std::mt19937 _rng;
+  // _rng.seed(getSeed());
+  _rng.seed(0);
+  return _rng;
 }();
 
 /**

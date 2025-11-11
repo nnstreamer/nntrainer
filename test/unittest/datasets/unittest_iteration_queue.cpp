@@ -46,14 +46,14 @@ public:
    *
    */
   virtual void SetUp() {
-    auto &[q_size, input_dims, label_dims] = GetParam();
-    iq = std::make_unique<nntrainer::IterationQueue>(q_size, input_dims,
-                                                     label_dims);
+    auto &[q_size, input_d, label_d] = GetParam();
+    iq = std::make_unique<nntrainer::IterationQueue>(q_size, input_d,
+                                                     label_d);
     auto producer = std::make_unique<nntrainer::RandomDataOneHotProducer>();
     producer->setProperty({"num_samples=512"});
-    sample_getter = producer->finalize(input_dims, label_dims);
-    this->input_dims = input_dims;
-    this->label_dims = label_dims;
+    sample_getter = producer->finalize(input_d, label_d);
+    this->input_dims = input_d;
+    this->label_dims = label_d;
     sum_from_producer = 0;
     sum_from_consumer = 0;
   }

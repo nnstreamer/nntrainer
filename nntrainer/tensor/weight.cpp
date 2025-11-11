@@ -91,9 +91,9 @@ Weight::Weight(const TensorDim &dim_v, const TensorDim &dim_g,
 }
 
 Weight::Weight(const Tensor &v, const Tensor &g, const Tensor &v32,
-               const std::string &n, bool is_dependent,
+               const std::string &n, bool _is_dependent,
                unsigned int output_axis_) :
-  Var_Grad(v, g, n, is_dependent),
+  Var_Grad(v, g, n, _is_dependent),
   regularizer(WeightRegularizer::NONE),
   regularizer_constant(1.0f),
   decay(0.0f),
@@ -113,13 +113,13 @@ Weight::Weight(const Tensor &v, const Tensor &g, const Tensor &v32,
 }
 
 Weight::Weight(Tensor *v, Tensor *g, Tensor *v32, const WeightRegularizer reg,
-               const float reg_const, const float decay, bool is_dependent,
+               const float reg_const, const float _decay, bool _is_dependent,
                const float max_norm, unsigned int output_axis_,
                float loss_scale_, bool is_mixed_) :
-  Var_Grad(v, g, is_dependent),
+  Var_Grad(v, g, _is_dependent),
   regularizer(reg),
   regularizer_constant(reg_const),
-  decay(decay),
+  decay(_decay),
   clip_by_global_norm(max_norm),
   output_axis(output_axis_),
   loss_scale(loss_scale_),
@@ -145,8 +145,8 @@ void Weight::quantizeWeight() {
   if (!isMixedPrecision())
     return;
 
-  Tensor &var = getVariableRef();
-  ml::train::TensorDim::DataType type = var.getDataType();
+  Tensor &varref = getVariableRef();
+  ml::train::TensorDim::DataType type = varref.getDataType();
   switch (type) {
   case ml::train::TensorDim::DataType::QINT4:
     // NYI

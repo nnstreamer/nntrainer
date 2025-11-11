@@ -161,9 +161,9 @@ Tensor::Tensor(std::string name_, Tformat fm, Tdatatype d_type) {
 }
 
 Tensor::Tensor(const TensorDim &d, bool alloc_now, Initializer init,
-               std::string name, QScheme qscheme, bool is_virtual) {
+               std::string name, QScheme qscheme, bool _is_virtual) {
   itensor_ = nullptr;
-  this->is_virtual = is_virtual;
+  this->is_virtual = _is_virtual;
 
   if (d.getDataType() == Tdatatype::FP32) {
     itensor_ = std::make_unique<FloatTensor>(d, alloc_now, init, name);

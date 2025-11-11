@@ -24,10 +24,10 @@
 namespace nntrainer::util {
 
 // It supports bmp image file only now.
-DirDataLoader::DirDataLoader(const char *directory_, unsigned int max_num_label,
+DirDataLoader::DirDataLoader(const char *directory_, unsigned int _max_num_label,
                              unsigned int c, unsigned int w, unsigned int h,
                              bool is_train_) :
-  max_num_label(max_num_label),
+  max_num_label(_max_num_label),
   channel(c),
   height(h),
   width(w),

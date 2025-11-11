@@ -18,8 +18,8 @@ Q4_K_Tensor::Q4_K_Tensor(std::string name_, Tformat fm, QScheme qscheme_) :
   Uint4QTensor(name_, fm, QScheme::Q4_Kx8) {}
 
 Q4_K_Tensor::Q4_K_Tensor(const TensorDim &d, bool alloc_now, Initializer init,
-                         std::string name, QScheme qscheme_) :
-  Uint4QTensor(d, false, init, name, qscheme_) {
+                         std::string tensor_name, QScheme qscheme_) :
+  Uint4QTensor(d, false, init, tensor_name, qscheme_) {
   NNTR_THROW_IF(d.batch() != 1 || d.channel() != 1 ||
                   (d.height() % 256 != 0 && d.width() % 256 != 0),
                 std::invalid_argument)
@@ -58,9 +58,9 @@ void Q4_K_Tensor::allocate() {
     MemoryData *mem_data;
 
     mem_data = new MemoryData((void *)(new uint8_t[size()]{}));
-    data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-      delete[] mem_data->template getAddr<uint8_t>();
-      delete mem_data;
+    data = std::shared_ptr<MemoryData>(mem_data, [](auto *ptr) {
+      delete[] ptr->template getAddr<uint8_t>();
+      delete ptr;
     });
 
     offset = 0;

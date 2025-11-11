@@ -99,7 +99,7 @@ std::vector<LayerHandle> convBlock(const std::string &block_name,
   };
 
   auto createConv = [&with_name, &kernel_size, &num_filters, &stride, &padding](
-                      const std::string &name, const std::string &input_layer) {
+                      const std::string &name, const std::string &in_layer) {
     std::vector<std::string> props{
       with_name(name),
       nntrainer::withKey("kernel_size", {kernel_size, kernel_size}),
@@ -107,7 +107,7 @@ std::vector<LayerHandle> convBlock(const std::string &block_name,
       nntrainer::withKey("stride", {stride, stride}),
       nntrainer::withKey("padding", padding),
       nntrainer::withKey("disable_bias", "true"),
-      nntrainer::withKey("input_layers", input_layer)};
+      nntrainer::withKey("input_layers", in_layer)};
 
     return createLayer("conv2d", props);
   };

@@ -466,8 +466,8 @@ std::vector<Weight *> Manager::requestWeights(
     } else {
       /** case requesting fresh weights */
       if (exec_mode == ExecutionMode::INFERENCE && enable_fsu) {
-        for (unsigned int i = 0; i < fsu_lookahead; ++i) {
-          int lah_order = (forwarding_order - (fsu_lookahead - i));
+        for (unsigned int j = 0; i < fsu_lookahead; ++j) {
+          int lah_order = (forwarding_order - (fsu_lookahead - j));
           var_exec_order.push_back(std::max(lah_order, 0));
         }
       }
@@ -768,8 +768,8 @@ void Manager::flushCache() {
 
 bool Manager::checkLoadComplete(unsigned int order) {
 
-  auto checkLoadCompleteAtPool = [](TensorPool &pool, unsigned int order) {
-    return pool.checkLoadComplete(order);
+  auto checkLoadCompleteAtPool = [](TensorPool &pool, unsigned int _order) {
+    return pool.checkLoadComplete(_order);
   };
 
   if (exec_mode == ExecutionMode::TRAIN) {
@@ -806,9 +806,9 @@ bool Manager::checkUnloadComplete(unsigned int order) {
 void Manager::LoadTensors(unsigned int order,
                           unsigned int remainder_lookahead) {
 
-  auto loadTensorsAsync = [&](TensorPool &pool, unsigned int order) {
+  auto loadTensorsAsync = [&](TensorPool &pool, unsigned int _order) {
     return pool.loadCacheExecAsync(
-      order, [&](int id, TaskExecutor::CompleteStatus status,
+      _order, [&](int id, TaskExecutor::CompleteStatus status,
                  std::future<TaskExecutor::CompleteStatus> fut) {
         std::scoped_lock<std::mutex> lock(completed_load_mutex);
         completed_load_fut[id] = std::move(fut);
@@ -835,9 +835,9 @@ void Manager::LoadTensors(unsigned int order,
 
 void Manager::UnloadTensors(unsigned int order) {
 
-  auto unloadTensorsAsync = [&](TensorPool &pool, unsigned int order) {
+  auto unloadTensorsAsync = [&](TensorPool &pool, unsigned int _order) {
     return pool.flushCacheExecAsync(
-      order, [&](int id, TaskExecutor::CompleteStatus status,
+      _order, [&](int id, TaskExecutor::CompleteStatus status,
                  std::future<TaskExecutor::CompleteStatus> fut) {
         std::scoped_lock<std::mutex> lock(completed_unload_mutex);
         completed_unload_tensor[id].set_value(true);
@@ -865,10 +865,10 @@ void Manager::UnloadTensors(unsigned int order) {
 }
 
 void Manager::flushCacheExcept(unsigned int order) {
-  auto loadAsync = [&](TensorPool &pool, unsigned int order) {
+  auto loadAsync = [&](TensorPool &pool, unsigned int _order) {
     return pool.loadCacheExecAsync(
 
-      order, [&](int id, TaskExecutor::CompleteStatus status,
+      _order, [&](int id, TaskExecutor::CompleteStatus status,
                  std::future<TaskExecutor::CompleteStatus> fu) {
         std::scoped_lock<std::mutex> lock(completed_mutex);
         completed[id].set_value(true);

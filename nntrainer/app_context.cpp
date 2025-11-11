@@ -532,10 +532,10 @@ int AppContext::registerLayer(const std::string &library_path,
 
   FactoryType<nntrainer::Layer> factory_func =
     [pluggable](const PropsType &prop) {
-      std::unique_ptr<nntrainer::Layer> layer =
+      std::unique_ptr<nntrainer::Layer> new_layer =
         std::make_unique<internal::PluggedLayer>(pluggable);
 
-      return layer;
+      return new_layer;
     };
 
   return registerFactory<nntrainer::Layer>(std::move(factory_func), type);
@@ -572,10 +572,10 @@ int AppContext::registerOptimizer(const std::string &library_path,
 
   FactoryType<nntrainer::Optimizer> factory_func =
     [pluggable](const PropsType &prop) {
-      std::unique_ptr<nntrainer::Optimizer> optimizer =
+      std::unique_ptr<nntrainer::Optimizer> new_optimizer =
         std::make_unique<internal::PluggedOptimizer>(pluggable);
 
-      return optimizer;
+      return new_optimizer;
     };
 
   return registerFactory<nntrainer::Optimizer>(std::move(factory_func), type);

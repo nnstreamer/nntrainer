@@ -237,9 +237,9 @@ TEST(nntrainer_ccapi, train_with_config_01_p) {
 TEST(nntrainer_ccapi, train_dataset_with_file_01_p) {
   std::unique_ptr<ml::train::Model> model;
   std::shared_ptr<ml::train::Layer> layer;
-  std::shared_ptr<ml::train::Optimizer> optimizer;
+  std::shared_ptr<ml::train::Optimizer> _optimizer;
   std::unique_ptr<ml::train::LearningRateScheduler> lrs;
-  std::shared_ptr<ml::train::Dataset> dataset;
+  std::shared_ptr<ml::train::Dataset> _dataset;
 
   EXPECT_NO_THROW(model =
                     ml::train::createModel(ml::train::ModelType::NEURAL_NET));
@@ -255,28 +255,28 @@ TEST(nntrainer_ccapi, train_dataset_with_file_01_p) {
        "weight_initializer=xavier_uniform", "input_layers=input0"}));
   EXPECT_NO_THROW(model->addLayer(layer));
 
-  EXPECT_NO_THROW(optimizer = ml::train::optimizer::Adam(
+  EXPECT_NO_THROW(_optimizer = ml::train::optimizer::Adam(
                     {"beta1=0.002", "beta2=0.001", "epsilon=1e-7"}));
 
   EXPECT_NO_THROW(
     lrs = ml::train::optimizer::learning_rate::Exponential(
       {"learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000"}));
 
-  EXPECT_NO_THROW(optimizer->setLearningRateScheduler(std::move(lrs)));
-  EXPECT_NO_THROW(model->setOptimizer(optimizer));
+  EXPECT_NO_THROW(_optimizer->setLearningRateScheduler(std::move(lrs)));
+  EXPECT_NO_THROW(model->setOptimizer(_optimizer));
 
   EXPECT_NO_THROW(
-    dataset = ml::train::createDataset(
+    _dataset = ml::train::createDataset(
       ml::train::DatasetType::FILE, getTestResPath("trainingSet.dat").c_str()));
-  EXPECT_NO_THROW(dataset->setProperty({"buffer_size=100"}));
-  EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset),
+  EXPECT_NO_THROW(_dataset->setProperty({"buffer_size=100"}));
+  EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, _dataset),
             ML_ERROR_NONE);
 
   EXPECT_NO_THROW(
-    dataset = ml::train::createDataset(ml::train::DatasetType::FILE,
+    _dataset = ml::train::createDataset(ml::train::DatasetType::FILE,
                                        getTestResPath("valSet.dat").c_str()));
-  EXPECT_NO_THROW(dataset->setProperty({"buffer_size=100"}));
-  EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_VALID, dataset),
+  EXPECT_NO_THROW(_dataset->setProperty({"buffer_size=100"}));
+  EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_VALID, _dataset),
             ML_ERROR_NONE);
 
   EXPECT_NO_THROW(model->setProperty(
@@ -295,8 +295,8 @@ TEST(nntrainer_ccapi, train_dataset_with_file_01_p) {
 TEST(nntrainer_ccapi, train_dataset_with_generator_01_p) {
   std::unique_ptr<ml::train::Model> model;
   std::shared_ptr<ml::train::Layer> layer;
-  std::shared_ptr<ml::train::Optimizer> optimizer;
-  std::shared_ptr<ml::train::Dataset> dataset;
+  std::shared_ptr<ml::train::Optimizer> _optimizer;
+  std::shared_ptr<ml::train::Dataset> _dataset;
 
   EXPECT_NO_THROW(model =
                     ml::train::createModel(ml::train::ModelType::NEURAL_NET));
@@ -313,23 +313,23 @@ TEST(nntrainer_ccapi, train_dataset_with_generator_01_p) {
   EXPECT_NO_THROW(model->addLayer(layer));
 
   EXPECT_NO_THROW(
-    optimizer = ml::train::optimizer::Adam(
+    _optimizer = ml::train::optimizer::Adam(
       {"learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
        "beta1=0.002", "beta2=0.001", "epsilon=1e-7"}));
-  EXPECT_NO_THROW(model->setOptimizer(optimizer));
+  EXPECT_NO_THROW(model->setOptimizer(_optimizer));
 
   auto train_data = createTrainData();
   auto valid_data = createValidData();
-  EXPECT_NO_THROW(dataset = ml::train::createDataset(
+  EXPECT_NO_THROW(_dataset = ml::train::createDataset(
                     ml::train::DatasetType::GENERATOR, getSample, &train_data));
-  EXPECT_NO_THROW(dataset->setProperty({"buffer_size=100"}));
-  EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset),
+  EXPECT_NO_THROW(_dataset->setProperty({"buffer_size=100"}));
+  EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, _dataset),
             ML_ERROR_NONE);
 
-  EXPECT_NO_THROW(dataset = ml::train::createDataset(
+  EXPECT_NO_THROW(_dataset = ml::train::createDataset(
                     ml::train::DatasetType::GENERATOR, getSample, &valid_data));
-  EXPECT_NO_THROW(dataset->setProperty({"buffer_size=100"}));
-  EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_VALID, dataset),
+  EXPECT_NO_THROW(_dataset->setProperty({"buffer_size=100"}));
+  EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_VALID, _dataset),
             ML_ERROR_NONE);
 
   EXPECT_NO_THROW(model->setProperty(
@@ -348,8 +348,8 @@ TEST(nntrainer_ccapi, train_dataset_with_generator_01_p) {
 TEST(nntrainer_ccapi, train_batch_size_update_after) {
   std::unique_ptr<ml::train::Model> model;
   std::shared_ptr<ml::train::Layer> layer;
-  std::shared_ptr<ml::train::Optimizer> optimizer;
-  std::shared_ptr<ml::train::Dataset> dataset;
+  std::shared_ptr<ml::train::Optimizer> _optimizer;
+  std::shared_ptr<ml::train::Dataset> _dataset;
 
   EXPECT_NO_THROW(model =
                     ml::train::createModel(ml::train::ModelType::NEURAL_NET));
@@ -366,23 +366,23 @@ TEST(nntrainer_ccapi, train_batch_size_update_after) {
   EXPECT_NO_THROW(model->addLayer(layer));
 
   EXPECT_NO_THROW(
-    optimizer = ml::train::optimizer::Adam(
+    _optimizer = ml::train::optimizer::Adam(
       {"learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
        "beta1=0.002", "beta2=0.001", "epsilon=1e-7"}));
-  EXPECT_NO_THROW(model->setOptimizer(optimizer));
+  EXPECT_NO_THROW(model->setOptimizer(_optimizer));
 
   EXPECT_NO_THROW(
-    dataset = ml::train::createDataset(
+    _dataset = ml::train::createDataset(
       ml::train::DatasetType::FILE, getTestResPath("trainingSet.dat").c_str()));
-  EXPECT_NO_THROW(dataset->setProperty({"buffer_size=100"}));
-  EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset),
+  EXPECT_NO_THROW(_dataset->setProperty({"buffer_size=100"}));
+  EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, _dataset),
             ML_ERROR_NONE);
 
   EXPECT_NO_THROW(
-    dataset = ml::train::createDataset(ml::train::DatasetType::FILE,
+    _dataset = ml::train::createDataset(ml::train::DatasetType::FILE,
                                        getTestResPath("valSet.dat").c_str()));
-  EXPECT_NO_THROW(dataset->setProperty({"buffer_size=100"}));
-  EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_VALID, dataset),
+  EXPECT_NO_THROW(_dataset->setProperty({"buffer_size=100"}));
+  EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_VALID, _dataset),
             ML_ERROR_NONE);
 
   EXPECT_NO_THROW(
@@ -441,10 +441,10 @@ TEST(nntrainer_ccapi, save_ini_p) {
               {model_base + "batch_size = 16", optimizer, learning_rate,
                dataset + "-BufferSize", inputlayer, outputlayer});
 
-  std::shared_ptr<ml::train::Dataset> dataset = ml::train::createDataset(
+  std::shared_ptr<ml::train::Dataset> _dataset = ml::train::createDataset(
     ml::train::DatasetType::FILE, getTestResPath("trainingSet.dat").c_str());
-  EXPECT_NO_THROW(dataset->setProperty({"buffer_size=100"}));
-  EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset),
+  EXPECT_NO_THROW(_dataset->setProperty({"buffer_size=100"}));
+  EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, _dataset),
             ML_ERROR_NONE);
 
   EXPECT_EQ(model->loadFromConfig(s.getIniName()), ML_ERROR_NONE);
@@ -469,10 +469,10 @@ TEST(nntrainer_ccapi, model_copy_01_p) {
   ScopedIni s("ccapi_simple_ini",
               {model_base + "batch_size = 16", optimizer, learning_rate,
                dataset + "-BufferSize", inputlayer, outputlayer});
-  std::shared_ptr<ml::train::Dataset> dataset = ml::train::createDataset(
+  std::shared_ptr<ml::train::Dataset> _dataset = ml::train::createDataset(
     ml::train::DatasetType::FILE, getTestResPath("trainingSet.dat").c_str());
-  EXPECT_NO_THROW(dataset->setProperty({"buffer_size=100"}));
-  EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset),
+  EXPECT_NO_THROW(_dataset->setProperty({"buffer_size=100"}));
+  EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, _dataset),
             ML_ERROR_NONE);
 
   EXPECT_EQ(model->loadFromConfig(s.getIniName()), ML_ERROR_NONE);
@@ -503,10 +503,10 @@ TEST(nntrainer_ccapi, model_copy_01_n) {
   ScopedIni s("ccapi_simple_ini",
               {model_base + "batch_size = 16", optimizer, learning_rate,
                dataset + "-BufferSize", inputlayer, outputlayer});
-  std::shared_ptr<ml::train::Dataset> dataset = ml::train::createDataset(
+  std::shared_ptr<ml::train::Dataset> _dataset = ml::train::createDataset(
     ml::train::DatasetType::FILE, getTestResPath("trainingSet.dat").c_str());
-  EXPECT_NO_THROW(dataset->setProperty({"buffer_size=100"}));
-  EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset),
+  EXPECT_NO_THROW(_dataset->setProperty({"buffer_size=100"}));
+  EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, _dataset),
             ML_ERROR_NONE);
 
   EXPECT_EQ(model->loadFromConfig(s.getIniName()), ML_ERROR_NONE);
@@ -524,9 +524,9 @@ TEST(nntrainer_ccapi, model_copy_02_p) {
   std::unique_ptr<ml::train::Model> c_model;
   std::shared_ptr<ml::train::Layer> layer;
   std::shared_ptr<ml::train::Layer> c_layer;
-  std::shared_ptr<ml::train::Optimizer> optimizer;
+  std::shared_ptr<ml::train::Optimizer> _optimizer;
   std::unique_ptr<ml::train::LearningRateScheduler> lrs;
-  std::shared_ptr<ml::train::Dataset> dataset;
+  std::shared_ptr<ml::train::Dataset> _dataset;
   std::shared_ptr<ml::train::Dataset> c_dataset;
 
   EXPECT_NO_THROW(model =
@@ -545,28 +545,28 @@ TEST(nntrainer_ccapi, model_copy_02_p) {
 
   EXPECT_NO_THROW(model->addLayer(layer));
 
-  EXPECT_NO_THROW(optimizer = ml::train::optimizer::Adam(
+  EXPECT_NO_THROW(_optimizer = ml::train::optimizer::Adam(
                     {"beta1=0.002", "beta2=0.001", "epsilon=1e-7"}));
 
   EXPECT_NO_THROW(
     lrs = ml::train::optimizer::learning_rate::Exponential(
       {"learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000"}));
 
-  EXPECT_NO_THROW(optimizer->setLearningRateScheduler(std::move(lrs)));
-  EXPECT_NO_THROW(model->setOptimizer(optimizer));
+  EXPECT_NO_THROW(_optimizer->setLearningRateScheduler(std::move(lrs)));
+  EXPECT_NO_THROW(model->setOptimizer(_optimizer));
 
   EXPECT_NO_THROW(
-    dataset = ml::train::createDataset(
+    _dataset = ml::train::createDataset(
       ml::train::DatasetType::FILE, getTestResPath("trainingSet.dat").c_str()));
-  EXPECT_NO_THROW(dataset->setProperty({"buffer_size=100"}));
-  EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset),
+  EXPECT_NO_THROW(_dataset->setProperty({"buffer_size=100"}));
+  EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, _dataset),
             ML_ERROR_NONE);
 
   EXPECT_NO_THROW(
-    dataset = ml::train::createDataset(ml::train::DatasetType::FILE,
+    _dataset = ml::train::createDataset(ml::train::DatasetType::FILE,
                                        getTestResPath("valSet.dat").c_str()));
-  EXPECT_NO_THROW(dataset->setProperty({"buffer_size=100"}));
-  EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_VALID, dataset),
+  EXPECT_NO_THROW(_dataset->setProperty({"buffer_size=100"}));
+  EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_VALID, _dataset),
             ML_ERROR_NONE);
 
   EXPECT_NO_THROW(model->setProperty(
@@ -586,7 +586,7 @@ TEST(nntrainer_ccapi, model_copy_02_p) {
   EXPECT_NO_THROW(c_dataset->setProperty({"buffer_size=10"}));
 
   EXPECT_EQ(
-    c_model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset),
+    c_model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, _dataset),
     ML_ERROR_NONE);
 
   EXPECT_NO_THROW(
@@ -595,7 +595,7 @@ TEST(nntrainer_ccapi, model_copy_02_p) {
 
   EXPECT_NO_THROW(c_dataset->setProperty({"buffer_size=10"}));
   EXPECT_EQ(
-    c_model->setDataset(ml::train::DatasetModeType::MODE_VALID, dataset),
+    c_model->setDataset(ml::train::DatasetModeType::MODE_VALID, _dataset),
     ML_ERROR_NONE);
 
   EXPECT_EQ(c_model->compile(), ML_ERROR_NONE);

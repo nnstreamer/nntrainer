@@ -25,8 +25,8 @@ namespace nntrainer {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
-bool props::PermuteDims::isValid(const unsigned int &value) const {
-  return 0 < value && value <= 3;
+bool props::PermuteDims::isValid(const unsigned int &_value) const {
+  return 0 < _value && _value <= 3;
 }
 
 /**
