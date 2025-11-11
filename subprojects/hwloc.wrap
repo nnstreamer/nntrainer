@@ -1,0 +1,10 @@
+[wrap-file]
+directory = hwloc-2.12.2
+
+source_url = https://sources.voidlinux.org/hwloc-2.12.2/hwloc-2.12.2.tar.bz2
+source_filename = hwloc-2.12.2.tar.bz2
+source_hash = 563e61d70febb514138af0fac36b97621e01a4aacbca07b86e7bd95b85055ba0
+
+method = meson
+
+patch_directory = hwloc-meson
