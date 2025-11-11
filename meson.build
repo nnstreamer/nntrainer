@@ -86,7 +86,9 @@ warning_flags = [
   '-Wno-unused-variable',
   '-Wno-comment',
   '-Wno-ignored-attributes',
-  '-Wno-sign-compare'
+  '-Wno-sign-compare',
+  '-Wshadow',
+  '-Werror'
 ]
 
 if cxx_compiler_id == 'clang'
