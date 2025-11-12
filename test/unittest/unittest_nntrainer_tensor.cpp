@@ -228,7 +228,7 @@ TEST(nntrainer_Tensor, Tensor_04_p) {
   if (tensor.getValue<int8_t>(0, 0, 0, 1) != 1)
     status = ML_ERROR_INVALID_PARAMETER;
 
-  float *scale_data = tensor.getScale<float>();
+  float *scale_data = tensor.getScale();
 
   for (unsigned int idx = 0; idx < scales.size(); ++idx) {
     ASSERT_FLOAT_EQ(scale_data[idx], scales[idx]);
@@ -339,7 +339,7 @@ TEST(nntrainer_Tensor, QTensor_01_p) {
     }
   }
 
-  float *tensor_scales = tensor.getScale<float>();
+  float *tensor_scales = tensor.getScale();
 
   // check scale factors
   for (unsigned int idx = 0; idx < scales.size(); ++idx) {
@@ -412,7 +412,7 @@ TEST(nntrainer_Tensor, QTensor_03_p) {
     }
   }
 
-  ASSERT_FLOAT_EQ(*tensor.getScale<float>(), 3.561f);
+  ASSERT_FLOAT_EQ(*tensor.getScale(), 3.561f);
 }
 
 /**
@@ -462,7 +462,7 @@ TEST(nntrainer_Tensor, QTensor_05_p) {
   }
 
   // compare scale factors
-  float *tensor_scales = tensor.getScale<float>();
+  float *tensor_scales = tensor.getScale();
 
   for (unsigned int idx = 0; idx < scales.size(); ++idx) {
     ASSERT_FLOAT_EQ(tensor_scales[idx], scales[idx]);
@@ -505,7 +505,7 @@ TEST(nntrainer_Tensor, QTensor_06_p) {
     }
   }
 
-  float *tensor_scales = tensor.getScale<float>();
+  float *tensor_scales = tensor.getScale();
   unsigned int *tensor_zero_points = tensor.getZeroPoint();
 
   for (unsigned int idx = 0; idx < scales.size(); ++idx) {
@@ -546,7 +546,7 @@ TEST(nntrainer_Tensor, QTensor_07_p) {
     }
   }
 
-  float *tensor_scales = tensor.getScale<float>();
+  float *tensor_scales = tensor.getScale();
   unsigned int *tensor_zero_points = tensor.getZeroPoint();
 
   for (unsigned int idx = 0; idx < scales.size(); ++idx) {
@@ -587,7 +587,7 @@ TEST(nntrainer_Tensor, QTensor_08_p) {
     }
   }
 
-  float *tensor_scales = tensor.getScale<float>();
+  float *tensor_scales = tensor.getScale();
   unsigned int *tensor_zero_points = tensor.getZeroPoint();
 
   for (unsigned int idx = 0; idx < scales.size(); ++idx) {
@@ -642,11 +642,11 @@ TEST(nntrainer_Tensor, QTensor_10_n) {
  */
 TEST(nntrainer_Tensor, QTensor_11_n) {
   EXPECT_ANY_THROW(nntrainer::Tensor q4_k_tensor(
-    {1, 1, 4, 256, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT4}, true,
+    {1, 1, 4, 256, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::Q4_K}, true,
     nntrainer::Initializer::NONE, "q4_k_tensor", nntrainer::QScheme::Q4_Kx8));
 
   EXPECT_ANY_THROW(nntrainer::Tensor q4_k_tensor(
-    {1, 1, 8, 8, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT4}, true,
+    {1, 1, 8, 8, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::Q4_K}, true,
     nntrainer::Initializer::NONE, "q4_k_tensor", nntrainer::QScheme::Q4_Kx8));
 }
 
@@ -656,9 +656,8 @@ TEST(nntrainer_Tensor, QTensor_11_n) {
 TEST(nntrainer_Tensor, QTensor_12_p) {
   // This will create a single q4_kx8 block
   nntrainer::Tensor q4_k_tensor(
-    {1, 1, 8, 256, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT4},
-    false, nntrainer::Initializer::NONE, "q4_k_tensor",
-    nntrainer::QScheme::Q4_Kx8);
+    {1, 1, 8, 256, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::Q4_K}, false,
+    nntrainer::Initializer::NONE, "q4_k_tensor", nntrainer::QScheme::Q4_Kx8);
 
   EXPECT_EQ(q4_k_tensor.getData<uint8_t>(), nullptr);
   EXPECT_EQ(q4_k_tensor.q_scheme(), nntrainer::QScheme::Q4_Kx8);
@@ -1587,7 +1586,7 @@ TEST(nntrainer_Tensor, copy_14_p) {
     {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT16});
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
 
-  *input.getScale<float>() = 1.536f;
+  *input.getScale() = 1.536f;
   *input.getZeroPoint() = 12;
 
   nntrainer::Tensor output(
@@ -4787,7 +4786,7 @@ TEST(nntrainer_Tensor, save_read_03_p) {
   GEN_TEST_INPUT(target, i * (channel * width * height) + j * (height * width) +
                            k * (width) + l + 1);
 
-  *target.getScale<float>() = 1.536f;
+  *target.getScale() = 1.536f;
   *target.getZeroPoint() = 12;
 
   std::ofstream save_file("save_quint16.bin", std::ios::out | std::ios::binary);
@@ -4807,12 +4806,12 @@ TEST(nntrainer_Tensor, save_read_03_p) {
 
 TEST(nntrainer_Tensor, save_read_04_p) {
   nntrainer::Tensor target(
-    {1, 1, 512, 768, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT4},
+    {1, 1, 512, 768, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::Q4_K},
     true, nntrainer::Initializer::NONE, "q4_k_tensor",
     nntrainer::QScheme::Q4_Kx8);
 
   nntrainer::Tensor readed(
-    {1, 1, 512, 768, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::UINT4},
+    {1, 1, 512, 768, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::Q4_K},
     true, nntrainer::Initializer::NONE, "q4_k_tensor",
     nntrainer::QScheme::Q4_Kx8);
 
@@ -5401,7 +5400,7 @@ TEST(nntrainer_Tensor, print_small_size_02) {
            << "         1          1 \n"
            << "         1          1 \n"
            << "\n"
-           << "-------\nScale factors: 0 \n";
+           << "-------\nScale factors: 1 \n";
 
   EXPECT_EQ(ss.str(), expected.str());
 }
@@ -5597,13 +5596,11 @@ TEST(nntrainer_Tensor, initialize_01_p) {
 
 TEST(nntrainer_Tensor, initialize_02_p) {
   nntrainer::Tensor t({1, 2, 3, 4}, true);
+  t.initialize(nntrainer::Initializer::ONES);
 
   nntrainer::Tensor golden(1, 2, 3, 4);
   golden.setValue(1);
 
-  EXPECT_NE(golden, t);
-
-  t.initialize(nntrainer::Initializer::ONES);
   EXPECT_EQ(golden, t);
 }
 

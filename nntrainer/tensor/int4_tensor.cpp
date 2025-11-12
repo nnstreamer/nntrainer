@@ -74,15 +74,7 @@ Int4QTensor::Int4QTensor(
   initializer = Initializer::NONE;
   qscheme = qscheme_;
 
-  /// @note sizeof(float) * scale_size() assumes scale factors are in
-  /// full-precision fp.
-  MemoryData *mem_data =
-    new MemoryData((void *)(new int8_t[(dim.getDataLen() + 1) / 2 +
-                                       sizeof(float) * scale_size()]()));
-  data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
-    delete[] mem_data->getAddr<int8_t>();
-    delete mem_data;
-  });
+  allocateInternal();
 
   offset = 0;
 
@@ -137,16 +129,7 @@ void Int4QTensor::allocate() {
     /** as this memory is shared, do NOT initialize */
   } else {
     /// allocate new memory for the tensor data
-    MemoryData *mem_data;
-
-    /// quantized 4-bit is stored as a 8-bit signed integer (int4x2)
-    mem_data =
-      new MemoryData((void *)(new int8_t[(dim.getDataLen() + 1) / 2 +
-                                         sizeof(float) * scale_size()]{}));
-    data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-      delete[] mem_data->template getAddr<int8_t>();
-      delete mem_data;
-    });
+    allocateInternal();
 
     offset = 0;
     initialize();
@@ -156,41 +139,6 @@ void Int4QTensor::allocate() {
 void Int4QTensor::deallocate() {
   data = nullptr;
   offset = 0;
-}
-
-void *Int4QTensor::getData() const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return data->getAddr<int8_t>() + offset;
-}
-
-void *Int4QTensor::getData(size_t idx) const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return data->getAddr<int8_t>() + offset + (idx / 2);
-}
-
-void *Int4QTensor::getScale() const {
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return ((int8_t *)getData()) + (size() + 1) / 2;
-}
-
-void *Int4QTensor::getScale(size_t idx) const {
-  NNTR_THROW_IF(idx > scale_size(), std::invalid_argument)
-    << "Tensor::getScale() index is not valid";
-
-  if (!data)
-    return nullptr;
-
-  data->validate();
-  return ((float *)getScale()) + idx;
 }
 
 void *Int4QTensor::getAddress(unsigned int i) {
@@ -278,6 +226,8 @@ void Int4QTensor::setZero() {
 void Int4QTensor::initialize() {
   if (empty() || !isAllocated())
     return;
+
+  TensorBase::initialize();
 
   /// @note Sampling from the normal/uniform distribution is invalid
   switch (initializer) {

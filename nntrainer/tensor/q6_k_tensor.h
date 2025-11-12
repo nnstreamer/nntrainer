@@ -81,19 +81,6 @@ public:
   }
 
   /**
-   * @copydoc Tensor::getData()
-   */
-  void *getData() const override;
-
-  /**
-   * @copydoc Tensor::getData()
-   */
-  void *getData(size_t idx) const override {
-    throw std::invalid_argument(
-      "Q6_K_Tensor::getData() is not supported. Use getData() instead.");
-  }
-
-  /**
    * @copydoc Tensor::getAddress()
    */
   void *getAddress(unsigned int i) override {
@@ -230,6 +217,10 @@ private:
    * @copydoc Tensor::isValid()
    */
   bool isValid() const override { return true; }
+
+  std::size_t getDataTypeBitsSize() const override {
+    return sizeof(uint8_t) * CHAR_BIT;
+  }
 
 }; // class Q6_K_Tensor
 

@@ -45,6 +45,17 @@ Q4_K_Tensor::Q4_K_Tensor(const TensorDim &d, const void *buf,
   }
 }
 
+bool Q4_K_Tensor::operator==(const Q4_K_Tensor &rhs) const {
+  if (qscheme != rhs.qscheme)
+    return false;
+
+  // compare quantized data
+  const uint8_t *_data = (uint8_t *)getData();
+  const uint8_t *_rdata = (uint8_t *)rhs.getData();
+
+  return std::equal(_data, _data + size(), _rdata);
+}
+
 void Q4_K_Tensor::allocate() {
   if (empty() || data)
     return;
@@ -55,13 +66,7 @@ void Q4_K_Tensor::allocate() {
     /** as this memory is shared, do NOT initialize */
   } else {
     /// allocate new memory for the tensor data
-    MemoryData *mem_data;
-
-    mem_data = new MemoryData((void *)(new uint8_t[size()]{}));
-    data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-      delete[] mem_data->template getAddr<uint8_t>();
-      delete mem_data;
-    });
+    allocateInternal();
 
     offset = 0;
     initialize();
