@@ -40,11 +40,6 @@ cc = meson.get_compiler('c')
 cxx = meson.get_compiler('cpp')
 cxx_compiler_id = cxx.get_id()
 
-subprojects_dir_relative = 'subprojects'
-subprojects_dir_absolute = meson.current_source_dir() / subprojects_dir_relative
-windows_resource_dir_relative = 'nntrainer-windows-resource'
-windows_resource_dir_absolute = meson.current_source_dir() / windows_resource_dir_relative
-
 powershell_prog = find_program('powershell', required: (build_machine.system() == 'windows'))
 
 # Obtains number of cores
@@ -113,6 +108,19 @@ arch = host_machine.cpu_family()
 
 target = target_machine.cpu_family()
 
+
+subprojects_dir_relative = 'subprojects'
+subprojects_dir_absolute = meson.current_source_dir() / subprojects_dir_relative
+
+if get_option('platform') == 'windows'
+  if arch == 'arm' or arch == 'aarch64'
+  windows_resource_dir_relative = 'nntrainer-windows-resource' / 'arm64'
+  windows_resource_dir_absolute = meson.current_source_dir() / windows_resource_dir_relative
+  else
+  windows_resource_dir_relative = 'nntrainer-windows-resource' / 'x64'
+  windows_resource_dir_absolute = meson.current_source_dir() / windows_resource_dir_relative
+  endif
+endif
 
 if arch == 'arm' or arch == 'aarch64' or get_option('platform') == 'android'
   message('Build for ARM architecture')
