@@ -74,8 +74,9 @@ Uint4QTensor::Uint4QTensor(
     void
       *)(new uint8_t[(dim.getDataLen() + 1) / 2 + sizeof(float) * scale_size() +
                      sizeof(unsigned int) * scale_size()]()));
-  data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
-    delete[] mem_data->getAddr<uint8_t>();
+  data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *ptr) {
+    delete[] ptr->getAddr<uint8_t>();
+    delete ptr;
   });
 
   offset = 0;
