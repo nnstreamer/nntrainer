@@ -455,7 +455,7 @@ extra_defines += '-DNNTR_NUM_THREADS=@0@'.format(get_option('nntr-num-threads'))
 message('set nntrainer num threads=@0@'.format(get_option('nntr-num-threads')))
 openmp_dep = dummy_dep
 if get_option('enable-openmp')
- if cxx_compiler_id == 'msvc'
+ if cxx_compiler_id == 'msvc' and (arch == 'x86' or arch == 'x86_64')
     libiomp_root_opt = get_option('libiomp_root')
     libiomp_root = join_paths(meson.project_source_root(), libiomp_root_opt)
     omp_libdir = libiomp_root
