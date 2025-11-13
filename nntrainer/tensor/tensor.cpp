@@ -1060,18 +1060,23 @@ Tensor &Tensor::dotBatched(Tensor const &m, Tensor &result, bool trans,
   size_t lcm = std::lcm(batch(), m.batch());
   size_t group_size = lcm / batch();
   size_t m_group_size = lcm / m.batch();
+  size_t channel_size = channel();
 
   NNTR_THROW_IF(!((lcm == batch() || lcm == m.batch())), std::invalid_argument)
-    << "The batch size of the given twon tensors must be the same"
+    << "The batch size of the given two tensors must be the same"
        "or the bigger one should be a multiple of the smaller one";
 
-  for (unsigned int b = 0; b < lcm; b++) {
-    /** @todo try using transpose to speedup the operation */
-    const Tensor this_b = this->getBatchSlice(b / group_size, 1);
-    Tensor m_b = m.getBatchSlice(b / m_group_size, 1);
-    Tensor result_b = result.getBatchSlice(b, 1);
+  NNTR_THROW_IF(channel() != m.channel(), std::invalid_argument)
+    << "The channel size of the given two tensors must be the same";
 
-    this_b.dot(m_b, result_b, trans, trans_m, beta);
+  for (unsigned int b = 0; b < lcm; b++) {
+    for (unsigned int c = 0; c < channel_size; c++) {
+      /** @todo try using transpose to speedup the operation */
+      const Tensor this_b = this->getBatchSlice((b / group_size) * channel_size + c, 1);
+      Tensor m_b = m.getBatchSlice((b / m_group_size) * channel_size + c, 1);
+      Tensor result_b = result.getBatchSlice(b * channel_size + c, 1);
+      this_b.dot(m_b, result_b, trans, trans_m, beta);
+    }
   }
 
   return result;
@@ -1279,8 +1284,9 @@ void Tensor::copy_with_stride(const Tensor &from) {
 Tensor Tensor::getBatchSlice(size_t offset, unsigned int size) const {
   TensorDim dim_ = getDim();
   dim_.batch(size);
+  dim_.channel(size);
 
-  return getSharedDataTensor(dim_, offset * this->getDim().getFeatureLen(),
+  return getSharedDataTensor(dim_, offset * this->getDim().height() * this->getDim().width(),
                              true, "");
 }
 

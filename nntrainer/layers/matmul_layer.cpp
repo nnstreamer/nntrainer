@@ -24,7 +24,6 @@ namespace nntrainer {
 void MatMulLayer::finalize(InitLayerContext &context) {
   TensorDim inputDim0 = context.getInputDimensions()[0];
   TensorDim inputDim1 = context.getInputDimensions()[1];
-
   if (inputDim0[1] != inputDim1[1]) {
     throw std::invalid_argument("MatMulLayer requires matching channel size. ");
   } else if (inputDim0[3] != inputDim1[2]) {
@@ -40,7 +39,7 @@ void MatMulLayer::finalize(InitLayerContext &context) {
 
 void MatMulLayer::forwarding_operation(const Tensor &input0,
                                        const Tensor &input1, Tensor &output) {
-  input0.dot(input1, output);
+  input0.dotBatched(input1, output, false, false);
 }
 
 void MatMulLayer::calcDerivative(RunLayerContext &context) {
