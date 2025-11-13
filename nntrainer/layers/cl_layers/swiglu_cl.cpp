@@ -121,7 +121,7 @@ void SwiGLULayerCl::swiglu_cl(float *matAdata, float *vecXdata, float *vecYdata,
                               unsigned int dim1, unsigned int dim2, bool svm) {
   auto *global_cl_context =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = global_cl_context->getBufferManager();
 
   do {
     const auto &kernel_swiglu_ptr = getLayerKernelPtrs()[Kernels::SWIGLU_CL];
@@ -131,9 +131,11 @@ void SwiGLULayerCl::swiglu_cl(float *matAdata, float *vecXdata, float *vecYdata,
       bool write_result = true;
 
       write_result &= clbuffInstance.getInBufferA()->WriteDataRegion(
-        global_cl_context->command_queue_inst_, dim * sizeof(float), matAdata);
+        global_cl_context->getCommandQueueManager(), dim * sizeof(float),
+        matAdata);
       write_result &= clbuffInstance.getInBufferB()->WriteDataRegion(
-        global_cl_context->command_queue_inst_, dim * sizeof(float), vecXdata);
+        global_cl_context->getCommandQueueManager(), dim * sizeof(float),
+        vecXdata);
       if (!write_result) {
         break;
       }
@@ -155,9 +157,9 @@ void SwiGLULayerCl::swiglu_cl(float *matAdata, float *vecXdata, float *vecYdata,
     } else {
       bool map_result = true;
       map_result &=
-        global_cl_context->command_queue_inst_.enqueueSVMUnmap(matAdata);
+        global_cl_context->getCommandQueueManager().enqueueSVMUnmap(matAdata);
       map_result &=
-        global_cl_context->command_queue_inst_.enqueueSVMUnmap(vecXdata);
+        global_cl_context->getCommandQueueManager().enqueueSVMUnmap(vecXdata);
       if (!map_result) {
         ml_loge("Failed to map svm");
         break;
@@ -182,7 +184,7 @@ void SwiGLULayerCl::swiglu_cl(float *matAdata, float *vecXdata, float *vecYdata,
     /// @todo: create a group size by device & input
     const int work_group_size[3] = {chosen_local, 1, 1}; // test-value
 
-    if (!global_cl_context->command_queue_inst_.DispatchCommand(
+    if (!global_cl_context->getCommandQueueManager().DispatchCommand(
           kernel_swiglu_ptr, work_groups_count, work_group_size)) {
       ml_loge("Failed to run");
       break;
@@ -190,12 +192,12 @@ void SwiGLULayerCl::swiglu_cl(float *matAdata, float *vecXdata, float *vecYdata,
 
     if (!svm) {
       if (!clbuffInstance.getOutBufferA()->ReadDataRegion(
-            global_cl_context->command_queue_inst_, dim * sizeof(float),
+            global_cl_context->getCommandQueueManager(), dim * sizeof(float),
             vecYdata)) {
         break;
       }
     } else {
-      if (!global_cl_context->command_queue_inst_.enqueueSVMMap(
+      if (!global_cl_context->getCommandQueueManager().enqueueSVMMap(
             vecYdata, dim * sizeof(float), true)) {
         ml_loge("Failed to unmap svm");
         break;
@@ -214,7 +216,7 @@ void SwiGLULayerCl::swiglu_cl_fp16(_FP16 *matAdata, _FP16 *vecXdata,
 
   auto *global_cl_context =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = global_cl_context->getBufferManager();
 
   do {
     const auto &kernel_swiglu_ptr =
@@ -223,13 +225,15 @@ void SwiGLULayerCl::swiglu_cl_fp16(_FP16 *matAdata, _FP16 *vecXdata,
     int dim = int(dim1 * dim2);
 
     result = clbuffInstance.getInBufferA()->WriteDataRegion(
-      global_cl_context->command_queue_inst_, dim * sizeof(_FP16), matAdata);
+      global_cl_context->getCommandQueueManager(), dim * sizeof(_FP16),
+      matAdata);
     if (!result) {
       break;
     }
 
     result = clbuffInstance.getInBufferB()->WriteDataRegion(
-      global_cl_context->command_queue_inst_, dim * sizeof(_FP16), vecXdata);
+      global_cl_context->getCommandQueueManager(), dim * sizeof(_FP16),
+      vecXdata);
     if (!result) {
       break;
     }
@@ -258,14 +262,15 @@ void SwiGLULayerCl::swiglu_cl_fp16(_FP16 *matAdata, _FP16 *vecXdata,
     /// @todo: create a group size by device & input
     const int work_group_size[3] = {chosen_local, 1, 1}; // test-value
 
-    result = global_cl_context->command_queue_inst_.DispatchCommand(
+    result = global_cl_context->getCommandQueueManager().DispatchCommand(
       kernel_swiglu_ptr, work_groups_count, work_group_size);
     if (!result) {
       break;
     }
 
     result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-      global_cl_context->command_queue_inst_, dim * sizeof(_FP16), vecYdata);
+      global_cl_context->getCommandQueueManager(), dim * sizeof(_FP16),
+      vecYdata);
     if (!result) {
       break;
     }

@@ -29,26 +29,26 @@ inline static void sgemv_cl_internal(ClContext::SharedPtrClKernel kernel,
 
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = blas_cc->getBufferManager();
 
   size_t dim1_size = sizeof(T) * dim1;
   size_t dim2_size = sizeof(T) * dim2;
   size_t dim1_dim2_size = sizeof(T) * dim1 * dim2;
 
   result = clbuffInstance.getInBufferA()->WriteDataRegion(
-    blas_cc->command_queue_inst_, dim1_dim2_size, matAdata);
+    blas_cc->getCommandQueueManager(), dim1_dim2_size, matAdata);
   if (!result) {
     return;
   }
 
   result = clbuffInstance.getInBufferB()->WriteDataRegion(
-    blas_cc->command_queue_inst_, dim2_size, vecXdata);
+    blas_cc->getCommandQueueManager(), dim2_size, vecXdata);
   if (!result) {
     return;
   }
 
   result = clbuffInstance.getOutBufferA()->WriteDataRegion(
-    blas_cc->command_queue_inst_, dim1_size, vecYdata);
+    blas_cc->getCommandQueueManager(), dim1_size, vecYdata);
   if (!result) {
     return;
   }
@@ -84,14 +84,14 @@ inline static void sgemv_cl_internal(ClContext::SharedPtrClKernel kernel,
   const int work_groups_count[3] = {(int)dim1, 1, 1};
   const int work_group_size[3] = {1, 1, 1};
 
-  result = opencl::CommandQueueManager::Global().DispatchCommand(
+  result = blas_cc->getCommandQueueManager().DispatchCommand(
     kernel, work_groups_count, work_group_size);
   if (!result) {
     return;
   }
 
   result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-    blas_cc->command_queue_inst_, dim1_size, vecYdata);
+    blas_cc->getCommandQueueManager(), dim1_size, vecYdata);
   if (!result) {
     return;
   }
@@ -104,7 +104,7 @@ T dot_cl_internal(ClContext::SharedPtrClKernel kernel, const T *vecAdata,
 
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = blas_cc->getBufferManager();
 
   T cl_ret = 0;
 
@@ -112,13 +112,13 @@ T dot_cl_internal(ClContext::SharedPtrClKernel kernel, const T *vecAdata,
     size_t dim1_size = sizeof(T) * dim1;
 
     result = clbuffInstance.getInBufferA()->WriteDataRegion(
-      blas_cc->command_queue_inst_, dim1_size, vecAdata);
+      blas_cc->getCommandQueueManager(), dim1_size, vecAdata);
     if (!result) {
       break;
     }
 
     result = clbuffInstance.getInBufferB()->WriteDataRegion(
-      blas_cc->command_queue_inst_, dim1_size, vecXdata);
+      blas_cc->getCommandQueueManager(), dim1_size, vecXdata);
     if (!result) {
       break;
     }
@@ -149,14 +149,14 @@ T dot_cl_internal(ClContext::SharedPtrClKernel kernel, const T *vecAdata,
     const int work_groups_count[3] = {(int)dim1, 1, 1};
     const int work_group_size[3] = {1, 1, 1};
 
-    result = blas_cc->command_queue_inst_.DispatchCommand(
+    result = blas_cc->getCommandQueueManager().DispatchCommand(
       kernel, work_groups_count, work_group_size);
     if (!result) {
       break;
     }
 
     result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-      blas_cc->command_queue_inst_, sizeof(T), &cl_ret);
+      blas_cc->getCommandQueueManager(), sizeof(T), &cl_ret);
     if (!result) {
       break;
     }
@@ -176,7 +176,7 @@ sgemm_cl_internal(ClContext::SharedPtrClKernel kernel, bool TransA, bool TransB,
 
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = blas_cc->getBufferManager();
 
   // sizes will be same for transpose
   size_t m_k_size = M * K * sizeof(T);
@@ -184,19 +184,19 @@ sgemm_cl_internal(ClContext::SharedPtrClKernel kernel, bool TransA, bool TransB,
   size_t m_n_size = M * N * sizeof(T);
 
   result = clbuffInstance.getInBufferA()->WriteDataRegion(
-    blas_cc->command_queue_inst_, m_k_size, A);
+    blas_cc->getCommandQueueManager(), m_k_size, A);
   if (!result) {
     return;
   }
 
   result = clbuffInstance.getInBufferB()->WriteDataRegion(
-    blas_cc->command_queue_inst_, k_n_size, B);
+    blas_cc->getCommandQueueManager(), k_n_size, B);
   if (!result) {
     return;
   }
 
   result = clbuffInstance.getOutBufferA()->WriteDataRegion(
-    blas_cc->command_queue_inst_, m_n_size, C);
+    blas_cc->getCommandQueueManager(), m_n_size, C);
   if (!result) {
     return;
   }
@@ -241,14 +241,14 @@ sgemm_cl_internal(ClContext::SharedPtrClKernel kernel, bool TransA, bool TransB,
 
   const int work_group_size[3] = {tiled_size, tiled_size, 1}; // test-value
 
-  result = blas_cc->command_queue_inst_.DispatchCommand(
+  result = blas_cc->getCommandQueueManager().DispatchCommand(
     kernel, work_groups_count, work_group_size);
   if (!result) {
     return;
   }
 
   result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-    blas_cc->command_queue_inst_, m_n_size, C);
+    blas_cc->getCommandQueueManager(), m_n_size, C);
   if (!result) {
     return;
   }
@@ -262,19 +262,19 @@ addition_cl_internal(ClContext::SharedPtrClKernel kernel, const T *input,
 
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = blas_cc->getBufferManager();
 
   size_t dim1_size = sizeof(T) * size_input;
   size_t dim2_size = sizeof(T) * size_res;
 
   result = clbuffInstance.getInBufferA()->WriteDataRegion(
-    blas_cc->command_queue_inst_, dim1_size, input);
+    blas_cc->getCommandQueueManager(), dim1_size, input);
   if (!result) {
     return;
   }
 
   result = clbuffInstance.getOutBufferA()->WriteDataRegion(
-    blas_cc->command_queue_inst_, dim2_size, res);
+    blas_cc->getCommandQueueManager(), dim2_size, res);
   if (!result) {
     return;
   }
@@ -304,14 +304,14 @@ addition_cl_internal(ClContext::SharedPtrClKernel kernel, const T *input,
   const int work_groups_count[3] = {(int)size_res, 1, 1};
   /// @todo: create a group size by device & input
   const int work_group_size[3] = {1, 1, 1}; // test-value
-  result = blas_cc->command_queue_inst_.DispatchCommand(
+  result = blas_cc->getCommandQueueManager().DispatchCommand(
     kernel, work_groups_count, work_group_size);
   if (!result) {
     return;
   }
 
   result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-    blas_cc->command_queue_inst_, dim2_size, res);
+    blas_cc->getCommandQueueManager(), dim2_size, res);
 
   if (!result) {
     return;
@@ -343,13 +343,13 @@ inline static void rmsnorm_cl_internal(ClContext::SharedPtrClKernel kernel,
       return;
     }
   } else {
-    auto &clbuffInstance = ClBufferManager::Global();
+    auto &clbuffInstance = blas_cc->getBufferManager();
     if (!clbuffInstance.getInBufferA()->WriteDataRegion(
-          blas_cc->command_queue_inst_, size_in, input)) {
+          blas_cc->getCommandQueueManager(), size_in, input)) {
       return;
     }
     if (!clbuffInstance.getInBufferB()->WriteDataRegion(
-          blas_cc->command_queue_inst_, size_gamma, gamma)) {
+          blas_cc->getCommandQueueManager(), size_gamma, gamma)) {
       return;
     }
 
@@ -385,19 +385,19 @@ inline static void rmsnorm_cl_internal(ClContext::SharedPtrClKernel kernel,
                                     1};
 
   const int work_group_size[3] = {SUBGROUP_SIZE, 1, 1};
-  if (!blas_cc->command_queue_inst_.DispatchCommand(kernel, work_groups_count,
-                                                    work_group_size)) {
+  if (!blas_cc->getCommandQueueManager().DispatchCommand(
+        kernel, work_groups_count, work_group_size)) {
     return;
   }
 
   if (!use_svm) {
-    auto &clbuffInstance = ClBufferManager::Global();
+    auto &clbuffInstance = blas_cc->getBufferManager();
     if (!clbuffInstance.getOutBufferA()->ReadDataRegion(
-          blas_cc->command_queue_inst_, size_in, result)) {
+          blas_cc->getCommandQueueManager(), size_in, result)) {
       return;
     }
   } else {
-    blas_cc->command_queue_inst_.enqueueSVMMap(result, size_in, false);
+    blas_cc->getCommandQueueManager().enqueueSVMMap(result, size_in, false);
   }
 }
 
@@ -408,12 +408,12 @@ inline static void sscal_cl_internal(ClContext::SharedPtrClKernel kernel, T *X,
 
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = blas_cc->getBufferManager();
 
   size_t x_size = N * sizeof(T);
 
   result = clbuffInstance.getOutBufferA()->WriteDataRegion(
-    blas_cc->command_queue_inst_, x_size, X);
+    blas_cc->getCommandQueueManager(), x_size, X);
   if (!result) {
     return;
   }
@@ -432,14 +432,14 @@ inline static void sscal_cl_internal(ClContext::SharedPtrClKernel kernel, T *X,
   const int work_groups_count[3] = {(int)N, 1, 1};
   const int work_group_size[3] = {1, 1, 1};
 
-  result = blas_cc->command_queue_inst_.DispatchCommand(
+  result = blas_cc->getCommandQueueManager().DispatchCommand(
     kernel, work_groups_count, work_group_size);
   if (!result) {
     return;
   }
 
   result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-    blas_cc->command_queue_inst_, x_size, X);
+    blas_cc->getCommandQueueManager(), x_size, X);
   if (!result) {
     return;
   }
@@ -455,19 +455,19 @@ inline static void transpose_cl_axis_internal(
 
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = blas_cc->getBufferManager();
 
   size_t dim_size =
     sizeof(T) * input_batch_size * input_height * input_width * input_channels;
 
   result = clbuffInstance.getInBufferA()->WriteDataRegion(
-    blas_cc->command_queue_inst_, dim_size, in);
+    blas_cc->getCommandQueueManager(), dim_size, in);
   if (!result) {
     return;
   }
 
   result = clbuffInstance.getOutBufferA()->WriteDataRegion(
-    blas_cc->command_queue_inst_, dim_size, res);
+    blas_cc->getCommandQueueManager(), dim_size, res);
   if (!result) {
     return;
   }
@@ -510,14 +510,14 @@ inline static void transpose_cl_axis_internal(
 
   const int work_group_size[3] = {1, 1, 1};
 
-  result = blas_cc->command_queue_inst_.DispatchCommand(
+  result = blas_cc->getCommandQueueManager().DispatchCommand(
     kernel, work_groups_count, work_group_size);
   if (!result) {
     return;
   }
 
   result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-    blas_cc->command_queue_inst_, dim_size, res);
+    blas_cc->getCommandQueueManager(), dim_size, res);
   if (!result) {
     return;
   }

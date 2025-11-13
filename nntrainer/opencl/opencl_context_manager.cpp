@@ -19,9 +19,9 @@
 #include <vector>
 
 #include "CL/cl.h"
+#include "nntrainer_error.h"
+#include "nntrainer_log.h"
 #include "opencl_loader.h"
-
-#include <nntrainer_log.h>
 
 namespace nntrainer::opencl {
 
@@ -33,53 +33,20 @@ namespace nntrainer::opencl {
 const cl_context &ContextManager::GetContext() {
   // loading the OpenCL library and required functions
   bool result = LoadOpenCL();
-
-  if (!result) {
-    context_ = nullptr;
-    return context_;
-  }
+  NNTR_THROW_IF(!result, std::runtime_error) << "OpenCL load failed";
 
   if (context_) {
-    // increments the context reference count
-    auto error_code = clRetainContext(context_);
-    if (error_code != CL_SUCCESS) {
-      ml_loge("Failed to specify the OpenCL context to retain. OpenCL error "
-              "code: %d : %s",
-              error_code, OpenCLErrorCodeToString(error_code));
-    }
-
     return context_;
   }
 
-  do {
-    result = CreateDefaultGPUDevice();
-    if (!result) {
-      break;
-    }
+  result = CreateDefaultGPUDevice();
+  NNTR_THROW_IF(!result, std::runtime_error) << "Unable to create GPU device";
 
-    result = CreateCLContext();
-    if (!result) {
-      break;
-    }
-
-    // increments the context reference count
-    clRetainContext(context_);
-
-  } while (false);
-
-  if (!result) {
-    ml_loge("Failed to create OpenCL Context");
-    context_ = nullptr;
-  }
+  result = CreateCLContext();
+  NNTR_THROW_IF(!result, std::runtime_error)
+    << "Unable to create OpenCL context";
 
   return context_;
-}
-
-void ContextManager::ReleaseContext() {
-  if (context_) {
-    // decrements the context reference count
-    clReleaseContext(context_);
-  }
 }
 
 /**

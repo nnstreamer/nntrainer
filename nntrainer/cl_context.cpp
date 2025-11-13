@@ -272,20 +272,17 @@ bool ClContext::clCreateKernel(std::string &kernel_string,
     ml_logi("Using cached version of kernel: %s at path %s",
             kernel_name.c_str(), binary_file_path.c_str());
     result = program.CreateCLProgramWithBinary(
-      opencl::ContextManager::Global().GetContext(),
-      opencl::ContextManager::Global().GetDeviceId(), binary_data,
-      binary_file_path, "");
+      context_manager_.GetContext(), context_manager_.GetDeviceId(),
+      binary_data, binary_file_path, "");
   } else {
     ml_logi("Binary for kernel %s not found, compiling from source...",
             kernel_name.c_str());
-    result =
-      program.CreateCLProgram(opencl::ContextManager::Global().GetContext(),
-                              opencl::ContextManager::Global().GetDeviceId(),
-                              kernel_string, compile_options);
+    result = program.CreateCLProgram(context_manager_.GetContext(),
+                                     context_manager_.GetDeviceId(),
+                                     kernel_string, compile_options);
 
     if (KERNEL_CACHE_ENABLED && result) {
-      auto binary = program.GetProgramBinary(
-        opencl::ContextManager::Global().GetDeviceId());
+      auto binary = program.GetProgramBinary(context_manager_.GetDeviceId());
 
       if (binary.empty()) {
         ml_loge("Failed retrieving binary for kernel %s", kernel_name.c_str());

@@ -103,7 +103,7 @@ void addition_cl(const _FP16 *input, _FP16 *res, unsigned int size_input,
 void sscal_cl(_FP16 *X, const unsigned int N, const float alpha) {
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = blas_cc->getBufferManager();
 
   ClContext::SharedPtrClKernel kernel_sscal_fp16_ptr =
     blas_cc->registerClKernel(hscal_kernel, "sscal_cl_fp16");

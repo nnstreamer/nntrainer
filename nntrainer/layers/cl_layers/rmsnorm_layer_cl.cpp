@@ -124,7 +124,7 @@ void RMSNormLayerCl::rmsnormProcess_fp16(Tensor const &input, Tensor &result,
 
   auto *global_cl_context =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = global_cl_context->getBufferManager();
 
   do {
     auto kernel_rmsnorm_ptr = getLayerKernelPtrs()[Kernels::RMSNORM_CL_FP16];
@@ -134,14 +134,15 @@ void RMSNormLayerCl::rmsnormProcess_fp16(Tensor const &input, Tensor &result,
     const _FP16 *gdata = gamma.getData<_FP16>();
 
     ret = clbuffInstance.getInBufferA()->WriteDataRegion(
-      global_cl_context->command_queue_inst_, dim1 * sizeof(cl_half), data);
+      global_cl_context->getCommandQueueManager(), dim1 * sizeof(cl_half),
+      data);
     if (!ret) {
       break;
     }
 
     ret = clbuffInstance.getInBufferB()->WriteDataRegion(
-      global_cl_context->command_queue_inst_, input.width() * sizeof(cl_half),
-      gdata);
+      global_cl_context->getCommandQueueManager(),
+      input.width() * sizeof(cl_half), gdata);
     if (!ret) {
       break;
     }
@@ -191,14 +192,15 @@ void RMSNormLayerCl::rmsnormProcess_fp16(Tensor const &input, Tensor &result,
     /// @todo: create a group size by device & input
     const int work_group_size[3] = {w, 1, 1}; // test-value
 
-    ret = global_cl_context->command_queue_inst_.DispatchCommand(
+    ret = global_cl_context->getCommandQueueManager().DispatchCommand(
       kernel_rmsnorm_ptr, work_groups_count, work_group_size);
     if (!ret) {
       break;
     }
 
     ret = clbuffInstance.getOutBufferA()->ReadDataRegion(
-      global_cl_context->command_queue_inst_, dim1 * sizeof(cl_half), rdata);
+      global_cl_context->getCommandQueueManager(), dim1 * sizeof(cl_half),
+      rdata);
     if (!ret) {
       break;
     }

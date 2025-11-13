@@ -170,7 +170,7 @@ void MemoryPool::allocate() {
 #ifdef ENABLE_OPENCL
   auto *cl_context =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  mem_pool = cl_context->context_inst_.createSVMRegion(pool_size);
+  mem_pool = cl_context->getContextManager().createSVMRegion(pool_size);
 
   if (mem_pool == nullptr) {
     throw std::runtime_error("Failed to allocate SVM memory pool of size " +
@@ -271,7 +271,7 @@ void MemoryPool::deallocate() {
 #ifdef ENABLE_OPENCL
     auto *cl_context =
       static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-    cl_context->context_inst_.releaseSVMRegion(mem_pool);
+    cl_context->getContextManager().releaseSVMRegion(mem_pool);
 #else
     free(mem_pool);
 #endif

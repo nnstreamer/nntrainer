@@ -28,7 +28,7 @@ namespace nntrainer::opencl {
  * @brief OpenCL context wrapper
  *
  */
-class ContextManager : public Singleton<ContextManager> {
+class ContextManager : public Noncopyable, public Nonmovable {
 
   /**
    * @brief Create a Default GPU Device object
@@ -51,12 +51,6 @@ public:
    * @return const cl_context
    */
   const cl_context &GetContext();
-
-  /**
-   * @brief Release OpenCL context
-   *
-   */
-  void ReleaseContext();
 
   /**
    * @brief Get the Device Id object
