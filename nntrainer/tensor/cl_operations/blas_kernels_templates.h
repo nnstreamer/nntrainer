@@ -367,7 +367,7 @@ inline static void rmsnorm_cl_internal(ClContext::SharedPtrClKernel kernel,
     }
   }
 
-  if (!kernel->SetKernelArguments(3, &epsilon, sizeof(float))) {
+  if (!kernel->SetKernelArguments(3, &epsilon, sizeof(T))) {
     return;
   }
   if (!kernel->SetKernelArguments(4, &height, sizeof(int))) {
