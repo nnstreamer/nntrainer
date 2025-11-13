@@ -43,7 +43,7 @@ public:
   using prop_tag = uint_prop_tag;
 };
 
-UnrollFor::UnrollFor(const unsigned &value) { set(value); }
+UnrollFor::UnrollFor(const unsigned &_value) { set(_value); }
 
 /**
  * @brief dynamic time sequence property, use this to set and check if dynamic
@@ -200,8 +200,8 @@ static void propagateTimestep(LayerNode *node, unsigned int time_step,
                               unsigned int max_time_step) {
 
   /** @todo add an interface to check if a layer supports a property */
-  auto is_recurrent_type = [](LayerNode *node) {
-    return node->getType() == ZoneoutLSTMCellLayer::type;
+  auto is_recurrent_type = [](LayerNode *_node) {
+    return _node->getType() == ZoneoutLSTMCellLayer::type;
   };
 
   if (is_recurrent_type(node)) {
@@ -263,10 +263,10 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
     GraphRepresentation step;
     step.reserve(reference_.size());
 
-    auto replace_time_idx = [](std::string &name, unsigned time_idx) {
+    auto replace_time_idx = [](std::string &name, unsigned _time_idx) {
       auto pos = name.find_last_of('/');
       if (pos != std::string::npos) {
-        name.replace(pos + 1, std::string::npos, std::to_string(time_idx));
+        name.replace(pos + 1, std::string::npos, std::to_string(_time_idx));
       }
     };
     for (auto &node : reference_) {

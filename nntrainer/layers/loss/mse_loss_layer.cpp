@@ -41,8 +41,8 @@ void MSELossLayer::forwarding(RunLayerContext &context, bool training) {
     l2norm *= l2norm / hidden_.size();
 
     /** wrap in tensor for update loss */
-    Tensor l = Tensor(TensorDim(1, 1, 1, 1), &l2norm);
-    LossLayer::updateLoss(context, l);
+    Tensor _l = Tensor(TensorDim(1, 1, 1, 1), &l2norm);
+    LossLayer::updateLoss(context, _l);
   }
 
   // fill the output

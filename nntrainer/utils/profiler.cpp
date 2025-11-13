@@ -326,10 +326,10 @@ void Profiler::unsubscribe(std::shared_ptr<ProfileListener> listener) {
   std::lock_guard<std::mutex> lock(listeners_mutex);
   listeners.erase(listener);
 
-  for (auto &[item, listeners] : time_item_listeners) {
-    auto found = listeners.find(listener);
-    if (found != listeners.end())
-      listeners.erase(found);
+  for (auto &[item, t_listeners] : time_item_listeners) {
+    auto found = t_listeners.find(listener);
+    if (found != t_listeners.end())
+      t_listeners.erase(found);
   }
 }
 

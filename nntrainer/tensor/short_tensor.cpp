@@ -21,8 +21,8 @@ ShortTensor::ShortTensor(std::string name_, Tformat fm, QScheme qscheme_) :
   TensorBase(name_, fm, Tdatatype::QINT16), qscheme(qscheme_) {}
 
 ShortTensor::ShortTensor(const TensorDim &d, bool alloc_now, Initializer init,
-                         std::string name, QScheme qscheme_) :
-  TensorBase(d, alloc_now, init, name), qscheme(qscheme_) {
+                         std::string tensor_name, QScheme qscheme_) :
+  TensorBase(d, alloc_now, init, tensor_name), qscheme(qscheme_) {
   if (alloc_now)
     allocate();
 }
@@ -65,9 +65,9 @@ ShortTensor::ShortTensor(
   MemoryData *mem_data = new MemoryData(
     (void *)(new int16_t[dim.getDataLen() +
                          sizeof(float) / sizeof(int16_t) * scale_size()]()));
-  data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
-    delete[] mem_data->getAddr<int16_t>();
-    delete mem_data;
+  data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *ptr) {
+    delete[] ptr->getAddr<int16_t>();
+    delete ptr;
   });
 
   offset = 0;
@@ -131,9 +131,9 @@ void ShortTensor::allocate() {
     mem_data = new MemoryData(
       (void *)(new int16_t[dim.getDataLen() +
                            sizeof(float) / sizeof(int16_t) * scale_size()]{}));
-    data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-      delete[] mem_data->template getAddr<int16_t>();
-      delete mem_data;
+    data = std::shared_ptr<MemoryData>(mem_data, [](auto *ptr) {
+      delete[] ptr->template getAddr<int16_t>();
+      delete ptr;
     });
 
     offset = 0;
@@ -216,8 +216,8 @@ int16_t &ShortTensor::getValue(unsigned int b, unsigned int c, unsigned int h,
 }
 
 void ShortTensor::setValue(float value) {
-  int16_t *data = (int16_t *)getData();
-  std::fill(data, data + size(), value);
+  int16_t *_data = (int16_t *)getData();
+  std::fill(_data, _data + size(), value);
 }
 
 void ShortTensor::addValue(unsigned int b, unsigned int c, unsigned int h,
@@ -346,7 +346,7 @@ void ShortTensor::read(std::ifstream &file, size_t start_offset,
 
 std::vector<unsigned int> ShortTensor::argmax() const {
   std::vector<unsigned int> result;
-  const int16_t *data = (int16_t *)getData();
+  const int16_t *_data = (int16_t *)getData();
   size_t batch_size = batch();
   size_t feature_len = dim.getFeatureLen();
 
@@ -354,15 +354,15 @@ std::vector<unsigned int> ShortTensor::argmax() const {
 
   for (unsigned int b = 0; b < batch_size; b++) {
     auto max_iter =
-      std::max_element(data + b * feature_len, data + (b + 1) * feature_len);
-    result[b] = std::distance(data, max_iter) - (b * feature_len);
+      std::max_element(_data + b * feature_len, _data + (b + 1) * feature_len);
+    result[b] = std::distance(_data, max_iter) - (b * feature_len);
   }
   return result;
 }
 
 std::vector<unsigned int> ShortTensor::argmin() const {
   std::vector<unsigned int> result;
-  const int16_t *data = (int16_t *)getData();
+  const int16_t *_data = (int16_t *)getData();
   size_t batch_size = batch();
   size_t feature_len = dim.getFeatureLen();
 
@@ -370,19 +370,19 @@ std::vector<unsigned int> ShortTensor::argmin() const {
 
   for (unsigned int b = 0; b < batch_size; b++) {
     auto min_iter =
-      std::min_element(data + b * feature_len, data + (b + 1) * feature_len);
-    result[b] = std::distance(data, min_iter) - (b * feature_len);
+      std::min_element(_data + b * feature_len, _data + (b + 1) * feature_len);
+    result[b] = std::distance(_data, min_iter) - (b * feature_len);
   }
   return result;
 }
 
 float ShortTensor::max_abs() const {
-  const int16_t *data = (int16_t *)getData();
+  const int16_t *_data = (int16_t *)getData();
   unsigned int idx;
 
-  int16_t max_val = data[0];
+  int16_t max_val = _data[0];
   for (unsigned int i = 1; i < size(); i += 1) {
-    int16_t cur_val = (data[i] >= 0) ? data[i] : -1 * data[i];
+    int16_t cur_val = (_data[i] >= 0) ? _data[i] : -1 * _data[i];
     if (cur_val > max_val) {
       max_val = cur_val;
     }
@@ -392,25 +392,25 @@ float ShortTensor::max_abs() const {
 }
 
 float ShortTensor::maxValue() const {
-  const int16_t *data = (int16_t *)getData();
-  return *std::max_element(data, data + size());
+  const int16_t *_data = (int16_t *)getData();
+  return *std::max_element(_data, _data + size());
 }
 
 float ShortTensor::minValue() const {
-  const int16_t *data = (int16_t *)getData();
-  return *std::min_element(data, data + size());
+  const int16_t *_data = (int16_t *)getData();
+  return *std::min_element(_data, _data + size());
 }
 
 void ShortTensor::print(std::ostream &out) const {
-  const int16_t *data = (int16_t *)getData();
+  const int16_t *_data = (int16_t *)getData();
   unsigned int len = size();
-  out << "data addr: " << reinterpret_cast<const float *>(data) << '\n';
+  out << "data addr: " << reinterpret_cast<const float *>(_data) << '\n';
   out << dim;
 
   if (len > 512) {
-    out << '[' << (int)data[0] << ' ' << (int)data[1] << ' ' << (int)data[2]
-        << " ... " << (int)data[len - 3] << ' ' << (int)data[len - 2] << ' '
-        << (int)data[len - 1] << ']' << std::endl;
+    out << '[' << (int)_data[0] << ' ' << (int)_data[1] << ' ' << (int)_data[2]
+        << " ... " << (int)_data[len - 3] << ' ' << (int)_data[len - 2] << ' '
+        << (int)_data[len - 1] << ']' << std::endl;
     return;
   }
 

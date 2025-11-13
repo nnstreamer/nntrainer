@@ -54,7 +54,7 @@ public:
    *
    * @param value default value
    */
-  PropsBufferSize(unsigned int value = 1) { set(value); }
+  PropsBufferSize(unsigned int _value = 1) { set(_value); }
   static constexpr const char *key = "buffer_size"; /**< unique key to access */
   using prop_tag = uint_prop_tag;                   /**< property type */
 };
@@ -84,7 +84,7 @@ DataBuffer::startFetchWorker(const std::vector<TensorDim> &input_dims,
 
   class NotifyOnDestruct {
   public:
-    NotifyOnDestruct(IterationQueue *iq) : iq(iq) {}
+    NotifyOnDestruct(IterationQueue *_iq) : iq(_iq) {}
     ~NotifyOnDestruct() {
       try {
         iq->notifyEndOfRequestEmpty();

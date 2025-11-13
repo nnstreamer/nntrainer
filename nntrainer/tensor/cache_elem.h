@@ -129,7 +129,7 @@ public:
    * @brief set Load Task ID for Unload
    *
    */
-  void setLoadTaskID(int id) { load_task_id = id; }
+  void setLoadTaskID(int _id) { load_task_id = _id; }
 
   /**
    * @brief getter of Load Task ID
@@ -142,7 +142,7 @@ public:
    * @brief set Unload Task ID for Load
    *
    */
-  void setUnloadTaskID(int id) { unload_task_id = id; }
+  void setUnloadTaskID(int _id) { unload_task_id = _id; }
 
   /**
    * @brief getter of Unload Task ID

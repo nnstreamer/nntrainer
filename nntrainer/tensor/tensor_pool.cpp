@@ -456,13 +456,13 @@ bool TensorPool::isTensorLongTerm(const TensorLifespan &lifespan) {
 }
 
 void TensorPool::flushCache() {
-  if (auto pool = dynamic_cast<CachePool *>(mem_pool.get()))
-    pool->flush();
+  if (auto p = dynamic_cast<CachePool *>(mem_pool.get()))
+    p->flush();
 }
 
 void TensorPool::flushCacheExcept(unsigned int order) {
-  if (auto pool = dynamic_cast<CachePool *>(mem_pool.get()))
-    pool->flushExcept(order);
+  if (auto p = dynamic_cast<CachePool *>(mem_pool.get()))
+    p->flushExcept(order);
 }
 
 void TensorPool::loadCacheExec(unsigned int order) {

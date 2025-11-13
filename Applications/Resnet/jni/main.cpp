@@ -66,14 +66,14 @@ std::vector<LayerHandle> resnetBlock(const std::string &block_name,
   };
 
   auto create_conv = [&with_name, filters,
-                      pre_trained](const std::string &name, int kernel_size,
+                      pre_trained](const std::string &name, int k_size,
                                    int stride, const std::string &padding,
                                    const std::string &input_layer) {
     std::vector<std::string> props{
       with_name(name),
       nntrainer::withKey("stride", {stride, stride}),
       nntrainer::withKey("filters", filters),
-      nntrainer::withKey("kernel_size", {kernel_size, kernel_size}),
+      nntrainer::withKey("kernel_size", {k_size, k_size}),
       nntrainer::withKey("padding", padding),
       nntrainer::withKey("input_layers", input_layer),
       nntrainer::withKey("trainable", pre_trained ? "true" : "false")};

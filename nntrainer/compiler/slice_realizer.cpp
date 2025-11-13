@@ -19,18 +19,18 @@
 
 namespace nntrainer {
 
-SliceRealizer::SliceRealizer(const std::vector<Connection> &start_layers,
-                             const std::vector<Connection> &end_layers) {
+SliceRealizer::SliceRealizer(const std::vector<Connection> &_start_layers,
+                             const std::vector<Connection> &_end_layers) {
   /// discard index information as it is not needed as it is not really needed
-  this->start_layers.reserve(start_layers.size());
+  this->start_layers.reserve(_start_layers.size());
 
   std::transform(
-    start_layers.begin(), start_layers.end(),
+    _start_layers.begin(), _start_layers.end(),
     std::back_inserter(this->start_layers),
     [](const Connection &c) -> const auto & { return c.getName(); });
 
   std::transform(
-    end_layers.begin(), end_layers.end(),
+    _end_layers.begin(), _end_layers.end(),
     std::inserter(this->end_layers, this->end_layers.begin()),
     [](const Connection &c) -> const auto & { return c.getName(); });
 }
@@ -41,8 +41,8 @@ GraphRepresentation
 SliceRealizer::realize(const GraphRepresentation &reference) {
   struct NodeInfo {
     NodeInfo() : NodeInfo(nullptr) {}
-    NodeInfo(std::shared_ptr<LayerNode> node) :
-      node(node),
+    NodeInfo(std::shared_ptr<LayerNode> _node) :
+      node(_node),
       is_visited(false),
       to_be_added(false) {}
     std::shared_ptr<LayerNode> node; /**< set this if not visited */
