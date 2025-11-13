@@ -106,6 +106,7 @@ void GraphCore::topologicalSort() {
 
 const std::shared_ptr<GraphNode> &
 GraphCore::getNode(const std::string &name) const {
+  // std::cout << name << std::endl;
   return node_list.at(node_map.at(name));
 }
 

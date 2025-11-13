@@ -1,0 +1,16 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Compile",
+        "type": "shell",
+        "command": "sudo",
+        "args": ["ninja", "-C", "build"],
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+      }
+    ]
+  }
+  

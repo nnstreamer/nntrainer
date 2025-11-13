@@ -1,0 +1,26 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Debug NNTrainer",
+        "type": "cppdbg",
+        "request": "launch",
+        // "program": "${input:pickProgram}",
+        // "program": "${workspaceFolder}/build/Applications/ProductRatings/jni/nntrainer_product_ratings",
+        "program": "${workspaceFolder}/build/Applications/ONNX/jni/nntrainer_onnx_example",
+        // "args": ["train", "/storage_data/snap/sumon/sumon-98/nntrainer/Applications/ProductRatings/res/product_ratings_model.ini", "/storage_data/snap/sumon/sumon-98/nntrainer/Applications/ProductRatings/res/sample_product_ratings.txt"],
+        "cwd": "${workspaceFolder}",
+        "preLaunchTask": "Compile",
+        "MIMode": "gdb",
+        "miDebuggerPath": "/usr/bin/gdb",
+      }
+    ],
+    "inputs": [
+        {
+            "id": "pickProgram",
+            "type": "promptString",
+            "description": "Enter the program to debug:",
+            "default": "${workspaceFolder}/build/Applications/ONNX/jni/nntrainer_onnx_example"
+        }
+    ]
+  }
