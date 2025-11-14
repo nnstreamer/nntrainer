@@ -118,7 +118,9 @@ void ele_qmul(int8_t *lhs, int8_t *rhs, int8_t *res, unsigned int data_len,
 bool is_valid(const unsigned int N, const float *X) {
   size_t i = 0;
   float inf_s = std::numeric_limits<float>::infinity();
+  float neg_inf_s = -std::numeric_limits<float>::infinity();
   float32x4_t inf = vdupq_n_f32(inf_s);
+  float32x4_t neg_inf = vdupq_n_f32(neg_inf_s);
   uint32x4_t zero = vdupq_n_u32(0);
 
   for (; N - i >= 4; i += 4) {
@@ -131,6 +133,11 @@ bool is_valid(const unsigned int N, const float *X) {
       return false;
 
     vcmp = vceqq_f32(vec, inf);
+
+    if (vaddvq_u32(vcmp))
+      return false;
+
+    vcmp = vceqq_f32(vec, neg_inf);
 
     if (vaddvq_u32(vcmp))
       return false;
@@ -822,7 +829,7 @@ void copy_u16_fp32(const unsigned int N, const uint16_t *X, float *Y) {
   /// @todo implement int16_t to fp32
   unsigned int idx = 0;
   for (; (N - idx) >= 1; ++idx) {
-    Y[idx] = X[idx];
+    Y[idx] = nntrainer::compute_fp16_to_fp32(X[idx]);
   }
 }
 
