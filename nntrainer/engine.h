@@ -34,6 +34,7 @@
 #include <cl_context.h>
 #endif
 
+#include "bs_thread_pool_manager.hpp"
 #include "singleton.h"
 
 namespace nntrainer {
@@ -95,6 +96,8 @@ public:
    */
   ~Engine() = default;
 
+  void release();
+
   /**
    * @brief register a Context from a shared library
    * plugin must have **extern "C" LayerPluggable *ml_train_context_pluggable**
@@ -131,6 +134,14 @@ public:
   std::unordered_map<std::string, std::shared_ptr<nntrainer::MemAllocator>>
   getAllocators() {
     return allocator;
+  }
+
+  ThreadPoolManager *getThreadPoolManager() {
+    if (!thread_pool_manager_) {
+      thread_pool_manager_ = std::make_unique<ThreadPoolManager>();
+    }
+
+    return thread_pool_manager_.get();
   }
 
   /**
@@ -271,6 +282,8 @@ private:
     allocator;
 
   std::string working_path_base;
+
+  std::unique_ptr<ThreadPoolManager> thread_pool_manager_ = {};
 };
 
 namespace plugin {}

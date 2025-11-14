@@ -62,6 +62,8 @@ void Engine::initialize() noexcept {
   }
 };
 
+void Engine::release() { thread_pool_manager_.reset(); }
+
 std::string
 Engine::parseComputeEngine(const std::vector<std::string> &props) const {
   for (auto &prop : props) {
