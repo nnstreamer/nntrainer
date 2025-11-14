@@ -42,7 +42,9 @@
 #undef max
 #undef min
 #endif
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #define O_SYNC 0UL
 #include <io.h>
 #include <sysinfoapi.h>
