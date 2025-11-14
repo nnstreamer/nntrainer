@@ -150,7 +150,7 @@ void ReshapeLayerCl::copy_cl_fp16(const _FP16 *input, _FP16 *res,
 
   auto *global_cl_context =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = global_cl_context->getBufferManager();
 
   do {
     const auto &kernel_copy_ptr = getLayerKernelPtrs()[Kernels::COPY_CL];
@@ -159,13 +159,13 @@ void ReshapeLayerCl::copy_cl_fp16(const _FP16 *input, _FP16 *res,
                       input_width * input_channels;
 
     result = clbuffInstance.getInBufferA()->WriteDataRegion(
-      global_cl_context->command_queue_inst_, dim_size, input);
+      global_cl_context->getCommandQueueManager(), dim_size, input);
     if (!result) {
       break;
     }
 
     result = clbuffInstance.getOutBufferA()->WriteDataRegion(
-      global_cl_context->command_queue_inst_, dim_size, res);
+      global_cl_context->getCommandQueueManager(), dim_size, res);
 
     if (!result) {
       break;
@@ -211,14 +211,14 @@ void ReshapeLayerCl::copy_cl_fp16(const _FP16 *input, _FP16 *res,
     /// @todo: create a group size by device & input
     const int work_group_size[3] = {1, 1, 1}; // test-value
 
-    result = global_cl_context->command_queue_inst_.DispatchCommand(
+    result = global_cl_context->getCommandQueueManager().DispatchCommand(
       kernel_copy_ptr, work_groups_count, work_group_size);
     if (!result) {
       break;
     }
 
     result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-      global_cl_context->command_queue_inst_, dim_size, res);
+      global_cl_context->getCommandQueueManager(), dim_size, res);
     if (!result) {
       break;
     }
@@ -237,7 +237,7 @@ void ReshapeLayerCl::scopy_cl(const float *input, float *res,
 
   auto *global_cl_context =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = global_cl_context->getBufferManager();
 
   do {
     const auto &kernel_copy_ptr = getLayerKernelPtrs()[Kernels::COPY_CL];
@@ -246,13 +246,13 @@ void ReshapeLayerCl::scopy_cl(const float *input, float *res,
                       input_width * input_channels;
 
     result = clbuffInstance.getInBufferA()->WriteDataRegion(
-      global_cl_context->command_queue_inst_, dim_size, input);
+      global_cl_context->getCommandQueueManager(), dim_size, input);
     if (!result) {
       break;
     }
 
     result = clbuffInstance.getOutBufferA()->WriteDataRegion(
-      global_cl_context->command_queue_inst_, dim_size, res);
+      global_cl_context->getCommandQueueManager(), dim_size, res);
     if (!result) {
       break;
     }
@@ -297,14 +297,14 @@ void ReshapeLayerCl::scopy_cl(const float *input, float *res,
     /// @todo: create a group size by device & input
     const int work_group_size[3] = {1, 1, 1}; // test-value
 
-    result = global_cl_context->command_queue_inst_.DispatchCommand(
+    result = global_cl_context->getCommandQueueManager().DispatchCommand(
       kernel_copy_ptr, work_groups_count, work_group_size);
     if (!result) {
       break;
     }
 
     result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-      global_cl_context->command_queue_inst_, dim_size, res);
+      global_cl_context->getCommandQueueManager(), dim_size, res);
     if (!result) {
       break;
     }

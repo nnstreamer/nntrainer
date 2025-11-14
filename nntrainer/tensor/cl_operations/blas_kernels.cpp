@@ -27,7 +27,7 @@ void gemv_int4_async_cl(std::vector<void *> weights,
   bool result = false;
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = blas_cc->getBufferManager();
 
   const bool scale_row_major = false;
   std::string compile_options =
@@ -84,7 +84,7 @@ void gemv_int4_async_cl(std::vector<void *> weights,
         "Failed to set kernel argument 5 for fully_connected_gpu_int4_gemv");
 
     const int work_groups_count[3] = {(int)(alignN / 2), 1, 16};
-    result = blas_cc->command_queue_inst_.DispatchCommand(
+    result = blas_cc->getCommandQueueManager().DispatchCommand(
       kernel_ptr, work_groups_count, work_group_size);
     if (!result) {
       throw std::runtime_error(
@@ -94,8 +94,8 @@ void gemv_int4_async_cl(std::vector<void *> weights,
   }
 
   for (unsigned int i = 0; i < Ns.size(); ++i) {
-    blas_cc->command_queue_inst_.enqueueSVMMap(outputs[i],
-                                               Ns[i] * sizeof(uint16_t), true);
+    blas_cc->getCommandQueueManager().enqueueSVMMap(
+      outputs[i], Ns[i] * sizeof(uint16_t), true);
   }
   if (!result) {
     throw std::runtime_error(
@@ -113,7 +113,7 @@ void gemv_int4_cl(char *weight, uint16_t *scale, uint16_t *input,
   bool result = false;
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = blas_cc->getBufferManager();
 
   const bool scale_row_major = false;
   std::string compile_options =
@@ -164,7 +164,7 @@ void gemv_int4_cl(char *weight, uint16_t *scale, uint16_t *input,
   const int work_groups_count[3] = {(int)(alignN / 2), 1, 16};
   const int work_group_size[3] = {16, 1, 16};
 
-  result = blas_cc->command_queue_inst_.DispatchCommand(
+  result = blas_cc->getCommandQueueManager().DispatchCommand(
     kernel_ptr, work_groups_count, work_group_size);
   if (!result) {
     throw std::runtime_error(
@@ -173,8 +173,8 @@ void gemv_int4_cl(char *weight, uint16_t *scale, uint16_t *input,
   }
 
   /// @todo synchronize when only needed
-  blas_cc->command_queue_inst_.enqueueSVMMap(output, N * sizeof(uint16_t),
-                                             true);
+  blas_cc->getCommandQueueManager().enqueueSVMMap(output, N * sizeof(uint16_t),
+                                                  true);
   if (!result) {
     throw std::runtime_error(
       "Failed to read output data for fully_connected_gpu_int4_gemv");
@@ -189,7 +189,7 @@ void gemv_int4_async_cl(std::vector<void *> weights,
                         unsigned int quantization_group_size) {
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = blas_cc->getBufferManager();
 
   // copy fp32 input to fp16
   copy_fp32_u16(K, input, (uint16_t *)clbuffInstance.getSVMInput());
@@ -213,7 +213,7 @@ void gemv_int4_cl(char *weight, uint16_t *scale, float *input, float *output,
                   unsigned int quantization_group_size) {
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = blas_cc->getBufferManager();
 
   // copy fp32 input to fp16
   copy_fp32_u16(K, input, (uint16_t *)clbuffInstance.getSVMInput());
@@ -232,7 +232,7 @@ void gemm_q4_0_async_cl(std::vector<void *> matAdata, float *matBdata,
                         std::vector<unsigned int> Ns, unsigned int K) {
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = blas_cc->getBufferManager();
 
   int padding = 0;
   if (M % 8 > 0) {
@@ -311,7 +311,7 @@ void gemm_q4_0_async_cl(std::vector<void *> matAdata, float *matBdata,
     const int work_groups_count[3] = {(int)ceil(M / 8.0f), (int)N / 4, 1};
 
     // Perform Matrix Multiplication
-    result = blas_cc->command_queue_inst_.DispatchCommand(
+    result = blas_cc->getCommandQueueManager().DispatchCommand(
       kernel_ptr, work_groups_count, work_group_size);
     if (!result) {
       throw std::runtime_error(
@@ -320,8 +320,8 @@ void gemm_q4_0_async_cl(std::vector<void *> matAdata, float *matBdata,
   }
 
   for (unsigned int i = 0; i < Ns.size(); ++i) {
-    blas_cc->command_queue_inst_.enqueueSVMMap(matCdata[i],
-                                               M * Ns[i] * sizeof(float), true);
+    blas_cc->getCommandQueueManager().enqueueSVMMap(
+      matCdata[i], M * Ns[i] * sizeof(float), true);
   }
 }
 
@@ -330,7 +330,7 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
   bool result = false;
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = blas_cc->getBufferManager();
 
   size_t q_size_bytes = N * (K / 2);
   size_t d_size_bytes = N * (K / 32) * 2;
@@ -410,7 +410,7 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
   const int work_groups_count[3] = {(int)ceil(M / 8.0f), (int)N / 4, 1};
   const int work_group_size[3] = {1, 128, 1};
 
-  result = blas_cc->command_queue_inst_.DispatchCommand(
+  result = blas_cc->getCommandQueueManager().DispatchCommand(
     kernel_ptr, work_groups_count, work_group_size);
   if (!result) {
     throw std::runtime_error(
@@ -419,8 +419,8 @@ void gemm_q4_0_cl(void *matAdata, float *matBdata, float *matCdata,
   }
 
   /// @todo synchronize when only needed
-  blas_cc->command_queue_inst_.enqueueSVMMap(matCdata, M * N * sizeof(float),
-                                             true);
+  blas_cc->getCommandQueueManager().enqueueSVMMap(matCdata,
+                                                  M * N * sizeof(float), true);
   if (!result) {
     throw std::runtime_error(
       "Failed to read output data for kernel_mul_mat_Ab_Bi_8x4");
@@ -435,7 +435,7 @@ void openvino_gemm_async_cl(float *input, std::vector<void *> weights,
                             unsigned int quantization_group_size) {
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = blas_cc->getBufferManager();
 
   bool result = false;
 
@@ -480,7 +480,7 @@ void openvino_gemm_async_cl(float *input, std::vector<void *> weights,
     std::array<size_t, 3> global_work_size = {
       (M * alignK) / quantization_group_size, 1, 1};
 
-    blas_cc->command_queue_inst_.enqueueKernel(
+    blas_cc->getCommandQueueManager().enqueueKernel(
       kernel_ptr->GetKernel(), global_work_size.size(), global_work_size.data(),
       nullptr, 0, nullptr, &quantize_event.front());
   }
@@ -550,7 +550,7 @@ void openvino_gemm_async_cl(float *input, std::vector<void *> weights,
                                       (int)(align(ceilDiv(M, 8), 8)), 1};
     const int work_group_size[3] = {16, 8, 1};
 
-    result = blas_cc->command_queue_inst_.DispatchCommand(
+    result = blas_cc->getCommandQueueManager().DispatchCommand(
       kernel_ptr, work_groups_count, work_group_size, nullptr, quantize_event);
     if (!result) {
       throw std::runtime_error(
@@ -560,7 +560,7 @@ void openvino_gemm_async_cl(float *input, std::vector<void *> weights,
   }
 
   for (unsigned int i = 0; i < Ns.size(); ++i) {
-    blas_cc->command_queue_inst_.enqueueSVMMap(
+    blas_cc->getCommandQueueManager().enqueueSVMMap(
       clbuffInstance.getSVMOutput(i), M * Ns[i] * sizeof(uint16_t), true);
 
     // copy fp16 output to fp32
@@ -575,7 +575,7 @@ void openvino_sgemm_cl(float *input, char *weight, uint16_t *scale,
                        unsigned int K, unsigned int quantization_group_size) {
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = blas_cc->getBufferManager();
 
   // copy fp32 input to fp16
   copy_fp32_u16(M * K, input, (uint16_t *)clbuffInstance.getSVMInput());
@@ -599,7 +599,7 @@ void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
   bool result = false;
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = blas_cc->getBufferManager();
   const bool scale_row_major = false;
   std::string compile_options =
     " -D SIZE_N=" + std::to_string(N) + " -D SIZE_K=" + std::to_string(K) +
@@ -638,7 +638,7 @@ void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
     std::array<size_t, 3> global_work_size = {
       (M * alignK) / quantization_group_size, 1, 1};
 
-    blas_cc->command_queue_inst_.enqueueKernel(
+    blas_cc->getCommandQueueManager().enqueueKernel(
       kernel_ptr->GetKernel(), global_work_size.size(), global_work_size.data(),
       nullptr, 0, nullptr, &quantize_event.front());
   }
@@ -696,7 +696,7 @@ void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
                                     (int)(align(ceilDiv(M, 8), 8)), 1};
   const int work_group_size[3] = {16, 8, 1};
 
-  result = blas_cc->command_queue_inst_.DispatchCommand(
+  result = blas_cc->getCommandQueueManager().DispatchCommand(
     kernel_ptr, work_groups_count, work_group_size, nullptr, quantize_event);
   if (!result) {
     throw std::runtime_error(
@@ -705,8 +705,8 @@ void openvino_gemm_cl(void *input, void *weights, void *scales, void *output,
   }
 
   /// @todo synchronize when only needed
-  blas_cc->command_queue_inst_.enqueueSVMMap(output, M * N * sizeof(uint16_t),
-                                             true);
+  blas_cc->getCommandQueueManager().enqueueSVMMap(
+    output, M * N * sizeof(uint16_t), true);
   if (!result) {
     throw std::runtime_error(
       "Failed to read output data for fc_bf_tiled_kernel_default");
@@ -733,13 +733,13 @@ void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
 
   const size_t q6k_bytes = 210 * M * N / 256;
 
-  result = blas_cc->command_queue_inst_.enqueueSVMUnmap(matAdata);
+  result = blas_cc->getCommandQueueManager().enqueueSVMUnmap(matAdata);
   if (!result) {
     ml_loge("Failed to write data to input buffer A for kernel_q6_k_sgemv_ptr");
     return;
   }
 
-  result = blas_cc->command_queue_inst_.enqueueSVMUnmap(vecXdata);
+  result = blas_cc->getCommandQueueManager().enqueueSVMUnmap(vecXdata);
   if (!result) {
     ml_loge("Failed to write data to input buffer B for kernel_q6_k_sgemv_ptr");
     return;
@@ -882,15 +882,15 @@ void sgemv_q6_k_cl(void *matAdata, float *vecXdata, float *vecYdata,
   /// @todo: create a group size by device & input
   const int work_group_size[3] = {32, 1, 1};
 
-  result = opencl::CommandQueueManager::Global().DispatchCommand(
+  result = blas_cc->getCommandQueueManager().DispatchCommand(
     kernel_q6_k_sgemv_ptr, work_groups_count, work_group_size);
   if (!result) {
     ml_loge("Failed to dispatch kernel q6_k_sgemv");
     return;
   }
 
-  result = blas_cc->command_queue_inst_.enqueueSVMMap(vecYdata,
-                                                      N * sizeof(float), true);
+  result = blas_cc->getCommandQueueManager().enqueueSVMMap(
+    vecYdata, N * sizeof(float), true);
 
   if (!result) {
     ml_loge(
@@ -1055,7 +1055,7 @@ void flatten_block_q4_0_cl(const void *src, void *dst_q, void *dst_d,
 
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = blas_cc->getBufferManager();
 
   ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
     convert_block_q4_0_kernel, "kernel_convert_block_q4_0_noshuffle");
@@ -1089,7 +1089,7 @@ void flatten_block_q4_0_cl(const void *src, void *dst_q, void *dst_d,
   const int work_groups_count[3] = {(int)num_blocks, 1, 1};
   const int work_group_size[3] = {64, 1, 1};
 
-  result = blas_cc->command_queue_inst_.DispatchCommand(
+  result = blas_cc->getCommandQueueManager().DispatchCommand(
     kernel_ptr, work_groups_count, work_group_size);
   if (!result) {
     ml_loge("Failed to dispatch kernel for flatten_block_q4_0_cl");
@@ -1134,7 +1134,7 @@ void restore_block_q4_0_cl(const void *src_q, const void *src_d, void *dst,
   const int work_groups_count[3] = {(int)num_blocks, 1, 1};
   const int work_group_size[3] = {1, 1, 1};
 
-  result = blas_cc->command_queue_inst_.DispatchCommand(
+  result = blas_cc->getCommandQueueManager().DispatchCommand(
     kernel_ptr, work_groups_count, work_group_size);
   if (!result) {
     ml_loge("Failed to dispatch kernel for restore_block_q4_0_cl");
@@ -1145,7 +1145,7 @@ void restore_block_q4_0_cl(const void *src_q, const void *src_d, void *dst,
 void transpose_32_16(float *data, int M, int K) {
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = blas_cc->getBufferManager();
 
   ClContext::SharedPtrClKernel kernel_ptr = blas_cc->registerClKernel(
     transpose_32bit_16bit_kernel, "kernel_transpose_32_16");
@@ -1201,7 +1201,7 @@ void transpose_32_16(float *data, int M, int K) {
   const int work_groups_count[3] = {width, padded_height, 1};
   const int work_group_size[3] = {1, 16, 1};
 
-  result = blas_cc->command_queue_inst_.DispatchCommand(
+  result = blas_cc->getCommandQueueManager().DispatchCommand(
     kernel_ptr, work_groups_count, work_group_size);
   if (!result) {
     ml_loge("Failed to dispatch kernel for kernel_transpose_32_16");
@@ -1214,7 +1214,7 @@ void transpose_16(void *input, void *output, int width, int height,
                   int size_bytes, bool isQuant) {
   auto *blas_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = blas_cc->getBufferManager();
 
   ClContext::SharedPtrClKernel kernel_ptr =
     blas_cc->registerClKernel(transpose_16bit_kernel,
@@ -1249,7 +1249,7 @@ void transpose_16(void *input, void *output, int width, int height,
   const int work_groups_count[3] = {width, height, 1};
   const int work_group_size[3] = {4, 16, 1};
 
-  result = blas_cc->command_queue_inst_.DispatchCommand(
+  result = blas_cc->getCommandQueueManager().DispatchCommand(
     kernel_ptr, work_groups_count, work_group_size);
   if (!result) {
     ml_loge("Failed to dispatch kernel for kernel_transpose_16");

@@ -140,7 +140,7 @@ void *allocateSVM(size_t size_bytes) {
   auto *blas_cc = static_cast<nntrainer::ClContext *>(
     nntrainer::Engine::Global().getRegisteredContext("gpu"));
 
-  void *ptr = blas_cc->context_inst_.createSVMRegion(size_bytes);
+  void *ptr = blas_cc->getContextManager().createSVMRegion(size_bytes);
 
   if (ptr == nullptr) {
     throw std::runtime_error(
@@ -154,7 +154,7 @@ void freeSVM(void *ptr) {
   auto *blas_cc = static_cast<nntrainer::ClContext *>(
     nntrainer::Engine::Global().getRegisteredContext("gpu"));
 
-  blas_cc->context_inst_.releaseSVMRegion(ptr);
+  blas_cc->getContextManager().releaseSVMRegion(ptr);
   ptr = nullptr;
 }
 
@@ -735,8 +735,8 @@ TEST(nntrainer_blas_kernel, int4_gemv_async_test) {
   // Initialize Activation
   std::vector<float> activation = generate_random_vector<float, false>(M * K);
   uint16_t *input = (uint16_t *)allocateSVM(M * K * sizeof(uint16_t));
-  blas_cc->command_queue_inst_.enqueueSVMMap(input, M * K * sizeof(uint16_t),
-                                             false);
+  blas_cc->getCommandQueueManager().enqueueSVMMap(
+    input, M * K * sizeof(uint16_t), false);
   for (unsigned int i = 0; i < M * K; ++i) {
     input[i] = compute_fp32_to_fp16(activation[i]);
   }
@@ -752,7 +752,7 @@ TEST(nntrainer_blas_kernel, int4_gemv_async_test) {
 
   void *ws0 = allocateSVM(data_size_n0 / scale_group_size);
   void *wq0 = allocateSVM(data_size_n0 / 2);
-  blas_cc->command_queue_inst_.enqueueSVMMap(wq0, data_size_n0 / 2, false);
+  blas_cc->getCommandQueueManager().enqueueSVMMap(wq0, data_size_n0 / 2, false);
 
   std::vector<uint8_t> quantized_weights0;
   std::vector<uint16_t> quantized_scales0;
@@ -770,7 +770,7 @@ TEST(nntrainer_blas_kernel, int4_gemv_async_test) {
   // weight 1 (3072 x 256)
   void *ws1 = allocateSVM(data_size_n1 / scale_group_size);
   void *wq1 = allocateSVM(data_size_n1 / 2);
-  blas_cc->command_queue_inst_.enqueueSVMMap(wq1, data_size_n1 / 2, false);
+  blas_cc->getCommandQueueManager().enqueueSVMMap(wq1, data_size_n1 / 2, false);
 
   std::vector<uint8_t> quantized_weights1;
   std::vector<uint16_t> quantized_scales1;
@@ -788,7 +788,7 @@ TEST(nntrainer_blas_kernel, int4_gemv_async_test) {
   // weight 2 (3072 x 256)
   void *ws2 = allocateSVM(data_size_n1 / scale_group_size);
   void *wq2 = allocateSVM(data_size_n1 / 2);
-  blas_cc->command_queue_inst_.enqueueSVMMap(wq2, data_size_n1 / 2, false);
+  blas_cc->getCommandQueueManager().enqueueSVMMap(wq2, data_size_n1 / 2, false);
 
   std::vector<uint8_t> quantized_weights2;
   std::vector<uint16_t> quantized_scales2;
@@ -1012,11 +1012,11 @@ static void run_int4_gemm_test_(const uint32_t M, const uint32_t K,
                                                 alignN * sizeof(uint16_t));
   uint16_t *output_ptr = (uint16_t *)allocateSVM(M * alignN * sizeof(uint16_t));
 
-  blas_cc->command_queue_inst_.enqueueSVMMap(
+  blas_cc->getCommandQueueManager().enqueueSVMMap(
     input_ptr, input_size * sizeof(uint16_t), false);
-  blas_cc->command_queue_inst_.enqueueSVMMap(weight_ptr, alignK * alignN / 2,
-                                             false);
-  blas_cc->command_queue_inst_.enqueueSVMMap(
+  blas_cc->getCommandQueueManager().enqueueSVMMap(weight_ptr,
+                                                  alignK * alignN / 2, false);
+  blas_cc->getCommandQueueManager().enqueueSVMMap(
     scale_ptr, ceilDiv(K, scale_group_size) * alignN * sizeof(uint16_t), false);
 
   std::vector<uint8_t> quantized_weights;
@@ -1036,9 +1036,9 @@ static void run_int4_gemm_test_(const uint32_t M, const uint32_t K,
     weight_ptr[i] = quantized_weights[i];
   }
 
-  blas_cc->command_queue_inst_.enqueueSVMUnmap(input_ptr);
-  blas_cc->command_queue_inst_.enqueueSVMUnmap(weight_ptr);
-  blas_cc->command_queue_inst_.enqueueSVMUnmap(scale_ptr);
+  blas_cc->getCommandQueueManager().enqueueSVMUnmap(input_ptr);
+  blas_cc->getCommandQueueManager().enqueueSVMUnmap(weight_ptr);
+  blas_cc->getCommandQueueManager().enqueueSVMUnmap(scale_ptr);
   // GPU INT4 GEMM
   auto t3 = std::chrono::high_resolution_clock::now();
   for (unsigned int i = 0; i < run_count; ++i) {
@@ -1205,8 +1205,8 @@ TEST(nntrainer_blas_kernel, int4_gemm_async_test) {
   // Initialize Activation
   std::vector<float> activation = generate_random_vector<float, false>(M * K);
   float *activations_f32_ptr = (float *)allocateSVM(M * K * sizeof(float));
-  blas_cc->command_queue_inst_.enqueueSVMMap(activations_f32_ptr,
-                                             M * K * sizeof(float), false);
+  blas_cc->getCommandQueueManager().enqueueSVMMap(activations_f32_ptr,
+                                                  M * K * sizeof(float), false);
   for (unsigned int i = 0; i < M * K; ++i) {
     activations_f32_ptr[i] = activation[i];
   }
@@ -1221,7 +1221,7 @@ TEST(nntrainer_blas_kernel, int4_gemm_async_test) {
   // weight 0 (3072 x 3072)
   void *ws0 = allocateSVM(data_size_n0 / scale_group_size);
   void *wq0 = allocateSVM(data_size_n0 / 2);
-  blas_cc->command_queue_inst_.enqueueSVMMap(wq0, data_size_n0 / 2, false);
+  blas_cc->getCommandQueueManager().enqueueSVMMap(wq0, data_size_n0 / 2, false);
 
   std::vector<uint8_t> quantized_weights0;
   std::vector<uint16_t> quantized_scales0;
@@ -1239,7 +1239,7 @@ TEST(nntrainer_blas_kernel, int4_gemm_async_test) {
   // weight 1 (3072 x 256)
   void *ws1 = allocateSVM(data_size_n1 / scale_group_size);
   void *wq1 = allocateSVM(data_size_n1 / 2);
-  blas_cc->command_queue_inst_.enqueueSVMMap(wq1, data_size_n1 / 2, false);
+  blas_cc->getCommandQueueManager().enqueueSVMMap(wq1, data_size_n1 / 2, false);
 
   std::vector<uint8_t> quantized_weights1;
   std::vector<uint16_t> quantized_scales1;
@@ -1257,7 +1257,7 @@ TEST(nntrainer_blas_kernel, int4_gemm_async_test) {
   // weight 2 (3072 x 256)
   void *ws2 = allocateSVM(data_size_n1 / scale_group_size);
   void *wq2 = allocateSVM(data_size_n1 / 2);
-  blas_cc->command_queue_inst_.enqueueSVMMap(wq2, data_size_n1 / 2, false);
+  blas_cc->getCommandQueueManager().enqueueSVMMap(wq2, data_size_n1 / 2, false);
 
   std::vector<uint8_t> quantized_weights2;
   std::vector<uint16_t> quantized_scales2;
@@ -1793,9 +1793,9 @@ TEST(blas_kernels, rmsnorm_fp32) {
   void *gamma_fp32_svm = allocateSVM(gamma_fp32.size() * sizeof(float));
   void *out_fp32_svm = allocateSVM(out_cl_fp32.size() * sizeof(float));
 
-  blas_cc->command_queue_inst_.enqueueSVMMap(
+  blas_cc->getCommandQueueManager().enqueueSVMMap(
     in_fp32_svm, in_fp32.size() * sizeof(float), false);
-  blas_cc->command_queue_inst_.enqueueSVMMap(
+  blas_cc->getCommandQueueManager().enqueueSVMMap(
     gamma_fp32_svm, gamma_fp32.size() * sizeof(float), false);
 
   std::memcpy(in_fp32_svm, in_fp32.getData<float>(),
@@ -1803,8 +1803,8 @@ TEST(blas_kernels, rmsnorm_fp32) {
   std::memcpy(gamma_fp32_svm, gamma_fp32.getData<float>(),
               gamma_fp32.size() * sizeof(float));
 
-  blas_cc->command_queue_inst_.enqueueSVMUnmap(in_fp32_svm);
-  blas_cc->command_queue_inst_.enqueueSVMUnmap(gamma_fp32_svm);
+  blas_cc->getCommandQueueManager().enqueueSVMUnmap(in_fp32_svm);
+  blas_cc->getCommandQueueManager().enqueueSVMUnmap(gamma_fp32_svm);
 
   static constexpr uint32_t run_count = 500;
   static constexpr float kEpsilon = 0.001f;
@@ -1834,7 +1834,7 @@ TEST(blas_kernels, rmsnorm_fp32) {
   std::cout << "RMSNorm time : CPU = " << t2_ref / (run_count * 1.0f) << " ms"
             << std::endl;
 
-  blas_cc->command_queue_inst_.enqueueSVMMap(
+  blas_cc->getCommandQueueManager().enqueueSVMMap(
     out_fp32_svm, out_cl_fp32.size() * sizeof(float), false);
 
   float mseError = mse<float>((float *)out_fp32_svm,
@@ -1894,10 +1894,10 @@ TEST(blas_kernels, swiglu_layer_fp32_67_3072) {
   void *gpu_in2 = allocateSVM(dim * sizeof(float));
   void *gpu_dst = allocateSVM(dim * sizeof(float));
 
-  blas_cc->command_queue_inst_.enqueueSVMMap(gpu_in1, dim * sizeof(float),
-                                             false);
-  blas_cc->command_queue_inst_.enqueueSVMMap(gpu_in2, dim * sizeof(float),
-                                             false);
+  blas_cc->getCommandQueueManager().enqueueSVMMap(gpu_in1, dim * sizeof(float),
+                                                  false);
+  blas_cc->getCommandQueueManager().enqueueSVMMap(gpu_in2, dim * sizeof(float),
+                                                  false);
 
   std::memcpy(gpu_in1, A_fp32.getData(), dim * sizeof(float));
   std::memcpy(gpu_in2, B_fp32.getData(), dim * sizeof(float));
@@ -2347,14 +2347,15 @@ static void run_q_6_K_test(const uint32_t M, const uint32_t K,
 
   void *q6_weight_ptr = allocateSVM(data_size);
 
-  blas_cc->command_queue_inst_.enqueueSVMMap(q6_weight_ptr, data_size, false);
+  blas_cc->getCommandQueueManager().enqueueSVMMap(q6_weight_ptr, data_size,
+                                                  false);
 
   float *weights_f32_ptr = weight.data();
 
   float *activations_f32_ptr = (float *)allocateSVM(M * K * sizeof(float));
 
-  blas_cc->command_queue_inst_.enqueueSVMMap(activations_f32_ptr,
-                                             M * K * sizeof(float), false);
+  blas_cc->getCommandQueueManager().enqueueSVMMap(activations_f32_ptr,
+                                                  M * K * sizeof(float), false);
 
   for (unsigned int i = 0; i < M * K; ++i) {
     activations_f32_ptr[i] = activation[i];
@@ -2461,14 +2462,15 @@ static void run_q4_0_test(const uint32_t M, const uint32_t K,
   void *q4_weight_ptr = allocateSVM(data_size);
   void *q4_weight_repack_ptr = allocateSVM(data_size);
 
-  blas_cc->command_queue_inst_.enqueueSVMMap(q4_weight_ptr, data_size, false);
+  blas_cc->getCommandQueueManager().enqueueSVMMap(q4_weight_ptr, data_size,
+                                                  false);
 
   float *weights_f32_ptr = weight.data();
 
   float *activations_f32_ptr = (float *)allocateSVM(M * K * sizeof(float));
 
-  blas_cc->command_queue_inst_.enqueueSVMMap(activations_f32_ptr,
-                                             M * K * sizeof(float), false);
+  blas_cc->getCommandQueueManager().enqueueSVMMap(activations_f32_ptr,
+                                                  M * K * sizeof(float), false);
 
   for (unsigned int i = 0; i < M * K; ++i) {
     activations_f32_ptr[i] = activation[i];
@@ -2571,8 +2573,8 @@ TEST(nntrainer_blas_kernel, q4_0_async_test) {
   // Initialize Activation
   std::vector<float> activation = generate_random_vector<float, false>(M * K);
   float *activations_f32_ptr = (float *)allocateSVM(M * K * sizeof(float));
-  blas_cc->command_queue_inst_.enqueueSVMMap(activations_f32_ptr,
-                                             M * K * sizeof(float), false);
+  blas_cc->getCommandQueueManager().enqueueSVMMap(activations_f32_ptr,
+                                                  M * K * sizeof(float), false);
   for (unsigned int i = 0; i < M * K; ++i) {
     activations_f32_ptr[i] = activation[i];
   }
@@ -2594,7 +2596,7 @@ TEST(nntrainer_blas_kernel, q4_0_async_test) {
   // weight 0 (3072 x 3072)
   void *w0 = allocateSVM(data_size_n0);
   void *wq0 = allocateSVM(data_size_n0);
-  blas_cc->command_queue_inst_.enqueueSVMMap(w0, data_size_n0, false);
+  blas_cc->getCommandQueueManager().enqueueSVMMap(w0, data_size_n0, false);
   float *weights_f32_ptr = weight0.data();
   nntrainer::quantize_q4_0(weights_f32_ptr, w0, N0, K, nullptr);
   nntrainer::repack_q4_0(wq0, w0, data_size_n0, N0, K);
@@ -2602,7 +2604,7 @@ TEST(nntrainer_blas_kernel, q4_0_async_test) {
   // weight 1 (3072 x 256)
   void *w1 = allocateSVM(data_size_n1);
   void *wq1 = allocateSVM(data_size_n1);
-  blas_cc->command_queue_inst_.enqueueSVMMap(w1, data_size_n1, false);
+  blas_cc->getCommandQueueManager().enqueueSVMMap(w1, data_size_n1, false);
   weights_f32_ptr = weight1.data();
   nntrainer::quantize_q4_0(weights_f32_ptr, w1, N1, K, nullptr);
   nntrainer::repack_q4_0(wq1, w1, data_size_n1, N1, K);
@@ -2610,7 +2612,7 @@ TEST(nntrainer_blas_kernel, q4_0_async_test) {
   // weight 2 (3072 x 256)
   void *w2 = allocateSVM(data_size_n1);
   void *wq2 = allocateSVM(data_size_n1);
-  blas_cc->command_queue_inst_.enqueueSVMMap(w2, data_size_n1, false);
+  blas_cc->getCommandQueueManager().enqueueSVMMap(w2, data_size_n1, false);
   weights_f32_ptr = weight2.data();
   nntrainer::quantize_q4_0(weights_f32_ptr, w2, N1, K, nullptr);
   nntrainer::repack_q4_0(wq2, w2, data_size_n1, N1, K);
@@ -2685,8 +2687,8 @@ TEST(nntrainer_blas_kernel, q4_0_async_test2) {
   // Initialize Activation
   std::vector<float> activation = generate_random_vector<float, false>(M * K);
   float *activations_f32_ptr = (float *)allocateSVM(M * K * sizeof(float));
-  blas_cc->command_queue_inst_.enqueueSVMMap(activations_f32_ptr,
-                                             M * K * sizeof(float), false);
+  blas_cc->getCommandQueueManager().enqueueSVMMap(activations_f32_ptr,
+                                                  M * K * sizeof(float), false);
   for (unsigned int i = 0; i < M * K; ++i) {
     activations_f32_ptr[i] = activation[i];
   }
@@ -2706,7 +2708,7 @@ TEST(nntrainer_blas_kernel, q4_0_async_test2) {
   // weight 0 (3072 x 8192)
   void *w0 = allocateSVM(data_size_n0);
   void *wq0 = allocateSVM(data_size_n0);
-  blas_cc->command_queue_inst_.enqueueSVMMap(w0, data_size_n0, false);
+  blas_cc->getCommandQueueManager().enqueueSVMMap(w0, data_size_n0, false);
   float *weights_f32_ptr = weight0.data();
   nntrainer::quantize_q4_0(weights_f32_ptr, w0, N0, K, nullptr);
   nntrainer::repack_q4_0(wq0, w0, data_size_n0, N0, K);
@@ -2714,7 +2716,7 @@ TEST(nntrainer_blas_kernel, q4_0_async_test2) {
   // weight 1 (3072 x 8192)
   void *w1 = allocateSVM(data_size_n0);
   void *wq1 = allocateSVM(data_size_n0);
-  blas_cc->command_queue_inst_.enqueueSVMMap(w1, data_size_n0, false);
+  blas_cc->getCommandQueueManager().enqueueSVMMap(w1, data_size_n0, false);
   weights_f32_ptr = weight1.data();
   nntrainer::quantize_q4_0(weights_f32_ptr, w1, N0, K, nullptr);
   nntrainer::repack_q4_0(wq1, w1, data_size_n0, N0, K);
