@@ -20,6 +20,17 @@
 #include <stdexcept>
 #include <tensor_dim.h>
 
+#if defined(_WIN32)
+#ifdef max
+#undef max
+#undef min
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
+
 namespace nntrainer {
 
 #ifdef ENABLE_FP16
