@@ -125,11 +125,6 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
-  /**
-   * @brief registerClKernels
-   */
-  static bool registerClKernels(ClContext &cl_context);
-
   static constexpr const char *type = "rmsnorm";
 
 private:
@@ -137,13 +132,6 @@ private:
 
   std::tuple<props::GammaInitializer, props::Epsilon>
     rmsnorm_props; /**< rmsnorm layer properties */
-
-  static std::vector<ClContext::SharedPtrClKernel> &getLayerKernelPtrs();
-
-  enum Kernels {
-    RMSNORM_CL,
-    RMSNORM_CL_FP16,
-  };
 };
 } // namespace nntrainer
 

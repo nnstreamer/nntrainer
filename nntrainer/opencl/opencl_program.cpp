@@ -21,13 +21,7 @@
 
 #include <nntrainer_log.h>
 
-#define stringify(s) stringify2(s)
-#define stringify2(s) #s
-
 namespace nntrainer::opencl {
-
-// defining DEFAULT_KERNEL_PATH
-const std::string Program::DEFAULT_KERNEL_PATH = stringify(OPENCL_KERNEL_PATH);
 
 /**
  * @brief Build OpenCL program

@@ -115,11 +115,6 @@ public:
   void ReshapeProcess(Tensor const &input, Tensor &result);
 
   /**
-   * @brief registerClKernels
-   */
-  static bool registerClKernels(ClContext &cl_context);
-
-  /**
    * @brief     copy computation
    * @param[in] input float * for Input Tensor
    * @param[in] res float * for Output Tensor
@@ -152,10 +147,6 @@ public:
 private:
   std::tuple<props::TargetShape>
     reshape_props; /**< reshape properties : target_shape after reshape */
-
-  static std::vector<ClContext::SharedPtrClKernel> &getLayerKernelPtrs();
-
-  enum Kernels { COPY_CL, COPY_CL_FP16 };
 };
 
 } // namespace nntrainer

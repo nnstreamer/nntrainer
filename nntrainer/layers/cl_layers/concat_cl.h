@@ -101,11 +101,6 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
-  /**
-   * @brief registerClKernels
-   */
-  static bool registerClKernels(ClContext &cl_context);
-
   static constexpr const char *type = "concat";
 
   /**
@@ -229,17 +224,6 @@ public:
 #endif
 private:
   std::tuple<props::ConcatDimension> concat_props;
-
-  static std::vector<ClContext::SharedPtrClKernel> &getLayerKernelPtrs();
-
-  enum Kernels {
-    CONCAT_CL_AXIS1,
-    CONCAT_CL_AXIS2,
-    CONCAT_CL_AXIS3,
-    CONCAT_CL_AXIS1_FP16,
-    CONCAT_CL_AXIS2_FP16,
-    CONCAT_CL_AXIS3_FP16,
-  };
 };
 
 } // namespace nntrainer
