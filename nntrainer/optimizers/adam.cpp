@@ -58,7 +58,7 @@ void Adam::setProperty(const std::vector<std::string> &values) {
   Optimizer::setProperty(left);
 }
 
-double Adam::getUpdatedLearningRate(unsigned int iteration, double ll) const {
+double Adam::getUpdatedLearningRate(unsigned int iteration, double lr) const {
   auto &beta1 = std::get<PropsB1>(adam_props).get();
   auto &beta2 = std::get<PropsB2>(adam_props).get();
 
@@ -66,9 +66,9 @@ double Adam::getUpdatedLearningRate(unsigned int iteration, double ll) const {
     return 1.0f - pow(f, iteration + 1);
   };
 
-  ll *= sqrt(biasCorrection(beta2)) / biasCorrection(beta1);
+  lr *= sqrt(biasCorrection(beta2)) / biasCorrection(beta1);
 
-  return ll;
+  return lr;
 }
 
 void Adam::applyGradient(RunOptimizerContext &context) {
