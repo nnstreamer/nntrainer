@@ -13,6 +13,7 @@ causallm_src += [
     meson.current_source_dir() / 'nntr_qwen3_moe_causallm.cpp',
     meson.current_source_dir() / 'gptoss_causallm.cpp',
     meson.current_source_dir() / 'gptoss_cached_slim_causallm.cpp',
+    meson.current_source_dir() / 'ernie_causallm.cpp',
 ]
 
 executable_src = [

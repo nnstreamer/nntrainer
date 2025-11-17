@@ -50,7 +50,7 @@ option('enable-biqgemm', type: 'boolean', value: false)
 option('biqgemm-path', type: 'string', value: '../BiQGEMM')
 option('enable-benchmarks', type: 'boolean', value : false)
 option('enable-ruy', type: 'boolean', value: false)
-option('ggml-thread-backend', type: 'string', value: 'mixed')
+option('ggml-thread-backend', type: 'string', value: 'omp')
 
 # ml-api dependency (to enable, install capi-inference from github.com/nnstreamer/api )
 # To inter-operate with nnstreamer and ML-API packages, you need to enable this.
@@ -62,5 +62,5 @@ option('enable-nnstreamer-tensor-trainer', type: 'feature', value: 'auto')
 option('nnstreamer-subplugin-install-path', type: 'string', value: 'lib/nnstreamer') # where nnstreamer subplugin should be installed (after prefix)
 
 # application related options
-option('enable-transformer', type: 'boolean', value: false)
+option('enable-transformer', type: 'boolean', value: true)
 option('libiomp_root', type:'string', value: './libiomp_win')
