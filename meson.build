@@ -731,7 +731,7 @@ if get_option('enable-app')
     warning('android app is not supported for now, building app skipped')
   else
     if host_machine.system() != 'windows'
-      if not tflite_dep.found()
+      if get_option('enable-tflite-backbone') and not tflite_dep.found()
         error('Tensorflow-Lite dependency not found')
       endif
     endif
