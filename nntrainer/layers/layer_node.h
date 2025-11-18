@@ -1048,7 +1048,8 @@ properties in the context/graph unless intended. */
                std::vector<props::InputConnection>,
                std::vector<props::InputShape>, props::SharedFrom,
                props::ClipGradByGlobalNorm, props::Packed, props::WeightDtype,
-               props::LossScaleForMixed, props::ComputeEngine>;
+               props::LossScaleForMixed, props::ComputeEngine,
+               props::InputTensorDataType>;
 
   using RealizationPropsType = std::tuple<props::Flatten, props::Activation>;
   /** these realization properties results in addition of new layers, hence

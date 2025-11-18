@@ -202,7 +202,8 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   layer_node_props(new PropsType(
     props::Name(), props::Distribute(), props::Trainable(), {}, {},
     props::SharedFrom(), props::ClipGradByGlobalNorm(), props::Packed(),
-    props::WeightDtype(), props::LossScaleForMixed(), props::ComputeEngine())),
+    props::WeightDtype(), props::LossScaleForMixed(), props::ComputeEngine(),
+    props::InputTensorDataType())),
   layer_node_props_realization(
     new RealizationPropsType(props::Flatten(), props::Activation())),
   loss(new props::Loss()),
@@ -571,8 +572,12 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims,
            "property";
       for (auto &d : actual_prop_dims) {
         d.setDataType(
-          str_converter<enum_class_prop_tag, nntrainer::TensorDataTypeInfo>::
-            from_string(tensor_type[2]));
+          std::get<props::InputTensorDataType>(*layer_node_props).empty()
+            ? str_converter<
+                enum_class_prop_tag,
+                nntrainer::TensorDataTypeInfo>::from_string(tensor_type[2])
+            : (TensorDim::DataType)std::get<props::InputTensorDataType>(
+                *layer_node_props));
         d.setFormat(
           str_converter<enum_class_prop_tag, nntrainer::TensorFormatInfo>::
             from_string(tensor_type[0]));
@@ -592,10 +597,12 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims,
     actual_input_dims =
       std::vector<TensorDim>(prop_dims.begin(), prop_dims.end());
     for (auto &d : actual_input_dims) {
-      /// Input Tensor type of input layer needs to be float.
       d.setDataType(
-        str_converter<enum_class_prop_tag,
-                      nntrainer::TensorDataTypeInfo>::from_string("FP32"));
+        std::get<props::InputTensorDataType>(*layer_node_props).empty()
+          ? str_converter<enum_class_prop_tag, nntrainer::TensorDataTypeInfo>::
+              from_string(tensor_type[2])
+          : (TensorDim::DataType)std::get<props::InputTensorDataType>(
+              *layer_node_props));
       d.setFormat(
         str_converter<enum_class_prop_tag, nntrainer::TensorFormatInfo>::
           from_string(tensor_type[0]));
