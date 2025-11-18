@@ -15,7 +15,8 @@
 #define __CPU_BACKEND_H__
 #ifdef __cplusplus
 #if defined(__aarch64__) || defined(__ARM_ARCH_7A__) ||                        \
-  defined(__ANDROID__) || defined(__arm__)
+  defined(__ANDROID__) || defined(__arm__) || defined(_M_ARM) ||               \
+  defined(_M_ARM64)
 #include <arm_compute_backend.h>
 #elif defined(__x86_64__) || defined(__i586__) || defined(_M_X64) ||           \
   defined(_M_IX86)

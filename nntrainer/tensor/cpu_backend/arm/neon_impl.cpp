@@ -12,9 +12,15 @@
  */
 
 #include <climits>
+#include <float.h>
+#include <memory>
+
+#if !defined(__FLT_MIN__)
+#define __FLT_MIN__ FLT_MIN
+#endif
+
 #include <fp16.h>
 #include <matrix_transpose_neon.h>
-#include <memory>
 #include <neon_impl.h>
 #include <neon_setting.h>
 #include <nntrainer_error.h>
@@ -112,7 +118,9 @@ void ele_qmul(int8_t *lhs, int8_t *rhs, int8_t *res, unsigned int data_len,
 bool is_valid(const unsigned int N, const float *X) {
   size_t i = 0;
   float inf_s = std::numeric_limits<float>::infinity();
+  float neg_inf_s = -std::numeric_limits<float>::infinity();
   float32x4_t inf = vdupq_n_f32(inf_s);
+  float32x4_t neg_inf = vdupq_n_f32(neg_inf_s);
   uint32x4_t zero = vdupq_n_u32(0);
 
   for (; N - i >= 4; i += 4) {
@@ -125,6 +133,11 @@ bool is_valid(const unsigned int N, const float *X) {
       return false;
 
     vcmp = vceqq_f32(vec, inf);
+
+    if (vaddvq_u32(vcmp))
+      return false;
+
+    vcmp = vceqq_f32(vec, neg_inf);
 
     if (vaddvq_u32(vcmp))
       return false;
@@ -402,54 +415,69 @@ void copy_int4_to_fp32(const unsigned int N, const uint8_t *X, float *Y) {
   // keep in mind that : len(X) = N, and len(Y) = 2*N
 
   // processing batch of 16
-  float32x4_t y0, y1, y2, y3;
-  float32x4_t y4, y5, y6, y7;
-
-  uint8_t low0, low1, high0, high1;
+  float y0_array[4], y1_array[4], y2_array[4], y3_array[4];
+  float y4_array[4], y5_array[4], y6_array[4], y7_array[4];
+  uint8_t low_array[8], high_array[8];
 
   for (; (N - idx) >= 16; idx += 16) {
     uint8x16_t batch = vld1q_u8(&X[idx]);
 
     uint8x8_t low = vget_low_u8(batch);
     uint8x8_t high = vget_high_u8(batch);
+
+    // Extract vector data to arrays
+    vst1_u8(low_array, low);
+    vst1_u8(high_array, high);
+
     unsigned int i = 0;
     for (; i < 8; ++i) {
-      low0 = low[i] >> 4;
-      low1 = low[i] & 0x0f;
+      uint8_t low0 = low_array[i] >> 4;
+      uint8_t low1 = low_array[i] & 0x0f;
 
-      high0 = high[i] >> 4;
-      high1 = high[i] & 0x0f;
+      uint8_t high0 = high_array[i] >> 4;
+      uint8_t high1 = high_array[i] & 0x0f;
 
       // 0 ~ 8
       if (i < 2) {
-        y0[2 * i] = low0;
-        y0[2 * i + 1] = low1;
+        y0_array[2 * i] = low0;
+        y0_array[2 * i + 1] = low1;
       } else if (i < 4) {
-        y1[2 * (i - 2)] = low0;
-        y1[2 * (i - 2) + 1] = low1;
+        y1_array[2 * (i - 2)] = low0;
+        y1_array[2 * (i - 2) + 1] = low1;
       } else if (i < 6) {
-        y2[2 * (i - 4)] = low0;
-        y2[2 * (i - 4) + 1] = low1;
+        y2_array[2 * (i - 4)] = low0;
+        y2_array[2 * (i - 4) + 1] = low1;
       } else {
-        y3[2 * (i - 6)] = low0;
-        y3[2 * (i - 6) + 1] = low1;
+        y3_array[2 * (i - 6)] = low0;
+        y3_array[2 * (i - 6) + 1] = low1;
       }
 
       // 8 ~ 16
       if (i < 2) {
-        y4[2 * i] = high0;
-        y4[2 * i + 1] = high1;
+        y4_array[2 * i] = high0;
+        y4_array[2 * i + 1] = high1;
       } else if (i < 4) {
-        y5[2 * (i - 2)] = high0;
-        y5[2 * (i - 2) + 1] = high1;
+        y5_array[2 * (i - 2)] = high0;
+        y5_array[2 * (i - 2) + 1] = high1;
       } else if (i < 6) {
-        y6[2 * (i - 4)] = high0;
-        y6[2 * (i - 4) + 1] = high1;
+        y6_array[2 * (i - 4)] = high0;
+        y6_array[2 * (i - 4) + 1] = high1;
       } else {
-        y7[2 * (i - 6)] = high0;
-        y7[2 * (i - 6) + 1] = high1;
+        y7_array[2 * (i - 6)] = high0;
+        y7_array[2 * (i - 6) + 1] = high1;
       }
     }
+
+    // Store arrays back to vectors
+    float32x4_t y0 = vld1q_f32(y0_array);
+    float32x4_t y1 = vld1q_f32(y1_array);
+    float32x4_t y2 = vld1q_f32(y2_array);
+    float32x4_t y3 = vld1q_f32(y3_array);
+    float32x4_t y4 = vld1q_f32(y4_array);
+    float32x4_t y5 = vld1q_f32(y5_array);
+    float32x4_t y6 = vld1q_f32(y6_array);
+    float32x4_t y7 = vld1q_f32(y7_array);
+
     vst1q_f32(&Y[2 * idx], y0);
     vst1q_f32(&Y[2 * idx + 4], y1);
     vst1q_f32(&Y[2 * idx + 8], y2);
@@ -463,26 +491,36 @@ void copy_int4_to_fp32(const unsigned int N, const uint8_t *X, float *Y) {
   // processing remaining batch of 8
   for (; (N - idx) >= 8; idx += 8) {
     uint8x8_t batch = vld1_u8(&X[idx]);
+    uint8_t batch_array[8];
+
+    // Extract vector data to array
+    vst1_u8(batch_array, batch);
 
     unsigned int i = 0;
     for (; i < 8; ++i) {
-      low0 = batch[i] >> 4;
-      low1 = batch[i] & 0x0f;
+      uint8_t low0 = batch_array[i] >> 4;
+      uint8_t low1 = batch_array[i] & 0x0f;
 
       if (i < 2) {
-        y0[2 * i] = low0;
-        y0[2 * i + 1] = low1;
+        y0_array[2 * i] = low0;
+        y0_array[2 * i + 1] = low1;
       } else if (i < 4) {
-        y1[2 * (i - 2)] = low0;
-        y1[2 * (i - 2) + 1] = low1;
+        y1_array[2 * (i - 2)] = low0;
+        y1_array[2 * (i - 2) + 1] = low1;
       } else if (i < 6) {
-        y2[2 * (i - 4)] = low0;
-        y2[2 * (i - 4) + 1] = low1;
+        y2_array[2 * (i - 4)] = low0;
+        y2_array[2 * (i - 4) + 1] = low1;
       } else {
-        y3[2 * (i - 6)] = low0;
-        y3[2 * (i - 6) + 1] = low1;
+        y3_array[2 * (i - 6)] = low0;
+        y3_array[2 * (i - 6) + 1] = low1;
       }
     }
+
+    // Store arrays back to vectors
+    float32x4_t y0 = vld1q_f32(y0_array);
+    float32x4_t y1 = vld1q_f32(y1_array);
+    float32x4_t y2 = vld1q_f32(y2_array);
+    float32x4_t y3 = vld1q_f32(y3_array);
 
     vst1q_f32(&Y[2 * idx], y0);
     vst1q_f32(&Y[2 * idx + 4], y1);
@@ -791,7 +829,7 @@ void copy_u16_fp32(const unsigned int N, const uint16_t *X, float *Y) {
   /// @todo implement int16_t to fp32
   unsigned int idx = 0;
   for (; (N - idx) >= 1; ++idx) {
-    Y[idx] = X[idx];
+    Y[idx] = nntrainer::compute_fp16_to_fp32(X[idx]);
   }
 }
 

@@ -26,7 +26,9 @@
 #undef max
 #undef min
 #endif
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #include <windows.h>
 #endif
 
