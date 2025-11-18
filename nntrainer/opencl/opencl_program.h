@@ -59,8 +59,6 @@ class Program {
   std::string GetDefaultCompilerOptions() const;
 
 public:
-  static const std::string DEFAULT_KERNEL_PATH;
-
   /**
    * @brief Create OpenCL program from source
    *

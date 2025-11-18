@@ -83,16 +83,6 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
-  /**
-   * @brief     Register Cl Kernels for `TransposeLayerCl`, bypassing the
-   * registration process since it does not require any specific kernels. This
-   * function simply returns `true` because `TransposeLayerCl` does not rely on
-   * the specific kernels for the layer.
-   */
-  static bool registerClKernels([[maybe_unused]] ClContext &cl_context) {
-    return true;
-  };
-
   static constexpr const char *type = "transpose";
 
 private:
