@@ -339,6 +339,20 @@ void addition_cl(const _FP16 *input, _FP16 *res, unsigned int size_input,
                  unsigned int size_res);
 
 /**
+ * @brief rmsnorm each row of the tensor
+ * @param[in] input _FP16 * for input
+ * @param[in] gamma _FP16 * for gamma multiplier for each row
+ * @param[in] result _FP16 * for result
+ * @param[in] epsilon epsilon to add to each row sum to prevent division by zero
+ * @param[in] height height of the tensor
+ * @param[in] width width of the tensor
+ * @param[in] use_svm whether to treat pointers as SVM
+ */
+void rmsnorm_cl(const _FP16 *input, const _FP16 *gamma, _FP16 *result,
+                const _FP16 epsilon, unsigned int height, unsigned int width,
+                const bool use_svm = true);
+
+/**
  * @brief     fp16 sscal value element by element immediately
  * @param[in] X _FP16 * input
  * @param[in] N unsigned int number of elements
