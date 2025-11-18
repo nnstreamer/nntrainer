@@ -33,7 +33,7 @@ inline static void rotary_emb_cl_internal(
 
   auto *cl_context =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &cl_buffer_manager = ClBufferManager::Global();
+  auto &cl_buffer_manager = cl_context->getBufferManager();
 
   do {
     unsigned int cos_dim = cos_.size();
@@ -58,28 +58,28 @@ inline static void rotary_emb_cl_internal(
     }
 
     result = cl_buffer_manager.getInBufferA()->WriteDataRegion(
-      cl_context->command_queue_inst_, dim1_size, in);
+      cl_context->getCommandQueueManager(), dim1_size, in);
     if (!result) {
       printf("Failed to write input data\n");
       break;
     }
 
     result = cl_buffer_manager.getOutBufferA()->WriteDataRegion(
-      cl_context->command_queue_inst_, dim2_size, out);
+      cl_context->getCommandQueueManager(), dim2_size, out);
     if (!result) {
       printf("Failed to write output data\n");
       break;
     }
 
     result = cl_buffer_manager.getInBufferB()->WriteDataRegion(
-      cl_context->command_queue_inst_, dim5_size, freqs_cos_flat.data());
+      cl_context->getCommandQueueManager(), dim5_size, freqs_cos_flat.data());
     if (!result) {
       printf("Failed to write freqs cos data\n");
       break;
     }
 
     result = cl_buffer_manager.getInBufferB()->WriteDataRegion(
-      cl_context->command_queue_inst_, dim6_size, freqs_sin_flat.data(), 0,
+      cl_context->getCommandQueueManager(), dim6_size, freqs_sin_flat.data(), 0,
       dim5_size);
     if (!result) {
       printf("Failed to write freqs sin data\n");
@@ -87,14 +87,15 @@ inline static void rotary_emb_cl_internal(
     }
 
     result = cl_buffer_manager.getInBufferC()->WriteDataRegion(
-      cl_context->command_queue_inst_, dim3_size, cos_.data());
+      cl_context->getCommandQueueManager(), dim3_size, cos_.data());
     if (!result) {
       printf("Failed to write cos data\n");
       break;
     }
 
     result = cl_buffer_manager.getInBufferC()->WriteDataRegion(
-      cl_context->command_queue_inst_, dim4_size, sin_.data(), 0, dim3_size);
+      cl_context->getCommandQueueManager(), dim4_size, sin_.data(), 0,
+      dim3_size);
     if (!result) {
       printf("Failed to write sin data\n");
       break;
@@ -206,7 +207,7 @@ inline static void rotary_emb_cl_internal(
 
     const int work_groups_count[3] = {(int)batch, (int)channel, 1};
     const int work_group_size[3] = {1, 1, 1};
-    result = cl_context->command_queue_inst_.DispatchCommand(
+    result = cl_context->getCommandQueueManager().DispatchCommand(
       kernel, work_groups_count, work_group_size);
     if (!result) {
       printf("Failed to dispatch command\n");
@@ -214,7 +215,7 @@ inline static void rotary_emb_cl_internal(
     }
 
     result = cl_buffer_manager.getOutBufferA()->ReadDataRegion(
-      cl_context->command_queue_inst_, dim2_size, out);
+      cl_context->getCommandQueueManager(), dim2_size, out);
     if (!result) {
       printf("Failed to read data\n");
       break;

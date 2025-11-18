@@ -239,7 +239,7 @@ void ConcatLayerCl::concat_cl_axis3(const float *matAdata,
 
   auto *global_cl_context =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = global_cl_context->getBufferManager();
 
   do {
 
@@ -250,7 +250,7 @@ void ConcatLayerCl::concat_cl_axis3(const float *matAdata,
                   (input1_width + input2_width));
 
     result = clbuffInstance.getInBufferA()->WriteDataRegion(
-      global_cl_context->command_queue_inst_,
+      global_cl_context->getCommandQueueManager(),
       sizeof(float) * input1_batch_size * input1_channels * input1_height *
         input1_width,
       matAdata);
@@ -259,7 +259,7 @@ void ConcatLayerCl::concat_cl_axis3(const float *matAdata,
     }
 
     result = clbuffInstance.getInBufferB()->WriteDataRegion(
-      global_cl_context->command_queue_inst_,
+      global_cl_context->getCommandQueueManager(),
       sizeof(float) * input1_batch_size * input1_channels * input1_height *
         input2_width,
       vecXdata);
@@ -268,7 +268,7 @@ void ConcatLayerCl::concat_cl_axis3(const float *matAdata,
     }
 
     result = clbuffInstance.getOutBufferA()->WriteDataRegion(
-      global_cl_context->command_queue_inst_,
+      global_cl_context->getCommandQueueManager(),
       sizeof(float) * input1_batch_size * input1_channels * input1_height *
         (input1_width + input2_width),
       vecYdata);
@@ -328,14 +328,14 @@ void ConcatLayerCl::concat_cl_axis3(const float *matAdata,
     /// @todo: create a group size by device & input
     const int work_group_size[3] = {1, 1, 1}; // test-value
 
-    result = global_cl_context->command_queue_inst_.DispatchCommand(
+    result = global_cl_context->getCommandQueueManager().DispatchCommand(
       kernel_concat_ptr, work_groups_count, work_group_size);
     if (!result) {
       break;
     }
 
     result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-      global_cl_context->command_queue_inst_,
+      global_cl_context->getCommandQueueManager(),
       sizeof(float) * input1_batch_size * input1_channels * input1_height *
         (input1_width + input2_width),
       vecYdata);
@@ -358,7 +358,7 @@ void ConcatLayerCl::concat_cl_axis2(const float *matAdata,
 
   auto *global_cl_context =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = global_cl_context->getBufferManager();
 
   do {
 
@@ -369,7 +369,7 @@ void ConcatLayerCl::concat_cl_axis2(const float *matAdata,
                   (input1_height + input2_height));
 
     result = clbuffInstance.getInBufferA()->WriteDataRegion(
-      global_cl_context->command_queue_inst_,
+      global_cl_context->getCommandQueueManager(),
       sizeof(float) * input1_batch_size * input1_channels * input1_height *
         input1_width,
       matAdata);
@@ -378,7 +378,7 @@ void ConcatLayerCl::concat_cl_axis2(const float *matAdata,
     }
 
     result = clbuffInstance.getInBufferB()->WriteDataRegion(
-      global_cl_context->command_queue_inst_,
+      global_cl_context->getCommandQueueManager(),
       sizeof(float) * input1_batch_size * input1_channels * input2_height *
         input1_width,
       vecXdata);
@@ -387,7 +387,7 @@ void ConcatLayerCl::concat_cl_axis2(const float *matAdata,
     }
 
     result = clbuffInstance.getOutBufferA()->WriteDataRegion(
-      global_cl_context->command_queue_inst_,
+      global_cl_context->getCommandQueueManager(),
       sizeof(float) * input1_batch_size * input1_channels *
         (input1_height + input2_height) * input1_width,
       vecYdata);
@@ -446,14 +446,14 @@ void ConcatLayerCl::concat_cl_axis2(const float *matAdata,
     /// @todo: create a group size by device & input
     const int work_group_size[3] = {1, 1, 1}; // test-value
 
-    result = global_cl_context->command_queue_inst_.DispatchCommand(
+    result = global_cl_context->getCommandQueueManager().DispatchCommand(
       kernel_concat_ptr, work_groups_count, work_group_size);
     if (!result) {
       break;
     }
 
     result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-      global_cl_context->command_queue_inst_,
+      global_cl_context->getCommandQueueManager(),
       sizeof(float) * input1_batch_size * input1_channels *
         (input1_height + input2_height) * input1_width,
       vecYdata);
@@ -476,7 +476,7 @@ void ConcatLayerCl::concat_cl_axis1(const float *matAdata,
 
   auto *global_cl_context =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = global_cl_context->getBufferManager();
 
   do {
     const auto &kernel_concat_ptr =
@@ -486,7 +486,7 @@ void ConcatLayerCl::concat_cl_axis1(const float *matAdata,
                   (input1_channels + input2_channels));
 
     result = clbuffInstance.getInBufferA()->WriteDataRegion(
-      global_cl_context->command_queue_inst_,
+      global_cl_context->getCommandQueueManager(),
       sizeof(float) * input1_batch_size * input1_channels * input1_height *
         input1_width,
       matAdata);
@@ -495,7 +495,7 @@ void ConcatLayerCl::concat_cl_axis1(const float *matAdata,
     }
 
     result = clbuffInstance.getInBufferB()->WriteDataRegion(
-      global_cl_context->command_queue_inst_,
+      global_cl_context->getCommandQueueManager(),
       sizeof(float) * input1_batch_size * input2_channels * input1_height *
         input1_width,
       vecXdata);
@@ -504,7 +504,7 @@ void ConcatLayerCl::concat_cl_axis1(const float *matAdata,
     }
 
     result = clbuffInstance.getOutBufferA()->WriteDataRegion(
-      global_cl_context->command_queue_inst_,
+      global_cl_context->getCommandQueueManager(),
       sizeof(float) * input1_batch_size * input1_width * input1_height *
         (input1_channels + input2_channels),
       vecYdata);
@@ -564,14 +564,14 @@ void ConcatLayerCl::concat_cl_axis1(const float *matAdata,
     /// @todo: create a group size by device & input
     const int work_group_size[3] = {1, 1, 1}; // test-value
 
-    result = global_cl_context->command_queue_inst_.DispatchCommand(
+    result = global_cl_context->getCommandQueueManager().DispatchCommand(
       kernel_concat_ptr, work_groups_count, work_group_size);
     if (!result) {
       break;
     }
 
     result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-      global_cl_context->command_queue_inst_,
+      global_cl_context->getCommandQueueManager(),
       sizeof(float) * input1_batch_size * input1_width * input1_height *
         (input1_channels + input2_channels),
       vecYdata);
@@ -595,7 +595,7 @@ void ConcatLayerCl::concat_cl_axis3_fp16(const _FP16 *matAdata,
 
   auto *global_cl_context =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = global_cl_context->getBufferManager();
 
   do {
 
@@ -606,7 +606,7 @@ void ConcatLayerCl::concat_cl_axis3_fp16(const _FP16 *matAdata,
                   (input1_width + input2_width));
 
     result = clbuffInstance.getInBufferA()->WriteDataRegion(
-      global_cl_context->command_queue_inst_,
+      global_cl_context->getCommandQueueManager(),
       sizeof(_FP16) * input1_batch_size * input1_channels * input1_height *
         input1_width,
       matAdata);
@@ -615,7 +615,7 @@ void ConcatLayerCl::concat_cl_axis3_fp16(const _FP16 *matAdata,
     }
 
     result = clbuffInstance.getInBufferB()->WriteDataRegion(
-      global_cl_context->command_queue_inst_,
+      global_cl_context->getCommandQueueManager(),
       sizeof(_FP16) * input1_batch_size * input1_channels * input1_height *
         input2_width,
       vecXdata);
@@ -624,7 +624,7 @@ void ConcatLayerCl::concat_cl_axis3_fp16(const _FP16 *matAdata,
     }
 
     result = clbuffInstance.getOutBufferA()->WriteDataRegion(
-      global_cl_context->command_queue_inst_,
+      global_cl_context->getCommandQueueManager(),
       sizeof(_FP16) * input1_batch_size * input1_channels * input1_height *
         (input1_width + input2_width),
       vecYdata);
@@ -684,14 +684,14 @@ void ConcatLayerCl::concat_cl_axis3_fp16(const _FP16 *matAdata,
     /// @todo: create a group size by device & input
     const int work_group_size[3] = {1, 1, 1}; // test-value
 
-    result = global_cl_context->command_queue_inst_.DispatchCommand(
+    result = global_cl_context->getCommandQueueManager().DispatchCommand(
       kernel_concat_ptr, work_groups_count, work_group_size);
     if (!result) {
       break;
     }
 
     result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-      global_cl_context->command_queue_inst_,
+      global_cl_context->getCommandQueueManager(),
       sizeof(_FP16) * input1_batch_size * input1_channels * input1_height *
         (input1_width + input2_width),
       vecYdata);
@@ -714,7 +714,7 @@ void ConcatLayerCl::concat_cl_axis2_fp16(const _FP16 *matAdata,
 
   auto *global_cl_context =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = global_cl_context->getBufferManager();
 
   do {
     const auto &kernel_concat_ptr =
@@ -724,7 +724,7 @@ void ConcatLayerCl::concat_cl_axis2_fp16(const _FP16 *matAdata,
                   (input1_height + input2_height));
 
     result = clbuffInstance.getInBufferA()->WriteDataRegion(
-      global_cl_context->command_queue_inst_,
+      global_cl_context->getCommandQueueManager(),
       sizeof(_FP16) * input1_batch_size * input1_channels * input1_height *
         input1_width,
       matAdata);
@@ -733,7 +733,7 @@ void ConcatLayerCl::concat_cl_axis2_fp16(const _FP16 *matAdata,
     }
 
     result = clbuffInstance.getInBufferB()->WriteDataRegion(
-      global_cl_context->command_queue_inst_,
+      global_cl_context->getCommandQueueManager(),
       sizeof(_FP16) * input1_batch_size * input1_channels * input2_height *
         input1_width,
       vecXdata);
@@ -742,7 +742,7 @@ void ConcatLayerCl::concat_cl_axis2_fp16(const _FP16 *matAdata,
     }
 
     result = clbuffInstance.getOutBufferA()->WriteDataRegion(
-      global_cl_context->command_queue_inst_,
+      global_cl_context->getCommandQueueManager(),
       sizeof(_FP16) * input1_batch_size * input1_channels *
         (input1_height + input2_height) * input1_width,
       vecYdata);
@@ -801,14 +801,14 @@ void ConcatLayerCl::concat_cl_axis2_fp16(const _FP16 *matAdata,
     /// @todo: create a group size by device & input
     const int work_group_size[3] = {1, 1, 1}; // test-value
 
-    result = global_cl_context->command_queue_inst_.DispatchCommand(
+    result = global_cl_context->getCommandQueueManager().DispatchCommand(
       kernel_concat_ptr, work_groups_count, work_group_size);
     if (!result) {
       break;
     }
 
     result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-      global_cl_context->command_queue_inst_,
+      global_cl_context->getCommandQueueManager(),
       sizeof(_FP16) * input1_batch_size * input1_channels *
         (input1_height + input2_height) * input1_width,
       vecYdata);
@@ -831,7 +831,7 @@ void ConcatLayerCl::concat_cl_axis1_fp16(const _FP16 *matAdata,
 
   auto *global_cl_context =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clbuffInstance = ClBufferManager::Global();
+  auto &clbuffInstance = global_cl_context->getBufferManager();
 
   do {
 
@@ -842,7 +842,7 @@ void ConcatLayerCl::concat_cl_axis1_fp16(const _FP16 *matAdata,
                   (input1_channels + input2_channels));
 
     result = clbuffInstance.getInBufferA()->WriteDataRegion(
-      global_cl_context->command_queue_inst_,
+      global_cl_context->getCommandQueueManager(),
       sizeof(_FP16) * input1_batch_size * input1_channels * input1_height *
         input1_width,
       matAdata);
@@ -851,7 +851,7 @@ void ConcatLayerCl::concat_cl_axis1_fp16(const _FP16 *matAdata,
     }
 
     result = clbuffInstance.getInBufferB()->WriteDataRegion(
-      global_cl_context->command_queue_inst_,
+      global_cl_context->getCommandQueueManager(),
       sizeof(_FP16) * input1_batch_size * input2_channels * input1_height *
         input1_width,
       vecXdata);
@@ -860,7 +860,7 @@ void ConcatLayerCl::concat_cl_axis1_fp16(const _FP16 *matAdata,
     }
 
     result = clbuffInstance.getOutBufferA()->WriteDataRegion(
-      global_cl_context->command_queue_inst_,
+      global_cl_context->getCommandQueueManager(),
       sizeof(_FP16) * input1_batch_size * input1_width * input1_height *
         (input1_channels + input2_channels),
       vecYdata);
@@ -920,14 +920,14 @@ void ConcatLayerCl::concat_cl_axis1_fp16(const _FP16 *matAdata,
     /// @todo: create a group size by device & input
     const int work_group_size[3] = {1, 1, 1}; // test-value
 
-    result = global_cl_context->command_queue_inst_.DispatchCommand(
+    result = global_cl_context->getCommandQueueManager().DispatchCommand(
       kernel_concat_ptr, work_groups_count, work_group_size);
     if (!result) {
       break;
     }
 
     result = clbuffInstance.getOutBufferA()->ReadDataRegion(
-      global_cl_context->command_queue_inst_,
+      global_cl_context->getCommandQueueManager(),
       sizeof(_FP16) * input1_batch_size * input1_width * input1_height *
         (input1_channels + input2_channels),
       vecYdata);

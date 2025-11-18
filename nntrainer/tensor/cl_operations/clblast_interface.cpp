@@ -24,70 +24,70 @@ void scal_cl(const unsigned int N, const float alpha, float *X,
              unsigned int incX) {
   auto *clblast_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clBuffManagerInst = ClBufferManager::Global();
-  auto command_queue = clblast_cc->command_queue_inst_.GetCommandQueue();
+  auto &clBuffManagerInst = clblast_cc->getBufferManager();
+  auto command_queue = clblast_cc->getCommandQueueManager().GetCommandQueue();
 
   clBuffManagerInst.getOutBufferA()->WriteDataRegion(
-    clblast_cc->command_queue_inst_, N * sizeof(float), X);
+    clblast_cc->getCommandQueueManager(), N * sizeof(float), X);
 
   clblast::Scal<float>(N, alpha, clBuffManagerInst.getOutBufferA()->GetBuffer(),
                        0, incX, &command_queue);
 
   clBuffManagerInst.getOutBufferA()->ReadDataRegion(
-    clblast_cc->command_queue_inst_, N * sizeof(float), X);
+    clblast_cc->getCommandQueueManager(), N * sizeof(float), X);
 }
 
 void copy_cl(const unsigned int N, const float *X, float *Y, unsigned int incX,
              unsigned int incY) {
   auto *clblast_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clBuffManagerInst = ClBufferManager::Global();
-  auto command_queue = clblast_cc->command_queue_inst_.GetCommandQueue();
+  auto &clBuffManagerInst = clblast_cc->getBufferManager();
+  auto command_queue = clblast_cc->getCommandQueueManager().GetCommandQueue();
 
   clBuffManagerInst.getInBufferA()->WriteDataRegion(
-    clblast_cc->command_queue_inst_, N * sizeof(float), X);
+    clblast_cc->getCommandQueueManager(), N * sizeof(float), X);
 
   clblast::Copy<float>(N, clBuffManagerInst.getInBufferA()->GetBuffer(), 0,
                        incX, clBuffManagerInst.getOutBufferA()->GetBuffer(), 0,
                        incY, &command_queue);
 
   clBuffManagerInst.getOutBufferA()->ReadDataRegion(
-    clblast_cc->command_queue_inst_, N * sizeof(float), Y);
+    clblast_cc->getCommandQueueManager(), N * sizeof(float), Y);
 }
 
 void axpy_cl(const unsigned int N, const float alpha, const float *X, float *Y,
              unsigned int incX, unsigned int incY) {
   auto *clblast_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clBuffManagerInst = ClBufferManager::Global();
-  auto command_queue = clblast_cc->command_queue_inst_.GetCommandQueue();
+  auto &clBuffManagerInst = clblast_cc->getBufferManager();
+  auto command_queue = clblast_cc->getCommandQueueManager().GetCommandQueue();
 
   clBuffManagerInst.getInBufferA()->WriteDataRegion(
-    clblast_cc->command_queue_inst_, N * sizeof(float), X);
+    clblast_cc->getCommandQueueManager(), N * sizeof(float), X);
 
   clBuffManagerInst.getOutBufferA()->WriteDataRegion(
-    clblast_cc->command_queue_inst_, N * sizeof(float), Y);
+    clblast_cc->getCommandQueueManager(), N * sizeof(float), Y);
 
   clblast::Axpy<float>(N, alpha, clBuffManagerInst.getInBufferA()->GetBuffer(),
                        0, incX, clBuffManagerInst.getOutBufferA()->GetBuffer(),
                        0, incY, &command_queue);
 
   clBuffManagerInst.getOutBufferA()->ReadDataRegion(
-    clblast_cc->command_queue_inst_, N * sizeof(float), Y);
+    clblast_cc->getCommandQueueManager(), N * sizeof(float), Y);
 }
 
 float dot_cl(const unsigned int N, const float *X, const float *Y,
              unsigned int incX, unsigned int incY) {
   auto *clblast_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clBuffManagerInst = ClBufferManager::Global();
-  auto command_queue = clblast_cc->command_queue_inst_.GetCommandQueue();
+  auto &clBuffManagerInst = clblast_cc->getBufferManager();
+  auto command_queue = clblast_cc->getCommandQueueManager().GetCommandQueue();
 
   clBuffManagerInst.getInBufferA()->WriteDataRegion(
-    clblast_cc->command_queue_inst_, N * sizeof(float), X);
+    clblast_cc->getCommandQueueManager(), N * sizeof(float), X);
 
   clBuffManagerInst.getInBufferB()->WriteDataRegion(
-    clblast_cc->command_queue_inst_, N * sizeof(float), Y);
+    clblast_cc->getCommandQueueManager(), N * sizeof(float), Y);
 
   clblast::Dot<float>(N, clBuffManagerInst.getOutBufferA()->GetBuffer(), 0,
                       clBuffManagerInst.getInBufferA()->GetBuffer(), 0, incX,
@@ -96,18 +96,18 @@ float dot_cl(const unsigned int N, const float *X, const float *Y,
 
   float result;
   clBuffManagerInst.getOutBufferA()->ReadDataRegion(
-    clblast_cc->command_queue_inst_, sizeof(float), &result);
+    clblast_cc->getCommandQueueManager(), sizeof(float), &result);
   return result;
 }
 
 float nrm2_cl(const unsigned int N, const float *X, unsigned int incX) {
   auto *clblast_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clBuffManagerInst = ClBufferManager::Global();
-  auto command_queue = clblast_cc->command_queue_inst_.GetCommandQueue();
+  auto &clBuffManagerInst = clblast_cc->getBufferManager();
+  auto command_queue = clblast_cc->getCommandQueueManager().GetCommandQueue();
 
   clBuffManagerInst.getInBufferA()->WriteDataRegion(
-    clblast_cc->command_queue_inst_, N * sizeof(float), X);
+    clblast_cc->getCommandQueueManager(), N * sizeof(float), X);
 
   clblast::Nrm2<float>(N, clBuffManagerInst.getOutBufferA()->GetBuffer(), 0,
                        clBuffManagerInst.getInBufferA()->GetBuffer(), 0, incX,
@@ -115,7 +115,7 @@ float nrm2_cl(const unsigned int N, const float *X, unsigned int incX) {
 
   float result;
   clBuffManagerInst.getOutBufferA()->ReadDataRegion(
-    clblast_cc->command_queue_inst_, sizeof(float), &result);
+    clblast_cc->getCommandQueueManager(), sizeof(float), &result);
 
   return result;
 }
@@ -123,11 +123,11 @@ float nrm2_cl(const unsigned int N, const float *X, unsigned int incX) {
 float asum_cl(const unsigned int N, const float *X, unsigned int incX) {
   auto *clblast_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clBuffManagerInst = ClBufferManager::Global();
-  auto command_queue = clblast_cc->command_queue_inst_.GetCommandQueue();
+  auto &clBuffManagerInst = clblast_cc->getBufferManager();
+  auto command_queue = clblast_cc->getCommandQueueManager().GetCommandQueue();
 
   clBuffManagerInst.getInBufferA()->WriteDataRegion(
-    clblast_cc->command_queue_inst_, N * sizeof(float), X);
+    clblast_cc->getCommandQueueManager(), N * sizeof(float), X);
 
   clblast::Asum<float>(N, clBuffManagerInst.getOutBufferA()->GetBuffer(), 0,
                        clBuffManagerInst.getInBufferA()->GetBuffer(), 0, incX,
@@ -135,7 +135,7 @@ float asum_cl(const unsigned int N, const float *X, unsigned int incX) {
 
   float result;
   clBuffManagerInst.getOutBufferA()->ReadDataRegion(
-    clblast_cc->command_queue_inst_, sizeof(float), &result);
+    clblast_cc->getCommandQueueManager(), sizeof(float), &result);
 
   return result;
 }
@@ -143,11 +143,11 @@ float asum_cl(const unsigned int N, const float *X, unsigned int incX) {
 int amax_cl(const unsigned int N, const float *X, unsigned int incX) {
   auto *clblast_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clBuffManagerInst = ClBufferManager::Global();
-  auto command_queue = clblast_cc->command_queue_inst_.GetCommandQueue();
+  auto &clBuffManagerInst = clblast_cc->getBufferManager();
+  auto command_queue = clblast_cc->getCommandQueueManager().GetCommandQueue();
 
   clBuffManagerInst.getInBufferA()->WriteDataRegion(
-    clblast_cc->command_queue_inst_, N * sizeof(float), X);
+    clblast_cc->getCommandQueueManager(), N * sizeof(float), X);
 
   clblast::Amax<float>(N, clBuffManagerInst.getOutBufferA()->GetBuffer(), 0,
                        clBuffManagerInst.getInBufferA()->GetBuffer(), 0, incX,
@@ -155,7 +155,7 @@ int amax_cl(const unsigned int N, const float *X, unsigned int incX) {
 
   int result;
   clBuffManagerInst.getOutBufferA()->ReadDataRegion(
-    clblast_cc->command_queue_inst_, sizeof(int), &result);
+    clblast_cc->getCommandQueueManager(), sizeof(int), &result);
 
   return result;
 }
@@ -163,11 +163,11 @@ int amax_cl(const unsigned int N, const float *X, unsigned int incX) {
 int amin_cl(const unsigned int N, const float *X, unsigned int incX) {
   auto *clblast_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clBuffManagerInst = ClBufferManager::Global();
-  auto command_queue = clblast_cc->command_queue_inst_.GetCommandQueue();
+  auto &clBuffManagerInst = clblast_cc->getBufferManager();
+  auto command_queue = clblast_cc->getCommandQueueManager().GetCommandQueue();
 
   clBuffManagerInst.getInBufferA()->WriteDataRegion(
-    clblast_cc->command_queue_inst_, N * sizeof(float), X);
+    clblast_cc->getCommandQueueManager(), N * sizeof(float), X);
 
   clblast::Amin<float>(N, clBuffManagerInst.getOutBufferA()->GetBuffer(), 0,
                        clBuffManagerInst.getInBufferA()->GetBuffer(), 0, incX,
@@ -175,7 +175,7 @@ int amin_cl(const unsigned int N, const float *X, unsigned int incX) {
 
   int result;
   clBuffManagerInst.getOutBufferA()->ReadDataRegion(
-    clblast_cc->command_queue_inst_, sizeof(int), &result);
+    clblast_cc->getCommandQueueManager(), sizeof(int), &result);
 
   return result;
 }
@@ -186,8 +186,8 @@ void gemv_cl(const unsigned int layout, bool TransA, const unsigned int M,
              unsigned int incX, unsigned int incY) {
   auto *clblast_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clBuffManagerInst = ClBufferManager::Global();
-  auto command_queue = clblast_cc->command_queue_inst_.GetCommandQueue();
+  auto &clBuffManagerInst = clblast_cc->getBufferManager();
+  auto command_queue = clblast_cc->getCommandQueueManager().GetCommandQueue();
 
   clblast::Transpose transA =
     (TransA) ? clblast::Transpose::kYes : clblast::Transpose::kNo;
@@ -197,13 +197,13 @@ void gemv_cl(const unsigned int layout, bool TransA, const unsigned int M,
   const size_t y_size = (TransA ? N : M) * incY;
 
   clBuffManagerInst.getInBufferA()->WriteDataRegion(
-    clblast_cc->command_queue_inst_, a_size * sizeof(float), A);
+    clblast_cc->getCommandQueueManager(), a_size * sizeof(float), A);
 
   clBuffManagerInst.getOutBufferA()->WriteDataRegion(
-    clblast_cc->command_queue_inst_, y_size * sizeof(float), Y);
+    clblast_cc->getCommandQueueManager(), y_size * sizeof(float), Y);
 
   clBuffManagerInst.getInBufferB()->WriteDataRegion(
-    clblast_cc->command_queue_inst_, x_size * sizeof(float), X);
+    clblast_cc->getCommandQueueManager(), x_size * sizeof(float), X);
 
   auto s = clblast::Gemv<float>(
     clblast::Layout::kRowMajor, transA, M, N, alpha,
@@ -211,12 +211,12 @@ void gemv_cl(const unsigned int layout, bool TransA, const unsigned int M,
     clBuffManagerInst.getInBufferB()->GetBuffer(), 0, incX, beta,
     clBuffManagerInst.getOutBufferA()->GetBuffer(), 0, incY, &command_queue);
 
-  opencl::clFinish(clblast_cc->command_queue_inst_.GetCommandQueue());
+  opencl::clFinish(clblast_cc->getCommandQueueManager().GetCommandQueue());
 
-  opencl::clEnqueueReadBuffer(clblast_cc->command_queue_inst_.GetCommandQueue(),
-                              clBuffManagerInst.getOutBufferA()->GetBuffer(),
-                              CL_TRUE, 0, y_size * sizeof(float), Y, 0, nullptr,
-                              nullptr);
+  opencl::clEnqueueReadBuffer(
+    clblast_cc->getCommandQueueManager().GetCommandQueue(),
+    clBuffManagerInst.getOutBufferA()->GetBuffer(), CL_TRUE, 0,
+    y_size * sizeof(float), Y, 0, nullptr, nullptr);
 }
 
 void gemm_cl(const unsigned int layout, bool TransA, bool TransB,
@@ -226,8 +226,8 @@ void gemm_cl(const unsigned int layout, bool TransA, bool TransB,
              const unsigned int ldc) {
   auto *clblast_cc =
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-  auto &clBuffManagerInst = ClBufferManager::Global();
-  auto command_queue = clblast_cc->command_queue_inst_.GetCommandQueue();
+  auto &clBuffManagerInst = clblast_cc->getBufferManager();
+  auto command_queue = clblast_cc->getCommandQueueManager().GetCommandQueue();
 
   clblast::Transpose transA =
     (TransA) ? clblast::Transpose::kYes : clblast::Transpose::kNo;
@@ -235,13 +235,13 @@ void gemm_cl(const unsigned int layout, bool TransA, bool TransB,
     (TransB) ? clblast::Transpose::kYes : clblast::Transpose::kNo;
 
   clBuffManagerInst.getInBufferA()->WriteDataRegion(
-    clblast_cc->command_queue_inst_, M * K * sizeof(float), A);
+    clblast_cc->getCommandQueueManager(), M * K * sizeof(float), A);
 
   clBuffManagerInst.getInBufferB()->WriteDataRegion(
-    clblast_cc->command_queue_inst_, K * N * sizeof(float), B);
+    clblast_cc->getCommandQueueManager(), K * N * sizeof(float), B);
 
   clBuffManagerInst.getOutBufferA()->WriteDataRegion(
-    clblast_cc->command_queue_inst_, M * N * sizeof(float), C);
+    clblast_cc->getCommandQueueManager(), M * N * sizeof(float), C);
 
   // layout is currently fixed to RowMajor
   clblast::Gemm<float>(
@@ -252,7 +252,7 @@ void gemm_cl(const unsigned int layout, bool TransA, bool TransB,
 
   // Read the result back to C
   clBuffManagerInst.getOutBufferA()->ReadDataRegion(
-    clblast_cc->command_queue_inst_, M * N * sizeof(float), C);
+    clblast_cc->getCommandQueueManager(), M * N * sizeof(float), C);
 }
 
 void gemm_batched_cl(const unsigned int layout, bool TransA, bool TransB,

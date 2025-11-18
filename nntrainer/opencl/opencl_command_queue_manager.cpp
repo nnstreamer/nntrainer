@@ -35,10 +35,9 @@ bool CommandQueueManager::CreateCommandQueue() {
   }
 
   int error_code;
-  ContextManager &context_instance = ContextManager::Global();
 
   // OpenCL context is created
-  cl_context context = context_instance.GetContext();
+  cl_context context = context_manager_.GetContext();
 
   // If context is invalid, return false
   if (context == nullptr) {
@@ -46,7 +45,7 @@ bool CommandQueueManager::CreateCommandQueue() {
   }
 
   // getting GPU device ID
-  cl_device_id device_id = context_instance.GetDeviceId();
+  cl_device_id device_id = context_manager_.GetDeviceId();
 
   // returns NULL with error code if fails
   command_queue_ = clCreateCommandQueue(
@@ -84,10 +83,6 @@ CommandQueueManager::~CommandQueueManager() {
     // decrements the command_queue reference count
     clReleaseCommandQueue(command_queue_);
     command_queue_ = nullptr;
-
-    // releasing OpenCL context since it has been created by
-    // CommandQueueManager::CreateCommandQueue
-    ContextManager::Global().ReleaseContext();
   }
 }
 
