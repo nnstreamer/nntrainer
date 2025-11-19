@@ -19,15 +19,6 @@ public:
   virtual ~Ernie4_5_MoeForCausalLM() = default;
 
   /**
-   * @brief createAttention
-   */
-  std::vector<LayerHandle> createAttention(const int layer_id, int seq_len,
-                                           int n_heads, int head_dim,
-                                           std::string query_name,
-                                           std::string key_name,
-                                           std::string value_name) override;
-
-  /**
    * @brief MoE layer
    */
   std::vector<LayerHandle> createMlp(const int layer_id, int dim,

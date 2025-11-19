@@ -213,6 +213,7 @@ int main(int argc, char *argv[]) {
       cfg["architectures"].get<std::vector<std::string>>()[0], cfg,
       generation_cfg, nntr_cfg);
     model->initialize();
+
     model->load_weight(weight_file);
 
 #ifdef PROFILE

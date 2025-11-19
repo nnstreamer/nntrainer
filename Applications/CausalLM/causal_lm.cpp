@@ -166,9 +166,8 @@ void CausalLM::initialize() {
 
   is_initialized = true;
 
-#ifdef DEBUG
   model->summarize(std::cout, ML_TRAIN_SUMMARY_MODEL);
-#endif
+  exit(0);
 }
 
 void CausalLM::constructModel() {
@@ -185,10 +184,11 @@ void CausalLM::constructModel() {
               withKey("input_shape", "1:1:" + std::to_string(INIT_SEQ_LEN))}));
 
   // create embedding layer
-  const std::string embedding_type =
-    TIE_WORD_EMBEDDINGS ? "tie_word_embeddings" : "embedding_layer";
-  const std::string lmhead_type =
-    TIE_WORD_EMBEDDINGS ? "tie_word_embeddings" : "fully_connected";
+  const std::string embedding_type =  "tie_word_embeddings";
+  const std::string lmhead_type =  "tie_word_embeddings";
+
+  std::cout << "vocab size : " << NUM_VOCAB << std::endl;
+
   layers.push_back(createLayer(
     embedding_type,
     {"name=embedding0", "in_dim=" + std::to_string(NUM_VOCAB),
@@ -680,6 +680,7 @@ std::vector<LayerHandle> CausalLM::createMlp(const int layer_id, int dim,
      withKey("unit", hidden_dim), withKey("disable_bias", "true"),
      withKey("input_layers", input_name),
      withKey("weight_initializer", "ones")}));
+
   layers.push_back(createLayer(
     "fully_connected",
     {withKey("name", "layer" + std::to_string(layer_id) + "_ffn_gate"),

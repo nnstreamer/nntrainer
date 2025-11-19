@@ -40,6 +40,7 @@ causallm_layer_dependencies = [
     causallm_qkv_layer_dep, 
     casuallm_gptoss_moe_layer_dep,
     causallm_cached_slim_gpt_oss_moe_layer_dep,
+    causallm_ernie_moe_layer_dep,
 ]
 
 if (get_option('platform') == 'windows') and (build_machine.system() == 'windows')
