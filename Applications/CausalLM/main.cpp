@@ -223,8 +223,10 @@ int main(int argc, char *argv[]) {
     model->run(input_text.c_str(), generation_cfg["do_sample"],
                system_head_prompt.c_str(), system_tail_prompt.c_str());
 #else
-    model->run(input_text, generation_cfg["do_sample"], system_head_prompt,
-               system_tail_prompt);
+    bool do_sample = generation_cfg.contains("do_sample")
+                       ? generation_cfg["do_sample"].get<bool>()
+                       : false;
+    model->run(input_text, do_sample, system_head_prompt, system_tail_prompt);
 #endif
 #ifdef PROFILE
     stop_and_print_peak();

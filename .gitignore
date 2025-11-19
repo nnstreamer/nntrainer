@@ -20,7 +20,6 @@ tensorflow-2.3.0
 Applications/**/data
 cifar-100-binary*
 Applications/**/*.bin
-Applications/**/res/*
 Applications/**/tokenizers-cpp-build/*
 
 # CTag

@@ -1,10 +1,13 @@
 #include <acti_func.h>
 #include <algorithm>
+#include <atomic>
 #include <cmath>
-#include <ernie_moe_layer.h>
 #include <node_exporter.h>
 #include <omp.h>
+#include <ernie_moe_layer.h>
 #include <stdexcept>
+
+
 namespace causallm {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
@@ -14,17 +17,13 @@ ErnieMoELayer::ErnieMoELayer() :
   num_experts(0),
   topk(0),
   moe_props(props::NumExperts(), props::NumExpertsPerToken(),
-            nntrainer::props::Unit()),
+            nntrainer::props::Unit(), props::MoEActivation()),
   expert_gate_proj_indices({}),
-  expert_gate_bias_indices({}),
   expert_up_proj_indices({}),
-  expert_up_bias_indices({}),
   expert_down_proj_indices({}),
-  expert_down_bias_indices({}),
-  gate_idx(std::numeric_limits<unsigned>::max()),
-  gate_bias_idx(std::numeric_limits<unsigned>::max()),
   loaded_expert_deque({}),
   need_load({}),
+  gate_idx(std::numeric_limits<unsigned>::max()),
   router_logits_idx(std::numeric_limits<unsigned>::max()),
   expert_mask_idx(std::numeric_limits<unsigned>::max()) {}
 
@@ -57,6 +56,19 @@ void ErnieMoELayer::finalize(nntrainer::InitLayerContext &context) {
     std::get<nntrainer::props::Unit>(moe_props).get();
   const unsigned int hidden_size = in_dim.width(); // Feature dimension
 
+  // activation function
+  if (std::get<props::MoEActivation>(moe_props).empty()) {
+    throw std::runtime_error("Activation type is not set for MoE layer");
+  }
+  switch (context.getActivationDataType()) {
+  case ml::train::TensorDim::DataType::FP32:
+    acti_func.setActiFunc<float>(
+      std::get<props::MoEActivation>(moe_props).get());
+    break;
+  default:
+    throw std::runtime_error("Unsupported activation data type for MoE layer");
+  }
+
   // 4. Initialie gate layer (router)
   nntrainer::TensorDim gate_dim(
     1, is_nchw ? 1 : num_experts, is_nchw ? hidden_size : 1,
@@ -69,23 +81,10 @@ void ErnieMoELayer::finalize(nntrainer::InitLayerContext &context) {
     gate_dim, weight_initializer, weight_regularizer,
     weight_regularizer_constant, weight_decay, "gate", true);
 
-  // pure tensor
-  nntrainer::TensorDim gate_bias_dim(
-    1, 1, 1, num_experts,
-    nntrainer::TensorDim::TensorType(context.getFormat(),
-                                     context.getActivationDataType()));
-  // pure tensor
-  gate_bias_idx =
-    context.requestWeight(gate_bias_dim, weight_initializer, weight_regularizer,
-                          1.0f, weight_decay, "gate_bias", false);
-
-  // 5. Initializer expert weights (virtual tensor)
+  // 5. Initializer expert weights
   expert_gate_proj_indices.reserve(num_experts);
   expert_up_proj_indices.reserve(num_experts);
   expert_down_proj_indices.reserve(num_experts);
-  expert_gate_bias_indices.reserve(num_experts);
-  expert_up_bias_indices.reserve(num_experts);
-  expert_down_bias_indices.reserve(num_experts);
 
   nntrainer::TensorDim expert_gate_dim(
     1, is_nchw ? 1 : intermediate_size, is_nchw ? hidden_size : 1,
@@ -101,18 +100,6 @@ void ErnieMoELayer::finalize(nntrainer::InitLayerContext &context) {
                                      context.getWeightDataType()),
     is_nchw ? 0b0011 : 0b0101);
 
-  nntrainer::TensorDim expert_gate_bias_dim(
-    1, 1, 1, intermediate_size,
-    nntrainer::TensorDim::TensorType(context.getFormat(),
-                                     context.getActivationDataType()),
-    is_nchw ? 0b0011 : 0b0101);
-
-  nntrainer::TensorDim expert_down_bias_dim(
-    1, 1, 1, hidden_size,
-    nntrainer::TensorDim::TensorType(context.getFormat(),
-                                     context.getActivationDataType()),
-    is_nchw ? 0b0011 : 0b0101);
-
   for (unsigned int i = 0; i < num_experts; ++i) {
     // Up projection
     expert_up_proj_indices.push_back(context.requestWeight(
@@ -120,34 +107,17 @@ void ErnieMoELayer::finalize(nntrainer::InitLayerContext &context) {
       weight_initializer, weight_regularizer, weight_regularizer_constant,
       weight_decay, "expert_up_" + std::to_string(i), false, true));
 
-    expert_up_bias_indices.push_back(context.requestWeight(
-      expert_gate_bias_dim, // Same dimensions as gate projection
-      weight_initializer, weight_regularizer, weight_regularizer_constant,
-      weight_decay, "expert_up_bias_" + std::to_string(i), false, true));
-
     // Gate projection
     expert_gate_proj_indices.push_back(context.requestWeight(
       expert_gate_dim, weight_initializer, weight_regularizer,
       weight_regularizer_constant, weight_decay,
       "expert_gate_" + std::to_string(i), false, true));
 
-    expert_gate_bias_indices.push_back(context.requestWeight(
-      expert_gate_bias_dim, // Same dimensions as gate projection
-      weight_initializer, weight_regularizer, weight_regularizer_constant,
-      weight_decay, "expert_gate_bias_" + std::to_string(i), false, true));
-
     // Down projection
     expert_down_proj_indices.push_back(context.requestWeight(
       expert_down_dim, weight_initializer, weight_regularizer,
       weight_regularizer_constant, weight_decay,
       "expert_down_" + std::to_string(i), false, true));
-
-    expert_down_bias_indices.push_back(context.requestWeight(
-      expert_down_bias_dim, // Same dimensions as gate projection
-      weight_initializer, weight_regularizer, weight_regularizer_constant,
-      weight_decay, "expert_down_bias_" + std::to_string(i), false, true));
-
-    // need_load this expert
     need_load.push_back(true);
   }
 
@@ -170,14 +140,103 @@ void ErnieMoELayer::finalize(nntrainer::InitLayerContext &context) {
 }
 
 void ErnieMoELayer::forwarding(nntrainer::RunLayerContext &context,
-                                          bool training) {}
+                                    bool training) {}
+
+inline void ErnieMoELayer::compute_expert_forward(
+  const nntrainer::Tensor &input, nntrainer::Tensor &output,
+  const std::vector<std::pair<unsigned, float>> &token_assignments,
+  const nntrainer::Tensor &gate_proj, const nntrainer::Tensor &up_proj,
+  const nntrainer::Tensor &down_proj, unsigned int hidden_size) {
+
+  const unsigned intermediate_size = gate_proj.width();
+  const unsigned num_tokens = token_assignments.size();
+
+  if (num_tokens == 0)
+    return;
+
+  // Create tensor dimensions for single token processing
+  nntrainer::TensorDim token_input_dim({1, 1, num_tokens, hidden_size},
+                                       input.getTensorType());
+  nntrainer::TensorDim intermediate_dim({1, 1, num_tokens, intermediate_size},
+                                        input.getTensorType());
+  nntrainer::TensorDim token_output_dim({1, 1, num_tokens, hidden_size},
+                                        input.getTensorType());
+  nntrainer::TensorDim out_step_dim({1, 1, 1, hidden_size},
+                                    input.getTensorType());
+  nntrainer::TensorDim step_dim({1, 1, 1, intermediate_size},
+                                input.getTensorType());
+  // Create intermediate tensors for this token
+  nntrainer::Tensor gate_out(intermediate_dim);
+  nntrainer::Tensor acti_out(intermediate_dim);
+  nntrainer::Tensor up_out(intermediate_dim);
+  nntrainer::Tensor token_input(token_input_dim);
+  // Down projection using optimized dot operation
+  nntrainer::Tensor token_expert_output(token_output_dim);
+
+  unsigned token_idx = token_assignments[0].first;
+  float weight = token_assignments[0].second;
+
+  if (num_tokens > 1) {
+    /** if prefill, copy data to make a batch */
+#pragma omp parallel for schedule(static) if (num_tokens > 4)
+    for (size_t i = 0; i < num_tokens; ++i) {
+      const unsigned token_idx = token_assignments[i].first;
+      // Use tensor's optimized copy operation
+      nntrainer::Tensor src_view = input.getSharedDataTensor(
+        {1, 1, 1, hidden_size}, token_idx * hidden_size, true);
+      nntrainer::Tensor dst_view = token_input.getSharedDataTensor(
+        {1, 1, 1, hidden_size}, i * hidden_size, true);
+      dst_view.copyData(src_view);
+    }
+  } else {
+    /** if token generation, do not copy but get the shared tensor */
+    // Create shared tensor for input token (no memory copy)
+    size_t token_offset = token_idx * hidden_size;
+    token_input =
+      input.getSharedDataTensor(token_input_dim, token_offset, true);
+  }
+
+  // Gate projection using optimized dot operation
+  token_input.dot(gate_proj, gate_out);
+
+  // Up projection using optimized dot operation
+  token_input.dot(up_proj, up_out);
+
+  if (num_tokens == 1) {
+    // Apply activation (silu)
+    acti_func.run_fn(gate_out, acti_out);
+    // Element-wise multiply: silu(gate_out) * up_out
+    acti_out.multiply_i(up_out);
+  } else {
+#pragma omp parallel for schedule(static) if (num_tokens > 4)
+    for (size_t i = 0; i < num_tokens; ++i) {
+      const unsigned offset = acti_out.getIndex(0, 0, i, 0);
+      nntrainer::swiglu(acti_out.width(), acti_out.getData<float>() + offset,
+                        gate_out.getData<float>() + offset,
+                        up_out.getData<float>() + offset);
+    }
+  }
+
+  acti_out.dot(down_proj, token_expert_output);
+
+  // accumulate to output
+  for (size_t i = 0; i < num_tokens; ++i) {
+    token_idx = token_assignments[i].first;
+    weight = token_assignments[i].second;
+    size_t output_offset = token_idx * hidden_size;
+    nntrainer::Tensor token_output =
+      output.getSharedDataTensor(out_step_dim, output_offset, true);
+    nntrainer::Tensor target = token_expert_output.getSharedDataTensor(
+      out_step_dim, i * hidden_size, true);
+    target.multiply_i(weight);
+    token_output.add(target, token_output);
+  }
+}
 
 void ErnieMoELayer::incremental_forwarding(
   nntrainer::RunLayerContext &context, unsigned int from, unsigned int to,
   bool training) {
-#ifdef DEBUG
-  auto t1 = high_resolution_clock::now();
-#endif
+
 
   nntrainer::Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
   nntrainer::Tensor &output_ = context.getOutput(SINGLE_INOUT_IDX);
@@ -214,6 +273,7 @@ void ErnieMoELayer::incremental_forwarding(
 
     // reshape output: [B,1,S,H] -> [B*S,1,1,H]
     output.reshape({total_tokens, 1, 1, hidden_size});
+    output.setZero();
 
     // routing
     nntrainer::Tensor &gate_weights = context.getWeight(gate_idx);
@@ -221,7 +281,7 @@ void ErnieMoELayer::incremental_forwarding(
     router_logits.apply(nntrainer::ActiFunc::softmax<float>, router_logits);
 
     // get extra topK
-    auto extra_topk_result = router_logits.topK(topk + 3);
+    auto extra_topk_result = router_logits.topK(topk + 5);
     auto extra_topk_values = std::get<0>(extra_topk_result);
     auto extra_topk_indices = std::get<1>(extra_topk_result);
     std::deque<int> extra_top_k = {};
@@ -230,7 +290,7 @@ void ErnieMoELayer::incremental_forwarding(
 
     // get extra topk
     for (int i = static_cast<int>(total_tokens) - 1; i >= 0; --i) {
-      for (int k = 0; k < static_cast<int>(topk + 3); ++k) {
+      for (int k = 0; k < static_cast<int>(topk + 5); ++k) {
         unsigned expert_idx = extra_indices_data[i * topk + k];
         extra_top_k.push_back(expert_idx);
       }
@@ -284,17 +344,10 @@ void ErnieMoELayer::incremental_forwarding(
       const auto &assignments = expert_assignments[expert_idx];
       if (need_load[expert_idx]) {
 
-#ifdef DEBUG
-        auto t1_miss = high_resolution_clock::now();
-#endif
 
         context.getWeight(expert_gate_proj_indices[expert_idx]).activate();
         context.getWeight(expert_up_proj_indices[expert_idx]).activate();
         context.getWeight(expert_down_proj_indices[expert_idx]).activate();
-
-        context.getWeight(expert_gate_bias_indices[expert_idx]).activate();
-        context.getWeight(expert_up_bias_indices[expert_idx]).activate();
-        context.getWeight(expert_down_bias_indices[expert_idx]).activate();
 
         {
           std::lock_guard<std::mutex> lock(cache_mutex);
@@ -308,18 +361,11 @@ void ErnieMoELayer::incremental_forwarding(
           input, expert_outputs[expert_idx], assignments,
           context.getWeight(expert_gate_proj_indices[expert_idx]),
           context.getWeight(expert_up_proj_indices[expert_idx]),
-          context.getWeight(expert_down_proj_indices[expert_idx]),
-          context.getWeight(expert_gate_bias_indices[expert_idx]),
-          context.getWeight(expert_up_bias_indices[expert_idx]),
-          context.getWeight(expert_down_bias_indices[expert_idx]), hidden_size);
-#ifdef DEBUG
-        auto t2_miss = high_resolution_clock::now();
-#endif
+          context.getWeight(expert_down_proj_indices[expert_idx]), hidden_size);
+
       } else {
 
-#ifdef DEBUG
-        auto t1_hit = high_resolution_clock::now();
-#endif
+
         {
           std::lock_guard<std::mutex> lock(cache_mutex);
           hit_count += 1;
@@ -329,14 +375,8 @@ void ErnieMoELayer::incremental_forwarding(
           input, expert_outputs[expert_idx], assignments,
           context.getWeight(expert_gate_proj_indices[expert_idx]),
           context.getWeight(expert_up_proj_indices[expert_idx]),
-          context.getWeight(expert_down_proj_indices[expert_idx]),
-          context.getWeight(expert_gate_bias_indices[expert_idx]),
-          context.getWeight(expert_up_bias_indices[expert_idx]),
-          context.getWeight(expert_down_bias_indices[expert_idx]), hidden_size);
+          context.getWeight(expert_down_proj_indices[expert_idx]), hidden_size);
 
-#ifdef DEBUG
-        auto t2_hit = high_resolution_clock::now();
-#endif
       }
     }
 
@@ -348,13 +388,9 @@ void ErnieMoELayer::incremental_forwarding(
       }
     }
 
-#ifdef DEBUG
-    auto t1_evict = high_resolution_clock::now();
-#endif
-
 // Evict experts
 #pragma omp parallel
-    while (loaded_expert_deque.size() > 16) {
+    while (loaded_expert_deque.size() > 32) {
       int target_idx;
       {
         std::lock_guard<std::mutex> lock(cache_mutex);
@@ -363,17 +399,11 @@ void ErnieMoELayer::incremental_forwarding(
         iteration_map.erase(target_idx);
         need_load[target_idx] = true;
       }
+
       context.getWeight(expert_gate_proj_indices[target_idx]).deactivate();
       context.getWeight(expert_up_proj_indices[target_idx]).deactivate();
       context.getWeight(expert_down_proj_indices[target_idx]).deactivate();
-      context.getWeight(expert_gate_bias_indices[target_idx]).deactivate();
-      context.getWeight(expert_up_bias_indices[target_idx]).deactivate();
-      context.getWeight(expert_down_bias_indices[target_idx]).deactivate();
     }
-
-#ifdef DEBUG
-    auto t2_evict = high_resolution_clock::now();
-#endif
 
     // Combine expert outputs
     int init = 0;
@@ -389,147 +419,20 @@ void ErnieMoELayer::incremental_forwarding(
     // reshape output: [B*S,1,1,H] -> [B,1,S,H]
     output.reshape({batch_size, 1, seq_len, hidden_size});
 
-#ifdef DEBUG
-    auto t2 = high_resolution_clock::now();
-    auto dt = duration_cast<nanoseconds>(t2 - t1);
-    auto dt_miss = duration_cast<nanoseconds>(t2_miss - t1_miss);
-    auto dt_hit = duration_cast<nanoseconds>(t2_hit - t1_hit);
-    auto dt_evict = duration_cast<nanoseconds>(t2_evict - t1_evict);
-    std::cout << context.getName() << " \t| " << dt.count() << " ns "
-              << "\t| " << dt.count() / 1'000 << " us "
-              << "\t| " << dt.count() / 1'000'000 << " ms "
-              << "\t| "
-              << "hit ratio: " << hit_count / 8.0 << "\t | "
-              << " miss ratio: " << miss_count / 8.0 << "\t | "
-              << "hit_compute: " << dt_hit.count() / 1'000'000 << " ms "
-              << "\t| "
-              << "miss_compute: " << dt_miss.count() / 1'000'000 << " ms "
-              << "\t| "
-              << "evict_time: " << dt_evict.count() / 1'000'000 << " ms "
-              << "\t| " std::cout << std::endl;
-#endif
   }
 }
 
-inline void ErnieMoELayer::compute_expert_forward(
-  const nntrainer::Tensor &input, nntrainer::Tensor &expert_output,
-  const std::vector<std::pair<unsigned, float>> &token_assignments,
-  const nntrainer::Tensor &gate_proj, const nntrainer::Tensor &up_proj,
-  const nntrainer::Tensor &down_proj, const nntrainer::Tensor &gate_bias,
-  const nntrainer::Tensor &up_bias, const nntrainer::Tensor &down_bias,
-  unsigned int hidden_size) {
-
-  const unsigned intermediate_size = gate_proj.width();
-  const unsigned num_tokens = token_assignments.size();
-
-  if (num_tokens == 0)
-    return;
-
-  // Create tensor dimensions for single token processing
-  nntrainer::TensorDim token_input_dim({1, 1, num_tokens, hidden_size},
-                                       input.getTensorType());
-  nntrainer::TensorDim intermediate_dim({1, 1, num_tokens, intermediate_size},
-                                        input.getTensorType());
-  nntrainer::TensorDim token_output_dim({1, 1, num_tokens, hidden_size},
-                                        input.getTensorType());
-  nntrainer::TensorDim out_step_dim({1, 1, 1, hidden_size},
-                                    input.getTensorType());
-  nntrainer::TensorDim step_dim({1, 1, 1, intermediate_size},
-                                input.getTensorType());
-  // Create intermediate tensors for this token
-  nntrainer::Tensor gate_out(intermediate_dim);
-  nntrainer::Tensor acti_out(intermediate_dim);
-  nntrainer::Tensor up_out(intermediate_dim);
-  nntrainer::Tensor token_input(token_input_dim);
-  // Down projection using optimized dot operation
-  nntrainer::Tensor token_expert_output(token_output_dim);
-
-  unsigned token_idx = token_assignments[0].first;
-  float weight = token_assignments[0].second;
-
-  if (num_tokens > 1) {
-    /** if prefill, copy data to make a batch */
-#pragma omp parallel for schedule(static) if (num_tokens > 4)
-    for (size_t i = 0; i < num_tokens; ++i) {
-      const unsigned token_idx = token_assignments[i].first;
-      // Use tensor's optimized copy operation
-      nntrainer::Tensor src_view = input.getSharedDataTensor(
-        {1, 1, 1, hidden_size}, token_idx * hidden_size, true);
-      nntrainer::Tensor dst_view = token_input.getSharedDataTensor(
-        {1, 1, 1, hidden_size}, i * hidden_size, true);
-      dst_view.copyData(src_view);
-    }
-  } else {
-    /** if token generation, do not copy but get the shared tensor */
-    // Create shared tensor for input token (no memory copy)
-    size_t token_offset = token_idx * hidden_size;
-    token_input =
-      input.getSharedDataTensor(token_input_dim, token_offset, true);
-  }
-
-  // Gate projection using optimized dot operation
-  token_input.dot(gate_proj, gate_out);
-  gate_out.add(gate_bias, gate_out);
-  // gate_out.clamp(min=None, max=limit)
-  nntrainer::clamp(gate_out.getData(), gate_out.getData(),
-                   num_tokens * intermediate_size,
-                   std::numeric_limits<float>::lowest(), limit);
-
-  // Up projection using optimized dot operation
-  token_input.dot(up_proj, up_out);
-  up_out.add_i(up_bias);
-  // up_out.clamp(min=-limit, max=limit)
-  nntrainer::clamp(up_out.getData(), up_out.getData(),
-                   num_tokens * intermediate_size, -limit, limit);
-
-  // Apply activation (silu)
-  // (up + 1) * (gate * torch.sigmoid(gate * alpha))
-  // swiglu : X = Z * (Y / 1 + exp(-alpha * Y))
-  // X := acti_out
-  // Y := gate_out
-  // Z := up_out + 1
-  up_out.add_i(1);
-#pragma omp parallel for schedule(static) if (num_tokens > 2)
-  for (size_t i = 0; i < num_tokens; ++i) {
-    const unsigned offset = acti_out.getIndex(0, 0, i, 0);
-    nntrainer::swiglu(acti_out.width(), acti_out.getData<float>() + offset,
-                      gate_out.getData<float>() + offset,
-                      up_out.getData<float>() + offset, alpha);
-  }
-
-  // Down projection using optimized dot operation
-  acti_out.dot(down_proj, token_expert_output);
-  token_expert_output.add_i(down_bias);
-
-  // accumulate to output
-#pragma omp parallel for schedule(static) if (num_tokens > 2)
-  for (size_t i = 0; i < num_tokens; ++i) {
-    token_idx = token_assignments[i].first;
-    weight = token_assignments[i].second;
-    size_t output_offset = token_idx * hidden_size;
-    nntrainer::Tensor token_output =
-      expert_output.getSharedDataTensor(out_step_dim, output_offset, true);
-    nntrainer::Tensor target = token_expert_output.getSharedDataTensor(
-      out_step_dim, i * hidden_size, true);
-    target.multiply_i(weight);
-    token_output.add(target, token_output);
-  }
-}
-
-void ErnieMoELayer::setProperty(
-  const std::vector<std::string> &values) {
+void ErnieMoELayer::setProperty(const std::vector<std::string> &values) {
   auto remain_props = loadProperties(values, moe_props);
   nntrainer::LayerImpl::setProperty(remain_props);
 }
 
-void ErnieMoELayer::calcDerivative(
-  nntrainer::RunLayerContext &context) {
+void ErnieMoELayer::calcDerivative(nntrainer::RunLayerContext &context) {
   // MoE layer does not support derivative calculation
   throw std::runtime_error("MoE layer does not support derivative calculation");
 }
 
-void ErnieMoELayer::calcGradient(
-  nntrainer::RunLayerContext &context) {
+void ErnieMoELayer::calcGradient(nntrainer::RunLayerContext &context) {
   // MoE layer does not support gradient calculation
   throw std::runtime_error("MoE layer does not support gradient calculation");
 }
@@ -538,6 +441,20 @@ void ErnieMoELayer::exportTo(
   nntrainer::Exporter &exporter, const ml::train::ExportMethods &method) const {
   nntrainer::LayerImpl::exportTo(exporter, method);
   exporter.saveResult(moe_props, method, this); // Save MoE specific properties
+}
+
+void ErnieMoELayer::updateTensorsByInputDimensions(
+  nntrainer::RunLayerContext &context,
+  std::vector<nntrainer::TensorDim> input_dimensions) {
+  ml::train::TensorDim input_dim = context.getInput(SINGLE_INOUT_IDX).getDim();
+  ml::train::TensorDim output_dim =
+    context.getOutput(SINGLE_INOUT_IDX).getDim();
+
+  input_dim.height(input_dimensions[0].height());
+  output_dim.height(input_dimensions[0].height());
+
+  context.updateInput(SINGLE_INOUT_IDX, input_dim);
+  context.updateOutput(SINGLE_INOUT_IDX, output_dim);
 }
 
 } // namespace causallm

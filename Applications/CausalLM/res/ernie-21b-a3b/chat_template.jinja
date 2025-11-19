@@ -1,0 +1,102 @@
+{{- '<|im_start|>system
+' }}{%- if messages[0].role != 'system' and not system_settings %}{{- '<global_setting>
+think_mode=True
+</global_setting>' }}{%- else%}{{- '<system_setting>
+' }}{{- system_settings + '
+' if system_settings else '' }}{{- (messages[0].content + '
+' if messages[0].role == 'system' else '') + '</system_setting>
+
+<global_setting>
+think_mode=True
+</global_setting>' }}{%- endif %}{%- if tools %}{{- "
+
+<tool_list>" }}{{- '
+' }}{{-'['}}{% for tool in tools %}{{'{"type": "function", "function": '}}{{-(tool.function | tojson)}}}{%-if not loop.last%},{%- endif %}{%endfor%}{{-']'}}{{- "
+</tool_list>" }}{%- endif %}{{-'<|im_end|>
+
+' }}{%- set ns = namespace(multi_step_tool=true, last_query_index=messages|length - 1) %}
+{%- for message in messages[::-1] %}
+    {%- set index = (messages|length - 1) - loop.index0 %}
+    {%- if ns.multi_step_tool and message.role == "user" and message.content is string and not(message.content.startswith('<tool_output>') and message.content.endswith('</tool_output>')) %}
+        {%- set ns.multi_step_tool = false %}
+        {%- set ns.last_query_index = index %}
+    {%- endif %}
+{%- endfor %}
+{%- for message in messages %}
+    {%- if message.content is string %}
+        {%- set content = message.content %}
+    {%- else %}
+        {%- set content = '' %}
+    {%- endif %}
+    {%- if (message.role == "user") or (message.role == "system" and not loop.first) %}
+        {{- '<|im_start|>' + message.role + '
+' + content + '<|im_end|>' + '
+
+' }}
+    {%- elif message.role == "assistant" %}
+        {%- set reasoning_content = '' %}
+        {%- if message.thoughts is string %}
+            {%- set reasoning_content = message.thoughts %}
+        {%- else %}
+            {%- if '</think>' in content %}
+                {%- set reasoning_content = content.split('</think>')[0].rstrip('
+').split('<think>')[-1].lstrip('
+') %}
+                {%- set content = content.split('</think>')[-1].lstrip('
+') %}
+            {%- endif %}
+        {%- endif %}
+        {%- if loop.index0 > ns.last_query_index and  (loop.last or (not loop.last and reasoning_content)) %} {{- '<|im_start|>' + message.role + '
+<think>
+' + reasoning_content.strip('
+') + '
+</think>
+' }} {%- else %} {{- '<|im_start|>' + message.role + '
+' }} {%- endif %}  {%- if content|length > 0 %}  {{- '<response>
+' + content + '
+</response>
+' }}  {%- endif %} {%- if message.tool_calls %}
+            {%- for tool_call in message.tool_calls %}
+                {%- if (loop.first and content) or (not loop.first) %}
+                    {{- '
+' }}
+                {%- endif %}
+                {%- if tool_call.function %}
+                    {%- set tool_call = tool_call.function %}
+                {%- endif %}
+                {{- '
+<tool_call>
+{"name": "' }}
+                {{- tool_call.name }}
+                {{- '", "arguments": ' }}
+                {%- if tool_call.arguments is string %}
+                    {{- tool_call.arguments }}
+                {%- else %}
+                    {{- tool_call.arguments | tojson }}
+                {%- endif %}
+                {{- '}
+</tool_call>
+' }}
+            {%- endfor %}
+        {%- endif %}
+        {{- '<|im_end|>
+
+' }}
+    {%- elif message.role == "tool" %}
+        {%- if loop.first or (messages[loop.index0 - 1].role != "tool") %}
+            {{- '<|im_start|>tool' }}
+        {%- endif %}
+        {{- '
+<tool_output>' }}
+        {{- message.content|tojson }}
+        {{- '</tool_output>' }}
+        {%- if loop.last or (messages[loop.index0 + 1].role != "tool") %}
+            {{- '<|im_end|>
+
+' }}
+        {%- endif %}
+    {%- endif %}
+{%- endfor %}
+ {{- "<|im_start|>assistant
+<think>
+"}}
