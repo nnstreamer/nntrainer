@@ -1,0 +1,97 @@
+
+# Change the symbol prefix?
+option('symbol_prefix', type: 'string', value: '',
+       description: 'STRING can be any valid C symbol name.  It will be prefixed to all public HWLOC symbols.  Default: "" (no prefix)')
+
+# Debug mode?
+option('enable_debug', type: 'boolean', value: false,
+       description: 'Using enable-debug enables various hwloc maintainer-level debugging controls.  This option is not recomended for end users.')
+
+# Doxygen?
+option('doxygen', type: 'feature',
+       description: 'enable support for building Doxygen documentation (note that this option is ONLY relevant in developer builds; Doxygen documentation is pre-built for tarball builds and this option is therefore ignored)')
+
+# Building the README
+option('readme', type: 'boolean', value: true,
+       description: 'disable the updating of the top-level README file from the HTML documentation index')
+
+# Picky?
+option('picky', type: 'feature', value: 'auto',
+       description: 'When in developer checkouts of hwloc and compiling with gcc, the default is to enable maximum compiler pickyness.  Using picky=disabled or picky=enabled overrides any default setting')
+
+# Cairo?
+option('cairo', type: 'feature',
+       description: 'Disable or enable the Cairo back-end of hwloc\'s lstopo command (default is auto - enable if found)')
+
+# CPUID
+option('cpuid', type: 'feature',
+       description: 'Disable or enable the cpuid-based architecture specific support (x86 component)')
+
+# XML using libxml2?
+option('libxml2', type: 'feature',
+       description: 'Use libxml2 for XML support, use a custom minimalistic support')
+
+# I/O?
+option('io', type: 'boolean', value: true,
+       description: 'Toggle I/O discovery build (PCI, LinuxIO, CUDA, OpenCL, NVML, RSMI, LevelZero, GL) instead of only disabling it at runtime by default')
+
+# PCI?
+option('pci', type: 'feature',
+       description: 'Toggle the PCI device discovery build (instead of only disabling PCI at runtime by default)')
+
+# 32bits_pci_domain?
+option('32bits-pci-domain', type: 'boolean', value: false,
+       description: 'Enable 32 bits PCI domains (domains > 16bits are ignored by default). WARNING: This breaks the library ABI, don\'t enable unless really needed.')
+
+# OpenCL?
+option('opencl', type: 'feature',
+       description: 'Disable the OpenCL device discovery build (instead of only disabling OpenCL at runtime by default)')
+
+# CUDA?
+option('cuda', type: 'feature',
+       description: 'Enable the CUDA device discovery build using libcudart (instead of only disabling CUDA at runtime by default)')
+
+# NVML?
+option('nvml', type: 'feature',
+       description: 'Disable the NVML device discovery build (instead of only disabling NVML at runtime by default)')
+
+# CUDA version (for using its pkg-config cuda-x.y.pc)
+option('hwloc_cuda_version', type: 'string',
+       description: 'Specify the CUDA version (e.g. 11.2) for selecting the appropriate pkg-config file')
+
+# RSMI?
+option('rsmi', type: 'feature',
+       description: 'Enable the ROCm SMI device discovery')
+
+# ROCm install path
+option('rocm', type: 'string', value: '',
+       description: 'Specify the ROCm installation directory')
+
+# LevelZero
+option('levelzero', type: 'feature',
+       description: 'Disable the oneAPI Level Zero device discovery')
+
+# GL/Display
+option('gl', type: 'feature',
+       description: 'Eanble  the GL display device discovery (instead of only disabling GL at runtime by default)')
+
+# LibUdev
+option('libudev', type: 'boolean', value: true,
+       description: 'Enable the Linux libudev')
+
+# Plugins
+option('plugins', type: 'array', choices: [
+         'pci', 'opencl', 'cuda', 'nvml', 'rsmi', 'levelzero', 'gl', 'libxml2', 'cpuid',
+         #''
+       ],
+       description: 'Build the given components as dynamically-loaded plugins')
+
+option('plugins_path', type: 'string', value: '',
+       description: 'Colon-separated list of plugin directories. Default: "$prefix/lib/hwloc". Plugins will be installed in the first directory. They will be loaded from all of them, in order.')
+
+# Look for dlopen
+option('dlopen', type: 'boolean', value: true,
+        description: 'Do not use dlopen for loading plugins.')
+
+option('ltdl', type: 'boolean', value: true,
+       description: 'Use ltdl for loading plugins')
