@@ -502,7 +502,7 @@ std::vector<Weight *> Manager::requestWeights(
         }
       }
     }
-
+    // sumon: which one is the weight
     weights_v2.emplace_back(std::make_unique<Weight>(
       var, grad, var32, w_reg, w_reg_const, decay, is_dependent,
       clip_by_global_norm, axis, loss_scale, is_mixed));
