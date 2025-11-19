@@ -335,7 +335,6 @@ void TensorBase::calculateFlattenDot(
     input_first_three_flat = input.batch() * input.channel() * input.height();
     input_last_axis = input.width();
   }
-
   if (!trans && !trans_in) {
     if (last_axis != input_first_three_flat)
       throw std::runtime_error(

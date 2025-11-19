@@ -48,6 +48,7 @@ class Distribute;
 class Flatten;
 class Loss;
 class InputShape;
+class WeightDim;
 class Activation;
 class SharedFrom;
 class InputConnection;
@@ -519,6 +520,20 @@ public:
    * @return bool true if input shape property has set
    */
   bool hasInputShapeProperty() const;
+
+  /**
+   * @brief check whether the layer is input layer
+   *
+   * @return bool true if input layer, else false
+   */
+  bool isInputNode() const;
+
+  /**
+   * @brief check whether the layer is weight layer
+   *
+   * @return bool true if weight layer, else false
+   */
+  bool isWeightNode() const;
 
   /**
    * @brief Get the input dimension
@@ -1046,8 +1061,8 @@ properties in the context/graph unless intended. */
   using PropsType =
     std::tuple<props::Name, props::Distribute, props::Trainable,
                std::vector<props::InputConnection>,
-               std::vector<props::InputShape>, props::SharedFrom,
-               props::ClipGradByGlobalNorm, props::Packed, props::WeightDtype,
+               std::vector<props::InputShape>, props::WeightDim,
+               props::SharedFrom, props::ClipGradByGlobalNorm, props::Packed, props::WeightDtype,
                props::LossScaleForMixed, props::ComputeEngine>;
 
   using RealizationPropsType = std::tuple<props::Flatten, props::Activation>;

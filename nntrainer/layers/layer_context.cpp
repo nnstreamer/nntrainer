@@ -56,6 +56,12 @@ InitLayerContext::InitLayerContext(
   loss_scale(loss_scale_),
   mode(mode_),
   engine(engine_) {
+    // std::cout << "--------------------------------------------" << std::endl;
+    // std::cout << name << std::endl;
+    // std::cout << "Input dim: " << std::endl;
+    // for(auto i_dim: input_dim) {
+    //   std::cout << i_dim << std::endl;
+    // }
   NNTR_THROW_IF(!validate(), std::invalid_argument)
     << "Invalid init context name: " << name
     << " num inputs: " << getNumInputs();
@@ -69,6 +75,10 @@ unsigned int InitLayerContext::getNumRequestedOutputs() const {
 
 void InitLayerContext::setOutputDimensions(
   const std::vector<TensorDim> &out_dim) {
+  // std::cout << "Output dim: " << std::endl;
+  // for(auto out_d: out_dim) {
+  //   std::cout << out_d << std::endl;
+  // }
   std::vector<VarGradSpecV2> specs;
   specs.reserve(out_dim.size());
 
@@ -127,6 +137,7 @@ const std::vector<VarGradSpecV2> &InitLayerContext::getOutSpecs() const {
   return output_specs;
 }
 
+// sumon: this is where the weights are set for a layer
 RunLayerContext::RunLayerContext(const std::string &name, bool trainable,
                                  float l, bool is_inplace_, float loss_scale_,
                                  std::shared_ptr<ContextData> ct_data_,

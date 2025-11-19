@@ -96,6 +96,7 @@ public:
     // if fm == Tformat::NCHW, then dim[0] == batch , dim[1] == channel, dim[2]
     // == height, dim[3] == width. and if fm == Tformat::NHWC, dim[0] == batch,
     // dim[1] == height, dim[2] == width, dim[3] == channel
+    // sumon: data is set here. This data is directly written to bin file
     if (fm == Tformat::NCHW) {
       for (unsigned int i = 0; i < batch(); ++i)
         for (unsigned int j = 0; j < channel(); ++j)
