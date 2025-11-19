@@ -142,13 +142,10 @@ void SwiGLULayerCl::swiglu_cl(float *matAdata, float *vecXdata, float *vecYdata,
       auto bufferInB = clbuffInstance.getInBufferB()->GetBuffer();
       auto bufferOutA = clbuffInstance.getOutBufferA()->GetBuffer();
 
-      bool set_result = true;
-      set_result &=
-        kernel_swiglu_ptr->SetKernelArguments(0, &bufferInA, sizeof(cl_mem));
-      set_result &=
-        kernel_swiglu_ptr->SetKernelArguments(1, &bufferInB, sizeof(cl_mem));
-      set_result &=
-        kernel_swiglu_ptr->SetKernelArguments(2, &bufferOutA, sizeof(cl_mem));
+      bool set_result = kernel_swiglu_ptr->SetKernelArguments(
+        {{0, &bufferInA, sizeof(cl_mem)},
+         {1, &bufferInB, sizeof(cl_mem)},
+         {2, &bufferOutA, sizeof(cl_mem)}});
       if (!set_result) {
         break;
       }
@@ -163,10 +160,8 @@ void SwiGLULayerCl::swiglu_cl(float *matAdata, float *vecXdata, float *vecYdata,
         break;
       }
 
-      bool set_svm_result = true;
-      set_svm_result &= kernel_swiglu_ptr->SetKernelSVMArguments(0, matAdata);
-      set_svm_result &= kernel_swiglu_ptr->SetKernelSVMArguments(1, vecXdata);
-      set_svm_result &= kernel_swiglu_ptr->SetKernelSVMArguments(2, vecYdata);
+      bool set_svm_result = kernel_swiglu_ptr->SetKernelSVMArguments(
+        {{0, matAdata}, {1, vecXdata}, {2, vecYdata}});
       if (!set_svm_result) {
         ml_loge("Failed to set svm");
         break;
@@ -238,13 +233,10 @@ void SwiGLULayerCl::swiglu_cl_fp16(_FP16 *matAdata, _FP16 *vecXdata,
     auto bufferInB = clbuffInstance.getInBufferB()->GetBuffer();
     auto bufferOutA = clbuffInstance.getOutBufferA()->GetBuffer();
 
-    bool set_result = true;
-    set_result &=
-      kernel_swiglu_ptr->SetKernelArguments(0, &bufferInA, sizeof(cl_mem));
-    set_result &=
-      kernel_swiglu_ptr->SetKernelArguments(1, &bufferInB, sizeof(cl_mem));
-    set_result &=
-      kernel_swiglu_ptr->SetKernelArguments(2, &bufferOutA, sizeof(cl_mem));
+    bool set_result =
+      kernel_swiglu_ptr->SetKernelArguments({{0, &bufferInA, sizeof(cl_mem)},
+                                             {1, &bufferInB, sizeof(cl_mem)},
+                                             {2, &bufferOutA, sizeof(cl_mem)}});
     if (!set_result) {
       break;
     }
