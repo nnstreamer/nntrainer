@@ -772,6 +772,64 @@ template <typename T = float>
 void clamp(const T *input, T *output, size_t length,
            T lower_bound = std::numeric_limits<T>::lowest(),
            T upper_bound = std::numeric_limits<T>::max());
+
+/// @note The structure should later be neon_impl_aarch64 and neon_impl_armv7l
+#if defined(__aarch64__) || defined(_M_ARM64)
+/**
+ * @brief Compute vcache for one row transposed
+ * @param[in] row_num row number
+ * @param[in] in float* input vector
+ * @param[in] vcache __fp16* input vector
+ * @param[out] output float* output vector
+ * @param[in] num_cache_head number head of cache
+ * @param[in] gqa_size size of group
+ * @param[in] head_dim head dimension
+ * @param[in] local_window_size windows size for local attention
+ */
+void compute_fp16vcache_fp32_transposed(int row_num, const float *in,
+                                        const uint16_t *vcache, float *output,
+                                        int num_cache_head, int gqa_size,
+                                        int head_dim,
+                                        size_t local_window_size = UINT_MAX);
+
+/**
+ * @brief Compute kcaches
+ * @tparam uint16_t type of B vector element
+ * @param[in] in float* input vector
+ * @param[in] kcache uint16_t* input vector with keys cache
+ * @param[out] output float* output float vector
+ * @param[in] num_rows number of row
+ * @param[in] num_cache_head number head of cache
+ * @param[in] head_dim head dimension
+ * @param[in] gqa_size size of group
+ * @param[in] tile_size size of tile
+ * @param[in] local_window_size windows size for local attention
+ */
+void compute_kcaches_uint16(const float *in, const uint16_t *kcache,
+                            float *output, int num_rows, int num_cache_head,
+                            int head_dim, int gqa_size, int tile_size,
+                            size_t local_window_size = UINT_MAX);
+
+/**
+ * @brief Compute rotary embedding value
+ * @param[in] width current w value from b, c, h, w
+ * @param[in] dim unit length of simd computation
+ * @param[in] half_ criterion for rotational direction of embedding
+ * @param[in/out] inout float* used also as output when expected output float*
+ * values
+ * @param[out] output void* output values, used when expected output __fp16*
+ * values
+ * @param[in] cos_ float* input con values
+ * @param[in] sin_ float* input sin values
+ * @param[in] only_convert_to_fp16 equal true if method is used only for
+ * conversion
+ */
+void compute_rotary_emb_value_uint16(unsigned int width, unsigned int dim,
+                                     unsigned int half_, float *inout,
+                                     void *output, const float *cos_,
+                                     const float *sin_,
+                                     bool only_convert_to_fp16);
+#endif
 } // namespace nntrainer::neon
 
 #endif /* __cplusplus */
