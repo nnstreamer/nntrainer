@@ -2,11 +2,10 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <ernie_moe_layer.h>
 #include <node_exporter.h>
 #include <omp.h>
-#include <ernie_moe_layer.h>
 #include <stdexcept>
-
 
 namespace causallm {
 
@@ -102,22 +101,36 @@ void ErnieMoELayer::finalize(nntrainer::InitLayerContext &context) {
 
   for (unsigned int i = 0; i < num_experts; ++i) {
     // Up projection
+    // expert_up_proj_indices.push_back(context.requestWeight(
+    //   expert_gate_dim, // Same dimensions as gate projection
+    //   weight_initializer, weight_regularizer, weight_regularizer_constant,
+    //   weight_decay, "expert_up_" + std::to_string(i), false));
+    //
+    // expert_gate_proj_indices.push_back(context.requestWeight(
+    //   expert_gate_dim, weight_initializer, weight_regularizer,
+    //   weight_regularizer_constant, weight_decay,
+    //   "expert_gate_" + std::to_string(i), false));
+    //
+    // expert_down_proj_indices.push_back(context.requestWeight(
+    //   expert_down_dim, weight_initializer, weight_regularizer,
+    //   weight_regularizer_constant, weight_decay,
+    //   "expert_down_" + std::to_string(i), false));
+
     expert_up_proj_indices.push_back(context.requestWeight(
       expert_gate_dim, // Same dimensions as gate projection
       weight_initializer, weight_regularizer, weight_regularizer_constant,
       weight_decay, "expert_up_" + std::to_string(i), false, true));
 
-    // Gate projection
     expert_gate_proj_indices.push_back(context.requestWeight(
       expert_gate_dim, weight_initializer, weight_regularizer,
       weight_regularizer_constant, weight_decay,
       "expert_gate_" + std::to_string(i), false, true));
 
-    // Down projection
     expert_down_proj_indices.push_back(context.requestWeight(
       expert_down_dim, weight_initializer, weight_regularizer,
       weight_regularizer_constant, weight_decay,
       "expert_down_" + std::to_string(i), false, true));
+
     need_load.push_back(true);
   }
 
@@ -140,7 +153,7 @@ void ErnieMoELayer::finalize(nntrainer::InitLayerContext &context) {
 }
 
 void ErnieMoELayer::forwarding(nntrainer::RunLayerContext &context,
-                                    bool training) {}
+                               bool training) {}
 
 inline void ErnieMoELayer::compute_expert_forward(
   const nntrainer::Tensor &input, nntrainer::Tensor &output,
@@ -233,10 +246,9 @@ inline void ErnieMoELayer::compute_expert_forward(
   }
 }
 
-void ErnieMoELayer::incremental_forwarding(
-  nntrainer::RunLayerContext &context, unsigned int from, unsigned int to,
-  bool training) {
-
+void ErnieMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
+                                           unsigned int from, unsigned int to,
+                                           bool training) {
 
   nntrainer::Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
   nntrainer::Tensor &output_ = context.getOutput(SINGLE_INOUT_IDX);
@@ -365,7 +377,6 @@ void ErnieMoELayer::incremental_forwarding(
 
       } else {
 
-
         {
           std::lock_guard<std::mutex> lock(cache_mutex);
           hit_count += 1;
@@ -376,7 +387,6 @@ void ErnieMoELayer::incremental_forwarding(
           context.getWeight(expert_gate_proj_indices[expert_idx]),
           context.getWeight(expert_up_proj_indices[expert_idx]),
           context.getWeight(expert_down_proj_indices[expert_idx]), hidden_size);
-
       }
     }
 
@@ -418,7 +428,6 @@ void ErnieMoELayer::incremental_forwarding(
 
     // reshape output: [B*S,1,1,H] -> [B,1,S,H]
     output.reshape({batch_size, 1, seq_len, hidden_size});
-
   }
 }
 
@@ -437,8 +446,8 @@ void ErnieMoELayer::calcGradient(nntrainer::RunLayerContext &context) {
   throw std::runtime_error("MoE layer does not support gradient calculation");
 }
 
-void ErnieMoELayer::exportTo(
-  nntrainer::Exporter &exporter, const ml::train::ExportMethods &method) const {
+void ErnieMoELayer::exportTo(nntrainer::Exporter &exporter,
+                             const ml::train::ExportMethods &method) const {
   nntrainer::LayerImpl::exportTo(exporter, method);
   exporter.saveResult(moe_props, method, this); // Save MoE specific properties
 }

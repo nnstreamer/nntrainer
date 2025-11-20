@@ -40,6 +40,7 @@ private:
   unsigned int NUM_EXPERTS;
   unsigned int NUM_EXPERTS_PER_TOK;
   unsigned int NUM_SHARED_EXPERTS;
+  unsigned int MOE_INTERMEDIATE_SIZE;
 
   std::vector<std::string> LAYER_TYPES;
   float ATTENTION_ROPE_SCALING_FACTOR;

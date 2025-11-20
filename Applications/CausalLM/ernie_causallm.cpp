@@ -14,9 +14,7 @@ std::vector<LayerHandle> Ernie4_5_MoeForCausalLM::createMlp(const int layer_id,
                                                       int dim, int hidden_dim,
                                                       std::string input_name) {
   std::vector<LayerHandle> layers;
-  if (layer_id ==0 ) {
-    std::cout << "tttt" << std::endl;
-
+  if (layer_id == 0 ) {
       layers.push_back(createLayer(
         "fully_connected",
         {withKey("name", "layer" + std::to_string(layer_id) + "_ffn_up"),
@@ -46,28 +44,28 @@ std::vector<LayerHandle> Ernie4_5_MoeForCausalLM::createMlp(const int layer_id,
                  "layer" + std::to_string(layer_id) + "_ffn_swiglu"),
          withKey("weight_initializer", "ones")}));
 
-      return layers;
   } else {
     layers.push_back(createLayer(
       "ernie_moe",
       {
         withKey("name", "layer" + std::to_string(layer_id) + "_ffn_down"),
         withKey("input_layers", input_name),
-        withKey("unit", hidden_dim),
+        withKey("unit", MOE_INTERMEDIATE_SIZE),
         withKey("num_experts", NUM_EXPERTS),
-        withKey("num_experts_per_token", NUM_EXPERTS_PER_TOK),
+        withKey("num_experts_per_token", 8), withKey("moe_activation", "swish")
       }));
-    return layers;
   }
+  return layers;
 }
 
 void Ernie4_5_MoeForCausalLM::setupParameters(json &cfg, json &generation_cfg,
                                         json &nntr_cfg) {
-  CausalLM(cfg, generation_cfg, nntr_cfg);
+
 
   try {
     NUM_EXPERTS = cfg["moe_num_experts"].get<unsigned int>();
-    NUM_EXPERTS_PER_TOK = 8; //shared + expert = 6
+    NUM_EXPERTS_PER_TOK = 6; //shared + expert = 6
+    MOE_INTERMEDIATE_SIZE = cfg["moe_intermediate_size"].get<unsigned int>();
 
   } catch (const std::exception &e) {
     throw std::runtime_error("Ernie Causallm: config parsing error");

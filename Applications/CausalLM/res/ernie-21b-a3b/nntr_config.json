@@ -1,13 +1,14 @@
 {
-    "model_tensor_type": "Q4_0-FP32",
-    "model_file_name": "nntr_qwen3-30b-moe-q40-fp32-x86.bin",
+    "model_tensor_type": "FP32-FP32",
+    "model_file_name": "erine_21b_fp32_without_bias.bin",
 
     "lora_rank" : 0,
     "lora_alpha" : 0,
     "lora_target": [],
 
-    "fc_layer_dtype" : "Q4_0",
+    "fc_layer_dtype" : "FP32",
     "embedding_dtype" : "FP32",
+    "lmhead_dtype" : "FP32",
 
     "bad_word_ids": [],
     "fsu": false,
@@ -16,6 +17,6 @@
     "max_seq_len": 2048,
     "batch_size": 1,
 
-    "tokenizer_file": "/tmp/nntrainer/Applications/CausalLM/res/qwen3-30b-a3b/tokenizer.json",
+    "tokenizer_file": "/home/donghak/workspace/nntrainer/Applications/CausalLM/res/ernie-21b-a3b/tokenizer.json",
     "sample_input": "<|im_start|>user\nGive me a short introduction to large language model.<|im_end|>\n<|im_start|>assistant\n"
 }

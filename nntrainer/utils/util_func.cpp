@@ -91,7 +91,7 @@ void checkedRead(std::ifstream &file, char *array, std::streamsize size,
 void checkedRead(ReadSource src, char *array, std::streamsize size,
                  const char *error_msg, size_t start_offset,
                  bool read_from_offset) {
-
+try {
   if (auto f = std::get_if<std::ifstream *>(&src)) {
     if (read_from_offset) {
       (*f)->seekg(start_offset, std::ios::beg);
@@ -105,6 +105,9 @@ void checkedRead(ReadSource src, char *array, std::streamsize size,
       std::memcpy(array, (*p), size);
     }
   }
+} catch (const std::exception &e) {
+  std::cerr << "\n[!] FATAL ERROR: " << e.what() << "\n";
+}
 }
 
 void checkedWrite(std::ostream &file, const char *array, std::streamsize size,

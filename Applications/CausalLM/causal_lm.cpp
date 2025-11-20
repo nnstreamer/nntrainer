@@ -85,16 +85,6 @@ void CausalLM::setupParameters(json &cfg, json &generation_cfg,
   PRE_COMPUTED_CACHE_PATH = "";
   SYS_PROMP_LEN = 0;
 
-  if (nntr_cfg.contains("system_prompt") &&
-      nntr_cfg["system_prompt"].contains("kvcache")) {
-    USE_KVCACHE = true;
-    PRE_COMPUTED_CACHE_PATH =
-      nntr_cfg["system_prompt"]["kvcache"]["pre_computed_cache_path"];
-    if (nntr_cfg["system_prompt"]["kvcache"].contains("sys_prompt_token_size"))
-      SYS_PROMP_LEN =
-        nntr_cfg["system_prompt"]["kvcache"]["sys_prompt_token_size"]
-          .get<unsigned int>();
-  }
 
   /** Initialize model parameters */
   NUM_VOCAB = cfg["vocab_size"];
@@ -149,10 +139,6 @@ void CausalLM::initialize() {
   std::vector<std::string> model_props = {
     withKey("batch_size", BATCH_SIZE), withKey("epochs", "1"),
     withKey("model_tensor_type", MODEL_TENSOR_TYPE)};
-  if (MEMORY_SWAP) {
-    model_props.emplace_back(withKey("fsu", "true"));
-    model_props.emplace_back(withKey("fsu_lookahead", FSU_LOOKAHEAD));
-  }
 
   model->setProperty(model_props);
 
@@ -183,8 +169,10 @@ void CausalLM::constructModel() {
               withKey("input_shape", "1:1:" + std::to_string(INIT_SEQ_LEN))}));
 
   // create embedding layer
-  const std::string embedding_type =  "tie_word_embeddings";
-  const std::string lmhead_type =  "tie_word_embeddings";
+  const std::string embedding_type =
+    TIE_WORD_EMBEDDINGS ? "tie_word_embeddings" : "embedding_layer";
+  const std::string lmhead_type =
+    TIE_WORD_EMBEDDINGS ? "tie_word_embeddings" : "fully_connected";
 
   std::cout << "vocab size : " << NUM_VOCAB << std::endl;
 
