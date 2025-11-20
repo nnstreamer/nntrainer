@@ -88,7 +88,7 @@ public:
    * @param key key to access the factory, if key is empty, try to find key by
    * calling factory({})->getType();
    * @param int_key key to access the factory by integer, if it is -1(default),
-   * the function automatically unsigned the key and return
+   * the function automatically deassigns the key and return
    * @return const int unique integer value to access the current factory
    * @throw invalid argument when key and/or int_key is already taken
    */
@@ -109,7 +109,7 @@ public:
    * @param key key to access the factory, if key is empty, try to find key by
    * calling factory({})->getType();
    * @param int_key key to access the factory by integer, if it is -1(default),
-   * the function automatically unsigned the key and return
+   * the function automatically deassigns the key and return
    * @return const int unique integer value to access the current factory
    * @throw invalid argument when key and/or int_key is already taken
    */

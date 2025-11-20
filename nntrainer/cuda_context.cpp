@@ -40,18 +40,11 @@ void CudaContext::initialize() noexcept {
   } catch (...) {
     ml_loge("cuda_context: registering layer failed due to unknown reason");
   }
-};
+}
 
 void CudaContext::add_default_object() {
-  // Register default layers that support CUDA
-  registerFactory(nntrainer::createLayer<FullyConnectedLayer>,
-                  FullyConnectedLayer::type, ml::train::LayerType::LAYER_FC);
-
-  registerFactory(nntrainer::createLayer<AdditionLayer>, AdditionLayer::type,
-                  ml::train::LayerType::LAYER_ADDITION);
-
-  registerFactory(nntrainer::createLayer<ReshapeLayer>, ReshapeLayer::type,
-                  ml::train::LayerType::LAYER_RESHAPE);
+  // todo: implementation is needed
+  return;
 }
 
 template <typename T>

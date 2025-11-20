@@ -57,10 +57,14 @@ public:
     if (cuda_initialized) {
       // Release CUDA resources
       if (stream_) {
-        cudaStreamDestroy(stream_);
+        cudaError_t err = cudaStreamDestroy(stream_);
+        if (err != cudaSuccess) {
+          ml_loge("Failed to destroy CUDA stream: %s", cudaGetErrorString(err));
+        }
+        stream_ = nullptr;
       }
     }
-  };
+  }
 
   /**
    * @brief Factory register function, use this function to register custom
