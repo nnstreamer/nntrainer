@@ -38,11 +38,13 @@
 #include <memory>
 #include <vector>
 #if defined(_WIN32)
+#ifndef NOMINMAX
 #ifdef max
 #undef max
 #undef min
 #endif
 #define NOMINMAX
+#endif
 #define O_SYNC 0UL
 #include <io.h>
 #include <sysinfoapi.h>

@@ -22,11 +22,13 @@
 #include <tensor_dim.h>
 
 #if defined(_WIN32)
+#ifndef NOMINMAX
 #ifdef max
 #undef max
 #undef min
 #endif
 #define NOMINMAX
+#endif
 #include <windows.h>
 #endif
 
