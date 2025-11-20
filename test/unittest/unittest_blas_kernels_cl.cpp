@@ -989,7 +989,7 @@ static void run_int4_gemm_test_(const uint32_t M, const uint32_t K,
   nntrainer::sgemm(0, false, true, M, N, K, 1.F, input.data(), K,
                    weight_fp32.data(), K, 0.F, ref_dst.data(), N);
 
-  // Reference Q4_0 GEMV
+  // Reference Q4_0 GEMM
   if (K % Q4_0 == 0 && N % 8 == 0) {
     size_t q4_data_size = K * N / Q4_0 * sizeof(block_q4_0);
     std::vector<float> q4_output_fp32(M * N);
@@ -1411,10 +1411,21 @@ static void run_transform_int4_test_(const uint32_t K, const uint32_t N,
                               dequantized_ref_weights_q4.data());
   float mse_fp32_transform_q4 =
     mse<float>(weight_fp32.data(), dequantized_ref_weights_q4.data(), N * K);
-  std::cout << "MSE FP32 transform Q4_0: " << std::setprecision(10)
+  std::cout << "MSE FP32 transform Q4_0:   " << std::setprecision(10)
             << mse_fp32_transform_q4 << std::endl;
   // Reference solution - END
 
+  float mse_dequant_int4_vs_trans_q4 = mse<float>(
+    dequant_weight_fp32.data(), dequantized_weights_q4.data(), N * K);
+  std::cout << "MSE dequant Int4 vs direct transform Q4_0: "
+            << std::setprecision(10) << mse_dequant_int4_vs_trans_q4
+            << std::endl;
+
+  // This is a proof that the transformQ4_0x8FromInt4() is lossless computation.
+  const float epsilon = 0.00001f;
+  EXPECT_IN_RANGE(mse_dequant_int4_vs_trans_q4, 0, epsilon);
+
+  // Other MSEs
   const float epsilon_direct = (use_ones) ? 0.00001f : 0.002f;
   EXPECT_IN_RANGE(mse_direct_transform_q4, 0, epsilon_direct);
   const float epsilon_fp32 = (use_ones) ? 0.00001f : 0.004f;
@@ -1422,6 +1433,78 @@ static void run_transform_int4_test_(const uint32_t K, const uint32_t N,
   if (!use_ones) {
     EXPECT_LE(mse_direct_transform_q4, mse_fp32_transform_q4);
   }
+
+  // Additional test with using GEMMs
+  const uint32_t M = 4;
+  const uint32_t input_size = M * K;
+  const int INT4_BLOCK_N_SIZE = 32;
+  uint32_t alignN = align(N, INT4_BLOCK_N_SIZE);
+  std::vector<float> input =
+    generate_random_vector<float, false>(input_size, -1.0, 1.0);
+
+  // SGEMM - reference
+  std::vector<float> ref_output_fp32(M * N, 0.0f);
+  nntrainer::sgemm(0, false, true, M, N, K, 1.F, input.data(), K,
+                   weight_fp32.data(), K, 0.F, ref_output_fp32.data(), N);
+
+  // GEMM INT4
+  float *input_ptr = (float *)allocateSVM(M * K * sizeof(float));
+  int8_t *weight_ptr = (int8_t *)allocateSVM(alignN * K / 2);
+  uint16_t *scale_ptr = (uint16_t *)allocateSVM(ceilDiv(K, scale_group_size) *
+                                                alignN * sizeof(uint16_t));
+  float *output_ptr = (float *)allocateSVM(M * N * sizeof(float));
+
+  blas_cc->command_queue_inst_.enqueueSVMMap(input_ptr,
+                                             input_size * sizeof(float), false);
+  blas_cc->command_queue_inst_.enqueueSVMMap(weight_ptr, K * alignN / 2, false);
+  blas_cc->command_queue_inst_.enqueueSVMMap(
+    scale_ptr, ceilDiv(K, scale_group_size) * alignN * sizeof(uint16_t), false);
+
+  for (unsigned int i = 0; i < input_size; ++i) {
+    input_ptr[i] = input[i];
+  }
+
+  for (unsigned int i = 0; i < ceilDiv(K, scale_group_size) * alignN; ++i) {
+    scale_ptr[i] = osv32_scales[i];
+  }
+
+  for (unsigned int i = 0; i < alignN * align(K, scale_group_size) / 2; ++i) {
+    weight_ptr[i] = osv32_weights[i];
+  }
+
+  blas_cc->command_queue_inst_.enqueueSVMUnmap(input_ptr);
+  blas_cc->command_queue_inst_.enqueueSVMUnmap(weight_ptr);
+  blas_cc->command_queue_inst_.enqueueSVMUnmap(scale_ptr);
+
+  nntrainer::openvino_sgemm_cl(input_ptr, (char *)weight_ptr, scale_ptr,
+                               output_ptr, M, N, K, scale_group_size);
+
+  std::vector<float> int4_output_fp32(M * N);
+  for (unsigned int i = 0; i < M * N; ++i) {
+    int4_output_fp32[i] = output_ptr[i];
+  }
+  float mse_int4 =
+    mse<float>(ref_output_fp32.data(), int4_output_fp32.data(), M * N);
+  std::cout << "MSE GEMM INT4:                           "
+            << std::setprecision(10) << mse_int4 << std::endl;
+
+  // GEMM INT4->transform->Q4
+  std::vector<float> int4_trans_q4_output_fp32(M * N);
+  nntrainer::gemm_q4_0(M, N, K, input.data(), K, dst_q4_0x8.data(), N,
+                       int4_trans_q4_output_fp32.data(), N);
+  float mse_int4_trans_q4 =
+    mse<float>(ref_output_fp32.data(), int4_trans_q4_output_fp32.data(), M * N);
+  std::cout << "MSE GEMM INT4->transform->Q4:            "
+            << std::setprecision(10) << mse_int4_trans_q4 << std::endl;
+
+  // GEMM INT4->dequant->FP32->quant->Q4
+  std::vector<float> int4_fp32_q4_output_fp32(M * N);
+  nntrainer::gemm_q4_0(M, N, K, input.data(), K, ref_q4_0x8.data(), N,
+                       int4_fp32_q4_output_fp32.data(), N);
+  float mse_int4_fp32_q4 =
+    mse<float>(ref_output_fp32.data(), int4_fp32_q4_output_fp32.data(), M * N);
+  std::cout << "MSE GEMM INT4->dequant->FP32->quant->Q4: "
+            << std::setprecision(10) << mse_int4_fp32_q4 << std::endl;
 }
 
 #define DECLARE_transform_int4_test_K_N(K, N, G)                               \
