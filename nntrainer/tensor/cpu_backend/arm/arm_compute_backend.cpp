@@ -450,4 +450,49 @@ void clamp(const float *input, float *output, size_t length, float lower_bound,
            float upper_bound) {
   neon::clamp(input, output, length, lower_bound, upper_bound);
 }
+
+template <>
+void compute_kcaches(const float *in, const uint16_t *kcache, float *output,
+                     int num_rows, int num_cache_head, int head_dim,
+                     int gqa_size, int tile_size, size_t local_window_size) {
+#ifdef ENABLE_FP16
+  neon::compute_kcaches<_FP16>(in, reinterpret_cast<const _FP16 *>(kcache),
+                               output, num_rows, num_cache_head, head_dim,
+                               gqa_size, tile_size, local_window_size);
+#else
+  neon::compute_kcaches_uint16(in, kcache, output, num_rows, num_cache_head,
+                               head_dim, gqa_size, tile_size,
+                               local_window_size);
+#endif
+}
+
+void compute_fp16vcache_fp32_transposed(int row_num, const float *in,
+                                        const uint16_t *vcache, float *output,
+                                        int num_cache_head, int gqa_size,
+                                        int head_dim,
+                                        size_t local_window_size) {
+#ifdef ENABLE_FP16
+  neon::compute_fp16vcache_fp32_transposed(
+    row_num, in, reinterpret_cast<const _FP16 *>(vcache), output,
+    num_cache_head, gqa_size, head_dim, local_window_size);
+#else
+  neon::compute_fp16vcache_fp32_transposed(row_num, in, vcache, output,
+                                           num_cache_head, gqa_size, head_dim,
+                                           local_window_size);
+#endif
+}
+
+void compute_rotary_emb_value(unsigned int width, unsigned int dim,
+                              unsigned int half_, float *inout, void *output,
+                              const float *cos_, const float *sin_,
+                              bool only_convert_to_fp16) {
+#ifdef ENABLE_FP16
+  neon::compute_rotary_emb_value(width, dim, half_, inout, output, cos_, sin_,
+                                 only_convert_to_fp16);
+#else
+  neon::compute_rotary_emb_value_uint16(width, dim, half_, inout, output, cos_,
+                                        sin_, only_convert_to_fp16);
+#endif
+}
+
 } /* namespace nntrainer */
