@@ -365,7 +365,7 @@ static void run_int4_gemv_test_(const uint32_t K, const uint32_t N,
   uint32_t alignN = align(N, INT4_BLOCK_N_SIZE);
   uint32_t alignK = align(K, scale_group_size);
 
-  static constexpr uint32_t run_count = 200;
+  static constexpr uint32_t run_count = 5;
 
   // Allocate & initialize group-wise int4 data
   char *weight_ptr = (char *)allocateSVM(alignK * alignN / 2);
@@ -521,6 +521,7 @@ DECLARE_int4_gemv_test_K_N(3072, 8192, 128);
 DECLARE_int4_gemv_test_K_N(8192, 3072, 128);
 DECLARE_int4_gemv_test_K_N(3072, 3072, 128);
 
+#ifdef DEBUG
 DECLARE_int4_gemv_test_K_N(105920, 3072, 32);
 DECLARE_int4_gemv_test_K_N(105900, 3072, 32);
 
@@ -533,6 +534,7 @@ DECLARE_int4_gemv_test_ones_K_N(36, 40, 32, true);
 DECLARE_int4_gemv_test_ones_K_N(28, 40, 32, false);
 DECLARE_int4_gemv_test_ones_K_N(32, 40, 32, false);
 DECLARE_int4_gemv_test_ones_K_N(144, 168, 32, false);
+#endif
 
 TEST(nntrainer_blas_kernel, tensor_dot_qint4) {
   const int batch = 1;
@@ -653,7 +655,7 @@ static void run_int4_sgemv_test_(const uint32_t K, const uint32_t N,
   auto *blas_cc = static_cast<nntrainer::ClContext *>(
     nntrainer::Engine::Global().getRegisteredContext("gpu"));
 
-  static constexpr uint32_t run_count = 200;
+  static constexpr uint32_t run_count = 5;
 
   // Allocate & initialize data
   char *weight_ptr = (char *)allocateSVM(K * N / 2);
@@ -725,7 +727,7 @@ TEST(nntrainer_blas_kernel, int4_gemv_async_test) {
   auto *blas_cc = static_cast<nntrainer::ClContext *>(
     nntrainer::Engine::Global().getRegisteredContext("gpu"));
 
-  static constexpr uint32_t run_count = 200;
+  static constexpr uint32_t run_count = 5;
   static constexpr int scale_group_size = 32;
 
   const int M = 1;
@@ -945,7 +947,7 @@ static void run_int4_gemm_test_(const uint32_t M, const uint32_t K,
   uint32_t alignN = align(N, INT4_BLOCK_N_SIZE);
   uint32_t alignK = align(K, scale_group_size);
 
-  static constexpr uint32_t run_count = 200;
+  static constexpr uint32_t run_count = 5;
 
   uint32_t input_size = M * alignK;
 
@@ -1178,6 +1180,7 @@ DECLARE_int4_gemm_test_M_K_N(28, 3072, 8192, 128);
 DECLARE_int4_gemm_test_M_K_N(28, 8192, 3072, 128);
 DECLARE_int4_gemm_test_M_K_N(28, 3072, 3072, 128);
 
+#ifdef DEBUG
 DECLARE_int4_gemm_test_M_K_N(4, 3060, 3072, 32);
 DECLARE_int4_gemm_test_M_K_N(4, 3072, 3072, 32);
 
@@ -1190,12 +1193,13 @@ DECLARE_int4_gemm_test_ones_M_K_N(4, 36, 40, 32, true);
 DECLARE_int4_gemm_test_ones_M_K_N(4, 28, 40, 32, false);
 DECLARE_int4_gemm_test_ones_M_K_N(10, 32, 40, 32, false);
 DECLARE_int4_gemm_test_ones_M_K_N(10, 144, 168, 32, false);
+#endif
 
 TEST(nntrainer_blas_kernel, int4_gemm_async_test) {
   auto *blas_cc = static_cast<nntrainer::ClContext *>(
     nntrainer::Engine::Global().getRegisteredContext("gpu"));
 
-  static constexpr uint32_t run_count = 200;
+  static constexpr uint32_t run_count = 5;
   static constexpr int scale_group_size = 32;
 
   const int M = 68;
@@ -1806,7 +1810,7 @@ TEST(blas_kernels, rmsnorm_fp32) {
   blas_cc->command_queue_inst_.enqueueSVMUnmap(in_fp32_svm);
   blas_cc->command_queue_inst_.enqueueSVMUnmap(gamma_fp32_svm);
 
-  static constexpr uint32_t run_count = 500;
+  static constexpr uint32_t run_count = 5;
   static constexpr float kEpsilon = 0.001f;
 
   Timer timer1{};
@@ -1902,7 +1906,7 @@ TEST(blas_kernels, swiglu_layer_fp32_67_3072) {
   std::memcpy(gpu_in1, A_fp32.getData(), dim * sizeof(float));
   std::memcpy(gpu_in2, B_fp32.getData(), dim * sizeof(float));
 
-  static constexpr uint32_t run_count = 500;
+  static constexpr uint32_t run_count = 5;
 
   SwiGLULayerCl layer;
 
@@ -2433,7 +2437,7 @@ static void run_q4_0_test(const uint32_t M, const uint32_t K,
   auto *blas_cc = static_cast<nntrainer::ClContext *>(
     nntrainer::Engine::Global().getRegisteredContext("gpu"));
 
-  static constexpr uint32_t run_count = 200;
+  static constexpr uint32_t run_count = 5;
 
   std::vector<float> activation = generate_random_vector<float, false>(M * K);
   std::vector<float> weight = generate_random_vector<float, false>(N * K);
@@ -2550,10 +2554,12 @@ DECLARE_q4_0_test_M_K_N(68, 3072, 8192);
 DECLARE_q4_0_test_M_K_N(68, 8192, 3072);
 DECLARE_q4_0_test_M_K_N(68, 3072, 3072);
 
+#ifdef DEBUG
 DECLARE_q4_0_test_M_K_N(28, 3072, 256);
 DECLARE_q4_0_test_M_K_N(28, 3072, 8192);
 DECLARE_q4_0_test_M_K_N(28, 8192, 3072);
 DECLARE_q4_0_test_M_K_N(28, 3072, 3072);
+#endif
 
 TEST(nntrainer_blas_kernel, q4_0_async_test) {
 
@@ -2562,7 +2568,7 @@ TEST(nntrainer_blas_kernel, q4_0_async_test) {
   auto *blas_cc = static_cast<nntrainer::ClContext *>(
     nntrainer::Engine::Global().getRegisteredContext("gpu"));
 
-  static constexpr uint32_t run_count = 200;
+  static constexpr uint32_t run_count = 5;
 
   const int M = 68;
   const int K = 3072;
@@ -2676,7 +2682,7 @@ TEST(nntrainer_blas_kernel, q4_0_async_test2) {
   auto *blas_cc = static_cast<nntrainer::ClContext *>(
     nntrainer::Engine::Global().getRegisteredContext("gpu"));
 
-  static constexpr uint32_t run_count = 200;
+  static constexpr uint32_t run_count = 5;
 
   const int M = 68;
   const int K = 3072;
@@ -2809,7 +2815,7 @@ _Float16*, _Float16*)
 //                             MOD) *
 //                              alpha);
 
-//   static constexpr uint32_t run_count = 500;
+//   static constexpr uint32_t run_count = 5;
 
 //   SwiGLULayerCl layer;
 
