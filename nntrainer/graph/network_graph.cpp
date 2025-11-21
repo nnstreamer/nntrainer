@@ -1638,6 +1638,12 @@ void NetworkGraph::flushCacheExcept(unsigned int order) {
   tensor_manager->flushCacheExcept(order);
 }
 
+void NetworkGraph::prefetchWeight(unsigned int order) {
+  if (order < getLayerNodes().size()) {
+    getLayerNodes()[order]->activateWeight();
+  }
+}
+
 void NetworkGraph::LoadTensors(unsigned int order, unsigned int lookahead) {
   tensor_manager->LoadTensors(order, lookahead);
 }
