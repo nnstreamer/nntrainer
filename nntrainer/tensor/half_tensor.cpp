@@ -23,8 +23,8 @@ HalfTensor::HalfTensor(std::string name_, Tformat fm) :
   TensorBase(name_, fm, Tdatatype::FP16) {}
 
 HalfTensor::HalfTensor(const TensorDim &d, bool alloc_now, Initializer init,
-                       std::string name) :
-  TensorBase(d, alloc_now, init, name) {
+                       std::string _name) :
+  TensorBase(d, alloc_now, init, _name) {
   if (alloc_now)
     allocate();
 }
@@ -64,9 +64,9 @@ void HalfTensor::allocate() {
     MemoryData *mem_data;
 
     mem_data = new MemoryData((void *)(new _FP16[dim.getDataLen()]{}));
-    data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-      delete[] mem_data->template getAddr<_FP16>();
-      delete mem_data;
+    data = std::shared_ptr<MemoryData>(mem_data, [](auto *ptr) {
+      delete[] ptr->template getAddr<_FP16>();
+      delete ptr;
     });
 
     offset = 0;
@@ -128,8 +128,8 @@ _FP16 &HalfTensor::getValue(unsigned int b, unsigned int c, unsigned int h,
 }
 
 void HalfTensor::setValue(float value) {
-  _FP16 *data = (_FP16 *)getData();
-  std::fill(data, data + size(), static_cast<_FP16>(value));
+  _FP16 *d = (_FP16 *)getData();
+  std::fill(d, d + size(), static_cast<_FP16>(value));
 }
 
 void HalfTensor::setValue(unsigned int b, unsigned int c, unsigned int h,
@@ -238,10 +238,10 @@ Tensor &HalfTensor::apply(std::function<_FP16(_FP16)> f, Tensor &output) const {
   CREATE_IF_EMPTY_DIMS(output, dim, nullptr);
 
   if (contiguous && output.getContiguous()) {
-    const _FP16 *data = (_FP16 *)getData();
+    const _FP16 *d = (_FP16 *)getData();
     _FP16 *rdata = output.getData<_FP16>();
 
-    std::transform(data, data + size(), rdata, f);
+    std::transform(d, d + size(), rdata, f);
   } else if (strides[3] == 1 && output.getStrides()[3] == 1) {
     /** @todo optimize this with combining these loops where stride is 1 */
     for (unsigned int b = 0; b < batch(); ++b) {
@@ -329,9 +329,9 @@ Tensor HalfTensor::multiply_strided(Tensor const &m, Tensor &output,
 }
 
 int HalfTensor::multiply_i(float const &value) {
-  _FP16 *data = (_FP16 *)getData();
+  _FP16 *d = (_FP16 *)getData();
   unsigned int len = size();
-  sscal(len, value, data, 1);
+  sscal(len, value, d, 1);
 
   return ML_ERROR_NONE;
 }
@@ -460,19 +460,19 @@ void HalfTensor::sum_by_batch(Tensor &output) const {
   size_t feat_len = dim.getFeatureLen();
   size_t batch = dim.batch();
 
-  const _FP16 *data = (_FP16 *)getData();
+  const _FP16 *d = (_FP16 *)getData();
   _FP16 *out_data = output.getData<_FP16>();
 
   Tensor ones(1, 1, 1, feat_len, this->getTensorType());
   ones.setValue((_FP16)1.0);
-  sgemv((unsigned int)dim.getStorageOrder(), false, batch, feat_len, 1, data,
+  sgemv((unsigned int)dim.getStorageOrder(), false, batch, feat_len, 1, d,
         feat_len, ones.getData<_FP16>(), 1, 0.0, out_data, 1);
 }
 
 Tensor &HalfTensor::sum(unsigned int axis, Tensor &output, float alpha,
                         float beta) const {
 
-  const _FP16 *data = (_FP16 *)getData();
+  const _FP16 *d = (_FP16 *)getData();
 
   NNTR_THROW_IF(!contiguous, std::invalid_argument)
     << getName() << " is not contiguous, cannot sum";
@@ -494,7 +494,7 @@ Tensor &HalfTensor::sum(unsigned int axis, Tensor &output, float alpha,
     size_t batch = dim.batch();
     Tensor ones(1, 1, 1, batch, this->getTensorType());
     ones.setValue(alpha);
-    sgemv((unsigned int)dim.getStorageOrder(), true, batch, feat_len, 1, data,
+    sgemv((unsigned int)dim.getStorageOrder(), true, batch, feat_len, 1, d,
           feat_len, ones.getData<_FP16>(), 1, beta, output.getData<_FP16>(), 1);
   } break;
   case 1: {
@@ -505,7 +505,7 @@ Tensor &HalfTensor::sum(unsigned int axis, Tensor &output, float alpha,
       Tensor ones(1, 1, 1, t_axis, this->getTensorType());
       ones.setValue(alpha);
       sgemv((unsigned int)dim.getStorageOrder(), false, feat_len, t_axis, 1,
-            data, t_axis, ones.getData<_FP16>(), 1, beta,
+            d, t_axis, ones.getData<_FP16>(), 1, beta,
             output.getData<_FP16>(), 1);
     } else {
       unsigned int feat_len = dim[2] * dim[3];
@@ -515,7 +515,7 @@ Tensor &HalfTensor::sum(unsigned int axis, Tensor &output, float alpha,
       _FP16 *rdata = output.getData<_FP16>();
       for (unsigned int k = 0; k < dim[0]; ++k) {
         sgemv((unsigned int)dim.getStorageOrder(), true, t_axis, feat_len, 1,
-              &data[k * dim.getFeatureLen()], feat_len, ones.getData<_FP16>(),
+              &d[k * dim.getFeatureLen()], feat_len, ones.getData<_FP16>(),
               1, beta, &rdata[k * feat_len], 1);
       }
     }
@@ -531,7 +531,7 @@ Tensor &HalfTensor::sum(unsigned int axis, Tensor &output, float alpha,
       _FP16 *rdata = output.getData<_FP16>();
       for (unsigned int k = 0; k < dim[0]; ++k) {
         sgemv((unsigned int)dim.getStorageOrder(), true, t_axis, feat_len, 1,
-              &data[k * dim.getFeatureLen()], feat_len, ones.getData<_FP16>(),
+              &d[k * dim.getFeatureLen()], feat_len, ones.getData<_FP16>(),
               1, beta, &rdata[k * feat_len], 1);
       }
     } else {
@@ -545,7 +545,7 @@ Tensor &HalfTensor::sum(unsigned int axis, Tensor &output, float alpha,
           unsigned int idx = k * dim.getFeatureLen() + c * dim[3] * dim[2];
           unsigned int ridx = k * output.getDim().getFeatureLen() + c * dim[3];
           sgemv((unsigned int)dim.getStorageOrder(), true, t_axis, t_3, 1,
-                &data[idx], t_3, ones.getData<_FP16>(), 1, beta, &rdata[ridx],
+                &d[idx], t_3, ones.getData<_FP16>(), 1, beta, &rdata[ridx],
                 1);
         }
       }
@@ -564,7 +564,7 @@ Tensor &HalfTensor::sum(unsigned int axis, Tensor &output, float alpha,
           unsigned int idx = k * dim.getFeatureLen() + c * dim[3] * dim[1];
           unsigned int ridx = k * output.getDim().getFeatureLen() + c * dim[1];
           sgemv((unsigned int)dim.getStorageOrder(), true, t_axis, t_3, 1,
-                &data[idx], t_3, ones.getData<_FP16>(), 1, beta, &rdata[ridx],
+                &d[idx], t_3, ones.getData<_FP16>(), 1, beta, &rdata[ridx],
                 1);
         }
       }
@@ -573,7 +573,7 @@ Tensor &HalfTensor::sum(unsigned int axis, Tensor &output, float alpha,
       unsigned int n = dim[3];
       Tensor ones(1, 1, 1, n, getTensorType());
       ones.setValue(alpha);
-      sgemv((unsigned int)dim.getStorageOrder(), false, m, n, 1, data, n,
+      sgemv((unsigned int)dim.getStorageOrder(), false, m, n, 1, d, n,
             ones.getData<_FP16>(), 1, beta, output.getData<_FP16>(), 1);
     }
   } break;
@@ -660,7 +660,7 @@ Tensor &HalfTensor::dotHalf(Tensor const &input, Tensor &output, bool trans,
                       last_axis, input_first_three_flat, input_last_axis, M, N,
                       K, lda, ldb, ldc);
 
-  const _FP16 *data = (_FP16 *)getData();
+  const _FP16 *d = (_FP16 *)getData();
   const _FP16 *mdata = input.getData<_FP16>();
   _FP16 *rdata = output.getData<_FP16>();
   const float alpha = 1.0f;
@@ -673,27 +673,27 @@ Tensor &HalfTensor::dotHalf(Tensor const &input, Tensor &output, bool trans,
   /// (1 * K) X (1 * M) can be a case
   /// case1: (1 * K) X (K * 1)
   if (M == 1 && N == 1) {
-    *rdata = sdot(K, data, 1, mdata, 1) +
+    *rdata = sdot(K, d, 1, mdata, 1) +
              ((0.0f == beta) ? static_cast<_FP16>(0.0f)
                              : static_cast<_FP16>(beta) * *rdata);
   }
   /// case2: (M * K) X (K * 1)
   else if (N == 1) {
     sgemv((unsigned int)dim.getStorageOrder(), trans, first_three_flat,
-          last_axis, alpha, data, lda, mdata, 1, beta, rdata, 1);
+          last_axis, alpha, d, lda, mdata, 1, beta, rdata, 1);
   }
   /// case3: (1 * K) X (K * N) = 1 * N = R
   /// = R^T = (K * N) ^T * (1 * K) ^T = (N * K) * (K * 1) = (N * K) * (1 * K)
   /// Effectively a translation of sgemv
   else if (M == 1) {
     sgemv((unsigned int)dim.getStorageOrder(), !trans_in,
-          input_first_three_flat, input_last_axis, alpha, mdata, ldb, data, 1,
+          input_first_three_flat, input_last_axis, alpha, mdata, ldb, d, 1,
           beta, rdata, 1);
   }
   /// case others: use sgemm
   else {
     sgemm((unsigned int)dim.getStorageOrder(), trans, trans_in, M, N, K, alpha,
-          data, lda, mdata, ldb, beta, rdata, ldc);
+          d, lda, mdata, ldb, beta, rdata, ldc);
   }
 
   return output;
@@ -715,7 +715,7 @@ Tensor &HalfTensor::dot(Tensor const &input, Tensor &output, bool trans,
 
 Tensor &HalfTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
                            bool trans_in, float beta, Tdatatype dtype) const {
-  _FP16 *data = (_FP16 *)getData();
+  _FP16 *d= (_FP16 *)getData();
   uint8_t *mdata = input.getData<uint8_t>();
   _FP16 *rdata = output.getData<_FP16>();
 
@@ -725,7 +725,7 @@ Tensor &HalfTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
   N = trans_in ? input.getDim().height() : input.getDim().width();
   switch (dtype) {
   case Tdatatype::Q4_0:
-    gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
+    gemm_q4_0(M, N, K, d, K, (void *)mdata, N, rdata, N);
     break;
   default:
     throw std::invalid_argument("Error: unsupported datatype");
@@ -770,14 +770,14 @@ void HalfTensor::zoneout_mask(Tensor &opposite, float zoneout) {
   _FP16 zoneout_fp16 = (_FP16)zoneout;
   opposite.setRandBernoulli(zoneout_fp16);
 
-  _FP16 *data = (_FP16 *)getData();
+  _FP16 *d = (_FP16 *)getData();
   _FP16 *opposite_data = opposite.getData<_FP16>();
 
   for (unsigned int i = 0; i < size(); ++i) {
     if (opposite_data[i] > epsilon) {
-      data[i] = (_FP16)0.0;
+      d[i] = (_FP16)0.0;
     } else {
-      data[i] = (_FP16)1.0;
+      d[i] = (_FP16)1.0;
     }
   }
 }
@@ -937,15 +937,15 @@ Tensor HalfTensor::concat(const std::vector<Tensor> &tensors, int axis,
 }
 
 void HalfTensor::print(std::ostream &out) const {
-  const _FP16 *data = (_FP16 *)getData();
+  const _FP16 *d = (_FP16 *)getData();
   unsigned int len = size();
-  out << "data addr: " << data << '\n';
+  out << "data addr: " << d << '\n';
   out << dim;
 
   if (len > 100) {
-    out << '[' << (float)data[0] << ' ' << (float)data[1] << ' '
-        << (float)data[2] << " ... " << (float)data[len - 3] << ' '
-        << (float)data[len - 2] << ' ' << (float)data[len - 1] << ']'
+    out << '[' << (float)d[0] << ' ' << (float)d[1] << ' '
+        << (float)d[2] << " ... " << (float)d[len - 3] << ' '
+        << (float)d[len - 2] << ' ' << (float)d[len - 1] << ']'
         << std::endl;
     return;
   }
@@ -959,7 +959,7 @@ void HalfTensor::print(std::ostream &out) const {
         for (unsigned int i = 0; i < height(); i++) {
           for (unsigned int j = 0; j < width(); j++) {
             out << std::setw(10) << std::setprecision(10)
-                << (float)data[getIndex(k, l, i, j)] << " ";
+                << (float)d[getIndex(k, l, i, j)] << " ";
           }
           out << std::endl;
         }
@@ -973,7 +973,7 @@ void HalfTensor::print(std::ostream &out) const {
         for (unsigned int j = 0; j < width(); j++) {
           for (unsigned int l = 0; l < channel(); l++) {
             out << std::setw(10) << std::setprecision(10)
-                << (float)data[getIndex(k, l, i, j)] << " ";
+                << (float)d[getIndex(k, l, i, j)] << " ";
           }
           out << std::endl;
         }
@@ -1046,7 +1046,7 @@ void HalfTensor::copy_with_stride(const Tensor &input, Tensor &output) {
 
 std::vector<unsigned int> HalfTensor::argmax() const {
   std::vector<unsigned int> result;
-  const _FP16 *data = (_FP16 *)getData();
+  const _FP16 *d = (_FP16 *)getData();
   size_t batch_size = batch();
   size_t feature_len = dim.getFeatureLen();
 
@@ -1054,8 +1054,8 @@ std::vector<unsigned int> HalfTensor::argmax() const {
 
   for (unsigned int b = 0; b < batch_size; b++) {
     auto max_iter =
-      std::max_element(data + b * feature_len, data + (b + 1) * feature_len);
-    result[b] = std::distance(data, max_iter) - (b * feature_len);
+      std::max_element(d + b * feature_len, d + (b + 1) * feature_len);
+    result[b] = std::distance(d, max_iter) - (b * feature_len);
   }
 
   return result;
@@ -1063,7 +1063,7 @@ std::vector<unsigned int> HalfTensor::argmax() const {
 
 std::vector<unsigned int> HalfTensor::argmin() const {
   std::vector<unsigned int> result;
-  const _FP16 *data = (_FP16 *)getData();
+  const _FP16 *d = (_FP16 *)getData();
   size_t batch_size = batch();
   size_t feature_len = dim.getFeatureLen();
 
@@ -1071,26 +1071,26 @@ std::vector<unsigned int> HalfTensor::argmin() const {
 
   for (unsigned int b = 0; b < batch_size; b++) {
     auto min_iter =
-      std::min_element(data + b * feature_len, data + (b + 1) * feature_len);
-    result[b] = std::distance(data, min_iter) - (b * feature_len);
+      std::min_element(d + b * feature_len, d + (b + 1) * feature_len);
+    result[b] = std::distance(d, min_iter) - (b * feature_len);
   }
   return result;
 }
 
 float HalfTensor::max_abs() const {
-  const _FP16 *data = (_FP16 *)getData();
-  unsigned int idx = isamax(size(), data, 1);
-  return (float)(*(data + idx));
+  const _FP16 *d = (_FP16 *)getData();
+  unsigned int idx = isamax(size(), d, 1);
+  return (float)(*(d + idx));
 }
 
 float HalfTensor::maxValue() const {
-  const _FP16 *data = (_FP16 *)getData();
-  return (float)*std::max_element(data, data + size());
+  const _FP16 *d = (_FP16 *)getData();
+  return (float)*std::max_element(d, d + size());
 }
 
 float HalfTensor::minValue() const {
-  const _FP16 *data = (_FP16 *)getData();
-  return (float)*std::min_element(data, data + size());
+  const _FP16 *d = (_FP16 *)getData();
+  return (float)*std::min_element(d, d + size());
 }
 
 Tensor &HalfTensor::transpose(const std::string &direction,
@@ -1211,7 +1211,7 @@ void HalfTensor::apply_broadcast_util(
   std::function<void(const BroadcastInfo &e, const _FP16 *, const _FP16 *,
                      _FP16 *)>
     v_func,
-  Tensor &output, const BroadcastInfo &e, int cur_axis, size_t offset,
+  Tensor &output, const BroadcastInfo &e, int cur_axis, size_t _offset,
   size_t m_offset) const {
 
   const _FP16 *buf = (_FP16 *)this->getData();
@@ -1219,13 +1219,13 @@ void HalfTensor::apply_broadcast_util(
   _FP16 *out_buf = output.getData<_FP16>();
 
   if (e.buffer_axis == cur_axis) {
-    v_func(e, buf + offset, m_buf + m_offset, out_buf + offset);
+    v_func(e, buf + _offset, m_buf + m_offset, out_buf + _offset);
     return;
   }
 
   cur_axis++;
   for (unsigned int i = 0; i < dim.getTensorDim(cur_axis); ++i) {
-    size_t next_offset = offset + i * strides[cur_axis];
+    size_t next_offset = _offset + i * strides[cur_axis];
     size_t next_m_offset = m_offset + i * e.strides[cur_axis];
     apply_broadcast_util(m, v_func, output, e, cur_axis, next_offset,
                          next_m_offset);
