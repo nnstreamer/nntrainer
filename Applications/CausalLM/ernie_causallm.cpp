@@ -52,6 +52,7 @@ std::vector<LayerHandle> Ernie4_5_MoeForCausalLM::createMlp(const int layer_id,
         withKey("input_layers", input_name),
         withKey("unit", MOE_INTERMEDIATE_SIZE),
         withKey("num_experts", NUM_EXPERTS),
+        withKey("num_shared_experts", NUM_SHARED_EXPERTS),
         withKey("num_experts_per_token", 8), withKey("moe_activation", "swish")
       }));
   }
@@ -66,6 +67,7 @@ void Ernie4_5_MoeForCausalLM::setupParameters(json &cfg, json &generation_cfg,
     NUM_EXPERTS = cfg["moe_num_experts"].get<unsigned int>();
     NUM_EXPERTS_PER_TOK = 6; //shared + expert = 6
     MOE_INTERMEDIATE_SIZE = cfg["moe_intermediate_size"].get<unsigned int>();
+    NUM_SHARED_EXPERTS = cfg["moe_num_shared_experts"].get<unsigned int>();
 
   } catch (const std::exception &e) {
     throw std::runtime_error("Ernie Causallm: config parsing error");

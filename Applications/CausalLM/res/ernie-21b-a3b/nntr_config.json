@@ -1,6 +1,6 @@
 {
     "model_tensor_type": "FP32-FP32",
-    "model_file_name": "erine_21b_fp32_without_bias.bin",
+    "model_file_name": "erine_21b_fp32.bin",
 
     "lora_rank" : 0,
     "lora_alpha" : 0,
@@ -18,5 +18,5 @@
     "batch_size": 1,
 
     "tokenizer_file": "/home/donghak/workspace/nntrainer/Applications/CausalLM/res/ernie-21b-a3b/tokenizer.json",
-    "sample_input": "<|im_start|>user\nGive me a short introduction to large language model.<|im_end|>\n<|im_start|>assistant\n"
+    "sample_input": "<|im_start|>user\nGive me a short introduction to large language model. in english<|im_end|>\n<|im_start|>assistant\n"
 }

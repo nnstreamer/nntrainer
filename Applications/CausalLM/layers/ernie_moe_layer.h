@@ -92,16 +92,21 @@ public:
 
 private:
   unsigned int num_experts;      /**< number of experts */
+  unsigned int num_shared_experts; /**< number of shared experts */
   unsigned int topk;             /**< number of experts per token, i.e., topk */
   nntrainer::ActiFunc acti_func; /**< activation function for the expert */
   std::tuple<props::NumExperts, props::NumExpertsPerToken,
-             nntrainer::props::Unit, props::MoEActivation>
+             nntrainer::props::Unit, props::MoEActivation,
+             props::NumSharedExperts>
     moe_props;
 
   // weight indeices
   std::vector<unsigned int> expert_gate_proj_indices;
   std::vector<unsigned int> expert_up_proj_indices;
   std::vector<unsigned int> expert_down_proj_indices;
+  unsigned int shared_gate_proj_idx;
+  unsigned int shared_up_proj_idx;
+  unsigned int shared_down_proj_idx;
 
   std::list<int> loaded_expert_deque;
   std::unordered_map<int, std::list<int>::iterator> iteration_map;
@@ -110,6 +115,7 @@ private:
   std::mutex cache_mutex;
 
   unsigned int gate_idx;
+  unsigned int e_score_correction_bias_idx;
 
   // Intermediate tensor indices
   unsigned int router_logits_idx;

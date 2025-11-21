@@ -56,6 +56,12 @@ public:
   using prop_tag = nntrainer::uint_prop_tag;        /**< property type */
 };
 
+class NumSharedExperts : public nntrainer::Property<unsigned int> {
+public:
+  static constexpr const char *key = "num_shared_experts";
+  using prop_tag = nntrainer::uint_prop_tag;
+};
+
 /**
  * @brief NumExpertsPerToken,  Number of experts per token property
  */

@@ -14,15 +14,18 @@ static constexpr size_t SINGLE_INOUT_IDX = 0;
 ErnieMoELayer::ErnieMoELayer() :
   LayerImpl(),
   num_experts(0),
+  num_shared_experts(0),
   topk(0),
   moe_props(props::NumExperts(), props::NumExpertsPerToken(),
-            nntrainer::props::Unit(), props::MoEActivation()),
+            nntrainer::props::Unit(), props::MoEActivation(),
+            props::NumSharedExperts()),
   expert_gate_proj_indices({}),
   expert_up_proj_indices({}),
   expert_down_proj_indices({}),
   loaded_expert_deque({}),
   need_load({}),
   gate_idx(std::numeric_limits<unsigned>::max()),
+  e_score_correction_bias_idx(std::numeric_limits<unsigned>::max()),
   router_logits_idx(std::numeric_limits<unsigned>::max()),
   expert_mask_idx(std::numeric_limits<unsigned>::max()) {}
 
@@ -50,6 +53,7 @@ void ErnieMoELayer::finalize(nntrainer::InitLayerContext &context) {
 
   // 3. Get MoE properties
   num_experts = std::get<props::NumExperts>(moe_props).get();
+  num_shared_experts = std::get<props::NumSharedExperts>(moe_props).get();
   topk = std::get<props::NumExpertsPerToken>(moe_props).get();
   const unsigned int intermediate_size =
     std::get<nntrainer::props::Unit>(moe_props).get();
@@ -80,10 +84,51 @@ void ErnieMoELayer::finalize(nntrainer::InitLayerContext &context) {
     gate_dim, weight_initializer, weight_regularizer,
     weight_regularizer_constant, weight_decay, "gate", true);
 
+  // 4-1. Initialize e_score_correction_bias
+  nntrainer::TensorDim e_score_correction_bias_dim(
+    1, 1, 1, num_experts,
+    nntrainer::TensorDim::TensorType(context.getFormat(),
+                                     nntrainer::TensorDim::DataType::FP32),
+    is_nchw ? 0b0011 : 0b0101);
+
+  e_score_correction_bias_idx = context.requestWeight(
+    e_score_correction_bias_dim, weight_initializer, weight_regularizer,
+    weight_regularizer_constant, weight_decay, "moe_statics", false);
+  
   // 5. Initializer expert weights
   expert_gate_proj_indices.reserve(num_experts);
   expert_up_proj_indices.reserve(num_experts);
   expert_down_proj_indices.reserve(num_experts);
+
+  if (num_shared_experts > 0) {
+    nntrainer::TensorDim shared_expert_gate_dim(
+      1, is_nchw ? 1 : num_shared_experts * intermediate_size,
+      is_nchw ? hidden_size : 1,
+      is_nchw ? num_shared_experts * intermediate_size : hidden_size,
+      nntrainer::TensorDim::TensorType(context.getFormat(),
+                                       context.getWeightDataType()),
+      is_nchw ? 0b0011 : 0b0101);
+
+    nntrainer::TensorDim shared_expert_down_dim(
+      1, is_nchw ? 1 : hidden_size,
+      is_nchw ? num_shared_experts * intermediate_size : 1,
+      is_nchw ? hidden_size : num_shared_experts * intermediate_size,
+      nntrainer::TensorDim::TensorType(context.getFormat(),
+                                       context.getWeightDataType()),
+      is_nchw ? 0b0011 : 0b0101);
+
+    shared_up_proj_idx = context.requestWeight(
+      shared_expert_gate_dim, weight_initializer, weight_regularizer,
+      weight_regularizer_constant, weight_decay, "shared_experts_up", false);
+
+    shared_gate_proj_idx = context.requestWeight(
+      shared_expert_gate_dim, weight_initializer, weight_regularizer,
+      weight_regularizer_constant, weight_decay, "shared_experts_gate", false);
+
+    shared_down_proj_idx = context.requestWeight(
+      shared_expert_down_dim, weight_initializer, weight_regularizer,
+      weight_regularizer_constant, weight_decay, "shared_experts_down", false);
+  }
 
   nntrainer::TensorDim expert_gate_dim(
     1, is_nchw ? 1 : intermediate_size, is_nchw ? hidden_size : 1,
@@ -100,22 +145,6 @@ void ErnieMoELayer::finalize(nntrainer::InitLayerContext &context) {
     is_nchw ? 0b0011 : 0b0101);
 
   for (unsigned int i = 0; i < num_experts; ++i) {
-    // Up projection
-    // expert_up_proj_indices.push_back(context.requestWeight(
-    //   expert_gate_dim, // Same dimensions as gate projection
-    //   weight_initializer, weight_regularizer, weight_regularizer_constant,
-    //   weight_decay, "expert_up_" + std::to_string(i), false));
-    //
-    // expert_gate_proj_indices.push_back(context.requestWeight(
-    //   expert_gate_dim, weight_initializer, weight_regularizer,
-    //   weight_regularizer_constant, weight_decay,
-    //   "expert_gate_" + std::to_string(i), false));
-    //
-    // expert_down_proj_indices.push_back(context.requestWeight(
-    //   expert_down_dim, weight_initializer, weight_regularizer,
-    //   weight_regularizer_constant, weight_decay,
-    //   "expert_down_" + std::to_string(i), false));
-
     expert_up_proj_indices.push_back(context.requestWeight(
       expert_gate_dim, // Same dimensions as gate projection
       weight_initializer, weight_regularizer, weight_regularizer_constant,
@@ -133,6 +162,9 @@ void ErnieMoELayer::finalize(nntrainer::InitLayerContext &context) {
 
     need_load.push_back(true);
   }
+
+  // 5-1. Initialize shared expert weights
+
 
   // 6. Request intermediate tensors
   const unsigned batch_size = in_dim.batch();
@@ -292,8 +324,14 @@ void ErnieMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
     input.dot(gate_weights, router_logits);
     router_logits.apply(nntrainer::ActiFunc::softmax<float>, router_logits);
 
+    // Add e_score_correction_bias
+    nntrainer::Tensor &e_score_correction_bias =
+      context.getWeight(e_score_correction_bias_idx);
+    nntrainer::Tensor biased_router_logits = router_logits.clone();
+    biased_router_logits.add_i(e_score_correction_bias);
+
     // get extra topK
-    auto extra_topk_result = router_logits.topK(topk + 5);
+    auto extra_topk_result = biased_router_logits.topK(topk + 1);
     auto extra_topk_values = std::get<0>(extra_topk_result);
     auto extra_topk_indices = std::get<1>(extra_topk_result);
     std::deque<int> extra_top_k = {};
@@ -302,27 +340,32 @@ void ErnieMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
 
     // get extra topk
     for (int i = static_cast<int>(total_tokens) - 1; i >= 0; --i) {
-      for (int k = 0; k < static_cast<int>(topk + 5); ++k) {
+      for (int k = 0; k < static_cast<int>(topk + 1); ++k) {
         unsigned expert_idx = extra_indices_data[i * topk + k];
         extra_top_k.push_back(expert_idx);
       }
     }
 
-    auto topk_result = router_logits.topK(topk);
+    auto topk_result = biased_router_logits.topK(topk);
     auto topk_values = std::get<0>(topk_result);
     auto topk_indices = std::get<1>(topk_result);
-
-    // norm_topk_prob
-    topk_values.divide_i(topk_values.sum(3));
 
     const uint32_t *indices_data = topk_indices.getData<uint32_t>();
     std::vector<std::vector<std::pair<unsigned, float>>> expert_assignments(
       num_experts);
     // Set expert mask
     for (int i = 0; i < static_cast<int>(total_tokens); ++i) {
+      float sum_prob = 0.0f;
       for (int k = 0; k < static_cast<int>(topk); ++k) {
         unsigned expert_idx = indices_data[i * topk + k];
-        float weight = topk_values.getValue<float>(i, 0, 0, k);
+        float weight = router_logits.getValue<float>(i, 0, 0, expert_idx);
+        sum_prob += weight;
+      }
+
+      for (int k = 0; k < static_cast<int>(topk); ++k) {
+        unsigned expert_idx = indices_data[i * topk + k];
+        float weight = router_logits.getValue<float>(i, 0, 0, expert_idx);
+        weight /= std::max(sum_prob, 1e-6f);
         expert_assignments[expert_idx].emplace_back(i, weight);
       }
     }
@@ -348,9 +391,6 @@ void ErnieMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
       target_idx_vector.push_back(expert_idx);
     }
 
-    int hit_count = 0;
-    int miss_count = 0;
-
 #pragma omp parallel for schedule(dynamic)
     for (int expert_idx : target_idx_vector) {
       const auto &assignments = expert_assignments[expert_idx];
@@ -366,7 +406,6 @@ void ErnieMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
           loaded_expert_deque.push_back(expert_idx);
           iteration_map[expert_idx] = --loaded_expert_deque.end();
           need_load[expert_idx] = false;
-          miss_count += 1;
         }
 
         compute_expert_forward(
@@ -376,12 +415,6 @@ void ErnieMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
           context.getWeight(expert_down_proj_indices[expert_idx]), hidden_size);
 
       } else {
-
-        {
-          std::lock_guard<std::mutex> lock(cache_mutex);
-          hit_count += 1;
-        }
-
         compute_expert_forward(
           input, expert_outputs[expert_idx], assignments,
           context.getWeight(expert_gate_proj_indices[expert_idx]),
@@ -400,7 +433,7 @@ void ErnieMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
 
 // Evict experts
 #pragma omp parallel
-    while (loaded_expert_deque.size() > 32) {
+    while (loaded_expert_deque.size() > 12) {
       int target_idx;
       {
         std::lock_guard<std::mutex> lock(cache_mutex);
@@ -426,6 +459,40 @@ void ErnieMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
       }
     }
 
+    // Shared Expert
+    // Shared Expert
+    if (num_shared_experts > 0) {
+      nntrainer::Tensor &shared_gate_proj =
+        context.getWeight(shared_gate_proj_idx);
+      nntrainer::Tensor &shared_up_proj = context.getWeight(shared_up_proj_idx);
+      nntrainer::Tensor &shared_down_proj =
+        context.getWeight(shared_down_proj_idx);
+
+      nntrainer::Tensor shared_output(total_tokens, 1, 1, hidden_size,
+                                      output.getTensorType());
+
+      const unsigned int intermediate_size =
+        std::get<nntrainer::props::Unit>(moe_props).get();
+
+      nntrainer::TensorDim intermediate_dim(
+        {total_tokens, 1, 1, num_shared_experts * intermediate_size},
+        input.getTensorType());
+
+      nntrainer::Tensor gate_out(intermediate_dim);
+      nntrainer::Tensor acti_out(intermediate_dim);
+      nntrainer::Tensor up_out(intermediate_dim);
+
+      input.dot(shared_gate_proj, gate_out);
+      input.dot(shared_up_proj, up_out);
+
+      acti_func.run_fn(gate_out, acti_out);
+      acti_out.multiply_i(up_out);
+
+      acti_out.dot(shared_down_proj, shared_output);
+
+      // Add shared expert output to final output
+      output.add_i(shared_output);
+    }
     // reshape output: [B*S,1,1,H] -> [B,1,S,H]
     output.reshape({batch_size, 1, seq_len, hidden_size});
   }
