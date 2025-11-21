@@ -15,7 +15,33 @@
 #include <cstdint>
 #include <vector>
 
-#include "nntr_ggml_impl_common.h"
+#define QK4_0 32
+
+template <int K> constexpr int QK_0() {
+  if constexpr (K == 4) {
+    return 32;
+  }
+  if constexpr (K == 8) {
+    return 32;
+  }
+  return -1;
+}
+
+template <int K, int N> struct block {
+  uint16_t d[N];                      // deltas for N qK_0 blocks
+  int8_t qs[(QK_0<K>() * N * K) / 8]; // quants for N qK_0 blocks
+};
+
+using block_q4_0x4 = block<4, 4>;
+using block_q4_0x8 = block<4, 8>;
+
+/**
+ * @brief block_q4_0
+ */
+typedef struct {
+  uint16_t d;            // delta
+  uint8_t qs[QK4_0 / 2]; // nibbles / quants
+} block_q4_0;
 
 namespace nntrainer {
 
@@ -54,8 +80,45 @@ public:
    */
   static void dequantizeQ4_0x8(const void *q4_weight_repacked, int N, int K,
                                float *dequantized_weights);
-};
 
+  /**
+   * @brief Transforms data from in-memory layout osv32_isv2 to block_q4_0x8
+   * in-memory layout.
+   * @param N number of rows
+   * @param K number of columns
+   * @param osv32_weights uint8_t* data of weights in osv32_isv2 layout
+   * @param osv32_scales fp16* scales
+   * @param scale_group_size group size (32 or 64 or 128)
+   * @param dst_q4_0x8 void * output data in block_q4_0x8 layout
+   */
+  static void transformQ4_0x8FromInt4(size_t N, size_t K,
+                                      const uint8_t *osv32_weights,
+                                      const uint16_t *osv32_scales,
+                                      size_t scale_group_size,
+                                      void *dst_q4_0x8);
+
+  /**
+   * @brief     Create a Q4_0 quantization block from int4 weights and scale
+   * @param[in] int4_weight Pointer to the input 4-bit quantized weights array.
+   *                        The array should contain 16 bytes representing 32
+   * 4-bit values. Each byte contains two 4-bit quantized values packed
+   * together.
+   * @param[in] scale Half-precision floating point scale factor (FP16) used for
+   * dequantization.
+   * @param[out] block Pointer to the output block_q4_0 structure that will be
+   * populated.
+   * @note      The input int4_weight array should contain exactly 32 4-bit
+   * values (16 bytes) to match the QK4_0 block size (32 elements per block).
+   */
+  static void transformQ4_0Block(const uint8_t *int4_weight, uint16_t scale,
+                                 block_q4_0 *block);
+
+  /**
+   * @brief     Print the Q4_0 block data
+   * @param[in] block Pointer to the Q4_0 block
+   */
+  static void printBlockQ4_0(const block_q4_0 *block);
+};
 } // namespace nntrainer
 
 #endif // __NNTRAINER_INT4_UTILS_H__

@@ -20,10 +20,10 @@ namespace nntrainer {
 // to-do: Implementation to be updated with array of Buffer objects if required
 // fp16 Buffer objects to be added in future
 void ClBufferManager::initBuffers() {
-  inBufferA = new opencl::Buffer(context_inst_, buffer_size_bytes, true);
-  inBufferB = new opencl::Buffer(context_inst_, buffer_size_bytes, true);
+  inBufferA = new opencl::Buffer(context_inst_, unused_buffer_bytes, true);
+  inBufferB = new opencl::Buffer(context_inst_, unused_buffer_bytes, true);
   inBufferC = new opencl::Buffer(context_inst_, unused_buffer_bytes, true);
-  outBufferA = new opencl::Buffer(context_inst_, buffer_size_bytes, false);
+  outBufferA = new opencl::Buffer(context_inst_, unused_buffer_bytes, false);
   outBufferB = new opencl::Buffer(context_inst_, unused_buffer_bytes, false);
 
   data_input = context_inst_.createSVMRegion(buffer_size_bytes);

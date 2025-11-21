@@ -13,6 +13,7 @@
 
 #include "cpu_backend.h"
 #include "fp16.h"
+#include "int4_utils.h"
 #include "nntrainer_error.h"
 #include "q4_0_utils.h"
 
@@ -75,6 +76,61 @@ void Q4_0Utils::dequantizeQ4_0x8(const void *q4_weight_repacked, int N, int K,
 
   nntrainer::dequantize_row_q4_0((const void *)q4_weight_out.data(),
                                  dequantized_weights, K * N);
+}
+
+void Q4_0Utils::transformQ4_0Block(const uint8_t *int4_weight, uint16_t scale,
+                                   block_q4_0 *block) {
+  block->d = scale;
+  for (int i = 0; i < 8; i++) {
+    char v0 = int4_weight[i] & 0xF;
+    char v1 = (int4_weight[i] >> 4) & 0xF;
+    char v2 = int4_weight[8 + i] & 0xF;
+    char v3 = (int4_weight[8 + i] >> 4) & 0xF;
+    block->qs[2 * i] = (v0 | (v2 << 4)) ^ 0x88;
+    block->qs[2 * i + 1] = (v1 | (v3 << 4)) ^ 0x88;
+  }
+}
+
+void Q4_0Utils::transformQ4_0x8FromInt4(size_t N, size_t K,
+                                        const uint8_t *osv32_weights,
+                                        const uint16_t *osv32_scales,
+                                        size_t scale_group_size,
+                                        void *dst_q4_0x8) {
+
+  NNTR_THROW_IF((!(scale_group_size == 32 || scale_group_size == 64 ||
+                   scale_group_size == 128)),
+                std::invalid_argument)
+    << "Scale group size must be 32/64/128";
+  NNTR_THROW_IF(K % QK4_0 != 0, std::invalid_argument)
+    << "K size must be divisable by QK4_0 (32)";
+  NNTR_THROW_IF(N % 8 != 0, std::invalid_argument)
+    << "N size must be divisable by 8";
+
+  size_t q4_weight_size = K * N / QK4_0;
+  std::vector<block_q4_0> q4_weight(q4_weight_size);
+
+  size_t q4_weight_idx = 0;
+  uint8_t int4_weight[16];
+  uint16_t scale;
+  for (size_t row_idx = 0; row_idx < N; row_idx++) {
+    for (size_t column_idx = 0; column_idx < K; column_idx += QK4_0) {
+      Int4Utils::dequantizePackedRow32ToInt4Scale(
+        osv32_weights, osv32_scales, N, K, scale_group_size, row_idx,
+        column_idx, int4_weight, &scale);
+      transformQ4_0Block(int4_weight, scale, &q4_weight[q4_weight_idx++]);
+    }
+  }
+
+  nntrainer::repack_q4_0(dst_q4_0x8, q4_weight.data(),
+                         q4_weight_size * sizeof(block_q4_0), N, K);
+}
+
+void Q4_0Utils::printBlockQ4_0(const block_q4_0 *block) {
+  printf("Q4_0: ");
+  for (int i = 0; i < 16; i++) {
+    printf("%i %i ", block->qs[i] & 0x0F, (block->qs[i] >> 4) & 0x0F);
+  }
+  printf("| scale:%f\n", compute_fp16_to_fp32(block->d));
 }
 
 } // namespace nntrainer
