@@ -74,9 +74,8 @@ public:
   /**
    * @brief     Create a Q4_0 quantization block from int4 weights and scale
    * @param[in] int4_weight Pointer to the input 4-bit quantized weights array.
-   *                        The array should contain 16 bytes representing 32
-   * 4-bit values. Each byte contains two 4-bit quantized values packed
-   * together.
+   * The array should contain 16 bytes representing 32 4-bit values. Each byte
+   * contains two 4-bit quantized values packed together.
    * @param[in] scale Half-precision floating point scale factor (FP16) used for
    * dequantization.
    * @param[out] block Pointer to the output block_q4_0 structure that will be
