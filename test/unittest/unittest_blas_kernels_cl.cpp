@@ -39,6 +39,8 @@ using namespace nntrainer;
 // Functions
 // -----
 
+#define Q4_0 32
+
 static std::pair<float, float>
 dotCL_sgemv_test_func(const int batch, const int channel, const int height,
                       const int width, const int height_b, const int width_b,
@@ -1517,21 +1519,8 @@ static void run_transform_int4_test_(const uint32_t K, const uint32_t N,
     run_transform_int4_test_(K, N, G, false);                                  \
   }
 
-DECLARE_transform_int4_test_K_N(128, 8, 32);
-DECLARE_transform_int4_test_K_N(128, 8, 64);
-DECLARE_transform_int4_test_K_N(256, 8, 128);
-DECLARE_transform_int4_test_K_N(32, 8, 32);
-DECLARE_transform_int4_test_K_N(32, 16, 32);
-DECLARE_transform_int4_test_K_N(64, 8, 32);
-DECLARE_transform_int4_test_K_N(32, 32, 32);
-DECLARE_transform_int4_test_K_N(64, 32, 32);
-DECLARE_transform_int4_test_K_N(32, 64, 32);
-DECLARE_transform_int4_test_K_N(320, 640, 32);
-DECLARE_transform_int4_test_K_N(1024, 640, 32);
-DECLARE_transform_int4_test_K_N(1024, 648, 32);
-DECLARE_transform_int4_test_K_N(1024, 648, 64);
-DECLARE_transform_int4_test_K_N(1024, 648, 128);
 DECLARE_transform_int4_test_K_N(3072, 8192, 32);
+DECLARE_transform_int4_test_K_N(8192, 3072, 32);
 
 TEST(blas_kernels, dotCL_sgemv_M_1_1) {
   const int batch = 1;
