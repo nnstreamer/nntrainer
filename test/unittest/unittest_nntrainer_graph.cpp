@@ -381,16 +381,16 @@ TEST(nntrainerGraphUnitTest, NoLossLayerWhenInferenceMode) {
   status = model->initialize(ml::train::ExecutionMode::INFERENCE);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  float input[256];
+  float gen_input[256];
 
   for (unsigned int i = 0; i < 256; ++i) {
-    input[i] = i;
+    gen_input[i] = i;
   }
 
   std::vector<float *> in;
   std::vector<float *> ans;
 
-  in.push_back(input);
+  in.push_back(gen_input);
 
   ans = model->inference(1, in);
 

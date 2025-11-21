@@ -42,8 +42,8 @@ public:
      * 0.0
      *
      */
-    HiddenStateZoneOutRate(float value = 0.0) :
-      nntrainer::Property<float>(value) {}
+    HiddenStateZoneOutRate(float _value = 0.0) :
+      nntrainer::Property<float>(_value) {}
     static constexpr const char *key =
       "hidden_state_zoneout_rate";   /**< unique key to access */
     using prop_tag = float_prop_tag; /**< property type */
@@ -72,8 +72,8 @@ public:
      * 0.0
      *
      */
-    CellStateZoneOutRate(float value = 0.0) :
-      nntrainer::Property<float>(value) {}
+    CellStateZoneOutRate(float _value = 0.0) :
+      nntrainer::Property<float>(_value) {}
     static constexpr const char *key =
       "cell_state_zoneout_rate";     /**< unique key to access */
     using prop_tag = float_prop_tag; /**< property type */
@@ -101,7 +101,7 @@ public:
      * @brief Construct a new Test object with a default value false
      *
      */
-    Test(bool value = false) : nntrainer::Property<bool>(value) {}
+    Test(bool _value = false) : nntrainer::Property<bool>(_value) {}
     static constexpr const char *key = "test"; /**< unique key to access */
     using prop_tag = bool_prop_tag;            /**< property type */
   };

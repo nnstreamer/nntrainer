@@ -42,9 +42,9 @@ void graphEqual(const nntrainer::GraphRepresentation &lhs,
     auto lhs_iter = lhs.cbegin();
     auto rhs_iter = rhs.cbegin();
     while(lhs_iter != lhs.cend() && rhs_iter != rhs.cend()) {
-      auto lhs = *lhs_iter;
-      auto rhs = *rhs_iter;
-      is_node_equal(*lhs.get(), *rhs.get());
+      auto lhs_i = *lhs_iter;
+      auto rhs_i = *rhs_iter;
+      is_node_equal(*lhs_i.get(), *rhs_i.get());
       lhs_iter++;
       rhs_iter++;
     }

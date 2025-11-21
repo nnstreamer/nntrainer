@@ -40,12 +40,12 @@ bool TensorBase::operator==(const TensorBase &rhs) const {
   return true;
 }
 
-void TensorBase::setTensorVar(TensorDim d, void *buf, size_t offset) {
+void TensorBase::setTensorVar(TensorDim d, void *buf, size_t _offset) {
   dim = d;
   strides = d.computeStrides();
   /// Tensor does not own the memory
   data = std::make_shared<MemoryData>(buf);
-  this->offset = offset;
+  this->offset = _offset;
 }
 
 void TensorBase::save(std::ostream &file) {
@@ -181,7 +181,7 @@ void TensorBase::allocateSrcTensor() {
 }
 
 void TensorBase::createSharedDataTensor(const TensorBase *src, TensorBase *dest,
-                                        size_t offset) const {
+                                        size_t _offset) const {
   /**
    * - If src already has data allocated, then directly make dest tensor based
    * on the src tensor.
@@ -196,16 +196,16 @@ void TensorBase::createSharedDataTensor(const TensorBase *src, TensorBase *dest,
    */
   dest->data = nullptr;
   if (src->data) {
-    dest->src_tensor = std::make_shared<SrcSharedTensorBase>(src, offset);
+    dest->src_tensor = std::make_shared<SrcSharedTensorBase>(src, _offset);
     dest->allocate();
   } else if (!src->src_tensor)
-    dest->src_tensor = std::make_shared<SrcSharedTensorBase>(src, offset);
+    dest->src_tensor = std::make_shared<SrcSharedTensorBase>(src, _offset);
   else
     dest->src_tensor = std::make_shared<SrcSharedTensorBase>(
-      src->src_tensor->tensor(), offset + src->src_tensor->offset());
+      src->src_tensor->tensor(), _offset + src->src_tensor->offset());
 }
 
-void TensorBase::getSharedDataTensor(const TensorDim dim_, size_t offset,
+void TensorBase::getSharedDataTensor(const TensorDim dim_, size_t _offset,
                                      bool reset_stride,
                                      const std::string &name_,
                                      TensorBase *ret) {
@@ -216,7 +216,7 @@ void TensorBase::getSharedDataTensor(const TensorDim dim_, size_t offset,
   if (!name_.empty())
     ret->name = name_;
 
-  if (dim_.getDataLen() + offset > dim.getDataLen())
+  if (dim_.getDataLen() + _offset > dim.getDataLen())
     throw std::invalid_argument(
       "Creating shared tensor of size bigger than tensor memory.");
 
@@ -232,7 +232,7 @@ void TensorBase::getSharedDataTensor(const TensorDim dim_, size_t offset,
    * In this case, its the caller's responsibility to ensure that allocate() is
    * called for the output tensor before operating on the output tensor.
    */
-  createSharedDataTensor(this, ret, offset);
+  createSharedDataTensor(this, ret, _offset);
 }
 
 TensorBase::BroadcastInfo

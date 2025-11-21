@@ -22,8 +22,8 @@ Uint4QTensor::Uint4QTensor(std::string name_, Tformat fm, QScheme qscheme_) :
   TensorBase(name_, fm, Tdatatype::UINT4), qscheme(qscheme_) {}
 
 Uint4QTensor::Uint4QTensor(const TensorDim &d, bool alloc_now, Initializer init,
-                           std::string name, QScheme qscheme_) :
-  TensorBase(d, alloc_now, init, name), qscheme(qscheme_) {
+                           std::string tensor_name, QScheme qscheme_) :
+  TensorBase(d, alloc_now, init, tensor_name), qscheme(qscheme_) {
   if (alloc_now)
     allocate();
 }
@@ -146,9 +146,9 @@ void Uint4QTensor::allocate() {
       (void *)(new uint8_t[(dim.getDataLen() + 1) / 2 +
                            sizeof(float) * scale_size() +
                            sizeof(unsigned int) * scale_size()]{}));
-    data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-      delete[] mem_data->template getAddr<uint8_t>();
-      delete mem_data;
+    data = std::shared_ptr<MemoryData>(mem_data, [](auto *ptr) {
+      delete[] ptr->template getAddr<uint8_t>();
+      delete ptr;
     });
 
     offset = 0;
@@ -262,8 +262,8 @@ void Uint4QTensor::setValue(float value) {
     << "Value must be in range [0, 15]. Input value: " << value;
 
   uint8_t val = value;
-  uint8_t *data = (uint8_t *)getData();
-  std::fill(data, data + (size() + 1) / 2, (val << 4) | (val & 0x0f));
+  uint8_t *_data = (uint8_t *)getData();
+  std::fill(_data, _data + (size() + 1) / 2, (val << 4) | (val & 0x0f));
 }
 
 /// @todo this func should be template function
@@ -429,7 +429,7 @@ void Uint4QTensor::read(ReadSource src, size_t start_offset,
 
 std::vector<unsigned int> Uint4QTensor::argmax() const {
   std::vector<unsigned int> result;
-  const uint8_t *data = (uint8_t *)getData();
+  const uint8_t *_data = (uint8_t *)getData(); // @todo This is unused. getData() really required?
   size_t batch_size = batch();
   size_t feature_len = dim.getFeatureLen();
   result.resize(batch_size);
@@ -452,7 +452,7 @@ std::vector<unsigned int> Uint4QTensor::argmax() const {
 
 std::vector<unsigned int> Uint4QTensor::argmin() const {
   std::vector<unsigned int> result;
-  const uint8_t *data = (uint8_t *)getData();
+  const uint8_t *_data = (uint8_t *)getData(); // @todo This is unused. getData() really required?
   size_t batch_size = batch();
   size_t feature_len = dim.getFeatureLen();
   result.resize(batch_size);
@@ -519,9 +519,9 @@ float Uint4QTensor::minValue() const {
 }
 
 void Uint4QTensor::print(std::ostream &out) const {
-  const uint8_t *data = (uint8_t *)getData();
+  const uint8_t *_data = (uint8_t *)getData();
   unsigned int len = size();
-  out << "data addr: " << reinterpret_cast<const float *>(data) << '\n';
+  out << "data addr: " << reinterpret_cast<const float *>(_data) << '\n';
   out << dim;
 
   if (len > 100) {

@@ -50,7 +50,7 @@ public:
 class QualityOfBanana : public nntrainer::Property<std::string> {
 public:
   QualityOfBanana() : nntrainer::Property<std::string>() {}
-  QualityOfBanana(const char *value) { set(value); }
+  QualityOfBanana(const char *v) { set(v); }
   static constexpr const char *key = "quality_banana";
   using prop_tag = nntrainer::str_prop_tag;
 

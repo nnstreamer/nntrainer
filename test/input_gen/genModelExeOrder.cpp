@@ -53,8 +53,8 @@ void exportToFile(std::string name, nntrainer::NeuralNetwork &model) {
   for (unsigned int i = 0; i < graph.size(); ++i) {
     auto layer = graph.getSortedLayerNode(i);
     auto orders = graph.getLayerExecutionOrders(layer);
-    for (auto &[name, ords] : orders) {
-      file << name;
+    for (auto &[n, ords] : orders) {
+      file << n;
       std::set<unsigned int> set_ords(ords.begin(), ords.end());
       for (auto &o : set_ords) {
         file << ", " << o;

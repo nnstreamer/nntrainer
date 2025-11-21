@@ -140,11 +140,11 @@ void TfOpNode::setWeights(Variables weights_, bool weight_transpose) {
     cnt++;
   }
 
-  auto weight_transform_fn = [](std::vector<const Tensor *> &weights) {
+  auto weight_transform_fn = [](std::vector<const Tensor *> &_weights) {
     std::vector<Tensor> new_weights;
-    new_weights.reserve(weights.size());
-    if (weights.size() != 0) {
-      new_weights.push_back(weights[0]->transpose("1:2:0"));
+    new_weights.reserve(_weights.size());
+    if (_weights.size() != 0) {
+      new_weights.push_back(_weights[0]->transpose("1:2:0"));
     }
     return new_weights;
   };
@@ -199,11 +199,11 @@ void TfOpNode::weightReorder(unsigned int node_count) {
     }
   }
 
-  auto weight_transform_fn = [](std::vector<const Tensor *> &weights) {
+  auto weight_transform_fn = [](std::vector<const Tensor *> &_weights) {
     std::vector<Tensor> new_weights;
-    new_weights.reserve(weights.size());
-    new_weights.push_back(weights[0]->transpose("0:2:1"));
-    new_weights.push_back(*weights[1]);
+    new_weights.reserve(_weights.size());
+    new_weights.push_back(_weights[0]->transpose("0:2:1"));
+    new_weights.push_back(*_weights[1]);
     return new_weights;
   };
 

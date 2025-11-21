@@ -145,9 +145,9 @@ void CachePool::allocate() {
   NNTR_THROW_IF(swap_device->isOperating(), std::runtime_error)
     << "Cache pool is already allocated";
 
-  size_t pool_size = size();
+  size_t _pool_size = size();
 
-  NNTR_THROW_IF(pool_size == 0, std::runtime_error)
+  NNTR_THROW_IF(_pool_size == 0, std::runtime_error)
     << "Allocating memory pool with size 0";
   if (execution_mode_ == ml::train::ExecutionMode::INFERENCE)
     MemoryPool::allocateFSU();

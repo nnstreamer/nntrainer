@@ -582,26 +582,26 @@ int ml_train_model_set_dataset(ml_train_model_h model,
 
   returnable f = [&]() {
     auto &[train_set, valid_set, test_set] = nndataset->dataset;
-    int status = ML_ERROR_NONE;
-    status = m->setDataset(ml::train::DatasetModeType::MODE_TRAIN, train_set);
-    if (status != ML_ERROR_NONE) {
-      return status;
+    int stat = ML_ERROR_NONE;
+    stat = m->setDataset(ml::train::DatasetModeType::MODE_TRAIN, train_set);
+    if (stat != ML_ERROR_NONE) {
+      return stat;
     }
 
     if (valid_set != nullptr) {
-      status = m->setDataset(ml::train::DatasetModeType::MODE_VALID, valid_set);
-      if (status != ML_ERROR_NONE) {
-        return status;
+      stat = m->setDataset(ml::train::DatasetModeType::MODE_VALID, valid_set);
+      if (stat != ML_ERROR_NONE) {
+        return stat;
       }
     }
 
     if (test_set != nullptr) {
-      status = m->setDataset(ml::train::DatasetModeType::MODE_TEST, test_set);
-      if (status != ML_ERROR_NONE) {
-        return status;
+      stat = m->setDataset(ml::train::DatasetModeType::MODE_TEST, test_set);
+      if (stat != ML_ERROR_NONE) {
+        return stat;
       }
     }
-    return status;
+    return stat;
   };
 
   status = nntrainer_exception_boundary(f);

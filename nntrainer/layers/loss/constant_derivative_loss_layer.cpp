@@ -34,10 +34,10 @@ void ConstantDerivativeLossLayer::forwarding(RunLayerContext &context,
   hidden_.fill(y);
 
   if (context.isLabelAvailable(SINGLE_INOUT_IDX)) {
-    Tensor l(1);
-    l.setValue(value);
+    Tensor _l(1);
+    _l.setValue(value);
     // update the loss value
-    LossLayer::updateLoss(context, l);
+    LossLayer::updateLoss(context, _l);
   }
 }
 

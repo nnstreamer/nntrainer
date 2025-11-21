@@ -36,7 +36,7 @@ static sharedConstTensors toSharedTensors(const std::vector<Tensor> &ts) {
   sharedConstTensors sts;
   sts.reserve(ts.size());
   std::transform(ts.begin(), ts.end(), std::back_inserter(sts),
-                 [](const auto &ts) { return MAKE_SHARED_TENSOR(ts); });
+                 [](const auto &t) { return MAKE_SHARED_TENSOR(t); });
   return sts;
 }
 
@@ -132,7 +132,7 @@ static void verify(const std::vector<nntrainer::Tensor> &actual,
  */
 class IterationForGolden {
 public:
-  IterationForGolden(NeuralNetwork *nn) : nn(nn) {
+  IterationForGolden(NeuralNetwork *n) : nn(n) {
     auto in_dims = nn->getInputDimension();
     auto out_dims = nn->getOutputDimension();
 
@@ -181,7 +181,7 @@ public:
       ts.reserve(sts.size());
       std::transform(
         sts.begin(), sts.end(), std::back_inserter(ts),
-        [](const auto &ts) -> const auto & { return *ts; });
+        [](const auto &t) -> const auto & { return *t; });
       return ts;
     };
 
@@ -220,7 +220,7 @@ private:
   std::vector<Tensor> expected_outputs;
 };
 
-NodeWatcher::NodeWatcher(const NodeType &node) : node(node) {
+NodeWatcher::NodeWatcher(const NodeType &n) : node(n) {
   unsigned int num_weights = node->getNumWeights();
   try {
     node->setProperty({"trainable=true"});
@@ -424,9 +424,9 @@ void GraphWatcher::compareFor(const std::string &reference,
     if (loss_nodes.size()) {
       nn->backwarding(iteration);
 
-      for (auto it = nodes.rbegin(); it != nodes.rend(); it++) {
-        if (it->needsCalcDerivative())
-          it->backward(iteration, !optimize, !optimize);
+      for (auto i = nodes.rbegin(); i != nodes.rend(); i++) {
+        if (i->needsCalcDerivative())
+          i->backward(iteration, !optimize, !optimize);
       }
     } else {
       EXPECT_THROW(nn->backwarding(iteration), std::runtime_error);

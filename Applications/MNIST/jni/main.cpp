@@ -158,18 +158,18 @@ public:
   std::mt19937 rng;
 };
 
-DataInformation::DataInformation(unsigned int num_samples,
-                                 const std::string &filename) :
+DataInformation::DataInformation(unsigned int _num_samples,
+                                 const std::string &_filename) :
   count(0),
-  num_samples(num_samples),
-  file(filename, std::ios::in | std::ios::binary),
-  idxes(num_samples) {
+  num_samples(_num_samples),
+  file(_filename, std::ios::in | std::ios::binary),
+  idxes(_num_samples) {
   std::iota(idxes.begin(), idxes.end(), 0);
   rng.seed(SEED);
   std::shuffle(idxes.begin(), idxes.end(), rng);
   if (!file.good()) {
     throw std::invalid_argument("given file is not good, filename: " +
-                                filename);
+                                _filename);
   }
 }
 
