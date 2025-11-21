@@ -39,6 +39,8 @@ using namespace nntrainer;
 // Functions
 // -----
 
+#define Q4_0 32
+
 static std::pair<float, float>
 dotCL_sgemv_test_func(const int batch, const int channel, const int height,
                       const int width, const int height_b, const int width_b,

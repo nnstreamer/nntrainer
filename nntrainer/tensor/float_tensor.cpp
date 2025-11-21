@@ -17,6 +17,8 @@
 #include <cpu_backend.h>
 #include <float_tensor.h>
 #include <int4_tensor.h>
+#include <q4_0_utils.h>
+
 #include <tensor.h>
 #include <util_func.h>
 
@@ -767,15 +769,25 @@ void FloatTensor::dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
       mdatas.push_back(mdata);
       rdatas.push_back(rdata);
       scales.push_back(scale);
+
+      /// Run on CPU with Q4_0
+      if (!input[0]->getMemoryData()->isSVM() ||
+          !output[0]->getMemoryData()->isSVM() || !getMemoryData()->isSVM()) {
+        /// @note  This assumes `input` data is transformed to Q4_0 type
+        gemm_q4_0(M, N, K, data, K, (void *)input[i]->getData(), N, rdata, N);
+      }
     }
 
     /// Asynchronous execution
-    if (M == 1) {
-      gemv_int4_async_cl(mdatas, scales, data, rdatas, K, Ns,
-                         Int4QTensor::getGroupSize());
-    } else {
-      openvino_gemm_async_cl(data, mdatas, scales, rdatas, M, Ns, K,
-                             Int4QTensor::getGroupSize());
+    if (input[0]->getMemoryData()->isSVM() &&
+        output[0]->getMemoryData()->isSVM() && getMemoryData()->isSVM()) {
+      if (M == 1) {
+        gemv_int4_async_cl(mdatas, scales, data, rdatas, K, Ns,
+                           Int4QTensor::getGroupSize());
+      } else {
+        openvino_gemm_async_cl(data, mdatas, scales, rdatas, M, Ns, K,
+                               Int4QTensor::getGroupSize());
+      }
     }
 #endif
   } else {
@@ -984,13 +996,20 @@ Tensor &FloatTensor::dotQInteger(Tensor const &input, Tensor &output,
     "Error: FP16 should be enabled for QINT4 Dot on CPU");
 #endif
 #else
-  /// @note this should be if (M == 1) else
-  if (M == 1) {
-    gemv_int4_cl(mdata, input.getScale<uint16_t>(), data, rdata, K, N,
-                 Int4QTensor::getGroupSize());
+  /// Run on GPU with QINT4
+  if (input.getMemoryData()->isSVM() && output.getMemoryData()->isSVM() &&
+      getMemoryData()->isSVM()) {
+    if (M == 1) {
+      gemv_int4_cl(mdata, input.getScale<uint16_t>(), data, rdata, K, N,
+                   Int4QTensor::getGroupSize());
+    } else {
+      openvino_sgemm_cl(data, mdata, input.getScale<uint16_t>(), rdata, M, N, K,
+                        Int4QTensor::getGroupSize());
+    }
   } else {
-    openvino_sgemm_cl(data, mdata, input.getScale<uint16_t>(), rdata, M, N, K,
-                      Int4QTensor::getGroupSize());
+    /// Run on CPU with Q4_0
+    /// @note This assumes `input` data is transformed to Q4_0 type
+    gemm_q4_0(M, N, K, data, K, (void *)input.getData(), N, rdata, N);
   }
 #endif
 
