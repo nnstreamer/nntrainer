@@ -1,0 +1,54 @@
+Ernie4_5_MoeForCausalLM(
+  (model): Ernie4_5_MoeModel(
+    (embed_tokens): Embedding(103424, 2560, padding_idx=0)
+    (layers): ModuleList(
+      (0): Ernie4_5_MoeDecoderLayer(
+        (self_attn): Ernie4_5_MoeAttention(
+          (q_proj): Linear(in_features=2560, out_features=2560, bias=False)
+          (k_proj): Linear(in_features=2560, out_features=512, bias=False)
+          (v_proj): Linear(in_features=2560, out_features=512, bias=False)
+          (o_proj): Linear(in_features=2560, out_features=2560, bias=False)
+        )
+        (mlp): Ernie4_5_MoeMLP(
+          (gate_proj): Linear(in_features=2560, out_features=12288, bias=False)
+          (up_proj): Linear(in_features=2560, out_features=12288, bias=False)
+          (down_proj): Linear(in_features=12288, out_features=2560, bias=False)
+          (act_fn): SiLUActivation()
+        )
+        (input_layernorm): Ernie4_5_MoeRMSNorm((2560,), eps=1e-05)
+        (post_attention_layernorm): Ernie4_5_MoeRMSNorm((2560,), eps=1e-05)
+      )
+      (1-27): 27 x Ernie4_5_MoeDecoderLayer(
+        (self_attn): Ernie4_5_MoeAttention(
+          (q_proj): Linear(in_features=2560, out_features=2560, bias=False)
+          (k_proj): Linear(in_features=2560, out_features=512, bias=False)
+          (v_proj): Linear(in_features=2560, out_features=512, bias=False)
+          (o_proj): Linear(in_features=2560, out_features=2560, bias=False)
+        )
+        (mlp): Ernie4_5_MoeSparseMoeBlock(
+          (moe_statics): Ernie4_5_MoeStatics()
+          (gate): Linear(in_features=2560, out_features=64, bias=False)
+          (experts): ModuleList(
+            (0-63): 64 x Ernie4_5_MoeMLP(
+              (gate_proj): Linear(in_features=2560, out_features=1536, bias=False)
+              (up_proj): Linear(in_features=2560, out_features=1536, bias=False)
+              (down_proj): Linear(in_features=1536, out_features=2560, bias=False)
+              (act_fn): SiLUActivation()
+            )
+          )
+          (shared_experts): Ernie4_5_MoeMLP(
+            (gate_proj): Linear(in_features=2560, out_features=3072, bias=False)
+            (up_proj): Linear(in_features=2560, out_features=3072, bias=False)
+            (down_proj): Linear(in_features=3072, out_features=2560, bias=False)
+            (act_fn): SiLUActivation()
+          )
+        )
+        (input_layernorm): Ernie4_5_MoeRMSNorm((2560,), eps=1e-05)
+        (post_attention_layernorm): Ernie4_5_MoeRMSNorm((2560,), eps=1e-05)
+      )
+    )
+    (norm): Ernie4_5_MoeRMSNorm((2560,), eps=1e-05)
+    (rotary_emb): Ernie4_5_MoeRotaryEmbedding()
+  )
+  (lm_head): Linear(in_features=2560, out_features=103424, bias=False)
+)

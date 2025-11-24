@@ -142,11 +142,10 @@ void EmbeddingLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
       }
     }
 
-#ifdef DEBUG
-    std::cout << context.getName() << " : "
-              << "\n input:" << input_ << "\n weight: " << weight
-              << "\n hidden: " << hidden_ << std::endl;
-#endif
+    std::cout << context.getName() << std::endl;
+    hidden_.print(std::cout);
+    std::cout << std::endl;
+
   }
 }
 

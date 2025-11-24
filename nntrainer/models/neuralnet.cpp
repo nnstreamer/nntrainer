@@ -747,10 +747,8 @@ void NeuralNetwork::load(const std::string &file_path,
           if (!MMAP_READ) {
             auto local_model_file = checkedOpenStream<std::ifstream>(
               (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
-            printf("try to read : %s ", node->getName().c_str());
             node->read(local_model_file, false, exec_mode, fsu_mode,
                        std::numeric_limits<size_t>::max(), true, model_file_fd);
-            printf("read end \n");
           }
         // }));
       }
@@ -758,7 +756,6 @@ void NeuralNetwork::load(const std::string &file_path,
       // for (auto &f : futures)
       //   f.get();
 
-      std::cout << "read Done " << std::endl;
     } else {
 
 
@@ -1052,7 +1049,6 @@ sharedConstTensors NeuralNetwork::incremental_inference(
   PROFILE_TIME_START(nn_foward);
 
   out = incremental_forwarding(from, to, X, label, false);
-
   PROFILE_TIME_END(nn_foward);
 
   /** @todo: deallocate tensor after incremental inference **/

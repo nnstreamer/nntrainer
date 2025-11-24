@@ -152,7 +152,7 @@ void CausalLM::initialize() {
 
   is_initialized = true;
 
-  model->summarize(std::cout, ML_TRAIN_SUMMARY_MODEL);
+  // model->summarize(std::cout, ML_TRAIN_SUMMARY_MODEL);
 }
 
 void CausalLM::constructModel() {
@@ -311,6 +311,14 @@ void CausalLM::run(const WSTR prompt, bool do_sample, const WSTR system_prompt,
     SYS_PROMP_LEN = tokenizer->Encode(system_prompt).size();
 
   auto _input = tokenizer->Encode(prompt_);
+  std::cout << "input token id : " << std::endl;
+
+  for (auto element : _input) {
+    std::cout << element << ", ";
+  }
+  std::cout << std::endl;
+  std::cout <<  " ================================================" <<std::endl;
+
 #endif
 
   // | <------------------- MAX_SEQ_LEN -------------------> |
@@ -476,6 +484,11 @@ void CausalLM::run(const WSTR prompt, bool do_sample, const WSTR system_prompt,
   }
 
   global_token_len += (generation_cnt + init_len);
+  // std::cout << "\n output token ids : " << std::endl;
+  // for (int i = 0; i < 1024; i++) {
+  //   std::cout << ids_history[i] << " ";
+  // }
+  // std::cout << std::endl;
 
   auto finish_generation = std::chrono::high_resolution_clock::now();
   auto generation_duration =
@@ -726,6 +739,7 @@ void CausalLM::registerOutputs(
     if (!eos_list[b]) {
       pending_ids_.push_back(static_cast<int>(ids[b]));
       ids_history[b * MAX_SEQ_LEN + pos] = ids[b];
+      std::cout << "(" << ids[b] << ") ";
       std::string decoded_str = tokenizer->Decode(pending_ids_);
 
       if (std::find(puncts.begin(), puncts.end(), decoded_str.back()) !=

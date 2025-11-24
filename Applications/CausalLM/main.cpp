@@ -59,6 +59,13 @@ int main(int argc, char *argv[]) {
         cfg, generation_cfg, nntr_cfg);
     });
 
+  causallm::Factory::Instance().registerModel(
+    "Qwen3CachedSlimMoeForCausalLM",
+    [](json cfg, json generation_cfg, json nntr_cfg) {
+      return std::make_unique<causallm::Qwen3CachedSlimMoECausalLM>(
+        cfg, generation_cfg, nntr_cfg);
+    });
+
   const std::string model_path = argv[1];
   std::string input_text;
   std::string system_head_prompt = "";

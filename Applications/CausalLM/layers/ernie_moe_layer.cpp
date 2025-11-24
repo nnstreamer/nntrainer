@@ -145,21 +145,35 @@ void ErnieMoELayer::finalize(nntrainer::InitLayerContext &context) {
     is_nchw ? 0b0011 : 0b0101);
 
   for (unsigned int i = 0; i < num_experts; ++i) {
+    // expert_up_proj_indices.push_back(context.requestWeight(
+    //   expert_gate_dim, // Same dimensions as gate projection
+    //   weight_initializer, weight_regularizer, weight_regularizer_constant,
+    //   weight_decay, "expert_up_" + std::to_string(i), false, true));
+    //
+    // expert_gate_proj_indices.push_back(context.requestWeight(
+    //   expert_gate_dim, weight_initializer, weight_regularizer,
+    //   weight_regularizer_constant, weight_decay,
+    //   "expert_gate_" + std::to_string(i), false, true));
+    //
+    // expert_down_proj_indices.push_back(context.requestWeight(
+    //   expert_down_dim, weight_initializer, weight_regularizer,
+    //   weight_regularizer_constant, weight_decay,
+    //   "expert_down_" + std::to_string(i), false, true));
+
     expert_up_proj_indices.push_back(context.requestWeight(
       expert_gate_dim, // Same dimensions as gate projection
       weight_initializer, weight_regularizer, weight_regularizer_constant,
-      weight_decay, "expert_up_" + std::to_string(i), false, true));
+      weight_decay, "expert_up_" + std::to_string(i), false));
 
     expert_gate_proj_indices.push_back(context.requestWeight(
       expert_gate_dim, weight_initializer, weight_regularizer,
       weight_regularizer_constant, weight_decay,
-      "expert_gate_" + std::to_string(i), false, true));
+      "expert_gate_" + std::to_string(i), false));
 
     expert_down_proj_indices.push_back(context.requestWeight(
       expert_down_dim, weight_initializer, weight_regularizer,
       weight_regularizer_constant, weight_decay,
-      "expert_down_" + std::to_string(i), false, true));
-
+      "expert_down_" + std::to_string(i), false));
     need_load.push_back(true);
   }
 
@@ -322,31 +336,15 @@ void ErnieMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
     // routing
     nntrainer::Tensor &gate_weights = context.getWeight(gate_idx);
     input.dot(gate_weights, router_logits);
-    router_logits.apply(nntrainer::ActiFunc::softmax<float>, router_logits);
 
     // Add e_score_correction_bias
     nntrainer::Tensor &e_score_correction_bias =
       context.getWeight(e_score_correction_bias_idx);
-    nntrainer::Tensor biased_router_logits = router_logits.clone();
-    biased_router_logits.add_i(e_score_correction_bias);
+    router_logits.add_i(e_score_correction_bias);
 
-    // get extra topK
-    auto extra_topk_result = biased_router_logits.topK(topk + 1);
-    auto extra_topk_values = std::get<0>(extra_topk_result);
-    auto extra_topk_indices = std::get<1>(extra_topk_result);
-    std::deque<int> extra_top_k = {};
-    extra_topk_values.divide_i(extra_topk_values.sum(3));
-    const uint32_t *extra_indices_data = extra_topk_indices.getData<uint32_t>();
+    router_logits.apply(nntrainer::ActiFunc::softmax<float>, router_logits);
 
-    // get extra topk
-    for (int i = static_cast<int>(total_tokens) - 1; i >= 0; --i) {
-      for (int k = 0; k < static_cast<int>(topk + 1); ++k) {
-        unsigned expert_idx = extra_indices_data[i * topk + k];
-        extra_top_k.push_back(expert_idx);
-      }
-    }
-
-    auto topk_result = biased_router_logits.topK(topk);
+    auto topk_result = router_logits.topK(topk);
     auto topk_values = std::get<0>(topk_result);
     auto topk_indices = std::get<1>(topk_result);
 
@@ -394,59 +392,51 @@ void ErnieMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
 #pragma omp parallel for schedule(dynamic)
     for (int expert_idx : target_idx_vector) {
       const auto &assignments = expert_assignments[expert_idx];
-      if (need_load[expert_idx]) {
-
-
-        context.getWeight(expert_gate_proj_indices[expert_idx]).activate();
-        context.getWeight(expert_up_proj_indices[expert_idx]).activate();
-        context.getWeight(expert_down_proj_indices[expert_idx]).activate();
-
-        {
-          std::lock_guard<std::mutex> lock(cache_mutex);
-          loaded_expert_deque.push_back(expert_idx);
-          iteration_map[expert_idx] = --loaded_expert_deque.end();
-          need_load[expert_idx] = false;
-        }
-
+      // if (need_load[expert_idx]) {
+      //
+      //
+      //   context.getWeight(expert_gate_proj_indices[expert_idx]).activate();
+      //   context.getWeight(expert_up_proj_indices[expert_idx]).activate();
+      //   context.getWeight(expert_down_proj_indices[expert_idx]).activate();
+      //
+      //   {
+      //     std::lock_guard<std::mutex> lock(cache_mutex);
+      //     loaded_expert_deque.push_back(expert_idx);
+      //     iteration_map[expert_idx] = --loaded_expert_deque.end();
+      //     need_load[expert_idx] = false;
+      //   }
+      //
+      //   compute_expert_forward(
+      //     input, expert_outputs[expert_idx], assignments,
+      //     context.getWeight(expert_gate_proj_indices[expert_idx]),
+      //     context.getWeight(expert_up_proj_indices[expert_idx]),
+      //     context.getWeight(expert_down_proj_indices[expert_idx]), hidden_size);
+      //
+      // } else {
         compute_expert_forward(
           input, expert_outputs[expert_idx], assignments,
           context.getWeight(expert_gate_proj_indices[expert_idx]),
           context.getWeight(expert_up_proj_indices[expert_idx]),
           context.getWeight(expert_down_proj_indices[expert_idx]), hidden_size);
-
-      } else {
-        compute_expert_forward(
-          input, expert_outputs[expert_idx], assignments,
-          context.getWeight(expert_gate_proj_indices[expert_idx]),
-          context.getWeight(expert_up_proj_indices[expert_idx]),
-          context.getWeight(expert_down_proj_indices[expert_idx]), hidden_size);
-      }
-    }
-
-    for (int i = extra_top_k.size() - 1; i >= 0; i--) {
-      if (iteration_map.find(extra_top_k[i]) != iteration_map.end()) {
-        loaded_expert_deque.erase(iteration_map[extra_top_k[i]]);
-        loaded_expert_deque.push_back(extra_top_k[i]);
-        iteration_map[extra_top_k[i]] = --loaded_expert_deque.end();
-      }
+      // }
     }
 
 // Evict experts
-#pragma omp parallel
-    while (loaded_expert_deque.size() > 12) {
-      int target_idx;
-      {
-        std::lock_guard<std::mutex> lock(cache_mutex);
-        target_idx = loaded_expert_deque.front();
-        loaded_expert_deque.pop_front();
-        iteration_map.erase(target_idx);
-        need_load[target_idx] = true;
-      }
-
-      context.getWeight(expert_gate_proj_indices[target_idx]).deactivate();
-      context.getWeight(expert_up_proj_indices[target_idx]).deactivate();
-      context.getWeight(expert_down_proj_indices[target_idx]).deactivate();
-    }
+// #pragma omp parallel
+//     while (loaded_expert_deque.size() > 12) {
+//       int target_idx;
+//       {
+//         std::lock_guard<std::mutex> lock(cache_mutex);
+//         target_idx = loaded_expert_deque.front();
+//         loaded_expert_deque.pop_front();
+//         iteration_map.erase(target_idx);
+//         need_load[target_idx] = true;
+//       }
+//
+//       context.getWeight(expert_gate_proj_indices[target_idx]).deactivate();
+//       context.getWeight(expert_up_proj_indices[target_idx]).deactivate();
+//       context.getWeight(expert_down_proj_indices[target_idx]).deactivate();
+//     }
 
     // Combine expert outputs
     int init = 0;
@@ -459,7 +449,6 @@ void ErnieMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
       }
     }
 
-    // Shared Expert
     // Shared Expert
     if (num_shared_experts > 0) {
       nntrainer::Tensor &shared_gate_proj =
@@ -493,6 +482,7 @@ void ErnieMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
       // Add shared expert output to final output
       output.add_i(shared_output);
     }
+
     // reshape output: [B*S,1,1,H] -> [B,1,S,H]
     output.reshape({batch_size, 1, seq_len, hidden_size});
   }
