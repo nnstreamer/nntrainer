@@ -339,4 +339,8 @@ void clamp(const float *input, float *output, size_t length, float lower_bound,
   __fallback_clamp(input, output, length, lower_bound, upper_bound);
 }
 
+void create_Q4_0_weights(const uint8_t *int4_weight, uint8_t *q4_0_weight) {
+  __fallback_create_Q4_0_weights(int4_weight, q4_0_weight);
+}
+
 } /* namespace nntrainer */

@@ -514,4 +514,8 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
 #endif
 }
 
+void create_Q4_0_weights(const uint8_t *int4_weight, uint8_t *q4_0_weight) {
+  __fallback_create_Q4_0_weights(int4_weight, q4_0_weight);
+}
+
 } /* namespace nntrainer */
