@@ -83,64 +83,6 @@ void Q4_0Utils::dequantizeQ4_0x8(const void *q4_weight_repacked, int N, int K,
                                  dequantized_weights, K * N);
 }
 
-void Q4_0Utils::transformQ4_0Block(const uint8_t *int4_weight, uint16_t scale,
-                                   block_q4_0 *block) {
-  block->d = scale;
-
-  // Input:  | 0, 1 | 2, 3 | 4, 5 | ... |14,15 |16,17 | ... |28,29 |30,31 |
-  // Input:  | A, B | A, B | A, B | ... | A, B | C, D | ... | C, D | C, D |
-  //
-  // Output: | 0,16 | 1,17 | 2,18 | 3,19 | ...          ... |14,30 |15,31 |
-  // Output: | A, C | B, D | A, C | B, D | ...          ... | A, C | B, D |
-
-#ifdef __AVX2__
-  // Load 16 bytes of input data
-  __m128i input = _mm_loadu_si128((const __m128i *)int4_weight);
-
-  // Create masks for extracting low and high nibbles
-  const __m128i low_nibble_mask = _mm_set1_epi8(0x0F);
-  const __m128i high_nibble_mask = _mm_set1_epi8(0xF0);
-  const __m128i xor_mask = _mm_set1_epi8(0x88);
-
-  // Extract low nibbles from first 8 bytes
-  __m128i A = _mm_and_si128(input, low_nibble_mask);
-
-  // Extract high nibbles from first 8 bytes and shift right
-  __m128i B = _mm_and_si128(input, high_nibble_mask);
-  B = _mm_srli_epi16(B, 4);
-
-  // Extract low nibbles from second 8 bytes
-  __m128i input_shifted = _mm_bsrli_si128(input, 8);
-  __m128i C = _mm_and_si128(input_shifted, low_nibble_mask);
-
-  // Extract high nibbles from second 8 bytes and shift right
-  __m128i D = _mm_and_si128(input_shifted, high_nibble_mask);
-  D = _mm_srli_epi16(D, 4);
-
-  // Interleave low nibbles: v0 from first8, v2 from second8
-  __m128i AC = _mm_or_si128(A, _mm_slli_epi16(C, 4));
-
-  // Interleave high nibbles: v1 from first8, v3 from second8
-  __m128i BD = _mm_or_si128(B, _mm_slli_epi16(D, 4));
-
-  // Pack the results: interleave low and high bytes
-  __m128i result = _mm_unpacklo_epi8(AC, BD);
-
-  // Store the 16 bytes result
-  _mm_storeu_si128((__m128i *)block->qs, result);
-#else
-  // Scalar version for non-AVX2 systems
-  for (int i = 0; i < 8; i++) {
-    char v0 = int4_weight[i] & 0xF;
-    char v1 = (int4_weight[i] >> 4) & 0xF;
-    char v2 = int4_weight[8 + i] & 0xF;
-    char v3 = (int4_weight[8 + i] >> 4) & 0xF;
-    block->qs[2 * i] = (v0 | (v2 << 4));
-    block->qs[2 * i + 1] = (v1 | (v3 << 4));
-  }
-#endif
-}
-
 inline static block_q4_0x8 nntr_make_block_q4_0x8(block_q4_0 *in) {
   block_q4_0x8 out;
   constexpr size_t IN_CNT = 8;
@@ -210,7 +152,8 @@ void Q4_0Utils::transformQ4_0x8FromInt4(size_t N, size_t K,
         scale = osv32_scales[row_idx +
                              (column_idx / scale_group_size) * rows_count_pad];
 
-        transformQ4_0Block(int4_weight, scale, &dst_tmp[i]);
+        create_Q4_0_weights(int4_weight, dst_tmp[i].qs);
+        dst_tmp[i].d = scale;
       }
       *dst_++ = nntr_make_block_q4_0x8(dst_tmp);
     }
