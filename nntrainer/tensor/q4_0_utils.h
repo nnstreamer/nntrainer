@@ -72,21 +72,6 @@ public:
                                       void *dst_q4_0x8);
 
   /**
-   * @brief     Create a Q4_0 quantization block from int4 weights and scale
-   * @param[in] int4_weight Pointer to the input 4-bit quantized weights array.
-   * The array should contain 16 bytes representing 32 4-bit values. Each byte
-   * contains two 4-bit quantized values packed together.
-   * @param[in] scale Half-precision floating point scale factor (FP16) used for
-   * dequantization.
-   * @param[out] block Pointer to the output block_q4_0 structure that will be
-   * populated.
-   * @note      The input int4_weight array should contain exactly 32 4-bit
-   * values (16 bytes) to match the QK4_0 block size (32 elements per block).
-   */
-  static void transformQ4_0Block(const uint8_t *int4_weight, uint16_t scale,
-                                 block_q4_0 *block);
-
-  /**
    * @brief     Print the Q4_0 block data
    * @param[in] block Pointer to the Q4_0 block
    */

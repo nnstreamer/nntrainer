@@ -452,4 +452,8 @@ void clamp(const float *input, float *output, size_t length, float lower_bound,
            float upper_bound) {
   nntrainer::avx2::clamp(input, output, length, lower_bound, upper_bound);
 }
+
+void create_Q4_0_weights(const uint8_t *int4_weight, uint8_t *q4_0_weight) {
+  nntrainer::avx2::create_Q4_0_weights(int4_weight, q4_0_weight);
+}
 } /* namespace nntrainer */

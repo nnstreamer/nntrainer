@@ -606,4 +606,16 @@ void __fallback_clamp(const float *input, float *output, size_t length,
   }
 }
 
+void __fallback_create_Q4_0_weights(const uint8_t *int4_weight,
+                                    uint8_t *q4_0_weight) {
+  for (int i = 0; i < 8; i++) {
+    char v0 = int4_weight[i] & 0xF;
+    char v1 = (int4_weight[i] >> 4) & 0xF;
+    char v2 = int4_weight[8 + i] & 0xF;
+    char v3 = (int4_weight[8 + i] >> 4) & 0xF;
+    q4_0_weight[2 * i] = (v0 | (v2 << 4));
+    q4_0_weight[2 * i + 1] = (v1 | (v3 << 4));
+  }
+}
+
 } // namespace nntrainer
