@@ -99,16 +99,21 @@ Engine::parseComputeEngine(const std::vector<std::string> &props) const {
  */
 const std::string getFullPath(const std::string &path,
                               const std::string &base) {
-  /// if path is absolute, return path
-  if (path[0] == '/') {
-    return path;
+  const std::filesystem::path given_path(path);
+
+  if (!path.empty() && given_path.is_absolute()) {
+    return given_path.string();
   }
 
-  if (base == std::string()) {
-    return path == std::string() ? "." : path;
+  if (base.empty()) {
+    return path.empty() ? "." : path;
   }
 
-  return path == std::string() ? base : base + "/" + path;
+  if (path.empty()) {
+    return base;
+  }
+
+  return (std::filesystem::path(base) / given_path).string();
 }
 
 const std::string Engine::getWorkingPath(const std::string &path) const {

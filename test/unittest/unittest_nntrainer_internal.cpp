@@ -22,10 +22,13 @@
  */
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <filesystem>
 #include <fstream>
 #include <thread>
 
 #include <bs_thread_pool_manager.hpp>
+#include <engine.h>
 #include <neuralnet.h>
 #include <nntrainer_error.h>
 #include <optimizer.h>
@@ -181,6 +184,23 @@ TEST(nntrainer_throw_if, throw_invalid_arg_p) {
   }
 }
 
+TEST(nntrainer_engine, getFullPath_handles_edge_cases) {
+  EXPECT_EQ(".", nntrainer::getFullPath("", ""));
+
+  const auto base = std::filesystem::current_path().string();
+  EXPECT_EQ(base, nntrainer::getFullPath("", base));
+}
+
+TEST(nntrainer_engine, getFullPath_resolves_relative_and_absolute) {
+  const auto absolute = std::filesystem::current_path().string();
+  EXPECT_EQ(absolute, nntrainer::getFullPath(absolute, "/invalid/base"));
+
+  const std::string relative_name = "dummy_plugin.so";
+  const auto expected =
+    (std::filesystem::current_path() / std::filesystem::path(relative_name))
+      .string();
+  EXPECT_EQ(expected, nntrainer::getFullPath(relative_name, absolute));
+}
 
 TEST(nntrainer_thread_pool_manager, select_single_thread_for_small_workload) {
   auto &manager = nntrainer::ThreadPoolManager::Global();
