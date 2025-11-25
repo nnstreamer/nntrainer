@@ -23,7 +23,9 @@
 #include <gtest/gtest.h>
 
 #include <fstream>
+#include <thread>
 
+#include <bs_thread_pool_manager.hpp>
 #include <neuralnet.h>
 #include <nntrainer_error.h>
 #include <optimizer.h>
@@ -177,6 +179,20 @@ TEST(nntrainer_throw_if, throw_invalid_arg_p) {
     EXPECT_STREQ("error msg", e.what());
     EXPECT_TRUE(hit);
   }
+}
+
+
+TEST(nntrainer_thread_pool_manager, select_single_thread_for_small_workload) {
+  auto &manager = nntrainer::ThreadPoolManager::Global();
+  EXPECT_EQ(1u, manager.select_k_quant_thread_count(1, 1, 1));
+}
+
+TEST(nntrainer_thread_pool_manager, respect_medium_workload_threshold) {
+  auto &manager = nntrainer::ThreadPoolManager::Global();
+  const std::size_t max_threads =
+    std::max<std::size_t>(1U, std::thread::hardware_concurrency());
+  const std::size_t expected = std::min<std::size_t>(2U, max_threads);
+  EXPECT_EQ(expected, manager.select_k_quant_thread_count(1536, 1536, 1));
 }
 
 /**

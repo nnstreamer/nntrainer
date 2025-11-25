@@ -26,23 +26,29 @@ namespace nntrainer {
 std::size_t ThreadPoolManager::select_k_quant_thread_count(unsigned int M,
                                                            unsigned int N,
                                                            unsigned int K) {
-  const std::size_t max_threads = std::thread::hardware_concurrency();
+  const std::size_t hw_threads =
+    std::max<std::size_t>(1U, std::thread::hardware_concurrency());
+  const std::size_t work_size = static_cast<std::size_t>(M) *
+                                static_cast<std::size_t>(N) *
+                                static_cast<std::size_t>(K);
 
-  const std::size_t work_size = static_cast<std::size_t>(M * N * K);
-  std::size_t est_threads;
+  std::size_t est_threads = 1;
 
-  //  Use log-scale thresholds to reduce threads on smaller work sizes
-  if (work_size < 1536 * 1536)
+  // Use log-scale thresholds to reduce threads on smaller work sizes
+  if (work_size < 1536ULL * 1536ULL) {
     est_threads = 1;
-  if (work_size < 1536 * 2048)
+  } else if (work_size < 1536ULL * 2048ULL) {
     est_threads = 2;
-  if (work_size < 2048 * 2048)
+  } else if (work_size < 2048ULL * 2048ULL) {
     est_threads = 4;
-  else {
+  } else {
+    const std::size_t normalized =
+      std::max<std::size_t>(1ULL, work_size / (1536ULL * 1536ULL));
     est_threads =
-      static_cast<std::size_t>(std::log2(work_size / (1536 * 1536))) + 4;
+      static_cast<std::size_t>(std::log2(static_cast<double>(normalized))) + 4;
   }
-  return std::min(est_threads, max_threads);
+
+  return std::max<std::size_t>(1ULL, std::min(est_threads, hw_threads));
 }
 
 } // namespace nntrainer
