@@ -36,9 +36,6 @@ Ernie4_5_MoeForCausalLM::createMlp(const int layer_id, int dim, int hidden_dim,
        withKey("input_layers", "layer" + std::to_string(layer_id) + "_ffn_up," +
                                  "layer" + std::to_string(layer_id) +
                                  "_ffn_gate")
-        // withKey("input_layers",
-        //                         "layer" + std::to_string(layer_id) +
-        //                         "_ffn_gate," +"layer" + std::to_string(layer_id) + "_ffn_up")
       }));
 
     layers.push_back(createLayer(

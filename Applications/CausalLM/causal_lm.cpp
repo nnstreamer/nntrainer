@@ -85,7 +85,6 @@ void CausalLM::setupParameters(json &cfg, json &generation_cfg,
   PRE_COMPUTED_CACHE_PATH = "";
   SYS_PROMP_LEN = 0;
 
-
   /** Initialize model parameters */
   NUM_VOCAB = cfg["vocab_size"];
   DIM = cfg["hidden_size"];
@@ -142,17 +141,11 @@ void CausalLM::initialize() {
 
   model->setProperty(model_props);
 
-  if (model->compile(ml::train::ExecutionMode::INFERENCE)) {
-    throw std::invalid_argument("Model compilation failed.");
-  }
+  model->compile(ml::train::ExecutionMode::INFERENCE);
 
-  if (model->initialize(ml::train::ExecutionMode::INFERENCE)) {
-    throw std::invalid_argument("Model initialization failed.");
-  }
+  model->initialize(ml::train::ExecutionMode::INFERENCE);
 
   is_initialized = true;
-
-  // model->summarize(std::cout, ML_TRAIN_SUMMARY_MODEL);
 }
 
 void CausalLM::constructModel() {
@@ -317,7 +310,7 @@ void CausalLM::run(const WSTR prompt, bool do_sample, const WSTR system_prompt,
     std::cout << element << ", ";
   }
   std::cout << std::endl;
-  std::cout <<  " ================================================" <<std::endl;
+  std::cout << " ================================================" << std::endl;
 
 #endif
 
@@ -739,7 +732,6 @@ void CausalLM::registerOutputs(
     if (!eos_list[b]) {
       pending_ids_.push_back(static_cast<int>(ids[b]));
       ids_history[b * MAX_SEQ_LEN + pos] = ids[b];
-      std::cout << "(" << ids[b] << ") ";
       std::string decoded_str = tokenizer->Decode(pending_ids_);
 
       if (std::find(puncts.begin(), puncts.end(), decoded_str.back()) !=

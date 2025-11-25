@@ -1,25 +1,3 @@
-/**
- * Copyright (C) 2025 Samsung Electronics Co., Ltd. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *   http://www.apache.org/licenses/LICENSE-2.0
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- *
- * @file	main.cpp
- * @date	23 July 2025
- * @brief	This is a main file for CausalLM application
- * @see		https://github.com/nnstreamer/
- * @author	Eunju Yang <ej.yang@samsung.com>
- * @bug		No known bugs except for NYI items
- *
- */
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -30,21 +8,9 @@
 #include <factory.h>
 
 #include "causal_lm.h"
-#include "gptoss_cached_slim_causallm.h"
-#include "gptoss_causallm.h"
-#include "nntr_qwen3_causallm.h"
-#include "nntr_qwen3_moe_causallm.h"
-#include "qwen3_cached_slim_moe_causallm.h"
-#include "qwen3_causallm.h"
-#include "qwen3_moe_causallm.h"
-#include "qwen3_slim_moe_causallm.h"
-
 #include "ernie_causallm.h"
 
 #include <sys/resource.h>
-
-#include <atomic>
-#include <chrono>
 #include <thread>
 
 using json = nlohmann::json;
@@ -59,12 +25,6 @@ int main(int argc, char *argv[]) {
         cfg, generation_cfg, nntr_cfg);
     });
 
-  causallm::Factory::Instance().registerModel(
-    "Qwen3CachedSlimMoeForCausalLM",
-    [](json cfg, json generation_cfg, json nntr_cfg) {
-      return std::make_unique<causallm::Qwen3CachedSlimMoECausalLM>(
-        cfg, generation_cfg, nntr_cfg);
-    });
 
   const std::string model_path = argv[1];
   std::string input_text;
@@ -97,12 +57,12 @@ int main(int argc, char *argv[]) {
 
 
     model->initialize();
-
     model->load_weight(weight_file);
 
     bool do_sample = generation_cfg.contains("do_sample")
                        ? generation_cfg["do_sample"].get<bool>()
                        : false;
+
     model->run(input_text, do_sample, system_head_prompt, system_tail_prompt);
 
   } catch (const std::exception &e) {
