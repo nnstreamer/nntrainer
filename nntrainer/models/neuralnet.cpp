@@ -737,13 +737,15 @@ void NeuralNetwork::load(const std::string &file_path,
         NNTR_THROW_IF((model_file_fd == -1), std::invalid_argument)
           << "Cannot open file : " << f_path;
       }
-      std::vector<std::future<void>> futures;
+      //std::vector<std::future<void>> futures;
+      std::vector<std::thread> threads;
+      threads.reserve(model_graph.size());
       for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
            ++iter) {
         auto node = *iter;
         auto exec_order = std::get<0>((*iter)->getExecutionOrder());
 
-        futures.emplace_back(std::async(std::launch::async, [&, node] {
+        threads.emplace_back([&, node]() {
           if (!MMAP_READ) {
             auto local_model_file = checkedOpenStream<std::ifstream>(
               (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
@@ -751,7 +753,7 @@ void NeuralNetwork::load(const std::string &file_path,
                        std::numeric_limits<size_t>::max(), true, model_file_fd);
           } else {
 #if defined(_WIN32)
-            // Map per-task, then unmap immediately after: enables early release
+            // Map per-ask, then unmap immediately after: enables early release
             // of pages
             HANDLE hFile =
               CreateFileA(f_path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL,
@@ -805,11 +807,10 @@ void NeuralNetwork::load(const std::string &file_path,
       ::munmap(mmap_ptr, f_size);
 #endif
           }
-        }));
+        });
       }
-
-      for (auto &f : futures)
-        f.get();
+      for(auto &t : threads)
+        t.join();
     } else {
       for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
            ++iter) {
