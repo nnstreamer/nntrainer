@@ -39,7 +39,9 @@
 namespace nntrainer {
 
 extern std::mutex engine_mutex;
-namespace {} // namespace
+
+const std::string getFullPath(const std::string &path,
+                              const std::string &base);
 
 /**
  * @class Engine contains user-dependent configuration
