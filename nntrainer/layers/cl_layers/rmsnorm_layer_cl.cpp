@@ -147,46 +147,18 @@ void RMSNormLayerCl::rmsnormProcess_fp16(Tensor const &input, Tensor &result,
     }
 
     ret = kernel_rmsnorm_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
+      {{0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem)},
+       {1, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem)},
+       {2, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem)},
+       {4, &b, sizeof(int)},
+       {3, &epsilon, sizeof(cl_half)},
+       {5, &c, sizeof(int)},
+       {6, &h, sizeof(int)},
+       {7, &w, sizeof(int)}});
     if (!ret) {
       break;
     }
 
-    ret = kernel_rmsnorm_ptr->SetKernelArguments(
-      1, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
-    if (!ret) {
-      break;
-    }
-
-    ret = kernel_rmsnorm_ptr->SetKernelArguments(
-      2, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem));
-    if (!ret) {
-      break;
-    }
-    ret = kernel_rmsnorm_ptr->SetKernelArguments(4, &b, sizeof(int));
-
-    if (!ret) {
-      break;
-    }
-
-    ret = kernel_rmsnorm_ptr->SetKernelArguments(3, &epsilon, sizeof(cl_half));
-    if (!ret) {
-      break;
-    }
-
-    ret = kernel_rmsnorm_ptr->SetKernelArguments(5, &c, sizeof(int));
-    if (!ret) {
-      break;
-    }
-
-    ret = kernel_rmsnorm_ptr->SetKernelArguments(6, &h, sizeof(int));
-    if (!ret) {
-      break;
-    }
-    ret = kernel_rmsnorm_ptr->SetKernelArguments(7, &w, sizeof(int));
-    if (!ret) {
-      break;
-    }
     const int work_groups_count[3] = {b * c, h, 1};
     /// @todo: create a group size by device & input
     const int work_group_size[3] = {w, 1, 1}; // test-value

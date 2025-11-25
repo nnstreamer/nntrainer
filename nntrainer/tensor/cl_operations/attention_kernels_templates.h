@@ -100,107 +100,30 @@ inline static void rotary_emb_cl_internal(
       break;
     }
 
-    result = kernel->SetKernelArguments(0, cl_buffer_manager.getInBufferA(),
-                                        sizeof(cl_mem));
-    if (!result) {
-      printf("Failed to set inputA argument\n");
-      break;
-    }
-
-    result = kernel->SetKernelArguments(1, cl_buffer_manager.getOutBufferA(),
-                                        sizeof(cl_mem));
-    if (!result) {
-      printf("Failed to set inOutRes argument\n");
-      break;
-    }
-
-    result = kernel->SetKernelArguments(2, cl_buffer_manager.getInBufferB(),
-                                        sizeof(cl_mem));
-    if (!result) {
-      printf("Failed to set freqs_cosBuf argument\n");
-      break;
-    }
-
-    result = kernel->SetKernelArguments(3, cl_buffer_manager.getInBufferB(),
-                                        sizeof(cl_mem));
-    if (!result) {
-      printf("Failed to set freqs_sinBuf argument\n");
-      break;
-    }
-
-    result = kernel->SetKernelArguments(4, cl_buffer_manager.getInBufferC(),
-                                        sizeof(cl_mem));
-    if (!result) {
-      printf("Failed to set cosBuf argument\n");
-      break;
-    }
-
-    result = kernel->SetKernelArguments(5, cl_buffer_manager.getInBufferC(),
-                                        sizeof(cl_mem));
-    if (!result) {
-      printf("Failed to set sinBuf argument\n");
-      break;
-    }
-
-    result = kernel->SetKernelArguments(6, &batch, sizeof(int));
-    if (!result) {
-      printf("Failed to set batch argument\n");
-      break;
-    }
-
-    result = kernel->SetKernelArguments(7, &channel, sizeof(int));
-    if (!result) {
-      printf("Failed to set channel argument\n");
-      break;
-    }
-
-    result = kernel->SetKernelArguments(8, &height, sizeof(int));
-    if (!result) {
-      printf("Failed to set height argument\n");
-      break;
-    }
-
-    result = kernel->SetKernelArguments(9, &width, sizeof(int));
-    if (!result) {
-      printf("Failed to set width argument\n");
-      break;
-    }
-
-    result = kernel->SetKernelArguments(10, &dim, sizeof(int));
-    if (!result) {
-      printf("Failed to set dim argument\n");
-      break;
-    }
-    unsigned int half_ = dim / 2;
-    result = kernel->SetKernelArguments(11, &half_, sizeof(int));
-    if (!result) {
-      printf("Failed to set half argument\n");
-      break;
-    }
-
-    result = kernel->SetKernelArguments(12, &max_timestep, sizeof(int));
-    if (!result) {
-      printf("Failed to set timestamp argument\n");
-      break;
-    }
-
-    result = kernel->SetKernelArguments(13, &from, sizeof(int));
-    if (!result) {
-      printf("Failed to set from argument\n");
-      break;
-    }
-
+    unsigned int half_dim = dim / 2;
     unsigned int offsetFreqsSin = freqs_cos_dim * dim;
-    result = kernel->SetKernelArguments(14, &offsetFreqsSin, sizeof(int));
-    if (!result) {
-      printf("Failed to set offsetFreqsSin argument\n");
-      break;
-    }
-
     unsigned int offsetSin = cos_dim;
-    result = kernel->SetKernelArguments(15, &offsetSin, sizeof(int));
+
+    result = kernel->SetKernelArguments(
+      {{0, cl_buffer_manager.getInBufferA(), sizeof(cl_mem)},
+       {1, cl_buffer_manager.getOutBufferA(), sizeof(cl_mem)},
+       {2, cl_buffer_manager.getInBufferB(), sizeof(cl_mem)},
+       {3, cl_buffer_manager.getInBufferB(), sizeof(cl_mem)},
+       {4, cl_buffer_manager.getInBufferC(), sizeof(cl_mem)},
+       {5, cl_buffer_manager.getInBufferC(), sizeof(cl_mem)},
+       {6, &batch, sizeof(int)},
+       {7, &channel, sizeof(int)},
+       {8, &height, sizeof(int)},
+       {9, &width, sizeof(int)},
+       {10, &dim, sizeof(int)},
+       {11, &half_dim, sizeof(int)},
+       {12, &max_timestep, sizeof(int)},
+       {13, &from, sizeof(int)},
+       {14, &offsetFreqsSin, sizeof(int)},
+       {15, &offsetSin, sizeof(int)}});
+
     if (!result) {
-      printf("Failed to set offsetSin argument\n");
+      printf("Failed to set arguments\n");
       break;
     }
 

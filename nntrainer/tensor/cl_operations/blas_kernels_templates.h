@@ -53,30 +53,13 @@ inline static void sgemv_cl_internal(ClContext::SharedPtrClKernel kernel,
     return;
   }
 
-  result = kernel->SetKernelArguments(0, clbuffInstance.getInBufferA(),
-                                      sizeof(cl_mem));
-  if (!result) {
-    return;
-  }
+  result = kernel->SetKernelArguments(
+    {{0, clbuffInstance.getInBufferA(), sizeof(cl_mem)},
+     {1, clbuffInstance.getInBufferB(), sizeof(cl_mem)},
+     {2, clbuffInstance.getOutBufferA(), sizeof(cl_mem)},
+     {3, &dim2, sizeof(int)},
+     {4, &lda, sizeof(int)}});
 
-  result = kernel->SetKernelArguments(1, clbuffInstance.getInBufferB(),
-                                      sizeof(cl_mem));
-  if (!result) {
-    return;
-  }
-
-  result = kernel->SetKernelArguments(2, clbuffInstance.getOutBufferA(),
-                                      sizeof(cl_mem));
-  if (!result) {
-    return;
-  }
-
-  result = kernel->SetKernelArguments(3, &dim2, sizeof(int));
-  if (!result) {
-    return;
-  }
-
-  result = kernel->SetKernelArguments(4, &lda, sizeof(int));
   if (!result) {
     return;
   }
@@ -123,25 +106,12 @@ T dot_cl_internal(ClContext::SharedPtrClKernel kernel, const T *vecAdata,
       break;
     }
 
-    result = kernel->SetKernelArguments(0, clbuffInstance.getInBufferA(),
-                                        sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
+    result = kernel->SetKernelArguments(
+      {{0, clbuffInstance.getInBufferA(), sizeof(cl_mem)},
+       {1, clbuffInstance.getInBufferB(), sizeof(cl_mem)},
+       {2, &dim1, sizeof(int)},
+       {3, clbuffInstance.getOutBufferA(), sizeof(cl_mem)}});
 
-    result = kernel->SetKernelArguments(1, clbuffInstance.getInBufferB(),
-                                        sizeof(cl_mem));
-    if (!result) {
-      break;
-    }
-
-    result = kernel->SetKernelArguments(2, &dim1, sizeof(int));
-    if (!result) {
-      break;
-    }
-
-    result = kernel->SetKernelArguments(3, clbuffInstance.getOutBufferA(),
-                                        sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -201,35 +171,14 @@ sgemm_cl_internal(ClContext::SharedPtrClKernel kernel, bool TransA, bool TransB,
     return;
   }
 
-  result = kernel->SetKernelArguments(0, clbuffInstance.getInBufferA(),
-                                      sizeof(cl_mem));
-  if (!result) {
-    return;
-  }
+  result = kernel->SetKernelArguments(
+    {{0, clbuffInstance.getInBufferA(), sizeof(cl_mem)},
+     {1, clbuffInstance.getInBufferB(), sizeof(cl_mem)},
+     {2, clbuffInstance.getOutBufferA(), sizeof(cl_mem)},
+     {3, &M, sizeof(int)},
+     {4, &N, sizeof(int)},
+     {5, &K, sizeof(int)}});
 
-  result = kernel->SetKernelArguments(1, clbuffInstance.getInBufferB(),
-                                      sizeof(cl_mem));
-  if (!result) {
-    return;
-  }
-
-  result = kernel->SetKernelArguments(2, clbuffInstance.getOutBufferA(),
-                                      sizeof(cl_mem));
-  if (!result) {
-    return;
-  }
-
-  result = kernel->SetKernelArguments(3, &M, sizeof(int));
-  if (!result) {
-    return;
-  }
-
-  result = kernel->SetKernelArguments(4, &N, sizeof(int));
-  if (!result) {
-    return;
-  }
-
-  result = kernel->SetKernelArguments(5, &K, sizeof(int));
   if (!result) {
     return;
   }
@@ -279,24 +228,12 @@ addition_cl_internal(ClContext::SharedPtrClKernel kernel, const T *input,
     return;
   }
 
-  result = kernel->SetKernelArguments(0, clbuffInstance.getInBufferA(),
-                                      sizeof(cl_mem));
-  if (!result) {
-    return;
-  }
+  result = kernel->SetKernelArguments(
+    {{0, clbuffInstance.getInBufferA(), sizeof(cl_mem)},
+     {1, clbuffInstance.getOutBufferA(), sizeof(cl_mem)},
+     {2, &size_input, sizeof(int)},
+     {3, &size_res, sizeof(int)}});
 
-  result = kernel->SetKernelArguments(1, clbuffInstance.getOutBufferA(),
-                                      sizeof(cl_mem));
-  if (!result) {
-    return;
-  }
-
-  result = kernel->SetKernelArguments(2, &size_input, sizeof(int));
-  if (!result) {
-    return;
-  }
-
-  result = kernel->SetKernelArguments(3, &size_res, sizeof(int));
   if (!result) {
     return;
   }
@@ -333,13 +270,7 @@ inline static void rmsnorm_cl_internal(ClContext::SharedPtrClKernel kernel,
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
 
   if (use_svm) {
-    if (!kernel->SetKernelSVMArguments(0, input)) {
-      return;
-    }
-    if (!kernel->SetKernelSVMArguments(1, result)) {
-      return;
-    }
-    if (!kernel->SetKernelSVMArguments(2, gamma)) {
+    if (!kernel->SetKernelSVMArguments({{0, input}, {1, result}, {2, gamma}})) {
       return;
     }
   } else {
@@ -354,26 +285,16 @@ inline static void rmsnorm_cl_internal(ClContext::SharedPtrClKernel kernel,
     }
 
     if (!kernel->SetKernelArguments(
-          0, &clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem))) {
-      return;
-    }
-    if (!kernel->SetKernelArguments(
-          1, &clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem))) {
-      return;
-    }
-    if (!kernel->SetKernelArguments(
-          2, &clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem))) {
+          {{0, &clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem)},
+           {1, &clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem)},
+           {2, &clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem)}})) {
       return;
     }
   }
 
-  if (!kernel->SetKernelArguments(3, &epsilon, sizeof(float))) {
-    return;
-  }
-  if (!kernel->SetKernelArguments(4, &height, sizeof(int))) {
-    return;
-  }
-  if (!kernel->SetKernelArguments(5, &width, sizeof(int))) {
+  if (!kernel->SetKernelArguments({{3, &epsilon, sizeof(float)},
+                                   {4, &height, sizeof(int)},
+                                   {5, &width, sizeof(int)}})) {
     return;
   }
 #ifdef __ANDROID__
@@ -418,13 +339,10 @@ inline static void sscal_cl_internal(ClContext::SharedPtrClKernel kernel, T *X,
     return;
   }
 
-  result = kernel->SetKernelArguments(0, clbuffInstance.getOutBufferA(),
-                                      sizeof(cl_mem));
-  if (!result) {
-    return;
-  }
+  result = kernel->SetKernelArguments(
+    {{0, clbuffInstance.getOutBufferA(), sizeof(cl_mem)},
+     {1, &alpha, sizeof(float)}});
 
-  result = kernel->SetKernelArguments(1, &alpha, sizeof(float));
   if (!result) {
     return;
   }
@@ -472,34 +390,14 @@ inline static void transpose_cl_axis_internal(
     return;
   }
 
-  result = kernel->SetKernelArguments(0, clbuffInstance.getInBufferA(),
-                                      sizeof(cl_mem));
-  if (!result) {
-    return;
-  }
+  result = kernel->SetKernelArguments(
+    {{0, clbuffInstance.getInBufferA(), sizeof(cl_mem)},
+     {1, clbuffInstance.getOutBufferA(), sizeof(cl_mem)},
+     {2, &input_batch_size, sizeof(int)},
+     {3, &input_channels, sizeof(int)},
+     {4, &input_height, sizeof(int)},
+     {5, &input_width, sizeof(int)}});
 
-  result = kernel->SetKernelArguments(1, clbuffInstance.getOutBufferA(),
-                                      sizeof(cl_mem));
-  if (!result) {
-    return;
-  }
-
-  result = kernel->SetKernelArguments(2, &input_batch_size, sizeof(int));
-  if (!result) {
-    return;
-  }
-
-  result = kernel->SetKernelArguments(3, &input_channels, sizeof(int));
-  if (!result) {
-    return;
-  }
-
-  result = kernel->SetKernelArguments(4, &input_height, sizeof(int));
-  if (!result) {
-    return;
-  }
-
-  result = kernel->SetKernelArguments(5, &input_width, sizeof(int));
   if (!result) {
     return;
   }

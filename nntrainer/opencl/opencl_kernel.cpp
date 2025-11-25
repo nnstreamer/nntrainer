@@ -55,8 +55,8 @@ bool Kernel::CreateKernelFromProgram(Program program,
  * @param size size of the argument
  * @return true if successful or false otherwise
  */
-bool Kernel::SetKernelArguments(cl_uint arg_index, const void *arg_value,
-                                size_t size) {
+bool Kernel::SetKernelArgument(cl_uint arg_index, const void *arg_value,
+                               size_t size) const {
   int error_code;
   // returns NULL with error code if fails
   error_code = clSetKernelArg(kernel_, arg_index, size, arg_value);
@@ -78,17 +78,43 @@ bool Kernel::SetKernelArguments(cl_uint arg_index, const void *arg_value,
  * @param size size of the argument
  * @return true if successful or false otherwise
  */
-bool Kernel::SetKernelSVMArguments(cl_uint arg_index, const void *arg_value) {
+bool Kernel::SetKernelSVMArgument(cl_uint arg_index,
+                                  const void *arg_value) const {
   int error_code;
   // returns NULL with error code if fails
   error_code = clSetKernelArgSVMPointer(kernel_, arg_index, arg_value);
   if (error_code != CL_SUCCESS) {
-    ml_loge("Failed to set argument. OpenCL error code: %d : %s", error_code,
-            OpenCLErrorCodeToString(error_code));
+    ml_loge("Failed to set argument : %u. OpenCL error code: %d : %s",
+            arg_index, error_code, OpenCLErrorCodeToString(error_code));
     return false;
   }
 
   return true;
+}
+
+bool Kernel::SetKernelArguments(const std::vector<KernelArgument> &args) const {
+  bool status = true;
+  for (const auto &arg : args) {
+    status &= SetKernelArgument(arg.index, arg.value, arg.size);
+  }
+
+  return status;
+}
+
+/**
+ * @brief Set the Kernel Arguments
+ *
+ * @param args list of arguments to set
+ * @return true if successful or false if setting of any argument failed
+ */
+bool Kernel::SetKernelSVMArguments(
+  const std::vector<KernelSVMArgument> &args) const {
+  bool status = true;
+  for (const auto &arg : args) {
+    status &= SetKernelSVMArgument(arg.index, arg.value);
+  }
+
+  return status;
 }
 
 /**
