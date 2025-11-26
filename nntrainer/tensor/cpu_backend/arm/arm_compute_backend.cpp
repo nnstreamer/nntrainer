@@ -19,6 +19,7 @@
 #include <ggml_interface.h>
 #include <neon_impl.h>
 #include <nntrainer_error.h>
+#include <q4_0_utils.h>
 
 namespace nntrainer {
 
@@ -427,6 +428,12 @@ void repack_q4_K(void *W, void *repacked_W, size_t data_size,
   __ggml_repack_q4_K_to_q4_K_8(W, repacked_W, data_size, M, N);
 }
 
+void unpack_q4_0(const void *in_q4_0x, void *out_q4_0, size_t data_size,
+                 const unsigned int M, const unsigned int N) {
+  Q4_0Utils::unpackBlocksQ4_0x4((const block_q4_0x4 *)in_q4_0x, data_size, M, N,
+                                (block_q4_0 *)out_q4_0);
+}
+
 template <>
 void softmax_row_inplace(float *qk_out, size_t start_row, size_t end_row,
                          size_t num_heads, float *sink) {
@@ -514,8 +521,15 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
 #endif
 }
 
-void create_Q4_0_weights(const uint8_t *int4_weight, uint8_t *q4_0_weight) {
-  __fallback_create_Q4_0_weights(int4_weight, q4_0_weight);
+void create_q4_0_weights(const uint8_t *int4_weight, uint8_t *q4_0_weight) {
+  __fallback_create_q4_0_weights(int4_weight, q4_0_weight);
+}
+
+void transform_q4_0x_from_int4(size_t N, size_t K, const uint8_t *osv32_weights,
+                               const uint16_t *osv32_scales,
+                               size_t scale_group_size, void *dst_q4_0x) {
+  Q4_0Utils::transformQ4_0x_FromInt4(N, K, osv32_weights, osv32_scales,
+                                     scale_group_size, 4, dst_q4_0x);
 }
 
 } /* namespace nntrainer */
