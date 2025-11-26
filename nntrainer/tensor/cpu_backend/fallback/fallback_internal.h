@@ -1106,6 +1106,19 @@ void __fallback_repack_q4_K_to_q4_K_8(void *W, void *repacked_W,
                                       const unsigned int N);
 
 /**
+ * @brief unpack q40x8 to q40 - invers method: __fallback_repack_q4_0_to_q4_0_8
+ *
+ * @param in_q4_0x input q40x
+ * @param out_q4_0 output q40
+ * @param data_size total weight size
+ * @param M number of rows
+ * @param N number of columns
+ */
+void __fallback_unpack_q4_0_8_to_q4_0(const void *in_q4_0x, void *out_q4_0,
+                                      size_t data_size, const unsigned int M,
+                                      const unsigned int N);
+
+/**
  * @brief Multihead softmax, exp(x_i) / sum(exp(x_i)), inplace version
  * @param[in/out] qk_out float* input/output values
  * @param[in] start_row start row number
@@ -1237,8 +1250,25 @@ void __fallback_clamp(const T *input, T *output, size_t length,
  * Output: | 0,16 | 1,17 | 2,18 | 3,19 | ...          ... |14,30 |15,31 |
  *         | A, C | B, D | A, C | B, D | ...          ... | A, C | B, D |
  */
-void __fallback_create_Q4_0_weights(const uint8_t *int4_weight,
+void __fallback_create_q4_0_weights(const uint8_t *int4_weight,
                                     uint8_t *q4_0_weight);
+
+/**
+ * @brief Transform data from in-memory layout osv32_isv2 to block_q4_0x8 or
+ * block_q4_0x4 (for ARM backend) in-memory layout.
+ *
+ * @param N number of rows
+ * @param K number of columns
+ * @param osv32_weights uint8_t* data of weights in osv32_isv2 layout
+ * @param osv32_scales fp16* scales
+ * @param scale_group_size group size (32 or 64 or 128)
+ * @param dst_q4_0x void * output data in block_q4_0x8 or block_q4_0x4 layout
+ */
+void __fallback_transform_q4_0x_from_int4(size_t N, size_t K,
+                                          const uint8_t *osv32_weights,
+                                          const uint16_t *osv32_scales,
+                                          size_t scale_group_size,
+                                          void *dst_q4_0x);
 
 } // namespace nntrainer
 #endif

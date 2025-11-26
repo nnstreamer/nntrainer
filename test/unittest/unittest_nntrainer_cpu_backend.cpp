@@ -8,7 +8,9 @@
  * @bug		No known bugs except for NYI items
  */
 
+#include "int4_utils.h"
 #include "nntrainer_test_util.h"
+#include "q4_0_utils.h"
 #include <cpu_backend.h>
 #include <fallback_internal.h>
 #include <fp16.h>
@@ -25,6 +27,10 @@ using std::chrono::microseconds;
 using std::chrono::milliseconds;
 using std::chrono::nanoseconds;
 using std::chrono::seconds;
+
+#define EXPECT_IN_RANGE(VAL, MIN, MAX)                                         \
+  EXPECT_GE((VAL), (MIN));                                                     \
+  EXPECT_LE((VAL), (MAX))
 
 template <typename T, bool random_init = false>
 static inline std::vector<T>
@@ -1176,6 +1182,240 @@ TEST(nntrainer_cpu_backend_standalone, clamp_3072_0_1) {
   float upper_bound = 1.F;
   run_clamp_test(N, lower_bound, upper_bound, false);
 }
+
+static inline void printMatrixI(const char *name, float *data, int Y, int X) {
+  printf("%s :\n", name);
+  for (int y = 0; y < Y; y++) {
+    // printf("[");
+    for (int x = 0; x < X; x++) {
+      if (x % 10 == 0) {
+        printf("| ");
+      }
+      std::cout << (int)(0.5f + data[y * X + x]) << " ";
+    }
+    printf("\n");
+  }
+}
+
+static inline std::vector<float> generate_01_vector(const size_t size,
+                                                    const float ones_ratio) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<float> dist(0.0f, (float)size);
+  if (ones_ratio >= 1.0) {
+    std::vector<float> vec(size, 1.0f);
+    return vec;
+  } else {
+    std::vector<float> vec(size, 0.0f);
+    size_t ones_cnt = (size_t)(size * ones_ratio);
+    for (size_t i = 0; i < ones_cnt; i++) {
+      int pos = static_cast<int>(dist(gen));
+      vec[pos] = 1.0f;
+    }
+    return vec;
+  }
+}
+
+static void run_transform_int4_test_(const uint32_t K, const uint32_t N,
+                                     const int scale_group_size,
+                                     bool use_ones = false) {
+  const size_t q4_data_size = K * N / Q4_0 * sizeof(block_q4_0);
+  std::vector<float> weight_fp32;
+  if (use_ones) {
+    float ones_ratio = 0.1f;
+    weight_fp32 = generate_01_vector(N * K, ones_ratio);
+  } else {
+    weight_fp32 = generate_random_vector<float, false>(N * K, -1.0, 1.0);
+  }
+
+  bool print = false;
+  if (print && use_ones) {
+    printMatrixI("weight_fp32", weight_fp32.data(), N, K);
+  }
+
+  std::vector<uint8_t> osv32_weights;
+  std::vector<uint16_t> osv32_scales;
+  nntrainer::Int4Utils::quantizeAndRepack(
+    weight_fp32.data(), N, K, scale_group_size, osv32_weights, osv32_scales);
+
+  // MAIN TEST - direct transform Int4 data (osv32_isv2) ---> Q4_0x
+  std::vector<uint8_t> dst_q4_0x(q4_data_size);
+  auto t0 = std::chrono::high_resolution_clock::now();
+  nntrainer::transform_q4_0x_from_int4(N, K, osv32_weights.data(),
+                                       osv32_scales.data(), scale_group_size,
+                                       dst_q4_0x.data());
+  auto t1 = std::chrono::high_resolution_clock::now();
+  auto exec_time =
+    std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0);
+  std::cout << "Time: " << (double)exec_time.count() / 1000 << " ms"
+            << std::endl;
+
+  // Check MSE quantized values
+  std::vector<uint8_t> unpacked_weights_q4(q4_data_size);
+  nntrainer::unpack_q4_0(dst_q4_0x.data(), unpacked_weights_q4.data(),
+                         q4_data_size, N, K);
+  std::vector<float> dequantized_weights_q4(N * K);
+  nntrainer::dequantize_row_q4_0(unpacked_weights_q4.data(),
+                                 dequantized_weights_q4.data(), N * K);
+  if (print && use_ones) {
+    printMatrixI("dequantized_weights_q4 I", dequantized_weights_q4.data(), N,
+                 K);
+  }
+  float mse_direct_transform_q4 =
+    mse<float>(weight_fp32.data(), dequantized_weights_q4.data(), N * K);
+  std::cout << "MSE direct transform Q4_0: " << std::setprecision(10)
+            << mse_direct_transform_q4 << std::endl;
+  // MAIN TEST - END
+
+  // Reference solution - Int4 data (osv32_isv2) --> FP32 --> quantization to
+  // Q4_0x8 For checking difference of accuracy
+  std::vector<float> dequant_weight_fp32(N * K);
+  nntrainer::Int4Utils::dequantizePacked(osv32_weights, osv32_scales, N, K,
+                                         scale_group_size, dequant_weight_fp32);
+  std::vector<uint8_t> tmp_q4_weight(q4_data_size);
+  nntrainer::quantize_q4_0(dequant_weight_fp32.data(), tmp_q4_weight.data(), N,
+                           K, nullptr);
+  std::vector<uint8_t> ref_q4_0x8(q4_data_size);
+  nntrainer::repack_q4_0(ref_q4_0x8.data(), tmp_q4_weight.data(), q4_data_size,
+                         N, K);
+  // Check MSE quantized values
+  std::vector<uint8_t> unpacked_ref_weights_q4(q4_data_size);
+  nntrainer::unpack_q4_0(ref_q4_0x8.data(), unpacked_ref_weights_q4.data(),
+                         q4_data_size, N, K);
+  std::vector<float> dequantized_ref_weights_q4(N * K);
+  nntrainer::dequantize_row_q4_0(unpacked_ref_weights_q4.data(),
+                                 dequantized_ref_weights_q4.data(), N * K);
+  float mse_fp32_transform_q4 =
+    mse<float>(weight_fp32.data(), dequantized_ref_weights_q4.data(), N * K);
+  std::cout << "MSE FP32 transform Q4_0:   " << std::setprecision(10)
+            << mse_fp32_transform_q4 << std::endl;
+  // Reference solution - END
+
+  float mse_dequant_int4_vs_trans_q4 = mse<float>(
+    dequant_weight_fp32.data(), dequantized_weights_q4.data(), N * K);
+  std::cout << "MSE dequant Int4 vs direct transform Q4_0: "
+            << std::setprecision(10) << mse_dequant_int4_vs_trans_q4
+            << std::endl;
+
+  // This is a proof that the transformQ4_0x_FromInt4() is lossless computation.
+  const float epsilon = 0.00001f;
+  EXPECT_IN_RANGE(mse_dequant_int4_vs_trans_q4, 0, epsilon);
+
+  // Other MSEs
+  const float epsilon_direct = (use_ones) ? 0.00001f : 0.002f;
+  EXPECT_IN_RANGE(mse_direct_transform_q4, 0, epsilon_direct);
+  const float epsilon_fp32 = (use_ones) ? 0.00001f : 0.004f;
+  EXPECT_IN_RANGE(mse_fp32_transform_q4, 0, epsilon_fp32);
+  if (!use_ones) {
+    EXPECT_LE(mse_direct_transform_q4, mse_fp32_transform_q4);
+  }
+
+  // Additional test with using GEMMs
+  const uint32_t M = 4;
+  const uint32_t input_size = M * K;
+  const int INT4_BLOCK_N_SIZE = 32;
+  uint32_t alignN = nntrainer::align(N, INT4_BLOCK_N_SIZE);
+  std::vector<float> input =
+    generate_random_vector<float, false>(input_size, -1.0, 1.0);
+
+  // SGEMM - reference
+  std::vector<float> ref_output_fp32(M * N, 0.0f);
+  nntrainer::sgemm(0, false, true, M, N, K, 1.F, input.data(), K,
+                   weight_fp32.data(), K, 0.F, ref_output_fp32.data(), N);
+
+  /**
+   * @note Disabled because it will not work on all backends. Additional headers
+   * are needed.
+   */
+  // GEMM INT4
+  //  auto *blas_cc = static_cast<nntrainer::ClContext *>(
+  //    nntrainer::Engine::Global().getRegisteredContext("cpu"));
+
+  // float *input_ptr = (float *)allocateSVM(M * K * sizeof(float));
+  // int8_t *weight_ptr = (int8_t *)allocateSVM(alignN * K / 2);
+  // uint16_t *scale_ptr = (uint16_t *)allocateSVM(ceilDiv(K, scale_group_size)
+  // *
+  //                                               alignN * sizeof(uint16_t));
+  // float *output_ptr = (float *)allocateSVM(M * N * sizeof(float));
+
+  // blas_cc->command_queue_inst_.enqueueSVMMap(input_ptr,
+  //                                            input_size * sizeof(float),
+  //                                            false);
+  // blas_cc->command_queue_inst_.enqueueSVMMap(weight_ptr, K * alignN / 2,
+  // false); blas_cc->command_queue_inst_.enqueueSVMMap(
+  //   scale_ptr, ceilDiv(K, scale_group_size) * alignN * sizeof(uint16_t),
+  //   false);
+
+  // for (unsigned int i = 0; i < input_size; ++i) {
+  //   input_ptr[i] = input[i];
+  // }
+
+  // for (unsigned int i = 0; i < ceilDiv(K, scale_group_size) * alignN; ++i) {
+  //   scale_ptr[i] = osv32_scales[i];
+  // }
+
+  // for (unsigned int i = 0; i < alignN * align(K, scale_group_size) / 2; ++i)
+  // {
+  //   weight_ptr[i] = osv32_weights[i];
+  // }
+
+  // blas_cc->command_queue_inst_.enqueueSVMUnmap(input_ptr);
+  // blas_cc->command_queue_inst_.enqueueSVMUnmap(weight_ptr);
+  // blas_cc->command_queue_inst_.enqueueSVMUnmap(scale_ptr);
+
+  // nntrainer::openvino_sgemm_cl(input_ptr, (char *)weight_ptr, scale_ptr,
+  //                              output_ptr, M, N, K, scale_group_size);
+
+  // std::vector<float> int4_output_fp32(M * N);
+  // for (unsigned int i = 0; i < M * N; ++i) {
+  //   int4_output_fp32[i] = output_ptr[i];
+  // }
+  // float mse_int4 =
+  //   mse<float>(ref_output_fp32.data(), int4_output_fp32.data(), M * N);
+  // std::cout << "MSE GEMM INT4:                           "
+  //           << std::setprecision(10) << mse_int4 << std::endl;
+
+  // GEMM INT4->transform->Q4
+  std::vector<float> int4_trans_q4_output_fp32(M * N);
+  nntrainer::gemm_q4_0(M, N, K, input.data(), K, dst_q4_0x.data(), N,
+                       int4_trans_q4_output_fp32.data(), N);
+  float mse_int4_trans_q4 =
+    mse<float>(ref_output_fp32.data(), int4_trans_q4_output_fp32.data(), M * N);
+  std::cout << "MSE GEMM INT4->transform->Q4:            "
+            << std::setprecision(10) << mse_int4_trans_q4 << std::endl;
+
+  // GEMM INT4->dequant->FP32->quant->Q4
+  std::vector<float> int4_fp32_q4_output_fp32(M * N);
+  nntrainer::gemm_q4_0(M, N, K, input.data(), K, ref_q4_0x8.data(), N,
+                       int4_fp32_q4_output_fp32.data(), N);
+  float mse_int4_fp32_q4 =
+    mse<float>(ref_output_fp32.data(), int4_fp32_q4_output_fp32.data(), M * N);
+  std::cout << "MSE GEMM INT4->dequant->FP32->quant->Q4: "
+            << std::setprecision(10) << mse_int4_fp32_q4 << std::endl;
+}
+
+#define DECLARE_transform_int4_test_K_N(K, N, G)                               \
+  TEST(nntrainer_blas_kernel,                                                  \
+       _transform_int4_test_K##K##_N##N##_Group##G##_RandomOnes) {             \
+    run_transform_int4_test_(K, N, G, true);                                   \
+  }                                                                            \
+  TEST(nntrainer_blas_kernel,                                                  \
+       _transform_int4_test_K##K##_N##N##_Group##G##_RandomFloat) {            \
+    run_transform_int4_test_(K, N, G, false);                                  \
+  }
+
+DECLARE_transform_int4_test_K_N(128, 40, 32);
+DECLARE_transform_int4_test_K_N(128, 40, 64);
+DECLARE_transform_int4_test_K_N(256, 40, 128);
+DECLARE_transform_int4_test_K_N(32, 40, 32);
+DECLARE_transform_int4_test_K_N(32, 48, 32);
+DECLARE_transform_int4_test_K_N(64, 40, 32);
+DECLARE_transform_int4_test_K_N(320, 640, 32);
+DECLARE_transform_int4_test_K_N(1024, 640, 32);
+DECLARE_transform_int4_test_K_N(1024, 648, 32);
+DECLARE_transform_int4_test_K_N(1024, 648, 64);
+DECLARE_transform_int4_test_K_N(1024, 648, 128);
+DECLARE_transform_int4_test_K_N(3072, 8192, 32);
 
 int main(int argc, char **argv) {
   int result = -1;

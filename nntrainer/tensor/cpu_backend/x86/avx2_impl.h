@@ -295,7 +295,7 @@ void copy_f32_f16(unsigned int N, const float *input, uint16_t *output);
  * Output: | 0,16 | 1,17 | 2,18 | 3,19 | ...          ... |14,30 |15,31 |
  *         | A, C | B, D | A, C | B, D | ...          ... | A, C | B, D |
  */
-void create_Q4_0_weights(const uint8_t *int4_weight, uint8_t *q4_0_weight);
+void create_q4_0_weights(const uint8_t *int4_weight, uint8_t *q4_0_weight);
 
 } // namespace nntrainer::avx2
 
