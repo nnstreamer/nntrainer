@@ -202,6 +202,21 @@ TEST(nntrainer_engine, getFullPath_resolves_relative_and_absolute) {
   EXPECT_EQ(expected, nntrainer::getFullPath(relative_name, absolute));
 }
 
+TEST(nntrainer_engine, getFullPath_empty_path_relative_base_n) {
+  const std::string relative_base = "relative/plugins";
+  EXPECT_EQ(relative_base, nntrainer::getFullPath("", relative_base));
+}
+
+TEST(nntrainer_engine, getFullPath_empty_path_current_dir_base_n) {
+  const std::string base = ".";
+  EXPECT_EQ(base, nntrainer::getFullPath("", base));
+}
+
+TEST(nntrainer_engine, getFullPath_empty_path_trailing_slash_base_n) {
+  const std::string base = "/tmp/nntrainer/";
+  EXPECT_EQ(base, nntrainer::getFullPath("", base));
+}
+
 TEST(nntrainer_thread_pool_manager, select_single_thread_for_small_workload) {
   auto &manager = nntrainer::ThreadPoolManager::Global();
   EXPECT_EQ(1u, manager.select_k_quant_thread_count(1, 1, 1));
@@ -213,6 +228,29 @@ TEST(nntrainer_thread_pool_manager, respect_medium_workload_threshold) {
     std::max<std::size_t>(1U, std::thread::hardware_concurrency());
   const std::size_t expected = std::min<std::size_t>(2U, max_threads);
   EXPECT_EQ(expected, manager.select_k_quant_thread_count(1536, 1536, 1));
+}
+
+TEST(nntrainer_thread_pool_manager, zero_dimension_clamps_to_single_thread_n) {
+  auto &manager = nntrainer::ThreadPoolManager::Global();
+  EXPECT_EQ(1u, manager.select_k_quant_thread_count(0, 2048, 4096));
+}
+
+TEST(nntrainer_thread_pool_manager,
+     near_first_threshold_stays_single_thread_n) {
+  auto &manager = nntrainer::ThreadPoolManager::Global();
+  EXPECT_EQ(1u, manager.select_k_quant_thread_count(1200, 1500, 1));
+}
+
+TEST(nntrainer_thread_pool_manager,
+     second_band_does_not_jump_to_four_threads_n) {
+  auto &manager = nntrainer::ThreadPoolManager::Global();
+  const auto hw_threads =
+    std::max<std::size_t>(1U, std::thread::hardware_concurrency());
+  if (hw_threads < 4U) {
+    GTEST_SKIP() << "Requires >=4 hardware threads to validate regression";
+  }
+
+  EXPECT_EQ(2u, manager.select_k_quant_thread_count(1536, 1800, 1));
 }
 
 /**
