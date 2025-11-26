@@ -1892,14 +1892,13 @@ void copy_f32_f16(unsigned int N, const float *input, uint16_t *output) {
   }
 }
 
-void create_Q4_0_weights(const uint8_t *int4_weight, uint8_t *q4_0_weight) {
+void create_q4_0_weights(const uint8_t *int4_weight, uint8_t *q4_0_weight) {
   // Load 16 bytes of input data
   __m128i input = _mm_loadu_si128((const __m128i *)int4_weight);
 
   // Create masks for extracting low and high nibbles
   const __m128i low_nibble_mask = _mm_set1_epi8(0x0F);
   const __m128i high_nibble_mask = _mm_set1_epi8(0xF0);
-  const __m128i xor_mask = _mm_set1_epi8(0x88);
 
   // Extract low nibbles from first 8 bytes
   __m128i A = _mm_and_si128(input, low_nibble_mask);

@@ -27,6 +27,35 @@ namespace nntrainer {
 class Q4_0Utils {
 public:
   /**
+   * @brief     Unpack one Q4_0x4 block to 4 Q4_0 blocks
+   * @param[in] in block_q4_0x4* input Q4_0x4 block
+   * @param[out] dst block_q4_0* output vector of 4 Q4_0 blocks
+   */
+  static void unpackOneBlockQ4_0x4(const block_q4_0x4 *in, block_q4_0 *dst);
+
+  /**
+   * @brief     Unpack Q4_0x4 blocks data to Q4_0 format
+   * @param[in] src block_q4_0x4* input data in Q4_0x4 blocks format
+   * @param[in] data_size number of Q4_0x4 blocks * sizeof(block_q4_0x4)
+   * @param[in] nrow number of rows
+   * @param[in] K number of columns
+   * @param[out] dst block_q4_0* output data in Q4_0 blocks format
+   */
+  static void unpackBlocksQ4_0x4(const block_q4_0x4 *__restrict src,
+                                 size_t data_size, size_t nrow, size_t K,
+                                 block_q4_0 *__restrict dst);
+
+  /**
+   * @brief     Dequantize weights in block_q4_0x4 format to matrix of floats
+   * @param[in] q4_weight_repacked void * input data in format block_q4_0x4
+   * @param[in] N number of rows
+   * @param[in] K number of columns
+   * @param[out] dequantized_weights float * dequantized weights matrix
+   */
+  static void dequantizeQ4_0x4(const void *q4_weight_repacked, int N, int K,
+                               float *dequantized_weights);
+
+  /**
    * @brief     Unpack one Q4_0x8 block to 8 Q4_0 blocks
    * @param[in] in block_q4_0x8* input Q4_0x8 block
    * @param[out] dst block_q4_0* output vector of 8 Q4_0 blocks
@@ -35,11 +64,11 @@ public:
 
   /**
    * @brief     Unpack Q4_0x8 blocks data to Q4_0 format
-   * @param[in] src block_q4_0x8 * input data in Q4_0x8 blocks format
+   * @param[in] src block_q4_0x8* input data in Q4_0x8 blocks format
    * @param[in] data_size number of Q4_0x8 blocks * sizeof(block_q4_0x8)
    * @param[in] nrow number of rows
    * @param[in] K number of columns
-   * @param[out] dst block_q4_0 * output data in Q4_0 blocks format
+   * @param[out] dst block_q4_0* output data in Q4_0 blocks format
    */
   static void unpackBlocksQ4_0x8(const block_q4_0x8 *__restrict src,
                                  size_t data_size, size_t nrow, size_t K,
@@ -56,20 +85,22 @@ public:
                                float *dequantized_weights);
 
   /**
-   * @brief Transforms data from in-memory layout osv32_isv2 to block_q4_0x8
-   * in-memory layout.
+   * @brief Transforms data from in-memory layout osv32_isv2 to block_q4_0x8 or
+   * block_q4_0x4 in-memory layout.
    * @param N number of rows
    * @param K number of columns
    * @param osv32_weights uint8_t* data of weights in osv32_isv2 layout
    * @param osv32_scales fp16* scales
    * @param scale_group_size group size (32 or 64 or 128)
-   * @param dst_q4_0x8 void * output data in block_q4_0x8 layout
+   * @param q4_0x_block_size output q4_0x block size - number of rows (4 or 8)
+   * @param dst_q4_0x void * output data in block_q4_0x8 or block_q4_0x4 layout
+   * depending on q4_0x_block_size
    */
-  static void transformQ4_0x8FromInt4(size_t N, size_t K,
+  static void transformQ4_0x_FromInt4(size_t N, size_t K,
                                       const uint8_t *osv32_weights,
                                       const uint16_t *osv32_scales,
                                       size_t scale_group_size,
-                                      void *dst_q4_0x8);
+                                      int q4_0x_block_size, void *dst_q4_0x);
 
   /**
    * @brief     Print the Q4_0 block data
