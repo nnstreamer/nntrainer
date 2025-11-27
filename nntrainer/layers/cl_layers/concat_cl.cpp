@@ -275,21 +275,22 @@ void ConcatLayerCl::concat_cl_axis3(const float *matAdata,
     if (!result) {
       break;
     }
+  
+    auto bufferInA = clbuffInstance.getInBufferA()->GetBuffer();
+    auto bufferInB = clbuffInstance.getInBufferB()->GetBuffer();
+    auto bufferOutA = clbuffInstance.getOutBufferA()->GetBuffer();
 
-    result = kernel_concat_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
+    result = kernel_concat_ptr->SetKernelArguments(0, &bufferInA, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_concat_ptr->SetKernelArguments(
-      1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem));
+    result = kernel_concat_ptr->SetKernelArguments(1, &bufferInB, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_concat_ptr->SetKernelArguments(
-      2, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
+    result = kernel_concat_ptr->SetKernelArguments(2, &bufferOutA, sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -394,20 +395,22 @@ void ConcatLayerCl::concat_cl_axis2(const float *matAdata,
     if (!result) {
       break;
     }
-    result = kernel_concat_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
+
+    auto bufferInA = clbuffInstance.getInBufferA()->GetBuffer();
+    auto bufferInB = clbuffInstance.getInBufferB()->GetBuffer();
+    auto bufferOutA = clbuffInstance.getOutBufferA()->GetBuffer();
+
+    result = kernel_concat_ptr->SetKernelArguments(0, &bufferInA, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_concat_ptr->SetKernelArguments(
-      1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem));
+    result = kernel_concat_ptr->SetKernelArguments(1, &bufferInB, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_concat_ptr->SetKernelArguments(
-      2, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
+    result = kernel_concat_ptr->SetKernelArguments(2, &bufferOutA, sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -512,20 +515,21 @@ void ConcatLayerCl::concat_cl_axis1(const float *matAdata,
       break;
     }
 
-    result = kernel_concat_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
+    auto bufferInA = clbuffInstance.getInBufferA()->GetBuffer();
+    auto bufferInB = clbuffInstance.getInBufferB()->GetBuffer();
+    auto bufferOutA = clbuffInstance.getOutBufferA()->GetBuffer();
+
+    result = kernel_concat_ptr->SetKernelArguments(0, &bufferInA, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_concat_ptr->SetKernelArguments(
-      1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem));
+    result = kernel_concat_ptr->SetKernelArguments(1, &bufferInB, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_concat_ptr->SetKernelArguments(
-      2, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
+    result = kernel_concat_ptr->SetKernelArguments(2, &bufferOutA, sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -632,20 +636,21 @@ void ConcatLayerCl::concat_cl_axis3_fp16(const _FP16 *matAdata,
       break;
     }
 
-    result = kernel_concat_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
+    auto bufferInA = clbuffInstance.getInBufferA()->GetBuffer();
+    auto bufferInB = clbuffInstance.getInBufferB()->GetBuffer();
+    auto bufferOutA = clbuffInstance.getOutBufferA()->GetBuffer();
+
+    result = kernel_concat_ptr->SetKernelArguments(0,&bufferInA, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_concat_ptr->SetKernelArguments(
-      1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem));
+    result = kernel_concat_ptr->SetKernelArguments(1, &bufferInB, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_concat_ptr->SetKernelArguments(
-      2, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
+    result = kernel_concat_ptr->SetKernelArguments(2, &bufferOutA, sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -749,20 +754,22 @@ void ConcatLayerCl::concat_cl_axis2_fp16(const _FP16 *matAdata,
     if (!result) {
       break;
     }
-    result = kernel_concat_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
+
+    auto bufferInA = clbuffInstance.getInBufferA()->GetBuffer();
+    auto bufferInB = clbuffInstance.getInBufferB()->GetBuffer();
+    auto bufferOutA = clbuffInstance.getOutBufferA()->GetBuffer();
+
+    result = kernel_concat_ptr->SetKernelArguments(0, &bufferInA, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_concat_ptr->SetKernelArguments(
-      1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem));
+    result = kernel_concat_ptr->SetKernelArguments(1, &bufferInB, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_concat_ptr->SetKernelArguments(
-      2, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
+    result = kernel_concat_ptr->SetKernelArguments(2, &bufferOutA, sizeof(cl_mem));
     if (!result) {
       break;
     }
@@ -868,20 +875,21 @@ void ConcatLayerCl::concat_cl_axis1_fp16(const _FP16 *matAdata,
       break;
     }
 
-    result = kernel_concat_ptr->SetKernelArguments(
-      0, clbuffInstance.getInBufferA()->GetBuffer(), sizeof(cl_mem));
+    auto bufferInA = clbuffInstance.getInBufferA()->GetBuffer();
+    auto bufferInB = clbuffInstance.getInBufferB()->GetBuffer();
+    auto bufferOutA = clbuffInstance.getOutBufferA()->GetBuffer();
+
+    result = kernel_concat_ptr->SetKernelArguments(0,&bufferInA, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_concat_ptr->SetKernelArguments(
-      1, clbuffInstance.getInBufferB()->GetBuffer(), sizeof(cl_mem));
+    result = kernel_concat_ptr->SetKernelArguments(1, &bufferInB, sizeof(cl_mem));
     if (!result) {
       break;
     }
 
-    result = kernel_concat_ptr->SetKernelArguments(
-      2, clbuffInstance.getOutBufferA()->GetBuffer(), sizeof(cl_mem));
+    result = kernel_concat_ptr->SetKernelArguments(2, &bufferOutA, sizeof(cl_mem));
     if (!result) {
       break;
     }
