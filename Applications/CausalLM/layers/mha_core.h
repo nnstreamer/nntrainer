@@ -344,7 +344,7 @@ private:
   /****************** ROTARY EMBEDDING *****************/
   /** static variable - they are all expected to be initialized once */
 
-  inline static std::vector<float> thetas;
+  inline static std::vector<double> thetas;
   inline static std::vector<std::vector<float>> *freqs_cos = {};
   inline static std::vector<std::vector<float>> *freqs_sin = {};
 #ifdef ENABLE_FP16

@@ -490,10 +490,20 @@ void MHACoreLayer::one_batch_incremental_forwarding(
     batch * cache_value_dim.getFeatureLen() + from * cache_value_dim.width(),
     true);
 
+  // std::cout << "before embed q" << std::endl;
+  // query_step.print(std::cout);
+
   apply_rotary_emb_tensor_v2(query_step, query_step, head_dim, _from, false);
+  // std::cout << "q embed " << std::endl;
+  // query_step.print(std::cout);
+
+  // std::cout << "before embed k" << std::endl;
+  // key_step.print(std::cout);
 
   apply_rotary_emb_tensor_v2(key_step, b_cache_key_step, head_dim, _from,
                              false);
+  // std::cout << "k embed " << std::endl;
+  // b_cache_key_step.print(std::cout);
 
   if (query_step.getDataType() == ml::train::TensorDim::DataType::FP32) {
     apply_rotary_emb_tensor_v2(value_step, b_cache_value_step, head_dim, _from,
@@ -643,14 +653,14 @@ void MHACoreLayer::precompute_freqs(int head_dim, unsigned int seq_len,
                                            i, attention_scaling);
 #else
     for (unsigned int j = 0; j < half_; ++j) {
-      float angle = i * thetas[j];
-      (*cos)[i][j] = std::cos(angle) * attention_scaling;
-      (*cos)[i][j + half_] =
-        std::cos(angle) * attention_scaling; // repeated 2 times
+      double angle = (double)i * thetas[j];
+      (*cos)[i][2 * j] = (float)(std::cos(angle) * (double)attention_scaling);
+      (*cos)[i][2 * j + 1] =
+        (float)(std::cos(angle) * (double)attention_scaling); // repeated 2 times
 
-      (*sin)[i][j] = std::sin(angle) * attention_scaling;
-      (*sin)[i][j + half_] =
-        std::sin(angle) * attention_scaling; // repeated 2 times
+      (*sin)[i][2 * j] = (float)(std::sin(angle) * (double)attention_scaling);
+      (*sin)[i][2 * j + 1] =
+        (float)(std::sin(angle) * (double)attention_scaling); // repeated 2 times
     }
 #endif
   }
@@ -674,6 +684,8 @@ void MHACoreLayer::precompute_freqs(int head_dim, unsigned int seq_len,
 #endif
 };
 void MHACoreLayer::_compute_default_parameters(int head_dim, float theta) {
+  if (!thetas.empty())
+    thetas.clear();
 
   // no attention scaling
   attention_scaling = 1.0f;
@@ -682,8 +694,8 @@ void MHACoreLayer::_compute_default_parameters(int head_dim, float theta) {
   // head_dim should be divisible by 2
   unsigned int half_ = head_dim / 2;
   for (unsigned int i = 0; i < half_; ++i) {
-    thetas.push_back(1.0 /
-                     (std::pow(theta, (2 * i) / static_cast<float>(head_dim))));
+    thetas.push_back(1.0 / (std::pow((double)theta,
+                                     (2 * i) / static_cast<double>(head_dim))));
   }
 }
 
@@ -798,6 +810,11 @@ void MHACoreLayer::apply_rotary_emb_tensor_v2(nntrainer::Tensor &in,
       for (unsigned int c = 0; c < in.channel(); c++) {
         for (unsigned int h = 0; h < in.height(); h++) {
           if (from < max_timestep) {
+            if (from + h >= freqs_cos->size()) {
+              throw std::runtime_error("RoPE index out of bounds: " +
+                                       std::to_string(from + h) + " >= " +
+                                       std::to_string(freqs_cos->size()));
+            }
             cos_ = &(*freqs_cos)[from + h];
             sin_ = &(*freqs_sin)[from + h];
           }
@@ -806,10 +823,19 @@ void MHACoreLayer::apply_rotary_emb_tensor_v2(nntrainer::Tensor &in,
                           c * in.height() * in.width() + h * in.width();
 
           if (out.getDataType() == ml::train::TensorDim::DataType::FP32) {
-
-            nntrainer::compute_rotary_emb_value(in.width(), dim, half_, in_ptr,
-                                                nullptr, cos_->data(),
-                                                sin_->data(), convert_only);
+            float *out_ptr = out.getData<float>() +
+                             b * out.channel() * out.height() * out.width() +
+                             c * out.height() * out.width() + h * out.width();
+            for (unsigned int w = 0; w < in.width(); w += dim) {
+              for (unsigned int i = 0; i < dim; i += 2) {
+                float in0 = in_ptr[w + i];
+                float in1 = in_ptr[w + i + 1];
+                float c = (*cos_)[i];
+                float s = (*sin_)[i];
+                out_ptr[w + i] = in0 * c - in1 * s;
+                out_ptr[w + i + 1] = in1 * c + in0 * s;
+              }
+            }
           } else if (out.getDataType() ==
                        ml::train::TensorDim::DataType::UINT16 ||
                      out.getDataType() ==
@@ -818,10 +844,18 @@ void MHACoreLayer::apply_rotary_emb_tensor_v2(nntrainer::Tensor &in,
                                 b * out.channel() * out.height() * out.width() +
                                 c * out.height() * out.width() +
                                 h * out.width();
-
-            nntrainer::compute_rotary_emb_value(in.width(), dim, half_, in_ptr,
-                                                out_ptr, cos_->data(),
-                                                sin_->data(), convert_only);
+            for (unsigned int w = 0; w < in.width(); w += dim) {
+              for (unsigned int i = 0; i < dim; i += 2) {
+                float in0 = in_ptr[w + i];
+                float in1 = in_ptr[w + i + 1];
+                float c = (*cos_)[i];
+                float s = (*sin_)[i];
+                float out0 = in0 * c - in1 * s;
+                float out1 = in1 * c + in0 * s;
+                out_ptr[w + i] = nntrainer::compute_fp32_to_fp16(out0);
+                out_ptr[w + i + 1] = nntrainer::compute_fp32_to_fp16(out1);
+              }
+            }
           }
         }
       }
@@ -835,6 +869,11 @@ void MHACoreLayer::apply_rotary_emb_tensor_v2(nntrainer::Tensor &in,
       for (unsigned int c = 0; c < in.channel(); c++) {
         for (unsigned int h = 0; h < in.height(); h++) {
           if (from < max_timestep) {
+            if (from + h >= freqs_cos_fp16->size()) {
+              throw std::runtime_error("RoPE index out of bounds (FP16): " +
+                                       std::to_string(from + h) + " >= " +
+                                       std::to_string(freqs_cos_fp16->size()));
+            }
             cos_ = &(*freqs_cos_fp16)[from + h];
             sin_ = &(*freqs_sin_fp16)[from + h];
           }
@@ -845,9 +884,16 @@ void MHACoreLayer::apply_rotary_emb_tensor_v2(nntrainer::Tensor &in,
                            b * out.channel() * out.height() * out.width() +
                            c * out.height() * out.width() + h * out.width();
 
-          nntrainer::compute_rotary_emb_value(in.width(), dim, half_, in_ptr,
-                                              out_ptr, cos_->data(),
-                                              sin_->data());
+          for (unsigned int w = 0; w < in.width(); w += dim) {
+            for (unsigned int i = 0; i < dim; i += 2) {
+              float in0 = (float)in_ptr[w + i];
+              float in1 = (float)in_ptr[w + i + 1];
+              float c = (float)(*cos_)[i];
+              float s = (float)(*sin_)[i];
+              out_ptr[w + i] = (_FP16)(in0 * c - in1 * s);
+              out_ptr[w + i + 1] = (_FP16)(in1 * c + in0 * s);
+            }
+          }
         }
       }
     }

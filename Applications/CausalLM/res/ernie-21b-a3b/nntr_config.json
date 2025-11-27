@@ -1,22 +1,22 @@
 {
-    "model_tensor_type": "Q4_0-FP32",
-    "model_file_name": "ernie-21b-q6k-q40-x86.bin",
+    "model_tensor_type": "FP32-FP32",
+    "model_file_name": "ernie-21b-fp32.bin",
 
     "lora_rank" : 0,
     "lora_alpha" : 0,
     "lora_target": [],
 
-    "fc_layer_dtype" : "Q4_0",
-    "embedding_dtype" : "Q6_K",
-    "lmhead_dtype" : "Q6_K",
+    "fc_layer_dtype" : "FP32",
+    "embedding_dtype" : "FP32",
+    "lmhead_dtype" : "FP32",
 
     "bad_word_ids": [],
     "fsu": false,
-    "num_to_generate": 10,
+    "num_to_generate": 100,
     "init_seq_len": 1024,
     "max_seq_len": 2048,
     "batch_size": 1,
 
     "tokenizer_file": "/home/donghak/workspace/nntrainer/Applications/CausalLM/res/ernie-21b-a3b/tokenizer.json",
-    "sample_input": "<|im_start|>system\n<|im_end|>\n\n<|im_start|>user\nGive me a short introduction to large language model. in english<|im_end|>\n\n<|im_start|>assistant\n<think>"
+    "sample_input": "Hi, i am"
 }

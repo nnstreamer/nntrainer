@@ -73,6 +73,13 @@ void AdditionLayer::incremental_forwarding(RunLayerContext &context,
       }
     }
   }
+  // std::string suffix = "decoder_output";
+  // if (std::equal(suffix.rbegin(), suffix.rend(), context.getName().rbegin())) {
+  //   std::cout << context.getName() <<"'s Output " <<std::endl;
+  //   hidden_.print(std::cout);
+  //   std::cout <<"===========================" <<std::endl;
+  // }
+
 }
 
 void AdditionLayer::calcDerivative(RunLayerContext &context) {

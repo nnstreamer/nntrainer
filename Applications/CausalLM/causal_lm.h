@@ -151,16 +151,6 @@ protected:
                   const std::vector<bool> &eos_list);
 
   /**
-   * @brief save kv cache
-   */
-  WIN_EXPORT virtual void save_kvcache(std::string path, int to);
-
-  /**
-   * @brief load kv cache
-   */
-  WIN_EXPORT virtual void load_kvcache(std::string path, int to);
-
-  /**
    * @brief generate
    */
   std::vector<unsigned int> generate(float *logits, bool do_sample,

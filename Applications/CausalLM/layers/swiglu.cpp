@@ -80,6 +80,9 @@ void SwiGLULayer::incremental_forwarding(nntrainer::RunLayerContext &context,
     NNTR_THROW_IF(true, std::invalid_argument) << "enable-fp16 is not set!";
 #endif
   }
+  // std::cout << context.getName() <<"'s Output " <<std::endl;
+  // out.print(std::cout);
+  // std::cout <<"===========================" <<std::endl;
 }
 
 void SwiGLULayer::updateTensorsByInputDimensions(

@@ -245,7 +245,11 @@ void TieWordEmbedding::incremental_forwarding_embedding(
               << "\n input:" << input_ << "\n weight: " << weight
               << "\n hidden: " << hidden_ << std::endl;
 #endif
+
   }
+  // std::cout <<"Embedding Output " <<std::endl;
+  // hidden_.print(std::cout);
+  // std::cout <<"===========================" <<std::endl;
 }
 
 void TieWordEmbedding::incremental_forwarding_lmhead(
@@ -308,6 +312,9 @@ void TieWordEmbedding::incremental_forwarding_lmhead(
       hidden_step.add_i(bias);
     }
   }
+  // std::cout <<"LMHEAD Output " <<std::endl;
+  // hidden_.print(std::cout);
+  // std::cout <<"===========================" <<std::endl;
 }
 
 void TieWordEmbedding::calcDerivative(nntrainer::RunLayerContext &context) {

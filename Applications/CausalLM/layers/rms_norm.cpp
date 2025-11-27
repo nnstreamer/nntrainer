@@ -66,20 +66,50 @@ void RMSNormLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
       out.getSharedDataTensor(out_step_dim, b * out_dim.getFeatureLen(), true);
 
     if (in_step.getDataType() == ml::train::TensorDim::DataType::FP32) {
-      auto t = in_step.multiply(in_step).average(3).add(epsilon);
+      auto t = in_step.multiply(in_step);
+      // std::cout << "t = input*input" <<std::endl;
+      // t.print(std::cout);
+
+      t = t.average(3);
+      // std::cout << "t = input*input.avager(3)" <<std::endl;
+      // t.print(std::cout);
+
+      t = t.add(epsilon);
+      // std::cout << "t = input*input.avager(3).add(epsilon)" <<"epsilon :" << epsilon <<std::endl;
+      // t.print(std::cout);
+
       t.inv_sqrt_i();
+      // std::cout << "t.inv_sqrt_i" <<std::endl;
+      // t.print(std::cout);
+
+
       in_step.multiply(t, out_step);
+      // std::cout << "in_step * t " <<std::endl;
+      // out_step.print(std::cout);
     } else {
       throw std::invalid_argument(
         "Error: not yet implemented for this data type");
     }
+    // std::cout <<"weight : " << std::endl;
+    // gamma.print(std::cout);
+
+    // nntrainer::TensorDim::TensorType t_type_nchw_fp16 = {
+    //   nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16};
+    // nntrainer::Tensor out_step_16(out_step.batch(), out_step.channel(), out_step.height(), out_step.width(), t_type_nchw_fp16);
+    // out_step_16.copyData(out_step);
+    // out_step.copyData(out_step_16);;
+
     out_step.multiply_i(gamma);
 
+    // std::cout <<"RMS NORM Output " <<std::endl;
+    // out_step.print(std::cout);
+    // std::cout <<"===========================" <<std::endl;
 #ifdef DEBUG
     std::cout << context.getName() << " \n input:" << in_step
               << "output:" << out_step << "gamma:" << gamma << std::endl;
 #endif
   }
+
 }
 
 void RMSNormLayer::updateTensorsByInputDimensions(

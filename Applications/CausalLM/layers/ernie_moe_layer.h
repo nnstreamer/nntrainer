@@ -97,7 +97,7 @@ private:
   nntrainer::ActiFunc acti_func; /**< activation function for the expert */
   std::tuple<props::NumExperts, props::NumExpertsPerToken,
              nntrainer::props::Unit, props::MoEActivation,
-             props::NumSharedExperts>
+             props::NumSharedExperts, props::MoENormMin>
     moe_props;
 
   // weight indeices
