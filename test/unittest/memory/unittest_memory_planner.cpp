@@ -20,6 +20,7 @@
 #include <nntrainer_test_util.h>
 #include <numeric>
 #include <optimized_v1_planner.h>
+#include <optimized_v3_planner.h>
 
 constexpr unsigned int MEM_BYTES = 128;
 constexpr unsigned int MEM_QUANT = 100;
@@ -399,6 +400,36 @@ TEST_P(MemoryPlannerValidate, validate_memory_partial_overlap) {
   }
 
   pool.deallocate();
+}
+
+/**
+ * @brief OptimizedV3Planner should reclaim partially free blocks from a typical
+ * small LLM activation schedule and lower the peak allocation compared to v1.
+ */
+TEST(MemoryPlannerV3, llm_activation_pattern_peak_reduction) {
+  using namespace nntrainer;
+
+  /** activation sizes (in bytes) for a 4-layer small decoder-only block */
+  const std::vector<size_t> memory_size = {2048, 1024, 768, 512, 768, 512};
+  const std::vector<std::pair<unsigned int, unsigned int>> memory_validity = {
+    {0, 2}, {0, 8}, {2, 4}, {3, 5}, {4, 6}, {6, 8}};
+  std::vector<bool> is_wgrad(memory_size.size(), false);
+  std::vector<size_t> offsets(memory_size.size());
+
+  OptimizedV1Planner v1;
+  OptimizedV3Planner v3;
+
+  auto offsets_v1 = offsets;
+  auto offsets_v3 = offsets;
+
+  size_t peak_v1 =
+    v1.planLayout(memory_size, memory_validity, offsets_v1, is_wgrad, 0);
+  size_t peak_v3 =
+    v3.planLayout(memory_size, memory_validity, offsets_v3, is_wgrad, 0);
+
+  EXPECT_EQ(peak_v1, 4352u);
+  EXPECT_EQ(peak_v3, 3072u);
+  EXPECT_GT(peak_v1, peak_v3);
 }
 
 GTEST_PARAMETER_TEST(

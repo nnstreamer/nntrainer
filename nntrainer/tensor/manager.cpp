@@ -908,16 +908,17 @@ void Manager::flushCacheExcept(unsigned int order) {
 
 void Manager::finalizeTensorPool(TensorPool &pool, unsigned int start,
                                  unsigned int end) {
-  if (enable_optimizations) {
-    if (exec_mode == ExecutionMode::INFERENCE && enable_fsu) {
-      //@todo change V3 and validate
-      pool.finalize(OptimizedV1Planner(), start, end);
-    } else {
-      pool.finalize(OptimizedV1Planner(), start, end);
-    }
-  } else {
+  if (!enable_optimizations) {
     pool.finalize(BasicPlanner(), start, end);
+    return;
   }
+
+  if (exec_mode == ExecutionMode::INFERENCE) {
+    pool.finalize(OptimizedV3Planner(), start, end);
+    return;
+  }
+
+  pool.finalize(OptimizedV1Planner(), start, end);
 }
 
 unsigned int Manager::inActive(unsigned int order) {
