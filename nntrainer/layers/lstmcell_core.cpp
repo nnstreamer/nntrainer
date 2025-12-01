@@ -28,8 +28,8 @@ LSTMCore::LSTMCore() :
 
 void LSTMCore::forwardLSTM(const unsigned int batch_size,
                            const unsigned int unit, const bool disable_bias,
-                           const bool integrate_bias, ActiFunc &acti_func,
-                           ActiFunc &recurrent_acti_func, const Tensor &input,
+                           const bool integrate_bias, ActiFunc &_acti_func,
+                           ActiFunc &_recurrent_acti_func, const Tensor &input,
                            const Tensor &prev_hidden_state,
                            const Tensor &prev_cell_state, Tensor &hidden_state,
                            Tensor &cell_state, const Tensor &weight_ih,
@@ -60,14 +60,14 @@ void LSTMCore::forwardLSTM(const unsigned int batch_size,
   Tensor output_gate = ifgo.getSharedDataTensor(
     {batch_size, 1, 1, unit, tensor_type}, unit * 3, false);
 
-  recurrent_acti_func.run_fn(input_forget_gate, input_forget_gate);
-  recurrent_acti_func.run_fn(output_gate, output_gate);
-  acti_func.run_fn(memory_cell, memory_cell);
+  _recurrent_acti_func.run_fn(input_forget_gate, input_forget_gate);
+  _recurrent_acti_func.run_fn(output_gate, output_gate);
+  _acti_func.run_fn(memory_cell, memory_cell);
 
   prev_cell_state.multiply_strided(forget_gate, cell_state);
   memory_cell.multiply_strided(input_gate, cell_state, 1.0f);
 
-  acti_func.run_fn(cell_state, hidden_state);
+  _acti_func.run_fn(cell_state, hidden_state);
   hidden_state.multiply_i_strided(output_gate);
 }
 
@@ -79,8 +79,8 @@ void LSTMCore::calcDerivativeLSTM(Tensor &outgoing_derivative,
 
 void LSTMCore::calcGradientLSTM(
   const unsigned int batch_size, const unsigned int unit,
-  const bool disable_bias, const bool integrate_bias, ActiFunc &acti_func,
-  ActiFunc &recurrent_acti_func, const Tensor &input,
+  const bool disable_bias, const bool integrate_bias, ActiFunc &_acti_func,
+  ActiFunc &_recurrent_acti_func, const Tensor &input,
   const Tensor &prev_hidden_state, Tensor &d_prev_hidden_state,
   const Tensor &prev_cell_state, Tensor &d_prev_cell_state,
   const Tensor &d_hidden_state, const Tensor &cell_state,
@@ -113,9 +113,9 @@ void LSTMCore::calcGradientLSTM(
   Tensor activated_cell_state = Tensor(
     "activated_cell_state", cell_state.getFormat(), cell_state.getDataType());
 
-  acti_func.run_fn(cell_state, activated_cell_state);
+  _acti_func.run_fn(cell_state, activated_cell_state);
   d_hidden_state.multiply_strided(activated_cell_state, d_output_gate);
-  acti_func.run_prime_fn(activated_cell_state, d_prev_cell_state,
+  _acti_func.run_prime_fn(activated_cell_state, d_prev_cell_state,
                          d_hidden_state);
   d_prev_cell_state.multiply_i_strided(output_gate);
   d_prev_cell_state.add_i(d_cell_state);
@@ -126,10 +126,10 @@ void LSTMCore::calcGradientLSTM(
   d_prev_cell_state.multiply_strided(prev_cell_state, d_forget_gate);
   d_prev_cell_state.multiply_i_strided(forget_gate);
 
-  recurrent_acti_func.run_prime_fn(output_gate, d_output_gate, d_output_gate);
-  recurrent_acti_func.run_prime_fn(input_forget_gate, d_input_forget_gate,
+  _recurrent_acti_func.run_prime_fn(output_gate, d_output_gate, d_output_gate);
+  _recurrent_acti_func.run_prime_fn(input_forget_gate, d_input_forget_gate,
                                    d_input_forget_gate);
-  acti_func.run_prime_fn(memory_cell, d_memory_cell, d_memory_cell);
+  _acti_func.run_prime_fn(memory_cell, d_memory_cell, d_memory_cell);
 
   if (!disable_bias) {
     if (integrate_bias) {

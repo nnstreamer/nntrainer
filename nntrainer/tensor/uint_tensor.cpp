@@ -20,8 +20,8 @@ UIntTensor<T>::UIntTensor(std::string name_, Tformat fm, QScheme qscheme_) :
 
 template <typename T>
 UIntTensor<T>::UIntTensor(const TensorDim &d, bool alloc_now, Initializer init,
-                          std::string name, QScheme qscheme_) :
-  TensorBase(d, alloc_now, init, name), qscheme(qscheme_) {
+                          std::string tensor_name, QScheme qscheme_) :
+  TensorBase(d, alloc_now, init, tensor_name), qscheme(qscheme_) {
   if (alloc_now)
     allocate();
 }
@@ -74,9 +74,9 @@ UIntTensor<T>::UIntTensor(
   MemoryData *mem_data = new MemoryData(
     (void *)(new T[dim.getDataLen() + (sizeof(float) + sizeof(unsigned int)) /
                                         sizeof(T) * scale_size()]()));
-  data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *mem_data) {
-    delete[] mem_data->getAddr<T>();
-    delete mem_data;
+  data = std::shared_ptr<MemoryData>(mem_data, [](MemoryData *ptr) {
+    delete[] ptr->getAddr<T>();
+    delete ptr;
   });
 
   offset = 0;
@@ -156,9 +156,9 @@ template <typename T> void UIntTensor<T>::allocate() {
     mem_data = new MemoryData(
       (void *)(new T[dim.getDataLen() + (sizeof(float) + sizeof(unsigned int)) /
                                           sizeof(T) * scale_size()]{}));
-    data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-      delete[] mem_data->template getAddr<T>();
-      delete mem_data;
+    data = std::shared_ptr<MemoryData>(mem_data, [](auto *ptr) {
+      delete[] ptr->template getAddr<T>();
+      delete ptr;
     });
 
     offset = 0;
@@ -265,8 +265,8 @@ T &UIntTensor<T>::getValue(unsigned int b, unsigned int c, unsigned int h,
 }
 
 template <typename T> void UIntTensor<T>::setValue(float value) {
-  T *data = (T *)getData();
-  std::fill(data, data + size(), value);
+  T *_data = (T *)getData();
+  std::fill(_data, _data + size(), value);
 }
 
 template <typename T>
@@ -426,7 +426,7 @@ void UIntTensor<T>::read(ReadSource src, size_t start_offset,
 
 template <typename T> std::vector<unsigned int> UIntTensor<T>::argmax() const {
   std::vector<unsigned int> result;
-  const T *data = (T *)getData();
+  const T *_data = (T *)getData();
   size_t batch_size = batch();
   size_t feature_len = dim.getFeatureLen();
 
@@ -434,15 +434,15 @@ template <typename T> std::vector<unsigned int> UIntTensor<T>::argmax() const {
 
   for (unsigned int b = 0; b < batch_size; b++) {
     auto max_iter =
-      std::max_element(data + b * feature_len, data + (b + 1) * feature_len);
-    result[b] = std::distance(data, max_iter) - (b * feature_len);
+      std::max_element(_data + b * feature_len, _data + (b + 1) * feature_len);
+    result[b] = std::distance(_data, max_iter) - (b * feature_len);
   }
   return result;
 }
 
 template <typename T> std::vector<unsigned int> UIntTensor<T>::argmin() const {
   std::vector<unsigned int> result;
-  const T *data = (T *)getData();
+  const T *_data = (T *)getData();
   size_t batch_size = batch();
   size_t feature_len = dim.getFeatureLen();
 
@@ -450,8 +450,8 @@ template <typename T> std::vector<unsigned int> UIntTensor<T>::argmin() const {
 
   for (unsigned int b = 0; b < batch_size; b++) {
     auto min_iter =
-      std::min_element(data + b * feature_len, data + (b + 1) * feature_len);
-    result[b] = std::distance(data, min_iter) - (b * feature_len);
+      std::min_element(_data + b * feature_len, _data + (b + 1) * feature_len);
+    result[b] = std::distance(_data, min_iter) - (b * feature_len);
   }
   return result;
 }
@@ -461,25 +461,25 @@ template <typename T> float UIntTensor<T>::max_abs() const {
 }
 
 template <typename T> float UIntTensor<T>::maxValue() const {
-  const T *data = (T *)getData();
-  return *std::max_element(data, data + size());
+  const T *_data = (T *)getData();
+  return *std::max_element(_data, _data + size());
 }
 
 template <typename T> float UIntTensor<T>::minValue() const {
-  const T *data = (T *)getData();
-  return *std::min_element(data, data + size());
+  const T *_data = (T *)getData();
+  return *std::min_element(_data, _data + size());
 }
 
 template <typename T> void UIntTensor<T>::print(std::ostream &out) const {
-  const T *data = (T *)getData();
+  const T *_data = (T *)getData();
   unsigned int len = size();
-  out << "data addr: " << reinterpret_cast<const float *>(data) << '\n';
+  out << "data addr: " << reinterpret_cast<const float *>(_data) << '\n';
   out << dim;
 
   if (len > 512) {
-    out << '[' << (int)data[0] << ' ' << (int)data[1] << ' ' << (int)data[2]
-        << " ... " << (int)data[len - 3] << ' ' << (int)data[len - 2] << ' '
-        << (int)data[len - 1] << ']' << std::endl;
+    out << '[' << (int)_data[0] << ' ' << (int)_data[1] << ' ' << (int)_data[2]
+        << " ... " << (int)_data[len - 3] << ' ' << (int)_data[len - 2] << ' '
+        << (int)_data[len - 1] << ']' << std::endl;
     return;
   }
 
@@ -596,9 +596,9 @@ template <typename T> void UIntTensor<T>::copy(const void *buf) {
   }
 
   if (std::is_same<T, uint16_t>::value) {
-    const uint16_t *data = (const uint16_t *)buf;
+    const uint16_t *_data = (const uint16_t *)buf;
     uint16_t *rdata = (uint16_t *)getData();
-    copy_u16((const unsigned int)size(), data, rdata);
+    copy_u16((const unsigned int)size(), _data, rdata);
   } else {
     /// @todo need to optimize
     memcpy(getData(), buf, size() * (sizeof(T)));

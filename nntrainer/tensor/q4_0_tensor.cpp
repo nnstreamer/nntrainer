@@ -20,8 +20,8 @@ Q4_0_Tensor::Q4_0_Tensor(std::string name_, Tformat fm) :
 }
 
 Q4_0_Tensor::Q4_0_Tensor(const TensorDim &d, bool alloc_now, Initializer init,
-                         std::string name) :
-  TensorBase(d, false, init, name) {
+                         std::string tensor_name) :
+  TensorBase(d, false, init, tensor_name) {
   NNTR_THROW_IF(d.batch() != 1 || d.channel() != 1 || d.width() % QK4_0 != 0,
                 std::invalid_argument)
     << "Q4_0_Tensor must be 2 dimensional tensor with batch size 1 and "
@@ -53,9 +53,9 @@ void Q4_0_Tensor::allocate() {
     MemoryData *mem_data;
 
     mem_data = new MemoryData((void *)(new uint8_t[size()]{}));
-    data = std::shared_ptr<MemoryData>(mem_data, [](auto *mem_data) {
-      delete[] mem_data->template getAddr<uint8_t>();
-      delete mem_data;
+    data = std::shared_ptr<MemoryData>(mem_data, [](auto *ptr) {
+      delete[] ptr->template getAddr<uint8_t>();
+      delete ptr;
     });
 
     offset = 0;
@@ -90,8 +90,8 @@ void Q4_0_Tensor::copy_q40(const void *buf) {
 }
 
 void Q4_0_Tensor::setZero() {
-  uint8_t *data = (uint8_t *)getData();
-  std::fill(data, data + size(), 0);
+  uint8_t *_data = (uint8_t *)getData();
+  std::fill(_data, _data + size(), 0);
 }
 
 void Q4_0_Tensor::initialize() {

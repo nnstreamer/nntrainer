@@ -46,24 +46,24 @@ public:
 
   virtual void TearDown() {}
 
-  std::string getGoldenData(std::string name) {
+  std::string getGoldenData(std::string n) {
     std::string file_name =
-      getResPath(name, {"test", "unittest_models"}) + ".exegolden";
+      getResPath(n, {"test", "unittest_models"}) + ".exegolden";
     std::ifstream file(file_name);
     return std::string((std::istreambuf_iterator<char>(file)),
                        std::istreambuf_iterator<char>());
   }
 
-  bool compare(std::string golden_name, nntrainer::NeuralNetwork &model) {
+  bool compare(std::string golden_name, nntrainer::NeuralNetwork &m) {
     auto golden_data = getGoldenData(golden_name);
     std::stringstream generated;
 
-    auto graph = model.getNetworkGraph();
+    auto graph = m.getNetworkGraph();
     for (unsigned int i = 0; i < graph.size(); ++i) {
       auto layer = graph.getSortedLayerNode(i);
       auto orders = graph.getLayerExecutionOrders(layer);
-      for (auto &[name, ords] : orders) {
-        generated << name;
+      for (auto &[n, ords] : orders) {
+        generated << n;
         std::set<unsigned int> set_ords(ords.begin(), ords.end());
         for (auto &o : set_ords) {
           generated << ", " << o;

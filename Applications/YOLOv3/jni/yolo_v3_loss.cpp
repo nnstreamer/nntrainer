@@ -44,11 +44,11 @@ enum YoloV3LossParams {
 };
 
 namespace props {
-MaxObjectNumber::MaxObjectNumber(const unsigned &value) { set(value); }
-ClassNumber::ClassNumber(const unsigned &value) { set(value); }
-GridHeightNumber::GridHeightNumber(const unsigned &value) { set(value); }
-GridWidthNumber::GridWidthNumber(const unsigned &value) { set(value); }
-Scale::Scale(const unsigned &value) { set(value); }
+MaxObjectNumber::MaxObjectNumber(const unsigned &v) { set(v); }
+ClassNumber::ClassNumber(const unsigned &v) { set(v); }
+GridHeightNumber::GridHeightNumber(const unsigned &v) { set(v); }
+GridWidthNumber::GridWidthNumber(const unsigned &v) { set(v); }
+Scale::Scale(const unsigned &v) { set(v); }
 } // namespace props
 
 /**

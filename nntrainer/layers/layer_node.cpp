@@ -80,7 +80,7 @@ public:
    * @brief Construct a new loss object with a default value 0.0
    *
    */
-  Loss(float value = 0.0) : nntrainer::Property<float>(value) {}
+  Loss(float _value = 0.0) : nntrainer::Property<float>(_value) {}
   static constexpr const char *key = "loss"; /**< unique key to access */
   using prop_tag = float_prop_tag;           /**< property type */
 
@@ -304,10 +304,10 @@ void LayerNode::setOutputConnection(unsigned nth, const std::string &name,
 }
 
 void LayerNode::setComputeEngine(
-  const ml::train::LayerComputeEngine &compute_engine) {
+  const ml::train::LayerComputeEngine &_compute_engine) {
   // setting compute_engine of LayerNode
   // can be reused later to propagate this info
-  this->compute_engine = compute_engine;
+  this->compute_engine = _compute_engine;
 }
 
 const std::string LayerNode::getName() const {
@@ -995,7 +995,7 @@ void LayerNode::remapIdentifiers(std::function<void(std::string &)> remap_fn) {
 
   /** remap connections without touching index */
   remapConnections(
-    [&remap_fn](std::string &name, unsigned &_) { remap_fn(name); });
+    [&remap_fn](std::string &_name, unsigned &_) { remap_fn(_name); });
 }
 
 void LayerNode::remapConnections(

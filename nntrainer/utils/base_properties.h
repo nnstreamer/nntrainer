@@ -727,7 +727,7 @@ public:
    *
    * @param value value to set
    */
-  WeightDtype(TensorDataTypeInfo::Enum value) { set(value); };
+  WeightDtype(TensorDataTypeInfo::Enum _value) { set(_value); };
 };
 
 /**
@@ -745,8 +745,8 @@ public:
    * @param value value to set, defaults to FP32
    */
   TensorDataType(
-    TensorDataTypeInfo::Enum value = TensorDataTypeInfo::Enum::FP32) {
-    set(value);
+    TensorDataTypeInfo::Enum _value = TensorDataTypeInfo::Enum::FP32) {
+    set(_value);
   };
 };
 
@@ -765,8 +765,8 @@ public:
    *
    * @param value value to set, defaults to NCHW
    */
-  TensorFormat(TensorFormatInfo::Enum value = TensorFormatInfo::Enum::NCHW) {
-    set(value);
+  TensorFormat(TensorFormatInfo::Enum _value = TensorFormatInfo::Enum::NCHW) {
+    set(_value);
   };
 };
 
@@ -778,8 +778,8 @@ class TensorType final : public EnumProperty<nntrainer::TensorTypeInfo> {
 public:
   static constexpr const char *key = "tensor_type";
   using prop_tag = enum_class_prop_tag;
-  TensorType(TensorTypeInfo::Enum value = TensorTypeInfo::Enum::WEIGHT) {
-    set(value);
+  TensorType(TensorTypeInfo::Enum _value = TensorTypeInfo::Enum::WEIGHT) {
+    set(_value);
   }
 };
 

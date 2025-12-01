@@ -1277,8 +1277,8 @@ GTEST_PARAMETER_TEST(
     mkModelTc_V2(makeFCAdam, "fc_adam", ModelTestOption::ALL_V2),
     mkModelTc_V2(makeFCAdamW, "fc_adamw", ModelTestOption::ALL_V2),
   }),
-  [](const testing::TestParamInfo<nntrainerModelTest::ParamType> &info)
-    -> const auto & { return std::get<1>(info.param); });
+  [](const testing::TestParamInfo<nntrainerModelTest::ParamType> &i)
+    -> const auto & { return std::get<1>(i.param); });
 
 #ifdef NDK_BUILD
 

@@ -211,7 +211,7 @@ public:
    */
   unsigned int requestWeight(const TensorDim &dim, const Initializer init,
                              const WeightRegularizer reg, const float reg_const,
-                             const float decay, const std::string &name,
+                             const float decay, const std::string &_name,
                              bool trainable = true, bool is_virtual = false,
                              unsigned int out_axis = 3) {
 
@@ -223,7 +223,7 @@ public:
 
     weights_spec.emplace_back(
       dim, dim_g, init, reg, reg_const, decay, clip_by_global_norm, trainable,
-      prefix + ":" + name, out_axis, loss_scale,
+      prefix + ":" + _name, out_axis, loss_scale,
       (getWeightDataType() != ml::train::TensorDim::DataType::FP32),
       is_virtual);
     return weights_spec.size() - 1;
@@ -247,7 +247,7 @@ public:
   unsigned int requestWeight(const TensorDim &dim, const TensorDim &dim_g,
                              const Initializer init,
                              const WeightRegularizer reg, const float reg_const,
-                             const float decay, const std::string &name,
+                             const float decay, const std::string &_name,
                              bool trainable = true, unsigned int out_axis = 3,
                              bool is_virtual = false) {
 
@@ -255,7 +255,7 @@ public:
      * type.*/
     weights_spec.emplace_back(
       dim, dim_g, init, reg, reg_const, decay, clip_by_global_norm, trainable,
-      prefix + ":" + name, out_axis, loss_scale,
+      prefix + ":" + _name, out_axis, loss_scale,
       (getWeightDataType() != ml::train::TensorDim::DataType::FP32),
       is_virtual);
     return weights_spec.size() - 1;
@@ -289,14 +289,14 @@ public:
    * start from 0 and will always be incremental.
    */
   unsigned int requestTensor(
-    const TensorDim &dim, const std::string &name,
+    const TensorDim &dim, const std::string &_name,
     const Initializer init = Initializer::NONE, bool trainable = false,
     TensorLifespan lifespan = TensorLifespan::ITERATION_LIFESPAN,
     bool private_ = true,
-    ml::train::LayerComputeEngine engine = ml::train::LayerComputeEngine::CPU) {
+    ml::train::LayerComputeEngine _engine = ml::train::LayerComputeEngine::CPU) {
     const auto &prefix_ = private_ ? this->name : this->prefix;
-    tensors_spec.emplace_back(dim, init, trainable, prefix_ + ":" + name,
-                              lifespan, engine);
+    tensors_spec.emplace_back(dim, init, trainable, prefix_ + ":" + _name,
+                              lifespan, _engine);
     return tensors_spec.size() - 1;
   }
 

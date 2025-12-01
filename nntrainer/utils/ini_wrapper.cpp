@@ -22,17 +22,17 @@ namespace nntrainer {
 
 IniSection::IniSection(const std::string &name) : section_name(name), entry{} {}
 
-IniSection::IniSection(const std::string &section_name,
+IniSection::IniSection(const std::string &name,
                        const std::string &entry_str) :
-  IniSection(section_name) {
+  IniSection(name) {
   setEntry(entry_str);
 }
 
-IniSection::IniSection(IniSection &from, const std::string &section_name,
+IniSection::IniSection(IniSection &from, const std::string &name,
                        const std::string &entry_str) :
   IniSection(from) {
-  if (!section_name.empty()) {
-    this->section_name = section_name;
+  if (!name.empty()) {
+    this->section_name = name;
   }
   if (!entry_str.empty()) {
     setEntry(entry_str);
@@ -45,8 +45,8 @@ void IniSection::print(std::ostream &out) const {
     out << it.first << " = " << it.second << std::endl;
 }
 
-void IniSection::setEntry(const std::map<std::string, std::string> &entry) {
-  for (auto &it : entry) {
+void IniSection::setEntry(const std::map<std::string, std::string> &_entry) {
+  for (auto &it : _entry) {
     this->entry[it.first] = it.second;
   }
 }
@@ -99,8 +99,8 @@ void IniWrapper::updateSection(const std::string &s) {
 void IniWrapper::updateSection(const IniSection &s) {
 
   auto section = std::find_if(sections.begin(), sections.end(),
-                              [&](const IniSection &section) {
-                                return section.getName() == s.getName();
+                              [&](const IniSection &_section) {
+                                return _section.getName() == s.getName();
                               });
 
   NNTR_THROW_IF(section == sections.end(), std::invalid_argument)

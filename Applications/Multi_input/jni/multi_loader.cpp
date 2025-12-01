@@ -41,16 +41,16 @@ bool updateIteration(unsigned int &iteration, unsigned int data_size) {
 
 } // namespace
 
-MultiDataLoader::MultiDataLoader(const std::vector<TensorDim> &input_shapes,
-                                 const std::vector<TensorDim> &output_shapes,
+MultiDataLoader::MultiDataLoader(const std::vector<TensorDim> &_input_shapes,
+                                 const std::vector<TensorDim> &_output_shapes,
                                  int data_size_) :
   iteration(0),
   data_size(data_size_),
   count(0),
-  input_shapes(input_shapes),
-  output_shapes(output_shapes),
+  input_shapes(_input_shapes),
+  output_shapes(_output_shapes),
   input_dist(0, 255),
-  label_dist(0, output_shapes.front().width() - 1) {
+  label_dist(0, _output_shapes.front().width() - 1) {
   NNTR_THROW_IF(output_shapes.empty(), std::invalid_argument)
     << "output_shape size empty not supported";
   NNTR_THROW_IF(output_shapes.size() > 1, std::invalid_argument)
@@ -63,17 +63,17 @@ MultiDataLoader::MultiDataLoader(const std::vector<TensorDim> &input_shapes,
 
 void MultiDataLoader::next(float **input, float **label, bool *last) {
 
-  auto fill_input = [](float *input, unsigned int length, unsigned int value) {
+  auto fill_input = [](float *in, unsigned int length, unsigned int value) {
     for (unsigned int i = 0; i < length; ++i) {
-      *input = value;
-      input++;
+      *in= value;
+      in++;
     }
   };
 
-  auto fill_label = [](float *input, unsigned int length, unsigned int value) {
+  auto fill_label = [](float *in, unsigned int length, unsigned int value) {
     for (unsigned int i = 0; i < length; ++i) {
-      *input = value;
-      input++;
+      *in= value;
+      in++;
     }
   };
 

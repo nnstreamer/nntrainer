@@ -272,8 +272,6 @@ void sgemv(const float *A, const float *X, float *Y, uint32_t rows,
 
 void sgemv_transpose(const float *A, const float *X, float *Y, uint32_t rows,
                      uint32_t cols, float alpha, float beta) {
-  const float *__restrict x;
-
   const float32x4_t v_beta = vdupq_n_f32(beta);
   const float32x4_t v_alpha = vdupq_n_f32(alpha);
 

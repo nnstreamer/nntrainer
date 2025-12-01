@@ -40,8 +40,8 @@ ZoneoutLSTMCellLayer::ZoneoutLSTMCellLayer() :
 }
 
 bool ZoneoutLSTMCellLayer::HiddenStateZoneOutRate::isValid(
-  const float &value) const {
-  if (value < 0.0f || value > 1.0f) {
+  const float &_value) const {
+  if (_value < 0.0f || _value > 1.0f) {
     return false;
   } else {
     return true;
@@ -49,8 +49,8 @@ bool ZoneoutLSTMCellLayer::HiddenStateZoneOutRate::isValid(
 }
 
 bool ZoneoutLSTMCellLayer::CellStateZoneOutRate::isValid(
-  const float &value) const {
-  if (value < 0.0f || value > 1.0f) {
+  const float &_value) const {
+  if (_value < 0.0f || _value > 1.0f) {
     return false;
   } else {
     return true;

@@ -29,7 +29,7 @@ public:
    *
    * @param value default value
    */
-  PropsMin(float value = 0.0f) : nntrainer::Property<float>(value) {}
+  PropsMin(float _value = 0.0f) : nntrainer::Property<float>(_value) {}
   static constexpr const char *key = "min"; /**< unique key to access */
   using prop_tag = float_prop_tag;          /**< property type */
 };
@@ -45,7 +45,7 @@ public:
    *
    * @param value default value
    */
-  PropsMax(float value = 1.0f) : nntrainer::Property<float>(value) {}
+  PropsMax(float _value = 1.0f) : nntrainer::Property<float>(_value) {}
   static constexpr const char *key = "max"; /**< unique key to access */
   using prop_tag = float_prop_tag;          /**< property type */
 };
@@ -63,8 +63,8 @@ public:
    *
    * @param value default value
    */
-  PropsNumSamples(unsigned int value = 512) :
-    nntrainer::Property<unsigned int>(value) {}
+  PropsNumSamples(unsigned int _value = 512) :
+    nntrainer::Property<unsigned int>(_value) {}
   static constexpr const char *key = "num_samples"; /**< unique key to access */
   using prop_tag = uint_prop_tag;                   /**< property type */
 };
@@ -125,12 +125,12 @@ RandomDataOneHotProducer::finalize(const std::vector<TensorDim> &input_dims,
                      0, label_dim.width() - 1);
                  });
 
-  std::mt19937 rng;
-  rng.seed(0);
+  std::mt19937 _rng;
+  _rng.seed(0);
   auto sz = size(input_dims, input_dims);
 
   /** DataProducer::Generator */
-  return [rng, sz, min_ = min_.get(), max_ = max_.get(),
+  return [_rng, sz, min_ = min_.get(), max_ = max_.get(),
           label_chooser = std::move(label_chooser_)](
            unsigned int idx, std::vector<Tensor> &inputs,
            std::vector<Tensor> &labels) mutable -> bool {
@@ -139,7 +139,7 @@ RandomDataOneHotProducer::finalize(const std::vector<TensorDim> &input_dims,
     auto populate_label =
       [&](Tensor &t, std::uniform_int_distribution<unsigned int> &label_dist_) {
         t.setZero();
-        t.setValue(0, 0, 0, label_dist_(rng), 1);
+        t.setValue(0, 0, 0, label_dist_(_rng), 1);
         return t;
       };
 

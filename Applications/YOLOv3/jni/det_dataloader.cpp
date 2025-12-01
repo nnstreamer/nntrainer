@@ -44,17 +44,17 @@ bool updateIteration(unsigned int &iteration, unsigned int data_size) {
 } // namespace
 
 // It supports bmp image file only now.
-DirDataLoader::DirDataLoader(const char *directory_, unsigned int max_num_label,
+DirDataLoader::DirDataLoader(const char *directory_, unsigned int _max_num_label,
                              unsigned int c, unsigned int w, unsigned int h,
                              bool is_train_,
-                             const std::vector<TensorDim> &output_shapes) :
+                             const std::vector<TensorDim> &_output_shapes) :
   iteration(0),
-  max_num_label(max_num_label),
+  max_num_label(_max_num_label),
   channel(c),
   height(h),
   width(w),
   is_train(is_train_),
-  output_shapes(output_shapes) {
+  output_shapes(_output_shapes) {
   dir_path.assign(directory_);
 
   // set data list

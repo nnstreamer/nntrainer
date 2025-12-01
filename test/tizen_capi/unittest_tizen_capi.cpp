@@ -167,7 +167,7 @@ TEST(nntrainer_capi_nnmodel, compile_03_p) {
   ml_train_model_h model = nullptr;
   ml_train_layer_h layers[2];
   ml_train_layer_h get_layer;
-  ml_train_optimizer_h optimizer;
+  ml_train_optimizer_h _optimizer;
   ml_train_lr_scheduler_h lr_scheduler;
 
   status = ml_train_model_construct(&model);
@@ -206,10 +206,10 @@ TEST(nntrainer_capi_nnmodel, compile_03_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
   EXPECT_EQ(get_layer, layers[1]);
 
-  status = ml_train_optimizer_create(&optimizer, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
+  status = ml_train_optimizer_create(&_optimizer, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_optimizer_set_property(optimizer, "beta1=0.002",
+  status = ml_train_optimizer_set_property(_optimizer, "beta1=0.002",
                                            "beta2=0.001", "epsilon=1e-7", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
@@ -222,10 +222,10 @@ TEST(nntrainer_capi_nnmodel, compile_03_p) {
     NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_optimizer_set_lr_scheduler(optimizer, lr_scheduler);
+  status = ml_train_optimizer_set_lr_scheduler(_optimizer, lr_scheduler);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_model_set_optimizer(model, optimizer);
+  status = ml_train_model_set_optimizer(model, _optimizer);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_model_compile(model, "loss=cross", "batch_size=32", NULL);
@@ -981,20 +981,20 @@ TEST(nntrainer_capi_nnmodel, create_optimizer_01_p) {
   int status = ML_ERROR_NONE;
 
   ml_train_model_h model = nullptr;
-  ml_train_optimizer_h optimizer;
+  ml_train_optimizer_h _optimizer;
 
   status = ml_train_model_construct(&model);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_optimizer_create(&optimizer, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
+  status = ml_train_optimizer_create(&_optimizer, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_optimizer_set_property(
-    optimizer, "learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
+    _optimizer, "learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
     "beta1=0.002", "beta2=0.001", "epsilon=1e-7", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_optimizer_destroy(optimizer);
+  status = ml_train_optimizer_destroy(_optimizer);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_model_destroy(model);
@@ -1009,7 +1009,7 @@ TEST(nntrainer_capi_nnmodel, create_optimizer_02_p) {
 
   ml_train_model_h model = nullptr;
   ml_train_layer_h layers[2];
-  ml_train_optimizer_h optimizer;
+  ml_train_optimizer_h _optimizer;
 
   status = ml_train_model_construct(&model);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -1035,15 +1035,15 @@ TEST(nntrainer_capi_nnmodel, create_optimizer_02_p) {
   status = ml_train_model_add_layer(model, layers[1]);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_optimizer_create(&optimizer, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
+  status = ml_train_optimizer_create(&_optimizer, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_optimizer_set_property(
-    optimizer, "learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
+    _optimizer, "learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
     "beta1=0.002", "beta2=0.001", "epsilon=1e-7", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_optimizer_destroy(optimizer);
+  status = ml_train_optimizer_destroy(_optimizer);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_model_destroy(model);
@@ -1058,7 +1058,7 @@ TEST(nntrainer_capi_nnmodel, create_optimizer_03_p) {
 
   ml_train_model_h model = nullptr;
   ml_train_layer_h layers[2];
-  ml_train_optimizer_h optimizer;
+  ml_train_optimizer_h _optimizer;
 
   status = ml_train_model_construct(&model);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -1084,18 +1084,18 @@ TEST(nntrainer_capi_nnmodel, create_optimizer_03_p) {
   status = ml_train_model_add_layer(model, layers[1]);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_optimizer_create(&optimizer, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
+  status = ml_train_optimizer_create(&_optimizer, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_optimizer_set_property(
-    optimizer, "learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
+    _optimizer, "learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
     "beta1=0.002", "beta2=0.001", "epsilon=1e-7", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_model_set_optimizer(model, optimizer);
+  status = ml_train_model_set_optimizer(model, _optimizer);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_optimizer_destroy(optimizer);
+  status = ml_train_optimizer_destroy(_optimizer);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 
   status = ml_train_model_destroy(model);
@@ -1110,8 +1110,8 @@ TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
 
   ml_train_model_h model = nullptr;
   ml_train_layer_h layers[2];
-  ml_train_optimizer_h optimizer;
-  ml_train_dataset_h dataset;
+  ml_train_optimizer_h _optimizer;
+  ml_train_dataset_h _dataset;
 
   status = ml_train_model_construct(&model);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -1140,26 +1140,26 @@ TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
   status = ml_train_model_add_layer(model, layers[1]);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_optimizer_create(&optimizer, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
+  status = ml_train_optimizer_create(&_optimizer, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_optimizer_set_property(
-    optimizer, "learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
+    _optimizer, "learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
     "beta1=0.002", "beta2=0.001", "epsilon=1e-7", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_model_set_optimizer(model, optimizer);
+  status = ml_train_model_set_optimizer(model, _optimizer);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_dataset_create_with_file(
-    &dataset, getTestResPath("trainingSet.dat").c_str(),
+    &_dataset, getTestResPath("trainingSet.dat").c_str(),
     getTestResPath("valSet.dat").c_str(), NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_dataset_set_property(dataset, "buffer_size=100", NULL);
+  status = ml_train_dataset_set_property(_dataset, "buffer_size=100", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_model_set_dataset(model, dataset);
+  status = ml_train_model_set_dataset(model, _dataset);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_model_compile(model, "loss=cross", NULL);
@@ -1184,8 +1184,8 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_01_p) {
 
   ml_train_model_h model = nullptr;
   ml_train_layer_h layers[2];
-  ml_train_optimizer_h optimizer;
-  ml_train_dataset_h dataset;
+  ml_train_optimizer_h _optimizer;
+  ml_train_dataset_h _dataset;
 
   status = ml_train_model_construct(&model);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -1214,36 +1214,36 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_01_p) {
   status = ml_train_model_add_layer(model, layers[1]);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_optimizer_create(&optimizer, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
+  status = ml_train_optimizer_create(&_optimizer, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_optimizer_set_property(
-    optimizer, "learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
+    _optimizer, "learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
     "beta1=0.002", "beta2=0.001", "epsilon=1e-7", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_model_set_optimizer(model, optimizer);
+  status = ml_train_model_set_optimizer(model, _optimizer);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   auto train_data = createTrainData();
   auto valid_data = createValidData();
 
-  status = ml_train_dataset_create_with_generator(&dataset, getSample,
+  status = ml_train_dataset_create_with_generator(&_dataset, getSample,
                                                   getSample, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_dataset_set_property(dataset, "buffer_size=100", NULL);
+  status = ml_train_dataset_set_property(_dataset, "buffer_size=100", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_dataset_set_property_for_mode(
-    dataset, ML_TRAIN_DATASET_MODE_TRAIN, "user_data", &train_data, NULL);
+    _dataset, ML_TRAIN_DATASET_MODE_TRAIN, "user_data", &train_data, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_dataset_set_property_for_mode(
-    dataset, ML_TRAIN_DATASET_MODE_VALID, "user_data", &valid_data, NULL);
+    _dataset, ML_TRAIN_DATASET_MODE_VALID, "user_data", &valid_data, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_model_set_dataset(model, dataset);
+  status = ml_train_model_set_dataset(model, _dataset);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_model_compile(model, "loss=cross", "batch_size=16", NULL);
@@ -1294,8 +1294,8 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_02_p) {
 
   ml_train_model_h model = nullptr;
   ml_train_layer_h layers[2];
-  ml_train_optimizer_h optimizer;
-  ml_train_dataset_h dataset;
+  ml_train_optimizer_h _optimizer;
+  ml_train_dataset_h _dataset;
 
   status = ml_train_model_construct(&model);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -1317,24 +1317,24 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_02_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_dataset_create_with_generator(
-    &dataset, constant_generator_cb, NULL, NULL);
+    &_dataset, constant_generator_cb, NULL, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_dataset_set_property(dataset, "buffer_size=9", NULL);
+  status = ml_train_dataset_set_property(_dataset, "buffer_size=9", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_model_set_dataset(model, dataset);
+  status = ml_train_model_set_dataset(model, _dataset);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_optimizer_create(&optimizer, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
+  status = ml_train_optimizer_create(&_optimizer, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_optimizer_set_property(
-    optimizer, "learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
+    _optimizer, "learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
     "beta1=0.9", "beta2=0.9999", "epsilon=1e-7", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_model_set_optimizer(model, optimizer);
+  status = ml_train_model_set_optimizer(model, _optimizer);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_model_add_layer(model, layers[0]);

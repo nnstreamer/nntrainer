@@ -7543,38 +7543,38 @@ void nntr_quantize_mat_q8_K_4x8(const float *__restrict x, void *__restrict vy,
         __m256 tempAbs = maxAbs;
 
         // Load elements into 4 AVX vectors
-        __m256 v0 = _mm256_loadu_ps(x + row_iter * k + i * 256 + sb * 32);
-        __m256 v1 = _mm256_loadu_ps(x + row_iter * k + i * 256 + sb * 32 + 8);
-        __m256 v2 = _mm256_loadu_ps(x + row_iter * k + i * 256 + sb * 32 + 16);
-        __m256 v3 = _mm256_loadu_ps(x + row_iter * k + i * 256 + sb * 32 + 24);
+        __m256 sb_v0 = _mm256_loadu_ps(x + row_iter * k + i * 256 + sb * 32);
+        __m256 sb_v1 = _mm256_loadu_ps(x + row_iter * k + i * 256 + sb * 32 + 8);
+        __m256 sb_v2 = _mm256_loadu_ps(x + row_iter * k + i * 256 + sb * 32 + 16);
+        __m256 sb_v3 = _mm256_loadu_ps(x + row_iter * k + i * 256 + sb * 32 + 24);
 
         // Compute max(abs(e)) for the block
-        __m256 abs0 = _mm256_andnot_ps(signBit, v0);
-        __m256 abs1 = _mm256_andnot_ps(signBit, v1);
-        __m256 abs2 = _mm256_andnot_ps(signBit, v2);
-        __m256 abs3 = _mm256_andnot_ps(signBit, v3);
+        __m256 sb_abs0 = _mm256_andnot_ps(signBit, sb_v0);
+        __m256 sb_abs1 = _mm256_andnot_ps(signBit, sb_v1);
+        __m256 sb_abs2 = _mm256_andnot_ps(signBit, sb_v2);
+        __m256 sb_abs3 = _mm256_andnot_ps(signBit, sb_v3);
 
-        maxAbs = _mm256_max_ps(maxAbs, abs0);
-        maxAbs = _mm256_max_ps(maxAbs, abs1);
-        maxAbs = _mm256_max_ps(maxAbs, abs2);
-        maxAbs = _mm256_max_ps(maxAbs, abs3);
+        maxAbs = _mm256_max_ps(maxAbs, sb_abs0);
+        maxAbs = _mm256_max_ps(maxAbs, sb_abs1);
+        maxAbs = _mm256_max_ps(maxAbs, sb_abs2);
+        maxAbs = _mm256_max_ps(maxAbs, sb_abs3);
 
         __m256 mask_prev = _mm256_cmp_ps(tempAbs, maxAbs, _CMP_EQ_OQ);
         maskAbs = _mm256_and_ps(maskAbs, mask_prev);
 
-        mask0 = _mm256_cmp_ps(maxAbs, v0, _CMP_EQ_OQ);
-        mask1 = _mm256_cmp_ps(maxAbs, v1, _CMP_EQ_OQ);
-        mask2 = _mm256_cmp_ps(maxAbs, v2, _CMP_EQ_OQ);
-        mask3 = _mm256_cmp_ps(maxAbs, v3, _CMP_EQ_OQ);
+        mask0 = _mm256_cmp_ps(maxAbs, sb_v0, _CMP_EQ_OQ);
+        mask1 = _mm256_cmp_ps(maxAbs, sb_v1, _CMP_EQ_OQ);
+        mask2 = _mm256_cmp_ps(maxAbs, sb_v2, _CMP_EQ_OQ);
+        mask3 = _mm256_cmp_ps(maxAbs, sb_v3, _CMP_EQ_OQ);
 
         __m256 mask_curr =
           _mm256_or_ps(_mm256_or_ps(mask0, mask1), _mm256_or_ps(mask2, mask3));
         maskAbs = _mm256_or_ps(maskAbs, mask_curr);
 
-        srcv[row_iter][sb * 4] = v0;
-        srcv[row_iter][sb * 4 + 1] = v1;
-        srcv[row_iter][sb * 4 + 2] = v2;
-        srcv[row_iter][sb * 4 + 3] = v3;
+        srcv[row_iter][sb * 4] = sb_v0;
+        srcv[row_iter][sb * 4 + 1] = sb_v1;
+        srcv[row_iter][sb * 4 + 2] = sb_v2;
+        srcv[row_iter][sb * 4 + 3] = sb_v3;
       }
 
       __m128 max4 = _mm_max_ps(_mm256_extractf128_ps(maxAbs, 1),
@@ -7649,16 +7649,16 @@ void nntr_quantize_mat_q8_K_4x8(const float *__restrict x, void *__restrict vy,
     shuffle_mask_sb4 =
       _mm256_permute2f128_si256(shuffle_mask_sb4, shuffle_mask_sb4, 0);
 
-    for (int k = 0; k < 4; k++) {
+    for (int _k = 0; _k < 4; _k++) {
       // Quants from four different sub blocks are taken
-      __m256i q0 = quants_interleaved[k * 8 + 0];
-      __m256i q1 = quants_interleaved[k * 8 + 1];
-      __m256i q2 = quants_interleaved[k * 8 + 2];
-      __m256i q3 = quants_interleaved[k * 8 + 3];
-      __m256i q4 = quants_interleaved[k * 8 + 4];
-      __m256i q5 = quants_interleaved[k * 8 + 5];
-      __m256i q6 = quants_interleaved[k * 8 + 6];
-      __m256i q7 = quants_interleaved[k * 8 + 7];
+      __m256i q0 = quants_interleaved[_k * 8 + 0];
+      __m256i q1 = quants_interleaved[_k * 8 + 1];
+      __m256i q2 = quants_interleaved[_k * 8 + 2];
+      __m256i q3 = quants_interleaved[_k * 8 + 3];
+      __m256i q4 = quants_interleaved[_k * 8 + 4];
+      __m256i q5 = quants_interleaved[_k * 8 + 5];
+      __m256i q6 = quants_interleaved[_k * 8 + 6];
+      __m256i q7 = quants_interleaved[_k * 8 + 7];
 
       // The below code block has the first half of different sub blocks
       // shuffled and blended so as to process 2 values from each sub block at a
@@ -7732,7 +7732,7 @@ void nntr_quantize_mat_q8_K_4x8(const float *__restrict x, void *__restrict vy,
       // Overall bsums in interleaved fashion computed by adding results of both
       // halves
       __m256i bsums_r = _mm256_add_epi16(bsums_r1, bsums_r2);
-      _mm256_storeu_si256((__m256i *)(y[i].bsums + 16 * k), bsums_r);
+      _mm256_storeu_si256((__m256i *)(y[i].bsums + 16 * _k), bsums_r);
     }
   }
 

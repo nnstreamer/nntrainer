@@ -2804,7 +2804,7 @@ TEST(nntrainer_Tensor, add_i_broadcast_01_p) {
     EXPECT_EQ(t, answer);
   }
   {
-    nntrainer::TensorDim ref_dim(3, 5, 1, 4, nntrainer::Tformat::NCHW,
+    ref_dim = nntrainer::TensorDim(3, 5, 1, 4, nntrainer::Tformat::NCHW,
                                  nntrainer::Tdatatype::FP16);
     nntrainer::Tensor t =
       ranged(3, 5, 1, 4, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16);
@@ -2837,7 +2837,7 @@ TEST(nntrainer_Tensor, add_i_broadcast_01_p) {
     EXPECT_EQ(t, answer);
   }
   {
-    nntrainer::TensorDim ref_dim(1, 1, 2, 1, nntrainer::Tformat::NCHW,
+    ref_dim = nntrainer::TensorDim(1, 1, 2, 1, nntrainer::Tformat::NCHW,
                                  nntrainer::Tdatatype::FP16);
     nntrainer::Tensor t =
       ranged(1, 1, 2, 1, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16);
@@ -2850,7 +2850,7 @@ TEST(nntrainer_Tensor, add_i_broadcast_01_p) {
     EXPECT_EQ(t, answer);
   }
   {
-    nntrainer::TensorDim ref_dim(16, 1, 1, 1, nntrainer::Tformat::NCHW,
+    ref_dim = nntrainer::TensorDim(16, 1, 1, 1, nntrainer::Tformat::NCHW,
                                  nntrainer::Tdatatype::FP16);
     nntrainer::Tensor t =
       ranged(16, 1, 1, 1, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16);
@@ -3504,31 +3504,30 @@ TEST(nntrainer_Tensor, sum_03_p) {
 
     nntrainer::Tensor output_0_1_2(1, channel, height, width, t_type);
     {
-      const int batch = 1;
       GEN_TEST_INPUT(output_0_1_2, i * (channel * height * width) +
                                      j * (height * width) + k * (width) + l +
                                      1);
     }
     nntrainer::Tensor output_1_1_2(batch, 1, height, width, t_type);
     {
-      const int channel = 1;
-      GEN_TEST_INPUT(output_1_1_2, i * (channel * height * width) +
+      const int new_channel = 1;
+      GEN_TEST_INPUT(output_1_1_2, i * (new_channel * height * width) +
                                      j * (height * width) + k * (width) + l +
                                      1);
     }
     nntrainer::Tensor output_2_1_2(batch, channel, 1, width, t_type);
     {
-      const int height = 1;
-      GEN_TEST_INPUT(output_2_1_2, i * (channel * height * width) +
-                                     j * (height * width) + k * (width) + l +
-                                     1);
+      const int new_height = 1;
+      GEN_TEST_INPUT(output_2_1_2, i * (channel * new_height * width) +
+                                     j * (new_height * width) + k * (width) +
+                                     l + 1);
     }
     nntrainer::Tensor output_3_1_2(batch, channel, height, 1, t_type);
     {
-      const int width = 1;
-      GEN_TEST_INPUT(output_3_1_2, i * (channel * height * width) +
-                                     j * (height * width) + k * (width) + l +
-                                     1);
+      const int new_width = 1;
+      GEN_TEST_INPUT(output_3_1_2, i * (channel * height * new_width) +
+                                     j * (height * new_width) + k *
+                                     (new_width) + l + 1);
     }
     nntrainer::Tensor result_0_1_2 = input.sum(0, output_0_1_2, 1, 2);
     nntrainer::Tensor result_1_1_2 = input.sum(1, output_1_1_2, 1, 2);
@@ -3614,31 +3613,30 @@ TEST(nntrainer_Tensor, sum_03_p) {
 
     nntrainer::Tensor output_0_2_2(1, channel, height, width, t_type);
     {
-      const int batch = 1;
       GEN_TEST_INPUT(output_0_2_2, i * (channel * height * width) +
                                      j * (height * width) + k * (width) + l +
                                      1);
     }
     nntrainer::Tensor output_1_2_2(batch, 1, height, width, t_type);
     {
-      const int channel = 1;
-      GEN_TEST_INPUT(output_1_2_2, i * (channel * height * width) +
+      const int new_channel = 1;
+      GEN_TEST_INPUT(output_1_2_2, i * (new_channel * height * width) +
                                      j * (height * width) + k * (width) + l +
                                      1);
     }
     nntrainer::Tensor output_2_2_2(batch, channel, 1, width, t_type);
     {
-      const int height = 1;
-      GEN_TEST_INPUT(output_2_2_2, i * (channel * height * width) +
-                                     j * (height * width) + k * (width) + l +
-                                     1);
+      const int new_height = 1;
+      GEN_TEST_INPUT(output_2_2_2, i * (channel * new_height * width) +
+                                     j * (new_height * width) + k * (width) +
+                                     l + 1);
     }
     nntrainer::Tensor output_3_2_2(batch, channel, height, 1, t_type);
     {
-      const int width = 1;
-      GEN_TEST_INPUT(output_3_2_2, i * (channel * height * width) +
-                                     j * (height * width) + k * (width) + l +
-                                     1);
+      const int new_width = 1;
+      GEN_TEST_INPUT(output_3_2_2, i * (channel * height * new_width) +
+                                     j * (height * new_width) + k *
+                                     (new_width) + l + 1);
     }
     nntrainer::Tensor result_0_2_2 = input.sum(0, output_0_2_2, 2, 2);
     nntrainer::Tensor result_1_2_2 = input.sum(1, output_1_2_2, 2, 2);
@@ -4369,8 +4367,6 @@ TEST(nntrainer_Tensor, transpose_p) {
   nntrainer::TensorDim::TensorType t_type;
   t_type.format = nntrainer::Tformat::NCHW;
   t_type.data_type = nntrainer::Tdatatype::FP16;
-
-  nntrainer::TensorDim ref_dim(3, 2, 4, 5, t_type);
 
   /// plain transpose
   {

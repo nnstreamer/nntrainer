@@ -70,13 +70,13 @@ int validData_cb(float **input, float **label, bool *last, void *user_data) {
 }
 
 std::array<UserDataType, 2>
-createRealDataGenerator(const std::string &directory, unsigned int batch_size,
+createRealDataGenerator(const std::string &directory, unsigned int batch,
                         unsigned int data_split) {
 
   UserDataType train_data(new nntrainer::util::Cifar100DataLoader(
-    directory + "/vgg_trainingSet.dat", batch_size, 1));
+    directory + "/vgg_trainingSet.dat", batch, 1));
   UserDataType valid_data(new nntrainer::util::Cifar100DataLoader(
-    directory + "/vgg_valSet.dat", batch_size, 1));
+    directory + "/vgg_valSet.dat", batch, 1));
 
   return {std::move(train_data), std::move(valid_data)};
 }

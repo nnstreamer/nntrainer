@@ -20,11 +20,11 @@
 #include <unordered_map>
 
 namespace nntrainer {
-InputRealizer::InputRealizer(const std::vector<Connection> &start_conns,
-                             const std::vector<Connection> &input_conns) :
-  start_conns(start_conns),
-  input_conns(input_conns) {
-  NNTR_THROW_IF(start_conns.size() != input_conns.size(), std::invalid_argument)
+InputRealizer::InputRealizer(const std::vector<Connection> &_start_conns,
+                             const std::vector<Connection> &_input_conns) :
+  start_conns(_start_conns),
+  input_conns(_input_conns) {
+  NNTR_THROW_IF(_start_conns.size() != _input_conns.size(), std::invalid_argument)
     << "start connection size is not same input_conns size";
 }
 

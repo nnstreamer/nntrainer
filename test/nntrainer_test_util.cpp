@@ -112,10 +112,10 @@ static bool getData(std::ifstream &F, float *outVec, float *outLabel,
   return true;
 }
 
-DataInformation::DataInformation(unsigned int num_samples,
+DataInformation::DataInformation(unsigned int _num_samples,
                                  const std::string &filename) :
   count(0),
-  num_samples(num_samples),
+  num_samples(_num_samples),
   file(filename, std::ios::in | std::ios::binary),
   idxes(num_samples) {
   std::iota(idxes.begin(), idxes.end(), 0);

@@ -132,9 +132,9 @@ void getImage(const string filename, float *image) {
  * @param[in] n index of the data to be loaded
  * @param[in] is_val if this image is for training or validation
  */
-void getNthImage(std::string data_path, float *input, float *output, int n,
+void getNthImage(std::string _data_path, float *input, float *output, int n,
                  bool is_val = false) {
-  std::string path = data_path;
+  std::string path = _data_path;
   unsigned int data_size = total_train_data_size;
   if (is_val)
     data_size = total_val_data_size;
