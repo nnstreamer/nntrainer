@@ -399,7 +399,7 @@ void ErnieMoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
       for (int k = 0; k < static_cast<int>(topk); ++k) {
         unsigned expert_idx = indices_data[i * topk + k];
         float weight = router_logits.getValue<float>(i, 0, 0, expert_idx);
-        weight /= std::max(sum_prob, 1e-6f);
+        weight /= std::max(sum_prob, std::get<props::MoENormMin>(moe_props).get());
         expert_assignments[expert_idx].emplace_back(i, weight);
       }
     }
