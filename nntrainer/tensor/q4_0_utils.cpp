@@ -202,7 +202,7 @@ void Q4_0Utils::transformQ4_0x_FromInt4(size_t N, size_t K,
   uint8_t int4_weight[16];
   uint16_t scale;
   block_q4_0 dst_tmp[8];
-  uint8_t *dst_ = (uint8_t *)dst_q4_0x;
+  uint8_t *dst_ = reinterpret_cast<uint8_t *>(dst_q4_0x);
 
   // --- Layout ---
   const size_t rows_count_pad = align(N, ROW_BLOCK_SIZE);

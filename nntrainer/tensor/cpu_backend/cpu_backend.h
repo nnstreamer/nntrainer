@@ -1315,7 +1315,7 @@ extern void clamp(const T *input, T *output, size_t length,
  * array. The array should contain 16 bytes representing 32 4-bit values. Each
  * byte contains two 4-bit quantized values packed together.
  * @note      The input int4_weight array should contain exactly 32 4-bit
- * values (16 bytes) to match the weight of QK4_0 block size (32 elements per
+ * values (16 bytes) to match the weight of Q4_0 block size (32 elements per
  * block).
  * Input:  | 0, 1 | 2, 3 | 4, 5 | ... |14,15 |16,17 | ... |28,29 |30,31 |
  *         | A, B | A, B | A, B | ... | A, B | C, D | ... | C, D | C, D |
