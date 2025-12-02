@@ -83,7 +83,11 @@ public:
    *
    */
   explicit MemoryPool() :
-    mem_pool(nullptr), pool_size(0), min_pool_size(0), n_wgrad(0) {
+    mem_pool(nullptr),
+    pool_size(0),
+    min_pool_size(0),
+    n_wgrad(0),
+    svm_allocation(false) {
 
 #if defined(__ANDROID__) && ENABLE_NPU
     void *handle =
@@ -321,6 +325,8 @@ private:
   size_t min_pool_size; /**< minimum theoretical memory requirement */
 
   size_t n_wgrad;
+
+  bool svm_allocation; /**< flag if memory is a shared virtual memory */
 
   std::unordered_map<std::string, std::shared_ptr<nntrainer::MemAllocator>>
     allocators;

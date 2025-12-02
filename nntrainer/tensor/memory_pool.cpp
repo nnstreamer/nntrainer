@@ -172,13 +172,14 @@ void MemoryPool::allocate() {
     static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
   mem_pool = cl_context->context_inst_.createSVMRegion(pool_size);
 
-  if (mem_pool == nullptr) {
-    throw std::runtime_error("Failed to allocate SVM memory pool of size " +
-                             std::to_string(pool_size) + " bytes");
+  // If SVM allocation fails, use calloc()
+  if (mem_pool != nullptr) {
+    svm_allocation = true;
   }
-#else
-  mem_pool = calloc(pool_size, 1);
 #endif
+
+  if (mem_pool == nullptr)
+    mem_pool = calloc(pool_size, 1);
 
   unsigned int idx = 1;
   for (auto &s : memory_offset) {
@@ -251,14 +252,11 @@ void MemoryPool::allocateFSU() {
  *
  */
 std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
-#if defined(__ANDROID__)
-  auto mem_data = std::make_shared<MemoryData>((void *)memory_ptrs.at(idx - 1));
-#else
   if (mem_pool == nullptr)
     throw std::invalid_argument("Getting memory before allocation");
 
   auto mem_data = std::make_shared<MemoryData>((void *)memory_ptrs.at(idx - 1));
-#endif
+  mem_data->setSVM(svm_allocation);
   return mem_data;
 }
 
@@ -269,9 +267,13 @@ std::shared_ptr<MemoryData> MemoryPool::getMemory(unsigned int idx) {
 void MemoryPool::deallocate() {
   if (mem_pool != nullptr) {
 #ifdef ENABLE_OPENCL
-    auto *cl_context =
-      static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
-    cl_context->context_inst_.releaseSVMRegion(mem_pool);
+    if (svm_allocation) {
+      auto *cl_context =
+        static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+      cl_context->context_inst_.releaseSVMRegion(mem_pool);
+    } else {
+      free(mem_pool);
+    }
 #else
     free(mem_pool);
 #endif
