@@ -1,0 +1,11 @@
+/Debug/
+/SA_Report/
+/.sign/
+/Build/
+project_def.prop
+build_def.prop
+/res/
+mts.sh
+/workspace/
+.package-stamp
+/crash-info
