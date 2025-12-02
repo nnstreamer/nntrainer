@@ -39,6 +39,9 @@
 
 #include "singleton.h"
 
+#define stringify2(s) #s
+#define stringify(s) stringify2(s)
+
 namespace nntrainer {
 
 extern std::mutex cl_factory_mutex;
@@ -72,7 +75,7 @@ public:
    * @brief destructor to release opencl commandQueue
    */
   ~ClContext() override {
-    if (cl_initialized) {
+    if (cl_initialized_) {
       command_queue_inst_.ReleaseCommandQueue();
       // getContext() is called by clCreateKernel
       context_inst_.ReleaseContext();
@@ -215,14 +218,9 @@ public:
                                            std::string compile_options = {});
 
   /**
-   * @brief Initialize and register all blas OpenCl kernels
+   * @brief Initialize all OpenCl kernels
    */
-  void initBlasClKernels();
-
-  /**
-   * @brief Initialize and register all attention OpenCl kernels
-   */
-  void initAttentionClKernels();
+  void initializeKernels();
 
   /**
    * @brief Get the name of the context
@@ -238,6 +236,10 @@ public:
     getContextData()->setMemAllocator(mem);
   }
 
+  void setKernelsCachePath(const std::string &kernels_cache_path);
+
+  const std::string &getKernelsCachePath() const;
+
 private:
   /**
    * @brief   Overriden initialization function
@@ -247,20 +249,19 @@ private:
   void add_default_object();
 
   // flag to check opencl commandqueue and context inititalization
-  bool cl_initialized = false;
+  bool cl_initialized_ = false;
 
-  // flag to check default blas kernels registered or not
-  bool blas_kernels_initialized = false;
-
-  // flag to check default attention kernels registered or not
-  bool attention_kernels_initialized = false;
+  // flag to check kernels initialized or not
+  bool cl_kernels_initialized_ = false;
 
   FactoryMap<nntrainer::Layer> factory_map;
 
   template <typename Args, typename T> struct isSupportedHelper;
 
-  // global map to store initialized opencl::Kernel
-  inline static OclKernelMap ocl_kernel_map;
+  // map to store initialized kernels
+  OclKernelMap ocl_kernel_map_;
+
+  std::string kernels_cache_path_ = stringify(OPENCL_KERNEL_PATH);
 
   /**
    * @brief supportHelper to check if given type is supported within cl context
@@ -285,7 +286,7 @@ private:
 
   bool clInit() {
     // if commandqueue already created
-    if (cl_initialized)
+    if (cl_initialized_)
       return true;
 
     // getContext() called inside createCommandQueue which creates clContext
@@ -297,8 +298,8 @@ private:
 
     // initialize device buffers
     clbuffInstance.initBuffers();
-    cl_initialized = result;
-    return cl_initialized;
+    cl_initialized_ = result;
+    return cl_initialized_;
   };
 
   /**

@@ -260,6 +260,12 @@ public:
    */
   bool hasWorkingDirectory() { return !working_path_base.empty(); }
 
+  void setKernelsCachePath(const std::string &kernels_cache_path);
+
+  const std::string getKernelsCachePath() const;
+
+  void initializeKernels();
+
 private:
   /**
    * @brief map for Context and Context name

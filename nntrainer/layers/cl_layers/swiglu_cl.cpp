@@ -25,46 +25,6 @@ static constexpr size_t OUT_IDX = 0;
 static constexpr size_t INPUT_IDX_1 = 0;
 static constexpr size_t INPUT_IDX_2 = 1;
 
-bool SwiGLULayerCl::registerClKernels(ClContext &cl_context) {
-  auto &layer_kernel_ptrs = getLayerKernelPtrs();
-
-  // check if the kernels are already registered.
-  if (!layer_kernel_ptrs.empty()) {
-    ml_loge("kernels for swiglu_cl are already registered.");
-    return false;
-  }
-
-  do {
-    ClContext::SharedPtrClKernel kernel_swiglu_ptr = nullptr;
-
-    kernel_swiglu_ptr = cl_context.registerClKernel(swiglu_kernel, "swiglu_cl");
-
-    if (!kernel_swiglu_ptr) {
-      ml_loge("OpenCL Error: Fail to register swiglu_cl kernel");
-      break;
-    }
-    layer_kernel_ptrs.emplace_back(kernel_swiglu_ptr);
-
-#ifdef ENABLE_FP16
-    kernel_swiglu_ptr =
-      cl_context.registerClKernel(swiglu_fp16_kernel, "swiglu_cl_fp16");
-
-    if (!kernel_swiglu_ptr) {
-      ml_loge("OpenCL Error: Fail to register swiglu_cl_fp16 kernel");
-      break;
-    }
-    layer_kernel_ptrs.emplace_back(kernel_swiglu_ptr);
-#endif
-
-    return true;
-  } while (false);
-
-  // clear all registered kernels if any error occurs during registration
-  layer_kernel_ptrs.clear();
-
-  return false;
-}
-
 void SwiGLULayerCl::finalize(nntrainer::InitLayerContext &context) {
   context.setOutputDimensions({context.getInputDimensions()[0]});
 }
@@ -124,7 +84,8 @@ void SwiGLULayerCl::swiglu_cl(float *matAdata, float *vecXdata, float *vecYdata,
   auto &clbuffInstance = ClBufferManager::Global();
 
   do {
-    const auto &kernel_swiglu_ptr = getLayerKernelPtrs()[Kernels::SWIGLU_CL];
+    const auto &kernel_swiglu_ptr =
+      global_cl_context->registerClKernel(swiglu_kernel, "swiglu_cl");
     int dim = int(dim1 * dim2);
 
     if (!svm) {
@@ -218,7 +179,7 @@ void SwiGLULayerCl::swiglu_cl_fp16(_FP16 *matAdata, _FP16 *vecXdata,
 
   do {
     const auto &kernel_swiglu_ptr =
-      getLayerKernelPtrs()[Kernels::SWIGLU_CL_FP16];
+      global_cl_context->registerClKernel(swiglu_fp16_kernel, "swiglu_cl_fp16");
 
     int dim = int(dim1 * dim2);
 
@@ -285,12 +246,6 @@ void SwiGLULayerCl::setProperty(const std::vector<std::string> &values) {
                       std::to_string(values.size());
     throw exception::not_supported(msg);
   }
-}
-
-std::vector<ClContext::SharedPtrClKernel> &SwiGLULayerCl::getLayerKernelPtrs() {
-  /**< kernel list relevant with this layer */
-  static std::vector<ClContext::SharedPtrClKernel> layer_kernel_ptrs;
-  return layer_kernel_ptrs;
 }
 
 } // namespace nntrainer

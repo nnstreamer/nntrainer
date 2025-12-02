@@ -73,15 +73,9 @@ void ClContext::initialize() noexcept {
       ml_loge("Error: ClContext::initialize() failed");
       return;
     }
-    if (KERNEL_CACHE_ENABLED) {
-      std::filesystem::create_directories(opencl::Program::DEFAULT_KERNEL_PATH);
-    }
 
-    initBlasClKernels();
-    initAttentionClKernels();
     add_default_object();
     setMemAllocator(std::make_shared<MemAllocator>());
-
   } catch (std::exception &e) {
     ml_loge("cl_context: registering layers failed!!, reason: %s", e.what());
   } catch (...) {
@@ -90,43 +84,27 @@ void ClContext::initialize() noexcept {
 };
 
 void ClContext::add_default_object() {
-  if (FullyConnectedLayerCl::registerClKernels(*this)) {
-    registerFactory(nntrainer::createLayer<FullyConnectedLayerCl>,
-                    FullyConnectedLayerCl::type,
-                    ml::train::LayerType::LAYER_FC);
-  }
+  registerFactory(nntrainer::createLayer<FullyConnectedLayerCl>,
+                  FullyConnectedLayerCl::type, ml::train::LayerType::LAYER_FC);
 
-  if (AdditionLayerCL::registerClKernels(*this)) {
-    registerFactory(nntrainer::createLayer<AdditionLayerCL>,
-                    AdditionLayerCL::type,
-                    ml::train::LayerType::LAYER_ADDITION);
-  }
+  registerFactory(nntrainer::createLayer<AdditionLayerCL>,
+                  AdditionLayerCL::type, ml::train::LayerType::LAYER_ADDITION);
 
-  if (SwiGLULayerCl::registerClKernels(*this)) {
-    registerFactory(nntrainer::createLayer<SwiGLULayerCl>, SwiGLULayerCl::type,
-                    ml::train::LayerType::LAYER_SWIGLU);
-  }
+  registerFactory(nntrainer::createLayer<SwiGLULayerCl>, SwiGLULayerCl::type,
+                  ml::train::LayerType::LAYER_SWIGLU);
 
-  if (ReshapeLayerCl::registerClKernels(*this)) {
-    registerFactory(nntrainer::createLayer<ReshapeLayerCl>,
-                    ReshapeLayerCl::type, ml::train::LayerType::LAYER_RESHAPE);
-  }
+  registerFactory(nntrainer::createLayer<ReshapeLayerCl>, ReshapeLayerCl::type,
+                  ml::train::LayerType::LAYER_RESHAPE);
 
-  if (RMSNormLayerCl::registerClKernels(*this)) {
-    registerFactory(nntrainer::createLayer<RMSNormLayerCl>,
-                    RMSNormLayerCl::type, ml::train::LayerType::LAYER_RMSNORM);
-  }
+  registerFactory(nntrainer::createLayer<RMSNormLayerCl>, RMSNormLayerCl::type,
+                  ml::train::LayerType::LAYER_RMSNORM);
 
-  if (ConcatLayerCl::registerClKernels(*this)) {
-    registerFactory(nntrainer::createLayer<ConcatLayerCl>, ConcatLayerCl::type,
-                    ml::train::LayerType::LAYER_CONCAT);
-  }
+  registerFactory(nntrainer::createLayer<ConcatLayerCl>, ConcatLayerCl::type,
+                  ml::train::LayerType::LAYER_CONCAT);
 
-  if (TransposeLayerCl::registerClKernels(*this)) {
-    registerFactory(nntrainer::createLayer<TransposeLayerCl>,
-                    TransposeLayerCl::type,
-                    ml::train::LayerType::LAYER_TRANSPOSE);
-  }
+  registerFactory(nntrainer::createLayer<TransposeLayerCl>,
+                  TransposeLayerCl::type,
+                  ml::train::LayerType::LAYER_TRANSPOSE);
 }
 
 template <typename T>
@@ -170,12 +148,9 @@ const int ClContext::registerFactory(const FactoryType<T> factory,
   return assigned_int_key;
 }
 
-void ClContext::initBlasClKernels() {
-  if (blas_kernels_initialized) {
-    ml_logi(
-      "ClContext: Default blas kernels already registered and initialized");
-    return;
-  }
+void ClContext::initializeKernels() {
+  NNTR_THROW_IF(cl_kernels_initialized_, std::runtime_error)
+    << "OpenCL kernels already initialized ";
 
   registerClKernel(sgemv_kernel, "sgemv_cl");
   registerClKernel(sgemv_no_trans_kernel, "sgemv_cl_noTrans");
@@ -201,6 +176,9 @@ void ClContext::initBlasClKernels() {
   registerClKernel(int4_quantize_input_kernel, "quantize_input_int4");
   registerClKernel(int4_quantize_input_kernel, "quantize_input_int4_pad");
 
+  // attention kernel
+  registerClKernel(rotary_emb_kernel, "rotary_emb_cl");
+
 #ifdef ENABLE_FP16
   registerClKernel(hgemv_kernel, "sgemv_cl_fp16");
   registerClKernel(hgemv_no_trans_kernel, "sgemv_cl_noTrans_fp16");
@@ -211,32 +189,19 @@ void ClContext::initBlasClKernels() {
   registerClKernel(hgemm_trans_ab_kernel, "sgemm_cl_transAB_fp16");
   registerClKernel(addition_fp16_kernel, "addition_cl_fp16");
   registerClKernel(hscal_kernel, "sscal_cl_fp16");
-#endif
-  blas_kernels_initialized = true;
-}
-
-void ClContext::initAttentionClKernels() {
-  if (attention_kernels_initialized) {
-    ml_logi("ClContext: Default attention kernels already registered and "
-            "initialized");
-    return;
-  }
-
-  registerClKernel(rotary_emb_kernel, "rotary_emb_cl");
-
-#ifdef ENABLE_FP16
+  // attention kernel
   registerClKernel(rotary_emb_fp16_kernel, "rotary_emb_cl_fp16");
 #endif
-  attention_kernels_initialized = true;
+  cl_kernels_initialized_ = true;
 }
 
 const ClContext::SharedPtrClKernel
 ClContext::registerClKernel(std::string kernel_string, std::string kernel_name,
                             std::string compile_options) {
   // check if created before
-  if (ocl_kernel_map.find(kernel_name + compile_options) !=
-      ocl_kernel_map.end()) {
-    return ocl_kernel_map[kernel_name + compile_options];
+  if (ocl_kernel_map_.find(kernel_name + compile_options) !=
+      ocl_kernel_map_.end()) {
+    return ocl_kernel_map_[kernel_name + compile_options];
   }
 
   // creating shared_ptr for kernel object
@@ -246,8 +211,8 @@ ClContext::registerClKernel(std::string kernel_string, std::string kernel_name,
     return nullptr;
   }
   // add to map
-  ocl_kernel_map.emplace(kernel_name + compile_options, kernelPtr);
-  return ocl_kernel_map[kernel_name + compile_options];
+  ocl_kernel_map_.emplace(kernel_name + compile_options, kernelPtr);
+  return ocl_kernel_map_[kernel_name + compile_options];
 }
 
 bool ClContext::clCreateKernel(std::string &kernel_string,
@@ -263,8 +228,11 @@ bool ClContext::clCreateKernel(std::string &kernel_string,
 
   // reading binary
   std::string binary_file_path =
-    opencl::Program::DEFAULT_KERNEL_PATH + "/" +
-    std::to_string(program.GetKernelHash(kernel_string, "")) + ".cl.bin";
+    std::filesystem::path(kernels_cache_path_)
+      .append(
+        std::to_string(program.GetKernelHash(kernel_string, compile_options)) +
+        ".cl.bin")
+      .string();
   auto binary_data = KERNEL_CACHE_ENABLED ? readBinaryFile(binary_file_path)
                                           : std::vector<std::byte>();
 
@@ -311,5 +279,23 @@ bool ClContext::clCreateKernel(std::string &kernel_string,
 template const int ClContext::registerFactory<nntrainer::Layer>(
   const FactoryType<nntrainer::Layer> factory, const std::string &key,
   const int int_key);
+
+void ClContext::setKernelsCachePath(const std::string &kernels_cache_path) {
+  NNTR_THROW_IF(cl_kernels_initialized_, std::runtime_error)
+    << "OpenCL kernels already initialized kernels path should be set before "
+       "initialization";
+
+  kernels_cache_path_ = kernels_cache_path;
+
+  if (KERNEL_CACHE_ENABLED) {
+    if (!std::filesystem::exists(kernels_cache_path_)) {
+      std::filesystem::create_directories(kernels_cache_path_);
+    }
+  }
+}
+
+const std::string &ClContext::getKernelsCachePath() const {
+  return kernels_cache_path_;
+}
 
 } // namespace nntrainer
