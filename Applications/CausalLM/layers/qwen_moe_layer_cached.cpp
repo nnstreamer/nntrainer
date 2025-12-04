@@ -438,10 +438,12 @@ void CachedSlimMoELayer::incremental_forwarding(
 
 // Evict experts
 #pragma omp parallel
-    while (loaded_expert_deque.size() > 32) {
+    while (true) {
       int target_idx;
       {
         std::lock_guard<std::mutex> lock(cache_mutex);
+        if (loaded_expert_deque.size() > 16)
+          break;
         target_idx = loaded_expert_deque.front();
         loaded_expert_deque.pop_front();
         iteration_map.erase(target_idx);
