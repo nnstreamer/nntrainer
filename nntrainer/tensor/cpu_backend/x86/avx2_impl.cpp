@@ -211,9 +211,9 @@ approx_exp_exp2_lookup(float x) noexcept {
   auto s = compat_bit_cast<float>(s_int_2);
 
   // Polynominal of form C0*x^3 + C1*x^2 + C2*x^1 + 1.0
-  static constexpr float poly_4[] = {0x1.c6af84b912394p-5 / N_ / N_ / N_,
-                                     0x1.ebfce50fac4f3p-3 / N_ / N_,
-                                     0x1.62e42ff0c52d6p-1 / N_};
+  static constexpr float poly_4[] = {0x1.c6af84b912394p-5f / N_ / N_ / N_,
+                                     0x1.ebfce50fac4f3p-3f / N_ / N_,
+                                     0x1.62e42ff0c52d6p-1f / N_};
 
   auto q0 = std::fma(x_frac, poly_4[0], poly_4[1]);
   auto x_frac_pow2 = x_frac * x_frac;
@@ -274,9 +274,9 @@ avx2_approx_exp_e2lookup(__m256 xs) noexcept {
   auto s_ints_2 = _mm256_add_epi32(s_ints, xs_uint_shifted);
   auto s_floats = _mm256_castsi256_ps(s_ints_2);
 
-  static constexpr float poly_d4[] = {0x1.c6af84b912394p-5 / N_ / N_ / N_,
-                                      0x1.ebfce50fac4f3p-3 / N_ / N_,
-                                      0x1.62e42ff0c52d6p-1 / N_};
+  static constexpr float poly_d4[] = {0x1.c6af84b912394p-5f / N_ / N_ / N_,
+                                      0x1.ebfce50fac4f3p-3f / N_ / N_,
+                                      0x1.62e42ff0c52d6p-1f / N_};
 
   const auto C0 = _mm256_set1_ps(poly_d4[0]);
   const auto C1 = _mm256_set1_ps(poly_d4[1]);
@@ -438,7 +438,14 @@ void unpack_q4_0x8_transpose16(const void *src, unsigned short *__restrict dT,
   // --------
   const int groups_pairs = groups_N8 / 2;
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4849)
+#endif
 #pragma omp parallel for collapse(2) schedule(static)
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
   for (int c0 = 0; c0 < cols_scales; c0 += CT) {
     for (int bp = 0; bp < groups_pairs; ++bp) {
       const int b0 = 2 * bp;
@@ -595,7 +602,14 @@ static inline void convert_q4_0x8_noshuffle(const void *src,
   const block_q4_0x8 *x = (const block_q4_0x8 *)src;
   const __m256i bias256 = _mm256_set1_epi8((char)0x88);
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4849)
+#endif
 #pragma omp parallel for collapse(2) schedule(static)
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
   for (int b = 0; b < GROUPS; ++b) {
     for (int offset = 0; offset < 8; ++offset) {
 
@@ -1898,7 +1912,7 @@ void create_q4_0_weights(const uint8_t *int4_weight, uint8_t *q4_0_weight) {
 
   // Create masks for extracting low and high nibbles
   const __m128i low_nibble_mask = _mm_set1_epi8(0x0F);
-  const __m128i high_nibble_mask = _mm_set1_epi8(0xF0);
+  const __m128i high_nibble_mask = _mm_set1_epi8(static_cast<char>(0xF0));
 
   // Extract low nibbles from first 8 bytes
   __m128i A = _mm_and_si128(input, low_nibble_mask);
