@@ -131,7 +131,7 @@ elif arch == 'x86' or arch == 'x86_64'
   message('Build for X86 architecture')
   if cxx_compiler_id == 'msvc'
     add_project_arguments(['/arch:AVX2'], language: ['c','cpp'])
-   add_project_arguments(['cpp_args=/MT'], language: ['c','cpp'] )
+    # Note: C runtime library (/MT or /MD) is controlled by b_vscrt option
   else
     add_project_arguments(['-march=native'], language: ['c','cpp'])
     add_project_arguments(['-mavx2', '-mfma'], language: ['c','cpp'])

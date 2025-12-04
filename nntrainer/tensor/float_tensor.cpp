@@ -488,8 +488,8 @@ void FloatTensor::sum_by_batch(Tensor &output) const {
 
   Tensor ones(1, 1, 1, feat_len, this->getFormat());
   ones.setValue(1.0);
-  sgemv((unsigned int)dim.getStorageOrder(), false, batch, feat_len, 1, data,
-        feat_len, ones.getData<float>(), 1, 0.0, out_data, 1);
+  sgemv((unsigned int)dim.getStorageOrder(), false, (int)batch, (int)feat_len,
+        1, data, (int)feat_len, ones.getData<float>(), 1, 0.0, out_data, 1);
 }
 
 Tensor &FloatTensor::sum(unsigned int axis, Tensor &output, float alpha,
@@ -516,8 +516,9 @@ Tensor &FloatTensor::sum(unsigned int axis, Tensor &output, float alpha,
     size_t batch = dim.batch();
     Tensor ones(1, 1, 1, batch, getTensorType());
     ones.setValue(alpha);
-    sgemv((unsigned int)dim.getStorageOrder(), true, batch, feat_len, 1, data,
-          feat_len, ones.getData<float>(), 1, beta, output.getData<float>(), 1);
+    sgemv((unsigned int)dim.getStorageOrder(), true, (int)batch, (int)feat_len,
+          1, data, (int)feat_len, ones.getData<float>(), 1, beta,
+          output.getData<float>(), 1);
   } break;
   case 1: {
     CREATE_IF_EMPTY_DIMS(output, dim[0], 1, dim[2], dim[3], getTensorType());
@@ -526,8 +527,8 @@ Tensor &FloatTensor::sum(unsigned int axis, Tensor &output, float alpha,
       unsigned int t_axis = dim[1];
       Tensor ones(1, 1, 1, t_axis, getTensorType());
       ones.setValue(alpha);
-      sgemv((unsigned int)dim.getStorageOrder(), false, feat_len, t_axis, 1,
-            data, t_axis, ones.getData<float>(), 1, beta,
+      sgemv((unsigned int)dim.getStorageOrder(), false, (int)feat_len,
+            (int)t_axis, 1, data, (int)t_axis, ones.getData<float>(), 1, beta,
             output.getData<float>(), 1);
     } else {
       unsigned int feat_len = dim[2] * dim[3];
@@ -536,9 +537,9 @@ Tensor &FloatTensor::sum(unsigned int axis, Tensor &output, float alpha,
       ones.setValue(alpha);
       float *rdata = output.getData<float>();
       for (unsigned int k = 0; k < dim[0]; ++k) {
-        sgemv((unsigned int)dim.getStorageOrder(), true, t_axis, feat_len, 1,
-              &data[k * dim.getFeatureLen()], feat_len, ones.getData<float>(),
-              1, beta, &rdata[k * feat_len], 1);
+        sgemv((unsigned int)dim.getStorageOrder(), true, (int)t_axis,
+              (int)feat_len, 1, &data[k * dim.getFeatureLen()], (int)feat_len,
+              ones.getData<float>(), 1, beta, &rdata[k * feat_len], 1);
       }
     }
   } break;
@@ -551,9 +552,9 @@ Tensor &FloatTensor::sum(unsigned int axis, Tensor &output, float alpha,
       ones.setValue(alpha);
       float *rdata = output.getData<float>();
       for (unsigned int k = 0; k < dim[0]; ++k) {
-        sgemv((unsigned int)dim.getStorageOrder(), true, t_axis, feat_len, 1,
-              &data[k * dim.getFeatureLen()], feat_len, ones.getData<float>(),
-              1, beta, &rdata[k * feat_len], 1);
+        sgemv((unsigned int)dim.getStorageOrder(), true, (int)t_axis,
+              (int)feat_len, 1, &data[k * dim.getFeatureLen()], (int)feat_len,
+              ones.getData<float>(), 1, beta, &rdata[k * feat_len], 1);
       }
     } else {
       unsigned int t_3 = dim[3];
@@ -569,14 +570,14 @@ Tensor &FloatTensor::sum(unsigned int axis, Tensor &output, float alpha,
             unsigned int ridx =
               k * output.getDim().getFeatureLen() + c * dim[3];
 
-            sgemv((unsigned int)dim.getStorageOrder(), true, t_axis, t_3, 1,
-                  &data[idx], t_3, ones.getData<float>(), 1, beta, &rdata[ridx],
-                  1);
+            sgemv((unsigned int)dim.getStorageOrder(), true, (int)t_axis,
+                  (int)t_3, 1, &data[idx], (int)t_3, ones.getData<float>(), 1,
+                  beta, &rdata[ridx], 1);
           }
         }
       } else {
-        sgemv((unsigned int)dim.getStorageOrder(), true, t_axis,
-              output.getDim().getDataLen(), 1, data, t_axis,
+        sgemv((unsigned int)dim.getStorageOrder(), true, (int)t_axis,
+              (int)output.getDim().getDataLen(), 1, data, (int)t_axis,
               ones.getData<float>(), 1, beta, output.getData<float>(), 1);
       }
     }
@@ -594,9 +595,9 @@ Tensor &FloatTensor::sum(unsigned int axis, Tensor &output, float alpha,
         for (unsigned int c = 0; c < dim[2]; ++c) {
           unsigned int idx = k * dim.getFeatureLen() + c * dim[3] * dim[1];
           unsigned int ridx = k * output.getDim().getFeatureLen() + c * dim[1];
-          sgemv((unsigned int)dim.getStorageOrder(), true, t_axis, t_3, 1,
-                &data[idx], t_3, ones.getData<float>(), 1, beta, &rdata[ridx],
-                1);
+          sgemv((unsigned int)dim.getStorageOrder(), true, (int)t_axis,
+                (int)t_3, 1, &data[idx], (int)t_3, ones.getData<float>(), 1,
+                beta, &rdata[ridx], 1);
         }
       }
     } else {
@@ -606,8 +607,9 @@ Tensor &FloatTensor::sum(unsigned int axis, Tensor &output, float alpha,
       ones.setValue(alpha);
 
       if (dim.getStorageOrder() == TStorageOrder::ROW_MAJOR) {
-        sgemv((unsigned int)dim.getStorageOrder(), false, m, n, 1, data, n,
-              ones.getData<float>(), 1, beta, output.getData<float>(), 1);
+        sgemv((unsigned int)dim.getStorageOrder(), false, (int)m, (int)n, 1,
+              data, (int)n, ones.getData<float>(), 1, beta,
+              output.getData<float>(), 1);
       } else {
         float *rdata = output.getData<float>();
 
@@ -616,9 +618,9 @@ Tensor &FloatTensor::sum(unsigned int axis, Tensor &output, float alpha,
             unsigned int idx = k * dim.getFeatureLen() + c * dim[3] * dim[2];
             unsigned int ridx = k * dim[1] * dim[2] + c * dim[2];
 
-            sgemv((unsigned int)dim.getStorageOrder(), false, dim[2], n, 1,
-                  &data[idx], dim[2], ones.getData<float>(), 1, beta,
-                  &rdata[ridx], 1);
+            sgemv((unsigned int)dim.getStorageOrder(), false, (int)dim[2],
+                  (int)n, 1, &data[idx], (int)dim[2], ones.getData<float>(), 1,
+                  beta, &rdata[ridx], 1);
           }
         }
       }
@@ -1108,7 +1110,14 @@ void FloatTensor::topK(unsigned int k, void *output_data,
   output_dim.width(k);
   const auto output_strides = output_dim.computeStrides();
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4849)
+#endif
 #pragma omp parallel for collapse(3)
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
   for (int b = 0; b < static_cast<int>(batch); ++b) {
     for (int c = 0; c < static_cast<int>(channel); ++c) {
       for (int h = 0; h < static_cast<int>(height); ++h) {
@@ -1297,7 +1306,8 @@ std::vector<Tensor> FloatTensor::split(std::vector<size_t> sizes, int axis) {
     axis = 3;
   }
 
-  size_t total_size = std::accumulate(sizes.begin(), sizes.end(), 0);
+  size_t total_size =
+    std::accumulate(sizes.begin(), sizes.end(), static_cast<size_t>(0));
   NNTR_THROW_IF(dim.getTensorDim(axis) != total_size, std::invalid_argument)
     << "given sum of sizes did not match with origin tensor dim, tensor dim: "
     << dim.getTensorDim(axis) << " total size: " << total_size;

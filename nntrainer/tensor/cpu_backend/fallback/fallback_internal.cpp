@@ -84,33 +84,33 @@ void __fallback_copy_u16_fp32(const unsigned int N, const uint16_t *X,
 void __fallback_copy_fp32_u32(const unsigned int N, const float *X,
                               uint32_t *Y) {
   for (unsigned int i = 0; i < N; ++i) {
-    Y[i] = X[i];
+    Y[i] = static_cast<uint32_t>(X[i]);
   }
 }
 
 void __fallback_copy_fp32_u16(const unsigned int N, const float *X,
                               uint16_t *Y) {
   for (unsigned int i = 0; i < N; ++i) {
-    Y[i] = X[i];
+    Y[i] = static_cast<uint16_t>(X[i]);
   }
 }
 
 void __fallback_copy_fp32_u8(const unsigned int N, const float *X, uint8_t *Y) {
   for (unsigned int i = 0; i < N; ++i) {
-    Y[i] = X[i];
+    Y[i] = static_cast<uint8_t>(X[i]);
   }
 }
 
 void __fallback_copy_fp32_s16(const unsigned int N, const float *X,
                               int16_t *Y) {
   for (unsigned int i = 0; i < N; ++i) {
-    Y[i] = X[i];
+    Y[i] = static_cast<int16_t>(X[i]);
   }
 }
 
 void __fallback_copy_fp32_s8(const unsigned int N, const float *X, int8_t *Y) {
   for (unsigned int i = 0; i < N; ++i) {
-    Y[i] = X[i];
+    Y[i] = static_cast<int8_t>(X[i]);
   }
 }
 
@@ -154,8 +154,8 @@ void __fallback_scopy_int4_to_float32(const unsigned int N, const uint8_t *X,
                                       const unsigned int incX, float *Y,
                                       const unsigned int incY) {
   for (unsigned int idx = 0; idx < N; idx++) {
-    Y[2 * idx] = X[idx] >> 4;
-    Y[2 * idx + 1] = X[idx] & 0x0f;
+    Y[2 * idx] = static_cast<float>(X[idx] >> 4);
+    Y[2 * idx + 1] = static_cast<float>(X[idx] & 0x0f);
   }
 }
 

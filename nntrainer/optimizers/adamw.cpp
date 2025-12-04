@@ -65,7 +65,9 @@ void AdamW::setProperty(const std::vector<std::string> &values) {
 double AdamW::getUpdatedLearningRate(unsigned int iteration, double lr) const {
   auto &beta1 = std::get<PropsB1>(adam_props).get();
   auto &beta2 = std::get<PropsB2>(adam_props).get();
-  auto biasCorrection = [&](double f) { return 1.0 - pow(f, iteration + 1); };
+  auto biasCorrection = [&](double f) {
+    return 1.0 - (double)pow(f, iteration + 1);
+  };
   lr *= sqrt(biasCorrection(beta2)) / biasCorrection(beta1);
   return lr;
 }
@@ -110,7 +112,7 @@ void AdamW::applyGradient(RunOptimizerContext &context) {
     getUpdatedLearningRate(context.getIteration(), context.getLearningRate());
 
   std::function<double(double)> sqrtEps = [epsilon](double f) {
-    return 1 / (sqrtDouble(f) + epsilon);
+    return 1.0 / (sqrtDouble(f) + epsilon);
   };
   x_grad = wv.apply<float>(sqrtEps, x_grad);
   x_grad.multiply_i(wm);
