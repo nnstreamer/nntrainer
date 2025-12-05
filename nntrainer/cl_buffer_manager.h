@@ -29,14 +29,10 @@ namespace nntrainer {
  * @brief Support for Buffer management
  */
 
-class ClBufferManager : public Singleton<ClBufferManager> {
+class ClBufferManager : public Noncopyable, public Nonmovable {
 
 private:
-  /**
-   * @brief OpenCl context global instance
-   *
-   */
-  opencl::ContextManager &context_inst_ = opencl::ContextManager::Global();
+  opencl::ContextManager &context_manager_;
 
   /**
    * @brief Buffer size in bytes preset (256 mebibytes)
@@ -62,6 +58,10 @@ private:
   std::vector<void *> output_vec;
 
 public:
+  ClBufferManager() = delete;
+
+  ClBufferManager(opencl::ContextManager &context_manager) :
+    context_manager_(context_manager) {}
   /**
    * @brief Initialize Buffer objects.
    */

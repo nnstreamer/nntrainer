@@ -55,29 +55,31 @@ public:
   /** string to kernel pointer map*/
   using OclKernelMap = std::unordered_map<std::string, SharedPtrClKernel>;
 
-  // getting static instance of commandqueue, opencl context and buffermanager
-  opencl::CommandQueueManager &command_queue_inst_ =
-    opencl::CommandQueueManager::Global();
-
-  opencl::ContextManager &context_inst_ = opencl::ContextManager::Global();
-
-  ClBufferManager &clbuffInstance = ClBufferManager::Global();
-
   /**
    * @brief   Default constructor
    */
-  ClContext() : Context(std::make_shared<ContextData>()) {}
+  ClContext() :
+    Context(std::make_shared<ContextData>()),
+    context_manager_(),
+    command_queue_manager_(context_manager_),
+    buffer_manager_(context_manager_) {}
 
   /**
    * @brief destructor to release opencl commandQueue
    */
   ~ClContext() override {
     if (cl_initialized) {
-      command_queue_inst_.ReleaseCommandQueue();
-      // getContext() is called by clCreateKernel
-      context_inst_.ReleaseContext();
+      command_queue_manager_.ReleaseCommandQueue();
     }
   };
+
+  opencl::ContextManager &getContextManager() { return context_manager_; }
+
+  opencl::CommandQueueManager &getCommandQueueManager() {
+    return command_queue_manager_;
+  }
+
+  ClBufferManager &getBufferManager() { return buffer_manager_; }
 
   /**
    * @brief Factory register function, use this function to register custom
@@ -239,6 +241,12 @@ public:
   }
 
 private:
+  opencl::ContextManager context_manager_;
+
+  opencl::CommandQueueManager command_queue_manager_;
+
+  ClBufferManager buffer_manager_;
+
   /**
    * @brief   Overriden initialization function
    */
@@ -289,14 +297,14 @@ private:
       return true;
 
     // getContext() called inside createCommandQueue which creates clContext
-    bool result = command_queue_inst_.CreateCommandQueue();
+    bool result = command_queue_manager_.CreateCommandQueue();
 
     // Return false when creating command queue fails
     if (!result)
       return result;
 
     // initialize device buffers
-    clbuffInstance.initBuffers();
+    buffer_manager_.initBuffers();
     cl_initialized = result;
     return cl_initialized;
   };

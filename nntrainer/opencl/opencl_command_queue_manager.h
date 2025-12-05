@@ -15,6 +15,7 @@
 #define __OPENCL_COMMAND_QUEUE_MANAGER_H__
 
 #include "CL/cl.h"
+#include "opencl_context_manager.h"
 #include "opencl_kernel.h"
 #include "singleton.h"
 #include <memory>
@@ -27,8 +28,9 @@ namespace nntrainer::opencl {
  * @brief OpenCL command queue wrapper
  *
  */
-class CommandQueueManager : public Singleton<CommandQueueManager> {
+class CommandQueueManager : public Noncopyable, public Nonmovable {
 
+  ContextManager &context_manager_;
   /**
    * @brief cl_command_queue instance
    *
@@ -36,6 +38,11 @@ class CommandQueueManager : public Singleton<CommandQueueManager> {
   cl_command_queue command_queue_{nullptr};
 
 public:
+  CommandQueueManager() = delete;
+
+  CommandQueueManager(ContextManager &context_manager) :
+    context_manager_(context_manager) {}
+
   /**
    * @brief Create a Command Queue object
    *
