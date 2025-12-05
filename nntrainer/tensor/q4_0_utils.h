@@ -15,7 +15,36 @@
 #include <cstdint>
 #include <vector>
 
-#include "nntr_ggml_impl_common.h"
+#define QK4_0 32
+
+template <int K> constexpr int QK_0() {
+  if constexpr (K == 4) {
+    return 32;
+  }
+  if constexpr (K == 8) {
+    return 32;
+  }
+  return -1;
+}
+
+/**
+ * @brief block_q4_0xN
+ */
+template <int K, int N> struct block {
+  uint16_t d[N];                      // deltas for N qK_0 blocks
+  int8_t qs[(QK_0<K>() * N * K) / 8]; // quants for N qK_0 blocks
+};
+
+using block_q4_0x4 = block<4, 4>;
+using block_q4_0x8 = block<4, 8>;
+
+/**
+ * @brief block_q4_0
+ */
+typedef struct {
+  uint16_t d;            // delta
+  uint8_t qs[QK4_0 / 2]; // nibbles / quants
+} block_q4_0;
 
 namespace nntrainer {
 

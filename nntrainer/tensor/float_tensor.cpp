@@ -17,6 +17,8 @@
 #include <cpu_backend.h>
 #include <float_tensor.h>
 #include <int4_tensor.h>
+#include <q4_0_utils.h>
+
 #include <tensor.h>
 #include <util_func.h>
 
@@ -722,67 +724,75 @@ void FloatTensor::dot(std::vector<Tensor *> input, std::vector<Tensor *> output,
   float *data = (float *)getData();
   unsigned int M = getDim().height();
   unsigned int K = getDim().width();
+  Tdatatype input_dtype = input[0]->getDataType();
+
+  // Handle standard inputs
+  if (input_dtype != Tdatatype::Q4_0 && input_dtype != Tdatatype::QINT4) {
+    for (unsigned int i = 0; i < input.size(); ++i) {
+      dot(*input[i], *output[i], trans, trans_in, beta);
+    }
+    return;
+  }
 
   std::vector<unsigned int> Ns;
   std::vector<void *> mdatas;
   std::vector<float *> rdatas;
 
-  if (input[0]->getDataType() == Tdatatype::Q4_0) {
-    for (unsigned int i = 0; i < input.size(); ++i) {
-      int N = input[i]->getDim().width();
-      void *mdata = (void *)input[i]->getData<uint8_t>();
-      float *rdata = output[i]->getData<float>();
-#ifdef ENABLE_OPENCL
-      if (M == 1) {
-        gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
-      } else {
-        Ns.push_back(N);
-        mdatas.push_back(mdata);
-        rdatas.push_back(rdata);
-      }
-#else
-      /// @todo Support multi-weight q4_0 for x64
-      gemm_q4_0(M, N, K, data, K, (void *)mdata, N, rdata, N);
-#endif
-    }
+  for (unsigned int i = 0; i < input.size(); ++i) {
+    Ns.push_back(input[i]->getDim().width());
+    mdatas.push_back((void *)input[i]->getData<uint8_t>());
+    rdatas.push_back(output[i]->getData<float>());
+  }
 
 #ifdef ENABLE_OPENCL
-    if (M != 1) {
+  if (input_dtype == Tdatatype::Q4_0) {
+    if (M == 1) {
+      for (unsigned int i = 0; i < input.size(); ++i) {
+        gemm_q4_0(M, Ns[i], K, data, K, mdatas[i], Ns[i], rdatas[i], Ns[i]);
+      }
+    } else {
       gemm_q4_0_async_cl(mdatas, data, rdatas, M, Ns, K);
     }
-#endif
-  } else if (input[0]->getDataType() == Tdatatype::QINT4) {
-#ifndef ENABLE_OPENCL
-    throw std::runtime_error("Error: QINT4 Dot is not supported on CPU");
-#else
-    std::vector<uint16_t *> scales;
-
-    for (unsigned int i = 0; i < input.size(); ++i) {
-      int N = input[i]->getDim().width();
-      void *mdata = (void *)input[i]->getData<uint8_t>();
-      float *rdata = output[i]->getData<float>();
-      uint16_t *scale = input[i]->getScale<uint16_t>();
-
-      Ns.push_back(N);
-      mdatas.push_back(mdata);
-      rdatas.push_back(rdata);
-      scales.push_back(scale);
-    }
-
-    /// Asynchronous execution
-    if (M == 1) {
-      gemv_int4_async_cl(mdatas, scales, data, rdatas, K, Ns,
-                         Int4QTensor::getGroupSize());
+  } else { // QINT4
+    /// Run on GPU only when memory is a Shared Virual Memory
+    if (input[0]->getMemoryData()->isSVM() &&
+        output[0]->getMemoryData()->isSVM() && getMemoryData()->isSVM()) {
+      std::vector<uint16_t *> scales;
+      for (unsigned int i = 0; i < input.size(); ++i) {
+        scales.push_back(input[i]->getScale<uint16_t>());
+      }
+      if (M == 1) {
+        gemv_int4_async_cl(mdatas, scales, data, rdatas, K, Ns,
+                           Int4QTensor::getGroupSize());
+      } else {
+        openvino_gemm_async_cl(data, mdatas, scales, rdatas, M, Ns, K,
+                               Int4QTensor::getGroupSize());
+      }
     } else {
-      openvino_gemm_async_cl(data, mdatas, scales, rdatas, M, Ns, K,
-                             Int4QTensor::getGroupSize());
-    }
-#endif
-  } else {
-    for (unsigned int i = 0; i < input.size(); ++i) {
-      dot(*input[i], *output[i], trans, trans_in, beta);
+      /// @todo This should be replaced with standard CPU INT4 computation
+      for (unsigned int i = 0; i < input.size(); ++i) {
+        gemm_q4_0(M, Ns[i], K, data, K, (void *)input[i]->getData(), Ns[i],
+                  rdatas[i], Ns[i]);
+      }
     }
   }
+#else
+  if (input_dtype == Tdatatype::Q4_0) {
+    /// @todo Support multi-weight q4_0 for x64
+    for (unsigned int i = 0; i < input.size(); ++i) {
+      gemm_q4_0(M, Ns[i], K, data, K, mdatas[i], Ns[i], rdatas[i], Ns[i]);
+    }
+  } else { // QINT4
+    /// @note It is essential to understand that this section of the code
+    /// requires the `input` data to be converted to Q4_0 type, not QINT4 type.
+    /// This should be replaced with standard CPU INT4 computation instead of
+    /// using Q4_0.
+    for (unsigned int i = 0; i < input.size(); ++i) {
+      gemm_q4_0(M, Ns[i], K, data, K, (void *)input[i]->getData(), Ns[i],
+                rdatas[i], Ns[i]);
+    }
+  }
+#endif
 }
 
 Tensor &FloatTensor::dotFloat(Tensor const &input, Tensor &output, bool trans,
@@ -980,17 +990,24 @@ Tensor &FloatTensor::dotQInteger(Tensor const &input, Tensor &output,
       "Error: QINT4 Dot on CPU only supports PER_CHANNEL_AFFINE scheme");
   }
 #else
-  throw std::runtime_error(
-    "Error: FP16 should be enabled for QINT4 Dot on CPU");
+  /// @note It is essential to understand that this section of the code requires
+  /// the `input` data to be converted to Q4_0 type, not QINT4 type. This should
+  /// be replaced with standard CPU INT4 computation instead of using Q4_0.
+  gemm_q4_0(M, N, K, data, K, (void *)input.getData(), N, rdata, N);
 #endif
 #else
-  /// @note this should be if (M == 1) else
-  if (M == 1) {
-    gemv_int4_cl(mdata, input.getScale<uint16_t>(), data, rdata, K, N,
-                 Int4QTensor::getGroupSize());
+  if (input.getMemoryData()->isSVM() && output.getMemoryData()->isSVM() &&
+      getMemoryData()->isSVM()) {
+    if (M == 1) {
+      gemv_int4_cl(mdata, input.getScale<uint16_t>(), data, rdata, K, N,
+                   Int4QTensor::getGroupSize());
+    } else {
+      openvino_sgemm_cl(data, mdata, input.getScale<uint16_t>(), rdata, M, N, K,
+                        Int4QTensor::getGroupSize());
+    }
   } else {
-    openvino_sgemm_cl(data, mdata, input.getScale<uint16_t>(), rdata, M, N, K,
-                      Int4QTensor::getGroupSize());
+    /// @todo This should be replaced with standard CPU INT4 computation
+    gemm_q4_0(M, N, K, data, K, (void *)input.getData(), N, rdata, N);
   }
 #endif
 

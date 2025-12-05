@@ -82,6 +82,7 @@ static inline double find_max_diff(T *src, T *src2, int M, int N) {
 }
 
 #define QK4_0 32
+#define Q4_0 32
 /**
  * @brief q4_0 block
  *
