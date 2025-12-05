@@ -28,8 +28,6 @@
 #include <fp16.h>
 #include <layer_context.h>
 #include <tensor.h>
-#include <cblas.h>
-#include <cblas_interface.h>
 
 
 #define EXPECT_IN_RANGE(VAL, MIN, MAX)                                         \
@@ -1725,7 +1723,7 @@ TEST(blas_kernels, l2norm) {
                                   % MOD) *alpha);
   
   float gpu_result = nrm2Cl(A_fp32);
-  float cpu_result = cblas_dnrm2(size, B_fp32, 1);
+  float cpu_result = dnrm2(size, B_fp32, 1);
   delete[] B_fp32;
   
   EXPECT_FLOAT_EQ(gpu_result, cpu_result);
