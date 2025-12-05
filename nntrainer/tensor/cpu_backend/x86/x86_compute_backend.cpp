@@ -460,14 +460,10 @@ void clamp(const float *input, float *output, size_t length, float lower_bound,
   nntrainer::avx2::clamp(input, output, length, lower_bound, upper_bound);
 }
 
-void create_q4_0_weights(const uint8_t *int4_weight, uint8_t *q4_0_weight) {
-  nntrainer::avx2::create_q4_0_weights(int4_weight, q4_0_weight);
-}
-
 void transform_q4_0x_from_int4(size_t N, size_t K, const uint8_t *osv32_weights,
                                const uint16_t *osv32_scales,
                                size_t scale_group_size, void *dst_q4_0x) {
-  Q4_0Utils::transformQ4_0x_FromInt4(N, K, osv32_weights, osv32_scales,
-                                     scale_group_size, 8, dst_q4_0x);
+  nntrainer::avx2::transform_q4_0x8_from_int4(N, K, osv32_weights, osv32_scales,
+                                              scale_group_size, dst_q4_0x);
 }
 } /* namespace nntrainer */

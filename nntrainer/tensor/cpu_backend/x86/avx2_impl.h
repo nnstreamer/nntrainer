@@ -278,24 +278,20 @@ void copy_f16_f32(unsigned int N, const uint16_t *input, float *output);
 void copy_f32_f16(unsigned int N, const float *input, uint16_t *output);
 
 /**
- * @brief     Create a Q4_0 weights (without XOR 0x88) from int4 weights
+ * @brief Transform data from in-memory layout osv32_isv2 to block_q4_0x8
+ * in-memory layout.
  *
- * @param[in] int4_weight Pointer to the input 4-bit quantized weights array.
- * The array should contain 16 bytes representing 32 4-bit values. Each byte
- * contains two 4-bit quantized values packed together.
- * @param[out] q4_0_weight Pointer to the output 4-bit quantized weights
- * array. The array should contain 16 bytes representing 32 4-bit values. Each
- * byte contains two 4-bit quantized values packed together.
- * @note      The input int4_weight array should contain exactly 32 4-bit
- * values (16 bytes) to match the weight of Q4_0 block size (32 elements per
- * block).
- * Input:  | 0, 1 | 2, 3 | 4, 5 | ... |14,15 |16,17 | ... |28,29 |30,31 |
- *         | A, B | A, B | A, B | ... | A, B | C, D | ... | C, D | C, D |
- *
- * Output: | 0,16 | 1,17 | 2,18 | 3,19 | ...          ... |14,30 |15,31 |
- *         | A, C | B, D | A, C | B, D | ...          ... | A, C | B, D |
+ * @param N number of rows
+ * @param K number of columns
+ * @param osv32_weights uint8_t* data of weights in osv32_isv2 layout
+ * @param osv32_scales fp16* scales
+ * @param scale_group_size group size (32 or 64 or 128)
+ * @param dst_q4_0x void * output data in block_q4_0x8 or block_q4_0x4 layout
  */
-void create_q4_0_weights(const uint8_t *int4_weight, uint8_t *q4_0_weight);
+void transform_q4_0x8_from_int4(size_t N, size_t K,
+                                const uint8_t *osv32_weights,
+                                const uint16_t *osv32_scales,
+                                size_t scale_group_size, void *dst_q4_0x);
 
 } // namespace nntrainer::avx2
 

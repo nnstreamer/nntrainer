@@ -830,6 +830,23 @@ void compute_rotary_emb_value_uint16(unsigned int width, unsigned int dim,
                                      const float *sin_,
                                      bool only_convert_to_fp16);
 #endif
+
+/**
+ * @brief Transform data from in-memory layout osv32_isv2 to block_q4_0x4
+ * in-memory layout.
+ *
+ * @param N number of rows
+ * @param K number of columns
+ * @param osv32_weights uint8_t* data of weights in osv32_isv2 layout
+ * @param osv32_scales fp16* scales
+ * @param scale_group_size group size (32 or 64 or 128)
+ * @param dst_q4_0x void * output data in block_q4_0x8 or block_q4_0x4 layout
+ */
+void transform_q4_0x4_from_int4(size_t N, size_t K,
+                                const uint8_t *osv32_weights,
+                                const uint16_t *osv32_scales,
+                                size_t scale_group_size, void *dst_q4_0x);
+
 } // namespace nntrainer::neon
 
 #endif /* __cplusplus */

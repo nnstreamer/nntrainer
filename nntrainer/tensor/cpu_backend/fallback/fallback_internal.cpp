@@ -613,25 +613,12 @@ void __fallback_clamp(const float *input, float *output, size_t length,
   }
 }
 
-void __fallback_create_q4_0_weights(const uint8_t *int4_weight,
-                                    uint8_t *q4_0_weight) {
-  for (int i = 0; i < 8; i++) {
-    char v0 = int4_weight[i] & 0xF;
-    char v1 = (int4_weight[i] >> 4) & 0xF;
-    char v2 = int4_weight[8 + i] & 0xF;
-    char v3 = (int4_weight[8 + i] >> 4) & 0xF;
-    q4_0_weight[2 * i] = (v0 | (v2 << 4));
-    q4_0_weight[2 * i + 1] = (v1 | (v3 << 4));
-  }
-}
-
 void __fallback_transform_q4_0x_from_int4(size_t N, size_t K,
                                           const uint8_t *osv32_weights,
                                           const uint16_t *osv32_scales,
                                           size_t scale_group_size,
                                           void *dst_q4_0x) {
-  Q4_0Utils::transformQ4_0x_FromInt4(N, K, osv32_weights, osv32_scales,
-                                     scale_group_size, 8, dst_q4_0x);
+  throw std::runtime_error("NYI : __fallback_transform_q4_0x_from_int4");
 }
 
 } // namespace nntrainer
