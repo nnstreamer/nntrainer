@@ -18,10 +18,6 @@
 #include "q4_0_utils.h"
 #include "util_func.h"
 
-#ifdef __AVX2__
-#include <immintrin.h>
-#endif
-
 namespace nntrainer {
 
 void Q4_0Utils::unpackOneBlockQ4_0x4(const block_q4_0x4 *in, block_q4_0 *dst) {
@@ -142,106 +138,13 @@ void Q4_0Utils::dequantizeQ4_0x8(const void *q4_weight_repacked, int N, int K,
                                  dequantized_weights, K * N);
 }
 
-inline static void nntr_make_block_q4_0x4(const block_q4_0 *in,
-                                          block_q4_0x4 *out) {
-  constexpr size_t IN_CNT = 4;
-  constexpr size_t HALF_SIZE = 8;
-
-  for (int i = 0; i < IN_CNT; ++i) {
-    out->d[i] = in[i].d;
-  }
-
-  for (int i = 0; i < IN_CNT; ++i) {
-    memcpy(&out->qs[i * HALF_SIZE], &in[i].qs[0], HALF_SIZE);
-  }
-  for (int i = 0; i < IN_CNT; ++i) {
-    memcpy(&out->qs[IN_CNT * HALF_SIZE + i * HALF_SIZE], &in[i].qs[8],
-           HALF_SIZE);
-  }
-}
-
-inline static void nntr_make_block_q4_0x8(const block_q4_0 *in,
-                                          block_q4_0x8 *out) {
-  constexpr size_t IN_CNT = 8;
-  constexpr size_t HALF_SIZE = 8;
-
-  for (int i = 0; i < IN_CNT; ++i) {
-    out->d[i] = in[i].d;
-  }
-
-  for (int i = 0; i < IN_CNT; ++i) {
-    memcpy(&out->qs[i * HALF_SIZE], &in[i].qs[0], HALF_SIZE);
-  }
-  for (int i = 0; i < IN_CNT; ++i) {
-    memcpy(&out->qs[IN_CNT * HALF_SIZE + i * HALF_SIZE], &in[i].qs[8],
-           HALF_SIZE);
-  }
-}
-
 void Q4_0Utils::transformQ4_0x_FromInt4(size_t N, size_t K,
                                         const uint8_t *osv32_weights,
                                         const uint16_t *osv32_scales,
                                         size_t scale_group_size,
                                         int q4_0x_block_size, void *dst_q4_0x) {
-
-  NNTR_THROW_IF((!(scale_group_size == 32 || scale_group_size == 64 ||
-                   scale_group_size == 128)),
-                std::invalid_argument)
-    << "Scale group size must be 32/64/128";
-  NNTR_THROW_IF(K % QK4_0 != 0, std::invalid_argument)
-    << "K size must be divisable by QK4_0 (32)";
-  NNTR_THROW_IF(N % 8 != 0, std::invalid_argument)
-    << "N size must be divisable by 8";
-  NNTR_THROW_IF((!(q4_0x_block_size == 4 || q4_0x_block_size == 8)),
-                std::invalid_argument)
-    << "q4_0x_block_size must be 4 or 8";
-
-  static constexpr const size_t ROW_BLOCK_SIZE = 32;
-  static constexpr const size_t COLUMN_BLOCK_SIZE = 2;
-
-  uint8_t int4_weight[16];
-  uint16_t scale;
-  block_q4_0 dst_tmp[8];
-  uint8_t *dst_ = reinterpret_cast<uint8_t *>(dst_q4_0x);
-
-  // --- Layout ---
-  const size_t rows_count_pad = align(N, ROW_BLOCK_SIZE);
-  const size_t columns_count_pad = align(K, ROW_BLOCK_SIZE);
-  const size_t column_blocks_count =
-    columns_count_pad / COLUMN_BLOCK_SIZE; // COLUMN_BLOCK_SIZE == 2
-  const size_t bytes_per_row_block_span = column_blocks_count * ROW_BLOCK_SIZE;
-
-  for (size_t row_id = 0; row_id < N; row_id += q4_0x_block_size) {
-    const size_t row_block_id = row_id / ROW_BLOCK_SIZE;
-    size_t i_in_block = row_id % ROW_BLOCK_SIZE;
-    for (int64_t column_idx = 0; column_idx < K; column_idx += QK4_0) {
-      for (size_t i = 0; i < q4_0x_block_size; i++) {
-        int row_idx = row_id + i;
-        // Address the bytes for this row
-        const size_t row_block_base =
-          row_block_id * bytes_per_row_block_span + i_in_block + i;
-        int index0 = row_block_base + (column_idx / 2) * ROW_BLOCK_SIZE;
-
-        for (size_t column_block_id = 0; column_block_id < 16;
-             ++column_block_id) {
-          int4_weight[column_block_id] =
-            osv32_weights[index0 + column_block_id * ROW_BLOCK_SIZE];
-        }
-        scale = osv32_scales[row_idx +
-                             (column_idx / scale_group_size) * rows_count_pad];
-
-        create_q4_0_weights(int4_weight, dst_tmp[i].qs);
-        dst_tmp[i].d = scale;
-      }
-      // Repack Q4_0 data
-      if (q4_0x_block_size == 4) {
-        nntr_make_block_q4_0x4(dst_tmp, (block_q4_0x4 *)dst_);
-      } else {
-        nntr_make_block_q4_0x8(dst_tmp, (block_q4_0x8 *)dst_);
-      }
-      dst_ += q4_0x_block_size * sizeof(block_q4_0);
-    }
-  }
+  nntrainer::transform_q4_0x_from_int4(N, K, osv32_weights, osv32_scales,
+                                       scale_group_size, dst_q4_0x);
 }
 
 void Q4_0Utils::printBlockQ4_0(const block_q4_0 *block) {

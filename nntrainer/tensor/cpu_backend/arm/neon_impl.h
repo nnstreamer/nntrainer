@@ -593,6 +593,13 @@ void custom_scopy(const unsigned int N, const float *X, const int incX,
 void copy_int4_to_fp32(const unsigned int N, const uint8_t *X, float *Y);
 
 /**
+ * @brief     Create Q4_0 weights from int4 weights using NEON optimization
+ * @param[in] int4_weight uint8_t* input int4 weights (16 bytes)
+ * @param[out] q4_0_weight uint8_t* output Q4_0 weights (16 bytes)
+ */
+void create_q4_0_weights(const uint8_t *int4_weight, uint8_t *q4_0_weight);
+
+/**
  * @brief     sine with neon: Y = sin(alpha * X)
  * @param[in] N number of elements in X
  * @param[in] X float * for Vector X
@@ -830,6 +837,23 @@ void compute_rotary_emb_value_uint16(unsigned int width, unsigned int dim,
                                      const float *sin_,
                                      bool only_convert_to_fp16);
 #endif
+
+/**
+ * @brief Transform data from in-memory layout osv32_isv2 to block_q4_0x4
+ * in-memory layout.
+ *
+ * @param N number of rows
+ * @param K number of columns
+ * @param osv32_weights uint8_t* data of weights in osv32_isv2 layout
+ * @param osv32_scales fp16* scales
+ * @param scale_group_size group size (32 or 64 or 128)
+ * @param dst_q4_0x void * output data in block_q4_0x8 or block_q4_0x4 layout
+ */
+void transform_q4_0x4_from_int4(size_t N, size_t K,
+                                const uint8_t *osv32_weights,
+                                const uint16_t *osv32_scales,
+                                size_t scale_group_size, void *dst_q4_0x);
+
 } // namespace nntrainer::neon
 
 #endif /* __cplusplus */
