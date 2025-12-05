@@ -1908,42 +1908,6 @@ void copy_f32_f16(unsigned int N, const float *input, uint16_t *output) {
   }
 }
 
-void create_q4_0_weights(const uint8_t *int4_weight, uint8_t *q4_0_weight) {
-  // Load 16 bytes of input data
-  __m128i input = _mm_loadu_si128((const __m128i *)int4_weight);
-
-  // Create masks for extracting low and high nibbles
-  const __m128i low_nibble_mask = _mm_set1_epi8(0x0F);
-  const __m128i high_nibble_mask = _mm_set1_epi8(static_cast<char>(0xF0));
-
-  // Extract low nibbles from first 8 bytes
-  __m128i A = _mm_and_si128(input, low_nibble_mask);
-
-  // Extract high nibbles from first 8 bytes and shift right
-  __m128i B = _mm_and_si128(input, high_nibble_mask);
-  B = _mm_srli_epi16(B, 4);
-
-  // Extract low nibbles from second 8 bytes
-  __m128i input_shifted = _mm_bsrli_si128(input, 8);
-  __m128i C = _mm_and_si128(input_shifted, low_nibble_mask);
-
-  // Extract high nibbles from second 8 bytes and shift right
-  __m128i D = _mm_and_si128(input_shifted, high_nibble_mask);
-  D = _mm_srli_epi16(D, 4);
-
-  // Interleave low nibbles: v0 from first8, v2 from second8
-  __m128i AC = _mm_or_si128(A, _mm_slli_epi16(C, 4));
-
-  // Interleave high nibbles: v1 from first8, v3 from second8
-  __m128i BD = _mm_or_si128(B, _mm_slli_epi16(D, 4));
-
-  // Pack the results: interleave low and high bytes
-  __m128i result = _mm_unpacklo_epi8(AC, BD);
-
-  // Store the 16 bytes result
-  _mm_storeu_si128((__m128i *)q4_0_weight, result);
-}
-
 static inline void transpose_matrix_16x16(const uint8_t *input,
                                           int input_stride, uint8_t *output,
                                           int output_stride) {
@@ -2011,6 +1975,22 @@ static inline void transpose_matrix_16x16(const uint8_t *input,
   }
 }
 
+/**
+ * @brief     Create a Q4_0 weights (without XOR 0x88) from int4 weights
+ *
+ * @param[in] int4_weight Pointer to the input 4-bit quantized weights array.
+ * The array should contain 8 * 16 bytes representing 8 * 32 4-bit values. Each
+ * byte contains two 4-bit quantized values packed together.
+ * @param[out] q4_0_weight Pointer to the output 4-bit quantized weights
+ * array. The array should contain 8 * 16 bytes representing 8 * 32 4-bit
+ * values. Each byte contains two 4-bit quantized values packed together.
+ *
+ * Input:  | 0, 1 | 2, 3 | 4, 5 | ... |14,15 |16,17 | ... |28,29 |30,31 |
+ *         | A, B | A, B | A, B | ... | A, B | C, D | ... | C, D | C, D |
+ *
+ * Output: | 0,16 | 1,17 | 2,18 | 3,19 | ...          ... |14,30 |15,31 |
+ *         | A, C | B, D | A, C | B, D | ...          ... | A, C | B, D |
+ */
 static inline void create_q4_0_weights_x8(const uint8_t *int4_weight,
                                           uint8_t *q4_blocks) {
   constexpr const size_t ROW_BLOCK_BYTE_SIZE = 16;

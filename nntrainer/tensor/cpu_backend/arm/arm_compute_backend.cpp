@@ -521,10 +521,6 @@ void compute_rotary_emb_value(unsigned int width, unsigned int dim,
 #endif
 }
 
-void create_q4_0_weights(const uint8_t *int4_weight, uint8_t *q4_0_weight) {
-  nntrainer::neon::create_q4_0_weights(int4_weight, q4_0_weight);
-}
-
 void transform_q4_0x_from_int4(size_t N, size_t K, const uint8_t *osv32_weights,
                                const uint16_t *osv32_scales,
                                size_t scale_group_size, void *dst_q4_0x) {

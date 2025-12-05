@@ -593,13 +593,6 @@ void custom_scopy(const unsigned int N, const float *X, const int incX,
 void copy_int4_to_fp32(const unsigned int N, const uint8_t *X, float *Y);
 
 /**
- * @brief     Create Q4_0 weights from int4 weights using NEON optimization
- * @param[in] int4_weight uint8_t* input int4 weights (16 bytes)
- * @param[out] q4_0_weight uint8_t* output Q4_0 weights (16 bytes)
- */
-void create_q4_0_weights(const uint8_t *int4_weight, uint8_t *q4_0_weight);
-
-/**
  * @brief     sine with neon: Y = sin(alpha * X)
  * @param[in] N number of elements in X
  * @param[in] X float * for Vector X
