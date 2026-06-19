@@ -922,17 +922,15 @@ void MHACoreLayer::finalize(nntrainer::InitLayerContext &context) {
   /** Weight for Sink */
   use_sink = std::get<props::UseSink>(mha_core_props).get();
   if (use_sink) {
-#if ENABLE_FP16 && defined(__ANDROID__)
-    nntrainer::TensorDim sink_dim(
-      1, 1, 1, num_heads_Q,
-      nntrainer::TensorDim::TensorType(context.getFormat(),
-                                       ml::train::TensorDim::DataType::FP16));
-#else
+    // The sink weight must match the attention compute precision. On Android
+    // (ENABLE_FP16) the attention math now accumulates in fp32 over the
+    // fp16-stored K/V cache (see forwarding()/incremental_forwarding()), so the
+    // sink stays in the activation (fp32) type on every platform. Keeping it
+    // fp32 here matches the fp32 softmax_row/softmax_row_inplace sink overload.
     nntrainer::TensorDim sink_dim(
       1, 1, 1, num_heads_Q,
       nntrainer::TensorDim::TensorType(context.getFormat(),
                                        context.getActivationDataType()));
-#endif
     sink_idx = context.requestWeight(sink_dim, nntrainer::Initializer::ZEROS,
                                      nntrainer::WeightRegularizer::NONE, 0.0f,
                                      0.0f, "sink");
@@ -953,6 +951,9 @@ void MHACoreLayer::finalize(nntrainer::InitLayerContext &context) {
   // the reference attention kernels.
   use_gemm_attention = false;
 #endif
+
+  /** Static read-only cross-attention mode (Option B); default false. */
+  cross_attention = std::get<props::CrossAttention>(mha_core_props).get();
 
   /** Static read-only cross-attention mode (Option B); default false. */
   cross_attention = std::get<props::CrossAttention>(mha_core_props).get();
@@ -1351,54 +1352,20 @@ void MHACoreLayer::forwarding(nntrainer::RunLayerContext &context,
       output_step_dim, batch * output_dim.getFeatureLen(), true);
 
     if (query_step.getDataType() == ml::train::TensorDim::DataType::FP32) {
-#if defined(ENABLE_OPENCL) && defined(ENABLE_FP16)
-      // FP32 operands: the device route, else the host arms with their
-      // operands held for the host (see incremental_forwarding()).
-      if (attention_fp32_on_device(
-            batch, from, from, to, query_step, key_step, value_step,
-            output_step, cache_key, cache_value, cache_key_dim,
-            cache_key_step_dim, cache_value_dim, cache_value_step_dim))
-        continue;
-      // The host arms below read Q/K/V and write O on the host: wait for their
-      // producers and hold the planes for the host until the layer is done.
-      HostSvmAccess host_io;
-      host_io.add(query_step, /*read_only=*/true);
-      host_io.add(key_step, /*read_only=*/true);
-      host_io.add(value_step, /*read_only=*/true);
-      host_io.add(output_step, /*read_only=*/false);
-#endif
-#if ENABLE_FP16 && defined(__ANDROID__)
-      nntrainer::TensorDim Q_step_dim = query_step_dim;
-      nntrainer::TensorDim K_step_dim = key_step_dim;
-      nntrainer::TensorDim V_step_dim = value_step_dim;
-      nntrainer::TensorDim O_step_dim = output_step_dim;
-      Q_step_dim.setDataType(ml::train::TensorDim::DataType::FP16);
-      K_step_dim.setDataType(ml::train::TensorDim::DataType::FP16);
-      V_step_dim.setDataType(ml::train::TensorDim::DataType::FP16);
-      O_step_dim.setDataType(ml::train::TensorDim::DataType::FP16);
-
-      nntrainer::Tensor Q_step = nntrainer::Tensor(Q_step_dim, true);
-      nntrainer::Tensor K_step = nntrainer::Tensor(K_step_dim, true);
-      nntrainer::Tensor V_step = nntrainer::Tensor(V_step_dim, true);
-      nntrainer::Tensor O_step = nntrainer::Tensor(O_step_dim, true);
-
-      Q_step.copyData(query_step);
-      K_step.copyData(key_step);
-      V_step.copyData(value_step);
-
-      if (use_sink) {
-        one_batch_incremental_forwarding(
-          batch, from, from, to, Q_step, K_step, V_step, O_step, cache_key,
-          cache_value, cache_key_dim, cache_key_step_dim, cache_value_dim,
-          cache_value_step_dim, sink);
-      } else {
-        one_batch_incremental_forwarding(batch, from, from, to, Q_step, K_step,
-                                         V_step, O_step, cache_key, cache_value,
-                                         cache_key_dim, cache_key_step_dim,
-                                         cache_value_dim, cache_value_step_dim);
-      }
-      output_step.copyData(O_step);
-#else
+      // FP32-accumulation attention over the fp16-stored K/V cache.
+      //
+      // Previously the Android (ENABLE_FP16) path converted Q/K/V to fp16 and
+      // ran the all-fp16 NEON kernels, accumulating QK^T and the V-weighted sum
+      // in fp16. That lost too much precision and diverged from the desktop
+      // result (caption token parity broke). We now pass the fp32 Q/K/V through
+      // directly on every platform: compute_kcaches()/softmax_triangle()/
+      // compute_fp16vcache_transposed() then dispatch on the fp32 query and use
+      // compute_kcaches_fp32_reference + fp32 softmax_row +
+      // compute_fp16vcache_fp32_transposed, which read the fp16 cache converted
+      // to fp32 and accumulate in fp32 -- exactly matching the desktop path.
+      // The cache STORAGE stays fp16 (allocateAndBindKVCache unchanged); only
+      // the math precision changes. This is the same data flow as the desktop
+      // build, so behavior is identical across platforms.
       if (use_sink) {
         one_batch_incremental_forwarding(
           batch, from, from, to, query_step, key_step, value_step, output_step,
@@ -1410,7 +1377,6 @@ void MHACoreLayer::forwarding(nntrainer::RunLayerContext &context,
           cache_key, cache_value, cache_key_dim, cache_key_step_dim,
           cache_value_dim, cache_value_step_dim);
       }
-#endif
     } else {
       one_batch_incremental_forwarding(
         batch, from, from, to, query_step, key_step, value_step, output_step,
@@ -1548,60 +1514,11 @@ void MHACoreLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
       output_step_dim, batch * output_dim.getFeatureLen(), true);
 
     if (query_step.getDataType() == ml::train::TensorDim::DataType::FP32) {
-#if defined(ENABLE_OPENCL) && defined(ENABLE_FP16)
-      // FP32-activation model with the device attention on. The device arms
-      // (RoPE, image / flash attention) take FP16 operands in shared virtual
-      // memory, and this layer's operands are FP32. The host path below reads
-      // Q/K/V while the projections that write them can still be in the queue
-      // (V comes straight from its projection, so it was read stale), and on
-      // ARM its FP16 copies are host heap that no device arm can take, so
-      // decode also lands on the slow host arm. Narrow on the device into
-      // FP16 planes instead, run the same path as an FP16-activation model and
-      // widen O back on the device.
-      if (attention_fp32_on_device(
-            batch, _from, from, to, query_step, key_step, value_step,
-            output_step, cache_key, cache_value, cache_key_dim,
-            cache_key_step_dim, cache_value_dim, cache_value_step_dim))
-        continue;
-      // The host arms below read Q/K/V and write O on the host: wait for their
-      // producers and hold the planes for the host until the layer is done.
-      HostSvmAccess host_io;
-      host_io.add(query_step, /*read_only=*/true);
-      host_io.add(key_step, /*read_only=*/true);
-      host_io.add(value_step, /*read_only=*/true);
-      host_io.add(output_step, /*read_only=*/false);
-#endif
-#if ENABLE_FP16 && defined(__ANDROID__)
-      nntrainer::TensorDim Q_step_dim = query_step_dim;
-      nntrainer::TensorDim K_step_dim = key_step_dim;
-      nntrainer::TensorDim V_step_dim = value_step_dim;
-      nntrainer::TensorDim O_step_dim = output_step_dim;
-      Q_step_dim.setDataType(ml::train::TensorDim::DataType::FP16);
-      K_step_dim.setDataType(ml::train::TensorDim::DataType::FP16);
-      V_step_dim.setDataType(ml::train::TensorDim::DataType::FP16);
-      O_step_dim.setDataType(ml::train::TensorDim::DataType::FP16);
-
-      nntrainer::Tensor Q_step = nntrainer::Tensor(Q_step_dim, true);
-      nntrainer::Tensor K_step = nntrainer::Tensor(K_step_dim, true);
-      nntrainer::Tensor V_step = nntrainer::Tensor(V_step_dim, true);
-      nntrainer::Tensor O_step = nntrainer::Tensor(O_step_dim, true);
-
-      Q_step.copyData(query_step);
-      K_step.copyData(key_step);
-      V_step.copyData(value_step);
-      if (use_sink) {
-        one_batch_incremental_forwarding(
-          batch, _from, from, to, Q_step, K_step, V_step, O_step, cache_key,
-          cache_value, cache_key_dim, cache_key_step_dim, cache_value_dim,
-          cache_value_step_dim, sink);
-      } else {
-        one_batch_incremental_forwarding(batch, _from, from, to, Q_step, K_step,
-                                         V_step, O_step, cache_key, cache_value,
-                                         cache_key_dim, cache_key_step_dim,
-                                         cache_value_dim, cache_value_step_dim);
-      }
-      output_step.copyData(O_step);
-#else
+      // FP32-accumulation attention over the fp16-stored K/V cache (same
+      // rationale as forwarding(); see the comment there). On Android
+      // (ENABLE_FP16) we no longer down-cast Q/K/V to fp16; the fp32 query
+      // routes the compute helpers through the fp32-reference accumulation,
+      // reading the fp16 cache converted to fp32. Cache storage stays fp16.
       if (use_sink) {
         one_batch_incremental_forwarding(
           batch, _from, from, to, query_step, key_step, value_step, output_step,
@@ -1613,7 +1530,6 @@ void MHACoreLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
           cache_key, cache_value, cache_key_dim, cache_key_step_dim,
           cache_value_dim, cache_value_step_dim);
       }
-#endif
     } else {
       one_batch_incremental_forwarding(
         batch, _from, from, to, query_step, key_step, value_step, output_step,
