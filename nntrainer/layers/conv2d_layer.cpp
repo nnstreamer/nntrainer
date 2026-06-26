@@ -299,8 +299,7 @@ Conv2DLayer::Conv2DLayer(
   padding(padding_),
   conv_props(props::FilterSize(), std::array<props::KernelSize, CONV2D_DIM>(),
              std::array<props::Stride, CONV2D_DIM>(), props::Padding2D(),
-             std::array<props::Dilation, CONV2D_DIM>(),
-             props::FusedActivation()) {
+             std::array<props::Dilation, CONV2D_DIM>(), props::ConvGroups()) {
   wt_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
@@ -328,10 +327,18 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
   auto &dilation =
     std::get<std::array<props::Dilation, CONV2D_DIM>>(conv_props);
 
+  auto &groups_prop = std::get<props::ConvGroups>(conv_props);
+  unsigned int groups = groups_prop.empty() ? 1 : groups_prop.get();
+  NNTR_THROW_IF(in_dim.channel() % groups != 0 || filter_size % groups != 0,
+                std::invalid_argument)
+    << "[Conv2D] input channels (" << in_dim.channel() << ") and filters ("
+    << filter_size << ") must both be divisible by groups (" << groups << ")";
+
   auto in_t_type = in_dim.getTensorType();
   in_t_type.data_type = context.getWeightDataType();
 
-  TensorDim kernel_dim = TensorDim(filter_size, in_dim.channel(),
+  // Each filter spans in_channels/groups input channels (grouped convolution).
+  TensorDim kernel_dim = TensorDim(filter_size, in_dim.channel() / groups,
                                    kernel_size[0], kernel_size[1], in_t_type);
 
   TensorDim bias_dim = TensorDim(1, filter_size, 1, 1, in_t_type);
@@ -450,42 +457,75 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
   const TensorDim &in_dim = input_.getDim();
   const TensorDim &out_dim = hidden_.getDim();
   const TensorDim &filter_dim = filter_kernel.getDim();
-  TensorDim filter_dim_squeezed{filter_kernel.batch(),
-                                filter_kernel.getDim().getFeatureLen()};
+  auto &groups_prop = std::get<props::ConvGroups>(conv_props);
+  unsigned int groups = groups_prop.empty() ? 1 : groups_prop.get();
 
-  filter_dim_squeezed.setTensorType(filter_kernel.getTensorType());
+  if (groups == 1) {
+    TensorDim filter_dim_squeezed{filter_kernel.batch(),
+                                  filter_kernel.getDim().getFeatureLen()};
 
-  filter_kernel.reshape(filter_dim_squeezed);
+    filter_dim_squeezed.setTensorType(filter_kernel.getTensorType());
 
-  /**
-   * Below sets the pad area values to zero
-   * it is faster to do this way than seting selective area to zero
-   */
-  auto forwarding_job = [&](unsigned int s, unsigned int e, unsigned int pid,
-                            void *user_data) {
-    Tensor result = Tensor(calcCol2ImOutputDim(out_dim, filter_dim));
-    result.setZero();
-    for (unsigned int b = s; b < e; ++b) {
-      Tensor out = hidden_.getBatchSlice(b, 1);
-      out.reshape({filter_size, out_dim.width() * out_dim.height()});
-      Tensor in_sub = input_.getBatchSlice(b, 1);
+    filter_kernel.reshape(filter_dim_squeezed);
 
-      im2col(in_sub, filter_dim, padding, stride, dilation, result);
-      // filter kernel is (K, CRS), result is (CRS, OH*OW)
-      filter_kernel.dot(result, out, false, true);
+    /**
+     * Below sets the pad area values to zero
+     * it is faster to do this way than seting selective area to zero
+     */
+    auto forwarding_job = [&](unsigned int s, unsigned int e, unsigned int pid,
+                              void *user_data) {
+      Tensor result = Tensor(calcCol2ImOutputDim(out_dim, filter_dim));
+      result.setZero();
+      for (unsigned int b = s; b < e; ++b) {
+        Tensor out = hidden_.getBatchSlice(b, 1);
+        out.reshape({filter_size, out_dim.width() * out_dim.height()});
+        Tensor in_sub = input_.getBatchSlice(b, 1);
+
+        im2col(in_sub, filter_dim, padding, stride, dilation, result);
+        // filter kernel is (K, CRS), result is (CRS, OH*OW)
+        filter_kernel.dot(result, out, false, true);
+      }
+      result.deallocate();
+    };
+
+    auto workers = ParallelBatch(forwarding_job, in_dim.batch(), nullptr);
+
+    if (workers.getNumWorkers() > 1) {
+      workers.run();
+    } else {
+      forwarding_job(0, in_dim.batch(), 0, nullptr);
     }
-    result.deallocate();
-  };
 
-  auto workers = ParallelBatch(forwarding_job, in_dim.batch(), nullptr);
-
-  if (workers.getNumWorkers() > 1) {
-    workers.run();
+    filter_kernel.reshape(filter_dim);
   } else {
-    forwarding_job(0, in_dim.batch(), 0, nullptr);
+    // Grouped convolution: split channels into `groups` independent groups.
+    const unsigned int ocg = filter_size / groups;      // out ch per group
+    const unsigned int icg = in_dim.channel() / groups; // in ch per group
+    const unsigned int fh = filter_dim.height(), fw = filter_dim.width();
+    const unsigned int owoh = out_dim.width() * out_dim.height();
+    const unsigned int ihw = in_dim.height() * in_dim.width();
+    TensorDim fdim_g(ocg, icg, fh, fw, filter_dim.getTensorType());
+
+    for (unsigned int b = 0; b < in_dim.batch(); ++b) {
+      Tensor out = hidden_.getBatchSlice(b, 1);
+      out.reshape({filter_size, owoh});
+      Tensor in_sub = input_.getBatchSlice(b, 1);
+      Tensor result = Tensor(calcCol2ImOutputDim(out_dim, fdim_g));
+      for (unsigned int g = 0; g < groups; ++g) {
+        Tensor in_g = in_sub.getSharedDataTensor(
+          {1, icg, in_dim.height(), in_dim.width()}, (size_t)g * icg * ihw);
+        Tensor filt_g = filter_kernel.getSharedDataTensor(
+          {ocg, (size_t)icg * fh * fw}, (size_t)g * ocg * icg * fh * fw);
+        Tensor out_g =
+          out.getSharedDataTensor({ocg, owoh}, (size_t)g * ocg * owoh);
+        result.setZero();
+        im2col(in_g, fdim_g, padding, stride, dilation, result);
+        filt_g.dot(result, out_g, false, true);
+      }
+      result.deallocate();
+    }
   }
 
-  filter_kernel.reshape(filter_dim);
   if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
       disable_bias.empty() || disable_bias.get() == false) {
     Tensor &bias_kernel = context.getWeight(wt_idx[ConvParams::bias]);
@@ -509,6 +549,11 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
 }
 
 void Conv2DLayer::calcDerivative(RunLayerContext &context) {
+  NNTR_THROW_IF(!std::get<props::ConvGroups>(conv_props).empty() &&
+                  std::get<props::ConvGroups>(conv_props).get() != 1,
+                std::invalid_argument)
+    << "[Conv2D] backward for grouped convolution (groups>1) is not yet "
+       "implemented; only forward/inference is supported.";
   unsigned int filter_size = std::get<props::FilterSize>(conv_props);
   auto &stride = std::get<std::array<props::Stride, CONV2D_DIM>>(conv_props);
   auto &dilation =
@@ -559,6 +604,11 @@ void Conv2DLayer::calcDerivative(RunLayerContext &context) {
 }
 
 void Conv2DLayer::calcGradient(RunLayerContext &context) {
+  NNTR_THROW_IF(!std::get<props::ConvGroups>(conv_props).empty() &&
+                  std::get<props::ConvGroups>(conv_props).get() != 1,
+                std::invalid_argument)
+    << "[Conv2D] backward for grouped convolution (groups>1) is not yet "
+       "implemented; only forward/inference is supported.";
   unsigned int filter_size = std::get<props::FilterSize>(conv_props);
   auto &stride = std::get<std::array<props::Stride, CONV2D_DIM>>(conv_props);
   auto &dilation =

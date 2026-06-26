@@ -113,7 +113,7 @@ private:
   std::array<unsigned int, CONV2D_DIM * 2> padding;
   std::tuple<props::FilterSize, std::array<props::KernelSize, CONV2D_DIM>,
              std::array<props::Stride, CONV2D_DIM>, props::Padding2D,
-             std::array<props::Dilation, CONV2D_DIM>, props::FusedActivation>
+             std::array<props::Dilation, CONV2D_DIM>, props::ConvGroups>
     conv_props;
 
   std::array<unsigned int, 5> wt_idx; /**< indices of the weights and tensors */
