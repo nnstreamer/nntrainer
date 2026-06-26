@@ -26,6 +26,7 @@
 #include <cassert>
 #include <chrono>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <ctime>
 #include <fstream>
@@ -1013,15 +1014,23 @@ int main(int argc, char *argv[]) {
       off += scales[i].H * scales[i].W;
     }
 
-    const float conf_thres = 0.25f, iou_thres = 0.70f;
+    const float conf_thres =
+      std::getenv("YOLO_CONF") ? std::stof(std::getenv("YOLO_CONF")) : 0.25f;
+    const float iou_thres =
+      std::getenv("YOLO_IOU") ? std::stof(std::getenv("YOLO_IOU")) : 0.70f;
     auto dets = yolov11::nms(decoded, N_total, conf_thres, iou_thres, 300);
 
     std::cout << "\nDetections (conf>=" << conf_thres
               << ", xyxy @832): " << dets.size() << std::endl;
     for (size_t i = 0; i < dets.size(); ++i) {
       const auto &d = dets[i];
+      // area in pixels^2 (832 scale)
+      float area = (d.x2 - d.x1) * (d.y2 - d.y1);
+      float cx = (d.x1 + d.x2) * 0.5f;
+      float cy = (d.y1 + d.y2) * 0.5f;
       std::cout << "  [" << i << "] (" << d.x1 << ", " << d.y1 << ", " << d.x2
                 << ", " << d.y2 << ")  conf=" << d.conf << " cls=" << d.cls
+                << " area=" << area << " center=(" << cx << "," << cy << ")"
                 << std::endl;
     }
 
