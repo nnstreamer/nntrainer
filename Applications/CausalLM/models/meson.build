@@ -24,3 +24,8 @@ if get_option('platform') != 'windows'
     subdir('gpt_oss_cached_slim')
     subdir('qwen3_cached_slim_moe')
 endif
+
+# YOLOv11 inference harness
+if get_option('enable-app')
+    subdir('YOLOv11/jni')
+endif
