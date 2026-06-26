@@ -46,8 +46,9 @@ namespace {
  * @details Fuses what would otherwise be a separate Activation layer (a full
  * extra read+write pass over the conv output) into the conv epilogue. The
  * sigmoid is evaluated in fp32 and cast back to T so an FP16 activation graph
- * does not lose precision (or overflow exp) in the half domain. Called after all
- * conv compute completes, so it is never nested inside another parallel_for.
+ * does not lose precision (or overflow exp) in the half domain. Called after
+ * all conv compute completes, so it is never nested inside another
+ * parallel_for.
  *
  * @note ThreadManager::parallel_for invokes its callback through a type-erased
  * std::function PER INDEX, so iterating it at element granularity would pay a
@@ -313,8 +314,9 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
 
           if (unit_dil) {
             /// Fast path (dilation == 1): for each output column position the
-            /// kernel-width window maps a contiguous source run in_row[w_lo,w_hi)
-            /// to a contiguous dest run; copy it in one memcpy.
+            /// kernel-width window maps a contiguous source run
+            /// in_row[w_lo,w_hi) to a contiguous dest run; copy it in one
+            /// memcpy.
             const T *in_row = in_base + (size_t)c * inHW + (size_t)h * inW;
             unsigned int im_w = base_im_w;
             for (int ws = -(int)pl; ws <= w_stride_end; ws += mstride[1]) {
@@ -436,15 +438,16 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
                             kernel_size[0], kernel_size[1], in_t_type);
   // A quantized (groups==1) conv stores its filter as a [CRS, out_ch] matmul
   // weight (CRS = in_ch*kh*kw), consumed by the quantized GEMM after im2col.
-  TensorDim kernel_dim =
-    quant_matmul_filter
-      ? TensorDim(1, 1,
-                  in_dim.channel() * kernel_size[0].get() * kernel_size[1].get(),
-                  filter_size, in_t_type)
-      : real_kernel_dim;
+  TensorDim kernel_dim = quant_matmul_filter
+                           ? TensorDim(1, 1,
+                                       in_dim.channel() * kernel_size[0].get() *
+                                         kernel_size[1].get(),
+                                       filter_size, in_t_type)
+                           : real_kernel_dim;
 
   // Bias is never quantized (no dequantizer for add); follow activation dtype
-  // like other compute layers so a Q4_0/QINT4 weight does not force a Q4_0 bias.
+  // like other compute layers so a Q4_0/QINT4 weight does not force a Q4_0
+  // bias.
   auto bias_t_type = in_dim.getTensorType();
   bias_t_type.data_type = context.getActivationDataType();
   TensorDim bias_dim = TensorDim(1, filter_size, 1, 1, bias_t_type);
@@ -504,9 +507,9 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
   if (groups == 1) {
     auto scratch_type = in_dim.getTensorType();
     const unsigned int owoh = out_dim.width() * out_dim.height();
-    const bool is_1x1_s1 =
-      kernel_size[0].get() == 1 && kernel_size[1].get() == 1 &&
-      stride[0].get() == 1 && stride[1].get() == 1;
+    const bool is_1x1_s1 = kernel_size[0].get() == 1 &&
+                           kernel_size[1].get() == 1 && stride[0].get() == 1 &&
+                           stride[1].get() == 1;
     // im2col column buffer [batch, 1, CRS, OH*OW]. Unused by the quant paths
     // that never materialize a col buffer: the 1x1 path (im2col is an identity
     // handled by an input transpose) and, where the fused backend op exists,
@@ -591,9 +594,8 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
     // *input* (activation is the receiver), so we keep that layout as-is and do
     // NOT squeeze it to [out_ch, CRS] like the FP32 path.
     const auto weight_dtype = filter_kernel.getDataType();
-    const bool weight_is_quant =
-      (weight_dtype == nntrainer::Tdatatype::Q4_0 ||
-       weight_dtype == nntrainer::Tdatatype::QINT4);
+    const bool weight_is_quant = (weight_dtype == nntrainer::Tdatatype::Q4_0 ||
+                                  weight_dtype == nntrainer::Tdatatype::QINT4);
     const unsigned int owoh = out_dim.width() * out_dim.height();
 
     TensorDim filter_dim_squeezed{filter_kernel.batch(),
@@ -607,9 +609,9 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
      * Below sets the pad area values to zero
      * it is faster to do this way than seting selective area to zero
      */
-    const bool is_1x1_s1 =
-      kernel_size[0].get() == 1 && kernel_size[1].get() == 1 &&
-      stride[0].get() == 1 && stride[1].get() == 1;
+    const bool is_1x1_s1 = kernel_size[0].get() == 1 &&
+                           kernel_size[1].get() == 1 && stride[0].get() == 1 &&
+                           stride[1].get() == 1;
     // Pre-allocated forward scratch (requested once in finalize). The im2col
     // column buffer is used by the FP32 path and the quant non-1x1 *fallback*;
     // the quant 1x1 path (identity input transpose) and the quant non-1x1 fused
@@ -648,8 +650,8 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
             TensorDim(1, 1, owoh, filter_size, in_sub.getTensorType()));
           if (is_1x1_s1) {
             // 1x1 stride-1: im2col is an identity. The raw input is laid out as
-            // [in_ch, OH*OW] (NCHW), so transpose to the act layout [OH*OW, CRS]
-            // (CRS == in_ch here).
+            // [in_ch, OH*OW] (NCHW), so transpose to the act layout [OH*OW,
+            // CRS] (CRS == in_ch here).
             in_sub.reshape({in_dim.channel(), owoh});
             Tensor act = in_sub.transpose("0:2:1");
             act.dot(filter_kernel, tmp, false, false);
@@ -679,11 +681,12 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
             TensorDim kdim(filter_size, in_dim.channel(), kernel_size[0].get(),
                            kernel_size[1].get(), in_sub.getTensorType());
             Tensor col = col_scratch->getBatchSlice(b, 1);
-            // im2col reshapes col in place to [OH*OW, CRS] (spatial-major), which
-            // is ALREADY the act layout — no transpose (unlike the raw-input 1x1
-            // branch above). Transposing here gives [CRS, OH*OW] and makes the
-            // GEMM emit CRS rows into the owoh-row `tmp`, overflowing it whenever
-            // CRS > owoh (deep convs) -> heap corruption.
+            // im2col reshapes col in place to [OH*OW, CRS] (spatial-major),
+            // which is ALREADY the act layout — no transpose (unlike the
+            // raw-input 1x1 branch above). Transposing here gives [CRS, OH*OW]
+            // and makes the GEMM emit CRS rows into the owoh-row `tmp`,
+            // overflowing it whenever CRS > owoh (deep convs) -> heap
+            // corruption.
             im2col(in_sub, kdim, padding, stride, dilation, col);
             col.dot(filter_kernel, tmp, false, false);
           }
@@ -740,10 +743,10 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
                hidden_.getDataType() == nntrainer::Tdatatype::FP16 &&
                filter_kernel.getDataType() == nntrainer::Tdatatype::FP32) {
       // FP16-activation depthwise: weights are never Q4_0 for groups>1 and stay
-      // FP32 (BN-folded), so this is FP16 input/output x FP32 kernel. Keep it on
-      // the tight channel-parallel direct-loop kernel instead of falling into
-      // the generic grouped else-branch (per-channel im2col + FP16 GEMV), which
-      // was ~2x slower for YOLOv11's detect-head depthwise convs.
+      // FP32 (BN-folded), so this is FP16 input/output x FP32 kernel. Keep it
+      // on the tight channel-parallel direct-loop kernel instead of falling
+      // into the generic grouped else-branch (per-channel im2col + FP16 GEMV),
+      // which was ~2x slower for YOLOv11's detect-head depthwise convs.
       nntrainer::getComputeOps()->depthwise_conv2d_fp16(
         input_.getData<_FP16>(), filter_kernel.getData<float>(),
         hidden_.getData<_FP16>(), in_dim.batch(), filter_size, in_dim.height(),

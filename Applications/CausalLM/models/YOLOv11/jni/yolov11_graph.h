@@ -231,8 +231,7 @@ inline Tensor convBias1x1(const std::string &name, int out_ch, int in_ch,
   std::vector<std::string> conv_props = {
     nntrainer::withKey("name", name + "/conv"),
     nntrainer::withKey("kernel_size", {1, 1}),
-    nntrainer::withKey("filters", out_ch),
-    nntrainer::withKey("stride", {1, 1}),
+    nntrainer::withKey("filters", out_ch), nntrainer::withKey("stride", {1, 1}),
     nntrainer::withKey("padding", 0)};
   if (out_ch > 1 && out_ch % 32 == 0 && (in_ch * 1 * 1) % 32 == 0) {
     if (conv_q40)
@@ -346,13 +345,12 @@ inline Tensor buildC2PSA(const std::string &n, Tensor x,
   auto a = sliceCh(n + "/slice_a", 0, 256, cv1);
   auto b = sliceCh(n + "/slice_b", 256, 512, cv1);
 
-  auto qkv =
-    yolov11::convBnOnly(n + "/qkv", 256, 512, 1, 1, 0, b, conv_q40);
+  auto qkv = yolov11::convBnOnly(n + "/qkv", 256, 512, 1, 1, 0, b, conv_q40);
 
   std::vector<Tensor> v_parts;
   for (int h = 0; h < 4; ++h)
-    v_parts.push_back(sliceCh(n + "/slice_v" + std::to_string(h),
-                              h * 128 + 64, h * 128 + 128, qkv));
+    v_parts.push_back(sliceCh(n + "/slice_v" + std::to_string(h), h * 128 + 64,
+                              h * 128 + 128, qkv));
   LayerHandle vcat(
     createLayer("concat", {nntrainer::withKey("name", n + "/vcat"),
                            nntrainer::withKey("axis", 1)}));
@@ -367,8 +365,7 @@ inline Tensor buildC2PSA(const std::string &n, Tensor x,
     yolov11::convBnOnly(n + "/proj", 256, 256, 1, 1, 0, attn_pe, conv_q40);
   auto b1 = addT(n + "/res1", b, proj);
 
-  auto ffn0 =
-    yolov11::convBnSilu(n + "/ffn0", 256, 512, 1, 1, 0, b1, conv_q40);
+  auto ffn0 = yolov11::convBnSilu(n + "/ffn0", 256, 512, 1, 1, 0, b1, conv_q40);
   auto ffn1 =
     yolov11::convBnOnly(n + "/ffn1", 512, 256, 1, 1, 0, ffn0, conv_q40);
   auto b2 = addT(n + "/res2", b1, ffn1);

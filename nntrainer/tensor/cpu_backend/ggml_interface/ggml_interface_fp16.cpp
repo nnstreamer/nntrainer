@@ -560,7 +560,8 @@ void __ggml_q4_0_4x8_q8_0_indirect_GEMM_fp16(
 
   const unsigned int blocks_per_4_rows = (K + QK8_0 - 1) / QK8_0;
   const unsigned int qa_4_rows_size = sizeof(block_q8_0x4) * blocks_per_4_rows;
-  const size_t qa_row_size = (sizeof(block_q8_0) * K) / QK8_0; // ignore remainder
+  const size_t qa_row_size =
+    (sizeof(block_q8_0) * K) / QK8_0; // ignore remainder
   const unsigned int M4 = M / 4;
   const unsigned int rem = M % 4;
 
@@ -620,10 +621,10 @@ void __ggml_q4_0_4x8_q8_0_indirect_GEMM_fp16(
       unsigned int c_end = std::min(col_chunk_size * (c + 1), N);
 
 #if defined(__ARM_NEON)
-      nntr_gemm_q4_0_4x8_q8_0_fp16(
-        K, (_FP16 *)(C + r_start * N + c_start), ldc,
-        (void *)((char *)B + c_start * B_step),
-        (void *)(QA_ptr + r_start * A_step), r_end - r_start, c_end - c_start);
+      nntr_gemm_q4_0_4x8_q8_0_fp16(K, (_FP16 *)(C + r_start * N + c_start), ldc,
+                                   (void *)((char *)B + c_start * B_step),
+                                   (void *)(QA_ptr + r_start * A_step),
+                                   r_end - r_start, c_end - c_start);
 #else
       unsigned int t_rows = r_end - r_start;
       unsigned int t_cols = c_end - c_start;
@@ -657,8 +658,7 @@ void __ggml_q4_0_4x8_q8_0_indirect_GEMM_fp16(
           M_step_end - M_step_start);
       });
     }
-    __copy_f16_from_f32(tail32.data(), C + (size_t)M4 * 4 * N,
-                        (size_t)rem * N);
+    __copy_f16_from_f32(tail32.data(), C + (size_t)M4 * 4 * N, (size_t)rem * N);
   }
 }
 #endif

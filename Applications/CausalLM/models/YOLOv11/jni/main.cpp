@@ -463,8 +463,8 @@ int main(int argc, char *argv[]) {
     // block FP16. Must be set before compile().
     // Track whether activations are FP16 (the part after '-' in e.g.
     // "FP32-FP16" / "Q4_0-FP16" / "FP16-FP16"). YOLOv11's input is a float
-    // image (not token IDs), so for an FP16-activation model we must declare the
-    // input tensor as FP16 and feed genuine FP16 bytes — the InputLayer no
+    // image (not token IDs), so for an FP16-activation model we must declare
+    // the input tensor as FP16 and feed genuine FP16 bytes — the InputLayer no
     // longer promotes FP32->activation dtype (PR#4000), and the float* binding
     // reinterpret-casts without converting.
     bool fp16_act = false;
@@ -472,7 +472,8 @@ int main(int argc, char *argv[]) {
       model->setProperty({nntrainer::withKey("model_tensor_type", tt)});
       std::string tts = tt;
       auto dash = tts.find('-');
-      std::string act = (dash == std::string::npos) ? tts : tts.substr(dash + 1);
+      std::string act =
+        (dash == std::string::npos) ? tts : tts.substr(dash + 1);
       fp16_act = (act == "FP16");
       std::cout << "[YOLO] model_tensor_type = " << tt
                 << " (fp16_act=" << (fp16_act ? "1" : "0") << ")" << std::endl;
@@ -551,10 +552,10 @@ int main(int argc, char *argv[]) {
       model->save(out_q, ml::train::ModelFormat::MODEL_FORMAT_SAFETENSORS,
                   ml::train::TensorDim::DataType::NONE, dmap, isa);
       std::cout << "[YOLO] quantized " << dmap.size() << " conv filters -> "
-                << out_q
-                << " (isa=" << (std::getenv("YOLO_QUANTIZE_ISA")
-                                  ? std::getenv("YOLO_QUANTIZE_ISA")
-                                  : "default")
+                << out_q << " (isa="
+                << (std::getenv("YOLO_QUANTIZE_ISA")
+                      ? std::getenv("YOLO_QUANTIZE_ISA")
+                      : "default")
                 << ")" << std::endl;
       return 0;
     }

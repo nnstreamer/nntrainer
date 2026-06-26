@@ -1048,8 +1048,7 @@ public:
  * [out_ch, in_ch, kh, kw] so N=out_ch=batch and K=in_ch*kh*kw (CRS). Returns
  * (N, K) for the appropriate interpretation; batch>1 marks a conv filter.
  */
-inline std::pair<unsigned int, unsigned int>
-quantRowsCols(const TensorDim &d) {
+inline std::pair<unsigned int, unsigned int> quantRowsCols(const TensorDim &d) {
   if (d.batch() > 1) // conv filter: out_ch rows of CRS
     return {d.batch(), d.channel() * d.height() * d.width()};
   return {d.width(), d.height()}; // FC weight [1,1,K,N]
@@ -2608,8 +2607,7 @@ NeuralNetwork::inference(unsigned int batch_size,
     if (out_t.getDataType() == TensorDim::DataType::FP32) {
       output.push_back(out_t.getData());
     } else {
-      fp32_output_cache.emplace_back(
-        out_t.clone(TensorDim::DataType::FP32));
+      fp32_output_cache.emplace_back(out_t.clone(TensorDim::DataType::FP32));
       output.push_back(fp32_output_cache.back().getData());
     }
   }

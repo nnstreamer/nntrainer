@@ -43,10 +43,10 @@ void SliceLayer::finalize(InitLayerContext &context) {
 }
 
 /**
- * @brief dtype-correct element copy for the slice. getValue()/setValue() default
- * to T=float, so on an FP16 tensor a float read reinterprets two 2-byte halves
- * as one 4-byte float (and indexes at 2x stride) -> garbage. Dispatch on the
- * actual tensor dtype so the copy stays element-correct for any precision.
+ * @brief dtype-correct element copy for the slice. getValue()/setValue()
+ * default to T=float, so on an FP16 tensor a float read reinterprets two 2-byte
+ * halves as one 4-byte float (and indexes at 2x stride) -> garbage. Dispatch on
+ * the actual tensor dtype so the copy stays element-correct for any precision.
  */
 template <typename T>
 static void sliceForwardT(const Tensor &input, Tensor &output,

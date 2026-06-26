@@ -93,12 +93,11 @@ public:
    * the base class) it needs no transpose. Ineligible filters (out_ch or CRS
    * not 32-aligned) and the bias stay FP32.
    */
-  void save(std::ofstream &file, RunLayerContext &run_context, bool opt_var,
-            ml::train::ExecutionMode mode, bool trainable,
-            ml::train::TensorDim::DataType dtype =
-              ml::train::TensorDim::DataType::NONE,
-            ml::train::ISA target_isa =
-              ml::train::ISA::DEFAULT) const override;
+  void save(
+    std::ofstream &file, RunLayerContext &run_context, bool opt_var,
+    ml::train::ExecutionMode mode, bool trainable,
+    ml::train::TensorDim::DataType dtype = ml::train::TensorDim::DataType::NONE,
+    ml::train::ISA target_isa = ml::train::ISA::DEFAULT) const override;
 
   /**
    * @copydoc Layer::getType()

@@ -127,8 +127,8 @@ inline void gather_conv_act_rows(T *dst, const T *in, const ConvGatherParams &p,
  * @brief FP32 gather (legacy named entry; alias of the template instantiation).
  *
  * Kept as a concrete non-template function so existing FP32-indirect-conv
- * call sites (gemm_q4_0_indirect_conv_fp32 -> __ggml_q4_0_4x8_q8_0_indirect_GEMM)
- * keep their symbol and address-takability.
+ * call sites (gemm_q4_0_indirect_conv_fp32 ->
+ * __ggml_q4_0_4x8_q8_0_indirect_GEMM) keep their symbol and address-takability.
  */
 inline void gather_conv_act_rows_fp32(float *dst, const float *in,
                                       const ConvGatherParams &p, int m0,

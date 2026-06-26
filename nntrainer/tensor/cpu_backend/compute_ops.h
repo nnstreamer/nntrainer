@@ -410,10 +410,11 @@ public:
   // materialized FP16 im2col (preserving the indirect path's memory win for
   // W4A16). supports_*() lets the caller fall back when unavailable.
   virtual bool supports_gemm_q4_0_indirect_conv_fp16() const { return false; }
-  virtual void gemm_q4_0_indirect_conv_fp16(
-    unsigned int M, unsigned int N, unsigned int K, const _FP16 *in,
-    const ConvGatherParams &geom, const void *B, unsigned int ldb, _FP16 *C,
-    unsigned int ldc);
+  virtual void gemm_q4_0_indirect_conv_fp16(unsigned int M, unsigned int N,
+                                            unsigned int K, const _FP16 *in,
+                                            const ConvGatherParams &geom,
+                                            const void *B, unsigned int ldb,
+                                            _FP16 *C, unsigned int ldc);
   virtual void gemm_q6_K_fp16(const unsigned int M, const unsigned int N,
                               const unsigned int K, const _FP16 *A,
                               const unsigned int lda, const void *B,
