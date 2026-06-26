@@ -75,7 +75,10 @@ inline Tensor convBnSilu(const std::string &name, int in_ch, int out_ch, int k,
     nntrainer::withKey("kernel_size", {k, k}),
     nntrainer::withKey("filters", out_ch),
     nntrainer::withKey("stride", {stride, stride}),
-    nntrainer::withKey("padding", padding)};
+    nntrainer::withKey("padding", padding),
+    // Fuse SiLU into the conv epilogue (no separate Activation layer => one
+    // less full-tensor read+write pass per conv). See Conv2DLayer::forwarding.
+    nntrainer::withKey("fused_activation", "swish")};
   if (out_ch > 1 && out_ch % 32 == 0 && (in_ch * k * k) % 32 == 0) {
     if (conv_q40)
       conv_props.push_back(nntrainer::withKey("weight_dtype", "Q4_0"));
@@ -83,12 +86,7 @@ inline Tensor convBnSilu(const std::string &name, int in_ch, int out_ch, int k,
       quantConvSink()->push_back(name + "/conv");
   }
   LayerHandle conv(createLayer("conv2d", conv_props));
-  auto h = conv(input);
-
-  LayerHandle act(
-    createLayer("activation", {nntrainer::withKey("name", name + "/act"),
-                               nntrainer::withKey("activation", "swish")}));
-  return act(h);
+  return conv(input);
 }
 
 /**
@@ -255,12 +253,11 @@ inline Tensor dwConvBnSilu(const std::string &name, int ch, Tensor input) {
     {nntrainer::withKey("name", name + "/dw"),
      nntrainer::withKey("kernel_size", {3, 3}),
      nntrainer::withKey("filters", ch), nntrainer::withKey("groups", ch),
-     nntrainer::withKey("stride", {1, 1}), nntrainer::withKey("padding", 1)}));
-  auto h = dw(input);
-  LayerHandle act(
-    createLayer("activation", {nntrainer::withKey("name", name + "/act"),
-                               nntrainer::withKey("activation", "swish")}));
-  return act(h);
+     nntrainer::withKey("stride", {1, 1}), nntrainer::withKey("padding", 1),
+     // Fuse SiLU into the depthwise conv epilogue (no separate Activation
+     // layer). See Conv2DLayer::forwarding.
+     nntrainer::withKey("fused_activation", "swish")}));
+  return dw(input);
 }
 
 /**

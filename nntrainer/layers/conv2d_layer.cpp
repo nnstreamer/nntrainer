@@ -41,6 +41,38 @@ static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 namespace {
 
+/**
+ * @brief In-place SiLU / swish (x * sigmoid(x)) over a contiguous buffer.
+ * @details Fuses what would otherwise be a separate Activation layer (a full
+ * extra read+write pass over the conv output) into the conv epilogue. The
+ * sigmoid is evaluated in fp32 and cast back to T so an FP16 activation graph
+ * does not lose precision (or overflow exp) in the half domain. Called after all
+ * conv compute completes, so it is never nested inside another parallel_for.
+ *
+ * @note ThreadManager::parallel_for invokes its callback through a type-erased
+ * std::function PER INDEX, so iterating it at element granularity would pay a
+ * non-inlinable call per element (measured ~3x slower than a serial inlined
+ * loop). Instead we parallelize over a handful of contiguous chunks (one per
+ * compute thread) and run a tight, fully-inlined inner loop inside each — the
+ * std::function is then hit only ~nthreads times while the exp stays inlined.
+ */
+template <typename T>
+static inline void convApplySwishInplace(T *data, size_t n) {
+  auto &tm = ThreadManager::Global();
+  const size_t nthreads = std::max<size_t>(1, tm.getComputeThreadCount());
+  const size_t chunk = (n + nthreads - 1) / nthreads;
+  tm.parallel_for(0, nthreads, [&](size_t t) {
+    const size_t start = t * chunk;
+    if (start >= n)
+      return;
+    const size_t end = std::min(start + chunk, n);
+    for (size_t i = start; i < end; ++i) {
+      const float x = static_cast<float>(data[i]);
+      data[i] = static_cast<T>(x / (1.0f + std::exp(-x)));
+    }
+  });
+}
+
 static TensorDim calcCol2ImOutputDim(const TensorDim &out,
                                      const TensorDim &kdim) {
 
@@ -350,7 +382,8 @@ Conv2DLayer::Conv2DLayer(
   padding(padding_),
   conv_props(props::FilterSize(), std::array<props::KernelSize, CONV2D_DIM>(),
              std::array<props::Stride, CONV2D_DIM>(), props::Padding2D(),
-             std::array<props::Dilation, CONV2D_DIM>(), props::ConvGroups()) {
+             std::array<props::Dilation, CONV2D_DIM>(), props::ConvGroups(),
+             props::FusedActivation()) {
   wt_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
@@ -794,15 +827,22 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
     }
   }
 
-  // fused activation epilogue (value-identical to a standalone
-  // ActivationLayer); in-place for relu/sigmoid/tanh, else via a temp copy.
-  auto &fused_act = std::get<props::FusedActivation>(conv_props);
-  if (!fused_act.empty() && fused_act.get() != ActivationType::ACT_NONE) {
-    if (acti_func.supportInPlace()) {
-      acti_func.run_fn(hidden_, hidden_);
-    } else {
-      Tensor in_copy = hidden_.clone();
-      acti_func.run_fn(in_copy, hidden_);
+  // Fused activation epilogue. When the graph sets activation=swish on the
+  // conv, apply SiLU in-place on the freshly written output instead of
+  // materializing a separate Activation layer (which would read the conv
+  // output back from memory and write a second full tensor). Only SiLU is
+  // fused here (YOLOv11's conv activation); any other activation type is left
+  // to a dedicated Activation layer in the graph.
+  if (auto &act = std::get<props::FusedActivation>(conv_props);
+      !act.empty() && act.get() == ActivationType::ACT_SWISH) {
+    const size_t n = hidden_.size();
+#ifdef ENABLE_FP16
+    if (hidden_.getDataType() == nntrainer::Tdatatype::FP16) {
+      convApplySwishInplace(hidden_.getData<_FP16>(), n);
+    } else
+#endif
+    {
+      convApplySwishInplace(hidden_.getData<float>(), n);
     }
   }
 }
