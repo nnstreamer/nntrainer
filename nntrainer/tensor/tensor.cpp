@@ -1078,6 +1078,17 @@ Tensor &Tensor::dot(Tensor const &input, Tensor &output, bool trans,
   return output;
 }
 
+Tensor &Tensor::convQ4_0Indirect(Tensor const &weight, Tensor &output,
+                                 const ConvGatherParams &geom) const {
+  NNTR_THROW_IF(!getContiguous(), std::invalid_argument)
+    << getName() << " is not contiguous. Cannot run convQ4_0Indirect.";
+
+  checkContextCompatibility(weight, "convQ4_0Indirect");
+  itensor_->convQ4_0Indirect(weight, output, geom);
+  inheritContextTo(output);
+  return output;
+}
+
 Tensor &Tensor::dot_deriv_wrt_1(Tensor const &m, Tensor const &output_deriv,
                                 bool trans, bool trans_m, float beta) {
   bool deriv_trans_m = true;

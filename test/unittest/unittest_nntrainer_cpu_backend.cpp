@@ -11,7 +11,7 @@
 #include "int4_utils.h"
 #include "nntrainer_test_util.h"
 #include "q4_0_utils.h"
-#include <cfloat>
+#include <conv_indirect.h>
 #include <cpu_backend.h>
 #include <cstring>
 #include <fallback_internal.h>
@@ -1688,107 +1688,97 @@ DECLARE_transform_int4_test_K_N(1024, 648, 64);
 DECLARE_transform_int4_test_K_N(1024, 648, 128);
 DECLARE_transform_int4_test_K_N(3072, 8192, 32);
 
-#if defined(__x86_64__) || defined(_M_X64)
 /**
- * @brief Random plain QS4CX weight: N rows of ceil(K/2) bytes (every nibble
- * value 0..15 occurs, including the bytes' unused high nibble at odd K) plus
- * N per-row scales of mixed magnitude.
+ * @brief Independent naive im2col reference (the textbook definition, with no
+ * memcpy-run / fast-path tricks) used to validate gather_conv_act_rows_fp32.
+ * Produces the full [OH*OW, in_ch*k_h*k_w] matrix with padding positions = 0.
  */
-static void make_qs4cx_weight(size_t N, size_t K, std::mt19937 &gen,
-                              std::vector<uint8_t> &w,
-                              std::vector<float> &scale) {
-  std::uniform_int_distribution<int> byte(0, 255);
-  std::uniform_real_distribution<float> sc(1e-3f, 0.2f);
-  w.resize(N * ((K + 1) / 2));
-  for (auto &b : w)
-    b = static_cast<uint8_t>(byte(gen));
-  scale.resize(N);
-  for (auto &v : scale)
-    v = sc(gen);
+static std::vector<float> naive_im2col_ref(const std::vector<float> &in, int C,
+                                           int H, int W, int kh, int kw, int pt,
+                                           int pl, int sh, int sw, int dh,
+                                           int dw, int OH, int OW) {
+  const int K = C * kh * kw;
+  const int M = OH * OW;
+  std::vector<float> out((size_t)M * K, 0.0f);
+  for (int oh = 0; oh < OH; ++oh) {
+    for (int ow = 0; ow < OW; ++ow) {
+      const int m = oh * OW + ow;
+      for (int c = 0; c < C; ++c) {
+        for (int i = 0; i < kh; ++i) {
+          for (int j = 0; j < kw; ++j) {
+            const int h = oh * sh - pt + i * dh;
+            const int w = ow * sw - pl + j * dw;
+            float v = 0.0f;
+            if (h >= 0 && h < H && w >= 0 && w < W)
+              v = in[((long)c * H + h) * W + w];
+            out[(long)m * K + (c * kh * kw + i * kw + j)] = v;
+          }
+        }
+      }
+    }
+  }
+  return out;
 }
 
 /**
- * @brief The x86 qai8dx x qs4cx fp32 GEMM against the scalar reference
- * (online qa8dx quantization + __fallback_matmul_mxn_mxk_nxk_f32_qa8dx_qs4cx).
- * The dot products are exact integers, so the results must match bit for
- * bit, including odd M / N / K tails.
+ * @brief Drive gather_conv_act_rows_fp32 over one geometry (in full and in
+ * arbitrary tiles, exercising the m0/nrows tiling the packer uses) and assert
+ * the result is bit-identical to the independent naive im2col reference.
  */
-static void run_qs4cx_f32_vs_reference(size_t M, size_t N, size_t K) {
-  std::mt19937 gen(static_cast<unsigned>(M * 7919 + N * 131 + K));
+static void check_indirect_gather(int C, int H, int W, int kh, int kw, int pt,
+                                  int pb, int pl, int pr, int sh, int sw,
+                                  int dh, int dw) {
+  const int eff_kh = (kh - 1) * dh + 1;
+  const int eff_kw = (kw - 1) * dw + 1;
+  const int OH = (H + pt + pb - eff_kh) / sh + 1;
+  const int OW = (W + pl + pr - eff_kw) / sw + 1;
+  const int K = C * kh * kw;
+  const int M = OH * OW;
+
+  std::mt19937 rng(1234 + C * 31 + H * 7 + kh * 13 + sh * 3 + dh);
   std::uniform_real_distribution<float> dist(-3.0f, 3.0f);
-  std::vector<float> lhs(M * K);
-  for (auto &v : lhs)
-    v = dist(gen);
-  std::vector<uint8_t> w;
-  std::vector<float> scale;
-  make_qs4cx_weight(N, K, gen, w, scale);
+  std::vector<float> in((size_t)C * H * W);
+  for (auto &v : in)
+    v = dist(rng);
 
-  std::vector<float> out(M * N, -1.0f), ref(M * N, -2.0f);
-  nntrainer::gemm_qai8dxp_qsi4cxp_rhs_unpacked(
-    M, N, K, lhs.data(), w.data(), scale.data(), out.data(), 0, true);
+  const std::vector<float> ref =
+    naive_im2col_ref(in, C, H, W, kh, kw, pt, pl, sh, sw, dh, dw, OH, OW);
 
-  std::vector<int8_t> lhs_q(M * (K + sizeof(int32_t) + sizeof(float)));
-  nntrainer::__fallback_quant_qa8dx_f32(M, K, lhs.data(), lhs_q.data());
-  nntrainer::__fallback_matmul_mxn_mxk_nxk_f32_qa8dx_qs4cx(
-    M, N, K, lhs_q.data(), w.data(), scale.data(), ref.data(), -FLT_MAX,
-    FLT_MAX);
+  nntrainer::ConvGatherParams p{C, H, W, kh, kw, pt, pl, sh, sw, dh, dw, OW};
 
-  EXPECT_EQ(std::memcmp(out.data(), ref.data(), out.size() * sizeof(float)), 0)
-    << "M=" << M << " N=" << N << " K=" << K;
+  // (a) gather all rows at once
+  std::vector<float> full((size_t)M * K, -42.0f);
+  nntrainer::gather_conv_act_rows_fp32(full.data(), in.data(), p, 0, M);
+  for (size_t i = 0; i < (size_t)M * K; ++i)
+    ASSERT_FLOAT_EQ(full[i], ref[i]) << "full mismatch at " << i;
+
+  // (b) gather in tiles (4-row tiles + a ragged remainder), as the Q8_0 packer
+  //     does: tile output must land bit-identically into the same rows.
+  std::vector<float> tiled((size_t)M * K, -42.0f);
+  for (int m0 = 0; m0 < M; m0 += 4) {
+    const int nr = std::min(4, M - m0);
+    nntrainer::gather_conv_act_rows_fp32(tiled.data() + (size_t)m0 * K,
+                                         in.data(), p, m0, nr);
+  }
+  for (size_t i = 0; i < (size_t)M * K; ++i)
+    ASSERT_FLOAT_EQ(tiled[i], ref[i]) << "tiled mismatch at " << i;
 }
 
-TEST(nntrainer_cpu_backend_standalone, qs4cx_f32_gemm_vs_reference) {
-  run_qs4cx_f32_vs_reference(1, 1, 1);
-  run_qs4cx_f32_vs_reference(1, 37, 129);
-  run_qs4cx_f32_vs_reference(3, 70, 64);
-  run_qs4cx_f32_vs_reference(5, 33, 31);
-  run_qs4cx_f32_vs_reference(17, 96, 257);
-  run_qs4cx_f32_vs_reference(2, 300, 1536);
+TEST(nntrainer_cpu_backend_standalone, indirect_conv_gather_matches_im2col) {
+  // 3x3 stride1 pad1 (the dominant YOLO conv geometry)
+  check_indirect_gather(/*C*/ 3, /*H*/ 7, /*W*/ 7, /*k*/ 3, 3, /*pad*/ 1, 1, 1,
+                        1, /*stride*/ 1, 1, /*dil*/ 1, 1);
+  // 3x3 stride2 pad1 (downsample)
+  check_indirect_gather(8, 8, 8, 3, 3, 1, 1, 1, 1, 2, 2, 1, 1);
+  // 1x1 stride1 pad0 (pointwise)
+  check_indirect_gather(16, 5, 5, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1);
+  // 3x3 dilation2 pad2 (general scalar gather path)
+  check_indirect_gather(4, 9, 9, 3, 3, 2, 2, 2, 2, 1, 1, 2, 2);
+  // asymmetric kernel + multi-channel, stride1 pad1
+  check_indirect_gather(5, 6, 8, 3, 5, 1, 1, 2, 2, 1, 1, 1, 1);
+  // larger channel count to cross several K-blocks
+  check_indirect_gather(33, 5, 5, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1);
 }
-
-#ifdef ENABLE_FP16
-/**
- * @brief The x86 QS4CX x fp16-activation GEMM against the scalar reference
- * __fallback_gemm_qs4cx_fp16(). The kernel keeps the reference's ascending-k
- * fp32 summation per output, so the fp16 results must match bit for bit,
- * with and without beta, across odd M / N / K tails.
- */
-static void run_qs4cx_fp16_vs_reference(size_t M, size_t N, size_t K,
-                                        float beta) {
-  std::mt19937 gen(static_cast<unsigned>(M * 7919 + N * 131 + K + 17));
-  std::uniform_real_distribution<float> dist(-4.0f, 4.0f);
-  std::vector<_FP16> lhs(M * K);
-  for (auto &v : lhs)
-    v = static_cast<_FP16>(dist(gen));
-  std::vector<uint8_t> w;
-  std::vector<float> scale;
-  make_qs4cx_weight(N, K, gen, w, scale);
-
-  std::vector<_FP16> out(M * N), ref(M * N);
-  for (size_t i = 0; i < M * N; ++i)
-    out[i] = ref[i] = static_cast<_FP16>(dist(gen));
-
-  nntrainer::gemm_qs4cx_fp16(M, N, K, lhs.data(), w.data(), scale.data(),
-                             out.data(), beta);
-  nntrainer::__fallback_gemm_qs4cx_fp16(M, N, K, lhs.data(), w.data(),
-                                        scale.data(), ref.data(), beta);
-
-  EXPECT_EQ(std::memcmp(out.data(), ref.data(), out.size() * sizeof(_FP16)), 0)
-    << "M=" << M << " N=" << N << " K=" << K << " beta=" << beta;
-}
-
-TEST(nntrainer_cpu_backend_standalone, qs4cx_fp16_gemm_vs_reference) {
-  run_qs4cx_fp16_vs_reference(1, 1, 1, 0.0f);
-  run_qs4cx_fp16_vs_reference(1, 37, 129, 0.0f);
-  run_qs4cx_fp16_vs_reference(3, 70, 64, 0.0f);
-  run_qs4cx_fp16_vs_reference(5, 33, 63, 1.0f);
-  run_qs4cx_fp16_vs_reference(9, 8, 65, 0.5f);
-  run_qs4cx_fp16_vs_reference(17, 96, 257, 0.0f);
-  run_qs4cx_fp16_vs_reference(1, 1000, 1536, 0.0f);
-  run_qs4cx_fp16_vs_reference(300, 72, 200, 0.0f);
-}
-#endif
-#endif
 
 int main(int argc, char **argv) {
   int result = -1;

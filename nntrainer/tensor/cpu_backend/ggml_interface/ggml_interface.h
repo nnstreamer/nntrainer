@@ -16,6 +16,7 @@
 #define __GGML_INTERFACE_H__
 #ifdef __cplusplus
 
+#include <conv_indirect.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <tensor_dim.h>
@@ -161,6 +162,33 @@ void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int lda, const void *B,
                                const unsigned int ldb, T *C,
                                const unsigned int ldc);
+
+/**
+ * @brief Indirect (im2col-fused) Q4_0 x Q8_0 convolution GEMM.
+ *
+ * Computes out[M, N] = act[M, K] . W[K, N] where the activation matrix act is
+ * the im2col expansion of the NCHW input `in` (M = OH*OW, K = in_ch*kh*kw) but
+ * is never materialized: each Q8_0 activation tile is gathered from `in` via
+ * `geom` and quantized on the fly, then fed to the same q4_0_4x8_q8_0
+ * micro-kernels. Result is bit-identical to materializing im2col and calling
+ * __ggml_q4_0_4x8_q8_0_GEMM. ARM (i8mm) path only.
+ *
+ * @param M  output spatial size (OH*OW)
+ * @param N  output channels
+ * @param K  in_ch * kernel_h * kernel_w
+ * @param in batch-sliced contiguous NCHW input
+ * @param geom im2col gather geometry
+ * @param B  offline quantized + packed q4_0 weight [K, N]
+ * @param ldb leading dimension of B (unused; kept for signature symmetry)
+ * @param C  dst matrix [M, N]
+ * @param ldc leading dimension of C
+ */
+void __ggml_q4_0_4x8_q8_0_indirect_GEMM(const unsigned int M,
+                                        const unsigned int N,
+                                        const unsigned int K, const float *in,
+                                        const ConvGatherParams &geom,
+                                        const void *B, const unsigned int ldb,
+                                        float *C, const unsigned int ldc);
 
 /**
  * @brief A(M, K) * W.T(N, K) = (M, N)

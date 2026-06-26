@@ -472,9 +472,11 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
     const bool is_1x1_s1 =
       kernel_size[0].get() == 1 && kernel_size[1].get() == 1 &&
       stride[0].get() == 1 && stride[1].get() == 1;
-    // im2col column buffer [batch, 1, CRS, OH*OW]; unused only by the quant 1x1
-    // path (its im2col is an identity handled by an input transpose).
-    if (!(quant_matmul_filter && is_1x1_s1)) {
+    // im2col column buffer [batch, 1, CRS, OH*OW]. Unused by the quant paths
+    // that never materialize a col buffer: the 1x1 path (im2col is an identity
+    // handled by an input transpose) and, where the fused backend op exists,
+    // the non-1x1 path (gather is fused into the q8_0 activation packing).
+    if (!(quant_matmul_filter && (is_1x1_s1 || NNTR_HAS_Q4_0_INDIRECT_CONV))) {
       TensorDim col_dim(in_dim.batch(), 1, real_kernel_dim.getFeatureLen(),
                         owoh, scratch_type);
       wt_idx[ConvParams::im2col_scratch] =
@@ -574,12 +576,15 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
       kernel_size[0].get() == 1 && kernel_size[1].get() == 1 &&
       stride[0].get() == 1 && stride[1].get() == 1;
     // Pre-allocated forward scratch (requested once in finalize). The im2col
-    // column buffer is used by the FP32 path and the quant non-1x1 path; the
-    // quant 1x1 path needs neither (im2col is an identity input transpose).
+    // column buffer is used by the FP32 path and the quant non-1x1 *fallback*;
+    // the quant 1x1 path (identity input transpose) and the quant non-1x1 fused
+    // path (gather folded into the GEMM) need no col buffer — finalize skips
+    // allocating it for those, so the condition here must match exactly.
     // Zero the column buffer once up front (im2col skips padding; the GEMM
     // output is fully overwritten so it needs no zeroing). Each batch element
     // writes a disjoint batch-slice, so this stays correct under ParallelBatch.
-    const bool use_im2col_scratch = !(weight_is_quant && is_1x1_s1);
+    const bool use_im2col_scratch =
+      !(weight_is_quant && (is_1x1_s1 || NNTR_HAS_Q4_0_INDIRECT_CONV));
     Tensor *col_scratch =
       use_im2col_scratch
         ? &context.getTensor(wt_idx[ConvParams::im2col_scratch])
@@ -603,30 +608,50 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
           // NOTE: col must outlive `act` (act aliases col's storage); here col
           // is a view into the context-owned scratch, so its storage outlives
           // the loop iteration regardless.
-          Tensor col;
-          Tensor act;
+          Tensor tmp = qgemm_scratch->getBatchSlice(b, 1);
+          tmp.reshape(
+            TensorDim(1, 1, owoh, filter_size, in_sub.getTensorType()));
           if (is_1x1_s1) {
             // 1x1 stride-1: im2col is an identity. The raw input is laid out as
             // [in_ch, OH*OW] (NCHW), so transpose to the act layout [OH*OW, CRS]
             // (CRS == in_ch here).
             in_sub.reshape({in_dim.channel(), owoh});
-            act = in_sub.transpose("0:2:1");
+            Tensor act = in_sub.transpose("0:2:1");
+            act.dot(filter_kernel, tmp, false, false);
+          } else if (NNTR_HAS_Q4_0_INDIRECT_CONV) {
+            // Fused im2col gather: the FP32 col buffer is never materialized.
+            // The gather runs inside the GEMM's q8_0 activation packing,
+            // directly from the NCHW input, producing rows byte-identical to
+            // im2col -> bit-identical output vs the materialized path.
+            ConvGatherParams geom;
+            geom.in_ch = in_dim.channel();
+            geom.in_h = in_dim.height();
+            geom.in_w = in_dim.width();
+            geom.k_h = kernel_size[0].get();
+            geom.k_w = kernel_size[1].get();
+            geom.pad_t = padding[0];
+            geom.pad_l = padding[2];
+            geom.stride_h = stride[0].get();
+            geom.stride_w = stride[1].get();
+            geom.dil_h = dilation[0].get();
+            geom.dil_w = dilation[1].get();
+            geom.out_w = out_dim.width();
+            in_sub.convQ4_0Indirect(filter_kernel, tmp, geom);
           } else {
+            // Fallback (no fused backend op): materialize im2col into the col
+            // scratch, then the standard quant GEMM.
             // build the real kernel geometry (filter is stored as [CRS,out_ch])
             TensorDim kdim(filter_size, in_dim.channel(), kernel_size[0].get(),
                            kernel_size[1].get(), in_sub.getTensorType());
-            col = col_scratch->getBatchSlice(b, 1);
+            Tensor col = col_scratch->getBatchSlice(b, 1);
             // im2col reshapes col in place to [OH*OW, CRS] (spatial-major), which
             // is ALREADY the act layout — no transpose (unlike the raw-input 1x1
             // branch above). Transposing here gives [CRS, OH*OW] and makes the
             // GEMM emit CRS rows into the owoh-row `tmp`, overflowing it whenever
             // CRS > owoh (deep convs) -> heap corruption.
             im2col(in_sub, kdim, padding, stride, dilation, col);
-            act = col;
+            col.dot(filter_kernel, tmp, false, false);
           }
-          Tensor tmp = qgemm_scratch->getBatchSlice(b, 1);
-          tmp.reshape(TensorDim(1, 1, owoh, filter_size, act.getTensorType()));
-          act.dot(filter_kernel, tmp, false, false);
           // [OH*OW, out_ch] -> [out_ch, OH*OW] written straight into the
           // (memory-planned) output. `tmp` is a separate scratch buffer and
           // `out` is a separate output view, so there is no aliasing.

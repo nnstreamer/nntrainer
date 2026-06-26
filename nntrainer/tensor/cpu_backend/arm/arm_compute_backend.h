@@ -16,6 +16,7 @@
 
 #include <cfloat>
 #include <common.h>
+#include <conv_indirect.h>
 #include <cstdint>
 #include <limits.h>
 #include <limits>
@@ -1130,6 +1131,15 @@ void gemm_q4_0(const unsigned int M, std::vector<unsigned int> Ns,
                const unsigned int K, const float *A, const unsigned int lda,
                std::vector<void *> Bs, std::vector<unsigned int> ldbs,
                std::vector<float *> Cs, std::vector<unsigned int> ldc);
+/**
+ * @brief q4_0 conv GEMM with im2col gather fused into q8_0 activation packing
+ * (no FP32 col materialization). See cpu_backend.h for parameter semantics.
+ */
+void gemm_q4_0_indirect_conv(const unsigned int M, const unsigned int N,
+                             const unsigned int K, const float *in,
+                             const ConvGatherParams &geom, const void *B,
+                             const unsigned int ldb, float *C,
+                             const unsigned int ldc);
 /**
  * @brief q4_K GEMM : A (M,K) * W.T (N,K) = O (M,N)
  *

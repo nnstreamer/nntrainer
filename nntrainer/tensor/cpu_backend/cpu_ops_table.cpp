@@ -194,6 +194,18 @@ public:
                       unsigned int ldb, float *C, unsigned int ldc) override {
     nntrainer::gemm_q6_K(M, N, K, A, lda, B, ldb, C, ldc);
   }
+  // im2col-fused q4_0 conv GEMM — only the ARM i8mm backend implements the
+  // fused gather+quantize path; elsewhere callers fall back via supports_*().
+  bool supports_gemm_q4_0_indirect_conv_fp32() const override {
+    return NNTR_HAS_Q4_0_INDIRECT_CONV;
+  }
+  void gemm_q4_0_indirect_conv_fp32(unsigned int M, unsigned int N,
+                                    unsigned int K, const float *in,
+                                    const ConvGatherParams &geom, const void *B,
+                                    unsigned int ldb, float *C,
+                                    unsigned int ldc) override {
+    nntrainer::gemm_q4_0_indirect_conv(M, N, K, in, geom, B, ldb, C, ldc);
+  }
 
   // Quantization / Utility
   void unpack_q4_0(const void *in, void *out, size_t ds, unsigned int M,

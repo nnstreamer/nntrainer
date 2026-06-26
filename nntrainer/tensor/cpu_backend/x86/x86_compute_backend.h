@@ -17,6 +17,7 @@
 
 #include <cfloat>
 #include <common.h>
+#include <conv_indirect.h>
 #include <cstdint>
 #include <limits.h>
 #include <limits>
@@ -895,6 +896,15 @@ void gemm_q4_0(const unsigned int M, std::vector<unsigned int> Ns,
                const unsigned int K, const float *A, const unsigned int lda,
                std::vector<void *> Bs, std::vector<unsigned int> ldbs,
                std::vector<float *> Cs, std::vector<unsigned int> ldc);
+/**
+ * @brief q4_0 conv GEMM with fused im2col gather (ARM-only path). On x86 this
+ * throws NYI; callers gate on supports_gemm_q4_0_indirect_conv_fp32().
+ */
+void gemm_q4_0_indirect_conv(const unsigned int M, const unsigned int N,
+                             const unsigned int K, const float *in,
+                             const ConvGatherParams &geom, const void *B,
+                             const unsigned int ldb, float *C,
+                             const unsigned int ldc);
 /**
  * @brief q4_K GEMM : A (M,K) * W.T (N,K) = O (M,N)
  *

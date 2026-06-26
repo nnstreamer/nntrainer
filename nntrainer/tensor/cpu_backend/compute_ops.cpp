@@ -252,6 +252,13 @@ void ComputeOps::gemm_q4_0_accel_fp32(void *, float *, float *, unsigned int,
                                       unsigned int, unsigned int) {
   NI(gemm_q4_0_accel_fp32);
 }
+void ComputeOps::gemm_q4_0_indirect_conv_fp32(unsigned int, unsigned int,
+                                              unsigned int, const float *,
+                                              const ConvGatherParams &,
+                                              const void *, unsigned int,
+                                              float *, unsigned int) {
+  NI(gemm_q4_0_indirect_conv_fp32);
+}
 void ComputeOps::gemv_int4_batch_fp32(std::vector<void *>,
                                       std::vector<uint16_t *>, float *,
                                       std::vector<float *>, unsigned int,

@@ -1009,6 +1009,25 @@ Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
   return output;
 }
 
+Tensor &FloatTensor::convQ4_0Indirect(Tensor const &weight, Tensor &output,
+                                      const ConvGatherParams &geom) const {
+  // `this` is the NCHW FP32 input (gathered on the fly), `weight` is the Q4_0
+  // filter [CRS, out_ch], `output` is [OH*OW, out_ch]. The fused backend op
+  // mirrors col.dot(weight): M = output rows (OH*OW), N = out_ch, K = CRS.
+  const float *in = (const float *)getData();
+  uint8_t *wdata = weight.getData<uint8_t>();
+  float *rdata = output.getData<float>();
+
+  unsigned int M = output.getDim().height();
+  unsigned int N = output.getDim().width();
+  unsigned int K =
+    (unsigned int)geom.in_ch * (unsigned int)geom.k_h * (unsigned int)geom.k_w;
+
+  getOps()->gemm_q4_0_indirect_conv_fp32(M, N, K, in, geom, (void *)wdata, N,
+                                         rdata, N);
+  return output;
+}
+
 Tensor &FloatTensor::dotQInteger(Tensor const &input, Tensor &output,
                                  bool trans, bool trans_in, float beta,
                                  Tdatatype dtype) const {

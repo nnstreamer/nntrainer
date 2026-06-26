@@ -34,6 +34,7 @@
 #include <cstdint>
 #include <vector>
 
+#include <conv_indirect.h>
 #ifdef ENABLE_FP16
 #include <tensor_dim.h>
 #endif
@@ -243,6 +244,17 @@ public:
   virtual void gemm_q4_0_accel_fp32(void *matAdata, float *matBdata,
                                     float *matCdata, unsigned int M,
                                     unsigned int N, unsigned int K);
+
+  // q4_0 GEMM with im2col gather fused into the activation packing — the FP32
+  // col buffer is never materialized (gather happens row-by-row directly from
+  // the NCHW input as it is quantized to q8_0). supports_*() lets the caller
+  // fall back to materialized im2col + gemm_q4_0_fp32 when unavailable.
+  virtual bool supports_gemm_q4_0_indirect_conv_fp32() const { return false; }
+  virtual void gemm_q4_0_indirect_conv_fp32(unsigned int M, unsigned int N,
+                                            unsigned int K, const float *in,
+                                            const ConvGatherParams &geom,
+                                            const void *B, unsigned int ldb,
+                                            float *C, unsigned int ldc);
 
   virtual bool supports_gemv_int4_batch_fp32() const { return false; }
   virtual void gemv_int4_batch_fp32(std::vector<void *> weights,
