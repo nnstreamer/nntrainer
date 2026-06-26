@@ -75,6 +75,11 @@ public:
   void calcGradient(RunLayerContext &context) override;
 
   /**
+   * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
+   */
+  void setBatch(RunLayerContext &context, unsigned int batch) override;
+
+  /**
    * @copydoc Layer::exportTo(Exporter &exporter, ml::train::ExportMethods
    * method)
    */

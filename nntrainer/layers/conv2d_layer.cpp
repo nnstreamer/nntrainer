@@ -984,6 +984,21 @@ void Conv2DLayer::calcGradient(RunLayerContext &context) {
   }
 }
 
+void Conv2DLayer::setBatch(RunLayerContext &context, unsigned int batch) {
+  // The forward scratch buffers (im2col column buffer and quantized-GEMM
+  // output) are requested in finalize() sized to the batch present at init.
+  // When the runtime batch changes the framework resizes inputs/outputs but
+  // not these layer-private scratch tensors, so rebatch them here — otherwise
+  // forwarding()'s getBatchSlice(b, 1) for b >= the init batch reads past the
+  // planned storage and aborts ("shared tensor bigger than tensor memory").
+  if (wt_idx[ConvParams::im2col_scratch] !=
+      std::numeric_limits<unsigned int>::max())
+    context.updateTensor(wt_idx[ConvParams::im2col_scratch], batch);
+  if (wt_idx[ConvParams::qgemm_scratch] !=
+      std::numeric_limits<unsigned int>::max())
+    context.updateTensor(wt_idx[ConvParams::qgemm_scratch], batch);
+}
+
 void Conv2DLayer::exportTo(Exporter &exporter,
                            const ml::train::ExportMethods &method) const {
   LayerImpl::exportTo(exporter, method);
