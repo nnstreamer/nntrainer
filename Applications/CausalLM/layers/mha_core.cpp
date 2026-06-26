@@ -37,89 +37,7 @@
 
 static std::mutex rope_init_mtx;
 
-// Minimum prefill step_size for routing attention/RoPE onto the GPU paths.
-// Below the threshold the prefill falls to the host path. The threshold no
-// longer depends on head_dim (the parameter is ignored): x86 returns 1 for
-// every head_dim (see the note below on the former head_dim=128 issue), and
-// ARM returns 1 with NNTR_MHA_GPU on, else 32. Env override:
-// NNTR_MIN_PREFILL.
-static unsigned int min_prefill_thr(unsigned int head_dim) {
-  static const int env = []() {
-    const char *e = std::getenv("NNTR_MIN_PREFILL");
-    return e ? std::atoi(e) : -1;
-  }();
-  if (env >= 0)
-    return (unsigned int)env;
-
-#if defined(__x86_64__) || defined(__i386__) || defined(_M_X64) ||             \
-  defined(_M_IX86)
-  // Intel/CUDA: no host NEON, so the GPU wins even at tiny step_size, for every
-  // head_dim. The head_dim=128 (qwen3) degeneration under sampling was NOT the
-  // flash kernel -- it was the GPU RoPE doing the cos/sin rotation in fp16
-  // (rope_inplace_f16), which distorted the softmax distribution; fixed to fp32
-  // rotation. So GPU flash + GPU RoPE is correct for all head_dims now.
-  (void)head_dim;
-  return 1u;
-#else
-  // ARM (Adreno): the image attention path is coherent (incl. qwen3); the
-  // host-NEON crossover / GPU-request behaviour is unchanged from before.
-  (void)head_dim;
-  // value-checked (=0 disables), so an explicit NNTR_MHA_GPU=0 turns it off
-  // (env_compat.h trap).
-  if (nntr_env_on("NNTR_MHA_GPU"))
-    return 1u;
-  return 32u;
-#endif
-}
-
-// Whether a device attention arm can run in this process: the OpenCL arm
-// (NNTR_MHA_GPU on the gpu engine, whose context is registered) or the CUDA
-// arm (NNTR_CUDA_ATTN on the cuda engine). False on the cpu engine, whatever
-// the env and the model properties say. Latched like the env gates it combines
-// (the engine is fixed for the process).
-static bool mha_device_attention_on() {
-  static const bool on = []() {
-    const std::string eng = nntr_engine_env();
-    if (eng == "cpu")
-      return false;
-    if (eng == "cuda")
-      return nntr_env_on("NNTR_CUDA_ATTN");
-#if defined(ENABLE_OPENCL)
-    return nntr_env_on("NNTR_MHA_GPU") &&
-           nntrainer::Engine::Global().isContextRegistered("gpu");
-#else
-    return false;
-#endif
-  }();
-  return on;
-}
-
-// Which HOST arm a decode step (M=1) takes when no device arm runs it.
-// ARM: the per-row path (the NEON compute_kcaches /
-// compute_fp16vcache_transposed kernels). The host flash path spends M=1 in a
-// blocked fp16 GEMM fallback plus its thread hand-off, and measured 2.5-5x
-// slower there (KleidiAI CPU decode, 1K summary prompt: 12.5 vs 62.5 TPS on a
-// dense 1.5B model, 7.5 vs 18.6 TPS on a 2B-class model).
-// x86: the host flash path. x86 has only the scalar per-row fallbacks below,
-// and with them the per-row arm measured 4-6 % slower than the flash arm's
-// FP32 GEMM (4.62 vs 4.90 and 1.96 vs 2.04 TPS on the same two models).
-static constexpr bool host_decode_prefers_per_row() {
-#if defined(__x86_64__) || defined(__i386__) || defined(_M_X64) ||             \
-  defined(_M_IX86)
-  return false;
-#else
-  return true;
-#endif
-}
-
-#if defined(ENABLE_OPENCL)
-// OpenCL attention/blas kernel interfaces (GPU attention + clmem residency).
-// Guarded so the no-OpenCL CPU build compiles the host attention path.
-#include <attention_kernels.h>
-#include <blas_kernel_interface.h>
-#include <blas_kernels.h>
-#include <opencl_kernel.h>
-#endif
+#include <cpu_backend_gemm_decl.h>
 #include <fp16.h>
 #include <layer_context.h>
 #include <mha_core.h>
@@ -713,9 +631,8 @@ MHACoreLayer::MHACoreLayer() :
     props::RopeTheta(), props::UseRope(), props::MaxPositionEmbeddings(),
     props::UseSink(), props::RopeScalingType(), props::RopeScalingFactor(),
     props::RopePartialRotaryFactor(), props::RopeScalingMaxPositionEmbeddings(),
-    props::AttnLogitSoftcapping(), props::IsCausal(), props::UseGemmAttention(),
-    props::GpuDecodeAttn(), props::GpuDecodeRope(), props::GpuOhwiRope(),
-    props::KvWindowRing()),
+    props::AttnLogitSoftcapping(), props::IsCausal(),
+    props::UseGemmAttention()),
   sm(nntrainer::ActivationType::ACT_SOFTMAX),
   epsilon(1e-3),
   cache_index(0),
@@ -1027,6 +944,13 @@ void MHACoreLayer::finalize(nntrainer::InitLayerContext &context) {
   /** Is Causal */
   is_causal = std::get<props::IsCausal>(mha_core_props).get();
   use_gemm_attention = std::get<props::UseGemmAttention>(mha_core_props).get();
+#if !(ENABLE_FP16 && defined(__ANDROID__))
+  // The GEMM / flash-attention path (gemm_attention) is built and verified
+  // only for the ARM FP16 device build. On x86 / non-FP16 builds the AVX2
+  // flash path is unvalidated and NaNs on the wide V-JEPA encoder logits, so
+  // fall back to the reference attention kernels there.
+  use_gemm_attention = false;
+#endif
 
   // Honor the LayerImpl `skip_prefill` property (parsed into layer_impl_props
   // by LayerImpl::setProperty). When set, mha_core writes its KV cache during
@@ -3575,875 +3499,14 @@ void MHACoreLayer::one_batch_incremental_forwarding(
 
   // Optional flash GEMM attention path. Handles both non-causal (encoder)
   // and causal-prefill paths, supports GQA and sliding window. Gated on a
-  // minimum prefill length. Decode (step_size == 1) enters it when a device
-  // attention arm can run (mha_device_attention_on()); with no device arm it
-  // takes the faster host arm for this platform
-  // (host_decode_prefers_per_row(): the per-row dot path below on ARM).
-  const unsigned int FLASH_MIN_PREFILL =
-    min_prefill_thr((unsigned int)head_dim); // env NNTR_MIN_PREFILL
-  // S3 (decode GPU attention): NNTR_MHA_GPU_DECODE lets step_size==1 (decode)
-  // enter the GPU attention block too. The KV-image (kvimg_view) path scatters
-  // the single new token into the mirrors and reads the full N_kv context, so
-  // M=1 is handled; otherwise decode falls to the host compute_kcaches NEON
-  // path (a per-layer GPU->host queue drain). Pays off only with the host
-  // RoPE/v_norm drains also removed (land S1+S2+S3 as a SET).
-  // (B) flash decode-attention gate. Enabled by NNTR_MHA_GPU_DECODE env
-  // (global testing override) OR per-LAYER via the gpu_decode_attn property
-  // (DEFAULT-ON for gemma4 / gemma2). Env read static; property read PER-CALL.
-  static const bool _mha_gpu_decode_env =
-    std::getenv("NNTR_MHA_GPU_DECODE") != nullptr;
-  const bool _mha_gpu_decode =
-    _mha_gpu_decode_env || std::get<props::GpuDecodeAttn>(mha_core_props).get();
-  // CUDA GPU attention (NNTR_CUDA_ATTN) handles any step_size via
-  // gemm_attention
-  // -> cuda_attention. Route ALL step_size to it so the short-prefill window
-  // (2..FLASH_MIN_PREFILL-1) does not fall to the host compute_kcaches path,
-  // which faults on a device-only activation pool (NNTR_CUDA_DEV_ACT) and was
-  // the short-prompt crash. OpenCL is unaffected (NNTR_CUDA_ATTN is cuda-only).
-  static const bool _cuda_attn_on = nntr_env_on("NNTR_CUDA_ATTN");
-  // The decode term above (gpu_decode_attn, a model property) says nothing
-  // about the engine, so on a cpu-engine run it sent every decode step of
-  // such a model to the HOST flash path. Without a device arm a decode step
-  // now takes the platform's faster host arm instead.
-  const bool per_row_decode = step_size == 1 && !mha_device_attention_on() &&
-                              host_decode_prefers_per_row();
-  if (use_gemm_attention && !per_row_decode &&
-      (step_size >= FLASH_MIN_PREFILL || (_mha_gpu_decode && step_size == 1) ||
-       _cuda_attn_on)) {
-    // GPU two-1x1-conv attention path (paper section 3.7). Env-gated via
-    // NNTR_MHA_GPU=1. FP16-Q + FP16-out only; K/V is either FP16 or, when
-    // kv_int8 is set, int8 + per-(token, head) FP16 scale. Falls back to
-    // the CPU path on any shape mismatch.
-    static const bool _tca_on = nntr_env_on("NNTR_MHA_GPU");
-    if (_tca_on &&
-        query_step.getDataType() == ml::train::TensorDim::DataType::FP16 &&
-        attention_output_step.getDataType() ==
-          ml::train::TensorDim::DataType::FP16 &&
-        head_dim > 0 && num_heads_KV > 0 && num_heads_Q % num_heads_KV == 0) {
-#ifdef ENABLE_FP16
-#if defined(ENABLE_OPENCL) // GPU two-conv/image/flash attention path
-      const uint16_t *Q_p =
-        reinterpret_cast<const uint16_t *>(query_step.getData<_FP16>());
-      uint16_t *O_p =
-        reinterpret_cast<uint16_t *>(attention_output_step.getData<_FP16>());
-      const bool svm_ok = query_step.getMemoryData() &&
-                          b_cached_key.getMemoryData() &&
-                          b_cached_value.getMemoryData() &&
-                          attention_output_step.getMemoryData() &&
-                          query_step.getMemoryData()->isSVM() &&
-                          b_cached_key.getMemoryData()->isSVM() &&
-                          b_cached_value.getMemoryData()->isSVM() &&
-                          attention_output_step.getMemoryData()->isSVM();
-      bool ok = false;
-      // int8 GPU prefill is wired but currently produces degraded output
-      // (model generates early-EOS); kept behind a second env var
-      // (NNTR_KV_INT8_GPU=1) until the numerical issue is isolated. Default
-      // for kv_int8 + NNTR_MHA_GPU is to fall through to the CPU NEON path
-      // which is verified working.
-      static const bool _tca_int8_on =
-        std::getenv("NNTR_KV_INT8_GPU") != nullptr;
-      if (kv_int8 && _tca_int8_on) {
-        const int8_t *K_i8 =
-          reinterpret_cast<const int8_t *>(b_cached_key.getData<uint8_t>());
-        const int8_t *V_i8 =
-          reinterpret_cast<const int8_t *>(b_cached_value.getData<uint8_t>());
-        NNTR_THROW_IF(cur_kv_int8_key_scale_batch == nullptr ||
-                        cur_kv_int8_value_scale_batch == nullptr,
-                      std::invalid_argument)
-          << "kv_int8 GPU prefill missing per-batch scale pointers";
-        ok = nntrainer::two_conv_attention_prefill_f16_kvi8_cl(
-          Q_p, K_i8, V_i8, cur_kv_int8_key_scale_batch,
-          cur_kv_int8_value_scale_batch, O_p, step_size, cache_to, num_heads_Q,
-          num_heads_KV, head_dim, is_causal, svm_ok);
-      } else if (kv_int8) {
-        // kv_int8 + GPU prefill not enabled: fall through to CPU path
-        // (caller's `gemm_attention` below dequantizes on the fly).
-        ok = false;
-      } else {
-        const uint16_t *K_p =
-          reinterpret_cast<const uint16_t *>(b_cached_key.getData<_FP16>());
-        const uint16_t *V_p =
-          reinterpret_cast<const uint16_t *>(b_cached_value.getData<_FP16>());
-
-        // Adreno image attention (the texture-cache prefill path).
-        // Read K/V via image2d_from_buffer (read_imageui texture cache) instead
-        // of the SVM buffer flash kernel. The SVM KV cache can't back an image
-        // (clCreateImage needs a cl_mem handle), so keep per-layer cl_mem OHWI
-        // mirrors (lazy-init), scatter this step's rotated K / raw V from the
-        // SVM cache slice into them, then attention reads the images. Gated by
-        // NNTR_KV_IMG_ATTN (Adreno only — read_imageui won't build on Intel
-        // NEO, which keeps the flash path below). Preempts flash on success.
-        if (use_image_attn < 0) {
-          // Value-checked (imageAttnRequested in kv_ring.h) so
-          // NNTR_KV_IMG_ATTN=0 really disables the image path.
-          use_image_attn = img_arm_want ? 1 : 0;
-        }
-        // Sliding-window layers: the OHWI image kernels take the effective
-        // window (win_img below) and mask keys older than it (n + W <= m).
-        // Without that lower bound, once cache_to exceeds the window they
-        // would compute full causal attention over evicted keys (gemma4
-        // W=512: a 999-tok Adreno prefill degenerated into word salad).
-        // The OHWI image kernels take a window but not a ring capacity. A
-        // ringed layer reaches them through a SLIDING mirror instead (see
-        // kv_mirror_base): linear addressing over a ring-cap-high mirror.
-        if (use_image_attn == 1 && svm_ok && !kv_int8 && head_dim % 8 == 0) {
-          // NNTR_KV_MIRROR_CAP (experiment): clamp the OHWI mirror S_max.
-          // A reference build at S_max=1024 ran qk_matmul_f16_ohwi_img
-          // 4.7x faster than S_max=2048 (59.8 vs ~281ms at M=1024, same
-          // kernel/wrapper) -- this isolates whether the K-image height
-          // (hKV*S_max rows) is the texture-cache culprit. NOT safe for
-          // sequences beyond the cap (attention reads garbage rows).
-          static const unsigned int mirror_cap = []() {
-            const char *e = std::getenv("NNTR_KV_MIRROR_CAP");
-            return e ? (unsigned int)std::atoi(e) : 0u;
-          }();
-          // [kvring-decode] A ringed layer's mirror is one launch's span, not
-          // the whole ring (kv_mirror_rows_want, set at finalize from W and the
-          // prefill chunk); a linear layer's is the KV cache height, as before.
-          unsigned int S_max = nntrainer::ohwi_mirror_capacity(
-            kv_mirror_rows_want ? kv_mirror_rows_want : cache_key_dim.height());
-          if (mirror_cap >= 8 && mirror_cap < S_max)
-            S_max = (mirror_cap + 7u) & ~7u;
-          if (!kv_mirror_init) {
-            kv_mirror_S_max = S_max;
-            // Same derivation as the finalize prebuild (which is Android-only).
-            kv_kimg_gsh = nntrainer::kimg_gsh_for(
-              num_heads_KV,
-              nntrainer::ohwi_mirror_capacity(
-                (unsigned int)std::get<nntrainer::props::MaxTimestep>(
-                  mha_core_props)
-                  .get()));
-            bool m_ok =
-              nntrainer::create_ohwi_kv_mirror(
-                /*is_v=*/false, num_heads_KV, head_dim, S_max,
-                reinterpret_cast<cl_mem *>(&k_buf_ohwi),
-                reinterpret_cast<cl_mem *>(&k_image_ohwi), kv_kimg_gsh) &&
-              nntrainer::create_ohwi_kv_mirror(
-                /*is_v=*/true, num_heads_KV, head_dim, S_max,
-                reinterpret_cast<cl_mem *>(&v_buf_ohwi),
-                reinterpret_cast<cl_mem *>(&v_image_ohwi));
-            kv_mirror_init = m_ok;
-            if (!m_ok) {
-              use_image_attn = 0; // permanent disable; flash takes over
-              mha_report_image_mirror_refused(num_heads_KV, head_dim, S_max);
-            }
-          }
-          // [kv-window-ring] Where the mirror window sits for this call. A
-          // linear layer's mirror starts at absolute row 0 and never moves.
-          // A ringed layer's is only ring-cap rows high, so its base slides
-          // forward to the oldest key this step can attend (cache_from-W+1):
-          //  - prefill slides EAGERLY, which also keeps N_kv -- and with it the
-          //    [hQ, M, N_kv] scores scratch -- near W + M instead of the cap;
-          //  - decode slides only when the mirror is full (once per rows-W
-          //    tokens), since a slide back-fills ~W rows from the cache.
-          // The base is a multiple of 64 whenever that fits: the score band
-          // and the row softmax partition the key axis on 8/64-aligned
-          // boundaries, so a 64-aligned base makes the mirror-local grid the
-          // absolute one shifted, and ring on == ring off bit for bit.
-          //
-          // [kvring-decode] This occupancy is NOT what a big prefill block
-          // costs decode, though the shape of the code invites that reading:
-          // the kernels below are handed N_kv = cache_to - base, so a mirror
-          // that slides only when full does let N_kv track the mirror height
-          // (~1536..2048 at a 1024 block, ~4608..8192 at a 4096 one). Measured
-          // on Adreno with the timer below, that costs almost nothing: decode
-          // per-call 0.2949 ms at N_kv 512 vs 0.3145 at 4608 vs 0.2985 at 1536,
-          // i.e. 0.3 ms of a 10 ms/step gap. Bounding it moved 0.3B 16K decode
-          // 31.6 -> 32.5 TPS and cost 3% at 4095 tokens, so it is not done.
-          // What the block really charges decode is the prefill GPU work it
-          // leaves queued -- see the commit message: end to end over 128 tokens
-          // the 1024- and 4096-row blocks are within 1%.
-          bool mirror_fits = false;
-          if (kv_mirror_init && S_max == kv_mirror_S_max) {
-            if (kv_ring_cap == 0) {
-              mirror_fits = cache_to <= kv_mirror_S_max;
-            } else {
-              const unsigned int W = (unsigned int)local_window_size;
-              const unsigned int need_lo =
-                cache_from + 1u > W ? cache_from + 1u - W : 0u;
-              const unsigned int al64 = need_lo & ~63u;
-              unsigned int nb = kv_mirror_base;
-              if (cache_from < nb)
-                nb = al64; // rewind / a new request
-              else if (step_size > 1 && al64 > nb)
-                nb = al64;
-              else if (cache_to - nb > kv_mirror_S_max)
-                nb = al64;
-              if (cache_to - nb > kv_mirror_S_max)
-                nb = need_lo; // 64-alignment does not fit: exact floor
-              mirror_fits = cache_to - nb <= kv_mirror_S_max;
-              if (mirror_fits && nb != kv_mirror_base) {
-                // Everything the mirror held sits at the old offsets: drop it
-                // and let the back-fill below re-scatter [nb, cache_from)
-                // from the (ringed, complete) SVM cache.
-                kv_mirror_base = nb;
-                kv_k_valid_to = nb;
-                kv_v_valid_to = nb;
-              }
-            }
-          }
-          // mirror-local positions (== absolute for a linear layer)
-          const unsigned int m_from = cache_from - kv_mirror_base;
-          const unsigned int m_to = cache_to - kv_mirror_base;
-          // Back-fill absolute rows [abs_from, abs_to) of the SVM cache into
-          // the mirror. The cache is ring-indexed for a ringed layer, so the
-          // span may cross the seam: one scatter per contiguous segment. With
-          // no ring this is the single scatter it always was.
-          // the full V view this call binds (alternates under
-          // NNTR_KV_VIMG_PP)
-          void *v_img_full_sel =
-            (v_image_ohwi_pp != nullptr && ((v_img_pp_n++) & 1u))
-              ? v_image_ohwi_pp
-              : v_image_ohwi;
-          auto mirror_backfill = [&](bool is_v, unsigned int abs_from,
-                                     unsigned int abs_to, unsigned int stride) {
-            const size_t hd = (size_t)num_heads_KV * head_dim;
-            // [kv-img-write] The image the V rows must be written through is
-            // the one the sv kernels read at this stride (the tight view once
-            // adopted); K always goes to the full-capacity K image.
-            const bool img_w =
-              nntrainer::kv_img_write_enabled() && v_image_ohwi != nullptr;
-            void *v_img_bf = (v_image_tight != nullptr && kv_v_img_S == stride)
-                               ? v_image_tight
-                               : v_img_full_sel;
-            unsigned int pos = abs_from;
-            while (pos < abs_to) {
-              const size_t phys = cacheRow(pos);
-              unsigned int seg = abs_to - pos;
-              if (kv_ring_cap && (size_t)seg > (size_t)kv_ring_cap - phys)
-                seg = (unsigned int)((size_t)kv_ring_cap - phys);
-              // [kv-img-write] Image write first (the default); a false return
-              // means the driver refused the CL2.0 program, which has already
-              // disarmed the path, so fall THROUGH to the buffer scatter rather
-              // than leave these rows unwritten.
-              bool written = false;
-              if (is_v && img_w && nntrainer::kv_img_write_mode() >= 2)
-                written = nntrainer::v_scatter_ohwi_t_img_slab_cl(
-                  reinterpret_cast<const uint16_t *>(
-                    cache_value.getData<_FP16>() +
-                    (size_t)batch * cache_value_dim.getFeatureLen()),
-                  v_img_bf, num_heads_KV, head_dim, pos - kv_mirror_base,
-                  pos - kv_mirror_base + seg, kv_mirror_base, kv_ring_cap,
-                  abs_to);
-              else if (is_v && img_w)
-                written = nntrainer::v_scatter_ohwi_t_img_cl(
-                  reinterpret_cast<const uint16_t *>(
-                    cache_value.getData<_FP16>() +
-                    (size_t)batch * cache_value_dim.getFeatureLen() +
-                    phys * hd),
-                  v_img_bf, seg, num_heads_KV, head_dim, stride,
-                  pos - kv_mirror_base);
-              else if (!is_v && img_w && k_image_ohwi != nullptr)
-                written = nntrainer::k_scatter_ohwi_img_cl(
-                  reinterpret_cast<const uint16_t *>(
-                    cache_key.getData<_FP16>() +
-                    (size_t)batch * cache_key_dim.getFeatureLen() + phys * hd),
-                  k_image_ohwi, seg, num_heads_KV, head_dim, kv_mirror_S_max,
-                  pos - kv_mirror_base);
-              if (!written && is_v)
-                nntrainer::v_scatter_ohwi_t_cl(
-                  reinterpret_cast<const uint16_t *>(
-                    cache_value.getData<_FP16>() +
-                    (size_t)batch * cache_value_dim.getFeatureLen() +
-                    phys * hd),
-                  reinterpret_cast<cl_mem>(v_buf_ohwi), seg, num_heads_KV,
-                  head_dim, stride, pos - kv_mirror_base);
-              else if (!written)
-                nntrainer::k_scatter_ohwi_cl(
-                  reinterpret_cast<const uint16_t *>(
-                    cache_key.getData<_FP16>() +
-                    (size_t)batch * cache_key_dim.getFeatureLen() + phys * hd),
-                  reinterpret_cast<cl_mem>(k_buf_ohwi), seg, num_heads_KV,
-                  head_dim, kv_mirror_S_max, pos - kv_mirror_base);
-              pos += seg;
-            }
-          };
-          // A ringed layer has no other validated arm on this bundle: the
-          // buffer (flash) arm under the image bundle is exact on a LINEAR
-          // cache but measured wrong on a 2048-row ring on Adreno 840, and
-          // the arm is fixed per layer at finalize (img_arm_want). Stop with
-          // the way out rather than emit plausible text.
-          NNTR_THROW_IF(kv_ring_cap != 0 && !mirror_fits, std::runtime_error)
-            << "[kv-window-ring] the Adreno image-attention mirror cannot "
-               "serve this step of a ringed layer (mirror_init="
-            << (int)kv_mirror_init << " rows=" << kv_mirror_S_max << " step=["
-            << cache_from << "," << cache_to << ") ring=" << kv_ring_cap
-            << "). Set NNTR_KV_IMG_RING=0 to keep the linear KV cache under "
-               "NNTR_KV_IMG_ATTN.";
-          if (mirror_fits) {
-            // --- Tight-stride V image (texture-cache cliff). The sv kernel
-            // walks V texels along the sequence axis; a pitch sized to the
-            // 2048 allocation cap instead of the live sequence wastes the
-            // texture cache on padding (sv_matmul 63 -> 41ms at M=843 tight).
-            // The view shares v_buf_ohwi; only the scatter stride must match
-            // (the sv kernels never address V via their S_max argument).
-            // NNTR_KV_VTIGHT=0 restores the full-stride image.
-            static const bool v_tight_on = []() {
-              const char *e = std::getenv("NNTR_KV_VTIGHT");
-              return !(e && e[0] == '0');
-            }();
-            void *v_img_use = v_img_full_sel;
-            unsigned int v_stride = kv_mirror_S_max;
-            // A ringed layer keeps ONE stride for the whole run: its mirror is
-            // already small (ring-cap rows) and constant, so there is no cliff
-            // for a tight view to avoid, and a stride that never changes never
-            // re-lays V (port of ed271ee7d's "the restride cannot recur"). A
-            // tight view there also measured WRONG on Adreno 840 once the
-            // stride shrank mid-run (2048 -> 1536 at the last 1024-chunk:
-            // repetition loop, NNTR_KV_VTIGHT=0 exact) -- not root-caused, so
-            // not offered.
-            if (v_tight_on && kv_ring_cap == 0) {
-              unsigned int need = (m_to + 7u) & ~7u;
-              // [prefill-long] Lay the tight image out for the WHOLE prefill
-              // span, not just this chunk, so the stride never changes mid
-              // prefill (a change re-scatters every row already written).
-              {
-                const unsigned int hint = prefillSpanHint();
-                if (hint > need)
-                  need = (hint + 7u) & ~7u;
-              }
-              if (need > kv_v_img_S) {
-                void *nimg = nullptr;
-                // The helper rounds `need` up to the device image pitch
-                // alignment (Adreno: multiples of 256 halves) and reports the
-                // stride actually used; only adopt it while it still fits
-                // the full-capacity buffer (else the full image is as good).
-                if (nntrainer::create_ohwi_v_image_view(
-                      v_buf_ohwi, num_heads_KV, head_dim, &need, &nimg)) {
-                  if (need < kv_mirror_S_max) {
-                    if (v_image_tight)
-                      nntrainer::release_cl_mem(v_image_tight);
-                    v_image_tight = nimg;
-                    kv_v_img_S = need;
-                  } else {
-                    nntrainer::release_cl_mem(nimg);
-                  }
-                }
-              }
-              if (v_image_tight != nullptr && m_to <= kv_v_img_S) {
-                v_img_use = v_image_tight;
-                v_stride = kv_v_img_S;
-              }
-            }
-            // --- Mirror content repair (stride change / decode gap). The
-            // SVM K/V caches are complete (RoPE side-fill + decode host
-            // writes), so re-scatter whatever the mirrors are missing:
-            // a V stride change invalidates ALL prior rows; decode tokens
-            // land only in the SVM cache, leaving [valid_to, cache_from)
-            // missing from both mirrors on a follow-up prefill.
-            static const bool _ring_trace =
-              std::getenv("NNTR_IMG_RING_TRACE") != nullptr;
-            if (_ring_trace)
-              std::fprintf(stderr,
-                           "[IMG-RING] W=%zu cap=%u from=%u to=%u base=%u "
-                           "m_to=%u S_max=%u v_stride=%u cur_stride=%u "
-                           "kvalid=%u vvalid=%u tightS=%u\n",
-                           local_window_size, kv_ring_cap, cache_from, cache_to,
-                           kv_mirror_base, m_to, kv_mirror_S_max, v_stride,
-                           kv_v_cur_stride, kv_k_valid_to, kv_v_valid_to,
-                           kv_v_img_S);
-            if (v_stride != kv_v_cur_stride) {
-              if (cache_from > kv_mirror_base) {
-                // MHA_CLMEM: the re-scatter source is the concat slab --
-                // gather the mirror-only rows back first (no-op otherwise).
-                sync_kv_slab(cache_from);
-                mirror_backfill(/*is_v=*/true, kv_mirror_base, cache_from,
-                                v_stride);
-              }
-              kv_v_cur_stride = v_stride;
-              kv_v_valid_to = cache_from;
-            } else if (cache_from > kv_v_valid_to) {
-              mirror_backfill(/*is_v=*/true, kv_v_valid_to, cache_from,
-                              v_stride);
-              kv_v_valid_to = cache_from;
-            }
-            if (cache_from > kv_k_valid_to) {
-              mirror_backfill(/*is_v=*/false, kv_k_valid_to, cache_from,
-                              kv_mirror_S_max);
-              kv_k_valid_to = cache_from;
-            }
-            // Scatter this step's rotated K into the OHWI K mirror at row
-            // cache_from, and V into the reversed-OHWI V mirror at column
-            // cache_from. Staged chain (kv_stage_on): K reads the cl_mem
-            // staging temp the GPU RoPE wrote (src_clmem) and V reads
-            // value_step directly -- pure kernel chains, no host drain.
-            // Unstaged: both read the SVM cache slices the RoPE/copy wrote
-            // (left undrained on the image chain). The in-order queue keeps
-            // RoPE -> scatter -> attention ordered with no explicit sync.
-            const double _kvst_t1 = _kvst_on() ? _kvst_now() : 0;
-            // [rq-scalar-off] Unstaged (k_stage == null) the source is the
-            // step slice of the SVM K cache -- an offset-baked pointer that
-            // moves every token. Read the cache's stable base at the scalar
-            // row offset instead (same address, recordable).
-            const uint16_t *k_sc_src = reinterpret_cast<const uint16_t *>(
-              b_cache_key_step.getData<_FP16>());
-            unsigned int k_sc_off = 0u;
-            if (k_stage == nullptr && _kv_scalar_off) {
-              const uint16_t *b =
-                reinterpret_cast<const uint16_t *>(cache_key.getData<_FP16>());
-              if (b != nullptr && b + _kc_step_off == k_sc_src) {
-                k_sc_src = b;
-                k_sc_off = (unsigned int)_kc_step_off;
-              }
-            }
-            // [kv-img-write] Write the rows through the IMAGE the qk kernel
-            // reads (write_imageui) instead of the buffer that aliases it --
-            // same rows, same folded mapping, one memory path (the mirror's
-            // read/write path split is what makes a just-scattered row come
-            // back pre-write from the texture cache at a random chunk).
-            const bool kv_img_write =
-              nntrainer::kv_img_write_enabled() && k_image_ohwi != nullptr;
-            if (kv_img_write) {
-              static int _kvimg_logged = 0;
-              if (!_kvimg_logged) {
-                _kvimg_logged = 1;
-                std::fprintf(stderr,
-                             "[KV-IMG-WRITE] KVIMG_MARKER_A engaged: "
-                             "mirrors written with write_imageui (gsh=%u "
-                             "S_max=%u ring=%u vtightS=%u)\n",
-                             kv_kimg_gsh, kv_mirror_S_max, kv_ring_cap,
-                             kv_v_img_S);
-              }
-            }
-            // A false return means the driver refused the CL2.0 image-write
-            // program (which disarms the path process-wide); fall through to
-            // the buffer scatter so the rows are still written. [rq-scalar-off]
-            // Same as the K scatter below: when the source is the V cache's
-            // step slice (no stage), address the stable base with a scalar row
-            // offset.
-            const uint16_t *v_sc_src =
-              v_stage_svm != nullptr ? v_stage_svm
-                                     : reinterpret_cast<const uint16_t *>(
-                                         b_cache_value_step.getData<_FP16>());
-            unsigned int v_sc_off = 0u;
-            if (v_stage_svm == nullptr && v_stage_clmem == nullptr &&
-                _kv_scalar_off) {
-              const uint16_t *b = reinterpret_cast<const uint16_t *>(
-                cache_value.getData<_FP16>());
-              if (b != nullptr && b + _vc_step_off == v_sc_src) {
-                v_sc_src = b;
-                v_sc_off = (unsigned int)_vc_step_off;
-              }
-            }
-            // [kv-scatter-fuse] A one-row decode step writes one K texel row
-            // and one V texel per head; the two image scatters below are the
-            // same reads and stores in ONE launch (byte-identical mirrors),
-            // one launch per layer less. Only the mode-1 V write path (the
-            // slab rebuild of mode 2 stays separate). NNTR_KV_SCATTER_FUSE=0
-            // disables.
-            static const bool _kv_scatter_fuse = []() {
-              const char *e = std::getenv("NNTR_KV_SCATTER_FUSE");
-              return e == nullptr || e[0] != '0';
-            }();
-            bool kv_fused = false;
-            if (_kv_scatter_fuse && kv_img_write && step_size == 1 &&
-                nntrainer::kv_img_write_mode() < 2 && v_img_use != nullptr)
-              kv_fused = nntrainer::kv_scatter_ohwi_img_cl(
-                k_sc_src, /*k_src_clmem=*/k_stage, k_sc_off, k_image_ohwi,
-                kv_mirror_S_max, v_sc_src, /*v_src_clmem=*/v_stage_clmem,
-                v_sc_off, v_img_use, v_stride, num_heads_KV, head_dim, m_from);
-            if (kv_fused) {
-              // both mirrors written; the separate scatters are skipped below
-            } else if (!kv_img_write ||
-                       !nntrainer::k_scatter_ohwi_img_cl(
-                         k_sc_src, k_image_ohwi, step_size, num_heads_KV,
-                         head_dim, kv_mirror_S_max, m_from,
-                         /*src_clmem=*/k_stage, /*src_off=*/k_sc_off))
-              nntrainer::k_scatter_ohwi_cl(
-                k_sc_src, reinterpret_cast<cl_mem>(k_buf_ohwi), step_size,
-                num_heads_KV, head_dim, kv_mirror_S_max, m_from,
-                /*src_clmem=*/k_stage, /*src_off=*/k_sc_off);
-            kv_k_valid_to = cache_to;
-            const double _kvst_tk = _kvst_on() ? _kvst_now() : 0;
-            // [kv-img-write] V through the image in use (the tight view once it
-            // is adopted -- the image the sv kernels read IS the image the
-            // scatter must write), same source and same rows as the buffer
-            // scatter below.
-            bool v_written = kv_fused;
-            if (kv_fused) {
-              // written by the fused launch above
-            } else if (kv_img_write && nntrainer::kv_img_write_mode() >= 2)
-              // mode 2: no image read in the write path -- the partial texels
-              // come from the slab, not from the mirror.
-              v_written = nntrainer::v_scatter_ohwi_t_img_slab_cl(
-                reinterpret_cast<const uint16_t *>(
-                  cache_value.getData<_FP16>() +
-                  (size_t)batch * cache_value_dim.getFeatureLen()),
-                v_img_use, num_heads_KV, head_dim, m_from, m_to, kv_mirror_base,
-                kv_ring_cap, cache_to);
-            else if (kv_img_write)
-              v_written = nntrainer::v_scatter_ohwi_t_img_cl(
-                v_sc_src, v_img_use, step_size, num_heads_KV, head_dim,
-                v_stride, m_from,
-                /*src_clmem=*/v_stage_clmem, /*src_off=*/v_sc_off);
-            if (!v_written)
-              nntrainer::v_scatter_ohwi_t_cl(
-                v_sc_src, reinterpret_cast<cl_mem>(v_buf_ohwi), step_size,
-                num_heads_KV, head_dim, v_stride, m_from,
-                /*src_clmem=*/v_stage_clmem, /*src_off=*/v_sc_off);
-            kv_v_valid_to = cache_to;
-            const double _kvst_tv = _kvst_on() ? _kvst_now() : 0;
-            // S3 decode: Q is rotated in place in its SVM plane (Q_p), by the
-            // OHWI GPU RoPE or the host fallback; q_attn_clmem (= q_cl, the FC
-            // output cl_mem) is NOT rotated. Binding it would feed the qk
-            // kernel an UNROTATED Q -> degenerate decode
-            // attention. For decode (step_size==1) pass null so the kernel
-            // reads Q_p (the SVM query). Prefill: the concat GPU-RoPE now
-            // rotates straight into the SVM plane Q_p on the image path
-            // (out_clmem=null above), so the qk must ALSO read Q_p (null) --
-            // binding q_cl would feed the UN-rotated FC output. Only the
-            // (opt-in) staged path writes a separate cl_mem handle the qk
-            // should bind (q_rope_staged).
-            void *q_clmem_use = (step_size == 1 || q_rope_staged == nullptr)
-                                  ? nullptr
-                                  : q_attn_clmem;
-            // Sliding-window layers: pass the effective window so the OHWI
-            // kernels mask keys older than the window (n + W <= q_pos) —
-            // same convention as the flash call below (0 = no window).
-            const unsigned int win_img = (local_window_size >= (size_t)m_to)
-                                           ? 0u
-                                           : (unsigned int)local_window_size;
-            // [prefill-long] The 3-kernel chain materializes [hQ, M, N_kv]
-            // fp16 scores: 16 heads x 4096 x 16384 is 2 GiB for ONE launch.
-            // Past a budget, run the query rows in sub-blocks instead; each
-            // row's scores, softmax and output are independent of the other
-            // rows, and a 64-row-aligned cut keeps the qk m-tiles and the sv
-            // row pairs where they were, so the output is bit-identical. A
-            // sub-block addresses Q/O through the SVM plane (interior
-            // pointers), so O is raised to its cl_mem afterwards like any
-            // other SVM-written arm.
-            //
-            // The scratch buffer is kept at the largest launch it ever served,
-            // so the budget IS resident footprint. Two regimes, and a single
-            // MiB number is the wrong answer for both (measured on Adreno,
-            // 1300 MHz, warm kernel cache, ids bit-identical in every pair):
-            //
-            //  - SINGLE-SHOT prefill, the whole prompt in ONE launch (the key
-            //    span this prefill reaches is this launch's M). Splitting it is
-            //    pure loss: at a 256 MiB budget the 0.3B 4095-token cell drops
-            //    18784 -> 14677 TPS (-22%) and the 1.5B 3925-token cell 3533 ->
-            //    3153 (-11%). And what it needs is BOUNDED -- hQ * M^2 * 2,
-            //    i.e. 268 MiB for the 0.3B at 4096 rows and 537 MiB for the
-            //    1.5B -- because the plane (and so M) is now sized to the
-            //    prompt and capped at kPrefillBlockCap. So never split it.
-            //
-            //  - CHUNKED prefill, M rows against a span that keeps growing:
-            //    [hQ, 4096, 16384] fp16 is 2 GiB for one launch, so this one
-            //    must be bounded -- and the SMALLER the budget, the faster AND
-            //    the cheaper, monotonically, all the way down to 48 MiB. The
-            //    earlier 256-vs-512 reading was right about the direction and
-            //    stopped one step too early; it also divided by a
-            //    prefill/decode split taken before the GPU queue drained.
-            //    Re-swept end to end with the boundary drain armed
-            //    (NNTR_PERF_SPLIT_DRAIN=1), 128 tokens, Adreno 840 at 1300 MHz,
-            //    warm kernel cache, budget 48 / 96 / 256 / 512 MiB, e2e ms and
-            //    honest MiB:
-            //      0.3B  8191   3843  3840  4020  4102     960  958 1031 1287
-            //      0.3B 16383   7180  7116  7800  8157     961 1059 1032 1288
-            //      1.5B  8103   9056  9314  9746  9833    2073 2078 2151 2408
-            //      1.5B 16203  19111 20062 21977 22804    2129 2179 2153 2409
-            //    and at the plane-1024 block that prefillBlockPays() now
-            //    defaults to, where the same order holds and the footprint gap
-            //    widens (1.5B 16203, 32 tokens, repeated: 15535/15533 at 48 vs
-            //    16731 at 96 vs 18270/18289 at 256 ms; honest 1596 vs 1708 vs
-            //    2028 MiB). 48 vs 96 is a tie on the 0.3B (16383: 7032, 7011 vs
-            //    7002 ms; run-to-run spread is 0.5%) and a 1.2 s win on the
-            //    1.5B, so 48 it is.
-            //
-            // NNTR_ATTN_SCORES_MB is that chunked-regime budget, default 48.
-            // The regimes are told apart by the driver's span hint, and only a
-            // hint that PROVES this launch is the whole prefill skips the
-            // split -- with no hint (span 0) the old bounded behaviour stands,
-            // because the first chunk of a chunked prefill is indistinguishable
-            // from a single-shot one by its own arguments alone. That exemption
-            // is what keeps the smaller budget from touching a single-shot
-            // prefill: at 999 and 919 tokens the budget changes neither TTFT
-            // (189.5 vs 185.7 ms, 503.4 vs 489.7 ms) nor the footprint (631.5
-            // vs 631.3, 1570.4 vs 1570.1 MiB) -- the scratch is never taken.
-            static const size_t kScoresBudgetMbDefault = 48;
-            static const size_t scores_budget = []() -> size_t {
-              const char *e = std::getenv("NNTR_ATTN_SCORES_MB");
-              const long mb = e ? std::atol(e) : (long)kScoresBudgetMbDefault;
-              return (size_t)(mb > 0 ? (size_t)mb : kScoresBudgetMbDefault)
-                     << 20;
-            }();
-            // [attn-nondet] The split is the SECOND nondeterminism contributor
-            // on this driver: running a chunk's query rows in sub-blocks means
-            // many launches per chunk against the same K/V images, and a
-            // texture line one launch left is reused by the next (measured at
-            // 0.3B 16383: every run pair differs by 545-1138 of 5408 node
-            // hashes with the split, 2 of 3 runs identical without it; 1.5B
-            // 8103: 705 vs 15 of 4064). One launch per chunk is therefore the
-            // determinism arm, and NNTR_DETERMINISTIC -- the cross-lane knob
-            // the API can set -- selects it. It is NOT free here, unlike on the
-            // other lanes: it costs +24.6% prefill / +17.5% e2e / +500 MiB on
-            // 0.3B 16383 and +10.4% / +6.6% / +182 MiB on 1.5B 8103 (nothing on
-            // a single-shot prefill like E2B's 923 tokens, which never splits),
-            // so it stays opt-in and the throughput default keeps the budget.
-            static const bool scores_no_split = []() {
-              const char *d = std::getenv("NNTR_DETERMINISTIC");
-              return d != nullptr && d[0] != '0';
-            }();
-            const unsigned int _span = prefillSpanHint();
-            const bool one_block =
-              scores_no_split || (_span != 0u && _span <= step_size);
-            const size_t row_bytes =
-              (size_t)num_heads_Q * (size_t)m_to * sizeof(uint16_t);
-            unsigned int sub = step_size;
-            if (!one_block && step_size > 64u && q_clmem_use == nullptr &&
-                row_bytes * step_size > scores_budget) {
-              sub = (unsigned int)(scores_budget / row_bytes) & ~63u;
-              if (sub < 64u)
-                sub = 64u;
-            }
-            // [attn-timer] The image arm was the one arm the timer did not
-            // cover, which is why "which decode op grows with the ring cap" had
-            // to be read off the kernels instead of measured. N_kv here is the
-            // mirror OCCUPANCY (m_to), the number the cost actually follows.
-            {
-              MhaAttnTimerScope _img_attn_timer(step_size, m_to,
-                                                local_window_size != UINT_MAX);
-              if (sub >= step_size) {
-                ok =
-                  nntrainer::two_conv_attention_prefill_f16_ohwi_kvimg_view_cl(
-                    Q_p, reinterpret_cast<cl_mem>(k_image_ohwi),
-                    reinterpret_cast<cl_mem>(v_img_use), O_p, step_size, m_to,
-                    num_heads_Q, num_heads_KV, head_dim, kv_mirror_S_max,
-                    is_causal, attn_logit_softcapping, /*q_clmem=*/q_clmem_use,
-                    /*o_clmem=*/o_cl, win_img, v_buf_ohwi, v_stride);
-                if (ok && o_cl != nullptr)
-                  o_written_clmem = true;
-              } else {
-                const size_t q_row = (size_t)num_heads_Q * head_dim;
-                ok = true;
-                for (unsigned int a = 0; ok && a < step_size; a += sub) {
-                  const unsigned int b = std::min(a + sub, step_size);
-                  ok = nntrainer::
-                    two_conv_attention_prefill_f16_ohwi_kvimg_view_cl(
-                      Q_p + (size_t)a * q_row,
-                      reinterpret_cast<cl_mem>(k_image_ohwi),
-                      reinterpret_cast<cl_mem>(v_img_use),
-                      O_p + (size_t)a * q_row, b - a, m_from + b, num_heads_Q,
-                      num_heads_KV, head_dim, kv_mirror_S_max, is_causal,
-                      attn_logit_softcapping,
-                      /*q_clmem=*/nullptr, /*o_clmem=*/nullptr, win_img,
-                      v_buf_ohwi, v_stride);
-                }
-                // O went to the SVM plane: the raise below lands it in o_cl.
-              }
-            }
-            if (_kvst_on())
-              _kvst_mark_scatter(_kvst_t1, _kvst_tk, _kvst_tv, _kvst_now());
-            static int _img_attn_logged = 0;
-            if (!_img_attn_logged) {
-              _img_attn_logged = 1;
-              ml_logd("[IMG-ATTN] engaged ok=%d M=%u N_kv=%u S_max=%u "
-                      "hQ=%zu hKV=%zu d=%zu softcap=%.1f ring_cap=%u gsh=%u",
-                      (int)ok, step_size, cache_to, kv_mirror_S_max,
-                      num_heads_Q, num_heads_KV, head_dim,
-                      attn_logit_softcapping, kv_ring_cap, kv_kimg_gsh);
-            }
-          }
-        }
-
-        // d=256 attention: register-tiled, barrier-free, scores-free flash
-        // (FBQ_SG Block-Q when NNTR_V8C_BUF). The layer-graph previously only
-        // had the scalar two_conv path (materializes a [hQ,M,N_kv] fp16 scores
-        // tensor in DRAM, ~820ms at M=1024 d=256) and otherwise fell to host
-        // gemm_attention (~8.5s, M=1024). Concat K (non-OHWI b_cached_key) =>
-        // max_seq_len=0. SVM-only; falls through to two_conv/host when svm_ok
-        // is false. The SVM-pointer fallbacks below read Q via its SVM shadow:
-        // lower first when Q is GPU_CLMEM-resident and the image path did not
-        // run.
-        if (!ok && q_rope_staged != nullptr) {
-          // The rotated Q lives only in the q_stage temp; the SVM fallbacks
-          // below read Q's SVM plane. Land it there (drained) and drop the
-          // (stale, un-rotated) cl_mem handle so lower_q stays a no-op.
-          nntrainer::gpu_copy_f16_cl(
-            reinterpret_cast<const uint16_t *>(query_step.getData<_FP16>()),
-            reinterpret_cast<uint16_t *>(query_step.getData<_FP16>()),
-            step_size * (unsigned int)num_heads_Q * (unsigned int)head_dim,
-            /*svm_inputs=*/true, /*in_clmem=*/q_rope_staged,
-            /*out_clmem=*/nullptr, /*drain=*/true);
-          q_cl = nullptr;
-        }
-        if (!ok && q_rotated_in_svm_plane && q_cl != nullptr) {
-          // The image arm did not take this call (no mirror -- the K image did
-          // not fit the device, or the call is past the mirror capacity), but
-          // NNTR_KV_IMG_ATTN still shaped the RoPE above: the rotated Q is in
-          // the SVM plane and q_cl still holds the FC's UN-rotated output.
-          // lower_q() below would copy that over the plane, and every arm
-          // under this one would then attend with a position-less Q against
-          // rotated keys -- fluent for a sentence, then a repetition loop, and
-          // a first token that moves with the chunk size. That was the whole
-          // of "the non-image fallback is wrong". Drop the stale handle
-          // instead (one drain: that rotation was enqueued without one).
-          nntrainer::cl_queue_finish();
-          q_cl = nullptr;
-        }
-        if (!ok && (kv_stage_on || k_stage != nullptr ||
-                    v_stage_svm != nullptr || kv_write_undrained)) {
-          // The staged K/V cache side-fills (and, in staged mode, the
-          // undrained rope-Q SVM output) were never drained; the
-          // flash/two_conv SVM readers below depend on them. One drain.
-          nntrainer::cl_queue_finish();
-        }
-        // MHA_CLMEM: the SVM fallbacks below read the concat slab, which
-        // the mirror-only prefill window left stale -- gather it back.
-        if (!ok)
-          sync_kv_slab(cache_to);
-        if (!ok)
-          lower_q();
-        if (!ok && svm_ok) {
-          // Gemma4 sliding-window: pass local_window_size so the flash kernel
-          // masks keys older than the window (n + W <= m). UINT_MAX (full
-          // attention) and any window >= cache length are treated as "no
-          // window" inside the kernel. Prefill big-step writes from
-          // cache_from==0 so the kernel's row index m == absolute query pos.
-          const unsigned int win = (local_window_size >= (size_t)cache_to)
-                                     ? 0u
-                                     : (unsigned int)local_window_size;
-          // Decode (step_size==1): single query starves blockq/coop_vec
-          // (num_heads_Q groups). flash_decode splits the KV axis into chunks
-          // (num_heads_Q * n_chunks groups) for parallelism. Falls back to the
-          // prefill flash kernel on shape mismatch / softcap.
-          // sliding == the layer HAS a window (not "the window already
-          // clips"), so a sliding layer's cost is one series across contexts.
-          MhaAttnTimerScope _attn_timer(step_size, cache_to,
-                                        local_window_size != UINT_MAX);
-          if (step_size == 1)
-            ok = nntrainer::flash_decode_f16_cl(
-              Q_p, K_p, V_p, O_p, cache_to, num_heads_Q, num_heads_KV, head_dim,
-              /*max_seq_len=*/0u, /*svm_inputs=*/true, attn_logit_softcapping,
-              /*local_window=*/win, /*ring_cap=*/kv_ring_cap);
-          if (!ok)
-            ok = nntrainer::flash_attention_prefill_f16_cl(
-              Q_p, K_p, V_p, O_p, step_size, cache_to, num_heads_Q,
-              num_heads_KV, head_dim, /*max_seq_len=*/0u, is_causal,
-              /*svm_inputs=*/true, attn_logit_softcapping, /*local_window=*/win,
-              /*ring_cap=*/kv_ring_cap);
-        }
-        // image2d_from_buffer variant gated by NNTR_MHA_GPU_IMG=1. Uses 8-half
-        // texel loads (RGBA UINT32) for the d-axis reduction, ~8x fewer
-        // memory transactions vs the scalar fp16 path. Falls back to scalar
-        // on any failure. Non-SVM only (image2d_from_buffer needs cl_mem).
-        static const bool _tca_img_on =
-          std::getenv("NNTR_MHA_GPU_IMG") != nullptr;
-        if (!ok && _tca_img_on && head_dim % 8 == 0 &&
-            (num_heads_Q * head_dim) % 8 == 0 &&
-            (num_heads_KV * head_dim) % 8 == 0 &&
-            !mha_ring_refuses_arm(kv_ring_cap, "two_conv-image")) {
-          ok = nntrainer::two_conv_attention_prefill_f16_img_cl(
-            Q_p, K_p, V_p, O_p, step_size, cache_to, num_heads_Q, num_heads_KV,
-            head_dim, is_causal);
-        }
-        if (!ok && !mha_ring_refuses_arm(kv_ring_cap, "two_conv")) {
-          ok = nntrainer::two_conv_attention_prefill_f16_cl(
-            Q_p, K_p, V_p, O_p, step_size, cache_to, num_heads_Q, num_heads_KV,
-            head_dim, is_causal, svm_ok);
-        }
-      }
-      if (ok) {
-        // The wo FC consumes O through its static plane: raise it into the
-        // planner sub-buffer when a non-cl_mem path (flash/two_conv/kvi8)
-        // wrote the SVM shadow instead.
-        if (o_cl != nullptr && !o_written_clmem) {
-          // The flash/two_conv prefill kernel wrote O into the SVM shadow and,
-          // on the in-order SVM-pool queue, deliberately SKIPS its post-kernel
-          // drain (attention_kernels.cpp) on the assumption that the next GPU
-          // op orders behind it. But clmem_raise_cl below is NOT a GPU->GPU
-          // dependency: it reads the SVM shadow as a plain HOST pointer
-          // (the clEnqueueWriteBuffer source). The host view of a kernel-
-          // written coarse-grained SVM region is not coherent until the
-          // kernel completes, so at large prefill M (sliding-window prefill at
-          // ctx > window is the first config that runs a long flash kernel on
-          // this path) the raise can snapshot a partially-written O => corrupt
-          // last-position hidden state => non-deterministic immediate EOS /
-          // garbage. Drain once here so the host source is coherent before the
-          // raise. Measured no prefill regression (M=1024 ~737 TPS, identical
-          // to the undrained path within noise) because the flash kernel has
-          // effectively completed by the time this layer's O is consumed; the
-          // host gemm path below wrote O on the host and needs no such drain.
-          // GPU-side O raise (o_svm -> o_cl, GPU->GPU on the in-order queue):
-          // the host clmem_raise_cl reads the O SVM shadow as a HOST pointer
-          // (clEnqueueWriteBuffer source), which is NOT coherent on
-          // coarse-grain SVM (Xe3 / Panther Lake) even after cl_queue_finish --
-          // a finish drains the queue but does NOT map the SVM for host access,
-          // so the raise snapshots a stale/partially-written O. A short prefill
-          // (M~4) exposes this: the flash completes just before the raise ->
-          // corrupt last-position hidden -> garbage (large-M survived because
-          // the flash finished long before the raise). The GPU copy needs no
-          // host coherence and is perf-neutral (no drain, no host bounce).
-          // DEFAULT-ON; override with NNTR_NO_GPU_OBRIDGE for the legacy
-          // host-raise path.
-          static const bool _gpu_obridge =
-            std::getenv("NNTR_NO_GPU_OBRIDGE") == nullptr;
-          if (_gpu_obridge) {
-            uint16_t *o_svm = reinterpret_cast<uint16_t *>(
-              attention_output_step.getData<_FP16>());
-            nntrainer::gpu_copy_f16_cl(
-              o_svm, o_svm, (unsigned int)attention_output_step.size(),
-              /*svm_inputs=*/true, /*in_clmem=*/nullptr, /*out_clmem=*/o_cl,
-              /*drain=*/false);
-          } else {
-            nntrainer::cl_queue_finish();
-            nntrainer::clmem_raise_cl(attention_output_step, 0);
-          }
-        }
-        return;
-      }
-#endif // ENABLE_OPENCL (GPU two-conv/image/flash attention)
-#endif
-    }
-    // [kv-window-ring] The guard for the host attention path is NOT here, even
-    // though the next arm below is the host one. gemm_attention() is not itself
-    // the host path: it carries the CUDA arm
-    // (cuda_attention_interleaved_fp16), which is one of the three that
-    // modulo-map the ring row, and it is the only way to reach it -- the
-    // dispatch above routes every step_size here when NNTR_CUDA_ATTN is on.
-    // Asserting before the call refused the ring for the whole CUDA lane:
-    // engine=cuda + ring=1 threw "no ring-aware attention arm resolved" on the
-    // FIRST prefill chunk, having never given the arm that resolves it a turn.
-    // The guard now sits inside gemm_attention, immediately before its host
-    // phase, where the arm has either answered or declined -- which is also the
-    // only place the arm's runtime precondition (Q/O device-accessible) is
-    // known.
-#if defined(ENABLE_OPENCL)
-    // A K/V cache write above may have been enqueued with a submission flush
-    // and no drain (the image-attention GPU chain). This reader is on the
-    // host, not on that queue: settle the queue once first.
-    if (kv_write_undrained)
-      nntrainer::cl_queue_finish();
-    settle_act_stage_for_host();
-#endif
-    lower_q();
-    sync_kv_slab(cache_from);
-    if (mha_clmem_mode && cache_to > kv_slab_synced_to)
-      kv_slab_synced_to = cache_to; // this step's rows were host-written
+  // minimum prefill length: for decode (step_size == 1) the per-row dot
+  // path is preferred (no benefit from blocking + softmax bookkeeping).
+  constexpr unsigned int FLASH_MIN_PREFILL = 32;
+  if (use_gemm_attention && step_size >= FLASH_MIN_PREFILL) {
     gemm_attention(query_step, b_cached_key, b_cached_value,
                    attention_output_step, cache_to, step_size, cache_from);
-    // raise host-written O into its planner cl_mem (OpenCL-only)
-#if defined(ENABLE_OPENCL)
-    if (o_cl != nullptr)
-      nntrainer::clmem_raise_cl(attention_output_step, 0);
-#endif
     return;
   }
-
-  // Host (decode) attention reads Q and writes O on the host.
-  mha_ring_assert_host_path_ok(kv_ring_cap, "host decode attention");
-  mha_assert_host_readable(query_step, b_cached_key, b_cached_value,
-                           attention_output_step, "host per-row attention");
-#if defined(ENABLE_OPENCL)
-  settle_act_stage_for_host();
-#endif
-  lower_q();
-  // MHA_CLMEM: decode reads the whole prefix from the concat slab; gather
-  // the prefill rows (mirror-only during the prefill window) back once.
-  // This decode step's own K/V were host-written into the slab above.
-  sync_kv_slab(cache_from);
-  if (mha_clmem_mode && cache_to > kv_slab_synced_to)
-    kv_slab_synced_to = cache_to;
 
   // out_ stores the output of Q * K
   nntrainer::Tensor out_(1, 1,
@@ -4452,11 +3515,6 @@ void MHACoreLayer::one_batch_incremental_forwarding(
                                    : (step_size * cache_to),
                          num_heads_Q, query_step.getTensorType());
 
-  // Host decode attention reads GPU-produced Q/K on the host: sync first so the
-  // read is coherent under NNTR_CUDA_ASYNC (no-op in sync mode).
-#if defined(ENABLE_CUDA) && ENABLE_CUDA == 1
-  nntrainer::cuda::drain_if_async();
-#endif
   compute_kcaches(query_step, b_cached_key, out_, cache_from,
                   cache_to - cache_from, num_heads_Q, gqa_size, head_dim);
 
@@ -5264,6 +4322,366 @@ void MHACoreLayer::gemm_attention(nntrainer::Tensor &query_step,
           }
 #endif
       } // FP32 Q path
+    }
+    for (unsigned int i = 0; i < bq; ++i) {
+      const float inv = (lrow[i] > 0.0f) ? (1.0f / lrow[i]) : 0.0f;
+      const float *ol = Ol.data() + (size_t)i * d;
+      if (o_fp16) {
+        uint16_t *oh = Oh_fp16 + (size_t)(qb + i) * HD_Q;
+        for (unsigned int x = 0; x < d; ++x)
+          oh[x] = nntrainer::compute_fp32_to_fp16(ol[x] * inv);
+      } else {
+        float *oh = Oh + (size_t)(qb + i) * HD_Q;
+        for (unsigned int x = 0; x < d; ++x)
+          oh[x] = ol[x] * inv;
+      }
+    }
+  });
+}
+
+void MHACoreLayer::gemm_attention(nntrainer::Tensor &query_step,
+                                  nntrainer::Tensor &b_cached_key,
+                                  nntrainer::Tensor &b_cached_value,
+                                  nntrainer::Tensor &attention_output_step,
+                                  unsigned int N_kv, unsigned int N_q,
+                                  unsigned int cache_from) {
+  const unsigned int d = head_dim;
+  const unsigned int HD_Q = num_heads_Q * d;
+  const unsigned int HD_KV = num_heads_KV * d;
+  const unsigned int gqa =
+    (num_heads_KV > 0) ? static_cast<unsigned int>(num_heads_Q / num_heads_KV)
+                       : 1u;
+  const float inv_sqrt = 1.0f / std::sqrt(static_cast<float>(d));
+  const unsigned int order =
+    static_cast<unsigned int>(query_step.getDim().getStorageOrder());
+  const bool causal = is_causal;
+  // Treat any local_window_size >= cache length as "no window".
+  const bool windowed = (local_window_size < N_kv);
+  const size_t W = static_cast<size_t>(local_window_size);
+
+  // Runtime dtype dispatch: forwarding() may convert Q/V/output to FP16 when
+  // ENABLE_FP16 && __ANDROID__ build. K/V are always FP16 storage.
+  const bool q_fp16 =
+    (query_step.getDataType() == ml::train::TensorDim::DataType::FP16);
+  const bool o_fp16 = (attention_output_step.getDataType() ==
+                       ml::train::TensorDim::DataType::FP16);
+
+  const float *Q = nullptr;
+  const uint16_t *Q_fp16_src = nullptr;
+  float *O = nullptr;
+  uint16_t *O_fp16 = nullptr;
+  if (q_fp16) {
+#ifdef ENABLE_FP16
+    Q_fp16_src =
+      reinterpret_cast<const uint16_t *>(query_step.getData<_FP16>());
+#endif
+  } else {
+    Q = query_step.getData<float>();
+  }
+  if (o_fp16) {
+#ifdef ENABLE_FP16
+    O_fp16 =
+      reinterpret_cast<uint16_t *>(attention_output_step.getData<_FP16>());
+#endif
+  } else {
+    O = attention_output_step.getData<float>();
+  }
+
+  // Tile sizes tuned for ARM Cortex-A76 L1 (64KB):
+  //   S(FP32)=16KB + Sp16=8KB + Ol=8KB + Pacc16=4KB = 36KB < 64KB L1.
+  //   Bq=256/Bk=512 blew out L1+L2, defeating the cache-residency goal.
+  constexpr unsigned int Bq = 32, Bk = 128;
+
+  const unsigned int num_qb = (N_q + Bq - 1) / Bq;
+  auto &tm = nntrainer::ThreadManager::Global();
+
+  // Cache always stores half-precision (FP16-bit) values; read as raw uint16_t
+  // bits so we don't depend on ENABLE_FP16 / _FP16 / _Float16 being defined.
+  const uint16_t *Kbase;
+  const uint16_t *Vbase;
+#ifdef ENABLE_FP16
+  Kbase = reinterpret_cast<const uint16_t *>(b_cached_key.getData<_FP16>());
+  Vbase = reinterpret_cast<const uint16_t *>(b_cached_value.getData<_FP16>());
+#else
+  Kbase = b_cached_key.getData<uint16_t>();
+  Vbase = b_cached_value.getData<uint16_t>();
+#endif
+
+  // Phase 1: de-interleave heads once into shared contiguous buffers.
+  // K/V always kept as raw FP16 bits (uint16). Q either FP32 (V-JEPA
+  // path) or FP16 (when forwarding() pre-converts to FP16; ENABLE_FP16+
+  // Android). The FP16 Q path keeps the entire attention in FP16
+  // (custom_hgemm for QK and AV, FP16 softmax) without ever materializing
+  // an FP32 score buffer.
+  // Phase 2: flash attention over balanced (h_q, query-block) work units.
+  // Q/K/V are de-interleaved lazily per tile inside each work unit:
+  //   - Q: bq rows copied once per unit at unit start
+  //   - K/V: bk rows copied once per k-tile iteration
+  // This replaces the upfront O(N_kv) Phase 1 copy, eliminating its
+  // scaling limit (num_heads_KV work units) and cache-pressure side-effects.
+  tm.parallel_for(0, static_cast<size_t>(num_heads_Q) * num_qb, [&](size_t u) {
+    const unsigned int h_q = static_cast<unsigned int>(u / num_qb);
+    const unsigned int h_kv = h_q / gqa;
+    const unsigned int qb = static_cast<unsigned int>(u % num_qb) * Bq;
+    const unsigned int bq = std::min(Bq, N_q - qb);
+    float *Oh = o_fp16 ? nullptr : (O + h_q * d);
+    uint16_t *Oh_fp16 = o_fp16 ? (O_fp16 + h_q * d) : nullptr;
+
+    thread_local std::vector<float> S, Pacc, Ol, mrow, lrow;
+    thread_local std::vector<uint16_t> Sp16, Pacc16;
+    thread_local std::vector<uint16_t> Ktile, Vtile;
+    thread_local std::vector<uint16_t> Qtile_fp16;
+    thread_local std::vector<float> Qtile_fp32;
+    S.resize((size_t)Bq * Bk);
+    Pacc.resize((size_t)Bq * d);
+    Ol.resize((size_t)Bq * d);
+    mrow.resize(Bq);
+    lrow.resize(Bq);
+    Ktile.resize((size_t)Bk * d);
+    Vtile.resize((size_t)Bk * d);
+    if (q_fp16)
+      Qtile_fp16.resize((size_t)Bq * d);
+    else
+      Qtile_fp32.resize((size_t)Bq * d);
+#if !defined(__x86_64__) && !defined(__i386__) && defined(__ARM_NEON)
+    Sp16.resize((size_t)Bq * Bk);
+    Pacc16.resize((size_t)Bq * d);
+#endif
+
+    // De-interleave Q rows for this work unit: head h_q, rows [qb, qb+bq).
+    // maybe_unused: on x86 only Qp_fp32 is read (avx2 path); Qp_fp16 is only
+    // consumed by the ARM f16xf16 fmlal path. Exactly one pointer is used per
+    // build, so silence -Werror=unused-but-set-variable.
+    [[maybe_unused]] const float *Qp_fp32;
+    [[maybe_unused]] const uint16_t *Qp_fp16;
+    if (q_fp16) {
+      uint16_t *qt = Qtile_fp16.data();
+      const uint16_t *qsrc = Q_fp16_src + h_q * d;
+      for (unsigned int n = 0; n < bq; ++n)
+        std::memcpy(qt + n * d, qsrc + (size_t)(qb + n) * HD_Q,
+                    d * sizeof(uint16_t));
+      Qp_fp32 = nullptr;
+      Qp_fp16 = Qtile_fp16.data();
+    } else {
+      float *qt = Qtile_fp32.data();
+      const float *qsrc = Q + h_q * d;
+      for (unsigned int n = 0; n < bq; ++n)
+        std::memcpy(qt + n * d, qsrc + (size_t)(qb + n) * HD_Q,
+                    d * sizeof(float));
+      Qp_fp32 = Qtile_fp32.data();
+      Qp_fp16 = nullptr;
+    }
+    // FP16-throughout path uses Sp16 for both QK output (custom_hgemm,
+    // FP16-stored) and AV input (softmax in-place updates the same
+    // buffer). The FP32 S buffer is unused in that path.
+
+    std::fill(Ol.begin(), Ol.begin() + (size_t)bq * d, 0.0f);
+    for (unsigned int i = 0; i < bq; ++i) {
+      mrow[i] = -3.0e38f;
+      lrow[i] = 0.0f;
+    }
+
+    // The absolute query positions in this work unit are
+    // [cache_from + qb, cache_from + qb + bq).
+    const size_t q_abs_lo = (size_t)cache_from + qb;
+    const size_t q_abs_hi = q_abs_lo + bq - 1; // inclusive
+
+    for (unsigned int kb = 0; kb < N_kv; kb += Bk) {
+      const unsigned int bk = std::min(Bk, N_kv - kb);
+
+      // Causal upper-bound block-skip: smallest k_abs in block > largest
+      // q_abs -> this and all later key blocks contribute nothing.
+      if (causal && (size_t)kb > q_abs_hi)
+        break;
+
+      // Sliding-window lower-bound block-skip: largest k_abs in block <
+      // smallest visible threshold (q_abs_lo - W + 1, i.e., k_abs must
+      // satisfy k_abs > q_abs - W).
+      if (windowed && (size_t)kb + bk + W <= q_abs_lo + 1)
+        continue;
+
+      // Does this block straddle the causal diagonal for any row?
+      const bool causal_boundary = causal && ((size_t)kb + bk > q_abs_lo + 1);
+      // Does this block straddle the sliding-window lower bound for any row?
+      const bool window_boundary = windowed && ((size_t)kb + W < q_abs_hi + 1);
+
+      {
+        // Copy K/V tile from interleaved cache: head h_kv, positions [kb,
+        // kb+bk).
+        {
+          const uint16_t *ksrc = Kbase + (size_t)h_kv * d;
+          uint16_t *kt = Ktile.data();
+          for (unsigned int k = 0; k < bk; ++k)
+            std::memcpy(kt + k * d, ksrc + (size_t)(kb + k) * HD_KV,
+                        d * sizeof(uint16_t));
+        }
+        {
+          const uint16_t *vsrc = Vbase + (size_t)h_kv * d;
+          uint16_t *vt = Vtile.data();
+          for (unsigned int k = 0; k < bk; ++k)
+            std::memcpy(vt + k * d, vsrc + (size_t)(kb + k) * HD_KV,
+                        d * sizeof(uint16_t));
+        }
+        const uint16_t *Kp = Ktile.data();
+        const uint16_t *Vp = Vtile.data();
+        // QK -> FP32 score buffer S. One buffer, two query sources:
+        //   - q_fp16:  FP16 Q × FP16 K via FMLAL-widening — every product is
+        //     accumulated in FP32 (vfmlalq_low/high_f16), so V-JEPA-2 block-0's
+        //     ~160k per-element products and ~457k logits never overflow FP16.
+        //     No FP32 copy of Q is materialized.
+        //   - !q_fp16: FP32 Q × FP16 K via shgemm / avx2 / sgemm.
+        // The softmax below reads S (FP32) and stores normalized FP16 probs to
+        // Sp16 for the AV custom_hgemm.
+#if defined(__x86_64__) || defined(__i386__)
+        nntrainer::avx2::hsgemm_fp16bits_avx2(bq, bk, d, inv_sqrt, Qp_fp32, d,
+                                              Kp, d, /*TransB=*/true, S.data(),
+                                              bk);
+#elif defined(__ARM_NEON)
+        if (q_fp16) {
+          hgemm_f16xf16_f32_fmlal(reinterpret_cast<const __fp16 *>(Qp_fp16),
+                                  reinterpret_cast<const __fp16 *>(Kp), S.data(),
+                                  bq, bk, d, inv_sqrt, d, d, bk);
+        } else {
+          nntrainer::shgemm(order, false, true, bq, bk, d, inv_sqrt, Qp_fp32, d,
+                            reinterpret_cast<const __fp16 *>(Kp), d, 0.0f,
+                            S.data(), bk);
+        }
+#else
+        nntrainer::sgemm(order, false, true, bq, bk, d, inv_sqrt, Qp_fp32, d,
+                         Kp, d, 0.0f, S.data(), bk);
+#endif
+
+        for (unsigned int i = 0; i < bq; ++i) {
+          float *s = S.data() + (size_t)i * bk;
+          const long long q_abs = (long long)cache_from + qb + i;
+          if (causal_boundary) {
+            long long valid_count_ll = q_abs + 1 - (long long)kb;
+            unsigned int valid_count = (valid_count_ll <= 0)
+                                         ? 0u
+                                         : (valid_count_ll >= (long long)bk
+                                              ? bk
+                                              : (unsigned int)valid_count_ll);
+            for (unsigned int k = valid_count; k < bk; ++k)
+              s[k] = -INFINITY;
+          }
+          if (window_boundary) {
+            long long first_valid_ll = q_abs - (long long)W - (long long)kb + 1;
+            unsigned int first_valid = (first_valid_ll <= 0)
+                                         ? 0u
+                                         : (first_valid_ll >= (long long)bk
+                                              ? bk
+                                              : (unsigned int)first_valid_ll);
+            for (unsigned int k = 0; k < first_valid; ++k)
+              s[k] = -INFINITY;
+          }
+
+          float bm = -3.0e38f;
+#if defined(__ARM_NEON)
+          {
+            float32x4_t vmx = vdupq_n_f32(-3.0e38f);
+            unsigned int k = 0;
+            for (; k + 4 <= bk; k += 4)
+              vmx = vmaxq_f32(vmx, vld1q_f32(s + k));
+            bm = vmaxvq_f32(vmx);
+            for (; k < bk; ++k)
+              bm = std::max(bm, s[k]);
+          }
+#else
+            for (unsigned int k = 0; k < bk; ++k)
+              bm = std::max(bm, s[k]);
+#endif
+          const float nm = std::max(mrow[i], bm);
+          const float c = std::exp(mrow[i] - nm);
+          float bs = 0.0f;
+#if !defined(__x86_64__) && !defined(__i386__) && defined(__ARM_NEON)
+          {
+            uint16_t *sp16 = Sp16.data() + (size_t)i * bk;
+            float32x4_t vsum = vdupq_n_f32(0.0f), vnm = vdupq_n_f32(nm);
+            unsigned int k = 0;
+            for (; k + 4 <= bk; k += 4) {
+              float32x4_t e = exp_ps(vsubq_f32(vld1q_f32(s + k), vnm));
+              float16x4_t e_h = vcvt_f16_f32(e);
+              vst1_u16(sp16 + k, vreinterpret_u16_f16(e_h));
+              vsum = vaddq_f32(vsum, e);
+            }
+            bs = vaddvq_f32(vsum);
+            for (; k < bk; ++k) {
+              float e = std::exp(s[k] - nm);
+              sp16[k] = nntrainer::compute_fp32_to_fp16(e);
+              bs += e;
+            }
+          }
+#elif defined(__ARM_NEON)
+            {
+              float32x4_t vsum = vdupq_n_f32(0.0f), vnm = vdupq_n_f32(nm);
+              unsigned int k = 0;
+              for (; k + 4 <= bk; k += 4) {
+                float32x4_t e = exp_ps(vsubq_f32(vld1q_f32(s + k), vnm));
+                vst1q_f32(s + k, e);
+                vsum = vaddq_f32(vsum, e);
+              }
+              bs = vaddvq_f32(vsum);
+              for (; k < bk; ++k) {
+                float e = std::exp(s[k] - nm);
+                s[k] = e;
+                bs += e;
+              }
+            }
+#else
+            for (unsigned int k = 0; k < bk; ++k) {
+              float e = std::exp(s[k] - nm);
+              s[k] = e;
+              bs += e;
+            }
+#endif
+          lrow[i] = lrow[i] * c + bs;
+          mrow[i] = nm;
+          float *ol = Ol.data() + (size_t)i * d;
+          for (unsigned int x = 0; x < d; ++x)
+            ol[x] *= c;
+        }
+
+#if defined(__x86_64__) || defined(__i386__)
+        nntrainer::avx2::hsgemm_fp16bits_avx2(bq, d, bk, 1.0f, S.data(), bk, Vp,
+                                              d, /*TransB=*/false, Pacc.data(),
+                                              d);
+        for (unsigned int i = 0; i < bq; ++i) {
+          float *ol = Ol.data() + (size_t)i * d;
+          const float *pa = Pacc.data() + (size_t)i * d;
+          for (unsigned int x = 0; x < d; ++x)
+            ol[x] += pa[x];
+        }
+#elif defined(__ARM_NEON)
+          nntrainer::neon::custom_hgemm(
+            reinterpret_cast<const __fp16 *>(Sp16.data()),
+            reinterpret_cast<const __fp16 *>(Vp),
+            reinterpret_cast<__fp16 *>(Pacc16.data()), bq, d, bk, 1.0f, 0.0f,
+            /*TransA=*/false, /*TransB=*/false);
+          for (unsigned int i = 0; i < bq; ++i) {
+            float *ol = Ol.data() + (size_t)i * d;
+            const uint16_t *pa = Pacc16.data() + (size_t)i * d;
+            unsigned int x = 0;
+            for (; x + 8 <= d; x += 8) {
+              float16x8_t h = vreinterpretq_f16_u16(vld1q_u16(pa + x));
+              float32x4_t lo = vcvt_f32_f16(vget_low_f16(h));
+              float32x4_t hi = vcvt_f32_f16(vget_high_f16(h));
+              vst1q_f32(ol + x, vaddq_f32(vld1q_f32(ol + x), lo));
+              vst1q_f32(ol + x + 4, vaddq_f32(vld1q_f32(ol + x + 4), hi));
+            }
+            for (; x < d; ++x)
+              ol[x] += nntrainer::compute_fp16_to_fp32(pa[x]);
+          }
+#else
+          nntrainer::sgemm(order, false, false, bq, d, bk, 1.0f, S.data(), bk,
+                           Vp, d, 0.0f, Pacc.data(), d);
+          for (unsigned int i = 0; i < bq; ++i) {
+            float *ol = Ol.data() + (size_t)i * d;
+            const float *pa = Pacc.data() + (size_t)i * d;
+            for (unsigned int x = 0; x < d; ++x)
+              ol[x] += pa[x];
+          }
+#endif
+      } // unified QK (fmlal/shgemm) -> FP32 S -> softmax -> AV
     }
     for (unsigned int i = 0; i < bq; ++i) {
       const float inv = (lrow[i] > 0.0f) ? (1.0f / lrow[i]) : 0.0f;
