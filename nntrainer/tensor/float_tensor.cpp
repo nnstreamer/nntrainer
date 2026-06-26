@@ -903,24 +903,6 @@ Tensor &FloatTensor::dotFloat32Float16(Tensor const &input, Tensor &output,
   const _FP16 *mdata = input.getData<_FP16>();
   const float alpha = 1.0f;
 
-  if (std::getenv("NNTR_DOT_PROBE")) {
-    float amax = 0, bmax = 0;
-    for (unsigned int i = 0; i < M * K; ++i) {
-      float a = data[i] < 0 ? -data[i] : data[i];
-      if (a > amax) amax = a;
-    }
-    for (unsigned int i = 0; i < N * K; ++i) {
-      float b = (float)mdata[i];
-      b = b < 0 ? -b : b;
-      if (b > bmax) bmax = b;
-    }
-    fprintf(stderr,
-            "[DOT_PROBE] M=%u N=%u K=%u lda=%u ldb=%u ldc=%u trans=%d "
-            "trans_in=%d Amax=%g Bmax=%g outdt=%d\n",
-            M, N, K, lda, ldb, ldc, (int)trans, (int)trans_in, amax, bmax,
-            (int)output.getDataType());
-  }
-
   // The mixed-precision BLAS kernels (shgemm/shgemv/hsgemv) always accumulate
   // and write FP32 output. When the destination tensor is FP16 (e.g. an
   // FP32-weight / FP16-activation conv whose output activation is FP16), we
@@ -969,16 +951,6 @@ Tensor &FloatTensor::dotFloat32Float16(Tensor const &input, Tensor &output,
   else {
     o->shgemm((unsigned int)dim.getStorageOrder(), trans, trans_in, M, N, K,
               alpha, data, lda, mdata, ldb, beta, rdata, ldc);
-  }
-
-  if (out_fp16 && std::getenv("NNTR_DOT_PROBE")) {
-    float omax = 0;
-    for (size_t i = 0; i < out_staging.size(); ++i) {
-      float v = out_staging[i] < 0 ? -out_staging[i] : out_staging[i];
-      if (v > omax) omax = v;
-    }
-    fprintf(stderr, "[DOT_PROBE]   -> staging omax=%g (size=%zu)\n", omax,
-            out_staging.size());
   }
 
   if (out_fp16) {

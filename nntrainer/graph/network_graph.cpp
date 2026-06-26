@@ -399,76 +399,11 @@ sharedConstTensors NetworkGraph::forwarding(
   bool training,
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op,
   std::function<bool(void *userdata)> stop_cb, void *userdata) {
-  static const bool nan_check = (std::getenv("NNTR_NAN_CHECK") != nullptr);
-  // Debug-only (NNTR_LAYER_TIME): accumulate wall-clock per layer type to find
-  // the next optimization lever. Printed sorted at the end of this forwarding.
-  static const bool layer_time = (std::getenv("NNTR_LAYER_TIME") != nullptr);
-  std::map<std::string, double> lt_us;
   for (auto iter = cbegin(); iter != cend() && !stop_cb(userdata); iter++) {
     auto &ln = *iter;
     PROFILE_TIME_START(profile_keys.at(ln->getType()));
-    if (layer_time) {
-      auto t0 = std::chrono::high_resolution_clock::now();
-      forwarding_op(*iter, training);
-      auto t1 = std::chrono::high_resolution_clock::now();
-      lt_us[ln->getType()] +=
-        std::chrono::duration<double, std::micro>(t1 - t0).count();
-    } else {
-      forwarding_op(*iter, training);
-    }
+    forwarding_op(*iter, training);
     PROFILE_TIME_END(profile_keys.at(ln->getType()));
-    if (nan_check) {
-      // Debug-only (NNTR_NAN_CHECK): log the first layer that emits a
-      // non-finite output (NaN/Inf) to localize FP16 overflow, then stop.
-      // NNTR_NAN_CHECK=2 instead logs every layer's output max_abs (no exit)
-      // to compare magnitudes against the FP16 max (65504).
-      static const bool log_mag = (std::getenv("NNTR_NAN_CHECK") &&
-                                   std::string(std::getenv("NNTR_NAN_CHECK")) ==
-                                     "2");
-      for (unsigned int j = 0; j < ln->getNumOutputs(); ++j) {
-        try {
-          const Tensor &o = ln->getOutput(j);
-          // Robust dtype-agnostic finiteness scan: clone to FP32 (real
-          // FP16->FP32 conversion) and scan every element with std::isfinite.
-          Tensor of = o.clone(TensorDim::DataType::FP32);
-          const float *p = of.getData();
-          const size_t n = of.size();
-          float mx = 0.0f;
-          bool finite = true;
-          for (size_t k = 0; k < n; ++k) {
-            const float v = p[k];
-            if (!std::isfinite(v)) { finite = false; break; }
-            const float a = v < 0 ? -v : v;
-            if (a > mx) mx = a;
-          }
-          if (log_mag) {
-            fprintf(stderr,
-                    "[NAN_CHECK] %-28s out#%u dtype=%d max_abs=%g finite=%d\n",
-                    ln->getName().c_str(), j, (int)o.getDataType(), mx,
-                    (int)finite);
-          } else if (!finite) {
-            fprintf(stderr,
-                    "[NAN_CHECK] first non-finite output at layer '%s' (type "
-                    "%s), output #%u\n",
-                    ln->getName().c_str(), ln->getType().c_str(), j);
-            std::exit(42);
-          }
-        } catch (...) {
-        }
-      }
-    }
-  }
-  if (layer_time) {
-    std::vector<std::pair<std::string, double>> v(lt_us.begin(), lt_us.end());
-    std::sort(v.begin(), v.end(),
-              [](const auto &a, const auto &b) { return a.second > b.second; });
-    double total = 0.0;
-    for (auto &e : v)
-      total += e.second;
-    fprintf(stderr, "[LAYER_TIME] total=%.3f ms\n", total / 1000.0);
-    for (auto &e : v)
-      fprintf(stderr, "[LAYER_TIME] %-28s %9.3f ms  %5.1f%%\n", e.first.c_str(),
-              e.second / 1000.0, total > 0 ? 100.0 * e.second / total : 0.0);
   }
 
   sharedConstTensors out;
@@ -489,52 +424,11 @@ sharedConstTensors NetworkGraph::incremental_forwarding(
   unsigned int from, unsigned int to, bool training,
   std::function<void(std::shared_ptr<LayerNode>, bool)> forwarding_op,
   std::function<bool(void *userdata)> stop_cb, void *userdata) {
-  static const bool nan_check = (std::getenv("NNTR_NAN_CHECK") != nullptr);
   for (auto iter = cbegin(); iter != cend() && !stop_cb(userdata); iter++) {
     auto &ln = *iter;
     PROFILE_TIME_START(profile_keys.at(ln->getType()));
     forwarding_op(*iter, training);
     PROFILE_TIME_END(profile_keys.at(ln->getType()));
-    if (nan_check) {
-      // Debug-only (NNTR_NAN_CHECK): log the first layer that emits a
-      // non-finite output (NaN/Inf) to localize FP16 overflow, then stop.
-      // NNTR_NAN_CHECK=2 instead logs every layer's output max_abs (no exit)
-      // to compare magnitudes against the FP16 max (65504).
-      static const bool log_mag = (std::getenv("NNTR_NAN_CHECK") &&
-                                   std::string(std::getenv("NNTR_NAN_CHECK")) ==
-                                     "2");
-      for (unsigned int j = 0; j < ln->getNumOutputs(); ++j) {
-        try {
-          const Tensor &o = ln->getOutput(j);
-          // Robust dtype-agnostic finiteness scan: clone to FP32 (real
-          // FP16->FP32 conversion) and scan every element with std::isfinite.
-          Tensor of = o.clone(TensorDim::DataType::FP32);
-          const float *p = of.getData();
-          const size_t n = of.size();
-          float mx = 0.0f;
-          bool finite = true;
-          for (size_t k = 0; k < n; ++k) {
-            const float v = p[k];
-            if (!std::isfinite(v)) { finite = false; break; }
-            const float a = v < 0 ? -v : v;
-            if (a > mx) mx = a;
-          }
-          if (log_mag) {
-            fprintf(stderr,
-                    "[NAN_CHECK] %-28s out#%u dtype=%d max_abs=%g finite=%d\n",
-                    ln->getName().c_str(), j, (int)o.getDataType(), mx,
-                    (int)finite);
-          } else if (!finite) {
-            fprintf(stderr,
-                    "[NAN_CHECK] first non-finite output at layer '%s' (type "
-                    "%s), output #%u\n",
-                    ln->getName().c_str(), ln->getType().c_str(), j);
-            std::exit(42);
-          }
-        } catch (...) {
-        }
-      }
-    }
   }
 
   sharedConstTensors out;

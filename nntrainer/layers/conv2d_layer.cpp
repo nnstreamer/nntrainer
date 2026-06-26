@@ -541,13 +541,6 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
 
-  if (std::getenv("NNTR_CONV_DT_PROBE")) {
-    fprintf(stderr, "[CONV_DT] %s in=%d hidden=%d filt=%d\n",
-            context.getName().c_str(), (int)input_.getDataType(),
-            (int)hidden_.getDataType(),
-            (int)context.getWeight(wt_idx[ConvParams::weight]).getDataType());
-  }
-
   Tensor &filter_kernel = context.getWeight(wt_idx[ConvParams::weight]);
 
   /** Calculate Convolution 2D
@@ -729,8 +722,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
     const unsigned int ihw = in_dim.height() * in_dim.width();
     TensorDim fdim_g(ocg, icg, fh, fw, filter_dim.getTensorType());
 
-    const bool is_true_depthwise =
-      ocg == 1 && icg == 1 && std::getenv("NNTR_NO_DW_FASTPATH") == nullptr;
+    const bool is_true_depthwise = ocg == 1 && icg == 1;
 
     if (is_true_depthwise &&
         in_dim.getDataType() == nntrainer::Tdatatype::FP32) {
@@ -805,22 +797,6 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
   if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
       disable_bias.empty() || disable_bias.get() == false) {
     Tensor &bias_kernel = context.getWeight(wt_idx[ConvParams::bias]);
-    if (std::getenv("NNTR_BIAS_PROBE")) {
-      Tensor hf = hidden_.clone(TensorDim::DataType::FP32);
-      Tensor bf = bias_kernel.clone(TensorDim::DataType::FP32);
-      float hm = 0, bm = 0;
-      for (size_t i = 0; i < hf.size(); ++i) {
-        float v = std::abs(hf.getData()[i]);
-        if (v > hm) hm = v;
-      }
-      for (size_t i = 0; i < bf.size(); ++i) {
-        float v = std::abs(bf.getData()[i]);
-        if (v > bm) bm = v;
-      }
-      fprintf(stderr,
-              "[BIAS_PROBE] pre_hidden_max=%g bias_max=%g bias_dtype=%d\n", hm,
-              bm, (int)bias_kernel.getDataType());
-    }
     status = hidden_.add_i(bias_kernel);
     if (status != ML_ERROR_NONE) {
       throw std::invalid_argument("[Conv2D] adding bias failed");
