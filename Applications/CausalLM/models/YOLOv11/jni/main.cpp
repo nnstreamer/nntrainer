@@ -31,6 +31,7 @@
 #include <ctime>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <numeric>
 #include <sstream>
@@ -38,6 +39,7 @@
 #include <vector>
 
 #include "c2psa_layer.h"
+#include "yolov11_graph.h"
 #include <app_context.h>
 #include <engine.h>
 #include <layer.h>
@@ -66,315 +68,12 @@ using ml::train::LayerHandle;
 using ml::train::Tensor;
 using ModelHandle = std::unique_ptr<ml::train::Model>;
 
+// Graph block builders are defined in yolov11_graph.h (included above).
+// Post-processing (DFL decode, NMS) remains here.
+
 namespace yolov11 {
 
-// ===== graph block builders (Conv/BN/SiLU, C3k2, SPPF) =====
-/**
- * @brief Build a (BN-fused) Conv2d + SiLU sub-graph block.
- *
- * The original Conv+BatchNorm+SiLU is exported with BatchNorm folded into the
- * convolution at convert time (PyTorch/convert_weights.py: model.fuse()), so
- * here the BN is gone: a single biased conv followed by a standalone SiLU.
- *
- * @param name     Layer-name prefix (conv="{name}/conv", act="{name}/act")
- * @param in_ch    Input channels
- * @param out_ch   Output channels
- * @param k        Kernel size (square)
- * @param stride   Stride
- * @param padding  Padding
- * @param input    Input symbolic tensor
- * @return Output symbolic tensor after conv+SiLU
- */
-inline Tensor convBnSilu(const std::string &name, int in_ch, int out_ch, int k,
-                         int stride, int padding, Tensor input) {
-  std::vector<std::string> conv_props = {
-    nntrainer::withKey("name", name + "/conv"),
-    nntrainer::withKey("kernel_size", {k, k}),
-    nntrainer::withKey("filters", out_ch),
-    nntrainer::withKey("stride", {stride, stride}),
-    nntrainer::withKey("padding", padding)};
-  // Opt-in (env YOLO_CONV_Q40): run groups=1 convs as Q4_0 matmul (im2col+gemm).
-  // Eligibility MUST match quantize_q4_0_conv.py: Q4_0 needs both the N side
-  // (out_ch) and the K side (CRS = in_ch*kh*kw) aligned to the 32-block. The
-  // stem conv0 (in_ch=3, CRS=27) fails the K check and stays FP32 in the file,
-  // so it must stay FP32 here too or the load dtype mismatches.
-  if (out_ch > 1 && out_ch % 32 == 0 && (in_ch * k * k) % 32 == 0 &&
-      std::getenv("YOLO_CONV_Q40"))
-    conv_props.push_back(nntrainer::withKey("weight_dtype", "Q4_0"));
-  LayerHandle conv(createLayer("conv2d", conv_props));
-  auto h = conv(input);
-
-  LayerHandle act(
-    createLayer("activation", {nntrainer::withKey("name", name + "/act"),
-                               nntrainer::withKey("activation", "swish")}));
-  return act(h);
-}
-
-/**
- * @brief Build a Bottleneck sub-graph (cv1 3x3 + cv2 3x3 + residual add).
- *
- * PyTorch: return x + cv2(cv1(x))   [shortcut=True]
- *
- * @param name    Layer-name prefix (e.g. "m2/m0/inner0")
- * @param ch      Both input and output channel count
- * @param input   Input symbolic tensor
- * @return Output symbolic tensor
- */
-inline Tensor bottleneck(const std::string &name, int ch, Tensor input) {
-  auto h = convBnSilu(name + "/cv1", ch, ch, 3, 1, 1, input);
-  h = convBnSilu(name + "/cv2", ch, ch, 3, 1, 1, h);
-  // residual add
-  LayerHandle add(
-    createLayer("Addition", {nntrainer::withKey("name", name + "/add")}));
-  return add({h, input});
-}
-
-/**
- * @brief Build a C3k sub-graph.
- *
- * Forward:
- *   inner_path = inner1(inner0(cv1(x)))   [chain of Bottlenecks]
- *   skip       = cv2(x)
- *   out        = cv3(concat([inner_path, skip], dim=1))
- *
- * @param name       Layer-name prefix (e.g. "m2/m0")
- * @param in_ch      Input channels  (64)
- * @param inner_ch   Inner (half) channels fed to Bottleneck chain (32)
- * @param out_ch     Output channels (64)
- * @param input      Input symbolic tensor
- * @return Output symbolic tensor
- */
-inline Tensor c3kBlock(const std::string &name, int in_ch, int inner_ch,
-                       int out_ch, Tensor input) {
-  // cv1: 1x1, in_ch → inner_ch
-  auto inner = convBnSilu(name + "/cv1", in_ch, inner_ch, 1, 1, 0, input);
-
-  // Two Bottleneck blocks
-  inner = bottleneck(name + "/inner0", inner_ch, inner);
-  inner = bottleneck(name + "/inner1", inner_ch, inner);
-
-  // cv2: 1x1, in_ch → inner_ch  (skip branch)
-  auto skip = convBnSilu(name + "/cv2", in_ch, inner_ch, 1, 1, 0, input);
-
-  // concat along channel dim (axis=1)
-  LayerHandle cat(
-    createLayer("concat", {nntrainer::withKey("name", name + "/cat"),
-                           nntrainer::withKey("axis", 1)}));
-  auto concat_out = cat({inner, skip});
-
-  // cv3: 1x1, 2*inner_ch → out_ch
-  return convBnSilu(name + "/cv3", 2 * inner_ch, out_ch, 1, 1, 0, concat_out);
-}
-
-/**
- * @brief Build a C3k2 sub-graph.
- *
- * Forward:
- *   y      = cv1(x)                  // 128→128 (1x1)
- *   y_a    = y[:, :c, :, :]          // first  64 channels
- *   y_b    = y[:, c:, :, :]          // second 64 channels
- *   y_c    = m0(y_b)                 // C3k block, 64→64
- *   out    = cv2(concat([y_a, y_b, y_c], dim=1))  // 192→256
- *
- * @param name     Layer-name prefix (e.g. "m2")
- * @param in_ch    Input channels  (128)
- * @param out_ch   Output channels (256)
- * @param c        Hidden channel count (64 = floor(out_ch * e))
- * @param input    Input symbolic tensor
- * @return Output symbolic tensor
- */
-inline Tensor c3k2Block(const std::string &name, int in_ch, int out_ch, int c,
-                        Tensor input) {
-  // cv1: 1x1, in_ch → 2*c
-  auto y = convBnSilu(name + "/cv1", in_ch, 2 * c, 1, 1, 0, input);
-
-  // Split y along channel dim into y_a (first c) and y_b (second c)
-  // Using two slice layers: axis=1, 1-indexed [start_index, end_index)
-  LayerHandle sliceA(
-    createLayer("slice", {nntrainer::withKey("name", name + "/slice_a"),
-                          nntrainer::withKey("axis", 1),
-                          nntrainer::withKey("start_index", 1),
-                          nntrainer::withKey("end_index", c + 1)}));
-  auto y_a = sliceA(y);
-
-  LayerHandle sliceB(
-    createLayer("slice", {nntrainer::withKey("name", name + "/slice_b"),
-                          nntrainer::withKey("axis", 1),
-                          nntrainer::withKey("start_index", c + 1),
-                          nntrainer::withKey("end_index", 2 * c + 1)}));
-  auto y_b = sliceB(y);
-
-  // m0: C3k block, c → c  (inner_ch = c/2 = 32)
-  auto y_c = c3kBlock(name + "/m0", c, c / 2, c, y_b);
-
-  // cv2: 1x1, 3*c → out_ch  (concat of y_a, y_b, y_c)
-  LayerHandle cat(
-    createLayer("concat", {nntrainer::withKey("name", name + "/cat"),
-                           nntrainer::withKey("axis", 1)}));
-  auto concat_out = cat({y_a, y_b, y_c});
-
-  return convBnSilu(name + "/cv2", 3 * c, out_ch, 1, 1, 0, concat_out);
-}
-
-/**
- * @brief Build a (BN-fused) Conv2d sub-graph block (NO activation).
- *
- * Used where PyTorch had Conv+BN with act=Identity (e.g. SPPF cv1, C2PSA
- * qkv/proj/ffn1). BatchNorm is folded into the conv at convert time, so this
- * is just a single biased convolution.
- *
- * @param name     Layer-name prefix (conv="{name}/conv")
- * @param in_ch    Input channels (unused, inferred from graph)
- * @param out_ch   Output channels
- * @param k        Kernel size
- * @param stride   Stride
- * @param padding  Padding
- * @param input    Input symbolic tensor
- * @return Output symbolic tensor (no activation)
- */
-inline Tensor convBnOnly(const std::string &name, int in_ch, int out_ch, int k,
-                         int stride, int padding, Tensor input) {
-  std::vector<std::string> conv_props = {
-    nntrainer::withKey("name", name + "/conv"),
-    nntrainer::withKey("kernel_size", {k, k}),
-    nntrainer::withKey("filters", out_ch),
-    nntrainer::withKey("stride", {stride, stride}),
-    nntrainer::withKey("padding", padding)};
-  // See convBnSilu: eligibility must match quantize_q4_0_conv.py (N and K both
-  // aligned to the 32-block; CRS = in_ch*kh*kw on the K side).
-  if (out_ch > 1 && out_ch % 32 == 0 && (in_ch * k * k) % 32 == 0 &&
-      std::getenv("YOLO_CONV_Q40"))
-    conv_props.push_back(nntrainer::withKey("weight_dtype", "Q4_0"));
-  LayerHandle conv(createLayer("conv2d", conv_props));
-  return conv(input);
-}
-
-/**
- * @brief Build a MaxPool2d layer with explicit padding.
- *
- * @param name     Layer name
- * @param k        Kernel size (square)
- * @param input    Input symbolic tensor
- * @return Output symbolic tensor
- */
-inline Tensor maxPool(const std::string &name, int k, Tensor input) {
-  int p = k / 2;
-  // Padding2D format: "pt,pb,pl,pr"
-  std::string pad_str = std::to_string(p) + "," + std::to_string(p) + "," +
-                        std::to_string(p) + "," + std::to_string(p);
-  LayerHandle pool(
-    createLayer("pooling2d", {nntrainer::withKey("name", name),
-                              nntrainer::withKey("pooling", "max"),
-                              nntrainer::withKey("pool_size", {k, k}),
-                              nntrainer::withKey("stride", {1, 1}),
-                              nntrainer::withKey("padding", pad_str)}));
-  return pool(input);
-}
-
-/**
- * @brief Build an SPPF sub-graph.
- *
- * PyTorch SPPF forward (verified by model inspection):
- *   y   = cv1(x)            # Conv+BN, act=Identity (NO SiLU)
- *   y   = [y, m(y), m(m(y)), m(m(m(y)))]   # 3× sequential MaxPool
- *   out = cv2(concat(y, 1)) # Conv+BN+SiLU
- *
- * @param name    Layer-name prefix (e.g. "m9")
- * @param in_ch   Input channels  (512)
- * @param input   Input symbolic tensor
- * @return Output symbolic tensor
- */
-inline Tensor sppfBlock(const std::string &name, int in_ch, Tensor input) {
-  int half = in_ch / 2;
-
-  // cv1: 1x1, in_ch → in_ch/2, NO activation (act=Identity in PyTorch)
-  auto x = convBnOnly(name + "/cv1", in_ch, half, 1, 1, 0, input);
-
-  // Three sequential MaxPool(k=5,s=1,p=2)
-  auto p1 = maxPool(name + "/pool1", 5, x);
-  auto p2 = maxPool(name + "/pool2", 5, p1);
-  auto p3 = maxPool(name + "/pool3", 5, p2);
-
-  // concat([x, p1, p2, p3], dim=1) → half*4 channels
-  LayerHandle cat(
-    createLayer("concat", {nntrainer::withKey("name", name + "/cat"),
-                           nntrainer::withKey("axis", 1)}));
-  auto concat_out = cat({x, p1, p2, p3});
-
-  // cv2: 1x1, (in_ch/2)*4 → in_ch, SiLU activation
-  return convBnSilu(name + "/cv2", half * 4, in_ch, 1, 1, 0, concat_out);
-}
-
-// ===== Detect head graph builders =====
-/** @brief 1x1 Conv2d with bias, no BN, no activation (detect output conv). */
-inline Tensor convBias1x1(const std::string &name, int out_ch, Tensor input) {
-  std::vector<std::string> conv_props = {
-    nntrainer::withKey("name", name + "/conv"),
-    nntrainer::withKey("kernel_size", {1, 1}),
-    nntrainer::withKey("filters", out_ch),
-    nntrainer::withKey("stride", {1, 1}),
-    nntrainer::withKey("padding", 0)};
-  if (out_ch > 1 && out_ch % 32 == 0 && std::getenv("YOLO_CONV_Q40"))
-    conv_props.push_back(nntrainer::withKey("weight_dtype", "Q4_0"));
-  LayerHandle conv(createLayer("conv2d", conv_props));
-  return conv(input);
-}
-
-/** @brief Depthwise 3x3 (pad 1) + SiLU, BN folded into the conv at convert
- * time. */
-inline Tensor dwConvBnSilu(const std::string &name, int ch, Tensor input) {
-  // depthwise = grouped conv2d with groups == channels
-  LayerHandle dw(createLayer(
-    "conv2d",
-    {nntrainer::withKey("name", name + "/dw"),
-     nntrainer::withKey("kernel_size", {3, 3}),
-     nntrainer::withKey("filters", ch), nntrainer::withKey("groups", ch),
-     nntrainer::withKey("stride", {1, 1}), nntrainer::withKey("padding", 1)}));
-  auto h = dw(input);
-  LayerHandle act(
-    createLayer("activation", {nntrainer::withKey("name", name + "/act"),
-                               nntrainer::withKey("activation", "swish")}));
-  return act(h);
-}
-
-/** @brief Depthwise 3x3 (pad 1), NO activation (e.g. C2PSA position enc).
- *  BN folded into the conv at convert time. */
-inline Tensor dwConvBnOnly(const std::string &name, int ch, Tensor input) {
-  // depthwise = grouped conv2d with groups == channels
-  LayerHandle dw(createLayer(
-    "conv2d",
-    {nntrainer::withKey("name", name + "/dw"),
-     nntrainer::withKey("kernel_size", {3, 3}),
-     nntrainer::withKey("filters", ch), nntrainer::withKey("groups", ch),
-     nntrainer::withKey("stride", {1, 1}), nntrainer::withKey("padding", 1)}));
-  return dw(input);
-}
-
-/**
- * @brief Build one Detect scale -> raw logits [1, 64+nc, H, W].
- * @param s     name prefix (e.g. "det0")
- * @param pi_ch input feature channels (256 for P3, 512 for P4/P5)
- * @param in    input feature map
- */
-inline Tensor detectScale(const std::string &s, int pi_ch, Tensor in) {
-  // box branch (cv2)
-  auto x = convBnSilu(s + "/cv2_0", pi_ch, 64, 3, 1, 1, in);
-  x = convBnSilu(s + "/cv2_1", 64, 64, 3, 1, 1, x);
-  auto box = convBias1x1(s + "/cv2_2", 64, x);
-
-  // cls branch (cv3) — depthwise-separable x2 then 1x1
-  auto c = dwConvBnSilu(s + "/cv3_0_dw", pi_ch, in);
-  c = convBnSilu(s + "/cv3_0_pw", pi_ch, 256, 1, 1, 0, c);
-  c = dwConvBnSilu(s + "/cv3_1_dw", 256, c);
-  c = convBnSilu(s + "/cv3_1_pw", 256, 256, 1, 1, 0, c);
-  auto cls = convBias1x1(s + "/cv3_2", 1, c);
-
-  LayerHandle cat(createLayer("concat", {nntrainer::withKey("name", s + "/out"),
-                                         nntrainer::withKey("axis", 1)}));
-  return cat({box, cls});
-}
-
-// ===== post-processing (DFL decode + dist2bbox + NMS) =====
+// ===== Post-processing (DFL decode + dist2bbox + NMS) =====
 // ---------------------------------------------------------------------------
 // Anchor generation (ultralytics tal.py: make_anchors)
 //
@@ -410,7 +109,6 @@ inline void makeAnchors(const std::vector<ScaleInfo> &scales,
   for (const auto &s : scales) {
     for (int iy = 0; iy < s.H; ++iy) {
       for (int ix = 0; ix < s.W; ++ix) {
-        // anchor (x, y) in grid units with 0.5 offset
         anchors[off * 2 + 0] = static_cast<float>(ix) + 0.5f;
         anchors[off * 2 + 1] = static_cast<float>(iy) + 0.5f;
         strides_out[off] = s.stride;
@@ -422,30 +120,16 @@ inline void makeAnchors(const std::vector<ScaleInfo> &scales,
 
 // ---------------------------------------------------------------------------
 // DFL (Distribution Focal Loss) decode
-//
-// Input: raw_box [64, N] (64 = 4 * reg_max, reg_max=16)
-//   Interpreted as [4, reg_max, N]: coord-major (4 outer, 16 inner).
-//   i.e. bins [0..15] for coord 0, then [0..15] for coord 1, etc.
-// Step:
-//   1. For each coord c in {0,1,2,3} and anchor a:
-//      take raw_box[c*reg_max .. c*reg_max+15][a] → 16-bin logits
-//   2. Softmax over 16 bins
-//   3. Weighted sum with weights [0,1,...,15]
-// Output: dist [4, N] in grid units (ltrb).
 // ---------------------------------------------------------------------------
 inline void dfl(const float *raw_box, int reg_max, int N,
                 std::vector<float> &dist) {
-  // raw_box layout: [64, N] = [4*reg_max, N], C-order
-  // raw_box[c*reg_max + k][a] = raw_box[(c*reg_max + k)*N + a]
   dist.resize(4 * N);
   for (int c = 0; c < 4; ++c) {
     for (int a = 0; a < N; ++a) {
-      // Extract 16 logits for this coord and anchor
       float logits[16];
       for (int k = 0; k < reg_max; ++k) {
         logits[k] = raw_box[(c * reg_max + k) * N + a];
       }
-      // Softmax
       float max_logit = *std::max_element(logits, logits + reg_max);
       float sum = 0.0f;
       float exp_v[16];
@@ -453,7 +137,6 @@ inline void dfl(const float *raw_box, int reg_max, int N,
         exp_v[k] = std::exp(logits[k] - max_logit);
         sum += exp_v[k];
       }
-      // Weighted sum with bin indices [0, 1, ..., 15]
       float val = 0.0f;
       for (int k = 0; k < reg_max; ++k) {
         val += (exp_v[k] / sum) * static_cast<float>(k);
@@ -465,25 +148,11 @@ inline void dfl(const float *raw_box, int reg_max, int N,
 
 // ---------------------------------------------------------------------------
 // dist2bbox + stride multiply → XYWH pixels at 832-scale
-//
-// dist [4, N] = (lt_x, lt_y, rb_x, rb_y) in grid units
-// anchors [N, 2] = (ax, ay) in grid units
-// strides [N]
-//
-// x1y1 = anchor - lt   (grid)
-// x2y2 = anchor + rb   (grid)
-// cx = (x1+x2)/2 * stride
-// cy = (y1+y2)/2 * stride
-// w  = (x2-x1) * stride
-// h  = (y2-y1) * stride
-//
-// Output decoded_box [4, N] = (cx, cy, w, h) pixels
 // ---------------------------------------------------------------------------
 inline void dist2bbox(const std::vector<float> &dist, int N,
                       const std::vector<float> &anchors,
                       const std::vector<float> &strides,
                       std::vector<float> &decoded_box) {
-  // dist layout: [4, N] = lt_x[N], lt_y[N], rb_x[N], rb_y[N]
   const float *lt_x = dist.data() + 0 * N;
   const float *lt_y = dist.data() + 1 * N;
   const float *rb_x = dist.data() + 2 * N;
@@ -513,34 +182,22 @@ inline void dist2bbox(const std::vector<float> &dist, int N,
 }
 
 // ---------------------------------------------------------------------------
-// Full post-processing pipeline for one scale:
-//   raw [65, H, W] → box logits [64, N] + cls logits [1, N]
-//   → DFL → dist2bbox → sigmoid(cls)
-//   → fills decoded [5, N] starting at offset anchor_off in output
+// Full post-processing pipeline for one scale
 // ---------------------------------------------------------------------------
-inline void decodeOneScale(const float *raw, // [65, H, W] channel-major
-                           int H, int W, float stride,
+inline void decodeOneScale(const float *raw, int H, int W, float stride,
                            const std::vector<float> &anchors,
                            const std::vector<float> &strides_vec,
-                           int anchor_off, // offset into global anchor array
-                           int N_total,    // total anchors (14196)
-                           std::vector<float> &decoded // [5, N_total]
-) {
+                           int anchor_off, int N_total,
+                           std::vector<float> &decoded) {
   const int N = H * W;
   const int reg_max = 16;
 
-  // raw layout: [65, H, W] = [65, N] in row-major (channel outer, spatial
-  // inner) box channels: 0..63, cls channel: 64 Pointer to box part:
-  // raw[0..63][a] = raw[c*N + a]
-  const float *raw_box = raw;          // [64, N]
-  const float *raw_cls = raw + 64 * N; // [1, N]
+  const float *raw_box = raw;
+  const float *raw_cls = raw + 64 * N;
 
-  // DFL decode: dist [4, N]
   std::vector<float> dist;
   dfl(raw_box, reg_max, N, dist);
 
-  // Anchors for this scale (subset of global anchors)
-  // anchors[anchor_off..anchor_off+N-1] × 2
   std::vector<float> scale_anchors(N * 2);
   std::vector<float> scale_strides(N);
   for (int a = 0; a < N; ++a) {
@@ -549,19 +206,14 @@ inline void decodeOneScale(const float *raw, // [65, H, W] channel-major
     scale_strides[a] = strides_vec[anchor_off + a];
   }
 
-  // dist2bbox → decoded_box [4, N]
   std::vector<float> decoded_box;
   dist2bbox(dist, N, scale_anchors, scale_strides, decoded_box);
 
-  // Fill decoded [5, N_total] at this scale's anchor offset
-  // decoded layout: [5, N_total] = (cx[N_total], cy[N_total], w[N_total],
-  //                                  h[N_total], cls[N_total])
   for (int c = 0; c < 4; ++c) {
     for (int a = 0; a < N; ++a) {
       decoded[c * N_total + anchor_off + a] = decoded_box[c * N + a];
     }
   }
-  // cls: sigmoid
   for (int a = 0; a < N; ++a) {
     decoded[4 * N_total + anchor_off + a] =
       1.0f / (1.0f + std::exp(-raw_cls[a]));
@@ -569,17 +221,7 @@ inline void decodeOneScale(const float *raw, // [65, H, W] channel-major
 }
 
 // ---------------------------------------------------------------------------
-// NMS (non_max_suppression matching ultralytics behavior)
-//
-// Input: decoded [5, N_total] = (cx, cy, w, h, score)
-// Steps:
-//   1. xywh → xyxy
-//   2. filter score > conf_thres
-//   3. per-class offset: box_nms = xyxy + cls_idx * max_wh (agnostic=False)
-//      (nc=1, so cls_idx=0 always → no actual offset)
-//   4. NMS with iou_thres
-//   5. keep up to max_det
-// Output: vector of [x1,y1,x2,y2,conf,cls] rows
+// NMS
 // ---------------------------------------------------------------------------
 struct Detection {
   float x1, y1, x2, y2, conf;
@@ -756,142 +398,6 @@ std::vector<float> loadImageLetterbox(const std::string &path, int size = 832,
 }
 #endif // YOLO_WITH_STB_IMAGE
 
-/** @brief Channel-axis slice [start, end) — slice layer uses 1-indexed bounds.
- */
-inline Tensor sliceCh(const std::string &name, int start0, int end0,
-                      Tensor in) {
-  LayerHandle s(createLayer(
-    "slice", {nntrainer::withKey("name", name), nntrainer::withKey("axis", 1),
-              nntrainer::withKey("start_index", start0 + 1),
-              nntrainer::withKey("end_index", end0 + 1)}));
-  return s(in);
-}
-
-/** @brief Elementwise addition of two tensors. */
-inline Tensor addT(const std::string &name, Tensor a, Tensor b) {
-  LayerHandle l(createLayer("Addition", {nntrainer::withKey("name", name)}));
-  return l({a, b});
-}
-
-/**
- * @brief Build the C2PSA block (model.10) from standard layers + the
- *        psa_attention custom op. Input/output [B, 512, H, W].
- *
- *   cv1 = Conv1x1+BN+SiLU; split -> a[256], b[256]
- *   qkv = Conv1x1+BN(b);  V = qkv[256:512]
- *   attn = psa_attention(qkv);  pe = DWConv3x3+BN(V);  attn += pe
- *   b = b + proj(attn);  b = b + ffn1(ffn0(b))
- *   out = Conv1x1+BN+SiLU(concat([a, b]))
- */
-inline Tensor buildC2PSA(const std::string &n, Tensor x) {
-  auto cv1 = yolov11::convBnSilu(n + "/cv1", 512, 512, 1, 1, 0, x);
-  auto a = sliceCh(n + "/slice_a", 0, 256, cv1);
-  auto b = sliceCh(n + "/slice_b", 256, 512, cv1);
-
-  auto qkv = yolov11::convBnOnly(n + "/qkv", 256, 512, 1, 1, 0, b);
-
-  // qkv has the per-head interleaved layout [Q32,K32,V64] x 4 heads.
-  // Gather the V parts (channels [h*128+64 : h*128+128]) head-major -> [256].
-  std::vector<Tensor> v_parts;
-  for (int h = 0; h < 4; ++h)
-    v_parts.push_back(sliceCh(n + "/slice_v" + std::to_string(h), h * 128 + 64,
-                              h * 128 + 128, qkv));
-  LayerHandle vcat(
-    createLayer("concat", {nntrainer::withKey("name", n + "/vcat"),
-                           nntrainer::withKey("axis", 1)}));
-  auto v = vcat(v_parts);
-  auto pe = yolov11::dwConvBnOnly(n + "/pe", 256, v);
-
-  LayerHandle att(
-    createLayer("psa_attention", {nntrainer::withKey("name", n + "/attn")}));
-  auto attn = att(qkv);
-  auto attn_pe = addT(n + "/add_pe", attn, pe);
-  auto proj = yolov11::convBnOnly(n + "/proj", 256, 256, 1, 1, 0, attn_pe);
-  auto b1 = addT(n + "/res1", b, proj);
-
-  auto ffn0 = yolov11::convBnSilu(n + "/ffn0", 256, 512, 1, 1, 0, b1);
-  // NOTE: ffn1 has BN but NO SiLU (verified against PyTorch; SiLU here yields
-  // a ~0.78 error at model.10 that amplifies downstream).
-  auto ffn1 = yolov11::convBnOnly(n + "/ffn1", 512, 256, 1, 1, 0, ffn0);
-  auto b2 = addT(n + "/res2", b1, ffn1);
-
-  LayerHandle cat(createLayer("concat", {nntrainer::withKey("name", n + "/cat"),
-                                         nntrainer::withKey("axis", 1)}));
-  auto cc = cat({a, b2});
-  return yolov11::convBnSilu(n + "/cv2", 512, 512, 1, 1, 0, cc);
-}
-
-inline Tensor buildBackbone(Tensor xIn, Tensor &m4_out, Tensor &m6_out) {
-  auto h = yolov11::convBnSilu("conv0", 3, 64, 3, 2, 1, xIn);
-  h = yolov11::convBnSilu("conv1", 64, 128, 3, 2, 1, h);
-  h = yolov11::c3k2Block("m2", 128, 256, 64, h);
-  h = yolov11::convBnSilu("conv3", 256, 256, 3, 2, 1, h);
-  m4_out = yolov11::c3k2Block("m4", 256, 512, 128, h);
-  h = yolov11::convBnSilu("conv5", 512, 512, 3, 2, 1, m4_out);
-  m6_out = yolov11::c3k2Block("m6", 512, 512, 256, h);
-  h = yolov11::convBnSilu("conv7", 512, 512, 3, 2, 1, m6_out);
-  h = yolov11::c3k2Block("m8", 512, 512, 256, h);
-  h = yolov11::sppfBlock("m9", 512, h);
-  return buildC2PSA("m10", h); // model.10 (C2PSA)
-}
-
-} // namespace
-
-namespace {
-
-/** @brief Upsample(nearest, x2) layer. */
-Tensor upsampleX2(const std::string &name, Tensor in) {
-  LayerHandle l(
-    createLayer("upsample2d", {nntrainer::withKey("name", name),
-                               nntrainer::withKey("upsample", "nearest"),
-                               nntrainer::withKey("kernel_size", "2,2")}));
-  return l(in);
-}
-
-/** @brief Channel-axis concat layer. */
-Tensor concatCh(const std::string &name, const std::vector<Tensor> &ins) {
-  LayerHandle l(createLayer("concat", {nntrainer::withKey("name", name),
-                                       nntrainer::withKey("axis", 1)}));
-  return l(ins);
-}
-
-/**
- * @brief Build the FPN head (model.11~22) and 3-scale Detect head (model.23).
- * @return raw detection logits for P3, P4, P5 (each [1, 4*reg_max+nc, H, W]).
- */
-std::vector<Tensor> buildHead(Tensor m4, Tensor m6, Tensor m10) {
-  auto m11 = upsampleX2("m11", m10);
-  auto m12 = concatCh("m12", {m11, m6});
-  auto m13 = yolov11::c3k2Block("m13", 1024, 512, 256, m12);
-
-  auto m14 = upsampleX2("m14", m13);
-  auto m15 = concatCh("m15", {m14, m4});
-  auto m16 = yolov11::c3k2Block("m16", 1024, 256, 128, m15); // P3 feature
-
-  auto m17 = yolov11::convBnSilu("m17", 256, 256, 3, 2, 1, m16);
-  auto m18 = concatCh("m18", {m17, m13});
-  auto m19 = yolov11::c3k2Block("m19", 768, 512, 256, m18); // P4 feature
-
-  auto m20 = yolov11::convBnSilu("m20", 512, 512, 3, 2, 1, m19);
-  auto m21 = concatCh("m21", {m20, m10});
-  auto m22 = yolov11::c3k2Block("m22", 1024, 512, 256, m21); // P5 feature
-
-  // Detect head (model.23): built from standard layers (conv2d/depthwiseconv2d/
-  // batch_normalization/concat) — see detect_block.h.
-  return {yolov11::detectScale("det0", 256, m16),
-          yolov11::detectScale("det1", 512, m19),
-          yolov11::detectScale("det2", 512, m22)};
-}
-
-/**
- * @brief Load all weights from a single nntrainer safetensors file.
- *
- * The file (produced by PyTorch/convert_weights.py) holds one tensor per model
- * weight, named "{layer}:{weight}" (e.g. "conv0/conv:filter",
- * "conv0/bn:moving_mean"). Tensors of the same layer are contiguous and stored
- * in the layer's weight-registration order, so we group consecutive tensors by
- * layer name and push them to layer->setWeights() in file order.
- */
 /** @brief Register the YOLOv11 custom layers with the global AppContext.
  *  Only C2PSA is custom; the Detect head uses standard nntrainer layers. */
 void registerCustomLayers() {
@@ -959,10 +465,30 @@ int main(int argc, char *argv[]) {
       std::cout << "[YOLO] model_tensor_type = " << tt << std::endl;
     }
 
+    // Offline quantization mode (YOLO_QUANTIZE_OUT set): build the graph in
+    // FP32, load FP32 weights, then re-save through the framework's general
+    // per-layer quantizer. Must build FP32 here (not Q4_0) so finalize
+    // allocates FP32 conv weights that can receive the FP32 file.
+    const bool quantize_mode = (std::getenv("YOLO_QUANTIZE_OUT") != nullptr);
+
+    // Opt-in Q4_0 runtime path: env YOLO_CONV_Q40 enables Q4_0 weight_dtype
+    // for eligible group=1 convs (out_ch%32==0 && CRS%32==0). Requires the
+    // weights file to have been quantized first (see quantize_mode below).
+    const bool conv_q40 =
+      !quantize_mode && (std::getenv("YOLO_CONV_Q40") != nullptr);
+
+    // In quantize mode, collect the Q4_0-eligible conv layer names as the graph
+    // is built (single source of truth for eligibility) to drive the per-layer
+    // dtype map for model->save().
+    std::vector<std::string> q_conv_names;
+    if (quantize_mode)
+      yolov11::quantConvSink() = &q_conv_names;
+
     auto x = Tensor({1, 3, 832, 832}, "input0");
     Tensor m4, m6;
-    auto m10 = buildBackbone(x, m4, m6);
-    auto outputs = buildHead(m4, m6, m10); // {P3, P4, P5} raw logits
+    auto m10 = yolov11::buildBackbone(x, m4, m6, conv_q40);
+    auto outputs = yolov11::buildHead(m4, m6, m10, conv_q40); // {P3, P4, P5}
+    yolov11::quantConvSink() = nullptr;
 
     if (int ret =
           model->compile(x, outputs, ml::train::ExecutionMode::INFERENCE))
@@ -979,6 +505,39 @@ int main(int argc, char *argv[]) {
     model->load(weights_path, ml::train::ModelFormat::MODEL_FORMAT_SAFETENSORS);
     std::cout << "Model built and weights loaded (" << weights_path << ")."
               << std::endl;
+
+    // Offline quantization: re-save with the framework's general per-layer
+    // quantizer. dtype=Q4_0 + empty layer map => every layer is targeted, and
+    // Conv2DLayer::save quantizes the eligible conv filters (out_ch & CRS both
+    // 32-aligned) to the [CRS, out_ch] Q4_0 matmul weight + ISA repack, while
+    // biases / ineligible filters / weight-free layers stay FP32. This is the
+    // framework equivalent of the offline python script.
+    if (quantize_mode) {
+      const std::string out_q = std::getenv("YOLO_QUANTIZE_OUT");
+      ml::train::ISA isa = ml::train::ISA::DEFAULT;
+      if (const char *ie = std::getenv("YOLO_QUANTIZE_ISA")) {
+        std::string s = ie;
+        if (s == "arm" || s == "ARM")
+          isa = ml::train::ISA::ARM;
+        else if (s == "x86" || s == "X86")
+          isa = ml::train::ISA::X86;
+      }
+      // SAFETENSORS save requires the global dtype to be NONE; quantization is
+      // driven by the per-layer map (conv filters -> Q4_0). Conv2DLayer::save
+      // does the conv -> [CRS, out_ch] Q4_0 repack; ineligible/bias stay FP32.
+      std::map<std::string, ml::train::TensorDim::DataType> dmap;
+      for (const auto &n : q_conv_names)
+        dmap[n] = ml::train::TensorDim::DataType::Q4_0;
+      model->save(out_q, ml::train::ModelFormat::MODEL_FORMAT_SAFETENSORS,
+                  ml::train::TensorDim::DataType::NONE, dmap, isa);
+      std::cout << "[YOLO] quantized " << dmap.size() << " conv filters -> "
+                << out_q
+                << " (isa=" << (std::getenv("YOLO_QUANTIZE_ISA")
+                                  ? std::getenv("YOLO_QUANTIZE_ISA")
+                                  : "default")
+                << ")" << std::endl;
+      return 0;
+    }
 
     // Run one forward pass on the input.
     // argv[2] may be a raw [1,3,832,832] float32 .bin (e.g. from
