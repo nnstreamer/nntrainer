@@ -1516,6 +1516,20 @@ extern void clamp(const T *input, T *output, size_t length,
                   T upper_bound = std::numeric_limits<T>::max());
 
 /**
+ * @brief Depthwise convolution FP32 backend op.
+ *        Input  : [batch, channels, in_h,  in_w ] contiguous NCHW.
+ *        Kernel : [channels, 1, kh, kw]  — channel c at kernel + c*kh*kw.
+ *        Output : [batch, channels, out_h, out_w] contiguous NCHW.
+ *        No bias (added by the caller afterward).
+ */
+extern void depthwise_conv2d_fp32(
+  const float *input, const float *kernel, float *output, unsigned int batch,
+  unsigned int channels, unsigned int in_h, unsigned int in_w,
+  unsigned int out_h, unsigned int out_w, unsigned int kh, unsigned int kw,
+  unsigned int stride_h, unsigned int stride_w, unsigned int pad_top,
+  unsigned int pad_left, unsigned int dilation_h, unsigned int dilation_w);
+
+/**
  * @brief     Create a Q4_0 weights (without XOR 0x88) from int4 weights
  *
  * @param[in] int4_weight Pointer to the input 4-bit quantized weights array.

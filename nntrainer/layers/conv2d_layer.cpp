@@ -12,6 +12,7 @@
  *
  */
 #include <algorithm>
+#include <cstdlib>
 #include <cstring>
 #include <limits>
 #include <string>
@@ -586,23 +587,36 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
     const unsigned int ihw = in_dim.height() * in_dim.width();
     TensorDim fdim_g(ocg, icg, fh, fw, filter_dim.getTensorType());
 
-    for (unsigned int b = 0; b < in_dim.batch(); ++b) {
-      Tensor out = hidden_.getBatchSlice(b, 1);
-      out.reshape({filter_size, owoh});
-      Tensor in_sub = input_.getBatchSlice(b, 1);
-      Tensor result = Tensor(calcCol2ImOutputDim(out_dim, fdim_g));
-      for (unsigned int g = 0; g < groups; ++g) {
-        Tensor in_g = in_sub.getSharedDataTensor(
-          {1, icg, in_dim.height(), in_dim.width()}, (size_t)g * icg * ihw);
-        Tensor filt_g = filter_kernel.getSharedDataTensor(
-          {ocg, (size_t)icg * fh * fw}, (size_t)g * ocg * icg * fh * fw);
-        Tensor out_g =
-          out.getSharedDataTensor({ocg, owoh}, (size_t)g * ocg * owoh);
-        result.setZero();
-        im2col(in_g, fdim_g, padding, stride, dilation, result);
-        filt_g.dot(result, out_g, false, true);
+    if (ocg == 1 && icg == 1 &&
+        in_dim.getDataType() == nntrainer::Tdatatype::FP32 &&
+        std::getenv("NNTR_NO_DW_FASTPATH") == nullptr) {
+      // True depthwise (groups == channels): delegate to the CPU backend op so
+      // the optimised kernel lives in the backend, not in the layer.
+      nntrainer::getComputeOps()->depthwise_conv2d_fp32(
+        input_.getData<float>(), filter_kernel.getData<float>(),
+        hidden_.getData<float>(), in_dim.batch(), filter_size, in_dim.height(),
+        in_dim.width(), out_dim.height(), out_dim.width(), fh, fw,
+        stride[0].get(), stride[1].get(), padding[0], padding[2],
+        dilation[0].get(), dilation[1].get());
+    } else {
+      for (unsigned int b = 0; b < in_dim.batch(); ++b) {
+        Tensor out = hidden_.getBatchSlice(b, 1);
+        out.reshape({filter_size, owoh});
+        Tensor in_sub = input_.getBatchSlice(b, 1);
+        Tensor result = Tensor(calcCol2ImOutputDim(out_dim, fdim_g));
+        for (unsigned int g = 0; g < groups; ++g) {
+          Tensor in_g = in_sub.getSharedDataTensor(
+            {1, icg, in_dim.height(), in_dim.width()}, (size_t)g * icg * ihw);
+          Tensor filt_g = filter_kernel.getSharedDataTensor(
+            {ocg, (size_t)icg * fh * fw}, (size_t)g * ocg * icg * fh * fw);
+          Tensor out_g =
+            out.getSharedDataTensor({ocg, owoh}, (size_t)g * ocg * owoh);
+          result.setZero();
+          im2col(in_g, fdim_g, padding, stride, dilation, result);
+          filt_g.dot(result, out_g, false, true);
+        }
+        result.deallocate();
       }
-      result.deallocate();
     }
   }
 
