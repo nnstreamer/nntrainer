@@ -780,7 +780,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
           ing_dim.setDataType(in_dt);
           Tensor in_g =
             in_sub.getSharedDataTensor(ing_dim, (size_t)g * icg * ihw);
-          TensorDim filtg_dim({ocg, icg * fh * fw});
+          TensorDim filtg_dim({ocg, (size_t)icg * fh * fw});
           filtg_dim.setDataType(filt_dt);
           Tensor filt_g = filter_kernel.getSharedDataTensor(
             filtg_dim, (size_t)g * ocg * icg * fh * fw);
