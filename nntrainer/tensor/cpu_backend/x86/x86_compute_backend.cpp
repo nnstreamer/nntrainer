@@ -354,6 +354,17 @@ void gemm_q4_0_indirect_conv(const unsigned int M, const unsigned int N,
   throw std::runtime_error("Error: NYI for gemm_q4_0_indirect_conv on x86");
 }
 
+#ifdef ENABLE_FP16
+void gemm_q4_0_indirect_conv_fp16(const unsigned int M, const unsigned int N,
+                                  const unsigned int K, const _FP16 *in,
+                                  const ConvGatherParams &geom, const void *B,
+                                  const unsigned int ldb, _FP16 *C,
+                                  const unsigned int ldc) {
+  throw std::runtime_error(
+    "Error: NYI for gemm_q4_0_indirect_conv_fp16 on x86");
+}
+#endif
+
 void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
                const float *A, const unsigned int lda, const void *B,
                const unsigned int ldb, float *C, const unsigned int ldc) {

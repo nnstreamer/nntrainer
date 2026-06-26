@@ -905,6 +905,17 @@ void gemm_q4_0_indirect_conv(const unsigned int M, const unsigned int N,
                              const ConvGatherParams &geom, const void *B,
                              const unsigned int ldb, float *C,
                              const unsigned int ldc);
+#ifdef ENABLE_FP16
+/**
+ * @brief FP16-activation q4_0 conv GEMM (ARM-only path). On x86 this throws
+ * NYI; callers gate on supports_gemm_q4_0_indirect_conv_fp16().
+ */
+void gemm_q4_0_indirect_conv_fp16(const unsigned int M, const unsigned int N,
+                                  const unsigned int K, const _FP16 *in,
+                                  const ConvGatherParams &geom, const void *B,
+                                  const unsigned int ldb, _FP16 *C,
+                                  const unsigned int ldc);
+#endif
 /**
  * @brief q4_K GEMM : A (M,K) * W.T (N,K) = O (M,N)
  *
