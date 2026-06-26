@@ -977,12 +977,22 @@ void Manager::flushCacheExcept(unsigned int order) {
 void Manager::finalizeTensorPool(TensorPool &pool, unsigned int start,
                                  unsigned int end) {
   if (enable_optimizations) {
+#if defined(ENABLE_MEMORY_PLANNER_V3)
+    /**
+     * Opt-in (compile time -DENABLE_MEMORY_PLANNER_V3) lower-peak-memory
+     * planner. Off by default so the build keeps the validated planner below;
+     * the YOLOv11 inference build enables it (meson -Dmemory-planner=v3 or
+     * ndk-build ENABLE_MEMORY_PLANNER_V3=1).
+     */
+    pool.finalize(OptimizedV3Planner(), start, end);
+#else
     if (exec_mode == ExecutionMode::INFERENCE && enable_fsu) {
       //@todo change V3 and validate
       pool.finalize(OptimizedV1Planner(), start, end);
     } else {
       pool.finalize(OptimizedV1Planner(), start, end);
     }
+#endif
   } else {
     pool.finalize(BasicPlanner(), start, end);
   }
