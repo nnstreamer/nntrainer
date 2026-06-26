@@ -400,6 +400,20 @@ void depthwise_conv2d_fp32(
                                    dilation_w);
 }
 
+#ifdef ENABLE_FP16
+void depthwise_conv2d_fp16(
+  const _FP16 *input, const float *kernel, _FP16 *output, unsigned int batch,
+  unsigned int channels, unsigned int in_h, unsigned int in_w,
+  unsigned int out_h, unsigned int out_w, unsigned int kh, unsigned int kw,
+  unsigned int stride_h, unsigned int stride_w, unsigned int pad_top,
+  unsigned int pad_left, unsigned int dilation_h, unsigned int dilation_w) {
+  __fallback_depthwise_conv2d_fp16(input, kernel, output, batch, channels, in_h,
+                                   in_w, out_h, out_w, kh, kw, stride_h,
+                                   stride_w, pad_top, pad_left, dilation_h,
+                                   dilation_w);
+}
+#endif
+
 void create_q4_0_weights(const uint8_t *int4_weight, uint8_t *q4_0_weight) {
   __fallback_create_q4_0_weights(int4_weight, q4_0_weight);
 }

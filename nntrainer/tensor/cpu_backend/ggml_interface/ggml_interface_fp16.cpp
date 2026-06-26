@@ -15,6 +15,8 @@
 #include <nntr_ggml_impl.h>
 #include <nntr_ggml_impl_common.h>
 
+#include <conv_indirect.h>
+
 #include <algorithm>
 #include <assert.h>
 #include <cmath>
@@ -45,6 +47,27 @@ static inline void __copy_f16_from_f32(const float *src, _FP16 *dst,
   }
 #endif
 }
+
+#if defined(__ARM_NEON)
+/**
+ * @brief Scale 8 FP16 activations by the q8_0 inverse-scale `id` and round to
+ * int8, doing the multiply in the FP32 domain.
+ *
+ * `id` is the inverse scale `1/d` and can be very large for a block whose amax
+ * is small (e.g. amax 1e-3 -> id ~1.3e5). Applying it with vmulq_n_f16 narrows
+ * `id` to FP16, where anything above 65504 becomes +inf; src*inf then yields
+ * inf/NaN in the quantized activation and poisons the GEMM (observed as
+ * widespread NaN in W4A16 inference). The FP32 GEMM path and the scalar
+ * fallback both multiply in float, so mirror them: widen src to FP32, multiply
+ * by the float `id`, then convert to int8.
+ */
+static inline int16x8_t __q8_0_scale_f16x8(float16x8_t src, float id) {
+  float32x4_t lo = vmulq_n_f32(vcvt_f32_f16(vget_low_f16(src)), id);
+  float32x4_t hi = vmulq_n_f32(vcvt_f32_f16(vget_high_f16(src)), id);
+  return vcombine_s16(vmovn_s32(vcvtnq_s32_f32(lo)),
+                      vmovn_s32(vcvtnq_s32_f32(hi)));
+}
+#endif
 
 void __ggml_quantize_row_q8_0(const _FP16 *__restrict x, void *vy, int64_t k) {
   assert(QK8_0 == 32);
@@ -80,8 +103,7 @@ void __ggml_quantize_row_q8_0(const _FP16 *__restrict x, void *vy, int64_t k) {
     y[i].d = nntr_compute_fp32_to_fp16(d);
 
     for (int j = 0; j < 4; j++) {
-      const float16x8_t v = vmulq_n_f16(srcv[j], id);
-      const int16x8_t vi = vcvtnq_s16_f16(v);
+      const int16x8_t vi = __q8_0_scale_f16x8(srcv[j], id);
 
       y[i].qs[8 * j + 0] = vgetq_lane_s16(vi, 0);
       y[i].qs[8 * j + 1] = vgetq_lane_s16(vi, 1);
@@ -179,8 +201,7 @@ static void __ggml_quantize_mat_q8_0_4x8(const _FP16 *__restrict x,
     }
 
     for (int j = 0; j < 4; j++) {
-      float16x8_t v = vmulq_n_f16(srcv[0][j], id[0]);
-      int16x8_t vi = vcvtnq_s16_f16(v);
+      int16x8_t vi = __q8_0_scale_f16x8(srcv[0][j], id[0]);
       y[i].qs[32 * j + 0] = vgetq_lane_s16(vi, 0);
       y[i].qs[32 * j + 1] = vgetq_lane_s16(vi, 1);
       y[i].qs[32 * j + 2] = vgetq_lane_s16(vi, 2);
@@ -190,8 +211,7 @@ static void __ggml_quantize_mat_q8_0_4x8(const _FP16 *__restrict x,
       y[i].qs[32 * j + 6] = vgetq_lane_s16(vi, 6);
       y[i].qs[32 * j + 7] = vgetq_lane_s16(vi, 7);
 
-      v = vmulq_n_f16(srcv[1][j], id[1]);
-      vi = vcvtnq_s16_f16(v);
+      vi = __q8_0_scale_f16x8(srcv[1][j], id[1]);
       y[i].qs[32 * j + 8] = vgetq_lane_s16(vi, 0);
       y[i].qs[32 * j + 9] = vgetq_lane_s16(vi, 1);
       y[i].qs[32 * j + 10] = vgetq_lane_s16(vi, 2);
@@ -201,8 +221,7 @@ static void __ggml_quantize_mat_q8_0_4x8(const _FP16 *__restrict x,
       y[i].qs[32 * j + 14] = vgetq_lane_s16(vi, 6);
       y[i].qs[32 * j + 15] = vgetq_lane_s16(vi, 7);
 
-      v = vmulq_n_f16(srcv[2][j], id[2]);
-      vi = vcvtnq_s16_f16(v);
+      vi = __q8_0_scale_f16x8(srcv[2][j], id[2]);
       y[i].qs[32 * j + 16] = vgetq_lane_s16(vi, 0);
       y[i].qs[32 * j + 17] = vgetq_lane_s16(vi, 1);
       y[i].qs[32 * j + 18] = vgetq_lane_s16(vi, 2);
@@ -212,8 +231,7 @@ static void __ggml_quantize_mat_q8_0_4x8(const _FP16 *__restrict x,
       y[i].qs[32 * j + 22] = vgetq_lane_s16(vi, 6);
       y[i].qs[32 * j + 23] = vgetq_lane_s16(vi, 7);
 
-      v = vmulq_n_f16(srcv[3][j], id[3]);
-      vi = vcvtnq_s16_f16(v);
+      vi = __q8_0_scale_f16x8(srcv[3][j], id[3]);
       y[i].qs[32 * j + 24] = vgetq_lane_s16(vi, 0);
       y[i].qs[32 * j + 25] = vgetq_lane_s16(vi, 1);
       y[i].qs[32 * j + 26] = vgetq_lane_s16(vi, 2);
@@ -520,5 +538,129 @@ void __ggml_q4_0_4x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
   }
   return __ggml_q4_0_4x8_q8_0_GEMM_BSTP(M, N, K, A, lda, B, ldb, C, ldc);
 }
+
+#ifdef ENABLE_FP16
+void __ggml_q4_0_4x8_q8_0_indirect_GEMM_fp16(
+  const unsigned int M, const unsigned int N, const unsigned int K,
+  const _FP16 *in, const ConvGatherParams &geom, const void *B,
+  const unsigned int ldb, _FP16 *C, const unsigned int ldc) {
+  /// FP16-activation indirect (im2col-fused) variant of
+  /// __ggml_q4_0_4x8_q8_0_GEMM<_FP16>. The activation matrix A = [M=OH*OW,
+  /// K=CRS] is never materialized. Each Q8_0 activation tile is gathered
+  /// directly from the NCHW _FP16 input via gather_conv_act_rows_fp16
+  /// (byte-identical im2col rows, _FP16 typed — no FP32 staging copy, so the
+  /// indirect path's no-col-materialization memory win is preserved for FP16
+  /// activations) and quantized on the fly with the FP16-input quantizers, then
+  /// fed to the SAME FP16-output micro-kernels the non-indirect FP16 GEMM
+  /// (BSTP) uses. The FP16 Q8_0 quantizer here is the id-FP32-narrowing-fixed
+  /// variant (see __q8_0_scale_f16x8), so small-amax blocks no longer poison
+  /// the GEMM with Inf/NaN.
+  auto &tm = ThreadManager::Global();
+  (void)ldb;
+
+  const unsigned int blocks_per_4_rows = (K + QK8_0 - 1) / QK8_0;
+  const unsigned int qa_4_rows_size = sizeof(block_q8_0x4) * blocks_per_4_rows;
+  const size_t qa_row_size = (sizeof(block_q8_0) * K) / QK8_0; // ignore remainder
+  const unsigned int M4 = M / 4;
+  const unsigned int rem = M % 4;
+
+  const unsigned int qa_size =
+    qa_4_rows_size * M4 + static_cast<unsigned int>(qa_row_size) * rem;
+  std::vector<char> QA(qa_size);
+  char *QA_ptr = QA.data();
+
+  /// Fused gather + Q8_0 quantize, parallel over chunks. Gather feeds the
+  /// FP16-input quantizer __ggml_quantize_mat_q8_0_4x8(const _FP16*) one
+  /// 4-row tile at a time through a small L1/L2-resident _FP16 buffer (no FP32
+  /// staging). Byte-identical QA layout to the materialized FP16 path.
+  const unsigned int QCHUNK = 64; // multiple of 4
+  if (M4 > 0) {
+    const unsigned int rows4 = M4 * 4;
+    const size_t qloops = (rows4 + QCHUNK - 1) / QCHUNK;
+    tm.parallel_for(0, qloops, [=](size_t q) {
+      const unsigned int r0 = static_cast<unsigned int>(q) * QCHUNK;
+      const unsigned int r1 = std::min(r0 + QCHUNK, rows4);
+      std::vector<_FP16> tile((size_t)4 * K); // one quantize tile, reused
+      for (unsigned int r = r0; r < r1; r += 4) {
+        gather_conv_act_rows_fp16(tile.data(), in, geom, (int)r, 4);
+        __ggml_quantize_mat_q8_0_4x8(tile.data(),
+                                     QA_ptr + (r / 4) * qa_4_rows_size, K);
+      }
+    });
+  }
+  /// Remainder rows (M % 4): single-row gather + quantize.
+  for (unsigned int i = M4 * 4; i < M; ++i) {
+    std::vector<_FP16> staging((size_t)K);
+    gather_conv_act_rows_fp16(staging.data(), in, geom, (int)i, 1);
+    __ggml_quantize_row_q8_0(
+      staging.data(),
+      QA_ptr + (M4 * qa_4_rows_size) + (i - M4 * 4) * qa_row_size, K);
+  }
+
+  /// GEMM over the 4-row-divisible rows + GEMV over the remainder, mirroring
+  /// __ggml_q4_0_4x8_q8_0_GEMM_BSTP's output block (same QA addressing, same
+  /// FP16-output micro-kernels) — only the activation source changed above.
+  const unsigned int A_step = sizeof(block_q8_0) * (K / QK8_0);
+  const unsigned int B_step = sizeof(block_q4_0) * (K / QK4_0);
+
+  if (M4 > 0) {
+    const unsigned int row_chunk_size = 16;
+    const size_t row_loop = (M4 * 4 + row_chunk_size - 1) / row_chunk_size;
+    const unsigned int col_chunk_size = 16;
+    const size_t col_loop = (N + col_chunk_size - 1) / col_chunk_size;
+
+    tm.parallel_for(0, col_loop * row_loop, [=](size_t i) {
+      unsigned int r = i / col_loop;
+      unsigned int c = i % col_loop;
+
+      unsigned int r_start = r * row_chunk_size;
+      unsigned int r_end = std::min(row_chunk_size * (r + 1), M4 * 4);
+
+      unsigned int c_start = c * col_chunk_size;
+      unsigned int c_end = std::min(col_chunk_size * (c + 1), N);
+
+#if defined(__ARM_NEON)
+      nntr_gemm_q4_0_4x8_q8_0_fp16(
+        K, (_FP16 *)(C + r_start * N + c_start), ldc,
+        (void *)((char *)B + c_start * B_step),
+        (void *)(QA_ptr + r_start * A_step), r_end - r_start, c_end - c_start);
+#else
+      unsigned int t_rows = r_end - r_start;
+      unsigned int t_cols = c_end - c_start;
+      std::vector<float> tile(t_rows * t_cols);
+      nntr_gemm_q4_0_4x8_q8_0(K, tile.data(), t_cols,
+                              (void *)((char *)B + c_start * B_step),
+                              (void *)(QA_ptr + r_start * A_step), t_rows,
+                              t_cols);
+      for (unsigned int ii = 0; ii < t_rows; ++ii)
+        __copy_f16_from_f32(&tile[ii * t_cols],
+                            C + (r_start + ii) * N + c_start, t_cols);
+#endif
+    });
+  }
+
+  /// Leftover 1..3 rows: FP32-output GEMV into a small per-(M%4) scratch, then
+  /// cast just that tail back into C (same as BSTP's leftover block).
+  if (rem > 0) {
+    std::vector<float> tail32(rem * (size_t)N);
+    unsigned int chunk_size = 16;
+    unsigned int loop = (N + chunk_size - 1) / chunk_size;
+    for (unsigned int pb = M4 * 4; pb < M; pb++) {
+      tm.parallel_for(0, loop, [=, &tail32](size_t idx) {
+        unsigned int M_step_start = chunk_size * idx;
+        unsigned int M_step_end = std::min(chunk_size * (idx + 1), (size_t)N);
+
+        nntr_gemv_q4_0_4x8_q8_0(
+          K, (float *)(tail32.data() + (pb - M4 * 4) * N) + M_step_start, N,
+          (void *)((char *)B + M_step_start * B_step),
+          QA_ptr + (M4 * qa_4_rows_size) + (pb - M4 * 4) * qa_row_size, 1,
+          M_step_end - M_step_start);
+      });
+    }
+    __copy_f16_from_f32(tail32.data(), C + (size_t)M4 * 4 * N,
+                        (size_t)rem * N);
+  }
+}
+#endif
 
 } // namespace nntrainer

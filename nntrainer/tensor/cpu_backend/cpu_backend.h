@@ -1135,6 +1135,21 @@ extern void gemm_q4_0_indirect_conv(const unsigned int M, const unsigned int N,
                                     const void *B, const unsigned int ldb,
                                     float *C, const unsigned int ldc);
 
+#ifdef ENABLE_FP16
+/**
+ * @brief FP16-activation q4_0 conv GEMM with im2col-fused q8_0 activation
+ * packing (no FP16 col materialization). FP16 mirror of
+ * gemm_q4_0_indirect_conv above.
+ *
+ * @param in batch-sliced contiguous NCHW _FP16 input
+ * @param C  _FP16* output [M, N]
+ */
+extern void gemm_q4_0_indirect_conv_fp16(
+  const unsigned int M, const unsigned int N, const unsigned int K,
+  const _FP16 *in, const nntrainer::ConvGatherParams &geom, const void *B,
+  const unsigned int ldb, _FP16 *C, const unsigned int ldc);
+#endif
+
 /**
  * @brief q4_K GEMM : A (M,K) * W.T (N,K) = O (M,N)
  *
@@ -1534,6 +1549,19 @@ extern void depthwise_conv2d_fp32(
   unsigned int out_h, unsigned int out_w, unsigned int kh, unsigned int kw,
   unsigned int stride_h, unsigned int stride_w, unsigned int pad_top,
   unsigned int pad_left, unsigned int dilation_h, unsigned int dilation_w);
+
+#ifdef ENABLE_FP16
+/**
+ * @brief Depthwise convolution FP16 backend op. FP16-activation mirror of
+ *        depthwise_conv2d_fp32 (same layout/semantics, float accumulation).
+ */
+extern void depthwise_conv2d_fp16(
+  const _FP16 *input, const float *kernel, _FP16 *output, unsigned int batch,
+  unsigned int channels, unsigned int in_h, unsigned int in_w,
+  unsigned int out_h, unsigned int out_w, unsigned int kh, unsigned int kw,
+  unsigned int stride_h, unsigned int stride_w, unsigned int pad_top,
+  unsigned int pad_left, unsigned int dilation_h, unsigned int dilation_w);
+#endif
 
 /**
  * @brief     Create a Q4_0 weights (without XOR 0x88) from int4 weights

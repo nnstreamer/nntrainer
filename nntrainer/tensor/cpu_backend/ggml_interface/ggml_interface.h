@@ -190,6 +190,28 @@ void __ggml_q4_0_4x8_q8_0_indirect_GEMM(const unsigned int M,
                                         const void *B, const unsigned int ldb,
                                         float *C, const unsigned int ldc);
 
+#ifdef ENABLE_FP16
+/**
+ * @brief FP16-activation indirect (im2col-fused) Q4_0 conv GEMM.
+ *
+ * Mirror of the FP32 __ggml_q4_0_4x8_q8_0_indirect_GEMM for W4A16 / FP16
+ * activations: the activation A = [M=OH*OW, K=CRS] is never materialized; each
+ * Q8_0 activation tile is gathered directly from the NCHW _FP16 input via
+ * gather_conv_act_rows_fp16 (byte-identical im2col rows, FP16 typed so no FP32
+ * staging copy) and quantized on the fly with the FP16-input quantizers, then
+ * fed to the same FP16-output micro-kernels the non-indirect FP16 GEMM uses
+ * (nntr_gemm_q4_0_4x8_q8_0_fp16 / nntr_gemv_q4_0_4x8_q8_0 + __copy_f16_from_f32
+ * tail). Output C is FP16. Used by HalfTensor::convQ4_0Indirect.
+ *
+ * @param in batch-sliced contiguous NCHW _FP16 input
+ * @param C  dst matrix [M, N] of _FP16
+ */
+void __ggml_q4_0_4x8_q8_0_indirect_GEMM_fp16(
+  const unsigned int M, const unsigned int N, const unsigned int K,
+  const _FP16 *in, const ConvGatherParams &geom, const void *B,
+  const unsigned int ldb, _FP16 *C, const unsigned int ldc);
+#endif
+
 /**
  * @brief A(M, K) * W.T(N, K) = (M, N)
  *

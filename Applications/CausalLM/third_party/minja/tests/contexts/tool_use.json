@@ -1,0 +1,168 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "Print a hello world message with python."
+    },
+    {
+      "role": "assistant",
+      "content": "",
+      "tool_calls": [
+        {
+          "id": "call_1___",
+          "type": "function",
+          "function": {
+            "arguments": "{\"code\": \"print('Hello, World!')\"}",
+            "name": "ipython"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "call_1___",
+      "name": "ipython",
+      "content": "{\"stdout\": \"Hello, World!\"}"
+    },
+    {
+      "role": "assistant",
+      "content": "Anything else?"
+    },
+    {
+      "role": "user",
+      "content": "Test a tautology."
+    },
+    {
+      "role": "assistant",
+      "content": "",
+      "tool_calls": [
+        {
+          "id": "call_2___",
+          "type": "function",
+          "function": {
+            "arguments": "{\"condition\":true}",
+            "name": "test"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "call_2___",
+      "name": "test",
+      "content": "true"
+    },
+    {
+      "role": "assistant",
+      "content": "Truth is definitely true."
+    },
+    {
+      "role": "user",
+      "content": "Check it on the web."
+    },
+    {
+      "role": "assistant",
+      "content": "",
+      "tool_calls": [
+        {
+          "id": "call_3___",
+          "type": "function",
+          "function": {
+            "arguments": "{\"query\": \"what is truth anyway am I right?\"}",
+            "name": "brave_search"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "call_3___",
+      "name": "brave_search",
+      "content": "{\"title\":\"Truth: don't ask the web, ask an LLM instead!\",\"url\":\"https://en.wikipedia.org/wiki/Truth\"}"
+    },
+    {
+      "role": "assistant",
+      "content": "I don't need the web to answer you but I did check, as you asked. What now?"
+    }
+  ],
+  "add_generation_prompt": true,
+  "bos_token": "<|startoftext|>",
+  "eos_token": "<|endoftext|>",
+  "tools_in_user_message": false,
+  "builtin_tools": [
+    "wolfram_alpha",
+    "brave_search"
+  ],
+  "cutting_knowledge_date": "2023-04-01",
+  "todays_date": "2024-09-03",
+  "tools": [
+    {
+      "function": {
+        "description": "Runs code in an ipython interpreter and returns the result of the execution after 60 seconds.",
+        "name": "ipython",
+        "parameters": {
+          "properties": {
+            "code": {
+              "description": "The code to run in the ipython interpreter.",
+              "type": "string"
+            }
+          },
+          "required": ["code"],
+          "type": "object"
+        }
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "description": "Executes a web search with Brave.",
+        "name": "brave_search",
+        "parameters": {
+          "properties": {
+            "query": {
+              "description": "The query to search for.",
+              "type": "string"
+            }
+          },
+          "required": ["query"],
+          "type": "object"
+        }
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "description": "Executes a query with Wolfram Alpha.",
+        "name": "wolfram_alpha",
+        "parameters": {
+          "properties": {
+            "query": {
+              "description": "The query to execute.",
+              "type": "string"
+            }
+          },
+          "required": ["query"],
+          "type": "object"
+        }
+      },
+      "type": "function"
+    },
+    {
+      "function": {
+        "description": "Runs a test.",
+        "name": "test",
+        "parameters": {
+          "properties": {
+            "condition": {
+              "description": "The condition to test.",
+              "type": "boolean"
+            }
+          },
+          "required": ["condition"],
+          "type": "object"
+        }
+      },
+      "type": "function"
+    }
+  ]
+}

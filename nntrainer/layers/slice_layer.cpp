@@ -42,9 +42,15 @@ void SliceLayer::finalize(InitLayerContext &context) {
   context.setOutputDimensions({outputDim});
 }
 
-void SliceLayer::forwarding_operation(const Tensor &input, Tensor &output) {
-  TensorDim outputDim = output.getDim();
-
+/**
+ * @brief dtype-correct element copy for the slice. getValue()/setValue() default
+ * to T=float, so on an FP16 tensor a float read reinterprets two 2-byte halves
+ * as one 4-byte float (and indexes at 2x stride) -> garbage. Dispatch on the
+ * actual tensor dtype so the copy stays element-correct for any precision.
+ */
+template <typename T>
+static void sliceForwardT(const Tensor &input, Tensor &output,
+                          unsigned int axis, unsigned int start) {
   for (unsigned int b = 0; b < output.batch(); ++b) {
     for (unsigned int c = 0; c < output.channel(); ++c) {
       for (unsigned int h = 0; h < output.height(); ++h) {
@@ -52,7 +58,36 @@ void SliceLayer::forwarding_operation(const Tensor &input, Tensor &output) {
           unsigned int c_idx = (axis == 1) ? c + start : c;
           unsigned int h_idx = (axis == 2) ? h + start : h;
           unsigned int w_idx = (axis == 3) ? w + start : w;
-          output.setValue(b, c, h, w, input.getValue(b, c_idx, h_idx, w_idx));
+          output.getValue<T>(b, c, h, w) =
+            input.getValue<T>(b, c_idx, h_idx, w_idx);
+        }
+      }
+    }
+  }
+}
+
+void SliceLayer::forwarding_operation(const Tensor &input, Tensor &output) {
+#ifdef ENABLE_FP16
+  if (output.getDataType() == ml::train::TensorDim::DataType::FP16) {
+    sliceForwardT<_FP16>(input, output, axis, start);
+    return;
+  }
+#endif
+  sliceForwardT<float>(input, output, axis, start);
+}
+
+template <typename T>
+static void sliceDerivT(const Tensor &inDeriv, Tensor &outDeriv,
+                        unsigned int axis, unsigned int start) {
+  for (unsigned int b = 0; b < inDeriv.batch(); ++b) {
+    for (unsigned int c = 0; c < inDeriv.channel(); ++c) {
+      for (unsigned int h = 0; h < inDeriv.height(); ++h) {
+        for (unsigned int w = 0; w < inDeriv.width(); ++w) {
+          unsigned int c_idx = (axis == 1) ? c + start : c;
+          unsigned int h_idx = (axis == 2) ? h + start : h;
+          unsigned int w_idx = (axis == 3) ? w + start : w;
+          outDeriv.getValue<T>(b, c_idx, h_idx, w_idx) =
+            inDeriv.getValue<T>(b, c, h, w);
         }
       }
     }
@@ -63,19 +98,13 @@ void SliceLayer::calcDerivative(RunLayerContext &context) {
   const Tensor &inDeriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &outDeriv = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
 
-  for (unsigned int b = 0; b < inDeriv.batch(); ++b) {
-    for (unsigned int c = 0; c < inDeriv.channel(); ++c) {
-      for (unsigned int h = 0; h < inDeriv.height(); ++h) {
-        for (unsigned int w = 0; w < inDeriv.width(); ++w) {
-          unsigned int c_idx = (axis == 1) ? c + start : c;
-          unsigned int h_idx = (axis == 2) ? h + start : h;
-          unsigned int w_idx = (axis == 3) ? w + start : w;
-          outDeriv.setValue(b, c_idx, h_idx, w_idx,
-                            inDeriv.getValue(b, c, h, w));
-        }
-      }
-    }
+#ifdef ENABLE_FP16
+  if (outDeriv.getDataType() == ml::train::TensorDim::DataType::FP16) {
+    sliceDerivT<_FP16>(inDeriv, outDeriv, axis, start);
+    return;
   }
+#endif
+  sliceDerivT<float>(inDeriv, outDeriv, axis, start);
 }
 
 void SliceLayer::setProperty(const std::vector<std::string> &values) {

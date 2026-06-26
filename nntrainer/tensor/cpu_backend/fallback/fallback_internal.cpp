@@ -1470,4 +1470,46 @@ void __fallback_depthwise_conv2d_fp32(
   });
 }
 
+#ifdef ENABLE_FP16
+void __fallback_depthwise_conv2d_fp16(
+  const _FP16 *input, const float *kernel, _FP16 *output, unsigned int batch,
+  unsigned int channels, unsigned int in_h, unsigned int in_w,
+  unsigned int out_h, unsigned int out_w, unsigned int kh, unsigned int kw,
+  unsigned int stride_h, unsigned int stride_w, unsigned int pad_top,
+  unsigned int pad_left, unsigned int dilation_h, unsigned int dilation_w) {
+  // FP16 mirror of __fallback_depthwise_conv2d_fp32: same channel-parallel
+  // direct loop, but accumulate in float (the kernel/input are widened per MAC)
+  // so a long kh*kw reduction does not lose precision in FP16. Output narrowed
+  // back to _FP16. Keeps depthwise off the slow per-channel im2col + FP16 GEMV
+  // path the grouped conv else-branch would otherwise take.
+  auto &tm = ThreadManager::Global();
+  tm.parallel_for(0, (size_t)batch * channels, [&](size_t bc) {
+    const unsigned int c = (unsigned int)(bc % channels);
+    const _FP16 *inc = input + bc * in_h * in_w;
+    const float *fc = kernel + (size_t)c * kh * kw;
+    _FP16 *outc = output + bc * out_h * out_w;
+    for (unsigned int oh = 0; oh < out_h; ++oh) {
+      const int ih0 = (int)oh * (int)stride_h - (int)pad_top;
+      for (unsigned int ow = 0; ow < out_w; ++ow) {
+        const int iw0 = (int)ow * (int)stride_w - (int)pad_left;
+        float acc = 0.0f;
+        for (unsigned int ki = 0; ki < kh; ++ki) {
+          const int ih = ih0 + (int)ki * (int)dilation_h;
+          if (ih < 0 || ih >= (int)in_h)
+            continue;
+          for (unsigned int kj = 0; kj < kw; ++kj) {
+            const int iw = iw0 + (int)kj * (int)dilation_w;
+            if (iw < 0 || iw >= (int)in_w)
+              continue;
+            acc += static_cast<float>(inc[(size_t)ih * in_w + iw]) *
+                   static_cast<float>(fc[ki * kw + kj]);
+          }
+        }
+        outc[(size_t)oh * out_w + ow] = static_cast<_FP16>(acc);
+      }
+    }
+  });
+}
+#endif
+
 } // namespace nntrainer

@@ -26,6 +26,7 @@
 #include <cassert>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
@@ -460,9 +461,21 @@ int main(int argc, char *argv[]) {
     // (FP16 activations only). Default (unset) is FP32-FP32. Since Conv+BN are
     // fused at convert time, there is no BatchNorm mixed-precision path to
     // block FP16. Must be set before compile().
+    // Track whether activations are FP16 (the part after '-' in e.g.
+    // "FP32-FP16" / "Q4_0-FP16" / "FP16-FP16"). YOLOv11's input is a float
+    // image (not token IDs), so for an FP16-activation model we must declare the
+    // input tensor as FP16 and feed genuine FP16 bytes — the InputLayer no
+    // longer promotes FP32->activation dtype (PR#4000), and the float* binding
+    // reinterpret-casts without converting.
+    bool fp16_act = false;
     if (const char *tt = std::getenv("YOLO_TENSOR_TYPE")) {
       model->setProperty({nntrainer::withKey("model_tensor_type", tt)});
-      std::cout << "[YOLO] model_tensor_type = " << tt << std::endl;
+      std::string tts = tt;
+      auto dash = tts.find('-');
+      std::string act = (dash == std::string::npos) ? tts : tts.substr(dash + 1);
+      fp16_act = (act == "FP16");
+      std::cout << "[YOLO] model_tensor_type = " << tt
+                << " (fp16_act=" << (fp16_act ? "1" : "0") << ")" << std::endl;
     }
 
     // Offline quantization mode (YOLO_QUANTIZE_OUT set): build the graph in
@@ -484,7 +497,14 @@ int main(int argc, char *argv[]) {
     if (quantize_mode)
       yolov11::quantConvSink() = &q_conv_names;
 
-    auto x = Tensor({1, 3, 832, 832}, "input0");
+    // Declare the input tensor's dtype to match the activation dtype so the
+    // synthesized InputLayer emits FP16 output for an FP16-activation model.
+    auto x = fp16_act
+               ? Tensor(ml::train::TensorDim(
+                          1, 3, 832, 832, ml::train::TensorDim::Format::NCHW,
+                          ml::train::TensorDim::DataType::FP16),
+                        "input0")
+               : Tensor({1, 3, 832, 832}, "input0");
     Tensor m4, m6;
     auto m10 = yolov11::buildBackbone(x, m4, m6, conv_q40);
     auto outputs = yolov11::buildHead(m4, m6, m10, conv_q40); // {P3, P4, P5}
@@ -549,6 +569,10 @@ int main(int argc, char *argv[]) {
 #else
     auto input = loadBin(input_path);
 #endif
+    // The inference() API is FP32 by contract: always hand it the plain FP32
+    // image. When the graph input is declared FP16 the framework converts
+    // FP32->FP16 at the binding boundary (mapExternalTensor) through the Tensor
+    // system — no app-side conversion.
     std::vector<float *> in_ptr = {input.data()};
 
     // Inference timing. YOLO_BENCH_ITERS (default 1) controls how many timed

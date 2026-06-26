@@ -12,6 +12,8 @@
  *
  */
 #include <algorithm>
+#include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
@@ -506,6 +508,13 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
 
+  if (std::getenv("NNTR_CONV_DT_PROBE")) {
+    fprintf(stderr, "[CONV_DT] %s in=%d hidden=%d filt=%d\n",
+            context.getName().c_str(), (int)input_.getDataType(),
+            (int)hidden_.getDataType(),
+            (int)context.getWeight(wt_idx[ConvParams::weight]).getDataType());
+  }
+
   Tensor &filter_kernel = context.getWeight(wt_idx[ConvParams::weight]);
 
   /** Calculate Convolution 2D
@@ -687,9 +696,11 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
     const unsigned int ihw = in_dim.height() * in_dim.width();
     TensorDim fdim_g(ocg, icg, fh, fw, filter_dim.getTensorType());
 
-    if (ocg == 1 && icg == 1 &&
-        in_dim.getDataType() == nntrainer::Tdatatype::FP32 &&
-        std::getenv("NNTR_NO_DW_FASTPATH") == nullptr) {
+    const bool is_true_depthwise =
+      ocg == 1 && icg == 1 && std::getenv("NNTR_NO_DW_FASTPATH") == nullptr;
+
+    if (is_true_depthwise &&
+        in_dim.getDataType() == nntrainer::Tdatatype::FP32) {
       // True depthwise (groups == channels): delegate to the CPU backend op so
       // the optimised kernel lives in the backend, not in the layer.
       nntrainer::getComputeOps()->depthwise_conv2d_fp32(
@@ -698,19 +709,57 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
         in_dim.width(), out_dim.height(), out_dim.width(), fh, fw,
         stride[0].get(), stride[1].get(), padding[0], padding[2],
         dilation[0].get(), dilation[1].get());
+#ifdef ENABLE_FP16
+    } else if (is_true_depthwise &&
+               in_dim.getDataType() == nntrainer::Tdatatype::FP16 &&
+               hidden_.getDataType() == nntrainer::Tdatatype::FP16 &&
+               filter_kernel.getDataType() == nntrainer::Tdatatype::FP32) {
+      // FP16-activation depthwise: weights are never Q4_0 for groups>1 and stay
+      // FP32 (BN-folded), so this is FP16 input/output x FP32 kernel. Keep it on
+      // the tight channel-parallel direct-loop kernel instead of falling into
+      // the generic grouped else-branch (per-channel im2col + FP16 GEMV), which
+      // was ~2x slower for YOLOv11's detect-head depthwise convs.
+      nntrainer::getComputeOps()->depthwise_conv2d_fp16(
+        input_.getData<_FP16>(), filter_kernel.getData<float>(),
+        hidden_.getData<_FP16>(), in_dim.batch(), filter_size, in_dim.height(),
+        in_dim.width(), out_dim.height(), out_dim.width(), fh, fw,
+        stride[0].get(), stride[1].get(), padding[0], padding[2],
+        dilation[0].get(), dilation[1].get());
+#endif
     } else {
+      // getSharedDataTensor()/reshape() adopt the *passed* TensorDim's dtype
+      // (TensorBase::getSharedDataTensor: ret->dim = dim_). A bare {..} dim
+      // literal defaults to FP32, so on an FP16 activation graph every sub-view
+      // below would silently relabel FP16-backed storage as FP32 -- im2col
+      // would gather at the wrong precision and the dot would write 4-byte
+      // floats into 2-byte half storage (overflow / garbage). Carry each
+      // parent's real dtype onto its view. (For an all-FP32 graph these are
+      // no-ops, so the historical path is unchanged.)
+      const auto in_dt = input_.getDataType();
+      const auto filt_dt = filter_kernel.getDataType();
+      const auto out_dt = hidden_.getDataType();
       for (unsigned int b = 0; b < in_dim.batch(); ++b) {
         Tensor out = hidden_.getBatchSlice(b, 1);
-        out.reshape({filter_size, owoh});
+        TensorDim out_rdim({filter_size, owoh});
+        out_rdim.setDataType(out_dt);
+        out.reshape(out_rdim);
         Tensor in_sub = input_.getBatchSlice(b, 1);
-        Tensor result = Tensor(calcCol2ImOutputDim(out_dim, fdim_g));
+        TensorDim col_dim = calcCol2ImOutputDim(out_dim, fdim_g);
+        col_dim.setDataType(in_dt);
+        Tensor result = Tensor(col_dim);
         for (unsigned int g = 0; g < groups; ++g) {
-          Tensor in_g = in_sub.getSharedDataTensor(
-            {1, icg, in_dim.height(), in_dim.width()}, (size_t)g * icg * ihw);
+          TensorDim ing_dim({1, icg, in_dim.height(), in_dim.width()});
+          ing_dim.setDataType(in_dt);
+          Tensor in_g =
+            in_sub.getSharedDataTensor(ing_dim, (size_t)g * icg * ihw);
+          TensorDim filtg_dim({ocg, icg * fh * fw});
+          filtg_dim.setDataType(filt_dt);
           Tensor filt_g = filter_kernel.getSharedDataTensor(
-            {ocg, (size_t)icg * fh * fw}, (size_t)g * ocg * icg * fh * fw);
+            filtg_dim, (size_t)g * ocg * icg * fh * fw);
+          TensorDim outg_dim({ocg, owoh});
+          outg_dim.setDataType(out_dt);
           Tensor out_g =
-            out.getSharedDataTensor({ocg, owoh}, (size_t)g * ocg * owoh);
+            out.getSharedDataTensor(outg_dim, (size_t)g * ocg * owoh);
           result.setZero();
           im2col(in_g, fdim_g, padding, stride, dilation, result);
           filt_g.dot(result, out_g, false, true);
@@ -723,6 +772,22 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
   if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
       disable_bias.empty() || disable_bias.get() == false) {
     Tensor &bias_kernel = context.getWeight(wt_idx[ConvParams::bias]);
+    if (std::getenv("NNTR_BIAS_PROBE")) {
+      Tensor hf = hidden_.clone(TensorDim::DataType::FP32);
+      Tensor bf = bias_kernel.clone(TensorDim::DataType::FP32);
+      float hm = 0, bm = 0;
+      for (size_t i = 0; i < hf.size(); ++i) {
+        float v = std::abs(hf.getData()[i]);
+        if (v > hm) hm = v;
+      }
+      for (size_t i = 0; i < bf.size(); ++i) {
+        float v = std::abs(bf.getData()[i]);
+        if (v > bm) bm = v;
+      }
+      fprintf(stderr,
+              "[BIAS_PROBE] pre_hidden_max=%g bias_max=%g bias_dtype=%d\n", hm,
+              bm, (int)bias_kernel.getDataType());
+    }
     status = hidden_.add_i(bias_kernel);
     if (status != ML_ERROR_NONE) {
       throw std::invalid_argument("[Conv2D] adding bias failed");

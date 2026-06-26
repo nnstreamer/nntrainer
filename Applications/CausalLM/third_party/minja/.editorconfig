@@ -1,0 +1,21 @@
+# https://EditorConfig.org
+
+# Top-most EditorConfig file
+root = true
+
+# Unix-style newlines with a newline ending every file, utf-8 charset
+[*]
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+charset = utf-8
+indent_style = space
+indent_size = 2
+
+[build*,{third_party/templates/*.{jinja,LICENSE},tests/contexts/*.json,tests/goldens/*.txt}]
+indent_style = unset
+indent_size = unset
+end_of_line = unset
+charset = unset
+trim_trailing_whitespace = unset
+insert_final_newline = unset

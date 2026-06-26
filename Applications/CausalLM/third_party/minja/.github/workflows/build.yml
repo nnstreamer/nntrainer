@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+    paths: ['.github/workflows/build.yml', '**/CMakeLists.txt', '**/*.hpp', '**/*.cpp']
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths: ['.github/workflows/build.yml', '**/CMakeLists.txt', '**/*.hpp', '**/*.cpp']
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref && github.ref || github.run_id }}
+  # group: ${{ github.workflow }}-${{ github.head_ref && github.ref || github.run_id }}-${{ matrix.setup.os }}-${{ matrix.setup.build }}-${{ matrix.type }}
+  # cancel-in-progress: true
+
+jobs:
+  build_and_test:
+    strategy:
+      fail-fast: false
+      matrix:
+        setup:
+          - os: windows-latest
+            build: 'default'
+            defines: ''
+            test: true
+          - os: windows-latest
+            build: 'llvm-arm64'
+            defines: '-G "Ninja Multi-Config" -D CMAKE_TOOLCHAIN_FILE=cmake/arm64-windows-llvm.cmake'
+            test: false
+          - os: windows-latest
+            build: 'msvc-arm64'
+            defines: '-G "Ninja Multi-Config" -D CMAKE_TOOLCHAIN_FILE=cmake/arm64-windows-msvc.cmake'
+            test: true
+          - os: macos-latest
+            build: default
+            defines: ''
+            test: true
+          - os: ubuntu-latest
+            build: default
+            defines: ''
+            test: true
+        type: [
+          Release,
+          Debug,
+        ]
+    runs-on: ${{ matrix.setup.os }}
+    name: ${{ matrix.setup.os }}-${{ matrix.setup.build }}-${{ matrix.type }}
+    timeout-minutes: 30
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          single-branch: true
+
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2.11
+        with:
+          key: ${{ matrix.setup.os }}-${{ matrix.setup.build }}-${{ matrix.type }}
+
+      - name: Set up CMake
+        uses: lukka/get-cmake@latest
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install Python deps
+        run: pip install -r requirements.txt
+
+      - name: Configure CMake
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: cmake -B ${{github.workspace}}/build ${{ matrix.setup.defines }} -DCMAKE_BUILD_TYPE=${{ matrix.type }}
+
+      - name: Build
+        run: cmake --build ${{github.workspace}}/build --config ${{ matrix.type }} --parallel
+
+      - name: Test
+        if: ${{ matrix.setup.test }}
+        run: ctest --test-dir build --output-on-failure --verbose -C ${{ matrix.type }}

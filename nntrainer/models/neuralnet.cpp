@@ -125,7 +125,22 @@ Tensor mapExternalTensor(float *buf, const TensorDim &dim) {
     static_cast<size_t>(dim.getDataLen()) * dim.getDataTypeSize());
 
   switch (dim.getDataType()) {
-  case TensorDim::DataType::FP16:
+  case TensorDim::DataType::FP16: {
+    // The inference()/external-tensor API delivers FP32 data by contract
+    // (float *buf). For an FP16 graph input we must genuinely convert
+    // FP32->FP16 through the Tensor system, not reinterpret the FP32 bytes as
+    // half. Map the buffer as its real FP32 type, then copyData() into an
+    // owning FP16 tensor (HalfTensor::copyData performs the conversion). The
+    // returned tensor owns its buffer, so it stays valid after this call.
+    TensorDim fp32_dim = dim;
+    fp32_dim.setDataType(TensorDim::DataType::FP32);
+    const unsigned int fp32_bytes = static_cast<unsigned int>(
+      static_cast<size_t>(fp32_dim.getDataLen()) * fp32_dim.getDataTypeSize());
+    Tensor src = Tensor::Map<float>(buf, fp32_bytes, fp32_dim, 0);
+    Tensor dst(dim, true);
+    dst.copyData(src);
+    return dst;
+  }
   case TensorDim::DataType::UINT16:
   case TensorDim::DataType::QINT16:
     return Tensor::Map<uint16_t>(reinterpret_cast<uint16_t *>(buf), bytes, dim,
@@ -2299,6 +2314,83 @@ void NeuralNetwork::load(const std::string &file_path,
       }
     }
 
+    // --- mixed-precision dtype fix-up --------------------------------------
+    // TensorBase::read() raw-copies bytes() bytes assuming the on-disk dtype
+    // equals the destination tensor dtype. For a mixed-precision graph (e.g.
+    // an FP16-activation model whose biases are declared FP16 while the
+    // safetensors payload is FP32) that assumption is false, so the raw read
+    // yields garbage. Re-load every tensor whose file dtype differs from its
+    // declared dtype, converting through the Tensor system (Map<file dtype> +
+    // copyData). Only standard float entries are touched; quantized payloads
+    // (nntr_dtype set) are left to their dedicated read path.
+    {
+      auto fileFloatDType =
+        [](const std::string &s) -> ml::train::TensorDim::DataType {
+        if (s == "F32")
+          return ml::train::TensorDim::DataType::FP32;
+        if (s == "F16")
+          return ml::train::TensorDim::DataType::FP16;
+        return ml::train::TensorDim::DataType::NONE;
+      };
+      auto entries = safetensors::parseHeaderEntries(header_json);
+      std::unordered_map<std::string, const safetensors::TensorEntry *> emap;
+      emap.reserve(entries.size());
+      for (const auto &e : entries)
+        emap[e.name] = &e;
+
+      std::ifstream cf(f_path, std::ios::in | std::ios::binary);
+      std::unordered_set<const Tensor *> fixed;
+      if (cf.is_open()) {
+        for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
+             ++iter) {
+          for (auto weight : (*iter)->getRunContext().getWeights()) {
+            Tensor &var = weight->getVariableRef();
+            if (!fixed.insert(&var).second)
+              continue;
+            auto eit = emap.find(weight->getName());
+            if (eit == emap.end())
+              continue;
+            const safetensors::TensorEntry *e = eit->second;
+            if (!e->nntr_dtype.empty())
+              continue; // quantized / native payload: skip
+            auto file_dt = fileFloatDType(e->dtype);
+            if (file_dt == ml::train::TensorDim::DataType::NONE)
+              continue;
+            if (file_dt == var.getDataType())
+              continue; // dtype matches: raw read was correct
+
+            TensorDim src_dim = var.getDim();
+            src_dim.setDataType(file_dt);
+            const size_t n = src_dim.getDataLen();
+            const size_t src_bytes = n * src_dim.getDataTypeSize();
+            std::vector<char> buf(src_bytes);
+            cf.seekg(static_cast<std::streamoff>(data_base + e->offset_start),
+                     std::ios::beg);
+            cf.read(buf.data(), static_cast<std::streamsize>(src_bytes));
+            if (!cf) {
+              cf.clear();
+              continue;
+            }
+
+            if (file_dt == ml::train::TensorDim::DataType::FP32) {
+              Tensor staged = Tensor::Map<float>(
+                reinterpret_cast<float *>(buf.data()),
+                static_cast<unsigned int>(src_bytes), src_dim, 0);
+              var.copyData(staged);
+            }
+#ifdef ENABLE_FP16
+            else if (file_dt == ml::train::TensorDim::DataType::FP16) {
+              Tensor staged = Tensor::Map<_FP16>(
+                reinterpret_cast<_FP16 *>(buf.data()),
+                static_cast<unsigned int>(src_bytes), src_dim, 0);
+              var.copyData(staged);
+            }
+#endif
+          }
+        }
+      }
+    }
+
     ml_logi("read safetensors model file: %s", f_path.c_str());
     break;
   }
@@ -2504,9 +2596,22 @@ NeuralNetwork::inference(unsigned int batch_size,
   std::vector<float *> output;
   output.reserve(output_tensors.size());
 
+  // The float* inference() contract is FP32. A model with non-FP32 activations
+  // (e.g. FP16) produces non-FP32 output tensors; returning their raw buffer
+  // reinterpreted as float* would hand the caller half-width garbage. Convert
+  // such outputs to owned FP32 tensors (kept alive in fp32_output_cache until
+  // the next inference) and return those instead.
+  fp32_output_cache.clear();
+  fp32_output_cache.reserve(output_tensors.size());
   for (auto &out : output_tensors) {
-    auto out_t = *out.get();
-    output.push_back(out_t.getData());
+    const Tensor &out_t = *out.get();
+    if (out_t.getDataType() == TensorDim::DataType::FP32) {
+      output.push_back(out_t.getData());
+    } else {
+      fp32_output_cache.emplace_back(
+        out_t.clone(TensorDim::DataType::FP32));
+      output.push_back(fp32_output_cache.back().getData());
+    }
   }
 
   return output;

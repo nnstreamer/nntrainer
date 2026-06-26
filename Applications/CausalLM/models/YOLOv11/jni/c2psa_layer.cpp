@@ -90,9 +90,15 @@ void PSAAttentionLayer::forwarding(nntrainer::RunLayerContext &context,
   const nntrainer::Tensor &in_t = context.getInput(0);
   nntrainer::Tensor &out_t = context.getOutput(0);
 
-  NNTR_THROW_IF(in_t.getDataType() != nntrainer::Tdatatype::FP32,
+  const nntrainer::Tdatatype dtype = in_t.getDataType();
+#ifdef ENABLE_FP16
+  const bool fp16 = (dtype == nntrainer::Tdatatype::FP16);
+#else
+  const bool fp16 = false;
+#endif
+  NNTR_THROW_IF(dtype != nntrainer::Tdatatype::FP32 && !fp16,
                 std::invalid_argument)
-    << "PSAAttentionLayer only implements the FP32 path";
+    << "PSAAttentionLayer only implements the FP32 and FP16 activation paths";
 
   const unsigned int B = in_t.batch();
   const unsigned int H = in_t.height();
@@ -101,8 +107,27 @@ void PSAAttentionLayer::forwarding(nntrainer::RunLayerContext &context,
   const unsigned int q_ch = NUM_HEADS * KD; // 128
   const unsigned int v_ch = NUM_HEADS * VD; // 256
 
-  const float *in = in_t.getData<float>();
-  float *out = out_t.getData<float>();
+  // The attention math runs in FP32 for numerical stability. For an FP16
+  // activation model the input/output tensors are FP16, so stage them through
+  // FP32 buffers at the layer boundary (FP16->FP32 in, FP32->FP16 out).
+  std::vector<float> in_f32, out_f32;
+  const float *in;
+  float *out;
+#ifdef ENABLE_FP16
+  if (fp16) {
+    in_f32.resize(in_t.size());
+    const _FP16 *src = in_t.getData<_FP16>();
+    for (size_t i = 0; i < in_f32.size(); ++i)
+      in_f32[i] = static_cast<float>(src[i]);
+    out_f32.resize(out_t.size());
+    in = in_f32.data();
+    out = out_f32.data();
+  } else
+#endif
+  {
+    in = in_t.getData<float>();
+    out = out_t.getData<float>();
+  }
 
   // qkv uses the ultralytics per-head interleaved layout: for head h the
   // 128 channels [h*128 : h*128+128] hold [Q(kd=32), K(kd=32), V(vd=64)].
@@ -129,6 +154,14 @@ void PSAAttentionLayer::forwarding(nntrainer::RunLayerContext &context,
     multiHeadAttention(Qb.data(), Kb.data(), Vb.data(), out_b, NUM_HEADS, KD,
                        VD, N);
   }
+
+#ifdef ENABLE_FP16
+  if (fp16) {
+    _FP16 *dst = out_t.getData<_FP16>();
+    for (size_t i = 0; i < out_f32.size(); ++i)
+      dst[i] = static_cast<_FP16>(out_f32[i]);
+  }
+#endif
 }
 
 } // namespace yolov11

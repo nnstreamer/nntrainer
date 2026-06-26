@@ -14,6 +14,8 @@
 #include "layer_context.h"
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
+#include <cstdlib>
 #include <iterator>
 #include <stdexcept>
 #include <utility>
@@ -675,6 +677,9 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims,
         ? str_converter<enum_class_prop_tag,
                         nntrainer::TensorDataTypeInfo>::from_string("FP32")
         : input_dtype.get();
+    if (std::getenv("NNTR_INPUT_DTYPE_PROBE"))
+      fprintf(stderr, "[INPUT_DTYPE_PROBE] node=%s empty=%d dtype=%d\n",
+              getName().c_str(), (int)input_dtype.empty(), (int)dtype);
     for (auto &d : actual_input_dims) {
       d.setDataType(dtype);
       d.setFormat(

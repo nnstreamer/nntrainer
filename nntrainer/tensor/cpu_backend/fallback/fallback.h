@@ -1330,6 +1330,19 @@ void depthwise_conv2d_fp32(
   unsigned int stride_h, unsigned int stride_w, unsigned int pad_top,
   unsigned int pad_left, unsigned int dilation_h, unsigned int dilation_w);
 
+#ifdef ENABLE_FP16
+/**
+ * @brief Depthwise convolution FP16 free function (fallback backend).
+ *        Delegates to __fallback_depthwise_conv2d_fp16.
+ */
+void depthwise_conv2d_fp16(
+  const _FP16 *input, const float *kernel, _FP16 *output, unsigned int batch,
+  unsigned int channels, unsigned int in_h, unsigned int in_w,
+  unsigned int out_h, unsigned int out_w, unsigned int kh, unsigned int kw,
+  unsigned int stride_h, unsigned int stride_w, unsigned int pad_top,
+  unsigned int pad_left, unsigned int dilation_h, unsigned int dilation_w);
+#endif
+
 } /* namespace nntrainer */
 
 /**

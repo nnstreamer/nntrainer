@@ -408,6 +408,13 @@ void ComputeOps::gemm_q4_0_fp16(unsigned int, unsigned int, unsigned int,
                                 unsigned int, _FP16 *, unsigned int) {
   NI(gemm_q4_0_fp16);
 }
+void ComputeOps::gemm_q4_0_indirect_conv_fp16(unsigned int, unsigned int,
+                                              unsigned int, const _FP16 *,
+                                              const ConvGatherParams &,
+                                              const void *, unsigned int,
+                                              _FP16 *, unsigned int) {
+  NI(gemm_q4_0_indirect_conv_fp16);
+}
 void ComputeOps::gemm_q6_K_fp16(unsigned int, unsigned int, unsigned int,
                                 const _FP16 *, unsigned int, const void *,
                                 unsigned int, _FP16 *, unsigned int) {
@@ -418,6 +425,14 @@ void ComputeOps::compute_rotary_embedding_value(unsigned int, unsigned int,
                                                 unsigned int, _FP16 *, _FP16 *,
                                                 float *, float *) {
   NI(compute_rotary_embedding_value);
+}
+
+void ComputeOps::depthwise_conv2d_fp16(
+  const _FP16 *, const float *, _FP16 *, unsigned int, unsigned int,
+  unsigned int, unsigned int, unsigned int, unsigned int, unsigned int,
+  unsigned int, unsigned int, unsigned int, unsigned int, unsigned int,
+  unsigned int, unsigned int) {
+  NI(depthwise_conv2d_fp16);
 }
 #endif // ENABLE_FP16
 

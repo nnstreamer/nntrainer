@@ -42,25 +42,26 @@ void Upsample2dLayer::finalize(nntrainer::InitLayerContext &context) {
   context.setOutputDimensions(dim);
 }
 
-void Upsample2dLayer::forwarding(nntrainer::RunLayerContext &context,
-                                 bool training) {
-  nntrainer::Tensor &in = context.getInput(SINGLE_INOUT_IDX);
-  nntrainer::Tensor &out = context.getOutput(SINGLE_INOUT_IDX);
-
-  const auto &upsampling_type =
-    std::get<props::UpsampleMode>(upsample2d_props).get();
-  const auto &kernel_size =
-    std::get<std::array<props::KernelSize, UPSAMPLE2D_DIM>>(upsample2d_props);
-
+/**
+ * @brief dtype-correct upsample forwarding. getValue()/setValue() default to
+ * T=float, so on an FP16 tensor a float read reinterprets two 2-byte halves as
+ * one 4-byte float (and indexes at 2x stride) -> garbage. Dispatch on the
+ * actual tensor dtype so element access stays correct for any precision. The
+ * bilinear interpolation math is carried out in float regardless of storage.
+ */
+template <typename T>
+static void upsampleForwardT(
+  const Tensor &in, Tensor &out,
+  props::UpsampleModeInfo::Interpolation upsampling_type,
+  const std::array<props::KernelSize, UPSAMPLE2D_DIM> &kernel_size) {
   switch (upsampling_type) {
   case props::UpsampleModeInfo::Interpolation::nearest:
     for (int b = 0; b < (int)out.batch(); b++) {
       for (int c = 0; c < (int)out.channel(); c++) {
         for (int h = 0; h < (int)out.height(); h++) {
           for (int w = 0; w < (int)out.width(); w++) {
-            out.setValue(
-              b, c, h, w,
-              in.getValue(b, c, h / kernel_size[0], w / kernel_size[1]));
+            out.getValue<T>(b, c, h, w) =
+              in.getValue<T>(b, c, h / kernel_size[0], w / kernel_size[1]);
           }
         }
       }
@@ -92,12 +93,14 @@ void Upsample2dLayer::forwarding(nntrainer::RunLayerContext &context,
             float dx = x_in - x0;
             float dy = y_in - y0;
 
-            float top = (1.0f - dx) * in.getValue(b, c, y1, x0) +
-                        dx * in.getValue(b, c, y1, x1);
-            float bottom = (1.0f - dx) * in.getValue(b, c, y0, x0) +
-                           dx * in.getValue(b, c, y0, x1);
+            float top =
+              (1.0f - dx) * static_cast<float>(in.getValue<T>(b, c, y1, x0)) +
+              dx * static_cast<float>(in.getValue<T>(b, c, y1, x1));
+            float bottom =
+              (1.0f - dx) * static_cast<float>(in.getValue<T>(b, c, y0, x0)) +
+              dx * static_cast<float>(in.getValue<T>(b, c, y0, x1));
             float v = (1.0f - dy) * bottom + dy * top;
-            out.setValue(b, c, h, w, v);
+            out.getValue<T>(b, c, h, w) = static_cast<T>(v);
           }
         }
       }
@@ -106,6 +109,25 @@ void Upsample2dLayer::forwarding(nntrainer::RunLayerContext &context,
   default:
     throw std::runtime_error("Error: Unknown Upsample Mode Type");
   }
+}
+
+void Upsample2dLayer::forwarding(nntrainer::RunLayerContext &context,
+                                 bool training) {
+  nntrainer::Tensor &in = context.getInput(SINGLE_INOUT_IDX);
+  nntrainer::Tensor &out = context.getOutput(SINGLE_INOUT_IDX);
+
+  const auto &upsampling_type =
+    std::get<props::UpsampleMode>(upsample2d_props).get();
+  const auto &kernel_size =
+    std::get<std::array<props::KernelSize, UPSAMPLE2D_DIM>>(upsample2d_props);
+
+#ifdef ENABLE_FP16
+  if (out.getDataType() == ml::train::TensorDim::DataType::FP16) {
+    upsampleForwardT<_FP16>(in, out, upsampling_type, kernel_size);
+    return;
+  }
+#endif
+  upsampleForwardT<float>(in, out, upsampling_type, kernel_size);
 }
 
 void Upsample2dLayer::calcDerivative(nntrainer::RunLayerContext &context) {

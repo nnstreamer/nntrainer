@@ -1,0 +1,4 @@
+aiofiles
+aiohttp
+huggingface_hub
+jinja2

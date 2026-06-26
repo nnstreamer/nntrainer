@@ -24,6 +24,8 @@
 #include <cstddef>
 #include <cstring>
 
+#include <tensor_dim.h> // for _FP16 (defined under ENABLE_FP16)
+
 namespace nntrainer {
 
 /**
@@ -49,7 +51,7 @@ struct ConvGatherParams {
 };
 
 /**
- * @brief Gather nrows im2col activation rows (FP32) into a contiguous buffer.
+ * @brief Gather nrows im2col activation rows into a contiguous buffer.
  *
  * Reproduces im2col's [OH*OW, CRS] layout exactly for the row range
  * [m0, m0 + nrows): output-spatial row m maps to (oh, ow) = (m / out_w,
@@ -57,15 +59,21 @@ struct ConvGatherParams {
  * [channel][k_h][k_w]; positions falling outside the input (padding) are
  * written as 0. The destination is fully written, so no pre-zeroing is needed.
  *
- * @param[out] dst   buffer of nrows*K floats, fully overwritten
- * @param[in]  in    batch-sliced contiguous NCHW input base pointer
+ * Templated over the activation element type so the same byte-identical gather
+ * serves the FP32 indirect-conv path (float, gathered tile feeds the FP32-input
+ * Q8_0 quantizer) and the FP16 indirect-conv path (_FP16, tile feeds the
+ * FP16-input Q8_0 quantizer __ggml_quantize_*_q8_0(const _FP16*)). Padding is
+ * zero-initialised via memset typed to sizeof(T), so FP16 padding is +0.0 too.
+ *
+ * @param[out] dst   buffer of nrows*K elements of type T, fully overwritten
+ * @param[in]  in    batch-sliced contiguous NCHW input base pointer (type T)
  * @param[in]  p     gather geometry
  * @param[in]  m0    first output-spatial row to gather
  * @param[in]  nrows number of rows to gather
  */
-inline void gather_conv_act_rows_fp32(float *dst, const float *in,
-                                      const ConvGatherParams &p, int m0,
-                                      int nrows) {
+template <typename T>
+inline void gather_conv_act_rows(T *dst, const T *in, const ConvGatherParams &p,
+                                 int m0, int nrows) {
   const int K = p.in_ch * p.k_h * p.k_w;
   const long inHW = (long)p.in_h * (long)p.in_w;
   const bool unit_dil = (p.dil_h == 1 && p.dil_w == 1);
@@ -75,24 +83,24 @@ inline void gather_conv_act_rows_fp32(float *dst, const float *in,
     const int m = m0 + r;
     const int oh = m / p.out_w;
     const int ow = m % p.out_w;
-    float *row = dst + (long)r * K;
+    T *row = dst + (long)r * K;
     /// every K element is written below for unit dilation only along valid
     /// runs, so zero the row up front: padding positions stay 0 (matches
-    /// im2col).
-    std::memset(row, 0, (size_t)K * sizeof(float));
+    /// im2col). sizeof(T) so FP16 padding is +0.0 just like FP32.
+    std::memset(row, 0, (size_t)K * sizeof(T));
 
     const int h0 = oh * p.stride_h - p.pad_t;
     const int w0 = ow * p.stride_w - p.pad_l;
 
     for (int c = 0; c < p.in_ch; ++c) {
-      const float *in_c = in + (long)c * inHW;
-      float *row_c = row + (long)c * khkw;
+      const T *in_c = in + (long)c * inHW;
+      T *row_c = row + (long)c * khkw;
       for (int kh = 0; kh < p.k_h; ++kh) {
         const int h = h0 + kh * p.dil_h;
         if (h < 0 || h >= p.in_h)
           continue; /// whole kernel row is outside the input -> left as 0
-        const float *in_row = in_c + (long)h * p.in_w;
-        float *dst_run = row_c + (long)kh * p.k_w;
+        const T *in_row = in_c + (long)h * p.in_w;
+        T *dst_run = row_c + (long)kh * p.k_w;
         if (unit_dil) {
           /// the kernel-width window maps a contiguous input run to a
           /// contiguous dest run: copy the in-bounds span in one memcpy.
@@ -102,7 +110,7 @@ inline void gather_conv_act_rows_fp32(float *dst, const float *in,
             whi = p.in_w;
           if (whi > wlo)
             std::memcpy(dst_run + (wlo - w0), in_row + wlo,
-                        (size_t)(whi - wlo) * sizeof(float));
+                        (size_t)(whi - wlo) * sizeof(T));
         } else {
           for (int kw = 0; kw < p.k_w; ++kw) {
             const int w = w0 + kw * p.dil_w;
@@ -114,6 +122,36 @@ inline void gather_conv_act_rows_fp32(float *dst, const float *in,
     }
   }
 }
+
+/**
+ * @brief FP32 gather (legacy named entry; alias of the template instantiation).
+ *
+ * Kept as a concrete non-template function so existing FP32-indirect-conv
+ * call sites (gemm_q4_0_indirect_conv_fp32 -> __ggml_q4_0_4x8_q8_0_indirect_GEMM)
+ * keep their symbol and address-takability.
+ */
+inline void gather_conv_act_rows_fp32(float *dst, const float *in,
+                                      const ConvGatherParams &p, int m0,
+                                      int nrows) {
+  gather_conv_act_rows<float>(dst, in, p, m0, nrows);
+}
+
+#ifdef ENABLE_FP16
+/**
+ * @brief FP16 gather for the FP16-activation indirect-conv path.
+ *
+ * Identical layout to gather_conv_act_rows_fp32 but _FP16 typed, so the
+ * gathered tile feeds __ggml_quantize_row_q8_0(const _FP16*, ...) /
+ * __ggml_quantize_mat_q8_0_4x8(const _FP16*, ...) directly without an FP32
+ * staging copy — preserving the indirect path's no-col-materialization memory
+ * win for FP16 activations too.
+ */
+inline void gather_conv_act_rows_fp16(_FP16 *dst, const _FP16 *in,
+                                      const ConvGatherParams &p, int m0,
+                                      int nrows) {
+  gather_conv_act_rows<_FP16>(dst, in, p, m0, nrows);
+}
+#endif
 
 } // namespace nntrainer
 

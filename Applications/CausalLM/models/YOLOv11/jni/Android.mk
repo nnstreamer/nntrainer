@@ -52,11 +52,14 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_LDLIBS := -llog -landroid
 
 # Match the library's ISA features so int8 (dotprod/i8mm) and fp16 paths
-# compile consistently with libnntrainer.
+# compile consistently with libnntrainer. ENABLE_FP16/USE__FP16 mirror the
+# CausalLM app mk and meson's enable-fp16 block so app-side / c2psa FP16-gated
+# code (and the HalfTensor FP16 quant-conv path) compiles for the W4A16 /
+# FP16-activation build.
 LOCAL_CFLAGS += -std=c++17 -O3 -march=armv8.2-a+fp16+dotprod+i8mm -pthread \
-	-fexceptions -frtti
+	-fexceptions -frtti -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1
 LOCAL_CXXFLAGS += -std=c++17 -O3 -march=armv8.2-a+fp16+dotprod+i8mm -pthread \
-	-fexceptions -frtti
+	-fexceptions -frtti -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1
 LOCAL_LDFLAGS += -fexceptions
 
 LOCAL_SRC_FILES := main.cpp c2psa_layer.cpp

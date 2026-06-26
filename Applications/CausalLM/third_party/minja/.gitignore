@@ -1,0 +1,7 @@
+build*/
+dist/
+.DS_Store
+Testing/
+.vscode/
+__pycache__/
+clangd/
