@@ -30,6 +30,7 @@
 #include <profiler.h>
 #include <tensor_dim.h>
 #include <thread>
+#include <thread_manager.h>
 #include <util_func.h>
 
 namespace nntrainer {
@@ -234,21 +235,41 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
               in.getTensorType()));
   // float *out_data = out.getData();
 
-  auto apply_data = [&](auto *out_data) {
-    using T = std::decay_t<decltype(*out_data)>;
+  auto apply_data = [&]<typename T>(T *out_data) {
     int h_stride_end = height - eff_k_height - pt;
     int w_stride_end = width - eff_k_width - pl;
 
     /// get a patch, size of kernel
     /// hs is height_strided, ws is width_strided
     unsigned int owidth = out.width();
-    unsigned int base_im_w = 0;
-    for (int hs = -(int)pt; hs <= h_stride_end; hs += mstride[0]) {
+    const int hstride = mstride[0];
+
+    /// Raw contiguous-NCHW input base + inner strides. `in` is a (batch-sliced)
+    /// contiguous NCHW tensor, so element (0,c,h,w) lives at
+    /// in_base + c*inHW + h*inW + w. Hoisting these out of the inner loop turns
+    /// the old per-element in.getValue() -- which re-fetched the data pointer
+    /// (getData<T>()) and recomputed a 4-D linear offset (getIndex(): a format
+    /// branch + 4 muls + 3 adds) plus a per-element padding branch -- into one
+    /// contiguous run copy. im2col is pure data movement; the previous form ran
+    /// far below memory bandwidth because that overhead dominated the 4-byte
+    /// move. Padding columns are left untouched (the caller zeroes the buffer
+    /// once before im2col), so the fast path only writes the valid span.
+    const T *in_base = in.getData<T>();
+    const size_t inW = (size_t)in_width;
+    const size_t inHW = (size_t)in_height * (size_t)in_width;
+    const bool unit_dil =
+      ((unsigned int)dilation[0] == 1 && (unsigned int)dilation[1] == 1);
+
+    /// Each output row (oh) writes a disjoint band of `out_width` columns
+    /// (rows [oh*out_width, (oh+1)*out_width) of the [OH*OW, CRS] matrix), so
+    /// the per-row work is independent and bit-identical when parallelized.
+    /// hs and base_im_w are derived from oh directly (no sequential carry).
+    auto fill_row = [&](size_t oh) {
+      int hs = -(int)pt + (int)oh * hstride;
+      unsigned int base_im_w = (unsigned int)oh * out_width;
       unsigned int base_im_h = 0;
       int patch_height_end = eff_k_height + hs;
       /// map the patch to a single line looping through channel
-      // We need to optimize this padding & copy. May be use multi threads, or
-      // SIMD
       for (unsigned int c = 0; c < channel; ++c) {
         for (int h = hs; h < patch_height_end; h += dilation[0]) {
           if (h < 0 || in_height <= h) {
@@ -256,26 +277,51 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
             continue;
           }
 
-          unsigned int im_w = base_im_w;
-          for (int ws = -(int)pl; ws <= w_stride_end; ws += mstride[1]) {
-            unsigned int im_h = base_im_h;
-            int patch_width_end = eff_k_width + ws;
-
-            for (int w = ws; w < patch_width_end; w += dilation[1]) {
-              if (w < 0 || in_width <= w) {
-                im_h++;
-                continue;
+          if (unit_dil) {
+            /// Fast path (dilation == 1): for each output column position the
+            /// kernel-width window maps a contiguous source run in_row[w_lo,w_hi)
+            /// to a contiguous dest run; copy it in one memcpy.
+            const T *in_row = in_base + (size_t)c * inHW + (size_t)h * inW;
+            unsigned int im_w = base_im_w;
+            for (int ws = -(int)pl; ws <= w_stride_end; ws += mstride[1]) {
+              int w_lo = ws < 0 ? 0 : ws;
+              int w_hi = ws + (int)k_width;
+              if (w_hi > in_width)
+                w_hi = in_width;
+              if (w_hi > w_lo) {
+                T *dst =
+                  out_data + (size_t)im_w * owidth + base_im_h + (w_lo - ws);
+                std::memcpy(dst, in_row + w_lo,
+                            (size_t)(w_hi - w_lo) * sizeof(T));
               }
-              out_data[im_w * owidth + im_h] = in.getValue<T>(0, c, h, w);
-              im_h++;
+              im_w++;
             }
-            im_w++;
+          } else {
+            /// General (dilated) path: original scalar gather, but via the
+            /// hoisted base pointer (no per-element getData()/getIndex()).
+            unsigned int im_w = base_im_w;
+            for (int ws = -(int)pl; ws <= w_stride_end; ws += mstride[1]) {
+              unsigned int im_h = base_im_h;
+              int patch_width_end = eff_k_width + ws;
+
+              for (int w = ws; w < patch_width_end; w += dilation[1]) {
+                if (w < 0 || in_width <= w) {
+                  im_h++;
+                  continue;
+                }
+                out_data[(size_t)im_w * owidth + im_h] =
+                  in_base[(size_t)c * inHW + (size_t)h * inW + w];
+                im_h++;
+              }
+              im_w++;
+            }
           }
           base_im_h += k_width;
         }
       }
-      base_im_w += out_width;
-    }
+    };
+
+    ThreadManager::Global().parallel_for(0, out_height, fill_row);
   };
 
   if (out.getDataType() == nntrainer::Tdatatype::FP32) {
@@ -294,7 +340,7 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
 }
 } // namespace
 
-enum ConvParams { weight, bias };
+enum ConvParams { weight, bias, im2col_scratch, qgemm_scratch };
 
 Conv2DLayer::Conv2DLayer(
   const std::array<unsigned int, CONV2D_DIM * 2> &padding_) :
@@ -411,21 +457,36 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
                 std::invalid_argument)
     << "Failed to initialize: Calculated patch end is over int max";
 
-  // inline fused activation (set by the FusionRealizer): build the same
-  // ActiFunc a standalone ActivationLayer would, for a value-identical
-  // epilogue.
-  auto &fused_act = std::get<props::FusedActivation>(conv_props);
-  rejectFusedActivationOnTrainingGraph(fused_act, context.getExecutionMode(),
-                                       "Conv2D");
-  if (!fused_act.empty() && fused_act.get() != ActivationType::ACT_NONE) {
-    if (context.getActivationDataType() == TensorDim::DataType::FP16) {
-#ifdef ENABLE_FP16
-      acti_func.setActiFunc<_FP16>(fused_act.get());
-#else
-      throw std::invalid_argument("[Conv2D] fused fp16 act needs enable-fp16");
-#endif
-    } else {
-      acti_func.setActiFunc<float>(fused_act.get());
+  // Forward scratch (groups==1 path only): the im2col column buffer and the
+  // quantized-GEMM output are otherwise heap-allocated on every forwarding()
+  // call. Request them once here (planned into the shared activation arena,
+  // FORWARD_FUNC_LIFESPAN) and reuse — no per-forward malloc/free churn. The
+  // grouped path keeps its local buffer. NOTE: the im2col buffer must still be
+  // re-zeroed each forward (im2col skips padding positions and the arena is
+  // reused across layers), so this saves the allocation, not the zeroing.
+  wt_idx[ConvParams::im2col_scratch] = std::numeric_limits<unsigned int>::max();
+  wt_idx[ConvParams::qgemm_scratch] = std::numeric_limits<unsigned int>::max();
+  if (groups == 1) {
+    auto scratch_type = in_dim.getTensorType();
+    const unsigned int owoh = out_dim.width() * out_dim.height();
+    const bool is_1x1_s1 =
+      kernel_size[0].get() == 1 && kernel_size[1].get() == 1 &&
+      stride[0].get() == 1 && stride[1].get() == 1;
+    // im2col column buffer [batch, 1, CRS, OH*OW]; unused only by the quant 1x1
+    // path (its im2col is an identity handled by an input transpose).
+    if (!(quant_matmul_filter && is_1x1_s1)) {
+      TensorDim col_dim(in_dim.batch(), 1, real_kernel_dim.getFeatureLen(),
+                        owoh, scratch_type);
+      wt_idx[ConvParams::im2col_scratch] =
+        context.requestTensor(col_dim, "im2col", Initializer::NONE, false,
+                              TensorLifespan::FORWARD_FUNC_LIFESPAN);
+    }
+    // quantized GEMM output [batch, 1, OH*OW, out_ch] (quant path only).
+    if (quant_matmul_filter) {
+      TensorDim tmp_dim(in_dim.batch(), 1, owoh, filter_size, scratch_type);
+      wt_idx[ConvParams::qgemm_scratch] =
+        context.requestTensor(tmp_dim, "qgemm_out", Initializer::NONE, false,
+                              TensorLifespan::FORWARD_FUNC_LIFESPAN);
     }
   }
 }
@@ -509,15 +570,29 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
      * Below sets the pad area values to zero
      * it is faster to do this way than seting selective area to zero
      */
+    const bool is_1x1_s1 =
+      kernel_size[0].get() == 1 && kernel_size[1].get() == 1 &&
+      stride[0].get() == 1 && stride[1].get() == 1;
+    // Pre-allocated forward scratch (requested once in finalize). The im2col
+    // column buffer is used by the FP32 path and the quant non-1x1 path; the
+    // quant 1x1 path needs neither (im2col is an identity input transpose).
+    // Zero the column buffer once up front (im2col skips padding; the GEMM
+    // output is fully overwritten so it needs no zeroing). Each batch element
+    // writes a disjoint batch-slice, so this stays correct under ParallelBatch.
+    const bool use_im2col_scratch = !(weight_is_quant && is_1x1_s1);
+    Tensor *col_scratch =
+      use_im2col_scratch
+        ? &context.getTensor(wt_idx[ConvParams::im2col_scratch])
+        : nullptr;
+    Tensor *qgemm_scratch =
+      weight_is_quant ? &context.getTensor(wt_idx[ConvParams::qgemm_scratch])
+                      : nullptr;
+    if (col_scratch != nullptr) {
+      col_scratch->setZero();
+    }
+
     auto forwarding_job = [&](unsigned int s, unsigned int e, unsigned int pid,
                               void *user_data) {
-      // im2col buffer is only needed for the FP32 path; the quantized 1x1 path
-      // is a matmul on the input directly (1x1 stride-1 im2col is an identity).
-      Tensor result;
-      if (!weight_is_quant) {
-        result = Tensor(calcCol2ImOutputDim(out_dim, filter_dim));
-        result.setZero();
-      }
       for (unsigned int b = s; b < e; ++b) {
         Tensor out = hidden_.getBatchSlice(b, 1);
         Tensor in_sub = input_.getBatchSlice(b, 1);
@@ -525,12 +600,12 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
         if (weight_is_quant) {
           // Quantized conv as matmul: act [OH*OW, CRS] . weight [CRS, out_ch]
           // -> [OH*OW, out_ch] -> out [out_ch, OH*OW]. CRS = in_ch*kh*kw.
-          // NOTE: col must outlive `act` (act aliases col's storage), so col is
-          // declared in this scope (not inside the else branch).
+          // NOTE: col must outlive `act` (act aliases col's storage); here col
+          // is a view into the context-owned scratch, so its storage outlives
+          // the loop iteration regardless.
           Tensor col;
           Tensor act;
-          if (kernel_size[0].get() == 1 && kernel_size[1].get() == 1 &&
-              stride[0].get() == 1 && stride[1].get() == 1) {
+          if (is_1x1_s1) {
             // 1x1 stride-1: im2col is an identity. The raw input is laid out as
             // [in_ch, OH*OW] (NCHW), so transpose to the act layout [OH*OW, CRS]
             // (CRS == in_ch here).
@@ -540,8 +615,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
             // build the real kernel geometry (filter is stored as [CRS,out_ch])
             TensorDim kdim(filter_size, in_dim.channel(), kernel_size[0].get(),
                            kernel_size[1].get(), in_sub.getTensorType());
-            col = Tensor(calcCol2ImOutputDim(out_dim, kdim));
-            col.setZero();
+            col = col_scratch->getBatchSlice(b, 1);
             // im2col reshapes col in place to [OH*OW, CRS] (spatial-major), which
             // is ALREADY the act layout — no transpose (unlike the raw-input 1x1
             // branch above). Transposing here gives [CRS, OH*OW] and makes the
@@ -550,22 +624,21 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
             im2col(in_sub, kdim, padding, stride, dilation, col);
             act = col;
           }
-          Tensor tmp(TensorDim(1, 1, owoh, filter_size, act.getTensorType()));
+          Tensor tmp = qgemm_scratch->getBatchSlice(b, 1);
+          tmp.reshape(TensorDim(1, 1, owoh, filter_size, act.getTensorType()));
           act.dot(filter_kernel, tmp, false, false);
           // [OH*OW, out_ch] -> [out_ch, OH*OW] written straight into the
-          // (memory-planned) output. `tmp` is a fresh buffer and `out` is a
-          // separate output view, so there is no aliasing — no temp+copy needed.
+          // (memory-planned) output. `tmp` is a separate scratch buffer and
+          // `out` is a separate output view, so there is no aliasing.
           out.reshape({filter_size, owoh});
           tmp.transpose("0:2:1", out);
         } else {
+          Tensor result = col_scratch->getBatchSlice(b, 1);
           out.reshape({filter_size, owoh});
           im2col(in_sub, filter_dim, padding, stride, dilation, result);
           // filter kernel is (K, CRS), result is (CRS, OH*OW)
           filter_kernel.dot(result, out, false, true);
         }
-      }
-      if (!weight_is_quant) {
-        result.deallocate();
       }
     };
 
