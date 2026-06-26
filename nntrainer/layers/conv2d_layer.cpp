@@ -14,8 +14,10 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
 #include <limits>
 #include <string>
+#include <vector>
 
 #include <conv2d_layer.h>
 #include <cpu_backend.h>
@@ -804,6 +806,64 @@ void Conv2DLayer::exportTo(Exporter &exporter,
                            const ml::train::ExportMethods &method) const {
   LayerImpl::exportTo(exporter, method);
   exporter.saveResult(conv_props, method, this);
+}
+
+void Conv2DLayer::save(std::ofstream &file, RunLayerContext &run_context,
+                       bool opt_var, ml::train::ExecutionMode mode,
+                       bool trainable, ml::train::TensorDim::DataType dtype,
+                       ml::train::ISA target_isa) const {
+  // Optimizer-variable save (training only) has no conv-specific layout, so
+  // defer to the base implementation.
+  if (opt_var) {
+    Layer::save(file, run_context, opt_var, mode, trainable, dtype, target_isa);
+    return;
+  }
+
+  for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
+    if (!run_context.isGradientFirstAccess(i))
+      continue;
+
+    auto &weight = run_context.getWeight(i);
+
+    // No conversion requested, or already the target dtype: save as-is.
+    if (dtype == TensorDim::DataType::NONE || weight.getDataType() == dtype) {
+      weight.save(file);
+      continue;
+    }
+
+    NNTR_THROW_IF(dtype != TensorDim::DataType::Q4_0, std::runtime_error)
+      << "[Conv2D] save: unsupported quantization dtype";
+    NNTR_THROW_IF(weight.getDataType() != TensorDim::DataType::FP32,
+                  std::runtime_error)
+      << "[Conv2D] Q4_0 save only supports FP32 source weight.";
+
+    // A conv FP32 filter is [out_ch, in_ch, kh, kw] in NCHW, i.e. already
+    // row-major [out_ch, CRS] (CRS = in_ch*kh*kw) = [N rows, K cols]. This is
+    // exactly the layout quantize_q4_0 consumes (N rows of K), so no transpose
+    // is needed (the FC path in the base class transposes because its weight is
+    // stored [K, N]). The bias and any non-matmul weight (CRS == 1 or
+    // out_ch == 1) are kept FP32.
+    const TensorDim dim = weight.getDim();
+    const unsigned int out_ch = dim.batch();
+    const unsigned int CRS = dim.channel() * dim.height() * dim.width();
+
+    if (out_ch <= 1 || CRS <= 1 || out_ch % 32 != 0 || CRS % 32 != 0) {
+      // Not Q4_0-eligible (bias, or block-misaligned): keep FP32 so the saved
+      // tensor still matches what the runtime layer allocates for it.
+      weight.save(file);
+      continue;
+    }
+
+    // [1, 1, K=CRS, N=out_ch] is the matmul-weight shape the quantized conv
+    // consumes at load (Conv2DLayer::finalize builds the same shape).
+    Tensor quant_weight(1, 1, CRS, out_ch, {Tformat::NCHW, dtype});
+    std::vector<char> tmp(quant_weight.size());
+
+    quantize_q4_0(weight.getData<float>(), tmp.data(), out_ch, CRS, nullptr);
+    repack_q4_0(quant_weight.getData<uint8_t>(), tmp.data(),
+                quant_weight.size(), out_ch, CRS, target_isa);
+    quant_weight.save(file);
+  }
 }
 
 void Conv2DLayer::setProperty(const std::vector<std::string> &values) {

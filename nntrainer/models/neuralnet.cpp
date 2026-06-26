@@ -1028,10 +1028,25 @@ public:
 #endif
 
 /**
+ * @brief A block-quantized weight is laid out as [N rows, K cols]. An FC weight
+ * is stored [1, 1, K, N] so N=width, K=height. A conv filter is stored
+ * [out_ch, in_ch, kh, kw] so N=out_ch=batch and K=in_ch*kh*kw (CRS). Returns
+ * (N, K) for the appropriate interpretation; batch>1 marks a conv filter.
+ */
+inline std::pair<unsigned int, unsigned int>
+quantRowsCols(const TensorDim &d) {
+  if (d.batch() > 1) // conv filter: out_ch rows of CRS
+    return {d.batch(), d.channel() * d.height() * d.width()};
+  return {d.width(), d.height()}; // FC weight [1,1,K,N]
+}
+
+/**
  * @brief Resolve the data type a weight will actually be stored as.
  *
- * Mirrors the per-weight policy of the layer save overrides: bias-like tensors
- * (height == 1) are not block-quantized and stay in their original type.
+ * Mirrors the per-weight policy of the layer save overrides: only weights that
+ * form a real [N>1, K>1] matrix are block-quantized; bias-like tensors (a
+ * single row/col, e.g. [1, C, 1, 1]) stay in their original type. This must
+ * agree with both the FC base save (Layer::save) and Conv2DLayer::save.
  */
 TensorDim::DataType resolveStoredDtype(const Tensor &weight,
                                        TensorDim::DataType requested) {
@@ -1039,9 +1054,11 @@ TensorDim::DataType resolveStoredDtype(const Tensor &weight,
       requested == weight.getDataType())
     return weight.getDataType();
 
-  if (nntrainer::safetensors::isQuantized(requested) &&
-      weight.getDim().height() == 1)
-    return weight.getDataType();
+  if (nntrainer::safetensors::isQuantized(requested)) {
+    auto [N, K] = quantRowsCols(weight.getDim());
+    if (N <= 1 || K <= 1)
+      return weight.getDataType(); // bias-like: not block-quantizable
+  }
 
   return requested;
 }
@@ -1187,12 +1204,14 @@ void NeuralNetwork::save(
           entry.offset_end = data_offset + wsize;
           if (is_quant) {
             // Quantized blobs are opaque bytes (U8) with a 1-D byte shape;
-            // the native type and logical shape live in extension fields.
+            // the native type and logical shape live in extension fields. The
+            // logical shape is the matmul-weight shape [1, 1, K, N] the runtime
+            // reconstructs (FC: [1,1,K,N]; conv filter: [1,1,CRS,out_ch]).
+            auto [N, K] = quantRowsCols(dim);
             entry.dtype = safetensors::dtypeToString(w.stored); // "U8"
             entry.shape = {wsize};
             entry.nntr_dtype = safetensors::nntrDtypeName(w.stored);
-            entry.nntr_shape = {dim.batch(), dim.channel(), dim.height(),
-                                dim.width()};
+            entry.nntr_shape = {1, 1, K, N};
           } else {
             entry.dtype = safetensors::dtypeToString(w.stored);
             entry.shape = {dim.batch(), dim.channel(), dim.height(),
