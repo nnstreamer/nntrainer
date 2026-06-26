@@ -337,11 +337,27 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
   auto in_t_type = in_dim.getTensorType();
   in_t_type.data_type = context.getWeightDataType();
 
-  // Each filter spans in_channels/groups input channels (grouped convolution).
-  TensorDim kernel_dim = TensorDim(filter_size, in_dim.channel() / groups,
-                                   kernel_size[0], kernel_size[1], in_t_type);
+  // A quantized (Q4_0/QINT4) 1x1 conv is computed as a matmul, so its filter is
+  // stored as a [in_ch, out_ch] (K, N) weight that the quantized GEMM consumes
+  // directly (no im2col-style [out_ch, CRS] squeeze). Non-quantized or larger
+  // kernels keep the standard [out_ch, in_ch/groups, kh, kw] layout.
+  const bool quant_matmul_filter =
+    (in_t_type.data_type == nntrainer::Tdatatype::Q4_0 ||
+     in_t_type.data_type == nntrainer::Tdatatype::QINT4) &&
+    groups == 1 && kernel_size[0].get() == 1 && kernel_size[1].get() == 1;
 
-  TensorDim bias_dim = TensorDim(1, filter_size, 1, 1, in_t_type);
+  // Each filter spans in_channels/groups input channels (grouped convolution).
+  TensorDim kernel_dim =
+    quant_matmul_filter
+      ? TensorDim(1, 1, in_dim.channel(), filter_size, in_t_type)
+      : TensorDim(filter_size, in_dim.channel() / groups, kernel_size[0],
+                  kernel_size[1], in_t_type);
+
+  // Bias is never quantized (no dequantizer for add); follow activation dtype
+  // like other compute layers so a Q4_0/QINT4 weight does not force a Q4_0 bias.
+  auto bias_t_type = in_dim.getTensorType();
+  bias_t_type.data_type = context.getActivationDataType();
+  TensorDim bias_dim = TensorDim(1, filter_size, 1, 1, bias_t_type);
 
   padding = std::get<props::Padding2D>(conv_props)
               .compute(in_dim, kernel_dim, {stride[0], stride[1]},
@@ -461,12 +477,22 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
   unsigned int groups = groups_prop.empty() ? 1 : groups_prop.get();
 
   if (groups == 1) {
+    // A quantized 1x1 conv stores its filter as a [in_ch, out_ch] matmul weight
+    // (K, N). The quantized GEMM (dotQnK for Q4_0) takes the weight as the dot
+    // *input* (activation is the receiver), so we keep that layout as-is and do
+    // NOT squeeze it to [out_ch, CRS] like the FP32 path.
+    const auto weight_dtype = filter_kernel.getDataType();
+    const bool weight_is_quant =
+      (weight_dtype == nntrainer::Tdatatype::Q4_0 ||
+       weight_dtype == nntrainer::Tdatatype::QINT4);
+    const unsigned int owoh = out_dim.width() * out_dim.height();
+
     TensorDim filter_dim_squeezed{filter_kernel.batch(),
                                   filter_kernel.getDim().getFeatureLen()};
-
     filter_dim_squeezed.setTensorType(filter_kernel.getTensorType());
-
-    filter_kernel.reshape(filter_dim_squeezed);
+    if (!weight_is_quant) {
+      filter_kernel.reshape(filter_dim_squeezed);
+    }
 
     /**
      * Below sets the pad area values to zero
@@ -474,18 +500,35 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
      */
     auto forwarding_job = [&](unsigned int s, unsigned int e, unsigned int pid,
                               void *user_data) {
-      Tensor result = Tensor(calcCol2ImOutputDim(out_dim, filter_dim));
-      result.setZero();
+      // im2col buffer is only needed for the FP32 path; the quantized 1x1 path
+      // is a matmul on the input directly (1x1 stride-1 im2col is an identity).
+      Tensor result;
+      if (!weight_is_quant) {
+        result = Tensor(calcCol2ImOutputDim(out_dim, filter_dim));
+        result.setZero();
+      }
       for (unsigned int b = s; b < e; ++b) {
         Tensor out = hidden_.getBatchSlice(b, 1);
-        out.reshape({filter_size, out_dim.width() * out_dim.height()});
+        out.reshape({filter_size, owoh});
         Tensor in_sub = input_.getBatchSlice(b, 1);
 
-        im2col(in_sub, filter_dim, padding, stride, dilation, result);
-        // filter kernel is (K, CRS), result is (CRS, OH*OW)
-        filter_kernel.dot(result, out, false, true);
+        if (weight_is_quant) {
+          // 1x1 conv as matmul: in [in_ch, OH*OW] -> act [OH*OW, in_ch],
+          // act . weight[in_ch, out_ch] -> [OH*OW, out_ch] -> out [out_ch, OH*OW]
+          in_sub.reshape({in_dim.channel(), owoh});
+          Tensor act = in_sub.transpose("0:2:1");
+          Tensor tmp(TensorDim(1, 1, owoh, filter_size, act.getTensorType()));
+          act.dot(filter_kernel, tmp, false, false);
+          tmp.transpose("0:2:1", out);
+        } else {
+          im2col(in_sub, filter_dim, padding, stride, dilation, result);
+          // filter kernel is (K, CRS), result is (CRS, OH*OW)
+          filter_kernel.dot(result, out, false, true);
+        }
       }
-      result.deallocate();
+      if (!weight_is_quant) {
+        result.deallocate();
+      }
     };
 
     auto workers = ParallelBatch(forwarding_job, in_dim.batch(), nullptr);
@@ -496,7 +539,9 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
       forwarding_job(0, in_dim.batch(), 0, nullptr);
     }
 
-    filter_kernel.reshape(filter_dim);
+    if (!weight_is_quant) {
+      filter_kernel.reshape(filter_dim);
+    }
   } else {
     // Grouped convolution: split channels into `groups` independent groups.
     const unsigned int ocg = filter_size / groups;      // out ch per group

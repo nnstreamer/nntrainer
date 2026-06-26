@@ -89,12 +89,16 @@ inline Tensor convBnSilu(const std::string &name, int in_ch, int out_ch, int k,
                          int stride, int padding, Tensor input) {
   (void)in_ch; // shape is inferred from the graph
 
-  LayerHandle conv(
-    createLayer("conv2d", {nntrainer::withKey("name", name + "/conv"),
-                           nntrainer::withKey("kernel_size", {k, k}),
-                           nntrainer::withKey("filters", out_ch),
-                           nntrainer::withKey("stride", {stride, stride}),
-                           nntrainer::withKey("padding", padding)}));
+  std::vector<std::string> conv_props = {
+    nntrainer::withKey("name", name + "/conv"),
+    nntrainer::withKey("kernel_size", {k, k}),
+    nntrainer::withKey("filters", out_ch),
+    nntrainer::withKey("stride", {stride, stride}),
+    nntrainer::withKey("padding", padding)};
+  // Opt-in (env YOLO_CONV_Q40): run 1x1 (pointwise) convs as Q4_0 matmul.
+  if (k == 1 && out_ch > 1 && std::getenv("YOLO_CONV_Q40"))
+    conv_props.push_back(nntrainer::withKey("weight_dtype", "Q4_0"));
+  LayerHandle conv(createLayer("conv2d", conv_props));
   auto h = conv(input);
 
   LayerHandle act(
@@ -229,12 +233,15 @@ inline Tensor convBnOnly(const std::string &name, int in_ch, int out_ch, int k,
                          int stride, int padding, Tensor input) {
   (void)in_ch;
 
-  LayerHandle conv(
-    createLayer("conv2d", {nntrainer::withKey("name", name + "/conv"),
-                           nntrainer::withKey("kernel_size", {k, k}),
-                           nntrainer::withKey("filters", out_ch),
-                           nntrainer::withKey("stride", {stride, stride}),
-                           nntrainer::withKey("padding", padding)}));
+  std::vector<std::string> conv_props = {
+    nntrainer::withKey("name", name + "/conv"),
+    nntrainer::withKey("kernel_size", {k, k}),
+    nntrainer::withKey("filters", out_ch),
+    nntrainer::withKey("stride", {stride, stride}),
+    nntrainer::withKey("padding", padding)};
+  if (k == 1 && out_ch > 1 && std::getenv("YOLO_CONV_Q40"))
+    conv_props.push_back(nntrainer::withKey("weight_dtype", "Q4_0"));
+  LayerHandle conv(createLayer("conv2d", conv_props));
   return conv(input);
 }
 
@@ -297,12 +304,15 @@ inline Tensor sppfBlock(const std::string &name, int in_ch, Tensor input) {
 // ===== Detect head graph builders =====
 /** @brief 1x1 Conv2d with bias, no BN, no activation (detect output conv). */
 inline Tensor convBias1x1(const std::string &name, int out_ch, Tensor input) {
-  LayerHandle conv(
-    createLayer("conv2d", {nntrainer::withKey("name", name + "/conv"),
-                           nntrainer::withKey("kernel_size", {1, 1}),
-                           nntrainer::withKey("filters", out_ch),
-                           nntrainer::withKey("stride", {1, 1}),
-                           nntrainer::withKey("padding", 0)}));
+  std::vector<std::string> conv_props = {
+    nntrainer::withKey("name", name + "/conv"),
+    nntrainer::withKey("kernel_size", {1, 1}),
+    nntrainer::withKey("filters", out_ch),
+    nntrainer::withKey("stride", {1, 1}),
+    nntrainer::withKey("padding", 0)};
+  if (out_ch > 1 && std::getenv("YOLO_CONV_Q40"))
+    conv_props.push_back(nntrainer::withKey("weight_dtype", "Q4_0"));
+  LayerHandle conv(createLayer("conv2d", conv_props));
   return conv(input);
 }
 
