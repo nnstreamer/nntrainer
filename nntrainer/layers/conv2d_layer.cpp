@@ -549,12 +549,11 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
           }
           Tensor tmp(TensorDim(1, 1, owoh, filter_size, act.getTensorType()));
           act.dot(filter_kernel, tmp, false, false);
-          // [OH*OW, out_ch] -> [out_ch, OH*OW] into the (memory-planned) output.
-          // Use a fresh transpose + copy: writing a transpose straight into the
-          // shared `out` view can corrupt aliased buffers.
-          Tensor out_t = tmp.transpose("0:2:1");
-          out_t.reshape(out.getDim());
-          out.copyData(out_t);
+          // [OH*OW, out_ch] -> [out_ch, OH*OW] written straight into the
+          // (memory-planned) output. `tmp` is a fresh buffer and `out` is a
+          // separate output view, so there is no aliasing — no temp+copy needed.
+          out.reshape({filter_size, owoh});
+          tmp.transpose("0:2:1", out);
         } else {
           out.reshape({filter_size, owoh});
           im2col(in_sub, filter_dim, padding, stride, dilation, result);
