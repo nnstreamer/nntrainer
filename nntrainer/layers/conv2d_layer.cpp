@@ -344,14 +344,20 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
   const bool quant_matmul_filter =
     (in_t_type.data_type == nntrainer::Tdatatype::Q4_0 ||
      in_t_type.data_type == nntrainer::Tdatatype::QINT4) &&
-    groups == 1 && kernel_size[0].get() == 1 && kernel_size[1].get() == 1;
+    groups == 1;
 
-  // Each filter spans in_channels/groups input channels (grouped convolution).
+  // Real conv kernel geometry — used for padding/output-size computation even
+  // when the quantized weight is stored flattened as [CRS, out_ch].
+  TensorDim real_kernel_dim(filter_size, in_dim.channel() / groups,
+                            kernel_size[0], kernel_size[1], in_t_type);
+  // A quantized (groups==1) conv stores its filter as a [CRS, out_ch] matmul
+  // weight (CRS = in_ch*kh*kw), consumed by the quantized GEMM after im2col.
   TensorDim kernel_dim =
     quant_matmul_filter
-      ? TensorDim(1, 1, in_dim.channel(), filter_size, in_t_type)
-      : TensorDim(filter_size, in_dim.channel() / groups, kernel_size[0],
-                  kernel_size[1], in_t_type);
+      ? TensorDim(1, 1,
+                  in_dim.channel() * kernel_size[0].get() * kernel_size[1].get(),
+                  filter_size, in_t_type)
+      : real_kernel_dim;
 
   // Bias is never quantized (no dequantizer for add); follow activation dtype
   // like other compute layers so a Q4_0/QINT4 weight does not force a Q4_0 bias.
@@ -360,7 +366,7 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
   TensorDim bias_dim = TensorDim(1, filter_size, 1, 1, bias_t_type);
 
   padding = std::get<props::Padding2D>(conv_props)
-              .compute(in_dim, kernel_dim, {stride[0], stride[1]},
+              .compute(in_dim, real_kernel_dim, {stride[0], stride[1]},
                        {dilation[0], dilation[1]});
 
   wt_idx[ConvParams::weight] = context.requestWeight(
@@ -428,6 +434,8 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
   auto &stride = std::get<std::array<props::Stride, CONV2D_DIM>>(conv_props);
   auto &dilation =
     std::get<std::array<props::Dilation, CONV2D_DIM>>(conv_props);
+  auto &kernel_size =
+    std::get<std::array<props::KernelSize, CONV2D_DIM>>(conv_props);
 
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
@@ -509,18 +517,46 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
       }
       for (unsigned int b = s; b < e; ++b) {
         Tensor out = hidden_.getBatchSlice(b, 1);
-        out.reshape({filter_size, owoh});
         Tensor in_sub = input_.getBatchSlice(b, 1);
 
         if (weight_is_quant) {
-          // 1x1 conv as matmul: in [in_ch, OH*OW] -> act [OH*OW, in_ch],
-          // act . weight[in_ch, out_ch] -> [OH*OW, out_ch] -> out [out_ch, OH*OW]
-          in_sub.reshape({in_dim.channel(), owoh});
-          Tensor act = in_sub.transpose("0:2:1");
+          // Quantized conv as matmul: act [OH*OW, CRS] . weight [CRS, out_ch]
+          // -> [OH*OW, out_ch] -> out [out_ch, OH*OW]. CRS = in_ch*kh*kw.
+          // NOTE: col must outlive `act` (act aliases col's storage), so col is
+          // declared in this scope (not inside the else branch).
+          Tensor col;
+          Tensor act;
+          if (kernel_size[0].get() == 1 && kernel_size[1].get() == 1 &&
+              stride[0].get() == 1 && stride[1].get() == 1) {
+            // 1x1 stride-1: im2col is an identity. The raw input is laid out as
+            // [in_ch, OH*OW] (NCHW), so transpose to the act layout [OH*OW, CRS]
+            // (CRS == in_ch here).
+            in_sub.reshape({in_dim.channel(), owoh});
+            act = in_sub.transpose("0:2:1");
+          } else {
+            // build the real kernel geometry (filter is stored as [CRS,out_ch])
+            TensorDim kdim(filter_size, in_dim.channel(), kernel_size[0].get(),
+                           kernel_size[1].get(), in_sub.getTensorType());
+            col = Tensor(calcCol2ImOutputDim(out_dim, kdim));
+            col.setZero();
+            // im2col reshapes col in place to [OH*OW, CRS] (spatial-major), which
+            // is ALREADY the act layout — no transpose (unlike the raw-input 1x1
+            // branch above). Transposing here gives [CRS, OH*OW] and makes the
+            // GEMM emit CRS rows into the owoh-row `tmp`, overflowing it whenever
+            // CRS > owoh (deep convs) -> heap corruption.
+            im2col(in_sub, kdim, padding, stride, dilation, col);
+            act = col;
+          }
           Tensor tmp(TensorDim(1, 1, owoh, filter_size, act.getTensorType()));
           act.dot(filter_kernel, tmp, false, false);
-          tmp.transpose("0:2:1", out);
+          // [OH*OW, out_ch] -> [out_ch, OH*OW] into the (memory-planned) output.
+          // Use a fresh transpose + copy: writing a transpose straight into the
+          // shared `out` view can corrupt aliased buffers.
+          Tensor out_t = tmp.transpose("0:2:1");
+          out_t.reshape(out.getDim());
+          out.copyData(out_t);
         } else {
+          out.reshape({filter_size, owoh});
           im2col(in_sub, filter_dim, padding, stride, dilation, result);
           // filter kernel is (K, CRS), result is (CRS, OH*OW)
           filter_kernel.dot(result, out, false, true);

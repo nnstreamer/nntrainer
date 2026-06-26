@@ -87,16 +87,19 @@ namespace yolov11 {
  */
 inline Tensor convBnSilu(const std::string &name, int in_ch, int out_ch, int k,
                          int stride, int padding, Tensor input) {
-  (void)in_ch; // shape is inferred from the graph
-
   std::vector<std::string> conv_props = {
     nntrainer::withKey("name", name + "/conv"),
     nntrainer::withKey("kernel_size", {k, k}),
     nntrainer::withKey("filters", out_ch),
     nntrainer::withKey("stride", {stride, stride}),
     nntrainer::withKey("padding", padding)};
-  // Opt-in (env YOLO_CONV_Q40): run 1x1 (pointwise) convs as Q4_0 matmul.
-  if (k == 1 && out_ch > 1 && std::getenv("YOLO_CONV_Q40"))
+  // Opt-in (env YOLO_CONV_Q40): run groups=1 convs as Q4_0 matmul (im2col+gemm).
+  // Eligibility MUST match quantize_q4_0_conv.py: Q4_0 needs both the N side
+  // (out_ch) and the K side (CRS = in_ch*kh*kw) aligned to the 32-block. The
+  // stem conv0 (in_ch=3, CRS=27) fails the K check and stays FP32 in the file,
+  // so it must stay FP32 here too or the load dtype mismatches.
+  if (out_ch > 1 && out_ch % 32 == 0 && (in_ch * k * k) % 32 == 0 &&
+      std::getenv("YOLO_CONV_Q40"))
     conv_props.push_back(nntrainer::withKey("weight_dtype", "Q4_0"));
   LayerHandle conv(createLayer("conv2d", conv_props));
   auto h = conv(input);
@@ -231,15 +234,16 @@ inline Tensor c3k2Block(const std::string &name, int in_ch, int out_ch, int c,
  */
 inline Tensor convBnOnly(const std::string &name, int in_ch, int out_ch, int k,
                          int stride, int padding, Tensor input) {
-  (void)in_ch;
-
   std::vector<std::string> conv_props = {
     nntrainer::withKey("name", name + "/conv"),
     nntrainer::withKey("kernel_size", {k, k}),
     nntrainer::withKey("filters", out_ch),
     nntrainer::withKey("stride", {stride, stride}),
     nntrainer::withKey("padding", padding)};
-  if (k == 1 && out_ch > 1 && std::getenv("YOLO_CONV_Q40"))
+  // See convBnSilu: eligibility must match quantize_q4_0_conv.py (N and K both
+  // aligned to the 32-block; CRS = in_ch*kh*kw on the K side).
+  if (out_ch > 1 && out_ch % 32 == 0 && (in_ch * k * k) % 32 == 0 &&
+      std::getenv("YOLO_CONV_Q40"))
     conv_props.push_back(nntrainer::withKey("weight_dtype", "Q4_0"));
   LayerHandle conv(createLayer("conv2d", conv_props));
   return conv(input);
@@ -310,7 +314,7 @@ inline Tensor convBias1x1(const std::string &name, int out_ch, Tensor input) {
     nntrainer::withKey("filters", out_ch),
     nntrainer::withKey("stride", {1, 1}),
     nntrainer::withKey("padding", 0)};
-  if (out_ch > 1 && std::getenv("YOLO_CONV_Q40"))
+  if (out_ch > 1 && out_ch % 32 == 0 && std::getenv("YOLO_CONV_Q40"))
     conv_props.push_back(nntrainer::withKey("weight_dtype", "Q4_0"));
   LayerHandle conv(createLayer("conv2d", conv_props));
   return conv(input);

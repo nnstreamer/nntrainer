@@ -2,11 +2,17 @@
 # SPDX-License-Identifier: Apache-2.0
 """
 @file   quantize_q4_0_conv.py
-@brief  Offline ggml Q4_0 block quantization of 1x1 conv weights for YOLOv11m.
+@brief  Offline ggml Q4_0 block quantization of conv weights for YOLOv11m.
 
-Reads yolov11m_fused.safetensors (FP32), quantizes every eligible 1x1 conv
+Default mode: quantizes eligible 1x1 conv filters (kh==kw==1).
+With --all   : also quantizes eligible 3x3 and other groups=1 conv filters
+               (kh*kw > 1), using the same Q4_0 block scheme but with the
+               flattened [CRS=in_ch*kh*kw, out_ch] layout.
+
+Reads yolov11m_fused.safetensors (FP32), quantizes every eligible conv
 filter to ggml Q4_0 + repacks into nntrainer's q4_0x4 (ARM) or q4_0x8 (x86)
-interleaved layout, and writes yolov11m_fused_q40.safetensors.
+interleaved layout, and writes yolov11m_fused_q40.safetensors (1x1 only) or
+yolov11m_fused_q40_all.safetensors (all conv, with --all).
 
 Quantization scheme (ggml Q4_0, matches nntr_ggml_impl_quant.cpp):
   - Block size QK4_0 = 32 elements per block.
@@ -17,7 +23,7 @@ Quantization scheme (ggml Q4_0, matches nntr_ggml_impl_quant.cpp):
       qs[j] = qi[j] | (qi[j + 16] << 4)   for j in [0, 16)
   - d stored as fp16 (2 bytes, little-endian), then qs[16] = 18 bytes per block.
 
-Layout match:
+Layout match (1x1 conv, matches original behaviour):
   Runtime path (layer_devel.h, quantize_q4_0 / repack_q4_0):
     1. weight tensor dim for quantized 1x1 conv = [1, 1, K=in_ch, N=out_ch]
        (Conv2DLayer::finalize sets this when Q4_0 dtype and kh==kw==1)
@@ -30,27 +36,51 @@ Layout match:
   no repack on load. File must contain already-repacked data.
 
   This tool replicates steps 2-5 offline from the FP32 weight.
-  Input filter shape: [out_ch, in_ch, 1, 1] in safetensors.
+  Input filter shape (1x1): [out_ch, in_ch, 1, 1] in safetensors.
   Weight is squeezed to [out_ch, in_ch] (= the transpose step).
-  Output header shape: [1, 1, in_ch, out_ch] (= [K, N]).
+  Output header shape: [1, 1, K=in_ch, N=out_ch].
 
-Exclusion rule: 1x1 conv where in_ch % 32 != 0 OR out_ch % 32 != 0 are
-kept as FP32 (matches runtime constraint N%32==0 && K%32==0).
+Layout match (general kh*kw > 1 conv, --all mode):
+  Input filter shape: [out_ch, in_ch, kh, kw] in safetensors (C-contiguous).
+  Flatten: w.reshape(out_ch, CRS) where CRS = in_ch * kh * kw.
+    Flatten order: (in_ch outermost, then kh, then kw) = row-major over the
+    last three axes. K-index = ic*kh*kw + ki*kw + kj.
+    This matches nntrainer's im2col column ordering exactly:
+      im2col loops: channel (outer) -> h -> w (inner), same K-index formula.
+  The reshaped [out_ch, CRS] = [N, K] is quantized identically to 1x1.
+  Output header shape: [1, 1, K=CRS, N=out_ch] (same convention as 1x1).
+  nntr_dtype = "Q4_0", nntr_shape = [1, 1, CRS, out_ch].
+
+Exclusion rules:
+  - depthwise convs (groups > 1, identified by 'dw:' in name)
+  - out_ch == 1 (degenerate)
+  - out_ch % 32 != 0  (Q4_0 block alignment, N side)
+  - CRS % 32 != 0     (Q4_0 block alignment, K side; for 1x1 CRS = in_ch)
+  - out_ch % interleave != 0  (repack alignment)
+  All excluded tensors are kept FP32.
 
 Usage:
+  # 1x1 only (default, backward-compatible):
   python quantize_q4_0_conv.py \\
       --input  ../res/yolov11m_fused.safetensors \\
       --output ../res/yolov11m_fused_q40.safetensors \\
-      --target arm      # arm (q4_0x4) or x86 (q4_0x8)
+      --target arm
+
+  # All groups=1 conv (1x1 + 3x3 + stride-2 etc.):
+  python quantize_q4_0_conv.py \\
+      --input  ../res/yolov11m_fused.safetensors \\
+      --output ../res/yolov11m_fused_q40_all.safetensors \\
+      --target arm --all
 
   # Dry-run: show which tensors would be quantized without writing
-  python quantize_q4_0_conv.py --input ../res/yolov11m_fused.safetensors --dry-run
+  python quantize_q4_0_conv.py --input ../res/yolov11m_fused.safetensors \\
+      --all --dry-run
 
 References:
   nntrainer/tensor/cpu_backend/ggml_interface/nntr_ggml_impl/nntr_ggml_impl_quant.cpp
   nntrainer/tensor/q4_0_utils.h   (block_q4_0, block_q4_0x4, block_q4_0x8)
   nntrainer/layers/layer_devel.h  (Q4_0 save path)
-  nntrainer/layers/conv2d_layer.cpp (quant_matmul_filter layout)
+  nntrainer/layers/conv2d_layer.cpp (quant_matmul_filter layout, im2col column order)
   Applications/CausalLM/res/qwen3/qwen3-0.6b/gguf_to_nntrainer.py (repack impl)
 """
 
@@ -246,28 +276,101 @@ def repack_q4_0(raw_q4_0: bytes, N: int, K: int, interleave: int) -> bytes:
 # Filter selection
 # ---------------------------------------------------------------------------
 
-def is_eligible_1x1_conv_filter(name: str, shape: list) -> bool:
-    """Return True if this tensor is an eligible 1x1 conv filter for Q4_0.
+def is_depthwise(name: str) -> bool:
+    """Return True if this tensor is a depthwise (groups > 1) conv filter."""
+    return "dw:" in name
 
-    Criteria:
-    - name ends with ':filter'
-    - shape is 4D: [out_ch, in_ch, kh, kw] with kh==kw==1
-    - NOT a depthwise conv ('dw:filter' in name)
-    - in_ch % 32 == 0 AND out_ch % 32 == 0 (Q4_0 block alignment required)
+
+def check_conv_filter_eligibility(name: str, shape: list,
+                                  allow_larger_kernels: bool,
+                                  interleave: int):
+    """Check eligibility and return (eligible, reason_string_or_None).
+
+    Applies to any 4-D filter tensor that ends with ':filter'.
+    Returns:
+      (True, None)          -> quantize
+      (False, reason_str)   -> keep FP32, reason_str explains why
     """
     if not name.endswith(":filter"):
-        return False
+        return False, "not a filter"
     if len(shape) != 4:
-        return False
+        return False, "not 4D"
+
     out_ch, in_ch, kh, kw = shape
+
+    # Depthwise (groups > 1) — always exclude
+    if is_depthwise(name):
+        return False, "depthwise"
+
+    # Degenerate single-output channel
+    if out_ch == 1:
+        return False, "out_ch=1"
+
+    # Kernel-size gate: default mode only handles 1x1
     if kh != 1 or kw != 1:
-        return False
-    if name.endswith("dw:filter"):
-        return False
-    # Both dimensions must be divisible by 32 (N%32==0 && K%32==0)
-    if in_ch % QK4_0 != 0 or out_ch % QK4_0 != 0:
-        return False
-    return True
+        if not allow_larger_kernels:
+            return False, f"kh={kh},kw={kw} (use --all to include)"
+        # allow_larger_kernels=True: accept any groups=1 conv
+
+    CRS = in_ch * kh * kw
+
+    # Q4_0 block alignment: both K and N dimensions must be divisible by 32
+    reasons = []
+    if CRS % QK4_0 != 0:
+        reasons.append(f"CRS={CRS} not div32")
+    if out_ch % QK4_0 != 0:
+        reasons.append(f"out_ch={out_ch} not div32")
+    if reasons:
+        return False, ", ".join(reasons)
+
+    # Repack alignment: out_ch (N) must be divisible by interleave
+    if out_ch % interleave != 0:
+        return False, f"out_ch={out_ch} not div interleave={interleave}"
+
+    return True, None
+
+
+# ---------------------------------------------------------------------------
+# Quantize a single conv filter tensor
+# ---------------------------------------------------------------------------
+
+def quantize_filter(raw: bytes, shape: list, interleave: int):
+    """Quantize a single FP32 conv filter to Q4_0 + repack.
+
+    shape: [out_ch, in_ch, kh, kw]
+    Returns: (repacked_bytes, nntr_shape) where nntr_shape = [1, 1, CRS, out_ch].
+
+    For 1x1 (kh=kw=1): CRS = in_ch, identical to original behaviour.
+    For larger kernels: CRS = in_ch * kh * kw. The FP32 filter is stored in
+    safetensors as [out_ch, in_ch, kh, kw] in C-contiguous (row-major) order.
+    reshape(out_ch, -1) flattens the last three axes in order [in_ch, kh, kw],
+    which matches nntrainer's im2col column ordering:
+      K-index = ic * kh * kw + ki * kw + kj
+    giving [N=out_ch, K=CRS] = the matrix that quantize_q4_0 expects.
+    """
+    out_ch, in_ch, kh, kw = shape
+    CRS = in_ch * kh * kw
+
+    w = np.frombuffer(raw, dtype=np.float32).reshape(shape)
+
+    # Flatten to [N=out_ch, K=CRS]: C-contiguous reshape preserves
+    # (in_ch, kh, kw) -> K ordering = ic*kh*kw + ki*kw + kj (im2col match)
+    w2d = w.reshape(out_ch, CRS)  # [N, K]
+
+    # Step 1: quantize to plain Q4_0 blocks
+    raw_q40 = quantize_q4_0(w2d)
+
+    # Step 2: repack to q4_0x{interleave}
+    repacked = repack_q4_0(raw_q40, out_ch, CRS, interleave)
+
+    # Verify size
+    expected_bytes = (out_ch * CRS // QK4_0) * Q4_0_BLOCK_BYTES
+    assert len(repacked) == expected_bytes, \
+        f"repacked size {len(repacked)} != expected {expected_bytes}"
+
+    # nntr_shape: [1, 1, K=CRS, N=out_ch]
+    nntr_shape = [1, 1, CRS, out_ch]
+    return repacked, nntr_shape
 
 
 # ---------------------------------------------------------------------------
@@ -281,10 +384,14 @@ def main():
     ap.add_argument("--input", required=True,
                     help="Input FP32 safetensors (yolov11m_fused.safetensors)")
     ap.add_argument("--output", default=None,
-                    help="Output path (default: <input stem>_q40.safetensors)")
+                    help="Output path (default: <input stem>_q40.safetensors "
+                         "or <input stem>_q40_all.safetensors with --all)")
     ap.add_argument("--target", choices=["arm", "x86"], default="arm",
                     help="Repack interleave target: arm=q4_0x4 (4), x86=q4_0x8 (8). "
                          "Default: arm (for device inference on S23 etc.)")
+    ap.add_argument("--all", dest="all_kernels", action="store_true",
+                    help="Also quantize 3x3 and other groups=1 conv filters "
+                         "(not just 1x1). Output: yolov11m_fused_q40_all.safetensors.")
     ap.add_argument("--dry-run", action="store_true",
                     help="List tensors that would be quantized without writing")
     args = ap.parse_args()
@@ -295,11 +402,13 @@ def main():
         stem = args.input
         if stem.endswith(".safetensors"):
             stem = stem[:-len(".safetensors")]
-        args.output = stem + "_q40.safetensors"
+        suffix = "_q40_all.safetensors" if args.all_kernels else "_q40.safetensors"
+        args.output = stem + suffix
 
     print(f"Input:      {args.input}")
     print(f"Output:     {args.output}")
     print(f"Target:     {args.target} (q4_0x{interleave})")
+    print(f"Mode:       {'all groups=1 conv (1x1 + larger)' if args.all_kernels else '1x1 only (default)'}")
 
     header, data, _ = parse_safetensors(args.input)
     tensor_names = [n for n in header if n != "__metadata__"]
@@ -315,6 +424,10 @@ def main():
     total_q40_bytes = 0
     skipped_list = []
 
+    # Counters by kernel size for summary
+    n_quant_1x1 = 0
+    n_quant_larger = 0
+
     for name in tensor_names:
         entry = header[name]
         dtype = entry["dtype"]
@@ -322,112 +435,70 @@ def main():
         start, end = entry["data_offsets"]
         raw = data[start:end]
 
+        # Pass-through: non-FP32, non-filter, or not 4D
         if dtype != "F32" or not name.endswith(":filter") or len(shape) != 4:
-            # Non-filter or already quantized: keep as-is
             if not args.dry_run:
                 out_tensors[name] = {"dtype": dtype, "shape": shape, "data": raw}
-            if dtype == "F32" and len(shape) == 4 and shape[2] == 1 and shape[3] == 1:
-                out_ch, in_ch = shape[0], shape[1]
-                reason = []
-                if in_ch % QK4_0 != 0:
-                    reason.append(f"in_ch={in_ch} not div32")
-                if out_ch % QK4_0 != 0:
-                    reason.append(f"out_ch={out_ch} not div32")
-                if reason and name.endswith(":filter") and not name.endswith("dw:filter"):
-                    n_skipped_alignment += 1
-                    skipped_list.append((name, shape, ", ".join(reason)))
-                    print(f"  [skip-align] {name}  {shape}  ({', '.join(reason)})")
-                else:
-                    n_kept += 1
-                    print(f"  [keep]       {name}  {shape}  {dtype}")
-            else:
-                n_kept += 1
-                print(f"  [keep]       {name}  {shape}  {dtype}")
+            n_kept += 1
+            print(f"  [keep]       {name}  {shape}  {dtype}")
             continue
 
-        out_ch, in_ch, kh, kw = shape
-
-        # Check depthwise
-        if name.endswith("dw:filter"):
+        # Depthwise: always keep FP32
+        if is_depthwise(name):
             if not args.dry_run:
                 out_tensors[name] = {"dtype": dtype, "shape": shape, "data": raw}
             n_kept += 1
             print(f"  [keep-dw]    {name}  {shape}  {dtype}")
             continue
 
-        # 1x1 conv: check alignment
-        if kh != 1 or kw != 1:
+        eligible, reason = check_conv_filter_eligibility(
+            name, shape, allow_larger_kernels=args.all_kernels,
+            interleave=interleave)
+
+        out_ch, in_ch, kh, kw = shape
+        CRS = in_ch * kh * kw
+        fp32_bytes = len(raw)
+
+        if not eligible:
+            # Determine tag for reporting
+            if reason == f"kh={kh},kw={kw} (use --all to include)":
+                tag = "[keep-ksize]"
+            elif "not div" in reason or "not div interleave" in reason:
+                tag = "[skip-align]"
+                n_skipped_alignment += 1
+                skipped_list.append((name, shape, reason))
+            elif reason in ("depthwise", "out_ch=1"):
+                tag = "[keep-excl] "
+            else:
+                tag = "[keep]      "
+
             if not args.dry_run:
                 out_tensors[name] = {"dtype": dtype, "shape": shape, "data": raw}
             n_kept += 1
-            print(f"  [keep-ksize] {name}  {shape}  {dtype}")
-            continue
-
-        # Alignment check
-        if in_ch % QK4_0 != 0 or out_ch % QK4_0 != 0:
-            reason = []
-            if in_ch % QK4_0 != 0:
-                reason.append(f"in_ch={in_ch} not div32")
-            if out_ch % QK4_0 != 0:
-                reason.append(f"out_ch={out_ch} not div32")
-            n_skipped_alignment += 1
-            skipped_list.append((name, shape, ", ".join(reason)))
-            if not args.dry_run:
-                out_tensors[name] = {"dtype": dtype, "shape": shape, "data": raw}
-            print(f"  [skip-align] {name}  {shape}  ({', '.join(reason)})")
+            print(f"  {tag} {name}  {shape}  ({reason})")
             continue
 
         # Eligible: quantize
-        fp32_bytes = len(raw)
-        print(f"  [Q4_0]       {name}  {shape}  {fp32_bytes} bytes FP32", end="")
+        print(f"  [Q4_0]       {name}  {shape}  CRS={CRS}  {fp32_bytes} bytes FP32",
+              end="")
 
         if args.dry_run:
             print(" -> would quantize")
             n_quantized += 1
+            if kh == 1 and kw == 1:
+                n_quant_1x1 += 1
+            else:
+                n_quant_larger += 1
             continue
 
-        # Load [out_ch, in_ch, 1, 1] FP32
-        w = np.frombuffer(raw, dtype=np.float32).reshape(shape)
-
-        # Squeeze to [out_ch, in_ch] (the runtime transpose step for a weight
-        # originally stored as [1,1,K=in_ch,N=out_ch] is weight.transpose("0:2:1")
-        # which swaps H<->W -> [1,1,N=out_ch,K=in_ch]. For our FP32 input in
-        # standard [out_ch,in_ch,1,1] layout, squeezing gives [out_ch,in_ch]
-        # which equals [N, K] — exactly what quantize_q4_0(nrow=N, n_per_row=K)
-        # expects.)
-        w2d = w[:, :, 0, 0]  # [out_ch=N, in_ch=K]
-        N_rows = out_ch   # number of Q4_0 rows (= out_ch)
-        K_cols = in_ch    # columns per row (= in_ch)
-
-        # Step 1: quantize to plain Q4_0 blocks [N*K/32, 18 bytes]
-        raw_q40 = quantize_q4_0(w2d)
-
-        # Step 2: repack to q4_0x{interleave}
-        # Requirement: N % interleave == 0
-        if N_rows % interleave != 0:
-            print(f" -> SKIP repack (out_ch={N_rows} not div {interleave}), kept FP32")
-            out_tensors[name] = {"dtype": dtype, "shape": shape, "data": raw}
-            n_skipped_alignment += 1
-            skipped_list.append((name, shape, f"out_ch={N_rows} not div interleave={interleave}"))
-            continue
-
-        repacked = repack_q4_0(raw_q40, N_rows, K_cols, interleave)
-
-        # Verify repacked size == Q4_0_Tensor::size() = N*K/QK4_0 * 18
-        expected_bytes = (N_rows * K_cols // QK4_0) * Q4_0_BLOCK_BYTES
-        assert len(repacked) == expected_bytes, \
-            f"{name}: repacked size {len(repacked)} != expected {expected_bytes}"
-
-        # Header shape: [1, 1, K=in_ch, N=out_ch] (Q4_0_Tensor constructor
-        # requires batch=1, channel=1, width divisible by 32)
-        nntr_shape = [1, 1, K_cols, N_rows]
+        repacked, nntr_shape = quantize_filter(raw, shape, interleave)
 
         out_tensors[name] = {
             "dtype": SAFETENSORS_DTYPE_Q4_0,   # "U8" (opaque blob)
             "shape": [len(repacked)],            # flat byte count as shape[0]
             "data": repacked,
             "nntr_dtype": NNTR_DTYPE_Q4_0,      # "Q4_0"
-            "nntr_shape": nntr_shape,            # [1, 1, in_ch, out_ch]
+            "nntr_shape": nntr_shape,            # [1, 1, CRS, out_ch]
         }
 
         q40_bytes = len(repacked)
@@ -435,11 +506,16 @@ def main():
         print(f" -> {q40_bytes} bytes Q4_0 ({ratio:.1f}%)")
 
         n_quantized += 1
+        if kh == 1 and kw == 1:
+            n_quant_1x1 += 1
+        else:
+            n_quant_larger += 1
         total_fp32_bytes += fp32_bytes
         total_q40_bytes += q40_bytes
 
     print(f"\nSummary:")
-    print(f"  Quantized (Q4_0): {n_quantized}")
+    print(f"  Quantized (Q4_0): {n_quantized}"
+          f"  (1x1: {n_quant_1x1}, larger: {n_quant_larger})")
     print(f"  Skipped (alignment/interleave): {n_skipped_alignment}")
     if skipped_list:
         for sname, sshape, sreason in skipped_list:
@@ -447,7 +523,7 @@ def main():
     print(f"  Kept FP32/other:  {n_kept}")
 
     if not args.dry_run and n_quantized > 0:
-        print(f"\n1x1 conv Q4_0 bytes: {total_fp32_bytes} FP32 -> "
+        print(f"\nQuantized conv bytes: {total_fp32_bytes} FP32 -> "
               f"{total_q40_bytes} Q4_0 ({100.0 * total_q40_bytes / total_fp32_bytes:.1f}%)")
         write_safetensors(out_tensors, args.output)
         size = os.path.getsize(args.output)
@@ -457,12 +533,14 @@ def main():
 
         # Blob layout summary
         print(f"\nBlob layout per Q4_0 weight tensor:")
-        print(f"  [U8 blob, len = N*K/32 * 18 bytes]")
-        print(f"  Repacked as q4_0x{interleave}: groups of {interleave} rows")
+        print(f"  [U8 blob, len = N*CRS/32 * 18 bytes]")
+        print(f"  Repacked as q4_0x{interleave}: groups of {interleave} rows (N=out_ch)")
         print(f"  Per group-of-{interleave}: d[{interleave}]*2 bytes + "
               f"qs[{interleave}*16] bytes (XOR'd 0x88)")
-        print(f"  Header nntr_shape: [1, 1, K=in_ch, N=out_ch]")
+        print(f"  Header nntr_shape: [1, 1, K=CRS=in_ch*kh*kw, N=out_ch]")
         print(f"  Header nntr_dtype: Q4_0")
+    elif not args.dry_run and n_quantized == 0:
+        print("\nNothing to quantize.")
     elif args.dry_run:
         print(f"\n(dry-run: no file written)")
 
