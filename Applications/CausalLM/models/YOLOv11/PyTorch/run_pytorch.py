@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Run PyTorch YOLOv11m and print final detections, AND write the exact 832x832
+@file run_pytorch.py
+@brief Run PyTorch YOLOv11m and print final detections, AND write the exact 832x832
 input tensor as a .bin so the nntrainer example can run on identical bytes
 (apples-to-apples comparison).
 

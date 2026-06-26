@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Extract PyTorch YOLOv11m reference outputs for nntrainer verification.
+@file extract_reference.py
+@brief Extract PyTorch YOLOv11m reference outputs for nntrainer verification.
 Fixed seed input → raw Detect head logits (before DFL/sigmoid).
 """
 import torch

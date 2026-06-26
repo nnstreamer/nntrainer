@@ -6,6 +6,7 @@
  * @date   18 June 2026
  * @brief  PSA spatial multi-head attention custom layer (weight-free).
  * @author Seungbaek Hong <sb92.hong@samsung.com>
+ * @bug    No known bugs
  */
 
 #include <algorithm>

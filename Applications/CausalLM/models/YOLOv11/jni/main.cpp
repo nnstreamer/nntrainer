@@ -37,13 +37,13 @@
 #include <utility>
 #include <vector>
 
+#include "c2psa_layer.h"
 #include <app_context.h>
 #include <engine.h>
 #include <layer.h>
 #include <model.h>
 #include <tensor.h>
 #include <tensor_api.h>
-#include "c2psa_layer.h"
 
 // Optional direct image input. Enabled only when stb_image.h is present (the
 // build defines YOLO_WITH_STB_IMAGE via meson fs.exists). stb_image.h is NOT

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Convert YOLOv11m ultralytics (.pt) weights into a single nntrainer-compatible
+@file convert_weights.py
+@brief Convert YOLOv11m ultralytics (.pt) weights into a single nntrainer-compatible
 safetensors file, with tensor names matching the nntrainer model's weight names
 (as built by Applications/CausalLM/models/YOLOv11/jni/main.cpp). The example
 then loads everything with one call: model->load(file, SAFETENSORS).

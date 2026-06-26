@@ -6,6 +6,7 @@
  * @date   18 June 2026
  * @brief  PSA spatial multi-head attention custom layer for YOLOv11 C2PSA.
  * @author Seungbaek Hong <sb92.hong@samsung.com>
+ * @bug    No known bugs
  *
  * The C2PSA block (model.10) is assembled from standard nntrainer layers
  * (conv2d, depthwiseconv2d, batch_normalization, addition, concat, slice) —
