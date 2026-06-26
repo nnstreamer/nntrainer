@@ -6,12 +6,17 @@ safetensors file, with tensor names matching the nntrainer model's weight names
 (as built by Applications/CausalLM/models/YOLOv11/jni/main.cpp). The example
 then loads everything with one call: model->load(file, SAFETENSORS).
 
+Inference-only: Conv+BatchNorm pairs are fused (ultralytics model.fuse()) so
+each Conv module exports a single biased convolution and no BatchNorm tensors.
+This removes the BN layers from the nntrainer graph entirely (fewer ops, lower
+memory, and no mixed-precision BN path), with no accuracy change since BN is an
+exact affine fold at inference time.
+
 Naming scheme (matches nntrainer Weight::getName()):
   conv2d weight : "{layer}/conv:filter"        shape [out, in, kh, kw]
   conv2d bias   : "{layer}/conv:bias"          shape [1, C, 1, 1]
   depthwise     : "{layer}/dw:filter"          shape [C, 1, kh, kw]
-  batchnorm     : "{layer}/bn:moving_mean", ":moving_variance", ":gamma", ":beta"
-                  each shape [1, C, 1, 1]
+  depthwise bias: "{layer}/dw:bias"            shape [1, C, 1, 1]
 (depthwise convolution is a grouped conv2d, groups == channels.)
 
 Usage:
@@ -48,17 +53,14 @@ class Pack:
     def _np(self, key):
         return self.sd[key].detach().cpu().float().numpy().astype(np.float32)
 
-    def _bnvec(self, key, C):
-        return self._np(key).reshape(1, C, 1, 1)
-
     def conv_bn(self, pt, nn, dw=False):
+        # A PyTorch Conv module (conv+BN[+act]) already fused by model.fuse():
+        # the module now holds a single biased convolution and no BN tensors.
         w = self._np(f"{pt}.conv.weight")
-        C = w.shape[0]
-        self.T[f"{nn}/{'dw' if dw else 'conv'}:filter"] = w
-        self.T[f"{nn}/bn:moving_mean"] = self._bnvec(f"{pt}.bn.running_mean", C)
-        self.T[f"{nn}/bn:moving_variance"] = self._bnvec(f"{pt}.bn.running_var", C)
-        self.T[f"{nn}/bn:gamma"] = self._bnvec(f"{pt}.bn.weight", C)
-        self.T[f"{nn}/bn:beta"] = self._bnvec(f"{pt}.bn.bias", C)
+        b = self._np(f"{pt}.conv.bias")
+        key = "dw" if dw else "conv"
+        self.T[f"{nn}/{key}:filter"] = w
+        self.T[f"{nn}/{key}:bias"] = b.reshape(1, w.shape[0], 1, 1)
 
     def conv_bias(self, pt, nn):
         w = self._np(f"{pt}.weight")
@@ -120,7 +122,10 @@ class Pack:
 
 def main(weights, out):
     from ultralytics import YOLO
-    sd = YOLO(weights).model.state_dict()
+    model = YOLO(weights).model
+    model.eval()
+    model.fuse()  # fold Conv+BatchNorm into a single biased conv (inference-only)
+    sd = model.state_dict()
     p = Pack(sd)
 
     for pt, nn in BACKBONE.items():

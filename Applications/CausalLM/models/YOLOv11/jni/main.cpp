@@ -70,16 +70,20 @@ namespace yolov11 {
 
 // ===== graph block builders (Conv/BN/SiLU, C3k2, SPPF) =====
 /**
- * @brief Build a Conv2d + BN + SiLU sub-graph block.
+ * @brief Build a (BN-fused) Conv2d + SiLU sub-graph block.
  *
- * @param name     Layer-name prefix (conv="{name}/conv", bn="{name}/bn")
+ * The original Conv+BatchNorm+SiLU is exported with BatchNorm folded into the
+ * convolution at convert time (PyTorch/convert_weights.py: model.fuse()), so
+ * here the BN is gone: a single biased conv followed by a standalone SiLU.
+ *
+ * @param name     Layer-name prefix (conv="{name}/conv", act="{name}/act")
  * @param in_ch    Input channels
  * @param out_ch   Output channels
  * @param k        Kernel size (square)
  * @param stride   Stride
  * @param padding  Padding
  * @param input    Input symbolic tensor
- * @return Output symbolic tensor after BN+SiLU
+ * @return Output symbolic tensor after conv+SiLU
  */
 inline Tensor convBnSilu(const std::string &name, int in_ch, int out_ch, int k,
                          int stride, int padding, Tensor input) {
@@ -90,15 +94,13 @@ inline Tensor convBnSilu(const std::string &name, int in_ch, int out_ch, int k,
                            nntrainer::withKey("kernel_size", {k, k}),
                            nntrainer::withKey("filters", out_ch),
                            nntrainer::withKey("stride", {stride, stride}),
-                           nntrainer::withKey("padding", padding),
-                           nntrainer::withKey("disable_bias", "true")}));
+                           nntrainer::withKey("padding", padding)}));
   auto h = conv(input);
 
-  LayerHandle bn(createLayer("batch_normalization",
-                             {nntrainer::withKey("name", name + "/bn"),
-                              nntrainer::withKey("momentum", "0.9"),
-                              nntrainer::withKey("activation", "swish")}));
-  return bn(h);
+  LayerHandle act(
+    createLayer("activation", {nntrainer::withKey("name", name + "/act"),
+                               nntrainer::withKey("activation", "swish")}));
+  return act(h);
 }
 
 /**
@@ -208,18 +210,20 @@ inline Tensor c3k2Block(const std::string &name, int in_ch, int out_ch, int c,
 }
 
 /**
- * @brief Build a Conv2d + BN sub-graph block (NO activation).
+ * @brief Build a (BN-fused) Conv2d sub-graph block (NO activation).
  *
- * Used by SPPF cv1 which has act=Identity in PyTorch.
+ * Used where PyTorch had Conv+BN with act=Identity (e.g. SPPF cv1, C2PSA
+ * qkv/proj/ffn1). BatchNorm is folded into the conv at convert time, so this
+ * is just a single biased convolution.
  *
- * @param name     Layer-name prefix (conv="{name}/conv", bn="{name}/bn")
+ * @param name     Layer-name prefix (conv="{name}/conv")
  * @param in_ch    Input channels (unused, inferred from graph)
  * @param out_ch   Output channels
  * @param k        Kernel size
  * @param stride   Stride
  * @param padding  Padding
  * @param input    Input symbolic tensor
- * @return Output symbolic tensor after BN only (no activation)
+ * @return Output symbolic tensor (no activation)
  */
 inline Tensor convBnOnly(const std::string &name, int in_ch, int out_ch, int k,
                          int stride, int padding, Tensor input) {
@@ -230,14 +234,8 @@ inline Tensor convBnOnly(const std::string &name, int in_ch, int out_ch, int k,
                            nntrainer::withKey("kernel_size", {k, k}),
                            nntrainer::withKey("filters", out_ch),
                            nntrainer::withKey("stride", {stride, stride}),
-                           nntrainer::withKey("padding", padding),
-                           nntrainer::withKey("disable_bias", "true")}));
-  auto h = conv(input);
-
-  LayerHandle bn(createLayer("batch_normalization",
-                             {nntrainer::withKey("name", name + "/bn"),
-                              nntrainer::withKey("momentum", "0.9")}));
-  return bn(h);
+                           nntrainer::withKey("padding", padding)}));
+  return conv(input);
 }
 
 /**
@@ -308,7 +306,8 @@ inline Tensor convBias1x1(const std::string &name, int out_ch, Tensor input) {
   return conv(input);
 }
 
-/** @brief Depthwise 3x3 (pad 1) + BN + SiLU. */
+/** @brief Depthwise 3x3 (pad 1) + SiLU, BN folded into the conv at convert
+ * time. */
 inline Tensor dwConvBnSilu(const std::string &name, int ch, Tensor input) {
   // depthwise = grouped conv2d with groups == channels
   LayerHandle dw(createLayer(
@@ -316,18 +315,16 @@ inline Tensor dwConvBnSilu(const std::string &name, int ch, Tensor input) {
     {nntrainer::withKey("name", name + "/dw"),
      nntrainer::withKey("kernel_size", {3, 3}),
      nntrainer::withKey("filters", ch), nntrainer::withKey("groups", ch),
-     nntrainer::withKey("stride", {1, 1}), nntrainer::withKey("padding", 1),
-     nntrainer::withKey("disable_bias", "true")}));
+     nntrainer::withKey("stride", {1, 1}), nntrainer::withKey("padding", 1)}));
   auto h = dw(input);
-  LayerHandle bn(createLayer("batch_normalization",
-                             {nntrainer::withKey("name", name + "/bn"),
-                              nntrainer::withKey("momentum", "0.9"),
-                              nntrainer::withKey("activation", "swish")}));
-  return bn(h);
+  LayerHandle act(
+    createLayer("activation", {nntrainer::withKey("name", name + "/act"),
+                               nntrainer::withKey("activation", "swish")}));
+  return act(h);
 }
 
-/** @brief Depthwise 3x3 (pad 1) + BN, NO activation (e.g. C2PSA position enc).
- */
+/** @brief Depthwise 3x3 (pad 1), NO activation (e.g. C2PSA position enc).
+ *  BN folded into the conv at convert time. */
 inline Tensor dwConvBnOnly(const std::string &name, int ch, Tensor input) {
   // depthwise = grouped conv2d with groups == channels
   LayerHandle dw(createLayer(
@@ -335,13 +332,8 @@ inline Tensor dwConvBnOnly(const std::string &name, int ch, Tensor input) {
     {nntrainer::withKey("name", name + "/dw"),
      nntrainer::withKey("kernel_size", {3, 3}),
      nntrainer::withKey("filters", ch), nntrainer::withKey("groups", ch),
-     nntrainer::withKey("stride", {1, 1}), nntrainer::withKey("padding", 1),
-     nntrainer::withKey("disable_bias", "true")}));
-  auto h = dw(input);
-  LayerHandle bn(createLayer("batch_normalization",
-                             {nntrainer::withKey("name", name + "/bn"),
-                              nntrainer::withKey("momentum", "0.9")}));
-  return bn(h);
+     nntrainer::withKey("stride", {1, 1}), nntrainer::withKey("padding", 1)}));
+  return dw(input);
 }
 
 /**
@@ -909,6 +901,23 @@ void verifyAgainst(const std::string &ref_name, const float *out, size_t n) {
             << std::endl;
 }
 
+// Report peak resident set size (VmHWM) from /proc/self/status. Linux/Android
+// only; silently does nothing elsewhere or if the file is unreadable.
+inline void printPeakRSS() {
+#if defined(__linux__)
+  std::ifstream st("/proc/self/status");
+  if (!st.is_open())
+    return;
+  std::string line;
+  while (std::getline(st, line)) {
+    if (line.rfind("VmHWM:", 0) == 0) {
+      std::cout << "Peak RSS: " << line.substr(6) << std::endl;
+      return;
+    }
+  }
+#endif
+}
+
 } // namespace
 
 int main(int argc, char *argv[]) {
@@ -926,6 +935,16 @@ int main(int argc, char *argv[]) {
       ml::train::createModel(ml::train::ModelType::NEURAL_NET);
     model->setProperty({nntrainer::withKey("batch_size", "1")});
 
+    // Optional precision override. YOLO_TENSOR_TYPE selects the model tensor
+    // type, e.g. "FP16-FP16" (weights+activations FP16) or "FP32-FP16"
+    // (FP16 activations only). Default (unset) is FP32-FP32. Since Conv+BN are
+    // fused at convert time, there is no BatchNorm mixed-precision path to
+    // block FP16. Must be set before compile().
+    if (const char *tt = std::getenv("YOLO_TENSOR_TYPE")) {
+      model->setProperty({nntrainer::withKey("model_tensor_type", tt)});
+      std::cout << "[YOLO] model_tensor_type = " << tt << std::endl;
+    }
+
     auto x = Tensor({1, 3, 832, 832}, "input0");
     Tensor m4, m6;
     auto m10 = buildBackbone(x, m4, m6);
@@ -936,9 +955,16 @@ int main(int argc, char *argv[]) {
       throw std::runtime_error("compile failed: " + std::to_string(ret));
     // Load every weight from the single nntrainer safetensors produced by
     // PyTorch/convert_weights.py (tensor names match the model weight names).
-    model->load(RES_DIR + "/yolov11m.safetensors",
-                ml::train::ModelFormat::MODEL_FORMAT_SAFETENSORS);
-    std::cout << "Model built and weights loaded." << std::endl;
+    // YOLO_WEIGHTS overrides the file (absolute, or relative to RES_DIR) so a
+    // baseline and a fused/quantized model can be compared without rebuilding.
+    std::string weights_path = RES_DIR + "/yolov11m.safetensors";
+    if (const char *wenv = std::getenv("YOLO_WEIGHTS")) {
+      weights_path =
+        (wenv[0] == '/') ? std::string(wenv) : RES_DIR + "/" + wenv;
+    }
+    model->load(weights_path, ml::train::ModelFormat::MODEL_FORMAT_SAFETENSORS);
+    std::cout << "Model built and weights loaded (" << weights_path << ")."
+              << std::endl;
 
     // Run one forward pass on the input.
     // argv[2] may be a raw [1,3,832,832] float32 .bin (e.g. from
@@ -951,9 +977,27 @@ int main(int argc, char *argv[]) {
     auto input = loadBin(input_path);
 #endif
     std::vector<float *> in_ptr = {input.data()};
-    auto outs = model->inference(1, in_ptr, std::vector<float *>());
+
+    // Inference timing. YOLO_BENCH_ITERS (default 1) controls how many timed
+    // forward passes to run; the average wall-clock is reported and the last
+    // run's outputs feed post-processing. More iters give a stabler number.
+    int bench_iters =
+      std::getenv("YOLO_BENCH_ITERS")
+        ? std::max(1, std::atoi(std::getenv("YOLO_BENCH_ITERS")))
+        : 1;
+    std::vector<float *> outs;
+    double total_ms = 0.0;
+    for (int it = 0; it < bench_iters; ++it) {
+      auto t0 = std::chrono::steady_clock::now();
+      outs = model->inference(1, in_ptr, std::vector<float *>());
+      auto t1 = std::chrono::steady_clock::now();
+      total_ms += std::chrono::duration<double, std::milli>(t1 - t0).count();
+    }
     std::cout << "Inference done (" << outs.size() << " scale outputs)."
               << std::endl;
+    std::cout << "Inference time: " << (total_ms / bench_iters)
+              << " ms (avg over " << bench_iters << " iters)" << std::endl;
+    printPeakRSS();
 
     // Post-process: DFL decode + dist2bbox + sigmoid -> [5, N] then NMS.
     std::vector<yolov11::ScaleInfo> scales = {
