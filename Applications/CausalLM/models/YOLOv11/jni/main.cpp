@@ -41,11 +41,8 @@
 #include <engine.h>
 #include <layer.h>
 #include <model.h>
-#include <safetensors_util.h>
 #include <tensor.h>
 #include <tensor_api.h>
-#include <util_func.h>
-
 #include "c2psa_layer.h"
 
 // Optional direct image input. Enabled only when stb_image.h is present (the
@@ -889,46 +886,6 @@ std::vector<Tensor> buildHead(Tensor m4, Tensor m6, Tensor m10) {
  * in the layer's weight-registration order, so we group consecutive tensors by
  * layer name and push them to layer->setWeights() in file order.
  */
-void loadSafetensors(ml::train::Model *model, const std::string &path) {
-  std::ifstream f(path, std::ios::binary);
-  if (!f)
-    throw std::runtime_error("Cannot open safetensors: " + path);
-  uint64_t hlen = 0;
-  f.read(reinterpret_cast<char *>(&hlen), 8);
-  std::string hdr(hlen, '\0');
-  f.read(&hdr[0], static_cast<std::streamsize>(hlen));
-
-  // Parse the header with nntrainer's own safetensors parser (preserves order).
-  auto entries = nntrainer::safetensors::parseHeaderEntries(hdr);
-  const std::streamoff data_base = 8 + static_cast<std::streamoff>(hlen);
-  auto layerOf = [](const std::string &n) { return n.substr(0, n.find(':')); };
-
-  // Group consecutive entries by layer and setWeights per layer.
-  size_t i = 0;
-  while (i < entries.size()) {
-    const std::string layer = layerOf(entries[i].name);
-    std::vector<std::vector<float>> bufs;
-    std::vector<float *> ptrs;
-    size_t j = i;
-    for (; j < entries.size() && layerOf(entries[j].name) == layer; ++j) {
-      size_t n =
-        (entries[j].offset_end - entries[j].offset_start) / sizeof(float);
-      std::vector<float> buf(n);
-      f.seekg(data_base + static_cast<std::streamoff>(entries[j].offset_start));
-      f.read(reinterpret_cast<char *>(buf.data()),
-             static_cast<std::streamsize>(n * sizeof(float)));
-      bufs.push_back(std::move(buf));
-    }
-    for (auto &b : bufs)
-      ptrs.push_back(b.data());
-    std::shared_ptr<ml::train::Layer> l;
-    if (model->getLayer(layer.c_str(), &l))
-      throw std::runtime_error("safetensors: no model layer named " + layer);
-    l->setWeights(ptrs);
-    i = j;
-  }
-}
-
 /** @brief Register the YOLOv11 custom layers with the global AppContext.
  *  Only C2PSA is custom; the Detect head uses standard nntrainer layers. */
 void registerCustomLayers() {
@@ -967,8 +924,7 @@ int main(int argc, char *argv[]) {
     // Build the full model: input -> backbone -> head -> 3 detect outputs.
     ModelHandle model =
       ml::train::createModel(ml::train::ModelType::NEURAL_NET);
-    model->setProperty({nntrainer::withKey("batch_size", "1"),
-                        nntrainer::withKey("memory_optimization", "false")});
+    model->setProperty({nntrainer::withKey("batch_size", "1")});
 
     auto x = Tensor({1, 3, 832, 832}, "input0");
     Tensor m4, m6;
@@ -980,7 +936,8 @@ int main(int argc, char *argv[]) {
       throw std::runtime_error("compile failed: " + std::to_string(ret));
     // Load every weight from the single nntrainer safetensors produced by
     // PyTorch/convert_weights.py (tensor names match the model weight names).
-    loadSafetensors(model.get(), RES_DIR + "/yolov11m.safetensors");
+    model->load(RES_DIR + "/yolov11m.safetensors",
+                ml::train::ModelFormat::MODEL_FORMAT_SAFETENSORS);
     std::cout << "Model built and weights loaded." << std::endl;
 
     // Run one forward pass on the input.
@@ -1020,19 +977,17 @@ int main(int argc, char *argv[]) {
       std::getenv("YOLO_IOU") ? std::stof(std::getenv("YOLO_IOU")) : 0.70f;
     auto dets = yolov11::nms(decoded, N_total, conf_thres, iou_thres, 300);
 
-    std::cout << "\nDetections (conf>=" << conf_thres
-              << ", xyxy @832): " << dets.size() << std::endl;
+    // JSON output — same field names as the PyTorch reference JSON
+    std::cout << "\n[";
     for (size_t i = 0; i < dets.size(); ++i) {
       const auto &d = dets[i];
-      // area in pixels^2 (832 scale)
-      float area = (d.x2 - d.x1) * (d.y2 - d.y1);
-      float cx = (d.x1 + d.x2) * 0.5f;
-      float cy = (d.y1 + d.y2) * 0.5f;
-      std::cout << "  [" << i << "] (" << d.x1 << ", " << d.y1 << ", " << d.x2
-                << ", " << d.y2 << ")  conf=" << d.conf << " cls=" << d.cls
-                << " area=" << area << " center=(" << cx << "," << cy << ")"
-                << std::endl;
+      if (i)
+        std::cout << ",";
+      std::printf("\n  {\"x1\": %.6g, \"y1\": %.6g, \"x2\": %.6g,"
+                  " \"y2\": %.6g, \"conf\": %.6g, \"cls\": %d}",
+                  d.x1, d.y1, d.x2, d.y2, d.conf, d.cls);
     }
+    std::cout << (dets.empty() ? "" : "\n") << "]" << std::endl;
 
     if (verify) {
       std::cout << "\nVerification vs PyTorch references:" << std::endl;
