@@ -30,6 +30,7 @@
 #include <nntrainer_log.h>
 #include <node_exporter.h>
 #include <profiler.h>
+#include <q8_0_tensor.h>
 #include <tensor_dim.h>
 #include <thread>
 #include <thread_manager.h>
@@ -81,10 +82,171 @@ static TensorDim calcCol2ImOutputDim(const TensorDim &out,
                    out.getTensorType());
 }
 
+#ifdef ENABLE_FP16
+/**
+ * @brief Transpose-and-quantize FP16 NCHW [in_ch, owoh] -> Q8_0 [owoh, in_ch]
+ *        in a single fused pass (no intermediate transpose copy).
+ *
+ * Each output row r (a spatial position) is quantized per 32-channel block:
+ * block (r, b) covers channels [b*32, b*32+32). The FP16 source is NCHW
+ * (channel-major), so channel c at position r lives at src[c*owoh + r]. This
+ * gathers a 32-wide channel run with a strided read and writes a packed
+ * block_q8_0 (fp16 scale + 32 int8). Parallelized over spatial positions.
+ *
+ * dst must hold (owoh * in_ch/32) block_q8_0 = owoh*in_ch/32*34 bytes, laid out
+ * row-major as [owoh][in_ch/32] blocks — exactly the [M,K] block_q8_0 layout
+ * Q8_0_Tensor::dot / the indirect GEMM consumes (M=owoh, K=in_ch).
+ */
+static inline void transpose_quantize_q8_0_act(const _FP16 *src, int in_ch,
+                                                int owoh, void *dst) {
+  struct block_q8_0 {
+    uint16_t d;
+    int8_t qs[32];
+  };
+  block_q8_0 *y = static_cast<block_q8_0 *>(dst);
+  const int qk = 32;
+  const int nb = in_ch / qk;
+
+  auto &tm = ThreadManager::Global();
+  const unsigned int chunk = 1024;
+  const size_t loops = (owoh + chunk - 1) / chunk;
+  tm.parallel_for(0, loops, [=](size_t idx) {
+    unsigned int r0 = idx * chunk;
+    unsigned int r1 = std::min(r0 + chunk, (unsigned int)owoh);
+    for (unsigned int r = r0; r < r1; ++r) {
+      for (int b = 0; b < nb; ++b) {
+        float amax = 0.0f;
+        for (int j = 0; j < qk; ++j) {
+          int c = b * qk + j;
+          float val =
+            std::abs(static_cast<float>(src[c * owoh + r]));
+          if (val > amax)
+            amax = val;
+        }
+        const float d = amax / ((1 << 7) - 1);
+        const float id = d ? 1.0f / d : 0.0f;
+        _FP16 d_half = static_cast<_FP16>(d);
+        uint16_t d_u16;
+        std::memcpy(&d_u16, &d_half, 2);
+        y[r * nb + b].d = d_u16;
+        for (int j = 0; j < qk; ++j) {
+          int c = b * qk + j;
+          float x0 = static_cast<float>(src[c * owoh + r]) * id;
+          y[r * nb + b].qs[j] = std::roundf(x0);
+        }
+      }
+    }
+  });
+}
+
+/**
+ * @brief Fused transpose + quantize FP16 NCHW [in_ch, owoh] directly into the
+ *        block_q8_0x4 (4-row interleaved) layout the SMMLA GEMM consumes, with
+ *        NO intermediate plain-block pass and NO separate interleave copy.
+ *
+ * Outputs (M4 = owoh/4) groups of 4 rows; each group packs nb=in_ch/32
+ * block_q8_0x4. block_q8_0x4.qs[128] layout = qs[32*j + 8*row + lane],
+ * j=8-element chunk (0..3), row=0..3 (matches __ggml_quantize_mat_q8_0_4x8).
+ * Remainder (owoh % 4) rows packed as plain block_q8_0 afterward for the GEMV
+ * tail. dst must hold the block_q8_0x4 region followed by the remainder
+ * block_q8_0 region (same total as Q8_0_Tensor::dot's QA buffer).
+ */
+static inline void
+transpose_quantize_q8_0x4_act(const _FP16 *src, int in_ch, int owoh,
+                               void *dst) {
+  struct block_q8_0 {
+    uint16_t d;
+    int8_t qs[32];
+  };
+  struct block_q8_0x4 {
+    uint16_t d[4];
+    int8_t qs[128];
+  };
+  const int qk = 32;
+  const int nb = in_ch / qk;
+  const int M4 = owoh / 4;
+  const int rem = owoh % 4;
+  block_q8_0x4 *y4 = static_cast<block_q8_0x4 *>(dst);
+  const size_t qa_4_rows_size = sizeof(block_q8_0x4) * nb;
+
+  auto &tm = ThreadManager::Global();
+  const unsigned int chunk = 256; // groups of 4 rows per task
+  const size_t loops = (M4 + chunk - 1) / chunk;
+  tm.parallel_for(0, loops, [=](size_t idx) {
+    unsigned int g0 = idx * chunk;
+    unsigned int g1 = std::min(g0 + chunk, (unsigned int)M4);
+    for (unsigned int g = g0; g < g1; ++g) {
+      unsigned int r0 = g * 4;
+      for (int b = 0; b < nb; ++b) {
+        block_q8_0x4 &dst_b = y4[g * nb + b];
+        for (unsigned int row = 0; row < 4; ++row) {
+          unsigned int r = r0 + row;
+          float amax = 0.0f;
+          for (int j = 0; j < qk; ++j) {
+            int c = b * qk + j;
+            float val = std::abs(static_cast<float>(src[c * owoh + r]));
+            if (val > amax)
+              amax = val;
+          }
+          const float d = amax / ((1 << 7) - 1);
+          const float id = d ? 1.0f / d : 0.0f;
+          _FP16 d_half = static_cast<_FP16>(d);
+          uint16_t d_u16;
+          std::memcpy(&d_u16, &d_half, 2);
+          dst_b.d[row] = d_u16;
+          for (int j = 0; j < qk; ++j) {
+            int c = b * qk + j;
+            float x0 = static_cast<float>(src[c * owoh + r]) * id;
+            // qs[32*chunk + 8*row + lane], chunk = j/8, lane = j%8
+            dst_b.qs[32 * (j / 8) + 8 * row + (j % 8)] =
+              static_cast<int8_t>(std::roundf(x0));
+          }
+        }
+      }
+    }
+  });
+
+  // Remainder rows (owoh % 4): plain block_q8_0 for the GEMV tail.
+  if (rem > 0) {
+    block_q8_0 *yrem =
+      reinterpret_cast<block_q8_0 *>(reinterpret_cast<char *>(dst) +
+                                     (size_t)M4 * qa_4_rows_size);
+    const unsigned int rchunk = 1024;
+    const size_t rloops = (rem + rchunk - 1) / rchunk;
+    tm.parallel_for(0, rloops, [=](size_t idx) {
+      unsigned int i0 = idx * rchunk;
+      unsigned int i1 = std::min(i0 + rchunk, (unsigned int)rem);
+      for (unsigned int i = i0; i < i1; ++i) {
+        unsigned int r = M4 * 4 + i;
+        for (int b = 0; b < nb; ++b) {
+          float amax = 0.0f;
+          for (int j = 0; j < qk; ++j) {
+            int c = b * qk + j;
+            float val = std::abs(static_cast<float>(src[c * owoh + r]));
+            if (val > amax)
+              amax = val;
+          }
+          const float d = amax / ((1 << 7) - 1);
+          const float id = d ? 1.0f / d : 0.0f;
+          _FP16 d_half = static_cast<_FP16>(d);
+          uint16_t d_u16;
+          std::memcpy(&d_u16, &d_half, 2);
+          yrem[i * nb + b].d = d_u16;
+          for (int j = 0; j < qk; ++j) {
+            int c = b * qk + j;
+            float x0 = static_cast<float>(src[c * owoh + r]) * id;
+            yrem[i * nb + b].qs[j] = static_cast<int8_t>(std::roundf(x0));
+          }
+        }
+      }
+    });
+  }
+}
+#endif
+
 /**
  * @brief     reconstruct image data from 2d column matrix
  *
- * @param[in] in input data
  * @param[in] kdim kernel dimesion for define number of row
  * @param[in] padding padding information
  * @param[in] mstride stride value : x, y direction
@@ -514,7 +676,19 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
     // that never materialize a col buffer: the 1x1 path (im2col is an identity
     // handled by an input transpose) and, where the fused backend op exists,
     // the non-1x1 path (gather is fused into the q8_0 activation packing).
-    if (!(quant_matmul_filter && (is_1x1_s1 || NNTR_HAS_Q4_0_INDIRECT_CONV))) {
+    if (quant_matmul_filter && is_1x1_s1) {
+      // W4A8 1x1 path: stage the activation as a pre-quantized Q8_0 matrix
+      // [owoh, in_ch] (block_q8_0) once, fused with the NCHW->act transpose,
+      // so the Q4_0 GEMM consumes int8 directly (no per-tile FP16->Q8_0
+      // re-quantization). Modeled as a Q8_0 tensor [batch,1,owoh,in_ch].
+      auto q80_type = scratch_type;
+      q80_type.data_type = nntrainer::Tdatatype::Q8_0;
+      TensorDim q80_dim(in_dim.batch(), 1, owoh, in_dim.channel(), q80_type);
+      wt_idx[ConvParams::im2col_scratch] =
+        context.requestTensor(q80_dim, "q80_act", Initializer::NONE, false,
+                              TensorLifespan::FORWARD_FUNC_LIFESPAN);
+    } else if (
+      !(quant_matmul_filter && NNTR_HAS_Q4_0_INDIRECT_CONV)) {
       TensorDim col_dim(in_dim.batch(), 1, real_kernel_dim.getFeatureLen(),
                         owoh, scratch_type);
       wt_idx[ConvParams::im2col_scratch] =
@@ -621,7 +795,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
     // output is fully overwritten so it needs no zeroing). Each batch element
     // writes a disjoint batch-slice, so this stays correct under ParallelBatch.
     const bool use_im2col_scratch =
-      !(weight_is_quant && (is_1x1_s1 || NNTR_HAS_Q4_0_INDIRECT_CONV));
+      !(weight_is_quant && !is_1x1_s1 && NNTR_HAS_Q4_0_INDIRECT_CONV);
     Tensor *col_scratch =
       use_im2col_scratch
         ? &context.getTensor(wt_idx[ConvParams::im2col_scratch])
@@ -649,12 +823,32 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
           tmp.reshape(
             TensorDim(1, 1, owoh, filter_size, in_sub.getTensorType()));
           if (is_1x1_s1) {
-            // 1x1 stride-1: im2col is an identity. The raw input is laid out as
-            // [in_ch, OH*OW] (NCHW), so transpose to the act layout [OH*OW,
-            // CRS] (CRS == in_ch here).
+            // W4A8 1x1 stride-1: fuse the NCHW[in_ch,owoh]->act[owoh,in_ch]
+            // transpose with FP16->Q8_0 quantization in one pass, then run the
+            // Q4_0 x Q8_0 GEMM on int8 activations directly (no per-tile
+            // re-quantization, no separate transpose copy). Output tmp is FP16
+            // [owoh, out_ch].
+#ifdef ENABLE_FP16
+            Tensor col = col_scratch->getBatchSlice(b, 1);
+            // col is a Q8_0 buffer [1,1,owoh,in_ch] (bytes = owoh*in_ch/32*34,
+            // exactly the block_q8_0x4+remainder footprint). Fused
+            // transpose+quantize straight into the GEMM's x4 layout: no FP16
+            // transpose copy, no plain-block pass, no interleave, no heap.
+            in_sub.reshape({in_dim.channel(), owoh});
+            transpose_quantize_q8_0x4_act(in_sub.getData<_FP16>(),
+                                          in_dim.channel(), owoh,
+                                          col.getData());
+            // Q8_0x4 act [owoh,in_ch] . Q4_0 weight [in_ch,out_ch] -> FP16 tmp
+            // [owoh,out_ch] (ldc = filter_size). SMMLA (i8mm) GEMM, no alloc.
+            Q8_0_Tensor::dot_prepacked_x4(owoh, in_dim.channel(), filter_size,
+                                          col.getData(),
+                                          filter_kernel.getData<uint8_t>(),
+                                          tmp.getData<_FP16>(), filter_size);
+#else
             in_sub.reshape({in_dim.channel(), owoh});
             Tensor act = in_sub.transpose("0:2:1");
             act.dot(filter_kernel, tmp, false, false);
+#endif
           } else if (NNTR_HAS_Q4_0_INDIRECT_CONV) {
             // Fused im2col gather: the FP32 col buffer is never materialized.
             // The gather runs inside the GEMM's q8_0 activation packing,

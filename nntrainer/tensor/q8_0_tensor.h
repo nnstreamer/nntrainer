@@ -144,6 +144,28 @@ public:
   Tensor &convQ4_0Indirect(Tensor const &weight, Tensor &output,
                            const ConvGatherParams &geom) const override;
 
+  /**
+   * @brief Q8_0 (this, [M,K]) x Q4_0 (input, [K,N]) -> FP16 (output, [M,N]).
+   *
+   * Repacks the Q8_0 activation rows into block_q8_0x4 (4-row interleave) and
+   * calls the SMMLA (i8mm) GEMM kernel directly on int8, bypassing all
+   * FP16 dequantization / re-quantization. Used by the W4A8 1x1 conv path.
+   */
+  Tensor &dot(Tensor const &input, Tensor &output, bool trans = false,
+              bool trans_in = false, float beta = 0.0f) const override;
+
+  /**
+   * @brief Direct Q8_0x4 (pre-interleaved) act x Q4_0 weight -> FP16 GEMM.
+   *
+   * @a QA already holds the activation as block_q8_0x4 (4-row interleaved) for
+   * the first M4*4 rows followed by plain block_q8_0 for the M%4 remainder
+   * (produced by transpose_quantize_q8_0x4_act). Runs only the SMMLA GEMM +
+   * GEMV tail (no allocation, no interleave) — the fast W4A8 1x1 path.
+   */
+  static void dot_prepacked_x4(unsigned int M, unsigned int K, unsigned int N,
+                               const void *QA, const void *B, _FP16 *C,
+                               unsigned int ldc);
+
 private:
   void copy_q80(const void *buf);
 
