@@ -916,6 +916,15 @@ void __fallback_gemm_q4_0(const unsigned int M, const unsigned int N,
                           const unsigned int ldb, T *C, const unsigned int ldc);
 
 /**
+ * @brief q8_0 GEMM (scalar reference) : A (M,K) * W.T (N,K) = O (M,N)
+ */
+template <typename T = float>
+void __fallback_gemm_q8_0(const unsigned int M, const unsigned int N,
+                          const unsigned int K, const T *A,
+                          const unsigned int lda, const void *B,
+                          const unsigned int ldb, T *C, const unsigned int ldc);
+
+/**
  * @brief q4_K GEMM : A (M,K) * W.T (N,K) = O (M,N)
  *
  * @param M Original row size of output

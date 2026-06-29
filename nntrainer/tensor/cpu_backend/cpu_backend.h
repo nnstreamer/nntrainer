@@ -1114,6 +1114,15 @@ extern void gemm_q4_0(const unsigned int M, const unsigned int N,
                       const unsigned int ldc);
 
 /**
+ * @brief q8_0 GEMM : A (M,K) * W.T (N,K) = O (M,N)
+ */
+template <typename T = float>
+extern void gemm_q8_0(const unsigned int M, const unsigned int N,
+                      const unsigned int K, const T *A, const unsigned int lda,
+                      const void *B, const unsigned int ldb, T *C,
+                      const unsigned int ldc);
+
+/**
  * @brief q4_0 conv GEMM with im2col gather fused into the q8_0 activation
  * packing. The FP32 im2col col buffer is never materialized: each output row is
  * gathered directly from the NCHW input @a in (per @a geom) as it is quantized.
@@ -1201,6 +1210,16 @@ extern size_t quantize_q4_0(const float *src, void *dst, int64_t nrow,
                             int64_t n_per_row, const float *quant_weights);
 
 /**
+ * @brief quantize_q8_0 function
+ */
+extern size_t quantize_q8_0(const float *src, void *dst, int64_t nrow,
+                            int64_t n_per_row, const float *quant_weights);
+#ifdef ENABLE_FP16
+extern size_t quantize_q8_0(const _FP16 *src, void *dst, int64_t nrow,
+                            int64_t n_per_row, const float *quant_weights);
+#endif
+
+/**
  * @brief quantize_q4_K function
  *
  * @param src float* to quantize
@@ -1265,6 +1284,16 @@ extern void dequantize_row_q4_K(const void *x, float *y, int64_t k);
  * @param k number of elements in x
  */
 extern void dequantize_row_q4_0(const void *x, float *y, int64_t k);
+
+/**
+ * @brief dequantize row of q8_0 data to float
+ */
+extern void dequantize_row_q8_0(const void *x, float *y, int64_t k);
+
+/**
+ * @brief quantize row of float data to q8_0
+ */
+extern void quantize_row_q8_0(const float *src, void *dst, int64_t k);
 
 /**
  * @brief dequantize row of q6_K data to float

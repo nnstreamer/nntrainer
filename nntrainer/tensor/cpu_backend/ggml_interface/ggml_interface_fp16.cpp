@@ -661,6 +661,102 @@ void __ggml_q4_0_4x8_q8_0_indirect_GEMM_fp16(
     __copy_f16_from_f32(tail32.data(), C + (size_t)M4 * 4 * N, (size_t)rem * N);
   }
 }
+
+void __ggml_q4_0_4x8_q8_0_indirect_GEMM_q8_0(
+  const unsigned int M, const unsigned int N, const unsigned int K,
+  const void *in, const ConvGatherParams &geom, const void *B,
+  const unsigned int ldb, _FP16 *C, const unsigned int ldc) {
+  auto &tm = ThreadManager::Global();
+  (void)ldb;
+
+  const unsigned int blocks_per_4_rows = (K + QK8_0 - 1) / QK8_0;
+  const unsigned int qa_4_rows_size = sizeof(block_q8_0x4) * blocks_per_4_rows;
+  const size_t qa_row_size =
+    (sizeof(block_q8_0) * K) / QK8_0; // ignore remainder
+  const unsigned int M4 = M / 4;
+  const unsigned int rem = M % 4;
+
+  const unsigned int qa_size =
+    qa_4_rows_size * M4 + static_cast<unsigned int>(qa_row_size) * rem;
+  std::vector<char> QA(qa_size);
+  char *QA_ptr = QA.data();
+
+  const unsigned int QCHUNK = 64; // multiple of 4
+  if (M4 > 0) {
+    const unsigned int rows4 = M4 * 4;
+    const size_t qloops = (rows4 + QCHUNK - 1) / QCHUNK;
+    tm.parallel_for(0, qloops, [=](size_t q) {
+      const unsigned int r0 = static_cast<unsigned int>(q) * QCHUNK;
+      const unsigned int r1 = std::min(r0 + QCHUNK, rows4);
+      for (unsigned int r = r0; r < r1; r += 4) {
+        gather_conv_act_rows_q8_0(QA_ptr + (r / 4) * qa_4_rows_size, in, geom, (int)r, 4);
+      }
+    });
+  }
+
+  for (unsigned int i = M4 * 4; i < M; ++i) {
+    gather_conv_act_rows_q8_0_single(
+      QA_ptr + (M4 * qa_4_rows_size) + (i - M4 * 4) * qa_row_size, in, geom, (int)i);
+  }
+
+  const unsigned int A_step = sizeof(block_q8_0) * (K / QK8_0);
+  const unsigned int B_step = sizeof(block_q4_0) * (K / QK4_0);
+
+  if (M4 > 0) {
+    const unsigned int row_chunk_size = 16;
+    const size_t row_loop = (M4 * 4 + row_chunk_size - 1) / row_chunk_size;
+    const unsigned int col_chunk_size = 16;
+    const size_t col_loop = (N + col_chunk_size - 1) / col_chunk_size;
+
+    tm.parallel_for(0, col_loop * row_loop, [=](size_t i) {
+      unsigned int r = i / col_loop;
+      unsigned int c = i % col_loop;
+
+      unsigned int r_start = r * row_chunk_size;
+      unsigned int r_end = std::min(row_chunk_size * (r + 1), M4 * 4);
+
+      unsigned int c_start = c * col_chunk_size;
+      unsigned int c_end = std::min(col_chunk_size * (c + 1), N);
+
+#if defined(__ARM_NEON)
+      nntr_gemm_q4_0_4x8_q8_0_fp16(K, (_FP16 *)(C + r_start * N + c_start), ldc,
+                                   (void *)((char *)B + c_start * B_step),
+                                   (void *)(QA_ptr + r_start * A_step),
+                                   r_end - r_start, c_end - c_start);
+#else
+      unsigned int t_rows = r_end - r_start;
+      unsigned int t_cols = c_end - c_start;
+      std::vector<float> tile(t_rows * t_cols);
+      nntr_gemm_q4_0_4x8_q8_0(K, tile.data(), t_cols,
+                              (void *)((char *)B + c_start * B_step),
+                              (void *)(QA_ptr + r_start * A_step), t_rows,
+                              t_cols);
+      for (unsigned int ii = 0; ii < t_rows; ++ii)
+        __copy_f16_from_f32(&tile[ii * t_cols],
+                            C + (r_start + ii) * N + c_start, t_cols);
+#endif
+    });
+  }
+
+  if (rem > 0) {
+    std::vector<float> tail32(rem * (size_t)N);
+    unsigned int chunk_size = 16;
+    unsigned int loop = (N + chunk_size - 1) / chunk_size;
+    for (unsigned int pb = M4 * 4; pb < M; pb++) {
+      tm.parallel_for(0, loop, [=, &tail32](size_t idx) {
+        unsigned int M_step_start = chunk_size * idx;
+        unsigned int M_step_end = std::min(chunk_size * (idx + 1), (size_t)N);
+
+        nntr_gemv_q4_0_4x8_q8_0(
+          K, (float *)(tail32.data() + (pb - M4 * 4) * N) + M_step_start, N,
+          (void *)((char *)B + M_step_start * B_step),
+          QA_ptr + (M4 * qa_4_rows_size) + (pb - M4 * 4) * qa_row_size, 1,
+          M_step_end - M_step_start);
+      });
+    }
+    __copy_f16_from_f32(tail32.data(), C + (size_t)M4 * 4 * N, (size_t)rem * N);
+  }
+}
 #endif
 
 } // namespace nntrainer

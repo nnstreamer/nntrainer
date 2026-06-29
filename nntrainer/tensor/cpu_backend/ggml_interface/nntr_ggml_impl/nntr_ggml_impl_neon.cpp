@@ -22,6 +22,7 @@
 #include <cstring>
 #include <math.h>
 #include <stddef.h>
+#include <stdexcept>
 #include <stdint.h>
 #include <tensor_dim.h>
 
@@ -2401,4 +2402,71 @@ void nntr_gemv_q4_0_8x8_q8_0(int n, float *__restrict s, size_t bs,
         s[x * ncols_interleaved + j] = sumf[j];
     }
   }
+}
+
+// ============================================================================
+// Q8_0 x Q8_0 GEMM (NEON) -- phase C-2 of native Q8_0 support.
+//
+// Mirror of the AVX2 nntr_gemm_q8_0_q8_0 in nntr_ggml_impl_avx.cpp. The int8
+// dot product core is the SAME helper Q4_0's NEON kernel uses:
+//
+//   ggml_vdotq_s32(acc, a, b)
+//     -> single `vdotq_s32` (NEON SDOT) when __ARM_FEATURE_DOTPROD is set,
+//        i.e. armv8.2-a and later.
+//     -> vmull_s8 / vpaddlq_s16 / vaddq_s32 fallback otherwise (armv8.0-a).
+//
+// So the inner-loop instruction mix matches the Q4_0 NEON path exactly. The
+// only structural difference is that Q8_0 weights are already 32 int8s per
+// block -- no 4-bit nibble unpack, no Q4_0x8 interleave repack.
+//
+// Layout / shape contract (identical to the AVX2 sibling):
+//   n  : K (must be a multiple of QK8_0=32)
+//   s  : output FP32, [nr x nc]
+//   bs : ldc (in element units, >= nc)
+//   vx : weights, const block_q8_0 *, packed [nc x K/32]
+//   vy : activations, const block_q8_0 *, packed [nr x K/32]
+//   nr : M (activation rows), nc : N (weight rows / output cols)
+// ============================================================================
+void nntr_gemm_q8_0_q8_0(int n, float *__restrict s, size_t bs,
+                         const void *__restrict vx, const void *__restrict vy,
+                         int nr, int nc) {
+  const int qk = QK8_0;
+  const int nb = n / qk;
+  assert(n % qk == 0);
+
+  const block_q8_0 *a_base = (const block_q8_0 *)vy; // activations [nr x nb]
+  const block_q8_0 *b_base = (const block_q8_0 *)vx; // weights     [nc x nb]
+
+  for (int m = 0; m < nr; ++m) {
+    const block_q8_0 *a_row = a_base + (size_t)m * nb;
+    for (int j = 0; j < nc; ++j) {
+      const block_q8_0 *b_row = b_base + (size_t)j * nb;
+      float acc = 0.0f;
+      for (int b = 0; b < nb; ++b) {
+        // Each block holds 32 int8 quants; load as two int8x16 vectors.
+        const int8x16_t a0 = vld1q_s8(a_row[b].qs);
+        const int8x16_t a1 = vld1q_s8(a_row[b].qs + 16);
+        const int8x16_t b0 = vld1q_s8(b_row[b].qs);
+        const int8x16_t b1 = vld1q_s8(b_row[b].qs + 16);
+
+        // SAME helper as the Q4_0 NEON path.
+        int32x4_t sumi = vdupq_n_s32(0);
+        sumi = ggml_vdotq_s32(sumi, a0, b0);
+        sumi = ggml_vdotq_s32(sumi, a1, b1);
+
+        const int32_t isum = vaddvq_s32(sumi);
+        const float da = nntr_fp16_to_fp32(a_row[b].d);
+        const float db = nntr_fp16_to_fp32(b_row[b].d);
+        acc += da * db * (float)isum;
+      }
+      s[(size_t)m * bs + j] = acc;
+    }
+  }
+}
+
+void nntr_gemv_q8_0_q8_0(int n, float *__restrict s, size_t bs,
+                         const void *__restrict vx, const void *__restrict vy,
+                         int nr, int nc) {
+  (void)nr;
+  nntr_gemm_q8_0_q8_0(n, s, bs, vx, vy, 1, nc);
 }

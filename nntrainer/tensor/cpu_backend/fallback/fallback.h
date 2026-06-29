@@ -1007,14 +1007,12 @@ void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
                const unsigned int ldb, T *C, const unsigned int ldc);
 
 /**
- * @brief q4_0 GEMM against several weights : A (M,K) * Ws[i].T (Ns[i],K)
- *
- * The fallback has no batched kernel, so it simply walks the weights.
+ * @brief q8_0 GEMM (scalar fallback). See __fallback_gemm_q8_0 for semantics.
  */
-void gemm_q4_0(const unsigned int M, std::vector<unsigned int> Ns,
-               const unsigned int K, const float *A, const unsigned int lda,
-               std::vector<void *> Bs, std::vector<unsigned int> ldbs,
-               std::vector<float *> Cs, std::vector<unsigned int> ldcs);
+template <typename T = float>
+void gemm_q8_0(const unsigned int M, const unsigned int N, const unsigned int K,
+               const T *A, const unsigned int lda, const void *B,
+               const unsigned int ldb, T *C, const unsigned int ldc);
 /**
  * @brief q4_K GEMM : A (M,K) * W.T (N,K) = O (M,N)
  *

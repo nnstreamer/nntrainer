@@ -335,6 +335,41 @@ void nntr_gemv_q4_0_8x8_q8_0(int n, float *__restrict s, size_t bs,
                            "kernels for armv7l");
 }
 
+// Q8_0 x Q8_0 GEMM/GEMV: fallback (non-AVX2 / non-NEON CPU builds).
+// The actual scalar reference lives in __fallback_gemm_q8_0 in
+// nntrainer/tensor/cpu_backend/fallback/fallback_internal.cpp -- the x86
+// backend routes here only when AVX2 is unavailable, which is unusual
+// for nntrainer's CPU builds. Keep an explicit NYI so a misconfiguration
+// surfaces loudly instead of running silently slow.
+void nntr_gemm_q8_0_q8_0(int n, float *__restrict s, size_t bs,
+                         const void *__restrict vx, const void *__restrict vy,
+                         int nr, int nc) {
+  (void)n;
+  (void)s;
+  (void)bs;
+  (void)vx;
+  (void)vy;
+  (void)nr;
+  (void)nc;
+  throw std::runtime_error(
+    "NYI: nntr_gemm_q8_0_q8_0 fallback - AVX2 build required for SIMD path; "
+    "use __fallback_gemm_q8_0 (scalar) directly otherwise");
+}
+
+void nntr_gemv_q8_0_q8_0(int n, float *__restrict s, size_t bs,
+                         const void *__restrict vx, const void *__restrict vy,
+                         int nr, int nc) {
+  (void)n;
+  (void)s;
+  (void)bs;
+  (void)vx;
+  (void)vy;
+  (void)nr;
+  (void)nc;
+  throw std::runtime_error(
+    "NYI: nntr_gemv_q8_0_q8_0 fallback - AVX2 build required for SIMD path");
+}
+
 //============================================================================
 // GEMM/GEMV - Q8_0 4x4
 //============================================================================

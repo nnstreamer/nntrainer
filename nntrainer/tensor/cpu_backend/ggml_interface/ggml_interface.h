@@ -122,6 +122,15 @@ void __ggml_q4_0_8x8_q8_0_GEMM(const unsigned int M, const unsigned int N,
                                const unsigned int ldc);
 
 /**
+ * @brief Q8_0 weight x Q8_0 activation GEMM dispatcher.
+ */
+void __ggml_q8_0_q8_0_GEMM(const unsigned int M, const unsigned int N,
+                           const unsigned int K, const float *A,
+                           const unsigned int lda, const void *B,
+                           const unsigned int ldb, float *C,
+                           const unsigned int ldc);
+
+/**
  * @brief A(M, K) * W.T(N, K) = (M, N)
  *
  * @param M as descripted above
@@ -209,6 +218,19 @@ void __ggml_q4_0_4x8_q8_0_indirect_GEMM(const unsigned int M,
 void __ggml_q4_0_4x8_q8_0_indirect_GEMM_fp16(
   const unsigned int M, const unsigned int N, const unsigned int K,
   const _FP16 *in, const ConvGatherParams &geom, const void *B,
+  const unsigned int ldb, _FP16 *C, const unsigned int ldc);
+
+/**
+ * @brief Pre-quantized Q8_0 activation indirect Q4_0 conv GEMM (Task B2).
+ *
+ * Direct Q8_0-activation indirect-conv GEMM. Input `in` is a contiguous pre-quantized
+ * block_q8_0 array of shape [IH_in * IW_in, in_ch_blocks]. We gather blocks directly
+ * and pack them into block_q8_0x4 interleaved format, bypassing all dequantization
+ * and re-quantization steps. Output C is FP16.
+ */
+void __ggml_q4_0_4x8_q8_0_indirect_GEMM_q8_0(
+  const unsigned int M, const unsigned int N, const unsigned int K,
+  const void *in, const ConvGatherParams &geom, const void *B,
   const unsigned int ldb, _FP16 *C, const unsigned int ldc);
 #endif
 

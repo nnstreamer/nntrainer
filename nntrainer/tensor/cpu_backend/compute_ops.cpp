@@ -199,6 +199,17 @@ void ComputeOps::gemm_q4_0_fp32(unsigned int, unsigned int, unsigned int,
                                 unsigned int, float *, unsigned int) {
   NI(gemm_q4_0_fp32);
 }
+void ComputeOps::gemm_q8_0_fp32(unsigned int, unsigned int, unsigned int,
+                                const float *, unsigned int, const void *,
+                                unsigned int, float *, unsigned int) {
+  NI(gemm_q8_0_fp32);
+}
+void ComputeOps::quantize_row_q8_0(const float *, void *, int64_t) {
+  NI(quantize_row_q8_0);
+}
+void ComputeOps::dequantize_row_q8_0(const void *, float *, int64_t) {
+  NI(dequantize_row_q8_0);
+}
 void ComputeOps::gemm_q4_K_fp32(unsigned int, unsigned int, unsigned int,
                                 const float *, unsigned int, const void *,
                                 unsigned int, float *, unsigned int) {
@@ -415,6 +426,13 @@ void ComputeOps::gemm_q4_0_indirect_conv_fp16(unsigned int, unsigned int,
                                               const void *, unsigned int,
                                               _FP16 *, unsigned int) {
   NI(gemm_q4_0_indirect_conv_fp16);
+}
+void ComputeOps::gemm_q4_0_indirect_conv_q8_0(unsigned int, unsigned int,
+                                              unsigned int, const void *,
+                                              const ConvGatherParams &,
+                                              const void *, unsigned int,
+                                              _FP16 *, unsigned int) {
+  NI(gemm_q4_0_indirect_conv_q8_0);
 }
 void ComputeOps::gemm_q6_K_fp16(unsigned int, unsigned int, unsigned int,
                                 const _FP16 *, unsigned int, const void *,

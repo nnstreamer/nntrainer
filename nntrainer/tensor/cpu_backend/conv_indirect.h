@@ -153,6 +153,116 @@ inline void gather_conv_act_rows_fp16(_FP16 *dst, const _FP16 *in,
 }
 #endif
 
+/**
+ * @brief Pre-quantized Q8_0 gather for the Q8_0-activation indirect-conv path.
+ *
+ * Gathers pre-quantized block_q8_0 blocks from the Q8_0 input tensor and
+ * interleaves them directly into the block_q8_0x4 format expected by the SMMLA
+ * GEMM kernel. Bypasses all FP16 dequantization and Q8_0 re-quantization,
+ * executing as a pure byte-copy (memcpy) operation.
+ */
+inline void gather_conv_act_rows_q8_0(void *vy, const void *vx,
+                                      const ConvGatherParams &p, int m0,
+                                      int nrows) {
+  struct local_block_q8_0 {
+    uint16_t d;
+    int8_t qs[32];
+  };
+
+  struct local_block_q8_0x4 {
+    uint16_t d[4];
+    int8_t qs[128];
+  };
+
+  const local_block_q8_0 *in = (const local_block_q8_0 *)vx;
+  local_block_q8_0x4 *y = (local_block_q8_0x4 *)vy;
+
+  const int ch_blocks = p.in_ch / 32;
+  const int blocks_per_row = p.k_h * p.k_w * ch_blocks;
+
+  const int hstride = p.stride_h;
+  const int wstride = p.stride_w;
+
+  for (int b_idx = 0; b_idx < blocks_per_row; ++b_idx) {
+    int khkw_idx = b_idx / ch_blocks;
+    int cb = b_idx % ch_blocks;
+    int kh = khkw_idx / p.k_w;
+    int kw = khkw_idx % p.k_w;
+
+    local_block_q8_0x4 &dst_block = y[b_idx];
+
+    for (int r = 0; r < 4; ++r) {
+      if (r >= nrows) {
+        dst_block.d[r] = 0;
+        std::memset(&dst_block.qs[32 * r], 0, 32);
+        continue;
+      }
+
+      const int m = m0 + r;
+      const int oh = m / p.out_w;
+      const int ow = m % p.out_w;
+
+      const int h = oh * hstride - p.pad_t + kh * p.dil_h;
+      const int w = ow * wstride - p.pad_l + kw * p.dil_w;
+
+      if (h >= 0 && h < p.in_h && w >= 0 && w < p.in_w) {
+        const local_block_q8_0 &src_block = in[(h * p.in_w + w) * ch_blocks + cb];
+        dst_block.d[r] = src_block.d;
+        std::memcpy(&dst_block.qs[32 * r], src_block.qs, 32);
+      } else {
+        dst_block.d[r] = 0;
+        std::memset(&dst_block.qs[32 * r], 0, 32);
+      }
+    }
+  }
+}
+
+/**
+ * @brief Pre-quantized Q8_0 gather for single row (leftover / remainder).
+ *
+ * Gathers a single row of pre-quantized block_q8_0 blocks from the Q8_0 input
+ * tensor without interleaving. Used by remainder rows in GEMV computation.
+ */
+inline void gather_conv_act_rows_q8_0_single(void *vy, const void *vx,
+                                             const ConvGatherParams &p, int m) {
+  struct local_block_q8_0 {
+    uint16_t d;
+    int8_t qs[32];
+  };
+
+  const local_block_q8_0 *in = (const local_block_q8_0 *)vx;
+  local_block_q8_0 *y = (local_block_q8_0 *)vy;
+
+  const int ch_blocks = p.in_ch / 32;
+  const int blocks_per_row = p.k_h * p.k_w * ch_blocks;
+
+  const int hstride = p.stride_h;
+  const int wstride = p.stride_w;
+
+  const int oh = m / p.out_w;
+  const int ow = m % p.out_w;
+
+  const int h0 = oh * hstride - p.pad_t;
+  const int w0 = ow * wstride - p.pad_l;
+
+  for (int b_idx = 0; b_idx < blocks_per_row; ++b_idx) {
+    int khkw_idx = b_idx / ch_blocks;
+    int cb = b_idx % ch_blocks;
+    int kh = khkw_idx / p.k_w;
+    int kw = khkw_idx % p.k_w;
+
+    const int h = h0 + kh * p.dil_h;
+    const int w = w0 + kw * p.dil_w;
+
+    if (h >= 0 && h < p.in_h && w >= 0 && w < p.in_w) {
+      y[b_idx] = in[(h * p.in_w + w) * ch_blocks + cb];
+    } else {
+      y[b_idx].d = 0;
+      std::memset(y[b_idx].qs, 0, 32);
+    }
+  }
+}
+
 } // namespace nntrainer
 
 #endif /* __NNTR_CONV_INDIRECT_H__ */

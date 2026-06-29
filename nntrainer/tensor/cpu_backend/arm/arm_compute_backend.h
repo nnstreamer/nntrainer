@@ -1131,6 +1131,14 @@ void gemm_q4_0(const unsigned int M, std::vector<unsigned int> Ns,
                const unsigned int K, const float *A, const unsigned int lda,
                std::vector<void *> Bs, std::vector<unsigned int> ldbs,
                std::vector<float *> Cs, std::vector<unsigned int> ldc);
+
+/**
+ * @brief q8_0 GEMM (scalar fallback for now). See cpu_backend.h gemm_q8_0.
+ */
+template <typename T = float>
+void gemm_q8_0(const unsigned int M, const unsigned int N, const unsigned int K,
+               const T *A, const unsigned int lda, const void *B,
+               const unsigned int ldb, T *C, const unsigned int ldc);
 /**
  * @brief q4_0 conv GEMM with im2col gather fused into q8_0 activation packing
  * (no FP32 col materialization). See cpu_backend.h for parameter semantics.
@@ -1150,6 +1158,15 @@ void gemm_q4_0_indirect_conv(const unsigned int M, const unsigned int N,
  */
 void gemm_q4_0_indirect_conv_fp16(const unsigned int M, const unsigned int N,
                                   const unsigned int K, const _FP16 *in,
+                                  const ConvGatherParams &geom, const void *B,
+                                  const unsigned int ldb, _FP16 *C,
+                                  const unsigned int ldc);
+
+/**
+ * @brief Pre-quantized Q8_0 activation indirect q4_0 conv GEMM (Task B2).
+ */
+void gemm_q4_0_indirect_conv_q8_0(const unsigned int M, const unsigned int N,
+                                  const unsigned int K, const void *in,
                                   const ConvGatherParams &geom, const void *B,
                                   const unsigned int ldb, _FP16 *C,
                                   const unsigned int ldc);
@@ -1203,6 +1220,19 @@ void gemm_q6_K(const unsigned int M, const unsigned int N, const unsigned int K,
  * @return size_t size of total quantized data in bytes
  */
 size_t quantize_q4_0(const float *src, void *dst, int64_t nrow,
+                     int64_t n_per_row, const float *quant_weights);
+
+/**
+ * @brief quantize_q8_0 function (FP32 source). Non-template float overload.
+ *
+ * @param src float* to quantize
+ * @param dst q8_0* destination (34 bytes / 32 elements)
+ * @param nrow number of rows
+ * @param n_per_row number of elements per row (must be multiple of 32)
+ * @param quant_weights unused
+ * @return size_t size of total quantized data in bytes
+ */
+size_t quantize_q8_0(const float *src, void *dst, int64_t nrow,
                      int64_t n_per_row, const float *quant_weights);
 /**
  * @brief quantize_q4_K function
@@ -1276,6 +1306,24 @@ void dequantize_row_q4_K(const void *x, float *y, int64_t k);
  * @param k number of elements in x
  */
 void dequantize_row_q4_0(const void *x, float *y, int64_t k);
+
+/**
+ * @brief dequantize row of q8_0 data to float
+ *
+ * @param x input to be dequantized from q8_0 to float
+ * @param y dequantized data output
+ * @param k number of elements in x
+ */
+void dequantize_row_q8_0(const void *x, float *y, int64_t k);
+
+/**
+ * @brief quantize row to q8_0
+ *
+ * @param src float* to quantize
+ * @param dst q8_0* destination
+ * @param k number of elements
+ */
+void quantize_row_q8_0(const float *src, void *dst, int64_t k);
 
 /**
  * @brief dequantize row of q6_K data to float

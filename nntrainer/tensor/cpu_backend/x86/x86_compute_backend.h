@@ -892,6 +892,15 @@ void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
                const T *A, const unsigned int lda, const void *B,
                const unsigned int ldb, T *C, const unsigned int ldc);
 
+/**
+ * @brief q8_0 GEMM (scalar fallback for now; SIMD path TBD).
+ *        See cpu_backend.h gemm_q8_0 for semantics.
+ */
+template <typename T = float>
+void gemm_q8_0(const unsigned int M, const unsigned int N, const unsigned int K,
+               const T *A, const unsigned int lda, const void *B,
+               const unsigned int ldb, T *C, const unsigned int ldc);
+
 void gemm_q4_0(const unsigned int M, std::vector<unsigned int> Ns,
                const unsigned int K, const float *A, const unsigned int lda,
                std::vector<void *> Bs, std::vector<unsigned int> ldbs,
@@ -969,6 +978,23 @@ size_t quantize_q4_0(const float *src, void *dst, int64_t nrow,
                      int64_t n_per_row, const float *quant_weights);
 
 /**
+ * @brief quantize_q8_0 function (FP32 source).
+ *
+ * Non-template float overload for layer code that wants a uniform
+ * nntrainer::quantize_q8_0(const float*, ...) call site mirroring Q4_0 /
+ * Q6_K. Internally calls __ggml_quantize_q8_0.
+ *
+ * @param src float* to quantize
+ * @param dst q8_0* destination (34 bytes / 32 elements)
+ * @param nrow number of rows
+ * @param n_per_row number of elements in each row (must be multiple of 32)
+ * @param quant_weights unused
+ * @return size_t size of total quantized data in bytes
+ */
+size_t quantize_q8_0(const float *src, void *dst, int64_t nrow,
+                     int64_t n_per_row, const float *quant_weights);
+
+/**
  * @brief quantize_q4_K function
  *
  * @param src float* to quantize
@@ -1032,6 +1058,20 @@ void dequantize_row_q4_K(const void *x, float *y, int64_t k);
  * @param k number of elements in x
  */
 void dequantize_row_q4_0(const void *x, float *y, int64_t k);
+
+/**
+ * @brief dequantize row of q8_0 data to float
+ *
+ * @param x_raw input to be dequantized from q8_0 to float
+ * @param y dequantized data output
+ * @param k number of elements in x_raw (multiple of 32)
+ */
+void dequantize_row_q8_0(const void *x_raw, float *y, int64_t k);
+
+/**
+ * @brief Quantize a row of float data to q8_0 (non-template, float overload).
+ */
+void quantize_row_q8_0(const float *src, void *dst, int64_t k);
 
 /**
  * @brief dequantize row of q6_K data to float

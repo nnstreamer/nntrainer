@@ -185,6 +185,17 @@ public:
                       unsigned int ldb, float *C, unsigned int ldc) override {
     nntrainer::gemm_q4_0(M, N, K, A, lda, B, ldb, C, ldc);
   }
+  void gemm_q8_0_fp32(unsigned int M, unsigned int N, unsigned int K,
+                      const float *A, unsigned int lda, const void *B,
+                      unsigned int ldb, float *C, unsigned int ldc) override {
+    nntrainer::gemm_q8_0(M, N, K, A, lda, B, ldb, C, ldc);
+  }
+  void quantize_row_q8_0(const float *src, void *dst, int64_t k) override {
+    nntrainer::quantize_row_q8_0(src, dst, k);
+  }
+  void dequantize_row_q8_0(const void *x, float *y, int64_t k) override {
+    nntrainer::dequantize_row_q8_0(x, y, k);
+  }
   void gemm_q4_K_fp32(unsigned int M, unsigned int N, unsigned int K,
                       const float *A, unsigned int lda, const void *B,
                       unsigned int ldb, float *C, unsigned int ldc) override {
@@ -389,6 +400,16 @@ public:
                                     unsigned int ldb, _FP16 *C,
                                     unsigned int ldc) override {
     nntrainer::gemm_q4_0_indirect_conv_fp16(M, N, K, in, geom, B, ldb, C, ldc);
+  }
+  bool supports_gemm_q4_0_indirect_conv_q8_0() const override {
+    return NNTR_HAS_Q4_0_INDIRECT_CONV;
+  }
+  void gemm_q4_0_indirect_conv_q8_0(unsigned int M, unsigned int N,
+                                    unsigned int K, const void *in,
+                                    const ConvGatherParams &geom, const void *B,
+                                    unsigned int ldb, _FP16 *C,
+                                    unsigned int ldc) override {
+    nntrainer::gemm_q4_0_indirect_conv_q8_0(M, N, K, in, geom, B, ldb, C, ldc);
   }
   void gemm_q6_K_fp16(unsigned int M, unsigned int N, unsigned int K,
                       const _FP16 *A, unsigned int lda, const void *B,

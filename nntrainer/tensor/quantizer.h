@@ -19,6 +19,9 @@
 
 #include <tensor_dim.h>
 
+/**
+ * @brief Namespace for nntrainer core components
+ */
 namespace nntrainer {
 
 class Tensor;
@@ -38,7 +41,7 @@ enum class QScheme : uint16_t {
   Q4_Kx8 = 0x03,
   Q6_K = 0x4,
   Q4_0 = 0x5,
-  QS4CX = 0x6,
+  Q8_0 = 0x6,
   /** this is for custom use */
   CUSTOM_QUANTIZER_01 = 0x10,
   CUSTOM_QUANTIZER_02 = 0x11,
@@ -350,13 +353,13 @@ private:
 
 /**
  * @class GgmlQuantizer class
- * @brief GgmlQuantizer class supports Q4_K, Q6_K, Q4_0 type.
+ * @brief GgmlQuantizer class supports Q4_K, Q6_K, Q4_0, and Q8_0 types.
  */
 class GgmlQuantizer : public NonUniformQuantizer {
 public:
   /**
    * @brief Constructor of a GgmlQuantizer
-   * @param scheme Quantization scheme (Q4_Kx8, Q6_K, or Q4_0)
+   * @param scheme Quantization scheme (Q4_Kx8, Q6_K, Q4_0, or Q8_0)
    */
   GgmlQuantizer(QScheme scheme = QScheme::Q4_Kx8) :
     NonUniformQuantizer(), scheme_(scheme) {}
@@ -514,6 +517,7 @@ public:
     case QScheme::Q4_Kx8:
     case QScheme::Q6_K:
     case QScheme::Q4_0:
+    case QScheme::Q8_0:
       return std::make_unique<GgmlQuantizer>(qscheme);
       break;
     case QScheme::QS4CX:

@@ -176,6 +176,15 @@ public:
                               const unsigned int lda, const void *B,
                               const unsigned int ldb, float *C,
                               const unsigned int ldc);
+  virtual void gemm_q8_0_fp32(const unsigned int M, const unsigned int N,
+                              const unsigned int K, const float *A,
+                              const unsigned int lda, const void *B,
+                              const unsigned int ldb, float *C,
+                              const unsigned int ldc);
+  ///@brief quantize a row of float data to q8_0 (layer-boundary cast)
+  virtual void quantize_row_q8_0(const float *src, void *dst, int64_t k);
+  ///@brief dequantize a row of q8_0 data to float (layer-boundary cast)
+  virtual void dequantize_row_q8_0(const void *x, float *y, int64_t k);
   virtual void gemm_q4_K_fp32(const unsigned int M, const unsigned int N,
                               const unsigned int K, const float *A,
                               const unsigned int lda, const void *B,
@@ -412,6 +421,12 @@ public:
   virtual bool supports_gemm_q4_0_indirect_conv_fp16() const { return false; }
   virtual void gemm_q4_0_indirect_conv_fp16(unsigned int M, unsigned int N,
                                             unsigned int K, const _FP16 *in,
+                                            const ConvGatherParams &geom,
+                                            const void *B, unsigned int ldb,
+                                            _FP16 *C, unsigned int ldc);
+  virtual bool supports_gemm_q4_0_indirect_conv_q8_0() const { return false; }
+  virtual void gemm_q4_0_indirect_conv_q8_0(unsigned int M, unsigned int N,
+                                            unsigned int K, const void *in,
                                             const ConvGatherParams &geom,
                                             const void *B, unsigned int ldb,
                                             _FP16 *C, unsigned int ldc);

@@ -4009,50 +4009,69 @@ void NNTR_Q4_0_8X8_FN(nntr_gemv_q4_0_8x8_q8_0)(int n, float *__restrict s,
   return;
 }
 
-#ifndef NNTR_GGML_AVXVNNI_VARIANT
-#ifdef NNTR_HAVE_AVXVNNI_TU
-#include <cpuid.h>
+// ============================================================================
+// Q8_0 x Q8_0 GEMM (AVX2) -- phase C-1 of native Q8_0 support
+//
+// Identical int8 dot-product machinery to nntr_gemm_q4_0_8x8_q8_0 (calls the
+// same mul_sum_i8_pairs_acc_int32x8 helper, which picks the best available
+// instruction: _mm256_dpbssd_epi32 / _mm256_dpbusd_epi32 / _mm256_maddubs_epi16
+// depending on CPU features). The only structural difference vs Q4_0 is that
+// Q8_0 weights are already stored as 32 int8s per block — no nibble-unpack
+// step is needed. Weights are consumed in their raw block_q8_0 layout, NOT
+// the Q4_0x8 interleaved layout the Q4_0 kernel uses.
+//
+// Note on perf: per K-block this kernel does the same int8 dot work as Q4_0,
+// minus the unpack. It loads 2x more weight bytes per block (32 vs 16) — so
+// in memory-bound regimes (typical LLM decode) it cannot beat Q4_0, only
+// match the int8 dot throughput. This is the fundamental trade for keeping
+// 8-bit weight precision.
+//
+// Layout / shape contract:
+//   n  : K (must be multiple of QK8_0=32)
+//   s  : output FP32, [nr x nc]
+//   bs : ldc, in element units, >= nc
+//   vx : weights, const block_q8_0 *, packed [nc x K/32] (NOT interleaved)
+//   vy : activations, const block_q8_0 *, packed [nr x K/32]
+//   nr : M (number of activation rows)
+//   nc : N (number of weight rows)
+// ============================================================================
+void nntr_gemm_q8_0_q8_0(int n, float *__restrict s, size_t bs,
+                         const void *__restrict vx, const void *__restrict vy,
+                         int nr, int nc) {
+  const int qk = QK8_0;
+  const int nb = n / qk;
+  assert(n % qk == 0);
 
-/**
- * @brief true when the CPU runs AVX-VNNI (CPUID.(EAX=7,ECX=1):EAX[4]).
- * The AVX2 build already presumes the OS saves the YMM state.
- */
-static bool nntr_cpu_has_avxvnni() {
-  unsigned int a = 0, b = 0, c = 0, d = 0;
-  if (!__get_cpuid_count(7, 1, &a, &b, &c, &d))
-    return false;
-  return (a >> 4) & 1u;
+  const block_q8_0 *a_base = (const block_q8_0 *)vy; // activations [nr x nb]
+  const block_q8_0 *b_base = (const block_q8_0 *)vx; // weights     [nc x nb]
+
+  for (int m = 0; m < nr; ++m) {
+    const block_q8_0 *a_row = a_base + (size_t)m * nb;
+    for (int j = 0; j < nc; ++j) {
+      const block_q8_0 *b_row = b_base + (size_t)j * nb;
+      float acc = 0.0f;
+      for (int b = 0; b < nb; ++b) {
+        const __m256i ax = _mm256_loadu_si256((const __m256i *)(a_row[b].qs));
+        const __m256i bx = _mm256_loadu_si256((const __m256i *)(b_row[b].qs));
+        // SAME helper as the Q4_0 path -> same int8 dot instruction mix.
+        const __m256i sumi32 =
+          mul_sum_i8_pairs_acc_int32x8(_mm256_setzero_si256(), ax, bx);
+        const int32_t isum = hsum_i32_8(sumi32);
+        const float da = nntr_fp16_to_fp32(a_row[b].d);
+        const float db = nntr_fp16_to_fp32(b_row[b].d);
+        acc += da * db * (float)isum;
+      }
+      s[(size_t)m * bs + j] = acc;
+    }
+  }
 }
 
-/** @brief AVX-VNNI bodies, built in nntr_ggml_impl_avxvnni.cpp */
-void nntr_gemm_q4_0_8x8_q8_0_avxvnni(int n, float *__restrict s, size_t bs,
-                                     const void *__restrict vx,
-                                     const void *__restrict vy, int nr, int nc);
-/** @brief AVX-VNNI bodies, built in nntr_ggml_impl_avxvnni.cpp */
-void nntr_gemv_q4_0_8x8_q8_0_avxvnni(int n, float *__restrict s, size_t bs,
-                                     const void *__restrict vx,
-                                     const void *__restrict vy, int nr, int nc);
-
-static const bool nntr_use_avxvnni = nntr_cpu_has_avxvnni();
-#endif
-
-void nntr_gemm_q4_0_8x8_q8_0(int n, float *__restrict s, size_t bs,
-                             const void *__restrict vx,
-                             const void *__restrict vy, int nr, int nc) {
-#ifdef NNTR_HAVE_AVXVNNI_TU
-  if (nntr_use_avxvnni)
-    return nntr_gemm_q4_0_8x8_q8_0_avxvnni(n, s, bs, vx, vy, nr, nc);
-#endif
-  nntr_gemm_q4_0_8x8_q8_0_avx2(n, s, bs, vx, vy, nr, nc);
+void nntr_gemv_q8_0_q8_0(int n, float *__restrict s, size_t bs,
+                         const void *__restrict vx, const void *__restrict vy,
+                         int nr, int nc) {
+  // GEMV is just GEMM with nr (== M for vy-layout) == 1. Keep the names
+  // separate to match the existing Q4_0 API surface so __ggml_q8_0_q8_0_GEMM
+  // can dispatch them.
+  (void)nr;
+  nntr_gemm_q8_0_q8_0(n, s, bs, vx, vy, 1, nc);
 }
-
-void nntr_gemv_q4_0_8x8_q8_0(int n, float *__restrict s, size_t bs,
-                             const void *__restrict vx,
-                             const void *__restrict vy, int nr, int nc) {
-#ifdef NNTR_HAVE_AVXVNNI_TU
-  if (nntr_use_avxvnni)
-    return nntr_gemv_q4_0_8x8_q8_0_avxvnni(n, s, bs, vx, vy, nr, nc);
-#endif
-  nntr_gemv_q4_0_8x8_q8_0_avx2(n, s, bs, vx, vy, nr, nc);
-}
-#endif // NNTR_GGML_AVXVNNI_VARIANT
