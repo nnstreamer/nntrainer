@@ -19,6 +19,8 @@
 #include <stdexcept>
 #include <util_func.h>
 
+#include <cstring>
+
 #include <layer_context.h>
 
 namespace nntrainer {
@@ -51,6 +53,61 @@ void SliceLayer::finalize(InitLayerContext &context) {
 template <typename T>
 static void sliceForwardT(const Tensor &input, Tensor &output,
                           unsigned int axis, unsigned int start) {
+  // Fast path: contiguous NCHW. The slice only shifts one axis by `start`, so
+  // every output plane out[b,c,h,w] == in[b, c+c0, h+h0, w+w0] — the same
+  // element mapping as the scalar loop below, just copied as contiguous runs
+  // (memcpy) instead of element-by-element. Bit-identical to the scalar path.
+  // Per-axis, the largest contiguous run that maps 1:1 is:
+  //   axis=0 -> [C*H*W] per b, axis=1 -> [H*W] per (b,c),
+  //   axis=2 -> [W] per (b,c,h),     axis=3 -> [W] per (b,c,h) (w innermost).
+  const bool can_fast =
+    input.getContiguous() && output.getContiguous() &&
+    input.getFormat() == Tformat::NCHW && output.getFormat() == Tformat::NCHW;
+  if (can_fast) {
+    const T *in = input.getData<T>();
+    T *out = output.getData<T>();
+    const unsigned int B = output.batch();
+    const unsigned int C = output.channel();
+    const unsigned int H = output.height();
+    const unsigned int W = output.width();
+    // element counts of each axis plane in NCHW (contiguous)
+    const size_t plane_b = (size_t)C * H * W; // [C*H*W]
+    const size_t plane_c = (size_t)H * W;     // [H*W]
+    const size_t row_hw = (size_t)W;          // [W]
+    const size_t elt = sizeof(T);
+    if (axis == 0) {
+      for (unsigned int b = 0; b < B; ++b)
+        std::memcpy(out + (size_t)b * plane_b,
+                    in + (size_t)(b + start) * plane_b, plane_b * elt);
+    } else if (axis == 1) {
+      for (unsigned int b = 0; b < B; ++b)
+        for (unsigned int c = 0; c < C; ++c)
+          std::memcpy(
+            out + (size_t)b * plane_b + (size_t)c * plane_c,
+            in + (size_t)b * plane_b + (size_t)(c + start) * plane_c,
+            plane_c * elt);
+    } else if (axis == 2) {
+      for (unsigned int b = 0; b < B; ++b)
+        for (unsigned int c = 0; c < C; ++c)
+          for (unsigned int h = 0; h < H; ++h)
+            std::memcpy(
+              out + ((size_t)b * plane_b + (size_t)c * plane_c + (size_t)h * W),
+              in + ((size_t)b * plane_b + (size_t)c * plane_c +
+                    (size_t)(h + start) * W),
+              row_hw * elt);
+    } else { // axis == 3 (w innermost) -> same [W] run per (b,c,h)
+      for (unsigned int b = 0; b < B; ++b)
+        for (unsigned int c = 0; c < C; ++c)
+          for (unsigned int h = 0; h < H; ++h)
+            std::memcpy(
+              out + ((size_t)b * plane_b + (size_t)c * plane_c + (size_t)h * W),
+              in + ((size_t)b * plane_b + (size_t)c * plane_c + (size_t)h * W +
+                    (size_t)start),
+              row_hw * elt);
+    }
+    return;
+  }
+
   for (unsigned int b = 0; b < output.batch(); ++b) {
     for (unsigned int c = 0; c < output.channel(); ++c) {
       for (unsigned int h = 0; h < output.height(); ++h) {

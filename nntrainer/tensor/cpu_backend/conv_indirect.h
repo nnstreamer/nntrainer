@@ -191,10 +191,16 @@ inline void gather_conv_act_rows_q8_0(void *vy, const void *vx,
 
     local_block_q8_0x4 &dst_block = y[b_idx];
 
+    // block_q8_0x4.qs[128] layout expected by nntr_gemm_q4_0_4x8_q8_0_fp16:
+    //   qs[32*j + 8*row + lane], j=8-element chunk (0..3), row=0..3, lane=0..7.
+    // (matches __ggml_quantize_mat_q8_0_4x8 and Q8_0_Tensor::dot interleave.)
+    // Each source plain block_q8_0 row holds qs[32*j + lane]; scatter its 8
+    // lanes per (j,row) into the interleaved dst — do NOT write row-contiguous.
     for (int r = 0; r < 4; ++r) {
       if (r >= nrows) {
         dst_block.d[r] = 0;
-        std::memset(&dst_block.qs[32 * r], 0, 32);
+        for (int j = 0; j < 4; ++j)
+          std::memset(&dst_block.qs[32 * j + 8 * r], 0, 8);
         continue;
       }
 
@@ -208,10 +214,12 @@ inline void gather_conv_act_rows_q8_0(void *vy, const void *vx,
       if (h >= 0 && h < p.in_h && w >= 0 && w < p.in_w) {
         const local_block_q8_0 &src_block = in[(h * p.in_w + w) * ch_blocks + cb];
         dst_block.d[r] = src_block.d;
-        std::memcpy(&dst_block.qs[32 * r], src_block.qs, 32);
+        for (int j = 0; j < 4; ++j)
+          std::memcpy(&dst_block.qs[32 * j + 8 * r], &src_block.qs[8 * j], 8);
       } else {
         dst_block.d[r] = 0;
-        std::memset(&dst_block.qs[32 * r], 0, 32);
+        for (int j = 0; j < 4; ++j)
+          std::memset(&dst_block.qs[32 * j + 8 * r], 0, 8);
       }
     }
   }

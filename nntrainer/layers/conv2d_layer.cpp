@@ -676,19 +676,12 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
     // that never materialize a col buffer: the 1x1 path (im2col is an identity
     // handled by an input transpose) and, where the fused backend op exists,
     // the non-1x1 path (gather is fused into the q8_0 activation packing).
-    if (quant_matmul_filter && is_1x1_s1) {
-      // W4A8 1x1 path: stage the activation as a pre-quantized Q8_0 matrix
-      // [owoh, in_ch] (block_q8_0) once, fused with the NCHW->act transpose,
-      // so the Q4_0 GEMM consumes int8 directly (no per-tile FP16->Q8_0
-      // re-quantization). Modeled as a Q8_0 tensor [batch,1,owoh,in_ch].
-      auto q80_type = scratch_type;
-      q80_type.data_type = nntrainer::Tdatatype::Q8_0;
-      TensorDim q80_dim(in_dim.batch(), 1, owoh, in_dim.channel(), q80_type);
-      wt_idx[ConvParams::im2col_scratch] =
-        context.requestTensor(q80_dim, "q80_act", Initializer::NONE, false,
-                              TensorLifespan::FORWARD_FUNC_LIFESPAN);
-    } else if (
-      !(quant_matmul_filter && NNTR_HAS_Q4_0_INDIRECT_CONV)) {
+    if (!(quant_matmul_filter && (is_1x1_s1 || NNTR_HAS_Q4_0_INDIRECT_CONV))) {
+      // FP path or quant fallback: materialize the im2col column buffer
+      // [batch, 1, CRS, OH*OW] once (planned into the activation arena). The
+      // quant 1x1 path (identity input transpose) and the quant indirect path
+      // (gather fused into the GEMM's q8_0 packing) never materialize a col
+      // buffer, so they request no im2col_scratch here.
       TensorDim col_dim(in_dim.batch(), 1, real_kernel_dim.getFeatureLen(),
                         owoh, scratch_type);
       wt_idx[ConvParams::im2col_scratch] =
@@ -790,12 +783,12 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
     // column buffer is used by the FP32 path and the quant non-1x1 *fallback*;
     // the quant 1x1 path (identity input transpose) and the quant non-1x1 fused
     // path (gather folded into the GEMM) need no col buffer — finalize skips
-    // allocating it for those, so the condition here must match exactly.
-    // Zero the column buffer once up front (im2col skips padding; the GEMM
-    // output is fully overwritten so it needs no zeroing). Each batch element
-    // writes a disjoint batch-slice, so this stays correct under ParallelBatch.
+    // im2col_scratch is materialized by finalize only for the FP/fallback path.
+    // The quant 1x1 path (identity transpose) and the quant indirect path
+    // (gather fused into the GEMM) requested no col buffer in finalize, so the
+    // pointer stays null for them.
     const bool use_im2col_scratch =
-      !(weight_is_quant && !is_1x1_s1 && NNTR_HAS_Q4_0_INDIRECT_CONV);
+      !(weight_is_quant && (is_1x1_s1 || NNTR_HAS_Q4_0_INDIRECT_CONV));
     Tensor *col_scratch =
       use_im2col_scratch
         ? &context.getTensor(wt_idx[ConvParams::im2col_scratch])
@@ -823,37 +816,18 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
           tmp.reshape(
             TensorDim(1, 1, owoh, filter_size, in_sub.getTensorType()));
           if (is_1x1_s1) {
-            // W4A8 1x1 stride-1: fuse the NCHW[in_ch,owoh]->act[owoh,in_ch]
-            // transpose with FP16->Q8_0 quantization in one pass, then run the
-            // Q4_0 x Q8_0 GEMM on int8 activations directly (no per-tile
-            // re-quantization, no separate transpose copy). Output tmp is FP16
-            // [owoh, out_ch].
-#ifdef ENABLE_FP16
-            Tensor col = col_scratch->getBatchSlice(b, 1);
-            // col is a Q8_0 buffer [1,1,owoh,in_ch] (bytes = owoh*in_ch/32*34,
-            // exactly the block_q8_0x4+remainder footprint). Fused
-            // transpose+quantize straight into the GEMM's x4 layout: no FP16
-            // transpose copy, no plain-block pass, no interleave, no heap.
-            in_sub.reshape({in_dim.channel(), owoh});
-            transpose_quantize_q8_0x4_act(in_sub.getData<_FP16>(),
-                                          in_dim.channel(), owoh,
-                                          col.getData());
-            // Q8_0x4 act [owoh,in_ch] . Q4_0 weight [in_ch,out_ch] -> FP16 tmp
-            // [owoh,out_ch] (ldc = filter_size). SMMLA (i8mm) GEMM, no alloc.
-            Q8_0_Tensor::dot_prepacked_x4(owoh, in_dim.channel(), filter_size,
-                                          col.getData(),
-                                          filter_kernel.getData<uint8_t>(),
-                                          tmp.getData<_FP16>(), filter_size);
-#else
+            // 1x1 stride-1: im2col is an identity. The raw input is laid out as
+            // [in_ch, OH*OW] (NCHW), so transpose to the act layout [OH*OW,
+            // CRS] (CRS == in_ch here).
             in_sub.reshape({in_dim.channel(), owoh});
             Tensor act = in_sub.transpose("0:2:1");
             act.dot(filter_kernel, tmp, false, false);
-#endif
           } else if (NNTR_HAS_Q4_0_INDIRECT_CONV) {
-            // Fused im2col gather: the FP32 col buffer is never materialized.
-            // The gather runs inside the GEMM's q8_0 activation packing,
-            // directly from the NCHW input, producing rows byte-identical to
-            // im2col -> bit-identical output vs the materialized path.
+            // Quantized 3x3+ indirect: fold im2col gather into the q8_0
+            // activation quantization so the activation matrix is never
+            // materialized (the FP16 input is gathered on the fly and quantized
+            // per tile inside the indirect GEMM). Output tmp is FP16
+            // [OH*OW, out_ch].
             ConvGatherParams geom;
             geom.in_ch = in_dim.channel();
             geom.in_h = in_dim.height();
