@@ -277,10 +277,10 @@ Tensor &Q8_0_Tensor::dot(Tensor const &input, Tensor &output, bool trans,
 #endif
 }
 
+#ifdef ENABLE_FP16
 void Q8_0_Tensor::dot_prepacked_x4(unsigned int M, unsigned int K,
                                    unsigned int N, const void *QA,
                                    const void *B, _FP16 *C, unsigned int ldc) {
-#ifdef ENABLE_FP16
   const char *QA_ptr = (const char *)QA;
   const unsigned int blocks_per_4_rows = (K + 32 - 1) / 32;
   const unsigned int qa_4_rows_size =
@@ -340,16 +340,7 @@ void Q8_0_Tensor::dot_prepacked_x4(unsigned int M, unsigned int K,
       for (unsigned int jj = 0; jj < N; ++jj)
         C[(M4 * 4 + ii) * ldc + jj] = (_FP16)tail32[ii * N + jj];
   }
-#else
-  (void)M;
-  (void)K;
-  (void)N;
-  (void)QA;
-  (void)B;
-  (void)C;
-  (void)ldc;
-  throw std::invalid_argument("Q8_0_Tensor::dot_prepacked_x4 not supported.");
-#endif
 }
+#endif
 
 } // namespace nntrainer

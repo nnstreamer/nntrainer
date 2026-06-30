@@ -162,10 +162,11 @@ public:
    * (produced by transpose_quantize_q8_0x4_act). Runs only the SMMLA GEMM +
    * GEMV tail (no allocation, no interleave) — the fast W4A8 1x1 path.
    */
+#ifdef ENABLE_FP16
   static void dot_prepacked_x4(unsigned int M, unsigned int K, unsigned int N,
                                const void *QA, const void *B, _FP16 *C,
                                unsigned int ldc);
-
+#endif
 private:
   void copy_q80(const void *buf);
 
