@@ -14,6 +14,7 @@
 #include <cstring>
 #include <gtest/gtest.h>
 
+#include <compute_ops.h>
 #include <q8_0_tensor.h>
 #include <quantizer.h>
 #include <tensor.h>
@@ -187,7 +188,7 @@ TEST(Q8_0_Tensor, quantize_dequantize_round_trip) {
 
 TEST(Q8_0_Tensor, indirect_conv_q80_vs_fp16) {
 #ifdef ENABLE_FP16
-  auto *ops = nntrainer::getOps();
+  auto *ops = nntrainer::getComputeOps();
   if (!ops->supports_gemm_q4_0_indirect_conv_q8_0() ||
       !ops->supports_gemm_q4_0_indirect_conv_fp16()) {
     SUCCEED() << "Indirect quantized conv GEMM is not supported on this platform, skipping.";
@@ -206,33 +207,33 @@ TEST(Q8_0_Tensor, indirect_conv_q80_vs_fp16) {
   // Create a Q8_0 pre-quantized version of the input
   // Since the input has contiguous channel blocks of size 32 at each spatial pixel,
   // we first flatten it to [IH*IW, C] = [64, 32] layout and quantize it to Q8_0!
-  nntrainer::TensorDim flat_dim(1, 1, IH * IW, C, {nntrainer::Tformat::NCHW, nntrainer::TensorDim::DataType::FP16});
-  nntrainer::Tensor flat_fp16(flat_dim, true);
+  nntrainer::TensorDim flat_dim(1, 1, IH * IW, C, {nntrainer::Tformat::NCHW, nntrainer::TensorDim::DataType::FP32});
+  nntrainer::Tensor flat_fp32(flat_dim, true);
   // Reorder NCHW to [IH*IW, C] spatial-major layout
-  _FP16 *flat_data = flat_fp16.getData<_FP16>();
+  float *flat_data = flat_fp32.getData<float>();
   for (unsigned int h = 0; h < IH; ++h) {
     for (unsigned int w = 0; w < IW; ++w) {
       for (unsigned int c = 0; c < C; ++c) {
-        flat_data[(h * IW + w) * C + c] = in_data[(c * IH + h) * IW + w];
+        flat_data[(h * IW + w) * C + c] = static_cast<float>(in_data[(c * IH + h) * IW + w]);
       }
     }
   }
 
   nntrainer::GgmlQuantizer q80(nntrainer::QScheme::Q8_0);
-  nntrainer::Tensor in_q80 = q80.quantize(flat_fp16, nntrainer::TensorDim::DataType::Q8_0);
+  nntrainer::Tensor in_q80 = q80.quantize(flat_fp32, nntrainer::TensorDim::DataType::Q8_0);
 
   // Create a Q4_0 filter [CRS, out_ch] = [288, 32] for a 3x3 conv with 32 in_ch
   unsigned int out_ch = 32, k = 3;
   unsigned int CRS = C * k * k; // 32 * 9 = 288
-  nntrainer::TensorDim filter_dim(1, 1, CRS, out_ch, {nntrainer::Tformat::NCHW, nntrainer::TensorDim::DataType::FP16});
-  nntrainer::Tensor filter_fp16(filter_dim, true);
-  _FP16 *f_data = filter_fp16.getData<_FP16>();
+  nntrainer::TensorDim filter_dim(1, 1, CRS, out_ch, {nntrainer::Tformat::NCHW, nntrainer::TensorDim::DataType::FP32});
+  nntrainer::Tensor filter_fp32(filter_dim, true);
+  float *f_data = filter_fp32.getData<float>();
   for (unsigned int i = 0; i < filter_dim.getDataLen(); ++i) {
-    f_data[i] = static_cast<_FP16>(static_cast<float>(i % 8) * 0.05f - 0.2f);
+    f_data[i] = static_cast<float>(i % 8) * 0.05f - 0.2f;
   }
 
   nntrainer::GgmlQuantizer q40(nntrainer::QScheme::Q4_0);
-  nntrainer::Tensor filter_q40 = q40.quantize(filter_fp16, nntrainer::TensorDim::DataType::Q4_0);
+  nntrainer::Tensor filter_q40 = q40.quantize(filter_fp32, nntrainer::TensorDim::DataType::Q4_0);
 
   // Configure convolution geometry
   nntrainer::ConvGatherParams geom;
@@ -270,6 +271,95 @@ TEST(Q8_0_Tensor, indirect_conv_q80_vs_fp16) {
     EXPECT_LT(diff, 1e-4f)
       << "Mismatch at index " << i << ": FP16-indirect=" << static_cast<float>(fp16_out[i])
       << ", Q8_0-direct=" << static_cast<float>(q80_out[i]);
+  }
+#else
+  SUCCEED() << "ENABLE_FP16 is not defined, skipping.";
+#endif
+}
+
+TEST(Q8_0_Tensor, indirect_conv_nhwc_vs_nchw) {
+#ifdef ENABLE_FP16
+  auto *ops = nntrainer::getComputeOps();
+  if (!ops->supports_gemm_q4_0_indirect_conv_fp16()) {
+    SUCCEED() << "Indirect quantized conv GEMM is not supported on this platform, skipping.";
+    return;
+  }
+
+  // Create a synthetic NCHW FP16 input tensor
+  unsigned int B = 1, C = 32, IH = 8, IW = 8;
+  nntrainer::TensorDim in_nchw_dim(B, C, IH, IW, {nntrainer::Tformat::NCHW, nntrainer::TensorDim::DataType::FP16});
+  nntrainer::Tensor in_nchw(in_nchw_dim, true);
+  _FP16 *in_nchw_data = in_nchw.getData<_FP16>();
+  for (unsigned int i = 0; i < in_nchw_dim.getDataLen(); ++i) {
+    in_nchw_data[i] = static_cast<_FP16>(static_cast<float>(i % 16) * 0.1f - 0.8f);
+  }
+
+  // Create a synthetic NHWC FP16 input tensor with identical values rearranged physically
+  nntrainer::TensorDim in_nhwc_dim(B, C, IH, IW, {nntrainer::Tformat::NHWC, nntrainer::TensorDim::DataType::FP16});
+  nntrainer::Tensor in_nhwc(in_nhwc_dim, true);
+  _FP16 *in_nhwc_data = in_nhwc.getData<_FP16>();
+  for (unsigned int h = 0; h < IH; ++h) {
+    for (unsigned int w = 0; w < IW; ++w) {
+      for (unsigned int c = 0; c < C; ++c) {
+        // NCHW physical layout index: (c * IH + h) * IW + w
+        // NHWC physical layout index: (h * IW + w) * C + c
+        in_nhwc_data[(h * IW + w) * C + c] = in_nchw_data[(c * IH + h) * IW + w];
+      }
+    }
+  }
+
+  // Create a Q4_0 filter [CRS, out_ch] = [288, 32] for a 3x3 conv with 32 in_ch
+  unsigned int out_ch = 32, k = 3;
+  unsigned int CRS = C * k * k; // 32 * 9 = 288
+  nntrainer::TensorDim filter_dim(1, 1, CRS, out_ch, {nntrainer::Tformat::NCHW, nntrainer::TensorDim::DataType::FP32});
+  nntrainer::Tensor filter_fp32(filter_dim, true);
+  float *f_data = filter_fp32.getData<float>();
+  for (unsigned int i = 0; i < filter_dim.getDataLen(); ++i) {
+    f_data[i] = static_cast<float>(i % 8) * 0.05f - 0.2f;
+  }
+
+  nntrainer::GgmlQuantizer q40(nntrainer::QScheme::Q4_0);
+  nntrainer::Tensor filter_q40 = q40.quantize(filter_fp32, nntrainer::TensorDim::DataType::Q4_0);
+
+  // Configure NCHW geometry
+  nntrainer::ConvGatherParams geom_nchw;
+  geom_nchw.in_ch = C;
+  geom_nchw.in_h = IH;
+  geom_nchw.in_w = IW;
+  geom_nchw.k_h = k;
+  geom_nchw.k_w = k;
+  geom_nchw.pad_t = 1;
+  geom_nchw.pad_l = 1;
+  geom_nchw.stride_h = 1;
+  geom_nchw.stride_w = 1;
+  geom_nchw.dil_h = 1;
+  geom_nchw.dil_w = 1;
+  geom_nchw.out_w = IW;
+  geom_nchw.is_nhwc = false;
+
+  // Configure NHWC geometry
+  nntrainer::ConvGatherParams geom_nhwc = geom_nchw;
+  geom_nhwc.is_nhwc = true;
+
+  // Allocate outputs
+  unsigned int OH = IH, OW = IW;
+  nntrainer::TensorDim out_dim(1, 1, OH * OW, out_ch, {nntrainer::Tformat::NCHW, nntrainer::TensorDim::DataType::FP16});
+  nntrainer::Tensor out_nchw(out_dim, true);
+  nntrainer::Tensor out_nhwc(out_dim, true);
+
+  // Run indirect conv
+  in_nchw.convQ4_0Indirect(filter_q40, out_nchw, geom_nchw);
+  in_nhwc.convQ4_0Indirect(filter_q40, out_nhwc, geom_nhwc);
+
+  // Verify that the two outputs are 100% mathematically identical
+  const _FP16 *nchw_out_ptr = out_nchw.getData<_FP16>();
+  const _FP16 *nhwc_out_ptr = out_nhwc.getData<_FP16>();
+
+  for (unsigned int i = 0; i < out_dim.getDataLen(); ++i) {
+    float diff = std::abs(static_cast<float>(nchw_out_ptr[i]) - static_cast<float>(nhwc_out_ptr[i]));
+    EXPECT_LT(diff, 1e-5f)
+      << "Mismatch at index " << i << ": NCHW=" << static_cast<float>(nchw_out_ptr[i])
+      << ", NHWC=" << static_cast<float>(nhwc_out_ptr[i]);
   }
 #else
   SUCCEED() << "ENABLE_FP16 is not defined, skipping.";

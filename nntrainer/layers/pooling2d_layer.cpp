@@ -338,6 +338,71 @@ void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output,
   NNTR_THROW_IF(output.empty(), std::invalid_argument)
     << "[Pooling2D] output is uninitialized, this is not supported";
 
+  const bool is_nhwc = in.getFormat() == Tformat::NHWC && output.getFormat() == Tformat::NHWC;
+  if (is_nhwc) {
+    if (pooling_type == props::PoolingTypeInfo::Enum::max) {
+      auto run_nhwc = [&]<typename T>() {
+        const T *in_data = in.getData<T>();
+        T *out_data = output.getData<T>();
+        const int Ho = (int)output.height(), Wo = (int)output.width();
+        const int Hi = in_height, Wi = in_width;
+        const int Co = channel;
+        const int sh = stride[0].get(), sw = stride[1].get();
+        const int ph = patch_height, pw = patch_width;
+        const int pt_val = pt, pl_val = pl;
+
+        auto job = [&](unsigned int oh_start, unsigned int oh_end, unsigned int, void *) {
+          for (int oh = (int)oh_start; oh < (int)oh_end; ++oh) {
+            for (int ow = 0; ow < Wo; ++ow) {
+              T *out_ptr = out_data + (size_t)(oh * Wo + ow) * Co;
+              for (int c = 0; c < Co; ++c) {
+                out_ptr[c] = std::numeric_limits<T>::lowest();
+              }
+              const int h0 = oh * sh - pt_val;
+              const int w0 = ow * sw - pl_val;
+              for (int kh = 0; kh < ph; ++kh) {
+                const int ih = h0 + kh;
+                if (ih < 0 || ih >= Hi)
+                  continue;
+                for (int kw = 0; kw < pw; ++kw) {
+                  const int iw = w0 + kw;
+                  if (iw < 0 || iw >= Wi)
+                    continue;
+                  const T *in_ptr = in_data + (size_t)(ih * Wi + iw) * Co;
+                  for (int c = 0; c < Co; ++c) {
+                    if (in_ptr[c] > out_ptr[c]) {
+                      out_ptr[c] = in_ptr[c];
+                    }
+                  }
+                }
+              }
+            }
+          }
+        };
+
+        if (!training) {
+          auto workers = ParallelBatch(job, Ho, nullptr);
+          if (workers.getNumWorkers() > 1) {
+            workers.run();
+            return;
+          }
+        }
+        job(0, Ho, 0, nullptr);
+      };
+
+      if (in.getDataType() == ml::train::TensorDim::DataType::FP32) {
+        run_nhwc.template operator()<float>();
+        return;
+      }
+#ifdef ENABLE_FP16
+      else if (in.getDataType() == ml::train::TensorDim::DataType::FP16) {
+        run_nhwc.template operator()<_FP16>();
+        return;
+      }
+#endif
+    }
+  }
+
   /**
    * @brief pooling function
    * @param in_c channel sliced data

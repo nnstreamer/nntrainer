@@ -48,6 +48,7 @@ struct ConvGatherParams {
   int dil_h;    /**< vertical dilation */
   int dil_w;    /**< horizontal dilation */
   int out_w;    /**< output width (maps row index -> output column) */
+  bool is_nhwc = false;
 };
 
 /**
@@ -92,30 +93,47 @@ inline void gather_conv_act_rows(T *dst, const T *in, const ConvGatherParams &p,
     const int h0 = oh * p.stride_h - p.pad_t;
     const int w0 = ow * p.stride_w - p.pad_l;
 
-    for (int c = 0; c < p.in_ch; ++c) {
-      const T *in_c = in + (long)c * inHW;
-      T *row_c = row + (long)c * khkw;
+    if (p.is_nhwc) {
       for (int kh = 0; kh < p.k_h; ++kh) {
         const int h = h0 + kh * p.dil_h;
         if (h < 0 || h >= p.in_h)
-          continue; /// whole kernel row is outside the input -> left as 0
-        const T *in_row = in_c + (long)h * p.in_w;
-        T *dst_run = row_c + (long)kh * p.k_w;
-        if (unit_dil) {
-          /// the kernel-width window maps a contiguous input run to a
-          /// contiguous dest run: copy the in-bounds span in one memcpy.
-          int wlo = w0 < 0 ? 0 : w0;
-          int whi = w0 + p.k_w;
-          if (whi > p.in_w)
-            whi = p.in_w;
-          if (whi > wlo)
-            std::memcpy(dst_run + (wlo - w0), in_row + wlo,
-                        (size_t)(whi - wlo) * sizeof(T));
-        } else {
-          for (int kw = 0; kw < p.k_w; ++kw) {
-            const int w = w0 + kw * p.dil_w;
-            if (w >= 0 && w < p.in_w)
-              dst_run[kw] = in_row[w];
+          continue;
+        for (int kw = 0; kw < p.k_w; ++kw) {
+          const int w = w0 + kw * p.dil_w;
+          if (w < 0 || w >= p.in_w)
+            continue;
+          const T *in_ptr = in + (long)(h * p.in_w + w) * p.in_ch;
+          for (int c = 0; c < p.in_ch; ++c) {
+            row[c * khkw + kh * p.k_w + kw] = in_ptr[c];
+          }
+        }
+      }
+    } else {
+      for (int c = 0; c < p.in_ch; ++c) {
+        const T *in_c = in + (long)c * inHW;
+        T *row_c = row + (long)c * khkw;
+        for (int kh = 0; kh < p.k_h; ++kh) {
+          const int h = h0 + kh * p.dil_h;
+          if (h < 0 || h >= p.in_h)
+            continue; /// whole kernel row is outside the input -> left as 0
+          const T *in_row = in_c + (long)h * p.in_w;
+          T *dst_run = row_c + (long)kh * p.k_w;
+          if (unit_dil) {
+            /// the kernel-width window maps a contiguous input run to a
+            /// contiguous dest run: copy the in-bounds span in one memcpy.
+            int wlo = w0 < 0 ? 0 : w0;
+            int whi = w0 + p.k_w;
+            if (whi > p.in_w)
+              whi = p.in_w;
+            if (whi > wlo)
+              std::memcpy(dst_run + (wlo - w0), in_row + wlo,
+                          (size_t)(whi - wlo) * sizeof(T));
+          } else {
+            for (int kw = 0; kw < p.k_w; ++kw) {
+              const int w = w0 + kw * p.dil_w;
+              if (w >= 0 && w < p.in_w)
+                dst_run[kw] = in_row[w];
+            }
           }
         }
       }

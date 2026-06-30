@@ -825,62 +825,96 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
         Tensor in_sub = input_.getBatchSlice(b, 1);
 
         if (weight_is_quant) {
-          // Quantized conv as matmul: act [OH*OW, CRS] . weight [CRS, out_ch]
-          // -> [OH*OW, out_ch] -> out [out_ch, OH*OW]. CRS = in_ch*kh*kw.
-          // NOTE: col must outlive `act` (act aliases col's storage); here col
-          // is a view into the context-owned scratch, so its storage outlives
-          // the loop iteration regardless.
-          Tensor tmp = qgemm_scratch->getBatchSlice(b, 1);
-          tmp.reshape(
-            TensorDim(1, 1, owoh, filter_size, in_sub.getTensorType()));
-          if (is_1x1_s1) {
-            // 1x1 stride-1: im2col is an identity. The raw input is laid out as
-            // [in_ch, OH*OW] (NCHW), so transpose to the act layout [OH*OW,
-            // CRS] (CRS == in_ch here).
-            in_sub.reshape({in_dim.channel(), owoh});
-            Tensor act = in_sub.transpose("0:2:1");
-            act.dot(filter_kernel, tmp, false, false);
-          } else if (NNTR_HAS_Q4_0_INDIRECT_CONV) {
-            // Quantized 3x3+ indirect: fold im2col gather into the q8_0
-            // activation quantization so the activation matrix is never
-            // materialized (the FP16 input is gathered on the fly and quantized
-            // per tile inside the indirect GEMM). Output tmp is FP16
-            // [OH*OW, out_ch].
-            ConvGatherParams geom;
-            geom.in_ch = in_dim.channel();
-            geom.in_h = in_dim.height();
-            geom.in_w = in_dim.width();
-            geom.k_h = kernel_size[0].get();
-            geom.k_w = kernel_size[1].get();
-            geom.pad_t = padding[0];
-            geom.pad_l = padding[2];
-            geom.stride_h = stride[0].get();
-            geom.stride_w = stride[1].get();
-            geom.dil_h = dilation[0].get();
-            geom.dil_w = dilation[1].get();
-            geom.out_w = out_dim.width();
-            in_sub.convQ4_0Indirect(filter_kernel, tmp, geom);
+          if (in_sub.getFormat() == ml::train::TensorDim::Format::NHWC) {
+            // NHWC channel-last quantized convolution:
+            // Since physical layout is [owoh, filter_size], we reshape `out` to flat
+            // NCHW [1, 1, owoh, filter_size] and write directly, completely bypassing
+            // qgemm_scratch and transposes!
+            Tensor out_flat = out;
+            out_flat.reshape(TensorDim(1, 1, owoh, filter_size, {ml::train::TensorDim::Format::NCHW, out.getDataType()}));
+
+            if (is_1x1_s1) {
+              Tensor act = in_sub;
+              act.reshape(TensorDim(1, 1, owoh, in_dim.channel(), {ml::train::TensorDim::Format::NCHW, in_sub.getDataType()}));
+              act.dot(filter_kernel, out_flat, false, false);
+            } else if (NNTR_HAS_Q4_0_INDIRECT_CONV) {
+              ConvGatherParams geom;
+              geom.in_ch = in_dim.channel();
+              geom.in_h = in_dim.height();
+              geom.in_w = in_dim.width();
+              geom.k_h = kernel_size[0].get();
+              geom.k_w = kernel_size[1].get();
+              geom.pad_t = padding[0];
+              geom.pad_l = padding[2];
+              geom.stride_h = stride[0].get();
+              geom.stride_w = stride[1].get();
+              geom.dil_h = dilation[0].get();
+              geom.dil_w = dilation[1].get();
+              geom.out_w = out_dim.width();
+              geom.is_nhwc = true;
+              in_sub.convQ4_0Indirect(filter_kernel, out_flat, geom);
+            } else {
+              throw std::runtime_error("Fallback quantized NHWC conv is not supported (requires indirect conv on ARM).");
+            }
           } else {
-            // Fallback (no fused backend op): materialize im2col into the col
-            // scratch, then the standard quant GEMM.
-            // build the real kernel geometry (filter is stored as [CRS,out_ch])
-            TensorDim kdim(filter_size, in_dim.channel(), kernel_size[0].get(),
-                           kernel_size[1].get(), in_sub.getTensorType());
-            Tensor col = col_scratch->getBatchSlice(b, 1);
-            // im2col reshapes col in place to [OH*OW, CRS] (spatial-major),
-            // which is ALREADY the act layout — no transpose (unlike the
-            // raw-input 1x1 branch above). Transposing here gives [CRS, OH*OW]
-            // and makes the GEMM emit CRS rows into the owoh-row `tmp`,
-            // overflowing it whenever CRS > owoh (deep convs) -> heap
-            // corruption.
-            im2col(in_sub, kdim, padding, stride, dilation, col);
-            col.dot(filter_kernel, tmp, false, false);
+            // Quantized conv as matmul: act [OH*OW, CRS] . weight [CRS, out_ch]
+            // -> [OH*OW, out_ch] -> out [out_ch, OH*OW]. CRS = in_ch*kh*kw.
+            // NOTE: col must outlive `act` (act aliases col's storage); here col
+            // is a view into the context-owned scratch, so its storage outlives
+            // the loop iteration regardless.
+            Tensor tmp = qgemm_scratch->getBatchSlice(b, 1);
+            tmp.reshape(
+              TensorDim(1, 1, owoh, filter_size, in_sub.getTensorType()));
+            if (is_1x1_s1) {
+              // 1x1 stride-1: im2col is an identity. The raw input is laid out as
+              // [in_ch, OH*OW] (NCHW), so transpose to the act layout [OH*OW,
+              // CRS] (CRS == in_ch here).
+              in_sub.reshape({in_dim.channel(), owoh});
+              Tensor act = in_sub.transpose("0:2:1");
+              act.dot(filter_kernel, tmp, false, false);
+            } else if (NNTR_HAS_Q4_0_INDIRECT_CONV) {
+              // Quantized 3x3+ indirect: fold im2col gather into the q8_0
+              // activation quantization so the activation matrix is never
+              // materialized (the FP16 input is gathered on the fly and quantized
+              // per tile inside the indirect GEMM). Output tmp is FP16
+              // [OH*OW, out_ch].
+              ConvGatherParams geom;
+              geom.in_ch = in_dim.channel();
+              geom.in_h = in_dim.height();
+              geom.in_w = in_dim.width();
+              geom.k_h = kernel_size[0].get();
+              geom.k_w = kernel_size[1].get();
+              geom.pad_t = padding[0];
+              geom.pad_l = padding[2];
+              geom.stride_h = stride[0].get();
+              geom.stride_w = stride[1].get();
+              geom.dil_h = dilation[0].get();
+              geom.dil_w = dilation[1].get();
+              geom.out_w = out_dim.width();
+              geom.is_nhwc = false;
+              in_sub.convQ4_0Indirect(filter_kernel, tmp, geom);
+            } else {
+              // Fallback (no fused backend op): materialize im2col into the col
+              // scratch, then the standard quant GEMM.
+              // build the real kernel geometry (filter is stored as [CRS,out_ch])
+              TensorDim kdim(filter_size, in_dim.channel(), kernel_size[0].get(),
+                             kernel_size[1].get(), in_sub.getTensorType());
+              Tensor col = col_scratch->getBatchSlice(b, 1);
+              // im2col reshapes col in place to [OH*OW, CRS] (spatial-major),
+              // which is ALREADY the act layout — no transpose (unlike the
+              // raw-input 1x1 branch above). Transposing here gives [CRS, OH*OW]
+              // and makes the GEMM emit CRS rows into the owoh-row `tmp`,
+              // overflowing it whenever CRS > owoh (deep convs) -> heap
+              // corruption.
+              im2col(in_sub, kdim, padding, stride, dilation, col);
+              col.dot(filter_kernel, tmp, false, false);
+            }
+            // [OH*OW, out_ch] -> [out_ch, OH*OW] written straight into the
+            // (memory-planned) output. `tmp` is a separate scratch buffer and
+            // `out` is a separate output view, so there is no aliasing.
+            out.reshape({filter_size, owoh});
+            tmp.transpose("0:2:1", out);
           }
-          // [OH*OW, out_ch] -> [out_ch, OH*OW] written straight into the
-          // (memory-planned) output. `tmp` is a separate scratch buffer and
-          // `out` is a separate output view, so there is no aliasing.
-          out.reshape({filter_size, owoh});
-          tmp.transpose("0:2:1", out);
         } else {
           Tensor result = col_scratch->getBatchSlice(b, 1);
           out.reshape({filter_size, owoh});

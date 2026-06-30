@@ -108,6 +108,50 @@ static void sliceForwardT(const Tensor &input, Tensor &output,
     return;
   }
 
+  const bool can_fast_nhwc =
+    input.getContiguous() && output.getContiguous() &&
+    input.getFormat() == Tformat::NHWC && output.getFormat() == Tformat::NHWC;
+  if (can_fast_nhwc) {
+    const T *in = input.getData<T>();
+    T *out = output.getData<T>();
+    const unsigned int B = output.batch();
+    const unsigned int Co = output.channel(), Ci = input.channel();
+    const unsigned int Ho = output.height(), Hi = input.height();
+    const unsigned int Wo = output.width(),  Wi = input.width();
+    const size_t elt = sizeof(T);
+    const size_t in_hwc = (size_t)Hi * Wi * Ci;
+    const size_t out_hwc = (size_t)Ho * Wo * Co;
+
+    if (axis == 0) {
+      for (unsigned int b = 0; b < B; ++b)
+        std::memcpy(out + (size_t)b * out_hwc,
+                    in + (size_t)(b + start) * in_hwc, out_hwc * elt);
+    } else if (axis == 1) {
+      for (unsigned int b = 0; b < B; ++b) {
+        for (unsigned int hw = 0; hw < Ho * Wo; ++hw) {
+          std::memcpy(out + (b * Ho * Wo + hw) * Co,
+                      in + (b * Hi * Wi + hw) * Ci + start,
+                      Co * elt);
+        }
+      }
+    } else if (axis == 2) {
+      for (unsigned int b = 0; b < B; ++b) {
+        std::memcpy(out + b * Ho * Wo * Co,
+                    in + b * Hi * Wi * Ci + start * Wi * Ci,
+                    Ho * Wi * Co * elt);
+      }
+    } else if (axis == 3) {
+      for (unsigned int b = 0; b < B; ++b) {
+        for (unsigned int h = 0; h < Ho; ++h) {
+          std::memcpy(out + (b * Ho + h) * Wo * Co,
+                      in + (b * Hi + h) * Wi * Ci + start * Ci,
+                      Wo * Co * elt);
+        }
+      }
+    }
+    return;
+  }
+
   for (unsigned int b = 0; b < output.batch(); ++b) {
     for (unsigned int c = 0; c < output.channel(); ++c) {
       for (unsigned int h = 0; h < output.height(); ++h) {

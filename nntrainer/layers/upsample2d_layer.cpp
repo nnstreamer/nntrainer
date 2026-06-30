@@ -99,11 +99,48 @@ static void upsampleForwardT(
               T *out_row = out_bc + (size_t)(ih * kh + ry) * oW;
               std::memcpy(out_row, e, oW * sizeof(T));
             }
-          }
-        }
-      }
-      break;
-    }
+            }
+            }
+            }
+            return;
+            }
+
+            const bool can_fast_nhwc =
+            in.getContiguous() && out.getContiguous() &&
+            in.getFormat() == Tformat::NHWC && out.getFormat() == Tformat::NHWC;
+            if (can_fast_nhwc) {
+            const T *in_d = in.getData<T>();
+            T *out_d = out.getData<T>();
+            const unsigned int B = out.batch();
+            const unsigned int Co = out.channel();
+            const unsigned int iH = in.height();
+            const unsigned int iW = in.width();
+            const unsigned int oH = out.height();
+            const unsigned int oW = out.width();
+            const size_t in_hwc = (size_t)iH * iW * Co;
+            const size_t out_hwc = (size_t)oH * oW * Co;
+
+            std::vector<T> expanded(oW * Co);
+            for (unsigned int b = 0; b < B; ++b) {
+            const T *in_b = in_d + b * in_hwc;
+            T *out_b = out_d + b * out_hwc;
+            for (unsigned int ih = 0; ih < iH; ++ih) {
+            const T *in_row = in_b + (size_t)ih * iW * Co;
+            T *e = expanded.data();
+            for (unsigned int iw = 0; iw < iW; ++iw) {
+            const T *v = in_row + iw * Co;
+            for (unsigned int rx = 0; rx < kw; ++rx) {
+              std::memcpy(e + (iw * kw + rx) * Co, v, Co * sizeof(T));
+            }
+            }
+            for (unsigned int ry = 0; ry < kh; ++ry) {
+            T *out_row = out_b + (size_t)(ih * kh + ry) * oW * Co;
+            std::memcpy(out_row, e, oW * Co * sizeof(T));
+            }
+            }
+            }
+            return;
+            }
     for (int b = 0; b < (int)out.batch(); b++) {
       for (int c = 0; c < (int)out.channel(); c++) {
         for (int h = 0; h < (int)out.height(); h++) {
