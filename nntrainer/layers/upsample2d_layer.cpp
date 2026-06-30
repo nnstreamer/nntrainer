@@ -15,6 +15,8 @@
 #include <node_exporter.h>
 #include <upsample2d_layer.h>
 
+#include <cstring>
+
 namespace nntrainer {
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
@@ -55,7 +57,53 @@ static void upsampleForwardT(
   props::UpsampleModeInfo::Interpolation upsampling_type,
   const std::array<props::KernelSize, UPSAMPLE2D_DIM> &kernel_size) {
   switch (upsampling_type) {
-  case props::UpsampleModeInfo::Interpolation::nearest:
+  case props::UpsampleModeInfo::Interpolation::nearest: {
+    // Fast path: contiguous NCHW. nearest upsample maps
+    // out[b,c, kh*ih+ry, kw*iw+rx] = in[b,c,ih,iw] for ry in [0,kh), rx in
+    // [0,kw). Same element mapping as the scalar loop below, written per
+    // output row: each input row ih feeds kh output rows, and within a row
+    // each input element is repeated kw times. Bit-identical to the scalar
+    // path.
+    const unsigned int kh = kernel_size[0].get();
+    const unsigned int kw = kernel_size[1].get();
+    const bool can_fast =
+      in.getContiguous() && out.getContiguous() &&
+      in.getFormat() == Tformat::NCHW && out.getFormat() == Tformat::NCHW;
+    if (can_fast) {
+      const T *in_d = in.getData<T>();
+      T *out_d = out.getData<T>();
+      const unsigned int B = out.batch();
+      const unsigned int C = out.channel();
+      const unsigned int iH = in.height();
+      const unsigned int iW = in.width();
+      const unsigned int oW = out.width(); // == iW * kw
+      const size_t in_plane = (size_t)iH * iW;   // [H*W] per (b,c)
+      const size_t out_plane = (size_t)iH * kh * oW; // [oH*oW] per (b,c)
+      // scratch row for the kw-expanded output row (reused per input row)
+      std::vector<T> expanded(oW);
+      for (unsigned int b = 0; b < B; ++b) {
+        for (unsigned int c = 0; c < C; ++c) {
+          const T *in_bc = in_d + (size_t)b * C * in_plane + (size_t)c * in_plane;
+          T *out_bc = out_d + (size_t)b * C * out_plane + (size_t)c * out_plane;
+          for (unsigned int ih = 0; ih < iH; ++ih) {
+            const T *in_row = in_bc + (size_t)ih * iW;
+            // expand in_row[iW] -> expanded[iW*kw], each elt repeated kw
+            T *e = expanded.data();
+            for (unsigned int iw = 0; iw < iW; ++iw) {
+              const T v = in_row[iw];
+              for (unsigned int rx = 0; rx < kw; ++rx)
+                e[iw * kw + rx] = v;
+            }
+            // write the expanded row into the kh output rows it feeds
+            for (unsigned int ry = 0; ry < kh; ++ry) {
+              T *out_row = out_bc + (size_t)(ih * kh + ry) * oW;
+              std::memcpy(out_row, e, oW * sizeof(T));
+            }
+          }
+        }
+      }
+      break;
+    }
     for (int b = 0; b < (int)out.batch(); b++) {
       for (int c = 0; c < (int)out.channel(); c++) {
         for (int h = 0; h < (int)out.height(); h++) {
@@ -66,7 +114,7 @@ static void upsampleForwardT(
         }
       }
     }
-    break;
+  } break;
   case props::UpsampleModeInfo::Interpolation::bilinear: {
     float scale_h = (float)kernel_size[0];
     float scale_w = (float)kernel_size[1];
