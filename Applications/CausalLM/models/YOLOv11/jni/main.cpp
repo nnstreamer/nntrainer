@@ -479,6 +479,15 @@ int main(int argc, char *argv[]) {
                 << " (fp16_act=" << (fp16_act ? "1" : "0") << ")" << std::endl;
     }
 
+    // Optional NHWC layout (channel-last) for the whole graph. Set via
+    // tensor_format prop; TensorDim already computes NHWC strides/indexes.
+    // Default NCHW. When NHWC, concat/slice channel axis becomes 3 (handled in
+    // yolov11_graph.h).
+    if (std::getenv("YOLO_NHWC")) {
+      model->setProperty({nntrainer::withKey("tensor_format", "NHWC")});
+      std::cout << "[YOLO] tensor_format = NHWC" << std::endl;
+    }
+
     // Offline quantization mode (YOLO_QUANTIZE_OUT set): build the graph in
     // FP32, load FP32 weights, then re-save through the framework's general
     // per-layer quantizer. Must build FP32 here (not Q4_0) so finalize
@@ -574,6 +583,17 @@ int main(int argc, char *argv[]) {
     // image. When the graph input is declared FP16 the framework converts
     // FP32->FP16 at the binding boundary (mapExternalTensor) through the Tensor
     // system — no app-side conversion.
+    // When the graph is NHWC, the input bytes must also be NHWC-ordered
+    // ([N,H,W,C]); input_832.bin is stored NCHW, so transpose here.
+    if (std::getenv("YOLO_NHWC")) {
+      const int C = 3, H = 832, W = 832;
+      std::vector<float> nhwc(input.size());
+      for (int c = 0; c < C; ++c)
+        for (int h = 0; h < H; ++h)
+          for (int w = 0; w < W; ++w)
+            nhwc[(h * W + w) * C + c] = input[(c * H + h) * W + w];
+      input.swap(nhwc);
+    }
     std::vector<float *> in_ptr = {input.data()};
 
     // Inference timing. YOLO_BENCH_ITERS (default 1) controls how many timed

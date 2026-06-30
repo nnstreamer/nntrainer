@@ -456,6 +456,8 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
     const size_t inHW = (size_t)in_height * (size_t)in_width;
     const bool unit_dil =
       ((unsigned int)dilation[0] == 1 && (unsigned int)dilation[1] == 1);
+    const bool is_nhwc =
+      (in.getFormat() == ml::train::TensorDim::Format::NHWC);
 
     /// Each output row (oh) writes a disjoint band of `out_width` columns
     /// (rows [oh*out_width, (oh+1)*out_width) of the [OH*OW, CRS] matrix), so
@@ -489,8 +491,19 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
               if (w_hi > w_lo) {
                 T *dst =
                   out_data + (size_t)im_w * owidth + base_im_h + (w_lo - ws);
-                std::memcpy(dst, in_row + w_lo,
-                            (size_t)(w_hi - w_lo) * sizeof(T));
+                if (!is_nhwc) {
+                  const T *in_row =
+                    in_base + (size_t)c * inHW + (size_t)h * inW;
+                  std::memcpy(dst, in_row + w_lo,
+                              (size_t)(w_hi - w_lo) * sizeof(T));
+                } else {
+                  /// NHWC: channel is innermost, so the w-run is NOT
+                  /// contiguous in source. Gather per (w, channel) element.
+                  for (int w = w_lo; w < w_hi; ++w) {
+                    dst[w - w_lo] =
+                      in_base[((size_t)h * inW + (size_t)w) * channel + c];
+                  }
+                }
               }
               im_w++;
             }
@@ -507,8 +520,13 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
                   im_h++;
                   continue;
                 }
-                out_data[(size_t)im_w * owidth + im_h] =
-                  in_base[(size_t)c * inHW + (size_t)h * inW + w];
+                if (!is_nhwc) {
+                  out_data[(size_t)im_w * owidth + im_h] =
+                    in_base[(size_t)c * inHW + (size_t)h * inW + w];
+                } else {
+                  out_data[(size_t)im_w * owidth + im_h] =
+                    in_base[((size_t)h * inW + (size_t)w) * channel + c];
+                }
                 im_h++;
               }
               im_w++;
@@ -868,7 +886,41 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
           out.reshape({filter_size, owoh});
           im2col(in_sub, filter_dim, padding, stride, dilation, result);
           // filter kernel is (K, CRS), result is (CRS, OH*OW)
-          filter_kernel.dot(result, out, false, true);
+          if (out.getFormat() == ml::train::TensorDim::Format::NCHW) {
+            filter_kernel.dot(result, out, false, true);
+          } else {
+            // NHWC: out's physical layout is [OH,OW,C] (channel innermost), so
+            // a dot writing [out_ch, OH*OW] NCHW-order would land in the wrong
+            // physical cells. Compute into a plain NCHW-order buffer (format
+            // NCHW so dot writes channel-major), then scatter channel c of
+            // spatial r to out[r*out_ch + c] (NHWC physical).
+            // Compute into a plain NCHW-order buffer (same result feeding as the
+            // NCHW path above — do NOT reshape result, im2col already laid it
+            // out as the dot expects). nchw_out is format NCHW so dot writes
+            // channel-major [out_ch, OH*OW]; then scatter channel c of spatial r
+            // to out[r*out_ch + c] (NHWC physical).
+            auto nchw_type = out.getTensorType();
+            nchw_type.format = ml::train::TensorDim::Format::NCHW;
+            TensorDim nchw_dim({1, filter_size, owoh, 1}, nchw_type);
+            Tensor nchw_out(nchw_dim, true);
+            filter_kernel.dot(result, nchw_out, false, true);
+            if (out.getDataType() == nntrainer::Tdatatype::FP32) {
+              const float *s = nchw_out.getData<float>();
+              float *d = out.getData<float>();
+              for (unsigned int oc = 0; oc < filter_size; ++oc)
+                for (unsigned int r = 0; r < owoh; ++r)
+                  d[r * filter_size + oc] = s[oc * owoh + r];
+            }
+#ifdef ENABLE_FP16
+            else if (out.getDataType() == nntrainer::Tdatatype::FP16) {
+              const _FP16 *s = nchw_out.getData<_FP16>();
+              _FP16 *d = out.getData<_FP16>();
+              for (unsigned int oc = 0; oc < filter_size; ++oc)
+                for (unsigned int r = 0; r < owoh; ++r)
+                  d[r * filter_size + oc] = s[oc * owoh + r];
+            }
+#endif
+          }
         }
       }
     };
@@ -968,9 +1020,35 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
   if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
       disable_bias.empty() || disable_bias.get() == false) {
     Tensor &bias_kernel = context.getWeight(wt_idx[ConvParams::bias]);
-    status = hidden_.add_i(bias_kernel);
-    if (status != ML_ERROR_NONE) {
-      throw std::invalid_argument("[Conv2D] adding bias failed");
+    if (hidden_.getFormat() == ml::train::TensorDim::Format::NCHW) {
+      status = hidden_.add_i(bias_kernel);
+      if (status != ML_ERROR_NONE) {
+        throw std::invalid_argument("[Conv2D] adding bias failed");
+      }
+    } else {
+      // NHWC: channel is innermost. bias [out_ch] must be added per (n,h,w,c).
+      // add_i assumes NCHW channel-major broadcast, so do it inline.
+      const unsigned int C = out_dim.channel();
+      const unsigned int HW = out_dim.height() * out_dim.width();
+      const unsigned int B = out_dim.batch();
+      if (hidden_.getDataType() == nntrainer::Tdatatype::FP32) {
+        float *d = hidden_.getData<float>();
+        const float *bias = bias_kernel.getData<float>();
+        for (unsigned int b = 0; b < B; ++b)
+          for (unsigned int p = 0; p < HW; ++p)
+            for (unsigned int c = 0; c < C; ++c)
+              d[((size_t)b * HW + p) * C + c] += bias[c];
+      }
+#ifdef ENABLE_FP16
+      else if (hidden_.getDataType() == nntrainer::Tdatatype::FP16) {
+        _FP16 *d = hidden_.getData<_FP16>();
+        const _FP16 *bias = bias_kernel.getData<_FP16>();
+        for (unsigned int b = 0; b < B; ++b)
+          for (unsigned int p = 0; p < HW; ++p)
+            for (unsigned int c = 0; c < C; ++c)
+              d[((size_t)b * HW + p) * C + c] += bias[c];
+      }
+#endif
     }
   }
 
@@ -991,6 +1069,17 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
     {
       convApplySwishInplace(hidden_.getData<float>(), n);
     }
+  }
+
+  if (std::getenv("NNTR_CONV_PROBE") &&
+      context.getName() == "conv0/conv") {
+    std::cerr << "[CONV_PROBE] " << context.getName() << " format="
+              << (int)hidden_.getFormat() << " C=" << out_dim.channel()
+              << " H=" << out_dim.height() << " W=" << out_dim.width()
+              << std::endl;
+    const float *p = hidden_.getData<float>();
+    for (int i = 0; i < 8; ++i)
+      std::cerr << "  [" << i << "]=" << p[i] << std::endl;
   }
 }
 

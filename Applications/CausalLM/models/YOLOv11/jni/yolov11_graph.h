@@ -47,6 +47,12 @@ inline std::vector<std::string> *&quantConvSink() {
   return sink;
 }
 
+// Channel axis for concat/slice is ALWAYS logical axis 1 (channel), regardless
+// of NCHW vs NHWC physical layout: TensorDim keeps dim[] in [N,C,H,W] order and
+// getValue/getValue resolve the physical offset per format. So no change is
+// needed when YOLO_NHWC flips the graph layout.
+inline int chAxis() { return 1; }
+
 // ===== Primitive graph block builders =====
 
 /**
@@ -115,7 +121,7 @@ inline Tensor c3kBlock(const std::string &name, int in_ch, int inner_ch,
 
   LayerHandle cat(
     createLayer("concat", {nntrainer::withKey("name", name + "/cat"),
-                           nntrainer::withKey("axis", 1)}));
+                           nntrainer::withKey("axis", chAxis())}));
   auto concat_out = cat({inner, skip});
 
   return convBnSilu(name + "/cv3", 2 * inner_ch, out_ch, 1, 1, 0, concat_out,
@@ -131,14 +137,14 @@ inline Tensor c3k2Block(const std::string &name, int in_ch, int out_ch, int c,
 
   LayerHandle sliceA(
     createLayer("slice", {nntrainer::withKey("name", name + "/slice_a"),
-                          nntrainer::withKey("axis", 1),
+                          nntrainer::withKey("axis", chAxis()),
                           nntrainer::withKey("start_index", 1),
                           nntrainer::withKey("end_index", c + 1)}));
   auto y_a = sliceA(y);
 
   LayerHandle sliceB(
     createLayer("slice", {nntrainer::withKey("name", name + "/slice_b"),
-                          nntrainer::withKey("axis", 1),
+                          nntrainer::withKey("axis", chAxis()),
                           nntrainer::withKey("start_index", c + 1),
                           nntrainer::withKey("end_index", 2 * c + 1)}));
   auto y_b = sliceB(y);
@@ -147,7 +153,7 @@ inline Tensor c3k2Block(const std::string &name, int in_ch, int out_ch, int c,
 
   LayerHandle cat(
     createLayer("concat", {nntrainer::withKey("name", name + "/cat"),
-                           nntrainer::withKey("axis", 1)}));
+                           nntrainer::withKey("axis", chAxis())}));
   auto concat_out = cat({y_a, y_b, y_c});
 
   return convBnSilu(name + "/cv2", 3 * c, out_ch, 1, 1, 0, concat_out,
@@ -208,7 +214,7 @@ inline Tensor sppfBlock(const std::string &name, int in_ch, Tensor input,
 
   LayerHandle cat(
     createLayer("concat", {nntrainer::withKey("name", name + "/cat"),
-                           nntrainer::withKey("axis", 1)}));
+                           nntrainer::withKey("axis", chAxis())}));
   auto concat_out = cat({x, p1, p2, p3});
 
   return convBnSilu(name + "/cv2", half * 4, in_ch, 1, 1, 0, concat_out,
@@ -295,7 +301,7 @@ inline Tensor detectScale(const std::string &s, int pi_ch, Tensor in,
   auto cls = convBias1x1(s + "/cv3_2", 1, 256, c, conv_q40); // out_ch=1: FP32
 
   LayerHandle cat(createLayer("concat", {nntrainer::withKey("name", s + "/out"),
-                                         nntrainer::withKey("axis", 1)}));
+                                         nntrainer::withKey("axis", chAxis())}));
   return cat({box, cls});
 }
 
@@ -305,7 +311,7 @@ inline Tensor detectScale(const std::string &s, int pi_ch, Tensor in,
 inline Tensor sliceCh(const std::string &name, int start0, int end0,
                       Tensor in) {
   LayerHandle s(createLayer(
-    "slice", {nntrainer::withKey("name", name), nntrainer::withKey("axis", 1),
+    "slice", {nntrainer::withKey("name", name), nntrainer::withKey("axis", chAxis()),
               nntrainer::withKey("start_index", start0 + 1),
               nntrainer::withKey("end_index", end0 + 1)}));
   return s(in);
@@ -330,7 +336,7 @@ inline Tensor upsampleX2(const std::string &name, Tensor in) {
 inline Tensor concatCh(const std::string &name,
                        const std::vector<Tensor> &ins) {
   LayerHandle l(createLayer("concat", {nntrainer::withKey("name", name),
-                                       nntrainer::withKey("axis", 1)}));
+                                       nntrainer::withKey("axis", chAxis())}));
   return l(ins);
 }
 
@@ -353,7 +359,7 @@ inline Tensor buildC2PSA(const std::string &n, Tensor x,
                               h * 128 + 128, qkv));
   LayerHandle vcat(
     createLayer("concat", {nntrainer::withKey("name", n + "/vcat"),
-                           nntrainer::withKey("axis", 1)}));
+                           nntrainer::withKey("axis", chAxis())}));
   auto v = vcat(v_parts);
   auto pe = yolov11::dwConvBnOnly(n + "/pe", 256, v);
 
@@ -371,7 +377,7 @@ inline Tensor buildC2PSA(const std::string &n, Tensor x,
   auto b2 = addT(n + "/res2", b1, ffn1);
 
   LayerHandle cat(createLayer("concat", {nntrainer::withKey("name", n + "/cat"),
-                                         nntrainer::withKey("axis", 1)}));
+                                         nntrainer::withKey("axis", chAxis())}));
   auto cc = cat({a, b2});
   return yolov11::convBnSilu(n + "/cv2", 512, 512, 1, 1, 0, cc, conv_q40);
 }
