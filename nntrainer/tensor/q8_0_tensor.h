@@ -59,6 +59,12 @@ public:
 
   Q8_0_Tensor(const TensorDim &d, const void *buf = nullptr);
 
+  /**
+   * @brief View constructor — wraps an external pre-allocated block_q8_0
+   *        buffer without allocating or copying. Caller owns the lifetime.
+   */
+  Q8_0_Tensor(const TensorDim &d, void *external_buf);
+
   Q8_0_Tensor(TensorBase &rhs) : TensorBase(rhs) {}
 
   void allocate() override;

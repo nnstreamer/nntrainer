@@ -47,6 +47,16 @@ Q8_0_Tensor::Q8_0_Tensor(const TensorDim &d, const void *buf) :
   }
 }
 
+Q8_0_Tensor::Q8_0_Tensor(const TensorDim &d, void *external_buf) :
+  TensorBase(d, false, Initializer::NONE, "") {
+  NNTR_THROW_IF(d.batch() != 1 || d.channel() != 1 || d.width() % QK8_0 != 0,
+                std::invalid_argument)
+    << "Q8_0_Tensor must be 2-dimensional with batch=1, channel=1 and "
+       "width divisible by " << QK8_0;
+  data = std::make_shared<MemoryData>(external_buf);
+  offset = 0;
+}
+
 void Q8_0_Tensor::allocate() {
   if (empty() || data)
     return;
