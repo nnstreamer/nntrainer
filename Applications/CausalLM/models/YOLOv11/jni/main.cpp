@@ -456,34 +456,46 @@ int main(int argc, char *argv[]) {
       ml::train::createModel(ml::train::ModelType::NEURAL_NET);
     model->setProperty({nntrainer::withKey("batch_size", "1")});
 
-    // Optional precision override. YOLO_TENSOR_TYPE selects the model tensor
-    // type, e.g. "FP16-FP16" (weights+activations FP16) or "FP32-FP16"
-    // (FP16 activations only). Default (unset) is FP32-FP32. Since Conv+BN are
-    // fused at convert time, there is no BatchNorm mixed-precision path to
-    // block FP16. Must be set before compile().
-    // Track whether activations are FP16 (the part after '-' in e.g.
-    // "FP32-FP16" / "Q4_0-FP16" / "FP16-FP16"). YOLOv11's input is a float
-    // image (not token IDs), so for an FP16-activation model we must declare
-    // the input tensor as FP16 and feed genuine FP16 bytes — the InputLayer no
-    // longer promotes FP32->activation dtype (PR#4000), and the float* binding
-    // reinterpret-casts without converting.
+    // YOLO_TENSOR_TYPE accepts either a raw dtype pair (e.g. "FP32-FP16") or a
+    // named quantization preset:
+    //   w4a16 — Q4_0 weights + FP16 activations + NHWC layout (best latency)
+    //   w4a8  — Q4_0 weights + Q8_0 activations + NHWC layout (experimental)
+    // Default (unset) is FP32-FP32.  YOLOv11's input is a float image; for an
+    // FP16-activation model the InputLayer must be declared FP16 (PR#4000).
     bool fp16_act = false;
+    bool preset_q40 = false;  // implied by w4a16/w4a8 presets
+    bool preset_nhwc = false; // implied by w4a16/w4a8 presets
     if (const char *tt = std::getenv("YOLO_TENSOR_TYPE")) {
-      model->setProperty({nntrainer::withKey("model_tensor_type", tt)});
       std::string tts = tt;
-      auto dash = tts.find('-');
-      std::string act =
-        (dash == std::string::npos) ? tts : tts.substr(dash + 1);
-      fp16_act = (act == "FP16");
-      std::cout << "[YOLO] model_tensor_type = " << tt
-                << " (fp16_act=" << (fp16_act ? "1" : "0") << ")" << std::endl;
+      if (tts == "w4a16" || tts == "W4A16") {
+        model->setProperty({nntrainer::withKey("model_tensor_type", "FP32-FP16")});
+        fp16_act = true;
+        preset_q40 = true;
+        preset_nhwc = true;
+        std::cout << "[YOLO] preset = w4a16 (Q4_0 weights + FP16 act + NHWC)"
+                  << std::endl;
+      } else if (tts == "w4a8" || tts == "W4A8") {
+        model->setProperty({nntrainer::withKey("model_tensor_type", "FP32-FP16")});
+        fp16_act = true;
+        preset_q40 = true;
+        preset_nhwc = true;
+        setenv("NNTR_CONV_Q8ACT", "1", 1);
+        std::cout << "[YOLO] preset = w4a8 (Q4_0 weights + Q8_0 act + NHWC)"
+                  << std::endl;
+      } else {
+        model->setProperty({nntrainer::withKey("model_tensor_type", tt)});
+        auto dash = tts.find('-');
+        std::string act =
+          (dash == std::string::npos) ? tts : tts.substr(dash + 1);
+        fp16_act = (act == "FP16");
+        std::cout << "[YOLO] model_tensor_type = " << tt
+                  << " (fp16_act=" << (fp16_act ? "1" : "0") << ")"
+                  << std::endl;
+      }
     }
 
-    // Optional NHWC layout (channel-last) for the whole graph. Set via
-    // tensor_format prop; TensorDim already computes NHWC strides/indexes.
-    // Default NCHW. When NHWC, concat/slice channel axis becomes 3 (handled in
-    // yolov11_graph.h).
-    if (std::getenv("YOLO_NHWC")) {
+    // NHWC layout: activated by w4a16/w4a8 presets or explicit YOLO_NHWC.
+    if (preset_nhwc || std::getenv("YOLO_NHWC")) {
       model->setProperty({nntrainer::withKey("tensor_format", "NHWC")});
       std::cout << "[YOLO] tensor_format = NHWC" << std::endl;
     }
@@ -494,11 +506,10 @@ int main(int argc, char *argv[]) {
     // allocates FP32 conv weights that can receive the FP32 file.
     const bool quantize_mode = (std::getenv("YOLO_QUANTIZE_OUT") != nullptr);
 
-    // Opt-in Q4_0 runtime path: env YOLO_CONV_Q40 enables Q4_0 weight_dtype
-    // for eligible group=1 convs (out_ch%32==0 && CRS%32==0). Requires the
-    // weights file to have been quantized first (see quantize_mode below).
+    // Q4_0 weight path: activated by preset or explicit YOLO_CONV_Q40.
     const bool conv_q40 =
-      !quantize_mode && (std::getenv("YOLO_CONV_Q40") != nullptr);
+      !quantize_mode &&
+      (preset_q40 || (std::getenv("YOLO_CONV_Q40") != nullptr));
 
     // In quantize mode, collect the Q4_0-eligible conv layer names as the graph
     // is built (single source of truth for eligibility) to drive the per-layer

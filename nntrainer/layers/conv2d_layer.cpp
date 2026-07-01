@@ -84,6 +84,47 @@ static TensorDim calcCol2ImOutputDim(const TensorDim &out,
 
 #ifdef ENABLE_FP16
 /**
+ * @brief Quantize FP16 NHWC [n_spatial, in_ch] -> plain block_q8_0 [n_spatial][in_ch/32].
+ *
+ * NHWC input is already row-major (channel innermost): src[r * in_ch + c].
+ * No transpose needed — each row r has in_ch contiguous FP16 channels.
+ * Q8_0 requires in_ch % 32 == 0 (caller must check).
+ * dst must hold n_spatial * (in_ch/32) * sizeof(block_q8_0) bytes.
+ */
+static inline void quantize_nhwc_q8_0_rows(const _FP16 *src, int n_spatial,
+                                            int in_ch,
+                                            ::nntrainer::block_q8_0 *dst) {
+  const int nb = in_ch / 32;
+  auto &tm = ThreadManager::Global();
+  const unsigned int chunk = 512;
+  const size_t loops = ((size_t)n_spatial + chunk - 1) / chunk;
+  tm.parallel_for(0, loops, [=](size_t idx) {
+    unsigned r0 = (unsigned)idx * chunk;
+    unsigned r1 = std::min(r0 + chunk, (unsigned)n_spatial);
+    for (unsigned r = r0; r < r1; ++r) {
+      const _FP16 *row = src + (size_t)r * in_ch;
+      for (int b = 0; b < nb; ++b) {
+        const _FP16 *blk = row + b * 32;
+        float amax = 0.f;
+        for (int j = 0; j < 32; ++j) {
+          float v = std::abs(static_cast<float>(blk[j]));
+          if (v > amax) amax = v;
+        }
+        const float d = amax / 127.f;
+        const float id = d ? 1.f / d : 0.f;
+        _FP16 d_h = static_cast<_FP16>(d);
+        uint16_t d_u16;
+        std::memcpy(&d_u16, &d_h, 2);
+        ::nntrainer::block_q8_0 &out_blk = dst[(size_t)r * nb + b];
+        out_blk.d = d_u16;
+        for (int j = 0; j < 32; ++j)
+          out_blk.qs[j] = (int8_t)std::roundf(static_cast<float>(blk[j]) * id);
+      }
+    }
+  });
+}
+
+/**
  * @brief Transpose-and-quantize FP16 NCHW [in_ch, owoh] -> Q8_0 [owoh, in_ch]
  *        in a single fused pass (no intermediate transpose copy).
  *
@@ -833,13 +874,35 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
             Tensor out_flat = out;
             out_flat.reshape(TensorDim(1, 1, owoh, filter_size, {ml::train::TensorDim::Format::NCHW, out.getDataType()}));
 
+            const int in_ch_i = (int)in_dim.channel();
+            const bool can_q8act =
+              (in_ch_i % 32 == 0) && (std::getenv("NNTR_CONV_Q8ACT") != nullptr);
             if (is_1x1_s1) {
-              Tensor act = in_sub;
-              act.reshape(TensorDim(1, 1, owoh, in_dim.channel(), {ml::train::TensorDim::Format::NCHW, in_sub.getDataType()}));
-              act.dot(filter_kernel, out_flat, false, false);
+#ifdef ENABLE_FP16
+              if (can_q8act) {
+                // W4A8 NHWC 1x1: input already [owoh, in_ch] row-major
+                // (channel innermost). Quantize directly — no transpose.
+                TensorDim q8dim({1, 1, owoh, (unsigned)in_ch_i},
+                                {ml::train::TensorDim::Format::NCHW,
+                                 nntrainer::Tdatatype::Q8_0});
+                Q8_0_Tensor q8act(q8dim, /*alloc_now=*/true);
+                quantize_nhwc_q8_0_rows(in_sub.getData<_FP16>(), owoh, in_ch_i,
+                                        static_cast<::nntrainer::block_q8_0 *>(
+                                          q8act.getData()));
+                q8act.dot(filter_kernel, out_flat, false, false);
+              } else {
+#endif
+                Tensor act = in_sub;
+                act.reshape(TensorDim(1, 1, owoh, in_dim.channel(),
+                                     {ml::train::TensorDim::Format::NCHW,
+                                      in_sub.getDataType()}));
+                act.dot(filter_kernel, out_flat, false, false);
+#ifdef ENABLE_FP16
+              }
+#endif
             } else if (NNTR_HAS_Q4_0_INDIRECT_CONV) {
               ConvGatherParams geom;
-              geom.in_ch = in_dim.channel();
+              geom.in_ch = in_ch_i;
               geom.in_h = in_dim.height();
               geom.in_w = in_dim.width();
               geom.k_h = kernel_size[0].get();
@@ -851,8 +914,26 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
               geom.dil_h = dilation[0].get();
               geom.dil_w = dilation[1].get();
               geom.out_w = out_dim.width();
-              geom.is_nhwc = true;
-              in_sub.convQ4_0Indirect(filter_kernel, out_flat, geom);
+#ifdef ENABLE_FP16
+              if (can_q8act) {
+                // W4A8 NHWC 3x3+: pre-quantize NHWC [in_h*in_w, in_ch] once,
+                // then gather is pure byte-copy (no per-tile FP16 quant).
+                const int n_sp = geom.in_h * geom.in_w;
+                TensorDim q8dim({1, 1, (unsigned)n_sp, (unsigned)in_ch_i},
+                                {ml::train::TensorDim::Format::NCHW,
+                                 nntrainer::Tdatatype::Q8_0});
+                Q8_0_Tensor q8act(q8dim, /*alloc_now=*/true);
+                quantize_nhwc_q8_0_rows(in_sub.getData<_FP16>(), n_sp, in_ch_i,
+                                        static_cast<::nntrainer::block_q8_0 *>(
+                                          q8act.getData()));
+                q8act.convQ4_0Indirect(filter_kernel, out_flat, geom);
+              } else {
+#endif
+                geom.is_nhwc = true;
+                in_sub.convQ4_0Indirect(filter_kernel, out_flat, geom);
+#ifdef ENABLE_FP16
+              }
+#endif
             } else {
               throw std::runtime_error("Fallback quantized NHWC conv is not supported (requires indirect conv on ARM).");
             }
