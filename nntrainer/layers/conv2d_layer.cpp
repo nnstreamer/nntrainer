@@ -125,6 +125,101 @@ static inline void quantize_nhwc_q8_0_rows(const _FP16 *src, int n_spatial,
 }
 
 /**
+ * @brief Quantize FP16 NHWC [owoh, in_ch] directly into the block_q8_0x4
+ *        (4-row interleaved) layout the SMMLA GEMM consumes — single pass.
+ *
+ * NHWC source is row-major (channel innermost): element (r, c) at src[r*in_ch+c].
+ * This is the NHWC-read counterpart of transpose_quantize_q8_0x4_act (which reads
+ * NCHW channel-major). It fuses the two passes the prior 1x1 W4A8 path performed
+ * (quantize_nhwc_q8_0_rows -> plain block_q8_0, then Q8_0_Tensor::dot repacks to
+ * x4) into one, and lets the caller invoke Q8_0_Tensor::dot_prepacked_x4 (no
+ * per-conv repack, no per-conv QA malloc). Output bytes are identical to what the
+ * two-pass path produced. dst layout: M4=owoh/4 groups of block_q8_0x4 (136 B/blk)
+ * followed by (owoh % 4) remainder rows as plain block_q8_0 (34 B/blk) — exactly
+ * what dot_prepacked_x4 expects. dst must hold the same total as the block_q8_0
+ * buffer (136 B per 4 rows == 4 * 34 B). Q8_0 requires in_ch % 32 == 0.
+ */
+static inline void quantize_nhwc_q8_0x4_rows(const _FP16 *src, int in_ch,
+                                             int owoh, void *dst) {
+  struct block_q8_0 {
+    uint16_t d;
+    int8_t qs[32];
+  };
+  struct block_q8_0x4 {
+    uint16_t d[4];
+    int8_t qs[128];
+  };
+  const int qk = 32;
+  const int nb = in_ch / qk;
+  const int M4 = owoh / 4;
+  const int rem = owoh % 4;
+  block_q8_0x4 *y4 = static_cast<block_q8_0x4 *>(dst);
+  const size_t qa_4_rows_size = sizeof(block_q8_0x4) * nb;
+
+  auto &tm = ThreadManager::Global();
+  const unsigned int chunk = 256; // groups of 4 rows per task
+  const size_t loops = (M4 + chunk - 1) / chunk;
+  tm.parallel_for(0, loops, [=](size_t idx) {
+    unsigned int g0 = idx * chunk;
+    unsigned int g1 = std::min(g0 + chunk, (unsigned int)M4);
+    for (unsigned int g = g0; g < g1; ++g) {
+      unsigned int r0 = g * 4;
+      for (int b = 0; b < nb; ++b) {
+        block_q8_0x4 &dst_b = y4[g * nb + b];
+        for (unsigned int row = 0; row < 4; ++row) {
+          const _FP16 *blk = src + (size_t)(r0 + row) * in_ch + b * qk;
+          float amax = 0.0f;
+          for (int j = 0; j < qk; ++j) {
+            float val = std::abs(static_cast<float>(blk[j]));
+            if (val > amax)
+              amax = val;
+          }
+          const float d = amax / ((1 << 7) - 1);
+          const float id = d ? 1.0f / d : 0.0f;
+          _FP16 d_half = static_cast<_FP16>(d);
+          uint16_t d_u16;
+          std::memcpy(&d_u16, &d_half, 2);
+          dst_b.d[row] = d_u16;
+          for (int j = 0; j < qk; ++j) {
+            // qs[32*(j/8) + 8*row + (j%8)] — matches the SMMLA x4 layout.
+            dst_b.qs[32 * (j / 8) + 8 * row + (j % 8)] =
+              static_cast<int8_t>(std::roundf(static_cast<float>(blk[j]) * id));
+          }
+        }
+      }
+    }
+  });
+
+  // Remainder rows (owoh % 4): plain block_q8_0 for the GEMV tail.
+  if (rem > 0) {
+    block_q8_0 *yrem =
+      reinterpret_cast<block_q8_0 *>(reinterpret_cast<char *>(dst) +
+                                     (size_t)M4 * qa_4_rows_size);
+    for (int i = 0; i < rem; ++i) {
+      unsigned int r = M4 * 4 + i;
+      for (int b = 0; b < nb; ++b) {
+        const _FP16 *blk = src + (size_t)r * in_ch + b * qk;
+        float amax = 0.0f;
+        for (int j = 0; j < qk; ++j) {
+          float val = std::abs(static_cast<float>(blk[j]));
+          if (val > amax)
+            amax = val;
+        }
+        const float d = amax / ((1 << 7) - 1);
+        const float id = d ? 1.0f / d : 0.0f;
+        _FP16 d_half = static_cast<_FP16>(d);
+        uint16_t d_u16;
+        std::memcpy(&d_u16, &d_half, 2);
+        yrem[i * nb + b].d = d_u16;
+        for (int j = 0; j < qk; ++j)
+          yrem[i * nb + b].qs[j] =
+            static_cast<int8_t>(std::roundf(static_cast<float>(blk[j]) * id));
+      }
+    }
+  }
+}
+
+/**
  * @brief Transpose-and-quantize FP16 NCHW [in_ch, owoh] -> Q8_0 [owoh, in_ch]
  *        in a single fused pass (no intermediate transpose copy).
  *
@@ -916,13 +1011,16 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
             if (is_1x1_s1) {
 #ifdef ENABLE_FP16
               if (can_q8act && q8_buf) {
-                quantize_nhwc_q8_0_rows(in_sub.getData<_FP16>(), owoh,
-                                        in_ch_i, q8_buf);
-                TensorDim q8dim({1, 1, owoh, (unsigned)in_ch_i},
-                                {ml::train::TensorDim::Format::NCHW,
-                                 nntrainer::Tdatatype::Q8_0});
-                Q8_0_Tensor q8act(q8dim, q8_buf);
-                q8act.dot(filter_kernel, out_flat, false, false);
+                // Fused: quantize NHWC activation directly into the block_q8_0x4
+                // SMMLA layout and run the prepacked GEMM. This replaces the two
+                // passes (quantize -> block_q8_0, then dot() repacks to x4 with a
+                // per-call malloc) with one; output is bit-identical.
+                quantize_nhwc_q8_0x4_rows(in_sub.getData<_FP16>(), in_ch_i, owoh,
+                                          q8_buf);
+                Q8_0_Tensor::dot_prepacked_x4(
+                  (unsigned)owoh, (unsigned)in_ch_i, filter_size, q8_buf,
+                  filter_kernel.getData(), out_flat.getData<_FP16>(),
+                  filter_size);
               } else {
 #endif
                 Tensor act = in_sub;
