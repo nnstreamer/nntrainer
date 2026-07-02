@@ -64,6 +64,10 @@
 #pragma GCC diagnostic pop
 #endif
 
+// OpenBLAS runtime thread-count API (pthread build). Declared here to avoid
+// pulling the cblas backend header into the app; see the call in main().
+extern "C" void openblas_set_num_threads(int);
+
 using ml::train::createLayer;
 using ml::train::LayerHandle;
 using ml::train::Tensor;
@@ -443,6 +447,16 @@ inline void printPeakRSS() {
 
 int main(int argc, char *argv[]) {
   try {
+    // Force the BLAS backend (used by the C2PSA attention sgemm and the detect
+    // head) to a single thread. nntrainer's conv path drives its own
+    // ThreadManager pool; letting OpenBLAS spawn a competing thread pool over-
+    // subscribes the cores and both slows the conv path and inflates RSS
+    // (~+25MB). OpenBLAS reads OPENBLAS_NUM_THREADS at its dlopen constructor
+    // (before main), so setenv() here is too late; the pthread build honors the
+    // runtime openblas_set_num_threads() API instead. Small GEMMs stay cache-
+    // friendly without a competing pool.
+    openblas_set_num_threads(1);
+
     if (argc > 1)
       RES_DIR = argv[1];
     const std::string input_path =

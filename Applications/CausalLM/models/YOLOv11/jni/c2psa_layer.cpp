@@ -16,6 +16,7 @@
 
 #include "c2psa_layer.h"
 
+#include <cpu_backend.h>
 #include <layer_context.h>
 #include <nntrainer_error.h>
 
@@ -44,21 +45,26 @@ void PSAAttentionLayer::multiHeadAttention(const float *Q, const float *K,
   const float scale = 1.0f / std::sqrt(static_cast<float>(kd));
   std::vector<float> score(static_cast<size_t>(N) * N);
 
+  // Q/K/V are stored head-major as row-major [d, N] matrices (element (d,i) at
+  // d*N+i). The two attention matmuls are BLAS GEMMs (RowMajor => order arg 0):
+  //   score[N,N] = scale * Qh^T[N,kd] * Kh[kd,N]   (TransA on Qh)
+  //   outh[vd,N] = Vh[vd,N] * score^T[N,N]          (TransB on score)
+  // sgemm ldX is the stored row stride (= N for every operand here), invariant
+  // under the transpose flags. This replaces the prior triple scalar loops.
   for (int h = 0; h < nh; ++h) {
     const float *Qh = Q + static_cast<size_t>(h) * kd * N;
     const float *Kh = K + static_cast<size_t>(h) * kd * N;
     const float *Vh = V + static_cast<size_t>(h) * vd * N;
     float *outh = out + static_cast<size_t>(h) * vd * N;
 
-    // score[i,j] = (Q[h,:,i] . K[h,:,j]) * scale
-    for (int i = 0; i < N; ++i) {
-      for (int j = 0; j < N; ++j) {
-        float s = 0.0f;
-        for (int d = 0; d < kd; ++d)
-          s += Qh[d * N + i] * Kh[d * N + j];
-        score[static_cast<size_t>(i) * N + j] = s * scale;
-      }
-    }
+    // score = scale * Qh^T * Kh
+    nntrainer::sgemm(0, true, false, static_cast<unsigned int>(N),
+                     static_cast<unsigned int>(N),
+                     static_cast<unsigned int>(kd), scale, Qh,
+                     static_cast<unsigned int>(N), Kh,
+                     static_cast<unsigned int>(N), 0.0f, score.data(),
+                     static_cast<unsigned int>(N));
+
     // softmax over key axis j for each query i
     for (int i = 0; i < N; ++i) {
       float *row = score.data() + static_cast<size_t>(i) * N;
@@ -72,16 +78,13 @@ void PSAAttentionLayer::multiHeadAttention(const float *Q, const float *K,
       for (int j = 0; j < N; ++j)
         row[j] *= inv;
     }
-    // out[h,d,i] = sum_j score[i,j] * V[h,d,j]
-    for (int d = 0; d < vd; ++d) {
-      for (int i = 0; i < N; ++i) {
-        float s = 0.0f;
-        const float *row = score.data() + static_cast<size_t>(i) * N;
-        for (int j = 0; j < N; ++j)
-          s += row[j] * Vh[d * N + j];
-        outh[d * N + i] = s;
-      }
-    }
+
+    // outh = Vh * score^T
+    nntrainer::sgemm(0, false, true, static_cast<unsigned int>(vd),
+                     static_cast<unsigned int>(N), static_cast<unsigned int>(N),
+                     1.0f, Vh, static_cast<unsigned int>(N), score.data(),
+                     static_cast<unsigned int>(N), 0.0f, outh,
+                     static_cast<unsigned int>(N));
   }
 }
 
