@@ -1144,9 +1144,43 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
             // to out[r*out_ch + c] (NHWC physical).
             auto nchw_type = out.getTensorType();
             nchw_type.format = ml::train::TensorDim::Format::NCHW;
-            TensorDim nchw_dim({1, filter_size, owoh, 1}, nchw_type);
+            // nchw_out holds the GEMM result [out_ch, OH*OW] in channel-major
+            // (NCHW) order. Shape it [1, 1, out_ch, OH*OW] so width()==OH*OW is
+            // the row stride the GEMM writes with (ldc); a [1,out_ch,OH*OW,1]
+            // shape would give width()==1 and stride the output wrong.
+            TensorDim nchw_dim({1, 1, filter_size, owoh}, nchw_type);
             Tensor nchw_out(nchw_dim, true);
-            filter_kernel.dot(result, nchw_out, false, true);
+            // filter_kernel (weight [out_ch, CRS]) and result (im2col columns
+            // [OH*OW, CRS]) are plain 2D matmul matrices whose image format is
+            // irrelevant to this GEMM. dot() derives the contraction axis from
+            // the tensor format: their inherited NHWC tag makes it contract
+            // over channel() (==1) instead of width() (==CRS) -> zero output.
+            // Re-map the same bytes as NCHW-format views (no copy) so the GEMM
+            // contracts over CRS==width(). getSharedDataTensor can't relabel
+            // format (it enforces a match), so use Tensor::Map.
+            auto fnchw_type = filter_kernel.getTensorType();
+            fnchw_type.format = ml::train::TensorDim::Format::NCHW;
+            auto cnchw_type = result.getTensorType();
+            cnchw_type.format = ml::train::TensorDim::Format::NCHW;
+            TensorDim fdim_nchw(filter_kernel.batch(), filter_kernel.channel(),
+                                filter_kernel.height(), filter_kernel.width(),
+                                fnchw_type);
+            TensorDim cdim_nchw(result.batch(), result.channel(),
+                                result.height(), result.width(), cnchw_type);
+            Tensor filt_nchw = Tensor::Map<float>(
+              filter_kernel.getData<float>(), filter_kernel.bytes(), fdim_nchw);
+            if (out.getDataType() == nntrainer::Tdatatype::FP32) {
+              Tensor col_nchw = Tensor::Map<float>(
+                result.getData<float>(), result.bytes(), cdim_nchw);
+              filt_nchw.dot(col_nchw, nchw_out, false, true);
+            }
+#ifdef ENABLE_FP16
+            else {
+              Tensor col_nchw = Tensor::Map<_FP16>(
+                result.getData<_FP16>(), result.bytes(), cdim_nchw);
+              filt_nchw.dot(col_nchw, nchw_out, false, true);
+            }
+#endif
             if (out.getDataType() == nntrainer::Tdatatype::FP32) {
               const float *s = nchw_out.getData<float>();
               float *d = out.getData<float>();
@@ -1189,8 +1223,72 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
     TensorDim fdim_g(ocg, icg, fh, fw, filter_dim.getTensorType());
 
     const bool is_true_depthwise = ocg == 1 && icg == 1;
+    const bool nhwc_depthwise =
+      is_true_depthwise &&
+      in_dim.getFormat() == ml::train::TensorDim::Format::NHWC;
 
-    if (is_true_depthwise &&
+    if (nhwc_depthwise) {
+      // NHWC depthwise convolution: input/output are channel-last, but the
+      // backend depthwise ops (depthwise_conv2d_fp32/fp16) and the generic
+      // grouped fallback below are all NCHW-planar (channel-major). Handle the
+      // channel-last layout inline here. Filter keeps the standard
+      // [out_ch, 1, fh, fw] layout, so channel c tap (kh,kw) is at
+      // filt[c*fh*fw + kh*fw + kw]. Accumulate in float for parity with the
+      // NCHW paths regardless of activation precision.
+      const unsigned int B = in_dim.batch();
+      const unsigned int C = filter_size; // channels (== groups)
+      const int IH = static_cast<int>(in_dim.height());
+      const int IW = static_cast<int>(in_dim.width());
+      const int OH = static_cast<int>(out_dim.height());
+      const int OW = static_cast<int>(out_dim.width());
+      const int sh = static_cast<int>(stride[0].get());
+      const int sw = static_cast<int>(stride[1].get());
+      const int ph = static_cast<int>(padding[0]);
+      const int pw = static_cast<int>(padding[2]);
+      const int dh = static_cast<int>(dilation[0].get());
+      const int dw_ = static_cast<int>(dilation[1].get());
+      const unsigned int fhfw = fh * fw;
+      const float *filt = filter_kernel.getData<float>();
+
+      auto run = [&]<typename T>(const T *in, T *out) {
+        std::vector<float> acc(C);
+        for (unsigned int b = 0; b < B; ++b) {
+          const T *inb = in + static_cast<size_t>(b) * IH * IW * C;
+          T *outb = out + static_cast<size_t>(b) * OH * OW * C;
+          for (int oh = 0; oh < OH; ++oh) {
+            for (int ow = 0; ow < OW; ++ow) {
+              std::fill(acc.begin(), acc.end(), 0.0f);
+              for (unsigned int kh = 0; kh < fh; ++kh) {
+                const int ih = oh * sh - ph + static_cast<int>(kh) * dh;
+                if (ih < 0 || ih >= IH)
+                  continue;
+                for (unsigned int kw = 0; kw < fw; ++kw) {
+                  const int iw = ow * sw - pw + static_cast<int>(kw) * dw_;
+                  if (iw < 0 || iw >= IW)
+                    continue;
+                  const T *id =
+                    inb + (static_cast<size_t>(ih) * IW + iw) * C;
+                  const float *fk = filt + kh * fw + kw;
+                  for (unsigned int c = 0; c < C; ++c)
+                    acc[c] += static_cast<float>(id[c]) *
+                              fk[static_cast<size_t>(c) * fhfw];
+                }
+              }
+              T *od = outb + (static_cast<size_t>(oh) * OW + ow) * C;
+              for (unsigned int c = 0; c < C; ++c)
+                od[c] = static_cast<T>(acc[c]);
+            }
+          }
+        }
+      };
+
+      if (in_dim.getDataType() == nntrainer::Tdatatype::FP32)
+        run(input_.getData<float>(), hidden_.getData<float>());
+#ifdef ENABLE_FP16
+      else
+        run(input_.getData<_FP16>(), hidden_.getData<_FP16>());
+#endif
+    } else if (is_true_depthwise &&
         in_dim.getDataType() == nntrainer::Tdatatype::FP32) {
       // True depthwise (groups == channels): delegate to the CPU backend op so
       // the optimised kernel lives in the backend, not in the layer.

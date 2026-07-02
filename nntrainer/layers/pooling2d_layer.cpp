@@ -103,6 +103,7 @@ void Pooling2DLayer::finalize(InitLayerContext &context) {
                 std::invalid_argument)
     << "[Pooling2D] Failed to initialize: Calculated patch end is over int max";
 
+  out_dim.setFormat(in_dim.getFormat());
   out_dim.batch(in_dim.batch());
   out_dim.channel(in_dim.channel());
   out_dim.height((eff_in_height - pool_size[0]) / stride[0] + 1);

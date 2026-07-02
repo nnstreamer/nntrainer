@@ -170,7 +170,8 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
         for (unsigned int b = 0; b < B; ++b) {
           const size_t base = (size_t)b * HW;
           for (size_t p = 0; p < HW; ++p) {
-            const float *s = src + (base + p) * out_dim.channel() + 0;
+            // src is packed with Ci channels per pixel; dst has out channels.
+            const float *s = src + (base + p) * Ci;
             float *d = dst + (base + p) * out_dim.channel() + c_offset;
             std::memcpy(d, s, (size_t)Ci * sizeof(float));
           }
@@ -182,7 +183,7 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
         for (unsigned int b = 0; b < B; ++b) {
           const size_t base = (size_t)b * HW;
           for (size_t p = 0; p < HW; ++p) {
-            const _FP16 *s = src + (base + p) * out_dim.channel() + 0;
+            const _FP16 *s = src + (base + p) * Ci;
             _FP16 *d = dst + (base + p) * out_dim.channel() + c_offset;
             std::memcpy(d, s, (size_t)Ci * sizeof(_FP16));
           }

@@ -534,12 +534,21 @@ int main(int argc, char *argv[]) {
 
     // Declare the input tensor's dtype to match the activation dtype so the
     // synthesized InputLayer emits FP16 output for an FP16-activation model.
+    // The input tensor's declared format must match the graph layout so the
+    // synthesized InputLayer emits the right physical layout to conv0. Under an
+    // NHWC preset the whole graph is channel-last, so declare the input NHWC
+    // too (and feed NHWC-ordered bytes below).
+    const bool in_nhwc = (preset_nhwc || std::getenv("YOLO_NHWC"));
+    const auto in_fmt = in_nhwc ? ml::train::TensorDim::Format::NHWC
+                                : ml::train::TensorDim::Format::NCHW;
     auto x = fp16_act
                ? Tensor(ml::train::TensorDim(
-                          1, 3, 832, 832, ml::train::TensorDim::Format::NCHW,
+                          1, 3, 832, 832, in_fmt,
                           ml::train::TensorDim::DataType::FP16),
                         "input0")
-               : Tensor({1, 3, 832, 832}, "input0");
+               : Tensor(ml::train::TensorDim(1, 3, 832, 832, in_fmt,
+                                             ml::train::TensorDim::DataType::FP32),
+                        "input0");
     Tensor m4, m6;
     auto m10 = yolov11::buildBackbone(x, m4, m6, conv_q40);
     auto outputs = yolov11::buildHead(m4, m6, m10, conv_q40); // {P3, P4, P5}
@@ -610,7 +619,7 @@ int main(int argc, char *argv[]) {
     // system — no app-side conversion.
     // When the graph is NHWC, the input bytes must also be NHWC-ordered
     // ([N,H,W,C]); input_832.bin is stored NCHW, so transpose here.
-    if (std::getenv("YOLO_NHWC")) {
+    if (preset_nhwc || std::getenv("YOLO_NHWC")) {
       const int C = 3, H = 832, W = 832;
       std::vector<float> nhwc(input.size());
       for (int c = 0; c < C; ++c)
@@ -649,12 +658,28 @@ int main(int argc, char *argv[]) {
     std::vector<float> anchors, strides;
     yolov11::makeAnchors(scales, anchors, strides);
 
+    // When the graph runs NHWC, each scale output tensor is stored channel-last
+    // in memory ((h*W+w)*C + c), but decodeOneScale expects the NCHW channel-
+    // major layout (c*N + a). Transpose each output to NCHW before decoding.
+    // Detect output channels = 4*reg_max (DFL box) + nc = 64 + 1 = 65 (nc=1).
+    const bool out_nhwc = preset_nhwc || std::getenv("YOLO_NHWC");
+    const int OUT_CH = 65;
     std::vector<float> decoded(5 * N_total, 0.0f);
     int off = 0;
     for (size_t i = 0; i < scales.size(); ++i) {
-      yolov11::decodeOneScale(outs[i], scales[i].H, scales[i].W,
-                              scales[i].stride, anchors, strides, off, N_total,
-                              decoded);
+      const float *raw = outs[i];
+      std::vector<float> nchw_buf;
+      if (out_nhwc) {
+        const int N = scales[i].H * scales[i].W;
+        nchw_buf.resize(static_cast<size_t>(OUT_CH) * N);
+        for (int a = 0; a < N; ++a)
+          for (int c = 0; c < OUT_CH; ++c)
+            nchw_buf[static_cast<size_t>(c) * N + a] =
+              raw[static_cast<size_t>(a) * OUT_CH + c];
+        raw = nchw_buf.data();
+      }
+      yolov11::decodeOneScale(raw, scales[i].H, scales[i].W, scales[i].stride,
+                              anchors, strides, off, N_total, decoded);
       off += scales[i].H * scales[i].W;
     }
 

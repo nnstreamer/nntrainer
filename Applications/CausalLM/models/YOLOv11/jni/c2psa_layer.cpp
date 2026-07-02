@@ -140,8 +140,48 @@ void PSAAttentionLayer::forwarding(nntrainer::RunLayerContext &context,
   std::vector<float> Kb(static_cast<size_t>(q_ch) * N);
   std::vector<float> Vb(static_cast<size_t>(v_ch) * N);
 
+  // NHWC input is channel-last: logical element (c, p) lives at in[p*dim_ + c],
+  // so the head/channel gather is a strided read (no contiguous memcpy) and the
+  // attention output must be scattered back to channel-last positions. The
+  // attention math itself operates on head-major planar [d,N] buffers either
+  // way, so only these boundary conversions differ.
+  const bool nhwc =
+    in_t.getFormat() == ml::train::TensorDim::Format::NHWC &&
+    out_t.getFormat() == ml::train::TensorDim::Format::NHWC;
+  std::vector<float> out_planar;
+  if (nhwc)
+    out_planar.resize(static_cast<size_t>(v_ch) * N);
+
   for (unsigned int b = 0; b < B; ++b) {
     const float *qkv = in + static_cast<size_t>(b) * dim_ * N;
+    if (nhwc) {
+      for (unsigned int h = 0; h < NUM_HEADS; ++h) {
+        const unsigned int cbase = h * head_stride;
+        for (unsigned int d = 0; d < KD; ++d) {
+          float *qdst = Qb.data() + (static_cast<size_t>(h) * KD + d) * N;
+          float *kdst = Kb.data() + (static_cast<size_t>(h) * KD + d) * N;
+          for (int p = 0; p < N; ++p) {
+            qdst[p] = qkv[static_cast<size_t>(p) * dim_ + cbase + d];
+            kdst[p] = qkv[static_cast<size_t>(p) * dim_ + cbase + KD + d];
+          }
+        }
+        for (unsigned int d = 0; d < VD; ++d) {
+          float *vdst = Vb.data() + (static_cast<size_t>(h) * VD + d) * N;
+          for (int p = 0; p < N; ++p)
+            vdst[p] = qkv[static_cast<size_t>(p) * dim_ + cbase + 2 * KD + d];
+        }
+      }
+      multiHeadAttention(Qb.data(), Kb.data(), Vb.data(), out_planar.data(),
+                         NUM_HEADS, KD, VD, N);
+      // scatter planar [v_ch, N] back to channel-last out[p*v_ch + c]
+      float *out_b = out + static_cast<size_t>(b) * v_ch * N;
+      for (unsigned int c = 0; c < v_ch; ++c) {
+        const float *src = out_planar.data() + static_cast<size_t>(c) * N;
+        for (int p = 0; p < N; ++p)
+          out_b[static_cast<size_t>(p) * v_ch + c] = src[p];
+      }
+      continue;
+    }
     for (unsigned int h = 0; h < NUM_HEADS; ++h) {
       const float *qh = qkv + static_cast<size_t>(h) * head_stride * N;
       std::memcpy(Qb.data() + static_cast<size_t>(h) * KD * N, qh,
