@@ -102,6 +102,12 @@ Q4_0_BLOCK_BYTES = 18   # 2 bytes fp16 d + 16 bytes qs
 SAFETENSORS_DTYPE_Q4_0 = "U8"
 NNTR_DTYPE_Q4_0 = "Q4_0"
 
+# Q8_0 constants (8-bit weight variant — higher accuracy than Q4_0)
+QK8_0 = 32
+Q8_0_BLOCK_BYTES = 34   # 2 bytes fp16 d + 32 int8 qs
+SAFETENSORS_DTYPE_Q8_0 = "U8"
+NNTR_DTYPE_Q8_0 = "Q8_0"
+
 
 # ---------------------------------------------------------------------------
 # Safetensors I/O helpers (reused from quantize_int4_conv.py)
@@ -198,6 +204,50 @@ def quantize_q4_0(w2d: np.ndarray) -> bytes:
     # Interleave: [2 bytes d][16 bytes qs] per block
     raw = np.concatenate([d_bytes, qs], axis=1).astype(np.uint8)  # (nb, 18)
     return raw.tobytes()
+
+
+# ---------------------------------------------------------------------------
+# Q8_0 quantization (matches quantize_row_q8_0_ref in ggml)
+# ---------------------------------------------------------------------------
+
+def quantize_q8_0(w2d: np.ndarray) -> bytes:
+    """Quantise float32 array [N, K] to raw Q8_0 block stream (plain block_q8_0).
+
+    Each row of K elements produces K/32 blocks.
+    Block layout: [fp16 d (2 bytes)] [int8 qs[32]] = 34 bytes.
+
+    Matches quantize_row_q8_0_ref:
+      d  = amax / 127          (amax = max |x| in the block)
+      qi = round(x / d), clipped to [-128, 127]
+
+    Unlike Q4_0 there is no nibble packing and no interleave repack — the plain
+    block_q8_0 stream is what nntr_gemm_q8_0_q8_0 / the Q8_0 indirect conv GEMM
+    consume directly (weight side, non-interleaved).
+    """
+    assert w2d.ndim == 2
+    N, K = w2d.shape
+    assert K % QK8_0 == 0, f"K={K} must be divisible by QK8_0={QK8_0}"
+
+    w2d = w2d.astype(np.float32)
+    nblocks_per_row = K // QK8_0
+    total_blocks = N * nblocks_per_row
+
+    blocks = w2d.reshape(total_blocks, QK8_0)
+
+    amax = np.max(np.abs(blocks), axis=1)              # (nb,)
+    d = (amax / 127.0).astype(np.float32)             # (nb,)
+    id_ = np.where(d != 0.0, 1.0 / d, np.float32(0.0))
+
+    # round(x * id), clip to int8 range [-128, 127]
+    q = np.clip(np.rint(blocks * id_[:, None]), -128, 127).astype(np.int8)
+
+    # Encode d as fp16 (2 bytes, little-endian)
+    d_fp16 = d.astype(np.float16).view(np.uint16)
+    d_bytes = d_fp16.view(np.uint8).reshape(total_blocks, 2)
+
+    # [2 bytes d][32 bytes qs] per block
+    raw = np.concatenate([d_bytes, q.view(np.uint8)], axis=1).astype(np.uint8)
+    return raw.tobytes()  # (nb, 34)
 
 
 # ---------------------------------------------------------------------------
@@ -373,6 +423,32 @@ def quantize_filter(raw: bytes, shape: list, interleave: int):
     return repacked, nntr_shape
 
 
+def quantize_filter_q8_0(raw: bytes, shape: list):
+    """Quantize a single FP32 conv filter to plain Q8_0 blocks (no repack).
+
+    shape: [out_ch, in_ch, kh, kw]
+    Returns: (q8_bytes, nntr_shape) with nntr_shape = [1, 1, CRS, out_ch].
+
+    Flattening matches quantize_filter (im2col K-order ic*kh*kw + ki*kw + kj).
+    The Q8_0 weight is stored as a plain block_q8_0 stream [out_ch, CRS/32] with
+    no interleave (the Q8_0 GEMM reads non-interleaved weight rows directly).
+    """
+    out_ch, in_ch, kh, kw = shape
+    CRS = in_ch * kh * kw
+
+    w = np.frombuffer(raw, dtype=np.float32).reshape(shape)
+    w2d = w.reshape(out_ch, CRS)  # [N=out_ch, K=CRS]
+
+    q8 = quantize_q8_0(w2d)
+
+    expected_bytes = (out_ch * CRS // QK8_0) * Q8_0_BLOCK_BYTES
+    assert len(q8) == expected_bytes, \
+        f"q8_0 size {len(q8)} != expected {expected_bytes}"
+
+    nntr_shape = [1, 1, CRS, out_ch]
+    return q8, nntr_shape
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -388,7 +464,11 @@ def main():
                          "or <input stem>_q40_all.safetensors with --all)")
     ap.add_argument("--target", choices=["arm", "x86"], default="arm",
                     help="Repack interleave target: arm=q4_0x4 (4), x86=q4_0x8 (8). "
-                         "Default: arm (for device inference on S23 etc.)")
+                         "Default: arm (for device inference on S23 etc.). "
+                         "Ignored for --dtype q8_0 (plain, non-interleaved).")
+    ap.add_argument("--dtype", choices=["q4_0", "q8_0"], default="q4_0",
+                    help="Weight quantization: q4_0 (4-bit, repacked) or q8_0 "
+                         "(8-bit plain block_q8_0, higher accuracy). Default q4_0.")
     ap.add_argument("--all", dest="all_kernels", action="store_true",
                     help="Also quantize 3x3 and other groups=1 conv filters "
                          "(not just 1x1). Output: yolov11m_fused_q40_all.safetensors.")
@@ -396,18 +476,25 @@ def main():
                     help="List tensors that would be quantized without writing")
     args = ap.parse_args()
 
-    interleave = 4 if args.target == "arm" else 8
+    is_q8 = args.dtype == "q8_0"
+    # Q8_0 is stored plain (non-interleaved); interleave=1 makes the eligibility
+    # interleave check a no-op while CRS%32 / out_ch%32 alignment still applies.
+    interleave = 1 if is_q8 else (4 if args.target == "arm" else 8)
 
     if args.output is None:
         stem = args.input
         if stem.endswith(".safetensors"):
             stem = stem[:-len(".safetensors")]
-        suffix = "_q40_all.safetensors" if args.all_kernels else "_q40.safetensors"
+        tag = "q80" if is_q8 else "q40"
+        suffix = f"_{tag}_all.safetensors" if args.all_kernels else f"_{tag}.safetensors"
         args.output = stem + suffix
 
     print(f"Input:      {args.input}")
     print(f"Output:     {args.output}")
-    print(f"Target:     {args.target} (q4_0x{interleave})")
+    if is_q8:
+        print(f"Dtype:      q8_0 (plain block_q8_0, 34B, non-interleaved)")
+    else:
+        print(f"Target:     {args.target} (q4_0x{interleave})")
     print(f"Mode:       {'all groups=1 conv (1x1 + larger)' if args.all_kernels else '1x1 only (default)'}")
 
     header, data, _ = parse_safetensors(args.input)
@@ -479,7 +566,8 @@ def main():
             continue
 
         # Eligible: quantize
-        print(f"  [Q4_0]       {name}  {shape}  CRS={CRS}  {fp32_bytes} bytes FP32",
+        qtag = "[Q8_0]" if is_q8 else "[Q4_0]"
+        print(f"  {qtag}       {name}  {shape}  CRS={CRS}  {fp32_bytes} bytes FP32",
               end="")
 
         if args.dry_run:
@@ -491,19 +579,24 @@ def main():
                 n_quant_larger += 1
             continue
 
-        repacked, nntr_shape = quantize_filter(raw, shape, interleave)
+        if is_q8:
+            repacked, nntr_shape = quantize_filter_q8_0(raw, shape)
+            nntr_dtype = NNTR_DTYPE_Q8_0
+        else:
+            repacked, nntr_shape = quantize_filter(raw, shape, interleave)
+            nntr_dtype = NNTR_DTYPE_Q4_0
 
         out_tensors[name] = {
             "dtype": SAFETENSORS_DTYPE_Q4_0,   # "U8" (opaque blob)
             "shape": [len(repacked)],            # flat byte count as shape[0]
             "data": repacked,
-            "nntr_dtype": NNTR_DTYPE_Q4_0,      # "Q4_0"
+            "nntr_dtype": nntr_dtype,           # "Q4_0" or "Q8_0"
             "nntr_shape": nntr_shape,            # [1, 1, CRS, out_ch]
         }
 
         q40_bytes = len(repacked)
         ratio = 100.0 * q40_bytes / fp32_bytes
-        print(f" -> {q40_bytes} bytes Q4_0 ({ratio:.1f}%)")
+        print(f" -> {q40_bytes} bytes {args.dtype.upper()} ({ratio:.1f}%)")
 
         n_quantized += 1
         if kh == 1 and kw == 1:
@@ -514,7 +607,7 @@ def main():
         total_q40_bytes += q40_bytes
 
     print(f"\nSummary:")
-    print(f"  Quantized (Q4_0): {n_quantized}"
+    print(f"  Quantized ({args.dtype.upper()}): {n_quantized}"
           f"  (1x1: {n_quant_1x1}, larger: {n_quant_larger})")
     print(f"  Skipped (alignment/interleave): {n_skipped_alignment}")
     if skipped_list:
@@ -524,7 +617,8 @@ def main():
 
     if not args.dry_run and n_quantized > 0:
         print(f"\nQuantized conv bytes: {total_fp32_bytes} FP32 -> "
-              f"{total_q40_bytes} Q4_0 ({100.0 * total_q40_bytes / total_fp32_bytes:.1f}%)")
+              f"{total_q40_bytes} {args.dtype.upper()} "
+              f"({100.0 * total_q40_bytes / total_fp32_bytes:.1f}%)")
         write_safetensors(out_tensors, args.output)
         size = os.path.getsize(args.output)
         in_size = os.path.getsize(args.input)
@@ -532,13 +626,21 @@ def main():
         print(f"  File size: {size / (1024*1024):.1f} MB  (input: {in_size / (1024*1024):.1f} MB)")
 
         # Blob layout summary
-        print(f"\nBlob layout per Q4_0 weight tensor:")
-        print(f"  [U8 blob, len = N*CRS/32 * 18 bytes]")
-        print(f"  Repacked as q4_0x{interleave}: groups of {interleave} rows (N=out_ch)")
-        print(f"  Per group-of-{interleave}: d[{interleave}]*2 bytes + "
-              f"qs[{interleave}*16] bytes (XOR'd 0x88)")
-        print(f"  Header nntr_shape: [1, 1, K=CRS=in_ch*kh*kw, N=out_ch]")
-        print(f"  Header nntr_dtype: Q4_0")
+        if is_q8:
+            print(f"\nBlob layout per Q8_0 weight tensor:")
+            print(f"  [U8 blob, len = N*CRS/32 * 34 bytes]")
+            print(f"  Plain block_q8_0 (non-interleaved): per row CRS/32 blocks")
+            print(f"  Per block: d[1]*2 bytes (fp16) + qs[32] int8")
+            print(f"  Header nntr_shape: [1, 1, K=CRS=in_ch*kh*kw, N=out_ch]")
+            print(f"  Header nntr_dtype: Q8_0")
+        else:
+            print(f"\nBlob layout per Q4_0 weight tensor:")
+            print(f"  [U8 blob, len = N*CRS/32 * 18 bytes]")
+            print(f"  Repacked as q4_0x{interleave}: groups of {interleave} rows (N=out_ch)")
+            print(f"  Per group-of-{interleave}: d[{interleave}]*2 bytes + "
+                  f"qs[{interleave}*16] bytes (XOR'd 0x88)")
+            print(f"  Header nntr_shape: [1, 1, K=CRS=in_ch*kh*kw, N=out_ch]")
+            print(f"  Header nntr_dtype: Q4_0")
     elif not args.dry_run and n_quantized == 0:
         print("\nNothing to quantize.")
     elif args.dry_run:
