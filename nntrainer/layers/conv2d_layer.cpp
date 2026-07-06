@@ -1000,6 +1000,10 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
             const bool can_q8act =
               (in_ch_i % 32 == 0) && (std::getenv("NNTR_CONV_Q8ACT") != nullptr);
             // Pre-allocated Q8_0 scratch (no per-forward malloc).
+            // Only consumed under ENABLE_FP16 (Q8_0 activation path); guard the
+            // declaration too so non-FP16 builds don't trip
+            // -Werror=unused-but-set-variable.
+#ifdef ENABLE_FP16
             ::nntrainer::block_q8_0 *q8_buf = nullptr;
             if (can_q8act &&
                 wt_idx[ConvParams::q8act_scratch] !=
@@ -1008,6 +1012,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
                 context.getTensor(wt_idx[ConvParams::q8act_scratch])
                   .getData());
             }
+#endif
             if (is_1x1_s1) {
 #ifdef ENABLE_FP16
               if (can_q8act && q8_buf) {
