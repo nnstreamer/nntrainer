@@ -60,9 +60,9 @@ static void sliceForwardT(const Tensor &input, Tensor &output,
   // Per-axis, the largest contiguous run that maps 1:1 is:
   //   axis=0 -> [C*H*W] per b, axis=1 -> [H*W] per (b,c),
   //   axis=2 -> [W] per (b,c,h),     axis=3 -> [W] per (b,c,h) (w innermost).
-  const bool can_fast =
-    input.getContiguous() && output.getContiguous() &&
-    input.getFormat() == Tformat::NCHW && output.getFormat() == Tformat::NCHW;
+  const bool can_fast = input.getContiguous() && output.getContiguous() &&
+                        input.getFormat() == Tformat::NCHW &&
+                        output.getFormat() == Tformat::NCHW;
   if (can_fast) {
     const T *in = input.getData<T>();
     T *out = output.getData<T>();
@@ -82,10 +82,9 @@ static void sliceForwardT(const Tensor &input, Tensor &output,
     } else if (axis == 1) {
       for (unsigned int b = 0; b < B; ++b)
         for (unsigned int c = 0; c < C; ++c)
-          std::memcpy(
-            out + (size_t)b * plane_b + (size_t)c * plane_c,
-            in + (size_t)b * plane_b + (size_t)(c + start) * plane_c,
-            plane_c * elt);
+          std::memcpy(out + (size_t)b * plane_b + (size_t)c * plane_c,
+                      in + (size_t)b * plane_b + (size_t)(c + start) * plane_c,
+                      plane_c * elt);
     } else if (axis == 2) {
       for (unsigned int b = 0; b < B; ++b)
         for (unsigned int c = 0; c < C; ++c)
@@ -108,16 +107,16 @@ static void sliceForwardT(const Tensor &input, Tensor &output,
     return;
   }
 
-  const bool can_fast_nhwc =
-    input.getContiguous() && output.getContiguous() &&
-    input.getFormat() == Tformat::NHWC && output.getFormat() == Tformat::NHWC;
+  const bool can_fast_nhwc = input.getContiguous() && output.getContiguous() &&
+                             input.getFormat() == Tformat::NHWC &&
+                             output.getFormat() == Tformat::NHWC;
   if (can_fast_nhwc) {
     const T *in = input.getData<T>();
     T *out = output.getData<T>();
     const unsigned int B = output.batch();
     const unsigned int Co = output.channel(), Ci = input.channel();
     const unsigned int Ho = output.height(), Hi = input.height();
-    const unsigned int Wo = output.width(),  Wi = input.width();
+    const unsigned int Wo = output.width(), Wi = input.width();
     const size_t elt = sizeof(T);
     const size_t in_hwc = (size_t)Hi * Wi * Ci;
     const size_t out_hwc = (size_t)Ho * Wo * Co;
@@ -130,8 +129,7 @@ static void sliceForwardT(const Tensor &input, Tensor &output,
       for (unsigned int b = 0; b < B; ++b) {
         for (unsigned int hw = 0; hw < Ho * Wo; ++hw) {
           std::memcpy(out + (b * Ho * Wo + hw) * Co,
-                      in + (b * Hi * Wi + hw) * Ci + start,
-                      Co * elt);
+                      in + (b * Hi * Wi + hw) * Ci + start, Co * elt);
         }
       }
     } else if (axis == 2) {
@@ -144,8 +142,7 @@ static void sliceForwardT(const Tensor &input, Tensor &output,
       for (unsigned int b = 0; b < B; ++b) {
         for (unsigned int h = 0; h < Ho; ++h) {
           std::memcpy(out + (b * Ho + h) * Wo * Co,
-                      in + (b * Hi + h) * Wi * Ci + start * Ci,
-                      Wo * Co * elt);
+                      in + (b * Hi + h) * Wi * Ci + start * Ci, Wo * Co * elt);
         }
       }
     }

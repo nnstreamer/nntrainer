@@ -25,10 +25,10 @@
 #include <q4_0_utils.h>
 #include <q8_0_tensor.h>
 #include <stdexcept>
-#include <vector>
 #include <tensor_dim.h>
 #include <thread_manager.h>
 #include <util_func.h>
+#include <vector>
 
 #define sgemv_loop(ci, cj, cM, cN)                                             \
   do {                                                                         \

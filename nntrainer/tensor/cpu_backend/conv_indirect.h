@@ -230,7 +230,8 @@ inline void gather_conv_act_rows_q8_0(void *vy, const void *vx,
       const int w = ow * wstride - p.pad_l + kw * p.dil_w;
 
       if (h >= 0 && h < p.in_h && w >= 0 && w < p.in_w) {
-        const local_block_q8_0 &src_block = in[(h * p.in_w + w) * ch_blocks + cb];
+        const local_block_q8_0 &src_block =
+          in[(h * p.in_w + w) * ch_blocks + cb];
         dst_block.d[r] = src_block.d;
         for (int j = 0; j < 4; ++j)
           std::memcpy(&dst_block.qs[32 * j + 8 * r], &src_block.qs[8 * j], 8);

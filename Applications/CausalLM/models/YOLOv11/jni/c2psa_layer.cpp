@@ -58,12 +58,11 @@ void PSAAttentionLayer::multiHeadAttention(const float *Q, const float *K,
     float *outh = out + static_cast<size_t>(h) * vd * N;
 
     // score = scale * Qh^T * Kh
-    nntrainer::sgemm(0, true, false, static_cast<unsigned int>(N),
-                     static_cast<unsigned int>(N),
-                     static_cast<unsigned int>(kd), scale, Qh,
-                     static_cast<unsigned int>(N), Kh,
-                     static_cast<unsigned int>(N), 0.0f, score.data(),
-                     static_cast<unsigned int>(N));
+    nntrainer::sgemm(
+      0, true, false, static_cast<unsigned int>(N),
+      static_cast<unsigned int>(N), static_cast<unsigned int>(kd), scale, Qh,
+      static_cast<unsigned int>(N), Kh, static_cast<unsigned int>(N), 0.0f,
+      score.data(), static_cast<unsigned int>(N));
 
     // softmax over key axis j for each query i
     for (int i = 0; i < N; ++i) {
@@ -145,9 +144,8 @@ void PSAAttentionLayer::forwarding(nntrainer::RunLayerContext &context,
   // attention output must be scattered back to channel-last positions. The
   // attention math itself operates on head-major planar [d,N] buffers either
   // way, so only these boundary conversions differ.
-  const bool nhwc =
-    in_t.getFormat() == ml::train::TensorDim::Format::NHWC &&
-    out_t.getFormat() == ml::train::TensorDim::Format::NHWC;
+  const bool nhwc = in_t.getFormat() == ml::train::TensorDim::Format::NHWC &&
+                    out_t.getFormat() == ml::train::TensorDim::Format::NHWC;
   std::vector<float> out_planar;
   if (nhwc)
     out_planar.resize(static_cast<size_t>(v_ch) * N);

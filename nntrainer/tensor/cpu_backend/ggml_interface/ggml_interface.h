@@ -223,10 +223,10 @@ void __ggml_q4_0_4x8_q8_0_indirect_GEMM_fp16(
 /**
  * @brief Pre-quantized Q8_0 activation indirect Q4_0 conv GEMM (Task B2).
  *
- * Direct Q8_0-activation indirect-conv GEMM. Input `in` is a contiguous pre-quantized
- * block_q8_0 array of shape [IH_in * IW_in, in_ch_blocks]. We gather blocks directly
- * and pack them into block_q8_0x4 interleaved format, bypassing all dequantization
- * and re-quantization steps. Output C is FP16.
+ * Direct Q8_0-activation indirect-conv GEMM. Input `in` is a contiguous
+ * pre-quantized block_q8_0 array of shape [IH_in * IW_in, in_ch_blocks]. We
+ * gather blocks directly and pack them into block_q8_0x4 interleaved format,
+ * bypassing all dequantization and re-quantization steps. Output C is FP16.
  */
 void __ggml_q4_0_4x8_q8_0_indirect_GEMM_q8_0(
   const unsigned int M, const unsigned int N, const unsigned int K,

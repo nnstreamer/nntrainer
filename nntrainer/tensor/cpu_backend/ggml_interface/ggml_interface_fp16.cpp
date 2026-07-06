@@ -689,14 +689,16 @@ void __ggml_q4_0_4x8_q8_0_indirect_GEMM_q8_0(
       const unsigned int r0 = static_cast<unsigned int>(q) * QCHUNK;
       const unsigned int r1 = std::min(r0 + QCHUNK, rows4);
       for (unsigned int r = r0; r < r1; r += 4) {
-        gather_conv_act_rows_q8_0(QA_ptr + (r / 4) * qa_4_rows_size, in, geom, (int)r, 4);
+        gather_conv_act_rows_q8_0(QA_ptr + (r / 4) * qa_4_rows_size, in, geom,
+                                  (int)r, 4);
       }
     });
   }
 
   for (unsigned int i = M4 * 4; i < M; ++i) {
-    gather_conv_act_rows_q8_0_single(
-      QA_ptr + (M4 * qa_4_rows_size) + (i - M4 * 4) * qa_row_size, in, geom, (int)i);
+    gather_conv_act_rows_q8_0_single(QA_ptr + (M4 * qa_4_rows_size) +
+                                       (i - M4 * 4) * qa_row_size,
+                                     in, geom, (int)i);
   }
 
   const unsigned int A_step = sizeof(block_q8_0) * (K / QK8_0);

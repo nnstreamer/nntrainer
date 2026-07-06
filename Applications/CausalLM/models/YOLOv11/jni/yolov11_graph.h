@@ -300,8 +300,9 @@ inline Tensor detectScale(const std::string &s, int pi_ch, Tensor in,
   c = convBnSilu(s + "/cv3_1_pw", 256, 256, 1, 1, 0, c, conv_q40);
   auto cls = convBias1x1(s + "/cv3_2", 1, 256, c, conv_q40); // out_ch=1: FP32
 
-  LayerHandle cat(createLayer("concat", {nntrainer::withKey("name", s + "/out"),
-                                         nntrainer::withKey("axis", chAxis())}));
+  LayerHandle cat(
+    createLayer("concat", {nntrainer::withKey("name", s + "/out"),
+                           nntrainer::withKey("axis", chAxis())}));
   return cat({box, cls});
 }
 
@@ -310,10 +311,11 @@ inline Tensor detectScale(const std::string &s, int pi_ch, Tensor in,
 /** @brief Channel-axis slice [start0, end0) — slice layer uses 1-indexed. */
 inline Tensor sliceCh(const std::string &name, int start0, int end0,
                       Tensor in) {
-  LayerHandle s(createLayer(
-    "slice", {nntrainer::withKey("name", name), nntrainer::withKey("axis", chAxis()),
-              nntrainer::withKey("start_index", start0 + 1),
-              nntrainer::withKey("end_index", end0 + 1)}));
+  LayerHandle s(
+    createLayer("slice", {nntrainer::withKey("name", name),
+                          nntrainer::withKey("axis", chAxis()),
+                          nntrainer::withKey("start_index", start0 + 1),
+                          nntrainer::withKey("end_index", end0 + 1)}));
   return s(in);
 }
 
@@ -376,8 +378,9 @@ inline Tensor buildC2PSA(const std::string &n, Tensor x,
     yolov11::convBnOnly(n + "/ffn1", 512, 256, 1, 1, 0, ffn0, conv_q40);
   auto b2 = addT(n + "/res2", b1, ffn1);
 
-  LayerHandle cat(createLayer("concat", {nntrainer::withKey("name", n + "/cat"),
-                                         nntrainer::withKey("axis", chAxis())}));
+  LayerHandle cat(
+    createLayer("concat", {nntrainer::withKey("name", n + "/cat"),
+                           nntrainer::withKey("axis", chAxis())}));
   auto cc = cat({a, b2});
   return yolov11::convBnSilu(n + "/cv2", 512, 512, 1, 1, 0, cc, conv_q40);
 }

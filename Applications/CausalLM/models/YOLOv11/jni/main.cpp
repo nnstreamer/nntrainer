@@ -482,14 +482,16 @@ int main(int argc, char *argv[]) {
     if (const char *tt = std::getenv("YOLO_TENSOR_TYPE")) {
       std::string tts = tt;
       if (tts == "w4a16" || tts == "W4A16") {
-        model->setProperty({nntrainer::withKey("model_tensor_type", "FP32-FP16")});
+        model->setProperty(
+          {nntrainer::withKey("model_tensor_type", "FP32-FP16")});
         fp16_act = true;
         preset_q40 = true;
         preset_nhwc = true;
         std::cout << "[YOLO] preset = w4a16 (Q4_0 weights + FP16 act + NHWC)"
                   << std::endl;
       } else if (tts == "w4a8" || tts == "W4A8") {
-        model->setProperty({nntrainer::withKey("model_tensor_type", "FP32-FP16")});
+        model->setProperty(
+          {nntrainer::withKey("model_tensor_type", "FP32-FP16")});
         fp16_act = true;
         preset_q40 = true;
         preset_nhwc = true;
@@ -541,14 +543,14 @@ int main(int argc, char *argv[]) {
     const bool in_nhwc = (preset_nhwc || std::getenv("YOLO_NHWC"));
     const auto in_fmt = in_nhwc ? ml::train::TensorDim::Format::NHWC
                                 : ml::train::TensorDim::Format::NCHW;
-    auto x = fp16_act
-               ? Tensor(ml::train::TensorDim(
-                          1, 3, 832, 832, in_fmt,
-                          ml::train::TensorDim::DataType::FP16),
-                        "input0")
-               : Tensor(ml::train::TensorDim(1, 3, 832, 832, in_fmt,
-                                             ml::train::TensorDim::DataType::FP32),
-                        "input0");
+    auto x =
+      fp16_act
+        ? Tensor(ml::train::TensorDim(1, 3, 832, 832, in_fmt,
+                                      ml::train::TensorDim::DataType::FP16),
+                 "input0")
+        : Tensor(ml::train::TensorDim(1, 3, 832, 832, in_fmt,
+                                      ml::train::TensorDim::DataType::FP32),
+                 "input0");
     Tensor m4, m6;
     auto m10 = yolov11::buildBackbone(x, m4, m6, conv_q40);
     auto outputs = yolov11::buildHead(m4, m6, m10, conv_q40); // {P3, P4, P5}

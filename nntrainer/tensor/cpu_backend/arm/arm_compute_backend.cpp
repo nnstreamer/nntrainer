@@ -411,19 +411,19 @@ void gemm_q4_0_indirect_conv(const unsigned int M, const unsigned int N,
 
 #ifdef ENABLE_FP16
 void gemm_q4_0_indirect_conv_fp16(const unsigned int M, const unsigned int N,
-                                   const unsigned int K, const _FP16 *in,
-                                   const ConvGatherParams &geom, const void *B,
-                                   const unsigned int ldb, _FP16 *C,
-                                   const unsigned int ldc) {
+                                  const unsigned int K, const _FP16 *in,
+                                  const ConvGatherParams &geom, const void *B,
+                                  const unsigned int ldb, _FP16 *C,
+                                  const unsigned int ldc) {
   return __ggml_q4_0_4x8_q8_0_indirect_GEMM_fp16(M, N, K, in, geom, B, ldb, C,
-                                                  ldc);
+                                                 ldc);
 }
 
 void gemm_q4_0_indirect_conv_q8_0(const unsigned int M, const unsigned int N,
-                                   const unsigned int K, const void *in,
-                                   const ConvGatherParams &geom, const void *B,
-                                   const unsigned int ldb, _FP16 *C,
-                                   const unsigned int ldc) {
+                                  const unsigned int K, const void *in,
+                                  const ConvGatherParams &geom, const void *B,
+                                  const unsigned int ldb, _FP16 *C,
+                                  const unsigned int ldc) {
   return __ggml_q4_0_4x8_q8_0_indirect_GEMM_q8_0(M, N, K, in, geom, B, ldb, C,
                                                  ldc);
 }
@@ -597,7 +597,8 @@ void depthwise_conv2d_fp16(const _FP16 *input, const float *kernel,
                            unsigned int pad_top, unsigned int pad_left,
                            unsigned int dilation_h, unsigned int dilation_w) {
 #ifdef USE_NEON
-  if (kh == 3 && kw == 3 && dilation_h == 1 && dilation_w == 1 && stride_w == 1) {
+  if (kh == 3 && kw == 3 && dilation_h == 1 && dilation_w == 1 &&
+      stride_w == 1) {
     auto &tm = ThreadManager::Global();
     tm.parallel_for(0, (size_t)batch * channels, [&](size_t bc) {
       const unsigned int c = (unsigned int)(bc % channels);
@@ -618,18 +619,18 @@ void depthwise_conv2d_fp16(const _FP16 *input, const float *kernel,
       for (unsigned int oh = 0; oh < out_h; ++oh) {
         int ih0 = (int)oh * (int)stride_h - (int)pad_top;
         unsigned int ow = 0;
-        
+
         for (; ow + 3 < out_w; ow += 4) {
           int iw0 = (int)ow - (int)pad_left;
           float32x4_t acc = vdupq_n_f32(0.0f);
-          
+
           for (int ki = 0; ki < 3; ++ki) {
             int ih = ih0 + ki;
             if (ih >= 0 && ih < (int)in_h) {
               float32x4_t k0 = (ki == 0) ? k00 : (ki == 1) ? k10 : k20;
               float32x4_t k1 = (ki == 0) ? k01 : (ki == 1) ? k11 : k21;
               float32x4_t k2 = (ki == 0) ? k02 : (ki == 1) ? k12 : k22;
-              
+
               if (iw0 >= 0 && iw0 + 7 < (int)in_w) {
                 const __fp16 *p = (const __fp16 *)(inc + ih * in_w + iw0);
                 float16x8_t load0 = vld1q_f16(p);
@@ -643,27 +644,34 @@ void depthwise_conv2d_fp16(const _FP16 *input, const float *kernel,
                 float acc_arr[4] = {0};
                 for (unsigned int v = 0; v < 4; ++v) {
                   int iw = iw0 + v;
-                  if (iw >= 0 && iw < (int)in_w) acc_arr[v] += (float)inc[ih * in_w + iw] * fc[ki*3];
-                  if (iw+1 >= 0 && iw+1 < (int)in_w) acc_arr[v] += (float)inc[ih * in_w + iw + 1] * fc[ki*3+1];
-                  if (iw+2 >= 0 && iw+2 < (int)in_w) acc_arr[v] += (float)inc[ih * in_w + iw + 2] * fc[ki*3+2];
+                  if (iw >= 0 && iw < (int)in_w)
+                    acc_arr[v] += (float)inc[ih * in_w + iw] * fc[ki * 3];
+                  if (iw + 1 >= 0 && iw + 1 < (int)in_w)
+                    acc_arr[v] +=
+                      (float)inc[ih * in_w + iw + 1] * fc[ki * 3 + 1];
+                  if (iw + 2 >= 0 && iw + 2 < (int)in_w)
+                    acc_arr[v] +=
+                      (float)inc[ih * in_w + iw + 2] * fc[ki * 3 + 2];
                 }
                 acc = vaddq_f32(acc, vld1q_f32(acc_arr));
               }
             }
           }
-          
-          vst1_f16((__fp16*)&outc[oh * out_w + ow], vcvt_f16_f32(acc));
+
+          vst1_f16((__fp16 *)&outc[oh * out_w + ow], vcvt_f16_f32(acc));
         }
-        
+
         for (; ow < out_w; ++ow) {
           int iw0 = (int)ow - (int)pad_left;
           float acc = 0.0f;
           for (unsigned int ki = 0; ki < 3; ++ki) {
             int ih = ih0 + (int)ki;
-            if (ih < 0 || ih >= (int)in_h) continue;
+            if (ih < 0 || ih >= (int)in_h)
+              continue;
             for (unsigned int kj = 0; kj < 3; ++kj) {
               int iw = iw0 + (int)kj;
-              if (iw < 0 || iw >= (int)in_w) continue;
+              if (iw < 0 || iw >= (int)in_w)
+                continue;
               acc += static_cast<float>(inc[ih * in_w + iw]) * fc[ki * 3 + kj];
             }
           }

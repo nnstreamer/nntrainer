@@ -339,7 +339,8 @@ void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output,
   NNTR_THROW_IF(output.empty(), std::invalid_argument)
     << "[Pooling2D] output is uninitialized, this is not supported";
 
-  const bool is_nhwc = in.getFormat() == Tformat::NHWC && output.getFormat() == Tformat::NHWC;
+  const bool is_nhwc =
+    in.getFormat() == Tformat::NHWC && output.getFormat() == Tformat::NHWC;
   if (is_nhwc) {
     if (pooling_type == props::PoolingTypeInfo::Enum::max) {
       auto run_nhwc = [&]<typename T>() {
@@ -352,7 +353,8 @@ void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output,
         const int ph = patch_height, pw = patch_width;
         const int pt_val = pt, pl_val = pl;
 
-        auto job = [&](unsigned int oh_start, unsigned int oh_end, unsigned int, void *) {
+        auto job = [&](unsigned int oh_start, unsigned int oh_end, unsigned int,
+                       void *) {
           for (int oh = (int)oh_start; oh < (int)oh_end; ++oh) {
             for (int ow = 0; ow < Wo; ++ow) {
               T *out_ptr = out_data + (size_t)(oh * Wo + ow) * Co;

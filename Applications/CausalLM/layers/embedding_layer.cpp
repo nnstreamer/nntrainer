@@ -838,18 +838,18 @@ void EmbeddingLayer::finalize(nntrainer::InitLayerContext &context) {
   // wiring.]
   auto &quantized_lut_path = std::get<props::QuantizedLutPath>(embedding_props);
   const bool has_quantized_lut = !quantized_lut_path.empty();
-  context.setInputDataType(nntrainer::TensorDim::DataType::FP32);
-
+  if (has_quantized_lut)
+    context.setInputDataType(nntrainer::TensorDim::DataType::FP32);
   const nntrainer::TensorDim &input_dim =
     context.getInputDimensions()[SINGLE_INOUT_IDX];
   NNTR_THROW_IF(input_dim.channel() != 1, std::invalid_argument)
     << "Embedding layer takes only one for channel size";
 
-  // [merge 2026-06-30] OURS: no FP32-input throw — our FP16-activation models
-  // build input0 as plain FP16-default (no explicit FP32 input layer).
-  // [merge 2026-07-08] upstream d87ff6dd3 pins the input DTYPE to FP32
-  // unconditionally (kept above): token ids > 2048 are not exactly
-  // representable in FP16 and our lookup reads ids via getAddress<float>.
+  NNTR_THROW_IF(!has_quantized_lut && input_dim.getDataType() !=
+                                        nntrainer::TensorDim::DataType::FP32,
+                std::invalid_argument)
+    << "Embedding layer takes only FP32 input data";
+
   auto &weight_regularizer =
     std::get<nntrainer::props::WeightRegularizer>(*layer_impl_props);
   auto &weight_regularizer_constant =

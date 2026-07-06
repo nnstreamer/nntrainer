@@ -9,11 +9,11 @@
  */
 
 #include <cpu_backend.h>
+#include <ggml_interface.h>
+#include <nntr_ggml_impl.h>
 #include <q8_0_tensor.h>
 #include <tensor.h>
 #include <thread_manager.h>
-#include <ggml_interface.h>
-#include <nntr_ggml_impl.h>
 
 /**
  * @brief Namespace for nntrainer core components
@@ -52,7 +52,8 @@ Q8_0_Tensor::Q8_0_Tensor(const TensorDim &d, void *external_buf) :
   NNTR_THROW_IF(d.batch() != 1 || d.channel() != 1 || d.width() % QK8_0 != 0,
                 std::invalid_argument)
     << "Q8_0_Tensor must be 2-dimensional with batch=1, channel=1 and "
-       "width divisible by " << QK8_0;
+       "width divisible by "
+    << QK8_0;
   data = std::make_shared<MemoryData>(external_buf);
   offset = 0;
 }
@@ -121,11 +122,11 @@ void Q8_0_Tensor::initialize() {
 QScheme Q8_0_Tensor::q_scheme() const { return QScheme::Q8_0; }
 
 Tensor &Q8_0_Tensor::convQ4_0Indirect(Tensor const &weight, Tensor &output,
-                                     const ConvGatherParams &geom) const {
+                                      const ConvGatherParams &geom) const {
 #ifdef ENABLE_FP16
   // `this` is the pre-quantized Q8_0 activation matrix of blocks, `weight` is
-  // the Q4_0 filter [CRS, out_ch], `output` is [OH*OW, out_ch] FP16. We call the
-  // direct Q8_0 backend op (Task B2), bypassing all FP16 dequantization and
+  // the Q4_0 filter [CRS, out_ch], `output` is [OH*OW, out_ch] FP16. We call
+  // the direct Q8_0 backend op (Task B2), bypassing all FP16 dequantization and
   // re-quantization steps.
   const void *in = (const void *)getData();
   uint8_t *wdata = weight.getData<uint8_t>();
@@ -140,7 +141,8 @@ Tensor &Q8_0_Tensor::convQ4_0Indirect(Tensor const &weight, Tensor &output,
                                          rdata, N);
   return output;
 #else
-  throw std::invalid_argument("Q8_0_Tensor::convQ4_0Indirect() is not supported on this platform.");
+  throw std::invalid_argument(
+    "Q8_0_Tensor::convQ4_0Indirect() is not supported on this platform.");
 #endif
 }
 
@@ -246,10 +248,9 @@ Tensor &Q8_0_Tensor::dot(Tensor const &input, Tensor &output, bool trans,
       unsigned int c0 = c * col_chunk;
       unsigned int c1 = std::min(col_chunk * (c + 1), N);
 #if defined(__ARM_NEON)
-      nntr_gemm_q4_0_4x8_q8_0_fp16(K, (_FP16 *)(C + r0 * N + c0), N,
-                                   (void *)((char *)B + c0 * B_step),
-                                   (void *)(QA_ptr + r0 * A_step), r1 - r0,
-                                   c1 - c0);
+      nntr_gemm_q4_0_4x8_q8_0_fp16(
+        K, (_FP16 *)(C + r0 * N + c0), N, (void *)((char *)B + c0 * B_step),
+        (void *)(QA_ptr + r0 * A_step), r1 - r0, c1 - c0);
 #else
       unsigned int t_rows = r1 - r0, t_cols = c1 - c0;
       std::vector<float> tile(t_rows * t_cols);
@@ -283,7 +284,8 @@ Tensor &Q8_0_Tensor::dot(Tensor const &input, Tensor &output, bool trans,
   }
   return output;
 #else
-  throw std::invalid_argument("Q8_0_Tensor::dot() is not supported on this platform.");
+  throw std::invalid_argument(
+    "Q8_0_Tensor::dot() is not supported on this platform.");
 #endif
 }
 

@@ -66,9 +66,9 @@ static void upsampleForwardT(
     // path.
     const unsigned int kh = kernel_size[0].get();
     const unsigned int kw = kernel_size[1].get();
-    const bool can_fast =
-      in.getContiguous() && out.getContiguous() &&
-      in.getFormat() == Tformat::NCHW && out.getFormat() == Tformat::NCHW;
+    const bool can_fast = in.getContiguous() && out.getContiguous() &&
+                          in.getFormat() == Tformat::NCHW &&
+                          out.getFormat() == Tformat::NCHW;
     if (can_fast) {
       const T *in_d = in.getData<T>();
       T *out_d = out.getData<T>();
@@ -76,14 +76,15 @@ static void upsampleForwardT(
       const unsigned int C = out.channel();
       const unsigned int iH = in.height();
       const unsigned int iW = in.width();
-      const unsigned int oW = out.width(); // == iW * kw
-      const size_t in_plane = (size_t)iH * iW;   // [H*W] per (b,c)
+      const unsigned int oW = out.width();           // == iW * kw
+      const size_t in_plane = (size_t)iH * iW;       // [H*W] per (b,c)
       const size_t out_plane = (size_t)iH * kh * oW; // [oH*oW] per (b,c)
       // scratch row for the kw-expanded output row (reused per input row)
       std::vector<T> expanded(oW);
       for (unsigned int b = 0; b < B; ++b) {
         for (unsigned int c = 0; c < C; ++c) {
-          const T *in_bc = in_d + (size_t)b * C * in_plane + (size_t)c * in_plane;
+          const T *in_bc =
+            in_d + (size_t)b * C * in_plane + (size_t)c * in_plane;
           T *out_bc = out_d + (size_t)b * C * out_plane + (size_t)c * out_plane;
           for (unsigned int ih = 0; ih < iH; ++ih) {
             const T *in_row = in_bc + (size_t)ih * iW;
@@ -99,48 +100,48 @@ static void upsampleForwardT(
               T *out_row = out_bc + (size_t)(ih * kh + ry) * oW;
               std::memcpy(out_row, e, oW * sizeof(T));
             }
-            }
-            }
-            }
-            return;
-            }
+          }
+        }
+      }
+      return;
+    }
 
-            const bool can_fast_nhwc =
-            in.getContiguous() && out.getContiguous() &&
-            in.getFormat() == Tformat::NHWC && out.getFormat() == Tformat::NHWC;
-            if (can_fast_nhwc) {
-            const T *in_d = in.getData<T>();
-            T *out_d = out.getData<T>();
-            const unsigned int B = out.batch();
-            const unsigned int Co = out.channel();
-            const unsigned int iH = in.height();
-            const unsigned int iW = in.width();
-            const unsigned int oH = out.height();
-            const unsigned int oW = out.width();
-            const size_t in_hwc = (size_t)iH * iW * Co;
-            const size_t out_hwc = (size_t)oH * oW * Co;
+    const bool can_fast_nhwc = in.getContiguous() && out.getContiguous() &&
+                               in.getFormat() == Tformat::NHWC &&
+                               out.getFormat() == Tformat::NHWC;
+    if (can_fast_nhwc) {
+      const T *in_d = in.getData<T>();
+      T *out_d = out.getData<T>();
+      const unsigned int B = out.batch();
+      const unsigned int Co = out.channel();
+      const unsigned int iH = in.height();
+      const unsigned int iW = in.width();
+      const unsigned int oH = out.height();
+      const unsigned int oW = out.width();
+      const size_t in_hwc = (size_t)iH * iW * Co;
+      const size_t out_hwc = (size_t)oH * oW * Co;
 
-            std::vector<T> expanded(oW * Co);
-            for (unsigned int b = 0; b < B; ++b) {
-            const T *in_b = in_d + b * in_hwc;
-            T *out_b = out_d + b * out_hwc;
-            for (unsigned int ih = 0; ih < iH; ++ih) {
-            const T *in_row = in_b + (size_t)ih * iW * Co;
-            T *e = expanded.data();
-            for (unsigned int iw = 0; iw < iW; ++iw) {
+      std::vector<T> expanded(oW * Co);
+      for (unsigned int b = 0; b < B; ++b) {
+        const T *in_b = in_d + b * in_hwc;
+        T *out_b = out_d + b * out_hwc;
+        for (unsigned int ih = 0; ih < iH; ++ih) {
+          const T *in_row = in_b + (size_t)ih * iW * Co;
+          T *e = expanded.data();
+          for (unsigned int iw = 0; iw < iW; ++iw) {
             const T *v = in_row + iw * Co;
             for (unsigned int rx = 0; rx < kw; ++rx) {
               std::memcpy(e + (iw * kw + rx) * Co, v, Co * sizeof(T));
             }
-            }
-            for (unsigned int ry = 0; ry < kh; ++ry) {
+          }
+          for (unsigned int ry = 0; ry < kh; ++ry) {
             T *out_row = out_b + (size_t)(ih * kh + ry) * oW * Co;
             std::memcpy(out_row, e, oW * Co * sizeof(T));
-            }
-            }
-            }
-            return;
-            }
+          }
+        }
+      }
+      return;
+    }
     for (int b = 0; b < (int)out.batch(); b++) {
       for (int c = 0; c < (int)out.channel(); c++) {
         for (int h = 0; h < (int)out.height(); h++) {
