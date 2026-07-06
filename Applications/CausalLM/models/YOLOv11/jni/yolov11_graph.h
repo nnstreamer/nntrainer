@@ -47,6 +47,18 @@ inline std::vector<std::string> *&quantConvSink() {
   return sink;
 }
 
+// Weight dtype applied to Q-eligible convs when the conv_q40 gate is on. The
+// eligibility test and quantization block layout are identical for Q4_0 and
+// Q8_0 (both use QK=32 blocks, same 32-alignment rule); only the stored
+// precision differs, so the same conv_q40 flag selects "quantize this conv"
+// and this accessor selects the precision. main.cpp sets it per preset
+// ("Q4_0" for w4a8/w4a16, "Q8_0" for w8a16). Default "Q4_0" preserves prior
+// behavior.
+inline std::string &quantWeightDtype() {
+  static std::string dtype = "Q4_0";
+  return dtype;
+}
+
 // Channel axis for concat/slice is ALWAYS logical axis 1 (channel), regardless
 // of NCHW vs NHWC physical layout: TensorDim keeps dim[] in [N,C,H,W] order and
 // getValue/getValue resolve the physical offset per format. So no change is
@@ -87,7 +99,8 @@ inline Tensor convBnSilu(const std::string &name, int in_ch, int out_ch, int k,
     nntrainer::withKey("fused_activation", "swish")};
   if (out_ch > 1 && out_ch % 32 == 0 && (in_ch * k * k) % 32 == 0) {
     if (conv_q40)
-      conv_props.push_back(nntrainer::withKey("weight_dtype", "Q4_0"));
+      conv_props.push_back(
+        nntrainer::withKey("weight_dtype", quantWeightDtype()));
     if (quantConvSink() != nullptr)
       quantConvSink()->push_back(name + "/conv");
   }
@@ -176,7 +189,8 @@ inline Tensor convBnOnly(const std::string &name, int in_ch, int out_ch, int k,
     nntrainer::withKey("padding", padding)};
   if (out_ch > 1 && out_ch % 32 == 0 && (in_ch * k * k) % 32 == 0) {
     if (conv_q40)
-      conv_props.push_back(nntrainer::withKey("weight_dtype", "Q4_0"));
+      conv_props.push_back(
+        nntrainer::withKey("weight_dtype", quantWeightDtype()));
     if (quantConvSink() != nullptr)
       quantConvSink()->push_back(name + "/conv");
   }
@@ -241,7 +255,8 @@ inline Tensor convBias1x1(const std::string &name, int out_ch, int in_ch,
     nntrainer::withKey("padding", 0)};
   if (out_ch > 1 && out_ch % 32 == 0 && (in_ch * 1 * 1) % 32 == 0) {
     if (conv_q40)
-      conv_props.push_back(nntrainer::withKey("weight_dtype", "Q4_0"));
+      conv_props.push_back(
+        nntrainer::withKey("weight_dtype", quantWeightDtype()));
     if (quantConvSink() != nullptr)
       quantConvSink()->push_back(name + "/conv");
   }

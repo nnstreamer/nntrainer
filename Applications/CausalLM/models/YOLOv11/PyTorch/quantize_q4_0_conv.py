@@ -322,6 +322,47 @@ def repack_q4_0(raw_q4_0: bytes, N: int, K: int, interleave: int) -> bytes:
         return out.tobytes()
 
 
+def repack_q8_0(raw_q8_0: bytes, N: int, K: int) -> bytes:
+    """Repack plain Q8_0 blocks (N rows x K cols) to nntrainer's q8_0x4 layout.
+
+    Source: block_q8_0 array [N, K/32, 34 bytes] = [2B fp16 d][32B int8 qs].
+    Target: block_q8_0x4 super-blocks of 4 rows (34*4 = 136 bytes each):
+      - d[4]  : 8 bytes, the fp16 scales of the 4 rows (this block).
+      - qs[128]: for sub in 0..3 (each an 8-col k-subgroup), for row in 0..3,
+                 for c in 0..7:  qs[32*sub + row*8 + c] = q[row][32*b + 8*sub + c]
+
+    This is byte-for-byte the activation layout produced by
+    __ggml_quantize_mat_q8_0_4x8, so the SMMLA kernel
+    nntr_gemm_q8_0_q8_0_4x4_fp16 reads both operands with single contiguous
+    vld1q_s8 loads. Total size is unchanged from the plain stream (136*nb = 4*34*nb
+    per 4-row group), so the runtime loader/mmap sizing is unaffected -- only the
+    intra-tensor byte order changes (offline, zero runtime cost).
+    """
+    assert N % 4 == 0, f"N={N} must be divisible by 4 for q8_0x4"
+    assert K % QK8_0 == 0
+    nblocks = K // QK8_0
+
+    src = np.frombuffer(raw_q8_0, dtype=np.uint8).reshape(N, nblocks,
+                                                          Q8_0_BLOCK_BYTES)
+    d_all = src[:, :, :2]                       # (N, nblocks, 2)
+    qs_all = src[:, :, 2:].view(np.int8)        # (N, nblocks, 32)
+
+    out = np.empty((N // 4, nblocks, 8 + 128), dtype=np.uint8)
+    for g in range(N // 4):
+        rows = slice(g * 4, g * 4 + 4)
+        # d: 4 rows * 2 bytes -> (nblocks, 8)
+        out[g, :, :8] = d_all[rows].transpose(1, 0, 2).reshape(nblocks, 8)
+        # qs: (4, nblocks, 32) -> qs[32*sub + row*8 + c]
+        qs_chunk = qs_all[rows]                 # (4, nblocks, 32)
+        dst = np.empty((nblocks, 128), dtype=np.int8)
+        for sub in range(4):
+            for row in range(4):
+                dst[:, 32 * sub + row * 8: 32 * sub + row * 8 + 8] = \
+                    qs_chunk[row, :, 8 * sub: 8 * sub + 8]
+        out[g, :, 8:] = dst.view(np.uint8)
+    return out.tobytes()
+
+
 # ---------------------------------------------------------------------------
 # Filter selection
 # ---------------------------------------------------------------------------
@@ -424,14 +465,16 @@ def quantize_filter(raw: bytes, shape: list, interleave: int):
 
 
 def quantize_filter_q8_0(raw: bytes, shape: list):
-    """Quantize a single FP32 conv filter to plain Q8_0 blocks (no repack).
+    """Quantize a single FP32 conv filter to interleaved q8_0x4 Q8_0 blocks.
 
     shape: [out_ch, in_ch, kh, kw]
     Returns: (q8_bytes, nntr_shape) with nntr_shape = [1, 1, CRS, out_ch].
 
     Flattening matches quantize_filter (im2col K-order ic*kh*kw + ki*kw + kj).
-    The Q8_0 weight is stored as a plain block_q8_0 stream [out_ch, CRS/32] with
-    no interleave (the Q8_0 GEMM reads non-interleaved weight rows directly).
+    The Q8_0 weight is quantized to plain block_q8_0 then repacked offline to the
+    q8_0x4 interleaved layout (repack_q8_0) that nntr_gemm_q8_0_q8_0_4x4_fp16
+    consumes with contiguous SMMLA loads. Total byte size is identical to the
+    plain stream, so the runtime tensor sizing is unchanged.
     """
     out_ch, in_ch, kh, kw = shape
     CRS = in_ch * kh * kw
@@ -444,6 +487,10 @@ def quantize_filter_q8_0(raw: bytes, shape: list):
     expected_bytes = (out_ch * CRS // QK8_0) * Q8_0_BLOCK_BYTES
     assert len(q8) == expected_bytes, \
         f"q8_0 size {len(q8)} != expected {expected_bytes}"
+
+    q8 = repack_q8_0(q8, out_ch, CRS)  # -> q8_0x4 interleaved (same total bytes)
+    assert len(q8) == expected_bytes, \
+        f"q8_0x4 size {len(q8)} != expected {expected_bytes}"
 
     nntr_shape = [1, 1, CRS, out_ch]
     return q8, nntr_shape
@@ -468,7 +515,7 @@ def main():
                          "Ignored for --dtype q8_0 (plain, non-interleaved).")
     ap.add_argument("--dtype", choices=["q4_0", "q8_0"], default="q4_0",
                     help="Weight quantization: q4_0 (4-bit, repacked) or q8_0 "
-                         "(8-bit plain block_q8_0, higher accuracy). Default q4_0.")
+                         "(8-bit, q8_0x4 interleaved, higher accuracy). Default q4_0.")
     ap.add_argument("--all", dest="all_kernels", action="store_true",
                     help="Also quantize 3x3 and other groups=1 conv filters "
                          "(not just 1x1). Output: yolov11m_fused_q40_all.safetensors.")
@@ -477,8 +524,10 @@ def main():
     args = ap.parse_args()
 
     is_q8 = args.dtype == "q8_0"
-    # Q8_0 is stored plain (non-interleaved); interleave=1 makes the eligibility
-    # interleave check a no-op while CRS%32 / out_ch%32 alignment still applies.
+    # Q8_0 is repacked offline to q8_0x4 (4-row interleave) inside
+    # quantize_filter_q8_0; out_ch%32 alignment (checked below) already implies
+    # the %4 the repack needs, so interleave=1 here keeps the eligibility check a
+    # no-op without loosening any alignment constraint.
     interleave = 1 if is_q8 else (4 if args.target == "arm" else 8)
 
     if args.output is None:
@@ -492,7 +541,7 @@ def main():
     print(f"Input:      {args.input}")
     print(f"Output:     {args.output}")
     if is_q8:
-        print(f"Dtype:      q8_0 (plain block_q8_0, 34B, non-interleaved)")
+        print(f"Dtype:      q8_0 (q8_0x4 interleaved, 34B/row, 4-row super-blocks)")
     else:
         print(f"Target:     {args.target} (q4_0x{interleave})")
     print(f"Mode:       {'all groups=1 conv (1x1 + larger)' if args.all_kernels else '1x1 only (default)'}")
@@ -629,8 +678,9 @@ def main():
         if is_q8:
             print(f"\nBlob layout per Q8_0 weight tensor:")
             print(f"  [U8 blob, len = N*CRS/32 * 34 bytes]")
-            print(f"  Plain block_q8_0 (non-interleaved): per row CRS/32 blocks")
-            print(f"  Per block: d[1]*2 bytes (fp16) + qs[32] int8")
+            print(f"  q8_0x4 interleaved: 4-row super-blocks, 136B each (=4*34)")
+            print(f"  Per super-block: d[4]*2B (fp16) + qs[128] int8"
+                  f" (qs[32*sub+row*8+c])")
             print(f"  Header nntr_shape: [1, 1, K=CRS=in_ch*kh*kw, N=out_ch]")
             print(f"  Header nntr_dtype: Q8_0")
         else:

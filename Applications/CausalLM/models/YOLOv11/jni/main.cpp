@@ -474,6 +474,7 @@ int main(int argc, char *argv[]) {
     // named quantization preset:
     //   w4a16 — Q4_0 weights + FP16 activations + NHWC layout (best latency)
     //   w4a8  — Q4_0 weights + Q8_0 activations + NHWC layout (experimental)
+    //   w8a16 — Q8_0 weights + FP16 activations + NHWC layout (best accuracy)
     // Default (unset) is FP32-FP32.  YOLOv11's input is a float image; for an
     // FP16-activation model the InputLayer must be declared FP16 (PR#4000).
     bool fp16_act = false;
@@ -497,6 +498,15 @@ int main(int argc, char *argv[]) {
         preset_nhwc = true;
         setenv("NNTR_CONV_Q8ACT", "1", 1);
         std::cout << "[YOLO] preset = w4a8 (Q4_0 weights + Q8_0 act + NHWC)"
+                  << std::endl;
+      } else if (tts == "w8a16" || tts == "W8A16") {
+        model->setProperty(
+          {nntrainer::withKey("model_tensor_type", "FP32-FP16")});
+        fp16_act = true;
+        preset_q40 = true;
+        preset_nhwc = true;
+        yolov11::quantWeightDtype() = "Q8_0";
+        std::cout << "[YOLO] preset = w8a16 (Q8_0 weights + FP16 act + NHWC)"
                   << std::endl;
       } else {
         model->setProperty({nntrainer::withKey("model_tensor_type", tt)});
