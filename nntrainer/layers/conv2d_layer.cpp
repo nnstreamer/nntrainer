@@ -743,7 +743,8 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
   // kernels keep the standard [out_ch, in_ch/groups, kh, kw] layout.
   const bool quant_matmul_filter =
     (in_t_type.data_type == nntrainer::Tdatatype::Q4_0 ||
-     in_t_type.data_type == nntrainer::Tdatatype::QINT4) &&
+     in_t_type.data_type == nntrainer::Tdatatype::QINT4 ||
+     in_t_type.data_type == nntrainer::Tdatatype::Q8_0) &&
     groups == 1;
 
   // Real conv kernel geometry — used for padding/output-size computation even
@@ -940,8 +941,10 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
     // *input* (activation is the receiver), so we keep that layout as-is and do
     // NOT squeeze it to [out_ch, CRS] like the FP32 path.
     const auto weight_dtype = filter_kernel.getDataType();
-    const bool weight_is_quant = (weight_dtype == nntrainer::Tdatatype::Q4_0 ||
-                                  weight_dtype == nntrainer::Tdatatype::QINT4);
+    const bool weight_is_q8 = (weight_dtype == nntrainer::Tdatatype::Q8_0);
+    const bool weight_is_quant =
+      (weight_dtype == nntrainer::Tdatatype::Q4_0 ||
+       weight_dtype == nntrainer::Tdatatype::QINT4 || weight_is_q8);
     const unsigned int owoh = out_dim.width() * out_dim.height();
 
     TensorDim filter_dim_squeezed{filter_kernel.batch(),
@@ -997,6 +1000,10 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
               {ml::train::TensorDim::Format::NCHW, out.getDataType()}));
 
             const int in_ch_i = (int)in_dim.channel();
+            // Q8_0-activation path is an env opt-in only. Q8_0 weights use the
+            // proven FP16-activation indirect path (W8A16), dispatched by
+            // weight dtype inside convQ4_0Indirect, so they must NOT force q8
+            // act here.
             const bool can_q8act = (in_ch_i % 32 == 0) &&
                                    (std::getenv("NNTR_CONV_Q8ACT") != nullptr);
             // Pre-allocated Q8_0 scratch (no per-forward malloc).
@@ -1011,7 +1018,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
                 context.getTensor(wt_idx[ConvParams::q8act_scratch]).getData());
             }
 #endif
-            if (is_1x1_s1) {
+            if (is_1x1_s1 && !weight_is_q8) {
 #ifdef ENABLE_FP16
               if (can_q8act && q8_buf) {
                 // Fused: quantize NHWC activation directly into the
@@ -1072,6 +1079,14 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
                 "indirect conv on ARM).");
             }
           } else {
+            // Q8_0 weights are only wired for the NHWC q8-activation indirect
+            // path; the NCHW quant matmul/indirect fallbacks below assume a
+            // Q4_0 weight operand, so reject Q8_0 here instead of silently
+            // dispatching to the Q4_0 kernels.
+            if (weight_is_q8) {
+              throw std::runtime_error(
+                "Q8_0 conv weights require the NHWC indirect path.");
+            }
             // Quantized conv as matmul: act [OH*OW, CRS] . weight [CRS, out_ch]
             // -> [OH*OW, out_ch] -> out [out_ch, OH*OW]. CRS = in_ch*kh*kw.
             // NOTE: col must outlive `act` (act aliases col's storage); here
@@ -1080,7 +1095,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
             Tensor tmp = qgemm_scratch->getBatchSlice(b, 1);
             tmp.reshape(
               TensorDim(1, 1, owoh, filter_size, in_sub.getTensorType()));
-            if (is_1x1_s1) {
+            if (is_1x1_s1 && !weight_is_q8) {
               // 1x1 stride-1: im2col is an identity. The raw input is laid out
               // as [in_ch, OH*OW] (NCHW), so transpose to the act layout
               // [OH*OW, CRS] (CRS == in_ch here).
