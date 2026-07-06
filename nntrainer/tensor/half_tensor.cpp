@@ -869,8 +869,14 @@ Tensor &HalfTensor::convQ4_0Indirect(Tensor const &weight, Tensor &output,
   unsigned int K =
     (unsigned int)geom.in_ch * (unsigned int)geom.k_h * (unsigned int)geom.k_w;
 
-  getOps()->gemm_q4_0_indirect_conv_fp16(M, N, K, in, geom, (void *)wdata, N,
-                                         rdata, N);
+  // Q8_0 weights use the plain-block Q8_0xQ8_0 kernel; Q4_0 uses the
+  // interleaved SMMLA kernel. Both quantize this FP16 activation identically.
+  if (weight.getDataType() == Tdatatype::Q8_0)
+    getOps()->gemm_q8_0_indirect_conv_fp16(M, N, K, in, geom, (void *)wdata, N,
+                                           rdata, N);
+  else
+    getOps()->gemm_q4_0_indirect_conv_fp16(M, N, K, in, geom, (void *)wdata, N,
+                                           rdata, N);
   return output;
 }
 

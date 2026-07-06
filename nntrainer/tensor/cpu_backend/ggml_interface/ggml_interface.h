@@ -232,6 +232,35 @@ void __ggml_q4_0_4x8_q8_0_indirect_GEMM_q8_0(
   const unsigned int M, const unsigned int N, const unsigned int K,
   const void *in, const ConvGatherParams &geom, const void *B,
   const unsigned int ldb, _FP16 *C, const unsigned int ldc);
+
+/**
+ * @brief Q8_0-weight indirect-conv GEMM. Same as the Q4_0 variant above, but
+ * the weight operand is a plain block_q8_0 array [N, K/32] (8-bit weights).
+ * Both operands are Q8_0; output C is FP16.
+ */
+void __ggml_q8_0_q8_0_indirect_GEMM_q8_0(const unsigned int M,
+                                         const unsigned int N,
+                                         const unsigned int K, const void *in,
+                                         const ConvGatherParams &geom,
+                                         const void *B, const unsigned int ldb,
+                                         _FP16 *C, const unsigned int ldc);
+
+/**
+ * @brief FP16-activation Q8_0-weight indirect-conv GEMM (W8A16).
+ *
+ * FP16 mirror of __ggml_q8_0_q8_0_indirect_GEMM_q8_0: the activation is a
+ * contiguous NCHW _FP16 input gathered on the fly (gather_conv_act_rows_fp16)
+ * and quantized to plain block_q8_0 with the same FP16-input quantizer the
+ * working Q4_0 FP16 path uses, then fed to the plain Q8_0xQ8_0 primitive
+ * (nntr_gemm_q8_0_q8_0). Weight B is a plain block_q8_0 array [N, K/32]; output
+ * C is FP16. Used by HalfTensor::convQ4_0Indirect for Q8_0 weights.
+ */
+void __ggml_q8_0_q8_0_indirect_GEMM_fp16(const unsigned int M,
+                                         const unsigned int N,
+                                         const unsigned int K, const _FP16 *in,
+                                         const ConvGatherParams &geom,
+                                         const void *B, const unsigned int ldb,
+                                         _FP16 *C, const unsigned int ldc);
 #endif
 
 /**

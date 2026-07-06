@@ -1170,6 +1170,24 @@ void gemm_q4_0_indirect_conv_q8_0(const unsigned int M, const unsigned int N,
                                   const ConvGatherParams &geom, const void *B,
                                   const unsigned int ldb, _FP16 *C,
                                   const unsigned int ldc);
+
+/**
+ * @brief Pre-quantized Q8_0 activation indirect q8_0 conv GEMM (Q8_0 weight).
+ */
+void gemm_q8_0_indirect_conv_q8_0(const unsigned int M, const unsigned int N,
+                                  const unsigned int K, const void *in,
+                                  const ConvGatherParams &geom, const void *B,
+                                  const unsigned int ldb, _FP16 *C,
+                                  const unsigned int ldc);
+
+/**
+ * @brief FP16-activation indirect q8_0 conv GEMM (Q8_0 weight, W8A16).
+ */
+void gemm_q8_0_indirect_conv_fp16(const unsigned int M, const unsigned int N,
+                                  const unsigned int K, const _FP16 *in,
+                                  const ConvGatherParams &geom, const void *B,
+                                  const unsigned int ldb, _FP16 *C,
+                                  const unsigned int ldc);
 #endif
 /**
  * @brief q4_K GEMM : A (M,K) * W.T (N,K) = O (M,N)

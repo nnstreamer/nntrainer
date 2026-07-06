@@ -137,8 +137,15 @@ Tensor &Q8_0_Tensor::convQ4_0Indirect(Tensor const &weight, Tensor &output,
   unsigned int K =
     (unsigned int)geom.in_ch * (unsigned int)geom.k_h * (unsigned int)geom.k_w;
 
-  getOps()->gemm_q4_0_indirect_conv_q8_0(M, N, K, in, geom, (void *)wdata, N,
-                                         rdata, N);
+  // Route by weight precision: plain block_q8_0 (8-bit) weights go through the
+  // Q8_0xQ8_0 indirect GEMM; Q4_0/QINT4 (4-bit) weights keep the SMMLA path.
+  if (weight.getDataType() == Tdatatype::Q8_0) {
+    getOps()->gemm_q8_0_indirect_conv_q8_0(M, N, K, in, geom, (void *)wdata, N,
+                                           rdata, N);
+  } else {
+    getOps()->gemm_q4_0_indirect_conv_q8_0(M, N, K, in, geom, (void *)wdata, N,
+                                           rdata, N);
+  }
   return output;
 #else
   throw std::invalid_argument(

@@ -411,6 +411,26 @@ public:
                                     unsigned int ldc) override {
     nntrainer::gemm_q4_0_indirect_conv_q8_0(M, N, K, in, geom, B, ldb, C, ldc);
   }
+  bool supports_gemm_q8_0_indirect_conv_q8_0() const override {
+    return NNTR_HAS_Q4_0_INDIRECT_CONV;
+  }
+  void gemm_q8_0_indirect_conv_q8_0(unsigned int M, unsigned int N,
+                                    unsigned int K, const void *in,
+                                    const ConvGatherParams &geom, const void *B,
+                                    unsigned int ldb, _FP16 *C,
+                                    unsigned int ldc) override {
+    nntrainer::gemm_q8_0_indirect_conv_q8_0(M, N, K, in, geom, B, ldb, C, ldc);
+  }
+  bool supports_gemm_q8_0_indirect_conv_fp16() const override {
+    return NNTR_HAS_Q4_0_INDIRECT_CONV;
+  }
+  void gemm_q8_0_indirect_conv_fp16(unsigned int M, unsigned int N,
+                                    unsigned int K, const _FP16 *in,
+                                    const ConvGatherParams &geom, const void *B,
+                                    unsigned int ldb, _FP16 *C,
+                                    unsigned int ldc) override {
+    nntrainer::gemm_q8_0_indirect_conv_fp16(M, N, K, in, geom, B, ldb, C, ldc);
+  }
   void gemm_q6_K_fp16(unsigned int M, unsigned int N, unsigned int K,
                       const _FP16 *A, unsigned int lda, const void *B,
                       unsigned int ldb, _FP16 *C, unsigned int ldc) override {

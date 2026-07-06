@@ -427,6 +427,22 @@ void gemm_q4_0_indirect_conv_q8_0(const unsigned int M, const unsigned int N,
   return __ggml_q4_0_4x8_q8_0_indirect_GEMM_q8_0(M, N, K, in, geom, B, ldb, C,
                                                  ldc);
 }
+
+void gemm_q8_0_indirect_conv_q8_0(const unsigned int M, const unsigned int N,
+                                  const unsigned int K, const void *in,
+                                  const ConvGatherParams &geom, const void *B,
+                                  const unsigned int ldb, _FP16 *C,
+                                  const unsigned int ldc) {
+  return __ggml_q8_0_q8_0_indirect_GEMM_q8_0(M, N, K, in, geom, B, ldb, C, ldc);
+}
+
+void gemm_q8_0_indirect_conv_fp16(const unsigned int M, const unsigned int N,
+                                  const unsigned int K, const _FP16 *in,
+                                  const ConvGatherParams &geom, const void *B,
+                                  const unsigned int ldb, _FP16 *C,
+                                  const unsigned int ldc) {
+  return __ggml_q8_0_q8_0_indirect_GEMM_fp16(M, N, K, in, geom, B, ldb, C, ldc);
+}
 #endif
 
 void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,
