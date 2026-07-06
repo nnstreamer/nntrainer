@@ -855,22 +855,38 @@ void __ggml_q8_0_q8_0_indirect_GEMM_fp16(const unsigned int M,
   const unsigned int qa_4_rows_size = sizeof(block_q8_0x4) * nb;
   const unsigned int Mfull = (M / 4) * 4; // 4-row-divisible part
   const unsigned int rem = M % 4;
+  const unsigned int M4 = M / 4;
   const unsigned int M4c = (M + 3) / 4; // groups incl. padded tail
 
   // 1) Fused gather + Q8_0 quantize to interleaved q8_0x4, 4 rows at a time.
-  //    The tail group (rem>0) zero-pads its missing rows so their scale is 0
-  //    (no contribution; the padded output rows are discarded below).
+  //    To match the highly optimized Q4_0 path's chunked parallel_for:
+  //    we parallelize over larger chunks (QCHUNK = 64 rows / 16 tiles) instead of
+  //    individual 4-row groups, reducing thread manager dispatch overheads
+  //    drastically, and allocating our reusable tile buffer once per thread.
   std::vector<char> QA((size_t)M4c * qa_4_rows_size);
   char *QA_ptr = QA.data();
-  {
-    tm.parallel_for(0, M4c, [=](size_t g) {
-      const unsigned int r0 = static_cast<unsigned int>(g) * 4;
-      const unsigned int rows_valid = std::min(4u, M - r0);
-      std::vector<_FP16> tile((size_t)4 * K, (_FP16)0);
-      gather_conv_act_rows_fp16(tile.data(), in, geom, (int)r0, (int)rows_valid);
-      __ggml_quantize_mat_q8_0_4x8(tile.data(),
-                                   QA_ptr + (size_t)g * qa_4_rows_size, K);
+
+  const unsigned int QCHUNK = 64; // multiple of 4
+  if (Mfull > 0) {
+    const size_t qloops = (Mfull + QCHUNK - 1) / QCHUNK;
+    tm.parallel_for(0, qloops, [=](size_t q) {
+      const unsigned int r0 = static_cast<unsigned int>(q) * QCHUNK;
+      const unsigned int r1 = std::min(r0 + QCHUNK, Mfull);
+      std::vector<_FP16> tile((size_t)4 * K); // one quantize tile, reused
+      for (unsigned int r = r0; r < r1; r += 4) {
+        gather_conv_act_rows_fp16(tile.data(), in, geom, (int)r, 4);
+        __ggml_quantize_mat_q8_0_4x8(tile.data(),
+                                     QA_ptr + (size_t)(r / 4) * qa_4_rows_size, K);
+      }
     });
+  }
+
+  // Handle M-tail (rem 1..3) gather and quantization
+  if (rem > 0) {
+    std::vector<_FP16> tile((size_t)4 * K, (_FP16)0);
+    gather_conv_act_rows_fp16(tile.data(), in, geom, (int)Mfull, (int)rem);
+    __ggml_quantize_mat_q8_0_4x8(tile.data(),
+                                 QA_ptr + (size_t)M4 * qa_4_rows_size, K);
   }
 
   // 2) Tiled 4x4 SMMLA GEMM over the 4-row-divisible part, direct to C.

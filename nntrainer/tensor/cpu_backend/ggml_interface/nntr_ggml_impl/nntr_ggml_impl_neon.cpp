@@ -2666,10 +2666,10 @@ void nntr_gemm_q8_0_q8_0_4x4_fp16(int n, _FP16 *__restrict s, size_t bs,
 
   // Fold a 4x4 int32 tile (two vmmla acc pairs for one act super-block) into the
   // four FP row accumulators. Shared by the 8-row main loop and the 4-row tail.
-  auto fold4 = [](const block_q8_0x4 *a, int bi, int32x4_t acc01_lo,
-                  int32x4_t acc01_hi, int32x4_t acc23_lo, int32x4_t acc23_hi,
-                  float32x4_t db, float32x4_t &f0, float32x4_t &f1,
-                  float32x4_t &f2, float32x4_t &f3) {
+  auto fold4 = [](int32x4_t acc01_lo, int32x4_t acc01_hi, int32x4_t acc23_lo,
+                  int32x4_t acc23_hi, float32x4_t da, float32x4_t db,
+                  float32x4_t &f0, float32x4_t &f1, float32x4_t &f2,
+                  float32x4_t &f3) {
     const int32x4_t ri0 =
       vcombine_s32(vget_low_s32(acc01_lo), vget_low_s32(acc01_hi));
     const int32x4_t ri1 =
@@ -2678,14 +2678,10 @@ void nntr_gemm_q8_0_q8_0_4x4_fp16(int n, _FP16 *__restrict s, size_t bs,
       vcombine_s32(vget_low_s32(acc23_lo), vget_low_s32(acc23_hi));
     const int32x4_t ri3 =
       vcombine_s32(vget_high_s32(acc23_lo), vget_high_s32(acc23_hi));
-    f0 = vfmaq_f32(
-      f0, vmulq_n_f32(vcvtq_f32_s32(ri0), nntr_fp16_to_fp32(a[bi].d[0])), db);
-    f1 = vfmaq_f32(
-      f1, vmulq_n_f32(vcvtq_f32_s32(ri1), nntr_fp16_to_fp32(a[bi].d[1])), db);
-    f2 = vfmaq_f32(
-      f2, vmulq_n_f32(vcvtq_f32_s32(ri2), nntr_fp16_to_fp32(a[bi].d[2])), db);
-    f3 = vfmaq_f32(
-      f3, vmulq_n_f32(vcvtq_f32_s32(ri3), nntr_fp16_to_fp32(a[bi].d[3])), db);
+    f0 = vfmaq_f32(f0, vmulq_n_f32(vcvtq_f32_s32(ri0), vgetq_lane_f32(da, 0)), db);
+    f1 = vfmaq_f32(f1, vmulq_n_f32(vcvtq_f32_s32(ri1), vgetq_lane_f32(da, 1)), db);
+    f2 = vfmaq_f32(f2, vmulq_n_f32(vcvtq_f32_s32(ri2), vgetq_lane_f32(da, 2)), db);
+    f3 = vfmaq_f32(f3, vmulq_n_f32(vcvtq_f32_s32(ri3), vgetq_lane_f32(da, 3)), db);
   };
   auto store4 = [&](int row, int j, float32x4_t f) {
     float tmp[4];
@@ -2728,10 +2724,7 @@ void nntr_gemm_q8_0_q8_0_4x4_fp16(int n, _FP16 *__restrict s, size_t bs,
         const int8x16_t w3a = vld1q_s8(b[bi].qs + 96);
         const int8x16_t w3b = vld1q_s8(b[bi].qs + 112);
 
-        const float db_arr[4] = {
-          nntr_fp16_to_fp32(b[bi].d[0]), nntr_fp16_to_fp32(b[bi].d[1]),
-          nntr_fp16_to_fp32(b[bi].d[2]), nntr_fp16_to_fp32(b[bi].d[3])};
-        const float32x4_t db = vld1q_f32(db_arr);
+        const float32x4_t db = vcvt_f32_f16(vld1_f16((const __fp16 *)b[bi].d));
 
         // Compute one 4-row super-block against the resident weights, then fold.
         auto do_sb = [&](const block_q8_0x4 *a, float32x4_t &f0, float32x4_t &f1,
@@ -2762,7 +2755,8 @@ void nntr_gemm_q8_0_q8_0_4x4_fp16(int n, _FP16 *__restrict s, size_t bs,
           c01 = vmmlaq_s32(c01, r3a, w3b);
           c10 = vmmlaq_s32(c10, r3b, w3a);
           c11 = vmmlaq_s32(c11, r3b, w3b);
-          fold4(a, bi, c00, c01, c10, c11, db, f0, f1, f2, f3);
+          const float32x4_t da = vcvt_f32_f16(vld1_f16((const __fp16 *)a[bi].d));
+          fold4(c00, c01, c10, c11, da, db, f0, f1, f2, f3);
         };
 
         do_sb(aA, fA0, fA1, fA2, fA3);
@@ -2823,11 +2817,9 @@ void nntr_gemm_q8_0_q8_0_4x4_fp16(int n, _FP16 *__restrict s, size_t bs,
           acc10 = vmmlaq_s32(acc10, ar23, bc01);
           acc11 = vmmlaq_s32(acc11, ar23, bc23);
         }
-        const float db_arr[4] = {
-          nntr_fp16_to_fp32(b[bi].d[0]), nntr_fp16_to_fp32(b[bi].d[1]),
-          nntr_fp16_to_fp32(b[bi].d[2]), nntr_fp16_to_fp32(b[bi].d[3])};
-        const float32x4_t db = vld1q_f32(db_arr);
-        fold4(a, bi, acc00, acc01, acc10, acc11, db, fr0, fr1, fr2, fr3);
+        const float32x4_t db = vcvt_f32_f16(vld1_f16((const __fp16 *)b[bi].d));
+        const float32x4_t da = vcvt_f32_f16(vld1_f16((const __fp16 *)a[bi].d));
+        fold4(acc00, acc01, acc10, acc11, da, db, fr0, fr1, fr2, fr3);
       }
 
       store4(m + 0, j, fr0);
@@ -2850,6 +2842,225 @@ void nntr_gemm_q8_0_q8_0_4x4_fp16(int n, _FP16 *__restrict s, size_t bs,
     for (int j = 0; j < nc; ++j)
       s[(size_t)m * bs + j] =
         (_FP16)dot_one(a, ar, b_sbase + (size_t)(j / 4) * nb, j % 4);
+  }
+#endif
+}
+
+void nntr_gemm_q8_0_4x8_q8_0_fp16(int n, NNTR_GGML_FP16 *__restrict s,
+                                  size_t bs, const void *__restrict vx,
+                                  const void *__restrict vy, int nr, int nc) {
+  const int qk = QK8_0;
+  const int nb = n / qk;
+  assert(n % qk == 0);
+  assert(nr % 4 == 0);
+
+  const block_q8_0x4 *b_sbase = (const block_q8_0x4 *)vx; // weight [nc/4][nb]
+  const block_q8_0x4 *a_sbase = (const block_q8_0x4 *)vy; // act    [nr/4][nb]
+
+  // Scalar interleaved dot of one act row against one weight row -- used for
+  // the nc%4 column edge and the no-i8mm fallback.
+  auto dot_one = [&](const block_q8_0x4 *a, int ar, const block_q8_0x4 *b,
+                     int wr) -> float {
+    float acc = 0.0f;
+    for (int bi = 0; bi < nb; ++bi) {
+      int32_t si = 0;
+      for (int sub = 0; sub < 4; ++sub)
+        for (int c = 0; c < 8; ++c)
+          si += (int32_t)a[bi].qs[32 * sub + ar * 8 + c] *
+                (int32_t)b[bi].qs[32 * sub + wr * 8 + c];
+      acc += nntr_fp16_to_fp32(a[bi].d[ar]) * nntr_fp16_to_fp32(b[bi].d[wr]) *
+             (float)si;
+    }
+    return acc;
+  };
+
+#if defined(__ARM_FEATURE_MATMUL_INT8)
+  const int nc4 = nc & ~3;
+  const int nr8 = nr & ~7;
+
+  // Fold one act super-block's 2x2 SMMLA pairs into its 4 fp32 accumulators.
+  // Shared by the 8-row main loop and the 4-row tail below.
+  auto fold4 = [](int32x4_t acc01_lo, int32x4_t acc01_hi, int32x4_t acc23_lo,
+                  int32x4_t acc23_hi, float32x4_t da, float32x4_t db,
+                  float32x4_t &f0, float32x4_t &f1, float32x4_t &f2,
+                  float32x4_t &f3) {
+    const int32x4_t ri0 =
+      vcombine_s32(vget_low_s32(acc01_lo), vget_low_s32(acc01_hi));
+    const int32x4_t ri1 =
+      vcombine_s32(vget_high_s32(acc01_lo), vget_high_s32(acc01_hi));
+    const int32x4_t ri2 =
+      vcombine_s32(vget_low_s32(acc23_lo), vget_low_s32(acc23_hi));
+    const int32x4_t ri3 =
+      vcombine_s32(vget_high_s32(acc23_lo), vget_high_s32(acc23_hi));
+    f0 = vfmaq_f32(f0, vmulq_n_f32(vcvtq_f32_s32(ri0), vgetq_lane_f32(da, 0)), db);
+    f1 = vfmaq_f32(f1, vmulq_n_f32(vcvtq_f32_s32(ri1), vgetq_lane_f32(da, 1)), db);
+    f2 = vfmaq_f32(f2, vmulq_n_f32(vcvtq_f32_s32(ri2), vgetq_lane_f32(da, 2)), db);
+    f3 = vfmaq_f32(f3, vmulq_n_f32(vcvtq_f32_s32(ri3), vgetq_lane_f32(da, 3)), db);
+  };
+  auto store4 = [&](int row, int j, float32x4_t f) {
+    float tmp[4];
+    vst1q_f32(tmp, f);
+    for (int k = 0; k < 4; ++k)
+      s[(size_t)row * bs + j + k] = (NNTR_GGML_FP16)tmp[k];
+  };
+
+  // Q8_0 weights need no nibble unpack (unlike Q4_0): every block's 8 rows
+  // are already plain int8, so they feed vmmlaq_s32 as direct loads -- no
+  // shift/mask before and no /16 fixed-point rescale after (the Q4_0 kernel
+  // needs both because it pre-shifts unpacked nibbles into the int8 high
+  // bits). Main loop: 8 rows (two act super-blocks) share ONE set of 8
+  // weight registers per block. NEON only has 32 vector registers -- with 4
+  // super-blocks resident (16 accumulators + 8 weight regs + temporaries)
+  // the compiler was forced to spill accumulators to the stack every block
+  // iteration (measured: 137 `[sp]` accesses in the compiled hot loop vs 9
+  // for the hand-written Q4_0 asm kernel), which dominated over any savings
+  // from skipping the Q4_0 nibble unpack/rescale. Two super-blocks (8
+  // accumulators + 8 weight regs) fits without spilling.
+  for (int j = 0; j < nc4; j += 4) {
+    const block_q8_0x4 *b = b_sbase + (size_t)(j / 4) * nb;
+
+    for (int m = 0; m < nr8; m += 8) {
+      const block_q8_0x4 *aA = a_sbase + (size_t)(m / 4 + 0) * nb;
+      const block_q8_0x4 *aB = a_sbase + (size_t)(m / 4 + 1) * nb;
+
+      float32x4_t fA0 = vdupq_n_f32(0.0f), fA1 = vdupq_n_f32(0.0f);
+      float32x4_t fA2 = vdupq_n_f32(0.0f), fA3 = vdupq_n_f32(0.0f);
+      float32x4_t fB0 = vdupq_n_f32(0.0f), fB1 = vdupq_n_f32(0.0f);
+      float32x4_t fB2 = vdupq_n_f32(0.0f), fB3 = vdupq_n_f32(0.0f);
+
+      for (int bi = 0; bi < nb; ++bi) {
+        const int8x16_t w01_0 = vld1q_s8(b[bi].qs + 0);
+        const int8x16_t w23_0 = vld1q_s8(b[bi].qs + 16);
+        const int8x16_t w01_1 = vld1q_s8(b[bi].qs + 32);
+        const int8x16_t w23_1 = vld1q_s8(b[bi].qs + 48);
+        const int8x16_t w01_2 = vld1q_s8(b[bi].qs + 64);
+        const int8x16_t w23_2 = vld1q_s8(b[bi].qs + 80);
+        const int8x16_t w01_3 = vld1q_s8(b[bi].qs + 96);
+        const int8x16_t w23_3 = vld1q_s8(b[bi].qs + 112);
+
+        const float32x4_t db = vcvt_f32_f16(vld1_f16((const __fp16 *)b[bi].d));
+
+        // Compute one 4-row act super-block against the resident weights.
+        auto do_sb = [&](const block_q8_0x4 *a, float32x4_t &f0,
+                         float32x4_t &f1, float32x4_t &f2, float32x4_t &f3) {
+          int32x4_t c00 = vdupq_n_s32(0), c01 = vdupq_n_s32(0);
+          int32x4_t c10 = vdupq_n_s32(0), c11 = vdupq_n_s32(0);
+          const int8x16_t a01_0 = vld1q_s8(a[bi].qs + 0);
+          const int8x16_t a23_0 = vld1q_s8(a[bi].qs + 16);
+          c00 = vmmlaq_s32(c00, a01_0, w01_0);
+          c01 = vmmlaq_s32(c01, a01_0, w23_0);
+          c10 = vmmlaq_s32(c10, a23_0, w01_0);
+          c11 = vmmlaq_s32(c11, a23_0, w23_0);
+          const int8x16_t a01_1 = vld1q_s8(a[bi].qs + 32);
+          const int8x16_t a23_1 = vld1q_s8(a[bi].qs + 48);
+          c00 = vmmlaq_s32(c00, a01_1, w01_1);
+          c01 = vmmlaq_s32(c01, a01_1, w23_1);
+          c10 = vmmlaq_s32(c10, a23_1, w01_1);
+          c11 = vmmlaq_s32(c11, a23_1, w23_1);
+          const int8x16_t a01_2 = vld1q_s8(a[bi].qs + 64);
+          const int8x16_t a23_2 = vld1q_s8(a[bi].qs + 80);
+          c00 = vmmlaq_s32(c00, a01_2, w01_2);
+          c01 = vmmlaq_s32(c01, a01_2, w23_2);
+          c10 = vmmlaq_s32(c10, a23_2, w01_2);
+          c11 = vmmlaq_s32(c11, a23_2, w23_2);
+          const int8x16_t a01_3 = vld1q_s8(a[bi].qs + 96);
+          const int8x16_t a23_3 = vld1q_s8(a[bi].qs + 112);
+          c00 = vmmlaq_s32(c00, a01_3, w01_3);
+          c01 = vmmlaq_s32(c01, a01_3, w23_3);
+          c10 = vmmlaq_s32(c10, a23_3, w01_3);
+          c11 = vmmlaq_s32(c11, a23_3, w23_3);
+          const float32x4_t da = vcvt_f32_f16(vld1_f16((const __fp16 *)a[bi].d));
+          fold4(c00, c01, c10, c11, da, db, f0, f1, f2, f3);
+        };
+
+        do_sb(aA, fA0, fA1, fA2, fA3);
+        do_sb(aB, fB0, fB1, fB2, fB3);
+      }
+
+      store4(m + 0, j, fA0);
+      store4(m + 1, j, fA1);
+      store4(m + 2, j, fA2);
+      store4(m + 3, j, fA3);
+      store4(m + 4, j, fB0);
+      store4(m + 5, j, fB1);
+      store4(m + 6, j, fB2);
+      store4(m + 7, j, fB3);
+    }
+
+    // M-tail: remaining rows (nr - nr8), guaranteed multiple of 4.
+    for (int m = nr8; m < nr; m += 4) {
+      const block_q8_0x4 *a = a_sbase + (size_t)(m / 4) * nb;
+
+      float32x4_t fr0 = vdupq_n_f32(0.0f), fr1 = vdupq_n_f32(0.0f);
+      float32x4_t fr2 = vdupq_n_f32(0.0f), fr3 = vdupq_n_f32(0.0f);
+
+      for (int bi = 0; bi < nb; ++bi) {
+        const int8x16_t w01_0 = vld1q_s8(b[bi].qs + 0);
+        const int8x16_t w23_0 = vld1q_s8(b[bi].qs + 16);
+        const int8x16_t w01_1 = vld1q_s8(b[bi].qs + 32);
+        const int8x16_t w23_1 = vld1q_s8(b[bi].qs + 48);
+        const int8x16_t w01_2 = vld1q_s8(b[bi].qs + 64);
+        const int8x16_t w23_2 = vld1q_s8(b[bi].qs + 80);
+        const int8x16_t w01_3 = vld1q_s8(b[bi].qs + 96);
+        const int8x16_t w23_3 = vld1q_s8(b[bi].qs + 112);
+
+        const int8x16_t a01_0 = vld1q_s8(a[bi].qs + 0);
+        const int8x16_t a23_0 = vld1q_s8(a[bi].qs + 16);
+        const int8x16_t a01_1 = vld1q_s8(a[bi].qs + 32);
+        const int8x16_t a23_1 = vld1q_s8(a[bi].qs + 48);
+        const int8x16_t a01_2 = vld1q_s8(a[bi].qs + 64);
+        const int8x16_t a23_2 = vld1q_s8(a[bi].qs + 80);
+        const int8x16_t a01_3 = vld1q_s8(a[bi].qs + 96);
+        const int8x16_t a23_3 = vld1q_s8(a[bi].qs + 112);
+
+        int32x4_t c00 = vdupq_n_s32(0), c01 = vdupq_n_s32(0);
+        int32x4_t c10 = vdupq_n_s32(0), c11 = vdupq_n_s32(0);
+        c00 = vmmlaq_s32(c00, a01_0, w01_0);
+        c01 = vmmlaq_s32(c01, a01_0, w23_0);
+        c10 = vmmlaq_s32(c10, a23_0, w01_0);
+        c11 = vmmlaq_s32(c11, a23_0, w23_0);
+        c00 = vmmlaq_s32(c00, a01_1, w01_1);
+        c01 = vmmlaq_s32(c01, a01_1, w23_1);
+        c10 = vmmlaq_s32(c10, a23_1, w01_1);
+        c11 = vmmlaq_s32(c11, a23_1, w23_1);
+        c00 = vmmlaq_s32(c00, a01_2, w01_2);
+        c01 = vmmlaq_s32(c01, a01_2, w23_2);
+        c10 = vmmlaq_s32(c10, a23_2, w01_2);
+        c11 = vmmlaq_s32(c11, a23_2, w23_2);
+        c00 = vmmlaq_s32(c00, a01_3, w01_3);
+        c01 = vmmlaq_s32(c01, a01_3, w23_3);
+        c10 = vmmlaq_s32(c10, a23_3, w01_3);
+        c11 = vmmlaq_s32(c11, a23_3, w23_3);
+
+        const float32x4_t db = vcvt_f32_f16(vld1_f16((const __fp16 *)b[bi].d));
+        const float32x4_t da = vcvt_f32_f16(vld1_f16((const __fp16 *)a[bi].d));
+        fold4(c00, c01, c10, c11, da, db, fr0, fr1, fr2, fr3);
+      }
+
+      store4(m + 0, j, fr0);
+      store4(m + 1, j, fr1);
+      store4(m + 2, j, fr2);
+      store4(m + 3, j, fr3);
+    }
+  }
+
+  // Column remainder (nc % 4), scalar.
+  for (int j = nc4; j < nc; ++j) {
+    const block_q8_0x4 *b = b_sbase + (size_t)(j / 4) * nb;
+    const int wr = j % 4;
+    for (int m = 0; m < nr; m += 4) {
+      const block_q8_0x4 *a = a_sbase + (size_t)(m / 4) * nb;
+      for (int rr = 0; rr < 4; ++rr)
+        s[(size_t)(m + rr) * bs + j] = (NNTR_GGML_FP16)dot_one(a, rr, b, wr);
+    }
+  }
+#else
+  for (int m = 0; m < nr; ++m) {
+    const block_q8_0x4 *a = a_sbase + (size_t)(m / 4) * nb;
+    const int ar = m % 4;
+    for (int j = 0; j < nc; ++j)
+      s[(size_t)m * bs + j] =
+        (NNTR_GGML_FP16)dot_one(a, ar, b_sbase + (size_t)(j / 4) * nb, j % 4);
   }
 #endif
 }

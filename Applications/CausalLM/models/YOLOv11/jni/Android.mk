@@ -28,6 +28,8 @@ NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
 	$(NNTRAINER_ROOT)/nntrainer/tensor/cpu_backend \
 	$(NNTRAINER_ROOT)/nntrainer/tensor/cpu_backend/fallback \
 	$(NNTRAINER_ROOT)/nntrainer/tensor/cpu_backend/arm \
+	$(NNTRAINER_ROOT)/nntrainer/tensor/cpu_backend/ggml_interface \
+	$(NNTRAINER_ROOT)/nntrainer/tensor/cpu_backend/ggml_interface/nntr_ggml_impl \
 	$(NNTRAINER_ROOT)/nntrainer/utils \
 	$(NNTRAINER_ROOT)/api \
 	$(NNTRAINER_ROOT)/api/ccapi/include \
@@ -63,6 +65,53 @@ LOCAL_CXXFLAGS += -std=c++17 -O3 -march=armv8.2-a+fp16+dotprod+i8mm -pthread \
 LOCAL_LDFLAGS += -fexceptions
 
 LOCAL_SRC_FILES := main.cpp c2psa_layer.cpp
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
+
+include $(BUILD_EXECUTABLE)
+
+# Standalone TDD correctness probe for the hand-written Q8_0xQ8_0 SMMLA asm
+# kernel (nntr_gemm_q8_0_4x8_q8_0_fp16), verified against the intrinsics
+# oracle nntr_gemm_q8_0_q8_0_4x4_fp16. Not part of the app itself.
+include $(CLEAR_VARS)
+
+LOCAL_ARM_NEON := true
+LOCAL_ARM_MODE := arm
+LOCAL_MODULE := gemm_q8_0_probe
+LOCAL_MODULE_TAGS := optional
+LOCAL_LDLIBS := -llog -landroid
+
+LOCAL_CFLAGS += -std=c++17 -O3 -march=armv8.2-a+fp16+dotprod+i8mm -pthread \
+	-fexceptions -frtti -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1
+LOCAL_CXXFLAGS += -std=c++17 -O3 -march=armv8.2-a+fp16+dotprod+i8mm -pthread \
+	-fexceptions -frtti -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1
+LOCAL_LDFLAGS += -fexceptions
+
+LOCAL_SRC_FILES := gemm_q8_0_probe.cpp
+LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
+
+include $(BUILD_EXECUTABLE)
+
+# Timing-only microbenchmark: tests whether the Q8_0 vs Q4_0 GEMM speed gap
+# widens with weight working-set size (cache-locality hypothesis), since this
+# device denies hardware PMU access to non-root shell (simpleperf stat fails
+# with "Event type ... is not supported on the device").
+include $(CLEAR_VARS)
+
+LOCAL_ARM_NEON := true
+LOCAL_ARM_MODE := arm
+LOCAL_MODULE := gemm_cache_bench
+LOCAL_MODULE_TAGS := optional
+LOCAL_LDLIBS := -llog -landroid
+
+LOCAL_CFLAGS += -std=c++17 -O3 -march=armv8.2-a+fp16+dotprod+i8mm -pthread \
+	-fexceptions -frtti -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1
+LOCAL_CXXFLAGS += -std=c++17 -O3 -march=armv8.2-a+fp16+dotprod+i8mm -pthread \
+	-fexceptions -frtti -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1
+LOCAL_LDFLAGS += -fexceptions
+
+LOCAL_SRC_FILES := gemm_cache_bench.cpp
 LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
