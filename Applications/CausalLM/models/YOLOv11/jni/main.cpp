@@ -490,6 +490,14 @@ int main(int argc, char *argv[]) {
     const int box_ch = 4 * reg_max;
     const int out_ch = box_ch + nc;
 
+    // Model architecture preset (v11m / v11s). Default v11m.
+    std::string model_preset =
+      std::getenv("YOLO_MODEL") ? std::getenv("YOLO_MODEL") : "v11m";
+    yolov11::ModelConfig cfg = yolov11::ModelConfig::v11m();
+    if (model_preset == "v11s" || model_preset == "V11S") {
+      cfg = yolov11::ModelConfig::v11s();
+    }
+
     const std::string input_path =
       (argc > 2) ? argv[2]
                  : (RES_DIR + "/input_" + std::to_string(imgsz) + ".bin");
@@ -597,9 +605,9 @@ int main(int argc, char *argv[]) {
                                       ml::train::TensorDim::DataType::FP32),
                  "input0");
     Tensor m4, m6;
-    auto m10 = yolov11::buildBackbone(x, m4, m6, conv_q40);
+    auto m10 = yolov11::buildBackbone(x, m4, m6, cfg, conv_q40);
     auto outputs =
-      yolov11::buildHead(m4, m6, m10, nc, conv_q40); // {P3, P4, P5}
+      yolov11::buildHead(m4, m6, m10, nc, cfg, conv_q40); // {P3, P4, P5}
 
     yolov11::quantConvSink() = nullptr;
 

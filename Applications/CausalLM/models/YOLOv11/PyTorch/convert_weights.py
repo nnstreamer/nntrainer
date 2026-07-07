@@ -73,12 +73,16 @@ class Pack:
         m, o = f"{pt}.m.0", f"{nn}/m0"
         self.conv_bn(f"{m}.cv1", f"{o}/cv1")
         self.conv_bn(f"{m}.cv2", f"{o}/cv2")
-        self.conv_bn(f"{m}.cv3", f"{o}/cv3")
+        # C3k blocks have cv3 only when c3k=True (larger models); smaller
+        # models use a plain Bottleneck (cv1+cv2 only, no cv3).
+        if f"{m}.cv3.conv.weight" in self.sd:
+            self.conv_bn(f"{m}.cv3", f"{o}/cv3")
         j = 0
         while f"{m}.m.{j}.cv1.conv.weight" in self.sd:
             self.conv_bn(f"{m}.m.{j}.cv1", f"{o}/inner{j}/cv1")
             self.conv_bn(f"{m}.m.{j}.cv2", f"{o}/inner{j}/cv2")
             j += 1
+
 
     def c2psa(self, pt, nn):
         self.conv_bn(f"{pt}.cv1", f"{nn}/cv1")

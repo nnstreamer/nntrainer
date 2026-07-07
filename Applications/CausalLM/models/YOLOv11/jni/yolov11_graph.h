@@ -4,7 +4,7 @@
  *
  * @file   yolov11_graph.h
  * @date   25 June 2026
- * @brief  YOLOv11m graph block builders (inline, header-only).
+ * @brief  YOLOv11 graph block builders (inline, header-only).
  *
  * Extracted from main.cpp so the quantization-aware model class
  * (YOLOv11Model) can reuse the same graph construction without
@@ -12,10 +12,11 @@
  *
  * Usage:
  *   #include "yolov11_graph.h"
+ *   auto cfg = yolov11::ModelConfig::v11m();
  *   bool q40 = (std::getenv("YOLO_CONV_Q40") != nullptr);
  *   Tensor m4, m6;
- *   auto m10 = yolov11::buildBackbone(input, m4, m6, q40);
- *   auto outputs = yolov11::buildHead(m4, m6, m10, q40);
+ *   auto m10 = yolov11::buildBackbone(input, m4, m6, cfg, q40);
+ *   auto outputs = yolov11::buildHead(m4, m6, m10, nc, cfg, q40);
  *
  * @author Seungbaek Hong <sb92.hong@samsung.com>
  */
@@ -65,6 +66,44 @@ inline std::string &quantWeightDtype() {
 // needed when YOLO_NHWC flips the graph layout.
 inline int chAxis() { return 1; }
 
+/**
+ * @brief Model architecture configuration (widths scale with model size).
+ *
+ * YOLOv11 has 5 backbone stages. The channel widths at each stage scale
+ * with the model size (n/s/m/l/x). All other channels in the backbone, FPN
+ * head, and C2PSA are derived from these 5 values.
+ *
+ *   stage:  0    1    2    3    4
+ *   v11m:  64   128  256  512  512
+ *   v11s:  32    64  128  256  512
+ *
+ * C2PSA always operates at stage-4 channels (512 for both v11m and v11s).
+ * The detect head's pi_ch (input feature channels) for P3/P4/P5 are
+ * stages[2], stages[3], stages[4] respectively.
+ */
+struct ModelConfig {
+  int w[5];    ///< backbone widths per stage (0=stem, 1, 2=P3, 3=P4, 4=P5)
+  bool c3k[8]; ///< c3k flag per C3k2 block (m2,m4,m6,m8,m13,m16,m19,m22)
+
+  /** Construct from a 5-element width array + 8 c3k flags. */
+  constexpr ModelConfig(int w0, int w1, int w2, int w3, int w4, bool c0,
+                        bool c1, bool c2, bool c3, bool c4, bool c5, bool c6,
+                        bool c7) :
+    w{w0, w1, w2, w3, w4}, c3k{c0, c1, c2, c3, c4, c5, c6, c7} {}
+
+  /** v11m preset (default): all C3k2 blocks use C3k. */
+  static constexpr ModelConfig v11m() {
+    return {64,   128,  256,  512,  512,  true, true,
+            true, true, true, true, true, true};
+  }
+
+  /** v11s preset: C3k only for backbone m6/m8 and head m22. */
+  static constexpr ModelConfig v11s() {
+    return {32,   64,   128,   256,   512,   false, false,
+            true, true, false, false, false, true};
+  }
+};
+
 // ===== Primitive graph block builders =====
 
 /**
@@ -110,11 +149,16 @@ inline Tensor convBnSilu(const std::string &name, int in_ch, int out_ch, int k,
 
 /**
  * @brief Build a Bottleneck sub-graph (cv1 3x3 + cv2 3x3 + residual add).
+ *
+ * @param ch        Input/output channels (residual path)
+ * @param inner_ch  Inner (bottleneck) channels. For plain Bottleneck
+ *                  (c3k=False) this is ch/2 (expansion=0.5). For C3k inner
+ *                  bottlenecks this equals ch (expansion=1.0).
  */
-inline Tensor bottleneck(const std::string &name, int ch, Tensor input,
-                         bool conv_q40 = false) {
-  auto h = convBnSilu(name + "/cv1", ch, ch, 3, 1, 1, input, conv_q40);
-  h = convBnSilu(name + "/cv2", ch, ch, 3, 1, 1, h, conv_q40);
+inline Tensor bottleneck(const std::string &name, int ch, int inner_ch,
+                         Tensor input, bool conv_q40 = false) {
+  auto h = convBnSilu(name + "/cv1", ch, inner_ch, 3, 1, 1, input, conv_q40);
+  h = convBnSilu(name + "/cv2", inner_ch, ch, 3, 1, 1, h, conv_q40);
   LayerHandle add(
     createLayer("Addition", {nntrainer::withKey("name", name + "/add")}));
   return add({h, input});
@@ -127,8 +171,9 @@ inline Tensor c3kBlock(const std::string &name, int in_ch, int inner_ch,
                        int out_ch, Tensor input, bool conv_q40 = false) {
   auto inner =
     convBnSilu(name + "/cv1", in_ch, inner_ch, 1, 1, 0, input, conv_q40);
-  inner = bottleneck(name + "/inner0", inner_ch, inner, conv_q40);
-  inner = bottleneck(name + "/inner1", inner_ch, inner, conv_q40);
+  // C3k inner bottlenecks use expansion=1.0 (inner_ch → inner_ch → inner_ch)
+  inner = bottleneck(name + "/inner0", inner_ch, inner_ch, inner, conv_q40);
+  inner = bottleneck(name + "/inner1", inner_ch, inner_ch, inner, conv_q40);
   auto skip =
     convBnSilu(name + "/cv2", in_ch, inner_ch, 1, 1, 0, input, conv_q40);
 
@@ -143,9 +188,13 @@ inline Tensor c3kBlock(const std::string &name, int in_ch, int inner_ch,
 
 /**
  * @brief Build a C3k2 sub-graph.
+ *
+ * @param c3k  If true, the inner block is a C3k (cv1+2*bottleneck+cv2+cv3);
+ *             if false, it is a plain Bottleneck (cv1+cv2). In ultralytics,
+ *             c3k=True when c >= c3k_threshold (typically 256).
  */
 inline Tensor c3k2Block(const std::string &name, int in_ch, int out_ch, int c,
-                        Tensor input, bool conv_q40 = false) {
+                        Tensor input, bool conv_q40 = false, bool c3k = false) {
   auto y = convBnSilu(name + "/cv1", in_ch, 2 * c, 1, 1, 0, input, conv_q40);
 
   LayerHandle sliceA(
@@ -162,7 +211,14 @@ inline Tensor c3k2Block(const std::string &name, int in_ch, int out_ch, int c,
                           nntrainer::withKey("end_index", 2 * c + 1)}));
   auto y_b = sliceB(y);
 
-  auto y_c = c3kBlock(name + "/m0", c, c / 2, c, y_b, conv_q40);
+  Tensor y_c;
+  if (c3k) {
+    y_c = c3kBlock(name + "/m0", c, c / 2, c, y_b, conv_q40);
+  } else {
+    // Plain Bottleneck: cv1(3x3) + cv2(3x3) + residual add
+    // Expansion=0.5: inner channels = c/2
+    y_c = bottleneck(name + "/m0", c, c / 2, y_b, conv_q40);
+  }
 
   LayerHandle cat(
     createLayer("concat", {nntrainer::withKey("name", name + "/cat"),
@@ -297,26 +353,28 @@ inline Tensor dwConvBnOnly(const std::string &name, int ch, Tensor input) {
  * @brief Build one Detect scale -> raw logits [1, 64+nc, H, W].
  *
  * @param s       name prefix (e.g. "det0")
- * @param pi_ch   input feature channels (256 for P3, 512 for P4/P5)
+ * @param pi_ch   input feature channels (w[2] for P3, w[3] for P4, w[4] for P5)
  * @param nc      number of detection classes (cls output channels)
+ * @param cls_ch  cls branch intermediate channels (w[2]: 256 for v11m, 128 for
+ * v11s)
  * @param in      input feature map
  * @param conv_q40  If true, eligible convs use Q4_0.
  */
-inline Tensor detectScale(const std::string &s, int pi_ch, int nc, Tensor in,
-                          bool conv_q40 = false) {
+inline Tensor detectScale(const std::string &s, int pi_ch, int nc, int cls_ch,
+                          Tensor in, bool conv_q40 = false) {
   // box branch (cv2): pi_ch->64->64->64 (1x1 output)
+  // Box channels = 4*reg_max = 64, fixed by YOLOv11 architecture.
   auto x = convBnSilu(s + "/cv2_0", pi_ch, 64, 3, 1, 1, in, conv_q40);
   x = convBnSilu(s + "/cv2_1", 64, 64, 3, 1, 1, x, conv_q40);
   auto box = convBias1x1(s + "/cv2_2", 64, 64, x, conv_q40);
 
   // cls branch (cv3): depthwise-separable x2 then 1x1 (out_ch=nc)
-  // When nc=1 the conv is not Q4_0-eligible (out_ch>1 check fails); for
-  // larger nc it may become eligible if nc%32==0 and 256%32==0.
+  // cls_ch scales with model size (w[2]: 256 for v11m, 128 for v11s).
   auto c = dwConvBnSilu(s + "/cv3_0_dw", pi_ch, in);
-  c = convBnSilu(s + "/cv3_0_pw", pi_ch, 256, 1, 1, 0, c, conv_q40);
-  c = dwConvBnSilu(s + "/cv3_1_dw", 256, c);
-  c = convBnSilu(s + "/cv3_1_pw", 256, 256, 1, 1, 0, c, conv_q40);
-  auto cls = convBias1x1(s + "/cv3_2", nc, 256, c, conv_q40);
+  c = convBnSilu(s + "/cv3_0_pw", pi_ch, cls_ch, 1, 1, 0, c, conv_q40);
+  c = dwConvBnSilu(s + "/cv3_1_dw", cls_ch, c);
+  c = convBnSilu(s + "/cv3_1_pw", cls_ch, cls_ch, 1, 1, 0, c, conv_q40);
+  auto cls = convBias1x1(s + "/cv3_2", nc, cls_ch, c, conv_q40);
 
   LayerHandle cat(
     createLayer("concat", {nntrainer::withKey("name", s + "/out"),
@@ -363,44 +421,52 @@ inline Tensor concatCh(const std::string &name,
 /**
  * @brief Build the C2PSA block (model.10) from standard layers + psa_attention.
  *
+ * C2PSA always operates at w[4] channels (512 for both v11m and v11s).
+ * The attention half-width is w[4]/2 = 256.
+ *
+ * @param n       name prefix
+ * @param x       input tensor
+ * @param cfg     model configuration (uses w[4])
  * @param conv_q40  If true, eligible group=1 convs use Q4_0.
  */
-inline Tensor buildC2PSA(const std::string &n, Tensor x,
+inline Tensor buildC2PSA(const std::string &n, Tensor x, const ModelConfig &cfg,
                          bool conv_q40 = false) {
-  auto cv1 = yolov11::convBnSilu(n + "/cv1", 512, 512, 1, 1, 0, x, conv_q40);
-  auto a = sliceCh(n + "/slice_a", 0, 256, cv1);
-  auto b = sliceCh(n + "/slice_b", 256, 512, cv1);
+  const int W = cfg.w[4];     // 512
+  const int H = cfg.w[4] / 2; // 256 (attention half-width)
+  auto cv1 = yolov11::convBnSilu(n + "/cv1", W, W, 1, 1, 0, x, conv_q40);
+  auto a = sliceCh(n + "/slice_a", 0, H, cv1);
+  auto b = sliceCh(n + "/slice_b", H, W, cv1);
 
-  auto qkv = yolov11::convBnOnly(n + "/qkv", 256, 512, 1, 1, 0, b, conv_q40);
+  auto qkv = yolov11::convBnOnly(n + "/qkv", H, W, 1, 1, 0, b, conv_q40);
 
   std::vector<Tensor> v_parts;
-  for (int h = 0; h < 4; ++h)
-    v_parts.push_back(sliceCh(n + "/slice_v" + std::to_string(h), h * 128 + 64,
-                              h * 128 + 128, qkv));
+  for (int hh = 0; hh < 4; ++hh)
+    v_parts.push_back(sliceCh(n + "/slice_v" + std::to_string(hh),
+                              hh * (H / 2) + H / 4, hh * (H / 2) + H / 2, qkv));
+
   LayerHandle vcat(
     createLayer("concat", {nntrainer::withKey("name", n + "/vcat"),
                            nntrainer::withKey("axis", chAxis())}));
   auto v = vcat(v_parts);
-  auto pe = yolov11::dwConvBnOnly(n + "/pe", 256, v);
+  auto pe = yolov11::dwConvBnOnly(n + "/pe", H, v);
 
   LayerHandle att(
     createLayer("psa_attention", {nntrainer::withKey("name", n + "/attn")}));
   auto attn = att(qkv);
   auto attn_pe = addT(n + "/add_pe", attn, pe);
   auto proj =
-    yolov11::convBnOnly(n + "/proj", 256, 256, 1, 1, 0, attn_pe, conv_q40);
+    yolov11::convBnOnly(n + "/proj", H, H, 1, 1, 0, attn_pe, conv_q40);
   auto b1 = addT(n + "/res1", b, proj);
 
-  auto ffn0 = yolov11::convBnSilu(n + "/ffn0", 256, 512, 1, 1, 0, b1, conv_q40);
-  auto ffn1 =
-    yolov11::convBnOnly(n + "/ffn1", 512, 256, 1, 1, 0, ffn0, conv_q40);
+  auto ffn0 = yolov11::convBnSilu(n + "/ffn0", H, W, 1, 1, 0, b1, conv_q40);
+  auto ffn1 = yolov11::convBnOnly(n + "/ffn1", W, H, 1, 1, 0, ffn0, conv_q40);
   auto b2 = addT(n + "/res2", b1, ffn1);
 
   LayerHandle cat(
     createLayer("concat", {nntrainer::withKey("name", n + "/cat"),
                            nntrainer::withKey("axis", chAxis())}));
   auto cc = cat({a, b2});
-  return yolov11::convBnSilu(n + "/cv2", 512, 512, 1, 1, 0, cc, conv_q40);
+  return yolov11::convBnSilu(n + "/cv2", W, W, 1, 1, 0, cc, conv_q40);
 }
 
 // ===== Top-level whole-network builders =====
@@ -410,25 +476,32 @@ inline Tensor buildC2PSA(const std::string &n, Tensor x,
  *
  * Also outputs m4 and m6 (FPN skip connections).
  *
- * @param xIn       Input symbolic tensor [1, 3, 832, 832]
+ * @param xIn       Input symbolic tensor [1, 3, imgsz, imgsz]
  * @param m4_out    [out] C3k2 block 4 output (P3 skip)
  * @param m6_out    [out] C3k2 block 6 output (P4 skip)
+ * @param cfg       Model configuration (widths per stage)
  * @param conv_q40  If true, eligible convs use Q4_0.
  * @return m10 (C2PSA output, P5 feature)
  */
 inline Tensor buildBackbone(Tensor xIn, Tensor &m4_out, Tensor &m6_out,
-                            bool conv_q40 = false) {
-  auto h = yolov11::convBnSilu("conv0", 3, 64, 3, 2, 1, xIn, conv_q40);
-  h = yolov11::convBnSilu("conv1", 64, 128, 3, 2, 1, h, conv_q40);
-  h = yolov11::c3k2Block("m2", 128, 256, 64, h, conv_q40);
-  h = yolov11::convBnSilu("conv3", 256, 256, 3, 2, 1, h, conv_q40);
-  m4_out = yolov11::c3k2Block("m4", 256, 512, 128, h, conv_q40);
-  h = yolov11::convBnSilu("conv5", 512, 512, 3, 2, 1, m4_out, conv_q40);
-  m6_out = yolov11::c3k2Block("m6", 512, 512, 256, h, conv_q40);
-  h = yolov11::convBnSilu("conv7", 512, 512, 3, 2, 1, m6_out, conv_q40);
-  h = yolov11::c3k2Block("m8", 512, 512, 256, h, conv_q40);
-  h = yolov11::sppfBlock("m9", 512, h, conv_q40);
-  return buildC2PSA("m10", h, conv_q40);
+                            const ModelConfig &cfg, bool conv_q40 = false) {
+  auto h = yolov11::convBnSilu("conv0", 3, cfg.w[0], 3, 2, 1, xIn, conv_q40);
+  h = yolov11::convBnSilu("conv1", cfg.w[0], cfg.w[1], 3, 2, 1, h, conv_q40);
+  h = yolov11::c3k2Block("m2", cfg.w[1], cfg.w[2], cfg.w[0], h, conv_q40,
+                         cfg.c3k[0]);
+  h = yolov11::convBnSilu("conv3", cfg.w[2], cfg.w[2], 3, 2, 1, h, conv_q40);
+  m4_out = yolov11::c3k2Block("m4", cfg.w[2], cfg.w[3], cfg.w[1], h, conv_q40,
+                              cfg.c3k[1]);
+  h =
+    yolov11::convBnSilu("conv5", cfg.w[3], cfg.w[3], 3, 2, 1, m4_out, conv_q40);
+  m6_out = yolov11::c3k2Block("m6", cfg.w[3], cfg.w[3], cfg.w[2], h, conv_q40,
+                              cfg.c3k[2]);
+  h =
+    yolov11::convBnSilu("conv7", cfg.w[3], cfg.w[4], 3, 2, 1, m6_out, conv_q40);
+  h = yolov11::c3k2Block("m8", cfg.w[4], cfg.w[4], cfg.w[4] / 2, h, conv_q40,
+                         cfg.c3k[3]);
+  h = yolov11::sppfBlock("m9", cfg.w[4], h, conv_q40);
+  return buildC2PSA("m10", h, cfg, conv_q40);
 }
 
 /**
@@ -437,31 +510,46 @@ inline Tensor buildBackbone(Tensor xIn, Tensor &m4_out, Tensor &m6_out,
  * @param m4       C3k2 block 4 output (P3 skip from backbone)
  * @param m6       C3k2 block 6 output (P4 skip from backbone)
  * @param m10      C2PSA output (P5 feature from backbone)
- * @param nc       Number of detection classes (default 1)
+ * @param nc       Number of detection classes
+ * @param cfg      Model configuration (widths per stage)
  * @param conv_q40 If true, eligible convs use Q4_0.
  * @return {P3, P4, P5} raw detection logits [1, 64+nc, H, W] each
  */
-inline std::vector<Tensor> buildHead(Tensor m4, Tensor m6, Tensor m10,
-                                     int nc = 1, bool conv_q40 = false) {
+inline std::vector<Tensor> buildHead(Tensor m4, Tensor m6, Tensor m10, int nc,
+                                     const ModelConfig &cfg,
+                                     bool conv_q40 = false) {
+  // Head channel sizes derived from backbone widths.
+  // m13: in = w[4]+w[3], out = w[3], c = w[3]/2
+  // m16: in = w[3]+w[2], out = w[2], c = w[2]/2
+  // m19: in = w[2]+w[3], out = w[3], c = w[3]/2
+  // m22: in = w[3]+w[4], out = w[4], c = w[4]/2
   auto m11 = upsampleX2("m11", m10);
   auto m12 = concatCh("m12", {m11, m6});
-  auto m13 = yolov11::c3k2Block("m13", 1024, 512, 256, m12, conv_q40);
+  auto m13 = yolov11::c3k2Block("m13", cfg.w[4] + cfg.w[3], cfg.w[3],
+                                cfg.w[3] / 2, m12, conv_q40, cfg.c3k[4]);
 
   auto m14 = upsampleX2("m14", m13);
   auto m15 = concatCh("m15", {m14, m4});
-  auto m16 = yolov11::c3k2Block("m16", 1024, 256, 128, m15, conv_q40);
+  auto m16 = yolov11::c3k2Block("m16", cfg.w[3] + cfg.w[2], cfg.w[2],
+                                cfg.w[2] / 2, m15, conv_q40, cfg.c3k[5]);
 
-  auto m17 = yolov11::convBnSilu("m17", 256, 256, 3, 2, 1, m16, conv_q40);
+  auto m17 =
+    yolov11::convBnSilu("m17", cfg.w[2], cfg.w[2], 3, 2, 1, m16, conv_q40);
   auto m18 = concatCh("m18", {m17, m13});
-  auto m19 = yolov11::c3k2Block("m19", 768, 512, 256, m18, conv_q40);
+  auto m19 = yolov11::c3k2Block("m19", cfg.w[2] + cfg.w[3], cfg.w[3],
+                                cfg.w[3] / 2, m18, conv_q40, cfg.c3k[6]);
 
-  auto m20 = yolov11::convBnSilu("m20", 512, 512, 3, 2, 1, m19, conv_q40);
+  auto m20 =
+    yolov11::convBnSilu("m20", cfg.w[3], cfg.w[3], 3, 2, 1, m19, conv_q40);
   auto m21 = concatCh("m21", {m20, m10});
-  auto m22 = yolov11::c3k2Block("m22", 1024, 512, 256, m21, conv_q40);
+  auto m22 = yolov11::c3k2Block("m22", cfg.w[3] + cfg.w[4], cfg.w[4],
+                                cfg.w[4] / 2, m21, conv_q40, cfg.c3k[7]);
 
-  return {detectScale("det0", 256, nc, m16, conv_q40),
-          detectScale("det1", 512, nc, m19, conv_q40),
-          detectScale("det2", 512, nc, m22, conv_q40)};
+  // Detect head: pi_ch = w[2] for P3, w[3] for P4, w[4] for P5
+  // cls_ch = w[2] (256 for v11m, 128 for v11s)
+  return {detectScale("det0", cfg.w[2], nc, cfg.w[2], m16, conv_q40),
+          detectScale("det1", cfg.w[3], nc, cfg.w[2], m19, conv_q40),
+          detectScale("det2", cfg.w[4], nc, cfg.w[2], m22, conv_q40)};
 }
 
 } // namespace yolov11
