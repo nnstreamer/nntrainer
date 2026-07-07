@@ -38,39 +38,73 @@
 
 namespace nntrainer {
 
+#ifdef __ARM_NEON
+#include <arm_neon.h>
+#endif
+
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 namespace {
 
 /**
  * @brief In-place SiLU / swish (x * sigmoid(x)) over a contiguous buffer.
- * @details Fuses what would otherwise be a separate Activation layer (a full
- * extra read+write pass over the conv output) into the conv epilogue. The
- * sigmoid is evaluated in fp32 and cast back to T so an FP16 activation graph
- * does not lose precision (or overflow exp) in the half domain. Called after
- * all conv compute completes, so it is never nested inside another
- * parallel_for.
- *
- * @note ThreadManager::parallel_for invokes its callback through a type-erased
- * std::function PER INDEX, so iterating it at element granularity would pay a
- * non-inlinable call per element (measured ~3x slower than a serial inlined
- * loop). Instead we parallelize over a handful of contiguous chunks (one per
- * compute thread) and run a tight, fully-inlined inner loop inside each — the
- * std::function is then hit only ~nthreads times while the exp stays inlined.
  */
 template <typename T>
 static inline void convApplySwishInplace(T *data, size_t n) {
   auto &tm = ThreadManager::Global();
   const size_t nthreads = std::max<size_t>(1, tm.getComputeThreadCount());
   const size_t chunk = (n + nthreads - 1) / nthreads;
+  
+  static const bool use_approx = []() {
+    if (const char* env_p = std::getenv("YOLO_APPROX_SILU")) {
+      return std::string(env_p) == "1";
+    }
+    return false;
+  }();
+
   tm.parallel_for(0, nthreads, [&](size_t t) {
     const size_t start = t * chunk;
     if (start >= n)
       return;
     const size_t end = std::min(start + chunk, n);
-    for (size_t i = start; i < end; ++i) {
-      const float x = static_cast<float>(data[i]);
-      data[i] = static_cast<T>(x / (1.0f + std::exp(-x)));
+    size_t i = start;
+
+    if (use_approx) {
+#if defined(__ARM_NEON)
+      if constexpr (std::is_same_v<T, _FP16>) {
+        const float32x4_t v_three = vdupq_n_f32(3.0f);
+        const float32x4_t v_six_inv = vdupq_n_f32(1.0f / 6.0f);
+        const float32x4_t v_zero = vdupq_n_f32(0.0f);
+        const float32x4_t v_six = vdupq_n_f32(6.0f);
+        
+        for (; i + 7 < end; i += 8) {
+          float16x8_t vx = vld1q_f16(reinterpret_cast<const __fp16*>(&data[i]));
+
+          float32x4_t vx_lo = vcvt_f32_f16(vget_low_f16(vx));
+          float32x4_t v_add_lo = vaddq_f32(vx_lo, v_three);
+          float32x4_t v_relu6_lo = vminq_f32(vmaxq_f32(v_add_lo, v_zero), v_six);
+          float32x4_t vres_lo = vmulq_f32(vmulq_f32(vx_lo, v_relu6_lo), v_six_inv);
+
+          float32x4_t vx_hi = vcvt_f32_f16(vget_high_f16(vx));
+          float32x4_t v_add_hi = vaddq_f32(vx_hi, v_three);
+          float32x4_t v_relu6_hi = vminq_f32(vmaxq_f32(v_add_hi, v_zero), v_six);
+          float32x4_t vres_hi = vmulq_f32(vmulq_f32(vx_hi, v_relu6_hi), v_six_inv);
+
+          vst1q_f16(reinterpret_cast<__fp16*>(&data[i]), vcombine_f16(vcvt_f16_f32(vres_lo), vcvt_f16_f32(vres_hi)));
+        }
+      }
+#endif
+      for (; i < end; ++i) {
+        const float x = static_cast<float>(data[i]);
+        float relu6 = std::max(0.0f, std::min(x + 3.0f, 6.0f));
+        data[i] = static_cast<T>(x * relu6 / 6.0f);
+      }
+    } else {
+      // EXACT original bca91663 baseline loop!
+      for (; i < end; ++i) {
+        const float x = static_cast<float>(data[i]);
+        data[i] = static_cast<T>(x / (1.0f + std::exp(-x)));
+      }
     }
   });
 }
