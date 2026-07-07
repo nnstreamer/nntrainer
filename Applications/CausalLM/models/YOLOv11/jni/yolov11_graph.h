@@ -298,22 +298,25 @@ inline Tensor dwConvBnOnly(const std::string &name, int ch, Tensor input) {
  *
  * @param s       name prefix (e.g. "det0")
  * @param pi_ch   input feature channels (256 for P3, 512 for P4/P5)
+ * @param nc      number of detection classes (cls output channels)
  * @param in      input feature map
  * @param conv_q40  If true, eligible convs use Q4_0.
  */
-inline Tensor detectScale(const std::string &s, int pi_ch, Tensor in,
+inline Tensor detectScale(const std::string &s, int pi_ch, int nc, Tensor in,
                           bool conv_q40 = false) {
   // box branch (cv2): pi_ch->64->64->64 (1x1 output)
   auto x = convBnSilu(s + "/cv2_0", pi_ch, 64, 3, 1, 1, in, conv_q40);
   x = convBnSilu(s + "/cv2_1", 64, 64, 3, 1, 1, x, conv_q40);
   auto box = convBias1x1(s + "/cv2_2", 64, 64, x, conv_q40);
 
-  // cls branch (cv3): depthwise-separable x2 then 1x1 (out_ch=1, never Q4_0)
+  // cls branch (cv3): depthwise-separable x2 then 1x1 (out_ch=nc)
+  // When nc=1 the conv is not Q4_0-eligible (out_ch>1 check fails); for
+  // larger nc it may become eligible if nc%32==0 and 256%32==0.
   auto c = dwConvBnSilu(s + "/cv3_0_dw", pi_ch, in);
   c = convBnSilu(s + "/cv3_0_pw", pi_ch, 256, 1, 1, 0, c, conv_q40);
   c = dwConvBnSilu(s + "/cv3_1_dw", 256, c);
   c = convBnSilu(s + "/cv3_1_pw", 256, 256, 1, 1, 0, c, conv_q40);
-  auto cls = convBias1x1(s + "/cv3_2", 1, 256, c, conv_q40); // out_ch=1: FP32
+  auto cls = convBias1x1(s + "/cv3_2", nc, 256, c, conv_q40);
 
   LayerHandle cat(
     createLayer("concat", {nntrainer::withKey("name", s + "/out"),
@@ -434,11 +437,12 @@ inline Tensor buildBackbone(Tensor xIn, Tensor &m4_out, Tensor &m6_out,
  * @param m4       C3k2 block 4 output (P3 skip from backbone)
  * @param m6       C3k2 block 6 output (P4 skip from backbone)
  * @param m10      C2PSA output (P5 feature from backbone)
+ * @param nc       Number of detection classes (default 1)
  * @param conv_q40 If true, eligible convs use Q4_0.
- * @return {P3, P4, P5} raw detection logits [1, 65, H, W] each
+ * @return {P3, P4, P5} raw detection logits [1, 64+nc, H, W] each
  */
 inline std::vector<Tensor> buildHead(Tensor m4, Tensor m6, Tensor m10,
-                                     bool conv_q40 = false) {
+                                     int nc = 1, bool conv_q40 = false) {
   auto m11 = upsampleX2("m11", m10);
   auto m12 = concatCh("m12", {m11, m6});
   auto m13 = yolov11::c3k2Block("m13", 1024, 512, 256, m12, conv_q40);
@@ -455,9 +459,9 @@ inline std::vector<Tensor> buildHead(Tensor m4, Tensor m6, Tensor m10,
   auto m21 = concatCh("m21", {m20, m10});
   auto m22 = yolov11::c3k2Block("m22", 1024, 512, 256, m21, conv_q40);
 
-  return {detectScale("det0", 256, m16, conv_q40),
-          detectScale("det1", 512, m19, conv_q40),
-          detectScale("det2", 512, m22, conv_q40)};
+  return {detectScale("det0", 256, nc, m16, conv_q40),
+          detectScale("det1", 512, nc, m19, conv_q40),
+          detectScale("det2", 512, nc, m22, conv_q40)};
 }
 
 } // namespace yolov11

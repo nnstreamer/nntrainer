@@ -4,7 +4,7 @@
  *
  * @file   main.cpp
  * @date   18 June 2026
- * @brief  YOLOv11m (832x832, nc=1) detection inference example on nntrainer.
+ * @brief  YOLOv11m detection inference example on nntrainer.
  *         Builds the full model (backbone + FPN head + 3-scale Detect head),
  *         loads converted weights, runs one forward pass, and post-processes
  *         (DFL decode + NMS) into final detection boxes.
@@ -12,10 +12,15 @@
  *         Usage: yolov11_infer [RES_DIR] [INPUT_BIN]
  *           RES_DIR   dir with weights/ and input bins
  *                     (default: Applications/CausalLM/models/YOLOv11/res)
- *           INPUT_BIN [1,3,832,832] float32 NCHW (default:
- * RES_DIR/input_832.bin) Set env YOLO_VERIFY=1 to also compare raw logits /
+ *           INPUT_BIN [1,3,IMGSZ,IMGSZ] float32 NCHW (default:
+ * RES_DIR/input_<IMGSZ>.bin) Set env YOLO_VERIFY=1 to also compare raw logits /
  * decoded output to PyTorch references (ref_p3/p4/p5.bin, ref_decoded.bin) when
  * present.
+ *
+ *         Env vars:
+ *           YOLO_IMGSZ  Input image size (square, default 832).
+ *           YOLO_NC     Number of detection classes (default 1).
+ *           YOLO_REG_MAX  DFL regression max (default 16, fixed by YOLOv11).
  * @see    https://github.com/nntrainer/nntrainer
  * @author Seungbaek Hong <sb92.hong@samsung.com>
  * @bug    No known bugs except for NYI items
@@ -192,13 +197,13 @@ inline void dist2bbox(const std::vector<float> &dist, int N,
 inline void decodeOneScale(const float *raw, int H, int W, float stride,
                            const std::vector<float> &anchors,
                            const std::vector<float> &strides_vec,
-                           int anchor_off, int N_total,
+                           int anchor_off, int N_total, int box_ch, int nc,
                            std::vector<float> &decoded) {
   const int N = H * W;
-  const int reg_max = 16;
+  const int reg_max = box_ch / 4;
 
   const float *raw_box = raw;
-  const float *raw_cls = raw + 64 * N;
+  const float *raw_cls = raw + box_ch * N;
 
   std::vector<float> dist;
   dfl(raw_box, reg_max, N, dist);
@@ -219,9 +224,12 @@ inline void decodeOneScale(const float *raw, int H, int W, float stride,
       decoded[c * N_total + anchor_off + a] = decoded_box[c * N + a];
     }
   }
-  for (int a = 0; a < N; ++a) {
-    decoded[4 * N_total + anchor_off + a] =
-      1.0f / (1.0f + std::exp(-raw_cls[a]));
+  // Per-class sigmoid scores: decoded[(4 + cls) * N_total + anchor_off + a]
+  for (int cls = 0; cls < nc; ++cls) {
+    for (int a = 0; a < N; ++a) {
+      decoded[(4 + cls) * N_total + anchor_off + a] =
+        1.0f / (1.0f + std::exp(-raw_cls[cls * N + a]));
+    }
   }
 }
 
@@ -249,31 +257,39 @@ inline float iou(const Detection &a, const Detection &b) {
 }
 
 /**
- * @brief Run NMS on decoded predictions.
- * @param decoded    [5, N_total] (cx, cy, w, h, score)
+ * @brief Run per-class NMS on decoded predictions.
+ * @param decoded    [(4+nc), N_total] (cx, cy, w, h, cls0_score, cls1_score,
+ * ...)
  * @param N_total    total anchors
+ * @param nc         number of classes
  * @param conf_thres confidence threshold
  * @param iou_thres  IoU threshold
  * @param max_det    max detections to keep
  * @return sorted (descending conf) list of Detection
  */
 inline std::vector<Detection> nms(const std::vector<float> &decoded,
-                                  int N_total, float conf_thres,
+                                  int N_total, int nc, float conf_thres,
                                   float iou_thres, int max_det) {
   const float *cx_ptr = decoded.data() + 0 * N_total;
   const float *cy_ptr = decoded.data() + 1 * N_total;
   const float *w_ptr = decoded.data() + 2 * N_total;
   const float *h_ptr = decoded.data() + 3 * N_total;
-  const float *sc_ptr = decoded.data() + 4 * N_total;
 
-  // nc=1: single class, cls_idx always 0
-  // per-class offset = cls_idx * 7680 = 0 for nc=1
-  // Build candidate list: xywh → xyxy, filter by score
+  // Build candidate list: for each anchor, find the best class score;
+  // if it exceeds conf_thres, emit a Detection with that class.
   std::vector<Detection> candidates;
   candidates.reserve(512);
   for (int a = 0; a < N_total; ++a) {
-    float score = sc_ptr[a];
-    if (score <= conf_thres)
+    float best_score = 0.0f;
+    int best_cls = 0;
+    for (int cls = 0; cls < nc; ++cls) {
+      float score = decoded[(4 + cls) * N_total + a];
+      if (score > best_score) {
+        best_score = score;
+        best_cls = cls;
+      }
+    }
+    if (best_score <= conf_thres)
       continue;
     float cx = cx_ptr[a];
     float cy = cy_ptr[a];
@@ -283,7 +299,7 @@ inline std::vector<Detection> nms(const std::vector<float> &decoded,
     float y1 = cy - bh * 0.5f;
     float x2 = cx + bw * 0.5f;
     float y2 = cy + bh * 0.5f;
-    candidates.push_back({x1, y1, x2, y2, score, 0});
+    candidates.push_back({x1, y1, x2, y2, best_score, best_cls});
   }
 
   // Sort descending by conf
@@ -291,9 +307,7 @@ inline std::vector<Detection> nms(const std::vector<float> &decoded,
     candidates.begin(), candidates.end(),
     [](const Detection &a, const Detection &b) { return a.conf > b.conf; });
 
-  // Greedy NMS
-  // For agnostic=False with nc=1, per-class offset = cls_idx*7680 = 0
-  // So effectively agnostic NMS here (same as agnostic since nc=1)
+  // Greedy per-class NMS: only suppress within the same class
   std::vector<bool> suppressed(candidates.size(), false);
   std::vector<Detection> result;
   result.reserve(max_det);
@@ -305,9 +319,8 @@ inline std::vector<Detection> nms(const std::vector<float> &decoded,
     if (static_cast<int>(result.size()) >= max_det)
       break;
     for (size_t j = i + 1; j < candidates.size(); ++j) {
-      if (suppressed[j])
+      if (suppressed[j] || candidates[j].cls != candidates[i].cls)
         continue;
-      // Both class 0, so NMS boxes are the same as original boxes
       if (iou(candidates[i], candidates[j]) > iou_thres) {
         suppressed[j] = true;
       }
@@ -459,9 +472,31 @@ int main(int argc, char *argv[]) {
 
     if (argc > 1)
       RES_DIR = argv[1];
+
+    // Image size (square input). Default 832, overridable via YOLO_IMGSZ.
+    const int imgsz = std::getenv("YOLO_IMGSZ")
+                        ? std::max(32, std::atoi(std::getenv("YOLO_IMGSZ")))
+                        : 832;
+
+    // Number of detection classes. Default 1, overridable via YOLO_NC.
+    const int nc = std::getenv("YOLO_NC")
+                     ? std::max(1, std::atoi(std::getenv("YOLO_NC")))
+                     : 1;
+
+    // DFL regression max (fixed by YOLOv11 architecture at 16).
+    const int reg_max = 16;
+
+    // Box channels = 4 * reg_max = 64. Output channels = box + nc.
+    const int box_ch = 4 * reg_max;
+    const int out_ch = box_ch + nc;
+
     const std::string input_path =
-      (argc > 2) ? argv[2] : (RES_DIR + "/input_832.bin");
+      (argc > 2) ? argv[2]
+                 : (RES_DIR + "/input_" + std::to_string(imgsz) + ".bin");
     const bool verify = std::getenv("YOLO_VERIFY") != nullptr;
+
+    std::cout << "[YOLO] imgsz=" << imgsz << " nc=" << nc
+              << " out_ch=" << out_ch << std::endl;
 
     registerCustomLayers();
 
@@ -555,15 +590,17 @@ int main(int argc, char *argv[]) {
                                 : ml::train::TensorDim::Format::NCHW;
     auto x =
       fp16_act
-        ? Tensor(ml::train::TensorDim(1, 3, 832, 832, in_fmt,
+        ? Tensor(ml::train::TensorDim(1, 3, imgsz, imgsz, in_fmt,
                                       ml::train::TensorDim::DataType::FP16),
                  "input0")
-        : Tensor(ml::train::TensorDim(1, 3, 832, 832, in_fmt,
+        : Tensor(ml::train::TensorDim(1, 3, imgsz, imgsz, in_fmt,
                                       ml::train::TensorDim::DataType::FP32),
                  "input0");
     Tensor m4, m6;
     auto m10 = yolov11::buildBackbone(x, m4, m6, conv_q40);
-    auto outputs = yolov11::buildHead(m4, m6, m10, conv_q40); // {P3, P4, P5}
+    auto outputs =
+      yolov11::buildHead(m4, m6, m10, nc, conv_q40); // {P3, P4, P5}
+
     yolov11::quantConvSink() = nullptr;
 
     if (int ret =
@@ -616,7 +653,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Run one forward pass on the input.
-    // argv[2] may be a raw [1,3,832,832] float32 .bin (e.g. from
+    // argv[2] may be a raw [1,3,imgsz,imgsz] float32 .bin (e.g. from
     // run_pytorch.py), or — when built with stb_image.h present — an image
     // (.jpg/.png/...) which is decoded + letterboxed here.
 #ifdef YOLO_WITH_STB_IMAGE
@@ -632,7 +669,7 @@ int main(int argc, char *argv[]) {
     // When the graph is NHWC, the input bytes must also be NHWC-ordered
     // ([N,H,W,C]); input_832.bin is stored NCHW, so transpose here.
     if (preset_nhwc || std::getenv("YOLO_NHWC")) {
-      const int C = 3, H = 832, W = 832;
+      const int C = 3, H = imgsz, W = imgsz;
       std::vector<float> nhwc(input.size());
       for (int c = 0; c < C; ++c)
         for (int h = 0; h < H; ++h)
@@ -664,19 +701,25 @@ int main(int argc, char *argv[]) {
     printPeakRSS();
 
     // Post-process: DFL decode + dist2bbox + sigmoid -> [5, N] then NMS.
+    // YOLOv11 uses 3 detection scales at strides 8, 16, 32. Grid sizes are
+    // derived from imgsz / stride (must be divisible by 32 for 3 downsamples).
+    const int s3 = imgsz / 8;  // P3 grid (stride 8)
+    const int s4 = imgsz / 16; // P4 grid (stride 16)
+    const int s5 = imgsz / 32; // P5 grid (stride 32)
     std::vector<yolov11::ScaleInfo> scales = {
-      {104, 104, 8.0f}, {52, 52, 16.0f}, {26, 26, 32.0f}};
-    const int N_total = 104 * 104 + 52 * 52 + 26 * 26; // 14196
+      {s3, s3, 8.0f}, {s4, s4, 16.0f}, {s5, s5, 32.0f}};
+    const int N_total = s3 * s3 + s4 * s4 + s5 * s5;
     std::vector<float> anchors, strides;
     yolov11::makeAnchors(scales, anchors, strides);
 
     // When the graph runs NHWC, each scale output tensor is stored channel-last
     // in memory ((h*W+w)*C + c), but decodeOneScale expects the NCHW channel-
     // major layout (c*N + a). Transpose each output to NCHW before decoding.
-    // Detect output channels = 4*reg_max (DFL box) + nc = 64 + 1 = 65 (nc=1).
+    // Detect output channels = 4*reg_max (DFL box) + nc.
     const bool out_nhwc = preset_nhwc || std::getenv("YOLO_NHWC");
-    const int OUT_CH = 65;
-    std::vector<float> decoded(5 * N_total, 0.0f);
+    const int OUT_CH = out_ch;
+    // Decoded layout: [(4 + nc), N_total] — 4 box coords + nc class scores
+    std::vector<float> decoded(static_cast<size_t>(4 + nc) * N_total, 0.0f);
     int off = 0;
     for (size_t i = 0; i < scales.size(); ++i) {
       const float *raw = outs[i];
@@ -691,7 +734,8 @@ int main(int argc, char *argv[]) {
         raw = nchw_buf.data();
       }
       yolov11::decodeOneScale(raw, scales[i].H, scales[i].W, scales[i].stride,
-                              anchors, strides, off, N_total, decoded);
+                              anchors, strides, off, N_total, box_ch, nc,
+                              decoded);
       off += scales[i].H * scales[i].W;
     }
 
@@ -699,7 +743,7 @@ int main(int argc, char *argv[]) {
       std::getenv("YOLO_CONF") ? std::stof(std::getenv("YOLO_CONF")) : 0.25f;
     const float iou_thres =
       std::getenv("YOLO_IOU") ? std::stof(std::getenv("YOLO_IOU")) : 0.70f;
-    auto dets = yolov11::nms(decoded, N_total, conf_thres, iou_thres, 300);
+    auto dets = yolov11::nms(decoded, N_total, nc, conf_thres, iou_thres, 300);
 
     // JSON output — same field names as the PyTorch reference JSON
     std::cout << "\n[";
@@ -715,7 +759,9 @@ int main(int argc, char *argv[]) {
 
     if (verify) {
       std::cout << "\nVerification vs PyTorch references:" << std::endl;
-      const size_t ns[3] = {65UL * 104 * 104, 65UL * 52 * 52, 65UL * 26 * 26};
+      const size_t ns[3] = {static_cast<size_t>(out_ch) * s3 * s3,
+                            static_cast<size_t>(out_ch) * s4 * s4,
+                            static_cast<size_t>(out_ch) * s5 * s5};
       const char *names[3] = {"ref_p3.bin", "ref_p4.bin", "ref_p5.bin"};
       for (int i = 0; i < 3; ++i)
         verifyAgainst(names[i], outs[i], ns[i]);
