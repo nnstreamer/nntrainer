@@ -100,6 +100,7 @@
 #include "qwen3_embedding.h"
 #include "qwen3_moe_causallm.h"
 #include "qwen3_slim_moe_causallm.h"
+#include "siglip2/siglip2_vision_encoder.h"
 
 using json = nlohmann::json;
 using DataType = ml::train::TensorDim::DataType;
@@ -407,6 +408,11 @@ void registerAllModels() {
                                         json nntr_cfg) {
     return std::make_unique<causallm::DebertaV2>(cfg, generation_cfg, nntr_cfg);
   });
+  factory.registerModel(
+    "Siglip2VisionEncoder", [](json cfg, json generation_cfg, json nntr_cfg) {
+      return std::make_unique<causallm::Siglip2VisionEncoder>(
+        cfg, generation_cfg, nntr_cfg);
+    });
 #if !defined(_WIN32) && !defined(__ANDROID__)
   factory.registerModel(
     "MultilingualTinyBert", [](json cfg, json generation_cfg, json nntr_cfg) {
@@ -631,6 +637,45 @@ buildLayerDtypeMap(int num_layers, DataType fc_dtype, DataType embd_dtype,
   if (include_lmhead && lmhead_dtype != DataType::FP32 &&
       lmhead_dtype != DataType::NONE) {
     dtype_map["output_of_causallm"] = lmhead_dtype;
+  }
+
+  return dtype_map;
+}
+
+/**
+ * @brief Build the layer_dtype_map for the SigLIP2 vision encoder.
+ *
+ * The QWEN-style names produced by buildLayerDtypeMap() (layer{i}_wq,
+ * output_of_causallm, ...) do NOT match the encoder layer names, so nothing
+ * would be quantized. This builds the exact FC names emitted by
+ * siglip2_vision_encoder.cpp.
+ *
+ * Encoder FCs (per layer i in [0, enc_layers)):
+ *   enc_layer{i}_wq, _wk, _wv, _out, _fc1, _fc2
+ * plus the single enc_to_dec_proj FC. All are 2D, so they take fc_dtype (Q4_0).
+ *
+ * Deliberately left FP32 (NOT quantized): patch_embed_conv is a 4D conv kernel
+ * (a Q4_0 tensor must be 2D) and pos_embedding is FP32-pinned; the encoder
+ * graph pins both via explicit per-layer dtypes. All LayerNorms stay FP32 too.
+ */
+std::map<std::string, DataType> buildEncoderLayerDtypeMap(int enc_layers,
+                                                          DataType fc_dtype) {
+  std::map<std::string, DataType> dtype_map;
+
+  const bool quant_fc =
+    fc_dtype != DataType::FP32 && fc_dtype != DataType::NONE;
+
+  if (quant_fc) {
+    for (int i = 0; i < enc_layers; ++i) {
+      const std::string pfx = "enc_layer" + std::to_string(i);
+      dtype_map[pfx + "_wq"] = fc_dtype;
+      dtype_map[pfx + "_wk"] = fc_dtype;
+      dtype_map[pfx + "_wv"] = fc_dtype;
+      dtype_map[pfx + "_out"] = fc_dtype;
+      dtype_map[pfx + "_fc1"] = fc_dtype;
+      dtype_map[pfx + "_fc2"] = fc_dtype;
+    }
+    dtype_map["enc_to_dec_proj"] = fc_dtype;
   }
 
   return dtype_map;
@@ -880,76 +925,6 @@ int main(int argc, char *argv[]) {
     std::string src_weight_path = model_path + "/" + original_bin;
     std::string dst_weight_path = output_dir + "/" + output_bin_name;
 
-    // Sidecar layout for the PLE and embedding0 tables. By default (kAuto)
-    // a table goes to its own mmap'd file whenever the model qualifies: the
-    // runtime then reads only the rows of the tokens it sees instead of every
-    // backend keeping a resident copy of the whole table (for Gemma-4 with a
-    // Q6_K embedding that is about 2.1 GiB). The payload path is injected
-    // into nntr_cfg so the model wires sidecar_export_path onto the layer
-    // during save. --ple_sidecar / --embd_sidecar turn an unqualified model
-    // into an error; --no_*sidecar keep the table inside the model file.
-    const bool quantized_embd =
-      (embd_dtype == DataType::Q4_0 || embd_dtype == DataType::Q6_K);
-    auto sidecar_blocker = [&](bool table_present, const char *absent_why,
-                               const char *existing_key) -> std::string {
-      if (output_format != "bin")
-        return "supports only the 'bin' output format";
-      if (!quantized_embd)
-        return "requires --embd_dtype Q4_0 or Q6_K (got " +
-               dataTypeToStr(embd_dtype) + ")";
-      if (!table_present)
-        return absent_why;
-      if (!nntr_cfg.value(existing_key, std::string()).empty())
-        return std::string("source model already uses a sidecar (") +
-               existing_key + " set); nothing to extract";
-      return "";
-    };
-    auto resolve_mode = [](SidecarMode mode, const std::string &blocker,
-                           const char *flag) {
-      if (mode == SidecarMode::kOff)
-        return false;
-      if (blocker.empty())
-        return true;
-      if (mode == SidecarMode::kOn)
-        throw std::invalid_argument(std::string(flag) + " " + blocker);
-      return false;
-    };
-
-    const bool has_ple = cfg.contains("hidden_size_per_layer_input") &&
-                         cfg["hidden_size_per_layer_input"].is_number() &&
-                         cfg["hidden_size_per_layer_input"].get<int>() > 0;
-    bool ple_sidecar =
-      resolve_mode(ple_mode,
-                   sidecar_blocker(has_ple,
-                                   "requires a model with per-layer embeddings "
-                                   "(config.json hidden_size_per_layer_input)",
-                                   "ple_file_name"),
-                   "--ple_sidecar");
-
-    // embedding0 is gated on an UNTIED lm_head: a tied head shares the table
-    // and scans every row per decode step, so a sidecar would fault the
-    // whole file back in and save nothing.
-    const bool untied =
-      nntr_cfg.contains("lmhead_untie") && nntr_cfg["lmhead_untie"].get<bool>();
-    bool embd_sidecar = resolve_mode(
-      embd_mode,
-      sidecar_blocker(untied,
-                      "requires an untied lm_head (lmhead_untie=true); a "
-                      "tied lm_head shares the embedding table and would "
-                      "gain nothing",
-                      "embedding_file_name"),
-      "--embd_sidecar");
-
-    const std::string sidecar_base = sidecarBaseName(output_bin_name);
-    const std::string ple_payload_name = sidecar_base + "_ple.bin";
-    const std::string ple_manifest_name = sidecar_base + "_ple.json";
-    const std::string embd_payload_name = sidecar_base + "_embd.bin";
-    const std::string embd_manifest_name = sidecar_base + "_embd.json";
-    if (ple_sidecar)
-      nntr_cfg["ple_sidecar_export"] = output_dir + "/" + ple_payload_name;
-    if (embd_sidecar)
-      nntr_cfg["embd_sidecar_export"] = output_dir + "/" + embd_payload_name;
-
     std::string architecture =
       cfg["architectures"].get<std::vector<std::string>>()[0];
     const json &network_cfg =
@@ -957,6 +932,19 @@ int main(int argc, char *argv[]) {
         ? cfg["text_config"]
         : cfg;
     int num_layers = network_cfg["num_hidden_layers"].get<int>();
+
+    // The SigLIP2 vision encoder nests its layer count under cfg["encoder"]
+    // when a combined config.json is reused; fall back to the top-level field
+    // for a flat encoder config.
+    const bool is_encoder = (architecture == "Siglip2VisionEncoder");
+    int num_layers = 0;
+    if (is_encoder) {
+      num_layers = cfg.contains("encoder")
+                     ? cfg.at("encoder").value("num_hidden_layers", 12)
+                     : cfg.value("num_hidden_layers", 12);
+    } else {
+      num_layers = cfg["num_hidden_layers"].get<int>();
+    }
 
     std::cout << "  Architecture: " << architecture << "\n";
     std::cout << "  Num layers:   " << num_layers << "\n";
@@ -1042,10 +1030,18 @@ int main(int argc, char *argv[]) {
       include_lmhead = false;
     }
 
-    auto layer_dtype_map = buildLayerDtypeMap(num_layers, fc_dtype, embd_dtype,
-                                              lmhead_dtype, include_lmhead);
-    addSentenceTransformerLayerDtypes(layer_dtype_map, nntr_cfg, model_path,
-                                      fc_dtype);
+    std::map<std::string, DataType> layer_dtype_map;
+    if (is_encoder) {
+      // SigLIP2 vision encoder: only its 2D FCs are quantized (conv/pos/LN stay
+      // FP32). embd_dtype is unused (the encoder has no embedding lookup
+      // table).
+      layer_dtype_map = buildEncoderLayerDtypeMap(num_layers, fc_dtype);
+    } else {
+      layer_dtype_map = buildLayerDtypeMap(num_layers, fc_dtype, embd_dtype,
+                                           lmhead_dtype, include_lmhead);
+      addSentenceTransformerLayerDtypes(layer_dtype_map, nntr_cfg, model_path,
+                                        fc_dtype);
+    }
 
     std::cout << "  Layer dtype mapping (" << layer_dtype_map.size()
               << " layers targeted):\n";
