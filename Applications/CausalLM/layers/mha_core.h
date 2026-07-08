@@ -148,6 +148,21 @@ public:
 };
 
 /**
+ * @brief UseGemmAttention property
+ *
+ * Opt-in toggle for the GEMM / flash-attention path (built and verified for the
+ * ARM FP16 device build; forced off on x86 / non-FP16 builds). Defaults to the
+ * reference-attention path so existing behavior is preserved.
+ */
+class UseGemmAttention : public nntrainer::Property<bool> {
+public:
+  UseGemmAttention(bool value = false) { set(value); };
+  static constexpr const char *key =
+    "use_gemm_attention";                    /**< unique key to access */
+  using prop_tag = nntrainer::bool_prop_tag; /**< property type */
+};
+
+/**
  * @brief AttnLogitSoftcapping
  */
 class AttnLogitSoftcapping : public nntrainer::Property<float> {
@@ -409,6 +424,17 @@ public:
     ml::train::TensorDim &cache_value_step_dim, nntrainer::Tensor &sink_step);
 
   /**
+   * @brief GEMM / flash-attention path for one attention step (ARM FP16 device
+   *        build; gated by use_gemm_attention). Falls back to the reference
+   *        per-row attention kernels elsewhere.
+   */
+  WIN_EXPORT void gemm_attention(nntrainer::Tensor &query_step,
+                                 nntrainer::Tensor &b_cached_key,
+                                 nntrainer::Tensor &b_cached_value,
+                                 nntrainer::Tensor &attention_output_step,
+                                 unsigned int N_kv, unsigned int N_q,
+                                 unsigned int cache_from);
+  /**
    * @brief Run one batch of an FP32-activation layer on the device attention.
    * @details The device arms (RoPE, image / flash attention) take FP16
    * operands in shared virtual memory. This narrows Q/K/V into FP16 planes on
@@ -507,13 +533,11 @@ private:
     nntrainer::props::OutputShape, nntrainer::props::DropOutRate,
     nntrainer::props::ReturnAttentionWeight,
     nntrainer::props::AverageAttentionWeight, nntrainer::props::MaxTimestep,
-    props::SlidingWindow, props::InitSeqLen, props::MaxNewTokens,
-    props::RopeTheta, props::UseRope, props::MaxPositionEmbeddings,
-    props::UseSink, props::RopeScalingType, props::RopeScalingFactor,
-    props::RopePartialRotaryFactor, props::RopeScalingMaxPositionEmbeddings,
-    props::AttnLogitSoftcapping, props::IsCausal, props::UseGemmAttention,
-    props::GpuDecodeAttn, props::GpuDecodeRope, props::GpuOhwiRope,
-    props::KvWindowRing>
+    props::SlidingWindow, props::MaxNewTokens, props::RopeTheta, props::UseRope,
+    props::MaxPositionEmbeddings, props::UseSink, props::RopeScalingType,
+    props::RopeScalingFactor, props::RopePartialRotaryFactor,
+    props::RopeScalingMaxPositionEmbeddings, props::AttnLogitSoftcapping,
+    props::IsCausal, props::UseGemmAttention>
     mha_core_props; /**< mha_core layer properties */
 
   /** softmax activation operation */
@@ -583,114 +607,7 @@ private:
   float attn_logit_softcapping = 0.0f;
   bool is_causal;
   bool use_gemm_attention = false;
-
-  /**
-   * @brief Adreno image-attention path (paper §3.7/§3.8). gpu_native runs
-   *        prefill attention by reading K/V through image2d_from_buffer
-   *        (read_imageui texture cache) — ~9x faster than the SVM buffer
-   *        flash kernel on Adreno. The layer-graph KV cache is SVM, which
-   *        cannot back an image (clCreateImage needs a cl_mem handle), so we
-   *        keep per-layer cl_mem OHWI mirrors of K (layout [H_kv, S_max, d])
-   *        and reversed-V ([H_kv, d, S_max]) plus their image2d views. Each
-   *        prefill step scatters this step's rotated K / raw V from the SVM
-   *        cache slice into the mirrors (k_scatter_ohwi_cl /
-   *        v_scatter_ohwi_t_cl); attention then reads the images. Lazy-init on
-   *        the first prefill step. Stored as void* so the layer header stays
-   *        free of the OpenCL headers (cast to cl_mem in the .cpp).
-   *        Gated by NNTR_KV_IMG_ATTN — Adreno only, since read_imageui fails
-   *        to build on Intel NEO (use_image_attn: -1 unprobed, 0 off, 1 on).
-   */
-  void *k_buf_ohwi = nullptr;
-  void *v_buf_ohwi = nullptr;
-  void *k_image_ohwi = nullptr;
-  void *v_image_ohwi = nullptr;
-  void *v_image_ohwi_pp = nullptr; /**< NNTR_KV_VIMG_PP second
-                                       full view over the same buffer */
-  unsigned int v_img_pp_n = 0;     /**< calls so far (alternates the view) */
-  bool kv_mirror_init = false;
-  unsigned int kv_mirror_S_max = 0;
-  /** [kimg-pack] shift folded into the K image view; see kimg_gsh_for(). Set
-   *  once at finalize from max_timestep so every layer's K mirror and the
-   *  kernels (KIMG_GSH) agree. 0 = today's one-row-per-(head,seq) view. */
-  unsigned int kv_kimg_gsh = 0;
-  /** [kv-window-ring] Absolute KV position held in mirror row 0. Always 0 for
-   *  a linear (non-ringed) layer. A ringed layer's mirror is only ring-cap
-   *  rows high and slides: it holds the absolute rows [kv_mirror_base,
-   *  kv_{k,v}_valid_to), and the image kernels are handed mirror-local
-   *  positions (absolute - base). Attention depends only on position
-   *  DIFFERENCES once K is rotated, so the result is the linear one. */
-  unsigned int kv_mirror_base = 0;
-  /** [kvring-decode] Rows the mirror is BUILT with for a ringed layer, from
-   *  causallm::kvMirrorRows(kv_ring_cap, W, chunk) -- what ONE launch reads
-   *  back ((W-1) + C + 63), not the whole ring. 0 = derive as before (the KV
-   *  cache height, i.e. max_timestep for a linear layer). Both mirror-creation
-   *  sites (the finalize prebuild and the lazy engage) read this one field, so
-   *  they cannot disagree -- a disagreement makes mirror_fits false, and a
-   *  ringed layer then throws rather than reading stale rows. */
-  unsigned int kv_mirror_rows_want = 0;
-  int use_image_attn = -1;
-  /** [determinism] Whether THIS layer's attention arm is the image path, from
-   *  causallm::imageAttnLayer(local_window_size, max_timestep) at finalize.
-   *  The fast default puts every layer on the image path; the reproducible
-   *  arm (NNTR_DETERMINISTIC=1) routes a layer to the buffer/flash kernels by
-   *  a per-layer rule -- so the arm is a per-LAYER fact, not a per-process
-   *  one. Everything that used to read the process-wide
-   *  env answer (the decode-RoPE suppression, the Q-staging target, the
-   *  no-drain K/V chain, the OHWI decode RoPE) reads this instead, so the
-   *  stages of one layer cannot disagree about which arm it is on. Distinct
-   *  from use_image_attn, which is the RUNTIME state (-1 unprobed, and it
-   *  latches to 0 when mirror creation is refused). */
-  bool img_arm_want = false;
-
-  /**
-   * @brief Tight-stride V image view + mirror content tracking (texture-cache
-   *        cliff fix, NNTR_KV_VTIGHT=0 disables). A V image pitch sized to the
-   *        allocation cap (S_max, e.g. 2048) instead of the live sequence
-   *        wastes texture cache on padding (sv_matmul 63 -> 41ms at M=843 when
-   *        tight). v_image_tight is a view over the SAME v_buf_ohwi with
-   *        stride kv_v_img_S; kv_v_cur_stride is the stride the buffer's
-   *        CURRENT contents were scattered at (a stride change invalidates
-   *        them); kv_{k,v}_valid_to track which rows [0, n) the mirrors hold
-   *        (decode writes the SVM cache only, so a follow-up prefill
-   *        back-fills the gap from the SVM cache before engaging the image
-   *        attention).
-   */
-  void *v_image_tight = nullptr;
-  unsigned int kv_v_img_S = 0;
-  unsigned int kv_v_cur_stride = 0;
-  unsigned int kv_v_valid_to = 0;
-  unsigned int kv_k_valid_to = 0;
-
-  /**
-   * @brief NNTR_MHA_CLMEM slab-sync watermark: concat SVM slab rows [0, n)
-   *        hold valid K/V. In that mode the prefill window writes ONLY the
-   *        OHWI mirrors (no SVM side-fill); host readers (decode NEON,
-   *        gemm_attention, flash fallback) gather the missing rows back
-   *        from the mirrors first (k/v_gather_ohwi, one drained sync).
-   */
-  unsigned int kv_slab_synced_to = 0;
-
-  /**
-   * @brief GEMM-based flash attention for one batch (covers both encoder
-   *        non-causal and causal-LLM prefill paths).
-   *        2-phase: (1) de-interleave Q (num_heads_Q heads) and K/V
-   *        (num_heads_KV heads) into shared contiguous [H,N,d] buffers; (2)
-   *        balanced parallel_for over (h_q, query_block) units with online
-   *        softmax over key-blocks (shgemm QK -> NEON exp -> shgemm AV).
-   *        GQA: h_kv = h_q / gqa_size. Causal: key-block upper-bound break
-   *        + in-block boundary mask. Sliding window: key-block lower-bound
-   *        skip + in-block lower mask.
-   * @param[in] N_kv      total cache length (= cache_to, keys [0, N_kv))
-   * @param[in] N_q       step length (= step_size, rows of the output)
-   * @param[in] cache_from absolute starting position of queries in the cache
-   *                      (so q_abs(i) = cache_from + i, k_abs(k) = k)
-   */
-  void gemm_attention(nntrainer::Tensor &query_step,
-                      nntrainer::Tensor &b_cached_key,
-                      nntrainer::Tensor &b_cached_value,
-                      nntrainer::Tensor &attention_output_step,
-                      unsigned int N_kv, unsigned int N_q,
-                      unsigned int cache_from);
+  bool skip_prefill = false;
 
   enum INOUT_INDEX {
     /** input index */
