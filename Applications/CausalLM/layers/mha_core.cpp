@@ -632,7 +632,7 @@ MHACoreLayer::MHACoreLayer() :
     props::UseSink(), props::RopeScalingType(), props::RopeScalingFactor(),
     props::RopePartialRotaryFactor(), props::RopeScalingMaxPositionEmbeddings(),
     props::AttnLogitSoftcapping(), props::IsCausal(),
-    props::UseGemmAttention()),
+    props::UseGemmAttention(), props::CrossAttention()),
   sm(nntrainer::ActivationType::ACT_SOFTMAX),
   epsilon(1e-3),
   cache_index(0),
@@ -954,10 +954,9 @@ void MHACoreLayer::finalize(nntrainer::InitLayerContext &context) {
   use_gemm_attention = false;
 #endif
 
-  // Honor the LayerImpl `skip_prefill` property (parsed into layer_impl_props
-  // by LayerImpl::setProperty). When set, mha_core writes its KV cache during
-  // the prefill big-step but skips the (unused) prefill attention compute --
-  // see the skip_prefill member doc in mha_core.h.
+  /** Static read-only cross-attention mode (Option B); default false. */
+  cross_attention = std::get<props::CrossAttention>(mha_core_props).get();
+
   if (!std::get<nntrainer::props::SkipPrefill>(*layer_impl_props).empty())
     skip_prefill =
       std::get<nntrainer::props::SkipPrefill>(*layer_impl_props).get();
@@ -1299,8 +1298,25 @@ void MHACoreLayer::forwarding(nntrainer::RunLayerContext &context,
   unsigned int step_size = (incremental_step_size > 0)
                              ? incremental_step_size
                              : (unsigned int)query.height();
-  unsigned int from = cache_index;
-  unsigned int to = cache_index + step_size;
+
+  // Static read-only cross-attention (Option B): the encoder K/V cache
+  // (inputs 3/4) is already fully populated with enc_len rows. The query must
+  // attend over ALL enc_len rows independent of cache_index, and the cache is
+  // neither written nor advanced. We drive the existing kernel by pinning the
+  // read window to the full cache height: with `from = enc_len - step_size`,
+  // `to = enc_len` the (non-causal) kernel reads rows [0, enc_len) for each of
+  // the step_size query rows. Self-attention (cross_attention == false) keeps
+  // the original from/to derived from cache_index unchanged.
+  unsigned int enc_len = (unsigned int)cache_key.height();
+  // Defensive: for cross-attention, step_size must not exceed enc_len to
+  // prevent unsigned underflow in `from = enc_len - step_size`.
+  // The app only uses step_size==1, but guard against hypothetical multi-row
+  // cross paths (e.g. batch-prefill of the decoder query).
+  NNTR_THROW_IF(cross_attention && step_size > enc_len, std::invalid_argument)
+    << "mha_core cross-attention: step_size (" << step_size << ") > enc_len ("
+    << enc_len << "); would underflow `from`";
+  unsigned int from = cross_attention ? (enc_len - step_size) : cache_index;
+  unsigned int to = cross_attention ? enc_len : (cache_index + step_size);
 
   auto get_step_dim = [step_size](const ml::train::TensorDim &dim) {
     auto step_dim = dim;
@@ -1403,7 +1419,10 @@ void MHACoreLayer::forwarding(nntrainer::RunLayerContext &context,
     }
   }
 
-  cache_index += step_size;
+  // Cross-attention is a static read-only pass: it neither writes nor advances
+  // the cache. Only self-attention advances the write position.
+  if (!cross_attention)
+    cache_index += step_size;
 }
 
 /**
@@ -1916,211 +1935,45 @@ void MHACoreLayer::one_batch_incremental_forwarding(
    *  |<-------------b_cached_key--------------->|
    */
 
-  // [kv-window-ring] Fail loud if a step write would straddle the ring seam.
-  // A ringed layer takes one contiguous slice per call, so the PRODUCER must
-  // never issue a call that crosses an absolute multiple of the prefill chunk
-  // C (Wcap is a multiple of C): CausalLM::run phases its chunks on the
-  // absolute grid for exactly this reason, and decode is step == 1. cache_index
-  // is the ABSOLUTE position, so it is C-aligned only on a first turn; a
-  // resumed session starts anywhere. Reaching this throw means a producer fed
-  // a multi-row step that was not phased -- throw rather than silently corrupt
-  // the neighbouring pool region (SVM writes do not bounds-check). Covers
-  // every cache-row write below (same cache_index).
-  if (kv_ring_cap &&
-      cacheRow(cache_index) + (size_t)cache_key_step_dim.height() >
-        (size_t)kv_ring_cap) {
-    throw std::runtime_error(
-      "mha_core kv-window-ring: step write straddles the ring seam (absolute "
-      "position " +
-      std::to_string(cache_index) + " + " +
-      std::to_string(cache_key_step_dim.height()) + " rows on a " +
-      std::to_string(kv_ring_cap) +
-      "-row ring). The caller must split multi-row steps at absolute multiples "
-      "of the prefill chunk; set NNTR_KV_WINDOW_RING=0 to keep the linear "
-      "cache.");
-  }
+  // Static read-only cross-attention (Option B): the encoder K/V cache is
+  // already fully populated (enc_len rows). Skip the cache write (do NOT copy
+  // key_step/value_step in) and read the full cache height. For self-attention
+  // (cross_attention == false) the original write-then-read path is unchanged.
+  if (!cross_attention) {
+    // Load Input Tensors of this batch : b_ denotes a Tensor for this batch
+    nntrainer::Tensor b_cache_key_step =
+      cache_key.getSharedDataTensor(cache_key_step_dim,
+                                    batch * cache_key_dim.getFeatureLen() +
+                                      cache_index * cache_key_dim.width(),
+                                    true);
+    nntrainer::Tensor b_cache_value_step =
+      cache_value.getSharedDataTensor(cache_value_step_dim,
+                                      batch * cache_value_dim.getFeatureLen() +
+                                        cache_index * cache_value_dim.width(),
+                                      true);
 
-  // Load Input Tensors of this batch : b_ denotes a Tensor for this batch
-  nntrainer::Tensor b_cache_key_step = cache_key.getSharedDataTensor(
-    cache_key_step_dim,
-    batch * cache_key_dim.getFeatureLen() +
-      cacheRow(cache_index) * cache_key_dim.width(),
-    true);
-  nntrainer::Tensor b_cache_value_step = cache_value.getSharedDataTensor(
-    cache_value_step_dim,
-    batch * cache_value_dim.getFeatureLen() +
-      cacheRow(cache_index) * cache_value_dim.width(),
-    true);
+    // append kcache with or without rotary embedding
+    apply_rotary_emb_tensor_v2(key_step, b_cache_key_step, head_dim,
+                               cache_index, !use_rope);
 
-  // [rq-scalar-off] The SAME address, expressed as (stable base, scalar row
-  // offset) instead of an offset-baked pointer.
-  //
-  // b_cache_key_step / b_cache_value_step above are views whose OFFSET moves
-  // with cache_index, so `.getData()` hands the GPU a DIFFERENT SVM pointer
-  // every decode token even though the allocation never moved. A recorded
-  // command queue (cl_qcom_recordable_queues) captures SVM pointer arguments
-  // at record time and cannot re-bind them per replay, while it CAN override
-  // scalar arguments -- so a per-token SVM pointer is a dispatch that can
-  // never be replayed. The kernels that take the offset as a scalar already
-  // exist (rope_inplace_f16 write_off, scatter_copy_f16_row,
-  // k_scatter_ohwi / v_scatter_ohwi_t src_off); these are the stable bases and
-  // scalar offsets their call sites need. Byte-identical by construction:
-  // base + off is the very expression the view was built from.
-  //
-  // NNTR_KV_SCALAR_OFF=0 restores the offset-baked pointers (A/B arm).
-  static const bool _kv_scalar_off = [] {
-    const char *e = std::getenv("NNTR_KV_SCALAR_OFF");
-    return !(e && e[0] == '0');
-  }();
-  const size_t _kc_step_off =
-    (size_t)batch * cache_key_dim.getFeatureLen() +
-    (size_t)cacheRow(cache_index) * cache_key_dim.width();
-  const size_t _vc_step_off =
-    (size_t)batch * cache_value_dim.getFeatureLen() +
-    (size_t)cacheRow(cache_index) * cache_value_dim.width();
-
-  // Static GPU_CLMEM residency: the wq/wk/wv FC outputs and the attention
-  // output may live in planner cl_mem sub-buffers (class GPU_CLMEM). The GPU
-  // stages bind these handles directly (RoPE / V-copy / image attention); any
-  // path that touches them on the HOST (host RoPE, kv_int8 quant, CPU/NEON
-  // attention, SVM-pointer kernels) must LOWER first (one blocking readback
-  // into the SVM shadow) -- after a lower the handle is nulled so every later
-  // consumer uses the now-fresh SVM plane. The output is RAISED back into its
-  // sub-buffer whenever a non-cl_mem path wrote it (the wo FC reads cl_mem).
-  // Offset-0 views only (batch 0; b_size==1 on the live path).
-  // NNTR_CLMEM_MHA_OFF=1 (bisect): ignore residency handles entirely -- the
-  // mha consumes the legacy SVM plane.
-  // NNTR_KV_STAGE_TPROF: host time from mha entry to the rope-Q enqueue
-  // (decomposes the copy_h2h->rope GPU-idle gap: executor/plumbing vs rope
-  // wrapper).
-  const double _mha_entry_t = _kvst_on() ? _kvst_now() : 0;
-
-  static const bool mha_handles_off =
-    std::getenv("NNTR_CLMEM_MHA_OFF") != nullptr;
-  void *q_cl =
-    (!mha_handles_off && query_step.getOffset() == 0 && query_step.isClMem())
-      ? query_step.getClMem()
-      : nullptr;
-  void *k_cl =
-    (!mha_handles_off && key_step.getOffset() == 0 && key_step.isClMem())
-      ? key_step.getClMem()
-      : nullptr;
-  void *v_cl =
-    (!mha_handles_off && value_step.getOffset() == 0 && value_step.isClMem())
-      ? value_step.getClMem()
-      : nullptr;
-  void *o_cl =
-    (attention_output_step.getOffset() == 0 && attention_output_step.isClMem())
-      ? attention_output_step.getClMem()
-      : nullptr;
-  bool o_written_clmem = false;
-  // Rotated-Q handle for the image attention's qk kernel. Defaults to the
-  // tensor's own cl_mem (q_cl); the staged GPU-RoPE path below redirects it
-  // to a dedicated q_stage temp -- writing the rotation IN-PLACE into q_cl
-  // and reading the SAME handle from the next kernel without a drain flips
-  // tokens on this driver (K and V survive precisely because their rope/
-  // scatter chains write a DIFFERENT handle than they read; bisected
-  // 2026-06-12: Q-only CLMEM flips, Q-only + a qk-side drain is clean).
-  void *q_attn_clmem = q_cl;
-  void *q_rope_staged = nullptr;
-  // Set when the GPU RoPE read the FC output from q_cl but wrote the ROTATED Q
-  // into the SVM plane (the image-attention form, see the rope call below).
-  // From then on q_cl holds the UN-rotated Q and must never be lowered over
-  // the SVM plane: the fallbacks under the image arm consume the plane as is.
-  bool q_rotated_in_svm_plane = false;
-  auto lower_q = [&]() {
-#if defined(ENABLE_OPENCL)
-    if (q_cl) {
-      nntrainer::clmem_lower_cl(query_step, 0);
-      q_cl = nullptr;
-    }
-#endif // clmem_lower_cl is OpenCL-only; q_cl is null without it
-  };
-  auto lower_kv = [&]() {
-#if defined(ENABLE_OPENCL)
-    if (k_cl) {
-      nntrainer::clmem_lower_cl(key_step, 0);
-      k_cl = nullptr;
-    }
-    if (v_cl) {
-      nntrainer::clmem_lower_cl(value_step, 0);
-      v_cl = nullptr;
-    }
-#endif //
-  };
-
-  // NNTR_CLMEM_MHA_LOWER=1 (bisect): lower Q/K/V at entry unconditionally --
-  // the mha then consumes the legacy SVM plane (read side = baseline) while
-  // the FC write side stays cl_mem. Divergence persisting under this flag
-  // indicts the FC out-copy; divergence vanishing indicts the mha bindings.
-  static const bool mha_lower_all =
-    std::getenv("NNTR_CLMEM_MHA_LOWER") != nullptr;
-  if (mha_lower_all) {
-    // After a lower the bytes live in the HOST view; the GPU stages below
-    // read the SVM device-side, so hand the buffers back (unmap_force) --
-    // the same protocol the embedding raise path uses.
-    bool any = q_cl || k_cl || v_cl;
-    lower_q();
-    lower_kv();
-#if defined(ENABLE_OPENCL) && defined(ENABLE_FP16)
-    // cl_svm_unmap_force lives in the FP16 OpenCL kernel block.
-    if (any) {
-      nntrainer::cl_svm_unmap_force(query_step.getData<uint8_t>());
-      nntrainer::cl_svm_unmap_force(key_step.getData<uint8_t>());
-      nntrainer::cl_svm_unmap_force(value_step.getData<uint8_t>());
-    }
+    // append vcache without rotary embedding
+    if (query_step.getDataType() == ml::train::TensorDim::DataType::FP32) {
+      apply_rotary_emb_tensor_v2(value_step, b_cache_value_step, head_dim,
+                                 cache_index, true);
+    } else if (query_step.getDataType() ==
+               ml::train::TensorDim::DataType::FP16) {
+#ifdef ENABLE_FP16
+      b_cache_value_step.copyData(value_step);
 #else
-    (void)any;
+      NNTR_THROW_IF(true, std::invalid_argument) << "enable-fp16 is not set!";
 #endif
+    }
   }
 
-  // Kernel-chain K/V staging (drain removal). When the Adreno image attention
-  // consumes this step's K/V (NNTR_KV_IMG_ATTN), the GPU RoPE/copy below route
-  // through a persistent cl_mem staging temp instead of draining per op:
-  //   rope-K -> k_stage (cl_mem, no clFinish) -> k_scatter(src_clmem=k_stage)
-  //                                        \-> side-fill k_stage -> SVM cache
-  //   V copy -> SVM cache (no clFinish); v_scatter reads value_step directly.
-  // The per-op clFinish drains here measured 1289ms of GPU idle per 1K
-  // prefill (V-copy->k_scatter 1010ms + gemm->rope 279ms). The SVM cache
-  // writes are consumed only by host decode after the lm_head lower (a full
-  // queue drain), so no per-op drain is needed; the scatters and the image
-  // attention read pure cl_mem chains the in-order queue serializes.
-  // NNTR_MHA_CLMEM: the OHWI mirrors are the ONLY store during the prefill
-  // window -- the K side-fill and the V SVM cache write (the last undrained
-  // SVM writes in the mha window) are skipped, and any host/SVM slab reader
-  // first gathers the missing rows back from the mirrors (sync_kv_slab,
-  // one drained boundary sync at decode entry). v1 limit: prefill must fit
-  // the mirror capacity (engage-gate misses beyond S_max leave the slab
-  // stale) and the save_kvcache path is not synced.
-  static const bool mha_clmem_mode = []() {
-    // 2026-06-12 re-baseline: DEFAULT ON (inert without NNTR_KV_IMG_ATTN
-    // staging; NNTR_MHA_CLMEM=0 restores the SVM side-fills).
-    const char *e = std::getenv("NNTR_MHA_CLMEM");
-    return !(e && e[0] == '0');
-  }();
-  // The cl_mem staging temps (q_stage/k_stage, tca_ensure device buffers) are
-  // NOT coherent with the in-order SVM queue on Adreno: scatter/qk read garbage
-  // from them at M>=32 (bisected 2026-06-18; the non-staged path, which routes
-  // the GPU RoPE through the planner cl_mem q_cl in-place + the SVM cache, IS
-  // coherent -- e.g. gemma4 "what is the capital of South Korea" -> "Seoul").
-  // So staging is DISABLED BY DEFAULT. The non-staged path is still
-  // GPU-resident (no host RoPE bounce) and, after the RoPE-LUT cap fix
-  // (rope_lut_positions), is within ~2% of the broken-staged TPS at M=1024
-  // (1520 vs 1556). Opt back into staging with NNTR_KV_STAGE=1 (to test an
-  // SVM-backed staging fix); NNTR_NO_KV_STAGE still force-disables.
-  static const bool kv_stage_on = causallm::imageAttnRequested() &&
-                                  std::getenv("NNTR_KV_STAGE") != nullptr &&
-                                  std::getenv("NNTR_NO_KV_STAGE") == nullptr;
-  void *k_stage = nullptr;               // rope-K wrote the staging temp
-  const uint16_t *v_stage_svm = nullptr; // v_scatter source (value_step)
-  void *v_stage_clmem = nullptr;         // v_scatter cl_mem source (v_cl)
-#if defined(ENABLE_OPENCL)
-  // Set when a K/V cache write below was enqueued with a submission flush and
-  // NO trailing clFinish. On the image-attention path that is coherent -- every
-  // consumer is a same-queue GPU kernel -- but the SVM/host fallbacks further
-  // down are not on that queue, so they drain once when this is set.
-  bool kv_write_undrained = false;
-#endif
+  unsigned int step_size = to - from;
+  bool is_prefill = !from || step_size > 1;
+  if (!cross_attention && skip_prefill && is_prefill)
+    return;
 
   const double _mha_t_prelude = _kvst_on() ? _kvst_now() : 0;
 
@@ -3125,9 +2978,12 @@ void MHACoreLayer::one_batch_incremental_forwarding(
   }
 
   /// @todo replace step_size into input height
-  unsigned int step_size = to - from;
-  unsigned int cache_from = cache_index;
-  unsigned int cache_to = cache_from + step_size;
+  // Cross-attention reads the full encoder cache [0, enc_len): forwarding()
+  // passes from = enc_len - step_size and to = enc_len, so the non-causal
+  // kernel's row_to_compute = cache_from + step_size resolves to enc_len for
+  // every query row. Self-attention keeps the cache_index-based window.
+  unsigned int cache_from = cross_attention ? from : cache_index;
+  unsigned int cache_to = cross_attention ? to : (cache_from + step_size);
 
   // NNTR_KVHASH: hash this layer's SVM K/V cache so two runs of
   // the same prompt can be compared without pulling the caches off the device.

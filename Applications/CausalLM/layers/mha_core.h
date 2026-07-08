@@ -184,83 +184,21 @@ public:
 };
 
 /**
- * @brief UseGemmAttention property
- * @note  Optional GEMM-based attention path for the non-causal (encoder) case.
- *        QK and AV are computed with (s)gemm per head instead of the per-row
- *        dot kernels, improving cache reuse for large sequence lengths.
+ * @brief CrossAttention property
+ * @note When true, the layer runs in static read-only cross-attention mode
+ *       (Option B): inputs 3/4 (cache_key/cache_value) are treated as a
+ *       fully-populated encoder K/V cache of @c enc_len rows; the query
+ *       (input 0) attends over ALL @c enc_len cached rows, inputs 1/2 (K/V)
+ *       are NOT written into the cache, and cache_index is NOT advanced.
+ *       Only meaningful in external-cache (5-input) mode. Default false so
+ *       existing self-attention callers see byte-identical behaviour.
  */
-class UseGemmAttention : public nntrainer::Property<bool> {
+class CrossAttention : public nntrainer::Property<bool> {
 public:
-  UseGemmAttention(bool value = false) { set(value); };
-  static constexpr const char *key = "use_gemm_attention";
-  using prop_tag = nntrainer::bool_prop_tag;
-};
-
-/**
- * @brief GpuDecodeAttn property (per-model decode-GPU gate).
- * @note  When true, the M=1 (decode) attention runs the validated GPU flash /
- *        OHWI image-attention path instead of bouncing K/V to the host NEON
- *        path. Mirrors the NNTR_MHA_GPU_DECODE env flag's flash-attention half
- *        ((B)), but per-LAYER so it can be DEFAULT-ON only for the models where
- *        decode flash attention is token-identical (gemma4, gemma2). The env
- *        flag, when set, forces it on globally (testing override). Default
- *        false keeps the host decode attention.
- */
-class GpuDecodeAttn : public nntrainer::Property<bool> {
-public:
-  GpuDecodeAttn(bool value = false) { set(value); };
-  static constexpr const char *key = "gpu_decode_attn";
-  using prop_tag = nntrainer::bool_prop_tag;
-};
-
-/**
- * @brief KvWindowRing property (the model's default for the KV ring).
- * @note  The value causallm::kvRingEnabled() falls back to when
- *        NNTR_KV_WINDOW_RING is unset. It must equal the owning model's
- *        Transformer::kvRingByDefault(): the model sizes the cache plane with
- *        that value and this layer indexes the plane with this one. Default
- *        false keeps the ring an explicit opt-in.
- */
-class KvWindowRing : public nntrainer::Property<bool> {
-public:
-  KvWindowRing(bool value = false) { set(value); };
-  static constexpr const char *key = "kv_window_ring";
-  using prop_tag = nntrainer::bool_prop_tag;
-};
-
-/**
- * @brief GpuDecodeRope property (per-model decode-GPU gate).
- * @note  When true, the M=1 (decode) RoPE runs on the GPU (rope_inplace_f16_cl)
- *        so Q/K stay SVM-resident and lower_q/lower_kv drains are skipped.
- *        Mirrors the NNTR_MHA_GPU_DECODE env flag's GPU-RoPE half ((A)), but
- *        per-LAYER so it is DEFAULT-ON only where decode GPU-RoPE is
- *        token-identical (gemma4). gemma2 diverges on GPU-RoPE-decode, so it
- *        keeps this false (flash attention + host RoPE). Still gated off by the
- *        NNTR_NO_GPU_ROPE kill-switch. The env flag, when set, forces it on
- *        globally (testing override). Default false keeps the host decode RoPE.
- */
-class GpuDecodeRope : public nntrainer::Property<bool> {
-public:
-  GpuDecodeRope(bool value = false) { set(value); };
-  static constexpr const char *key = "gpu_decode_rope";
-  using prop_tag = nntrainer::bool_prop_tag;
-};
-
-/**
- * @brief GpuOhwiRope property (per-model Adreno OHWI decode-RoPE gate).
- * @note  When true, the M=1 (decode) RoPE on the OHWI image-attention path
- *        (NNTR_KV_IMG_ATTN) runs on the GPU (rope_inplace_f16_cl) so Q/K stay
- *        SVM-resident and the per-layer lower_q/lower_kv drain (16-35ms/token)
- *        is skipped. DEFAULT-ON where it is token-identical (gemma4 +32%,
- *        gemma2 +8%); qwen3 diverges (head_dim=128 / q-k-norm), so it stays
- *        false. The NNTR_OHWI_GPU_ROPE env forces it on globally (override);
- *        NNTR_NO_GPU_ROPE kills it. Default false keeps the host decode RoPE.
- */
-class GpuOhwiRope : public nntrainer::Property<bool> {
-public:
-  GpuOhwiRope(bool value = false) { set(value); };
-  static constexpr const char *key = "gpu_ohwi_rope";
-  using prop_tag = nntrainer::bool_prop_tag;
+  CrossAttention(bool value = false) { set(value); };
+  static constexpr const char *key =
+    "cross_attention";                       /**< unique key to access */
+  using prop_tag = nntrainer::bool_prop_tag; /**< property type */
 };
 
 /**
@@ -537,7 +475,7 @@ private:
     props::MaxPositionEmbeddings, props::UseSink, props::RopeScalingType,
     props::RopeScalingFactor, props::RopePartialRotaryFactor,
     props::RopeScalingMaxPositionEmbeddings, props::AttnLogitSoftcapping,
-    props::IsCausal, props::UseGemmAttention>
+    props::IsCausal, props::UseGemmAttention, props::CrossAttention>
     mha_core_props; /**< mha_core layer properties */
 
   /** softmax activation operation */
@@ -608,6 +546,12 @@ private:
   bool is_causal;
   bool use_gemm_attention = false;
   bool skip_prefill = false;
+  /**
+   * @brief static read-only cross-attention mode (Option B). See
+   *        props::CrossAttention. Default false; guards every cross-attn change
+   *        so self-attention callers are unaffected.
+   */
+  bool cross_attention = false;
 
   enum INOUT_INDEX {
     /** input index */
