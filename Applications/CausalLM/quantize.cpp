@@ -110,11 +110,10 @@ namespace {
  * @brief Map of string data type names to DataType enum values
  */
 const std::map<std::string, DataType> dtype_str_map = {
-  {"FP32", DataType::FP32},   {"FP16", DataType::FP16},
-  {"Q4_0", DataType::Q4_0},   {"Q6_K", DataType::Q6_K},
-  {"Q4_K", DataType::Q4_K},   {"QINT4", DataType::QINT4},
-  {"QS4CX", DataType::QS4CX}, {"NONE", DataType::NONE},
-};
+  {"FP32", DataType::FP32}, {"FP16", DataType::FP16},
+  {"Q4_0", DataType::Q4_0}, {"Q6_K", DataType::Q6_K},
+  {"Q4_K", DataType::Q4_K}, {"Q8_0", DataType::Q8_0},
+  {"QS4CX", DataType::QS4CX}, {"NONE", DataType::NONE}};
 
 /**
  * @brief Map of string ISA names to ISA enum values
@@ -221,9 +220,9 @@ std::string generateOutputBinName(const std::string &original_bin,
 
   // Remove old dtype suffix patterns (e.g., _fp32, _q40_fp32)
   // Common patterns: _fp32, _fp16, _q40, _q6k, _q4k, etc.
-  std::vector<std::string> dtype_suffixes = {"_fp32", "_fp16",  "_q40",
-                                             "_q4_0", "_q6k",   "_q6_k",
-                                             "_q4k",  "_qs4cx", "_q4_k"};
+  std::vector<std::string> dtype_suffixes = {
+    "_fp32", "_fp16", "_q40",   "_q4_0", "_q6k",  "_q6_k",
+    "_q4k",  "_q4_k", "_qs4cx", "_q80",  "_q8_0"};
   for (const auto &suffix : dtype_suffixes) {
     auto pos = base.rfind(suffix);
     if (pos != std::string::npos && pos + suffix.size() == base.size()) {
@@ -494,15 +493,7 @@ void printUsage(const char *prog) {
     << "                        is repacked bit-identically.\n"
     << "  --help, -h            Show this help message\n"
     << "\n"
-    << "Supported data types: FP32, FP16, Q4_0, Q6_K, Q4_K, QS4CX\n"
-    << "  int4 = QS4CX (per-channel int4: plain nibbles + fp32 scales) is the\n"
-    << "  canonical int4 weight format for GPU/NPU FC/lm_head. The legacy "
-       "QINT4\n"
-    << "  target is still accepted, and existing QINT4-FP16 .bin files still "
-       "load\n"
-    << "  (transcoded losslessly to QS4CX at read time), but prefer QS4CX for "
-       "new\n"
-    << "  models.\n"
+    << "Supported data types: FP32, FP16, Q4_0, Q8_0, Q6_K, Q4_K\n"
     << "Supported ISA options: DEFAULT (current platform), X86, ARM\n"
     << "\n"
     << "Examples:\n"
