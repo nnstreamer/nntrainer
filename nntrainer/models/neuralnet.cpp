@@ -127,23 +127,12 @@ Tensor mapExternalTensor(float *buf, const TensorDim &dim,
 
   switch (dim.getDataType()) {
   case TensorDim::DataType::FP16: {
-    // Two incompatible contracts share this entry point:
-    //  * inference() (convert_fp32_to_fp16 == true): the API delivers FP32
-    //    data by contract (float *buf). For an FP16 graph input we must
-    //    genuinely convert FP32->FP16 through the Tensor system, not
-    //    reinterpret the FP32 bytes as half. Map the buffer as its real FP32
-    //    type, then copyData() into an owning FP16 tensor.
-    //  * incremental_inference() (convert_fp32_to_fp16 == false): callers
-    //    (CausalLM KV / cross-attention cache placeholders) pass buffers that
-    //    ALREADY hold fp16 bits, cast to float*. Converting would read
-    //    dataLen*4 bytes from a dataLen*2-byte buffer (a 2x out-of-bounds
-    //    read that faults on allocators with guard pages, e.g. Android
-    //    scudo), and the converted COPY would also break the external-cache
-    //    write-back contract (the graph must write K/V into the caller's
-    //    buffer). Reinterpret-map instead, which is the historical behavior.
-    if (!convert_fp32_to_fp16)
-      return Tensor::Map<uint16_t>(reinterpret_cast<uint16_t *>(buf), bytes,
-                                   dim, 0);
+    // The inference()/external-tensor API delivers FP32 data by contract
+    // (float *buf). For an FP16 graph input we must genuinely convert
+    // FP32->FP16 through the Tensor system, not reinterpret the FP32 bytes as
+    // half. Map the buffer as its real FP32 type, then copyData() into an
+    // owning FP16 tensor (HalfTensor::copyData performs the conversion). The
+    // returned tensor owns its buffer, so it stays valid after this call.
     TensorDim fp32_dim = dim;
     fp32_dim.setDataType(TensorDim::DataType::FP32);
     const unsigned int fp32_bytes = static_cast<unsigned int>(
@@ -1054,6 +1043,18 @@ public:
   explicit WeightFileReadAhead(int) {}
 };
 #endif
+
+/**
+ * @brief A block-quantized weight is laid out as [N rows, K cols]. An FC weight
+ * is stored [1, 1, K, N] so N=width, K=height. A conv filter is stored
+ * [out_ch, in_ch, kh, kw] so N=out_ch=batch and K=in_ch*kh*kw (CRS). Returns
+ * (N, K) for the appropriate interpretation; batch>1 marks a conv filter.
+ */
+inline std::pair<unsigned int, unsigned int> quantRowsCols(const TensorDim &d) {
+  if (d.batch() > 1) // conv filter: out_ch rows of CRS
+    return {d.batch(), d.channel() * d.height() * d.width()};
+  return {d.width(), d.height()}; // FC weight [1,1,K,N]
+}
 
 /**
  * @brief A block-quantized weight is laid out as [N rows, K cols]. An FC weight
