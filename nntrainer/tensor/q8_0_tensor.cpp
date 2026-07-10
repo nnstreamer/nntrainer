@@ -34,8 +34,9 @@ Q8_0_Tensor::Q8_0_Tensor(const TensorDim &d, bool alloc_now, Initializer init,
        "width divisible by "
     << QK8_0;
 
-  if (alloc_now)
+  if (alloc_now) {
     allocate();
+  }
   offset = 0;
 }
 
@@ -59,8 +60,9 @@ Q8_0_Tensor::Q8_0_Tensor(const TensorDim &d, void *external_buf) :
 }
 
 void Q8_0_Tensor::allocate() {
-  if (empty() || data)
+  if (empty() || data) {
     return;
+  }
 
   if (src_tensor) {
     allocateSrcTensor();
@@ -113,8 +115,9 @@ void Q8_0_Tensor::setZero() {
 }
 
 void Q8_0_Tensor::initialize() {
-  if (empty() || !isAllocated())
+  if (empty() || !isAllocated()) {
     return;
+  }
   setZero();
   putData();
 }
@@ -183,8 +186,8 @@ Tensor &Q8_0_Tensor::dot(Tensor const &input, Tensor &output, bool trans,
   const unsigned int M4 = M / 4;
   const unsigned int rem = M % 4;
 
-  const unsigned int qa_size =
-    qa_4_rows_size * M4 + static_cast<unsigned int>(qa_row_size) * rem;
+  const size_t qa_size =
+    static_cast<size_t>(qa_4_rows_size) * M4 + static_cast<size_t>(qa_row_size) * rem;
   std::vector<char> QA(qa_size);
   char *QA_ptr = QA.data();
 
