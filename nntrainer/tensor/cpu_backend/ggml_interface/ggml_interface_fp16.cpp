@@ -17,7 +17,11 @@
 
 #include <conv_indirect.h>
 
+#if defined(_WIN32) || defined(_MSC_VER)
+#include <malloc.h>
+#else
 #include <alloca.h>
+#endif
 #include <algorithm>
 #include <assert.h>
 #include <cmath>
@@ -582,21 +586,22 @@ void __ggml_q4_0_4x8_q8_0_indirect_GEMM_fp16(
     tm.parallel_for(0, qloops, [=](size_t q) {
       const unsigned int r0 = static_cast<unsigned int>(q) * QCHUNK;
       const unsigned int r1 = std::min(r0 + QCHUNK, rows4);
-      _FP16 *tile = (_FP16 *)alloca(4 * K * sizeof(_FP16)); // zero heap overhead stack buffer
+      _FP16 *tile = (_FP16 *)alloca(
+        4 * K * sizeof(_FP16)); // zero heap overhead stack buffer
       for (unsigned int r = r0; r < r1; r += 4) {
         gather_conv_act_rows_fp16(tile, in, geom, (int)r, 4);
-        __ggml_quantize_mat_q8_0_4x8(tile,
-                                     QA_ptr + (r / 4) * qa_4_rows_size, K);
+        __ggml_quantize_mat_q8_0_4x8(tile, QA_ptr + (r / 4) * qa_4_rows_size,
+                                     K);
       }
     });
   }
   /// Remainder rows (M % 4): single-row gather + quantize.
   for (unsigned int i = M4 * 4; i < M; ++i) {
-    _FP16 *staging = (_FP16 *)alloca(K * sizeof(_FP16)); // zero heap overhead stack buffer
+    _FP16 *staging =
+      (_FP16 *)alloca(K * sizeof(_FP16)); // zero heap overhead stack buffer
     gather_conv_act_rows_fp16(staging, in, geom, (int)i, 1);
     __ggml_quantize_row_q8_0(
-      staging,
-      QA_ptr + (M4 * qa_4_rows_size) + (i - M4 * 4) * qa_row_size, K);
+      staging, QA_ptr + (M4 * qa_4_rows_size) + (i - M4 * 4) * qa_row_size, K);
   }
 
   /// GEMM over the 4-row-divisible rows + GEMV over the remainder, mirroring
@@ -874,7 +879,8 @@ void __ggml_q8_0_q8_0_indirect_GEMM_fp16(const unsigned int M,
     tm.parallel_for(0, qloops, [=](size_t q) {
       const unsigned int r0 = static_cast<unsigned int>(q) * QCHUNK;
       const unsigned int r1 = std::min(r0 + QCHUNK, Mfull);
-      _FP16 *tile = (_FP16 *)alloca(4 * K * sizeof(_FP16)); // zero heap overhead stack buffer
+      _FP16 *tile = (_FP16 *)alloca(
+        4 * K * sizeof(_FP16)); // zero heap overhead stack buffer
       for (unsigned int r = r0; r < r1; r += 4) {
         gather_conv_act_rows_fp16(tile, in, geom, (int)r, 4);
         __ggml_quantize_mat_q8_0_4x8(
@@ -885,11 +891,11 @@ void __ggml_q8_0_q8_0_indirect_GEMM_fp16(const unsigned int M,
 
   // Handle M-tail (rem 1..3) gather and quantization
   if (rem > 0) {
-    _FP16 *tile = (_FP16 *)alloca(4 * K * sizeof(_FP16)); // zero heap overhead stack buffer
+    _FP16 *tile =
+      (_FP16 *)alloca(4 * K * sizeof(_FP16)); // zero heap overhead stack buffer
     std::memset(tile, 0, 4 * K * sizeof(_FP16));
     gather_conv_act_rows_fp16(tile, in, geom, (int)Mfull, (int)rem);
-    __ggml_quantize_mat_q8_0_4x8(tile,
-                                 QA_ptr + (size_t)M4 * qa_4_rows_size, K);
+    __ggml_quantize_mat_q8_0_4x8(tile, QA_ptr + (size_t)M4 * qa_4_rows_size, K);
   }
 
   // 2) Tiled 4x4 SMMLA GEMM over the 4-row-divisible part, direct to C.
@@ -922,7 +928,8 @@ void __ggml_q8_0_q8_0_indirect_GEMM_fp16(const unsigned int M,
   //    super-block is the last one in QA.)
   (void)A_step;
   if (rem > 0) {
-    _FP16 *scratch = (_FP16 *)alloca(4 * N * sizeof(_FP16)); // zero heap overhead stack buffer
+    _FP16 *scratch =
+      (_FP16 *)alloca(4 * N * sizeof(_FP16)); // zero heap overhead stack buffer
     const char *tail_a = QA_ptr + (size_t)(M / 4) * qa_4_rows_size;
     const unsigned int col_loop = (N + col_chunk_size - 1) / col_chunk_size;
     tm.parallel_for(0, col_loop, [=](size_t c) {

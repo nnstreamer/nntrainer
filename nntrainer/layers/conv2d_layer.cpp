@@ -56,13 +56,15 @@ static const _FP16 *get_silu_lut_fp16() {
     lut.resize(65536);
     for (uint32_t i = 0; i < 65536; ++i) {
       uint16_t u = static_cast<uint16_t>(i);
-      _FP16 x = *reinterpret_cast<const _FP16*>(&u);
+      _FP16 x = *reinterpret_cast<const _FP16 *>(&u);
       float x_f = static_cast<float>(x);
       if (std::isnan(x_f)) {
         lut[i] = x;
       } else if (std::isinf(x_f)) {
-        if (x_f > 0.0f) lut[i] = x;
-        else lut[i] = (_FP16)0.0f;
+        if (x_f > 0.0f)
+          lut[i] = x;
+        else
+          lut[i] = (_FP16)0.0f;
       } else {
         float silu = x_f / (1.0f + std::exp(-x_f));
         lut[i] = static_cast<_FP16>(silu);
@@ -92,14 +94,14 @@ static inline void convApplySwishInplace(T *data, size_t n) {
       const size_t end = std::min(start + chunk, n);
       size_t i = start;
       for (; i + 7 < end; i += 8) {
-        uint16_t u0 = *reinterpret_cast<const uint16_t*>(&data[i + 0]);
-        uint16_t u1 = *reinterpret_cast<const uint16_t*>(&data[i + 1]);
-        uint16_t u2 = *reinterpret_cast<const uint16_t*>(&data[i + 2]);
-        uint16_t u3 = *reinterpret_cast<const uint16_t*>(&data[i + 3]);
-        uint16_t u4 = *reinterpret_cast<const uint16_t*>(&data[i + 4]);
-        uint16_t u5 = *reinterpret_cast<const uint16_t*>(&data[i + 5]);
-        uint16_t u6 = *reinterpret_cast<const uint16_t*>(&data[i + 6]);
-        uint16_t u7 = *reinterpret_cast<const uint16_t*>(&data[i + 7]);
+        uint16_t u0 = *reinterpret_cast<const uint16_t *>(&data[i + 0]);
+        uint16_t u1 = *reinterpret_cast<const uint16_t *>(&data[i + 1]);
+        uint16_t u2 = *reinterpret_cast<const uint16_t *>(&data[i + 2]);
+        uint16_t u3 = *reinterpret_cast<const uint16_t *>(&data[i + 3]);
+        uint16_t u4 = *reinterpret_cast<const uint16_t *>(&data[i + 4]);
+        uint16_t u5 = *reinterpret_cast<const uint16_t *>(&data[i + 5]);
+        uint16_t u6 = *reinterpret_cast<const uint16_t *>(&data[i + 6]);
+        uint16_t u7 = *reinterpret_cast<const uint16_t *>(&data[i + 7]);
         data[i + 0] = lut[u0];
         data[i + 1] = lut[u1];
         data[i + 2] = lut[u2];
@@ -110,7 +112,7 @@ static inline void convApplySwishInplace(T *data, size_t n) {
         data[i + 7] = lut[u7];
       }
       for (; i < end; ++i) {
-        uint16_t u = *reinterpret_cast<const uint16_t*>(&data[i]);
+        uint16_t u = *reinterpret_cast<const uint16_t *>(&data[i]);
         data[i] = lut[u];
       }
     });
@@ -1010,7 +1012,12 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
   if (context.getName() == "conv0" &&
       hidden_.getDataType() == nntrainer::Tdatatype::FP16 &&
       input_.getDataType() == nntrainer::Tdatatype::FP16 &&
-      filter_kernel.getDataType() == nntrainer::Tdatatype::FP16) {
+      filter_kernel.getDataType() == nntrainer::Tdatatype::FP16 &&
+      input_.channel() == 3 && hidden_.channel() == 64 &&
+      input_.height() == 832 && input_.width() == 832 &&
+      kernel_size[0].get() == 3 && kernel_size[1].get() == 3 &&
+      stride[0] == 2 && stride[1] == 2 && padding[0] == 1 && padding[1] == 1 &&
+      padding[2] == 1 && padding[3] == 1) {
 
     // Repack weights on first run into [3, 3, 3, 64]
     if (repacked_conv0_weights_fp16.empty()) {
@@ -1042,22 +1049,32 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
         int ws = -(int)1 + (int)ow * 2;
         _FP16 *out_pixel = out_row + (size_t)ow * 64;
 
-        float16x8_t vacc0 = vld1q_f16(reinterpret_cast<const __fp16 *>(bias + 0));
-        float16x8_t vacc1 = vld1q_f16(reinterpret_cast<const __fp16 *>(bias + 8));
-        float16x8_t vacc2 = vld1q_f16(reinterpret_cast<const __fp16 *>(bias + 16));
-        float16x8_t vacc3 = vld1q_f16(reinterpret_cast<const __fp16 *>(bias + 24));
-        float16x8_t vacc4 = vld1q_f16(reinterpret_cast<const __fp16 *>(bias + 32));
-        float16x8_t vacc5 = vld1q_f16(reinterpret_cast<const __fp16 *>(bias + 40));
-        float16x8_t vacc6 = vld1q_f16(reinterpret_cast<const __fp16 *>(bias + 48));
-        float16x8_t vacc7 = vld1q_f16(reinterpret_cast<const __fp16 *>(bias + 56));
+        float16x8_t vacc0 =
+          vld1q_f16(reinterpret_cast<const __fp16 *>(bias + 0));
+        float16x8_t vacc1 =
+          vld1q_f16(reinterpret_cast<const __fp16 *>(bias + 8));
+        float16x8_t vacc2 =
+          vld1q_f16(reinterpret_cast<const __fp16 *>(bias + 16));
+        float16x8_t vacc3 =
+          vld1q_f16(reinterpret_cast<const __fp16 *>(bias + 24));
+        float16x8_t vacc4 =
+          vld1q_f16(reinterpret_cast<const __fp16 *>(bias + 32));
+        float16x8_t vacc5 =
+          vld1q_f16(reinterpret_cast<const __fp16 *>(bias + 40));
+        float16x8_t vacc6 =
+          vld1q_f16(reinterpret_cast<const __fp16 *>(bias + 48));
+        float16x8_t vacc7 =
+          vld1q_f16(reinterpret_cast<const __fp16 *>(bias + 56));
 
         for (int kh = 0; kh < 3; ++kh) {
           int ih = hs + kh;
-          if (ih < 0 || ih >= 832) continue;
+          if (ih < 0 || ih >= 832)
+            continue;
 
           for (int kw = 0; kw < 3; ++kw) {
             int iw = ws + kw;
-            if (iw < 0 || iw >= 832) continue;
+            if (iw < 0 || iw >= 832)
+              continue;
 
             const _FP16 *in_pixel = in + ((size_t)ih * 832 + iw) * 3;
             float16x8_t vin0 = vdupq_n_f16(in_pixel[0]);
@@ -1066,32 +1083,80 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
 
             const _FP16 *w_base = r_weight + kh * 192 + kw * 64;
 
-            vacc0 = vfmaq_f16(vacc0, vin0, vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 0 * 64 + 0)));
-            vacc1 = vfmaq_f16(vacc1, vin0, vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 0 * 64 + 8)));
-            vacc2 = vfmaq_f16(vacc2, vin0, vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 0 * 64 + 16)));
-            vacc3 = vfmaq_f16(vacc3, vin0, vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 0 * 64 + 24)));
-            vacc4 = vfmaq_f16(vacc4, vin0, vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 0 * 64 + 32)));
-            vacc5 = vfmaq_f16(vacc5, vin0, vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 0 * 64 + 40)));
-            vacc6 = vfmaq_f16(vacc6, vin0, vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 0 * 64 + 48)));
-            vacc7 = vfmaq_f16(vacc7, vin0, vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 0 * 64 + 56)));
+            vacc0 = vfmaq_f16(
+              vacc0, vin0,
+              vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 0 * 64 + 0)));
+            vacc1 = vfmaq_f16(
+              vacc1, vin0,
+              vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 0 * 64 + 8)));
+            vacc2 = vfmaq_f16(vacc2, vin0,
+                              vld1q_f16(reinterpret_cast<const __fp16 *>(
+                                w_base + 0 * 64 + 16)));
+            vacc3 = vfmaq_f16(vacc3, vin0,
+                              vld1q_f16(reinterpret_cast<const __fp16 *>(
+                                w_base + 0 * 64 + 24)));
+            vacc4 = vfmaq_f16(vacc4, vin0,
+                              vld1q_f16(reinterpret_cast<const __fp16 *>(
+                                w_base + 0 * 64 + 32)));
+            vacc5 = vfmaq_f16(vacc5, vin0,
+                              vld1q_f16(reinterpret_cast<const __fp16 *>(
+                                w_base + 0 * 64 + 40)));
+            vacc6 = vfmaq_f16(vacc6, vin0,
+                              vld1q_f16(reinterpret_cast<const __fp16 *>(
+                                w_base + 0 * 64 + 48)));
+            vacc7 = vfmaq_f16(vacc7, vin0,
+                              vld1q_f16(reinterpret_cast<const __fp16 *>(
+                                w_base + 0 * 64 + 56)));
 
-            vacc0 = vfmaq_f16(vacc0, vin1, vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 1 * 64 + 0)));
-            vacc1 = vfmaq_f16(vacc1, vin1, vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 1 * 64 + 8)));
-            vacc2 = vfmaq_f16(vacc2, vin1, vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 1 * 64 + 16)));
-            vacc3 = vfmaq_f16(vacc3, vin1, vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 1 * 64 + 24)));
-            vacc4 = vfmaq_f16(vacc4, vin1, vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 1 * 64 + 32)));
-            vacc5 = vfmaq_f16(vacc5, vin1, vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 1 * 64 + 40)));
-            vacc6 = vfmaq_f16(vacc6, vin1, vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 1 * 64 + 48)));
-            vacc7 = vfmaq_f16(vacc7, vin1, vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 1 * 64 + 56)));
+            vacc0 = vfmaq_f16(
+              vacc0, vin1,
+              vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 1 * 64 + 0)));
+            vacc1 = vfmaq_f16(
+              vacc1, vin1,
+              vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 1 * 64 + 8)));
+            vacc2 = vfmaq_f16(vacc2, vin1,
+                              vld1q_f16(reinterpret_cast<const __fp16 *>(
+                                w_base + 1 * 64 + 16)));
+            vacc3 = vfmaq_f16(vacc3, vin1,
+                              vld1q_f16(reinterpret_cast<const __fp16 *>(
+                                w_base + 1 * 64 + 24)));
+            vacc4 = vfmaq_f16(vacc4, vin1,
+                              vld1q_f16(reinterpret_cast<const __fp16 *>(
+                                w_base + 1 * 64 + 32)));
+            vacc5 = vfmaq_f16(vacc5, vin1,
+                              vld1q_f16(reinterpret_cast<const __fp16 *>(
+                                w_base + 1 * 64 + 40)));
+            vacc6 = vfmaq_f16(vacc6, vin1,
+                              vld1q_f16(reinterpret_cast<const __fp16 *>(
+                                w_base + 1 * 64 + 48)));
+            vacc7 = vfmaq_f16(vacc7, vin1,
+                              vld1q_f16(reinterpret_cast<const __fp16 *>(
+                                w_base + 1 * 64 + 56)));
 
-            vacc0 = vfmaq_f16(vacc0, vin2, vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 2 * 64 + 0)));
-            vacc1 = vfmaq_f16(vacc1, vin2, vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 2 * 64 + 8)));
-            vacc2 = vfmaq_f16(vacc2, vin2, vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 2 * 64 + 16)));
-            vacc3 = vfmaq_f16(vacc3, vin2, vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 2 * 64 + 24)));
-            vacc4 = vfmaq_f16(vacc4, vin2, vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 2 * 64 + 32)));
-            vacc5 = vfmaq_f16(vacc5, vin2, vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 2 * 64 + 40)));
-            vacc6 = vfmaq_f16(vacc6, vin2, vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 2 * 64 + 48)));
-            vacc7 = vfmaq_f16(vacc7, vin2, vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 2 * 64 + 56)));
+            vacc0 = vfmaq_f16(
+              vacc0, vin2,
+              vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 2 * 64 + 0)));
+            vacc1 = vfmaq_f16(
+              vacc1, vin2,
+              vld1q_f16(reinterpret_cast<const __fp16 *>(w_base + 2 * 64 + 8)));
+            vacc2 = vfmaq_f16(vacc2, vin2,
+                              vld1q_f16(reinterpret_cast<const __fp16 *>(
+                                w_base + 2 * 64 + 16)));
+            vacc3 = vfmaq_f16(vacc3, vin2,
+                              vld1q_f16(reinterpret_cast<const __fp16 *>(
+                                w_base + 2 * 64 + 24)));
+            vacc4 = vfmaq_f16(vacc4, vin2,
+                              vld1q_f16(reinterpret_cast<const __fp16 *>(
+                                w_base + 2 * 64 + 32)));
+            vacc5 = vfmaq_f16(vacc5, vin2,
+                              vld1q_f16(reinterpret_cast<const __fp16 *>(
+                                w_base + 2 * 64 + 40)));
+            vacc6 = vfmaq_f16(vacc6, vin2,
+                              vld1q_f16(reinterpret_cast<const __fp16 *>(
+                                w_base + 2 * 64 + 48)));
+            vacc7 = vfmaq_f16(vacc7, vin2,
+                              vld1q_f16(reinterpret_cast<const __fp16 *>(
+                                w_base + 2 * 64 + 56)));
           }
         }
 
@@ -1123,14 +1188,14 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
         const size_t end = std::min(start + chunk, n);
         size_t i = start;
         for (; i + 7 < end; i += 8) {
-          uint16_t u0 = *reinterpret_cast<const uint16_t*>(&data[i + 0]);
-          uint16_t u1 = *reinterpret_cast<const uint16_t*>(&data[i + 1]);
-          uint16_t u2 = *reinterpret_cast<const uint16_t*>(&data[i + 2]);
-          uint16_t u3 = *reinterpret_cast<const uint16_t*>(&data[i + 3]);
-          uint16_t u4 = *reinterpret_cast<const uint16_t*>(&data[i + 4]);
-          uint16_t u5 = *reinterpret_cast<const uint16_t*>(&data[i + 5]);
-          uint16_t u6 = *reinterpret_cast<const uint16_t*>(&data[i + 6]);
-          uint16_t u7 = *reinterpret_cast<const uint16_t*>(&data[i + 7]);
+          uint16_t u0 = *reinterpret_cast<const uint16_t *>(&data[i + 0]);
+          uint16_t u1 = *reinterpret_cast<const uint16_t *>(&data[i + 1]);
+          uint16_t u2 = *reinterpret_cast<const uint16_t *>(&data[i + 2]);
+          uint16_t u3 = *reinterpret_cast<const uint16_t *>(&data[i + 3]);
+          uint16_t u4 = *reinterpret_cast<const uint16_t *>(&data[i + 4]);
+          uint16_t u5 = *reinterpret_cast<const uint16_t *>(&data[i + 5]);
+          uint16_t u6 = *reinterpret_cast<const uint16_t *>(&data[i + 6]);
+          uint16_t u7 = *reinterpret_cast<const uint16_t *>(&data[i + 7]);
           data[i + 0] = lut[u0];
           data[i + 1] = lut[u1];
           data[i + 2] = lut[u2];
@@ -1141,7 +1206,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
           data[i + 7] = lut[u7];
         }
         for (; i < end; ++i) {
-          uint16_t u = *reinterpret_cast<const uint16_t*>(&data[i]);
+          uint16_t u = *reinterpret_cast<const uint16_t *>(&data[i]);
           data[i] = lut[u];
         }
       });
@@ -1274,8 +1339,10 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
             // proven FP16-activation indirect path (W8A16), dispatched by
             // weight dtype inside convQ4_0Indirect, so they must NOT force q8
             // act here.
-            const bool can_q8act = (in_ch_i % 32 == 0) &&
-                                   (std::getenv("NNTR_CONV_Q8ACT") != nullptr);
+            const bool can_q8act =
+              (in_ch_i % 32 == 0) &&
+              (std::getenv("NNTR_CONV_Q8ACT") != nullptr) &&
+              (in_sub.getDataType() == TensorDim::DataType::FP16);
             // Pre-allocated Q8_0 scratch (no per-forward malloc).
             // Take this batch's own slice (q8act_scratch is batch-sized) so
             // concurrent ParallelBatch slices don't race on the q8_0 bytes.
@@ -1431,8 +1498,9 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
             // a dot writing [out_ch, OH*OW] NCHW-order would land in the wrong
             // physical cells.
             if (filter_size == 1) {
-              // If out_ch == 1, NCHW and NHWC layouts are identical [OH*OW, 1] == [1, OH*OW].
-              // We can compute directly into out (mapped as NCHW-format view) without temporary allocation.
+              // If out_ch == 1, NCHW and NHWC layouts are identical [OH*OW, 1]
+              // == [1, OH*OW]. We can compute directly into out (mapped as
+              // NCHW-format view) without temporary allocation.
               auto onchw_type = out.getTensorType();
               onchw_type.format = ml::train::TensorDim::Format::NCHW;
               TensorDim odim_nchw({1, 1, 1, owoh}, onchw_type);
@@ -1441,21 +1509,23 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
               fnchw_type.format = ml::train::TensorDim::Format::NCHW;
               auto cnchw_type = result.getTensorType();
               cnchw_type.format = ml::train::TensorDim::Format::NCHW;
-              TensorDim fdim_nchw(filter_kernel.batch(), filter_kernel.channel(),
-                                  filter_kernel.height(), filter_kernel.width(),
-                                  fnchw_type);
+              TensorDim fdim_nchw(
+                filter_kernel.batch(), filter_kernel.channel(),
+                filter_kernel.height(), filter_kernel.width(), fnchw_type);
               TensorDim cdim_nchw(result.batch(), result.channel(),
                                   result.height(), result.width(), cnchw_type);
 
               Tensor filt_nchw;
               if (filter_kernel.getDataType() == nntrainer::Tdatatype::FP32) {
-                filt_nchw = Tensor::Map<float>(
-                  filter_kernel.getData<float>(), filter_kernel.bytes(), fdim_nchw);
+                filt_nchw =
+                  Tensor::Map<float>(filter_kernel.getData<float>(),
+                                     filter_kernel.bytes(), fdim_nchw);
               }
 #ifdef ENABLE_FP16
               else {
-                filt_nchw = Tensor::Map<_FP16>(
-                  filter_kernel.getData<_FP16>(), filter_kernel.bytes(), fdim_nchw);
+                filt_nchw =
+                  Tensor::Map<_FP16>(filter_kernel.getData<_FP16>(),
+                                     filter_kernel.bytes(), fdim_nchw);
               }
 #endif
 
@@ -1476,42 +1546,47 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
               }
 #endif
             } else {
-              // Standard path for filter_size > 1: Compute into NCHW temporary buffer and scatter.
+              // Standard path for filter_size > 1: Compute into NCHW temporary
+              // buffer and scatter.
               auto nchw_type = out.getTensorType();
               nchw_type.format = ml::train::TensorDim::Format::NCHW;
               // nchw_out holds the GEMM result [out_ch, OH*OW] in channel-major
-              // (NCHW) order. Shape it [1, 1, out_ch, OH*OW] so width()==OH*OW is
-              // the row stride the GEMM writes with (ldc); a [1,out_ch,OH*OW,1]
-              // shape would give width()==1 and stride the output wrong.
+              // (NCHW) order. Shape it [1, 1, out_ch, OH*OW] so width()==OH*OW
+              // is the row stride the GEMM writes with (ldc); a
+              // [1,out_ch,OH*OW,1] shape would give width()==1 and stride the
+              // output wrong.
               TensorDim nchw_dim({1, 1, filter_size, owoh}, nchw_type);
               Tensor nchw_out(nchw_dim, true);
               // filter_kernel (weight [out_ch, CRS]) and result (im2col columns
-              // [OH*OW, CRS]) are plain 2D matmul matrices whose image format is
-              // irrelevant to this GEMM. dot() derives the contraction axis from
-              // the tensor format: their inherited NHWC tag makes it contract
-              // over channel() (==1) instead of width() (==CRS) -> zero output.
-              // Re-map the same bytes as NCHW-format views (no copy) so the GEMM
-              // contracts over CRS==width(). getSharedDataTensor can't relabel
-              // format (it enforces a match), so use Tensor::Map.
+              // [OH*OW, CRS]) are plain 2D matmul matrices whose image format
+              // is irrelevant to this GEMM. dot() derives the contraction axis
+              // from the tensor format: their inherited NHWC tag makes it
+              // contract over channel() (==1) instead of width() (==CRS) ->
+              // zero output. Re-map the same bytes as NCHW-format views (no
+              // copy) so the GEMM contracts over CRS==width().
+              // getSharedDataTensor can't relabel format (it enforces a match),
+              // so use Tensor::Map.
               auto fnchw_type = filter_kernel.getTensorType();
               fnchw_type.format = ml::train::TensorDim::Format::NCHW;
               auto cnchw_type = result.getTensorType();
               cnchw_type.format = ml::train::TensorDim::Format::NCHW;
-              TensorDim fdim_nchw(filter_kernel.batch(), filter_kernel.channel(),
-                                  filter_kernel.height(), filter_kernel.width(),
-                                  fnchw_type);
+              TensorDim fdim_nchw(
+                filter_kernel.batch(), filter_kernel.channel(),
+                filter_kernel.height(), filter_kernel.width(), fnchw_type);
               TensorDim cdim_nchw(result.batch(), result.channel(),
                                   result.height(), result.width(), cnchw_type);
 
               Tensor filt_nchw;
               if (filter_kernel.getDataType() == nntrainer::Tdatatype::FP32) {
-                filt_nchw = Tensor::Map<float>(
-                  filter_kernel.getData<float>(), filter_kernel.bytes(), fdim_nchw);
+                filt_nchw =
+                  Tensor::Map<float>(filter_kernel.getData<float>(),
+                                     filter_kernel.bytes(), fdim_nchw);
               }
 #ifdef ENABLE_FP16
               else {
-                filt_nchw = Tensor::Map<_FP16>(
-                  filter_kernel.getData<_FP16>(), filter_kernel.bytes(), fdim_nchw);
+                filt_nchw =
+                  Tensor::Map<_FP16>(filter_kernel.getData<_FP16>(),
+                                     filter_kernel.bytes(), fdim_nchw);
               }
 #endif
 
@@ -1627,18 +1702,17 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
                   for (; c < C_aligned; c += 4) {
                     float32x4_t v_id;
                     if constexpr (std::is_same_v<T, _FP16>) {
-                      float16x4_t v_id_h = vld1_f16(reinterpret_cast<const __fp16 *>(id + c));
+                      float16x4_t v_id_h =
+                        vld1_f16(reinterpret_cast<const __fp16 *>(id + c));
                       v_id = vcvt_f32_f16(v_id_h);
                     } else {
                       v_id = vld1q_f32(reinterpret_cast<const float *>(id + c));
                     }
 
-                    float32x4_t v_fk = {
-                      static_cast<float>(fk[c * fhfw]),
-                      static_cast<float>(fk[(c + 1) * fhfw]),
-                      static_cast<float>(fk[(c + 2) * fhfw]),
-                      static_cast<float>(fk[(c + 3) * fhfw])
-                    };
+                    float32x4_t v_fk = {static_cast<float>(fk[c * fhfw]),
+                                        static_cast<float>(fk[(c + 1) * fhfw]),
+                                        static_cast<float>(fk[(c + 2) * fhfw]),
+                                        static_cast<float>(fk[(c + 3) * fhfw])};
 
                     float32x4_t v_acc = vld1q_f32(&acc[c]);
                     v_acc = vmlaq_f32(v_acc, v_id, v_fk);
@@ -1821,8 +1895,10 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
             _FP16 *curr_d = d + ((size_t)b * HW + p) * C;
             unsigned int c = 0;
             for (; c < C_aligned; c += 8) {
-              float16x8_t v_d = vld1q_f16(reinterpret_cast<const __fp16 *>(curr_d + c));
-              float16x8_t v_b = vld1q_f16(reinterpret_cast<const __fp16 *>(bias + c));
+              float16x8_t v_d =
+                vld1q_f16(reinterpret_cast<const __fp16 *>(curr_d + c));
+              float16x8_t v_b =
+                vld1q_f16(reinterpret_cast<const __fp16 *>(bias + c));
               float16x8_t v_res = vaddq_f16(v_d, v_b);
               vst1q_f16(reinterpret_cast<__fp16 *>(curr_d + c), v_res);
             }
@@ -2033,6 +2109,9 @@ void Conv2DLayer::setBatch(RunLayerContext &context, unsigned int batch) {
   if (wt_idx[ConvParams::qgemm_scratch] !=
       std::numeric_limits<unsigned int>::max())
     context.updateTensor(wt_idx[ConvParams::qgemm_scratch], batch);
+  if (wt_idx[ConvParams::q8act_scratch] !=
+      std::numeric_limits<unsigned int>::max())
+    context.updateTensor(wt_idx[ConvParams::q8act_scratch], batch);
 }
 
 void Conv2DLayer::exportTo(Exporter &exporter,

@@ -1573,79 +1573,22 @@ void NeuralNetwork::load(const std::string &file_path,
         start_from += size;
         alt_total += alt_size;
       }
-    }
-  };
-  // Start from the padded stride: it is what every package exported before the
-  // writer switched holds, and it is never the smaller of the two, so the
-  // memory already planned from it stays an upper bound if the file turns out
-  // to be trimmed.
-  walk_records(true);
-
-  // Tell the two QS4CX record strides apart, per FILE. The record has no
-  // version field and the .bin no per-tensor dtype, so nothing in the file
-  // says which stride the exporter used -- but a file is written by one
-  // exporter, so one stride holds throughout. Mixed-stride files are not
-  // representable here and are not supported: a file that pairs records from
-  // two exporters is read wholly at whichever stride wins below, and every
-  // record written at the other one is misread. Two signals settle it:
-  //
-  //  - Size, when it can speak. total_trimmed <= actual < total_padded can
-  //    only be the trimmed layout, because no tail makes a padded file that
-  //    short.
-  //  - The first record's own bytes, when size cannot. save() appends a tail
-  //    after the weight body (the adam optimiser block, then 8 bytes of
-  //    training metadata), and the two totals differ by only sum(floor(N/2))
-  //    -- 8 bytes already for a single 16-channel weight -- so a trimmed file
-  //    with a tail that long reaches total_padded and its size stops meaning
-  //    anything. qs4cxRecordStride() reads the record instead, which the tail
-  //    cannot touch.
-  //
-  // Anything neither signal can judge keeps reading as padded, as before -- but
-  // it says so, because that is the one outcome that can be silently wrong: a
-  // trimmed file read as padded keeps its nibbles in place and slides every
-  // per-channel scale by floor(N/2) bytes, so the output stays plausible while
-  // each channel is scaled by a neighbour's factor. The gap the two signals
-  // leave is a file whose first QS4CX record is narrow (N < 8, so fewer than
-  // four pad bytes for the probe to read) and whose strides differ in total by
-  // no more than save()'s tail.
-  const auto weight_path = (v.size() == 2) ? v[1] : v[0];
-  const size_t total_padded = start_from;
-  const size_t total_trimmed = alt_total;
-  if (format == ml::train::ModelFormat::MODEL_FORMAT_BIN &&
-      qs4cx_stride_differs) {
-    std::error_code ec;
-    const auto file_bytes = std::filesystem::file_size(weight_path, ec);
-    if (!ec) {
-      const size_t actual = static_cast<size_t>(file_bytes);
-      bool trimmed = (total_trimmed <= actual && actual < total_padded);
-      if (!trimmed && total_padded <= actual && first_qs4cx_found) {
-        switch (qs4cxRecordStride(weight_path, first_qs4cx_offset,
-                                  first_qs4cx_height, first_qs4cx_width)) {
-        case Qs4cxRecordStride::TRIMMED:
-          trimmed = true;
-          break;
-        case Qs4cxRecordStride::PADDED:
-          break;
-        case Qs4cxRecordStride::UNDECIDED:
-          ml_logw(
-            "weight file '%s' (%zu bytes) fits neither QS4CX record stride "
-            "exclusively (padded total %zu, trimmed total %zu) and its first "
-            "QS4CX record (%zu x %zu) is too narrow to read the stride off, "
-            "so it is being read at the PADDED stride. If this file was "
-            "exported by a build that wrote the trimmed stride, its "
-            "per-channel scales are read from the wrong offset and the output "
-            "will be plausible but wrong",
-            weight_path.c_str(), actual, total_padded, total_trimmed,
-            first_qs4cx_height, first_qs4cx_width);
-          break;
-        }
-      }
-      if (trimmed) {
-        walk_records(false);
-        ml_logi("weight file '%s' matches the trimmed QS4CX record stride "
-                "(%zu bytes) rather than the padded one (%zu); reading it as "
-                "trimmed",
-                weight_path.c_str(), total_trimmed, total_padded);
+      size_t size = weight->getVariable().getMemoryBytes();
+      auto tensor_data_type = weight->getDim().getDataType();
+      weight->getVariableRef().setFileOffset(start_from);
+      ///@todo instead of checking the data type,
+      /// we may need to create a common parent class for
+      /// quantized tensors, requiring qparam to be saved
+      /// and creating a common interface to check if qparam is needed
+      /// this kind of type checking should be avoided
+      if (tensor_data_type != TensorDim::DataType::FP32 &&
+          tensor_data_type != TensorDim::DataType::FP16 &&
+          tensor_data_type != TensorDim::DataType::Q6_K &&
+          tensor_data_type != TensorDim::DataType::Q4_0 &&
+          tensor_data_type != TensorDim::DataType::Q8_0 &&
+          tensor_data_type != TensorDim::DataType::QS4CX) {
+        // for tensor with qparam
+        size += sizeof(uint16_t);
       }
     }
   }

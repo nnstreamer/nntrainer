@@ -186,8 +186,8 @@ Tensor &Q8_0_Tensor::dot(Tensor const &input, Tensor &output, bool trans,
   const unsigned int M4 = M / 4;
   const unsigned int rem = M % 4;
 
-  const size_t qa_size =
-    static_cast<size_t>(qa_4_rows_size) * M4 + static_cast<size_t>(qa_row_size) * rem;
+  const size_t qa_size = static_cast<size_t>(qa_4_rows_size) * M4 +
+                         static_cast<size_t>(qa_row_size) * rem;
   std::vector<char> QA(qa_size);
   char *QA_ptr = QA.data();
 
