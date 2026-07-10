@@ -21,6 +21,10 @@
 #ifndef __NNTR_CONV_INDIRECT_H__
 #define __NNTR_CONV_INDIRECT_H__
 
+#if defined(__ARM_NEON)
+#include <arm_neon.h>
+#endif
+
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -104,9 +108,63 @@ inline void gather_conv_act_rows(T *dst, const T *in, const ConvGatherParams &p,
           if (w < 0 || w >= p.in_w)
             continue;
           const T *in_ptr = in + (long)(h * p.in_w + w) * p.in_ch;
+#if defined(__ARM_NEON)
+          if constexpr (std::is_same_v<T, _FP16>) {
+            int c = 0;
+            for (; c + 15 < p.in_ch; c += 16) {
+              float16x8_t v0 = vld1q_f16(reinterpret_cast<const __fp16*>(&in_ptr[c + 0]));
+              float16x8_t v1 = vld1q_f16(reinterpret_cast<const __fp16*>(&in_ptr[c + 8]));
+              
+              row[(c + 0) * khkw + kh * p.k_w + kw] = vgetq_lane_f16(v0, 0);
+              row[(c + 1) * khkw + kh * p.k_w + kw] = vgetq_lane_f16(v0, 1);
+              row[(c + 2) * khkw + kh * p.k_w + kw] = vgetq_lane_f16(v0, 2);
+              row[(c + 3) * khkw + kh * p.k_w + kw] = vgetq_lane_f16(v0, 3);
+              row[(c + 4) * khkw + kh * p.k_w + kw] = vgetq_lane_f16(v0, 4);
+              row[(c + 5) * khkw + kh * p.k_w + kw] = vgetq_lane_f16(v0, 5);
+              row[(c + 6) * khkw + kh * p.k_w + kw] = vgetq_lane_f16(v0, 6);
+              row[(c + 7) * khkw + kh * p.k_w + kw] = vgetq_lane_f16(v0, 7);
+
+              row[(c + 8) * khkw + kh * p.k_w + kw] = vgetq_lane_f16(v1, 0);
+              row[(c + 9) * khkw + kh * p.k_w + kw] = vgetq_lane_f16(v1, 1);
+              row[(c + 10) * khkw + kh * p.k_w + kw] = vgetq_lane_f16(v1, 2);
+              row[(c + 11) * khkw + kh * p.k_w + kw] = vgetq_lane_f16(v1, 3);
+              row[(c + 12) * khkw + kh * p.k_w + kw] = vgetq_lane_f16(v1, 4);
+              row[(c + 13) * khkw + kh * p.k_w + kw] = vgetq_lane_f16(v1, 5);
+              row[(c + 14) * khkw + kh * p.k_w + kw] = vgetq_lane_f16(v1, 6);
+              row[(c + 15) * khkw + kh * p.k_w + kw] = vgetq_lane_f16(v1, 7);
+            }
+            for (; c < p.in_ch; ++c) {
+              row[c * khkw + kh * p.k_w + kw] = in_ptr[c];
+            }
+          } else if constexpr (std::is_same_v<T, float>) {
+            int c = 0;
+            for (; c + 7 < p.in_ch; c += 8) {
+              float32x4_t v0 = vld1q_f32(reinterpret_cast<const float*>(&in_ptr[c + 0]));
+              float32x4_t v1 = vld1q_f32(reinterpret_cast<const float*>(&in_ptr[c + 4]));
+              
+              row[(c + 0) * khkw + kh * p.k_w + kw] = vgetq_lane_f32(v0, 0);
+              row[(c + 1) * khkw + kh * p.k_w + kw] = vgetq_lane_f32(v0, 1);
+              row[(c + 2) * khkw + kh * p.k_w + kw] = vgetq_lane_f32(v0, 2);
+              row[(c + 3) * khkw + kh * p.k_w + kw] = vgetq_lane_f32(v0, 3);
+
+              row[(c + 4) * khkw + kh * p.k_w + kw] = vgetq_lane_f32(v1, 0);
+              row[(c + 5) * khkw + kh * p.k_w + kw] = vgetq_lane_f32(v1, 1);
+              row[(c + 6) * khkw + kh * p.k_w + kw] = vgetq_lane_f32(v1, 2);
+              row[(c + 7) * khkw + kh * p.k_w + kw] = vgetq_lane_f32(v1, 3);
+            }
+            for (; c < p.in_ch; ++c) {
+              row[c * khkw + kh * p.k_w + kw] = in_ptr[c];
+            }
+          } else {
+            for (int c = 0; c < p.in_ch; ++c) {
+              row[c * khkw + kh * p.k_w + kw] = in_ptr[c];
+            }
+          }
+#else
           for (int c = 0; c < p.in_ch; ++c) {
             row[c * khkw + kh * p.k_w + kw] = in_ptr[c];
           }
+#endif
         }
       }
     } else {
@@ -287,6 +345,59 @@ inline void gather_conv_act_rows_q8_0_single(void *vy, const void *vx,
     } else {
       y[b_idx].d = 0;
       std::memset(y[b_idx].qs, 0, 32);
+    }
+  }
+}
+
+/**
+ * @brief Repack plain block_q8_0 conv weights to the block_q8_0x4 layout the
+ *        q8_0×q8_0 indirect-conv GEMM kernel consumes.
+ *
+ * The FP16 indirect-conv kernel (nntr_gemm_q8_0_q8_0_4x4_fp16) reads both
+ * operands as block_q8_0x4: 4 columns interleaved per super-block, laid out as
+ *   d[4]; qs[32*sub + 8*row + lane], sub=0..3 (8-elem chunk), row=0..3 (col),
+ *   lane=0..7.
+ * The plain (quantize_q8_0) layout is [N, nb=K/32] row-major block_q8_0
+ * { uint16_t d; int8_t qs[32]; }. A super-block holds one K-block (32 elems)
+ * across 4 weight columns, so the total super-block count is (N/4) * nb and a
+ * super-block's storage is exactly 4 plain blocks' worth (d[4]=8B + qs[128]).
+ *
+ * This is a platform-agnostic byte rewrite (no SIMD), mirroring how the
+ * activation gather (gather_conv_act_rows_q8_0) produces the same q8_0x4
+ * layout, so the repacked weight is byte-identical in logical content to the
+ * plain weight and is ISA-independent (the kernel decodes the interleaving, not
+ * the saver's ISA). N and K must be multiples of 32 (the Q-eligibility guard's
+ * block-alignment requirement), guaranteeing N is also a multiple of 4.
+ *
+ * @param dst destination buffer (block_q8_0x4 stream, sized N*nb*34 bytes)
+ * @param src source plain block_q8_0 stream ([N][nb], same total byte count)
+ * @param N   number of weight rows (out_ch)
+ * @param K   reduction dim (CRS = in_ch*kh*kw); nb = K/32
+ */
+inline void repack_q8_0(void *dst, const void *src, unsigned int N,
+                        unsigned int K) {
+  struct local_block_q8_0 {
+    uint16_t d;
+    int8_t qs[32];
+  };
+  struct local_block_q8_0x4 {
+    uint16_t d[4];
+    int8_t qs[128];
+  };
+
+  const local_block_q8_0 *in = static_cast<const local_block_q8_0 *>(src);
+  local_block_q8_0x4 *out = static_cast<local_block_q8_0x4 *>(dst);
+  const unsigned int nb = K / 32;
+
+  for (unsigned int sc = 0; sc < N / 4; ++sc) {
+    for (unsigned int j = 0; j < nb; ++j) {
+      local_block_q8_0x4 &sb = out[sc * nb + j];
+      for (unsigned int r = 0; r < 4; ++r) {
+        const local_block_q8_0 &p = in[(sc * 4 + r) * nb + j];
+        sb.d[r] = p.d;
+        for (unsigned int sub = 0; sub < 4; ++sub)
+          std::memcpy(&sb.qs[32 * sub + 8 * r], &p.qs[8 * sub], 8);
+      }
     }
   }
 }
