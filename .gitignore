@@ -98,3 +98,7 @@ ctre-unicode.hpp
 encoder.hpp
 json.hpp
 
+
+# YOLOv11 local build artifacts (NDK build outputs / PyTorch checkpoints, not source)
+Applications/CausalLM/models/YOLOv11/jni/
+yolo11*.pt
