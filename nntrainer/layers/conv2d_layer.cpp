@@ -1016,8 +1016,8 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
       input_.channel() == 3 && hidden_.channel() == 64 &&
       input_.height() == 832 && input_.width() == 832 &&
       kernel_size[0].get() == 3 && kernel_size[1].get() == 3 &&
-      stride[0] == 2 && stride[1] == 2 && padding[0] == 1 && padding[1] == 1 &&
-      padding[2] == 1 && padding[3] == 1) {
+      stride[0].get() == 2 && stride[1].get() == 2 && padding[0] == 1 &&
+      padding[1] == 1 && padding[2] == 1 && padding[3] == 1) {
 
     // Repack weights on first run into [3, 3, 3, 64]
     if (repacked_conv0_weights_fp16.empty()) {
@@ -1697,7 +1697,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
                   const T *id = inb + (static_cast<size_t>(ih) * IW + iw) * C;
                   const F *fk = filt + kh * fw + kw;
                   unsigned int c = 0;
-#if defined(__ARM_NEON)
+#if defined(__ARM_NEON) && defined(ENABLE_FP16)
                   const unsigned int C_aligned = (C / 4) * 4;
                   for (; c < C_aligned; c += 4) {
                     float32x4_t v_id;
@@ -1718,6 +1718,19 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
                     v_acc = vmlaq_f32(v_acc, v_id, v_fk);
                     vst1q_f32(&acc[c], v_acc);
                   }
+#elif defined(__ARM_NEON)
+                  const unsigned int C_aligned_f32 = (C / 4) * 4;
+                  for (; c < C_aligned_f32; c += 4) {
+                    float32x4_t v_id =
+                      vld1q_f32(reinterpret_cast<const float *>(id + c));
+                    float32x4_t v_fk = {static_cast<float>(fk[c * fhfw]),
+                                        static_cast<float>(fk[(c + 1) * fhfw]),
+                                        static_cast<float>(fk[(c + 2) * fhfw]),
+                                        static_cast<float>(fk[(c + 3) * fhfw])};
+                    float32x4_t v_acc = vld1q_f32(&acc[c]);
+                    v_acc = vmlaq_f32(v_acc, v_id, v_fk);
+                    vst1q_f32(&acc[c], v_acc);
+                  }
 #endif
                   for (; c < C; ++c)
                     acc[c] +=
@@ -1727,7 +1740,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
               }
               T *od = outb + (static_cast<size_t>(oh) * OW + ow) * C;
               unsigned int c = 0;
-#if defined(__ARM_NEON)
+#if defined(__ARM_NEON) && defined(ENABLE_FP16)
               if constexpr (std::is_same_v<T, _FP16>) {
                 const unsigned int C_aligned = (C / 8) * 8;
                 for (; c < C_aligned; c += 8) {
@@ -1738,7 +1751,10 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
                   float16x8_t v_res = vcombine_f16(v_out0, v_out1);
                   vst1q_f16(reinterpret_cast<__fp16 *>(od + c), v_res);
                 }
-              } else {
+              } else
+#endif
+#if defined(__ARM_NEON)
+              {
                 const unsigned int C_aligned_f32 = (C / 4) * 4;
                 for (; c < C_aligned_f32; c += 4) {
                   float32x4_t v_acc = vld1q_f32(&acc[c]);
