@@ -23,6 +23,7 @@
 #include <nntrainer_log.h>
 #include <node_exporter.h>
 #include <tensor_dim.h>
+#include <thread_manager.h>
 #include <util_func.h>
 
 namespace nntrainer {
@@ -149,11 +150,11 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
 
   const TensorDim out_dim = output.getDim();
 
-  // NHWC path: channel is physical-innermost, so a channel-axis concat (the
-  // only concat YOLOv11 uses) interleaves per-pixel channel runs. The NCHW
-  // reshape-helper path below assumes channel-major planes and would copy
-  // into the wrong physical offsets, so handle NHWC separately. Only the
-  // channel axis (logical 1) is supported here, matching the graph usage.
+  // NHWC path: channel is physical-innermost, so a channel-axis concat
+  // interleaves per-pixel channel runs. The NCHW reshape-helper path below
+  // assumes channel-major planes and would copy into the wrong physical
+  // offsets, so handle NHWC separately. Only the channel axis (logical 1) is
+  // supported here, matching the graph usage.
   if (out_dim.getFormat() == ml::train::TensorDim::Format::NHWC &&
       concat_dimension_cache == 1) {
     const unsigned int B = out_dim.batch();
@@ -167,26 +168,28 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
       if (input.getDataType() == TensorDim::DataType::FP32) {
         const float *src = input.getData<float>();
         float *dst = output.getData<float>();
+        auto &tm = ThreadManager::Global();
         for (unsigned int b = 0; b < B; ++b) {
           const size_t base = (size_t)b * HW;
-          for (size_t p = 0; p < HW; ++p) {
+          tm.parallel_for(0, HW, [&](size_t p) {
             // src is packed with Ci channels per pixel; dst has out channels.
             const float *s = src + (base + p) * Ci;
             float *d = dst + (base + p) * out_dim.channel() + c_offset;
             std::memcpy(d, s, (size_t)Ci * sizeof(float));
-          }
+          });
         }
       } else if (input.getDataType() == TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16
         const _FP16 *src = input.getData<_FP16>();
         _FP16 *dst = output.getData<_FP16>();
+        auto &tm = ThreadManager::Global();
         for (unsigned int b = 0; b < B; ++b) {
           const size_t base = (size_t)b * HW;
-          for (size_t p = 0; p < HW; ++p) {
+          tm.parallel_for(0, HW, [&](size_t p) {
             const _FP16 *s = src + (base + p) * Ci;
             _FP16 *d = dst + (base + p) * out_dim.channel() + c_offset;
             std::memcpy(d, s, (size_t)Ci * sizeof(_FP16));
-          }
+          });
         }
 #else
         throw std::invalid_argument("Error: enable-fp16 is not enabled");
