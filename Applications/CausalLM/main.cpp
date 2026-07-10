@@ -685,12 +685,16 @@ int main(int argc, char *argv[]) {
       generation_cfg = causallm::LoadJsonFile(generation_config_path);
     }
     json nntr_cfg = causallm::LoadJsonFile(model_path + "/nntr_config.json");
-    resolveNntrConfigPath(nntr_cfg, "tokenizer_file", model_path);
-    resolveNntrConfigPath(nntr_cfg, "embedding_file_name", model_path);
-    resolveNntrConfigPath(nntr_cfg, "ple_file_name", model_path);
-    resolveNntrConfigPath(nntr_cfg, "model_file_name", model_path);
-    resolveNntrConfigPath(nntr_cfg, "binary_config_path", model_path);
-    resolveNntrConfigPath(nntr_cfg, "image_newline_path", model_path);
+    // Resolve relative paths in nntr_config.json against the model directory
+    for (const std::string &key : {
+           "tokenizer_file",
+           "embedding_file_name",
+           "ple_file_name",
+           "sample_input",
+           "yolo_ref_dir"
+         }) {
+      resolveNntrConfigPath(nntr_cfg, key, model_path);
+    }
 
     if (nntr_cfg.contains("system_prompt")) {
       system_head_prompt =

@@ -35,6 +35,9 @@
  *     --fc_dtype <type>   Target dtype for FC layers (default: Q4_0)
  *     --embd_dtype <type> Target dtype for embedding layer (default: FP32)
  *     --lmhead_dtype <type> Target dtype for LM head layer (default: FP32)
+ *     --conv_dtype <type>   Target dtype for conv layers (default: FP32;
+ *                           vision models only, read from nntr_config if
+ * absent)
  *     --output_bin <name> Output weight filename (auto-generated if omitted)
  *     --output_format <fmt> Output container: 'bin' (default) or 'safetensors'
  *     --no_sidecar        Keep the embedding / per-layer-embedding tables
@@ -43,7 +46,7 @@
  *                         (Q4_0/Q6_K embedding; untied lm_head for embedding0;
  *                         a per-layer-embedding model for the PLE table).
  *
- *   Supported data types: FP32, FP16, Q4_0, Q4_K, Q6_K
+ *   Supported data types: FP32, FP16, Q4_0, Q8_0, Q4_K, Q6_K
  *
  *   Example:
  *     # Quantize Qwen3-4B to Q4_0 FC layers (embedding stays FP32):
@@ -100,10 +103,8 @@
 #include "qwen3_embedding.h"
 #include "qwen3_moe_causallm.h"
 #include "qwen3_slim_moe_causallm.h"
-#include "siglip2/siglip2_vision_encoder.h"
-#if !defined(_WIN32)
-#include "bert_decoder/bert_decoder.h"
-#include "screenai_caption/screenai_caption.h"
+#if !defined(_WIN32) && !defined(__ANDROID__)
+#include "timm_vit/timm_vit_transformer.h"
 #endif
 
 using json = nlohmann::json;
@@ -116,11 +117,9 @@ namespace {
  */
 const std::map<std::string, DataType> dtype_str_map = {
   {"FP32", DataType::FP32},   {"FP16", DataType::FP16},
-  {"Q4_0", DataType::Q4_0},   {"Q6_K", DataType::Q6_K},
-  {"Q4_K", DataType::Q4_K},   {"Q8_0", DataType::Q8_0},
-  {"QINT4", DataType::QINT4}, {"QS4CX", DataType::QS4CX},
-  {"NONE", DataType::NONE},
-};
+  {"Q4_0", DataType::Q4_0},   {"Q8_0", DataType::Q8_0},
+  {"Q6_K", DataType::Q6_K},   {"Q4_K", DataType::Q4_K},
+  {"QS4CX", DataType::QS4CX}, {"NONE", DataType::NONE}};
 
 /**
  * @brief Map of string ISA names to ISA enum values
@@ -167,7 +166,8 @@ DataType strToDataType(const std::string &s) {
   auto it = dtype_str_map.find(upper);
   if (it == dtype_str_map.end()) {
     throw std::invalid_argument("Unsupported data type: " + s +
-                                ". Supported: FP32, FP16, Q4_0, Q8_0, Q6_K, Q4_K");
+                                ". Supported: FP32, FP16, Q4_0, Q8_0, Q6_K, "
+                                "Q4_K, QS4CX");
   }
   return it->second;
 }
@@ -218,12 +218,21 @@ std::string generateOutputBinName(const std::string &original_bin,
                                   const std::string &embd_dtype,
                                   const std::string &target_isa) {
   // Extract model name from original (e.g., "nntr_qwen3_4b_fp32.bin" ->
-  // "nntr_qwen3_4b")
+  // "nntr_qwen3_4b"). Use the basename only so a relative model_file_name
+  // (e.g. "../../YOLOv11/yolov11s.safetensors") doesn't leak path components
+  // into the output filename.
   std::string base = original_bin;
-  // Remove .bin extension
-  auto dot_pos = base.rfind(".bin");
-  if (dot_pos != std::string::npos)
-    base = base.substr(0, dot_pos);
+  if (auto slash = base.find_last_of("/\\"); slash != std::string::npos)
+    base = base.substr(slash + 1);
+  // Remove .bin / .safetensors extension
+  for (const auto *ext : {".safetensors", ".bin"}) {
+    auto dot_pos = base.rfind(ext);
+    if (dot_pos != std::string::npos &&
+        dot_pos + std::string(ext).size() == base.size()) {
+      base = base.substr(0, dot_pos);
+      break;
+    }
+  }
 
   // Remove old dtype suffix patterns (e.g., _fp32, _q40_fp32)
   // Common patterns: _fp32, _fp16, _q40, _q6k, _q4k, etc.
@@ -455,6 +464,20 @@ void registerAllModels() {
                             cfg, generation_cfg, nntr_cfg);
                         });
 #endif
+  // Vision models (conv-based, tokenizer-free). Mirrors nntr_causallm
+  // (main.cpp) so nntr_quantize can quantize them through the same Factory.
+#if !defined(_WIN32) && !defined(__ANDROID__)
+  factory.registerModel("TimmViT",
+                        [](json cfg, json generation_cfg, json nntr_cfg) {
+                          return std::make_unique<causallm::TimmViTTransformer>(
+                            cfg, generation_cfg, nntr_cfg);
+                        });
+#endif
+  factory.registerModel("YOLOv11ForDetection",
+                        [](json cfg, json generation_cfg, json nntr_cfg) {
+                          return std::make_unique<causallm::Yolov11>(
+                            cfg, generation_cfg, nntr_cfg);
+                        });
 }
 
 /**
@@ -480,15 +503,12 @@ void printUsage(const char *prog) {
     << "  --embd_dtype <type>   Target dtype for embedding (default: FP32)\n"
     << "  --lmhead_dtype <type> Target dtype for LM head (default: same as "
        "embd_dtype)\n"
-    << "  --act_dtype <type>    Activation dtype recorded in "
-       "model_tensor_type\n"
-    << "                        (default: FP32). Options: FP32, FP16. With "
-       "Q8_0\n"
-    << "                        weights, FP32 selects the W8A8 path (ggml "
-       "re-quantizes\n"
-    << "                        activations to Q8_0); FP16 selects W8A16, "
-       "which is\n"
-    << "                        markedly more accurate.\n"
+    << "  --conv_dtype <type>   Target dtype for conv layers (default: FP32 / "
+       "read from nntr_config).\n"
+    << "                        Vision models only; surface conv names via the "
+       "model's\n"
+    << "                        getQuantizableLayerNames(). No effect on LLM "
+       "backbones.\n"
     << "  --isa <arch>          Target instruction set architecture for "
        "quantized weights\n"
     << "                        (default: DEFAULT). Options: DEFAULT, X86, "
@@ -960,11 +980,8 @@ int main(int argc, char *argv[]) {
   std::string fc_dtype_str = "Q4_0";
   std::string embd_dtype_str = "FP32";
   std::string lmhead_dtype_str = "";
-  // Activation dtype of the emitted model_tensor_type ("<weight>-<activation>").
-  // FP32 activations against Q8_0 weights run ggml's W8A8 path (activations are
-  // dynamically re-quantized to Q8_0 per block); FP16 keeps the activations in
-  // half precision, which roughly halves the end-to-end quantization error.
-  std::string act_dtype_str = ""; // empty: follow the source model_tensor_type
+  std::string conv_dtype_str =
+    ""; // empty = FP32 (default: don't quantize convs)
   std::string isa_str = "DEFAULT";
   std::string output_bin_name = "";
   std::string target_config_path = "";
@@ -983,13 +1000,8 @@ int main(int argc, char *argv[]) {
       embd_dtype_str = argv[++i];
     } else if (arg == "--lmhead_dtype" && i + 1 < argc) {
       lmhead_dtype_str = argv[++i];
-    } else if (arg == "--act_dtype" && i + 1 < argc) {
-      act_dtype_str = argv[++i];
-      if (act_dtype_str != "FP32" && act_dtype_str != "FP16") {
-        std::cerr << "Unknown activation dtype: " << act_dtype_str
-                  << " (expected 'FP32' or 'FP16')\n";
-        return EXIT_FAILURE;
-      }
+    } else if (arg == "--conv_dtype" && i + 1 < argc) {
+      conv_dtype_str = argv[++i];
     } else if (arg == "--isa" && i + 1 < argc) {
       isa_str = argv[++i];
     } else if (arg == "--output_bin" && i + 1 < argc) {
@@ -1063,8 +1075,15 @@ int main(int argc, char *argv[]) {
     std::cout << "[1/5] Loading configurations from: " << model_path << "\n";
 
     json cfg = causallm::LoadJsonFile(model_path + "/config.json");
-    json generation_cfg =
-      causallm::LoadJsonFile(model_path + "/generation_config.json");
+    // generation_config.json is LLM-specific (sampling/eos). Vision models
+    // (e.g. YOLOv11) don't carry one — load only when present, mirroring
+    // nntr_causallm (main.cpp).
+    json generation_cfg = json::object();
+    {
+      const std::string gen_cfg_path = model_path + "/generation_config.json";
+      if (std::filesystem::exists(gen_cfg_path))
+        generation_cfg = causallm::LoadJsonFile(gen_cfg_path);
+    }
     json nntr_cfg = causallm::LoadJsonFile(model_path + "/nntr_config.json");
 
     // If a target config is specified, read dtypes from it
@@ -1077,12 +1096,20 @@ int main(int argc, char *argv[]) {
         embd_dtype_str = target_cfg["embedding_dtype"].get<std::string>();
       if (target_cfg.contains("lmhead_dtype"))
         lmhead_dtype_str = target_cfg["lmhead_dtype"].get<std::string>();
+      if (target_cfg.contains("conv_dtype"))
+        conv_dtype_str = target_cfg["conv_dtype"].get<std::string>();
       if (target_cfg.contains("model_file_name") && output_bin_name.empty())
         output_bin_name = target_cfg["model_file_name"].get<std::string>();
       if (target_cfg.contains("moe_cache_size"))
         target_moe_cache_size =
           target_cfg["moe_cache_size"].get<unsigned int>();
     }
+
+    // Read conv dtype from the model's own nntr_config when not given on the
+    // CLI. Vision models declare conv_dtype there; absent for LLMs (stays FP32
+    // -> no conv quantization, identical to prior behavior).
+    if (conv_dtype_str.empty() && nntr_cfg.contains("conv_dtype"))
+      conv_dtype_str = nntr_cfg["conv_dtype"].get<std::string>();
 
     // Default lmhead_dtype to embd_dtype if not specified
     if (lmhead_dtype_str.empty())
@@ -1095,6 +1122,10 @@ int main(int argc, char *argv[]) {
     DataType fc_dtype = strToDataType(fc_dtype_str);
     DataType embd_dtype = strToDataType(embd_dtype_str);
     DataType lmhead_dtype = strToDataType(lmhead_dtype_str);
+    // conv_dtype defaults to FP32 (no conv quantization) when unspecified —
+    // LLM backbones have no convs, so this preserves their behavior entirely.
+    DataType conv_dtype =
+      conv_dtype_str.empty() ? DataType::FP32 : strToDataType(conv_dtype_str);
 
     // Validate source model is FP32
     std::string src_tensor_type =
@@ -1133,76 +1164,12 @@ int main(int argc, char *argv[]) {
     std::string src_weight_path = model_path + "/" + original_bin;
     std::string dst_weight_path = output_dir + "/" + output_bin_name;
 
-    // Sidecar layout for the PLE and embedding0 tables. By default (kAuto)
-    // a table goes to its own mmap'd file whenever the model qualifies: the
-    // runtime then reads only the rows of the tokens it sees instead of every
-    // backend keeping a resident copy of the whole table (for Gemma-4 with a
-    // Q6_K embedding that is about 2.1 GiB). The payload path is injected
-    // into nntr_cfg so the model wires sidecar_export_path onto the layer
-    // during save. --ple_sidecar / --embd_sidecar turn an unqualified model
-    // into an error; --no_*sidecar keep the table inside the model file.
-    const bool quantized_embd =
-      (embd_dtype == DataType::Q4_0 || embd_dtype == DataType::Q6_K);
-    auto sidecar_blocker = [&](bool table_present, const char *absent_why,
-                               const char *existing_key) -> std::string {
-      if (output_format != "bin")
-        return "supports only the 'bin' output format";
-      if (!quantized_embd)
-        return "requires --embd_dtype Q4_0 or Q6_K (got " +
-               dataTypeToStr(embd_dtype) + ")";
-      if (!table_present)
-        return absent_why;
-      if (!nntr_cfg.value(existing_key, std::string()).empty())
-        return std::string("source model already uses a sidecar (") +
-               existing_key + " set); nothing to extract";
-      return "";
-    };
-    auto resolve_mode = [](SidecarMode mode, const std::string &blocker,
-                           const char *flag) {
-      if (mode == SidecarMode::kOff)
-        return false;
-      if (blocker.empty())
-        return true;
-      if (mode == SidecarMode::kOn)
-        throw std::invalid_argument(std::string(flag) + " " + blocker);
-      return false;
-    };
-
-    const bool has_ple = cfg.contains("hidden_size_per_layer_input") &&
-                         cfg["hidden_size_per_layer_input"].is_number() &&
-                         cfg["hidden_size_per_layer_input"].get<int>() > 0;
-    bool ple_sidecar =
-      resolve_mode(ple_mode,
-                   sidecar_blocker(has_ple,
-                                   "requires a model with per-layer embeddings "
-                                   "(config.json hidden_size_per_layer_input)",
-                                   "ple_file_name"),
-                   "--ple_sidecar");
-
-    // embedding0 is gated on an UNTIED lm_head: a tied head shares the table
-    // and scans every row per decode step, so a sidecar would fault the
-    // whole file back in and save nothing.
-    const bool untied =
-      nntr_cfg.contains("lmhead_untie") && nntr_cfg["lmhead_untie"].get<bool>();
-    bool embd_sidecar = resolve_mode(
-      embd_mode,
-      sidecar_blocker(untied,
-                      "requires an untied lm_head (lmhead_untie=true); a "
-                      "tied lm_head shares the embedding table and would "
-                      "gain nothing",
-                      "embedding_file_name"),
-      "--embd_sidecar");
-
-    const std::string sidecar_base = sidecarBaseName(output_bin_name);
-    const std::string ple_payload_name = sidecar_base + "_ple.bin";
-    const std::string ple_manifest_name = sidecar_base + "_ple.json";
-    const std::string embd_payload_name = sidecar_base + "_embd.bin";
-    const std::string embd_manifest_name = sidecar_base + "_embd.json";
-    if (ple_sidecar)
-      nntr_cfg["ple_sidecar_export"] = output_dir + "/" + ple_payload_name;
-    if (embd_sidecar)
-      nntr_cfg["embd_sidecar_export"] = output_dir + "/" + embd_payload_name;
-
+    // LLM backbones report num_hidden_layers; vision models (e.g. YOLOv11)
+    // don't, so fall back to 0 — buildLayerDtypeMap's FC loop is a no-op then
+    // and the model's getQuantizableLayerNames() supplies the conv names.
+    int num_layers = cfg.contains("num_hidden_layers")
+                       ? cfg["num_hidden_layers"].get<int>()
+                       : 0;
     std::string architecture =
       cfg["architectures"].get<std::vector<std::string>>()[0];
     const json &network_cfg =
@@ -1349,6 +1316,18 @@ int main(int argc, char *argv[]) {
                                         fc_dtype);
     }
 
+    // Vision models surface their quantizable conv layer names via the model
+    // virtual (the public API has no layer enumeration). When a conv target
+    // dtype is requested, assign it to every named conv. FP32 (the default)
+    // is skipped so the convs are saved as-is — identical to prior LLM runs.
+    if (conv_dtype != DataType::FP32 && conv_dtype != DataType::NONE) {
+      auto conv_names = model->getQuantizableLayerNames();
+      for (const auto &name : conv_names)
+        layer_dtype_map[name] = conv_dtype;
+      std::cout << "  Conv dtype:    " << dataTypeToStr(conv_dtype) << " ("
+                << conv_names.size() << " conv layers)\n";
+    }
+
     std::cout << "  Layer dtype mapping (" << layer_dtype_map.size()
               << " layers targeted):\n";
     for (const auto &[name, dt] : layer_dtype_map) {
@@ -1459,15 +1438,8 @@ int main(int argc, char *argv[]) {
     new_nntr_cfg["fc_layer_dtype"] = dataTypeToStr(fc_dtype);
     new_nntr_cfg["embedding_dtype"] = dataTypeToStr(embd_dtype);
     new_nntr_cfg["lmhead_dtype"] = dataTypeToStr(lmhead_dtype);
-    if (target_moe_cache_size.has_value())
-      new_nntr_cfg["moe_cache_size"] = *target_moe_cache_size;
-    // The encoder's patch conv is quantized alongside the FCs for Q8_0 (the
-    // NCHW conv runs the same interleaved int8 GEMM); record its dtype so the
-    // runtime graph declares the matching weight tensor.
-    if ((is_encoder || is_caption) && fc_dtype == DataType::Q8_0)
-      new_nntr_cfg["patch_embed_dtype"] = dataTypeToStr(fc_dtype);
-    // --act_dtype overrides the activation half of model_tensor_type (e.g.
-    // W8A16 from an FP32 source); otherwise it follows the source model.
+    if (conv_dtype != DataType::FP32 && conv_dtype != DataType::NONE)
+      new_nntr_cfg["conv_dtype"] = dataTypeToStr(conv_dtype);
     new_nntr_cfg["model_tensor_type"] =
       act_dtype_str.empty()
         ? buildModelTensorType(dataTypeToStr(fc_dtype), src_tensor_type)
