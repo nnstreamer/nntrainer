@@ -44,8 +44,8 @@ static const BaseStreamerVTable kCallbackStreamerVTable = {
   /*.end =*/&callback_streamer_end,
 };
 
-void callback_streamer_init(CallbackStreamer *self, CausalLmTokenCallback cb,
-                            void *user_data) {
+void callback_streamer_init(CallbackStreamer *self,
+                            CausalLMTokenCallback callback, void *user_data) {
   if (self == nullptr) {
     return;
   }

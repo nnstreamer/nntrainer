@@ -1,5 +1,4 @@
 LOCAL_PATH := $(call my-dir)
-CAUSALLM_JNI_PATH := $(LOCAL_PATH)
 
 # This Android.mk is a test-only harness. Production CausalLM libraries,
 # executables, and tools are built once by app_build/meson.build.
@@ -11,6 +10,8 @@ endif
 ifndef NNTRAINER_ROOT
 NNTRAINER_ROOT := $(LOCAL_PATH)/../../..
 endif
+
+NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/builddir/android_build_result/include/nntrainer
 
 # Common Includes Definition
 #
@@ -55,14 +56,6 @@ CAUSALLM_COMMON_INCLUDES := \
     $(LOCAL_PATH)/../models/deberta_v2 \
     $(LOCAL_PATH)/../models/gemma4 \
     $(LOCAL_PATH)/../models/xlm_roberta \
-    $(LOCAL_PATH)/../models/lfm2 \
-    $(LOCAL_PATH)/../api \
-    $(LOCAL_PATH)/../xgrammar/include \
-    $(LOCAL_PATH)/../xgrammar/3rdparty/picojson \
-    $(LOCAL_PATH)/../xgrammar/3rdparty/dlpack/include \
-    $(LOCAL_PATH)/../models/siglip2 \
-    $(LOCAL_PATH)/../models/bert_decoder \
-    $(LOCAL_PATH)/../models/screenai_caption \
     $(LOCAL_PATH)/../third_party/minja/include \
     $(LOCAL_PATH)/../third_party \
     $(NNTRAINER_ROOT)/nntrainer/utils \
@@ -70,30 +63,16 @@ CAUSALLM_COMMON_INCLUDES := \
     $(NNTRAINER_ROOT)/nntrainer/tensor/cl_operations \
     $(NNTRAINER_ROOT)/nntrainer/layers/llm \
 
-# Common compile flags. -std=c++17/-fexceptions/-frtti come from Application.mk
-# (APP_CPPFLAGS); -march and the ABI defines are inherited from the prebuilt
-# nntrainer modules below via LOCAL_EXPORT_CFLAGS.
-#
-# ENABLE_OPENCL is one of those inherited defines and must not be repeated
-# here: it selects the app's GPU-routed layer implementations (the cl paths
-# inside mha_core) and it also gates the cl_context.h member of engine.h, and
-# cl_context.h is installed only when nntrainer itself was configured with
-# -Denable-opencl=true. Hardcoding the define makes the app disagree with the
-# library it links, which is an ABI break on a CPU-only prebuilt rather than a
-# missing feature. Build nntrainer with -Denable-opencl=true instead
-# (build_android.sh forwards -D* verbatim) and the define arrives with the
-# prebuilt export.
-CAUSALLM_COMMON_CFLAGS := -O3 -ffast-math \
-    -Wno-nan-infinity-disabled -Wno-deprecated-literal-operator
+# Prebuilt nntrainer libraries
+include $(CLEAR_VARS)
+LOCAL_MODULE := nntrainer
+LOCAL_SRC_FILES := $(NNTRAINER_ROOT)/builddir/android_build_result/lib/$(TARGET_ARCH_ABI)/libnntrainer.so
+include $(PREBUILT_SHARED_LIBRARY)
 
-# Prebuilt nntrainer libraries. The generated Android.mk exports the include
-# paths and ABI-affecting -march/FP16 flags.
-NNTRAINER_PREBUILT_MK := $(NNTRAINER_ROOT)/builddir/android_build_result/Android.mk
-ifeq ($(wildcard $(NNTRAINER_PREBUILT_MK)),)
-$(error $(NNTRAINER_PREBUILT_MK) not found. Run ../build_android.sh first)
-endif
-include $(NNTRAINER_PREBUILT_MK)
-LOCAL_PATH := $(CAUSALLM_JNI_PATH)
+include $(CLEAR_VARS)
+LOCAL_MODULE := ccapi-nntrainer
+LOCAL_SRC_FILES := $(NNTRAINER_ROOT)/builddir/android_build_result/lib/$(TARGET_ARCH_ABI)/libccapi-nntrainer.so
+include $(PREBUILT_SHARED_LIBRARY)
 
 # Canonical Meson-built CausalLM core. Keep the source path relative to this
 # Android.mk because ndk-build requires LOCAL_SRC_FILES to be relative.
@@ -112,9 +91,15 @@ include $(PREBUILT_SHARED_LIBRARY)
 # Build libcausallm_core.so (shared library - without api)
 include $(CLEAR_VARS)
 
-LOCAL_CFLAGS += $(CAUSALLM_COMMON_CFLAGS)
+LOCAL_ARM_NEON := true
+LOCAL_CFLAGS += -std=c++17 -Ofast -mcpu=cortex-a53 -Ilz4-nougat/lib -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1 -march=armv8.2-a+fp16+dotprod+i8mm -DUSE_NEON=1 -mtune=cortex-a76 -O3 -ffast-math -Wno-nan-infinity-disabled -Wno-deprecated-literal-operator
+LOCAL_LDFLAGS += -Llz4-nougat/lib/obj/local/$(TARGET_ARCH_ABI)/
+LOCAL_CXXFLAGS += -std=c++17 -frtti
+LOCAL_CFLAGS += -pthread -fexceptions -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1 -march=armv8.2-a+fp16+dotprod+i8mm -DUSE_NEON=1 -mtune=cortex-a76 -O3 -ffast-math -Wno-nan-infinity-disabled -Wno-deprecated-literal-operator
+LOCAL_LDFLAGS += -fexceptions -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1 -march=armv8.2-a+fp16+dotprod+i8mm -DUSE_NEON=1 -mtune=cortex-a76 -O3 -ffast-math
+LOCAL_ARM_MODE := arm
 LOCAL_MODULE := causallm_core
-LOCAL_LDLIBS := -llog -landroid
+LOCAL_LDLIBS := -llog -landroid -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1 -march=armv8.2-a+fp16+dotprod+i8mm -DUSE_NEON=1
 
 LOCAL_SRC_FILES := \
     ../chat_template.cpp \
@@ -143,8 +128,6 @@ LOCAL_SRC_FILES := \
     ../layers/lm_head.cpp \
     ../models/qwen3_moe/qwen_moe_layer.cpp \
     ../layers/reshaped_rms_norm.cpp \
-    ../layers/custom_multiply.cpp \
-    ../layers/causal_conv1d_layer.cpp \
     ../layers/rms_norm.cpp \
     ../layers/swiglu.cpp \
     ../layers/tie_word_embedding.cpp \
@@ -156,7 +139,6 @@ LOCAL_SRC_FILES := \
     ../models/gemma3/gemma3_causallm.cpp \
     ../models/gemma3/embedding_gemma.cpp \
     ../models/gemma4/gemma4_causallm.cpp \
-    ../models/lfm2/lfm2_causallm.cpp \
     ../models/gemma3/function.cpp \
     ../models/timm_vit/timm_vit_transformer.cpp \
     ../models/deberta_v2/deberta_v2.cpp \
@@ -169,16 +151,21 @@ LOCAL_SRC_FILES := \
 LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
 LOCAL_STATIC_LIBRARIES := tokenizers_c
 
-LOCAL_C_INCLUDES += $(CAUSALLM_COMMON_INCLUDES)
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES) $(CAUSALLM_COMMON_INCLUDES)
 
 include $(BUILD_SHARED_LIBRARY)
 
 # Build libcausallm_api.so (shared library - api only)
 include $(CLEAR_VARS)
 
-LOCAL_CFLAGS += $(CAUSALLM_COMMON_CFLAGS)
+LOCAL_ARM_NEON := true
+LOCAL_CFLAGS += -std=c++17 -Ofast -mcpu=cortex-a53 -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1 -march=armv8.2-a+fp16+dotprod+i8mm -DUSE_NEON=1 -mtune=cortex-a76 -O3 -ffast-math -Wno-nan-infinity-disabled -Wno-deprecated-literal-operator
+LOCAL_CXXFLAGS += -std=c++17 -frtti
+LOCAL_CFLAGS += -pthread -fexceptions -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1 -march=armv8.2-a+fp16+dotprod+i8mm -DUSE_NEON=1 -mtune=cortex-a76 -O3 -ffast-math -Wno-nan-infinity-disabled -Wno-deprecated-literal-operator
+LOCAL_LDFLAGS += -fexceptions -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1 -march=armv8.2-a+fp16+dotprod+i8mm -DUSE_NEON=1 -mtune=cortex-a76 -O3 -ffast-math
+LOCAL_ARM_MODE := arm
 LOCAL_MODULE := causallm_api
-LOCAL_LDLIBS := -llog -landroid
+LOCAL_LDLIBS := -llog -landroid -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1 -march=armv8.2-a+fp16+dotprod+i8mm -DUSE_NEON=1
 
 LOCAL_SRC_FILES := \
     ../api/causal_lm_api.cpp \
@@ -188,7 +175,7 @@ LOCAL_SRC_FILES := \
 LOCAL_SHARED_LIBRARIES := causallm_core nntrainer ccapi-nntrainer
 LOCAL_STATIC_LIBRARIES := tokenizers_c
 
-LOCAL_C_INCLUDES += $(CAUSALLM_COMMON_INCLUDES) \
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES) $(CAUSALLM_COMMON_INCLUDES) \
     $(LOCAL_PATH)/../api
 
 include $(BUILD_SHARED_LIBRARY)
@@ -196,32 +183,44 @@ include $(BUILD_SHARED_LIBRARY)
 # Build nntrainer_causallm executable
 include $(CLEAR_VARS)
 
-LOCAL_CFLAGS += $(CAUSALLM_COMMON_CFLAGS)
+LOCAL_ARM_NEON := true
+LOCAL_CFLAGS += -std=c++17 -Ofast -mcpu=cortex-a53 -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1 -march=armv8.2-a+fp16+dotprod+i8mm -DUSE_NEON=1 -mtune=cortex-a76 -O3 -ffast-math -Wno-nan-infinity-disabled -Wno-deprecated-literal-operator
+LOCAL_CXXFLAGS += -std=c++17 -frtti
+LOCAL_CFLAGS += -pthread -fexceptions -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1 -march=armv8.2-a+fp16+dotprod+i8mm -DUSE_NEON=1 -mtune=cortex-a76 -O3 -ffast-math -Wno-nan-infinity-disabled -Wno-deprecated-literal-operator
+LOCAL_LDFLAGS += -fexceptions -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1 -march=armv8.2-a+fp16+dotprod+i8mm -DUSE_NEON=1 -mtune=cortex-a76 -O3 -ffast-math
+LOCAL_MODULE_TAGS := optional
+LOCAL_ARM_MODE := arm
 LOCAL_MODULE := nntrainer_causallm
-LOCAL_LDLIBS := -llog -landroid
+LOCAL_LDLIBS := -llog -landroid -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1 -march=armv8.2-a+fp16+dotprod+i8mm -DUSE_NEON=1
 
 LOCAL_SRC_FILES := ../main.cpp
 
 LOCAL_SHARED_LIBRARIES := causallm_core nntrainer ccapi-nntrainer
 LOCAL_STATIC_LIBRARIES := tokenizers_c
 
-LOCAL_C_INCLUDES += $(CAUSALLM_COMMON_INCLUDES)
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES) $(CAUSALLM_COMMON_INCLUDES)
 
 include $(BUILD_EXECUTABLE)
 
 # Build test_api executable
 include $(CLEAR_VARS)
 
-LOCAL_CFLAGS += $(CAUSALLM_COMMON_CFLAGS)
+LOCAL_ARM_NEON := true
+LOCAL_CFLAGS += -std=c++17 -Ofast -mcpu=cortex-a53 -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1 -march=armv8.2-a+fp16+dotprod+i8mm -DUSE_NEON=1 -mtune=cortex-a76 -O3 -ffast-math -Wno-nan-infinity-disabled -Wno-deprecated-literal-operator
+LOCAL_CXXFLAGS += -std=c++17 -frtti
+LOCAL_CFLAGS += -pthread -fexceptions -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1 -march=armv8.2-a+fp16+dotprod+i8mm -DUSE_NEON=1 -mtune=cortex-a76 -O3 -ffast-math -Wno-nan-infinity-disabled -Wno-deprecated-literal-operator
+LOCAL_LDFLAGS += -fexceptions -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1 -march=armv8.2-a+fp16+dotprod+i8mm -DUSE_NEON=1 -mtune=cortex-a76 -O3 -ffast-math
+LOCAL_MODULE_TAGS := optional
+LOCAL_ARM_MODE := arm
 LOCAL_MODULE := test_api
-LOCAL_LDLIBS := -llog -landroid
+LOCAL_LDLIBS := -llog -landroid -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1 -march=armv8.2-a+fp16+dotprod+i8mm -DUSE_NEON=1
 
 LOCAL_SRC_FILES := ../api/test_api.cpp
 
 LOCAL_SHARED_LIBRARIES := causallm_api causallm_core nntrainer ccapi-nntrainer
 LOCAL_STATIC_LIBRARIES := tokenizers_c
 
-LOCAL_C_INCLUDES += $(CAUSALLM_COMMON_INCLUDES) \
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES) $(CAUSALLM_COMMON_INCLUDES) \
     $(LOCAL_PATH)/../api
 
 include $(BUILD_EXECUTABLE)
@@ -230,9 +229,16 @@ include $(BUILD_EXECUTABLE)
 # Build nntr_quantize executable
 include $(CLEAR_VARS)
 
-LOCAL_CFLAGS += $(CAUSALLM_COMMON_CFLAGS)
+LOCAL_ARM_NEON := true
+LOCAL_CFLAGS += -std=c++17 -Ofast -mcpu=cortex-a53 -Ilz4-nougat/lib -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1 -march=armv8.2-a+fp16+dotprod+i8mm -DUSE_NEON=1 -mtune=cortex-a76 -O3 -ffast-math -Wno-nan-infinity-disabled -Wno-deprecated-literal-operator
+LOCAL_LDFLAGS += -Llz4-nougat/lib/obj/local/$(TARGET_ARCH_ABI)/
+LOCAL_CXXFLAGS += -std=c++17 -frtti
+LOCAL_CFLAGS += -pthread -fexceptions -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1 -march=armv8.2-a+fp16+dotprod+i8mm -DUSE_NEON=1 -mtune=cortex-a76 -O3 -ffast-math -Wno-nan-infinity-disabled -Wno-deprecated-literal-operator
+LOCAL_LDFLAGS += -fexceptions -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1 -march=armv8.2-a+fp16+dotprod+i8mm -DUSE_NEON=1 -mtune=cortex-a76 -O3 -ffast-math
+LOCAL_MODULE_TAGS := optional
+LOCAL_ARM_MODE := arm
 LOCAL_MODULE := nntr_quantize
-LOCAL_LDLIBS := -llog -landroid
+LOCAL_LDLIBS := -llog -landroid -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1 -march=armv8.2-a+fp16+dotprod+i8mm -DUSE_NEON=1
 
 # Source files
 LOCAL_SRC_FILES := ../quantize.cpp \
@@ -259,8 +265,6 @@ LOCAL_SRC_FILES := ../quantize.cpp \
     ../layers/mha_core.cpp \
     ../models/qwen3_moe/qwen_moe_layer.cpp \
     ../layers/reshaped_rms_norm.cpp \
-    ../layers/custom_multiply.cpp \
-    ../layers/causal_conv1d_layer.cpp \
     ../layers/rms_norm.cpp \
     ../layers/swiglu.cpp \
     ../layers/tie_word_embedding.cpp\
@@ -273,7 +277,6 @@ LOCAL_SRC_FILES := ../quantize.cpp \
     ../models/gemma3/gemma3_causallm.cpp \
     ../models/gemma3/embedding_gemma.cpp \
     ../models/gemma4/gemma4_causallm.cpp \
-    ../models/lfm2/lfm2_causallm.cpp \
     ../models/gemma3/function.cpp \
     ../models/deberta_v2/deberta_v2.cpp \
     ../models/bert/bert_transformer.cpp \
@@ -285,7 +288,7 @@ LOCAL_SRC_FILES := ../quantize.cpp \
 LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
 LOCAL_STATIC_LIBRARIES := tokenizers_c
 
-LOCAL_C_INCLUDES += \
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES) \
     $(LOCAL_PATH)/.. \
     $(LOCAL_PATH)/../layers \
     $(LOCAL_PATH)/../models \
@@ -301,7 +304,6 @@ LOCAL_C_INCLUDES += \
     $(LOCAL_PATH)/../models/deberta_v2 \
     $(LOCAL_PATH)/../models/gemma4 \
     $(LOCAL_PATH)/../models/xlm_roberta \
-    $(LOCAL_PATH)/../models/lfm2 \
     $(LOCAL_PATH)/../models/timm_vit
 
 include $(BUILD_EXECUTABLE)
@@ -309,16 +311,24 @@ include $(BUILD_EXECUTABLE)
 # Build nntr_safetensors_info executable
 include $(CLEAR_VARS)
 
-LOCAL_CFLAGS += $(CAUSALLM_COMMON_CFLAGS)
+LOCAL_ARM_NEON := true
+LOCAL_CFLAGS += -std=c++17 -Ofast -mcpu=cortex-a53 -Ilz4-nougat/lib -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1 -march=armv8.2-a+fp16+dotprod+i8mm -DUSE_NEON=1 -mtune=cortex-a76 -O3 -ffast-math -Wno-nan-infinity-disabled -Wno-deprecated-literal-operator
+LOCAL_LDFLAGS += -Llz4-nougat/lib/obj/local/$(TARGET_ARCH_ABI)/
+LOCAL_CXXFLAGS += -std=c++17 -frtti
+LOCAL_CFLAGS += -pthread -fexceptions -fopenmp -static-openmp -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1 -march=armv8.2-a+fp16+dotprod+i8mm -DUSE_NEON=1 -mtune=cortex-a76 -O3 -ffast-math -Wno-nan-infinity-disabled -Wno-deprecated-literal-operator
+LOCAL_LDFLAGS += -fexceptions -fopenmp -static-openmp -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1 -march=armv8.2-a+fp16+dotprod+i8mm -DUSE_NEON=1 -mtune=cortex-a76 -O3 -ffast-math
+LOCAL_MODULE_TAGS := optional
+LOCAL_ARM_MODE := arm
 LOCAL_MODULE := nntr_safetensors_info
-LOCAL_LDLIBS := -llog -landroid
+LOCAL_LDLIBS := -llog -landroid -fopenmp -static-openmp -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1 -march=armv8.2-a+fp16+dotprod+i8mm -DUSE_NEON=1
 
 # Source files (header-only inspector; uses safetensors_util from libnntrainer)
 LOCAL_SRC_FILES := ../safetensors_info.cpp
 
 LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
 
-LOCAL_C_INCLUDES += $(LOCAL_PATH)/..
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES) \
+    $(LOCAL_PATH)/..
 
 include $(BUILD_EXECUTABLE)
 
@@ -337,8 +347,16 @@ LOCAL_SRC_FILES := \
 include $(BUILD_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
+
+LOCAL_ARM_NEON := true
+LOCAL_ARM_MODE := arm
+LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := unittest_causallm_models
-LOCAL_CFLAGS += $(CAUSALLM_COMMON_CFLAGS) -Igoogletest/include -Igoogletest/
+
+CAUSALLM_TEST_FLAGS := -pthread -fexceptions -frtti -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1 -march=armv8.2-a+fp16+dotprod+i8mm -DUSE_NEON=1 -mtune=cortex-a76 -O3 -ffast-math -Wno-nan-infinity-disabled -Wno-deprecated-literal-operator
+LOCAL_CFLAGS += -std=c++17 $(CAUSALLM_TEST_FLAGS) -Igoogletest/include -Igoogletest/
+LOCAL_CXXFLAGS += -std=c++17 -frtti
+LOCAL_LDFLAGS += -fexceptions
 LOCAL_LDLIBS := -llog -landroid
 
 UNITTEST_MODELS_DIR := ../../../test/unittest/models
@@ -362,14 +380,12 @@ LOCAL_SRC_FILES := \
     $(UNITTEST_MODELS_DIR)/unittest_causallm_qwen2_embedding_reference.cpp \
     $(UNITTEST_MODELS_DIR)/unittest_causallm_embedding_gemma_reference.cpp \
     $(UNITTEST_MODELS_DIR)/unittest_causallm_tinybert_reference.cpp \
-    $(UNITTEST_MODELS_DIR)/unittest_causallm_deberta_v2_reference.cpp \
-    $(UNITTEST_MODELS_DIR)/unittest_causallm_xlm_roberta_reference.cpp \
-    $(UNITTEST_MODELS_DIR)/unittest_causallm_lfm2.cpp \
-    $(UNITTEST_MODELS_DIR)/unittest_causallm_lfm2_reference.cpp
+    $(UNITTEST_MODELS_DIR)/unittest_causallm_deberta_v2_reference.cpp
 
 LOCAL_SHARED_LIBRARIES := causallm nntrainer ccapi-nntrainer
 LOCAL_STATIC_LIBRARIES := googletest_main
-LOCAL_C_INCLUDES += $(CAUSALLM_COMMON_INCLUDES) \
+
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES) $(CAUSALLM_COMMON_INCLUDES) \
     $(LOCAL_PATH)/$(GTEST_PATH)/include \
     $(LOCAL_PATH)/../api \
     $(LOCAL_PATH)/$(UNITTEST_MODELS_DIR)

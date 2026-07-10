@@ -54,7 +54,7 @@ typedef int (*CausalLmTokenCallback)(const char *delta, void *user_data);
  */
 typedef struct {
   BaseStreamer base;
-  CausalLmTokenCallback callback;
+  CausalLMTokenCallback callback;
   void *user_data;
   int cancelled; /**< sticky: once set to non-zero, put() becomes a no-op. */
 } CallbackStreamer;
@@ -67,7 +67,7 @@ typedef struct {
  * @param user_data Opaque pointer forwarded to @c cb.
  */
 WIN_EXPORT void callback_streamer_init(CallbackStreamer *self,
-                                       CausalLmTokenCallback cb,
+                                       CausalLMTokenCallback callback,
                                        void *user_data);
 
 #ifdef __cplusplus

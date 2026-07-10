@@ -38,7 +38,7 @@ The cached model is a variant of the slim model that caches activated experts. I
 
 ## Directory Structure
 Each model directory typically contains:
-- `*_causallm.cpp`: The model implementation class.
+- `*_causal_lm.cpp`: The model implementation class.
 - `*_layer.cpp`: (Optional) Model-specific custom layer implementations.
 - `meson.build`: Build configuration for the model.
 - `README.md`: Specific details about the model.
