@@ -327,7 +327,14 @@ void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output,
   auto &pooling_type = std::get<props::PoolingType>(pooling2d_props).get();
 
   unsigned int channel = in.channel();
-  auto [pt, pb, pl, pr] = padding;
+  // Plain locals rather than structured bindings: the NHWC pooling lambda below
+  // captures by reference, and clang (c++20, /permissive-) rejects capturing
+  // structured bindings ("reference to local binding declared in enclosing
+  // function"). padding is [top, bottom, left, right].
+  unsigned int pt = padding[0];
+  unsigned int pb = padding[1];
+  unsigned int pl = padding[2];
+  unsigned int pr = padding[3];
 
   int in_height = in.height();
   int in_width = in.width();

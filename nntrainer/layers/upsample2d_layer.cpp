@@ -121,22 +121,22 @@ static void upsampleForwardT(
       const size_t in_hwc = (size_t)iH * iW * Co;
       const size_t out_hwc = (size_t)oH * oW * Co;
 
-      std::vector<T> expanded(oW * Co);
+      std::vector<T> expanded((size_t)oW * Co);
       for (unsigned int b = 0; b < B; ++b) {
-        const T *in_b = in_d + b * in_hwc;
-        T *out_b = out_d + b * out_hwc;
+        const T *in_b = in_d + (size_t)b * in_hwc;
+        T *out_b = out_d + (size_t)b * out_hwc;
         for (unsigned int ih = 0; ih < iH; ++ih) {
           const T *in_row = in_b + (size_t)ih * iW * Co;
           T *e = expanded.data();
           for (unsigned int iw = 0; iw < iW; ++iw) {
-            const T *v = in_row + iw * Co;
+            const T *v = in_row + (size_t)iw * Co;
             for (unsigned int rx = 0; rx < kw; ++rx) {
-              std::memcpy(e + (iw * kw + rx) * Co, v, Co * sizeof(T));
+              std::memcpy(e + ((size_t)iw * kw + rx) * Co, v, Co * sizeof(T));
             }
           }
           for (unsigned int ry = 0; ry < kh; ++ry) {
-            T *out_row = out_b + (size_t)(ih * kh + ry) * oW * Co;
-            std::memcpy(out_row, e, oW * Co * sizeof(T));
+            T *out_row = out_b + ((size_t)ih * kh + ry) * oW * Co;
+            std::memcpy(out_row, e, (size_t)oW * Co * sizeof(T));
           }
         }
       }
