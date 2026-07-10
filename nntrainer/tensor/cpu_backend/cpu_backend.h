@@ -18,7 +18,6 @@
   defined(__ANDROID__) || defined(__arm__) || defined(_M_ARM) ||               \
   defined(_M_ARM64)
 #include <arm_compute_backend.h>
-#define NNTR_CPU_HAS_Q6_K_Q8_K_DOT 1
 // The im2col-fused q4_0 conv GEMM rides the ARM i8mm 4x8 micro-kernel; only the
 // ARM backend implements it. Single source of truth for both the ComputeOps
 // supports_*() flag and the conv layer's path/scratch selection.
@@ -26,7 +25,6 @@
 #elif defined(__x86_64__) || defined(__i586__) || defined(_M_X64) ||           \
   defined(_M_IX86)
 #include <x86_compute_backend.h>
-#define NNTR_CPU_HAS_Q6_K_Q8_K_DOT 1
 #define NNTR_HAS_Q4_0_INDIRECT_CONV 0
 #else
 #include <fallback.h>
@@ -1116,29 +1114,6 @@ extern void gemm_q4_0(const unsigned int M, const unsigned int N,
                       const unsigned int ldc);
 
 /**
- * @brief q4_0 GEMM against several weights : A (M,K) * Ws[i].T (Ns[i],K)
- *
- * Quantizes A to q8_0 once and walks every weight inside a single parallel
- * region, so the activation packing and the thread barrier are paid once
- * rather than once per weight. Only profitable for M > 1.
- *
- * @param M Original row size of output
- * @param Ns Original col size of each output
- * @param K Hidden size, shared by every weight
- * @param A Input activation to be online-runtime quantized to q8_0 format
- * @param lda Leading dimension of A
- * @param Bs Offline-quantized transposed weights
- * @param ldbs Leading dimension of each B
- * @param Cs float* outputs
- * @param ldcs Leading dimension of each C
- */
-extern void gemm_q4_0(const unsigned int M, std::vector<unsigned int> Ns,
-                      const unsigned int K, const float *A,
-                      const unsigned int lda, std::vector<void *> Bs,
-                      std::vector<unsigned int> ldbs, std::vector<float *> Cs,
-                      std::vector<unsigned int> ldcs);
-
-/**
  * @brief q8_0 GEMM : A (M,K) * W.T (N,K) = O (M,N)
  */
 template <typename T = float>
@@ -1179,6 +1154,36 @@ extern void gemm_q4_0_indirect_conv(const unsigned int M, const unsigned int N,
  * @param C  _FP16* output [M, N]
  */
 extern void gemm_q4_0_indirect_conv_fp16(
+  const unsigned int M, const unsigned int N, const unsigned int K,
+  const _FP16 *in, const nntrainer::ConvGatherParams &geom, const void *B,
+  const unsigned int ldb, _FP16 *C, const unsigned int ldc);
+
+/**
+ * @brief Q8_0-activation q4_0 conv GEMM (ARM-only; x86 NYI stub). Callers
+ * gate on supports_gemm_q4_0_indirect_conv_q8_0().
+ *
+ * @param in batch-sliced contiguous NCHW q8_0-packed input
+ * @param C  _FP16* output [M, N]
+ */
+extern void gemm_q4_0_indirect_conv_q8_0(
+  const unsigned int M, const unsigned int N, const unsigned int K,
+  const void *in, const nntrainer::ConvGatherParams &geom, const void *B,
+  const unsigned int ldb, _FP16 *C, const unsigned int ldc);
+
+/**
+ * @brief Q8_0-activation q8_0 conv GEMM, Q8_0 weight (ARM-only; x86 NYI
+ * stub). Callers gate on supports_gemm_q8_0_indirect_conv_q8_0().
+ */
+extern void gemm_q8_0_indirect_conv_q8_0(
+  const unsigned int M, const unsigned int N, const unsigned int K,
+  const void *in, const nntrainer::ConvGatherParams &geom, const void *B,
+  const unsigned int ldb, _FP16 *C, const unsigned int ldc);
+
+/**
+ * @brief FP16-activation q8_0 conv GEMM, Q8_0 weight / W8A16 (ARM-only; x86
+ * NYI stub). Callers gate on supports_gemm_q8_0_indirect_conv_fp16().
+ */
+extern void gemm_q8_0_indirect_conv_fp16(
   const unsigned int M, const unsigned int N, const unsigned int K,
   const _FP16 *in, const nntrainer::ConvGatherParams &geom, const void *B,
   const unsigned int ldb, _FP16 *C, const unsigned int ldc);
