@@ -1007,14 +1007,6 @@ void gemm_q4_0(const unsigned int M, const unsigned int N, const unsigned int K,
                const unsigned int ldb, T *C, const unsigned int ldc);
 
 /**
- * @brief q4_0 GEMM against several weights : A (M,K) * Ws[i].T (Ns[i],K)
- *
- * The fallback has no batched kernel, so it simply walks the weights.
- */
-void gemm_q4_0(const unsigned int M, std::vector<unsigned int> Ns,
-               const unsigned int K, const float *A, const unsigned int lda,
-               std::vector<void *> Bs, std::vector<unsigned int> ldbs,
-               std::vector<float *> Cs, std::vector<unsigned int> ldcs);
  * @brief q8_0 GEMM (scalar fallback). See __fallback_gemm_q8_0 for semantics.
  */
 template <typename T = float>
@@ -1323,6 +1315,7 @@ template <typename T = float>
 void clamp(const T *input, T *output, size_t length,
            T lower_bound = std::numeric_limits<T>::lowest(),
            T upper_bound = std::numeric_limits<T>::max());
+
 /**
  * @brief Depthwise convolution FP32 free function (fallback backend).
  *        Delegates to __fallback_depthwise_conv2d_fp32.
@@ -1352,6 +1345,7 @@ void depthwise_conv2d_fp16(const _FP16 *input, const float *kernel,
                            unsigned int dilation_h, unsigned int dilation_w);
 #endif
 
+} /* namespace nntrainer */
 
 /**
  * @brief     Create a Q4_0 weights (without XOR 0x88) from int4 weights
