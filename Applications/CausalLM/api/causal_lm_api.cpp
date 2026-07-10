@@ -49,7 +49,7 @@
 
 using json = nlohmann::json;
 
-static std::unique_ptr<causallm::Transformer> g_model;
+static std::unique_ptr<causallm::Model> g_model;
 static std::mutex g_mutex;
 // cancelModel() cannot take g_mutex, so this flag is the lock-free published
 // loaded-model predicate. It is set only after g_model is ready to run.
@@ -165,7 +165,7 @@ void setBeforeCancelRequestHookForTest(BeforeCancelRequestHook hook,
   g_before_cancel_request_user_data = user_data;
 }
 
-void setModelForTest(std::unique_ptr<causallm::Transformer> model,
+void setModelForTest(std::unique_ptr<causallm::Model> model,
                      const std::string &architecture) {
   std::lock_guard<std::mutex> lock(g_mutex);
   {
