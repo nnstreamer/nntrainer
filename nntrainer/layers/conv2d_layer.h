@@ -140,6 +140,9 @@ private:
              props::FusedActivation>
     conv_props;
 
+#ifdef ENABLE_FP16
+  std::vector<_FP16> repacked_conv0_weights_fp16;
+#endif
   std::array<unsigned int, 5> wt_idx; /**< indices of the weights and tensors */
   ActiFunc acti_func;                 /**< inline fused activation; inert unless
                                            fused_activation is set by the FusionRealizer */
