@@ -19,6 +19,7 @@ subdir('siglip2')
 subdir('gemma4')
 subdir('timm_vit')
 subdir('lfm2')
+subdir('YOLOv7/jni')
 if get_option('platform') != 'windows'
     subdir('bert')
     subdir('xlm_roberta')
