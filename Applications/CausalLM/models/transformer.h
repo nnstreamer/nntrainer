@@ -593,8 +593,6 @@ protected:
    */
   virtual void registerCustomLayers();
 
-
-
   /** tokenizer */
   std::unique_ptr<tokenizers::Tokenizer> tokenizer;
   std::future<std::unique_ptr<tokenizers::Tokenizer>>

@@ -690,13 +690,9 @@ int main(int argc, char *argv[]) {
     // initializer list holds const char * literals that are converted to
     // temporary std::string objects, and binding those temporaries to a
     // const reference is flagged by -Werror=range-loop-construct.
-    for (const std::string key : {
-           "tokenizer_file",
-           "embedding_file_name",
-           "ple_file_name",
-           "sample_input",
-           "yolo_ref_dir"
-         }) {
+    for (const std::string key :
+         {"tokenizer_file", "embedding_file_name", "ple_file_name",
+          "sample_input", "yolo_ref_dir"}) {
       resolveNntrConfigPath(nntr_cfg, key, model_path);
     }
 

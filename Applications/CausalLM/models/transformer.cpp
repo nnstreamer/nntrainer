@@ -60,10 +60,6 @@ namespace causallm {
  * @brief Get model format from weight file extension.
  */
 
-
-/**
- * @brief Load a file as a binary string.
- */
 std::string LoadBytesFromFile(const std::string &path) {
   std::ifstream file(path, std::ios::binary | std::ios::ate);
   if (!file.is_open()) {
@@ -575,7 +571,6 @@ std::vector<std::string> Transformer::buildEmbeddingLayerProperties(
 /**
  * @brief Load model weights from a binary nntrainer model file.
  */
-
 
 /**
  * @brief Run a transformer model for a prompt.

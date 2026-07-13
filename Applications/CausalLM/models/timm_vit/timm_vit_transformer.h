@@ -45,6 +45,14 @@ public:
    */
   Tensor createPatchEmbed(Tensor input);
 
+  // The 2-arg ViT variants below take a single input tensor, while the base
+  // Transformer::createAttention / createMlp expose the (seq_len, n_heads,
+  // ..., ...) causal-LM signatures. Bring the base overloads into scope so
+  // the ViT-specific 2-arg versions overload them instead of hiding them
+  // (which -Werror=overloaded-virtual rejects).
+  using Transformer::createAttention;
+  using Transformer::createMlp;
+
   /**
    * @brief Create a ViT self-attention block for a transformer layer.
    */

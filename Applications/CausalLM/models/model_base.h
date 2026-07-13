@@ -7,7 +7,8 @@
  * @see    https://github.com/nntrainer/nntrainer
  * @author Seungbaek Hong <sb92.hong@samsung.com>
  * @bug    No known bugs except for NYI items
- * @brief  Base class for all models (CausalLM, Vision, etc.) in the application.
+ * @brief  Base class for all models (CausalLM, Vision, etc.) in the
+ * application.
  */
 
 #ifndef __MODEL_BASE_H__
@@ -64,7 +65,8 @@ public:
 
   virtual void initialize() = 0;
 
-  inline ml::train::ModelFormat formatFromExtension(const std::string &weight_path) {
+  inline ml::train::ModelFormat
+  formatFromExtension(const std::string &weight_path) {
     const auto dot = weight_path.find_last_of('.');
     if (dot != std::string::npos) {
       const std::string ext = weight_path.substr(dot + 1);
@@ -76,43 +78,47 @@ public:
 
   virtual void load_weight(const std::string &weight_path) {
     if (!is_initialized) {
-      throw std::runtime_error(
-        "Model is not initialized. Please call initialize() before load_weight().");
+      throw std::runtime_error("Model is not initialized. Please call "
+                               "initialize() before load_weight().");
     }
     try {
       model->load(weight_path, formatFromExtension(weight_path));
     } catch (const std::exception &e) {
-      throw std::runtime_error("Failed to load model weights: " + std::string(e.what()));
+      throw std::runtime_error("Failed to load model weights: " +
+                               std::string(e.what()));
     }
   }
 
   virtual void repack_weight() {
     if (!is_initialized) {
-      throw std::runtime_error(
-        "Model is not initialized. Please call initialize() before repack_weight().");
+      throw std::runtime_error("Model is not initialized. Please call "
+                               "initialize() before repack_weight().");
     }
-    std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>
-      fn = [](ml::train::Layer &l, nntrainer::RunLayerContext &context, void *) {
-        auto weights = context.getWeights();
-        for (auto &w : weights) {
-          if (w->getVariableRef().getDataType() ==
-              ml::train::TensorDim::DataType::QS4CX) {
-            w->getVariableRef().pack();
+    std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &,
+                       void *)>
+      fn =
+        [](ml::train::Layer &l, nntrainer::RunLayerContext &context, void *) {
+          auto weights = context.getWeights();
+          for (auto &w : weights) {
+            if (w->getVariableRef().getDataType() ==
+                ml::train::TensorDim::DataType::QS4CX) {
+              w->getVariableRef().pack();
+            }
           }
-        }
-      };
+        };
     model->forEachLayer(fn, nullptr);
   }
 
   virtual void save_weight(const std::string &weight_path) {
     if (!is_initialized) {
-      throw std::runtime_error(
-        "Model is not initialized. Please call initialize() before save_weight().");
+      throw std::runtime_error("Model is not initialized. Please call "
+                               "initialize() before save_weight().");
     }
     try {
       model->save(weight_path, formatFromExtension(weight_path));
     } catch (const std::exception &e) {
-      throw std::runtime_error("Failed to save model weights: " + std::string(e.what()));
+      throw std::runtime_error("Failed to save model weights: " +
+                               std::string(e.what()));
     }
   }
 
@@ -123,14 +129,15 @@ public:
                 &layer_dtype_map = {},
               ml::train::ISA target_isa = ml::train::ISA::DEFAULT) {
     if (!is_initialized) {
-      throw std::runtime_error(
-        "Model is not initialized. Please call initialize() before save_weight().");
+      throw std::runtime_error("Model is not initialized. Please call "
+                               "initialize() before save_weight().");
     }
     try {
       model->save(weight_path, formatFromExtension(weight_path), dtype,
                   layer_dtype_map, target_isa);
     } catch (const std::exception &e) {
-      throw std::runtime_error("Failed to save model weights with dtype: " + std::string(e.what()));
+      throw std::runtime_error("Failed to save model weights with dtype: " +
+                               std::string(e.what()));
     }
   }
 
@@ -143,7 +150,8 @@ public:
                    const WSTR tail_prompt = WSTR(), bool log_output = true) = 0;
 
   virtual void registerCustomLayers() {}
-  virtual void setupParameters(json &cfg, json &generation_cfg, json &nntr_cfg) {
+  virtual void setupParameters(json &cfg, json &generation_cfg,
+                               json &nntr_cfg) {
     (void)cfg;
     (void)generation_cfg;
     (void)nntr_cfg;
