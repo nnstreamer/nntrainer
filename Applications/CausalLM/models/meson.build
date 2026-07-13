@@ -21,6 +21,7 @@ subdir('timm_vit')
 subdir('lfm2')
 subdir('YOLOv7/jni')
 subdir('YOLOv7Pose/jni')
+subdir('FastViTKeyword/jni')
 if get_option('platform') != 'windows'
     subdir('bert')
     subdir('xlm_roberta')
