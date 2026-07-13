@@ -141,7 +141,7 @@ inline void gather_conv_act_rows(T *dst, const T *in, const ConvGatherParams &p,
           } else
 #endif
 #if defined(__ARM_NEON)
-          if constexpr (std::is_same_v<T, float>) {
+            if constexpr (std::is_same_v<T, float>) {
             int c = 0;
             for (; c + 7 < p.in_ch; c += 8) {
               float32x4_t v0 =

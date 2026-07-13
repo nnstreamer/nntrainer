@@ -93,11 +93,11 @@ static void upsampleForwardT(
             for (unsigned int iw = 0; iw < iW; ++iw) {
               const T v = in_row[iw];
               for (unsigned int rx = 0; rx < kw; ++rx)
-                e[iw * kw + rx] = v;
+                e[(size_t)iw * kw + rx] = v;
             }
             // write the expanded row into the kh output rows it feeds
             for (unsigned int ry = 0; ry < kh; ++ry) {
-              T *out_row = out_bc + (size_t)(ih * kh + ry) * oW;
+              T *out_row = out_bc + ((size_t)ih * kh + ry) * oW;
               std::memcpy(out_row, e, oW * sizeof(T));
             }
           }

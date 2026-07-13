@@ -129,7 +129,7 @@ static void sliceForwardT(const Tensor &input, Tensor &output,
     } else if (axis == 1) {
       auto &tm = ThreadManager::Global();
       for (unsigned int b = 0; b < B; ++b) {
-        tm.parallel_for(0, Ho * Wo, [&](size_t hw) {
+        tm.parallel_for(0, static_cast<size_t>(Ho) * Wo, [&](size_t hw) {
           std::memcpy(out + ((size_t)b * Ho * Wo + hw) * Co,
                       in + ((size_t)b * Hi * Wi + hw) * Ci + start, Co * elt);
         });
