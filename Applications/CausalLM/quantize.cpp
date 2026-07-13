@@ -46,7 +46,7 @@
  *                         (Q4_0/Q6_K embedding; untied lm_head for embedding0;
  *                         a per-layer-embedding model for the PLE table).
  *
- *   Supported data types: FP32, FP16, Q4_0, Q8_0, Q4_K, Q6_K
+ *   Supported data types: FP32, FP16, Q4_0, Q4_K, Q6_K
  *
  *   Example:
  *     # Quantize Qwen3-4B to Q4_0 FC layers (embedding stays FP32):
@@ -117,9 +117,9 @@ namespace {
  */
 const std::map<std::string, DataType> dtype_str_map = {
   {"FP32", DataType::FP32},   {"FP16", DataType::FP16},
-  {"Q4_0", DataType::Q4_0},   {"Q8_0", DataType::Q8_0},
-  {"Q6_K", DataType::Q6_K},   {"Q4_K", DataType::Q4_K},
-  {"QS4CX", DataType::QS4CX}, {"NONE", DataType::NONE}};
+  {"Q4_0", DataType::Q4_0},   {"Q6_K", DataType::Q6_K},
+  {"Q4_K", DataType::Q4_K},   {"QS4CX", DataType::QS4CX},
+  {"NONE", DataType::NONE}};
 
 /**
  * @brief Map of string ISA names to ISA enum values
@@ -166,7 +166,7 @@ DataType strToDataType(const std::string &s) {
   auto it = dtype_str_map.find(upper);
   if (it == dtype_str_map.end()) {
     throw std::invalid_argument("Unsupported data type: " + s +
-                                ". Supported: FP32, FP16, Q4_0, Q8_0, Q6_K, "
+                                ". Supported: FP32, FP16, Q4_0, Q6_K, "
                                 "Q4_K, QS4CX");
   }
   return it->second;

@@ -1,5 +1,5 @@
 {
-    "model_type": "CausalLM",
+    "model_type": "causallm",
     "model_tensor_type": "Q4_0-FP32",
     "model_file_name": "qwen3-30b-moe-q6k-q40-q40-fp32-x86.bin",
 

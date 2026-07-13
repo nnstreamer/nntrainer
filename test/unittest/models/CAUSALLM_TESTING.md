@@ -1,4 +1,4 @@
-# CausalLM Model Unit Tests
+# causallm Model Unit Tests
 
 Reference guide for adding tests when integrating a new model family (e.g. LLaMA, Phi).
 
@@ -202,7 +202,7 @@ Key points:
 - `TINY_CONFIG` dimensions must exactly match C++ `makeTiny<Model>Config()`.
 - **Reuse the production weight converter** (`res/<model>/weight_converter.py`).
   Do not write a separate conversion — reusing the converter validates it too.
-  Import it via `REPO_ROOT / "Applications" / "CausalLM" / "res" / ...` (see the
+  Import it via `REPO_ROOT / "Applications" / "causallm" / "res" / ...` (see the
   `CONVERTER_DIR` line in the qwen3 template).
 - Use `input_ids = [1, 4, 2, 3]` and `n_gen = 4` as the standard test input.
 - For models with `tie_word_embeddings=True`, do not save lm_head separately

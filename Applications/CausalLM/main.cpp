@@ -685,8 +685,12 @@ int main(int argc, char *argv[]) {
       generation_cfg = causallm::LoadJsonFile(generation_config_path);
     }
     json nntr_cfg = causallm::LoadJsonFile(model_path + "/nntr_config.json");
-    // Resolve relative paths in nntr_config.json against the model directory
-    for (const std::string &key : {
+    // Resolve relative paths in nntr_config.json against the model directory.
+    // Iterate by value (const std::string) rather than by reference: the
+    // initializer list holds const char * literals that are converted to
+    // temporary std::string objects, and binding those temporaries to a
+    // const reference is flagged by -Werror=range-loop-construct.
+    for (const std::string key : {
            "tokenizer_file",
            "embedding_file_name",
            "ple_file_name",

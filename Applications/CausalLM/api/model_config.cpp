@@ -49,7 +49,7 @@ static void register_qwen3_0_6b() {
   memset(&rc, 0, sizeof(ModelRuntimeConfig));
 
   rc.batch_size = 1;
-  strncpy(rc.model_type, "CausalLM", sizeof(rc.model_type) - 1);
+  strncpy(rc.model_type, "causallm", sizeof(rc.model_type) - 1);
   strncpy(rc.model_tensor_type, "Q4_0-FP32", sizeof(rc.model_tensor_type) - 1);
   rc.init_seq_len = 1024;
   rc.max_seq_len = 2048;

@@ -32,7 +32,7 @@ from transformers.models.gemma3 import Gemma3TextConfig
 
 THIS_DIR = pathlib.Path(__file__).resolve().parent
 REPO_ROOT = THIS_DIR.parents[4]
-CONVERTER_DIR = REPO_ROOT / "Applications" / "CausalLM" / "res" / "gemma3"
+CONVERTER_DIR = REPO_ROOT / "Applications" / "causallm" / "res" / "gemma3"
 DEFAULT_OUT = THIS_DIR.parent / "embedding_gemma_tiny"
 
 sys.path.insert(0, str(CONVERTER_DIR))

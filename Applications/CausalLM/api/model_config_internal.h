@@ -43,7 +43,7 @@ typedef struct {
  */
 typedef struct {
   unsigned int batch_size;
-  char model_type[32];
+  char model_type[32]; // e.g. "causallm"
   char model_tensor_type[32];
   unsigned int init_seq_len;
   unsigned int max_seq_len;

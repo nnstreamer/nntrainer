@@ -236,7 +236,7 @@ makeTinyNntrainerConfig(const std::filesystem::path &tokenizer_path,
     {"lmhead_dtype", data_type.lmhead_dtype},
     {"max_seq_len", 8},
     {"model_tensor_type", data_type.model_tensor_type},
-    {"model_type", "CausalLM"},
+    {"model_type", "causallm"},
     {"num_to_generate", 1},
     {"tokenizer_file", tokenizer_path.string()},
   };

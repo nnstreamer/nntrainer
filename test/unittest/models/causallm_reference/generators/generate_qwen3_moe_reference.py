@@ -243,7 +243,7 @@ def write_nntr_configs(out_dir: pathlib.Path, bin_name: str,
         "max_seq_len": 8,
         "model_file_name": bin_name,
         "model_tensor_type": "FP32-FP32",
-        "model_type": "CausalLM",
+        "model_type": "causallm",
         "num_to_generate": 1,
         "tokenizer_file": tokenizer_path,
     }
