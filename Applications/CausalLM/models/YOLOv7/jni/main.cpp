@@ -336,6 +336,15 @@ int main(int argc, char **argv) {
         yolov7::quantWeightDtype() = "Q8_0";
         std::cout << "[YOLOv7] Preset = w8a16 (Q8_0 weights + FP16 act + NHWC)"
                   << std::endl;
+      } else if (tts == "w8a32" || tts == "W8A32") {
+        model->setProperty(
+          {nntrainer::withKey("model_tensor_type", "FP32-FP32")});
+        fp16_act = false;
+        preset_nhwc = true;
+        preset_q40 = true;
+        yolov7::quantWeightDtype() = "Q8_0";
+        std::cout << "[YOLOv7] Preset = w8a32 (Q8_0 weights + FP32 act + NHWC)"
+                  << std::endl;
       } else if (tts == "QINT8-FP16") {
         model->setProperty(
           {nntrainer::withKey("model_tensor_type", "QINT8-FP16")});
