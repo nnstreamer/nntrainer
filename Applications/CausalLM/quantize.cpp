@@ -106,6 +106,7 @@
 #if !defined(_WIN32) && !defined(__ANDROID__)
 #include "timm_vit/timm_vit_transformer.h"
 #endif
+#include "YOLOv11/yolov11.h"
 
 using json = nlohmann::json;
 using DataType = ml::train::TensorDim::DataType;
@@ -119,7 +120,7 @@ const std::map<std::string, DataType> dtype_str_map = {
   {"FP32", DataType::FP32}, {"FP16", DataType::FP16},
   {"Q4_0", DataType::Q4_0}, {"Q6_K", DataType::Q6_K},
   {"Q4_K", DataType::Q4_K}, {"QS4CX", DataType::QS4CX},
-  {"NONE", DataType::NONE}};
+  {"Q8_0", DataType::Q8_0}, {"NONE", DataType::NONE}};
 
 /**
  * @brief Map of string ISA names to ISA enum values
@@ -167,7 +168,7 @@ DataType strToDataType(const std::string &s) {
   if (it == dtype_str_map.end()) {
     throw std::invalid_argument("Unsupported data type: " + s +
                                 ". Supported: FP32, FP16, Q4_0, Q6_K, "
-                                "Q4_K, QS4CX");
+                                "Q4_K, QS4CX, Q8_0");
   }
   return it->second;
 }
@@ -473,6 +474,10 @@ void registerAllModels() {
                             cfg, generation_cfg, nntr_cfg);
                         });
 #endif
+  factory.registerModel(
+    "YOLOv11ForDetection", [](json cfg, json generation_cfg, json nntr_cfg) {
+      return std::make_unique<causallm::Yolov11>(cfg, generation_cfg, nntr_cfg);
+    });
 }
 
 /**
