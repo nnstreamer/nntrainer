@@ -4,6 +4,9 @@
 causallm_layer_inc_abs = [meson.current_source_dir(), meson.current_source_dir() / '..']
 causallm_layer_inc = [include_directories('.'), include_directories('..')]
 
+causallm_layer_inc_abs = causallm_layer_inc_abs
+causallm_layer_inc = causallm_layer_inc
+
 causallm_rms_norm_src_abs = [meson.current_source_dir() / 'rms_norm.cpp']
 causallm_swiglu_src_abs = [meson.current_source_dir() / 'swiglu.cpp']
 causallm_tie_word_embedding_src_abs = [meson.current_source_dir() / 'tie_word_embedding.cpp']
