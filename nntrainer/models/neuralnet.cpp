@@ -38,11 +38,6 @@
 #include <future>
 #include <iomanip>
 #include <iostream>
-#include <load_trace.h>
-#if defined(ENABLE_OPENCL)
-#include <blas_kernel_interface.h> // cl_fc_release_caches
-#endif
-#include <mutex>
 #include <sstream>
 #include <thread>
 
@@ -2156,6 +2151,7 @@ void NeuralNetwork::load(const std::string &file_path,
 
     // Assign file offsets to each weight by name
     std::unordered_set<const Tensor *> visited_st;
+    unsigned int missing_weights = 0;
     for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
       auto weights = (*iter)->getRunContext().getWeights();
       for (auto weight : weights) {
@@ -2163,8 +2159,18 @@ void NeuralNetwork::load(const std::string &file_path,
           continue;
         const std::string &name = weight->getName();
         auto it = name_offset_map.find(name);
-        if (it == name_offset_map.end())
+        if (it == name_offset_map.end()) {
+          // A missing tensor means the weight keeps whatever bytes its buffer
+          // held (typically uninitialized), which surfaces as silently wrong
+          // outputs — e.g. a converter that wrote "layer:weight" where the
+          // runtime tensor is named "layer:filter". Warn loudly instead of
+          // failing so partial files (LoRA-style overlays) still load.
+          ml_logw("safetensors: no tensor named '%s' in %s; weight left "
+                  "unloaded",
+                  name.c_str(), f_path.c_str());
+          ++missing_weights;
           continue;
+        }
         const size_t file_off = data_base + it->second.first;
         weight->getVariableRef().setFileOffset(file_off);
 
@@ -2188,6 +2194,20 @@ void NeuralNetwork::load(const std::string &file_path,
             weight->getVariableRef().setQs4cxRecordPadded(true);
         }
       }
+    }
+    if (missing_weights > 0) {
+      ml_logw("safetensors: %u model weight(s) were not found in %s — the "
+              "model will run with uninitialized values for them",
+              missing_weights, f_path.c_str());
+      // Also warn on stderr: the file logger / logcat is invisible from the
+      // CLI tools where this mistake (converter tensor-name mismatch) is
+      // usually made, and the failure mode is silent garbage output.
+      std::cerr << "[nntrainer] WARNING: " << missing_weights
+                << " model weight(s) not found by name in safetensors file '"
+                << f_path
+                << "'; they remain uninitialized and outputs will be wrong. "
+                   "Check the tensor names in the converted file."
+                << std::endl;
     }
 
     if (exec_mode == ml::train::ExecutionMode::INFERENCE) {
