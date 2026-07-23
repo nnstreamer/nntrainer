@@ -18,6 +18,7 @@
 
 #include <chrono>
 #include <cpu_backend.h>
+#include <ggml_interface.h>
 #include <float_tensor.h>
 #include <int4_utils.h>
 #include <q4_0_utils.h>
@@ -1064,8 +1065,17 @@ Tensor &FloatTensor::convQ4_0Indirect(Tensor const &weight, Tensor &output,
   unsigned int K =
     (unsigned int)geom.in_ch * (unsigned int)geom.k_h * (unsigned int)geom.k_w;
 
-  getOps()->gemm_q4_0_indirect_conv_fp32(M, N, K, in, geom, (void *)wdata, N,
-                                         rdata, N);
+  // Q8_0 weights use the FP32-activation Q8_0xQ8_0 indirect kernel (W8A32):
+  // FP32 activations are kept between layers (no FP16 rounding accumulation ->
+  // FP32-level accuracy) with int8 compute. Q4_0 weights keep the existing
+  // ISA-dispatched Q4_0 path. Both are gathered on the fly (no im2col).
+  if (weight.getDataType() == Tdatatype::Q8_0) {
+    __ggml_q8_0_q8_0_indirect_GEMM_fp32(M, N, K, in, geom, (void *)wdata, N,
+                                        rdata, N);
+  } else {
+    getOps()->gemm_q4_0_indirect_conv_fp32(M, N, K, in, geom, (void *)wdata, N,
+                                           rdata, N);
+  }
   return output;
 }
 

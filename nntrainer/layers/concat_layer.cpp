@@ -13,8 +13,14 @@
  * @todo merge concat and split layer to a common implementation
  */
 
+#include <algorithm>
+#include <cmath>
 #include <cstring>
 #include <vector>
+
+#if defined(__ARM_NEON)
+#include <arm_neon.h>
+#endif
 
 #include <concat_layer.h>
 #include <layer_context.h>
@@ -161,11 +167,89 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
     const unsigned int H = out_dim.height();
     const unsigned int W = out_dim.width();
     const size_t HW = (size_t)H * W;
+    // W8A8 QINT8 concat: inputs carry per-tensor scales; the output scale is
+    // the max of the input scales and each input is rescaled int8->int8 by
+    // s_i/s_out during its copy (identity memcpy when scales match). Computed
+    // up front since every input copy needs the common output scale.
+    float q8_out_scale = 0.f;
+    if (output.getDataType() == TensorDim::DataType::QINT8) {
+      for (unsigned int idx = 0; idx < context.getNumInputs(); idx++)
+        q8_out_scale = std::max(
+          q8_out_scale, context.getInput(idx).getScale<float>()[0]);
+      if (q8_out_scale <= 0.f)
+        q8_out_scale = 1.f;
+      output.getScale<float>()[0] = q8_out_scale;
+    }
     unsigned int c_offset = 0;
     for (unsigned int idx = 0; idx < context.getNumInputs(); idx++) {
       Tensor &input = context.getInput(idx);
       const unsigned int Ci = input.channel();
-      if (input.getDataType() == TensorDim::DataType::FP32) {
+      if (input.getDataType() == TensorDim::DataType::QINT8) {
+        const int8_t *src = input.getData<int8_t>();
+        int8_t *dst = output.getData<int8_t>();
+        const float mult = input.getScale<float>()[0] / q8_out_scale;
+        const bool identity = std::fabs(mult - 1.f) < 1e-12f;
+        // Per-channel W8A8 (default asymmetric): tensors use the shared-offset
+        // affine code x = (q + 128) * s - C. Because C is COMMON to every
+        // branch it cancels in the rescale --
+        //   q' = round((q + 128) * s_i / s_o) - 128
+        // -- so only the +-128 shift differs from the symmetric formula (and
+        // s_o = max(s_i) still exactly covers the union range). The identity
+        // (mult == 1) memcpy is unchanged in both conventions.
+        static const bool asym =
+          std::getenv("NNTR_W8A8_PERCH") != nullptr &&
+          std::getenv("NNTR_W8A8_SYM") == nullptr;
+        auto &tm = ThreadManager::Global();
+        for (unsigned int b = 0; b < B; ++b) {
+          const size_t base = (size_t)b * HW;
+          tm.parallel_for(0, HW, [&](size_t p) {
+            const int8_t *s = src + (base + p) * Ci;
+            int8_t *d = dst + (base + p) * out_dim.channel() + c_offset;
+            if (identity) {
+              std::memcpy(d, s, (size_t)Ci);
+            } else if (asym) {
+              unsigned int c = 0;
+#if defined(__ARM_NEON)
+              // q' = round((q + 128) * mult) - 128, saturating to int8. FRINTA
+              // (vrndaq) rounds ties away from zero, matching std::round; the
+              // rounded value is an exact integer float so vcvtq truncates it
+              // losslessly, and the saturating narrows reproduce the clamp.
+              const float32x4_t vmult = vdupq_n_f32(mult);
+              const float32x4_t v128 = vdupq_n_f32(128.f);
+              auto proc = [&](int32x4_t a) {
+                float32x4_t f = vcvtq_f32_s32(a);
+                f = vaddq_f32(f, v128);
+                f = vmulq_f32(f, vmult);
+                f = vrndaq_f32(f);
+                f = vsubq_f32(f, v128);
+                return vcvtq_s32_f32(f);
+              };
+              for (; c + 16 <= Ci; c += 16) {
+                int8x16_t q8 = vld1q_s8(s + c);
+                int16x8_t lo = vmovl_s8(vget_low_s8(q8));
+                int16x8_t hi = vmovl_s8(vget_high_s8(q8));
+                int32x4_t r0 = proc(vmovl_s16(vget_low_s16(lo)));
+                int32x4_t r1 = proc(vmovl_s16(vget_high_s16(lo)));
+                int32x4_t r2 = proc(vmovl_s16(vget_low_s16(hi)));
+                int32x4_t r3 = proc(vmovl_s16(vget_high_s16(hi)));
+                int16x8_t n0 = vcombine_s16(vqmovn_s32(r0), vqmovn_s32(r1));
+                int16x8_t n1 = vcombine_s16(vqmovn_s32(r2), vqmovn_s32(r3));
+                vst1q_s8(d + c, vcombine_s8(vqmovn_s16(n0), vqmovn_s16(n1)));
+              }
+#endif
+              for (; c < Ci; ++c) {
+                float q = std::round(((float)s[c] + 128.f) * mult) - 128.f;
+                d[c] = (int8_t)std::max(-128.f, std::min(127.f, q));
+              }
+            } else {
+              for (unsigned int c = 0; c < Ci; ++c) {
+                float q = std::round((float)s[c] * mult);
+                d[c] = (int8_t)std::max(-128.f, std::min(127.f, q));
+              }
+            }
+          });
+        }
+      } else if (input.getDataType() == TensorDim::DataType::FP32) {
         const float *src = input.getData<float>();
         float *dst = output.getData<float>();
         auto &tm = ThreadManager::Global();

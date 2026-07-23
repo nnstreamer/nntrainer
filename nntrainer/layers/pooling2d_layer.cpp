@@ -15,6 +15,11 @@
 
 #include <cstring>
 #include <limits>
+#include <type_traits>
+
+#if defined(__ARM_NEON)
+#include <arm_neon.h>
+#endif
 
 #include <common_properties.h>
 #include <layer_context.h>
@@ -363,21 +368,56 @@ void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output,
         auto job = [&](unsigned int oh_start, unsigned int oh_end, unsigned int,
                        void *) {
           for (int oh = (int)oh_start; oh < (int)oh_end; ++oh) {
+            const int h0 = oh * sh - pt_val;
+            const int kh_lo = std::max(0, -h0);
+            const int kh_hi = std::min(ph, Hi - h0);
             for (int ow = 0; ow < Wo; ++ow) {
               T *out_ptr = out_data + (size_t)(oh * Wo + ow) * Co;
+              const int w0 = ow * sw - pl_val;
+              const int kw_lo = std::max(0, -w0);
+              const int kw_hi = std::min(pw, Wi - w0);
+#if defined(__ARM_NEON)
+              if constexpr (std::is_same_v<T, int8_t>) {
+                // Register-blocked NEON max for the W8A8 int8 path: 16
+                // channels stay in one register across the whole window (a
+                // single store per block, no per-tap output reload), and the
+                // in-bounds tap range is hoisted out of the loop. The scalar
+                // per-channel compare made the SPP 5/9/13 max-pools one of
+                // the largest costs of the int8 pipeline.
+                int c = 0;
+                for (; c + 15 < Co; c += 16) {
+                  int8x16_t acc =
+                    vdupq_n_s8(std::numeric_limits<int8_t>::lowest());
+                  for (int kh = kh_lo; kh < kh_hi; ++kh) {
+                    const T *row_ptr =
+                      in_data + (size_t)((h0 + kh) * Wi + w0) * Co + c;
+                    for (int kw = kw_lo; kw < kw_hi; ++kw)
+                      acc = vmaxq_s8(
+                        acc, vld1q_s8(reinterpret_cast<const int8_t *>(
+                               row_ptr + (size_t)kw * Co)));
+                  }
+                  vst1q_s8(reinterpret_cast<int8_t *>(out_ptr + c), acc);
+                }
+                for (; c < Co; ++c) {
+                  int8_t m = std::numeric_limits<int8_t>::lowest();
+                  for (int kh = kh_lo; kh < kh_hi; ++kh) {
+                    const T *in_ptr =
+                      in_data + (size_t)((h0 + kh) * Wi + w0) * Co;
+                    for (int kw = kw_lo; kw < kw_hi; ++kw)
+                      m = std::max(m, in_ptr[(size_t)kw * Co + c]);
+                  }
+                  out_ptr[c] = m;
+                }
+                continue;
+              }
+#endif
               for (int c = 0; c < Co; ++c) {
                 out_ptr[c] = std::numeric_limits<T>::lowest();
               }
-              const int h0 = oh * sh - pt_val;
-              const int w0 = ow * sw - pl_val;
-              for (int kh = 0; kh < ph; ++kh) {
+              for (int kh = kh_lo; kh < kh_hi; ++kh) {
                 const int ih = h0 + kh;
-                if (ih < 0 || ih >= Hi)
-                  continue;
-                for (int kw = 0; kw < pw; ++kw) {
+                for (int kw = kw_lo; kw < kw_hi; ++kw) {
                   const int iw = w0 + kw;
-                  if (iw < 0 || iw >= Wi)
-                    continue;
                   const T *in_ptr = in_data + (size_t)(ih * Wi + iw) * Co;
                   for (int c = 0; c < Co; ++c) {
                     if (in_ptr[c] > out_ptr[c]) {
@@ -402,6 +442,12 @@ void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output,
 
       if (in.getDataType() == ml::train::TensorDim::DataType::FP32) {
         run_nhwc.template operator()<float>();
+        return;
+      } else if (in.getDataType() == ml::train::TensorDim::DataType::QINT8) {
+        // W8A8: every element shares one per-tensor scale, so raw int8
+        // comparison is the exact max; the output keeps the input's scale.
+        output.getScale<float>()[0] = in.getScale<float>()[0];
+        run_nhwc.template operator()<int8_t>();
         return;
       }
 #ifdef ENABLE_FP16
