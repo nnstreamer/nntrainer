@@ -22,9 +22,11 @@
 #include <string>
 #include <vector>
 
+#include <act_simd.h> // shared NEON expf/SiLU + affine int8 quantize helpers
 #include <conv2d_layer.h>
 #include <conv_indirect.h> // repack_q8_0 (q8_0x4 weight interleave for the indirect conv kernel)
 #include <cpu_backend.h>
+#include <ggml_interface.h> // __ggml_q8_0_q8_0_indirect_GEMM_i8a (W8A8)
 #include <layer_context.h>
 #include <lazy_tensor.h>
 #include <nntr_threads.h>
@@ -48,6 +50,32 @@ static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 namespace {
 
+// ---- Stem direct-conv weight cache ----------------------------------------
+// The stem (in_ch == 3) runs a dedicated direct FP32 conv (no im2col, no
+// GEMM): with only 3 input channels the im2col row is 27 elements, so the
+// generic col-buffer + sgemm machinery costs more than the arithmetic. The
+// kernel wants the filter tap-major -- [kh][kw][in][out] so each (tap,
+// channel) scalar broadcasts against a contiguous out-channel vector -- which
+// is transposed once here from the [out][in][kh][kw] tensor and cached.
+static const std::vector<float> &
+getStemTapWeight(const float *w, unsigned int out_ch, unsigned int in_ch,
+                 unsigned int kh, unsigned int kw) {
+  static std::mutex mtx;
+  static std::unordered_map<const void *, std::vector<float>> cache;
+  std::lock_guard<std::mutex> lk(mtx);
+  auto it = cache.find((const void *)w);
+  if (it != cache.end())
+    return it->second;
+  std::vector<float> t((size_t)kh * kw * in_ch * out_ch);
+  for (unsigned int o = 0; o < out_ch; ++o)
+    for (unsigned int c = 0; c < in_ch; ++c)
+      for (unsigned int y = 0; y < kh; ++y)
+        for (unsigned int x = 0; x < kw; ++x)
+          t[(((size_t)y * kw + x) * in_ch + c) * out_ch + o] =
+            w[(((size_t)o * in_ch + c) * kh + y) * kw + x];
+  return cache.emplace((const void *)w, std::move(t)).first->second;
+}
+
 #ifdef ENABLE_FP16
 static const _FP16 *get_silu_lut_fp16() {
   static std::vector<_FP16> lut;
@@ -56,7 +84,8 @@ static const _FP16 *get_silu_lut_fp16() {
     lut.resize(65536);
     for (uint32_t i = 0; i < 65536; ++i) {
       uint16_t u = static_cast<uint16_t>(i);
-      _FP16 x = *reinterpret_cast<const _FP16 *>(&u);
+      _FP16 x;
+      std::memcpy(&x, &u, sizeof(x));
       float x_f = static_cast<float>(x);
       if (std::isnan(x_f)) {
         lut[i] = x;
@@ -74,6 +103,49 @@ static const _FP16 *get_silu_lut_fp16() {
   return lut.data();
 }
 #endif
+
+/**
+ * @brief Round an FP32 value to the nearest fp16-representable value
+ * (round-to-nearest-even), returned as FP32. Used by the W8A8 quantize
+ * epilogue: block_q8_0 stores scales as fp16, so quantizing with the
+ * fp16-rounded scale makes the consumer's (q, d) pair reproduce the
+ * produced values exactly. Portable bit manipulation (no FP16 types).
+ */
+static inline float convRoundScaleFp16(float f) {
+  uint32_t bits;
+  std::memcpy(&bits, &f, 4);
+  uint32_t sign = (bits >> 16) & 0x8000;
+  int32_t exp = (int32_t)((bits >> 23) & 0xff) - 127 + 15;
+  uint32_t man = bits & 0x7fffff;
+  uint16_t h;
+  if (exp <= 0)
+    h = (uint16_t)sign; // underflow -> 0 (scales are tiny-positive or 0)
+  else if (exp >= 31)
+    h = (uint16_t)(sign | 0x7c00);
+  else {
+    uint32_t m = man >> 13;
+    uint32_t rem = man & 0x1fff;
+    if (rem > 0x1000 || (rem == 0x1000 && (m & 1)))
+      ++m;
+    if (m == 0x400) {
+      m = 0;
+      if (++exp >= 31)
+        return f; // saturate: keep original
+    }
+    h = (uint16_t)(sign | ((uint32_t)exp << 10) | m);
+  }
+  // decode back
+  uint32_t hexp = (h >> 10) & 0x1f, hman = h & 0x3ff;
+  uint32_t obits;
+  if (hexp == 0)
+    obits = (uint32_t)(h >> 15) << 31; // zero (denormal scales -> 0)
+  else
+    obits = ((uint32_t)(h >> 15) << 31) | ((hexp - 15 + 127) << 23) |
+            (hman << 13);
+  float out;
+  std::memcpy(&out, &obits, 4);
+  return out;
+}
 
 /**
  * @brief In-place SiLU / swish (x * sigmoid(x)) over a contiguous buffer.
@@ -171,13 +243,86 @@ static inline void convApplySwishInplace(T *data, size_t n) {
         data[i] = static_cast<T>(x * relu6 / 6.0f);
       }
     } else {
-      // EXACT original bca91663 baseline loop!
+      // EXACT SiLU x/(1+exp(-x)). FP32 gets a NEON-vectorized path (4-wide
+      // expf + reciprocal, ~1e-6 error) so the epilogue is no longer a scalar
+      // std::exp per element -- the FP16 build already uses a LUT; only the
+      // FP32 (W8A32 / W32A32) path was scalar.
+#if defined(__ARM_NEON)
+      if constexpr (std::is_same_v<T, float>) {
+        const float32x4_t one = vdupq_n_f32(1.0f);
+        for (; i + 3 < end; i += 4) {
+          float32x4_t vx = vld1q_f32(&data[i]);
+          float32x4_t e = nntr_vexpq_f32(vnegq_f32(vx));
+          float32x4_t denom = vaddq_f32(one, e);
+          float32x4_t r = vrecpeq_f32(denom);
+          r = vmulq_f32(vrecpsq_f32(denom, r), r);
+          r = vmulq_f32(vrecpsq_f32(denom, r), r);
+          vst1q_f32(&data[i], vmulq_f32(vx, r));
+        }
+      }
+#endif
       for (; i < end; ++i) {
         const float x = static_cast<float>(data[i]);
         data[i] = static_cast<T>(x / (1.0f + std::exp(-x)));
       }
     }
   });
+}
+
+// Fused bias + activation over one NHWC output row [C] (channels contiguous,
+// bias[c] per channel), in place; returns max(|result|) so the caller can build
+// a per-tensor quantization scale in the same streaming pass -- no separate
+// bias / SiLU / amax passes over the output (the per-channel W8A8 epilogue was
+// three single-threaded scalar passes; this collapses them into one, and the
+// caller runs it row-parallel). act: 0 none, 1 exact SiLU x*sigmoid(x), 2 the
+// hard/approx SiLU x*relu6(x+3)/6. The NEON path is bit-identical to
+// convApplySwishInplace's vectorized SiLU (same vexpq + two Newton reciprocal
+// refinements), so this reorders work without changing numerics.
+static inline float convBiasActRow(float *row, const float *bias, unsigned int C,
+                                   int act) {
+  float am = 0.f;
+  unsigned int cc = 0;
+#if defined(__ARM_NEON)
+  float32x4_t vam = vdupq_n_f32(0.f);
+  const float32x4_t one = vdupq_n_f32(1.f);
+  const float32x4_t three = vdupq_n_f32(3.f);
+  const float32x4_t six = vdupq_n_f32(6.f);
+  const float32x4_t zero = vdupq_n_f32(0.f);
+  const float32x4_t sixth = vdupq_n_f32(1.f / 6.f);
+  for (; cc + 3 < C; cc += 4) {
+    float32x4_t v = vld1q_f32(row + cc);
+    if (bias)
+      v = vaddq_f32(v, vld1q_f32(bias + cc));
+    if (act == 1) {
+      float32x4_t e = nntr_vexpq_f32(vnegq_f32(v));
+      float32x4_t denom = vaddq_f32(one, e);
+      float32x4_t r = vrecpeq_f32(denom);
+      r = vmulq_f32(vrecpsq_f32(denom, r), r);
+      r = vmulq_f32(vrecpsq_f32(denom, r), r);
+      v = vmulq_f32(v, r);
+    } else if (act == 2) {
+      float32x4_t relu6 = vminq_f32(vmaxq_f32(vaddq_f32(v, three), zero), six);
+      v = vmulq_f32(vmulq_f32(v, relu6), sixth);
+    }
+    vst1q_f32(row + cc, v);
+    vam = vmaxq_f32(vam, vabsq_f32(v));
+  }
+  am = vmaxvq_f32(vam);
+#endif
+  for (; cc < C; ++cc) {
+    float v = row[cc];
+    if (bias)
+      v += bias[cc];
+    if (act == 1)
+      v = v / (1.f + std::exp(-v));
+    else if (act == 2) {
+      float r6 = std::max(0.f, std::min(v + 3.f, 6.f));
+      v = v * r6 / 6.f;
+    }
+    row[cc] = v;
+    am = std::max(am, std::fabs(v));
+  }
+  return am;
 }
 
 static TensorDim calcCol2ImOutputDim(const TensorDim &out,
@@ -795,7 +940,13 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
 }
 } // namespace
 
-enum ConvParams { weight, bias, im2col_scratch, qgemm_scratch, q8act_scratch };
+enum ConvParams {
+  weight,
+  bias,
+  im2col_scratch,
+  qgemm_scratch,
+  q8act_scratch
+};
 
 Conv2DLayer::Conv2DLayer(
   const std::array<unsigned int, CONV2D_DIM * 2> &padding_) :
@@ -907,6 +1058,45 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
   // cannot convert FP32 -> FP16. Both would have to change together.
   out_dim.setTensorType(in_dim.getTensorType());
 
+  // W8A8 (env NNTR_W8A8, see W8A8_DESIGN.md): a Q8_0-weight NHWC conv emits a
+  // per-tensor-scale QINT8 activation instead of FP32. Every consumer handles
+  // a QINT8 input (Q8_0 convs via the i8a GEMM, FP32 convs by dequantizing
+  // into a scratch, concat/max-pool/nearest-upsample with int8 branches), so
+  // the emission is unconditional for quantized convs -- no per-edge graph
+  // analysis. Env-gated: all other modes are untouched.
+  const bool w8a8_mode = std::getenv("NNTR_W8A8") != nullptr;
+  // Per-channel W8A8 (NNTR_W8A8_PERCH): EVERY NHWC conv runs int8 through the
+  // int32-accumulate kernel and emits a QINT8 activation, except the head-final
+  // conv (out_ch % 4 != 0, uniquely out_ch=87) whose consumer rtmcc_head is a
+  // hard FP32 boundary -> it stays FP32 out. Independent of the per-block
+  // eligibility (quant_matmul_filter); the weight is converted in-memory.
+  // The stem (in_ch == 3) is excluded: its input is the network's FP32 image,
+  // and quantizing the raw image to int8 injects error at the very first layer
+  // that the whole net then amplifies. The validated S0 simulation keeps the
+  // stem input FP32 ("the image tensor stays FP32") and holds 81/87; the stem
+  // runs the ordinary FP32 conv (already exercised as the per-block mode's
+  // FP32 island) and its per-channel consumer quantizes its FP32 output.
+  const bool perch_mode =
+    w8a8_mode && std::getenv("NNTR_W8A8_PERCH") != nullptr && groups == 1 &&
+    in_dim.getFormat() == ml::train::TensorDim::Format::NHWC &&
+    in_dim.channel() != 3;
+  const bool perch_q8out = perch_mode && (filter_size % 4 == 0);
+  const bool w8a8_q8out =
+    !perch_mode && w8a8_mode && quant_matmul_filter &&
+    in_t_type.data_type == nntrainer::Tdatatype::Q8_0 &&
+    in_dim.getFormat() == ml::train::TensorDim::Format::NHWC;
+  if (w8a8_q8out || perch_q8out) {
+    out_dim.setDataType(nntrainer::Tdatatype::QINT8);
+  } else if (out_dim.getDataType() == nntrainer::Tdatatype::QINT8) {
+    // A conv NEVER passes int8 through: a Q8_0 conv emits int8 via the
+    // quantize epilogue (handled above), any other conv dequantizes its
+    // input and produces FP32. Without this, an FP32-weight conv fed a QINT8
+    // activation would inherit QINT8 from its input dtype and write FP32
+    // bytes into an int8-typed tensor -- the next layer then reads a garbage
+    // per-tensor scale.
+    out_dim.setDataType(nntrainer::Tdatatype::FP32);
+  }
+
   context.setOutputDimensions({out_dim});
 
   NNTR_THROW_IF(eff_in_height < kernel_size[0] || eff_in_width < kernel_size[1],
@@ -933,6 +1123,10 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
   wt_idx[ConvParams::q8act_scratch] = std::numeric_limits<unsigned int>::max();
   if (groups == 1) {
     auto scratch_type = in_dim.getTensorType();
+    // W8A8: scratch buffers hold FP32 intermediates (im2col columns, the
+    // pre-quantize GEMM output) even when the graph edge dtype is QINT8.
+    if (scratch_type.data_type == nntrainer::Tdatatype::QINT8)
+      scratch_type.data_type = nntrainer::Tdatatype::FP32;
     const unsigned int owoh = out_dim.width() * out_dim.height();
     const bool is_1x1_s1 = kernel_size[0].get() == 1 &&
                            kernel_size[1].get() == 1 && stride[0].get() == 1 &&
@@ -941,7 +1135,12 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
     // that never materialize a col buffer: the 1x1 path (im2col is an identity
     // handled by an input transpose) and, where the fused backend op exists,
     // the non-1x1 path (gather is fused into the q8_0 activation packing).
-    if (!(quant_matmul_filter && (is_1x1_s1 || NNTR_HAS_Q4_0_INDIRECT_CONV))) {
+    // (Q8_0 weights always use the portable indirect GEMM -- also on x86 --
+    // so they never need the col buffer regardless of the ISA-specific
+    // NNTR_HAS_Q4_0_INDIRECT_CONV flag.)
+    if (!(quant_matmul_filter &&
+          (is_1x1_s1 || NNTR_HAS_Q4_0_INDIRECT_CONV ||
+           in_t_type.data_type == nntrainer::Tdatatype::Q8_0))) {
       // FP path or quant fallback: materialize the im2col column buffer
       // [batch, 1, CRS, OH*OW] once (planned into the activation arena). The
       // quant 1x1 path (identity input transpose) and the quant indirect path
@@ -960,6 +1159,9 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
         context.requestTensor(tmp_dim, "qgemm_out", Initializer::NONE, false,
                               TensorLifespan::FORWARD_FUNC_LIFESPAN);
     }
+    // (W8A8 uses forward-local heap buffers for its FP32 GEMM output and input
+    // dequantization -- pool INFER scratch is not materialized for inference
+    // and a FUNC scratch aliases live activation memory; see forwarding().)
     // Q8_0 activation scratch for NHWC W4A8 path: pre-allocated once so
     // forwarding never calls malloc. Size = max(owoh, in_h*in_w) * nb blocks,
     // stored as a plain float buffer and reinterpret-cast to block_q8_0*.
@@ -1268,6 +1470,14 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
       (weight_dtype == nntrainer::Tdatatype::Q4_0 ||
        weight_dtype == nntrainer::Tdatatype::QINT4 || weight_is_q8);
     const unsigned int owoh = out_dim.width() * out_dim.height();
+    // Mirrors finalize's perch_mode, including the stem exclusion (in_ch == 3):
+    // the stem consumes the FP32 image directly through the ordinary FP32 conv
+    // so the raw input is never quantized (matches the 81/87 S0 simulation).
+    const bool perch_mode =
+      std::getenv("NNTR_W8A8") != nullptr &&
+      std::getenv("NNTR_W8A8_PERCH") != nullptr &&
+      in_dim.getFormat() == ml::train::TensorDim::Format::NHWC &&
+      in_dim.channel() != 3;
 
     TensorDim filter_dim_squeezed{filter_kernel.batch(),
                                   filter_kernel.getDim().getFeatureLen()};
@@ -1292,7 +1502,8 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
     // (gather fused into the GEMM) requested no col buffer in finalize, so the
     // pointer stays null for them.
     const bool use_im2col_scratch =
-      !(weight_is_quant && (is_1x1_s1 || NNTR_HAS_Q4_0_INDIRECT_CONV));
+      !(weight_is_quant &&
+        (is_1x1_s1 || NNTR_HAS_Q4_0_INDIRECT_CONV || weight_is_q8));
     Tensor *col_scratch =
       use_im2col_scratch
         ? &context.getTensor(wt_idx[ConvParams::im2col_scratch])
@@ -1323,16 +1534,398 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
         Tensor out = hidden_.getBatchSlice(b, 1);
         Tensor in_sub = input_.getBatchSlice(b, 1);
 
+        // ---- Per-channel W8A8 path (NNTR_W8A8_PERCH) --------------------
+        // Every NHWC conv runs int8 through the int32-accumulate kernel: the
+        // weight is converted once to per-channel int8 (cached); the input is
+        // int8 (from the previous conv) or quantized here (the stem); the FP32
+        // GEMM output gets bias + SiLU, then is quantized to int8 (or written
+        // FP32 for the head-final conv, whose consumer is FP32).
+        if (perch_mode) {
+          // Attribute the intra-layer op scopes below (and the GEMM's internal
+          // pack/matmul split) to this conv, robust to batch>1 workers.
+          const unsigned int in_ch = in_dim.channel();
+          const unsigned int CRS =
+            in_ch * kernel_size[0].get() * kernel_size[1].get();
+          const PerChConvWeight &W = __ggml_q8ch_prepare_conv_weight(
+            filter_kernel.getData(),
+            weight_is_q8 ? filter_kernel.getData() : nullptr,
+            weight_is_q8 ? nullptr : filter_kernel.getData<float>(), filter_size,
+            CRS, kernel_size[0].get() * kernel_size[1].get(), in_ch);
+
+          // Asymmetric (affine) int8 activations with a SHARED fixed offset
+          // (default; NNTR_W8A8_SYM=1 reverts to symmetric): every int8 edge
+          // in this graph carries SiLU-domain values, whose global minimum is
+          // -0.27846 (min of x*sigmoid(x)), so the representation
+          //     x = (q + 128) * s - kActOff
+          // spans [-kActOff, 255*s - kActOff] and uses all 256 levels on the
+          // range that actually occurs -- ~2x the resolution of symmetric
+          // [-amax, amax], which wastes half its levels on negatives that
+          // never happen. This is what keeps ORT's borderline keypoints from
+          // flipping (S0 sim: min margin +0.008 symmetric -> +0.054 affine).
+          // Because the offset is a shared CONSTANT, no zero point needs to be
+          // stored (the tensor scale slot keeps s) and concat/pool/upsample
+          // rescale exactly as before modulo the +128 shift. The GEMM needs no
+          // kernel change: sum_k w*x = s_a*s_w*acc + s_w*(128*s_a -
+          // kActOff)*colsum_w, and the second term folds into the bias.
+          static const bool perch_asym =
+            std::getenv("NNTR_W8A8_SYM") == nullptr;
+          constexpr float kActOff = 0.27846455f;
+
+          // input int8 + per-tensor scale
+          // (thread_local: reused across layers/forwards on this thread --
+          // ParallelBatch workers each get their own -- so the per-forward
+          // malloc/free churn disappears; every byte is overwritten below.)
+          const int8_t *a_i8 = nullptr;
+          float a_scale = 1.f;
+          static thread_local std::vector<int8_t> a_buf;
+          if (in_sub.getDataType() == nntrainer::Tdatatype::QINT8) {
+            a_i8 = in_sub.getData<int8_t>();
+            a_scale = in_sub.getScale<float>()[0];
+          } else {
+            const float *fin = in_sub.getData<float>();
+            const size_t n_in = in_sub.size();
+            // Chunk-parallel NEON amax + quantize: this input is the stem's
+            // full-resolution FP32 output (~800K elements) and the former
+            // single-thread scalar loops were the largest single conv cost.
+            auto &tmq = ThreadManager::Global();
+            const size_t qch = 1 << 15;
+            const size_t nqc = (n_in + qch - 1) / qch;
+            static thread_local std::vector<float> chunk_amax;
+            if (chunk_amax.size() < nqc)
+              chunk_amax.resize(nqc);
+            float *cam = chunk_amax.data();
+            tmq.parallel_for(0, nqc, [=](size_t ci) {
+              const size_t i0 = ci * qch, i1 = std::min(i0 + qch, n_in);
+              cam[ci] = nntr_absmax_f32(fin + i0, i1 - i0);
+            });
+            float amax = 0.f;
+            for (size_t ci = 0; ci < nqc; ++ci)
+              amax = std::max(amax, cam[ci]);
+            // FP32 activation scale (NOT fp16-rounded): the per-channel kernel
+            // consumes a_scale as an FP32 multiplier and ignores block d, so the
+            // convRoundScaleFp16 used by the per-block path is a needless
+            // per-layer precision loss here. Matching the FP32-scale S0
+            // simulation (which holds 81/87) is what the fp16 rounding broke on
+            // device (per-channel 81 -> 80); ~50 layers of ~5e-4 scale error
+            // accumulate across the int8-resident pipeline.
+            // (This input is the stem's SiLU output, so the affine range
+            // [-kActOff, amax] is valid; amax >= max(x) covers the top end.)
+            a_buf.resize(n_in);
+            int8_t *ab = a_buf.data();
+            if (perch_asym) {
+              a_scale = amax > 0.f ? (amax + kActOff) / 255.f : 1.f;
+              const float inv = 1.f / a_scale;
+              tmq.parallel_for(0, nqc, [=](size_t ci) {
+                const size_t i0 = ci * qch, i1 = std::min(i0 + qch, n_in);
+                nntr_quantize_affine_i8(fin + i0, ab + i0, i1 - i0, inv, kActOff);
+              });
+            } else {
+              a_scale = amax > 0.f ? amax / 127.f : 1.f;
+              const float inv = 1.f / a_scale;
+              tmq.parallel_for(0, nqc, [=](size_t ci) {
+                const size_t i0 = ci * qch, i1 = std::min(i0 + qch, n_in);
+                for (size_t i = i0; i < i1; ++i)
+                  ab[i] = (int8_t)std::max(
+                    -128.f, std::min(127.f, std::round(fin[i] * inv)));
+              });
+            }
+            a_i8 = a_buf.data();
+          }
+
+          ConvGatherParams geom;
+          geom.in_ch = (int)in_ch;
+          geom.in_h = in_dim.height();
+          geom.in_w = in_dim.width();
+          geom.k_h = kernel_size[0].get();
+          geom.k_w = kernel_size[1].get();
+          geom.pad_t = padding[0];
+          geom.pad_l = padding[2];
+          geom.stride_h = stride[0].get();
+          geom.stride_w = stride[1].get();
+          geom.dil_h = dilation[0].get();
+          geom.dil_w = dilation[1].get();
+          geom.out_w = out_dim.width();
+          geom.is_nhwc = true;
+
+          const bool out_qint8 =
+            out.getDataType() == nntrainer::Tdatatype::QINT8;
+          // Reused thread_local GEMM output buffer, NOT zeroed: the GEMM tiles
+          // cover every [M x N] element (bulk rows via the tiled kernel, the
+          // M%4 tail via its scratch memcpy), so the former per-forward
+          // assign(.., 0.f) was a full-tensor memset thrown away immediately.
+          static thread_local std::vector<float> cbuf;
+          float *cptr;
+          if (out_qint8) {
+            const size_t need = (size_t)owoh * filter_size;
+            if (cbuf.size() < need)
+              cbuf.resize(need);
+            cptr = cbuf.data();
+          } else {
+            cptr = out.getData<float>(); // NHWC [owoh, out_ch] == GEMM layout
+          }
+
+          // Padded gather positions must represent x = 0, whose affine code is
+          // round(kActOff / s) - 128 (the byte 0 would mean x = 128*s - kActOff).
+          int8_t pad_q = 0;
+          if (perch_asym)
+            pad_q = (int8_t)std::max(
+              -128L,
+              std::min(127L, std::lround(kActOff / a_scale) - 128L));
+
+          __ggml_q8ch_indirect_GEMM(owoh, filter_size, W.Kpad, a_i8, a_scale,
+                                    geom, W.qs_data(), W.scale.data(), cptr,
+                                    pad_q, W.taps_last);
+
+          // bias + SiLU on FP32, then (for an int8 output) requantize.
+          {
+            auto &tm = ThreadManager::Global();
+            const unsigned int C = filter_size;
+            const size_t nout = (size_t)owoh * filter_size;
+            const float *bptr = nullptr;
+            if (auto &db = std::get<props::DisableBias>(*layer_impl_props);
+                db.empty() || db.get() == false)
+              bptr =
+                context.getWeight(wt_idx[ConvParams::bias]).getData<float>();
+            // Affine activations: the GEMM accumulated sum_k q_w * q_a with the
+            // offset still inside q_a; the exact linear term
+            //   s_w[j] * (128*s_a - kActOff) * colsum_w[j]
+            // completes sum_k w*x, and being per-output-channel constant it
+            // folds into the bias (no kernel change, no per-element cost).
+            static thread_local std::vector<float> ebias;
+            if (perch_asym) {
+              const float koff = 128.f * a_scale - kActOff;
+              if (ebias.size() < C)
+                ebias.resize(C);
+              for (unsigned int j = 0; j < C; ++j)
+                ebias[j] = (bptr ? bptr[j] : 0.f) +
+                           W.scale[j] * koff * (float)W.colsum[j];
+              bptr = ebias.data();
+            }
+            static const bool approx_silu =
+              std::getenv("NNTR_APPROX_SILU") != nullptr &&
+              std::string(std::getenv("NNTR_APPROX_SILU")) == "1";
+            int act = 0;
+            if (auto &actp = std::get<props::FusedActivation>(conv_props);
+                !actp.empty() && actp.get() == ActivationType::ACT_SWISH)
+              act = approx_silu ? 2 : 1;
+
+            if (out_qint8) {
+              // One fused row-parallel pass: bias + SiLU + per-row amax; then a
+              // parallel quantize pass. Replaces the former four passes (three
+              // single-threaded) so the epilogue is no longer the conv's cost.
+              static thread_local std::vector<float> ramax;
+              if (ramax.size() < owoh)
+                ramax.resize(owoh);
+              float *rp = ramax.data();
+              tm.parallel_for(0, owoh, [=](size_t p) {
+                rp[p] = convBiasActRow(cptr + (size_t)p * C, bptr, C, act);
+              });
+              float amax = 0.f;
+              for (unsigned int p = 0; p < owoh; ++p)
+                amax = std::max(amax, rp[p]);
+              // FP32 output scale (see the input-quant note): the consumer is a
+              // per-channel conv (FP32 act_scale) or an int8 concat/pool/upsample
+              // that forwards this scale, never a block_q8_0 fp16 d, so keep the
+              // scale in FP32 to match the S0 simulation's 81/87.
+              // Affine: the output is a SiLU tensor (>= -kActOff); span
+              // [-kActOff, amax] over 256 levels (amax = max|x| >= max(x)).
+              float sc;
+              if (perch_asym)
+                sc = amax > 0.f ? (amax + kActOff) / 255.f : 1.f;
+              else
+                sc = amax > 0.f ? amax / 127.f : 1.f;
+              const float inv = 1.f / sc;
+              const bool asym_q = perch_asym;
+              int8_t *qo = out.getData<int8_t>();
+              const size_t chunk = 4096;
+              const size_t nchunk = (nout + chunk - 1) / chunk;
+              tm.parallel_for(0, nchunk, [=](size_t ci) {
+                const size_t i0 = ci * chunk;
+                const size_t i1 = std::min(i0 + chunk, nout);
+                if (asym_q) {
+                  // NEON affine quantize (bit-identical to the scalar form).
+                  nntr_quantize_affine_i8(cptr + i0, qo + i0, i1 - i0, inv, kActOff);
+                } else {
+                  for (size_t i = i0; i < i1; ++i)
+                    qo[i] = (int8_t)std::max(
+                      -128.f, std::min(127.f, std::round(cptr[i] * inv)));
+                }
+              });
+              hidden_.getScale<float>()[0] = sc;
+            } else if (bptr || act) {
+              // FP32 output (head-final conv, out_ch % 4 != 0): fused bias
+              // (incl. the affine correction) + SiLU, row-parallel, no requant.
+              tm.parallel_for(0, owoh, [=](size_t p) {
+                convBiasActRow(cptr + (size_t)p * C, bptr, C, act);
+              });
+            }
+          }
+          continue;
+        }
+        // ----------------------------------------------------------------
+
+        // ---- Stem direct FP32 conv (per-channel W8A8 mode) --------------
+        // The stem is excluded from the int8 path (its input is the FP32
+        // image), but the generic im2col+sgemm route costs ~3 ms for a 22
+        // MMAC conv. With in_ch == 3 a direct tap loop is far cheaper: 16
+        // output channels stay in four NEON accumulators per pixel, each of
+        // the <=27 (tap, channel) scalars broadcast-FMAs a contiguous
+        // out-channel weight vector (tap-major cache above). Bias + SiLU
+        // reuse the fused convBiasActRow row epilogue.
+        if (std::getenv("NNTR_W8A8") != nullptr &&
+            std::getenv("NNTR_W8A8_PERCH") != nullptr && !weight_is_quant &&
+            (std::get<props::ConvGroups>(conv_props).empty() ||
+             std::get<props::ConvGroups>(conv_props).get() == 1) &&
+            in_dim.getFormat() == ml::train::TensorDim::Format::NHWC &&
+            in_dim.channel() == 3 &&
+            in_sub.getDataType() == nntrainer::Tdatatype::FP32 &&
+            out.getDataType() == nntrainer::Tdatatype::FP32 &&
+            dilation[0].get() == 1 && dilation[1].get() == 1 &&
+            filter_size % 4 == 0) {
+          const unsigned int Cin = in_dim.channel();
+          const unsigned int Cout = filter_size;
+          const unsigned int kh_ = kernel_size[0].get();
+          const unsigned int kw_ = kernel_size[1].get();
+          const std::vector<float> &TW = getStemTapWeight(
+            filter_kernel.getData<float>(), Cout, Cin, kh_, kw_);
+          const float *twp = TW.data();
+          const float *bptr = nullptr;
+          if (auto &db = std::get<props::DisableBias>(*layer_impl_props);
+              db.empty() || db.get() == false)
+            bptr = context.getWeight(wt_idx[ConvParams::bias]).getData<float>();
+          static const bool approx_silu_s =
+            std::getenv("NNTR_APPROX_SILU") != nullptr &&
+            std::string(std::getenv("NNTR_APPROX_SILU")) == "1";
+          int act = 0;
+          if (auto &actp = std::get<props::FusedActivation>(conv_props);
+              !actp.empty() && actp.get() == ActivationType::ACT_SWISH)
+            act = approx_silu_s ? 2 : 1;
+
+          const int Hi = in_dim.height(), Wi = in_dim.width();
+          const int Ho = out_dim.height(), Wo = out_dim.width();
+          const int sh = stride[0].get(), sw = stride[1].get();
+          const int ptop = padding[0], pleft = padding[2];
+          const float *inp = in_sub.getData<float>();
+          float *outp = out.getData<float>();
+          auto &tms = ThreadManager::Global();
+          tms.parallel_for(0, (size_t)Ho, [=](size_t ohs) {
+            const int oh = (int)ohs;
+            const int h0 = oh * sh - ptop;
+            for (int ow = 0; ow < Wo; ++ow) {
+              float *op = outp + ((size_t)oh * Wo + ow) * Cout;
+              const int w0 = ow * sw - pleft;
+              unsigned int cb = 0;
+#if defined(__ARM_NEON)
+              for (; cb + 15 < Cout; cb += 16) {
+                float32x4_t a0 = vdupq_n_f32(0.f), a1 = vdupq_n_f32(0.f);
+                float32x4_t a2 = vdupq_n_f32(0.f), a3 = vdupq_n_f32(0.f);
+                for (unsigned int y = 0; y < kh_; ++y) {
+                  const int ih = h0 + (int)y;
+                  if (ih < 0 || ih >= Hi)
+                    continue;
+                  for (unsigned int x = 0; x < kw_; ++x) {
+                    const int iw = w0 + (int)x;
+                    if (iw < 0 || iw >= Wi)
+                      continue;
+                    const float *px = inp + ((size_t)ih * Wi + iw) * Cin;
+                    const float *wt =
+                      twp + (((size_t)y * kw_ + x) * Cin) * Cout + cb;
+                    for (unsigned int c = 0; c < Cin; ++c) {
+                      const float xv = px[c];
+                      const float *wv = wt + (size_t)c * Cout;
+                      a0 = vfmaq_n_f32(a0, vld1q_f32(wv + 0), xv);
+                      a1 = vfmaq_n_f32(a1, vld1q_f32(wv + 4), xv);
+                      a2 = vfmaq_n_f32(a2, vld1q_f32(wv + 8), xv);
+                      a3 = vfmaq_n_f32(a3, vld1q_f32(wv + 12), xv);
+                    }
+                  }
+                }
+                vst1q_f32(op + cb + 0, a0);
+                vst1q_f32(op + cb + 4, a1);
+                vst1q_f32(op + cb + 8, a2);
+                vst1q_f32(op + cb + 12, a3);
+              }
+#endif
+              for (; cb < Cout; ++cb) {
+                float acc = 0.f;
+                for (unsigned int y = 0; y < kh_; ++y) {
+                  const int ih = h0 + (int)y;
+                  if (ih < 0 || ih >= Hi)
+                    continue;
+                  for (unsigned int x = 0; x < kw_; ++x) {
+                    const int iw = w0 + (int)x;
+                    if (iw < 0 || iw >= Wi)
+                      continue;
+                    const float *px = inp + ((size_t)ih * Wi + iw) * Cin;
+                    const float *wt =
+                      twp + (((size_t)y * kw_ + x) * Cin) * Cout + cb;
+                    for (unsigned int c = 0; c < Cin; ++c)
+                      acc += px[c] * wt[(size_t)c * Cout];
+                  }
+                }
+                op[cb] = acc;
+              }
+              // fused bias + SiLU on the freshly built out-channel row
+              convBiasActRow(op, bptr, Cout, act);
+            }
+          });
+          continue;
+        }
+        // ----------------------------------------------------------------
+
+        // W8A8: an FP32-weight conv fed by a QINT8 activation dequantizes it
+        // once into a heap-local FP32 buffer and runs the standard path
+        // unchanged (conv is the universal dtype boundary).
+        std::vector<float> deq_in_buf;
+        if (!weight_is_quant &&
+            in_sub.getDataType() == nntrainer::Tdatatype::QINT8) {
+          const int8_t *q = in_sub.getData<int8_t>();
+          const float sc = in_sub.getScale<float>()[0];
+          const size_t n_in = in_sub.size();
+          deq_in_buf.resize(n_in);
+          float *fp = deq_in_buf.data();
+          auto &tmd = ThreadManager::Global();
+          const size_t chunk = 65536;
+          tmd.parallel_for(0, (n_in + chunk - 1) / chunk, [=](size_t ci) {
+            const size_t i0 = ci * chunk, i1 = std::min(i0 + chunk, n_in);
+            for (size_t i = i0; i < i1; ++i)
+              fp[i] = sc * (float)q[i];
+          });
+          TensorDim din = in_sub.getDim();
+          din.setDataType(nntrainer::Tdatatype::FP32);
+          in_sub = Tensor::Map<float>(deq_in_buf.data(),
+                                      deq_in_buf.size() * sizeof(float), din);
+        }
+
         if (weight_is_quant) {
           if (in_sub.getFormat() == ml::train::TensorDim::Format::NHWC) {
             // NHWC channel-last quantized convolution:
             // Since physical layout is [owoh, filter_size], we reshape `out` to
             // flat NCHW [1, 1, owoh, filter_size] and write directly,
             // completely bypassing qgemm_scratch and transposes!
+            // W8A8 QINT8 output: the int8 GEMM still produces FP32, so route
+            // it into the (FP32) qgemm scratch instead; the fused epilogue
+            // below adds bias, applies SiLU, and quantizes into `out`.
+            const bool out_qint8 =
+              out.getDataType() == nntrainer::Tdatatype::QINT8;
             Tensor out_flat = out;
-            out_flat.reshape(TensorDim(
-              1, 1, owoh, filter_size,
-              {ml::train::TensorDim::Format::NCHW, out.getDataType()}));
+            std::vector<float> w8a8_out_buf;
+            if (out_qint8) {
+              // Dedicated FP32 GEMM-output buffer (heap-local: pool INFER
+              // scratch is not materialized for inference, and a FUNC scratch
+              // aliases live activation memory). The epilogue reads it back to
+              // quantize into `out`.
+              w8a8_out_buf.assign((size_t)owoh * filter_size, 0.f);
+              out_flat = Tensor::Map<float>(
+                w8a8_out_buf.data(), w8a8_out_buf.size() * sizeof(float),
+                TensorDim(1, 1, owoh, filter_size,
+                          {ml::train::TensorDim::Format::NCHW,
+                           nntrainer::Tdatatype::FP32}));
+            } else {
+              out_flat.reshape(TensorDim(
+                1, 1, owoh, filter_size,
+                {ml::train::TensorDim::Format::NCHW, out.getDataType()}));
+            }
 
             const int in_ch_i = (int)in_dim.channel();
             // Q8_0-activation path is an env opt-in only. Q8_0 weights use the
@@ -1381,7 +1974,10 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
 #ifdef ENABLE_FP16
               }
 #endif
-            } else if (NNTR_HAS_Q4_0_INDIRECT_CONV) {
+            } else if (NNTR_HAS_Q4_0_INDIRECT_CONV || weight_is_q8) {
+              // (Q8_0 dispatches to the portable __ggml Q8_0xQ8_0 indirect
+              // GEMMs, which have scalar fallbacks on every ISA -- so Q8_0
+              // convs run on x86 too, unlike the ISA-gated Q4_0 kernels.)
               ConvGatherParams geom;
               geom.in_ch = in_ch_i;
               geom.in_h = in_dim.height();
@@ -1408,7 +2004,18 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
               } else {
 #endif
                 geom.is_nhwc = true;
-                in_sub.convQ4_0Indirect(filter_kernel, out_flat, geom);
+                if (in_sub.getDataType() == nntrainer::Tdatatype::QINT8) {
+                  // W8A8: pre-quantized per-tensor int8 activation -- byte
+                  // gather + constant-d packing straight into the SMMLA GEMM.
+                  __ggml_q8_0_q8_0_indirect_GEMM_i8a(
+                    owoh, filter_size, (unsigned int)in_ch_i *
+                      kernel_size[0].get() * kernel_size[1].get(),
+                    in_sub.getData<int8_t>(), in_sub.getScale<float>()[0],
+                    geom, filter_kernel.getData(), filter_size,
+                    out_flat.getData<float>(), filter_size);
+                } else {
+                  in_sub.convQ4_0Indirect(filter_kernel, out_flat, geom);
+                }
 #ifdef ENABLE_FP16
               }
 #endif
@@ -1416,6 +2023,66 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
               throw std::runtime_error(
                 "Fallback quantized NHWC conv is not supported (requires "
                 "indirect conv on ARM).");
+            }
+            // W8A8 fused quantize epilogue: bias + SiLU on the FP32 scratch,
+            // then per-tensor symmetric int8 quantize into `out` with the
+            // fp16-rounded dynamic scale written to the tensor's scale slot.
+            // The generic bias/activation sections below are dtype-gated and
+            // never touch a QINT8 output.
+            if (out_qint8) {
+              float *f = out_flat.getData<float>();
+              const size_t n_out = (size_t)owoh * filter_size;
+              const float *bptr = nullptr;
+              if (auto &db = std::get<props::DisableBias>(*layer_impl_props);
+                  db.empty() || db.get() == false)
+                bptr = context.getWeight(wt_idx[ConvParams::bias])
+                         .getData<float>();
+              if (bptr) {
+                auto &tmq = ThreadManager::Global();
+                const unsigned int C = filter_size;
+                tmq.parallel_for(0, owoh, [=](size_t p) {
+                  float *row = f + p * C;
+                  for (unsigned int c = 0; c < C; ++c)
+                    row[c] += bptr[c];
+                });
+              }
+              if (auto &actp = std::get<props::FusedActivation>(conv_props);
+                  !actp.empty() && actp.get() == ActivationType::ACT_SWISH)
+                convApplySwishInplace(f, n_out);
+              // amax reduce + quantize
+              auto &tmq = ThreadManager::Global();
+              const size_t chunk = 4096;
+              const size_t nchunk = (n_out + chunk - 1) / chunk;
+              std::vector<float> amaxes(nchunk, 0.f);
+              float *amax_arr = amaxes.data();
+              tmq.parallel_for(0, nchunk, [=](size_t ci) {
+                const size_t i0 = ci * chunk;
+                const size_t i1 = std::min(i0 + chunk, n_out);
+                float am = 0.f;
+                for (size_t i = i0; i < i1; ++i) {
+                  float a = std::fabs(f[i]);
+                  if (a > am)
+                    am = a;
+                }
+                amax_arr[ci] = am;
+              });
+              float amax = 0.f;
+              for (float a : amaxes)
+                amax = std::max(amax, a);
+              float scale =
+                amax > 0.f ? convRoundScaleFp16(amax / 127.f) : 1.f;
+              const float inv = 1.f / scale;
+              int8_t *qout = out.getData<int8_t>();
+              tmq.parallel_for(0, nchunk, [=](size_t ci) {
+                const size_t i0 = ci * chunk;
+                const size_t i1 = std::min(i0 + chunk, n_out);
+                for (size_t i = i0; i < i1; ++i) {
+                  float q = std::round(f[i] * inv);
+                  qout[i] =
+                    (int8_t)std::max(-128.f, std::min(127.f, q));
+                }
+              });
+              hidden_.getScale<float>()[0] = scale;
             }
           } else {
             // Q8_0 weights are only wired for the NHWC q8-activation indirect
@@ -1859,6 +2526,36 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
     }
   }
 
+  // Per-channel W8A8 convs applied bias + SiLU + quantize inline per batch, so
+  // skip the generic epilogue entirely (it would double the bias). MUST mirror
+  // the forward branches exactly: the per-channel branch covers every NHWC
+  // conv EXCEPT the stem (in_ch == 3), and the stem is covered by the direct
+  // FP32 fast path below IF its conditions held (mirrored in
+  // stem_direct_done); a stem that fell back to the standard path still needs
+  // the generic bias here -- skipping it once left the stem bias-less
+  // (catastrophic accuracy loss).
+  const bool w8a8_perch_env =
+    std::getenv("NNTR_W8A8") != nullptr &&
+    std::getenv("NNTR_W8A8_PERCH") != nullptr;
+  const bool conv_groups_one =
+    (std::get<props::ConvGroups>(conv_props).empty() ||
+     std::get<props::ConvGroups>(conv_props).get() == 1);
+  const bool stem_direct_done =
+    w8a8_perch_env && conv_groups_one &&
+    filter_kernel.getDataType() == nntrainer::Tdatatype::FP32 &&
+    input_.getDim().getFormat() == ml::train::TensorDim::Format::NHWC &&
+    input_.getDim().channel() == 3 &&
+    input_.getDataType() == nntrainer::Tdatatype::FP32 &&
+    hidden_.getDataType() == nntrainer::Tdatatype::FP32 &&
+    dilation[0].get() == 1 && dilation[1].get() == 1 &&
+    (unsigned int)std::get<props::FilterSize>(conv_props) % 4 == 0;
+  const bool perch_done =
+    (w8a8_perch_env && conv_groups_one &&
+     input_.getDim().getFormat() == ml::train::TensorDim::Format::NHWC &&
+     input_.getDim().channel() != 3) ||
+    stem_direct_done;
+
+  if (!perch_done)
   if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
       disable_bias.empty() || disable_bias.get() == false) {
     Tensor &bias_kernel = context.getWeight(wt_idx[ConvParams::bias]);
@@ -1941,7 +2638,11 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
   // fused here (the swish conv activation); any other activation type is left
   // to a dedicated Activation layer in the graph.
   if (auto &act = std::get<props::FusedActivation>(conv_props);
-      !act.empty() && act.get() == ActivationType::ACT_SWISH) {
+      !act.empty() && act.get() == ActivationType::ACT_SWISH &&
+      hidden_.getDataType() != nntrainer::Tdatatype::QINT8 &&
+      !stem_direct_done) {
+    // (QINT8 outputs already applied SiLU inside the W8A8 quantize epilogue;
+    // the stem direct fast path fuses bias + SiLU per row itself.)
     const size_t n = hidden_.size();
 #ifdef ENABLE_FP16
     if (hidden_.getDataType() == nntrainer::Tdatatype::FP16) {
@@ -1952,6 +2653,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
       convApplySwishInplace(hidden_.getData<float>(), n);
     }
   }
+
 }
 
 void Conv2DLayer::calcDerivative(RunLayerContext &context) {
@@ -2207,9 +2909,24 @@ void Conv2DLayer::save(std::ofstream &file, RunLayerContext &run_context,
       // The q8_0x4 layout is a logical byte interleave (ISA-independent); the
       // kernel decodes it, so the repacked file is portable across ISAs (unlike
       // Q4_0, whose kernel ISA-specific interleaving is dispatched at save).
-      quantize_q8_0(weight.getData<float>(), tmp.data(),
-                    static_cast<int64_t>(out_ch), static_cast<int64_t>(CRS),
-                    nullptr);
+      //
+      // When quantizing FOR the W8A8 per-channel runtime (env NNTR_W8A8_PERCH,
+      // the same flag that selects the per-channel kernel at run time), use one
+      // scale per output-channel row instead of one per 32-block. This makes the
+      // runtime's dequant->per-channel-requant the identity (see
+      // __ggml_quantize_q8_0_per_channel), removing the per-block->per-channel
+      // double quantization that costs one keypoint (81 -> 80). The repack and
+      // byte layout are unchanged, so a per-channel file is still a valid Q8_0
+      // tensor for every other reader.
+      static const bool perch_quant =
+        std::getenv("NNTR_W8A8_PERCH") != nullptr;
+      if (perch_quant)
+        __ggml_quantize_q8_0_per_channel(weight.getData<float>(), tmp.data(),
+                                         out_ch, CRS);
+      else
+        quantize_q8_0(weight.getData<float>(), tmp.data(),
+                      static_cast<int64_t>(out_ch), static_cast<int64_t>(CRS),
+                      nullptr);
       repack_q8_0(quant_weight.getData<uint8_t>(), tmp.data(), out_ch, CRS);
     }
     quant_weight.save(file);

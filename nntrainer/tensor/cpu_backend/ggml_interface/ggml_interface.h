@@ -20,6 +20,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <tensor_dim.h>
+#include <vector>
 
 namespace nntrainer {
 
@@ -262,6 +263,125 @@ void __ggml_q8_0_q8_0_indirect_GEMM_fp16(const unsigned int M,
                                          const void *B, const unsigned int ldb,
                                          _FP16 *C, const unsigned int ldc);
 #endif
+
+/**
+ * @brief FP32-activation Q8_0-weight indirect-conv GEMM (W8A32).
+ *
+ * FP32 analog of __ggml_q8_0_q8_0_indirect_GEMM_fp16: keeps activations FP32
+ * between layers (no FP16 rounding accumulation -> recovers FP32-level pose
+ * accuracy) while still doing int8 SMMLA compute. The FP32 input is gathered on
+ * the fly (gather_conv_act_rows_fp32) and quantized per row to plain
+ * block_q8_0; the pre-repacked q8_0x4 weight B is de-interleaved to plain
+ * block_q8_0; both feed nntr_gemm_q8_0_q8_0 with FP32 output C. Consumes the
+ * same weight file as the FP16 path. Used by FloatTensor::convQ4_0Indirect for
+ * Q8_0 weights.
+ */
+void __ggml_q8_0_q8_0_indirect_GEMM_fp32(const unsigned int M,
+                                         const unsigned int N,
+                                         const unsigned int K, const float *in,
+                                         const ConvGatherParams &geom,
+                                         const void *B, const unsigned int ldb,
+                                         float *C, const unsigned int ldc);
+
+/**
+ * @brief W8A8 indirect conv GEMM: pre-quantized int8 activation with one
+ * per-tensor FP32 scale (produced by the previous layer's fused quantize
+ * epilogue) x q8_0x4 weight -> FP32 output. Same geometry/padding contract as
+ * the fp32 variant; the activation gather is a pure byte shuffle (constant-d
+ * block packing), no per-conv re-quantization.
+ */
+void __ggml_q8_0_q8_0_indirect_GEMM_i8a(const unsigned int M,
+                                        const unsigned int N,
+                                        const unsigned int K, const int8_t *in,
+                                        const float act_scale,
+                                        const ConvGatherParams &geom,
+                                        const void *B, const unsigned int ldb,
+                                        float *C, const unsigned int ldc);
+
+/**
+ * @brief A conv weight converted to the per-channel int8 form the
+ * int32-accumulate W8A8 kernels consume: int8 quants in the q8_0x4 qs layout
+ * (CRS zero-padded to a 32 multiple, out_ch to a 4 multiple) plus one FP32
+ * scale per real output channel. Owned and cached by
+ * __ggml_q8ch_prepare_conv_weight (this module owns the q8_0x4 layout, so the
+ * conversion lives here rather than in the conv layer).
+ */
+struct PerChConvWeight {
+  std::vector<char> qs;    /**< block_q8_0x4 stream (qs used; d bytes are 0) */
+  const void *qs_ext = nullptr; /**< when set, the int8 payload is shared
+                                 * zero-copy with the source weight buffer and
+                                 * `qs` stays empty (no duplicate allocation) */
+  std::vector<float> scale; /**< [out_ch] per-output-channel FP32 scale */
+  std::vector<int32_t> colsum; /**< [out_ch] sum of the row's int8 quants; used
+                                * by the asymmetric-activation path to fold the
+                                * shared activation offset into the bias */
+  unsigned int Kpad = 0;  /**< CRS padded to a multiple of 32 */
+  unsigned int Npad = 0;  /**< out_ch padded to a multiple of 4 */
+  unsigned int Nreal = 0; /**< real out_ch */
+  bool taps_last = false; /**< K permuted to [k_h][k_w][in_ch]; the GEMM must
+                           * gather activations in the same taps-last order
+                           * (pack-free path). Integer accumulation is
+                           * order-exact, so results are bit-identical. */
+  /**
+   * @brief Pointer to the block_q8_0x4 int8 stream the GEMM kernel reads
+   * (shared with the source weight when zero-copy, else the owned buffer).
+   */
+  const void *qs_data() const {
+    return qs_ext ? qs_ext : (const void *)qs.data();
+  }
+};
+
+/**
+ * @brief Build (once, cached by `key`) the per-channel int8 weight for a conv
+ * whose filter is logically [out_ch, CRS].
+ *
+ * `q8_src_x4` (a block_q8_0x4 stream, out_ch x CRS blocked on CRS) is used
+ * when non-null; otherwise `fp32_src` (row-major [out_ch, CRS]). Streams the
+ * conversion per 4-output-channel group (no whole-tensor FP32 intermediate),
+ * applies the taps-last K permutation for khkw > 1 (NNTR_W8A8_PACKA=1
+ * reverts), and requantizes zero-copy in place into the source when
+ * NNTR_W8A8_PERCH_INPLACE=1 and the layouts coincide.
+ */
+const PerChConvWeight &
+__ggml_q8ch_prepare_conv_weight(const void *key, const void *q8_src_x4,
+                                const float *fp32_src, unsigned int out_ch,
+                                unsigned int CRS, unsigned int khkw = 1,
+                                unsigned int in_ch = 0);
+
+/**
+ * @brief Offline PER-CHANNEL Q8_0 quantizer: writes a plain block_q8_0 stream
+ * ([nrow, ncol/32]) where every block of row n carries the SAME fp16 scale
+ * d = amax(row_n)/127 and qs = round(x / d). Byte-valid Q8_0; loading it
+ * through the per-channel runtime reproduces the per-channel scheme exactly
+ * (the dequant->requant round trip is the identity). ncol % 32 == 0.
+ */
+void __ggml_quantize_q8_0_per_channel(const float *src, void *dst,
+                                      unsigned int nrow, unsigned int ncol);
+
+/**
+ * @brief Per-channel W8A8 indirect conv GEMM: int8 activation (per-tensor
+ * scale) x int8 weight (per-output-channel scale w_scale[N]) -> FP32, via the
+ * int32-accumulate kernel. B is int8 in the q8_0x4 qs layout (d ignored). K may
+ * be CRS-padded to a block multiple; N is the real out_ch (padded columns are
+ * not tiled).
+ *
+ * @param pad_value int8 value gathered for spatial-padding positions (default
+ * 0 = symmetric quantization). The asymmetric-activation path passes its zero
+ * point (the quantized representation of x = 0) so padded pixels contribute
+ * x ~= 0, not x = -zp*scale; the caller then removes the shared offset via the
+ * per-column colsum correction folded into the bias.
+ * @param taps_last B's K dimension is permuted to [k_h][k_w][in_ch]
+ * (PerChConvWeight::taps_last): activations are gathered taps-last as plain
+ * int8 rows (contiguous NHWC copies) and fed to the plain-activation kernel
+ * directly -- no q8_0x4 interleave pass. Bit-identical to the packed path
+ * (integer accumulation over a permuted K is exact).
+ */
+void __ggml_q8ch_indirect_GEMM(const unsigned int M, const unsigned int N,
+                               const unsigned int K, const int8_t *in,
+                               const float act_scale,
+                               const ConvGatherParams &geom, const void *B,
+                               const float *w_scale, float *C,
+                               int8_t pad_value = 0, bool taps_last = false);
 
 /**
  * @brief A(M, K) * W.T(N, K) = (M, N)

@@ -25,8 +25,10 @@
 #include <algorithm>
 #include <assert.h>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <vector>
 #include <math.h>
 #include <stdint.h>
 #include <thread_manager.h>
@@ -857,6 +859,79 @@ void __ggml_q8_0_q8_0_indirect_GEMM_fp16(const unsigned int M,
   auto &tm = ThreadManager::Global();
   (void)ldb;
   (void)ldc;
+
+  // ------------------------------------------------------------------------
+  // Plain (non-interleaved) fallback path, opt-in via NNTR_Q8_CONV_PLAIN.
+  //
+  // The DEFAULT is the interleaved q8_0x4 SMMLA kernel below
+  // (nntr_gemm_q8_0_q8_0_4x4_fp16): it is verified correct on-device and ~18%
+  // faster end-to-end than this plain path (identical keypoint output). This
+  // fallback de-interleaves the pre-repacked q8_0x4 weight back to plain
+  // block_q8_0, gathers+quantizes the FP16 activation to plain block_q8_0, and
+  // runs nntr_gemm_q8_0_q8_0_fp16 (same int8 SDOT/SMMLA core as the FP32-output
+  // nntr_gemm_q8_0_q8_0). Both paths consume the *same* weight file, so it is a
+  // drop-in A/B swap with no re-quantize -- kept as a reference/debug path.
+  if (std::getenv("NNTR_Q8_CONV_PLAIN") != nullptr) {
+    const unsigned int nbp = K / QK8_0;
+
+    // 1) De-interleave weight q8_0x4 -> plain block_q8_0 [N][nbp]
+    //    (inverse of repack_q8_0 done at weight-export time). N % 4 == 0 is
+    //    guaranteed by the Q8_0 conv eligibility guard (out_ch % 32 == 0).
+    std::vector<block_q8_0> Wp((size_t)N * nbp);
+    {
+      const block_q8_0x4 *bx4 = (const block_q8_0x4 *)B;
+      const unsigned int NB4 = N / 4;
+      block_q8_0 *Wp_ptr = Wp.data();
+      tm.parallel_for(0, NB4, [=](size_t sc) {
+        for (unsigned int j = 0; j < nbp; ++j) {
+          const block_q8_0x4 &sb = bx4[(size_t)sc * nbp + j];
+          for (unsigned int r = 0; r < 4; ++r) {
+            block_q8_0 &p = Wp_ptr[(size_t)((unsigned)sc * 4 + r) * nbp + j];
+            p.d = sb.d[r];
+            for (unsigned int sub = 0; sub < 4; ++sub)
+              std::memcpy(&p.qs[8 * sub], &sb.qs[32 * sub + 8 * r], 8);
+          }
+        }
+      });
+    }
+
+    // 2) Gather FP16 activation rows -> plain block_q8_0 [M][nbp].
+    std::vector<block_q8_0> Ap((size_t)M * nbp);
+    {
+      block_q8_0 *Ap_ptr = Ap.data();
+      const unsigned int QCHUNK = 64;
+      const size_t qloops = (M + QCHUNK - 1) / QCHUNK;
+      tm.parallel_for(0, qloops, [=](size_t q) {
+        _FP16 *tile = (_FP16 *)alloca((size_t)K * sizeof(_FP16));
+        const unsigned int r0 = (unsigned int)q * QCHUNK;
+        const unsigned int r1 = std::min(r0 + QCHUNK, M);
+        for (unsigned int r = r0; r < r1; ++r) {
+          gather_conv_act_rows_fp16(tile, in, geom, (int)r, 1);
+          __ggml_quantize_row_q8_0(tile, &Ap_ptr[(size_t)r * nbp], (int64_t)K);
+        }
+      });
+    }
+
+    // 3) Proven plain Q8_0 x Q8_0 GEMM -> FP16 C.
+    const unsigned int row_chunk = 16, col_chunk = 16;
+    const size_t row_loop = (M + row_chunk - 1) / row_chunk;
+    const size_t col_loop = (N + col_chunk - 1) / col_chunk;
+    const block_q8_0 *Wp_ptr = Wp.data();
+    const block_q8_0 *Ap_ptr = Ap.data();
+    tm.parallel_for(0, row_loop * col_loop, [=](size_t i) {
+      unsigned int r = (unsigned int)(i / col_loop);
+      unsigned int c = (unsigned int)(i % col_loop);
+      unsigned int r0 = r * row_chunk, r1 = std::min(r0 + row_chunk, M);
+      unsigned int c0 = c * col_chunk, c1 = std::min(c0 + col_chunk, N);
+      nntr_gemm_q8_0_q8_0_fp16(
+        (int)K, C + (size_t)r0 * N + c0, N,
+        (const void *)&Wp_ptr[(size_t)c0 * nbp],
+        (const void *)&Ap_ptr[(size_t)r0 * nbp], (int)(r1 - r0),
+        (int)(c1 - c0));
+    });
+    return;
+  }
+  // ------------------------------------------------------------------------
 
   const unsigned int nb = K / QK8_0; // blocks per row (K multiple of 32)
   const unsigned int qa_4_rows_size = sizeof(block_q8_0x4) * nb;

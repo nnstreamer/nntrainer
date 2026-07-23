@@ -114,6 +114,62 @@ void nntr_gemm_q8_0_q8_0(int n, float *__restrict s, size_t bs,
                          int nr, int nc);
 
 /**
+ * @brief FP32-output Q8_0 x Q8_0 GEMM. Same numerics as nntr_gemm_q8_0_q8_0 but
+ * implemented via the proven SMMLA path on NEON (i8mm) and correct scalar
+ * elsewhere; used by the W8A32 indirect conv. vx=weight[nc x nb],
+ * vy=act[nr x nb], s=FP32 out[nr x bs].
+ */
+void nntr_gemm_q8_0_q8_0_f32(int n, float *__restrict s, size_t bs,
+                             const void *__restrict vx,
+                             const void *__restrict vy, int nr, int nc);
+
+/**
+ * @brief Interleaved (q8_0x4) FP32-output 4x4 SMMLA GEMM. Both operands are
+ * pre-packed block_q8_0x4 (weight via repack_q8_0, activation via
+ * nntr_quantize_mat_q8_0_4x8). NEON uses the proven i8mm kernel with FP32
+ * store; other ISAs use a correct scalar. Requires nr % 4 == 0.
+ * vx=weight[nc/4][nb], vy=act[nr/4][nb], s=FP32 out[nr x bs].
+ */
+void nntr_gemm_q8_0_q8_0_4x4_f32(int n, float *__restrict s, size_t bs,
+                                 const void *__restrict vx,
+                                 const void *__restrict vy, int nr, int nc);
+
+/**
+ * @brief Per-CHANNEL W8A8 GEMM. Activation is int8 with ONE per-tensor scale
+ * (a_scale), weight is int8 with ONE scale per output channel (w_scale[nc]);
+ * both operands are int8 packed in the block_q8_0x4 qs layout (the fp16 d
+ * fields are ignored). The whole K reduction accumulates in int32 and the
+ * scale a_scale*w_scale[col] is applied once at the end -- no per-32-block
+ * float folding. NEON uses SMMLA; other ISAs a correct scalar. Requires
+ * nr,nc arbitrary (tail handled), n % 32 == 0.
+ * vx=weight qs[nc/4][nb], vy=act qs[nr/4][nb], s=FP32 out[nr x bs].
+ */
+void nntr_gemm_q8ch_4x4_f32(int n, float *__restrict s, size_t bs,
+                            const void *__restrict vx,
+                            const float *__restrict w_scale,
+                            const void *__restrict vy, float a_scale, int nr,
+                            int nc);
+
+/**
+ * @brief Per-channel W8A8 GEMM with a PLAIN row-major int8 activation.
+ *
+ * Identical math and output to nntr_gemm_q8ch_4x4_f32, but the activation is
+ * read from a plain [nr x n] int8 matrix `A` (row stride lda) instead of the
+ * pre-interleaved block_q8_0x4 stream. This removes the activation packing pass
+ * entirely for the 1x1 unit-stride convs whose gather is the identity (the
+ * input already IS the [M, in_ch] int8 matrix). The weight `vx` stays in the
+ * q8_0x4 qs layout (its fp16 d ignored); w_scale is per-output-channel FP32.
+ * The NEON SMMLA path assembles the 2x8 row tiles on the fly from two 8-byte
+ * plain loads + vcombine. n % 32 == 0; nr,nc arbitrary (tails handled); every
+ * activation row [0, nr) must be in-bounds (the caller zero-pads the M%4 tail).
+ */
+void nntr_gemm_q8ch_plainA_f32(int n, float *__restrict s, size_t bs,
+                               const void *__restrict vx,
+                               const float *__restrict w_scale,
+                               const int8_t *__restrict A, size_t lda,
+                               float a_scale, int nr, int nc);
+
+/**
  * @brief Compute Q8_0 weights by Q8_0 activations GEMV
  */
 void nntr_gemv_q8_0_q8_0(int n, float *__restrict s, size_t bs,
