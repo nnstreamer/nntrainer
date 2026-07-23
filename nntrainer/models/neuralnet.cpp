@@ -734,59 +734,8 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
     auto f = std::get<0>(node->getExecutionOrder());
     if (exec_mode == ExecutionMode::TRAIN or
         (exec_mode == ExecutionMode::INFERENCE and !fsu_mode)) {
-      // Per-layer timing, opt-in via NNTR_LAYER_PROFILE so it costs nothing
-      // when unset. Emits one TSV line per layer per call:
-      //   LAYERPROF <span> <layer name> <ns>
-      // where <span> is (to - from), i.e. > 1 for prefill and 1 for decode.
-      static const bool layer_profile =
-        std::getenv("NNTR_LAYER_PROFILE") != nullptr;
-      if (layer_profile) {
-        auto start_layer = std::chrono::high_resolution_clock::now();
-        model_graph.flushCacheExcept(f);
-        node->incremental_forwarding(from, to, training);
-        auto end_layer = std::chrono::high_resolution_clock::now();
-        auto duration_ = std::chrono::duration_cast<std::chrono::nanoseconds>(
-          end_layer - start_layer);
-        std::cout << "LAYERPROF\t" << (to - from) << "\t" << node->getName()
-                  << "\t" << duration_.count() << "\n";
-      } else {
-        model_graph.flushCacheExcept(f);
-        node->incremental_forwarding(from, to, training);
-      }
-#if defined(ENABLE_OPENCL) && ENABLE_OPENCL == 1
-      // Debug: NNTR_DUMP_ROWS_DIR=<dir> writes each node's output rows of the
-      // prefill step (to - from > 1). Inert when unset.
-      // NNTR_DUMP_ROWS_HASH prints a per-node hash instead of
-      // writing files, so it needs no directory; =2 covers the decode steps
-      // (to - from == 1) as well.
-      static const char *dump_hash = std::getenv("NNTR_DUMP_ROWS_HASH");
-      static const char *dump_dir_env = std::getenv("NNTR_DUMP_ROWS_DIR");
-      static const char *dump_dir = dump_dir_env != nullptr
-                                      ? dump_dir_env
-                                      : (dump_hash != nullptr ? "." : nullptr);
-      static const bool dump_decode =
-        dump_hash != nullptr && std::atoi(dump_hash) >= 2;
-      if (dump_dir != nullptr && (to - from > 1 || dump_decode) &&
-          node->getNumOutputs() > 0) {
-        static const char *match = std::getenv("NNTR_DUMP_ROWS_MATCH");
-        static unsigned int seq = 0;
-        if (match == nullptr ||
-            node->getName().find(match) != std::string::npos) {
-#if defined(ENABLE_CUDA) && ENABLE_CUDA == 1
-          // On the cuda engine the dump reads the node output on the host, so
-          // the stream this node's kernels were submitted on has to have
-          // drained first or the hash is taken on rows the GPU has not written
-          // yet -- which reads as nondeterminism that belongs to the
-          // instrument, not to the model. Engine-gated: a no-op, and no CUDA
-          // context created, on every non-cuda run.
-          nntrainer::cuda::drain_if_async();
-#endif
-          debug_dump_rows_cl(node->getName(), node->getOutput(0), to - from,
-                             dump_dir, seq);
-        }
-        ++seq;
-      }
-#endif
+      model_graph.flushCacheExcept(f);
+      node->incremental_forwarding(from, to, training);
     } else {
       model_graph.checkLoadComplete(f);
       node->incremental_forwarding(from, to, training);
@@ -2168,15 +2117,15 @@ void NeuralNetwork::load(const std::string &file_path,
         const std::string &name = weight->getName();
         auto it = name_offset_map.find(name);
         if (it == name_offset_map.end()) {
-          // A missing tensor means the weight keeps whatever bytes its buffer
-          // held (typically uninitialized), which surfaces as silently wrong
-          // outputs — e.g. a converter that wrote "layer:weight" where the
-          // runtime tensor is named "layer:filter". Warn loudly instead of
-          // failing so partial files (LoRA-style overlays) still load.
-          ml_logw("safetensors: no tensor named '%s' in %s; weight left "
-                  "unloaded",
-                  name.c_str(), f_path.c_str());
-          ++missing_weights;
+          // The graph expects this weight but the safetensors file has no
+          // tensor of that name, so it silently keeps its uninitialized
+          // contents (garbage) -> the layer then computes NaN/inf downstream.
+          // Warn loudly: this is almost always a name-mismatch between the
+          // weight converter/quantizer output and the graph's weight names.
+          ml_logw("[load] weight '%s' not found in safetensors; it stays "
+                  "UNINITIALIZED (expect NaN). Check the converter/quantizer "
+                  "produced this exact tensor name.",
+                  name.c_str());
           continue;
         }
         const size_t file_off = data_base + it->second.first;
