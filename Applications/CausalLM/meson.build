@@ -72,15 +72,10 @@ causallm_layer_dependencies += [
     causallm_logit_softcapping_dep,
     causallm_rtmcc_gau_dep,
     causallm_rtmcc_head_dep,
+    causallm_causal_conv1d_dep,
+    causallm_custom_multiply_dep,
 ]
 
-# Additive CUDA backend: the model TUs (transformer/causal_lm/gemma4) include
-# cuda_context.h to register layers on the cuda context, which pulls cuda.h ->
-# they need the CUDA toolkit include path. cuda_dep is defined in the root
-# meson.build only when enable-cuda is set.
-if get_option('enable-cuda')
-    causallm_layer_dependencies += cuda_dep
-endif
 
 subdir('models')
 
@@ -354,14 +349,18 @@ e = executable('nntr_causallm',
 
 quantize_src = [
     meson.current_source_dir() / 'quantize.cpp',
+    meson.current_source_dir() / 'models/FastViTKeyword/jni/fastvit_attention_layer.cpp',
 ]
 
 e_quantize = executable('nntr_quantize',
     quantize_src,
     include_directories: [causallm_inc, causallm_layer_inc,
-        include_directories('models/YOLOv7Pose')],
+        include_directories('models/YOLOv7Pose'),
+        include_directories('models/FastViTKeyword'),
+        include_directories('models/FastViTKeyword/jni')],
     dependencies: [nntrainer_dep, nntrainer_ccapi_dep, causallm_layer_dependencies, causallm_dep],
 )
+
 
 
 safetensors_info_src = [

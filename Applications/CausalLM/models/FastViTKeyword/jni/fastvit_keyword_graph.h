@@ -55,6 +55,28 @@ namespace fastvit_keyword {
 /// Channel axis for concat/slice (always logical axis 1 = channel)
 inline int chAxis() { return 1; }
 
+/// Global weight dtype for Q8_0 quantization. Set to "Q8_0" to enable
+/// W8A16 (Q8_0 weights + FP16 activations). Default "FP32".
+inline std::string &quantWeightDtype() {
+  static std::string dtype = "FP32";
+  return dtype;
+}
+
+/// Collect names of conv layers eligible for Q8_0 quantization.
+/// A conv is eligible when out_ch % 32 == 0 and (in_ch * k * k) % 32 == 0
+/// (Q8_0 block size = 32).
+inline std::vector<std::string> &quantizableConvs() {
+  static std::vector<std::string> names;
+  return names;
+}
+
+/// Check if a conv layer is eligible for Q8_0 quantization.
+inline bool convQuantEligible(int in_ch, int out_ch, int k) {
+  return out_ch % 32 == 0 && (in_ch * k * k) % 32 == 0;
+}
+
+
+
 // ===== Primitive graph block builders =====
 
 /**
@@ -73,6 +95,9 @@ inline int chAxis() { return 1; }
  */
 inline Tensor convGelu(const std::string &name, int in_ch, int out_ch, int k,
                        int stride, int padding, int groups, Tensor input) {
+  const bool eligible = convQuantEligible(in_ch, out_ch, k);
+  if (eligible)
+    quantizableConvs().push_back(name + "/conv");
   std::vector<std::string> conv_props = {
     nntrainer::withKey("name", name + "/conv"),
     nntrainer::withKey("kernel_size", {k, k}),
@@ -80,7 +105,11 @@ inline Tensor convGelu(const std::string &name, int in_ch, int out_ch, int k,
     nntrainer::withKey("stride", {stride, stride}),
     nntrainer::withKey("padding", padding),
     nntrainer::withKey("groups", groups)};
+  if (quantWeightDtype() != "FP32" && eligible)
+    conv_props.push_back(nntrainer::withKey("weight_dtype", quantWeightDtype()));
   LayerHandle conv(createLayer("conv2d", conv_props));
+
+
   auto x = conv(input);
   LayerHandle gelu(
     createLayer("activation", {nntrainer::withKey("name", name + "/gelu"),
@@ -94,6 +123,9 @@ inline Tensor convGelu(const std::string &name, int in_ch, int out_ch, int k,
  */
 inline Tensor convOnly(const std::string &name, int in_ch, int out_ch, int k,
                        int stride, int padding, int groups, Tensor input) {
+  const bool eligible = convQuantEligible(in_ch, out_ch, k);
+  if (eligible)
+    quantizableConvs().push_back(name + "/conv");
   std::vector<std::string> conv_props = {
     nntrainer::withKey("name", name + "/conv"),
     nntrainer::withKey("kernel_size", {k, k}),
@@ -101,9 +133,13 @@ inline Tensor convOnly(const std::string &name, int in_ch, int out_ch, int k,
     nntrainer::withKey("stride", {stride, stride}),
     nntrainer::withKey("padding", padding),
     nntrainer::withKey("groups", groups)};
+  if (quantWeightDtype() != "FP32" && eligible)
+    conv_props.push_back(nntrainer::withKey("weight_dtype", quantWeightDtype()));
   LayerHandle conv(createLayer("conv2d", conv_props));
   return conv(input);
 }
+
+
 
 /**
  * @brief Build a depthwise Conv2d (BN fused at conversion time, no activation).
@@ -118,12 +154,19 @@ inline Tensor dwConvBn(const std::string &name, int ch, int k, Tensor input) {
  */
 inline Tensor conv1x1Gelu(const std::string &name, int in_ch, int out_ch,
                           Tensor input) {
+  const bool eligible = convQuantEligible(in_ch, out_ch, 1);
+  if (eligible)
+    quantizableConvs().push_back(name + "/conv");
   std::vector<std::string> conv_props = {
     nntrainer::withKey("name", name + "/conv"),
     nntrainer::withKey("kernel_size", {1, 1}),
     nntrainer::withKey("filters", out_ch), nntrainer::withKey("stride", {1, 1}),
     nntrainer::withKey("padding", 0)};
+  if (quantWeightDtype() != "FP32" && eligible)
+    conv_props.push_back(nntrainer::withKey("weight_dtype", quantWeightDtype()));
   LayerHandle conv(createLayer("conv2d", conv_props));
+
+
   auto x = conv(input);
   LayerHandle gelu(
     createLayer("activation", {nntrainer::withKey("name", name + "/gelu"),
@@ -137,6 +180,9 @@ inline Tensor conv1x1Gelu(const std::string &name, int in_ch, int out_ch,
  */
 inline Tensor conv1x1Only(const std::string &name, int in_ch, int out_ch,
                           Tensor input, bool no_bias = false) {
+  const bool eligible = convQuantEligible(in_ch, out_ch, 1);
+  if (eligible)
+    quantizableConvs().push_back(name + "/conv");
   std::vector<std::string> conv_props = {
     nntrainer::withKey("name", name + "/conv"),
     nntrainer::withKey("kernel_size", {1, 1}),
@@ -144,11 +190,15 @@ inline Tensor conv1x1Only(const std::string &name, int in_ch, int out_ch,
     nntrainer::withKey("padding", 0)};
   if (no_bias)
     conv_props.push_back(nntrainer::withKey("disable_bias", "true"));
+  if (quantWeightDtype() != "FP32" && eligible)
+    conv_props.push_back(nntrainer::withKey("weight_dtype", quantWeightDtype()));
   LayerHandle conv(createLayer("conv2d", conv_props));
   return conv(input);
 }
 
+
 /** @brief Elementwise addition of two tensors. */
+
 inline Tensor addT(const std::string &name, Tensor a, Tensor b) {
   LayerHandle l(createLayer("Addition", {nntrainer::withKey("name", name)}));
   return l({a, b});

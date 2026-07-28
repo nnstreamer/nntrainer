@@ -55,11 +55,32 @@ void FastViTAttentionLayer::forwarding(nntrainer::RunLayerContext &context,
   int head_dim = C / num_heads; // 32
   float scale = 1.0f / std::sqrt((float)head_dim);
 
-  const float *in_data = in.getData();
-  float *out_data = out.getData();
+  // The input tensor may be FP16 when the model uses FP32-FP16 tensor type.
+  // Convert to FP32 for the attention computation, then write back.
+  nntrainer::Tensor in_fp32 = in;
+  if (in.getDataType() != ml::train::TensorDim::DataType::FP32) {
+    in_fp32 = in.clone(ml::train::TensorDim::DataType::FP32);
+  }
+
+  const float *in_data = in_fp32.getData();
+
+  // Output may also be FP16 — compute in FP32 then cast back.
+  nntrainer::TensorDim out_dim = out.getDim();
+  nntrainer::Tensor out_fp32(out_dim.batch(), out_dim.channel(),
+                             out_dim.height(), out_dim.width(),
+                             out_dim.getFormat(),
+                             ml::train::TensorDim::DataType::FP32);
+  float *out_data = out_fp32.getData();
 
   multiHeadAttention(in_data, out_data, B, C, H, W, num_heads, head_dim, scale);
+
+  // Cast FP32 result back to the output tensor's dtype
+  if (out.getDataType() != ml::train::TensorDim::DataType::FP32) {
+    out.copy(out_fp32);
+  }
+
 }
+
 
 void FastViTAttentionLayer::multiHeadAttention(const float *qkv, float *out,
                                                int B, int C, int H, int W,
