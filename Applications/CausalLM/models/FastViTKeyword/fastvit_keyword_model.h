@@ -65,6 +65,7 @@ public:
                         nntrainer::withKey("model_tensor_type", "FP32-FP32")});
 
     // Build FP32 graph (no weight_dtype); collect quantizable conv names.
+    // NCHW format matches the source FP32 safetensors file.
     fastvit_keyword::quantizableConvs().clear();
     fastvit_keyword::quantWeightDtype() = "FP32";
 

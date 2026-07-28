@@ -71,8 +71,10 @@ inline std::vector<std::string> &quantizableConvs() {
 }
 
 /// Check if a conv layer is eligible for Q8_0 quantization.
-inline bool convQuantEligible(int in_ch, int out_ch, int k) {
-  return out_ch % 32 == 0 && (in_ch * k * k) % 32 == 0;
+/// Q8_0 requires: groups==1 (quant_matmul_filter), out_ch%32==0,
+/// and (in_ch*k*k)%32==0 (Q8_0 block size = 32).
+inline bool convQuantEligible(int in_ch, int out_ch, int k, int groups = 1) {
+  return groups == 1 && out_ch % 32 == 0 && (in_ch * k * k) % 32 == 0;
 }
 
 
@@ -95,7 +97,7 @@ inline bool convQuantEligible(int in_ch, int out_ch, int k) {
  */
 inline Tensor convGelu(const std::string &name, int in_ch, int out_ch, int k,
                        int stride, int padding, int groups, Tensor input) {
-  const bool eligible = convQuantEligible(in_ch, out_ch, k);
+  const bool eligible = convQuantEligible(in_ch, out_ch, k, groups);
   if (eligible)
     quantizableConvs().push_back(name + "/conv");
   std::vector<std::string> conv_props = {
@@ -123,7 +125,7 @@ inline Tensor convGelu(const std::string &name, int in_ch, int out_ch, int k,
  */
 inline Tensor convOnly(const std::string &name, int in_ch, int out_ch, int k,
                        int stride, int padding, int groups, Tensor input) {
-  const bool eligible = convQuantEligible(in_ch, out_ch, k);
+  const bool eligible = convQuantEligible(in_ch, out_ch, k, groups);
   if (eligible)
     quantizableConvs().push_back(name + "/conv");
   std::vector<std::string> conv_props = {
@@ -154,7 +156,7 @@ inline Tensor dwConvBn(const std::string &name, int ch, int k, Tensor input) {
  */
 inline Tensor conv1x1Gelu(const std::string &name, int in_ch, int out_ch,
                           Tensor input) {
-  const bool eligible = convQuantEligible(in_ch, out_ch, 1);
+  const bool eligible = convQuantEligible(in_ch, out_ch, 1, 1);
   if (eligible)
     quantizableConvs().push_back(name + "/conv");
   std::vector<std::string> conv_props = {
@@ -180,7 +182,7 @@ inline Tensor conv1x1Gelu(const std::string &name, int in_ch, int out_ch,
  */
 inline Tensor conv1x1Only(const std::string &name, int in_ch, int out_ch,
                           Tensor input, bool no_bias = false) {
-  const bool eligible = convQuantEligible(in_ch, out_ch, 1);
+  const bool eligible = convQuantEligible(in_ch, out_ch, 1, 1);
   if (eligible)
     quantizableConvs().push_back(name + "/conv");
   std::vector<std::string> conv_props = {

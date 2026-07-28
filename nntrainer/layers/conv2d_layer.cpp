@@ -2085,14 +2085,6 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
               hidden_.getScale<float>()[0] = scale;
             }
           } else {
-            // Q8_0 weights are only wired for the NHWC q8-activation indirect
-            // path; the NCHW quant matmul/indirect fallbacks below assume a
-            // Q4_0 weight operand, so reject Q8_0 here instead of silently
-            // dispatching to the Q4_0 kernels.
-            if (weight_is_q8) {
-              throw std::runtime_error(
-                "Q8_0 conv weights require the NHWC indirect path.");
-            }
             // Quantized conv as matmul: act [OH*OW, CRS] . weight [CRS, out_ch]
             // -> [OH*OW, out_ch] -> out [out_ch, OH*OW]. CRS = in_ch*kh*kw.
             // NOTE: col must outlive `act` (act aliases col's storage); here
@@ -2108,12 +2100,16 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
               in_sub.reshape({in_dim.channel(), owoh});
               Tensor act = in_sub.transpose("0:2:1");
               act.dot(filter_kernel, tmp, false, false);
-            } else if (NNTR_HAS_Q4_0_INDIRECT_CONV) {
+            } else if (NNTR_HAS_Q4_0_INDIRECT_CONV || weight_is_q8) {
               // Quantized 3x3+ indirect: fold im2col gather into the q8_0
               // activation quantization so the activation matrix is never
               // materialized (the FP16 input is gathered on the fly and
               // quantized per tile inside the indirect GEMM). Output tmp is
               // FP16 [OH*OW, out_ch].
+              // Q8_0 weights dispatch to the portable __ggml Q8_0xQ8_0 indirect
+              // GEMMs (FloatTensor::convQ4_0Indirect -> __ggml_q8_0_q8_0_indirect_GEMM_fp32),
+              // which have scalar fallbacks on every ISA -- so Q8_0 convs run
+              // on x86 too, unlike the ISA-gated Q4_0 kernels.
               ConvGatherParams geom;
               geom.in_ch = in_dim.channel();
               geom.in_h = in_dim.height();
