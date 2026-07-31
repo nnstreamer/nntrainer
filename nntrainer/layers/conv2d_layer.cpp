@@ -20,6 +20,7 @@
 #include <limits>
 #include <mutex>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include <act_simd.h> // shared NEON expf/SiLU + affine int8 quantize helpers
@@ -2503,6 +2504,78 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
       const auto out_dt = hidden_.getDataType();
       auto run_g = [&]<typename T, typename F>(const T *in, T *out,
                                                const F *filt) {
+        // Env-gated NHWC grouped-conv GEMM (NNTR_CONV_GEMM_GROUPS=1): replace
+        // the per-output-element scalar MAC loop with, per group, an im2col
+        // gather of that group's icg channels into an FP32 column matrix
+        // [icg*fh*fw (=K), OH*OW (=N)] and a single sgemm
+        // filt[ocg, K] x col[K, N] -> out[ocg, N], scattered into NHWC output.
+        // The gather dequantizes FP16 input to FP32 and the result is narrowed
+        // to the output dtype, so the math matches the scalar path
+        // (accumulate-in-float). This beats the scalar loop for the FastViT
+        // 7x7 stride-2 downsample convs (ocg=2, icg=1, M up to 1600), which
+        // the profiler showed dominating keyword backbone latency.
+        // Default ON (env opt-out: NNTR_CONV_GEMM_GROUPS=0 restores the scalar
+        // loop for A/B / rollback). Gated to FP32 weights (F==float) + K>1 + the
+        // gemoetry where im2col+sgemm pays off (icg*fh*fw > 1).
+        const char *__gemm_env = std::getenv("NNTR_CONV_GEMM_GROUPS");
+        const bool use_gemm =
+          (__gemm_env == nullptr || std::string(__gemm_env) != "0") &&
+          icg * fh * fw > 1 && ocg >= 1 && std::is_same_v<F, float>;
+        if (use_gemm) {
+          const unsigned int K = icg * fh * fw;
+          const unsigned int N = OH * OW;
+          auto &tmg = ThreadManager::Global();
+          // Per-thread col tile + FP32 row scratch. col is [K, N] row-major.
+          tmg.parallel_for(0, (size_t)B * groups, [&](size_t bg) {
+            const unsigned int b = (unsigned int)(bg / groups);
+            const unsigned int g = (unsigned int)(bg % groups);
+            const T *inb =
+              in + (size_t)b * IH * IW * in_dim.channel();
+            T *outb = out + (size_t)b * OH * OW * filter_size;
+            const F *filt_g =
+              filt + (size_t)g * ocg * K; // [ocg, K] row-major
+            std::vector<float> col((size_t)K * N, 0.0f);
+            // im2col gather: col[(kh*fw+kw)*icg + c][oh*OW+ow]
+            for (unsigned int oh = 0; oh < OH; ++oh) {
+              for (unsigned int ow = 0; ow < OW; ++ow) {
+                const size_t on = (size_t)oh * OW + ow;
+                for (unsigned int kh = 0; kh < fh; ++kh) {
+                  int ih = (int)(oh * sh) - ph + (int)(kh * dh);
+                  if (ih < 0 || ih >= (int)IH)
+                    continue;
+                  for (unsigned int kw = 0; kw < fw; ++kw) {
+                    int iw = (int)(ow * sw) - pw + (int)(kw * dw_);
+                    if (iw < 0 || iw >= (int)IW)
+                      continue;
+                    const T *id = inb + ((size_t)ih * IW + iw) * in_dim.channel()
+                                  + (size_t)g * icg;
+                    const unsigned int kbase = (kh * fw + kw) * icg;
+                    for (unsigned int c = 0; c < icg; ++c)
+                      col[(size_t)(kbase + c) * N + on] =
+                        static_cast<float>(id[c]);
+                    (void)id;
+                  }
+                }
+              }
+            }
+            // sgemm: out_g[ocg, N] = filt_g[ocg, K] x col[K, N]
+            // Row-major: M=ocg, N=N, K=K, lda=K, ldb=N, ldc=N. ROW_MAJOR=0
+            // (matches ARM/x86 storage-order constants).
+            std::vector<float> out_g((size_t)ocg * N, 0.0f);
+            nntrainer::getComputeOps()->sgemm_fp32(
+              0 /*ROW_MAJOR*/, false /*transA*/, false /*transB*/, ocg, N, K,
+              1.0f, reinterpret_cast<const float *>(filt_g), K, col.data(), N,
+              0.0f, out_g.data(), N);
+            // Narrow + scatter to NHWC out: outb[(oh*OW+ow)*filter_size + g*ocg + o]
+            for (unsigned int o = 0; o < ocg; ++o) {
+              const unsigned int oc = g * ocg + o;
+              for (unsigned int on = 0; on < N; ++on)
+                outb[(size_t)on * filter_size + oc] =
+                  static_cast<T>(out_g[(size_t)o * N + on]);
+            }
+          });
+          return;
+        }
         for (unsigned int b = 0; b < B; ++b) {
           const T *inb = in + (size_t)b * IH * IW * in_dim.channel();
           T *outb = out + (size_t)b * OH * OW * filter_size;
