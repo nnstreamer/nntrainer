@@ -2467,12 +2467,19 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
     } else if (is_true_depthwise &&
                in_dim.getDataType() == nntrainer::Tdatatype::FP16 &&
                hidden_.getDataType() == nntrainer::Tdatatype::FP16 &&
-               filter_kernel.getDataType() == nntrainer::Tdatatype::FP32) {
+               filter_kernel.getDataType() == nntrainer::Tdatatype::FP32 &&
+               fh == 3 && fw == 3 && dilation[0].get() == 1 &&
+               stride[1].get() == 1) {
       // FP16-activation depthwise: weights are never Q4_0 for groups>1 and stay
       // FP32 (BN-folded), so this is FP16 input/output x FP32 kernel. Keep it
       // on the tight channel-parallel direct-loop kernel instead of falling
       // into the generic grouped else-branch (per-channel im2col + FP16 GEMV),
       // which is ~2x slower for many-channel depthwise convs.
+      // Restricted to 3x3 stride1 dilation1 -- the only case the ARM
+      // depthwise_conv2d_fp16 NEON kernel optimizes (see arm_compute_backend.cpp).
+      // For other kernels (e.g. FastViT 7x7 mlp_conv/dw) the backend is scalar,
+      // so fall through to the NHWC grouped-conv GEMM path below (ocg=1), which
+      // is faster than the scalar depthwise.
       nntrainer::getComputeOps()->depthwise_conv2d_fp16(
         input_.getData<_FP16>(), filter_kernel.getData<float>(),
         hidden_.getData<_FP16>(), in_dim.batch(), filter_size, in_dim.height(),
