@@ -440,22 +440,17 @@ public:
   template <typename T = float>
   static Tensor &gelu(Tensor const &t_in, Tensor &t_out) {
     if (t_in.getDataType() == Tdatatype::FP16) {
-      // Exact erf form: 0.5 x (1 + erf(x / sqrt(2))). Route through apply<T>
-      // so the HalfTensor polymorphic dispatch handles FP16 storage correctly
-      // (mirrors sigmoidGelu/geluPrime). Previously this hardcast the FP16
-      // (2N-byte) buffer to float* via getData<float>() and called the FP32
-      // kernel -> 2N-byte overread -> SIGSEGV (see PIPELINE_VERIFICATION.md
-      // §7.2). FP32 stays on the vectorized nntrainer::gelu_v2 path below.
-      const T inv_sqrt2 = static_cast<T>(0.70710678118654752440f);
-      t_in.apply<T>(
-        [&](T x) {
-          return static_cast<T>(
-            0.5f * x *
-            (1.0f +
-             static_cast<T>(std::erf(static_cast<float>(x) *
-                                     static_cast<float>(inv_sqrt2)))));
-        },
-        t_out);
+      // Exact erf form: 0.5 x (1 + erf(x / sqrt(2))). Vectorized via the FP16
+      // NEON kernel (nntrainer::gelu_v2_fp16) -- reuses the proven FP32
+      // piecewise polynomial, loading FP16x4 and widening to FP32x4 for the
+      // polynomial then narrowing back on store. This replaces the previous
+      // HalfTensor::apply path (std::transform + scalar std::erf per element)
+      // which dominated the W8A16 backbone's ~12 GELU layers. (Earlier the
+      // FP16 branch hardcast to float* and called the FP32 kernel -> 2N-byte
+      // overread -> SIGSEGV, see PIPELINE_VERIFICATION.md §7.2; gelu_v2_fp16
+      // reads/writes FP16 storage directly, so no overread.)
+      nntrainer::gelu_v2_fp16(t_in.size(), t_in.getData<_FP16>(),
+                              t_out.getData<_FP16>());
       return t_out;
     }
     nntrainer::gelu_v2(t_in.size(), t_in.getData<float>(),

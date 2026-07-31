@@ -320,6 +320,12 @@ void gelu_v2(const unsigned int N, const float *X, float *Y) {
   nntrainer::avx2::gelu_v2(N, X, Y);
 }
 
+#ifdef ENABLE_FP16
+void gelu_v2_fp16(const unsigned int N, const _FP16 *X, _FP16 *Y) {
+  __fallback_gelu_v2(N, X, Y);
+}
+#endif
+
 void tanh_gelu_mul(const unsigned int N, float *X, float *Y, float *Z) {
   nntrainer::avx2::tanh_gelu_mul(N, X, Y, Z);
 }

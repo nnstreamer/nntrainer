@@ -550,6 +550,19 @@ void swiglu(const unsigned int N, float *X, float *Y, float *Z, float alpha);
  */
 void tanh_gelu(const unsigned int N, const float *X, float *Y);
 
+#ifdef ENABLE_FP16
+/**
+ * @brief FP16-storage exact-erf GELU (fallback: scalar __fallback_gelu_v2).
+ * Used by ActiFunc::gelu for FP16 (W8A16) tensors; ARM provides the NEON
+ * vectorized version.
+ *
+ * @param N number of elements in X
+ * @param X _FP16 * for Vector X (input, FP16 storage)
+ * @param Y _FP16 * for Vector Y (output, FP16 storage)
+ */
+void gelu_v2_fp16(const unsigned int N, const _FP16 *X, _FP16 *Y);
+#endif
+
 /**
  * @brief tanh_gelu function
  * Y = 0.5 * X * (1 + tanh(sqrt(2/pi) * (X

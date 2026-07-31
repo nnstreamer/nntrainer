@@ -210,6 +210,12 @@ void tanh_gelu(const unsigned int N, const float *X, float *Y) {
   __fallback_tanh_gelu(N, X, Y);
 }
 
+#ifdef ENABLE_FP16
+void gelu_v2_fp16(const unsigned int N, const _FP16 *X, _FP16 *Y) {
+  __fallback_gelu_v2(N, X, Y);
+}
+#endif
+
 void tanh_gelu_v2(const unsigned int N, const float *X, float *Y) {
   __fallback_tanh_gelu(N, X, Y);
 }

@@ -83,6 +83,15 @@ void gelu_v2(const unsigned int N, const float *X, float *Y) {
 #endif
 }
 
+void gelu_v2_fp16(const unsigned int N, const _FP16 *X, _FP16 *Y) {
+#if defined(__ARM_NEON) && (defined(__ARM_FEATURE_FP16_SCALAR_ARITHMETIC) || \
+                            defined(__ARM_FEATURE_FP16))
+  nntrainer::neon::gelu_v2_fp16(N, X, Y);
+#else
+  __fallback_gelu_v2(N, X, Y);
+#endif
+}
+
 void tanh_gelu_mul(const unsigned int N, float *X, float *Y, float *Z) {
 #ifdef __ARM_NEON
   nntrainer::neon::tanh_gelu_mul(N, X, Y, Z);

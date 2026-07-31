@@ -437,7 +437,7 @@ void __fallback_tanh_gelu_mul(const unsigned int N, _FP16 *X, _FP16 *Y,
  * @param X _FP16 * for Vector X (output)
  * @param Y _FP16 * for Vector Y (input)
  */
-void __fallback_gelu_v2(const unsigned int N, _FP16 *X, _FP16 *Y);
+void __fallback_gelu_v2(const unsigned int N, const _FP16 *X, _FP16 *Y);
 
 /**
  * @brief returns maximum value of the vector X
