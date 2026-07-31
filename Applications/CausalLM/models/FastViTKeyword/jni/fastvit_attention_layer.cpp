@@ -89,52 +89,56 @@ void FastViTAttentionLayer::multiHeadAttention(const float *qkv, float *out,
   int N = H * W;
   int C3 = 3 * C;
 
-  // qkv layout: [B, 3*C, H, W] in NCHW
-  // Q = qkv[b, 0:C, :, :]       -> [B, C, H, W]
-  // K = qkv[b, C:2C, :, :]      -> [B, C, H, W]
-  // V = qkv[b, 2C:3C, :, :]     -> [B, C, H, W]
-
-  // We need to compute attention per batch, per head:
-  //   Q_h: [N, hd]  (from Q reshaped)
-  //   K_h: [hd, N]  (from K reshaped, transposed)
-  //   V_h: [N, hd]  (from V reshaped)
-  //   attn_h = softmax((Q_h * scale) @ K_h^T, dim=-1)  -> [N, N]
-  //   out_h = attn_h @ V_h  -> [N, hd]
-  //   out reshaped back to [C, H, W]
+  // PHYSICAL LAYOUT: this layer runs inside the NHWC backbone model
+  // (video_pipeline.cpp sets tensor_format=NHWC for the FastViTKeyword
+  // backbone). nntrainer stores NHWC tensors physically as [B, H, W, C] with
+  // strides {H*W*C, W*C, C, 1} (tensor_dim.cpp computeStrides, NHWC branch) —
+  // i.e. the CHANNEL axis is the innermost (stride 1), so a logical
+  // coordinate (b, c, y, x) lives at offset  b*(N*C) + (y*W+x)*C + c.
+  //
+  // The qkv tensor has logical shape [B, 3*C, H, W] but is physically
+  // [B, H, W, 3*C] with per-batch offset b*(N*C3) and the channel stored as
+  // the last contiguous run of C3 floats per spatial location. Within that C3
+  // run: Q = channels [0, C), K = [C, 2C), V = [2C, 3C).
+  //
+  // The output tensor has logical shape [B, C, H, W], physically [B, H, W, C].
+  //
+  // NOTE: the previous implementation indexed as Q_base[(h*hd+d)*N + i], which
+  // assumed NCHW physical layout (channel stride N). Under NHWC that read
+  // completely wrong memory → produced a consistent but incorrect result in
+  // every dtype (FP32 and W8A16 idx=455 vs the ONNX reference idx=327). This
+  // is the keyword accuracy root cause; the index math below is the fix.
 
   // For each batch element
   for (int b = 0; b < B; ++b) {
-    const float *Q_base = qkv + b * C3 * H * W;
-    const float *K_base = Q_base + C * H * W;
-    const float *V_base = K_base + C * H * W;
+    const float *qkv_b = qkv + b * N * C3; // physical base of this batch
 
     // For each head
     for (int h = 0; h < num_heads; ++h) {
-      // Q for this head: channels [h*hd : (h+1)*hd], spatial [H, W]
-      // In NCHW: Q[h*hd + d][y][x] = Q_base[(h*hd + d) * H * W + y * W + x]
-      // We need Q_h as [N, hd] where N = H*W
-      // Q_h[n * hd + d] = Q_base[(h*hd + d) * N + n]  (n = y*W + x)
-
-      // K for this head: same layout as Q
-      // V for this head: same layout as Q
+      // Logical channel index for this head's d-th component:
+      //   Q: c_q = h*head_dim + d        (in [0, C))
+      //   K: c_k = C + h*head_dim + d    (in [C, 2C))
+      //   V: c_v = 2*C + h*head_dim + d  (in [2C, 3C))
+      // Physical offset of logical (c, y, x): (y*W + x)*C3 + c.
+      // With n := y*W + x, the inner-channel offset for head h is:
+      //   q_off(d, n) = n*C3 + (h*head_dim + d)
+      //   k_off(d, n) = n*C3 + (C + h*head_dim + d)
+      //   v_off(d, n) = n*C3 + (2*C + h*head_dim + d)
 
       // Compute attention scores: attn[N, N] = (Q * scale) @ K^T
       // attn[i, j] = scale * sum_d Q[i, d] * K[j, d]
-      // = scale * sum_d Q_base[(h*hd + d)*N + i] * K_base[(h*hd + d)*N + j]
-
-      // We'll compute this in blocks to avoid large temporary storage
-      // For N=100 (10x10), N*N = 10000 which is fine
-
       std::vector<float> attn_scores(N * N);
 
-      // Compute Q * K^T * scale
+      const int hd_off = h * head_dim; // logical channel offset within Q (and
+                                       // within K +0, V +2C ranges)
       for (int i = 0; i < N; ++i) {
+        const int q_i = i * C3 + hd_off; // Q[i, d] at q_i + d
         for (int j = 0; j < N; ++j) {
+          const int k_j =
+            j * C3 + C + hd_off; // K[j, d] at k_j + d (channels [C, 2C))
           float dot = 0.0f;
           for (int d = 0; d < head_dim; ++d) {
-            float q_val = Q_base[(h * head_dim + d) * N + i];
-            float k_val = K_base[(h * head_dim + d) * N + j];
-            dot += q_val * k_val;
+            dot += qkv_b[q_i + d] * qkv_b[k_j + d];
           }
           attn_scores[i * N + j] = dot * scale;
         }
@@ -157,20 +161,20 @@ void FastViTAttentionLayer::multiHeadAttention(const float *qkv, float *out,
         }
       }
 
-      // Compute out = attn @ V
-      // out[i, d] = sum_j attn[i, j] * V[j, d]
-      // = sum_j attn_scores[i*N + j] * V_base[(h*hd + d)*N + j]
-      // Then write to out[b, h*hd + d, y, x] where i = y*W + x
-      float *out_base = out + b * C * H * W;
+      // Compute out = attn @ V.
+      // Output is NHWC [B, H, W, C]: physical offset of logical (b, c, y, x) is
+      // b*(N*C) + (y*W + x)*C + c = b*(N*C) + i*C + c.
+      // V[j, d] is at qkv_b[j*C3 + (2C + h*head_dim + d)].
+      float *out_base = out + b * N * C;
+      const int v_chan_off = 2 * C + hd_off; // V[j, d] channel = v_chan_off + d
       for (int i = 0; i < N; ++i) {
         for (int d = 0; d < head_dim; ++d) {
+          const int v_j_d = v_chan_off + d;
           float val = 0.0f;
           for (int j = 0; j < N; ++j) {
-            val += attn_scores[i * N + j] * V_base[(h * head_dim + d) * N + j];
+            val += attn_scores[i * N + j] * qkv_b[j * C3 + v_j_d];
           }
-          // Write to output: [B, C, H, W] in NCHW
-          // out_base[(h*hd + d) * N + i] = val
-          out_base[(h * head_dim + d) * N + i] = val;
+          out_base[i * C + (hd_off + d)] = val;
         }
       }
     }

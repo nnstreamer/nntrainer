@@ -328,6 +328,12 @@ def main():
     for i, inter in enumerate(backbone_inters[1]):
         save_bin(inter, os.path.join(args.out, f"ref_stage{i}.bin"))
 
+    # 1b. Per-stage downsample-only outputs (for NNTrainer bisection of the
+    # downsample block). Hooked as "stage{s}_down".
+    for nm in ["stage1_down", "stage2_down", "stage3_down"]:
+        if nm in intermediates:
+            save_bin(intermediates[nm], os.path.join(args.out, f"ref_{nm}.bin"))
+
     # 2. Final backbone output (before global avg pool)
     final_feat = backbone_inters[0]
     save_bin(final_feat, os.path.join(args.out, "ref_backbone_out.bin"))

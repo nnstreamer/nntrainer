@@ -2479,6 +2479,85 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
         stride[0].get(), stride[1].get(), padding[0], padding[2],
         dilation[0].get(), dilation[1].get());
 #endif
+    } else if (in_dim.getFormat() == ml::train::TensorDim::Format::NHWC) {
+      // NHWC grouped conv (groups>1, including out_ch>in_ch cases like the
+      // FastViT downsample "large+small" fused conv, ocg>1). The generic
+      // else-branch below slices channels with NCHW-stride offsets
+      // (g*icg*ihw) which is WRONG for NHWC (channel is innermost, stride 1)
+      // and reads garbage. Implement the grouped conv directly with correct
+      // NHWC indexing: in[b][ih][iw][c], out[b][oh][ow][oc], filter
+      // [oc, icg, fh, fw] where oc = g*ocg + o.
+      const unsigned int B = in_dim.batch();
+      const unsigned int IH = in_dim.height();
+      const unsigned int IW = in_dim.width();
+      const unsigned int OH = out_dim.height();
+      const unsigned int OW = out_dim.width();
+      const unsigned int sh = stride[0].get();
+      const unsigned int sw = stride[1].get();
+      const int ph = padding[0];
+      const int pw = padding[2];
+      const unsigned int dh = dilation[0].get();
+      const unsigned int dw_ = dilation[1].get();
+      const auto filt_dt = filter_kernel.getDataType();
+      const auto in_dt = input_.getDataType();
+      const auto out_dt = hidden_.getDataType();
+      auto run_g = [&]<typename T, typename F>(const T *in, T *out,
+                                               const F *filt) {
+        for (unsigned int b = 0; b < B; ++b) {
+          const T *inb = in + (size_t)b * IH * IW * in_dim.channel();
+          T *outb = out + (size_t)b * OH * OW * filter_size;
+          for (unsigned int g = 0; g < groups; ++g) {
+            for (unsigned int o = 0; o < ocg; ++o) {
+              const unsigned int oc = g * ocg + o;
+              const F *filt_oc = filt + (size_t)oc * icg * fh * fw;
+              for (unsigned int oh = 0; oh < OH; ++oh) {
+                for (unsigned int ow = 0; ow < OW; ++ow) {
+                  float acc = 0.0f;
+                  for (unsigned int kh = 0; kh < fh; ++kh) {
+                    int ih = (int)(oh * sh) - ph + (int)(kh * dh);
+                    if (ih < 0 || ih >= (int)IH)
+                      continue;
+                    for (unsigned int kw = 0; kw < fw; ++kw) {
+                      int iw = (int)(ow * sw) - pw + (int)(kw * dw_);
+                      if (iw < 0 || iw >= (int)IW)
+                        continue;
+                      const T *id =
+                        inb + ((size_t)ih * IW + iw) * in_dim.channel() +
+                        (size_t)g * icg;
+                      const F *fk = filt_oc + (kh * fw + kw) * icg;
+                      for (unsigned int c = 0; c < icg; ++c)
+                        acc += static_cast<float>(id[c]) *
+                               static_cast<float>(fk[c]);
+                    }
+                  }
+                  outb[((size_t)oh * OW + ow) * filter_size + oc] =
+                    static_cast<T>(acc);
+                }
+              }
+            }
+          }
+        }
+      };
+      if (in_dt == nntrainer::Tdatatype::FP32) {
+        if (filt_dt == nntrainer::Tdatatype::FP32)
+          run_g(input_.getData<float>(), hidden_.getData<float>(),
+                filter_kernel.getData<float>());
+#ifdef ENABLE_FP16
+        else
+          run_g(input_.getData<float>(), hidden_.getData<float>(),
+                filter_kernel.getData<_FP16>());
+#endif
+      }
+#ifdef ENABLE_FP16
+      else {
+        if (filt_dt == nntrainer::Tdatatype::FP32)
+          run_g(input_.getData<_FP16>(), hidden_.getData<_FP16>(),
+                filter_kernel.getData<float>());
+        else
+          run_g(input_.getData<_FP16>(), hidden_.getData<_FP16>(),
+                filter_kernel.getData<_FP16>());
+      }
+#endif
     } else {
       // getSharedDataTensor()/reshape() adopt the *passed* TensorDim's dtype
       // (TensorBase::getSharedDataTensor: ret->dim = dim_). A bare {..} dim
