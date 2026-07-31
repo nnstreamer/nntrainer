@@ -36,7 +36,7 @@ void FastViTAttentionLayer::finalize(nntrainer::InitLayerContext &context) {
   head_dim_ = C / num_heads_;
 
   nntrainer::TensorDim out_dim(in_dim.batch(), C, in_dim.height(),
-                               in_dim.width());
+                               in_dim.width(), in_dim.getFormat(), in_dim.getDataType());
   context.setOutputDimensions({out_dim});
 }
 

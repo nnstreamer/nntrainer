@@ -345,14 +345,21 @@ void TensorBase::calculateFlattenDot(
     ml_logw("Warning: support only for rank of dot matrix <= 2 with trans");
   }
 
-  if (getFormat() == Tformat::NHWC) {
+  bool is_nhwc = (getFormat() == Tformat::NHWC && dim.rank() > 2);
+  bool input_is_nhwc = (input.getFormat() == Tformat::NHWC && input.getDim().rank() > 2);
+
+  if (is_nhwc) {
     first_three_flat = batch() * height() * width();
     last_axis = channel();
-    input_first_three_flat = input.batch() * input.height() * input.width();
-    input_last_axis = input.channel();
   } else {
     first_three_flat = batch() * channel() * height();
     last_axis = width();
+  }
+
+  if (input_is_nhwc) {
+    input_first_three_flat = input.batch() * input.height() * input.width();
+    input_last_axis = input.channel();
+  } else {
     input_first_three_flat = input.batch() * input.channel() * input.height();
     input_last_axis = input.width();
   }
@@ -419,7 +426,7 @@ void TensorBase::calculateFlattenDot(
 
   lda = last_axis;
   ldb = input_last_axis;
-  ldc = (getFormat() == Tformat::NHWC) ? output.channel() : output.width();
+  ldc = (is_nhwc) ? output.channel() : output.width();
 }
 
 /**

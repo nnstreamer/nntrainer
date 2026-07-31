@@ -2,23 +2,31 @@
 /**
  * Copyright (C) 2026 Seungbaek Hong <sb92.hong@samsung.com>
  *
- * @file   main.cpp
- * @date   7 July 2026
- * @brief  FastViTKeyword inference example on nntrainer.
+ * @file   main_split.cpp
+ * @date   31 July 2026
+ * @brief  FastViTKeyword inference with split NHWC(backbone) + NCHW(head).
  *
- * Builds the full model (FastViT-S12 backbone + MLP head), loads converted
- * weights, runs one forward pass, and outputs logits (507-dim) + features
- * (512-dim). When YOLO_VERIFY=1 (or KEYWORD_VERIFY=1), compares outputs
- * against PyTorch reference .bin files.
+ * Runs the FastViT-S12 backbone in NHWC format (channel-last optimized Q8_0
+ * W8A16), then transposes the backbone output to NCHW for the MLP head
+ * (channel-first optimized Q8_0 W8A16). This matches the deployment
+ * architecture: vision conv layers use NHWC Q8_0, transformer/FC layers use
+ * NCHW Q8_0.
  *
- * Usage: fastvit_keyword_infer [RES_DIR] [INPUT_BIN]
+ * Architecture:
+ *   Model 1 (NHWC): input[1,3,320,320] -> backbone -> [1,1024,10,10] (NHWC)
+ *   Transpose: [1,1024,10,10] (NHWC) -> [1,1024,10,10] (NCHW)
+ *   Model 2 (NCHW): [1,1024,10,10] -> GAP -> head -> {logits[507], features[512]}
+ *
+ * Usage: fastvit_keyword_split_infer [RES_DIR] [INPUT_BIN]
  *   RES_DIR   dir with weights/ and input bins
- *             (default: Applications/CausalLM/models/FastViTKeyword/res)
  *   INPUT_BIN [1,3,320,320] float32 NCHW (default: RES_DIR/input.bin)
  *
  * Env vars:
- *   KEYWORD_IMGSZ  Input image size (square, default 320).
- *   KEYWORD_VERIFY If set, compare outputs to PyTorch references.
+ *   KEYWORD_IMGSZ       Input image size (square, default 320).
+ *   KEYWORD_VERIFY      If set, compare outputs to PyTorch references.
+ *   KEYWORD_WEIGHTS     Override weights path (default: fastvit_keyword_q8_0.safetensors)
+ *   KEYWORD_NHWC_WEIGHTS  Override backbone weights path
+ *   KEYWORD_NCHW_WEIGHTS  Override head weights path
  *
  * @author Seungbaek Hong <sb92.hong@samsung.com>
  */
@@ -74,6 +82,9 @@ std::vector<float> loadBin(const std::string &path) {
   return v;
 }
 
+/** @brief Save a float buffer to a binary file. */
+
+
 /** @brief Register the FastViT custom layers with the global AppContext. */
 void registerCustomLayers() {
   auto &app_ctx = nntrainer::AppContext::Global();
@@ -116,93 +127,168 @@ int main(int argc, char *argv[]) {
     const bool verify = std::getenv("KEYWORD_VERIFY") != nullptr ||
                         std::getenv("YOLO_VERIFY") != nullptr;
 
-    std::cout << "[FastViTKeyword] imgsz=" << imgsz
+    // Weight paths: split into backbone (NHWC) and head (NCHW)
+    std::string backbone_weights = RES_DIR + "/fastvit_keyword_q8_0.safetensors";
+    if (const char *wenv = std::getenv("KEYWORD_NHWC_WEIGHTS"))
+      backbone_weights = (wenv[0] == '/') ? std::string(wenv) : RES_DIR + "/" + wenv;
+
+    std::string head_weights = RES_DIR + "/fastvit_keyword_head_q8_0.safetensors";
+    if (const char *wenv = std::getenv("KEYWORD_NCHW_WEIGHTS"))
+      head_weights = (wenv[0] == '/') ? std::string(wenv) : RES_DIR + "/" + wenv;
+
+    std::cout << "[FastViTKeyword-Split] imgsz=" << imgsz
               << " proj_target=" << proj_target_dim
               << " proj_feature=" << proj_feature_dim << std::endl;
+    std::cout << "  Backbone (NHWC Q8_0): " << backbone_weights << std::endl;
+    std::cout << "  Head (NCHW Q8_0):    " << head_weights << std::endl;
 
     registerCustomLayers();
 
-    // Build the full model: input -> backbone -> head -> {logits, features}
-    ModelHandle model =
-      ml::train::createModel(ml::train::ModelType::NEURAL_NET);
-    model->setProperty({nntrainer::withKey("batch_size", "1")});
-
-    auto x = Tensor(ml::train::TensorDim(1, 3, imgsz, imgsz,
-                                         ml::train::TensorDim::Format::NCHW,
-                                         ml::train::TensorDim::DataType::FP32),
-                    "input0");
-
-    auto backbone_out = fastvit_keyword::buildBackbone(x);
-    auto outputs = fastvit_keyword::buildHead(backbone_out, proj_target_dim,
-                                              proj_feature_dim);
-
-    if (int ret =
-          model->compile(x, outputs, ml::train::ExecutionMode::INFERENCE))
-      throw std::runtime_error("compile failed: " + std::to_string(ret));
-
-    // Load weights
-    std::string weights_path = RES_DIR + "/fastvit_keyword.safetensors";
-    if (const char *wenv = std::getenv("KEYWORD_WEIGHTS")) {
-      weights_path =
-        (wenv[0] == '/') ? std::string(wenv) : RES_DIR + "/" + wenv;
-    }
-    model->load(weights_path, ml::train::ModelFormat::MODEL_FORMAT_SAFETENSORS);
-    std::cout << "Model built and weights loaded (" << weights_path << ")."
+    // ====================================================================
+    // Model 1: FastViT Backbone (NHWC format, Q8_0 W8A16)
+    // ====================================================================
+    std::cout << "\n=== Building Model 1: FastViT Backbone (NHWC Q8_0) ==="
               << std::endl;
 
-    // Diagnostic print of first 5 weights of stem0/conv
-    try {
-      std::shared_ptr<ml::train::Layer> l_stem0;
-      if (model->getLayer("stem0/conv", &l_stem0) == 0 && l_stem0 != nullptr) {
-        auto w_stem0 = l_stem0->getWeights();
-        if (!w_stem0.empty() && w_stem0[0] != nullptr) {
-          std::cout << "=== C++ stem0/conv:filter weights ===" << std::endl;
-          for (int i = 0; i < 5; ++i) {
-            std::cout << "w[" << i << "] = " << w_stem0[0][i] << std::endl;
-          }
-        } else {
-          std::cout << "stem0/conv weights are empty or null!" << std::endl;
-        }
-      } else {
-        std::cout << "stem0/conv layer not found!" << std::endl;
-      }
-    } catch (const std::exception &e) {
-      std::cout << "Failed to print stem0 weights: " << e.what() << std::endl;
-    }
+    ModelHandle backbone_model =
+      ml::train::createModel(ml::train::ModelType::NEURAL_NET);
+    backbone_model->setProperty({nntrainer::withKey("batch_size", "1"),
+                                 nntrainer::withKey("tensor_format", "NHWC"),
+                                 nntrainer::withKey("model_tensor_type", "FP32-FP32")});
 
-    // Load input
+    // Build backbone graph with Q8_0 weight dtype
+    fastvit_keyword::quantizableConvs().clear();
+    fastvit_keyword::quantWeightDtype() = "Q8_0";
+
+    // Input: NCHW format (will be converted to NHWC by the graph).
+    // The model tensor_format=NHWC tells nntrainer to lay out all activation
+    // tensors in NHWC internally. Input is provided as NCHW float32 and
+    // the graph handles the conversion.
+    auto backbone_input = Tensor(
+      ml::train::TensorDim(1, 3, imgsz, imgsz,
+                           ml::train::TensorDim::Format::NHWC,
+                           ml::train::TensorDim::DataType::FP32),
+      "input0");
+
+    auto backbone_out = fastvit_keyword::buildBackbone(backbone_input);
+
+    if (int ret = backbone_model->compile(backbone_input, {backbone_out},
+                                          ml::train::ExecutionMode::INFERENCE))
+      throw std::runtime_error("Backbone model compile failed: " +
+                               std::to_string(ret));
+
+    backbone_model->load(backbone_weights,
+                         ml::train::ModelFormat::MODEL_FORMAT_SAFETENSORS);
+    std::cout << "Backbone model built and weights loaded." << std::endl;
+
+    // ====================================================================
+    // Model 2: Keyword Head (NCHW format, Q8_0 W8A16)
+    // ====================================================================
+    std::cout << "\n=== Building Model 2: Keyword Head (NCHW Q8_0) ==="
+              << std::endl;
+
+    ModelHandle head_model =
+      ml::train::createModel(ml::train::ModelType::NEURAL_NET);
+    head_model->setProperty({nntrainer::withKey("batch_size", "1"),
+                             nntrainer::withKey("tensor_format", "NCHW"),
+                             nntrainer::withKey("model_tensor_type", "FP32-FP32")});
+
+    // Head input: backbone output [1, 1024, 10, 10] in NCHW format
+    auto head_input = Tensor(
+      ml::train::TensorDim(1, 1024, 10, 10,
+                           ml::train::TensorDim::Format::NCHW,
+                           ml::train::TensorDim::DataType::FP32),
+      "head_input0");
+
+    auto head_outputs =
+      fastvit_keyword::buildHead(head_input, proj_target_dim, proj_feature_dim);
+
+    if (int ret = head_model->compile(head_input, head_outputs,
+                                      ml::train::ExecutionMode::INFERENCE))
+      throw std::runtime_error("Head model compile failed: " +
+                               std::to_string(ret));
+
+    head_model->load(head_weights,
+                     ml::train::ModelFormat::MODEL_FORMAT_SAFETENSORS);
+    std::cout << "Head model built and weights loaded." << std::endl;
+
+    // ====================================================================
+    // Load input and run pipeline
+    // ====================================================================
     auto input = loadBin(input_path);
-    std::cout << "Input loaded from: " << input_path
+    std::cout << "\nInput loaded from: " << input_path
               << " (size=" << input.size() << ")" << std::endl;
-    if (!input.empty()) {
-      std::cout << "=== C++ Input values ===" << std::endl;
-      for (int i = 0; i < 5; ++i) {
-        std::cout << "input[" << i << "] = " << input[i] << std::endl;
-      }
-    }
     std::vector<float *> in_ptr = {input.data()};
 
-    // Inference timing
-    int bench_iters =
-      std::getenv("KEYWORD_BENCH_ITERS")
-        ? std::max(1, std::atoi(std::getenv("KEYWORD_BENCH_ITERS")))
-        : 1;
-    std::vector<float *> outs;
+    // --- Run backbone (NHWC) ---
+    std::cout << "\n--- Running backbone (NHWC) ---" << std::endl;
     double total_ms = 0.0;
+    int bench_iters = std::getenv("KEYWORD_BENCH_ITERS")
+                        ? std::max(1, std::atoi(std::getenv("KEYWORD_BENCH_ITERS")))
+                        : 1;
+
+    std::vector<float *> backbone_outs;
     for (int it = 0; it < bench_iters; ++it) {
       auto t0 = std::chrono::steady_clock::now();
-      outs = model->inference(1, in_ptr, std::vector<float *>());
+      backbone_outs =
+        backbone_model->inference(1, in_ptr, std::vector<float *>());
       auto t1 = std::chrono::steady_clock::now();
       total_ms += std::chrono::duration<double, std::milli>(t1 - t0).count();
     }
-    std::cout << "Inference done (" << outs.size() << " outputs)." << std::endl;
-    std::cout << "Inference time: " << (total_ms / bench_iters)
+    std::cout << "Backbone inference: " << (total_ms / bench_iters)
               << " ms (avg over " << bench_iters << " iters)" << std::endl;
 
-    // Output: outs[0] = logits [1, 507, 1, 1], outs[1] = features [1, 512, 1,
-    // 1] Print top-k logits
-    const float *logits = outs[0];
-    const float *features = outs[1];
+    // backbone_outs[0] = [1, 1024, 10, 10] in NHWC physical layout
+    // We need to transpose it to NCHW for the head model
+    // NHWC: [N, H, W, C] -> NCHW: [N, C, H, W]
+    // For a [1, 1024, 10, 10] tensor this is a transpose of the last 3 dims
+    const float *backbone_feat = backbone_outs[0];
+    size_t feat_n = 1024 * 10 * 10;
+
+    // The backbone output in NHWC format is [1, 10, 10, 1024] physically.
+    // We need to transpose to NCHW [1, 1024, 10, 10] for the head input.
+    // Since the head input expects NCHW [1, 1024, 10, 10], we do the transpose.
+    std::vector<float> backbone_nchw(1024 * 10 * 10);
+    const int C = 1024, H = 10, W = 10;
+    // NHWC: data[h*W*C + w*C + c]
+    // NCHW: data[c*H*W + h*W + w]
+    for (int c = 0; c < C; ++c) {
+      for (int h = 0; h < H; ++h) {
+        for (int w = 0; w < W; ++w) {
+          backbone_nchw[c * H * W + h * W + w] =
+            backbone_feat[h * W * C + w * C + c];
+        }
+      }
+    }
+
+    // Verify backbone output against reference if available
+    if (verify) {
+      // The reference is in NCHW format, so compare with our transposed output
+      std::cout << "\n[Backbone verification vs PyTorch reference (NCHW)]:"
+                << std::endl;
+      verifyAgainst("ref_backbone_out.bin", backbone_nchw.data(), feat_n);
+    }
+
+    // --- Run head (NCHW) ---
+    std::cout << "\n--- Running head (NCHW) ---" << std::endl;
+    double head_ms = 0.0;
+    std::vector<float *> head_outs;
+    std::vector<float *> head_in_ptr = {backbone_nchw.data()};
+    for (int it = 0; it < bench_iters; ++it) {
+      auto t0 = std::chrono::steady_clock::now();
+      head_outs =
+        head_model->inference(1, head_in_ptr, std::vector<float *>());
+      auto t1 = std::chrono::steady_clock::now();
+      head_ms += std::chrono::duration<double, std::milli>(t1 - t0).count();
+    }
+    std::cout << "Head inference: " << (head_ms / bench_iters)
+              << " ms (avg over " << bench_iters << " iters)" << std::endl;
+    std::cout << "Total inference: " << ((total_ms + head_ms) / bench_iters)
+              << " ms" << std::endl;
+
+    // Output: head_outs[0] = logits [1, 507, 1, 1], head_outs[1] = features [1, 512, 1, 1]
+    const float *logits = head_outs[0];
+    const float *features = head_outs[1];
 
     // Sigmoid for probabilities
     std::vector<float> probs(proj_target_dim);

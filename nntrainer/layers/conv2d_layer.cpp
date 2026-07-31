@@ -2501,16 +2501,13 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
         col_dim.setDataType(in_dt);
         Tensor result = Tensor(col_dim);
         for (unsigned int g = 0; g < groups; ++g) {
-          TensorDim ing_dim({1, icg, in_dim.height(), in_dim.width()});
-          ing_dim.setDataType(in_dt);
+          TensorDim ing_dim({1, icg, in_dim.height(), in_dim.width()}, in_sub.getTensorType());
           Tensor in_g =
             in_sub.getSharedDataTensor(ing_dim, (size_t)g * icg * ihw);
-          TensorDim filtg_dim({ocg, (size_t)icg * fh * fw});
-          filtg_dim.setDataType(filt_dt);
+          TensorDim filtg_dim({ocg, (size_t)icg * fh * fw}, filter_kernel.getTensorType());
           Tensor filt_g = filter_kernel.getSharedDataTensor(
             filtg_dim, (size_t)g * ocg * icg * fh * fw);
-          TensorDim outg_dim({ocg, owoh});
-          outg_dim.setDataType(out_dt);
+          TensorDim outg_dim({ocg, owoh}, out.getTensorType());
           Tensor out_g =
             out.getSharedDataTensor(outg_dim, (size_t)g * ocg * owoh);
           result.setZero();
