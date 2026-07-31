@@ -1875,6 +1875,135 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
         }
         // ----------------------------------------------------------------
 
+        // ---- Stem direct FP16 conv (W8A16 keyword mode) -------------------
+        // Same tap-major direct-conv idea as the W8A8 stem block above, but
+        // for the FastViT keyword stem0 (FP16 in/out, FP32 weight, in_ch==3,
+        // NHWC, groups==1, 3x3 stride-2 @ 320x320). convQuantEligible excludes
+        // it from Q8_0 (27 = 3*9 not %32), so it falls to the generic
+        // im2col+sgemm path at ~4.4ms -- the #1 keyword cost after the
+        // grouped-conv levers. With only 3 input channels and 64 outputs the
+        // tap-direct broadcast (each (tap,channel) scalar FMA'd against a 16-
+        // wide out-channel weight vector) is far cheaper than materializing
+        // the 27xOH*OW col slab + sgemm. No fused activation (keyword stem
+        // GELU is a separate activation layer), so act==0; the bias add is
+        // folded into the FP32 accumulators before the FP16 narrow.
+        if (std::getenv("NNTR_W8A8") == nullptr && !weight_is_quant &&
+            (std::get<props::ConvGroups>(conv_props).empty() ||
+             std::get<props::ConvGroups>(conv_props).get() == 1) &&
+            in_dim.getFormat() == ml::train::TensorDim::Format::NHWC &&
+            in_dim.channel() == 3 && filter_size % 16 == 0 &&
+            dilation[0].get() == 1 && dilation[1].get() == 1 &&
+#ifdef ENABLE_FP16
+            in_sub.getDataType() == nntrainer::Tdatatype::FP16 &&
+            out.getDataType() == nntrainer::Tdatatype::FP16 &&
+#else
+            false &&
+#endif
+            std::getenv("NNTR_STEM_FP32") == nullptr) {
+#ifdef ENABLE_FP16
+          const unsigned int Cin = in_dim.channel();
+          const unsigned int Cout = filter_size;
+          const unsigned int kh_ = kernel_size[0].get();
+          const unsigned int kw_ = kernel_size[1].get();
+          const std::vector<float> &TW = getStemTapWeight(
+            filter_kernel.getData<float>(), Cout, Cin, kh_, kw_);
+          const float *twp = TW.data();
+          // The keyword stem0/conv carries a BN-folded weight with NO separate
+          // bias: the generic path relies on disable_bias=true here and never
+          // adds one (it is bit-exact at 0.00157 without a bias add). Reading
+          // the bias weight slot anyway injects stale/garbage values and breaks
+          // accuracy (0.029 backbone drift), so the FP16-stem branch skips bias
+          // by default. NNTR_STEM_BIAS=1 forces it back on for A/B / debugging.
+          const float *bptr = nullptr;
+          if (std::getenv("NNTR_STEM_BIAS") != nullptr) {
+            auto &db = std::get<props::DisableBias>(*layer_impl_props);
+            if (db.empty() || db.get() == false)
+              bptr = context.getWeight(wt_idx[ConvParams::bias]).getData<float>();
+          }
+          const int Hi = in_dim.height(), Wi = in_dim.width();
+          const int Ho = out_dim.height(), Wo = out_dim.width();
+          const int sh = stride[0].get(), sw = stride[1].get();
+          const int ptop = padding[0], pleft = padding[2];
+          const _FP16 *inp = in_sub.getData<_FP16>();
+          _FP16 *outp = out.getData<_FP16>();
+          auto &tms = ThreadManager::Global();
+          tms.parallel_for(0, (size_t)Ho, [=](size_t ohs) {
+            const int oh = (int)ohs;
+            const int h0 = oh * sh - ptop;
+            for (int ow = 0; ow < Wo; ++ow) {
+              _FP16 *op = outp + ((size_t)oh * Wo + ow) * Cout;
+              const int w0 = ow * sw - pleft;
+              unsigned int cb = 0;
+#if defined(__ARM_NEON)
+              for (; cb + 15 < Cout; cb += 16) {
+                float32x4_t a0 = vdupq_n_f32(0.f), a1 = vdupq_n_f32(0.f);
+                float32x4_t a2 = vdupq_n_f32(0.f), a3 = vdupq_n_f32(0.f);
+                for (unsigned int y = 0; y < kh_; ++y) {
+                  const int ih = h0 + (int)y;
+                  if (ih < 0 || ih >= Hi)
+                    continue;
+                  for (unsigned int x = 0; x < kw_; ++x) {
+                    const int iw = w0 + (int)x;
+                    if (iw < 0 || iw >= Wi)
+                      continue;
+                    const _FP16 *px =
+                      inp + ((size_t)ih * Wi + iw) * Cin;
+                    const float *wt =
+                      twp + (((size_t)y * kw_ + x) * Cin) * Cout + cb;
+                    for (unsigned int c = 0; c < Cin; ++c) {
+                      const float xv = (float)px[c];
+                      const float *wv = wt + (size_t)c * Cout;
+                      a0 = vfmaq_n_f32(a0, vld1q_f32(wv + 0), xv);
+                      a1 = vfmaq_n_f32(a1, vld1q_f32(wv + 4), xv);
+                      a2 = vfmaq_n_f32(a2, vld1q_f32(wv + 8), xv);
+                      a3 = vfmaq_n_f32(a3, vld1q_f32(wv + 12), xv);
+                    }
+                  }
+                }
+                if (bptr) {
+                  a0 = vaddq_f32(a0, vld1q_f32(bptr + cb + 0));
+                  a1 = vaddq_f32(a1, vld1q_f32(bptr + cb + 4));
+                  a2 = vaddq_f32(a2, vld1q_f32(bptr + cb + 8));
+                  a3 = vaddq_f32(a3, vld1q_f32(bptr + cb + 12));
+                }
+                __fp16 tmp[4];
+                vst1_f16(tmp + 0, vcvt_f16_f32(a0));
+                for (int v = 0; v < 4; ++v) op[cb + v] = (_FP16)tmp[v];
+                vst1_f16(tmp + 0, vcvt_f16_f32(a1));
+                for (int v = 0; v < 4; ++v) op[cb + 4 + v] = (_FP16)tmp[v];
+                vst1_f16(tmp + 0, vcvt_f16_f32(a2));
+                for (int v = 0; v < 4; ++v) op[cb + 8 + v] = (_FP16)tmp[v];
+                vst1_f16(tmp + 0, vcvt_f16_f32(a3));
+                for (int v = 0; v < 4; ++v) op[cb + 12 + v] = (_FP16)tmp[v];
+              }
+#endif
+              for (; cb < Cout; ++cb) {
+                float acc = bptr ? bptr[cb] : 0.f;
+                for (unsigned int y = 0; y < kh_; ++y) {
+                  const int ih = h0 + (int)y;
+                  if (ih < 0 || ih >= Hi)
+                    continue;
+                  for (unsigned int x = 0; x < kw_; ++x) {
+                    const int iw = w0 + (int)x;
+                    if (iw < 0 || iw >= Wi)
+                      continue;
+                    const _FP16 *px =
+                      inp + ((size_t)ih * Wi + iw) * Cin;
+                    const float *wt =
+                      twp + (((size_t)y * kw_ + x) * Cin) * Cout + cb;
+                    for (unsigned int c = 0; c < Cin; ++c)
+                      acc += (float)px[c] * wt[(size_t)c * Cout];
+                  }
+                }
+                op[cb] = (_FP16)acc;
+              }
+            }
+          });
+          continue;
+#endif
+        }
+        // ----------------------------------------------------------------
+
         // W8A8: an FP32-weight conv fed by a QINT8 activation dequantizes it
         // once into a heap-local FP32 buffer and runs the standard path
         // unchanged (conv is the universal dtype boundary).
