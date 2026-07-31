@@ -13,6 +13,7 @@
  */
 #include <algorithm>
 #include <cmath>
+#include <array>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -2627,6 +2628,117 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
         // Default ON (env opt-out: NNTR_CONV_GEMM_GROUPS=0 restores the scalar
         // loop for A/B / rollback). Gated to FP32 weights (F==float) + K>1 + the
         // gemoetry where im2col+sgemm pays off (icg*fh*fw > 1).
+        // Env-gated fused direct grouped conv (NNTR_CONV_FUSED_GROUPS=1):
+        // for icg==1 (the FastViT downsample down0 7x7 s=2 convs: groups=in_ch,
+        // ocg=out_ch/in_ch e.g. 2), skip the im2col col-buffer materialization
+        // the GEMM path does (a 49xOH*OW FP32 slab per group = ~20MB for s1_down)
+        // and instead fuse gather+FMA: vectorize 4 output columns (ow), loop the
+        // ocg output rows internally sharing the same 49 input taps. Each FP16
+        // tap is read once and FMA'd into ocg FP32 accumulators (one per output
+        // row), narrowed at the end -- same accumulate-in-float semantics as the
+        // scalar `run_g` loop, so bit-identical up to the final narrow. The GEMM
+        // path's win was N-vectorization via sgemm, but it paid for it with the
+        // col gather+write; this keeps the N-vectorization and drops the col.
+        // Default ON (env opt-out: NNTR_CONV_FUSED_GROUPS=0 -> GEMM/scalar).
+        // Restricted to FP32 weights (F==float) + icg==1 + OW>=4.
+        const char *__fused_env = std::getenv("NNTR_CONV_FUSED_GROUPS");
+        const bool use_fused =
+          (__fused_env == nullptr || std::string(__fused_env) != "0") &&
+          icg == 1 && ocg >= 1 && fh * fw >= 1 && OW >= 4 &&
+          std::is_same_v<F, float>;
+        if (use_fused) {
+          const unsigned int K = icg * fh * fw; // == fh*fw (icg==1)
+          const unsigned int N = OH * OW;
+          const unsigned int Cin = in_dim.channel(); // == groups (icg==1)
+          auto &tmg = ThreadManager::Global();
+          tmg.parallel_for(0, (size_t)B * groups, [&](size_t bg) {
+            const unsigned int b = (unsigned int)(bg / groups);
+            const unsigned int g = (unsigned int)(bg % groups);
+            const T *inb =
+              in + (size_t)b * IH * IW * Cin;
+            T *outb = out + (size_t)b * OH * OW * filter_size;
+            const F *filt_g = filt + (size_t)g * ocg * K; // [ocg, K]
+            const unsigned int oc_base = g * ocg;
+            for (unsigned int oh = 0; oh < OH; ++oh) {
+              unsigned int ow = 0;
+              for (; ow + 3 < OW; ow += 4) {
+                // ocg FP32x4 accumulators (one per output row, 4 ow lanes).
+                std::array<float32x4_t, 4> acc;
+                for (unsigned int o = 0; o < ocg; ++o)
+                  acc[o] = vdupq_n_f32(0.0f);
+                for (unsigned int kh = 0; kh < fh; ++kh) {
+                  const int ih = (int)(oh * sh) - ph + (int)kh * dh;
+                  if (ih < 0 || ih >= (int)IH)
+                    continue;
+                  const T *row = inb + (size_t)ih * IW * Cin;
+                  for (unsigned int kw = 0; kw < fw; ++kw) {
+                    // 4 ow taps: spatial x = (ow+v)*sw - pw + kw*dw_, C-strided
+                    // apart (NHWC, icg==1 -> channel offset = g). Gather into
+                    // FP32x4 (no contiguous load -- sw may be 2 and taps are
+                    // C-strided regardless).
+                    float vals[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+                    for (int v = 0; v < 4; ++v) {
+                      const int iw =
+                        (int)((ow + v) * sw) - pw + (int)kw * dw_;
+                      if (iw >= 0 && iw < (int)IW)
+                        vals[v] = (float)row[(size_t)iw * Cin + g];
+                    }
+                    const float32x4_t vid = vld1q_f32(vals);
+                    const unsigned int kbase = (kh * fw + kw) * icg;
+                    for (unsigned int o = 0; o < ocg; ++o) {
+                      const float kf = (float)filt_g[o * K + kbase];
+                      acc[o] = vmlaq_n_f32(acc[o], vid, kf);
+                    }
+                  }
+                }
+                // Narrow + scatter: ocg rows x 4 ow, NHWC (C-strided store).
+                if constexpr (std::is_same_v<T, _FP16>) {
+                  for (unsigned int o = 0; o < ocg; ++o) {
+                    __fp16 tmp[4];
+                    vst1_f16(tmp, vcvt_f16_f32(acc[o]));
+                    const unsigned int oc = oc_base + o;
+                    for (int v = 0; v < 4; ++v)
+                      outb[(size_t)(oh * OW + ow + v) * filter_size + oc] =
+                        (T)tmp[v];
+                  }
+                } else {
+                  for (unsigned int o = 0; o < ocg; ++o) {
+                    float tmp[4];
+                    vst1q_f32(tmp, acc[o]);
+                    const unsigned int oc = oc_base + o;
+                    for (int v = 0; v < 4; ++v)
+                      outb[(size_t)(oh * OW + ow + v) * filter_size + oc] =
+                        (T)tmp[v];
+                  }
+                }
+              }
+              // Scalar tail (ow remainder) -- same accumulate-in-float order.
+              for (; ow < OW; ++ow) {
+                float accs[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+                for (unsigned int kh = 0; kh < fh; ++kh) {
+                  const int ih = (int)(oh * sh) - ph + (int)kh * dh;
+                  if (ih < 0 || ih >= (int)IH)
+                    continue;
+                  const T *row = inb + (size_t)ih * IW * Cin;
+                  for (unsigned int kw = 0; kw < fw; ++kw) {
+                    const int iw = (int)(ow * sw) - pw + (int)kw * dw_;
+                    if (iw < 0 || iw >= (int)IW)
+                      continue;
+                    const float idv =
+                      (float)row[(size_t)iw * Cin + g];
+                    const unsigned int kbase = (kh * fw + kw) * icg;
+                    for (unsigned int o = 0; o < ocg; ++o)
+                      accs[o] += idv * (float)filt_g[o * K + kbase];
+                  }
+                }
+                for (unsigned int o = 0; o < ocg; ++o)
+                  outb[(size_t)(oh * OW + ow) * filter_size + oc_base + o] =
+                    (T)accs[o];
+              }
+            }
+          });
+          return;
+        }
         const char *__gemm_env = std::getenv("NNTR_CONV_GEMM_GROUPS");
         const bool use_gemm =
           (__gemm_env == nullptr || std::string(__gemm_env) != "0") &&
