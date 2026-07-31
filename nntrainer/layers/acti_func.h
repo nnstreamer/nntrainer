@@ -439,38 +439,27 @@ public:
    */
   template <typename T = float>
   static Tensor &gelu(Tensor const &t_in, Tensor &t_out) {
-    // FP32-only vectorized kernel below; see tanhGelu() for why a non-float
-    // tensor must not be reinterpreted as float here.
-    if constexpr (!std::is_same_v<T, float>) {
+    if (t_in.getDataType() == Tdatatype::FP16) {
+      // Exact erf form: 0.5 x (1 + erf(x / sqrt(2))). Route through apply<T>
+      // so the HalfTensor polymorphic dispatch handles FP16 storage correctly
+      // (mirrors sigmoidGelu/geluPrime). Previously this hardcast the FP16
+      // (2N-byte) buffer to float* via getData<float>() and called the FP32
+      // kernel -> 2N-byte overread -> SIGSEGV (see PIPELINE_VERIFICATION.md
+      // §7.2). FP32 stays on the vectorized nntrainer::gelu_v2 path below.
+      const T inv_sqrt2 = static_cast<T>(0.70710678118654752440f);
       t_in.apply<T>(
-        [](T x) {
-          const float v = static_cast<float>(x);
-          return static_cast<T>(0.5f * v *
-                                (1.0f + std::erf(v * 0.7071067811f)));
+        [&](T x) {
+          return static_cast<T>(
+            0.5f * x *
+            (1.0f +
+             static_cast<T>(std::erf(static_cast<float>(x) *
+                                     static_cast<float>(inv_sqrt2)))));
         },
         t_out);
       return t_out;
     }
-    const unsigned int N = t_in.size();
-    const float *x = t_in.getData<float>();
-    float *y = t_out.getData<float>();
-
-    // Elementwise, so chunks are independent: split large tensors (e.g. the
-    // encoder's [196, 3072] FFN activation) across the ThreadManager pool the
-    // same way the tensor ops do. Small tensors (decode-step rows) stay on
-    // the single-dispatch vectorized kernel.
-    constexpr unsigned int chunk = 1u << 14; // 16K floats per task
-    if (N >= 2 * chunk) {
-      auto &tm = ThreadManager::Global();
-      const size_t loops = (N + chunk - 1) / chunk;
-      tm.parallel_for(0, loops, [=](size_t li) {
-        const unsigned int start = (unsigned int)(li * chunk);
-        const unsigned int end = std::min(N, start + chunk);
-        nntrainer::gelu_v2(end - start, x + start, y + start);
-      });
-    } else {
-      nntrainer::gelu_v2(N, x, y);
-    }
+    nntrainer::gelu_v2(t_in.size(), t_in.getData<float>(),
+                       t_out.getData<float>());
     return t_out;
   }
 
@@ -510,23 +499,26 @@ public:
    */
   template <typename T = float>
   static Tensor &tanhGelu(Tensor const &t_in, Tensor &t_out) {
-    // The vectorized kernel is FP32-only. Dispatching a non-float tensor to it
-    // would reinterpret T data as float and read/write size()*4 bytes out of a
-    // size()*sizeof(T) buffer — an out-of-bounds write for FP16. Compute in
-    // float and store back as T for those types.
-    if constexpr (std::is_same_v<T, float>) {
-      nntrainer::tanh_gelu(t_in.size(), t_in.getData<float>(),
-                           t_out.getData<float>());
-    } else {
+    if (t_in.getDataType() == Tdatatype::FP16) {
+      // tanh approximate form: 0.5 x (1 + tanh(0.7978845608 (x + 0.044715 x^3)))
+      // Matches the FP16 __fallback_tanh_gelu kernel and the FP32 tanh_gelu
+      // scalar tail (neon_impl.cpp). apply<T> -> HalfTensor, same reason as
+      // gelu above; avoids the getData<float>() overread on FP16 storage.
+      const T c1 = static_cast<T>(0.7978845608028654f); // sqrt(2/pi)
+      const T c2 = static_cast<T>(0.044715f);
       t_in.apply<T>(
-        [](T x) {
-          const float v = static_cast<float>(x);
+        [&](T x) {
+          T x3 = x * x * x;
           return static_cast<T>(
-            0.5f * v *
-            (1.0f + std::tanh(0.7978845608f * (v + 0.044715f * v * v * v))));
+            0.5f * x *
+            (1.0f + static_cast<T>(std::tanh(
+                      static_cast<float>(c1 * (x + c2 * x3))))));
         },
         t_out);
+      return t_out;
     }
+    nntrainer::tanh_gelu(t_in.size(), t_in.getData<float>(),
+                         t_out.getData<float>());
     return t_out;
   }
 
