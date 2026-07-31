@@ -2341,6 +2341,109 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
       // as float.
       const auto filt_dt = filter_kernel.getDataType();
 
+      // Env-gated vectorized NHWC depthwise (default ON, NNTR_DW_NHWC_SCALAR=1
+      // restores the per-output-element scalar `run` below for A/B / rollback).
+      // Parallelize across (batch*channels) and vectorize across 4 output
+      // columns (ow) with FP32 accumulators, widening FP16 input + FP32 kernel
+      // per MAC (same accumulate-in-float semantics as `run`, so output is
+      // bit-identical up to the final FP16 narrow). Beats the scalar per-(oh,ow)
+      // loop for the FastViT 7x7 stride-1 depthwise `mlp_conv/dw` blocks, which
+      // the profiler showed at ~4.5ms each (the scalar path vectorizes channels
+      // but iterates 49 taps per output point; this vectorizes the output
+      // points so each tap's 4-ow FMA is one instruction).
+      const bool dw_vec = stride[1].get() == 1 && dilation[1].get() == 1 &&
+                          OW >= 4 &&
+                          std::getenv("NNTR_DW_NHWC_SCALAR") == nullptr &&
+                          filt_dt == nntrainer::Tdatatype::FP32;
+      if (dw_vec) {
+        auto run_vec = [&]<typename T>(const T *in, T *out,
+                                        const float *filt) {
+          auto &tm = ThreadManager::Global();
+          tm.parallel_for(0, (size_t)B * C, [&](size_t bc) {
+            const unsigned int b = (unsigned int)(bc / C);
+            const unsigned int c = (unsigned int)(bc % C);
+            const T *inc =
+              in + (size_t)b * IH * IW * C + (size_t)c;
+            T *outc = out + (size_t)b * OH * OW * C + (size_t)c;
+            const float *fkc = filt + (size_t)c * fhfw;
+            for (int oh = 0; oh < OH; ++oh) {
+              int ow = 0;
+              for (; ow + 3 < OW; ow += 4) {
+                float32x4_t acc = vdupq_n_f32(0.0f);
+                for (unsigned int kh = 0; kh < fh; ++kh) {
+                  const int ih = oh * sh - ph + (int)kh * dh;
+                  if (ih < 0 || ih >= IH)
+                    continue;
+                  const T *row = inc + (size_t)ih * IW * C;
+                  for (unsigned int kw = 0; kw < fw; ++kw) {
+                    const int iw0 = ow - pw + (int)kw * dw_;
+                    const float kf = fkc[kh * fw + kw];
+                    if (iw0 >= 0 && iw0 + 3 < IW) {
+                      // 4 taps at channel c, spatial taps iw0..iw0+3 are
+                      // C-strided apart (NHWC: channel is innermost). Gather
+                      // them into an FP32x4 (no contiguous FP16 load -- the 4
+                      // values live C elements apart), then FMA the FP32 kernel.
+                      float vals[4] = {
+                        (float)row[(size_t)iw0 * C],
+                        (float)row[(size_t)(iw0 + 1) * C],
+                        (float)row[(size_t)(iw0 + 2) * C],
+                        (float)row[(size_t)(iw0 + 3) * C]};
+                      float32x4_t vid = vld1q_f32(vals);
+                      acc = vmlaq_n_f32(acc, vid, kf);
+                    } else {
+                      float arr[4] = {0, 0, 0, 0};
+                      for (int v = 0; v < 4; ++v) {
+                        int idx = iw0 + v;
+                        if (idx >= 0 && idx < IW)
+                          arr[v] = (float)row[(size_t)idx * C];
+                      }
+                      acc = vmlaq_n_f32(acc, vld1q_f32(arr), kf);
+                    }
+                  }
+                }
+                if constexpr (std::is_same_v<T, _FP16>) {
+                  // 4 outputs are C-strided apart (NHWC); scatter-store.
+                  __fp16 tmp[4];
+                  vst1_f16(tmp, vcvt_f16_f32(acc));
+                  for (int v = 0; v < 4; ++v)
+                    outc[(size_t)(oh * OW + ow + v) * C] = (T)tmp[v];
+                } else {
+                  float tmp[4];
+                  vst1q_f32(tmp, acc);
+                  for (int v = 0; v < 4; ++v)
+                    outc[(size_t)(oh * OW + ow + v) * C] = (T)tmp[v];
+                }
+              }
+              for (; ow < OW; ++ow) {
+                float acc = 0.0f;
+                for (unsigned int kh = 0; kh < fh; ++kh) {
+                  const int ih = oh * sh - ph + (int)kh * dh;
+                  if (ih < 0 || ih >= IH)
+                    continue;
+                  for (unsigned int kw = 0; kw < fw; ++kw) {
+                    const int iw = ow - pw + (int)kw * dw_;
+                    if (iw < 0 || iw >= IW)
+                      continue;
+                    acc += (float)inc[((size_t)ih * IW + iw) * C] *
+                           fkc[kh * fw + kw];
+                  }
+                }
+                outc[(size_t)(oh * OW + ow) * C] = (T)acc;
+              }
+            }
+          });
+        };
+#ifdef ENABLE_FP16
+        if (in_dim.getDataType() == nntrainer::Tdatatype::FP16)
+          run_vec(input_.getData<_FP16>(), hidden_.getData<_FP16>(),
+                  filter_kernel.getData<float>());
+        else
+#endif
+          run_vec(input_.getData<float>(), hidden_.getData<float>(),
+                  filter_kernel.getData<float>());
+        goto depthwise_done;
+      }
+
       auto run = [&]<typename T, typename F>(const T *in, T *out,
                                              const F *filt) {
         std::vector<float> acc(C);
@@ -2676,6 +2779,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
         result.deallocate();
       }
     }
+    depthwise_done:; // jump target for the env-gated vectorized NHWC depthwise
   }
 
   // Per-channel W8A8 convs applied bias + SiLU + quantize inline per batch, so
