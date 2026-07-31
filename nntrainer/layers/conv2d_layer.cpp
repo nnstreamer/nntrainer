@@ -2352,6 +2352,99 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
       // the profiler showed at ~4.5ms each (the scalar path vectorizes channels
       // but iterates 49 taps per output point; this vectorizes the output
       // points so each tap's 4-ow FMA is one instruction).
+      // Env-gated CHANNEL-vectorized NHWC depthwise (NNTR_DW_NHWC_CHAN=1):
+      // groups of 4 consecutive channels at once. NHWC stores channels
+      // contiguously, so the 4 channels' input taps at a given spatial pos are
+      // a single contiguous FP16x4 load (vld1_f16) -> vcvt to FP32x4, instead
+      // of the ow-vectorized `dw_vec` below which gathers 4 C-strided ow taps.
+      // For the FastViT s0b1 mlp_conv/dw 7x7 @ 80x80 (6400 spatials * 64 ch)
+      // this is the #1 keyword cost (3.3ms) and is memory-bound: channel-vector
+      // turns 49 strided gathers into 49 contiguous loads, ~4x less traffic.
+      // Accumulate-in-float per channel (4 separate FP32 accumulators, FMA'd
+      // with that channel's FP32 weight lane), so bit-identical to scalar up to
+      // the final FP16 narrow. Default ON (opt-out NNTR_DW_NHWC_CHAN=0);
+      // restricted to C%4==0 + stride1 + dilation1 + FP32 weights. Falls
+      // through to `dw_vec` (ow-vectorized) otherwise.
+      const bool dw_chan =
+        (C % 4) == 0 && stride[0].get() == 1 && stride[1].get() == 1 &&
+        dilation[0].get() == 1 && dilation[1].get() == 1 &&
+        std::getenv("NNTR_DW_NHWC_CHAN") == nullptr &&
+        filt_dt == nntrainer::Tdatatype::FP32;
+      if (dw_chan) {
+        auto run_chan = [&]<typename T>(const T *in, T *out,
+                                        const float *filt) {
+          const unsigned int Cg = C / 4; // groups of 4 channels
+          auto &tm = ThreadManager::Global();
+          tm.parallel_for(0, (size_t)B * Cg, [&](size_t bcg) {
+            const unsigned int b = (unsigned int)(bcg / Cg);
+            const unsigned int cg = (unsigned int)(bcg % Cg);
+            const unsigned int c0 = cg * 4;
+            const T *inb =
+              in + (size_t)b * IH * IW * C;
+            T *outb = out + (size_t)b * OH * OW * C;
+            for (int oh = 0; oh < OH; ++oh) {
+              for (int ow = 0; ow < OW; ++ow) {
+                float32x4_t acc = vdupq_n_f32(0.0f);
+                for (unsigned int kh = 0; kh < fh; ++kh) {
+                  const int ih = oh * sh - ph + (int)kh * dh;
+                  if (ih < 0 || ih >= IH)
+                    continue;
+                  const T *row = inb + (size_t)ih * IW * C;
+                  for (unsigned int kw = 0; kw < fw; ++kw) {
+                    const int iw = ow * sw - pw + (int)kw * dw_;
+                    if (iw < 0 || iw >= IW)
+                      continue;
+                    // 4 contiguous channels at (ih,iw): NHWC -> one contiguous
+                    // load (FP16x4 widened to FP32x4, or FP32x4 directly).
+                    float32x4_t vin;
+                    if constexpr (std::is_same_v<T, _FP16>) {
+                      __fp16 h4[4];
+                      vst1_f16(h4, vld1_f16(reinterpret_cast<const __fp16 *>(
+                                     row + (size_t)iw * C + c0)));
+                      float vals[4] = {(float)h4[0], (float)h4[1],
+                                       (float)h4[2], (float)h4[3]};
+                      vin = vld1q_f32(vals);
+                    } else {
+                      vin = vld1q_f32(row + (size_t)iw * C + c0);
+                    }
+                    // Gather the 4 channels' filter for this tap
+                    // (strided: filt[c*fh*fw + tap], c=c0..c0+3).
+                    const unsigned int tap = kh * fw + kw;
+                    float vw_arr[4] = {
+                      (float)filt[(size_t)c0 * fhfw + tap],
+                      (float)filt[(size_t)(c0 + 1) * fhfw + tap],
+                      (float)filt[(size_t)(c0 + 2) * fhfw + tap],
+                      (float)filt[(size_t)(c0 + 3) * fhfw + tap]};
+                    float32x4_t vw = vld1q_f32(vw_arr);
+                    acc = vfmaq_f32(acc, vin, vw);
+                  }
+                }
+                // 4 contiguous output channels at (oh,ow): NHWC scatter is a
+                // contiguous store.
+                const size_t on = (size_t)(oh * OW + ow) * C + c0;
+                if constexpr (std::is_same_v<T, _FP16>) {
+                  __fp16 tmp[4];
+                  vst1_f16(tmp, vcvt_f16_f32(acc));
+                  for (int v = 0; v < 4; ++v)
+                    outb[on + v] = (T)tmp[v];
+                } else {
+                  vst1q_f32(outb + on, acc);
+                }
+              }
+            }
+          });
+        };
+#ifdef ENABLE_FP16
+        if (in_dim.getDataType() == nntrainer::Tdatatype::FP16)
+          run_chan(input_.getData<_FP16>(), hidden_.getData<_FP16>(),
+                   filter_kernel.getData<float>());
+        else
+#endif
+          run_chan(input_.getData<float>(), hidden_.getData<float>(),
+                   filter_kernel.getData<float>());
+        goto depthwise_done;
+      }
+
       const bool dw_vec = stride[1].get() == 1 && dilation[1].get() == 1 &&
                           OW >= 4 &&
                           std::getenv("NNTR_DW_NHWC_SCALAR") == nullptr &&
