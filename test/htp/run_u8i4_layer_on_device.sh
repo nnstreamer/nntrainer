@@ -1,16 +1,20 @@
 #!/bin/bash
 # SPDX-License-Identifier: Apache-2.0
 #
-# Builds the DSP skel + the ARM gtest for the u8i4 layer endpoint
-# (HTP_PR_PLAN.md PR① / doc15 §8 item 3) and runs it on a connected device.
+# Builds the DSP skel + the ARM gtest for the u8i4 AND u8i8 layer endpoints
+# (HTP_PR_PLAN.md PR①/PR② / doc15 §8 item 3) and runs it on a connected
+# device. Both live in one gtest binary (unittest_hvx_mm_u8i4 despite the
+# name -- it predates the u8i8 fixture), so one run covers both.
 #
 # What this checks, in order:
 #   1. DSP skel compiles clean against HexKL beta2 (-Wall -Werror)
 #   2. libnntrainer.so + the ARM gtest binary build for arm64-v8a
-#   3. unittest_hvx_mm_u8i4 passes on-device -- both the original accuracy
-#      harness (Shape1-4) and the new layer-endpoint tests
-#   4. the reported layer_x4/harness speedup lands near doc13 §3a's
-#      1.7-2x (printed, not asserted -- see ReportPerCallCost's comment)
+#   3. unittest_hvx_mm_u8i4 passes on-device -- the original u8i4 accuracy
+#      harness (Shape1-4), the u8i4 layer-endpoint tests, and the u8i8
+#      layer-endpoint tests
+#   4. the reported layer_x4/harness speedup (u8i4) lands near doc13 §3a's
+#      1.7-2x, and the u8i8-vs-u8i4 ratio is sane (both printed, not
+#      asserted -- see the ReportPerCallCost* tests' comments)
 #
 # Override any of these if your paths differ:
 : "${HEXAGON_SDK_ROOT:=$HOME/workspace/Hexagon_SDK/6.4.0.2}"
@@ -128,10 +132,10 @@ adb shell "cd $DEVICE_TMP && \
 
 echo
 log "Summary"
-grep -E "^\[  (PASSED|FAILED)|U8I4_FIELD" /tmp/hvx_mm_u8i4_device_run.log || true
+grep -E "^\[  (PASSED|FAILED)|U8I[48]_FIELD" /tmp/hvx_mm_u8i4_device_run.log || true
 echo
 echo "Full log: /tmp/hvx_mm_u8i4_device_run.log"
-echo "Gate to clear before starting PR②/③: all PASSED, and the printed"
+echo "Gate to clear before starting PR③: all PASSED, and the printed"
 echo "U8I4_FIELD path=layer_x4 field=speedup_vs_harness value=... should be"
 echo "in the neighbourhood of 1.7-2 (doc13 §3a). If it is not, stop and find"
 echo "out why before building anything on top of this."
