@@ -107,6 +107,24 @@ MhaSoftmaxOut mha_softmax_blocked_ref(const std::vector<const float *> &seg,
                                       const float *sink);
 
 /**
+ * @brief PHASE A alone: the S band for one kv_head, block-major.
+ *
+ * Split out so a device kernel can be gated against this stage on its own --
+ * without a per-stage oracle a wrong O says nothing about which of the five
+ * stages produced it. mha_htp_host_forward calls this, so there is exactly one
+ * implementation of PHASE A rather than a second opinion beside it.
+ *
+ * @param M      rows in the band, n_query * gqa folded
+ * @param q_band [M][head_dim] f32, already gathered for this head
+ * @param[out] out_s [n_blocks][M][T] f32, block-major; n_blocks is
+ *               ceil(kv_len / T)
+ */
+void mha_htp_host_scores(uint32_t kv_len, uint32_t nch, uint32_t head_dim,
+                         uint32_t T, uint32_t M, uint32_t head,
+                         hexkl_w_width w_k, const float *q_band,
+                         const uint16_t *k_cache, float *out_s);
+
+/**
  * @brief Scalar model of the whole fused attention kernel.
  *
  * Same band order, same block order, same quantization points and same mask

@@ -100,6 +100,35 @@ void mm_u8_iX_dequant(const uint8_t *act_u, const float *act_scale,
 
 } // namespace
 
+void mha_htp_host_scores(uint32_t kv_len, uint32_t nch, uint32_t head_dim,
+                         uint32_t T, uint32_t M, uint32_t head,
+                         hexkl_w_width w_k, const float *q_band,
+                         const uint16_t *k_cache, float *out_s) {
+  const uint32_t n_blocks = (kv_len + T - 1) / T;
+
+  std::vector<float> q_scale(M, 1.0f);
+  std::vector<int32_t> q_zp(M, 0);
+  std::vector<uint8_t> q_u((size_t)M * head_dim, 0);
+  quant_rows_u8(q_band, M, head_dim, q_scale.data(), q_zp.data(), q_u.data());
+
+  std::vector<int8_t> kt_rm((size_t)head_dim * T);
+  std::vector<float> kt_scale(T);
+  std::vector<int32_t> kt_cs(T);
+
+  for (uint32_t j = 0; j < n_blocks; ++j) {
+    const uint32_t valid = std::min(T, kv_len - j * T);
+    hexkl_kvq_pack_kt_block(k_cache + (size_t)j * T * nch * head_dim, valid, T,
+                            head_dim, nch, head, w_k, kt_rm.data(),
+                            kt_scale.data(), kt_cs.data());
+    /* One ops->run call on device: handles = this head's Kt blocks, and
+     * out_cat comes back BLOCK-MAJOR, [n_blocks][M][T]. Do not flatten it --
+     * the block-major layout is the KV tiling (property 1). */
+    mm_u8_iX_dequant(q_u.data(), q_scale.data(), q_zp.data(), kt_rm.data(),
+                     kt_scale.data(), kt_cs.data(), M, head_dim, T, false,
+                     out_s + (size_t)j * M * T);
+  }
+}
+
 MhaSoftmaxOut mha_softmax_blocked_ref(const std::vector<const float *> &seg,
                                       uint32_t n_seg, uint32_t T, uint32_t M,
                                       float scale,
@@ -262,12 +291,8 @@ void mha_htp_host_forward(uint32_t n_query, uint32_t kv_from, uint32_t nch,
        * out_cat comes back BLOCK-MAJOR, [n_blocks][mb][T]. Do not flatten
        * it -- the block-major layout is the KV tiling (property 1). */
       s_band.assign((size_t)n_blocks * mb * T, 0.0f);
-      for (uint32_t j = 0; j < n_blocks; ++j) {
-        mm_u8_iX_dequant(q_u.data(), q_scale.data(), q_zp.data(),
-                         kt_rm[j].data(), kt_scale[j].data(), kt_cs[j].data(),
-                         mb, head_dim, T, false,
-                         s_band.data() + (size_t)j * mb * T);
-      }
+      mha_htp_host_scores(kv_len, nch, head_dim, T, mb, n, w_k, qb.data(),
+                          k_cache, s_band.data());
 
       /* ---- PHASE B: one masked softmax pass over the whole band ------- */
       begin.assign(mb, 0);
