@@ -703,6 +703,24 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
                                         (int)qn),
                   AEE_SUCCESS);
 
+        /* PRODUCTION path first: attn_forward passes no stage_us, so the
+         * DSP's stage timers and the in-loop probes are both off. That is
+         * what a real caller pays and therefore what us_per_layer reports;
+         * the instrumented run below is for the breakdown, and the gap
+         * between them is the instrumentation, published rather than
+         * folded into the headline. */
+        double plain[3];
+        for (int r = 0; r < 3; ++r) {
+          const auto t0 = std::chrono::steady_clock::now();
+          const int err =
+            nntr_hvx_attn_forward(handle_, h, kv_from, n_query, scale, 1u, 0u,
+                                  nullptr, 0, q, (int)qn, out, (int)qn);
+          const auto t1 = std::chrono::steady_clock::now();
+          ASSERT_EQ(err, AEE_SUCCESS);
+          plain[r] = std::chrono::duration<double, std::micro>(t1 - t0).count();
+        }
+        std::sort(plain, plain + 3);
+
         double us[3];
         std::vector<uint32_t> stage_of[3];
         for (int r = 0; r < 3; ++r) {
@@ -732,14 +750,16 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
          * run and still sums to its own dsp_total. */
         int ord[3] = {0, 1, 2};
         std::sort(ord, ord + 3, [&us](int a, int b) { return us[a] < us[b]; });
-        const double med = us[ord[1]];
+        const double med = plain[1];          /* production, uninstrumented */
+        const double med_probed = us[ord[1]]; /* instrumented, for the parts */
         const std::vector<uint32_t> &med_stage = stage_of[ord[1]];
         std::ostringstream pair;
         pair << wname(widths[w][0]) << "," << wname(widths[w][1]);
         std::cout << std::left << std::setw(7) << kv_len << std::setw(9)
                   << (n_query == 1 ? "decode" : "prefill") << std::setw(10)
-                  << pair.str() << std::fixed << std::setprecision(1) << us[0]
-                  << "  " << us[1] << "  " << us[2] << "\n";
+                  << pair.str() << std::fixed << std::setprecision(1)
+                  << plain[0] << "  " << plain[1] << "  " << plain[2]
+                  << "   (probed " << med_probed << ")\n";
         std::cout << "ATTN_FIELD path=forward_"
                   << (n_query == 1 ? "dec" : "pre") << "_kv" << kv_len << "_"
                   << wname(widths[w][0]) << wname(widths[w][1])
@@ -769,9 +789,15 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
                     << " field=" << kStage[st] << " value=" << med_stage[st]
                     << std::endl;
         }
+        /* dsp_total came from the INSTRUMENTED run, so subtract it from that
+         * run's wall -- mixing it with the production wall would fold the
+         * instrumentation into the transport estimate. */
         std::cout << "ATTN_STAGE path=" << path.str()
                   << " field=transport_us value="
-                  << (med - (double)med_stage[5]) << std::endl;
+                  << (med_probed - (double)med_stage[5]) << std::endl;
+        std::cout << "ATTN_STAGE path=" << path.str()
+                  << " field=probe_overhead_us value=" << (med_probed - med)
+                  << std::endl;
       }
     }
   }

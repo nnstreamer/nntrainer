@@ -387,7 +387,7 @@ int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
       stage_us[n] = 0u;
     }
   }
-  hexkl_probe_reset();
+  hexkl_probe_reset(stage_us != NULL);
   TICK(t_call0);
 
   nHq = ctx->nch * ctx->gqa;

@@ -47,12 +47,40 @@ enum {
 /** @brief Accumulated microseconds per slot since the last reset. */
 extern uint64_t hexkl_probe_us[HEXKL_PROBE_N];
 
-/** @brief Zeroes every counter. */
-void hexkl_probe_reset(void);
+/**
+ * @brief Nonzero while a caller wants the breakdown.
+ *
+ * The acc_read and dequant probes sit INSIDE the tile loop, so they run
+ * 1,536 times for one kv=1024 prefill layer -- four qtimer reads each. That
+ * is instrumentation the production entry point should not be paying, and
+ * before this flag it did: the probes were unconditional while the stage
+ * timers around them were already gated on stage_us.
+ */
+extern int hexkl_probe_on;
+
+/** @brief Zeroes every counter and sets whether the probes run at all. */
+void hexkl_probe_reset(int enable);
 
 /** @brief Same DSP-internal clock hexkl_attn_u8.c times stages with. */
 static inline uint64_t hexkl_probe_now(void) {
   return HAP_perf_qtimer_count_to_us(HAP_perf_get_qtimer_count());
 }
+
+/** @brief Reads the clock into @a v, or does nothing when probing is off. */
+#define HEXKL_PROBE_T0(v)                                                      \
+  do {                                                                         \
+    if (hexkl_probe_on) {                                                      \
+      (v) = hexkl_probe_now();                                                 \
+    }                                                                          \
+  } while (0)
+
+/** @brief Folds now - @a t0 into @a slot, or does nothing when probing is
+ *         off. Pairs with HEXKL_PROBE_T0 on the same variable. */
+#define HEXKL_PROBE_ADD(slot, t0)                                              \
+  do {                                                                         \
+    if (hexkl_probe_on) {                                                      \
+      hexkl_probe_us[slot] += hexkl_probe_now() - (t0);                        \
+    }                                                                          \
+  } while (0)
 
 #endif /* __NNTRAINER_HEXKL_PROBE_H__ */

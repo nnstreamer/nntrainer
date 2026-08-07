@@ -227,7 +227,8 @@ int hexkl_mm_u8i8_layer_run(hexkl_weight_u8i8_table *tbl, uint8_t *vtcm_base,
     free(acc_scratch);
     return AEE_ENOMEMORY;
   }
-  uint64_t p0 = hexkl_probe_now();
+  uint64_t p0 = 0;
+  HEXKL_PROBE_T0(p0);
   const float *act_scale = o->act_scale;
   const int32_t *act_zp = o->act_zp;
   if (act_scale == NULL) {
@@ -237,7 +238,7 @@ int hexkl_mm_u8i8_layer_run(hexkl_weight_u8i8_table *tbl, uint8_t *vtcm_base,
   }
   int rc0 = hvx_quant_pack_u8_ah(act_f32, M, m_pad, K, act_scale, act_zp,
                                  vtcm_base + act_off, o->pool);
-  hexkl_probe_us[HEXKL_PROBE_QUANT] += hexkl_probe_now() - p0;
+  HEXKL_PROBE_ADD(HEXKL_PROBE_QUANT, p0);
   if (rc0 != AEE_SUCCESS) {
     free(loc_scale);
     free(loc_zp);
@@ -256,9 +257,9 @@ int hexkl_mm_u8i8_layer_run(hexkl_weight_u8i8_table *tbl, uint8_t *vtcm_base,
     const uint32_t rs0 = dma_row_size_dividing(wb0);
     hexkl_dma_ring_push2d(vtcm_base + wbuf[0], h0->wh_bytes, rs0, rs0, rs0,
                           wb0 / rs0, /*src_vtcm=*/0, /*dst_vtcm=*/1);
-    p0 = hexkl_probe_now();
+    HEXKL_PROBE_T0(p0);
     hexkl_dma_ring_drain();
-    hexkl_probe_us[HEXKL_PROBE_DRAIN] += hexkl_probe_now() - p0;
+    HEXKL_PROBE_ADD(HEXKL_PROBE_DRAIN, p0);
   }
 
   for (uint32_t i = 0; i < n_handles; ++i) {
@@ -289,9 +290,9 @@ int hexkl_mm_u8i8_layer_run(hexkl_weight_u8i8_table *tbl, uint8_t *vtcm_base,
             goto out;
           }
         }
-        p0 = hexkl_probe_now();
+        HEXKL_PROBE_T0(p0);
         rc = hexkl_micro_hmx_acc_read_int32(vtcm_base, config_off, result_off);
-        hexkl_probe_us[HEXKL_PROBE_ACC_READ] += hexkl_probe_now() - p0;
+        HEXKL_PROBE_ADD(HEXKL_PROBE_ACC_READ, p0);
         if (rc != AEE_SUCCESS) {
           goto out;
         }
@@ -310,18 +311,18 @@ int hexkl_mm_u8i8_layer_run(hexkl_weight_u8i8_table *tbl, uint8_t *vtcm_base,
             const int32_t *tile =
               (const int32_t *)(vtcm_base + result_off) + acc_layout->base;
             const uint32_t c0 = nt * HEXKL_ACC_TILE_COLS;
-            p0 = hexkl_probe_now();
+            HEXKL_PROBE_T0(p0);
             hvx_dequant_acc_tile_to_f32(
               tile, acc_layout->row_stride, cnt, act_scale + m0, act_zp + m0,
               h->colsum_w + c0, h->w_scale + c0, h->bias + c0,
               out_cat + out_off + (size_t)m0 * h->N + c0, h->N, o->accumulate);
-            hexkl_probe_us[HEXKL_PROBE_DEQUANT] += hexkl_probe_now() - p0;
+            HEXKL_PROBE_ADD(HEXKL_PROBE_DEQUANT, p0);
           }
         } else {
-          p0 = hexkl_probe_now();
+          HEXKL_PROBE_T0(p0);
           rc = hexkl_micro_hmx_copy_32b_to_submatrix(
             vtcm_base, result_off, acc_scratch, rb, nt, m_pad, h->N);
-          hexkl_probe_us[HEXKL_PROBE_ACC_COPY] += hexkl_probe_now() - p0;
+          HEXKL_PROBE_ADD(HEXKL_PROBE_ACC_COPY, p0);
           if (rc != AEE_SUCCESS) {
             goto out;
           }
@@ -334,16 +335,16 @@ int hexkl_mm_u8i8_layer_run(hexkl_weight_u8i8_table *tbl, uint8_t *vtcm_base,
      * which the weight prefetch touches, so it overlaps the transfer for
      * free. The fallback below cannot -- it needs the whole staging matrix
      * first. */
-    p0 = hexkl_probe_now();
+    HEXKL_PROBE_T0(p0);
     hexkl_dma_ring_drain();
-    hexkl_probe_us[HEXKL_PROBE_DRAIN] += hexkl_probe_now() - p0;
+    HEXKL_PROBE_ADD(HEXKL_PROBE_DRAIN, p0);
 
     if (!acc_layout->usable) {
-      p0 = hexkl_probe_now();
+      HEXKL_PROBE_T0(p0);
       hvx_dequant_i32_to_f32(acc_scratch, M, m_pad, h->N, act_scale, act_zp,
                              h->colsum_w, h->w_scale, h->bias,
                              out_cat + out_off, o->accumulate);
-      hexkl_probe_us[HEXKL_PROBE_DEQUANT] += hexkl_probe_now() - p0;
+      HEXKL_PROBE_ADD(HEXKL_PROBE_DEQUANT, p0);
     }
     out_off += (size_t)M * h->N;
   }

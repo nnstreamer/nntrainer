@@ -15,7 +15,9 @@
 #include <string.h>
 
 uint64_t hexkl_probe_us[HEXKL_PROBE_N];
+int hexkl_probe_on;
 
-void hexkl_probe_reset(void) {
+void hexkl_probe_reset(int enable) {
   memset(hexkl_probe_us, 0, sizeof(hexkl_probe_us));
+  hexkl_probe_on = enable;
 }
