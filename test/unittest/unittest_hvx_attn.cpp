@@ -164,12 +164,22 @@ void run_case(remote_handle64 handle, const AttnCfg &c, uint32_t head,
                       q_band.data(), k16.data(), ref->data());
 }
 
-double max_rel(const std::vector<float> &a, const std::vector<float> &b) {
+/**
+ * @brief max|a - b| normalized by max|b|, and @a den_out is that denominator.
+ *
+ * The denominator is returned, not swallowed, because a zero one makes this
+ * metric report a perfect 0.00e+00 for a comparison of two all-zero buffers.
+ * The caller asserts it is non-zero, so "matched exactly" cannot be a way of
+ * saying "computed nothing".
+ */
+double max_rel(const std::vector<float> &a, const std::vector<float> &b,
+               double *den_out) {
   double num = 0.0, den = 0.0;
   for (size_t i = 0; i < b.size(); ++i) {
     num = std::max(num, std::fabs((double)a[i] - (double)b[i]));
     den = std::max(den, std::fabs((double)b[i]));
   }
+  *den_out = den;
   return (den > 0.0) ? num / den : num;
 }
 
@@ -187,6 +197,7 @@ TEST_F(HvxAttnScores, MatchesHostModelOverTheShapeMatrix) {
                                       {HEXKL_W_I8, HEXKL_W_I4},
                                       {HEXKL_W_I4, HEXKL_W_I8}};
   double worst = 0.0;
+  double weakest_ref = 0.0; /* smallest S dynamic range any case produced */
   std::string worst_where;
   size_t cases = 0;
 
@@ -210,7 +221,16 @@ TEST_F(HvxAttnScores, MatchesHostModelOverTheShapeMatrix) {
               if (::testing::Test::HasFatalFailure()) {
                 return;
               }
-              const double e = max_rel(dev, ref);
+              double den = 0.0;
+              const double e = max_rel(dev, ref, &den);
+              /* A case whose reference S is all zeros would report a perfect
+               * match while proving nothing. */
+              ASSERT_GT(den, 0.0)
+                << "reference S is identically zero -- the comparison is "
+                << "vacuous for kv=" << kv << " nq=" << nq << " T=" << T;
+              if (cases == 0 || den < weakest_ref) {
+                weakest_ref = den;
+              }
 
               std::ostringstream shape;
               shape << kv << "," << nq << "," << gqa << ",1," << head_dim << ","
@@ -244,6 +264,10 @@ TEST_F(HvxAttnScores, MatchesHostModelOverTheShapeMatrix) {
             << std::endl;
   std::cout << "ATTN_FIELD path=scores field=worst_shape value=" << worst_where
             << std::endl;
+  /* Publish the weakest denominator so a future 0.00e+00 can be read as
+     "bit-identical" rather than "both sides were empty". */
+  std::cout << "ATTN_FIELD path=scores field=min_ref_dynamic_range value="
+            << weakest_ref << std::endl;
 }
 
 /**
