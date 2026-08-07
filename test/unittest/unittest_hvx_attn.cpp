@@ -649,15 +649,15 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
             << "w_k,w_v are the Kt and V CACHE widths, in that order. "
                "Activations are u8 throughout,\n"
             << "so I4 means a u8 x i4 matmul -- nothing here is u4.\n"
-            << "10 iterations; avg/min/max are over runs 2-10, run 1 being "
-               "the warm-up, which\n"
-            << "is the convention the QNN net-run numbers this gets compared "
-               "against use. init\n"
+            << "10 iterations; avg/min/max are over ALL 10, run 1 included, "
+               "which is the\n"
+            << "convention the QNN net-run numbers this gets compared against "
+               "use. init\n"
             << "is register + kv_append, the one-time setup a graph prepare "
                "corresponds to.\n"
             << "probed is the same work with the DSP breakdown "
                "instrumentation on.\n"
-            << "kv_len regime  w_k,w_v    avg2-10      min      max     "
+            << "kv_len regime  w_k,w_v    avg1-10      min      max     "
                "init    probed\n";
 
   for (uint32_t kv_len : {512u, 1024u}) {
@@ -721,10 +721,11 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
          * instrumented runs below are for the breakdown, and the gap between
          * them is published rather than folded into the headline.
          *
-         * Ten iterations, statistics over 2-10: run 1 pays page faults on
-         * the freshly registered shadows, and excluding it is the convention
-         * the QNN numbers this gets compared against are quoted under. It is
-         * still reported, as us_first, rather than thrown away. */
+         * Ten iterations, statistics over ALL TEN including the first --
+         * the convention the QNN numbers this gets compared against are
+         * quoted under. Run 1 pays page faults on the freshly registered
+         * shadows and so pulls the average up; it is also reported on its
+         * own, as us_first, so how much it pulls stays visible. */
         constexpr int kIters = 10;
         double iter[kIters];
         for (int r = 0; r < kIters; ++r) {
@@ -736,13 +737,13 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
           ASSERT_EQ(err, AEE_SUCCESS);
           iter[r] = std::chrono::duration<double, std::micro>(t1 - t0).count();
         }
-        double sum = 0.0, lo = iter[1], hi = iter[1];
-        for (int r = 1; r < kIters; ++r) {
+        double sum = 0.0, lo = iter[0], hi = iter[0];
+        for (int r = 0; r < kIters; ++r) {
           sum += iter[r];
           lo = std::min(lo, iter[r]);
           hi = std::max(hi, iter[r]);
         }
-        const double avg = sum / (double)(kIters - 1);
+        const double avg = sum / (double)kIters;
 
         double us[3];
         std::vector<uint32_t> stage_of[3];
@@ -823,7 +824,7 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
         std::cout << "ATTN_STAGE path=" << path.str()
                   << " field=probe_overhead_us value=" << (med_probed - med)
                   << std::endl;
-        static const char *kRun[5] = {"us_avg_2_10", "us_min", "us_max",
+        static const char *kRun[5] = {"us_avg_1_10", "us_min", "us_max",
                                       "us_first", "init_us"};
         const double run_v[5] = {avg, lo, hi, iter[0], init_us};
         for (int f = 0; f < 5; ++f) {
