@@ -649,7 +649,16 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
             << "w_k,w_v are the Kt and V CACHE widths, in that order. "
                "Activations are u8 throughout,\n"
             << "so I4 means a u8 x i4 matmul -- nothing here is u4.\n"
-            << "kv_len regime   w_k,w_v   us_per_layer (3 runs)\n";
+            << "10 iterations; avg/min/max are over runs 2-10, run 1 being "
+               "the warm-up, which\n"
+            << "is the convention the QNN net-run numbers this gets compared "
+               "against use. init\n"
+            << "is register + kv_append, the one-time setup a graph prepare "
+               "corresponds to.\n"
+            << "probed is the same work with the DSP breakdown "
+               "instrumentation on.\n"
+            << "kv_len regime  w_k,w_v    avg2-10      min      max     "
+               "init    probed\n";
 
   for (uint32_t kv_len : {512u, 1024u}) {
     for (uint32_t n_query : {1u, 128u}) {
@@ -687,39 +696,53 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
 
       for (int w = 0; w < 4; ++w) {
         uint32_t h = 0;
-        ASSERT_EQ(nntr_hvx_attn_register(handle_, nch, gqa, head_dim, kv_len, T,
-                                         M_band, (uint32_t)widths[w][0],
-                                         (uint32_t)widths[w][1], &h),
-                  AEE_SUCCESS);
-        ASSERT_EQ(nntr_hvx_attn_kv_append(handle_, h, 0u, kv_len, k16.data(),
-                                          (int)k16.size(), v16.data(),
-                                          (int)v16.size()),
-                  AEE_SUCCESS);
+        /* init: everything that happens once per layer before a single token
+         * is served -- the handle, and quantizing plus registering every KV
+         * block. The analogue of a QNN graph prepare, and reported the same
+         * way, separate from the per-inference numbers. */
+        const auto init_t0 = std::chrono::steady_clock::now();
+        const int rc_reg = nntr_hvx_attn_register(
+          handle_, nch, gqa, head_dim, kv_len, T, M_band,
+          (uint32_t)widths[w][0], (uint32_t)widths[w][1], &h);
+        const int rc_app = (rc_reg == AEE_SUCCESS)
+                             ? nntr_hvx_attn_kv_append(
+                                 handle_, h, 0u, kv_len, k16.data(),
+                                 (int)k16.size(), v16.data(), (int)v16.size())
+                             : rc_reg;
+        const auto init_t1 = std::chrono::steady_clock::now();
+        ASSERT_EQ(rc_reg, AEE_SUCCESS);
+        ASSERT_EQ(rc_app, AEE_SUCCESS);
+        const double init_us =
+          std::chrono::duration<double, std::micro>(init_t1 - init_t0).count();
 
-        /* Warm up once outside the timed region: the first call after a
-           register pays page faults on the freshly allocated shadows. */
-        ASSERT_EQ(nntr_hvx_attn_forward(handle_, h, kv_from, n_query, scale, 1u,
-                                        0u, nullptr, 0, q, (int)qn, out,
-                                        (int)qn),
-                  AEE_SUCCESS);
-
-        /* PRODUCTION path first: attn_forward passes no stage_us, so the
-         * DSP's stage timers and the in-loop probes are both off. That is
-         * what a real caller pays and therefore what us_per_layer reports;
-         * the instrumented run below is for the breakdown, and the gap
-         * between them is the instrumentation, published rather than
-         * folded into the headline. */
-        double plain[3];
-        for (int r = 0; r < 3; ++r) {
+        /* PRODUCTION path: attn_forward passes no stage_us, so the DSP's
+         * stage timers and the in-loop probes are both off. That is what a
+         * real caller pays and therefore what the headline reports; the
+         * instrumented runs below are for the breakdown, and the gap between
+         * them is published rather than folded into the headline.
+         *
+         * Ten iterations, statistics over 2-10: run 1 pays page faults on
+         * the freshly registered shadows, and excluding it is the convention
+         * the QNN numbers this gets compared against are quoted under. It is
+         * still reported, as us_first, rather than thrown away. */
+        constexpr int kIters = 10;
+        double iter[kIters];
+        for (int r = 0; r < kIters; ++r) {
           const auto t0 = std::chrono::steady_clock::now();
           const int err =
             nntr_hvx_attn_forward(handle_, h, kv_from, n_query, scale, 1u, 0u,
                                   nullptr, 0, q, (int)qn, out, (int)qn);
           const auto t1 = std::chrono::steady_clock::now();
           ASSERT_EQ(err, AEE_SUCCESS);
-          plain[r] = std::chrono::duration<double, std::micro>(t1 - t0).count();
+          iter[r] = std::chrono::duration<double, std::micro>(t1 - t0).count();
         }
-        std::sort(plain, plain + 3);
+        double sum = 0.0, lo = iter[1], hi = iter[1];
+        for (int r = 1; r < kIters; ++r) {
+          sum += iter[r];
+          lo = std::min(lo, iter[r]);
+          hi = std::max(hi, iter[r]);
+        }
+        const double avg = sum / (double)(kIters - 1);
 
         double us[3];
         std::vector<uint32_t> stage_of[3];
@@ -750,16 +773,18 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
          * run and still sums to its own dsp_total. */
         int ord[3] = {0, 1, 2};
         std::sort(ord, ord + 3, [&us](int a, int b) { return us[a] < us[b]; });
-        const double med = plain[1];          /* production, uninstrumented */
+        const double med = avg;               /* production, uninstrumented */
         const double med_probed = us[ord[1]]; /* instrumented, for the parts */
         const std::vector<uint32_t> &med_stage = stage_of[ord[1]];
         std::ostringstream pair;
         pair << wname(widths[w][0]) << "," << wname(widths[w][1]);
         std::cout << std::left << std::setw(7) << kv_len << std::setw(9)
                   << (n_query == 1 ? "decode" : "prefill") << std::setw(10)
-                  << pair.str() << std::fixed << std::setprecision(1)
-                  << plain[0] << "  " << plain[1] << "  " << plain[2]
-                  << "   (probed " << med_probed << ")\n";
+                  << pair.str() << std::right << std::fixed
+                  << std::setprecision(1) << std::setw(9) << avg << std::setw(9)
+                  << lo << std::setw(9) << hi << std::setw(9) << init_us
+                  << std::setw(10) << med_probed << "\n"
+                  << std::left;
         std::cout << "ATTN_FIELD path=forward_"
                   << (n_query == 1 ? "dec" : "pre") << "_kv" << kv_len << "_"
                   << wname(widths[w][0]) << wname(widths[w][1])
@@ -798,6 +823,13 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
         std::cout << "ATTN_STAGE path=" << path.str()
                   << " field=probe_overhead_us value=" << (med_probed - med)
                   << std::endl;
+        static const char *kRun[5] = {"us_avg_2_10", "us_min", "us_max",
+                                      "us_first", "init_us"};
+        const double run_v[5] = {avg, lo, hi, iter[0], init_us};
+        for (int f = 0; f < 5; ++f) {
+          std::cout << "ATTN_FIELD path=" << path.str() << " field=" << kRun[f]
+                    << " value=" << run_v[f] << std::endl;
+        }
       }
     }
   }
