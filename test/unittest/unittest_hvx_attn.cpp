@@ -35,7 +35,10 @@
 #include <AEEStdErr.h>
 #include <remote.h>
 
-#if __has_include("rpcmem.h")
+/* Header AND archive must both exist: rpcmem.h alone compiles but does not
+ * link (librpcmem.a is separate from libcdsprpc.so -- found the hard way).
+ * NNTR_RPCMEM_LINKED is set by Android.mk iff the archive was found. */
+#if __has_include("rpcmem.h") && defined(NNTR_RPCMEM_LINKED)
 #include "rpcmem.h"
 #define NNTR_HAVE_RPCMEM 1
 #endif
