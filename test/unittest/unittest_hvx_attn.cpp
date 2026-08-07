@@ -204,6 +204,8 @@ TEST_F(HvxAttnScores, MatchesHostModelOverTheShapeMatrix) {
   size_t cases = 0;
 
   std::cout << "\nS band vs host model -- max|dev - host| / max|host|\n"
+            << "w_k,w_v are the WEIGHT widths; both activations stay u8, so"
+               " (I8,I4) means S=u8i8, O=u8i4\n"
             << "shape (kv,nq,gqa,nch,hd,T)     w_k,w_v   max_rel_err\n";
 
   for (uint32_t kv : {32u, 33u, 256u, 257u, 1024u}) {
@@ -396,6 +398,8 @@ TEST_F(HvxAttnScores, FusedForwardMatchesHostModel) {
   size_t cases = 0;
 
   std::cout << "\nfused forward vs host model -- max|dev - host| / max|host|\n"
+            << "w_k,w_v are the WEIGHT widths; both activations stay u8, so"
+               " (I8,I4) means S=u8i8, O=u8i4\n"
             << "shape (kv,nq,gqa,nch,hd,T,Mb,win,c,sk)  w_k,w_v  max_rel_err\n";
 
   for (const FwdCfg &f : cfgs) {
@@ -525,6 +529,8 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
 
   std::cout << "\nQwen3-0.6B attention, one fused layer end to end "
             << "(includes FastRPC transport)\n"
+            << "w_k,w_v are the WEIGHT widths; both activations stay u8, so"
+               " (I8,I4) means S=u8i8, O=u8i4\n"
             << "kv_len regime   w_k,w_v   us_per_layer (3 runs)\n";
 
   for (uint32_t kv_len : {512u, 1024u}) {
@@ -570,8 +576,9 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
                   AEE_SUCCESS);
 
         double us[3];
-        std::vector<uint32_t> stage(7, 0u), best_stage(7, 0u);
+        std::vector<uint32_t> stage_of[3];
         for (int r = 0; r < 3; ++r) {
+          std::vector<uint32_t> stage(7, 0u);
           const auto t0 = std::chrono::steady_clock::now();
           const int err = nntr_hvx_attn_forward_timed(
             handle_, h, kv_from, n_query, scale, 1u, 0u, nullptr, 0, q.data(),
@@ -581,13 +588,22 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
           /* Checked after the clock stops, deliberately. */
           ASSERT_EQ(err, AEE_SUCCESS);
           us[r] = std::chrono::duration<double, std::micro>(t1 - t0).count();
-          if (r == 0 || us[r] < *std::min_element(us, us + r)) {
-            best_stage = stage;
-          }
+          stage_of[r] = stage;
         }
         ASSERT_EQ(nntr_hvx_attn_release(handle_, h), AEE_SUCCESS);
 
-        const double best = std::min(us[0], std::min(us[1], us[2]));
+        /* MEDIAN of the three, not the min. Wall clock on this device is
+         * bimodal at roughly +-25% (same shape, same binary, run to run --
+         * DVFS residency, not our code), so the min publishes whichever run
+         * happened to land in the fast state. MHA_HTP_PLAN.md §9.7 already
+         * requires printing all three runs; this only changes which one gets
+         * published as the number, and it stays a single measured run rather
+         * than a mean so the stage breakdown beside it comes from that same
+         * run and still sums to its own dsp_total. */
+        int ord[3] = {0, 1, 2};
+        std::sort(ord, ord + 3, [&us](int a, int b) { return us[a] < us[b]; });
+        const double med = us[ord[1]];
+        const std::vector<uint32_t> &med_stage = stage_of[ord[1]];
         std::ostringstream pair;
         pair << wname(widths[w][0]) << "," << wname(widths[w][1]);
         std::cout << std::left << std::setw(7) << kv_len << std::setw(9)
@@ -597,31 +613,30 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
         std::cout << "ATTN_FIELD path=forward_"
                   << (n_query == 1 ? "dec" : "pre") << "_kv" << kv_len << "_"
                   << wname(widths[w][0]) << wname(widths[w][1])
-                  << " field=us_per_layer value=" << best << std::endl;
+                  << " field=us_per_layer value=" << med << std::endl;
         std::cout << "ATTN_FIELD path=forward_"
                   << (n_query == 1 ? "dec" : "pre") << "_kv" << kv_len << "_"
                   << wname(widths[w][0]) << wname(widths[w][1])
-                  << " field=us_per_token_all_layers value=" << best * layers
+                  << " field=us_per_token_all_layers value=" << med * layers
                   << std::endl;
 
         /* DSP-internal breakdown. The host timed the whole call and this
-         * timed the inside, so (best - dsp_total) is the MEASURED FastRPC
+         * timed the inside, so (med - dsp_total) is the MEASURED FastRPC
          * transport rather than an assumed 404 us. */
-        static const char *kStage[7] = {"qk_us",     "softmax_us",
-                                        "pv_us",     "accum_us",
-                                        "gather_us", "dsp_total_us",
-                                        "layer_run_calls"};
+        static const char *kStage[7] = {
+          "qk_us",     "softmax_us",   "pv_us",          "accum_us",
+          "gather_us", "dsp_total_us", "layer_run_calls"};
         std::ostringstream path;
         path << "forward_" << (n_query == 1 ? "dec" : "pre") << "_kv" << kv_len
              << "_" << wname(widths[w][0]) << wname(widths[w][1]);
         for (int st = 0; st < 7; ++st) {
           std::cout << "ATTN_STAGE path=" << path.str()
-                    << " field=" << kStage[st] << " value=" << best_stage[st]
+                    << " field=" << kStage[st] << " value=" << med_stage[st]
                     << std::endl;
         }
         std::cout << "ATTN_STAGE path=" << path.str()
                   << " field=transport_us value="
-                  << (best - (double)best_stage[5]) << std::endl;
+                  << (med - (double)med_stage[5]) << std::endl;
       }
     }
   }
