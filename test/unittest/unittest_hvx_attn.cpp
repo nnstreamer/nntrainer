@@ -584,7 +584,7 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
           /* Mirrors HEXKL_ATTN_N_STAGES; the DSP header is not includable
              from the ARM side, so the skel rejects a stale count with
              AEE_EBADPARM rather than silently truncating. */
-          std::vector<uint32_t> stage(12, 0u);
+          std::vector<uint32_t> stage(13, 0u);
           const auto t0 = std::chrono::steady_clock::now();
           const int err = nntr_hvx_attn_forward_timed(
             handle_, h, kv_from, n_query, scale, 1u, 0u, nullptr, 0, q.data(),
@@ -629,23 +629,18 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
         /* DSP-internal breakdown. The host timed the whole call and this
          * timed the inside, so (med - dsp_total) is the MEASURED FastRPC
          * transport rather than an assumed 404 us. */
-        static const char *kStage[12] = {
-          "qk_us",
-          "softmax_us",
-          "pv_us",
-          "accum_us",
-          "gather_us",
+        static const char *kStage[13] = {
+          "qk_us", "softmax_us", "pv_us", "accum_us", "gather_us",
           "dsp_total_us",
           "layer_run_calls" /* Tier 0 probes, subdividing qk+pv: */,
-          "acc_read_us",
-          "acc_copy_us",
-          "dequant_us",
-          "quant_us",
-          "drain_us"};
+          "acc_read_us", "acc_copy_us", "dequant_us", "quant_us", "drain_us",
+          /* not a time: the accumulator row stride the in-place tile dequant
+             derived, or 0 when layer_run fell back to the vendor copy */
+          "acc_stride"};
         std::ostringstream path;
         path << "forward_" << (n_query == 1 ? "dec" : "pre") << "_kv" << kv_len
              << "_" << wname(widths[w][0]) << wname(widths[w][1]);
-        for (int st = 0; st < 12; ++st) {
+        for (int st = 0; st < 13; ++st) {
           std::cout << "ATTN_STAGE path=" << path.str()
                     << " field=" << kStage[st] << " value=" << med_stage[st]
                     << std::endl;

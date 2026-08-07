@@ -42,4 +42,37 @@ void hvx_dequant_i32_to_f32(const int32_t *acc, uint32_t m_valid,
                             const float *w_scale, const float *bias,
                             float *out);
 
+/**
+ * @brief Same dequantization, applied to ONE 64x32 accumulator tile still
+ *        sitting in VTCM.
+ *
+ * The formula, the intrinsics and their order are hvx_dequant_i32_to_f32's,
+ * element for element -- this is where the tile comes from and where the
+ * result goes that differ, never the arithmetic. Results are therefore
+ * bitwise identical to dequantizing the same tile after a round trip through
+ * a DDR scratch, which is what makes the existing bit-exactness gates a valid
+ * check on this path (hexkl_acc_tile.h explains why the round trip existed).
+ *
+ * A tile column count of 32 is exactly one HVX f32 vector, so each row is a
+ * single load, a single store and no tail loop.
+ *
+ * @param[in]  tile       first element of the tile's row 0, i.e. the VTCM
+ *                        result tile advanced by hexkl_acc_layout::base
+ * @param[in]  row_stride int32 elements between tile rows (from the probe)
+ * @param[in]  m_count    tile rows carrying real data; padded rows are
+ *                        skipped, same rule as m_valid above
+ * @param[in]  act_scale  m_count entries, already offset to this row block
+ * @param[in]  act_zp     m_count entries, already offset to this row block
+ * @param[in]  colsum_w   32 entries, already offset to this column tile
+ * @param[in]  w_scale    32 entries, already offset to this column tile
+ * @param[in]  bias       32 entries, already offset to this column tile
+ * @param[out] out        first output element of this tile
+ * @param[in]  out_stride f32 elements between output rows (the full N)
+ */
+void hvx_dequant_acc_tile_to_f32(const int32_t *tile, uint32_t row_stride,
+                                 uint32_t m_count, const float *act_scale,
+                                 const int32_t *act_zp, const int32_t *colsum_w,
+                                 const float *w_scale, const float *bias,
+                                 float *out, uint32_t out_stride);
+
 #endif /* __NNTRAINER_HVX_DEQUANT_I32_H__ */

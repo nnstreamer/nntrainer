@@ -508,6 +508,8 @@ int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
       (uint32_t)hexkl_probe_us[HEXKL_PROBE_DEQUANT];
     stage_us[HEXKL_ATTN_T_QUANT] = (uint32_t)hexkl_probe_us[HEXKL_PROBE_QUANT];
     stage_us[HEXKL_ATTN_T_DRAIN] = (uint32_t)hexkl_probe_us[HEXKL_PROBE_DRAIN];
+    stage_us[HEXKL_ATTN_T_ACC_STRIDE] =
+      (uint32_t)hexkl_probe_us[HEXKL_PROBE_ACC_STRIDE];
   }
   return AEE_SUCCESS;
 }

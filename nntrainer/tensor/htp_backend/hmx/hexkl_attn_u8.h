@@ -173,11 +173,12 @@ enum {
    * is the "accumulator readout" the cost model charges 75-96% of the total
    * to, and which of the two dominates decides the Tier 1 fix. Scaffolding;
    * leaves with the rest of the debug surface (MHA_HTP_PLAN.md 9.5). */
-  HEXKL_ATTN_T_ACC_READ, /**< HMX acc -> VTCM result tile (vendor call) */
-  HEXKL_ATTN_T_ACC_COPY, /**< VTCM result tile -> DDR scratch (our call) */
-  HEXKL_ATTN_T_DEQUANT,  /**< i32 -> f32, DDR -> DDR */
-  HEXKL_ATTN_T_QUANT,    /**< activation f32 -> u8 AH tiles in VTCM */
-  HEXKL_ATTN_T_DRAIN,    /**< DMA drains inside layer_run */
+  HEXKL_ATTN_T_ACC_READ,   /**< HMX acc -> VTCM result tile (vendor call) */
+  HEXKL_ATTN_T_ACC_COPY,   /**< VTCM result tile -> DDR scratch (our call) */
+  HEXKL_ATTN_T_DEQUANT,    /**< i32 -> f32, DDR -> DDR */
+  HEXKL_ATTN_T_QUANT,      /**< activation f32 -> u8 AH tiles in VTCM */
+  HEXKL_ATTN_T_DRAIN,      /**< DMA drains inside layer_run */
+  HEXKL_ATTN_T_ACC_STRIDE, /**< not a time; see HEXKL_PROBE_ACC_STRIDE */
   HEXKL_ATTN_N_STAGES
 };
 

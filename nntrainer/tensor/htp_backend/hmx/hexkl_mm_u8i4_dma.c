@@ -17,6 +17,7 @@
 
 #include <AEEStdErr.h>
 
+#include "hexkl_acc_tile.h"
 #include "hexkl_dma_ring.h"
 #include "hexkl_micro.h"
 #include "hvx_dequant_i32.h"
@@ -194,11 +195,21 @@ int hexkl_mm_u8i4_layer_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
   // K1/K2: quantize the shared activation once, straight into its AH tiles
   // in VTCM -- no separate layout pass, matching hvx_quant_pack_u8_ah's
   // contract.
+  /* Safe here and not earlier: result_off has just been bounds-checked, and
+   * the probe writes a ramp over that tile. */
+  const hexkl_acc_layout *acc_layout =
+    hexkl_acc_layout_get(vtcm_base, result_off);
+  hexkl_probe_us[HEXKL_PROBE_ACC_STRIDE] =
+    acc_layout->usable ? acc_layout->row_stride : 0u;
+
   float *act_scale = (float *)malloc(sizeof(float) * m_pad);
   int32_t *act_zp = (int32_t *)malloc(sizeof(int32_t) * m_pad);
+  /* Only the fallback path needs the DDR staging matrix. */
   int32_t *acc_scratch =
-    (int32_t *)malloc(sizeof(int32_t) * (size_t)m_pad * n_max);
-  if (!act_scale || !act_zp || !acc_scratch) {
+    acc_layout->usable
+      ? NULL
+      : (int32_t *)malloc(sizeof(int32_t) * (size_t)m_pad * n_max);
+  if (!act_scale || !act_zp || (!acc_layout->usable && !acc_scratch)) {
     free(act_scale);
     free(act_zp);
     free(acc_scratch);
@@ -266,29 +277,58 @@ int hexkl_mm_u8i4_layer_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
         if (rc != AEE_SUCCESS) {
           goto out;
         }
-        p0 = hexkl_probe_now();
-        rc = hexkl_micro_hmx_copy_32b_to_submatrix(
-          vtcm_base, result_off, acc_scratch, rb, nt, m_pad, h->N);
-        hexkl_probe_us[HEXKL_PROBE_ACC_COPY] += hexkl_probe_now() - p0;
-        if (rc != AEE_SUCCESS) {
-          goto out;
+        if (acc_layout->usable) {
+          /* Dequantize the tile where it already is. The rows beyond M are
+           * the accumulator's padding: their quantization parameters are
+           * synthetic, so emitting them would be wrong, not merely wasted --
+           * the same rule hvx_dequant_i32_to_f32 applies via m_valid. At
+           * decode that is 62 of 64 rows never touched at all. */
+          const uint32_t m0 = rb * HEXKL_ACC_TILE_ROWS;
+          const uint32_t cnt =
+            (m0 >= M) ? 0u
+                      : ((M - m0 < HEXKL_ACC_TILE_ROWS) ? (M - m0)
+                                                        : HEXKL_ACC_TILE_ROWS);
+          if (cnt != 0u) {
+            const int32_t *tile =
+              (const int32_t *)(vtcm_base + result_off) + acc_layout->base;
+            const uint32_t c0 = nt * HEXKL_ACC_TILE_COLS;
+            p0 = hexkl_probe_now();
+            hvx_dequant_acc_tile_to_f32(
+              tile, acc_layout->row_stride, cnt, act_scale + m0, act_zp + m0,
+              h->colsum_w + c0, h->w_scale + c0, h->bias + c0,
+              out_cat + out_off + (size_t)m0 * h->N + c0, h->N);
+            hexkl_probe_us[HEXKL_PROBE_DEQUANT] += hexkl_probe_now() - p0;
+          }
+        } else {
+          p0 = hexkl_probe_now();
+          rc = hexkl_micro_hmx_copy_32b_to_submatrix(
+            vtcm_base, result_off, acc_scratch, rb, nt, m_pad, h->N);
+          hexkl_probe_us[HEXKL_PROBE_ACC_COPY] += hexkl_probe_now() - p0;
+          if (rc != AEE_SUCCESS) {
+            goto out;
+          }
         }
       }
     }
 
     // Block until handle i+1's weight has fully landed before moving on to
     // it -- matches the measured bench's "next weight fully in wnxt before
-    // matmul i+1" invariant. Dequant below does not touch the DMA engine,
-    // so a later pass could move it ahead of this drain to overlap with
-    // the prefetch; left as-is for correctness first.
+    // matmul i+1" invariant. On the in-place path the dequant has already
+    // happened, per tile, above this drain: it reads the VTCM result tile
+    // and writes DDR, neither of which the weight prefetch touches, so it
+    // overlaps the transfer for free. The fallback below cannot -- it needs
+    // the whole staging matrix first.
     p0 = hexkl_probe_now();
     hexkl_dma_ring_drain();
     hexkl_probe_us[HEXKL_PROBE_DRAIN] += hexkl_probe_now() - p0;
 
-    p0 = hexkl_probe_now();
-    hvx_dequant_i32_to_f32(acc_scratch, M, m_pad, h->N, act_scale, act_zp,
-                           h->colsum_w, h->w_scale, h->bias, out_cat + out_off);
-    hexkl_probe_us[HEXKL_PROBE_DEQUANT] += hexkl_probe_now() - p0;
+    if (!acc_layout->usable) {
+      p0 = hexkl_probe_now();
+      hvx_dequant_i32_to_f32(acc_scratch, M, m_pad, h->N, act_scale, act_zp,
+                             h->colsum_w, h->w_scale, h->bias,
+                             out_cat + out_off);
+      hexkl_probe_us[HEXKL_PROBE_DEQUANT] += hexkl_probe_now() - p0;
+    }
     out_off += (size_t)M * h->N;
   }
 
