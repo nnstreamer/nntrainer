@@ -110,7 +110,8 @@ fi
     APP_BUILD_SCRIPT=./Android.mk \
     NNTRAINER_ROOT="$REPO_ROOT" \
     HEXAGON_SDK_ROOT="$HEXAGON_SDK_ROOT" \
-    unittest_hvx_mm_u8i4 unittest_hvx_softmax unittest_hvx_attn
+    unittest_hvx_mm_u8i4 unittest_hvx_softmax unittest_hvx_attn \
+    unittest_hvx_fc
 )
 TEST_BIN="$REPO_ROOT/test/jni/obj/local/arm64-v8a/unittest_hvx_mm_u8i4"
 [ -f "$TEST_BIN" ] || fail "test binary did not build: $TEST_BIN"
@@ -123,6 +124,10 @@ SOFTMAX_BIN="$REPO_ROOT/test/jni/obj/local/arm64-v8a/unittest_hvx_softmax"
 # forward will run.
 ATTN_BIN="$REPO_ROOT/test/jni/obj/local/arm64-v8a/unittest_hvx_attn"
 [ -f "$ATTN_BIN" ] || fail "test binary did not build: $ATTN_BIN"
+# The other half of the QNN comparison table: one fully connected layer at
+# Qwen3-0.6B's q_proj shape, u8 x i8, reported the way QNN net-run reports.
+FC_BIN="$REPO_ROOT/test/jni/obj/local/arm64-v8a/unittest_hvx_fc"
+[ -f "$FC_BIN" ] || fail "test binary did not build: $FC_BIN"
 
 # --- 4. push + run -----------------------------------------------------------
 log "4/4  Pushing to $DEVICE:$DEVICE_TMP and running"
@@ -131,6 +136,7 @@ adb push "$SKEL" "$DEVICE_TMP/" >/dev/null
 adb push "$TEST_BIN" "$DEVICE_TMP/" >/dev/null
 adb push "$SOFTMAX_BIN" "$DEVICE_TMP/" >/dev/null
 adb push "$ATTN_BIN" "$DEVICE_TMP/" >/dev/null
+adb push "$FC_BIN" "$DEVICE_TMP/" >/dev/null
 # c++_shared runtime the test binary links against (APP_STL in Application.mk)
 CXX_SHARED="$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so"
 [ -f "$CXX_SHARED" ] && adb push "$CXX_SHARED" "$DEVICE_TMP/" >/dev/null
@@ -156,18 +162,29 @@ adb shell "cd $DEVICE_TMP && \
   ./unittest_hvx_attn" 2>&1 | tee /tmp/hvx_attn_device_run.log
 
 echo
+log "4d/4  Fully connected layer cost (Qwen3-0.6B q_proj, u8 x i8)"
+adb shell "cd $DEVICE_TMP && \
+  chmod +x unittest_hvx_fc && \
+  LD_LIBRARY_PATH=$DEVICE_TMP ADSP_LIBRARY_PATH=$DEVICE_TMP \
+  ./unittest_hvx_fc" 2>&1 | tee /tmp/hvx_fc_device_run.log
+
+echo
 log "Summary"
 grep -E "^\[  (PASSED|FAILED)|U8I[48]_FIELD" /tmp/hvx_mm_u8i4_device_run.log || true
 grep -E "^\[  (PASSED|FAILED)|BLOCKED_FIELD" /tmp/hvx_softmax_device_run.log || true
 grep -E "^\[  (PASSED|FAILED)|ATTN_FIELD" /tmp/hvx_attn_device_run.log || true
+grep -E "^\[  (PASSED|FAILED)|FC_FIELD" /tmp/hvx_fc_device_run.log || true
 echo
 echo "Full logs: /tmp/hvx_mm_u8i4_device_run.log"
 echo "           /tmp/hvx_softmax_device_run.log"
 echo "           /tmp/hvx_attn_device_run.log"
+echo "           /tmp/hvx_fc_device_run.log"
 echo
 echo "Tables and a HTML report from those logs:"
 echo "  tools/htp_attn_report.py"
 echo "  tools/htp_attn_report.py --html /tmp/htp_attn_report.html"
+echo "  tools/htp_fc_report.py            # the fully connected layer"
+echo "  tools/htp_fc_report.py --qnn 512=<ms>,1024=<ms>   # overlay QNN, per M"
 echo "Gate to clear before starting PR③: all PASSED, and the printed"
 echo "U8I4_FIELD path=layer_x4 field=speedup_vs_harness value=... should be"
 echo "in the neighbourhood of 1.7-2 (doc13 §3a). If it is not, stop and find"

@@ -1,0 +1,380 @@
+// SPDX-License-Identifier: Apache-2.0
+/**
+ * Copyright (C) 2026 SeungHui Lee <shsh1004.lee@samsung.com>
+ *
+ * @file   unittest_hvx_fc.cpp
+ * @date   08 Aug 2026
+ * @brief  Device benchmark for one fully connected layer on HMX (u8 x i8)
+ * @see    https://github.com/nntrainer/nntrainer
+ * @author SeungHui Lee <shsh1004.lee@samsung.com>
+ * @bug    No known bugs except for NYI items
+ *
+ * The counterpart to unittest_hvx_attn.cpp's FusedForwardPerLayerCost, for the
+ * other half of the QNN comparison table: one fully connected layer, at
+ * Qwen3-0.6B's q_proj shape (K = hidden_size 1024, N = heads 16 x head_dim
+ * 128 = 2048), uint8 activation against int8 weight.
+ *
+ * Reported the way the QNN net-run numbers it gets compared against are
+ * reported -- 10 iterations, average over ALL TEN, min, max, and a separate
+ * init time for the one-off setup a graph prepare corresponds to.
+ *
+ * CORRECTNESS for this kernel is NOT here: unittest_hvx_mm_u8i4.cpp's
+ * HmxMmU8I8Layer fixture already gates mm_u8i8_layer against the integer
+ * reference, and re-deriving that at q_proj's shape would prove nothing new.
+ * What is new is mm_u8i8_layer_timed, so that is what this file gates -- the
+ * instrumented entry point must return the SAME BYTES as the production one,
+ * or every breakdown below describes a different computation than the headline.
+ */
+
+#include <gtest/gtest.h>
+
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <cstdint>
+#include <cstring>
+#include <iomanip>
+#include <iostream>
+#include <string>
+#include <vector>
+
+#include <AEEStdErr.h>
+#include <remote.h>
+
+#include "htp_rpc_bench.h"
+#include "nntr_hvx.h"
+
+namespace {
+
+/**
+ * @brief Qwen3-0.6B's q_proj.
+ *
+ * hidden_size 1024, num_attention_heads 16, head_dim 128 --
+ * register_qwen3_0_6b() in Applications/CausalLM/api/model_config.cpp. The
+ * other projections in that model are one more entry each in kShapes below
+ * (k/v_proj 1024x1024, o_proj 2048x1024, gate/up 1024x3072, down 3072x1024);
+ * only q_proj is run because only q_proj is being compared right now, and
+ * every extra shape is another 13 device calls per M.
+ */
+struct FcShape {
+  const char *name;
+  uint32_t K, N;
+};
+const FcShape kShapes[] = {{"qproj", 1024u, 2048u}};
+
+/** @brief Sequence lengths, i.e. the matmul's M. 1 is decode; the other two
+ *         are the lengths the QNN table quotes. */
+const uint32_t kSeqLens[] = {1u, 512u, 1024u};
+
+constexpr int kIters = 10;    /**< the QNN convention: 10 runs, all counted */
+constexpr int kProbeRuns = 3; /**< MHA_HTP_PLAN.md 9.7: >= 3, all printed */
+
+/**
+ * @brief Slots mm_u8i8_layer_timed fills.
+ *
+ * Mirrors the enum in test/htp/nntr_hvx_mm_u8i8.c. The DSP header is not
+ * includable from the ARM side, so the skel rejects a stale count with
+ * AEE_EBADPARM rather than silently truncating.
+ */
+const char *kStage[] = {"dsp_total_us", "quant_us", "dequant_us", "acc_read_us",
+                        "acc_copy_us",  "drain_us", "acc_stride"};
+constexpr int kNStages = (int)(sizeof(kStage) / sizeof(kStage[0]));
+constexpr int kStageDspTotal = 0;
+
+/** @brief Deterministic pseudo-random fill in [-1, 1). */
+void fill_deterministic(float *v, size_t n, uint32_t seed) {
+  uint32_t s = seed;
+  for (size_t i = 0; i < n; ++i) {
+    s = s * 1664525u + 1013904223u;
+    v[i] = static_cast<float>(static_cast<int32_t>(s >> 8)) /
+             static_cast<float>(1 << 23) -
+           1.0f;
+  }
+}
+
+/**
+ * @brief Per-channel symmetric int8 weight quantization.
+ *
+ * The same quantizer unittest_hvx_mm_u8i4.cpp uses for the u8i8 fixture,
+ * restated here rather than shared: this file measures time, that one
+ * measures error, and the day one of them needs a different quantizer
+ * neither should have to be re-verified because the other moved.
+ *
+ * @param[in]  w_f32  weights, K rows by N columns, row-major
+ * @param[out] q_w    quantized values in [-128, 127], K by N, row-major
+ * @param[out] d      per-channel dequantization multiplier, N entries
+ * @param[out] colsum per-channel sum of q_w over K, N entries
+ */
+void quantize_weights_symmetric_i8(const std::vector<float> &w_f32, uint32_t K,
+                                   uint32_t N, std::vector<int8_t> &q_w,
+                                   std::vector<float> &d,
+                                   std::vector<int32_t> &colsum) {
+  q_w.assign(static_cast<size_t>(K) * N, 0);
+  d.assign(N, 0.0f);
+  colsum.assign(N, 0);
+
+  for (uint32_t n = 0; n < N; ++n) {
+    float min0 = w_f32[n];
+    float max0 = min0;
+    for (uint32_t k = 0; k < K; ++k) {
+      const float v = w_f32[static_cast<size_t>(k) * N + n];
+      min0 = std::min(min0, v);
+      max0 = std::max(max0, v);
+    }
+    const float rmin = std::min(0.0f, min0);
+    const float rmax = std::max(0.0f, max0);
+    const float scale = (rmin == rmax) ? 1.0f : 255.0f / (rmax - rmin);
+
+    int32_t sum = 0;
+    for (uint32_t k = 0; k < K; ++k) {
+      int32_t q = static_cast<int32_t>(
+        std::round(w_f32[static_cast<size_t>(k) * N + n] * scale));
+      q = std::max(-128, std::min(127, q));
+      q_w[static_cast<size_t>(k) * N + n] = static_cast<int8_t>(q);
+      sum += q;
+    }
+    d[n] = 1.0f / scale;
+    colsum[n] = sum;
+  }
+}
+
+/**
+ * @brief Opens an unsigned-PD CDSP session with the same transport controls
+ *        the attention benchmark runs under (htp_rpc_bench.h).
+ *
+ * A failure here is a hard FAIL rather than a skip: proving the DSP comes up
+ * is part of what this measures.
+ */
+class HtpFc : public ::testing::Test {
+protected:
+  void SetUp() override {
+    int err = htp_enable_unsigned_pd();
+    ASSERT_EQ(err, AEE_SUCCESS) << "enabling unsigned PD failed: " << hex(err);
+
+    const std::string uri = std::string(nntr_hvx_URI) + "&_dom=cdsp";
+    err = nntr_hvx_open(uri.c_str(), &handle_);
+    ASSERT_EQ(err, AEE_SUCCESS)
+      << "nntr_hvx_open failed: " << hex(err)
+      << " -- is libnntr_hvx_skel.so on ADSP_LIBRARY_PATH?";
+
+    std::cout << "FC_FIELD path=env field=rpc_poll_qos value="
+              << htp_set_latency_qos(handle_) << std::endl;
+  }
+
+  void TearDown() override {
+    if (handle_) {
+      nntr_hvx_close(handle_);
+    }
+  }
+
+  remote_handle64 handle_ = 0;
+};
+
+} // namespace
+
+/**
+ * @brief End-to-end cost of one fully connected layer, in microseconds.
+ *
+ * Timed on the ARM side around the FastRPC call, so the headline INCLUDES
+ * transport. For a fully connected layer that is a much bigger share than it
+ * is for attention -- the interface carries M x K floats in and M x N floats
+ * out, 12 MB per call at M=1024, against attention's 1 MB -- which is exactly
+ * why the DSP-internal time is measured alongside rather than assumed. A QNN
+ * per-op number has no host transfer in it; dsp_total_us is the term to put
+ * beside it, and wall is the term to put beside a real caller's experience.
+ *
+ * Rules this follows, each one a bug this project already shipped and found
+ * (MHA_HTP_PLAN.md 9.7):
+ *   - the consistency check is NOT in the timed region;
+ *   - more than three runs, and the spread is published, not just the mean;
+ *   - field=... value=... marker lines with the unit in the field name;
+ *   - nothing is asserted about the timings. The reviewer compares.
+ */
+TEST_F(HtpFc, LayerCostQwen3) {
+  std::cout
+    << "\nQwen3-0.6B fully connected layer, u8 activation x i8 weight, "
+       "one call end to end\n"
+    << "10 iterations; avg/min/max are over ALL 10, run 1 included, which is "
+       "the\n"
+    << "convention the QNN net-run numbers this gets compared against use. "
+       "init is\n"
+    << "weight_register -- baking K x N to WH layout, the one-time setup a "
+       "graph\n"
+    << "prepare corresponds to. dsp is the same work measured inside the DSP, "
+       "so\n"
+    << "wall - dsp is the FastRPC transport for M*K + M*N floats.\n"
+    << "shape        M      avg1-10      min      max      dsp     init\n";
+
+  for (const FcShape &s : kShapes) {
+    /* One weight, registered once per shape and reused across every M: the
+     * bake is expensive and M does not enter it, so re-registering per M
+     * would only measure the same bake three times. init_us below is that
+     * one measurement, reported against the shape it belongs to. */
+    std::vector<float> w_f32((size_t)s.K * s.N);
+    fill_deterministic(w_f32.data(), w_f32.size(), 0xFC000001u);
+    std::vector<int8_t> q_w;
+    std::vector<float> d;
+    std::vector<int32_t> colsum;
+    quantize_weights_symmetric_i8(w_f32, s.K, s.N, q_w, d, colsum);
+    std::vector<float> bias(s.N);
+    fill_deterministic(bias.data(), bias.size(), 0xFC000002u);
+
+    uint32_t wh = 0xFFFFFFFFu;
+    const auto init_t0 = std::chrono::steady_clock::now();
+    const int rc_reg = nntr_hvx_weight_register_u8i8(
+      handle_, s.K, s.N, q_w.data(), (int)q_w.size(), d.data(), (int)d.size(),
+      colsum.data(), (int)colsum.size(), bias.data(), (int)bias.size(), &wh);
+    const auto init_t1 = std::chrono::steady_clock::now();
+    ASSERT_EQ(rc_reg, AEE_SUCCESS) << "weight_register_u8i8: " << hex(rc_reg);
+    const double init_us =
+      std::chrono::duration<double, std::micro>(init_t1 - init_t0).count();
+    const uint32_t handles[1] = {wh};
+
+    for (uint32_t M : kSeqLens) {
+      const size_t an = (size_t)M * s.K;
+      const size_t on = (size_t)M * s.N;
+      /* Both ride in every timed call. See RpcBuf for why they are
+       * ION-backed: plain heap is re-pinned and re-mapped on EVERY call, and
+       * at 12 MB that mapping is a large part of what is being measured. */
+      RpcBuf abuf(an * sizeof(float));
+      RpcBuf obuf(on * sizeof(float));
+      ASSERT_NE(abuf.p, nullptr);
+      ASSERT_NE(obuf.p, nullptr);
+      float *act = (float *)abuf.p;
+      float *out = (float *)obuf.p;
+      fill_deterministic(act, an, 0x5EED0000u + M);
+      std::memset(out, 0, on * sizeof(float));
+      std::cout << "FC_FIELD path=env field=ion_buffers value="
+                << ((abuf.ion && obuf.ion) ? 1 : 0) << std::endl;
+
+      /* PRODUCTION path: mm_u8i8_layer leaves the DSP's in-loop probes off,
+       * which is what a real caller pays and therefore what the headline
+       * reports. The instrumented runs below are for the breakdown, and the
+       * gap between them is published rather than folded in. */
+      double iter[kIters];
+      for (int r = 0; r < kIters; ++r) {
+        const auto t0 = std::chrono::steady_clock::now();
+        const int err = nntr_hvx_mm_u8i8_layer(handle_, M, s.K, handles, 1, act,
+                                               (int)an, out, (int)on);
+        const auto t1 = std::chrono::steady_clock::now();
+        ASSERT_EQ(err, AEE_SUCCESS)
+          << "mm_u8i8_layer: " << hex(err) << " at M=" << M
+          << " -- ENOMEMORY here means the activation plus the "
+             "double-buffered weight outgrew the VTCM arena";
+        iter[r] = std::chrono::duration<double, std::micro>(t1 - t0).count();
+      }
+      double sum = 0.0, lo = iter[0], hi = iter[0];
+      for (int r = 0; r < kIters; ++r) {
+        sum += iter[r];
+        lo = std::min(lo, iter[r]);
+        hi = std::max(hi, iter[r]);
+      }
+      const double avg = sum / (double)kIters;
+
+      /* Keep the production result so the instrumented entry point can be
+       * held to it byte for byte, below and outside every timed region. */
+      std::vector<float> want(out, out + on);
+
+      double probed[kProbeRuns];
+      std::vector<uint32_t> stage_of[kProbeRuns];
+      for (int r = 0; r < kProbeRuns; ++r) {
+        std::vector<uint32_t> stage(kNStages, 0u);
+        const auto t0 = std::chrono::steady_clock::now();
+        const int err = nntr_hvx_mm_u8i8_layer_timed(
+          handle_, M, s.K, handles, 1, act, (int)an, out, (int)on, stage.data(),
+          (int)stage.size());
+        const auto t1 = std::chrono::steady_clock::now();
+        /* Checked after the clock stops, deliberately. */
+        ASSERT_EQ(err, AEE_SUCCESS) << "mm_u8i8_layer_timed: " << hex(err);
+        probed[r] = std::chrono::duration<double, std::micro>(t1 - t0).count();
+        stage_of[r] = stage;
+      }
+
+      /* The gate this file carries: instrumentation must not change the
+       * answer. Bitwise, because both paths run identical integer
+       * arithmetic on identical inputs -- a tolerance here would hide a
+       * probe that perturbs the kernel. */
+      const int diff = std::memcmp(out, want.data(), on * sizeof(float));
+      EXPECT_EQ(diff, 0) << "mm_u8i8_layer_timed returned different bytes "
+                         << "than mm_u8i8_layer at M=" << M;
+      const int timed_ok = (diff == 0) ? 1 : 0;
+
+      /* MEDIAN of the probe runs, not the min: wall clock on this device is
+       * bimodal at roughly +-25% run to run (DVFS residency, not our code),
+       * so the min publishes whichever run landed in the fast state. It
+       * stays a single measured run rather than a mean, so the stage
+       * breakdown beside it comes from that same run and sums to its own
+       * dsp_total. */
+      int ord[kProbeRuns];
+      for (int r = 0; r < kProbeRuns; ++r) {
+        ord[r] = r;
+      }
+      std::sort(ord, ord + kProbeRuns,
+                [&probed](int a, int b) { return probed[a] < probed[b]; });
+      const double med_probed = probed[ord[kProbeRuns / 2]];
+      const std::vector<uint32_t> &med_stage = stage_of[ord[kProbeRuns / 2]];
+      const double dsp = (double)med_stage[kStageDspTotal];
+
+      std::cout << std::left << std::setw(11) << s.name << std::setw(7) << M
+                << std::right << std::fixed << std::setprecision(1)
+                << std::setw(11) << avg << std::setw(9) << lo << std::setw(9)
+                << hi << std::setw(9) << dsp << std::setw(9) << init_us << "\n"
+                << std::left;
+
+      std::string path = std::string("fc_") + s.name + "_m" + std::to_string(M);
+      static const char *kRun[] = {"us_avg_1_10", "us_min", "us_max",
+                                   "us_first", "init_us"};
+      const double run_v[] = {avg, lo, hi, iter[0], init_us};
+      for (size_t f = 0; f < sizeof(run_v) / sizeof(run_v[0]); ++f) {
+        std::cout << "FC_FIELD path=" << path << " field=" << kRun[f]
+                  << " value=" << run_v[f] << std::endl;
+      }
+      /* Shape travels with the numbers so the report can derive MAC counts
+       * and transported bytes without a second copy of kShapes to drift. */
+      std::cout << "FC_FIELD path=" << path << " field=M value=" << M
+                << std::endl;
+      std::cout << "FC_FIELD path=" << path << " field=K value=" << s.K
+                << std::endl;
+      std::cout << "FC_FIELD path=" << path << " field=N value=" << s.N
+                << std::endl;
+      /* Published, not just asserted: a report that only shows timings should
+       * be able to say on its own face whether the breakdown beside them
+       * describes the same computation as the headline. */
+      std::cout << "FC_FIELD path=" << path
+                << " field=timed_matches_production value=" << timed_ok
+                << std::endl;
+
+      for (int st = 0; st < kNStages; ++st) {
+        std::cout << "FC_STAGE path=" << path << " field=" << kStage[st]
+                  << " value=" << med_stage[st] << std::endl;
+      }
+      /* dsp_total came from the INSTRUMENTED run, so subtract it from THAT
+       * run's wall; mixing it with the production wall would fold the
+       * instrumentation into the transport estimate. */
+      std::cout << "FC_STAGE path=" << path
+                << " field=transport_us value=" << (med_probed - dsp)
+                << std::endl;
+      std::cout << "FC_STAGE path=" << path
+                << " field=probe_overhead_us value=" << (med_probed - avg)
+                << std::endl;
+    }
+
+    EXPECT_EQ(nntr_hvx_weight_release_u8i8(handle_, wh), AEE_SUCCESS);
+  }
+}
+
+int main(int argc, char **argv) {
+  int result = -1;
+  try {
+    testing::InitGoogleTest(&argc, argv);
+  } catch (...) {
+    std::cerr << "Error during InitGoogleTest" << std::endl;
+    return 0;
+  }
+  try {
+    result = RUN_ALL_TESTS();
+  } catch (...) {
+    std::cerr << "Error during RUN_ALL_TESTS()" << std::endl;
+  }
+  return result;
+}

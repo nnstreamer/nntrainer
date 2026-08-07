@@ -35,91 +35,14 @@
 #include <AEEStdErr.h>
 #include <remote.h>
 
-#include <dlfcn.h>
-
 #include "nntr_hvx.h"
 
+#include "htp_rpc_bench.h"
 #include "mha_htp_host_model.h"
 
 namespace {
 
 constexpr int kDspOffset = 0x80000400;
-
-/**
- * @brief rpcmem, resolved at runtime.
- *
- * The functions live in the DEVICE's libcdsprpc.so, which exports them; the
- * SDK's link-time stub of the same library does not, and its librpcmem.a
- * hides in version-dependent paths -- both already broke one build each.
- * dlsym against the already-loaded process image depends on neither.
- */
-struct RpcMemApi {
-  void *(*alloc)(int heap, uint32_t flags, int size) = nullptr;
-  void (*free_)(void *p) = nullptr;
-
-  static const RpcMemApi &get() {
-    static RpcMemApi api = [] {
-      RpcMemApi a;
-      void (*init)(void) = (void (*)(void))dlsym(RTLD_DEFAULT, "rpcmem_init");
-      a.alloc =
-        (void *(*)(int, uint32_t, int))dlsym(RTLD_DEFAULT, "rpcmem_alloc");
-      a.free_ = (void (*)(void *))dlsym(RTLD_DEFAULT, "rpcmem_free");
-      if (a.alloc == nullptr || a.free_ == nullptr) {
-        a.alloc = nullptr;
-        a.free_ = nullptr;
-      } else if (init != nullptr) {
-        init();
-      }
-      return a;
-    }();
-    return api;
-  }
-};
-
-/* rpcmem.h's values, restated because that header is deliberately not
- * included (see RpcMemApi). Stable ABI constants, not tunables. */
-constexpr int kRpcHeapIdSystem = 25;
-constexpr uint32_t kRpcFlagsDefault = 1; /* RPCMEM_DEFAULT_FLAGS: cached */
-
-/**
- * @brief A buffer the FastRPC driver can map once instead of per call.
- *
- * rpcmem/ION-backed memory is recognized by the driver and keeps its SMMU
- * mapping across calls; plain heap is pinned and mapped on EVERY call,
- * which is part of the measured per-call transport. Plain heap remains the
- * fallback when the device library exports no rpcmem -- ion says which one
- * this run actually got, and the test reports it.
- */
-struct RpcBuf {
-  void *p = nullptr;
-  bool ion = false;
-  explicit RpcBuf(size_t bytes) {
-    const RpcMemApi &api = RpcMemApi::get();
-    if (api.alloc != nullptr) {
-      p = api.alloc(kRpcHeapIdSystem, kRpcFlagsDefault, (int)bytes);
-      ion = (p != nullptr);
-    }
-    if (p == nullptr) {
-      p = std::malloc(bytes);
-    }
-  }
-  ~RpcBuf() {
-    if (ion) {
-      RpcMemApi::get().free_(p);
-      return;
-    }
-    std::free(p);
-  }
-  RpcBuf(const RpcBuf &) = delete;
-  RpcBuf &operator=(const RpcBuf &) = delete;
-};
-
-std::string hex(int err) {
-  std::ostringstream os;
-  os << "0x" << std::hex << std::setw(8) << std::setfill('0')
-     << static_cast<unsigned>(err);
-  return os.str();
-}
 
 /**
  * @brief Opens an unsigned-PD CDSP session for each test.
@@ -131,9 +54,7 @@ std::string hex(int err) {
 class HtpSession : public ::testing::Test {
 protected:
   void SetUp() override {
-    remote_rpc_control_unsigned_module unsigned_pd = {CDSP_DOMAIN_ID, 1};
-    int err = remote_session_control(DSPRPC_CONTROL_UNSIGNED_MODULE,
-                                     &unsigned_pd, sizeof(unsigned_pd));
+    int err = htp_enable_unsigned_pd();
     ASSERT_EQ(err, AEE_SUCCESS) << "enabling unsigned PD failed: " << hex(err);
 
     const std::string uri = std::string(nntr_hvx_URI) + "&_dom=cdsp";
@@ -142,48 +63,8 @@ protected:
       << "nntr_hvx_open failed: " << hex(err)
       << " -- is libnntr_hvx_skel.so on ADSP_LIBRARY_PATH?";
 
-    /* Ask the FastRPC driver to POLL for completion instead of sleeping on
-     * the interrupt. The interrupt path is the host half of the measured
-     * 90 -> 3,900 us transport spread: an idle CPU parks in a deep C-state
-     * and the wakeup pays for it. Best effort -- an SDK or device without
-     * the control just keeps the old behavior -- and reported either way so
-     * a run's transport numbers can be read knowing which mode produced
-     * them. */
-    /* 2 = poll mode, 1 = PM/legacy mode, 0 = every request rejected,
-     * -1 = the control does not exist in this SDK's remote.h. The last two
-     * are different problems (runtime vs build), so they get different
-     * numbers -- one run already went out unreadable on this point. */
-    /* 2 = poll mode, 1 = PM mode, 0 = every mode rejected. The ladder
-     * exists because poll is the biggest win but PD/target support varies.
-     * These identifiers are ENUMS in remote.h, not #defines -- an earlier
-     * #if defined() guard around this block compiled the whole thing out
-     * and reported "not in this SDK" for an SDK that has them. */
-    int qos = 0;
-    {
-      struct remote_rpc_control_latency lat;
-      memset(&lat, 0, sizeof(lat));
-      lat.enable = RPC_POLL_QOS;
-      lat.latency = 100;
-      int rc_q = remote_handle64_control(handle_, DSPRPC_CONTROL_LATENCY, &lat,
-                                         sizeof(lat));
-      if (rc_q == AEE_SUCCESS) {
-        qos = 2;
-      } else {
-        std::cout << "  (poll QoS rejected: " << hex(rc_q) << ")\n";
-        memset(&lat, 0, sizeof(lat));
-        lat.enable = RPC_PM_QOS;
-        lat.latency = 100;
-        rc_q = remote_handle64_control(handle_, DSPRPC_CONTROL_LATENCY, &lat,
-                                       sizeof(lat));
-        if (rc_q == AEE_SUCCESS) {
-          qos = 1;
-        } else {
-          std::cout << "  (PM QoS rejected too: " << hex(rc_q) << ")\n";
-        }
-      }
-    }
-    std::cout << "ATTN_FIELD path=env field=rpc_poll_qos value=" << qos
-              << std::endl;
+    std::cout << "ATTN_FIELD path=env field=rpc_poll_qos value="
+              << htp_set_latency_qos(handle_) << std::endl;
   }
 
   void TearDown() override {
