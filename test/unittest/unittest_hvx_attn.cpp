@@ -23,6 +23,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <iomanip>
 #include <iostream>
@@ -34,6 +35,11 @@
 #include <AEEStdErr.h>
 #include <remote.h>
 
+#if __has_include("rpcmem.h")
+#include "rpcmem.h"
+#define NNTR_HAVE_RPCMEM 1
+#endif
+
 #include "nntr_hvx.h"
 
 #include "mha_htp_host_model.h"
@@ -41,6 +47,40 @@
 namespace {
 
 constexpr int kDspOffset = 0x80000400;
+
+/**
+ * @brief A buffer the FastRPC driver can map once instead of per call.
+ *
+ * rpcmem/ION-backed memory is recognized by the driver and keeps its SMMU
+ * mapping across calls; plain heap is pinned and mapped on EVERY call, which
+ * is part of the measured per-call transport. Plain heap remains the
+ * fallback so the test still runs on an SDK without rpcmem.h -- ion says
+ * which one this build actually got, and the test reports it.
+ */
+struct RpcBuf {
+  void *p = nullptr;
+  bool ion = false;
+  explicit RpcBuf(size_t bytes) {
+#ifdef NNTR_HAVE_RPCMEM
+    p = rpcmem_alloc(RPCMEM_HEAP_ID_SYSTEM, RPCMEM_DEFAULT_FLAGS, (int)bytes);
+    ion = (p != nullptr);
+#endif
+    if (p == nullptr) {
+      p = std::malloc(bytes);
+    }
+  }
+  ~RpcBuf() {
+#ifdef NNTR_HAVE_RPCMEM
+    if (ion) {
+      rpcmem_free(p);
+      return;
+    }
+#endif
+    std::free(p);
+  }
+  RpcBuf(const RpcBuf &) = delete;
+  RpcBuf &operator=(const RpcBuf &) = delete;
+};
 
 std::string hex(int err) {
   std::ostringstream os;
@@ -59,6 +99,15 @@ std::string hex(int err) {
 class HtpSession : public ::testing::Test {
 protected:
   void SetUp() override {
+#ifdef NNTR_HAVE_RPCMEM
+    {
+      static bool rpcmem_ready = false;
+      if (!rpcmem_ready) {
+        rpcmem_init();
+        rpcmem_ready = true;
+      }
+    }
+#endif
     remote_rpc_control_unsigned_module unsigned_pd = {CDSP_DOMAIN_ID, 1};
     int err = remote_session_control(DSPRPC_CONTROL_UNSIGNED_MODULE,
                                      &unsigned_pd, sizeof(unsigned_pd));
@@ -69,6 +118,33 @@ protected:
     ASSERT_EQ(err, AEE_SUCCESS)
       << "nntr_hvx_open failed: " << hex(err)
       << " -- is libnntr_hvx_skel.so on ADSP_LIBRARY_PATH?";
+
+    /* Ask the FastRPC driver to POLL for completion instead of sleeping on
+     * the interrupt. The interrupt path is the host half of the measured
+     * 90 -> 3,900 us transport spread: an idle CPU parks in a deep C-state
+     * and the wakeup pays for it. Best effort -- an SDK or device without
+     * the control just keeps the old behavior -- and reported either way so
+     * a run's transport numbers can be read knowing which mode produced
+     * them. */
+    int qos = 0;
+#if defined(DSPRPC_CONTROL_LATENCY)
+    {
+      struct remote_rpc_control_latency lat;
+      memset(&lat, 0, sizeof(lat));
+#if defined(RPC_POLL_QOS)
+      lat.enable = RPC_POLL_QOS;
+      lat.latency = 100;
+#else
+      lat.enable = 1;
+#endif
+      qos = (remote_handle64_control(handle_, DSPRPC_CONTROL_LATENCY, &lat,
+                                     sizeof(lat)) == AEE_SUCCESS)
+              ? 1
+              : 0;
+    }
+#endif
+    std::cout << "ATTN_FIELD path=env field=rpc_poll_qos value=" << qos
+              << std::endl;
   }
 
   void TearDown() override {
@@ -553,11 +629,19 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
         k16[i] = f32_to_f16(base[ch] + 0.5f * d(rng));
         v16[i] = f32_to_f16(base[ch] + 0.5f * d(rng));
       }
-      std::vector<float> q((size_t)n_query * nHq * head_dim);
-      for (float &x : q) {
-        x = d(rng);
+      const size_t qn = (size_t)n_query * nHq * head_dim;
+      /* q and out ride in every timed call -- 8 KB each way at decode, 1 MB
+       * at prefill. See RpcBuf for why these two are ION-backed. */
+      RpcBuf qbuf(qn * sizeof(float));
+      RpcBuf obuf(qn * sizeof(float));
+      float *q = (float *)qbuf.p;
+      float *out = (float *)obuf.p;
+      for (size_t qi = 0; qi < qn; ++qi) {
+        q[qi] = d(rng);
       }
-      std::vector<float> out(q.size(), 0.0f);
+      std::memset(out, 0, qn * sizeof(float));
+      std::cout << "ATTN_FIELD path=env field=ion_buffers value="
+                << (qbuf.ion && obuf.ion ? 1 : 0) << std::endl;
       const float scale = 1.0f / std::sqrt((float)head_dim);
 
       for (int w = 0; w < 4; ++w) {
@@ -574,8 +658,8 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
         /* Warm up once outside the timed region: the first call after a
            register pays page faults on the freshly allocated shadows. */
         ASSERT_EQ(nntr_hvx_attn_forward(handle_, h, kv_from, n_query, scale, 1u,
-                                        0u, nullptr, 0, q.data(), (int)q.size(),
-                                        out.data(), (int)out.size()),
+                                        0u, nullptr, 0, q, (int)qn, out,
+                                        (int)qn),
                   AEE_SUCCESS);
 
         double us[3];
@@ -587,9 +671,8 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
           std::vector<uint32_t> stage(13, 0u);
           const auto t0 = std::chrono::steady_clock::now();
           const int err = nntr_hvx_attn_forward_timed(
-            handle_, h, kv_from, n_query, scale, 1u, 0u, nullptr, 0, q.data(),
-            (int)q.size(), out.data(), (int)out.size(), stage.data(),
-            (int)stage.size());
+            handle_, h, kv_from, n_query, scale, 1u, 0u, nullptr, 0, q, (int)qn,
+            out, (int)qn, stage.data(), (int)stage.size());
           const auto t1 = std::chrono::steady_clock::now();
           /* Checked after the clock stops, deliberately. */
           ASSERT_EQ(err, AEE_SUCCESS);
