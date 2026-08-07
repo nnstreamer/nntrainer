@@ -20,6 +20,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -483,6 +484,123 @@ TEST_F(HvxAttnScores, FusedForwardMatchesHostModel) {
             << std::endl;
   std::cout << "ATTN_FIELD path=forward field=max_rel_err value=" << worst
             << std::endl;
+}
+
+/**
+ * @brief End-to-end cost of one fused attention layer, in microseconds.
+ *
+ * Timed on the ARM side around the FastRPC call, so the number INCLUDES
+ * transport -- which is the honest figure, and the one MHA_HTP_PLAN.md §2's
+ * arithmetic predicts against. Everything the optimisation work already
+ * landed is inside it: the DMA ring with cross-block weight prefetch (PHASE A
+ * passes every Kt block as one handle list), the session-scoped HMX, the
+ * async accumulator copy-out and the vectorised quant/dequant.
+ *
+ * Rules this follows, each one a bug this project already shipped and found
+ * (§9.7):
+ *   - the correctness check is NOT in the timed region; a diff left inside one
+ *     once produced a phantom 146 us slowdown;
+ *   - three consecutive runs, all three printed, because thermal state moves
+ *     these numbers;
+ *   - field=... value=... marker lines with the unit in the field name, after
+ *     a report script keyed by column position printed a stale number for
+ *     every shape past the first, twice;
+ *   - nothing is asserted. The reviewer compares against §2's prediction.
+ *
+ * NOT yet included: the softmax does not run on the worker pool, and P.V does
+ * not prefetch across blocks (n_handles=1 per call). Both are Task 10, and
+ * both need this breakdown first rather than a guess.
+ */
+TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
+  /* Qwen3-0.6B: num_key_value_heads 8, num_attention_heads 16 (gqa 2),
+     head_dim 128, 28 layers -- register_qwen3_0_6b() in
+     Applications/CausalLM/api/model_config.cpp. */
+  const uint32_t nch = 8u, gqa = 2u, head_dim = 128u, T = 256u, M_band = 64u;
+  const uint32_t layers = 28u;
+  const hexkl_w_width widths[4][2] = {{HEXKL_W_I8, HEXKL_W_I8},
+                                      {HEXKL_W_I4, HEXKL_W_I4},
+                                      {HEXKL_W_I8, HEXKL_W_I4},
+                                      {HEXKL_W_I4, HEXKL_W_I8}};
+  const uint32_t nHq = nch * gqa;
+
+  std::cout << "\nQwen3-0.6B attention, one fused layer end to end "
+            << "(includes FastRPC transport)\n"
+            << "kv_len regime   w_k,w_v   us_per_layer (3 runs)\n";
+
+  for (uint32_t kv_len : {512u, 1024u}) {
+    for (uint32_t n_query : {1u, 128u}) {
+      const uint32_t kv_from = kv_len - n_query;
+
+      std::mt19937 rng(kv_len * 31u + n_query);
+      std::uniform_real_distribution<float> d(-1.0f, 1.0f);
+      std::vector<float> base(nch * head_dim);
+      for (float &x : base) {
+        x = d(rng);
+      }
+      std::vector<uint16_t> k16((size_t)kv_len * nch * head_dim);
+      std::vector<uint16_t> v16(k16.size());
+      for (size_t i = 0; i < k16.size(); ++i) {
+        const size_t ch = i % ((size_t)nch * head_dim);
+        k16[i] = f32_to_f16(base[ch] + 0.5f * d(rng));
+        v16[i] = f32_to_f16(base[ch] + 0.5f * d(rng));
+      }
+      std::vector<float> q((size_t)n_query * nHq * head_dim);
+      for (float &x : q) {
+        x = d(rng);
+      }
+      std::vector<float> out(q.size(), 0.0f);
+      const float scale = 1.0f / std::sqrt((float)head_dim);
+
+      for (int w = 0; w < 4; ++w) {
+        uint32_t h = 0;
+        ASSERT_EQ(nntr_hvx_attn_register(handle_, nch, gqa, head_dim, kv_len, T,
+                                         M_band, (uint32_t)widths[w][0],
+                                         (uint32_t)widths[w][1], &h),
+                  AEE_SUCCESS);
+        ASSERT_EQ(nntr_hvx_attn_kv_append(handle_, h, 0u, kv_len, k16.data(),
+                                          (int)k16.size(), v16.data(),
+                                          (int)v16.size()),
+                  AEE_SUCCESS);
+
+        /* Warm up once outside the timed region: the first call after a
+           register pays page faults on the freshly allocated shadows. */
+        ASSERT_EQ(nntr_hvx_attn_forward(handle_, h, kv_from, n_query, scale, 1u,
+                                        0u, nullptr, 0, q.data(), (int)q.size(),
+                                        out.data(), (int)out.size()),
+                  AEE_SUCCESS);
+
+        double us[3];
+        for (int r = 0; r < 3; ++r) {
+          const auto t0 = std::chrono::steady_clock::now();
+          const int err = nntr_hvx_attn_forward(
+            handle_, h, kv_from, n_query, scale, 1u, 0u, nullptr, 0, q.data(),
+            (int)q.size(), out.data(), (int)out.size());
+          const auto t1 = std::chrono::steady_clock::now();
+          /* Checked after the clock stops, deliberately. */
+          ASSERT_EQ(err, AEE_SUCCESS);
+          us[r] = std::chrono::duration<double, std::micro>(t1 - t0).count();
+        }
+        ASSERT_EQ(nntr_hvx_attn_release(handle_, h), AEE_SUCCESS);
+
+        const double best = std::min(us[0], std::min(us[1], us[2]));
+        std::ostringstream pair;
+        pair << wname(widths[w][0]) << "," << wname(widths[w][1]);
+        std::cout << std::left << std::setw(7) << kv_len << std::setw(9)
+                  << (n_query == 1 ? "decode" : "prefill") << std::setw(10)
+                  << pair.str() << std::fixed << std::setprecision(1) << us[0]
+                  << "  " << us[1] << "  " << us[2] << "\n";
+        std::cout << "ATTN_FIELD path=forward_"
+                  << (n_query == 1 ? "dec" : "pre") << "_kv" << kv_len << "_"
+                  << wname(widths[w][0]) << wname(widths[w][1])
+                  << " field=us_per_layer value=" << best << std::endl;
+        std::cout << "ATTN_FIELD path=forward_"
+                  << (n_query == 1 ? "dec" : "pre") << "_kv" << kv_len << "_"
+                  << wname(widths[w][0]) << wname(widths[w][1])
+                  << " field=us_per_token_all_layers value=" << best * layers
+                  << std::endl;
+      }
+    }
+  }
 }
 
 int main(int argc, char **argv) {
