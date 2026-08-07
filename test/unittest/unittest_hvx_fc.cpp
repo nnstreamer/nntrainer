@@ -395,6 +395,28 @@ TEST_F(HtpFc, LayerCostQwen3) {
             stage_of[ord[kProbeRuns / 2]];
           const double dsp = (double)med_stage[kStageDspTotal];
 
+          /* The compute bucket -- dsp minus everything that only moves data --
+           * computed PER RUN and published as a range, not derived once from
+           * the median stage set.
+           *
+           * It has to be a range because the probes are HAP_perf_get_time_us,
+           * whose resolution is 1 us, while one acc_read is ~0.38 us: at M=1
+           * there are only 64 of them per matmul, so the sum is dominated by
+           * which samples happened to cross a microsecond boundary. Measured
+           * proof that this is resolution and not a real effect: at M=1024,
+           * where the same probe covers 1024 calls, i4 and i8 agree to 3%
+           * (389 against 378 us) as they must -- the accumulator readout
+           * cannot depend on the weight width. At M=1 they came out 35 and 22.
+           * dsp_total is one timestamp pair around the whole call and does not
+           * have this problem; only the split does. */
+          double comp[kProbeRuns];
+          for (int r = 0; r < kProbeRuns; ++r) {
+            const std::vector<uint32_t> &st = stage_of[r];
+            comp[r] = (double)st[kStageDspTotal] -
+                      (double)(st[1] + st[2] + st[3] + st[4]);
+          }
+          std::sort(comp, comp + kProbeRuns);
+
           std::cout << std::left << std::setw(14) << sname << std::setw(6) << M
                     << std::right << std::setw(3) << G << std::fixed
                     << std::setprecision(1) << std::setw(13) << avg
@@ -457,6 +479,14 @@ TEST_F(HtpFc, LayerCostQwen3) {
           std::cout << "FC_STAGE path=" << path
                     << " field=dsp_per_matmul_us value=" << (dsp / (double)G)
                     << std::endl;
+          static const char *kComp[] = {"compute_us_lo", "compute_us_med",
+                                        "compute_us_hi"};
+          const double comp_v[] = {comp[0], comp[kProbeRuns / 2],
+                                   comp[kProbeRuns - 1]};
+          for (size_t f = 0; f < 3; ++f) {
+            std::cout << "FC_STAGE path=" << path << " field=" << kComp[f]
+                      << " value=" << comp_v[f] << std::endl;
+          }
         }
       }
 
