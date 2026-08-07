@@ -581,7 +581,10 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
         double us[3];
         std::vector<uint32_t> stage_of[3];
         for (int r = 0; r < 3; ++r) {
-          std::vector<uint32_t> stage(7, 0u);
+          /* Mirrors HEXKL_ATTN_N_STAGES; the DSP header is not includable
+             from the ARM side, so the skel rejects a stale count with
+             AEE_EBADPARM rather than silently truncating. */
+          std::vector<uint32_t> stage(12, 0u);
           const auto t0 = std::chrono::steady_clock::now();
           const int err = nntr_hvx_attn_forward_timed(
             handle_, h, kv_from, n_query, scale, 1u, 0u, nullptr, 0, q.data(),
@@ -626,13 +629,23 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
         /* DSP-internal breakdown. The host timed the whole call and this
          * timed the inside, so (med - dsp_total) is the MEASURED FastRPC
          * transport rather than an assumed 404 us. */
-        static const char *kStage[7] = {
-          "qk_us",     "softmax_us",   "pv_us",          "accum_us",
-          "gather_us", "dsp_total_us", "layer_run_calls"};
+        static const char *kStage[12] = {
+          "qk_us",
+          "softmax_us",
+          "pv_us",
+          "accum_us",
+          "gather_us",
+          "dsp_total_us",
+          "layer_run_calls" /* Tier 0 probes, subdividing qk+pv: */,
+          "acc_read_us",
+          "acc_copy_us",
+          "dequant_us",
+          "quant_us",
+          "drain_us"};
         std::ostringstream path;
         path << "forward_" << (n_query == 1 ? "dec" : "pre") << "_kv" << kv_len
              << "_" << wname(widths[w][0]) << wname(widths[w][1]);
-        for (int st = 0; st < 7; ++st) {
+        for (int st = 0; st < 12; ++st) {
           std::cout << "ATTN_STAGE path=" << path.str()
                     << " field=" << kStage[st] << " value=" << med_stage[st]
                     << std::endl;

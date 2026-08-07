@@ -31,6 +31,8 @@
 #include "hvx_dequant_i32.h"
 #include "hvx_quant_u8.h"
 
+#include "hexkl_probe.h"
+
 #define ROUND_UP_U32(v, a) ((((v) + ((a)-1)) / (a)) * (a))
 
 /** @brief Bytes in one packed i8 weight tile (32x32 values, 1 byte each --
@@ -200,9 +202,11 @@ int hexkl_mm_u8i8_layer_run(hexkl_weight_u8i8_table *tbl, uint8_t *vtcm_base,
     free(acc_scratch);
     return AEE_ENOMEMORY;
   }
+  uint64_t p0 = hexkl_probe_now();
   hvx_quant_rows_u8_params(act_f32, M, m_pad, K, act_scale, act_zp);
   hvx_quant_pack_u8_ah(act_f32, M, m_pad, K, act_scale, act_zp,
                        vtcm_base + act_off);
+  hexkl_probe_us[HEXKL_PROBE_QUANT] += hexkl_probe_now() - p0;
 
   int rc = AEE_SUCCESS;
   size_t out_off = 0;
@@ -215,7 +219,9 @@ int hexkl_mm_u8i8_layer_run(hexkl_weight_u8i8_table *tbl, uint8_t *vtcm_base,
     const uint32_t rs0 = dma_row_size_dividing(wb0);
     hexkl_dma_ring_push2d(vtcm_base + wbuf[0], h0->wh_bytes, rs0, rs0, rs0,
                           wb0 / rs0, /*src_vtcm=*/0, /*dst_vtcm=*/1);
+    p0 = hexkl_probe_now();
     hexkl_dma_ring_drain();
+    hexkl_probe_us[HEXKL_PROBE_DRAIN] += hexkl_probe_now() - p0;
   }
 
   for (uint32_t i = 0; i < n_handles; ++i) {
@@ -246,22 +252,30 @@ int hexkl_mm_u8i8_layer_run(hexkl_weight_u8i8_table *tbl, uint8_t *vtcm_base,
             goto out;
           }
         }
+        p0 = hexkl_probe_now();
         rc = hexkl_micro_hmx_acc_read_int32(vtcm_base, config_off, result_off);
+        hexkl_probe_us[HEXKL_PROBE_ACC_READ] += hexkl_probe_now() - p0;
         if (rc != AEE_SUCCESS) {
           goto out;
         }
+        p0 = hexkl_probe_now();
         rc = hexkl_micro_hmx_copy_32b_to_submatrix(
           vtcm_base, result_off, acc_scratch, rb, nt, m_pad, h->N);
+        hexkl_probe_us[HEXKL_PROBE_ACC_COPY] += hexkl_probe_now() - p0;
         if (rc != AEE_SUCCESS) {
           goto out;
         }
       }
     }
 
+    p0 = hexkl_probe_now();
     hexkl_dma_ring_drain();
+    hexkl_probe_us[HEXKL_PROBE_DRAIN] += hexkl_probe_now() - p0;
 
+    p0 = hexkl_probe_now();
     hvx_dequant_i32_to_f32(acc_scratch, M, m_pad, h->N, act_scale, act_zp,
                            h->colsum_w, h->w_scale, h->bias, out_cat + out_off);
+    hexkl_probe_us[HEXKL_PROBE_DEQUANT] += hexkl_probe_now() - p0;
     out_off += (size_t)M * h->N;
   }
 

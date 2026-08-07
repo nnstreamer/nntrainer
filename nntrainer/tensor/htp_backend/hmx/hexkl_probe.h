@@ -1,0 +1,54 @@
+// SPDX-License-Identifier: Apache-2.0
+/**
+ * Copyright (C) 2026 SeungHui Lee <shsh1004.lee@samsung.com>
+ *
+ * @file   hexkl_probe.h
+ * @date   08 Aug 2026
+ * @brief  Five counters that split layer_run's time (Tier 0 measurement)
+ * @see    https://github.com/nntrainer/nntrainer
+ * @author SeungHui Lee <shsh1004.lee@samsung.com>
+ * @bug    No known bugs except for NYI items
+ *
+ * The two-parameter cost model (31_dataflow_as_built.md 3) attributes 75-96%
+ * of attention DSP time to "accumulator readout", but that bucket is really
+ * two calls -- acc_read_int32 (HMX acc -> VTCM, vendor) and
+ * copy_32b_to_submatrix (VTCM -> DDR, ours) -- and which of the two carries
+ * the 52 us decides whether the fix is dequant-from-VTCM or bypassing HMX for
+ * small M. These counters exist to answer that one question and go away with
+ * the rest of the debug surface (MHA_HTP_PLAN.md 9.5).
+ *
+ * Globals, not parameters: threading a stats struct through the layer_run
+ * signature would touch every caller for scaffolding. The DSP session is
+ * single-threaded through these calls, and the counters are read only by
+ * hexkl_attn_u8_forward, which resets them on entry.
+ */
+
+#ifndef __NNTRAINER_HEXKL_PROBE_H__
+#define __NNTRAINER_HEXKL_PROBE_H__
+
+#include <stdint.h>
+
+#include <HAP_perf.h>
+
+/** @brief What each counter times, inside every layer_run call. */
+enum {
+  HEXKL_PROBE_ACC_READ = 0, /**< hexkl_micro_hmx_acc_read_int32 */
+  HEXKL_PROBE_ACC_COPY,     /**< hexkl_micro_hmx_copy_32b_to_submatrix */
+  HEXKL_PROBE_DEQUANT,      /**< hvx_dequant_i32_to_f32 */
+  HEXKL_PROBE_QUANT,        /**< hvx_quant_rows_u8_params + pack */
+  HEXKL_PROBE_DRAIN,        /**< hexkl_dma_ring_drain */
+  HEXKL_PROBE_N
+};
+
+/** @brief Accumulated microseconds per slot since the last reset. */
+extern uint64_t hexkl_probe_us[HEXKL_PROBE_N];
+
+/** @brief Zeroes every counter. */
+void hexkl_probe_reset(void);
+
+/** @brief Same DSP-internal clock hexkl_attn_u8.c times stages with. */
+static inline uint64_t hexkl_probe_now(void) {
+  return HAP_perf_qtimer_count_to_us(HAP_perf_get_qtimer_count());
+}
+
+#endif /* __NNTRAINER_HEXKL_PROBE_H__ */

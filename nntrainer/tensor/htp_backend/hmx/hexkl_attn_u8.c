@@ -22,6 +22,7 @@
 
 #include "hexkl_attn_u8.h"
 #include "hexkl_kv_quant.h"
+#include "hexkl_probe.h"
 #include "hvx_softmax_blocked_f32.h"
 
 /** @brief Bytes one fp16 KV row occupies across all heads. */
@@ -329,6 +330,7 @@ int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
       stage_us[n] = 0u;
     }
   }
+  hexkl_probe_reset();
   TICK(t_call0);
 
   nHq = ctx->nch * ctx->gqa;
@@ -446,5 +448,17 @@ int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
   }
   TICK(t1);
   ACCUM(HEXKL_ATTN_T_TOTAL, t_call0, t1);
+  if (stage_us) {
+    /* The probes accumulated inside every layer_run this call made; hand
+     * them back beside the stage totals they subdivide. */
+    stage_us[HEXKL_ATTN_T_ACC_READ] =
+      (uint32_t)hexkl_probe_us[HEXKL_PROBE_ACC_READ];
+    stage_us[HEXKL_ATTN_T_ACC_COPY] =
+      (uint32_t)hexkl_probe_us[HEXKL_PROBE_ACC_COPY];
+    stage_us[HEXKL_ATTN_T_DEQUANT] =
+      (uint32_t)hexkl_probe_us[HEXKL_PROBE_DEQUANT];
+    stage_us[HEXKL_ATTN_T_QUANT] = (uint32_t)hexkl_probe_us[HEXKL_PROBE_QUANT];
+    stage_us[HEXKL_ATTN_T_DRAIN] = (uint32_t)hexkl_probe_us[HEXKL_PROBE_DRAIN];
+  }
   return AEE_SUCCESS;
 }
