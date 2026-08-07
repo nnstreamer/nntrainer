@@ -129,21 +129,53 @@ protected:
      * the control just keeps the old behavior -- and reported either way so
      * a run's transport numbers can be read knowing which mode produced
      * them. */
-    int qos = 0;
+    /* 2 = poll mode, 1 = PM/legacy mode, 0 = every request rejected,
+     * -1 = the control does not exist in this SDK's remote.h. The last two
+     * are different problems (runtime vs build), so they get different
+     * numbers -- one run already went out unreadable on this point. */
+    int qos = -1;
 #if defined(DSPRPC_CONTROL_LATENCY)
     {
       struct remote_rpc_control_latency lat;
-      memset(&lat, 0, sizeof(lat));
+      int rc_q = AEE_EUNSUPPORTED;
+      qos = 0;
 #if defined(RPC_POLL_QOS)
+      memset(&lat, 0, sizeof(lat));
       lat.enable = RPC_POLL_QOS;
       lat.latency = 100;
-#else
-      lat.enable = 1;
+      rc_q = remote_handle64_control(handle_, DSPRPC_CONTROL_LATENCY, &lat,
+                                     sizeof(lat));
+      if (rc_q == AEE_SUCCESS) {
+        qos = 2;
+      } else {
+        std::cout << "  (poll QoS rejected: " << hex(rc_q) << ")\n";
+      }
 #endif
-      qos = (remote_handle64_control(handle_, DSPRPC_CONTROL_LATENCY, &lat,
-                                     sizeof(lat)) == AEE_SUCCESS)
-              ? 1
-              : 0;
+#if defined(RPC_PM_QOS)
+      if (qos == 0) {
+        memset(&lat, 0, sizeof(lat));
+        lat.enable = RPC_PM_QOS;
+        lat.latency = 100;
+        rc_q = remote_handle64_control(handle_, DSPRPC_CONTROL_LATENCY, &lat,
+                                       sizeof(lat));
+        if (rc_q == AEE_SUCCESS) {
+          qos = 1;
+        }
+      }
+#endif
+      if (qos == 0) {
+        /* Oldest form of the control: a bare enable bit. */
+        memset(&lat, 0, sizeof(lat));
+        lat.enable = 1;
+        rc_q = remote_handle64_control(handle_, DSPRPC_CONTROL_LATENCY, &lat,
+                                       sizeof(lat));
+        if (rc_q == AEE_SUCCESS) {
+          qos = 1;
+        } else {
+          std::cout << "  (all QoS modes rejected, last: " << hex(rc_q)
+                    << ")\n";
+        }
+      }
     }
 #endif
     std::cout << "ATTN_FIELD path=env field=rpc_poll_qos value=" << qos
@@ -643,8 +675,16 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
         q[qi] = d(rng);
       }
       std::memset(out, 0, qn * sizeof(float));
-      std::cout << "ATTN_FIELD path=env field=ion_buffers value="
-                << (qbuf.ion && obuf.ion ? 1 : 0) << std::endl;
+      /* 1 = ION-backed, 0 = rpcmem linked but the alloc failed,
+       * -1 = librpcmem.a was not found at build time (Android.mk wildcard;
+       * run find on the SDK for it and extend the list there). */
+#ifdef NNTR_HAVE_RPCMEM
+      const int ion_state = (qbuf.ion && obuf.ion) ? 1 : 0;
+#else
+      const int ion_state = -1;
+#endif
+      std::cout << "ATTN_FIELD path=env field=ion_buffers value=" << ion_state
+                << std::endl;
       const float scale = 1.0f / std::sqrt((float)head_dim);
 
       for (int w = 0; w < 4; ++w) {
