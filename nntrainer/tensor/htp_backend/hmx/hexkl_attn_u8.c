@@ -271,8 +271,6 @@ int hexkl_attn_u8_kv_append(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
       }
     }
   }
-  TICK(t1);
-  ACCUM(HEXKL_ATTN_T_TOTAL, t_call0, t1);
   return AEE_SUCCESS;
 }
 
