@@ -31,6 +31,8 @@
 
 #include "nntr_hvx.h"
 
+#include "mha_htp_host_model.h"
+
 namespace {
 
 /**
@@ -456,4 +458,125 @@ int main(int argc, char **argv) {
   }
 
   return result;
+}
+
+/*===========================================================================
+ * Blocked masked softmax -- PHASE B of the fused attention loop.
+ *
+ * The oracle is mha_softmax_blocked_ref, the same host model the whole flash
+ * loop is specified against, so this gates the DSP kernel against the
+ * specification rather than against a second opinion written beside it.
+ *=========================================================================*/
+
+class HvxSoftmaxBlocked : public HtpSession {};
+
+namespace {
+
+/** @brief One case of the blocked softmax matrix, device against host model. */
+void check_blocked(remote_handle64 handle, uint32_t kv, uint32_t T, uint32_t M,
+                   uint32_t window, bool with_sink, double *worst_p,
+                   double *worst_l) {
+  const uint32_t n_seg = (kv + T - 1u) / T;
+  const uint32_t band = n_seg * M * T;
+  const float scale = 0.125f;
+
+  std::mt19937 rng(kv * 7919u + T * 131u + M * 17u + window +
+                   (with_sink ? 1u : 0u));
+  std::uniform_real_distribution<float> d(-6.0f, 6.0f);
+
+  /* Poison the padded tail past kv: a masking bug reads a value that cannot
+   * be mistaken for a plausible score. */
+  std::vector<float> in(band, 1e30f);
+  for (uint32_t m = 0; m < M; ++m) {
+    for (uint32_t pos = 0; pos < kv; ++pos) {
+      in[(size_t)(pos / T) * M * T + (size_t)m * T + (pos % T)] = d(rng);
+    }
+  }
+
+  std::vector<uint32_t> begin(M), end(M);
+  for (uint32_t m = 0; m < M; ++m) {
+    const uint32_t e = kv - (m % kv);
+    end[m] = e;
+    begin[m] = (window != 0u && window < e) ? (e - window) : 0u;
+  }
+  std::vector<float> sink(M);
+  for (uint32_t m = 0; m < M; ++m) {
+    sink[m] = d(rng) * 0.3f;
+  }
+
+  std::vector<float> out(band, 0.0f), l(M, 0.0f);
+  const int err = nntr_hvx_softmax_blocked_f32(
+    handle, n_seg, T, M, scale, in.data(), (int)band, begin.data(), (int)M,
+    end.data(), (int)M, with_sink ? sink.data() : nullptr,
+    with_sink ? (int)M : 0, out.data(), (int)band, l.data(), (int)M);
+  ASSERT_EQ(err, AEE_SUCCESS)
+    << "kv=" << kv << " T=" << T << " M=" << M << " window=" << window;
+
+  std::vector<const float *> seg(n_seg);
+  for (uint32_t j = 0; j < n_seg; ++j) {
+    seg[j] = in.data() + (size_t)j * M * T;
+  }
+  const MhaSoftmaxOut ref = mha_softmax_blocked_ref(
+    seg, n_seg, T, M, scale, begin, end, with_sink ? sink.data() : nullptr);
+
+  for (size_t i = 0; i < band; ++i) {
+    *worst_p = std::max(*worst_p, (double)std::fabs(out[i] - ref.p[i]));
+    ASSERT_NEAR(out[i], ref.p[i], 1e-6f)
+      << "kv=" << kv << " T=" << T << " M=" << M << " window=" << window
+      << " sink=" << with_sink << " i=" << i;
+  }
+  for (uint32_t m = 0; m < M; ++m) {
+    *worst_l = std::max(*worst_l, (double)std::fabs(l[m] - ref.l[m]));
+    ASSERT_NEAR(l[m], ref.l[m], 1e-6f * std::max(1.0f, ref.l[m]))
+      << "kv=" << kv << " T=" << T << " M=" << M << " window=" << window
+      << " sink=" << with_sink << " m=" << m;
+  }
+}
+
+} // namespace
+
+TEST_F(HvxSoftmaxBlocked, MatchesHostModelOverTheShapeMatrix) {
+  double worst_p = 0.0, worst_l = 0.0;
+  size_t cases = 0;
+
+  for (uint32_t kv : {1u, 31u, 32u, 33u, 255u, 256u, 257u, 1023u, 1024u}) {
+    for (uint32_t T : {32u, 256u}) {
+      for (uint32_t M : {1u, 7u, 64u}) {
+        /* window T-1, T, T+1 is the off-by-one trap in the block arithmetic
+         * and is mandatory; kv-1 and kv exercise the whole-band ends. */
+        for (uint32_t window : {0u, 1u, T - 1u, T, T + 1u, kv - 1u, kv}) {
+          for (int s = 0; s < 2; ++s) {
+            check_blocked(handle_, kv, T, M, window, s != 0, &worst_p,
+                          &worst_l);
+            if (::testing::Test::HasFatalFailure()) {
+              return;
+            }
+            ++cases;
+          }
+        }
+      }
+    }
+  }
+  std::cout << "BLOCKED_FIELD path=softmax_blocked field=cases value=" << cases
+            << std::endl;
+  std::cout << "BLOCKED_FIELD path=softmax_blocked field=max_abs_err_p value="
+            << worst_p << std::endl;
+  std::cout << "BLOCKED_FIELD path=softmax_blocked field=max_abs_err_l value="
+            << worst_l << std::endl;
+}
+
+TEST_F(HvxSoftmaxBlocked, RejectsBadShapes) {
+  std::vector<float> band(4 * 8, 0.0f), out(4 * 8, 0.0f), l(4, 0.0f);
+  std::vector<uint32_t> b(4, 0u), e(4, 8u);
+
+  EXPECT_EQ(nntr_hvx_softmax_blocked_f32(handle_, 0u, 8u, 4u, 1.0f, band.data(),
+                                         32, b.data(), 4, e.data(), 4, nullptr,
+                                         0, out.data(), 32, l.data(), 4),
+            AEE_EBADPARM)
+    << "n_seg = 0 must be rejected";
+  EXPECT_EQ(nntr_hvx_softmax_blocked_f32(handle_, 1u, 8u, 4u, 1.0f, band.data(),
+                                         31, b.data(), 4, e.data(), 4, nullptr,
+                                         0, out.data(), 32, l.data(), 4),
+            AEE_EBADPARM)
+    << "band length must equal n_seg*M*T";
 }
