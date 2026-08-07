@@ -86,6 +86,22 @@ const uint32_t kSeqLens[] = {1u, 512u, 1024u};
 const uint32_t kGroups[] = {1u, 3u};
 constexpr uint32_t kGroupMax = 3u;
 
+/**
+ * @brief Weight width. Both, because the QNN op this is compared against is
+ *        i4 and only the i8 half was ever measured here.
+ *
+ * The two paths share the activation quantizer, the int32 dequant and the
+ * tile geometry (64x32 activation x 32x32 weight -> 64x32 int32 accumulator);
+ * the whole difference is the baked WH bytes per tile, 512 against 1024. So
+ * the weight DMA halves and everything else should not move -- which is a
+ * prediction this table either confirms or refutes.
+ */
+enum Width { W_I4 = 4, W_I8 = 8 };
+const Width kWidths[] = {W_I4, W_I8};
+
+/** @brief Suffix for the reported path and label. */
+const char *width_tag(Width w) { return w == W_I4 ? "i4" : "i8"; }
+
 constexpr int kIters = 10;    /**< the QNN convention: 10 runs, all counted */
 constexpr int kProbeRuns = 3; /**< MHA_HTP_PLAN.md 9.7: >= 3, all printed */
 
@@ -113,22 +129,28 @@ void fill_deterministic(float *v, size_t n, uint32_t seed) {
 }
 
 /**
- * @brief Per-channel symmetric int8 weight quantization.
+ * @brief Per-channel weight quantization, at either width.
  *
- * The same quantizer unittest_hvx_mm_u8i4.cpp uses for the u8i8 fixture,
- * restated here rather than shared: this file measures time, that one
- * measures error, and the day one of them needs a different quantizer
- * neither should have to be re-verified because the other moved.
+ * The same two quantizers unittest_hvx_mm_u8i4.cpp uses -- qs4cx's
+ * 15/(rmax-rmin) into [-8, 7] and the int8 form's 255/(rmax-rmin) into
+ * [-128, 127] -- restated here rather than shared, and parametrised over the
+ * width rather than copied twice: this file measures time, that one measures
+ * error, and the day one of them needs a different quantizer neither should
+ * have to be re-verified because the other moved.
  *
  * @param[in]  w_f32  weights, K rows by N columns, row-major
- * @param[out] q_w    quantized values in [-128, 127], K by N, row-major
+ * @param[in]  w      width, which fixes the span and the clamp
+ * @param[out] q_w    quantized values in the width's range, K by N, row-major
  * @param[out] d      per-channel dequantization multiplier, N entries
  * @param[out] colsum per-channel sum of q_w over K, N entries
  */
-void quantize_weights_symmetric_i8(const std::vector<float> &w_f32, uint32_t K,
-                                   uint32_t N, std::vector<int8_t> &q_w,
-                                   std::vector<float> &d,
-                                   std::vector<int32_t> &colsum) {
+void quantize_weights_symmetric(const std::vector<float> &w_f32, uint32_t K,
+                                uint32_t N, Width w, std::vector<int8_t> &q_w,
+                                std::vector<float> &d,
+                                std::vector<int32_t> &colsum) {
+  const float span = (w == W_I4) ? 15.0f : 255.0f;
+  const int qlo = (w == W_I4) ? -8 : -128;
+  const int qhi = (w == W_I4) ? 7 : 127;
   q_w.assign(static_cast<size_t>(K) * N, 0);
   d.assign(N, 0.0f);
   colsum.assign(N, 0);
@@ -143,13 +165,13 @@ void quantize_weights_symmetric_i8(const std::vector<float> &w_f32, uint32_t K,
     }
     const float rmin = std::min(0.0f, min0);
     const float rmax = std::max(0.0f, max0);
-    const float scale = (rmin == rmax) ? 1.0f : 255.0f / (rmax - rmin);
+    const float scale = (rmin == rmax) ? 1.0f : span / (rmax - rmin);
 
     int32_t sum = 0;
     for (uint32_t k = 0; k < K; ++k) {
       int32_t q = static_cast<int32_t>(
         std::round(w_f32[static_cast<size_t>(k) * N + n] * scale));
-      q = std::max(-128, std::min(127, q));
+      q = std::max(qlo, std::min(qhi, q));
       q_w[static_cast<size_t>(k) * N + n] = static_cast<int8_t>(q);
       sum += q;
     }
@@ -223,199 +245,227 @@ TEST_F(HtpFc, LayerCostQwen3) {
     << "prepare corresponds to. dsp is the same work measured inside the DSP, "
        "so\n"
     << "wall - dsp is the FastRPC transport for M*K + M*N floats.\n"
-    << "shape        M     nh      avg1-10      min      max      dsp"
+    << "shape           M     nh      avg1-10      min      max      dsp"
        "     init   us/mm  dsp/mm\n";
 
   for (const FcShape &s : kShapes) {
-    /* One weight, registered once per shape and reused across every M: the
-     * bake is expensive and M does not enter it, so re-registering per M
-     * would only measure the same bake three times. init_us below is that
-     * one measurement, reported against the shape it belongs to. */
-    std::vector<float> w_f32((size_t)s.K * s.N);
-    fill_deterministic(w_f32.data(), w_f32.size(), 0xFC000001u);
-    std::vector<int8_t> q_w;
-    std::vector<float> d;
-    std::vector<int32_t> colsum;
-    quantize_weights_symmetric_i8(w_f32, s.K, s.N, q_w, d, colsum);
-    std::vector<float> bias(s.N);
-    fill_deterministic(bias.data(), bias.size(), 0xFC000002u);
+    for (Width W : kWidths) {
+      const std::string sname = std::string(s.name) + "_" + width_tag(W);
+      /* One weight, registered once per shape and reused across every M: the
+       * bake is expensive and M does not enter it, so re-registering per M
+       * would only measure the same bake three times. init_us below is that
+       * one measurement, reported against the shape it belongs to. */
+      std::vector<float> w_f32((size_t)s.K * s.N);
+      fill_deterministic(w_f32.data(), w_f32.size(), 0xFC000001u);
+      std::vector<int8_t> q_w;
+      std::vector<float> d;
+      std::vector<int32_t> colsum;
+      quantize_weights_symmetric(w_f32, s.K, s.N, W, q_w, d, colsum);
+      std::vector<float> bias(s.N);
+      fill_deterministic(bias.data(), bias.size(), 0xFC000002u);
 
-    /* kGroupMax registrations of the same bytes, so a group call has distinct
-     * handles to prefetch across. init_us is the FIRST bake only: it is the
-     * per-weight one-time cost a graph prepare corresponds to, and averaging
-     * three of them would only measure the same work three times. */
-    uint32_t handles[kGroupMax];
-    double init_us = 0.0;
-    for (uint32_t g = 0; g < kGroupMax; ++g) {
-      handles[g] = 0xFFFFFFFFu;
-      const auto init_t0 = std::chrono::steady_clock::now();
-      const int rc_reg = nntr_hvx_weight_register_u8i8(
-        handle_, s.K, s.N, q_w.data(), (int)q_w.size(), d.data(), (int)d.size(),
-        colsum.data(), (int)colsum.size(), bias.data(), (int)bias.size(),
-        &handles[g]);
-      const auto init_t1 = std::chrono::steady_clock::now();
-      ASSERT_EQ(rc_reg, AEE_SUCCESS) << "weight_register_u8i8: " << hex(rc_reg);
-      if (g == 0) {
-        init_us =
-          std::chrono::duration<double, std::micro>(init_t1 - init_t0).count();
+      /* kGroupMax registrations of the same bytes, so a group call has distinct
+       * handles to prefetch across. init_us is the FIRST bake only: it is the
+       * per-weight one-time cost a graph prepare corresponds to, and averaging
+       * three of them would only measure the same work three times. */
+      uint32_t handles[kGroupMax];
+      double init_us = 0.0;
+      for (uint32_t g = 0; g < kGroupMax; ++g) {
+        handles[g] = 0xFFFFFFFFu;
+        const auto init_t0 = std::chrono::steady_clock::now();
+        const int rc_reg =
+          (W == W_I4)
+            ? nntr_hvx_weight_register_u8i4(
+                handle_, s.K, s.N, q_w.data(), (int)q_w.size(), d.data(),
+                (int)d.size(), colsum.data(), (int)colsum.size(), bias.data(),
+                (int)bias.size(), &handles[g])
+            : nntr_hvx_weight_register_u8i8(
+                handle_, s.K, s.N, q_w.data(), (int)q_w.size(), d.data(),
+                (int)d.size(), colsum.data(), (int)colsum.size(), bias.data(),
+                (int)bias.size(), &handles[g]);
+        const auto init_t1 = std::chrono::steady_clock::now();
+        ASSERT_EQ(rc_reg, AEE_SUCCESS)
+          << "weight_register_u8" << width_tag(W) << ": " << hex(rc_reg);
+        if (g == 0) {
+          init_us = std::chrono::duration<double, std::micro>(init_t1 - init_t0)
+                      .count();
+        }
       }
-    }
 
-    for (uint32_t M : kSeqLens) {
-      for (uint32_t G : kGroups) {
-        const size_t an = (size_t)M * s.K;
-        /* out_cat concatenates one M x N block per handle, in call order. */
-        const size_t on = (size_t)G * M * s.N;
-        /* Both ride in every timed call. See RpcBuf for why they are
-         * ION-backed: plain heap is re-pinned and re-mapped on EVERY call, and
-         * at 12 MB that mapping is a large part of what is being measured. */
-        RpcBuf abuf(an * sizeof(float));
-        RpcBuf obuf(on * sizeof(float));
-        ASSERT_NE(abuf.p, nullptr);
-        ASSERT_NE(obuf.p, nullptr);
-        float *act = (float *)abuf.p;
-        float *out = (float *)obuf.p;
-        fill_deterministic(act, an, 0x5EED0000u + M);
-        std::memset(out, 0, on * sizeof(float));
-        std::cout << "FC_FIELD path=env field=ion_buffers value="
-                  << ((abuf.ion && obuf.ion) ? 1 : 0) << std::endl;
+      for (uint32_t M : kSeqLens) {
+        for (uint32_t G : kGroups) {
+          const size_t an = (size_t)M * s.K;
+          /* out_cat concatenates one M x N block per handle, in call order. */
+          const size_t on = (size_t)G * M * s.N;
+          /* Both ride in every timed call. See RpcBuf for why they are
+           * ION-backed: plain heap is re-pinned and re-mapped on EVERY call,
+           * and at 12 MB that mapping is a large part of what is being
+           * measured. */
+          RpcBuf abuf(an * sizeof(float));
+          RpcBuf obuf(on * sizeof(float));
+          ASSERT_NE(abuf.p, nullptr);
+          ASSERT_NE(obuf.p, nullptr);
+          float *act = (float *)abuf.p;
+          float *out = (float *)obuf.p;
+          fill_deterministic(act, an, 0x5EED0000u + M);
+          std::memset(out, 0, on * sizeof(float));
+          std::cout << "FC_FIELD path=env field=ion_buffers value="
+                    << ((abuf.ion && obuf.ion) ? 1 : 0) << std::endl;
 
-        /* PRODUCTION path: mm_u8i8_layer leaves the DSP's in-loop probes off,
-         * which is what a real caller pays and therefore what the headline
-         * reports. The instrumented runs below are for the breakdown, and the
-         * gap between them is published rather than folded in. */
-        double iter[kIters];
-        for (int r = 0; r < kIters; ++r) {
-          const auto t0 = std::chrono::steady_clock::now();
-          const int err = nntr_hvx_mm_u8i8_layer(handle_, M, s.K, handles, G,
-                                                 act, (int)an, out, (int)on);
-          const auto t1 = std::chrono::steady_clock::now();
-          ASSERT_EQ(err, AEE_SUCCESS)
-            << "mm_u8i8_layer: " << hex(err) << " at M=" << M
-            << " -- ENOMEMORY here means the activation plus the "
-               "double-buffered weight outgrew the VTCM arena";
-          iter[r] = std::chrono::duration<double, std::micro>(t1 - t0).count();
+          /* PRODUCTION path: mm_u8i8_layer leaves the DSP's in-loop probes off,
+           * which is what a real caller pays and therefore what the headline
+           * reports. The instrumented runs below are for the breakdown, and the
+           * gap between them is published rather than folded in. */
+          double iter[kIters];
+          for (int r = 0; r < kIters; ++r) {
+            const auto t0 = std::chrono::steady_clock::now();
+            const int err =
+              (W == W_I4) ? nntr_hvx_mm_u8i4_layer(handle_, M, s.K, handles, G,
+                                                   act, (int)an, out, (int)on)
+                          : nntr_hvx_mm_u8i8_layer(handle_, M, s.K, handles, G,
+                                                   act, (int)an, out, (int)on);
+            const auto t1 = std::chrono::steady_clock::now();
+            ASSERT_EQ(err, AEE_SUCCESS)
+              << "mm_u8" << width_tag(W) << "_layer: " << hex(err)
+              << " at M=" << M
+              << " -- ENOMEMORY here means the activation plus the "
+                 "double-buffered weight outgrew the VTCM arena";
+            iter[r] =
+              std::chrono::duration<double, std::micro>(t1 - t0).count();
+          }
+          double sum = 0.0, lo = iter[0], hi = iter[0];
+          for (int r = 0; r < kIters; ++r) {
+            sum += iter[r];
+            lo = std::min(lo, iter[r]);
+            hi = std::max(hi, iter[r]);
+          }
+          const double avg = sum / (double)kIters;
+
+          /* Keep the production result so the instrumented entry point can be
+           * held to it byte for byte, below and outside every timed region. */
+          std::vector<float> want(out, out + on);
+
+          double probed[kProbeRuns];
+          std::vector<uint32_t> stage_of[kProbeRuns];
+          for (int r = 0; r < kProbeRuns; ++r) {
+            std::vector<uint32_t> stage(kNStages, 0u);
+            const auto t0 = std::chrono::steady_clock::now();
+            const int err =
+              (W == W_I4)
+                ? nntr_hvx_mm_u8i4_layer_timed(handle_, M, s.K, handles, G, act,
+                                               (int)an, out, (int)on,
+                                               stage.data(), (int)stage.size())
+                : nntr_hvx_mm_u8i8_layer_timed(handle_, M, s.K, handles, G, act,
+                                               (int)an, out, (int)on,
+                                               stage.data(), (int)stage.size());
+            const auto t1 = std::chrono::steady_clock::now();
+            /* Checked after the clock stops, deliberately. */
+            ASSERT_EQ(err, AEE_SUCCESS)
+              << "mm_u8" << width_tag(W) << "_layer_timed: " << hex(err);
+            probed[r] =
+              std::chrono::duration<double, std::micro>(t1 - t0).count();
+            stage_of[r] = stage;
+          }
+
+          /* The gate this file carries: instrumentation must not change the
+           * answer. Bitwise, because both paths run identical integer
+           * arithmetic on identical inputs -- a tolerance here would hide a
+           * probe that perturbs the kernel. */
+          const int diff = std::memcmp(out, want.data(), on * sizeof(float));
+          EXPECT_EQ(diff, 0) << "mm_u8" << width_tag(W)
+                             << "_layer_timed returned different bytes than "
+                                "the production entry at M="
+                             << M;
+          const int timed_ok = (diff == 0) ? 1 : 0;
+
+          /* MEDIAN of the probe runs, not the min: wall clock on this device is
+           * bimodal at roughly +-25% run to run (DVFS residency, not our code),
+           * so the min publishes whichever run landed in the fast state. It
+           * stays a single measured run rather than a mean, so the stage
+           * breakdown beside it comes from that same run and sums to its own
+           * dsp_total. */
+          int ord[kProbeRuns];
+          for (int r = 0; r < kProbeRuns; ++r) {
+            ord[r] = r;
+          }
+          std::sort(ord, ord + kProbeRuns,
+                    [&probed](int a, int b) { return probed[a] < probed[b]; });
+          const double med_probed = probed[ord[kProbeRuns / 2]];
+          const std::vector<uint32_t> &med_stage =
+            stage_of[ord[kProbeRuns / 2]];
+          const double dsp = (double)med_stage[kStageDspTotal];
+
+          std::cout << std::left << std::setw(14) << sname << std::setw(6) << M
+                    << std::right << std::setw(3) << G << std::fixed
+                    << std::setprecision(1) << std::setw(13) << avg
+                    << std::setw(9) << lo << std::setw(9) << hi << std::setw(9)
+                    << dsp << std::setw(9) << init_us << std::setw(8)
+                    << (avg / (double)G) << std::setw(8) << (dsp / (double)G)
+                    << "\n"
+                    << std::left;
+
+          std::string path =
+            std::string("fc_") + sname +
+            (G > 1u ? ("_x" + std::to_string(G)) : std::string()) + "_m" +
+            std::to_string(M);
+          static const char *kRun[] = {"us_avg_1_10", "us_min", "us_max",
+                                       "us_first", "init_us"};
+          const double run_v[] = {avg, lo, hi, iter[0], init_us};
+          for (size_t f = 0; f < sizeof(run_v) / sizeof(run_v[0]); ++f) {
+            std::cout << "FC_FIELD path=" << path << " field=" << kRun[f]
+                      << " value=" << run_v[f] << std::endl;
+          }
+          /* Shape travels with the numbers so the report can derive MAC counts
+           * and transported bytes without a second copy of kShapes to drift. */
+          std::cout << "FC_FIELD path=" << path << " field=M value=" << M
+                    << std::endl;
+          std::cout << "FC_FIELD path=" << path << " field=K value=" << s.K
+                    << std::endl;
+          std::cout << "FC_FIELD path=" << path << " field=N value=" << s.N
+                    << std::endl;
+          /* Published, not just asserted: a report that only shows timings
+           * should be able to say on its own face whether the breakdown beside
+           * them describes the same computation as the headline. */
+          std::cout << "FC_FIELD path=" << path
+                    << " field=timed_matches_production value=" << timed_ok
+                    << std::endl;
+
+          for (int st = 0; st < kNStages; ++st) {
+            std::cout << "FC_STAGE path=" << path << " field=" << kStage[st]
+                      << " value=" << med_stage[st] << std::endl;
+          }
+          /* dsp_total came from the INSTRUMENTED run, so subtract it from THAT
+           * run's wall; mixing it with the production wall would fold the
+           * instrumentation into the transport estimate. */
+          std::cout << "FC_STAGE path=" << path
+                    << " field=transport_us value=" << (med_probed - dsp)
+                    << std::endl;
+          std::cout << "FC_STAGE path=" << path
+                    << " field=probe_overhead_us value=" << (med_probed - avg)
+                    << std::endl;
+          /* The two numbers the cross row exists to publish. Per MATMUL,
+           * because that is the unit doc13 3a's 1.7-2x is quoted in and the
+           * unit the one-handle row beside it reports. dsp_per_matmul is the
+           * comparable one: wall_per_matmul also carries transport, which
+           * scales with the G x M x N output bytes and so gets worse with G no
+           * matter how well the weight staging hides. */
+          std::cout << "FC_FIELD path=" << path
+                    << " field=n_handles value=" << G << std::endl;
+          std::cout << "FC_FIELD path=" << path
+                    << " field=us_per_matmul value=" << (avg / (double)G)
+                    << std::endl;
+          std::cout << "FC_STAGE path=" << path
+                    << " field=dsp_per_matmul_us value=" << (dsp / (double)G)
+                    << std::endl;
         }
-        double sum = 0.0, lo = iter[0], hi = iter[0];
-        for (int r = 0; r < kIters; ++r) {
-          sum += iter[r];
-          lo = std::min(lo, iter[r]);
-          hi = std::max(hi, iter[r]);
-        }
-        const double avg = sum / (double)kIters;
-
-        /* Keep the production result so the instrumented entry point can be
-         * held to it byte for byte, below and outside every timed region. */
-        std::vector<float> want(out, out + on);
-
-        double probed[kProbeRuns];
-        std::vector<uint32_t> stage_of[kProbeRuns];
-        for (int r = 0; r < kProbeRuns; ++r) {
-          std::vector<uint32_t> stage(kNStages, 0u);
-          const auto t0 = std::chrono::steady_clock::now();
-          const int err = nntr_hvx_mm_u8i8_layer_timed(
-            handle_, M, s.K, handles, G, act, (int)an, out, (int)on,
-            stage.data(), (int)stage.size());
-          const auto t1 = std::chrono::steady_clock::now();
-          /* Checked after the clock stops, deliberately. */
-          ASSERT_EQ(err, AEE_SUCCESS) << "mm_u8i8_layer_timed: " << hex(err);
-          probed[r] =
-            std::chrono::duration<double, std::micro>(t1 - t0).count();
-          stage_of[r] = stage;
-        }
-
-        /* The gate this file carries: instrumentation must not change the
-         * answer. Bitwise, because both paths run identical integer
-         * arithmetic on identical inputs -- a tolerance here would hide a
-         * probe that perturbs the kernel. */
-        const int diff = std::memcmp(out, want.data(), on * sizeof(float));
-        EXPECT_EQ(diff, 0) << "mm_u8i8_layer_timed returned different bytes "
-                           << "than mm_u8i8_layer at M=" << M;
-        const int timed_ok = (diff == 0) ? 1 : 0;
-
-        /* MEDIAN of the probe runs, not the min: wall clock on this device is
-         * bimodal at roughly +-25% run to run (DVFS residency, not our code),
-         * so the min publishes whichever run landed in the fast state. It
-         * stays a single measured run rather than a mean, so the stage
-         * breakdown beside it comes from that same run and sums to its own
-         * dsp_total. */
-        int ord[kProbeRuns];
-        for (int r = 0; r < kProbeRuns; ++r) {
-          ord[r] = r;
-        }
-        std::sort(ord, ord + kProbeRuns,
-                  [&probed](int a, int b) { return probed[a] < probed[b]; });
-        const double med_probed = probed[ord[kProbeRuns / 2]];
-        const std::vector<uint32_t> &med_stage = stage_of[ord[kProbeRuns / 2]];
-        const double dsp = (double)med_stage[kStageDspTotal];
-
-        std::cout << std::left << std::setw(11) << s.name << std::setw(6) << M
-                  << std::right << std::setw(3) << G << std::fixed
-                  << std::setprecision(1) << std::setw(13) << avg
-                  << std::setw(9) << lo << std::setw(9) << hi << std::setw(9)
-                  << dsp << std::setw(9) << init_us << std::setw(8)
-                  << (avg / (double)G) << std::setw(8) << (dsp / (double)G)
-                  << "\n"
-                  << std::left;
-
-        std::string path =
-          std::string("fc_") + s.name +
-          (G > 1u ? ("_x" + std::to_string(G)) : std::string()) + "_m" +
-          std::to_string(M);
-        static const char *kRun[] = {"us_avg_1_10", "us_min", "us_max",
-                                     "us_first", "init_us"};
-        const double run_v[] = {avg, lo, hi, iter[0], init_us};
-        for (size_t f = 0; f < sizeof(run_v) / sizeof(run_v[0]); ++f) {
-          std::cout << "FC_FIELD path=" << path << " field=" << kRun[f]
-                    << " value=" << run_v[f] << std::endl;
-        }
-        /* Shape travels with the numbers so the report can derive MAC counts
-         * and transported bytes without a second copy of kShapes to drift. */
-        std::cout << "FC_FIELD path=" << path << " field=M value=" << M
-                  << std::endl;
-        std::cout << "FC_FIELD path=" << path << " field=K value=" << s.K
-                  << std::endl;
-        std::cout << "FC_FIELD path=" << path << " field=N value=" << s.N
-                  << std::endl;
-        /* Published, not just asserted: a report that only shows timings should
-         * be able to say on its own face whether the breakdown beside them
-         * describes the same computation as the headline. */
-        std::cout << "FC_FIELD path=" << path
-                  << " field=timed_matches_production value=" << timed_ok
-                  << std::endl;
-
-        for (int st = 0; st < kNStages; ++st) {
-          std::cout << "FC_STAGE path=" << path << " field=" << kStage[st]
-                    << " value=" << med_stage[st] << std::endl;
-        }
-        /* dsp_total came from the INSTRUMENTED run, so subtract it from THAT
-         * run's wall; mixing it with the production wall would fold the
-         * instrumentation into the transport estimate. */
-        std::cout << "FC_STAGE path=" << path
-                  << " field=transport_us value=" << (med_probed - dsp)
-                  << std::endl;
-        std::cout << "FC_STAGE path=" << path
-                  << " field=probe_overhead_us value=" << (med_probed - avg)
-                  << std::endl;
-        /* The two numbers the cross row exists to publish. Per MATMUL, because
-         * that is the unit doc13 3a's 1.7-2x is quoted in and the unit the
-         * one-handle row beside it reports. dsp_per_matmul is the comparable
-         * one: wall_per_matmul also carries transport, which scales with the
-         * G x M x N output bytes and so gets worse with G no matter how well
-         * the weight staging hides. */
-        std::cout << "FC_FIELD path=" << path << " field=n_handles value=" << G
-                  << std::endl;
-        std::cout << "FC_FIELD path=" << path
-                  << " field=us_per_matmul value=" << (avg / (double)G)
-                  << std::endl;
-        std::cout << "FC_STAGE path=" << path
-                  << " field=dsp_per_matmul_us value=" << (dsp / (double)G)
-                  << std::endl;
       }
-    }
 
-    for (uint32_t g = 0; g < kGroupMax; ++g) {
-      EXPECT_EQ(nntr_hvx_weight_release_u8i8(handle_, handles[g]), AEE_SUCCESS);
+      for (uint32_t g = 0; g < kGroupMax; ++g) {
+        EXPECT_EQ((W == W_I4)
+                    ? nntr_hvx_weight_release_u8i4(handle_, handles[g])
+                    : nntr_hvx_weight_release_u8i8(handle_, handles[g]),
+                  AEE_SUCCESS);
+      }
     }
   }
 }
