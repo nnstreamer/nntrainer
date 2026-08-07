@@ -86,7 +86,7 @@ fi
 [ -f "$LIBNNTRAINER" ] || fail "libnntrainer.so did not build: $LIBNNTRAINER"
 
 # --- 3. ARM gtest -----------------------------------------------------------
-log "3/4  Building unittest_hvx_mm_u8i4 (ndk-build, arm64-v8a)"
+log "3/4  Building unittest_hvx_mm_u8i4 + unittest_hvx_softmax (ndk-build, arm64-v8a)"
 GTEST_SUBMODULE="$REPO_ROOT/subprojects/googletest"
 if [ ! -f "$GTEST_SUBMODULE/googletest/include/gtest/gtest.h" ]; then
   echo "  googletest submodule looks unfetched -- running git submodule update"
@@ -110,16 +110,22 @@ fi
     APP_BUILD_SCRIPT=./Android.mk \
     NNTRAINER_ROOT="$REPO_ROOT" \
     HEXAGON_SDK_ROOT="$HEXAGON_SDK_ROOT" \
-    unittest_hvx_mm_u8i4
+    unittest_hvx_mm_u8i4 unittest_hvx_softmax
 )
 TEST_BIN="$REPO_ROOT/test/jni/obj/local/arm64-v8a/unittest_hvx_mm_u8i4"
 [ -f "$TEST_BIN" ] || fail "test binary did not build: $TEST_BIN"
+# The softmax fixture carries the blocked-softmax gate: PHASE B of the fused
+# attention loop against mha_softmax_blocked_ref, the same host model the whole
+# flash loop is specified against.
+SOFTMAX_BIN="$REPO_ROOT/test/jni/obj/local/arm64-v8a/unittest_hvx_softmax"
+[ -f "$SOFTMAX_BIN" ] || fail "test binary did not build: $SOFTMAX_BIN"
 
 # --- 4. push + run -----------------------------------------------------------
 log "4/4  Pushing to $DEVICE:$DEVICE_TMP and running"
 adb shell "mkdir -p $DEVICE_TMP"
 adb push "$SKEL" "$DEVICE_TMP/" >/dev/null
 adb push "$TEST_BIN" "$DEVICE_TMP/" >/dev/null
+adb push "$SOFTMAX_BIN" "$DEVICE_TMP/" >/dev/null
 # c++_shared runtime the test binary links against (APP_STL in Application.mk)
 CXX_SHARED="$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so"
 [ -f "$CXX_SHARED" ] && adb push "$CXX_SHARED" "$DEVICE_TMP/" >/dev/null
@@ -131,11 +137,24 @@ adb shell "cd $DEVICE_TMP && \
   ./unittest_hvx_mm_u8i4" 2>&1 | tee /tmp/hvx_mm_u8i4_device_run.log
 
 echo
+log "4b/4  HVX softmax, including the blocked (flash attention PHASE B) gate"
+adb shell "cd $DEVICE_TMP && \
+  chmod +x unittest_hvx_softmax && \
+  LD_LIBRARY_PATH=$DEVICE_TMP ADSP_LIBRARY_PATH=$DEVICE_TMP \
+  ./unittest_hvx_softmax" 2>&1 | tee /tmp/hvx_softmax_device_run.log
+
+echo
 log "Summary"
 grep -E "^\[  (PASSED|FAILED)|U8I[48]_FIELD" /tmp/hvx_mm_u8i4_device_run.log || true
+grep -E "^\[  (PASSED|FAILED)|BLOCKED_FIELD" /tmp/hvx_softmax_device_run.log || true
 echo
-echo "Full log: /tmp/hvx_mm_u8i4_device_run.log"
+echo "Full logs: /tmp/hvx_mm_u8i4_device_run.log"
+echo "           /tmp/hvx_softmax_device_run.log"
 echo "Gate to clear before starting PR③: all PASSED, and the printed"
 echo "U8I4_FIELD path=layer_x4 field=speedup_vs_harness value=... should be"
 echo "in the neighbourhood of 1.7-2 (doc13 §3a). If it is not, stop and find"
 echo "out why before building anything on top of this."
+echo
+echo "Gate for the attention work: HvxSoftmaxBlocked all PASSED, and both"
+echo "BLOCKED_FIELD max_abs_err_p / max_abs_err_l <= 1e-6 against the host"
+echo "model. That is what makes the later bit-exactness gates meaningful."
