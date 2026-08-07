@@ -375,9 +375,12 @@ int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
       for (j = 0; j < n_blocks; ++j) {
         ctx->seg[j] = ctx->s_band + (size_t)j * mb * ctx->T;
       }
+      TICK(t0);
       hvx_softmax_blocked_f32(
         ctx->seg, n_blocks, ctx->T, 0u, mb, mb, scale, ctx->begin, ctx->end,
         (sink != NULL) ? ctx->sink_row : NULL, ctx->l_row);
+      TICK(t1);
+      ACCUM(HEXKL_ATTN_T_SOFTMAX, t0, t1);
 
       /* ---- PHASE C: output, streaming the V blocks ---------------------- */
       memset(ctx->o_band, 0, (size_t)mb * ctx->head_dim * sizeof(float));
@@ -389,15 +392,22 @@ int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
         /* One handle per call, so P is quantized PER BLOCK (property 2):
          * layer_run quantizes act_f32 itself, and after PHASE B this block's
          * rows have a known range in (0, 1] with zp landing at 0 naturally. */
+        TICK(t0);
         rc = ctx->ops_v.run(ctx->ops_v.table, ctx->vtcm_base, ctx->vtcm_size,
                             ctx->config_off, mb, ctx->T, &hv, 1u, ctx->seg[j],
                             ctx->o_part);
+        TICK(t1);
+        ACCUM(HEXKL_ATTN_T_PV, t0, t1);
+        if (stage_us) {
+          stage_us[HEXKL_ATTN_T_CALLS] += 1u;
+        }
         if (rc != AEE_SUCCESS) {
           return rc;
         }
         /* Accumulate in f32 across blocks (property 3): each block carries its
          * own dequant constants, so an integer accumulation would apply block
          * 0's scale to every block. */
+        TICK(t0);
         for (m = 0; m < mb; ++m) {
           for (d = 0; d < ctx->head_dim; ++d) {
             ctx->o_band[(size_t)m * ctx->head_dim + d] +=
@@ -410,6 +420,7 @@ int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
 
       /* The 1/l normalization happens ONCE, here, after every block has been
        * accumulated (property 4) -- not as a third softmax pass. */
+      TICK(t0);
       for (m = 0; m < mb; ++m) {
         const uint32_t i = (b0 + m) / ctx->gqa;
         const uint32_t g = (b0 + m) % ctx->gqa;
