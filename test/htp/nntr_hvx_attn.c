@@ -181,5 +181,42 @@ int nntr_hvx_attn_forward(remote_handle64 handle, uint32 h, uint32 kv_from,
 
   return hexkl_attn_u8_forward(ctx, kv_from, n_query, scale, (int)is_causal,
                                window, sinkLen ? sink : NULL, q, out, NULL,
-                               NULL);
+                               NULL, NULL);
+}
+
+int nntr_hvx_attn_forward_timed(remote_handle64 handle, uint32 h,
+                                uint32 kv_from, uint32 n_query, float scale,
+                                uint32 is_causal, uint32 window,
+                                const float *sink, int sinkLen, const float *q,
+                                int qLen, float *attn_out, int attn_outLen,
+                                uint32 *stage_us, int stage_usLen) {
+  nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  hexkl_attn_u8_ctx *ctx;
+  uint32 nHq, want;
+
+  if (!s) {
+    return AEE_EBADPARM;
+  }
+  ctx = attn_lookup(h);
+  if (!ctx) {
+    return AEE_EBADPARM;
+  }
+  if (stage_usLen != HEXKL_ATTN_N_STAGES) {
+    FARF(ERROR, "attn_forward_timed: stage_us must have %d entries, got %d",
+         (int)HEXKL_ATTN_N_STAGES, stage_usLen);
+    return AEE_EBADPARM;
+  }
+
+  nHq = ctx->nch * ctx->gqa;
+  want = n_query * nHq * ctx->head_dim;
+  if ((uint32)qLen != want || (uint32)attn_outLen != want) {
+    return AEE_EBADPARM;
+  }
+  if (sinkLen != 0 && (uint32)sinkLen != nHq) {
+    return AEE_EBADPARM;
+  }
+
+  return hexkl_attn_u8_forward(ctx, kv_from, n_query, scale, (int)is_causal,
+                               window, sinkLen ? sink : NULL, q, attn_out, NULL,
+                               NULL, stage_us);
 }

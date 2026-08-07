@@ -164,6 +164,10 @@ echo
 echo "Full logs: /tmp/hvx_mm_u8i4_device_run.log"
 echo "           /tmp/hvx_softmax_device_run.log"
 echo "           /tmp/hvx_attn_device_run.log"
+echo
+echo "Tables and a HTML report from those logs:"
+echo "  tools/htp_attn_report.py"
+echo "  tools/htp_attn_report.py --html /tmp/htp_attn_report.html"
 echo "Gate to clear before starting PR③: all PASSED, and the printed"
 echo "U8I4_FIELD path=layer_x4 field=speedup_vs_harness value=... should be"
 echo "in the neighbourhood of 1.7-2 (doc13 §3a). If it is not, stop and find"

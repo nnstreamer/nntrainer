@@ -145,6 +145,18 @@ int hexkl_attn_u8_kv_append(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
 int hexkl_attn_u8_scores(hexkl_attn_u8_ctx *ctx, uint32_t head, uint32_t M,
                          const float *q_band, float *out_s);
 
+/** @brief Slots in the stage_us array hexkl_attn_u8_forward can fill. */
+enum {
+  HEXKL_ATTN_T_QK = 0,  /**< PHASE A, the ops_k->run call */
+  HEXKL_ATTN_T_SOFTMAX, /**< PHASE B */
+  HEXKL_ATTN_T_PV,      /**< PHASE C, the ops_v->run calls */
+  HEXKL_ATTN_T_ACCUM,   /**< PHASE C's f32 accumulate across blocks */
+  HEXKL_ATTN_T_GATHER,  /**< Q row gather + the 1/l writeback */
+  HEXKL_ATTN_T_TOTAL,   /**< whole call, DSP side only */
+  HEXKL_ATTN_T_CALLS,   /**< layer_run calls made, not microseconds */
+  HEXKL_ATTN_N_STAGES
+};
+
 /**
  * @brief The whole fused forward: PHASE A, B and C for every kv_head and band.
  *
@@ -163,11 +175,19 @@ int hexkl_attn_u8_scores(hexkl_attn_u8_ctx *ctx, uint32_t head, uint32_t M,
  * @param[out] out same shape as @a q
  * @param[out] dbg_p  NULL, or max_blocks*M_band*T floats receiving the LAST
  *               band's unnormalized P -- debug only, stripped before the PR
+ * @param[out] stage_us  NULL, or HEXKL_ATTN_N_STAGES entries receiving the
+ *               per-stage microseconds. Reading the timer costs a few cycles
+ *               per band, so passing NULL skips it entirely -- the production
+ *               path pays nothing. MHA_HTP_PLAN.md §9.7 asks for this
+ *               breakdown from day one because the last three times this
+ *               project acted on a performance hypothesis without one, the
+ *               hypothesis was wrong.
  */
 int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
                           uint32_t n_query, float scale, int is_causal,
                           uint32_t window, const float *sink, const float *q,
-                          float *out, float *dbg_p, float *dbg_l);
+                          float *out, float *dbg_p, float *dbg_l,
+                          uint32_t *stage_us);
 
 /** @brief Blocks currently carrying registered KV, i.e. ceil(kv_len / T). */
 uint32_t hexkl_attn_u8_n_blocks(const hexkl_attn_u8_ctx *ctx);

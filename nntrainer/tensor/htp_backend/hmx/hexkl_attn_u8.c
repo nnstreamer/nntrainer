@@ -18,6 +18,7 @@
 #include <string.h>
 
 #include <AEEStdErr.h>
+#include <HAP_perf.h>
 
 #include "hexkl_attn_u8.h"
 #include "hexkl_kv_quant.h"
@@ -27,6 +28,32 @@
 static uint32_t row_stride(const hexkl_attn_u8_ctx *ctx) {
   return ctx->nch * ctx->head_dim;
 }
+
+/**
+ * @brief Microsecond clock, read only when a caller asked for the breakdown.
+ *
+ * HAP_perf_get_qtimer_count is the DSP's own free-running counter, so this
+ * measures DSP-internal time and excludes the FastRPC round trip -- which is
+ * the point: the host side already times the whole call, and the difference
+ * between the two is the transport.
+ */
+static inline uint64_t now_us(void) {
+  return HAP_perf_qtimer_count_to_us(HAP_perf_get_qtimer_count());
+}
+
+#define TICK(dst)                                                              \
+  do {                                                                         \
+    if (stage_us) {                                                            \
+      (dst) = now_us();                                                        \
+    }                                                                          \
+  } while (0)
+
+#define ACCUM(slot, t0, t1)                                                    \
+  do {                                                                         \
+    if (stage_us) {                                                            \
+      stage_us[slot] += (uint32_t)((t1) - (t0));                               \
+    }                                                                          \
+  } while (0)
 
 uint32_t hexkl_attn_u8_n_blocks(const hexkl_attn_u8_ctx *ctx) {
   return (ctx->kv_len + ctx->T - 1u) / ctx->T;
@@ -244,6 +271,8 @@ int hexkl_attn_u8_kv_append(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
       }
     }
   }
+  TICK(t1);
+  ACCUM(HEXKL_ATTN_T_TOTAL, t_call0, t1);
   return AEE_SUCCESS;
 }
 
@@ -280,8 +309,10 @@ int hexkl_attn_u8_scores(hexkl_attn_u8_ctx *ctx, uint32_t head, uint32_t M,
 int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
                           uint32_t n_query, float scale, int is_causal,
                           uint32_t window, const float *sink, const float *q,
-                          float *out, float *dbg_p, float *dbg_l) {
+                          float *out, float *dbg_p, float *dbg_l,
+                          uint32_t *stage_us) {
   uint32_t nHq, M, n_blocks, n, b0, m, j, d;
+  uint64_t t0 = 0, t1 = 0, t_call0 = 0;
   int rc;
 
   if (ctx == NULL || q == NULL || out == NULL || n_query == 0u) {
@@ -295,6 +326,13 @@ int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
     return AEE_EBADSTATE;
   }
 
+  if (stage_us) {
+    for (n = 0; n < (uint32_t)HEXKL_ATTN_N_STAGES; ++n) {
+      stage_us[n] = 0u;
+    }
+  }
+  TICK(t_call0);
+
   nHq = ctx->nch * ctx->gqa;
   M = n_query * ctx->gqa; /* GQA row fold, per kv_head (doc08 §7) */
   n_blocks = hexkl_attn_u8_n_blocks(ctx);
@@ -304,6 +342,7 @@ int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
       const uint32_t mb = (M - b0 < ctx->M_band) ? (M - b0) : ctx->M_band;
 
       /* ---- PHASE A: scores, streaming the K blocks ---------------------- */
+      TICK(t0);
       for (m = 0; m < mb; ++m) {
         const uint32_t i = (b0 + m) / ctx->gqa;
         const uint32_t g = (b0 + m) % ctx->gqa;
@@ -311,7 +350,16 @@ int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
                q + ((size_t)i * nHq + n * ctx->gqa + g) * ctx->head_dim,
                (size_t)ctx->head_dim * sizeof(float));
       }
+      TICK(t1);
+      ACCUM(HEXKL_ATTN_T_GATHER, t0, t1);
+
+      TICK(t0);
       rc = hexkl_attn_u8_scores(ctx, n, mb, ctx->q_gather, ctx->s_band);
+      TICK(t1);
+      ACCUM(HEXKL_ATTN_T_QK, t0, t1);
+      if (stage_us) {
+        stage_us[HEXKL_ATTN_T_CALLS] += 1u;
+      }
       if (rc != AEE_SUCCESS) {
         return rc;
       }
@@ -358,6 +406,8 @@ int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
               ctx->o_part[(size_t)m * ctx->head_dim + d];
           }
         }
+        TICK(t1);
+        ACCUM(HEXKL_ATTN_T_ACCUM, t0, t1);
       }
 
       /* The 1/l normalization happens ONCE, here, after every block has been
@@ -373,6 +423,9 @@ int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
         }
       }
 
+      TICK(t1);
+      ACCUM(HEXKL_ATTN_T_GATHER, t0, t1);
+
       if (dbg_p != NULL) {
         memcpy(dbg_p, ctx->s_band,
                (size_t)n_blocks * mb * ctx->T * sizeof(float));
@@ -382,5 +435,7 @@ int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
       }
     }
   }
+  TICK(t1);
+  ACCUM(HEXKL_ATTN_T_TOTAL, t_call0, t1);
   return AEE_SUCCESS;
 }
