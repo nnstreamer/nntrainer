@@ -62,9 +62,18 @@ struct FcShape {
 };
 const FcShape kShapes[] = {{"qproj", 1024u, 2048u}};
 
-/** @brief Sequence lengths, i.e. the matmul's M. 1 is decode; the other two
- *         are the lengths the QNN table quotes. */
-const uint32_t kSeqLens[] = {1u, 512u, 1024u};
+/**
+ * @brief Sequence lengths, i.e. the matmul's M.
+ *
+ * 1 is decode. 64 is the row count hexkl_micro_fc_bench.c measured at, and it
+ * is here to make that comparison exact rather than argued: the accumulator is
+ * 64 rows wide, so m_pad rounds 1 up to 64 and the HMX matmul, the weight DMA
+ * and the accumulator read cost the same at both -- but quant and dequant walk
+ * the REAL rows, so they do not, and neither does the FastRPC payload. 512 and
+ * 1024 are the lengths the QNN table quotes; 1024 is also this model's
+ * init_seq_len.
+ */
+const uint32_t kSeqLens[] = {1u, 64u, 512u, 1024u};
 
 /**
  * @brief Handles per call: one, then a cross-matmul group.
