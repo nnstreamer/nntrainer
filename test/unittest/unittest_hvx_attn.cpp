@@ -204,8 +204,9 @@ TEST_F(HvxAttnScores, MatchesHostModelOverTheShapeMatrix) {
   size_t cases = 0;
 
   std::cout << "\nS band vs host model -- max|dev - host| / max|host|\n"
-            << "w_k,w_v are the WEIGHT widths; both activations stay u8, so"
-               " (I8,I4) means S=u8i8, O=u8i4\n"
+            << "w_k,w_v are the Kt and V CACHE widths, in that order. "
+               "Activations are u8 throughout,\n"
+            << "so I4 means a u8 x i4 matmul -- nothing here is u4.\n"
             << "shape (kv,nq,gqa,nch,hd,T)     w_k,w_v   max_rel_err\n";
 
   for (uint32_t kv : {32u, 33u, 256u, 257u, 1024u}) {
@@ -398,8 +399,9 @@ TEST_F(HvxAttnScores, FusedForwardMatchesHostModel) {
   size_t cases = 0;
 
   std::cout << "\nfused forward vs host model -- max|dev - host| / max|host|\n"
-            << "w_k,w_v are the WEIGHT widths; both activations stay u8, so"
-               " (I8,I4) means S=u8i8, O=u8i4\n"
+            << "w_k,w_v are the Kt and V CACHE widths, in that order. "
+               "Activations are u8 throughout,\n"
+            << "so I4 means a u8 x i4 matmul -- nothing here is u4.\n"
             << "shape (kv,nq,gqa,nch,hd,T,Mb,win,c,sk)  w_k,w_v  max_rel_err\n";
 
   for (const FwdCfg &f : cfgs) {
@@ -529,8 +531,9 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
 
   std::cout << "\nQwen3-0.6B attention, one fused layer end to end "
             << "(includes FastRPC transport)\n"
-            << "w_k,w_v are the WEIGHT widths; both activations stay u8, so"
-               " (I8,I4) means S=u8i8, O=u8i4\n"
+            << "w_k,w_v are the Kt and V CACHE widths, in that order. "
+               "Activations are u8 throughout,\n"
+            << "so I4 means a u8 x i4 matmul -- nothing here is u4.\n"
             << "kv_len regime   w_k,w_v   us_per_layer (3 runs)\n";
 
   for (uint32_t kv_len : {512u, 1024u}) {
