@@ -127,6 +127,6 @@ int nntr_hvx_softmax_blocked_f32(remote_handle64 handle, uint32 n_seg, uint32 T,
   }
 
   hvx_softmax_blocked_f32(seg, n_seg, T, 0u, M, M, scale, begin, end,
-                          sinkLen ? sink : NULL, l_out);
+                          sinkLen ? sink : NULL, l_out, NULL);
   return AEE_SUCCESS;
 }

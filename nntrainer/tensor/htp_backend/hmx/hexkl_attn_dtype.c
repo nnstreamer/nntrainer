@@ -35,10 +35,11 @@ static int rel_u8i4(void *tbl, uint32_t handle) {
 static int run_u8i4(void *tbl, uint8_t *vtcm_base, uint32_t vtcm_size,
                     uint32_t config_off, uint32_t M, uint32_t K,
                     const uint32_t *handles, uint32_t n_handles,
-                    const float *act_f32, float *out_cat) {
+                    const float *act_f32, float *out_cat,
+                    const hexkl_mm_opts *opts) {
   return hexkl_mm_u8i4_layer_run((hexkl_weight_u8i4_table *)tbl, vtcm_base,
                                  vtcm_size, config_off, M, K, handles,
-                                 n_handles, act_f32, out_cat);
+                                 n_handles, act_f32, out_cat, opts);
 }
 
 static int reg_u8i8(void *tbl, uint8_t *vtcm_base, uint32_t vtcm_size,
@@ -57,10 +58,11 @@ static int rel_u8i8(void *tbl, uint32_t handle) {
 static int run_u8i8(void *tbl, uint8_t *vtcm_base, uint32_t vtcm_size,
                     uint32_t config_off, uint32_t M, uint32_t K,
                     const uint32_t *handles, uint32_t n_handles,
-                    const float *act_f32, float *out_cat) {
+                    const float *act_f32, float *out_cat,
+                    const hexkl_mm_opts *opts) {
   return hexkl_mm_u8i8_layer_run((hexkl_weight_u8i8_table *)tbl, vtcm_base,
                                  vtcm_size, config_off, M, K, handles,
-                                 n_handles, act_f32, out_cat);
+                                 n_handles, act_f32, out_cat, opts);
 }
 
 int hexkl_attn_ops_init(hexkl_attn_ops *out, hexkl_w_width w, void *table) {

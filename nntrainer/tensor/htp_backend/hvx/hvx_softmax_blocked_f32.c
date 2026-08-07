@@ -66,7 +66,7 @@ static inline HVX_Vector slice_max_sf(const float *p, uint32_t len,
  */
 static inline HVX_Vector slice_exp_sum_sf(float *p, uint32_t len,
                                           HVX_Vector vscale, HVX_Vector vm,
-                                          HVX_Vector acc) {
+                                          HVX_Vector acc, HVX_Vector *emax) {
   const uint32_t nvec = len / LANES;
   const uint32_t nloe = len % LANES;
   HVX_UVector *v = (HVX_UVector *)p;
@@ -76,6 +76,7 @@ static inline HVX_Vector slice_exp_sum_sf(float *p, uint32_t len,
       hvx_exp_sf(Q6_Vsf_vsub_VsfVsf(Q6_Vsf_vmpy_VsfVsf(v[i], vscale), vm));
     v[i] = e;
     acc = Q6_Vqf32_vadd_Vqf32Vsf(acc, e);
+    *emax = Q6_Vsf_vmax_VsfVsf(*emax, e);
   }
   if (nloe) {
     const HVX_Vector t = load_tail_sf(p + nvec * LANES, nloe, 0.0f);
@@ -83,10 +84,13 @@ static inline HVX_Vector slice_exp_sum_sf(float *p, uint32_t len,
       hvx_exp_sf(Q6_Vsf_vsub_VsfVsf(Q6_Vsf_vmpy_VsfVsf(t, vscale), vm));
     /* The pad lanes hold exp(0*scale - vm), not zero, so they have to be
      * masked off before they reach the sum. Padding the input cannot fix
-     * this: no input value maps to an exact zero after exp. */
+     * this: no input value maps to an exact zero after exp. The same mask
+     * keeps them out of emax: a pad lane's exp could exceed every real
+     * one. */
     e = Q6_V_vmux_QVV(Q6_Q_vsetq2_R((int)(nloe * 4u)), e, Q6_V_vzero());
     store_tail_sf(p + nvec * LANES, nloe, e);
     acc = Q6_Vqf32_vadd_Vqf32Vsf(acc, e);
+    *emax = Q6_Vsf_vmax_VsfVsf(*emax, e);
   }
   return acc;
 }
@@ -95,11 +99,11 @@ void hvx_softmax_blocked_f32(float *const *seg, uint32_t n_seg, uint32_t T,
                              uint32_t m_first, uint32_t m_last, uint32_t M,
                              float scale, const uint32_t *begin,
                              const uint32_t *end, const float *sink,
-                             float *l_out) {
+                             float *l_out, float *bm_out) {
   const HVX_Vector vscale = hvx_splat_sf(scale);
   const uint32_t kv_total = n_seg * T;
 
-  (void)M; /* row stride is T within a segment; M only bounds the caller */
+  /* M is the bm_out row stride; within a segment the row stride is T. */
 
   for (uint32_t m = m_first; m < m_last; ++m) {
     uint32_t b = begin[m];
@@ -149,6 +153,11 @@ void hvx_softmax_blocked_f32(float *const *seg, uint32_t n_seg, uint32_t T,
        * is the sink alone (or nothing, which PHASE C turns into a zero row
        * rather than a divide by zero). */
       l_out[m] = (sink != NULL) ? 1.0f : 0.0f;
+      if (bm_out != NULL) {
+        for (uint32_t j = 0; j < n_seg; ++j) {
+          bm_out[(size_t)j * M + m] = 0.0f;
+        }
+      }
       continue;
     }
 
@@ -171,9 +180,18 @@ void hvx_softmax_blocked_f32(float *const *seg, uint32_t n_seg, uint32_t T,
     for (uint32_t j = 0; j < n_seg; ++j) {
       uint32_t lo, hi;
       hvx_softmax_seg_range(j, T, b, e, &lo, &hi);
+      /* Seeded with +0.0f, so the reduced value is max(stored exps, 0) --
+       * which is EXACTLY the rmax hvx_quant_rows_u8_params would find
+       * scanning this block row afterwards: the positions outside [lo, hi)
+       * hold literal zeros, and max is order-independent. That equality is
+       * the whole contract of bm_out; see the header. */
+      HVX_Vector emax = Q6_V_vzero();
       if (hi > lo) {
         acc = slice_exp_sum_sf(seg[j] + (size_t)m * T + lo, hi - lo, vscale, vm,
-                               acc);
+                               acc, &emax);
+      }
+      if (bm_out != NULL) {
+        bm_out[(size_t)j * M + m] = lane0_sf(reduce_max_sf(emax));
       }
     }
     float l = lane0_sf(reduce_sum_sf(Q6_Vsf_equals_Vqf32(acc)));

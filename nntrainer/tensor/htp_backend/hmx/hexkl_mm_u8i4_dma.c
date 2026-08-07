@@ -20,6 +20,7 @@
 #include "hexkl_acc_tile.h"
 #include "hexkl_dma_ring.h"
 #include "hexkl_micro.h"
+#include "hexkl_mm_opts.h"
 #include "hvx_dequant_i32.h"
 #include "hvx_quant_u8.h"
 
@@ -138,10 +139,16 @@ int hexkl_mm_u8i4_layer_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
                             uint32_t vtcm_size, uint32_t config_off, uint32_t M,
                             uint32_t K, const uint32_t *handles,
                             uint32_t n_handles, const float *act_f32,
-                            float *out_cat) {
+                            float *out_cat, const hexkl_mm_opts *opts) {
+  static const hexkl_mm_opts kDefaults = {0};
+  const hexkl_mm_opts *o = opts ? opts : &kDefaults;
+
   if (!tbl || !vtcm_base || !handles || n_handles == 0 || !act_f32 ||
       !out_cat || M == 0 || K == 0) {
     return AEE_EBADPARM;
+  }
+  if ((o->act_scale == NULL) != (o->act_zp == NULL)) {
+    return AEE_EBADPARM; // both or neither, per hexkl_mm_opts.h
   }
 
   const uint32_t m_pad = ROUND_UP_U32(M, HEXKL_HMX_INT8_BLOCK_N_ROW);
@@ -202,24 +209,43 @@ int hexkl_mm_u8i4_layer_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
   hexkl_probe_us[HEXKL_PROBE_ACC_STRIDE] =
     acc_layout->usable ? acc_layout->row_stride : 0u;
 
-  float *act_scale = (float *)malloc(sizeof(float) * m_pad);
-  int32_t *act_zp = (int32_t *)malloc(sizeof(int32_t) * m_pad);
-  /* Only the fallback path needs the DDR staging matrix. */
+  /* Caller-supplied params (o->act_scale) skip the min/max scan; loc_* are
+   * only allocated for the dynamic path. */
+  float *loc_scale = NULL;
+  int32_t *loc_zp = NULL;
+  /* Only the fallback dequant path needs the DDR staging matrix. */
   int32_t *acc_scratch =
     acc_layout->usable
       ? NULL
       : (int32_t *)malloc(sizeof(int32_t) * (size_t)m_pad * n_max);
-  if (!act_scale || !act_zp || (!acc_layout->usable && !acc_scratch)) {
-    free(act_scale);
-    free(act_zp);
+  if (o->act_scale == NULL) {
+    loc_scale = (float *)malloc(sizeof(float) * m_pad);
+    loc_zp = (int32_t *)malloc(sizeof(int32_t) * m_pad);
+  }
+  if ((!acc_layout->usable && !acc_scratch) ||
+      (o->act_scale == NULL && (!loc_scale || !loc_zp))) {
+    free(loc_scale);
+    free(loc_zp);
     free(acc_scratch);
     return AEE_ENOMEMORY;
   }
   uint64_t p0 = hexkl_probe_now();
-  hvx_quant_rows_u8_params(act_f32, M, m_pad, K, act_scale, act_zp);
-  hvx_quant_pack_u8_ah(act_f32, M, m_pad, K, act_scale, act_zp,
-                       vtcm_base + act_off);
+  const float *act_scale = o->act_scale;
+  const int32_t *act_zp = o->act_zp;
+  if (act_scale == NULL) {
+    hvx_quant_rows_u8_params(act_f32, M, m_pad, K, loc_scale, loc_zp, o->pool);
+    act_scale = loc_scale;
+    act_zp = loc_zp;
+  }
+  int rc0 = hvx_quant_pack_u8_ah(act_f32, M, m_pad, K, act_scale, act_zp,
+                                 vtcm_base + act_off, o->pool);
   hexkl_probe_us[HEXKL_PROBE_QUANT] += hexkl_probe_now() - p0;
+  if (rc0 != AEE_SUCCESS) {
+    free(loc_scale);
+    free(loc_zp);
+    free(acc_scratch);
+    return rc0;
+  }
 
   int rc = AEE_SUCCESS;
   size_t out_off = 0;
@@ -296,7 +322,7 @@ int hexkl_mm_u8i4_layer_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
             hvx_dequant_acc_tile_to_f32(
               tile, acc_layout->row_stride, cnt, act_scale + m0, act_zp + m0,
               h->colsum_w + c0, h->w_scale + c0, h->bias + c0,
-              out_cat + out_off + (size_t)m0 * h->N + c0, h->N);
+              out_cat + out_off + (size_t)m0 * h->N + c0, h->N, o->accumulate);
             hexkl_probe_us[HEXKL_PROBE_DEQUANT] += hexkl_probe_now() - p0;
           }
         } else {
@@ -326,15 +352,15 @@ int hexkl_mm_u8i4_layer_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
       p0 = hexkl_probe_now();
       hvx_dequant_i32_to_f32(acc_scratch, M, m_pad, h->N, act_scale, act_zp,
                              h->colsum_w, h->w_scale, h->bias,
-                             out_cat + out_off);
+                             out_cat + out_off, o->accumulate);
       hexkl_probe_us[HEXKL_PROBE_DEQUANT] += hexkl_probe_now() - p0;
     }
     out_off += (size_t)M * h->N;
   }
 
 out:
-  free(act_scale);
-  free(act_zp);
+  free(loc_scale);
+  free(loc_zp);
   free(acc_scratch);
   return rc;
 }

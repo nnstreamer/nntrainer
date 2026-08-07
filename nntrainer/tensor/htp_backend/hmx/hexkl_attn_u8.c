@@ -19,10 +19,14 @@
 
 #include <AEEStdErr.h>
 #include <HAP_perf.h>
+#include <hexagon_types.h>
+#include <hvx_hexagon_protos.h>
 
 #include "hexkl_attn_u8.h"
 #include "hexkl_kv_quant.h"
+#include "hexkl_mm_opts.h"
 #include "hexkl_probe.h"
+#include "hvx_convert.h"
 #include "hvx_softmax_blocked_f32.h"
 #include "hvx_worker_pool.h"
 
@@ -127,7 +131,6 @@ int hexkl_attn_u8_ctx_init(hexkl_attn_u8_ctx *ctx, uint8_t *vtcm_base,
   ctx->s_band =
     (float *)malloc((size_t)ctx->max_blocks * M_band * T * sizeof(float));
   ctx->o_band = (float *)malloc((size_t)M_band * head_dim * sizeof(float));
-  ctx->o_part = (float *)malloc((size_t)M_band * head_dim * sizeof(float));
   ctx->l_row = (float *)malloc((size_t)M_band * sizeof(float));
   ctx->sink_row = (float *)malloc((size_t)M_band * sizeof(float));
   ctx->q_gather = (float *)malloc((size_t)M_band * head_dim * sizeof(float));
@@ -135,11 +138,20 @@ int hexkl_attn_u8_ctx_init(hexkl_attn_u8_ctx *ctx, uint8_t *vtcm_base,
   ctx->end = (uint32_t *)malloc((size_t)M_band * sizeof(uint32_t));
   ctx->seg = (float **)malloc((size_t)ctx->max_blocks * sizeof(float *));
 
+  {
+    const uint32_t m_pad64 = ((M_band + 63u) / 64u) * 64u;
+    ctx->bm = (float *)malloc((size_t)ctx->max_blocks * M_band * sizeof(float));
+    ctx->p_scale = (float *)malloc((size_t)m_pad64 * sizeof(float));
+    /* Permanently zero: p >= 0 pins rmin at 0, so the scan's zp is always
+     * round(-0/s) = 0 -- including its synthetic (1, 0) for padding rows. */
+    ctx->p_zp = (int32_t *)calloc((size_t)m_pad64, sizeof(int32_t));
+  }
+
   if (!ctx->k_shadow || !ctx->v_shadow || !ctx->h_kt || !ctx->h_v ||
       !ctx->q_rm || !ctx->q_scale || !ctx->q_colsum || !ctx->q_bias ||
-      !ctx->s_band || !ctx->o_band || !ctx->o_part || !ctx->l_row ||
-      !ctx->sink_row || !ctx->q_gather || !ctx->begin || !ctx->end ||
-      !ctx->seg) {
+      !ctx->s_band || !ctx->o_band || !ctx->l_row || !ctx->sink_row ||
+      !ctx->q_gather || !ctx->begin || !ctx->end || !ctx->seg || !ctx->bm ||
+      !ctx->p_scale || !ctx->p_zp) {
     hexkl_attn_u8_ctx_fini(ctx);
     return AEE_ENOMEMORY;
   }
@@ -182,13 +194,15 @@ void hexkl_attn_u8_ctx_fini(hexkl_attn_u8_ctx *ctx) {
   free(ctx->q_bias);
   free(ctx->s_band);
   free(ctx->o_band);
-  free(ctx->o_part);
   free(ctx->l_row);
   free(ctx->sink_row);
   free(ctx->q_gather);
   free(ctx->begin);
   free(ctx->end);
   free(ctx->seg);
+  free(ctx->bm);
+  free(ctx->p_scale);
+  free(ctx->p_zp);
   memset(ctx, 0, sizeof(*ctx));
 }
 
@@ -301,9 +315,12 @@ int hexkl_attn_u8_scores(hexkl_attn_u8_ctx *ctx, uint32_t head, uint32_t M,
   /* ONE call. layer_run quantizes q_band once, shares it across every handle,
    * and prefetches block j+1's weight while j computes. out_s comes back
    * block-major, which is the layout PHASE B walks directly. */
-  return ctx->ops_k.run(ctx->ops_k.table, ctx->vtcm_base, ctx->vtcm_size,
-                        ctx->config_off, M, ctx->head_dim, handles, n_blocks,
-                        q_band, out_s);
+  {
+    const hexkl_mm_opts opts = {.pool = (hvx_worker_pool *)ctx->pool};
+    return ctx->ops_k.run(ctx->ops_k.table, ctx->vtcm_base, ctx->vtcm_size,
+                          ctx->config_off, M, ctx->head_dim, handles, n_blocks,
+                          q_band, out_s, &opts);
+  }
 }
 
 /** @brief One PHASE B job: the band, ready for a row split. */
@@ -315,6 +332,7 @@ typedef struct {
   const uint32_t *end;
   const float *sink;
   float *l_row;
+  float *bm; /**< [n_seg][M] stored maxima; each worker writes its own rows */
 } attn_softmax_job;
 
 /**
@@ -337,7 +355,7 @@ static void attn_softmax_worker(uint32_t n_threads, uint32_t i, void *arg) {
     return;
   }
   hvx_softmax_blocked_f32(j->seg, j->n_seg, j->T, m0, m1, j->M, j->scale,
-                          j->begin, j->end, j->sink, j->l_row);
+                          j->begin, j->end, j->sink, j->l_row, j->bm);
 }
 
 /** @brief Bands with fewer rows run PHASE B inline: a fork/join costs more
@@ -419,16 +437,16 @@ int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
       TICK(t0);
       if (ctx->pool != NULL && mb >= ATTN_SOFTMAX_POOL_MIN_ROWS) {
         attn_softmax_job job = {
-          ctx->seg,  n_blocks,
-          ctx->T,    mb,
-          scale,     ctx->begin,
-          ctx->end,  (sink != NULL) ? ctx->sink_row : NULL,
-          ctx->l_row};
+          ctx->seg,   n_blocks,
+          ctx->T,     mb,
+          scale,      ctx->begin,
+          ctx->end,   (sink != NULL) ? ctx->sink_row : NULL,
+          ctx->l_row, ctx->bm};
         hvx_worker_pool_run(ctx->pool, attn_softmax_worker, &job, mb);
       } else {
         hvx_softmax_blocked_f32(
           ctx->seg, n_blocks, ctx->T, 0u, mb, mb, scale, ctx->begin, ctx->end,
-          (sink != NULL) ? ctx->sink_row : NULL, ctx->l_row);
+          (sink != NULL) ? ctx->sink_row : NULL, ctx->l_row, ctx->bm);
       }
       TICK(t1);
       ACCUM(HEXKL_ATTN_T_SOFTMAX, t0, t1);
@@ -440,13 +458,38 @@ int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
         if (hv == HEXKL_ATTN_NO_HANDLE) {
           return AEE_EBADSTATE;
         }
-        /* One handle per call, so P is quantized PER BLOCK (property 2):
-         * layer_run quantizes act_f32 itself, and after PHASE B this block's
-         * rows have a known range in (0, 1] with zp landing at 0 naturally. */
+        /* P is still quantized PER BLOCK (property 2) -- what changed is who
+         * computes the params. PHASE B already took the running max of every
+         * value it stored into this block row, so scale is bm/255 with rmin
+         * pinned at 0 by p >= 0 -- exactly what layer_run's scan would
+         * return (hvx_softmax_blocked_f32.h). bm == 0 is the scan's
+         * degenerate all-zero branch, (1, 0), and padding rows get its
+         * synthetic (1, 0) too. */
+        {
+          const uint32_t m_pad64 = ((mb + 63u) / 64u) * 64u;
+          for (m = 0; m < mb; ++m) {
+            const float bm = ctx->bm[(size_t)j * mb + m];
+            ctx->p_scale[m] = (bm > 0.0f) ? (bm / 255.0f) : 1.0f;
+          }
+          for (m = mb; m < m_pad64; ++m) {
+            ctx->p_scale[m] = 1.0f;
+          }
+        }
+
+        /* The f32 accumulation across blocks (property 3) now happens INSIDE
+         * the dequant: each block still carries its own constants, and each
+         * element still receives exactly one add per block -- only the staged
+         * o_part buffer and its add loop are gone. */
         TICK(t0);
-        rc = ctx->ops_v.run(ctx->ops_v.table, ctx->vtcm_base, ctx->vtcm_size,
-                            ctx->config_off, mb, ctx->T, &hv, 1u, ctx->seg[j],
-                            ctx->o_part);
+        {
+          const hexkl_mm_opts opts = {.pool = (hvx_worker_pool *)ctx->pool,
+                                      .act_scale = ctx->p_scale,
+                                      .act_zp = ctx->p_zp,
+                                      .accumulate = 1};
+          rc = ctx->ops_v.run(ctx->ops_v.table, ctx->vtcm_base, ctx->vtcm_size,
+                              ctx->config_off, mb, ctx->T, &hv, 1u, ctx->seg[j],
+                              ctx->o_band, &opts);
+        }
         TICK(t1);
         ACCUM(HEXKL_ATTN_T_PV, t0, t1);
         if (stage_us) {
@@ -455,18 +498,6 @@ int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
         if (rc != AEE_SUCCESS) {
           return rc;
         }
-        /* Accumulate in f32 across blocks (property 3): each block carries its
-         * own dequant constants, so an integer accumulation would apply block
-         * 0's scale to every block. */
-        TICK(t0);
-        for (m = 0; m < mb; ++m) {
-          for (d = 0; d < ctx->head_dim; ++d) {
-            ctx->o_band[(size_t)m * ctx->head_dim + d] +=
-              ctx->o_part[(size_t)m * ctx->head_dim + d];
-          }
-        }
-        TICK(t1);
-        ACCUM(HEXKL_ATTN_T_ACCUM, t0, t1);
       }
 
       /* The 1/l normalization happens ONCE, here, after every block has been
@@ -478,8 +509,16 @@ int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
         const float inv_l =
           (ctx->l_row[m] > 0.0f) ? (1.0f / ctx->l_row[m]) : 0.0f;
         float *dst = out + ((size_t)i * nHq + n * ctx->gqa + g) * ctx->head_dim;
-        for (d = 0; d < ctx->head_dim; ++d) {
-          dst[d] = ctx->o_band[(size_t)m * ctx->head_dim + d] * inv_l;
+        /* head_dim % 32 == 0 is enforced at init, so whole vectors and no
+         * tail. One multiply per element, same op the scalar loop did; the
+         * S band gate holds bit-identical through these same Vsf intrinsics,
+         * so the vectorization is not a numerics change. */
+        const HVX_UVector *vsrc =
+          (const HVX_UVector *)(ctx->o_band + (size_t)m * ctx->head_dim);
+        HVX_UVector *vdst = (HVX_UVector *)dst;
+        const HVX_Vector vinv = hvx_splat_sf(inv_l);
+        for (d = 0; d < ctx->head_dim / 32u; ++d) {
+          vdst[d] = Q6_Vsf_vmpy_VsfVsf(vsrc[d], vinv);
         }
       }
 

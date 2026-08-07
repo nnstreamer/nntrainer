@@ -27,6 +27,7 @@
 #include <stdint.h>
 
 #include "hexkl_kv_quant.h" /* hexkl_w_width */
+#include "hexkl_mm_opts.h"
 
 /**
  * @brief The three registry entry points at one width, plus the constants
@@ -49,7 +50,7 @@ typedef struct {
   int (*run)(void *tbl, uint8_t *vtcm_base, uint32_t vtcm_size,
              uint32_t config_off, uint32_t M, uint32_t K,
              const uint32_t *handles, uint32_t n_handles, const float *act_f32,
-             float *out_cat);
+             float *out_cat, const hexkl_mm_opts *opts);
 } hexkl_attn_ops;
 
 /**

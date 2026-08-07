@@ -27,8 +27,8 @@
 void hvx_dequant_i32_to_f32(const int32_t *acc, uint32_t m_valid,
                             uint32_t m_pad, uint32_t n, const float *act_scale,
                             const int32_t *act_zp, const int32_t *colsum_w,
-                            const float *w_scale, const float *bias,
-                            float *out) {
+                            const float *w_scale, const float *bias, float *out,
+                            int accumulate) {
   (void)m_pad;
 
   for (uint32_t m = 0; m < m_valid; ++m) {
@@ -54,12 +54,14 @@ void hvx_dequant_i32_to_f32(const int32_t *acc, uint32_t m_valid,
         Q6_Vsf_vsub_VsfVsf(af, Q6_Vsf_vmpy_VsfVsf(vzf, csf));
       const HVX_Vector scaled =
         Q6_Vsf_vmpy_VsfVsf(Q6_Vsf_vmpy_VsfVsf(corrected, vs), vws[v]);
-      vout[v] = Q6_Vsf_vadd_VsfVsf(scaled, vb[v]);
+      const HVX_Vector r = Q6_Vsf_vadd_VsfVsf(scaled, vb[v]);
+      vout[v] = accumulate ? Q6_Vsf_vadd_VsfVsf(vout[v], r) : r;
     }
 
     for (uint32_t j = n_vec * LANES; j < n; ++j) {
       const int32_t corrected = arow[j] - z * colsum_w[j];
-      orow[j] = (float)corrected * s * w_scale[j] + bias[j];
+      const float r = (float)corrected * s * w_scale[j] + bias[j];
+      orow[j] = accumulate ? (orow[j] + r) : r;
     }
   }
 }
@@ -68,7 +70,8 @@ void hvx_dequant_acc_tile_to_f32(const int32_t *tile, uint32_t row_stride,
                                  uint32_t m_count, const float *act_scale,
                                  const int32_t *act_zp, const int32_t *colsum_w,
                                  const float *w_scale, const float *bias,
-                                 float *out, uint32_t out_stride) {
+                                 float *out, uint32_t out_stride,
+                                 int accumulate) {
   /* One vector per tile row, so the loop above's n_vec/tail split collapses.
      If a future part changes the tile width this stops being true, and the
      build should stop with it rather than silently emit 32 of n columns. */
@@ -94,6 +97,7 @@ void hvx_dequant_acc_tile_to_f32(const int32_t *tile, uint32_t row_stride,
       Q6_Vsf_vsub_VsfVsf(af, Q6_Vsf_vmpy_VsfVsf(vzf, csf));
     const HVX_Vector scaled =
       Q6_Vsf_vmpy_VsfVsf(Q6_Vsf_vmpy_VsfVsf(corrected, vs), vws[0]);
-    vout[0] = Q6_Vsf_vadd_VsfVsf(scaled, vb[0]);
+    const HVX_Vector r = Q6_Vsf_vadd_VsfVsf(scaled, vb[0]);
+    vout[0] = accumulate ? Q6_Vsf_vadd_VsfVsf(vout[0], r) : r;
   }
 }

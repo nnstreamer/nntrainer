@@ -101,11 +101,23 @@ static inline void hvx_softmax_seg_range(uint32_t j, uint32_t T, uint32_t b,
  * @param[in]  end     M entries, one past the last valid kv position
  * @param[in]  sink    NULL, or M entries; enters l_out only, never seg
  * @param[out] l_out   M entries; only [m_first, m_last) are written
+ * @param[out] bm_out  NULL, or n_seg * M entries at bm_out[j*M + m]: the
+ *                     maximum of the STORED values of row m within block j,
+ *                     floored at 0. This equals -- exactly, not
+ *                     approximately -- the rmax hvx_quant_rows_u8_params
+ *                     would find scanning that block row afterwards, because
+ *                     every stored value is either one of the exps this pass
+ *                     just took the running max of, or a literal 0.0f, and
+ *                     f32 max is order-independent. With rmin pinned at 0 by
+ *                     p >= 0, PHASE C can hand layer_run
+ *                     (bm/255, 0) -- or (1, 0) when bm is 0 -- and skip the
+ *                     re-scan of P entirely, bit-identically. Only
+ *                     [m_first, m_last) rows are written.
  */
 void hvx_softmax_blocked_f32(float *const *seg, uint32_t n_seg, uint32_t T,
                              uint32_t m_first, uint32_t m_last, uint32_t M,
                              float scale, const uint32_t *begin,
                              const uint32_t *end, const float *sink,
-                             float *l_out);
+                             float *l_out, float *bm_out);
 
 #endif /* __NNTRAINER_HVX_SOFTMAX_BLOCKED_F32_H__ */

@@ -39,8 +39,8 @@
 void hvx_dequant_i32_to_f32(const int32_t *acc, uint32_t m_valid,
                             uint32_t m_pad, uint32_t n, const float *act_scale,
                             const int32_t *act_zp, const int32_t *colsum_w,
-                            const float *w_scale, const float *bias,
-                            float *out);
+                            const float *w_scale, const float *bias, float *out,
+                            int accumulate);
 
 /**
  * @brief Same dequantization, applied to ONE 64x32 accumulator tile still
@@ -68,11 +68,15 @@ void hvx_dequant_i32_to_f32(const int32_t *acc, uint32_t m_valid,
  * @param[in]  bias       32 entries, already offset to this column tile
  * @param[out] out        first output element of this tile
  * @param[in]  out_stride f32 elements between output rows (the full N)
+ * @param[in]  accumulate nonzero adds into @a out instead of storing; one
+ *                        add per element per call either way, so this is
+ *                        bitwise the staged add it replaces
  */
 void hvx_dequant_acc_tile_to_f32(const int32_t *tile, uint32_t row_stride,
                                  uint32_t m_count, const float *act_scale,
                                  const int32_t *act_zp, const int32_t *colsum_w,
                                  const float *w_scale, const float *bias,
-                                 float *out, uint32_t out_stride);
+                                 float *out, uint32_t out_stride,
+                                 int accumulate);
 
 #endif /* __NNTRAINER_HVX_DEQUANT_I32_H__ */

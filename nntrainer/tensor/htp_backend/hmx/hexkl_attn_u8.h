@@ -83,8 +83,9 @@ typedef struct {
   /* Forward scratch, allocated once. layer_run already mallocs per call
      (§1.8); adding a second storm per band would be worse. */
   float *s_band;   /**< max_blocks * M_band * T, block-major */
-  float *o_band;   /**< M_band * head_dim, f32 accumulator across blocks */
-  float *o_part;   /**< M_band * head_dim, one block's P.V before accumulate */
+  float *o_band;   /**< M_band * head_dim; layer_run accumulates into it
+                        directly (hexkl_mm_opts accumulate), so the staged
+                        o_part buffer and its add loop no longer exist */
   float *l_row;    /**< M_band */
   float *sink_row; /**< M_band */
   float *q_gather; /**< M_band * head_dim, this band's Q rows */
@@ -92,13 +93,16 @@ typedef struct {
   uint32_t *end;   /**< M_band */
   float **seg;     /**< max_blocks pointers into s_band */
 
-  /* NOT here: constant quant params for P. The blocked softmax guarantees
-     max(p) == 1.0f PER ROW ACROSS THE BAND, but P is quantized PER BLOCK,
-     and a block that does not hold its row's maximum has a local max below
-     1.0f -- the per-row scan adapts to it and a (1/255, 0) constant would
-     not. Measured before assuming: quant_rows_u8 on real blocked-softmax
-     output returned 0x1.ff2d18p-9 for exactly such a block. The scan is
-     load-bearing. */
+  /* P's quant params come from bm below, NOT from a (1/255, 0) constant:
+     max(p) == 1.0f holds PER ROW ACROSS THE BAND, but P is quantized PER
+     BLOCK, and a block that does not hold its row's maximum has a local max
+     below 1.0f (measured: 0x1.ff2d18p-9 on real softmax output). The scan
+     adapted to that; bm reproduces the scan's answer exactly -- the softmax
+     already took the running max of every value it stored -- so the scan
+     itself is what gets skipped, not the adaptation. */
+  float *bm;      /**< [max_blocks][M_band] per-(block, row) stored maxima */
+  float *p_scale; /**< ROUND_UP(M_band, 64) entries, refilled per block */
+  int32_t *p_zp;  /**< same length, permanently zero: p >= 0 pins rmin at 0 */
 
   /** Softmax row split. NULL runs PHASE B inline (decode-sized bands are
       cheaper than a fork/join). Not owned; the session owns the pool. */
