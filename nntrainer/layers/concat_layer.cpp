@@ -68,7 +68,10 @@ void ConcatLayer::finalize(InitLayerContext &context) {
         continue;
       NNTR_THROW_IF(input_dim_0[i] != dim[i], std::runtime_error)
         << "Error: concat layer requires same shape from all input layers "
-           "along non-concat dimension";
+           "along non-concat dimension. Mismatch at dim " << i << ". "
+           << "input_dim_0: [" << input_dim_0.batch() << "," << input_dim_0.channel() << "," << input_dim_0.height() << "," << input_dim_0.width() << "], "
+           << "input_dim[" << idx << "]: [" << dim.batch() << "," << dim.channel() << "," << dim.height() << "," << dim.width() << "]. "
+           << "concat_dimension: " << concat_dimension;
     }
     concat_dim_val += dim[concat_dimension];
   }

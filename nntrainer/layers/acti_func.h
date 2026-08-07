@@ -449,8 +449,12 @@ public:
       // FP16 branch hardcast to float* and called the FP32 kernel -> 2N-byte
       // overread -> SIGSEGV, see PIPELINE_VERIFICATION.md §7.2; gelu_v2_fp16
       // reads/writes FP16 storage directly, so no overread.)
+      #ifdef ENABLE_FP16
       nntrainer::gelu_v2_fp16(t_in.size(), t_in.getData<_FP16>(),
                               t_out.getData<_FP16>());
+#else
+      throw std::runtime_error("FP16 GELU requires ENABLE_FP16");
+#endif
       return t_out;
     }
     nntrainer::gelu_v2(t_in.size(), t_in.getData<float>(),

@@ -17,6 +17,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <chrono>
 #include <fstream>
 #include <limits>
 #include <mutex>
@@ -1199,6 +1200,26 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
 
 void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
   int status = ML_ERROR_NONE;
+  // Optional per-conv timing (env NNTR_CONV_TIME). RAII: prints on scope exit,
+  // covering all return paths. Skipped unless the env var is set (zero overhead
+  // otherwise — the chrono calls are behind the getenv).
+  struct ConvTimer {
+    std::chrono::steady_clock::time_point t0;
+    std::string name;
+    bool on;
+    ConvTimer(const std::string &n)
+      : t0(std::chrono::steady_clock::now()), name(n),
+        on(std::getenv("NNTR_CONV_TIME") != nullptr) {}
+    ~ConvTimer() {
+      if (on) {
+        auto t1 = std::chrono::steady_clock::now();
+        double ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
+        std::cerr << "[CONVTIME] " << name << " " << ms << " ms\n"
+                  << std::flush;
+      }
+    }
+  };
+  ConvTimer __ct(context.getName());
 
   unsigned int filter_size = std::get<props::FilterSize>(conv_props);
   auto &stride = std::get<std::array<props::Stride, CONV2D_DIM>>(conv_props);
@@ -1467,6 +1488,22 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
     // *input* (activation is the receiver), so we keep that layout as-is and do
     // NOT squeeze it to [out_ch, CRS] like the FP32 path.
     const auto weight_dtype = filter_kernel.getDataType();
+    if (std::getenv("NNTR_CONV_DEBUG")) {
+      std::cerr << "[CONVDBG] lay=" << context.getName()
+                << " in_dt=" << (int)input_.getDataType()
+                << " hid_dt=" << (int)hidden_.getDataType()
+                << " w_dt=" << (int)weight_dtype
+                << " filt=" << filter_size << " k=" << kernel_size[0].get()
+                << " stride=" << stride[0].get() << " in_fmt="
+                << (in_dim.getFormat() == ml::train::TensorDim::Format::NHWC
+                        ? "NHWC"
+                        : "NCHW")
+                << " in_c=" << in_dim.channel() << " in_h=" << in_dim.height()
+                << " in_w=" << in_dim.width()
+                << " NNTR_STEM_FP32="
+                << (std::getenv("NNTR_STEM_FP32") ? "set" : "null") << "\n"
+                << std::flush;
+    }
     const bool weight_is_q8 = (weight_dtype == nntrainer::Tdatatype::Q8_0);
     const bool weight_is_quant =
       (weight_dtype == nntrainer::Tdatatype::Q4_0 ||
@@ -1536,6 +1573,31 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
         Tensor out = hidden_.getBatchSlice(b, 1);
         Tensor in_sub = input_.getBatchSlice(b, 1);
 
+        if (std::getenv("NNTR_NAN_TRACE_IN")) {
+          // Check the input to THIS conv at entry, to separate tsuzuk input-nan
+          // from GEMM-output-nan.
+          const unsigned int n = in_sub.size();
+          unsigned int n_nan = 0, n_fin = 0;
+          float max_abs = 0.0f;
+          if (in_sub.getDataType() == nntrainer::Tdatatype::FP16) {
+#ifdef ENABLE_FP16
+            const _FP16 *d = in_sub.getData<_FP16>();
+            for (unsigned int i = 0; i < n; ++i) {
+              float v = (float)d[i];
+              if (std::isnan(v)) n_nan++; else if (std::isfinite(v)) { n_fin++; float a = std::fabs(v); if (a > max_abs) max_abs = a; }
+            }
+#endif
+          } else {
+            const float *d = in_sub.getData<float>();
+            for (unsigned int i = 0; i < n; ++i) {
+              float v = d[i];
+              if (std::isnan(v)) n_nan++; else if (std::isfinite(v)) { n_fin++; float a = std::fabs(v); if (a > max_abs) max_abs = a; }
+            }
+          }
+          std::cerr << "[NANIN] " << context.getName()
+                    << " dt=" << (in_sub.getDataType() == nntrainer::Tdatatype::FP16 ? "FP16" : "FP32")
+                    << " fin=" << n_fin << " nan=" << n_nan << " maxAbs=" << max_abs << "\n" << std::flush;
+        }
         // ---- Per-channel W8A8 path (NNTR_W8A8_PERCH) --------------------
         // Every NHWC conv runs int8 through the int32-accumulate kernel: the
         // weight is converted once to per-channel int8 (cached); the input is
@@ -1774,12 +1836,39 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
         // the <=27 (tap, channel) scalars broadcast-FMAs a contiguous
         // out-channel weight vector (tap-major cache above). Bias + SiLU
         // reuse the fused convBiasActRow row epilogue.
-        if (std::getenv("NNTR_W8A8") != nullptr &&
-            std::getenv("NNTR_W8A8_PERCH") != nullptr && !weight_is_quant &&
+        // Originally W8A8-gated (kept the stem FP32 in an int8 pipeline); the
+        // same tap-direct path is a large win for W8A32 too — a tiny 3x3 s2
+        // 3->16 stem at 640x640 hits ~15ms on the generic im2col+sgemm route
+        // (the dominant detector cost) because the GEMV-shaped conv is ill-
+        // served by a full im2col slab. Enable for W8A32 via NNTR_STEM_DIRECT_FP32.
+        const bool stem_direct_w8a8 = std::getenv("NNTR_W8A8") != nullptr &&
+                                      std::getenv("NNTR_W8A8_PERCH") != nullptr;
+        if ((stem_direct_w8a8 ||
+             (std::getenv("NNTR_STEM_DIRECT_FP32") != nullptr &&
+              !weight_is_quant)) &&
+            !weight_is_quant &&
             (std::get<props::ConvGroups>(conv_props).empty() ||
              std::get<props::ConvGroups>(conv_props).get() == 1) &&
             in_dim.getFormat() == ml::train::TensorDim::Format::NHWC &&
-            in_dim.channel() == 3 &&
+            [&] {
+              // W8A8 path keeps the legacy in_ch==3 stem restriction; the
+              // W8A32 tap-direct opt-in (NNTR_STEM_DIRECT_FP32) extends to the
+              // small-in_ch early backbone convs (conv1: in_ch=16) via
+              // NNTR_STEM_DIRECT_MAXCIN (default 3, raise to cover conv1).
+              // IMPORTANT: gate on the layer name containing "/" so the
+              // detector's "conv0/conv"/"conv1/conv" (slash-suffixed) match but
+              // PFLD's bare "conv1"/"conv2_dw" (no slash) do NOT — PFLD is
+              // bit-exact-verified and a tap-direct path change breaks its
+              // parity (observed: landmark first-5 shifted 0.80→0.27).
+              if (context.getName().find('/') == std::string::npos)
+                return false;
+              if (stem_direct_w8a8)
+                return in_dim.channel() == 3;
+              unsigned maxc = 3;
+              if (const char *m = std::getenv("NNTR_STEM_DIRECT_MAXCIN"))
+                maxc = (unsigned)std::strtoul(m, nullptr, 10);
+              return in_dim.channel() <= maxc;
+            }() &&
             in_sub.getDataType() == nntrainer::Tdatatype::FP32 &&
             out.getDataType() == nntrainer::Tdatatype::FP32 &&
             dilation[0].get() == 1 && dilation[1].get() == 1 &&
@@ -2426,6 +2515,38 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
       forwarding_job(0, in_dim.batch(), 0, nullptr);
     }
 
+    if (std::getenv("NNTR_NAN_TRACE")) {
+      // Clean per-layer nan/magnitude check inside the engine (no OOB risk from
+      // env tap-override). Counts finite/nan/inf and max-abs over the REAL
+      // output buffer, at FP32 precision (cast FP16 up so values are reliable).
+      const unsigned int n = hidden_.size();
+      unsigned int n_nan = 0, n_inf = 0, n_fin = 0, n_over = 0;
+      float max_abs = 0.0f;
+      if (hidden_.getDataType() == nntrainer::Tdatatype::FP16) {
+#ifdef ENABLE_FP16
+        const _FP16 *d = hidden_.getData<_FP16>();
+        for (unsigned int i = 0; i < n; ++i) {
+          float v = (float)d[i];
+          if (std::isnan(v)) n_nan++;
+          else if (std::isinf(v)) n_inf++;
+          else { n_fin++; float a = std::fabs(v); if (a > max_abs) max_abs = a; if (a > 65504.0f) n_over++; }
+        }
+#endif
+      } else {
+        const float *d = hidden_.getData<float>();
+        for (unsigned int i = 0; i < n; ++i) {
+          float v = d[i];
+          if (std::isnan(v)) n_nan++;
+          else if (std::isinf(v)) n_inf++;
+          else { n_fin++; float a = std::fabs(v); if (a > max_abs) max_abs = a; if (a > 65504.0f) n_over++; }
+        }
+      }
+      std::cerr << "[NANTRACE] " << context.getName() << " n=" << n
+                << " dt=" << (hidden_.getDataType() == nntrainer::Tdatatype::FP16 ? "FP16" : "FP32")
+                << " fin=" << n_fin << " nan=" << n_nan << " inf=" << n_inf
+                << " >65504=" << n_over << " maxAbs=" << max_abs << "\n" << std::flush;
+    }
+
     if (!weight_is_quant) {
       filter_kernel.reshape(filter_dim);
     }
@@ -2437,6 +2558,39 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
     const unsigned int owoh = out_dim.width() * out_dim.height();
     const unsigned int ihw = in_dim.height() * in_dim.width();
     TensorDim fdim_g(ocg, icg, fh, fw, filter_dim.getTensorType());
+
+    // W8A8 grouped/depthwise dequantization. finalize() (see the comment at the
+    // QINT8 branch above) promises "any other conv dequantizes its input and
+    // produces FP32" — but historically only the groups==1 path honored that
+    // (see the deq_in_buf block ~2100). A grouped conv (groups>1, including the
+    // YOLOv11 depthwise-separable detect head cv3_*_dw) fed a QINT8 activation
+    // had no dequant path here, so it silently skipped every FP32/FP16 dispatch
+    // and left hidden_ unwritten -> NaN. This is the real root cause that made
+    // face YOLOv11 W8A8 fail while video YOLOv7 (pure 1x1 pointwise detect
+    // head, always groups==1) succeeded. Dequantize the QINT8 input once into a
+    // heap-local FP32 buffer and route every path below through it; finalize's
+    // output-dtype rule above already forces the grouped output to FP32, so the
+    // graph edge stays FP32 and the next layer sees a clean FP32 boundary.
+    Tensor input_use = input_;
+    std::vector<float> grouped_deq_buf;
+    if (input_.getDataType() == nntrainer::Tdatatype::QINT8) {
+      const int8_t *q = input_.getData<int8_t>();
+      const float sc = input_.getScale<float>()[0];
+      const size_t n_in = input_.size();
+      grouped_deq_buf.resize(n_in);
+      float *fp = grouped_deq_buf.data();
+      auto &tmd = ThreadManager::Global();
+      const size_t chunk = 65536;
+      tmd.parallel_for(0, (n_in + chunk - 1) / chunk, [=](size_t ci) {
+        const size_t i0 = ci * chunk, i1 = std::min(i0 + chunk, n_in);
+        for (size_t i = i0; i < i1; ++i)
+          fp[i] = sc * (float)q[i];
+      });
+      TensorDim din = in_dim;
+      din.setDataType(nntrainer::Tdatatype::FP32);
+      input_use = Tensor::Map<float>(grouped_deq_buf.data(),
+                                     grouped_deq_buf.size() * sizeof(float), din);
+    }
 
     const bool is_true_depthwise = ocg == 1 && icg == 1;
     const bool nhwc_depthwise =
@@ -2494,6 +2648,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
       // the final FP16 narrow. Default ON (opt-out NNTR_DW_NHWC_CHAN=0);
       // restricted to C%4==0 + stride1 + dilation1 + FP32 weights. Falls
       // through to `dw_vec` (ow-vectorized) otherwise.
+#ifdef __ARM_NEON__
       const bool dw_chan =
         (C % 4) == 0 && stride[0].get() == 1 && stride[1].get() == 1 &&
         dilation[0].get() == 1 && dilation[1].get() == 1 &&
@@ -2565,11 +2720,11 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
         };
 #ifdef ENABLE_FP16
         if (in_dim.getDataType() == nntrainer::Tdatatype::FP16)
-          run_chan(input_.getData<_FP16>(), hidden_.getData<_FP16>(),
+          run_chan(input_use.getData<_FP16>(), hidden_.getData<_FP16>(),
                    filter_kernel.getData<float>());
         else
 #endif
-          run_chan(input_.getData<float>(), hidden_.getData<float>(),
+          run_chan(input_use.getData<float>(), hidden_.getData<float>(),
                    filter_kernel.getData<float>());
         goto depthwise_done;
       }
@@ -2658,14 +2813,15 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
         };
 #ifdef ENABLE_FP16
         if (in_dim.getDataType() == nntrainer::Tdatatype::FP16)
-          run_vec(input_.getData<_FP16>(), hidden_.getData<_FP16>(),
+          run_vec(input_use.getData<_FP16>(), hidden_.getData<_FP16>(),
                   filter_kernel.getData<float>());
         else
 #endif
-          run_vec(input_.getData<float>(), hidden_.getData<float>(),
+          run_vec(input_use.getData<float>(), hidden_.getData<float>(),
                   filter_kernel.getData<float>());
         goto depthwise_done;
       }
+#endif // __ARM_NEON__
 
       auto run = [&]<typename T, typename F>(const T *in, T *out,
                                              const F *filt) {
@@ -2761,21 +2917,21 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
 
       if (in_dim.getDataType() == nntrainer::Tdatatype::FP32) {
         if (filt_dt == nntrainer::Tdatatype::FP32)
-          run(input_.getData<float>(), hidden_.getData<float>(),
+          run(input_use.getData<float>(), hidden_.getData<float>(),
               filter_kernel.getData<float>());
 #ifdef ENABLE_FP16
         else
-          run(input_.getData<float>(), hidden_.getData<float>(),
+          run(input_use.getData<float>(), hidden_.getData<float>(),
               filter_kernel.getData<_FP16>());
 #endif
       }
 #ifdef ENABLE_FP16
       else {
         if (filt_dt == nntrainer::Tdatatype::FP32)
-          run(input_.getData<_FP16>(), hidden_.getData<_FP16>(),
+          run(input_use.getData<_FP16>(), hidden_.getData<_FP16>(),
               filter_kernel.getData<float>());
         else
-          run(input_.getData<_FP16>(), hidden_.getData<_FP16>(),
+          run(input_use.getData<_FP16>(), hidden_.getData<_FP16>(),
               filter_kernel.getData<_FP16>());
       }
 #endif
@@ -2784,7 +2940,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
       // True depthwise (groups == channels): delegate to the CPU backend op so
       // the optimised kernel lives in the backend, not in the layer.
       nntrainer::getComputeOps()->depthwise_conv2d_fp32(
-        input_.getData<float>(), filter_kernel.getData<float>(),
+        input_use.getData<float>(), filter_kernel.getData<float>(),
         hidden_.getData<float>(), in_dim.batch(), filter_size, in_dim.height(),
         in_dim.width(), out_dim.height(), out_dim.width(), fh, fw,
         stride[0].get(), stride[1].get(), padding[0], padding[2],
@@ -2807,7 +2963,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
       // so fall through to the NHWC grouped-conv GEMM path below (ocg=1), which
       // is faster than the scalar depthwise.
       nntrainer::getComputeOps()->depthwise_conv2d_fp16(
-        input_.getData<_FP16>(), filter_kernel.getData<float>(),
+        input_use.getData<_FP16>(), filter_kernel.getData<float>(),
         hidden_.getData<_FP16>(), in_dim.batch(), filter_size, in_dim.height(),
         in_dim.width(), out_dim.height(), out_dim.width(), fh, fw,
         stride[0].get(), stride[1].get(), padding[0], padding[2],
@@ -2833,7 +2989,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
       const unsigned int dh = dilation[0].get();
       const unsigned int dw_ = dilation[1].get();
       const auto filt_dt = filter_kernel.getDataType();
-      const auto in_dt = input_.getDataType();
+      const auto in_dt = input_use.getDataType();
       const auto out_dt = hidden_.getDataType();
       auto run_g = [&]<typename T, typename F>(const T *in, T *out,
                                                const F *filt) {
@@ -2864,6 +3020,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
         // Default ON (env opt-out: NNTR_CONV_FUSED_GROUPS=0 -> GEMM/scalar).
         // Restricted to FP32 weights (F==float) + icg==1 + OW>=4.
         const char *__fused_env = std::getenv("NNTR_CONV_FUSED_GROUPS");
+#ifdef __ARM_NEON__
         const bool use_fused =
           (__fused_env == nullptr || std::string(__fused_env) != "0") &&
           icg == 1 && ocg >= 1 && fh * fw >= 1 && OW >= 4 &&
@@ -2961,6 +3118,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
           });
           return;
         }
+#endif
         const char *__gemm_env = std::getenv("NNTR_CONV_GEMM_GROUPS");
         const bool use_gemm =
           (__gemm_env == nullptr || std::string(__gemm_env) != "0") &&
@@ -3057,21 +3215,21 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
       };
       if (in_dt == nntrainer::Tdatatype::FP32) {
         if (filt_dt == nntrainer::Tdatatype::FP32)
-          run_g(input_.getData<float>(), hidden_.getData<float>(),
+          run_g(input_use.getData<float>(), hidden_.getData<float>(),
                 filter_kernel.getData<float>());
 #ifdef ENABLE_FP16
         else
-          run_g(input_.getData<float>(), hidden_.getData<float>(),
+          run_g(input_use.getData<float>(), hidden_.getData<float>(),
                 filter_kernel.getData<_FP16>());
 #endif
       }
 #ifdef ENABLE_FP16
       else {
         if (filt_dt == nntrainer::Tdatatype::FP32)
-          run_g(input_.getData<_FP16>(), hidden_.getData<_FP16>(),
+          run_g(input_use.getData<_FP16>(), hidden_.getData<_FP16>(),
                 filter_kernel.getData<float>());
         else
-          run_g(input_.getData<_FP16>(), hidden_.getData<_FP16>(),
+          run_g(input_use.getData<_FP16>(), hidden_.getData<_FP16>(),
                 filter_kernel.getData<_FP16>());
       }
 #endif
@@ -3084,7 +3242,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
       // floats into 2-byte half storage (overflow / garbage). Carry each
       // parent's real dtype onto its view. (For an all-FP32 graph these are
       // no-ops, so the historical path is unchanged.)
-      const auto in_dt = input_.getDataType();
+      const auto in_dt = input_use.getDataType();
       const auto filt_dt = filter_kernel.getDataType();
       const auto out_dt = hidden_.getDataType();
       for (unsigned int b = 0; b < in_dim.batch(); ++b) {
@@ -3092,7 +3250,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
         TensorDim out_rdim({filter_size, owoh});
         out_rdim.setDataType(out_dt);
         out.reshape(out_rdim);
-        Tensor in_sub = input_.getBatchSlice(b, 1);
+        Tensor in_sub = input_use.getBatchSlice(b, 1);
         TensorDim col_dim = calcCol2ImOutputDim(out_dim, fdim_g);
         col_dim.setDataType(in_dt);
         Tensor result = Tensor(col_dim);
@@ -3113,7 +3271,9 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
         result.deallocate();
       }
     }
+#ifdef __ARM_NEON__
     depthwise_done:; // jump target for the env-gated vectorized NHWC depthwise
+#endif
   }
 
   // Per-channel W8A8 convs applied bias + SiLU + quantize inline per batch, so

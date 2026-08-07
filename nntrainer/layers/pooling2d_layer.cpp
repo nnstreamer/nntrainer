@@ -456,6 +456,58 @@ void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output,
         return;
       }
 #endif
+    } else if (pooling_type == props::PoolingTypeInfo::Enum::average ||
+               pooling_type == props::PoolingTypeInfo::Enum::global_average) {
+      auto run_nhwc_avg = [&]<typename T>() {
+        const T *in_data = in.getData<T>();
+        T *out_data = output.getData<T>();
+        const int Ho = (int)output.height(), Wo = (int)output.width();
+        const int Hi = in_height, Wi = in_width;
+        const int Co = channel;
+        const int sh = stride[0].get(), sw = stride[1].get();
+        const int ph = patch_height, pw = patch_width;
+        const int pt_val = pt, pl_val = pl;
+
+        for (int oh = 0; oh < Ho; ++oh) {
+          for (int ow = 0; ow < Wo; ++ow) {
+            int start_h = oh * sh - pt_val;
+            int start_w = ow * sw - pl_val;
+            int end_h = start_h + ph;
+            int end_w = start_w + pw;
+
+            int eff_start_h = std::max(0, start_h);
+            int eff_start_w = std::max(0, start_w);
+            int eff_end_h = std::min(end_h, Hi);
+            int eff_end_w = std::min(end_w, Wi);
+
+            int cnt = (eff_end_h - eff_start_h) * (eff_end_w - eff_start_w);
+            if (cnt <= 0) cnt = 1;
+
+            for (int c = 0; c < Co; ++c) {
+              float total = 0.0f;
+              for (int h = eff_start_h; h < eff_end_h; ++h) {
+                for (int w = eff_start_w; w < eff_end_w; ++w) {
+                  int idx = (h * Wi + w) * Co + c;
+                  total += (float)in_data[idx];
+                }
+              }
+              int out_idx = (oh * Wo + ow) * Co + c;
+              out_data[out_idx] = (T)(total / (float)cnt);
+            }
+          }
+        }
+      };
+
+      if (in.getDataType() == ml::train::TensorDim::DataType::FP32) {
+        run_nhwc_avg.template operator()<float>();
+        return;
+      }
+#ifdef ENABLE_FP16
+      else if (in.getDataType() == ml::train::TensorDim::DataType::FP16) {
+        run_nhwc_avg.template operator()<_FP16>();
+        return;
+      }
+#endif
     }
   }
 

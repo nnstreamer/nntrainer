@@ -525,6 +525,12 @@ int NeuralNetwork::reinitialize() {
   return status;
 }
 
+#include <list>
+static std::list<std::vector<char>> global_buffers;
+static std::mutex global_buffers_mtx;
+static std::vector<std::pair<void*, size_t>> global_mmaps;
+static std::mutex global_mmaps_mtx;
+
 /**
  * @brief     free layers
  */
@@ -2172,6 +2178,43 @@ void NeuralNetwork::load(const std::string &file_path,
       NNTR_THROW_IF((model_file_fd == -1), std::invalid_argument)
         << "Cannot open safetensors file: " << f_path;
 
+      void *shared_mmap_ptr = MAP_FAILED;
+      size_t shared_f_size = 0;
+      std::vector<char> shared_file_data;
+
+      if (MMAP_READ) {
+#if !defined(_WIN32)
+        struct stat st {};
+        if (::fstat(model_file_fd, &st) != -1) {
+          shared_f_size = static_cast<size_t>(st.st_size);
+          shared_mmap_ptr = ::mmap(nullptr, shared_f_size, PROT_READ, MAP_PRIVATE, model_file_fd, 0);
+          if (shared_mmap_ptr != MAP_FAILED) {
+            std::lock_guard<std::mutex> lock(global_mmaps_mtx);
+            global_mmaps.push_back({shared_mmap_ptr, shared_f_size});
+          }
+        }
+#endif
+      }
+
+      // If mmap failed, read into a fallback buffer ONCE
+      if (MMAP_READ && shared_mmap_ptr == MAP_FAILED) {
+#if !defined(_WIN32)
+        struct stat st {};
+        if (::fstat(model_file_fd, &st) != -1) {
+          shared_f_size = static_cast<size_t>(st.st_size);
+          shared_file_data.resize(shared_f_size);
+          std::ifstream f(f_path, std::ios::binary);
+          if (f.is_open()) {
+            f.read(shared_file_data.data(), shared_f_size);
+            f.close();
+          }
+          std::lock_guard<std::mutex> lock(global_buffers_mtx);
+          global_buffers.push_back(std::move(shared_file_data));
+          shared_mmap_ptr = global_buffers.back().data();
+        }
+#endif
+      }
+
       std::vector<std::thread> threads;
       threads.reserve(model_graph.size());
       for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
@@ -2208,32 +2251,10 @@ void NeuralNetwork::load(const std::string &file_path,
             CloseHandle(hMap);
             CloseHandle(hFile);
 #else
-            int fd = ::open(f_path.c_str(), O_RDONLY);
-            NNTR_THROW_IF((fd == -1), std::invalid_argument)
-              << "Cannot open safetensors file: " << f_path;
-
-            struct stat st {};
-            NNTR_THROW_IF((::fstat(fd, &st) == -1), std::invalid_argument)
-              << "Cannot stat safetensors file: " << f_path;
-
-            const size_t f_size = static_cast<size_t>(st.st_size);
-            void *mmap_ptr =
-              ::mmap(nullptr, f_size, PROT_READ, MAP_PRIVATE, fd, 0);
-            ::close(fd);
-            NNTR_THROW_IF((mmap_ptr == MAP_FAILED), std::runtime_error)
-              << "mmap failed for safetensors file: " << f_path;
-
-            // Streaming read, not a scattered one -- see the sibling site
-            // in the positional .bin arm above for the fault census that
-            // retired POSIX_MADV_RANDOM here.
-            (void)::posix_madvise(mmap_ptr, f_size, POSIX_MADV_SEQUENTIAL);
-
-            char *view = static_cast<char *>(mmap_ptr);
-            node->read(view, false, exec_mode, fsu_mode,
-                       std::numeric_limits<size_t>::max(), true, model_file_fd);
-
-            (void)::posix_madvise(mmap_ptr, f_size, POSIX_MADV_DONTNEED);
-            ::munmap(mmap_ptr, f_size);
+            if (shared_mmap_ptr != MAP_FAILED) {
+              char *view = static_cast<char *>(shared_mmap_ptr);
+              node->read(view, false, exec_mode, fsu_mode, std::numeric_limits<size_t>::max(), true, model_file_fd);
+            }
 #endif
           }
         });
@@ -2292,6 +2313,10 @@ void NeuralNetwork::load(const std::string &file_path,
             const safetensors::TensorEntry *e = eit->second;
             if (!e->nntr_dtype.empty())
               continue; // quantized / native payload: skip
+            if (var.getDataType() == ml::train::TensorDim::DataType::Q8_0 ||
+                var.getDataType() == ml::train::TensorDim::DataType::Q4_0 ||
+                var.getDataType() == ml::train::TensorDim::DataType::Q6_K)
+              continue; // Skip quantized tensors since copyData is not supported on them
             auto file_dt = fileFloatDType(e->dtype);
             if (file_dt == ml::train::TensorDim::DataType::NONE)
               continue;
