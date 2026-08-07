@@ -89,7 +89,7 @@ int nntr_hvx_mm_u8i4_from_f32(
 
   if (res == AEE_SUCCESS) {
     hvx_dequant_i32_to_f32(acc_i32, M, m_pad, N, act_scale, act_zp, colsum_w,
-                           w_scale, bias, out_f32);
+                           w_scale, bias, out_f32, /*accumulate=*/0);
   }
   return res;
 }
