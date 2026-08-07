@@ -33,6 +33,8 @@
 
 #include "hexkl_attn_dtype.h"
 
+struct hvx_worker_pool_s; /* hvx_worker_pool.h; only a pointer is held here */
+
 /** @brief Upper bound on KV blocks per head. max_kv 8192 at T=64 needs 128. */
 #define HEXKL_ATTN_MAX_BLOCKS 128u
 /** @brief Upper bound on cache heads, so the handle table is a flat array. */
@@ -89,6 +91,18 @@ typedef struct {
   uint32_t *begin; /**< M_band */
   uint32_t *end;   /**< M_band */
   float **seg;     /**< max_blocks pointers into s_band */
+
+  /* NOT here: constant quant params for P. The blocked softmax guarantees
+     max(p) == 1.0f PER ROW ACROSS THE BAND, but P is quantized PER BLOCK,
+     and a block that does not hold its row's maximum has a local max below
+     1.0f -- the per-row scan adapts to it and a (1/255, 0) constant would
+     not. Measured before assuming: quant_rows_u8 on real blocked-softmax
+     output returned 0x1.ff2d18p-9 for exactly such a block. The scan is
+     load-bearing. */
+
+  /** Softmax row split. NULL runs PHASE B inline (decode-sized bands are
+      cheaper than a fork/join). Not owned; the session owns the pool. */
+  struct hvx_worker_pool_s *pool;
 } hexkl_attn_u8_ctx;
 
 /**

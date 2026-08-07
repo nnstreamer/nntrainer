@@ -77,6 +77,10 @@ int nntr_hvx_attn_register(remote_handle64 handle, uint32 nch, uint32 gqa,
     return rc;
   }
 
+  /* Not owned by the ctx: the session's pool outlives every attention
+   * handle, and close() destroys it after everything is released. */
+  g_attn[i].pool = s->quant_pool;
+
   g_attn_in_use[i] = 1;
   *h = i;
   return AEE_SUCCESS;

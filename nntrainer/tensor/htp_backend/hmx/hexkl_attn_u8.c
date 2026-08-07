@@ -24,6 +24,7 @@
 #include "hexkl_kv_quant.h"
 #include "hexkl_probe.h"
 #include "hvx_softmax_blocked_f32.h"
+#include "hvx_worker_pool.h"
 
 /** @brief Bytes one fp16 KV row occupies across all heads. */
 static uint32_t row_stride(const hexkl_attn_u8_ctx *ctx) {
@@ -305,6 +306,44 @@ int hexkl_attn_u8_scores(hexkl_attn_u8_ctx *ctx, uint32_t head, uint32_t M,
                         q_band, out_s);
 }
 
+/** @brief One PHASE B job: the band, ready for a row split. */
+typedef struct {
+  float *const *seg;
+  uint32_t n_seg, T, M;
+  float scale;
+  const uint32_t *begin;
+  const uint32_t *end;
+  const float *sink;
+  float *l_row;
+} attn_softmax_job;
+
+/**
+ * @brief hvx_worker_pool_func running rows [i*per, min((i+1)*per, M)).
+ *
+ * Rows are independent and each worker writes only its own l_row entries
+ * (hvx_softmax_blocked_f32's contract), so the split is bitwise-invisible:
+ * every row is computed by exactly the arithmetic the inline call would use.
+ */
+static void attn_softmax_worker(uint32_t n_threads, uint32_t i, void *arg) {
+  const attn_softmax_job *j = (const attn_softmax_job *)arg;
+  const uint32_t per = (j->M + n_threads - 1u) / n_threads;
+  const uint32_t m0 = i * per;
+  uint32_t m1 = m0 + per;
+
+  if (m1 > j->M) {
+    m1 = j->M;
+  }
+  if (m0 >= m1) {
+    return;
+  }
+  hvx_softmax_blocked_f32(j->seg, j->n_seg, j->T, m0, m1, j->M, j->scale,
+                          j->begin, j->end, j->sink, j->l_row);
+}
+
+/** @brief Bands with fewer rows run PHASE B inline: a fork/join costs more
+ *         than a decode band's whole softmax (~0.8 us). */
+#define ATTN_SOFTMAX_POOL_MIN_ROWS 16u
+
 int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
                           uint32_t n_query, float scale, int is_causal,
                           uint32_t window, const float *sink, const float *q,
@@ -378,9 +417,19 @@ int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
         ctx->seg[j] = ctx->s_band + (size_t)j * mb * ctx->T;
       }
       TICK(t0);
-      hvx_softmax_blocked_f32(
-        ctx->seg, n_blocks, ctx->T, 0u, mb, mb, scale, ctx->begin, ctx->end,
-        (sink != NULL) ? ctx->sink_row : NULL, ctx->l_row);
+      if (ctx->pool != NULL && mb >= ATTN_SOFTMAX_POOL_MIN_ROWS) {
+        attn_softmax_job job = {
+          ctx->seg,  n_blocks,
+          ctx->T,    mb,
+          scale,     ctx->begin,
+          ctx->end,  (sink != NULL) ? ctx->sink_row : NULL,
+          ctx->l_row};
+        hvx_worker_pool_run(ctx->pool, attn_softmax_worker, &job, mb);
+      } else {
+        hvx_softmax_blocked_f32(
+          ctx->seg, n_blocks, ctx->T, 0u, mb, mb, scale, ctx->begin, ctx->end,
+          (sink != NULL) ? ctx->sink_row : NULL, ctx->l_row);
+      }
       TICK(t1);
       ACCUM(HEXKL_ATTN_T_SOFTMAX, t0, t1);
 
