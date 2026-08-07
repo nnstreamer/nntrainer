@@ -145,7 +145,7 @@ void run_case(remote_handle64 handle, const AttnCfg &c, uint32_t head,
   uint32_t h_attn = 0;
   int err =
     nntr_hvx_attn_register(handle, c.nch, c.gqa, c.head_dim, c.kv_len, c.T,
-                           (uint32_t)c.w_k, (uint32_t)c.w_v, &h_attn);
+                           c.M_band, (uint32_t)c.w_k, (uint32_t)c.w_v, &h_attn);
   ASSERT_EQ(err, AEE_SUCCESS) << "attn_register: " << hex(err);
 
   err = nntr_hvx_attn_kv_append(handle, h_attn, 0u, c.kv_len, k16.data(),
