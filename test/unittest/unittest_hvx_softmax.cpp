@@ -490,16 +490,25 @@ struct BlockedWorst {
  * @brief Bound on how far two summation ORDERS of the same n non-negative f32
  *        values may legitimately land apart.
  *
- * The host model adds in kv order, one scalar at a time; the kernel adds into
- * 32 qf32 lanes and reduces at the end. Neither is "the" answer -- both
- * approximate the same exact sum -- so the only defensible check is that they
- * agree to within what reassociation permits, which is n * eps * sum. A logic
- * bug (a mask off by one, a dropped block, a mishandled sink) moves l by whole
- * terms, i.e. O(1/n) to O(1) relative, and is still caught by orders of
- * magnitude.
+ * Two terms, and the first device run showed both are needed:
+ *
+ *   n * eps * sum  -- reassociation. The host model adds in kv order, one
+ *     scalar at a time; the kernel adds into 32 qf32 lanes and reduces at the
+ *     end. Neither is "the" answer; both approximate the same exact sum.
+ *     Dominates on long rows (kv=1023 landed 1.06e-6 relative here).
+ *
+ *   1e-6 * sum     -- hvx_exp_sf's own documented relative error. Every term
+ *     of l is an exp, and on a SHORT row there is no reassociation at all, so
+ *     this is the only term left. Leaving it out put the worst margin at
+ *     0.998 on a two-term row -- passing, but one rounding away from red and
+ *     for a reason that has nothing to do with summation order.
+ *
+ * A logic bug (a mask off by one, a dropped block, a mishandled sink) moves l
+ * by whole terms, i.e. O(1/n) to O(1) relative, and is still caught by orders
+ * of magnitude.
  */
 double sum_order_bound(uint32_t n_terms, double sum) {
-  return (double)n_terms * 1.1920928955078125e-7 * sum;
+  return ((double)n_terms * 1.1920928955078125e-7 + 1e-6) * sum;
 }
 
 /** @brief One case of the blocked softmax matrix, device against host model. */
