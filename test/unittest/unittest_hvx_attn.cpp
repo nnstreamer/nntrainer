@@ -35,13 +35,7 @@
 #include <AEEStdErr.h>
 #include <remote.h>
 
-/* Header AND archive must both exist: rpcmem.h alone compiles but does not
- * link (librpcmem.a is separate from libcdsprpc.so -- found the hard way).
- * NNTR_RPCMEM_LINKED is set by Android.mk iff the archive was found. */
-#if __has_include("rpcmem.h") && defined(NNTR_RPCMEM_LINKED)
-#include "rpcmem.h"
-#define NNTR_HAVE_RPCMEM 1
-#endif
+#include <dlfcn.h>
 
 #include "nntr_hvx.h"
 
@@ -52,33 +46,68 @@ namespace {
 constexpr int kDspOffset = 0x80000400;
 
 /**
+ * @brief rpcmem, resolved at runtime.
+ *
+ * The functions live in the DEVICE's libcdsprpc.so, which exports them; the
+ * SDK's link-time stub of the same library does not, and its librpcmem.a
+ * hides in version-dependent paths -- both already broke one build each.
+ * dlsym against the already-loaded process image depends on neither.
+ */
+struct RpcMemApi {
+  void *(*alloc)(int heap, uint32_t flags, int size) = nullptr;
+  void (*free_)(void *p) = nullptr;
+
+  static const RpcMemApi &get() {
+    static RpcMemApi api = [] {
+      RpcMemApi a;
+      void (*init)(void) = (void (*)(void))dlsym(RTLD_DEFAULT, "rpcmem_init");
+      a.alloc =
+        (void *(*)(int, uint32_t, int))dlsym(RTLD_DEFAULT, "rpcmem_alloc");
+      a.free_ = (void (*)(void *))dlsym(RTLD_DEFAULT, "rpcmem_free");
+      if (a.alloc == nullptr || a.free_ == nullptr) {
+        a.alloc = nullptr;
+        a.free_ = nullptr;
+      } else if (init != nullptr) {
+        init();
+      }
+      return a;
+    }();
+    return api;
+  }
+};
+
+/* rpcmem.h's values, restated because that header is deliberately not
+ * included (see RpcMemApi). Stable ABI constants, not tunables. */
+constexpr int kRpcHeapIdSystem = 25;
+constexpr uint32_t kRpcFlagsDefault = 1; /* RPCMEM_DEFAULT_FLAGS: cached */
+
+/**
  * @brief A buffer the FastRPC driver can map once instead of per call.
  *
  * rpcmem/ION-backed memory is recognized by the driver and keeps its SMMU
- * mapping across calls; plain heap is pinned and mapped on EVERY call, which
- * is part of the measured per-call transport. Plain heap remains the
- * fallback so the test still runs on an SDK without rpcmem.h -- ion says
- * which one this build actually got, and the test reports it.
+ * mapping across calls; plain heap is pinned and mapped on EVERY call,
+ * which is part of the measured per-call transport. Plain heap remains the
+ * fallback when the device library exports no rpcmem -- ion says which one
+ * this run actually got, and the test reports it.
  */
 struct RpcBuf {
   void *p = nullptr;
   bool ion = false;
   explicit RpcBuf(size_t bytes) {
-#ifdef NNTR_HAVE_RPCMEM
-    p = rpcmem_alloc(RPCMEM_HEAP_ID_SYSTEM, RPCMEM_DEFAULT_FLAGS, (int)bytes);
-    ion = (p != nullptr);
-#endif
+    const RpcMemApi &api = RpcMemApi::get();
+    if (api.alloc != nullptr) {
+      p = api.alloc(kRpcHeapIdSystem, kRpcFlagsDefault, (int)bytes);
+      ion = (p != nullptr);
+    }
     if (p == nullptr) {
       p = std::malloc(bytes);
     }
   }
   ~RpcBuf() {
-#ifdef NNTR_HAVE_RPCMEM
     if (ion) {
-      rpcmem_free(p);
+      RpcMemApi::get().free_(p);
       return;
     }
-#endif
     std::free(p);
   }
   RpcBuf(const RpcBuf &) = delete;
@@ -102,15 +131,6 @@ std::string hex(int err) {
 class HtpSession : public ::testing::Test {
 protected:
   void SetUp() override {
-#ifdef NNTR_HAVE_RPCMEM
-    {
-      static bool rpcmem_ready = false;
-      if (!rpcmem_ready) {
-        rpcmem_init();
-        rpcmem_ready = true;
-      }
-    }
-#endif
     remote_rpc_control_unsigned_module unsigned_pd = {CDSP_DOMAIN_ID, 1};
     int err = remote_session_control(DSPRPC_CONTROL_UNSIGNED_MODULE,
                                      &unsigned_pd, sizeof(unsigned_pd));
@@ -133,26 +153,23 @@ protected:
      * -1 = the control does not exist in this SDK's remote.h. The last two
      * are different problems (runtime vs build), so they get different
      * numbers -- one run already went out unreadable on this point. */
-    int qos = -1;
-#if defined(DSPRPC_CONTROL_LATENCY)
+    /* 2 = poll mode, 1 = PM mode, 0 = every mode rejected. The ladder
+     * exists because poll is the biggest win but PD/target support varies.
+     * These identifiers are ENUMS in remote.h, not #defines -- an earlier
+     * #if defined() guard around this block compiled the whole thing out
+     * and reported "not in this SDK" for an SDK that has them. */
+    int qos = 0;
     {
       struct remote_rpc_control_latency lat;
-      int rc_q = AEE_EUNSUPPORTED;
-      qos = 0;
-#if defined(RPC_POLL_QOS)
       memset(&lat, 0, sizeof(lat));
       lat.enable = RPC_POLL_QOS;
       lat.latency = 100;
-      rc_q = remote_handle64_control(handle_, DSPRPC_CONTROL_LATENCY, &lat,
-                                     sizeof(lat));
+      int rc_q = remote_handle64_control(handle_, DSPRPC_CONTROL_LATENCY, &lat,
+                                         sizeof(lat));
       if (rc_q == AEE_SUCCESS) {
         qos = 2;
       } else {
         std::cout << "  (poll QoS rejected: " << hex(rc_q) << ")\n";
-      }
-#endif
-#if defined(RPC_PM_QOS)
-      if (qos == 0) {
         memset(&lat, 0, sizeof(lat));
         lat.enable = RPC_PM_QOS;
         lat.latency = 100;
@@ -160,24 +177,11 @@ protected:
                                        sizeof(lat));
         if (rc_q == AEE_SUCCESS) {
           qos = 1;
-        }
-      }
-#endif
-      if (qos == 0) {
-        /* Oldest form of the control: a bare enable bit. */
-        memset(&lat, 0, sizeof(lat));
-        lat.enable = 1;
-        rc_q = remote_handle64_control(handle_, DSPRPC_CONTROL_LATENCY, &lat,
-                                       sizeof(lat));
-        if (rc_q == AEE_SUCCESS) {
-          qos = 1;
         } else {
-          std::cout << "  (all QoS modes rejected, last: " << hex(rc_q)
-                    << ")\n";
+          std::cout << "  (PM QoS rejected too: " << hex(rc_q) << ")\n";
         }
       }
     }
-#endif
     std::cout << "ATTN_FIELD path=env field=rpc_poll_qos value=" << qos
               << std::endl;
   }
@@ -675,16 +679,10 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
         q[qi] = d(rng);
       }
       std::memset(out, 0, qn * sizeof(float));
-      /* 1 = ION-backed, 0 = rpcmem linked but the alloc failed,
-       * -1 = librpcmem.a was not found at build time (Android.mk wildcard;
-       * run find on the SDK for it and extend the list there). */
-#ifdef NNTR_HAVE_RPCMEM
-      const int ion_state = (qbuf.ion && obuf.ion) ? 1 : 0;
-#else
-      const int ion_state = -1;
-#endif
-      std::cout << "ATTN_FIELD path=env field=ion_buffers value=" << ion_state
-                << std::endl;
+      /* 1 = ION-backed; 0 = the device library exports no rpcmem, or the
+       * alloc failed -- either way these runs used plain heap. */
+      std::cout << "ATTN_FIELD path=env field=ion_buffers value="
+                << ((qbuf.ion && obuf.ion) ? 1 : 0) << std::endl;
       const float scale = 1.0f / std::sqrt((float)head_dim);
 
       for (int w = 0; w < 4; ++w) {
