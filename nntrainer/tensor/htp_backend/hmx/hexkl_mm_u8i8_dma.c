@@ -193,7 +193,11 @@ int hexkl_mm_u8i8_layer_run(hexkl_weight_u8i8_table *tbl, uint8_t *vtcm_base,
   };
   const uint32_t result_off =
     ROUND_UP_U32(wbuf[1] + wb_max, HEXKL_HMX_ACTIVATION_ALIGNMENT);
-  if (result_off + ACC_TILE_BYTES > config_off) {
+  /* config_off unless the caller reserved part of the top for itself. */
+  const uint32_t vtcm_top = (o->vtcm_limit != 0u && o->vtcm_limit < config_off)
+                              ? o->vtcm_limit
+                              : config_off;
+  if (result_off + ACC_TILE_BYTES > vtcm_top) {
     return AEE_ENOMEMORY; // double-buffered widest weight does not fit VTCM
   }
   if (result_off + ACC_TILE_BYTES > vtcm_size) {

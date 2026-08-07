@@ -30,6 +30,31 @@
 #include "hvx_softmax_blocked_f32.h"
 #include "hvx_worker_pool.h"
 
+#define ATTN_ROUND_UP(v, a) ((((v) + ((a)-1u)) / (a)) * (a))
+/** @brief VTCM alignment the HMX activation port needs; used for the band
+ *         buffers too so nothing in the reserved region is under-aligned. */
+#define ATTN_VTCM_ALIGN 2048u
+
+/**
+ * @brief Upper bound on the VTCM layer_run needs for THIS ctx's two shapes.
+ *
+ * Mirrors layer_run's own layout: activation AH tiles, a double-buffered
+ * weight, one accumulator tile, plus its alignment round-ups. Computed from
+ * the wider (i8) weight tile so one number covers both widths. The bands are
+ * only placed in VTCM if this much is still free beneath them, which is what
+ * turns a shape that does not fit into a loud AEE_ENOMEMORY from layer_run
+ * rather than a silent overwrite.
+ */
+static uint32_t attn_mm_scratch_bytes(uint32_t M_band, uint32_t head_dim,
+                                      uint32_t T) {
+  const uint32_t rb = ATTN_ROUND_UP(M_band, 64u) / 64u;
+  const uint32_t hd_t = head_dim / 32u, t_t = T / 32u;
+  /* PHASE A: K = head_dim, N = T. PHASE C: K = T, N = head_dim. */
+  const uint32_t qk = rb * hd_t * 2048u + 2u * (hd_t * t_t * 1024u) + 8192u;
+  const uint32_t pv = rb * t_t * 2048u + 2u * (t_t * hd_t * 1024u) + 8192u;
+  return (qk > pv ? qk : pv) + 4u * ATTN_VTCM_ALIGN;
+}
+
 /** @brief Bytes one fp16 KV row occupies across all heads. */
 static uint32_t row_stride(const hexkl_attn_u8_ctx *ctx) {
   return ctx->nch * ctx->head_dim;
@@ -128,12 +153,35 @@ int hexkl_attn_u8_ctx_init(hexkl_attn_u8_ctx *ctx, uint8_t *vtcm_base,
   ctx->q_colsum = (int32_t *)malloc((size_t)biggest * sizeof(int32_t));
   ctx->q_bias = (float *)calloc((size_t)biggest, sizeof(float));
 
-  ctx->s_band =
-    (float *)malloc((size_t)ctx->max_blocks * M_band * T * sizeof(float));
-  ctx->o_band = (float *)malloc((size_t)M_band * head_dim * sizeof(float));
+  /* The three hot band buffers go to the TOP of VTCM when they fit with
+   * layer_run's own scratch still beneath them (see the header). */
+  {
+    const uint32_t s_bytes = ATTN_ROUND_UP((uint32_t)ctx->max_blocks * M_band *
+                                             T * (uint32_t)sizeof(float),
+                                           ATTN_VTCM_ALIGN);
+    const uint32_t o_bytes = ATTN_ROUND_UP(
+      M_band * head_dim * (uint32_t)sizeof(float), ATTN_VTCM_ALIGN);
+    const uint32_t q_bytes = o_bytes; /* same shape as o_band */
+    const uint32_t need = s_bytes + o_bytes + q_bytes;
+    const uint32_t floor_ = attn_mm_scratch_bytes(M_band, head_dim, T);
+
+    if (config_off > need && (config_off - need) >= floor_) {
+      const uint32_t off = config_off - need;
+      ctx->s_band = (float *)(vtcm_base + off);
+      ctx->o_band = (float *)(vtcm_base + off + s_bytes);
+      ctx->q_gather = (float *)(vtcm_base + off + s_bytes + o_bytes);
+      ctx->band_in_vtcm = 1;
+      ctx->vtcm_limit = off;
+    } else {
+      ctx->s_band =
+        (float *)malloc((size_t)ctx->max_blocks * M_band * T * sizeof(float));
+      ctx->o_band = (float *)malloc((size_t)M_band * head_dim * sizeof(float));
+      ctx->q_gather =
+        (float *)malloc((size_t)M_band * head_dim * sizeof(float));
+    }
+  }
   ctx->l_row = (float *)malloc((size_t)M_band * sizeof(float));
   ctx->sink_row = (float *)malloc((size_t)M_band * sizeof(float));
-  ctx->q_gather = (float *)malloc((size_t)M_band * head_dim * sizeof(float));
   ctx->begin = (uint32_t *)malloc((size_t)M_band * sizeof(uint32_t));
   ctx->end = (uint32_t *)malloc((size_t)M_band * sizeof(uint32_t));
   ctx->seg = (float **)malloc((size_t)ctx->max_blocks * sizeof(float *));
@@ -192,11 +240,13 @@ void hexkl_attn_u8_ctx_fini(hexkl_attn_u8_ctx *ctx) {
   free(ctx->q_scale);
   free(ctx->q_colsum);
   free(ctx->q_bias);
-  free(ctx->s_band);
-  free(ctx->o_band);
+  if (!ctx->band_in_vtcm) {
+    free(ctx->s_band);
+    free(ctx->o_band);
+    free(ctx->q_gather);
+  }
   free(ctx->l_row);
   free(ctx->sink_row);
-  free(ctx->q_gather);
   free(ctx->begin);
   free(ctx->end);
   free(ctx->seg);
@@ -316,7 +366,8 @@ int hexkl_attn_u8_scores(hexkl_attn_u8_ctx *ctx, uint32_t head, uint32_t M,
    * and prefetches block j+1's weight while j computes. out_s comes back
    * block-major, which is the layout PHASE B walks directly. */
   {
-    const hexkl_mm_opts opts = {.pool = (hvx_worker_pool *)ctx->pool};
+    const hexkl_mm_opts opts = {.pool = (hvx_worker_pool *)ctx->pool,
+                                .vtcm_limit = ctx->vtcm_limit};
     return ctx->ops_k.run(ctx->ops_k.table, ctx->vtcm_base, ctx->vtcm_size,
                           ctx->config_off, M, ctx->head_dim, handles, n_blocks,
                           q_band, out_s, &opts);
@@ -485,6 +536,7 @@ int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
           const hexkl_mm_opts opts = {.pool = (hvx_worker_pool *)ctx->pool,
                                       .act_scale = ctx->p_scale,
                                       .act_zp = ctx->p_zp,
+                                      .vtcm_limit = ctx->vtcm_limit,
                                       .accumulate = 1};
           rc = ctx->ops_v.run(ctx->ops_v.table, ctx->vtcm_base, ctx->vtcm_size,
                               ctx->config_off, mb, ctx->T, &hv, 1u, ctx->seg[j],
@@ -549,6 +601,7 @@ int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
     stage_us[HEXKL_ATTN_T_DRAIN] = (uint32_t)hexkl_probe_us[HEXKL_PROBE_DRAIN];
     stage_us[HEXKL_ATTN_T_ACC_STRIDE] =
       (uint32_t)hexkl_probe_us[HEXKL_PROBE_ACC_STRIDE];
+    stage_us[HEXKL_ATTN_T_BAND_VTCM] = (uint32_t)ctx->band_in_vtcm;
   }
   return AEE_SUCCESS;
 }

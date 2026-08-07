@@ -38,6 +38,13 @@ typedef struct {
   const float *act_scale;
   const int32_t *act_zp;
 
+  /** Highest VTCM offset layer_run may use for its own scratch. 0 means
+      config_off, i.e. everything below the HMX config region. A caller that
+      parks its own buffers in the top of VTCM sets this to the lowest offset
+      it reserved, and layer_run then fails loudly on a shape that would have
+      run into them instead of overwriting them. */
+  uint32_t vtcm_limit;
+
   /** Nonzero: out_cat += result instead of =. The adds land per element in
       the same per-call order either way, so accumulating here is bitwise
       identical to staging into a scratch and adding afterwards -- which is

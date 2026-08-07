@@ -81,7 +81,15 @@ typedef struct {
   float *q_bias;
 
   /* Forward scratch, allocated once. layer_run already mallocs per call
-     (§1.8); adding a second storm per band would be worse. */
+     (§1.8); adding a second storm per band would be worse.
+
+     s_band, o_band and q_gather sit in the TOP of VTCM when they fit there
+     (band_in_vtcm), because they are not scratch in any ordinary sense --
+     s_band alone carries ~32 MB of DDR traffic per prefill layer: the Q.Kt
+     dequant writes it, the softmax reads and rewrites it, and the P.V quant
+     reads it again. In VTCM that traffic never leaves the chip. Falls back
+     to the heap when max_blocks makes s_band too large, so a long-context
+     ctx still runs. */
   float *s_band;   /**< max_blocks * M_band * T, block-major */
   float *o_band;   /**< M_band * head_dim; layer_run accumulates into it
                         directly (hexkl_mm_opts accumulate), so the staged
@@ -103,6 +111,13 @@ typedef struct {
   float *bm;      /**< [max_blocks][M_band] per-(block, row) stored maxima */
   float *p_scale; /**< ROUND_UP(M_band, 64) entries, refilled per block */
   int32_t *p_zp;  /**< same length, permanently zero: p >= 0 pins rmin at 0 */
+
+  /** Nonzero when s_band/o_band/q_gather point into VTCM rather than the
+      heap; fini must not free them in that case. */
+  int band_in_vtcm;
+  /** Lowest VTCM offset the bands occupy, handed to layer_run as
+      hexkl_mm_opts::vtcm_limit. 0 when the bands are on the heap. */
+  uint32_t vtcm_limit;
 
   /** Softmax row split. NULL runs PHASE B inline (decode-sized bands are
       cheaper than a fork/join). Not owned; the session owns the pool. */
@@ -183,6 +198,7 @@ enum {
   HEXKL_ATTN_T_QUANT,      /**< activation f32 -> u8 AH tiles in VTCM */
   HEXKL_ATTN_T_DRAIN,      /**< DMA drains inside layer_run */
   HEXKL_ATTN_T_ACC_STRIDE, /**< not a time; see HEXKL_PROBE_ACC_STRIDE */
+  HEXKL_ATTN_T_BAND_VTCM,  /**< not a time; 1 = the bands are VTCM-resident */
   HEXKL_ATTN_N_STAGES
 };
 
