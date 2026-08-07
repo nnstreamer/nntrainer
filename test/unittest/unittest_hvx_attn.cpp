@@ -100,6 +100,7 @@ uint16_t f32_to_f16(float f) {
 struct AttnCfg {
   uint32_t kv_len, n_query, gqa, nch, head_dim, T;
   hexkl_w_width w_k, w_v;
+  uint32_t M_band = 64u; /**< must be <= T (property 5) */
 };
 
 const char *wname(hexkl_w_width w) { return w == HEXKL_W_I4 ? "I4" : "I8"; }
@@ -342,15 +343,146 @@ TEST_F(HvxAttnScores, LifecycleIsRepeatable) {
 TEST_F(HvxAttnScores, RejectsBadShapes) {
   uint32_t h = 0;
   /* T must be a multiple of 32: hexkl_mm_u8iX_plan enforces N % 32 == 0. */
-  EXPECT_EQ(nntr_hvx_attn_register(handle_, 1u, 1u, 128u, 64u, 48u,
+  EXPECT_EQ(nntr_hvx_attn_register(handle_, 1u, 1u, 128u, 64u, 48u, 48u,
                                    (uint32_t)HEXKL_W_I8, (uint32_t)HEXKL_W_I8,
                                    &h),
             AEE_EBADPARM + kDspOffset)
     << "T not a multiple of 32 must be rejected";
-  EXPECT_EQ(nntr_hvx_attn_register(handle_, 1u, 1u, 128u, 64u, 64u, 5u,
+  EXPECT_EQ(nntr_hvx_attn_register(handle_, 1u, 1u, 128u, 64u, 64u, 64u, 5u,
                                    (uint32_t)HEXKL_W_I8, &h),
             AEE_EBADPARM + kDspOffset)
     << "width other than 4 or 8 must be rejected";
+  /* Property 5: M_band > T is the one that misbehaves silently until block
+   * skipping lands, so it has to be rejected at registration. */
+  EXPECT_EQ(nntr_hvx_attn_register(handle_, 1u, 1u, 128u, 256u, 64u, 128u,
+                                   (uint32_t)HEXKL_W_I8, (uint32_t)HEXKL_W_I8,
+                                   &h),
+            AEE_EBADPARM + kDspOffset)
+    << "M_band > T must be rejected";
+}
+
+/**
+ * @brief The fused forward against the host model: PHASE A + B + C in ONE
+ *        FastRPC round trip.
+ *
+ * This is the stage that replaces compute_kcaches + softmax_triangle +
+ * compute_fp16vcache_transposed in mha_core's incremental path, so the oracle
+ * is mha_htp_host_forward -- the same loop, same quantization points, same
+ * mask arithmetic, scalar instead of HMX/HVX/DMA.
+ */
+TEST_F(HvxAttnScores, FusedForwardMatchesHostModel) {
+  struct FwdCfg {
+    uint32_t kv_len, n_query, gqa, nch, head_dim, T, M_band, window;
+    int causal, sink;
+  };
+  /* Qwen3-0.6B's per-head shape (nch 8 / gqa 2 / head_dim 128) plus the
+   * boundary cases the block arithmetic hides in: a partial tail block, a
+   * window on either side of T, and decode as well as prefill. */
+  const FwdCfg cfgs[] = {
+    {256u, 1u, 2u, 8u, 128u, 256u, 64u, 0u, 1, 0},
+    {257u, 33u, 2u, 8u, 128u, 256u, 64u, 0u, 1, 0},
+    {512u, 128u, 2u, 8u, 128u, 256u, 64u, 0u, 1, 0},
+    {257u, 33u, 8u, 1u, 64u, 64u, 64u, 63u, 1, 0},
+    {257u, 33u, 8u, 1u, 64u, 64u, 64u, 64u, 1, 1},
+    {257u, 33u, 8u, 1u, 64u, 64u, 64u, 65u, 0, 1},
+    {1024u, 1u, 2u, 8u, 128u, 256u, 64u, 0u, 1, 1},
+  };
+  const hexkl_w_width widths[4][2] = {{HEXKL_W_I8, HEXKL_W_I8},
+                                      {HEXKL_W_I4, HEXKL_W_I4},
+                                      {HEXKL_W_I8, HEXKL_W_I4},
+                                      {HEXKL_W_I4, HEXKL_W_I8}};
+  double worst = 0.0;
+  size_t cases = 0;
+
+  std::cout << "\nfused forward vs host model -- max|dev - host| / max|host|\n"
+            << "shape (kv,nq,gqa,nch,hd,T,Mb,win,c,sk)  w_k,w_v  max_rel_err\n";
+
+  for (const FwdCfg &f : cfgs) {
+    const uint32_t nHq = f.nch * f.gqa;
+    const uint32_t kv_from = f.kv_len - f.n_query;
+
+    std::mt19937 rng(f.kv_len * 7919u + f.n_query * 131u + f.gqa);
+    std::uniform_real_distribution<float> d(-1.0f, 1.0f);
+
+    std::vector<float> base(f.nch * f.head_dim);
+    for (float &x : base) {
+      x = d(rng);
+    }
+    std::vector<uint16_t> k16((size_t)f.kv_len * f.nch * f.head_dim);
+    std::vector<uint16_t> v16(k16.size());
+    for (uint32_t r = 0; r < f.kv_len; ++r) {
+      for (uint32_t h = 0; h < f.nch; ++h) {
+        for (uint32_t dd = 0; dd < f.head_dim; ++dd) {
+          const size_t i = ((size_t)r * f.nch + h) * f.head_dim + dd;
+          k16[i] = f32_to_f16(base[h * f.head_dim + dd] + 0.5f * d(rng));
+          v16[i] = f32_to_f16(base[h * f.head_dim + dd] + 0.5f * d(rng));
+        }
+      }
+    }
+    std::vector<float> q((size_t)f.n_query * nHq * f.head_dim);
+    for (float &x : q) {
+      x = d(rng);
+    }
+    std::vector<float> sink(nHq);
+    for (float &x : sink) {
+      x = d(rng) * 0.3f;
+    }
+    const float scale = 1.0f / std::sqrt((float)f.head_dim);
+
+    for (int w = 0; w < 4; ++w) {
+      uint32_t h_attn = 0;
+      int err = nntr_hvx_attn_register(
+        handle_, f.nch, f.gqa, f.head_dim, f.kv_len, f.T, f.M_band,
+        (uint32_t)widths[w][0], (uint32_t)widths[w][1], &h_attn);
+      ASSERT_EQ(err, AEE_SUCCESS) << "attn_register: " << hex(err);
+      err =
+        nntr_hvx_attn_kv_append(handle_, h_attn, 0u, f.kv_len, k16.data(),
+                                (int)k16.size(), v16.data(), (int)v16.size());
+      ASSERT_EQ(err, AEE_SUCCESS) << "attn_kv_append: " << hex(err);
+
+      std::vector<float> dev(q.size(), 0.0f);
+      err = nntr_hvx_attn_forward(
+        handle_, h_attn, kv_from, f.n_query, scale, (uint32_t)f.causal,
+        f.window, f.sink ? sink.data() : nullptr, f.sink ? (int)nHq : 0,
+        q.data(), (int)q.size(), dev.data(), (int)dev.size());
+      ASSERT_EQ(err, AEE_SUCCESS) << "attn_forward: " << hex(err);
+      ASSERT_EQ(nntr_hvx_attn_release(handle_, h_attn), AEE_SUCCESS);
+
+      std::vector<float> ref(q.size(), 0.0f);
+      mha_htp_host_forward(
+        f.n_query, kv_from, f.nch, f.gqa, f.head_dim, f.T, f.M_band,
+        f.causal != 0, f.window, f.sink ? sink.data() : nullptr, widths[w][0],
+        widths[w][1], q.data(), k16.data(), v16.data(), ref.data());
+
+      double den = 0.0;
+      const double e = max_rel(dev, ref, &den);
+      ASSERT_GT(den, 0.0) << "reference output is identically zero";
+      worst = std::max(worst, e);
+
+      std::ostringstream shape;
+      shape << f.kv_len << "," << f.n_query << "," << f.gqa << "," << f.nch
+            << "," << f.head_dim << "," << f.T << "," << f.M_band << ","
+            << f.window << "," << f.causal << "," << f.sink;
+      std::cout << std::left << std::setw(40) << shape.str() << std::setw(9)
+                << (std::string(wname(widths[w][0])) + "," +
+                    wname(widths[w][1]))
+                << std::scientific << std::setprecision(2) << e << "\n";
+
+      /* Task 3's fixed tolerances, on the same quantity they were written
+       * for. */
+      const double tol = (widths[w][0] == HEXKL_W_I8)
+                           ? ((widths[w][1] == HEXKL_W_I8) ? 5e-3 : 2e-2)
+                           : 5e-2;
+      EXPECT_LE(e, tol) << shape.str() << " (" << wname(widths[w][0]) << ","
+                        << wname(widths[w][1]) << ")";
+      ++cases;
+    }
+  }
+
+  std::cout << "ATTN_FIELD path=forward field=cases value=" << cases
+            << std::endl;
+  std::cout << "ATTN_FIELD path=forward field=max_rel_err value=" << worst
+            << std::endl;
 }
 
 int main(int argc, char **argv) {

@@ -41,8 +41,8 @@ static hexkl_attn_u8_ctx *attn_lookup(uint32 h) {
 }
 
 int nntr_hvx_attn_register(remote_handle64 handle, uint32 nch, uint32 gqa,
-                           uint32 head_dim, uint32 max_kv, uint32 T, uint32 w_k,
-                           uint32 w_v, uint32 *h) {
+                           uint32 head_dim, uint32 max_kv, uint32 T,
+                           uint32 M_band, uint32 w_k, uint32 w_v, uint32 *h) {
   nntr_hvx_session *s = (nntr_hvx_session *)handle;
   uint32 i;
   int rc;
@@ -70,7 +70,7 @@ int nntr_hvx_attn_register(remote_handle64 handle, uint32 nch, uint32 gqa,
    * what lets the two operands differ at no structural cost (§0.2). */
   rc = hexkl_attn_u8_ctx_init(
     &g_attn[i], s->vtcm_base, s->vtcm_size, s->config_off, nch, gqa, head_dim,
-    max_kv, T, (hexkl_w_width)w_k, (hexkl_w_width)w_v,
+    max_kv, T, M_band, (hexkl_w_width)w_k, (hexkl_w_width)w_v,
     (w_k == HEXKL_W_I4) ? (void *)&s->weights_u8i4 : (void *)&s->weights_u8i8,
     (w_v == HEXKL_W_I4) ? (void *)&s->weights_u8i4 : (void *)&s->weights_u8i8);
   if (rc != AEE_SUCCESS) {
@@ -149,4 +149,37 @@ int nntr_hvx_attn_scores_debug(remote_handle64 handle, uint32 h, uint32 head,
   }
 
   return hexkl_attn_u8_scores(ctx, head, M, q_band, out_s);
+}
+
+int nntr_hvx_attn_forward(remote_handle64 handle, uint32 h, uint32 kv_from,
+                          uint32 n_query, float scale, uint32 is_causal,
+                          uint32 window, const float *sink, int sinkLen,
+                          const float *q, int qLen, float *out, int outLen) {
+  nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  hexkl_attn_u8_ctx *ctx;
+  uint32 nHq, want;
+
+  if (!s) {
+    return AEE_EBADPARM;
+  }
+  ctx = attn_lookup(h);
+  if (!ctx) {
+    return AEE_EBADPARM;
+  }
+
+  nHq = ctx->nch * ctx->gqa;
+  want = n_query * nHq * ctx->head_dim;
+  if ((uint32)qLen != want || (uint32)outLen != want) {
+    FARF(ERROR, "attn_forward: bad q/out length (%d/%d, expected %u)", qLen,
+         outLen, (unsigned)want);
+    return AEE_EBADPARM;
+  }
+  if (sinkLen != 0 && (uint32)sinkLen != nHq) {
+    FARF(ERROR, "attn_forward: sink must be empty or nHq=%u", (unsigned)nHq);
+    return AEE_EBADPARM;
+  }
+
+  return hexkl_attn_u8_forward(ctx, kv_from, n_query, scale, (int)is_causal,
+                               window, sinkLen ? sink : NULL, q, out, NULL,
+                               NULL);
 }

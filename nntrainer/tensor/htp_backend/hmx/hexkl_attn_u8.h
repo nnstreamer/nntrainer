@@ -55,7 +55,7 @@ typedef struct {
   uint32_t vtcm_size;
   uint32_t config_off;
 
-  uint32_t nch, gqa, head_dim, max_kv, T;
+  uint32_t nch, gqa, head_dim, max_kv, T, M_band;
   uint32_t max_blocks; /**< ceil(max_kv / T) */
   uint32_t kv_len;     /**< positions appended so far */
 
@@ -77,6 +77,18 @@ typedef struct {
   /** Zeros. Attention registers no bias, but hexkl_weight_u8iX_register
       rejects a NULL one, so a zero vector is what "no bias" looks like. */
   float *q_bias;
+
+  /* Forward scratch, allocated once. layer_run already mallocs per call
+     (§1.8); adding a second storm per band would be worse. */
+  float *s_band;   /**< max_blocks * M_band * T, block-major */
+  float *o_band;   /**< M_band * head_dim, f32 accumulator across blocks */
+  float *o_part;   /**< M_band * head_dim, one block's P.V before accumulate */
+  float *l_row;    /**< M_band */
+  float *sink_row; /**< M_band */
+  float *q_gather; /**< M_band * head_dim, this band's Q rows */
+  uint32_t *begin; /**< M_band */
+  uint32_t *end;   /**< M_band */
+  float **seg;     /**< max_blocks pointers into s_band */
 } hexkl_attn_u8_ctx;
 
 /**
@@ -91,8 +103,9 @@ typedef struct {
 int hexkl_attn_u8_ctx_init(hexkl_attn_u8_ctx *ctx, uint8_t *vtcm_base,
                            uint32_t vtcm_size, uint32_t config_off,
                            uint32_t nch, uint32_t gqa, uint32_t head_dim,
-                           uint32_t max_kv, uint32_t T, hexkl_w_width w_k,
-                           hexkl_w_width w_v, void *table_k, void *table_v);
+                           uint32_t max_kv, uint32_t T, uint32_t M_band,
+                           hexkl_w_width w_k, hexkl_w_width w_v, void *table_k,
+                           void *table_v);
 
 /** @brief Releases every registered block and frees the shadows. */
 void hexkl_attn_u8_ctx_fini(hexkl_attn_u8_ctx *ctx);
@@ -131,6 +144,30 @@ int hexkl_attn_u8_kv_append(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
  */
 int hexkl_attn_u8_scores(hexkl_attn_u8_ctx *ctx, uint32_t head, uint32_t M,
                          const float *q_band, float *out_s);
+
+/**
+ * @brief The whole fused forward: PHASE A, B and C for every kv_head and band.
+ *
+ * ONE FastRPC entry point covers a layer. An unfused seam would pay the ~404 us
+ * fixed FastRPC cost three times instead of once, which is why softmax runs on
+ * the DSP at all (MHA_HTP_PLAN.md §2).
+ *
+ * Masking, for query row i at absolute position p = kv_from + i:
+ *   end   = is_causal ? p + 1 : kv_len
+ *   begin = (window && window < end) ? end - window : 0
+ *
+ * @param scale  folded into the softmax, 1/sqrt(head_dim); NOT into the
+ *               quantization metadata
+ * @param sink   NULL, or one logit per query head, [nch*gqa]
+ * @param q      [n_query][nch*gqa*head_dim] f32, post-RoPE
+ * @param[out] out same shape as @a q
+ * @param[out] dbg_p  NULL, or max_blocks*M_band*T floats receiving the LAST
+ *               band's unnormalized P -- debug only, stripped before the PR
+ */
+int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
+                          uint32_t n_query, float scale, int is_causal,
+                          uint32_t window, const float *sink, const float *q,
+                          float *out, float *dbg_p, float *dbg_l);
 
 /** @brief Blocks currently carrying registered KV, i.e. ceil(kv_len / T). */
 uint32_t hexkl_attn_u8_n_blocks(const hexkl_attn_u8_ctx *ctx);
