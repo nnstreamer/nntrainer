@@ -715,6 +715,34 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
         const double init_us =
           std::chrono::duration<double, std::micro>(init_t1 - init_t0).count();
 
+        /* The STEP append: the KV rows this inference contributes, which is
+         * 1 row at decode and n_query at prefill. init above appended the
+         * whole cache at once, which is not what a running model pays -- it
+         * pays this, every token, in every layer, before forward can run.
+         * Re-appending rows already present is idempotent (the affected
+         * blocks are released and re-registered from the same shadow data)
+         * and kv_len does not move, so this measures the real per-step cost
+         * without disturbing the forwards below. */
+        constexpr int kIters = 10;
+        const size_t row_elems = (size_t)nch * head_dim;
+        double app[kIters];
+        for (int r = 0; r < kIters; ++r) {
+          const auto t0 = std::chrono::steady_clock::now();
+          const int err = nntr_hvx_attn_kv_append(
+            handle_, h, kv_from, n_query, k16.data() + kv_from * row_elems,
+            (int)((size_t)n_query * row_elems),
+            v16.data() + kv_from * row_elems,
+            (int)((size_t)n_query * row_elems));
+          const auto t1 = std::chrono::steady_clock::now();
+          ASSERT_EQ(err, AEE_SUCCESS);
+          app[r] = std::chrono::duration<double, std::micro>(t1 - t0).count();
+        }
+        double app_sum = 0.0;
+        for (int r = 0; r < kIters; ++r) {
+          app_sum += app[r];
+        }
+        const double app_avg = app_sum / (double)kIters;
+
         /* PRODUCTION path: attn_forward passes no stage_us, so the DSP's
          * stage timers and the in-loop probes are both off. That is what a
          * real caller pays and therefore what the headline reports; the
@@ -726,7 +754,6 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
          * quoted under. Run 1 pays page faults on the freshly registered
          * shadows and so pulls the average up; it is also reported on its
          * own, as us_first, so how much it pulls stays visible. */
-        constexpr int kIters = 10;
         double iter[kIters];
         for (int r = 0; r < kIters; ++r) {
           const auto t0 = std::chrono::steady_clock::now();
@@ -824,10 +851,15 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
         std::cout << "ATTN_STAGE path=" << path.str()
                   << " field=probe_overhead_us value=" << (med_probed - med)
                   << std::endl;
-        static const char *kRun[5] = {"us_avg_1_10", "us_min", "us_max",
-                                      "us_first", "init_us"};
-        const double run_v[5] = {avg, lo, hi, iter[0], init_us};
-        for (int f = 0; f < 5; ++f) {
+        static const char *kRun[7] = {"us_avg_1_10", "us_min",  "us_max",
+                                      "us_first",    "init_us", "append_us",
+                                      "step_us"};
+        /* step_us is what a running model actually pays per token per layer:
+         * this step's KV append plus the forward. The forward alone is
+         * us_avg_1_10. */
+        const double run_v[7] = {avg,     lo,      hi,           iter[0],
+                                 init_us, app_avg, app_avg + avg};
+        for (int f = 0; f < 7; ++f) {
           std::cout << "ATTN_FIELD path=" << path.str() << " field=" << kRun[f]
                     << " value=" << run_v[f] << std::endl;
         }
