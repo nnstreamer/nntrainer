@@ -202,14 +202,14 @@ int hexkl_mm_u8i4_layer_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
   // K1/K2: quantize the shared activation once, straight into its AH tiles
   // in VTCM -- no separate layout pass, matching hvx_quant_pack_u8_ah's
   // contract.
-  /* Safe here and not earlier: result_off has just been bounds-checked, and
+  /** Safe here and not earlier: result_off has just been bounds-checked, and
    * the probe writes a ramp over that tile. */
   const hexkl_acc_layout *acc_layout =
     hexkl_acc_layout_get(vtcm_base, result_off);
   hexkl_probe_us[HEXKL_PROBE_ACC_STRIDE] =
     acc_layout->usable ? acc_layout->row_stride : 0u;
 
-  /* Caller-supplied params (o->act_scale) skip the min/max scan; loc_* are
+  /** Caller-supplied params (o->act_scale) skip the min/max scan; loc_* are
    * only allocated for the dynamic path. */
   float *loc_scale = NULL;
   int32_t *loc_zp = NULL;
@@ -305,7 +305,7 @@ int hexkl_mm_u8i4_layer_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
           goto out;
         }
         if (acc_layout->usable) {
-          /* Dequantize the tile where it already is. The rows beyond M are
+          /** Dequantize the tile where it already is. The rows beyond M are
            * the accumulator's padding: their quantization parameters are
            * synthetic, so emitting them would be wrong, not merely wasted --
            * the same rule hvx_dequant_i32_to_f32 applies via m_valid. At

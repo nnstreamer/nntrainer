@@ -87,13 +87,18 @@ const uint32_t kSeqLens[] = {1u, 64u, 512u, 1024u};
  * unreachable by construction. Both are worth publishing: one handle is what
  * an isolated op costs, a group is what a real q/k/v or gate/up set costs.
  *
- * Three IDENTICAL q_proj shapes rather than a real q/k/v group, so that
+ * IDENTICAL q_proj shapes rather than a real q/k/v group, so that
  * us_per_matmul stays directly comparable to the one-handle row beside it.
  * A real group has mixed N (2048/1024/1024 here) and would need its own
  * normalisation before it could be compared to anything.
+ *
+ * Six because that is what hexkl_micro_fc_bench.c's run_pipelined_layer used
+ * (KMM = 6): with three handles the per-matmul cost did not reach that
+ * bench's number and the shortfall was larger than the drain it amortises,
+ * so the group size is measured rather than argued about.
  */
-const uint32_t kGroups[] = {1u, 3u};
-constexpr uint32_t kGroupMax = 3u;
+const uint32_t kGroups[] = {1u, 3u, 6u};
+constexpr uint32_t kGroupMax = 6u;
 
 /**
  * @brief Weight width. Both, because the QNN op this is compared against is
@@ -260,7 +265,7 @@ TEST_F(HtpFc, LayerCostQwen3) {
   for (const FcShape &s : kShapes) {
     for (Width W : kWidths) {
       const std::string sname = std::string(s.name) + "_" + width_tag(W);
-      /* One weight, registered once per shape and reused across every M: the
+      /** One weight, registered once per shape and reused across every M: the
        * bake is expensive and M does not enter it, so re-registering per M
        * would only measure the same bake three times. init_us below is that
        * one measurement, reported against the shape it belongs to. */
@@ -273,7 +278,7 @@ TEST_F(HtpFc, LayerCostQwen3) {
       std::vector<float> bias(s.N);
       fill_deterministic(bias.data(), bias.size(), 0xFC000002u);
 
-      /* kGroupMax registrations of the same bytes, so a group call has distinct
+      /** kGroupMax registrations of the same bytes, so a group call has distinct
        * handles to prefetch across. init_us is the FIRST bake only: it is the
        * per-weight one-time cost a graph prepare corresponds to, and averaging
        * three of them would only measure the same work three times. */
@@ -306,7 +311,7 @@ TEST_F(HtpFc, LayerCostQwen3) {
           const size_t an = (size_t)M * s.K;
           /* out_cat concatenates one M x N block per handle, in call order. */
           const size_t on = (size_t)G * M * s.N;
-          /* Both ride in every timed call. See RpcBuf for why they are
+          /** Both ride in every timed call. See RpcBuf for why they are
            * ION-backed: plain heap is re-pinned and re-mapped on EVERY call,
            * and at 12 MB that mapping is a large part of what is being
            * measured. */
@@ -321,7 +326,7 @@ TEST_F(HtpFc, LayerCostQwen3) {
           std::cout << "FC_FIELD path=env field=ion_buffers value="
                     << ((abuf.ion && obuf.ion) ? 1 : 0) << std::endl;
 
-          /* PRODUCTION path: mm_u8i8_layer leaves the DSP's in-loop probes off,
+          /** PRODUCTION path: mm_u8i8_layer leaves the DSP's in-loop probes off,
            * which is what a real caller pays and therefore what the headline
            * reports. The instrumented runs below are for the breakdown, and the
            * gap between them is published rather than folded in. */
@@ -350,7 +355,7 @@ TEST_F(HtpFc, LayerCostQwen3) {
           }
           const double avg = sum / (double)kIters;
 
-          /* Keep the production result so the instrumented entry point can be
+          /** Keep the production result so the instrumented entry point can be
            * held to it byte for byte, below and outside every timed region. */
           std::vector<float> want(out, out + on);
 
@@ -376,7 +381,7 @@ TEST_F(HtpFc, LayerCostQwen3) {
             stage_of[r] = stage;
           }
 
-          /* The gate this file carries: instrumentation must not change the
+          /** The gate this file carries: instrumentation must not change the
            * answer. Bitwise, because both paths run identical integer
            * arithmetic on identical inputs -- a tolerance here would hide a
            * probe that perturbs the kernel. */
@@ -387,7 +392,7 @@ TEST_F(HtpFc, LayerCostQwen3) {
                              << M;
           const int timed_ok = (diff == 0) ? 1 : 0;
 
-          /* MEDIAN of the probe runs, not the min: wall clock on this device is
+          /** MEDIAN of the probe runs, not the min: wall clock on this device is
            * bimodal at roughly +-25% run to run (DVFS residency, not our code),
            * so the min publishes whichever run landed in the fast state. It
            * stays a single measured run rather than a mean, so the stage
@@ -404,7 +409,7 @@ TEST_F(HtpFc, LayerCostQwen3) {
             stage_of[ord[kProbeRuns / 2]];
           const double dsp = (double)med_stage[kStageDspTotal];
 
-          /* The compute bucket -- dsp minus everything that only moves data --
+          /** The compute bucket -- dsp minus everything that only moves data --
            * computed PER RUN and published as a range, not derived once from
            * the median stage set.
            *
@@ -446,7 +451,7 @@ TEST_F(HtpFc, LayerCostQwen3) {
             std::cout << "FC_FIELD path=" << path << " field=" << kRun[f]
                       << " value=" << run_v[f] << std::endl;
           }
-          /* Shape travels with the numbers so the report can derive MAC counts
+          /** Shape travels with the numbers so the report can derive MAC counts
            * and transported bytes without a second copy of kShapes to drift. */
           std::cout << "FC_FIELD path=" << path << " field=M value=" << M
                     << std::endl;
@@ -454,7 +459,7 @@ TEST_F(HtpFc, LayerCostQwen3) {
                     << std::endl;
           std::cout << "FC_FIELD path=" << path << " field=N value=" << s.N
                     << std::endl;
-          /* Published, not just asserted: a report that only shows timings
+          /** Published, not just asserted: a report that only shows timings
            * should be able to say on its own face whether the breakdown beside
            * them describes the same computation as the headline. */
           std::cout << "FC_FIELD path=" << path
@@ -465,7 +470,7 @@ TEST_F(HtpFc, LayerCostQwen3) {
             std::cout << "FC_STAGE path=" << path << " field=" << kStage[st]
                       << " value=" << med_stage[st] << std::endl;
           }
-          /* dsp_total came from the INSTRUMENTED run, so subtract it from THAT
+          /** dsp_total came from the INSTRUMENTED run, so subtract it from THAT
            * run's wall; mixing it with the production wall would fold the
            * instrumentation into the transport estimate. */
           std::cout << "FC_STAGE path=" << path
@@ -474,7 +479,7 @@ TEST_F(HtpFc, LayerCostQwen3) {
           std::cout << "FC_STAGE path=" << path
                     << " field=probe_overhead_us value=" << (med_probed - avg)
                     << std::endl;
-          /* The two numbers the cross row exists to publish. Per MATMUL,
+          /** The two numbers the cross row exists to publish. Per MATMUL,
            * because that is the unit doc13 3a's 1.7-2x is quoted in and the
            * unit the one-handle row beside it reports. dsp_per_matmul is the
            * comparable one: wall_per_matmul also carries transport, which

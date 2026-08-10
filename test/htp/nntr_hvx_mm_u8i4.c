@@ -194,7 +194,7 @@ int nntr_hvx_mm_u8i4_layer(remote_handle64 handle, uint32 M, uint32 K,
   if (rc != AEE_SUCCESS) {
     return rc;
   }
-  /* No probe reset here: this is the production path, and hexkl_probe_on stays
+  /** No probe reset here: this is the production path, and hexkl_probe_on stays
    * wherever the last timed call left it -- off, unless one ran. */
   return hexkl_mm_u8i4_layer_run(&s->weights_u8i4, s->vtcm_base, s->vtcm_size,
                                  s->config_off, M, K, w_handles,
@@ -227,7 +227,7 @@ int nntr_hvx_mm_u8i4_layer_timed(remote_handle64 handle, uint32 M, uint32 K,
                                (uint32_t)w_handlesLen, act_f32, out_cat,
                                &(const hexkl_mm_opts){.pool = s->quant_pool});
   t1 = hexkl_probe_now();
-  /* Left off again on the way out: the production entry point above shares
+  /** Left off again on the way out: the production entry point above shares
    * these globals, and an instrumented run must not make the next
    * uninstrumented one pay for the probes. */
   hexkl_probe_on = 0;

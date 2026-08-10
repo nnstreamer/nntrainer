@@ -120,7 +120,7 @@ void mha_htp_host_scores(uint32_t kv_len, uint32_t nch, uint32_t head_dim,
     hexkl_kvq_pack_kt_block(k_cache + (size_t)j * T * nch * head_dim, valid, T,
                             head_dim, nch, head, w_k, kt_rm.data(),
                             kt_scale.data(), kt_cs.data());
-    /* One ops->run call on device: handles = this head's Kt blocks, and
+    /** One ops->run call on device: handles = this head's Kt blocks, and
      * out_cat comes back BLOCK-MAJOR, [n_blocks][M][T]. Do not flatten it --
      * the block-major layout is the KV tiling (property 1). */
     mm_u8_iX_dequant(q_u.data(), q_scale.data(), q_zp.data(), kt_rm.data(),
@@ -145,7 +145,7 @@ MhaSoftmaxOut mha_softmax_blocked_ref(const std::vector<const float *> &seg,
     const uint32_t lo = std::min(begin[m], kv_total);
     const uint32_t hi = std::min(end[m], kv_total);
 
-    /* PASS 1 -- maximum over VALID positions only.
+    /** PASS 1 -- maximum over VALID positions only.
      *
      * Masked positions are excluded from the MAXIMUM, not merely from the
      * sum, and that is not a tidiness point. The HVX exp this mirrors
@@ -181,7 +181,7 @@ MhaSoftmaxOut mha_softmax_blocked_ref(const std::vector<const float *> &seg,
       mx = (sink != nullptr) ? sink[m] : 0.0f;
     }
 
-    /* PASS 2 -- unnormalized exp over the same lane set, in kv order.
+    /** PASS 2 -- unnormalized exp over the same lane set, in kv order.
      *
      * The j-then-t walk visits kv positions strictly ascending regardless of
      * how the band was split, which is what makes the segmentation bitwise
@@ -202,7 +202,7 @@ MhaSoftmaxOut mha_softmax_blocked_ref(const std::vector<const float *> &seg,
     const float sink_term = (sink != nullptr) ? std::exp(sink[m] - mx) : 0.0f;
     o.l[m] = sum + sink_term;
 
-    /* Self-check: re-walk the EMITTED p and confirm it adds back up to the
+    /** Self-check: re-walk the EMITTED p and confirm it adds back up to the
      * denominator minus the sink term. Independent of the accumulator above,
      * so a wrong block-major offset is caught here rather than surfacing as a
      * plausible-looking wrong O three phases later. */
@@ -236,7 +236,7 @@ void mha_htp_host_forward(uint32_t n_query, uint32_t kv_from, uint32_t nch,
   const uint32_t M = n_query * gqa; /* GQA row fold, per kv_head */
   const float scale = 1.0f / std::sqrt((float)head_dim);
 
-  /* Per-block KV weights for one head. On device this is append-time work
+  /** Per-block KV weights for one head. On device this is append-time work
    * done once per token (the incremental WH bake), not per forward; here it
    * is hoisted out of the band loop for the same reason -- the band loop must
    * see the same constants every band. */
@@ -287,7 +287,7 @@ void mha_htp_host_forward(uint32_t n_query, uint32_t kv_from, uint32_t nch,
       quant_rows_u8(qb.data(), mb, head_dim, q_scale.data(), q_zp.data(),
                     q_u.data());
 
-      /* One ops->run call on device: handles = this head's Kt blocks, and
+      /** One ops->run call on device: handles = this head's Kt blocks, and
        * out_cat comes back BLOCK-MAJOR, [n_blocks][mb][T]. Do not flatten
        * it -- the block-major layout is the KV tiling (property 1). */
       s_band.assign((size_t)n_blocks * mb * T, 0.0f);
@@ -322,12 +322,12 @@ void mha_htp_host_forward(uint32_t n_query, uint32_t kv_from, uint32_t nch,
       p_zp.assign(mb, 0);
       p_u.assign((size_t)mb * T, 0);
       for (uint32_t j = 0; j < n_blocks; ++j) {
-        /* P is quantized PER BLOCK (property 2): after PHASE B the row max is
+        /** P is quantized PER BLOCK (property 2): after PHASE B the row max is
          * exactly 1.0 and every value is in (0, 1], so each block's own scale
          * uses the u8 codes well and zp lands at 0 naturally. */
         quant_rows_u8(sm.p.data() + (size_t)j * mb * T, mb, T, p_scale.data(),
                       p_zp.data(), p_u.data());
-        /* Accumulate in f32 across blocks (property 3): each block carries
+        /** Accumulate in f32 across blocks (property 3): each block carries
          * its own dequant constants, so an integer accumulation would apply
          * block 0's scale to every block. */
         mm_u8_iX_dequant(p_u.data(), p_scale.data(), p_zp.data(),
@@ -335,7 +335,7 @@ void mha_htp_host_forward(uint32_t n_query, uint32_t kv_from, uint32_t nch,
                          T, head_dim, true, o_band.data());
       }
 
-      /* The 1/l normalization happens ONCE, here, after every block has been
+      /** The 1/l normalization happens ONCE, here, after every block has been
        * accumulated (property 4) -- not as a third softmax pass. */
       for (uint32_t m = 0; m < mb; ++m) {
         const uint32_t i = (b0 + m) / gqa;

@@ -25,7 +25,7 @@
 #include <math.h>
 #include <string.h>
 
-/* Verbatim port of nntrainer::compute_fp16_to_fp32 (nntrainer/utils/fp16.cpp).
+/** Verbatim port of nntrainer::compute_fp16_to_fp32 (nntrainer/utils/fp16.cpp).
  * Ported rather than re-derived so the two stay bit-identical by construction:
  * the host gtest decodes with nntrainer's version and compares against what
  * this produces, so a divergence here would surface as a quantization error
@@ -64,7 +64,7 @@ static inline float kvq_fp16_to_fp32(uint16_t h) {
   return kvq_fp32_from_bits(result);
 }
 
-/* Symmetric per-N quant params for a given width. denom = positive max of the
+/** Symmetric per-N quant params for a given width. denom = positive max of the
  * symmetric range (7 for i4, 127 for i8); the negative bound is -(denom+1) for
  * i4 and -denom for i8 (MHA_HTP_U8_TASKS.md §1.5). */
 typedef struct {
@@ -82,7 +82,7 @@ static inline kvq_params kvq_params_for(hexkl_w_width w) {
   return p;
 }
 
-/* round to nearest, ties away from zero. lroundf does exactly that and
+/** round to nearest, ties away from zero. lroundf does exactly that and
  * returns long; clamp into int range explicitly. */
 static inline int kvq_round_to_int(float x) {
   long r = lroundf(x); /* half away from zero */
@@ -111,7 +111,7 @@ void hexkl_kvq_pack_kt_block(const uint16_t *k_rows_f16, uint32_t n_rows_valid,
                              float *out_scale, int32_t *out_colsum) {
   kvq_params p = kvq_params_for(w);
 
-  /* out_rm is [head_dim][T] row-major: row d, col r at d*T + r.
+  /** out_rm is [head_dim][T] row-major: row d, col r at d*T + r.
    * Per-N scale: N = kv position r. amax over the head_dim values of that
    * position (one per d). */
   for (uint32_t r = 0; r < T; ++r) {
@@ -126,7 +126,7 @@ void hexkl_kvq_pack_kt_block(const uint16_t *k_rows_f16, uint32_t n_rows_valid,
   }
 
   for (uint32_t r = 0; r < n_rows_valid; ++r) {
-    /* head h's fp16 row r: head_dim contiguous values at (r*nch +
+    /** head h's fp16 row r: head_dim contiguous values at (r*nch +
      * head)*head_dim. */
     const uint16_t *row_f16 = k_rows_f16 + ((size_t)r * nch + head) * head_dim;
     float amax = 0.0f;
@@ -149,7 +149,7 @@ void hexkl_kvq_pack_kt_block(const uint16_t *k_rows_f16, uint32_t n_rows_valid,
     }
     out_colsum[r] = colsum;
   }
-  /* Tail r in [n_rows_valid, T): out_rm already zeroed, scale 1.0f, colsum 0.
+  /** Tail r in [n_rows_valid, T): out_rm already zeroed, scale 1.0f, colsum 0.
    */
 }
 
@@ -159,7 +159,7 @@ void hexkl_kvq_pack_v_block(const uint16_t *v_rows_f16, uint32_t n_rows_valid,
                             float *out_scale, int32_t *out_colsum) {
   kvq_params p = kvq_params_for(w);
 
-  /* out_rm is [T][head_dim] row-major: row t, col d at t*head_dim + d.
+  /** out_rm is [T][head_dim] row-major: row t, col d at t*head_dim + d.
    * Per-N scale: N = head_dim column d. amax over the n_rows_valid values of
    * that column (one per t in [0, n_rows_valid)). */
   for (uint32_t d = 0; d < head_dim; ++d) {
@@ -172,7 +172,7 @@ void hexkl_kvq_pack_v_block(const uint16_t *v_rows_f16, uint32_t n_rows_valid,
     n_rows_valid = T;
   }
 
-  /* Decode fp16 inline twice (amax + quant); host code, simplicity over
+  /** Decode fp16 inline twice (amax + quant); host code, simplicity over
    * avoiding re-decode. */
   for (uint32_t d = 0; d < head_dim; ++d) {
     float amax = 0.0f;
@@ -199,6 +199,6 @@ void hexkl_kvq_pack_v_block(const uint16_t *v_rows_f16, uint32_t n_rows_valid,
     }
     out_colsum[d] = colsum;
   }
-  /* Tail rows in [n_rows_valid, T): out_rm already zeroed, scale 1.0f, colsum
+  /** Tail rows in [n_rows_valid, T): out_rm already zeroed, scale 1.0f, colsum
    * 0. */
 }

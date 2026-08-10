@@ -119,7 +119,7 @@ int nntr_hvx_softmax_blocked_f32(remote_handle64 handle, uint32 n_seg, uint32 T,
     return AEE_EBADPARM;
   }
 
-  /* The kernel is in place, and band_in is an `in` buffer FastRPC may map
+  /** The kernel is in place, and band_in is an `in` buffer FastRPC may map
    * read-only, so copy across first and run on band_out. */
   memcpy(band_out, band_in, (size_t)band_inLen * sizeof(float));
   for (uint32 j = 0; j < n_seg; ++j) {

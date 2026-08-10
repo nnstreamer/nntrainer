@@ -73,7 +73,7 @@ struct RpcMemApi {
   }
 };
 
-/* rpcmem.h's values, restated because that header is deliberately not
+/** rpcmem.h's values, restated because that header is deliberately not
  * included (see RpcMemApi). Stable ABI constants, not tunables. */
 constexpr int kRpcHeapIdSystem = 25;
 constexpr uint32_t kRpcFlagsDefault = 1; /* RPCMEM_DEFAULT_FLAGS: cached */

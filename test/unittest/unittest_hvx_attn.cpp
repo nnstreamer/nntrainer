@@ -116,7 +116,7 @@ void run_case(remote_handle64 handle, const AttnCfg &c, uint32_t head,
                    c.head_dim + head);
   std::uniform_real_distribution<float> d(-1.0f, 1.0f);
 
-  /* Realistic KV: a shared per-channel component plus per-position noise.
+  /** Realistic KV: a shared per-channel component plus per-position noise.
    * i.i.d. content makes the attention output a near-total cancellation and
    * tells you nothing (MHA_HTP_PLAN.md §9.2). */
   std::vector<float> base(c.nch * c.head_dim);
@@ -182,7 +182,7 @@ double max_rel(const std::vector<float> &a, const std::vector<float> &b,
 }
 
 double tol_for(hexkl_w_width w_k) {
-  /* Task 3's out tolerances, applied to the stage that feeds them. S is where
+  /** Task 3's out tolerances, applied to the stage that feeds them. S is where
    * K's width shows up, so the K half of the pair is what selects. */
   return (w_k == HEXKL_W_I8) ? 5e-3 : 5e-2;
 }
@@ -224,7 +224,7 @@ TEST_F(HvxAttnScores, MatchesHostModelOverTheShapeMatrix) {
               }
               double den = 0.0;
               const double e = max_rel(dev, ref, &den);
-              /* A case whose reference S is all zeros would report a perfect
+              /** A case whose reference S is all zeros would report a perfect
                * match while proving nothing. */
               ASSERT_GT(den, 0.0)
                 << "reference S is identically zero -- the comparison is "
@@ -265,7 +265,7 @@ TEST_F(HvxAttnScores, MatchesHostModelOverTheShapeMatrix) {
             << std::endl;
   std::cout << "ATTN_FIELD path=scores field=worst_shape value=" << worst_where
             << std::endl;
-  /* Publish the weakest denominator so a future 0.00e+00 can be read as
+  /** Publish the weakest denominator so a future 0.00e+00 can be read as
      "bit-identical" rather than "both sides were empty". */
   std::cout << "ATTN_FIELD path=scores field=min_ref_dynamic_range value="
             << weakest_ref << std::endl;
@@ -316,7 +316,7 @@ TEST_F(HvxAttnScores, VWidthDoesNotReachS) {
  */
 TEST_F(HvxAttnScores, LifecycleIsRepeatable) {
   for (hexkl_w_width w : {HEXKL_W_I8, HEXKL_W_I4}) {
-    /* kv 257 with T 64 crosses several block boundaries and leaves a partial
+    /** kv 257 with T 64 crosses several block boundaries and leaves a partial
      * tail block, which is where a stale registration would survive. */
     const AttnCfg c{257u, 33u, 8u, 1u, 128u, 64u, w, w};
     std::vector<float> first, ref1, second, ref2;
@@ -352,7 +352,7 @@ TEST_F(HvxAttnScores, RejectsBadShapes) {
                                    (uint32_t)HEXKL_W_I8, &h),
             AEE_EBADPARM + kDspOffset)
     << "width other than 4 or 8 must be rejected";
-  /* Property 5: M_band > T is the one that misbehaves silently until block
+  /** Property 5: M_band > T is the one that misbehaves silently until block
    * skipping lands, so it has to be rejected at registration. */
   EXPECT_EQ(nntr_hvx_attn_register(handle_, 1u, 1u, 128u, 256u, 64u, 128u,
                                    (uint32_t)HEXKL_W_I8, (uint32_t)HEXKL_W_I8,
@@ -375,7 +375,7 @@ TEST_F(HvxAttnScores, FusedForwardMatchesHostModel) {
     uint32_t kv_len, n_query, gqa, nch, head_dim, T, M_band, window;
     int causal, sink;
   };
-  /* Qwen3-0.6B's per-head shape (nch 8 / gqa 2 / head_dim 128) plus the
+  /** Qwen3-0.6B's per-head shape (nch 8 / gqa 2 / head_dim 128) plus the
    * boundary cases the block arithmetic hides in: a partial tail block, a
    * window on either side of T, and decode as well as prefill. */
   const FwdCfg cfgs[] = {
@@ -471,7 +471,7 @@ TEST_F(HvxAttnScores, FusedForwardMatchesHostModel) {
                     wname(widths[w][1]))
                 << std::scientific << std::setprecision(2) << e << "\n";
 
-      /* Task 3's fixed tolerances, on the same quantity they were written
+      /** Task 3's fixed tolerances, on the same quantity they were written
        * for. */
       const double tol = (widths[w][0] == HEXKL_W_I8)
                            ? ((widths[w][1] == HEXKL_W_I8) ? 5e-3 : 2e-2)
@@ -514,7 +514,7 @@ TEST_F(HvxAttnScores, FusedForwardMatchesHostModel) {
  * both need this breakdown first rather than a guess.
  */
 TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
-  /* Qwen3-0.6B: num_key_value_heads 8, num_attention_heads 16 (gqa 2),
+  /** Qwen3-0.6B: num_key_value_heads 8, num_attention_heads 16 (gqa 2),
      head_dim 128, 28 layers -- register_qwen3_0_6b() in
      Applications/CausalLM/api/model_config.cpp. */
   const uint32_t nch = 8u, gqa = 2u, head_dim = 128u, T = 256u, M_band = 64u;
@@ -559,7 +559,7 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
         v16[i] = f32_to_f16(base[ch] + 0.5f * d(rng));
       }
       const size_t qn = (size_t)n_query * nHq * head_dim;
-      /* q and out ride in every timed call -- 8 KB each way at decode, 1 MB
+      /** q and out ride in every timed call -- 8 KB each way at decode, 1 MB
        * at prefill. See RpcBuf for why these two are ION-backed. */
       RpcBuf qbuf(qn * sizeof(float));
       RpcBuf obuf(qn * sizeof(float));
@@ -569,7 +569,7 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
         q[qi] = d(rng);
       }
       std::memset(out, 0, qn * sizeof(float));
-      /* 1 = ION-backed; 0 = the device library exports no rpcmem, or the
+      /** 1 = ION-backed; 0 = the device library exports no rpcmem, or the
        * alloc failed -- either way these runs used plain heap. */
       std::cout << "ATTN_FIELD path=env field=ion_buffers value="
                 << ((qbuf.ion && obuf.ion) ? 1 : 0) << std::endl;
@@ -577,7 +577,7 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
 
       for (int w = 0; w < 4; ++w) {
         uint32_t h = 0;
-        /* init: everything that happens once per layer before a single token
+        /** init: everything that happens once per layer before a single token
          * is served -- the handle, and quantizing plus registering every KV
          * block. The analogue of a QNN graph prepare, and reported the same
          * way, separate from the per-inference numbers. */
@@ -596,7 +596,7 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
         const double init_us =
           std::chrono::duration<double, std::micro>(init_t1 - init_t0).count();
 
-        /* The STEP append: the KV rows this inference contributes, which is
+        /** The STEP append: the KV rows this inference contributes, which is
          * 1 row at decode and n_query at prefill. init above appended the
          * whole cache at once, which is not what a running model pays -- it
          * pays this, every token, in every layer, before forward can run.
@@ -624,7 +624,7 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
         }
         const double app_avg = app_sum / (double)kIters;
 
-        /* PRODUCTION path: attn_forward passes no stage_us, so the DSP's
+        /** PRODUCTION path: attn_forward passes no stage_us, so the DSP's
          * stage timers and the in-loop probes are both off. That is what a
          * real caller pays and therefore what the headline reports; the
          * instrumented runs below are for the breakdown, and the gap between
@@ -656,7 +656,7 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
         double us[3];
         std::vector<uint32_t> stage_of[3];
         for (int r = 0; r < 3; ++r) {
-          /* Mirrors HEXKL_ATTN_N_STAGES; the DSP header is not includable
+          /** Mirrors HEXKL_ATTN_N_STAGES; the DSP header is not includable
              from the ARM side, so the skel rejects a stale count with
              AEE_EBADPARM rather than silently truncating. */
           std::vector<uint32_t> stage(13, 0u);
@@ -672,7 +672,7 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
         }
         ASSERT_EQ(nntr_hvx_attn_release(handle_, h), AEE_SUCCESS);
 
-        /* MEDIAN of the three, not the min. Wall clock on this device is
+        /** MEDIAN of the three, not the min. Wall clock on this device is
          * bimodal at roughly +-25% (same shape, same binary, run to run --
          * DVFS residency, not our code), so the min publishes whichever run
          * happened to land in the fast state. MHA_HTP_PLAN.md §9.7 already
@@ -704,7 +704,7 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
                   << " field=us_per_token_all_layers value=" << med * layers
                   << std::endl;
 
-        /* DSP-internal breakdown. The host timed the whole call and this
+        /** DSP-internal breakdown. The host timed the whole call and this
          * timed the inside, so (med - dsp_total) is the MEASURED FastRPC
          * transport rather than an assumed 404 us. */
         static const char *kStage[13] = {
@@ -712,7 +712,7 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
           "dsp_total_us",
           "layer_run_calls" /* Tier 0 probes, subdividing qk+pv: */,
           "acc_read_us", "acc_copy_us", "dequant_us", "quant_us", "drain_us",
-          /* not a time: the accumulator row stride the in-place tile dequant
+          /** not a time: the accumulator row stride the in-place tile dequant
              derived, or 0 when layer_run fell back to the vendor copy */
           "acc_stride"};
         std::ostringstream path;
@@ -723,7 +723,7 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
                     << " field=" << kStage[st] << " value=" << med_stage[st]
                     << std::endl;
         }
-        /* dsp_total came from the INSTRUMENTED run, so subtract it from that
+        /** dsp_total came from the INSTRUMENTED run, so subtract it from that
          * run's wall -- mixing it with the production wall would fold the
          * instrumentation into the transport estimate. */
         std::cout << "ATTN_STAGE path=" << path.str()
@@ -735,7 +735,7 @@ TEST_F(HvxAttnScores, FusedForwardPerLayerCost) {
         static const char *kRun[7] = {"us_avg_1_10", "us_min",  "us_max",
                                       "us_first",    "init_us", "append_us",
                                       "step_us"};
-        /* step_us is what a running model actually pays per token per layer:
+        /** step_us is what a running model actually pays per token per layer:
          * this step's KV append plus the forward. The forward alone is
          * us_avg_1_10. */
         const double run_v[7] = {avg,     lo,      hi,           iter[0],

@@ -36,7 +36,7 @@ const hexkl_acc_layout *hexkl_acc_layout_get(uint8_t *vtcm_base,
   g_layout.probed = 1;
   g_layout.usable = 0;
 
-  /* The ramp is the trick: after the copy, g_probe_dst[r][c] holds the index
+  /** The ramp is the trick: after the copy, g_probe_dst[r][c] holds the index
    * the vendor pulled that element from. */
   tile = (int32_t *)(vtcm_base + result_off);
   for (i = 0; i < TILE_N; ++i) {
@@ -55,7 +55,7 @@ const hexkl_acc_layout *hexkl_acc_layout_get(uint8_t *vtcm_base,
     return &g_layout;
   }
 
-  /* Check EVERY element, not the two the parameters came from: a layout that
+  /** Check EVERY element, not the two the parameters came from: a layout that
    * is affine over the first row and blocked after it would pass a sampled
    * check and produce wrong numbers everywhere else. */
   for (r = 0; r < HEXKL_ACC_TILE_ROWS; ++r) {

@@ -460,7 +460,7 @@ int main(int argc, char **argv) {
   return result;
 }
 
-/*===========================================================================
+/**===========================================================================
  * Blocked masked softmax -- PHASE B of the fused attention loop.
  *
  * The oracle is mha_softmax_blocked_ref, the same host model the whole flash
@@ -522,7 +522,7 @@ void check_blocked(remote_handle64 handle, uint32_t kv, uint32_t T, uint32_t M,
                    (with_sink ? 1u : 0u));
   std::uniform_real_distribution<float> d(-6.0f, 6.0f);
 
-  /* Poison the padded tail past kv: a masking bug reads a value that cannot
+  /** Poison the padded tail past kv: a masking bug reads a value that cannot
    * be mistaken for a plausible score. */
   std::vector<float> in(band, 1e30f);
   for (uint32_t m = 0; m < M; ++m) {
@@ -588,7 +588,7 @@ TEST_F(HvxSoftmaxBlocked, MatchesHostModelOverTheShapeMatrix) {
   for (uint32_t kv : {1u, 31u, 32u, 33u, 255u, 256u, 257u, 1023u, 1024u}) {
     for (uint32_t T : {32u, 256u}) {
       for (uint32_t M : {1u, 7u, 64u}) {
-        /* window T-1, T, T+1 is the off-by-one trap in the block arithmetic
+        /** window T-1, T, T+1 is the off-by-one trap in the block arithmetic
          * and is mandatory; kv-1 and kv exercise the whole-band ends. */
         for (uint32_t window : {0u, 1u, T - 1u, T, T + 1u, kv - 1u, kv}) {
           for (int s = 0; s < 2; ++s) {
@@ -613,11 +613,11 @@ TEST_F(HvxSoftmaxBlocked, MatchesHostModelOverTheShapeMatrix) {
     << "BLOCKED_FIELD path=softmax_blocked field=l_sum_order_margin value="
     << w.l_margin << std::endl;
 
-  /* p is bounded absolutely: values are in (0, 1] and hvx_exp_sf's own spec is
+  /** p is bounded absolutely: values are in (0, 1] and hvx_exp_sf's own spec is
    * a relative error of 1e-6 over this domain, so 1e-6 absolute is the kernel
    * inheriting exactly its exp's accuracy and nothing worse. */
   EXPECT_LE(w.p_abs, 1e-6) << "worst at " << w.p_where;
-  /* l is bounded by reassociation, not by a picked number -- see
+  /** l is bounded by reassociation, not by a picked number -- see
    * sum_order_bound. A margin at or under 1 means the two implementations
    * differ only in the order they added the same values. */
   EXPECT_LE(w.l_margin, 1.0)

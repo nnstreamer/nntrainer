@@ -71,7 +71,7 @@ typedef struct {
   uint32_t *h_kt;
   uint32_t *h_v;
 
-  /* Scratch for quantizing one block. Sized for the larger of the two
+  /** Scratch for quantizing one block. Sized for the larger of the two
      orientations, allocated once so append is not a malloc storm. */
   int8_t *q_rm;
   float *q_scale;
@@ -80,7 +80,7 @@ typedef struct {
       rejects a NULL one, so a zero vector is what "no bias" looks like. */
   float *q_bias;
 
-  /* Forward scratch, allocated once. layer_run already mallocs per call
+  /** Forward scratch, allocated once. layer_run already mallocs per call
      (§1.8); adding a second storm per band would be worse. */
   float *s_band;   /**< max_blocks * M_band * T, block-major */
   float *o_band;   /**< M_band * head_dim; layer_run accumulates into it
@@ -93,7 +93,7 @@ typedef struct {
   uint32_t *end;   /**< M_band */
   float **seg;     /**< max_blocks pointers into s_band */
 
-  /* P's quant params come from bm below, NOT from a (1/255, 0) constant:
+  /** P's quant params come from bm below, NOT from a (1/255, 0) constant:
      max(p) == 1.0f holds PER ROW ACROSS THE BAND, but P is quantized PER
      BLOCK, and a block that does not hold its row's maximum has a local max
      below 1.0f (measured: 0x1.ff2d18p-9 on real softmax output). The scan
@@ -172,7 +172,7 @@ enum {
   HEXKL_ATTN_T_GATHER,  /**< Q row gather + the 1/l writeback */
   HEXKL_ATTN_T_TOTAL,   /**< whole call, DSP side only */
   HEXKL_ATTN_T_CALLS,   /**< layer_run calls made, not microseconds */
-  /* The next five split the INSIDE of the layer_run calls (hexkl_probe.h).
+  /** The next five split the INSIDE of the layer_run calls (hexkl_probe.h).
    * They overlap T_QK/T_PV rather than adding to them: acc_read + acc_copy
    * is the "accumulator readout" the cost model charges 75-96% of the total
    * to, and which of the two dominates decides the Tier 1 fix. Scaffolding;

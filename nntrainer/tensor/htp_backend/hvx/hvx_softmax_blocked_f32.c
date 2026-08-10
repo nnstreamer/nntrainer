@@ -41,7 +41,7 @@ static inline HVX_Vector slice_max_sf(const float *p, uint32_t len,
                                       float pad) {
   const uint32_t nvec = len / LANES;
   const uint32_t nloe = len % LANES;
-  /* FastRPC and VTCM buffers carry no vector alignment guarantee, and a
+  /** FastRPC and VTCM buffers carry no vector alignment guarantee, and a
    * slice start is offset by lo anyway, so the unaligned vector type is what
    * keeps this from faulting. */
   const HVX_UVector *v = (const HVX_UVector *)p;
@@ -82,7 +82,7 @@ static inline HVX_Vector slice_exp_sum_sf(float *p, uint32_t len,
     const HVX_Vector t = load_tail_sf(p + nvec * LANES, nloe, 0.0f);
     HVX_Vector e =
       hvx_exp_sf(Q6_Vsf_vsub_VsfVsf(Q6_Vsf_vmpy_VsfVsf(t, vscale), vm));
-    /* The pad lanes hold exp(0*scale - vm), not zero, so they have to be
+    /** The pad lanes hold exp(0*scale - vm), not zero, so they have to be
      * masked off before they reach the sum. Padding the input cannot fix
      * this: no input value maps to an exact zero after exp. The same mask
      * keeps them out of emax: a pad lane's exp could exceed every real
@@ -116,7 +116,7 @@ void hvx_softmax_blocked_f32(float *const *seg, uint32_t n_seg, uint32_t T,
       e = kv_total;
     }
 
-    /* Zero every masked position first, so a fully masked row and the
+    /** Zero every masked position first, so a fully masked row and the
      * head/tail of a partially masked block are both already correct if the
      * passes below skip them. PHASE C reads these lanes as P, so they must be
      * exactly 0.0f rather than merely ignored -- there is no second mask
@@ -133,7 +133,7 @@ void hvx_softmax_blocked_f32(float *const *seg, uint32_t n_seg, uint32_t T,
       }
     }
 
-    /* PASS 1 -- maximum over the valid lanes only. The first valid element
+    /** PASS 1 -- maximum over the valid lanes only. The first valid element
      * seeds the running max and doubles as the tail pad, exactly as the dense
      * kernel uses xr[0]: a real element of the set being reduced can never
      * beat its own maximum. */
@@ -149,7 +149,7 @@ void hvx_softmax_blocked_f32(float *const *seg, uint32_t n_seg, uint32_t T,
     }
 
     if (!any) {
-      /* No valid position: everything is already zeroed, and the denominator
+      /** No valid position: everything is already zeroed, and the denominator
        * is the sink alone (or nothing, which PHASE C turns into a zero row
        * rather than a divide by zero). */
       l_out[m] = (sink != NULL) ? 1.0f : 0.0f;
@@ -172,7 +172,7 @@ void hvx_softmax_blocked_f32(float *const *seg, uint32_t n_seg, uint32_t T,
     }
     const HVX_Vector vm = reduce_max_sf(vmax);
 
-    /* PASS 2 -- unnormalized exp over the same lane set, ascending in kv
+    /** PASS 2 -- unnormalized exp over the same lane set, ascending in kv
      * position. Walking segments in order and slices left to right is what
      * makes the block split invisible: the same addends in the same order
      * whatever T is. */
@@ -180,7 +180,7 @@ void hvx_softmax_blocked_f32(float *const *seg, uint32_t n_seg, uint32_t T,
     for (uint32_t j = 0; j < n_seg; ++j) {
       uint32_t lo, hi;
       hvx_softmax_seg_range(j, T, b, e, &lo, &hi);
-      /* Seeded with +0.0f, so the reduced value is max(stored exps, 0) --
+      /** Seeded with +0.0f, so the reduced value is max(stored exps, 0) --
        * which is EXACTLY the rmax hvx_quant_rows_u8_params would find
        * scanning this block row afterwards: the positions outside [lo, hi)
        * hold literal zeros, and max is order-independent. That equality is
@@ -196,7 +196,7 @@ void hvx_softmax_blocked_f32(float *const *seg, uint32_t n_seg, uint32_t T,
     }
     float l = lane0_sf(reduce_sum_sf(Q6_Vsf_equals_Vqf32(acc)));
 
-    /* The sink is one scalar logit, and it enters the denominator only. Run
+    /** The sink is one scalar logit, and it enters the denominator only. Run
      * it through hvx_exp_sf rather than a scalar expf so it cannot drift from
      * the lanes: same polynomial, same rounding. It is outside the max, which
      * is what keeps the row maximum of seg exactly 1.0f -- so this exp can be

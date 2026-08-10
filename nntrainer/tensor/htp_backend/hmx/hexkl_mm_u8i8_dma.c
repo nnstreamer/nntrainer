@@ -200,14 +200,14 @@ int hexkl_mm_u8i8_layer_run(hexkl_weight_u8i8_table *tbl, uint8_t *vtcm_base,
     return AEE_ENOMEMORY;
   }
 
-  /* Safe here and not earlier: result_off has just been bounds-checked, and
+  /** Safe here and not earlier: result_off has just been bounds-checked, and
    * the probe writes a ramp over that tile. */
   const hexkl_acc_layout *acc_layout =
     hexkl_acc_layout_get(vtcm_base, result_off);
   hexkl_probe_us[HEXKL_PROBE_ACC_STRIDE] =
     acc_layout->usable ? acc_layout->row_stride : 0u;
 
-  /* Caller-supplied params (o->act_scale) skip the min/max scan; loc_* are
+  /** Caller-supplied params (o->act_scale) skip the min/max scan; loc_* are
    * only allocated for the dynamic path. */
   float *loc_scale = NULL;
   int32_t *loc_zp = NULL;
@@ -297,7 +297,7 @@ int hexkl_mm_u8i8_layer_run(hexkl_weight_u8i8_table *tbl, uint8_t *vtcm_base,
           goto out;
         }
         if (acc_layout->usable) {
-          /* Dequantize the tile where it already is. The rows beyond M are
+          /** Dequantize the tile where it already is. The rows beyond M are
            * the accumulator's padding: their quantization parameters are
            * synthetic, so emitting them would be wrong, not merely wasted --
            * the same rule hvx_dequant_i32_to_f32 applies via m_valid. At
@@ -330,7 +330,7 @@ int hexkl_mm_u8i8_layer_run(hexkl_weight_u8i8_table *tbl, uint8_t *vtcm_base,
       }
     }
 
-    /* On the in-place path the dequant has already happened, per tile, above
+    /** On the in-place path the dequant has already happened, per tile, above
      * this drain: it reads the VTCM result tile and writes DDR, neither of
      * which the weight prefetch touches, so it overlaps the transfer for
      * free. The fallback below cannot -- it needs the whole staging matrix

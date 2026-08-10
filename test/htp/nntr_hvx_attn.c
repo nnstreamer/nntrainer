@@ -66,7 +66,7 @@ int nntr_hvx_attn_register(remote_handle64 handle, uint32 nch, uint32 gqa,
     return AEE_ENOMEMORY;
   }
 
-  /* Kt and V draw from the session's registry for their own width, which is
+  /** Kt and V draw from the session's registry for their own width, which is
    * what lets the two operands differ at no structural cost (§0.2). */
   rc = hexkl_attn_u8_ctx_init(
     &g_attn[i], s->vtcm_base, s->vtcm_size, s->config_off, nch, gqa, head_dim,
@@ -77,7 +77,7 @@ int nntr_hvx_attn_register(remote_handle64 handle, uint32 nch, uint32 gqa,
     return rc;
   }
 
-  /* Not owned by the ctx: the session's pool outlives every attention
+  /** Not owned by the ctx: the session's pool outlives every attention
    * handle, and close() destroys it after everything is released. */
   g_attn[i].pool = s->quant_pool;
 

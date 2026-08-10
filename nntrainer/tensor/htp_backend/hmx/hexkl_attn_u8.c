@@ -77,12 +77,12 @@ int hexkl_attn_u8_ctx_init(hexkl_attn_u8_ctx *ctx, uint8_t *vtcm_base,
       head_dim == 0u || max_kv == 0u || T == 0u) {
     return AEE_EBADPARM;
   }
-  /* hexkl_mm_u8iX_plan enforces K % 32 == 0 and N % 32 == 0; for S those are
+  /** hexkl_mm_u8iX_plan enforces K % 32 == 0 and N % 32 == 0; for S those are
    * head_dim and T. Check here rather than letting the first run fail. */
   if ((T % 32u) != 0u || (head_dim % 32u) != 0u) {
     return AEE_EBADPARM;
   }
-  /* Property 5: a band's rows must never span more than one extra block once
+  /** Property 5: a band's rows must never span more than one extra block once
    * masking restricts them (MHA_HTP_PLAN.md §5.4). Rejecting it here is the
    * only place it can be caught -- violating it misbehaves silently until
    * block skipping lands, one task later. */
@@ -112,7 +112,7 @@ int hexkl_attn_u8_ctx_init(hexkl_attn_u8_ctx *ctx, uint8_t *vtcm_base,
   }
 
   n_slots = nch * ctx->max_blocks;
-  /* Kt is [head_dim][T], V is [T][head_dim] -- same element count, so one
+  /** Kt is [head_dim][T], V is [T][head_dim] -- same element count, so one
    * scratch buffer serves both. The scale/colsum vectors differ in length
    * (T vs head_dim); size for the larger. */
   biggest = (T > head_dim) ? T : head_dim;
@@ -142,7 +142,7 @@ int hexkl_attn_u8_ctx_init(hexkl_attn_u8_ctx *ctx, uint8_t *vtcm_base,
     const uint32_t m_pad64 = ((M_band + 63u) / 64u) * 64u;
     ctx->bm = (float *)malloc((size_t)ctx->max_blocks * M_band * sizeof(float));
     ctx->p_scale = (float *)malloc((size_t)m_pad64 * sizeof(float));
-    /* Permanently zero: p >= 0 pins rmin at 0, so the scan's zp is always
+    /** Permanently zero: p >= 0 pins rmin at 0, so the scan's zp is always
      * round(-0/s) = 0 -- including its synthetic (1, 0) for padding rows. */
     ctx->p_zp = (int32_t *)calloc((size_t)m_pad64, sizeof(int32_t));
   }
@@ -156,7 +156,7 @@ int hexkl_attn_u8_ctx_init(hexkl_attn_u8_ctx *ctx, uint8_t *vtcm_base,
     return AEE_ENOMEMORY;
   }
 
-  /* Zero-fill the shadows: a tail block's unused rows are quantized along with
+  /** Zero-fill the shadows: a tail block's unused rows are quantized along with
    * the real ones, and garbage there is a silent wrong answer that the mask
    * alone will not save (§1.5). */
   memset(ctx->k_shadow, 0, (size_t)max_kv * row_stride(ctx) * sizeof(uint16_t));
@@ -217,7 +217,7 @@ static int register_block(hexkl_attn_u8_ctx *ctx, uint32_t head, uint32_t blk) {
   const size_t off = (size_t)base * row_stride(ctx);
   int rc;
 
-  /* Release before re-registering: the slot's scales change when a new token
+  /** Release before re-registering: the slot's scales change when a new token
    * lands in it, and leaking the old handle would exhaust the registry after
    * T appends. */
   if (ctx->h_kt[slot] != HEXKL_ATTN_NO_HANDLE) {
@@ -274,7 +274,7 @@ int hexkl_attn_u8_kv_append(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
     ctx->kv_len = kv_from + n_rows;
   }
 
-  /* Only the blocks the new rows landed in change. Everything before
+  /** Only the blocks the new rows landed in change. Everything before
    * first_blk keeps the handles it already holds -- which is what makes the
    * append cost independent of kv_len. */
   first_blk = kv_from / ctx->T;
@@ -312,7 +312,7 @@ int hexkl_attn_u8_scores(hexkl_attn_u8_ctx *ctx, uint32_t head, uint32_t M,
     handles[blk] = h;
   }
 
-  /* ONE call. layer_run quantizes q_band once, shares it across every handle,
+  /** ONE call. layer_run quantizes q_band once, shares it across every handle,
    * and prefetches block j+1's weight while j computes. out_s comes back
    * block-major, which is the layout PHASE B walks directly. */
   {
@@ -375,7 +375,7 @@ int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
     return AEE_EBADPARM;
   }
   if (kv_from + n_query != ctx->kv_len) {
-    /* kv_len is kv_from + n_query by construction: the step rows must already
+    /** kv_len is kv_from + n_query by construction: the step rows must already
      * have been appended, so query row i sits at absolute position
      * kv_from + i. Catch the mismatch here rather than producing a plausible
      * wrong answer. */
@@ -458,7 +458,7 @@ int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
         if (hv == HEXKL_ATTN_NO_HANDLE) {
           return AEE_EBADSTATE;
         }
-        /* P is still quantized PER BLOCK (property 2) -- what changed is who
+        /** P is still quantized PER BLOCK (property 2) -- what changed is who
          * computes the params. PHASE B already took the running max of every
          * value it stored into this block row, so scale is bm/255 with rmin
          * pinned at 0 by p >= 0 -- exactly what layer_run's scan would
@@ -476,7 +476,7 @@ int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
           }
         }
 
-        /* The f32 accumulation across blocks (property 3) now happens INSIDE
+        /** The f32 accumulation across blocks (property 3) now happens INSIDE
          * the dequant: each block still carries its own constants, and each
          * element still receives exactly one add per block -- only the staged
          * o_part buffer and its add loop are gone. */
@@ -500,7 +500,7 @@ int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
         }
       }
 
-      /* The 1/l normalization happens ONCE, here, after every block has been
+      /** The 1/l normalization happens ONCE, here, after every block has been
        * accumulated (property 4) -- not as a third softmax pass. */
       TICK(t0);
       for (m = 0; m < mb; ++m) {
@@ -509,7 +509,7 @@ int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
         const float inv_l =
           (ctx->l_row[m] > 0.0f) ? (1.0f / ctx->l_row[m]) : 0.0f;
         float *dst = out + ((size_t)i * nHq + n * ctx->gqa + g) * ctx->head_dim;
-        /* head_dim % 32 == 0 is enforced at init, so whole vectors and no
+        /** head_dim % 32 == 0 is enforced at init, so whole vectors and no
          * tail. One multiply per element, same op the scalar loop did; the
          * S band gate holds bit-identical through these same Vsf intrinsics,
          * so the vectorization is not a numerics change. */
@@ -537,7 +537,7 @@ int hexkl_attn_u8_forward(hexkl_attn_u8_ctx *ctx, uint32_t kv_from,
   TICK(t1);
   ACCUM(HEXKL_ATTN_T_TOTAL, t_call0, t1);
   if (stage_us) {
-    /* The probes accumulated inside every layer_run this call made; hand
+    /** The probes accumulated inside every layer_run this call made; hand
      * them back beside the stage totals they subdivide. */
     stage_us[HEXKL_ATTN_T_ACC_READ] =
       (uint32_t)hexkl_probe_us[HEXKL_PROBE_ACC_READ];

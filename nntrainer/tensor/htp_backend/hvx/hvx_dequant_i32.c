@@ -106,13 +106,13 @@ void hvx_dequant_acc_tile_to_f32(const int32_t *tile, uint32_t row_stride,
                                  const float *w_scale, const float *bias,
                                  float *out, uint32_t out_stride,
                                  int accumulate) {
-  /* One vector per tile row, so the loop above's n_vec/tail split collapses.
+  /** One vector per tile row, so the loop above's n_vec/tail split collapses.
      If a future part changes the tile width this stops being true, and the
      build should stop with it rather than silently emit 32 of n columns. */
   _Static_assert(HEXKL_ACC_TILE_COLS == LANES,
                  "an accumulator tile row must be exactly one HVX vector");
 
-  /* Loop-invariant: the column tile is fixed for this call, so all three are
+  /** Loop-invariant: the column tile is fixed for this call, so all three are
      the same values the row loop would reload and recompute every row. */
   const HVX_Vector csf = Q6_Vsf_equals_Vw(((const HVX_UVector *)colsum_w)[0]);
   const HVX_Vector vw = ((const HVX_UVector *)w_scale)[0];
