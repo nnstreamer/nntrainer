@@ -1222,10 +1222,14 @@ void FloatTensor::copyData(const Tensor &from) {
   case ml::train::TensorDim::DataType::QINT16:
     o->copy_s16_fp32(from.size(), from.getData<int16_t>(), (float *)getData());
     break;
-  case ml::train::TensorDim::DataType::QINT8:
-    o->scopy_int8_to_fp32_s(from.size(), from.getData<int8_t>(), 1,
-                            (float *)getData(), 1);
+  case ml::train::TensorDim::DataType::QINT8: {
+    const float *sc_ptr = from.getScale<float>();
+    const float sc = sc_ptr ? sc_ptr[0] : 1.0f;
+    const int8_t *q = from.getData<int8_t>();
+    float *dst = (float *)getData();
+    for (size_t i = 0; i < size(); ++i) dst[i] = sc * (float)q[i];
     break;
+  }
   case ml::train::TensorDim::DataType::UINT16:
     o->copy_u16_fp32(from.size(), from.getData<uint16_t>(), (float *)getData());
     break;

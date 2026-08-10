@@ -176,9 +176,23 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
     // up front since every input copy needs the common output scale.
     float q8_out_scale = 0.f;
     if (output.getDataType() == TensorDim::DataType::QINT8) {
-      for (unsigned int idx = 0; idx < context.getNumInputs(); idx++)
-        q8_out_scale = std::max(
-          q8_out_scale, context.getInput(idx).getScale<float>()[0]);
+      for (unsigned int idx = 0; idx < context.getNumInputs(); idx++) {
+        Tensor &input = context.getInput(idx);
+        if (input.getDataType() == TensorDim::DataType::QINT8) {
+          q8_out_scale = std::max(
+            q8_out_scale, input.getScale<float>()[0]);
+        } else if (input.getDataType() == TensorDim::DataType::FP32) {
+          float amax = 0.f;
+          const float *d = input.getData<float>();
+          const size_t sz = input.size();
+          for (size_t i = 0; i < sz; ++i) {
+            float a = std::fabs(d[i]);
+            if (a > amax) amax = a;
+          }
+          float sc = amax > 0.f ? amax / 127.f : 1.f;
+          q8_out_scale = std::max(q8_out_scale, sc);
+        }
+      }
       if (q8_out_scale <= 0.f)
         q8_out_scale = 1.f;
       output.getScale<float>()[0] = q8_out_scale;
@@ -187,83 +201,96 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
     for (unsigned int idx = 0; idx < context.getNumInputs(); idx++) {
       Tensor &input = context.getInput(idx);
       const unsigned int Ci = input.channel();
-      if (input.getDataType() == TensorDim::DataType::QINT8) {
-        const int8_t *src = input.getData<int8_t>();
-        int8_t *dst = output.getData<int8_t>();
-        const float mult = input.getScale<float>()[0] / q8_out_scale;
-        const bool identity = std::fabs(mult - 1.f) < 1e-12f;
-        // Per-channel W8A8 (default asymmetric): tensors use the shared-offset
-        // affine code x = (q + 128) * s - C. Because C is COMMON to every
-        // branch it cancels in the rescale --
-        //   q' = round((q + 128) * s_i / s_o) - 128
-        // -- so only the +-128 shift differs from the symmetric formula (and
-        // s_o = max(s_i) still exactly covers the union range). The identity
-        // (mult == 1) memcpy is unchanged in both conventions.
-        static const bool asym =
-          std::getenv("NNTR_W8A8_PERCH") != nullptr &&
-          std::getenv("NNTR_W8A8_SYM") == nullptr;
-        auto &tm = ThreadManager::Global();
-        for (unsigned int b = 0; b < B; ++b) {
-          const size_t base = (size_t)b * HW;
-          tm.parallel_for(0, HW, [&](size_t p) {
-            const int8_t *s = src + (base + p) * Ci;
-            int8_t *d = dst + (base + p) * out_dim.channel() + c_offset;
-            if (identity) {
-              std::memcpy(d, s, (size_t)Ci);
-            } else if (asym) {
-              unsigned int c = 0;
-#if defined(__ARM_NEON)
-              // q' = round((q + 128) * mult) - 128, saturating to int8. FRINTA
-              // (vrndaq) rounds ties away from zero, matching std::round; the
-              // rounded value is an exact integer float so vcvtq truncates it
-              // losslessly, and the saturating narrows reproduce the clamp.
-              const float32x4_t vmult = vdupq_n_f32(mult);
-              const float32x4_t v128 = vdupq_n_f32(128.f);
-              auto proc = [&](int32x4_t a) {
-                float32x4_t f = vcvtq_f32_s32(a);
-                f = vaddq_f32(f, v128);
-                f = vmulq_f32(f, vmult);
-                f = vrndaq_f32(f);
-                f = vsubq_f32(f, v128);
-                return vcvtq_s32_f32(f);
-              };
-              for (; c + 16 <= Ci; c += 16) {
-                int8x16_t q8 = vld1q_s8(s + c);
-                int16x8_t lo = vmovl_s8(vget_low_s8(q8));
-                int16x8_t hi = vmovl_s8(vget_high_s8(q8));
-                int32x4_t r0 = proc(vmovl_s16(vget_low_s16(lo)));
-                int32x4_t r1 = proc(vmovl_s16(vget_high_s16(lo)));
-                int32x4_t r2 = proc(vmovl_s16(vget_low_s16(hi)));
-                int32x4_t r3 = proc(vmovl_s16(vget_high_s16(hi)));
-                int16x8_t n0 = vcombine_s16(vqmovn_s32(r0), vqmovn_s32(r1));
-                int16x8_t n1 = vcombine_s16(vqmovn_s32(r2), vqmovn_s32(r3));
-                vst1q_s8(d + c, vcombine_s8(vqmovn_s16(n0), vqmovn_s16(n1)));
+      if (output.getDataType() == TensorDim::DataType::QINT8) {
+        if (input.getDataType() == TensorDim::DataType::QINT8) {
+          const int8_t *src = input.getData<int8_t>();
+          int8_t *dst = output.getData<int8_t>();
+          const float mult = input.getScale<float>()[0] / q8_out_scale;
+          const bool identity = std::fabs(mult - 1.f) < 1e-12f;
+          // Per-channel W8A8 (default asymmetric): tensors use the shared-offset
+          // affine code x = (q + 128) * s - C. Because C is COMMON to every
+          // branch it cancels in the rescale --
+          //   q' = round((q + 128) * s_i / s_o) - 128
+          // -- so only the +-128 shift differs from the symmetric formula (and
+          // s_o = max(s_i) still exactly covers the union range). The identity
+          // (mult == 1) memcpy is unchanged in both conventions.
+          static const bool asym =
+            std::getenv("NNTR_W8A8_PERCH") != nullptr &&
+            std::getenv("NNTR_W8A8_SYM") == nullptr;
+          auto &tm = ThreadManager::Global();
+          for (unsigned int b = 0; b < B; ++b) {
+            const size_t base = (size_t)b * HW;
+            tm.parallel_for(0, HW, [&](size_t p) {
+              const int8_t *s = src + (base + p) * Ci;
+              int8_t *d = dst + (base + p) * out_dim.channel() + c_offset;
+              if (identity) {
+                std::memcpy(d, s, (size_t)Ci);
+              } else if (asym) {
+                unsigned int c = 0;
+    #if defined(__ARM_NEON)
+                // q' = round((q + 128) * mult) - 128, saturating to int8. FRINTA
+                // (vrndaq) rounds ties away from zero, matching std::round; the
+                // rounded value is an exact integer float so vcvtq truncates it
+                // losslessly, and the saturating narrows reproduce the clamp.
+                const float32x4_t vmult = vdupq_n_f32(mult);
+                const float32x4_t v128 = vdupq_n_f32(128.f);
+                auto proc = [&](int32x4_t a) {
+                  float32x4_t f = vcvtq_f32_s32(a);
+                  f = vaddq_f32(f, v128);
+                  f = vmulq_f32(f, vmult);
+                  f = vrndaq_f32(f);
+                  f = vsubq_f32(f, v128);
+                  return vcvtq_s32_f32(f);
+                };
+                for (; c + 16 <= Ci; c += 16) {
+                  int8x16_t q8 = vld1q_s8(s + c);
+                  int16x8_t lo = vmovl_s8(vget_low_s8(q8));
+                  int16x8_t hi = vmovl_s8(vget_high_s8(q8));
+                  int32x4_t r0 = proc(vmovl_s16(vget_low_s16(lo)));
+                  int32x4_t r1 = proc(vmovl_s16(vget_high_s16(lo)));
+                  int32x4_t r2 = proc(vmovl_s16(vget_low_s16(hi)));
+                  int32x4_t r3 = proc(vmovl_s16(vget_high_s16(hi)));
+                  int16x8_t n0 = vcombine_s16(vqmovn_s32(r0), vqmovn_s32(r1));
+                  int16x8_t n1 = vcombine_s16(vqmovn_s32(r2), vqmovn_s32(r3));
+                  vst1q_s8(d + c, vcombine_s8(vqmovn_s16(n0), vqmovn_s16(n1)));
+                }
+    #endif
+                for (; c < Ci; ++c) {
+                  float q = std::round(((float)s[c] + 128.f) * mult) - 128.f;
+                  d[c] = (int8_t)std::max(-128.f, std::min(127.f, q));
+                }
+              } else {
+                for (unsigned int c = 0; c < Ci; ++c) {
+                  float q = std::round((float)s[c] * mult);
+                  d[c] = (int8_t)std::max(-128.f, std::min(127.f, q));
+                }
               }
-#endif
-              for (; c < Ci; ++c) {
-                float q = std::round(((float)s[c] + 128.f) * mult) - 128.f;
-                d[c] = (int8_t)std::max(-128.f, std::min(127.f, q));
-              }
-            } else {
+            });
+          }
+        } else if (input.getDataType() == TensorDim::DataType::FP32) {
+          const float *src = input.getData<float>();
+          int8_t *dst = output.getData<int8_t>();
+          const float inv = 1.f / q8_out_scale;
+          static const bool asym =
+            std::getenv("NNTR_W8A8_PERCH") != nullptr &&
+            std::getenv("NNTR_W8A8_SYM") == nullptr;
+          auto &tm = ThreadManager::Global();
+          for (unsigned int b = 0; b < B; ++b) {
+            const size_t base = (size_t)b * HW;
+            tm.parallel_for(0, HW, [&](size_t p) {
+              const float *s = src + (base + p) * Ci;
+              int8_t *d = dst + (base + p) * out_dim.channel() + c_offset;
               for (unsigned int c = 0; c < Ci; ++c) {
-                float q = std::round((float)s[c] * mult);
-                d[c] = (int8_t)std::max(-128.f, std::min(127.f, q));
+                if (asym) {
+                  float q = std::round((s[c] + 128.f * q8_out_scale) * inv) - 128.f;
+                  d[c] = (int8_t)std::max(-128.f, std::min(127.f, q));
+                } else {
+                  float q = std::round(s[c] * inv);
+                  d[c] = (int8_t)std::max(-128.f, std::min(127.f, q));
+                }
               }
-            }
-          });
-        }
-      } else if (input.getDataType() == TensorDim::DataType::FP32) {
-        const float *src = input.getData<float>();
-        float *dst = output.getData<float>();
-        auto &tm = ThreadManager::Global();
-        for (unsigned int b = 0; b < B; ++b) {
-          const size_t base = (size_t)b * HW;
-          tm.parallel_for(0, HW, [&](size_t p) {
-            // src is packed with Ci channels per pixel; dst has out channels.
-            const float *s = src + (base + p) * Ci;
-            float *d = dst + (base + p) * out_dim.channel() + c_offset;
-            std::memcpy(d, s, (size_t)Ci * sizeof(float));
-          });
+            });
+          }
         }
       } else if (input.getDataType() == TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16

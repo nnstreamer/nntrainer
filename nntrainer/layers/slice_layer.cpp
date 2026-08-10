@@ -169,6 +169,11 @@ static void sliceForwardT(const Tensor &input, Tensor &output,
 }
 
 void SliceLayer::forwarding_operation(const Tensor &input, Tensor &output) {
+  if (output.getDataType() == ml::train::TensorDim::DataType::QINT8) {
+    sliceForwardT<int8_t>(input, output, axis, start);
+    output.getScale<float>()[0] = input.getScale<float>()[0];
+    return;
+  }
 #ifdef ENABLE_FP16
   if (output.getDataType() == ml::train::TensorDim::DataType::FP16) {
     sliceForwardT<_FP16>(input, output, axis, start);
