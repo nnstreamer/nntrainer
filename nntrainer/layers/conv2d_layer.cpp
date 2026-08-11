@@ -1079,6 +1079,15 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
   // stem input FP32 ("the image tensor stays FP32") and holds 81/87; the stem
   // runs the ordinary FP32 conv (already exercised as the per-block mode's
   // FP32 island) and its per-channel consumer quantizes its FP32 output.
+  // NOTE (2026-08-11): an earlier version of this comment claimed the
+  // non-identity gather path was broken based on a bisection against
+  // `FACE_DET_TAP_STAGES`'s backbone-tap dump -- that dump mechanism turned
+  // out to be corrupted by memory-pool aliasing (cosine 0.005 against an
+  // NNTR_DUMP_LAYER dump of the *same* layer under the *same* W8A32 run).
+  // Re-verified against the reliable NNTR_DUMP_LAYER baseline: conv1 (3x3,
+  // taps-last, K padded 144->160) matches at cosine 0.987. perch_mode is
+  // restored to applying unconditionally (matching the upstream PR), not
+  // restricted to 1x1/identity convs.
   const bool perch_mode =
     w8a8_mode && std::getenv("NNTR_W8A8_PERCH") != nullptr && groups == 1 &&
     in_dim.getFormat() == ml::train::TensorDim::Format::NHWC &&
@@ -1232,6 +1241,39 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
 
   Tensor &filter_kernel = context.getWeight(wt_idx[ConvParams::weight]);
+
+  if (const char *dl = std::getenv("NNTR_WDUMP_LAYER");
+      dl && context.getName() == dl) {
+    const char *dp = std::getenv("NNTR_WDUMP_PATH");
+    if (dp && filter_kernel.getDataType() == nntrainer::Tdatatype::FP32) {
+      std::ofstream of(dp, std::ios::binary);
+      of.write(reinterpret_cast<const char *>(filter_kernel.getData<float>()),
+               filter_kernel.size() * sizeof(float));
+    }
+  }
+
+  if (const char *dl = std::getenv("NNTR_IDUMP_LAYER");
+      dl && context.getName() == dl) {
+    const char *dp = std::getenv("NNTR_IDUMP_PATH");
+    if (dp) {
+      std::ofstream of(dp, std::ios::binary);
+      if (input_.getDataType() == nntrainer::Tdatatype::QINT8) {
+        int32_t marker = -1; // dtype marker: -1=QINT8
+        float sc = input_.getScale<float>()[0];
+        int32_t n = (int32_t)input_.size();
+        of.write(reinterpret_cast<const char *>(&marker), sizeof(int32_t));
+        of.write(reinterpret_cast<const char *>(&sc), sizeof(float));
+        of.write(reinterpret_cast<const char *>(&n), sizeof(int32_t));
+        of.write(reinterpret_cast<const char *>(input_.getData<int8_t>()),
+                 input_.size());
+      } else if (input_.getDataType() == nntrainer::Tdatatype::FP32) {
+        int32_t marker = 1; // dtype marker: 1=FP32
+        of.write(reinterpret_cast<const char *>(&marker), sizeof(int32_t));
+        of.write(reinterpret_cast<const char *>(input_.getData<float>()),
+                 input_.size() * sizeof(float));
+      }
+    }
+  }
 
 #if defined(__ARM_NEON) && defined(ENABLE_FP16)
   if (context.getName() == "conv0" &&
@@ -1616,6 +1658,46 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
             weight_is_q8 ? nullptr : filter_kernel.getData<float>(), filter_size,
             CRS, kernel_size[0].get() * kernel_size[1].get(), in_ch);
 
+          if (const char *dl = std::getenv("NNTR_PERCH_DEBUG");
+              dl && context.getName() == dl) {
+            if (const char *qp = std::getenv("NNTR_PERCH_QSDUMP_PATH")) {
+              const unsigned int nb_dbg = W.Kpad / QK8_0;
+              const unsigned int NB4_dbg = W.Npad / 4;
+              const size_t nblocks = (size_t)NB4_dbg * nb_dbg;
+              std::ofstream of(qp, std::ios::binary);
+              int32_t hdr[4] = {(int32_t)W.Npad, (int32_t)W.Kpad,
+                                 (int32_t)W.Nreal, (int32_t)(W.taps_last ? 1 : 0)};
+              of.write(reinterpret_cast<const char *>(hdr), sizeof(hdr));
+              const size_t block_q8_0x4_bytes = 8 + 128; // d[4] (uint16) + qs[128]
+              of.write(reinterpret_cast<const char *>(W.qs_data()),
+                       nblocks * block_q8_0x4_bytes);
+              of.write(reinterpret_cast<const char *>(W.scale.data()),
+                       W.scale.size() * sizeof(float));
+            }
+            float smin = 1e30f, smax = -1e30f;
+            for (float s : W.scale) { if (s < smin) smin = s; if (s > smax) smax = s; }
+            int32_t cmin = 2147483647, cmax = -2147483647;
+            for (int32_t c : W.colsum) { if (c < cmin) cmin = c; if (c > cmax) cmax = c; }
+            float wmin = 1e30f, wmax = -1e30f;
+            if (!weight_is_q8) {
+              const float *fp = filter_kernel.getData<float>();
+              size_t n = (size_t)filter_size * CRS;
+              for (size_t i = 0; i < n; ++i) { float v = fp[i]; if (v < wmin) wmin = v; if (v > wmax) wmax = v; }
+              if (const char *wp = std::getenv("NNTR_PERCH_WDUMP_PATH")) {
+                std::ofstream of(wp, std::ios::binary);
+                of.write(reinterpret_cast<const char *>(fp), n * sizeof(float));
+              }
+            }
+            std::cerr << "[PERCHDBG] " << context.getName()
+                      << " out_ch=" << filter_size << " CRS=" << CRS
+                      << " khkw=" << kernel_size[0].get() * kernel_size[1].get()
+                      << " in_ch=" << in_ch << " Npad=" << W.Npad << " Kpad=" << W.Kpad
+                      << " weight_is_q8=" << weight_is_q8
+                      << " raw_weight_range=[" << wmin << "," << wmax << "]"
+                      << " scale_range=[" << smin << "," << smax << "]"
+                      << " colsum_range=[" << cmin << "," << cmax << "]\n" << std::flush;
+          }
+
           // Asymmetric (affine) int8 activations with a SHARED fixed offset
           // (default; NNTR_W8A8_SYM=1 reverts to symmetric): every int8 edge
           // in this graph carries SiLU-domain values, whose global minimum is
@@ -1736,9 +1818,35 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
               -128L,
               std::min(127L, std::lround(kActOff / a_scale) - 128L));
 
+          if (const char *dl = std::getenv("NNTR_PERCH_ADUMP_LAYER");
+              dl && context.getName() == dl) {
+            const char *dp = std::getenv("NNTR_PERCH_ADUMP_PATH");
+            if (dp) {
+              std::ofstream of(dp, std::ios::binary);
+              of.write(reinterpret_cast<const char *>(&a_scale), sizeof(float));
+              int32_t nel = (int32_t)in_sub.size();
+              of.write(reinterpret_cast<const char *>(&nel), sizeof(int32_t));
+              of.write(reinterpret_cast<const char *>(a_i8), in_sub.size());
+            }
+          }
+
           __ggml_q8ch_indirect_GEMM(owoh, filter_size, W.Kpad, a_i8, a_scale,
                                     geom, W.qs_data(), W.scale.data(), cptr,
                                     pad_q, W.taps_last);
+
+          if (const char *dl = std::getenv("NNTR_PERCH_DEBUG");
+              dl && context.getName() == dl) {
+            float cmin = 1e30f, cmax = -1e30f;
+            size_t n = (size_t)owoh * filter_size;
+            for (size_t i = 0; i < n; ++i) { float v = cptr[i]; if (v < cmin) cmin = v; if (v > cmax) cmax = v; }
+            int8_t amin = 127, amax_i8 = -128;
+            for (size_t i = 0; i < in_sub.size(); ++i) { int8_t v = a_i8[i]; if (v < amin) amin = v; if (v > amax_i8) amax_i8 = v; }
+            std::cerr << "[PERCHDBG] " << context.getName()
+                      << " post-GEMM cptr_range=[" << cmin << "," << cmax << "]"
+                      << " a_scale=" << a_scale << " a_i8_range=[" << (int)amin << "," << (int)amax_i8 << "]"
+                      << " pad_q=" << (int)pad_q << " owoh=" << owoh << " Kpad=" << W.Kpad
+                      << " taps_last=" << W.taps_last << "\n" << std::flush;
+          }
 
           // bias + SiLU on FP32, then (for an int8 output) requantize.
           {
@@ -1787,6 +1895,16 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
               float amax = 0.f;
               for (unsigned int p = 0; p < owoh; ++p)
                 amax = std::max(amax, rp[p]);
+
+              if (const char *dl = std::getenv("NNTR_PERCH_DUMP_LAYER");
+                  dl && context.getName() == dl) {
+                const char *dp = std::getenv("NNTR_PERCH_DUMP_PATH");
+                if (dp) {
+                  std::ofstream of(dp, std::ios::binary);
+                  of.write(reinterpret_cast<const char *>(cptr),
+                           (size_t)owoh * filter_size * sizeof(float));
+                }
+              }
               // FP32 output scale (see the input-quant note): the consumer is a
               // per-channel conv (FP32 act_scale) or an int8 concat/pool/upsample
               // that forwards this scale, never a block_q8_0 fp16 d, so keep the
@@ -2106,11 +2224,27 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
           float *fp = deq_in_buf.data();
           auto &tmd = ThreadManager::Global();
           const size_t chunk = 65536;
-          tmd.parallel_for(0, (n_in + chunk - 1) / chunk, [=](size_t ci) {
-            const size_t i0 = ci * chunk, i1 = std::min(i0 + chunk, n_in);
-            for (size_t i = i0; i < i1; ++i)
-              fp[i] = sc * (float)q[i];
-          });
+          // perch_mode's default asymmetric encoding x=(q+128)*s-kActOff (see
+          // the epilogue above) must be inverted with the SAME formula here,
+          // not read as plain q*s -- see float_tensor.cpp's QINT8 copyData
+          // for the identical fix and rationale.
+          static const bool perch_asym_env =
+            std::getenv("NNTR_W8A8_PERCH") != nullptr &&
+            std::getenv("NNTR_W8A8_SYM") == nullptr;
+          if (perch_asym_env) {
+            constexpr float kActOff = 0.27846455f;
+            tmd.parallel_for(0, (n_in + chunk - 1) / chunk, [=](size_t ci) {
+              const size_t i0 = ci * chunk, i1 = std::min(i0 + chunk, n_in);
+              for (size_t i = i0; i < i1; ++i)
+                fp[i] = ((float)q[i] + 128.f) * sc - kActOff;
+            });
+          } else {
+            tmd.parallel_for(0, (n_in + chunk - 1) / chunk, [=](size_t ci) {
+              const size_t i0 = ci * chunk, i1 = std::min(i0 + chunk, n_in);
+              for (size_t i = i0; i < i1; ++i)
+                fp[i] = sc * (float)q[i];
+            });
+          }
           TensorDim din = in_sub.getDim();
           din.setDataType(nntrainer::Tdatatype::FP32);
           in_sub = Tensor::Map<float>(deq_in_buf.data(),
@@ -2605,11 +2739,26 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
       float *fp = grouped_deq_buf.data();
       auto &tmd = ThreadManager::Global();
       const size_t chunk = 65536;
-      tmd.parallel_for(0, (n_in + chunk - 1) / chunk, [=](size_t ci) {
-        const size_t i0 = ci * chunk, i1 = std::min(i0 + chunk, n_in);
-        for (size_t i = i0; i < i1; ++i)
-          fp[i] = sc * (float)q[i];
-      });
+      // Same asymmetric-encoding fix as the groups==1 dequant above (and
+      // float_tensor.cpp's QINT8 copyData) -- perch_mode's producer encodes
+      // x=(q+128)*s-kActOff by default, not q*s.
+      static const bool perch_asym_env =
+        std::getenv("NNTR_W8A8_PERCH") != nullptr &&
+        std::getenv("NNTR_W8A8_SYM") == nullptr;
+      if (perch_asym_env) {
+        constexpr float kActOff = 0.27846455f;
+        tmd.parallel_for(0, (n_in + chunk - 1) / chunk, [=](size_t ci) {
+          const size_t i0 = ci * chunk, i1 = std::min(i0 + chunk, n_in);
+          for (size_t i = i0; i < i1; ++i)
+            fp[i] = ((float)q[i] + 128.f) * sc - kActOff;
+        });
+      } else {
+        tmd.parallel_for(0, (n_in + chunk - 1) / chunk, [=](size_t ci) {
+          const size_t i0 = ci * chunk, i1 = std::min(i0 + chunk, n_in);
+          for (size_t i = i0; i < i1; ++i)
+            fp[i] = sc * (float)q[i];
+        });
+      }
       TensorDim din = in_dim;
       din.setDataType(nntrainer::Tdatatype::FP32);
       input_use = Tensor::Map<float>(grouped_deq_buf.data(),

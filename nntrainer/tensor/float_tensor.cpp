@@ -1227,7 +1227,22 @@ void FloatTensor::copyData(const Tensor &from) {
     const float sc = sc_ptr ? sc_ptr[0] : 1.0f;
     const int8_t *q = from.getData<int8_t>();
     float *dst = (float *)getData();
-    for (size_t i = 0; i < size(); ++i) dst[i] = sc * (float)q[i];
+    // Per-channel W8A8 (NNTR_W8A8_PERCH, default unless NNTR_W8A8_SYM=1)
+    // encodes activations asymmetrically as x = (q+128)*s - kActOff (see
+    // conv2d_layer.cpp's perch_mode epilogue) -- a generic consumer like this
+    // one must invert the SAME formula, not read q*s, or every value comes
+    // out shifted by ~128*s (previously silent: no perch_mode consumer had
+    // ever needed a full dequant to FP32 before a QINT8-typed model output).
+    static const bool perch_asym_env =
+      std::getenv("NNTR_W8A8_PERCH") != nullptr &&
+      std::getenv("NNTR_W8A8_SYM") == nullptr;
+    if (perch_asym_env) {
+      constexpr float kActOff = 0.27846455f;
+      for (size_t i = 0; i < size(); ++i)
+        dst[i] = ((float)q[i] + 128.f) * sc - kActOff;
+    } else {
+      for (size_t i = 0; i < size(); ++i) dst[i] = sc * (float)q[i];
+    }
     break;
   }
   case ml::train::TensorDim::DataType::UINT16:

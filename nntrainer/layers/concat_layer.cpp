@@ -189,7 +189,17 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
             float a = std::fabs(d[i]);
             if (a > amax) amax = a;
           }
-          float sc = amax > 0.f ? amax / 127.f : 1.f;
+          // Match the asymmetric scale formula used everywhere else in the
+          // W8A8/PERCH path (conv2d_layer.cpp's epilogue): symmetric amax/127
+          // would compute a systematically different (larger) scale than what
+          // the other QINT8 inputs' asymmetric encoding assumes.
+          static const bool asym_scale =
+            std::getenv("NNTR_W8A8_PERCH") != nullptr &&
+            std::getenv("NNTR_W8A8_SYM") == nullptr;
+          constexpr float kActOff = 0.27846455f;
+          float sc = amax > 0.f ? (asym_scale ? (amax + kActOff) / 255.f
+                                              : amax / 127.f)
+                                : 1.f;
           q8_out_scale = std::max(q8_out_scale, sc);
         }
       }
@@ -282,7 +292,14 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
               int8_t *d = dst + (base + p) * out_dim.channel() + c_offset;
               for (unsigned int c = 0; c < Ci; ++c) {
                 if (asym) {
-                  float q = std::round((s[c] + 128.f * q8_out_scale) * inv) - 128.f;
+                  // x = (q+128)*s_o - kActOff  =>  q = (x+kActOff)/s_o - 128.
+                  // (Was `128.f*q8_out_scale` instead of kActOff -- a wrong
+                  // offset term unrelated to the actual asymmetric encoding,
+                  // confirmed via on-device bisection 2026-08-11: this branch
+                  // is the real corruption source for any conv downstream of
+                  // a concat mixing a genuinely-FP32 input with QINT8 ones.)
+                  constexpr float kActOff = 0.27846455f;
+                  float q = std::round((s[c] + kActOff) * inv) - 128.f;
                   d[c] = (int8_t)std::max(-128.f, std::min(127.f, q));
                 } else {
                   float q = std::round(s[c] * inv);
