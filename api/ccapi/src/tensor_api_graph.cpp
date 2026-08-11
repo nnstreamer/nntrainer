@@ -20,6 +20,7 @@
 #include <tensor.h>
 
 #include <functional>
+#include <iostream>
 #include <set>
 #include <stdexcept>
 #include <unordered_set>
@@ -400,6 +401,23 @@ int Model::compile(std::vector<Tensor> &inputs, std::vector<Tensor> &outputs,
       std::vector<std::string> input_names(name_slot_pairs.size());
       for (auto &[name, slot] : name_slot_pairs) {
         input_names[slot] = name;
+      }
+
+      if (const char *dl = std::getenv("NNTR_GRAPHWIRE_DEBUG")) {
+        std::string this_name;
+        try {
+          this_name = edge->producing_layer->getName();
+        } catch (...) {
+        }
+        if (this_name == dl) {
+          std::cerr << "[GRAPHWIRE] layer=" << this_name << " inputs=[";
+          for (size_t i = 0; i < input_names.size(); ++i) {
+            if (i)
+              std::cerr << ",";
+            std::cerr << input_names[i];
+          }
+          std::cerr << "]\n" << std::flush;
+        }
       }
 
       layers_in_order.push_back({edge->producing_layer, input_names});

@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <fstream>
 #include <vector>
 
 #if defined(__ARM_NEON)
@@ -206,6 +207,28 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
       if (q8_out_scale <= 0.f)
         q8_out_scale = 1.f;
       output.getScale<float>()[0] = q8_out_scale;
+
+      if (const char *dl = std::getenv("NNTR_CONCAT_DEBUG");
+          dl && std::strstr(dl, context.getName().c_str())) {
+        for (unsigned int idx = 0; idx < context.getNumInputs(); idx++) {
+          Tensor &input = context.getInput(idx);
+          if (input.getDataType() == TensorDim::DataType::QINT8) {
+            const int8_t *q = input.getData<int8_t>();
+            const float sc = input.getScale<float>()[0];
+            int8_t qmin = 127, qmax = -128;
+            for (size_t i = 0; i < input.size(); ++i) {
+              if (q[i] < qmin) qmin = q[i];
+              if (q[i] > qmax) qmax = q[i];
+            }
+            std::cerr << "[CONCATDBG] " << context.getName() << " input[" << idx
+                       << "] scale=" << sc << " qmin=" << (int)qmin
+                       << " qmax=" << (int)qmax << " n=" << input.size()
+                       << " ptr=" << (const void *)q << "\n" << std::flush;
+          }
+        }
+        std::cerr << "[CONCATDBG] " << context.getName()
+                   << " q8_out_scale=" << q8_out_scale << "\n" << std::flush;
+      }
     }
     unsigned int c_offset = 0;
     for (unsigned int idx = 0; idx < context.getNumInputs(); idx++) {
@@ -339,6 +362,34 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
         }
       }
       c_offset += Ci;
+    }
+
+    // Dump one named layer's real output (from inside the untruncated
+    // production forward pass), for external bisection. Mirrors the
+    // NNTR_DUMP_LAYER hooks in conv2d_layer.cpp/addition_layer.cpp/etc.
+    if (const char *dl = std::getenv("NNTR_DUMP_LAYER");
+        dl && context.getName() == dl) {
+      const char *dp = std::getenv("NNTR_DUMP_PATH");
+      if (dp) {
+        std::vector<float> buf(output.size());
+        if (output.getDataType() == TensorDim::DataType::QINT8) {
+          const int8_t *q = output.getData<int8_t>();
+          const float sc = output.getScale<float>()[0];
+          static const bool perch_asym_env =
+            std::getenv("NNTR_W8A8_PERCH") != nullptr &&
+            std::getenv("NNTR_W8A8_SYM") == nullptr;
+          constexpr float kActOff = 0.27846455f;
+          for (size_t i = 0; i < output.size(); ++i)
+            buf[i] = perch_asym_env ? ((float)q[i] + 128.f) * sc - kActOff
+                                     : sc * (float)q[i];
+        } else if (output.getDataType() == TensorDim::DataType::FP32) {
+          const float *d = output.getData<float>();
+          std::copy(d, d + output.size(), buf.begin());
+        }
+        std::ofstream of(dp, std::ios::binary);
+        of.write(reinterpret_cast<const char *>(buf.data()),
+                 buf.size() * sizeof(float));
+      }
     }
     return;
   }

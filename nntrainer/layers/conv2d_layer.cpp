@@ -2738,6 +2738,16 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
           for (unsigned int i = 0; i < hidden_.size(); ++i)
             buf[i] = (float)d[i];
 #endif
+        } else if (hidden_.getDataType() == nntrainer::Tdatatype::QINT8) {
+          const int8_t *q = hidden_.getData<int8_t>();
+          const float sc = hidden_.getScale<float>()[0];
+          static const bool perch_asym_env =
+            std::getenv("NNTR_W8A8_PERCH") != nullptr &&
+            std::getenv("NNTR_W8A8_SYM") == nullptr;
+          constexpr float kActOff = 0.27846455f;
+          for (unsigned int i = 0; i < hidden_.size(); ++i)
+            buf[i] = perch_asym_env ? ((float)q[i] + 128.f) * sc - kActOff
+                                     : sc * (float)q[i];
         } else {
           const float *d = hidden_.getData<float>();
           std::copy(d, d + hidden_.size(), buf.begin());
@@ -3665,6 +3675,42 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
     }
   }
 
+  // Dump one named layer's TRUE final output -- after the fused-activation
+  // epilogue above, so (unlike the mid-function NNTR_DUMP_LAYER site earlier
+  // in this function, which fires before that epilogue and forces external
+  // bisection scripts to re-approximate SiLU themselves, mismatching the
+  // engine's fast vectorized approximation by ~1-2%) this needs no
+  // reconstruction and is safe to diff directly against any other dump.
+  if (const char *dl = std::getenv("NNTR_DUMP_LAYER_FINAL");
+      dl && context.getName() == dl) {
+    const char *dp = std::getenv("NNTR_DUMP_PATH");
+    if (dp) {
+      std::vector<float> buf(hidden_.size());
+      if (hidden_.getDataType() == nntrainer::Tdatatype::FP16) {
+#ifdef ENABLE_FP16
+        const _FP16 *d = hidden_.getData<_FP16>();
+        for (unsigned int i = 0; i < hidden_.size(); ++i)
+          buf[i] = (float)d[i];
+#endif
+      } else if (hidden_.getDataType() == nntrainer::Tdatatype::QINT8) {
+        const int8_t *q = hidden_.getData<int8_t>();
+        const float sc = hidden_.getScale<float>()[0];
+        static const bool perch_asym_env =
+          std::getenv("NNTR_W8A8_PERCH") != nullptr &&
+          std::getenv("NNTR_W8A8_SYM") == nullptr;
+        constexpr float kActOff = 0.27846455f;
+        for (unsigned int i = 0; i < hidden_.size(); ++i)
+          buf[i] = perch_asym_env ? ((float)q[i] + 128.f) * sc - kActOff
+                                   : sc * (float)q[i];
+      } else {
+        const float *d = hidden_.getData<float>();
+        std::copy(d, d + hidden_.size(), buf.begin());
+      }
+      std::ofstream of(dp, std::ios::binary);
+      of.write(reinterpret_cast<const char *>(buf.data()),
+               buf.size() * sizeof(float));
+    }
+  }
 }
 
 void Conv2DLayer::calcDerivative(RunLayerContext &context) {
