@@ -360,6 +360,32 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
             std::memcpy(d, s, (size_t)Ci * sizeof(float));
           });
         }
+      } else if (input.getDataType() == TensorDim::DataType::QINT8) {
+        // output.getDataType() != QINT8 here (that case is handled by the
+        // block above) -- i.e. output is FP32 (ConcatLayer::finalize()
+        // copies input[0]'s dtype for the output, so a QINT8 input at a
+        // non-zero index alongside an FP32 input[0] -- e.g. AdditionLayer's
+        // now-FP32 residual sum, see addition_layer.cpp -- lands here).
+        // Dequantize into the FP32 output; nothing requantizes since the
+        // output itself stays FP32.
+        const int8_t *src = input.getData<int8_t>();
+        float *dst = output.getData<float>();
+        const float sc = input.getScale<float>()[0];
+        static const bool asym = std::getenv("NNTR_W8A8_PERCH") != nullptr &&
+                                 std::getenv("NNTR_W8A8_SYM") == nullptr;
+        constexpr float kActOff = 0.27846455f;
+        auto &tm = ThreadManager::Global();
+        for (unsigned int b = 0; b < B; ++b) {
+          const size_t base = (size_t)b * HW;
+          tm.parallel_for(0, HW, [&](size_t p) {
+            const int8_t *s = src + (base + p) * Ci;
+            float *d = dst + (base + p) * out_dim.channel() + c_offset;
+            for (unsigned int c = 0; c < Ci; ++c) {
+              d[c] = asym ? ((float)s[c] + 128.f) * sc - kActOff
+                          : sc * (float)s[c];
+            }
+          });
+        }
       }
       c_offset += Ci;
     }
