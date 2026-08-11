@@ -1092,7 +1092,27 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
     w8a8_mode && std::getenv("NNTR_W8A8_PERCH") != nullptr && groups == 1 &&
     in_dim.getFormat() == ml::train::TensorDim::Format::NHWC &&
     in_dim.channel() != 3;
-  const bool perch_q8out = perch_mode && (filter_size % 4 == 0);
+  // The asymmetric int8 encoding x=(q+128)*s-kActOff is tuned specifically
+  // for SiLU's output range (bounded below by -0.27846, per the epilogue
+  // below) -- applying it to a conv with NO activation (raw linear output,
+  // e.g. the DFL box-regression head cv2_2, or any other bias-only conv)
+  // silently clips every value below -kActOff to that floor, since the
+  // encoding has no representation for anything more negative. Confirmed
+  // via on-device bisection 2026-08-11: this is what corrupted the
+  // detector's box branch even after every other W8A8 bug was fixed (cls,
+  // which IS SiLU-activated through cv3_0_pw/cv3_1_pw, recovered fine; the
+  // final cv3_2/cv2_2 1x1 convs have no activation and were still wrong).
+  // Only quantize a conv's output to int8 when it actually applies SiLU;
+  // a non-activated conv's raw output stays FP32 (dequantized on entry by
+  // any int8 consumer, same as every other FP32-output conv).
+  const bool perch_has_silu = [&] {
+    if (auto &actp = std::get<props::FusedActivation>(conv_props);
+        !actp.empty() && actp.get() == ActivationType::ACT_SWISH)
+      return true;
+    return false;
+  }();
+  const bool perch_q8out =
+    perch_mode && (filter_size % 4 == 0) && perch_has_silu;
   const bool w8a8_q8out =
     !perch_mode && w8a8_mode && quant_matmul_filter &&
     in_t_type.data_type == nntrainer::Tdatatype::Q8_0 &&
@@ -1727,6 +1747,18 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
           if (in_sub.getDataType() == nntrainer::Tdatatype::QINT8) {
             a_i8 = in_sub.getData<int8_t>();
             a_scale = in_sub.getScale<float>()[0];
+            if (const char *dl2 = std::getenv("NNTR_PERCH_AT_USE_DUMP_LAYER");
+                dl2 && context.getName() == dl2) {
+              const char *dp2 = std::getenv("NNTR_PERCH_AT_USE_DUMP_PATH");
+              if (dp2) {
+                std::ofstream of(dp2, std::ios::binary);
+                float sc = a_scale;
+                int32_t n = (int32_t)in_sub.size();
+                of.write(reinterpret_cast<const char *>(&sc), sizeof(float));
+                of.write(reinterpret_cast<const char *>(&n), sizeof(int32_t));
+                of.write(reinterpret_cast<const char *>(a_i8), in_sub.size());
+              }
+            }
           } else {
             const float *fin = in_sub.getData<float>();
             const size_t n_in = in_sub.size();
@@ -1834,8 +1866,19 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
                                     geom, W.qs_data(), W.scale.data(), cptr,
                                     pad_q, W.taps_last);
 
-          if (const char *dl = std::getenv("NNTR_PERCH_DEBUG");
+          if (const char *dl = std::getenv("NNTR_PERCH_CDUMP_LAYER");
               dl && context.getName() == dl) {
+            const char *dp = std::getenv("NNTR_PERCH_CDUMP_PATH");
+            if (dp) {
+              std::ofstream of(dp, std::ios::binary);
+              of.write(reinterpret_cast<const char *>(cptr),
+                       (size_t)owoh * filter_size * sizeof(float));
+            }
+          }
+
+          if (const char *dl = std::getenv("NNTR_PERCH_DEBUG");
+              (dl && context.getName() == dl) ||
+              std::getenv("NNTR_PERCH_DEBUG_ALL") != nullptr) {
             float cmin = 1e30f, cmax = -1e30f;
             size_t n = (size_t)owoh * filter_size;
             for (size_t i = 0; i < n; ++i) { float v = cptr[i]; if (v < cmin) cmin = v; if (v > cmax) cmax = v; }
@@ -2735,7 +2778,11 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
       const int8_t *q = input_.getData<int8_t>();
       const float sc = input_.getScale<float>()[0];
       const size_t n_in = input_.size();
-      grouped_deq_buf.resize(n_in);
+      // Padded well past any plausible SIMD width (diagnostic 2026-08-11:
+      // testing whether the depthwise NEON paths over-read past a tightly
+      // sized external buffer when fed a Tensor::Map-wrapped input, unlike
+      // a normal pool-allocated tensor).
+      grouped_deq_buf.assign(n_in + 4096, 0.f);
       float *fp = grouped_deq_buf.data();
       auto &tmd = ThreadManager::Global();
       const size_t chunk = 65536;
@@ -2761,8 +2808,20 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
       }
       TensorDim din = in_dim;
       din.setDataType(nntrainer::Tdatatype::FP32);
-      input_use = Tensor::Map<float>(grouped_deq_buf.data(),
-                                     grouped_deq_buf.size() * sizeof(float), din);
+      input_use =
+        Tensor::Map<float>(grouped_deq_buf.data(), n_in * sizeof(float), din);
+
+      if (const char *dl = std::getenv("NNTR_GDW_DEBUG");
+          dl && context.getName() == dl) {
+        float dmin = 1e30f, dmax = -1e30f;
+        for (float v : grouped_deq_buf) { if (v < dmin) dmin = v; if (v > dmax) dmax = v; }
+        std::cerr << "[GDWDBG] " << context.getName()
+                  << " deq_range=[" << dmin << "," << dmax << "]"
+                  << " a_scale=" << sc << " groups=" << groups
+                  << " icg=" << icg << " ocg=" << ocg
+                  << " filter_dt=" << (int)filter_kernel.getDataType() << "\n"
+                  << std::flush;
+      }
     }
 
     const bool is_true_depthwise = ocg == 1 && icg == 1;
@@ -2892,7 +2951,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
           });
         };
 #ifdef ENABLE_FP16
-        if (in_dim.getDataType() == nntrainer::Tdatatype::FP16)
+        if (input_use.getDataType() == nntrainer::Tdatatype::FP16)
           run_chan(input_use.getData<_FP16>(), hidden_.getData<_FP16>(),
                    filter_kernel.getData<float>());
         else
@@ -2985,7 +3044,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
           });
         };
 #ifdef ENABLE_FP16
-        if (in_dim.getDataType() == nntrainer::Tdatatype::FP16)
+        if (input_use.getDataType() == nntrainer::Tdatatype::FP16)
           run_vec(input_use.getData<_FP16>(), hidden_.getData<_FP16>(),
                   filter_kernel.getData<float>());
         else
@@ -3088,7 +3147,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
         }
       };
 
-      if (in_dim.getDataType() == nntrainer::Tdatatype::FP32) {
+      if (input_use.getDataType() == nntrainer::Tdatatype::FP32) {
         if (filt_dt == nntrainer::Tdatatype::FP32)
           run(input_use.getData<float>(), hidden_.getData<float>(),
               filter_kernel.getData<float>());
@@ -3109,7 +3168,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
       }
 #endif
     } else if (is_true_depthwise &&
-               in_dim.getDataType() == nntrainer::Tdatatype::FP32) {
+               input_use.getDataType() == nntrainer::Tdatatype::FP32) {
       // True depthwise (groups == channels): delegate to the CPU backend op so
       // the optimised kernel lives in the backend, not in the layer.
       nntrainer::getComputeOps()->depthwise_conv2d_fp32(
@@ -3120,7 +3179,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
         dilation[0].get(), dilation[1].get());
 #ifdef ENABLE_FP16
     } else if (is_true_depthwise &&
-               in_dim.getDataType() == nntrainer::Tdatatype::FP16 &&
+               input_use.getDataType() == nntrainer::Tdatatype::FP16 &&
                hidden_.getDataType() == nntrainer::Tdatatype::FP16 &&
                filter_kernel.getDataType() == nntrainer::Tdatatype::FP32 &&
                fh == 3 && fw == 3 && dilation[0].get() == 1 &&
@@ -3477,6 +3536,23 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
      input_.getDim().getFormat() == ml::train::TensorDim::Format::NHWC &&
      input_.getDim().channel() != 3) ||
     stem_direct_done;
+
+  if (const char *dl = std::getenv("NNTR_PREBIAS_DEBUG");
+      dl && context.getName() == dl &&
+      hidden_.getDataType() == nntrainer::Tdatatype::FP32) {
+    const float *hd = hidden_.getData<float>();
+    float hmin = 1e30f, hmax = -1e30f;
+    size_t nnan = 0;
+    for (size_t i = 0; i < hidden_.size(); ++i) {
+      float v = hd[i];
+      if (std::isnan(v)) { nnan++; continue; }
+      if (v < hmin) hmin = v;
+      if (v > hmax) hmax = v;
+    }
+    std::cerr << "[PREBIAS] " << context.getName() << " pre-bias hidden_ range=["
+              << hmin << "," << hmax << "] nan=" << nnan
+              << " perch_done=" << perch_done << "\n" << std::flush;
+  }
 
   if (!perch_done)
   if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);

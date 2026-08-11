@@ -319,7 +319,7 @@ Tensor &CharTensor::multiply(Tensor const &input, Tensor &output,
 }
 
 Tensor &CharTensor::add(Tensor const &input, Tensor &output,
-                        float const scale) const {
+                        float const alpha) const {
   CREATE_IF_EMPTY_DIMS(output, dim, nullptr, qscheme);
 
   NNTR_THROW_IF(q_scheme() != input.q_scheme(), std::invalid_argument)
@@ -333,36 +333,60 @@ Tensor &CharTensor::add(Tensor const &input, Tensor &output,
   float lhs_scale = *(float *)getScale();
   float rhs_scale = *input.getScale<float>();
 
-  /// @note current impl assumes pre-established quantization parameters are set
-  /// @todo 1. verify result_scale is valid 2. calculate qparams if not given
-  ///       3. check qscheme is per tensor affine
   NNTR_THROW_IF(std::fpclassify(lhs_scale) == FP_ZERO ||
-                  std::fpclassify(rhs_scale) == FP_ZERO ||
-                  std::fpclassify(scale) == FP_ZERO,
+                  std::fpclassify(rhs_scale) == FP_ZERO,
                 std::invalid_argument)
-    << "scale factors not set, cannot multiply";
+    << "scale factors not set, cannot add";
 
-  /// @todo check whether the following method has faster execution speed.
-  /// 1. clone input A and B to A_fp32 and B_fp32
-  /// 2. dequantize A_fp32 and B_fp32
-  /// 3. perform addition: A_fp32.add(B_fp32, output_fp32)
-  /// 4. quantize output_fp32
-  for (unsigned int b = 0; b < batch(); ++b) {
-    for (unsigned int c = 0; c < channel(); ++c) {
-      for (unsigned int h = 0; h < height(); ++h) {
-        for (unsigned int w = 0; w < width(); ++w) {
-          float val = getValue(b, c, h, w) * lhs_scale +
-                      input.getValue<int8_t>(b, c, h, w) * rhs_scale;
+  // `alpha` is m's coefficient (output = this + alpha*m), matching
+  // Tensor::add's documented contract -- NOT an output requantization scale.
+  // The prior implementation misread its 3rd parameter as a caller-supplied
+  // output scale (almost always the default alpha=1.0 from Tensor::add_i),
+  // hard-setting every QINT8 residual-add's output scale to 1.0 regardless
+  // of the actual value range -- corrupting every residual connection in a
+  // W8A8/PERCH graph (confirmed via on-device bisection 2026-08-11: this is
+  // what produced the detector's real-image garbage, cls scores saturating
+  // to 1.0). Dequantize both operands with the asymmetric affine formula
+  // used throughout the W8A8/PERCH path (x=(q+128)*s-kActOff) when active,
+  // recompute a real output scale from the summed result's amax, and
+  // requantize -- the same pattern conv2d_layer.cpp's epilogue and
+  // concat_layer.cpp already follow.
+  static const bool perch_asym =
+    std::getenv("NNTR_W8A8_PERCH") != nullptr &&
+    std::getenv("NNTR_W8A8_SYM") == nullptr;
+  constexpr float kActOff = 0.27846455f;
 
-          output.setValue(
-            b, c, h, w,
-            static_cast<int8_t>(
-              std::max(-128, std::min((int)std::lround(val / scale), 127))));
-        }
-      }
-    }
+  const size_t n = size();
+  std::vector<float> sum(n);
+  const int8_t *lhs = (const int8_t *)getData();
+  const int8_t *rhs = input.getData<int8_t>();
+  float amax = 0.f;
+  for (size_t i = 0; i < n; ++i) {
+    float lval = perch_asym ? ((float)lhs[i] + 128.f) * lhs_scale - kActOff
+                            : (float)lhs[i] * lhs_scale;
+    float rval = perch_asym ? ((float)rhs[i] + 128.f) * rhs_scale - kActOff
+                            : (float)rhs[i] * rhs_scale;
+    float v = lval + alpha * rval;
+    sum[i] = v;
+    float a = std::fabs(v);
+    if (a > amax)
+      amax = a;
   }
-  *output.getScale<float>() = scale;
+
+  float out_scale;
+  if (perch_asym)
+    out_scale = amax > 0.f ? (amax + kActOff) / 255.f : 1.f;
+  else
+    out_scale = amax > 0.f ? amax / 127.f : 1.f;
+  const float inv = 1.f / out_scale;
+
+  int8_t *result = output.getData<int8_t>();
+  for (size_t i = 0; i < n; ++i) {
+    float q = perch_asym ? std::round((sum[i] + kActOff) * inv) - 128.f
+                        : std::round(sum[i] * inv);
+    result[i] = (int8_t)std::max(-128.f, std::min(127.f, q));
+  }
+  *output.getScale<float>() = out_scale;
 
   return output;
 }
