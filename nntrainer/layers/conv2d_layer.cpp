@@ -79,6 +79,49 @@ getStemTapWeight(const float *w, unsigned int out_ch, unsigned int in_ch,
   return cache.emplace((const void *)w, std::move(t)).first->second;
 }
 
+// ---- Depthwise int8 (channel-wise symmetric) weight cache -----------------
+// W8A8 depthwise: the weight file never stores depthwise filters quantized
+// (grouped convs are incompatible with the Q8_0/matmul GEMM strategy -- see
+// quant_matmul_filter's groups==1 requirement below), so to get int8 compute
+// here the FP32 depthwise filter is quantized once per layer (cached by
+// weight pointer, same pattern as getStemTapWeight above): per-channel
+// (= per depthwise group, ocg==icg==1) symmetric scale (amax/127), repacked
+// tap-major/channel-last ([kh][kw][C]) so a fixed tap's C channels are
+// contiguous for a vectorized int8 load (the natural [C][kh][kw] filter
+// layout has channels C*fh*fw apart per tap, not usable directly).
+struct DWQ8Weight {
+  std::vector<int8_t> qs;   /**< [fh*fw][C], tap-major, channel-last */
+  std::vector<float> scale; /**< [C], per-channel symmetric weight scale */
+};
+
+static const DWQ8Weight &getDWQ8Weight(const float *filt, unsigned int C,
+                                       unsigned int fh, unsigned int fw) {
+  static std::mutex mtx;
+  static std::unordered_map<const void *, DWQ8Weight> cache;
+  std::lock_guard<std::mutex> lk(mtx);
+  auto it = cache.find((const void *)filt);
+  if (it != cache.end())
+    return it->second;
+  const unsigned int fhfw = fh * fw;
+  DWQ8Weight w;
+  w.scale.resize(C);
+  w.qs.resize((size_t)fhfw * C);
+  for (unsigned int c = 0; c < C; ++c) {
+    const float *row = filt + (size_t)c * fhfw;
+    float amax = 0.f;
+    for (unsigned int t = 0; t < fhfw; ++t)
+      amax = std::max(amax, std::fabs(row[t]));
+    const float sc = amax > 0.f ? amax / 127.f : 1.f;
+    w.scale[c] = sc;
+    const float inv = 1.f / sc;
+    for (unsigned int t = 0; t < fhfw; ++t) {
+      const float q = std::round(row[t] * inv);
+      w.qs[(size_t)t * C + c] = (int8_t)std::max(-127.f, std::min(127.f, q));
+    }
+  }
+  return cache.emplace((const void *)filt, std::move(w)).first->second;
+}
+
 #ifdef ENABLE_FP16
 static const _FP16 *get_silu_lut_fp16() {
   static std::vector<_FP16> lut;
@@ -2867,6 +2910,101 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
       // as float.
       const auto filt_dt = filter_kernel.getDataType();
 
+      // Env-gated INT8 depthwise (NNTR_W8A8_DW=1, opt-in): channel-vectorized
+      // (groups of 8) int8 widen-multiply-accumulate over the tap window,
+      // int32 accumulation, one dequantize+scale pass at the end. Symmetric
+      // activation quantization only (no zero-point correction term needed
+      // since padding contributes exactly 0 either way) -- covers the
+      // landmark(PFLD)/feature(ResNet+Mona) W8A8 paths, which already force
+      // NNTR_W8A8_SYM=1 (see face_pipeline.cpp); falls through to the
+      // existing FP32 kernels below otherwise (detector's asymmetric C2PSA
+      // "pe" depthwise, or a channel count not a multiple of 8).
+#ifdef __ARM_NEON
+      // NOTE: this is a fresh check, not the QINT8-input dequant block's
+      // same-named local above -- that one is scoped to its own `if`, and
+      // most depthwise convs here receive an already-FP32 input (this
+      // graph's convs don't chain QINT8 across layer boundaries).
+      static const bool dw_perch_asym_env =
+        std::getenv("NNTR_W8A8_PERCH") != nullptr &&
+        std::getenv("NNTR_W8A8_SYM") == nullptr;
+      const bool dw_int8 =
+        std::getenv("NNTR_W8A8") != nullptr &&
+        std::getenv("NNTR_W8A8_DW") != nullptr &&
+        !dw_perch_asym_env && (C % 8) == 0 &&
+        input_use.getDataType() == nntrainer::Tdatatype::FP32 &&
+        filt_dt == nntrainer::Tdatatype::FP32;
+      if (dw_int8) {
+        const DWQ8Weight &Wq =
+          getDWQ8Weight(filter_kernel.getData<float>(), C, fh, fw);
+
+        // Quantize the FP32 activation to int8 once, per-tensor symmetric
+        // (amax-based) -- same convention as the groups==1 perch_mode path's
+        // auto-quantize-FP32-input branch, just without the asymmetric
+        // kActOff offset.
+        const float *fin = input_use.getData<float>();
+        const size_t n_in = input_use.size();
+        auto &tmq = ThreadManager::Global();
+        const float amax = nntr_absmax_f32(fin, n_in);
+        const float act_scale = amax > 0.f ? amax / 127.f : 1.f;
+        const float act_inv = 1.f / act_scale;
+        static thread_local std::vector<int8_t> dw_in_i8;
+        dw_in_i8.resize(n_in);
+        int8_t *in_i8 = dw_in_i8.data();
+        const size_t qchunk = 1 << 15;
+        const size_t nqc = (n_in + qchunk - 1) / qchunk;
+        tmq.parallel_for(0, nqc, [=](size_t ci) {
+          const size_t i0 = ci * qchunk, i1 = std::min(i0 + qchunk, n_in);
+          for (size_t i = i0; i < i1; ++i) {
+            const float q = std::round(fin[i] * act_inv);
+            in_i8[i] = (int8_t)std::max(-127.f, std::min(127.f, q));
+          }
+        });
+
+        float *outb0 = hidden_.getData<float>();
+        const int8_t *w_qs = Wq.qs.data();
+        const float *w_scale = Wq.scale.data();
+        const unsigned int Cg8 = C / 8;
+        tmq.parallel_for(0, (size_t)B * Cg8, [&](size_t bcg) {
+          const unsigned int b = (unsigned int)(bcg / Cg8);
+          const unsigned int cg = (unsigned int)(bcg % Cg8);
+          const unsigned int c0 = cg * 8;
+          const int8_t *inb = in_i8 + (size_t)b * IH * IW * C;
+          float *outb = outb0 + (size_t)b * OH * OW * C;
+          for (int oh = 0; oh < OH; ++oh) {
+            for (int ow = 0; ow < OW; ++ow) {
+              int32x4_t acc_lo = vdupq_n_s32(0);
+              int32x4_t acc_hi = vdupq_n_s32(0);
+              for (unsigned int kh = 0; kh < fh; ++kh) {
+                const int ih = oh * sh - ph + (int)kh * dh;
+                if (ih < 0 || ih >= IH)
+                  continue;
+                const int8_t *row = inb + (size_t)ih * IW * C;
+                for (unsigned int kw = 0; kw < fw; ++kw) {
+                  const int iw = ow * sw - pw + (int)kw * dw_;
+                  if (iw < 0 || iw >= IW)
+                    continue;
+                  const unsigned int tap = kh * fw + kw;
+                  int8x8_t vin = vld1_s8(row + (size_t)iw * C + c0);
+                  int8x8_t vw = vld1_s8(w_qs + (size_t)tap * C + c0);
+                  int16x8_t prod = vmull_s8(vin, vw);
+                  acc_lo = vaddw_s16(acc_lo, vget_low_s16(prod));
+                  acc_hi = vaddw_s16(acc_hi, vget_high_s16(prod));
+                }
+              }
+              float32x4_t f_lo = vmulq_n_f32(vcvtq_f32_s32(acc_lo), act_scale);
+              float32x4_t f_hi = vmulq_n_f32(vcvtq_f32_s32(acc_hi), act_scale);
+              f_lo = vmulq_f32(f_lo, vld1q_f32(w_scale + c0));
+              f_hi = vmulq_f32(f_hi, vld1q_f32(w_scale + c0 + 4));
+              const size_t on = (size_t)(oh * OW + ow) * C + c0;
+              vst1q_f32(outb + on, f_lo);
+              vst1q_f32(outb + on + 4, f_hi);
+            }
+          }
+        });
+        goto depthwise_done;
+      }
+#endif
+
       // Env-gated vectorized NHWC depthwise (default ON, NNTR_DW_NHWC_SCALAR=1
       // restores the per-output-element scalar `run` below for A/B / rollback).
       // Parallelize across (batch*channels) and vectorize across 4 output
@@ -2890,7 +3028,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
       // the final FP16 narrow. Default ON (opt-out NNTR_DW_NHWC_CHAN=0);
       // restricted to C%4==0 + stride1 + dilation1 + FP32 weights. Falls
       // through to `dw_vec` (ow-vectorized) otherwise.
-#ifdef __ARM_NEON__
+#ifdef __ARM_NEON
       const bool dw_chan =
         (C % 4) == 0 && stride[0].get() == 1 && stride[1].get() == 1 &&
         dilation[0].get() == 1 && dilation[1].get() == 1 &&
@@ -3063,7 +3201,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
                   filter_kernel.getData<float>());
         goto depthwise_done;
       }
-#endif // __ARM_NEON__
+#endif // __ARM_NEON
 
       auto run = [&]<typename T, typename F>(const T *in, T *out,
                                              const F *filt) {
@@ -3262,7 +3400,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
         // Default ON (env opt-out: NNTR_CONV_FUSED_GROUPS=0 -> GEMM/scalar).
         // Restricted to FP32 weights (F==float) + icg==1 + OW>=4.
         const char *__fused_env = std::getenv("NNTR_CONV_FUSED_GROUPS");
-#ifdef __ARM_NEON__
+#ifdef __ARM_NEON
         const bool use_fused =
           (__fused_env == nullptr || std::string(__fused_env) != "0") &&
           icg == 1 && ocg >= 1 && fh * fw >= 1 && OW >= 4 &&
@@ -3513,7 +3651,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
         result.deallocate();
       }
     }
-#ifdef __ARM_NEON__
+#ifdef __ARM_NEON
     depthwise_done:; // jump target for the env-gated vectorized NHWC depthwise
 #endif
   }
