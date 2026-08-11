@@ -1753,24 +1753,54 @@ void FloatTensor::apply_broadcast(
 
   NNTR_THROW_IF(getData() == nullptr, std::invalid_argument)
     << getName() << " is not allocated";
-  NNTR_THROW_IF(m.getData<float>() == nullptr, std::invalid_argument)
-    << m.getName() << " is not allocated";
-  NNTR_THROW_IF(output.getData<float>() == nullptr, std::invalid_argument)
-    << output.getName() << " is not allocated";
+
+  // m's and output's raw buffers are always read/written below as float*
+  // with no dtype check -- see the symmetric comment on
+  // HalfTensor::apply_broadcast for the mixed-precision-graph scenario this
+  // guards against (e.g. bn_layer.cpp upcasting only some of its
+  // FP16-graph tensors to FP32 for a computation whose other operand or
+  // destination stayed FP16).
+  Tensor m_fp32_owner;
+  const Tensor *m_ptr = &m;
+  if (m.getDataType() != ml::train::TensorDim::DataType::FP32) {
+    m_fp32_owner = m.clone(ml::train::TensorDim::DataType::FP32);
+    m_ptr = &m_fp32_owner;
+  }
+  const Tensor &mm = *m_ptr;
+
+  NNTR_THROW_IF(mm.getData<float>() == nullptr, std::invalid_argument)
+    << mm.getName() << " is not allocated";
+
+  const bool out_mismatched =
+    output.getDataType() != ml::train::TensorDim::DataType::FP32;
+  Tensor out_fp32_owner;
+  Tensor *out_ptr = &output;
+  if (out_mismatched) {
+    TensorDim out_fp32_dim = output.getDim();
+    out_fp32_dim.setDataType(ml::train::TensorDim::DataType::FP32);
+    out_fp32_owner = Tensor(out_fp32_dim, true);
+    out_ptr = &out_fp32_owner;
+  } else {
+    NNTR_THROW_IF(output.getData<float>() == nullptr, std::invalid_argument)
+      << output.getName() << " is not allocated";
+  }
+  Tensor &out = *out_ptr;
 
   /// shortcut to cover when dimension matches
   /// note that buffer_size, the last stride is only used in v_func but it
   /// might be changed
-  if (dim == m.getDim()) {
+  if (dim == mm.getDim()) {
     BroadcastInfo e;
     e.buffer_size = size();
     e.strides[3] = 1;
     e.tensor_type = getTensorType();
-    v_func(e, (float *)getData(), m.getData<float>(), output.getData<float>());
-    return;
+    v_func(e, (float *)getData(), mm.getData<float>(), out.getData<float>());
+  } else {
+    apply_broadcast_util(mm, v_func, out, this->computeBroadcastInfo(mm));
   }
 
-  return apply_broadcast_util(m, v_func, output, this->computeBroadcastInfo(m));
+  if (out_mismatched)
+    output.copyData(out);
 }
 
 bool FloatTensor::isValid() const {

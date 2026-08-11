@@ -2547,6 +2547,30 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
                 << " >65504=" << n_over << " maxAbs=" << max_abs << "\n" << std::flush;
     }
 
+    // Dump one named layer's real output (from inside the untruncated
+    // production forward pass, so no separate-model-output/memory-pool
+    // aliasing risk) as raw FP32 floats, for external bisection.
+    if (const char *dl = std::getenv("NNTR_DUMP_LAYER");
+        dl && context.getName() == dl) {
+      const char *dp = std::getenv("NNTR_DUMP_PATH");
+      if (dp) {
+        std::vector<float> buf(hidden_.size());
+        if (hidden_.getDataType() == nntrainer::Tdatatype::FP16) {
+#ifdef ENABLE_FP16
+          const _FP16 *d = hidden_.getData<_FP16>();
+          for (unsigned int i = 0; i < hidden_.size(); ++i)
+            buf[i] = (float)d[i];
+#endif
+        } else {
+          const float *d = hidden_.getData<float>();
+          std::copy(d, d + hidden_.size(), buf.begin());
+        }
+        std::ofstream of(dp, std::ios::binary);
+        of.write(reinterpret_cast<const char *>(buf.data()),
+                 buf.size() * sizeof(float));
+      }
+    }
+
     if (!weight_is_quant) {
       filter_kernel.reshape(filter_dim);
     }
@@ -3320,9 +3344,21 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
       const unsigned int C = out_dim.channel();
       const unsigned int HW = out_dim.height() * out_dim.width();
       const unsigned int B = out_dim.batch();
+      // bias_kernel's requested dtype can differ from hidden_'s (e.g. a
+      // non-Q8_0-eligible conv like the stem stays FP32-activation while the
+      // bias weight itself follows the model's FP16 default) -- the raw
+      // getData<T>() casts below have no dtype check, so convert by value
+      // first instead of silently reinterpreting the wrong-width bytes.
+      Tensor bias_conv_owner;
+      const Tensor *bias_ptr = &bias_kernel;
+      if (bias_kernel.getDataType() != hidden_.getDataType()) {
+        bias_conv_owner = bias_kernel.clone(hidden_.getDataType());
+        bias_ptr = &bias_conv_owner;
+      }
+      const Tensor &bias_kernel_c = *bias_ptr;
       if (hidden_.getDataType() == nntrainer::Tdatatype::FP32) {
         float *d = hidden_.getData<float>();
-        const float *bias = bias_kernel.getData<float>();
+        const float *bias = bias_kernel_c.getData<float>();
 #if defined(__ARM_NEON)
         const unsigned int C_aligned = (C / 4) * 4;
         for (unsigned int b = 0; b < B; ++b) {
@@ -3350,7 +3386,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
 #ifdef ENABLE_FP16
       else if (hidden_.getDataType() == nntrainer::Tdatatype::FP16) {
         _FP16 *d = hidden_.getData<_FP16>();
-        const _FP16 *bias = bias_kernel.getData<_FP16>();
+        const _FP16 *bias = bias_kernel_c.getData<_FP16>();
 #if defined(__ARM_NEON)
         const unsigned int C_aligned = (C / 8) * 8;
         for (unsigned int b = 0; b < B; ++b) {

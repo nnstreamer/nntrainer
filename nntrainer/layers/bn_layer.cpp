@@ -21,6 +21,8 @@
  *
  */
 
+#include <fstream>
+
 #include <bn_layer.h>
 #include <layer_context.h>
 #include <lazy_tensor.h>
@@ -328,6 +330,19 @@ void BatchNormalizationLayer::forwarding(RunLayerContext &context,
               << " dt=" << (out.getDataType() == nntrainer::Tdatatype::FP16 ? "FP16" : "FP32")
               << " fin=" << n_fin << " nan=" << n_nan << " inf=" << n_inf
               << " >65504=" << n_over << " maxAbs=" << max_abs << " minAbs=" << min_abs << "\n" << std::flush;
+  }
+
+  // Dump one named layer's real pre-narrow FP32 output (hidden_, from inside
+  // the untruncated production forward pass), for external bisection.
+  if (const char *dl = std::getenv("NNTR_DUMP_LAYER");
+      dl && context.getName() == dl) {
+    const char *dp = std::getenv("NNTR_DUMP_PATH");
+    if (dp) {
+      const float *hd = hidden_.getData<float>();
+      std::ofstream of(dp, std::ios::binary);
+      of.write(reinterpret_cast<const char *>(hd),
+               hidden_.size() * sizeof(float));
+    }
   }
 }
 

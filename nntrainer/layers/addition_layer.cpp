@@ -11,6 +11,8 @@
  *
  */
 
+#include <fstream>
+
 #include <addition_layer.h>
 #include <env_compat.h>
 #include <nntrainer_error.h>
@@ -48,6 +50,29 @@ void AdditionLayer::forwarding(RunLayerContext &context, bool training) {
     // host copy/add this used to call inline, an accelerator can keep the
     // residual stream in device memory.
     hidden_.getOps()->residual_op(hidden_, input_, /*accumulate=*/idx != 0);
+  }
+
+  // Dump one named layer's real output (from inside the untruncated
+  // production forward pass), for external bisection.
+  if (const char *dl = std::getenv("NNTR_DUMP_LAYER");
+      dl && context.getName() == dl) {
+    const char *dp = std::getenv("NNTR_DUMP_PATH");
+    if (dp) {
+      std::vector<float> buf(hidden_.size());
+      if (hidden_.getDataType() == nntrainer::Tdatatype::FP16) {
+#ifdef ENABLE_FP16
+        const _FP16 *d = hidden_.getData<_FP16>();
+        for (unsigned int i = 0; i < hidden_.size(); ++i)
+          buf[i] = (float)d[i];
+#endif
+      } else {
+        const float *d = hidden_.getData<float>();
+        std::copy(d, d + hidden_.size(), buf.begin());
+      }
+      std::ofstream of(dp, std::ios::binary);
+      of.write(reinterpret_cast<const char *>(buf.data()),
+               buf.size() * sizeof(float));
+    }
   }
 }
 

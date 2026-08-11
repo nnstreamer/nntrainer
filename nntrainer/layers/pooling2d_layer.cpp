@@ -13,7 +13,11 @@
  *
  */
 
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <iostream>
 #include <limits>
 #include <type_traits>
 
@@ -167,6 +171,56 @@ void Pooling2DLayer::forwarding(RunLayerContext &context, bool training) {
     workers.run();
   } else {
     forwarding_job(0, in_dim.batch(), 0, nullptr);
+  }
+
+  if (std::getenv("NNTR_NAN_TRACE")) {
+    const unsigned int n = hidden_.size();
+    unsigned int n_nan = 0, n_inf = 0, n_fin = 0, n_over = 0;
+    float max_abs = 0.0f;
+    auto scan = [&](auto get) {
+      for (unsigned int i = 0; i < n; ++i) {
+        float v = get(i);
+        if (std::isnan(v)) n_nan++;
+        else if (std::isinf(v)) n_inf++;
+        else { n_fin++; float a = std::fabs(v); if (a > max_abs) max_abs = a; if (a > 65504.0f) n_over++; }
+      }
+    };
+    if (hidden_.getDataType() == nntrainer::Tdatatype::FP16) {
+#ifdef ENABLE_FP16
+      const _FP16 *d = hidden_.getData<_FP16>();
+      scan([&](unsigned int i) { return (float)d[i]; });
+#endif
+    } else {
+      const float *d = hidden_.getData<float>();
+      scan([&](unsigned int i) { return d[i]; });
+    }
+    std::cerr << "[NANTRACE] " << context.getName() << " n=" << n
+              << " dt=" << (hidden_.getDataType() == nntrainer::Tdatatype::FP16 ? "FP16" : "FP32")
+              << " fin=" << n_fin << " nan=" << n_nan << " inf=" << n_inf
+              << " >65504=" << n_over << " maxAbs=" << max_abs << "\n" << std::flush;
+  }
+
+  // Dump one named layer's real output (from inside the untruncated
+  // production forward pass), for external bisection.
+  if (const char *dl = std::getenv("NNTR_DUMP_LAYER");
+      dl && context.getName() == dl) {
+    const char *dp = std::getenv("NNTR_DUMP_PATH");
+    if (dp) {
+      std::vector<float> buf(hidden_.size());
+      if (hidden_.getDataType() == nntrainer::Tdatatype::FP16) {
+#ifdef ENABLE_FP16
+        const _FP16 *d = hidden_.getData<_FP16>();
+        for (unsigned int i = 0; i < hidden_.size(); ++i)
+          buf[i] = (float)d[i];
+#endif
+      } else {
+        const float *d = hidden_.getData<float>();
+        std::copy(d, d + hidden_.size(), buf.begin());
+      }
+      std::ofstream of(dp, std::ios::binary);
+      of.write(reinterpret_cast<const char *>(buf.data()),
+               buf.size() * sizeof(float));
+    }
   }
 }
 
@@ -353,6 +407,14 @@ void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output,
 
   const bool is_nhwc =
     in.getFormat() == Tformat::NHWC && output.getFormat() == Tformat::NHWC;
+  if (std::getenv("PFLD_POOL_DEBUG")) {
+    fprintf(stderr,
+            "[pool2d dbg] pooling_type=%d in_fmt=%d out_fmt=%d is_nhwc=%d "
+            "channel=%u in_h=%d in_w=%d patch_h=%u patch_w=%u out_h=%zu out_w=%zu\n",
+            (int)pooling_type, (int)in.getFormat(), (int)output.getFormat(),
+            (int)is_nhwc, channel, in_height, in_width, patch_height,
+            patch_width, (size_t)output.height(), (size_t)output.width());
+  }
   if (is_nhwc) {
     if (pooling_type == props::PoolingTypeInfo::Enum::max) {
       auto run_nhwc = [&]<typename T>() {

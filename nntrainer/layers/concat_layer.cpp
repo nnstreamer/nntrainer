@@ -308,6 +308,18 @@ void ConcatLayer::forwarding(RunLayerContext &context, bool training) {
 #else
         throw std::invalid_argument("Error: enable-fp16 is not enabled");
 #endif
+      } else if (input.getDataType() == TensorDim::DataType::FP32) {
+        const float *src = input.getData<float>();
+        float *dst = output.getData<float>();
+        auto &tm = ThreadManager::Global();
+        for (unsigned int b = 0; b < B; ++b) {
+          const size_t base = (size_t)b * HW;
+          tm.parallel_for(0, HW, [&](size_t p) {
+            const float *s = src + (base + p) * Ci;
+            float *d = dst + (base + p) * out_dim.channel() + c_offset;
+            std::memcpy(d, s, (size_t)Ci * sizeof(float));
+          });
+        }
       }
       c_offset += Ci;
     }

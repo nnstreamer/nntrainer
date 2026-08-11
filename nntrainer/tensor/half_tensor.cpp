@@ -1389,23 +1389,59 @@ void HalfTensor::apply_broadcast(
 
   NNTR_THROW_IF(getData() == nullptr, std::invalid_argument)
     << getName() << " is not allocated";
-  NNTR_THROW_IF(m.getData<_FP16>() == nullptr, std::invalid_argument)
-    << m.getName() << " is not allocated";
-  NNTR_THROW_IF(output.getData<_FP16>() == nullptr, std::invalid_argument)
-    << output.getName() << " is not allocated";
+
+  // m's and output's raw buffers are always read/written below as _FP16*
+  // with no dtype check. A caller combining this FP16 tensor with a
+  // same-shaped tensor that stayed a different dtype (e.g. a mixed-precision
+  // graph region: resnet_graph.h's body/N residual add of a maxpool'd FP32
+  // shortcut into a FP16 conv2 output, or bn_layer.cpp's FP16 `deviation`
+  // multiplied by an FP32-upcast `invstd` into an FP32 `hidden_`) would
+  // otherwise silently reinterpret those bytes as garbage FP16 pairs on
+  // read, and scatter real results into the wrong byte offsets of a wider
+  // buffer on write -- producing huge/NaN-looking results with no error.
+  // Convert m by value first when it isn't FP16, and stage the result
+  // through a real FP16 buffer when output isn't FP16, narrowing into the
+  // caller's actual output tensor at the end.
+  Tensor m_fp16_owner;
+  const Tensor *m_ptr = &m;
+  if (m.getDataType() != ml::train::TensorDim::DataType::FP16) {
+    m_fp16_owner = m.clone(ml::train::TensorDim::DataType::FP16);
+    m_ptr = &m_fp16_owner;
+  }
+  const Tensor &mm = *m_ptr;
+
+  NNTR_THROW_IF(mm.getData<_FP16>() == nullptr, std::invalid_argument)
+    << mm.getName() << " is not allocated";
+
+  const bool out_mismatched =
+    output.getDataType() != ml::train::TensorDim::DataType::FP16;
+  Tensor out_fp16_owner;
+  Tensor *out_ptr = &output;
+  if (out_mismatched) {
+    TensorDim out_fp16_dim = output.getDim();
+    out_fp16_dim.setDataType(ml::train::TensorDim::DataType::FP16);
+    out_fp16_owner = Tensor(out_fp16_dim, true);
+    out_ptr = &out_fp16_owner;
+  } else {
+    NNTR_THROW_IF(output.getData<_FP16>() == nullptr, std::invalid_argument)
+      << output.getName() << " is not allocated";
+  }
+  Tensor &out = *out_ptr;
 
   /// shortcut to cover when dimension matches
   /// note that buffer_size, the last stride is only used in v_func but it
   /// might be changed
-  if (dim == m.getDim()) {
+  if (dim == mm.getDim()) {
     BroadcastInfo e;
     e.buffer_size = size();
     e.strides[3] = 1;
-    v_func(e, (_FP16 *)getData(), m.getData<_FP16>(), output.getData<_FP16>());
-    return;
+    v_func(e, (_FP16 *)getData(), mm.getData<_FP16>(), out.getData<_FP16>());
+  } else {
+    apply_broadcast_util(mm, v_func, out, this->computeBroadcastInfo(mm));
   }
 
-  return apply_broadcast_util(m, v_func, output, this->computeBroadcastInfo(m));
+  if (out_mismatched)
+    output.copyData(out);
 }
 
 void HalfTensor::apply_broadcast_util(
