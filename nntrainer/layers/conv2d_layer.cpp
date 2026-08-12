@@ -984,6 +984,7 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
     throw std::runtime_error("Not supported datatype");
   }
 }
+
 } // namespace
 
 enum ConvParams {
@@ -1776,8 +1777,38 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
           // rescale exactly as before modulo the +128 shift. The GEMM needs no
           // kernel change: sum_k w*x = s_a*s_w*acc + s_w*(128*s_a -
           // kActOff)*colsum_w, and the second term folds into the bias.
-          static const bool perch_asym =
-            std::getenv("NNTR_W8A8_SYM") == nullptr;
+          static const bool perch_sym_env =
+            std::getenv("NNTR_W8A8_SYM") != nullptr;
+          // NNTR_W8A8_PERCH_LINEAR_SYM (opt-in, default off): when THIS conv
+          // has NO fused activation (e.g. YOLOv11 C2PSA's proj/ffn1) and it
+          // is about to quantize its OWN fresh FP32 input (the `else` branch
+          // below), do it symmetrically instead of via the network-wide
+          // asymmetric SiLU-floor encoding. That encoding assumes the input
+          // is bounded below by -kActOff (true for a genuine SiLU output,
+          // per the comment below), but a linear/no-activation conv's input
+          // (a plain residual sum here) has no such bound, so applying it
+          // anyway silently clips values below -kActOff before the GEMM even
+          // runs. Confirmed via on-device bisection 2026-08-12: proj/ffn1
+          // cosine vs W8A32 golden 0.77/0.58 with the network-wide asymmetric
+          // encoding, ~0.98+ (matching every SiLU-activated conv) with this
+          // fix. Deliberately does NOT change how an ALREADY-quantized QINT8
+          // input (the `if` branch below) is interpreted: that data's actual
+          // encoding was chosen by its PRODUCER (always has_silu=true, since
+          // perch_q8out below requires it), not by this consumer, so
+          // decoding it must still follow perch_sym_env alone -- see
+          // a_is_asym vs the FP32-quantize-only perch_asym below. Default
+          // off so no other perch_mode caller (video_pipeline's detector/
+          // pose always pair NNTR_W8A8 with NNTR_W8A8_PERCH) is affected.
+          static const bool perch_linear_sym_env =
+            std::getenv("NNTR_W8A8_PERCH_LINEAR_SYM") != nullptr;
+          const bool this_has_silu = [&] {
+            if (auto &actp = std::get<props::FusedActivation>(conv_props);
+                !actp.empty() && actp.get() == ActivationType::ACT_SWISH)
+              return true;
+            return false;
+          }();
+          const bool perch_asym =
+            !perch_sym_env && !(perch_linear_sym_env && !this_has_silu);
           constexpr float kActOff = 0.27846455f;
 
           // input int8 + per-tensor scale
@@ -1786,6 +1817,11 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
           // malloc/free churn disappears; every byte is overwritten below.)
           const int8_t *a_i8 = nullptr;
           float a_scale = 1.f;
+          // Whether a_i8/a_scale (whichever branch below fills them) actually
+          // carries the asymmetric encoding -- used below (pad_q, bias fold)
+          // instead of perch_asym directly, since the two branches decide it
+          // differently (see perch_linear_sym_env comment above).
+          bool a_is_asym = !perch_sym_env;
           static thread_local std::vector<int8_t> a_buf;
           if (in_sub.getDataType() == nntrainer::Tdatatype::QINT8) {
             a_i8 = in_sub.getData<int8_t>();
@@ -1833,6 +1869,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
             // [-kActOff, amax] is valid; amax >= max(x) covers the top end.)
             a_buf.resize(n_in);
             int8_t *ab = a_buf.data();
+            a_is_asym = perch_asym; // this conv's own quantize choice
             if (perch_asym) {
               a_scale = amax > 0.f ? (amax + kActOff) / 255.f : 1.f;
               const float inv = 1.f / a_scale;
@@ -1888,7 +1925,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
           // Padded gather positions must represent x = 0, whose affine code is
           // round(kActOff / s) - 128 (the byte 0 would mean x = 128*s - kActOff).
           int8_t pad_q = 0;
-          if (perch_asym)
+          if (a_is_asym)
             pad_q = (int8_t)std::max(
               -128L,
               std::min(127L, std::lround(kActOff / a_scale) - 128L));
@@ -1950,7 +1987,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
             // completes sum_k w*x, and being per-output-channel constant it
             // folds into the bias (no kernel change, no per-element cost).
             static thread_local std::vector<float> ebias;
-            if (perch_asym) {
+            if (a_is_asym) {
               const float koff = 128.f * a_scale - kActOff;
               if (ebias.size() < C)
                 ebias.resize(C);
