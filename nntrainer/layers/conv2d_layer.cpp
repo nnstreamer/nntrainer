@@ -1716,11 +1716,13 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
           const unsigned int in_ch = in_dim.channel();
           const unsigned int CRS =
             in_ch * kernel_size[0].get() * kernel_size[1].get();
+          bool is_q4 = filter_kernel.getDataType() == nntrainer::Tdatatype::Q4_0;
           const PerChConvWeight &W = __ggml_q8ch_prepare_conv_weight(
             filter_kernel.getData(),
             weight_is_q8 ? filter_kernel.getData() : nullptr,
-            weight_is_q8 ? nullptr : filter_kernel.getData<float>(), filter_size,
-            CRS, kernel_size[0].get() * kernel_size[1].get(), in_ch);
+            (!weight_is_q8 && !is_q4) ? filter_kernel.getData<float>() : nullptr, filter_size,
+            CRS, kernel_size[0].get() * kernel_size[1].get(), in_ch,
+            is_q4 ? filter_kernel.getData() : nullptr);
 
           if (const char *dl = std::getenv("NNTR_PERCH_DEBUG");
               dl && context.getName() == dl) {

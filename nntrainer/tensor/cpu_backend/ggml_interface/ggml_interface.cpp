@@ -682,7 +682,8 @@ const PerChConvWeight &
 __ggml_q8ch_prepare_conv_weight(const void *key, const void *q8_src_x4,
                                 const float *fp32_src, unsigned int out_ch,
                                 unsigned int CRS, unsigned int khkw,
-                                unsigned int in_ch) {
+                                unsigned int in_ch,
+                                const void *q4_src_x4) {
   static std::mutex mtx;
   static std::unordered_map<const void *, PerChConvWeight> cache;
   std::lock_guard<std::mutex> lk(mtx);
@@ -846,6 +847,34 @@ __ggml_q8ch_prepare_conv_weight(const void *key, const void *q8_src_x4,
                 for (unsigned int c = 0; c < 8; ++c)
                   wf_ptr[(size_t)r * CRS + j * QK8_0 + sub * 8 + c] =
                     d * (float)sb.qs[32 * sub + 8 * r + c];
+            }
+          }
+        } else {
+          std::memset(wf_ptr, 0, (size_t)4 * CRS * sizeof(float));
+        }
+      } else if (q4_src_x4) {
+        if ((unsigned int)(sc + 1) * 4 <= out_ch) {
+          const uint8_t *q4_data = (const uint8_t *)q4_src_x4;
+          for (unsigned int j = 0; j < nbq; ++j) {
+            size_t base_off = ((size_t)sc * nbq + j) * 72;
+            float d_vals[4];
+            for (unsigned int r = 0; r < 4; ++r) {
+              uint16_t d16;
+              std::memcpy(&d16, q4_data + base_off + r * 2, 2);
+              d_vals[r] = perch_fp16_to_fp32_bits(d16);
+            }
+            const uint8_t *qs_block = q4_data + base_off + 8;
+            for (unsigned int i = 0; i < 8; ++i) {
+              unsigned int r = i % 4;
+              unsigned int src_offset = (i / 4) * 8;
+              for (unsigned int b = 0; b < 8; ++b) {
+                uint8_t q = qs_block[i * 8 + b] ^ 0x88;
+                int x0 = (q & 0x0F) - 8;
+                int x1 = (q >> 4) - 8;
+                unsigned int col_start = j * QK8_0 + src_offset;
+                wf_ptr[(size_t)r * CRS + col_start + b] = (float)x0 * d_vals[r];
+                wf_ptr[(size_t)r * CRS + col_start + b + 16] = (float)x1 * d_vals[r];
+              }
             }
           }
         } else {

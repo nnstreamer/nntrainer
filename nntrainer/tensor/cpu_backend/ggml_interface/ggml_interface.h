@@ -346,7 +346,8 @@ const PerChConvWeight &
 __ggml_q8ch_prepare_conv_weight(const void *key, const void *q8_src_x4,
                                 const float *fp32_src, unsigned int out_ch,
                                 unsigned int CRS, unsigned int khkw = 1,
-                                unsigned int in_ch = 0);
+                                unsigned int in_ch = 0,
+                                const void *q4_src_x4 = nullptr);
 
 /**
  * @brief Offline PER-CHANNEL Q8_0 quantizer: writes a plain block_q8_0 stream
