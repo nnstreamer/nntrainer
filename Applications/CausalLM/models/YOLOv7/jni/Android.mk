@@ -74,13 +74,16 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_LDLIBS := -llog -landroid
 
 LOCAL_CFLAGS += -std=c++17 -O3 -march=armv8.2-a+fp16+dotprod+i8mm -pthread \
-        -fexceptions -frtti -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1
+        -fexceptions -frtti -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1 \
+        -DYOLO_WITH_STB_IMAGE
 LOCAL_CXXFLAGS += -std=c++17 -O3 -march=armv8.2-a+fp16+dotprod+i8mm -pthread \
-        -fexceptions -frtti -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1
+        -fexceptions -frtti -DENABLE_FP16=1 -DUSE__FP16=1 -D__ARM_NEON__=1 \
+        -DYOLO_WITH_STB_IMAGE
 LOCAL_LDFLAGS += -fexceptions
 
 LOCAL_SRC_FILES := main_tiny.cpp
 LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
-LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES) $(LOCAL_PATH)/../../../third_party
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES) $(LOCAL_PATH)/../../../third_party \
+        $(LOCAL_PATH)/../../..
 
 include $(BUILD_EXECUTABLE)
