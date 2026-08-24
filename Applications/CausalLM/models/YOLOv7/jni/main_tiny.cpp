@@ -222,7 +222,6 @@ int main(int argc, char **argv) {
     if (model->compile(x, outputs, ml::train::ExecutionMode::INFERENCE) != 0) {
       throw std::runtime_error("Model compilation failed!");
     }
-    model->compile();
     model->initialize();
 
     std::cout << "Loading weights: " << weights_path << std::endl;
