@@ -77,6 +77,38 @@ logits and final probabilities, plus `expected.txt` — the reference table. Wit
 `window*_probs.bin` for every window and prints one `[AD_REF]` verdict
 (`AD_REF_TOL` sets the budget, default 1e-3).
 
+## Reproduce / cross-verify in one command
+
+```bash
+# from the repo root, after: meson setup builddir -Denable-transformer=true \
+#                                 -Denable-app=true && ninja -C builddir
+Applications/CausalLM/res/audio_detection/verify_e2e.sh
+```
+
+It runs the upstream PyTorch reference, converts the weights, and compares the
+two at all three points below, printing one PASS/FAIL per check and exiting
+non-zero if any budget is missed — so it works as a gate. `--skip-reference`
+reuses an existing `ref/` directory; `--pytorch-dir`, `--build-dir`,
+`--work-dir` and `--wav` override the defaults. `TOL_FRONTEND_DB`,
+`TOL_MODEL_LOGITS` and `TOL_E2E_PROBS` override the budgets.
+
+### Provenance of the verified numbers
+
+| | |
+|---|---|
+| reference repo | `/home/seungbaek/projects/0824/pytorch_audio_detection/pytorch` |
+| reference entry point | `run_demo.py` (its table is also checked into `inference_results.md`) |
+| `ckpt/weights.pt` | `ff0acbba4ea3696c739f717a68ce8db2ed62d055a3edb33b812f1122f2cbebad` |
+| `ckpt/config.yaml` | `78c1e2b1558a0ab2c9249843ef30d69cfb4a719472acc09b981aaae59a67aa50` |
+| `dog_tizen.wav` | `063e3967252e2bfcea89b55e44ab38900784d0297a2e2b222442b43b9f21797b` |
+| torch / torchaudio | 2.11.0+cu130 / 2.11.0+cu130 |
+| numpy / scipy / soundfile | 2.2.6 / 1.15.3 / 0.13.1 |
+| host | x86-64, gcc 11.4, FP32, `NNTR_NUM_THREADS=4` |
+
+`verify_e2e.sh` re-checks the two checksums on every run and says so when they
+drift, because the numbers below only mean something for that exact checkpoint
+and clip.
+
 ## Verified results (x86, FP32, dog_tizen.wav, 16 windows)
 
 | stage | compared against | result |

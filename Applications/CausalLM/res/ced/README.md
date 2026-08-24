@@ -67,6 +67,35 @@ CED_REF_BIN=/path/to/ced-tiny/nntr_ref/ref_logits.bin \
 
 `CED_OUT_BIN=<path>` additionally dumps the raw 527-float output.
 
+## Reproduce / cross-verify in one command
+
+```bash
+# from the repo root, after: meson setup builddir -Denable-transformer=true \
+#                                 -Denable-app=true && ninja -C builddir
+Applications/CausalLM/res/ced/verify_e2e.sh
+```
+
+It extracts the PyTorch reference from the HuggingFace checkpoint, converts the
+weights, then checks FP32 and Q8_0 against it on two unrelated inputs, and
+reports Q4_0 alongside for contrast. Exits non-zero if a gated check misses its
+budget. `--skip-reference` reuses the existing `nntr_ref/`, `--skip-quant`
+stops after FP32, and `TOL_FP32` / `TOL_Q8` override the budgets.
+
+### Provenance of the verified numbers
+
+| | |
+|---|---|
+| checkpoint | `mispeech/ced-tiny` |
+| `model.safetensors` | `0e086f0cd62814c6def89001f3f25193f75955696f6975ef6800af31d00d6dd7` |
+| `config.json` | `3a060c57c28b8138cf66bbab2c0dcab79f07c871b600f52a06f2652bf3cad2bd` |
+| reference path | `AutoModelForAudioClassification.from_pretrained(..., trust_remote_code=True)` |
+| torch / torchaudio / transformers | 2.11.0+cu130 / 2.11.0+cu130 / 5.12.1 |
+| host | x86-64, gcc 11.4, FP32, `NNTR_NUM_THREADS=4` |
+
+Inputs are generated deterministically inside the scripts (seed 1234 noise, and
+a 200->3500 Hz chirp with click train), so no audio files need to travel with
+the fixtures.
+
 ## Verified results (x86, FP32)
 
 `ced-tiny`, all 527 classes compared against HuggingFace
