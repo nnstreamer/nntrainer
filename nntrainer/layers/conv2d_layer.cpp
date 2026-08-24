@@ -89,6 +89,10 @@ getStemTapWeight(const float *w, unsigned int out_ch, unsigned int in_ch,
 // tap-major/channel-last ([kh][kw][C]) so a fixed tap's C channels are
 // contiguous for a vectorized int8 load (the natural [C][kh][kw] filter
 // layout has channels C*fh*fw apart per tap, not usable directly).
+// Guarded on __ARM_NEON: the sole consumer is the NEON int8 depthwise path
+// below, so on non-NEON targets this would be an unused static function
+// (-Werror=unused-function).
+#ifdef __ARM_NEON
 struct DWQ8Weight {
   std::vector<int8_t> qs;   /**< [fh*fw][C], tap-major, channel-last */
   std::vector<float> scale; /**< [C], per-channel symmetric weight scale */
@@ -121,6 +125,7 @@ struct DWQ8Weight {
   }
   return cache.emplace((const void *)filt, std::move(w)).first->second;
 }
+#endif // __ARM_NEON
 
 #ifdef ENABLE_FP16
 static const _FP16 *get_silu_lut_fp16() {
