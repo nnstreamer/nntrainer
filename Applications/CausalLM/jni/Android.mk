@@ -53,6 +53,8 @@ CAUSALLM_COMMON_INCLUDES := \
     $(LOCAL_PATH)/../models/gemma3 \
     $(LOCAL_PATH)/../models/bert \
     $(LOCAL_PATH)/../models/timm_vit \
+    $(LOCAL_PATH)/../models/ced \
+    $(LOCAL_PATH)/../models/lfm2 \
     $(LOCAL_PATH)/../models/deberta_v2 \
     $(LOCAL_PATH)/../models/gemma4 \
     $(LOCAL_PATH)/../models/xlm_roberta \
@@ -141,6 +143,12 @@ LOCAL_SRC_FILES := \
     ../models/gemma4/gemma4_causallm.cpp \
     ../models/gemma3/function.cpp \
     ../models/timm_vit/timm_vit_transformer.cpp \
+    ../models/lfm2/lfm2_causallm.cpp \
+    ../models/ced/ced_transformer.cpp \
+    ../models/ced/audio_frontend.cpp \
+    ../layers/xi_pooling.cpp \
+    ../layers/causal_conv1d_layer.cpp \
+    ../layers/custom_multiply.cpp \
     ../models/deberta_v2/deberta_v2.cpp \
     ../models/bert/bert_transformer.cpp \
     ../models/xlm_roberta/xlm_roberta.cpp \
@@ -278,11 +286,14 @@ LOCAL_SRC_FILES := ../quantize.cpp \
     ../models/gemma3/embedding_gemma.cpp \
     ../models/gemma4/gemma4_causallm.cpp \
     ../models/gemma3/function.cpp \
+    ../models/lfm2/lfm2_causallm.cpp \
     ../models/deberta_v2/deberta_v2.cpp \
     ../models/bert/bert_transformer.cpp \
     ../models/xlm_roberta/xlm_roberta.cpp \
     ../layers/deberta_attention_layer.cpp \
     ../layers/shared_fully_connected_layer.cpp \
+    ../layers/causal_conv1d_layer.cpp \
+    ../layers/custom_multiply.cpp \
     ../api/streamer.cpp
 
 LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
@@ -304,7 +315,9 @@ LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES) \
     $(LOCAL_PATH)/../models/deberta_v2 \
     $(LOCAL_PATH)/../models/gemma4 \
     $(LOCAL_PATH)/../models/xlm_roberta \
-    $(LOCAL_PATH)/../models/timm_vit
+    $(LOCAL_PATH)/../models/timm_vit \
+    $(LOCAL_PATH)/../models/ced \
+    $(LOCAL_PATH)/../models/lfm2
 
 include $(BUILD_EXECUTABLE)
 
