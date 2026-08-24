@@ -22,6 +22,7 @@
 #include <iomanip>
 #include <iostream>
 #include <numeric>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -44,10 +45,10 @@ void CedTransformer::setupParameters(json &cfg, json &generation_cfg,
   const unsigned int patch_size = cfg.value("patch_size", 16u);
   const std::string pooling = cfg.value("pooling", std::string("mean"));
 
-  if (pooling != "mean" && pooling != "logit") {
+  if (pooling != "mean" && pooling != "logit" && pooling != "xi") {
     throw std::invalid_argument(
       "CED pooling mode '" + pooling +
-      "' is not supported yet (only 'mean' and 'logit')");
+      "' is not supported yet (only 'mean', 'logit' and 'xi')");
   }
 
   json vit_cfg = cfg;
@@ -85,8 +86,11 @@ void CedTransformer::setupParameters(json &cfg, json &generation_cfg,
   // outputdim)); forward_head applies sigmoid for every pooling mode except
   // "logit".
   vit_cfg["num_classes"] = cfg.value("outputdim", 527u);
-  vit_cfg["pooling"] = std::string("mean");
-  vit_cfg["head_sigmoid"] = (pooling != "logit");
+  vit_cfg["pooling"] = pooling;
+  // forward_head() sigmoids only the plain-average pooling modes; "logit" and
+  // the xi-vector posterior pooling return raw logits and leave the squashing
+  // to the caller, so the graph does too and run() applies it.
+  vit_cfg["head_sigmoid"] = (pooling == "mean");
   vit_cfg["head_norm_eps"] = 1e-5; // plain nn.LayerNorm default
 
   TimmViTTransformer::setupParameters(vit_cfg, generation_cfg, nntr_cfg);
@@ -100,6 +104,38 @@ void CedTransformer::setupParameters(json &cfg, json &generation_cfg,
       if (idx < LABELS.size() && it.value().is_string()) {
         LABELS[idx] = it.value().get<std::string>();
       }
+    }
+  }
+
+  // Optional wav front-end. Without it the runner only accepts a raw mel
+  // spectrogram, which is the boundary the upstream HuggingFace CED uses.
+  HAS_FRONT_END = cfg.contains("front_end") && cfg["front_end"].is_object();
+  if (HAS_FRONT_END) {
+    const json &fe = cfg["front_end"];
+    FRONT_END.sample_rate = fe.value("sample_rate", 16000u);
+    FRONT_END.n_fft = fe.value("n_fft", 512u);
+    FRONT_END.win_size = fe.value("win_size", FRONT_END.n_fft);
+    FRONT_END.hop_size = fe.value("hop_size", 160u);
+    FRONT_END.center = fe.value("center", true);
+    FRONT_END.f_min = fe.value("f_min", 0.0f);
+    FRONT_END.f_max = fe.value("f_max", FRONT_END.sample_rate / 2.0f);
+    FRONT_END.n_mels = INPUT_HEIGHT;
+    FRONT_END.top_db = fe.value("top_db", 80.0f);
+    FRONT_END.power = fe.value("power", 2.0f);
+    WINDOW_SAMPLES = fe.value("window_samples", FRONT_END.sample_rate);
+    STRIDE_SAMPLES = fe.value("stride_samples", WINDOW_SAMPLES);
+  }
+  TOP_K = cfg.value("top_k", 3u);
+
+  // Per-class detection thresholds, keyed by label so the config stays
+  // readable; classes without an entry can never fire.
+  THRESHOLDS.assign(NUM_CLASSES, 2.0f);
+  if (cfg.contains("thresholds") && cfg["thresholds"].is_object()) {
+    for (auto it = cfg["thresholds"].begin(); it != cfg["thresholds"].end();
+         ++it) {
+      const auto pos = std::find(LABELS.begin(), LABELS.end(), it.key());
+      if (pos != LABELS.end())
+        THRESHOLDS[pos - LABELS.begin()] = it.value().get<float>();
     }
   }
 
@@ -151,7 +187,14 @@ void CedTransformer::run(const WSTR prompt, bool do_sample,
                              "initialize() before run().");
   }
 
-  const std::string mel_path(prompt);
+  const std::string in_path(prompt);
+  if (HAS_FRONT_END && in_path.size() > 4 &&
+      in_path.compare(in_path.size() - 4, 4, ".wav") == 0) {
+    runAudioFile(in_path);
+    return;
+  }
+
+  const std::string mel_path(in_path);
   const size_t mel_count =
     static_cast<size_t>(INPUT_HEIGHT) * static_cast<size_t>(INPUT_WIDTH);
   std::vector<float> mel = loadMelSpectrogram(mel_path, mel_count);
@@ -241,6 +284,203 @@ void CedTransformer::run(const WSTR prompt, bool do_sample,
     }
     std::cout << "[CED_REF_BIN] tol=" << tol << " "
               << ((nan_count == 0 && max_abs_diff < tol) ? "PASS" : "FAIL")
+              << std::endl;
+  }
+}
+
+/**
+ * @brief Run a batch of mel windows through the graph.
+ *
+ * @param mels  windows laid out contiguously, [windows][n_mels * frames]
+ * @param count number of windows in the buffer
+ * @return raw head output, [count][NUM_CLASSES]
+ *
+ * All windows go through in a single call on purpose. incremental_inference
+ * re-runs allocateTensors() whenever `from` is 0, so calling it once per window
+ * re-plans the tensor pool on every window and aborts on the second one; one
+ * batched call plans once. Memory therefore scales with the clip length, which
+ * is fine for the clip-at-a-time usage this runner targets.
+ */
+std::vector<float> CedTransformer::inferWindows(std::vector<float> &mels,
+                                                unsigned int count) {
+  std::vector<float> all(static_cast<size_t>(count) * NUM_CLASSES);
+  const size_t mel_len =
+    static_cast<size_t>(INPUT_HEIGHT) * static_cast<size_t>(INPUT_WIDTH);
+
+  for (unsigned int i = 0; i < count; ++i) {
+    // Each window is an independent clip, so the attention caches must start
+    // from position 0 again; without this they keep advancing across windows
+    // and run past max_timestep.
+    resetAttentionCache();
+
+    std::vector<float *> input{mels.data() + static_cast<size_t>(i) * mel_len};
+    std::vector<float *> label;
+    std::vector<float *> output = model->incremental_inference(
+      BATCH_SIZE, input, label, NUM_PATCHES, 0, NUM_PATCHES, false);
+    std::copy(output[0], output[0] + NUM_CLASSES,
+              all.begin() + static_cast<size_t>(i) * NUM_CLASSES);
+    delete[] output[0];
+  }
+  return all;
+}
+
+/**
+ * @brief Rewind every attention layer's KV cache write position to 0.
+ */
+void CedTransformer::resetAttentionCache() {
+  std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>
+    fn = [](ml::train::Layer &l, nntrainer::RunLayerContext &, void *) {
+      if (l.getType() == "mha_core")
+        l.setProperty({"cache_index=0"});
+    };
+  model->forEachLayer(fn, nullptr);
+}
+
+/**
+ * @brief Slide over a wav file, classify every window and report detections.
+ *
+ * Mirrors the reference pipeline end to end: int16 samples scaled by 1/32768,
+ * fixed-length windows at a fixed stride, the log-mel front-end per window,
+ * then a sigmoid over the head output and a per-class threshold test. The
+ * printed table is byte-identical in layout to the reference so the two can be
+ * diffed directly.
+ */
+void CedTransformer::runAudioFile(const std::string &path) {
+  const audio::Waveform wav = audio::readWav16(path);
+  if (wav.sample_rate != FRONT_END.sample_rate) {
+    throw std::runtime_error(
+      "wav sample rate is " + std::to_string(wav.sample_rate) +
+      " but the model expects " + std::to_string(FRONT_END.sample_rate) +
+      "; resampling is not part of this port, please resample beforehand");
+  }
+  if (WINDOW_SAMPLES == 0 || STRIDE_SAMPLES == 0)
+    throw std::runtime_error("front_end window/stride are not configured");
+
+  const size_t slash = path.find_last_of('/');
+  const std::string name =
+    slash == std::string::npos ? path : path.substr(slash + 1);
+
+  // Optional per-window comparison against the reference dumps.
+  const char *ref_dir = std::getenv("AD_REF_DIR");
+  double tol = 1e-3;
+  if (const char *tol_env = std::getenv("AD_REF_TOL"))
+    tol = std::strtod(tol_env, nullptr);
+  double worst_diff = 0.0;
+  size_t worst_window = 0;
+  size_t nan_count = 0;
+  size_t compared = 0;
+
+  // Window count is known up front, so the header can be printed before the
+  // first inference and each row streamed as it is produced.
+  const unsigned int total =
+    wav.samples.size() >= WINDOW_SAMPLES
+      ? static_cast<unsigned int>(
+          (wav.samples.size() - WINDOW_SAMPLES) / STRIDE_SAMPLES + 1)
+      : 0u;
+  std::cout << "=== " << name << " (" << total << " windows) ===" << std::endl;
+
+  // Front-end first for every window, then one batched inference.
+  const size_t mel_len =
+    static_cast<size_t>(INPUT_HEIGHT) * static_cast<size_t>(INPUT_WIDTH);
+  std::vector<float> mels(static_cast<size_t>(total) * mel_len);
+  for (unsigned int i = 0; i < total; ++i) {
+    std::vector<float> mel;
+    const unsigned int frames = audio::logMelSpectrogram(
+      FRONT_END, wav.samples.data() + static_cast<size_t>(i) * STRIDE_SAMPLES,
+      WINDOW_SAMPLES, mel);
+    if (frames != INPUT_WIDTH) {
+      throw std::runtime_error("front-end produced " + std::to_string(frames) +
+                               " frames but the graph input width is " +
+                               std::to_string(INPUT_WIDTH));
+    }
+    std::copy(mel.begin(), mel.end(), mels.begin() + i * mel_len);
+  }
+
+  std::vector<float> scores_all = inferWindows(mels, total);
+
+  // The graph applies the sigmoid only for the plain-average pooling modes;
+  // otherwise it belongs to post-processing, as in the reference.
+  if (!HEAD_SIGMOID) {
+    for (float &v : scores_all)
+      v = 1.0f / (1.0f + std::exp(-v));
+  }
+
+  unsigned int index = 0;
+  for (index = 0; index < total; ++index) {
+    const float *scores =
+      scores_all.data() + static_cast<size_t>(index) * NUM_CLASSES;
+
+    for (unsigned int c = 0; c < NUM_CLASSES; ++c) {
+      uint32_t bits;
+      std::memcpy(&bits, &scores[c], sizeof(bits));
+      if ((bits & 0x7f800000u) == 0x7f800000u && (bits & 0x007fffffu) != 0u)
+        ++nan_count;
+    }
+
+    if (ref_dir) {
+      const std::string ref_path =
+        std::string(ref_dir) + "/window" + std::to_string(index) + "_probs.bin";
+      std::ifstream ref(ref_path, std::ios::binary | std::ios::ate);
+      if (ref) {
+        const size_t n = static_cast<size_t>(ref.tellg()) / sizeof(float);
+        if (n == NUM_CLASSES) {
+          ref.seekg(0);
+          std::vector<float> ref_data(n);
+          ref.read(reinterpret_cast<char *>(ref_data.data()),
+                   static_cast<std::streamsize>(n * sizeof(float)));
+          for (size_t i = 0; i < n; ++i) {
+            const double d =
+              std::fabs(static_cast<double>(scores[i]) - ref_data[i]);
+            if (d > worst_diff) {
+              worst_diff = d;
+              worst_window = index;
+            }
+          }
+          ++compared;
+        }
+      }
+    }
+
+    std::vector<size_t> order(NUM_CLASSES);
+    std::iota(order.begin(), order.end(), 0);
+    std::stable_sort(order.begin(), order.end(),
+                     [&](size_t a, size_t b) { return scores[a] > scores[b]; });
+
+    std::ostringstream row;
+    row << "  [" << std::setw(4) << index << "-" << std::setw(4) << (index + 1)
+        << "s] ";
+    const size_t k = std::min<size_t>(TOP_K, order.size());
+    for (size_t i = 0; i < k; ++i) {
+      if (i)
+        row << ", ";
+      const size_t c = order[i];
+      row << (c < LABELS.size() ? LABELS[c] : std::to_string(c)) << "="
+          << std::fixed << std::setprecision(3) << scores[c];
+      row.unsetf(std::ios::floatfield);
+    }
+
+    std::vector<std::string> detected;
+    for (const size_t c : order) {
+      if (c < THRESHOLDS.size() && scores[c] >= THRESHOLDS[c])
+        detected.push_back(c < LABELS.size() ? LABELS[c] : std::to_string(c));
+    }
+    if (!detected.empty()) {
+      row << "  <-- DETECTED: [";
+      for (size_t i = 0; i < detected.size(); ++i)
+        row << (i ? ", " : "") << "'" << detected[i] << "'";
+      row << "]";
+    }
+    std::cout << row.str() << std::endl;
+  }
+
+  if (ref_dir) {
+    std::cout << "[AD_REF] windows=" << compared << "/" << index
+              << " nan=" << nan_count << " worst_max_abs_diff=" << worst_diff
+              << " (window " << worst_window << ") tol=" << tol << " "
+              << ((compared == index && compared > 0 && nan_count == 0 &&
+                   worst_diff < tol)
+                    ? "PASS"
+                    : "FAIL")
               << std::endl;
   }
 }

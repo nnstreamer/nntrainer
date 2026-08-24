@@ -16,6 +16,8 @@
 
 #include "timm_vit/timm_vit_transformer.h"
 
+#include "audio_frontend.h"
+
 namespace causallm {
 
 /**
@@ -66,14 +68,37 @@ protected:
                        json &nntr_cfg) override;
 
   /**
-   * @brief Run inference on a mel-spectrogram file.
+   * @brief Run inference on a mel-spectrogram file, or on a wav file when the
+   * config carries a front_end block.
    */
   void run(const WSTR prompt, bool do_sample = false,
            const WSTR system_prompt = WSTR(), const WSTR tail_prompt = WSTR(),
            bool log_output = true) override;
 
 private:
+  /**
+   * @brief Run a batch of already-computed mel windows and return the raw
+   * head output for each.
+   */
+  std::vector<float> inferWindows(std::vector<float> &mels, unsigned int count);
+
+  /**
+   * @brief Rewind every attention layer's KV cache write position to 0.
+   */
+  void resetAttentionCache();
+
+  /**
+   * @brief Slide over a wav file, classify every window and report detections.
+   */
+  void runAudioFile(const std::string &path);
+
   std::vector<std::string> LABELS; /**< id2label from the config, if present */
+  std::vector<float> THRESHOLDS;   /**< per-class detection thresholds */
+  audio::FrontEndConfig FRONT_END; /**< wav -> log-mel geometry */
+  bool HAS_FRONT_END = false;      /**< config carried a front_end block */
+  unsigned int WINDOW_SAMPLES = 0; /**< samples per inference window */
+  unsigned int STRIDE_SAMPLES = 0; /**< hop between inference windows */
+  unsigned int TOP_K = 3;          /**< classes listed per window */
 };
 
 } // namespace causallm
