@@ -227,6 +227,45 @@ inline bool gemmPerChannelA8(unsigned int M, unsigned int N, unsigned int K,
   return true;
 }
 
+/**
+ * @brief W8A8 GEMM with a pre-quantized int8 activation.
+ *
+ * Same kernel as gemmPerChannelA8 but the activation arrives already quantized
+ * to int8 with a known per-tensor scale (the int8-resident path: the previous
+ * layer emitted a QINT8 tensor whose inline scale is a_scale). Skipping the
+ * amax+quantize here is what makes activations stay int8 between layers.
+ *
+ * @param Aq activation int8 data, row-major [M, K]
+ * @param a_scale per-tensor FP32 activation scale
+ * @retval false the weight is not channel-wise; nothing was written
+ */
+inline bool gemmPerChannelA8_q8in(unsigned int M, unsigned int N, unsigned int K,
+                                  const int8_t *Aq, float a_scale,
+                                  const void *B, float *C) {
+  const PerChannelWeight &w = prepareWeight(B, N, K);
+  if (!w.usable)
+    return false;
+
+  const unsigned int nb = K / QK;
+  const char *wbase = static_cast<const char *>(B);
+  auto &tm = ThreadManager::Global();
+  tm.parallel_for(0, N, [&](size_t n) {
+    const char *wrow = wbase + (size_t)n * nb * BLOCK_BYTES;
+    const float s = a_scale * w.scale[n];
+    for (unsigned int m = 0; m < M; ++m) {
+      const int8_t *a = Aq + (size_t)m * K;
+      int32_t acc = 0;
+      for (unsigned int b = 0; b < nb; ++b) {
+        const int8_t *wq =
+          reinterpret_cast<const int8_t *>(wrow + (size_t)b * BLOCK_BYTES + 2);
+        acc += dotI8(a + (size_t)b * QK, wq, QK);
+      }
+      C[(size_t)m * N + n] = (float)acc * s;
+    }
+  });
+  return true;
+}
+
 } // namespace int8_gemm
 } // namespace nntrainer
 
