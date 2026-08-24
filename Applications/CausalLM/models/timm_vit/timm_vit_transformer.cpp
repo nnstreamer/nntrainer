@@ -16,7 +16,11 @@
 #include "stb_image.inc"
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
 #include <factory.h>
+#include <fstream>
 #include <iomanip>
 #include <llm_util.hpp>
 #include <stdexcept>
@@ -248,6 +252,11 @@ Tensor TimmViTTransformer::createAttention(const int layer_id, Tensor input) {
      withKey("num_heads_kv", std::to_string(NUM_HEADS)),
      withKey("max_timestep", std::to_string(NUM_PATCHES + 1)),
      withKey("is_causal", "false"),
+     // ViT self-attention is position-encoding free -- positions enter through
+     // the learned pos_embed added in createPatchEmbed(). mha_core's use_rope
+     // property defaults to true, so it must be disabled explicitly; leaving
+     // it on rotates q/k with a theta of 0 and produces NaN.
+     withKey("use_rope", "false"),
      withKey("rope_theta", std::to_string(ROPE_THETA))}));
   Tensor context = attention({query, key, value});
 
@@ -371,6 +380,70 @@ void TimmViTTransformer::run(const WSTR prompt, bool do_sample,
     std::cout << "[" << i << "]=" << output[0][i] << " ";
   }
   std::cout << std::endl;
+
+  const size_t out_count = static_cast<size_t>(NUM_PATCHES) * DIM;
+
+  // Optional dump of the full [NUM_PATCHES, DIM] feature map, for offline
+  // comparison against a framework reference.
+  if (const char *dump_path = std::getenv("VIT_OUT_BIN")) {
+    std::ofstream dump(dump_path, std::ios::binary);
+    if (!dump) {
+      std::cerr << "[VIT_OUT_BIN] cannot open " << dump_path << std::endl;
+    } else {
+      dump.write(reinterpret_cast<const char *>(output[0]),
+                 static_cast<std::streamsize>(out_count * sizeof(float)));
+      std::cout << "[VIT_OUT_BIN] wrote " << out_count << " floats to "
+                << dump_path << std::endl;
+    }
+  }
+
+  // Optional verification against an FP32 reference of the same shape.
+  if (const char *ref_path = std::getenv("VIT_REF_BIN")) {
+    std::ifstream ref(ref_path, std::ios::binary | std::ios::ate);
+    if (!ref) {
+      std::cerr << "[VIT_REF_BIN] cannot open " << ref_path << std::endl;
+      return;
+    }
+    const size_t ref_count = static_cast<size_t>(ref.tellg()) / sizeof(float);
+    if (ref_count != out_count) {
+      std::cerr << "[VIT_REF_BIN] size mismatch: reference has " << ref_count
+                << " floats, output has " << out_count << std::endl;
+      return;
+    }
+    ref.seekg(0);
+    std::vector<float> ref_data(ref_count);
+    ref.read(reinterpret_cast<char *>(ref_data.data()),
+             static_cast<std::streamsize>(ref_count * sizeof(float)));
+
+    double max_abs_diff = 0.0;
+    double sum_sq_diff = 0.0;
+    size_t max_idx = 0;
+    size_t nan_count = 0;
+    for (size_t i = 0; i < out_count; ++i) {
+      const float got = output[0][i];
+      // Bit-pattern NaN test: -ffast-math folds std::isnan() to false.
+      uint32_t bits;
+      std::memcpy(&bits, &got, sizeof(bits));
+      if ((bits & 0x7f800000u) == 0x7f800000u && (bits & 0x007fffffu) != 0u) {
+        ++nan_count;
+        continue;
+      }
+      const double diff = std::fabs(static_cast<double>(got) - ref_data[i]);
+      sum_sq_diff += diff * diff;
+      if (diff > max_abs_diff) {
+        max_abs_diff = diff;
+        max_idx = i;
+      }
+    }
+    std::cout << "[VIT_REF_BIN] elements=" << out_count << " nan=" << nan_count
+              << " max_abs_diff=" << max_abs_diff << " (at token "
+              << max_idx / DIM << ", dim " << max_idx % DIM
+              << ") rms_diff=" << std::sqrt(sum_sq_diff / out_count)
+              << std::endl;
+    std::cout << "[VIT_REF_BIN] "
+              << ((nan_count == 0 && max_abs_diff < 1e-3) ? "PASS" : "FAIL")
+              << std::endl;
+  }
 }
 
 } // namespace causallm
