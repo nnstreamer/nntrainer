@@ -233,8 +233,14 @@ void CedTransformer::run(const WSTR prompt, bool do_sample,
               << " max_abs_diff=" << max_abs_diff << " (at class " << max_idx
               << ") rms_diff=" << std::sqrt(sum_sq_diff / out_count)
               << std::endl;
-    std::cout << "[CED_REF_BIN] "
-              << ((nan_count == 0 && max_abs_diff < 1e-4) ? "PASS" : "FAIL")
+    // Default tolerance is the FP32-parity level; a quantized run should pass
+    // its own budget via CED_REF_TOL (e.g. 0.05 for W8A8 sigmoid outputs).
+    double tol = 1e-4;
+    if (const char *tol_env = std::getenv("CED_REF_TOL")) {
+      tol = std::strtod(tol_env, nullptr);
+    }
+    std::cout << "[CED_REF_BIN] tol=" << tol << " "
+              << ((nan_count == 0 && max_abs_diff < tol) ? "PASS" : "FAIL")
               << std::endl;
   }
 }

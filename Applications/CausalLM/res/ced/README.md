@@ -78,3 +78,43 @@ CED_REF_BIN=/path/to/ced-tiny/nntr_ref/ref_logits.bin \
 | chirp 200→3500 Hz + clicks | 1.76e-05 | 1.01e-06 | 0 | `Sine wave` 0.5435 (ref 0.5435) |
 
 Top-5 labels and their order match the reference exactly for both inputs.
+
+## Quantization
+
+FC layers carry their own `weight_dtype`, taken from `fc_layer_dtype`, so the
+encoder can be quantized while the patch conv, the LayerNorms, the positional
+table and `init_bn` stay FP32 -- none of those has a block-quantized form and
+their shapes are not 32-divisible in general. The classifier head follows
+`lmhead_dtype` (or `head_dtype`) separately.
+
+```bash
+nntr_quantize /path/to/ced-tiny --fc_dtype Q8_0 --isa X86 \
+  -o /path/to/ced-tiny-w8a8 --output_bin nntr_ced_tiny_q8_0.bin
+
+CED_REF_TOL=0.05 CED_REF_BIN=/path/to/ced-tiny/nntr_ref/ref_logits.bin \
+  nntr_causallm /path/to/ced-tiny-w8a8 \
+  /path/to/ced-tiny/nntr_ref/input_values.bin
+```
+
+`Q8_0` is W8A8: the weights are int8 blocks with fp16 per-32 scales, and
+`gemm_q8_0` quantizes every FP32 activation row to `block_q8_0` before the
+int8 x int8 GEMM, so both operands are 8-bit at compute time. `Q4_0` is W4A8 --
+4-bit weights against the same int8-quantized activations.
+
+Measured against the same HuggingFace FP32 reference logits (x86, all 527
+classes, two inputs). "order" is pairwise ranking agreement among the
+reference's top-20 classes:
+
+| weights | size | input | max_abs_diff | rms_diff | top-1 | top-5 | order |
+|---|---|---|---|---|---|---|---|
+| FP32 | 21.13 MB | noise | 2.01e-05 | 9.9e-07 | same | 5/5 | 190/190 |
+| FP32 | 21.13 MB | chirp | 1.76e-05 | 1.0e-06 | same | 5/5 | 190/190 |
+| Q8_0 (W8A8) | 6.26 MB | noise | 1.13e-02 | 5.8e-04 | same | 5/5 | 188/190 |
+| Q8_0 (W8A8) | 6.26 MB | chirp | 6.13e-03 | 3.1e-04 | same | 5/5 | 190/190 |
+| Q4_0 (W4A8) | 3.73 MB | noise | 2.34e-01 | 1.1e-02 | **differs** | 4/5 | 180/190 |
+| Q4_0 (W4A8) | 3.73 MB | chirp | 1.02e-01 | 6.6e-03 | same | 4/5 | 176/190 |
+
+W8A8 keeps the top-5 set and the top-1 label on both inputs at 3.4x
+compression. W4A8 reorders the top-1 on the noise input (`Static` above
+`White noise`, two classes whose reference scores differ by only 0.079), so on
+a 5.5M-parameter model 4-bit weights are visibly lossy where 8-bit are not.

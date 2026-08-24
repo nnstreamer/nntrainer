@@ -128,6 +128,10 @@ protected:
   std::string POOLING = "mean"; /**< Token pooling before the head */
   bool HEAD_SIGMOID = false;    /**< Apply sigmoid to the head output */
   float HEAD_NORM_EPS = 1e-5f;  /**< Head LayerNorm epsilon */
+  // The final projection's dtype is controlled separately from the encoder's
+  // FC layers, the same split LLMs use for their LM head: a small output
+  // projection is often the one worth leaving unquantized.
+  std::string HEAD_DTYPE = "FP32"; /**< Head classifier weight dtype */
 };
 
 } // namespace causallm

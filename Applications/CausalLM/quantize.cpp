@@ -104,6 +104,7 @@
 #include "qwen3_moe_causallm.h"
 #include "qwen3_slim_moe_causallm.h"
 #if !defined(_WIN32) && !defined(__ANDROID__)
+#include "ced/ced_transformer.h"
 #include "timm_vit/timm_vit_transformer.h"
 #endif
 #include "FastViTKeyword/fastvit_keyword_model.h"
@@ -475,6 +476,11 @@ void registerAllModels() {
                           return std::make_unique<causallm::TimmViTTransformer>(
                             cfg, generation_cfg, nntr_cfg);
                         });
+  factory.registerModel("CedForAudioClassification",
+                        [](json cfg, json generation_cfg, json nntr_cfg) {
+                          return std::make_unique<causallm::CedTransformer>(
+                            cfg, generation_cfg, nntr_cfg);
+                        });
 #endif
   factory.registerModel(
     "YOLOv7ReIDtiny", [](json cfg, json generation_cfg, json nntr_cfg) {
@@ -657,6 +663,12 @@ buildLayerDtypeMap(int num_layers, DataType fc_dtype, DataType embd_dtype,
       dtype_map[prefix + "_wv"] = fc_dtype;
       dtype_map[prefix + "_attention_out"] = fc_dtype;
 
+      // ViT / CED encoder blocks: the fused qkv projection is split into three
+      // separate FC layers named after the checkpoint's `attn.qkv` weight.
+      dtype_map[prefix + "_qkv_q"] = fc_dtype;
+      dtype_map[prefix + "_qkv_k"] = fc_dtype;
+      dtype_map[prefix + "_qkv_v"] = fc_dtype;
+
       // Attention Gates
       dtype_map[prefix + "_attention_gate_down"] = fc_dtype;
       dtype_map[prefix + "_attention_gate_up"] = fc_dtype;
@@ -711,6 +723,9 @@ buildLayerDtypeMap(int num_layers, DataType fc_dtype, DataType embd_dtype,
   if (include_lmhead && lmhead_dtype != DataType::FP32 &&
       lmhead_dtype != DataType::NONE) {
     dtype_map["output_of_causallm"] = lmhead_dtype;
+    // A vision/audio classifier head plays the same role as an LM head, so it
+    // follows lmhead_dtype rather than fc_layer_dtype.
+    dtype_map["head/classifier"] = lmhead_dtype;
   }
 
   return dtype_map;
@@ -1173,12 +1188,13 @@ int main(int argc, char *argv[]) {
     std::string src_weight_path = model_path + "/" + original_bin;
     std::string dst_weight_path = output_dir + "/" + output_bin_name;
 
-    // LLM backbones report num_hidden_layers; vision models (e.g. YOLOv11)
-    // don't, so fall back to 0 — buildLayerDtypeMap's FC loop is a no-op then
-    // and the model's getQuantizableLayerNames() supplies the conv names.
+    // LLM backbones report num_hidden_layers and timm-style ViT configs (CED
+    // included) report depth; pure conv vision models (e.g. YOLOv11) report
+    // neither, so fall back to 0 — buildLayerDtypeMap's FC loop is a no-op
+    // then and the model's getQuantizableLayerNames() supplies the conv names.
     int num_layers = cfg.contains("num_hidden_layers")
                        ? cfg["num_hidden_layers"].get<int>()
-                       : 0;
+                       : cfg.value("depth", 0);
     std::string architecture =
       cfg["architectures"].get<std::vector<std::string>>()[0];
     const json &network_cfg =

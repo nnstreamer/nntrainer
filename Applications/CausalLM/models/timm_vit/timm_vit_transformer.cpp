@@ -190,6 +190,23 @@ void TimmViTTransformer::setupParameters(json &cfg, json &generation_cfg,
   POOLING = cfg.value("pooling", std::string("mean"));
   HEAD_SIGMOID = cfg.value("head_sigmoid", false);
   HEAD_NORM_EPS = cfg.value("head_norm_eps", 1e-5f);
+  HEAD_DTYPE = nntr_cfg.contains("head_dtype")
+                 ? nntr_cfg["head_dtype"].get<std::string>()
+                 : nntr_cfg.value("lmhead_dtype", std::string("FP32"));
+
+  // MODEL_TENSOR_TYPE is the fallback weight dtype for layers that do not name
+  // one themselves. In a ViT that is the patch conv, the LayerNorms, the
+  // positional embedding table and the optional input BatchNorm -- none of
+  // which have a block-quantized representation. Their shapes are also not
+  // 32-divisible in general (a 527-unit classifier, a 4x63 grid), so inheriting
+  // a quantized global type makes the graph fail to build. The FC layers and
+  // the head carry their own explicit dtype, so pin the weight half to FP32 and
+  // keep only the activation half from the config.
+  const size_t dash = MODEL_TENSOR_TYPE.find('-');
+  const std::string act_type = dash == std::string::npos
+                                 ? std::string("FP32")
+                                 : MODEL_TENSOR_TYPE.substr(dash + 1);
+  MODEL_TENSOR_TYPE = "FP32-" + act_type;
 }
 
 /**
@@ -264,15 +281,18 @@ Tensor TimmViTTransformer::createAttention(const int layer_id, Tensor input) {
   LayerHandle q_proj(
     createLayer("fully_connected",
                 {withKey("name", q), withKey("unit", std::to_string(DIM)),
-                 withKey("disable_bias", "false")}));
+                 withKey("disable_bias", "false"),
+                 withKey("weight_dtype", FC_LAYER_DTYPE)}));
   LayerHandle k_proj(
     createLayer("fully_connected",
                 {withKey("name", k), withKey("unit", std::to_string(DIM)),
-                 withKey("disable_bias", "false")}));
+                 withKey("disable_bias", "false"),
+                 withKey("weight_dtype", FC_LAYER_DTYPE)}));
   LayerHandle v_proj(
     createLayer("fully_connected",
                 {withKey("name", v), withKey("unit", std::to_string(DIM)),
-                 withKey("disable_bias", "false")}));
+                 withKey("disable_bias", "false"),
+                 withKey("weight_dtype", FC_LAYER_DTYPE)}));
 
   Tensor query = q_proj(normed);
   Tensor key = k_proj(normed);
@@ -295,7 +315,8 @@ Tensor TimmViTTransformer::createAttention(const int layer_id, Tensor input) {
   LayerHandle out_proj(
     createLayer("fully_connected",
                 {withKey("name", o), withKey("unit", std::to_string(DIM)),
-                 withKey("disable_bias", "false")}));
+                 withKey("disable_bias", "false"),
+                 withKey("weight_dtype", FC_LAYER_DTYPE)}));
   return out_proj(context);
 }
 
@@ -315,7 +336,8 @@ Tensor TimmViTTransformer::createMlp(const int layer_id, Tensor input) {
   LayerHandle fc_up(createLayer(
     "fully_connected", {withKey("name", prefix + "ffn_up"),
                         withKey("unit", std::to_string(INTERMEDIATE_SIZE)),
-                        withKey("disable_bias", "false")}));
+                        withKey("disable_bias", "false"),
+                        withKey("weight_dtype", FC_LAYER_DTYPE)}));
   h = fc_up(h);
 
   LayerHandle gelu(
@@ -326,7 +348,8 @@ Tensor TimmViTTransformer::createMlp(const int layer_id, Tensor input) {
   LayerHandle fc_down(
     createLayer("fully_connected", {withKey("name", prefix + "ffn_down"),
                                     withKey("unit", std::to_string(DIM)),
-                                    withKey("disable_bias", "false")}));
+                                    withKey("disable_bias", "false"),
+                                    withKey("weight_dtype", FC_LAYER_DTYPE)}));
   return fc_down(h);
 }
 
@@ -380,9 +403,10 @@ Tensor TimmViTTransformer::createHead(Tensor input) {
   h = norm(h);
 
   LayerHandle classifier(createLayer(
-    "fully_connected", {withKey("name", "head/classifier"),
-                        withKey("unit", std::to_string(NUM_CLASSES)),
-                        withKey("disable_bias", "false")}));
+    "fully_connected",
+    {withKey("name", "head/classifier"),
+     withKey("unit", std::to_string(NUM_CLASSES)),
+     withKey("disable_bias", "false"), withKey("weight_dtype", HEAD_DTYPE)}));
   h = classifier(h);
 
   if (HEAD_SIGMOID) {
