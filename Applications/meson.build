@@ -52,4 +52,4 @@ endif
 
 
 subdir('Optimizers/jni')
-subdir('CausalLM/models/YOLOv7/jni')
+subdir('causallm/models/YOLOv7/jni')
