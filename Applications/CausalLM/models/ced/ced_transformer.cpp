@@ -13,6 +13,7 @@
 
 #include "ced_transformer.h"
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -379,10 +380,17 @@ void CedTransformer::runAudioFile(const std::string &path) {
       : 0u;
   std::cout << "=== " << name << " (" << total << " windows) ===" << std::endl;
 
+  // Stage timings, so the front-end and the graph can be compared against
+  // another runtime separately from model load.
+  using clock = std::chrono::steady_clock;
+  double frontend_ms = 0.0;
+  double infer_ms = 0.0;
+
   // Front-end first for every window, then one batched inference.
   const size_t mel_len =
     static_cast<size_t>(INPUT_HEIGHT) * static_cast<size_t>(INPUT_WIDTH);
   std::vector<float> mels(static_cast<size_t>(total) * mel_len);
+  const auto fe_start = clock::now();
   for (unsigned int i = 0; i < total; ++i) {
     std::vector<float> mel;
     const unsigned int frames = audio::logMelSpectrogram(
@@ -395,8 +403,13 @@ void CedTransformer::runAudioFile(const std::string &path) {
     }
     std::copy(mel.begin(), mel.end(), mels.begin() + i * mel_len);
   }
+  frontend_ms =
+    std::chrono::duration<double, std::milli>(clock::now() - fe_start).count();
 
+  const auto inf_start = clock::now();
   std::vector<float> scores_all = inferWindows(mels, total);
+  infer_ms =
+    std::chrono::duration<double, std::milli>(clock::now() - inf_start).count();
 
   // The graph applies the sigmoid only for the plain-average pooling modes;
   // otherwise it belongs to post-processing, as in the reference.
@@ -472,6 +485,18 @@ void CedTransformer::runAudioFile(const std::string &path) {
     }
     std::cout << row.str() << std::endl;
   }
+
+  const double audio_ms =
+    1000.0 * static_cast<double>(wav.samples.size()) / FRONT_END.sample_rate;
+  std::cout << std::fixed << std::setprecision(2)
+            << "[AD_TIME] windows=" << total << " frontend=" << frontend_ms
+            << "ms infer=" << infer_ms
+            << "ms total=" << (frontend_ms + infer_ms)
+            << "ms per_window=" << (frontend_ms + infer_ms) / total
+            << "ms audio=" << audio_ms / 1000.0
+            << "s realtime=" << std::setprecision(4)
+            << (frontend_ms + infer_ms) / audio_ms << "x" << std::endl;
+  std::cout.unsetf(std::ios::floatfield);
 
   if (ref_dir) {
     std::cout << "[AD_REF] windows=" << compared << "/" << index

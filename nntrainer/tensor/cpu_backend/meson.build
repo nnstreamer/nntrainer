@@ -3,6 +3,7 @@ cpu_backend_headers = [
   'compute_ops.h',
   'conv_indirect.h',
   'act_simd.h',
+  'int8_gemm.h',
 ]
 
 nntrainer_sources += meson.current_source_dir() / 'compute_ops.cpp'

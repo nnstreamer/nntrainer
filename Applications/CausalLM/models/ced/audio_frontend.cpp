@@ -91,37 +91,83 @@ std::vector<float> melFilterbank(unsigned int n_freqs, unsigned int n_mels,
 }
 
 /**
+ * @brief Twiddle factors and the bit-reversal permutation for a fixed FFT size.
+ *
+ * Both depend only on n, so they are built once instead of calling cos/sin
+ * inside every butterfly -- with 101 frames per window that transcendental cost
+ * dominated the front end.
+ */
+struct FftPlan {
+  size_t n = 0;
+  std::vector<float> wr; /**< cos, indexed by stage offset + k */
+  std::vector<float> wi; /**< sin, same indexing */
+  std::vector<uint32_t> rev;
+};
+
+const FftPlan &fftPlan(size_t n) {
+  static FftPlan plan;
+  if (plan.n == n)
+    return plan;
+
+  plan.n = n;
+  plan.rev.resize(n);
+  const unsigned int bits = static_cast<unsigned int>(std::log2(n));
+  for (size_t i = 0; i < n; ++i) {
+    uint32_t r = 0;
+    for (unsigned int b = 0; b < bits; ++b)
+      if (i & (size_t(1) << b))
+        r |= 1u << (bits - 1 - b);
+    plan.rev[i] = r;
+  }
+
+  // Stage `len` needs len/2 twiddles; total is n-1 across all stages.
+  plan.wr.resize(n);
+  plan.wi.resize(n);
+  size_t off = 0;
+  for (size_t len = 2; len <= n; len <<= 1) {
+    const double ang = -2.0 * M_PI / static_cast<double>(len);
+    const size_t half = len >> 1;
+    for (size_t k = 0; k < half; ++k) {
+      plan.wr[off + k] = static_cast<float>(std::cos(ang * (double)k));
+      plan.wi[off + k] = static_cast<float>(std::sin(ang * (double)k));
+    }
+    off += half;
+  }
+  return plan;
+}
+
+/**
  * @brief In-place iterative radix-2 FFT. `n` must be a power of two.
  */
 void fftInPlace(std::vector<float> &re, std::vector<float> &im) {
   const size_t n = re.size();
-  for (size_t i = 1, j = 0; i < n; ++i) {
-    size_t bit = n >> 1;
-    for (; j & bit; bit >>= 1)
-      j ^= bit;
-    j ^= bit;
+  const FftPlan &plan = fftPlan(n);
+
+  for (size_t i = 0; i < n; ++i) {
+    const size_t j = plan.rev[i];
     if (i < j) {
       std::swap(re[i], re[j]);
       std::swap(im[i], im[j]);
     }
   }
+  size_t off = 0;
   for (size_t len = 2; len <= n; len <<= 1) {
-    const double ang = -2.0 * M_PI / static_cast<double>(len);
     const size_t half = len >> 1;
     for (size_t i = 0; i < n; i += len) {
       for (size_t k = 0; k < half; ++k) {
-        const double wr = std::cos(ang * static_cast<double>(k));
-        const double wi = std::sin(ang * static_cast<double>(k));
+        const float wr = plan.wr[off + k];
+        const float wi = plan.wi[off + k];
         const float ar = re[i + k], ai = im[i + k];
         const float br = re[i + k + half], bi = im[i + k + half];
-        const float vr = static_cast<float>(br * wr - bi * wi);
-        const float vi = static_cast<float>(br * wi + bi * wr);
+        const float vr = br * wr - bi * wi;
+        const float vi = br * wi + bi * wr;
         re[i + k] = ar + vr;
         im[i + k] = ai + vi;
         re[i + k + half] = ar - vr;
         im[i + k + half] = ai - vi;
       }
     }
+    off += half;
   }
 }
 

@@ -18,9 +18,10 @@
 
 #include <chrono>
 #include <cpu_backend.h>
-#include <ggml_interface.h>
 #include <float_tensor.h>
-#include <int4_utils.h>
+#include <ggml_interface.h>
+#include <int4_tensor.h>
+#include <int8_gemm.h>
 #include <q4_0_utils.h>
 #include <qs4cx_tensor.h> // refuseIfQs4cxPayloadDropped
 #include <thread_manager.h>
@@ -1023,13 +1024,18 @@ Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
     break;
   }
   case Tdatatype::Q8_0: {
-    // W8A8: gemm_q8_0_fp32 quantizes each FP32 activation row into block_q8_0
-    // and runs the int8 x int8 q8_0 GEMM against the int8 weight blocks, so
-    // both operands are 8-bit at compute time.
+    // W8A8. Both operands are 8-bit at compute time; the two paths differ only
+    // in where the scales live.
     M = getDim().height();
     K = getDim().width();
     N = input.getDim().width();
-    o->gemm_q8_0_fp32(M, N, K, data, K, (void *)mdata, N, rdata, N);
+    // Channel-wise weight scale plus a tensor-wise activation scale: the inner
+    // loop is a pure int8 dot into int32 and the scales apply once per output
+    // element. Returns false for a genuine per-block file, which then takes the
+    // block-scaled kernel below (it quantizes activations per row into
+    // block_q8_0 and carries a scale multiply per 32 values).
+    if (!int8_gemm::gemmPerChannelA8(M, N, K, data, (void *)mdata, rdata))
+      o->gemm_q8_0_fp32(M, N, K, data, K, (void *)mdata, N, rdata, N);
     break;
   }
 
