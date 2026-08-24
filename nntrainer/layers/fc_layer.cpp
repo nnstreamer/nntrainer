@@ -393,7 +393,26 @@ bool FullyConnectedLayer::dotW8A8(Tensor const &input_, Tensor const &weight,
     done = int8_gemm::gemmPerChannelA8_q8in(M, N, K, aq, a_scale,
                                             weight.getData<uint8_t>(), cptr);
   } else {
-    done = int8_gemm::gemmPerChannelA8(M, N, K, input_.getData<float>(),
+    // Activation may be FP32 or, under Q8_0-FP16, FP16 (from the preceding
+    // LayerNorm). gemmPerChannelA8 takes a float*, so dequantize FP16 into a
+    // thread-local FP32 buffer first.
+    const float *aptr;
+    static thread_local std::vector<float> fp32_in;
+    if (input_.getDataType() == Tdatatype::FP16) {
+#ifdef ENABLE_FP16
+      const _FP16 *h = input_.getData<_FP16>();
+      const size_t nin = (size_t)M * K;
+      fp32_in.resize(nin);
+      for (size_t i = 0; i < nin; ++i)
+        fp32_in[i] = (float)h[i];
+      aptr = fp32_in.data();
+#else
+      throw std::runtime_error("FP16 FC input but ENABLE_FP16 is off");
+#endif
+    } else {
+      aptr = input_.getData<float>();
+    }
+    done = int8_gemm::gemmPerChannelA8(M, N, K, aptr,
                                        weight.getData<uint8_t>(), cptr);
   }
   if (!done)
@@ -422,6 +441,17 @@ bool FullyConnectedLayer::dotW8A8(Tensor const &input_, Tensor const &weight,
       qo[i] = (int8_t)std::max(
         -128.f, std::min(127.f, std::round(cptr[i] * inv)));
     hidden_.getScale<float>()[0] = sc;
+  } else if (hidden_.getDataType() == Tdatatype::FP16) {
+    // FP16 output (ffn_down leaving the region under Q8_0-FP16): cast the
+    // staged FP32 result down to FP16.
+#ifdef ENABLE_FP16
+    _FP16 *out = hidden_.getData<_FP16>();
+    const size_t nout = (size_t)M * N;
+    for (size_t i = 0; i < nout; ++i)
+      out[i] = static_cast<_FP16>(cptr[i]);
+#else
+    throw std::runtime_error("FP16 FC output requested but ENABLE_FP16 is off");
+#endif
   } else {
     // FP32 output (ffn_down leaving the region): copy the staged FP32
     // result straight into the output tensor.
