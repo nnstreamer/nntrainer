@@ -193,8 +193,42 @@ int main(int argc, char **argv) {
     ModelHandle model = createModel(ml::train::ModelType::NEURAL_NET);
     model->setProperty({nntrainer::withKey("batch_size", "1")});
 
-    bool preset_q = (std::getenv("YOLO_TENSOR_TYPE") != nullptr && 
-                     std::string(std::getenv("YOLO_TENSOR_TYPE")) == "w8a32");
+    // --- Preset selection ---
+    // w8a8: channel-wise QINT8 weights + per-tensor QINT8 activation (NHWC).
+    //       Uses NNTR_W8A8 + NNTR_W8A8_PERCH env flags to enable the per-channel
+    //       int8 conv kernel (int32-accumulate SMMLA). Weights are per-channel
+    //       Q8_0 (the "pch" format: uniform scale per output-channel row).
+    // w8a32: Q8_0 weights + FP32 activation (NHWC). Same weight file as w8a8.
+    // default: FP32 weights + FP32 activation (NCHW).
+    std::string tts = std::getenv("YOLO_TENSOR_TYPE") ? std::getenv("YOLO_TENSOR_TYPE") : "";
+    bool preset_q = false;
+    bool preset_nhwc = false;
+
+    if (tts == "w8a8" || tts == "W8A8") {
+      setenv("NNTR_W8A8", "1", 1);
+      setenv("NNTR_W8A8_PERCH", "1", 1);
+      model->setProperty(
+        {nntrainer::withKey("model_tensor_type", "FP32-FP32")});
+      preset_nhwc = true;
+      preset_q = true;
+      yolov7_tiny::quantWeightDtype() = "Q8_0";
+      std::cout << "[L1 Detector] Preset=w8a8 (per-channel QINT8 weights + int8 act + NHWC)"
+                << std::endl;
+    } else if (tts == "w8a32" || tts == "W8A32") {
+      model->setProperty(
+        {nntrainer::withKey("model_tensor_type", "FP32-FP32")});
+      preset_nhwc = true;
+      preset_q = true;
+      yolov7_tiny::quantWeightDtype() = "Q8_0";
+      std::cout << "[L1 Detector] Preset=w8a32 (Q8_0 weights + FP32 act + NHWC)"
+                << std::endl;
+    }
+
+    if (preset_nhwc || std::getenv("YOLO_NHWC")) {
+      model->setProperty({nntrainer::withKey("tensor_format", "NHWC")});
+      preset_nhwc = true;
+      std::cout << "[L1 Detector] tensor_format = NHWC" << std::endl;
+    }
 
     auto x = Tensor(ml::train::TensorDim(1, 3, IMGSZ, IMGSZ,
                                          ml::train::TensorDim::Format::NCHW,
@@ -203,18 +237,27 @@ int main(int argc, char **argv) {
 
     auto outputs = yolov7_tiny::buildBackboneNeckHead(x, NC, preset_q);
 
+    // --- Weight file selection ---
     std::string weights_path = RES_DIR + "/yolov7_tiny.safetensors";
     if (preset_q) {
-      // Check if pre-quantized weights exist
+      // Prefer per-channel QINT8 weights (qint8), then regular Q8_0 (q8)
+      std::string qint8_path = RES_DIR + "/yolov7_tiny_qint8.safetensors";
       std::string q8_path = RES_DIR + "/yolov7_tiny_q8.safetensors";
-      std::ifstream f_q8(q8_path);
-      if (f_q8.good()) {
-        f_q8.close();
-        weights_path = q8_path;
-        std::cout << "[L1 Detector] Using offline pre-quantized weights: " << weights_path << std::endl;
+      std::ifstream f_qint8(qint8_path);
+      if (f_qint8.good()) {
+        f_qint8.close();
+        weights_path = qint8_path;
+        std::cout << "[L1 Detector] Using per-channel QINT8 weights: " << weights_path << std::endl;
       } else {
-        std::cout << "[L1 Detector] Pre-quantized weights not found, fallback to on-the-fly quantization." << std::endl;
-        setenv("NNTR_W8A8_FP32W", "1", 1);
+        std::ifstream f_q8(q8_path);
+        if (f_q8.good()) {
+          f_q8.close();
+          weights_path = q8_path;
+          std::cout << "[L1 Detector] Using Q8_0 weights: " << weights_path << std::endl;
+        } else {
+          std::cout << "[L1 Detector] No pre-quantized weights found, using FP32 with on-the-fly quant." << std::endl;
+          setenv("NNTR_W8A8_FP32W", "1", 1);
+        }
       }
     }
 
@@ -229,6 +272,18 @@ int main(int argc, char **argv) {
 
     std::cout << "Running E2E inference..." << std::endl;
     std::vector<float> input = loadBin(input_path);
+
+    // Convert NCHW input → NHWC when the model uses NHWC tensor format
+    if (preset_nhwc) {
+      const int C = 3, H = IMGSZ, W = IMGSZ;
+      std::vector<float> nhwc(input.size());
+      for (int c = 0; c < C; ++c)
+        for (int h = 0; h < H; ++h)
+          for (int w = 0; w < W; ++w)
+            nhwc[(h * W + w) * C + c] = input[(c * H + h) * W + w];
+      input.swap(nhwc);
+    }
+
     std::vector<float *> in_ptr = {input.data()};
 
     // Warmup 5 runs to match PyTorch benchmark steady state
@@ -243,6 +298,26 @@ int main(int argc, char **argv) {
 
     std::cout << "[L1 Detector] Inference done in " << ms << " ms." << std::endl;
     printPeakRSS();
+
+    // Grid dimensions for the 3 output scales
+    const int grids[3] = {40, 20, 10};
+    const int strides[3] = {8, 16, 32};
+
+    // When NHWC, the output tensors are in NHWC layout: [N, H, W, C].
+    // The decode function expects NCHW [N, C, H, W] with C-strided access
+    // (p[c * N]). Convert NHWC → NCHW for each output scale.
+    if (preset_nhwc) {
+      for (int i = 0; i < 3; ++i) {
+        int H = grids[i], W = grids[i];
+        int C = NA * NO;
+        int N = H * W;
+        std::vector<float> nchw(C * N);
+        for (int c = 0; c < C; ++c)
+          for (int hw = 0; hw < N; ++hw)
+            nchw[c * N + hw] = outs[i][hw * C + c];
+        std::copy(nchw.begin(), nchw.end(), outs[i]);
+      }
+    }
 
     // Print P3 sample output to verify exact correctness with PyTorch
     const float *p3 = outs[0];
@@ -260,8 +335,7 @@ int main(int argc, char **argv) {
 
     // Decode scales
     std::vector<Detection> candidates;
-    const int grids[3] = {40, 20, 10};
-    const int strides[3] = {8, 16, 32};
+
     float conf_thres = std::getenv("YOLO_CONF") ? std::stof(std::getenv("YOLO_CONF")) : 0.25f;
     float iou_thres = std::getenv("YOLO_IOU") ? std::stof(std::getenv("YOLO_IOU")) : 0.45f;
 
