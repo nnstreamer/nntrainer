@@ -122,6 +122,17 @@ void CedTransformer::setupParameters(json &cfg, json &generation_cfg,
     FRONT_END.f_max = fe.value("f_max", FRONT_END.sample_rate / 2.0f);
     FRONT_END.n_mels = INPUT_HEIGHT;
     FRONT_END.top_db = fe.value("top_db", 80.0f);
+    FRONT_END.amin = fe.value("amin", 1e-10f);
+    FRONT_END.log_eps = fe.value("log_eps", 1e-5f);
+    // "db" is torchaudio's AmplitudeToDB; "natural" is ln(max(x, log_eps)),
+    // which is what a graph with the mel baked in may have been trained on.
+    const std::string log_mode = fe.value("log_mode", std::string("db"));
+    if (log_mode == "natural")
+      FRONT_END.log_mode = audio::FrontEndConfig::LogMode::NATURAL;
+    else if (log_mode == "db")
+      FRONT_END.log_mode = audio::FrontEndConfig::LogMode::DB;
+    else
+      throw std::invalid_argument("Unknown front_end log_mode: " + log_mode);
     FRONT_END.power = fe.value("power", 2.0f);
     WINDOW_SAMPLES = fe.value("window_samples", FRONT_END.sample_rate);
     STRIDE_SAMPLES = fe.value("stride_samples", WINDOW_SAMPLES);

@@ -291,16 +291,22 @@ unsigned int logMelSpectrogram(const FrontEndConfig &cfg, const float *samples,
     }
   }
 
-  // AmplitudeToDB(stype="power"): 10 log10(max(x, 1e-10)), then a floor
-  // top_db below the maximum of this window.
-  float max_db = -std::numeric_limits<float>::infinity();
-  for (float &v : out) {
-    v = 10.0f * std::log10(std::max(v, 1e-10f));
-    max_db = std::max(max_db, v);
+  if (cfg.log_mode == FrontEndConfig::LogMode::NATURAL) {
+    // ln(max(x, eps)). No relative floor: eps alone bounds the log.
+    for (float &v : out)
+      v = std::log(std::max(v, cfg.log_eps));
+  } else {
+    // AmplitudeToDB(stype="power"): 10 log10(max(x, amin)), then a floor
+    // top_db below the maximum of this window.
+    float max_db = -std::numeric_limits<float>::infinity();
+    for (float &v : out) {
+      v = 10.0f * std::log10(std::max(v, cfg.amin));
+      max_db = std::max(max_db, v);
+    }
+    const float floor_db = max_db - cfg.top_db;
+    for (float &v : out)
+      v = std::max(v, floor_db);
   }
-  const float floor_db = max_db - cfg.top_db;
-  for (float &v : out)
-    v = std::max(v, floor_db);
 
   return frames;
 }

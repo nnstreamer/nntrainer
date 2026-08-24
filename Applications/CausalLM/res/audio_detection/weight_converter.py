@@ -73,6 +73,10 @@ def main():
                          "(1 s at hop 160 with center padding = 101)")
     ap.add_argument("--window-samples", type=int, default=16000)
     ap.add_argument("--stride-samples", type=int, default=16000)
+    ap.add_argument("--log-mode", choices=["db", "natural"], default="db",
+                    help="'db' = 10log10 + top_db (torchaudio AmplitudeToDB); "
+                         "'natural' = ln(max(mel, log_eps))")
+    ap.add_argument("--log-eps", type=float, default=1e-5)
     ap.add_argument("--normalize-divisor", type=float, default=32768.0,
                     help="int16 -> float divisor; 32767 matches pipelines that "
                          "use Java's Short.MAX_VALUE")
@@ -187,6 +191,7 @@ def main():
             "sample_rate": 16000, "n_fft": 512, "win_size": 512,
             "hop_size": 160, "center": True, "f_min": 0, "f_max": 8000,
             "top_db": 80.0, "power": 2.0,
+            "log_mode": args.log_mode, "log_eps": args.log_eps,
             "window_samples": args.window_samples,
             "stride_samples": args.stride_samples,
             "normalize_divisor": args.normalize_divisor,

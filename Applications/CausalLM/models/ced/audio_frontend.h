@@ -33,8 +33,22 @@ struct FrontEndConfig {
   float f_min = 0.0f;
   float f_max = 8000.0f;
   unsigned int n_mels = 64;
-  float top_db = 80.0f;
   float power = 2.0f;
+
+  /**
+   * How the mel energies are compressed. The two forms are not
+   * interchangeable: they differ by the 10/ln(10) factor and in how the floor
+   * is applied, so a model has to be fed the one it was trained with.
+   *
+   * DB:      10 log10(max(x, amin)), then a floor top_db below the window's
+   *          maximum. This is torchaudio's AmplitudeToDB.
+   * NATURAL: ln(max(x, log_eps)), no relative floor.
+   */
+  enum class LogMode { DB, NATURAL };
+  LogMode log_mode = LogMode::DB;
+  float top_db = 80.0f;  /**< DB mode: floor below the window maximum */
+  float amin = 1e-10f;   /**< DB mode: absolute floor before the log */
+  float log_eps = 1e-5f; /**< NATURAL mode: absolute floor before the log */
 };
 
 /**
