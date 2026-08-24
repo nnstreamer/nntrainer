@@ -54,10 +54,13 @@ struct Waveform {
  * divides, rather than letting the decoder produce floats).
  *
  * @param path file to read
+ * @param divisor value the int16 samples are divided by. 32768 maps int16 to
+ * [-1, 1); some pipelines use 32767 (Java's Short.MAX_VALUE) instead, and the
+ * 3e-5 relative difference is large enough to move this model's scores.
  * @return decoded waveform
  * @throw std::runtime_error on an unreadable or unsupported file
  */
-Waveform readWav16(const std::string &path);
+Waveform readWav16(const std::string &path, float divisor = 32768.0f);
 
 /**
  * @brief Number of frames the front-end produces for a given sample count.

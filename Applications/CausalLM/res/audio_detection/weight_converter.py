@@ -73,6 +73,9 @@ def main():
                          "(1 s at hop 160 with center padding = 101)")
     ap.add_argument("--window-samples", type=int, default=16000)
     ap.add_argument("--stride-samples", type=int, default=16000)
+    ap.add_argument("--normalize-divisor", type=float, default=32768.0,
+                    help="int16 -> float divisor; 32767 matches pipelines that "
+                         "use Java's Short.MAX_VALUE")
     ap.add_argument("--bin-name", default="nntr_audio_detection_fp32.bin")
     args = ap.parse_args()
 
@@ -186,6 +189,7 @@ def main():
             "top_db": 80.0, "power": 2.0,
             "window_samples": args.window_samples,
             "stride_samples": args.stride_samples,
+            "normalize_divisor": args.normalize_divisor,
         },
         "thresholds": THRESHOLDS,
     }

@@ -173,7 +173,7 @@ void fftInPlace(std::vector<float> &re, std::vector<float> &im) {
 
 } // namespace
 
-Waveform readWav16(const std::string &path) {
+Waveform readWav16(const std::string &path, float divisor) {
   std::ifstream f(path, std::ios::binary);
   if (!f)
     throw std::runtime_error("Failed to open wav: " + path);
@@ -222,9 +222,10 @@ Waveform readWav16(const std::string &path) {
              static_cast<std::streamsize>(n_total * 2));
       const unsigned int ch = wav.channels ? wav.channels : 1;
       wav.samples.resize(n_total / ch);
-      // Match the reference: take channel 0, then scale the int16 by 1/32768.
+      // Match the reference: take channel 0, then scale the int16.
+      const float inv = 1.0f / divisor;
       for (size_t i = 0; i < wav.samples.size(); ++i)
-        wav.samples[i] = static_cast<float>(pcm[i * ch]) / 32768.0f;
+        wav.samples[i] = static_cast<float>(pcm[i * ch]) * inv;
       return wav;
     } else {
       f.seekg(static_cast<std::streamoff>(size + (size & 1)), std::ios::cur);

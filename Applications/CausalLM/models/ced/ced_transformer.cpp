@@ -125,6 +125,7 @@ void CedTransformer::setupParameters(json &cfg, json &generation_cfg,
     FRONT_END.power = fe.value("power", 2.0f);
     WINDOW_SAMPLES = fe.value("window_samples", FRONT_END.sample_rate);
     STRIDE_SAMPLES = fe.value("stride_samples", WINDOW_SAMPLES);
+    NORMALIZE_DIVISOR = fe.value("normalize_divisor", 32768.0f);
   }
   TOP_K = cfg.value("top_k", 3u);
 
@@ -347,7 +348,7 @@ void CedTransformer::resetAttentionCache() {
  * diffed directly.
  */
 void CedTransformer::runAudioFile(const std::string &path) {
-  const audio::Waveform wav = audio::readWav16(path);
+  const audio::Waveform wav = audio::readWav16(path, NORMALIZE_DIVISOR);
   if (wav.sample_rate != FRONT_END.sample_rate) {
     throw std::runtime_error(
       "wav sample rate is " + std::to_string(wav.sample_rate) +
@@ -459,9 +460,14 @@ void CedTransformer::runAudioFile(const std::string &path) {
     std::stable_sort(order.begin(), order.end(),
                      [&](size_t a, size_t b) { return scores[a] > scores[b]; });
 
+    // The window label spans the actual window length, which is not the stride:
+    // a 3 s window advancing 1 s at a time covers [i, i + 3).
+    const unsigned int win_s = WINDOW_SAMPLES / FRONT_END.sample_rate;
+    const unsigned int step_s = STRIDE_SAMPLES / FRONT_END.sample_rate;
+    const unsigned int begin_s = index * (step_s ? step_s : 1);
     std::ostringstream row;
-    row << "  [" << std::setw(4) << index << "-" << std::setw(4) << (index + 1)
-        << "s] ";
+    row << "  [" << std::setw(4) << begin_s << "-" << std::setw(4)
+        << (begin_s + (win_s ? win_s : 1)) << "s] ";
     const size_t k = std::min<size_t>(TOP_K, order.size());
     for (size_t i = 0; i < k; ++i) {
       if (i)
