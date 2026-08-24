@@ -16,7 +16,6 @@
 #include "stb_image.inc"
 #include <algorithm>
 #include <cmath>
-#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <factory.h>
@@ -168,10 +167,29 @@ void TimmViTTransformer::setupParameters(json &cfg, json &generation_cfg,
                     ? nntr_cfg["fsu_lookahead"].get<unsigned int>()
                     : 1;
 
-  IMG_SIZE = cfg.value("img_size", 224);
+  // Input geometry. `img_size` covers the square-image case; models with a
+  // non-square input (an audio mel-spectrogram is n_mels x frames) set
+  // input_height / input_width instead.
+  const unsigned int img_size = cfg.value("img_size", 224);
+  INPUT_HEIGHT = cfg.value("input_height", img_size);
+  INPUT_WIDTH = cfg.value("input_width", img_size);
+  IMG_CHANNELS = cfg.value("in_chans", 3u);
+
   PATCH_SIZE = cfg.value("patch_size", 16);
-  NUM_PATCHES = cfg.value("num_patches", 196);
-  IMG_CHANNELS = 3;
+  PATCH_STRIDE = cfg.value("patch_stride", PATCH_SIZE);
+
+  // Patch grid = the conv output geometry, floor((L - K) / S) + 1.
+  GRID_H = (INPUT_HEIGHT - PATCH_SIZE) / PATCH_STRIDE + 1;
+  GRID_W = (INPUT_WIDTH - PATCH_SIZE) / PATCH_STRIDE + 1;
+  NUM_PATCHES = cfg.value("num_patches", GRID_H * GRID_W);
+
+  USE_INPUT_NORM = cfg.value("use_input_norm", false);
+  INPUT_NORM_EPS = cfg.value("input_norm_eps", 1e-5f);
+
+  NUM_CLASSES = cfg.value("num_classes", 0u);
+  POOLING = cfg.value("pooling", std::string("mean"));
+  HEAD_SIGMOID = cfg.value("head_sigmoid", false);
+  HEAD_NORM_EPS = cfg.value("head_norm_eps", 1e-5f);
 }
 
 /**
@@ -180,15 +198,29 @@ void TimmViTTransformer::setupParameters(json &cfg, json &generation_cfg,
 Tensor TimmViTTransformer::createPatchEmbed(Tensor input) {
   const int embed_dim = DIM;
 
+  Tensor src = input;
+
+  // Optional height-axis BatchNorm on the raw input. Axis 2 is the height of
+  // the NCHW input, so the running statistics are per input row -- for CED,
+  // per mel frequency bin, which is exactly what its BatchNorm2d(n_mels)
+  // (applied with frequency permuted into the channel slot) computes.
+  if (USE_INPUT_NORM) {
+    LayerHandle input_norm(
+      createLayer("batch_normalization",
+                  {withKey("name", "input_norm"), withKey("axis", "2"),
+                   withKey("epsilon", std::to_string(INPUT_NORM_EPS))}));
+    src = input_norm(src);
+  }
+
   LayerHandle conv(
     createLayer("conv2d", {withKey("name", "patch_embed/conv"),
                            withKey("kernel_size", {std::to_string(PATCH_SIZE),
                                                    std::to_string(PATCH_SIZE)}),
                            withKey("filters", std::to_string(embed_dim)),
-                           withKey("stride", {std::to_string(PATCH_SIZE),
-                                              std::to_string(PATCH_SIZE)}),
+                           withKey("stride", {std::to_string(PATCH_STRIDE),
+                                              std::to_string(PATCH_STRIDE)}),
                            withKey("padding", "valid")}));
-  Tensor h = conv(input);
+  Tensor h = conv(src);
 
   LayerHandle flatten(createLayer(
     "reshape", {withKey("name", "patch_embed/flatten"),
@@ -317,10 +349,57 @@ Tensor TimmViTTransformer::createTransformerDecoderBlock(const int layer_id,
 }
 
 /**
+ * @brief Create the optional pooling + LayerNorm + classifier head.
+ */
+Tensor TimmViTTransformer::createHead(Tensor input) {
+  if (NUM_CLASSES == 0) {
+    // Feature-extraction configuration: the encoder's final LayerNorm output
+    // is the model output, so there is nothing to append.
+    return input;
+  }
+
+  Tensor h = input;
+
+  // Token pooling. The encoder output is [batch, 1, tokens, dim], so the token
+  // axis is 2.
+  if (POOLING == "mean") {
+    LayerHandle pool(createLayer(
+      "reduce_mean", {withKey("name", "head/pool"), withKey("axis", "2")}));
+    h = pool(h);
+  } else if (!POOLING.empty() && POOLING != "none") {
+    throw std::invalid_argument("Unsupported pooling mode for ViT head: " +
+                                POOLING);
+  }
+
+  // The head LayerNorm is a plain nn.LayerNorm, so its epsilon is PyTorch's
+  // 1e-5 default -- not the 1e-6 the encoder blocks are built with.
+  LayerHandle norm(createLayer(
+    "layer_normalization", {withKey("name", "head/norm"), withKey("axis", "3"),
+                            withKey("epsilon", std::to_string(HEAD_NORM_EPS)),
+                            withKey("packed", "false")}));
+  h = norm(h);
+
+  LayerHandle classifier(createLayer(
+    "fully_connected", {withKey("name", "head/classifier"),
+                        withKey("unit", std::to_string(NUM_CLASSES)),
+                        withKey("disable_bias", "false")}));
+  h = classifier(h);
+
+  if (HEAD_SIGMOID) {
+    LayerHandle sigmoid(
+      createLayer("activation", {withKey("name", "head/sigmoid"),
+                                 withKey("activation", "sigmoid")}));
+    h = sigmoid(h);
+  }
+
+  return h;
+}
+
+/**
  * @brief Construct the symbolic ViT inference graph.
  */
 std::pair<Tensor, Tensor> TimmViTTransformer::constructModel() {
-  Tensor input({BATCH_SIZE, IMG_CHANNELS, IMG_SIZE, IMG_SIZE}, "input0");
+  Tensor input({BATCH_SIZE, IMG_CHANNELS, INPUT_HEIGHT, INPUT_WIDTH}, "input0");
   Tensor h = createPatchEmbed(input);
 
   for (int i = 0; i < NUM_LAYERS; i++) {
@@ -333,6 +412,8 @@ std::pair<Tensor, Tensor> TimmViTTransformer::constructModel() {
                  withKey("epsilon", std::to_string(NORM_EPS)),
                  withKey("packed", "false")}));
   h = output_norm(h);
+
+  h = createHead(h);
 
   return {input, h};
 }
@@ -360,8 +441,8 @@ void TimmViTTransformer::run(const WSTR prompt, bool do_sample,
                              "initialize() before run().");
   }
 
-  unsigned int img_h = IMG_SIZE;
-  unsigned int img_w = IMG_SIZE;
+  unsigned int img_h = INPUT_HEIGHT;
+  unsigned int img_w = INPUT_WIDTH;
 
   std::string image_path_str(prompt);
   std::vector<float> image_data =
