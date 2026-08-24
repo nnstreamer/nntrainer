@@ -753,7 +753,7 @@ Tensor &FloatTensor::dot(Tensor const &input, Tensor &output, bool trans,
   case Tdatatype::FP16:
     dotFloat32Float16(input, output, trans, trans_in, beta);
     break;
-  /** applying gemm_q4_k / gemm_q6_k / gemm_q4_0 */
+  /** applying gemm_q4_k / gemm_q6_k / gemm_q4_0 / gemm_q8_0 */
   case Tdatatype::Q4_K:
   case Tdatatype::Q6_K:
   case Tdatatype::Q4_0:
@@ -1023,14 +1023,12 @@ Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
     break;
   }
   case Tdatatype::Q8_0: {
+    // W8A8: gemm_q8_0_fp32 quantizes each FP32 activation row into block_q8_0
+    // and runs the int8 x int8 q8_0 GEMM against the int8 weight blocks, so
+    // both operands are 8-bit at compute time.
     M = getDim().height();
     K = getDim().width();
     N = input.getDim().width();
-    // Q8_0 weight is stored as plain block_q8_0 rows in [N, K] layout. The FP32
-    // activation is online-quantized to block_q8_0 and multiplied with the int8
-    // dot-product kernel (gemm_q8_0_fp32 -> __ggml_q8_0_q8_0_GEMM), the same
-    // W8A8 accumulation strategy the Q4_0 path uses, instead of dequantizing the
-    // weight to FP32 and running an sgemm.
     o->gemm_q8_0_fp32(M, N, K, data, K, (void *)mdata, N, rdata, N);
     break;
   }
