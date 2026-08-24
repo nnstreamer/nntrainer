@@ -130,3 +130,39 @@ byte-identical. The two that differ are third-decimal rounding only:
 Both reference values sit within 3.3e-04 of a `%.3f` rounding boundary
 (0.5164, 0.8665), so an FP32-level difference flips the displayed digit. Every
 top-3 ordering, every label and every threshold decision matches.
+
+## W8A8 on Android
+
+`fc_layer_dtype=Q8_0` quantizes the encoder's projections to int8 with **one
+scale per output channel**, and the runtime quantizes each activation with **one
+scale for the whole tensor**. Both symmetric, so the inner loop is an int8 dot
+into int32 (`sdot` on ARM) with a single multiply per output element.
+
+```bash
+nntr_quantize <fp32 model dir> --fc_dtype Q8_0 --isa ARM \
+  -o <out dir> --output_bin nntr_ad_pcw8a8.bin
+```
+
+`--isa` is a no-op for Q8_0: unlike Q4_0 the blocks are not ISA-interleaved, so
+one file runs on x86 and ARM.
+
+Measured on SM-S938N (Snapdragon 8 Elite), arm64-v8a, dog_tizen.wav, 16 windows,
+front end plus graph with model load excluded, against the PyTorch reference:
+
+| scheme | per window | realtime | worst prob diff | weights |
+|---|---|---|---|---|
+| channel-wise w / tensor-wise a | **13.9 ms** | **0.0138x** | 3.07e-02 | 6.0 MB |
+| per-32-block, both sides | 23.1 ms | 0.0230x | 1.79e-02 | 6.0 MB |
+| FP32 | 17.1 ms | 0.0170x | 1.79e-03 | 20.9 MB |
+
+Block-scaled W8A8 is slower than FP32 here because the kernel multiplies by a
+fresh scale every 32 values on both operands, and these GEMMs are small (M=24,
+K=192) so that dominates. Lifting the scales out of the inner loop is what makes
+8-bit actually pay.
+
+Detections match the reference in every case; the coarser activation scale only
+swaps the top-1 of window 2, where the reference's own top two are 0.011 apart.
+
+A ready-to-run device package with the prebuilt arm64 binaries, the quantized
+weights, the reference dumps and a one-command device verifier lives outside the
+repo at `0824/quickai_audio_detection/`.
