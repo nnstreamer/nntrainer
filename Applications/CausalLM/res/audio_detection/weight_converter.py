@@ -31,11 +31,14 @@ LABEL_NAMES = [
     "dog_bark", "cat_meow", "doorbell", "glass_break", "clap", "knock",
     "alert", "speech", "baby_cry", "cough", "scream", "water",
 ]
+# Full precision, as they appear in the deployed label yaml. Rounding these to
+# three decimals shifts a threshold by up to 5e-4, which is the same order as
+# the score differences between runtimes, so it can flip a borderline decision.
 THRESHOLDS = {
-    "dog_bark": 0.642, "cat_meow": 0.811, "doorbell": 0.941,
-    "glass_break": 0.847, "clap": 0.982, "knock": 0.985, "alert": 0.694,
-    "speech": 0.48, "baby_cry": 0.926, "cough": 0.895, "scream": 0.953,
-    "water": 0.881,
+    "dog_bark": 0.6420, "cat_meow": 0.8111, "doorbell": 0.9407,
+    "glass_break": 0.8465, "clap": 0.9820, "knock": 0.9851, "alert": 0.6942,
+    "speech": 0.4802, "baby_cry": 0.9257, "cough": 0.8951, "scream": 0.9531,
+    "water": 0.8807,
 }
 
 

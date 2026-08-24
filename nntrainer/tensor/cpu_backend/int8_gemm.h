@@ -67,18 +67,18 @@ inline float fp16BitsToFp32(uint16_t h) {
  */
 struct PerChannelWeight {
   bool usable = false;      /**< false when the stream is not channel-wise */
-  std::vector<int8_t> q;    /**< [N, K] int8, scale bytes stripped out */
   std::vector<float> scale; /**< [N] one scale per output channel */
 };
 
 /**
  * @brief Prepare (and cache) a weight for the channel-wise kernel.
  *
- * Two things happen once per weight rather than once per call: the per-channel
- * scale is read out, and the int8 values are gathered into a contiguous run per
- * channel so the dot product does not have to step over the 2-byte scale every
- * 32 values. Cached by weight pointer, the same pattern the conv layer uses for
- * its repacked filters.
+ * Only the per-channel scales are extracted and cached, N floats per weight.
+ * The int8 values are read in place from the Q8_0 stream: each block holds its
+ * 32 quants contiguously, so the dot product walks block by block and steps
+ * over the 2-byte scale between them. An earlier version gathered the values
+ * into a contiguous [N, K] copy, which cost a second full set of weights in
+ * memory (5.3 MB on this model) for no measurable speed.
  *
  * `usable` is false when any row's blocks disagree on their scale, i.e. the
  * stream is a genuine per-block Q8_0 file. Callers must then fall back to the
@@ -102,7 +102,6 @@ inline const PerChannelWeight &prepareWeight(const void *B, unsigned int N,
     return cache.emplace(B, std::move(w)).first->second;
 
   w.scale.resize(N);
-  w.q.resize((size_t)N * K);
   for (unsigned int n = 0; n < N; ++n) {
     const char *src = base + (size_t)n * nb * BLOCK_BYTES;
     uint16_t d0;
@@ -111,16 +110,12 @@ inline const PerChannelWeight &prepareWeight(const void *B, unsigned int N,
       uint16_t d;
       std::memcpy(&d, src + (size_t)b * BLOCK_BYTES, 2);
       if (d != d0) {
-        w.q.clear();
-        w.q.shrink_to_fit();
         w.scale.clear();
+        w.scale.shrink_to_fit();
         return cache.emplace(B, std::move(w)).first->second;
       }
     }
     w.scale[n] = fp16BitsToFp32(d0);
-    int8_t *dst = w.q.data() + (size_t)n * K;
-    for (unsigned int b = 0; b < nb; ++b)
-      std::memcpy(dst + (size_t)b * QK, src + (size_t)b * BLOCK_BYTES + 2, QK);
   }
   w.usable = true;
   return cache.emplace(B, std::move(w)).first->second;
@@ -212,12 +207,22 @@ inline bool gemmPerChannelA8(unsigned int M, unsigned int N, unsigned int K,
   const float a_scale = quantizeActivation(A, (size_t)M * K, scratch);
   const int8_t *Aq = scratch.data();
 
+  const unsigned int nb = K / QK;
+  const char *wbase = static_cast<const char *>(B);
   auto &tm = ThreadManager::Global();
   tm.parallel_for(0, N, [&](size_t n) {
-    const int8_t *wq = w.q.data() + (size_t)n * K;
+    const char *wrow = wbase + (size_t)n * nb * BLOCK_BYTES;
     const float s = a_scale * w.scale[n];
-    for (unsigned int m = 0; m < M; ++m)
-      C[(size_t)m * N + n] = (float)dotI8(Aq + (size_t)m * K, wq, K) * s;
+    for (unsigned int m = 0; m < M; ++m) {
+      const int8_t *a = Aq + (size_t)m * K;
+      int32_t acc = 0;
+      for (unsigned int b = 0; b < nb; ++b) {
+        const int8_t *wq =
+          reinterpret_cast<const int8_t *>(wrow + (size_t)b * BLOCK_BYTES + 2);
+        acc += dotI8(a + (size_t)b * QK, wq, QK);
+      }
+      C[(size_t)m * N + n] = (float)acc * s;
+    }
   });
   return true;
 }

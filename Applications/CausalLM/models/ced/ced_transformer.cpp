@@ -390,7 +390,11 @@ void CedTransformer::runAudioFile(const std::string &path) {
       ? static_cast<unsigned int>(
           (wav.samples.size() - WINDOW_SAMPLES) / STRIDE_SAMPLES + 1)
       : 0u;
-  std::cout << "=== " << name << " (" << total << " windows) ===" << std::endl;
+  // AD_JSON switches to the reference runtime's machine-readable stream; the
+  // human-readable table stays the default.
+  const bool json_out = std::getenv("AD_JSON") != nullptr;
+  if (!json_out)
+    std::cout << "=== " << name << " (" << total << " windows) ===" << std::endl;
 
   // Stage timings, so the front-end and the graph can be compared against
   // another runtime separately from model load.
@@ -500,7 +504,35 @@ void CedTransformer::runAudioFile(const std::string &path) {
         row << (i ? ", " : "") << "'" << detected[i] << "'";
       row << "]";
     }
-    std::cout << row.str() << std::endl;
+    if (json_out) {
+      // Same field order and precision as the reference runtime's --json, so
+      // the two streams can be diffed line by line.
+      const int64_t t0 = (int64_t)begin_s * 1000000;
+      const int64_t t1 = t0 + (int64_t)(win_s ? win_s : 1) * 1000000;
+      std::ostringstream js;
+      js << std::fixed << std::setprecision(6);
+      js << "{\"window\":" << index << ",\"timestamp_begin_us\":" << t0
+         << ",\"timestamp_end_us\":" << t1 << ",\"has_detection\":"
+         << (detected.empty() ? "false" : "true") << ",\"detected_events\":[";
+      for (size_t i = 0; i < detected.size(); ++i) {
+        const size_t pos = static_cast<size_t>(
+          std::find(LABELS.begin(), LABELS.end(), detected[i]) - LABELS.begin());
+        if (i)
+          js << ",";
+        js << "{\"label\":\"" << detected[i] << "\",\"score\":"
+           << scores[pos] << ",\"threshold\":" << THRESHOLDS[pos] << "}";
+      }
+      js << "],\"all_scores\":{";
+      for (unsigned int c = 0; c < NUM_CLASSES; ++c)
+        js << (c ? "," : "") << "\"" << LABELS[c] << "\":" << scores[c];
+      js << "},\"thresholds\":{";
+      for (unsigned int c = 0; c < NUM_CLASSES; ++c)
+        js << (c ? "," : "") << "\"" << LABELS[c] << "\":" << THRESHOLDS[c];
+      js << "}}";
+      std::cout << js.str() << std::endl;
+    } else {
+      std::cout << row.str() << std::endl;
+    }
   }
 
   const double audio_ms =
