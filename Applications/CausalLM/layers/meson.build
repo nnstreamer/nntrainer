@@ -26,6 +26,7 @@ causallm_logit_softcapping_src_abs = [meson.current_source_dir() / 'logit_softca
 causallm_custom_multiply_layer_src_abs = [meson.current_source_dir() / 'custom_multiply.cpp']
 causallm_rtmcc_gau_src_abs = [meson.current_source_dir() / 'rtmcc_gau.cpp']
 causallm_rtmcc_head_src_abs = [meson.current_source_dir() / 'rtmcc_head.cpp']
+causallm_xi_pooling_src_abs = [meson.current_source_dir() / 'xi_pooling.cpp']
 
 causallm_rms_norm = shared_library(
     'rms_norm_layer', 
@@ -256,5 +257,18 @@ causallm_custom_multiply_layer = shared_library(
 
 causallm_custom_multiply_dep = declare_dependency(
     link_with: causallm_custom_multiply_layer,
+    include_directories: causallm_layer_inc
+)
+
+causallm_xi_pooling = shared_library(
+    'xi_pooling_layer',
+    causallm_xi_pooling_src_abs,
+    include_directories: causallm_layer_inc,
+    dependencies: [nntrainer_dep, nntrainer_ccapi_dep],
+    install: true,
+    install_dir: application_install_dir
+)
+causallm_xi_pooling_dep = declare_dependency(
+    link_with: causallm_xi_pooling,
     include_directories: causallm_layer_inc
 )

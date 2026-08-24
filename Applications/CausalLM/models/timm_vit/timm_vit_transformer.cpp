@@ -12,6 +12,9 @@
  */
 
 #include "timm_vit_transformer.h"
+#include <app_context.h>
+#include <engine.h>
+#include <xi_pooling.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.inc"
 #include <algorithm>
@@ -22,6 +25,7 @@
 #include <fstream>
 #include <iomanip>
 #include <llm_util.hpp>
+#include <mutex>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -190,6 +194,8 @@ void TimmViTTransformer::setupParameters(json &cfg, json &generation_cfg,
   POOLING = cfg.value("pooling", std::string("mean"));
   HEAD_SIGMOID = cfg.value("head_sigmoid", false);
   HEAD_NORM_EPS = cfg.value("head_norm_eps", 1e-5f);
+  POOLING_HIDDEN_SIZE = cfg.value("pooling_hidden_size", DIM);
+  POOLING_NORM_EPS = cfg.value("pooling_norm_eps", 1e-5f);
   HEAD_DTYPE = nntr_cfg.contains("head_dtype")
                  ? nntr_cfg["head_dtype"].get<std::string>()
                  : nntr_cfg.value("lmhead_dtype", std::string("FP32"));
@@ -389,6 +395,15 @@ Tensor TimmViTTransformer::createHead(Tensor input) {
     LayerHandle pool(createLayer(
       "reduce_mean", {withKey("name", "head/pool"), withKey("axis", "2")}));
     h = pool(h);
+  } else if (POOLING == "xi") {
+    // Gaussian posterior inference pooling: a learned per-frame precision
+    // decides each frame's weight instead of averaging uniformly.
+    LayerHandle pool(
+      createLayer("xi_pooling",
+                  {withKey("name", "head/pool"),
+                   withKey("hidden_size", std::to_string(POOLING_HIDDEN_SIZE)),
+                   withKey("epsilon", std::to_string(POOLING_NORM_EPS))}));
+    h = pool(h);
   } else if (!POOLING.empty() && POOLING != "none") {
     throw std::invalid_argument("Unsupported pooling mode for ViT head: " +
                                 POOLING);
@@ -447,6 +462,15 @@ std::pair<Tensor, Tensor> TimmViTTransformer::constructModel() {
  */
 void TimmViTTransformer::registerCustomLayers() {
   Transformer::registerCustomLayers();
+
+  static std::once_flag registered;
+  std::call_once(registered, []() {
+    const auto &ct_engine = nntrainer::Engine::Global();
+    auto *app_context = static_cast<nntrainer::AppContext *>(
+      ct_engine.getRegisteredContext("cpu"));
+    app_context->registerFactory(
+      nntrainer::createLayer<causallm::XiPoolingLayer>);
+  });
 }
 
 /**

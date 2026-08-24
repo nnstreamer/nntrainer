@@ -126,6 +126,8 @@ protected:
   // configuration uses.
   unsigned int NUM_CLASSES = 0; /**< Head output units, 0 = no head */
   std::string POOLING = "mean"; /**< Token pooling before the head */
+  unsigned int POOLING_HIDDEN_SIZE = 256; /**< xi pooling hidden width */
+  float POOLING_NORM_EPS = 1e-5f;         /**< xi pooling BatchNorm epsilon */
   bool HEAD_SIGMOID = false;    /**< Apply sigmoid to the head output */
   float HEAD_NORM_EPS = 1e-5f;  /**< Head LayerNorm epsilon */
   // The final projection's dtype is controlled separately from the encoder's
