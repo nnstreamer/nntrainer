@@ -172,7 +172,7 @@ int main(int argc, char *argv[]) {
 
     auto backbone_out = fastvit_keyword::buildBackbone(backbone_input);
 
-    if (int ret = backbone_model->compile(backbone_input, {backbone_out},
+    if (int ret = backbone_model->compile(backbone_input, backbone_out,
                                           ml::train::ExecutionMode::INFERENCE))
       throw std::runtime_error("Backbone model compile failed: " +
                                std::to_string(ret));

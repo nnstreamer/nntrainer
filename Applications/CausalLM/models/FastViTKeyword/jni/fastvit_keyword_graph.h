@@ -411,13 +411,6 @@ inline Tensor finalConvBlock(const std::string &name, int in_ch, int out_ch,
 inline Tensor buildBackbone(Tensor xIn, int stop_at = -1);
 
 /**
- * @brief Build the FastViT-S12 backbone (stem + 4 stages + final_conv).
- */
-inline Tensor buildBackbone(Tensor xIn) {
-  return buildBackbone(xIn, -1);
-}
-
-/**
  * @brief Build backbone optionally truncated after a stage (for golden-ref
  * stage bisection). stop_at<0 = full backbone.
  *   stop_at 0 -> returns output after stage0 (2x RepMixer 64)  [1,64,80,80]
