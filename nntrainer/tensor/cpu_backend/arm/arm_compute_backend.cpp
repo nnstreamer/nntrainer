@@ -83,6 +83,7 @@ void gelu_v2(const unsigned int N, const float *X, float *Y) {
 #endif
 }
 
+#ifdef ENABLE_FP16
 void gelu_v2_fp16(const unsigned int N, const _FP16 *X, _FP16 *Y) {
 #if defined(__ARM_NEON) && (defined(__ARM_FEATURE_FP16_SCALAR_ARITHMETIC) || \
                             defined(__ARM_FEATURE_FP16))
@@ -91,6 +92,7 @@ void gelu_v2_fp16(const unsigned int N, const _FP16 *X, _FP16 *Y) {
   __fallback_gelu_v2(N, X, Y);
 #endif
 }
+#endif
 
 void tanh_gelu_mul(const unsigned int N, float *X, float *Y, float *Z) {
 #ifdef __ARM_NEON

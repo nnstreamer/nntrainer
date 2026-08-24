@@ -94,7 +94,7 @@ struct DWQ8Weight {
   std::vector<float> scale; /**< [C], per-channel symmetric weight scale */
 };
 
-static const DWQ8Weight &getDWQ8Weight(const float *filt, unsigned int C,
+[[maybe_unused]] static const DWQ8Weight &getDWQ8Weight(const float *filt, unsigned int C,
                                        unsigned int fh, unsigned int fw) {
   static std::mutex mtx;
   static std::unordered_map<const void *, DWQ8Weight> cache;

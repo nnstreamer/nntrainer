@@ -12,5 +12,6 @@ yolov7_infer = executable('yolov7_infer',
   include_directories: [yolov7_inc],
   dependencies: [nntrainer_dep, nntrainer_ccapi_dep],
   build_by_default: get_option('enable-app'),
-  install: false,
+  install: true,
+  install_dir: application_install_dir,
 )

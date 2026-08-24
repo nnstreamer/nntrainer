@@ -2616,6 +2616,7 @@ void nntr_gemm_q8_0_q8_0_4x4_f32(int n, float *__restrict s, size_t bs,
                   nntr_fp16_to_fp32(p[bi].d[2]), nntr_fp16_to_fp32(p[bi].d[3])};
     return vld1q_f32(t);
   };
+  (void)load_d;
 
   auto dot_one = [&](const block_q8_0x4 *a, int ar, const block_q8_0x4 *b,
                      int wr) -> float {

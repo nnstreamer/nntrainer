@@ -566,6 +566,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 # tensor headers
 %{_includedir}/nntrainer/memory_data.h
 %{_includedir}/nntrainer/tensor.h
+%{_includedir}/nntrainer/act_simd.h
 %{_includedir}/nntrainer/tensor_base.h
 %{_includedir}/nntrainer/q4_k_tensor.h
 %{_includedir}/nntrainer/q6_k_tensor.h

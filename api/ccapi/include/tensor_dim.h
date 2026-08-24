@@ -31,6 +31,8 @@
 #else
 #define _FP16 _Float16
 #endif
+#else
+struct _FP16 {};
 #endif
 
 /**

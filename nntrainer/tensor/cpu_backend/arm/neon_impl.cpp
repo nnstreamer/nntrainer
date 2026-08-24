@@ -1444,6 +1444,7 @@ void gelu_v2(const unsigned int N, const float *X, float *Y) {
   }
 }
 
+#ifdef ENABLE_FP16
 void gelu_v2_fp16(const unsigned int N, const _FP16 *X, _FP16 *Y) {
   /// FP16-storage GELU, vectorized. The FastViT keyword backbone is W8A16
   /// (FP16 activations) and has ~12 GELU layers; the previous FP16 path
@@ -1510,6 +1511,7 @@ void gelu_v2_fp16(const unsigned int N, const _FP16 *X, _FP16 *Y) {
     ++i;
   }
 }
+#endif
 
 void tanh_gelu_mul(const unsigned int N, float *X, float *Y, float *Z) {
   unsigned int i = 0;
