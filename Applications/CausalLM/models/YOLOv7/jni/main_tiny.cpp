@@ -204,11 +204,25 @@ int main(int argc, char **argv) {
     auto outputs = yolov7_tiny::buildBackboneNeckHead(x, NC, preset_q);
 
     std::string weights_path = RES_DIR + "/yolov7_tiny.safetensors";
+    if (preset_q) {
+      // Check if pre-quantized weights exist
+      std::string q8_path = RES_DIR + "/yolov7_tiny_q8.safetensors";
+      std::ifstream f_q8(q8_path);
+      if (f_q8.good()) {
+        f_q8.close();
+        weights_path = q8_path;
+        std::cout << "[L1 Detector] Using offline pre-quantized weights: " << weights_path << std::endl;
+      } else {
+        std::cout << "[L1 Detector] Pre-quantized weights not found, fallback to on-the-fly quantization." << std::endl;
+        setenv("NNTR_W8A8_FP32W", "1", 1);
+      }
+    }
 
     std::cout << "Compiling model..." << std::endl;
     if (model->compile(x, outputs, ml::train::ExecutionMode::INFERENCE) != 0) {
       throw std::runtime_error("Model compilation failed!");
     }
+    model->compile();
     model->initialize();
 
     std::cout << "Loading weights: " << weights_path << std::endl;
@@ -232,7 +246,6 @@ int main(int argc, char **argv) {
     printPeakRSS();
 
     // Print P3 sample output to verify exact correctness with PyTorch
-    // outs[0] is P3 output, of shape [1, 27, 40, 40] in NCHW
     const float *p3 = outs[0];
     int N = 40 * 40;
     std::cout << "[L1 Detector] P3 scale output raw values at (a=0, y=0, x=0):" << std::endl;
