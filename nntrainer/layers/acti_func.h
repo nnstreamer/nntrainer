@@ -38,7 +38,7 @@ class Tensor;
 class ActiFunc {
 
 public:
-  constexpr static inline float NEGATIVE_SLOPE = 0.01f;
+  constexpr static inline float NEGATIVE_SLOPE = 0.1f;
 
   /**
    * @brief     Constructor of ActiFunc
