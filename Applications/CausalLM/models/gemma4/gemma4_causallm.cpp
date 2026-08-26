@@ -103,6 +103,13 @@ json &Gemma4Transformer::sanitizeConfig(json &cfg) {
     }
   }
 
+  // Gemma4 multimodal configs set this to "vision", while CausalLM only
+  // supports the boolean text-model setting.
+  if (cfg.contains("use_bidirectional_attention") &&
+      !cfg["use_bidirectional_attention"].is_boolean()) {
+    cfg.erase("use_bidirectional_attention");
+  }
+
   if (!cfg.contains("tie_word_embeddings")) {
     cfg["tie_word_embeddings"] = true;
   }
@@ -177,20 +184,21 @@ void Gemma4Transformer::setupParameters(json &cfg, json &generation_cfg,
   ATTENTION_K_EQ_V =
     cfg.contains("attention_k_eq_v") && cfg["attention_k_eq_v"].get<bool>();
 
-  NNTR_THROW_IF(!cfg.contains("hidden_size_per_layer_input") ||
-                  cfg["hidden_size_per_layer_input"].is_null() ||
-                  cfg["hidden_size_per_layer_input"].get<unsigned int>() == 0,
-                std::invalid_argument)
-    << "[Gemma4] hidden_size_per_layer_input must be provided and > 0";
-  NNTR_THROW_IF(!cfg.contains("vocab_size_per_layer_input") ||
-                  cfg["vocab_size_per_layer_input"].is_null() ||
-                  cfg["vocab_size_per_layer_input"].get<unsigned int>() == 0,
-                std::invalid_argument)
-    << "[Gemma4] vocab_size_per_layer_input must be provided and > 0";
   HIDDEN_SIZE_PER_LAYER_INPUT =
-    cfg["hidden_size_per_layer_input"].get<unsigned int>();
+    cfg.contains("hidden_size_per_layer_input") &&
+        !cfg["hidden_size_per_layer_input"].is_null()
+      ? cfg["hidden_size_per_layer_input"].get<unsigned int>()
+      : 0;
   VOCAB_SIZE_PER_LAYER_INPUT =
-    cfg["vocab_size_per_layer_input"].get<unsigned int>();
+    cfg.contains("vocab_size_per_layer_input") &&
+        !cfg["vocab_size_per_layer_input"].is_null()
+      ? cfg["vocab_size_per_layer_input"].get<unsigned int>()
+      : NUM_VOCAB;
+  NNTR_THROW_IF(HIDDEN_SIZE_PER_LAYER_INPUT > 0 &&
+                  VOCAB_SIZE_PER_LAYER_INPUT == 0,
+                std::invalid_argument)
+    << "[Gemma4] vocab_size_per_layer_input must be > 0 when per-layer "
+       "embeddings are enabled";
 
   FULL_ATTENTION_ROPE_THETA = ROPE_THETA;
   SLIDING_ATTENTION_ROPE_THETA = ROPE_THETA;
@@ -263,8 +271,9 @@ void Gemma4Transformer::setupParameters(json &cfg, json &generation_cfg,
   // so applying them again at lookup time would double-scale.
   EMBEDDING_SCALE = FOLDED_LUT ? 1.0f : std::sqrt(static_cast<float>(DIM));
   EMBEDDING_PER_LAYER_SCALE =
-    FOLDED_LUT ? 1.0f
-               : std::sqrt(static_cast<float>(HIDDEN_SIZE_PER_LAYER_INPUT));
+    (FOLDED_LUT || HIDDEN_SIZE_PER_LAYER_INPUT == 0)
+      ? 1.0f
+      : std::sqrt(static_cast<float>(HIDDEN_SIZE_PER_LAYER_INPUT));
 }
 
 std::pair<Tensor, Tensor>
@@ -336,116 +345,119 @@ std::pair<Tensor, Tensor> Gemma4Transformer::constructModel() {
   LayerHandle embedding(createLayer(embedding_type, embedding0_props));
   Tensor h = embedding(x);
 
-  const unsigned int per_layer_total_dim =
-    NUM_LAYERS * HIDDEN_SIZE_PER_LAYER_INPUT;
+  if (HIDDEN_SIZE_PER_LAYER_INPUT > 0) {
+    const unsigned int per_layer_total_dim =
+      NUM_LAYERS * HIDDEN_SIZE_PER_LAYER_INPUT;
 
-  // per-layer input embedding is a lookup table -> use EMBEDDING_DTYPE.
-  // (EmbeddingLayer save/load supports FP32/Q4_0/Q6_K, not QINT4, so it must
-  // not inherit FC_LAYER_DTYPE; quantize.cpp maps it to embd_dtype to match.)
-  // ple_file_name (nntr_config.json) points at a GGML q4_0/q6_k sidecar
-  // manifest: the table then lives OUTSIDE the model .bin, mmap'd and
-  // dequantized per token on demand instead of held resident (~GB saved).
-  // ple_sidecar_export is the matching extraction key (nntr_quantize
-  // --ple_sidecar); mutually exclusive with ple_file_name.
-  std::vector<std::string> ple_embedding_props = {
-    withKey("name", "per_layer_input_embedding"),
-    withKey("in_dim", std::to_string(VOCAB_SIZE_PER_LAYER_INPUT)),
-    withKey("out_dim", std::to_string(per_layer_total_dim)),
-    withKey("weight_dtype", EMBEDDING_DTYPE),
-    withKey("scale", EMBEDDING_PER_LAYER_SCALE)};
-  if (!PLE_FILE_NAME.empty())
-    ple_embedding_props.emplace_back(
-      withKey("quantized_lut_path", PLE_FILE_NAME));
-  if (!PLE_SIDECAR_EXPORT.empty())
-    ple_embedding_props.emplace_back(
-      withKey("sidecar_export_path", PLE_SIDECAR_EXPORT));
-  LayerHandle per_layer_embedding(
-    createLayer("embedding_layer", ple_embedding_props));
-  Tensor per_layer_embedding_out = per_layer_embedding(x);
+    // per-layer input embedding is a lookup table -> use EMBEDDING_DTYPE.
+    // (EmbeddingLayer save/load supports FP32/Q4_0/Q6_K, not QINT4, so it must
+    // not inherit FC_LAYER_DTYPE; quantize.cpp maps it to embd_dtype to match.)
+    // ple_file_name (nntr_config.json) points at a GGML q4_0/q6_k sidecar
+    // manifest: the table then lives OUTSIDE the model .bin, mmap'd and
+    // dequantized per token on demand instead of held resident (~GB saved).
+    // ple_sidecar_export is the matching extraction key (nntr_quantize
+    // --ple_sidecar); mutually exclusive with ple_file_name.
+    std::vector<std::string> ple_embedding_props = {
+      withKey("name", "per_layer_input_embedding"),
+      withKey("in_dim", std::to_string(VOCAB_SIZE_PER_LAYER_INPUT)),
+      withKey("out_dim", std::to_string(per_layer_total_dim)),
+      withKey("weight_dtype", EMBEDDING_DTYPE),
+      withKey("scale", EMBEDDING_PER_LAYER_SCALE)};
+    if (!PLE_FILE_NAME.empty())
+      ple_embedding_props.emplace_back(
+        withKey("quantized_lut_path", PLE_FILE_NAME));
+    if (!PLE_SIDECAR_EXPORT.empty())
+      ple_embedding_props.emplace_back(
+        withKey("sidecar_export_path", PLE_SIDECAR_EXPORT));
+    LayerHandle per_layer_embedding(
+      createLayer("embedding_layer", ple_embedding_props));
+    Tensor per_layer_embedding_out = per_layer_embedding(x);
 
-  LayerHandle per_layer_projection(createLayer(
-    "fully_connected",
-    {withKey("name", "per_layer_input_projection"),
-     withKey("unit", std::to_string(per_layer_total_dim)),
-     withKey("disable_bias", "true"), withKey("weight_initializer", "ones"),
-     withKey("weight_dtype", FC_LAYER_DTYPE),
-     withKey("engine", causallm_engine())}));
-  Tensor per_layer_projected = per_layer_projection(h);
+    LayerHandle per_layer_projection(createLayer(
+      "fully_connected",
+      {withKey("name", "per_layer_input_projection"),
+       withKey("unit", std::to_string(per_layer_total_dim)),
+       withKey("disable_bias", "true"), withKey("weight_initializer", "ones"),
+       withKey("weight_dtype", FC_LAYER_DTYPE),
+       withKey("engine", causallm_engine())}));
+    Tensor per_layer_projected = per_layer_projection(h);
 
-  float ple_proj_scale = 1.0f / std::sqrt(static_cast<float>(DIM));
-  LayerHandle model_proj_scale(createLayer(
-    "scalar_multiply",
-    {withKey("name", "per_layer_model_proj_scale"), withKey("packed", "false"),
-     withKey("multiplier", std::to_string(ple_proj_scale)),
-     withKey("engine", causallm_engine())}));
-  Tensor scaled_projection = model_proj_scale(per_layer_projected);
+    float ple_proj_scale = 1.0f / std::sqrt(static_cast<float>(DIM));
+    LayerHandle model_proj_scale(createLayer(
+      "scalar_multiply", {withKey("name", "per_layer_model_proj_scale"),
+                          withKey("packed", "false"),
+                          withKey("multiplier", std::to_string(ple_proj_scale)),
+                          withKey("engine", causallm_engine())}));
+    Tensor scaled_projection = model_proj_scale(per_layer_projected);
 
-  LayerHandle projection_norm(createLayer(
-    "reshaped_rms_norm",
-    {
-      withKey("name", "per_layer_projection_norm"),
-      withKey("epsilon", std::to_string(NORM_EPS)),
-      withKey("feature_size", std::to_string(HIDDEN_SIZE_PER_LAYER_INPUT)),
-      withKey("packed", "false"),
-      withKey("engine", causallm_engine()), // S1.1: GPU_CLMEM output, no map
-    }));
-  Tensor normalized_projection = projection_norm(scaled_projection);
-
-  if (!FOLDED_LUT) {
-    LayerHandle per_layer_sum(
-      createLayer("addition", {withKey("name", "per_layer_input_sum"),
-                               withKey("engine", causallm_engine())}));
-    Tensor per_layer_sum_out =
-      per_layer_sum({per_layer_embedding_out, normalized_projection});
-
-    // TODO : change per_layer_input_scale to non hard-coded way
-
-    float per_layer_input_scale = std::sqrt(0.5f);
-
-    LayerHandle per_layer_input_scale_layer(createLayer(
-      "scalar_multiply",
+    LayerHandle projection_norm(createLayer(
+      "reshaped_rms_norm",
       {
-        withKey("name", "per_layer_input_scale"),
+        withKey("name", "per_layer_projection_norm"),
+        withKey("epsilon", std::to_string(NORM_EPS)),
+        withKey("feature_size", std::to_string(HIDDEN_SIZE_PER_LAYER_INPUT)),
         withKey("packed", "false"),
-        withKey("multiplier", std::to_string(per_layer_input_scale)),
-        withKey("engine", causallm_engine()),
+        withKey("engine", causallm_engine()), // S1.1: GPU_CLMEM output, no map
       }));
-    per_layer_input = per_layer_input_scale_layer(per_layer_sum_out);
-  } else {
-    // folded_lut: the PLE sidecar rows already ARE
-    //   sqrt(0.5) * (sqrt(256)*ple_row + rms_norm(projection(h)/sqrt(hidden)))
-    // so the combine above must not run again -- the LUT lookup output is the
-    // finished per-layer input, and the sqrt(0.5) tail is folded away.
-    //
-    // The projection/norm layers above are still BUILT, and kept reachable
-    // through a zero-multiply: compile() discovers layers by walking back
-    // from the model output (tensor_api_graph.cpp DFS), so a dead-ended
-    // chain would be pruned from the graph -- and with it the
-    // per_layer_input_projection + per_layer_projection_norm weight records,
-    // shifting every positional file offset the loader derives from the
-    // sorted graph (neuralnet.cpp load) and misloading the EXISTING bin,
-    // which still carries those weights. Adding exactly 0 * norm keeps the
-    // result bit-equal to the LUT row while keeping the weights in place.
-    // The dead FC still executes each step; accepted waste for v1 -- a
-    // folded bin without these records could drop this anchor entirely.
-    // Caveat: 0 * (+-Inf) = NaN, so an FP16 overflow in the dead chain
-    // would poison per_layer_input even though its value is unused; the
-    // unfolded path had the same exposure (it USED the value), so this is
-    // no regression, but a v2 could zero via a select and be immune.
-    LayerHandle folded_proj_zero(createLayer(
-      "scalar_multiply", {
-                           withKey("name", "per_layer_folded_proj_zero"),
-                           withKey("packed", "false"),
-                           withKey("multiplier", std::to_string(0.0f)),
-                           withKey("engine", causallm_engine()),
-                         }));
-    Tensor zeroed_projection = folded_proj_zero(normalized_projection);
+    Tensor normalized_projection = projection_norm(scaled_projection);
 
-    LayerHandle per_layer_sum(
-      createLayer("addition", {withKey("name", "per_layer_input_sum"),
-                               withKey("engine", causallm_engine())}));
-    per_layer_input =
-      per_layer_sum({per_layer_embedding_out, zeroed_projection});
+    if (!FOLDED_LUT) {
+      LayerHandle per_layer_sum(
+        createLayer("addition", {withKey("name", "per_layer_input_sum"),
+                                 withKey("engine", causallm_engine())}));
+      Tensor per_layer_sum_out =
+        per_layer_sum({per_layer_embedding_out, normalized_projection});
+
+      // TODO : change per_layer_input_scale to non hard-coded way
+
+      float per_layer_input_scale = std::sqrt(0.5f);
+
+      LayerHandle per_layer_input_scale_layer(createLayer(
+        "scalar_multiply",
+        {
+          withKey("name", "per_layer_input_scale"),
+          withKey("packed", "false"),
+          withKey("multiplier", std::to_string(per_layer_input_scale)),
+          withKey("engine", causallm_engine()),
+        }));
+      per_layer_input = per_layer_input_scale_layer(per_layer_sum_out);
+    } else {
+      // folded_lut: the PLE sidecar rows already ARE
+      //   sqrt(0.5) * (sqrt(256)*ple_row +
+      //   rms_norm(projection(h)/sqrt(hidden)))
+      // so the combine above must not run again -- the LUT lookup output is the
+      // finished per-layer input, and the sqrt(0.5) tail is folded away.
+      //
+      // The projection/norm layers above are still BUILT, and kept reachable
+      // through a zero-multiply: compile() discovers layers by walking back
+      // from the model output (tensor_api_graph.cpp DFS), so a dead-ended
+      // chain would be pruned from the graph -- and with it the
+      // per_layer_input_projection + per_layer_projection_norm weight records,
+      // shifting every positional file offset the loader derives from the
+      // sorted graph (neuralnet.cpp load) and misloading the EXISTING bin,
+      // which still carries those weights. Adding exactly 0 * norm keeps the
+      // result bit-equal to the LUT row while keeping the weights in place.
+      // The dead FC still executes each step; accepted waste for v1 -- a
+      // folded bin without these records could drop this anchor entirely.
+      // Caveat: 0 * (+-Inf) = NaN, so an FP16 overflow in the dead chain
+      // would poison per_layer_input even though its value is unused; the
+      // unfolded path had the same exposure (it USED the value), so this is
+      // no regression, but a v2 could zero via a select and be immune.
+      LayerHandle folded_proj_zero(createLayer(
+        "scalar_multiply", {
+                             withKey("name", "per_layer_folded_proj_zero"),
+                             withKey("packed", "false"),
+                             withKey("multiplier", std::to_string(0.0f)),
+                             withKey("engine", causallm_engine()),
+                           }));
+      Tensor zeroed_projection = folded_proj_zero(normalized_projection);
+
+      LayerHandle per_layer_sum(
+        createLayer("addition", {withKey("name", "per_layer_input_sum"),
+                                 withKey("engine", causallm_engine())}));
+      per_layer_input =
+        per_layer_sum({per_layer_embedding_out, zeroed_projection});
+    }
   }
 
   layer_k_norms.assign(NUM_LAYERS, Tensor());
@@ -511,6 +523,111 @@ Tensor Gemma4Transformer::createTransformerDecoderBlock(const int layer_id,
     createLayer("addition", post_attention_add_props));
   Tensor post_attention = post_attention_add({input, post_normed});
 
+  Tensor post_ffn =
+    createFeedForwardBlock(layer_id, post_attention, is_kv_shared_layer);
+
+  std::vector<std::string> decoder_output_base_props = {withKey(
+    "name", "layer" + std::to_string(layer_id) + "_decoder_output_base")};
+  decoder_output_base_props.push_back(withKey("engine", causallm_engine()));
+  appendSkipPrefillIfNeeded(decoder_output_base_props, is_kv_shared_layer);
+  LayerHandle decoder_output_base_layer(
+    createLayer("addition", decoder_output_base_props));
+  Tensor decoder_output_base =
+    decoder_output_base_layer({post_attention, post_ffn});
+
+  Tensor decoder_output = decoder_output_base;
+  if (HIDDEN_SIZE_PER_LAYER_INPUT > 0) {
+    // Select [B, S, hidden_size_per_layer_input] from packed per-layer input
+    // [B, S, num_layers*hidden_size_per_layer_input]
+    std::vector<std::string> per_layer_slice_props = {
+      withKey("name", "layer" + std::to_string(layer_id) + "_per_layer_input"),
+      withKey("feature_size", std::to_string(HIDDEN_SIZE_PER_LAYER_INPUT)),
+      withKey("layer_index", std::to_string(layer_id))};
+    per_layer_slice_props.push_back(withKey("engine", causallm_engine()));
+    appendSkipPrefillIfNeeded(per_layer_slice_props, is_kv_shared_layer);
+    LayerHandle per_layer_slice(
+      createLayer("per_layer_slice", per_layer_slice_props));
+    Tensor per_layer_input_slice = per_layer_slice(per_layer_input);
+
+    std::vector<std::string> per_layer_input_gate_props = {
+      withKey("name",
+              "layer" + std::to_string(layer_id) + "_per_layer_input_gate"),
+      withKey("unit", std::to_string(HIDDEN_SIZE_PER_LAYER_INPUT)),
+      withKey("disable_bias", "true"),
+      withKey("weight_initializer", "ones"),
+      withKey("weight_dtype", FC_LAYER_DTYPE),
+      withKey("engine", causallm_engine())};
+    appendSkipPrefillIfNeeded(per_layer_input_gate_props, is_kv_shared_layer);
+    LayerHandle per_layer_input_gate(
+      createLayer("fully_connected", per_layer_input_gate_props));
+    Tensor per_layer_input_gate_out = per_layer_input_gate(decoder_output_base);
+
+    // Fused GeGLU: gelu_tanh(gate) * per_layer_input_slice on GPU. Replaces the
+    // separate tanh_gelu activation + element-wise multiply (same gelu(a)*b
+    // pattern as the FFN GeGLU); no GPU element-wise multiply layer exists and
+    // the CPU op breaks SVM/cl_mem residency.
+    std::vector<std::string> per_layer_input_mul_props = {
+      withKey("name",
+              "layer" + std::to_string(layer_id) + "_per_layer_input_mul"),
+      withKey("engine", causallm_engine())};
+    appendSkipPrefillIfNeeded(per_layer_input_mul_props, is_kv_shared_layer);
+    LayerHandle per_layer_input_mul(
+      createLayer("geglu", per_layer_input_mul_props));
+    Tensor per_layer_input_multiplied =
+      per_layer_input_mul({per_layer_input_gate_out, per_layer_input_slice});
+
+    std::vector<std::string> per_layer_input_proj_props = {
+      withKey("name",
+              "layer" + std::to_string(layer_id) + "_per_layer_input_proj"),
+      withKey("unit", std::to_string(DIM)),
+      withKey("disable_bias", "true"),
+      withKey("weight_initializer", "ones"),
+      withKey("weight_dtype", FC_LAYER_DTYPE),
+      withKey("engine", causallm_engine())};
+    appendSkipPrefillIfNeeded(per_layer_input_proj_props, is_kv_shared_layer);
+    LayerHandle per_layer_input_proj(
+      createLayer("fully_connected", per_layer_input_proj_props));
+    Tensor per_layer_input_projected =
+      per_layer_input_proj(per_layer_input_multiplied);
+
+    std::vector<std::string> post_per_layer_input_norm_props = {
+      withKey("name", "layer" + std::to_string(layer_id) +
+                        "_post_per_layer_input_norm"),
+      withKey("epsilon", std::to_string(NORM_EPS)), withKey("packed", "false")};
+    post_per_layer_input_norm_props.push_back(
+      withKey("engine", causallm_engine()));
+    appendSkipPrefillIfNeeded(post_per_layer_input_norm_props,
+                              is_kv_shared_layer);
+    LayerHandle post_per_layer_input_norm(
+      createLayer("rms_norm", post_per_layer_input_norm_props));
+    Tensor per_layer_input_normed =
+      post_per_layer_input_norm(per_layer_input_projected);
+
+    std::vector<std::string> decoder_output_props = {
+      withKey("name", "layer" + std::to_string(layer_id) + "_decoder_output")};
+    decoder_output_props.push_back(withKey("engine", causallm_engine()));
+    appendSkipPrefillIfNeeded(decoder_output_props, is_kv_shared_layer);
+    LayerHandle decoder_output_layer(
+      createLayer("addition", decoder_output_props));
+    decoder_output =
+      decoder_output_layer({decoder_output_base, per_layer_input_normed});
+  }
+
+  std::vector<std::string> layer_scalar_props = {
+    withKey("name", "layer" + std::to_string(layer_id) + "_layer_scalar"),
+    withKey("packed", "false"),
+    withKey("use_weight", "true"),
+  };
+  layer_scalar_props.push_back(withKey("engine", causallm_engine()));
+  appendSkipPrefillIfNeeded(layer_scalar_props, is_kv_shared_layer);
+  LayerHandle layer_scalar(createLayer("scalar_multiply", layer_scalar_props));
+
+  return layer_scalar(decoder_output);
+}
+
+Tensor Gemma4Transformer::createFeedForwardBlock(const int layer_id,
+                                                 Tensor post_attention,
+                                                 bool is_kv_shared_layer) {
   std::vector<std::string> pre_ffn_norm_props = {
     withKey("name", "layer" + std::to_string(layer_id) + "_pre_ffn_norm"),
     withKey("epsilon", std::to_string(NORM_EPS)), withKey("packed", "false")};
@@ -527,102 +644,7 @@ Tensor Gemma4Transformer::createTransformerDecoderBlock(const int layer_id,
   post_ffn_norm_props.push_back(withKey("engine", causallm_engine()));
   appendSkipPrefillIfNeeded(post_ffn_norm_props, is_kv_shared_layer);
   LayerHandle post_ffn_norm(createLayer("rms_norm", post_ffn_norm_props));
-  Tensor post_ffn = post_ffn_norm(ffn_out);
-
-  std::vector<std::string> decoder_output_base_props = {withKey(
-    "name", "layer" + std::to_string(layer_id) + "_decoder_output_base")};
-  decoder_output_base_props.push_back(withKey("engine", causallm_engine()));
-  appendSkipPrefillIfNeeded(decoder_output_base_props, is_kv_shared_layer);
-  LayerHandle decoder_output_base_layer(
-    createLayer("addition", decoder_output_base_props));
-  Tensor decoder_output_base =
-    decoder_output_base_layer({post_attention, post_ffn});
-
-  // Select [B, S, hidden_size_per_layer_input] from packed per-layer input
-  // [B, S, num_layers*hidden_size_per_layer_input]
-  std::vector<std::string> per_layer_slice_props = {
-    withKey("name", "layer" + std::to_string(layer_id) + "_per_layer_input"),
-    withKey("feature_size", std::to_string(HIDDEN_SIZE_PER_LAYER_INPUT)),
-    withKey("layer_index", std::to_string(layer_id))};
-  per_layer_slice_props.push_back(withKey("engine", causallm_engine()));
-  appendSkipPrefillIfNeeded(per_layer_slice_props, is_kv_shared_layer);
-  LayerHandle per_layer_slice(
-    createLayer("per_layer_slice", per_layer_slice_props));
-  Tensor per_layer_input_slice = per_layer_slice(per_layer_input);
-
-  std::vector<std::string> per_layer_input_gate_props = {
-    withKey("name",
-            "layer" + std::to_string(layer_id) + "_per_layer_input_gate"),
-    withKey("unit", std::to_string(HIDDEN_SIZE_PER_LAYER_INPUT)),
-    withKey("disable_bias", "true"),
-    withKey("weight_initializer", "ones"),
-    withKey("weight_dtype", FC_LAYER_DTYPE),
-    withKey("engine", causallm_engine())};
-  appendSkipPrefillIfNeeded(per_layer_input_gate_props, is_kv_shared_layer);
-  LayerHandle per_layer_input_gate(
-    createLayer("fully_connected", per_layer_input_gate_props));
-  Tensor per_layer_input_gate_out = per_layer_input_gate(decoder_output_base);
-
-  // Fused GeGLU: gelu_tanh(gate) * per_layer_input_slice on GPU. Replaces the
-  // separate tanh_gelu activation + element-wise multiply (same gelu(a)*b
-  // pattern as the FFN GeGLU); no GPU element-wise multiply layer exists and
-  // the CPU op breaks SVM/cl_mem residency.
-  std::vector<std::string> per_layer_input_mul_props = {
-    withKey("name",
-            "layer" + std::to_string(layer_id) + "_per_layer_input_mul"),
-    withKey("engine", causallm_engine())};
-  appendSkipPrefillIfNeeded(per_layer_input_mul_props, is_kv_shared_layer);
-  LayerHandle per_layer_input_mul(
-    createLayer("geglu", per_layer_input_mul_props));
-  Tensor per_layer_input_multiplied =
-    per_layer_input_mul({per_layer_input_gate_out, per_layer_input_slice});
-
-  std::vector<std::string> per_layer_input_proj_props = {
-    withKey("name",
-            "layer" + std::to_string(layer_id) + "_per_layer_input_proj"),
-    withKey("unit", std::to_string(DIM)),
-    withKey("disable_bias", "true"),
-    withKey("weight_initializer", "ones"),
-    withKey("weight_dtype", FC_LAYER_DTYPE),
-    withKey("engine", causallm_engine())};
-  appendSkipPrefillIfNeeded(per_layer_input_proj_props, is_kv_shared_layer);
-  LayerHandle per_layer_input_proj(
-    createLayer("fully_connected", per_layer_input_proj_props));
-  Tensor per_layer_input_projected =
-    per_layer_input_proj(per_layer_input_multiplied);
-
-  std::vector<std::string> post_per_layer_input_norm_props = {
-    withKey("name",
-            "layer" + std::to_string(layer_id) + "_post_per_layer_input_norm"),
-    withKey("epsilon", std::to_string(NORM_EPS)), withKey("packed", "false")};
-  post_per_layer_input_norm_props.push_back(
-    withKey("engine", causallm_engine()));
-  appendSkipPrefillIfNeeded(post_per_layer_input_norm_props,
-                            is_kv_shared_layer);
-  LayerHandle post_per_layer_input_norm(
-    createLayer("rms_norm", post_per_layer_input_norm_props));
-  Tensor per_layer_input_normed =
-    post_per_layer_input_norm(per_layer_input_projected);
-
-  std::vector<std::string> decoder_output_props = {
-    withKey("name", "layer" + std::to_string(layer_id) + "_decoder_output")};
-  decoder_output_props.push_back(withKey("engine", causallm_engine()));
-  appendSkipPrefillIfNeeded(decoder_output_props, is_kv_shared_layer);
-  LayerHandle decoder_output_layer(
-    createLayer("addition", decoder_output_props));
-  Tensor decoder_output =
-    decoder_output_layer({decoder_output_base, per_layer_input_normed});
-
-  std::vector<std::string> layer_scalar_props = {
-    withKey("name", "layer" + std::to_string(layer_id) + "_layer_scalar"),
-    withKey("packed", "false"),
-    withKey("use_weight", "true"),
-  };
-  layer_scalar_props.push_back(withKey("engine", causallm_engine()));
-  appendSkipPrefillIfNeeded(layer_scalar_props, is_kv_shared_layer);
-  LayerHandle layer_scalar(createLayer("scalar_multiply", layer_scalar_props));
-
-  return layer_scalar(decoder_output);
+  return post_ffn_norm(ffn_out);
 }
 
 Tensor Gemma4Transformer::createSharedAttention(const int layer_id,
@@ -773,6 +795,7 @@ Tensor Gemma4Transformer::createAttention(const int layer_id, int seq_len,
 
   const bool is_sliding = isSlidingAttentionLayer(layer_id);
   const bool is_kv_shared_layer = isKVSharedLayer(layer_id);
+  const bool use_alternative_attention = ATTENTION_K_EQ_V && !is_sliding;
   const int curr_head_dim = static_cast<int>(getAttentionHeadDim(layer_id));
   const int curr_kv_heads = static_cast<int>(getKVHeadCount(layer_id));
 
@@ -799,17 +822,20 @@ Tensor Gemma4Transformer::createAttention(const int layer_id, int seq_len,
   LayerHandle wk(createLayer("fully_connected", k_params));
   Tensor k = wk(key);
 
-  // V layer [B, S, H] -> [B, S, Nk*Dh]
-  std::vector<std::string> v_params = {
-    withKey("name", V),
-    withKey("unit", curr_head_dim * curr_kv_heads),
-    withKey("disable_bias", "true"),
-    withKey("weight_initializer", "ones"),
-    withKey("weight_dtype", FC_LAYER_DTYPE),
-    withKey("engine", causallm_engine())};
-  appendSkipPrefillIfNeeded(v_params, is_kv_shared_layer);
-  LayerHandle wv(createLayer("fully_connected", v_params));
-  Tensor v = wv(value);
+  Tensor v = k;
+  if (!use_alternative_attention) {
+    // V layer [B, S, H] -> [B, S, Nk*Dh]
+    std::vector<std::string> v_params = {
+      withKey("name", V),
+      withKey("unit", curr_head_dim * curr_kv_heads),
+      withKey("disable_bias", "true"),
+      withKey("weight_initializer", "ones"),
+      withKey("weight_dtype", FC_LAYER_DTYPE),
+      withKey("engine", causallm_engine())};
+    appendSkipPrefillIfNeeded(v_params, is_kv_shared_layer);
+    LayerHandle wv(createLayer("fully_connected", v_params));
+    v = wv(value);
+  }
 
   // q_norm on per-head projection [B, S, Nq*Dh]
   std::vector<std::string> q_norm_params = {
