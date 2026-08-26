@@ -38,6 +38,7 @@
 #include "gemma2_causallm.h"
 #include "gemma3_causallm.h"
 #include "gemma4_causallm.h"
+#include "gemma4_moe_causallm.h"
 #if !defined(_WIN32)
 #include "gptoss_cached_slim_causallm.h"
 #endif
@@ -164,8 +165,18 @@ void registerAllModels() {
       });
     causallm::Factory::Instance().registerModel(
       "Gemma4ForCausalLM", [](json cfg, json generation_cfg, json nntr_cfg) {
-        return std::make_unique<causallm::Gemma4CausalLM>(cfg, generation_cfg,
-                                                          nntr_cfg);
+        const json &text_cfg =
+          cfg.contains("text_config") && cfg["text_config"].is_object()
+            ? cfg["text_config"]
+            : cfg;
+        if (text_cfg.value("enable_moe_block", false)) {
+          return std::unique_ptr<causallm::Transformer>(
+            std::make_unique<causallm::Gemma4MoECausalLM>(cfg, generation_cfg,
+                                                          nntr_cfg));
+        }
+        return std::unique_ptr<causallm::Transformer>(
+          std::make_unique<causallm::Gemma4CausalLM>(cfg, generation_cfg,
+                                                     nntr_cfg));
       });
     causallm::Factory::Instance().registerModel(
       "EmbeddingGemma", [](json cfg, json generation_cfg, json nntr_cfg) {

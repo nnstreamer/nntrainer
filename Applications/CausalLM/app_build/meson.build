@@ -235,6 +235,8 @@ causallm_src = [
   causallm_root / 'models' / 'gemma3' / 'embedding_gemma.cpp',
   causallm_root / 'models' / 'gemma3' / 'function.cpp',
   causallm_root / 'models' / 'gemma4' / 'gemma4_causallm.cpp',
+  causallm_root / 'models' / 'gemma4' / 'gemma4_moe_causallm.cpp',
+  causallm_root / 'models' / 'gemma4' / 'gemma4_moe_layer.cpp',
   causallm_root / 'models' / 'lfm2' / 'lfm2_causallm.cpp',
   causallm_root / 'models' / 'timm_vit' / 'timm_vit_transformer.cpp',
   causallm_root / 'models' / 'deberta_v2' / 'deberta_v2.cpp',
