@@ -1,6 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (C) 2026 Samsung Electronics Co., Ltd. All Rights Reserved.
-# Author: Jungwon-Lee <jungone.lee@samsung.com>
+
+## @package generate_gemma4_moe_reference
+## @brief Generate Hugging Face reference fixtures for a tiny Gemma4 MoE model.
+## @author Jungwon-Lee <jungone.lee@samsung.com>
 
 """Generate Hugging Face reference fixtures for a tiny Gemma4 MoE model.
 

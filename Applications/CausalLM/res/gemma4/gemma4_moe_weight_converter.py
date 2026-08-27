@@ -1,6 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (C) 2026 Samsung Electronics Co., Ltd. All Rights Reserved.
-# Author: Jungwon-Lee <jungone.lee@samsung.com>
+
+## @package gemma4_moe_weight_converter
+## @brief Convert HuggingFace Gemma4 MoE weights to the nntrainer format.
+## @author Jungwon-Lee <jungone.lee@samsung.com>
 
 """Convert HuggingFace Gemma4 MoE weights to the nntrainer format."""
 

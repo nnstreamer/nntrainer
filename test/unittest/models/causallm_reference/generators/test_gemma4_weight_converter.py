@@ -1,6 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (C) 2026 Samsung Electronics Co., Ltd. All Rights Reserved.
-# Author: Jungwon-Lee <jungone.lee@samsung.com>
+
+## @package test_gemma4_weight_converter
+## @brief Unit tests for Gemma4 MoE weight-spec conversion.
+## @author Jungwon-Lee <jungone.lee@samsung.com>
 
 """Unit tests for Gemma4 MoE weight-spec conversion."""
 
