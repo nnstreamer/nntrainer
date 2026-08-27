@@ -3,6 +3,7 @@
  * @file   gemma4_moe_causallm.h
  * @brief  Gemma4 MoE causal language model implementation.
  * @author Jungwon-Lee <jungone.lee@samsung.com>
+ * @bug    No known bugs
  */
 
 #ifndef __GEMMA4_MOE_CAUSAL_LM_H__

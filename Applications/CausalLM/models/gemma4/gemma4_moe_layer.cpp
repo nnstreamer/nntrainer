@@ -6,6 +6,7 @@
  * @brief  Gemma4 sparse Mixture-of-Experts inference layer.
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Jungwon-Lee <jungone.lee@samsung.com>
+ * @bug    No known bugs
  */
 
 #include <gemma4_moe_layer.h>
