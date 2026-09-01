@@ -720,34 +720,11 @@ void Transformer::repack_weight() {
       "Transformer model is not initialized. Please call "
       "initialize() before repack_weight().");
   }
-  /** Recorded (before the engine gate below, which is a per-engine no-op rather
-   *  than "the caller did not ask") so growPrefillPlane() replays the caller's
-   *  load sequence in the same order it happened. */
-  weight_repacked_ = true;
-
-  // [perf/thermal] The KAI rhs-pack below is consumed ONLY by the ARM CPU
-  // KleidiAI GEMM. The GPU (v8c) and x86 paths read the plain on-disk QS4CX
-  // blob directly (see the comment at the pack() call). On a GPU run the whole
-  // loop is therefore redundant CPU work — when it was still single-threaded,
-  // a large model pinned one core to a thermal shutdown (Adreno: GPU idle at
-  // 0%, one CPU core -> ~104C -> device reboot; 96%+ of CPU was in
-  // kai_run_rhs_pack). Skip it on every non-CPU engine — "gpu" (OpenCL) AND
-  // "cuda" both consume the plain blob; only the ARM CPU (KAI) run packs.
-  // (On ARM64 CUDA the old =="gpu" check let packF16Activation allocate a
-  // full unconsumed host copy of every FC weight.)
-  if (causallm_engine() != "cpu") {
-    ml_logd("repack_weight: skipped on %s engine (consumes plain QS4CX blob)",
-            causallm_engine().c_str());
+  // Orchestrator subclasses (e.g. ScreenAICaption) own sub-models instead of
+  // populating this base `model` member; nothing to repack here in that case.
+  if (!model) {
     return;
   }
-  // fp16-act graphs dispatch QS4CX FCs through HalfTensor::dot, whose KAI rhs
-  // is the fp16-scale layout (packF16Activation) — pack()'s fp32-facade rhs
-  // would be dead weight there (an unconsumed full extra copy of every FC in
-  // RAM, and ~11% of a 1K-run's CPU in kai_run_rhs_pack). fp32-act graphs
-  // dispatch through FloatTensor::dotQs4cx and need pack() as before.
-  const bool f16_act =
-    MODEL_TENSOR_TYPE.size() >= 5 &&
-    MODEL_TENSOR_TYPE.compare(MODEL_TENSOR_TYPE.size() - 5, 5, "-FP16") == 0;
   std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>
     fn = [f16_act](ml::train::Layer &l, nntrainer::RunLayerContext &context,
                    void *) {
