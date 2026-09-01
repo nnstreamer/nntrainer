@@ -41,24 +41,36 @@ std::string loadBytes(const std::string &path) {
 }
 
 /// Resolve a possibly-relative or stale path against the model directory.
-/// Prefers the path as-given if it exists; otherwise falls back to
-/// <dir>/<basename> (handles stale absolute paths from nntr_config).
+/// A relative name (the common case: "tokenizer.json" from nntr_config) is
+/// resolved against the model dir FIRST, not against the caller's current
+/// working directory -- when run from a shared on-device root (e.g. `cd
+/// /data/local/tmp/Quick.AI && ./quick_dot_ai ...`), a same-named leftover
+/// file from a completely different model (e.g. a large-vocab LLM's
+/// tokenizer.json sitting at that root) would otherwise silently shadow this
+/// model's own file: std::filesystem::exists() on a bare relative name checks
+/// CWD, and a match there returned immediately before the model dir was ever
+/// consulted. Only an absolute path prefers the path as-given, falling back
+/// to <dir>/<basename> for a stale absolute path from nntr_config.
 std::string resolvePath(const std::string &dir, const std::string &name) {
   if (name.empty())
     return name;
-  if (std::filesystem::exists(name))
-    return name;
-  if (dir.empty())
-    return name;
   std::filesystem::path p(name);
   if (p.is_absolute()) {
-    // Stale absolute path: retry with just the filename under the model dir.
+    if (std::filesystem::exists(name))
+      return name;
+    if (dir.empty())
+      return name;
     auto fallback = std::filesystem::path(dir) / p.filename();
     if (std::filesystem::exists(fallback))
       return fallback.string();
     return name;
   }
-  return (std::filesystem::path(dir) / name).string();
+  if (!dir.empty()) {
+    auto joined = std::filesystem::path(dir) / name;
+    if (std::filesystem::exists(joined))
+      return joined.string();
+  }
+  return name;
 }
 } // anonymous namespace
 
