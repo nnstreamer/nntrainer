@@ -195,6 +195,32 @@ public:
    */
   static void setConfig(const ThreadManagerConfig &config) { config_ = config; }
 
+  /**
+   * @brief Override the compute thread count before the pool starts.
+   * @param num_threads number of compute threads (including main thread)
+   * @return false if the pool was already initialized (call came too late,
+   *         after the first Global()/parallel_for() in this process) or if
+   *         num_threads is 0; true if the override was applied.
+   * @note Unlike setConfig(), this checks whether the pool has already
+   *       spun up and reports failure instead of silently doing nothing.
+   */
+  static bool setComputeThreads(uint32_t num_threads) {
+    if (num_threads == 0 ||
+        pool_initialized_.load(std::memory_order_acquire))
+      return false;
+    config_.compute_threads = num_threads;
+    return true;
+  }
+
+  /**
+   * @brief return the currently configured compute thread count
+   * @note This is the configured value, not necessarily what the running
+   *       pool ended up with (initialize() may clamp it to hw_threads).
+   */
+  static uint32_t getConfiguredComputeThreads() {
+    return config_.compute_threads;
+  }
+
 private:
 #if defined(__linux__) || defined(__ANDROID__)
   /**
@@ -341,6 +367,7 @@ private:
 
   // ─── Config ─────────────────────────────────────────
   static ThreadManagerConfig config_;
+  static std::atomic<bool> pool_initialized_;
 };
 
 } // namespace nntrainer
