@@ -390,7 +390,7 @@ protected:
   bool IS_CAUSAL = true;
 
   // Performance metrics
-  TransformerPerformanceMetrics performance_metrics;
+  TransformerPerformanceMetrics performance_metrics{};
 
   bool has_run_ = false;
 };
