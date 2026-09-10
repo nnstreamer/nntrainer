@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <HAP_perf.h>
 #include <qurt.h>
 
 /** @brief Hexagon SMT pause hint for the calling thread's spin-wait below --
@@ -32,6 +33,41 @@
 static inline void hvx_worker_pool_pause(void) {
   asm volatile(" pause(#255)\n");
 }
+
+/**
+ * @brief How long a worker spins on seqn before it goes back to the futex.
+ *
+ * The gaps this has to cover are the ones INSIDE one layer call. A gate_up
+ * call dispatches the input quant, then runs ~350 us of HMX and dequant
+ * with no dispatch at all, then SwiGLU, then the output requant -- five
+ * dispatches, and a worker that sleeps between them pays a futex wake each
+ * time. That wake is the same order of magnitude as the 4-22 us of HVX work
+ * a dispatch actually carries, which is what put five dispatches per call at
+ * roughly a fifth of the call's DSP time (doc 44 section 7.4).
+ *
+ * 400 us covers that middle stretch. It does not separate cleanly from the
+ * gap BETWEEN calls (~270 us of FastRPC transport), so while a model is
+ * running these threads mostly spin rather than sleep -- which is the
+ * intent. The DSP session is dedicated for the duration, and pause(#255)
+ * releases the hardware thread for its own duration, so a spinner is not
+ * taking issue slots from the thread doing real work. Once inference stops
+ * the spin expires once per worker and they are all back on the futex.
+ *
+ * ponytail: one constant, and nothing adapts it. Ceiling: a workload whose
+ * dispatch rhythm differs from this one wants a different number and there
+ * is nothing here that would notice. Upgrade path, in the order the profile
+ * would justify them -- (1) count sleepers so hvx_worker_pool_run can skip
+ * qurt_futex_wake when none are asleep, which is race-free because
+ * futex_wait rechecks seqn against prev_seqn itself before sleeping; (2)
+ * grow and shrink the spin from how often it expires with a job arriving
+ * immediately afterwards.
+ */
+#define HVX_WORKER_POOL_SPIN_US 400u
+
+/** @brief Pause iterations between two qtimer reads while spinning. The
+ *         timer read is the expensive part of the loop; this amortizes it
+ *         without letting the spin overshoot its budget meaningfully. */
+#define HVX_WORKER_POOL_SPIN_PAUSES 64u
 
 /** @brief Per-worker stack, generous for the quant kernels this pool
  *         currently runs (a handful of HVX vector locals, no recursion). */
@@ -57,6 +93,39 @@ struct hvx_worker_pool_s {
   unsigned char *stack_blob;
 };
 
+/**
+ * @brief Spins on seqn for up to HVX_WORKER_POOL_SPIN_US.
+ *
+ * @return the new seqn if a job was published while spinning, otherwise
+ *         @a prev_seqn -- meaning the caller should sleep on the futex.
+ */
+static uint32_t hvx_worker_pool_spin(const hvx_worker_pool *pool,
+                                     uint32_t prev_seqn) {
+  const uint64_t t0 = HAP_perf_qtimer_count_to_us(HAP_perf_get_qtimer_count());
+  for (;;) {
+    for (uint32_t i = 0; i < HVX_WORKER_POOL_SPIN_PAUSES; ++i) {
+      hvx_worker_pool_pause();
+      const uint32_t seqn =
+        atomic_load_explicit(&pool->seqn, memory_order_acquire);
+      if (seqn != prev_seqn) {
+        return seqn;
+      }
+    }
+    // Checked here rather than only at the loop top so that teardown cannot
+    // be delayed by a full spin budget. hvx_worker_pool_destroy does bump
+    // seqn after setting this, so the read above would catch it too; this
+    // just makes the loop's termination obvious without relying on that.
+    if (atomic_load_explicit(&pool->killed, memory_order_relaxed)) {
+      return prev_seqn;
+    }
+    const uint64_t now =
+      HAP_perf_qtimer_count_to_us(HAP_perf_get_qtimer_count());
+    if (now - t0 >= HVX_WORKER_POOL_SPIN_US) {
+      return prev_seqn;
+    }
+  }
+}
+
 static void hvx_worker_pool_thread_entry(void *arg) {
   hvx_worker_ctx *me = (hvx_worker_ctx *)arg;
   hvx_worker_pool *pool = me->pool;
@@ -69,6 +138,13 @@ static void hvx_worker_pool_thread_entry(void *arg) {
 
     uint32_t seqn = atomic_load_explicit(&pool->seqn, memory_order_acquire);
     if (seqn == prev_seqn) {
+      seqn = hvx_worker_pool_spin(pool, prev_seqn);
+    }
+    if (seqn == prev_seqn) {
+      // The spin expired with no job. futex_wait rechecks seqn against
+      // prev_seqn atomically before it sleeps, so a job published between
+      // the spin's last read and this call is not lost -- the same
+      // guarantee the pre-spin version of this loop relied on.
       qurt_futex_wait(&pool->seqn, (int)prev_seqn);
       continue;
     }
