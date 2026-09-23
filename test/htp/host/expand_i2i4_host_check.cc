@@ -30,6 +30,7 @@ hvx_worker_pool *hvx_worker_pool_create(uint32_t n_workers);
 void hvx_worker_pool_destroy(hvx_worker_pool *pool);
 }
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -103,6 +104,43 @@ int main() {
   roundTrip(1792, 2048, 2u, "down    1792x2048", pool);
   roundTrip(32, 32, 3u, "one tile   32x32  ", pool);
   roundTrip(96, 64, 4u, "small      96x64  ", pool);
+
+  /* IN PLACE. The 2-bit chunk is DMA'd into the TOP half of the int4 slot
+     it expands into, so the expansion needs no VTCM of its own -- which is
+     what makes it fit at all (doc 54 5.6). Safe because output byte
+     2j+1 only reaches source byte j, so the write pointer never passes the
+     read pointer: at vector v the stores cover [256v, 256v+256) and the
+     unread source starts at H + 128(v+1), and 128(v+1) <= H = src_bytes
+     holds with equality at the last vector. Checked here rather than
+     argued, because "with equality at the last vector" is where an
+     off-by-one would live. */
+  {
+    const uint32_t K = 2048, N = 3584;
+    std::mt19937 rng(9u);
+    std::normal_distribution<float> bell(0.0f, 3.0f);
+    std::vector<int8_t> rm(static_cast<size_t>(K) * N);
+    for (auto &v : rm) {
+      int q = static_cast<int>(std::lround(bell(rng)));
+      v = static_cast<int8_t>(q < -8 ? -8 : (q > 7 ? 7 : q));
+    }
+    int8_t pal[nntrainer::WH_PALETTE_LEVELS];
+    nntrainer::whPaletteQuantize(rm.data(), K, N, 0, false, pal);
+
+    std::vector<uint8_t> four(nntrainer::whBytes(K, N));
+    nntrainer::whPack(rm.data(), K, N, four.data());
+    std::vector<uint8_t> two(nntrainer::whBytes2(K, N));
+    nntrainer::whPack2(rm.data(), K, N, pal, two.data());
+    std::vector<uint8_t> table(HVX_EXPAND_TABLE_BYTES);
+    hvx_expand_i2i4_table(pal, table.data());
+
+    /* One 4-bit slot with the codes sitting in its top half. */
+    std::vector<uint8_t> slot(four.size(), 0xCC);
+    std::copy(two.begin(), two.end(), slot.begin() + two.size());
+    hvx_expand_i2i4(slot.data() + two.size(),
+                    static_cast<uint32_t>(two.size()), table.data(),
+                    slot.data());
+    check(slot == four, "in place (codes in the top half)");
+  }
 
   /* A palette with duplicate entries: whPaletteFitHist pads that way when
      a group has fewer than four distinct codes, and the table has to stay
