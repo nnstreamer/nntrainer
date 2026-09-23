@@ -762,6 +762,9 @@ Tensor &FloatTensor::dot(Tensor const &input, Tensor &output, bool trans,
   case Tdatatype::QS4CX:
     dotQs4cx(input, output, trans, trans_in, beta, input.getDataType());
     break;
+  case Tdatatype::QS2CX_WH:
+    // Same as below, and one step further out of reach: the codes are two
+    // bits into a palette and have to be expanded in VTCM first.
   case Tdatatype::QS4CX_WH:
     // Reaching a CPU kernel at all is the error. These nibbles are in the
     // HMX unit's weight-tile layout (htp_wh_layout.h), which no kernel here
@@ -769,7 +772,8 @@ Tensor &FloatTensor::dot(Tensor const &input, Tensor &output, bool trans,
     // this way. Named rather than left to the default, because "unsupported
     // datatype" says nothing about which of the two to change.
     throw std::invalid_argument(
-      "QS4CX_WH weights have no CPU kernel: they are pre-arranged for the "
+      "QS4CX_WH / QS2CX_WH weights have no CPU kernel: they are pre-arranged "
+      "for the "
       "HTP. Either route this layer to the HTP (nntr_config.json: "
       "\"moe_engine\": \"htp\", and every MoE layer listed in "
       "\"moe_htp_layers\" -- an empty value means all of them), or "

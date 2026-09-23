@@ -99,7 +99,8 @@ M=1 콜은 mm 764 + acc 259 = 1.02 ms로 HMX가 DMA(1.19 ms)와 거의 같은 �
 | **0** | DMA 포화 확인 (`HEXKL_MOE_HALF_DMA`) | **코드 있음** (`f3874b0`) | dsp −1.4 ms/콜이면 예산 확정. ≤0.3이면 **prefill 이득 0**, 메모리 과제로 재정의 |
 | **1** | 팔레트 ppl 표 (`--moe_palette_*`) | **코드 있음** (`1a69287`) | §5.2 표. B 행이 살아남는가 |
 | 2 | 숨은 워커 시간 프로브 + 펼침 마이크로벤치 | 미착수 | 펼침 ≥120 GB/s. 워커 슬랙 있음 |
-| 3 | `QS2CX_WH` 포맷 + 등록 경로 (메모리 이득) | 미착수 | peak RSS ≈3,400 MB, ppl은 1의 해당 칸과 소수점까지 동일 |
+| **3a** | `QS2CX_WH` 포맷 + 양자화기 | **코드 있음** (`996ce0c7`) | 파일이 절반, 펼치면 4-bit 대역과 바이트 동일 — **확인됨** |
+| 3b | HTP 등록 경로 (메모리 이득) | 미착수 | peak RSS ≈3,400 MB, ppl은 1의 해당 칸과 소수점까지 동일 |
 | 4 | VTCM 펼침 (DMA 이득) | 미착수 | `drain`↓, **`mm`·`acc` 불변**, dsp 순감소 |
 
 3과 4를 나눈 이유: 배선 실수를 펼침 성능 문제와 섞지 않기 위해서다.
@@ -147,10 +148,15 @@ LD_LIBRARY_PATH=. ADSP_LIBRARY_PATH=. NNTR_NUM_THREADS=8 NNTR_HTP_PROFILE=3 \
 
 ```bash
 build/Applications/CausalLM/nntr_quantize_stream <fp32_model_dir> \
-  -o <out_dir>/lfm2.5-8b-a1b-q40-qs4cx-wh-pg256 \
+  -o <out_dir>/lfm2.5-8b-a1b-q40-qs4cx-wh-pgmax \
   --fc_dtype Q4_0 --moe_dtype QS4CX_WH --embd_dtype Q4_0 --lmhead_dtype Q4_0 \
-  --isa ARM --moe_palette_g 256
+  --isa ARM --moe_palette_g max
 ```
+
+**`max`여야 한다.** `QS2CX_WH`는 팔레트를 텐서당 하나만 담으므로(§6), `g 256`은 실제
+2-bit 파일과 *통계적으로만* 같고 바이트로는 다른 모델이다. §5.3이 G가 SNR을 안 바꾼다고
+했으니 `max`로 잃는 것은 없고, 얻는 것은 **잰 것과 굽는 것이 같은 모델이라는 보장**이다
+(tiny fixture에서 확인: `--moe_palette_g max` QS4CX_WH를 펼치면 QS2CX_WH와 바이트 동일).
 
 경로가 도는 것은 tiny fixture(`test/unittest/models/causallm_reference/lfm2_moe_tiny`)로
 호스트에서 확인했다 (2026-09-23): 출력 크기 71,648 B로 **불변**, 달라진 바이트는
@@ -162,17 +168,17 @@ embedding·lm_head는 바이트 동일. 그 안의 코드는 16개 → **4개**
 `nntr_config.json`은 기존 HTP 디렉터리와 같게(전부 켬). 기기:
 ```bash
 LD_LIBRARY_PATH=. ADSP_LIBRARY_PATH=. NNTR_NUM_THREADS=8 NNTR_HTP_PROFILE=2 NNTR_PPL=1 \
-  ./nntrainer_causallm ./models/lfm2.5-8b-a1b-q40-qs4cx-wh-pg256
+  ./nntrainer_causallm ./models/lfm2.5-8b-a1b-q40-qs4cx-wh-pgmax
 ```
 
 채울 표 (기준 **ppl 62.0916**):
 
 | scope | G | 적용 | ppl | 판정 |
 |---|---|---|---|---|
-| group | 256 | both | | **이것 하나가 판정한다** (§5.3) |
-| group | 256 | gate_up | | 위가 떨어졌을 때만. 혼합 정밀도 후퇴선 (I/O 1.6×) |
-| ~~group~~ | ~~max/128/64~~ | | | **굽지 않음** — §5.3, group scope에서 G는 SNR을 소수점까지 안 바꾼다 |
-| ~~colgroup~~ | ~~256~~ | | | **굽지 않음** — §5.3, +0.4 dB에 펼침 6배 |
+| group | `max` | both | | **이것 하나가 판정한다** (§5.3) |
+| group | `max` | gate_up | | 위가 떨어졌을 때만. 혼합 정밀도 후퇴선 (I/O 1.6×) |
+| ~~group~~ | ~~256/128/64~~ | | | **굽지 않음** — §5.3, group scope에서 G는 SNR을 소수점까지 안 바꾼다 |
+| ~~colgroup~~ | ~~any~~ | | | **굽지 않음** — §5.3, +0.4 dB에 펼침 6배 |
 | ~~refit off~~ | | | | **굽지 않음** — §5.3, −0.35 dB |
 
 | ppl | 판정 |
@@ -224,12 +230,44 @@ LD_LIBRARY_PATH=. ADSP_LIBRARY_PATH=. NNTR_NUM_THREADS=8 NNTR_HTP_PROFILE=2 NNTR
 그건 캘리브레이션 데이터와 expert별 Hessian이 필요한 별개 과제이고, 이 과제의 진짜 분기점이다.
 
 
+## 5.4 `QS2CX_WH` 포맷 (2026-09-23, 호스트)
+
+```
+[K*N/4 codes][4 palette bytes][N f32 scales][N f32 colsums]
+```
+
+코드는 **whPack의 nibble 순서 그대로**, 4개씩 한 바이트에 낮은 비트부터. 그래서 소스 바이트
+j가 출력 바이트 2j·2j+1로 떨어지고 섞을 것이 없다 — §3의 B가 성립하는 조건이다.
+
+**팔레트는 텐서당 하나다.** §5.3이 그룹 크기를 실제 체크포인트에 대고 재봤을 때 SNR을
+전혀 안 바꿨기 때문이다. 코드 히스토그램이 어디서나 같은 모양이라 적합이 같은 네 레벨을
+고른다. 그룹 축을 포맷에 남기면 DSP 펼침에도 테이블 교체로 따라 들어온다 —
+아무것도 변하지 않는 축을 위해. *ponytail: GPTQ처럼 그룹마다 분포가 달라지는 레시피가
+오면 그때 축을 넣는다. 지금 레시피에는 없다.*
+
+tiny fixture 확인 (2026-09-23):
+
+| | |
+|---|---|
+| 파일 | 71,648 → **59,424 B** (−12,224 = 8 expert × (gate_up −1024, down −512, palette +8)) |
+| 펼침 | `--moe_palette_g max` QS4CX_WH와 **layer 1의 8개 텐서 전부 바이트 동일** (weights·scales·colsums) |
+| `moe_layer_dtype` | `"QS2CX_WH"` |
+
+유닛 테스트 `wh_pack2_expands_back_to_wh_pack`가 `whPack2 → whExpand2 == whPack`을 지킨다.
+`whExpand2`는 DSP HVX 구현이 만족해야 할 **명세**이기도 하다 — 같은 16-엔트리 테이블,
+출력 바이트당 한 번의 조회.
+
+**아직 못 돌린다.** 파일은 있고 텐서로 로드도 되지만, `get_or_register_wh`·IDL·DSP 펼침이
+없어서 HTP에 올릴 수 없다(3b, 4). CPU는 `FloatTensor::dot`이 `QS4CX_WH`와 같이 throw하도록
+막아뒀다 — 조용히 틀린 답을 내는 것보다 낫다.
+
 ## 6. 들어간 코드
 
 | 커밋 | 무엇 |
 |---|---|
 | `f3874b0` | `HEXKL_MOE_HALF_DMA` (측정 전용 빌드), `build.sh`의 `HEXKL_EXTRA_CFLAGS` |
 | `1a69287` | `nntrainer/tensor/htp_wh_palette.h` (팔레트 DP + 적용), `quantize_stream.cpp`의 `--moe_palette_*`, 유닛 테스트 `wh_palette_is_optimal_and_restricts` |
+| `996ce0c7` | `QS2CX_WH`: `whPack2`/`whExpand2`/`whPaletteTable`, `QS2CX_WH_Tensor`, dtype 배관, `--moe_dtype QS2CX_WH`, 유닛 테스트 `wh_pack2_expands_back_to_wh_pack` |
 
 팔레트 적합은 k-means가 아니라 **DP로 정확**하다: 후보 코드가 16개뿐이라 최근접 분할이
 연속 구간이 되고, 네 구간 위의 DP가 최적이다. 유닛 테스트가 그것을 1820개 4-부분집합

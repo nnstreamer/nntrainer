@@ -312,6 +312,102 @@ public:
   std::string getStringDataType() const override { return "QS4CX_WH"; }
 };
 
+/**
+ * @class QS2CX_WH_Tensor
+ * @brief QS4CX_WH at two bits a weight
+ *
+ * Same tile order, same per-output-channel scale, same column sums -- only
+ * the codes are narrower. Each code indexes one of four int4 values in a
+ * palette that covers the whole tensor, and the HTP expands the codes back
+ * to the int4 lattice in VTCM before the matmul, so everything downstream
+ * of the matmul is bit-identical to QS4CX_WH (htp_wh_palette.h).
+ *
+ * Layout: [K*N/4 codes][4 palette bytes][N f32 scales][N f32 column sums].
+ *
+ * The palette is per tensor rather than per k-group because doc 54 5.3
+ * measured group size against the real checkpoint and it changed the SNR by
+ * nothing -- the code histogram has the same shape everywhere, so the fit
+ * picks the same four levels. A recipe that makes groups differ (GPTQ would)
+ * needs a group axis here; this one does not, and carrying an axis nothing
+ * varies along would be carried into the DSP expansion as a table swap.
+ */
+class QS2CX_WH_Tensor : public QS4CX_WH_Tensor {
+public:
+  /** @brief Palette entries stored after the codes */
+  static constexpr size_t PALETTE_BYTES = 4;
+
+  /** @brief Basic constructor */
+  QS2CX_WH_Tensor(std::string name_ = "", Tformat fm = Tformat::NCHW) :
+    QS4CX_WH_Tensor(name_, fm) {}
+
+  /**
+   * @brief Construct a new QS2CX_WH_Tensor
+   * @note Allocation is deferred for the reason QS4CX_WH_Tensor documents:
+   *       a virtual size() called from a base constructor runs the base
+   *       override and under-allocates.
+   */
+  QS2CX_WH_Tensor(const TensorDim &d, bool alloc_now,
+                  Initializer init = Initializer::NONE, std::string name = "") :
+    QS4CX_WH_Tensor(d, false, init, name) {
+    if (alloc_now)
+      allocate();
+  }
+
+  /** @brief Construct from a buffer */
+  QS2CX_WH_Tensor(const TensorDim &d, const void *buf = nullptr) :
+    QS2CX_WH_Tensor(d, true, Initializer::NONE, "") {
+    if (d.getDataLen() != 0 && buf != nullptr)
+      copy_qs4cx(buf);
+  }
+
+  /** @brief Copy constructor from TensorBase */
+  QS2CX_WH_Tensor(TensorBase &rhs) : QS4CX_WH_Tensor(rhs) {}
+
+  /**
+   * @copydoc Tensor::size()
+   */
+  size_t size() const override {
+    const size_t K = height();
+    const size_t N = width();
+    return N * ((K + 3) / 4) + PALETTE_BYTES + 2 * width() * sizeof(float);
+  }
+
+  /**
+   * @copydoc Tensor::getMemoryBytes()
+   */
+  size_t getMemoryBytes() const override { return size() * sizeof(uint8_t); }
+
+  /**
+   * @copydoc QS4CX_Tensor::getScale()
+   * @note The palette sits between the codes and the scales, so the base
+   *       class's offset would land four bytes short.
+   */
+  void *getScale() const override {
+    if (!data)
+      return nullptr;
+    data->validate();
+    const size_t K = height();
+    const size_t N = width();
+    return ((int8_t *)getData()) + N * ((K + 3) / 4) + PALETTE_BYTES;
+  }
+
+  /** @brief The four int4 codes the 2-bit indices name, ascending */
+  const int8_t *getPalette() const {
+    if (!data)
+      return nullptr;
+    data->validate();
+    const size_t K = height();
+    const size_t N = width();
+    return ((const int8_t *)getData()) + N * ((K + 3) / 4);
+  }
+
+  /**
+   * @brief  Get the Data Type String object
+   * @return std::string of tensor data type (QS2CX_WH)
+   */
+  std::string getStringDataType() const override { return "QS2CX_WH"; }
+};
+
 } // namespace nntrainer
 
 #endif /* __cplusplus */
