@@ -229,6 +229,16 @@ interface nntr_hvx : remote_handle64 {
                             rout sequence<float> exp_out,
                             rout sequence<float> recip_out);
 
+   // [doc 54] The 2-bit expert expansion (hvx_expand_i2i4.h). Same reason
+   // swiglu_det_f32 exists: the HVX form rests on an unverified reading of
+   // V6_vlutvvb, its scalar twin is the specification, and only running
+   // both on the device settles it. codes are QS2CX_WH bytes, pal is the
+   // tensor's four int4 levels, and both outputs come back so a failure
+   // says whether the table or the lookup is wrong.
+   // codesLen must be a multiple of 128; out and ref are 2 * codesLen.
+   AEEResult expand_i2i4(in sequence<uint8> codes, in sequence<int8> pal,
+                         rout sequence<uint8> out, rout sequence<uint8> ref);
+
    AEEResult softmax_f32(in uint32 M, in uint32 K, in uint32 m_first,
                          in float scale, in sequence<float> x,
                          rout sequence<float> y);

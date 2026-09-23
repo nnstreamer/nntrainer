@@ -227,29 +227,6 @@ inline size_t whBytes2(uint32_t K, uint32_t N) {
 }
 
 /**
- * @brief The 16-entry expansion table: a PAIR of codes -> one int4 byte
- *
- * This is the whole reason the format looks the way it does. A WH byte holds
- * two nibbles, and the two codes that produce them are adjacent in the code
- * stream, so a table indexed by the pair turns expansion into one lookup per
- * output byte. On HVX that is a single vlut32 over a 16-entry table -- three
- * ops an output vector, against about seventeen for a per-column palette
- * that needs the codes spread one to a byte and a 128-entry table. The
- * cheaper shape is what fits inside the DMA it is meant to save (doc 54 3).
- *
- * @param pal four int4 codes, ascending
- * @param out 16 bytes, out[(hi << 2) | lo]
- */
-inline void whPaletteTable(const int8_t pal[WH_PALETTE_LEVELS], uint8_t *out) {
-  for (uint32_t hi = 0; hi < WH_PALETTE_LEVELS; ++hi) {
-    for (uint32_t lo = 0; lo < WH_PALETTE_LEVELS; ++lo) {
-      out[(hi << 2) | lo] =
-        static_cast<uint8_t>((pal[lo] & 0x0F) | ((pal[hi] & 0x0F) << 4));
-    }
-  }
-}
-
-/**
  * @brief Packs palette-restricted int4 codes as 2 bits each, in WH order
  *
  * Code i of a tile is whPack's nibble slot i, four to a byte, low bits
@@ -259,9 +236,13 @@ inline void whPaletteTable(const int8_t pal[WH_PALETTE_LEVELS], uint8_t *out) {
  * @param rm  K rows of N int8 codes, row stride N -- ALREADY restricted by
  *            whPaletteQuantize with this palette. Anything else is snapped
  *            to the nearest entry, which silently changes the weight;
- *            whPack2/whExpand2 round-tripping against whPack is the check
- *            that catches it.
+ *            whPack2 + hvx_expand_i2i4 round-tripping against whPack is
+ *            the check that catches it.
  * @param out whBytes2(K, N) bytes, zeroed by this function
+ *
+ * The inverse lives in the kernel, not here: hvx_expand_i2i4.c owns the
+ * expansion for both the DSP and the host, so there is one definition of
+ * what a code means. expand_i2i4_host_check ties the two together.
  */
 inline void whPack2(const int8_t *rm, uint32_t K, uint32_t N,
                     const int8_t pal[WH_PALETTE_LEVELS], uint8_t *out) {
@@ -287,32 +268,6 @@ inline void whPack2(const int8_t *rm, uint32_t K, uint32_t N,
           tile[sl / 4u] |= static_cast<uint8_t>(code << (2u * (sl % 4u)));
         }
       }
-    }
-  }
-}
-
-/**
- * @brief Expands 2-bit codes back to WH int4 bytes -- the host reference
- *
- * The DSP does this in VTCM with the table above; this is the scalar twin
- * that says what those bytes have to be. Its output must equal whPack of the
- * same restricted codes, byte for byte, or the 2-bit model and the 4-bit
- * model it was measured as are not the same model.
- *
- * @param out whBytes(K, N) bytes
- */
-inline void whExpand2(const uint8_t *in, uint32_t K, uint32_t N,
-                      const int8_t pal[WH_PALETTE_LEVELS], uint8_t *out) {
-  uint8_t table[WH_PALETTE_LEVELS * WH_PALETTE_LEVELS];
-  whPaletteTable(pal, table);
-  const size_t tiles = static_cast<size_t>(K / WH_TILE) * (N / WH_TILE);
-  for (size_t t = 0; t < tiles; ++t) {
-    const uint8_t *src = in + t * WH_TILE2_BYTES;
-    uint8_t *dst = out + t * WH_TILE_BYTES;
-    for (uint32_t j = 0; j < WH_TILE2_BYTES; ++j) {
-      const uint8_t s = src[j];
-      dst[2u * j] = table[s & 0x0Fu];
-      dst[2u * j + 1u] = table[(s >> 4) & 0x0Fu];
     }
   }
 }

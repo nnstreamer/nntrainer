@@ -101,7 +101,8 @@ M=1 콜은 mm 764 + acc 259 = 1.02 ms로 HMX가 DMA(1.19 ms)와 거의 같은 �
 | 2 | 숨은 워커 시간 프로브 + 펼침 마이크로벤치 | 미착수 | 펼침 ≥120 GB/s. 워커 슬랙 있음 |
 | **3a** | `QS2CX_WH` 포맷 + 양자화기 | **코드 있음** (`996ce0c7`) | 파일이 절반, 펼치면 4-bit 대역과 바이트 동일 — **확인됨** |
 | 3b | HTP 등록 경로 (메모리 이득) | 미착수 | peak RSS ≈3,400 MB, ppl은 1의 해당 칸과 소수점까지 동일 |
-| 4 | VTCM 펼침 (DMA 이득) | 미착수 | `drain`↓, **`mm`·`acc` 불변**, dsp 순감소 |
+| **4a** | 펼침 커널 `hvx_expand_i2i4` + 기기 게이트 | **코드 있음** (`138dd57b`) | `HvxExpandI2I4.MatchesScalarBitExact` bad=0 |
+| 4b | MoE 커널에 배선 (VTCM 스테이징) | 미착수 | `drain`↓, **`mm`·`acc` 불변**, dsp 순감소 |
 
 3과 4를 나눈 이유: 배선 실수를 펼침 성능 문제와 섞지 않기 위해서다.
 
@@ -261,13 +262,72 @@ tiny fixture 확인 (2026-09-23):
 없어서 HTP에 올릴 수 없다(3b, 4). CPU는 `FloatTensor::dot`이 `QS4CX_WH`와 같이 throw하도록
 막아뒀다 — 조용히 틀린 답을 내는 것보다 낫다.
 
+## 5.5 펼침 커널 (2026-09-23) — **기기 게이트 대기**
+
+`hvx/hvx_expand_i2i4.{c,h}`. 루프 몸통은 §3의 B 그대로다:
+
+```c
+const HVX_Vector lo = Q6_V_vand_VV(s, m0f);
+const HVX_Vector hi = Q6_V_vand_VV(Q6_Vuh_vlsr_VuhR(s, 4), m0f);
+const HVX_VectorPair out = Q6_W_vshuff_VVR(Q6_Vb_vlut32_VbVbI(hi, tab, 0),
+                                           Q6_Vb_vlut32_VbVbI(lo, tab, 0), -1);
+```
+
+**검증되지 않은 가정 하나에 걸려 있다.** `V6_vlutvvb`를 "인덱스의 상위 비트가 immediate와
+맞으면 결과 바이트 = table[인덱스]"로 읽었다. 그중 둘이 미확인이다 —
+(a) 테이블이 테이블 벡터의 하위 32바이트인지 레인 그룹마다 32바이트인지,
+(b) match가 어느 상위 비트를 비교하는지. (a)는 16엔트리를 128바이트 전체에 **복제**해서
+어느 쪽이든 맞게 만들어 무력화했고(가중치당 VTCM 112바이트), (b)는 모든 인덱스를 16 미만으로
+둔 이유다. **둘 다 기기에서 재지 않았다.**
+
+그래서 A1(`swiglu_det`, 44 §12)과 같은 순서를 따른다: 스칼라 쌍둥이가 명세, 기기 테스트가
+게이트, **게이트가 통과하기 전에는 MoE 커널이 부르지 않는다.**
+
+호스트에서 확인된 것 (`expand_i2i4_host_check`, `run_host_checks.sh`에 포함):
+
+| | |
+|---|---|
+| `whPack2 → 펼침 == whPack` | 2048×3584, 1792×2048, 32×32, 96×64 **전부 바이트 동일** |
+| 워커 풀 분할 | 풀 결과 == 인라인 결과 (경계가 shuffle을 자르지 않음) |
+| 중복 팔레트 | 테이블이 무너지지 않음 |
+
+C++ 쪽 `whExpand2`는 **지웠다.** 확장 정의가 두 벌이면 드리프트가 난다 — 44 §12.5의 버그가
+정확히 그것이었다. 이제 `hvx_expand_i2i4.c` 하나가 호스트와 DSP 양쪽의 정의이고,
+host check가 양자화기와 그것을 묶는다.
+
+### 5.5.1 게이트 돌리는 법
+
+IDL이 바뀌었으므로 **skel과 클라이언트 스텁 둘 다** 재생성해야 한다:
+
+```bash
+source ~/workspace/Hexagon_SDK/6.4.0.2/setup_sdk_env.source
+cd ~/workspace/nntrainer
+bash nntrainer/tensor/htp_backend/generate_stub.sh    # 새 엔트리 반영
+HEXKL_ROOT=~/workspace/hxkl-beta2/hexkl_addon ./test/htp/build.sh
+./test/htp/run_u8i4_layer_on_device.sh                # skel push + gtest 빌드/실행
+```
+
+답은 이 줄이다:
+
+```
+EXPAND_I2I4_FIELD pal=[-8,-2,1,7] bad=0 of 131072
+```
+
+네 개 팔레트 전부 `bad=0`이면 vlut32 읽기가 맞고 4b로 간다. 0이 아니면 첫 불일치의
+`code`/`hvx`/`ref`가 **테이블이 틀렸는지 조회가 틀렸는지**를 가른다 — 틀린 테이블은 한 코드의
+모든 출현을 놓치고, 틀린 조회는 한 위치를 놓친다. 조회가 틀렸다면 §3의 A(4-way `vlut32` 체인)로
+후퇴해야 하고, 그러면 §4의 예산이 깨져 이 과제는 메모리 전용으로 축소된다.
+
+기기 스로틀과 무관한 정확도 테스트라 지금 상태에서도 유효하다.
+
 ## 6. 들어간 코드
 
 | 커밋 | 무엇 |
 |---|---|
 | `f3874b0` | `HEXKL_MOE_HALF_DMA` (측정 전용 빌드), `build.sh`의 `HEXKL_EXTRA_CFLAGS` |
 | `1a69287` | `nntrainer/tensor/htp_wh_palette.h` (팔레트 DP + 적용), `quantize_stream.cpp`의 `--moe_palette_*`, 유닛 테스트 `wh_palette_is_optimal_and_restricts` |
-| `996ce0c7` | `QS2CX_WH`: `whPack2`/`whExpand2`/`whPaletteTable`, `QS2CX_WH_Tensor`, dtype 배관, `--moe_dtype QS2CX_WH`, 유닛 테스트 `wh_pack2_expands_back_to_wh_pack` |
+| `fe643e4` | `QS2CX_WH`: `whPack2`, `QS2CX_WH_Tensor`, dtype 배관, `--moe_dtype QS2CX_WH` |
+| `138dd57b` | `hvx_expand_i2i4.{c,h}` (HVX + 스칼라 쌍둥이 + 풀), IDL `expand_i2i4`, 기기 게이트 `HvxExpandI2I4.MatchesScalarBitExact`, host check `expand_i2i4_host_check` |
 
 팔레트 적합은 k-means가 아니라 **DP로 정확**하다: 후보 코드가 16개뿐이라 최근접 분할이
 연속 구간이 되고, 네 구간 위의 DP가 최적이다. 유닛 테스트가 그것을 1820개 4-부분집합

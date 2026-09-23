@@ -66,3 +66,23 @@ cc=${CC:-gcc}
   "$HERE/worker_pool_host_check.c" "$BACKEND/hvx/hvx_worker_pool.c"
 
 "$OUT/worker_pool_host_check"
+
+# whPack2 (the quantizer, C++) against hvx_expand_i2i4 (the kernel, C).
+# Nothing else ties those two together -- different toolchains, no shared
+# code -- and if they drift a QS2CX_WH model holds different weights than
+# the QS4CX_WH model whose perplexity justified it. C++ because whPack2 is
+# a C++ header; the pool is real pthreads, as above.
+# The kernel halves stay C: hvx_worker_pool.c is C11 stdatomic, which a
+# C++ compiler will not take.
+cxx=${CXX:-g++}
+for k in hvx_expand_i2i4 hvx_worker_pool; do
+  "$cc" -std=c11 -O1 -Wall -Wextra -Wno-unused-parameter -pthread -c \
+    -I "$HERE/stub" -I "$BACKEND/hvx" -o "$OUT/$k.o" "$BACKEND/hvx/$k.c"
+done
+"$cxx" -std=c++17 -O1 -Wall -Wextra -Wno-unused-parameter -pthread \
+  -I "$HERE/stub" -I "$BACKEND/hvx" -I "$BACKEND/.." \
+  -o "$OUT/expand_i2i4_host_check" \
+  "$HERE/expand_i2i4_host_check.cc" "$OUT/hvx_expand_i2i4.o" \
+  "$OUT/hvx_worker_pool.o"
+
+"$OUT/expand_i2i4_host_check"

@@ -16,6 +16,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -120,6 +121,7 @@ class HvxExp : public HtpSession {};
 class HvxSoftmax : public HtpSession {};
 
 class HvxSwigluDet : public HtpSession {};
+class HvxExpandI2I4 : public HtpSession {};
 
 namespace {
 
@@ -225,6 +227,70 @@ TEST_F(HvxSwigluDet, MatchesScalarBitExact) {
                            "HVX Vsf does not round like ARM f32";
   EXPECT_EQ(bad_recip, 0) << "hvx_recip_det_sf differs from the scalar spec";
   EXPECT_EQ(bad_out, 0) << "hvx_swiglu_det_sf differs from the scalar spec";
+}
+
+/**
+ * @brief [doc 54] The gate the 2-bit expert expansion rests on.
+ *
+ * hvx_expand_i2i4 reads V6_vlutvvb as "byte i becomes table[index[i]] when
+ * the index's high bits match the immediate". That reading is not verified
+ * anywhere -- the header says so -- and two parts of it could be wrong:
+ * whether the table comes from the low 32 bytes of the table vector or one
+ * 32-byte group per lane, and which high bits the match compares. The
+ * first is defused by replicating the sixteen entries over all 128 bytes;
+ * the second is why no index here reaches 16. This test is what turns both
+ * from an assumption into a fact.
+ *
+ * Bit identity against the scalar twin, not a tolerance: the expansion has
+ * to reproduce whPack's bytes exactly, or a QS2CX_WH model holds different
+ * weights than the QS4CX_WH model whose perplexity justified it. The host
+ * check already ties the scalar twin to whPack (expand_i2i4_host_check),
+ * so scalar == HVX here closes the chain to the device.
+ *
+ * A failure prints the first differing byte with its index and both
+ * palettes' bytes, which separates "the table is wrong" from "the lookup
+ * is wrong": a wrong table misses every occurrence of one code, a wrong
+ * lookup misses a position.
+ */
+TEST_F(HvxExpandI2I4, MatchesScalarBitExact) {
+  // Two code bytes per WH byte pair; 64 KiB of codes is 256 tiles, enough
+  // that every lane of every vector sees every code pair many times.
+  const int n = 65536;
+  std::vector<uint8_t> codes(n), out(2 * n, 0xAA), ref(2 * n, 0x55);
+  std::mt19937 rng(0x2B2B2B2Bu);
+  for (int i = 0; i < n; ++i) {
+    codes[i] = static_cast<uint8_t>(rng() & 0xFFu);
+  }
+  // Asymmetric and using both ends of the int4 range, so a sign-extension
+  // mistake in the table shows up rather than cancelling.
+  const std::vector<std::array<int8_t, 4>> palettes = {
+    {{-8, -2, 1, 7}}, {{-5, -2, 1, 4}}, {{0, 1, 2, 3}}, {{-3, -3, -3, -3}}};
+
+  for (const auto &pal : palettes) {
+    int err = nntr_hvx_expand_i2i4(handle_, codes.data(), n, pal.data(), 4,
+                                   out.data(), 2 * n, ref.data(), 2 * n);
+    ASSERT_EQ(err, AEE_SUCCESS) << "expand_i2i4 failed: " << hex(err);
+
+    int bad = 0, first_bad = -1;
+    for (int i = 0; i < 2 * n; ++i) {
+      if (out[i] != ref[i]) {
+        ++bad;
+        if (first_bad < 0)
+          first_bad = i;
+      }
+    }
+    std::cout << "EXPAND_I2I4_FIELD pal=[" << (int)pal[0] << "," << (int)pal[1]
+              << "," << (int)pal[2] << "," << (int)pal[3] << "] bad=" << bad
+              << " of " << 2 * n;
+    if (first_bad >= 0) {
+      std::cout << " first i=" << first_bad << " code=0x" << std::hex
+                << (int)codes[first_bad / 2] << " hvx=0x" << (int)out[first_bad]
+                << " ref=0x" << (int)ref[first_bad] << std::dec;
+    }
+    std::cout << std::endl;
+    EXPECT_EQ(bad, 0) << "hvx_expand_i2i4 differs from its scalar twin -- the "
+                         "vlut32 reading in hvx_expand_i2i4.h is wrong";
+  }
 }
 
 /**

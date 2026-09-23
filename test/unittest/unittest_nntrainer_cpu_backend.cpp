@@ -792,47 +792,6 @@ TEST(nntrainer_cpu_backend_standalone, wh_palette_is_optimal_and_restricts) {
   EXPECT_LE(used.size(), groups * nntrainer::WH_PALETTE_LEVELS);
 }
 
-/**
- * @brief The 2-bit file expands to the 4-bit file it was measured as
- *
- * The whole 2-bit case rests on the expansion being exact: the perplexity
- * that decides it is measured on a palette-restricted QS4CX_WH model, and
- * QS2CX_WH is only allowed to be half the bytes of that same model, not a
- * different one. whPack2 -> whExpand2 has to reproduce whPack byte for byte,
- * or the two are different models and the measurement transferred nothing.
- *
- * This is also the specification the HVX expansion is written against: the
- * DSP builds the same 16-entry table and does the same lookup per output
- * byte, so a host check here is a real check of the device path's contract.
- */
-TEST(nntrainer_cpu_backend_standalone, wh_pack2_expands_back_to_wh_pack) {
-  const unsigned int K = 128, N = 96; // not square, both multiples of 32
-
-  std::mt19937 rng(20260923u);
-  std::normal_distribution<float> bell(0.0f, 3.0f);
-  std::vector<int8_t> rm(static_cast<size_t>(K) * N);
-  for (auto &v : rm) {
-    int q = static_cast<int>(std::lround(bell(rng)));
-    v = static_cast<int8_t>(q < -8 ? -8 : (q > 7 ? 7 : q));
-  }
-
-  // One palette for the whole tensor: doc 54 5.3 measured group size to
-  // change the SNR by nothing at all, so the format carries no group axis.
-  int8_t pal[nntrainer::WH_PALETTE_LEVELS];
-  nntrainer::whPaletteQuantize(rm.data(), K, N, /*group_k=*/0,
-                               /*per_column=*/false, pal);
-
-  std::vector<uint8_t> four(nntrainer::whBytes(K, N));
-  nntrainer::whPack(rm.data(), K, N, four.data());
-
-  std::vector<uint8_t> two(nntrainer::whBytes2(K, N));
-  nntrainer::whPack2(rm.data(), K, N, pal, two.data());
-  EXPECT_EQ(two.size() * 2, four.size()) << "2-bit must be half of 4-bit";
-
-  std::vector<uint8_t> back(nntrainer::whBytes(K, N));
-  nntrainer::whExpand2(two.data(), K, N, pal, back.data());
-  EXPECT_EQ(back, four);
-}
 
 /**
  * @brief whSourcePageRange never hands back a byte it was not given
