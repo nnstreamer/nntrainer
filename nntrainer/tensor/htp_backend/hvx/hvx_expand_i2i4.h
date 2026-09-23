@@ -37,27 +37,19 @@
  * splits into its two nibble planes, each plane is one vlut32, and a shuffle
  * interleaves them -- three ops an output vector, nothing to gather.
  *
- * THIS READING IS WRONG -- MEASURED, 2026-09-23. On device, index 2 fetched
- * entry 4 for every palette tried (doc 54 5.7), so the HVX path below does
- * not equal its scalar twin and nothing may use it yet. The replication
- * defused the table-placement half of the guess; what is left is how the
- * index itself is interpreted, and the EXPAND_I2I4_MAP probe in
- * HvxExpandI2I4.MatchesScalarBitExact measures that rather than guessing it
- * a second time. If the mapping is a permutation of the index, baking the
- * table in its inverse fixes this at zero runtime cost.
+ * MEASURED, not assumed. The obvious reading of V6_vlutvvb -- byte i of
+ * the result is table[index[i]] -- is wrong on this hardware: the device
+ * fetches entry 2*i for index i (EXPAND_I2I4_MAP, doc 54 5.7-5.8). It is a
+ * plain permutation of the index, the same in every lane, so the table is
+ * baked with entry i at byte 2*i and the loop is unchanged -- still three
+ * ops an output vector, the scaling costs nothing at run time. The 32-byte
+ * block is then repeated across the vector, which covers the other half of
+ * the original guess (whether the table comes from the low bytes or from
+ * each lane group) without having to know which it is.
  *
- * The original reading, kept because the fix is a correction to it: this
- * code reads V6_vlutvvb as
- * "byte i of the result is table[index[i]] when index[i]'s high bits match
- * the immediate". Two things about that are taken on faith: whether the
- * table is the low 32 bytes of the table vector or one 32-byte group per
- * lane, and which high bits the match compares. The first is defused by
- * replicating the 16 entries across all 128 bytes, which is correct either
- * way; the second is why every index here is below 16. Neither is verified.
- * hvx_expand_i2i4_scalar is the specification, the device test
- * HvxExpandI2I4.MatchesScalarBitExact is the gate, and nothing calls this
- * from the MoE kernel until that gate passes -- the same order
- * hvx_swiglu_det.h went through (doc 44 12).
+ * hvx_expand_i2i4_scalar reads the same table through the same scaling, so
+ * there is one table and not two. HvxExpandI2I4.MatchesScalarBitExact is
+ * the device gate and it passes: bad=0 of 131072 on four palettes.
  */
 
 #ifndef __NNTRAINER_HVX_EXPAND_I2I4_H__

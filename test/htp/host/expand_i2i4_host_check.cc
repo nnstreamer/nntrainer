@@ -149,10 +149,17 @@ int main() {
     const int8_t pal[4] = {-3, -3, -3, -3};
     std::vector<uint8_t> table(HVX_EXPAND_TABLE_BYTES);
     hvx_expand_i2i4_table(pal, table.data());
+    /* Asserted on the output, not on the table bytes: the entries sit at
+       2*index now (hvx_expand_i2i4.c), so which byte holds what is the
+       lookup's business and this check should not know. */
+    std::vector<uint8_t> codes(128), out(256, 0);
+    for (int i = 0; i < 128; ++i)
+      codes[i] = static_cast<uint8_t>(i & 0xFF);
+    hvx_expand_i2i4(codes.data(), 128, table.data(), out.data());
     bool ok = true;
-    for (uint32_t i = 0; i < HVX_EXPAND_TABLE_BYTES; ++i)
-      ok = ok && table[i] == 0xDD; /* (-3 & 0xF) twice */
-    check(ok, "degenerate palette table");
+    for (uint8_t b : out)
+      ok = ok && b == 0xDD; /* (-3 & 0xF) in both nibbles */
+    check(ok, "degenerate palette, every index");
   }
 
   hvx_worker_pool_destroy(pool);

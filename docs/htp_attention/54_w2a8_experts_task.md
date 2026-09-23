@@ -101,7 +101,7 @@ M=1 콜은 mm 764 + acc 259 = 1.02 ms로 HMX가 DMA(1.19 ms)와 거의 같은 �
 | 2 | 숨은 워커 시간 프로브 + 펼침 마이크로벤치 | 미착수 | 펼침 ≥120 GB/s. 워커 슬랙 있음 |
 | **3a** | `QS2CX_WH` 포맷 + 양자화기 | **코드 있음** (`996ce0c7`) | 파일이 절반, 펼치면 4-bit 대역과 바이트 동일 — **확인됨** |
 | 3b | HTP 등록 경로 (메모리 이득) | 미착수 | peak RSS ≈3,400 MB, ppl은 1의 해당 칸과 소수점까지 동일 |
-| **4a** | 펼침 커널 `hvx_expand_i2i4` + 기기 게이트 | **실패** (§5.7) | vlut32 인덱스 매핑이 가정과 다름. `EXPAND_I2I4_MAP` 프로브가 다음 |
+| **4a** | 펼침 커널 `hvx_expand_i2i4` + 기기 게이트 | **통과** (§5.8) | `bad=0 of 131072` × 4 팔레트, 스위트 21/21 |
 | 4b | MoE 커널에 배선 (VTCM 스테이징) | 미착수 | `drain`↓, **`mm`·`acc` 불변**, dsp 순감소 |
 
 3과 4를 나눈 이유: 배선 실수를 펼침 성능 문제와 섞지 않기 위해서다.
@@ -431,6 +431,56 @@ source $SDK/setup_sdk_env.source
 HEXKL_ROOT=$SDK/addons/hexkl_addon HEXKL_SDK_VER=. \
   HEXKL_EXTRA_CFLAGS=-DNNTR_HEXKL_HW_INIT_2ARG bash test/htp/build.sh
 ```
+
+## 5.8 매핑을 재고, 고치고, 게이트 통과 (2026-09-23, 기기 R3CY205ZMND)
+
+프로브 한 줄이 답이었다:
+
+```
+EXPAND_I2I4_MAP 0->0 1->2 2->4 3->6 4->8 5->10 6->12 7->14
+                8->0 9->2 10->4 11->6 12->8 13->10 14->12 15->14  consistent
+```
+
+테이블이 주기 16으로 복제돼 있었으므로 `8->0`은 엔트리 16이다. 즉 규칙은
+**`entry = 2 × index`**, 그리고 `consistent` — 레인 위치와 무관하다.
+
+**순수한 인덱스 치환이므로 런타임 비용 0으로 되돌릴 수 있다.** 엔트리 i를 바이트 `2i`에
+구우면 16개 인덱스가 32바이트 블록의 짝수 바이트 0..30에 정확히 하나씩 앉는다. 루프는
+한 글자도 안 바뀌고 출력 벡터당 3 op 그대로다. 32바이트 블록을 벡터에 4번 반복해 두면
+원래 가정의 나머지 절반(테이블이 하위 바이트냐 레인 그룹이냐)도 몰라도 된다.
+
+스칼라 쌍둥이도 같은 스케일링(`EXPAND_LUT`)으로 같은 테이블을 읽는다 — 테이블이 두 벌이
+되지 않게.
+
+```
+EXPAND_I2I4_MAP 0->0 1->1 2->2 ... 15->15 consistent
+EXPAND_I2I4_FIELD pal=[-8,-2,1,7]   bad=0 of 131072
+EXPAND_I2I4_FIELD pal=[-5,-2,1,4]   bad=0 of 131072
+EXPAND_I2I4_FIELD pal=[0,1,2,3]     bad=0 of 131072
+EXPAND_I2I4_FIELD pal=[-3,-3,-3,-3] bad=0 of 131072
+[  PASSED  ] 21 tests.
+```
+
+**4a 게이트 통과.** 같은 실행에서 `SWIGLU_DET_FIELD bad_exp=0 bad_recip=0 bad_out=0`,
+스위트 21/21. §3의 B가 살았고 §4의 예산도 그대로다.
+
+기기 메모: 이 실행은 원격 기기 **R3CY205ZMND**(SM-S938N, platform `sun`, V79)에서 돌았다.
+로컬 기기는 R3CY10WM83Y다. 둘 다 같은 모델·같은 HTP이므로 정확도 게이트에는 차이가 없지만,
+**성능 비교는 기기를 섞으면 안 된다**(세션 편차 ±25 ms 위에 기기 편차가 얹힌다).
+
+원격 기기는 adb 게이트웨이를 통해 붙는다 — `ssh -p 52715 jungone.lee@adf.sraisys.com`이
+`shell` / `push REMOTE_FILE`(stdin) / `pull REMOTE_FILE`만 받는 forced command다. 로컬
+`adb push`가 아니라 `ssh ... push <path> < <local file>` 형태가 된다.
+
+### 5.8.1 남은 것
+
+| | |
+|---|---|
+| 4a | **통과** |
+| Step 0 (DMA 포화) | 미측정 — skel 빌드 가능해졌으므로 이제 돌릴 수 있다 |
+| Step 1 (ppl) | 미측정 — 호스트 디스크 여유 8.7 GB, 모델 4.3 GB |
+| 4b (MoE 커널 배선) | 미착수. §5.6대로 제자리 확장이라 VTCM 추가 0 |
+| 3b (2-bit 등록 경로) | 미착수. 4b와 한 덩어리 — 아레나에 2-bit을 넣으려면 커널이 펼쳐야 한다 |
 
 ## 6. 들어간 코드
 

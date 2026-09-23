@@ -29,28 +29,42 @@
 #define EXPAND_VEC 128u
 
 void hvx_expand_i2i4_table(const int8_t *pal, uint8_t *table) {
+  for (uint32_t i = 0; i < HVX_EXPAND_TABLE_BYTES; ++i) {
+    table[i] = 0u;
+  }
   for (uint32_t hi = 0; hi < 4u; ++hi) {
     for (uint32_t lo = 0; lo < 4u; ++lo) {
-      table[(hi << 2) | lo] =
+      /* At 2 * index, not at index. V6_vlutvvb fetches entry 2*i for index
+         i -- measured, EXPAND_I2I4_MAP (doc 54 5.8), after the obvious
+         reading turned out to be wrong. Sixteen indices land on the even
+         bytes 0..30 of a 32-byte block, one each, so undoing it is a
+         permutation of where the entries are written and costs nothing at
+         run time: the loop is still three ops an output vector. */
+      table[2u * ((hi << 2) | lo)] =
         (uint8_t)((pal[lo] & 0x0F) | ((pal[hi] & 0x0F) << 4));
     }
   }
-  /* Replicated across the whole vector so the lookup is right whether the
-     hardware takes the table from the low 32 bytes or from each 32-byte
-     lane group -- see the header. The buffer is scratch: it is loaded into
-     a vector register once and never read from memory again, so only the
-     four palette bytes have to be kept per weight. */
-  for (uint32_t i = 16u; i < HVX_EXPAND_TABLE_BYTES; ++i) {
-    table[i] = table[i & 15u];
+  /* The 32-byte block repeated, so the lookup is right whether the hardware
+     takes its table from the low bytes of the vector or from each 32-byte
+     lane group -- the other half of the guess, which the map probe showed
+     does not matter either way. The buffer is scratch: it is loaded into a
+     vector register once and never read from memory again, so only the four
+     palette bytes have to be kept per weight. */
+  for (uint32_t i = 32u; i < HVX_EXPAND_TABLE_BYTES; ++i) {
+    table[i] = table[i & 31u];
   }
 }
+
+/** @brief The index scaling V6_vlutvvb applies, so the scalar twin reads
+ *         the same table the hardware does rather than a second one. */
+#define EXPAND_LUT(table, idx) ((table)[2u * (uint32_t)(idx)])
 
 void hvx_expand_i2i4_scalar(const uint8_t *src, uint32_t src_bytes,
                             const uint8_t *table, uint8_t *dst) {
   for (uint32_t j = 0; j < src_bytes; ++j) {
     const uint8_t s = src[j];
-    dst[2u * j] = table[s & 0x0Fu];
-    dst[2u * j + 1u] = table[(s >> 4) & 0x0Fu];
+    dst[2u * j] = EXPAND_LUT(table, s & 0x0Fu);
+    dst[2u * j + 1u] = EXPAND_LUT(table, (s >> 4) & 0x0Fu);
   }
 }
 
