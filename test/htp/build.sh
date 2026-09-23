@@ -8,6 +8,8 @@
 #   only from lib/6.1.1.0 up. 6.4.0.1 is the verified combination.
 # Override the target with: HEX_ARCH=v75 ./build.sh
 # Override HexKL with:      HEXKL_ROOT=/path/to/hexkl_addon ./build.sh
+# Extra defines with:       HEXKL_EXTRA_CFLAGS=-DHEXKL_MOE_HALF_DMA=1 ./build.sh
+#   (throwaway measurement builds -- see hexkl_mm_u8i4_moe.c's HEXKL_MOE_HALF_DMA)
 
 set -eu
 
@@ -102,6 +104,7 @@ SRCS="$SRCS $BACKEND/hvx/hvx_worker_pool.c $BACKEND/hvx/hvx_gemm_u8i4_wh.c"
     -isystem "$HEXAGON_SDK_ROOT/incs" \
     -isystem "$HEXAGON_SDK_ROOT/incs/stddef" \
     -isystem "$HEXAGON_SDK_ROOT/ipc/fastrpc/incs" \
+    ${HEXKL_EXTRA_CFLAGS:-} \
     $SRCS \
     "$HEXKL_LIB" \
     -o build/libnntr_hvx_skel.so
