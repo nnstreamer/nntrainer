@@ -51,6 +51,7 @@
 #include "hexkl_micro.h"
 #include "hexkl_probe.h"
 #include "hvx_dequant_i32.h"
+#include "hvx_expand_i2i4.h"
 #include "hvx_gather_ah_u8.h"
 #include "hvx_gemm_u8i4_wh.h"
 #include "hvx_quant_u8.h"
@@ -137,13 +138,60 @@ uint32_t hexkl_moe_push_weight_chunk(uint8_t *vtcm_base, uint32_t dst_off,
   const uint32_t stride = n_col * WEIGHT_TILE_BYTES_U8I4;
   const uint32_t off = nt0 * WEIGHT_TILE_BYTES_U8I4;
   uint64_t pt = 0;
-  const uint32_t idx = hexkl_dma_ring_next_idx();
+  uint32_t idx;
+  if (h->bits == 2u) {
+    /* Half the bytes, landed in the TOP half of the int4 slot they will
+       expand into, so the expansion needs no VTCM of its own: output byte
+       2j+1 only ever reaches source byte j, so the writes never pass the
+       reads (doc 54 5.6, checked by expand_i2i4_host_check). Rows stay
+       independent, which keeps the pool split and the 2D descriptor. */
+    const uint32_t row2 = row / 2u;
+    const uint32_t stride2 = stride / 2u;
+    idx = hexkl_dma_ring_next_idx();
+    HEXKL_PROBE_COUNT(HEXKL_PROBE_DMA_KB, (row2 * k_tiles) >> 10);
+    HEXKL_PROBE_T0(pt);
+    hexkl_dma_ring_push2d(vtcm_base + dst_off + off + row2,
+                          h->wh_bytes + off / 2u, stride, stride2, row2,
+                          k_tiles, /*src_vtcm=*/0, /*dst_vtcm=*/1);
+    HEXKL_PROBE_ADD(HEXKL_PROBE_PUSH, pt);
+    return idx;
+  }
+  idx = hexkl_dma_ring_next_idx();
   HEXKL_PROBE_COUNT(HEXKL_PROBE_DMA_KB, (row * k_tiles) >> 10);
   HEXKL_PROBE_T0(pt);
   hexkl_dma_ring_push2d(vtcm_base + dst_off + off, h->wh_bytes + off, stride,
                         stride, row, k_tiles, /*src_vtcm=*/0, /*dst_vtcm=*/1);
   HEXKL_PROBE_ADD(HEXKL_PROBE_PUSH, pt);
   return idx;
+}
+
+/**
+ * @brief Expands a chunk that just landed, in place. No-op at 4 bits.
+ *
+ * Must run between the wait for @a chunk and the first HMX issue that
+ * reads it. Each of the k_tiles rows is its own expansion -- disjoint
+ * memory -- so the pool splits by row with nothing to synchronise.
+ */
+void hexkl_moe_expand_chunk(uint8_t *vtcm_base, uint32_t dst_off,
+                            const hexkl_weight_u8i4 *h, uint32_t k_tiles,
+                            uint32_t n_col, uint32_t nt0, uint32_t cn,
+                            hvx_worker_pool *pool) {
+  uint8_t lut[HVX_EXPAND_TABLE_BYTES] __attribute__((aligned(128)));
+  const uint32_t row = cn * WEIGHT_TILE_BYTES_U8I4;
+  const uint32_t stride = n_col * WEIGHT_TILE_BYTES_U8I4;
+  const uint32_t off = nt0 * WEIGHT_TILE_BYTES_U8I4;
+  uint32_t r;
+  if (h->bits != 2u) {
+    return;
+  }
+  /* Rebuilt per chunk rather than kept per weight: 128 bytes of stores
+     against a chunk of a megabyte, and it keeps the registry to the four
+     palette codes. */
+  hvx_expand_i2i4_table(h->pal, lut);
+  for (r = 0; r < k_tiles; ++r) {
+    uint8_t *dst = vtcm_base + dst_off + (size_t)r * stride + off;
+    hvx_expand_i2i4_pool(dst + row / 2u, row / 2u, lut, dst, pool);
+  }
 }
 
 /**
@@ -446,11 +494,32 @@ static void moe_tail_down_unit(uint32_t n_units, uint32_t nt, void *v) {
 
 /** @brief Rows of expert e's tail, 0 when it has none: a block of at most
  *         MOE_TAIL_MAX_ROWS after at least one full one. */
-static uint32_t moe_tail_rows(uint32_t n_e) {
+static uint32_t moe_tail_rows(uint32_t n_e, int allow) {
   const uint32_t r = n_e % HEXKL_HMX_INT8_BLOCK_N_ROW;
-  return (n_e > HEXKL_HMX_INT8_BLOCK_N_ROW && r != 0u && r <= MOE_TAIL_MAX_ROWS)
+  return (allow && n_e > HEXKL_HMX_INT8_BLOCK_N_ROW && r != 0u &&
+          r <= MOE_TAIL_MAX_ROWS)
            ? r
            : 0u;
+}
+
+/** @brief Whether the HVX tail may run for this call.
+ *
+ *  It may not against 2-bit weights: hvx_gemm_u8i4_wh reads the weight
+ *  from h->wh_bytes in DDR, not from the expanded copy in VTCM, so it
+ *  would read two-bit codes as nibbles. Those rows go through the HMX
+ *  instead, which is where they go in production anyway
+ *  (MOE_TAIL_MAX_ROWS is 0 unless a host check sets it). */
+static int moe_tail_allowed(const hexkl_weight_u8i4_table *tbl,
+                            uint32_t n_experts, const uint32_t *h_gate_up,
+                            const uint32_t *h_down) {
+  uint32_t e;
+  for (e = 0; e < n_experts; ++e) {
+    if (tbl->slots[h_gate_up[e]].bits == 2u ||
+        tbl->slots[h_down[e]].bits == 2u) {
+      return 0;
+    }
+  }
+  return 1;
 }
 
 /** @brief One 64-row HMX block of the sequence the layer call walks. */
@@ -466,9 +535,9 @@ typedef struct {
 
 static void moe_blk_set(moe_blk *b, uint32_t i, uint32_t mb,
                         const uint32_t *order, const uint32_t *row_count,
-                        const uint32_t *slot_of) {
+                        const uint32_t *slot_of, int allow_tail) {
   const uint32_t n_e = row_count[order[i]];
-  const uint32_t hmx_rows = n_e - moe_tail_rows(n_e);
+  const uint32_t hmx_rows = n_e - moe_tail_rows(n_e, allow_tail);
   b->i = i;
   b->e = order[i];
   b->mb = mb;
@@ -482,14 +551,15 @@ static void moe_blk_set(moe_blk *b, uint32_t i, uint32_t mb,
 
 /** @brief Steps @a b to the block after it; 0 when it was the last. */
 static int moe_blk_next(moe_blk *b, uint32_t n_active, const uint32_t *order,
-                        const uint32_t *row_count, const uint32_t *slot_of) {
+                        const uint32_t *row_count, const uint32_t *slot_of,
+                        int allow_tail) {
   if (!b->last) {
     moe_blk_set(b, b->i, b->mb + HEXKL_HMX_INT8_BLOCK_N_ROW, order, row_count,
-                slot_of);
+                slot_of, allow_tail);
     return 1;
   }
   if (b->i + 1u < n_active) {
-    moe_blk_set(b, b->i + 1u, 0u, order, row_count, slot_of);
+    moe_blk_set(b, b->i + 1u, 0u, order, row_count, slot_of, allow_tail);
     return 1;
   }
   return 0;
@@ -635,6 +705,9 @@ int hexkl_mm_u8i4_moe_layer_run(
   const uint32_t *row_index, const uint32_t *row_count, const float *row_weight,
   const float *act_f32, float *out_f32, hvx_worker_pool *pool,
   hexkl_moe_scratch *scratch) {
+  /* Decided once for the call: the HVX tail reads weights from DDR, which
+     2-bit codes are not (moe_tail_allowed). */
+  const int allow_tail = moe_tail_allowed(tbl, n_experts, h_gate_up, h_down);
 
   if (!tbl || !vtcm_base || !h_gate_up || !h_down || !row_index || !row_count ||
       !row_weight || !act_f32 || !out_f32 || !scratch || M == 0u ||
@@ -934,7 +1007,7 @@ int hexkl_mm_u8i4_moe_layer_run(
      loop, so the earlier they queue the more of the loop they hide under. */
   for (uint32_t i = 0; i < n_active; ++i) {
     const uint32_t e = order[i];
-    const uint32_t tr = moe_tail_rows(row_count[e]);
+    const uint32_t tr = moe_tail_rows(row_count[e], allow_tail);
     tail_of[i] = UINT32_MAX;
     if (tr == 0u) {
       continue;
@@ -1014,7 +1087,7 @@ int hexkl_mm_u8i4_moe_layer_run(
    * out as before, once GU(n) has freed their slots, and arrive under
    * DN(n-1). */
   moe_blk blk, pblk;
-  moe_blk_set(&blk, 0u, 0u, order, row_count, slot_of);
+  moe_blk_set(&blk, 0u, 0u, order, row_count, slot_of, allow_tail);
   /* The first expert's first activation block. Queued behind its gate_up
      here (the one place the order is reversed: that gate_up has the scan
      to hide behind and is long done). Every later block is queued when
@@ -1036,7 +1109,8 @@ int hexkl_mm_u8i4_moe_layer_run(
     int have_next = 0;
     if (have_cur) {
       const hexkl_weight_u8i4 *g = &tbl->slots[h_gate_up[blk.e]];
-      have_next = moe_blk_next(&nblk, n_active, order, row_count, slot_of);
+      have_next =
+        moe_blk_next(&nblk, n_active, order, row_count, slot_of, allow_tail);
       /* The block's rows' quantization parameters: contiguous in slot
          order, since every expert's slots are padded to whole blocks. */
       const float *act_scale = slot_scale + blk.slot;
@@ -1077,6 +1151,13 @@ int hexkl_mm_u8i4_moe_layer_run(
           HEXKL_PROBE_T0(p0);
           hexkl_dma_ring_wait(gu_idx[gb]);
           HEXKL_PROBE_ADD(HEXKL_PROBE_DRAIN, p0);
+          /* 2-bit only: the paired gate and up chunks this wait covers.
+             Between the wait and the issue below is the only place it can
+             go -- the HMX reads these tiles next. */
+          hexkl_moe_expand_chunk(vtcm_base, L.w_gu_off, g, k_tiles, gu_ntiles,
+                                 g0, np, pool);
+          hexkl_moe_expand_chunk(vtcm_base, L.w_gu_off, g, k_tiles, gu_ntiles,
+                                 inter_ntiles + g0, np, pool);
           if (n == 0u && gb == 0u) {
             hexkl_probe_us[HEXKL_PROBE_DMA_FIRST] =
               hexkl_probe_us[HEXKL_PROBE_DRAIN];
@@ -1219,6 +1300,8 @@ int hexkl_mm_u8i4_moe_layer_run(
           HEXKL_PROBE_T0(p0);
           hexkl_dma_ring_wait(dn_idx[db]);
           HEXKL_PROBE_ADD(HEXKL_PROBE_DRAIN_DN, p0);
+          hexkl_moe_expand_chunk(vtcm_base, L.w_dn_off, d, inter_ktiles,
+                                 dn_ntiles, nt0, nb, pool);
         }
         HEXKL_MOE_MM_BEGIN();
         for (uint32_t j = 0; j < nb; ++j) {

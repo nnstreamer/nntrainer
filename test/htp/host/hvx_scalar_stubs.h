@@ -37,4 +37,11 @@ float rndf(void);
 extern hexkl_weight_u8i4_table g_tbl;
 void make_weight(uint32_t slot, uint32_t K, uint32_t N, W *w);
 
+/* The same weight in both widths: nibbles drawn only from @a pal, so the
+   4-bit slot and the 2-bit slot hold the same values and the kernel's two
+   paths have to agree byte for byte. @a slot4 gets bits=4, @a slot2 gets
+   bits=2 and the 2-bit codes. */
+void make_weight_pal(uint32_t slot4, uint32_t slot2, uint32_t K, uint32_t N,
+                     const int8_t *pal, W *w);
+
 #endif /* HVX_SCALAR_STUBS_H */

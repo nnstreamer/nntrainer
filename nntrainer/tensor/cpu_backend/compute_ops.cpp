@@ -215,7 +215,7 @@ void ComputeOps::gemm_qs4cx_moe_layer_fp32(
   const std::vector<void *> &, const std::vector<float *> &,
   const std::vector<unsigned int> &, const std::vector<unsigned int> &,
   const std::vector<float> &, const float *, float *, unsigned int,
-  unsigned int, unsigned int, unsigned int, bool) {
+  unsigned int, unsigned int, unsigned int, unsigned int) {
   NI(gemm_qs4cx_moe_layer_fp32);
 }
 void ComputeOps::gemm_q4_K_fp32(unsigned int, unsigned int, unsigned int,

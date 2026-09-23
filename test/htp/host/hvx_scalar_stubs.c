@@ -463,7 +463,42 @@ void make_weight(uint32_t slot, uint32_t K, uint32_t N, W *w) {
   s->in_use = 1;
   s->K = K;
   s->N = N;
+  s->bits = 4u;
   s->wh_bytes = (uint8_t *)w->nib;
+  s->w_scale = w->ws;
+  s->colsum_w = w->cs;
+  s->bias = w->bias;
+}
+
+void make_weight_pal(uint32_t slot4, uint32_t slot2, uint32_t K, uint32_t N,
+                     const int8_t *pal, W *w) {
+  const uint32_t tiles = (K / 32u) * (N / 32u);
+  const uint32_t nib_bytes = tiles * 512u;
+  uint8_t *two = (uint8_t *)malloc(nib_bytes / 2u);
+  make_weight(slot4, K, N, w);
+  /* Redraw the values from the palette and encode the same choices twice:
+     nibble j of the 4-bit stream and code j of the 2-bit stream are the
+     same weight, which is exactly what hvx_expand_i2i4 assumes. */
+  for (uint32_t j = 0; j < nib_bytes; ++j) {
+    const uint32_t c0 = rnd() & 3u, c1 = rnd() & 3u;
+    ((uint8_t *)w->nib)[j] =
+      (uint8_t)((pal[c0] & 0x0F) | ((pal[c1] & 0x0F) << 4));
+    if ((j & 1u) == 0u) {
+      two[j / 2u] = (uint8_t)(c0 | (c1 << 2));
+    } else {
+      two[j / 2u] |= (uint8_t)((c0 << 4) | (c1 << 6));
+    }
+  }
+  hexkl_weight_u8i4 *s = &g_tbl.slots[slot2];
+  s->in_use = 1;
+  s->K = K;
+  s->N = N;
+  s->bits = 2u;
+  s->pal[0] = pal[0];
+  s->pal[1] = pal[1];
+  s->pal[2] = pal[2];
+  s->pal[3] = pal[3];
+  s->wh_bytes = two;
   s->w_scale = w->ws;
   s->colsum_w = w->cs;
   s->bias = w->bias;

@@ -477,7 +477,7 @@ void Transformer::repack_weight() {
       std::vector<void *> gu_data, dn_data;
       std::vector<float *> gu_scale, dn_scale;
       unsigned int gu_h = 0, gu_w = 0, dn_h = 0, dn_w = 0;
-      bool weights_wh = false;
+      unsigned int w_bits = 0u;
       for (auto &w : weights) {
         auto &t = w->getVariableRef();
         const auto dtype = t.getDataType();
@@ -490,12 +490,15 @@ void Transformer::repack_weight() {
                                 static_cast<unsigned int>(t.width())});
         }
         if (ops && (dtype == ml::train::TensorDim::DataType::QS4CX ||
-                    dtype == ml::train::TensorDim::DataType::QS4CX_WH)) {
+                    dtype == ml::train::TensorDim::DataType::QS4CX_WH ||
+                    dtype == ml::train::TensorDim::DataType::QS2CX_WH)) {
           const auto h = static_cast<unsigned int>(t.height());
           const auto wd = static_cast<unsigned int>(t.width());
-          weights_wh = dtype == ml::train::TensorDim::DataType::QS4CX_WH;
+          w_bits = dtype == ml::train::TensorDim::DataType::QS4CX_WH   ? 4u
+                   : dtype == ml::train::TensorDim::DataType::QS2CX_WH ? 2u
+                                                                       : 0u;
           ops->register_qs4cx_weight(t.getData<char>(), t.getScale<float>(), h,
-                                     wd, weights_wh);
+                                     wd, w_bits);
           // The expert weights come in two shapes: gate_up is [K, 2*inter]
           // and down [inter, N_out]. Sorted here for the warm-up below by
           // the identity that tells them apart, gate_up.width == 2 *
@@ -545,7 +548,7 @@ void Transformer::repack_weight() {
           std::vector<float> out(static_cast<size_t>(M) * N_out, 0.0f);
           ops->gemm_qs4cx_moe_layer_fp32(
             gu_data, gu_scale, dn_data, dn_scale, row_index, row_count,
-            row_weight, act.data(), out.data(), M, K, inter, N_out, weights_wh);
+            row_weight, act.data(), out.data(), M, K, inter, N_out, w_bits);
           ml_logd("MoE HTP kernel warmed up at load (M=%u, %u experts)", M, E);
         }
       }

@@ -448,6 +448,46 @@ int nntr_hvx_weight_register_u8i4_arena(remote_handle64 handle, uint32 K,
                                           bias, w_handle);
 }
 
+int nntr_hvx_weight_register_u2i4_arena(remote_handle64 handle, uint32 K,
+                                        uint32 N, uint32 arena, uint32 wh_off,
+                                        const int8 *pal, int palLen,
+                                        const float *w_scale, int w_scaleLen,
+                                        const int32 *colsum_w, int colsum_wLen,
+                                        const float *bias, int biasLen,
+                                        uint32 *w_handle) {
+  nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  const nntr_hvx_arena *a;
+  uint32 wh_bytes;
+  if (!s || !w_handle || !pal) {
+    return AEE_EBADPARM;
+  }
+  if (palLen != 4) {
+    FARF(ERROR, "weight_register_u2i4_arena: palLen=%d, want 4", palLen);
+    return AEE_EBADPARM;
+  }
+  if ((uint32_t)w_scaleLen != N || (uint32_t)colsum_wLen != N ||
+      (uint32_t)biasLen != N) {
+    FARF(ERROR, "weight_register_u2i4_arena: bad lengths (K=%u N=%u)",
+         (unsigned)K, (unsigned)N);
+    return AEE_EBADPARM;
+  }
+  a = nntr_hvx_arena_slot(s, arena);
+  if (!a) {
+    return AEE_EBADPARM;
+  }
+  /* Half of the 4-bit extent: two bits a weight. Same reason the check is
+     here -- this is the one place that knows the mapping's size. */
+  wh_bytes = (K / 32u) * (N / 32u) * 256u;
+  if ((uint64_t)wh_off + wh_bytes > a->bytes) {
+    FARF(ERROR, "weight_register_u2i4_arena: off=%u + %u past arena %u",
+         (unsigned)wh_off, (unsigned)wh_bytes, (unsigned)a->bytes);
+    return AEE_EBADPARM;
+  }
+  return hexkl_weight_u2i4_register_arena(&s->weights_u8i4, s->vtcm_size, K, N,
+                                          a->va + wh_off, pal, w_scale,
+                                          colsum_w, bias, w_handle);
+}
+
 int nntr_hvx_mem_probe_dsp_heap(remote_handle64 handle, uint32 chunk_mb,
                                 uint32 max_chunks, uint32 *chunks_ok,
                                 int chunks_okLen, uint64 *touched_sum,

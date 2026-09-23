@@ -49,6 +49,7 @@
 #include <htp_q4_0_convert.h>
 #include <htp_rpcmem.h>
 #include <htp_wh_layout.h>
+#include <htp_wh_palette.h>
 #include <swiglu_det.h>
 
 #include <algorithm>
@@ -898,7 +899,8 @@ public:
                                  const std::vector<float> &row_weight,
                                  const float *act, float *out, unsigned int M,
                                  unsigned int K, unsigned int inter,
-                                 unsigned int N_out, bool weights_wh) override {
+                                 unsigned int N_out,
+                                 unsigned int w_bits) override {
     const size_t n_experts = gate_up_data.size();
     if (n_experts == 0 || gate_up_scale.size() != n_experts ||
         down_data.size() != n_experts || down_scale.size() != n_experts ||
@@ -912,11 +914,11 @@ public:
       static_cast<remote_handle64>(HtpBackend::global().handle());
     std::vector<uint32_t> h_gu(n_experts), h_dn(n_experts);
     for (size_t e = 0; e < n_experts; ++e) {
-      if (weights_wh) {
+      if (w_bits != 0u) {
         h_gu[e] = get_or_register_wh(gate_up_data[e], gate_up_scale[e], session,
-                                     K, 2 * inter);
+                                     K, 2 * inter, w_bits);
         h_dn[e] = get_or_register_wh(down_data[e], down_scale[e], session,
-                                     inter, N_out);
+                                     inter, N_out, w_bits);
       } else {
         h_gu[e] = get_or_register_qs4cx(gate_up_data[e], gate_up_scale[e],
                                         session, K, 2 * inter);
@@ -931,11 +933,11 @@ public:
   /** Same registration the layer call above does on first use, keyed by
    *  the same data pointer, so the forward-time call is a cache hit. */
   bool register_qs4cx_weight(void *data, const float *scale, unsigned int K,
-                             unsigned int N, bool weights_wh) override {
+                             unsigned int N, unsigned int w_bits) override {
     const remote_handle64 session =
       static_cast<remote_handle64>(HtpBackend::global().handle());
-    if (weights_wh) {
-      get_or_register_wh(data, scale, session, K, N);
+    if (w_bits != 0u) {
+      get_or_register_wh(data, scale, session, K, N, w_bits);
     } else {
       get_or_register_qs4cx(data, scale, session, K, N);
     }
@@ -2175,6 +2177,8 @@ private:
     std::vector<float> w_scale;
     std::vector<int32_t> colsum_w;
     std::vector<float> bias;
+    /** Four int4 codes when this is a QS2CX_WH weight, empty at 4 bits. */
+    std::vector<int8_t> pal;
   };
 
   /**
@@ -2231,7 +2235,8 @@ private:
    *                  pointer is passed
    */
   uint32_t get_or_register_wh(void *matAdata, const float *matAscale,
-                              remote_handle64 session, uint32_t K, uint32_t N) {
+                              remote_handle64 session, uint32_t K, uint32_t N,
+                              uint32_t w_bits = 4u) {
     std::lock_guard<std::mutex> lock(handle_mutex_);
     auto it = handle_cache_.find(matAdata);
     if (it != handle_cache_.end())
@@ -2249,7 +2254,11 @@ private:
         "QS4CX to use the conversion path instead.");
     }
 
-    const uint32_t wh_len = static_cast<uint32_t>(whBytes(K, N));
+    /* QS2CX_WH is half the bytes, with the four palette codes right after
+       them -- QS2CX_WH_Tensor's layout, which is why the scale pointer the
+       caller passed already skips them. */
+    const uint32_t wh_len =
+      static_cast<uint32_t>(w_bits == 2u ? whBytes2(K, N) : whBytes(K, N));
     uint32_t chunk = 0, off = 0;
     // want = kArenaChunkMax, not wh_len: these weights arrive one at a time
     // with no total to size a chunk from, so every chunk is made full size
@@ -2290,6 +2299,10 @@ private:
       e.colsum_w[i] = static_cast<int32_t>(colsum_f[i]);
     }
 
+    if (w_bits == 2u) {
+      const int8_t *pal = reinterpret_cast<const int8_t *>(matAdata) + wh_len;
+      e.pal.assign(pal, pal + 4);
+    }
     const uint32_t handle = registerFromArena(session, e, K, N, t_begin);
     if (handle == kNoHandle) {
       throw std::runtime_error("weight_register_u8i4_arena rejected a " +
@@ -2584,10 +2597,16 @@ private:
 
     uint32_t handle = 0;
     const uint64_t t_rpc = HtpProfile::nowUs();
-    const int err = nntr_hvx_weight_register_u8i4_arena(
-      session, K, N, arena_chunks_[e.chunk].dsp_id, e.off, e.w_scale.data(),
-      static_cast<int>(N), e.colsum_w.data(), static_cast<int>(N),
-      e.bias.data(), static_cast<int>(N), &handle);
+    const int err =
+      e.pal.empty()
+        ? nntr_hvx_weight_register_u8i4_arena(
+            session, K, N, arena_chunks_[e.chunk].dsp_id, e.off,
+            e.w_scale.data(), static_cast<int>(N), e.colsum_w.data(),
+            static_cast<int>(N), e.bias.data(), static_cast<int>(N), &handle)
+        : nntr_hvx_weight_register_u2i4_arena(
+            session, K, N, arena_chunks_[e.chunk].dsp_id, e.off, e.pal.data(),
+            4, e.w_scale.data(), static_cast<int>(N), e.colsum_w.data(),
+            static_cast<int>(N), e.bias.data(), static_cast<int>(N), &handle);
     const uint64_t rpc_us = HtpProfile::nowUs() - t_rpc;
     if (err != AEE_SUCCESS)
       return kNoHandle;

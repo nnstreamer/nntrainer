@@ -154,6 +154,9 @@ static int hexkl_weight_u8i4_fill_slot(hexkl_weight_u8i4_table *tbl,
   memcpy(h->bias, bias, sizeof(float) * N);
   h->K = K;
   h->N = N;
+  /* Four unless a caller says otherwise: every existing registration path
+     lands here and none of them is 2-bit. */
+  h->bits = 4u;
   h->in_use = 1;
   return AEE_SUCCESS;
 }
@@ -251,6 +254,49 @@ int hexkl_weight_u8i4_register_arena(hexkl_weight_u8i4_table *tbl,
   if (rc != AEE_SUCCESS) {
     return rc;
   }
+  *out_handle = slot;
+  return AEE_SUCCESS;
+}
+
+int hexkl_weight_u2i4_register_arena(hexkl_weight_u8i4_table *tbl,
+                                     uint32_t vtcm_size, uint32_t K, uint32_t N,
+                                     const uint8_t *wh, const int8_t *pal,
+                                     const float *w_scale,
+                                     const int32_t *colsum_w, const float *bias,
+                                     uint32_t *out_handle) {
+  uint32_t wh_bytes = 0;
+  uint32_t slot;
+  int rc;
+
+  if (!tbl || !wh || !pal || !w_scale || !colsum_w || !bias || !out_handle) {
+    return AEE_EBADPARM;
+  }
+  /* Half a tile, because a 2-bit tile is half the bytes. The DMA out of
+     this still starts on a tile boundary, which is what the ring's 2D
+     descriptors need. */
+  if (((uintptr_t)wh % (WEIGHT_TILE_BYTES_U8I4 / 2u)) != 0u) {
+    return AEE_EBADPARM;
+  }
+  /* The VTCM check is the 4-bit one on purpose: the codes expand in place
+     into a full-width region, so what has to fit is the expanded size. */
+  rc = hexkl_weight_u8i4_check(K, N, vtcm_size, &wh_bytes);
+  if (rc != AEE_SUCCESS) {
+    return rc;
+  }
+  slot = hexkl_weight_u8i4_free_slot(tbl);
+  if (slot == HEXKL_MM_U8I4_MAX_WEIGHTS) {
+    return AEE_ENOMEMORY;
+  }
+  rc = hexkl_weight_u8i4_fill_slot(tbl, slot, K, N, wh_bytes / 2u, wh, w_scale,
+                                   colsum_w, bias, /*borrow=*/1);
+  if (rc != AEE_SUCCESS) {
+    return rc;
+  }
+  tbl->slots[slot].bits = 2u;
+  tbl->slots[slot].pal[0] = pal[0];
+  tbl->slots[slot].pal[1] = pal[1];
+  tbl->slots[slot].pal[2] = pal[2];
+  tbl->slots[slot].pal[3] = pal[3];
   *out_handle = slot;
   return AEE_SUCCESS;
 }

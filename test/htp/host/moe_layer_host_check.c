@@ -154,6 +154,62 @@ int main(void) {
       fail = 1;
   }
 
+  /* QS2CX_WH: the same weights at two bits, expanded in VTCM after their
+     DMA lands. The output must be BIT identical -- the expansion puts the
+     int4 lattice back exactly, so every stage after the matmul sees what
+     it saw before. A tolerance here would hide the one failure mode that
+     matters, an expansion that is nearly right. This also exercises the
+     in-place placement: the codes land in the top half of the slot they
+     expand into, so a chunk boundary off by one clobbers a live tile and
+     shows up as a wrong row. */
+  {
+    const int8_t pal[4] = {-6, -2, 1, 5};
+    W wg2[8], wd2[8];
+    uint32_t hg2[8], hd2[8];
+    for (uint32_t e = 0; e < NE; ++e) {
+      make_weight_pal(2u * NE + e, 4u * NE + e, K, 2 * inter, pal, &wg2[e]);
+      make_weight_pal(3u * NE + e, 5u * NE + e, inter, N_out, pal, &wd2[e]);
+      hg2[e] = 2u * NE + e;
+      hd2[e] = 3u * NE + e;
+    }
+    float *four = (float *)malloc(sizeof(float) * M * N_out);
+    float *two = (float *)malloc(sizeof(float) * M * N_out);
+    hexkl_moe_scratch sc2 = {NULL, NULL, 0};
+    const unsigned long long kb0 = hexkl_probe_us[HEXKL_PROBE_DMA_KB];
+    int r4 = hexkl_mm_u8i4_moe_layer_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm,
+                                         M, K, inter, N_out, NE, hg2, hd2, ridx,
+                                         rc_, rw, act, four, NULL, &sc2);
+    const unsigned long long kb4 = hexkl_probe_us[HEXKL_PROBE_DMA_KB] - kb0;
+    for (uint32_t e = 0; e < NE; ++e) {
+      hg2[e] = 4u * NE + e;
+      hd2[e] = 5u * NE + e;
+    }
+    int r2 = hexkl_mm_u8i4_moe_layer_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm,
+                                         M, K, inter, N_out, NE, hg2, hd2, ridx,
+                                         rc_, rw, act, two, NULL, &sc2);
+    const unsigned long long kb2 =
+      hexkl_probe_us[HEXKL_PROBE_DMA_KB] - kb0 - kb4;
+    uint32_t nb = 0;
+    for (uint32_t i = 0; i < M * N_out; ++i) {
+      if (memcmp(&four[i], &two[i], sizeof(float)) != 0)
+        ++nb;
+    }
+    printf("2-bit experts     : rc=%d/%d  bitwise mismatches=%u of %u\n", r4,
+           r2, nb, M * N_out);
+    /* The point of the whole format: half the bytes cross the bus. Asserted
+       rather than inspected, because a push that quietly kept the full
+       width would still give the right answer. The probe counts whole
+       kilobytes and this shape's chunks are smaller than that, so the
+       2-bit side reads 0 -- what the bound catches is the regression that
+       matters, a 2-bit weight pushed at full width (which would read the
+       same as the 4-bit side, not half of it). */
+    printf("2-bit weight DMA  : %llu KB vs %llu (want <= half)\n", kb2, kb4);
+    fail |= (r4 != 0) || (r2 != 0) || (nb != 0) || (kb4 == 0ull) ||
+            (kb2 * 2ull > kb4);
+    free(four);
+    free(two);
+  }
+
   /* --- edge cases the routing can actually produce --------------------- */
   {
     uint32_t z[8] = {0, 0, 0, 0, 0};
