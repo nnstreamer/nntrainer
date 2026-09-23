@@ -8,8 +8,8 @@
 #   only from lib/6.1.1.0 up. 6.4.0.1 is the verified combination.
 # Override the target with: HEX_ARCH=v75 ./build.sh
 # Override HexKL with:      HEXKL_ROOT=/path/to/hexkl_addon ./build.sh
-# Extra defines with:       HEXKL_EXTRA_CFLAGS=-DHEXKL_MOE_HALF_DMA=1 ./build.sh
-#   (throwaway measurement builds -- see hexkl_mm_u8i4_moe.c's HEXKL_MOE_HALF_DMA)
+# Extra defines with:       HEXKL_EXTRA_CFLAGS=-DNNTR_HEXKL_HW_INIT_2ARG ./build.sh
+#   (this HexKL drop's hw_init takes two arguments; see test/htp/hvx_add_f32.c)
 
 set -eu
 

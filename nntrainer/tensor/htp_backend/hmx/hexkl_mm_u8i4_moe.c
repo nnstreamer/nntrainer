@@ -136,21 +136,8 @@ uint32_t hexkl_moe_push_weight_chunk(uint8_t *vtcm_base, uint32_t dst_off,
   const uint32_t row = cn * WEIGHT_TILE_BYTES_U8I4;
   const uint32_t stride = n_col * WEIGHT_TILE_BYTES_U8I4;
   const uint32_t off = nt0 * WEIGHT_TILE_BYTES_U8I4;
-  const uint32_t idx = hexkl_dma_ring_next_idx();
   uint64_t pt = 0;
-#if defined(HEXKL_MOE_HALF_DMA) && HEXKL_MOE_HALF_DMA
-  /* MEASUREMENT BUILD ONLY -- the results are numerically garbage.
-     Transfers the first half of the k-tiles and leaves the rest of VTCM
-     holding the previous expert's bytes, so the HMX issue loop does exactly
-     the work it does today against exactly half the weight traffic. That
-     isolates the one question 2-bit experts rest on: is this call DMA-bound?
-     176 MB a call over 13.8 ms of DSP time is 12.7 GB/s, and 12 GB/s is what
-     the DMA was independently seen to manage beside the HMX (doc 51 2.26),
-     but those two agreeing is not proof that the DMA is what the call is
-     waiting on. Halving it and watching `dsp` is.
-     Read with mm and acc as controls -- neither may move (doc 44 10). */
-  k_tiles = (k_tiles > 1u) ? (k_tiles >> 1) : 1u;
-#endif
+  const uint32_t idx = hexkl_dma_ring_next_idx();
   HEXKL_PROBE_COUNT(HEXKL_PROBE_DMA_KB, (row * k_tiles) >> 10);
   HEXKL_PROBE_T0(pt);
   hexkl_dma_ring_push2d(vtcm_base + dst_off + off, h->wh_bytes + off, stride,
