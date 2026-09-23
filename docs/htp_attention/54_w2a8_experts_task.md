@@ -152,6 +152,13 @@ build/Applications/CausalLM/nntr_quantize_stream <fp32_model_dir> \
   --isa ARM --moe_palette_g 256
 ```
 
+경로가 도는 것은 tiny fixture(`test/unittest/models/causallm_reference/lfm2_moe_tiny`)로
+호스트에서 확인했다 (2026-09-23): 출력 크기 71,648 B로 **불변**, 달라진 바이트는
+`27088..43472`와 `55008..71392` 두 구간뿐 — MoE 2개 층의 expert payload
+(4 expert × (gate_up 2560 + down 1536))와 정확히 일치하고 dense FFN·conv·attention·
+embedding·lm_head는 바이트 동일. 그 안의 코드는 16개 → **4개**
+(`gate_up {-5,-2,1,4}`, `down {-5,-2,1,5}`).
+
 `nntr_config.json`은 기존 HTP 디렉터리와 같게(전부 켬). 기기:
 ```bash
 LD_LIBRARY_PATH=. ADSP_LIBRARY_PATH=. NNTR_NUM_THREADS=8 NNTR_HTP_PROFILE=2 NNTR_PPL=1 \
