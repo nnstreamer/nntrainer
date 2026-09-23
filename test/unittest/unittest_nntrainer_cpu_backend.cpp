@@ -11,16 +11,20 @@
 #include "htp_act_quant.h"
 #include "htp_q4_0_convert.h"
 #include "htp_wh_layout.h"
+#include "htp_wh_palette.h"
 #include "int4_utils.h"
 #include "nntrainer_test_util.h"
 #include "q4_0_utils.h"
+#include <cmath>
 #include <cpu_backend.h>
 #include <fallback_internal.h>
 #include <fp16.h>
 #include <gtest/gtest.h>
+#include <limits>
 #include <nntr_ggml_impl.h>
 #include <numeric>
 #include <random>
+#include <set>
 #include <vector>
 
 #include <chrono>
@@ -710,6 +714,82 @@ TEST(nntrainer_cpu_backend_standalone, wh_pack_unpacks_like_the_load_path) {
     }
   }
   EXPECT_EQ(bad, 0u) << "whPack and whSlot disagree about where values go";
+}
+
+/**
+ * @brief The 2-bit palette really is the best four codes, not a good guess
+ *
+ * whPaletteQuantize decides what a 2-bit expert weighs, and the whole 2-bit
+ * effort is gated on one perplexity number measured with it. A k-means that
+ * settled into a local minimum would make that number an argument about the
+ * fitter rather than about 2 bits, so this checks the claim the header makes:
+ * with sixteen candidate codes the nearest-level partition is contiguous, so
+ * the DP is exact. Brute force over all 1820 four-subsets says whether it is.
+ */
+TEST(nntrainer_cpu_backend_standalone, wh_palette_is_optimal_and_restricts) {
+  const unsigned int K = 128, N = 64;
+  const unsigned int group_k = 32;
+
+  // Codes shaped like a real quantized weight: bell-shaped over [-8, 7].
+  std::mt19937 rng(20260923u);
+  std::normal_distribution<float> bell(0.0f, 3.0f);
+  std::vector<int8_t> rm(static_cast<size_t>(K) * N);
+  for (auto &v : rm) {
+    int q = static_cast<int>(std::lround(bell(rng)));
+    v = static_cast<int8_t>(q < -8 ? -8 : (q > 7 ? 7 : q));
+  }
+  const std::vector<int8_t> original = rm;
+
+  std::vector<int8_t> pal(
+    nntrainer::whPaletteEntries(K, N, group_k, /*per_column=*/false));
+  nntrainer::whPaletteQuantize(rm.data(), K, N, group_k, /*per_column=*/false,
+                               pal.data());
+
+  const unsigned int groups = nntrainer::whPaletteGroups(K, group_k);
+  ASSERT_EQ(pal.size(), groups * nntrainer::WH_PALETTE_LEVELS);
+
+  for (unsigned int g = 0; g < groups; ++g) {
+    const int8_t *entry = pal.data() + g * nntrainer::WH_PALETTE_LEVELS;
+
+    // Every value in the group is one of the four, and the nearest one.
+    uint64_t hist[nntrainer::WH_PALETTE_CODES] = {0};
+    for (unsigned int k = g * group_k; k < (g + 1) * group_k; ++k) {
+      for (unsigned int n = 0; n < N; ++n) {
+        const size_t i = static_cast<size_t>(k) * N + n;
+        ++hist[original[i] + 8];
+        EXPECT_EQ(rm[i],
+                  nntrainer::detail::whPaletteNearest(original[i], entry));
+      }
+    }
+
+    const auto error = [&hist](const int8_t p[nntrainer::WH_PALETTE_LEVELS]) {
+      double e = 0.0;
+      for (int v = 0; v < (int)nntrainer::WH_PALETTE_CODES; ++v) {
+        if (!hist[v])
+          continue;
+        const int8_t q = static_cast<int8_t>(v - 8);
+        const double d = q - nntrainer::detail::whPaletteNearest(q, p);
+        e += static_cast<double>(hist[v]) * d * d;
+      }
+      return e;
+    };
+
+    double best = std::numeric_limits<double>::max();
+    for (int a = 0; a < 16; ++a)
+      for (int b = a + 1; b < 16; ++b)
+        for (int c = b + 1; c < 16; ++c)
+          for (int d = c + 1; d < 16; ++d) {
+            const int8_t p[4] = {
+              static_cast<int8_t>(a - 8), static_cast<int8_t>(b - 8),
+              static_cast<int8_t>(c - 8), static_cast<int8_t>(d - 8)};
+            best = std::min(best, error(p));
+          }
+    EXPECT_LE(error(entry), best + 1e-9) << "group " << g << " is not optimal";
+  }
+
+  // And the point of all this: two bits an entry is enough to name them.
+  std::set<int8_t> used(rm.begin(), rm.end());
+  EXPECT_LE(used.size(), groups * nntrainer::WH_PALETTE_LEVELS);
 }
 
 /**
