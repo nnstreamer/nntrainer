@@ -101,7 +101,7 @@ M=1 콜은 mm 764 + acc 259 = 1.02 ms로 HMX가 DMA(1.19 ms)와 거의 같은 �
 | 2 | 숨은 워커 시간 프로브 + 펼침 마이크로벤치 | 미착수 | 펼침 ≥120 GB/s. 워커 슬랙 있음 |
 | **3a** | `QS2CX_WH` 포맷 + 양자화기 | **코드 있음** (`996ce0c7`) | 파일이 절반, 펼치면 4-bit 대역과 바이트 동일 — **확인됨** |
 | 3b | HTP 등록 경로 (메모리 이득) | 미착수 | peak RSS ≈3,400 MB, ppl은 1의 해당 칸과 소수점까지 동일 |
-| **4a** | 펼침 커널 `hvx_expand_i2i4` + 기기 게이트 | **코드 있음** (`138dd57b`) | `HvxExpandI2I4.MatchesScalarBitExact` bad=0 |
+| **4a** | 펼침 커널 `hvx_expand_i2i4` + 기기 게이트 | **코드 있음** (`08f44155`) | `HvxExpandI2I4.MatchesScalarBitExact` bad=0 |
 | 4b | MoE 커널에 배선 (VTCM 스테이징) | 미착수 | `drain`↓, **`mm`·`acc` 불변**, dsp 순감소 |
 
 3과 4를 나눈 이유: 배선 실수를 펼침 성능 문제와 섞지 않기 위해서다.
@@ -327,7 +327,7 @@ EXPAND_I2I4_FIELD pal=[-8,-2,1,7] bad=0 of 131072
 | `f3874b0` | `HEXKL_MOE_HALF_DMA` (측정 전용 빌드), `build.sh`의 `HEXKL_EXTRA_CFLAGS` |
 | `1a69287` | `nntrainer/tensor/htp_wh_palette.h` (팔레트 DP + 적용), `quantize_stream.cpp`의 `--moe_palette_*`, 유닛 테스트 `wh_palette_is_optimal_and_restricts` |
 | `fe643e4` | `QS2CX_WH`: `whPack2`, `QS2CX_WH_Tensor`, dtype 배관, `--moe_dtype QS2CX_WH` |
-| `138dd57b` | `hvx_expand_i2i4.{c,h}` (HVX + 스칼라 쌍둥이 + 풀), IDL `expand_i2i4`, 기기 게이트 `HvxExpandI2I4.MatchesScalarBitExact`, host check `expand_i2i4_host_check` |
+| `08f44155` | `hvx_expand_i2i4.{c,h}` (HVX + 스칼라 쌍둥이 + 풀), IDL `expand_i2i4`, 기기 게이트 `HvxExpandI2I4.MatchesScalarBitExact`, host check `expand_i2i4_host_check` |
 
 팔레트 적합은 k-means가 아니라 **DP로 정확**하다: 후보 코드가 16개뿐이라 최근접 분할이
 연속 구간이 되고, 네 구간 위의 DP가 최적이다. 유닛 테스트가 그것을 1820개 4-부분집합
