@@ -33,7 +33,9 @@ void hvx_expand_i2i4_table(const int8_t *pal, uint8_t *table) {
   }
   /* Replicated across the whole vector so the lookup is right whether the
      hardware takes the table from the low 32 bytes or from each 32-byte
-     lane group -- see the header. Costs 112 bytes of VTCM once a weight. */
+     lane group -- see the header. The buffer is scratch: it is loaded into
+     a vector register once and never read from memory again, so only the
+     four palette bytes have to be kept per weight. */
   for (uint32_t i = 16u; i < HVX_EXPAND_TABLE_BYTES; ++i) {
     table[i] = table[i & 15u];
   }
@@ -52,6 +54,11 @@ void hvx_expand_i2i4(const uint8_t *src, uint32_t src_bytes,
                      const uint8_t *table, uint8_t *dst) {
 #if defined(__hexagon__)
   const uint32_t vecs = src_bytes / EXPAND_VEC;
+  /* Both of these are loop-invariant and stay in vector registers for the
+     whole call -- vlut32 takes its table as a register operand, so the
+     lookup is not a memory access. That is the entire reason this costs
+     three ops an output vector: one 128-byte load a call, not a gather a
+     byte. Nine vectors are live in the loop against HVX's 32. */
   const HVX_Vector tab = *(const HVX_UVector *)table;
   const HVX_Vector m0f = Q6_V_vsplat_R((int)0x0F0F0F0Fu);
 

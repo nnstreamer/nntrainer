@@ -26,6 +26,11 @@
  *
  *     table[(hi << 2) | lo] = (pal[lo] & 0xF) | ((pal[hi] & 0xF) << 4)
  *
+ * The table is a REGISTER operand: V6_vlutvvb takes it as an HVX_Vector,
+ * so hvx_expand_i2i4 loads it once per call and the lookup never touches
+ * memory again. Only the four palette bytes need keeping per weight; the
+ * 128-byte replicated form is scratch, rebuilt in a few instructions.
+ *
  * Sixteen entries, and one entry IS one output byte, because whPack2 lays
  * the codes out in whPack's nibble order: source byte j carries slots
  * 4j..4j+3, which are exactly output bytes 2j and 2j+1. So a source vector
