@@ -37,7 +37,17 @@
  * splits into its two nibble planes, each plane is one vlut32, and a shuffle
  * interleaves them -- three ops an output vector, nothing to gather.
  *
- * ASSUMPTION, NOT YET MEASURED ON DEVICE. This code reads V6_vlutvvb as
+ * THIS READING IS WRONG -- MEASURED, 2026-09-23. On device, index 2 fetched
+ * entry 4 for every palette tried (doc 54 5.7), so the HVX path below does
+ * not equal its scalar twin and nothing may use it yet. The replication
+ * defused the table-placement half of the guess; what is left is how the
+ * index itself is interpreted, and the EXPAND_I2I4_MAP probe in
+ * HvxExpandI2I4.MatchesScalarBitExact measures that rather than guessing it
+ * a second time. If the mapping is a permutation of the index, baking the
+ * table in its inverse fixes this at zero runtime cost.
+ *
+ * The original reading, kept because the fix is a correction to it: this
+ * code reads V6_vlutvvb as
  * "byte i of the result is table[index[i]] when index[i]'s high bits match
  * the immediate". Two things about that are taken on faith: whether the
  * table is the low 32 bytes of the table vector or one 32-byte group per

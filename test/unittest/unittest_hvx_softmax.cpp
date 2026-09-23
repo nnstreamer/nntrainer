@@ -266,6 +266,38 @@ TEST_F(HvxExpandI2I4, MatchesScalarBitExact) {
   const std::vector<std::array<int8_t, 4>> palettes = {
     {{-8, -2, 1, 7}}, {{-5, -2, 1, 4}}, {{0, 1, 2, 3}}, {{-3, -3, -3, -3}}};
 
+  // What the lookup actually does, before asking whether it matches. With
+  // pal = {0,1,2,3} the table is injective -- entry e is (e>>2)<<4 | (e&3) --
+  // so a returned byte names the entry the hardware fetched, and comparing
+  // that against the index we asked for IS the semantics of vlut32, measured
+  // rather than read off a header that does not document it.
+  {
+    std::vector<uint8_t> probe(n), phvx(2 * n, 0), pref(2 * n, 0);
+    for (int i = 0; i < n; ++i) {
+      probe[i] = static_cast<uint8_t>(((i & 15) << 4) | (i & 15));
+    }
+    const std::array<int8_t, 4> ident = {{0, 1, 2, 3}};
+    int err = nntr_hvx_expand_i2i4(handle_, probe.data(), n, ident.data(), 4,
+                                   phvx.data(), 2 * n, pref.data(), 2 * n);
+    ASSERT_EQ(err, AEE_SUCCESS) << "expand_i2i4 probe failed: " << hex(err);
+    int seen[16];
+    for (int i = 0; i < 16; ++i)
+      seen[i] = -1;
+    bool consistent = true;
+    for (int i = 0; i < 2 * n; ++i) {
+      const int want = probe[i / 2] & 15; // both planes, same nibble here
+      const int got = ((phvx[i] >> 4) & 3) * 4 + (phvx[i] & 3);
+      if (seen[want] < 0)
+        seen[want] = got;
+      else if (seen[want] != got)
+        consistent = false;
+    }
+    std::cout << "EXPAND_I2I4_MAP";
+    for (int i = 0; i < 16; ++i)
+      std::cout << " " << i << "->" << seen[i];
+    std::cout << (consistent ? " consistent" : " INCONSISTENT") << std::endl;
+  }
+
   for (const auto &pal : palettes) {
     int err = nntr_hvx_expand_i2i4(handle_, codes.data(), n, pal.data(), 4,
                                    out.data(), 2 * n, ref.data(), 2 * n);

@@ -109,8 +109,8 @@ int nntr_hvx_swiglu_det_f32(remote_handle64 handle, const float *gate,
 }
 
 int nntr_hvx_expand_i2i4(remote_handle64 handle, const uint8 *codes,
-                         int codesLen, const int8 *pal, int palLen, uint8 *out,
-                         int outLen, uint8 *ref, int refLen) {
+                         int codesLen, const int8 *pal, int palLen, uint8 *hvx,
+                         int hvxLen, uint8 *ref, int refLen) {
   nntr_hvx_session *s = (nntr_hvx_session *)handle;
   if (!s) {
     return AEE_EBADPARM;
@@ -124,8 +124,8 @@ int nntr_hvx_expand_i2i4(remote_handle64 handle, const uint8 *codes,
          codesLen);
     return AEE_EBADPARM;
   }
-  if (outLen != 2 * codesLen || refLen != 2 * codesLen) {
-    FARF(ERROR, "expand_i2i4: outLen=%d refLen=%d, want %d", outLen, refLen,
+  if (hvxLen != 2 * codesLen || refLen != 2 * codesLen) {
+    FARF(ERROR, "expand_i2i4: hvxLen=%d refLen=%d, want %d", hvxLen, refLen,
          2 * codesLen);
     return AEE_EBADPARM;
   }
@@ -136,7 +136,7 @@ int nntr_hvx_expand_i2i4(remote_handle64 handle, const uint8 *codes,
   uint8_t table[HVX_EXPAND_TABLE_BYTES] __attribute__((aligned(128)));
   hvx_expand_i2i4_table(pal, table);
 
-  hvx_expand_i2i4(codes, (uint32_t)codesLen, table, out);
+  hvx_expand_i2i4(codes, (uint32_t)codesLen, table, hvx);
   hvx_expand_i2i4_scalar(codes, (uint32_t)codesLen, table, ref);
   return AEE_SUCCESS;
 }

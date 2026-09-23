@@ -101,7 +101,7 @@ M=1 콜은 mm 764 + acc 259 = 1.02 ms로 HMX가 DMA(1.19 ms)와 거의 같은 �
 | 2 | 숨은 워커 시간 프로브 + 펼침 마이크로벤치 | 미착수 | 펼침 ≥120 GB/s. 워커 슬랙 있음 |
 | **3a** | `QS2CX_WH` 포맷 + 양자화기 | **코드 있음** (`996ce0c7`) | 파일이 절반, 펼치면 4-bit 대역과 바이트 동일 — **확인됨** |
 | 3b | HTP 등록 경로 (메모리 이득) | 미착수 | peak RSS ≈3,400 MB, ppl은 1의 해당 칸과 소수점까지 동일 |
-| **4a** | 펼침 커널 `hvx_expand_i2i4` + 기기 게이트 | **코드 있음** (`08f44155`) | `HvxExpandI2I4.MatchesScalarBitExact` bad=0 |
+| **4a** | 펼침 커널 `hvx_expand_i2i4` + 기기 게이트 | **실패** (§5.7) | vlut32 인덱스 매핑이 가정과 다름. `EXPAND_I2I4_MAP` 프로브가 다음 |
 | 4b | MoE 커널에 배선 (VTCM 스테이징) | 미착수 | `drain`↓, **`mm`·`acc` 불변**, dsp 순감소 |
 
 3과 4를 나눈 이유: 배선 실수를 펼침 성능 문제와 섞지 않기 위해서다.
@@ -366,6 +366,71 @@ DMA는 이미 2D다(행 = k_tiles, 행 크기 = cn*512, stride = n_col*512). 2-b
 한 가지 대가: src와 dst가 겹치므로 `restrict`를 쓸 수 없고, 컴파일러가 반복 간 load/store를
 재배치하지 못해 소프트웨어 파이프라이닝이 줄 수 있다. 얼마나인지는 4a 게이트의 프로파일이
 말해줄 문제다.
+
+## 5.7 4a 게이트 실패 — vlut32 읽기가 틀렸다 (2026-09-23, 기기)
+
+```
+EXPAND_I2I4_FIELD pal=[-8,-2,1,7]   bad=122811 of 131072  first i=0 code=0x22 hvx=0xe8 ref=0x81
+EXPAND_I2I4_FIELD pal=[-5,-2,1,4]   bad=122811 of 131072  first i=0 code=0x22 hvx=0xeb ref=0xb1
+EXPAND_I2I4_FIELD pal=[0,1,2,3]     bad=122811 of 131072  first i=0 code=0x22 hvx=0x10 ref=0x2
+EXPAND_I2I4_FIELD pal=[-3,-3,-3,-3] bad=0 of 131072
+```
+
+(같은 실행의 나머지 20개 테스트는 통과. `SWIGLU_DET_FIELD bad_exp=0 bad_recip=0 bad_out=0`.)
+
+**게이트가 설계한 대로 갈라냈다.** 퇴화 팔레트(엔트리 16개가 전부 `0xDD`)만 `bad=0`인 것은
+**조회 자체는 동작하되 엉뚱한 엔트리를 집는다**는 뜻이다 — 테이블이 깨졌다면 그 칸도 틀렸다.
+
+어느 엔트리인지도 나온다. `pal=[0,1,2,3]`이면 테이블이 단사다(`table[e] = (e>>2)<<4 | (e&3)`):
+
+| | |
+|---|---|
+| 소스 바이트 | `0x22` → 두 평면 다 인덱스 **2** |
+| 기대 | `table[2]` = `0x02` |
+| HVX | `0x10` = `table[4]` |
+
+세 팔레트 전부 같은 결론이다: **인덱스 2가 엔트리 4를 가져왔다.** §3의 "인덱스의 상위 비트가
+immediate와 맞으면 결과 = table[인덱스]"라는 읽기가 틀렸다. 복제(가정 (a))는 무력화됐고 남은
+것은 인덱스 해석 자체다.
+
+데이터 포인트가 `i=0` 하나뿐이라 규칙을 추측하지 않는다 — Phase A에서 세 번, 여기서 한 번,
+전부 추측이 틀렸다. **매핑을 직접 재는 프로브를 테스트에 넣었다**: `pal={0,1,2,3}`으로 돌려
+돌아온 바이트에서 하드웨어가 집은 엔트리 번호를 역산하고 인덱스 0..15의 표를 찍는다
+(`EXPAND_I2I4_MAP 0->? 1->? ...`). IDL은 안 바뀌므로 **gtest만 다시 빌드**하면 된다.
+
+빌드는 끝냈고 push 직전에 기기가 USB에서 빠졌다. 다음 세션의 첫 명령:
+
+```bash
+D=/data/local/tmp/htp_u8i4_layer_test
+adb push test/jni/obj/local/arm64-v8a/unittest_hvx_softmax $D/
+adb shell "cd $D && LD_LIBRARY_PATH=. ADSP_LIBRARY_PATH=. \
+  ./unittest_hvx_softmax --gtest_filter='HvxExpandI2I4.*'"
+```
+
+`EXPAND_I2I4_MAP` 한 줄이 §3 B의 운명을 정한다. 매핑이 인덱스의 단순 치환이면 테이블을 그
+치환의 역으로 구워 **연산 수를 그대로 유지**할 수 있다(오프라인 한 번, 런타임 비용 0).
+치환이 아니라 레인 위치에 의존하면 B는 죽고, §3의 A(출력 벡터당 ≈17 op)로는 §4의 예산이
+깨지므로 이 과제는 **메모리 전용으로 축소**된다.
+
+### 5.7.1 같이 나온 것 — 53 §5 단계 0의 답
+
+SDK는 이 머신의 `/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1`에 있다(문서가 가리키던
+`~/workspace/...`가 아니다). `addons/hexkl_addon/include/hexkl_micro.h`의 `acc_read` 변형은
+**`acc_read_int32`와 `acc_read_f16` 둘뿐**이고 u8/i8 출력 변형은 없다.
+
+⇒ **53 §2의 예외 1(acc_read 2.95 ms를 4배 작은 읽기로)은 존재하지 않는 함수에 기대고 있었다.**
+53의 가장 큰 항목이 사라졌으므로 53 §5 단계 0의 "이득 산술이 −5 ms 미만이면 멈춰라"를 다시
+적용해야 한다.
+
+빌드 메모: 이 HexKL 드롭은 `hexkl_micro_hw_init`이 2-arg라 `NNTR_HEXKL_HW_INIT_2ARG`가
+필요하고, `lib/` 아래에 버전 디렉터리가 없어 `HEXKL_SDK_VER=.`로 넘겨야 한다.
+
+```bash
+SDK=/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1
+source $SDK/setup_sdk_env.source
+HEXKL_ROOT=$SDK/addons/hexkl_addon HEXKL_SDK_VER=. \
+  HEXKL_EXTRA_CFLAGS=-DNNTR_HEXKL_HW_INIT_2ARG bash test/htp/build.sh
+```
 
 ## 6. 들어간 코드
 

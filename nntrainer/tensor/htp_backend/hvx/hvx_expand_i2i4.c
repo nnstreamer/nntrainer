@@ -14,6 +14,10 @@
 
 #include "hvx_expand_i2i4.h"
 
+/* The header only forward-declares the pool type so a C++ check can include
+   it; the pool call itself needs the real declaration. */
+#include "hvx_worker_pool.h"
+
 #include <stddef.h>
 
 #if defined(__hexagon__)

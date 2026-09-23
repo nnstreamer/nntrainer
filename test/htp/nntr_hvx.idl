@@ -235,9 +235,10 @@ interface nntr_hvx : remote_handle64 {
    // both on the device settles it. codes are QS2CX_WH bytes, pal is the
    // tensor's four int4 levels, and both outputs come back so a failure
    // says whether the table or the lookup is wrong.
-   // codesLen must be a multiple of 128; out and ref are 2 * codesLen.
+   // codesLen must be a multiple of 128; hvx and ref are 2 * codesLen.
+   // ("out" is an IDL reserved word.)
    AEEResult expand_i2i4(in sequence<uint8> codes, in sequence<int8> pal,
-                         rout sequence<uint8> out, rout sequence<uint8> ref);
+                         rout sequence<uint8> hvx, rout sequence<uint8> ref);
 
    AEEResult softmax_f32(in uint32 M, in uint32 K, in uint32 m_first,
                          in float scale, in sequence<float> x,
