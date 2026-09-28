@@ -180,7 +180,6 @@ void hexkl_moe_expand_chunk(uint8_t *vtcm_base, uint32_t dst_off,
   const uint32_t row = cn * WEIGHT_TILE_BYTES_U8I4;
   const uint32_t stride = n_col * WEIGHT_TILE_BYTES_U8I4;
   const uint32_t off = nt0 * WEIGHT_TILE_BYTES_U8I4;
-  uint32_t r;
   if (h->bits != 2u) {
     return;
   }
@@ -188,10 +187,10 @@ void hexkl_moe_expand_chunk(uint8_t *vtcm_base, uint32_t dst_off,
      against a chunk of a megabyte, and it keeps the registry to the four
      palette codes. */
   hvx_expand_i2i4_table(h->pal, lut);
-  for (r = 0; r < k_tiles; ++r) {
-    uint8_t *dst = vtcm_base + dst_off + (size_t)r * stride + off;
-    hvx_expand_i2i4_pool(dst + row / 2u, row / 2u, lut, dst, pool);
-  }
+  /* One dispatch for all k_tiles rows, not one a row: a wake-up a row cost
+     42% of decode TPS the first time this ran (doc 54 5.10). */
+  hvx_expand_i2i4_rows(vtcm_base + dst_off + off, stride, row / 2u, k_tiles,
+                       lut, pool);
 }
 
 /**

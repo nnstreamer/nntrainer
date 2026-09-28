@@ -132,6 +132,41 @@ static void expand_worker(uint32_t n_threads, uint32_t i, void *vctx) {
   }
 }
 
+typedef struct {
+  uint8_t *base;
+  const uint8_t *table;
+  uint32_t stride;
+  uint32_t src_bytes;
+  uint32_t nrows;
+} expand_rows_ctx;
+
+static void expand_rows_worker(uint32_t n_threads, uint32_t i, void *vctx) {
+  const expand_rows_ctx *c = (const expand_rows_ctx *)vctx;
+  const uint32_t r0 = c->nrows * i / n_threads;
+  const uint32_t r1 = c->nrows * (i + 1u) / n_threads;
+  uint32_t r;
+  for (r = r0; r < r1; ++r) {
+    uint8_t *dst = c->base + (size_t)r * c->stride;
+    hvx_expand_i2i4(dst + c->src_bytes, c->src_bytes, c->table, dst);
+  }
+}
+
+void hvx_expand_i2i4_rows(uint8_t *base, uint32_t stride, uint32_t src_bytes,
+                          uint32_t nrows, const uint8_t *table,
+                          hvx_worker_pool *pool) {
+  expand_rows_ctx ctx;
+  ctx.base = base;
+  ctx.table = table;
+  ctx.stride = stride;
+  ctx.src_bytes = src_bytes;
+  ctx.nrows = nrows;
+  if (!pool) {
+    expand_rows_worker(1u, 0u, &ctx);
+    return;
+  }
+  hvx_worker_pool_run(pool, expand_rows_worker, &ctx, nrows);
+}
+
 void hvx_expand_i2i4_pool(const uint8_t *src, uint32_t src_bytes,
                           const uint8_t *table, uint8_t *dst,
                           hvx_worker_pool *pool) {
