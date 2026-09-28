@@ -210,6 +210,71 @@ int main(void) {
     free(two);
   }
 
+  /* A shape with more than one chunk a weight, so the expansion's
+     background lane actually runs. The shape above has inter_ntiles = 1
+     and dn_ntiles = acc_tiles, so every chunk is the first one and the
+     lookahead never fires -- which would have shipped the pipeline
+     untested. inter 64 and N_out 128 give two chunks each way. */
+  {
+    /* inter must exceed 512 for gate_up to have more than one chunk:
+       half is acc_tiles/2 and acc_tiles is min(32, 2*inter/32), so below
+       that every chunk is the first one. The lookahead is two batches, so
+       the queued path only runs at three chunks or more: inter 1088 gives
+       inter_ntiles 34 against half 16, and N_out 2112 gives dn_ntiles 66
+       against acc_tiles 32 -- three each. The real model is 1792 and 2048,
+       four and two. */
+    const uint32_t K2 = 64, I2 = 1088, N2 = 2112, NE2 = 3;
+    const int8_t pal[4] = {-7, -2, 2, 6};
+    W wg3[4], wd3[4];
+    uint32_t hg3[4], hd3[4], hg3b[4], hd3b[4];
+    for (uint32_t e = 0; e < NE2; ++e) {
+      make_weight_pal(6u * NE + e, 6u * NE + 8u + e, K2, 2 * I2, pal, &wg3[e]);
+      make_weight_pal(6u * NE + 16u + e, 6u * NE + 24u + e, I2, N2, pal,
+                      &wd3[e]);
+      hg3[e] = 6u * NE + e;
+      hd3[e] = 6u * NE + 16u + e;
+      hg3b[e] = 6u * NE + 8u + e;
+      hd3b[e] = 6u * NE + 24u + e;
+    }
+    const uint32_t M2 = 40;
+    float *a2 = (float *)malloc(sizeof(float) * M2 * K2);
+    for (uint32_t i = 0; i < M2 * K2; ++i)
+      a2[i] = rndf();
+    uint32_t rc2[4] = {70, 1, 64};
+    uint32_t nr2 = 0;
+    for (uint32_t e = 0; e < NE2; ++e)
+      nr2 += rc2[e];
+    uint32_t *ri2 = (uint32_t *)malloc(sizeof(uint32_t) * nr2);
+    float *rw2 = (float *)malloc(sizeof(float) * nr2);
+    for (uint32_t i = 0; i < nr2; ++i) {
+      ri2[i] = rnd() % M2;
+      rw2[i] = 0.2f + 0.7f * ((float)(rnd() % 100u) / 100.f);
+    }
+    float *o4 = (float *)malloc(sizeof(float) * M2 * N2);
+    float *o2 = (float *)malloc(sizeof(float) * M2 * N2);
+    hexkl_moe_scratch sc3 = {NULL, NULL, 0};
+    int r4 = hexkl_mm_u8i4_moe_layer_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm,
+                                         M2, K2, I2, N2, NE2, hg3, hd3, ri2,
+                                         rc2, rw2, a2, o4, NULL, &sc3);
+    int r2 = hexkl_mm_u8i4_moe_layer_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm,
+                                         M2, K2, I2, N2, NE2, hg3b, hd3b, ri2,
+                                         rc2, rw2, a2, o2, NULL, &sc3);
+    uint32_t nb = 0;
+    for (uint32_t i = 0; i < M2 * N2; ++i) {
+      if (memcmp(&o4[i], &o2[i], sizeof(float)) != 0)
+        ++nb;
+    }
+    printf("2-bit multi-chunk : rc=%d/%d  bitwise mismatches=%u of %u "
+           "(chunks gu=%u dn=%u)\n",
+           r4, r2, nb, M2 * N2, (I2 / 32u + 15u) / 16u, (N2 / 32u + 31u) / 32u);
+    fail |= (r4 != 0) || (r2 != 0) || (nb != 0);
+    free(a2);
+    free(ri2);
+    free(rw2);
+    free(o4);
+    free(o2);
+  }
+
   /* --- edge cases the routing can actually produce --------------------- */
   {
     uint32_t z[8] = {0, 0, 0, 0, 0};

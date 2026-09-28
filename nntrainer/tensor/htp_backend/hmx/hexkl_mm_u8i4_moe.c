@@ -165,6 +165,69 @@ uint32_t hexkl_moe_push_weight_chunk(uint8_t *vtcm_base, uint32_t dst_off,
   return idx;
 }
 
+/** @brief Units a chunk's expansion is split into on the background lane.
+ *  Sized for the ~10 us a unit the lane wants (hvx_worker_pool.h): a
+ *  gate_up chunk pair is 40-55 us of work at decode, 8 units of it. */
+#define MOE_EXPAND_UNITS 8u
+
+/** @brief One queued chunk expansion. Up to two column runs -- gate_up
+ *  arrives as a gate/up pair -- and its own copy of the lookup table,
+ *  because the job outlives the frame that submitted it. */
+typedef struct {
+  uint8_t *base[2];
+  uint32_t nbase;
+  uint32_t stride;
+  uint32_t src_bytes; /**< half a row: where the codes landed */
+  uint32_t nrows;
+  uint8_t lut[HVX_EXPAND_TABLE_BYTES];
+} moe_expand_ctx;
+
+static void moe_expand_unit(uint32_t n_units, uint32_t u, void *vctx) {
+  moe_expand_ctx *c = (moe_expand_ctx *)vctx;
+  const uint32_t total = c->nbase * c->nrows;
+  const uint32_t i0 = total * u / n_units;
+  const uint32_t i1 = total * (u + 1u) / n_units;
+  uint32_t i;
+  for (i = i0; i < i1; ++i) {
+    uint8_t *dst = c->base[i / c->nrows] + (size_t)(i % c->nrows) * c->stride;
+    hvx_expand_i2i4(dst + c->src_bytes, c->src_bytes, c->lut, dst);
+  }
+}
+
+/**
+ * @brief Queues a chunk's expansion behind whatever the workers are doing.
+ *
+ * The caller must already have waited for the chunk's DMA. Submitted one
+ * batch before the HMX that reads the chunk, so the expansion runs under
+ * the previous batch's issue instead of in front of this one -- the same
+ * move D1 made for the weight DMA itself (doc 54 5.12).
+ *
+ * @param nt1 second column run, or UINT32_MAX for one
+ */
+static void moe_expand_submit(hvx_worker_pool *pool, hvx_bg_job *job,
+                              moe_expand_ctx *ctx, uint8_t *done,
+                              uint8_t *vtcm_base, uint32_t dst_off,
+                              const hexkl_weight_u8i4 *h, uint32_t k_tiles,
+                              uint32_t n_col, uint32_t nt0, uint32_t nt1,
+                              uint32_t cn) {
+  const uint32_t row = cn * WEIGHT_TILE_BYTES_U8I4;
+  ctx->stride = n_col * WEIGHT_TILE_BYTES_U8I4;
+  ctx->src_bytes = row / 2u;
+  ctx->nrows = k_tiles;
+  ctx->base[0] = vtcm_base + dst_off + nt0 * WEIGHT_TILE_BYTES_U8I4;
+  ctx->nbase = 1u;
+  if (nt1 != UINT32_MAX) {
+    ctx->base[1] = vtcm_base + dst_off + nt1 * WEIGHT_TILE_BYTES_U8I4;
+    ctx->nbase = 2u;
+  }
+  hvx_expand_i2i4_table(h->pal, ctx->lut);
+  job->func = moe_expand_unit;
+  job->ctx = ctx;
+  job->n_units = MOE_EXPAND_UNITS;
+  job->done = done;
+  hvx_worker_pool_submit_bg(pool, job);
+}
+
 /**
  * @brief Expands a chunk that just landed, in place. No-op at 4 bits.
  *
@@ -1086,6 +1149,16 @@ int hexkl_mm_u8i4_moe_layer_run(
    * out as before, once GU(n) has freed their slots, and arrive under
    * DN(n-1). */
   moe_blk blk, pblk;
+  /* 2-bit only: two queued chunk expansions per weight, ping-ponged, so
+     chunk gb+1 expands under batch gb's HMX issue. On the stack because
+     they are a few hundred bytes and die with the call. */
+  const int w2 = (tbl->slots[h_gate_up[order[0]]].bits == 2u);
+  hvx_bg_job exp_job[4];
+  moe_expand_ctx exp_ctx[4];
+  uint8_t exp_done[4][MOE_EXPAND_UNITS];
+  int exp_live[4] = {0, 0, 0, 0};
+  const uint32_t gu_chunks = (inter_ntiles + half - 1u) / half;
+
   moe_blk_set(&blk, 0u, 0u, order, row_count, slot_of, allow_tail);
   /* The first expert's first activation block. Queued behind its gate_up
      here (the one place the order is reversed: that gate_up has the scan
@@ -1146,13 +1219,19 @@ int hexkl_mm_u8i4_moe_layer_run(
         /* Only the first block of an expert waits: by the second the whole
            weight is resident. n == 0 && gb == 0 is the one wait that cannot
            hide behind anything, which is what DMA_FIRST records. */
-        if (blk.first) {
+        if (blk.first && w2 && gb > 1u && exp_live[gb & 1u]) {
+          /* Queued one batch ago; its DMA was waited for then. */
+          HEXKL_PROBE_T0(p0);
+          hvx_worker_pool_wait_bg(pool, &exp_job[gb & 1u], UINT32_MAX);
+          HEXKL_PROBE_ADD(HEXKL_PROBE_DRAIN, p0);
+          exp_live[gb & 1u] = 0;
+        } else if (blk.first) {
           HEXKL_PROBE_T0(p0);
           hexkl_dma_ring_wait(gu_idx[gb]);
           HEXKL_PROBE_ADD(HEXKL_PROBE_DRAIN, p0);
-          /* 2-bit only: the paired gate and up chunks this wait covers.
-             Between the wait and the issue below is the only place it can
-             go -- the HMX reads these tiles next. */
+          /* 2-bit only, and only for the chunk that has nothing before it
+             to hide under -- every later one goes on the background lane
+             below. */
           hexkl_moe_expand_chunk(vtcm_base, L.w_gu_off, g, k_tiles, gu_ntiles,
                                  g0, np, pool);
           hexkl_moe_expand_chunk(vtcm_base, L.w_gu_off, g, k_tiles, gu_ntiles,
@@ -1189,6 +1268,30 @@ int hexkl_mm_u8i4_moe_layer_run(
           }
         }
         HEXKL_MOE_MM_END();
+
+        /* Queue the next chunk's expansion now that this batch is issued:
+           it runs on the background lane while the HMX works, and batch
+           gb+1 finds it done. The DMA wait is here rather than a batch
+           earlier so the transfer has had an issue to land under. */
+        /* Two batches of lookahead, not one. At one, the DMA for chunk
+           gb+1 had only this batch's issue (~47 us at prefill) to land in
+           and a chunk needs ~70, so the main thread stalled on it: DRAIN
+           went 112 -> 2351 us a call and ate the 3.5 ms the hiding had
+           just won (doc 54 5.14). Two batches gives the transfer the time
+           it actually needs, at the cost of leaving chunks 0 and 1
+           unhidden -- they have nothing to hide under anyway. */
+        if (w2 && blk.first && gb + 2u < gu_chunks) {
+          const uint32_t ng0 = g0 + 2u * half;
+          const uint32_t nnp =
+            (inter_ntiles - ng0 < half) ? (inter_ntiles - ng0) : half;
+          HEXKL_PROBE_T0(p0);
+          hexkl_dma_ring_wait(gu_idx[gb + 2u]);
+          HEXKL_PROBE_ADD(HEXKL_PROBE_DRAIN, p0);
+          moe_expand_submit(pool, &exp_job[gb & 1u], &exp_ctx[gb & 1u],
+                            exp_done[gb & 1u], vtcm_base, L.w_gu_off, g,
+                            k_tiles, gu_ntiles, ng0, inter_ntiles + ng0, nnp);
+          exp_live[gb & 1u] = 1;
+        }
 
         /* Retire what the pool is running -- DN(n-1)'s last epilogue at
            gb == 0, epilogue gb-1 otherwise (its buffer is the one batch
@@ -1295,7 +1398,12 @@ int hexkl_mm_u8i4_moe_layer_run(
           (dn_ntiles - nt0 < L.acc_tiles) ? (dn_ntiles - nt0) : L.acc_tiles;
         const uint32_t stage_off =
           L.result_off + (sb & 1u) * L.acc_tiles * ACC_TILE_BYTES;
-        if (pblk.first) {
+        if (pblk.first && w2 && db > 1u && exp_live[2u + (db & 1u)]) {
+          HEXKL_PROBE_T0(p0);
+          hvx_worker_pool_wait_bg(pool, &exp_job[2u + (db & 1u)], UINT32_MAX);
+          HEXKL_PROBE_ADD(HEXKL_PROBE_DRAIN_DN, p0);
+          exp_live[2u + (db & 1u)] = 0;
+        } else if (pblk.first) {
           HEXKL_PROBE_T0(p0);
           hexkl_dma_ring_wait(dn_idx[db]);
           HEXKL_PROBE_ADD(HEXKL_PROBE_DRAIN_DN, p0);
@@ -1323,6 +1431,21 @@ int hexkl_mm_u8i4_moe_layer_run(
           }
         }
         HEXKL_MOE_MM_END();
+
+        /* Same one-chunk lookahead as gate_up. */
+        if (w2 && pblk.first && nt0 + 2u * L.acc_tiles < dn_ntiles) {
+          const uint32_t nnt0 = nt0 + 2u * L.acc_tiles;
+          const uint32_t nnb =
+            (dn_ntiles - nnt0 < L.acc_tiles) ? (dn_ntiles - nnt0) : L.acc_tiles;
+          HEXKL_PROBE_T0(p0);
+          hexkl_dma_ring_wait(dn_idx[db + 2u]);
+          HEXKL_PROBE_ADD(HEXKL_PROBE_DRAIN_DN, p0);
+          moe_expand_submit(pool, &exp_job[2u + (db & 1u)],
+                            &exp_ctx[2u + (db & 1u)], exp_done[2u + (db & 1u)],
+                            vtcm_base, L.w_dn_off, d, inter_ktiles, dn_ntiles,
+                            nnt0, UINT32_MAX, nnb);
+          exp_live[2u + (db & 1u)] = 1;
+        }
 
         /* db == 0 retires GU(n)'s last epilogue -- gate_off is complete,
            which the requantization in this job needs -- and every later
