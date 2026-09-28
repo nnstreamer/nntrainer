@@ -69,6 +69,35 @@ extern "C" {
 /** @brief Table bytes: 16 entries replicated to a full HVX vector. */
 #define HVX_EXPAND_TABLE_BYTES 128u
 
+/** @brief Codes one group covers; also one HVX vector of them. */
+#define HVX_EXPAND_GROUP 128u
+
+/**
+ * @brief Where the 2-bit code for int4-nibble slot @a sl of a tile lands
+ *        in that tile's 256 code bytes.
+ *
+ * NOT sl/4. The expansion reads a group of 128 codes and writes two
+ * 128-byte runs of int4 -- low halves first, then high halves -- so each
+ * table lookup is a whole output vector and nothing needs interleaving
+ * afterwards. The shuffle that ordering deletes was 26% of the
+ * expansion's time on device (doc 54 5.13).
+ *
+ * Here rather than in htp_wh_palette.h because three things have to agree
+ * on it: the offline packer, this kernel, and the host checks' weight
+ * builder. Two of them disagreeing is how the first attempt at this
+ * failed.
+ */
+static inline uint32_t whCodeByte2(uint32_t sl) {
+  const uint32_t ob = sl >> 1; /* int4 byte within the tile, 0..511 */
+  return (ob >> 8) * HVX_EXPAND_GROUP + (ob & (HVX_EXPAND_GROUP - 1u));
+}
+
+/** @brief ...and the bit offset within that byte. */
+static inline uint32_t whCodeShift2(uint32_t sl) {
+  const uint32_t ob = sl >> 1;
+  return 2u * (sl & 1u) + (((ob >> 7) & 1u) ? 4u : 0u);
+}
+
 /**
  * @brief Builds the code-pair table the expansion looks up
  *

@@ -532,6 +532,12 @@ buildLayerDtypeMap(int num_layers, DataType fc_dtype, DataType embd_dtype,
       dtype_map[prefix + "_wq"] = fc_dtype;
       dtype_map[prefix + "_wk"] = fc_dtype;
       dtype_map[prefix + "_wv"] = fc_dtype;
+      // LFM2 fuses those three into one qkv_layer node. Same weights in the
+      // same file order (q, q_gamma, k, k_gamma, v) -- only the node name
+      // differs. Missing here, the fused weights are written FP32 while
+      // nntr_config.json still announces fc_dtype, so the reader takes the
+      // wrong byte count and every logit comes out NaN.
+      dtype_map[prefix + "_qkv"] = fc_dtype;
       dtype_map[prefix + "_attention_out"] = fc_dtype;
 
       // Attention Gates

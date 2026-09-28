@@ -61,10 +61,28 @@ void hvx_expand_i2i4_table(const int8_t *pal, uint8_t *table) {
 
 void hvx_expand_i2i4_scalar(const uint8_t *src, uint32_t src_bytes,
                             const uint8_t *table, uint8_t *dst) {
-  for (uint32_t j = 0; j < src_bytes; ++j) {
-    const uint8_t s = src[j];
-    dst[2u * j] = EXPAND_LUT(table, s & 0x0Fu);
-    dst[2u * j + 1u] = EXPAND_LUT(table, (s >> 4) & 0x0Fu);
+  /* A group of EXPAND_VEC codes becomes two contiguous runs of int4: the
+     low halves first, then the high halves. That is the whole reason the
+     HVX form needs no shuffle -- and why whPack2 stores the codes the way
+     whCodeByte2 says. */
+  uint32_t g;
+  for (g = 0; g + EXPAND_VEC <= src_bytes; g += EXPAND_VEC) {
+    uint32_t k;
+    for (k = 0; k < EXPAND_VEC; ++k) {
+      const uint8_t s = src[g + k];
+      dst[2u * g + k] = EXPAND_LUT(table, s & 0x0Fu);
+      dst[2u * g + EXPAND_VEC + k] = EXPAND_LUT(table, (s >> 4) & 0x0Fu);
+    }
+  }
+  /* A tail shorter than a group keeps the same shape over what is left. */
+  if (g < src_bytes) {
+    const uint32_t n = src_bytes - g;
+    uint32_t k;
+    for (k = 0; k < n; ++k) {
+      const uint8_t s = src[g + k];
+      dst[2u * g + k] = EXPAND_LUT(table, s & 0x0Fu);
+      dst[2u * g + n + k] = EXPAND_LUT(table, (s >> 4) & 0x0Fu);
+    }
   }
 }
 
@@ -87,14 +105,12 @@ void hvx_expand_i2i4(const uint8_t *src, uint32_t src_bytes,
        whPack2 put the code pairs where the output byte pairs are. */
     const HVX_Vector lo = Q6_V_vand_VV(s, m0f);
     const HVX_Vector hi = Q6_V_vand_VV(Q6_Vuh_vlsr_VuhR(s, 4), m0f);
-    const HVX_Vector elo = Q6_Vb_vlut32_VbVbI(lo, tab, 0);
-    const HVX_Vector ehi = Q6_Vb_vlut32_VbVbI(hi, tab, 0);
-    /* Byte 2j from the low plane, 2j+1 from the high plane: a byte-wise
-       interleave of the two, which is exactly vshuff's pair. */
-    const HVX_VectorPair out = Q6_W_vshuff_VVR(ehi, elo, -1);
+    /* Straight out, no interleave: whPack2 already put the codes in the
+       order that makes each lookup a whole output vector (whCodeByte2).
+       The shuffle this replaces was 26% of the time (doc 54 5.13). */
     HVX_UVector *d = (HVX_UVector *)(dst + (size_t)v * 2u * EXPAND_VEC);
-    d[0] = Q6_V_lo_W(out);
-    d[1] = Q6_V_hi_W(out);
+    d[0] = Q6_Vb_vlut32_VbVbI(lo, tab, 0);
+    d[1] = Q6_Vb_vlut32_VbVbI(hi, tab, 0);
   }
   /* src_bytes is a multiple of 128 for every shape this is called with (a
      WH tile is 256 code bytes); a tail would be a caller bug, so it is

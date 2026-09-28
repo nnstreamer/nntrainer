@@ -8,6 +8,7 @@
 #include "hexkl_probe.h"
 #include "hvx_conv_gate_f32.h"
 #include "hvx_dequant_i32.h"
+#include "hvx_expand_i2i4.h"
 #include "hvx_gather_ah_u8.h"
 #include "hvx_gemm_u8i4_wh.h"
 #include "hvx_scale_add_f32.h"
@@ -479,15 +480,19 @@ void make_weight_pal(uint32_t slot4, uint32_t slot2, uint32_t K, uint32_t N,
   /* Redraw the values from the palette and encode the same choices twice:
      nibble j of the 4-bit stream and code j of the 2-bit stream are the
      same weight, which is exactly what hvx_expand_i2i4 assumes. */
+  memset(two, 0, nib_bytes / 2u);
   for (uint32_t j = 0; j < nib_bytes; ++j) {
+    /* Nibble slots 2j and 2j+1 of tile j/512. The 2-bit side goes through
+       whCodeByte2/whCodeShift2 -- the kernel's own order -- rather than a
+       second encoder written here, which is what went wrong when this
+       function had one. */
+    const uint32_t tile = j / 512u;
+    const uint32_t sl0 = (j % 512u) * 2u, sl1 = sl0 + 1u;
     const uint32_t c0 = rnd() & 3u, c1 = rnd() & 3u;
     ((uint8_t *)w->nib)[j] =
       (uint8_t)((pal[c0] & 0x0F) | ((pal[c1] & 0x0F) << 4));
-    if ((j & 1u) == 0u) {
-      two[j / 2u] = (uint8_t)(c0 | (c1 << 2));
-    } else {
-      two[j / 2u] |= (uint8_t)((c0 << 4) | (c1 << 6));
-    }
+    two[tile * 256u + whCodeByte2(sl0)] |= (uint8_t)(c0 << whCodeShift2(sl0));
+    two[tile * 256u + whCodeByte2(sl1)] |= (uint8_t)(c1 << whCodeShift2(sl1));
   }
   hexkl_weight_u8i4 *s = &g_tbl.slots[slot2];
   s->in_use = 1;

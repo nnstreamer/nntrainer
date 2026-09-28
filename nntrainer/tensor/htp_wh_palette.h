@@ -46,6 +46,12 @@
 
 #include "htp_wh_layout.h"
 
+/* whCodeByte2/whCodeShift2: the code order, owned by the kernel that has
+   to read it back. One definition for the packer and the expansion. */
+extern "C" {
+#include "htp_backend/hvx/hvx_expand_i2i4.h"
+}
+
 #include <cstddef>
 #include <cstdint>
 
@@ -229,9 +235,9 @@ inline size_t whBytes2(uint32_t K, uint32_t N) {
 /**
  * @brief Packs palette-restricted int4 codes as 2 bits each, in WH order
  *
- * Code i of a tile is whPack's nibble slot i, four to a byte, low bits
- * first: slot s lives in byte s/4 at bit 2*(s%4). That is what makes source
- * byte j expand to output bytes 2j and 2j+1 with nothing to shuffle.
+ * The order is whCodeByte2/whCodeShift2, not slot/4: it is chosen so the
+ * expansion's two table lookups land as whole output vectors. See those
+ * two functions.
  *
  * @param rm  K rows of N int8 codes, row stride N -- ALREADY restricted by
  *            whPaletteQuantize with this palette. Anything else is snapped
@@ -265,7 +271,8 @@ inline void whPack2(const int8_t *rm, uint32_t K, uint32_t N,
               break;
             }
           }
-          tile[sl / 4u] |= static_cast<uint8_t>(code << (2u * (sl % 4u)));
+          tile[whCodeByte2(sl)] |=
+            static_cast<uint8_t>(code << whCodeShift2(sl));
         }
       }
     }
