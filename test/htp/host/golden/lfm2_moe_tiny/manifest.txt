@@ -1,0 +1,16 @@
+moe_00000 moe_layer 16 64 32 64 0
+moe_00001 moe_layer 16 64 32 64 0
+moe_00002 moe_layer 1 64 32 64 0
+moe_00003 moe_layer 1 64 32 64 0
+moe_00004 moe_layer 1 64 32 64 0
+moe_00005 moe_layer 1 64 32 64 0
+moe_00006 moe_layer 1 64 32 64 0
+moe_00007 moe_layer 1 64 32 64 0
+moe_00008 moe_layer 1 64 32 64 0
+moe_00009 moe_layer 1 64 32 64 0
+moe_00010 moe_layer 1 64 32 64 0
+moe_00011 moe_layer 1 64 32 64 0
+moe_00012 moe_layer 1 64 32 64 0
+moe_00013 moe_layer 1 64 32 64 0
+moe_00014 moe_layer 1 64 32 64 0
+moe_00015 moe_layer 1 64 32 64 0

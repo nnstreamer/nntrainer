@@ -305,6 +305,21 @@ public:
   std::vector<unsigned int>
   greedyGenerateFromIds(const std::vector<unsigned int> &ids,
                         size_t n) override {
+    return greedyGenerateFromIds(ids, n, [](size_t, const float *) {});
+  }
+
+  /**
+   * @brief greedyGenerateFromIds with every step's logits handed out
+   *
+   * @param on_logits called once per generated token, before its argmax,
+   *                  with the step (0 = the prefill's last position) and
+   *                  the NUM_VOCAB logits it is taken from. The host E2E
+   *                  driver (test/htp/host/htp_e2e_test.cpp) prints and
+   *                  dumps them; the tests above ignore them.
+   */
+  std::vector<unsigned int> greedyGenerateFromIds(
+    const std::vector<unsigned int> &ids, size_t n,
+    const std::function<void(size_t, const float *)> &on_logits) {
     this->allocateAndBindKVCache();
 
     const unsigned int init_len = static_cast<unsigned int>(ids.size());
@@ -327,6 +342,7 @@ public:
     generated.reserve(n);
 
     for (size_t step = 0; step < n; ++step) {
+      on_logits(step, output[0]);
       unsigned int next_tok = static_cast<unsigned int>(std::distance(
         output[0], std::max_element(output[0], output[0] + this->NUM_VOCAB)));
       generated.push_back(next_tok);

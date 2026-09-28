@@ -17,6 +17,11 @@
 #include <llm_util.hpp>
 #include <model.h>
 
+#ifdef ENABLE_HEXKL
+#include <compute_ops.h>
+#include <htp_graph_desc.h>
+#endif
+
 namespace causallm {
 
 void Lfm2MoeCausalLM::setupParameters(json &cfg, json &generation_cfg,
@@ -51,6 +56,63 @@ void Lfm2MoeCausalLM::setupParameters(json &cfg, json &generation_cfg,
   MOE_ENGINE = nntr_cfg.value("moe_engine", std::string("cpu"));
   MOE_HTP_LAYERS =
     parseLayerIdList(nntr_cfg.value("moe_htp_layers", std::string("")));
+
+#ifdef ENABLE_HEXKL
+  // [#85] NNTR_HTP_FORWARD=1: describe this model's decode step to the HTP
+  // backend once, so its MoE calls at M == 1 can go through the per-token
+  // entry. The words are the header's LFM2 builder over this config; the
+  // backend validates them with the same validator the skel runs. Off by
+  // default, and only meaningful with the MoE FFN on the HTP.
+  const char *fwd = std::getenv("NNTR_HTP_FORWARD");
+  if (fwd != nullptr && std::atoi(fwd) != 0 && MOE_ENGINE == "htp") {
+    htp_graph_lfm2_shape shape;
+    shape.n_layers = static_cast<uint32_t>(NUM_LAYERS);
+    shape.n_dense_layers = NUM_DENSE_LAYERS;
+    shape.hidden = static_cast<uint32_t>(DIM);
+    shape.inter_dense = static_cast<uint32_t>(INTERMEDIATE_SIZE);
+    shape.inter_moe = MOE_INTERMEDIATE_SIZE;
+    shape.n_experts = NUM_EXPERTS;
+    shape.top_k = NUM_EXPERTS_PER_TOK;
+    shape.n_heads = static_cast<uint32_t>(NUM_HEADS);
+    shape.n_kv_heads = static_cast<uint32_t>(NUM_KEY_VALUE_HEADS);
+    shape.head_dim = static_cast<uint32_t>(HEAD_DIM);
+    shape.vocab = NUM_VOCAB;
+    shape.max_seq = MAX_SEQ_LEN;
+    shape.eps = NORM_EPS;
+    std::vector<uint8_t> attn(layer_types_.size());
+    for (size_t l = 0; l < layer_types_.size(); ++l)
+      attn[l] = layer_types_[l] != "conv";
+    // [#130] NNTR_HTP_FORWARD_KINDS (comma-separated kind names) chooses
+    // which kinds carry the resident bit; the default is every kind the
+    // skel and the ARM hooks run. The bit is the one source of truth for
+    // both sides (plan 130 section 3.2).
+    const char *kinds = std::getenv("NNTR_HTP_FORWARD_KINDS");
+    const uint32_t mask =
+      kinds != nullptr
+        ? htp_graph_kinds_parse(kinds)
+        : (HTP_GRAPH_KIND_BIT(HTP_OP_MOE) | HTP_GRAPH_KIND_BIT(HTP_OP_RMSNORM) |
+           HTP_GRAPH_KIND_BIT(HTP_OP_QK_NORM) |
+           HTP_GRAPH_KIND_BIT(HTP_OP_ROPE) |
+           HTP_GRAPH_KIND_BIT(HTP_OP_CONV1D_GATE) |
+           HTP_GRAPH_KIND_BIT(HTP_OP_ATTN_M1));
+    if (mask == 0u)
+      throw std::runtime_error(
+        std::string("Lfm2Moe: NNTR_HTP_FORWARD_KINDS: unknown kind in '") +
+        kinds + "'");
+    std::vector<uint32_t> words(
+      htp_graph_words_for(shape.n_layers, HTP_GRAPH_MAX_OPS));
+    const uint32_t n =
+      htp_graph_lfm2_build(words.data(), static_cast<uint32_t>(words.size()),
+                           &shape, attn.data(), mask);
+    if (n == 0u)
+      throw std::runtime_error("Lfm2Moe: NNTR_HTP_FORWARD: the decode op list "
+                               "does not fit HTP_GRAPH_MAX_OPS");
+    words.resize(n);
+    if (!nntrainer::get_htp_ops()->set_decode_graph_desc(words))
+      throw std::runtime_error(
+        "Lfm2Moe: NNTR_HTP_FORWARD: the HTP backend has no per-token entry");
+  }
+#endif
 }
 
 Tensor Lfm2MoeCausalLM::createMoeLayer(const int layer_id, Tensor input) {

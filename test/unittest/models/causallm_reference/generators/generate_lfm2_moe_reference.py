@@ -12,8 +12,14 @@
 ##
 ## Usage:
 ##   python3 generate_lfm2_moe_reference.py [--out <dir>] [--seed <int>] [--n <int>]
+##       [--dim D] [--n-heads H] [--n-kv-heads KV] [--head-dim HD] [--max-pos P]
 ##
 ## Default output: test/unittest/models/causallm_reference/lfm2_moe_tiny/
+## (byte-identical at the default shape). The shape options write a second
+## fixture; the HTP host E2E gate's lfm2_moe_tiny_hd64 (plan 130 section 3.4)
+## is `--dim 128 --n-heads 2 --n-kv-heads 1 --head-dim 64 --max-pos 32
+## --out ../lfm2_moe_tiny_hd64`: what the m=1 attention kernels need
+## (head_dim 64, a multiple-of-32 max_seq), with conv_dim following dim.
 ##
 ## Binary layout (USE_EMBEDDING=false, tie_word_embeddings=true):
 ##   [embed_tokens.T] [per-layer weights] [embedding_norm]
@@ -442,12 +448,26 @@ def write_configs(out_dir: pathlib.Path, bin_name: str,
 # ---------- Main -----------------------------------------------------------
 
 def main() -> None:
+    global DIM, N_HEADS, N_KV_HEADS, HEAD_DIM, GQA_SIZE, MAX_POS
+    global CONV_DIM, CONV_DIM_OUT
     parser = argparse.ArgumentParser(
         description="Generate LFM2-MoE tiny reference fixtures (pure-PyTorch)")
     parser.add_argument("--out",  type=pathlib.Path, default=DEFAULT_OUT)
     parser.add_argument("--seed", type=int, default=SEED)
     parser.add_argument("--n",    type=int, default=N_GEN)
+    parser.add_argument("--dim", type=int, default=DIM)
+    parser.add_argument("--n-heads", type=int, default=N_HEADS)
+    parser.add_argument("--n-kv-heads", type=int, default=N_KV_HEADS)
+    parser.add_argument("--head-dim", type=int, default=HEAD_DIM)
+    parser.add_argument("--max-pos", type=int, default=MAX_POS)
     args = parser.parse_args()
+
+    DIM, N_HEADS, N_KV_HEADS = args.dim, args.n_heads, args.n_kv_heads
+    HEAD_DIM, MAX_POS = args.head_dim, args.max_pos
+    assert N_HEADS % N_KV_HEADS == 0, "n_heads must be a multiple of n_kv_heads"
+    assert N_HEADS * HEAD_DIM == DIM, "n_heads * head_dim must equal dim"
+    GQA_SIZE = N_HEADS // N_KV_HEADS
+    CONV_DIM = CONV_DIM_OUT = DIM
 
     out_dir: pathlib.Path = args.out.resolve()
     out_dir.mkdir(parents=True, exist_ok=True)

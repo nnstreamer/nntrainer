@@ -23,6 +23,11 @@
 
 #include <qkv_layer.h>
 
+#include <cstring>
+#include <vector>
+
+#include "htp_decode_hook.h"
+
 #include <cpu_backend.h>
 #include <engine.h>
 #include <layer_context.h>
@@ -248,6 +253,32 @@ void QKVLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
 
   if (feature_size) {
     const float epsilon = std::get<nntrainer::props::Epsilon>(qkv_props).get();
+    // [#130] one decode row: with QK_NORM resident the HTP norms q | k and
+    // keeps the row for the attention hook, so the outputs stay unwritten
+    if (to - from == 1 && input_dim.batch() == 1 &&
+        Qhidden_step.getDataType() == ml::train::TensorDim::DataType::FP32) {
+      const unsigned int wq = Qhidden_step_dim.width(),
+                         wk = Khidden_step_dim.width(),
+                         wv = Vhidden_step_dim.width();
+      static thread_local std::vector<float> row, gammas;
+      row.resize(wq + wk + wv);
+      std::memcpy(row.data(), Qhidden_step.getData<float>(),
+                  wq * sizeof(float));
+      std::memcpy(row.data() + wq, Khidden_step.getData<float>(),
+                  wk * sizeof(float));
+      std::memcpy(row.data() + wq + wk, Vhidden_step.getData<float>(),
+                  wv * sizeof(float));
+      gammas.resize(2 * feature_size);
+      std::memcpy(gammas.data(),
+                  context.getWeight(weight_idx[WQ_GAMMA]).getData<float>(),
+                  feature_size * sizeof(float));
+      std::memcpy(gammas.data() + feature_size,
+                  context.getWeight(weight_idx[WK_GAMMA]).getData<float>(),
+                  feature_size * sizeof(float));
+      if (htpDecodeQkNorm(from, row.data(), wq + wk + wv, gammas.data(),
+                          2 * feature_size, epsilon))
+        return;
+    }
     headNorm(Qhidden_, context.getOutput(QKVParams::Q),
              context.getWeight(weight_idx[WQ_GAMMA]), to - from, feature_size,
              epsilon);

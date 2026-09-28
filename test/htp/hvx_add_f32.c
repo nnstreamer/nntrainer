@@ -161,7 +161,10 @@ int nntr_hvx_open(const char *uri, remote_handle64 *handle) {
        what the isolated probe reached. Same best-effort policy as above.
        ponytail: an unconditional vote for the session's lifetime, which
        is the measurement; if it is what moves DMA_FIRST, the product
-       shape is a vote around the layer call, or a lower figure. */
+       shape is a vote around the layer call, or a lower figure.
+       -DNNTR_HVX_NO_BUS_VOTE (HEX_EXTRA_CFLAGS in build.sh) builds the
+       skel without this vote so the DMA probe can measure its worth. */
+#ifndef NNTR_HVX_NO_BUS_VOTE
     memset(&req, 0, sizeof(req));
     req.type = HAP_power_set_mips_bw;
     req.mips_bw.set_bus_bw = 1;
@@ -170,6 +173,7 @@ int nntr_hvx_open(const char *uri, remote_handle64 *handle) {
     if (HAP_power_set((void *)s, &req) != AEE_SUCCESS) {
       FARF(HIGH, "nntr_hvx_open: bus bandwidth vote rejected (continuing)");
     }
+#endif
   }
 #endif
 
@@ -182,6 +186,9 @@ int nntr_hvx_close(remote_handle64 handle) {
   if (!s) {
     return AEE_SUCCESS;
   }
+  /* [#85] The graph names weight handles, so it goes before the tables. */
+  hexkl_graph_free(s->graph);
+  s->graph = NULL;
   for (uint32_t i = 0; i < HEXKL_MM_U8I4_MAX_WEIGHTS; ++i) {
     if (s->weights_u8i4.slots[i].in_use) {
       hexkl_weight_u8i4_release(&s->weights_u8i4, i);
@@ -194,6 +201,9 @@ int nntr_hvx_close(remote_handle64 handle) {
   }
   nntr_hvx_arenas_put_all(s);
   hexkl_moe_scratch_free(&s->moe_scratch);
+  /* [#81] The attention cache borrows the pool, so it goes first. */
+  hvx_attn_m1_free(s->attn_m1);
+  s->attn_m1 = NULL;
   hvx_worker_pool_destroy(s->quant_pool);
   int res = AEE_SUCCESS;
   if (s->hmx_locked) {

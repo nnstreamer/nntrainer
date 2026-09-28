@@ -61,3 +61,12 @@ cd build && meson test <target> --print-errorlogs
 
 Use `build`. The `builddir` on the original machine is configured for an Android
 cross build and cannot run host tests.
+
+## htp_moe (fork dlwlzzero/nntrainer, since 2026-09-21)
+
+This tree is the base of the HTP MoE **decode** project. The contract for
+that work — goal (decode ≥ 50 tok/s on the NPU, above the CPU), measurement
+definition, gates, roles, branch rules — is
+`docs/plans/0001-htp-moe-decode-agent-system.md`. Start there; `docs/htp_moe/`
+holds the benchmark table and the ledger, `.claude/` the agents and skills,
+`tools/htp/env.sh` the workstation environment.

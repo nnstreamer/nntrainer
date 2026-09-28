@@ -1,0 +1,2 @@
+# The E2E goldens are raw f32 dumps; never treat them as text.
+*.f32 binary

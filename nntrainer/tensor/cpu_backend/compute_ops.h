@@ -307,6 +307,53 @@ public:
                             unsigned int K, unsigned int inter,
                             unsigned int N_out, unsigned int w_bits);
 
+  // [#85] Hands the accelerator the decode step's op list (the words of
+  // htp_backend/htp_graph_desc.h, built by the model) so it can validate
+  // the list once and run resident ops from one entry per token. Words,
+  // not a struct: core gains no accelerator type. A backend without a
+  // per-token entry returns false and the model runs as before.
+  virtual bool set_decode_graph_desc(const std::vector<uint32_t> &words) {
+    (void)words;
+    return false;
+  }
+
+  // [#130] The per-token hook a CPU layer calls at one decode row before
+  // running its own kernel: kind is the op kind of htp_graph_desc.h, pos
+  // the absolute token position, in / out the row (in may be null when
+  // the accelerator already holds the stretch's input), param the op's
+  // f32 parameter (a norm's gamma, a conv op's w0 | w1 | w2, the RoPE
+  // table for attention), state the conv state x_{t-2} | x_{t-1}. Returns
+  // 0 when the op is not resident (the layer runs its CPU path), 1 when
+  // out was written by the accelerator, 2 when the attention cache must
+  // be seeded first: the layer then hands rows [0, pos) of its KV cache to
+  // decode_kv_seed_fp32 and calls again. Plain scalars and pointers: core
+  // gains no accelerator type.
+  virtual int decode_op_fp32(unsigned kind, unsigned pos, const float *in,
+                             unsigned in_len, float *out, unsigned out_len,
+                             const float *param, unsigned param_len,
+                             const float *state, unsigned state_len,
+                             float eps) {
+    (void)kind;
+    (void)pos;
+    (void)in;
+    (void)in_len;
+    (void)out;
+    (void)out_len;
+    (void)param;
+    (void)param_len;
+    (void)state;
+    (void)state_len;
+    (void)eps;
+    return 0;
+  }
+  virtual bool decode_kv_seed_fp32(unsigned n_rows, const float *k_rows,
+                                   const float *v_rows) {
+    (void)n_rows;
+    (void)k_rows;
+    (void)v_rows;
+    return false;
+  }
+
   // Registers one K x N expert weight with the accelerator ahead of its
   // first use, so a model's load pays that cost rather than its first
   // prefill: for the 1408 weights of LFM2-8B-A1B it is 747 ms, 31% of the

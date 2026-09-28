@@ -170,6 +170,18 @@ causallm_dep = declare_dependency(
     link_args: get_option('platform') == 'windows' ? tokenizer_link_args : []
 )
 
+# [#84] The host E2E driver of the in-process HTP build: the tiny
+# LFM2-MoE fixture through the real ARM-side HTP path, printing E2E lines
+# and dumping every MoE call. Only with -Dhtp-inproc=true, since without
+# the stand-ins the same binary would need a phone (test/htp/host/run_inproc_e2e.sh).
+if get_option('enable-htp') and get_option('htp-inproc')
+    executable('htp_e2e_test',
+        meson.source_root() / 'test' / 'htp' / 'host' / 'htp_e2e_test.cpp',
+        include_directories: [causallm_inc, include_directories('../../test/unittest/models')],
+        dependencies: [nntrainer_dep, nntrainer_ccapi_dep, causallm_layer_dependencies, causallm_dep],
+    )
+endif
+
 e = executable('nntr_causallm',
     executable_src,
     include_directories: [causallm_inc, causallm_inc_minja_inc, causallm_inc_nlohmann_inc],

@@ -445,4 +445,199 @@ interface nntr_hvx : remote_handle64 {
    // ION mapping of a given size -- the design section 8.4 depends on.
    AEEResult mem_probe_touch(in sequence<uint8> buf,
                              rout sequence<uint64> touched_sum);
+
+   // [#77, doc 48 section 5 C] Streams bytes of an attached arena into VTCM
+   // with one DMA engine per worker thread (each worker issues its own
+   // dmstart on its own descriptors -- not the shared dmlinked ring), so
+   // the three axes of the arena bandwidth question can be moved one at a
+   // time: descriptor shape (row_size x nrows at src_stride), worker
+   // count, and the bus vote (a compile-time property of the skel,
+   // reported back as vote_state). The plan that splits the range into
+   // descriptors is test/htp/nntr_dma_probe_plan.h, checked on the host.
+   //
+   // res: [us, bytes_lo, bytes_hi, checksum, workers_used, vote_state,
+   //       n_descriptors, max_desc_bytes, vtcm_per_worker, passes]
+   // checksum sums worker 0's VTCM slice at a 64-byte stride after the
+   // run, so a mapping that reads as zeros is visible. DEBUG ONLY.
+   AEEResult dma_probe(in uint32 arena, in uint32 src_off, in uint32 bytes,
+                       in uint32 row_size, in uint32 nrows,
+                       in uint32 src_stride, in uint32 workers,
+                       in uint32 passes, rout sequence<uint32> res);
+
+   // [#87] The DMA ring trace of the last mm_u8i4_moe_layer_timed call,
+   // flattened by hexkl_dma_trace_serialize: an 8-word header (n_push,
+   // n_wait, n_blocked, depth_max, n_dropped, t_end ticks, words per push
+   // record, words per wait record), then the push records (issue tick,
+   // kind, expert, chunk, bytes, row_size, nrows, src_stride, ring index,
+   // depth before, done_lo, done_hi) and the wait records (in, out, ring
+   // index, site, blocked). n_words is 0 when words is too small for the
+   // whole trace. Ticks are 19.2 MHz qtimer counts since the call's ring
+   // reset. DEBUG ONLY.
+   AEEResult moe_dma_trace_read(rout sequence<uint32> words,
+                                rout uint32 n_words);
+
+   // [#87] Replays an M=1 MoE chunk schedule (test/htp/nntr_moe_dma_plan.h)
+   // from an attached arena with no compute between the pushes, so the
+   // in-situ descriptor list can be timed on its own. schedule is 8 words
+   // per item: op << 8 | kind-or-site, expert, src_off (region-relative
+   // for weights, scratch-relative for the rest; for a wait, the index of
+   // the push item it waits on), dst_off (VTCM), row_size, nrows,
+   // src_stride, t_rel (ticks after the call's start at which to issue,
+   // honoured when pace != 0). region_bytes is one expert's gate_up +
+   // down; the arena holds up to 32 such regions plus one region-sized
+   // scratch after them.
+   //   workers 1: the production ring, one dmlinked chain, on the caller;
+   //           N: pushes round-robin over N pool threads, each with its
+   //              own dmstart chain, a wait done by the owner of its push.
+   //   load    0 none; 1 the pool workers stream a 4 MiB DDR heap buffer
+   //           (read + write) for the call's duration; 2 the same over
+   //           1 MiB of VTCM (HVX busy, no DDR traffic). workers == 1 only.
+   //   pace    0 issue as fast as the order allows; 1 spin to t_rel first.
+   //   fresh   0 every call reads regions 0..E-1; 1 call c reads regions
+   //           (c * E + e) % n_regions, so each call touches new pages.
+   //   gap_us  spin between calls (the FastRPC gap between tokens).
+   // res: [us_total, calls, bytes_per_call, wait_us, n_blocked, depth_max,
+   //       checksum, n_regions, workers_used, load_units, busy_lo_us,
+   //       busy_hi_us]. checksum sums the gate_up VTCM slice at a 64-byte
+   //       stride after the last call; busy_* only for workers == 1.
+   // DEBUG ONLY.
+   AEEResult dma_replay(in uint32 arena, in uint32 region_bytes,
+                        in sequence<uint32> schedule, in uint32 workers,
+                        in uint32 load, in uint32 pace, in uint32 fresh,
+                        in uint32 gap_us, in uint32 calls,
+                        rout sequence<uint32> res);
+
+   // [#80] Session-scoped options for mm_u8i4_moe_layer*. flags is
+   // HEXKL_MOE_FLAG_* bits (hexkl_mm_u8i4_moe.h); bit 0 lets a call of at
+   // most 4 rows take the HVX GEMV path instead of the 64-row HMX block
+   // loop. The DSP stores the bits it knows and echoes them in applied, so
+   // a caller can tell a stale skel (AEE_EUNSUPPORTED from the stub, or
+   // applied != flags) from a switch that took. Default 0 = the HMX loop.
+   AEEResult moe_set_opts(in uint32 flags, rout uint32 applied);
+
+   // [#85] One FastRPC call per token, the skeleton. graph_init takes the
+   // decode step's op list (htp_graph_desc.h words: header, layer kinds,
+   // one 80-word record per op with its kind, shapes, activation slots,
+   // next_mm and, for a MoE op, its 32 + 32 registered weight handles),
+   // validates it once and keeps it; n_ops echoes the count. A second init
+   // without a release is AEE_EBADSTATE; a handle a resident op names
+   // cannot be released while the graph lives (AEE_EBADSTATE from
+   // weight_release_u8i4). Validation codes are the header's: never
+   // AEE_EBADPARM, which stays the stale-skel symptom.
+   AEEResult graph_init(in sequence<uint32> desc, rout uint32 n_ops);
+   AEEResult graph_release();
+
+   // forward runs ops [start_op, ...) while they carry the resident bit
+   // and returns the index of the first that does not in resume_at. act_in
+   // is the start op's input (its K floats), copied into the op's slot;
+   // act_out receives the last run op's output, or is untouched when the
+   // start op is not resident (then resume_at == start_op). pos is the
+   // token position (checked < max_seq; the attention and RoPE kinds read
+   // it). row_index / row_count / row_weight are the routing of the first
+   // MoE op run, in mm_u8i4_moe_layer's layout, while the router stays on
+   // the ARM; empty otherwise.
+   AEEResult forward(in uint32 start_op, in uint32 pos,
+                     in sequence<uint32> row_index,
+                     in sequence<uint32> row_count,
+                     in sequence<float> row_weight,
+                     in sequence<float> act_in, rout sequence<float> act_out,
+                     rout uint32 resume_at);
+
+   // Same, at most n_ops_limit ops, plus op_pcycles[n_ops_limit] (the
+   // HAP_perf_get_pcycles bracket of each op run, 0 for the rest) and
+   // stage_us in mm_u8i4_moe_layer_timed's layout for the whole call
+   // (slot 0 is the call's DSP time; the MoE stages are the probe's).
+   // DEBUG ONLY.
+   AEEResult forward_debug(in uint32 start_op, in uint32 n_ops_limit,
+                           in uint32 pos,
+                           in sequence<uint32> row_index,
+                           in sequence<uint32> row_count,
+                           in sequence<float> row_weight,
+                           in sequence<float> act_in,
+                           rout sequence<float> act_out,
+                           rout uint32 resume_at,
+                           rout sequence<uint32> op_pcycles,
+                           rout sequence<uint32> stage_us);
+
+   // [#82] The M=1 small ops (hvx_m1_ops_f32.c) against the scalar spec
+   // nntrainer/tensor/m1_ops_det.h. Test entries: no model path calls
+   // them, and they use the caller's buffers only (no session state, heap
+   // or VTCM). A bad shape is AEE_EINVALIDFORMAT, never AEE_EBADPARM,
+   // which stays the stale-skel symptom.
+   //
+   // RMSNorm over x in chunks of `chunk` floats (a power of two, a
+   // multiple of 32, dividing xLen), gamma of `chunk` floats shared by
+   // every chunk (chunk == xLen: the hidden norm; 64: the per-head q/k
+   // norm). row_scale is xLen / chunk floats, r per chunk, so a mismatch
+   // says whether the reduction + rsqrt or the scaling diverged.
+   AEEResult rmsnorm_det_f32(in uint32 chunk, in float eps,
+                             in sequence<float> x, in sequence<float> gamma,
+                             rout sequence<float> y,
+                             rout sequence<float> row_scale);
+
+   // RoPE at head_dim 64: qk is n_q q heads then (qkLen / 64 - n_q) k
+   // heads of 64 contiguous floats, cs the 64-float cos[32] | sin[32] row
+   // of one position; y receives the rotated copy.
+   AEEResult rope64_det_f32(in uint32 n_q, in sequence<float> cs,
+                            in sequence<float> qk, rout sequence<float> y);
+
+   // Causal depthwise conv1d (L=3) + gate for one token, C = yLen (a
+   // multiple of 32): abc = a | b | c (3C), conv_w = w0 | w1 | w2 (3C),
+   // state_in = x_{t-2} | x_{t-1} (2C), y = b * conv1d(a*c) (C). state_out
+   // is 3C: rows 0-1 the new state x_{t-1} | a*c, row 2 the kernel's
+   // scratch (hvx_m1_ops_f32.h).
+   AEEResult conv_gate_m1_f32(in sequence<float> abc,
+                              in sequence<float> conv_w,
+                              in sequence<float> state_in,
+                              rout sequence<float> y,
+                              rout sequence<float> state_out);
+
+   // [#81] Decode attention at m=1 (hvx_attn_m1_f32.c) against the scalar
+   // spec nntrainer/tensor/attn_m1_det.h, with a session-owned f32 KV
+   // cache: Kt [layer][kv][head_dim][max_seq], V [layer][kv][max_seq]
+   // [head_dim], allocated at register for the whole shape (48 MiB at the
+   // LFM2.5 shape and max_seq 2048) and freed at release or close. layer
+   // is the attention-layer ordinal. Not wired into the model here: #85's
+   // ATTN_M1 slot stays NULL. One cache per session: a second register
+   // without a release is AEE_EBADSTATE. A bad shape or a position out
+   // of range is AEE_EINVALIDFORMAT, a hole (pos or kv_from past the
+   // layer's length) or a missing cache AEE_EBADSTATE; never AEE_EBADPARM,
+   // which stays the stale-skel symptom.
+   AEEResult attn_m1_register(in uint32 n_layers, in uint32 n_kv,
+                              in uint32 gqa, in uint32 head_dim,
+                              in uint32 max_seq);
+   AEEResult attn_m1_release();
+
+   // Bulk append of n_rows positions [kv_from, kv_from + n_rows) of one
+   // layer from the CPU cache layout, k_rows / v_rows [n_rows][n_kv]
+   // [head_dim] f32 (how the wiring issue seeds the prompt's rows after
+   // the CPU prefill). Sets the layer's length to kv_from + n_rows.
+   AEEResult attn_m1_kv_append(in uint32 layer, in uint32 kv_from,
+                               in uint32 n_rows, in sequence<float> k_rows,
+                               in sequence<float> v_rows);
+
+   // Appends position pos (k, v: [n_kv][head_dim], post-RoPE) to layer and
+   // returns the attention of q ([n_kv * gqa][head_dim], post-RoPE) over
+   // positions 0..pos in y ([n_kv * gqa][head_dim]); scale is the
+   // model's 1/sqrt(head_dim). pos <= the layer's length: equal appends,
+   // less rewinds. stats is empty, or 2 * n_kv * gqa floats receiving
+   // (m, l) per q head -- the localising intermediates a device mismatch
+   // is read with; production passes it empty and pays nothing.
+   AEEResult attn_m1_forward(in uint32 layer, in uint32 pos, in float scale,
+                             in sequence<float> q, in sequence<float> k,
+                             in sequence<float> v, rout sequence<float> y,
+                             rout sequence<float> stats);
+
+   // [#130] Binds one f32 parameter of a graph op after graph_init and
+   // before the first forward that runs it: which is HTP_GRAPH_PARAM_*
+   // (htp_graph_desc.h, the lengths beside it) -- a norm's gamma (K, or
+   // q | k gamma of 2 x head_dim for QK_NORM), a conv op's weights (3N)
+   // or its state seed (2N, re-sendable), or the RoPE table (max_seq x
+   // 64 with op == HTP_GRAPH_NO_OP). The copy lives on the DSP heap for
+   // the graph's life (plan 130 section 3.1), so the per-token calls
+   // carry activations only. A wrong length or a kind that does not take
+   // which is AEE_EINVALIDFORMAT, an op or which out of range
+   // AEE_EBADITEM, no graph AEE_EBADSTATE; never AEE_EBADPARM.
+   AEEResult graph_set_param(in uint32 op, in uint32 which,
+                             in sequence<float> data);
 };

@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cpu_backend.h>
+#include <cstdlib>
 #include <iostream>
 #include <sstream>
 
@@ -56,6 +57,15 @@ namespace {
 std::string projEngine(const std::string &engine, const std::set<int> &ids,
                        int layer_id) {
   return (ids.empty() || ids.count(layer_id)) ? engine : "cpu";
+}
+/** @brief [#130] NNTR_HTP_FORWARD=1: the per-token entry's switch. The
+ *  conv block then takes its one-layer form (conv_block, engine "cpu"
+ *  unless conv_block_engine says otherwise), whose decode row is the one
+ *  hook point for the K = 3C CONV1D_GATE op; the four-layer form has
+ *  none. Its CPU path folds the four layers byte for byte (doc 51). */
+bool htpForwardSwitch() {
+  const char *env = std::getenv("NNTR_HTP_FORWARD");
+  return env != nullptr && std::atoi(env) != 0;
 }
 } // namespace
 
@@ -139,7 +149,7 @@ Tensor Lfm2Transformer::createConvBlock(const int layer_id, Tensor input) {
   // three weights in the file's order, so the model file loads unchanged.
   const std::string block_eng =
     projEngine(CONV_BLOCK_ENGINE, CONV_BLOCK_HTP_LAYERS, layer_id);
-  if (block_eng != "cpu") {
+  if (block_eng != "cpu" || htpForwardSwitch()) {
     LayerHandle conv_block(createLayer(
       "conv_block", {withKey("name", prefix + "_conv_block"),
                      withKey("unit", CONV_DIM), withKey("engine", block_eng)}));

@@ -51,6 +51,75 @@ if fs.is_file(nntr_hvx_idl)
     endif
   endif
 endif
-nntrainer_sources += nntr_hvx_stub_c
+if get_option('htp-inproc')
+  # [#84] The skel compiled into the process: every nntr_hvx_* entry the
+  # ARM side calls is a direct call into the same C function the DSP runs,
+  # on scalar stand-ins for the HMX unit (standin/hvx_scalar.c), the
+  # FastRPC runtime (inproc/rpc_standin.c), HexKL's micro API
+  # (inproc/hexkl_micro_standin.c), QuRT (stub/qurt.h, pthreads) and the
+  # HVX f32 intrinsics (hvx_emu/). The qaic header above is still the one
+  # the entries are declared in, so the prototypes are the IDL's.
+  #
+  # What is in and what is out: the entries the ARM side references
+  # (open/close, the u8i4 weight and MoE calls, the arena, moe_set_opts,
+  # the #85 graph entries) plus the #82/#81 small-op and m=1 attention
+  # entries, whose kernels already compile on hvx_emu. Left out, because
+  # nothing here references them and their kernels need intrinsics
+  # hvx_emu does not emulate: nntr_hvx_softmax.c, nntr_hvx_attn.c,
+  # nntr_hvx_mm_u8i8.c, nntr_hvx_dma_probe.c (device-gtest-only entries).
+  # A skel entry the ARM calls but this list lacks is a link error
+  # (--no-undefined below), the host twin of test/htp/build.sh's guard.
+  htp_test_dir = meson.source_root() / 'test' / 'htp'
+  htp_host_dir = htp_test_dir / 'host'
+  inproc_sources = files(
+    htp_test_dir / 'hvx_add_f32.c',
+    htp_test_dir / 'nntr_hvx_mm_u8i4.c',
+    htp_test_dir / 'nntr_hvx_graph.c',
+    htp_test_dir / 'nntr_hvx_small_ops.c',
+    htp_test_dir / 'nntr_hvx_attn_m1.c',
+    'hmx/hexkl_mm_u8i4.c',
+    'hmx/hexkl_mm_u8i4_dma.c',
+    'hmx/hexkl_mm_u8i4_moe.c',
+    'hmx/hexkl_mm_u8i8_dma.c',
+    'hmx/hexkl_conv_block.c',
+    'hmx/hexkl_graph.c',
+    'hmx/hexkl_dma_ring.c',
+    'hmx/hexkl_dma_trace.c',
+    'hmx/hexkl_probe.c',
+    'hmx/hexkl_acc_tile.c',
+    'hvx/hvx_worker_pool.c',
+    'hvx/hvx_gather_ah_u8.c',
+    'hvx/hvx_scale_add_f32.c',
+    'hvx/hvx_conv_gate_f32.c',
+    'hvx/hvx_m1_ops_f32.c',
+    'hvx/hvx_attn_m1_f32.c',
+    htp_host_dir / 'standin' / 'hvx_scalar.c',
+    htp_host_dir / 'inproc' / 'hexkl_micro_standin.c',
+    htp_host_dir / 'inproc' / 'rpc_standin.c',
+  )
+  # inproc/ first: it shadows HAP_perf.h (the SDK's reads Hexagon
+  # registers) and provides hexagon_protos.h; stub/ is reached through
+  # inproc/'s forwarding headers so its AEEStdErr.h and HAP_perf.h do not
+  # shadow the SDK's. -ffp-contract=off: the stand-ins and the emulated
+  # kernels round every f32 op on its own, as the device does.
+  # -include malloc.h: the m=1 attention cache is memalign(128), which the
+  # Hexagon libc declares in stdlib.h and glibc in malloc.h.
+  nntr_hvx_inproc = static_library('nntr_hvx_inproc',
+    inproc_sources,
+    include_directories: include_directories(
+      '../../../test/htp/host/inproc', '../../../test/htp/host/hvx_emu',
+      '../../../test/htp/host/standin', '../../../test/htp',
+      'generated', 'hmx', 'hvx', '.', '..'),
+    dependencies: [hexkl_dep, thread_dep, libm_dep],
+    c_args: ['-ffp-contract=off', '-include', 'malloc.h',
+             '-Wno-format-truncation'],
+    pic: true,
+    build_by_default: false,
+  )
+  nntrainer_link_whole += nntr_hvx_inproc
+  nntrainer_link_args += '-Wl,--no-undefined'
+else
+  nntrainer_sources += nntr_hvx_stub_c
+endif
 nntrainer_inc_abs += meson.current_source_dir() / 'generated'
 nntrainer_inc += include_directories('generated')

@@ -643,6 +643,12 @@ void CausalLM::run(const WSTR prompt, bool do_sample, const WSTR system_prompt,
       static_cast<float>(id_list[b]);
 
   auto start_generation = std::chrono::high_resolution_clock::now();
+  // One timestamp per completed token, seeded with start_generation, so the
+  // report can time the true last 64 tokens even when the loop leaves early
+  // (EOS or stop request). NUM_TO_GENERATE + 1 slots, allocated once.
+  std::vector<std::chrono::high_resolution_clock::time_point> token_done_ts;
+  token_done_ts.reserve(NUM_TO_GENERATE + 1);
+  token_done_ts.push_back(start_generation);
 
   for (unsigned int token_generation_idx = input_len + 1;
        token_generation_idx < input_len + 1 + NUM_TO_GENERATE &&
@@ -666,6 +672,7 @@ void CausalLM::run(const WSTR prompt, bool do_sample, const WSTR system_prompt,
     registerOutputs(tokenizer, ids_list, token_generation_idx, eos_list,
                     log_output);
     ++generation_cnt;
+    token_done_ts.push_back(std::chrono::high_resolution_clock::now());
 
     // output should be deallocated after use
     for (auto out : output_interval) {
@@ -725,6 +732,21 @@ void CausalLM::run(const WSTR prompt, bool do_sample, const WSTR system_prompt,
               << generation_duration.count() << " ms, "
               << ((double)generation_cnt / generation_duration.count() * 1000)
               << " TPS\n";
+    // Decode tok/s over the last 64 completed tokens (contract §1.1). With
+    // fewer than 64 tokens the window is the whole generation and says so.
+    {
+      const size_t n_done = token_done_ts.size() - 1;
+      const size_t window = n_done >= 64 ? 64 : n_done;
+      auto last64_duration =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+          token_done_ts[n_done] - token_done_ts[n_done - window]);
+      std::cout << "generation(last 64): " << window << " tokens, "
+                << last64_duration.count() << " ms, "
+                << ((double)window / last64_duration.count() * 1000) << " TPS";
+      if (window < 64)
+        std::cout << " (whole generation, fewer than 64)";
+      std::cout << "\n";
+    }
     std::cout << "total: " << total_duration.count() << " ms\n";
     std::cout << "peak memory: " << peak_memory << " KB\n";
     std::cout << "==========================================================\n";

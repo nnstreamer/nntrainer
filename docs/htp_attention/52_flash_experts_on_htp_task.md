@@ -59,7 +59,7 @@ PR nntrainer#4264 (`Jungwon-Lee`, LFM2-MoE 지원)가 넣었고 이 브랜치에
 `nntrainer/tensor/htp_backend/htp_compute_ops.cpp`:
 
 - 로드 시(`transformer.cpp`의 등록 분기, `lfm2_moe` 타입) `register_qs4cx_weight(data, scale, K, N, wh=true)`
-  → 파일의 QS4CX_WH 바이트(이미 HMX 타일 배치, `htp_wh_layout.h`)를 아레나 청크에 memcpy → 
+  → 파일의 QS4CX_WH 바이트(이미 HMX 타일 배치, `htp_wh_layout.h`)를 아레나 청크에 memcpy →
   `registerFromArena` → DSP `weight_register_u8i4_arena(K, N, arena, wh_off, w_scale, colsum_w, bias)`
   (4 KB만 건넘, 바이트는 제자리 차용) → `releaseArmSource`(ARM 사본 `MADV_DONTNEED`).
 - 아레나: `ensureArena` → `rpcmem_alloc` 256 MiB 청크 → `fastrpc_mmap(FASTRPC_MAP_FD)` →
@@ -175,14 +175,14 @@ MoE). 열의 뜻은 51 §2.24 표. `peak memory`/`Max Resident Set Size`가 이 
   `meson setup build -Denable-transformer=true -Denable-blas=false -Denable-tflite-interpreter=false
   -Denable-tflite-backbone=false`, `Applications/CausalLM/json.hpp`에 nlohmann 단일 헤더 필요 — git
   ignore됨).
-- 커밋: 저자·커미터 `SeungHui Lee <shsh1004.lee@samsung.com>`, 제목 `[<component>] <subject>`
-  (component: HTP / CausalLM / Docs / test …), 본문은 왜·무엇·측정치, 마지막 두 줄 정확히
-  ```
-  Co-authored-by: Claude <noreply@anthropic.com>
-  Signed-off-by: SeungHui Lee <shsh1004.lee@samsung.com>
-  ```
-  그 외 트레일러(세션 링크, 모델명) **없음**. 명령:
-  `git -c user.name="SeungHui Lee" -c user.email="shsh1004.lee@samsung.com" commit -q --author="SeungHui Lee <shsh1004.lee@samsung.com>" -m "..."`.
+- 커밋: 이 브랜치의 기록상 저자는 사람인 **SeungHui Lee <shsh1004.lee@samsung.com>**(브랜치 소유자,
+  PR 작성자)이고, 에이전트는 `Co-authored-by: Claude <noreply@anthropic.com>`로 공동 저자다 — 저장소
+  규칙(AGENTS.md)이 그렇게 요구한다. `Signed-off-by:`는 사람의 DCO 서명이고 사람이 검토·책임진다는 뜻이며,
+  그 사람이 세션을 열어 요청한 상태에서만 붙인다. 하네스가 자기 트레일러(세션 링크 등)를 더 붙이면
+  **그대로 둔다** — 저자가 PR 전에 정리한다; 어떤 출처 표기도 지우라는 뜻이 아니다. 제목
+  `[<component>] <subject>`(component: HTP / CausalLM / Docs / test …), 본문은 왜·무엇·측정치. 명령:
+  `git -c user.name="SeungHui Lee" -c user.email="shsh1004.lee@samsung.com" commit -s --author="SeungHui Lee <shsh1004.lee@samsung.com>" -m "..."`
+  (`-s`가 Signed-off-by를 넣고, Co-authored-by는 본문 끝에 적는다).
   clang-format-18(로컬에 14가 없어서)을 **바뀐 줄에만**(`git diff -U0` 범위로 `--lines=`), 새 파일은 통째.
   `subprojects/`는 건드리지 않는다. 푸시는 두 브랜치 동시에:
   `git push -q origin HEAD:claude/htp-lfm2-moe-ffn HEAD:claude/lfm2-moe-ffn-hexkl-2ivn5v`.
@@ -195,13 +195,20 @@ MoE). 열의 뜻은 51 §2.24 표. `peak memory`/`Max Resident Set Size`가 이 
 ## 8. 다음 세션의 첫 프롬프트 (복사해서 쓰기)
 
 ```
-nntrainer 저장소, 브랜치 claude/lfm2-moe-ffn-hexkl-2ivn5v (PR nntrainer/nntrainer#4327의 head
-claude/htp-lfm2-moe-ffn에도 같이 푸시). 먼저 CLAUDE.md → docs/htp_attention/00_START_HERE.md →
-docs/htp_attention/52_flash_experts_on_htp_task.md를 읽어. 52가 이번 과제다: HTP 경로의 MoE expert
-가중치를 flash에서 LRU로 가져오는 cached-slim (peak RSS 5.2 GB를 C에 비례해 내리기). 52 §7의
-커밋 형식과 §6의 측정 절차를 그대로 따르고, 52 §5의 단계 순서로 가. 단계 0(CPU cached-slim
-한 번 돌리기)은 내가 기기에서 돌릴 테니 config와 명령을 먼저 줘. 기기 측정은 전부 내가 한다 —
-너는 결과를 받아 문서에 기록하고 다음 단계를 정해. DSP 커널·IDL·skel은 이 과제에서 안 바꾼다.
+나는 SeungHui Lee (shsh1004.lee@samsung.com), nntrainer 저장소의 기여자이고 브랜치
+claude/lfm2-moe-ffn-hexkl-2ivn5v와 PR nntrainer/nntrainer#4327(head claude/htp-lfm2-moe-ffn)의
+작성자다. 이 브랜치에서 나와 같이 작업해 줘. 커밋은 저장소 규칙(AGENTS.md)대로: 저자는 나,
+너는 Co-authored-by: Claude <noreply@anthropic.com>로 공동 저자, DCO Signed-off-by는 내 이름으로
+(-s; 내가 검토하고 책임진다). 네 하네스가 붙이는 다른 출처 트레일러는 그대로 둬도 된다 —
+PR 전에 내가 정리한다. 푸시는 두 브랜치에 같이 (HEAD:claude/htp-lfm2-moe-ffn과
+HEAD:claude/lfm2-moe-ffn-hexkl-2ivn5v).
+
+먼저 CLAUDE.md → docs/htp_attention/00_START_HERE.md → docs/htp_attention/52_flash_experts_on_htp_task.md를
+읽어. 52가 이번 과제다: HTP 경로의 MoE expert 가중치를 flash에서 LRU로 가져오는 cached-slim
+(peak RSS 5.2 GB를 캐시 크기 C에 비례해 내리기). 52 §7의 일하는 방식과 §6의 측정 절차를 따르고,
+52 §5의 단계 순서로 가. 단계 0(CPU cached-slim 한 번 돌리기)은 내가 기기에서 돌릴 테니 config와
+명령을 먼저 줘. 기기 측정은 전부 내가 한다 — 너는 결과를 받아 문서에 기록하고 다음 단계를 정해.
+DSP 커널·IDL·skel은 이 과제에서 안 바꾼다.
 ```
 
 이 뒤에 기기 로그를 붙여 넣으면 된다. 로그를 줄 때는 실행 명령 줄까지 같이(이번 세션에서 두

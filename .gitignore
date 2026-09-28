@@ -4,6 +4,7 @@
 # ignore build directory
 /build
 /builddir
+/build_htp_host
 # meson's transient lock while it resolves subprojects
 subprojects/.wraplock
 .cache/

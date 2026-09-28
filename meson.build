@@ -277,7 +277,26 @@ endif
 # there is no x86 build of it. Default off, so x86/CI builds are unaffected.
 # hexkl_dep is referenced only under this guard (mirrors how clblast_dep is
 # referenced only when enable-opencl).
-if get_option('enable-htp')
+if get_option('enable-htp') and get_option('htp-inproc')
+  # The in-process variant (#84): the Hexagon SDK's headers only. No
+  # libsdkl (nothing under htp_backend/ calls it, htp_backend.h records
+  # its removal) and no HexKL: the skel sources are compiled for the host
+  # against the stand-ins in test/htp/host/, see htp_backend/meson.build.
+  hexagon_sdk_root = get_option('hexagon-sdk-root')
+  if hexagon_sdk_root == '' or not fs.is_dir(hexagon_sdk_root / 'incs')
+    error('htp-inproc=true requires -Dhexagon-sdk-root=<path to ' +
+          'Hexagon_SDK/<version>> (its incs/ holds remote.h, AEEStdErr.h ' +
+          'and the HAP_*.h the skel sources include)')
+  endif
+  hexkl_inc = include_directories(
+    hexagon_sdk_root / 'incs',
+    hexagon_sdk_root / 'incs' / 'stddef',
+    is_system: true)
+  hexkl_dep = declare_dependency(include_directories: hexkl_inc)
+  extra_defines += '-DENABLE_HEXKL=1'
+  extra_defines += '-DNNTR_HTP_INPROC=1'
+  message('HTP backend enabled IN-PROCESS (host stand-ins, no device)')
+elif get_option('enable-htp')
   hexkl_root = get_option('hexkl-sdk-root')
   if hexkl_root == ''
     error('enable-htp=true requires -Dhexkl-sdk-root=<path to hexkl_addon>')
