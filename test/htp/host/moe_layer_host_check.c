@@ -1146,6 +1146,72 @@ int main(void) {
     free(o2);
   }
 
+  /* 2-bit on the M=1 GEMV path with the VTCM feed (#117): the feed pushes
+     half the bytes into the top half of each slab and expands them there,
+     so the GEMV reads exactly the int4 a 4-bit run would have been given.
+     Bitwise identical or the format is not usable on this path. The real
+     shape, because the feed only engages when two gate_up slabs and two
+     downs fit the arena -- the tiny shape would silently run the arena
+     read and prove nothing. */
+  {
+    const uint32_t K4 = 2048, I4 = 1792, N4 = 2048, NE4 = 4;
+    const int8_t pal[4] = {-6, -2, 1, 5};
+    const uint32_t S0 = 200u;
+    W wg4[4], wd4[4];
+    uint32_t hg4[4], hd4[4], hg4b[4], hd4b[4];
+    uint32_t rc4[4] = {1, 1, 1, 1};
+    uint32_t ri4[4] = {0, 0, 0, 0};
+    float rw4[4] = {0.3f, 0.7f, 0.5f, 0.9f};
+    for (uint32_t e = 0; e < NE4; ++e) {
+      make_weight_pal(S0 + 4u * e, S0 + 4u * e + 1u, K4, 2 * I4, pal, &wg4[e]);
+      make_weight_pal(S0 + 4u * e + 2u, S0 + 4u * e + 3u, I4, N4, pal, &wd4[e]);
+      hg4[e] = S0 + 4u * e;
+      hd4[e] = S0 + 4u * e + 2u;
+      hg4b[e] = S0 + 4u * e + 1u;
+      hd4b[e] = S0 + 4u * e + 3u;
+    }
+    float *a4 = (float *)malloc(sizeof(float) * K4);
+    for (uint32_t i = 0; i < K4; ++i)
+      a4[i] = rndf();
+    float *g4 = (float *)malloc(sizeof(float) * N4);
+    float *g2 = (float *)malloc(sizeof(float) * N4);
+    const uint32_t fl = HEXKL_MOE_FLAG_M1_GEMV | HEXKL_MOE_FLAG_GEMV_FEED_SET |
+                        HEXKL_MOE_FLAG_GEMV_FEED;
+    hexkl_moe_scratch sc4 = {NULL, NULL, 0};
+    memset(hexkl_probe_us, 0, sizeof hexkl_probe_us);
+    int r4 = hexkl_mm_u8i4_moe_layer_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm,
+                                         1u, K4, I4, N4, NE4, hg4, hd4, ri4,
+                                         rc4, rw4, a4, g4, NULL, &sc4, fl);
+    const uint64_t path4 = hexkl_probe_us[HEXKL_PROBE_PATH];
+    const uint64_t feed4 = hexkl_probe_us[HEXKL_PROBE_M1_FEED];
+    const uint64_t kb4 = hexkl_probe_us[HEXKL_PROBE_DMA_KB];
+    memset(hexkl_probe_us, 0, sizeof hexkl_probe_us);
+    int r2 = hexkl_mm_u8i4_moe_layer_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm,
+                                         1u, K4, I4, N4, NE4, hg4b, hd4b, ri4,
+                                         rc4, rw4, a4, g2, NULL, &sc4, fl);
+    const uint64_t path2 = hexkl_probe_us[HEXKL_PROBE_PATH];
+    const uint64_t feed2 = hexkl_probe_us[HEXKL_PROBE_M1_FEED];
+    const uint64_t kb2 = hexkl_probe_us[HEXKL_PROBE_DMA_KB];
+    uint32_t nb = 0;
+    for (uint32_t i = 0; i < N4; ++i) {
+      if (memcmp(&g4[i], &g2[i], sizeof(float)) != 0)
+        ++nb;
+    }
+    printf("2-bit M1 GEMV     : rc=%d/%d path=%llu/%llu feed=%llu/%llu "
+           "dma_kb=%llu vs %llu (want half)  bitwise mismatches=%u of %u\n",
+           r4, r2, (unsigned long long)path4, (unsigned long long)path2,
+           (unsigned long long)feed4, (unsigned long long)feed2,
+           (unsigned long long)kb2, (unsigned long long)kb4, nb, N4);
+    fail |= (r4 != 0) || (r2 != 0) || (nb != 0) || (path4 != 1ull) ||
+            (path2 != 1ull) || (feed4 != 1ull) || (feed2 != 1ull) ||
+            (kb4 == 0ull) || (kb2 * 2ull != kb4);
+    for (uint32_t e = 0; e < 4u * NE4; ++e)
+      g_tbl.slots[S0 + e].in_use = 0;
+    free(a4);
+    free(g4);
+    free(g2);
+  }
+
   /* --- edge cases the routing can actually produce --------------------- */
   {
     uint32_t z[8] = {0, 0, 0, 0, 0};

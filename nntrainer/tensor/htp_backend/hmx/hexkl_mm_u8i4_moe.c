@@ -977,15 +977,49 @@ static inline uint32_t moe_m1_push(uint8_t *vtcm_base, uint32_t dst_off,
                                    uint32_t n_col, uint32_t kind,
                                    uint32_t expert) {
   const uint32_t row = n_col * WEIGHT_TILE_BYTES_U8I4;
+  /* At two bits the whole matrix is half this, and it lands in the TOP
+     half of the int4 slab so moe_m1_expand can run in place -- the same
+     placement the HMX path's chunks use (doc 54 5.6), one contiguous run
+     instead of one a k-tile row. This is the point of the format on this
+     path: the GEMV is DDR-bandwidth-bound at ~32 GB/s (measurement 117),
+     so halving what the engine moves halves the column it paces. */
+  /* Same descriptor shape either way -- k_tiles rows of a tile row -- so
+     the feed's trace and scoreboard read the same as they did at four
+     bits; only the width and the destination move. */
+  const uint32_t w = (h->bits == 2u) ? row / 2u : row;
+  const uint32_t at =
+    (h->bits == 2u) ? dst_off + (row * k_tiles) / 2u : dst_off;
   const uint32_t idx = hexkl_dma_ring_next_idx();
-  HEXKL_PROBE_COUNT(HEXKL_PROBE_DMA_KB, (row * k_tiles) >> 10);
-  hexkl_dma_ring_push2d(vtcm_base + dst_off, h->wh_bytes, row, row, row,
-                        k_tiles, /*src_vtcm=*/0, /*dst_vtcm=*/1);
+  HEXKL_PROBE_COUNT(HEXKL_PROBE_DMA_KB, (w * k_tiles) >> 10);
+  hexkl_dma_ring_push2d(vtcm_base + at, h->wh_bytes, w, w, w, k_tiles,
+                        /*src_vtcm=*/0, /*dst_vtcm=*/1);
   if (hexkl_probe_on) {
-    hexkl_dma_trace_push(hexkl_probe_now_ticks(), idx, kind, expert, 0u, row,
-                         k_tiles, row);
+    hexkl_dma_trace_push(hexkl_probe_now_ticks(), idx, kind, expert, 0u, w,
+                         k_tiles, w);
   }
   return idx;
+}
+
+/**
+ * @brief Expands a slab the feed has just landed. No-op at four bits.
+ *
+ * In place, codes in the top half: the read pointer is never overtaken
+ * (doc 54 5.6, checked by expand_i2i4_host_check's in-place case). One
+ * foreground pool run, between the wait and the stage that reads the slab
+ * -- the same "one run per expert and stage" shape the feed's schedule is
+ * built on, so the host scoreboard still sees an exact order.
+ */
+static inline void moe_m1_expand(uint8_t *vtcm_base, uint32_t dst_off,
+                                 const hexkl_weight_u8i4 *h, uint32_t k_tiles,
+                                 uint32_t n_col, hvx_worker_pool *pool) {
+  uint8_t lut[HVX_EXPAND_TABLE_BYTES] __attribute__((aligned(128)));
+  const uint32_t bytes = n_col * WEIGHT_TILE_BYTES_U8I4 * k_tiles;
+  if (h->bits != 2u) {
+    return;
+  }
+  hvx_expand_i2i4_table(h->pal, lut);
+  hvx_expand_i2i4_pool(vtcm_base + dst_off + bytes / 2u, bytes / 2u, lut,
+                       vtcm_base + dst_off, pool);
 }
 
 /** @brief A traced ring wait. Not timed into DRAIN / DRAIN_DN: it sits
@@ -1223,10 +1257,9 @@ int hexkl_mm_u8i4_moe_layer_run(
   /* The M=1 GEMV path (moe_m1_* above), decided here so the sizing below
      and the first gate_up push know. `widest` restates M <= 4 for a caller
      that repeats a row inside an expert: the GEMV tiles hold 4 rows. */
-  const int use_m1 = (flags & HEXKL_MOE_FLAG_M1_GEMV) != 0u && allow_tail &&
-                     M <= MOE_M1_MAX_ROWS && widest <= MOE_M1_MAX_ROWS &&
-                     n_with_rows != 0u && n_with_rows <= MOE_M1_MAX_EXPERTS;
-  hexkl_probe_us[HEXKL_PROBE_PATH] = use_m1 ? 1u : 0u;
+  const int m1_shape = (flags & HEXKL_MOE_FLAG_M1_GEMV) != 0u &&
+                       M <= MOE_M1_MAX_ROWS && widest <= MOE_M1_MAX_ROWS &&
+                       n_with_rows != 0u && n_with_rows <= MOE_M1_MAX_EXPERTS;
 
   const uint32_t k_tiles = K / HEXKL_HMX_INT8_BLOCK_N_INNER;
   const uint32_t gu_ntiles = (2u * inter) / HEXKL_HMX_INT8_BLOCK_N_COL;
@@ -1242,9 +1275,14 @@ int hexkl_mm_u8i4_moe_layer_run(
      arena at the LFM2 shape; no heap, no address-space growth. */
   const uint32_t gu_bytes = k_tiles * gu_ntiles * WEIGHT_TILE_BYTES_U8I4;
   const uint32_t dn_bytes = inter_ktiles * dn_ntiles * WEIGHT_TILE_BYTES_U8I4;
-  const int m1_feed = use_m1 && hexkl_moe_flags_feed(flags) != 0u &&
+  const int m1_feed = m1_shape && hexkl_moe_flags_feed(flags) != 0u &&
                       2u * (uint64_t)gu_bytes <= arena &&
                       2u * (uint64_t)dn_bytes <= gu_bytes;
+  /* 2-bit weights reach the GEMV only through the feed: the arena read
+     would take the codes for nibbles, and it is the feed that expands them
+     (moe_m1_expand). Four-bit calls take either. */
+  const int use_m1 = m1_shape && (allow_tail || m1_feed);
+  hexkl_probe_us[HEXKL_PROBE_PATH] = use_m1 ? 1u : 0u;
   /* Pairs per staged batch; the chunk size the gate_up pushes use too. */
   const uint32_t half = L.acc_tiles / 2u;
   /* Bounded arrays below; a shape that needs more chunks than they hold is
@@ -1562,6 +1600,8 @@ int hexkl_mm_u8i4_moe_layer_run(
         uint64_t pw = 0;
         HEXKL_PROBE_T0(pw);
         moe_m1_wait(m1_gu_idx[i], HEXKL_DMA_SITE_GU);
+        moe_m1_expand(vtcm_base, moe_m1_gu_off(i, gu_bytes), m1.ex[i].g,
+                      k_tiles, gu_ntiles, pool);
         if (i == 0u) {
           HEXKL_PROBE_ADD(HEXKL_PROBE_DMA_FIRST, pw);
           HEXKL_PROBE_COUNT(HEXKL_PROBE_DMA_FIRST_KB, gu_bytes >> 10);
@@ -1599,6 +1639,8 @@ int hexkl_mm_u8i4_moe_layer_run(
     } else {
       for (uint32_t j = 0; j < n_active; ++j) {
         moe_m1_wait(m1_dn_idx[j], HEXKL_DMA_SITE_DN);
+        moe_m1_expand(vtcm_base, moe_m1_dn_off(j, gu_bytes, dn_bytes),
+                      m1.ex[j].d, inter_ktiles, dn_ntiles, pool);
         m1.u_lo = j * dn_ntiles;
         m1.u_hi = (j + 1u) * dn_ntiles;
         hvx_worker_pool_run(pool, moe_m1_down_worker, &m1, dn_ntiles);
