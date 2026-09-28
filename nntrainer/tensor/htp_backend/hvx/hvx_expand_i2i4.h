@@ -128,6 +128,17 @@ void hvx_expand_i2i4_rows(uint8_t *base, uint32_t stride, uint32_t src_bytes,
                           uint32_t nrows, const uint8_t *table,
                           hvx_worker_pool *pool);
 
+/**
+ * @brief The same loop with the interleaving shuffle left out.
+ *
+ * MEASUREMENT ONLY -- the bytes it writes are in the wrong order. Its
+ * instruction mix is the one whPack2 could make correct by storing the
+ * codes pre-interleaved, so timing it says what that format change is
+ * worth before anyone makes it.
+ */
+void hvx_expand_i2i4_noshuf(const uint8_t *src, uint32_t src_bytes,
+                            const uint8_t *table, uint8_t *dst);
+
 #ifdef __cplusplus
 }
 #endif

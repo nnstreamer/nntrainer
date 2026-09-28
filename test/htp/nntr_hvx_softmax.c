@@ -12,6 +12,7 @@
 
 #include <AEEStdErr.h>
 #include <HAP_farf.h>
+#include <HAP_perf.h>
 #include <remote.h>
 #include <string.h>
 
@@ -138,6 +139,55 @@ int nntr_hvx_expand_i2i4(remote_handle64 handle, const uint8 *codes,
 
   hvx_expand_i2i4(codes, (uint32_t)codesLen, table, hvx);
   hvx_expand_i2i4_scalar(codes, (uint32_t)codesLen, table, ref);
+  return AEE_SUCCESS;
+}
+
+int nntr_hvx_expand_i2i4_bench(remote_handle64 handle, uint32 src_bytes,
+                               uint32 iters, uint32 mode, const int8 *pal,
+                               int palLen, uint32 *us, int usLen) {
+  nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  uint8_t table[HVX_EXPAND_TABLE_BYTES] __attribute__((aligned(128)));
+  uint8_t *dst, *src;
+  uint64_t t0, dt;
+  uint32 i;
+
+  if (!s || !pal || !us || palLen != 4 || usLen < 2) {
+    return AEE_EBADPARM;
+  }
+  if (src_bytes == 0u || (src_bytes % 128u) != 0u || iters == 0u) {
+    return AEE_EBADPARM;
+  }
+  /* Both buffers in VTCM, which is where the kernel runs it. Laid out from
+     the top of the arena so nothing else in the session is touched. */
+  if ((uint64_t)3u * src_bytes > s->vtcm_size) {
+    return AEE_ENOMEMORY;
+  }
+  dst = s->vtcm_base;
+  src = (mode == 1u) ? (dst + src_bytes) /* in place: top half */
+                     : (dst + 2u * src_bytes);
+  hvx_expand_i2i4_table(pal, table);
+  for (i = 0; i < src_bytes; ++i) {
+    src[i] = (uint8_t)(i * 37u + 11u);
+  }
+
+  t0 = HAP_perf_get_qtimer_count();
+  for (i = 0; i < iters; ++i) {
+    if (mode == 2u) {
+      hvx_expand_i2i4_noshuf(src, src_bytes, table, dst);
+    } else {
+      hvx_expand_i2i4(src, src_bytes, table, dst);
+    }
+    /* The source is not refreshed between iterations. In place it is
+       overwritten by the first pass, so every pass after that expands
+       garbage -- which changes the bytes and not one cycle of the timing:
+       same addresses, same sizes, same instructions, and a table lookup
+       does not care what it looks up. Refreshing inside the timer would
+       have added a copy the size of the source and buried the thing being
+       measured. */
+  }
+  dt = HAP_perf_get_qtimer_count() - t0;
+  us[0] = (uint32)HAP_perf_qtimer_count_to_us(dt);
+  us[1] = us[0] / iters;
   return AEE_SUCCESS;
 }
 

@@ -132,6 +132,29 @@ static void expand_worker(uint32_t n_threads, uint32_t i, void *vctx) {
   }
 }
 
+void hvx_expand_i2i4_noshuf(const uint8_t *src, uint32_t src_bytes,
+                            const uint8_t *table, uint8_t *dst) {
+#if defined(__hexagon__)
+  const uint32_t vecs = src_bytes / EXPAND_VEC;
+  const HVX_Vector tab = *(const HVX_UVector *)table;
+  const HVX_Vector m0f = Q6_V_vsplat_R((int)0x0F0F0F0Fu);
+  uint32_t v;
+  for (v = 0; v < vecs; ++v) {
+    const HVX_Vector s = *(const HVX_UVector *)(src + (size_t)v * EXPAND_VEC);
+    const HVX_Vector lo = Q6_V_vand_VV(s, m0f);
+    const HVX_Vector hi = Q6_V_vand_VV(Q6_Vuh_vlsr_VuhR(s, 4), m0f);
+    HVX_UVector *d = (HVX_UVector *)(dst + (size_t)v * 2u * EXPAND_VEC);
+    d[0] = Q6_Vb_vlut32_VbVbI(lo, tab, 0);
+    d[1] = Q6_Vb_vlut32_VbVbI(hi, tab, 0);
+  }
+#else
+  (void)src;
+  (void)src_bytes;
+  (void)table;
+  (void)dst;
+#endif
+}
+
 typedef struct {
   uint8_t *base;
   const uint8_t *table;

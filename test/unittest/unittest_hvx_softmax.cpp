@@ -326,6 +326,49 @@ TEST_F(HvxExpandI2I4, MatchesScalarBitExact) {
 }
 
 /**
+ * @brief [doc 54 5.13] What the expansion costs, and where it goes.
+ *
+ * On device the same loop runs at ~103 GB/s during decode and ~36 during
+ * prefill, against an instruction count that says ~190. Two things could
+ * explain the gap and only one of them is worth acting on, so they are
+ * separated here rather than argued about:
+ *
+ *   mode 0  source and destination disjoint
+ *   mode 1  source in the top half of the destination -- what the kernel
+ *           does. 0 vs 1 is the cost of the aliasing, which is what stops
+ *           the compiler moving loads across stores.
+ *   mode 2  disjoint and no interleaving shuffle. 0 vs 2 is what the
+ *           permute pipe is worth, i.e. what pre-interleaving the codes in
+ *           whPack2 would buy -- offline work, free at run time.
+ *
+ * Reported, not asserted: this is a measurement, and a threshold here
+ * would only encode today's silicon.
+ */
+TEST_F(HvxExpandI2I4, BenchWhereTheTimeGoes) {
+  // 512 KiB of codes -> 1 MiB out, about the size of a real gate_up chunk,
+  // and small enough that three of them fit in VTCM.
+  const uint32_t src_bytes = 512u * 1024u;
+  const uint32_t iters = 64;
+  const std::array<int8_t, 4> pal = {{-6, -2, 1, 5}};
+  const char *what[3] = {"disjoint", "in place", "no shuffle"};
+
+  double base = 0.0;
+  for (uint32_t mode = 0; mode < 3u; ++mode) {
+    std::vector<uint32_t> us(2, 0);
+    int err = nntr_hvx_expand_i2i4_bench(handle_, src_bytes, iters, mode,
+                                         pal.data(), 4, us.data(), 2);
+    ASSERT_EQ(err, AEE_SUCCESS) << "expand bench failed: " << hex(err);
+    const double out_mb = 2.0 * src_bytes / 1e6;
+    const double gbs = (2.0 * src_bytes) / (us[1] * 1e-6) / 1e9;
+    if (mode == 0)
+      base = gbs;
+    std::cout << "EXPAND_I2I4_BENCH mode=" << mode << " (" << what[mode]
+              << ") us_per_iter=" << us[1] << " out=" << out_mb
+              << "MB gbs=" << gbs << " rel=" << (gbs / base) << std::endl;
+  }
+}
+
+/**
  * @brief [A1] The ARM half of the same specification, on the same data.
  *
  * This test needs no DSP: it compares swiglu_det.h's NEON path against

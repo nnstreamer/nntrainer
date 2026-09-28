@@ -253,6 +253,20 @@ interface nntr_hvx : remote_handle64 {
    AEEResult expand_i2i4(in sequence<uint8> codes, in sequence<int8> pal,
                          rout sequence<uint8> hvx, rout sequence<uint8> ref);
 
+   // [doc 54 5.13] Times the 2-bit expansion in VTCM, where it actually
+   // runs. src_bytes of codes -> 2*src_bytes of int4, iters times.
+   // mode 0: source and destination disjoint.
+   // mode 1: source in the TOP half of the destination -- what the MoE
+   //         kernel does, and what may be costing the compiler its
+   //         software pipelining.
+   // mode 2: as 0, but the shuffle skipped (wrong bytes, right issue mix)
+   //         -- what the permute pipe is worth, before changing whPack2 to
+   //         make it correct.
+   // us comes back as [total, per_iter].
+   AEEResult expand_i2i4_bench(in uint32 src_bytes, in uint32 iters,
+                               in uint32 mode, in sequence<int8> pal,
+                               rout sequence<uint32> us);
+
    AEEResult softmax_f32(in uint32 M, in uint32 K, in uint32 m_first,
                          in float scale, in sequence<float> x,
                          rout sequence<float> y);
