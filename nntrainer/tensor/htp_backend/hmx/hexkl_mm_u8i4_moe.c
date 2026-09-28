@@ -170,6 +170,11 @@ uint32_t hexkl_moe_push_weight_chunk(uint8_t *vtcm_base, uint32_t dst_off,
  *  gate_up chunk pair is 40-55 us of work at decode, 8 units of it. */
 #define MOE_EXPAND_UNITS 8u
 
+/** @brief Background expansion slots: gate_up chunk c in slot c, down
+ *  chunk c in slot MOE_EXP_DN + c. MOE_MAX_CHUNKS bounds both. */
+#define MOE_EXP_DN 8u
+#define MOE_EXP_SLOTS 16u
+
 /** @brief One queued chunk expansion. Up to two column runs -- gate_up
  *  arrives as a gate/up pair -- and its own copy of the lookup table,
  *  because the job outlives the frame that submitted it. */
@@ -1149,15 +1154,36 @@ int hexkl_mm_u8i4_moe_layer_run(
    * out as before, once GU(n) has freed their slots, and arrive under
    * DN(n-1). */
   moe_blk blk, pblk;
-  /* 2-bit only: two queued chunk expansions per weight, ping-ponged, so
-     chunk gb+1 expands under batch gb's HMX issue. On the stack because
-     they are a few hundred bytes and die with the call. */
+  /* 2-bit only: one queued expansion per weight CHUNK -- gate_up 0..3 in
+     slots [0, MOE_EXP_DN), down 0..1 after it. Chunk-indexed rather than
+     ping-ponged because every chunk is now submitted a whole PHASE before
+     the batch that reads it, so two expansions of the same chunk index are
+     never in flight (doc 54 5.16.4). On the stack: ~1 kB that dies with
+     the call. */
   const int w2 = (tbl->slots[h_gate_up[order[0]]].bits == 2u);
-  hvx_bg_job exp_job[4];
-  moe_expand_ctx exp_ctx[4];
-  uint8_t exp_done[4][MOE_EXPAND_UNITS];
-  int exp_live[4] = {0, 0, 0, 0};
+  hvx_bg_job exp_job[MOE_EXP_SLOTS];
+  moe_expand_ctx exp_ctx[MOE_EXP_SLOTS];
+  uint8_t exp_done[MOE_EXP_SLOTS][MOE_EXPAND_UNITS];
+  int exp_live[MOE_EXP_SLOTS];
   const uint32_t gu_chunks = (inter_ntiles + half - 1u) / half;
+  const uint32_t dn_chunks = (dn_ntiles + L.acc_tiles - 1u) / L.acc_tiles;
+  /* Falls back to expanding in front of the batch when a shape needs more
+     chunks than there are slots -- correctness never depends on the
+     hiding. This model is 4 and 2. */
+  const int exp_bg = w2 && gu_chunks <= MOE_EXP_DN &&
+                     dn_chunks <= (MOE_EXP_SLOTS - MOE_EXP_DN);
+  /* Who queues which gate_up chunk. The down phase has dn_chunks batches
+     to queue one chunk each in, so it takes [0, gu_bg0) and the gate_up
+     phase takes the rest -- disjoint, or a chunk would be expanded twice
+     and the second pass would read its own output (the multi-chunk host
+     check catches exactly that). */
+  const uint32_t gu_bg0 = (dn_chunks < gu_chunks) ? dn_chunks : gu_chunks;
+  /* ...and which gate_up batch queues down chunk db: as late as the batch
+     count allows, since down is read after every gate_up batch. */
+  const uint32_t dn_bg0 = (gu_chunks > dn_chunks) ? (gu_chunks - dn_chunks) : 0u;
+  memset(exp_live, 0, sizeof exp_live);
+  /* Read only under n > 0, which the compiler cannot see. */
+  memset(&pblk, 0, sizeof pblk);
 
   moe_blk_set(&blk, 0u, 0u, order, row_count, slot_of, allow_tail);
   /* The first expert's first activation block. Queued behind its gate_up
@@ -1219,12 +1245,13 @@ int hexkl_mm_u8i4_moe_layer_run(
         /* Only the first block of an expert waits: by the second the whole
            weight is resident. n == 0 && gb == 0 is the one wait that cannot
            hide behind anything, which is what DMA_FIRST records. */
-        if (blk.first && w2 && gb > 1u && exp_live[gb & 1u]) {
-          /* Queued one batch ago; its DMA was waited for then. */
+        if (blk.first && exp_live[gb]) {
+          /* Queued a phase ago (chunks 0..1, under the previous down) or a
+             batch ago (2..3); either way its DMA was waited for then. */
           HEXKL_PROBE_T0(p0);
-          hvx_worker_pool_wait_bg(pool, &exp_job[gb & 1u], UINT32_MAX);
+          hvx_worker_pool_wait_bg(pool, &exp_job[gb], UINT32_MAX);
           HEXKL_PROBE_ADD(HEXKL_PROBE_DRAIN, p0);
-          exp_live[gb & 1u] = 0;
+          exp_live[gb] = 0;
         } else if (blk.first) {
           HEXKL_PROBE_T0(p0);
           hexkl_dma_ring_wait(gu_idx[gb]);
@@ -1272,25 +1299,52 @@ int hexkl_mm_u8i4_moe_layer_run(
         /* Queue the next chunk's expansion now that this batch is issued:
            it runs on the background lane while the HMX works, and batch
            gb+1 finds it done. The DMA wait is here rather than a batch
-           earlier so the transfer has had an issue to land under. */
-        /* Two batches of lookahead, not one. At one, the DMA for chunk
+           earlier so the transfer has had an issue to land under.
+
+           Two batches of lookahead, not one. At one, the DMA for chunk
            gb+1 had only this batch's issue (~47 us at prefill) to land in
            and a chunk needs ~70, so the main thread stalled on it: DRAIN
            went 112 -> 2351 us a call and ate the 3.5 ms the hiding had
-           just won (doc 54 5.14). Two batches gives the transfer the time
-           it actually needs, at the cost of leaving chunks 0 and 1
-           unhidden -- they have nothing to hide under anyway. */
-        if (w2 && blk.first && gb + 2u < gu_chunks) {
-          const uint32_t ng0 = g0 + 2u * half;
+           just won (doc 54 5.14). Chunks 0 and 1 are not left unhidden the
+           way they were then -- the down phase before this one queued
+           them (doc 54 5.16.4). */
+        if (exp_bg && blk.first && gb + gu_bg0 < gu_chunks) {
+          const uint32_t ng0 = g0 + gu_bg0 * half;
           const uint32_t nnp =
             (inter_ntiles - ng0 < half) ? (inter_ntiles - ng0) : half;
           HEXKL_PROBE_T0(p0);
-          hexkl_dma_ring_wait(gu_idx[gb + 2u]);
+          hexkl_dma_ring_wait(gu_idx[gb + gu_bg0]);
           HEXKL_PROBE_ADD(HEXKL_PROBE_DRAIN, p0);
-          moe_expand_submit(pool, &exp_job[gb & 1u], &exp_ctx[gb & 1u],
-                            exp_done[gb & 1u], vtcm_base, L.w_gu_off, g,
+          moe_expand_submit(pool, &exp_job[gb + gu_bg0], &exp_ctx[gb + gu_bg0],
+                            exp_done[gb + gu_bg0], vtcm_base, L.w_gu_off, g,
                             k_tiles, gu_ntiles, ng0, inter_ntiles + ng0, nnp);
-          exp_live[gb & 1u] = 1;
+          exp_live[gb + gu_bg0] = 1;
+        }
+
+        /* And the DOWN weight that the down phase below will read: pushed
+           at the end of the previous iteration, so by batch 2 the gate_up
+           chunks ahead of it in the ring have all landed and the wait is
+           short. This is the half of the expansion that used to be 100%
+           exposed -- dn_ntiles / acc_tiles is 2 here, so the old
+           "db + 2 < dn_chunks" lookahead never fired once (doc 54
+           5.16.3). */
+        if (exp_bg && n > 0u && pblk.first && gb >= dn_bg0 &&
+            gb - dn_bg0 < dn_chunks) {
+          const hexkl_weight_u8i4 *pd = &tbl->slots[h_down[pblk.e]];
+          const uint32_t db = gb - dn_bg0;
+          const uint32_t dnt0 = db * L.acc_tiles;
+          const uint32_t dnb = (dn_ntiles - dnt0 < L.acc_tiles)
+                                 ? (dn_ntiles - dnt0)
+                                 : L.acc_tiles;
+          HEXKL_PROBE_T0(p0);
+          hexkl_dma_ring_wait(dn_idx[db]);
+          HEXKL_PROBE_ADD(HEXKL_PROBE_DRAIN_DN, p0);
+          moe_expand_submit(pool, &exp_job[MOE_EXP_DN + db],
+                            &exp_ctx[MOE_EXP_DN + db],
+                            exp_done[MOE_EXP_DN + db], vtcm_base, L.w_dn_off,
+                            pd, inter_ktiles, dn_ntiles, dnt0, UINT32_MAX,
+                            dnb);
+          exp_live[MOE_EXP_DN + db] = 1;
         }
 
         /* Retire what the pool is running -- DN(n-1)'s last epilogue at
@@ -1398,11 +1452,13 @@ int hexkl_mm_u8i4_moe_layer_run(
           (dn_ntiles - nt0 < L.acc_tiles) ? (dn_ntiles - nt0) : L.acc_tiles;
         const uint32_t stage_off =
           L.result_off + (sb & 1u) * L.acc_tiles * ACC_TILE_BYTES;
-        if (pblk.first && w2 && db > 1u && exp_live[2u + (db & 1u)]) {
+        if (pblk.first && exp_live[MOE_EXP_DN + db]) {
+          /* Queued during the gate_up phase just above. */
           HEXKL_PROBE_T0(p0);
-          hvx_worker_pool_wait_bg(pool, &exp_job[2u + (db & 1u)], UINT32_MAX);
+          hvx_worker_pool_wait_bg(pool, &exp_job[MOE_EXP_DN + db],
+                                  UINT32_MAX);
           HEXKL_PROBE_ADD(HEXKL_PROBE_DRAIN_DN, p0);
-          exp_live[2u + (db & 1u)] = 0;
+          exp_live[MOE_EXP_DN + db] = 0;
         } else if (pblk.first) {
           HEXKL_PROBE_T0(p0);
           hexkl_dma_ring_wait(dn_idx[db]);
@@ -1432,19 +1488,25 @@ int hexkl_mm_u8i4_moe_layer_run(
         }
         HEXKL_MOE_MM_END();
 
-        /* Same one-chunk lookahead as gate_up. */
-        if (w2 && pblk.first && nt0 + 2u * L.acc_tiles < dn_ntiles) {
-          const uint32_t nnt0 = nt0 + 2u * L.acc_tiles;
-          const uint32_t nnb =
-            (dn_ntiles - nnt0 < L.acc_tiles) ? (dn_ntiles - nnt0) : L.acc_tiles;
+        /* The NEXT expert's gate_up chunk db, pushed a few lines above
+           (step 2) and read by the gate_up phase of the next iteration.
+           This is the window the intra-expert lookahead never had: the
+           chunk has this whole down phase plus the batches before it in
+           the next gate_up phase to land and expand in, instead of one
+           batch (doc 54 5.16.4). db runs 0..dn_chunks-1, which is exactly
+           the two gate_up chunks the old scheme left exposed. */
+        if (exp_bg && have_next && nblk.first && db < gu_bg0) {
+          const hexkl_weight_u8i4 *ng = &tbl->slots[h_gate_up[nblk.e]];
+          const uint32_t ng0 = db * half;
+          const uint32_t nnp =
+            (inter_ntiles - ng0 < half) ? (inter_ntiles - ng0) : half;
           HEXKL_PROBE_T0(p0);
-          hexkl_dma_ring_wait(dn_idx[db + 2u]);
-          HEXKL_PROBE_ADD(HEXKL_PROBE_DRAIN_DN, p0);
-          moe_expand_submit(pool, &exp_job[2u + (db & 1u)],
-                            &exp_ctx[2u + (db & 1u)], exp_done[2u + (db & 1u)],
-                            vtcm_base, L.w_dn_off, d, inter_ktiles, dn_ntiles,
-                            nnt0, UINT32_MAX, nnb);
-          exp_live[2u + (db & 1u)] = 1;
+          hexkl_dma_ring_wait(gu_idx[db]);
+          HEXKL_PROBE_ADD(HEXKL_PROBE_DRAIN, p0);
+          moe_expand_submit(pool, &exp_job[db], &exp_ctx[db], exp_done[db],
+                            vtcm_base, L.w_gu_off, ng, k_tiles, gu_ntiles,
+                            ng0, inter_ntiles + ng0, nnp);
+          exp_live[db] = 1;
         }
 
         /* db == 0 retires GU(n)'s last epilogue -- gate_off is complete,
