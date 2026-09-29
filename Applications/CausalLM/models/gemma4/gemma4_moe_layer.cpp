@@ -12,16 +12,22 @@
 #include <gemma4_moe_layer.h>
 
 #include <algorithm>
+#include <atomic>
+#include <chrono>
 #include <cmath>
 #include <condition_variable>
 #include <cpu_backend.h>
+#include <cstdlib>
 #include <cstring>
 #include <future>
+#include <iostream>
 #include <limits>
 #include <list>
 #include <mutex>
 #include <node_exporter.h>
 #include <stdexcept>
+#include <string>
+#include <thread_manager.h>
 #include <unordered_map>
 
 namespace causallm {
@@ -34,6 +40,52 @@ struct Gemma4ExpertWeights {
   nntrainer::Tensor *down;
 };
 
+/**
+ * @brief Per-phase timing for the expert loop, opt-in via NNTR_MOE_PROFILE.
+ *
+ * The expert loop is serial, so plain statics are safe here. Accumulated
+ * across one forwardTensors() call and printed as a single line, letting us
+ * separate the threaded GEMMs from the single-threaded gather/activation/
+ * scatter glue.
+ */
+struct Gemma4MoEPhaseStats {
+  uint64_t gather_ns = 0;
+  uint64_t gemm_ns = 0;
+  uint64_t acti_ns = 0;
+  uint64_t scatter_ns = 0;
+  // pre-loop phases
+  uint64_t setzero_ns = 0;
+  uint64_t rmsnorm_ns = 0;
+  uint64_t rscale_ns = 0;
+  uint64_t rdot_ns = 0;
+  uint64_t softmax_ns = 0;
+  uint64_t topk_ns = 0;
+  uint64_t renorm_ns = 0;
+  uint64_t bucket_ns = 0;
+
+  void reset() {
+    gather_ns = gemm_ns = acti_ns = scatter_ns = 0;
+    setzero_ns = rmsnorm_ns = rscale_ns = rdot_ns = 0;
+    softmax_ns = topk_ns = renorm_ns = bucket_ns = 0;
+  }
+};
+
+bool moeProfileEnabled() {
+  static const bool enabled = std::getenv("NNTR_MOE_PROFILE") != nullptr;
+  return enabled;
+}
+
+Gemma4MoEPhaseStats &moePhaseStats() {
+  static Gemma4MoEPhaseStats stats;
+  return stats;
+}
+
+inline uint64_t nowNs() {
+  return std::chrono::duration_cast<std::chrono::nanoseconds>(
+           std::chrono::high_resolution_clock::now().time_since_epoch())
+    .count();
+}
+
 } // namespace
 
 /**
@@ -45,6 +97,20 @@ struct Gemma4ExpertWeights {
  */
 class Gemma4ExpertCache {
 public:
+  /// @brief hit / miss / eviction tallies, reported under NNTR_MOE_PROFILE
+  static std::atomic<uint64_t> &hits() {
+    static std::atomic<uint64_t> v{0};
+    return v;
+  }
+  static std::atomic<uint64_t> &misses() {
+    static std::atomic<uint64_t> v{0};
+    return v;
+  }
+  static std::atomic<uint64_t> &evictions() {
+    static std::atomic<uint64_t> v{0};
+    return v;
+  }
+
   Gemma4ExpertCache() = default;
 
   ~Gemma4ExpertCache() {
@@ -206,6 +272,7 @@ private:
   }
 
   void ensureResident(unsigned int expert) {
+    bool counted = false;
     while (true) {
       Gemma4ExpertWeights eviction_target{};
       unsigned int eviction_index = 0;
@@ -227,8 +294,14 @@ private:
           << "Gemma4 expert cache is shutting down";
 
         if (status[expert] == Status::RESIDENT) {
+          if (!counted)
+            hits().fetch_add(1, std::memory_order_relaxed);
           touch(expert);
           return;
+        }
+        if (!counted) {
+          misses().fetch_add(1, std::memory_order_relaxed);
+          counted = true;
         }
         if (status[expert] == Status::FAILED)
           std::rethrow_exception(errors[expert]);
@@ -243,6 +316,7 @@ private:
           return;
         }
 
+        evictions().fetch_add(1, std::memory_order_relaxed);
         auto candidate =
           std::find_if(lru.begin(), lru.end(), [&](unsigned int current) {
             return current != expert && status[current] == Status::RESIDENT &&
@@ -324,7 +398,8 @@ Gemma4MoELayer::Gemma4MoELayer() :
   router_scale_idx(std::numeric_limits<unsigned int>::max()),
   per_expert_scale_idx(std::numeric_limits<unsigned int>::max()),
   router_input_scaled_idx(std::numeric_limits<unsigned int>::max()),
-  router_logits_idx(std::numeric_limits<unsigned int>::max()) {}
+  router_logits_idx(std::numeric_limits<unsigned int>::max()),
+  scratch_capacity(0) {}
 
 Gemma4MoELayer::~Gemma4MoELayer() = default;
 
@@ -453,11 +528,27 @@ void Gemma4MoELayer::forwardTensors(nntrainer::RunLayerContext &context,
   output.reshape({total_tokens, 1, 1, hidden_size});
   router_input_scaled.reshape({total_tokens, 1, 1, hidden_size});
   router_logits.reshape({total_tokens, 1, 1, num_experts});
+  const bool pre_profile = moeProfileEnabled();
+  auto &pre_stats = moePhaseStats();
+  if (pre_profile)
+    pre_stats.reset();
+  uint64_t tp = pre_profile ? nowNs() : 0;
+
   output.setZero();
+  if (pre_profile) {
+    uint64_t t = nowNs();
+    pre_stats.setzero_ns += t - tp;
+    tp = t;
+  }
 
   nntrainer::rms_norm_wrt_width_fp32_intrinsic(
     router_input.getData<float>(), router_input_scaled.getData<float>(),
     total_tokens, hidden_size, epsilon);
+  if (pre_profile) {
+    uint64_t t = nowNs();
+    pre_stats.rmsnorm_ns += t - tp;
+    tp = t;
+  }
 
   const float *router_scale =
     context.getWeight(router_scale_idx).getData<float>();
@@ -468,10 +559,32 @@ void Gemma4MoELayer::forwardTensors(nntrainer::RunLayerContext &context,
     for (unsigned int feature = 0; feature < hidden_size; ++feature)
       row[feature] *= router_scale[feature] * hidden_scale;
   }
+  if (pre_profile) {
+    uint64_t t = nowNs();
+    pre_stats.rscale_ns += t - tp;
+    tp = t;
+  }
 
   router_input_scaled.dot(context.getWeight(router_idx), router_logits);
+  if (pre_profile) {
+    uint64_t t = nowNs();
+    pre_stats.rdot_ns += t - tp;
+    tp = t;
+  }
+
   router_logits.apply(nntrainer::ActiFunc::softmax<float>, router_logits);
+  if (pre_profile) {
+    uint64_t t = nowNs();
+    pre_stats.softmax_ns += t - tp;
+    tp = t;
+  }
+
   auto topk_result = router_logits.topK(topk);
+  if (pre_profile) {
+    uint64_t t = nowNs();
+    pre_stats.topk_ns += t - tp;
+    tp = t;
+  }
   auto topk_values = std::get<0>(topk_result);
   auto topk_indices = std::get<1>(topk_result);
 
@@ -488,6 +601,11 @@ void Gemma4MoELayer::forwardTensors(nntrainer::RunLayerContext &context,
       values_data[offset] =
         values_data[offset] / sum * per_expert_scale[indices_data[offset]];
     }
+  }
+  if (pre_profile) {
+    uint64_t t = nowNs();
+    pre_stats.renorm_ns += t - tp;
+    tp = t;
   }
 
   std::vector<std::vector<std::pair<unsigned int, float>>> expert_assignments(
@@ -507,8 +625,17 @@ void Gemma4MoELayer::forwardTensors(nntrainer::RunLayerContext &context,
       active_experts.push_back(expert);
   }
 
+  if (pre_profile)
+    pre_stats.bucket_ns += nowNs() - tp;
+
   if (cache_size > 0 && !active_experts.empty())
     expert_cache->prefetch(active_experts.front());
+
+  const bool moe_profile = moeProfileEnabled();
+
+  uint64_t loop_start = 0;
+  if (moe_profile)
+    loop_start = nowNs();
 
   for (size_t active = 0; active < active_experts.size(); ++active) {
     const unsigned int expert = active_experts[active];
@@ -532,6 +659,30 @@ void Gemma4MoELayer::forwardTensors(nntrainer::RunLayerContext &context,
     if (cache_size > 0)
       expert_cache->release(expert);
   }
+
+  if (moe_profile) {
+    const auto &s = moePhaseStats();
+    uint64_t loop_ns = nowNs() - loop_start;
+    std::cout << "MOEPROF\ttokens=" << total_tokens
+              << "\tactive_experts=" << active_experts.size()
+              << "\tloop_ms=" << loop_ns / 1e6
+              << "\tgather_ms=" << s.gather_ns / 1e6
+              << "\tgemm_ms=" << s.gemm_ns / 1e6
+              << "\tacti_ms=" << s.acti_ns / 1e6
+              << "\tscatter_ms=" << s.scatter_ns / 1e6
+              << "\tsetzero_ms=" << s.setzero_ns / 1e6
+              << "\trmsnorm_ms=" << s.rmsnorm_ns / 1e6
+              << "\trscale_ms=" << s.rscale_ns / 1e6
+              << "\trdot_ms=" << s.rdot_ns / 1e6
+              << "\tsoftmax_ms=" << s.softmax_ns / 1e6
+              << "\ttopk_ms=" << s.topk_ns / 1e6
+              << "\trenorm_ms=" << s.renorm_ns / 1e6
+              << "\tbucket_ms=" << s.bucket_ns / 1e6
+              << "\tcache_hit=" << Gemma4ExpertCache::hits().load()
+              << "\tcache_miss=" << Gemma4ExpertCache::misses().load()
+              << "\tcache_evict=" << Gemma4ExpertCache::evictions().load()
+              << "\n";
+  }
 }
 
 void Gemma4MoELayer::registerExpertCache(nntrainer::RunLayerContext &context) {
@@ -548,6 +699,23 @@ void Gemma4MoELayer::registerExpertCache(nntrainer::RunLayerContext &context) {
   expert_cache->registerWeights(std::move(weights), cache_size);
 }
 
+void Gemma4MoELayer::ensureExpertScratch(
+  unsigned int tokens, unsigned int hidden_size, unsigned int intermediate_size,
+  nntrainer::TensorDim::TensorType tensor_type) {
+  if (tokens <= scratch_capacity)
+    return;
+
+  scratch_gathered = nntrainer::Tensor(1, 1, tokens, hidden_size, tensor_type);
+  scratch_gate_out =
+    nntrainer::Tensor(1, 1, tokens, intermediate_size, tensor_type);
+  scratch_up_out =
+    nntrainer::Tensor(1, 1, tokens, intermediate_size, tensor_type);
+  scratch_activated =
+    nntrainer::Tensor(1, 1, tokens, intermediate_size, tensor_type);
+  scratch_down_out = nntrainer::Tensor(1, 1, tokens, hidden_size, tensor_type);
+  scratch_capacity = tokens;
+}
+
 void Gemma4MoELayer::computeExpertForward(
   const nntrainer::Tensor &input, nntrainer::Tensor &output,
   const std::vector<std::pair<unsigned int, float>> &token_assignments,
@@ -558,39 +726,104 @@ void Gemma4MoELayer::computeExpertForward(
   if (num_tokens == 0)
     return;
 
-  const auto tensor_type = input.getTensorType();
-  nntrainer::Tensor gathered(1, 1, num_tokens, hidden_size, tensor_type);
-  const float *input_data = input.getData<float>();
-  float *gathered_data = gathered.getData<float>();
-  for (unsigned int i = 0; i < num_tokens; ++i) {
-    std::memcpy(gathered_data + i * hidden_size,
-                input_data + token_assignments[i].first * hidden_size,
-                hidden_size * sizeof(float));
-  }
+  const bool profile = moeProfileEnabled();
+  auto &stats = moePhaseStats();
+  uint64_t t0 = profile ? nowNs() : 0;
 
+  const auto tensor_type = input.getTensorType();
+  ensureExpertScratch(num_tokens, hidden_size, intermediate_size, tensor_type);
+
+  // Slice the pre-sized scratch down to this expert's token count. The GEMM
+  // reads M from the tensor height, so the view has to match num_tokens
+  // exactly rather than the capacity.
+  nntrainer::TensorDim hidden_dim({1, 1, num_tokens, hidden_size}, tensor_type);
   nntrainer::TensorDim intermediate_dim({1, 1, num_tokens, intermediate_size},
                                         tensor_type);
-  nntrainer::Tensor gate_out(intermediate_dim);
-  nntrainer::Tensor up_out(intermediate_dim);
-  nntrainer::Tensor activated(intermediate_dim);
+  nntrainer::Tensor gathered =
+    scratch_gathered.getSharedDataTensor(hidden_dim, 0, true);
+  nntrainer::Tensor gate_out =
+    scratch_gate_out.getSharedDataTensor(intermediate_dim, 0, true);
+  nntrainer::Tensor up_out =
+    scratch_up_out.getSharedDataTensor(intermediate_dim, 0, true);
+  nntrainer::Tensor activated =
+    scratch_activated.getSharedDataTensor(intermediate_dim, 0, true);
+  nntrainer::Tensor down_out =
+    scratch_down_out.getSharedDataTensor(hidden_dim, 0, true);
+
+  const float *input_data = input.getData<float>();
+  float *gathered_data = gathered.getData<float>();
+  // Writing into a small buffer that is reused for every expert keeps the
+  // rows in L2 for the GEMM that immediately follows. Gathering all experts
+  // up front into one large buffer instead measured ~23% slower for exactly
+  // that reason, even though it cut the gather itself by 40%.
+  // Safe to parallelize: the enclosing expert loop is serial, and the inner
+  // GEMMs (which do call parallel_for) are not active here.
+  if (num_tokens > 1) {
+    nntrainer::ThreadManager::Global().parallel_for(
+      0, static_cast<size_t>(num_tokens), [&](size_t i) {
+        std::memcpy(gathered_data + i * hidden_size,
+                    input_data + token_assignments[i].first * hidden_size,
+                    hidden_size * sizeof(float));
+      });
+  } else {
+    std::memcpy(gathered_data,
+                input_data + token_assignments[0].first * hidden_size,
+                hidden_size * sizeof(float));
+  }
+  if (profile) {
+    uint64_t t = nowNs();
+    stats.gather_ns += t - t0;
+    t0 = t;
+  }
+
+  // gate and up share an activation, so handing both to the batched GEMM
+  // (Tensor::dot(vector)) would quantize it to q8_0 once instead of twice.
+  // Measured on SD 8 Gen 3 that is a ~21% prefill LOSS: with M ~= 54 the
+  // activation is tiny next to the 3.3 MB of expert weights, so sharing its
+  // quantization saves almost nothing while running both weights
+  // concurrently doubles the resident weight working set. Keep them separate.
   gathered.dot(gate_proj, gate_out);
   gathered.dot(up_proj, up_out);
+  if (profile) {
+    uint64_t t = nowNs();
+    stats.gemm_ns += t - t0;
+    t0 = t;
+  }
+
   acti_func.run_fn(gate_out, activated);
   activated.multiply_i(up_out);
+  if (profile) {
+    uint64_t t = nowNs();
+    stats.acti_ns += t - t0;
+    t0 = t;
+  }
 
-  nntrainer::Tensor down_out(1, 1, num_tokens, hidden_size, tensor_type);
   activated.dot(down_proj, down_out);
+  if (profile) {
+    uint64_t t = nowNs();
+    stats.gemm_ns += t - t0;
+    t0 = t;
+  }
 
   const float *down_data = down_out.getData<float>();
   float *output_data = output.getData<float>();
-  for (unsigned int i = 0; i < num_tokens; ++i) {
+  // Each token appears at most once in a given expert's assignment list, so
+  // distinct i never alias the same destination row - no race.
+  auto scatter_row = [&](size_t i) {
     const unsigned int token = token_assignments[i].first;
     const float routing_weight = token_assignments[i].second;
     const float *source = down_data + i * hidden_size;
     float *destination = output_data + token * hidden_size;
-    for (unsigned int feature = 0; feature < hidden_size; ++feature)
-      destination[feature] += source[feature] * routing_weight;
+    nntrainer::saxpy(hidden_size, routing_weight, source, 1, destination, 1);
+  };
+  if (num_tokens > 1) {
+    nntrainer::ThreadManager::Global().parallel_for(
+      0, static_cast<size_t>(num_tokens), scatter_row);
+  } else {
+    scatter_row(0);
   }
+  if (profile)
+    stats.scatter_ns += nowNs() - t0;
 }
 
 void Gemma4MoELayer::forwarding(nntrainer::RunLayerContext &context,

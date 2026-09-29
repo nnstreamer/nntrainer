@@ -18,6 +18,7 @@
 #include <layer_impl.h>
 
 #include <memory>
+#include <tensor.h>
 
 namespace causallm {
 
@@ -95,6 +96,25 @@ private:
   unsigned int per_expert_scale_idx;
   unsigned int router_input_scaled_idx;
   unsigned int router_logits_idx;
+
+  /**
+   * @brief Per-expert working buffers, sized once and sliced per expert.
+   *
+   * The expert loop runs up to num_experts times per layer per token step, so
+   * allocating these inside computeExpertForward cost ~11k heap allocations
+   * per prefill. They are grown to the largest token count any single expert
+   * has been handed and then reused via getSharedDataTensor views.
+   */
+  unsigned int scratch_capacity;
+  nntrainer::Tensor scratch_gathered;
+  nntrainer::Tensor scratch_gate_out;
+  nntrainer::Tensor scratch_up_out;
+  nntrainer::Tensor scratch_activated;
+  nntrainer::Tensor scratch_down_out;
+
+  void ensureExpertScratch(unsigned int tokens, unsigned int hidden_size,
+                           unsigned int intermediate_size,
+                           nntrainer::TensorDim::TensorType tensor_type);
 
   void registerExpertCache(nntrainer::RunLayerContext &context);
 
