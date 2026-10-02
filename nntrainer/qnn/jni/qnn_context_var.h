@@ -30,6 +30,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <sys/mman.h>
 #include <unistd.h>
@@ -374,6 +375,33 @@ struct QNNVar {
     }
 
     return graphInfo;
+  }
+
+  /**
+   * @brief Retrieve a graph, creating its context first if it is not cached
+   * @param[in] bin_path context binary path
+   * @param[in] graphName graph name
+   * @param[out] graphInfo the retrieved graph
+   * @return the cached context that owns the graph
+   * @throws std::runtime_error if the context cannot be created
+   * @throws std::invalid_argument if the graph cannot be retrieved
+   */
+  Qnn_Context_Graph_t &
+  graphRetrieveLazy(const std::string &bin_path, const std::string &graphName,
+                    qnn_wrapper_api::GraphInfo_t *&graphInfo) {
+    if (!findContext(bin_path)) {
+      ml_logw("Context is not created. Create Now");
+
+      if (makeContext(bin_path) != StatusCode::SUCCESS)
+        throw std::runtime_error("cannot create QNN context from " + bin_path);
+    }
+
+    graphInfo = graphRetrieve(bin_path, graphName);
+    if (graphInfo == nullptr)
+      throw std::invalid_argument("cannot retrieve graph " + graphName +
+                                  " from " + bin_path);
+
+    return findContext(bin_path)->get();
   }
 
   StatusCode extractBackendProfilingInfo() {
