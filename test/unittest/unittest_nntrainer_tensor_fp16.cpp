@@ -19,6 +19,7 @@
 #include <fallback_internal.h>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <nntrainer_error.h>
 #include <quantizer.h>
 #include <tensor.h>
@@ -3362,6 +3363,109 @@ TEST(nntrainer_Tensor, sum_02_n) {
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
 
   EXPECT_THROW({ input.sum(-1); }, std::out_of_range);
+}
+
+/**
+ * @brief Sum along each axis into an output filled with NaN, as an
+ * uninitialized buffer may be; with beta = 0 the output must not be read.
+ */
+TEST(nntrainer_Tensor, sum_into_nan_output_beta_zero_p) {
+  nntrainer::TensorDim::TensorType t_type = {nntrainer::Tformat::NCHW,
+                                             nntrainer::Tdatatype::FP16};
+  nntrainer::Tensor input(3, 2, 9, 10, t_type);
+  input.setValue(1.0f);
+
+  for (unsigned int axis = 0; axis < 4; ++axis) {
+    nntrainer::TensorDim out_dim = input.getDim();
+    out_dim.setTensorDim(axis, 1);
+    nntrainer::Tensor output(out_dim);
+    output.setValue(std::numeric_limits<float>::quiet_NaN());
+
+    input.sum(axis, output);
+
+    const float expected =
+      static_cast<float>(input.getDim().getTensorDim(axis));
+    for (unsigned int i = 0; i < output.size(); ++i)
+      ASSERT_EQ(static_cast<float>(output.getData<_FP16>()[i]), expected)
+        << "axis " << axis << " index " << i;
+  }
+}
+
+/**
+ * @brief Sum with beta != 0 must still accumulate into the output
+ */
+TEST(nntrainer_Tensor, sum_accumulate_beta_nonzero_p) {
+  nntrainer::TensorDim::TensorType t_type = {nntrainer::Tformat::NCHW,
+                                             nntrainer::Tdatatype::FP16};
+  nntrainer::Tensor input(3, 2, 9, 10, t_type);
+  input.setValue(1.0f);
+
+  for (unsigned int axis = 0; axis < 4; ++axis) {
+    nntrainer::TensorDim out_dim = input.getDim();
+    out_dim.setTensorDim(axis, 1);
+    nntrainer::Tensor output(out_dim);
+    output.setValue(2.0f);
+
+    input.sum(axis, output, 1.0f, 0.5f);
+
+    const float expected =
+      static_cast<float>(input.getDim().getTensorDim(axis)) + 1.0f;
+    for (unsigned int i = 0; i < output.size(); ++i)
+      ASSERT_EQ(static_cast<float>(output.getData<_FP16>()[i]), expected)
+        << "axis " << axis << " index " << i;
+  }
+}
+
+/**
+ * @brief Sum along an axis that does not exist must throw
+ */
+TEST(nntrainer_Tensor, sum_into_output_invalid_axis_n) {
+  nntrainer::TensorDim::TensorType t_type = {nntrainer::Tformat::NCHW,
+                                             nntrainer::Tdatatype::FP16};
+  nntrainer::Tensor input(3, 2, 9, 10, t_type);
+  nntrainer::Tensor output(3, 2, 9, 10, t_type);
+  EXPECT_THROW(input.sum(4, output), std::out_of_range);
+}
+
+/**
+ * @brief The GEMV shortcuts of dot() (N == 1 and M == 1) into an output
+ * filled with NaN; with beta = 0 the output must not be read.
+ */
+TEST(nntrainer_Tensor, dot_gemv_into_nan_output_beta_zero_p) {
+  nntrainer::TensorDim::TensorType t_type = {nntrainer::Tformat::NCHW,
+                                             nntrainer::Tdatatype::FP16};
+  const unsigned int M = 19, K = 10;
+  nntrainer::Tensor a(1, 1, M, K, t_type);
+  nntrainer::Tensor b(1, 1, K, 1, t_type);
+  for (unsigned int m = 0; m < M; ++m)
+    for (unsigned int k = 0; k < K; ++k)
+      a.setValue(0, 0, m, k, static_cast<int>((m + k) % 3) - 1);
+  for (unsigned int k = 0; k < K; ++k)
+    b.setValue(0, 0, k, 0, static_cast<int>(k % 3) - 1);
+
+  // N == 1: (M x K) . (K x 1)
+  nntrainer::Tensor col(1, 1, M, 1, t_type);
+  col.setValue(std::numeric_limits<float>::quiet_NaN());
+  a.dot(b, col);
+  // M == 1: (1 x K) . (K x M), with the right operand stored as a^T
+  nntrainer::Tensor a_t(1, 1, K, M, t_type);
+  for (unsigned int m = 0; m < M; ++m)
+    for (unsigned int k = 0; k < K; ++k)
+      a_t.setValue(0, 0, k, m, a.getValue<_FP16>(0, 0, m, k));
+  nntrainer::Tensor row(1, 1, 1, M, t_type);
+  row.setValue(std::numeric_limits<float>::quiet_NaN());
+  b.dot(a_t, row, true, false);
+
+  for (unsigned int m = 0; m < M; ++m) {
+    float expected = 0.0f;
+    for (unsigned int k = 0; k < K; ++k)
+      expected += static_cast<float>(a.getValue<_FP16>(0, 0, m, k)) *
+                  static_cast<float>(b.getValue<_FP16>(0, 0, k, 0));
+    EXPECT_EQ(static_cast<float>(col.getValue<_FP16>(0, 0, m, 0)), expected)
+      << "N == 1, row " << m;
+    EXPECT_EQ(static_cast<float>(row.getValue<_FP16>(0, 0, 0, m)), expected)
+      << "M == 1, column " << m;
+  }
 }
 
 TEST(nntrainer_Tensor, sum_02_p) {
