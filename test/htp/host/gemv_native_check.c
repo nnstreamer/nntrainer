@@ -77,14 +77,48 @@ static uint32_t run_case(col_fn fn, const uint8_t *act, const uint8_t *wh,
   return bad;
 }
 
+/** The two-column i2 kernel must be exactly the two single-column kernels.
+ *  This exercises its M=1 register-blocked body on libnative; the MoE host
+ *  check separately holds the single-column result against the HMX path. */
+static uint32_t run_i2_pair_case(const uint8_t *act, const uint8_t *wh,
+                                 uint32_t k_tiles, uint32_t n_col, uint32_t nt0,
+                                 uint32_t nt1, const uint8_t *table) {
+  int32_t ref0[64], ref1[64], got0[64], got1[64];
+  for (uint32_t i = 0; i < 64u; ++i) {
+    ref0[i] = ref1[i] = got0[i] = got1[i] = GUARD;
+  }
+  hvx_gemm_u8i2_wh_col_nopf(act, 1u, k_tiles, wh, n_col, nt0, 1u, table, ref0);
+  hvx_gemm_u8i2_wh_col_nopf(act, 1u, k_tiles, wh, n_col, nt1, 1u, table, ref1);
+  hvx_gemm_u8i2_wh_cols2_nopf(act, 1u, k_tiles, wh, n_col, nt0, nt1, 1u, table,
+                              got0, got1);
+  uint32_t bad = 0;
+  for (uint32_t i = 0; i < 64u; ++i) {
+    bad += got0[i] != ref0[i];
+    bad += got1[i] != ref1[i];
+  }
+  return bad;
+}
+
 int main(void) {
   static const uint32_t kts[] = {1u, 56u, 64u};
   static const uint32_t ncs[] = {64u, 112u};
   const size_t act_bytes = 64u * 2048u, wh_max = 64u * 112u * 512u;
   uint8_t *act = (uint8_t *)malloc(act_bytes);
   uint8_t *wh = (uint8_t *)malloc(wh_max);
-  if (!act || !wh)
+  uint8_t *wh2 = (uint8_t *)malloc(wh_max / 2u);
+  uint8_t table[128] __attribute__((aligned(128)));
+  if (!act || !wh || !wh2)
     return 2;
+  memset(table, 0, sizeof table);
+  for (uint32_t lane = 0; lane < 4u; ++lane) {
+    for (uint32_t hi = 0; hi < 4u; ++hi) {
+      for (uint32_t lo = 0; lo < 4u; ++lo) {
+        static const uint8_t pal[4] = {0xAu, 0xEu, 0x1u, 0x5u};
+        table[lane * 32u + 2u * ((hi << 2u) | lo)] =
+          pal[lo] | (uint8_t)(pal[hi] << 4u);
+      }
+    }
+  }
   uint32_t bad = 0, cases = 0;
   /* data 0: random bytes; data 1: the extremes, activation 255 against
      nibble -8 everywhere -- the largest |sum| the header's bound allows. */
@@ -113,11 +147,24 @@ int main(void) {
               }
       }
   }
+  for (size_t i = 0; i < wh_max / 2u; ++i)
+    wh2[i] = rnd8();
+  for (size_t a = 0; a < sizeof kts / sizeof kts[0]; ++a)
+    for (size_t b = 0; b < sizeof ncs / sizeof ncs[0]; ++b) {
+      const uint32_t b1 =
+        run_i2_pair_case(act, wh2, kts[a], ncs[b], 1u, ncs[b] - 1u, table);
+      bad += b1;
+      ++cases;
+      if (b1)
+        printf("HVX I2 COLS2 NATIVE k_tiles=%u n_col=%u bad=%u\n", kts[a],
+               ncs[b], b1);
+    }
   printf("HVX GEMV NATIVE cases=%u bad=%u\n", cases, bad);
   printf(
     bad ? "HVX GEMV NATIVE DIFFERS FROM THE SCALAR SPEC\n"
         : "HVX GEMV NATIVE BIT-IDENTICAL (libnative; m=1..16 x rows1=0,1)\n");
   free(act);
   free(wh);
+  free(wh2);
   return bad ? 1 : 0;
 }

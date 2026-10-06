@@ -635,13 +635,25 @@ static uint32_t moe_tail_rows(uint32_t n_e, int allow) {
  *  neither can run against 2-bit codes: they would read them as nibbles.
  *  Such a call takes the HMX path, which is where it went before the two
  *  paths existed. */
-static int moe_all_4bit(const hexkl_weight_u8i4_table *tbl,
-                            uint32_t n_experts, const uint32_t *h_gate_up,
-                            const uint32_t *h_down) {
+static int moe_all_4bit(const hexkl_weight_u8i4_table *tbl, uint32_t n_experts,
+                        const uint32_t *h_gate_up, const uint32_t *h_down) {
   uint32_t e;
   for (e = 0; e < n_experts; ++e) {
     if (tbl->slots[h_gate_up[e]].bits == 2u ||
         tbl->slots[h_down[e]].bits == 2u) {
+      return 0;
+    }
+  }
+  return 1;
+}
+
+/** @brief Whether every weight this call uses is packed two-bit QS2CX_WH. */
+static int moe_all_2bit(const hexkl_weight_u8i4_table *tbl, uint32_t n_experts,
+                        const uint32_t *h_gate_up, const uint32_t *h_down) {
+  uint32_t e;
+  for (e = 0; e < n_experts; ++e) {
+    if (tbl->slots[h_gate_up[e]].bits != 2u ||
+        tbl->slots[h_down[e]].bits != 2u) {
       return 0;
     }
   }
@@ -731,6 +743,10 @@ typedef struct {
   float *rq_scale; /**< 64: the requantization's row params */
   int32_t *rq_zp;
   float *res; /**< m x N_out, read by the scatter */
+  /** Register LUT source for native packed-2-bit GEMV.  Kept per weight:
+      gate_up and down have independent palettes. */
+  uint8_t g_lut[HVX_EXPAND_TABLE_BYTES] __attribute__((aligned(128)));
+  uint8_t d_lut[HVX_EXPAND_TABLE_BYTES] __attribute__((aligned(128)));
   uint32_t m;
 } moe_m1_expert;
 
@@ -743,6 +759,9 @@ typedef struct {
   uint32_t rows1;   /**< this call's row loop: 1 = gemm_row1 for a lone row */
   uint32_t feed;    /**< 1: the workers read VTCM slabs, take the
                          prefetch-free entry and issue no box (#117) */
+  /** 1: QS2CX_WH codes stay packed and LUT results feed vrmpyacc directly,
+      both from the arena and from the VTCM feed. */
+  uint32_t native_i2;
   /** The unit range [u_lo, u_hi) one pool run of stage A or C covers:
       every unit of the call when the feed is off (today's three runs), one
       expert's units per run when it is on, so each slab reuse follows a
@@ -788,9 +807,15 @@ static inline uint32_t moe_m1_lead_units(uint32_t lead_kb,
 /** @brief Stage A's box for units [b0, b1): gate (@a half 0) or up (1). */
 static inline void moe_m1_pf_gu(const moe_m1_ctx *c, uint32_t b0, uint32_t b1,
                                 uint32_t half) {
-  hvx_gemm_u8i4_wh_prefetch(
-    c->ex[b0 / c->inter_ntiles].g->wh_bytes, c->gu_ntiles,
-    half * c->inter_ntiles + b0 % c->inter_ntiles, b1 - b0, c->k_tiles);
+  const moe_m1_expert *e = &c->ex[b0 / c->inter_ntiles];
+  const uint32_t nt = half * c->inter_ntiles + b0 % c->inter_ntiles;
+  if (c->native_i2 != 0u) {
+    hvx_gemm_u8i2_wh_prefetch(e->g->wh_bytes, c->gu_ntiles, nt, b1 - b0,
+                              c->k_tiles);
+  } else {
+    hvx_gemm_u8i4_wh_prefetch(e->g->wh_bytes, c->gu_ntiles, nt, b1 - b0,
+                              c->k_tiles);
+  }
 }
 
 /** @brief Stage A. Unit u = (expert u / inter_ntiles, pair u % inter_ntiles):
@@ -825,15 +850,34 @@ static void moe_m1_pair_worker(uint32_t n_lanes, uint32_t i, void *v) {
       if (lead && u == b0 && b1 < n1) {
         moe_m1_pf_gu(c, b1, n1, 0u);
       }
-      (nopf ? hvx_gemm_u8i4_wh_col_nopf
-            : hvx_gemm_u8i4_wh_col)(e->act_ah, e->m, c->k_tiles, e->gu_wh,
-                                    c->gu_ntiles, j, c->rows1, tiles);
+      if (c->native_i2 != 0u && c->feed != 0u) {
+        hvx_gemm_u8i2_wh_cols2_nopf(e->act_ah, e->m, c->k_tiles, e->gu_wh,
+                                    c->gu_ntiles, j, c->inter_ntiles + j,
+                                    c->rows1, e->g_lut, tiles,
+                                    tiles + MOE_M1_TILE_I32);
+      } else if (c->native_i2 != 0u) {
+        (nopf ? hvx_gemm_u8i2_wh_col_nopf : hvx_gemm_u8i2_wh_col)(
+          e->act_ah, e->m, c->k_tiles, e->gu_wh, c->gu_ntiles, j, c->rows1,
+          e->g_lut, tiles);
+      } else {
+        (nopf ? hvx_gemm_u8i4_wh_col_nopf
+              : hvx_gemm_u8i4_wh_col)(e->act_ah, e->m, c->k_tiles, e->gu_wh,
+                                      c->gu_ntiles, j, c->rows1, tiles);
+      }
       if (lead && u + 1u == b1 && b1 < n1) {
         moe_m1_pf_gu(c, b1, n1, 1u);
       }
-      (nopf ? hvx_gemm_u8i4_wh_col_nopf : hvx_gemm_u8i4_wh_col)(
-        e->act_ah, e->m, c->k_tiles, e->gu_wh, c->gu_ntiles,
-        c->inter_ntiles + j, c->rows1, tiles + MOE_M1_TILE_I32);
+      if (c->native_i2 != 0u && c->feed != 0u) {
+        /* Gate and up were produced together above. */
+      } else if (c->native_i2 != 0u) {
+        (nopf ? hvx_gemm_u8i2_wh_col_nopf : hvx_gemm_u8i2_wh_col)(
+          e->act_ah, e->m, c->k_tiles, e->gu_wh, c->gu_ntiles,
+          c->inter_ntiles + j, c->rows1, e->g_lut, tiles + MOE_M1_TILE_I32);
+      } else {
+        (nopf ? hvx_gemm_u8i4_wh_col_nopf : hvx_gemm_u8i4_wh_col)(
+          e->act_ah, e->m, c->k_tiles, e->gu_wh, c->gu_ntiles,
+          c->inter_ntiles + j, c->rows1, tiles + MOE_M1_TILE_I32);
+      }
       hvx_dequant_swiglu_acc_tiles_to_f32(
         (const uint8_t *)tiles, MOE_M1_TILE_BYTES, 1u, j,
         HEXKL_HMX_INT8_BLOCK_N_COL, e->m, e->act_scale, e->act_zp,
@@ -865,8 +909,15 @@ static void moe_m1_requant_worker(uint32_t n_lanes, uint32_t i, void *v) {
 
 /** @brief Stage C's box for units [b0, b1): adjacent down columns. */
 static inline void moe_m1_pf_dn(const moe_m1_ctx *c, uint32_t b0, uint32_t b1) {
-  hvx_gemm_u8i4_wh_prefetch(c->ex[b0 / c->dn_ntiles].d->wh_bytes, c->dn_ntiles,
-                            b0 % c->dn_ntiles, b1 - b0, c->inter_ktiles);
+  const moe_m1_expert *e = &c->ex[b0 / c->dn_ntiles];
+  const uint32_t nt = b0 % c->dn_ntiles;
+  if (c->native_i2 != 0u) {
+    hvx_gemm_u8i2_wh_prefetch(e->d->wh_bytes, c->dn_ntiles, nt, b1 - b0,
+                              c->inter_ktiles);
+  } else {
+    hvx_gemm_u8i4_wh_prefetch(e->d->wh_bytes, c->dn_ntiles, nt, b1 - b0,
+                              c->inter_ktiles);
+  }
 }
 
 /** @brief Stage C. Unit u = (expert u / dn_ntiles, column u % dn_ntiles):
@@ -876,7 +927,9 @@ static void moe_m1_down_worker(uint32_t n_lanes, uint32_t i, void *v) {
   const moe_m1_ctx *c = (const moe_m1_ctx *)v;
   const int lead = c->lead_kb != 0u;
   const int nopf = lead || c->feed;
-  const uint32_t d = moe_m1_lead_units(c->lead_kb, c->inter_ktiles * 512u);
+  const uint32_t d = (c->native_i2 != 0u && c->feed != 0u)
+                       ? 2u
+                       : moe_m1_lead_units(c->lead_kb, c->inter_ktiles * 512u);
   uint32_t lo, hi, b1, n1;
   uint64_t t0 = 0;
   HEXKL_PROBE_T0(t0);
@@ -895,13 +948,32 @@ static void moe_m1_down_worker(uint32_t n_lanes, uint32_t i, void *v) {
       const uint32_t nt = u % c->dn_ntiles;
       int32_t *tile = e->acc_dn + (size_t)nt * MOE_M1_TILE_I32;
       const uint32_t c0 = nt * HEXKL_HMX_INT8_BLOCK_N_COL;
-      (nopf ? hvx_gemm_u8i4_wh_col_nopf
-            : hvx_gemm_u8i4_wh_col)(e->mid_ah, e->m, c->inter_ktiles, e->dn_wh,
-                                    c->dn_ntiles, nt, c->rows1, tile);
+      const int pair = c->native_i2 != 0u && c->feed != 0u && u + 1u < b1;
+      if (pair) {
+        hvx_gemm_u8i2_wh_cols2_nopf(e->mid_ah, e->m, c->inter_ktiles, e->dn_wh,
+                                    c->dn_ntiles, nt, nt + 1u, c->rows1,
+                                    e->d_lut, tile, tile + MOE_M1_TILE_I32);
+      } else if (c->native_i2 != 0u) {
+        (nopf ? hvx_gemm_u8i2_wh_col_nopf : hvx_gemm_u8i2_wh_col)(
+          e->mid_ah, e->m, c->inter_ktiles, e->dn_wh, c->dn_ntiles, nt,
+          c->rows1, e->d_lut, tile);
+      } else {
+        (nopf ? hvx_gemm_u8i4_wh_col_nopf : hvx_gemm_u8i4_wh_col)(
+          e->mid_ah, e->m, c->inter_ktiles, e->dn_wh, c->dn_ntiles, nt,
+          c->rows1, tile);
+      }
       hvx_dequant_acc_tile_to_f32(tile, HEXKL_HMX_INT8_BLOCK_N_COL, e->m,
                                   e->rq_scale, e->rq_zp, e->d->colsum_w + c0,
                                   e->d->w_scale + c0, e->d->bias + c0,
                                   e->res + c0, c->N_out, 0);
+      if (pair) {
+        const uint32_t c1 = c0 + HEXKL_HMX_INT8_BLOCK_N_COL;
+        hvx_dequant_acc_tile_to_f32(
+          tile + MOE_M1_TILE_I32, HEXKL_HMX_INT8_BLOCK_N_COL, e->m, e->rq_scale,
+          e->rq_zp, e->d->colsum_w + c1, e->d->w_scale + c1, e->d->bias + c1,
+          e->res + c1, c->N_out, 0);
+        ++u;
+      }
     }
   }
   moe_worker_probe_add(t0);
@@ -975,20 +1047,17 @@ static inline uint32_t moe_m1_dn_off(uint32_t j, uint32_t gu_bytes,
 static inline uint32_t moe_m1_push(uint8_t *vtcm_base, uint32_t dst_off,
                                    const hexkl_weight_u8i4 *h, uint32_t k_tiles,
                                    uint32_t n_col, uint32_t kind,
-                                   uint32_t expert) {
+                                   uint32_t expert, int native_i2) {
   const uint32_t row = n_col * WEIGHT_TILE_BYTES_U8I4;
-  /* At two bits the whole matrix is half this, and it lands in the TOP
-     half of the int4 slab so moe_m1_expand can run in place -- the same
-     placement the HMX path's chunks use (doc 54 5.6), one contiguous run
-     instead of one a k-tile row. This is the point of the format on this
-     path: the GEMV is DDR-bandwidth-bound at ~32 GB/s (measurement 117),
-     so halving what the engine moves halves the column it paces. */
+  /* At two bits the whole matrix is half this. Native LUT consumption lands
+     it at the slab base and never materializes int4; the compatibility path
+     lands it in the top half of an int4-sized slab for in-place expansion. */
   /* Same descriptor shape either way -- k_tiles rows of a tile row -- so
      the feed's trace and scoreboard read the same as they did at four
      bits; only the width and the destination move. */
   const uint32_t w = (h->bits == 2u) ? row / 2u : row;
   const uint32_t at =
-    (h->bits == 2u) ? dst_off + (row * k_tiles) / 2u : dst_off;
+    (h->bits == 2u && !native_i2) ? dst_off + (row * k_tiles) / 2u : dst_off;
   const uint32_t idx = hexkl_dma_ring_next_idx();
   HEXKL_PROBE_COUNT(HEXKL_PROBE_DMA_KB, (w * k_tiles) >> 10);
   hexkl_dma_ring_push2d(vtcm_base + at, h->wh_bytes, w, w, w, k_tiles,
@@ -1014,12 +1083,18 @@ static inline void moe_m1_expand(uint8_t *vtcm_base, uint32_t dst_off,
                                  uint32_t n_col, hvx_worker_pool *pool) {
   uint8_t lut[HVX_EXPAND_TABLE_BYTES] __attribute__((aligned(128)));
   const uint32_t bytes = n_col * WEIGHT_TILE_BYTES_U8I4 * k_tiles;
+  uint64_t p0 = 0;
   if (h->bits != 2u) {
     return;
   }
+  /* Its own column, but still a subset of the MM wall: report it to show
+     the expansion cost without subtracting it from the residual twice
+     (54 5.19). */
+  HEXKL_PROBE_T0(p0);
   hvx_expand_i2i4_table(h->pal, lut);
   hvx_expand_i2i4_pool(vtcm_base + dst_off + bytes / 2u, bytes / 2u, lut,
                        vtcm_base + dst_off, pool);
+  HEXKL_PROBE_ADD(HEXKL_PROBE_EXPAND, p0);
 }
 
 /** @brief A traced ring wait. Not timed into DRAIN / DRAIN_DN: it sits
@@ -1197,6 +1272,7 @@ int hexkl_mm_u8i4_moe_layer_run(
   hexkl_moe_scratch *scratch, uint32_t flags) {
   /* Decided once for the call; gates both HVX paths (moe_all_4bit). */
   const int allow_tail = moe_all_4bit(tbl, n_experts, h_gate_up, h_down);
+  const int all_2bit = moe_all_2bit(tbl, n_experts, h_gate_up, h_down);
 
   if (!tbl || !vtcm_base || !h_gate_up || !h_down || !row_index || !row_count ||
       !row_weight || !act_f32 || !out_f32 || !scratch || M == 0u ||
@@ -1275,13 +1351,17 @@ int hexkl_mm_u8i4_moe_layer_run(
      arena at the LFM2 shape; no heap, no address-space growth. */
   const uint32_t gu_bytes = k_tiles * gu_ntiles * WEIGHT_TILE_BYTES_U8I4;
   const uint32_t dn_bytes = inter_ktiles * dn_ntiles * WEIGHT_TILE_BYTES_U8I4;
+  /* A native i2 feed reserves only the bytes the DMA moves. The old expanded
+     feed keeps int4-sized slabs so its in-place expansion remains valid. */
+  const uint32_t feed_gu_bytes = all_2bit ? gu_bytes / 2u : gu_bytes;
+  const uint32_t feed_dn_bytes = all_2bit ? dn_bytes / 2u : dn_bytes;
   const int m1_feed = m1_shape && hexkl_moe_flags_feed(flags) != 0u &&
-                      2u * (uint64_t)gu_bytes <= arena &&
-                      2u * (uint64_t)dn_bytes <= gu_bytes;
-  /* 2-bit weights reach the GEMV only through the feed: the arena read
-     would take the codes for nibbles, and it is the feed that expands them
-     (moe_m1_expand). Four-bit calls take either. */
-  const int use_m1 = m1_shape && (allow_tail || m1_feed);
+                      2u * (uint64_t)feed_gu_bytes <= arena &&
+                      2u * (uint64_t)feed_dn_bytes <= feed_gu_bytes;
+  /* Packed 2-bit weights take the native LUT GEMV from either source. Mixed
+     calls retain the expanded feed or HMX path. Four-bit calls take either
+     GEMV mode. */
+  const int use_m1 = m1_shape && (allow_tail || m1_feed || all_2bit);
   hexkl_probe_us[HEXKL_PROBE_PATH] = use_m1 ? 1u : 0u;
   /* Pairs per staged batch; the chunk size the gate_up pushes use too. */
   const uint32_t half = L.acc_tiles / 2u;
@@ -1492,9 +1572,9 @@ int hexkl_mm_u8i4_moe_layer_run(
     /* One gate_up per slab, at the same point for the same reason: the
        scan and the pack are in front of them. Whole matrices (f2). */
     for (uint32_t i = 0; i < n_active && i < 2u; ++i) {
-      m1_gu_idx[i] = moe_m1_push(vtcm_base, moe_m1_gu_off(i, gu_bytes),
+      m1_gu_idx[i] = moe_m1_push(vtcm_base, moe_m1_gu_off(i, feed_gu_bytes),
                                  &tbl->slots[h_gate_up[order[i]]], k_tiles,
-                                 gu_ntiles, HEXKL_DMA_KIND_GATE, i);
+                                 gu_ntiles, HEXKL_DMA_KIND_GATE, i, all_2bit);
     }
   }
   (void)gu_nchunk;
@@ -1532,21 +1612,42 @@ int hexkl_mm_u8i4_moe_layer_run(
        groups, and the block's padding slots repeat row 0 (above), so the
        reads past m are in range and the rows they write are never read
        (gemm_rows4 clamps to the count). */
+    /* Native LUT is valid only when every weight this call reads is packed
+       QS2CX_WH. A mixed model keeps the old i4 GEMV path for the whole
+       call, which avoids mixing packed and expanded stride arithmetic. */
+    m1.native_i2 = all_2bit ? 1u : 0u;
+    /* Decode routes the same sole activation row to every selected expert.
+       Pack it once and let top-4 share the immutable AH tiles; packing it in
+       each expert slot repeated the same K-byte transform four times. */
+    if (M == 1u) {
+      hvx_quant_pack_u8_ah_rows(act_c, NULL, 0u, 1u, K, scale_all, zp_all,
+                                act_ah);
+    }
     for (uint32_t i = 0; i < n_active; ++i) {
       const uint32_t e = order[i];
       const uint32_t sb = slot_of[i];
       uint8_t *xb = m1_base + (size_t)i * sz_m1_expert;
       moe_m1_expert *x = &m1.ex[i];
-      hvx_quant_pack_u8_ah_rows(act_c, slot_row + sb, 0u, row_count[e], K,
-                                slot_scale + sb, slot_zp + sb,
-                                act_ah + (size_t)sb * K);
-      x->act_ah = act_ah + (size_t)sb * K;
+      if (M != 1u) {
+        hvx_quant_pack_u8_ah_rows(act_c, slot_row + sb, 0u, row_count[e], K,
+                                  slot_scale + sb, slot_zp + sb,
+                                  act_ah + (size_t)sb * K);
+      }
+      x->act_ah = M == 1u ? act_ah : act_ah + (size_t)sb * K;
       x->g = &tbl->slots[h_gate_up[e]];
       x->d = &tbl->slots[h_down[e]];
+      /* Build once per expert, outside the column workers. The native GEMV
+         loads this replicated table once into its register operand and does
+         no i4 materialization. */
+      if (m1.native_i2 != 0u) {
+        hvx_expand_i2i4_table(x->g->pal, x->g_lut);
+        hvx_expand_i2i4_table(x->d->pal, x->d_lut);
+      }
       x->gu_wh =
-        m1_feed ? vtcm_base + moe_m1_gu_off(i, gu_bytes) : x->g->wh_bytes;
-      x->dn_wh = m1_feed ? vtcm_base + moe_m1_dn_off(i, gu_bytes, dn_bytes)
-                         : x->d->wh_bytes;
+        m1_feed ? vtcm_base + moe_m1_gu_off(i, feed_gu_bytes) : x->g->wh_bytes;
+      x->dn_wh = m1_feed
+                   ? vtcm_base + moe_m1_dn_off(i, feed_gu_bytes, feed_dn_bytes)
+                   : x->d->wh_bytes;
       x->act_scale = slot_scale + sb;
       x->act_zp = slot_zp + sb;
       x->acc_gu = (int32_t *)hexkl_moe_carve(&xb, (size_t)inter_ntiles * 2u *
@@ -1600,11 +1701,13 @@ int hexkl_mm_u8i4_moe_layer_run(
         uint64_t pw = 0;
         HEXKL_PROBE_T0(pw);
         moe_m1_wait(m1_gu_idx[i], HEXKL_DMA_SITE_GU);
-        moe_m1_expand(vtcm_base, moe_m1_gu_off(i, gu_bytes), m1.ex[i].g,
-                      k_tiles, gu_ntiles, pool);
+        if (m1.native_i2 == 0u) {
+          moe_m1_expand(vtcm_base, moe_m1_gu_off(i, feed_gu_bytes), m1.ex[i].g,
+                        k_tiles, gu_ntiles, pool);
+        }
         if (i == 0u) {
           HEXKL_PROBE_ADD(HEXKL_PROBE_DMA_FIRST, pw);
-          HEXKL_PROBE_COUNT(HEXKL_PROBE_DMA_FIRST_KB, gu_bytes >> 10);
+          HEXKL_PROBE_COUNT(HEXKL_PROBE_DMA_FIRST_KB, feed_gu_bytes >> 10);
         }
         m1.u_lo = i * inter_ntiles;
         m1.u_hi = (i + 1u) * inter_ntiles;
@@ -1613,15 +1716,17 @@ int hexkl_mm_u8i4_moe_layer_run(
            gate_up two experts on, or -- once no gate_up is left for it --
            its two downs (experts 2s and 2s + 1 of slab s). */
         if (i + 2u < n_active) {
-          m1_gu_idx[i + 2u] = moe_m1_push(
-            vtcm_base, moe_m1_gu_off(i + 2u, gu_bytes), m1.ex[i + 2u].g,
-            k_tiles, gu_ntiles, HEXKL_DMA_KIND_GATE, i + 2u);
+          m1_gu_idx[i + 2u] =
+            moe_m1_push(vtcm_base, moe_m1_gu_off(i + 2u, feed_gu_bytes),
+                        m1.ex[i + 2u].g, k_tiles, gu_ntiles,
+                        HEXKL_DMA_KIND_GATE, i + 2u, m1.native_i2 != 0u);
         } else {
           for (uint32_t j = 2u * (i & 1u); j < 2u * (i & 1u) + 2u; ++j) {
             if (j < n_active) {
               m1_dn_idx[j] = moe_m1_push(
-                vtcm_base, moe_m1_dn_off(j, gu_bytes, dn_bytes), m1.ex[j].d,
-                inter_ktiles, dn_ntiles, HEXKL_DMA_KIND_DOWN, j);
+                vtcm_base, moe_m1_dn_off(j, feed_gu_bytes, feed_dn_bytes),
+                m1.ex[j].d, inter_ktiles, dn_ntiles, HEXKL_DMA_KIND_DOWN, j,
+                m1.native_i2 != 0u);
             }
           }
         }
@@ -1639,18 +1744,21 @@ int hexkl_mm_u8i4_moe_layer_run(
     } else {
       for (uint32_t j = 0; j < n_active; ++j) {
         moe_m1_wait(m1_dn_idx[j], HEXKL_DMA_SITE_DN);
-        moe_m1_expand(vtcm_base, moe_m1_dn_off(j, gu_bytes, dn_bytes),
-                      m1.ex[j].d, inter_ktiles, dn_ntiles, pool);
+        if (m1.native_i2 == 0u) {
+          moe_m1_expand(vtcm_base,
+                        moe_m1_dn_off(j, feed_gu_bytes, feed_dn_bytes),
+                        m1.ex[j].d, inter_ktiles, dn_ntiles, pool);
+        }
         m1.u_lo = j * dn_ntiles;
         m1.u_hi = (j + 1u) * dn_ntiles;
         hvx_worker_pool_run(pool, moe_m1_down_worker, &m1, dn_ntiles);
         /* Down slot j & 3 is free after the join; a fifth or later expert
            (M <= 4 routing to more than four) takes it. */
         if (j + 4u < n_active) {
-          m1_dn_idx[j + 4u] =
-            moe_m1_push(vtcm_base, moe_m1_dn_off(j + 4u, gu_bytes, dn_bytes),
-                        m1.ex[j + 4u].d, inter_ktiles, dn_ntiles,
-                        HEXKL_DMA_KIND_DOWN, j + 4u);
+          m1_dn_idx[j + 4u] = moe_m1_push(
+            vtcm_base, moe_m1_dn_off(j + 4u, feed_gu_bytes, feed_dn_bytes),
+            m1.ex[j + 4u].d, inter_ktiles, dn_ntiles, HEXKL_DMA_KIND_DOWN,
+            j + 4u, m1.native_i2 != 0u);
         }
       }
     }
@@ -1796,8 +1904,8 @@ int hexkl_mm_u8i4_moe_layer_run(
   /* Falls back to expanding in front of the batch when a shape needs more
      chunks than there are slots -- correctness never depends on the
      hiding. This model is 4 and 2. */
-  const int exp_bg = w2 && gu_chunks <= MOE_EXP_DN &&
-                     dn_chunks <= (MOE_EXP_SLOTS - MOE_EXP_DN);
+  const int exp_bg =
+    w2 && gu_chunks <= MOE_EXP_DN && dn_chunks <= (MOE_EXP_SLOTS - MOE_EXP_DN);
   /* Who queues which gate_up chunk. The down phase has dn_chunks batches
      to queue one chunk each in, so it takes [0, gu_bg0) and the gate_up
      phase takes the rest -- disjoint, or a chunk would be expanded twice
@@ -1806,7 +1914,8 @@ int hexkl_mm_u8i4_moe_layer_run(
   const uint32_t gu_bg0 = (dn_chunks < gu_chunks) ? dn_chunks : gu_chunks;
   /* ...and which gate_up batch queues down chunk db: as late as the batch
      count allows, since down is read after every gate_up batch. */
-  const uint32_t dn_bg0 = (gu_chunks > dn_chunks) ? (gu_chunks - dn_chunks) : 0u;
+  const uint32_t dn_bg0 =
+    (gu_chunks > dn_chunks) ? (gu_chunks - dn_chunks) : 0u;
   memset(exp_live, 0, sizeof exp_live);
   /* Read only under n > 0, which the compiler cannot see. */
   memset(&pblk, 0, sizeof pblk);
@@ -1973,17 +2082,15 @@ int hexkl_mm_u8i4_moe_layer_run(
           const hexkl_weight_u8i4 *pd = &tbl->slots[h_down[pblk.e]];
           const uint32_t db = gb - dn_bg0;
           const uint32_t dnt0 = db * L.acc_tiles;
-          const uint32_t dnb = (dn_ntiles - dnt0 < L.acc_tiles)
-                                 ? (dn_ntiles - dnt0)
-                                 : L.acc_tiles;
+          const uint32_t dnb =
+            (dn_ntiles - dnt0 < L.acc_tiles) ? (dn_ntiles - dnt0) : L.acc_tiles;
           HEXKL_PROBE_T0(p0);
           hexkl_dma_ring_wait(dn_idx[db]);
           HEXKL_PROBE_ADD(HEXKL_PROBE_DRAIN_DN, p0);
           moe_expand_submit(pool, &exp_job[MOE_EXP_DN + db],
                             &exp_ctx[MOE_EXP_DN + db],
                             exp_done[MOE_EXP_DN + db], vtcm_base, L.w_dn_off,
-                            pd, inter_ktiles, dn_ntiles, dnt0, UINT32_MAX,
-                            dnb);
+                            pd, inter_ktiles, dn_ntiles, dnt0, UINT32_MAX, dnb);
           exp_live[MOE_EXP_DN + db] = 1;
         }
 
@@ -2096,8 +2203,7 @@ int hexkl_mm_u8i4_moe_layer_run(
         if (pblk.first && exp_live[MOE_EXP_DN + db]) {
           /* Queued during the gate_up phase just above. */
           HEXKL_PROBE_T0(p0);
-          hvx_worker_pool_wait_bg(pool, &exp_job[MOE_EXP_DN + db],
-                                  UINT32_MAX);
+          hvx_worker_pool_wait_bg(pool, &exp_job[MOE_EXP_DN + db], UINT32_MAX);
           HEXKL_PROBE_ADD(HEXKL_PROBE_DRAIN_DN, p0);
           exp_live[MOE_EXP_DN + db] = 0;
         } else if (pblk.first) {
@@ -2152,8 +2258,8 @@ int hexkl_mm_u8i4_moe_layer_run(
           hexkl_dma_ring_wait(gu_idx[db]);
           HEXKL_PROBE_ADD(HEXKL_PROBE_DRAIN, p0);
           moe_expand_submit(pool, &exp_job[db], &exp_ctx[db], exp_done[db],
-                            vtcm_base, L.w_gu_off, ng, k_tiles, gu_ntiles,
-                            ng0, inter_ntiles + ng0, nnp);
+                            vtcm_base, L.w_gu_off, ng, k_tiles, gu_ntiles, ng0,
+                            inter_ntiles + ng0, nnp);
           exp_live[db] = 1;
         }
 

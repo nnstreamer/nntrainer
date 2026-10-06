@@ -144,6 +144,12 @@ enum {
    *  VTCM by DMA (#117, hexkl_moe_flags_feed and the budget check), 0
    *  when it read the arena. The level-2 row's feed=n/calls. */
   HEXKL_PROBE_M1_FEED,
+  /** Microseconds the 2-bit expansion left EXPOSED: the foreground pool
+   *  run between a weight landing and the stage that reads it. Appended
+   *  rather than inserted -- the ARM side indexes this enum. Zero at four
+   *  bits and zero on the HMX block path, where the expansion is a
+   *  background job and its exposure shows up in DRAIN instead. */
+  HEXKL_PROBE_EXPAND,
   HEXKL_PROBE_N
 };
 

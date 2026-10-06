@@ -544,8 +544,8 @@ static void make_weight(uint32_t slot, uint32_t K, uint32_t N, W *w) {
    paths have to agree byte for byte. Here rather than in the shared stubs
    because make_weight, which it builds on, is this file's own since the
    stand-in split. */
-static void make_weight_pal(uint32_t slot4, uint32_t slot2, uint32_t K, uint32_t N,
-                     const int8_t *pal, W *w) {
+static void make_weight_pal(uint32_t slot4, uint32_t slot2, uint32_t K,
+                            uint32_t N, const int8_t *pal, W *w) {
   const uint32_t tiles = (K / 32u) * (N / 32u);
   const uint32_t nib_bytes = tiles * 512u;
   uint8_t *two = (uint8_t *)malloc(nib_bytes / 2u);
@@ -1147,9 +1147,9 @@ int main(void) {
   }
 
   /* 2-bit on the M=1 GEMV path with the VTCM feed (#117): the feed pushes
-     half the bytes into the top half of each slab and expands them there,
-     so the GEMV reads exactly the int4 a 4-bit run would have been given.
-     Bitwise identical or the format is not usable on this path. The real
+     half the bytes into packed-size slabs and the native LUT GEMV consumes
+     them without materializing int4. Bitwise identical or the format is not
+     usable on this path. The real
      shape, because the feed only engages when two gate_up slabs and two
      downs fit the arena -- the tiny shape would silently run the arena
      read and prove nothing. */

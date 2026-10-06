@@ -15,6 +15,7 @@
 
 #include "hexkl_micro.h"
 #include "hvx_dequant_i32.h"
+#include "hvx_expand_i2i4.h"
 #include "hvx_gemm_u8i4_wh.h"
 #include "hvx_quant_u8.h"
 #include "hvx_swiglu_f32.h"
@@ -100,6 +101,66 @@ void hvx_gemm_u8i4_wh_col(const uint8_t *act_ah, uint32_t m, uint32_t k_tiles,
     hvx_scalar_hook.gemv(act_ah, m, k_tiles, wh, n_col, nt, rows1, 0, out);
   else
     hvx_scalar_gemv(act_ah, m, k_tiles, wh, n_col, nt, out);
+}
+
+static int wh2_value(const uint8_t *tile, uint32_t k, uint32_t c,
+                     const uint8_t *table) {
+  const uint32_t slot =
+    (k / 8u) * 256u + c * 8u + (k % 4u) * 2u + ((k / 4u) % 2u);
+  const uint32_t code = (tile[whCodeByte2(slot)] >> whCodeShift2(slot)) & 0x3u;
+  const int nibble = table[2u * code] & 0x0f;
+  return nibble >= 8 ? nibble - 16 : nibble;
+}
+
+static void hvx_scalar_gemv_i2(const uint8_t *act_ah, uint32_t m,
+                               uint32_t k_tiles, const uint8_t *wh,
+                               uint32_t n_col, uint32_t nt,
+                               const uint8_t *table, int32_t *out) {
+  for (uint32_t r = 0; r < m; ++r)
+    for (uint32_t c = 0; c < 32; ++c) {
+      int32_t s = 0;
+      for (uint32_t kt = 0; kt < k_tiles; ++kt) {
+        const uint8_t *tile = wh + ((size_t)kt * n_col + nt) * 256u;
+        const uint8_t *arow = act_ah + (size_t)kt * 2048u + r * 32u;
+        for (uint32_t k = 0; k < 32; ++k)
+          s += (int32_t)arow[k] * wh2_value(tile, k, c, table);
+      }
+      out[r * 32u + c] = s;
+    }
+}
+
+void hvx_gemm_u8i2_wh_prefetch(const uint8_t *wh, uint32_t n_col, uint32_t nt,
+                               uint32_t n_tiles, uint32_t k_tiles) {
+  (void)wh;
+  (void)n_col;
+  (void)nt;
+  (void)n_tiles;
+  (void)k_tiles;
+}
+
+void hvx_gemm_u8i2_wh_col_nopf(const uint8_t *act_ah, uint32_t m,
+                               uint32_t k_tiles, const uint8_t *wh,
+                               uint32_t n_col, uint32_t nt, uint32_t rows1,
+                               const uint8_t *table, int32_t *out) {
+  (void)rows1;
+  hvx_scalar_gemv_i2(act_ah, m, k_tiles, wh, n_col, nt, table, out);
+}
+
+void hvx_gemm_u8i2_wh_cols2_nopf(const uint8_t *act_ah, uint32_t m,
+                                 uint32_t k_tiles, const uint8_t *wh,
+                                 uint32_t n_col, uint32_t nt0, uint32_t nt1,
+                                 uint32_t rows1, const uint8_t *table,
+                                 int32_t *out0, int32_t *out1) {
+  (void)rows1;
+  hvx_scalar_gemv_i2(act_ah, m, k_tiles, wh, n_col, nt0, table, out0);
+  hvx_scalar_gemv_i2(act_ah, m, k_tiles, wh, n_col, nt1, table, out1);
+}
+
+void hvx_gemm_u8i2_wh_col(const uint8_t *act_ah, uint32_t m, uint32_t k_tiles,
+                          const uint8_t *wh, uint32_t n_col, uint32_t nt,
+                          uint32_t rows1, const uint8_t *table, int32_t *out) {
+  (void)rows1;
+  hvx_scalar_gemv_i2(act_ah, m, k_tiles, wh, n_col, nt, table, out);
 }
 
 /* ---- quant / dequant / swiglu ---- */
