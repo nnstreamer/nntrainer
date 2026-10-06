@@ -16,6 +16,7 @@
 #include <AEEStdErr.h>
 #include <HAP_farf.h>
 #include <HAP_perf.h>
+#include <qurt_memory.h>
 #include <remote.h>
 
 #include "hexkl_conv_block.h"
@@ -30,6 +31,7 @@
 #include "hvx_quant_u8.h"
 #include "nntr_hvx.h"
 #include "nntr_hvx_session.h"
+#include "nntr_hvx_stream_mailbox.h"
 
 /** @brief Rounds @a v up to a multiple of @a a. */
 #define ROUND_UP(v, a) ((((v) + ((a)-1)) / (a)) * (a))
@@ -340,6 +342,262 @@ static nntr_hvx_arena *nntr_hvx_arena_slot(nntr_hvx_session *s, uint32 arena) {
     return NULL;
   }
   return &s->arenas[arena];
+}
+
+static void nntr_hvx_stream_cache(volatile nntr_hvx_stream_mailbox *mb,
+                                  qurt_mem_cache_op_t op) {
+  (void)qurt_mem_cache_clean((qurt_addr_t)mb,
+                             (qurt_size_t)sizeof(nntr_hvx_stream_mailbox), op,
+                             QURT_MEM_DCACHE);
+}
+
+static void nntr_hvx_stream_cache_range(volatile void *ptr, uint32 bytes,
+                                        qurt_mem_cache_op_t op) {
+  (void)qurt_mem_cache_clean((qurt_addr_t)ptr, (qurt_size_t)bytes, op,
+                             QURT_MEM_DCACHE);
+}
+
+static void nntr_hvx_stream_busywait_us(uint32 wait_us) {
+  const uint64_t deadline =
+    HAP_perf_get_qtimer_count() + (uint64_t)wait_us * 192u / 10u;
+  while (HAP_perf_get_qtimer_count() < deadline) {
+  }
+}
+
+static int check_moe_row_totals(const uint32 *row_count, int n_experts,
+                                int row_indexLen);
+
+/**
+ * @brief One-RPC ARM/DSP mailbox latency and visibility gate.
+ *
+ * rpcmem is mapped uncached by the caller. The full barriers order payload
+ * accesses before their sequence word; volatile prevents the polling loads
+ * from being hoisted out of the loop. A qtimer deadline prevents a failed
+ * coherency experiment from pinning a DSP worker forever.
+ */
+int nntr_hvx_stream_mailbox_pingpong(remote_handle64 handle, uint32 arena,
+                                     uint32 mailbox_off, uint32 stages,
+                                     uint32 timeout_us, uint32 *res,
+                                     int resLen) {
+  nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  nntr_hvx_arena *a;
+  volatile nntr_hvx_stream_mailbox *mb;
+  uint64_t t0, deadline;
+  uint32 checksum = 0;
+  uint32 seq;
+
+  if (!s || !res || resLen < 5 || stages == 0u ||
+      stages > NNTR_HVX_STREAM_MAX_STAGES || timeout_us == 0u) {
+    return AEE_EBADPARM;
+  }
+  a = nntr_hvx_arena_slot(s, arena);
+  if (!a || mailbox_off > a->bytes ||
+      sizeof(nntr_hvx_stream_mailbox) > a->bytes - mailbox_off) {
+    return AEE_EBADPARM;
+  }
+  mb = (volatile nntr_hvx_stream_mailbox *)(a->va + mailbox_off);
+  nntr_hvx_stream_cache(mb, QURT_MEM_CACHE_INVALIDATE);
+  if (mb->magic != NNTR_HVX_STREAM_MAGIC ||
+      mb->version != NNTR_HVX_STREAM_VERSION || mb->stages != stages) {
+    return AEE_EINVALIDFORMAT;
+  }
+
+  memset(res, 0, (size_t)resLen * sizeof(*res));
+  __sync_synchronize();
+  mb->ready = 1u;
+  __sync_synchronize();
+  nntr_hvx_stream_cache(mb, QURT_MEM_CACHE_FLUSH);
+  t0 = HAP_perf_get_qtimer_count();
+  deadline = t0 + (uint64_t)timeout_us * 192u / 10u;
+
+  for (seq = 1u; seq <= stages; ++seq) {
+    while (mb->request_seq != seq) {
+      nntr_hvx_stream_cache(mb, QURT_MEM_CACHE_INVALIDATE);
+      if (HAP_perf_get_qtimer_count() >= deadline) {
+        mb->status = AEE_EFAILED;
+        __sync_synchronize();
+        nntr_hvx_stream_cache(mb, QURT_MEM_CACHE_FLUSH);
+        res[3] = seq;
+        return AEE_EFAILED;
+      }
+    }
+    __sync_synchronize();
+    checksum ^= mb->request_payload;
+    mb->reply_payload = mb->request_payload ^ NNTR_HVX_STREAM_PAYLOAD_XOR;
+    __sync_synchronize();
+    mb->done_seq = seq;
+    nntr_hvx_stream_cache(mb, QURT_MEM_CACHE_FLUSH);
+  }
+
+  __sync_synchronize();
+  mb->status = AEE_SUCCESS;
+  __sync_synchronize();
+  nntr_hvx_stream_cache(mb, QURT_MEM_CACHE_FLUSH);
+  res[0] =
+    (uint32)HAP_perf_qtimer_count_to_us(HAP_perf_get_qtimer_count() - t0);
+  res[1] = stages;
+  res[2] = checksum;
+  res[4] = res[0];
+  return AEE_SUCCESS;
+}
+
+/**
+ * @brief Execute decode MoE commands until the ARM requests shutdown.
+ *
+ * The ARM performs the non-MoE operators between commands. Consequently the
+ * DSP waits on the control line across token boundaries, invalidates each newly
+ * published command, runs the existing whole-layer kernel, flushes its output,
+ * and acknowledges it. No weights or kernel implementation are duplicated by
+ * this wrapper.
+ */
+int nntr_hvx_mm_u8i4_moe_stream(remote_handle64 handle, uint32 arena,
+                                uint32 mailbox_off, uint32 stages,
+                                uint32 timeout_us, uint32 *res, int resLen) {
+  nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  nntr_hvx_arena *a;
+  volatile nntr_moe_stream_mailbox *mb;
+  uint64_t t0, deadline;
+  uint32 seq;
+  uint32 commands = 0u;
+  uint32 profile_enabled;
+  uint32 poll_spin_count;
+  uint32 poll_backoff_us;
+  int rc = AEE_SUCCESS;
+
+  if (!s || !res || resLen < 4 || stages == 0u ||
+      stages > NNTR_HVX_STREAM_MAX_STAGES || timeout_us == 0u) {
+    return AEE_EBADPARM;
+  }
+  a = nntr_hvx_arena_slot(s, arena);
+  if (!a || mailbox_off > a->bytes ||
+      sizeof(nntr_moe_stream_mailbox) > a->bytes - mailbox_off) {
+    return AEE_EBADPARM;
+  }
+  mb = (volatile nntr_moe_stream_mailbox *)(a->va + mailbox_off);
+  nntr_hvx_stream_cache_range((volatile void *)&mb->control,
+                              (uint32)sizeof(mb->control),
+                              QURT_MEM_CACHE_INVALIDATE);
+  if (mb->control.magic != NNTR_HVX_STREAM_MAGIC ||
+      mb->control.version != NNTR_HVX_STREAM_VERSION ||
+      mb->control.stages != stages) {
+    return AEE_EINVALIDFORMAT;
+  }
+  profile_enabled = mb->control.profile_enabled;
+  poll_spin_count = mb->control.poll_spin_count;
+  poll_backoff_us = mb->control.poll_backoff_us;
+
+  memset(res, 0, (size_t)resLen * sizeof(*res));
+  mb->control.ready = 1u;
+  __sync_synchronize();
+  nntr_hvx_stream_cache_range((volatile void *)&mb->control,
+                              (uint32)sizeof(mb->control),
+                              QURT_MEM_CACHE_FLUSH);
+  t0 = HAP_perf_get_qtimer_count();
+  for (seq = 1u;; ++seq) {
+    nntr_moe_stream_stage_profile *p =
+      (nntr_moe_stream_stage_profile *)&mb->profile[(seq - 1u) % stages];
+    uint64_t ts = profile_enabled ? HAP_perf_get_qtimer_count() : 0u;
+    uint32 polls = 0u;
+    uint32 backoffs = 0u;
+    deadline = HAP_perf_get_qtimer_count() + (uint64_t)timeout_us * 192u / 10u;
+    while (mb->control.request_seq != seq) {
+      if (poll_backoff_us != 0u && polls >= poll_spin_count) {
+        nntr_hvx_stream_busywait_us(poll_backoff_us);
+        ++backoffs;
+      }
+      ++polls;
+      nntr_hvx_stream_cache_range((volatile void *)&mb->control,
+                                  (uint32)sizeof(mb->control),
+                                  QURT_MEM_CACHE_INVALIDATE);
+      if (mb->control.stop_requested != 0u) {
+        goto done;
+      }
+      if (HAP_perf_get_qtimer_count() >= deadline) {
+        rc = AEE_EFAILED;
+        res[2] = seq;
+        goto done;
+      }
+    }
+    if (profile_enabled) {
+      p->request_wait_us =
+        (uint32)HAP_perf_qtimer_count_to_us(HAP_perf_get_qtimer_count() - ts);
+      p->request_polls = polls;
+      p->request_backoffs = backoffs;
+      ts = HAP_perf_get_qtimer_count();
+    }
+    __sync_synchronize();
+    nntr_hvx_stream_cache_range(
+      (volatile void *)&mb->K,
+      (uint32)(offsetof(nntr_moe_stream_mailbox, out_f32) -
+               offsetof(nntr_moe_stream_mailbox, K)),
+      QURT_MEM_CACHE_INVALIDATE);
+    if (profile_enabled) {
+      p->payload_invalidate_us =
+        (uint32)HAP_perf_qtimer_count_to_us(HAP_perf_get_qtimer_count() - ts);
+    }
+
+    if (mb->K == 0u || mb->K > NNTR_HVX_STREAM_MAX_HIDDEN || mb->N_out == 0u ||
+        mb->N_out > NNTR_HVX_STREAM_MAX_HIDDEN || mb->inter == 0u ||
+        mb->n_experts == 0u || mb->n_experts > NNTR_HVX_STREAM_MAX_EXPERTS ||
+        mb->n_routes == 0u || mb->n_routes > NNTR_HVX_STREAM_MAX_ROUTES) {
+      rc = AEE_EBADPARM;
+      res[2] = seq;
+      goto done;
+    }
+    rc = check_moe_row_totals((const uint32 *)mb->row_count, (int)mb->n_experts,
+                              (int)mb->n_routes);
+    if (rc != AEE_SUCCESS) {
+      res[2] = seq;
+      goto done;
+    }
+    if (profile_enabled)
+      ts = HAP_perf_get_qtimer_count();
+    rc = hexkl_mm_u8i4_moe_layer_run(
+      &s->weights_u8i4, s->vtcm_base, s->vtcm_size, s->config_off, 1u, mb->K,
+      mb->inter, mb->N_out, mb->n_experts, (const uint32 *)mb->h_gate_up,
+      (const uint32 *)mb->h_down, (const uint32 *)mb->row_index,
+      (const uint32 *)mb->row_count, (const float *)mb->row_weight,
+      (const float *)mb->act_f32, (float *)mb->out_f32, s->quant_pool,
+      &s->moe_scratch, s->moe_flags);
+    if (profile_enabled) {
+      p->kernel_us =
+        (uint32)HAP_perf_qtimer_count_to_us(HAP_perf_get_qtimer_count() - ts);
+    }
+    if (rc != AEE_SUCCESS) {
+      res[2] = seq;
+      goto done;
+    }
+    if (profile_enabled)
+      ts = HAP_perf_get_qtimer_count();
+    nntr_hvx_stream_cache_range((volatile void *)mb->out_f32,
+                                mb->N_out * (uint32)sizeof(float),
+                                QURT_MEM_CACHE_FLUSH);
+    if (profile_enabled) {
+      p->output_flush_us =
+        (uint32)HAP_perf_qtimer_count_to_us(HAP_perf_get_qtimer_count() - ts);
+      p->completion_flush_us = 0u;
+      nntr_hvx_stream_cache_range((volatile void *)p, (uint32)sizeof(*p),
+                                  QURT_MEM_CACHE_FLUSH);
+    }
+    __sync_synchronize();
+    mb->control.done_seq = seq;
+    nntr_hvx_stream_cache_range((volatile void *)&mb->control,
+                                (uint32)sizeof(mb->control),
+                                QURT_MEM_CACHE_FLUSH);
+    ++commands;
+  }
+
+done:
+  mb->control.status = (uint32)rc;
+  __sync_synchronize();
+  nntr_hvx_stream_cache_range((volatile void *)&mb->control,
+                              (uint32)sizeof(mb->control),
+                              QURT_MEM_CACHE_FLUSH);
+  res[0] =
+    (uint32)HAP_perf_qtimer_count_to_us(HAP_perf_get_qtimer_count() - t0);
+  res[1] = commands;
+  res[3] = rc;
+  return rc;
 }
 
 int nntr_hvx_arena_attach(remote_handle64 handle, int32 fd, uint32 bytes,
@@ -947,6 +1205,7 @@ enum {
   MOE_T_DMA_LAST_ISSUE_US,
   MOE_T_PATH,    /**< NOT us: 0 = HMX block loop, 1 = M=1 HVX GEMV */
   MOE_T_M1_FEED, /**< NOT us: 1 = the GEMV read VTCM slabs fed by DMA (#117) */
+  MOE_T_EXPAND,  /**< 2-bit: the expansion left exposed (doc 54 5.19) */
   MOE_N_STAGES
 };
 
@@ -978,6 +1237,7 @@ static void moe_fill_stage_us(uint32 *stage_us, uint32 dsp_total) {
   }
   stage_us[MOE_T_PATH] = (uint32)hexkl_probe_us[HEXKL_PROBE_PATH];
   stage_us[MOE_T_M1_FEED] = (uint32)hexkl_probe_us[HEXKL_PROBE_M1_FEED];
+  stage_us[MOE_T_EXPAND] = (uint32)hexkl_probe_us[HEXKL_PROBE_EXPAND];
 }
 
 /** @brief Shared by both entry points so they cannot drift on what they

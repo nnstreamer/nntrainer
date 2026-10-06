@@ -48,6 +48,7 @@
 #include <htp_backend.h>
 #include <htp_graph_desc.h>
 #include <htp_moe_opts.h>
+#include <htp_moe_stream.h>
 #include <htp_q4_0_convert.h>
 #include <htp_rpcmem.h>
 #include <htp_wh_layout.h>
@@ -66,6 +67,7 @@
 #include <mutex>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <tuple>
 #include <unordered_map>
 #include <vector>
@@ -185,6 +187,7 @@ enum {
   HTP_MOE_T_DMA_LAST_ISSUE_US,
   HTP_MOE_T_PATH,    /**< NOT us: 0 = HMX block loop, 1 = M=1 HVX GEMV */
   HTP_MOE_T_M1_FEED, /**< NOT us: 1 = the GEMV read VTCM fed by DMA (#117) */
+  HTP_MOE_T_EXPAND,  /**< 2-bit weights: the expansion left exposed (54 5.19) */
   HTP_MOE_N_STAGES
 };
 
@@ -381,6 +384,7 @@ public:
       b.dma_last_issue_us += stage_us[HTP_MOE_T_DMA_LAST_ISSUE_US];
       b.m1_calls += (stage_us[HTP_MOE_T_PATH] != 0u) ? 1u : 0u;
       b.m1_feed_calls += (stage_us[HTP_MOE_T_M1_FEED] != 0u) ? 1u : 0u;
+      b.expand_us += stage_us[HTP_MOE_T_EXPAND];
     }
   }
 
@@ -477,6 +481,10 @@ private:
         (#117): feed=calls/calls with a DMA ring: line is the feed, 0/calls
         the arena read. */
     uint64_t m1_feed_calls = 0;
+    /** 2-bit only: expansion left exposed, in microseconds. This is a
+        subset of the MM wall, printed to explain it but not subtracted a
+        second time from the residual. */
+    uint64_t expand_us = 0;
     uint64_t host_us = 0;
     uint64_t dsp_us = 0;
     uint64_t quant_us = 0;
@@ -664,6 +672,7 @@ private:
            call, where SWIGLU is its own synchronous elementwise pass
            (htp_moe_opts.h). */
         const bool hidden = b.swiglu_hidden || b.m1_calls != 0;
+        const double expand_per = static_cast<double>(b.expand_us) / b.calls;
         const double mm_per = htp_moe_row_rest_us(
           dsp_per,
           quant_per + dequant_per + acc_per + drain_per + scatter_per +
@@ -676,12 +685,12 @@ private:
           "  [quant %.1f gather %.1f requant %.1f swiglu%s %.1f "
           "dequant %.1f acc %.1f drain %.1f+%.1f push %.1f "
           "scatter %.1f alloc %.1f "
-          "stage %.1f mm %.1f | rest<=%.1f (%.1f%% of host) "
+          "stage %.1f expand %.1f mm %.1f | rest<=%.1f (%.1f%% of host) "
           "blocks=%llu m1_gemv=%llu/%llu feed=%llu/%llu]",
           dsp_per, host_per > 0.0 ? 100.0 * dsp_per / host_per : 0.0,
           host_per - dsp_per, quant_per, gather_per, requant_per,
           hidden ? "(hidden)" : "", swiglu_per, dequant_per, acc_per, drain_per,
-          drain_dn_per, push_per, scatter_per, alloc_per, stage_per,
+          drain_dn_per, push_per, scatter_per, alloc_per, stage_per, expand_per,
           mm_meas_per, mm_per, host_per > 0.0 ? 100.0 * mm_per / host_per : 0.0,
           (unsigned long long)b.blocks, (unsigned long long)b.m1_calls,
           (unsigned long long)b.calls, (unsigned long long)b.m1_feed_calls,
@@ -946,6 +955,70 @@ public:
    *  that started at the list's first resident op. No RPC here: the
    *  session may already be closed. */
   ~HtpComputeOps() {
+    stopMoeStream();
+    if (moe_stream_.tokens != 0) {
+      std::fprintf(stderr,
+                   "[HTP] moe stream: tokens=%llu calls=%llu "
+                   "layers/call=%.2f host=%.1f us/token\n",
+                   (unsigned long long)moe_stream_.tokens,
+                   (unsigned long long)moe_stream_.rpc_calls,
+                   static_cast<double>(moe_stream_.layers) /
+                     static_cast<double>(moe_stream_.rpc_calls),
+                   static_cast<double>(moe_stream_.host_us) /
+                     static_cast<double>(moe_stream_.tokens));
+      if (moe_stream_.profile_enabled) {
+        const double tokens = static_cast<double>(moe_stream_.tokens);
+        uint64_t publish_us = 0, wait_us = 0, copy_out_us = 0;
+        uint64_t dsp_wait_us = 0, dsp_polls = 0, dsp_backoffs = 0;
+        uint64_t dsp_invalidate_us = 0;
+        uint64_t dsp_kernel_us = 0, dsp_output_flush_us = 0;
+        uint64_t dsp_completion_flush_us = 0;
+        for (uint32_t i = 0; i < moe_stream_.profile_stages; ++i) {
+          const MoeStreamStageTotals &s = moe_stream_.stage[i];
+          publish_us += s.host_publish_us;
+          wait_us += s.host_wait_us;
+          copy_out_us += s.host_copy_out_us;
+          dsp_wait_us += s.dsp_request_wait_us;
+          dsp_polls += s.dsp_request_polls;
+          dsp_backoffs += s.dsp_request_backoffs;
+          dsp_invalidate_us += s.dsp_payload_invalidate_us;
+          dsp_kernel_us += s.dsp_kernel_us;
+          dsp_output_flush_us += s.dsp_output_flush_us;
+          dsp_completion_flush_us += s.dsp_completion_flush_us;
+        }
+        std::fprintf(
+          stderr,
+          "[HTP-STREAM-PROFILE] host us/token: thread_create=%.1f "
+          "ready_wait=%.1f publish=%.1f stage_wait=%.1f copy_out=%.1f "
+          "join=%.1f\n",
+          moe_stream_.thread_create_us / tokens,
+          moe_stream_.ready_wait_us / tokens, publish_us / tokens,
+          wait_us / tokens, copy_out_us / tokens, moe_stream_.join_us / tokens);
+        std::fprintf(stderr,
+                     "[HTP-STREAM-PROFILE] dsp us/token: request_wait=%.1f "
+                     "polls=%.1f backoffs=%.1f payload_invalidate=%.1f "
+                     "kernel=%.1f "
+                     "output_flush=%.1f completion_flush=%.1f\n",
+                     dsp_wait_us / tokens, dsp_polls / tokens,
+                     dsp_backoffs / tokens, dsp_invalidate_us / tokens,
+                     dsp_kernel_us / tokens, dsp_output_flush_us / tokens,
+                     dsp_completion_flush_us / tokens);
+        for (uint32_t i = 0; i < moe_stream_.profile_stages; ++i) {
+          const MoeStreamStageTotals &s = moe_stream_.stage[i];
+          std::fprintf(
+            stderr,
+            "[HTP-STREAM-STAGE] stage=%u host_publish=%.1f "
+            "host_wait=%.1f host_copy_out=%.1f dsp_wait=%.1f polls=%.1f "
+            "backoffs=%.1f invalidate=%.1f kernel=%.1f output_flush=%.1f "
+            "completion_flush=%.1f us\n",
+            i + 1u, s.host_publish_us / tokens, s.host_wait_us / tokens,
+            s.host_copy_out_us / tokens, s.dsp_request_wait_us / tokens,
+            s.dsp_request_polls / tokens, s.dsp_request_backoffs / tokens,
+            s.dsp_payload_invalidate_us / tokens, s.dsp_kernel_us / tokens,
+            s.dsp_output_flush_us / tokens, s.dsp_completion_flush_us / tokens);
+        }
+      }
+    }
     if (fwd_calls_ != 0) {
       std::fprintf(stderr,
                    "[HTP] graph: forward calls=%llu tokens=%llu "
@@ -991,6 +1064,41 @@ public:
   struct ConvHandles {
     std::vector<uint32_t> h_in; /**< a, b, c */
     uint32_t h_out = 0;
+  };
+
+  struct MoeStreamStageTotals {
+    uint64_t host_publish_us = 0;
+    uint64_t host_wait_us = 0;
+    uint64_t host_copy_out_us = 0;
+    uint64_t dsp_request_wait_us = 0;
+    uint64_t dsp_request_polls = 0;
+    uint64_t dsp_request_backoffs = 0;
+    uint64_t dsp_payload_invalidate_us = 0;
+    uint64_t dsp_kernel_us = 0;
+    uint64_t dsp_output_flush_us = 0;
+    uint64_t dsp_completion_flush_us = 0;
+  };
+
+  struct MoeStreamState {
+    std::unique_ptr<HtpRpcBuffer> buffer;
+    nntr_moe_stream_mailbox *mailbox = nullptr;
+    uint32_t dsp_id = 0;
+    uint32_t next_seq = 0;
+    bool active = false;
+    int rpc_err = AEE_SUCCESS;
+    uint32_t rpc_res[4] = {0};
+    std::thread worker;
+    uint64_t token_begin_us = 0;
+    uint64_t tokens = 0;
+    uint64_t rpc_calls = 0;
+    uint64_t layers = 0;
+    uint64_t host_us = 0;
+    bool profile_enabled = false;
+    uint32_t profile_stages = 0;
+    uint64_t thread_create_us = 0;
+    uint64_t ready_wait_us = 0;
+    uint64_t join_us = 0;
+    MoeStreamStageTotals stage[NNTR_HVX_STREAM_MAX_STAGES];
   };
 
   // matAdata: Q4_0x4-repacked weight bytes, identity-cached across calls --
@@ -1226,6 +1334,11 @@ public:
     // M == 1 calls go through the per-token entry instead. Errors throw
     // (contract section 2): a fallback to mm_u8i4_moe_layer would report
     // per-layer numbers as the graph's.
+    if (M == 1 && moeStreamSwitch()) {
+      invokeMoeStream(session, h_gu, h_dn, row_index, row_count, row_weight,
+                      act, out, K, inter, N_out);
+      return;
+    }
     if (forwardSwitch() && !graph_words_.empty()) {
       const uint32_t op = bindMoeOp(h_gu, h_dn, K, inter, N_out);
       if (M == 1 && moe_bound_ == moe_ops_.size()) {
@@ -1264,6 +1377,36 @@ public:
       return env != nullptr && std::atoi(env) != 0;
     }();
     return on;
+  }
+
+  static bool moeStreamSwitch() {
+    static const bool on = [] {
+      const char *env = std::getenv("NNTR_HTP_MOE_STREAM");
+      return env != nullptr && std::atoi(env) != 0;
+    }();
+    return on;
+  }
+
+  static uint32_t moeStreamSpinPolls() {
+    static const uint32_t value = [] {
+      const char *env = std::getenv("NNTR_HTP_STREAM_SPIN_POLLS");
+      if (env == nullptr)
+        return 64u;
+      return static_cast<uint32_t>(
+        std::min(std::strtoul(env, nullptr, 10), 1000000ul));
+    }();
+    return value;
+  }
+
+  static uint32_t moeStreamBackoffUs() {
+    static const uint32_t value = [] {
+      const char *env = std::getenv("NNTR_HTP_STREAM_BACKOFF_US");
+      if (env == nullptr)
+        return 1u;
+      return static_cast<uint32_t>(
+        std::min(std::strtoul(env, nullptr, 10), 1000ul));
+    }();
+    return value;
   }
 
   /** The graph entries' error, named: 0x8000040E from them means the
@@ -2451,6 +2594,219 @@ private:
    *  table rides along as three small arrays -- 1776 uint32 + 1776 float +
    *  32 uint32 for this model, about 14 KB against the 3.6 MB activation.
    */
+  void ensureMoeStream(remote_handle64 session) {
+    if (moe_stream_.buffer)
+      return;
+    if (forwardSwitch()) {
+      throw std::runtime_error(
+        "NNTR_HTP_MOE_STREAM and NNTR_HTP_FORWARD cannot both be enabled");
+    }
+
+    constexpr size_t kBytes = size_t(32) << 10;
+    auto buf = std::make_unique<HtpRpcBuffer>(kBytes, HTP_RPC_FLAGS_UNCACHED);
+    if (!buf->isIon() || buf->fd() < 0) {
+      throw std::runtime_error(
+        "NNTR_HTP_MOE_STREAM requires an uncached rpcmem buffer");
+    }
+    const HtpRpcMemApi &api = HtpRpcMemApi::get();
+    const int fd = buf->fd();
+    const int merr =
+      api.mmap(CDSP_DOMAIN_ID, fd, buf->data(), 0, kBytes, FASTRPC_MAP_FD);
+    if (merr != 0) {
+      throw std::runtime_error("moe stream fastrpc_mmap failed: err=" +
+                               std::to_string(merr));
+    }
+    uint32_t dsp_id = 0;
+    const int aerr = nntr_hvx_arena_attach(
+      session, fd, static_cast<uint32_t>(kBytes), &dsp_id);
+    if (aerr != AEE_SUCCESS) {
+      if (api.munmap != nullptr)
+        api.munmap(CDSP_DOMAIN_ID, fd, buf->data(), kBytes);
+      throw std::runtime_error("moe stream arena_attach failed: err=" +
+                               std::to_string(aerr));
+    }
+    moe_stream_.mailbox =
+      reinterpret_cast<nntr_moe_stream_mailbox *>(buf->data());
+    moe_stream_.dsp_id = dsp_id;
+    moe_stream_.buffer = std::move(buf);
+    std::fprintf(stderr,
+                 "[HTP] moe stream: enabled, 22 layers per token, persistent "
+                 "resident call, "
+                 "arena=%u bytes=%zu\n",
+                 dsp_id, kBytes);
+  }
+
+  static bool waitMoeStreamWord(volatile uint32_t *word, uint32_t value,
+                                volatile uint32_t *status, uint64_t timeout_us,
+                                uint64_t *elapsed_us, uint64_t *polls) {
+    const uint64_t begin = HtpProfile::nowUs();
+    const uint64_t deadline = begin + timeout_us;
+    uint64_t n = 0;
+    bool ok = true;
+    while (__atomic_load_n(word, __ATOMIC_ACQUIRE) != value) {
+      ++n;
+      if (__atomic_load_n(status, __ATOMIC_ACQUIRE) != AEE_SUCCESS ||
+          HtpProfile::nowUs() >= deadline) {
+        ok = false;
+        break;
+      }
+      std::this_thread::yield();
+    }
+    if (elapsed_us != nullptr)
+      *elapsed_us = HtpProfile::nowUs() - begin;
+    if (polls != nullptr)
+      *polls = n;
+    return ok;
+  }
+
+  void accumulateMoeStreamDspProfile(uint32_t stage_index) {
+    const nntr_moe_stream_stage_profile *profile = moe_stream_.mailbox->profile;
+    moe_stream_.profile_stages =
+      std::max(moe_stream_.profile_stages, stage_index + 1u);
+    MoeStreamStageTotals &total = moe_stream_.stage[stage_index];
+    total.dsp_request_wait_us += profile[stage_index].request_wait_us;
+    total.dsp_request_polls += profile[stage_index].request_polls;
+    total.dsp_request_backoffs += profile[stage_index].request_backoffs;
+    total.dsp_payload_invalidate_us +=
+      profile[stage_index].payload_invalidate_us;
+    total.dsp_kernel_us += profile[stage_index].kernel_us;
+    total.dsp_output_flush_us += profile[stage_index].output_flush_us;
+    total.dsp_completion_flush_us += profile[stage_index].completion_flush_us;
+  }
+
+  void stopMoeStream() noexcept {
+    if (!moe_stream_.worker.joinable()) {
+      moe_stream_.active = false;
+      return;
+    }
+    if (moe_stream_.active && moe_stream_.mailbox != nullptr) {
+      __atomic_store_n(&moe_stream_.mailbox->control.stop_requested, 1u,
+                       __ATOMIC_RELEASE);
+    }
+    const uint64_t join_begin =
+      moe_stream_.profile_enabled ? HtpProfile::nowUs() : 0u;
+    moe_stream_.worker.join();
+    if (moe_stream_.profile_enabled)
+      moe_stream_.join_us += HtpProfile::nowUs() - join_begin;
+    moe_stream_.active = false;
+  }
+
+  void invokeMoeStream(remote_handle64 session,
+                       const std::vector<uint32_t> &h_gu,
+                       const std::vector<uint32_t> &h_dn,
+                       const std::vector<unsigned int> &row_index,
+                       const std::vector<unsigned int> &row_count,
+                       const std::vector<float> &row_weight, const float *act,
+                       float *out, unsigned int K, unsigned int inter,
+                       unsigned int N_out) {
+    constexpr uint32_t kStages = 22u;
+    constexpr uint32_t kDspTimeoutUs = 10000000u;
+    constexpr uint64_t kHostWaitUs = 10000000u;
+    if (h_gu.size() > NNTR_HVX_STREAM_MAX_EXPERTS ||
+        row_index.size() > NNTR_HVX_STREAM_MAX_ROUTES ||
+        K > NNTR_HVX_STREAM_MAX_HIDDEN || N_out > NNTR_HVX_STREAM_MAX_HIDDEN) {
+      throw std::invalid_argument("moe stream shape exceeds mailbox capacity");
+    }
+    ensureMoeStream(session);
+    nntr_moe_stream_mailbox *mb = moe_stream_.mailbox;
+    const bool profile_enabled = HtpProfile::global().level() >= 2;
+    moe_stream_.profile_enabled = profile_enabled;
+
+    if (moe_stream_.active &&
+        __atomic_load_n(&mb->control.status, __ATOMIC_ACQUIRE) != AEE_SUCCESS) {
+      stopMoeStream();
+      moe_stream_.next_seq = 0u;
+    }
+    if (!moe_stream_.active) {
+      if (moe_stream_.worker.joinable())
+        moe_stream_.worker.join();
+      std::memset(mb, 0, sizeof(*mb));
+      mb->control.magic = NNTR_HVX_STREAM_MAGIC;
+      mb->control.version = NNTR_HVX_STREAM_VERSION;
+      mb->control.stages = kStages;
+      mb->control.profile_enabled = profile_enabled ? 1u : 0u;
+      mb->control.poll_spin_count = moeStreamSpinPolls();
+      mb->control.poll_backoff_us = moeStreamBackoffUs();
+      std::fprintf(stderr, "[HTP] moe stream polling: spin=%u backoff=%u us\n",
+                   mb->control.poll_spin_count, mb->control.poll_backoff_us);
+      moe_stream_.rpc_err = AEE_SUCCESS;
+      std::memset(moe_stream_.rpc_res, 0, sizeof(moe_stream_.rpc_res));
+      moe_stream_.token_begin_us = HtpProfile::nowUs();
+      const uint64_t thread_begin = profile_enabled ? HtpProfile::nowUs() : 0u;
+      moe_stream_.worker = std::thread([this, session] {
+        moe_stream_.rpc_err =
+          nntr_hvx_mm_u8i4_moe_stream(session, moe_stream_.dsp_id, 0u, kStages,
+                                      kDspTimeoutUs, moe_stream_.rpc_res, 4);
+      });
+      moe_stream_.active = true;
+      ++moe_stream_.rpc_calls;
+      if (profile_enabled)
+        moe_stream_.thread_create_us += HtpProfile::nowUs() - thread_begin;
+      uint64_t ready_wait_us = 0;
+      if (!waitMoeStreamWord(
+            &mb->control.ready, 1u, &mb->control.status, kHostWaitUs,
+            profile_enabled ? &ready_wait_us : nullptr, nullptr)) {
+        stopMoeStream();
+        throw std::runtime_error("moe stream DSP did not become ready: err=" +
+                                 std::to_string(moe_stream_.rpc_err));
+      }
+      if (profile_enabled)
+        moe_stream_.ready_wait_us += ready_wait_us;
+    }
+
+    const uint32_t stage_index = moe_stream_.next_seq % kStages;
+    if (stage_index == 0u)
+      moe_stream_.token_begin_us = HtpProfile::nowUs();
+    const uint32_t seq = ++moe_stream_.next_seq;
+    const uint64_t publish_begin = profile_enabled ? HtpProfile::nowUs() : 0u;
+    mb->K = K;
+    mb->inter = inter;
+    mb->N_out = N_out;
+    mb->n_experts = static_cast<uint32_t>(h_gu.size());
+    mb->n_routes = static_cast<uint32_t>(row_index.size());
+    std::memcpy(mb->h_gate_up, h_gu.data(), h_gu.size() * sizeof(uint32_t));
+    std::memcpy(mb->h_down, h_dn.data(), h_dn.size() * sizeof(uint32_t));
+    std::memcpy(mb->row_count, row_count.data(),
+                row_count.size() * sizeof(uint32_t));
+    std::memcpy(mb->row_index, row_index.data(),
+                row_index.size() * sizeof(uint32_t));
+    std::memcpy(mb->row_weight, row_weight.data(),
+                row_weight.size() * sizeof(float));
+    std::memcpy(mb->act_f32, act, static_cast<size_t>(K) * sizeof(float));
+    __atomic_store_n(&mb->control.request_seq, seq, __ATOMIC_RELEASE);
+    if (profile_enabled) {
+      moe_stream_.stage[stage_index].host_publish_us +=
+        HtpProfile::nowUs() - publish_begin;
+    }
+
+    uint64_t host_wait_us = 0;
+    if (!waitMoeStreamWord(
+          &mb->control.done_seq, seq, &mb->control.status, kHostWaitUs,
+          profile_enabled ? &host_wait_us : nullptr, nullptr)) {
+      stopMoeStream();
+      throw std::runtime_error(
+        "moe stream stage " + std::to_string(seq) +
+        " failed: rpc=" + std::to_string(moe_stream_.rpc_err) +
+        " status=" + std::to_string(mb->control.status));
+    }
+    if (profile_enabled)
+      moe_stream_.stage[stage_index].host_wait_us += host_wait_us;
+    const uint64_t copy_begin = profile_enabled ? HtpProfile::nowUs() : 0u;
+    std::memcpy(out, mb->out_f32, static_cast<size_t>(N_out) * sizeof(float));
+    if (profile_enabled) {
+      moe_stream_.stage[stage_index].host_copy_out_us +=
+        HtpProfile::nowUs() - copy_begin;
+    }
+    if (profile_enabled)
+      accumulateMoeStreamDspProfile(stage_index);
+    ++moe_stream_.layers;
+
+    if (stage_index + 1u == kStages) {
+      ++moe_stream_.tokens;
+      moe_stream_.host_us += HtpProfile::nowUs() - moe_stream_.token_begin_us;
+    }
+  }
+
   void invokeMoeLayer(remote_handle64 session,
                       const std::vector<uint32_t> &h_gu,
                       const std::vector<uint32_t> &h_dn,
@@ -3646,6 +4002,7 @@ private:
   // per size class (stage) -- see invokeLayer's comment. Guarded by the
   // same mutex that serializes every call into the one HTP session.
   std::mutex invoke_mutex_;
+  MoeStreamState moe_stream_;
   std::once_flag moe_opts_once_; /**< sendMoeOptsOnce */
   // [#85] The decode op list from set_decode_graph_desc, its MoE ops in
   // list order, how many have their handles bound (first-pass call order),

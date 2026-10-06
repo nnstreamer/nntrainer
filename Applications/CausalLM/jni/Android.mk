@@ -50,6 +50,12 @@ CAUSALLM_COMMON_CFLAGS := -O3 -ffast-math \
 ifeq ($(CAUSALLM_PROFILE),1)
 CAUSALLM_COMMON_CFLAGS += -DPROFILE=1
 endif
+# build_android.sh --htp: compile the model-side decode graph descriptor and
+# hooks as well as the prebuilt nntrainer HTP backend.  The prebuilt exports
+# only public ABI flags, so ENABLE_HEXKL must be propagated explicitly here.
+ifeq ($(CAUSALLM_HTP),1)
+CAUSALLM_COMMON_CFLAGS += -DENABLE_HEXKL=1
+endif
 
 # Prebuilt nntrainer libraries. The generated Android.mk exports the include
 # paths and the -march/FP16 cflags the prebuilts were built with.

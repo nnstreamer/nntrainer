@@ -640,4 +640,26 @@ interface nntr_hvx : remote_handle64 {
    // AEE_EBADITEM, no graph AEE_EBADSTATE; never AEE_EBADPARM.
    AEEResult graph_set_param(in uint32 op, in uint32 which,
                              in sequence<float> data);
+
+   // Gate 0 for a resident decode call: stay inside one FastRPC invocation
+   // while ARM and DSP exchange `stages` notifications through an uncached
+   // arena mailbox. res = DSP elapsed us, stages completed, checksum,
+   // timeout stage, and DSP-ready-to-finish us. This is deliberately only a
+   // transport/visibility probe; the MoE stream is wired only if 22 stages
+   // fit its latency budget on the target phone. Kept last so adding this
+   // experimental endpoint does not renumber the production methods.
+   AEEResult stream_mailbox_pingpong(in uint32 arena,
+                                     in uint32 mailbox_off,
+                                     in uint32 stages,
+                                     in uint32 timeout_us,
+                                     rout sequence<uint32> res);
+
+   // Production M=1 MoE stream. The ARM enters this call once, then submits
+   // one command per model MoE layer through nntr_moe_stream_mailbox.
+   // Kept last so older production method numbers remain stable.
+   AEEResult mm_u8i4_moe_stream(in uint32 arena,
+                                in uint32 mailbox_off,
+                                in uint32 stages,
+                                in uint32 timeout_us,
+                                rout sequence<uint32> res);
 };

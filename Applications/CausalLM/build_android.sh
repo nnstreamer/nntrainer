@@ -270,7 +270,7 @@ rm -rf libs obj
 
 log_info "Building with ndk-build (builds causallm_core, nntrainer_causallm, nntr_quantize, nntr_safetensors_info)..."
 # We explicitly set paths to ensure outputs are predictable
-if ndk-build NDK_PROJECT_PATH=. NDK_LIBS_OUT=./libs NDK_OUT=./obj APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk CAUSALLM_PROFILE=$USE_PROFILE causallm_core nntrainer_causallm  nntr_quantize nntr_safetensors_info -j $(nproc); then
+if ndk-build NDK_PROJECT_PATH=. NDK_LIBS_OUT=./libs NDK_OUT=./obj APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk CAUSALLM_PROFILE=$USE_PROFILE CAUSALLM_HTP=$USE_HTP causallm_core nntrainer_causallm  nntr_quantize nntr_safetensors_info -j $(nproc); then
     log_success "Build completed successfully"
 else
     log_error "Build failed"

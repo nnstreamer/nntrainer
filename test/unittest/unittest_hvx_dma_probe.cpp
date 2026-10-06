@@ -26,6 +26,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstdint>
@@ -49,6 +50,7 @@
 #include "htp_backend/hmx/hexkl_dma_trace.h"
 #include "nntr_dma_probe_plan.h"
 #include "nntr_hvx.h"
+#include "nntr_hvx_stream_mailbox.h"
 #include "nntr_moe_dma_plan.h"
 
 namespace {
@@ -158,6 +160,34 @@ protected:
       c.attached = true;
       chunks_.push_back(c);
     }
+    return true;
+  }
+
+  /** @brief Attaches one extra arena without disturbing the two DMA arenas. */
+  bool AttachExtra(uint32_t bytes, uint32_t flags) {
+    Chunk c;
+    c.bytes = bytes;
+    c.buf =
+      alloc_(25 /*RPCMEM_HEAP_ID_SYSTEM*/, flags, static_cast<int>(bytes));
+    if (c.buf == nullptr) {
+      return false;
+    }
+    c.fd = to_fd_(c.buf);
+    if (mmap_(CDSP_DOMAIN_ID, c.fd, c.buf, 0, bytes,
+              static_cast<int>(FASTRPC_MAP_FD)) != 0) {
+      free_(c.buf);
+      return false;
+    }
+    c.mapped = true;
+    if (nntr_hvx_arena_attach(handle_, c.fd, bytes, &c.arena) != AEE_SUCCESS) {
+      if (munmap_) {
+        munmap_(CDSP_DOMAIN_ID, c.fd, c.buf, c.bytes);
+      }
+      free_(c.buf);
+      return false;
+    }
+    c.attached = true;
+    chunks_.push_back(c);
     return true;
   }
 
@@ -325,6 +355,111 @@ TEST_F(HvxDmaProbe, DmaProbeShapes) {
       Cell(s, w);
     }
   }
+}
+
+/**
+ * @brief Gate 0 for replacing 22 MoE FastRPC calls with one resident call.
+ */
+TEST_F(HvxDmaProbe, StreamMailbox22Stages) {
+  using clock = std::chrono::steady_clock;
+  constexpr uint32_t kStages = 22;
+  constexpr uint32_t kTimeoutUs = 100000;
+  constexpr uint32_t kRepeats = 20;
+  ASSERT_TRUE(AttachExtra(4096, 0 /*RPCMEM_FLAG_UNCACHED*/));
+  const Chunk &mailbox_chunk = chunks_.back();
+  auto *mb = static_cast<volatile nntr_hvx_stream_mailbox *>(mailbox_chunk.buf);
+  std::vector<double> handshake_us;
+  std::vector<double> rpc_wall_us;
+  handshake_us.reserve(kRepeats);
+  rpc_wall_us.reserve(kRepeats);
+
+  for (uint32_t rep = 0; rep < kRepeats; ++rep) {
+    std::memset(const_cast<nntr_hvx_stream_mailbox *>(mb), 0, sizeof(*mb));
+    mb->magic = NNTR_HVX_STREAM_MAGIC;
+    mb->version = NNTR_HVX_STREAM_VERSION;
+    mb->stages = kStages;
+    __atomic_thread_fence(__ATOMIC_RELEASE);
+
+    std::vector<uint32_t> res(5, 0);
+    int rpc_err = AEE_SUCCESS;
+    const auto rpc_begin = clock::now();
+    std::thread rpc([&]() {
+      rpc_err = nntr_hvx_stream_mailbox_pingpong(
+        handle_, mailbox_chunk.arena, 0, kStages, kTimeoutUs, res.data(),
+        static_cast<int>(res.size()));
+    });
+
+    const auto ready_deadline = clock::now() + std::chrono::milliseconds(200);
+    while (__atomic_load_n(&mb->ready, __ATOMIC_ACQUIRE) == 0u &&
+           clock::now() < ready_deadline) {
+    }
+    const bool ready = __atomic_load_n(&mb->ready, __ATOMIC_ACQUIRE) == 1u;
+    const auto handshake_begin = clock::now();
+    uint32_t want_checksum = 0;
+    bool stages_ok = ready;
+    uint32_t failed_stage = 0;
+    for (uint32_t seq = 1; stages_ok && seq <= kStages; ++seq) {
+      const uint32_t payload = 0x12340000u ^ (rep << 8) ^ seq;
+      want_checksum ^= payload;
+      __atomic_store_n(&mb->request_payload, payload, __ATOMIC_RELAXED);
+      __atomic_store_n(&mb->request_seq, seq, __ATOMIC_RELEASE);
+      const auto stage_deadline = clock::now() + std::chrono::milliseconds(100);
+      while (__atomic_load_n(&mb->done_seq, __ATOMIC_ACQUIRE) != seq &&
+             clock::now() < stage_deadline) {
+      }
+      stages_ok = __atomic_load_n(&mb->done_seq, __ATOMIC_ACQUIRE) == seq;
+      if (!stages_ok) {
+        failed_stage = seq;
+        break;
+      }
+      if (__atomic_load_n(&mb->reply_payload, __ATOMIC_ACQUIRE) !=
+          (payload ^ NNTR_HVX_STREAM_PAYLOAD_XOR)) {
+        stages_ok = false;
+        failed_stage = seq;
+      }
+    }
+    const auto handshake_end = clock::now();
+    rpc.join();
+    const auto rpc_end = clock::now();
+
+    ASSERT_TRUE(ready) << "DSP did not publish ready";
+    ASSERT_TRUE(stages_ok) << "mailbox failure at stage " << failed_stage;
+    ASSERT_EQ(rpc_err, AEE_SUCCESS) << hex(rpc_err);
+    EXPECT_EQ(res[1], kStages);
+    EXPECT_EQ(res[2], want_checksum);
+    EXPECT_EQ(__atomic_load_n(&mb->status, __ATOMIC_ACQUIRE),
+              static_cast<uint32_t>(AEE_SUCCESS));
+    const double hand_us =
+      std::chrono::duration<double, std::micro>(handshake_end - handshake_begin)
+        .count();
+    const double rpc_us =
+      std::chrono::duration<double, std::micro>(rpc_end - rpc_begin).count();
+    handshake_us.push_back(hand_us);
+    rpc_wall_us.push_back(rpc_us);
+    std::cout << std::fixed << std::setprecision(1)
+              << "STREAM_MAILBOX rep=" << rep << " stages=" << kStages
+              << " handshake_us=" << hand_us << " dsp_us=" << res[0]
+              << " rpc_us=" << rpc_us << " us_per_stage=" << hand_us / kStages
+              << "\n";
+  }
+
+  std::sort(handshake_us.begin(), handshake_us.end());
+  std::sort(rpc_wall_us.begin(), rpc_wall_us.end());
+  const size_t median_i = handshake_us.size() / 2;
+  const size_t p95_i = (handshake_us.size() * 95 - 1) / 100;
+  const double handshake_median = handshake_us[median_i];
+  const double handshake_p95 = handshake_us[p95_i];
+  const double rpc_median = rpc_wall_us[median_i];
+  const double rpc_p95 = rpc_wall_us[p95_i];
+  std::cout << std::fixed << std::setprecision(1)
+            << "STREAM_MAILBOX_SUMMARY stages=" << kStages
+            << " repeats=" << kRepeats
+            << " handshake_median_us=" << handshake_median
+            << " handshake_p95_us=" << handshake_p95
+            << " rpc_median_us=" << rpc_median << " rpc_p95_us=" << rpc_p95
+            << " budget_us=400 gate=" << (rpc_p95 <= 400.0 ? "pass" : "fail")
+            << "\n";
+  EXPECT_LE(rpc_p95, 400.0) << "one resident RPC exceeds the transport gate";
 }
 
 /**
