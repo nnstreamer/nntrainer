@@ -25,13 +25,21 @@
 #include <nntrainer_error.h>
 #include <q4_0_utils.h>
 
+#include <cstdlib>
+
 namespace nntrainer {
 
 void init_backend() {
   __ggml_init();
 #ifdef USE_BLAS
   // Do not repeatedly call set_num_threads. It's a global config.
-  __openblas_set_num_threads(-1); // -1 = BLAS_NUM_THREADS if defined.
+  // Follow NNTR_NUM_THREADS (the same knob as the nntrainer thread pool)
+  // so BLAS GEMMs are not pinned to the compile-time BLAS_NUM_THREADS(=1);
+  // fall back to the compile-time default when the env var is unset.
+  if (const char *blas_threads = std::getenv("NNTR_NUM_THREADS"))
+    __openblas_set_num_threads(atoi(blas_threads));
+  else
+    __openblas_set_num_threads(-1); // -1 = BLAS_NUM_THREADS if defined.
 #endif
   g_compute_ops = get_cpu_ops();
 }

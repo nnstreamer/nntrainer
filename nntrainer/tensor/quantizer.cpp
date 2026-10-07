@@ -13,6 +13,7 @@
 #include <math.h>
 #include <quantizer.h>
 #include <tensor.h>
+#include <thread_manager.h>
 
 namespace nntrainer {
 
@@ -159,6 +160,10 @@ Tensor &PerTensorAffineQuantizer::quantize(const Tensor &input, Tensor &output,
   }
 
   return output;
+}
+
+void Quantizer::dequantize(const Tensor &input, Tensor &output) {
+  output = dequantize(input, output.getDataType());
 }
 
 Tensor PerTensorAffineQuantizer::dequantize(const Tensor &input,
@@ -359,19 +364,23 @@ Tensor &GgmlQuantizer::quantize(const Tensor &input, Tensor &output,
   return output;
 }
 
-Tensor GgmlQuantizer::dequantize(const Tensor &input, Tdatatype dtype) {
-  NNTR_THROW_IF(dtype != Tdatatype::FP32, std::invalid_argument)
+void GgmlQuantizer::dequantize(const Tensor &input, Tensor &output) {
+  NNTR_THROW_IF(output.getDataType() != Tdatatype::FP32, std::invalid_argument)
     << "[GgmlQuantizer::dequantize] Output dtype must be FP32.";
+  NNTR_THROW_IF(output.size() < input.getDim().getDataLen(),
+                std::invalid_argument)
+    << "[GgmlQuantizer::dequantize] Output tensor is too small.";
 
   TensorDim dim = input.getDim();
   unsigned int K = dim.height();
   unsigned int N = dim.width();
   unsigned int total_elems = K * N;
 
-  Tensor output(dim.batch(), dim.channel(), K, N,
-                {Tformat::NCHW, Tdatatype::FP32});
   size_t data_size = input.size();
-  std::vector<char> tmp(input.size());
+  /// [PERF] warm-reused unpack scratch (per thread); grows to the largest
+  /// quantized weight once, then stays resident.
+  static thread_local std::vector<char> tmp;
+  tmp.resize(input.size());
 
   const void *src = input.getData<uint8_t>();
 
@@ -385,15 +394,33 @@ Tensor GgmlQuantizer::dequantize(const Tensor &input, Tdatatype dtype) {
   case QScheme::Q6_K:
     dequantize_row_q6_K(src, output.getData(), total_elems);
     break;
-  case QScheme::Q4_0:
+  case QScheme::Q4_0: {
     unpack_q4_0(src, tmp.data(), data_size, N, K);
+    // [PERF] parallel dequantize: each block_q4_0 expands to 32 floats with
+    // no cross-block state, so the flat block range splits cleanly across
+    // the global worker pool (unpack stays serial — its 4-row q4_0x4
+    // interleave strides the whole buffer). Workers only read tmp and write
+    // disjoint output chunks -> bit-identical to the serial call.
     dequantize_row_q4_0(tmp.data(), output.getData(), total_elems);
     break;
+  }
   default:
     throw std::invalid_argument(
       "[GgmlQuantizer::dequantize] Unsupported QScheme.");
   }
+}
 
+Tensor GgmlQuantizer::dequantize(const Tensor &input, Tdatatype dtype) {
+  NNTR_THROW_IF(dtype != Tdatatype::FP32, std::invalid_argument)
+    << "[GgmlQuantizer::dequantize] Output dtype must be FP32.";
+
+  TensorDim dim = input.getDim();
+  unsigned int K = dim.height();
+  unsigned int N = dim.width();
+
+  Tensor output(dim.batch(), dim.channel(), K, N,
+                {Tformat::NCHW, Tdatatype::FP32});
+  dequantize(input, output);
   return output;
 }
 

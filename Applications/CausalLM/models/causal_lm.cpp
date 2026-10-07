@@ -12,6 +12,7 @@
  * @author Seungbaek Hong <sb92.hong@samsung.com>
  * @author Hyeonseok Lee <hs89.lee@samsung.com>
  * @author Eunju Yang <ej.yang@samsung.com>
+ * @author Pranjal Thapliyal <p.thapliyal@samsung.com>
  * @bug    No known bugs except for NYI items
  * @brief  This file defines CausalLM's basic actions
  * @note   This causal_lm.cpp implements a class for Transformer-based Causal
@@ -872,6 +873,11 @@ Tensor CausalLM::buildLmHeadOutput(Tensor h, bool add_skip_prefill) {
   }
   if (TIE_WORD_EMBEDDINGS && !lmhead_untied)
     lmhead_prop.emplace_back(withKey("shared_from", "embedding0"));
+
+  // lm_head is never a LoRA target: freeze it whenever LoRA is active.
+  if (LORA_RANK > 0)
+    lmhead_prop.emplace_back(withKey("trainable", "false"));
+
   LayerHandle lmhead(createLayer(lmhead_type, lmhead_prop));
   return lmhead(h);
 }

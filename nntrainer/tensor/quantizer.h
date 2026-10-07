@@ -155,6 +155,18 @@ public:
                             ml::train::TensorDim::DataType qtype) = 0;
 
   /**
+   * @brief Dequantize a quantized tensor into a caller-provided tensor.
+   * @param[in] input Quantized tensor to dequantize
+   * @param[out] output Caller-provided FP32 tensor covering @a input's
+   *             logical size; written in place without allocation.
+   * @note Default implementation falls back to the allocating overload.
+   *       Overriding this lets hot paths (e.g. training fc_layer) reuse a
+   *       persistent scratch buffer instead of allocating a fresh FP32 copy
+   *       of the weight on every call.
+   */
+  virtual void dequantize(const Tensor &input, Tensor &output);
+
+  /**
    * @brief Get quantization Scheme type.
    * @return Quantization scheme
    */
@@ -385,6 +397,11 @@ public:
    */
   Tensor dequantize(const Tensor &input,
                     ml::train::TensorDim::DataType dtype) override;
+
+  /**
+   * @copydoc Quantizer::dequantize(const Tensor &input, Tensor &output)
+   */
+  void dequantize(const Tensor &input, Tensor &output) override;
 
   /**
    * @copydoc Quantizer::qscheme()
