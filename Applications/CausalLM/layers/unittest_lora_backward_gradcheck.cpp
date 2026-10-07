@@ -18,7 +18,7 @@
 #include <mha_core.h>
 #include <reshaped_rms_norm.h>
 #include <rms_norm.h>
-#include <swiglu.h>
+#include <swiglu_layer.h>
 #include <tie_word_embedding.h>
 
 #include <gtest/gtest.h>
@@ -220,7 +220,7 @@ TEST(CausalLmLoraBackward,
 TEST(CausalLmLoraBackward, SwiGLUCalcDerivativeMatchesFiniteDifference) {
   const unsigned int height = 2, width = 3;
 
-  causallm::SwiGLULayer layer;
+  nntrainer::SwiGLULayer layer;
   nntrainer::InitLayerContext init_context(
     {nntrainer::TensorDim({1, 1, height, width}),
      nntrainer::TensorDim({1, 1, height, width})},
@@ -279,11 +279,11 @@ TEST(CausalLmLoraBackward, SwiGLUCalcDerivativeMatchesFiniteDifference) {
 
 TEST(CausalLmLoraBackward, LmHeadCalcDerivativeMatchesFiniteDifference) {
   const unsigned int height = 3, width = 4, unit = 5;
-  causallm::g_lm_head_read_row = {1}; // simulate a right-padded sample: the
+  nntrainer::g_lm_head_read_row = {1}; // simulate a right-padded sample: the
                                       // last *real* token is row 1, not
                                       // row (height - 1) = 2.
 
-  causallm::LmHeadLayer layer;
+  nntrainer::LmHeadLayer layer;
   ASSERT_NO_THROW(layer.setProperty({"unit=" + std::to_string(unit)}));
   nntrainer::InitLayerContext init_context(
     {nntrainer::TensorDim({1, 1, height, width})}, {true}, false,
@@ -342,16 +342,16 @@ TEST(CausalLmLoraBackward, LmHeadCalcDerivativeMatchesFiniteDifference) {
   checkGradient(inputs[0].getVariableRef().getData<float>(), analytic.data(),
                dy, height * width, unit, forward);
 
-  causallm::g_lm_head_read_row.clear();
+  nntrainer::g_lm_head_read_row.clear();
 }
 
 TEST(CausalLmLoraBackward,
     TieWordEmbeddingLmHeadCalcDerivativeMatchesFiniteDifference) {
   const unsigned int height = 3, width = 4, unit = 5;
-  causallm::g_tie_embedding_lm_head_read_row = {
+  nntrainer::g_tie_embedding_lm_head_read_row = {
     1}; // simulate a right-padded sample.
 
-  causallm::TieWordEmbedding layer;
+  nntrainer::TieWordEmbedding layer;
   ASSERT_NO_THROW(layer.setProperty({"unit=" + std::to_string(unit)}));
   nntrainer::InitLayerContext init_context(
     {nntrainer::TensorDim({1, 1, height, width})}, {true}, false,
@@ -411,7 +411,7 @@ TEST(CausalLmLoraBackward,
   checkGradient(inputs[0].getVariableRef().getData<float>(), analytic.data(),
                dy, height * width, unit, forward);
 
-  causallm::g_tie_embedding_lm_head_read_row.clear();
+  nntrainer::g_tie_embedding_lm_head_read_row.clear();
 }
 
 TEST(CausalLmLoraBackward, MhaCoreCalcDerivativeMatchesFiniteDifference) {
@@ -586,7 +586,7 @@ TEST(CausalLmLoraBackward, SwiGLUCalcDerivativeIsSafeWhenGradAliasesInput) {
   const std::vector<float> dy0 = {0.5f, -0.3f, 0.2f, 0.1f, 0.4f, -0.2f};
 
   auto build = [&](bool alias) {
-    causallm::SwiGLULayer layer;
+    nntrainer::SwiGLULayer layer;
     nntrainer::InitLayerContext init_context(
       {nntrainer::TensorDim({1, 1, height, width}),
        nntrainer::TensorDim({1, 1, height, width})},
@@ -758,9 +758,9 @@ TEST(CausalLmLoraBackward,
 
 TEST(CausalLmLoraBackward, LmHeadCalcGradientMatchesFiniteDifference) {
   const unsigned int height = 3, width = 4, unit = 5;
-  causallm::g_lm_head_read_row = {1}; // right-padded: last real token is row 1
+  nntrainer::g_lm_head_read_row = {1}; // right-padded: last real token is row 1
 
-  causallm::LmHeadLayer layer;
+  nntrainer::LmHeadLayer layer;
   ASSERT_NO_THROW(layer.setProperty(
     {"unit=" + std::to_string(unit), "disable_bias=true"}));
   nntrainer::InitLayerContext init_context(
@@ -807,15 +807,15 @@ TEST(CausalLmLoraBackward, LmHeadCalcGradientMatchesFiniteDifference) {
   checkGradient(rc.getWeight(0).getData<float>(), analytic.data(), dy.data(),
                 width * unit, unit, forward);
 
-  causallm::g_lm_head_read_row.clear();
+  nntrainer::g_lm_head_read_row.clear();
 }
 
 TEST(CausalLmLoraBackward,
      TieWordEmbeddingLmHeadCalcGradientMatchesFiniteDifference) {
   const unsigned int height = 3, hidden = 4, vocab = 5;
-  causallm::g_tie_embedding_lm_head_read_row = {1};
+  nntrainer::g_tie_embedding_lm_head_read_row = {1};
 
-  causallm::TieWordEmbedding layer;
+  nntrainer::TieWordEmbedding layer;
   ASSERT_NO_THROW(layer.setProperty(
     {"unit=" + std::to_string(vocab), "disable_bias=true"}));
   nntrainer::InitLayerContext init_context(
@@ -862,14 +862,14 @@ TEST(CausalLmLoraBackward,
   checkGradient(rc.getWeight(0).getData<float>(), analytic.data(), dy.data(),
                 vocab * hidden, vocab, forward);
 
-  causallm::g_tie_embedding_lm_head_read_row.clear();
+  nntrainer::g_tie_embedding_lm_head_read_row.clear();
 }
 
 TEST(CausalLmLoraBackward, TieWordEmbeddingEmbeddingModeCalcGradientScatters) {
   const unsigned int seq_len = 4, hidden = 3, vocab = 6;
   const float scale = 2.0f;
 
-  causallm::TieWordEmbedding layer;
+  nntrainer::TieWordEmbedding layer;
   ASSERT_NO_THROW(layer.setProperty({"in_dim=" + std::to_string(vocab),
                                      "out_dim=" + std::to_string(hidden),
                                      "scale=" + std::to_string(scale)}));

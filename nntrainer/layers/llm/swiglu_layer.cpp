@@ -14,6 +14,8 @@
 
 #include "swiglu_layer.h"
 
+#include <cmath>
+
 #include <nntrainer_error.h>
 #include <node_exporter.h>
 #include <tensor.h>
@@ -89,8 +91,49 @@ void SwiGLULayer::updateTensorsByInputDimensions(
   context.updateOutput(OUT_IDX, output_dim);
 }
 
+/**
+ * @brief calcDerivative for SwiGLU.
+ * @details y = silu(g) * u, so
+ *            dL/du_i = dy_i * silu(g_i)
+ *            dL/dg_i = dy_i * u_i * silu'(g_i),
+ *          with silu'(g) = sig(g) * (1 + g * (1 - sig(g))).
+ *          Inputs are snapshotted per element before either derivative is
+ *          written: d_gate aliases gate's buffer (nntrainer reuses the
+ *          input's storage for the gradient), so reading g[i] after storing
+ *          dg[i] would read the gradient, not the activation. FP32 only --
+ *          the QAT training graph is host FP32.
+ */
 void SwiGLULayer::calcDerivative(RunLayerContext &context) {
-  std::throw_with_nested(std::runtime_error("Training is not supported yet."));
+  Tensor &gate = context.getInput(INPUT_IDX_1);
+  Tensor &up = context.getInput(INPUT_IDX_2);
+  const Tensor &dy = context.getIncomingDerivative(OUT_IDX);
+  Tensor &d_gate = context.getOutgoingDerivative(INPUT_IDX_1);
+  Tensor &d_up = context.getOutgoingDerivative(INPUT_IDX_2);
+
+  NNTR_THROW_IF(gate.getDataType() != ml::train::TensorDim::DataType::FP32,
+                std::invalid_argument)
+    << "[swiglu] calcDerivative only supports FP32 for now";
+
+  const size_t len = gate.size();
+  const float *g = gate.getData<float>();
+  const float *u = up.getData<float>();
+  const float *dy_ = dy.getData<float>();
+  float *dg = d_gate.getData<float>();
+  float *du = d_up.getData<float>();
+
+  for (size_t i = 0; i < len; ++i) {
+    // Snapshot all inputs at this index first; see the aliasing note above.
+    const float gi = g[i];
+    const float ui = u[i];
+    const float dyi = dy_[i];
+
+    const float sig = 1.0f / (1.0f + std::exp(-gi));
+    const float silu = gi * sig;
+    const float dsilu = sig * (1.0f + gi * (1.0f - sig));
+
+    du[i] = dyi * silu;
+    dg[i] = dyi * ui * dsilu;
+  }
 }
 
 } // namespace nntrainer

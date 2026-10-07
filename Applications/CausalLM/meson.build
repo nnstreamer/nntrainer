@@ -38,6 +38,11 @@ causallm_src = [
     # compiled into libcausallm exactly once so every consumer .so (the api lib
     # and the optional model plugin) shares a single Factory (see factory.h).
     meson.current_source_dir() / 'factory.cpp',
+    # std::ios_base_library_init() shim: the vendored libtokenizers_c.a
+    # prebuilt is built with GCC 13+ whose <iostream> references that symbol;
+    # Ubuntu 22.04's libstdc++ (GCC 12) doesn't define it, so every executable
+    # linking libcausallm.so failed to link. See ios_base_init_shim.cpp.
+    meson.current_source_dir() / 'ios_base_init_shim.cpp',
 ]
 
 executable_src = [

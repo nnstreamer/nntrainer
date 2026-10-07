@@ -6296,8 +6296,11 @@ void MHACoreLayer::trainForwarding(nntrainer::RunLayerContext &context) {
   // original input tensors (query/key) untouched — calcDerivative reads raw
   // V straight from context.getInput(VALUE), and undoes RoPE on dQ/dK
   // itself rather than relying on any in-place mutation of the inputs.
-  apply_rotary_emb_tensor_v2(query, train_q, head_dim, 0, false);
-  apply_rotary_emb_tensor_v2(key, train_k, head_dim, 0, false);
+  // 5th arg is upstream's apply_rope (ours' pre-merge param was convert_only
+  // with the opposite sense -- false there meant APPLY rope, and the merged
+  // call kept `false`, silently skipping rotation in training).
+  apply_rotary_emb_tensor_v2(query, train_q, head_dim, 0, true);
+  apply_rotary_emb_tensor_v2(key, train_k, head_dim, 0, true);
 
   const ml::train::TensorDim q_dim = train_q.getDim();    // (B,1,max_ts,HQ*D)
   const ml::train::TensorDim k_dim = train_k.getDim();    // (B,1,max_ts,HKV*D)
@@ -6396,13 +6399,24 @@ void MHACoreLayer::apply_inverse_rotary_emb(float *grad, unsigned int width,
                                             unsigned int dim,
                                             unsigned int height,
                                             unsigned int from) {
-  if (!use_rope)
+  // rope-enable is derived from theta>0 (upstream dropped the use_rope
+  // member); the FP32 tables live in cached_freqs_cos/sin, lazily populated
+  // by apply_rotary_emb_tensor_v2 -- which trainForwarding always calls on
+  // Q/K before attention compute, so they are ready by calcDerivative time.
+  if (theta <= 0.0f)
     return;
+
+  if (cached_freqs_cos == nullptr || cached_freqs_sin == nullptr) {
+    const std::lock_guard<std::mutex> lock(rope_init_mtx);
+    precompute_freqs(head_dim, max_position_embeddings, theta, false);
+    cached_freqs_cos = freqs_cos;
+    cached_freqs_sin = freqs_sin;
+  }
 
   const unsigned int half_ = dim / 2;
   for (unsigned int h = 0; h < height; ++h) {
-    const std::vector<float> &cos_ = freqs_fp32->cos[from + h];
-    const std::vector<float> &sin_ = freqs_fp32->sin[from + h];
+    const std::vector<float> &cos_ = (*cached_freqs_cos)[from + h];
+    const std::vector<float> &sin_ = (*cached_freqs_sin)[from + h];
     float *row = grad + h * width;
     for (unsigned int w = 0; w < width; w += dim) {
       for (unsigned int k = 0; k < half_; ++k) {
