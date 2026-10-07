@@ -6776,10 +6776,208 @@ TEST(nntrainer_Tensor, dot_qs4cx_fp16_activation_beta_p) {
       const float base = static_cast<float>(plain.getValue<_FP16>(0, 0, m, n));
       const float got =
         static_cast<float>(accumulated.getValue<_FP16>(0, 0, m, n));
-      EXPECT_NEAR(got, base + 1.0f, 0.02f + 0.01f * std::fabs(base))
+      // On Arm base is the KAI kernel's product and got the scalar reference's;
+      // the bound is the one dot_qs4cx_fp16_activation_p allows between them.
+      EXPECT_NEAR(got, base + 1.0f, 0.02f + 0.05f * std::fabs(base))
         << " at m=" << m << ", n=" << n;
     }
   }
+}
+
+/**
+ * @brief beta scales what the output already held, element by element, and
+ *        with beta = 0 the output is not read at all.
+ */
+TEST(nntrainer_Tensor, dot_qs4cx_fp16_activation_beta_scaled_p) {
+  const unsigned int M = 2;
+  const unsigned int K = 16;
+  const unsigned int N = 8;
+  const float beta = 0.5f;
+
+  auto quantizer =
+    nntrainer::Quantization::createQuantizer(nntrainer::QScheme::QS4CX);
+  nntrainer::Tensor q =
+    quantizer->quantize(qs4cxDotWeight(K, N), nntrainer::Tdatatype::QS4CX);
+
+  nntrainer::Tensor a(
+    {1, 1, M, K, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16}}, true);
+  for (unsigned int m = 0; m < M; ++m)
+    for (unsigned int k = 0; k < K; ++k)
+      a.setValue(0, 0, m, k,
+                 0.5f + 0.5f * std::sin(0.9f * static_cast<float>(k) +
+                                        2.3f * static_cast<float>(m)));
+
+  nntrainer::Tensor plain(
+    {1, 1, M, N, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16}}, true);
+  plain.setValue(std::numeric_limits<float>::quiet_NaN());
+  a.dot(q, plain, false, false, 0.0f);
+
+  nntrainer::Tensor accumulated(
+    {1, 1, M, N, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16}}, true);
+  auto previous = [](unsigned int m, unsigned int n) {
+    return 0.25f * static_cast<float>(m * N + n) - 1.0f;
+  };
+  for (unsigned int m = 0; m < M; ++m)
+    for (unsigned int n = 0; n < N; ++n)
+      accumulated.setValue(0, 0, m, n, previous(m, n));
+  a.dot(q, accumulated, false, false, beta);
+
+  for (unsigned int m = 0; m < M; ++m) {
+    for (unsigned int n = 0; n < N; ++n) {
+      const float base = static_cast<float>(plain.getValue<_FP16>(0, 0, m, n));
+      const float got =
+        static_cast<float>(accumulated.getValue<_FP16>(0, 0, m, n));
+      ASSERT_TRUE(std::isfinite(base)) << " at m=" << m << ", n=" << n;
+      EXPECT_NEAR(got, base + beta * previous(m, n),
+                  0.02f + 0.05f * std::fabs(base))
+        << " at m=" << m << ", n=" << n;
+    }
+  }
+}
+
+/**
+ * @brief A beta * previous term that leaves the FP16 range saturates at the
+ *        largest finite FP16 instead of becoming infinite.
+ */
+TEST(nntrainer_Tensor, dot_qs4cx_fp16_activation_beta_saturates_p) {
+  const unsigned int M = 2;
+  const unsigned int K = 16;
+  const unsigned int N = 8;
+  const float fp16_max = 65504.0f;
+
+  auto quantizer =
+    nntrainer::Quantization::createQuantizer(nntrainer::QScheme::QS4CX);
+  nntrainer::Tensor q =
+    quantizer->quantize(qs4cxDotWeight(K, N), nntrainer::Tdatatype::QS4CX);
+
+  nntrainer::Tensor a(
+    {1, 1, M, K, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16}}, true);
+  for (unsigned int m = 0; m < M; ++m)
+    for (unsigned int k = 0; k < K; ++k)
+      a.setValue(0, 0, m, k,
+                 0.5f + 0.5f * std::sin(0.9f * static_cast<float>(k) +
+                                        2.3f * static_cast<float>(m)));
+
+  nntrainer::Tensor accumulated(
+    {1, 1, M, N, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16}}, true);
+  for (unsigned int m = 0; m < M; ++m)
+    for (unsigned int n = 0; n < N; ++n)
+      accumulated.setValue(0, 0, m, n, (n % 2 == 0) ? fp16_max : -fp16_max);
+  a.dot(q, accumulated, false, false, 2.0f);
+
+  for (unsigned int m = 0; m < M; ++m)
+    for (unsigned int n = 0; n < N; ++n)
+      EXPECT_EQ(static_cast<float>(accumulated.getValue<_FP16>(0, 0, m, n)),
+                (n % 2 == 0) ? fp16_max : -fp16_max)
+        << " at m=" << m << ", n=" << n;
+}
+
+/**
+ * @brief A product that leaves the FP16 range and a beta * previous term that
+ *        brings the sum back into it give that finite sum: beta is applied
+ *        before the result is clamped, not to an already saturated product.
+ */
+TEST(nntrainer_Tensor, dot_qs4cx_fp16_activation_beta_cancels_overflow_p) {
+  const unsigned int M = 2;
+  const unsigned int K = 16;
+  const unsigned int N = 4;
+  const float fp16_max = 65504.0f;
+
+  // One positive value per output channel, large enough that the dequantized
+  // weight (about 7/15 of it) still takes the product out of the FP16 range.
+  nntrainer::Tensor w(1, 1, K, N);
+  for (unsigned int n = 0; n < N; ++n)
+    for (unsigned int k = 0; k < K; ++k)
+      w.setValue(0, 0, k, n, 12.0f + 4.0f * static_cast<float>(n));
+
+  auto quantizer =
+    nntrainer::Quantization::createQuantizer(nntrainer::QScheme::QS4CX);
+  nntrainer::Tensor q = quantizer->quantize(w, nntrainer::Tdatatype::QS4CX);
+  nntrainer::Tensor w_deq =
+    quantizer->dequantize(q, nntrainer::Tdatatype::FP32);
+
+  // Row 0 overflows upwards and row 1, with the opposite activation,
+  // downwards; each is accumulated into the opposite end of the FP16 range.
+  nntrainer::Tensor a(
+    {1, 1, M, K, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16}}, true);
+  nntrainer::Tensor accumulated(
+    {1, 1, M, N, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16}}, true);
+  for (unsigned int m = 0; m < M; ++m) {
+    const float sign = (m == 0) ? 1.0f : -1.0f;
+    for (unsigned int k = 0; k < K; ++k)
+      a.setValue(0, 0, m, k, sign * 1024.0f);
+    for (unsigned int n = 0; n < N; ++n)
+      accumulated.setValue(0, 0, m, n, -sign * fp16_max);
+  }
+  a.dot(q, accumulated, false, false, 1.0f);
+
+  bool any_cancelled = false;
+  for (unsigned int n = 0; n < N; ++n) {
+    float product = 0.0f;
+    for (unsigned int k = 0; k < K; ++k)
+      product += 1024.0f * w_deq.getValue<float>(0, 0, k, n);
+    ASSERT_GT(product, fp16_max) << " at n=" << n;
+    const float expected = std::min(product - fp16_max, fp16_max);
+    any_cancelled = any_cancelled || expected < fp16_max;
+    for (unsigned int m = 0; m < M; ++m) {
+      const float sign = (m == 0) ? 1.0f : -1.0f;
+      EXPECT_NEAR(static_cast<float>(accumulated.getValue<_FP16>(0, 0, m, n)),
+                  sign * expected, 64.0f + 1e-3f * expected)
+        << " at m=" << m << ", n=" << n;
+    }
+  }
+  EXPECT_TRUE(any_cancelled);
+}
+
+/**
+ * @brief A product inside the FP16 range, accumulated into the negated FP16
+ *        value nearest to it, leaves the small residual of the fp32 sum: beta
+ *        is applied before the product is rounded to FP16.
+ */
+TEST(nntrainer_Tensor, dot_qs4cx_fp16_activation_beta_keeps_residual_p) {
+  const unsigned int M = 1;
+  const unsigned int K = 16;
+  const unsigned int N = 4;
+
+  nntrainer::Tensor w(1, 1, K, N);
+  for (unsigned int n = 0; n < N; ++n)
+    for (unsigned int k = 0; k < K; ++k)
+      w.setValue(0, 0, k, n, 10.0f + static_cast<float>(n));
+
+  auto quantizer =
+    nntrainer::Quantization::createQuantizer(nntrainer::QScheme::QS4CX);
+  nntrainer::Tensor q = quantizer->quantize(w, nntrainer::Tdatatype::QS4CX);
+  nntrainer::Tensor w_deq =
+    quantizer->dequantize(q, nntrainer::Tdatatype::FP32);
+
+  nntrainer::Tensor a(
+    {1, 1, M, K, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16}}, true);
+  a.setValue(512.0f);
+
+  std::vector<float> expected(N);
+  nntrainer::Tensor accumulated(
+    {1, 1, M, N, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP16}}, true);
+  bool any_residual = false;
+  for (unsigned int n = 0; n < N; ++n) {
+    float product = 0.0f;
+    for (unsigned int k = 0; k < K; ++k)
+      product += 512.0f * w_deq.getValue<float>(0, 0, k, n);
+    ASSERT_GT(product, 32768.0f) << " at n=" << n;
+    ASSERT_LT(product, 65504.0f) << " at n=" << n;
+    const float nearest = static_cast<float>(static_cast<_FP16>(product));
+    accumulated.setValue(0, 0, 0, n, -nearest);
+    expected[n] = product - nearest;
+    any_residual = any_residual || std::fabs(expected[n]) >= 1.0f;
+  }
+  // a product on the FP16 grid would leave nothing to lose
+  ASSERT_TRUE(any_residual);
+
+  a.dot(q, accumulated, false, false, 1.0f);
+
+  for (unsigned int n = 0; n < N; ++n)
+    EXPECT_NEAR(static_cast<float>(accumulated.getValue<_FP16>(0, 0, 0, n)),
+                expected[n], 0.5f)
+      << " at n=" << n;
 }
 
 /**
