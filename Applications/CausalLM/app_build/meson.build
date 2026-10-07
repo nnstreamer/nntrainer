@@ -87,6 +87,8 @@ if is_android
     nntrainer_root / 'nntrainer' / 'utils',
     nntrainer_root / 'nntrainer' / 'tensor',
     nntrainer_root / 'nntrainer' / 'tensor' / 'cl_operations',
+    nntrainer_root / 'nntrainer' / 'layers',
+    nntrainer_root / 'nntrainer' / 'layers' / 'loss',
     nntrainer_root / 'nntrainer' / 'layers' / 'llm',
   ]
     nntrainer_inc_args += ['-I' + p]
@@ -449,6 +451,20 @@ endif
 executable('nntr_causallm',
     causallm_root / 'main.cpp',
     dependencies: [nntrainer_dep, causallm_dep, openmp_dep, thread_dep, log_dep],
+    cpp_args: causallm_inc_args,
+    install: false,
+)
+
+# ── nntr_lora_train: QAT / LoRA fine-tuning CLI (lora_train.cpp) ─────────
+# Same shape as nntr_causallm: links libcausallm + libnntrainer directly.
+# Trains LoRA adapters on-device (train_qwen3_lora.cpp registers the Qwen3
+# training model); the saved adapter is consumed by nntr_causallm via
+# lora_file_name in nntr_config.json.
+executable('nntr_lora_train',
+    [causallm_root / 'lora_train.cpp',
+     causallm_root / 'train_qwen3_lora.cpp'],
+    dependencies: [nntrainer_dep, causallm_dep, openmp_dep, thread_dep,
+                   log_dep],
     cpp_args: causallm_inc_args,
     install: false,
 )

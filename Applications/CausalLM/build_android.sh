@@ -410,6 +410,7 @@ NATIVE_ARTIFACT_NAMES=(
     libcausallm.so
     libquick_dot_ai_api.so
     nntr_causallm
+    nntr_lora_train
     quick_dot_ai_test
     nntr_quantize
     nntr_safetensors_info
@@ -450,6 +451,7 @@ PREBUILT_DIR="$CAUSALLM_ROOT/Android/QuickDotAI/prebuilt_libs"
 LIBCXX="$ANDROID_NDK/toolchains/llvm/prebuilt/$ANDROID_NDK_HOST/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so"
 NATIVE_EXECUTABLES=(
     "$NATIVE_BUILD/nntr_causallm"
+    "$NATIVE_BUILD/nntr_lora_train"
     "$NATIVE_BUILD/quick_dot_ai_test"
     "$NATIVE_BUILD/nntr_quantize"
     "$NATIVE_BUILD/nntr_safetensors_info"
