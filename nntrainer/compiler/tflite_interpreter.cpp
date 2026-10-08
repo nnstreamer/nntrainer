@@ -762,14 +762,11 @@ TfOpNodes buildRealizedOpNodes(TfOpNodes &nodes,
         mul_mean.multiply_i(sub_result);
         mul_beta.subtract_i(mul_mean);
         new_mul_weight->setName("MUL");
-        for (auto weight : removed_weights) {
-          delete weight;
-        }
-        removed_weights.clear();
-        removed_weights.push_back(new_mul_weight.release());
+        // setWeights() keeps a transposed copy in node_owned_variable
+        TfOpNode::Variables fused_weights = {new_mul_weight.get()};
 
-        realized_nodes.back().get()->replaceWeights(removed_weights);
-        realized_nodes.back().get()->setWeights(removed_weights, true);
+        realized_nodes.back().get()->replaceWeights(fused_weights);
+        realized_nodes.back().get()->setWeights(fused_weights, true);
 
         // Insert Add layer into Graph
         std::unique_ptr<TfOpNode> tf_node = std::make_unique<TfOpNode>();
