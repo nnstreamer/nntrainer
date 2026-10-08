@@ -560,3 +560,90 @@ TEST(nntrainerInterpreterTflite, bn_after_non_trainable_fused_mul_add) {
               << SAFE_STRERROR(errno, error_buf, error_buflen);
   }
 }
+
+/**
+ * @brief Check that the export of a model is rejected because its batch
+ * normalization layer "bn0" has no usable relu after it, and that the failed
+ * export neither writes a file nor releases the model weights
+ */
+static void expectBnExportRejected(ModelHandle &nn_model,
+                                   const std::string &file_name) {
+  auto bn_weights = getBnWeights(nn_model);
+  remove(file_name.c_str());
+
+  try {
+    nn_model->exports(ml::train::ExportMethods::METHOD_TFLITE, file_name);
+    ADD_FAILURE() << "the export must fail";
+  } catch (const std::invalid_argument &e) {
+    EXPECT_NE(std::string(e.what()).find("followed by a relu activation"),
+              std::string::npos)
+      << e.what();
+  }
+
+  EXPECT_EQ(getBnWeights(nn_model), bn_weights);
+  EXPECT_NE(remove(file_name.c_str()), 0)
+    << "the failed export left " << file_name << " behind";
+}
+
+/**
+ * @brief Batch normalization after a non-trainable layer cannot be exported as
+ * the last layer
+ */
+TEST(nntrainerInterpreterTflite, bn_after_non_trainable_as_last_layer_n) {
+  ModelHandle nn_model = makeBnAfterNonTrainableModel(false, false);
+  expectBnExportRejected(nn_model, "bn_after_non_trainable_last.tflite");
+}
+
+/**
+ * @brief Batch normalization after a non-trainable layer cannot be exported
+ * when the next layer is not a relu activation
+ */
+TEST(nntrainerInterpreterTflite, bn_after_non_trainable_without_relu_n) {
+  ModelHandle nn_model = makeBnAfterNonTrainableModel(false, true);
+  expectBnExportRejected(nn_model, "bn_after_non_trainable_no_relu.tflite");
+}
+
+/**
+ * @brief Batch normalization after a non-trainable layer cannot be exported
+ * when its relu activation is the last layer
+ */
+TEST(nntrainerInterpreterTflite, bn_after_non_trainable_relu_as_last_layer_n) {
+  ModelHandle nn_model = makeBnAfterNonTrainableModel(true, false);
+  expectBnExportRejected(nn_model, "bn_after_non_trainable_relu_last.tflite");
+}
+
+/**
+ * @brief Batch normalization after a non-trainable layer cannot be exported
+ * when the relu next to it belongs to another branch
+ */
+TEST(nntrainerInterpreterTflite, bn_after_non_trainable_unrelated_relu_n) {
+  ModelHandle nn_model = ml::train::createModel(
+    ml::train::ModelType::NEURAL_NET, {nntrainer::withKey("loss", "mse")});
+
+  nn_model->addLayer(
+    createLayer("input", {nntrainer::withKey("name", "in0"),
+                          nntrainer::withKey("input_shape", "4:1:1")}));
+  nn_model->addLayer(
+    createLayer("pooling2d", {nntrainer::withKey("name", "pool0"),
+                              nntrainer::withKey("pooling", "average"),
+                              nntrainer::withKey("pool_size", {1, 1}),
+                              nntrainer::withKey("stride", {1, 1}),
+                              nntrainer::withKey("padding", "valid")}));
+  nn_model->addLayer(createLayer(
+    "batch_normalization", {nntrainer::withKey("name", "bn0"),
+                            nntrainer::withKey("input_layers", "pool0")}));
+  nn_model->addLayer(
+    createLayer("activation", {nntrainer::withKey("name", "relu0"),
+                               nntrainer::withKey("activation", "relu"),
+                               nntrainer::withKey("input_layers", "pool0")}));
+  nn_model->addLayer(
+    createLayer("addition", {nntrainer::withKey("name", "add0"),
+                             nntrainer::withKey("input_layers", "bn0,relu0")}));
+
+  auto optimizer = ml::train::createOptimizer("sgd", {"learning_rate=0.001"});
+  EXPECT_EQ(nn_model->setOptimizer(std::move(optimizer)), ML_ERROR_NONE);
+  EXPECT_EQ(nn_model->compile(), ML_ERROR_NONE);
+  EXPECT_EQ(nn_model->initialize(), ML_ERROR_NONE);
+
+  expectBnExportRejected(nn_model, "bn_after_non_trainable_branch.tflite");
+}

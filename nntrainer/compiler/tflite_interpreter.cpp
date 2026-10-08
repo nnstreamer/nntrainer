@@ -736,6 +736,18 @@ TfOpNodes buildRealizedOpNodes(TfOpNodes &nodes,
           y = x * (gamma / sqrt(variance + epsilon)) +
           (beta - mean * gamma / sqrt(variance + epsilon))
         */
+        const TfOpNode *next_node =
+          node_count + 2 < nodes.size() ? nodes[node_count + 1].get() : nullptr;
+        NNTR_THROW_IF(!next_node ||
+                        next_node->getOpType() !=
+                          tflite::BuiltinOperator_RELU ||
+                        next_node->arity() != 1 ||
+                        next_node->arg(0) != realized_nodes.back().get(),
+                      std::invalid_argument)
+          << FUNC_TAG
+          << "batch normalization after a layer without weights must be "
+             "followed by a relu activation that is not the last layer";
+
         auto removed_weights = realized_nodes.back().get()->getWeights();
         auto mul_mean = removed_weights.at(0)->clone();
         auto mul_variance = removed_weights.at(1)->clone();
