@@ -94,7 +94,13 @@ LOCAL_MODULE := test_util
 # aarch64 and arm branches add it too). tensor_dim.h maps _FP16 to __fp16 with
 # the define and to _Float16 without it, so omitting it here compiled this
 # translation unit against a different _FP16 type than the library it links
-# with.
+# with. The same goes for every module below: without the define it parses the
+# Tensor/HalfTensor headers with _Float16 while the library is built with
+# __fp16. What that costs depends on the module: an undefined reference where
+# it calls a non-template library function taking _FP16, a silent mismatch in
+# header-instantiated code and in the expected values the test computes, or
+# nothing visible at all. Every module that passes -DENABLE_FP16=1 therefore
+# passes -DUSE__FP16=1 too; keep the two together in new modules.
 LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DENABLE_FP16=1 -DUSE__FP16=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid
@@ -109,7 +115,7 @@ include $(BUILD_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := unittest_nntrainer_activations
-LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti  -DENABLE_FP16=1
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti  -DENABLE_FP16=1 -DUSE__FP16=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid
 
@@ -132,7 +138,7 @@ include $(BUILD_EXECUTABLE)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := unittest_nntrainer_exe_order
-LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti  -DENABLE_FP16=1
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti  -DENABLE_FP16=1 -DUSE__FP16=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid
 
@@ -154,7 +160,7 @@ include $(BUILD_EXECUTABLE)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := unittest_nntrainer_internal
-LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti  -DENABLE_FP16=1
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti  -DENABLE_FP16=1 -DUSE__FP16=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid
 
@@ -176,7 +182,7 @@ include $(BUILD_EXECUTABLE)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := unittest_nntrainer_lazy_tensor
-LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti  -DENABLE_FP16=1
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti  -DENABLE_FP16=1 -DUSE__FP16=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid
 
@@ -199,7 +205,7 @@ include $(BUILD_EXECUTABLE)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := unittest_nntrainer_tensor
-LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti  -DENABLE_FP16=1
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti  -DENABLE_FP16=1 -DUSE__FP16=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid
 
@@ -222,7 +228,7 @@ include $(BUILD_EXECUTABLE)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := unittest_nntrainer_tensor_nhwc
-LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti  -DENABLE_FP16=1
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti  -DENABLE_FP16=1 -DUSE__FP16=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid
 
@@ -245,7 +251,7 @@ include $(BUILD_EXECUTABLE)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := unittest_nntrainer_tensor_fp16
-LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DENABLE_FP16=1
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DENABLE_FP16=1 -DUSE__FP16=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid
 
@@ -268,7 +274,7 @@ include $(BUILD_EXECUTABLE)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := unittest_util_func
-LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DENABLE_FP16=1
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DENABLE_FP16=1 -DUSE__FP16=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid
 
@@ -290,7 +296,7 @@ include $(BUILD_EXECUTABLE)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := unittest_nntrainer_modelfile
-LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DENABLE_FP16=1
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DENABLE_FP16=1 -DUSE__FP16=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid
 
@@ -312,7 +318,7 @@ include $(BUILD_EXECUTABLE)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := unittest_nntrainer_graph
-LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DENABLE_FP16=1
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DENABLE_FP16=1 -DUSE__FP16=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid
 
@@ -336,7 +342,7 @@ include $(BUILD_EXECUTABLE)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := unittest_nntrainer_appcontext
-LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DENABLE_FP16=1
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DENABLE_FP16=1 -DUSE__FP16=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid
 
@@ -357,7 +363,7 @@ include $(BUILD_EXECUTABLE)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := unittest_base_properties
-LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DENABLE_FP16=1
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DENABLE_FP16=1 -DUSE__FP16=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid
 
@@ -378,7 +384,7 @@ include $(BUILD_EXECUTABLE)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := unittest_common_properties
-LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DENABLE_FP16=1
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DENABLE_FP16=1 -DUSE__FP16=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid
 
@@ -399,7 +405,7 @@ include $(BUILD_EXECUTABLE)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := unittest_nntrainer_tensor_neon_fp16
-LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DENABLE_FP16=1
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DENABLE_FP16=1 -DUSE__FP16=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid
 
@@ -420,7 +426,7 @@ include $(BUILD_EXECUTABLE)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := unittest_nntrainer_tensor_pool
-LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DENABLE_FP16=1
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DENABLE_FP16=1 -DUSE__FP16=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid
 
@@ -441,7 +447,7 @@ include $(BUILD_EXECUTABLE)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := unittest_nntrainer_tensor_pool_fp16
-LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DENABLE_FP16=1
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DENABLE_FP16=1 -DUSE__FP16=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid
 
@@ -462,7 +468,7 @@ include $(BUILD_EXECUTABLE)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := unittest_nntrainer_lr_scheduler
-LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DENABLE_FP16=1
+LOCAL_CFLAGS := -Igoogletest/include -I../include -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DENABLE_FP16=1 -DUSE__FP16=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid
 
@@ -483,7 +489,7 @@ include $(BUILD_EXECUTABLE)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := unittest_compiler
-LOCAL_CFLAGS := -Igoogletest/include -I../include -I../unittest/compiler -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DNDK_BUILD=1 -DENABLE_FP16=1
+LOCAL_CFLAGS := -Igoogletest/include -I../include -I../unittest/compiler -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DNDK_BUILD=1 -DENABLE_FP16=1 -DUSE__FP16=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid
 
@@ -506,7 +512,7 @@ include $(BUILD_EXECUTABLE)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := unittest_nntrainer_models
-LOCAL_CFLAGS := -Igoogletest/include -I../include -I../unittest/models -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DENABLE_FP16=1
+LOCAL_CFLAGS := -Igoogletest/include -I../include -I../unittest/models -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DENABLE_FP16=1 -DUSE__FP16=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid
 
@@ -529,7 +535,7 @@ include $(BUILD_EXECUTABLE)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := unittest_models
-LOCAL_CFLAGS := -Igoogletest/include -I../include -I../unittest/models -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DNDK_BUILD=1 -DENABLE_FP16=1
+LOCAL_CFLAGS := -Igoogletest/include -I../include -I../unittest/models -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DNDK_BUILD=1 -DENABLE_FP16=1 -DUSE__FP16=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid
 
@@ -554,7 +560,7 @@ include $(BUILD_EXECUTABLE)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := unittest_datasets
-LOCAL_CFLAGS := -Igoogletest/include -I../include -I../unittest/datasets -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DNDK_BUILD=1 -DENABLE_FP16=1
+LOCAL_CFLAGS := -Igoogletest/include -I../include -I../unittest/datasets -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DNDK_BUILD=1 -DENABLE_FP16=1 -DUSE__FP16=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid
 
@@ -583,7 +589,7 @@ include $(BUILD_EXECUTABLE)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := unittest_layers
-LOCAL_CFLAGS := -Igoogletest/include -I../include -I../unittest/layers -I../../nntrainer/layers/loss -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DNDK_BUILD=1 -DENABLE_FP16=1
+LOCAL_CFLAGS := -Igoogletest/include -I../include -I../unittest/layers -I../../nntrainer/layers/loss -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DNDK_BUILD=1 -DENABLE_FP16=1 -DUSE__FP16=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid
 ifeq ($(MESON_ENABLE_OPENCL), 1)
@@ -654,7 +660,7 @@ ifeq ($(MESON_ENABLE_OPENCL), 1)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := unittest_opencl_kernels_blas
-LOCAL_CFLAGS := -Igoogletest/include -I../include -I../unittest/layers -I../../nntrainer/layers/loss -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DNDK_BUILD=1 -DENABLE_FP16=1 -DENABLE_OPENCL=1 
+LOCAL_CFLAGS := -Igoogletest/include -I../include -I../unittest/layers -I../../nntrainer/layers/loss -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DNDK_BUILD=1 -DENABLE_FP16=1 -DUSE__FP16=1 -DENABLE_OPENCL=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid
 
@@ -675,7 +681,7 @@ include $(BUILD_EXECUTABLE)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := unittest_opencl_kernels_int4
-LOCAL_CFLAGS := -Igoogletest/include -I../include -I../unittest/layers -I../../nntrainer/layers/loss -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DNDK_BUILD=1 -DENABLE_FP16=1 -DENABLE_OPENCL=1 
+LOCAL_CFLAGS := -Igoogletest/include -I../include -I../unittest/layers -I../../nntrainer/layers/loss -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DNDK_BUILD=1 -DENABLE_FP16=1 -DUSE__FP16=1 -DENABLE_OPENCL=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid
 
@@ -696,7 +702,7 @@ include $(BUILD_EXECUTABLE)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := unittest_opencl_kernels_qk_k
-LOCAL_CFLAGS := -Igoogletest/include -I../include -I../unittest/layers -I../../nntrainer/layers/loss -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DNDK_BUILD=1 -DENABLE_FP16=1 -DENABLE_OPENCL=1 
+LOCAL_CFLAGS := -Igoogletest/include -I../include -I../unittest/layers -I../../nntrainer/layers/loss -pthread -fexceptions -DMIN_CPP_VERSION=201703L -DNNTR_NUM_THREADS=1 -D__LOGGING__=1 -DENABLE_TEST=1 -DREDUCE_TOLERANCE=1 $(ARM_MARCH_FLAGS) -O3 -frtti -DNDK_BUILD=1 -DENABLE_FP16=1 -DUSE__FP16=1 -DENABLE_OPENCL=1
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_LDLIBS        := -llog -landroid
 
