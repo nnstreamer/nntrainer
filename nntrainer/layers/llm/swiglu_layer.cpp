@@ -14,11 +14,14 @@
 
 #include "swiglu_layer.h"
 
+#include <algorithm>
 #include <cmath>
 
+#include <compute_ops.h>
 #include <nntrainer_error.h>
 #include <node_exporter.h>
 #include <tensor.h>
+#include <thread_manager.h>
 
 namespace nntrainer {
 
@@ -42,6 +45,28 @@ void SwiGLULayer::setProperty(const std::vector<std::string> &values) {
   }
 }
 
+namespace {
+/**
+ * @brief out = silu(in1) * in2 over the first @a rows rows. The host table's
+ * swiglu is the scalar reference every backend is checked against; a
+ * multi-row (prefill / training) step is split into row blocks across the
+ * compute threads -- same per-element math, so bit-identical.
+ */
+void runSwiglu(Tensor &in1, Tensor &in2, Tensor &out, unsigned int rows) {
+  ComputeOps *ops = in1.getOps();
+  constexpr unsigned int ROWS_PER_TASK = 16;
+  if (ops == getComputeOps() && rows >= 2 * ROWS_PER_TASK) {
+    const unsigned int n_tasks = (rows + ROWS_PER_TASK - 1) / ROWS_PER_TASK;
+    ThreadManager::Global().parallel_for(0, n_tasks, [&](size_t t) {
+      const unsigned int r0 = static_cast<unsigned int>(t) * ROWS_PER_TASK;
+      ops->swiglu(in1, in2, out, std::min(ROWS_PER_TASK, rows - r0), r0);
+    });
+    return;
+  }
+  ops->swiglu(in1, in2, out, rows, /*row_offset=*/0);
+}
+} // namespace
+
 void SwiGLULayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &in1 = context.getInput(INPUT_IDX_1);
   Tensor &in2 = context.getInput(INPUT_IDX_2);
@@ -49,9 +74,7 @@ void SwiGLULayer::forwarding(RunLayerContext &context, bool training) {
 
   // Rows are the (batch, channel, height) axes flattened; width() is the
   // per-row element count.
-  in1.getOps()->swiglu(in1, in2, out,
-                       in1.batch() * in1.channel() * in1.height(),
-                       /*row_offset=*/0);
+  runSwiglu(in1, in2, out, in1.batch() * in1.channel() * in1.height());
 }
 
 void SwiGLULayer::incremental_forwarding(RunLayerContext &context,
@@ -73,7 +96,7 @@ void SwiGLULayer::incremental_forwarding(RunLayerContext &context,
   // scaled by batch*channel or a batch>1 shape only computes its first
   // (to - from) rows.
   const unsigned int bc = in1.batch() * in1.channel();
-  in1.getOps()->swiglu(in1, in2, out, (to - from) * bc, /*row_offset=*/0);
+  runSwiglu(in1, in2, out, (to - from) * bc);
 }
 
 void SwiGLULayer::updateTensorsByInputDimensions(
@@ -121,19 +144,25 @@ void SwiGLULayer::calcDerivative(RunLayerContext &context) {
   float *dg = d_gate.getData<float>();
   float *du = d_up.getData<float>();
 
-  for (size_t i = 0; i < len; ++i) {
-    // Snapshot all inputs at this index first; see the aliasing note above.
-    const float gi = g[i];
-    const float ui = u[i];
-    const float dyi = dy_[i];
+  // Element-independent: split into chunks across the compute threads.
+  constexpr size_t CHUNK = 16384;
+  const size_t n_chunks = (len + CHUNK - 1) / CHUNK;
+  ThreadManager::Global().parallel_for(0, n_chunks, [=](size_t c) {
+    const size_t i_end = std::min(len, (c + 1) * CHUNK);
+    for (size_t i = c * CHUNK; i < i_end; ++i) {
+      // Snapshot all inputs at this index first; see the aliasing note above.
+      const float gi = g[i];
+      const float ui = u[i];
+      const float dyi = dy_[i];
 
-    const float sig = 1.0f / (1.0f + std::exp(-gi));
-    const float silu = gi * sig;
-    const float dsilu = sig * (1.0f + gi * (1.0f - sig));
+      const float sig = 1.0f / (1.0f + std::exp(-gi));
+      const float silu = gi * sig;
+      const float dsilu = sig * (1.0f + gi * (1.0f - sig));
 
-    du[i] = dyi * silu;
-    dg[i] = dyi * ui * dsilu;
-  }
+      du[i] = dyi * silu;
+      dg[i] = dyi * ui * dsilu;
+    }
+  });
 }
 
 } // namespace nntrainer
