@@ -1115,6 +1115,147 @@ void sgemm_cl(bool TransA, bool TransB, const float *A, const float *B,
                            lda, ldb, ldc, out_svm);
 }
 
+/**
+ * Register-tiled FP32 GEMM for the training offload (see sgemm_train_cl).
+ *
+ * One 16 x 16 work-group computes a 64 x 64 tile of C; each work-item keeps a
+ * 4 x 4 block of it in registers (rows ty + 16 i, columns tx + 16 j, so the
+ * local-memory reads of a wave are conflict-free) and walks K in steps of 16
+ * through two local tiles. Transposition is folded into the global loads,
+ * each laid out so the fastest-varying work-item index is the contiguous
+ * global axis, and out-of-range elements load as zero, so any M, N, K works.
+ */
+static const std::string sgemm_train_kernel = R"CL(
+#define BM 64
+#define BN 64
+#define BK 16
+__kernel __attribute__((reqd_work_group_size(16, 16, 1)))
+void sgemm_train(__global const float *A, __global const float *B,
+                 __global float *C, const int M, const int N, const int K,
+                 const int transA, const int transB) {
+  const int tx = get_local_id(0);
+  const int ty = get_local_id(1);
+  const int tid = ty * 16 + tx;
+  const int row0 = get_group_id(1) * BM;
+  const int col0 = get_group_id(0) * BN;
+
+  // +1 pad: the load maps put the k index on the fastest work-item axis, so
+  // an unpadded 64-float row stride sends a whole wave to one local bank.
+  __local float As[BK][BM + 1];
+  __local float Bs[BK][BN + 1];
+
+  float acc[4][4];
+  for (int i = 0; i < 4; ++i)
+    for (int j = 0; j < 4; ++j)
+      acc[i][j] = 0.0f;
+
+  for (int k0 = 0; k0 < K; k0 += BK) {
+    for (int l = 0; l < 4; ++l) {
+      const int idx = tid + 256 * l;
+      int mm, kk;
+      if (transA) { mm = idx % BM; kk = idx / BM; }
+      else        { kk = idx % BK; mm = idx / BK; }
+      const int gm = row0 + mm, gk = k0 + kk;
+      float va = 0.0f;
+      if (gm < M && gk < K)
+        va = transA ? A[(long)gk * M + gm] : A[(long)gm * K + gk];
+      As[kk][mm] = va;
+
+      int nn, kb;
+      if (transB) { kb = idx % BK; nn = idx / BK; }
+      else        { nn = idx % BN; kb = idx / BN; }
+      const int gn = col0 + nn, gkb = k0 + kb;
+      float vb = 0.0f;
+      if (gn < N && gkb < K)
+        vb = transB ? B[(long)gn * K + gkb] : B[(long)gkb * N + gn];
+      Bs[kb][nn] = vb;
+    }
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    #pragma unroll
+    for (int k = 0; k < BK; ++k) {
+      float a[4], b[4];
+      for (int i = 0; i < 4; ++i) a[i] = As[k][ty + 16 * i];
+      for (int j = 0; j < 4; ++j) b[j] = Bs[k][tx + 16 * j];
+      for (int i = 0; i < 4; ++i)
+        for (int j = 0; j < 4; ++j)
+          acc[i][j] = mad(a[i], b[j], acc[i][j]);
+    }
+    barrier(CLK_LOCAL_MEM_FENCE);
+  }
+
+  for (int i = 0; i < 4; ++i) {
+    const int gm = row0 + ty + 16 * i;
+    if (gm >= M) continue;
+    for (int j = 0; j < 4; ++j) {
+      const int gn = col0 + tx + 16 * j;
+      if (gn < N)
+        C[(long)gm * N + gn] = acc[i][j];
+    }
+  }
+}
+)CL";
+
+void sgemm_train_cl(bool TransA, bool TransB, const float *A, const float *B,
+                    float *C, unsigned int M, unsigned int N, unsigned int K) {
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  ClContext::SharedPtrClKernel kernel =
+    blas_cc->registerClKernel(sgemm_train_kernel, "sgemm_train");
+  NNTR_CL_BLAS_REQUIRE(kernel, "sgemm_train_cl", "kernel register", M, N, K);
+
+  static const bool prof = std::getenv("NNTR_TRAIN_GPU_PROF") != nullptr;
+  const auto tp0 = std::chrono::steady_clock::now();
+  auto &clbuffInstance = ClBufferManager::Global();
+  auto &queue = blas_cc->command_queue_inst_;
+  bool result = clbuffInstance.getInBufferA()->WriteDataRegion(
+    queue, (size_t)M * K * sizeof(float), A);
+  NNTR_CL_BLAS_REQUIRE(result, "sgemm_train_cl", "stage A", M, N, K);
+  result = clbuffInstance.getInBufferB()->WriteDataRegion(
+    queue, (size_t)K * N * sizeof(float), B);
+  NNTR_CL_BLAS_REQUIRE(result, "sgemm_train_cl", "stage B", M, N, K);
+
+  const auto tp1 = std::chrono::steady_clock::now();
+  const int ta = TransA ? 1 : 0, tb = TransB ? 1 : 0;
+  const int Mi = (int)M, Ni = (int)N, Ki = (int)K;
+  result = kernel->SetKernelArguments(0, clbuffInstance.getInBufferA(),
+                                      sizeof(cl_mem)) &&
+           kernel->SetKernelArguments(1, clbuffInstance.getInBufferB(),
+                                      sizeof(cl_mem)) &&
+           kernel->SetKernelArguments(2, clbuffInstance.getOutBufferA(),
+                                      sizeof(cl_mem)) &&
+           kernel->SetKernelArguments(3, &Mi, sizeof(int)) &&
+           kernel->SetKernelArguments(4, &Ni, sizeof(int)) &&
+           kernel->SetKernelArguments(5, &Ki, sizeof(int)) &&
+           kernel->SetKernelArguments(6, &ta, sizeof(int)) &&
+           kernel->SetKernelArguments(7, &tb, sizeof(int));
+  NNTR_CL_BLAS_REQUIRE(result, "sgemm_train_cl", "args", M, N, K);
+
+  const int work_groups_count[3] = {(int)((N + 63) / 64) * 16,
+                                    (int)((M + 63) / 64) * 16, 1};
+  const int work_group_size[3] = {16, 16, 1};
+  result = queue.DispatchCommand(kernel, work_groups_count, work_group_size);
+  NNTR_CL_BLAS_REQUIRE(result, "sgemm_train_cl", "dispatch", M, N, K);
+  const auto tp2 = std::chrono::steady_clock::now();
+
+  result = clbuffInstance.getOutBufferA()->ReadDataRegion(
+    queue, (size_t)M * N * sizeof(float), C);
+  NNTR_CL_BLAS_REQUIRE(result, "sgemm_train_cl", "read back", M, N, K);
+  if (prof) {
+    const auto tp3 = std::chrono::steady_clock::now();
+    auto ms = [](std::chrono::steady_clock::time_point a,
+                 std::chrono::steady_clock::time_point b) {
+      return std::chrono::duration<double, std::milli>(b - a).count();
+    };
+    static int n = 0;
+    if (n++ < 30)
+      std::fprintf(stderr,
+                   "[SGEMM-TRAIN] M=%u N=%u K=%u stage=%.2fms dispatch=%.2fms "
+                   "wait+read=%.2fms\n",
+                   M, N, K, ms(tp0, tp1), ms(tp1, tp2), ms(tp2, tp3));
+  }
+}
+
 void addition_cl(const float *input, float *res, unsigned int size_input,
                  unsigned int size_res, bool use_svm) {
   bool result = false;

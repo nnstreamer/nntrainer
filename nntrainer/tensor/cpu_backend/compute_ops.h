@@ -61,6 +61,35 @@ public:
                           const unsigned int ldb, const float beta, float *C,
                           const unsigned int ldc);
 
+  /**
+   * @brief Optional accelerator offload of a plain FP32 GEMM on HOST pointers.
+   *
+   * C = op(A) * op(B), row-major, contiguous (lda/ldb/ldc are the natural
+   * leading dimensions), alpha = 1, beta = 0. Unlike sgemm_fp32 this is not
+   * reached through Tensor::dot: a host-side layer (the LoRA training path)
+   * asks an accelerator table explicitly and falls back to the CPU table when
+   * it declines. Operands and result must be ordinary host memory the caller
+   * can read right after the call returns (the accelerator stages them
+   * through its own buffers and reads the result back before returning).
+   *
+   * @return true when the accelerator computed C, false when it declined
+   *         (default); the caller then runs the CPU GEMM.
+   */
+  virtual bool try_sgemm_fp32_host(bool TransA, bool TransB,
+                                   const unsigned int M, const unsigned int N,
+                                   const unsigned int K, const float *A,
+                                   const float *B, float *C) {
+    (void)TransA;
+    (void)TransB;
+    (void)M;
+    (void)N;
+    (void)K;
+    (void)A;
+    (void)B;
+    (void)C;
+    return false;
+  }
+
   virtual void sgemv_fp32(const unsigned int TStorageOrder, bool TransA,
                           const unsigned int M, const unsigned int N,
                           const float alpha, const float *A,

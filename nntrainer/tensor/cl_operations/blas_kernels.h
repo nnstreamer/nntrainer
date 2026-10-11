@@ -184,6 +184,16 @@ void sgemm_cl(bool TransA, bool TransB, const float *A, const float *B,
               bool out_svm = false);
 
 /**
+ * @brief     Register-tiled FP32 GEMM on host pointers: C = op(A) * op(B),
+ *            row-major, contiguous, alpha = 1, beta = 0. Blocks until C holds
+ *            the product. Used by the training offload
+ *            (ComputeOps::try_sgemm_fp32_host); any M, N, K, subject to the
+ *            shared staging buffers (1024 * 8192 floats per operand).
+ */
+void sgemm_train_cl(bool TransA, bool TransB, const float *A, const float *B,
+                    float *C, unsigned int M, unsigned int N, unsigned int K);
+
+/**
  * @brief     addition : sum of all input vectors
  * @param[in] input float * for input
  * @param[in] res float * for result/output

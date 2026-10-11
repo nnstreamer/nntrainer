@@ -251,6 +251,31 @@ public:
   // Build the device-side v8c backing for this weight at load time, so the
   // first prefill does not pay the one-time repack. A no-op when the weight
   // is not one the v8c GEMM can take.
+  // Host-pointer FP32 GEMM for host-side layers that opt in (the LoRA
+  // training path, see FullyConnectedLayer). sgemm_train_cl stages A and B
+  // into the shared device buffers and blocks until the product is read back,
+  // so the caller may use C immediately. Small products stay on the host: the
+  // staging round trip costs more than the arithmetic saves (a rank-32 LoRA
+  // matmul is ~10x slower on the device than on the CPU table).
+  bool try_sgemm_fp32_host(bool TransA, bool TransB, const unsigned int M,
+                           const unsigned int N, const unsigned int K,
+                           const float *A, const float *B, float *C) override {
+    static const size_t min_work = []() -> size_t {
+      const char *e = std::getenv("NNTR_TRAIN_GPU_MIN_WORK");
+      return e ? static_cast<size_t>(std::strtoull(e, nullptr, 10))
+               : (size_t(1) << 26);
+    }();
+    // The shared staging buffers hold 1024 * 8192 floats per operand.
+    constexpr size_t max_elems = size_t(1024) * 8192;
+    if (static_cast<size_t>(M) * N * K < min_work ||
+        static_cast<size_t>(M) * K > max_elems ||
+        static_cast<size_t>(K) * N > max_elems ||
+        static_cast<size_t>(M) * N > max_elems)
+      return false;
+    nntrainer::sgemm_train_cl(TransA, TransB, A, B, C, M, N, K);
+    return true;
+  }
+
   void fc_prebuild_weight(Tensor &weight) override {
     nntrainer::dotCl_v8c_prebuild_weight(weight);
   }
