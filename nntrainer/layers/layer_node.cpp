@@ -34,6 +34,7 @@
 #include <residency_policy.h>
 #include <time_dist.h>
 #include <tracer.h>
+#include <train_prof.h>
 #include <util_func.h>
 
 #if defined(ENABLE_OPENCL) && ENABLE_OPENCL == 1
@@ -879,6 +880,8 @@ LayerNode::refinalize(const std::vector<TensorDim> &input_dims) {
 void LayerNode::forwarding(bool training) {
   loss->set(run_context->getRegularizationLoss());
 
+  const bool tp_on = train_prof::enabled() && training;
+  const auto tp_t0 = train_prof::clk::now();
   PROFILE_TIME_START(forward_event_key);
   if (reStoreData()) {
     if (getInPlaceType() == InPlaceType::NONE) {
@@ -898,6 +901,11 @@ void LayerNode::forwarding(bool training) {
   layer->forwarding(*run_context, training);
   reStoreData(false);
   PROFILE_TIME_END(forward_event_key);
+  if (tp_on)
+    train_prof::add(
+      train_prof::layerKey(getType(), getName()), train_prof::FWD,
+      std::chrono::duration<double, std::milli>(train_prof::clk::now() - tp_t0)
+        .count());
   TRACE_MEMORY() << getName() + ": F";
   TRACE_TIME() << getName() + ": F";
 
@@ -940,10 +948,16 @@ void LayerNode::incremental_forwarding(unsigned int from, unsigned int to,
  * @brief     calc the derivative to be passed to the previous layer
  */
 void LayerNode::calcDerivative() {
+  const auto tp_t0 = train_prof::clk::now();
   PROFILE_TIME_START(calc_deriv_event_key);
   PROFILE_MEM_ANNOTATE("CalcDerivative: " + getName());
   layer->calcDerivative(*run_context);
   PROFILE_TIME_END(calc_deriv_event_key);
+  if (train_prof::enabled())
+    train_prof::add(
+      train_prof::layerKey(getType(), getName()), train_prof::DERIV,
+      std::chrono::duration<double, std::milli>(train_prof::clk::now() - tp_t0)
+        .count());
   TRACE_MEMORY() << getName() + ": CD";
   TRACE_TIME() << getName() + ": CD";
 
@@ -958,6 +972,7 @@ void LayerNode::calcDerivative() {
  * @brief     Calculate the derivative of a layer
  */
 void LayerNode::calcGradient() {
+  const auto tp_t0 = train_prof::clk::now();
   PROFILE_TIME_START(calc_grad_event_key);
   if (needs_calc_gradient) {
     PROFILE_MEM_ANNOTATE("CalcGradient: " + getName());
@@ -966,6 +981,11 @@ void LayerNode::calcGradient() {
     TRACE_TIME() << getName() + ": CG";
   }
   PROFILE_TIME_END(calc_grad_event_key);
+  if (train_prof::enabled() && needs_calc_gradient)
+    train_prof::add(
+      train_prof::layerKey(getType(), getName()), train_prof::GRAD,
+      std::chrono::duration<double, std::milli>(train_prof::clk::now() - tp_t0)
+        .count());
 
 #ifdef DEBUG
   if (!run_context->validate(getNumInputConnections() == 0, !requireLabel()))

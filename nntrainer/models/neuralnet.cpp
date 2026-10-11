@@ -84,6 +84,7 @@
 #include <remap_realizer.h>
 #include <safetensors_util.h>
 #include <slice_realizer.h>
+#include <train_prof.h>
 #include <util_func.h>
 
 #ifdef ENABLE_TFLITE_INTERPRETER
@@ -880,6 +881,7 @@ void NeuralNetwork::backwarding(int iteration,
     PROFILE_MEM_ANNOTATE("ApplyGradient: " + node->getName());
 
     if (apply_gradient) {
+      train_prof::Scope tp_opt("opt.applyGradients", train_prof::OTHER);
       /// Apply gradient only at the end of the last shared weight access
       model_graph.applyGradients(
         node.get(), [iteration, opt_ = opt.get()](Weight &w) {
@@ -2776,7 +2778,11 @@ int NeuralNetwork::train_run(
     std::future<std::shared_ptr<IterationQueue>> future_iq =
       buffer->startFetchWorker(in_dims, label_dims, shuffle);
     while (true) {
+      const auto fetch_t0 = std::chrono::steady_clock::now();
       ScopedView<Iteration> iter_view = buffer->fetch();
+      train_prof::lastFetchMs() = std::chrono::duration<double, std::milli>(
+                                    std::chrono::steady_clock::now() - fetch_t0)
+                                    .count();
       if (iter_view.isEmpty()) {
         break;
       }
@@ -2817,12 +2823,32 @@ int NeuralNetwork::train_run(
     perf_clock::time_point perf_t1 = perf_clock::now();
     backwarding(iter++, stop_cb, stop_user_data);
     perf_clock::time_point perf_t2 = perf_clock::now();
-    std::cout
-      << "[PERF] step=" << perf_step_ms << "ms fwd="
-      << std::chrono::duration<double, std::milli>(perf_t1 - perf_t0).count()
-      << "ms bwd="
-      << std::chrono::duration<double, std::milli>(perf_t2 - perf_t1).count()
-      << "ms" << std::endl;
+    if (train_prof::enabled()) {
+      static double tp_fwd = 0, tp_bwd = 0;
+      static unsigned tp_seen = 0;
+      ++tp_seen;
+      if (tp_seen == 4) { // drop the first 3 (warm-up) iterations
+        train_prof::reset();
+        tp_fwd = tp_bwd = 0;
+      }
+      if (tp_seen >= 4) {
+        ++train_prof::iters();
+        tp_fwd +=
+          std::chrono::duration<double, std::milli>(perf_t1 - perf_t0).count();
+        tp_bwd +=
+          std::chrono::duration<double, std::milli>(perf_t2 - perf_t1).count();
+        if (train_prof::iters() % 10 == 0)
+          train_prof::dump(tp_fwd / train_prof::iters(),
+                           tp_bwd / train_prof::iters());
+      }
+    }
+    if (train_prof::enabled())
+      std::cout
+        << "[PERF] step=" << perf_step_ms << "ms fwd="
+        << std::chrono::duration<double, std::milli>(perf_t1 - perf_t0).count()
+        << "ms bwd="
+        << std::chrono::duration<double, std::milli>(perf_t2 - perf_t1).count()
+        << "ms wait=" << train_prof::lastFetchMs() << "ms" << std::endl;
 
     // To avoid unconsidered memory leak, we need to clear the cache
     model_graph.flushCache();
