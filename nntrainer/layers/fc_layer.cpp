@@ -26,12 +26,15 @@
 #include <common_properties.h>
 #include <compute_ops.h>
 #include <fc_layer.h>
+#include <ggml_interface.h>
 #include <layer_context.h>
 #include <lazy_tensor.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>
 #include <quantizer.h>
+#include <thread_manager.h>
+#include <train_prof.h>
 #include <util_func.h>
 
 #include <algorithm>
@@ -39,6 +42,7 @@
 #include <cmath>
 #include <cstring>
 #include <iostream>
+#include <map>
 #include <numeric>
 
 namespace nntrainer {
@@ -93,16 +97,19 @@ Tensor FullyConnectedLayer::fakeQuantizeQ4_0(const Tensor &x,
   if (block_d.empty())
     block_d.resize(num_blocks_NK, 0.0f);
 
-  // Compute fresh per-block scales in N x K layout.
-  // For N x K linear index nk = b*32+j: n = nk/K, k = nk%K -> K x N index =
-  // k*N+n.
+  // Blocks run over the N x K linear index nk = b*32+j: n = nk/K, k = nk%K,
+  // which is K x N element k*N+n. Raw-pointer loops (the per-element virtual
+  // getValue and std::function dispatch dominated this op); same arithmetic
+  // and order as before, so the result is bit-identical.
+  const float *src = x.getData<float>();
+  Tensor x_fq = x.clone();
+  float *dst = x_fq.getData<float>();
+
   for (size_t b = 0; b < num_blocks_NK; ++b) {
     float max_abs = 0.0f;
     for (size_t j = 0; j < 32; ++j) {
       const size_t nk = b * 32 + j;
-      const size_t n = nk / K;
-      const size_t k = nk % K;
-      max_abs = std::max(max_abs, std::abs(x.getValue<float>(k * N + n)));
+      max_abs = std::max(max_abs, std::abs(src[(nk % K) * N + nk / K]));
     }
     const float d_fresh = (max_abs > 1e-8f) ? max_abs / 8.0f : 0.0f;
     if (training) {
@@ -113,24 +120,16 @@ Tensor FullyConnectedLayer::fakeQuantizeQ4_0(const Tensor &x,
     }
   }
 
-  // Apply fake-quant iterating K x N order; map each element to its N x K
-  // block. apply() iterates K x N linearly: index i = k*N + n -> k = i/N,
-  // n = i%N -> N x K index nk = n*K + k -> block = nk/32.
-  Tensor x_fq = x.clone();
-  size_t i = 0;
-  std::function<float(float)> fn = [&i, K, N, &block_d](float v) -> float {
+  for (size_t i = 0, total = K * N; i < total; ++i) {
     const size_t k = i / N;
     const size_t n = i % N;
-    const size_t b = (n * K + k) / 32;
-    ++i;
-    const float d = block_d[b];
+    const float d = block_d[(n * K + k) / 32];
     if (d < 1e-10f)
-      return v;
-    float q = std::round(v / d);
+      continue; // x_fq already holds v
+    float q = std::round(dst[i] / d);
     q = std::max(-8.0f, std::min(7.0f, q));
-    return q * d;
-  };
-  x_fq.apply<float>(fn, x_fq);
+    dst[i] = q * d;
+  }
   return x_fq;
 }
 
@@ -531,11 +530,268 @@ void dequantizeToArena(const Tensor &weight, Quantizer &quantizer,
   /// [PERF-DEQ] diagnostic timing (parallel dequantize; see quantizer.cpp)
   const auto deq_t0 = std::chrono::steady_clock::now();
   quantizer.dequantize(weight, view_out);
-  std::cout << "[PERF-DEQ] " << d.height() << "x" << d.width() << "="
-            << std::chrono::duration<double, std::milli>(
-                 std::chrono::steady_clock::now() - deq_t0)
-                 .count()
-            << "ms\n";
+  if (train_prof::enabled())
+    std::cout << "[PERF-DEQ] " << d.height() << "x" << d.width() << "="
+              << std::chrono::duration<double, std::milli>(
+                   std::chrono::steady_clock::now() - deq_t0)
+                   .count()
+              << "ms\n";
+}
+
+/**
+ * @brief Dequantize a QS4CX weight (logical K x N; stored as N rows of
+ * ceil(K/2) nibble bytes, even k in the low nibble, value + 8, then N fp32
+ * per-output-channel scales at getScale()) into a K x N FP32 arena view.
+ */
+void dequantizeQs4cxToArena(const Tensor &weight, Tensor &view_out) {
+  static Tensor arena;
+  const TensorDim &d = weight.getDim();
+  const unsigned int K = d.height(), N = d.width();
+  const size_t elems = (size_t)K * N;
+  if (arena.size() < elems)
+    arena = Tensor(TensorDim(1, 1, 1, elems, Tformat::NCHW, Tdatatype::FP32));
+  view_out = arena.getSharedDataTensor(
+    TensorDim(d.batch(), d.channel(), K, N, Tformat::NCHW, Tdatatype::FP32), 0);
+  const uint8_t *q = weight.getData<uint8_t>();
+  const float *scale = static_cast<const float *>(weight.getScale());
+  float *out = view_out.getData<float>();
+  const size_t row_bytes = (K + 1) / 2;
+  ThreadManager::Global().parallel_for(0, N, [=](size_t n) {
+    const uint8_t *row = q + n * row_bytes;
+    const float s = scale[n];
+    for (unsigned int k = 0; k < K; ++k) {
+      const uint8_t b = row[k / 2];
+      const int v = ((k & 1) ? (b >> 4) : (b & 0x0F)) - 8;
+      out[(size_t)k * N + n] = (float)v * s;
+    }
+  });
+}
+
+/**
+ * @brief Build the transposed unit-scale QS4CX copy of a QS4CX weight W
+ * (logical K x N, N rows of ceil(K/2) nibble bytes + N scales): returns a
+ * QS4CX tensor of logical N x K whose K output channels hold column k of the
+ * codes with scale 1.
+ */
+[[maybe_unused]] Tensor buildQs4cxTransposed(const Tensor &weight) {
+  const TensorDim &d = weight.getDim();
+  const unsigned int K = d.height(), N = d.width();
+  Tensor wt(TensorDim(1, 1, N, K, Tformat::NCHW, Tdatatype::QS4CX), true);
+  const uint8_t *src = weight.getData<uint8_t>();
+  uint8_t *dst = wt.getData<uint8_t>();
+  const size_t src_row = (K + 1) / 2, dst_row = (N + 1) / 2;
+  ThreadManager::Global().parallel_for(0, K, [=](size_t k) {
+    uint8_t *drow = dst + k * dst_row;
+    std::memset(drow, 0, dst_row);
+    for (unsigned int n = 0; n < N; ++n) {
+      const uint8_t b = src[n * src_row + k / 2];
+      const uint8_t nib = (k & 1) ? (b >> 4) : (b & 0x0F);
+      drow[n / 2] |= (n & 1) ? (uint8_t)(nib << 4) : nib;
+    }
+  });
+  float *sc = static_cast<float *>(wt.getScale());
+  std::fill(sc, sc + K, 1.0f);
+  return wt;
+}
+
+/** KleidiAI dX for a QS4CX base: NNTR_TRAIN_DX_KAI=0 falls back to Q8_0. */
+[[maybe_unused]] bool useKaiDx() {
+  static const bool on = [] {
+    const char *e = std::getenv("NNTR_TRAIN_DX_KAI");
+    return !(e != nullptr && e[0] == '0');
+  }();
+  return on;
+}
+
+/**
+ * Rank-r (LoRA) skinny GEMMs, FP32 row-major, split over the compute threads.
+ * These shapes are memory bound (one operand is M x K or M x N, the other is
+ * rank-wide), so a single-threaded BLAS call left most of the bandwidth idle.
+ */
+inline float skinny_dot(const float *a, const float *b, unsigned int n) {
+  float acc[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+  unsigned int d = 0;
+  for (; d + 8 <= n; d += 8)
+    for (unsigned int t = 0; t < 8; ++t)
+      acc[t] += a[d + t] * b[d + t];
+  float r = ((acc[0] + acc[4]) + (acc[1] + acc[5])) +
+            ((acc[2] + acc[6]) + (acc[3] + acc[7]));
+  for (; d < n; ++d)
+    r += a[d] * b[d];
+  return r;
+}
+
+inline void skinny_axpy(float *y, float a, const float *x, unsigned int n) {
+  for (unsigned int i = 0; i < n; ++i)
+    y[i] += a * x[i];
+}
+
+/** C (M x r) = X (M x K) . W (K x r) */
+template <unsigned int R>
+void skinny_xw_r(const float *X, const float *W, float *C, unsigned int M,
+                 unsigned int K) {
+  ThreadManager::Global().parallel_for(0, (M + 7) / 8, [=](size_t blk) {
+    const unsigned int m_end = std::min<unsigned int>(M, (blk + 1) * 8);
+    for (unsigned int m = blk * 8; m < m_end; ++m) {
+      float acc[R] = {};
+      const float *x = X + (size_t)m * K;
+      for (unsigned int k = 0; k < K; ++k) {
+        const float xv = x[k];
+        const float *w = W + (size_t)k * R;
+        for (unsigned int j = 0; j < R; ++j)
+          acc[j] += xv * w[j];
+      }
+      std::memcpy(C + (size_t)m * R, acc, sizeof(acc));
+    }
+  });
+}
+
+void skinny_xw(const float *X, const float *W, float *C, unsigned int M,
+               unsigned int K, unsigned int r) {
+  if (r == 8)
+    return skinny_xw_r<8>(X, W, C, M, K);
+  if (r == 16)
+    return skinny_xw_r<16>(X, W, C, M, K);
+  ThreadManager::Global().parallel_for(0, M, [=](size_t m) {
+    for (unsigned int j = 0; j < r; ++j) {
+      float a = 0.0f;
+      for (unsigned int k = 0; k < K; ++k)
+        a += X[m * K + k] * W[(size_t)k * r + j];
+      C[m * r + j] = a;
+    }
+  });
+}
+
+/** C (M x r) = scale * Y (M x N) . B^T, B is (r x N) */
+void skinny_ybt(const float *Y, const float *B, float *C, unsigned int M,
+                unsigned int N, unsigned int r, float scale) {
+  ThreadManager::Global().parallel_for(0, (M + 7) / 8, [=](size_t blk) {
+    const unsigned int m_end = std::min<unsigned int>(M, (blk + 1) * 8);
+    for (unsigned int m = blk * 8; m < m_end; ++m)
+      for (unsigned int j = 0; j < r; ++j)
+        C[(size_t)m * r + j] =
+          scale * skinny_dot(Y + (size_t)m * N, B + (size_t)j * N, N);
+  });
+}
+
+/** C (M x Nd) += scale * U (M x r) . V (r x Nd) */
+void skinny_uv_acc(const float *U, const float *V, float *C, unsigned int M,
+                   unsigned int r, unsigned int Nd, float scale) {
+  ThreadManager::Global().parallel_for(0, (M + 7) / 8, [=](size_t blk) {
+    const unsigned int m_end = std::min<unsigned int>(M, (blk + 1) * 8);
+    for (unsigned int m = blk * 8; m < m_end; ++m) {
+      float *c = C + (size_t)m * Nd;
+      for (unsigned int j = 0; j < r; ++j)
+        skinny_axpy(c, scale * U[(size_t)m * r + j], V + (size_t)j * Nd, Nd);
+    }
+  });
+}
+
+/** D (r x N) = scale * T^T (r x M) . Y (M x N), column blocks per thread */
+void skinny_tty(const float *T, const float *Y, float *D, unsigned int M,
+                unsigned int r, unsigned int N, float scale) {
+  constexpr unsigned int NB = 256;
+  ThreadManager::Global().parallel_for(0, (N + NB - 1) / NB, [=](size_t blk) {
+    const unsigned int n0 = blk * NB;
+    const unsigned int len = std::min<unsigned int>(NB, N - n0);
+    for (unsigned int j = 0; j < r; ++j)
+      std::fill(D + (size_t)j * N + n0, D + (size_t)j * N + n0 + len, 0.0f);
+    for (unsigned int m = 0; m < M; ++m) {
+      const float *y = Y + (size_t)m * N + n0;
+      for (unsigned int j = 0; j < r; ++j)
+        skinny_axpy(D + (size_t)j * N + n0, T[(size_t)m * r + j], y, len);
+    }
+    if (scale != 1.0f)
+      for (unsigned int j = 0; j < r; ++j)
+        for (unsigned int n = 0; n < len; ++n)
+          D[(size_t)j * N + n0 + n] *= scale;
+  });
+}
+
+/** D (K x r) (+)= X^T (K x M) . T (M x r), row blocks of K per thread */
+template <unsigned int R>
+void skinny_xtt_r(const float *X, const float *T, float *D, unsigned int M,
+                  unsigned int K, bool accumulate) {
+  constexpr unsigned int KB = 64;
+  ThreadManager::Global().parallel_for(0, (K + KB - 1) / KB, [=](size_t blk) {
+    const unsigned int k0 = blk * KB;
+    const unsigned int k1 = std::min<unsigned int>(K, k0 + KB);
+    if (!accumulate)
+      std::fill(D + (size_t)k0 * R, D + (size_t)k1 * R, 0.0f);
+    for (unsigned int m = 0; m < M; ++m) {
+      const float *x = X + (size_t)m * K;
+      const float *t = T + (size_t)m * R;
+      for (unsigned int k = k0; k < k1; ++k) {
+        const float xv = x[k];
+        float *d = D + (size_t)k * R;
+        for (unsigned int j = 0; j < R; ++j)
+          d[j] += xv * t[j];
+      }
+    }
+  });
+}
+
+void skinny_xtt(const float *X, const float *T, float *D, unsigned int M,
+                unsigned int K, unsigned int r, bool accumulate) {
+  if (r == 8)
+    return skinny_xtt_r<8>(X, T, D, M, K, accumulate);
+  if (r == 16)
+    return skinny_xtt_r<16>(X, T, D, M, K, accumulate);
+  ThreadManager::Global().parallel_for(0, K, [=](size_t k) {
+    for (unsigned int j = 0; j < r; ++j) {
+      float a = accumulate ? D[k * r + j] : 0.0f;
+      for (unsigned int m = 0; m < M; ++m)
+        a += X[(size_t)m * K + k] * T[(size_t)m * r + j];
+      D[k * r + j] = a;
+    }
+  });
+}
+
+/** [DIAG] NNTR_LORA_SKINNY_CHECK=1: max |a-b| / max |b| of two buffers */
+[[maybe_unused]] void skinnyCheck(const char *what, const float *a,
+                                  const float *b, size_t n) {
+  static const bool on = std::getenv("NNTR_LORA_SKINNY_CHECK") != nullptr;
+  static std::map<std::string, int> printed;
+  if (!on || printed[what] > 40)
+    return;
+  double md = 0, mr = 0;
+  for (size_t i = 0; i < n; ++i) {
+    md = std::max(md, (double)std::abs(a[i] - b[i]));
+    mr = std::max(mr, (double)std::abs(b[i]));
+  }
+  if (mr == 0.0 && md == 0.0)
+    return; // trivially equal (e.g. LoRA B still zero): not informative
+  ++printed[what];
+  std::cout << "[SKINNY-CHECK] " << what << " rel=" << (mr > 0 ? md / mr : md)
+            << " (max|ref|=" << mr << ")\n";
+}
+
+inline bool skinnyCheckOn() {
+  static const bool on = std::getenv("NNTR_LORA_SKINNY_CHECK") != nullptr;
+  return on;
+}
+
+/** whether the rank-r LoRA GEMMs may take the skinny kernels */
+bool skinnyOk(const Tensor &t) {
+  return t.getDataType() == Tdatatype::FP32 && t.getContiguous() &&
+         t.getFormat() == Tformat::NCHW;
+}
+
+/**
+ * @brief Whether the frozen-weight dX of a LoRA FC runs as an int8 (Q8_0)
+ * GEMM. NNTR_TRAIN_DX_Q8=0/1 overrides; default on for aarch64 (i8mm) only.
+ */
+bool useQ8Dx() {
+  static const bool on = [] {
+    if (const char *e = std::getenv("NNTR_TRAIN_DX_Q8"))
+      return e[0] != '0';
+#if defined(__aarch64__)
+    return true;
+#else
+    return false;
+#endif
+  }();
+  return on;
 }
 
 } // namespace
@@ -546,12 +802,18 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
 
   ///@todo This dequantization action should be moved to tensor.dot()
-  if (quantizer != nullptr) {
-    Tensor weight_arena_view;
-    dequantizeToArena(weight, *quantizer, weight_arena_view);
-    input_.dot(weight_arena_view, hidden_, false, false);
-  } else {
-    input_.dot(weight, hidden_, false, false);
+  {
+    train_prof::Scope tp(std::get<props::LoraRank>(fc_props).empty()
+                           ? "fc.base_fwd.nolora"
+                           : "fc.base_fwd.lora",
+                         train_prof::FWD);
+    if (quantizer != nullptr) {
+      Tensor weight_arena_view;
+      dequantizeToArena(weight, *quantizer, weight_arena_view);
+      input_.dot(weight_arena_view, hidden_, false, false);
+    } else {
+      input_.dot(weight, hidden_, false, false);
+    }
   }
 
   if (!std::get<props::LoraRank>(fc_props).empty()) {
@@ -565,6 +827,7 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
     if (lora_qat) {
       // Per-block EMA fake-quant: training updates the EMA, validation
       // reads it without updating.
+      train_prof::Scope tp_fq("fc.lora_fakequant+stats", train_prof::FWD);
       a_fq = fakeQuantizeQ4_0(loraA, lora_a_block_d, training);
       b_fq = fakeQuantizeQ4_0(loraB, lora_b_block_d, training);
 
@@ -587,14 +850,54 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
         s_qat_registry[layer_name_] = s;
         s_block_d_registry[layer_name_] = {lora_a_block_d, lora_b_block_d};
       }
-      gemm(input_, a_fq, hidden_tmp_lora, false, false);
-      gemm(hidden_tmp_lora, b_fq, hidden_out_lora, false, false);
-    } else {
-      gemm(input_, loraA, hidden_tmp_lora, false, false);
-      gemm(hidden_tmp_lora, loraB, hidden_out_lora, false, false);
+      tp_fq.stop();
     }
-    hidden_out_lora.multiply_i(lora_scaling);
-    hidden_.add_i(hidden_out_lora);
+    // hidden_ += s * (x A) B. loraTmp keeps the unscaled x A (calcGradient
+    // reads it); the scale goes on the rank-sized copy, and the second GEMM
+    // accumulates into hidden_ (beta = 1) -- no full-size LoRA output plane,
+    // no separate scale and add passes over it.
+    train_prof::Scope tp_g("fc.lora_fwd_gemm", train_prof::FWD);
+    const Tensor &fa = lora_qat ? a_fq : loraA;
+    const Tensor &fb = lora_qat ? b_fq : loraB;
+    const unsigned int l_rank = fa.getDim().width();
+    const unsigned int l_in = fa.getDim().height();
+    const unsigned int l_out = fb.getDim().width();
+    const unsigned int l_rows = input_.getDim().batch() *
+                                input_.getDim().channel() *
+                                input_.getDim().height();
+    if (gemm_ops_ == nullptr && skinnyOk(input_) && skinnyOk(fa) &&
+        skinnyOk(fb) && skinnyOk(hidden_) && skinnyOk(hidden_tmp_lora) &&
+        input_.getDim().width() == l_in &&
+        hidden_.size() == (size_t)l_rows * l_out) {
+      Tensor h_before;
+      if (skinnyCheckOn())
+        h_before = hidden_.clone();
+      skinny_xw(input_.getData<float>(), fa.getData<float>(),
+                hidden_tmp_lora.getData<float>(), l_rows, l_in, l_rank);
+      skinny_uv_acc(hidden_tmp_lora.getData<float>(), fb.getData<float>(),
+                    hidden_.getData<float>(), l_rows, l_rank, l_out,
+                    lora_scaling);
+      if (skinnyCheckOn()) {
+        Tensor t_ref(hidden_tmp_lora.getDim());
+        input_.dot(fa, t_ref, false, false);
+        skinnyCheck("fwd T", hidden_tmp_lora.getData<float>(),
+                    t_ref.getData<float>(), t_ref.size());
+        Tensor o_ref(hidden_.getDim());
+        t_ref.multiply(lora_scaling).dot(fb, o_ref, false, false);
+        o_ref.add_i(h_before);
+        skinnyCheck("fwd H", hidden_.getData<float>(), o_ref.getData<float>(),
+                    o_ref.size());
+      }
+    } else {
+      gemm(input_, fa, hidden_tmp_lora, false, false);
+      Tensor tmp_scaled = hidden_tmp_lora.multiply(lora_scaling);
+      if (hidden_.getDataType() == hidden_tmp_lora.getDataType()) {
+        gemm(tmp_scaled, fb, hidden_, false, false, 1.0f);
+      } else {
+        gemm(tmp_scaled, fb, hidden_out_lora, false, false);
+        hidden_.add_i(hidden_out_lora);
+      }
+    }
   }
 
   if (auto &disable_bias = std::get<props::DisableBias>(*layer_impl_props);
@@ -745,17 +1048,102 @@ void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {
     // malloc/munmap cycle (page-fault churn) on top of the dequantize itself.
     Tensor w_arena_view;
     const Tensor *w = &weight;
-    if (quantizer != nullptr) {
-      dequantizeToArena(weight, *quantizer, w_arena_view);
-      w = &w_arena_view;
-    } else if (weight.getDataType() == DT::Q4_0) {
-      auto dq = Quantization::createQuantizer(nntrainer::QScheme::Q4_0);
-      dequantizeToArena(weight, *dq, w_arena_view);
-      w = &w_arena_view;
-    } else if (weight.getDataType() == DT::Q6_K) {
-      auto dq = Quantization::createQuantizer(nntrainer::QScheme::Q6_K);
-      dequantizeToArena(weight, *dq, w_arena_view);
-      w = &w_arena_view;
+    auto dequantize_base = [&]() {
+      if (quantizer != nullptr) {
+        dequantizeToArena(weight, *quantizer, w_arena_view);
+        w = &w_arena_view;
+      } else if (weight.getDataType() == DT::Q4_0) {
+        auto dq = Quantization::createQuantizer(nntrainer::QScheme::Q4_0);
+        dequantizeToArena(weight, *dq, w_arena_view);
+        w = &w_arena_view;
+      } else if (weight.getDataType() == DT::Q6_K) {
+        auto dq = Quantization::createQuantizer(nntrainer::QScheme::Q6_K);
+        dequantizeToArena(weight, *dq, w_arena_view);
+        w = &w_arena_view;
+      } else if (weight.getDataType() == DT::QS4CX) {
+        // dotQs4cx ignores trans flags, so a QS4CX base must never reach the
+        // FP32 gemm(dY, W, false, true) below undequantized.
+        dequantizeQs4cxToArena(weight, w_arena_view);
+        w = &w_arena_view;
+      }
+    };
+
+    // int8 dX: W (K x N, frozen) is re-quantized once to Q8_0 blocks along N
+    // -- the reduction axis of dX = dY * W^T, so the per-block scales factor
+    // out of the int8 dot -- and kept repacked for the i8mm GEMM. The Q4_0
+    // forward layout cannot be reused: its blocks run along K.
+    const TensorDim &wd = weight.getDim();
+    const TensorDim &dd0 = derivative_.getDim();
+    const unsigned int w_k = wd.height(), w_n = wd.width();
+    const unsigned int d_rows = dd0.batch() * dd0.channel() * dd0.height();
+    const bool q8_dx =
+      useQ8Dx() &&
+      (quantizer != nullptr || weight.getDataType() == DT::Q4_0 ||
+       weight.getDataType() == DT::Q6_K || weight.getDataType() == DT::QS4CX) &&
+      w_k % 4 == 0 && w_n % 32 == 0 && dd0.width() == w_n &&
+      derivative_.getDataType() == DT::FP32 && ret_.getDataType() == DT::FP32 &&
+      derivative_.getContiguous() && ret_.getContiguous() &&
+      ret_.size() == (size_t)d_rows * w_k;
+#if defined(__aarch64__)
+    const bool kai_dx =
+      useQ8Dx() && useKaiDx() && weight.getDataType() == DT::QS4CX &&
+      dd0.width() == w_n && w_n % 32 == 0 &&
+      derivative_.getDataType() == DT::FP32 && ret_.getDataType() == DT::FP32 &&
+      derivative_.getContiguous() && ret_.getContiguous();
+#else
+    const bool kai_dx = false;
+#endif
+    if (kai_dx) {
+      train_prof::Scope tp("fc.deriv_base_dx_kai", train_prof::DERIV);
+      if (dx_wt_qs4t_.empty())
+        dx_wt_qs4t_ = buildQs4cxTransposed(weight);
+      if (dx_scaled_dy_.empty() || dx_scaled_dy_.getDim() != dd0)
+        dx_scaled_dy_ = Tensor(dd0, true);
+      // G = dY * s (per output channel): s is W's scale, folded out of the
+      // unit-scale transposed codes.
+      const float *s = static_cast<const float *>(weight.getScale());
+      const float *g_in = derivative_.getData<float>();
+      float *g = dx_scaled_dy_.getData<float>();
+      ThreadManager::Global().parallel_for(0, d_rows, [=](size_t r) {
+        const float *a = g_in + r * w_n;
+        float *o = g + r * w_n;
+        for (unsigned int n = 0; n < w_n; ++n)
+          o[n] = a[n] * s[n];
+      });
+      dx_scaled_dy_.dot(dx_wt_qs4t_, ret_, false, false);
+      static const bool kai_check =
+        std::getenv("NNTR_TRAIN_DX_CHECK") != nullptr;
+      static int kai_checked = 0;
+      if (kai_check && kai_checked < 64) {
+        ++kai_checked;
+        dequantize_base();
+        Tensor ref(ret_.getDim());
+        derivative_.dot(*w, ref, false, true);
+        const float *r = ref.getData<float>();
+        const float *q = ret_.getData<float>();
+        double num = 0, den = 0;
+        for (size_t i = 0; i < ref.size(); ++i) {
+          num += ((double)q[i] - r[i]) * ((double)q[i] - r[i]);
+          den += (double)r[i] * r[i];
+        }
+        std::cout << "[PERF-DXCHECK] kai " << layer_name_
+                  << " rel_l2=" << (den > 0 ? std::sqrt(num / den) : 0) << "\n";
+      }
+    }
+    train_prof::Scope tp_dq("fc.deriv_dequant", train_prof::DERIV);
+    if (kai_dx) {
+      // dX already computed above
+    } else if (q8_dx && dx_wt_q8x4_.empty()) {
+      dequantize_base();
+      const size_t bytes = (size_t)w_k * (w_n / 32) * 34; // block_q8_0
+      std::vector<uint8_t> plain(bytes);
+      __ggml_quantize_q8_0(w->getData<float>(), plain.data(), w_k, w_n,
+                           nullptr);
+      dx_wt_q8x4_.resize(bytes);
+      __ggml_repack_q8_0_to_q8_0_4x8(dx_wt_q8x4_.data(), plain.data(), bytes,
+                                     w_k, w_n);
+    } else if (!q8_dx) {
+      dequantize_base();
     }
 
     const bool lora_qat_deriv = !std::get<props::LoraQAT>(fc_props).empty() &&
@@ -763,7 +1151,44 @@ void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {
     // dX = dH @ (W + sAB)^T = dH @ W^T + s * (dH @ B^T) @ A^T.
     // The LoRA part is a rank-limited chain — never materialize the
     // full out*in LoRA matrix (sAB) nor a full-size (W + sAB) temp.
-    gemm(derivative_, *w, ret_, false, true);
+    tp_dq.stop();
+    if (kai_dx) {
+      // dX already computed above
+    } else if (q8_dx) {
+      train_prof::Scope tp("fc.deriv_base_dx_q8gemm", train_prof::DERIV);
+      __ggml_q8_0_4x8_q8_0_GEMM(d_rows, w_k, w_n, derivative_.getData<float>(),
+                                w_n, dx_wt_q8x4_.data(), w_n,
+                                ret_.getData<float>(), w_k);
+      /// [PERF-DXCHECK] NNTR_TRAIN_DX_CHECK=1: compare against the FP32 path
+      static const bool dx_check =
+        std::getenv("NNTR_TRAIN_DX_CHECK") != nullptr;
+      static int dx_checked = 0;
+      if (dx_check && dx_checked < 64) {
+        ++dx_checked;
+        dequantize_base();
+        Tensor ref(ret_.getDim());
+        derivative_.dot(*w, ref, false, true);
+        const float *r = ref.getData<float>();
+        const float *q = ret_.getData<float>();
+        double num = 0, den = 0, max_abs = 0, max_ref = 0;
+        for (size_t i = 0; i < ref.size(); ++i) {
+          const double e = (double)q[i] - r[i];
+          num += e * e;
+          den += (double)r[i] * r[i];
+          max_abs = std::max(max_abs, std::abs(e));
+          max_ref = std::max(max_ref, (double)std::abs(r[i]));
+        }
+        std::cout << "[PERF-DXCHECK] " << layer_name_ << " M=" << d_rows
+                  << " K=" << w_k << " N=" << w_n
+                  << " rel_l2=" << (den > 0 ? std::sqrt(num / den) : 0)
+                  << " max_abs/max_ref="
+                  << (max_ref > 0 ? max_abs / max_ref : 0) << "\n";
+      }
+    } else {
+      train_prof::Scope tp("fc.deriv_base_dx_fp32gemm", train_prof::DERIV);
+      gemm(derivative_, *w, ret_, false, true);
+    }
+    train_prof::Scope tp_l("fc.deriv_lora_dx", train_prof::DERIV);
     Tensor &lora_A = context.getWeight(lora_idx[LORAParams::loraA]);
     Tensor &lora_B = context.getWeight(lora_idx[LORAParams::loraB]);
     // Straight-through estimator: dL/dx uses the same fake-quantized
@@ -772,14 +1197,60 @@ void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {
     const Tensor &dA = lora_qat_deriv ? a_fq : lora_A;
     // (dH @ B^T) is [rows, rank], then @ A^T is [rows, in].
     const TensorDim &dd = derivative_.getDim();
-    Tensor dtmp_r(TensorDim(dd.batch(), dd.channel(), dd.height(),
-                            dB.getDim().height(), dd.getTensorType()));
-    gemm(derivative_, dB, dtmp_r, false, true);
-    Tensor dtmp(TensorDim(dd.batch(), dd.channel(), dd.height(),
-                          dA.getDim().height(), dd.getTensorType()));
-    gemm(dtmp_r, dA, dtmp, false, true);
-    dtmp.multiply_i(lora_scaling);
-    ret_.add_i(dtmp);
+    const unsigned int l_rank = dA.getDim().width();
+    const unsigned int l_in = dA.getDim().height();
+    const unsigned int l_out = dB.getDim().width();
+    const unsigned int l_rows = dd.batch() * dd.channel() * dd.height();
+    if (gemm_ops_ == nullptr && skinnyOk(derivative_) && skinnyOk(dA) &&
+        skinnyOk(dB) && skinnyOk(ret_) &&
+        ret_.size() == (size_t)l_rows * l_in) {
+      // s * dY . B^T: reuse the loraTmp gradient calcGradient just formed
+      // (same B), else compute it.
+      Tensor dtmp_r;
+      const float *u = nullptr;
+      if (lora_dtmp_ready_ &&
+          lora_dtmp_copy_.size() == (size_t)l_rows * l_rank) {
+        u = lora_dtmp_copy_.data();
+      } else {
+        dtmp_r = Tensor(TensorDim(1, 1, l_rows, l_rank), true);
+        skinny_ybt(derivative_.getData<float>(), dB.getData<float>(),
+                   dtmp_r.getData<float>(), l_rows, l_out, l_rank,
+                   lora_scaling);
+        u = dtmp_r.getData<float>();
+      }
+      lora_dtmp_ready_ = false;
+      // dX += U . A^T: A is (in x rank); transpose it once (rank x in).
+      std::vector<float> at((size_t)l_rank * l_in);
+      const float *a = dA.getData<float>();
+      for (unsigned int k = 0; k < l_in; ++k)
+        for (unsigned int j = 0; j < l_rank; ++j)
+          at[(size_t)j * l_in + k] = a[(size_t)k * l_rank + j];
+      Tensor dx_before;
+      if (skinnyCheckOn())
+        dx_before = ret_.clone();
+      skinny_uv_acc(u, at.data(), ret_.getData<float>(), l_rows, l_rank, l_in,
+                    1.0f);
+      if (skinnyCheckOn()) {
+        Tensor u_ref(TensorDim(dd.batch(), dd.channel(), dd.height(), l_rank,
+                               dd.getTensorType()));
+        derivative_.dot(dB, u_ref, false, true);
+        u_ref.multiply_i(lora_scaling);
+        skinnyCheck("deriv U", u, u_ref.getData<float>(), u_ref.size());
+        Tensor dx_ref(ret_.getDim());
+        u_ref.dot(dA, dx_ref, false, true);
+        dx_ref.add_i(dx_before);
+        skinnyCheck("deriv dX", ret_.getData<float>(), dx_ref.getData<float>(),
+                    dx_ref.size());
+      }
+    } else {
+      Tensor dtmp_r(TensorDim(dd.batch(), dd.channel(), dd.height(),
+                              dB.getDim().height(), dd.getTensorType()));
+      gemm(derivative_, dB, dtmp_r, false, true);
+      // Scale the rank-sized intermediate and accumulate into ret_ (beta = 1)
+      // instead of materializing, scaling and adding a full-size dX plane.
+      dtmp_r.multiply_i(lora_scaling);
+      gemm(dtmp_r, dA, ret_, false, true, 1.0f);
+    }
   } else {
     ret_.dot_deriv_wrt_1(weight, derivative_, false, false);
   }
@@ -821,6 +1292,67 @@ void FullyConnectedLayer::calcGradient(RunLayerContext &context) {
     Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
     Tensor &loraB = context.getWeight(lora_idx[LORAParams::loraB]);
     Tensor &loraTmp = context.getTensor(lora_idx[LORAParams::loraTmp]);
+
+    const bool lora_qat_grad0 = !std::get<props::LoraQAT>(fc_props).empty() &&
+                                std::get<props::LoraQAT>(fc_props).get();
+    const bool first_b =
+      context.isGradientFirstAccess(lora_idx[LORAParams::loraB]);
+    const bool first_tmp =
+      context.isGradientFirstAccess(lora_idx[LORAParams::loraTmp]);
+    const Tensor &gB = lora_qat_grad0 ? b_fq : loraB;
+    const unsigned int g_rank = gB.getDim().height();
+    const unsigned int g_out = gB.getDim().width();
+    const unsigned int g_in = input_.getDim().width();
+    const unsigned int g_rows = input_.getDim().batch() *
+                                input_.getDim().channel() *
+                                input_.getDim().height();
+    if (first_b && first_tmp && gemm_ops_ == nullptr && skinnyOk(loraTmp) &&
+        skinnyOk(derivative_) && skinnyOk(gB) && skinnyOk(input_) &&
+        skinnyOk(djdlb) && skinnyOk(djdtmp) && skinnyOk(djdla) &&
+        djdlb.size() == (size_t)g_rank * g_out &&
+        djdtmp.size() == (size_t)g_rows * g_rank &&
+        djdla.size() == (size_t)g_in * g_rank) {
+      skinny_tty(loraTmp.getData<float>(), derivative_.getData<float>(),
+                 djdlb.getData<float>(), g_rows, g_rank, g_out, lora_scaling);
+      skinny_ybt(derivative_.getData<float>(), gB.getData<float>(),
+                 djdtmp.getData<float>(), g_rows, g_out, g_rank, lora_scaling);
+      skinny_xtt(input_.getData<float>(), djdtmp.getData<float>(),
+                 djdla.getData<float>(), g_rows, g_in, g_rank,
+                 !context.isGradientFirstAccess(lora_idx[LORAParams::loraA]));
+      lora_dtmp_copy_.assign(djdtmp.getData<float>(),
+                             djdtmp.getData<float>() + djdtmp.size());
+      lora_dtmp_ready_ = true;
+      if (skinnyCheckOn()) {
+        Tensor db_ref(djdlb.getDim());
+        loraTmp.dot(derivative_, db_ref, true, false);
+        db_ref.multiply_i(lora_scaling);
+        skinnyCheck("grad dB", djdlb.getData<float>(), db_ref.getData<float>(),
+                    db_ref.size());
+        Tensor dt_ref(djdtmp.getDim());
+        derivative_.dot(gB, dt_ref, false, true);
+        dt_ref.multiply_i(lora_scaling);
+        skinnyCheck("grad dT", djdtmp.getData<float>(), dt_ref.getData<float>(),
+                    dt_ref.size());
+        Tensor da_ref(djdla.getDim());
+        input_.dot(dt_ref, da_ref, true, false);
+        skinnyCheck("grad dA", djdla.getData<float>(), da_ref.getData<float>(),
+                    da_ref.size());
+      }
+      return;
+    }
+    if (first_b && first_tmp) {
+      // dB = s * T^T dY and dT = s * dY B^T: apply s to the rank-sized
+      // results rather than to a full-size copy of dY.
+      gemm(loraTmp, derivative_, djdlb, true, false, 0.0f);
+      djdlb.multiply_i(lora_scaling);
+      gemm(derivative_, lora_qat_grad0 ? b_fq : loraB, djdtmp, false, true,
+           0.0f);
+      djdtmp.multiply_i(lora_scaling);
+      gemm(input_, djdtmp, djdla, true, false,
+           !context.isGradientFirstAccess(lora_idx[LORAParams::loraA]) ? 1.0f
+                                                                       : 0.0f);
+      return;
+    }
     const auto &lora_derivative_ = derivative_.multiply(lora_scaling);
 
     gemm(loraTmp, lora_derivative_, djdlb, true, false,

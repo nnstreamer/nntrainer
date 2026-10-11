@@ -207,6 +207,26 @@ private:
    * for calcDerivative/calcGradient's straight-through backward. */
   Tensor a_fq, b_fq;
 
+  /** Frozen base weight W (K x N) re-quantized to Q8_0 along N (the dX
+   * reduction axis) and repacked q8_0x4 (4x8 interleave), built once on the
+   * first LoRA calcDerivative. Lets dX = dY * W^T run as an int8 GEMM on the
+   * same i8mm kernel family the forward uses, instead of an FP32 GEMM over a
+   * per-call dequantized copy. Empty when the FP32 path is used. */
+  std::vector<uint8_t> dx_wt_q8x4_;
+
+  /** QS4CX base only: the same int4 codes transposed to (N_out x K_in) with
+   * unit scales -- the per-output-channel scale s is folded into dY instead
+   * (dX = (dY * s) . Q^T), so the copy is lossless and dX runs on the same
+   * KleidiAI qai8dxp x qsi4cxp GEMM as the forward. */
+  Tensor dx_wt_qs4t_;
+  Tensor dx_scaled_dy_; /**< (dY * s) scratch */
+  /** calcGradient left s * dY . B^T (the loraTmp gradient) for this step's
+   * calcDerivative to reuse for the LoRA part of dX */
+  bool lora_dtmp_ready_ = false;
+  /** private copy of that gradient: the loraTmp tensor's lifespan
+   * (FORWARD_GRAD) does not cover calcDerivative */
+  std::vector<float> lora_dtmp_copy_;
+
   /**
    * @brief Per-block Q4_0 fake-quantization with EMA-tracked block scales.
    *
