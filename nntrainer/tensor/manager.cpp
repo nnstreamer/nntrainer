@@ -661,8 +661,19 @@ Manager::requestInputs(const GraphNode &node,
   if (node.getType() == ActivationLayer::type or
       node.getType() == MultiOutLayer::type or
       node.getType() == BatchNormalizationLayer::type or
-      node.getType() == LayerNormalizationLayer::type or !node.getTrainable())
+      node.getType() == LayerNormalizationLayer::type)
     var_common_spec.ls = TensorLifespan::FORWARD_FUNC_LIFESPAN;
+  else if (is_train_mode && !node.getTrainable())
+    /**
+     * A frozen layer computes no weight gradient, but it still runs
+     * calcDerivative when it sits between a trainable layer and the loss, and a
+     * non-linear one (e.g. an RMS norm) reads its input there. Keep the input
+     * until then; otherwise the planner hands its memory to a later tensor and
+     * calcDerivative reads that instead. For a frozen layer that is never
+     * backwarded, the calcDerivative order lies past the backward end, which
+     * TensorPool::finalize ignores, so its input stays forward-only.
+     */
+    var_common_spec.ls = TensorLifespan::FORWARD_DERIV_LIFESPAN;
 
   if (node.getType() == MSELossLayer::type or
       node.getType() == CrossEntropySoftmaxLossLayer::type or
