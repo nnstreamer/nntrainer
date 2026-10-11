@@ -1444,38 +1444,24 @@ public:
     norms.eps = eps;
     norms.rope_hd = rope_hd;
     norms.rope_handles = rope_slices;
-    // Both norms and the RoPE are per row, so the row chunks
-    // gemm_q4_0_batch_fp32 makes for VTCM carry them unchanged (the table
-    // rows advance with the activation rows).
-    const unsigned int step = fcMaxRows(K);
-    // The activation and the outputs are staged whole and the row chunks
-    // address them by offset (FusedNorms::rows_total), so the outputs may
-    // stay in that one buffer (the reader takes them by host_view).
+    // One call whatever M is: the skel walks the rows VTCM cannot hold at
+    // once in chunks of its own (fc_rows_a_call), so the activation and
+    // the outputs cross once, and the outputs may stay in that one buffer
+    // (the reader takes them by host_view).
     norms.to_host = out_to_host || HtpProfile::global().level() >= 2;
-    norms.rows_total = M;
-    norms.act_whole = matBdata;
-    for (unsigned int m0 = 0; m0 < M; m0 += step) {
-      const unsigned int m = std::min(step, M - m0);
-      std::vector<OutSlice> rows = slices;
-      for (OutSlice &o : rows)
-        o.dst += static_cast<size_t>(m0) * o.stride;
-      // The table rows through ION like the activation: a plain host
-      // pointer is pinned and mapped by the driver every call (~155 MB/s,
-      // doc 34 section 4 item F), 1-2 MB a prefill layer here.
-      norms.rope_cs = nullptr;
-      if (rope_hd) {
-        const size_t bytes =
-          static_cast<size_t>(m) * 2 * rope_hd * sizeof(float);
-        float *cs = reinterpret_cast<float *>(stage(rope_pool_, bytes).data());
-        stagedMemcpy(cs, rope_cs + static_cast<size_t>(m0) * 2 * rope_hd,
-                     bytes);
-        norms.rope_cs = cs;
-      }
-      norms.row0 = m0;
-      invokeLayer(session, handles.data(), static_cast<int>(handles.size()),
-                  matBdata + static_cast<size_t>(m0) * K, nullptr, m, n_total,
-                  K, nullptr, nullptr, &norms, &rows);
+    // The table rows through ION like the activation: a plain host pointer
+    // is pinned and mapped by the driver every call (~155 MB/s, doc 34
+    // section 4 item F), 1-2 MB a prefill layer here.
+    norms.rope_cs = nullptr;
+    if (rope_hd) {
+      const size_t bytes = static_cast<size_t>(M) * 2 * rope_hd * sizeof(float);
+      float *cs = reinterpret_cast<float *>(stage(rope_pool_, bytes).data());
+      stagedMemcpy(cs, rope_cs, bytes);
+      norms.rope_cs = cs;
     }
+    invokeLayer(session, handles.data(), static_cast<int>(handles.size()),
+                matBdata, nullptr, M, n_total, K, nullptr, nullptr, &norms,
+                &slices);
   }
 
   // The block epilogue (see the base declaration): the residual rides the
@@ -1810,10 +1796,8 @@ public:
     // dequantizes it inside the quant pass, nothing is copied or converted
     const bool u16_in = attn_out16_.host == act && attn_out16_.rows == M &&
                         attn_out16_.width == K;
-    // The residual, the output (and an f32 activation) staged whole, once;
-    // the row chunks VTCM asks for address them by offset, so each is one
-    // buffer for the calls that follow, however many calls this one takes.
-    const unsigned int step = fcMaxRows(K);
+    // The residual, the output (and an f32 activation) staged whole, and
+    // one call: the skel walks the row chunks VTCM asks for.
     const size_t o_all = static_cast<size_t>(M) * N * sizeof(float);
     const size_t a_all = static_cast<size_t>(M) * K * sizeof(float);
     std::lock_guard<std::mutex> lock(invoke_mutex_);
@@ -1829,35 +1813,26 @@ public:
           stageInput(act_pool_, act, a_all).data());
     }
     float *out_all = reinterpret_cast<float *>(stage(out_pool_, o_all).data());
-    for (unsigned int m0 = 0; m0 < M; m0 += step) {
-      const unsigned int m = std::min(step, M - m0);
-      const float *res_f32 = res_all + static_cast<size_t>(m0) * N;
-      float *out_f32 = out_all + static_cast<size_t>(m0) * N;
-      const uint64_t t0 = HtpProfile::nowUs();
-      const int err =
-        u16_in
-          ? nntr_hvx_mm_u8i4_layer_res_add_u16(
-              session, m, K, eps, scale, gamma, gamma ? static_cast<int>(N) : 0,
-              fh.handles.data(), static_cast<int>(fh.handles.size()),
-              attn_out16_.ion + static_cast<size_t>(m0) * K,
-              static_cast<int>(m * K), attn_out16_.enc.data(),
-              static_cast<int>(attn_out16_.enc.size()), attn_out16_.head_dim,
-              res_f32, static_cast<int>(m * N), out_f32,
-              static_cast<int>(m * N))
-          : nntr_hvx_mm_u8i4_layer_res_add(
-              session, m, K, eps, scale, gamma, gamma ? static_cast<int>(N) : 0,
-              fh.handles.data(), static_cast<int>(fh.handles.size()),
-              act_all + static_cast<size_t>(m0) * K, static_cast<int>(m * K),
-              res_f32, static_cast<int>(m * N), out_f32,
-              static_cast<int>(m * N));
-      const uint64_t elapsed = HtpProfile::nowUs() - t0;
-      if (err != AEE_SUCCESS)
-        throw std::runtime_error("nntr_hvx_mm_u8i4_layer_res_add failed: err=" +
-                                 std::to_string(err));
-      HtpProfile &profile = HtpProfile::global();
-      if (profile.level())
-        profile.addInvoke(m, K, N, elapsed, nullptr);
-    }
+    const uint64_t t0 = HtpProfile::nowUs();
+    const int err =
+      u16_in
+        ? nntr_hvx_mm_u8i4_layer_res_add_u16(
+            session, M, K, eps, scale, gamma, gamma ? static_cast<int>(N) : 0,
+            fh.handles.data(), static_cast<int>(fh.handles.size()),
+            attn_out16_.ion, static_cast<int>(M * K), attn_out16_.enc.data(),
+            static_cast<int>(attn_out16_.enc.size()), attn_out16_.head_dim,
+            res_all, static_cast<int>(M * N), out_all, static_cast<int>(M * N))
+        : nntr_hvx_mm_u8i4_layer_res_add(
+            session, M, K, eps, scale, gamma, gamma ? static_cast<int>(N) : 0,
+            fh.handles.data(), static_cast<int>(fh.handles.size()), act_all,
+            static_cast<int>(M * K), res_all, static_cast<int>(M * N), out_all,
+            static_cast<int>(M * N));
+    const uint64_t elapsed = HtpProfile::nowUs() - t0;
+    if (err != AEE_SUCCESS)
+      throw std::runtime_error("nntr_hvx_mm_u8i4_layer_res_add failed: err=" +
+                               std::to_string(err));
+    if (HtpProfile::global().level())
+      HtpProfile::global().addInvoke(M, K, N, elapsed, nullptr);
     // remembered for the dense call's stageInput (its from): the
     // post-attention rows swap in instead of being copied again
     copyOutOf(out_pool_, out, o_all, out_to_host);
@@ -4625,13 +4600,6 @@ private:
     /** false: only sampledSame's windows of each weight's rows go to the
      *  host tensors (copyOutOf's to_host); host_view finds the rest */
     bool to_host = true;
-    /** rows_total != 0 (with slices): this call is rows [row0, row0 + M)
-     *  of a rows_total-row call whose activation (act_whole, the host
-     *  tensor) and outputs are staged whole, once: the chunks address them
-     *  by offset, so a tensor is one buffer however many calls VTCM makes
-     *  of it, and the last chunk copies out. */
-    unsigned int rows_total = 0, row0 = 0;
-    const float *act_whole = nullptr;
     bool any() const { return pre_gamma || post_chunk || rope_hd; }
   };
 
@@ -4651,20 +4619,12 @@ private:
     };
 
     std::lock_guard<std::mutex> lock(invoke_mutex_);
-    const bool chunk = norms && slices && norms->rows_total != 0;
-    const unsigned int m_all = chunk ? norms->rows_total : M;
-    const unsigned int row0 = chunk ? norms->row0 : 0u;
-    float *act_f32 =
-      reinterpret_cast<float *>(
-        stageInput(act_pool_, chunk ? norms->act_whole : matBdata,
-                   static_cast<size_t>(m_all) * K * sizeof(float), &out_pool_)
-          .data()) +
-      static_cast<size_t>(row0) * K;
-    // (stage() of the same size returns the same buffer: a later chunk
-    // finds the earlier ones' rows in it)
-    const int out_all = static_cast<int>(m_all) * static_cast<int>(N);
+    float *act_f32 = reinterpret_cast<float *>(
+      stageInput(act_pool_, matBdata,
+                 static_cast<size_t>(M) * K * sizeof(float), &out_pool_)
+        .data());
     float *out_cat = reinterpret_cast<float *>(
-      stage(out_pool_, static_cast<size_t>(out_all) * sizeof(float)).data());
+      stage(out_pool_, static_cast<size_t>(out_len) * sizeof(float)).data());
 
     HtpProfile &profile = HtpProfile::global();
     if (norms && norms->any()) {
@@ -4686,10 +4646,9 @@ private:
         for (const OutSlice &o : *slices) {
           if (o.c0 == 0) {
             base = next;
-            next += static_cast<size_t>(m_all) * o.stride;
+            next += static_cast<size_t>(M) * o.stride;
           }
-          out_off.push_back(static_cast<uint32_t>(
-            base + o.c0 + static_cast<size_t>(row0) * o.stride));
+          out_off.push_back(static_cast<uint32_t>(base + o.c0));
           out_ld.push_back(o.stride);
         }
       }
@@ -4707,7 +4666,7 @@ private:
                    chunk_len, norms->post_gamma, post_gamma_len, norms->rope_hd,
                    norms->rope_handles, norms->rope_cs, cs_len, handles,
                    num_handles, out_off.data(), num_handles, out_ld.data(),
-                   num_handles, act_f32, act_len, out_cat, out_all)
+                   num_handles, act_f32, act_len, out_cat, out_len)
                : nntr_hvx_mm_u8i4_layer_norm(
                    session, M, K, norms->eps, norms->pre_gamma, pre_len, chunk,
                    chunk_len, norms->post_gamma, post_gamma_len, norms->rope_hd,
@@ -4719,15 +4678,12 @@ private:
                                  std::to_string(err) + shape());
       }
       if (slices) {
-        // whole tensors, once every row is in the buffer
-        for (size_t i = 0; row0 + M == m_all && i < slices->size(); ++i) {
+        for (size_t i = 0; i < slices->size(); ++i) { // whole tensors
           const OutSlice &o = (*slices)[i];
           if (o.c0 == 0) {
-            const size_t skip = static_cast<size_t>(row0) * o.stride;
-            const size_t b =
-              static_cast<size_t>(m_all) * o.stride * sizeof(float);
-            float *dst = o.dst - skip;
-            const float *src = out_cat + out_off[i] - skip;
+            const size_t b = static_cast<size_t>(M) * o.stride * sizeof(float);
+            float *dst = o.dst;
+            const float *src = out_cat + out_off[i];
             if (!norms->to_host)
               sampledCopy(dst, src, b);
             if (norms->to_host || !sampledSame(dst, src, b))
