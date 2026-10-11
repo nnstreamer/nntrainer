@@ -169,26 +169,33 @@ void TensorPool::finalize(const MemoryPlanner &planner,
      */
     unsigned int validity_start = end_order + 1;
     for (unsigned int idx = 0; idx < details->exec_order.size(); idx++) {
+      const bool is_persist = details->exec_order[idx] == PERSIST_END_ORDER ||
+                              static_cast<int>(idx) == details->persist_idx;
       if (details->exec_order[idx] >= start_order)
         validity_start = std::min(validity_start, details->exec_order[idx]);
       /** This is to enforce not to reach if the execution order is greater
        * than backwarding end order. e.g., for the input layer, the
        * backwarding is not reached but the exeuction order is assigned.
        * */
-      if (details->exec_order[idx] > old_end_order &&
-          details->exec_order[idx] != PERSIST_END_ORDER) {
+      if (details->exec_order[idx] > old_end_order && !is_persist) {
         details->exec_order[idx] = PERSIST_END_ORDER - 1;
       }
     }
     unsigned int validity_end = validity_start;
     for (unsigned int idx = 0; idx < details->exec_order.size(); idx++) {
-      if (details->exec_order[idx] == PERSIST_END_ORDER) {
+      /** the PERSIST_END_ORDER entry was replaced by the concrete end order
+       * on an earlier finalize(); persist_idx keeps it recognizable so the
+       * tensor (e.g. a gradient clipped by global norm at the end of the
+       * iteration) stays alive to the end on every re-plan. */
+      if (details->exec_order[idx] == PERSIST_END_ORDER ||
+          static_cast<int>(idx) == details->persist_idx) {
         if (!persist_end_order) {
           end_order = end_order + 1;
           persist_end_order = true;
         }
         validity_end = end_order;
         details->exec_order[idx] = validity_end;
+        details->persist_idx = static_cast<int>(idx);
         break;
       }
 

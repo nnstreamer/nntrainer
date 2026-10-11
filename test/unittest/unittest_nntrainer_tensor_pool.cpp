@@ -877,6 +877,41 @@ TEST(TensorPool, createOrExtend_unmanaged_n) {
 }
 
 /**
+ * @brief A tensor kept to PERSIST_END_ORDER (e.g. a weight gradient clipped by
+ * global norm, applied only at the end of the iteration) must stay alive to the
+ * end on every plan, not only the first: finalize() rewrites that entry to the
+ * concrete end order, and a later finalize() (each deallocate / allocate cycle
+ * re-plans) used to drop it as out of range, letting two such gradients share
+ * memory.
+ */
+TEST(TensorPool, persist_end_order_survives_refinalize_p) {
+  nntrainer::TensorPool pool;
+  constexpr unsigned int P = nntrainer::TensorPool::PERSIST_END_ORDER;
+  nntrainer::Tensor *g1 = nullptr, *g2 = nullptr;
+
+  // two same-sized gradients computed at different backward orders, both
+  // read again by the clip / apply step at the end
+  EXPECT_NO_THROW(
+    g1 = pool.request("g1", nntrainer::TensorDim({16}), {1, 2, P},
+                      nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
+  EXPECT_NO_THROW(
+    g2 = pool.request("g2", nntrainer::TensorDim({16}), {3, 4, P},
+                      nntrainer::TensorLifespan::BACKWARD_FUNC_LIFESPAN));
+
+  for (int plan = 0; plan < 3; ++plan) {
+    EXPECT_NO_THROW(pool.finalize(nntrainer::OptimizedV1Planner(), 0, 4));
+    EXPECT_EQ(pool.minMemoryRequirement(), g1->bytes() + g2->bytes())
+      << "plan " << plan;
+    EXPECT_NO_THROW(pool.allocate());
+    const float *p1 = g1->getData<float>();
+    const float *p2 = g2->getData<float>();
+    EXPECT_TRUE(p1 + g1->size() <= p2 || p2 + g2->size() <= p1)
+      << "plan " << plan << ": persist-to-end tensors share memory";
+    EXPECT_NO_THROW(pool.deallocate());
+  }
+}
+
+/**
  * @brief Main gtest
  */
 int main(int argc, char **argv) {

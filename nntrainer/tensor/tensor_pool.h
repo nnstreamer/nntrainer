@@ -421,6 +421,12 @@ private:
               ResidencyPlanner::allow_fanout, the lever that restricts the
               device placement to view_count <= 1 so a device run can bisect
               the interaction without a rebuild. */
+    int persist_idx =
+      -1; /**< index in exec_order of the PERSIST_END_ORDER entry, which
+               finalize() overwrites with the concrete end order. Remembered so
+               that a later finalize() (the pool is re-planned on every
+               deallocate / allocate cycle) still keeps the tensor alive to the
+               end instead of dropping the entry as out of range. */
   };
 
   /**
