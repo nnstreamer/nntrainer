@@ -7301,12 +7301,13 @@ private:
     return mib;
   }
 
-  /** @brief [#289] NNTR_MOE_LRFU set to a half-life other than 0: the
-   *  pool's policy (causallm::ExpertLru) is LRFU, which parses the value. */
+  /** @brief [#289] NNTR_MOE_LRFU unset or a half-life other than 0: the
+   *  pool's policy (causallm::ExpertLru, whose default this restates) is
+   *  LRFU, which parses the value. */
   static bool lrfuOn() {
     static const bool on = [] {
       const char *v = std::getenv("NNTR_MOE_LRFU");
-      return v != nullptr && *v != '\0' && std::strtod(v, nullptr) > 0.0;
+      return v == nullptr || *v == '\0' || std::strtod(v, nullptr) > 0.0;
     }();
     return on;
   }
