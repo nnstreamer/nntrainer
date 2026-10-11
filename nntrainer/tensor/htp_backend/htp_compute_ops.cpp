@@ -2881,8 +2881,22 @@ public:
       attn_cache_ord_[seed_ordinal_] |
       (attn_cache_[seed_ordinal_] ? HTP_ATTN_KV_CACHE_B : 0u);
     const uint64_t t_seed = HtpProfile::nowUs(); // [#282 F]
-    const int err = nntr_hvx_attn_m1_kv_append(session, layer, 0u, n_rows,
-                                               k_rows, n, v_rows, n);
+    // Through two staging buffers: as heap arguments the driver copied the
+    // rows into a buffer of its own every call (S26 Ultra, 2048 rows, 30
+    // layers: 1,055-1,097 ms of seed RPCs as heap arguments, 973 staged).
+    // ponytail: one more copy of the rows (2 ms a layer); the upgrade is
+    // the caller converting its cache straight into these buffers.
+    int err;
+    {
+      std::lock_guard<std::mutex> lock(invoke_mutex_);
+      const size_t bytes = static_cast<size_t>(n) * sizeof(float);
+      float *k_ion = reinterpret_cast<float *>(stage(act_pool_, bytes).data());
+      float *v_ion = reinterpret_cast<float *>(stage(x2_pool_, bytes).data());
+      std::memcpy(k_ion, k_rows, bytes);
+      std::memcpy(v_ion, v_rows, bytes);
+      err = nntr_hvx_attn_m1_kv_append(session, layer, 0u, n_rows, k_ion, n,
+                                       v_ion, n);
+    }
     seed_rpc_us_ += HtpProfile::nowUs() - t_seed;
     ++seed_calls_;
     if (err != AEE_SUCCESS) {
