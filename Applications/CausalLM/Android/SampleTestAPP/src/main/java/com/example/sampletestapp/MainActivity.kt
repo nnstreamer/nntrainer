@@ -242,7 +242,13 @@ class MainActivity : AppCompatActivity() {
     private var outputScrollY = 0
 
     // ── Train tab state ──────────────────────────────────────────────────
-    private var trainModelPath: String = "/sdcard/q"
+    private var trainModelPath: String = "/sdcard/q_qs4"
+    /** GPU-trunk / CPU-head hybrid: frozen layers run on the GPU from this
+     *  QS4CX-FP16 model dir, the LoRA layers train on the CPU. */
+    private var trainHybrid: Boolean = true
+    private var trainTrunkPath: String = "/sdcard/q_qs4_gpu"
+    private var trainLastIterNs: Long = 0L
+    private val trainIterMs = ArrayDeque<Double>()
     private var trainDataPath: String = "/sdcard/t.txt"
     private var trainLr: String = "5e-5"
     private var trainEpochs: String = "5"
@@ -798,6 +804,9 @@ class MainActivity : AppCompatActivity() {
         cc.addView(labelView(t, "MODEL PATH"))
         cc.addView(roundedEditText(t, trainModelPath, mono = true) { trainModelPath = it })
         spacer(cc, 8)
+        cc.addView(labelView(t, "GPU TRUNK MODEL (hybrid, QS4CX-FP16)"))
+        cc.addView(roundedEditText(t, trainTrunkPath, mono = true) { trainTrunkPath = it })
+        spacer(cc, 8)
         cc.addView(labelView(t, "TRAINING DATA"))
         cc.addView(roundedEditText(t, trainDataPath, mono = true) { trainDataPath = it })
         spacer(cc, 8)
@@ -850,6 +859,10 @@ class MainActivity : AppCompatActivity() {
         w.addView(androidx.appcompat.widget.SwitchCompat(this).apply {
             text = "Train norms (--train_norms)"; isChecked = trainNorms
             setOnCheckedChangeListener { _, c -> trainNorms = c }
+        })
+        w.addView(androidx.appcompat.widget.SwitchCompat(this).apply {
+            text = "GPU trunk + CPU head (--hybrid_trunk)"; isChecked = trainHybrid
+            setOnCheckedChangeListener { _, c -> trainHybrid = c }
         })
         spacer(w, 12)
         w.addView(Button(this).apply {
@@ -2462,11 +2475,18 @@ class MainActivity : AppCompatActivity() {
         if (out.isNotEmpty()) sb.append(",\"output_path\":\"").append(escapeJson(out)).append('"')
         val resume = trainResumePath.trim()
         if (resume.isNotEmpty()) sb.append(",\"lora_path\":\"").append(escapeJson(resume)).append('"')
+        val trunk = trainTrunkPath.trim()
+        if (trainHybrid && trunk.isNotEmpty())
+            sb.append(",\"hybrid_trunk\":\"").append(escapeJson(trunk)).append('"')
         sb.append('}')
         val paramsJson = sb.toString()
         appendTrainLog("▶ Starting training…")
         appendTrainLog("  model: $modelPath")
         appendTrainLog("  data:  $dataPath")
+        if (trainHybrid && trunk.isNotEmpty())
+            appendTrainLog("  hybrid: GPU trunk $trunk")
+        trainLastIterNs = 0L
+        trainIterMs.clear()
         engineExecutor.execute {
             if (!NativeCausalLm.ensureLoaded()) {
                 mainHandler.post {
@@ -2496,9 +2516,26 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 override fun onIterationProgress(iteration: Int, epoch: Int, loss: Float) {
+                    // ms/iter from the gap between iteration callbacks; a gap
+                    // spanning an epoch end (validation + save) is skipped.
+                    val now = System.nanoTime()
+                    val dtMs = if (trainLastIterNs == 0L) -1.0 else (now - trainLastIterNs) / 1e6
+                    trainLastIterNs = now
                     mainHandler.post {
                         trainLossPoints.add(loss)
                         lossChartView?.addPoint(loss)
+                        if (dtMs > 0 && (trainIterMs.isEmpty() || dtMs < 3 * trainIterMs.average())) {
+                            trainIterMs.addLast(dtMs)
+                            while (trainIterMs.size > 10) trainIterMs.removeFirst()
+                        }
+                        if (trainIterMs.isNotEmpty()) {
+                            val avg = trainIterMs.average()
+                            setStatus(String.format("Training… epoch %d iter %d · %.0f ms/iter · loss %.3f",
+                                epoch, iteration, avg, loss))
+                            if (iteration % 10 == 0)
+                                appendTrainLog(String.format("  iter %d: %.0f ms/iter (avg of last %d), loss %.3f",
+                                    iteration, avg, trainIterMs.size, loss))
+                        }
                     }
                 }
                 override fun onTrainComplete() {
