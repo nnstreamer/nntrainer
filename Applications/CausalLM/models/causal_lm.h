@@ -105,6 +105,15 @@ public:
 #endif
 
   /**
+   * @brief Trunk forward of the GPU-trunk / CPU-head training split: prefill
+   *        @a used token ids through the trunk graph (setTrunkLayers()) and
+   *        write @a rows x DIM FP32 hidden states of its last block into
+   *        @a out, rows >= @a used zeroed.
+   */
+  void trunkHidden(const int32_t *ids, unsigned int used, unsigned int rows,
+                   float *out);
+
+  /**
    * @brief Destroy the CausalLM object
    */
   virtual ~CausalLM() {

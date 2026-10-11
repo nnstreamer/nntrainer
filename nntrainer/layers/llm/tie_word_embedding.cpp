@@ -119,6 +119,7 @@ enum TieWordEmbeddingParams {
 };
 
 std::vector<unsigned int> g_tie_embedding_lm_head_read_row;
+std::function<unsigned int()> g_tie_embedding_read_row_source;
 
 namespace {
 inline unsigned int readRowForBatch(unsigned int b, unsigned int fallback) {
@@ -346,6 +347,13 @@ void TieWordEmbedding::forwarding(nntrainer::RunLayerContext &context,
   hidden_step_dim.batch(1);
 
   unsigned int b_size = input_dim.batch();
+
+  if (g_tie_embedding_read_row_source) {
+    g_tie_embedding_lm_head_read_row.assign(b_size, 0);
+    for (unsigned int b = 0; b < b_size; ++b)
+      g_tie_embedding_lm_head_read_row[b] =
+        std::min(g_tie_embedding_read_row_source(), fallback_row);
+  }
 
   for (unsigned int b = 0; b < b_size; ++b) {
     const unsigned int read_row = readRowForBatch(b, fallback_row);

@@ -24,6 +24,7 @@
 #endif
 
 #include <common_properties.h>
+#include <functional>
 #include <layer_devel.h>
 #include <layer_impl.h>
 #include <vector>
@@ -60,6 +61,16 @@ namespace nntrainer {
  *          depending on whether it ties embeddings).
  */
 extern std::vector<unsigned int> g_tie_embedding_lm_head_read_row;
+
+/**
+ * @brief Optional per-forward source of the lm_head read row. A graph with no
+ *        embedding0 in front of its tied lm_head (the CPU "head" of a
+ *        GPU-trunk / CPU-head training split, whose input is the trunk's
+ *        hidden state rather than token ids) cannot re-derive the row from
+ *        ids; when set, lm_head-mode forwarding() pulls one row per batch from
+ *        it instead, in the same order the samples were produced.
+ */
+extern std::function<unsigned int()> g_tie_embedding_read_row_source;
 
 /**
  * @class   TieWordEmbedding

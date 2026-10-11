@@ -10,14 +10,21 @@
 
 #include <lora_train.h>
 #include <qwen3_causallm.h>
+#include <residency_policy.h>
+#include <tie_word_embedding.h>
 #include <transformer.h>
 
 #include <dataset.h>
 #include <model.h>
 
+#include <chrono>
+#include <condition_variable>
 #include <cstdlib>
+#include <deque>
 #include <filesystem>
 #include <iostream>
+#include <memory>
+#include <mutex>
 #include <string>
 
 namespace {
@@ -43,6 +50,9 @@ void printUsage(const char *prog) {
     << "                        (default: all). Earlier layers have nothing\n"
     << "                        trainable, so their backward pass is skipped.\n"
     << "  --max_samples <int>   cap the number of training samples\n"
+    << "  --hybrid_trunk <dir>  run the frozen layers (before --lora_last_n)\n"
+    << "                        on the GPU from this QS4CX-FP16 model dir,\n"
+    << "                        overlapped with CPU training of the rest\n"
     << "  --seq_len <int>       training sequence length; overrides\n"
     << "                        nntr_config.json's init_seq_len. Attention\n"
     << "                        memory is quadratic in this, so prefer the\n"
@@ -254,6 +264,52 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
       std::cout << std::flush;
 
     Qwen3CausalLM model(cfg, generation_cfg, nntr_cfg);
+
+    // GPU-trunk / CPU-head split: the frozen blocks [0, S) run as an
+    // inference graph on the GPU engine, the trainable blocks [S, L) as the
+    // CPU training graph whose input is the trunk's hidden state.
+    const bool hybrid = !params.hybrid_trunk_path.empty();
+    std::unique_ptr<Qwen3CausalLM> trunk;
+    int trunk_layers = 0;
+    if (hybrid) {
+      trunk_layers = model.getLoraLayerStart();
+      if (trunk_layers <= 0)
+        throw std::invalid_argument(
+          "--hybrid_trunk needs --lora_last_n < num_hidden_layers");
+      model.setHeadFromLayer(trunk_layers);
+
+      const std::string &td = params.hybrid_trunk_path;
+      causallm::json tcfg = causallm::LoadJsonFile(td + "/config.json");
+      causallm::json tgen = causallm::json::object();
+      if (std::filesystem::exists(td + "/generation_config.json"))
+        tgen = causallm::LoadJsonFile(td + "/generation_config.json");
+      causallm::json tnntr = causallm::LoadJsonFile(td + "/nntr_config.json");
+      tnntr["lora_rank"] = 0;
+      tnntr["lora_alpha"] = 0;
+      tnntr["tokenizer_file"] = nntr_cfg["tokenizer_file"];
+      // the GPU attention arms (see README_GPU.md); an explicit setting wins
+      setenv("NNTR_MHA_GPU", "1", 0);
+      setenv("NNTR_KV_IMG_ATTN", "1", 0);
+      // Keep the trunk's QS4CX host payload: with it released after the
+      // device repack, the first trunk prefill trips the v8c weight-cache
+      // rebuild guard (refuseIfQs4cxPayloadDropped). Costs one host copy of
+      // the trunk FC weights.
+      setenv("NNTR_V8C_DROP_PLAIN", "0", 0);
+      trunk = std::make_unique<Qwen3CausalLM>(tcfg, tgen, tnntr);
+      trunk->setTrunkLayers(trunk_layers);
+      // the trunk's output is read back on the host by the CPU head
+      auto &rp = nntrainer::ResidencyPolicy::global();
+      rp.lower_patterns += std::string(rp.lower_patterns.empty() ? "" : ",") +
+                           "layer" + std::to_string(trunk_layers - 1) +
+                           "_decoder_output:out0";
+      trunk->initialize();
+      trunk->load_weight(td + "/" +
+                         tnntr["model_file_name"].get<std::string>());
+      std::cout << "hybrid:       GPU trunk blocks [0, " << trunk_layers
+                << ") from " << td << ", CPU head blocks [" << trunk_layers
+                << ", ...)" << std::endl;
+    }
+
     model.initializeForTraining(params.lr, params.epochs, params.lr_decay_rate,
                                 params.lr_decay_steps);
 
@@ -270,8 +326,56 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
                                    params.max_samples, params.seed);
     std::cout << "samples:      " << data_gen.size() << std::endl;
 
+    // Hybrid: the producer thread runs the GPU trunk for each sample and
+    // queues the lm_head read row; the head's lm_head pops one per forward
+    // (both phases consume samples in the order they were produced).
+    struct RowQueue {
+      std::mutex m;
+      std::condition_variable cv;
+      std::deque<unsigned int> q;
+    };
+    auto rows = std::make_shared<RowQueue>();
+    if (hybrid) {
+      const unsigned int L = seq_len;
+      Qwen3CausalLM *t = trunk.get();
+      data_gen.input_writer = [t, L, rows](const int32_t *ids,
+                                           unsigned int used, float *input) {
+        const auto t0 = std::chrono::steady_clock::now();
+        t->trunkHidden(ids, used, L, input);
+        const double ms = std::chrono::duration<double, std::milli>(
+                            std::chrono::steady_clock::now() - t0)
+                            .count();
+        static double acc = 0;
+        static unsigned int n = 0;
+        static const bool prof = std::getenv("NNTR_TRAIN_PROF") != nullptr;
+        acc += ms;
+        if (++n % 10 == 0 && prof) {
+          std::cout << "[PERF-TRUNK] avg " << acc / 10 << " ms (gpu trunk, "
+                    << used << " tokens)" << std::endl;
+          acc = 0;
+        }
+        {
+          std::lock_guard<std::mutex> lk(rows->m);
+          rows->q.push_back(used - 1);
+        }
+        rows->cv.notify_one();
+      };
+      nntrainer::g_tie_embedding_read_row_source = [rows]() {
+        std::unique_lock<std::mutex> lk(rows->m);
+        rows->cv.wait(lk, [&] { return !rows->q.empty(); });
+        const unsigned int r = rows->q.front();
+        rows->q.pop_front();
+        return r;
+      };
+    }
+
     std::shared_ptr<ml::train::Dataset> dataset = ml::train::createDataset(
       ml::train::DatasetType::GENERATOR, trainingDataGenCb, &data_gen);
+    // Hybrid: a 1-slot iteration queue frees its slot only when the step that
+    // consumed it ends, so the GPU trunk of the next sample would start after
+    // the CPU step instead of under it. Two slots let it run one sample ahead.
+    if (hybrid)
+      dataset->setProperty({"buffer_size=2"});
     model.setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset);
     model.setDataset(ml::train::DatasetModeType::MODE_VALID, dataset);
 
@@ -297,9 +401,11 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
     model.train(onEpochComplete, &bridge, nullptr, nullptr, iteration_wrapper,
                 nullptr);
 
+    nntrainer::g_tie_embedding_read_row_source = nullptr;
     std::cout << "training complete; best valid_loss=" << bridge.best_loss
               << ", adapter at " << output_path << std::endl;
   } catch (const std::exception &e) {
+    nntrainer::g_tie_embedding_read_row_source = nullptr;
     std::cerr << "Error: " << e.what() << std::endl;
     return EXIT_FAILURE;
   }
@@ -367,6 +473,8 @@ int main(int argc, char *argv[]) {
         params.qat_ema_momentum = std::stof(next("--qat_ema_momentum"));
       else if (arg == "--seed")
         params.seed = static_cast<unsigned int>(std::stoul(next("--seed")));
+      else if (arg == "--hybrid_trunk")
+        params.hybrid_trunk_path = next("--hybrid_trunk");
       else {
         std::cerr << "Unknown option: " << arg << std::endl;
         printUsage(argv[0]);

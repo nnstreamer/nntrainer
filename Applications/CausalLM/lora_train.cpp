@@ -147,10 +147,14 @@ int TrainingDataGenerator::next(float **input, float **label, bool *last) {
   const Sample &s = samples_[index_order_[cursor_]];
   const unsigned int used = static_cast<unsigned int>(s.ids.size() - 1);
 
-  float *in = input[0];
-  std::fill(in, in + seq_len_, 0.0f);
-  for (unsigned int i = 0; i < used; ++i)
-    in[i] = static_cast<float>(s.ids[i]);
+  if (input_writer) {
+    input_writer(s.ids.data(), used, input[0]);
+  } else {
+    float *in = input[0];
+    std::fill(in, in + seq_len_, 0.0f);
+    for (unsigned int i = 0; i < used; ++i)
+      in[i] = static_cast<float>(s.ids[i]);
+  }
 
   std::fill(label[0], label[0] + vocab_size_, 0.0f);
   const int32_t label_id = s.ids.back();

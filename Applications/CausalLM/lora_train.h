@@ -29,6 +29,7 @@
 #define __LORA_TRAIN_H__
 
 #include <atomic>
+#include <functional>
 #include <limits>
 #include <random>
 #include <string>
@@ -66,6 +67,16 @@ public:
    *          epoch (matching ml::train::DatasetGenCb semantics).
    */
   int next(float **input, float **label, bool *last);
+
+  /**
+   * @brief Hybrid (GPU trunk / CPU head) mode: when set, next() hands the
+   *        sample's input token ids to this writer, which fills input[0]
+   *        (seq_len rows of the frozen trunk's hidden state) instead of the
+   *        ids themselves. Runs on the dataset producer thread, so the trunk
+   *        for the next sample overlaps the current training step.
+   */
+  std::function<void(const int32_t *ids, unsigned int used, float *input)>
+    input_writer;
 
   /** @brief Number of samples loaded from the training file. */
   size_t size() const { return samples_.size(); }
@@ -114,6 +125,7 @@ struct TrainParams {
   unsigned int max_samples = 0;  ///< cap training samples (0 = no cap)
   unsigned int lora_last_n = 0;  ///< LoRA on last N layers (0 = all)
   unsigned int seq_len = 0;      ///< override init_seq_len (0 = config)
+  std::string hybrid_trunk_path; ///< GPU trunk model dir (empty = CPU only)
   float clip_grad = -1.0f;       ///< gradient clip global norm (-1 = config)
   bool train_norms = false;      ///< also train RMSNorm gammas
   bool lora_qat = false;         ///< fake-quantize loraA/loraB to Q4_0

@@ -729,14 +729,22 @@ void Transformer::load_weight_lora(const std::string &base_path,
   // it with the ordinary (already-correct) loader.
   const unsigned int saved_lora_rank = LORA_RANK;
   const bool saved_for_training = FOR_TRAINING;
+  const int saved_head_from = HEAD_FROM_LAYER;
+  const int saved_trunk = TRUNK_LAYERS;
   LORA_RANK = 0;
   FOR_TRAINING = false;
   FORCE_CPU_ENGINE = true;
+  // The checkpoint is positional for the FULL graph; a head-only training
+  // graph takes its blocks from it by name below.
+  HEAD_FROM_LAYER = 0;
+  TRUNK_LAYERS = 0;
 
   auto restore_graph_flags = [&]() {
     LORA_RANK = saved_lora_rank;
     FOR_TRAINING = saved_for_training;
     FORCE_CPU_ENGINE = false;
+    HEAD_FROM_LAYER = saved_head_from;
+    TRUNK_LAYERS = saved_trunk;
   };
 
   ModelHandle base_model =
@@ -781,6 +789,15 @@ void Transformer::load_weight_lora(const std::string &base_path,
         for (auto &w : context.getWeights()) {
           const std::string &name = w->getName();
           auto it = base_weights.find(name);
+          // A head-only graph's lm_head owns its weight; the full graph's
+          // tied head shares embedding0's.
+          if (it == base_weights.end() && HEAD_FROM_LAYER > 0 &&
+              name.rfind("output_of_causallm", 0) == 0) {
+            const std::string tied =
+              "embedding0" +
+              name.substr(std::string("output_of_causallm").size());
+            it = base_weights.find(tied);
+          }
           if (it != base_weights.end()) {
             nntrainer::Tensor &dst = w->getVariableRef();
             const nntrainer::Tensor &src = *it->second;
@@ -1120,6 +1137,25 @@ void Transformer::load_weight_lora_q4(const std::string &base_path,
  */
 std::pair<Tensor, Tensor> Transformer::constructModel() {
 
+  // CPU head of a GPU-trunk / CPU-head split: input0 is the trunk's last
+  // hidden state, so there is no embedding; blocks start at HEAD_FROM_LAYER.
+  if (HEAD_FROM_LAYER > 0) {
+    Tensor x = Tensor({1, 1, static_cast<unsigned int>(INIT_SEQ_LEN),
+                       static_cast<unsigned int>(DIM)},
+                      "input0");
+    Tensor h = x;
+    for (int i = HEAD_FROM_LAYER; i < NUM_LAYERS; ++i)
+      h = createTransformerDecoderBlock(i, h);
+    std::vector<std::string> head_norm_props = {
+      withKey("name", "output_norm"),
+      withKey("epsilon", std::to_string(NORM_EPS)), withKey("packed", "false"),
+      withKey("engine", layerEngine())};
+    if (LORA_RANK > 0 && !TRAIN_NORMS)
+      head_norm_props.push_back(withKey("trainable", "false"));
+    LayerHandle head_norm(createLayer("rms_norm", head_norm_props));
+    return {x, head_norm(h)};
+  }
+
   // input
   Tensor x =
     Tensor({1, 1, 1, static_cast<unsigned int>(INIT_SEQ_LEN)}, "input0");
@@ -1141,9 +1177,13 @@ std::pair<Tensor, Tensor> Transformer::constructModel() {
   Tensor h = embedding(x);
 
   // transformer decoder blocks
-  for (int i = 0; i < NUM_LAYERS; ++i) {
+  const int last_block = TRUNK_LAYERS > 0 ? TRUNK_LAYERS : NUM_LAYERS;
+  for (int i = 0; i < last_block; ++i) {
     h = createTransformerDecoderBlock(i, h);
   }
+  // GPU trunk of a GPU-trunk / CPU-head split: stop at the last frozen block.
+  if (TRUNK_LAYERS > 0)
+    return {x, h};
 
   // final rms_norm. NOTE: stays on CausalLM's "rms_norm" type (the custom
   // RMSNormLayer on cpu, RMSNormLayerGPU on gpu, CudaRMSNormLayer on cuda --

@@ -805,6 +805,50 @@ std::vector<float *> CausalLM::incrementalInference(
   return output;
 }
 
+void CausalLM::trunkHidden(const int32_t *ids, unsigned int used,
+                           unsigned int rows, float *out) {
+  NNTR_THROW_IF(TRUNK_LAYERS <= 0, std::runtime_error)
+    << "trunkHidden() needs a trunk graph (setTrunkLayers() before "
+       "initialize())";
+  NNTR_THROW_IF(used == 0 || used > rows || used > (unsigned int)INIT_SEQ_LEN,
+                std::invalid_argument)
+    << "trunkHidden: bad length " << used << " (rows " << rows << ")";
+
+  allocateAndBindKVCache();
+  setKVCachePosition(0);
+
+  std::vector<float> input_sample((size_t)BATCH_SIZE * MAX_SEQ_LEN, 0.0f);
+  for (unsigned int i = 0; i < used; ++i)
+    input_sample[i] = static_cast<float>(ids[i]);
+
+  std::vector<std::pair<std::string, float *>> cache_inputs;
+  for (int i = 0; i < NUM_LAYERS; ++i) {
+    cache_inputs.emplace_back(
+      "cache_k_l" + std::to_string(i),
+      reinterpret_cast<float *>(kv_cache.getKeyCache(i).getData()));
+    cache_inputs.emplace_back(
+      "cache_v_l" + std::to_string(i),
+      reinterpret_cast<float *>(kv_cache.getValueCache(i).getData()));
+  }
+  std::sort(cache_inputs.begin(), cache_inputs.end(),
+            [](const auto &a, const auto &b) { return a.first < b.first; });
+  std::vector<float *> inputs;
+  inputs.push_back(input_sample.data());
+  for (const auto &c : cache_inputs)
+    inputs.push_back(c.second);
+
+  std::vector<float *> outs =
+    incrementalInference(BATCH_SIZE, inputs, used, 0, used);
+  NNTR_THROW_IF(outs.empty() || outs[0] == nullptr, std::runtime_error)
+    << "trunkHidden: trunk graph produced no output";
+
+  const size_t dim = static_cast<size_t>(DIM);
+  std::memcpy(out, outs[0], sizeof(float) * dim * used);
+  std::fill(out + dim * used, out + dim * rows, 0.0f);
+  for (float *o : outs)
+    releaseLogitsBuf(o);
+}
+
 void CausalLM::setKVCachePosition(unsigned int pos) {
   kv_cache.setPosition(pos);
   std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>
@@ -871,7 +915,9 @@ Tensor CausalLM::buildLmHeadOutput(Tensor h, bool add_skip_prefill) {
     // declaration the property is inert and the plane comes back.
     lmhead_prop.emplace_back(withKey("plan_last_row_only", "true"));
   }
-  if (TIE_WORD_EMBEDDINGS && !lmhead_untied)
+  // A head-only graph has no embedding0 to share with: its lm_head owns the
+  // (tied) weight, copied from embedding0 by load_weight_lora().
+  if (TIE_WORD_EMBEDDINGS && !lmhead_untied && HEAD_FROM_LAYER == 0)
     lmhead_prop.emplace_back(withKey("shared_from", "embedding0"));
 
   // lm_head is never a LoRA target: freeze it whenever LoRA is active.
@@ -886,6 +932,10 @@ std::pair<Tensor, Tensor> CausalLM::constructModel() {
 
   // base transformer (input, output_norm)
   auto [x, h] = Transformer::constructModel();
+
+  // GPU trunk of a trunk/head split: the graph ends at the last frozen block.
+  if (TRUNK_LAYERS > 0)
+    return {x, h};
 
   Tensor y = buildLmHeadOutput(h, LMHEAD_UNTIE && SKIP_PREFILL);
 

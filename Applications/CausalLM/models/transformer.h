@@ -155,6 +155,21 @@ public:
   virtual void load_weight(const std::string &weight_path);
 
   /**
+   * @brief GPU-trunk / CPU-head training split. setTrunkLayers(n) builds only
+   *        embedding0 + decoder blocks [0, n) and outputs the last block's
+   *        hidden state (no output_norm / lm_head). setHeadFromLayer(n)
+   *        builds a graph whose input0 is that hidden state (1:1:L:DIM) and
+   *        that runs blocks [n, NUM_LAYERS) + output_norm + lm_head. Both
+   *        must be set before initialize() / initializeForTraining().
+   */
+  void setTrunkLayers(int n) { TRUNK_LAYERS = n; }
+  void setHeadFromLayer(int n) { HEAD_FROM_LAYER = n; }
+  /** first decoder block that carries LoRA (lora_last_n_layers) */
+  int getLoraLayerStart() const { return LORA_LAYER_START; }
+  /** hidden size */
+  int getHiddenDim() const { return DIM; }
+
+  /**
    * @brief Repack all QS4CX weights after loading
    * @note load_weight() already calls it; calling it again is a no-op, since
    * every weight packs at most once.
@@ -995,6 +1010,8 @@ protected:
    * weights are copied into the (cpu) training graph -- a gpu-engine base
    * graph would repack QS4CX for the device and drop the host payload. */
   bool FORCE_CPU_ENGINE = false;
+  int TRUNK_LAYERS = 0;    /**< see setTrunkLayers() (0 = off) */
+  int HEAD_FROM_LAYER = 0; /**< see setHeadFromLayer() (0 = off) */
 
   // Performance metrics
   // Zero-initialized: [perf-split] added fields (ttft_ms, first_token_ms,
