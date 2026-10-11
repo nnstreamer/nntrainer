@@ -657,15 +657,20 @@ void Transformer::setDataset(const ml::train::DatasetModeType &mode,
 /**
  * @brief Run training for the epochs configured in initializeForTraining().
  */
-void Transformer::train(std::function<void(void *)> epoch_complete_cb,
-                        void *epoch_data, std::function<bool(void *)> stop_cb,
-                        void *stop_data) {
+void Transformer::train(
+  std::function<void(void *)> epoch_complete_cb, void *epoch_data,
+  std::function<bool(void *)> stop_cb, void *stop_data,
+  std::function<void(unsigned int, float, void *)> iteration_cb,
+  void *iteration_data) {
   if (!stop_cb)
     stop_cb = [](void *) { return false; };
   if (!epoch_complete_cb)
     epoch_complete_cb = [](void *) {};
+  if (!iteration_cb)
+    iteration_cb = [](unsigned int, float, void *) {};
 
-  if (model->train({}, stop_cb, stop_data, epoch_complete_cb, epoch_data)) {
+  if (model->train({}, stop_cb, stop_data, epoch_complete_cb, epoch_data,
+                   iteration_cb, iteration_data)) {
     throw std::runtime_error("Training failed.");
   }
 }

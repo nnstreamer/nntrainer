@@ -36,6 +36,7 @@
 
 #define LOG_TAG "quickai_jni"
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 
 namespace {
 
@@ -1055,4 +1056,138 @@ Java_com_example_quickdotai_NativeCausalLm_runMultimodalMultiImageWithMessagesSt
   env->ReleaseFloatArrayElements(pixelValuesJ, pixels, JNI_ABORT);
 
   return static_cast<jint>(ec);
+}
+
+// ---------------------------------------------------------------------------
+// LoRA fine-tuning (trainLora)
+// ---------------------------------------------------------------------------
+namespace {
+
+/// @brief Listener method IDs cached per-call.
+struct TrainListenerCtx {
+  JNIEnv *env;
+  jobject listener;
+  jmethodID onEpoch;
+  jmethodID onComplete;
+  jmethodID onError;
+  jmethodID onIteration;
+};
+
+void trainProgressTrampoline(unsigned int epoch, float train_loss,
+                             float valid_loss, int saved, float best_loss,
+                             unsigned int num_samples, const char *output_path,
+                             const char *q4_output_path, void *user_data) {
+  auto *ctx = static_cast<TrainListenerCtx *>(user_data);
+  if (ctx == nullptr || ctx->env == nullptr || ctx->listener == nullptr ||
+      ctx->onEpoch == nullptr)
+    return;
+
+  JNIEnv *env = ctx->env;
+  if (env->ExceptionCheck())
+    env->ExceptionClear();
+  jstring outJ = env->NewStringUTF(output_path ? output_path : "");
+  jstring q4J = env->NewStringUTF(q4_output_path ? q4_output_path : "");
+  env->CallVoidMethod(ctx->listener, ctx->onEpoch, static_cast<jint>(epoch),
+                      train_loss, valid_loss, saved ? JNI_TRUE : JNI_FALSE,
+                      best_loss, static_cast<jint>(num_samples), outJ, q4J);
+  if (env->ExceptionCheck()) {
+    env->ExceptionDescribe();
+    env->ExceptionClear();
+  }
+  env->DeleteLocalRef(outJ);
+  env->DeleteLocalRef(q4J);
+}
+
+void iterationProgressTrampoline(unsigned int iteration, unsigned int epoch,
+                                 float loss, void *user_data) {
+  auto *ctx = static_cast<TrainListenerCtx *>(user_data);
+  if (ctx == nullptr || ctx->env == nullptr || ctx->listener == nullptr ||
+      ctx->onIteration == nullptr) {
+    LOGE("iterationProgressTrampoline: ctx or method is null (ctx=%p)", ctx);
+    return;
+  }
+
+  JNIEnv *env = ctx->env;
+  if (env->ExceptionCheck())
+    env->ExceptionClear();
+  env->CallVoidMethod(ctx->listener, ctx->onIteration,
+                      static_cast<jint>(iteration), static_cast<jint>(epoch),
+                      loss);
+  if (env->ExceptionCheck()) {
+    env->ExceptionDescribe();
+    env->ExceptionClear();
+  }
+}
+
+} // namespace
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_example_quickdotai_NativeCausalLm_trainLoraNative(
+  JNIEnv *env, jobject /*thiz*/, jstring paramsJsonJ, jobject listenerObj) {
+  if (paramsJsonJ == nullptr || listenerObj == nullptr) {
+    LOGE("trainLoraNative: params or listener is null");
+    return static_cast<jint>(CAUSAL_LM_ERROR_INVALID_PARAMETER);
+  }
+
+  const char *params_cstr = env->GetStringUTFChars(paramsJsonJ, nullptr);
+  if (params_cstr == nullptr) {
+    return static_cast<jint>(CAUSAL_LM_ERROR_INVALID_PARAMETER);
+  }
+  std::string params_json(params_cstr);
+  env->ReleaseStringUTFChars(paramsJsonJ, params_cstr);
+
+  jclass listenerCls = env->GetObjectClass(listenerObj);
+  if (listenerCls == nullptr) {
+    LOGE("trainLoraNative: cannot get listener class");
+    return static_cast<jint>(CAUSAL_LM_ERROR_INVALID_PARAMETER);
+  }
+
+  jmethodID onEpoch =
+    env->GetMethodID(listenerCls, "onEpochProgress",
+                     "(IFFZFILjava/lang/String;Ljava/lang/String;)V");
+  jmethodID onComplete =
+    env->GetMethodID(listenerCls, "onTrainComplete", "()V");
+  jmethodID onError =
+    env->GetMethodID(listenerCls, "onTrainError", "(Ljava/lang/String;)V");
+  jmethodID onIteration =
+    env->GetMethodID(listenerCls, "onIterationProgress", "(IIF)V");
+  env->DeleteLocalRef(listenerCls);
+
+  if (onEpoch == nullptr) {
+    LOGE("trainLoraNative: listener missing onEpochProgress");
+    return static_cast<jint>(CAUSAL_LM_ERROR_INVALID_PARAMETER);
+  }
+
+  TrainListenerCtx ctx{env,        listenerObj, onEpoch,
+                       onComplete, onError,     onIteration};
+
+  ErrorCode ec = trainLora(params_json.c_str(), trainProgressTrampoline, &ctx,
+                           onIteration ? iterationProgressTrampoline : nullptr,
+                           onIteration ? &ctx : nullptr);
+
+  if (ec == CAUSAL_LM_ERROR_NONE && onComplete != nullptr) {
+    env->CallVoidMethod(listenerObj, onComplete);
+  } else if (ec != CAUSAL_LM_ERROR_NONE && onError != nullptr) {
+    jstring msgJ = env->NewStringUTF("Training failed");
+    env->CallVoidMethod(listenerObj, onError, msgJ);
+    env->DeleteLocalRef(msgJ);
+  }
+
+  return static_cast<jint>(ec);
+}
+
+// ---------------------------------------------------------------------------
+// LoRA training cancellation
+// ---------------------------------------------------------------------------
+extern "C" JNIEXPORT void JNICALL
+Java_com_example_quickdotai_NativeCausalLm_stopLoraTrainingNative(
+  JNIEnv * /*env*/, jobject /*thiz*/) {
+  stopLoraTraining();
+  LOGI("stopLoraTrainingNative: cancellation requested");
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_example_quickdotai_NativeCausalLm_isLoraTrainingCancelled(
+  JNIEnv * /*env*/, jobject /*thiz*/) {
+  return static_cast<jint>(isLoraTrainingCancelled());
 }

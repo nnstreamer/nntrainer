@@ -341,6 +341,9 @@ public:
    * ~~~~~
    * @param[in] epoch_complete_cb Called the end of an epoch.
    * @a epoch_user_data user_data to be used in epoch_complete_cb
+   * @param[in] iteration_cb Called after every training iteration with
+   * (iteration_index, loss, user_data).
+   * @a iteration_user_data user_data to be used in iteration_cb
    * ~~~~~
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
@@ -352,7 +355,10 @@ public:
     void *stop_user_data = nullptr,
     std::function<void(void *)> epoch_complete_cb =
       [](void *epoch_user_data) { return false; },
-    void *epoch_user_data = nullptr) override;
+    void *epoch_user_data = nullptr,
+    std::function<void(unsigned int, float, void *)> iteration_cb =
+      [](unsigned int, float, void *) {},
+    void *iteration_user_data = nullptr) override;
 
   /**
    * @brief     Run NeuralNetwork inference
@@ -900,6 +906,8 @@ private:
    * @brief     Run NeuralNetwork train
    * @param[in] stop_cb callback function to decide stop training or not
    * @param[in] epoch_complete_cb Called the end of an epoch.
+   * @param[in] iteration_cb Called after every training iteration with
+   * (iteration_index, loss, user_data).
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
@@ -908,7 +916,10 @@ private:
     void *user_data = nullptr,
     std::function<void(void *)> epoch_complete_cb =
       [](void *) { return false; },
-    void *data = nullptr);
+    void *data = nullptr,
+    std::function<void(unsigned int, float, void *)> iteration_cb =
+      [](unsigned int, float, void *) {},
+    void *iteration_user_data = nullptr);
 
   /**
    * @brief     Swap function for the class

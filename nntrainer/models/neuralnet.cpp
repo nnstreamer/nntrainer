@@ -40,10 +40,10 @@
 #if defined(ENABLE_OPENCL)
 #include <blas_kernel_interface.h> // cl_fc_release_caches
 #endif
+#include <chrono>
 #include <mutex>
 #include <sstream>
 #include <thread>
-#include <chrono>
 
 #if defined(__GLIBC__) && !defined(_WIN32)
 #include <malloc.h> // malloc_trim: return the loader's freed transients to the OS
@@ -56,7 +56,7 @@
 #endif
 #if defined(ENABLE_CUDA) && ENABLE_CUDA == 1
 #include <cuda_context_manager.h> // cuda::drain_if_async
-#include <cuda_fc_qs4cx.h> // [wprefetch] cuda_fc_qs4cx_prefetch_weight
+#include <cuda_fc_qs4cx.h>        // [wprefetch] cuda_fc_qs4cx_prefetch_weight
 #endif
 
 #include <activation_realizer.h>
@@ -2677,11 +2677,12 @@ int NeuralNetwork::deallocate() {
   }
 }
 
-int NeuralNetwork::train(const std::vector<std::string> &values,
-                         std::function<bool(void *)> stop_cb,
-                         void *stop_user_data,
-                         std::function<void(void *)> epoch_complete_cb,
-                         void *epoch_user_data) {
+int NeuralNetwork::train(
+  const std::vector<std::string> &values, std::function<bool(void *)> stop_cb,
+  void *stop_user_data, std::function<void(void *)> epoch_complete_cb,
+  void *epoch_user_data,
+  std::function<void(unsigned int, float, void *)> iteration_cb,
+  void *iteration_user_data) {
   int status = ML_ERROR_NONE;
 
   if (data_buffers[static_cast<int>(DatasetModeType::MODE_TRAIN)] == nullptr) {
@@ -2703,8 +2704,8 @@ int NeuralNetwork::train(const std::vector<std::string> &values,
   status = allocate(ExecutionMode::TRAIN);
   NN_RETURN_STATUS();
 
-  status =
-    train_run(stop_cb, stop_user_data, epoch_complete_cb, epoch_user_data);
+  status = train_run(stop_cb, stop_user_data, epoch_complete_cb,
+                     epoch_user_data, iteration_cb, iteration_user_data);
   NN_RETURN_STATUS();
 
   /**
@@ -2721,8 +2722,9 @@ int NeuralNetwork::train(const std::vector<std::string> &values,
  */
 int NeuralNetwork::train_run(
   std::function<bool(void *userdata)> stop_cb, void *stop_user_data,
-  std::function<void(void *userdata)> epoch_complete_cb,
-  void *epoch_user_data) {
+  std::function<void(void *userdata)> epoch_complete_cb, void *epoch_user_data,
+  std::function<void(unsigned int, float, void *)> iteration_cb,
+  void *iteration_user_data) {
   int status = ML_ERROR_NONE;
 
   if (!std::get<props::ContinueTrain>(model_flex_props)) {
@@ -2801,38 +2803,37 @@ int NeuralNetwork::train_run(
     return stat;
   };
 
-  auto train_for_iteration =
-    [this, stop_cb, stop_user_data](RunStats &stat, DataBuffer &buffer) {
-      ml_logi("train for iteration");
-      /// [PERF-PROBE] per-step wall-clock timing with fwd/bwd split
-      using perf_clock = std::chrono::steady_clock;
-      static perf_clock::time_point perf_last = perf_clock::now();
-      perf_clock::time_point perf_t0 = perf_clock::now();
-      double perf_step_ms =
-        std::chrono::duration<double, std::milli>(perf_t0 - perf_last).count();
-      perf_last = perf_t0;
-      forwarding(true, stop_cb, stop_user_data);
-      perf_clock::time_point perf_t1 = perf_clock::now();
-      backwarding(iter++, stop_cb, stop_user_data);
-      perf_clock::time_point perf_t2 = perf_clock::now();
-      std::cout << "[PERF] step=" << perf_step_ms << "ms fwd="
-                << std::chrono::duration<double, std::milli>(perf_t1 - perf_t0)
-                     .count()
-                << "ms bwd="
-                << std::chrono::duration<double, std::milli>(perf_t2 - perf_t1)
-                     .count()
-                << "ms" << std::endl;
+  auto train_for_iteration = [this, stop_cb, stop_user_data, iteration_cb,
+                              iteration_user_data](RunStats &stat,
+                                                   DataBuffer &buffer) {
+    /// [PERF-PROBE] per-step wall-clock timing with fwd/bwd split
+    using perf_clock = std::chrono::steady_clock;
+    static perf_clock::time_point perf_last = perf_clock::now();
+    perf_clock::time_point perf_t0 = perf_clock::now();
+    double perf_step_ms =
+      std::chrono::duration<double, std::milli>(perf_t0 - perf_last).count();
+    perf_last = perf_t0;
+    forwarding(true, stop_cb, stop_user_data);
+    perf_clock::time_point perf_t1 = perf_clock::now();
+    backwarding(iter++, stop_cb, stop_user_data);
+    perf_clock::time_point perf_t2 = perf_clock::now();
+    std::cout
+      << "[PERF] step=" << perf_step_ms << "ms fwd="
+      << std::chrono::duration<double, std::milli>(perf_t1 - perf_t0).count()
+      << "ms bwd="
+      << std::chrono::duration<double, std::milli>(perf_t2 - perf_t1).count()
+      << "ms" << std::endl;
 
-      // To avoid unconsidered memory leak, we need to clear the cache
-      model_graph.flushCache();
+    // To avoid unconsidered memory leak, we need to clear the cache
+    model_graph.flushCache();
 
-      if (!stop_cb(stop_user_data)) {
-        std::cout << "#" << epoch_idx << "/" << getEpochs();
-        ml_logi("# %d / %d", epoch_idx, getEpochs());
-        auto loss = getLoss();
-        buffer.displayProgress(stat.num_iterations, loss);
-      }
-    };
+    if (!stop_cb(stop_user_data)) {
+      std::cout << "#" << epoch_idx << "/" << getEpochs();
+      auto loss = getLoss();
+      buffer.displayProgress(stat.num_iterations, loss);
+      iteration_cb(stat.num_iterations, loss, iteration_user_data);
+    }
+  };
 
   auto update_train_stat = [this](RunStats &stat,
                                   const std::vector<Tensor> &outputs,
@@ -2857,8 +2858,6 @@ int NeuralNetwork::train_run(
 
       std::cout << "#" << epoch_idx << "/" << getEpochs()
                 << " - Training Loss: " << stat.loss;
-      ml_logi("# %d / %d - Training Loss: %f", epoch_idx, getEpochs(),
-              stat.loss);
       ml_logd("[NNTrainer] Training epoch %d / %d finished successfully.",
               epoch_idx, getEpochs());
     } else {

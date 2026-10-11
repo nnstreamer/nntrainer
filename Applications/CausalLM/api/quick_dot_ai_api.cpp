@@ -15,6 +15,7 @@
 #include "quick_dot_ai_qnn.h"
 #endif
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cstdlib>
 #include <cstring>
@@ -38,6 +39,7 @@
 #include "gptoss_cached_slim_causallm.h"
 #include "gptoss_causallm.h"
 #include "json.hpp"
+#include "lora_train.h"
 #include "model_callbacks.h"
 #include "model_config_internal.h"
 #include "model_descriptor.h"
@@ -3264,6 +3266,92 @@ ErrorCode runMultimodalMultiImageHandleWithMessagesStreaming(
   return runMultimodalHandleWithMessagesStreaming(
     handle, messages, num_messages, add_generation_prompt, pixelValues,
     numPatches, originalHeights[0], originalWidths[0], callback, user_data);
+}
+
+// ---------------------------------------------------------------------------
+// LoRA fine-tuning API (trainLora)
+// ---------------------------------------------------------------------------
+namespace {
+
+/// @brief Bridge from the C++ TrainProgressCb to the C TrainProgressCallback.
+struct TrainCbBridge {
+  TrainProgressCallback cb;
+  void *user_data;
+};
+
+void trainProgressBridge(const causallm::TrainProgress &p, void *user_data) {
+  auto *b = static_cast<TrainCbBridge *>(user_data);
+  if (b == nullptr || b->cb == nullptr)
+    return;
+  b->cb(p.epoch, p.train_loss, p.valid_loss, p.saved ? 1 : 0, p.best_loss,
+        p.num_samples, p.output_path.c_str(), p.q4_output_path.c_str(),
+        b->user_data);
+}
+
+} // namespace
+
+// ── LoRA training cancellation ─────────────────────────────────────
+extern "C" void stopLoraTraining(void) {
+  causallm::loraTrainCancelledFlag().store(true);
+}
+
+extern "C" int isLoraTrainingCancelled(void) {
+  return causallm::loraTrainCancelledFlag().load() ? 1 : 0;
+}
+
+extern "C" ErrorCode trainLora(const char *params_json,
+                               TrainProgressCallback callback, void *user_data,
+                               IterationProgressCallback iter_cb,
+                               void *iter_data) {
+  causallm::loraTrainCancelledFlag().store(false);
+  if (params_json == nullptr) {
+    LOGE("trainLora: params_json is null");
+    return CAUSAL_LM_ERROR_INVALID_PARAMETER;
+  }
+
+  causallm::TrainParams params;
+  try {
+    auto j = causallm::json::parse(params_json);
+
+    params.model_path = j.value("model_path", std::string{});
+    params.data_path = j.value("data_path", std::string{});
+    if (params.model_path.empty() || params.data_path.empty()) {
+      LOGE("trainLora: model_path and data_path are required");
+      return CAUSAL_LM_ERROR_INVALID_PARAMETER;
+    }
+
+    params.lr = j.value("lr", 1e-4f);
+    params.lr_decay_rate = j.value("lr_decay_rate", 0.0f);
+    params.lr_decay_steps = j.value("lr_decay_steps", 0.0f);
+    params.epochs = j.value("epochs", 1u);
+    params.output_path = j.value("output_path", std::string{});
+    params.resume_lora_path = j.value("lora_path", std::string{});
+    params.lora_rank = j.value("lora_rank", 0u);
+    params.lora_alpha = j.value("lora_alpha", 0u);
+    params.max_samples = j.value("max_samples", 0u);
+    params.lora_last_n = j.value("lora_last_n", 0u);
+    params.seq_len = j.value("seq_len", 0u);
+    params.clip_grad = j.value("clip_grad", -1.0f);
+    params.train_norms = j.value("train_norms", false);
+    params.lora_qat = j.value("lora_qat", false);
+    params.lora_weight_q4 = j.value("lora_weight_q4", false);
+    params.qat_ema_momentum = j.value("qat_ema_momentum", 0.0f);
+    params.seed = j.value("seed", 42u);
+  } catch (const std::exception &e) {
+    LOGE("trainLora: failed to parse params_json: %s", e.what());
+    return CAUSAL_LM_ERROR_INVALID_PARAMETER;
+  }
+
+  TrainCbBridge bridge{callback, user_data};
+  int ret = causallm::runLoraTraining(
+    params, callback ? trainProgressBridge : nullptr,
+    callback ? &bridge : nullptr, iter_cb ? iter_cb : nullptr,
+    iter_cb ? iter_data : nullptr);
+  if (ret != 0) {
+    LOGE("trainLora: runLoraTraining failed (rc=%d)", ret);
+    return CAUSAL_LM_ERROR_UNKNOWN;
+  }
+  return CAUSAL_LM_ERROR_NONE;
 }
 
 } // extern "C"

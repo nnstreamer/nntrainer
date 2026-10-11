@@ -390,5 +390,77 @@ object NativeCausalLm {
     @JvmStatic
     external fun configureSpeculativeDecodingNative(handle: Long, on: Boolean): Int
 
+    // ── LoRA fine-tuning ──────────────────────────────────────────────
+
+    /**
+     * @brief Listener for per-epoch training progress.
+     *
+     * All callbacks are invoked on the same thread that called
+     * [trainLoraNative]; the caller is responsible for marshalling
+     * to the UI thread if needed.
+     */
+    interface TrainListener {
+        /**
+         * @param epoch       1-based epoch index
+         * @param trainLoss   training loss for this epoch
+         * @param validLoss   validation loss for this epoch
+         * @param saved       true if the adapter was saved (validation improved)
+         * @param bestLoss    best validation loss seen so far
+         * @param numSamples  total training samples loaded
+         * @param outputPath  adapter output path
+         * @param q4OutputPath Q4_0 adapter path (empty if not produced)
+         */
+        fun onEpochProgress(
+            epoch: Int, trainLoss: Float, validLoss: Float, saved: Boolean,
+            bestLoss: Float, numSamples: Int, outputPath: String,
+            q4OutputPath: String
+        )
+
+        /**
+         * Called after every training iteration (one forward+backward pass).
+         * @param iteration  0-based iteration index within the current epoch
+         * @param epoch      1-based epoch index
+         * @param loss       training loss for this iteration
+         */
+        fun onIterationProgress(iteration: Int, epoch: Int, loss: Float)
+
+        /** Called when training completes successfully. */
+        fun onTrainComplete()
+
+        /** Called when training fails. */
+        fun onTrainError(message: String)
+    }
+
+    /**
+     * @brief Run LoRA fine-tuning (optionally QAT).
+     *
+     * @param paramsJson  JSON string with training parameters (model_path,
+     *                    data_path, lr, epochs, seq_len, lora_qat, …).
+     * @param listener    Callback for per-epoch progress.
+     * @return An `ErrorCode` int; 0 on success.
+     */
+    @JvmStatic
+    external fun trainLoraNative(
+        paramsJson: String,
+        listener: TrainListener
+    ): Int
+
+    /**
+     * @brief Request cancellation of an in-progress LoRA training run.
+     *
+     * Thread-safe: can be called from any thread (e.g., UI cancel button handler).
+     * The training loop checks the flag after every iteration and aborts at the
+     * next iteration boundary.
+     */
+    @JvmStatic
+    external fun stopLoraTrainingNative()
+
+    /**
+     * @brief Check whether training cancellation has been requested.
+     * @return 1 if stopLoraTrainingNative() was called, 0 otherwise.
+     */
+    @JvmStatic
+    external fun isLoraTrainingCancelled(): Int
+
     private const val TAG = "NativeCausalLm"
 }

@@ -71,6 +71,7 @@ import com.example.quickdotai.LoadModelRequest
 import com.example.quickdotai.ModelCatalog
 import com.example.quickdotai.ModelDescriptor
 import com.example.quickdotai.ModelIds
+import com.example.quickdotai.NativeCausalLm
 import com.example.quickdotai.NativeQuickDotAI
 import com.example.quickdotai.RuntimeKind
 import com.example.quickdotai.createEngine
@@ -240,6 +241,31 @@ class MainActivity : AppCompatActivity() {
     private var mainScrollY = 0
     private var outputScrollY = 0
 
+    // ── Train tab state ──────────────────────────────────────────────────
+    private var trainModelPath: String = "/sdcard/q"
+    private var trainDataPath: String = "/sdcard/t.txt"
+    private var trainLr: String = "5e-5"
+    private var trainEpochs: String = "5"
+    private var trainSeqLen: String = "256"
+    private var trainLoraRank: String = "8"
+    private var trainLoraAlpha: String = "16"
+    private var trainLoraLastN: String = "7"
+    private var trainMaxSamples: String = "50"
+    private var trainClipGrad: String = "1.0"
+    private var trainQatEnabled: Boolean = true
+    private var trainWeightQ4: Boolean = true
+    private var trainNorms: Boolean = false
+    private var trainOutputPath: String = ""
+    private var trainResumePath: String = ""
+    private var trainSeed: String = "42"
+    private var trainRunning: Boolean = false
+    private var trainLog: String = ""
+    private var trainBestLoss: String = "—"
+    private val trainLossPoints = mutableListOf<Float>()  // per-iteration train loss
+    private val trainEpochBoundaries = mutableListOf<Int>()  // iteration index where each epoch ends
+    private val trainValidLosses = mutableListOf<Float>()  // valid loss per epoch
+    private var lossChartView: LossChartView? = null
+
     /* ───── UI refs (re-wired on every rebuildUi() call) ───── */
 
     private lateinit var rootHost: FrameLayout
@@ -357,13 +383,14 @@ class MainActivity : AppCompatActivity() {
         mainScrollView.addView(scrollColumn)
         column.addView(mainScrollView)
 
-        if (selectedTab != "chat") {
+        if (selectedTab != "chat" && selectedTab != "train") {
             scrollColumn.addView(buildModelSection(tokens))
             spacer(scrollColumn, 10)
         }
 
         scrollColumn.addView(when (selectedTab) {
             "chat"    -> buildChatTab(tokens)
+            "train"   -> buildTrainTab(tokens)
             "openai"  -> buildOpenAiTab(tokens)
             "metrics" -> buildMetricsTab(tokens)
             else      -> buildOpenAiTab(tokens)
@@ -513,6 +540,7 @@ class MainActivity : AppCompatActivity() {
             layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)
         }
         val tabs = listOf("chat" to "⌬ Chat",
+                          "train" to "⧖ Train",
                           "openai" to "{ } OpenAI", "metrics" to "▤ Metrics")
         for ((idx, entry) in tabs.withIndex()) {
             val (key, label) = entry
@@ -758,6 +786,129 @@ class MainActivity : AppCompatActivity() {
         card.addView(runBtn)
         return card
     }
+
+    private fun buildTrainTab(t: M3Tokens): View {
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL; setPadding(dp(4), dp(4), dp(4), dp(4))
+        }
+        val cc = roundedCard(t, t.surfaceContainer)
+        cc.addView(sectionHeader(t, "⧖", t.secondaryContainer, t.onSurface,
+            "LoRA Fine-tuning", "QAT / FP32 adapter training on-device"))
+        spacer(cc, 12)
+        cc.addView(labelView(t, "MODEL PATH"))
+        cc.addView(roundedEditText(t, trainModelPath, mono = true) { trainModelPath = it })
+        spacer(cc, 8)
+        cc.addView(labelView(t, "TRAINING DATA"))
+        cc.addView(roundedEditText(t, trainDataPath, mono = true) { trainDataPath = it })
+        spacer(cc, 8)
+        val r1 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        r1.addView(labeledColumn(t, "LR", roundedEditText(t, trainLr, mono = true) { trainLr = it }, 1f))
+        spacerH(r1, 8); r1.addView(labeledColumn(t, "EPOCHS", roundedEditText(t, trainEpochs, mono = true) { trainEpochs = it }, 1f))
+        cc.addView(r1); spacer(cc, 8)
+        val r2 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        r2.addView(labeledColumn(t, "SEQ LEN", roundedEditText(t, trainSeqLen, mono = true) { trainSeqLen = it }, 1f))
+        spacerH(r2, 8); r2.addView(labeledColumn(t, "MAX SAMPLES", roundedEditText(t, trainMaxSamples, mono = true) { trainMaxSamples = it }, 1f))
+        cc.addView(r2); spacer(cc, 8)
+        val r3 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        r3.addView(labeledColumn(t, "LORA RANK", roundedEditText(t, trainLoraRank, mono = true) { trainLoraRank = it }, 1f))
+        spacerH(r3, 8); r3.addView(labeledColumn(t, "LORA ALPHA", roundedEditText(t, trainLoraAlpha, mono = true) { trainLoraAlpha = it }, 1f))
+        cc.addView(r3); spacer(cc, 8)
+        val r4 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        r4.addView(labeledColumn(t, "LORA LAST N", roundedEditText(t, trainLoraLastN, mono = true) { trainLoraLastN = it }, 1f))
+        spacerH(r4, 8); r4.addView(labeledColumn(t, "CLIP GRAD", roundedEditText(t, trainClipGrad, mono = true) { trainClipGrad = it }, 1f))
+        cc.addView(r4); spacer(cc, 8)
+        val r5 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        r5.addView(labeledColumn(t, "OUTPUT (blank=default)", roundedEditText(t, trainOutputPath, mono = true) { trainOutputPath = it }, 2f))
+        spacerH(r5, 8); r5.addView(labeledColumn(t, "SEED", roundedEditText(t, trainSeed, mono = true) { trainSeed = it }, 1f))
+        cc.addView(r5); spacer(cc, 8)
+        cc.addView(labelView(t, "RESUME LORA PATH (optional)"))
+        cc.addView(roundedEditText(t, trainResumePath, mono = true) { trainResumePath = it })
+        spacer(cc, 12)
+        cc.addView(buildTrainTabToggles(t))
+        container.addView(cc); spacer(container, 10)
+        val lossCard = roundedCard(t, t.secondaryContainer)
+        lossCard.addView(sectionHeader(t, "★", t.tertiaryContainer, t.onSurface,
+            "Best Validation Loss", trainBestLoss))
+        container.addView(lossCard); spacer(container, 10)
+        container.addView(buildTrainChartPanel(t))
+        spacer(container, 10)
+        container.addView(buildTrainLogPanel(t))
+        return container
+    }
+
+    private fun buildTrainTabToggles(t: M3Tokens): View {
+        val w = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        w.addView(labelView(t, "OPTIONS")); spacer(w, 6)
+        w.addView(androidx.appcompat.widget.SwitchCompat(this).apply {
+            text = "QAT (--lora_qat)"; isChecked = trainQatEnabled
+            setOnCheckedChangeListener { _, c -> trainQatEnabled = c }
+        })
+        w.addView(androidx.appcompat.widget.SwitchCompat(this).apply {
+            text = "Save Q4_0 adapter (--lora_weight_q4)"; isChecked = trainWeightQ4
+            setOnCheckedChangeListener { _, c -> trainWeightQ4 = c }
+        })
+        w.addView(androidx.appcompat.widget.SwitchCompat(this).apply {
+            text = "Train norms (--train_norms)"; isChecked = trainNorms
+            setOnCheckedChangeListener { _, c -> trainNorms = c }
+        })
+        spacer(w, 12)
+        w.addView(Button(this).apply {
+            text = if (trainRunning) "⏹ Stop Training" else "▶ Start Training"
+            background = solid(if (trainRunning) t.error else t.primary, 24)
+            setTextColor(t.onPrimary); typeface = Typeface.DEFAULT_BOLD
+            setPadding(dp(16), dp(12), dp(16), dp(12))
+            setOnClickListener {
+                if (trainRunning) onStopTraining() else onTrainClicked()
+            }
+        })
+        return w
+    }
+
+    private fun buildTrainLogPanel(t: M3Tokens): View {
+        val card = roundedCard(t, t.surfaceContainerHigh)
+        card.addView(sectionHeader(t, "▤", t.surfaceContainerHigh, t.onSurface,
+            "Training Log", "Per-epoch loss / progress"))
+        spacer(card, 8)
+        card.addView(ScrollView(this).apply {
+            addView(TextView(this@MainActivity).apply {
+                text = if (trainLog.isEmpty()) "No training run yet." else trainLog
+                setTextColor(t.onSurface); textSize = 11f; typeface = Typeface.MONOSPACE
+                setPadding(dp(8), dp(8), dp(8), dp(8))
+                background = solid(t.surfaceContainer, 8)
+                setTextIsSelectable(true)
+            })
+            layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, dp(260))
+        })
+        return card
+    }
+
+    private fun buildTrainChartPanel(t: M3Tokens): View {
+        val card = roundedCard(t, t.surfaceContainerHigh)
+        card.addView(sectionHeader(t, "📈", t.surfaceContainerHigh, t.onSurface,
+            "Training Loss Chart", "Real-time per-iteration loss"))
+        spacer(card, 8)
+        lossChartView = LossChartView(
+            this,
+            bgColor = t.surfaceContainer,
+            gridColor = t.outlineVariant,
+            lineColor = t.primary,
+            validColor = t.tertiary,
+            textColor = t.onSurface,
+            epochLineColor = t.outline,
+        ).apply {
+            layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, dp(280))
+            setData(trainLossPoints, trainEpochBoundaries, trainValidLosses)
+        }
+        card.addView(lossChartView!!)
+        return card
+    }
+
+    private fun appendTrainLog(line: String) {
+        trainLog = if (trainLog.isEmpty()) line else "$trainLog\n$line"
+    }
+
+    private fun escapeJson(s: String): String =
+        s.replace("\\", "\\\\").replace("\"", "\\\"")
 
     private fun buildChatTab(t: M3Tokens): View {
         val container = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -2268,6 +2419,126 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /* ───── Train handler ───── */
+
+    private fun onStopTraining() {
+        appendTrainLog("⏹ Stop requested — finishing current iteration…")
+        setStatus("Stopping training…")
+        NativeCausalLm.stopLoraTrainingNative()
+        rebuildUi()
+    }
+
+    private fun onTrainClicked() {
+        if (trainRunning) return
+        trainRunning = true; trainLog = ""; trainBestLoss = "—"
+        trainLossPoints.clear()
+        trainEpochBoundaries.clear()
+        trainValidLosses.clear()
+        lossChartView?.clear()
+        setStatus("Training started…"); rebuildUi()
+        val modelPath = trainModelPath.trim()
+        val dataPath = trainDataPath.trim()
+        if (modelPath.isEmpty() || dataPath.isEmpty()) {
+            appendTrainLog("✗ model_path and data_path are required")
+            trainRunning = false; setStatus("Training failed: missing paths")
+            rebuildUi(); return
+        }
+        val sb = StringBuilder()
+        sb.append("{\"model_path\":\"").append(escapeJson(modelPath)).append('"')
+        sb.append(",\"data_path\":\"").append(escapeJson(dataPath)).append('"')
+        sb.append(",\"lr\":").append(trainLr.trim().toFloatOrNull() ?: 5e-5f)
+        sb.append(",\"epochs\":").append(trainEpochs.trim().toIntOrNull() ?: 1)
+        sb.append(",\"seq_len\":").append(trainSeqLen.trim().toIntOrNull() ?: 0)
+        sb.append(",\"lora_rank\":").append(trainLoraRank.trim().toIntOrNull() ?: 0)
+        sb.append(",\"lora_alpha\":").append(trainLoraAlpha.trim().toIntOrNull() ?: 0)
+        sb.append(",\"lora_last_n\":").append(trainLoraLastN.trim().toIntOrNull() ?: 0)
+        sb.append(",\"max_samples\":").append(trainMaxSamples.trim().toIntOrNull() ?: 0)
+        sb.append(",\"clip_grad\":").append(trainClipGrad.trim().toFloatOrNull() ?: -1.0f)
+        sb.append(",\"train_norms\":").append(trainNorms)
+        sb.append(",\"lora_qat\":").append(trainQatEnabled)
+        sb.append(",\"lora_weight_q4\":").append(trainWeightQ4)
+        sb.append(",\"seed\":").append(trainSeed.trim().toIntOrNull() ?: 42)
+        val out = trainOutputPath.trim()
+        if (out.isNotEmpty()) sb.append(",\"output_path\":\"").append(escapeJson(out)).append('"')
+        val resume = trainResumePath.trim()
+        if (resume.isNotEmpty()) sb.append(",\"lora_path\":\"").append(escapeJson(resume)).append('"')
+        sb.append('}')
+        val paramsJson = sb.toString()
+        appendTrainLog("▶ Starting training…")
+        appendTrainLog("  model: $modelPath")
+        appendTrainLog("  data:  $dataPath")
+        engineExecutor.execute {
+            if (!NativeCausalLm.ensureLoaded()) {
+                mainHandler.post {
+                    appendTrainLog("✗ Failed to load native libraries")
+                    trainRunning = false; setStatus("Training failed: native libs")
+                    rebuildUi()
+                }
+                return@execute
+            }
+            val listener = object : NativeCausalLm.TrainListener {
+                override fun onEpochProgress(
+                    epoch: Int, trainLoss: Float, validLoss: Float,
+                    saved: Boolean, bestLoss: Float, numSamples: Int,
+                    outputPath: String, q4OutputPath: String
+                ) {
+                    mainHandler.post {
+                        trainEpochBoundaries.add(trainLossPoints.size - 1)
+                        trainValidLosses.add(validLoss)
+                        lossChartView?.addEpochBoundary(trainLossPoints.size - 1, validLoss)
+                        appendTrainLog(String.format(
+                            "[epoch %d] train_loss=%.4f valid_loss=%.4f%s | best=%.4f | %d samples",
+                            epoch, trainLoss, validLoss,
+                            if (saved) " ✓ saved" else "", bestLoss, numSamples))
+                        if (bestLoss < Float.MAX_VALUE)
+                            trainBestLoss = String.format("%.4f", bestLoss)
+                        rebuildUi()
+                    }
+                }
+                override fun onIterationProgress(iteration: Int, epoch: Int, loss: Float) {
+                    mainHandler.post {
+                        trainLossPoints.add(loss)
+                        lossChartView?.addPoint(loss)
+                    }
+                }
+                override fun onTrainComplete() {
+                    mainHandler.post {
+                        appendTrainLog("✓ Training complete!")
+                        trainRunning = false; setStatus("Training complete")
+                        rebuildUi()
+                    }
+                }
+                override fun onTrainError(message: String) {
+                    mainHandler.post {
+                        val cancelled = NativeCausalLm.isLoraTrainingCancelled() != 0
+                        if (cancelled) {
+                            appendTrainLog("⏹ Training stopped by user")
+                            trainRunning = false; setStatus("Training stopped")
+                        } else {
+                            appendTrainLog("✗ Error: $message")
+                            trainRunning = false; setStatus("Training failed")
+                        }
+                        rebuildUi()
+                    }
+                }
+            }
+            val rc = NativeCausalLm.trainLoraNative(paramsJson, listener)
+            if (rc != 0) {
+                mainHandler.post {
+                    val cancelled = NativeCausalLm.isLoraTrainingCancelled() != 0
+                    if (cancelled) {
+                        appendTrainLog("⏹ Training stopped by user")
+                        trainRunning = false; setStatus("Training stopped")
+                    } else {
+                        appendTrainLog("✗ trainLoraNative returned error code: $rc")
+                        trainRunning = false; setStatus("Training failed (rc=$rc)")
+                    }
+                    rebuildUi()
+                }
+            }
+        }
+    }
+
     /* ───── Chat session handlers ───── */
 
     private fun onChatOpenClicked() {
@@ -2887,5 +3158,187 @@ class MainActivity : AppCompatActivity() {
         QuantizationType.W8A16 -> "-w8a16"
         QuantizationType.W32A32 -> "-w32a32"
         QuantizationType.UNKNOWN -> "-w4a32"
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ *  LossChartView — a lightweight Canvas-based line chart for real-time
+ *  training-loss monitoring.  No third-party dependencies.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+private class LossChartView(
+    context: android.content.Context,
+    var bgColor: Int,
+    var gridColor: Int,
+    var lineColor: Int,
+    var validColor: Int,
+    var textColor: Int,
+    var epochLineColor: Int,
+) : View(context) {
+
+    private val lossPoints = mutableListOf<Float>()
+    private val epochBoundaries = mutableListOf<Int>()
+    private val validLosses = mutableListOf<Float>()
+
+    private val paintLine = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        style = android.graphics.Paint.Style.STROKE
+        strokeWidth = 4f
+        color = lineColor
+    }
+    private val paintFill = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        style = android.graphics.Paint.Style.FILL
+        color = (lineColor and 0x00FFFFFF) or 0x20000000.toInt()
+    }
+    private val paintGrid = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        style = android.graphics.Paint.Style.STROKE
+        strokeWidth = 1f
+        color = gridColor
+    }
+    private val paintEpoch = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        style = android.graphics.Paint.Style.STROKE
+        strokeWidth = 1f
+        color = epochLineColor
+        pathEffect = android.graphics.DashPathEffect(floatArrayOf(8f, 6f), 0f)
+    }
+    private val paintValid = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        style = android.graphics.Paint.Style.FILL
+        color = validColor
+    }
+    private val paintText = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        color = textColor
+        textSize = 28f
+        typeface = Typeface.MONOSPACE
+    }
+    private val paintTextSmall = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        color = (textColor and 0x00FFFFFF) or 0xAA000000.toInt()
+        textSize = 22f
+        typeface = Typeface.MONOSPACE
+    }
+    private val paintBg = android.graphics.Paint().apply { color = bgColor }
+
+    private val padL = 90f
+    private val padR = 24f
+    private val padT = 40f
+    private val padB = 56f
+
+    fun setData(points: List<Float>, epochs: List<Int>, valid: List<Float>) {
+        lossPoints.clear()
+        lossPoints.addAll(points)
+        epochBoundaries.clear()
+        epochBoundaries.addAll(epochs)
+        validLosses.clear()
+        validLosses.addAll(valid)
+        postInvalidate()
+    }
+
+    fun addPoint(loss: Float) {
+        lossPoints.add(loss)
+        postInvalidate()
+    }
+
+    fun addEpochBoundary(iterIndex: Int, validLoss: Float) {
+        epochBoundaries.add(iterIndex)
+        validLosses.add(validLoss)
+        postInvalidate()
+    }
+
+    fun clear() {
+        lossPoints.clear()
+        epochBoundaries.clear()
+        validLosses.clear()
+        postInvalidate()
+    }
+
+    override fun onDraw(canvas: android.graphics.Canvas) {
+        val w = width.toFloat()
+        val h = height.toFloat()
+        canvas.drawRect(0f, 0f, w, h, paintBg)
+
+        if (lossPoints.isEmpty()) {
+            paintText.textAlign = android.graphics.Paint.Align.CENTER
+            canvas.drawText("Waiting for training data…", w / 2, h / 2, paintTextSmall)
+            return
+        }
+
+        val chartW = w - padL - padR
+        val chartH = h - padT - padB
+
+        var minLoss = lossPoints.min()
+        var maxLoss = lossPoints.max()
+        if (validLosses.isNotEmpty()) {
+            minLoss = minOf(minLoss, validLosses.min())
+            maxLoss = maxOf(maxLoss, validLosses.max())
+        }
+        if (minLoss == maxLoss) maxLoss = minLoss + 1f
+        val yPad = (maxLoss - minLoss) * 0.1f
+        val yMin = minLoss - yPad
+        val yMax = maxLoss + yPad
+        val yRangePadded = yMax - yMin
+
+        val n = lossPoints.size
+        val xStep = if (n > 1) chartW / (n - 1) else 0f
+
+        paintGrid.alpha = 60
+        for (i in 0..4) {
+            val y = padT + chartH * i / 4f
+            canvas.drawLine(padL, y, w - padR, y, paintGrid)
+            val valLabel = yMax - (yRangePadded * i / 4f)
+            paintTextSmall.textAlign = android.graphics.Paint.Align.RIGHT
+            canvas.drawText(String.format("%.2f", valLabel), padL - 8, y + 8, paintTextSmall)
+        }
+
+        for (idx in epochBoundaries) {
+            if (idx in 0 until n) {
+                val x = padL + idx * xStep
+                canvas.drawLine(x, padT, x, padT + chartH, paintEpoch)
+            }
+        }
+
+        if (n >= 2) {
+            val path = android.graphics.Path()
+            path.moveTo(padL, padT + chartH)
+            for (i in 0 until n) {
+                val x = padL + i * xStep
+                val y = padT + chartH * (1f - (lossPoints[i] - yMin) / yRangePadded)
+                path.lineTo(x, y)
+            }
+            path.lineTo(padL + (n - 1) * xStep, padT + chartH)
+            path.close()
+            canvas.drawPath(path, paintFill)
+        }
+
+        if (n >= 2) {
+            val path = android.graphics.Path()
+            for (i in 0 until n) {
+                val x = padL + i * xStep
+                val y = padT + chartH * (1f - (lossPoints[i] - yMin) / yRangePadded)
+                if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+            }
+            canvas.drawPath(path, paintLine)
+        } else if (n == 1) {
+            val x = padL
+            val y = padT + chartH * (1f - (lossPoints[0] - yMin) / yRangePadded)
+            canvas.drawCircle(x, y, 6f, paintLine)
+        }
+
+        for (i in epochBoundaries.indices) {
+            val idx = epochBoundaries[i]
+            if (idx in 0 until n && i < validLosses.size) {
+                val x = padL + idx * xStep
+                val y = padT + chartH * (1f - (validLosses[i] - yMin) / yRangePadded)
+                canvas.drawCircle(x, y, 8f, paintValid)
+                canvas.drawCircle(x, y, 8f, paintLine)
+            }
+        }
+
+        val currentLoss = lossPoints.last()
+        paintText.textAlign = android.graphics.Paint.Align.LEFT
+        canvas.drawText(
+            "iter $n  loss=${String.format("%.4f", currentLoss)}",
+            padL, padT - 12, paintText
+        )
+
+        paintTextSmall.textAlign = android.graphics.Paint.Align.CENTER
+        canvas.drawText("iteration", w / 2, h - 12, paintTextSmall)
     }
 }

@@ -268,7 +268,10 @@ public:
     void *stop_user_data = nullptr,
     std::function<void(void *)> epoch_complete_cb =
       [](void *epoch_user_data) { return false; },
-    void *epoch_user_data = nullptr) = 0;
+    void *epoch_user_data = nullptr,
+    std::function<void(unsigned int, float, void *)> iteration_cb =
+      [](unsigned int, float, void *) {},
+    void *iteration_user_data = nullptr) = 0;
 
   /**
    * @brief     Run Model train with callback function by user

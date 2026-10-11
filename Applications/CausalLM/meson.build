@@ -426,6 +426,8 @@ if get_option('enable-api')
     meson.current_source_dir() / 'api' / 'model_descriptors_public.cpp',
     meson.current_source_dir() / 'api' / 'streamer.cpp',
     meson.current_source_dir() / 'api' / 'callback_streamer.cpp',
+    meson.current_source_dir() / 'lora_train.cpp',
+    meson.current_source_dir() / 'train_qwen3_lora.cpp',
   ]
 
   quick_dot_ai_api_lib = shared_library('quick_dot_ai_api',

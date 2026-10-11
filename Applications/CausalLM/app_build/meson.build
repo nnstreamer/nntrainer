@@ -415,6 +415,8 @@ if get_option('enable-api')
       causallm_root / 'api' / 'model_descriptors_public.cpp',
       causallm_root / 'api' / 'streamer.cpp',
       causallm_root / 'api' / 'callback_streamer.cpp',
+      causallm_root / 'lora_train.cpp',
+      causallm_root / 'train_qwen3_lora.cpp',
       dependencies: [nntrainer_dep, causallm_dep, openmp_dep, thread_dep, log_dep],
       cpp_args: quick_dot_ai_inc_args + quick_dot_ai_api_cpp_args,
       install: true,

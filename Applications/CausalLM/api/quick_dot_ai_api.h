@@ -699,6 +699,92 @@ WIN_EXPORT ErrorCode runModelHandleWithJsonStreaming(
  */
 WIN_EXPORT const char *getModelCatalogJson(void);
 
+/*============================================================================
+ * LoRA fine-tuning API
+ *
+ * Runs on-device LoRA (optionally QAT) fine-tuning on a Qwen3 model and
+ * saves the best adapter to disk.  Parameters are passed as a JSON string
+ * mirroring the CLI flags of nntr_lora_train:
+ *
+ *   {
+ *     "model_path":  "/data/.../qwen3-0.6b",   // required
+ *     "data_path":   "/data/.../train.txt",    // required
+ *     "lr":          5e-5,                     // default 1e-4
+ *     "epochs":      5,                        // default 1
+ *     "seq_len":     256,                      // 0 = from config
+ *     "lora_rank":   8,                        // 0 = from config
+ *     "lora_alpha":  16,                       // 0 = from config
+ *     "lora_last_n": 7,                        // 0 = all layers
+ *     "max_samples": 50,                       // 0 = no cap
+ *     "clip_grad":   1.0,                      // -1 = from config
+ *     "train_norms": false,
+ *     "lora_qat":    true,                     // QAT fake-quant
+ *     "lora_weight_q4": true,                  // also save Q4_0 adapter
+ *     "qat_ema_momentum": 0.1,
+ *     "lr_decay_rate":   0.0,
+ *     "lr_decay_steps":  0.0,
+ *     "output_path":    ".../lora_adapter.bin", // default
+ *<model>/lora_adapter.bin "lora_path":       "",                    // resume
+ *from existing adapter "seed":           42
+ *   }
+ *
+ * @p callback is invoked after every epoch (may be NULL).
+ *============================================================================*/
+
+typedef void (*TrainProgressCallback)(unsigned int epoch, float train_loss,
+                                      float valid_loss, int saved,
+                                      float best_loss, unsigned int num_samples,
+                                      const char *output_path,
+                                      const char *q4_output_path,
+                                      void *user_data);
+
+/**
+ * @brief Per-iteration training progress callback.
+ *
+ * Invoked after every training iteration (one forward+backward pass).
+ *
+ * @param iteration  0-based iteration index within the current epoch
+ * @param epoch      1-based epoch index
+ * @param loss       training loss for this iteration
+ * @param user_data  opaque pointer forwarded from the caller
+ */
+typedef void (*IterationProgressCallback)(unsigned int iteration,
+                                          unsigned int epoch, float loss,
+                                          void *user_data);
+
+/**
+ * @brief Run LoRA fine-tuning and return an ErrorCode.
+ *
+ * @param params_json  NUL-terminated JSON string (see above)
+ * @param callback     Per-epoch progress callback (may be NULL)
+ * @param user_data    Opaque pointer forwarded to @p callback
+ * @param iter_cb      Per-iteration progress callback (may be NULL)
+ * @param iter_data    Opaque pointer forwarded to @p iter_cb
+ * @return ErrorCode (CAUSAL_LM_ERROR_NONE on success)
+ */
+WIN_EXPORT ErrorCode trainLora(const char *params_json,
+                               TrainProgressCallback callback, void *user_data,
+                               IterationProgressCallback iter_cb,
+                               void *iter_data);
+
+/**
+ * @brief Request cancellation of an in-progress LoRA training run.
+ *
+ * Sets a thread-safe flag that is checked after every training iteration.
+ * The training loop will abort at the next iteration boundary and
+ * trainLora() will return CAUSAL_LM_ERROR_UNKNOWN.
+ *
+ * Thread-safe: can be called from any thread (e.g., UI cancel button handler).
+ */
+WIN_EXPORT void stopLoraTraining(void);
+
+/**
+ * @brief Check whether training cancellation has been requested.
+ *
+ * @return 1 if stopLoraTraining() was called, 0 otherwise.
+ */
+WIN_EXPORT int isLoraTrainingCancelled(void);
+
 #ifdef __cplusplus
 }
 #endif

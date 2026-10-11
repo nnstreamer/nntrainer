@@ -68,17 +68,28 @@ void printUsage(const char *prog) {
     << "  --seed <int>          RNG seed for epoch shuffling (default 42)\n";
 }
 
-/** @brief Per-epoch bookkeeping shared with the training callback. */
-struct EpochState {
-  causallm::Qwen3CausalLM *model;
+} // namespace
+
+namespace causallm {
+
+/** @brief Bridges model.train(onEpochComplete, ...) to a TrainProgressCb. */
+struct EpochBridge {
+  Qwen3CausalLM *model;
+  TrainParams params;
   std::string output_path;
-  std::string q4_output_path; // empty unless --lora_weight_q4 was passed
+  std::string q4_output_path; ///< empty unless lora_weight_q4 was passed
   unsigned int epoch = 0;
   float best_loss = std::numeric_limits<float>::max();
+  TrainProgressCb user_cb = nullptr;
+  void *user_data = nullptr;
+  unsigned int num_samples = 0;
+  IterationProgressCb iter_cb = nullptr;
+  void *iter_data = nullptr;
 };
 
-void onEpochComplete(void *user_data) {
-  auto *st = static_cast<EpochState *>(user_data);
+static void onEpochComplete(void *user_data) {
+  // epoch_complete_cb invoked from model.train()
+  auto *st = static_cast<EpochBridge *>(user_data);
   ++st->epoch;
 
   auto train_stats = st->model->getTrainingStats();
@@ -87,12 +98,12 @@ void onEpochComplete(void *user_data) {
   std::cout << "[epoch " << st->epoch << "] train_loss=" << train_stats.loss
             << " valid_loss=" << valid_stats.loss << std::endl;
 
-  // Save whenever validation loss improves, so an interrupted run still
-  // leaves the best adapter on disk.
+  bool saved = false;
   if (valid_stats.loss < st->best_loss) {
     st->best_loss = valid_stats.loss;
     try {
       st->model->save_weight_lora(st->output_path);
+      saved = true;
       std::cout << "  saved LoRA adapter -> " << st->output_path << std::endl;
     } catch (const std::exception &e) {
       std::cerr << "  failed to save LoRA adapter: " << e.what() << std::endl;
@@ -108,96 +119,29 @@ void onEpochComplete(void *user_data) {
       }
     }
   }
+
+  if (st->user_cb != nullptr) {
+    TrainProgress progress;
+    progress.epoch = st->epoch;
+    progress.train_loss = train_stats.loss;
+    progress.valid_loss = valid_stats.loss;
+    progress.accuracy = 0.0f;
+    progress.saved = saved;
+    progress.output_path = st->output_path;
+    progress.q4_output_path = st->q4_output_path;
+    progress.best_loss = st->best_loss;
+    progress.num_samples = st->num_samples;
+    st->user_cb(progress, st->user_data);
+  }
 }
 
-} // namespace
+int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
+                    void *user_data, IterationProgressCb iter_cb,
+                    void *iter_data) {
+  const std::string &model_path = params.model_path;
+  const std::string &data_path = params.data_path;
 
-int main(int argc, char *argv[]) {
-  if (argc < 3) {
-    printUsage(argv[0]);
-    return EXIT_FAILURE;
-  }
-
-  const std::string model_path = argv[1];
-  const std::string data_path = argv[2];
-
-  float lr = 1e-4f;
-  float lr_decay_rate = 0.0f;
-  float lr_decay_steps = 0.0f;
-  unsigned int epochs = 1;
-  std::string output_path;
-  std::string resume_lora_path;
-  unsigned int lora_rank_override = 0;
-  unsigned int lora_alpha_override = 0;
-  unsigned int max_samples = 0;
-  unsigned int lora_last_n = 0;
-  unsigned int seq_len_override = 0;
-  float clip_grad = -1.0f;
-  bool train_norms = false;
-  bool lora_qat = false;
-  bool lora_weight_q4 = false;
-  float qat_ema_momentum = 0.0f;
-  unsigned int seed = 42;
-
-  for (int i = 3; i < argc; ++i) {
-    const std::string arg = argv[i];
-    auto next = [&](const char *name) -> std::string {
-      if (i + 1 >= argc) {
-        throw std::invalid_argument(std::string("missing value for ") + name);
-      }
-      return argv[++i];
-    };
-    try {
-      if (arg == "--lr")
-        lr = std::stof(next("--lr"));
-      else if (arg == "--lr_decay_rate")
-        lr_decay_rate = std::stof(next("--lr_decay_rate"));
-      else if (arg == "--lr_decay_steps")
-        lr_decay_steps = std::stof(next("--lr_decay_steps"));
-      else if (arg == "--epochs")
-        epochs = static_cast<unsigned int>(std::stoul(next("--epochs")));
-      else if (arg == "--output")
-        output_path = next("--output");
-      else if (arg == "--lora_path")
-        resume_lora_path = next("--lora_path");
-      else if (arg == "--lora_rank")
-        lora_rank_override =
-          static_cast<unsigned int>(std::stoul(next("--lora_rank")));
-      else if (arg == "--lora_alpha")
-        lora_alpha_override =
-          static_cast<unsigned int>(std::stoul(next("--lora_alpha")));
-      else if (arg == "--lora_last_n")
-        lora_last_n =
-          static_cast<unsigned int>(std::stoul(next("--lora_last_n")));
-      else if (arg == "--max_samples")
-        max_samples =
-          static_cast<unsigned int>(std::stoul(next("--max_samples")));
-      else if (arg == "--seq_len")
-        seq_len_override =
-          static_cast<unsigned int>(std::stoul(next("--seq_len")));
-      else if (arg == "--clip_grad")
-        clip_grad = std::stof(next("--clip_grad"));
-      else if (arg == "--train_norms")
-        train_norms = true;
-      else if (arg == "--lora_qat")
-        lora_qat = true;
-      else if (arg == "--lora_weight_q4")
-        lora_weight_q4 = true;
-      else if (arg == "--qat_ema_momentum")
-        qat_ema_momentum = std::stof(next("--qat_ema_momentum"));
-      else if (arg == "--seed")
-        seed = static_cast<unsigned int>(std::stoul(next("--seed")));
-      else {
-        std::cerr << "Unknown option: " << arg << std::endl;
-        printUsage(argv[0]);
-        return EXIT_FAILURE;
-      }
-    } catch (const std::exception &e) {
-      std::cerr << "Bad arguments: " << e.what() << std::endl;
-      return EXIT_FAILURE;
-    }
-  }
-
+  std::string output_path = params.output_path;
   if (output_path.empty())
     output_path = model_path + "/lora_adapter.bin";
 
@@ -228,15 +172,15 @@ int main(int argc, char *argv[]) {
     }
 
     // Default the LoRA config if the model's nntr_config.json leaves it off
-    // (or has it at 0, the "LoRA disabled" default). CLI flags win.
-    if (lora_rank_override)
-      nntr_cfg["lora_rank"] = lora_rank_override;
+    // (or has it at 0, the "LoRA disabled" default). Params win.
+    if (params.lora_rank)
+      nntr_cfg["lora_rank"] = params.lora_rank;
     else if (!nntr_cfg.contains("lora_rank") ||
              nntr_cfg["lora_rank"].get<unsigned int>() == 0)
       nntr_cfg["lora_rank"] = 8;
 
-    if (lora_alpha_override)
-      nntr_cfg["lora_alpha"] = lora_alpha_override;
+    if (params.lora_alpha)
+      nntr_cfg["lora_alpha"] = params.lora_alpha;
     else if (!nntr_cfg.contains("lora_alpha") ||
              nntr_cfg["lora_alpha"].get<unsigned int>() == 0)
       nntr_cfg["lora_alpha"] = nntr_cfg["lora_rank"].get<unsigned int>() * 2;
@@ -245,95 +189,115 @@ int main(int argc, char *argv[]) {
       nntr_cfg["lora_target"] = std::vector<std::string>{
         "wq", "wk", "wv", "wo", "ffn_up", "ffn_gate", "ffn_down"};
 
-    if (lora_last_n)
-      nntr_cfg["lora_last_n_layers"] = lora_last_n;
+    if (params.lora_last_n)
+      nntr_cfg["lora_last_n_layers"] = params.lora_last_n;
 
-    if (train_norms)
+    if (params.train_norms)
       nntr_cfg["lora_train_norms"] = true;
 
-    if (clip_grad >= 0.0f)
-      nntr_cfg["lora_clip_grad_by_norm"] = clip_grad;
+    if (params.clip_grad >= 0.0f)
+      nntr_cfg["lora_clip_grad_by_norm"] = params.clip_grad;
 
-    // --lora_qat implies --lora_weight_q4: there is no point calibrating
+    // lora_qat implies lora_weight_q4: there is no point calibrating
     // fake-quant EMA scales without also saving the adapter they describe.
-    if (lora_qat)
-      lora_weight_q4 = true;
-    if (lora_qat)
+    bool do_qat = params.lora_qat;
+    bool do_weight_q4 = params.lora_weight_q4;
+    if (do_qat)
+      do_weight_q4 = true;
+    if (do_qat)
       nntr_cfg["lora_qat"] = true;
-    if (lora_weight_q4)
+    if (do_weight_q4)
       nntr_cfg["lora_weight_q4"] = true;
-    if (lora_qat && qat_ema_momentum > 0.0f)
-      nntr_cfg["lora_qat_ema_momentum"] = qat_ema_momentum;
+    if (do_qat && params.qat_ema_momentum > 0.0f)
+      nntr_cfg["lora_qat_ema_momentum"] = params.qat_ema_momentum;
 
-    if (seq_len_override) {
-      nntr_cfg["init_seq_len"] = seq_len_override;
+    if (params.seq_len) {
+      nntr_cfg["init_seq_len"] = params.seq_len;
       // max_seq_len must not sit below the training length; mha_core derives
       // its max_timestep from it.
-      if (nntr_cfg.value("max_seq_len", 0u) < seq_len_override)
-        nntr_cfg["max_seq_len"] = seq_len_override;
+      if (nntr_cfg.value("max_seq_len", 0u) < params.seq_len)
+        nntr_cfg["max_seq_len"] = params.seq_len;
     }
 
     const unsigned int seq_len = nntr_cfg["init_seq_len"].get<unsigned int>();
     const unsigned int vocab_size = cfg["vocab_size"].get<unsigned int>();
 
     std::string q4_output_path;
-    if (lora_weight_q4) {
+    if (do_weight_q4) {
       std::filesystem::path p(output_path);
       q4_output_path =
         (p.parent_path() / (p.stem().string() + "_q4.bin")).string();
     }
 
-    std::cout << "model:        " << model_path << "\n"
-              << "data:         " << data_path << "\n"
-              << "lora_rank:    " << nntr_cfg["lora_rank"].get<unsigned int>()
-              << "\n"
-              << "lora_alpha:   " << nntr_cfg["lora_alpha"].get<unsigned int>()
-              << "\n"
-              << "seq_len:      "
-              << nntr_cfg["init_seq_len"].get<unsigned int>() << "\n"
-              << "clip_grad:    "
-              << nntr_cfg.value("lora_clip_grad_by_norm", 0.0f) << "\n"
-              << "lora_qat:     " << (lora_qat ? "true" : "false") << "\n"
-              << "lr:           " << lr << "\n"
-              << "lr_decay:     "
-              << (lr_decay_rate > 0.0f && lr_decay_steps > 0.0f
-                    ? "rate " + std::to_string(lr_decay_rate) + " every " +
-                        std::to_string(lr_decay_steps) + " steps"
-                    : "off")
-              << "\n"
-              << "epochs:       " << epochs << "\n"
-              << "output:       " << output_path << "\n";
+    std::cout
+      << "model:        " << model_path << "\n"
+      << "data:         " << data_path << "\n"
+      << "lora_rank:    " << nntr_cfg["lora_rank"].get<unsigned int>() << "\n"
+      << "lora_alpha:   " << nntr_cfg["lora_alpha"].get<unsigned int>() << "\n"
+      << "seq_len:      " << nntr_cfg["init_seq_len"].get<unsigned int>()
+      << "\n"
+      << "clip_grad:    " << nntr_cfg.value("lora_clip_grad_by_norm", 0.0f)
+      << "\n"
+      << "lora_qat:     " << (do_qat ? "true" : "false") << "\n"
+      << "lr:           " << params.lr << "\n"
+      << "lr_decay:     "
+      << (params.lr_decay_rate > 0.0f && params.lr_decay_steps > 0.0f
+            ? "rate " + std::to_string(params.lr_decay_rate) + " every " +
+                std::to_string(params.lr_decay_steps) + " steps"
+            : "off")
+      << "\n"
+      << "epochs:       " << params.epochs << "\n"
+      << "output:       " << output_path << "\n";
     if (!q4_output_path.empty())
       std::cout << "output_q4:    " << q4_output_path << std::endl;
     else
       std::cout << std::flush;
 
-    causallm::Qwen3CausalLM model(cfg, generation_cfg, nntr_cfg);
-    model.initializeForTraining(lr, epochs, lr_decay_rate, lr_decay_steps);
+    Qwen3CausalLM model(cfg, generation_cfg, nntr_cfg);
+    model.initializeForTraining(params.lr, params.epochs, params.lr_decay_rate,
+                                params.lr_decay_steps);
 
     const std::string weight_file =
       model_path + "/" + nntr_cfg["model_file_name"].get<std::string>();
-    model.load_weight_lora(weight_file, resume_lora_path);
+    model.load_weight_lora(weight_file, params.resume_lora_path);
 
     auto *tokenizer = model.getTokenizer();
     if (tokenizer == nullptr)
       throw std::runtime_error(
         "model has no tokenizer; a tokenizer_file is required for training");
 
-    causallm::TrainingDataGenerator data_gen(data_path, tokenizer, seq_len,
-                                             vocab_size, max_samples, seed);
+    TrainingDataGenerator data_gen(data_path, tokenizer, seq_len, vocab_size,
+                                   params.max_samples, params.seed);
     std::cout << "samples:      " << data_gen.size() << std::endl;
 
-    std::shared_ptr<ml::train::Dataset> dataset =
-      ml::train::createDataset(ml::train::DatasetType::GENERATOR,
-                               causallm::trainingDataGenCb, &data_gen);
+    std::shared_ptr<ml::train::Dataset> dataset = ml::train::createDataset(
+      ml::train::DatasetType::GENERATOR, trainingDataGenCb, &data_gen);
     model.setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset);
     model.setDataset(ml::train::DatasetModeType::MODE_VALID, dataset);
 
-    EpochState state{&model, output_path, q4_output_path};
-    model.train(onEpochComplete, &state);
+    EpochBridge bridge;
+    bridge.model = &model;
+    bridge.params = params;
+    bridge.output_path = output_path;
+    bridge.q4_output_path = q4_output_path;
+    bridge.user_cb = callback;
+    bridge.user_data = user_data;
+    bridge.num_samples = static_cast<unsigned int>(data_gen.size());
+    bridge.iter_cb = iter_cb;
+    bridge.iter_data = iter_data;
 
-    std::cout << "training complete; best valid_loss=" << state.best_loss
+    auto iteration_wrapper = [&bridge](unsigned int iteration, float loss,
+                                       void *) {
+      if (loraTrainCancelledFlag().load())
+        throw std::runtime_error("training cancelled by user");
+      if (bridge.iter_cb)
+        bridge.iter_cb(iteration, bridge.epoch + 1, loss, bridge.iter_data);
+    };
+
+    model.train(onEpochComplete, &bridge, nullptr, nullptr, iteration_wrapper,
+                nullptr);
+
+    std::cout << "training complete; best valid_loss=" << bridge.best_loss
               << ", adapter at " << output_path << std::endl;
   } catch (const std::exception &e) {
     std::cerr << "Error: " << e.what() << std::endl;
@@ -341,4 +305,78 @@ int main(int argc, char *argv[]) {
   }
 
   return EXIT_SUCCESS;
+}
+
+} // namespace causallm
+
+int main(int argc, char *argv[]) {
+  if (argc < 3) {
+    printUsage(argv[0]);
+    return EXIT_FAILURE;
+  }
+
+  causallm::TrainParams params;
+  params.model_path = argv[1];
+  params.data_path = argv[2];
+
+  for (int i = 3; i < argc; ++i) {
+    const std::string arg = argv[i];
+    auto next = [&](const char *name) -> std::string {
+      if (i + 1 >= argc) {
+        throw std::invalid_argument(std::string("missing value for ") + name);
+      }
+      return argv[++i];
+    };
+    try {
+      if (arg == "--lr")
+        params.lr = std::stof(next("--lr"));
+      else if (arg == "--lr_decay_rate")
+        params.lr_decay_rate = std::stof(next("--lr_decay_rate"));
+      else if (arg == "--lr_decay_steps")
+        params.lr_decay_steps = std::stof(next("--lr_decay_steps"));
+      else if (arg == "--epochs")
+        params.epochs = static_cast<unsigned int>(std::stoul(next("--epochs")));
+      else if (arg == "--output")
+        params.output_path = next("--output");
+      else if (arg == "--lora_path")
+        params.resume_lora_path = next("--lora_path");
+      else if (arg == "--lora_rank")
+        params.lora_rank =
+          static_cast<unsigned int>(std::stoul(next("--lora_rank")));
+      else if (arg == "--lora_alpha")
+        params.lora_alpha =
+          static_cast<unsigned int>(std::stoul(next("--lora_alpha")));
+      else if (arg == "--lora_last_n")
+        params.lora_last_n =
+          static_cast<unsigned int>(std::stoul(next("--lora_last_n")));
+      else if (arg == "--max_samples")
+        params.max_samples =
+          static_cast<unsigned int>(std::stoul(next("--max_samples")));
+      else if (arg == "--seq_len")
+        params.seq_len =
+          static_cast<unsigned int>(std::stoul(next("--seq_len")));
+      else if (arg == "--clip_grad")
+        params.clip_grad = std::stof(next("--clip_grad"));
+      else if (arg == "--train_norms")
+        params.train_norms = true;
+      else if (arg == "--lora_qat")
+        params.lora_qat = true;
+      else if (arg == "--lora_weight_q4")
+        params.lora_weight_q4 = true;
+      else if (arg == "--qat_ema_momentum")
+        params.qat_ema_momentum = std::stof(next("--qat_ema_momentum"));
+      else if (arg == "--seed")
+        params.seed = static_cast<unsigned int>(std::stoul(next("--seed")));
+      else {
+        std::cerr << "Unknown option: " << arg << std::endl;
+        printUsage(argv[0]);
+        return EXIT_FAILURE;
+      }
+    } catch (const std::exception &e) {
+      std::cerr << "Bad arguments: " << e.what() << std::endl;
+      return EXIT_FAILURE;
+    }
+  }
+
+  return causallm::runLoraTraining(params);
 }

@@ -185,4 +185,9 @@ int trainingDataGenCb(float **input, float **label, bool *last,
                                                                last);
 }
 
+std::atomic<bool> &loraTrainCancelledFlag() {
+  static std::atomic<bool> flag{false};
+  return flag;
+}
+
 } // namespace causallm

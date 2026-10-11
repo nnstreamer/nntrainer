@@ -623,11 +623,17 @@ public:
    * @param epoch_data user data passed to epoch_complete_cb
    * @param stop_cb optional callback polled to request early stop
    * @param stop_data user data passed to stop_cb
+   * @param iteration_cb optional callback invoked after every training
+   *        iteration with (iteration_index, loss, user_data)
+   * @param iteration_data user data passed to iteration_cb
    */
-  virtual void train(std::function<void(void *)> epoch_complete_cb = nullptr,
-                     void *epoch_data = nullptr,
-                     std::function<bool(void *)> stop_cb = nullptr,
-                     void *stop_data = nullptr);
+  virtual void
+  train(std::function<void(void *)> epoch_complete_cb = nullptr,
+        void *epoch_data = nullptr,
+        std::function<bool(void *)> stop_cb = nullptr,
+        void *stop_data = nullptr,
+        std::function<void(unsigned int, float, void *)> iteration_cb = nullptr,
+        void *iteration_data = nullptr);
 
   /**
    * @brief Get training-split running statistics (loss, accuracy) for the
