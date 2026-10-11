@@ -19,6 +19,7 @@
 
 #include <chrono>
 #include <condition_variable>
+#include <cstdio>
 #include <cstdlib>
 #include <deque>
 #include <filesystem>
@@ -342,6 +343,21 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
                                            unsigned int used, float *input) {
         const auto t0 = std::chrono::steady_clock::now();
         t->trunkHidden(ids, used, L, input);
+        /// [DIAG] NNTR_TRAIN_GRAD_DUMP=<dir>: the trunk hidden of the first
+        /// produced samples, in production order (matches samples.txt).
+        if (const char *dump = std::getenv("NNTR_TRAIN_GRAD_DUMP")) {
+          static int produced = 0;
+          if (produced < 16) {
+            const std::string f = std::string(dump) + "/hidden_" +
+                                  std::to_string(produced) + ".bin";
+            if (FILE *fp = std::fopen(f.c_str(), "wb")) {
+              std::fwrite(input, sizeof(float),
+                          (size_t)used * t->getHiddenDim(), fp);
+              std::fclose(fp);
+            }
+          }
+          ++produced;
+        }
         const double ms = std::chrono::duration<double, std::milli>(
                             std::chrono::steady_clock::now() - t0)
                             .count();

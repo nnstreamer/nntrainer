@@ -12,6 +12,8 @@
 #include <nntrainer_error.h>
 
 #include <algorithm>
+#include <cstdio>
+#include <cstdlib>
 #include <fstream>
 #include <numeric>
 #include <stdexcept>
@@ -147,6 +149,19 @@ int TrainingDataGenerator::next(float **input, float **label, bool *last) {
   const Sample &s = samples_[index_order_[cursor_]];
   const unsigned int used = static_cast<unsigned int>(s.ids.size() - 1);
 
+  /// [DIAG] NNTR_TRAIN_GRAD_DUMP=<dir>: record each produced sample's ids
+  if (const char *dump = std::getenv("NNTR_TRAIN_GRAD_DUMP")) {
+    static int produced = 0;
+    if (produced++ < 16) {
+      if (FILE *f =
+            std::fopen((std::string(dump) + "/samples.txt").c_str(), "a")) {
+        for (size_t i = 0; i < s.ids.size(); ++i)
+          std::fprintf(f, i ? " %d" : "%d", s.ids[i]);
+        std::fprintf(f, "\n");
+        std::fclose(f);
+      }
+    }
+  }
   if (input_writer) {
     input_writer(s.ids.data(), used, input[0]);
   } else {

@@ -40,6 +40,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <iostream>
 #include <map>
@@ -771,6 +772,41 @@ inline bool skinnyCheckOn() {
   return on;
 }
 
+/**
+ * [DIAG] NNTR_TRAIN_GRAD_DUMP=<dir>: for the first NNTR_TRAIN_GRAD_DUMP_ITERS
+ * (default 3) calcGradient calls of every LoRA FC, write the pre-update
+ * loraA / loraB and their gradients as raw FP32 to <dir>/<layer>_it<k>_*.bin.
+ * Consumed by Applications/CausalLM/tools/lora_gradcheck (reference gradients
+ * and optimizer-update checks against PyTorch).
+ */
+[[maybe_unused]] void loraGradDump(const std::string &layer, const Tensor &A,
+                                   const Tensor &B, const Tensor &dA,
+                                   const Tensor &dB) {
+  static const char *dir = std::getenv("NNTR_TRAIN_GRAD_DUMP");
+  if (dir == nullptr)
+    return;
+  static const int max_it = [] {
+    const char *e = std::getenv("NNTR_TRAIN_GRAD_DUMP_ITERS");
+    return e ? std::atoi(e) : 3;
+  }();
+  static std::map<std::string, int> count;
+  const int it = ++count[layer];
+  if (it > max_it)
+    return;
+  auto w = [&](const char *tag, const Tensor &t) {
+    const std::string path = std::string(dir) + "/" + layer + "_it" +
+                             std::to_string(it) + "_" + tag + ".bin";
+    if (FILE *f = std::fopen(path.c_str(), "wb")) {
+      std::fwrite(t.getData<float>(), sizeof(float), t.size(), f);
+      std::fclose(f);
+    }
+  };
+  w("A", A);
+  w("B", B);
+  w("dA", dA);
+  w("dB", dB);
+}
+
 /** whether the rank-r LoRA GEMMs may take the skinny kernels */
 bool skinnyOk(const Tensor &t) {
   return t.getDataType() == Tdatatype::FP32 && t.getContiguous() &&
@@ -807,7 +843,17 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
                            ? "fc.base_fwd.nolora"
                            : "fc.base_fwd.lora",
                          train_prof::FWD);
-    if (quantizer != nullptr) {
+    /// [DIAG] NNTR_TRAIN_FWD_FP32=1: a QS4CX base weight's training forward
+    /// as FP32 activation x dequantized W instead of the KleidiAI kernel
+    /// (whose per-row int8 activation quantization the FP32 backward does
+    /// not see), so gradients can be compared exactly against a reference.
+    static const bool fwd_fp32 = std::getenv("NNTR_TRAIN_FWD_FP32") != nullptr;
+    if (fwd_fp32 && training &&
+        weight.getDataType() == TensorDim::DataType::QS4CX) {
+      Tensor weight_arena_view;
+      dequantizeQs4cxToArena(weight, weight_arena_view);
+      input_.dot(weight_arena_view, hidden_, false, false);
+    } else if (quantizer != nullptr) {
       Tensor weight_arena_view;
       dequantizeToArena(weight, *quantizer, weight_arena_view);
       input_.dot(weight_arena_view, hidden_, false, false);
@@ -1322,6 +1368,9 @@ void FullyConnectedLayer::calcGradient(RunLayerContext &context) {
       lora_dtmp_copy_.assign(djdtmp.getData<float>(),
                              djdtmp.getData<float>() + djdtmp.size());
       lora_dtmp_ready_ = true;
+      loraGradDump(context.getName(),
+                   context.getWeight(lora_idx[LORAParams::loraA]), loraB, djdla,
+                   djdlb);
       if (skinnyCheckOn()) {
         Tensor db_ref(djdlb.getDim());
         loraTmp.dot(derivative_, db_ref, true, false);
