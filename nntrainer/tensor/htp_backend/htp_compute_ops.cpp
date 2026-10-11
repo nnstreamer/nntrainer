@@ -3383,7 +3383,14 @@ public:
         }
         if (!p.active.load())
           break;
+          // A pause, not a yield: with sched_yield the request was noticed
+          // 86-150 us after the DSP posted it on the S26 Ultra (1 us on the
+          // S25), 17 rounds a token.
+#if defined(__aarch64__)
+        __asm__ volatile("yield");
+#else
         std::this_thread::yield();
+#endif
       }
     }
   }
