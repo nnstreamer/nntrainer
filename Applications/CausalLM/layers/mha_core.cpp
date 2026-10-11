@@ -6248,6 +6248,295 @@ void MHACoreLayer::updateTensorsByInputDimensions(
   }
 }
 
+#if defined(__ARM_NEON)
+#include <arm_neon.h>
+#endif
+
+namespace {
+
+/** dot(a, b) over n floats with independent accumulators (vectorizes without
+ * -ffast-math, unlike a single running sum). */
+inline float train_dot(const float *a, const float *b, unsigned int n) {
+  unsigned int d = 0;
+  float r = 0.0f;
+#if defined(__ARM_NEON)
+  float32x4_t s0 = vdupq_n_f32(0.0f), s1 = s0, s2 = s0, s3 = s0;
+  for (; d + 16 <= n; d += 16) {
+    s0 = vfmaq_f32(s0, vld1q_f32(a + d), vld1q_f32(b + d));
+    s1 = vfmaq_f32(s1, vld1q_f32(a + d + 4), vld1q_f32(b + d + 4));
+    s2 = vfmaq_f32(s2, vld1q_f32(a + d + 8), vld1q_f32(b + d + 8));
+    s3 = vfmaq_f32(s3, vld1q_f32(a + d + 12), vld1q_f32(b + d + 12));
+  }
+  r = vaddvq_f32(vaddq_f32(vaddq_f32(s0, s1), vaddq_f32(s2, s3)));
+#else
+  float acc[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+  for (; d + 8 <= n; d += 8)
+    for (unsigned int t = 0; t < 8; ++t)
+      acc[t] += a[d + t] * b[d + t];
+  r = ((acc[0] + acc[4]) + (acc[1] + acc[5])) +
+      ((acc[2] + acc[6]) + (acc[3] + acc[7]));
+#endif
+  for (; d < n; ++d)
+    r += a[d] * b[d];
+  return r;
+}
+
+/** y += w * x over n floats. */
+inline void train_axpy(float *y, float w, const float *x, unsigned int n) {
+  for (unsigned int d = 0; d < n; ++d)
+    y[d] += w * x[d];
+}
+
+/** [PERF-MHA] per-call timing prints, only with NNTR_TRAIN_PROF set */
+inline bool trainAttnProf() {
+  static const bool on = std::getenv("NNTR_TRAIN_PROF") != nullptr;
+  return on;
+}
+
+/** rows per parallel task in the training attention loops */
+constexpr unsigned int TRAIN_ATTN_ROWS = 16;
+
+#if defined(__ARM_NEON)
+/** 4x4 register-tiled NEON kernels for the training attention (D % 16 == 0).
+ *  out[r][c] = dot(a[r], b[c]) over D. */
+inline void attn_tile_dot4x4(const float *const a[4], const float *const b[4],
+                             unsigned int D, float out[4][4]) {
+  float32x4_t acc[4][4];
+  for (int r = 0; r < 4; ++r)
+    for (int c = 0; c < 4; ++c)
+      acc[r][c] = vdupq_n_f32(0.0f);
+  for (unsigned int d = 0; d < D; d += 4) {
+    const float32x4_t a0 = vld1q_f32(a[0] + d), a1 = vld1q_f32(a[1] + d),
+                      a2 = vld1q_f32(a[2] + d), a3 = vld1q_f32(a[3] + d);
+    for (int c = 0; c < 4; ++c) {
+      const float32x4_t bc = vld1q_f32(b[c] + d);
+      acc[0][c] = vfmaq_f32(acc[0][c], a0, bc);
+      acc[1][c] = vfmaq_f32(acc[1][c], a1, bc);
+      acc[2][c] = vfmaq_f32(acc[2][c], a2, bc);
+      acc[3][c] = vfmaq_f32(acc[3][c], a3, bc);
+    }
+  }
+  for (int r = 0; r < 4; ++r)
+    for (int c = 0; c < 4; ++c)
+      out[r][c] = vaddvq_f32(acc[r][c]);
+}
+
+/** y[r][0:D] = sum_{j<nj} coef[r][j] * x[j][0:D] for 4 rows r.
+ *  coef[r] rows must be readable (and zero where the term must vanish) for
+ *  j < nj; x row j at x0 + j * x_stride. Overwrites y. */
+inline void attn_tile_rows_axpy4(float *const y[4], const float *const coef[4],
+                                 unsigned int nj, const float *x0,
+                                 size_t x_stride, unsigned int D) {
+  for (unsigned int d0 = 0; d0 < D; d0 += 16) {
+    float32x4_t acc[4][4];
+    for (int r = 0; r < 4; ++r)
+      for (int k = 0; k < 4; ++k)
+        acc[r][k] = vdupq_n_f32(0.0f);
+    for (unsigned int j = 0; j < nj; ++j) {
+      const float *xj = x0 + j * x_stride + d0;
+      const float32x4_t x_0 = vld1q_f32(xj), x_1 = vld1q_f32(xj + 4),
+                        x_2 = vld1q_f32(xj + 8), x_3 = vld1q_f32(xj + 12);
+      float32x4_t cv = vdupq_n_f32(0.0f);
+      cv = vsetq_lane_f32(coef[0][j], cv, 0);
+      cv = vsetq_lane_f32(coef[1][j], cv, 1);
+      cv = vsetq_lane_f32(coef[2][j], cv, 2);
+      cv = vsetq_lane_f32(coef[3][j], cv, 3);
+#define ATTN_ROW_FMA(R)                                                        \
+  acc[R][0] = vfmaq_laneq_f32(acc[R][0], x_0, cv, R);                          \
+  acc[R][1] = vfmaq_laneq_f32(acc[R][1], x_1, cv, R);                          \
+  acc[R][2] = vfmaq_laneq_f32(acc[R][2], x_2, cv, R);                          \
+  acc[R][3] = vfmaq_laneq_f32(acc[R][3], x_3, cv, R);
+      ATTN_ROW_FMA(0) ATTN_ROW_FMA(1) ATTN_ROW_FMA(2) ATTN_ROW_FMA(3)
+#undef ATTN_ROW_FMA
+    }
+    for (int r = 0; r < 4; ++r)
+      for (int k = 0; k < 4; ++k)
+        vst1q_f32(y[r] + d0 + 4 * k, acc[r][k]);
+  }
+}
+
+/** For 4 consecutive key rows j0..j0+3:
+ *  yv[c] = sum_i coefP_i[j0+c] * xv_i,  yk[c] = sum_i coefS_i[j0+c] * xk_i
+ *  over i in [i_begin, i_end); coefP_i = P + i*p_stride (+j0), coefS likewise.
+ *  Overwrites when accumulate == false, adds otherwise. */
+inline void attn_tile_cols_axpy4(float *const yv[4], float *const yk[4],
+                                 const float *P, size_t p_stride,
+                                 const float *S, size_t s_stride,
+                                 unsigned int j0, unsigned int i_begin,
+                                 unsigned int i_end, const float *xv0,
+                                 const float *xk0, size_t x_stride,
+                                 unsigned int D, bool accumulate) {
+  for (unsigned int d0 = 0; d0 < D; d0 += 16) {
+    float32x4_t av[4][4], ak[4][4];
+    for (int c = 0; c < 4; ++c)
+      for (int k = 0; k < 4; ++k) {
+        av[c][k] = accumulate ? vld1q_f32(yv[c] + d0 + 4 * k) : vdupq_n_f32(0);
+        ak[c][k] = accumulate ? vld1q_f32(yk[c] + d0 + 4 * k) : vdupq_n_f32(0);
+      }
+    for (unsigned int i = i_begin; i < i_end; ++i) {
+      const float32x4_t cp = vld1q_f32(P + i * p_stride + j0);
+      const float32x4_t cs = vld1q_f32(S + i * s_stride + j0);
+      const float *xv = xv0 + i * x_stride + d0;
+      const float *xk = xk0 + i * x_stride + d0;
+      const float32x4_t v0 = vld1q_f32(xv), v1 = vld1q_f32(xv + 4),
+                        v2 = vld1q_f32(xv + 8), v3 = vld1q_f32(xv + 12);
+      const float32x4_t q0 = vld1q_f32(xk), q1 = vld1q_f32(xk + 4),
+                        q2 = vld1q_f32(xk + 8), q3 = vld1q_f32(xk + 12);
+#define ATTN_COL_FMA(C)                                                        \
+  av[C][0] = vfmaq_laneq_f32(av[C][0], v0, cp, C);                             \
+  av[C][1] = vfmaq_laneq_f32(av[C][1], v1, cp, C);                             \
+  av[C][2] = vfmaq_laneq_f32(av[C][2], v2, cp, C);                             \
+  av[C][3] = vfmaq_laneq_f32(av[C][3], v3, cp, C);                             \
+  ak[C][0] = vfmaq_laneq_f32(ak[C][0], q0, cs, C);                             \
+  ak[C][1] = vfmaq_laneq_f32(ak[C][1], q1, cs, C);                             \
+  ak[C][2] = vfmaq_laneq_f32(ak[C][2], q2, cs, C);                             \
+  ak[C][3] = vfmaq_laneq_f32(ak[C][3], q3, cs, C);
+      ATTN_COL_FMA(0) ATTN_COL_FMA(1) ATTN_COL_FMA(2) ATTN_COL_FMA(3)
+#undef ATTN_COL_FMA
+    }
+    for (int c = 0; c < 4; ++c)
+      for (int k = 0; k < 4; ++k) {
+        vst1q_f32(yv[c] + d0 + 4 * k, av[c][k]);
+        vst1q_f32(yk[c] + d0 + 4 * k, ak[c][k]);
+      }
+  }
+}
+
+/** forward for one query head over rows [r_begin, r_end) */
+inline void attn_fwd_rows_tile(const float *q_b, const float *k_b,
+                               const float *v_b, float *o_b, float *attn_h,
+                               size_t q_stride, size_t k_stride,
+                               size_t v_stride, size_t o_stride,
+                               size_t a_stride, unsigned int qh,
+                               unsigned int kv, unsigned int hd, unsigned int L,
+                               float scale, unsigned int r_begin,
+                               unsigned int r_end) {
+  for (unsigned int i0 = r_begin; i0 < r_end; i0 += 4) {
+    const unsigned int nr = std::min(4u, r_end - i0);
+    const unsigned int imax = i0 + nr - 1;
+    const float *qa[4];
+    float *ar[4];
+    float *orow[4];
+    for (unsigned int r = 0; r < 4; ++r) {
+      const unsigned int rr = i0 + std::min(r, nr - 1);
+      qa[r] = q_b + rr * q_stride + qh * hd;
+      ar[r] = attn_h + rr * a_stride;
+      orow[r] = o_b + rr * o_stride + qh * hd;
+    }
+    for (unsigned int j0 = 0; j0 <= imax; j0 += 4) {
+      const float *kb[4];
+      for (unsigned int c = 0; c < 4; ++c)
+        kb[c] = k_b + std::min(j0 + c, imax) * k_stride + kv * hd;
+      float sc[4][4];
+      attn_tile_dot4x4(qa, kb, hd, sc);
+      for (unsigned int r = 0; r < nr; ++r)
+        for (unsigned int c = 0; c < 4; ++c)
+          if (j0 + c <= i0 + r)
+            ar[r][j0 + c] = sc[r][c] * scale;
+    }
+    for (unsigned int r = 0; r < nr; ++r) {
+      const unsigned int i = i0 + r;
+      float *row = ar[r];
+      float mx = -std::numeric_limits<float>::infinity();
+      for (unsigned int j = 0; j <= i; ++j)
+        mx = std::max(mx, row[j]);
+      float sum = 0.0f;
+      for (unsigned int j = 0; j <= i; ++j) {
+        const float e = std::exp(row[j] - mx);
+        row[j] = e;
+        sum += e;
+      }
+      const float inv = 1.0f / sum;
+      for (unsigned int j = 0; j <= i; ++j)
+        row[j] *= inv;
+      // zero pad (i, i+3]: the 4-row tiles read up to the group's last row
+      for (unsigned int j = i + 1; j <= std::min(L - 1, i + 3); ++j)
+        row[j] = 0.0f;
+    }
+    attn_tile_rows_axpy4(orow, ar, imax + 1, v_b + kv * hd, v_stride, hd);
+  }
+}
+
+/** backward pass A for one query head over rows [r_begin, r_end):
+ *  ds = softmax-backward(P, dY V^T) * scale (rows of length L), dQ = ds K */
+inline void attn_bwd_rows_tile(const float *dy_b, const float *k_b,
+                               const float *v_b, const float *attn_h,
+                               float *ds_h, float *dq_b, size_t dy_stride,
+                               size_t k_stride, size_t v_stride,
+                               size_t q_stride, size_t a_stride,
+                               unsigned int qh, unsigned int kv,
+                               unsigned int hd, unsigned int L, float scale,
+                               unsigned int r_begin, unsigned int r_end) {
+  for (unsigned int i0 = r_begin; i0 < r_end; i0 += 4) {
+    const unsigned int nr = std::min(4u, r_end - i0);
+    const unsigned int imax = i0 + nr - 1;
+    const float *dya[4];
+    const float *ar[4];
+    float *dsr[4];
+    float *dqr[4];
+    for (unsigned int r = 0; r < 4; ++r) {
+      const unsigned int rr = i0 + std::min(r, nr - 1);
+      dya[r] = dy_b + rr * dy_stride + qh * hd;
+      ar[r] = attn_h + rr * a_stride;
+      dsr[r] = ds_h + (size_t)rr * L;
+      dqr[r] = dq_b + rr * q_stride + qh * hd;
+    }
+    for (unsigned int j0 = 0; j0 <= imax; j0 += 4) {
+      const float *vb[4];
+      for (unsigned int c = 0; c < 4; ++c)
+        vb[c] = v_b + std::min(j0 + c, imax) * v_stride + kv * hd;
+      float dp[4][4];
+      attn_tile_dot4x4(dya, vb, hd, dp);
+      for (unsigned int r = 0; r < nr; ++r)
+        for (unsigned int c = 0; c < 4; ++c)
+          if (j0 + c <= i0 + r)
+            dsr[r][j0 + c] = dp[r][c];
+    }
+    for (unsigned int r = 0; r < nr; ++r) {
+      const unsigned int i = i0 + r;
+      const float *p = ar[r];
+      float *ds = dsr[r];
+      float dot_sum = 0.0f;
+      for (unsigned int j = 0; j <= i; ++j)
+        dot_sum += p[j] * ds[j];
+      for (unsigned int j = 0; j <= i; ++j)
+        ds[j] = p[j] * (ds[j] - dot_sum) * scale;
+      for (unsigned int j = i + 1; j <= std::min(L - 1, i + 3); ++j)
+        ds[j] = 0.0f;
+    }
+    attn_tile_rows_axpy4(dqr, dsr, imax + 1, k_b + kv * hd, k_stride, hd);
+  }
+}
+
+/** backward pass B for one KV head over key rows [j_begin, j_end) (multiples
+ *  of 4, L % 4 == 0): dV_j = sum_{qh, i>=j} P_ij dY_i, dK_j = sum ds_ij Q_i */
+inline void attn_bwd_cols_tile(const float *dy_b, const float *q_b,
+                               const float *attn_b, const float *ds_b,
+                               float *dk_b, float *dv_b, size_t x_stride,
+                               size_t k_stride, size_t v_stride, size_t a_head,
+                               size_t a_stride, size_t ds_head, unsigned int kv,
+                               unsigned int gqa, unsigned int hd,
+                               unsigned int L, unsigned int j_begin,
+                               unsigned int j_end) {
+  for (unsigned int j0 = j_begin; j0 < j_end; j0 += 4) {
+    float *yv[4];
+    float *yk[4];
+    for (unsigned int c = 0; c < 4; ++c) {
+      yv[c] = dv_b + (j0 + c) * v_stride + kv * hd;
+      yk[c] = dk_b + (j0 + c) * k_stride + kv * hd;
+    }
+    for (unsigned int g = 0; g < gqa; ++g) {
+      const unsigned int qh = kv * gqa + g;
+      attn_tile_cols_axpy4(yv, yk, attn_b + qh * a_head, a_stride,
+                           ds_b + qh * ds_head, L, j0, j0, L, dy_b + qh * hd,
+                           q_b + qh * hd, x_stride, hd, g > 0);
+    }
+  }
+}
+#endif // __ARM_NEON
+
+} // namespace
+
 /**
  * @brief Full-sequence dense causal multi-head attention with GQA, used as
  *        the training forward for the internal-cache (!use_external_cache)
@@ -6301,6 +6590,7 @@ void MHACoreLayer::trainForwarding(nntrainer::RunLayerContext &context) {
   // call kept `false`, silently skipping rotation in training).
   apply_rotary_emb_tensor_v2(query, train_q, head_dim, 0, true);
   apply_rotary_emb_tensor_v2(key, train_k, head_dim, 0, true);
+  const auto mha_t_rope = std::chrono::steady_clock::now();
 
   const ml::train::TensorDim q_dim = train_q.getDim();    // (B,1,max_ts,HQ*D)
   const ml::train::TensorDim k_dim = train_k.getDim();    // (B,1,max_ts,HKV*D)
@@ -6326,7 +6616,16 @@ void MHACoreLayer::trainForwarding(nntrainer::RunLayerContext &context) {
   // parallelizing by query head there would race within a GQA group.)
   // scores scratch is per-thread; the inner body is unchanged from the serial
   // version apart from this re-grouping.
+  // [PERF] Parallel over (query head, block of TRAIN_ATTN_ROWS rows): every
+  // task writes only its own output / attention rows. The KV-head-only split
+  // left 8 tasks for 7 threads (two rounds) and ran each 128-wide dot as one
+  // serial dependency chain.
   auto &tm = nntrainer::ThreadManager::Global();
+  const unsigned int n_rb = (seq_len + TRAIN_ATTN_ROWS - 1) / TRAIN_ATTN_ROWS;
+  const unsigned int hd = head_dim;
+  // 4x4 register-tiled NEON kernels (attn_*_tile) when the shape allows
+  const bool use_tile = (hd % 16 == 0) && (seq_len % 4 == 0);
+  (void)use_tile;
   for (unsigned int b = 0; b < batch; ++b) {
     const float *q_b = q_data + b * q_dim.getFeatureLen();
     const float *k_b = k_data + b * k_dim.getFeatureLen();
@@ -6334,52 +6633,54 @@ void MHACoreLayer::trainForwarding(nntrainer::RunLayerContext &context) {
     float *o_b = out_data + b * o_dim.getFeatureLen();
     float *attn_b = attn_data + b * attn_dim.getFeatureLen();
 
-    tm.parallel_for(0, static_cast<size_t>(num_heads_KV), [=](size_t kv) {
-      std::vector<float> scores(seq_len);
-      for (unsigned int qh = kv * gqa_size; qh < (kv + 1) * gqa_size; ++qh) {
-        float *attn_h = attn_b + qh * attn_dim.height() * attn_row_stride;
-
-        for (unsigned int i = 0; i < seq_len; ++i) {
-          const float *q_row = q_b + i * q_row_stride + qh * head_dim;
-          float *attn_row = attn_h + i * attn_row_stride;
-
-          float max_score = -std::numeric_limits<float>::infinity();
-          for (unsigned int j = 0; j <= i; ++j) {
-            const float *k_row = k_b + j * k_row_stride + kv * head_dim;
-            float s = 0.0f;
-            for (unsigned int d = 0; d < head_dim; ++d)
-              s += q_row[d] * k_row[d];
-            s *= scale;
-            scores[j] = s;
-            if (s > max_score)
-              max_score = s;
-          }
-
-          float sum = 0.0f;
-          for (unsigned int j = 0; j <= i; ++j) {
-            float e = std::exp(scores[j] - max_score);
-            attn_row[j] = e;
-            sum += e;
-          }
-          float inv_sum = 1.0f / sum;
-          for (unsigned int j = 0; j <= i; ++j)
-            attn_row[j] *= inv_sum;
-
-          float *out_row = o_b + i * o_row_stride + qh * head_dim;
-          for (unsigned int d = 0; d < head_dim; ++d)
-            out_row[d] = 0.0f;
-          for (unsigned int j = 0; j <= i; ++j) {
-            const float *v_row = v_b + j * v_row_stride + kv * head_dim;
-            float w = attn_row[j];
-            for (unsigned int d = 0; d < head_dim; ++d)
-              out_row[d] += w * v_row[d];
-          }
-        }
+    auto fwd_task = [=](size_t t) {
+      const unsigned int qh = static_cast<unsigned int>(t / n_rb);
+      const unsigned int rb = static_cast<unsigned int>(t % n_rb);
+      const unsigned int kv = qh / gqa_size;
+      float *attn_h = attn_b + qh * attn_dim.height() * attn_row_stride;
+      const unsigned int i_end = std::min(seq_len, (rb + 1) * TRAIN_ATTN_ROWS);
+#if defined(__ARM_NEON)
+      if (use_tile) {
+        attn_fwd_rows_tile(q_b, k_b, v_b, o_b, attn_h, q_row_stride,
+                           k_row_stride, v_row_stride, o_row_stride,
+                           attn_row_stride, qh, kv, hd, seq_len, scale,
+                           rb * TRAIN_ATTN_ROWS, i_end);
+        return;
       }
-    });
+#endif
+      for (unsigned int i = rb * TRAIN_ATTN_ROWS; i < i_end; ++i) {
+        const float *q_row = q_b + i * q_row_stride + qh * hd;
+        float *attn_row = attn_h + i * attn_row_stride;
+
+        float max_score = -std::numeric_limits<float>::infinity();
+        for (unsigned int j = 0; j <= i; ++j) {
+          const float s =
+            train_dot(q_row, k_b + j * k_row_stride + kv * hd, hd) * scale;
+          attn_row[j] = s;
+          if (s > max_score)
+            max_score = s;
+        }
+        float sum = 0.0f;
+        for (unsigned int j = 0; j <= i; ++j) {
+          const float e = std::exp(attn_row[j] - max_score);
+          attn_row[j] = e;
+          sum += e;
+        }
+        const float inv_sum = 1.0f / sum;
+        for (unsigned int j = 0; j <= i; ++j)
+          attn_row[j] *= inv_sum;
+
+        float *out_row = o_b + i * o_row_stride + qh * hd;
+        std::fill(out_row, out_row + hd, 0.0f);
+        for (unsigned int j = 0; j <= i; ++j)
+          train_axpy(out_row, attn_row[j], v_b + j * v_row_stride + kv * hd,
+                     hd);
+      }
+    };
+    tm.parallel_for(0, static_cast<size_t>(num_heads_Q) * n_rb, fwd_task);
   }
 
-  {
+  if (trainAttnProf()) {
     static bool thr_printed = false;
     if (!thr_printed) {
       thr_printed = true;
@@ -6387,11 +6688,15 @@ void MHACoreLayer::trainForwarding(nntrainer::RunLayerContext &context) {
                 << nntrainer::ThreadManager::Global().getComputeThreadCount()
                 << std::endl;
     }
-    std::cout << "[PERF-MHA] trainForwarding="
-              << std::chrono::duration<double, std::milli>(
-                   std::chrono::steady_clock::now() - mha_t0)
-                   .count()
-              << "ms" << std::endl;
+    const auto mha_t1 = std::chrono::steady_clock::now();
+    std::cout
+      << "[PERF-MHA] trainForwarding="
+      << std::chrono::duration<double, std::milli>(mha_t1 - mha_t0).count()
+      << "ms rope="
+      << std::chrono::duration<double, std::milli>(mha_t_rope - mha_t0).count()
+      << "ms core="
+      << std::chrono::duration<double, std::milli>(mha_t1 - mha_t_rope).count()
+      << "ms" << std::endl;
   }
 }
 
@@ -6414,21 +6719,25 @@ void MHACoreLayer::apply_inverse_rotary_emb(float *grad, unsigned int width,
   }
 
   const unsigned int half_ = dim / 2;
-  for (unsigned int h = 0; h < height; ++h) {
-    const std::vector<float> &cos_ = (*cached_freqs_cos)[from + h];
-    const std::vector<float> &sin_ = (*cached_freqs_sin)[from + h];
-    float *row = grad + h * width;
-    for (unsigned int w = 0; w < width; w += dim) {
-      for (unsigned int k = 0; k < half_; ++k) {
-        unsigned int i0 = w + k;
-        unsigned int i1 = w + k + half_;
-        float d_i0 = row[i0];
-        float d_i1 = row[i1];
-        row[i0] = cos_[k] * d_i0 + sin_[k] * d_i1;
-        row[i1] = -sin_[k] * d_i0 + cos_[k] * d_i1;
+  const std::vector<std::vector<float>> *cos_tab = cached_freqs_cos;
+  const std::vector<std::vector<float>> *sin_tab = cached_freqs_sin;
+  // rows are independent: split them across the compute threads
+  nntrainer::ThreadManager::Global().parallel_for(
+    0, static_cast<size_t>(height), [=](size_t h) {
+      const std::vector<float> &cos_ = (*cos_tab)[from + h];
+      const std::vector<float> &sin_ = (*sin_tab)[from + h];
+      float *row = grad + h * width;
+      for (unsigned int w = 0; w < width; w += dim) {
+        for (unsigned int k = 0; k < half_; ++k) {
+          unsigned int i0 = w + k;
+          unsigned int i1 = w + k + half_;
+          float d_i0 = row[i0];
+          float d_i1 = row[i1];
+          row[i0] = cos_[k] * d_i0 + sin_[k] * d_i1;
+          row[i1] = -sin_[k] * d_i0 + cos_[k] * d_i1;
+        }
       }
-    }
-  }
+    });
 }
 
 /**
@@ -6507,7 +6816,24 @@ void MHACoreLayer::calcDerivative(nntrainer::RunLayerContext &context) {
   // the serial accumulation order (the group runs in ascending qh on one
   // thread), so results stay bit-identical to the serial version. dQ rows are
   // per query head and thus disjoint. d_attn/d_score scratch is per-thread.
+  // [PERF] Two race-free parallel passes instead of one KV-head-only split.
+  // Pass A, over (query head, row block): dP = dY V^T, the softmax backward
+  // dS = P * (dP - rowsum(P * dP)) * scale (kept in a scratch plane), and
+  // dQ = dS K -- all row-local. Pass B, over (KV head, key-row block):
+  // dV_j = sum_i P_ij dY_i and dK_j = sum_i dS_ij Q_i over the GQA group and
+  // the causal rows i >= j, so each task owns its dK/dV rows.
   auto &tm = nntrainer::ThreadManager::Global();
+  const unsigned int n_rb = (seq_len + TRAIN_ATTN_ROWS - 1) / TRAIN_ATTN_ROWS;
+  const unsigned int hd = head_dim;
+  const size_t ds_head = (size_t)seq_len * seq_len;
+  if (train_ds_scratch_.size() < ds_head * num_heads_Q)
+    train_ds_scratch_.resize(ds_head * num_heads_Q);
+  float *ds_data = train_ds_scratch_.data();
+  // 4x4 register-tiled NEON kernels (attn_*_tile) when the shape allows
+  const bool use_tile =
+    (hd % 16 == 0) && (seq_len % 4 == 0) && (dy_row_stride == q_row_stride);
+  (void)use_tile;
+
   for (unsigned int b = 0; b < batch; ++b) {
     const float *dy_b = dy_data + b * dy_dim.getFeatureLen();
     const float *q_b = q_data + b * q_dim.getFeatureLen();
@@ -6518,47 +6844,68 @@ void MHACoreLayer::calcDerivative(nntrainer::RunLayerContext &context) {
     float *dk_b = dk_data + b * dk_dim.getFeatureLen();
     float *dv_b = dv_data + b * dv_dim.getFeatureLen();
 
-    tm.parallel_for(0, static_cast<size_t>(num_heads_KV), [=](size_t kv) {
-      std::vector<float> d_attn(seq_len);
-      std::vector<float> d_score(seq_len);
-      for (unsigned int qh = kv * gqa_size; qh < (kv + 1) * gqa_size; ++qh) {
-        const float *attn_h =
-          attn_b + qh * attn_dim.height() * attn_row_stride;
+    tm.parallel_for(0, static_cast<size_t>(num_heads_Q) * n_rb, [=](size_t t) {
+      const unsigned int qh = static_cast<unsigned int>(t / n_rb);
+      const unsigned int rb = static_cast<unsigned int>(t % n_rb);
+      const unsigned int kv = qh / gqa_size;
+      const float *attn_h = attn_b + qh * attn_dim.height() * attn_row_stride;
+      float *ds_h = ds_data + qh * ds_head;
+      const unsigned int i_end = std::min(seq_len, (rb + 1) * TRAIN_ATTN_ROWS);
+#if defined(__ARM_NEON)
+      if (use_tile) {
+        attn_bwd_rows_tile(dy_b, k_b, v_b, attn_h, ds_h, dq_b, dy_row_stride,
+                           k_row_stride, v_row_stride, q_row_stride,
+                           attn_row_stride, qh, kv, hd, seq_len, scale,
+                           rb * TRAIN_ATTN_ROWS, i_end);
+        return;
+      }
+#endif
+      for (unsigned int i = rb * TRAIN_ATTN_ROWS; i < i_end; ++i) {
+        const float *dy_row = dy_b + i * dy_row_stride + qh * hd;
+        const float *attn_row = attn_h + i * attn_row_stride;
+        float *ds_row = ds_h + (size_t)i * seq_len;
 
-        for (unsigned int i = 0; i < seq_len; ++i) {
-          const float *dy_row = dy_b + i * dy_row_stride + qh * head_dim;
-          const float *attn_row = attn_h + i * attn_row_stride;
-          const float *q_row = q_b + i * q_row_stride + qh * head_dim;
+        float dot_sum = 0.0f;
+        for (unsigned int j = 0; j <= i; ++j) {
+          const float da =
+            train_dot(dy_row, v_b + j * v_row_stride + kv * hd, hd);
+          ds_row[j] = da;
+          dot_sum += attn_row[j] * da;
+        }
+        float *dq_row = dq_b + i * q_row_stride + qh * hd;
+        for (unsigned int j = 0; j <= i; ++j) {
+          const float ds = attn_row[j] * (ds_row[j] - dot_sum) * scale;
+          ds_row[j] = ds;
+          train_axpy(dq_row, ds, k_b + j * k_row_stride + kv * hd, hd);
+        }
+      }
+    });
 
-          float dot_sum = 0.0f; // sum_j attn[i][j] * d_attn[i][j]
-          for (unsigned int j = 0; j <= i; ++j) {
-            const float *v_row = v_b + j * v_row_stride + kv * head_dim;
-            float da = 0.0f;
-            for (unsigned int d = 0; d < head_dim; ++d)
-              da += dy_row[d] * v_row[d];
-            d_attn[j] = da;
-            dot_sum += attn_row[j] * da;
-
-            float *dv_row = dv_b + j * v_row_stride + kv * head_dim;
-            float w = attn_row[j];
-            for (unsigned int d = 0; d < head_dim; ++d)
-              dv_row[d] += w * dy_row[d];
-          }
-
-          // softmax backward
-          for (unsigned int j = 0; j <= i; ++j)
-            d_score[j] = attn_row[j] * (d_attn[j] - dot_sum);
-
-          float *dq_row = dq_b + i * q_row_stride + qh * head_dim;
-          for (unsigned int j = 0; j <= i; ++j) {
-            const float *k_row = k_b + j * k_row_stride + kv * head_dim;
-            float ds = d_score[j] * scale;
-            for (unsigned int d = 0; d < head_dim; ++d)
-              dq_row[d] += ds * k_row[d];
-
-            float *dk_row = dk_b + j * k_row_stride + kv * head_dim;
-            for (unsigned int d = 0; d < head_dim; ++d)
-              dk_row[d] += ds * q_row[d];
+    tm.parallel_for(0, static_cast<size_t>(num_heads_KV) * n_rb, [=](size_t t) {
+      const unsigned int kv = static_cast<unsigned int>(t / n_rb);
+      const unsigned int rb = static_cast<unsigned int>(t % n_rb);
+      const unsigned int j_end = std::min(seq_len, (rb + 1) * TRAIN_ATTN_ROWS);
+#if defined(__ARM_NEON)
+      if (use_tile) {
+        attn_bwd_cols_tile(
+          dy_b, q_b, attn_b, ds_data, dk_b, dv_b, dy_row_stride, k_row_stride,
+          v_row_stride, attn_dim.height() * attn_row_stride, attn_row_stride,
+          ds_head, kv, gqa_size, hd, seq_len, rb * TRAIN_ATTN_ROWS, j_end);
+        return;
+      }
+#endif
+      for (unsigned int j = rb * TRAIN_ATTN_ROWS; j < j_end; ++j) {
+        float *dv_row = dv_b + j * v_row_stride + kv * hd;
+        float *dk_row = dk_b + j * k_row_stride + kv * hd;
+        for (unsigned int qh = kv * gqa_size; qh < (kv + 1) * gqa_size; ++qh) {
+          const float *attn_h =
+            attn_b + qh * attn_dim.height() * attn_row_stride;
+          const float *ds_h = ds_data + qh * ds_head;
+          for (unsigned int i = j; i < seq_len; ++i) {
+            train_axpy(dv_row, attn_h[i * attn_row_stride + j],
+                       dy_b + i * dy_row_stride + qh * hd, hd);
+            train_axpy(dk_row, ds_h[(size_t)i * seq_len + j],
+                       q_b + i * q_row_stride + qh * hd, hd);
           }
         }
       }
@@ -6574,11 +6921,12 @@ void MHACoreLayer::calcDerivative(nntrainer::RunLayerContext &context) {
                              dk_dim.width(), head_dim, seq_len, 0);
   }
 
-  std::cout << "[PERF-MHA] calcDerivative="
-            << std::chrono::duration<double, std::milli>(
-                 std::chrono::steady_clock::now() - mha_bt0)
-                 .count()
-            << "ms" << std::endl;
+  if (trainAttnProf())
+    std::cout << "[PERF-MHA] calcDerivative="
+              << std::chrono::duration<double, std::milli>(
+                   std::chrono::steady_clock::now() - mha_bt0)
+                   .count()
+              << "ms" << std::endl;
 }
 
 void MHACoreLayer::calcGradient(nntrainer::RunLayerContext &context) {}

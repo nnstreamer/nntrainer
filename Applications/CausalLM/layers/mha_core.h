@@ -749,6 +749,8 @@ private:
   /** whether the training-only tensors above were requested (only true when
    *  !use_external_cache and the graph was compiled for TRAIN) */
   bool train_tensors_requested = false;
+  /** training backward softmax-gradient scratch (num_heads_Q x L x L) */
+  std::vector<float> train_ds_scratch_;
 
   /** whether the internal KV cache tensors were requested (only true when
    *  !use_external_cache and the graph was NOT compiled for TRAIN; training
