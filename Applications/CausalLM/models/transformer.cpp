@@ -478,7 +478,8 @@ bool Transformer::hasLoRA(const std::string &module_type, int layer_id) const {
 }
 
 std::string Transformer::layerEngine() const {
-  return FOR_TRAINING ? std::string("cpu") : causallm_engine();
+  return (FOR_TRAINING || FORCE_CPU_ENGINE) ? std::string("cpu")
+                                            : causallm_engine();
 }
 
 bool Transformer::trainGpuOffload() const {
@@ -730,10 +731,12 @@ void Transformer::load_weight_lora(const std::string &base_path,
   const bool saved_for_training = FOR_TRAINING;
   LORA_RANK = 0;
   FOR_TRAINING = false;
+  FORCE_CPU_ENGINE = true;
 
   auto restore_graph_flags = [&]() {
     LORA_RANK = saved_lora_rank;
     FOR_TRAINING = saved_for_training;
+    FORCE_CPU_ENGINE = false;
   };
 
   ModelHandle base_model =
@@ -781,7 +784,15 @@ void Transformer::load_weight_lora(const std::string &base_path,
           if (it != base_weights.end()) {
             nntrainer::Tensor &dst = w->getVariableRef();
             const nntrainer::Tensor &src = *it->second;
-            const size_t bytes = src.getMemoryBytes();
+            // A QS4CX record's scale offset depends on the stride the source
+            // was loaded at (padded / trimmed, see QS4CX_Tensor::size()); the
+            // training graph's tensor starts at the padded default, so carry
+            // the source's choice over or the scales are read at the wrong
+            // offset.
+            if (src.getDataType() == ml::train::TensorDim::DataType::QS4CX)
+              dst.setQs4cxRecordPadded(src.isQs4cxRecordPadded());
+            const size_t bytes =
+              std::min(src.getMemoryBytes(), dst.getMemoryBytes());
             std::memcpy(dst.getData<char>(), src.getData<char>(), bytes);
             ++matched;
           } else if (name.find(":loraA") == std::string::npos &&

@@ -1634,6 +1634,10 @@ void Tensor::setOnDiskLegacyQint4(bool v) { itensor_->setOnDiskLegacyQint4(v); }
 
 void Tensor::setQs4cxRecordPadded(bool v) { itensor_->setQs4cxRecordPadded(v); }
 
+bool Tensor::isQs4cxRecordPadded() const {
+  return itensor_->isQs4cxRecordPadded();
+}
+
 void Tensor::setQs4cxScaleOnlyRead(bool v) {
   itensor_->setQs4cxScaleOnlyRead(v);
 }

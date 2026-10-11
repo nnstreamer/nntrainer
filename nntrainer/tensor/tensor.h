@@ -1911,6 +1911,12 @@ public:
   void setQs4cxRecordPadded(bool v);
 
   /**
+   * @brief Whether this QS4CX record uses the padded layout.
+   *        @see TensorBase::isQs4cxRecordPadded
+   */
+  bool isQs4cxRecordPadded() const;
+
+  /**
    * @brief Read only the per-channel scale tail of this QS4CX record.
    *        @see TensorBase::setQs4cxScaleOnlyRead
    */

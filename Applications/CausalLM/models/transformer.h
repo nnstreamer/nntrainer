@@ -990,6 +990,11 @@ protected:
    *  calcDerivative() in mha_core.cpp) requires the internal-cache
    *  (3-input) construction. */
   bool FOR_TRAINING = false;
+  /** build every layer on the cpu engine regardless of causallm_engine():
+   * set while load_weight_lora() builds its base-checkpoint graph, whose
+   * weights are copied into the (cpu) training graph -- a gpu-engine base
+   * graph would repack QS4CX for the device and drop the host payload. */
+  bool FORCE_CPU_ENGINE = false;
 
   // Performance metrics
   // Zero-initialized: [perf-split] added fields (ttft_ms, first_token_ms,
