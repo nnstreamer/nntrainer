@@ -3554,13 +3554,16 @@ public:
         setParam(session, HTP_GRAPH_NO_OP, HTP_GRAPH_PARAM_PREDICT, &word, 1u,
                  1u, "PREDICT");
       }
-      // [#289] NNTR_HTP_DENSE_EARLY=1: a miss round runs the layer's dense
-      // branch while the ARM reads (unset: the skel's default, off)
-      if (const char *v = std::getenv("NNTR_HTP_DENSE_EARLY")) {
-        if (std::strcmp(v, "0") != 0 && std::strcmp(v, "1") != 0)
+      // [#289] A miss round runs the layer's dense branch while the ARM
+      // reads: the same ops on the same input, earlier, in time the DSP
+      // spent waiting. On unless NNTR_HTP_DENSE_EARLY=0.
+      {
+        const char *v = std::getenv("NNTR_HTP_DENSE_EARLY");
+        if (v != nullptr && std::strcmp(v, "0") != 0 &&
+            std::strcmp(v, "1") != 0)
           throw std::runtime_error(std::string("NNTR_HTP_DENSE_EARLY=") + v +
                                    ": want 0 or 1");
-        const uint32_t on = v[0] == '1' ? 1u : 0u;
+        const uint32_t on = v == nullptr || v[0] == '1' ? 1u : 0u;
         float word;
         std::memcpy(&word, &on, sizeof(word));
         setParam(session, HTP_GRAPH_NO_OP, HTP_GRAPH_PARAM_DENSE_EARLY, &word,
