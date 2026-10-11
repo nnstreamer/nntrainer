@@ -1083,15 +1083,16 @@ void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {
   Tensor &ret_ = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
 
   if (!std::get<props::LoraRank>(fc_props).empty()) {
-    // Dequantize the base weight to FP32 if it is stored in a quantized
-    // format (Q4_0 / Q6_K). The backward pass needs FP32 to compute
-    // gradients correctly; the base weight is frozen during LoRA training,
-    // so this dequantization is exact and has no gradient through it.
+    // dX = dY . W^T for the frozen base weight W (no gradient flows into W).
+    // A quantized W reaches it one of three ways (forward never dequantizes:
+    // Q4_0 / QS4CX dispatch straight to their integer GEMMs in Tensor::dot):
+    //  - QS4CX: a unit-scale transposed copy of the int4 codes with the
+    //    per-channel scale folded into dY, on the KleidiAI GEMM (kai_dx);
+    //  - Q4_0 / Q6_K / QINT*: W re-quantized once to Q8_0 along N and the
+    //    ggml int8 GEMM (q8_dx);
+    //  - otherwise (or NNTR_TRAIN_DX_Q8=0, non-aarch64): W dequantized to FP32
+    //    in a persistent arena (see dequantizeToArena) and an FP32 GEMM.
     using DT = TensorDim::DataType;
-    // Reuse a persistent arena-backed scratch for the dequantized weight
-    // across layers and iterations (see dequantizeToArena): materializing a
-    // fresh FP32 copy of every quantized weight each pass costs a large
-    // malloc/munmap cycle (page-fault churn) on top of the dequantize itself.
     Tensor w_arena_view;
     const Tensor *w = &weight;
     auto dequantize_base = [&]() {

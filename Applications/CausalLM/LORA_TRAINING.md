@@ -20,6 +20,8 @@ verification independently.
 - [A silent-wrong-answer bug in validation](#a-silent-wrong-answer-bug-in-validation)
 - [Verification performed](#verification-performed)
 - [How to train](#how-to-train)
+- [Fast on-device training: int8 backward and the GPU-trunk / CPU-head split](#fast-on-device-training-int8-backward-and-the-gpu-trunk--cpu-head-split)
+- [Two silent training bugs: clipped gradients sharing memory, frozen inputs overwritten](#two-silent-training-bugs-clipped-gradients-sharing-memory-frozen-inputs-overwritten)
 - [Commit structure](#commit-structure)
 - [Known limitations / follow-ups](#known-limitations--follow-ups)
 
@@ -537,6 +539,277 @@ epoch, one seed, and the valid set is the training set, so they show the
 smaller adapters train without breaking, not that they match full-depth
 quality; that needs several epochs and a held-out split.
 
+## Fast on-device training: int8 backward and the GPU-trunk / CPU-head split
+
+Measured on SM-S948N (Snapdragon 8 Elite Gen 5, Adreno 840), Qwen3-0.6B,
+seq 256, rank 8, `--lora_last_n 7`, QAT, app-default environment
+(OpenBLAS 1 thread). "iteration" is one train step (forward + backward +
+update), averaged over the first iterations of a run unless noted:
+
+| step | iteration |
+|---|---|
+| Q4_0 base, before | 1538 ms (50-iter avg; 1.0-1.3 s cool) |
+| int8 dX + LoRA / SwiGLU / attention kernels (Q4_0, CPU) | 614 ms |
+| QS4CX base, CPU only | ~395 ms |
+| QS4CX base, GPU trunk + CPU head (`--hybrid_trunk`) | **175 ms** (165 ms min, ~300 ms thermally throttled) |
+
+Where the time went, and what replaced it:
+
+- **Forward was already integer.** Q4_0 / QS4CX FC weights go straight to
+  the ggml Q4_0 x Q8_0 / KleidiAI qai8dxp x qsi4cxp i8mm GEMMs; nothing is
+  dequantized on the forward path.
+- **Backward dX** (`dY . W^T` against the frozen base) was a per-call FP32
+  dequantize plus an FP32 GEMM on single-threaded OpenBLAS: 627 ms of a
+  1.5 s step. It is now an int8 GEMM: W re-quantized once to Q8_0 along N
+  (the dX reduction axis) for Q4_0 bases, or, for QS4CX, the same int4 codes
+  transposed with unit scales and the per-channel scale folded into dY
+  (lossless) on the KleidiAI GEMM. rel L2 vs FP32: ~1% (Q8_0) / ~2.7%
+  (KleidiAI, per-row activation quantization); 1-epoch valid loss unchanged.
+- **LoRA rank-r GEMMs, SwiGLU, attention**: multithreaded skinny kernels,
+  row-block parallel SwiGLU (bit-identical), 4x4 NEON-tiled attention with
+  race-free parallel backward passes.
+- **Frozen trunk on the GPU**: with LoRA only on the last N layers, the first
+  `L - N` blocks are an inference prefill. `--hybrid_trunk <dir>` runs them on
+  the GPU (QS4CX-FP16 inference graph, `setTrunkLayers()`), on the dataset
+  producer thread, one sample ahead of the CPU step; the training graph
+  (`setHeadFromLayer()`) takes the trunk's hidden state as input0. GPU
+  ~40-130 ms per sample, fully hidden under the CPU step.
+
+Do not raise the OpenBLAS thread count (`NNTR_NUM_THREADS`) for this
+workload: with the big GEMMs off BLAS, BLAS threads only contend with the
+nntrainer thread pool (324 ms vs 175 ms hybrid, 828 vs 614 ms CPU).
+
+### Preparing the two models
+
+The head (training) model is QS4CX FC + FP32 embedding with FP32 norms; the
+trunk model is the QS4CX-FP16 inference model. Both come from the same FP32
+weights, so their QS4CX codes match:
+
+```bash
+# host: HF -> nntrainer FP32 (FP32 norms) and FP32 / FP16-norm stages
+python3 res/qwen3/qwen3-0.6b/weight_converter_layergraph.py \
+  --model_path <hf Qwen3-0.6B> --output_name stage32/nntr_qwen3_0.6b_fp32.bin \
+  --data_type float32                       # nntr_config: FP32-FP32
+python3 res/qwen3/qwen3-0.6b/weight_converter_layergraph.py \
+  --model_path <hf Qwen3-0.6B> --output_name stage16/nntr_qwen3_0.6b_mixed.bin \
+  --data_type float32 --norm_fp16           # nntr_config: FP32-FP16
+# device (NNTR_ENGINE=cpu): quantize
+nntr_quantize stage32 --fc_dtype QS4CX --embd_dtype FP32 --lmhead_dtype FP32 \
+  --output /sdcard/q_qs4                    # head: QS4CX-FP32
+nntr_quantize stage16 --fc_dtype QS4CX --embd_dtype Q6_K --lmhead_dtype Q6_K \
+  --output /sdcard/q_qs4_gpu                # trunk: QS4CX-FP16
+```
+
+### Running it
+
+```bash
+nntr_lora_train /sdcard/q_qs4 /sdcard/t.txt --lr 5e-5 --epochs 5 \
+  --lora_rank 8 --lora_alpha 16 --lora_last_n 7 --seq_len 256 \
+  --max_samples 50 --clip_grad 1.0 --lora_qat --lora_weight_q4 \
+  --hybrid_trunk /sdcard/q_qs4_gpu
+```
+
+SampleTestAPP: the Train tab's "GPU trunk + CPU head" switch (on by default)
+and "GPU trunk model" path map to the `hybrid_trunk` field of the
+`trainLora()` params JSON; the defaults are `/sdcard/q_qs4` and
+`/sdcard/q_qs4_gpu`. The status line shows ms/iter.
+
+The hybrid mode sets `NNTR_MHA_GPU=1`, `NNTR_KV_IMG_ATTN=1` and
+`NNTR_V8C_DROP_PLAIN=0` unless already set (with the trunk's host payload
+dropped, the first trunk prefill trips the v8c weight-cache rebuild guard),
+and gives the dataset `buffer_size=2` (with one slot the slot is freed only
+when the consuming step ends, which serializes trunk and step). Peak RSS
+2.2 GB (1.78 GB CPU-only).
+
+### Diagnostics
+
+| env | effect |
+|---|---|
+| `NNTR_TRAIN_PROF=<first LoRA layer>` | per-layer fwd / deriv / grad averages every 10 iterations, `[PERF]` step / wait lines, `[PERF-MHA]`, `[PERF-TRUNK]` |
+| `NNTR_TRAIN_DX_CHECK=1` | dX error vs the FP32 reference (first 64 calls) |
+| `NNTR_LORA_SKINNY_CHECK=1` | LoRA skinny kernels vs the BLAS GEMMs |
+| `NNTR_TRAIN_DX_Q8=0/1`, `NNTR_TRAIN_DX_KAI=0` | select the dX path (FP32 / Q8_0 / KleidiAI) |
+| `NNTR_TRAIN_FWD_FP32=1` | QS4CX base FCs train-forward as FP32 x dequantized W instead of the KleidiAI int8 kernel |
+| `NNTR_TRAIN_GRAD_DUMP=<dir>` (`NNTR_TRAIN_GRAD_DUMP_ITERS`, default 3) | dump LoRA A / B / dA / dB, sample ids and the trunk hidden state for `tools/lora_gradcheck` (see below) |
+
+### Caveats
+
+- **QS4CX quality.** Per-output-channel int4 without K groups is coarse for
+  a 0.6B model: simulated on the HF weights (1k-token ppl), FP32 37.4,
+  int8 per-channel 37.8, Q4_0 39.8, QS4CX 63.0 (56.9 with an MSE-clipped
+  scale); the on-device QS4CX model answers "The capital of France is" with
+  "a square", Q4_0 with "Paris". Qwen3-1.7B is less affected (group-wise
+  int4 recovers) but per-channel int4 still fails that prompt. The speed
+  path assumes a base re-trained / re-quantized for this format.
+- QS4CX on the GPU engine only: Q4_0 GPU GEMM is disabled on Android
+  (the CPU repacks Q4_0 to q4_0x4, the device kernel unpacks q4_0x8), and
+  the FP16-activation Q4_0 GPU entry is not implemented.
+- `--hybrid_trunk` needs `--lora_last_n` < number of layers; batch size 1.
+
+## Two silent training bugs: clipped gradients sharing memory, frozen inputs overwritten
+
+Found while chasing a "QS4CX LoRA training collapses" report on SM-S948N
+(Qwen3-0.6B, LoRA rank 8 on the last 7 layers, seq 256, `--clip_grad 1.0`).
+Both bugs are in the framework, not in a kernel or a quantization format, and
+both silently corrupt training without NaN, crash or warning.
+
+### Symptom
+
+50 samples, 6 epochs, lr 5e-5 decayed x0.7 every 50 steps, hybrid trunk:
+train loss 2.28 / 1.88 / 2.31 / 2.42 / 3.46 / 4.71. By the last epoch a third
+of the samples sat below 0.1 and the rest above 4: the model collapsed onto
+a few answers. Lower lr, decay, QAT on or off and FP32 forward only moved
+the onset. A Q4_0 base looked healthy (2.15 / 1.87 / 1.70 / 1.68 / 1.66 /
+1.66), but 1.66 is roughly the entropy of the label distribution (1.47 for
+these 50 samples): it was not learning from the input either, just failing
+more quietly.
+
+### Method: compare numbers against a reference, not loss curves
+
+1. A device run with `NNTR_TRAIN_GRAD_DUMP=<dir>` writes, for the first
+   steps, every LoRA layer's pre-update A / B and its dA / dB, the sample
+   ids, and (hybrid) the trunk's hidden state.
+2. `tools/lora_gradcheck/ref_grad.py` rebuilds those steps in PyTorch on the
+   HF checkpoint (QS4CX quantize-dequantize applied to the base FCs, the
+   dumped A / B patched in, the dumped trunk hidden state injected into the
+   first LoRA layer) and compares the gradients. With
+   `NNTR_TRAIN_FWD_FP32=1 NNTR_TRAIN_DX_Q8=0` the device computes the same
+   FP32 math, so the match must be exact up to float rounding.
+3. `tools/lora_gradcheck/check_update.py` checks that the weight change
+   between dumped steps is the Adam + global-norm-clip update of the dumped
+   gradient.
+
+Starting with only the last layer trainable narrowed things fast. Suspects
+that were measured and ruled out:
+
+| suspect | measurement | verdict |
+|---|---|---|
+| KleidiAI QS4CX forward (per-row int8 activations) | 1.6-5.7% rel L2 per FC vs FP32 (activation rows have max/rms 15-28); same-weights loss 6.76 vs 5.12 | real noise, but the collapse persists with `NNTR_TRAIN_FWD_FP32=1` |
+| KleidiAI dX | 1-6% gradient rel L2 vs exact | direction kept; not the cause |
+| GPU trunk | same sample recomputed: rel L2 0; lm_head read-row FIFO aligned | deterministic |
+| frozen base weights | hashed every forward | never modified |
+
+### Bug A: frozen layers' inputs released before their `calcDerivative`
+
+`Manager::requestInputs()` gave the input of every non-trainable layer
+`FORWARD_FUNC_LIFESPAN`, assuming a frozen layer does not need its input
+after forward. With LoRA every norm (`attention_norm`, `ffn_norm`, `q_norm`,
+`k_norm`, `output_norm`) is `trainable=false`, yet an RMS norm's
+`calcDerivative` reads `x`. The planner handed that memory to later tensors;
+by backward time the input had been overwritten (L2 of the input at forward
+vs at backward: `ffn_norm` 11913 vs 0.15, `q_norm` 9664 vs 0.18, `k_norm`
+7657 vs 1464). The `ITERATION_LIFESPAN` `inv_rms` cache (see "Backward math
+for six layers") protected only `inv_rms`; `x` was still read from the
+reused buffer. Effect on the last layer's LoRA gradients: `wk` dB 31-41%
+rel L2 (cosine 0.92), `wq` 7-23%, `wv` 5-7%; the FFN side was fine because
+`swiglu` carries no `trainable=false` and kept its inputs.
+
+**Fix** (`nntrainer/tensor/manager.cpp`): in training, a non-trainable
+layer's input gets `FORWARD_DERIV_LIFESPAN`, i.e. it lives until that
+layer's own `calcDerivative`. For a frozen layer that is never backwarded
+(the trunk below the first LoRA layer) that order lies past the backward
+end, which `TensorPool::finalize()` ignores, so those inputs still die after
+forward: peak RSS 2165 MB hybrid / 1741 MB CPU-only, unchanged. A frozen
+layer inside the backward range that does not need its input (e.g. a frozen
+FC) now keeps it a little longer; the exe-order goldens
+(`fc3_mse_nt{1,2,3}`) gain exactly that order.
+
+### Bug B: gradients clipped by global norm shared memory after a re-plan
+
+With `clip_grad_by_norm > 0` a gradient is applied only after the whole
+backward pass (the global norm needs all of them), so the manager appends
+`TensorPool::PERSIST_END_ORDER` to its exec order. `TensorPool::finalize()`
+replaced that entry with the concrete end order. The pool is planned again
+whenever its tensors are deallocated and reallocated (here that had already
+happened before the first training step), and the next plan saw a plain
+order past the end, dropped it, and ended the gradient's life at its own
+layer's `applyGradient`. The V1 planner then
+reused same-sized gradient buffers across layers: 55 overlapping pairs among
+the 98 LoRA gradients, for example `layer27_ffn_up:loraA` and
+`layer27_ffn_gate:loraA` at the same address. The backward of the next FC
+sharing an input overwrote the previous one's gradient (`wk` -> `wv`, `wq` ->
+`wk`/`wv`, `ffn_gate` -> `ffn_up`, `ffn_up` -> `layer27_ffn_down`), so 20 of 49
+LoRA layers were updated with someone else's gradient (first-step sign
+agreement with their own gradient 0.5, 0.33 or 0.0).
+
+The gradients themselves were correct at the moment they were computed,
+which is why gradient checks alone did not show it. Clipping is what turned
+it on: without `--clip_grad` each gradient is applied right after its layer
+and is unaffected. (The clipping added in "Was it gradient clipping?" above
+was meant purely as a stability aid.) Mixed precision takes the same
+deferred path.
+
+**Fix** (`nntrainer/tensor/tensor_pool.{h,cpp}`): the pool remembers which
+exec-order entry was `PERSIST_END_ORDER` (`SourceDetails::persist_idx`) and
+keeps treating it as persist-to-end on every later plan. Regression test:
+`TensorPool.persist_end_order_survives_refinalize_p` (fails on the old code:
+the second plan needs 64 instead of 128 bytes because the two gradients
+share memory).
+
+### After both fixes
+
+Exact path (`NNTR_TRAIN_FWD_FP32=1 NNTR_TRAIN_DX_Q8=0`), layers 21-27, all 7
+LoRA FCs: dA / dB within 0.01-0.15% of PyTorch in hybrid mode (0.2-1% CPU-only,
+where the reference also re-simulates layers 0-20); 0 of 49 layers with a
+wrong update direction; the Adam + clip update reproduced to rel L2 1e-7
+(first step) / 3e-4 (second).
+
+Same data and schedule as the symptom (50 samples, lr 5e-5, decay 0.7 / 50
+steps, clip 1.0), default integer kernels:
+
+| run | train loss, epochs 1-6 | best valid |
+|---|---|---|
+| hybrid, QAT off, before | 2.28 / 1.88 / 2.31 / 2.42 / 3.46 / 4.71 | 1.663 |
+| hybrid, QAT on, before | 2.39 / 1.90 / 2.16 / 2.12 / 2.68 / 3.64 | 1.648 |
+| hybrid, Bug A fixed only | 2.31 / 1.91 / 2.10 / 2.11 / 2.61 / 3.53 | 1.641 |
+| CPU-only, Bug A fixed only | 2.35 / 1.82 / 1.91 / 1.80 / 1.91 / 2.08 | 1.651 |
+| **hybrid, QAT off, both fixed** | **2.16 / 1.74 / 1.57 / 1.45 / 1.39 / 1.37** | **1.303** |
+| **hybrid, QAT on, both fixed** | **2.21 / 1.73 / 1.56 / 1.44 / 1.38 / 1.36** | **1.312** |
+| **CPU-only, QAT off, both fixed** | **2.14 / 1.75 / 1.55 / 1.43 / 1.43 / 1.40** | **1.387** |
+
+Monotonic and below the label-entropy floor; samples with loss above 4
+fall from 7 to 0 by epoch 3 (1 left on CPU-only). Step time is unchanged (hybrid 167 ms/iter, iterations 4-13). The
+"valid" set is the training set here (see the caveats above), so these
+show that the optimizer now works, not generalization. Learning-rate and
+schedule conclusions drawn before these fixes (e.g. "it is an lr issue")
+were made with both bugs active and should be re-checked.
+
+### Verifying training numerics
+
+```bash
+# device: FP32 forward / dX so the reference comparison is exact
+adb shell 'rm -rf /data/local/tmp/gd && mkdir -p /data/local/tmp/gd'
+adb shell "cd <dir> && NNTR_TRAIN_FWD_FP32=1 NNTR_TRAIN_DX_Q8=0 \
+  NNTR_TRAIN_GRAD_DUMP=/data/local/tmp/gd ./nntr_lora_train <qs4cx model> \
+  <data> --epochs 1 --max_samples 4 --lora_rank 8 --lora_alpha 16 \
+  --lora_last_n 7 --seq_len 256 --lr 5e-5 --clip_grad 1.0 \
+  [--hybrid_trunk <trunk model>]"
+adb pull /data/local/tmp/gd ./gd
+# host
+python3 tools/lora_gradcheck/ref_grad.py --hf <HF Qwen3-0.6B> --dump gd \
+  --layers 21-27                  # expect well below 1% everywhere
+python3 tools/lora_gradcheck/check_update.py --dump gd --lr 5e-5 --clip 1.0
+                                  # expect "wrong: 0 / 49", rel ~1e-7
+```
+
+Drop the two FP32 switches to measure the production kernels instead
+(expect a few percent). `ref_grad.py --base fp32` is for an FP32 base model.
+Leave out `--lr_decay_rate` for `check_update.py` runs.
+
+### Pre-existing issues found on the way (not fixed here)
+
+- `unittest_compiler` (TFLite export) fails on this branch:
+  `Exporter::saveTflResult` is specialized for an FC props tuple without the
+  `LoraQAT` / `LoraWeightQ4` / `LoraQatEmaMomentum` / `LoraGPU` members added
+  to `fc_props`, so the FC node no longer matches ("given node cannot be
+  converted to tfnode").
+- `unittest_qwen3_lora_training_smoke` is flaky under `meson test`, which
+  sets a random `MALLOC_PERTURB_`: it fails for 1, 33, 128 and 165, with or
+  without these fixes. The "base checkpoint" it saves comes from a model
+  that is `initialize()`d but never given weights, i.e. uninitialized memory
+  (zeros normally: the loss is exactly ln 32 and every activation is 0;
+  garbage under perturbation, which then makes every LoRA gradient NaN).
+
 ## Commit structure
 
 The work above is organized into ten reviewable, individually-buildable
@@ -570,6 +843,25 @@ test it introduces passes at that point in history):
 10. **`[CausalLM] document LoRA training support and its commit structure`**
     this file
 
+Follow-up commits for on-device speed and training correctness:
+
+11. **`[utils] Add an env-gated per-layer training profiler`**
+12. **`[layers] Speed up LoRA fully-connected training on quantized bases`**
+    (int8 dX, skinny LoRA kernels)
+13. **`[layers] Parallelize the host SwiGLU forward and backward`**
+14. **`[CausalLM] Vectorize and parallelize mha_core training attention`**
+15. **`[CausalLM] Fix QS4CX base weights in load_weight_lora`**
+16. **`[CausalLM] Add GPU-trunk / CPU-head hybrid LoRA training`**
+17. **`[CausalLM] Expose hybrid LoRA training in the API and SampleTestAPP`**
+18. **`[tensor] Keep gradients clipped by global norm alive on every re-plan`**
+    Bug B + regression test
+19. **`[tensor] Keep a frozen layer's input until its calcDerivative`**
+    Bug A + exe-order goldens
+20. **`[CausalLM] Add LoRA gradient / update verification against PyTorch`**
+    `NNTR_TRAIN_GRAD_DUMP`, `NNTR_TRAIN_FWD_FP32`, `tools/lora_gradcheck`
+21. **`[CausalLM] Document fast on-device training and the two training bugs`**
+    this file
+
 ## Known limitations / follow-ups
 
 - `mha_core`'s training path is plain scalar C++ (chosen for verifiability
@@ -591,3 +883,7 @@ test it introduces passes at that point in history):
   harness catches automatically; any *future* layer that implements
   `calcDerivative` and reads an input after writing a different input's
   outgoing derivative should be checked for the same class of bug.
+- `unittest_compiler`'s TFLite export of FC and the uninitialized "base
+  checkpoint" in `unittest_qwen3_lora_training_smoke` are broken on this
+  branch independently of the fixes above; see "Pre-existing issues found on
+  the way".
