@@ -41,7 +41,7 @@
 #include <algorithm> // std::min (prefillChunk clamp)
 #include <context.h> // nntrainer::ModelFeatures (T11)
 #include <dataset.h>
-#include <future>    // async tokenizer load (round-13 init overlap)
+#include <future> // async tokenizer load (round-13 init overlap)
 #include <layer.h>
 #include <map>
 #include <model.h>
@@ -659,7 +659,7 @@ public:
    *        (from save_weight_lora()); pass an empty string to skip
    */
   virtual void load_weight_lora(const std::string &base_path,
-                               const std::string &lora_path = "");
+                                const std::string &lora_path = "");
 
   /**
    * @brief Save only the loraA/loraB weights (raw FP32) to a file.
@@ -694,18 +694,41 @@ public:
    *        (tests, tooling) can inspect/manipulate weights without needing
    *        access to the protected `model` handle.
    */
-  virtual void forEachLayer(
-    std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &,
-                       void *)>
-      fn,
-    void *user_data = nullptr);
+  virtual void
+  forEachLayer(std::function<void(ml::train::Layer &,
+                                  nntrainer::RunLayerContext &, void *)>
+                 fn,
+               void *user_data = nullptr);
 
 protected:
   /**
-   * @brief Whether the given FC-layer module type (e.g. "wq", "ffn_up") is
-   *        targeted by lora_target for LoRA adaptation.
+   * @brief Whether the given FC-layer module type (e.g. "wq", "ffn_up") of
+   *        decoder layer @a layer_id is targeted for LoRA adaptation: the type
+   *        is in lora_target and the layer is at or after LORA_LAYER_START
+   *        (lora_last_n_layers; every layer when unset).
    */
-  bool hasLoRA(const std::string &module_type) const;
+  bool hasLoRA(const std::string &module_type, int layer_id) const;
+
+  /**
+   * @brief Engine name for a layer of this graph.
+   *
+   * Inference follows causallm_engine(). The training graph is built from
+   * host layers (their calcDerivative/calcGradient read and write the tensors
+   * directly; the GPU variants have no backward), so every layer of it is a
+   * cpu-engine layer even in an OpenCL build whose default engine is "gpu".
+   * GPU work in training is requested per layer instead (see
+   * trainGpuOffload()).
+   */
+  std::string layerEngine() const;
+
+  /**
+   * @brief Whether the LoRA fully connected layers of the training graph
+   *        offload their FP32 GEMMs to the OpenCL device.
+   * @return true when NNTR_TRAIN_GPU=1 in an OpenCL build whose "gpu" context
+   *         is up (NNTR_ENGINE unset or "gpu"). NNTR_TRAIN_GPU_MIN_WORK
+   *         (M*N*K, default 2^26) sets the smallest GEMM sent to the device.
+   */
+  bool trainGpuOffload() const;
 
   /**
    * @brief Append lora_rank/lora_alpha layer properties to `props` when
@@ -883,8 +906,8 @@ protected:
   float EMBEDDING_SCALE = 1.0f;
   int GQA_SIZE;
 
-  unsigned int BATCH_SIZE;              /**< Batch size for the model */
-  unsigned int INIT_SEQ_LEN;            /**< Initial sequence length */
+  unsigned int BATCH_SIZE;   /**< Batch size for the model */
+  unsigned int INIT_SEQ_LEN; /**< Initial sequence length */
   /** The height the PACK shipped, before any per-request growth. The floor of
    *  prefillPlaneFor(): a pack that ships a tall plane keeps it. */
   unsigned int PACK_INIT_SEQ_LEN = 0;
@@ -916,6 +939,9 @@ protected:
   unsigned int LORA_RANK = 0;
   unsigned int LORA_ALPHA = 0;
   std::vector<std::string> LORA_TARGET;
+  /** first decoder layer that carries LoRA. Layers before it have nothing
+   *  trainable, so the graph never runs their backward pass. */
+  int LORA_LAYER_START = 0;
 
   /** Optional gradient clipping for the LoRA weights, from nntr_cfg's
    *  "lora_clip_grad_by_norm". 0 (default) disables it. When set, every

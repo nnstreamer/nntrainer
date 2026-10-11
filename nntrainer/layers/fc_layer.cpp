@@ -24,6 +24,7 @@
  */
 
 #include <common_properties.h>
+#include <compute_ops.h>
 #include <fc_layer.h>
 #include <layer_context.h>
 #include <lazy_tensor.h>
@@ -36,6 +37,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstring>
 #include <iostream>
 #include <numeric>
 
@@ -57,8 +59,8 @@ FullyConnectedLayer::FullyConnectedLayer() :
   LayerImpl(),
   lora_scaling(1.0f),
   fc_props(props::Unit(), props::LoraRank(), props::LoraAlpha(),
-           props::LoraQAT(), props::LoraWeightQ4(),
-           props::LoraQatEmaMomentum(), props::FusedActivation(),
+           props::LoraQAT(), props::LoraWeightQ4(), props::LoraQatEmaMomentum(),
+           props::LoraGPU(), props::FusedActivation(),
            props::PlanLastRowOnly()),
   quantizer(nullptr) {
   weight_idx.fill(std::numeric_limits<unsigned>::max());
@@ -132,6 +134,85 @@ Tensor FullyConnectedLayer::fakeQuantizeQ4_0(const Tensor &x,
   return x_fq;
 }
 
+void FullyConnectedLayer::gemm(const Tensor &A, const Tensor &B, Tensor &C,
+                               bool trans_a, bool trans_b, float beta) {
+  if (gemm_ops_ != nullptr && A.getDataType() == Tdatatype::FP32 &&
+      B.getDataType() == Tdatatype::FP32 &&
+      C.getDataType() == Tdatatype::FP32 && A.getFormat() == Tformat::NCHW &&
+      B.getFormat() == Tformat::NCHW && C.getFormat() == Tformat::NCHW) {
+    const TensorDim &ad = A.getDim();
+    const TensorDim &bd = B.getDim();
+    const unsigned int a_rows = ad.batch() * ad.channel() * ad.height();
+    const unsigned int a_cols = ad.width();
+    const unsigned int b_rows = bd.batch() * bd.channel() * bd.height();
+    const unsigned int b_cols = bd.width();
+    const unsigned int M = trans_a ? a_cols : a_rows;
+    const unsigned int K = trans_a ? a_rows : a_cols;
+    const unsigned int Kb = trans_b ? b_cols : b_rows;
+    const unsigned int N = trans_b ? b_rows : b_cols;
+    if (K == Kb && C.size() == (size_t)M * N) {
+      if (beta == 0.0f) {
+        static const char *check_env = std::getenv("NNTR_TRAIN_GPU_CHECK");
+        static const bool check = check_env != nullptr;
+        static const bool use_ref = check && check_env[0] == '2';
+        static int logged = 0, logged_big = 0, calls = 0, bad = 0;
+        static double worst = 0;
+        const auto t0 = std::chrono::steady_clock::now();
+        if (gemm_ops_->try_sgemm_fp32_host(
+              trans_a, trans_b, M, N, K, A.getData<float>(), B.getData<float>(),
+              C.getData<float>())) {
+          if (check) {
+            const double gpu_ms = std::chrono::duration<double, std::milli>(
+                                    std::chrono::steady_clock::now() - t0)
+                                    .count();
+            Tensor ref(C.getDim());
+            const auto t1 = std::chrono::steady_clock::now();
+            A.dot(B, ref, trans_a, trans_b, 0.0f);
+            const double cpu_ms = std::chrono::duration<double, std::milli>(
+                                    std::chrono::steady_clock::now() - t1)
+                                    .count();
+            const float *g = C.getData<float>();
+            const float *r = ref.getData<float>();
+            double max_abs = 0, max_ref = 0;
+            for (size_t i = 0; i < (size_t)M * N; ++i) {
+              max_abs = std::max(max_abs, (double)std::abs(g[i] - r[i]));
+              max_ref = std::max(max_ref, (double)std::abs(r[i]));
+            }
+            const double rel = max_ref > 0 ? max_abs / max_ref : max_abs;
+            ++calls;
+            worst = std::max(worst, rel);
+            const bool is_bad = rel > 1e-4;
+            if (is_bad)
+              ++bad;
+            const bool big = (size_t)M * N * K >= (size_t(1) << 24);
+            if (is_bad || (big ? logged_big++ < 12 : logged++ < 4) ||
+                calls % 500 == 0)
+              std::cout << "[GEMM-CHECK] #" << calls << " tA=" << trans_a
+                        << " tB=" << trans_b << " M=" << M << " N=" << N
+                        << " K=" << K << " gpu=" << gpu_ms
+                        << "ms cpu=" << cpu_ms << "ms rel_err=" << rel
+                        << " worst=" << worst << " bad=" << bad << "\n";
+            if (use_ref)
+              std::memcpy(C.getData<float>(), r, sizeof(float) * (size_t)M * N);
+          }
+          return;
+        }
+      } else {
+        Tensor prod(C.getDim());
+        if (gemm_ops_->try_sgemm_fp32_host(
+              trans_a, trans_b, M, N, K, A.getData<float>(), B.getData<float>(),
+              prod.getData<float>())) {
+          if (beta != 1.0f)
+            C.multiply_i(beta);
+          C.add_i(prod);
+          return;
+        }
+      }
+    }
+  }
+  A.dot(B, C, trans_a, trans_b, beta);
+}
+
 FullyConnectedLayer::LoRAQATStats
 FullyConnectedLayer::getRegisteredStats(const std::string &layer_name) {
   std::lock_guard<std::mutex> lock(s_registry_mutex);
@@ -171,6 +252,13 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
                    : 1;
   if (!std::get<props::SkipPrefill>(*layer_impl_props).empty())
     skip_prefill = std::get<props::SkipPrefill>(*layer_impl_props).get();
+
+  gemm_ops_ = nullptr;
+#ifdef ENABLE_OPENCL
+  if (lora_rank && !std::get<props::LoraGPU>(fc_props).empty() &&
+      std::get<props::LoraGPU>(fc_props).get())
+    gemm_ops_ = get_cl_ops();
+#endif
 
   NNTR_THROW_IF(context.getNumInputs() != 1, std::invalid_argument)
     << "Fully connected layer takes only one input";
@@ -270,7 +358,7 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
     const bool lora_qat_mode = !std::get<props::LoraQAT>(fc_props).empty() &&
                                std::get<props::LoraQAT>(fc_props).get();
     const bool lora_q4 = !std::get<props::LoraWeightQ4>(fc_props).empty() &&
-                        std::get<props::LoraWeightQ4>(fc_props).get();
+                         std::get<props::LoraWeightQ4>(fc_props).get();
     // Inference-only Q4_0 adapter (no QAT): register loraA/loraB as real
     // Q4_0 tensors so the W4A8 GEMM kernel fires at runtime. Otherwise
     // (plain FP32 training, or QAT training, which needs FP32 gradients and
@@ -280,22 +368,21 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
     // precision). Only inference-only Q4_0 adapters (lora_q4 && !QAT)
     // use Q4_0 dtype so the W4A8 GEMM kernel fires at runtime.
     const bool use_q4_tensors = lora_q4 && !lora_qat_mode;
-    const auto lora_dtype = use_q4_tensors ? TensorDim::DataType::Q4_0
-                                           : TensorDim::DataType::FP32;
+    const auto lora_dtype =
+      use_q4_tensors ? TensorDim::DataType::Q4_0 : TensorDim::DataType::FP32;
 
     /** loraA Dimension : (1, 1, in_dim.width, lora_rank) */
-    TensorDim loraA_dim(
-      1, is_nchw ? 1 : lora_rank, is_nchw ? in_dim.width() : 1,
-      is_nchw ? lora_rank : in_dim.channel(),
-      TensorDim::TensorType(context.getFormat(), lora_dtype),
-      is_nchw ? 0b0011 : 0b0101);
+    TensorDim loraA_dim(1, is_nchw ? 1 : lora_rank,
+                        is_nchw ? in_dim.width() : 1,
+                        is_nchw ? lora_rank : in_dim.channel(),
+                        TensorDim::TensorType(context.getFormat(), lora_dtype),
+                        is_nchw ? 0b0011 : 0b0101);
 
     /** loraB Dimension : (1, 1, lora_rank, unit) */
-    TensorDim loraB_dim(
-      1, is_nchw ? 1 : unit, is_nchw ? lora_rank : 1,
-      is_nchw ? unit : lora_rank,
-      TensorDim::TensorType(context.getFormat(), lora_dtype),
-      is_nchw ? 0b0011 : 0b0101);
+    TensorDim loraB_dim(1, is_nchw ? 1 : unit, is_nchw ? lora_rank : 1,
+                        is_nchw ? unit : lora_rank,
+                        TensorDim::TensorType(context.getFormat(), lora_dtype),
+                        is_nchw ? 0b0011 : 0b0101);
 
     /** loraTmp Dimension : (B, 1, in_dim.height(), lora_rank) */
     TensorDim loraTmp_dim(
@@ -434,8 +521,7 @@ void dequantizeToArena(const Tensor &weight, Quantizer &quantizer,
   static Tensor arena;
   const unsigned int elems = weight.getDim().getDataLen();
   if (arena.size() < elems) {
-    arena = Tensor(
-      TensorDim(1, 1, 1, elems, Tformat::NCHW, Tdatatype::FP32));
+    arena = Tensor(TensorDim(1, 1, 1, elems, Tformat::NCHW, Tdatatype::FP32));
   }
   const TensorDim &d = weight.getDim();
   view_out = arena.getSharedDataTensor(
@@ -475,7 +561,7 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
     Tensor &hidden_out_lora = context.getTensor(lora_idx[LORAParams::loraOut]);
 
     const bool lora_qat = !std::get<props::LoraQAT>(fc_props).empty() &&
-                         std::get<props::LoraQAT>(fc_props).get();
+                          std::get<props::LoraQAT>(fc_props).get();
     if (lora_qat) {
       // Per-block EMA fake-quant: training updates the EMA, validation
       // reads it without updating.
@@ -488,24 +574,24 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
         LoRAQATStats s;
         s.a_min = loraA.minValue();
         s.a_max = loraA.maxValue();
-        s.a_scale = std::accumulate(lora_a_block_d.begin(),
-                                    lora_a_block_d.end(), 0.0f) /
-                   static_cast<float>(lora_a_block_d.size());
+        s.a_scale =
+          std::accumulate(lora_a_block_d.begin(), lora_a_block_d.end(), 0.0f) /
+          static_cast<float>(lora_a_block_d.size());
         s.b_min = loraB.minValue();
         s.b_max = loraB.maxValue();
-        s.b_scale = std::accumulate(lora_b_block_d.begin(),
-                                    lora_b_block_d.end(), 0.0f) /
-                   static_cast<float>(lora_b_block_d.size());
+        s.b_scale =
+          std::accumulate(lora_b_block_d.begin(), lora_b_block_d.end(), 0.0f) /
+          static_cast<float>(lora_b_block_d.size());
         s.valid = true;
         std::lock_guard<std::mutex> lk(s_registry_mutex);
         s_qat_registry[layer_name_] = s;
         s_block_d_registry[layer_name_] = {lora_a_block_d, lora_b_block_d};
       }
-      input_.dot(a_fq, hidden_tmp_lora, false, false);
-      hidden_tmp_lora.dot(b_fq, hidden_out_lora, false, false);
+      gemm(input_, a_fq, hidden_tmp_lora, false, false);
+      gemm(hidden_tmp_lora, b_fq, hidden_out_lora, false, false);
     } else {
-      input_.dot(loraA, hidden_tmp_lora, false, false);
-      hidden_tmp_lora.dot(loraB, hidden_out_lora, false, false);
+      gemm(input_, loraA, hidden_tmp_lora, false, false);
+      gemm(hidden_tmp_lora, loraB, hidden_out_lora, false, false);
     }
     hidden_out_lora.multiply_i(lora_scaling);
     hidden_.add_i(hidden_out_lora);
@@ -673,23 +759,25 @@ void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {
     }
 
     const bool lora_qat_deriv = !std::get<props::LoraQAT>(fc_props).empty() &&
-                               std::get<props::LoraQAT>(fc_props).get();
+                                std::get<props::LoraQAT>(fc_props).get();
     // dX = dH @ (W + sAB)^T = dH @ W^T + s * (dH @ B^T) @ A^T.
     // The LoRA part is a rank-limited chain — never materialize the
     // full out*in LoRA matrix (sAB) nor a full-size (W + sAB) temp.
-    ret_.dot_deriv_wrt_1(*w, derivative_, false, false);
-    Tensor dtmp;
-    if (lora_qat_deriv) {
-      // Straight-through estimator: dL/dx uses the same fake-quantized
-      // a_fq/b_fq the forward pass used, not the raw (unquantized) weights.
-      dtmp = derivative_.dot(b_fq, false, true);
-      dtmp = dtmp.dot(a_fq, false, true);
-    } else {
-      Tensor &lora_A = context.getWeight(lora_idx[LORAParams::loraA]);
-      Tensor &lora_B = context.getWeight(lora_idx[LORAParams::loraB]);
-      dtmp = derivative_.dot(lora_B, false, true);
-      dtmp = dtmp.dot(lora_A, false, true);
-    }
+    gemm(derivative_, *w, ret_, false, true);
+    Tensor &lora_A = context.getWeight(lora_idx[LORAParams::loraA]);
+    Tensor &lora_B = context.getWeight(lora_idx[LORAParams::loraB]);
+    // Straight-through estimator: dL/dx uses the same fake-quantized
+    // a_fq/b_fq the forward pass used, not the raw (unquantized) weights.
+    const Tensor &dB = lora_qat_deriv ? b_fq : lora_B;
+    const Tensor &dA = lora_qat_deriv ? a_fq : lora_A;
+    // (dH @ B^T) is [rows, rank], then @ A^T is [rows, in].
+    const TensorDim &dd = derivative_.getDim();
+    Tensor dtmp_r(TensorDim(dd.batch(), dd.channel(), dd.height(),
+                            dB.getDim().height(), dd.getTensorType()));
+    gemm(derivative_, dB, dtmp_r, false, true);
+    Tensor dtmp(TensorDim(dd.batch(), dd.channel(), dd.height(),
+                          dA.getDim().height(), dd.getTensorType()));
+    gemm(dtmp_r, dA, dtmp, false, true);
     dtmp.multiply_i(lora_scaling);
     ret_.add_i(dtmp);
   } else {
@@ -735,26 +823,28 @@ void FullyConnectedLayer::calcGradient(RunLayerContext &context) {
     Tensor &loraTmp = context.getTensor(lora_idx[LORAParams::loraTmp]);
     const auto &lora_derivative_ = derivative_.multiply(lora_scaling);
 
-    loraTmp.dot_deriv_wrt_2(
-      djdlb, lora_derivative_, false, false,
-      !context.isGradientFirstAccess(lora_idx[LORAParams::loraB]));
+    gemm(loraTmp, lora_derivative_, djdlb, true, false,
+         !context.isGradientFirstAccess(lora_idx[LORAParams::loraB]) ? 1.0f
+                                                                     : 0.0f);
 
     const bool lora_qat_grad = !std::get<props::LoraQAT>(fc_props).empty() &&
-                              std::get<props::LoraQAT>(fc_props).get();
+                               std::get<props::LoraQAT>(fc_props).get();
     if (lora_qat_grad) {
       // Straight-through estimator: dL/d(loraTmp) uses b_fq (the same
       // fake-quantized loraB the forward pass used), not the raw loraB.
-      djdtmp.dot_deriv_wrt_1(
-        b_fq, lora_derivative_, false, false,
-        !context.isGradientFirstAccess(lora_idx[LORAParams::loraTmp]));
+      gemm(lora_derivative_, b_fq, djdtmp, false, true,
+           !context.isGradientFirstAccess(lora_idx[LORAParams::loraTmp])
+             ? 1.0f
+             : 0.0f);
     } else {
-      djdtmp.dot_deriv_wrt_1(
-        loraB, lora_derivative_, false, false,
-        !context.isGradientFirstAccess(lora_idx[LORAParams::loraTmp]));
+      gemm(lora_derivative_, loraB, djdtmp, false, true,
+           !context.isGradientFirstAccess(lora_idx[LORAParams::loraTmp])
+             ? 1.0f
+             : 0.0f);
     }
-    input_.dot_deriv_wrt_2(
-      djdla, djdtmp, false, false,
-      !context.isGradientFirstAccess(lora_idx[LORAParams::loraA]));
+    gemm(input_, djdtmp, djdla, true, false,
+         !context.isGradientFirstAccess(lora_idx[LORAParams::loraA]) ? 1.0f
+                                                                     : 0.0f);
   }
 }
 

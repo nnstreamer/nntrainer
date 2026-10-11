@@ -27,6 +27,8 @@
 
 namespace nntrainer {
 
+class ComputeOps;
+
 /**
  * @class   FullyConnecedLayer
  * @brief   fully connected layer
@@ -155,7 +157,7 @@ private:
 
   float lora_scaling;
   std::tuple<props::Unit, props::LoraRank, props::LoraAlpha, props::LoraQAT,
-             props::LoraWeightQ4, props::LoraQatEmaMomentum,
+             props::LoraWeightQ4, props::LoraQatEmaMomentum, props::LoraGPU,
              props::FusedActivation, props::PlanLastRowOnly>
     fc_props;                             /**< fc layer properties :
                                                 unit - number of output neurons,
@@ -169,7 +171,8 @@ private:
                                                 lora_qat - enable per-block Q4_0 fake-quant
                                                 lora_weight_q4 - store/load adapters as real Q4_0
                                                 lora_qat_ema_momentum - EMA momentum for per-block
-                                             QAT scale update (optional, default 0.1) */
+                                             QAT scale update (optional, default 0.1)
+                                                lora_gpu - offload FP32 GEMMs to the accelerator */
   std::array<unsigned int, 2> weight_idx; /**< indices of the weights */
   std::array<unsigned int, 4> lora_idx;   /**< indices of the lora weights */
   std::unique_ptr<nntrainer::Quantizer> quantizer;
@@ -177,8 +180,23 @@ private:
   ActiFunc acti_func; /**< inline fused activation; inert unless
                            fused_activation is set by the FusionRealizer */
 
-  float momentum = 0.1f;   /**< EMA momentum for per-block QAT scale update */
-  std::string layer_name_; /**< captured in finalize(); keys the QAT registries */
+  float momentum = 0.1f; /**< EMA momentum for per-block QAT scale update */
+  ComputeOps *gemm_ops_ =
+    nullptr; /**< accelerator table for lora_gpu, else null */
+
+  /**
+   * @brief C = op(A) * op(B) + beta * C for the LoRA FP32 GEMMs.
+   *
+   * With lora_gpu the product goes to the accelerator table's host-pointer
+   * GEMM (see ComputeOps::try_sgemm_fp32_host) when every operand is a
+   * contiguous FP32 matrix and the table accepts the shape; otherwise (and
+   * for the accumulate case beta != 0 beyond a plain add) it is exactly
+   * Tensor::dot, so the CPU path is bit-for-bit what it was.
+   */
+  void gemm(const Tensor &A, const Tensor &B, Tensor &C, bool trans_a,
+            bool trans_b, float beta = 0.0f);
+  std::string
+    layer_name_; /**< captured in finalize(); keys the QAT registries */
 
   /** Per-block EMA scales for loraA/loraB (one float per 32-element block,
    * N x K layout), lazily sized on the first QAT forward pass. */
@@ -207,7 +225,7 @@ private:
    * @param training whether to update the EMA (true) or just apply it (false)
    */
   Tensor fakeQuantizeQ4_0(const Tensor &x, std::vector<float> &block_d,
-                         bool training);
+                          bool training);
 };
 } // namespace nntrainer
 

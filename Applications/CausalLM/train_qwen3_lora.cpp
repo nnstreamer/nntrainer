@@ -39,6 +39,9 @@ void printUsage(const char *prog) {
     << "  --lora_path <path>    resume from an existing LoRA adapter\n"
     << "  --lora_rank <int>     LoRA rank; overrides nntr_config.json\n"
     << "  --lora_alpha <int>    LoRA alpha; overrides nntr_config.json\n"
+    << "  --lora_last_n <int>   put LoRA only on the last N decoder layers\n"
+    << "                        (default: all). Earlier layers have nothing\n"
+    << "                        trainable, so their backward pass is skipped.\n"
     << "  --max_samples <int>   cap the number of training samples\n"
     << "  --seq_len <int>       training sequence length; overrides\n"
     << "                        nntr_config.json's init_seq_len. Attention\n"
@@ -53,7 +56,8 @@ void printUsage(const char *prog) {
     << "                        straight-through backward). Implies\n"
     << "                        --lora_weight_q4.\n"
     << "  --qat_ema_momentum <f> EMA momentum for the per-block QAT scale\n"
-    << "                        update (0-1, default 0.1). Lower values smooth\n"
+    << "                        update (0-1, default 0.1). Lower values "
+       "smooth\n"
     << "                        the block scales over more steps — try 0.01\n"
     << "                        if long QAT runs destabilize.\n"
     << "  --lora_weight_q4      also save a Q4_0 adapter (output path with\n"
@@ -126,6 +130,7 @@ int main(int argc, char *argv[]) {
   unsigned int lora_rank_override = 0;
   unsigned int lora_alpha_override = 0;
   unsigned int max_samples = 0;
+  unsigned int lora_last_n = 0;
   unsigned int seq_len_override = 0;
   float clip_grad = -1.0f;
   bool train_norms = false;
@@ -161,6 +166,9 @@ int main(int argc, char *argv[]) {
       else if (arg == "--lora_alpha")
         lora_alpha_override =
           static_cast<unsigned int>(std::stoul(next("--lora_alpha")));
+      else if (arg == "--lora_last_n")
+        lora_last_n =
+          static_cast<unsigned int>(std::stoul(next("--lora_last_n")));
       else if (arg == "--max_samples")
         max_samples =
           static_cast<unsigned int>(std::stoul(next("--max_samples")));
@@ -194,8 +202,7 @@ int main(int argc, char *argv[]) {
     output_path = model_path + "/lora_adapter.bin";
 
   try {
-    causallm::json cfg =
-      causallm::LoadJsonFile(model_path + "/config.json");
+    causallm::json cfg = causallm::LoadJsonFile(model_path + "/config.json");
     causallm::json generation_cfg = causallm::json::object();
     const std::string gen_cfg_path = model_path + "/generation_config.json";
     if (std::filesystem::exists(gen_cfg_path))
@@ -234,11 +241,12 @@ int main(int argc, char *argv[]) {
              nntr_cfg["lora_alpha"].get<unsigned int>() == 0)
       nntr_cfg["lora_alpha"] = nntr_cfg["lora_rank"].get<unsigned int>() * 2;
 
-    if (!nntr_cfg.contains("lora_target") ||
-        nntr_cfg["lora_target"].empty())
-      nntr_cfg["lora_target"] =
-        std::vector<std::string>{"wq",     "wk",       "wv",      "wo",
-                                 "ffn_up", "ffn_gate", "ffn_down"};
+    if (!nntr_cfg.contains("lora_target") || nntr_cfg["lora_target"].empty())
+      nntr_cfg["lora_target"] = std::vector<std::string>{
+        "wq", "wk", "wv", "wo", "ffn_up", "ffn_gate", "ffn_down"};
+
+    if (lora_last_n)
+      nntr_cfg["lora_last_n_layers"] = lora_last_n;
 
     if (train_norms)
       nntr_cfg["lora_train_norms"] = true;
@@ -271,7 +279,8 @@ int main(int argc, char *argv[]) {
     std::string q4_output_path;
     if (lora_weight_q4) {
       std::filesystem::path p(output_path);
-      q4_output_path = (p.parent_path() / (p.stem().string() + "_q4.bin")).string();
+      q4_output_path =
+        (p.parent_path() / (p.stem().string() + "_q4.bin")).string();
     }
 
     std::cout << "model:        " << model_path << "\n"
@@ -280,8 +289,8 @@ int main(int argc, char *argv[]) {
               << "\n"
               << "lora_alpha:   " << nntr_cfg["lora_alpha"].get<unsigned int>()
               << "\n"
-              << "seq_len:      " << nntr_cfg["init_seq_len"].get<unsigned int>()
-              << "\n"
+              << "seq_len:      "
+              << nntr_cfg["init_seq_len"].get<unsigned int>() << "\n"
               << "clip_grad:    "
               << nntr_cfg.value("lora_clip_grad_by_norm", 0.0f) << "\n"
               << "lora_qat:     " << (lora_qat ? "true" : "false") << "\n"
@@ -315,9 +324,9 @@ int main(int argc, char *argv[]) {
                                              vocab_size, max_samples, seed);
     std::cout << "samples:      " << data_gen.size() << std::endl;
 
-    std::shared_ptr<ml::train::Dataset> dataset = ml::train::createDataset(
-      ml::train::DatasetType::GENERATOR, causallm::trainingDataGenCb,
-      &data_gen);
+    std::shared_ptr<ml::train::Dataset> dataset =
+      ml::train::createDataset(ml::train::DatasetType::GENERATOR,
+                               causallm::trainingDataGenCb, &data_gen);
     model.setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset);
     model.setDataset(ml::train::DatasetModeType::MODE_VALID, dataset);
 

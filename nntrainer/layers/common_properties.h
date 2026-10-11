@@ -1590,7 +1590,7 @@ public:
 class LoraWeightQ4 : public Property<bool> {
 public:
   static constexpr const char *key = "lora_weight_q4"; /**< unique key */
-  using prop_tag = bool_prop_tag;                       /**< property type */
+  using prop_tag = bool_prop_tag;                      /**< property type */
 };
 
 /**
@@ -1604,6 +1604,19 @@ public:
   static constexpr const char *key =
     "lora_qat_ema_momentum";       /**< unique key to access */
   using prop_tag = float_prop_tag; /**< property type */
+};
+
+/**
+ * @brief Offload the FP32 GEMMs of a LoRA fully connected layer (adapter
+ * matmuls and the frozen-weight input derivative) to the accelerator
+ * ComputeOps table when one is available. The layer itself stays a host layer:
+ * its tensors are ordinary host memory and a product the accelerator declines
+ * (too small, no OpenCL in the build) runs on the CPU table unchanged.
+ */
+class LoraGPU : public Property<bool> {
+public:
+  static constexpr const char *key = "lora_gpu"; /**< unique key to access */
+  using prop_tag = bool_prop_tag;                /**< property type */
 };
 
 /**

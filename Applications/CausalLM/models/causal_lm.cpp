@@ -90,7 +90,7 @@ void clLaunchStatDump(const char *phase);
 #include <cuda_context_manager.h>
 #include <cuda_elementwise.h>
 #include <cuda_emb_gather.h> // [reload] gather LUT teardown
-#include <cuda_fc_qs4cx.h> // [lmhead-tie-lut] tied-head LUT registration
+#include <cuda_fc_qs4cx.h>   // [lmhead-tie-lut] tied-head LUT registration
 #include <cuda_runtime.h>
 #include <cuda_stream_manager.h>
 #endif
@@ -850,7 +850,7 @@ Tensor CausalLM::buildLmHeadOutput(Tensor h, bool add_skip_prefill) {
     withKey("unit", NUM_VOCAB),
     withKey("disable_bias", "true"),
     withKey("weight_dtype", LMHEAD_DTYPE),
-    withKey("engine", causallm_engine()),
+    withKey("engine", layerEngine()),
   };
   // skip_prefill must agree with the caller's runtime skip-prefill flag: the
   // layer property alone makes fc_layer early-return during prefill, but run()

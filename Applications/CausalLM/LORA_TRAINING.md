@@ -467,6 +467,76 @@ config). To use the resulting adapter at inference time, set
 run `nntr_causallm` as usual — `main.cpp` will call `load_weight_lora`
 instead of `load_weight` automatically.
 
+## Training with the OpenCL device (Android / Adreno)
+
+The training graph is built from host layers: their `calcDerivative` /
+`calcGradient` read and write the tensors directly, and the GPU variants
+(`FullyConnectedLayerCl`, `rms_norm_gpu`, ...) have neither LoRA properties nor
+a backward. So in an OpenCL build the training graph is always built with
+`engine=cpu` (`Transformer::layerEngine()`), even though inference defaults to
+`engine=gpu`. Before this, an OpenCL build died at graph construction with
+`[LayerImpl] Unknown Layer Properties count 7` (the LoRA/QAT properties handed
+to `FullyConnectedLayerCl`).
+
+GPU work in training is requested per layer instead: with `NNTR_TRAIN_GPU=1`
+(needs an OpenCL build and a live `gpu` context, i.e. `NNTR_ENGINE` unset or
+`gpu`), every LoRA fully connected layer gets `lora_gpu=true` and sends its
+large FP32 GEMMs through `ComputeOps::try_sgemm_fp32_host`
+(`ClComputeOps` -> `sgemm_train_cl`, a register-tiled 64x64 kernel). The layer
+stays a host layer, its tensors are ordinary host memory, and a product the
+device declines runs on the CPU table exactly as before.
+
+| env | meaning |
+|---|---|
+| `NNTR_TRAIN_GPU=1` | enable the offload (default off) |
+| `NNTR_TRAIN_GPU_MIN_WORK` | smallest `M*N*K` sent to the device (default `2^26`: only the frozen-weight input-derivative GEMMs; the rank-32 adapter matmuls are ~10x slower on the device than on the CPU table) |
+| `NNTR_TRAIN_GPU_CHECK=1` | also run every offloaded GEMM on the CPU and log the relative error and both timings; `=2` additionally copies the CPU result back (isolates the effect of the GPU values) |
+| `NNTR_TRAIN_GPU_PROF=1` | log stage / dispatch / wait+read time per device GEMM |
+
+Measured on SM-S918N (Adreno 740), Qwen3-0.6B Q4_0, rank 32, QAT, seq 192,
+12 samples, 1 epoch:
+
+- Correctness: worst per-GEMM relative error 1.9e-6 over every offloaded call.
+  The first Adam step is sensitive to that (valid loss after one step differs
+  between CPU and device runs), but over 12 samples the device runs
+  (valid 2.56 / 2.40) sit inside the spread of CPU runs that differ only by
+  `--seed` (2.33 - 2.50).
+- Speed: 97 s with the offload vs 75 s on the CPU. A frozen-weight
+  `dX` GEMM (192x1024x3072) takes ~11 ms on the device (staging ~1 ms, kernel
+  ~10 ms, ~100 GFLOP/s) vs 10-15 ms on the CPU table, so on this device the
+  offload is roughly break-even per GEMM; the end-to-end loss is the extra
+  host/device synchronisation. The GPU is busy ~30% of the time in the
+  backward passes.
+
+What this does not do yet: the attention forward/backward (the largest share of
+a step), the QAT fake-quantisation, the adapter matmuls and every activation
+still run on the host; nothing stays resident on the device between ops.
+Making the device pay off needs those moved over (device-resident frozen
+weights and activations, a device attention backward, an on-device
+fake-quant kernel) and the GEMM kernel tuned on the target GPU.
+
+## Tuning only the last N layers (`--lora_last_n`)
+
+`--lora_last_n N` (nntr_config key `lora_last_n_layers`) puts LoRA only on the
+last N decoder layers. Layers before that have nothing trainable, and
+`NetworkGraph::markNodesForBackwarding()` only marks the nodes at and after the
+first trainable one for backward, so their `calcDerivative` never runs (their
+forward still does). Measured on SM-S918N, Qwen3-0.6B Q4_0, rank 32, QAT,
+seq 192, CPU engine, one epoch:
+
+| `--lora_last_n` | per (train+valid) sample, 4 -> 12 samples | 90 samples, 1 epoch | train / valid loss |
+|---|---|---|---|
+| all (28) | 5.5 s | 539 s | 2.174 / 2.044 |
+| 14 | - | 449 s (1.2x) | 2.468 / 2.085 |
+| 7 | 2.4 s (2.3x) | 339 s (1.6x) | 2.301 / 2.192 |
+| 3 | - | 275 s (2.0x) | 2.035 / 1.750 |
+
+The 90-sample runs ran back to back on a warming device, so their ratios are
+the conservative ones; the short runs were measured cool. The losses are one
+epoch, one seed, and the valid set is the training set, so they show the
+smaller adapters train without breaking, not that they match full-depth
+quality; that needs several epochs and a held-out split.
+
 ## Commit structure
 
 The work above is organized into ten reviewable, individually-buildable

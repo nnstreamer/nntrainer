@@ -15,9 +15,9 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
-#include <cstdint>
 #include <cstring>
 #include <fstream>
 #include <functional>
@@ -453,28 +453,58 @@ void Transformer::setupParameters(json &cfg, json &generation_cfg,
   LORA_TARGET = nntr_cfg.contains("lora_target")
                   ? nntr_cfg["lora_target"].get<std::vector<std::string>>()
                   : std::vector<std::string>();
+  {
+    const int last_n = nntr_cfg.value("lora_last_n_layers", 0);
+    LORA_LAYER_START =
+      (last_n > 0 && last_n < NUM_LAYERS) ? NUM_LAYERS - last_n : 0;
+  }
   LORA_CLIP_GRAD = nntr_cfg.contains("lora_clip_grad_by_norm")
                      ? nntr_cfg["lora_clip_grad_by_norm"].get<float>()
                      : 0.0f;
   TRAIN_NORMS = nntr_cfg.contains("lora_train_norms") &&
                 nntr_cfg["lora_train_norms"].get<bool>();
-  LORA_QAT =
-    nntr_cfg.contains("lora_qat") && nntr_cfg["lora_qat"].get<bool>();
+  LORA_QAT = nntr_cfg.contains("lora_qat") && nntr_cfg["lora_qat"].get<bool>();
   LORA_WEIGHT_Q4 = nntr_cfg.contains("lora_weight_q4") &&
-                  nntr_cfg["lora_weight_q4"].get<bool>();
+                   nntr_cfg["lora_weight_q4"].get<bool>();
   QAT_EMA_MOMENTUM = nntr_cfg.value("lora_qat_ema_momentum", 0.1f);
 
   return;
 };
 
-bool Transformer::hasLoRA(const std::string &module_type) const {
-  return LORA_RANK > 0 &&
-        std::find(LORA_TARGET.begin(), LORA_TARGET.end(), module_type) !=
-          LORA_TARGET.end();
+bool Transformer::hasLoRA(const std::string &module_type, int layer_id) const {
+  return LORA_RANK > 0 && layer_id >= LORA_LAYER_START &&
+         std::find(LORA_TARGET.begin(), LORA_TARGET.end(), module_type) !=
+           LORA_TARGET.end();
+}
+
+std::string Transformer::layerEngine() const {
+  return FOR_TRAINING ? std::string("cpu") : causallm_engine();
+}
+
+bool Transformer::trainGpuOffload() const {
+#if defined(ENABLE_OPENCL)
+  if (!FOR_TRAINING || LORA_RANK <= 0)
+    return false;
+  // Opt-in: the offload is correct but, until the device GEMM beats the CPU
+  // table on the target, a default-on switch would slow training down.
+  const char *e = std::getenv("NNTR_TRAIN_GPU");
+  if (e == nullptr || e[0] == '0')
+    return false;
+  try {
+    (void)nntrainer::Engine::Global().getRegisteredContext("gpu");
+    return true;
+  } catch (std::exception &) {
+    return false; // NNTR_ENGINE=cpu: the gpu context was never brought up
+  }
+#else
+  return false;
+#endif
 }
 
 void Transformer::appendLoRAProps(std::vector<std::string> &props) const {
   props.emplace_back(withKey("lora_rank", std::to_string(LORA_RANK)));
+  if (trainGpuOffload())
+    props.emplace_back(withKey("lora_gpu", "true"));
   if (LORA_ALPHA > 0)
     props.emplace_back(withKey("lora_alpha", std::to_string(LORA_ALPHA)));
   if (LORA_CLIP_GRAD > 0.0f)
@@ -583,7 +613,8 @@ void Transformer::initializeForTraining(float lr, unsigned int epochs,
   model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
 
   std::vector<std::string> model_props = {
-    withKey("batch_size", BATCH_SIZE), withKey("epochs", std::to_string(epochs)),
+    withKey("batch_size", BATCH_SIZE),
+    withKey("epochs", std::to_string(epochs)),
     withKey("model_tensor_type", MODEL_TENSOR_TYPE)};
   model->setProperty(model_props);
 
@@ -602,8 +633,7 @@ void Transformer::initializeForTraining(float lr, unsigned int epochs,
 
   auto [x, h] = constructModel();
 
-  LayerHandle loss(
-    createLayer("cross_softmax", {withKey("name", "loss")}));
+  LayerHandle loss(createLayer("cross_softmax", {withKey("name", "loss")}));
   Tensor y = loss(h);
 
   // compile(Tensor, Tensor, mode) internally compiles + initializes.
@@ -701,10 +731,11 @@ void Transformer::load_weight_lora(const std::string &base_path,
     FOR_TRAINING = saved_for_training;
   };
 
-  ModelHandle base_model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
-  base_model->setProperty(
-    {withKey("batch_size", BATCH_SIZE), withKey("epochs", "1"),
-     withKey("model_tensor_type", MODEL_TENSOR_TYPE)});
+  ModelHandle base_model =
+    ml::train::createModel(ml::train::ModelType::NEURAL_NET);
+  base_model->setProperty({withKey("batch_size", BATCH_SIZE),
+                           withKey("epochs", "1"),
+                           withKey("model_tensor_type", MODEL_TENSOR_TYPE)});
   auto [bx, by] = constructModel();
   if (base_model->compile(bx, by, ml::train::ExecutionMode::INFERENCE)) {
     restore_graph_flags();
@@ -718,8 +749,8 @@ void Transformer::load_weight_lora(const std::string &base_path,
   // Step 2: index the base model's weights by their (layer-prefixed) name.
   std::unordered_map<std::string, const nntrainer::Tensor *> base_weights;
   std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>
-    collect = [&base_weights](ml::train::Layer &, nntrainer::RunLayerContext &context,
-                              void *) {
+    collect = [&base_weights](ml::train::Layer &,
+                              nntrainer::RunLayerContext &context, void *) {
       for (auto &w : context.getWeights())
         base_weights.emplace(w->getName(), &w->getVariableRef());
     };
@@ -737,23 +768,23 @@ void Transformer::load_weight_lora(const std::string &base_path,
   std::vector<std::string> unmatched;
   unsigned int matched = 0;
   std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>
-    apply = [&](ml::train::Layer &, nntrainer::RunLayerContext &context,
-                void *) {
-      for (auto &w : context.getWeights()) {
-        const std::string &name = w->getName();
-        auto it = base_weights.find(name);
-        if (it != base_weights.end()) {
-          nntrainer::Tensor &dst = w->getVariableRef();
-          const nntrainer::Tensor &src = *it->second;
-          const size_t bytes = src.getMemoryBytes();
-          std::memcpy(dst.getData<char>(), src.getData<char>(), bytes);
-          ++matched;
-        } else if (name.find(":loraA") == std::string::npos &&
-                   name.find(":loraB") == std::string::npos) {
-          unmatched.push_back(name);
+    apply =
+      [&](ml::train::Layer &, nntrainer::RunLayerContext &context, void *) {
+        for (auto &w : context.getWeights()) {
+          const std::string &name = w->getName();
+          auto it = base_weights.find(name);
+          if (it != base_weights.end()) {
+            nntrainer::Tensor &dst = w->getVariableRef();
+            const nntrainer::Tensor &src = *it->second;
+            const size_t bytes = src.getMemoryBytes();
+            std::memcpy(dst.getData<char>(), src.getData<char>(), bytes);
+            ++matched;
+          } else if (name.find(":loraA") == std::string::npos &&
+                     name.find(":loraB") == std::string::npos) {
+            unmatched.push_back(name);
+          }
         }
-      }
-    };
+      };
   model->forEachLayer(apply, nullptr);
 
   NNTR_THROW_IF(!unmatched.empty(), std::runtime_error)
@@ -772,7 +803,8 @@ void Transformer::load_weight_lora(const std::string &base_path,
     NNTR_THROW_IF(!lora_file.is_open(), std::runtime_error)
       << "Failed to open lora file: " << lora_path;
 
-    std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>
+    std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &,
+                       void *)>
       load_lora = [&lora_file](ml::train::Layer &l,
                                nntrainer::RunLayerContext &context, void *) {
         if (l.getType() != "fully_connected")
@@ -810,11 +842,11 @@ std::vector<uint8_t> build_q4_0_natural(const float *data_KN, size_t K,
   size_t out_size = (N * K / 32) * 18;
   std::vector<uint8_t> tmp(out_size);
   nntrainer::quantize_q4_0(transposed.data(), tmp.data(), (int64_t)N,
-                          (int64_t)K, nullptr);
+                           (int64_t)K, nullptr);
 
   std::vector<uint8_t> out(out_size);
   nntrainer::repack_q4_0(out.data(), tmp.data(), out_size, (unsigned int)N,
-                        (unsigned int)K);
+                         (unsigned int)K);
   return out;
 }
 
@@ -842,9 +874,9 @@ uint16_t q40_fp32_to_fp16(float v) {
  *        saved adapter matches exactly what training quantized against.
  *        Output format matches build_q4_0_natural exactly.
  */
-std::vector<uint8_t> build_q4_0_forced_blocks(const float *data_KN, size_t K,
-                                              size_t N,
-                                              const std::vector<float> &block_d_NK) {
+std::vector<uint8_t>
+build_q4_0_forced_blocks(const float *data_KN, size_t K, size_t N,
+                         const std::vector<float> &block_d_NK) {
   std::vector<float> transposed(N * K);
   for (size_t n = 0; n < N; ++n)
     for (size_t k = 0; k < K; ++k)
@@ -856,9 +888,8 @@ std::vector<uint8_t> build_q4_0_forced_blocks(const float *data_KN, size_t K,
 
   for (size_t b = 0; b < num_blocks; ++b) {
     const float *blk_data = transposed.data() + b * 32;
-    float d = (b < block_d_NK.size() && block_d_NK[b] > 1e-10f)
-                ? block_d_NK[b]
-                : 1.0f;
+    float d =
+      (b < block_d_NK.size() && block_d_NK[b] > 1e-10f) ? block_d_NK[b] : 1.0f;
 
     uint16_t d_fp16 = q40_fp32_to_fp16(d);
     uint8_t *blk = tmp.data() + b * 18;
@@ -877,7 +908,7 @@ std::vector<uint8_t> build_q4_0_forced_blocks(const float *data_KN, size_t K,
 
   std::vector<uint8_t> out(out_size);
   nntrainer::repack_q4_0(out.data(), tmp.data(), out_size, (unsigned)N,
-                        (unsigned)K);
+                         (unsigned)K);
   return out;
 }
 
@@ -922,18 +953,18 @@ void Transformer::save_weight_lora_q4(const std::string &path) {
           auto [a_bd, b_bd] =
             nntrainer::FullyConnectedLayer::getRegisteredBlockScales(lname);
           const std::vector<float> &block_d = is_loraA ? a_bd : b_bd;
-          q4_bytes = block_d.empty()
-                       ? build_q4_0_natural(t.getData<float>(), K, N)
-                       : build_q4_0_forced_blocks(t.getData<float>(), K, N,
-                                                  block_d);
+          q4_bytes =
+            block_d.empty()
+              ? build_q4_0_natural(t.getData<float>(), K, N)
+              : build_q4_0_forced_blocks(t.getData<float>(), K, N, block_d);
         } else {
           q4_bytes = build_q4_0_natural(t.getData<float>(), K, N);
         }
 
         f.write(reinterpret_cast<const char *>(&total_elems),
-               sizeof(total_elems));
+                sizeof(total_elems));
         f.write(reinterpret_cast<const char *>(q4_bytes.data()),
-               q4_bytes.size());
+                q4_bytes.size());
         total_blocks += q4_bytes.size() / 18;
       }
     };
@@ -967,10 +998,11 @@ void Transformer::load_weight_lora_q4(const std::string &base_path,
   LORA_RANK = 0;
   auto restore_lora_rank = [&]() { LORA_RANK = saved_lora_rank; };
 
-  ModelHandle base_model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
-  base_model->setProperty(
-    {withKey("batch_size", BATCH_SIZE), withKey("epochs", "1"),
-     withKey("model_tensor_type", MODEL_TENSOR_TYPE)});
+  ModelHandle base_model =
+    ml::train::createModel(ml::train::ModelType::NEURAL_NET);
+  base_model->setProperty({withKey("batch_size", BATCH_SIZE),
+                           withKey("epochs", "1"),
+                           withKey("model_tensor_type", MODEL_TENSOR_TYPE)});
   auto [bx, by] = constructModel();
   if (base_model->compile(bx, by, ml::train::ExecutionMode::INFERENCE)) {
     restore_lora_rank();
@@ -983,8 +1015,8 @@ void Transformer::load_weight_lora_q4(const std::string &base_path,
 
   std::unordered_map<std::string, const nntrainer::Tensor *> base_weights;
   std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>
-    collect = [&base_weights](ml::train::Layer &, nntrainer::RunLayerContext &context,
-                              void *) {
+    collect = [&base_weights](ml::train::Layer &,
+                              nntrainer::RunLayerContext &context, void *) {
       for (auto &w : context.getWeights())
         base_weights.emplace(w->getName(), &w->getVariableRef());
     };
@@ -993,22 +1025,23 @@ void Transformer::load_weight_lora_q4(const std::string &base_path,
   std::vector<std::string> unmatched;
   unsigned int matched = 0;
   std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>
-    apply = [&](ml::train::Layer &, nntrainer::RunLayerContext &context, void *) {
-      for (auto &w : context.getWeights()) {
-        const std::string &name = w->getName();
-        auto it = base_weights.find(name);
-        if (it != base_weights.end()) {
-          nntrainer::Tensor &dst = w->getVariableRef();
-          const nntrainer::Tensor &src = *it->second;
-          const size_t bytes = src.getMemoryBytes();
-          std::memcpy(dst.getData<char>(), src.getData<char>(), bytes);
-          ++matched;
-        } else if (name.find(":loraA") == std::string::npos &&
-                   name.find(":loraB") == std::string::npos) {
-          unmatched.push_back(name);
+    apply =
+      [&](ml::train::Layer &, nntrainer::RunLayerContext &context, void *) {
+        for (auto &w : context.getWeights()) {
+          const std::string &name = w->getName();
+          auto it = base_weights.find(name);
+          if (it != base_weights.end()) {
+            nntrainer::Tensor &dst = w->getVariableRef();
+            const nntrainer::Tensor &src = *it->second;
+            const size_t bytes = src.getMemoryBytes();
+            std::memcpy(dst.getData<char>(), src.getData<char>(), bytes);
+            ++matched;
+          } else if (name.find(":loraA") == std::string::npos &&
+                     name.find(":loraB") == std::string::npos) {
+            unmatched.push_back(name);
+          }
         }
-      }
-    };
+      };
   model->forEachLayer(apply, nullptr);
 
   NNTR_THROW_IF(!unmatched.empty(), std::runtime_error)
@@ -1038,8 +1071,8 @@ void Transformer::load_weight_lora_q4(const std::string &base_path,
         uint32_t n = 0;
         f.read(reinterpret_cast<char *>(&n), sizeof(n));
         NNTR_THROW_IF(!f, std::runtime_error)
-          << "load_weight_lora_q4: failed reading element count at '"
-          << wname << "'";
+          << "load_weight_lora_q4: failed reading element count at '" << wname
+          << "'";
 
         nntrainer::Tensor &dst = w->getVariableRef();
         const uint32_t expected =
@@ -1052,10 +1085,12 @@ void Transformer::load_weight_lora_q4(const std::string &base_path,
         const size_t bytes = dst.getMemoryBytes();
         void *buf = dst.getData<char>();
         NNTR_THROW_IF(!buf, std::runtime_error)
-          << "load_weight_lora_q4: tensor buffer not allocated for '" << wname << "'";
+          << "load_weight_lora_q4: tensor buffer not allocated for '" << wname
+          << "'";
         f.read(reinterpret_cast<char *>(buf), bytes);
         NNTR_THROW_IF(!f, std::runtime_error)
-          << "load_weight_lora_q4: failed reading Q4_0 data for '" << wname << "'";
+          << "load_weight_lora_q4: failed reading Q4_0 data for '" << wname
+          << "'";
       }
     };
   model->forEachLayer(fn, nullptr);
@@ -1080,9 +1115,9 @@ std::pair<Tensor, Tensor> Transformer::constructModel() {
   NNTR_THROW_IF(TIE_WORD_EMBEDDINGS && !EMBEDDING_FILE_NAME.empty(),
                 std::invalid_argument)
     << "embedding_file_name requires untied embedding_layer";
-  auto embedding_props = buildEmbeddingLayerProperties(
-    "embedding0", NUM_VOCAB, DIM, EMBEDDING_DTYPE, EMBEDDING_SCALE,
-    EMBEDDING_FILE_NAME);
+  auto embedding_props =
+    buildEmbeddingLayerProperties("embedding0", NUM_VOCAB, DIM, EMBEDDING_DTYPE,
+                                  EMBEDDING_SCALE, EMBEDDING_FILE_NAME);
   // embedding0 is never a LoRA target: freeze it whenever LoRA is active.
   if (LORA_RANK > 0)
     embedding_props.push_back(withKey("trainable", "false"));
@@ -1100,8 +1135,9 @@ std::pair<Tensor, Tensor> Transformer::constructModel() {
   // The nntrainer GPU RMSNormLayerCl uses type "rmsnorm" (different) and has a
   // separate reduction-order drift issue.
   std::vector<std::string> out_norm_props = {
-    withKey("name", "output_norm"), withKey("epsilon", std::to_string(NORM_EPS)),
-    withKey("packed", "false"), withKey("engine", causallm_engine())};
+    withKey("name", "output_norm"),
+    withKey("epsilon", std::to_string(NORM_EPS)), withKey("packed", "false"),
+    withKey("engine", layerEngine())};
   // never a LoRA target: freeze it whenever LoRA is active
   if (LORA_RANK > 0 && !TRAIN_NORMS)
     out_norm_props.push_back(withKey("trainable", "false"));
@@ -1373,7 +1409,7 @@ Tensor Transformer::createTransformerDecoderBlock(const int layer_id,
   std::vector<std::string> attn_norm_props = {
     withKey("name", "layer" + std::to_string(layer_id) + "_attention_norm"),
     withKey("epsilon", std::to_string(NORM_EPS)), withKey("packed", "false"),
-    withKey("engine", causallm_engine())};
+    withKey("engine", layerEngine())};
   if (LORA_RANK > 0 && !TRAIN_NORMS)
     attn_norm_props.push_back(withKey("trainable", "false"));
   LayerHandle attn_norm(createLayer("rms_norm", attn_norm_props));
@@ -1385,13 +1421,13 @@ Tensor Transformer::createTransformerDecoderBlock(const int layer_id,
   LayerHandle decoder_add(createLayer(
     "addition",
     {withKey("name", "layer" + std::to_string(layer_id) + "_decoder_add"),
-     withKey("engine", causallm_engine())}));
+     withKey("engine", layerEngine())}));
   Tensor residual = decoder_add({input, att_out});
 
   std::vector<std::string> ffn_norm_props = {
     withKey("name", "layer" + std::to_string(layer_id) + "_ffn_norm"),
     withKey("epsilon", std::to_string(NORM_EPS)), withKey("packed", "false"),
-    withKey("engine", causallm_engine())};
+    withKey("engine", layerEngine())};
   if (LORA_RANK > 0 && !TRAIN_NORMS)
     ffn_norm_props.push_back(withKey("trainable", "false"));
   LayerHandle ffn_norm(createLayer("rms_norm", ffn_norm_props));
@@ -1402,7 +1438,7 @@ Tensor Transformer::createTransformerDecoderBlock(const int layer_id,
   LayerHandle decoder_output(createLayer(
     "addition",
     {withKey("name", "layer" + std::to_string(layer_id) + "_decoder_output"),
-     withKey("engine", causallm_engine())}));
+     withKey("engine", layerEngine())}));
   return decoder_output({residual, ffn_out});
 }
 
@@ -1475,9 +1511,8 @@ Tensor Transformer::createAttention(const int layer_id, int seq_len,
   std::vector<std::string> wq_props = {
     withKey("name", "layer" + std::to_string(layer_id) + "_wq"),
     withKey("unit", head_dim * n_heads), withKey("disable_bias", "true"),
-    withKey("weight_initializer", "ones"),
-    withKey("engine", causallm_engine())};
-  if (hasLoRA("wq"))
+    withKey("weight_initializer", "ones"), withKey("engine", layerEngine())};
+  if (hasLoRA("wq", layer_id))
     appendLoRAProps(wq_props);
   else if (LORA_RANK > 0)
     wq_props.push_back(withKey("trainable", "false"));
@@ -1489,8 +1524,8 @@ Tensor Transformer::createAttention(const int layer_id, int seq_len,
     withKey("name", "layer" + std::to_string(layer_id) + "_wk"),
     withKey("unit", head_dim * n_heads / GQA_SIZE),
     withKey("disable_bias", "true"), withKey("weight_initializer", "ones"),
-    withKey("engine", causallm_engine())};
-  if (hasLoRA("wk"))
+    withKey("engine", layerEngine())};
+  if (hasLoRA("wk", layer_id))
     appendLoRAProps(wk_props);
   else if (LORA_RANK > 0)
     wk_props.push_back(withKey("trainable", "false"));
@@ -1502,8 +1537,8 @@ Tensor Transformer::createAttention(const int layer_id, int seq_len,
     withKey("name", "layer" + std::to_string(layer_id) + "_wv"),
     withKey("unit", head_dim * n_heads / GQA_SIZE),
     withKey("disable_bias", "true"), withKey("weight_initializer", "ones"),
-    withKey("engine", causallm_engine())};
-  if (hasLoRA("wv"))
+    withKey("engine", layerEngine())};
+  if (hasLoRA("wv", layer_id))
     appendLoRAProps(wv_props);
   else if (LORA_RANK > 0)
     wv_props.push_back(withKey("trainable", "false"));
@@ -1548,9 +1583,8 @@ Tensor Transformer::createAttention(const int layer_id, int seq_len,
   std::vector<std::string> wo_props = {
     withKey("name", "layer" + std::to_string(layer_id) + "_attention_out"),
     withKey("unit", DIM), withKey("disable_bias", "true"),
-    withKey("weight_initializer", "ones"),
-    withKey("engine", causallm_engine())};
-  if (hasLoRA("wo"))
+    withKey("weight_initializer", "ones"), withKey("engine", layerEngine())};
+  if (hasLoRA("wo", layer_id))
     appendLoRAProps(wo_props);
   else if (LORA_RANK > 0)
     wo_props.push_back(withKey("trainable", "false"));
@@ -1574,9 +1608,8 @@ Tensor Transformer::createMlp(const int layer_id, int dim, int hidden_dim,
   std::vector<std::string> ffn_gate_props = {
     withKey("name", "layer" + std::to_string(layer_id) + "_ffn_gate"),
     withKey("unit", hidden_dim), withKey("disable_bias", "true"),
-    withKey("weight_initializer", "ones"),
-    withKey("engine", causallm_engine())};
-  if (hasLoRA("ffn_gate"))
+    withKey("weight_initializer", "ones"), withKey("engine", layerEngine())};
+  if (hasLoRA("ffn_gate", layer_id))
     appendLoRAProps(ffn_gate_props);
   else if (LORA_RANK > 0)
     ffn_gate_props.push_back(withKey("trainable", "false"));
@@ -1586,9 +1619,8 @@ Tensor Transformer::createMlp(const int layer_id, int dim, int hidden_dim,
   std::vector<std::string> ffn_up_props = {
     withKey("name", "layer" + std::to_string(layer_id) + "_ffn_up"),
     withKey("unit", hidden_dim), withKey("disable_bias", "true"),
-    withKey("weight_initializer", "ones"),
-    withKey("engine", causallm_engine())};
-  if (hasLoRA("ffn_up"))
+    withKey("weight_initializer", "ones"), withKey("engine", layerEngine())};
+  if (hasLoRA("ffn_up", layer_id))
     appendLoRAProps(ffn_up_props);
   else if (LORA_RANK > 0)
     ffn_up_props.push_back(withKey("trainable", "false"));
@@ -1598,15 +1630,14 @@ Tensor Transformer::createMlp(const int layer_id, int dim, int hidden_dim,
   LayerHandle swiglu(createLayer(
     "swiglu",
     {withKey("name", "layer" + std::to_string(layer_id) + "_ffn_swiglu"),
-     withKey("engine", causallm_engine())}));
+     withKey("engine", layerEngine())}));
   Tensor act = swiglu({gate, up});
 
   std::vector<std::string> ffn_down_props = {
     withKey("name", "layer" + std::to_string(layer_id) + "_ffn_down"),
     withKey("unit", dim), withKey("disable_bias", "true"),
-    withKey("weight_initializer", "ones"),
-    withKey("engine", causallm_engine())};
-  if (hasLoRA("ffn_down"))
+    withKey("weight_initializer", "ones"), withKey("engine", layerEngine())};
+  if (hasLoRA("ffn_down", layer_id))
     appendLoRAProps(ffn_down_props);
   else if (LORA_RANK > 0)
     ffn_down_props.push_back(withKey("trainable", "false"));

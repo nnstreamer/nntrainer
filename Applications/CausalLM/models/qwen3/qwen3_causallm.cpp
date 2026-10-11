@@ -41,9 +41,8 @@ Tensor Qwen3Transformer::createAttention(const int layer_id, int seq_len,
   std::vector<std::string> wq_props = {
     withKey("name", "layer" + std::to_string(layer_id) + "_wq"),
     withKey("unit", head_dim * n_heads), withKey("disable_bias", "true"),
-    withKey("weight_initializer", "ones"),
-    withKey("engine", causallm_engine())};
-  if (hasLoRA("wq"))
+    withKey("weight_initializer", "ones"), withKey("engine", layerEngine())};
+  if (hasLoRA("wq", layer_id))
     appendLoRAProps(wq_props);
   else if (LORA_RANK > 0)
     wq_props.push_back(withKey("trainable", "false"));
@@ -62,7 +61,7 @@ Tensor Qwen3Transformer::createAttention(const int layer_id, int seq_len,
     withKey("name", "layer" + std::to_string(layer_id) + "_q_norm"),
     withKey("packed", "false"), withKey("epsilon", std::to_string(NORM_EPS)),
     withKey("feature_size", std::to_string(head_dim)),
-    withKey("engine", causallm_engine())};
+    withKey("engine", layerEngine())};
   if (LORA_RANK > 0 && !TRAIN_NORMS)
     q_norm_props.push_back(withKey("trainable", "false"));
   LayerHandle q_norm(createLayer("reshaped_rms_norm", q_norm_props));
@@ -73,8 +72,8 @@ Tensor Qwen3Transformer::createAttention(const int layer_id, int seq_len,
     withKey("name", "layer" + std::to_string(layer_id) + "_wk"),
     withKey("unit", head_dim * n_heads / GQA_SIZE),
     withKey("disable_bias", "true"), withKey("weight_initializer", "ones"),
-    withKey("engine", causallm_engine())};
-  if (hasLoRA("wk"))
+    withKey("engine", layerEngine())};
+  if (hasLoRA("wk", layer_id))
     appendLoRAProps(wk_props);
   else if (LORA_RANK > 0)
     wk_props.push_back(withKey("trainable", "false"));
@@ -87,7 +86,7 @@ Tensor Qwen3Transformer::createAttention(const int layer_id, int seq_len,
     withKey("name", "layer" + std::to_string(layer_id) + "_k_norm"),
     withKey("packed", "false"), withKey("epsilon", std::to_string(NORM_EPS)),
     withKey("feature_size", std::to_string(head_dim)),
-    withKey("engine", causallm_engine())};
+    withKey("engine", layerEngine())};
   if (LORA_RANK > 0 && !TRAIN_NORMS)
     k_norm_props.push_back(withKey("trainable", "false"));
   LayerHandle k_norm(createLayer("reshaped_rms_norm", k_norm_props));
@@ -98,8 +97,8 @@ Tensor Qwen3Transformer::createAttention(const int layer_id, int seq_len,
     withKey("name", "layer" + std::to_string(layer_id) + "_wv"),
     withKey("unit", head_dim * n_heads / GQA_SIZE),
     withKey("disable_bias", "true"), withKey("weight_initializer", "ones"),
-    withKey("engine", causallm_engine())};
-  if (hasLoRA("wv"))
+    withKey("engine", layerEngine())};
+  if (hasLoRA("wv", layer_id))
     appendLoRAProps(wv_props);
   else if (LORA_RANK > 0)
     wv_props.push_back(withKey("trainable", "false"));
@@ -169,9 +168,8 @@ Tensor Qwen3Transformer::createAttention(const int layer_id, int seq_len,
   std::vector<std::string> wo_props = {
     withKey("name", "layer" + std::to_string(layer_id) + "_attention_out"),
     withKey("unit", DIM), withKey("disable_bias", "true"),
-    withKey("weight_initializer", "ones"),
-    withKey("engine", causallm_engine())};
-  if (hasLoRA("wo"))
+    withKey("weight_initializer", "ones"), withKey("engine", layerEngine())};
+  if (hasLoRA("wo", layer_id))
     appendLoRAProps(wo_props);
   else if (LORA_RANK > 0)
     wo_props.push_back(withKey("trainable", "false"));
