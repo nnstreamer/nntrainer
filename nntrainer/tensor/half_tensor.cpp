@@ -751,7 +751,8 @@ Tensor &HalfTensor::dot(Tensor const &input, Tensor &output, bool trans,
     // engine); when that did not run (the GPU engines skip the repack loop),
     // the weight packs itself on first use below. Both sources are
     // byte-identical.
-    const unsigned int M = getDim().height();
+    const unsigned int M =
+      getDim().batch() * getDim().channel() * getDim().height();
     const unsigned int K = getDim().width();
     const unsigned int N = output.getDim().width();
 
@@ -835,7 +836,7 @@ Tensor &HalfTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
   _FP16 *rdata = output.getData<_FP16>();
 
   unsigned int M, N, K;
-  M = getDim().height();
+  M = getDim().batch() * getDim().channel() * getDim().height();
   K = getDim().width();
   N = trans_in ? input.getDim().height() : input.getDim().width();
   switch (dtype) {

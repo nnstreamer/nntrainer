@@ -13,6 +13,7 @@
 
 #include "nntrainer_test_util.h"
 #include "util_func.h"
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cpu_backend.h>
@@ -20,6 +21,7 @@
 #include <float_tensor.h>
 #include <fp16.h>
 #include <fstream>
+#include <limits>
 #include <nntrainer_error.h>
 #include <qs4cx_tensor.h>
 #include <quantizer.h>
@@ -1406,6 +1408,95 @@ TEST(nntrainer_Tensor, QTensor_21_p) {
   auto mean_squared_error_tensor = mse<float, float>(
     out_t.getData<float>(), out_q40_t.getData<float>(), M * N);
   EXPECT_NEAR(mean_squared_error_tensor, 0., eps * M * N);
+}
+
+/**
+ * @brief Check that A (B x 1 x M x K) . W, for a quantized weight W, gives
+ * every batch item the result of that item's own A_b (1 x 1 x M x K) . W.
+ */
+static void expectQuantDotPerBatchItem(const nntrainer::Tensor &W,
+                                       unsigned int B, unsigned int M,
+                                       unsigned int K, unsigned int N) {
+  nntrainer::Tensor A(
+    B, 1, M, K,
+    {ml::train::TensorDim::Format::NCHW, ml::train::TensorDim::DataType::FP32});
+  std::vector<float> a = generate_random_vector<float>(B * M * K, -1.0f, 1.0f);
+  std::copy(a.begin(), a.end(), A.getData<float>());
+
+  // NaN-filled so a batch item the GEMM never writes cannot pass
+  nntrainer::Tensor out(B, 1, M, N,
+                        {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
+  out.setValue(std::numeric_limits<float>::quiet_NaN());
+  A.dot(W, out);
+
+  for (unsigned int b = 0; b < B; ++b) {
+    nntrainer::Tensor A_b(1, 1, M, K,
+                          {ml::train::TensorDim::Format::NCHW,
+                           ml::train::TensorDim::DataType::FP32});
+    std::copy(A.getData<float>() + (size_t)b * M * K,
+              A.getData<float>() + (size_t)(b + 1) * M * K,
+              A_b.getData<float>());
+    nntrainer::Tensor ref(
+      1, 1, M, N, {nntrainer::Tformat::NCHW, nntrainer::Tdatatype::FP32});
+    A_b.dot(W, ref);
+
+    const float *o = out.getData<float>() + (size_t)b * M * N;
+    const float *r = ref.getData<float>();
+    for (unsigned int i = 0; i < M * N; ++i)
+      ASSERT_NEAR(o[i], r[i], 1e-4f * (1.0f + std::abs(r[i])))
+        << "batch item " << b << ", element " << i;
+  }
+}
+
+/**
+ * @brief A batched FP32 activation times a Q4_0 weight computes every batch
+ * item, not only the first one's rows.
+ */
+TEST(nntrainer_Tensor, QTensor_q4_0_dot_batched_p) {
+  nntrainer::init_backend();
+
+  const unsigned int B = 3, M = 4, K = 256, N = 64;
+  const size_t data_size = K * N / 32 * 18;
+
+  std::vector<float> weight = generate_random_vector<float>(K * N);
+  nntrainer::Tensor W_fp32(
+    1, 1, K, N,
+    {ml::train::TensorDim::Format::NCHW, ml::train::TensorDim::DataType::FP32});
+  std::copy(weight.begin(), weight.end(), W_fp32.getData<float>());
+
+  nntrainer::Tensor W_fp32_t = W_fp32.transpose("0:2:1");
+  std::vector<char> plain(data_size);
+  nntrainer::quantize_q4_0(W_fp32_t.getData<float>(), (void *)plain.data(), N,
+                           K, nullptr);
+  nntrainer::Tensor W_q40(
+    {1, 1, K, N, nntrainer::Tformat::NCHW, nntrainer::Tdatatype::Q4_0}, true,
+    nntrainer::Initializer::NONE, "q4_0_tensor", nntrainer::QScheme::Q4_0);
+  nntrainer::repack_q4_0(W_q40.getData<uint8_t>(), plain.data(), data_size, N,
+                         K);
+
+  expectQuantDotPerBatchItem(W_q40, B, M, K, N);
+}
+
+/**
+ * @brief A batched FP32 activation times a QS4CX weight computes every batch
+ * item, not only the first one's rows.
+ */
+TEST(nntrainer_Tensor, QS4CX_dot_batched_p) {
+  nntrainer::init_backend();
+
+  const unsigned int B = 3, M = 4, K = 64, N = 32;
+  nntrainer::Tensor W_fp32(
+    1, 1, K, N,
+    {ml::train::TensorDim::Format::NCHW, ml::train::TensorDim::DataType::FP32});
+  std::vector<float> weight = generate_random_vector<float>(K * N);
+  std::copy(weight.begin(), weight.end(), W_fp32.getData<float>());
+
+  auto quantizer =
+    nntrainer::Quantization::createQuantizer(nntrainer::QScheme::QS4CX);
+  nntrainer::Tensor W_qs4 =
+    quantizer->quantize(W_fp32, nntrainer::Tdatatype::QS4CX);
+
+  expectQuantDotPerBatchItem(W_qs4, B, M, K, N);
 }
 
 TEST(nntrainer_Tensor, getBatchSlice_float_p) {

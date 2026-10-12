@@ -964,8 +964,10 @@ Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
     rdata = output.getData<float>();
   }
 
+  // Every row of every batch item is a GEMM row (as dotFloat flattens
+  // B x C x H): taking only height() leaves batch items 1.. unwritten.
   unsigned int M, N, K;
-  M = getDim().height();
+  M = getDim().batch() * getDim().channel() * getDim().height();
   K = getDim().width();
   N = trans_in ? input.getDim().height() : input.getDim().width();
 
@@ -978,7 +980,6 @@ Tensor &FloatTensor::dotQnK(Tensor const &input, Tensor &output, bool trans,
     o->gemm_q6_K_fp32(M, N, K, data, K, (void *)mdata, N, rdata, N);
     break;
   case Tdatatype::Q4_0: {
-    M = getDim().height();
     K = getDim().width();
     N = input.getDim().width();
     if (o->supports_gemm_q4_0_accel_fp32() && M > 1) {
@@ -1017,7 +1018,7 @@ Tensor &FloatTensor::dotQInteger(Tensor const &input, Tensor &output,
   char *mdata = input.getData<char>();
   float *rdata = output.getData<float>();
 
-  unsigned int M = getDim().height();
+  unsigned int M = getDim().batch() * getDim().channel() * getDim().height();
   unsigned int K = getDim().width();
   unsigned int N = output.getDim().width();
 
@@ -1043,7 +1044,7 @@ Tensor &FloatTensor::dotQInteger(Tensor const &input, Tensor &output,
 Tensor &FloatTensor::dotQs4cx(Tensor const &input, Tensor &output, bool trans,
                               bool trans_in, float beta,
                               Tdatatype dtype) const {
-  unsigned int M = getDim().height();
+  unsigned int M = getDim().batch() * getDim().channel() * getDim().height();
   unsigned int K = getDim().width();
   unsigned int N = output.getDim().width();
   // Every arm below reads the plain nibbles (directly, or through a pack that
