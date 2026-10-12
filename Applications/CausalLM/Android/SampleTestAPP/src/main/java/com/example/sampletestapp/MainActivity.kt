@@ -252,6 +252,7 @@ class MainActivity : AppCompatActivity() {
     private var trainDataPath: String = "/sdcard/t.txt"
     private var trainLr: String = "5e-5"
     private var trainEpochs: String = "5"
+    private var trainBatchSize: String = "1"
     private var trainSeqLen: String = "256"
     private var trainLoraRank: String = "8"
     private var trainLoraAlpha: String = "16"
@@ -849,6 +850,7 @@ class MainActivity : AppCompatActivity() {
             val r1 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
             r1.addView(labeledColumn(t, "LR", roundedEditText(t, trainLr, mono = true) { trainLr = it }, 1f))
             spacerH(r1, 8); r1.addView(labeledColumn(t, "EPOCHS", roundedEditText(t, trainEpochs, mono = true) { trainEpochs = it }, 1f))
+            spacerH(r1, 8); r1.addView(labeledColumn(t, "BATCH SIZE", roundedEditText(t, trainBatchSize, mono = true) { trainBatchSize = it }, 1f))
             content.addView(r1); spacer(content, 8)
             val r2 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
             r2.addView(labeledColumn(t, "SEQ LEN", roundedEditText(t, trainSeqLen, mono = true) { trainSeqLen = it }, 1f))
@@ -2472,6 +2474,7 @@ class MainActivity : AppCompatActivity() {
         sb.append(",\"data_path\":\"").append(escapeJson(dataPath)).append('"')
         sb.append(",\"lr\":").append(trainLr.trim().toFloatOrNull() ?: 5e-5f)
         sb.append(",\"epochs\":").append(trainEpochs.trim().toIntOrNull() ?: 1)
+        sb.append(",\"batch_size\":").append(trainBatchSize.trim().toIntOrNull() ?: 1)
         sb.append(",\"seq_len\":").append(trainSeqLen.trim().toIntOrNull() ?: 0)
         sb.append(",\"lora_rank\":").append(trainLoraRank.trim().toIntOrNull() ?: 0)
         sb.append(",\"lora_alpha\":").append(trainLoraAlpha.trim().toIntOrNull() ?: 0)
