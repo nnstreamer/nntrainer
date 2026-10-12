@@ -2868,6 +2868,19 @@ public:
 
   bool decode_kv_seed_fp32(unsigned n_rows, const float *k_rows,
                            const float *v_rows) override {
+    return seedRows(n_rows, k_rows, v_rows, nullptr, nullptr);
+  }
+
+  /** [#4416 D6] the rows as fp16 bits, widened on the DSP (S26 Ultra:
+   *  the CPU's fp16 -> f32 pass was 145 ms of the p1024 first token, 288
+   *  at p2048, and the staged bytes halve) */
+  bool decode_kv_seed_f16(unsigned n_rows, const uint16_t *k_rows,
+                          const uint16_t *v_rows) override {
+    return seedRows(n_rows, nullptr, nullptr, k_rows, v_rows);
+  }
+
+  bool seedRows(unsigned n_rows, const float *k_rows, const float *v_rows,
+                const uint16_t *k16, const uint16_t *v16) {
     if (seed_ordinal_ == HTP_GRAPH_NO_OP) {
       throw std::runtime_error(
         "decode_kv_seed_fp32: no attention hook asked for a seed");
@@ -2889,13 +2902,26 @@ public:
     int err;
     {
       std::lock_guard<std::mutex> lock(invoke_mutex_);
-      const size_t bytes = static_cast<size_t>(n) * sizeof(float);
-      float *k_ion = reinterpret_cast<float *>(stage(act_pool_, bytes).data());
-      float *v_ion = reinterpret_cast<float *>(stage(x2_pool_, bytes).data());
-      std::memcpy(k_ion, k_rows, bytes);
-      std::memcpy(v_ion, v_rows, bytes);
-      err = nntr_hvx_attn_m1_kv_append(session, layer, 0u, n_rows, k_ion, n,
-                                       v_ion, n);
+      const size_t bytes =
+        static_cast<size_t>(n) * (k16 ? sizeof(uint16_t) : sizeof(float));
+      void *k_ion = stage(act_pool_, bytes).data();
+      void *v_ion = stage(x2_pool_, bytes).data();
+      std::memcpy(k_ion,
+                  k16 ? static_cast<const void *>(k16)
+                      : static_cast<const void *>(k_rows),
+                  bytes);
+      std::memcpy(v_ion,
+                  v16 ? static_cast<const void *>(v16)
+                      : static_cast<const void *>(v_rows),
+                  bytes);
+      err =
+        k16
+          ? nntr_hvx_attn_m1_kv_append_f16(
+              session, layer, 0u, n_rows, static_cast<const uint16_t *>(k_ion),
+              n, static_cast<const uint16_t *>(v_ion), n)
+          : nntr_hvx_attn_m1_kv_append(session, layer, 0u, n_rows,
+                                       static_cast<const float *>(k_ion), n,
+                                       static_cast<const float *>(v_ion), n);
     }
     seed_rpc_us_ += HtpProfile::nowUs() - t_seed;
     ++seed_calls_;
@@ -2905,7 +2931,7 @@ public:
                                std::to_string(n_rows) +
                                " rows: " + graphErr(err));
     }
-    if (dumpAllDir() != nullptr) {
+    if (dumpAllDir() != nullptr && k_rows != nullptr) { /* f32 rows only */
       const std::string base =
         std::string(dumpAllDir()) + "/kvseed_" + std::to_string(seed_ordinal_);
       dumpAllFile(base + "_k.f32", k_rows, static_cast<size_t>(n));

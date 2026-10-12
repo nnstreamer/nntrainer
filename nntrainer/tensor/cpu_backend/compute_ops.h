@@ -581,6 +581,15 @@ public:
     (void)v_rows;
     return false;
   }
+  // [#4416 D6] The same seed from the cache's fp16 bits, widened on the
+  // accelerator (exactly, as compute_fp16_to_fp32): no CPU conversion.
+  virtual bool decode_kv_seed_f16(unsigned n_rows, const uint16_t *k_rows,
+                                  const uint16_t *v_rows) {
+    (void)n_rows;
+    (void)k_rows;
+    (void)v_rows;
+    return false;
+  }
   // [#289] The same seed with V from the layer's own quantized prefill
   // cache (kv_cache_q_register's handle, fixed scales) on the accelerator
   // and K from k_rows ([n_rows][n_kv x head_dim] f32); the handle is

@@ -661,6 +661,14 @@ interface nntr_hvx : remote_handle64 {
                                in uint32 n_rows, in sequence<float> k_rows,
                                in sequence<float> v_rows);
 
+   // [#4416 D6] attn_m1_kv_append with the rows as fp16 bits (the CPU
+   // cache's storage, half the bytes): widened exactly on the DSP, so the
+   // ARM converts nothing for the first token's seed.
+   AEEResult attn_m1_kv_append_f16(in uint32 layer, in uint32 kv_from,
+                                   in uint32 n_rows,
+                                   in sequence<uint16> k_rows,
+                                   in sequence<uint16> v_rows);
+
    // Appends position pos (k, v: [n_kv][head_dim], post-RoPE) to layer and
    // returns the attention of q ([n_kv * gqa][head_dim], post-RoPE) over
    // positions 0..pos in y ([n_kv * gqa][head_dim]); scale is the
