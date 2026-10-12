@@ -81,6 +81,22 @@ public:
   /** @brief Number of samples loaded from the training file. */
   size_t size() const { return samples_.size(); }
 
+  /**
+   * @brief End every epoch on a whole batch.
+   * @details nntrainer skips a trailing iteration it cannot fill to the batch
+   *          size, so the samples in it are produced but never trained on. In
+   *          hybrid mode each produced sample has also queued its lm_head read
+   *          row, which nobody pops, and every later sample then reads its
+   *          neighbour's row. Ending the epoch after floor(size / batch) *
+   *          batch samples means no partial iteration is ever formed. The
+   *          reshuffle at every epoch changes which samples sit out.
+   * @param batch_size the model's training batch size (0 is taken as 1)
+   */
+  void setBatchSize(unsigned int batch_size);
+
+  /** @brief Number of samples next() yields per epoch. */
+  size_t samplesPerEpoch() const;
+
 private:
   struct Sample {
     std::vector<int32_t> ids; /**< full tokenized sample, unpadded */
@@ -89,6 +105,7 @@ private:
   std::vector<Sample> samples_;
   std::vector<size_t> index_order_;
   size_t cursor_ = 0;
+  unsigned int batch_size_ = 1;
   unsigned int seq_len_;
   unsigned int vocab_size_;
   std::mt19937 rng_;
@@ -112,12 +129,22 @@ int trainingDataGenCb(float **input, float **label, bool *last,
  * Fields left at zero / empty use the value from nntr_config.json.
  */
 struct TrainParams {
-  std::string model_path;       ///< directory containing config.json etc.
-  std::string data_path;        ///< plain-text or chat-format training file
-  float lr = 1e-4f;             ///< learning rate
-  float lr_decay_rate = 0.0f;   ///< exponential lr decay rate (0 = constant)
-  float lr_decay_steps = 0.0f;  ///< decay interval in iterations
-  unsigned int epochs = 1;      ///< number of training epochs
+  std::string model_path;      ///< directory containing config.json etc.
+  std::string data_path;       ///< plain-text or chat-format training file
+  float lr = 1e-4f;            ///< learning rate
+  float lr_decay_rate = 0.0f;  ///< exponential lr decay rate (0 = constant)
+  float lr_decay_steps = 0.0f; ///< decay interval in iterations
+  unsigned int epochs = 1;     ///< number of training epochs
+  /**
+   * @brief Training batch size: how many samples the model consumes (and the
+   *        optimizer updates on) per iteration. 0 = keep nntr_config.json.
+   *
+   * This is a model property only. The data generator stays sample-at-a-time:
+   * nntrainer's IterationQueue fills one slot per generator call and forms the
+   * batch itself, so a generator that wrote a whole batch into the single slot
+   * it was handed would run off the end of that slot's buffer.
+   */
+  unsigned int batch_size = 0;
   std::string output_path;      ///< LoRA adapter output path
   std::string resume_lora_path; ///< resume from an existing adapter
   unsigned int lora_rank = 0;   ///< override nntr_config lora_rank (0 = config)

@@ -3324,6 +3324,7 @@ extern "C" ErrorCode trainLora(const char *params_json,
     params.lr_decay_rate = j.value("lr_decay_rate", 0.0f);
     params.lr_decay_steps = j.value("lr_decay_steps", 0.0f);
     params.epochs = j.value("epochs", 1u);
+    params.batch_size = j.value("batch_size", 0u);
     params.output_path = j.value("output_path", std::string{});
     params.resume_lora_path = j.value("lora_path", std::string{});
     params.lora_rank = j.value("lora_rank", 0u);

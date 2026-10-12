@@ -11,6 +11,7 @@
  * @bug    No known bugs except for NYI items
  */
 
+#include <lora_train.h>
 #include <qwen3_causallm.h>
 
 #include <dataset.h>
@@ -19,12 +20,14 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <filesystem>
 #include <functional>
 #include <map>
 #include <random>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -57,10 +60,11 @@ causallm::json makeTinyGenerationConfig() {
   };
 }
 
-causallm::json makeTinyNntrainerConfig(unsigned int lora_rank) {
+causallm::json makeTinyNntrainerConfig(unsigned int lora_rank,
+                                       unsigned int batch_size = 1) {
   return {
     {"bad_word_ids", std::vector<unsigned int>{}},
-    {"batch_size", 1},
+    {"batch_size", batch_size},
     {"embedding_dtype", "FP32"},
     {"fc_layer_dtype", "FP32"},
     {"init_seq_len", 4},
@@ -72,9 +76,8 @@ causallm::json makeTinyNntrainerConfig(unsigned int lora_rank) {
     {"skip_tokenizer", true},
     {"lora_rank", lora_rank},
     {"lora_alpha", lora_rank * 2},
-    {"lora_target",
-     std::vector<std::string>{"wq", "wk", "wv", "wo", "ffn_up", "ffn_gate",
-                              "ffn_down"}},
+    {"lora_target", std::vector<std::string>{"wq", "wk", "wv", "wo", "ffn_up",
+                                             "ffn_gate", "ffn_down"}},
   };
 }
 
@@ -125,8 +128,7 @@ TEST(Qwen3LoraTrainingSmoke, TrainableFlagsMatchLoraFreezePolicy) {
 
   std::vector<std::string> trainable_layers, frozen_layers;
   std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>
-    fn = [&](ml::train::Layer &l, nntrainer::RunLayerContext &context,
-             void *) {
+    fn = [&](ml::train::Layer &l, nntrainer::RunLayerContext &context, void *) {
       // A layer is "trainable" here iff it has at least one weight with a
       // populated gradient buffer, which only happens when the layer-level
       // trainable flag AND the weight's own need_gradient flag are both true.
@@ -160,11 +162,10 @@ TEST(Qwen3LoraTrainingSmoke, TrainableFlagsMatchLoraFreezePolicy) {
 
   // norms, embedding, mha_core, lm_head must NOT be trainable.
   for (const auto &name : frozen_layers) {
-    EXPECT_TRUE(name.find("_norm") != std::string::npos ||
-               name == "embedding0" || name.find("_attention") !=
-                                          std::string::npos ||
-               name == "output_of_causallm" || name.find("_swiglu") !=
-                                                  std::string::npos)
+    EXPECT_TRUE(
+      name.find("_norm") != std::string::npos || name == "embedding0" ||
+      name.find("_attention") != std::string::npos ||
+      name == "output_of_causallm" || name.find("_swiglu") != std::string::npos)
       << "unexpected frozen layer: " << name;
   }
 }
@@ -173,14 +174,14 @@ TEST(Qwen3LoraTrainingSmoke, TrainableFlagsMatchLoraFreezePolicy) {
 std::map<std::string, float> snapshotFirstElements(causallm::Qwen3CausalLM &m) {
   std::map<std::string, float> out;
   std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>
-    fn = [&out](ml::train::Layer &, nntrainer::RunLayerContext &context,
-               void *) {
-      for (unsigned int i = 0; i < context.getNumWeights(); ++i) {
-        auto &w = context.getWeight(i);
-        if (w.getDataType() == ml::train::TensorDim::DataType::FP32)
-          out[w.getName()] = w.getData<float>()[0];
-      }
-    };
+    fn =
+      [&out](ml::train::Layer &, nntrainer::RunLayerContext &context, void *) {
+        for (unsigned int i = 0; i < context.getNumWeights(); ++i) {
+          auto &w = context.getWeight(i);
+          if (w.getDataType() == ml::train::TensorDim::DataType::FP32)
+            out[w.getName()] = w.getData<float>()[0];
+        }
+      };
   m.forEachLayer(fn, nullptr);
   return out;
 }
@@ -242,7 +243,7 @@ TEST(Qwen3LoraTrainingSmoke, TrainsAFewStepsAndSaveLoadLoraRoundTrips) {
   unsigned int base_matches = 0, lora_matches = 0;
   for (const auto &[name, value] : reloaded_snapshot) {
     bool is_lora = name.find(":loraA") != std::string::npos ||
-                  name.find(":loraB") != std::string::npos;
+                   name.find(":loraB") != std::string::npos;
     if (is_lora) {
       auto it = trained_lora_snapshot.find(name);
       if (it != trained_lora_snapshot.end() &&
@@ -264,4 +265,278 @@ TEST(Qwen3LoraTrainingSmoke, TrainsAFewStepsAndSaveLoadLoraRoundTrips) {
 
   std::filesystem::remove(base_path);
   std::filesystem::remove(lora_path);
+}
+
+namespace {
+
+/** @brief Whitespace tokenizer good enough to drive TrainingDataGenerator:
+ *         each word maps to a fixed non-zero id, so a sample's token ids are
+ *         predictable without shipping a tokenizer.json. */
+class StubTokenizer : public tokenizers::Tokenizer {
+public:
+  std::vector<int32_t> Encode(const std::string &text) override {
+    return Encode(text, false);
+  }
+  std::vector<int32_t> Encode(const std::string &text,
+                              bool /*add_special_tokens*/) override {
+    std::vector<int32_t> ids;
+    std::istringstream ss(text);
+    std::string word;
+    while (ss >> word)
+      ids.push_back(id_of(word));
+    return ids;
+  }
+  std::string Decode(const std::vector<int32_t> & /*ids*/) override {
+    return "";
+  }
+  size_t GetVocabSize() override { return VOCAB; }
+  std::string IdToToken(int32_t /*id*/) override { return ""; }
+  int32_t TokenToId(const std::string &token) override { return id_of(token); }
+
+  static constexpr unsigned int VOCAB = 32;
+
+private:
+  /// ids stay in [1, VOCAB-1]: 0 is reserved as the right-pad id.
+  static int32_t id_of(const std::string &word) {
+    return static_cast<int32_t>(std::hash<std::string>{}(word) % (VOCAB - 1) +
+                                1);
+  }
+};
+
+/** @brief One sample's worth of buffers, fenced by a canary.
+ *
+ *  nntrainer hands the generator exactly one sample slot per call (it slices
+ *  the batch itself), so this is the size the generator is allowed to write.
+ *  A generator that writes a whole batch runs into `canary`.
+ */
+template <unsigned int SEQ, unsigned int VOCAB> struct FencedSample {
+  float input[SEQ];
+  float label[VOCAB];
+  static constexpr float CANARY = -12345.0f;
+  float canary[8];
+  FencedSample() { std::fill(canary, canary + 8, CANARY); }
+  bool intact() const {
+    return std::all_of(canary, canary + 8, [](float f) { return f == CANARY; });
+  }
+};
+
+} // namespace
+
+/**
+ * @brief The data generator hands out exactly one sample per call.
+ *
+ * nntrainer's IterationQueue calls the dataset callback once per batch slot
+ * (getBatchSlice(b,1)) and assembles the batch itself. The generator must
+ * therefore write one sample -- writing batch_size samples into the one slot
+ * it was handed overran the buffer and corrupted the heap, which surfaced
+ * later as an unrelated-looking crash.
+ */
+TEST(Qwen3LoraTrainingSmoke, DataGeneratorYieldsOneSamplePerCall) {
+  constexpr unsigned int SEQ = 8;
+  constexpr unsigned int VOCAB = StubTokenizer::VOCAB;
+
+  const auto data_path =
+    (std::filesystem::temp_directory_path() / "nntrainer_qwen3_gen_smoke.txt")
+      .string();
+  const unsigned int num_lines = 5;
+  {
+    std::ofstream file(data_path);
+    for (unsigned int i = 0; i < num_lines; ++i)
+      file << "alpha" << i << " beta gamma delta\n";
+  }
+
+  StubTokenizer tokenizer;
+  causallm::TrainingDataGenerator gen(data_path, &tokenizer, SEQ, VOCAB);
+  ASSERT_EQ(gen.size(), num_lines);
+
+  FencedSample<SEQ, VOCAB> buf;
+  unsigned int samples = 0;
+  bool last = false;
+  while (!last) {
+    std::fill(buf.input, buf.input + SEQ, -1.0f);
+    std::fill(buf.label, buf.label + VOCAB, -1.0f);
+
+    float *in = buf.input;
+    float *lbl = buf.label;
+    ASSERT_EQ(gen.next(&in, &lbl, &last), ML_ERROR_NONE)
+      << "after " << samples << " samples";
+    ++samples;
+
+    // exactly one sample's worth of content was written
+    unsigned int non_pad = 0;
+    for (unsigned int i = 0; i < SEQ; ++i)
+      if (in[i] != 0.0f)
+        ++non_pad;
+    EXPECT_GT(non_pad, 0u) << "sample " << samples << " wrote no tokens";
+    EXPECT_EQ(in[SEQ - 1], 0.0f)
+      << "sample " << samples << " filled the whole sequence, expected padding";
+
+    // the label is a one-hot over exactly one class
+    unsigned int hot = 0;
+    for (unsigned int i = 0; i < VOCAB; ++i)
+      if (lbl[i] == 1.0f)
+        ++hot;
+    EXPECT_EQ(hot, 1u) << "sample " << samples << " set " << hot
+                       << " label classes";
+
+    EXPECT_TRUE(buf.intact())
+      << "sample " << samples
+      << " wrote past the end of the one-sample buffer it was handed";
+    ASSERT_LT(samples, num_lines * 4u) << "generator never reported last";
+  }
+
+  EXPECT_EQ(samples, num_lines) << "one epoch must yield one call per sample";
+
+  std::filesystem::remove(data_path);
+}
+
+/**
+ * @brief The generator ends every epoch on a whole batch.
+ *
+ * nntrainer skips a trailing iteration it cannot fill, so its samples are
+ * produced but never trained on -- and in hybrid mode each of them has queued
+ * an lm_head read row nobody pops, shifting every later sample onto its
+ * neighbour's row. The generator therefore reports `last` after
+ * floor(size / batch) * batch samples, and keeps doing so epoch after epoch.
+ */
+TEST(Qwen3LoraTrainingSmoke, DataGeneratorEndsEpochOnWholeBatch) {
+  constexpr unsigned int SEQ = 8;
+  constexpr unsigned int VOCAB = StubTokenizer::VOCAB;
+
+  const auto data_path = (std::filesystem::temp_directory_path() /
+                          "nntrainer_qwen3_gen_batch_smoke.txt")
+                           .string();
+  const unsigned int num_lines = 10;
+  {
+    std::ofstream file(data_path);
+    for (unsigned int i = 0; i < num_lines; ++i)
+      file << "alpha" << i << " beta gamma delta\n";
+  }
+
+  StubTokenizer tokenizer;
+  causallm::TrainingDataGenerator gen(data_path, &tokenizer, SEQ, VOCAB);
+  ASSERT_EQ(gen.size(), num_lines);
+  ASSERT_NO_THROW(gen.setBatchSize(4));
+  EXPECT_EQ(gen.samplesPerEpoch(), 8u);
+
+  FencedSample<SEQ, VOCAB> buf;
+  for (unsigned int epoch = 0; epoch < 3; ++epoch) {
+    unsigned int samples = 0;
+    bool last = false;
+    while (!last) {
+      float *in = buf.input;
+      float *lbl = buf.label;
+      ASSERT_EQ(gen.next(&in, &lbl, &last), ML_ERROR_NONE);
+      ++samples;
+      ASSERT_LT(samples, num_lines * 4u) << "generator never reported last";
+    }
+    EXPECT_EQ(samples, 8u) << "epoch " << epoch;
+  }
+
+  // a batch no epoch can fill is refused up front
+  EXPECT_THROW(gen.setBatchSize(num_lines + 1), std::invalid_argument);
+
+  std::filesystem::remove(data_path);
+}
+
+namespace {
+
+/** @brief Fixed set of synthetic samples, replayed from the start every
+ *  epoch, `last` on the final one. */
+struct FixedSampleGen {
+  unsigned int seq_len;
+  unsigned int vocab_size;
+  unsigned int num_samples;
+  unsigned int cursor = 0;
+
+  int operator()(float **input, float **label, bool *last) {
+    std::mt19937 rng(1000 + cursor);
+    std::uniform_int_distribution<unsigned int> tok(1, vocab_size - 1);
+    for (unsigned int i = 0; i < seq_len; ++i)
+      input[0][i] = static_cast<float>(tok(rng));
+    std::fill(label[0], label[0] + vocab_size, 0.0f);
+    label[0][tok(rng)] = 1.0f;
+
+    *last = ++cursor == num_samples;
+    if (*last)
+      cursor = 0;
+    return ML_ERROR_NONE;
+  }
+};
+
+int fixedSampleCb(float **input, float **label, bool *last, void *user_data) {
+  return (*static_cast<FixedSampleGen *>(user_data))(input, label, last);
+}
+
+} // namespace
+
+/**
+ * @brief A batch of 2 scores exactly what two batches of 1 score.
+ *
+ * With lr = 0 the weights never move, so an epoch's mean training loss over
+ * the same samples must not depend on how they are grouped into batches. Any
+ * layer that computes only the first batch item, or mixes items, breaks this.
+ */
+TEST(Qwen3LoraTrainingSmoke, BatchOfTwoMatchesTwoBatchesOfOne) {
+  auto cfg = makeTinyQwen3Config();
+  auto generation_cfg = makeTinyGenerationConfig();
+
+  auto base_nntr_cfg = makeTinyNntrainerConfig(/*lora_rank=*/0);
+  causallm::Qwen3CausalLM base_model(cfg, generation_cfg, base_nntr_cfg);
+  ASSERT_NO_THROW(base_model.initialize());
+  // An inference graph leaves its weights unset; with all-equal logits every
+  // grouping of the samples would score ln(vocab) and the check below would
+  // pass vacuously. Give the base real, fixed values.
+  {
+    std::mt19937 rng(7);
+    std::uniform_real_distribution<float> dist(-0.2f, 0.2f);
+    std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &,
+                       void *)>
+      fill =
+        [&](ml::train::Layer &, nntrainer::RunLayerContext &context, void *) {
+          for (unsigned int i = 0; i < context.getNumWeights(); ++i) {
+            auto &w = context.getWeight(i);
+            if (w.getDataType() != ml::train::TensorDim::DataType::FP32)
+              continue;
+            const bool norm = w.getName().find("norm") != std::string::npos;
+            float *d = w.getData<float>();
+            for (size_t k = 0; k < w.size(); ++k)
+              d[k] = norm ? 1.0f : dist(rng);
+          }
+        };
+    base_model.forEachLayer(fill, nullptr);
+  }
+  const auto base_path = (std::filesystem::temp_directory_path() /
+                          "nntrainer_qwen3_base_batch_smoke.bin")
+                           .string();
+  ASSERT_NO_THROW(base_model.save_weight(base_path));
+
+  constexpr unsigned int num_samples = 6;
+  auto epoch_loss = [&](unsigned int batch_size) {
+    auto nntr_cfg = makeTinyNntrainerConfig(/*lora_rank=*/4, batch_size);
+    causallm::Qwen3CausalLM model(cfg, generation_cfg, nntr_cfg);
+    EXPECT_NO_THROW(model.initializeForTraining(/*lr=*/0.0f, /*epochs=*/1));
+    EXPECT_NO_THROW(model.load_weight_lora(base_path, ""));
+
+    FixedSampleGen gen{/*seq_len=*/4, /*vocab_size=*/32, num_samples};
+    std::shared_ptr<ml::train::Dataset> dataset = ml::train::createDataset(
+      ml::train::DatasetType::GENERATOR, fixedSampleCb, &gen);
+    EXPECT_NO_THROW(
+      model.setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset));
+    EXPECT_NO_THROW(model.train());
+
+    auto stats = model.getTrainingStats();
+    EXPECT_EQ(stats.num_iterations, num_samples / batch_size)
+      << "batch_size=" << batch_size;
+    return stats.loss;
+  };
+
+  const float loss_b1 = epoch_loss(1);
+  const float loss_b2 = epoch_loss(2);
+  ASSERT_TRUE(std::isfinite(loss_b1)) << "loss_b1=" << loss_b1;
+  // not the uniform-logit loss: the samples really are scored
+  ASSERT_GT(std::abs(loss_b1 - std::log(32.0f)), 1e-3f);
+  EXPECT_NEAR(loss_b2, loss_b1, 1e-5f * loss_b1);
+
+  std::filesystem::remove(base_path);
 }

@@ -21,6 +21,7 @@ verification independently.
 - [Verification performed](#verification-performed)
 - [How to train](#how-to-train)
 - [Fast on-device training: int8 backward and the GPU-trunk / CPU-head split](#fast-on-device-training-int8-backward-and-the-gpu-trunk--cpu-head-split)
+- [Batch training (`--batch_size`)](#batch-training---batch_size)
 - [Two silent training bugs: clipped gradients sharing memory, frozen inputs overwritten](#two-silent-training-bugs-clipped-gradients-sharing-memory-frozen-inputs-overwritten)
 - [Commit structure](#commit-structure)
 - [Known limitations / follow-ups](#known-limitations--follow-ups)
@@ -644,7 +645,51 @@ when the consuming step ends, which serializes trunk and step). Peak RSS
 - QS4CX on the GPU engine only: Q4_0 GPU GEMM is disabled on Android
   (the CPU repacks Q4_0 to q4_0x4, the device kernel unpacks q4_0x8), and
   the FP16-activation Q4_0 GPU entry is not implemented.
-- `--hybrid_trunk` needs `--lora_last_n` < number of layers; batch size 1.
+- `--hybrid_trunk` needs `--lora_last_n` < number of layers.
+
+## Batch training (`--batch_size`)
+
+`--batch_size N` (app: BATCH SIZE, API JSON: `batch_size`) compiles the
+training graph at batch N. The loss is the batch mean, so one step's
+gradient is the mean of the N per-sample gradients. The data generator still
+writes one sample per call: nntrainer's iteration queue hands it one slot at
+a time and builds the batch itself.
+
+Two things had to be fixed before a batch above 1 trained correctly:
+
+- **Quantized FCs computed only the first batch item.** `FloatTensor::dotQnK`
+  (Q4_0 / Q4_K / Q6_K), `dotQInteger` and `dotQs4cx`, and the matching
+  `HalfTensor` arms, took the GEMM row count from `height()` instead of
+  `batch * channel * height` as `dotFloat` does. Items 1..N-1 kept whatever
+  their output buffer already held. With lr = 0 a batch of 2 scored up to
+  0.05 nats off the mean of its two samples. The QS4CX KAI dX goes through
+  the same `dotQs4cx`, so the backward pass was affected too.
+- **Hybrid read rows went out of step.** nntrainer skips a trailing
+  iteration it cannot fill. In hybrid mode each produced sample has already
+  queued its lm_head read row, and nobody pops the rows of a skipped
+  iteration, so every later sample read its neighbour's row. The generator
+  now ends each epoch after `floor(samples / N) * N` samples. The per-epoch
+  reshuffle changes which samples sit out.
+
+Checked with lr = 0 (weights fixed), batch 2 against batch 1 on the same
+samples, on SM-S948N with `/sdcard/q_qs4` (QS4CX, rank 8, last 7 layers,
+QAT, seq 128):
+
+| run | loss | dA / dB (49 LoRA FCs, `NNTR_TRAIN_GRAD_DUMP`) |
+|-----|------|------------------------------------------------|
+| CPU, 8 samples | every batch-2 step = mean of its two batch-1 steps (6 digits) | worst rel 5.9e-7 |
+| hybrid, 7 samples, 2 epochs | same, including epoch 2 after a skipped sample | worst rel 7.0e-7 |
+
+In the app, batch 4 for 2 epochs on 50 samples ran 12 steps per epoch, at
+about 420 ms per step (hybrid). Valid loss went 3.03 then 1.57. The first
+step's loss matched the mean of the same four samples run at batch 1.
+
+The lr schedule (`--lr_decay_steps`) and the QAT EMA count steps, not
+samples. At batch N an epoch is N times fewer steps, so scale
+`lr_decay_steps` down to keep the same decay per epoch. On the CPU a batch
+does not make training faster per sample. Activation memory grows with N,
+for example the attention weights take `N * heads * seq^2 * 4` bytes per
+layer.
 
 ## Two silent training bugs: clipped gradients sharing memory, frozen inputs overwritten
 

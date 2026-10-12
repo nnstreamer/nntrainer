@@ -42,6 +42,11 @@ void printUsage(const char *prog) {
     << "                        decays once per epoch.\n"
     << "  --lr_decay_steps <f>  decay interval in iterations (see above)\n"
     << "  --epochs <int>        number of epochs (default 1)\n"
+    << "  --batch_size <int>    samples per optimizer step (default 1). The\n"
+    << "                        graph is recompiled at this batch. An epoch\n"
+    << "                        is floor(samples / batch) whole batches; the\n"
+    << "                        reshuffled remainder sits that epoch out.\n"
+    << "                        lr_decay_steps counts these steps.\n"
     << "  --output <path>       LoRA adapter output path\n"
     << "                        (default <model_dir>/lora_adapter.bin)\n"
     << "  --lora_path <path>    resume from an existing LoRA adapter\n"
@@ -230,6 +235,12 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
         nntr_cfg["max_seq_len"] = params.seq_len;
     }
 
+    // The batch is a model property: the graph is compiled at this batch and
+    // nntrainer's IterationQueue groups that many generator samples per
+    // optimizer step. The generator itself stays sample-at-a-time.
+    if (params.batch_size)
+      nntr_cfg["batch_size"] = params.batch_size;
+
     const unsigned int seq_len = nntr_cfg["init_seq_len"].get<unsigned int>();
     const unsigned int vocab_size = cfg["vocab_size"].get<unsigned int>();
 
@@ -258,6 +269,7 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
             : "off")
       << "\n"
       << "epochs:       " << params.epochs << "\n"
+      << "batch_size:   " << nntr_cfg.value("batch_size", 1u) << "\n"
       << "output:       " << output_path << "\n";
     if (!q4_output_path.empty())
       std::cout << "output_q4:    " << q4_output_path << std::endl;
@@ -325,7 +337,12 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
 
     TrainingDataGenerator data_gen(data_path, tokenizer, seq_len, vocab_size,
                                    params.max_samples, params.seed);
-    std::cout << "samples:      " << data_gen.size() << std::endl;
+    // Throws when the batch is larger than the sample count, which would
+    // otherwise train zero iterations and end with the data buffer's own
+    // "No data came while buffer ran".
+    data_gen.setBatchSize(nntr_cfg.value("batch_size", 1u));
+    std::cout << "samples:      " << data_gen.size() << " ("
+              << data_gen.samplesPerEpoch() << " per epoch)" << std::endl;
 
     // Hybrid: the producer thread runs the GPU trunk for each sample and
     // queues the lm_head read row; the head's lm_head pops one per forward
@@ -458,6 +475,9 @@ int main(int argc, char *argv[]) {
         params.lr_decay_steps = std::stof(next("--lr_decay_steps"));
       else if (arg == "--epochs")
         params.epochs = static_cast<unsigned int>(std::stoul(next("--epochs")));
+      else if (arg == "--batch_size")
+        params.batch_size =
+          static_cast<unsigned int>(std::stoul(next("--batch_size")));
       else if (arg == "--output")
         params.output_path = next("--output");
       else if (arg == "--lora_path")

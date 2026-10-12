@@ -521,6 +521,9 @@ if get_option('enable-test')
   unittest_qwen3_lora_training_smoke = executable(
     'unittest_qwen3_lora_training_smoke',
     meson.current_source_dir() / 'models' / 'unittest_qwen3_lora_training_smoke.cpp',
+    # the data-generator contract tests exercise lora_train.cpp itself
+    # (train_qwen3_lora.cpp, the other half of lora_train_src, holds main())
+    meson.current_source_dir() / 'lora_train.cpp',
     dependencies: [nntrainer_dep, nntrainer_ccapi_dep, gtest_main_dep,
                    causallm_dep, causallm_layer_dependencies],
     include_directories: causallm_inc,

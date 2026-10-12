@@ -140,6 +140,17 @@ void TrainingDataGenerator::loadTextFile(const std::string &path,
   reshuffle();
 }
 
+void TrainingDataGenerator::setBatchSize(unsigned int batch_size) {
+  batch_size_ = batch_size ? batch_size : 1;
+  NNTR_THROW_IF(samplesPerEpoch() == 0, std::invalid_argument)
+    << "batch_size " << batch_size_ << " exceeds the " << samples_.size()
+    << " available training samples";
+}
+
+size_t TrainingDataGenerator::samplesPerEpoch() const {
+  return samples_.size() / batch_size_ * batch_size_;
+}
+
 void TrainingDataGenerator::reshuffle() {
   std::shuffle(index_order_.begin(), index_order_.end(), rng_);
   cursor_ = 0;
@@ -190,7 +201,7 @@ int TrainingDataGenerator::next(float **input, float **label, bool *last) {
    * function guarantees.
    */
   ++cursor_;
-  const bool epoch_done = cursor_ >= index_order_.size();
+  const bool epoch_done = cursor_ >= samplesPerEpoch();
   if (epoch_done)
     reshuffle();
   *last = epoch_done;
