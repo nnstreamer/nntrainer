@@ -14,6 +14,7 @@
 #include <var_grad.h>
 #include <weight.h>
 
+#include <decision_head_loss_layer.h>
 #include <lm_head.h>
 #include <lm_head_loss_layer.h>
 #include <mha_core.h>
@@ -1040,5 +1041,179 @@ TEST(CausalLmLoraBackward, LmHeadLossMatchesReferenceAndFiniteDifference) {
     const double numeric = (lp - lm) / (2.0 * eps);
     EXPECT_NEAR(analytic[i], numeric, 1e-3 + 2e-2 * std::abs(numeric))
       << "dL/dx mismatch at " << i;
+  }
+}
+
+namespace {
+
+/** @brief A decision_head_loss over a (B, 1, L, H) input and a V x H tied
+ *  weight whose 26 letter rows are the ids 2, 4, 6, ... */
+struct DecisionHeadFixture {
+  static constexpr unsigned int B = 2, L = 5, H = 6, V = 60;
+  causallm::DecisionHeadLossLayer layer;
+  std::vector<nntrainer::Weight> weights;
+  std::vector<nntrainer::Var_Grad> inputs, outputs, tensors;
+  std::unique_ptr<nntrainer::RunLayerContext> ctx;
+  std::vector<unsigned int> letters;
+
+  explicit DecisionHeadFixture(const std::string &objective,
+                               unsigned int group = 4) {
+    std::string ids;
+    for (unsigned int i = 0; i < 26; ++i) {
+      letters.push_back(2 * i + 2);
+      ids += (i ? "," : "") + std::to_string(2 * i + 2);
+    }
+    layer.setProperty({"unit=" + std::to_string(V), "letter_ids=" + ids,
+                       "objective=" + objective,
+                       "group=" + std::to_string(group), "seed=7"});
+    nntrainer::InitLayerContext init({nntrainer::TensorDim({B, 1, L, H})},
+                                     {true}, false, "decision_head_loss_test",
+                                     "", 0.0f, {"NCHW", "FP32", "FP32"});
+    layer.finalize(init);
+    std::mt19937 rng(11);
+    std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+    nntrainer::Tensor w(nntrainer::TensorDim({1, 1, V, H}), true);
+    for (size_t i = 0; i < w.size(); ++i)
+      w.getData<float>()[i] = dist(rng);
+    weights.emplace_back(w, nntrainer::Tensor(), nntrainer::Tensor(),
+                         "Embedding");
+    inputs.emplace_back(init.getInputDimensions()[0],
+                        nntrainer::Initializer::NONE, true, true, "input");
+    outputs.emplace_back(init.getOutSpecs()[0].variable_spec.dim,
+                         nntrainer::Initializer::NONE, true, true, "output");
+    float *x = inputs[0].getVariableRef().getData<float>();
+    for (size_t i = 0; i < (size_t)B * L * H; ++i)
+      x[i] = dist(rng);
+    ctx = std::make_unique<nntrainer::RunLayerContext>(makeRunContext(
+      "decision_head_loss_test", weights, inputs, outputs, tensors));
+    // sample 0: 4 options, answer 2, readout row 3; sample 1: 3 options,
+    // answer 0, readout row 4
+    float *t = ctx->getOutputGradUnsafe(0).getData<float>();
+    const int k[B] = {4, 3}, ans[B] = {2, 0}, row[B] = {3, 4};
+    for (unsigned int b = 0; b < B; ++b) {
+      for (int i = 0; i < 26; ++i)
+        t[b * 27 + i] = i >= k[b] ? -1.0f : (i == ans[b] ? 1.0f : 0.0f);
+      t[b * 27 + 26] = static_cast<float>(row[b]);
+    }
+  }
+
+  float *x() { return inputs[0].getVariableRef().getData<float>(); }
+  const float *w() { return weights[0].getVariableRef().getData<float>(); }
+
+  /** @brief p over the K options of sample b, computed directly */
+  std::vector<double> probs(unsigned int b, unsigned int k, unsigned int row) {
+    std::vector<double> z(k);
+    double mx = -1e300, se = 0.0;
+    for (unsigned int i = 0; i < k; ++i) {
+      double d = 0.0;
+      for (unsigned int h = 0; h < H; ++h)
+        d += (double)x()[(b * L + row) * H + h] * w()[letters[i] * H + h];
+      z[i] = d;
+      mx = std::max(mx, d);
+    }
+    for (double v : z)
+      se += std::exp(v - mx);
+    for (auto &v : z)
+      v = std::exp(v - mx) / se;
+    return z;
+  }
+};
+
+} // namespace
+
+/**
+ * @brief decision_head_loss, objective sft: option probabilities over the
+ *        declared letters only, loss = mean -log p(answer), dL/dx matches
+ *        central differences and only the readout rows get a gradient.
+ */
+TEST(CausalLmLoraBackward, DecisionHeadSftMatchesReferenceAndFiniteDifference) {
+  DecisionHeadFixture f("sft");
+  f.layer.forwarding(*f.ctx, true);
+  const float *out = f.ctx->getOutput(0).getData<float>();
+  const auto p0 = f.probs(0, 4, 3), p1 = f.probs(1, 3, 4);
+  for (unsigned int i = 0; i < 26; ++i) {
+    EXPECT_NEAR(out[i], i < 4 ? p0[i] : 0.0, 1e-6) << "sample 0 letter " << i;
+    EXPECT_NEAR(out[27 + i], i < 3 ? p1[i] : 0.0, 1e-6)
+      << "sample 1 letter " << i;
+  }
+  const double ref = (-std::log(p0[2]) - std::log(p1[0])) / 2;
+  EXPECT_NEAR(f.ctx->getLoss(), ref, 1e-5);
+  EXPECT_NEAR(out[26], -std::log(p0[2]), 1e-5);
+
+  f.layer.calcDerivative(*f.ctx);
+  const float *dx = f.ctx->getOutgoingDerivative(0).getData<float>();
+  std::vector<float> analytic(dx, dx + DecisionHeadFixture::B *
+                                         DecisionHeadFixture::L *
+                                         DecisionHeadFixture::H);
+  const float eps = 1e-2f;
+  for (size_t i = 0; i < analytic.size(); ++i) {
+    const unsigned int row =
+                         (i / DecisionHeadFixture::H) % DecisionHeadFixture::L,
+                       b =
+                         i / (DecisionHeadFixture::L * DecisionHeadFixture::H);
+    if (row != (b == 0 ? 3u : 4u)) {
+      EXPECT_EQ(analytic[i], 0.0f) << "non-readout element " << i;
+      continue;
+    }
+    const float orig = f.x()[i];
+    f.x()[i] = orig + eps;
+    f.layer.forwarding(*f.ctx, false);
+    const double lp = f.ctx->getLoss();
+    f.x()[i] = orig - eps;
+    f.layer.forwarding(*f.ctx, false);
+    const double lm = f.ctx->getLoss();
+    f.x()[i] = orig;
+    EXPECT_NEAR(analytic[i], (lp - lm) / (2 * eps), 1e-3) << "element " << i;
+  }
+}
+
+/**
+ * @brief decision_head_loss, objectives rlcd / rlvr: averaged over many
+ *        forwards, the sampled REINFORCE dL/dx approaches its expectation.
+ *        With reward r(a) and a leave-one-out baseline (which does not move
+ *        the mean), E[dL/dz] = -sum_a p_a r(a) (e_a - p) per sample, with
+ *        r(a) = 1[a correct] - p_a (rlcd) or 1[a correct] (rlvr), divided by
+ *        the batch, and dL/dx = dL/dz . W_letters.
+ */
+TEST(CausalLmLoraBackward, DecisionHeadReinforceMatchesExpectedGradient) {
+  for (const std::string obj : {"rlcd", "rlvr"}) {
+    DecisionHeadFixture f(obj);
+    constexpr unsigned int B = DecisionHeadFixture::B,
+                           L = DecisionHeadFixture::L,
+                           H = DecisionHeadFixture::H;
+    const unsigned int k[B] = {4, 3}, ans[B] = {2, 0}, row[B] = {3, 4};
+
+    std::vector<double> expect((size_t)B * L * H, 0.0);
+    for (unsigned int b = 0; b < B; ++b) {
+      const auto p = f.probs(b, k[b], row[b]);
+      std::vector<double> dz(k[b], 0.0);
+      for (unsigned int a = 0; a < k[b]; ++a) {
+        const double c = a == ans[b] ? 1.0 : 0.0;
+        const double r = obj == "rlcd" ? c - p[a] : c;
+        for (unsigned int i = 0; i < k[b]; ++i)
+          dz[i] -= p[a] * r * ((i == a ? 1.0 : 0.0) - p[i]);
+      }
+      for (unsigned int i = 0; i < k[b]; ++i)
+        for (unsigned int h = 0; h < H; ++h)
+          expect[(b * L + row[b]) * H + h] +=
+            dz[i] / B * f.w()[f.letters[i] * H + h];
+    }
+
+    const unsigned int n = 40000;
+    std::vector<double> mean(expect.size(), 0.0);
+    for (unsigned int it = 0; it < n; ++it) {
+      f.layer.forwarding(*f.ctx, true);
+      f.layer.calcDerivative(*f.ctx);
+      const float *dx = f.ctx->getOutgoingDerivative(0).getData<float>();
+      for (size_t i = 0; i < mean.size(); ++i)
+        mean[i] += dx[i] / n;
+    }
+    double num = 0.0, den = 0.0;
+    for (size_t i = 0; i < mean.size(); ++i) {
+      num += (mean[i] - expect[i]) * (mean[i] - expect[i]);
+      den += expect[i] * expect[i];
+    }
+    ASSERT_GT(den, 0.0);
+    EXPECT_LT(std::sqrt(num / den), 0.03) << obj;
   }
 }

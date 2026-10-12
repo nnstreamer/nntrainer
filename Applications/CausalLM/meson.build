@@ -76,6 +76,7 @@ causallm_layer_dependencies += [
     causallm_shared_fully_connected_layer_dep,
     causallm_per_layer_slice_dep,
     causallm_lm_head_loss_dep,
+    causallm_decision_head_loss_dep,
     # scalar_multiply and logit_softcapping are core nntrainer layers
 ]
 
@@ -506,7 +507,8 @@ if get_option('enable-test')
     meson.current_source_dir() / 'layers' / 'unittest_lora_backward_gradcheck.cpp',
     dependencies: [nntrainer_dep, gtest_main_dep, causallm_rms_norm_dep,
                    causallm_reshaped_rms_norm_dep,
-                   causallm_mha_core_dep, causallm_lm_head_loss_dep],
+                   causallm_mha_core_dep, causallm_lm_head_loss_dep,
+                   causallm_decision_head_loss_dep],
     include_directories: causallm_layer_inc,
     build_by_default: true,
     install: false,
@@ -535,6 +537,7 @@ if get_option('enable-test')
     # the data-generator contract tests exercise lora_train.cpp itself
     # (train_qwen3_lora.cpp, the other half of lora_train_src, holds main())
     meson.current_source_dir() / 'lora_train.cpp',
+    meson.current_source_dir() / 'decision.cpp',
     dependencies: [nntrainer_dep, nntrainer_ccapi_dep, gtest_main_dep,
                    causallm_dep, causallm_layer_dependencies],
     include_directories: causallm_inc,

@@ -8,6 +8,7 @@
  * @bug    No known bugs except for NYI items
  */
 
+#include <decision.h>
 #include <lora_train.h>
 #include <qwen3_causallm.h>
 #include <residency_policy.h>
@@ -77,7 +78,18 @@ void printUsage(const char *prog) {
     << "                        With --lora_qat, force-feeds the calibrated\n"
     << "                        EMA scales; without it, quantizes the\n"
     << "                        trained FP32 adapter post hoc (PTQ).\n"
-    << "  --seed <int>          RNG seed for epoch shuffling (default 42)\n";
+    << "  --seed <int>          RNG seed for epoch shuffling (default 42)\n"
+    << "  --task <lm|decision>  lm (default): every line of <train_data> is a\n"
+    << "                        text sample, next-token loss on every\n"
+    << "                        position. decision: <train_data> is eve-rlcd\n"
+    << "                        JSONL questions (decision.h) and the model\n"
+    << "                        learns the option letter at the last prompt\n"
+    << "                        token.\n"
+    << "  --objective <o>       decision: sft (default, cross-entropy on the\n"
+    << "                        answer), rlcd (REINFORCE, reward 1[correct] -\n"
+    << "                        p(action)) or rlvr (reward 1[correct])\n"
+    << "  --group <int>         decision rlcd / rlvr: actions sampled per\n"
+    << "                        question (default 4)\n";
 }
 
 } // namespace
@@ -340,6 +352,21 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
                 << ", ...)" << std::endl;
     }
 
+    const bool decision = params.task == "decision";
+    if (!decision && params.task != "lm")
+      throw std::invalid_argument("--task must be lm or decision, got " +
+                                  params.task);
+    if (decision) {
+      model.setDecisionTask(decisionLetterIds(model_path, model.getTokenizer()),
+                            params.decision_objective, params.decision_group,
+                            params.seed);
+      std::cout << "task:         decision (" << params.decision_objective
+                << (params.decision_objective == "sft"
+                      ? ""
+                      : ", group " + std::to_string(params.decision_group))
+                << ")" << std::endl;
+    }
+
     model.initializeForTraining(params.lr, params.epochs, params.lr_decay_rate,
                                 params.lr_decay_steps);
 
@@ -353,7 +380,7 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
         "model has no tokenizer; a tokenizer_file is required for training");
 
     TrainingDataGenerator data_gen(data_path, tokenizer, seq_len, vocab_size,
-                                   params.max_samples, params.seed);
+                                   params.max_samples, params.seed, decision);
     // Throws when the batch is larger than the sample count, which would
     // otherwise train zero iterations and end with the data buffer's own
     // "No data came while buffer ran".
@@ -508,6 +535,13 @@ int main(int argc, char *argv[]) {
         params.qat_ema_momentum = std::stof(next("--qat_ema_momentum"));
       else if (arg == "--seed")
         params.seed = static_cast<unsigned int>(std::stoul(next("--seed")));
+      else if (arg == "--task")
+        params.task = next("--task");
+      else if (arg == "--objective")
+        params.decision_objective = next("--objective");
+      else if (arg == "--group")
+        params.decision_group =
+          static_cast<unsigned int>(std::stoul(next("--group")));
       else if (arg == "--hybrid_trunk")
         params.hybrid_trunk_path = next("--hybrid_trunk");
       else {

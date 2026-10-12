@@ -14,7 +14,11 @@ For each of the first --iters steps, the reference rebuilds the step in FP32
 on the HF checkpoint: base FC weights optionally replaced by nntrainer's QS4CX
 quantize-dequantize (--base qs4cx), the dumped A / B patched into the LoRA
 layers, the loss taken on every position (input ids[:-1], targets ids[1:],
-mean over them, as lm_head_loss does), and backpropagated. With --hybrid (default: auto when hidden_0.bin exists) the
+mean over them, as lm_head_loss does), and backpropagated. With --decision
+<questions.jsonl> (a --task decision run, objective sft) the sample is the
+whole decision prompt and the loss -log softmax over the question's option
+letters at its last token, as decision_head_loss computes it; each dumped
+sample is matched to its question by re-encoding the prompts. With --hybrid (default: auto when hidden_0.bin exists) the
 dumped trunk hidden state replaces the input of the first LoRA layer, so the
 comparison does not depend on how closely the reference reproduces the trunk.
 
@@ -25,6 +29,7 @@ default integer kernels expect a few percent (per-row int8 activations).
 
 import argparse
 import os
+import sys
 
 import numpy as np
 import torch
@@ -78,6 +83,8 @@ def main():
     ap.add_argument("--base", choices=["qs4cx", "fp32"], default="qs4cx",
                     help="base FC weights the device model was built from")
     ap.add_argument("--hybrid", choices=["auto", "on", "off"], default="auto")
+    ap.add_argument("--decision", default="",
+                    help="decision questions JSONL of a --task decision run")
     ap.add_argument("--verbose", action="store_true",
                     help="print every tensor instead of the summary table")
     args = ap.parse_args()
@@ -138,24 +145,46 @@ def main():
 
     samples = [list(map(int, line.split()))
                for line in open(f"{args.dump}/samples.txt")]
+    decision = {}
+    if args.decision:
+        import json
+        from transformers import AutoTokenizer
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..",
+                                        "decision"))
+        from ref_decide import render_prompt
+        tok = AutoTokenizer.from_pretrained(args.hf)
+        letter_ids = [tok.encode(" " + chr(ord("A") + i),
+                                 add_special_tokens=False)[0]
+                      for i in range(26)]
+        for line in open(args.decision):
+            if line.strip():
+                q = json.loads(line)
+                ids = tok.encode(render_prompt(q), add_special_tokens=False)
+                decision[tuple(ids)] = (len(q["choices"]), q["answer"])
     print(f"layers {layers[0]}..{layers[-1]}, rank {rank}, scaling {scaling}, "
           f"base {args.base}, hybrid {hybrid}")
 
     for it in range(1, args.iters + 1):
         ids = samples[it - 1]
+        n_in = len(ids) if decision else len(ids) - 1
         if hybrid:
             hidden["h"] = load(f"{args.dump}/hidden_{it - 1}.bin",
-                               (1, len(ids) - 1, -1))
+                               (1, n_in, -1))
         for (L, key), m in mods.items():
             stem = f"{args.dump}/layer{L}_{key}_it{it}"
             A = load(f"{stem}_A.bin", (m.in_features, rank)).requires_grad_()
             B = load(f"{stem}_B.bin", (rank, m.out_features)).requires_grad_()
             lora[(L, key)] = (A, B)
-        logits = model(torch.tensor([ids[:-1]])).logits[0]
-        loss = torch.nn.functional.cross_entropy(logits,
-                                                 torch.tensor(ids[1:]))
+        if decision:
+            k, answer = decision[tuple(ids)]
+            logits = model(torch.tensor([ids])).logits[0, -1]
+            loss = -torch.log_softmax(logits[letter_ids[:k]], -1)[answer]
+        else:
+            logits = model(torch.tensor([ids[:-1]])).logits[0]
+            loss = torch.nn.functional.cross_entropy(logits,
+                                                     torch.tensor(ids[1:]))
         loss.backward()
-        print(f"iter {it}: tokens {len(ids) - 1}, "
+        print(f"iter {it}: tokens {n_in}, "
               f"reference loss {loss.item():.5f}")
 
         table = {}

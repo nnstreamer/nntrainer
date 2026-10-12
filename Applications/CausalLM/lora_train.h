@@ -35,7 +35,8 @@ namespace causallm {
 
 /**
  * @brief Generates (input, label) training samples from a text file for
- *        Qwen3 LoRA fine-tuning: next-token targets for every position.
+ *        Qwen3 LoRA fine-tuning: next-token targets for every position, or,
+ *        for a decision model, the option letter of each question.
  */
 class TrainingDataGenerator {
 public:
@@ -47,11 +48,18 @@ public:
    * @param max_samples optional cap on the number of samples loaded (0 =
    *        no cap)
    * @param seed RNG seed for deterministic epoch shuffling
+   * @param decision read @a data_path as decision questions (eve-rlcd
+   *        JSONL, see decision.h) instead of text. A sample is then the
+   *        whole decision prompt (cut from the left to seq_len), and its
+   *        label is decision_head_loss's: per letter 1 for the answer, 0 for
+   *        another option, -1 beyond the options, then the readout row
+   *        (the last prompt token). Questions without an answer are
+   *        refused.
    */
   TrainingDataGenerator(const std::string &data_path,
                         tokenizers::Tokenizer *tokenizer, unsigned int seq_len,
                         unsigned int vocab_size, unsigned int max_samples = 0,
-                        unsigned int seed = 42);
+                        unsigned int seed = 42, bool decision = false);
 
   /**
    * @brief ml::train GENERATOR dataset callback signature.
@@ -92,6 +100,8 @@ public:
 private:
   struct Sample {
     std::vector<int32_t> ids; /**< full tokenized sample, unpadded */
+    unsigned int k = 0;       /**< decision: option count (0 = text) */
+    unsigned int answer = 0;  /**< decision: index of the correct option */
   };
 
   std::vector<Sample> samples_;
@@ -104,6 +114,9 @@ private:
 
   void loadTextFile(const std::string &path, tokenizers::Tokenizer *tokenizer,
                     unsigned int max_samples);
+  void loadDecisionFile(const std::string &path,
+                        tokenizers::Tokenizer *tokenizer,
+                        unsigned int max_samples);
   void reshuffle();
 };
 
@@ -151,6 +164,11 @@ struct TrainParams {
   bool lora_weight_q4 = false;   ///< also save a Q4_0 adapter
   float qat_ema_momentum = 0.0f; ///< EMA momentum for QAT scale update
   unsigned int seed = 42;        ///< RNG seed for epoch shuffling
+  /** "lm": next-token loss on every position of text lines; "decision":
+   *  train a decision model on eve-rlcd JSONL questions (decision.h). */
+  std::string task = "lm";
+  std::string decision_objective = "sft"; ///< decision: sft | rlcd | rlvr
+  unsigned int decision_group = 4; ///< decision rlcd / rlvr: actions/sample
 };
 
 /**

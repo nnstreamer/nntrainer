@@ -23,6 +23,7 @@ verification independently.
 - [Fast on-device training: int8 backward and the GPU-trunk / CPU-head split](#fast-on-device-training-int8-backward-and-the-gpu-trunk--cpu-head-split)
 - [Batch training (`--batch_size`)](#batch-training---batch_size)
 - [Loss on every position (`lm_head_loss`)](#loss-on-every-position-lm_head_loss)
+- [Decision models (RLCD)](#decision-models-rlcd-nntr_decide---task-decision)
 - [Two silent training bugs: clipped gradients sharing memory, frozen inputs overwritten](#two-silent-training-bugs-clipped-gradients-sharing-memory-frozen-inputs-overwritten)
 - [Commit structure](#commit-structure)
 - [Known limitations / follow-ups](#known-limitations--follow-ups)
@@ -753,6 +754,136 @@ SM-S948N, hybrid, batch 4, plain-text lines of 10 to 20 tokens,
 `lm_head_loss` takes 260 to 300 ms of a 550 to 680 ms step
 (`NNTR_TRAIN_PROF`). In the app, 2 epochs on 50 such lines took 11.2 s and
 12.1 s per epoch (7.4 s / 8.0 s training). Valid loss went 4.61 then 3.87.
+
+## Decision models (RLCD): `nntr_decide`, `--task decision`
+
+[anthonym21/qwen3-0.6b-rlcd-decision](https://huggingface.co/anthonym21/qwen3-0.6b-rlcd-decision)
+is a Qwen3-0.6B body that answers questions instead of generating text.
+It reads a context and a question with 2 to 26 options and returns a
+probability per option: the softmax over the logits of the letter tokens
+` A`..` Z` at the last prompt token, cut to the first K letters. The prompt is
+fixed (`decision.h`):
+
+```
+User: Context:
+<context>
+
+Question: <question>
+Options:
+A) <option>
+B) <option>
+Answer with the letter only.
+Assistant: The answer is
+```
+
+The model ties its embeddings, and its `decision_head.safetensors` is exactly
+the 26 letter rows of the input embedding (max |diff| 0). So a converted
+model reads its decision head from its own tied lm head, and the body is a
+plain Qwen3 graph.
+
+### Converting and quantizing
+
+```
+# host: HF -> nntrainer FP32 (the checkpoint is a bare Qwen3Model)
+python3 res/qwen3/qwen3-0.6b/weight_converter.py --model_path <hf dir> \
+  --output_name <out>/nntr_qwen3_0.6b_rlcd_fp32.bin
+# <out>: config.json with "architectures": ["Qwen3ForCausalLM"] (the
+# converted graph has the tied head), tokenizer.json, decision.json, a
+# generation_config.json with bos/eos 151643 (the repo ships none), and an
+# FP32 nntr_config.json (init_seq_len 512)
+# device: nntr_quantize (NNTR_ENGINE=cpu)
+nntr_quantize <out> --fc_dtype QS4CX -o /sdcard/q_rlcd_qs4        # CPU head
+nntr_quantize <stage FP32-FP16> --fc_dtype QS4CX --embd_dtype Q6_K \
+  --lmhead_dtype Q6_K -o /sdcard/q_rlcd_qs4_gpu                    # GPU trunk
+```
+
+The FP32-FP16 stage for the trunk comes from
+`weight_converter_layergraph.py --norm_fp16`, which now also reads the bare
+`Qwen3Model` tensor names. Copy `decision.json` next to each quantized model.
+
+### Inference
+
+`nntr_decide <model_dir> <questions.jsonl>` runs one prefill per question
+(`CausalLM::promptLogits()`) and prints value, probs, confidence,
+entropy_confidence, plus score for score questions or p_true for noul
+questions. A question is an eve-rlcd JSONL row:
+`{"primitive": "choice" | "score" | "noul", "context", "question",
+"choices", "answer"}`. The whole prompt is cut from the left to the token
+budget, as the model's training did. eve-rlcd's `Decider` cuts the context
+and the question separately; the two agree whenever the prompt fits.
+
+Checked against PyTorch (`tools/decision/ref_decide.py`, which reproduces the
+model card: INFRASTRUCTURE 0.86970, P0_CRITICAL 0.99255, p_true 0.88949) on
+the card's three questions and 60 synthetic triage tickets, on SM-S948N, CPU:
+
+| model | argmax = reference | max abs prob diff | mean TV distance | ms / question |
+|-------|--------------------|-------------------|------------------|---------------|
+| FP32 | 63 / 63 | 0.0024 | 0.0001 | 760 |
+| QS4CX-FP32 | 60 / 63 | 0.58 | 0.082 | 127 |
+| Q4_0-FP32 | 59 / 63 | 0.67 | 0.047 | 184 |
+
+The 4-bit models agree with the reference on most answers but move the
+probabilities, which is what this model is about (calibration). For
+calibrated output use FP32, or measure on your own data first.
+
+### Training
+
+`nntr_lora_train <model> <questions.jsonl> --task decision --objective
+sft|rlcd|rlvr [--group 4]` (app: TASK / OBJECTIVE; `trainLora()` JSON:
+`task`, `objective`, `group`). The training graph ends in
+`decision_head_loss` (`layers/decision_head_loss_layer.cpp`) instead of
+`lm_head_loss`. The layer reads the hidden state at the last prompt token,
+multiplies it by the 26 letter rows of the tied embedding, and takes a
+softmax over the question's K letters. Its label carries, per letter, 1 for
+the answer, 0 for another option and -1 beyond K, plus the readout row. The
+objectives follow eve-rlcd:
+
+- `sft`: `-log p(answer)`.
+- `rlcd`: per question, draw `group` actions from p and reward each with
+  `1[correct] - p(action)`. The advantage is the reward minus the
+  leave-one-out mean of the group's rewards, and the loss is
+  `-mean(advantage * log p(action))`. The label only supplies the
+  environment's outcome. In expectation this is half the Brier-score
+  gradient, which is what keeps the model calibrated.
+- `rlvr`: the same with reward `1[correct]`.
+
+The reported loss is always the mean `-log p(answer)`, so the curves of the
+three objectives read the same. Only the head's 26 rows are touched, so the
+head costs next to nothing, unlike `lm_head_loss`.
+
+Checked:
+
+- `unittest_lora_backward_gradcheck`: sft probabilities, loss and `dL/dx`
+  against a direct computation and central differences. For rlcd / rlvr, the
+  mean `dL/dx` over 40000 sampled forwards matches the exact expected
+  REINFORCE gradient `-sum_a p_a r(a) (e_a - p)` to 3%.
+- x86, FP32 model, lr 0: the epoch loss 1.21058 equals the PyTorch mean
+  `-log p(answer)` 1.21058.
+- SM-S948N, `/sdcard/q_rlcd_qs4`, sft with FP32 forward / dX against
+  `ref_grad.py --decision`: step loss 4.3996 / 4.39953, and dA / dB of all 49
+  LoRA FCs within 0.07%.
+- 60 synthetic triage questions, batch 4, 3 epochs, lr 5e-5, CPU: valid
+  `-log p(answer)` goes 0.699 / 0.652 / 0.592 with sft and 0.723 / 0.721 /
+  0.705 with rlcd. In the app (hybrid, `/sdcard/q_rlcd_qs4_gpu` as the
+  trunk, rlcd, QAT), the same run goes 0.723 / 0.717 / 0.700 at 7.5 to 9.4 s
+  per epoch.
+- The trained adapters, loaded by `nntr_decide` through `lora_file_name`
+  (it loads an adapter the way `nntr_causallm` does), on the same 60
+  questions:
+
+  | adapter | accuracy | -log p(answer) | Brier |
+  |---------|----------|----------------|-------|
+  | none | 0.767 | 0.720 | 0.363 |
+  | rlcd, app (hybrid) | 0.783 | 0.710 | 0.327 |
+  | sft, CLI | 0.783 | 0.583 | 0.331 |
+  | rlcd, CLI | 0.800 | 0.699 | 0.323 |
+
+  Each objective improves the score it optimizes: sft the log-loss, rlcd
+  the Brier score. Loading a QAT run's `_q4` adapter through
+  `lora_q4_file_name` fails ("element count mismatch"): `load_weight_lora_q4`
+  reads each tensor's byte size from the graph, whose LoRA tensors are FP32
+  here. That is the existing Q4 adapter path, not specific to decision
+  models; use the FP32 adapter.
 
 ## Two silent training bugs: clipped gradients sharing memory, frozen inputs overwritten
 

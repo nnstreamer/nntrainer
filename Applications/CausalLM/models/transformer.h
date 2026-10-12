@@ -606,10 +606,25 @@ public:
   virtual void resetLogitsProcessor() {}
 
   /**
+   * @brief Train a decision model instead of a language model: the training
+   *        graph ends in decision_head_loss (the 26 letter rows of the tied
+   *        embedding at the last prompt token) rather than lm_head_loss.
+   *        Call before initializeForTraining().
+   * @param letter_ids token ids of " A".." Z" (decisionLetterIds())
+   * @param objective sft, rlcd or rlvr (see decision_head_loss_layer.h)
+   * @param group actions sampled per sample by rlcd / rlvr
+   * @param seed seed of the action sampler
+   */
+  void setDecisionTask(const std::vector<int32_t> &letter_ids,
+                       const std::string &objective, unsigned int group = 4,
+                       unsigned int seed = 0);
+
+  /**
    * @brief Build and compile the symbolic transformer graph for LoRA
    *        training (ExecutionMode::TRAIN), as opposed to initialize()
-   *        which always compiles for INFERENCE. Adds a `cross_softmax`
-   *        loss layer on top of constructModel()'s output. Only
+   *        which always compiles for INFERENCE. The graph ends in its loss
+   *        layer: lm_head_loss, or decision_head_loss after
+   *        setDecisionTask(). Only
    *        loraA/loraB weights (inside FC layers targeted by lora_target)
    *        end up trainable; every other layer is frozen — see
    *        hasLoRA()/appendLoRAProps() and their call sites in
@@ -996,6 +1011,18 @@ protected:
    *  frozen and only loraA/loraB train. From nntr_cfg's
    *  "lora_train_norms". */
   bool TRAIN_NORMS = false;
+
+  /** What a training graph learns: "lm" (next token at every position,
+   *  lm_head_loss) or "decision" (the option letter at the last prompt
+   *  token, decision_head_loss; see setDecisionTask()). */
+  std::string TRAIN_TASK = "lm";
+  /** decision task: the 26 letter token ids, comma-separated, the
+   *  objective sft | rlcd | rlvr, actions sampled per sample by rlcd / rlvr
+   *  and the sampler seed. */
+  std::string DECISION_LETTER_IDS;
+  std::string DECISION_OBJECTIVE = "sft";
+  unsigned int DECISION_GROUP = 4;
+  unsigned int DECISION_SEED = 0;
 
   /** Set by initializeForTraining() before constructModel() runs, so
    *  createAttention() can skip attaching the external-KV-cache

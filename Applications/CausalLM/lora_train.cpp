@@ -9,6 +9,8 @@
  */
 #include <lora_train.h>
 
+#include <decision.h>
+
 #include <nntrainer_error.h>
 
 #include <algorithm>
@@ -67,9 +69,34 @@ TrainingDataGenerator::TrainingDataGenerator(const std::string &data_path,
                                              unsigned int seq_len,
                                              unsigned int vocab_size,
                                              unsigned int max_samples,
-                                             unsigned int seed) :
+                                             unsigned int seed, bool decision) :
   seq_len_(seq_len), vocab_size_(vocab_size), rng_(seed) {
-  loadTextFile(data_path, tokenizer, max_samples);
+  if (decision)
+    loadDecisionFile(data_path, tokenizer, max_samples);
+  else
+    loadTextFile(data_path, tokenizer, max_samples);
+  index_order_.resize(samples_.size());
+  std::iota(index_order_.begin(), index_order_.end(), 0);
+  reshuffle();
+}
+
+void TrainingDataGenerator::loadDecisionFile(const std::string &path,
+                                             tokenizers::Tokenizer *tokenizer,
+                                             unsigned int max_samples) {
+  for (const auto &q : readDecisionQuestions(path)) {
+    if (max_samples && samples_.size() >= max_samples)
+      break;
+    if (q.answer < 0)
+      throw std::invalid_argument(
+        "decision training needs an answer on every question: " + path);
+    Sample s;
+    s.ids = encodeDecisionPrompt(tokenizer, q, seq_len_);
+    s.k = static_cast<unsigned int>(q.choices.size());
+    s.answer = static_cast<unsigned int>(q.answer);
+    samples_.push_back(std::move(s));
+  }
+  if (samples_.empty())
+    throw std::runtime_error("No usable decision questions found in " + path);
 }
 
 void TrainingDataGenerator::loadTextFile(const std::string &path,
@@ -134,10 +161,6 @@ void TrainingDataGenerator::loadTextFile(const std::string &path,
 
   if (samples_.empty())
     throw std::runtime_error("No usable training samples found in " + path);
-
-  index_order_.resize(samples_.size());
-  std::iota(index_order_.begin(), index_order_.end(), 0);
-  reshuffle();
 }
 
 void TrainingDataGenerator::setBatchSize(unsigned int batch_size) {
@@ -158,7 +181,11 @@ void TrainingDataGenerator::reshuffle() {
 
 int TrainingDataGenerator::next(float **input, float **label, bool *last) {
   const Sample &s = samples_[index_order_[cursor_]];
-  const unsigned int used = static_cast<unsigned int>(s.ids.size() - 1);
+  // A text sample's last token is only a target; a decision prompt is read
+  // whole, the readout at its last token.
+  const bool decision = s.k > 0;
+  const unsigned int used =
+    static_cast<unsigned int>(s.ids.size() - (decision ? 0 : 1));
 
   /// [DIAG] NNTR_TRAIN_GRAD_DUMP=<dir>: record each produced sample's ids
   if (const char *dump = std::getenv("NNTR_TRAIN_GRAD_DUMP")) {
@@ -182,14 +209,22 @@ int TrainingDataGenerator::next(float **input, float **label, bool *last) {
       in[i] = static_cast<float>(s.ids[i]);
   }
 
-  // Next-token targets: position i (input token ids[i]) is scored against
-  // ids[i + 1]. The padding after the sample is not scored (-1).
   float *lbl = label[0];
-  std::fill(lbl, lbl + seq_len_, -1.0f);
-  for (unsigned int i = 0; i < used; ++i) {
-    const int32_t t = s.ids[i + 1];
-    if (t >= 0 && static_cast<unsigned int>(t) < vocab_size_)
-      lbl[i] = static_cast<float>(t);
+  if (decision) {
+    // decision_head_loss's label: per letter 1 (answer) / 0 (another
+    // option) / -1 (beyond the options), then the readout row
+    for (unsigned int i = 0; i < DECISION_MAX_CHOICES; ++i)
+      lbl[i] = i >= s.k ? -1.0f : (i == s.answer ? 1.0f : 0.0f);
+    lbl[DECISION_MAX_CHOICES] = static_cast<float>(used - 1);
+  } else {
+    // Next-token targets: position i (input token ids[i]) is scored against
+    // ids[i + 1]. The padding after the sample is not scored (-1).
+    std::fill(lbl, lbl + seq_len_, -1.0f);
+    for (unsigned int i = 0; i < used; ++i) {
+      const int32_t t = s.ids[i + 1];
+      if (t >= 0 && static_cast<unsigned int>(t) < vocab_size_)
+        lbl[i] = static_cast<float>(t);
+    }
   }
 
   ++cursor_;

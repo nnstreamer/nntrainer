@@ -943,6 +943,16 @@ Tensor CausalLM::buildLmHeadOutput(Tensor h, bool add_skip_prefill) {
     };
     if (HEAD_FROM_LAYER == 0)
       props.emplace_back(withKey("shared_from", "embedding0"));
+    if (TRAIN_TASK == "decision") {
+      NNTR_THROW_IF(DECISION_LETTER_IDS.empty(), std::invalid_argument)
+        << "decision task without letter ids (see setDecisionTask())";
+      props.emplace_back(withKey("letter_ids", DECISION_LETTER_IDS));
+      props.emplace_back(withKey("objective", DECISION_OBJECTIVE));
+      props.emplace_back(withKey("group", DECISION_GROUP));
+      props.emplace_back(withKey("seed", DECISION_SEED));
+      LayerHandle head_loss(createLayer("decision_head_loss", props));
+      return head_loss(h);
+    }
     LayerHandle head_loss(createLayer("lm_head_loss", props));
     return head_loss(h);
   }

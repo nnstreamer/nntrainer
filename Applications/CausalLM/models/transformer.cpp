@@ -54,6 +54,7 @@
 #include <transformer.h>
 
 #include <cpu_backend.h>
+#include <decision_head_loss_layer.h>
 #include <embedding_layer.h>
 #include <fc_layer.h>
 #include <lm_head_loss_layer.h>
@@ -600,6 +601,25 @@ void Transformer::initialize() {
 #ifdef DEBUG
   model->summarize(std::cout, ML_TRAIN_SUMMARY_MODEL);
 #endif
+}
+
+void Transformer::setDecisionTask(const std::vector<int32_t> &letter_ids,
+                                  const std::string &objective,
+                                  unsigned int group, unsigned int seed) {
+  NNTR_THROW_IF(letter_ids.size() != 26, std::invalid_argument)
+    << "a decision task needs 26 letter ids, got " << letter_ids.size();
+  NNTR_THROW_IF(objective != "sft" && objective != "rlcd" &&
+                  objective != "rlvr",
+                std::invalid_argument)
+    << "decision objective must be sft, rlcd or rlvr, got " << objective;
+  std::string ids;
+  for (int32_t id : letter_ids)
+    ids += (ids.empty() ? "" : ",") + std::to_string(id);
+  TRAIN_TASK = "decision";
+  DECISION_LETTER_IDS = ids;
+  DECISION_OBJECTIVE = objective;
+  DECISION_GROUP = group;
+  DECISION_SEED = seed;
 }
 
 /**
@@ -1733,6 +1753,7 @@ void Transformer::registerCustomLayers() {
   // tie_word_embedding promoted to core — self-registered on cpu/gpu/cuda.
   tryRegister("cpu", nntrainer::createLayer<causallm::EmbeddingLayer>);
   tryRegister("cpu", nntrainer::createLayer<causallm::LmHeadLossLayer>);
+  tryRegister("cpu", nntrainer::createLayer<causallm::DecisionHeadLossLayer>);
 
   // GPU variants: same type strings as the CPU classes but registered on the
   // gpu context so engine=gpu createLayer routes there. The GPU classes use raw
