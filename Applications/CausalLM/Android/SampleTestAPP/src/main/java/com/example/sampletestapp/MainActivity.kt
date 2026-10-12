@@ -257,6 +257,14 @@ class MainActivity : AppCompatActivity() {
      *  JSONL questions); objective sft | rlcd | rlvr for "decision". */
     private var trainTask: String = "lm"
     private var trainObjective: String = "sft"
+    /** (trainLora() value, dropdown label) */
+    private val TRAIN_TASKS = listOf(
+        "lm" to "Language model — text lines, next-token loss",
+        "decision" to "Decision model — JSONL questions")
+    private val TRAIN_OBJECTIVES = listOf(
+        "sft" to "SFT — supervised on the answer",
+        "rlcd" to "RLCD — RL, reward correct − p",
+        "rlvr" to "RLVR — RL, reward correct")
     private var trainSeqLen: String = "256"
     private var trainLoraRank: String = "8"
     private var trainLoraAlpha: String = "16"
@@ -856,10 +864,24 @@ class MainActivity : AppCompatActivity() {
             spacerH(r1, 8); r1.addView(labeledColumn(t, "EPOCHS", roundedEditText(t, trainEpochs, mono = true) { trainEpochs = it }, 1f))
             spacerH(r1, 8); r1.addView(labeledColumn(t, "BATCH SIZE", roundedEditText(t, trainBatchSize, mono = true) { trainBatchSize = it }, 1f))
             content.addView(r1); spacer(content, 8)
-            val rTask = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-            rTask.addView(labeledColumn(t, "TASK (lm / decision)", roundedEditText(t, trainTask, mono = true) { trainTask = it }, 1f))
-            spacerH(rTask, 8); rTask.addView(labeledColumn(t, "OBJECTIVE (sft / rlcd / rlvr)", roundedEditText(t, trainObjective, mono = true) { trainObjective = it }, 1f))
-            content.addView(rTask); spacer(content, 8)
+            content.addView(labelView(t, "TASK"))
+            content.addView(dropdownField(t, TRAIN_TASKS.map { it.second },
+                    TRAIN_TASKS.first { it.first == trainTask }.second) { picked ->
+                trainTask = TRAIN_TASKS.first { it.second == picked }.first
+                rebuildUi()
+            })
+            spacer(content, 8)
+            // Text training has one loss (next token at every position); the
+            // objective only chooses how a decision model learns.
+            if (trainTask == "decision") {
+                content.addView(labelView(t, "OBJECTIVE"))
+                content.addView(dropdownField(t, TRAIN_OBJECTIVES.map { it.second },
+                        TRAIN_OBJECTIVES.first { it.first == trainObjective }.second) { picked ->
+                    trainObjective = TRAIN_OBJECTIVES.first { it.second == picked }.first
+                    rebuildUi()
+                })
+                spacer(content, 8)
+            }
             val r2 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
             r2.addView(labeledColumn(t, "SEQ LEN", roundedEditText(t, trainSeqLen, mono = true) { trainSeqLen = it }, 1f))
             spacerH(r2, 8); r2.addView(labeledColumn(t, "MAX SAMPLES", roundedEditText(t, trainMaxSamples, mono = true) { trainMaxSamples = it }, 1f))
@@ -2492,7 +2514,8 @@ class MainActivity : AppCompatActivity() {
         sb.append(",\"epochs\":").append(trainEpochs.trim().toIntOrNull() ?: 1)
         sb.append(",\"batch_size\":").append(trainBatchSize.trim().toIntOrNull() ?: 1)
         sb.append(",\"task\":\"").append(escapeJson(trainTask.trim().ifEmpty { "lm" })).append('"')
-        sb.append(",\"objective\":\"").append(escapeJson(trainObjective.trim().ifEmpty { "sft" })).append('"')
+        if (trainTask == "decision")
+            sb.append(",\"objective\":\"").append(escapeJson(trainObjective.trim().ifEmpty { "sft" })).append('"')
         sb.append(",\"seq_len\":").append(trainSeqLen.trim().toIntOrNull() ?: 0)
         sb.append(",\"lora_rank\":").append(trainLoraRank.trim().toIntOrNull() ?: 0)
         sb.append(",\"lora_alpha\":").append(trainLoraAlpha.trim().toIntOrNull() ?: 0)
