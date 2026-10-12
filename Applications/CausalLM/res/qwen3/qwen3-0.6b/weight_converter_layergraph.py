@@ -56,6 +56,10 @@ def make_reader(path, hdr, data_offset):
     }
 
     def read(name):
+        # A bare Qwen3Model checkpoint (no LM head, e.g. a decision model)
+        # names its tensors without the "model." prefix.
+        if name not in hdr and name.startswith("model."):
+            name = name[len("model."):]
         meta = hdr[name]
         dt = meta["dtype"]
         shape = meta["shape"]

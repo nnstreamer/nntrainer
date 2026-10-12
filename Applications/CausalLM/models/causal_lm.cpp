@@ -849,6 +849,48 @@ void CausalLM::trunkHidden(const int32_t *ids, unsigned int used,
     releaseLogitsBuf(o);
 }
 
+std::vector<float> CausalLM::promptLogits(const std::vector<int32_t> &ids) {
+  NNTR_THROW_IF(TRUNK_LAYERS > 0, std::runtime_error)
+    << "promptLogits() needs the full graph, not a trunk";
+  const unsigned int used = static_cast<unsigned int>(ids.size());
+  NNTR_THROW_IF(used == 0 || used > (unsigned int)INIT_SEQ_LEN,
+                std::invalid_argument)
+    << "promptLogits: " << used << " tokens, the prefill window is "
+    << INIT_SEQ_LEN << " (init_seq_len)";
+
+  allocateAndBindKVCache();
+  setKVCachePosition(0);
+
+  std::vector<float> input_sample((size_t)BATCH_SIZE * MAX_SEQ_LEN, 0.0f);
+  for (unsigned int i = 0; i < used; ++i)
+    input_sample[i] = static_cast<float>(ids[i]);
+
+  std::vector<std::pair<std::string, float *>> cache_inputs;
+  for (int i = 0; i < NUM_LAYERS; ++i) {
+    cache_inputs.emplace_back(
+      "cache_k_l" + std::to_string(i),
+      reinterpret_cast<float *>(kv_cache.getKeyCache(i).getData()));
+    cache_inputs.emplace_back(
+      "cache_v_l" + std::to_string(i),
+      reinterpret_cast<float *>(kv_cache.getValueCache(i).getData()));
+  }
+  std::sort(cache_inputs.begin(), cache_inputs.end(),
+            [](const auto &a, const auto &b) { return a.first < b.first; });
+  std::vector<float *> inputs;
+  inputs.push_back(input_sample.data());
+  for (const auto &c : cache_inputs)
+    inputs.push_back(c.second);
+
+  std::vector<float *> outs =
+    incrementalInference(BATCH_SIZE, inputs, used, 0, used);
+  NNTR_THROW_IF(outs.empty() || outs[0] == nullptr, std::runtime_error)
+    << "promptLogits: the model produced no logits";
+  std::vector<float> logits(outs[0], outs[0] + NUM_VOCAB);
+  for (float *o : outs)
+    releaseLogitsBuf(o);
+  return logits;
+}
+
 void CausalLM::setKVCachePosition(unsigned int pos) {
   kv_cache.setPosition(pos);
   std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>

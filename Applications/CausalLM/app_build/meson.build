@@ -417,6 +417,7 @@ if get_option('enable-api')
       causallm_root / 'api' / 'streamer.cpp',
       causallm_root / 'api' / 'callback_streamer.cpp',
       causallm_root / 'lora_train.cpp',
+      causallm_root / 'decision.cpp',
       causallm_root / 'train_qwen3_lora.cpp',
       dependencies: [nntrainer_dep, causallm_dep, openmp_dep, thread_dep, log_dep],
       cpp_args: quick_dot_ai_inc_args + quick_dot_ai_api_cpp_args,
@@ -465,7 +466,18 @@ executable('nntr_causallm',
 # lora_file_name in nntr_config.json.
 executable('nntr_lora_train',
     [causallm_root / 'lora_train.cpp',
+     causallm_root / 'decision.cpp',
      causallm_root / 'train_qwen3_lora.cpp'],
+    dependencies: [nntrainer_dep, causallm_dep, openmp_dep, thread_dep,
+                   log_dep],
+    cpp_args: causallm_inc_args,
+    install: false,
+)
+
+# ── nntr_decide: answer decision questions with a decision model ─────────
+executable('nntr_decide',
+    [causallm_root / 'decide_main.cpp',
+     causallm_root / 'decision.cpp'],
     dependencies: [nntrainer_dep, causallm_dep, openmp_dep, thread_dep,
                    log_dep],
     cpp_args: causallm_inc_args,

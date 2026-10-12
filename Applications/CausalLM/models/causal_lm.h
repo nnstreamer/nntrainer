@@ -114,6 +114,13 @@ public:
                    float *out);
 
   /**
+   * @brief Prefill @a ids from position 0 and return the vocabulary logits
+   *        at the last of them (what generation would sample from). One
+   *        forward, nothing generated; the KV cache is reset first.
+   */
+  std::vector<float> promptLogits(const std::vector<int32_t> &ids);
+
+  /**
    * @brief Destroy the CausalLM object
    */
   virtual ~CausalLM() {
