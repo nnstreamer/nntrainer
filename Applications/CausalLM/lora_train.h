@@ -7,17 +7,12 @@
  * @brief  Text-file training data generator for Qwen3 LoRA fine-tuning.
  * @bug    No known bugs except for NYI items
  *
- * @details Each line of the input file is one training sample. A sample is
- *          tokenized, then split into (input, label) as: label = last
- *          token id (one-hot over vocab_size), input = every token before
- *          it, right-padded with 0 to seq_len. Because attention is causal,
- *          right-padding after the real content never corrupts the hidden
- *          state at the last real position - but the LM head's default read
- *          row is height-1 (a pad slot), so next() also points
- *          causallm::g_lm_head_read_row / g_tie_embedding_lm_head_read_row
- *          (see lm_head.h / tie_word_embedding.h) at the last *real* token
- *          before returning each sample, exactly as the model's forward
- *          pass for that sample is about to expect.
+ * @details Each line of the input file is one training sample. A sample of
+ *          n tokens is split into (input, label) as: input = its first
+ *          n - 1 token ids, right-padded with 0 to seq_len; label = the next
+ *          token id of every input position (ids[1..n-1]), -1 on the
+ *          padding. Every real position is scored (lm_head_loss_layer.h);
+ *          causal attention keeps the padding from reaching them.
  *
  *          A line is treated as "chat format" (joined as a single sample
  *          rather than split into multiple lines) whenever the file
@@ -40,8 +35,7 @@ namespace causallm {
 
 /**
  * @brief Generates (input, label) training samples from a text file for
- *        Qwen3 LoRA fine-tuning, matching the model's single-label-per-
- *        sample (last real token predicts the next token) training scheme.
+ *        Qwen3 LoRA fine-tuning: next-token targets for every position.
  */
 class TrainingDataGenerator {
 public:
@@ -49,7 +43,7 @@ public:
    * @param data_path path to a plain-text or chat-format training file
    * @param tokenizer tokenizer used to encode each sample (not owned)
    * @param seq_len fixed input width every sample is right-padded to
-   * @param vocab_size width of the one-hot label
+   * @param vocab_size vocabulary size; a target id outside it is not scored
    * @param max_samples optional cap on the number of samples loaded (0 =
    *        no cap)
    * @param seed RNG seed for deterministic epoch shuffling
@@ -61,8 +55,7 @@ public:
 
   /**
    * @brief ml::train GENERATOR dataset callback signature.
-   * @details Fills one sample's (input, label), sets the LM-head read-row
-   *          globals for that sample, and reshuffles at each epoch
+   * @details Fills one sample's (input, label) and reshuffles at each epoch
    *          boundary. `*last` is set true after the final sample of an
    *          epoch (matching ml::train::DatasetGenCb semantics).
    */
@@ -84,12 +77,11 @@ public:
   /**
    * @brief End every epoch on a whole batch.
    * @details nntrainer skips a trailing iteration it cannot fill to the batch
-   *          size, so the samples in it are produced but never trained on. In
-   *          hybrid mode each produced sample has also queued its lm_head read
-   *          row, which nobody pops, and every later sample then reads its
-   *          neighbour's row. Ending the epoch after floor(size / batch) *
-   *          batch samples means no partial iteration is ever formed. The
-   *          reshuffle at every epoch changes which samples sit out.
+   *          size, so the samples in it are produced but never trained on --
+   *          in hybrid mode after the GPU trunk has already run them. Ending
+   *          the epoch after floor(size / batch) * batch samples means no
+   *          partial iteration is ever formed. The reshuffle at every epoch
+   *          changes which samples sit out.
    * @param batch_size the model's training batch size (0 is taken as 1)
    */
   void setBatchSize(unsigned int batch_size);

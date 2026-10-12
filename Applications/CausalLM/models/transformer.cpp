@@ -56,6 +56,7 @@
 #include <cpu_backend.h>
 #include <embedding_layer.h>
 #include <fc_layer.h>
+#include <lm_head_loss_layer.h>
 #include <mha_core.h>
 #include <neuralnet.h>
 #include <per_layer_slice_gpu.h>
@@ -632,10 +633,9 @@ void Transformer::initializeForTraining(float lr, unsigned int epochs,
     throw std::invalid_argument("Failed to set optimizer.");
   }
 
-  auto [x, h] = constructModel();
-
-  LayerHandle loss(createLayer("cross_softmax", {withKey("name", "loss")}));
-  Tensor y = loss(h);
+  // The training graph already ends in its loss: the lm head of a training
+  // graph is the lm_head_loss layer (see CausalLM::buildLmHeadOutput()).
+  auto [x, y] = constructModel();
 
   // compile(Tensor, Tensor, mode) internally compiles + initializes.
   if (model->compile(x, y, ml::train::ExecutionMode::TRAIN)) {
@@ -1732,6 +1732,7 @@ void Transformer::registerCustomLayers() {
   tryRegister("cpu", nntrainer::createLayer<causallm::MHACoreLayer>);
   // tie_word_embedding promoted to core — self-registered on cpu/gpu/cuda.
   tryRegister("cpu", nntrainer::createLayer<causallm::EmbeddingLayer>);
+  tryRegister("cpu", nntrainer::createLayer<causallm::LmHeadLossLayer>);
 
   // GPU variants: same type strings as the CPU classes but registered on the
   // gpu context so engine=gpu createLayer routes there. The GPU classes use raw

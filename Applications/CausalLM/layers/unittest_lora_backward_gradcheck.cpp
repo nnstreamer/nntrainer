@@ -15,6 +15,7 @@
 #include <weight.h>
 
 #include <lm_head.h>
+#include <lm_head_loss_layer.h>
 #include <mha_core.h>
 #include <reshaped_rms_norm.h>
 #include <rms_norm.h>
@@ -27,6 +28,7 @@
 #include <functional>
 #include <limits>
 #include <memory>
+#include <random>
 #include <vector>
 
 namespace {
@@ -922,5 +924,121 @@ TEST(CausalLmLoraBackward, TieWordEmbeddingEmbeddingModeCalcGradientScatters) {
     EXPECT_NEAR(dw[2 * hidden + h], 0.0f, 1e-6) << "row 2 must stay zero";
     EXPECT_NEAR(dw[4 * hidden + h], 0.0f, 1e-6) << "row 4 must stay zero";
     EXPECT_NEAR(dw[5 * hidden + h], 0.0f, 1e-6) << "row 5 must stay zero";
+  }
+}
+
+/**
+ * @brief lm_head_loss: the batch loss is the mean over the scored positions
+ *        of -log softmax(x W^T)[target] (positions labelled -1 are skipped),
+ *        each position's loss is published in the output, and calcDerivative
+ *        returns dL/dx. Sized so the 40 scored rows cross the 32-row chunk
+ *        and the 4101-word vocabulary crosses a 4096-column GEMM split.
+ */
+TEST(CausalLmLoraBackward, LmHeadLossMatchesReferenceAndFiniteDifference) {
+  const unsigned int B = 2, L = 24, H = 8, V = 4101;
+
+  causallm::LmHeadLossLayer layer;
+  ASSERT_NO_THROW(layer.setProperty({"unit=" + std::to_string(V)}));
+  nntrainer::InitLayerContext init_context(
+    {nntrainer::TensorDim({B, 1, L, H})}, {true}, false,
+    "lm_head_loss_gradcheck", "", 0.0f, {"NCHW", "FP32", "FP32"});
+  ASSERT_NO_THROW(layer.finalize(init_context));
+  ASSERT_EQ(init_context.getOutSpecs()[0].variable_spec.dim,
+            nntrainer::TensorDim({B, 1, 1, L}));
+
+  std::mt19937 rng(3);
+  std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+
+  std::vector<nntrainer::Weight> weights;
+  std::vector<nntrainer::Var_Grad> inputs, outputs, tensors;
+  nntrainer::Tensor w(nntrainer::TensorDim({1, 1, V, H}), true);
+  for (size_t i = 0; i < w.size(); ++i)
+    w.getData<float>()[i] = dist(rng);
+  weights.emplace_back(w, nntrainer::Tensor(), nntrainer::Tensor(),
+                       "Embedding");
+  inputs.emplace_back(init_context.getInputDimensions()[0],
+                      nntrainer::Initializer::NONE, true, true, "input");
+  outputs.emplace_back(init_context.getOutSpecs()[0].variable_spec.dim,
+                       nntrainer::Initializer::NONE, true, true, "output");
+  float *x = inputs[0].getVariableRef().getData<float>();
+  for (size_t i = 0; i < (size_t)B * L * H; ++i)
+    x[i] = dist(rng);
+
+  auto run_context =
+    makeRunContext("lm_head_loss_gradcheck", weights, inputs, outputs, tensors);
+
+  // batch 0: 23 scored positions then padding; batch 1: 17, one of them
+  // unscored in the middle, then padding
+  float *label = run_context.getOutputGradUnsafe(0).getData<float>();
+  std::uniform_int_distribution<unsigned int> tok(0, V - 1);
+  for (unsigned int b = 0; b < B; ++b)
+    for (unsigned int i = 0; i < L; ++i)
+      label[b * L + i] = -1.0f;
+  for (unsigned int i = 0; i < 23; ++i)
+    label[i] = static_cast<float>(tok(rng));
+  for (unsigned int i = 0; i < 18; ++i)
+    label[L + i] = i == 5 ? -1.0f : static_cast<float>(tok(rng));
+
+  auto reference = [&](std::vector<double> &per_pos) {
+    const float *wd = w.getData<float>();
+    double sum = 0.0;
+    unsigned int n = 0;
+    per_pos.assign((size_t)B * L, 0.0);
+    for (unsigned int r = 0; r < B * L; ++r) {
+      if (label[r] < 0.0f)
+        continue;
+      std::vector<double> lg(V);
+      double mx = -std::numeric_limits<double>::infinity();
+      for (unsigned int v = 0; v < V; ++v) {
+        double d = 0.0;
+        for (unsigned int h = 0; h < H; ++h)
+          d += (double)x[r * H + h] * wd[(size_t)v * H + h];
+        lg[v] = d;
+        mx = std::max(mx, d);
+      }
+      double se = 0.0;
+      for (unsigned int v = 0; v < V; ++v)
+        se += std::exp(lg[v] - mx);
+      per_pos[r] = mx + std::log(se) - lg[static_cast<unsigned int>(label[r])];
+      sum += per_pos[r];
+      ++n;
+    }
+    return sum / n;
+  };
+
+  layer.forwarding(run_context, true);
+  std::vector<double> per_pos;
+  const double ref_loss = reference(per_pos);
+  EXPECT_NEAR(run_context.getLoss(), ref_loss, 1e-4 * ref_loss);
+  const float *out = run_context.getOutput(0).getData<float>();
+  for (unsigned int r = 0; r < B * L; ++r)
+    EXPECT_NEAR(out[r], per_pos[r], 1e-4 * (1.0 + per_pos[r]))
+      << "position " << r;
+
+  layer.calcDerivative(run_context);
+  std::vector<float> analytic(run_context.getOutgoingDerivative(0).size());
+  std::copy(run_context.getOutgoingDerivative(0).getData<float>(),
+            run_context.getOutgoingDerivative(0).getData<float>() +
+              analytic.size(),
+            analytic.begin());
+
+  // padding rows get no gradient
+  for (unsigned int i = 23 * H; i < L * H; ++i)
+    EXPECT_EQ(analytic[i], 0.0f) << "padding element " << i;
+
+  // central difference of the reported loss, every input element
+  const float eps = 1e-2f;
+  for (size_t i = 0; i < analytic.size(); ++i) {
+    const float orig = x[i];
+    x[i] = orig + eps;
+    layer.forwarding(run_context, false);
+    const double lp = run_context.getLoss();
+    x[i] = orig - eps;
+    layer.forwarding(run_context, false);
+    const double lm = run_context.getLoss();
+    x[i] = orig;
+    const double numeric = (lp - lm) / (2.0 * eps);
+    EXPECT_NEAR(analytic[i], numeric, 1e-3 + 2e-2 * std::abs(numeric))
+      << "dL/dx mismatch at " << i;
   }
 }

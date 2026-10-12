@@ -75,6 +75,7 @@ causallm_layer_dependencies += [
     causallm_deberta_attention_layer_dep,
     causallm_shared_fully_connected_layer_dep,
     causallm_per_layer_slice_dep,
+    causallm_lm_head_loss_dep,
     # scalar_multiply and logit_softcapping are core nntrainer layers
 ]
 
@@ -495,7 +496,7 @@ if get_option('enable-test')
     meson.current_source_dir() / 'layers' / 'unittest_lora_backward_gradcheck.cpp',
     dependencies: [nntrainer_dep, gtest_main_dep, causallm_rms_norm_dep,
                    causallm_reshaped_rms_norm_dep,
-                   causallm_mha_core_dep],
+                   causallm_mha_core_dep, causallm_lm_head_loss_dep],
     include_directories: causallm_layer_inc,
     build_by_default: true,
     install: false,

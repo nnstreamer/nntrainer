@@ -182,24 +182,16 @@ int TrainingDataGenerator::next(float **input, float **label, bool *last) {
       in[i] = static_cast<float>(s.ids[i]);
   }
 
-  std::fill(label[0], label[0] + vocab_size_, 0.0f);
-  const int32_t label_id = s.ids.back();
-  if (label_id >= 0 && static_cast<unsigned int>(label_id) < vocab_size_)
-    label[0][label_id] = 1.0f;
+  // Next-token targets: position i (input token ids[i]) is scored against
+  // ids[i + 1]. The padding after the sample is not scored (-1).
+  float *lbl = label[0];
+  std::fill(lbl, lbl + seq_len_, -1.0f);
+  for (unsigned int i = 0; i < used; ++i) {
+    const int32_t t = s.ids[i + 1];
+    if (t >= 0 && static_cast<unsigned int>(t) < vocab_size_)
+      lbl[i] = static_cast<float>(t);
+  }
 
-  /**
-   * @note The lm head must read the row of the last *real* token
-   * (used - 1), not row (seq_len_ - 1) which is padding. That row index is
-   * deliberately NOT published from here: nntrainer runs this generator on
-   * a separate producer thread that may prefetch ahead of the trainer, so
-   * anything written here is both invisible to the training thread and
-   * liable to describe the wrong sample by the time it is forwarded.
-   * Instead the embedding layer re-derives it from the token ids during the
-   * forward pass — see g_tie_embedding_lm_head_read_row in
-   * tie_word_embedding.h. That derivation relies on padding being id 0 and
-   * real tokens being placed strictly before it, which is what this
-   * function guarantees.
-   */
   ++cursor_;
   const bool epoch_done = cursor_ >= samplesPerEpoch();
   if (epoch_done)

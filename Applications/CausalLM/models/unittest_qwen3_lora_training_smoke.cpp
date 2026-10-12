@@ -82,8 +82,8 @@ causallm::json makeTinyNntrainerConfig(unsigned int lora_rank,
 }
 
 /** @brief Synthetic in-memory next-token-classification generator matching
- *  the (single-label-per-sample) training scheme the LM-head layers assume:
- *  a fixed-length input of token ids and a one-hot label over vocab_size. */
+ *  the training graph's lm_head_loss: a fixed-length input of token ids and
+ *  a next-token id for every position. */
 struct SyntheticDataGen {
   unsigned int seq_len;
   unsigned int vocab_size;
@@ -94,8 +94,8 @@ struct SyntheticDataGen {
     for (unsigned int i = 0; i < seq_len; ++i)
       input[0][i] = static_cast<float>(tok(rng));
 
-    std::fill(label[0], label[0] + vocab_size, 0.0f);
-    label[0][tok(rng)] = 1.0f;
+    for (unsigned int i = 0; i < seq_len; ++i)
+      label[0][i] = static_cast<float>(tok(rng));
 
     *last = true;
     return ML_ERROR_NONE;
@@ -309,9 +309,9 @@ private:
  *  the batch itself), so this is the size the generator is allowed to write.
  *  A generator that writes a whole batch runs into `canary`.
  */
-template <unsigned int SEQ, unsigned int VOCAB> struct FencedSample {
+template <unsigned int SEQ> struct FencedSample {
   float input[SEQ];
-  float label[VOCAB];
+  float label[SEQ];
   static constexpr float CANARY = -12345.0f;
   float canary[8];
   FencedSample() { std::fill(canary, canary + 8, CANARY); }
@@ -349,12 +349,12 @@ TEST(Qwen3LoraTrainingSmoke, DataGeneratorYieldsOneSamplePerCall) {
   causallm::TrainingDataGenerator gen(data_path, &tokenizer, SEQ, VOCAB);
   ASSERT_EQ(gen.size(), num_lines);
 
-  FencedSample<SEQ, VOCAB> buf;
+  FencedSample<SEQ> buf;
   unsigned int samples = 0;
   bool last = false;
   while (!last) {
-    std::fill(buf.input, buf.input + SEQ, -1.0f);
-    std::fill(buf.label, buf.label + VOCAB, -1.0f);
+    std::fill(buf.input, buf.input + SEQ, -2.0f);
+    std::fill(buf.label, buf.label + SEQ, -2.0f);
 
     float *in = buf.input;
     float *lbl = buf.label;
@@ -371,13 +371,14 @@ TEST(Qwen3LoraTrainingSmoke, DataGeneratorYieldsOneSamplePerCall) {
     EXPECT_EQ(in[SEQ - 1], 0.0f)
       << "sample " << samples << " filled the whole sequence, expected padding";
 
-    // the label is a one-hot over exactly one class
-    unsigned int hot = 0;
-    for (unsigned int i = 0; i < VOCAB; ++i)
-      if (lbl[i] == 1.0f)
-        ++hot;
-    EXPECT_EQ(hot, 1u) << "sample " << samples << " set " << hot
-                       << " label classes";
+    // the label is the next token of every real position, -1 on padding
+    for (unsigned int i = 0; i + 1 < non_pad; ++i)
+      EXPECT_EQ(lbl[i], in[i + 1]) << "sample " << samples << " position " << i;
+    EXPECT_GT(lbl[non_pad - 1], 0.0f)
+      << "sample " << samples << ": the last real position has no target";
+    EXPECT_LT(lbl[non_pad - 1], static_cast<float>(VOCAB));
+    for (unsigned int i = non_pad; i < SEQ; ++i)
+      EXPECT_EQ(lbl[i], -1.0f) << "sample " << samples << " padding " << i;
 
     EXPECT_TRUE(buf.intact())
       << "sample " << samples
@@ -419,7 +420,7 @@ TEST(Qwen3LoraTrainingSmoke, DataGeneratorEndsEpochOnWholeBatch) {
   ASSERT_NO_THROW(gen.setBatchSize(4));
   EXPECT_EQ(gen.samplesPerEpoch(), 8u);
 
-  FencedSample<SEQ, VOCAB> buf;
+  FencedSample<SEQ> buf;
   for (unsigned int epoch = 0; epoch < 3; ++epoch) {
     unsigned int samples = 0;
     bool last = false;
@@ -454,8 +455,8 @@ struct FixedSampleGen {
     std::uniform_int_distribution<unsigned int> tok(1, vocab_size - 1);
     for (unsigned int i = 0; i < seq_len; ++i)
       input[0][i] = static_cast<float>(tok(rng));
-    std::fill(label[0], label[0] + vocab_size, 0.0f);
-    label[0][tok(rng)] = 1.0f;
+    for (unsigned int i = 0; i < seq_len; ++i)
+      label[0][i] = static_cast<float>(tok(rng));
 
     *last = ++cursor == num_samples;
     if (*last)

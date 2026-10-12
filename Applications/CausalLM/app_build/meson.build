@@ -252,6 +252,7 @@ causallm_src = [
   causallm_root / 'layers' / 'mha_core.cpp',
   causallm_root / 'layers' / 'reshaped_rms_norm.cpp',
   causallm_root / 'layers' / 'custom_multiply.cpp',
+  causallm_root / 'layers' / 'lm_head_loss_layer.cpp',
   causallm_root / 'layers' / 'causal_conv1d_layer.cpp',
   causallm_root / 'layers' / 'rms_norm.cpp',
   causallm_root / 'layers' / 'rms_reverse_norm.cpp',

@@ -13,8 +13,8 @@ numerics"):
 For each of the first --iters steps, the reference rebuilds the step in FP32
 on the HF checkpoint: base FC weights optionally replaced by nntrainer's QS4CX
 quantize-dequantize (--base qs4cx), the dumped A / B patched into the LoRA
-layers, the loss taken on the last token (input ids[:-1], label ids[-1]), and
-backpropagated. With --hybrid (default: auto when hidden_0.bin exists) the
+layers, the loss taken on every position (input ids[:-1], targets ids[1:],
+mean over them, as lm_head_loss does), and backpropagated. With --hybrid (default: auto when hidden_0.bin exists) the
 dumped trunk hidden state replaces the input of the first LoRA layer, so the
 comparison does not depend on how closely the reference reproduces the trunk.
 
@@ -151,11 +151,11 @@ def main():
             A = load(f"{stem}_A.bin", (m.in_features, rank)).requires_grad_()
             B = load(f"{stem}_B.bin", (rank, m.out_features)).requires_grad_()
             lora[(L, key)] = (A, B)
-        logits = model(torch.tensor([ids[:-1]])).logits[0, -1]
-        loss = torch.nn.functional.cross_entropy(logits[None],
-                                                 torch.tensor([ids[-1]]))
+        logits = model(torch.tensor([ids[:-1]])).logits[0]
+        loss = torch.nn.functional.cross_entropy(logits,
+                                                 torch.tensor(ids[1:]))
         loss.backward()
-        print(f"iter {it}: tokens {len(ids) - 1}, label {ids[-1]}, "
+        print(f"iter {it}: tokens {len(ids) - 1}, "
               f"reference loss {loss.item():.5f}")
 
         table = {}

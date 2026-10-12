@@ -11,21 +11,17 @@
 #include <lora_train.h>
 #include <qwen3_causallm.h>
 #include <residency_policy.h>
-#include <tie_word_embedding.h>
 #include <transformer.h>
 
 #include <dataset.h>
 #include <model.h>
 
 #include <chrono>
-#include <condition_variable>
 #include <cstdio>
 #include <cstdlib>
-#include <deque>
 #include <filesystem>
 #include <iostream>
 #include <memory>
-#include <mutex>
 #include <string>
 
 namespace {
@@ -365,20 +361,14 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
     std::cout << "samples:      " << data_gen.size() << " ("
               << data_gen.samplesPerEpoch() << " per epoch)" << std::endl;
 
-    // Hybrid: the producer thread runs the GPU trunk for each sample and
-    // queues the lm_head read row; the head's lm_head pops one per forward
-    // (both phases consume samples in the order they were produced).
-    struct RowQueue {
-      std::mutex m;
-      std::condition_variable cv;
-      std::deque<unsigned int> q;
-    };
-    auto rows = std::make_shared<RowQueue>();
+    // Hybrid: the producer thread runs the GPU trunk for each sample, so the
+    // trunk of the next sample overlaps the current training step. Which
+    // positions are scored travels with the sample, in its label.
     if (hybrid) {
       const unsigned int L = seq_len;
       Qwen3CausalLM *t = trunk.get();
-      data_gen.input_writer = [t, L, rows](const int32_t *ids,
-                                           unsigned int used, float *input) {
+      data_gen.input_writer = [t, L](const int32_t *ids, unsigned int used,
+                                     float *input) {
         const auto t0 = std::chrono::steady_clock::now();
         t->trunkHidden(ids, used, L, input);
         /// [DIAG] NNTR_TRAIN_GRAD_DUMP=<dir>: the trunk hidden of the first
@@ -408,18 +398,6 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
                     << used << " tokens)" << std::endl;
           acc = 0;
         }
-        {
-          std::lock_guard<std::mutex> lk(rows->m);
-          rows->q.push_back(used - 1);
-        }
-        rows->cv.notify_one();
-      };
-      nntrainer::g_tie_embedding_read_row_source = [rows]() {
-        std::unique_lock<std::mutex> lk(rows->m);
-        rows->cv.wait(lk, [&] { return !rows->q.empty(); });
-        const unsigned int r = rows->q.front();
-        rows->q.pop_front();
-        return r;
       };
     }
 
@@ -457,11 +435,9 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
     model.train(onEpochComplete, &bridge, nullptr, nullptr, iteration_wrapper,
                 nullptr);
 
-    nntrainer::g_tie_embedding_read_row_source = nullptr;
     std::cout << "training complete; best valid_loss=" << bridge.best_loss
               << ", adapter at " << output_path << std::endl;
   } catch (const std::exception &e) {
-    nntrainer::g_tie_embedding_read_row_source = nullptr;
     std::cerr << "Error: " << e.what() << std::endl;
     return EXIT_FAILURE;
   }

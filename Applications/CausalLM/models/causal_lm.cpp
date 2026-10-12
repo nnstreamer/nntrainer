@@ -886,6 +886,24 @@ void CausalLM::advanceKVCachePosition(unsigned int step_size) {
  */
 Tensor CausalLM::buildLmHeadOutput(Tensor h, bool add_skip_prefill) {
   const bool lmhead_untied = LMHEAD_UNTIE;
+
+  // Training scores every position (next-token loss, padding masked), so the
+  // head and the loss are one layer that never materializes the (L, vocab)
+  // logits; see lm_head_loss_layer.h. Same name and weight as the tied head,
+  // so the checkpoint and the embedding share resolve unchanged.
+  if (FOR_TRAINING) {
+    NNTR_THROW_IF(!TIE_WORD_EMBEDDINGS || lmhead_untied, std::invalid_argument)
+      << "LoRA training supports tied word embeddings only";
+    std::vector<std::string> props = {
+      withKey("name", "output_of_causallm"), withKey("unit", NUM_VOCAB),
+      withKey("weight_dtype", LMHEAD_DTYPE), withKey("engine", layerEngine()),
+      withKey("trainable", "false"),
+    };
+    if (HEAD_FROM_LAYER == 0)
+      props.emplace_back(withKey("shared_from", "embedding0"));
+    LayerHandle head_loss(createLayer("lm_head_loss", props));
+    return head_loss(h);
+  }
   const std::string lmhead_type =
     lmhead_untied ? "fully_connected"
                   : (TIE_WORD_EMBEDDINGS ? "tie_word_embeddings" : "lm_head");

@@ -22,6 +22,7 @@ verification independently.
 - [How to train](#how-to-train)
 - [Fast on-device training: int8 backward and the GPU-trunk / CPU-head split](#fast-on-device-training-int8-backward-and-the-gpu-trunk--cpu-head-split)
 - [Batch training (`--batch_size`)](#batch-training---batch_size)
+- [Loss on every position (`lm_head_loss`)](#loss-on-every-position-lm_head_loss)
 - [Two silent training bugs: clipped gradients sharing memory, frozen inputs overwritten](#two-silent-training-bugs-clipped-gradients-sharing-memory-frozen-inputs-overwritten)
 - [Commit structure](#commit-structure)
 - [Known limitations / follow-ups](#known-limitations--follow-ups)
@@ -152,7 +153,8 @@ includes `lm_head` (never a LoRA target — see `causal_lm.cpp`) and, unless
 ### Training entrypoint
 
 `Transformer::initializeForTraining(lr, epochs)` builds the same model graph
-as inference but in `ExecutionMode::TRAIN`, appends a loss layer, and sets up
+as inference but in `ExecutionMode::TRAIN`, with the lm head replaced by the
+`lm_head_loss` layer (see [Loss on every position](#loss-on-every-position-lm_head_loss)), and sets up
 optimizer/batch/epoch properties; `train()`/`getTrainingStats()`/
 `getValidStats()`/`setDataset()` are thin wrappers around the underlying
 `NeuralNetwork` calls. `save_weight_lora()`/`load_weight_lora()` handle the
@@ -167,8 +169,8 @@ reference graph, not clones — see [the memory bugs](#two-memory-bugs).
 
 `lora_train.cpp`/`.h` (`TrainingDataGenerator`) tokenizes a text file
 (plain-text or chat-format, auto-detected), right-pads every sample to a
-fixed sequence length, shuffles epochs with a seeded `mt19937`, and tracks
-each sample's true last-token position for the read-row mechanism above.
+fixed sequence length, shuffles epochs with a seeded `mt19937`, and labels
+every position with its next token (-1 on padding).
 `train_qwen3_lora.cpp` is the `nntr_lora_train` CLI driver. Full flag list:
 
 ```
@@ -657,8 +659,9 @@ when the consuming step ends, which serializes trunk and step). Peak RSS
 ## Batch training (`--batch_size`)
 
 `--batch_size N` (app: BATCH SIZE, API JSON: `batch_size`) compiles the
-training graph at batch N. The loss is the batch mean, so one step's
-gradient is the mean of the N per-sample gradients. The data generator still
+training graph at batch N. The loss is the mean over all scored tokens of
+the batch, so one step's gradient is the token-weighted mean of the N
+per-sample gradients. The data generator still
 writes one sample per call: nntrainer's iteration queue hands it one slot at
 a time and builds the batch itself.
 
@@ -676,7 +679,8 @@ Two things had to be fixed before a batch above 1 trained correctly:
   queued its lm_head read row, and nobody pops the rows of a skipped
   iteration, so every later sample read its neighbour's row. The generator
   now ends each epoch after `floor(samples / N) * N` samples. The per-epoch
-  reshuffle changes which samples sit out.
+  reshuffle changes which samples sit out. (The read-row queue itself went
+  away with the every-position loss below; the whole-batch epoch stays.)
 
 Checked with lr = 0 (weights fixed), batch 2 against batch 1 on the same
 samples, on SM-S948N with `/sdcard/q_qs4` (QS4CX, rank 8, last 7 layers,
@@ -698,6 +702,57 @@ samples. At batch N an epoch is N times fewer steps, so scale
 does not make training faster per sample. Activation memory grows with N,
 for example the attention weights take `N * heads * seq^2 * 4` bytes per
 layer.
+
+## Loss on every position (`lm_head_loss`)
+
+Training used to score only the last token of a sample: input `ids[:-1]`,
+one label `ids[-1]`, and the lm head projected a single "read row" per batch
+item. A sample now trains on every position, like any causal LM: input
+`ids[:-1]` right-padded to `seq_len`, label `ids[1:]` (the next token of each
+position), `-1` on the padding. The loss is the mean of
+`-log softmax(h W^T)[target]` over the scored positions of the batch, which is
+what PyTorch's `cross_entropy(logits, ids[1:])` computes for one sample.
+
+At vocab 151936 the logits of one sample are 78 MB at `seq_len` 128, so the
+head and the loss are one layer, `lm_head_loss`
+(`layers/lm_head_loss_layer.cpp`), and that tensor never exists.
+`forwarding()` takes the scored rows 32 at a time: logits for the chunk (FP32
+GEMM split over the vocabulary across the compute threads), log-softmax and
+loss, and in training `dL/dlogits`, multiplied straight back through `W`
+into `dL/dx` (GEMM split over hidden). `calcDerivative()` hands that `dL/dx`
+on. `W` is the tied embedding (`shared_from` embedding0; in a hybrid head
+graph the head's own copy) and stays frozen, so there is no `dW`. The label
+carries which positions count, so the read-row globals and the hybrid
+read-row queue are no longer used for training. Tied embeddings only.
+
+Checked:
+
+- `unittest_lora_backward_gradcheck`
+  `LmHeadLossMatchesReferenceAndFiniteDifference`: 2 x 24 positions with
+  padding and a masked middle position, vocab 4101 (crosses both the 32-row
+  chunk and the 4096-column split). Loss and per-position loss match a direct
+  double-precision computation to 1e-4, and `dL/dx` matches central
+  differences for every input element.
+- Against PyTorch on SM-S948N (`/sdcard/q_qs4`, plain-text lines, FP32
+  forward and dX, `tools/lora_gradcheck`): the step loss matches the
+  reference to 4e-4 relative (5.54168 / 5.54213, 4.48337 / 4.48360, 5.25659 /
+  5.25435). dA / dB of the 49 LoRA FCs are within 1% of the reference for most
+  layers, 2.6% at worst. `check_update.py` finds 0 / 49 wrong updates.
+- Batch 2 against batch 1 with lr = 0: every batch-2 step loss equals the
+  token-weighted mean of its two batch-1 steps (CPU and hybrid). The gradients
+  agree to 2.8e-6 with FP32 dX. With the default KAI dX they agree to 1e-7
+  when the two samples have the same length, but only to a few percent when
+  they do not. KAI quantizes each `dY` row to int8. The batch rescales `dY`
+  from 1/n to 1/(n1 + n2), and when that is not a power of two, values that sit
+  on a rounding boundary flip, so the 1 to 5% quantization error of KAI dX
+  (`NNTR_TRAIN_DX_CHECK`) comes out differently. The GEMM itself gives
+  bit-identical rows batched or not.
+
+Cost: the head now runs for every scored position, not one per sample. On
+SM-S948N, hybrid, batch 4, plain-text lines of 10 to 20 tokens,
+`lm_head_loss` takes 260 to 300 ms of a 550 to 680 ms step
+(`NNTR_TRAIN_PROF`). In the app, 2 epochs on 50 such lines took 11.2 s and
+12.1 s per epoch (7.4 s / 8.0 s training). Valid loss went 4.61 then 3.87.
 
 ## Two silent training bugs: clipped gradients sharing memory, frozen inputs overwritten
 
