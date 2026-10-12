@@ -2015,6 +2015,11 @@ public:
   bool isVirtual() const { return is_virtual; }
 
   /**
+   * @brief whether a virtual tensor is mapped now (activate() done)
+   */
+  bool isActivated() const { return mapped_ptr != nullptr; }
+
+  /**
    * @brief The model file descriptor a virtual tensor captured at read()
    *        time, or -1. What a backend needs, with getFileOffset(), to
    *        read a virtual weight's bytes itself instead of through
