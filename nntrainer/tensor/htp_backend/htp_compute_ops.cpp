@@ -2745,8 +2745,31 @@ public:
           --kind_next_[kind]; // the layer builds its table and calls again
           return 3;
         }
-        setParam(session, r, HTP_GRAPH_PARAM_ROPE_TABLE, param, param_len,
-                 graph_words_[6] * rec->head_dim, "RoPE table");
+        // [#4416 D6] a table equal to one a bound ROPE op of this head_dim
+        // holds is shared by name: the bytes cross once a distinct table
+        // (S26 Ultra, p1024: 30 binds were 439 ms of the first token)
+        const uint32_t want = graph_words_[6] * rec->head_dim;
+        uint32_t src = HTP_GRAPH_NO_OP;
+        for (const auto &t : rope_tables_)
+          if (t.second.size() == param_len && param_len == want &&
+              std::memcmp(t.second.data(), param, param_len * sizeof(float)) ==
+                0) {
+            src = t.first;
+            break;
+          }
+        if (src != HTP_GRAPH_NO_OP) {
+          const int err = nntr_hvx_graph_share_param(
+            session, r, HTP_GRAPH_PARAM_ROPE_TABLE, src);
+          if (err != AEE_SUCCESS)
+            throw std::runtime_error(
+              "nntr_hvx_graph_share_param(RoPE table) failed at op " +
+              std::to_string(r) + ": " + graphErr(err));
+        } else {
+          setParam(session, r, HTP_GRAPH_PARAM_ROPE_TABLE, param, param_len,
+                   want, "RoPE table");
+          rope_tables_.emplace_back(
+            r, std::vector<float>(param, param + param_len));
+        }
         param_bound_[r] = 1;
       }
       // The DSP cache must hold rows [0, pos): seed it from the layer's
@@ -8687,6 +8710,8 @@ private:
   uint32_t cur_pos_ = HTP_GRAPH_NO_OP;
   bool row_bound_ = false; /**< every MoE op bound when this row began */
   std::vector<uint8_t> param_bound_;
+  /** [#4416 D6] the distinct RoPE tables bound: (ROPE op, its bytes) */
+  std::vector<std::pair<uint32_t, std::vector<float>>> rope_tables_;
   std::vector<uint32_t> conv_next_pos_;
   std::vector<uint32_t> kv_len_;
   bool attn_registered_ = false;

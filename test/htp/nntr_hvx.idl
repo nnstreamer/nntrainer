@@ -702,6 +702,14 @@ interface nntr_hvx : remote_handle64 {
    AEEResult graph_set_param(in uint32 op, in uint32 which,
                              in sequence<float> data);
 
+   // [#4416 D6] ROPE op `op` shares the table ROPE op `src_op` already
+   // holds (which = ROPE_TABLE only): the ARM sends a layer's table once
+   // and points the layers that have the same one at it (Gemma 4: 2 of
+   // 30 tables cross, not 30 x 2 MiB through the heap-argument copy and
+   // the DSP's memcmp -- 439 ms of the first token on the S26 Ultra).
+   AEEResult graph_share_param(in uint32 op, in uint32 which,
+                               in uint32 src_op);
+
    // [#132] The MoE router of one token (hvx_m1_ops_f32.c's
    // hvx_router_topk_f32) against the scalar spec m1_router_cpu_det
    // (nntrainer/tensor/m1_ops_det.h; the Android CPU's order since #132
