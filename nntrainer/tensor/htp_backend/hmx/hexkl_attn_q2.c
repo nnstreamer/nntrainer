@@ -58,7 +58,6 @@
 #include "hexkl_cvt.h"
 #include "hexkl_dma_ring.h"
 #include "hexkl_hmx_mm.h"
-#include "hexkl_micro.h"
 #include "hvx_attn_softmax_f16.h"
 #include "hvx_convert.h"
 #include "hvx_softmax_q.h"
@@ -579,13 +578,13 @@ static inline void two_sweeps(ctx *c, const uint8_t *act_hi,
   const uint8_t *blk8 = blocks;
   const uint8_t *blk0 = blocks + HEXKL_CVT_BLOCK_BYTES;
   const uint8_t *blkm8 = blocks + 2u * HEXKL_CVT_BLOCK_BYTES;
-  hexkl_micro_hmx_acc_clear_int32();
+  hexkl_hmx_acc_clear_int32();
   for (uint32_t p = 0; p < n_pk; ++p) {
     hexkl_hmx_mm_u8i8(act_hi + (size_t)p * act_step, wt + (size_t)p * wt_step);
   }
   acc_to_planes(blk8, blk0, a_lo, a_hi);
   cvt_fence(a_hi);
-  hexkl_micro_hmx_acc_clear_int32();
+  hexkl_hmx_acc_clear_int32();
   for (uint32_t p = 0; p < n_pk; ++p) {
     hexkl_hmx_mm_u8i8(act_lo + (size_t)p * act_step, wt + (size_t)p * wt_step);
   }

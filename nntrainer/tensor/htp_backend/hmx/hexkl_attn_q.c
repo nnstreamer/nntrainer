@@ -338,7 +338,7 @@ static int phase_qk(attn_ctx *c, uint32_t n, uint32_t kb, uint32_t buf,
   for (uint32_t i = 0; i < c->L.n_row_tiles; ++i) {
     for (uint32_t col = 0; col < c->L.n_col_tiles; ++col) {
       uint64_t t0 = now_us();
-      hexkl_micro_hmx_acc_clear_int32();
+      hexkl_hmx_acc_clear_int32();
       if (q4) {
         for (uint32_t d = 0; d < c->L.n_dot_tiles; ++d) {
           hexkl_hmx_mm_u8i4(q_tile(c, c->qi, i, d), kt_tile(c, buf, col, d));
@@ -558,7 +558,7 @@ static int phase_pv(attn_ctx *c, uint32_t buf, int first) {
   for (uint32_t i = 0; i < c->L.n_row_tiles; ++i) {
     for (uint32_t d = 0; d < c->L.n_dot_tiles; ++d) {
       uint64_t t0 = now_us();
-      hexkl_micro_hmx_acc_clear_int32();
+      hexkl_hmx_acc_clear_int32();
       if (q4) {
         for (uint32_t col = 0; col < c->L.n_col_tiles; ++col) {
           hexkl_hmx_mm_u8i4(p_tile(c, i, col), v_tile(c, buf, col, d));

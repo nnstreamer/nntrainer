@@ -33,6 +33,22 @@
  * HEXKL_ATTN_TILE_BYTES (2048) and weights at multiples of 1024 (int8) or
  * 512 (int4). hexkl_hmx_mm_aligned() states that as one check per kernel
  * call instead of one per multiply.
+ *
+ * hexkl_hmx_acc_clear_int32() is the same argument for the clear that
+ * opens every accumulation. hexkl_micro_hmx_acc_clear_int32() takes no
+ * arguments and returns a code nobody reads, but it is still a call: the
+ * compiler gives the caller a stack frame and spills what is live across
+ * it. The a16 attention kernel clears twice per 16 multiplies, and on an
+ * S26 Ultra (v81, 2112 MHz) issuing the packet inline measured qk -6.3 %
+ * and pv -6.7 % on the 1024-row Gemma-4 sliding shape with the kernel's
+ * output unchanged. The packet is the one the library issues:
+ *
+ *   mxclracc                                    int32 accumulator
+ *
+ * (the fp16 accumulator's is mxclracc.hf; this header has no caller for
+ * it yet). The clear takes no memory operand, so there is nothing to
+ * check per call and no host-side alignment question -- off the DSP it
+ * stays the library call, which the HMX stand-in implements.
  */
 
 #ifndef __NNTRAINER_HEXKL_HMX_MM_H__
@@ -69,6 +85,12 @@ static inline int hexkl_hmx_mm_aligned(const void *act, const void *wt) {
 
 #if defined(__hexagon__)
 
+/** @brief The int32 accumulator back to zero, one packet. Requires the
+ *         HMX lock. */
+static inline void hexkl_hmx_acc_clear_int32(void) {
+  __asm__ __volatile__("mxclracc" : : : "memory");
+}
+
 /**
  * @brief acc += act(64x32 uint8) . wt(32x32 int8), one packet.
  *
@@ -100,6 +122,11 @@ static inline void hexkl_hmx_mm_u8i4(const void *act, const void *wt) {
 }
 
 #else
+
+/** @brief Host build: the library call, which the stand-in implements. */
+static inline void hexkl_hmx_acc_clear_int32(void) {
+  (void)hexkl_micro_hmx_acc_clear_int32();
+}
 
 /** @brief Host build: the library call, which takes base + offsets. */
 static inline void hexkl_hmx_mm_u8i8(const void *act, const void *wt) {
