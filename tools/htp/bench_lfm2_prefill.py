@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# @brief Measure a deployed LFM2 runtime with decode disabled in an isolated config.
 # SPDX-License-Identifier: Apache-2.0
 """Measure a deployed LFM2 runtime with decode disabled in an isolated config.
 

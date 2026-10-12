@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 /** @file weight_direct_file.h
  * @brief Opt-in, fail-closed direct I/O for immutable model weights.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #ifndef __NNTRAINER_WEIGHT_DIRECT_FILE_H__
 #define __NNTRAINER_WEIGHT_DIRECT_FILE_H__

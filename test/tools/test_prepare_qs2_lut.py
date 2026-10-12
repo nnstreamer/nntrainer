@@ -1,3 +1,4 @@
+# @brief Run directly with Python; requires NumPy and native C/C++ compilers.
 # SPDX-License-Identifier: Apache-2.0
 """Run directly with Python; requires NumPy and native C/C++ compilers."""
 import importlib.util

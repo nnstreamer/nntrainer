@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 /** @file prepared_qs2_check.cpp
  * @brief Cross-language offline encoder/reader and production repacker check.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #include "htp_prepared_qs2.h"
 #include "hvx_gemv_u8i2_lut.h"

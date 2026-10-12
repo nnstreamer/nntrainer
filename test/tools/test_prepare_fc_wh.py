@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# @brief Offline WH preparation and the actual portable C++ runtime reader.
 # SPDX-License-Identifier: Apache-2.0
 """Offline WH preparation and the actual portable C++ runtime reader.
 

@@ -2,6 +2,8 @@
 /**
  * @file hvx_gemv_u8i2_lut.c
  * @brief Pair-LUT GEMV and a register-only WH expansion comparison.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #include "hvx_gemv_u8i2_lut.h"
 
@@ -12,7 +14,7 @@
 #include <hvx_hexagon_protos.h>
 #endif
 
-/* V81's nomatch lookup replaces index masking/table-select instructions.
+/** V81's nomatch lookup replaces index masking/table-select instructions.
  * Keep the portable intrinsic path for older Hexagon targets. */
 #ifndef NNTR_LUT_SINGLE_UNROLL
 #define NNTR_LUT_SINGLE_UNROLL 4
@@ -134,7 +136,7 @@ void hvx_i2_lut_repack(const uint8_t *src, uint32_t N, uint32_t src_stride,
   }
 }
 
-/* Inverse of the four-column interleave and 2-bit pairing. All eight
+/** Inverse of the four-column interleave and 2-bit pairing. All eight
  * source vectors are consumed before the first store, so a tile may alias. */
 void hvx_i2_lut_unrepack_row(uint8_t *row, uint32_t bytes) {
   for (uint32_t off = 0; off < bytes; off += 1024u) {
@@ -159,7 +161,7 @@ void hvx_i2_lut_unrepack_row(uint8_t *row, uint32_t bytes) {
         }
         v[r] = a;
       }
-      /* Transpose each 4x4 byte square: output vectors are N32 tiles,
+      /** Transpose each 4x4 byte square: output vectors are N32 tiles,
        * their four bytes per column are the four consecutive K rows. */
       const HVX_VectorPair a = Q6_W_vshuff_VVR(v[1], v[0], 1);
       const HVX_VectorPair b = Q6_W_vshuff_VVR(v[3], v[2], 1);
@@ -519,7 +521,7 @@ void hvx_gemv_u8i2_lut_dense_pair(const uint8_t *src0, const uint8_t *src1,
 #endif
 }
 
-/* With a-127 in [-127,128], 32 signed-int4 products sum to
+/** With a-127 in [-127,128], 32 signed-int4 products sum to
  * [-32768,32512]. Combining both LUT halves in int16 is therefore exact.
  * The caller must use zp-127 in its dequantization, or restore 127*colsum. */
 #ifndef NNTR_LUT_CENTER_UNROLL

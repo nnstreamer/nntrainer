@@ -3,6 +3,8 @@
  * Copyright (C) 2026 Samsung Electronics Co., Ltd. All Rights Reserved.
  * @file htp_prepared_fc.h
  * @brief Portable reader for offline-prepared QS4CX_WH FC slices.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #ifndef __HTP_PREPARED_FC_H__
 #define __HTP_PREPARED_FC_H__

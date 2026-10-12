@@ -887,7 +887,7 @@ int hexkl_kv_q_append_i8_pool(hexkl_kv_q_table *tbl, uint32_t handle,
   append_i8_ctx ctx = {kv, row0, n_rows, c_lo, n_col, k, v, scales, direct};
 #ifdef __hexagon__
   if (pool && n_rows >= 64u) {
-    /* n_rows is a parallelism hint; the worker partitions every head/tile
+    /** n_rows is a parallelism hint; the worker partitions every head/tile
        unit itself, including when the pool has no background threads. */
     hvx_worker_pool_run((hvx_worker_pool *)pool, append_i8_worker, &ctx,
                         n_rows);
@@ -898,7 +898,7 @@ int hexkl_kv_q_append_i8_pool(hexkl_kv_q_table *tbl, uint32_t handle,
   {
     append_i8_worker(1u, 0u, &ctx);
   }
-  /* The fallback owns shared staging and VTCM, so bake only on the caller
+  /** The fallback owns shared staging and VTCM, so bake only on the caller
      after all workers have completed their master writes. */
   if (vtcm_base && !direct && n_rows) {
     for (uint32_t n = 0; n < kv->n_head_kv; ++n) {

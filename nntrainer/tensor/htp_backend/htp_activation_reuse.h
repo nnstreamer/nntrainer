@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 /** @file htp_activation_reuse.h
  * @brief Single-consumer activation staging lease, guarded by invoke_mutex_.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #ifndef __HTP_ACTIVATION_REUSE_H__
 #define __HTP_ACTIVATION_REUSE_H__

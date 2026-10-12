@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 /** @file moe_decode_predictor.h
  * @brief CPU prediction weights from the inference router's QS4CX values.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #ifndef NNTR_MOE_DECODE_PREDICTOR_H
 #define NNTR_MOE_DECODE_PREDICTOR_H

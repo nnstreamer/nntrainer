@@ -2,6 +2,8 @@
 /**
  * @file qs2_lut_check.c
  * @brief Independent dense reference, WH roundtrip and optional device probe.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #include "hvx_gemv_u8i2_lut.h"
 #include <assert.h>
@@ -53,7 +55,7 @@ static void check(uint32_t K, uint32_t N, const int8_t *pal, uint32_t pattern,
     ah[(size_t)(k / 32u) * 2048u + k % 32u] = act[k];
     for (uint32_t n = 0; n < N; ++n) {
       const uint32_t code = pattern == 0u ? next_random() & 3u : (n / 32u) % 4u;
-      /* Independent coordinate encoder for the EXISTING compact WH file.
+      /** Independent coordinate encoder for the EXISTING compact WH file.
        * Dense reference consumes the logical code before any packing. */
       const uint32_t r = k % 32u, c = n % 32u;
       const uint32_t old_byte = (r / 8u) * 128u + c * 4u + r % 4u;

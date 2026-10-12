@@ -3,6 +3,8 @@
  * @brief Device check for selective completion and reserved-slot recycling.
  * Link against the matching libnntrainer and run with one prefetch reader to
  * exercise queued cancellation as well as reads already in flight.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #include <cassert>
 #include <chrono>

@@ -1,11 +1,16 @@
-/* Host harness for hexkl_mm_u8i4_layer_run (the FC / projection call) on
+/** Host harness for hexkl_mm_u8i4_layer_run (the FC / projection call) on
    the scalar stand-ins: several handles of different widths against one
    activation, as the attention q/k/v call makes it, checked row by row
    against the reference. What it checks is the batching added for the
    pooled epilogue -- that staged slot j carries n-tile nt0+j of the right
    handle and lands at its columns of the right output block, across row
    blocks, across handles, and through a partial last row block -- not the
-   HMX's arithmetic, which the stubs define self-consistently. */
+   HMX's arithmetic, which the stubs define self-consistently.
+ * @file fc_layer_host_check.c
+ * @brief Regression checks for fc layer host check.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
+ */
 #include "hexkl_mm_opts.h"
 #include "hexkl_mm_u8i4_dma.h"
 #include "hexkl_probe.h"
@@ -53,7 +58,7 @@ static int compare(const char *what, const float *got, const float *want,
 }
 
 int main(void) {
-  /* Three row blocks with a short last one; the widest handle is 33
+  /** Three row blocks with a short last one; the widest handle is 33
      n-tiles, one more than a staging batch, so the first handle takes two
      batches per row block and the parity crosses handles unevenly. */
   const uint32_t M = 150, K = 64;
@@ -130,7 +135,7 @@ int main(void) {
     fail |= rc != 0 || memcmp(got, want, count * sizeof(float)) != 0;
   }
 
-  /* M=1 compact slabs: tail columns, handle changes, accumulation, and
+  /** M=1 compact slabs: tail columns, handle changes, accumulation, and
      caller-supplied output offsets must match the HMX path exactly. */
   {
     uint8_t ah[64u * 64u] __attribute__((aligned(128)));
@@ -183,7 +188,7 @@ int main(void) {
     fail |= (rc != 0) | compare("accumulate", got, want, out_n);
   }
 
-  /* An arena with room for exactly two staging tiles still runs (one
+  /** An arena with room for exactly two staging tiles still runs (one
      tile per batch); one tile short of that is refused. */
   {
     const uint32_t k_tiles = K / 32u, m_pad = 192u;

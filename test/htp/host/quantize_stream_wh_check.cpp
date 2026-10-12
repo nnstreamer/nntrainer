@@ -3,6 +3,9 @@
  * Copyright (C) 2026 Samsung Electronics Co., Ltd. All Rights Reserved.
  * @brief Checks blocked WH serialization and offline FC manifests using the
  *        real CPU quantizer. Link with libnntrainer; pass an empty work dir.
+ * @file quantize_stream_wh_check.cpp
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #define main nntr_quantize_stream_main
 #include "../../../Applications/CausalLM/quantize_stream.cpp"

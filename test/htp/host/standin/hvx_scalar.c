@@ -41,7 +41,7 @@ int wh_value(const uint8_t *tile, uint32_t k, uint32_t c) {
   return nib >= 8 ? nib - 16 : nib;
 }
 
-/* Weight tile: 512 bytes = 32k x 32n int4 in the device's WH layout,
+/** Weight tile: 512 bytes = 32k x 32n int4 in the device's WH layout,
    two's complement nibbles. Activation tile: 64 rows x 32 bytes u8. */
 int hexkl_micro_hmx_mm_u8i4(uint8_t *base, uint32_t act_off, uint32_t w_off) {
   const uint8_t *a = base + act_off;
@@ -62,7 +62,7 @@ int hexkl_micro_hmx_acc_read_int32(uint8_t *base, uint32_t cfg, uint32_t off) {
   return 0;
 }
 
-/* ---- the u8i4 GEMV: the same sum as the tile above, over the tiles the
+/** ---- the u8i4 GEMV: the same sum as the tile above, over the tiles the
    kernel points it at. rows1 picks between two HVX loops that compute
    the same int32 sums (hvx_gemm_u8i4_wh.c), so it is one function here;
    the l2fetch entry point is a no-op unless a check hooks it. ---- */
@@ -143,7 +143,7 @@ void hvx_quant_rows_u8_params(const float *x, uint32_t m, uint32_t mp,
     zp[r] = (int32_t)z;
   }
 }
-/* A row range, the one scalar formula the two entry points below share so
+/** A row range, the one scalar formula the two entry points below share so
    they cannot drift: the kernel's units are 16-row quarters of a block.
    Tiles run (row_block, inner_tile) at a 2048-byte stride, so a caller
    passing more than 64 rows writes several row blocks. */
@@ -234,7 +234,7 @@ void hvx_scale_add_scatter_tile_f32(float *out, const float *src,
     }
 }
 
-/* The DDR fallback's whole-matrix dequant (accumulator layout unusable):
+/** The DDR fallback's whole-matrix dequant (accumulator layout unusable):
    the same formula per element, row stride n. */
 void hvx_dequant_i32_to_f32(const int32_t *acc, uint32_t m_valid,
                             uint32_t m_pad, uint32_t n, const float *act_scale,
@@ -254,7 +254,7 @@ void hvx_dequant_i32_to_f32(const int32_t *acc, uint32_t m_valid,
     }
 }
 
-/* The pooled workers: each a loop over the per-tile stand-in above,
+/** The pooled workers: each a loop over the per-tile stand-in above,
    exactly as the real ones are pooled loops over the real per-tile
    kernel, so what a check sees is the kernel's batching arithmetic --
    which tile lands at which staged slot, which column it carries -- and
@@ -295,7 +295,7 @@ void hvx_dequant_acc_tiles_to_f32(
                          split,      dst_stride,  n_tiles};
   hvx_dq_tiles_worker(1u, 0u, &jb);
 }
-/* Fused gate/up dequant + SwiGLU: staged slot j is gate column g0 + j and
+/** Fused gate/up dequant + SwiGLU: staged slot j is gate column g0 + j and
    slot n_pairs + j the up column opposite it. The SwiGLU itself is
    swiglu_det.h, which the HVX kernel matches bit for bit (rule 24). */
 void hvx_dq_swiglu_worker(uint32_t n_threads, uint32_t i, void *vjob) {
@@ -322,7 +322,7 @@ void hvx_dq_swiglu_worker(uint32_t n_threads, uint32_t i, void *vjob) {
             : swiglu_det_one(gt[r * 32u + k], ut[r * 32u + k]);
   }
 }
-/* The tail path calls the pooled pair function directly (pool NULL, one
+/** The tail path calls the pooled pair function directly (pool NULL, one
    pair); it is the job above run synchronously, as on device. */
 void hvx_dequant_swiglu_acc_tiles_to_f32(
   const uint8_t *tiles_base, uint32_t tile_stride, uint32_t n_pairs,
@@ -349,7 +349,7 @@ void hvx_dequant_swiglu_acc_tiles_to_f32(
   jb.act = act;
   hvx_dq_swiglu_worker(1u, 0u, &jb);
 }
-/* Dequant + product pair job (the conv block's pre-conv gate): slot j is
+/** Dequant + product pair job (the conv block's pre-conv gate): slot j is
    the first weight's column c0 + 32 j, slot n_pairs + j the second's. */
 void hvx_dq_mul_worker(uint32_t n_threads, uint32_t i, void *vjob) {
   const hvx_dq_mul_job *c = (const hvx_dq_mul_job *)vjob;

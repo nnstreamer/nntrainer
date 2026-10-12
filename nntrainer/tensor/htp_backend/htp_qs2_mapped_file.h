@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 /** @file htp_qs2_mapped_file.h
  * @brief Optional read-only mappings of immutable QS2 model files.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #ifndef __NNTRAINER_HTP_QS2_MAPPED_FILE_H__
 #define __NNTRAINER_HTP_QS2_MAPPED_FILE_H__

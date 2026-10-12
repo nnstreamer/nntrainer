@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# @brief Prepare column-sliced HTP FC weights without changing quantized values.
 # SPDX-License-Identifier: Apache-2.0
 """Prepare column-sliced HTP FC weights without changing quantized values.
 

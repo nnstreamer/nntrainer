@@ -3,6 +3,7 @@
  * @file qs2cx_wh_check.cpp
  * @brief Check compact expert expansion against an independent tile encoder.
  * @bug No known bugs except for NYI items
+ * @author NNTrainer contributors
  */
 #include <htp_wh_layout.h>
 

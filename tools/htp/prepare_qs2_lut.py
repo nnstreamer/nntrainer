@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# @brief Offline, lossless QS2CX_WH -> decode LUT rows (requires NumPy).
 # SPDX-License-Identifier: Apache-2.0
 """Offline, lossless QS2CX_WH -> decode LUT rows (requires NumPy).
 

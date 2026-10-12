@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 /** @brief Direct weight I/O: unaligned data, EOF, streams, concurrency, fd
- * reuse. */
+ * reuse.
+ * @file weight_direct_file_check.cpp
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
+ */
 #include "weight_direct_file.h"
 #include <cassert>
 #include <cstdio>

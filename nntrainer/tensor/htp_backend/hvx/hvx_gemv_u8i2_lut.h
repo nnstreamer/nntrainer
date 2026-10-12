@@ -2,6 +2,8 @@
 /**
  * @file hvx_gemv_u8i2_lut.h
  * @brief Exact palette-coded u8 GEMV, with an experimental decode layout.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #ifndef __NNTRAINER_HVX_GEMV_U8I2_LUT_H__
 #define __NNTRAINER_HVX_GEMV_U8I2_LUT_H__

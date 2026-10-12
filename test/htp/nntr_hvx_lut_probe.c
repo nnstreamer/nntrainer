@@ -2,6 +2,8 @@
 /**
  * @file nntr_hvx_lut_probe.c
  * @brief Isolated pair-LUT/WH GEMV comparison; no model dispatch changes.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #include <AEEStdErr.h>
 #include <remote.h>
@@ -126,7 +128,7 @@ int nntr_hvx_lut_gemv_probe(remote_handle64 handle, uint32 K, uint32 N,
     return AEE_ENOMEMORY;
   uint8_t *compact = s->vtcm_base;
   uint8_t *work = compact + bytes;
-  /* The production M=1 AH rows live in cacheable heap scratch. Scalar
+  /** The production M=1 AH rows live in cacheable heap scratch. Scalar
    * activation-word loads from VTCM make vrmpy artificially much slower. */
   uint8_t *ah = memalign(128u, (size_t)K * 64u);
   if (!ah)
@@ -150,7 +152,7 @@ int nntr_hvx_lut_gemv_probe(remote_handle64 handle, uint32 K, uint32 N,
   lut_probe_ctx c = {K,   N,      mode,   ah, compact, expand,
                      pal, tables, result, 0u, work};
   memset(stats, 0, (size_t)statsLen * sizeof(*stats));
-  /* Three unrecorded warmups. DMA here is serial whole-matrix transfer,
+  /** Three unrecorded warmups. DMA here is serial whole-matrix transfer,
    * deliberately not a claim about the MoE's cross-expert overlap. */
   for (uint32_t pass = 0; pass < passes + 3u; ++pass) {
     const uint64_t t0 = hexkl_probe_now();

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 /** @file moe_decode_predictor_check.cpp
  * @brief Verify predictor layout, signed nibbles, scales and channel order.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #include "moe_decode_predictor.h"
 #include <cassert>

@@ -3,6 +3,8 @@
  * Copyright (C) 2026 Samsung Electronics Co., Ltd.
  * @file htp_attn_q8_quant.h
  * @brief Producer quantization for the A8/KV8 transport.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #ifndef __NNTRAINER_HTP_ATTN_Q8_QUANT_H__
 #define __NNTRAINER_HTP_ATTN_Q8_QUANT_H__

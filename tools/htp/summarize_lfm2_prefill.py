@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# @brief Parse phase-isolated prefill logs without adding nested profile counters.
 # SPDX-License-Identifier: Apache-2.0
 """Parse phase-isolated prefill logs without adding nested profile counters."""
 import argparse

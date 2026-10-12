@@ -150,7 +150,7 @@ int nntr_hvx_weight_release_u8i4(remote_handle64 handle, uint32 w_handle) {
   if (!s) {
     return AEE_EBADPARM;
   }
-  /* [#85] The arena_detach rule, one level up: a handle the live graph's
+  /** [#85] The arena_detach rule, one level up: a handle the live graph's
      MoE ops name stays registered until graph_release. */
   if (hexkl_graph_uses_handle(s->graph, w_handle)) {
     FARF(ERROR, "weight_release_u8i4: handle %u is bound in the graph",
@@ -203,7 +203,7 @@ enum {
  * lazily would otherwise report a ceiling that does not exist once the
  * pages are actually written.
  */
-/* Gate 0c. HAP_mem.h is the first use of that header in this tree, so the
+/** Gate 0c. HAP_mem.h is the first use of that header in this tree, so the
    probe reports "unavailable" rather than failing the build if the SDK in
    use does not ship it -- a probe that cannot compile is worse than one
    that answers no. */
@@ -235,7 +235,7 @@ int nntr_hvx_arena_probe(remote_handle64 handle, int32 fd, uint32 bytes,
   }
   {
     uint64_t t0 = HAP_perf_qtimer_count_to_us(HAP_perf_get_qtimer_count());
-    /* prot and flags are written numerically because PROT_* and MAP_* are
+    /** prot and flags are written numerically because PROT_* and MAP_* are
        host macros and a missing one would be a build break in a probe whose
        job is to answer. That cost a device cycle: attempt 2 passed flags=0,
        and POSIX mmap requires exactly one of MAP_SHARED or MAP_PRIVATE, so
@@ -257,7 +257,7 @@ int nntr_hvx_arena_probe(remote_handle64 handle, int32 fd, uint32 bytes,
     uint64_t t1 = t0;
     int used_get = 0;
 
-    /* Ask for the mapping the host already made, before trying to make one.
+    /** Ask for the mapping the host already made, before trying to make one.
        HAP_mem.h declares this as (fd, void **vaddr, uint64 *paddr) -- the
        third argument is the physical address, not a size, so there is
        nothing to check the length against here; the host sized the buffer.
@@ -287,7 +287,7 @@ int nntr_hvx_arena_probe(remote_handle64 handle, int32 fd, uint32 bytes,
         res[6] = ti + 1u; /* 1-based: 0 stays "none worked" */
         break;
       }
-      /* Null and MAP_FAILED apart: null reads as "this fd is unknown here",
+      /** Null and MAP_FAILED apart: null reads as "this fd is unknown here",
          MAP_FAILED as "known and refused". Attempt 1 could not tell them
          apart and spent a cycle on it. Two bits per attempt. */
       res[7] |= (uint32)((p == NULL ? 1u : 2u) << (ti * 2u));
@@ -303,7 +303,7 @@ int nntr_hvx_arena_probe(remote_handle64 handle, int32 fd, uint32 bytes,
     res[1] = (uint32)(t1 - t0);
     (void)n_try;
 
-    /* One 2D transfer out of the mapping into VTCM, same shape the weight
+    /** One 2D transfer out of the mapping into VTCM, same shape the weight
        pusher uses, so the rate is comparable to the 27-33 GB/s the profile
        already reports for DSP-heap weights. */
     {
@@ -321,7 +321,7 @@ int nntr_hvx_arena_probe(remote_handle64 handle, int32 fd, uint32 bytes,
       res[3] = dma_bytes;
     }
 
-    /* Summed so the transfer cannot be elided and an all-zero mapping --
+    /** Summed so the transfer cannot be elided and an all-zero mapping --
        which would look like a success with a garbage rate -- is visible. */
     {
       uint32_t sum = 0;
@@ -331,7 +331,7 @@ int nntr_hvx_arena_probe(remote_handle64 handle, int32 fd, uint32 bytes,
       }
       res[4] = sum;
     }
-    /* Release through whichever call handed it over: a mapping obtained
+    /** Release through whichever call handed it over: a mapping obtained
        with HAP_mmap_get belongs to the host's attachment and is given back
        with HAP_mmap_put, not unmapped. */
     if (used_get) {
@@ -538,7 +538,7 @@ int nntr_hvx_weight_swap_u8i4_arena(
   const uint32 n_gu = 2u * inter;
   const int release_old =
     !(old_gu == NNTR_HVX_NO_HANDLE && old_dn == NNTR_HVX_NO_HANDLE);
-  /* [doc 52 section 10.30] Empty sequences: the scales and column sums are
+  /** [doc 52 section 10.30] Empty sequences: the scales and column sums are
      in the arena after each weight's WH bytes, and the registry takes them
      from there. The host's expert pool always sends them that way now; the
      arrays stay accepted for the tests and for an older host. */
@@ -561,7 +561,7 @@ int nntr_hvx_weight_swap_u8i4_arena(
     gu_scale = dn_scale = NULL;
     gu_colsum = dn_colsum = NULL;
   }
-  /* Checked before anything is registered, so a bad pair costs nothing:
+  /** Checked before anything is registered, so a bad pair costs nothing:
      both or neither, both arena-borrowed, and not the same handle twice. */
   if (release_old &&
       (old_gu == old_dn || !swap_releasable(&s->weights_u8i4, old_gu) ||
@@ -570,7 +570,7 @@ int nntr_hvx_weight_swap_u8i4_arena(
          (unsigned)old_gu, (unsigned)old_dn);
     return AEE_EBADPARM;
   }
-  /* [doc 52 section 10.25] The retired pair has the new expert's shape --
+  /** [doc 52 section 10.25] The retired pair has the new expert's shape --
      every swap in the expert pool -- so rebind both handles in place: no
      allocation, no free, no slot search, which were most of a swap's DSP
      time. Everything that can refuse is checked before either is touched,
@@ -581,7 +581,7 @@ int nntr_hvx_weight_swap_u8i4_arena(
       s->weights_u8i4.slots[old_dn].N == N_out) {
     const uint8_t *wg = arena_weight_at(s, arena, off_gu, K, n_gu, tail);
     const uint8_t *wd = arena_weight_at(s, arena, off_dn, inter, N_out, tail);
-    /* 512: the registry's WEIGHT_TILE_BYTES_U8I4, which rebind also checks
+    /** 512: the registry's WEIGHT_TILE_BYTES_U8I4, which rebind also checks
        -- checked here too so the second rebind cannot refuse after the
        first has landed. */
     if (!wg || !wd || ((uintptr_t)wg % 512u) != 0u ||
@@ -658,7 +658,7 @@ int nntr_hvx_weight_swap_batch_u8i4_arena(
     FARF(ERROR, "weight_swap_batch_u8i4_arena: bad lengths (n=%d)", n);
     return AEE_EBADPARM;
   }
-  /* One expert at a time through the single call, so each keeps its
+  /** One expert at a time through the single call, so each keeps its
      all-or-nothing guarantee and the batch stops at the first refusal. */
   for (i = 0; i < n; ++i) {
     rc = tail
@@ -965,7 +965,7 @@ static int check_layer_args(const nntr_hvx_session *s, uint32 M, uint32 K,
   return AEE_SUCCESS;
 }
 
-/* Session-cached AH for all FC entry points, including QKV norm and the
+/** Session-cached AH for all FC entry points, including QKV norm and the
  * timed/u8-input variants. No new transport call and no per-token malloc. */
 static int fc_layer_run(nntr_hvx_session *s, uint32_t M, uint32_t K,
                         const uint32_t *handles, uint32_t count, const float *x,
@@ -1145,7 +1145,7 @@ static int layer_norm_impl(nntr_hvx_session *s, uint32 M, uint32 K, float eps,
   if (rc != AEE_SUCCESS) {
     return rc;
   }
-  /* The norms' shapes: K a multiple of 32 for the pre norm; every post
+  /** The norms' shapes: K a multiple of 32 for the pre norm; every post
      chunk a multiple of 32 dividing its handle's N; the gammas exactly as
      long as the chunks they serve. */
   if ((pre_gammaLen != 0 && ((uint32_t)pre_gammaLen != K || K % 32u != 0u)) ||
@@ -1170,7 +1170,7 @@ static int layer_norm_impl(nntr_hvx_session *s, uint32 M, uint32 K, float eps,
          post_gammaLen, (unsigned)gamma_total);
     return AEE_EBADPARM;
   }
-  /* RoPE's shape: the head dim's half a multiple of 32, a table row per
+  /** RoPE's shape: the head dim's half a multiple of 32, a table row per
      activation row, every rotated handle a whole number of heads. */
   if (rope_hd != 0u) {
     if ((rope_hd / 2u) % 32u != 0u || rope_handles > (uint32_t)w_handlesLen ||
@@ -1188,7 +1188,7 @@ static int layer_norm_impl(nntr_hvx_session *s, uint32 M, uint32 K, float eps,
     }
   }
 
-  /* The pre norm goes into the quant pass, rows normed four at a time into
+  /** The pre norm goes into the quant pass, rows normed four at a time into
      a worker's slice of norm_rows: the normed rows stay in cache. */
   hexkl_mm_opts opts = {.pool = s->quant_pool,
                         .weight_src_bypass =
@@ -1261,7 +1261,7 @@ int nntr_hvx_mm_u8i4_layer_norm_ld(
       out_ldLen != w_handlesLen || M == 0u) {
     return AEE_EBADPARM;
   }
-  /* Every handle's rows inside out_cat (the rectangles apart is the
+  /** Every handle's rows inside out_cat (the rectangles apart is the
      caller's to keep; overlapping ones only garble its own output). */
   for (int i = 0; i < w_handlesLen; ++i) {
     if (w_handles[i] >= HEXKL_MM_U8I4_MAX_WEIGHTS ||
@@ -1983,7 +1983,7 @@ int nntr_hvx_mm_u8i4_moe_layer_timed(
 
 uint32_t nntr_hvx_moe_stage_count(void) { return MOE_N_STAGES; }
 
-/* [#85] The slot fill, shared with forward_debug (nntr_hvx_graph.c). Read
+/** [#85] The slot fill, shared with forward_debug (nntr_hvx_graph.c). Read
    after hexkl_probe_on is cleared, as moe_layer_timed always did; the
    column copy itself is moe_fill_stage_us, which the conv block's timed
    entry shares. */
@@ -2158,7 +2158,7 @@ int nntr_hvx_moe_dma_trace_read(remote_handle64 handle, uint32 *words,
   if (!s || !words || wordsLen <= 0 || !n_words) {
     return AEE_EBADPARM;
   }
-  /* The tables of the last mm_u8i4_moe_layer_timed call: static, so they
+  /** The tables of the last mm_u8i4_moe_layer_timed call: static, so they
      survive until the next timed call overwrites them. A buffer too small
      for the whole trace gets 0 words rather than a truncated one. */
   *n_words = hexkl_dma_trace_serialize(words, (uint32_t)wordsLen);
@@ -2171,7 +2171,7 @@ int nntr_hvx_moe_set_opts(remote_handle64 handle, uint32 flags,
   if (!s || !applied) {
     return AEE_EBADPARM;
   }
-  /* Only the bits this skel knows are kept; the echo is how the ARM side
+  /** Only the bits this skel knows are kept; the echo is how the ARM side
      tells "took" from "ignored by an older skel". Since #113 that covers
      the tune bit and the (lead, rows1) field beside it, so a skel without
      them echoes a different word and the ARM side throws rather than

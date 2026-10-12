@@ -100,7 +100,7 @@ typedef struct {
 /** @brief Releases the block. Safe on an empty scratch. */
 void hexkl_moe_scratch_free(hexkl_moe_scratch *s);
 
-/* ---- Shared with hexkl_conv_block.c ------------------------------------
+/** ---- Shared with hexkl_conv_block.c ------------------------------------
  *
  * The conv block kernel (doc 51 section 2) is this kernel's loop with a
  * different block body: same scratch, same DMA ring pushes, same
@@ -196,7 +196,7 @@ void hexkl_moe_pack_bg_worker(uint32_t n_units, uint32_t u, void *vctx);
         (hexkl_probe_now() - mm_t0) -                                          \
         (hexkl_probe_us[HEXKL_PROBE_ACC_READ] - mm_acc0) -                     \
         (hexkl_probe_us[HEXKL_PROBE_DEQUANT] - mm_dq0);                        \
-      /* One #87 completion sample per HMX batch: the bracket on every         \
+      /** One #87 completion sample per HMX batch: the bracket on every        \
          descriptor is only as tight as the points that read its bit. */       \
       hexkl_dma_trace_sample(hexkl_probe_now_ticks());                         \
     }                                                                          \

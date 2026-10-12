@@ -2,6 +2,8 @@
 /** @file expert_update_check.cpp
  * @brief Device regression: reused QS2 slots change codes, palette and scales.
  * Compare the emitted FP32 file across expert-update modes 0, 1, 2 and 3.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #include <cassert>
 #include <chrono>

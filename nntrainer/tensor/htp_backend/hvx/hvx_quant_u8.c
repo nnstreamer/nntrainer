@@ -226,7 +226,7 @@ static void quant_pack_worker(uint32_t n_threads, uint32_t i, void *ctx_) {
     for (uint32_t m = 0; m < ctx->m_vec_end; m += 4u) {
       const uint32_t rb = m / TILE_ROW;
       const uint32_t r0 = m % TILE_ROW; // multiple of 4; group never wraps rb
-      /* The four rows of a group are four independent source pointers, so
+      /** The four rows of a group are four independent source pointers, so
          a row map costs one indirection each and nothing else -- the
          packing below still sees four rows and still lands them as one
          128-byte store. */
@@ -274,7 +274,7 @@ void hvx_quant_pack_u8_ah_rows(const float *x, const uint32_t *row_map,
                                uint32_t m0, uint32_t m1, uint32_t k,
                                const float *scale, const int32_t *zp,
                                uint8_t *out_ah) {
-  /* Row-group outer, k-tile inner: the rows are this call's alone, so the
+  /** Row-group outer, k-tile inner: the rows are this call's alone, so the
      k-tile split the pooled pack needs for disjoint stores is not needed,
      and the four rows' parameters are splatted once per group instead of
      once per (group, k-tile). Same group body, same bytes. */
@@ -302,7 +302,7 @@ int hvx_quant_pack_u8_ah_mapped(const float *x, const uint32_t *row_map,
                                 uint8_t *out_ah, hvx_worker_pool *pool) {
   const uint32_t n_ktiles = k / TILE_INNER;
 
-  /* Every row below m_valid is written below, so only the padding rows
+  /** Every row below m_valid is written below, so only the padding rows
      need zeroing, and in the AH layout those share their 64-row block with
      the last valid rows: clearing that one block (at most 64 * k bytes)
      before the pack keeps every caller's bytes identical to clearing all

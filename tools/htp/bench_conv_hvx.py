@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# @brief Interleave HMX/HVX M=1 convolution, FC or attention on one deployed Android runtime.
 # SPDX-License-Identifier: Apache-2.0
 """Interleave HMX/HVX M=1 convolution, FC or attention on one deployed Android runtime.
 

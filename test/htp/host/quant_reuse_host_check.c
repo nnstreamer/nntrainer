@@ -1,5 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
-/* Run the real HVX quantizer and transpose against mapped AH packing. */
+/** Run the real HVX quantizer and transpose against mapped AH packing.
+ * @file quant_reuse_host_check.c
+ * @brief Regression checks for quant reuse host check.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
+ */
 #include "hvx_quant_u8.h"
 #include <math.h>
 #include <stdint.h>

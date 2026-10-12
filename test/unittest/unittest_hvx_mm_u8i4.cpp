@@ -3542,7 +3542,7 @@ TEST_F(HmxMmU8I4Layer, MoeLayerFromArenaMatchesHeap) {
   rfree(buf);
 }
 
-/* [#113] The moe_set_opts word for one cell of the (loop x lead) matrix:
+/** [#113] The moe_set_opts word for one cell of the (loop x lead) matrix:
    bit 0 takes the GEMV path, bit 7 makes bits [15:8] (the l2fetch lead in
    64 KB units) authoritative and bit 6 does the same for bit 16, the row
    loop (nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.h). One skel
@@ -3557,7 +3557,7 @@ static uint32_t MoeGemvOpts(uint32_t lead_kb, bool rows1, bool feed = false) {
          (rows1 ? 0x10000u : 0u) | (feed ? 0x20000u : 0u);
 }
 
-/* [#80] The M=1 GEMV path against the HMX block loop on silicon: the same
+/** [#80] The M=1 GEMV path against the HMX block loop on silicon: the same
    MoE layer call with moe_set_opts(0) and moe_set_opts(1), byte-compared.
    The host check (test/htp/host/moe_layer_host_check.c) holds the plumbing
    with scalar stand-ins; this is the one place the HVX GEMV's int32 and
@@ -3893,7 +3893,7 @@ TEST_F(HmxMmU8I4Layer, MoeLayerM1GemvMatchesHmx) {
   ReleaseMoeExperts(x);
 }
 
-/* [#105] Where the M=1 GEMV's time goes: three cells through the same
+/** [#105] Where the M=1 GEMV's time goes: three cells through the same
    timed MoE layer call (moe_set_opts(1), M = 1, four experts, one warm-up
    + 20 reps). "arena" reads the production mapping (uncached rpcmem),
    "heap" the same experts' DSP-heap copies (cached), "hot" a small pair

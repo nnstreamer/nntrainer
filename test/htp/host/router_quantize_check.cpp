@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 /** Verify router-only conversion against direct quantization, including EOF
- *  rejection and independent router storage configuration. */
+ *  rejection and independent router storage configuration.
+ * @file router_quantize_check.cpp
+ * @brief Regression checks for router quantize check.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
+ */
 #define main nntr_quantize_stream_main
 #include "../../../Applications/CausalLM/quantize_stream.cpp"
 #undef main

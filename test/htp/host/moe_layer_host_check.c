@@ -1,10 +1,15 @@
-/* Host harness for hexkl_mm_u8i4_moe_layer_run: scalar stand-ins for every
+/** Host harness for hexkl_mm_u8i4_moe_layer_run: scalar stand-ins for every
    primitive it calls, then the kernel against a straightforward reference.
    The point is the loop structure -- which rows each expert gets, which
    weights it uses, whether the buffer reuse clobbers anything, whether the
    scatter lands on the right output row with the right routing weight --
    not HMX's arithmetic, which the stubs define self-consistently for both
-   sides. */
+   sides.
+ * @file moe_layer_host_check.c
+ * @brief Regression checks for moe layer host check.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
+ */
 #include "hexkl_acc_tile.h"
 #include "hexkl_dma_ring.h"
 #include "hexkl_dma_trace.h"
@@ -27,7 +32,7 @@
 #include "nntr_moe_dma_plan.h"
 #include "swiglu_det.h"
 
-/* ---- acc layout: the tile stand-in (standin/hvx_scalar.c) is a 64 x 32
+/** ---- acc layout: the tile stand-in (standin/hvx_scalar.c) is a 64 x 32
    int32 tile at row stride 32, base 0 ---- */
 static hexkl_acc_layout g_layout = {1, 1, 0,
                                     32}; /* probed, usable, base, stride */
@@ -36,7 +41,7 @@ const hexkl_acc_layout *hexkl_acc_layout_get(uint8_t *b, uint32_t off) {
   (void)off;
   return &g_layout;
 }
-/* Every GEMV call's int32 result, logged so the M=1 check can hold the
+/** Every GEMV call's int32 result, logged so the M=1 check can hold the
    tiles the kernel fed its epilogues against a reference computed from the
    token rows the routing named -- which is what the kernel's slot pack and
    row bookkeeping are for. Rows up to the GEMV's 4-row group. */
@@ -49,9 +54,9 @@ static gemv_log_entry *g_gemv_log;
 static size_t g_gemv_n, g_gemv_cap;
 static void gemv_log_reset(void) { g_gemv_n = 0; }
 
-/* The HVX GEMM's stand-in: the same sum, over the tiles the kernel points
+/** The HVX GEMM's stand-in: the same sum, over the tiles the kernel points
    it at, into the row-stride-32 tile the header promises. */
-/* ---- #117: the M=1 feed's scoreboard ------------------------------------
+/** ---- #117: the M=1 feed's scoreboard ------------------------------------
    Every push is recorded (destination range, source, ring index) and every
    ring wait marks the pushes it retires (in issue order, as the dmlinked
    chain does). A GEMV column read from VTCM must then find the latest push
@@ -80,7 +85,7 @@ static void score_reset(int on, const uint8_t *vtcm, size_t vtcm_bytes) {
   g_vtcm_hi = vtcm + vtcm_bytes;
 }
 static int in_vtcm(const uint8_t *p) { return p >= g_vtcm_lo && p < g_vtcm_hi; }
-/* The latest push whose destination range holds @a p, or NULL. */
+/** The latest push whose destination range holds @a p, or NULL. */
 static score_push *score_find(const uint8_t *p) {
   for (uint32_t k = g_score_n; k-- > 0u;) {
     score_push *sp = &g_score[k];
@@ -93,13 +98,13 @@ static score_push *score_find(const uint8_t *p) {
 static void gemv_stand_in(const uint8_t *act_ah, uint32_t m, uint32_t k_tiles,
                           const uint8_t *wh, uint32_t n_col, uint32_t nt,
                           int32_t *out) {
-  /* rows1 picks between two HVX loops that compute the same int32 sums
+  /** rows1 picks between two HVX loops that compute the same int32 sums
      (hvx_gemm_u8i4_wh.c); the stand-in is that sum, so it is the same
      function either way and the caller only records which loop was
      asked for. */
   const uint8_t *src_wh = wh;
   if (g_score_on && in_vtcm(wh)) {
-    /* One whole matrix per push (f2): the column's last tile must be
+    /** One whole matrix per push (f2): the column's last tile must be
        inside it, and it must have been waited for. */
     score_push *sp = score_find(wh);
     const size_t need = ((size_t)(k_tiles - 1u) * n_col + nt + 1u) * 512u;
@@ -130,7 +135,7 @@ static void gemv_stand_in(const uint8_t *act_ah, uint32_t m, uint32_t k_tiles,
   memcpy(le->tile, out, sizeof(int32_t) * 32u * le->m);
 }
 
-/* ---- The M=1 path's l2fetch lead (HVX_GEMV_PF_LEAD_KB), per lane -------
+/** ---- The M=1 path's l2fetch lead (HVX_GEMV_PF_LEAD_KB), per lane -------
    The pool stand-in below sets g_lane. Each lane keeps its last PF_RING
    boxes (two blocks of stage A's gate + up pair) with a bit per column; a
    column computed without its own l2fetch must find its bit in one of them,
@@ -148,7 +153,7 @@ typedef struct {
 static pf_box g_pf[PF_LANES][PF_RING];
 static uint32_t g_pf_head[PF_LANES];
 static uint64_t g_pf_cols, g_pf_used, g_pf_bad, g_nopf_n, g_col_n;
-/* Bit 0: a column ran with rows1 = 0, bit 1: with rows1 = 1. The two knobs
+/** Bit 0: a column ran with rows1 = 0, bit 1: with rows1 = 1. The two knobs
    are independent only if what the call asked for is what every column
    got, whatever the lead (#113). */
 static uint32_t g_rows1_seen;
@@ -160,7 +165,7 @@ static void pf_reset(void) {
 }
 static void hook_prefetch(const uint8_t *wh, uint32_t n_col, uint32_t nt,
                           uint32_t n_tiles, uint32_t k_tiles) {
-  /* n_tiles > 64 is this stand-in's limit, not the kernel's (it clamps at
+  /** n_tiles > 64 is this stand-in's limit, not the kernel's (it clamps at
      127, the l2fetch width field's bound): the per-column bitmap below is
      one uint64_t. No shape reaches 64 units today -- the deepest swept
      block is 54 -- so widening it would be speculation; the message says
@@ -174,7 +179,7 @@ static void hook_prefetch(const uint8_t *wh, uint32_t n_col, uint32_t nt,
     ++g_pf_bad;
     return;
   }
-  /* The hardware queues three l2fetch per thread and stalls it on a
+  /** The hardware queues three l2fetch per thread and stalls it on a
      fourth. A box counts as outstanding until every column of it was read
      (a fetch finishes no later than the loads that need all of it). */
   uint32_t outstanding = 0;
@@ -188,7 +193,7 @@ static void hook_prefetch(const uint8_t *wh, uint32_t n_col, uint32_t nt,
     ++g_pf_bad;
   }
   pf_box *b = &g_pf[g_lane][g_pf_head[g_lane]++ % PF_RING];
-  /* A box leaving the ring with columns unconsumed was a fetch nothing
+  /** A box leaving the ring with columns unconsumed was a fetch nothing
      read ahead of time: over-fetch, or a lead longer than two blocks. */
   if (b->wh && b->used != ((b->n == 64u) ? ~0ull : ((1ull << b->n) - 1u)))
     ++g_pf_bad;
@@ -200,7 +205,7 @@ static void hook_prefetch(const uint8_t *wh, uint32_t n_col, uint32_t nt,
   b->used = 0;
   g_pf_cols += n_tiles;
 }
-/* hvx_gemm_u8i4_wh_col (nopf = 0) and _col_nopf (nopf = 1), through the
+/** hvx_gemm_u8i4_wh_col (nopf = 0) and _col_nopf (nopf = 1), through the
    stand-in file's hook: the bookkeeping is this check's, the sum is the
    shared one. */
 static void hook_gemv(const uint8_t *act_ah, uint32_t m, uint32_t k_tiles,
@@ -214,7 +219,7 @@ static void hook_gemv(const uint8_t *act_ah, uint32_t m, uint32_t k_tiles,
     return;
   }
   if (g_score_on && in_vtcm(wh)) {
-    /* Under the feed no box covers a column; the scoreboard in
+    /** Under the feed no box covers a column; the scoreboard in
        gemv_stand_in holds the read instead. */
     ++g_nopf_n;
     gemv_stand_in(act_ah, m, k_tiles, wh, n_col, nt, out);
@@ -238,10 +243,10 @@ static void hook_gemv(const uint8_t *act_ah, uint32_t m, uint32_t k_tiles,
   ++g_nopf_n;
   gemv_stand_in(act_ah, m, k_tiles, wh, n_col, nt, out);
 }
-/* ---- DMA ring: completes immediately, so a push issued while the
+/** ---- DMA ring: completes immediately, so a push issued while the
    destination is still live shows up as a wrong result. ---- */
 void hexkl_dma_ring_reset(void) {}
-/* Indices are handed out and waited on for real shape, but every transfer
+/** Indices are handed out and waited on for real shape, but every transfer
    has already completed by the time push2d returns, so a wait is a no-op
    for the bytes. That is the point: a chunk consumed before its push would
    read stale bytes on device and read correct ones here, so what this
@@ -260,13 +265,13 @@ void hexkl_dma_ring_wait(uint32_t idx) {
   score_retire(idx);
 }
 void hexkl_dma_ring_drain(void) { score_retire(g_stub_idx); }
-/* Every transfer is complete by the time push2d returns, so the trace's
+/** Every transfer is complete by the time push2d returns, so the trace's
    watermark sees each descriptor done at the very next point. */
 int hexkl_dma_ring_is_done(uint32_t idx) {
   (void)idx;
   return 1;
 }
-/* [#158] Bytes pushed with src_bypass set, and pushes that set it on a
+/** [#158] Bytes pushed with src_bypass set, and pushes that set it on a
    heap-to-heap copy (dst_vtcm = 0), which must never happen: the DSP wrote
    those sources. The checks below hold the byte count against the weight
    bytes of the arena-backed experts, so a bypassed activation block or a
@@ -278,12 +283,12 @@ void hexkl_dma_ring_push2d(void *dst, const void *src, uint32_t ds, uint32_t ss,
     g_bypass_bytes += (uint64_t)rs * nrows;
     g_bypass_bad += dv == 0;
   }
-  /* Only the VTCM-bound pushes are slab pushes; moe_dma_copy's heap-to-heap
+  /** Only the VTCM-bound pushes are slab pushes; moe_dma_copy's heap-to-heap
      pieces (dst_vtcm = 0) are the two other descriptors of a call. */
   if (g_score_on && dv) {
     const uint8_t *d0 = (const uint8_t *)dst;
     const size_t bytes = (size_t)(nrows - 1u) * ds + rs;
-    /* (iii) inside the arena; (ii) the slab's previous matrix was read
+    /** (iii) inside the arena; (ii) the slab's previous matrix was read
        whole -- its pool run has joined -- before this lands on it. */
     if (!in_vtcm(d0) || d0 + bytes > g_vtcm_hi) {
       if (g_score_bad++ < 4u)
@@ -318,14 +323,14 @@ void hexkl_dma_ring_push2d(void *dst, const void *src, uint32_t ds, uint32_t ss,
            (const uint8_t *)src + (size_t)r * ss, rs);
 }
 
-/* The pool runs everything on the caller, which is what its own NULL path
+/** The pool runs everything on the caller, which is what its own NULL path
    does for n_units <= 1. Doing it here rather than passing NULL keeps the
    kernel's call sites exercised: the range arithmetic they hand the worker
    is part of what this check is for. */
 void hvx_worker_pool_run(hvx_worker_pool *pool, hvx_worker_pool_func func,
                          void *ctx, uint32_t n_units) {
   (void)pool;
-  /* The device's lane count, n = min(n_units, 6), one lane after another,
+  /** The device's lane count, n = min(n_units, 6), one lane after another,
      so each lane's slice and its l2fetch boxes are checked as the device
      splits them. The degenerate branch is func(1, 0): writing it the way
      the real function's used to be -- func(n_units, 0, ctx) -- is what this
@@ -343,7 +348,7 @@ void hvx_worker_pool_run(hvx_worker_pool *pool, hvx_worker_pool_func func,
   }
   g_lane = 0;
 }
-/* submit runs the job to completion on the spot and wait is a no-op: the
+/** submit runs the job to completion on the spot and wait is a no-op: the
    harness cannot exercise the overlap, only that every job is submitted
    with the right buffer and retired before that buffer is reused -- which
    a job that ran late would show as a wrong result on device and cannot
@@ -355,7 +360,7 @@ void hvx_worker_pool_submit(hvx_worker_pool *pool, hvx_worker_pool_func func,
     func(1u, 0, ctx);
 }
 void hvx_worker_pool_wait(hvx_worker_pool *pool) { (void)pool; }
-/* Delay background work until its explicit wait to expose stale contexts,
+/** Delay background work until its explicit wait to expose stale contexts,
    missing waits, double expansion, and chunk reuse in the scalar harness. */
 static int defer_bg;
 static hvx_bg_job *pending_bg[128];
@@ -421,7 +426,7 @@ void hvx_copy_ah_block(uint8_t *dst, const uint8_t *src, uint32_t k,
 
 void hvx_scale_add_rows_f32(float *dst, const float *src, float scale,
                             uint32_t n) {
-  /* Two operations, never one: HVX has no f32 fused multiply-add and the
+  /** Two operations, never one: HVX has no f32 fused multiply-add and the
      ARM path this has to agree with applies the routing weight with
      multiply_i and then accumulates with add_i. The volatile is what stops
      the host compiler contracting them and making this stub disagree with
@@ -432,7 +437,7 @@ void hvx_scale_add_rows_f32(float *dst, const float *src, float scale,
   }
 }
 uint64_t hexkl_probe_us[HEXKL_PROBE_N];
-/* On, so the counting probes (blocks, DMA bytes) run here too -- this
+/** On, so the counting probes (blocks, DMA bytes) run here too -- this
    harness is where a miscounted block or a push that never happens shows up
    without a device. The timers read the stub clock and are not checked. */
 int hexkl_probe_on = 1;
@@ -492,7 +497,7 @@ static void quant_row(const float *x, uint32_t k, uint8_t *q, float *scale,
   }
 }
 
-/* The layer, one expert and one row at a time: quantize the row, gate_up,
+/** The layer, one expert and one row at a time: quantize the row, gate_up,
    SwiGLU, requantize, down, then the routing multiply and the add into the
    token's output row -- in expert order, rows in order, like the kernel. */
 static void reference_layer(uint32_t M, uint32_t K, uint32_t inter,
@@ -514,7 +519,7 @@ static void reference_layer(uint32_t M, uint32_t K, uint32_t inter,
       int32_t az;
       quant_row(act + (size_t)row * K, K, aq, &as, &az);
       ref_mm(&wg[e], aq, as, az, gu);
-      /* swiglu_det.h: the spec the HVX SwiGLU matches bit for bit, and
+      /** swiglu_det.h: the spec the HVX SwiGLU matches bit for bit, and
          what standin/hvx_scalar.c runs, so the two agree to the bit. */
       for (uint32_t j = 0; j < inter; ++j)
         mid[j] = glu == HVX_GLU_GELU_TANH
@@ -525,7 +530,7 @@ static void reference_layer(uint32_t M, uint32_t K, uint32_t inter,
       quant_row(mid, inter, mq, &ms, &mz);
       ref_mm(&wd[e], mq, ms, mz, dn);
       for (uint32_t c = 0; c < N_out; ++c) {
-        /* Two operations through a volatile, matching what the kernel and
+        /** Two operations through a volatile, matching what the kernel and
            the ARM path both do -- see hvx_scale_add_rows_f32's stub. */
         volatile float p = dn[c] * rw[base + i];
         want[(size_t)row * N_out + c] = want[(size_t)row * N_out + c] + p;
@@ -593,7 +598,7 @@ static void make_weight(uint32_t slot, uint32_t K, uint32_t N, W *w) {
   s->bias = w->bias;
 }
 
-/* ---- The M=1 GEMV path against the HMX stand-in ------------------------
+/** ---- The M=1 GEMV path against the HMX stand-in ------------------------
    One (shape, M) case: the same call with flags 0 (every expert a 64-row
    HMX block) and with HEXKL_MOE_FLAG_M1_GEMV, byte-compared. The HMX stub
    and the GEMV stub sum the same u8 x i4 products, so identical output
@@ -616,7 +621,7 @@ static int run_m1_case(const char *shape, uint32_t M, uint32_t K,
   const uint32_t lead_kb = hexkl_moe_flags_lead_kb(gemv_flags);
   const uint32_t rows1 = hexkl_moe_flags_rows1(gemv_flags);
   const uint32_t feed = hexkl_moe_flags_feed(gemv_flags);
-  /* Same weights and activation for every configuration of a case, so the
+  /** Same weights and activation for every configuration of a case, so the
      HMX reference above can be computed once and reused. */
   rnd_state = 12345u + 7919u * M + 104729u * (uint32_t)(shape[0] == 'r');
   W *wg = (W *)calloc(NE, sizeof(W));
@@ -634,7 +639,7 @@ static int run_m1_case(const char *shape, uint32_t M, uint32_t K,
     hd[e] = slot0 + 2u * active + 1u;
     ++active;
   }
-  /* Distinct rows inside an expert (the top-k guarantee the kernel's
+  /** Distinct rows inside an expert (the top-k guarantee the kernel's
      scatter needs), a different first row per expert. */
   uint32_t *ridx = (uint32_t *)malloc(sizeof(uint32_t) * n_rows);
   float *rw = (float *)malloc(sizeof(float) * n_rows);
@@ -651,7 +656,7 @@ static int run_m1_case(const char *shape, uint32_t M, uint32_t K,
   float *out_m1 = (float *)malloc(sizeof(float) * M * N_out);
   int fail = 0;
 
-  /* The HMX reference depends only on (shape, M), not on the GEMV's
+  /** The HMX reference depends only on (shape, M), not on the GEMV's
      (loop, lead) pair, and it is the expensive half of this check -- the
      scalar stand-in runs 64-row blocks. run_m1_cases hands the same
      buffer back for every configuration of a case, so it runs once. */
@@ -689,7 +694,7 @@ static int run_m1_case(const char *shape, uint32_t M, uint32_t K,
   const uint64_t dma_kb = hexkl_probe_us[HEXKL_PROBE_DMA_KB];
   const uint64_t path = hexkl_probe_us[HEXKL_PROBE_PATH];
   const uint64_t fed = hexkl_probe_us[HEXKL_PROBE_M1_FEED];
-  /* With the feed every active expert's two matrices go through the ring
+  /** With the feed every active expert's two matrices go through the ring
      (the same count the HMX path's check below wants); without it none. */
   const uint64_t want_kb =
     feed
@@ -699,7 +704,7 @@ static int run_m1_case(const char *shape, uint32_t M, uint32_t K,
   const int same = memcmp(out_hmx, out_m1, sizeof(float) * M * N_out);
   fail |= (r != 0) || blocks != 0u || dma_kb != want_kb || path != 1u ||
           fed != feed || same != 0;
-  /* [#158] Under the bypass bit every feed push, and nothing else, reads
+  /** [#158] Under the bypass bit every feed push, and nothing else, reads
      around the L2: exactly the active experts' weight bytes. Without the
      feed there is no weight push, so nothing is bypassed either. */
   const int bypass = (gemv_flags & HEXKL_MOE_FLAG_DMA_BYPASS) != 0u;
@@ -719,7 +724,7 @@ static int run_m1_case(const char *shape, uint32_t M, uint32_t K,
   g_bypass_cells += bypass;
   g_bypass_total += g_bypass_bytes;
 
-  /* The lead: with it, every GEMV column went through the prefetch-free
+  /** The lead: with it, every GEMV column went through the prefetch-free
      call, each covered once by its own lane's box (no double fetch, no
      over-fetch); without it, every column fetched itself as before. Under
      the feed (#117) no box at all: every column took the prefetch-free
@@ -744,7 +749,7 @@ static int run_m1_case(const char *shape, uint32_t M, uint32_t K,
   }
   g_pf_lead_ok &= pf_ok;
 
-  /* The feed's schedule (#117): two whole-matrix pushes and two waits per
+  /** The feed's schedule (#117): two whole-matrix pushes and two waits per
      active expert, every VTCM read covered by a waited push, every push
      inside the arena and onto a slab whose previous matrix was read whole
      (gemv_stand_in / push2d above), and nothing pushed and left unread. */
@@ -767,7 +772,7 @@ static int run_m1_case(const char *shape, uint32_t M, uint32_t K,
     g_feed_waits += g_score_waits;
   }
 
-  /* The logged gate_up tiles, row by row, against the routing's token row
+  /** The logged gate_up tiles, row by row, against the routing's token row
      quantized by the reference's own quantizer. Down tiles are not held
      this way: their input is the kernel's requantized SwiGLU, which no
      independent int32 spec exists for -- the f32 memcmp above covers them.
@@ -810,7 +815,7 @@ static int run_m1_case(const char *shape, uint32_t M, uint32_t K,
   }
   fail |= (i32_bad != 0u);
 
-  /* And the M=1 output against the f32 reference on its own, as the
+  /** And the M=1 output against the f32 reference on its own, as the
      37-row fixture is. */
   float *want = (float *)malloc(sizeof(float) * M * N_out);
   reference_layer(M, K, inter, N_out, NE, wg, wd, act, ridx, rc_, rw, want,
@@ -855,7 +860,7 @@ static int run_m1_case(const char *shape, uint32_t M, uint32_t K,
   return fail;
 }
 
-/* M=1: four experts one row each; M=2: both tokens share two experts (two
+/** M=1: four experts one row each; M=2: both tokens share two experts (two
    rows of a pair to the same expert) and take one more each; M=4: one
    expert holds all four tokens, then 3, 2 and seven singles; then M=1 to
    three and to five experts, the odd counts the feed's slab schedule
@@ -871,7 +876,7 @@ static int run_m1_cases(uint8_t *vtcm, size_t vtcm_bytes,
                                          {1, 1, 1},
                                          {1, 1, 1, 1, 1}};
   static const uint32_t Ms[5] = {1, 2, 4, 1, 1};
-  /* #113's matrix, run inside one build: the five leads the device sweep
+  /** #113's matrix, run inside one build: the five leads the device sweep
      measures x the two row loops, plus the build's own defaults (the tune
      bits clear), which is what a run that sets no env var gets; since
      #117 the whole matrix again with the VTCM feed on. The lead changes
@@ -904,7 +909,7 @@ static int run_m1_cases(uint8_t *vtcm, size_t vtcm_bytes,
             flags |= HEXKL_MOE_FLAG_GEMV_ROWS1;
           if (cfg > n_pairs)
             flags |= HEXKL_MOE_FLAG_GEMV_FEED;
-          /* [#158] The bypass bit on the 192 and 768 KB cells of both
+          /** [#158] The bypass bit on the 192 and 768 KB cells of both
              halves: both loops with and without it, on the feed and on
              the arena read. The lead means nothing under the feed, so the
              cells it lands on differ only in this bit. */
@@ -951,7 +956,7 @@ static int run_m1_cases(uint8_t *vtcm, size_t vtcm_bytes,
   return fail;
 }
 
-/* Compressed DMA must move exactly half the bytes and reproduce int4
+/** Compressed DMA must move exactly half the bytes and reproduce int4
    outputs for decode, fallback, prefill tails and mixed-width experts. */
 static int compact_check(uint32_t I, uint32_t N, int deferred) {
   const uint32_t K = 128, E = 5;
@@ -976,7 +981,7 @@ static int compact_check(uint32_t I, uint32_t N, int deferred) {
     for (size_t i = 0; i < bytes; ++i)
       codes[h][i] = rnd();
     hvx_expand_i2i4_scalar(codes[h], bytes, lut, w->wh_bytes);
-    /* Centered LUT restores 127*colsum in int32, so this fixture must carry
+    /** Centered LUT restores 127*colsum in int32, so this fixture must carry
      * the actual metadata rather than make_weight's deliberately zero sums. */
     int32_t *sums = h < E ? wg[h].cs : wd[h - E].cs;
     for (uint32_t n = 0; n < w->N; ++n) {
@@ -1119,7 +1124,7 @@ int main(int argc, char **argv) {
   for (uint32_t i = 0; i < M * K; ++i)
     act[i] = rndf();
 
-  /* Routing: expert 0 gets many rows (multi-block, a 6-row tail for the
+  /** Routing: expert 0 gets many rows (multi-block, a 6-row tail for the
      HVX path), expert 2 gets none, expert 3 a tail of exactly the
      threshold, expert 4 a second block too big for it (stays on the HMX);
      rows repeat across experts the way top-k does. */
@@ -1136,7 +1141,7 @@ int main(int argc, char **argv) {
   }
 
   float *got = (float *)malloc(sizeof(float) * M * N_out);
-  /* One scratch across every call below, the way the session holds it: the
+  /** One scratch across every call below, the way the session holds it: the
      later, smaller calls must work out of the block the first one grew. */
   hexkl_moe_scratch scratch = {NULL, NULL, 0};
   rc = hexkl_mm_u8i4_moe_layer_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm, M, K,
@@ -1157,7 +1162,7 @@ int main(int argc, char **argv) {
   printf(bad == 0 ? "MOE KERNEL MATCHES REFERENCE\n" : "MOE KERNEL DIFFERS\n");
   int fail = (bad != 0);
 
-  /* Every active expert's gate_up and down must have been pushed. The DMA
+  /** Every active expert's gate_up and down must have been pushed. The DMA
      stub here completes immediately, so a missing push cannot show up as a
      wrong result the way a premature one does -- this counter is the only
      thing that catches it, and it is also what the device profile divides
@@ -1177,7 +1182,7 @@ int main(int argc, char **argv) {
            (unsigned long long)got_kb, active, (unsigned long long)want);
     if (got_kb != want)
       fail = 1;
-    /* HMX blocks only: 70 -> 1 + a 6-row tail on the HVX, 12 -> 1,
+    /** HMX blocks only: 70 -> 1 + a 6-row tail on the HVX, 12 -> 1,
        80 -> 1 + a 16-row tail, 90 -> 2 (its 26-row second block is over
        the tail threshold). 6 would mean a tail went to the HMX after all,
        4 that a full block was skipped. */
@@ -1187,7 +1192,7 @@ int main(int argc, char **argv) {
       fail = 1;
   }
 
-  /* The switch does not apply at M > 4: the same call with the flag set
+  /** The switch does not apply at M > 4: the same call with the flag set
      takes the HMX path -- same blocks, same DMA, same bytes. */
   {
     float *got_on = (float *)malloc(sizeof(float) * M * N_out);
@@ -1209,7 +1214,7 @@ int main(int argc, char **argv) {
     free(got_on);
   }
 
-  /* [#158] The M > 1 HMX path under the bypass bit: the same bytes, and
+  /** [#158] The M > 1 HMX path under the bypass bit: the same bytes, and
      src_bypass on exactly the arena-backed weight chunks -- not on the
      activation blocks, not on the staging copies, and not on a heap slot
      (expert 1's gate_up here, which the DSP would have memcpy'd). The two
@@ -1245,7 +1250,7 @@ int main(int argc, char **argv) {
     free(got_bp);
   }
 
-  /* The identity the GeGLU epilogue rests on, x sigmoid(2y) == 0.5 x (1 +
+  /** The identity the GeGLU epilogue rests on, x sigmoid(2y) == 0.5 x (1 +
      tanh y), on a sweep of gate values in f32 and before any quantization:
      a wrong constant shows up here as 1e-3, not as a u8 flip. */
   {
@@ -1266,7 +1271,7 @@ int main(int argc, char **argv) {
     fail |= (worst_id > 1e-5);
   }
 
-  /* The same layer under the GeGLU bit (doc 55: gelu_tanh experts) against
+  /** The same layer under the GeGLU bit (doc 55: gelu_tanh experts) against
      the reference in swiglu_det.h's form: the epilogue is the only
      difference, so it must match to the bit. The M=1 GEMV reaches the same
      hvx_dequant_swiglu_acc_tiles_to_f32 with the same act. */
@@ -1289,7 +1294,7 @@ int main(int argc, char **argv) {
     free(want_g);
   }
 
-  /* Split (doc 52 section 10.14): experts {0,1,2} then {3,4}, summed on
+  /** Split (doc 52 section 10.14): experts {0,1,2} then {3,4}, summed on
      the host, against the whole call. Only the fp32 addition order may
      differ, so the error is taken against the output's largest magnitude:
      per element, a sum that cancels to near zero reads 3.5e-5 here. */
@@ -1364,7 +1369,7 @@ int main(int argc, char **argv) {
     fail |= (r != AEE_ENOMEMORY);
   }
 
-  /* --- #87: the DMA trace is inert when probing is off, and a no-op for
+  /** --- #87: the DMA trace is inert when probing is off, and a no-op for
      the output when it is on ------------------------------------------ */
   {
     float *got_on = (float *)malloc(sizeof(float) * M * N_out);
@@ -1402,7 +1407,7 @@ int main(int argc, char **argv) {
     free(got_on);
   }
 
-  /* --- #87: the M=1 push/wait trace at the LFM2 shape is the planner's
+  /** --- #87: the M=1 push/wait trace at the LFM2 shape is the planner's
      list (test/htp/nntr_moe_dma_plan.h), descriptor for descriptor ------ */
   {
     const uint32_t LK = 2048, LI = 1792, LN = 2048, LNE = 4;

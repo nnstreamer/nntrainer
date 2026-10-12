@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 /** @file moe_decode_lookahead.h
  * @brief Experimental decode prefetch at mixer entry or previous router input.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #ifndef NNTR_MOE_DECODE_LOOKAHEAD_H
 #define NNTR_MOE_DECODE_LOOKAHEAD_H

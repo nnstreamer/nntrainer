@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# @brief Paired S26 decode-prefetch benchmark using a predeployed runtime/model.
 # SPDX-License-Identifier: Apache-2.0
 """Paired S26 decode-prefetch benchmark using a predeployed runtime/model.
 

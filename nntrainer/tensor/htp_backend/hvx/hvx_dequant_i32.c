@@ -204,7 +204,7 @@ void hvx_dq_tiles_worker(uint32_t n_threads, uint32_t i, void *vctx) {
     const uint32_t c0 = (c->nt0 + j) * HEXKL_ACC_TILE_COLS;
     const int32_t *tile =
       (const int32_t *)(c->tiles_base + (size_t)j * c->tile_stride);
-    /* Which half of a gate_up result this tile belongs to. A caller with one
+    /** Which half of a gate_up result this tile belongs to. A caller with one
        destination passes a split past the last column, so this always takes
        dst_a and never reads dst_b. */
     float *out =
@@ -257,7 +257,7 @@ void hvx_dq_swiglu_worker(uint32_t n_threads, uint32_t i, void *vctx) {
     const int32_t *ut =
       (const int32_t *)(c->tiles_base +
                         (size_t)(c->n_pairs + j) * c->tile_stride);
-    /* Loop-invariant per tile, exactly as hvx_dequant_acc_tile_to_f32
+    /** Loop-invariant per tile, exactly as hvx_dequant_acc_tile_to_f32
        hoists them. */
     const HVX_Vector csg =
       Q6_Vsf_equals_Vw(((const HVX_UVector *)(c->colsum_w + cg))[0]);

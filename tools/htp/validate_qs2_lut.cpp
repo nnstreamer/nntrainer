@@ -5,6 +5,8 @@
  * Run on the target after copying both model and prepared files:
  *   validate_qs2_lut model.bin /absolute/path/prepared_experts
  * Re-run after replacing either. No model or artifact payload is modified.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #include "htp_prepared_qs2.h"
 #include <cstdio>

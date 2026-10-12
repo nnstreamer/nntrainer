@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 /** @file htp_prepared_qs2.h
  * @brief Checked reader for offline QS2 decode rows. Models stay unchanged.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #ifndef __HTP_PREPARED_QS2_H__
 #define __HTP_PREPARED_QS2_H__
@@ -74,7 +76,7 @@ inline uint32_t preparedQs2Crc(const void *data, size_t size) {
   return ~c;
 }
 
-/* Same little-endian field widths as the prepared FC header, with magic
+/** Same little-endian field widths as the prepared FC header, with magic
  * NNTRI201, version=1, layout=1 (K-major pair LUT); hash fields hold CRC32.
  * Source includes compact WH, palette, f32 scales and f32 sums. Payload
  * contains K*N/4 rearranged code bytes only. CRCs detect stale/corrupt

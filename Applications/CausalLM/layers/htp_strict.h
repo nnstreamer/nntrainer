@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 /** @file htp_strict.h
  * @brief Explicit HTP LFM2 inference with an optional CPU LM head.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #ifndef __CAUSALLM_HTP_STRICT_H__
 #define __CAUSALLM_HTP_STRICT_H__

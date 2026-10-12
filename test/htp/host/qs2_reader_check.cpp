@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 /** @file qs2_reader_check.cpp
  * @brief QS2 slot bytes, failed reads, metadata rejection and concurrent loads.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #include "htp_qs2_mapped_file.h"
 #include "htp_qs2_reader.h"

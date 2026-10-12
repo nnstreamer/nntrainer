@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 /** @file htp_fc_opts.h
  * @brief Shared host/DSP M=1 projection options in the session opts word.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #ifndef __NNTRAINER_HTP_FC_OPTS_H__
 #define __NNTRAINER_HTP_FC_OPTS_H__

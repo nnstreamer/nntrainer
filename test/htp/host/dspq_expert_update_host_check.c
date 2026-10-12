@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 /** @file dspq_expert_update_host_check.c
  * @brief Real queue parser and update ordering; device tests cover arithmetic.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #include <assert.h>
 #include <malloc.h>

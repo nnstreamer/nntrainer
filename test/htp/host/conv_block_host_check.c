@@ -1,10 +1,15 @@
-/* Host harness for hexkl_conv_block_run: the kernel on the scalar stand-ins
+/** Host harness for hexkl_conv_block_run: the kernel on the scalar stand-ins
    (hvx_scalar_stubs.c) against a row-at-a-time reference of the whole
    block. What it checks is the loop structure -- that a and c pair up at
    the same columns, that g's rows land where phase 2's two-row look-back
    expects them, that the second walk over the rows sees the right slot
    contents after the weight swap, that the state is g's last two rows --
-   not the HMX's arithmetic, which the stubs define self-consistently. */
+   not the HMX's arithmetic, which the stubs define self-consistently.
+ * @file conv_block_host_check.c
+ * @brief Regression checks for conv block host check.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
+ */
 #include "hexkl_conv_block.h"
 #include "hexkl_probe.h"
 #include "hvx_scalar_stubs.h"
@@ -14,7 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* The reference: one row of x at a time through in_proj's three slices,
+/** The reference: one row of x at a time through in_proj's three slices,
    the conv over the previous rows' gate values, out_proj. */
 static void ref_block(const W *wa, const W *wb, const W *wc, const W *wo,
                       const float *conv_w, const float *x, uint32_t M,
@@ -84,7 +89,7 @@ static int compare(const char *what, const float *got, const float *want,
 }
 
 int main(void) {
-  /* Shapes small enough to run in seconds and awkward on purpose: M is
+  /** Shapes small enough to run in seconds and awkward on purpose: M is
      three blocks with a short last one; C is 17 tiles, one more than the
      16 pairs a staging buffer holds, so phase 1 has a full batch and a
      one-pair batch and the second staging buffer is used; N_out is 33
@@ -142,7 +147,7 @@ int main(void) {
          (unsigned long long)g_invalid_bypass_bytes);
   printf(fail ? "CONV BLOCK DIFFERS\n" : "CONV BLOCK MATCHES REFERENCE\n");
 
-  /* Every weight pushed exactly once: a, b, c (K x C) and out (C x N_out).
+  /** Every weight pushed exactly once: a, b, c (K x C) and out (C x N_out).
      The DMA stub completes at push, so a missing push cannot show as a
      wrong result -- only this counter catches it. */
   {
@@ -179,7 +184,7 @@ int main(void) {
     free(want1);
     free(wst1);
   }
-  /* Repeated decode and ragged prefill must retain both previous rows.
+  /** Repeated decode and ragged prefill must retain both previous rows.
      Nonzero initial history catches kernels that silently reset on entry. */
   {
     const uint32_t chunks[] = {1, 1, 2, 33, 65, 48};
@@ -202,7 +207,7 @@ int main(void) {
     free(split);
     free(split_state);
   }
-  /* Every supported chunk, including partial final slabs and repeated M=1
+  /** Every supported chunk, including partial final slabs and repeated M=1
      state advancement. The unequal dimensions catch packed-WH stride bugs. */
   void *packed_alloc[4];
   uint8_t *packed[4];
@@ -250,7 +255,7 @@ int main(void) {
       fail |= compare("HVX chunk state", got_state, want_state, 2u * C);
     }
     if (variant >= 16u) {
-      /* A different input chunk must safely use original WH while any
+      /** A different input chunk must safely use original WH while any
          still-matching output image remains usable. */
       const uint32_t other_flags = flags ^ (1u << HTP_CONV_CHUNK_SHIFT);
       fail |= hexkl_conv_block_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm, 1u,
@@ -298,7 +303,7 @@ int main(void) {
     printf("bad handle shape  : rc=%d (want %d)\n", r, AEE_EBADPARM);
     fail |= (r != AEE_EBADPARM);
   }
-  /* One column batch per row block: accumulator parity must continue
+  /** One column batch per row block: accumulator parity must continue
      across row boundaries. The device fixture exercises the actual async
      reader; these stand-ins check its resulting row/column mapping. */
   {

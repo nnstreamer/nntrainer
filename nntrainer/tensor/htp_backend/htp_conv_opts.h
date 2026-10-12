@@ -2,6 +2,8 @@
 /**
  * @file htp_conv_opts.h
  * @brief Shared host/DSP decode convolution options in the session opts word.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #ifndef __NNTRAINER_HTP_CONV_OPTS_H__
 #define __NNTRAINER_HTP_CONV_OPTS_H__
@@ -9,7 +11,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-/* Bits 0..19 belong to the existing MoE options. The echo validates these
+/** Bits 0..19 belong to the existing MoE options. The echo validates these
  * bits too, so an old skel cannot silently benchmark HMX as HVX. */
 #define HTP_CONV_FLAG_M1_HVX 0x100000u
 #define HTP_CONV_CHUNK_SHIFT 21u

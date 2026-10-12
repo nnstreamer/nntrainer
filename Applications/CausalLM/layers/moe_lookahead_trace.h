@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 /** @file moe_lookahead_trace.h
  * @brief Opt-in FP32 snapshots for offline MoE lookahead evaluation.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #ifndef NNTR_MOE_LOOKAHEAD_TRACE_H
 #define NNTR_MOE_LOOKAHEAD_TRACE_H

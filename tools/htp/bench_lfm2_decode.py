@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# @brief Alternate hybrid/strict decode or strict fusion off/on on one device.
 # SPDX-License-Identifier: Apache-2.0
 """Alternate hybrid/strict decode or strict fusion off/on on one device.
 

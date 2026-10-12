@@ -731,7 +731,7 @@ private:
         // honest number, and it is the one to compare against the layer's
         // MAC count. It also absorbs whatever the probes do not name, so
         // treat it as an upper bound on the matmul, not an exact figure.
-        /* mm is the residual, so every named stage has to be subtracted --
+        /** mm is the residual, so every named stage has to be subtracted --
            scatter included, or the MoE layer call's scatter time would be
            reported as matmul. Except SWIGLU on the MoE layer kernel's rows
            (MoE, dense, conv; upstream doc 53 section 8.4) and on the M=1
@@ -7068,7 +7068,7 @@ private:
     return true;
   }
 
-  /* Declared here rather than beside arena_chunks_ at the bottom of the
+  /** Declared here rather than beside arena_chunks_ at the bottom of the
      class: registerFromArena takes an ArenaEntry by reference, and a
      parameter type has to be complete where the function is declared, unlike
      a member a function BODY refers to. Only an HTP build compiles this

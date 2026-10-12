@@ -6,6 +6,8 @@
  * Arithmetic and DMA coherence are covered by the device dispatch test.
  * Build with generated host nntr_hvx.h, host/stub, SDK dspqueue.h, function
  * sections and --gc-sections (unrelated queue entry points are not linked).
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #include <assert.h>
 #include <malloc.h>

@@ -3,6 +3,8 @@
  * @file dequant_planes_host_check.c
  * @brief Compare planar HMX accumulator epilogues against int32 tiles using
  *        the real HVX source on lane emulation, including partial row groups.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #include "hvx_dequant_i32.h"
 #include "hvx_scale_add_f32.h"
@@ -19,7 +21,7 @@ void hvx_worker_pool_run(hvx_worker_pool *pool, hvx_worker_pool_func func,
     func(n, i, ctx);
 }
 
-/* Scalar byte extraction is independent of the HVX shuffle implementation.
+/** Scalar byte extraction is independent of the HVX shuffle implementation.
    Padded rows contain distinct data to catch over-read or wrong plane pitch. */
 static void make_planes(const int32_t *src, uint8_t *dst) {
   for (uint32_t i = 0; i < 2048; ++i) {
@@ -30,7 +32,7 @@ static void make_planes(const int32_t *src, uint8_t *dst) {
   }
 }
 
-/* The reference materializes dequantized values, then applies independent
+/** The reference materializes dequantized values, then applies independent
    scalar multiply/add in routing order. Repeated destinations deliberately
    expose preloading an output row before an earlier contribution is stored. */
 static int check_weighted_scatter(void) {

@@ -10,6 +10,8 @@
  *         scales and column sums and a zero bias, the old pair released
  *         only after, and on every error nothing released and nothing left
  *         registered.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #include <stdint.h>
 #include <stdio.h>
@@ -20,7 +22,7 @@
 #include "nntr_hvx_expert_update.h"
 #include "nntr_hvx_session.h"
 
-/* Referenced by nntr_hvx_mm_u8i4.c's other entry points, none of which
+/** Referenced by nntr_hvx_mm_u8i4.c's other entry points, none of which
    this check calls. Declared without their headers on purpose: C links
    them by name, and reaching one is a bug in the check. */
 #define NOT_HERE(fn)                                                           \
@@ -36,7 +38,7 @@ NOT_HERE(hexkl_mm_u8i4_run)
 NOT_HERE(hvx_rmsnorm_rows_ld_f32)
 NOT_HERE(hvx_rope_rows_ld_f32)
 NOT_HERE(hvx_rmsnorm_add_blocks_f32)
-/* These two are declared by headers the session struct pulls in, so they
+/** These two are declared by headers the session struct pulls in, so they
    get their real signatures. */
 int hexkl_mm_u8i8_layer_run(hexkl_weight_u8i8_table *tbl, uint8_t *vtcm_base,
                             uint32_t vtcm_size, uint32_t config_off, uint32_t M,
@@ -63,7 +65,7 @@ int hexkl_moe_scratch_reserve(hexkl_moe_scratch *scratch, size_t bytes) {
   abort();
 }
 
-/* Norm-consumer entries are linked with the registry but are never called
+/** Norm-consumer entries are linked with the registry but are never called
    by this harness. Keep an accidental call a test failure, not a no-op. */
 int nntr_hvx_inference_math_f32(remote_handle64 handle, uint32 op, uint32 M,
                                 uint32 N, uint32 chunk, float eps, float scale,
@@ -84,7 +86,7 @@ int nntr_hvx_sigmoid_topk_f32(remote_handle64 handle, uint32 M, uint32 E,
   abort();
 }
 
-/* The skel asks these two before a release or a detach; this check has no
+/** The skel asks these two before a release or a detach; this check has no
    decode graph and no Q4M1 slot, so nothing is ever bound or borrowed. */
 int hexkl_graph_uses_handle(const hexkl_graph *g, uint32_t handle) {
   (void)g;
@@ -169,14 +171,14 @@ int main(void) {
   for (int i = 0; i < NGU; ++i)
     CHECK(wg->bias[i] == 0.0f);
 
-  /* A second arena is borrowed by the optional Conv decode image even
+  /** A second arena is borrowed by the optional Conv decode image even
      when it contains none of the original WH. Rebind must invalidate it. */
   static uint8_t decode[GU_BYTES] __attribute__((aligned(512)));
   g_s.weights_u8i4.slots[g].conv_decode_bytes = decode;
   g_s.weights_u8i4.slots[g].conv_decode_chunk = 8u;
   CHECK(hexkl_weight_u8i4_borrows(&g_s.weights_u8i4, decode, sizeof decode));
 
-  /* 2. The swap proper: new pair in, old pair out, in one call. Same shape,
+  /** 2. The swap proper: new pair in, old pair out, in one call. Same shape,
         so (doc 52 section 10.25) the handles are rebound in place: same
         numbers, same arrays, new bytes and scales, bias still zero. */
   const float *arr_g = g_s.weights_u8i4.slots[g].w_scale;
@@ -208,7 +210,7 @@ int main(void) {
   CHECK(live() == 2 && x == 1234 && y == 1234);
   CHECK(g_s.weights_u8i4.slots[g2].in_use && g_s.weights_u8i4.slots[d2].in_use);
 
-  /* 4. gate_up fits, down does not (past the arena): refused before
+  /** 4. gate_up fits, down does not (past the arena): refused before
         either handle is rebound, so the old pair is live and unchanged. */
   CHECK(swap(g2, d2, 0, ARENA - 512, &x, &y) != AEE_SUCCESS);
   CHECK(live() == 2);
@@ -221,7 +223,7 @@ int main(void) {
   CHECK(live() == 2);
   CHECK(g_s.weights_u8i4.slots[g2].wh_bytes == va + 8192);
 
-  /* 5b. A retired pair of another shape falls back to register + release:
+  /** 5b. A retired pair of another shape falls back to register + release:
          new handles, the old ones freed. */
   {
     enum { I2 = 64, NGU2 = 2 * I2 };
@@ -244,7 +246,7 @@ int main(void) {
     CHECK(live() == 2);
   }
 
-  /* 6. The batch (doc 52 section 10.23): expert 0 swaps out the live pair
+  /** 6. The batch (doc 52 section 10.23): expert 0 swaps out the live pair
         into 0/4096, expert 1 is a fresh pair past the arena. Expert 0 must
         land, expert 1 must not, and the call itself succeeds so the host
         hears which. */
@@ -277,7 +279,7 @@ int main(void) {
     CHECK(done == 0 && live() == 2);
   }
 
-  /* 7. [doc 52 section 10.30] Empty sequences: the scales and column sums
+  /** 7. [doc 52 section 10.30] Empty sequences: the scales and column sums
         come from the arena, right after each weight's WH bytes -- N f32
         then N i32 -- and the bias is zero. Rebind in place first, then
         the register path (a retired pair of another shape), then the
@@ -335,7 +337,7 @@ int main(void) {
     hexkl_weight_u8i4_release(&g_s.weights_u8i4, x2);
     hexkl_weight_u8i4_release(&g_s.weights_u8i4, y2);
     CHECK(live() == 2);
-    /* down's WH bytes fit the arena but its tail does not: refused, and
+    /** down's WH bytes fit the arena but its tail does not: refused, and
        gate_up (checked first) is untouched */
     CHECK(nntr_hvx_weight_swap_u8i4_arena(
             (remote_handle64)(uintptr_t)&g_s, g3, d3, K, INTER, NOUT, 0, 0,

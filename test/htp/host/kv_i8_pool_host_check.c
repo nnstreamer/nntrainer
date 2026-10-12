@@ -3,6 +3,8 @@
  * @file kv_i8_pool_host_check.c
  * @brief Exercise the actual private INT8 append worker with the real pool
  *        and pthread QuRT stand-ins. HMX tile writes require device tests.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #include "hvx_worker_pool.h"
 #include <stdatomic.h>
@@ -10,7 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Including the implementation exposes the same private worker/partition
+/** Including the implementation exposes the same private worker/partition
    used on DSP without adding a production test hook. Host public dispatch
    remains serial; the pool below exercises its actual worker concurrently. */
 #include "../../../nntrainer/tensor/htp_backend/hmx/hexkl_kv_q.c"

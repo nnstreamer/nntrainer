@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# @brief Evaluate NNTR_MOE_LOOKAHEAD_DUMP snapshots, never model output substitutes.
 # SPDX-License-Identifier: Apache-2.0
 """Evaluate NNTR_MOE_LOOKAHEAD_DUMP snapshots, never model output substitutes.
 

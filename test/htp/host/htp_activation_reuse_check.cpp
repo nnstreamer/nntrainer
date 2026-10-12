@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 /** @file htp_activation_reuse_check.cpp
  * @brief Host checks for the scoped router-to-MoE staging lease.
+ * @author NNTrainer contributors
+ * @bug See the repository issue tracker for known issues.
  */
 #include <cassert>
 #include <cstdio>
