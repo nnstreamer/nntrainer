@@ -763,6 +763,15 @@ Tensor &FloatTensor::dot(Tensor const &input, Tensor &output, bool trans,
     dotQs4cx(input, output, trans, trans_in, beta, input.getDataType());
     break;
   case Tdatatype::QS4CX_WH:
+  case Tdatatype::QS2CX_WH:
+    if (getOps()->supports_gemm_qs4cx_wh_accel_fp32() && !trans && !trans_in &&
+        beta == 0.0f) {
+      getOps()->gemm_qs4cx_wh_accel_fp32(
+        input.getData<char>(), input.getScale<float>(), (float *)getData(),
+        output.getData<float>(), getDim().height(), output.getDim().width(),
+        getDim().width());
+      break;
+    }
     // Reaching a CPU kernel at all is the error. These nibbles are in the
     // HMX unit's weight-tile layout (htp_wh_layout.h), which no kernel here
     // can read, so the weight has to go to the accelerator or not be built

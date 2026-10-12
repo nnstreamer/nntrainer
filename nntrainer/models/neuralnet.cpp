@@ -116,6 +116,8 @@ Tensor mapExternalTensor(float *buf, const TensorDim &dim) {
  *        per node and never touches a tensor. Unlike the --profile build it
  *        builds no string per call and starts no sampler thread, so it can
  *        ride the TPS binary.
+ *        NNTR_OP_TIME=prefill selects multi-token calls instead, keeping
+ *        model loading and weight preparation outside the measured rows.
  *
  * ponytail: indexed by execution order, one process-wide table. Two models
  * in one process would add into the same rows; the CausalLM app runs one.
@@ -128,12 +130,16 @@ struct OpTimeTable {
   };
   std::vector<Row> rows;
 
-  static bool on() {
-    static const bool v = [] {
+  static bool on(unsigned int tokens) {
+    static const int mode = [] {
       const char *e = std::getenv("NNTR_OP_TIME");
-      return e != nullptr && std::strcmp(e, "1") == 0;
+      if (e == nullptr)
+        return 0;
+      if (std::strcmp(e, "prefill") == 0)
+        return 2;
+      return std::strcmp(e, "1") == 0 ? 1 : 0;
     }();
-    return v;
+    return (mode == 1 && tokens == 1) || (mode == 2 && tokens > 1);
   }
 
   void add(size_t f, LayerNode &node, uint64_t ns) {
@@ -370,6 +376,13 @@ int NeuralNetwork::compile(ExecutionMode mode) {
   // reuse the pool (allocate once) instead of reallocating per call. CPU/GPU
   // keep the realloc-per-call behavior they need for correct tensor state.
   reuse_inference_tensor_pool_ = has_qnn_engine;
+#ifdef ENABLE_HEXKL
+  const char *shared_htp = std::getenv("NNTR_HTP_SHARED_ACTIVATIONS");
+  if (!has_qnn_engine && shared_htp && std::atoi(shared_htp)) {
+    model_graph.setComputeBackend("", "htp");
+    reuse_inference_tensor_pool_ = true;
+  }
+#endif
 
   model_graph.setMemoryOptimizations(
     std::get<props::MemoryOptimization>(model_flex_props));
@@ -637,7 +650,7 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
     if (exec_mode == ExecutionMode::TRAIN or
         (exec_mode == ExecutionMode::INFERENCE and !fsu_mode)) {
       model_graph.flushCacheExcept(f);
-      if (to - from == 1 && OpTimeTable::on()) {
+      if (OpTimeTable::on(to - from)) {
         const auto t0 = std::chrono::steady_clock::now();
         node->incremental_forwarding(from, to, training);
         g_op_time.add(f, *node,
