@@ -92,6 +92,8 @@ typedef struct {
   hexkl_kv_q_table kv_q;             /**< resident int8 / int4 KV caches */
   hvx_worker_pool *quant_pool; /**< sized from the HVX unit count in open() */
   nntr_hvx_arena arenas[NNTR_HVX_MAX_ARENAS];
+  hexkl_moe_scratch
+    router_q4_scratch;           /**< cached logits for Q4 prefill routing */
   hexkl_moe_scratch moe_scratch; /**< the MoE layer call's heap scratch,
                                       grown on demand, freed in close() */
   uint32_t moe_flags;       /**< HEXKL_MOE_FLAG_* bits from moe_set_opts; the
@@ -109,11 +111,11 @@ typedef struct {
   nntr_hvx_q4m1_slot q4m1[NNTR_HVX_Q4M1_SLOTS]; /**< [#132 PR 2] the Q4M1
                                  weights of fc_q4m1_f32 and (Part B) the
                                  graph's FC kinds, freed in close() */
-  uint8_t *fc_l2; /**< [#132 Part B, #178] the FC runner's L2 feed scratch
-                       (2 MiB of DSP heap, first use), freed in close() */
-  float *norm_rows;    /**< the pre-normed activation of mm_u8i4_layer_norm /
-                            mm_u8i4_moe_layer_norm (M x K f32, DSP heap,
-                            grown on demand), freed in close() */
+  uint8_t *fc_l2;       /**< [#132 Part B, #178] the FC runner's L2 feed scratch
+                             (2 MiB of DSP heap, first use), freed in close() */
+  float *norm_rows;     /**< the pre-normed activation of mm_u8i4_layer_norm /
+                             mm_u8i4_moe_layer_norm (M x K f32, DSP heap,
+                             grown on demand), freed in close() */
   uint32_t norm_rows_n; /**< floats norm_rows holds */
   float *moe_res;       /**< mm_u8i4_moe_layer_norm_add's MoE output, before
                              the epilogue writes the call's out (heap) */

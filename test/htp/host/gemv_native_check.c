@@ -77,6 +77,65 @@ static uint32_t run_case(col_fn fn, const uint8_t *act, const uint8_t *wh,
   return bad;
 }
 
+static uint32_t run_triple_cases(void) {
+  const uint32_t kts[] = {1u, 64u, 256u};
+  const uint32_t cols[] = {1u, 4u, 8u, 17u, 32u};
+  uint8_t *act = (uint8_t *)malloc(256u * 2048u);
+  uint8_t *wh_base = (uint8_t *)malloc(3u * 256u * 32u * 512u + 127u);
+  if (!act || !wh_base)
+    exit(2);
+  uint8_t *wh = (uint8_t *)(((uintptr_t)wh_base + 127u) & ~(uintptr_t)127u);
+  uint32_t bad = 0, cases = 0;
+  for (unsigned data = 0; data < 3u; ++data) {
+    for (uint32_t i = 0; i < 256u * 2048u; ++i)
+      act[i] = data == 0 ? rnd8() : data == 1 ? 255u : 0u;
+    for (uint32_t i = 0; i < 3u * 256u * 32u * 512u; ++i)
+      wh[i] = data == 1 ? 0x88u : rnd8();
+    for (unsigned k = 0; k < sizeof kts / sizeof kts[0]; ++k)
+      for (unsigned n = 0; n < sizeof cols / sizeof cols[0]; ++n) {
+        // Physical plane pitch exceeds the logical tile count, as at a tail.
+        const uint32_t pitch = kts[k] * (cols[n] + 1u) * 512u;
+        const uint32_t nts[] = {0u, cols[n] - 1u};
+        if (3u * pitch > 3u * 256u * 32u * 512u)
+          continue;
+        for (unsigned t = 0; t < 2u; ++t) {
+          int32_t out[4u * 32u] __attribute__((aligned(128)));
+          for (unsigned i = 0; i < 4u * 32u; ++i)
+            out[i] = GUARD;
+          hvx_gemv_u8i4_wh_3col_nopf(act, kts[k], wh, pitch, cols[n], nts[t],
+                                     out);
+          int32_t single[2u * 32u] __attribute__((aligned(128)));
+          for (unsigned i = 0; i < 2u * 32u; ++i)
+            single[i] = GUARD;
+          hvx_gemv_u8i4_wh_col_aligned_nopf(act, kts[k], wh, cols[n], nts[t],
+                                            single);
+          for (uint32_t w = 0; w < 3u; ++w)
+            for (uint32_t c = 0; c < 32u; ++c) {
+              int32_t expected = 0;
+              for (uint32_t kt = 0; kt < kts[k]; ++kt)
+                for (uint32_t j = 0; j < 32u; ++j)
+                  expected += (int32_t)act[(size_t)kt * 2048u + j] *
+                              wh_value(wh + w * pitch +
+                                         ((size_t)kt * cols[n] + nts[t]) * 512u,
+                                       j, c);
+              bad += out[w * 32u + c] != expected;
+              if (w == 0u)
+                bad += single[c] != expected;
+            }
+          for (unsigned i = 32u; i < 2u * 32u; ++i)
+            bad += single[i] != GUARD;
+          for (unsigned i = 3u * 32u; i < 4u * 32u; ++i)
+            bad += out[i] != GUARD;
+          ++cases;
+        }
+      }
+  }
+  printf("HVX GEMV ALIGNED SINGLE/TRIPLE cases=%u bad=%u\n", cases, bad);
+  free(act);
+  free(wh_base);
+  return bad;
+}
+
 int main(void) {
   static const uint32_t kts[] = {1u, 56u, 64u};
   static const uint32_t ncs[] = {64u, 112u};
@@ -85,7 +144,7 @@ int main(void) {
   uint8_t *wh = (uint8_t *)malloc(wh_max);
   if (!act || !wh)
     return 2;
-  uint32_t bad = 0, cases = 0;
+  uint32_t bad = run_triple_cases(), cases = 0;
   /* data 0: random bytes; data 1: the extremes, activation 255 against
      nibble -8 everywhere -- the largest |sum| the header's bound allows. */
   for (int data = 0; data < 2; ++data) {

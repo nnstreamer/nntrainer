@@ -113,15 +113,47 @@ static void rows_worker(uint32_t n_threads, uint32_t i, void *v) {
   }
 }
 
+/** Decode has no row parallelism. Split independent expert columns while
+ * retaining the exact k-order and IEEE product/add used by rows_worker. */
+static void decode_columns_worker(uint32_t threads, uint32_t thread, void *v) {
+  const rows_ctx *c = (const rows_ctx *)v;
+  const uint32_t vectors = c->E / LANES;
+  const uint32_t lo = vectors * thread / threads;
+  const uint32_t hi = vectors * (thread + 1u) / threads;
+  for (uint32_t e = lo; e < hi; ++e) {
+    HVX_Vector acc = Q6_V_vzero();
+    for (uint32_t k0 = 0; k0 < c->K; k0 += 128u) {
+      const uint32_t k1 = k0 + 128u < c->K ? k0 + 128u : c->K;
+#if defined(__hexagon__)
+      if (k1 < c->K) {
+        const uint32_t rows = c->K - k1 < 128u ? c->K - k1 : 128u;
+        Q6_l2fetch_AP((void *)(c->w + (size_t)k1 * c->E + e * LANES),
+                      ((uint64_t)c->E * 4u << 32) | (128ull << 16) | rows);
+      }
+#endif
+      for (uint32_t k = k0; k < k1; ++k) {
+        const HVX_Vector w =
+          *(const HVX_UVector *)(c->w + (size_t)k * c->E + e * LANES);
+        acc =
+          Q6_Vsf_vadd_VsfVsf(acc, Q6_Vsf_vmpy_VsfVsf(hvx_splat_sf(c->x[k]), w));
+      }
+    }
+    *(HVX_UVector *)(c->logits + e * LANES) = acc;
+  }
+}
+
 int hvx_router_rows_f32(const float *x, const float *w, float *logits,
                         uint32_t M, uint32_t K, uint32_t E,
                         hvx_worker_pool *pool) {
-  if (!x || !w || !logits || M == 0u || K == 0u || E == 0u ||
-      E % LANES != 0u || E > EV_MAX * LANES) {
+  if (!x || !w || !logits || M == 0u || K == 0u || E == 0u || E % LANES != 0u ||
+      E > EV_MAX * LANES) {
     return -1;
   }
   rows_ctx c = {x, w, logits, M, K, E};
-  hvx_worker_pool_run(pool, rows_worker, &c, M);
+  if (M == 1 && E >= 2u * LANES)
+    hvx_worker_pool_run(pool, decode_columns_worker, &c, E / LANES);
+  else
+    hvx_worker_pool_run(pool, rows_worker, &c, M);
   return 0;
 }
 

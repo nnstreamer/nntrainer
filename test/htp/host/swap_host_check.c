@@ -17,6 +17,7 @@
 #include <string.h>
 
 #include "nntr_hvx.h"
+#include "nntr_hvx_expert_update.h"
 #include "nntr_hvx_session.h"
 
 /* Referenced by nntr_hvx_mm_u8i4.c's other entry points, none of which
@@ -28,11 +29,24 @@
     abort();                                                                   \
   }
 NOT_HERE(hexkl_conv_block_run)
+NOT_HERE(hexkl_conv_block_prepare_decode)
 NOT_HERE(hexkl_mm_u8i4_bake_weights)
 NOT_HERE(hexkl_mm_u8i4_plan)
 NOT_HERE(hexkl_mm_u8i4_run)
+NOT_HERE(hvx_rmsnorm_rows_ld_f32)
+NOT_HERE(hvx_rope_rows_ld_f32)
+NOT_HERE(hvx_rmsnorm_add_blocks_f32)
 /* These two are declared by headers the session struct pulls in, so they
    get their real signatures. */
+int hexkl_mm_u8i8_layer_run(hexkl_weight_u8i8_table *tbl, uint8_t *vtcm_base,
+                            uint32_t vtcm_size, uint32_t config_off, uint32_t M,
+                            uint32_t K, const uint32_t *handles,
+                            uint32_t n_handles, const float *act_f32,
+                            float *out_cat, const hexkl_mm_opts *opts) {
+  fprintf(stderr, "swap_host_check: hexkl_mm_u8i8_layer_run called\n");
+  abort();
+}
+
 int hexkl_mm_u8i4_moe_layer_run(
   hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base, uint32_t vtcm_size,
   uint32_t config_off, uint32_t M, uint32_t K, uint32_t inter, uint32_t N_out,
@@ -43,6 +57,33 @@ int hexkl_mm_u8i4_moe_layer_run(
   fprintf(stderr, "swap_host_check: hexkl_mm_u8i4_moe_layer_run called\n");
   abort();
 }
+/* FC execution is outside this registry-only harness. */
+int hexkl_moe_scratch_reserve(hexkl_moe_scratch *scratch, size_t bytes) {
+  fprintf(stderr, "swap_host_check: hexkl_moe_scratch_reserve called\n");
+  abort();
+}
+
+/* Norm-consumer entries are linked with the registry but are never called
+   by this harness. Keep an accidental call a test failure, not a no-op. */
+int nntr_hvx_inference_math_f32(remote_handle64 handle, uint32 op, uint32 M,
+                                uint32 N, uint32 chunk, float eps, float scale,
+                                const float *x, int xLen, const float *aux,
+                                int auxLen, const float *param, int paramLen,
+                                uint8 *result, int resultLen) {
+  fprintf(stderr, "swap_host_check: nntr_hvx_inference_math_f32 called\n");
+  abort();
+}
+
+/* The fused router shares this translation unit with the registry. */
+int nntr_hvx_sigmoid_topk_f32(remote_handle64 handle, uint32 M, uint32 E,
+                              uint32 top_k, uint32 n_sel, const float *logits,
+                              int logitsLen, const float *bias, int biasLen,
+                              uint32 *sel, int selLen, float *weight,
+                              int weightLen) {
+  fprintf(stderr, "swap_host_check: nntr_hvx_sigmoid_topk_f32 called\n");
+  abort();
+}
+
 /* The skel asks these two before a release or a detach; this check has no
    decode graph and no Q4M1 slot, so nothing is ever bound or borrowed. */
 int hexkl_graph_uses_handle(const hexkl_graph *g, uint32_t handle) {
@@ -128,6 +169,13 @@ int main(void) {
   for (int i = 0; i < NGU; ++i)
     CHECK(wg->bias[i] == 0.0f);
 
+  /* A second arena is borrowed by the optional Conv decode image even
+     when it contains none of the original WH. Rebind must invalidate it. */
+  static uint8_t decode[GU_BYTES] __attribute__((aligned(512)));
+  g_s.weights_u8i4.slots[g].conv_decode_bytes = decode;
+  g_s.weights_u8i4.slots[g].conv_decode_chunk = 8u;
+  CHECK(hexkl_weight_u8i4_borrows(&g_s.weights_u8i4, decode, sizeof decode));
+
   /* 2. The swap proper: new pair in, old pair out, in one call. Same shape,
         so (doc 52 section 10.25) the handles are rebound in place: same
         numbers, same arrays, new bytes and scales, bias still zero. */
@@ -144,6 +192,9 @@ int main(void) {
     CHECK(g_s.weights_u8i4.slots[g2].bias[i] == 0.0f);
   CHECK(g_s.weights_u8i4.slots[g2].wh_bytes == va + 8192);
   CHECK(g_s.weights_u8i4.slots[d2].wh_bytes == va + 12288);
+  CHECK(g_s.weights_u8i4.slots[g2].conv_decode_bytes == NULL);
+  CHECK(g_s.weights_u8i4.slots[g2].conv_decode_chunk == 0u);
+  CHECK(!hexkl_weight_u8i4_borrows(&g_s.weights_u8i4, decode, sizeof decode));
 
   /* 3. Refusals before anything is registered or released. */
   uint32_t x = 1234, y = 1234;
@@ -177,14 +228,15 @@ int main(void) {
     static float s2[NGU2];
     static int32_t c2[NGU2];
     uint32_t og = NONE, od = NONE, ng = NONE, nd = NONE;
-    CHECK(nntr_hvx_weight_swap_u8i4_arena(
-            (remote_handle64)(uintptr_t)&g_s, NONE, NONE, K, I2, NOUT, 0, 0,
-            8192, s2, NGU2, c2, NGU2, dn_s, NOUT, dn_c, NOUT, &og,
-            &od) == AEE_SUCCESS);
+    CHECK(nntr_hvx_weight_swap_u8i4_arena((remote_handle64)(uintptr_t)&g_s,
+                                          NONE, NONE, K, I2, NOUT, 0, 0, 8192,
+                                          s2, NGU2, c2, NGU2, dn_s, NOUT, dn_c,
+                                          NOUT, &og, &od) == AEE_SUCCESS);
     CHECK(live() == 4);
     CHECK(swap(og, od, 0, 4096, &ng, &nd) == AEE_SUCCESS);
     CHECK(live() == 4);
-    CHECK(g_s.weights_u8i4.slots[ng].K == K && g_s.weights_u8i4.slots[ng].N == NGU);
+    CHECK(g_s.weights_u8i4.slots[ng].K == K &&
+          g_s.weights_u8i4.slots[ng].N == NGU);
     CHECK(g_s.weights_u8i4.slots[ng].wh_bytes == va);
     /* back to two: release the fallback's pair */
     hexkl_weight_u8i4_release(&g_s.weights_u8i4, ng);
@@ -308,6 +360,67 @@ int main(void) {
       CHECK(done == 1 && err == AEE_SUCCESS && bhg[0] == g3 && bhd[0] == d3);
       CHECK(g_s.weights_u8i4.slots[g3].w_scale[0] == 42.0f);
     }
+  }
+
+  /* Compact tails, palette validation, bounds and int4<->int2 rebind. */
+  {
+    const uint32_t go = 0, dn = 4096;
+    const uint32_t gcodes = K * NGU / 4u, dcodes = INTER * NOUT / 4u;
+    const int8_t pal[4] = {-8, -1, 2, 7};
+    memcpy(va + go + gcodes, gu_s, sizeof gu_s);
+    memcpy(va + go + gcodes + sizeof gu_s, gu_c, sizeof gu_c);
+    memcpy(va + go + gcodes + 8u * NGU, pal, 4);
+    memcpy(va + dn + dcodes, dn_s, sizeof dn_s);
+    memcpy(va + dn + dcodes + sizeof dn_s, dn_c, sizeof dn_c);
+    memcpy(va + dn + dcodes + 8u * NOUT, pal, 4);
+    uint32_t cg, cd, ng, nd;
+    CHECK(nntr_hvx_weight_swap_u2i4_arena((remote_handle64)(uintptr_t)&g_s,
+                                          NONE, NONE, K, INTER, NOUT, 0, go, dn,
+                                          &cg, &cd) == AEE_SUCCESS);
+    CHECK(g_s.weights_u8i4.slots[cg].bits == 2u);
+    CHECK(memcmp(g_s.weights_u8i4.slots[cg].w_scale, gu_s, sizeof gu_s) == 0);
+    CHECK(memcmp(g_s.weights_u8i4.slots[cd].colsum_w, dn_c, sizeof dn_c) == 0);
+    const uint8_t *old = g_s.weights_u8i4.slots[cg].wh_bytes;
+    va[dn + dcodes + 8u * NOUT] = 9;
+    CHECK(nntr_hvx_weight_swap_u2i4_arena((remote_handle64)(uintptr_t)&g_s, cg,
+                                          cd, K, INTER, NOUT, 0, go, dn, &ng,
+                                          &nd) == AEE_EBADPARM);
+    CHECK(g_s.weights_u8i4.slots[cg].wh_bytes == old);
+    va[dn + dcodes + 8u * NOUT] = (uint8_t)pal[0];
+    CHECK(nntr_hvx_weight_swap_u2i4_arena(
+            (remote_handle64)(uintptr_t)&g_s, cg, cd, K, INTER, NOUT, 0, go,
+            ARENA - 512u, &ng, &nd) == AEE_EBADPARM);
+    CHECK(swap(cg, cd, 8192, 12288, &ng, &nd) == AEE_SUCCESS);
+    CHECK(ng == cg && nd == cd && g_s.weights_u8i4.slots[cg].bits == 4u);
+    CHECK(nntr_hvx_weight_swap_u2i4_arena((remote_handle64)(uintptr_t)&g_s, cg,
+                                          cd, K, INTER, NOUT, 0, go, dn, &ng,
+                                          &nd) == AEE_SUCCESS);
+    CHECK(ng == cg && nd == cd && g_s.weights_u8i4.slots[cg].bits == 2u);
+    const htp_dspq_expert_update update = {cg, cd, 0, go, dn};
+    for (unsigned round = 0; round < 32; ++round) {
+      const float previous = g_s.weights_u8i4.slots[cg].w_scale[0];
+      float *gs = (float *)(va + go + gcodes);
+      float *ds = (float *)(va + dn + dcodes);
+      gs[0] = 1000.f + round;
+      ds[0] = 2000.f + round;
+      ((int32_t *)(gs + NGU))[0] = (int32_t)round - 50;
+      va[go + gcodes + 8u * NGU] = (uint8_t)(round % 8u);
+      va[dn + dcodes + 8u * NOUT] = 9; // Validate the whole batch first.
+      CHECK(nntr_hvx_expert_update_batch((remote_handle64)(uintptr_t)&g_s, K,
+                                         INTER, NOUT, &update,
+                                         1) == AEE_EBADPARM);
+      CHECK(g_s.weights_u8i4.slots[cg].w_scale[0] == previous);
+      va[dn + dcodes + 8u * NOUT] = 3;
+      CHECK(nntr_hvx_expert_update_batch((remote_handle64)(uintptr_t)&g_s, K,
+                                         INTER, NOUT, &update,
+                                         1) == AEE_SUCCESS);
+      CHECK(g_s.weights_u8i4.slots[cg].w_scale[0] == 1000.f + round);
+      CHECK(g_s.weights_u8i4.slots[cd].w_scale[0] == 2000.f + round);
+      CHECK(g_s.weights_u8i4.slots[cg].colsum_w[0] == (int32_t)round - 50);
+      CHECK(g_s.weights_u8i4.slots[cg].pal[0] == (int8_t)(round % 8u));
+    }
+    hexkl_weight_u8i4_release(&g_s.weights_u8i4, cg);
+    hexkl_weight_u8i4_release(&g_s.weights_u8i4, cd);
   }
 
   printf("WEIGHT SWAP OK\n");

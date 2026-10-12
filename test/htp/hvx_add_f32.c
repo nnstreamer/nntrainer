@@ -227,6 +227,22 @@ int nntr_hvx_open(const char *uri, remote_handle64 *handle) {
     if (HAP_power_set((void *)s, &req) != AEE_SUCCESS) {
       FARF(HIGH, "nntr_hvx_open: DCVS vote rejected (continuing)");
     }
+#if defined(HAP_POWER_SET_HMX_V2_DEFINED) && !defined(NNTR_HVX_NO_HMX_VOTE)
+    /* HMX has a separate clock vote from the Q6 core. Keep this request
+       best effort, like the core and bus votes. NNTR_HVX_NO_HMX_VOTE
+       builds the previous policy for device comparisons. */
+    memset(&req, 0, sizeof(req));
+    req.type = HAP_power_set_HMX_v2;
+    req.hmx_v2.set_power = 0;
+    req.hmx_v2.set_clock = 1;
+    req.hmx_v2.target_corner = HAP_DCVS_EXP_VCORNER_MAX;
+    req.hmx_v2.min_corner = HAP_DCVS_EXP_VCORNER_DISABLE;
+    req.hmx_v2.max_corner = HAP_DCVS_EXP_VCORNER_MAX;
+    req.hmx_v2.perf_mode = HAP_CLK_PERF_HIGH;
+    if (HAP_power_set((void *)s, &req) != AEE_SUCCESS) {
+      FARF(HIGH, "nntr_hvx_open: HMX clock vote rejected (continuing)");
+    }
+#endif
     /* The bus, separately from the core. The DCVS vote above raises the
        DSP clock, and mm at 17.5 ns a tile says it holds; it says nothing
        about DDR. The MoE layer's weight DMA measured 16-18 GB/s in situ
@@ -297,6 +313,7 @@ int nntr_hvx_close(remote_handle64 handle) {
   /* [#132 Part B E5i] a no-op when the ARM side ran it before its munmaps */
   (void)nntr_hvx_arenas_release(handle, &n);
   hexkl_moe_scratch_free(&s->moe_scratch);
+  hexkl_moe_scratch_free(&s->router_q4_scratch);
   /* [#81] The attention cache borrows the pool, so it goes first. */
   hvx_attn_m1_free(s->attn_m1);
   s->attn_m1 = NULL;

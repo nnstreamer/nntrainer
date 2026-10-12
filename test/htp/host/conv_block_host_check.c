@@ -25,7 +25,9 @@ static void ref_block(const W *wa, const W *wb, const W *wc, const W *wo,
   float *a = (float *)malloc(sizeof(float) * C);
   float *b = (float *)malloc(sizeof(float) * C);
   float *c = (float *)malloc(sizeof(float) * C);
-  float *g = (float *)calloc((size_t)M * C, sizeof(float));
+  float *history = (float *)malloc((size_t)(M + 2u) * C * sizeof(float));
+  memcpy(history, state, 2u * C * sizeof(float));
+  float *g = history + 2u * C;
   float *z = (float *)malloc(sizeof(float) * C);
   for (uint32_t t = 0; t < M; ++t) {
     float xs;
@@ -43,8 +45,8 @@ static void ref_block(const W *wa, const W *wb, const W *wc, const W *wo,
     ref_mm(wb, xq, xs, xz, b);
     for (uint32_t j = 0; j < C; ++j) {
       const float x0 = g[(size_t)t * C + j];
-      const float x1 = t >= 1u ? g[(size_t)(t - 1u) * C + j] : 0.f;
-      const float x2 = t >= 2u ? g[(size_t)(t - 2u) * C + j] : 0.f;
+      const float x1 = history[(size_t)(t + 1u) * C + j];
+      const float x2 = history[(size_t)t * C + j];
       volatile float p0 = conv_w[j] * x0;
       volatile float p1 = conv_w[C + j] * x1;
       volatile float p2 = conv_w[2u * C + j] * x2;
@@ -55,16 +57,13 @@ static void ref_block(const W *wa, const W *wb, const W *wc, const W *wo,
     quant_row(z, C, zq, &zs, &zz);
     ref_mm(wo, zq, zs, zz, out + (size_t)t * N_out);
   }
-  memset(state, 0, 2u * C * sizeof(float));
-  if (M >= 2u)
-    memcpy(state, g + (size_t)(M - 2u) * C, C * sizeof(float));
-  memcpy(state + C, g + (size_t)(M - 1u) * C, C * sizeof(float));
+  memcpy(state, history + (size_t)M * C, 2u * C * sizeof(float));
   free(xq);
   free(zq);
   free(a);
   free(b);
   free(c);
-  free(g);
+  free(history);
   free(z);
 }
 
@@ -75,7 +74,7 @@ static int compare(const char *what, const float *got, const float *want,
   for (size_t i = 0; i < n; ++i) {
     double d = fabs((double)got[i] - (double)want[i]);
     double s = fabs((double)want[i]) + 1e-6;
-    if (d / s > 1e-5)
+    if (!isfinite(got[i]) || !isfinite(want[i]) || d / s > 1e-5)
       ++bad;
     if (d / s > worst)
       worst = d / s;
@@ -108,6 +107,10 @@ int main(void) {
   make_weight(1, K, C, &wb);
   make_weight(2, K, C, &wc);
   make_weight(3, C, N_out, &wo);
+  g_tbl.slots[0].borrowed = 1;
+  g_tbl.slots[2].clean = 1;
+  g_tbl.slots[3].borrowed = 1;
+  g_weight_bypass_bytes = g_invalid_bypass_bytes = 0;
 
   float *x = (float *)malloc(sizeof(float) * M * K);
   for (uint32_t i = 0; i < M * K; ++i)
@@ -117,20 +120,26 @@ int main(void) {
     conv_w[i] = rndf();
 
   float *got = (float *)malloc(sizeof(float) * M * N_out);
-  float *got_state = (float *)malloc(sizeof(float) * 2 * C);
+  float *got_state = (float *)calloc(2u * C, sizeof(float));
   hexkl_moe_scratch scratch = {NULL, NULL, 0};
-  rc =
-    hexkl_conv_block_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm, M, K, C, N_out,
-                         0, 1, 2, 3, conv_w, x, got, got_state, NULL, &scratch);
+  rc = hexkl_conv_block_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm, M, K, C,
+                            N_out, 0, 1, 2, 3, conv_w, x, got, got_state, NULL,
+                            &scratch, 1, 0u);
   printf("run rc=%d\n", rc);
   if (rc)
     return 1;
 
   float *want = (float *)malloc(sizeof(float) * M * N_out);
-  float *want_state = (float *)malloc(sizeof(float) * 2 * C);
+  float *want_state = (float *)calloc(2u * C, sizeof(float));
   ref_block(&wa, &wb, &wc, &wo, conv_w, x, M, K, C, N_out, want, want_state);
   int fail = compare("output", got, want, (size_t)M * N_out);
   fail |= compare("conv state", got_state, want_state, 2u * C);
+  const uint64_t bypass_bytes = (uint64_t)K * C + (uint64_t)C * N_out / 2u;
+  fail |= g_weight_bypass_bytes != bypass_bytes || g_invalid_bypass_bytes != 0;
+  printf("conv weight bypass: bytes=%llu expected=%llu bad=%llu\n",
+         (unsigned long long)g_weight_bypass_bytes,
+         (unsigned long long)bypass_bytes,
+         (unsigned long long)g_invalid_bypass_bytes);
   printf(fail ? "CONV BLOCK DIFFERS\n" : "CONV BLOCK MATCHES REFERENCE\n");
 
   /* Every weight pushed exactly once: a, b, c (K x C) and out (C x N_out).
@@ -154,12 +163,12 @@ int main(void) {
   /* Edge: one row -- state row 0 is zero, and the block has no look-back. */
   {
     float *got1 = (float *)malloc(sizeof(float) * N_out);
-    float *st1 = (float *)malloc(sizeof(float) * 2 * C);
+    float *st1 = (float *)calloc(2u * C, sizeof(float));
     float *want1 = (float *)malloc(sizeof(float) * N_out);
-    float *wst1 = (float *)malloc(sizeof(float) * 2 * C);
+    float *wst1 = (float *)calloc(2u * C, sizeof(float));
     int r = hexkl_conv_block_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm, 1, K,
                                  C, N_out, 0, 1, 2, 3, conv_w, x, got1, st1,
-                                 NULL, &scratch);
+                                 NULL, &scratch, 1, 0u);
     ref_block(&wa, &wb, &wc, &wo, conv_w, x, 1, K, C, N_out, want1, wst1);
     int ok = (r == 0) && !compare("M=1 output", got1, want1, N_out) &&
              !compare("M=1 state", st1, wst1, 2u * C);
@@ -170,13 +179,145 @@ int main(void) {
     free(want1);
     free(wst1);
   }
+  /* Repeated decode and ragged prefill must retain both previous rows.
+     Nonzero initial history catches kernels that silently reset on entry. */
+  {
+    const uint32_t chunks[] = {1, 1, 2, 33, 65, 48};
+    float *split = (float *)malloc(sizeof(float) * M * N_out);
+    float *split_state = (float *)malloc(sizeof(float) * 2 * C);
+    for (uint32_t j = 0; j < 2u * C; ++j)
+      split_state[j] = want_state[j] = 0.125f * rndf();
+    ref_block(&wa, &wb, &wc, &wo, conv_w, x, M, K, C, N_out, want, want_state);
+    uint32_t row = 0;
+    for (size_t i = 0; i < sizeof(chunks) / sizeof(chunks[0]); ++i) {
+      int r = hexkl_conv_block_run(
+        &g_tbl, vtcm, sizeof vtcm, sizeof vtcm, chunks[i], K, C, N_out, 0, 1, 2,
+        3, conv_w, x + (size_t)row * K, split + (size_t)row * N_out,
+        split_state, NULL, &scratch, 1, 0u);
+      fail |= r != 0;
+      row += chunks[i];
+    }
+    fail |= compare("continued output", split, want, (size_t)M * N_out);
+    fail |= compare("continued state", split_state, want_state, 2u * C);
+    free(split);
+    free(split_state);
+  }
+  /* Every supported chunk, including partial final slabs and repeated M=1
+     state advancement. The unequal dimensions catch packed-WH stride bugs. */
+  void *packed_alloc[4];
+  uint8_t *packed[4];
+  for (uint32_t i = 0; i < 4u; ++i) {
+    const hexkl_weight_u8i4 *w = &g_tbl.slots[i];
+    packed_alloc[i] = malloc((size_t)w->K * w->N / 2u + 511u);
+    packed[i] =
+      (uint8_t *)(((uintptr_t)packed_alloc[i] + 511u) & ~(uintptr_t)511u);
+  }
+  for (uint32_t variant = 0; variant < 32u; ++variant) {
+    const uint32_t code = (variant % 16u) / 4u, out_code = variant % 4u;
+    const uint32_t flags = HTP_CONV_FLAG_M1_HVX |
+                           (code << HTP_CONV_CHUNK_SHIFT) |
+                           (out_code << HTP_CONV_OUT_CHUNK_SHIFT);
+    printf("HVX input/output tiles: %u/%u\n", htp_conv_chunk_tiles(flags),
+           htp_conv_out_chunk_tiles(flags));
+    for (uint32_t i = 0; i < 4u; ++i) {
+      const uint32_t chunk =
+        i == 3u ? htp_conv_out_chunk_tiles(flags) : htp_conv_chunk_tiles(flags);
+      fail |= hexkl_conv_block_prepare_decode(
+                &g_tbl, vtcm, sizeof vtcm, i, packed[i],
+                variant < 16u ? 0u : chunk) != AEE_SUCCESS;
+      if (variant >= 16u) {
+        const hexkl_weight_u8i4 *w = &g_tbl.slots[i];
+        const uint32_t kt = w->K / 32u, nt = w->N / 32u;
+        for (uint32_t n0 = 0; n0 < nt; n0 += chunk) {
+          const uint32_t cols = nt - n0 < chunk ? nt - n0 : chunk;
+          for (uint32_t k = 0; k < kt; ++k)
+            fail |= memcmp(packed[i] + ((size_t)n0 * kt + k * cols) * 512u,
+                           w->wh_bytes + ((size_t)k * nt + n0) * 512u,
+                           cols * 512u) != 0;
+        }
+      }
+    }
+    memset(got_state, 0, 2u * C * sizeof(float));
+    memset(want_state, 0, 2u * C * sizeof(float));
+    for (uint32_t row = 0; row < 3u; ++row) {
+      const int r = hexkl_conv_block_run(
+        &g_tbl, vtcm, sizeof vtcm, sizeof vtcm, 1u, K, C, N_out, 0, 1, 2, 3,
+        conv_w, x + row * K, got, got_state, NULL, &scratch, 1, flags);
+      ref_block(&wa, &wb, &wc, &wo, conv_w, x + row * K, 1u, K, C, N_out, want,
+                want_state);
+      fail |= r != AEE_SUCCESS;
+      fail |= compare("HVX chunk output", got, want, N_out);
+      fail |= compare("HVX chunk state", got_state, want_state, 2u * C);
+    }
+    if (variant >= 16u) {
+      /* A different input chunk must safely use original WH while any
+         still-matching output image remains usable. */
+      const uint32_t other_flags = flags ^ (1u << HTP_CONV_CHUNK_SHIFT);
+      fail |= hexkl_conv_block_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm, 1u,
+                                   K, C, N_out, 0, 1, 2, 3, conv_w, x + 3u * K,
+                                   got, got_state, NULL, &scratch, 1,
+                                   other_flags) != AEE_SUCCESS;
+      ref_block(&wa, &wb, &wc, &wo, conv_w, x + 3u * K, 1u, K, C, N_out, want,
+                want_state);
+      fail |= compare("chunk fallback output", got, want, N_out);
+      fail |= compare("chunk fallback state", got_state, want_state, 2u * C);
+    }
+    /* A rejected scratch size must leave both exported buffers untouched. */
+    memcpy(want, got, N_out * sizeof(float));
+    memcpy(want_state, got_state, 2u * C * sizeof(float));
+    const int r = hexkl_conv_block_run(&g_tbl, vtcm, 128u, 128u, 1u, K, C,
+                                       N_out, 0, 1, 2, 3, conv_w, x, got,
+                                       got_state, NULL, &scratch, 1, flags);
+    fail |= r != AEE_ENOMEMORY;
+    fail |= memcmp(got, want, N_out * sizeof(float)) != 0;
+    fail |= memcmp(got_state, want_state, 2u * C * sizeof(float)) != 0;
+  }
+  /* Invalid preparation is atomic: preserve the previously bound image. */
+  const uint8_t *saved = g_tbl.slots[0].conv_decode_bytes;
+  const uint32_t saved_chunk = g_tbl.slots[0].conv_decode_chunk;
+  fail |= hexkl_conv_block_prepare_decode(&g_tbl, vtcm, 1u, 0u, packed[0],
+                                          8u) != AEE_ENOMEMORY;
+  fail |= hexkl_conv_block_prepare_decode(&g_tbl, vtcm, sizeof vtcm, 0u,
+                                          packed[0], 3u) != AEE_EBADPARM;
+  fail |= hexkl_conv_block_prepare_decode(&g_tbl, vtcm, sizeof vtcm, 0u,
+                                          packed[1], 8u) != AEE_EBADPARM;
+  fail |= g_tbl.slots[0].conv_decode_bytes != saved ||
+          g_tbl.slots[0].conv_decode_chunk != saved_chunk;
+  for (uint32_t i = 0; i < 4u; ++i) {
+    fail |= hexkl_conv_block_prepare_decode(&g_tbl, NULL, 0u, i, NULL, 0u) !=
+            AEE_SUCCESS;
+    fail |= g_tbl.slots[i].conv_decode_bytes != NULL ||
+            g_tbl.slots[i].conv_decode_chunk != 0u;
+    free(packed_alloc[i]);
+  }
   /* Edge: a wrong-shaped handle is refused before any work. */
   {
     int r = hexkl_conv_block_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm, M, K,
                                  C, N_out, 0, 1, 3, 3, conv_w, x, got,
-                                 got_state, NULL, &scratch);
+                                 got_state, NULL, &scratch, 1, 0u);
     printf("bad handle shape  : rc=%d (want %d)\n", r, AEE_EBADPARM);
     fail |= (r != AEE_EBADPARM);
+  }
+  /* One column batch per row block: accumulator parity must continue
+     across row boundaries. The device fixture exercises the actual async
+     reader; these stand-ins check its resulting row/column mapping. */
+  {
+    const uint32_t odd_m = 131, odd_c = 96, odd_n = 128;
+    W oa, ob, oc, oo;
+    make_weight(4, K, odd_c, &oa);
+    make_weight(5, K, odd_c, &ob);
+    make_weight(6, K, odd_c, &oc);
+    make_weight(7, odd_c, odd_n, &oo);
+    memset(got_state, 0, 2u * odd_c * sizeof(float));
+    memset(want_state, 0, 2u * odd_c * sizeof(float));
+    const int r = hexkl_conv_block_run(
+      &g_tbl, vtcm, sizeof vtcm, sizeof vtcm, odd_m, K, odd_c, odd_n, 4, 5, 6,
+      7, conv_w, x, got, got_state, NULL, &scratch, 1, 0u);
+    ref_block(&oa, &ob, &oc, &oo, conv_w, x, odd_m, K, odd_c, odd_n, want,
+              want_state);
+    fail |= r != AEE_SUCCESS;
+    fail |= compare("odd batches output", got, want, (size_t)odd_m * odd_n);
+    fail |= compare("odd batches state", got_state, want_state, 2u * odd_c);
   }
   /* The model's shapes fit, with room: doc 51 section 2.2's arithmetic. */
   {

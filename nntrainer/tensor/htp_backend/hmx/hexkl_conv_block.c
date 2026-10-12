@@ -32,6 +32,7 @@
 #include "hexkl_probe.h"
 #include "hvx_conv_gate_f32.h"
 #include "hvx_dequant_i32.h"
+#include "hvx_gemm_u8i4_wh.h"
 #include "hvx_quant_u8.h"
 
 #define ROUND_UP_U32(v, a) ((((v) + ((a)-1)) / (a)) * (a))
@@ -45,21 +46,50 @@
 /** @brief Bounded chunk-index arrays; a shape needing more is refused. */
 #define CB_MAX_CHUNKS 16u
 
+/* Input quantization and AH packing share 16-row background units. Four
+ * units publish one HMX row block, keeping the first block parallel while
+ * later blocks can be produced under earlier blocks' HMX work. Each row
+ * keeps the same min/max and rounding arithmetic. The pool's release/acquire
+ * done byte publishes both the parameters and the tiles. */
+#define CB_PACK_UNIT_ROWS 16u
+#define CB_PACK_UNITS_THROUGH(row)                                             \
+  (((row) + HEXKL_HMX_INT8_BLOCK_N_ROW) / CB_PACK_UNIT_ROWS)
+
+typedef struct {
+  const float *act_c;
+  float *scale;
+  int32_t *zp;
+  uint8_t *act_ah;
+  uint32_t M, K;
+} cb_pack_ctx;
+
+static void cb_pack_unit(uint32_t n_units, uint32_t u, void *v) {
+  (void)n_units;
+  const cb_pack_ctx *c = (const cb_pack_ctx *)v;
+  const uint32_t r0 = u * CB_PACK_UNIT_ROWS;
+  const uint32_t remaining = r0 < c->M ? c->M - r0 : 0u;
+  const uint32_t n =
+    remaining < CB_PACK_UNIT_ROWS ? remaining : CB_PACK_UNIT_ROWS;
+  /* The full activation DMA and zero padding completed before submit.
+     Do not submit nested work to the worker pool from a background unit. */
+  hvx_quant_rows_u8_params(c->act_c + (size_t)r0 * c->K, n, CB_PACK_UNIT_ROWS,
+                           c->K, c->scale + r0, c->zp + r0, NULL);
+  hvx_quant_pack_u8_ah_rows(c->act_c, NULL, r0, r0 + CB_PACK_UNIT_ROWS, c->K,
+                            c->scale, c->zp, c->act_ah);
+}
+
 /* ---- phase 2's background stage: z *= conv1d(g), then z -> mid (u8) ----
  *
- * One block's gate and requantization are ~100 us of HVX work that phase
- * 2 used to run synchronously between the b matmul and the out_proj
- * matmul, with the HMX idle for all of it: 0.75 ms of a 4.35 ms call
- * (doc 51 section 2.8). They are background-lane jobs now, submitted as
- * soon as the block's z is dequantized and retired only where out_proj
- * needs mid -- one block later -- so they run under the next block's b
- * matmul. The lane runs jobs in order, so the requant job cannot start
- * before every gate unit is done. */
-#define CB_GATE_UNIT_ROWS 16u
+ * Independent 16-row units gate, derive quantization parameters and pack
+ * their own AH rows. There is no whole-block gate barrier or single-worker
+ * requantization tail. Four-row pack groups stay on one worker, so stores
+ * are disjoint. The next block's b matmul and the previous block's out_proj
+ * can run on HMX while the HVX workers produce this block's mid tiles. */
+#define CB_STAGE_UNIT_ROWS 16u
 
 typedef struct {
   float *z;            /**< this block's [64 x C] f32, VTCM */
-  const float *g;      /**< the whole conv input, heap */
+  const float *g;      /**< two carry rows followed by the conv input, heap */
   const float *conv_w; /**< [3 x C], VTCM */
   uint8_t *mid;        /**< this block's AH tiles, VTCM */
   float *rq_scale;     /**< this block's row params, 64 each */
@@ -67,10 +97,7 @@ typedef struct {
   uint32_t mb, m_blk, C;
 } cb_stage_ctx;
 
-/** @brief Worker time inside the stage units, summed across workers and
- *         filed under SWIGLU -- the column is 0 for this kernel otherwise.
- *         Hidden work, not wall time: what it says is how much of the HMX
- *         shadow the stage consumes. Atomic because units run
+/** @brief Summed worker time, not wall time. Atomic because the units run
  *         concurrently; HEXKL_PROBE_ADD is not. */
 static inline void cb_stage_probe_add(uint64_t t0) {
   if (hexkl_probe_on) {
@@ -80,47 +107,34 @@ static inline void cb_stage_probe_add(uint64_t t0) {
   }
 }
 
-static void cb_gate_unit(uint32_t n_units, uint32_t u, void *v) {
+static void cb_stage_unit(uint32_t n_units, uint32_t u, void *v) {
   (void)n_units;
   const cb_stage_ctx *c = (const cb_stage_ctx *)v;
-  const uint32_t r0 = u * CB_GATE_UNIT_ROWS;
+  const uint32_t r0 = u * CB_STAGE_UNIT_ROWS;
   if (r0 >= c->m_blk) {
     return;
   }
   const uint32_t n =
-    (c->m_blk - r0 < CB_GATE_UNIT_ROWS) ? (c->m_blk - r0) : CB_GATE_UNIT_ROWS;
+    (c->m_blk - r0 < CB_STAGE_UNIT_ROWS) ? (c->m_blk - r0) : CB_STAGE_UNIT_ROWS;
+  const uint32_t n4 = ROUND_UP_U32(n, 4u);
+  float *z = c->z + (size_t)r0 * c->C;
   uint64_t t0 = 0;
   HEXKL_PROBE_T0(t0);
-  hvx_conv_gate_f32(c->z + (size_t)r0 * c->C, c->C, c->g, c->C, c->mb + r0, n,
-                    c->C, c->conv_w, NULL);
-  cb_stage_probe_add(t0);
-}
-
-/** @brief The one requant unit: the same two calls the synchronous path
- *         made, on the calling worker (the pool cannot be used from inside
- *         a unit). Rows [m_blk, m4) are padding the pack takes whole,
- *         zeroed so the bytes are deterministic. */
-static void cb_requant_unit(uint32_t n_units, uint32_t u, void *v) {
-  (void)n_units;
-  (void)u;
-  const cb_stage_ctx *c = (const cb_stage_ctx *)v;
-  const uint32_t m4 = ROUND_UP_U32(c->m_blk, 4u);
-  uint64_t t0 = 0;
-  HEXKL_PROBE_T0(t0);
-  if (m4 > c->m_blk) {
-    memset(c->z + (size_t)c->m_blk * c->C, 0,
-           sizeof(float) * (size_t)(m4 - c->m_blk) * c->C);
+  hvx_conv_gate_f32(z, c->C, c->g, c->C, c->mb + r0, n, c->C, c->conv_w, NULL);
+  /* The pack reads complete four-row groups, including the final tail. */
+  if (n4 > n) {
+    memset(z + (size_t)n * c->C, 0, sizeof(float) * (size_t)(n4 - n) * c->C);
   }
-  hvx_quant_rows_u8_params(c->z, c->m_blk, HEXKL_HMX_INT8_BLOCK_N_ROW, c->C,
-                           c->rq_scale, c->rq_zp, NULL);
-  hvx_quant_pack_u8_ah_rows(c->z, NULL, 0u, m4, c->C, c->rq_scale, c->rq_zp,
-                            c->mid);
+  hvx_quant_rows_u8_params(z, n, n4, c->C, c->rq_scale + r0, c->rq_zp + r0,
+                           NULL);
+  hvx_quant_pack_u8_ah_rows(c->z, NULL, r0, r0 + n4, c->C, c->rq_scale,
+                            c->rq_zp, c->mid);
   cb_stage_probe_add(t0);
 }
 
-/** @brief Units of a block's gate job. */
-#define CB_GATE_UNITS                                                          \
-  ((HEXKL_HMX_INT8_BLOCK_N_ROW + CB_GATE_UNIT_ROWS - 1u) / CB_GATE_UNIT_ROWS)
+/** @brief Maximum units in one block's background stage. */
+#define CB_STAGE_UNITS                                                         \
+  ((HEXKL_HMX_INT8_BLOCK_N_ROW + CB_STAGE_UNIT_ROWS - 1u) / CB_STAGE_UNIT_ROWS)
 
 int hexkl_conv_block_layout_get(uint32_t K, uint32_t C, uint32_t N_out,
                                 uint32_t arena_bytes,
@@ -199,7 +213,7 @@ static const hexkl_weight_u8i4 *cb_weight(const hexkl_weight_u8i4_table *tbl,
     return NULL;
   }
   const hexkl_weight_u8i4 *w = &tbl->slots[h];
-  return (w->in_use && w->K == K && w->N == N) ? w : NULL;
+  return (w->in_use && w->bits != 2u && w->K == K && w->N == N) ? w : NULL;
 }
 
 /**
@@ -208,14 +222,332 @@ static const hexkl_weight_u8i4 *cb_weight(const hexkl_weight_u8i4_table *tbl,
  */
 static uint32_t cb_push_chunks(uint8_t *vtcm_base, uint32_t dst_off,
                                const hexkl_weight_u8i4 *h, uint32_t k_tiles,
-                               uint32_t n_col, uint32_t cn, uint32_t *idx_out) {
+                               uint32_t n_col, uint32_t cn, uint32_t *idx_out,
+                               int weight_src_bypass) {
   uint32_t n = 0u;
   for (uint32_t nt0 = 0; nt0 < n_col; nt0 += cn) {
     const uint32_t c = (n_col - nt0 < cn) ? (n_col - nt0) : cn;
-    idx_out[n++] = hexkl_moe_push_weight_chunk(vtcm_base, dst_off, h, k_tiles,
-                                               n_col, nt0, c, 0);
+    idx_out[n++] = hexkl_moe_push_weight_chunk(
+      vtcm_base, dst_off, h, k_tiles, n_col, nt0, c, weight_src_bypass);
   }
   return n;
+}
+
+/**
+ * @brief Enqueue an immutable output row block without stalling HMX issue.
+ *
+ * The cached source is written by HVX, so both DDR endpoints use the same
+ * non-bypass flags as hexkl_moe_dma_copy. Chunk/row sizing follows that
+ * helper; the caller drains before returning or reusing scratch. No ring
+ * index is retained across blocks, so output copies can wrap the ring.
+ */
+static void cb_push_output(float *dst, const float *src, uint32_t row,
+                           uint32_t rows, uint32_t cols) {
+  const size_t begin = (size_t)row * cols;
+  const size_t bytes = sizeof(float) * (size_t)rows * cols;
+  for (size_t off = 0; off < bytes;) {
+    const uint32_t n =
+      bytes - off > (1u << 20) ? (1u << 20) : (uint32_t)(bytes - off);
+    uint32_t rs = 16384u;
+    while ((n % rs) != 0u) {
+      rs >>= 1;
+    }
+    hexkl_dma_ring_push2d((uint8_t *)(dst + begin) + off,
+                          (const uint8_t *)(src + begin) + off, rs, rs, rs,
+                          n / rs, 0, 0);
+    off += n;
+  }
+}
+
+/* M=1 uses compact column slabs instead of the HMX 64-row accumulator.
+ * Only the calling thread owns the DMA ring. A pool join retires all readers
+ * of a slot before its next DMA; at most two groups of three descriptors are
+ * live, including across ring wrap. AH keeps its existing 2048-byte pitch. */
+typedef struct {
+  const hexkl_weight_u8i4 *w[3]; /* A, C, B, or just O */
+  const uint8_t *act, *weights;
+  const float *scale;
+  const int32_t *zp;
+  float *g, *out;
+  uint32_t k_tiles, cols, nt0, plane_bytes, width, rows1, n_weights, chunk;
+} cb_m1_ctx;
+
+static void cb_m1_worker(uint32_t n_lanes, uint32_t lane, void *v) {
+  const cb_m1_ctx *c = (const cb_m1_ctx *)v;
+  const uint32_t lo = c->cols * lane / n_lanes;
+  const uint32_t hi = c->cols * (lane + 1u) / n_lanes;
+  int32_t tiles[3u * 32u] __attribute__((aligned(128)));
+  for (uint32_t j = lo; j < hi; ++j) {
+    const uint32_t col = (c->nt0 + j) * 32u;
+    if (c->n_weights == 3u && c->rows1) {
+      hvx_gemv_u8i4_wh_3col_nopf(c->act, c->k_tiles, c->weights, c->plane_bytes,
+                                 c->cols, j, tiles);
+    } else if (c->n_weights == 1u && c->rows1) {
+      hvx_gemv_u8i4_wh_col_aligned_nopf(c->act, c->k_tiles, c->weights, c->cols,
+                                        j, tiles);
+    } else {
+      for (uint32_t w = 0; w < c->n_weights; ++w)
+        hvx_gemm_u8i4_wh_col_nopf(c->act, 1u, c->k_tiles,
+                                  c->weights + (size_t)w * c->plane_bytes,
+                                  c->cols, j, c->rows1, tiles + w * 32u);
+    }
+    if (c->n_weights == 3u) {
+      /* Reuse the HMX epilogue, including every FP32 rounding point. This
+       * direct worker call does not recursively submit to the pool. */
+      hvx_dq_mul_job mul = {.tiles_base = (const uint8_t *)tiles,
+                            .tile_stride = 32u * sizeof(int32_t),
+                            .n_pairs = 1u,
+                            .c0 = col,
+                            .row_stride = 32u,
+                            .m_count = 1u,
+                            .act_scale = c->scale,
+                            .act_zp = c->zp,
+                            .colsum_a = c->w[0]->colsum_w,
+                            .w_scale_a = c->w[0]->w_scale,
+                            .bias_a = c->w[0]->bias,
+                            .colsum_b = c->w[1]->colsum_w,
+                            .w_scale_b = c->w[1]->w_scale,
+                            .bias_b = c->w[1]->bias,
+                            .dst = c->g,
+                            .dst_stride = c->width};
+      hvx_dq_mul_worker(1u, 0u, &mul);
+    }
+    const uint32_t last = c->n_weights - 1u;
+    const hexkl_weight_u8i4 *w = c->w[last];
+    hvx_dequant_acc_tile_to_f32(tiles + last * 32u, 32u, 1u, c->scale, c->zp,
+                                w->colsum_w + col, w->w_scale + col,
+                                w->bias + col, c->out + col, c->width, 0);
+  }
+}
+
+/* Queue a contiguous transfer with the same row/chunk limits as the common
+ * DMA copy helper, but leave it in flight for double-buffered decode. */
+static uint32_t cb_push_linear(uint8_t *dst, const uint8_t *src, uint32_t bytes,
+                               int src_bypass, int dst_bypass) {
+  uint32_t idx = 0u;
+  for (uint32_t off = 0u; off < bytes;) {
+    const uint32_t n = bytes - off > (1u << 20) ? (1u << 20) : bytes - off;
+    uint32_t rs = 16384u;
+    while (n % rs)
+      rs >>= 1;
+    idx = hexkl_dma_ring_next_idx();
+    hexkl_dma_ring_push2d(dst + off, src + off, rs, rs, rs, n / rs, src_bypass,
+                          dst_bypass);
+    off += n;
+  }
+  return idx;
+}
+
+static int cb_ranges_overlap(const uint8_t *a, uint64_t a_bytes,
+                             const uint8_t *b, uint64_t b_bytes) {
+  const uint64_t x = (uintptr_t)a, y = (uintptr_t)b;
+  return a && b && x < y + b_bytes && y < x + a_bytes;
+}
+
+int hexkl_conv_block_prepare_decode(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm,
+                                    uint32_t arena, uint32_t handle,
+                                    uint8_t *dst, uint32_t chunk) {
+  if (!tbl || handle >= HEXKL_MM_U8I4_MAX_WEIGHTS)
+    return AEE_EBADPARM;
+  hexkl_weight_u8i4 *w = &tbl->slots[handle];
+  if (!w->in_use || w->bits == 2u)
+    return AEE_EBADPARM;
+  if (chunk == 0u) {
+    w->conv_decode_bytes = NULL;
+    w->conv_decode_chunk = 0u;
+    return AEE_SUCCESS;
+  }
+  if (!vtcm || !dst || (uintptr_t)dst % 512u || !w->K || !w->N || w->K % 32u ||
+      w->N % 32u || w->K > 8192u || w->N > 8192u ||
+      (chunk != 4u && chunk != 8u && chunk != 16u && chunk != 24u &&
+       chunk != 32u))
+    return AEE_EBADPARM;
+  const uint32_t kt = w->K / 32u, nt = w->N / 32u;
+  const uint32_t cols = nt < chunk ? nt : chunk;
+  if ((uint64_t)kt * cols * 512u > arena)
+    return AEE_ENOMEMORY;
+  const uint32_t bytes = kt * nt * 512u;
+  /* A preparation must never overwrite live weight bytes. Repacking the
+   * same destination is allowed, since callers serialize registration. */
+  for (uint32_t i = 0u; i < HEXKL_MM_U8I4_MAX_WEIGHTS; ++i) {
+    const hexkl_weight_u8i4 *other = &tbl->slots[i];
+    if (!other->in_use)
+      continue;
+    const uint64_t size = (uint64_t)other->K * other->N / 2u;
+    if (cb_ranges_overlap(dst, bytes, other->wh_bytes,
+                          other->bits == 2u ? size / 2u : size) ||
+        (cb_ranges_overlap(dst, bytes, other->conv_decode_bytes, size) &&
+         (other != w || dst != other->conv_decode_bytes)))
+      return AEE_EBADPARM;
+  }
+  hexkl_dma_ring_reset();
+  hexkl_dcache_inva(dst, bytes);
+  for (uint32_t nt0 = 0u; nt0 < nt; nt0 += chunk) {
+    const uint32_t n = nt - nt0 < chunk ? nt - nt0 : chunk;
+    hexkl_dma_ring_push2d(vtcm, w->wh_bytes + (size_t)nt0 * 512u, n * 512u,
+                          nt * 512u, n * 512u, kt,
+                          hexkl_weight_u8i4_src_bypass(w, 1), 1);
+    hexkl_dma_ring_drain();
+    cb_push_linear(dst + (size_t)nt0 * kt * 512u, vtcm, n * kt * 512u, 1, 1);
+    hexkl_dma_ring_drain();
+  }
+  w->conv_decode_bytes = dst;
+  w->conv_decode_chunk = chunk;
+  return AEE_SUCCESS;
+}
+
+/* Pack [kt][nt0..nt0+cols) into [kt][0..cols) in the slot. The GEMV uses
+ * cols (not the original weight's N/32) as its new k-tile row pitch. */
+static uint32_t cb_m1_push(const cb_m1_ctx *c, uint8_t *slot, uint32_t nt0,
+                           uint32_t cols, int bypass) {
+  uint32_t idx = 0u;
+  for (uint32_t i = 0; i < c->n_weights; ++i) {
+    const hexkl_weight_u8i4 *w = c->w[i];
+    if (w->conv_decode_bytes && w->conv_decode_chunk == c->chunk) {
+      idx =
+        cb_push_linear(slot + (size_t)i * c->plane_bytes,
+                       w->conv_decode_bytes + (size_t)nt0 * c->k_tiles * 512u,
+                       cols * 512u * c->k_tiles, bypass, 1);
+    } else {
+      idx = hexkl_dma_ring_next_idx();
+      hexkl_dma_ring_push2d(slot + (size_t)i * c->plane_bytes,
+                            w->wh_bytes + (size_t)nt0 * 512u, cols * 512u,
+                            (w->N / 32u) * 512u, cols * 512u, c->k_tiles,
+                            hexkl_weight_u8i4_src_bypass(w, bypass), 1);
+    }
+    HEXKL_PROBE_COUNT(HEXKL_PROBE_DMA_KB,
+                      ((uint64_t)cols * 512u * c->k_tiles) >> 10);
+  }
+  return idx;
+}
+
+/* The first group is queued by the caller before quantization. Queue the
+ * second here and then alternate: wait current, run/join current, refill
+ * its retired slot while the other slot is ready or still being filled. */
+static void cb_m1_project(cb_m1_ctx *c, uint8_t *feed, uint32_t slot_bytes,
+                          uint32_t chunk, uint32_t first_idx,
+                          hvx_worker_pool *pool, int bypass) {
+  const uint32_t nt = c->width / 32u;
+  uint32_t idx[2] = {first_idx, 0u};
+  if (chunk < nt) {
+    const uint32_t n = nt - chunk < chunk ? nt - chunk : chunk;
+    idx[1] = cb_m1_push(c, feed + slot_bytes, chunk, n, bypass);
+  }
+  uint64_t t0 = 0;
+  for (uint32_t nt0 = 0, seq = 0; nt0 < nt; nt0 += chunk, ++seq) {
+    const uint32_t slot = seq & 1u;
+    uint64_t wait0 = 0;
+    HEXKL_PROBE_T0(wait0);
+    hexkl_dma_ring_wait(idx[slot]);
+    HEXKL_PROBE_ADD(HEXKL_PROBE_DRAIN, wait0);
+    c->nt0 = nt0;
+    c->cols = nt - nt0 < chunk ? nt - nt0 : chunk;
+    c->weights = feed + slot * slot_bytes;
+    HEXKL_PROBE_T0(t0);
+    hvx_worker_pool_run(pool, cb_m1_worker, c, c->cols);
+    HEXKL_PROBE_ADD(HEXKL_PROBE_MM, t0);
+    const uint32_t next = nt0 + 2u * chunk;
+    if (next < nt) {
+      const uint32_t n = nt - next < chunk ? nt - next : chunk;
+      idx[slot] = cb_m1_push(c, feed + slot * slot_bytes, next, n, bypass);
+    }
+  }
+}
+
+static int cb_m1_run(uint8_t *vtcm, uint32_t arena, uint32_t K, uint32_t C,
+                     uint32_t N, const hexkl_weight_u8i4 *wa,
+                     const hexkl_weight_u8i4 *wb, const hexkl_weight_u8i4 *wc,
+                     const hexkl_weight_u8i4 *wo, const float *conv_w,
+                     const float *x, float *out, float *state,
+                     hvx_worker_pool *pool, hexkl_moe_scratch *scratch,
+                     int bypass, uint32_t flags) {
+  const uint32_t chunk = htp_conv_chunk_tiles(flags);
+  const uint32_t out_chunk = htp_conv_out_chunk_tiles(flags);
+  HEXKL_PROBE_COUNT(HEXKL_PROBE_PATH, 1u);
+  HEXKL_PROBE_COUNT(HEXKL_PROBE_M1_FEED, 1u);
+  const uint32_t max_k = K > C ? K : C;
+  const uint32_t plane = (max_k / 32u) * chunk * 512u;
+  /* O has one plane, so it can use the whole retired A/C/B slot. Keep
+   * slot pitch independent of projection pitch, including a short final
+   * slab. At K=C=2048, in8/out16 and in8/out24 use the original 1.5 MiB. */
+  const uint32_t out_plane = (C / 32u) * out_chunk * 512u;
+  const uint32_t slot_bytes = 3u * plane > out_plane ? 3u * plane : out_plane;
+  /* All shapes here are multiples of 32. Every region is 128-byte aligned;
+   * AH is separately allocated in cached scratch. Four FP32 rows are needed
+   * only by the existing pack helper. It writes rows 0..3; GEMV reads row 0
+   * only. */
+  const uint64_t need = 16ull * K + 40ull * C + 4ull * N + 2ull * slot_bytes;
+  if (need > arena) {
+    return AEE_ENOMEMORY;
+  }
+  /* GEMV broadcasts activation words using scalar loads. Keep AH in cached
+   * DDR (as MoE does), not VTCM: scalar VTCM loads serialize this loop. */
+  const int rc = hexkl_moe_scratch_reserve(scratch, 64u * (size_t)(K + C));
+  if (rc != AEE_SUCCESS)
+    return rc;
+  uint8_t *act = scratch->base, *mid = act + 64u * K;
+  float *xc = (float *)vtcm;
+  float *z = xc + 4u * K;
+  float *g = z + 4u * C;
+  float *cw = g + 3u * C;
+  float *yc = cw + 3u * C;
+  uint8_t *feed = (uint8_t *)(yc + N);
+  float scale[4], rq_scale[4];
+  int32_t zp[4], rq_zp[4];
+  uint64_t t0 = 0;
+  HEXKL_PROBE_T0(t0);
+  hexkl_dma_ring_reset();
+  hexkl_moe_dma_copy(xc, x, (size_t)K * 4u, 0, 1);
+  hexkl_moe_dma_copy(g, state, (size_t)C * 8u, 0, 1);
+  hexkl_moe_dma_copy(cw, conv_w, (size_t)C * 12u, 0, 1);
+  memset(xc + K, 0, (size_t)K * 12u);
+  memset(z + C, 0, (size_t)C * 12u);
+  HEXKL_PROBE_ADD(HEXKL_PROBE_ACC_COPY, t0);
+
+  cb_m1_ctx c = {.w = {wa, wc, wb},
+                 .act = act,
+                 .scale = scale,
+                 .zp = zp,
+                 .g = g + 2u * C,
+                 .out = z,
+                 .k_tiles = K / 32u,
+                 .plane_bytes = plane,
+                 .width = C,
+                 .rows1 = (flags & HTP_CONV_FLAG_ROWS4) ? 0u : 1u,
+                 .n_weights = 3u,
+                 .chunk = chunk};
+  uint32_t cols = C / 32u < chunk ? C / 32u : chunk;
+  uint32_t first = cb_m1_push(&c, feed, 0u, cols, bypass);
+  HEXKL_PROBE_T0(t0);
+  hvx_quant_rows_u8_params(xc, 1u, 4u, K, scale, zp, NULL);
+  hvx_quant_pack_u8_ah_rows(xc, NULL, 0u, 4u, K, scale, zp, act);
+  HEXKL_PROBE_ADD(HEXKL_PROBE_QUANT, t0);
+  cb_m1_project(&c, feed, slot_bytes, chunk, first, pool, bypass);
+
+  /* Reuse the now-retired input slots for O. Its first DMA overlaps gate
+   * and whole-row requantization, which must finish before any O GEMV. */
+  c.w[0] = wo;
+  c.n_weights = 1u;
+  c.k_tiles = C / 32u;
+  c.width = N;
+  c.act = mid;
+  c.scale = rq_scale;
+  c.zp = rq_zp;
+  c.out = yc;
+  c.chunk = out_chunk;
+  cols = N / 32u < out_chunk ? N / 32u : out_chunk;
+  first = cb_m1_push(&c, feed, 0u, cols, bypass);
+  HEXKL_PROBE_T0(t0);
+  hvx_conv_gate_f32(z, C, g, C, 2u, 1u, C, cw, NULL);
+  hvx_quant_rows_u8_params(z, 1u, 4u, C, rq_scale, rq_zp, NULL);
+  hvx_quant_pack_u8_ah_rows(z, NULL, 0u, 4u, C, rq_scale, rq_zp, mid);
+  HEXKL_PROBE_ADD(HEXKL_PROBE_REQUANT, t0);
+  cb_m1_project(&c, feed, slot_bytes, out_chunk, first, pool, bypass);
+  HEXKL_PROBE_T0(t0);
+  hexkl_moe_dma_copy(out, yc, (size_t)N * 4u, 1, 0);
+  hexkl_moe_dma_copy(state, g + C, (size_t)C * 8u, 1, 0);
+  HEXKL_PROBE_ADD(HEXKL_PROBE_SCATTER, t0);
+  return AEE_SUCCESS;
 }
 
 int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
@@ -224,16 +556,15 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
                          uint32_t h_b, uint32_t h_c, uint32_t h_out,
                          const float *conv_w, const float *act_f32,
                          float *out_f32, float *state_f32,
-                         hvx_worker_pool *pool, hexkl_moe_scratch *scratch) {
+                         hvx_worker_pool *pool, hexkl_moe_scratch *scratch,
+                         int weight_src_bypass, uint32_t flags) {
   if (!tbl || !vtcm_base || !conv_w || !act_f32 || !out_f32 || !state_f32 ||
       !scratch || M == 0u) {
     return AEE_EBADPARM;
   }
   const uint32_t arena = vtcm_size < config_off ? vtcm_size : config_off;
-  hexkl_conv_block_layout L;
-  int rc = hexkl_conv_block_layout_get(K, C, N_out, arena, &L);
-  if (rc != AEE_SUCCESS) {
-    return rc;
+  if (K == 0u || C == 0u || N_out == 0u || K % 32u || C % 32u || N_out % 32u) {
+    return AEE_EBADPARM;
   }
   const hexkl_weight_u8i4 *wa = cb_weight(tbl, h_a, K, C);
   const hexkl_weight_u8i4 *wb = cb_weight(tbl, h_b, K, C);
@@ -241,6 +572,17 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
   const hexkl_weight_u8i4 *wo = cb_weight(tbl, h_out, C, N_out);
   if (!wa || !wb || !wc || !wo) {
     return AEE_EBADPARM;
+  }
+  if (M == 1u && (flags & HTP_CONV_FLAG_M1_HVX) && K <= 8192u && C <= 8192u &&
+      N_out <= 8192u) {
+    return cb_m1_run(vtcm_base, arena, K, C, N_out, wa, wb, wc, wo, conv_w,
+                     act_f32, out_f32, state_f32, pool, scratch,
+                     weight_src_bypass, flags);
+  }
+  hexkl_conv_block_layout L;
+  int rc = hexkl_conv_block_layout_get(K, C, N_out, arena, &L);
+  if (rc != AEE_SUCCESS) {
+    return rc;
   }
   const hexkl_acc_layout *acc = hexkl_acc_layout_get(vtcm_base, L.result_off);
   if (!acc->usable) {
@@ -268,9 +610,9 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
   const size_t sz_mpad_f32 = sizeof(float) * m_pad;
   const size_t sz_act_c = sizeof(float) * (size_t)m_pad * K;
   const size_t sz_act_ah = (size_t)m_pad * K;
-  const size_t sz_g = sizeof(float) * (size_t)M * C;
+  const size_t sz_g = sizeof(float) * ((size_t)M + 2u) * C;
   const size_t sz_out_c = sizeof(float) * (size_t)M * N_out;
-  const size_t sz_pack_done = m_pad / HEXKL_MOE_PACK_UNIT_ROWS + 1u;
+  const size_t sz_pack_done = m_pad / CB_PACK_UNIT_ROWS + 1u;
   const size_t sz_rq = sizeof(float) * BR;
   const size_t need = 2u * ROUND_UP_SZ(sz_mpad_f32, CB_SCRATCH_ALIGN) +
                       ROUND_UP_SZ(sz_act_c, CB_SCRATCH_ALIGN) +
@@ -307,7 +649,7 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
   const float *const conv_w_v = (const float *)(vtcm_base + L.conv_w_off);
 
   hvx_bg_job pack_job;
-  hexkl_moe_pack_ctx pack;
+  cb_pack_ctx pack;
   int pack_submitted = 0;
   hvx_dq_mul_job mul_job[2];
   hvx_dq_tiles_job dq_job[2];
@@ -315,8 +657,8 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
      bytes live here because a job outlives its submit until the wait
      that retires it. */
   cb_stage_ctx stage_ctx[2];
-  hvx_bg_job gate_job[2], rq_job[2];
-  uint8_t gate_done[2][CB_GATE_UNITS], rq_done[2][1];
+  hvx_bg_job stage_job[2];
+  uint8_t stage_done[2][CB_STAGE_UNITS];
   int stage_submitted[2] = {0, 0};
   uint32_t idx_ac[CB_MAX_CHUNKS], idx_b[CB_MAX_CHUNKS], idx_o[CB_MAX_CHUNKS];
   uint32_t act_idx;
@@ -327,6 +669,7 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
      once per row. */
   HEXKL_PROBE_T0(p0);
   hexkl_dma_ring_reset();
+  hexkl_moe_dma_copy(g, state_f32, 2u * C * sizeof(float), 0, 0);
   hexkl_moe_dma_copy(act_c, act_f32, sizeof(float) * (size_t)M * K, 0, 0);
   hexkl_moe_dma_copy(vtcm_base + L.conv_w_off, conv_w, 3u * C * sizeof(float),
                      0, 1);
@@ -343,31 +686,34 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
   for (uint32_t g0 = 0; g0 < c_ntiles; g0 += half) {
     const uint32_t cn = (c_ntiles - g0 < half) ? (c_ntiles - g0) : half;
     (void)hexkl_moe_push_weight_chunk(vtcm_base, L.w_a_off, wa, k_tiles,
-                                      c_ntiles, g0, cn, 0);
-    idx_ac[n_ac++] = hexkl_moe_push_weight_chunk(vtcm_base, L.w_b_off, wc,
-                                                 k_tiles, c_ntiles, g0, cn, 0);
+                                      c_ntiles, g0, cn, weight_src_bypass);
+    idx_ac[n_ac++] = hexkl_moe_push_weight_chunk(
+      vtcm_base, L.w_b_off, wc, k_tiles, c_ntiles, g0, cn, weight_src_bypass);
   }
 
   HEXKL_PROBE_T0(p0);
-  hvx_quant_rows_u8_params(act_c, M, m_pad, K, scale_all, zp_all, pool);
   pack.act_c = act_c;
-  pack.slot_row = NULL;
-  pack.slot_scale = scale_all;
-  pack.slot_zp = zp_all;
+  pack.scale = scale_all;
+  pack.zp = zp_all;
   pack.act_ah = act_ah;
+  pack.M = M;
   pack.K = K;
-  pack_job.func = hexkl_moe_pack_bg_worker;
+  pack_job.func = cb_pack_unit;
   pack_job.ctx = &pack;
-  pack_job.n_units = m_pad / HEXKL_MOE_PACK_UNIT_ROWS;
+  pack_job.n_units = m_pad / CB_PACK_UNIT_ROWS;
   pack_job.done = pack_done;
   hvx_worker_pool_submit_bg(pool, &pack_job);
   pack_submitted = 1;
-  hvx_worker_pool_wait_bg(pool, &pack_job, HEXKL_MOE_PACK_UNITS_THROUGH(0u));
+  hvx_worker_pool_wait_bg(pool, &pack_job, CB_PACK_UNITS_THROUGH(0u));
   HEXKL_PROBE_ADD(HEXKL_PROBE_QUANT, p0);
   act_idx =
     hexkl_moe_push_act_block(vtcm_base, L.act_off, act_ah, 0u, K, k_tiles);
 
   /* ---- phase 1: g = dq(x . W_a) * dq(x . W_c), block by block ---------- */
+  /* The last epilogue remains in flight across row blocks. Keep staging
+     parity across that boundary: a shape with an odd number of column
+     batches must not reuse its last accumulator buffer for the next block. */
+  uint32_t ac_batch = 0u;
   for (uint32_t mb = 0; mb < M; mb += BR) {
     const uint32_t m_blk = (M - mb < BR) ? (M - mb) : BR;
     HEXKL_PROBE_COUNT(HEXKL_PROBE_BLOCKS, 1);
@@ -375,10 +721,10 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
     hexkl_dma_ring_wait(act_idx);
     HEXKL_PROBE_ADD(HEXKL_PROBE_GATHER, p0);
 
-    for (uint32_t g0 = 0, ci = 0; g0 < c_ntiles; g0 += half, ++ci) {
+    for (uint32_t g0 = 0, ci = 0; g0 < c_ntiles; g0 += half, ++ci, ++ac_batch) {
       const uint32_t np = (c_ntiles - g0 < half) ? (c_ntiles - g0) : half;
       const uint32_t stage_off =
-        L.result_off + (ci & 1u) * L.acc_tiles * ACC_TILE_BYTES;
+        L.result_off + (ac_batch & 1u) * L.acc_tiles * ACC_TILE_BYTES;
       if (mb == 0u) {
         HEXKL_PROBE_T0(p0);
         hexkl_dma_ring_wait(idx_ac[ci]);
@@ -415,12 +761,12 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
       HEXKL_MOE_MM_END();
 
       /* Retire the epilogue that read this staging buffer's partner
-         (batch ci-1), then launch this batch's straight into g. */
+         (the previous batch), then launch this batch's straight into g. */
       HEXKL_PROBE_T0(p0);
       hvx_worker_pool_wait(pool);
       HEXKL_PROBE_ADD(HEXKL_PROBE_DEQUANT, p0);
       {
-        hvx_dq_mul_job *jb = &mul_job[ci & 1u];
+        hvx_dq_mul_job *jb = &mul_job[ac_batch & 1u];
         jb->tiles_base =
           (const uint8_t *)((const int32_t *)(vtcm_base + stage_off) +
                             acc->base);
@@ -437,7 +783,7 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
         jb->colsum_b = wc->colsum_w;
         jb->w_scale_b = wc->w_scale;
         jb->bias_b = wc->bias;
-        jb->dst = g + (size_t)mb * C;
+        jb->dst = g + ((size_t)mb + 2u) * C;
         jb->dst_stride = C;
         hvx_worker_pool_submit(pool, hvx_dq_mul_worker, jb, np);
       }
@@ -446,8 +792,7 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
        next block rides under this block's last epilogue. */
     if (mb + BR < M) {
       HEXKL_PROBE_T0(p0);
-      hvx_worker_pool_wait_bg(pool, &pack_job,
-                              HEXKL_MOE_PACK_UNITS_THROUGH(mb + BR));
+      hvx_worker_pool_wait_bg(pool, &pack_job, CB_PACK_UNITS_THROUGH(mb + BR));
       HEXKL_PROBE_ADD(HEXKL_PROBE_QUANT, p0);
       act_idx = hexkl_moe_push_act_block(vtcm_base, L.act_off, act_ah, mb + BR,
                                          K, k_tiles);
@@ -458,26 +803,18 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
   hvx_worker_pool_wait(pool);
   HEXKL_PROBE_ADD(HEXKL_PROBE_DEQUANT, p0);
 
-  /* The conv state the CPU decode path continues from: g's last two rows
-     (x_{t-2}, x_{t-1} in causal_conv1d_layer's order), zero-padded when M
-     is shorter. 16 KB, so a plain copy into the uncached buffer. */
-  if (M >= 2u) {
-    memcpy(state_f32, g + (size_t)(M - 2u) * C, 2u * C * sizeof(float));
-  } else {
-    memset(state_f32, 0, C * sizeof(float));
-    memcpy(state_f32 + C, g, C * sizeof(float));
-  }
-
   /* ---- phase 2: out = (dq(x . W_b) * conv1d(g)) . W_out ---------------- */
   /* Both slots are dead (every HMX read of them returned). Block 0's
      activation first, then W_b into A and W_out into B, chunked so the
      first batch of each starts before the rest has landed. */
   act_idx =
     hexkl_moe_push_act_block(vtcm_base, L.act_off, act_ah, 0u, K, k_tiles);
-  const uint32_t n_b = cb_push_chunks(vtcm_base, L.w_a_off, wb, k_tiles,
-                                      c_ntiles, L.acc_tiles, idx_b);
-  const uint32_t n_o = cb_push_chunks(vtcm_base, L.w_b_off, wo, c_ktiles,
-                                      o_ntiles, L.acc_tiles, idx_o);
+  const uint32_t n_b =
+    cb_push_chunks(vtcm_base, L.w_a_off, wb, k_tiles, c_ntiles, L.acc_tiles,
+                   idx_b, weight_src_bypass);
+  const uint32_t n_o =
+    cb_push_chunks(vtcm_base, L.w_b_off, wo, c_ktiles, o_ntiles, L.acc_tiles,
+                   idx_o, weight_src_bypass);
   (void)n_b;
   (void)n_o;
 
@@ -490,6 +827,11 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
        mid[i]  written by block n's requant, read by block n's out_proj
        rq[i]   written by block n's requant, read by block n's out_proj
                epilogues, retired before block n+2's requant */
+  /* Keep accumulator and job parity across b/out and row-block boundaries.
+     The last out epilogue may still read the partner buffer when the next
+     b batch writes this one. */
+  uint32_t bo_batch = 0u;
+  uint32_t pending_out_row = 0u, pending_out_rows = 0u;
   for (uint32_t mb = 0, n = 0; mb < M + BR; mb += BR, ++n) {
     const uint32_t cur = n & 1u;
     if (mb < M) {
@@ -499,11 +841,12 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
       HEXKL_PROBE_ADD(HEXKL_PROBE_GATHER, p0);
 
       /* --- b: dequantized into z[cur] --- */
-      for (uint32_t nt0 = 0, ci = 0; nt0 < c_ntiles; nt0 += L.acc_tiles, ++ci) {
+      for (uint32_t nt0 = 0, ci = 0; nt0 < c_ntiles;
+           nt0 += L.acc_tiles, ++ci, ++bo_batch) {
         const uint32_t nb =
           (c_ntiles - nt0 < L.acc_tiles) ? (c_ntiles - nt0) : L.acc_tiles;
         const uint32_t stage_off =
-          L.result_off + (ci & 1u) * L.acc_tiles * ACC_TILE_BYTES;
+          L.result_off + (bo_batch & 1u) * L.acc_tiles * ACC_TILE_BYTES;
         if (mb == 0u) {
           HEXKL_PROBE_T0(p0);
           hexkl_dma_ring_wait(idx_b[ci]);
@@ -532,8 +875,17 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
         HEXKL_PROBE_T0(p0);
         hvx_worker_pool_wait(pool);
         HEXKL_PROBE_ADD(HEXKL_PROBE_DEQUANT, p0);
+        if (pending_out_rows != 0u) {
+          /* The previous output block's last writer has now retired. Its
+             cached rows are immutable for the rest of this invocation. */
+          HEXKL_PROBE_T0(p0);
+          cb_push_output(out_f32, out_c, pending_out_row, pending_out_rows,
+                         N_out);
+          pending_out_rows = 0u;
+          HEXKL_PROBE_ADD(HEXKL_PROBE_ACC_COPY, p0);
+        }
         {
-          hvx_dq_tiles_job *jb = &dq_job[ci & 1u];
+          hvx_dq_tiles_job *jb = &dq_job[bo_batch & 1u];
           jb->tiles_base =
             (const uint8_t *)((const int32_t *)(vtcm_base + stage_off) +
                               acc->base);
@@ -575,19 +927,15 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
         c->mid = midbuf[cur];
         c->rq_scale = rq_scale[cur];
         c->rq_zp = rq_zp[cur];
-        c->mb = mb;
+        c->mb = mb + 2u;
         c->m_blk = m_blk;
         c->C = C;
-        gate_job[cur].func = cb_gate_unit;
-        gate_job[cur].ctx = c;
-        gate_job[cur].n_units = CB_GATE_UNITS;
-        gate_job[cur].done = gate_done[cur];
-        rq_job[cur].func = cb_requant_unit;
-        rq_job[cur].ctx = c;
-        rq_job[cur].n_units = 1u;
-        rq_job[cur].done = rq_done[cur];
-        hvx_worker_pool_submit_bg(pool, &gate_job[cur]);
-        hvx_worker_pool_submit_bg(pool, &rq_job[cur]);
+        stage_job[cur].func = cb_stage_unit;
+        stage_job[cur].ctx = c;
+        stage_job[cur].n_units =
+          (m_blk + CB_STAGE_UNIT_ROWS - 1u) / CB_STAGE_UNIT_ROWS;
+        stage_job[cur].done = stage_done[cur];
+        hvx_worker_pool_submit_bg(pool, &stage_job[cur]);
         stage_submitted[cur] = 1;
       }
     }
@@ -600,13 +948,14 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
       /* Its requant is usually long done; what this wait reads is the
          exposure, filed under REQUANT as the synchronous path's was. */
       HEXKL_PROBE_T0(p0);
-      hvx_worker_pool_wait_bg(pool, &rq_job[prev], UINT32_MAX);
+      hvx_worker_pool_wait_bg(pool, &stage_job[prev], UINT32_MAX);
       HEXKL_PROBE_ADD(HEXKL_PROBE_REQUANT, p0);
-      for (uint32_t nt0 = 0, ci = 0; nt0 < o_ntiles; nt0 += L.acc_tiles, ++ci) {
+      for (uint32_t nt0 = 0, ci = 0; nt0 < o_ntiles;
+           nt0 += L.acc_tiles, ++ci, ++bo_batch) {
         const uint32_t nb =
           (o_ntiles - nt0 < L.acc_tiles) ? (o_ntiles - nt0) : L.acc_tiles;
         const uint32_t stage_off =
-          L.result_off + (ci & 1u) * L.acc_tiles * ACC_TILE_BYTES;
+          L.result_off + (bo_batch & 1u) * L.acc_tiles * ACC_TILE_BYTES;
         if (pmb == 0u) {
           HEXKL_PROBE_T0(p0);
           hexkl_dma_ring_wait(idx_o[ci]);
@@ -637,8 +986,17 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
         HEXKL_PROBE_T0(p0);
         hvx_worker_pool_wait(pool);
         HEXKL_PROBE_ADD(HEXKL_PROBE_DEQUANT, p0);
+        if (pending_out_rows != 0u) {
+          /* The previous output block's last writer has now retired. Its
+             cached rows are immutable for the rest of this invocation. */
+          HEXKL_PROBE_T0(p0);
+          cb_push_output(out_f32, out_c, pending_out_row, pending_out_rows,
+                         N_out);
+          pending_out_rows = 0u;
+          HEXKL_PROBE_ADD(HEXKL_PROBE_ACC_COPY, p0);
+        }
         {
-          hvx_dq_tiles_job *jb = &dq_job[ci & 1u];
+          hvx_dq_tiles_job *jb = &dq_job[bo_batch & 1u];
           jb->tiles_base =
             (const uint8_t *)((const int32_t *)(vtcm_base + stage_off) +
                               acc->base);
@@ -659,16 +1017,26 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
           hvx_worker_pool_submit(pool, hvx_dq_tiles_worker, jb, nb);
         }
       }
-      /* The last epilogue reads rq[prev], which block n+1's requant
-         rewrites; retire it here. */
-      HEXKL_PROBE_T0(p0);
-      hvx_worker_pool_wait(pool);
-      HEXKL_PROBE_ADD(HEXKL_PROBE_DEQUANT, p0);
+      pending_out_row = pmb;
+      pending_out_rows = pm_blk;
+      /* Leave the last out epilogue under the next b batch's HMX work.
+         Its post-HMX wait retires this reader of rq[prev] before the next
+         gate/requant can overwrite that row-parameter buffer. */
     }
   }
 
+  /* No next b batch exists to retire the final output epilogue. */
   HEXKL_PROBE_T0(p0);
-  hexkl_moe_dma_copy(out_f32, out_c, sizeof(float) * (size_t)M * N_out, 0, 0);
+  hvx_worker_pool_wait(pool);
+  HEXKL_PROBE_ADD(HEXKL_PROBE_DEQUANT, p0);
+
+  HEXKL_PROBE_T0(p0);
+  cb_push_output(out_f32, out_c, pending_out_row, pending_out_rows, N_out);
+  /* Commit the carry only after every stage succeeded. With M=1, the
+     first exported row is the previous newest row; chunked prefill uses
+     exactly the same recurrence as token-at-a-time decode. */
+  hexkl_moe_dma_copy(state_f32, g + (size_t)M * C, 2u * C * sizeof(float), 0,
+                     0);
   HEXKL_PROBE_ADD(HEXKL_PROBE_ACC_COPY, p0);
 
 out:
@@ -679,8 +1047,11 @@ out:
   }
   for (uint32_t i = 0; i < 2u; ++i) {
     if (stage_submitted[i]) {
-      hvx_worker_pool_wait_bg(pool, &rq_job[i], UINT32_MAX);
+      hvx_worker_pool_wait_bg(pool, &stage_job[i], UINT32_MAX);
     }
   }
+  /* Output copies and weight/activation prefetches may still own their
+     source or destination on an error path. Retire them before reuse. */
+  hexkl_dma_ring_drain();
   return rc;
 }

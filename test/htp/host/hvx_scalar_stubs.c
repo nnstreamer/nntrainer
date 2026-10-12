@@ -47,9 +47,27 @@ void hexkl_dcache_inva(const void *p, uint32_t bytes) {
   (void)p;
   (void)bytes;
 }
+uint64_t g_weight_bypass_bytes, g_invalid_bypass_bytes;
 void hexkl_dma_ring_push2d(void *dst, const void *src, uint32_t ds, uint32_t ss,
                            uint32_t rs, uint32_t nrows, int sv, int dv) {
-  (void)sv;
+  if (sv) {
+    int weight = 0;
+    const uintptr_t begin = (uintptr_t)src;
+    const uintptr_t end = begin + (size_t)(nrows - 1u) * ss + rs;
+    for (uint32_t i = 0; i < HEXKL_MM_U8I4_MAX_WEIGHTS; ++i) {
+      const hexkl_weight_u8i4 *w = &g_tbl.slots[i];
+      const uintptr_t wb = (uintptr_t)w->wh_bytes;
+      if (w->in_use && (w->borrowed || w->clean) && begin >= wb &&
+          end <= wb + (size_t)w->K * w->N / 2u) {
+        weight = 1;
+        break;
+      }
+    }
+    if (weight)
+      g_weight_bypass_bytes += (uint64_t)rs * nrows;
+    else
+      g_invalid_bypass_bytes += (uint64_t)rs * nrows;
+  }
   (void)dv;
   for (uint32_t r = 0; r < nrows; ++r)
     memcpy((uint8_t *)dst + (size_t)r * ds,
@@ -69,34 +87,67 @@ void hvx_worker_pool_run(hvx_worker_pool *pool, hvx_worker_pool_func func,
      and does 1/n_units of the work. */
   func(1u, 0, ctx);
 }
-/* submit runs the job to completion on the spot and wait is a no-op: the
-   harness cannot exercise the overlap, only that every job is submitted
-   with the right buffer and retired before that buffer is reused -- which
-   a job that ran late would show as a wrong result on device and cannot
-   show here. The device tests are where the ordering is checked. */
+/* Conv's deferred mode leaves the foreground reader pending until wait,
+   so overwriting a live accumulator or job context corrupts the reference
+   result deterministically. Other harnesses retain immediate execution. */
+#ifdef HVX_SCALAR_DEFER_WORKERS
+static hvx_worker_pool_func pending_func;
+static void *pending_ctx;
+#endif
 void hvx_worker_pool_submit(hvx_worker_pool *pool, hvx_worker_pool_func func,
                             void *ctx, uint32_t n_units) {
   (void)pool;
+#ifdef HVX_SCALAR_DEFER_WORKERS
+  if (pending_func)
+    abort(); /* A second submit must not discard an unretired reader. */
+  if (n_units != 0u) {
+    pending_func = func;
+    pending_ctx = ctx;
+  }
+#else
   if (n_units != 0u)
     func(1u, 0, ctx);
+#endif
 }
-void hvx_worker_pool_wait(hvx_worker_pool *pool) { (void)pool; }
-/* The background lane, likewise: every unit runs at submit, in order, and
-   the waits find them done. What this checks is that the kernel waits for
-   the right block before it queues it -- a wait for too few units cannot
-   show here, and a wait for too many only as a hang on device. */
+void hvx_worker_pool_wait(hvx_worker_pool *pool) {
+  (void)pool;
+#ifdef HVX_SCALAR_DEFER_WORKERS
+  if (pending_func) {
+    pending_func(1u, 0, pending_ctx);
+    pending_func = NULL;
+  }
+#endif
+}
+/* Optional deferred background units execute only through the requested
+   ready prefix. This exposes consumers that read activation tiles or row
+   parameters before their corresponding wait. Other harnesses retain
+   immediate execution, matching the real pool's NULL fallback. */
 void hvx_worker_pool_submit_bg(hvx_worker_pool *pool, hvx_bg_job *job) {
   (void)pool;
   for (uint32_t u = 0; u < job->n_units; ++u) {
+#ifdef HVX_SCALAR_DEFER_BG_WORKERS
+    job->done[u] = 0;
+#else
     job->func(job->n_units, u, job->ctx);
     job->done[u] = 1;
+#endif
   }
 }
 void hvx_worker_pool_wait_bg(hvx_worker_pool *pool, hvx_bg_job *job,
                              uint32_t n) {
   (void)pool;
+#ifdef HVX_SCALAR_DEFER_BG_WORKERS
+  const uint32_t through = n < job->n_units ? n : job->n_units;
+  for (uint32_t u = 0; u < through; ++u) {
+    if (!job->done[u]) {
+      job->func(job->n_units, u, job->ctx);
+      job->done[u] = 1;
+    }
+  }
+#else
   (void)job;
   (void)n;
+#endif
 }
 
 void hvx_copy_ah_block(uint8_t *dst, const uint8_t *src, uint32_t k,
@@ -128,6 +179,32 @@ int hvx_rmsnorm_rows_f32(const float *x, float *y, uint32_t M, uint32_t n,
       const float rs = 1.0f / sqrtf(ss / (float)chunk + eps);
       for (uint32_t j = 0; j < chunk; ++j)
         yr[j] = xr[j] * rs * (gamma ? gamma[j] : 1.0f);
+    }
+  }
+  return 0;
+}
+
+/* Scalar counterpart of the MoE call's post-FFN epilogue. */
+int hvx_rmsnorm_add_res_f32(float *out, const float *res, const float *x,
+                            const float *x2, uint32_t M, uint32_t n,
+                            const float *gamma, float eps, float scale,
+                            hvx_worker_pool *pool) {
+  (void)pool;
+  if (!out || !x || M == 0u || n == 0u || n % 32u != 0u)
+    return -1;
+  for (uint32_t r = 0; r < M; ++r) {
+    const size_t offset = (size_t)r * n;
+    float ss = 0.0f;
+    for (uint32_t j = 0; j < n; ++j) {
+      const float v = x[offset + j] + (x2 ? x2[offset + j] : 0.0f);
+      ss += v * v;
+    }
+    const float rs = 1.0f / sqrtf(ss / (float)n + eps);
+    for (uint32_t j = 0; j < n; ++j) {
+      const size_t i = offset + j;
+      const float v = x[i] + (x2 ? x2[i] : 0.0f);
+      out[i] =
+        scale * ((res ? res[i] : out[i]) + v * rs * (gamma ? gamma[j] : 1.0f));
     }
   }
   return 0;

@@ -137,6 +137,39 @@ int main(void) {
      subtracts it. */
   expect(fabs(htp_moe_row_rest_us(100.0, 50.0, 30.0, 0) - 20.0) < 1e-9,
          "hmx row subtracts swiglu");
+  const uint32_t fc = htp_fc_opts_flags(NULL, NULL);
+  expect((fc & HTP_FC_FLAG_M1_HVX) && htp_fc_chunk_tiles(fc) == 8u,
+         "FC defaults to HVX with 8 tiles");
+  expect(htp_fc_opts_flags("0", "32") == 0u, "FC opt-out is HMX");
+  expect(htp_fc_chunk_tiles(htp_fc_opts_flags("1", "32")) == 32u,
+         "FC chunk option is independent of Conv/MoE");
+  expect((htp_moe_opts_must_match(fc) & fc) == fc,
+         "FC echo required even when MoE GEMV is off");
+  const uint32_t conv = htp_conv_opts_flags(NULL, NULL, NULL);
+  expect((conv & HTP_CONV_FLAG_M1_HVX) && htp_conv_chunk_tiles(conv) == 8u,
+         "conv defaults to HVX with 8 tiles");
+  expect(htp_conv_opts_flags("0", "32", "24") == 0u, "conv opt-out is HMX");
+  expect(htp_conv_chunk_tiles(htp_conv_opts_flags("1", "16", NULL)) == 16u,
+         "conv chunk option is independent of MoE tuning");
+  expect(htp_conv_out_chunk_tiles(conv) == 8u,
+         "conv output defaults to the input chunk");
+  expect(htp_conv_out_chunk_tiles(htp_conv_opts_flags("1", "32", "0")) == 32u,
+         "zero output chunk inherits the input");
+  for (unsigned tiles = 16u; tiles <= 32u; tiles += 8u) {
+    char option[8];
+    snprintf(option, sizeof(option), "%u", tiles);
+    const uint32_t flags = htp_conv_opts_flags("1", "8", option);
+    expect(htp_conv_chunk_tiles(flags) == 8u &&
+             htp_conv_out_chunk_tiles(flags) == tiles,
+           "conv output chunk is independent of input chunk");
+    expect((htp_moe_opts_must_match(flags) & HTP_CONV_OUT_CHUNK_MASK) ==
+             (flags & HTP_CONV_OUT_CHUNK_MASK),
+           "conv output chunk echo required with MoE GEMV off");
+    expect((flags & (HTP_FC_FLAGS_KNOWN | HTP_QS2_GEMV_MASK)) == 0u,
+           "conv output chunk does not overlap FC or QS2 options");
+  }
+  expect((htp_moe_opts_must_match(conv) & conv) == conv,
+         "conv echo required even when MoE GEMV is off");
   if (g_fail)
     return 1;
   printf("MOE PROFILE ROW: gemv rest>=0 hmx unchanged\n");

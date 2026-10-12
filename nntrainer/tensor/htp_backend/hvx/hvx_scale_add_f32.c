@@ -12,6 +12,8 @@
 
 #include "hvx_scale_add_f32.h"
 
+#include <stddef.h>
+
 #include <hexagon_types.h>
 #include <hvx_hexagon_protos.h>
 
@@ -19,6 +21,17 @@
 
 /** @brief f32 lanes per HVX vector at 128B. */
 #define LANES 32u
+
+void hvx_scale_add_scatter_tile_f32(float *out, const float *src,
+                                    const uint32_t *rows, const float *weights,
+                                    uint32_t m_count, uint32_t stride) {
+  for (uint32_t m = 0; m < m_count; ++m) {
+    HVX_UVector *dst = (HVX_UVector *)(out + (size_t)rows[m] * stride);
+    const HVX_Vector s = ((const HVX_UVector *)(src + (size_t)m * stride))[0];
+    dst[0] = Q6_Vsf_vadd_VsfVsf(
+      dst[0], Q6_Vsf_vmpy_VsfVsf(s, hvx_splat_sf(weights[m])));
+  }
+}
 
 void hvx_scale_add_rows_f32(float *dst, const float *src, float scale,
                             uint32_t n) {

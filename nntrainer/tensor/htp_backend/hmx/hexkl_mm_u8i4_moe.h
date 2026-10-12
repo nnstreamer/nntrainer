@@ -26,6 +26,9 @@
 #ifndef __NNTRAINER_HEXKL_MM_U8I4_MOE_H__
 #define __NNTRAINER_HEXKL_MM_U8I4_MOE_H__
 
+#include "../htp_conv_opts.h"
+#include "../htp_fc_opts.h"
+#include "../htp_qs2_gemv_opts.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -45,16 +48,16 @@
  * 6 of a real run; this is that check, moved to before the work starts.
  */
 typedef struct {
-  uint32_t act_off;     /**< one 64-row activation block, AH tiles */
-  uint32_t w_gu_off;    /**< buffer A: gate_up's WH bytes */
-  uint32_t w_dn_off;    /**< buffer B: down's WH bytes */
-  uint32_t gate_off;    /**< [64 x inter] f32: silu(gate)*up, written by
-                             the fused gate_up epilogue */
-  uint32_t mid_off;     /**< requantized SwiGLU output, AH tiles */
-  uint32_t result_off;  /**< TWO staging buffers of acc_tiles accumulator
-                             tiles each, back to back: the HMX issues a
-                             batch into one while the pool dequantizes the
-                             other */
+  uint32_t act_off;    /**< one 64-row activation block, AH tiles */
+  uint32_t w_gu_off;   /**< buffer A: gate_up's WH bytes */
+  uint32_t w_dn_off;   /**< buffer B: down's WH bytes */
+  uint32_t gate_off;   /**< [64 x inter] f32: silu(gate)*up, written by
+                            the fused gate_up epilogue */
+  uint32_t mid_off;    /**< requantized SwiGLU output, AH tiles */
+  uint32_t result_off; /**< TWO staging buffers of acc_tiles accumulator
+                            tiles each, back to back: the HMX issues a
+                            batch into one while the pool dequantizes the
+                            other */
   /** Accumulator tiles per staging buffer, given the arena. Even, at least
       2 (one gate/up pair); gate_up's n-tile count is the useful ceiling. */
   uint32_t acc_tiles;
@@ -337,13 +340,15 @@ int hexkl_mm_u8i4_moe_layer_run(
  *        MiB, tag-validated). Off unless the flags word sets it; no build
  *        default. No byte changes: the same bytes land in the same place.
  *
- * Why no cache maintenance: src_bypass only skips the DSP L2, and a
+ * src_bypass only skips the DSP L2, and a
  * bypassing read is stale only if that L2 holds a dirty line of the source.
- * The bit is set only for arena-backed (borrowed) slots: the CPU fills the
+ * Arena-backed (borrowed) slots are eligible: the CPU fills the
  * arena before it is attached and nothing on the DSP ever writes it (the
  * GEMV's arena read and l2fetch leave clean lines, which a bypassing read
- * may ignore). A heap slot was memcpy'd by the DSP, so it keeps
- * src_bypass = 0 under the knob too. The ARM side of
+ * may ignore). Immutable heap images are eligible after a successful
+ * cache flush at registration; a failed flush keeps src_bypass = 0. The
+ * FC and convolution calls use the same session bit and eligibility rule.
+ * The ARM side of
  * the same bytes is the CPU's business either way: an ARM cached mapping
  * (#157's plan) needs its clean per fill with or without this bit, since
  * the DSP L2 is not the ARM's cache. Activation blocks and the staging
@@ -367,7 +372,8 @@ int hexkl_mm_u8i4_moe_layer_run(
    HEXKL_MOE_FLAG_GEMV_ROWS1_SET | HEXKL_MOE_FLAG_GEMV_FEED_SET |              \
    ((uint32_t)HEXKL_MOE_GEMV_LEAD_BITS << HEXKL_MOE_GEMV_LEAD_SHIFT) |         \
    HEXKL_MOE_FLAG_GEMV_ROWS1 | HEXKL_MOE_FLAG_GEMV_FEED |                      \
-   HEXKL_MOE_FLAG_DMA_BYPASS | HEXKL_MOE_FLAG_GELU_TANH)
+   HEXKL_MOE_FLAG_DMA_BYPASS | HEXKL_MOE_FLAG_GELU_TANH |                      \
+   HTP_CONV_FLAGS_KNOWN | HTP_FC_FLAGS_KNOWN | HTP_QS2_GEMV_MASK)
 
 /** @brief The call's l2fetch lead in KB: the flags word when the lead bit
  *         is set, else the build's default. */

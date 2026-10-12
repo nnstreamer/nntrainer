@@ -11,8 +11,10 @@
 #include "hexkl_mm_u8i4_moe.h"
 #include "hexkl_probe.h"
 #include "hvx_dequant_i32.h"
+#include "hvx_expand_i2i4.h"
 #include "hvx_gather_ah_u8.h"
 #include "hvx_gemm_u8i4_wh.h"
+#include "hvx_gemv_u8i2_lut.h"
 #include "hvx_scalar.h"
 #include "hvx_scale_add_f32.h"
 #include <AEEStdErr.h>
@@ -353,22 +355,62 @@ void hvx_worker_pool_submit(hvx_worker_pool *pool, hvx_worker_pool_func func,
     func(1u, 0, ctx);
 }
 void hvx_worker_pool_wait(hvx_worker_pool *pool) { (void)pool; }
-/* The background lane, likewise: every unit runs at submit, in order, and
-   the waits find them done. What this checks is that the kernel waits for
-   the right block before it queues it -- a wait for too few units cannot
-   show here, and a wait for too many only as a hang on device. */
+/* Delay background work until its explicit wait to expose stale contexts,
+   missing waits, double expansion, and chunk reuse in the scalar harness. */
+static int defer_bg;
+static hvx_bg_job *pending_bg[128];
+static uint32_t pending_count;
 void hvx_worker_pool_submit_bg(hvx_worker_pool *pool, hvx_bg_job *job) {
   (void)pool;
-  for (uint32_t u = 0; u < job->n_units; ++u) {
-    job->func(job->n_units, u, job->ctx);
-    job->done[u] = 1;
+  memset(job->done, 0, job->n_units);
+  if (defer_bg) {
+    if (pending_count == 128u)
+      abort();
+    for (uint32_t i = 0; i < pending_count; ++i)
+      if (pending_bg[i] == job)
+        abort();
+    pending_bg[pending_count++] = job;
+  } else {
+    for (uint32_t u = 0; u < job->n_units; ++u) {
+      job->func(job->n_units, u, job->ctx);
+      job->done[u] = 1;
+    }
   }
 }
 void hvx_worker_pool_wait_bg(hvx_worker_pool *pool, hvx_bg_job *job,
                              uint32_t n) {
   (void)pool;
-  (void)job;
-  (void)n;
+  if (!defer_bg)
+    return;
+  /* A wait on a completed job must not advance later unrelated work. */
+  uint32_t target = 0;
+  while (target < pending_count && pending_bg[target] != job)
+    ++target;
+  if (target == pending_count)
+    return;
+  for (uint32_t i = 0; i <= target; ++i) {
+    hvx_bg_job *j = pending_bg[i];
+    const uint32_t end = i < target || n > j->n_units ? j->n_units : n;
+    for (uint32_t u = 0; u < end; ++u) {
+      if (!j->done[u]) {
+        j->func(j->n_units, u, j->ctx);
+        j->done[u] = 1;
+      }
+    }
+  }
+  uint32_t retired = 0;
+  while (retired < pending_count) {
+    hvx_bg_job *j = pending_bg[retired];
+    uint32_t u = 0;
+    while (u < j->n_units && j->done[u])
+      ++u;
+    if (u != j->n_units)
+      break;
+    ++retired;
+  }
+  pending_count -= retired;
+  memmove(pending_bg, pending_bg + retired,
+          pending_count * sizeof pending_bg[0]);
 }
 
 void hvx_copy_ah_block(uint8_t *dst, const uint8_t *src, uint32_t k,
@@ -909,7 +951,144 @@ static int run_m1_cases(uint8_t *vtcm, size_t vtcm_bytes,
   return fail;
 }
 
-int main(void) {
+/* Compressed DMA must move exactly half the bytes and reproduce int4
+   outputs for decode, fallback, prefill tails and mixed-width experts. */
+static int compact_check(uint32_t I, uint32_t N, int deferred) {
+  const uint32_t K = 128, E = 5;
+  defer_bg = deferred;
+  static uint8_t vtcm[8u << 20];
+  W wg[E], wd[E];
+  uint8_t *codes[2 * E], *prepared[2 * E];
+  uint32_t hg[E], hd[E];
+  uint8_t lut[128];
+  const int8_t pal[4] = {-8, -2, 3, 7};
+  hvx_expand_i2i4_table(pal, lut);
+  for (uint32_t e = 0; e < E; ++e) {
+    hg[e] = e;
+    hd[e] = E + e;
+    make_weight(hg[e], K, 2 * I, &wg[e]);
+    make_weight(hd[e], I, N, &wd[e]);
+  }
+  for (uint32_t h = 0; h < 2 * E; ++h) {
+    hexkl_weight_u8i4 *w = &g_tbl.slots[h];
+    const size_t bytes = (size_t)w->K * w->N / 4;
+    codes[h] = malloc(bytes);
+    for (size_t i = 0; i < bytes; ++i)
+      codes[h][i] = rnd();
+    hvx_expand_i2i4_scalar(codes[h], bytes, lut, w->wh_bytes);
+    /* Centered LUT restores 127*colsum in int32, so this fixture must carry
+     * the actual metadata rather than make_weight's deliberately zero sums. */
+    int32_t *sums = h < E ? wg[h].cs : wd[h - E].cs;
+    for (uint32_t n = 0; n < w->N; ++n) {
+      sums[n] = 0;
+      for (uint32_t k = 0; k < w->K; ++k) {
+        const uint32_t r = k % 32u;
+        const size_t off = ((size_t)(k / 32u) * (w->N / 32u) + n / 32u) * 512u +
+                           (r / 8u) * 128u + (n % 32u) * 4u + r % 4u;
+        const int nib = (w->wh_bytes[off] >> (4u * ((r / 4u) % 2u))) & 15u;
+        sums[n] += nib >= 8 ? nib - 16 : nib;
+      }
+    }
+    prepared[h] = NULL;
+    if (w->N % 128u == 0u) {
+      prepared[h] = malloc(bytes);
+      hvx_i2_lut_repack(codes[h], w->N, w->N * 8u, prepared[h], w->N * 8u,
+                        1024u, 0, w->K / 32u);
+    }
+    memcpy(w->pal, pal, 4);
+  }
+  hexkl_moe_scratch scratch = {0};
+  int fail = 0;
+  const uint32_t ms[] = {1, 4, 65};
+  for (uint32_t m = 0; m < 3; ++m) {
+    const uint32_t M = ms[m];
+    float act[M * K], ref[M * N], got[M * N], rw[E * M];
+    uint32_t ri[E * M], count[E];
+    for (uint32_t i = 0; i < M * K; ++i)
+      act[i] = rndf();
+    for (uint32_t i = 0; i < E * M; ++i) {
+      ri[i] = i % M;
+      rw[i] = 0.2f;
+    }
+    for (uint32_t i = 0; i < E; ++i)
+      count[i] = M;
+    if (deferred && M == 65u) {
+      count[0] = 65u;
+      count[1] = 0u;
+      count[2] = 1u;
+      count[3] = 64u;
+      count[4] = 32u;
+      uint32_t at = 0;
+      for (uint32_t e = 0; e < E; ++e)
+        for (uint32_t j = 0; j < count[e]; ++j)
+          ri[at++] = (j + 17u * e) % M;
+    }
+    for (unsigned feed = 0; feed < 2; ++feed) {
+      for (unsigned qs2 = 0; qs2 <= 7; ++qs2) {
+        const uint32_t flags =
+          HEXKL_MOE_FLAG_M1_GEMV | HEXKL_MOE_FLAG_DMA_BYPASS | 0x20u |
+          (qs2 << HTP_QS2_GEMV_SHIFT) | (feed ? 0x20000u : 0u);
+        for (unsigned compact = 0; compact < 3; ++compact) {
+          for (uint32_t h = 0; h < 2 * E; ++h) {
+            const int packed = compact == 1 || (compact == 2 && h % 2 == 0);
+            g_tbl.slots[h].bits = packed ? 2u : 4u;
+            g_tbl.slots[h].lut_bytes = packed ? prepared[h] : NULL;
+            g_tbl.slots[h].wh_bytes =
+              packed ? codes[h]
+                     : (uint8_t *)(h < E ? wg[h].nib : wd[h - E].nib);
+          }
+          const uint64_t before = g_bypass_bytes;
+          const int rc = hexkl_mm_u8i4_moe_layer_run(
+            &g_tbl, vtcm, sizeof vtcm, sizeof vtcm, M, K, I, N, E, hg, hd, ri,
+            count, rw, act, compact ? got : ref, NULL, &scratch, flags);
+          const int bad = compact ? memcmp(ref, got, sizeof got) : 0;
+          uint64_t expected = 0;
+          // M1 with a DDR feed needs no weight DMA; compressed DDR feed falls
+          // back to HMX, so only that int4 case has a zero-byte expectation.
+          if (M > 4 || (feed && N <= 2u * K) || compact) {
+            for (uint32_t h = 0; h < 2 * E; ++h) {
+              const hexkl_weight_u8i4 *w = &g_tbl.slots[h];
+              if (count[h % E])
+                expected += (uint64_t)w->K * w->N / (w->bits == 2 ? 4 : 2);
+            }
+          }
+          const uint64_t bytes = g_bypass_bytes - before;
+          printf("COMPACT M=%u feed=%u mode=%u qs2=%u rc=%d memcmp=%d DMA=%llu "
+                 "expected=%llu\n",
+                 M, feed, compact, qs2, rc, bad, (unsigned long long)bytes,
+                 (unsigned long long)expected);
+          fail |= rc != 0 || bad != 0 || bytes != expected;
+        }
+      }
+    }
+  }
+  fail |= pending_count != 0u;
+  defer_bg = 0;
+  hexkl_moe_scratch_free(&scratch);
+  for (uint32_t h = 0; h < 2 * E; ++h) {
+    free(codes[h]);
+    free(prepared[h]);
+    W *w = h < E ? &wg[h] : &wd[h - E];
+    free(w->nib);
+    free(w->ws);
+    free(w->cs);
+    free(w->bias);
+  }
+  memset(&g_tbl, 0, sizeof g_tbl);
+  g_bypass_bytes = g_bypass_bad = 0;
+  memset(hexkl_probe_us, 0, sizeof hexkl_probe_us);
+  rnd_state = 12345u;
+  puts(fail ? "COMPACT MOE FAILED" : "COMPACT MOE OK");
+  return fail;
+}
+
+int main(int argc, char **argv) {
+  if (compact_check(128, 128, 0) || compact_check(96, 128, 0) ||
+      compact_check(1184, 1088, 1))
+    return 1;
+  if (argc == 2 && strcmp(argv[1], "--compact-only") == 0)
+    return 0;
+
   const uint32_t M = 37, K = 64, inter = 32, N_out = 64, NE = 5;
   hvx_scalar_hook.prefetch = hook_prefetch;
   hvx_scalar_hook.gemv = hook_gemv;

@@ -122,4 +122,17 @@ void hvx_quant_pack_u8_ah_rows(const float *x, const uint32_t *row_map,
                                const float *scale, const int32_t *zp,
                                uint8_t *out_ah);
 
+/** Compute row params and quantize each row to contiguous U8 in one job.
+ * k must be a positive multiple of 128; m <= m_pad. scale/zp hold m_pad
+ * entries (padding initialized to 1/0), and dst holds m*k bytes. */
+void hvx_quant_rows_u8_params_rowmajor(const float *x, uint32_t m,
+                                       uint32_t m_pad, uint32_t k, float *scale,
+                                       int32_t *zp, uint8_t *dst,
+                                       hvx_worker_pool *pool);
+/** Gather row-major U8 into AH. k is a multiple of 128; m0/m1 are multiples
+ * of four. rows[m0..m1) are valid source row indices. */
+void hvx_gather_rowmajor_u8_ah_rows(const uint8_t *src, const uint32_t *rows,
+                                    uint32_t m0, uint32_t m1, uint32_t k,
+                                    uint8_t *dst);
+
 #endif /* __NNTRAINER_HVX_QUANT_U8_H__ */

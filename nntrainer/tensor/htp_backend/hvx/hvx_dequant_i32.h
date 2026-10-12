@@ -61,6 +61,9 @@ void hvx_dequant_i32_to_f32(const int32_t *acc, uint32_t m_valid,
  * @param[in]  tile       first element of the tile's row 0, i.e. the VTCM
  *                        result tile advanced by hexkl_acc_layout::base
  * @param[in]  row_stride int32 elements between tile rows (from the probe)
+ *                        or 0 for four consecutive 2048-byte planes holding
+ *                        bytes 0, 1, 2 and 3 of each int32. Planar input is
+ *                        reconstructed in registers, without a shuffled copy.
  * @param[in]  m_count    tile rows carrying real data; padded rows are
  *                        skipped, same rule as m_valid above
  * @param[in]  act_scale  m_count entries, already offset to this row block
@@ -150,7 +153,7 @@ typedef struct {
   uint32_t tile_stride;
   uint32_t n_pairs;
   uint32_t g0;
-  uint32_t row_stride;
+  uint32_t row_stride; /**< int32 row stride; 0 selects four byte planes */
   uint32_t m_count;
   const float *act_scale;
   const int32_t *act_zp;

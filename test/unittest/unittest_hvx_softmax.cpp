@@ -125,6 +125,357 @@ class HvxSoftmax : public HtpSession {};
 
 class HvxSwigluDet : public HtpSession {};
 
+class HvxStrictMath : public HtpSession {};
+
+TEST_F(HvxStrictMath, NormAddAndSwiGLU) {
+  for (unsigned rows : {1u, 37u}) {
+    const unsigned width = 2048, count = rows * width;
+    std::vector<float> x(count), b(count), y(count), gamma(width);
+    for (unsigned j = 0; j < width; ++j)
+      gamma[j] = 0.5f + (j % 7) * 0.1f;
+    for (unsigned i = 0; i < count; ++i) {
+      x[i] = (static_cast<int>(i % 127) - 63) / 16.0f;
+      b[i] = (static_cast<int>(i % 37) - 18) / 8.0f;
+    }
+    for (unsigned op : {0u, 1u, 2u}) {
+      ASSERT_EQ(nntr_hvx_inference_math_f32(
+                  handle_, op, rows, width, width, 1e-5f, 1.0f, x.data(), count,
+                  b.data(), count, gamma.data(), width,
+                  reinterpret_cast<uint8_t *>(y.data()), count * sizeof(float)),
+                AEE_SUCCESS);
+      std::vector<float> timed(count);
+      uint32_t elapsed = UINT32_MAX;
+      ASSERT_EQ(nntr_hvx_inference_math_timed_f32(
+                  handle_, op, rows, width, width, 1e-5f, 1.0f, x.data(), count,
+                  b.data(), count, gamma.data(), width,
+                  reinterpret_cast<uint8_t *>(timed.data()),
+                  count * sizeof(float), &elapsed, 1),
+                AEE_SUCCESS);
+      EXPECT_NE(elapsed, UINT32_MAX);
+      EXPECT_EQ(0, std::memcmp(y.data(), timed.data(), count * sizeof(float)));
+      for (unsigned r = 0; r < rows; ++r) {
+        double sum = 0;
+        for (unsigned j = 0; j < width; ++j)
+          sum += static_cast<double>(x[r * width + j]) * x[r * width + j];
+        const double norm = 1.0 / std::sqrt(sum / width + 1e-5);
+        for (unsigned j = 0; j < width; ++j) {
+          const unsigned i = r * width + j;
+          const double ref = op == 0 ? x[i] * norm * gamma[j]
+                             : op == 1
+                               ? x[i] + b[i]
+                               : (x[i] / (1.0 + std::exp(-x[i]))) * b[i];
+          EXPECT_NEAR(y[i], ref, 2e-5 * (1.0 + std::fabs(ref)))
+            << op << ":" << i;
+        }
+      }
+    }
+  }
+}
+
+TEST_F(HvxStrictMath, ParallelElementwiseMatchesScalar) {
+  for (unsigned count : {32u, 96u, 4096u, 4128u, 65568u}) {
+    std::vector<float> x(count), a(count), y(count);
+    for (unsigned i = 0; i < count; ++i) {
+      x[i] = (static_cast<int>(i % 199) - 99) * 0.125f;
+      a[i] = (static_cast<int>(i % 71) - 35) * 0.0625f;
+    }
+    for (unsigned op : {1u, 2u, 3u}) {
+      ASSERT_EQ(nntr_hvx_inference_math_f32(
+                  handle_, op, count / 32, 32, 0, 0, 1, x.data(), count,
+                  a.data(), count, nullptr, 0,
+                  reinterpret_cast<uint8_t *>(y.data()), count * 4),
+                AEE_SUCCESS);
+      for (unsigned i = 0; i < count; ++i) {
+        const float ref = op == 1   ? x[i] + a[i]
+                          : op == 2 ? swiglu_det_one(x[i], a[i])
+                                    : geglu_det_one(x[i], a[i]);
+        ASSERT_EQ(cpu_det_bits(y[i]), cpu_det_bits(ref)) << op << ":" << i;
+      }
+    }
+  }
+}
+
+TEST_F(HvxStrictMath, HalfConversionRoundingAndTails) {
+  std::vector<float> x;
+  // Every finite half and both neighbours of every positive half midpoint:
+  // covers signed zeros, subnormals, exponent boundaries, and ties to even.
+  for (unsigned bits = 0; bits < 65536; ++bits) {
+    uint16_t u = bits;
+    __fp16 h;
+    std::memcpy(&h, &u, 2);
+    x.push_back(static_cast<float>(h));
+    if (bits < 0x7bff) {
+      uint16_t next = bits + 1;
+      __fp16 hn;
+      std::memcpy(&hn, &next, 2);
+      const float mid = (static_cast<float>(h) + static_cast<float>(hn)) * 0.5f;
+      for (float f :
+           {std::nextafter(mid, 0.0f), mid, std::nextafter(mid, INFINITY)}) {
+        x.push_back(f);
+        x.push_back(-f);
+      }
+    }
+  }
+  for (float f : {65519.f, 65520.f, 65536.f, 1e30f, 1e-40f}) {
+    x.push_back(f);
+    x.push_back(-f);
+  }
+  x.resize(((x.size() + 63) / 64) * 64 + 32, -0.0f);
+  std::vector<uint16_t> y(x.size());
+  ASSERT_EQ(nntr_hvx_inference_math_f32(
+              handle_, 6, x.size() / 32, 32, 0, 0, 1, x.data(), x.size(),
+              nullptr, 0, nullptr, 0, reinterpret_cast<uint8_t *>(y.data()),
+              y.size() * 2),
+            AEE_SUCCESS);
+  for (size_t i = 0; i < x.size(); ++i) {
+    if (std::isnan(x[i])) {
+      ASSERT_EQ(y[i] & 0x7c00, 0x7c00);
+      ASSERT_NE(y[i] & 0x03ff, 0);
+    } else {
+      const __fp16 ref = static_cast<__fp16>(x[i]);
+      uint16_t bits;
+      std::memcpy(&bits, &ref, 2);
+      ASSERT_EQ(y[i], bits) << "element=" << i << " x=" << x[i];
+    }
+  }
+  // A single half-vector must not overrun its 64-byte destination.
+  y.assign(64, 0xbeef);
+  ASSERT_EQ(nntr_hvx_inference_math_f32(
+              handle_, 6, 1, 32, 0, 0, 1, x.data(), 32, nullptr, 0, nullptr, 0,
+              reinterpret_cast<uint8_t *>(y.data()), 64),
+            AEE_SUCCESS);
+  for (unsigned i = 32; i < y.size(); ++i)
+    ASSERT_EQ(y[i], 0xbeef);
+}
+
+TEST_F(HvxStrictMath, RopeAndHalfCache) {
+  const unsigned rows = 3, width = 128, hd = 64, count = rows * width;
+  std::vector<float> x(count), cs(rows * 2 * hd), y(count);
+  std::vector<uint16_t> half(count);
+  for (unsigned i = 0; i < count; ++i)
+    x[i] = (static_cast<int>(i % 43) - 21) / 8.0f;
+  for (unsigned r = 0; r < rows; ++r)
+    for (unsigned j = 0; j < hd; ++j) {
+      cs[r * 2 * hd + j] = std::cos((r + 1) * (j % 32 + 1) * 0.01f);
+      cs[(r * 2 + 1) * hd + j] = std::sin((r + 1) * (j % 32 + 1) * 0.01f);
+    }
+  for (unsigned op : {4u, 5u, 6u}) {
+    uint8_t *out = op == 4 ? reinterpret_cast<uint8_t *>(y.data())
+                           : reinterpret_cast<uint8_t *>(half.data());
+    ASSERT_EQ(nntr_hvx_inference_math_f32(
+                handle_, op, rows, width, hd, 0, 1, x.data(), count, nullptr, 0,
+                cs.data(), cs.size(), out, count * (op == 4 ? 4 : 2)),
+              AEE_SUCCESS);
+    for (unsigned i = 0; i < count; ++i) {
+      const unsigned r = i / width, j = i % hd;
+      const unsigned base = i - j, h = j % 32;
+      const float c = cs[r * 2 * hd + h], s = cs[(r * 2 + 1) * hd + h];
+      const float ref = op == 6  ? x[i]
+                        : j < 32 ? x[base + h] * c - x[base + h + 32] * s
+                                 : x[base + h] * s + x[base + h + 32] * c;
+      if (op == 4)
+        EXPECT_NEAR(y[i], ref, 1e-6f);
+      else {
+        __fp16 value;
+        std::memcpy(&value, &half[i], sizeof(value));
+        EXPECT_NEAR(static_cast<float>(value), ref, 0.004f);
+      }
+    }
+  }
+}
+
+TEST_F(HvxStrictMath, SigmoidRouting64ExpertsAndTies) {
+  constexpr unsigned rows = 3, experts = 64, k = 4, selected = 9;
+  std::vector<float> logits(rows * experts), bias(experts), weights(rows * k);
+  std::vector<unsigned> indices(rows * selected);
+  for (unsigned e = 0; e < experts; ++e) {
+    bias[e] = e >= 32 ? 0.5f : 0.0f;
+    logits[experts + e] = (static_cast<int>(e % 17) - 8) * 0.2f;
+    logits[2 * experts + e] = (static_cast<int>(e % 11) - 5) * 20.0f;
+  }
+  ASSERT_EQ(nntr_hvx_sigmoid_topk_f32(
+              handle_, rows, experts, k, selected, logits.data(), logits.size(),
+              bias.data(), bias.size(), indices.data(), indices.size(),
+              weights.data(), weights.size()),
+            AEE_SUCCESS);
+  for (unsigned r = 0; r < rows; ++r) {
+    std::vector<float> sig(experts);
+    std::vector<unsigned> order(experts);
+    for (unsigned e = 0; e < experts; ++e) {
+      sig[e] = 1.0f / (1.0f + std::exp(-logits[r * experts + e]));
+      order[e] = e;
+    }
+    std::stable_sort(order.begin(), order.end(), [&](unsigned a, unsigned b) {
+      return sig[a] + bias[a] > sig[b] + bias[b];
+    });
+    float sum = 1e-6f;
+    for (unsigned j = 0; j < k; ++j)
+      sum += sig[order[j]];
+    for (unsigned j = 0; j < selected; ++j)
+      EXPECT_EQ(indices[r * selected + j], order[j]);
+    for (unsigned j = 0; j < k; ++j)
+      EXPECT_NEAR(weights[r * k + j], sig[order[j]] / sum, 1e-6f);
+  }
+}
+
+TEST_F(HvxStrictMath, ParallelRouterMatchesDecodeCalls) {
+  constexpr unsigned rows = 65, experts = 128, top = 8, selected = 13;
+  std::vector<float> logits(rows * experts), bias(experts), weights(rows * top),
+    serial_weights(rows * top);
+  std::vector<unsigned> indices(rows * selected),
+    serial_indices(rows * selected);
+  for (unsigned e = 0; e < experts; ++e) {
+    bias[e] = e % 3 == 0 ? 0.125f : 0.0f;
+    for (unsigned r = 1; r < rows; ++r)
+      logits[r * experts + e] =
+        (static_cast<int>((r * 17 + e * 23) % 233) - 116) *
+        (r == 1 ? 1.0f : 0.03125f);
+  }
+  ASSERT_EQ(nntr_hvx_sigmoid_topk_f32(handle_, rows, experts, top, selected,
+                                      logits.data(), logits.size(), bias.data(),
+                                      experts, indices.data(), indices.size(),
+                                      weights.data(), weights.size()),
+            AEE_SUCCESS);
+  for (unsigned r = 0; r < rows; ++r)
+    ASSERT_EQ(nntr_hvx_sigmoid_topk_f32(
+                handle_, 1, experts, top, selected, logits.data() + r * experts,
+                experts, bias.data(), experts,
+                serial_indices.data() + r * selected, selected,
+                serial_weights.data() + r * top, top),
+              AEE_SUCCESS);
+  EXPECT_EQ(indices, serial_indices);
+  EXPECT_EQ(0, std::memcmp(weights.data(), serial_weights.data(),
+                           weights.size() * sizeof(float)));
+}
+
+// Compare RPC fusion against the separate DSP kernels, including row tails,
+// optional input normalization, and a completely tied router row.
+TEST_F(HvxStrictMath, FusedSigmoidRouterMatchesSeparateCalls) {
+  constexpr unsigned hidden = 64, top_k = 4, n_sel = 9;
+  for (unsigned rows : {1u, 65u}) {
+    for (unsigned experts : {32u, 64u, 128u}) {
+      for (bool norm : {false, true}) {
+        SCOPED_TRACE(::testing::Message()
+                     << rows << "x" << experts << " norm=" << norm);
+        std::vector<float> x(rows * hidden), w(hidden * experts),
+          gamma(hidden, 0.75f), bias(experts), logits(rows * experts),
+          fused_logits(rows * experts), weights(rows * top_k),
+          fused_weights(rows * top_k);
+        std::vector<unsigned> sel(rows * n_sel), fused_sel(rows * n_sel);
+        for (size_t i = rows == 1 ? 0 : hidden; i < x.size(); ++i)
+          x[i] = (static_cast<int>(i % 23) - 11) * 0.125f;
+        for (size_t i = 0; i < w.size(); ++i)
+          w[i] = (static_cast<int>(i % 37) - 18) * 0.03125f;
+        for (unsigned e = 0; e < experts; ++e)
+          bias[e] = e >= experts / 2 ? 0.125f : 0.0f;
+        const float *g = norm ? gamma.data() : nullptr;
+        const int glen = norm ? hidden : 0;
+        ASSERT_EQ(nntr_hvx_router_logits_f32(
+                    handle_, rows, hidden, experts, 1e-5f, g, glen, w.data(),
+                    w.size(), x.data(), x.size(), 0, 0, nullptr, 0,
+                    logits.data(), logits.size(), nullptr, 0, nullptr, 0),
+                  AEE_SUCCESS);
+        ASSERT_EQ(nntr_hvx_sigmoid_topk_f32(
+                    handle_, rows, experts, top_k, n_sel, logits.data(),
+                    logits.size(), bias.data(), bias.size(), sel.data(),
+                    sel.size(), weights.data(), weights.size()),
+                  AEE_SUCCESS);
+        ASSERT_EQ(nntr_hvx_router_sigmoid_f32(
+                    handle_, rows, hidden, experts, 1e-5f, g, glen, UINT32_MAX,
+                    w.data(), w.size(), x.data(), x.size(), top_k, n_sel,
+                    bias.data(), bias.size(), fused_logits.data(),
+                    fused_logits.size(), fused_sel.data(), fused_sel.size(),
+                    fused_weights.data(), fused_weights.size()),
+                  AEE_SUCCESS);
+        EXPECT_EQ(sel, fused_sel);
+        EXPECT_EQ(0, std::memcmp(logits.data(), fused_logits.data(),
+                                 logits.size() * sizeof(float)));
+        EXPECT_EQ(0, std::memcmp(weights.data(), fused_weights.data(),
+                                 weights.size() * sizeof(float)));
+      }
+    }
+  }
+}
+
+TEST_F(HvxStrictMath, ResidualNormMatchesSeparateCalls) {
+  for (unsigned rows : {1u, 37u, 1024u}) {
+    const unsigned width = 2048, count = rows * width;
+    std::vector<float> x(count), b(count), sum(count), norm(count),
+      fused(2 * count + 32, -123.0f), gamma(width);
+    for (unsigned i = 0; i < count; ++i) {
+      x[i] = (static_cast<int>(i % 127) - 63) * 0.0625f;
+      b[i] = (static_cast<int>(i % 37) - 18) * 0.125f;
+    }
+    for (unsigned j = 0; j < width; ++j)
+      gamma[j] = 0.5f + (j % 7) * 0.1f;
+    ASSERT_EQ(nntr_hvx_inference_math_f32(
+                handle_, 1, rows, width, width, 1e-5f, 1.0f, x.data(), count,
+                b.data(), count, nullptr, 0,
+                reinterpret_cast<uint8_t *>(sum.data()), count * sizeof(float)),
+              AEE_SUCCESS);
+    ASSERT_EQ(nntr_hvx_inference_math_f32(
+                handle_, 0, rows, width, width, 1e-5f, 1.0f, sum.data(), count,
+                nullptr, 0, gamma.data(), width,
+                reinterpret_cast<uint8_t *>(norm.data()),
+                count * sizeof(float)),
+              AEE_SUCCESS);
+    ASSERT_EQ(nntr_hvx_inference_math_f32(
+                handle_, 7, rows, width, width, 1e-5f, 1.0f, x.data(), count,
+                b.data(), count, gamma.data(), width,
+                reinterpret_cast<uint8_t *>(fused.data()),
+                2 * count * sizeof(float)),
+              AEE_SUCCESS);
+    EXPECT_EQ(0, std::memcmp(sum.data(), fused.data(), count * sizeof(float)));
+    EXPECT_EQ(
+      0, std::memcmp(norm.data(), fused.data() + count, count * sizeof(float)));
+    std::vector<float> direct_sum(count), direct_norm(count);
+    uint32_t elapsed = UINT32_MAX;
+    ASSERT_EQ(nntr_hvx_add_rmsnorm_f32(handle_, rows, width, 1e-5f, x.data(),
+                                       count, b.data(), count, gamma.data(),
+                                       width, direct_sum.data(), count,
+                                       direct_norm.data(), count, &elapsed, 1),
+              AEE_SUCCESS);
+    EXPECT_NE(elapsed, UINT32_MAX);
+    EXPECT_EQ(
+      0, std::memcmp(sum.data(), direct_sum.data(), count * sizeof(float)));
+    EXPECT_EQ(
+      0, std::memcmp(norm.data(), direct_norm.data(), count * sizeof(float)));
+    EXPECT_NE(nntr_hvx_add_rmsnorm_f32(
+                handle_, rows, width, 1e-5f, x.data(), count, b.data(), count,
+                gamma.data(), width, direct_sum.data(), count,
+                direct_norm.data(), count - 1, &elapsed, 1),
+              AEE_SUCCESS);
+    for (unsigned i = 2 * count; i < fused.size(); ++i)
+      EXPECT_EQ(fused[i], -123.0f);
+    EXPECT_NE(nntr_hvx_inference_math_f32(
+                handle_, 7, rows, width, width, 1e-5f, 1.0f, x.data(), count,
+                b.data(), count, gamma.data(), width,
+                reinterpret_cast<uint8_t *>(fused.data()),
+                count * sizeof(float)),
+              AEE_SUCCESS);
+  }
+}
+
+TEST_F(HvxStrictMath, RejectsInvalidShapes) {
+  std::vector<float> x(64, 1), y(64, 23), gamma(64, 1);
+  EXPECT_NE(nntr_hvx_inference_math_f32(
+              handle_, 0, 1, 64, 48, 1e-5f, 1, x.data(), 64, nullptr, 0,
+              gamma.data(), 64, reinterpret_cast<uint8_t *>(y.data()), 256),
+            AEE_SUCCESS);
+  EXPECT_NE(nntr_hvx_inference_math_f32(
+              handle_, 5, 1, 64, 64, 0, 1, x.data(), 64, nullptr, 0,
+              gamma.data(), 64, reinterpret_cast<uint8_t *>(y.data()), 128),
+            AEE_SUCCESS);
+  // FastRPC wraps DSP errors and rout buffers are unspecified on failure.
+  std::vector<unsigned> sel(4);
+  EXPECT_NE(nntr_hvx_router_sigmoid_f32(
+              handle_, 1, 64, 64, 1e-5f, nullptr, 0, UINT32_MAX, x.data(),
+              x.size(), x.data(), x.size(), 5, 4, gamma.data(), 64, y.data(),
+              y.size(), sel.data(), sel.size(), y.data(), 5),
+            AEE_SUCCESS);
+  // HtpComputeOps checks the error before copying its staging buffer out.
+}
+
 namespace {
 
 /**

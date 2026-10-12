@@ -75,6 +75,17 @@ typedef struct {
       handles' rectangles inside out_cat and apart. */
   const uint32_t *out_off;
   const uint32_t *out_ld;
+
+  /** Bypass L2 for weight DMA only, when the registered image is visible
+      in DDR. Activations and output transfers keep their cache policy. */
+  int weight_src_bypass;
+
+  /** M=1 HVX opt-in. Cached, 128-byte aligned scratch of at least 64*K
+      bytes, owned by the session and disjoint from inputs/output. NULL
+      retains HMX. The AH pitch remains 2048 bytes per k-tile. */
+  uint8_t *m1_scratch;
+  /** Compact weight slab width in 32-column tiles: 4, 8, 16 or 32. */
+  uint32_t m1_chunk_tiles;
 } hexkl_mm_opts;
 
 #endif /* __NNTRAINER_HEXKL_MM_OPTS_H__ */

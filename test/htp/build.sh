@@ -109,6 +109,8 @@ SRCS="$SRCS $BACKEND/hvx/hvx_scale_add_f32.c $BACKEND/hvx/hvx_rmsnorm_rows_f32.c
 SRCS="$SRCS $BACKEND/hvx/hvx_router_rows_f32.c $BACKEND/hvx/hvx_rope_rows_f32.c $BACKEND/hvx/hvx_softcap_f32.c"
 SRCS="$SRCS $BACKEND/hvx/hvx_gather_ah_u8.c"
 SRCS="$SRCS $BACKEND/hvx/hvx_softmax_f32.c $BACKEND/hvx/hvx_softmax_blocked_f32.c"
+SRCS="$SRCS $BACKEND/hvx/hvx_expand_i2i4.c"
+SRCS="$SRCS $BACKEND/hvx/hvx_gemv_u8i2_lut.c nntr_hvx_lut_probe.c"
 SRCS="$SRCS $BACKEND/hvx/hvx_worker_pool.c $BACKEND/hvx/hvx_gemm_u8i4_wh.c"
 SRCS="$SRCS nntr_hvx_fc_q4.c build/hvx_q4_gemv_f32.o build/nntr_hvx_sf_probe.o"
 SRCS="$SRCS nntr_hvx_mailbox.c"
@@ -155,7 +157,9 @@ if [ -z "$UND" ]; then
     echo "Error: $READELF returned no undefined symbols; guard cannot run" >&2
     exit 1
 fi
-BAD=$(echo "$UND" | grep -Ev '^(HAP_|compute_resource_|qurt_|dspqueue_|__hexagon_|__extendhfsf2$|__cxa_finalize$|__register_frame_info_bases$|malloc$|free$|calloc$|memalign$|memcpy$|memset$|lroundf$|nearbyintf$|snprintf$|vsnprintf$|strlcpy$|rintf$|sqrtf$|memcmp$|__truncsfhf2$)' || true)
+# The quantized attention kernels also import these runtime math functions.
+# Verified by loading the complete skel and running attention on v81.
+BAD=$(echo "$UND" | grep -Ev '^(HAP_|compute_resource_|qurt_|dspqueue_|__hexagon_|__extendhfsf2$|__cxa_finalize$|__register_frame_info_bases$|malloc$|free$|calloc$|memalign$|memcpy$|memset$|lroundf$|lround$|ldexpf$|ldexp$|ceil$|_Log$|nearbyintf$|snprintf$|vsnprintf$|strlcpy$|rintf$|sqrtf$|memcmp$|__truncsfhf2$)' || true)
 if [ -n "$BAD" ]; then
     echo "Error: skel has undefined symbols the DSP image will not provide:" >&2
     echo "$BAD" | sed 's/^/  /' >&2

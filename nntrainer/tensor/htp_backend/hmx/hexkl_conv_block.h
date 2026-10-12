@@ -37,6 +37,12 @@
  * are the two an FC-by-FC offload has (x and b*y to u8): a * c is formed
  * in f32 from the dequantized tiles and stays f32 in g.
  *
+ * M=1 with HTP_CONV_FLAG_M1_HVX uses column-tiled double-buffered weight
+ * DMA and HVX GEMV instead. A/C/B share one quantized activation; the existing
+ * dequant/product and causal gate keep the same FP32 rounding points. AH is
+ * in cached scratch for GEMV's scalar activation loads. The output projection
+ * waits for whole-row requantization and reuses the retired weight slots.
+ *
  * Built on hexkl_mm_u8i4_moe.c's parts (its scratch, DMA pushes, pack
  * and the HMX-issue timing) so the per-block cost is that kernel's,
  * which doc 51 section 1.4 measured at 340 us a block.
@@ -48,6 +54,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "../htp_conv_opts.h"
 #include "hexkl_mm_u8i4_dma.h"
 #include "hexkl_mm_u8i4_moe.h"
 #include "hvx_worker_pool.h"
@@ -81,6 +88,16 @@ int hexkl_conv_block_layout_get(uint32_t K, uint32_t C, uint32_t N_out,
                                 uint32_t arena_bytes,
                                 hexkl_conv_block_layout *out);
 
+/** Prepare an additional [chunk][K tile][N tile within chunk] WH image.
+ * The caller owns a mapped, uncached destination of K*N/2 bytes, kept alive
+ * until weight release/rebind or this function with chunk == 0 (disable).
+ * Preparation borrows VTCM and the DMA ring; no compute may be in flight.
+ * No quantization changes. Original WH remains available to prefill/FC.
+ * A decode call with another chunk size falls back to original WH. */
+int hexkl_conv_block_prepare_decode(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm,
+                                    uint32_t arena, uint32_t handle,
+                                    uint8_t *dst, uint32_t chunk);
+
 /**
  * @brief One conv block over M rows.
  *
@@ -90,10 +107,14 @@ int hexkl_conv_block_layout_get(uint32_t K, uint32_t C, uint32_t N_out,
  * @param conv_w         [3 x C] f32: w0 (row t), w1 (t-1), w2 (t-2)
  * @param act_f32        [M x K], the normed residual
  * @param[out] out_f32   [M x N_out]
- * @param[out] state_f32 [2 x C]: the conv input's rows M-2 and M-1 (zeros
- *                       where M is shorter), the state the CPU decode
- *                       path continues from
+ * @param[in,out] state_f32 [2 x C]: previous two conv input rows in oldest
+ *                       to newest order. Initialize to zero for a new
+ *                       sequence; successful calls replace them with the
+ *                       newest two rows, including for M=1 decode.
  * @param scratch        the session's MoE scratch; grown here as needed
+ * @param weight_src_bypass  request L2 bypass for arena or flushed heap
+ *                           weights; activation and state DMA are unchanged
+ * @param flags          HTP_CONV_* session options; HVX applies only to M=1.
  * @return AEE_SUCCESS, or the first failing stage's code
  */
 int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
@@ -102,6 +123,7 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
                          uint32_t h_b, uint32_t h_c, uint32_t h_out,
                          const float *conv_w, const float *act_f32,
                          float *out_f32, float *state_f32,
-                         hvx_worker_pool *pool, hexkl_moe_scratch *scratch);
+                         hvx_worker_pool *pool, hexkl_moe_scratch *scratch,
+                         int weight_src_bypass, uint32_t flags);
 
 #endif /* __NNTRAINER_HEXKL_CONV_BLOCK_H__ */

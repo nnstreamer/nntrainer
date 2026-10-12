@@ -90,6 +90,87 @@ int main(void) {
   reference(ws, 3, x, 1, K, want, 0.f);
   fail |= (rc != 0) | compare("M=1", got, want, N[0] + N[1] + N[2]);
 
+  // Mix an arena image, a flushed heap image and a dirty heap image.
+  // Only the first two may bypass L2; DMA must preserve every output bit.
+  g_tbl.slots[0].borrowed = 1;
+  g_tbl.slots[1].clean = 1;
+  for (uint32_t m = 1; m <= M; m += M - 1u) {
+    const size_t count = (size_t)m * (N[0] + N[1] + N[2]);
+    hexkl_mm_opts opts = {0};
+    rc = hexkl_mm_u8i4_layer_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm, m, K,
+                                 handles, 3, x, want, &opts);
+    fail |= rc != 0;
+    opts.weight_src_bypass = 1;
+    g_weight_bypass_bytes = g_invalid_bypass_bytes = 0;
+    rc = hexkl_mm_u8i4_layer_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm, m, K,
+                                 handles, 3, x, got, &opts);
+    const uint64_t expected = (uint64_t)K * (N[0] + N[1]) / 2u;
+    const int same = memcmp(got, want, count * sizeof(float)) == 0;
+    printf("FC M=%u bypass: identical=%d bytes=%llu expected=%llu bad=%llu\n",
+           m, same, (unsigned long long)g_weight_bypass_bytes,
+           (unsigned long long)expected,
+           (unsigned long long)g_invalid_bypass_bytes);
+    fail |= rc != 0 || !same || g_weight_bypass_bytes != expected ||
+            g_invalid_bypass_bytes != 0;
+
+    // Preserve accumulation and non-contiguous column-slice outputs.
+    const uint32_t offsets[3] = {N[2], N[2] + N[0], 0};
+    const uint32_t strides[3] = {N[0] + N[1] + N[2], N[0] + N[1] + N[2],
+                                 N[0] + N[1] + N[2]};
+    opts.out_off = offsets;
+    opts.out_ld = strides;
+    opts.accumulate = 1;
+    for (size_t j = 0; j < count; ++j)
+      got[j] = want[j] = 0.25f;
+    rc = hexkl_mm_u8i4_layer_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm, m, K,
+                                 handles, 3, x, got, &opts);
+    fail |= rc != 0;
+    rc = hexkl_mm_u8i4_layer_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm, m, K,
+                                 handles, 3, x, want, &opts);
+    fail |= rc != 0 || memcmp(got, want, count * sizeof(float)) != 0;
+  }
+
+  /* M=1 compact slabs: tail columns, handle changes, accumulation, and
+     caller-supplied output offsets must match the HMX path exactly. */
+  {
+    uint8_t ah[64u * 64u] __attribute__((aligned(128)));
+    const size_t count = N[0] + N[1] + N[2];
+    const uint32_t offsets[] = {N[2], N[2] + N[0], 0};
+    const uint32_t strides[] = {count, count, count};
+    for (uint32_t chunk = 4; chunk <= 32; chunk *= 2) {
+      for (int accumulate = 0; accumulate < 2; ++accumulate) {
+        hexkl_mm_opts o = {.out_off = offsets,
+                           .out_ld = strides,
+                           .accumulate = accumulate,
+                           .weight_src_bypass = 1};
+        for (size_t i = 0; i < count; ++i)
+          got[i] = want[i] = 0.25f;
+        rc = hexkl_mm_u8i4_layer_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm, 1,
+                                     K, handles, 3, x, want, &o);
+        fail |= rc != 0;
+        o.m1_scratch = ah;
+        o.m1_chunk_tiles = chunk;
+        g_weight_bypass_bytes = g_invalid_bypass_bytes = 0;
+        rc = hexkl_mm_u8i4_layer_run(&g_tbl, vtcm, sizeof vtcm, sizeof vtcm, 1,
+                                     K, handles, 3, x, got, &o);
+        fail |= rc != 0 || memcmp(got, want, count * sizeof(float)) != 0;
+        fail |= g_invalid_bypass_bytes != 0 ||
+                g_weight_bypass_bytes != (uint64_t)K * (N[0] + N[1]) / 2u;
+        printf("HVX chunk=%u accumulate=%d rc=%d exact=%d\n", chunk, accumulate,
+               rc, memcmp(got, want, count * sizeof(float)) == 0);
+      }
+    }
+    hexkl_mm_opts o = {.m1_scratch = ah, .m1_chunk_tiles = 8};
+    rc = hexkl_mm_u8i4_layer_run(&g_tbl, vtcm, 32u * K - 1u, sizeof vtcm, 1, K,
+                                 handles, 3, x, got, &o);
+    fail |= rc != AEE_ENOMEMORY || memcmp(got, want, count * sizeof(float));
+    /* A one-tile grant forces slab shrinking; no exported result is lost. */
+    rc = hexkl_mm_u8i4_layer_run(&g_tbl, vtcm, 32u * K, sizeof vtcm, 1, K,
+                                 handles, 3, x, got, &o);
+    reference(ws, 3, x, 1, K, want, 0.f);
+    fail |= rc != 0 || compare("HVX tiny arena", got, want, count);
+  }
+
   /* accumulate: the synchronous path, adding into what is there. */
   {
     hexkl_mm_opts o = {0};

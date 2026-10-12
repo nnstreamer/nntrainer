@@ -684,4 +684,30 @@ static inline HVX_Vector Q6_Vb_vpacke_VhVh(HVX_Vector u, HVX_Vector v) {
   return r;
 }
 
+/* Saturating pack instructions used by the real U8 quantizer. */
+static inline HVX_Vector Q6_Vh_vpack_VwVw_sat(HVX_Vector u, HVX_Vector v) {
+  HVX_Vector out;
+  int16_t h[64];
+  for (int j = 0; j < 32; ++j) {
+    int32_t a = v.w[j], b = u.w[j];
+    h[j] = a < -32768 ? -32768 : a > 32767 ? 32767 : (int16_t)a;
+    h[j + 32] = b < -32768 ? -32768 : b > 32767 ? 32767 : (int16_t)b;
+  }
+  memcpy(&out, h, sizeof out);
+  return out;
+}
+static inline HVX_Vector Q6_Vub_vpack_VhVh_sat(HVX_Vector u, HVX_Vector v) {
+  HVX_Vector out;
+  int16_t a[64], b[64];
+  uint8_t bytes[128];
+  memcpy(a, &v, sizeof a);
+  memcpy(b, &u, sizeof b);
+  for (int j = 0; j < 64; ++j) {
+    bytes[j] = a[j] < 0 ? 0 : a[j] > 255 ? 255 : (uint8_t)a[j];
+    bytes[j + 64] = b[j] < 0 ? 0 : b[j] > 255 ? 255 : (uint8_t)b[j];
+  }
+  memcpy(&out, bytes, sizeof out);
+  return out;
+}
+
 #endif /* __NNTRAINER_HVX_EMU_HVX_HEXAGON_PROTOS_H__ */

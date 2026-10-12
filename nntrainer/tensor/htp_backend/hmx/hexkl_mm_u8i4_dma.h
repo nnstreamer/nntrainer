@@ -41,14 +41,26 @@
  */
 typedef struct {
   int in_use;
-  uint8_t *wh_bytes; /**< k_tiles*n_tiles*512 bytes, WH layout */
+  uint8_t *wh_bytes; /**< WH: K*N/2 bytes at int4, K*N/4 at int2 */
   float *w_scale;    /**< N entries */
   int32_t *colsum_w; /**< N entries */
   float *bias;       /**< N entries */
   void *arrays;      /**< the one allocation the three arrays sit in */
   uint32_t K, N;
-  int borrowed; /**< wh_bytes points into a host arena, not our heap */
+  int borrowed;  /**< wh_bytes points into a host arena, not our heap */
+  int clean;     /**< immutable heap image successfully flushed to DDR */
+  uint32_t bits; /**< 0/4: int4 WH; 2: palette-coded WH in DRAM. */
+  const uint8_t *lut_bytes; /**< Optional offline LUT rows, borrowed arena. */
+  const uint8_t *conv_decode_bytes; /**< Optional chunk-major WH, borrowed. */
+  uint32_t conv_decode_chunk; /**< N tiles per prepared Conv decode chunk. */
+  int8_t pal[4]; /**< Signed int4 palette, used only at bits == 2. */
 } hexkl_weight_u8i4;
+
+/** Only immutable weights visible in DDR may bypass the DSP caches. */
+static inline int hexkl_weight_u8i4_src_bypass(const hexkl_weight_u8i4 *w,
+                                               int enabled) {
+  return enabled && (w->borrowed || w->clean);
+}
 
 typedef struct {
   hexkl_weight_u8i4 slots[HEXKL_MM_U8I4_MAX_WEIGHTS];
@@ -104,6 +116,16 @@ int hexkl_weight_u8i4_register_arena(hexkl_weight_u8i4_table *tbl,
                                      const int32_t *colsum_w, const float *bias,
                                      uint32_t *out_handle);
 
+/** Register palette-coded QS2CX_WH without expanding it in DRAM.
+ * Scales/sums follow the compressed codes when arrays are NULL.
+ * VTCM must accommodate the expanded int4 weight. */
+int hexkl_weight_u2i4_register_arena(hexkl_weight_u8i4_table *tbl,
+                                     uint32_t vtcm_size, uint32_t K, uint32_t N,
+                                     const uint8_t *wh, const int8_t *pal,
+                                     const float *w_scale,
+                                     const int32_t *colsum_w, const float *bias,
+                                     uint32_t *out_handle);
+
 /**
  * @brief [doc 52 section 10.25] Points a live arena-borrowed slot at new
  *        bytes of the same shape, in place: the handle keeps its number and
@@ -116,10 +138,30 @@ int hexkl_weight_u8i4_register_arena(hexkl_weight_u8i4_table *tbl,
  * @return AEE_SUCCESS, or AEE_EBADPARM (changing nothing) for a free,
  *         owned or differently shaped slot, or an unaligned @a wh.
  */
+
 int hexkl_weight_u8i4_rebind_arena(hexkl_weight_u8i4_table *tbl, uint32_t h,
                                    uint32_t K, uint32_t N, const uint8_t *wh,
                                    const float *w_scale,
                                    const int32_t *colsum_w);
+
+/** Rebind width, palette and arrays together; NULL palette selects int4. */
+int hexkl_weight_u2i4_rebind_arena(hexkl_weight_u8i4_table *tbl, uint32_t h,
+                                   uint32_t K, uint32_t N, const uint8_t *wh,
+                                   const int8_t *pal, const float *w_scale,
+                                   const int32_t *colsum_w);
+
+/** A compact expert's fixed slot. The caller has checked arena bounds. */
+typedef struct {
+  uint32_t handle, K, N;
+  const uint8_t *wh;
+  const int8_t *palette;
+} hexkl_weight_u2i4_binding;
+
+/** Validate every binding before mutation; batch metadata DMA, then drain.
+ * Called between kernels by the sole owner of the DMA ring. */
+int hexkl_weight_u2i4_rebind_batch(hexkl_weight_u8i4_table *tbl,
+                                   const hexkl_weight_u2i4_binding *bindings,
+                                   uint32_t count);
 
 /** @brief Whether any live slot borrows bytes inside [base, base+bytes). */
 int hexkl_weight_u8i4_borrows(const hexkl_weight_u8i4_table *tbl,
@@ -184,7 +226,7 @@ int hexkl_mm_u8i4_layer_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
  * versus two hexkl_mm_u8i4_layer_run calls is the M x 2I and M x I f32
  * intermediates crossing FastRPC twice, plus one round trip.
  *
- * opts: only pool and accumulate are honored. act_scale/act_zp/
+ * opts: pool, accumulate and weight_src_bypass are honored. act_scale/act_zp/
  * act_ah_prepacked are rejected (AEE_EBADPARM) rather than silently
  * ignored -- the down matmul's quantization is inherently dynamic (it
  * quantizes the SwiGLU output, which the caller has never seen), so a

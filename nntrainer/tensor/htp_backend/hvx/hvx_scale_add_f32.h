@@ -37,4 +37,16 @@
 void hvx_scale_add_rows_f32(float *dst, const float *src, float scale,
                             uint32_t n);
 
+/**
+ * @brief Adds routing-weighted rows of one 32-column tile to output tokens.
+ *
+ * src and out are already offset to this column tile; stride is the full
+ * row width in floats. rows and weights contain m_count entries. Preserve
+ * row order, including repeated destinations, and the arithmetic of
+ * hvx_scale_add_rows_f32. Jobs updating the same elements must be serialized.
+ */
+void hvx_scale_add_scatter_tile_f32(float *out, const float *src,
+                                    const uint32_t *rows, const float *weights,
+                                    uint32_t m_count, uint32_t stride);
+
 #endif /* __NNTRAINER_HVX_SCALE_ADD_F32_H__ */

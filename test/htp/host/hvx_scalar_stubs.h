@@ -33,6 +33,7 @@ float rndf(void);
 
 /* The weight table the checks register into (slot = handle). */
 extern hexkl_weight_u8i4_table g_tbl;
+extern uint64_t g_weight_bypass_bytes, g_invalid_bypass_bytes;
 void make_weight(uint32_t slot, uint32_t K, uint32_t N, W *w);
 
 #endif /* HVX_SCALAR_STUBS_H */
