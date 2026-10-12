@@ -32,9 +32,23 @@ typedef struct {
   float *out;
   uint32_t out_stride;
   const hexkl_kv_q *kv;
+  uint32_t decode_flags; /**< 0: generic; 1: four-row epilogues/byte planes;
+                             3: also overlap heads when one KV block fits.
+                             Nonzero requires Q8, n_q=1, GQA=4, hd=64. */
 } hexkl_attn_q_io;
 
-/** @brief On-DSP wall time per phase, microseconds, summed over the call. */
+/** @brief Already quantized dense Q; metadata is per (query row, head). */
+typedef struct {
+  const uint8_t *values;
+  const float *scales;
+  const int32_t *zero_points;
+} hexkl_attn_q8_input;
+
+/** @brief On-DSP phase times in microseconds. In the decode head pipeline,
+ * us_softmax includes exposed dequant/softmax/P wait; us_dequant and
+ * us_pquant report overlapping worker busy time. These counters must not be
+ * added to estimate total wall time.
+ */
 typedef struct {
   uint64_t us_qprep;   /**< Q gather + uint8 quantization into AH tiles */
   uint64_t us_dma;     /**< K^T / V tile DMA incl. the drain, block scales */
@@ -70,5 +84,13 @@ int hexkl_attn_q_prefill(uint8_t *vtcm_base, uint32_t config_off,
                          const hexkl_attn_f16_tiling *t,
                          const hexkl_attn_q_io *io, hvx_worker_pool *pool,
                          hexkl_attn_q_stats *st);
+
+/** @brief Same kernel with Q quantization performed by the producer. */
+int hexkl_attn_q_prefill_u8(uint8_t *vtcm_base, uint32_t config_off,
+                            const hexkl_attn_f16_shape *s,
+                            const hexkl_attn_f16_tiling *t,
+                            const hexkl_attn_q_io *io,
+                            const hexkl_attn_q8_input *q8,
+                            hvx_worker_pool *pool, hexkl_attn_q_stats *st);
 
 #endif /* __NNTRAINER_HEXKL_ATTN_Q_H__ */

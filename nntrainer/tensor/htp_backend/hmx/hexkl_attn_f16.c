@@ -81,6 +81,8 @@ typedef struct {
   const hexkl_attn_f16_io *io;
   hvx_worker_pool *pool;
   hexkl_attn_f16_layout L;
+  hexkl_attn_f16_head_tiles H;
+  int head_tiles_ready;    /**< raw head's tiles are already in VTCM */
   int resident;            /**< io->kt_tiles != NULL */
   float scale;             /**< log2e / sqrt(hd), folded into Q */
   uint16_t *m_hf;          /**< [g_br] running max, fp16 bits, in VTCM */
@@ -90,6 +92,8 @@ typedef struct {
   HVX_Vector cap_hf;       /**< softcap*log2e, every lane; unused if 0 */
   HVX_Vector inv_cap_hf;   /**< 2*log2e/(softcap*log2e) */
   int softcap_on;
+  const uint16_t *decode_k, *decode_v;
+  size_t decode_offset[2];
   /** per-block parameters handed to the pool workers; frozen while a
       softmax job is in flight */
   uint32_t w_qb, w_kb, w_buf, w_sbuf;
@@ -161,18 +165,23 @@ static void phase_qprep(attn_ctx *c, uint32_t n, uint32_t qb) {
   const uint32_t hd = c->s->head_dim;
   const float *rows[32];
   for (uint32_t i = 0; i < c->L.n_row_tiles; ++i) {
-    for (uint32_t d = 0; d < c->L.n_dot_tiles; ++d) {
-      for (uint32_t rr = 0; rr < 32u; ++rr) {
-        uint32_t q, g;
-        if (hexkl_attn_f16_tile_row_to_qg(c->s, c->t, qb, 32u * i + rr, &q,
-                                          &g)) {
-          rows[rr] = c->io->q + (size_t)q * c->io->q_stride +
-                     (size_t)(n * c->t->g + g) * hd + 32u * d;
-        } else {
-          rows[rr] = NULL;
-        }
+    // Query/head mapping is independent of the dimension tile. Compute
+    // it once per row, then advance each valid pointer by one tile.
+    for (uint32_t rr = 0; rr < 32u; ++rr) {
+      uint32_t q, g;
+      if (hexkl_attn_f16_tile_row_to_qg(c->s, c->t, qb, 32u * i + rr, &q, &g)) {
+        rows[rr] = c->io->q + (size_t)q * c->io->q_stride +
+                   (size_t)(n * c->t->g + g) * hd;
+      } else {
+        rows[rr] = NULL;
       }
+    }
+    for (uint32_t d = 0; d < c->L.n_dot_tiles; ++d) {
       hvx_tile_f16_rows_f32_gather_to_tile(q_tile(c, i, d), rows, c->scale);
+      for (uint32_t rr = 0; rr < 32u; ++rr) {
+        if (rows[rr])
+          rows[rr] += 32u;
+      }
     }
   }
 
@@ -215,6 +224,18 @@ static void dma_issue(attn_ctx *c, uint32_t n, uint32_t kb, uint32_t buf) {
   const uint32_t bc = c->t->bc;
   const uint32_t k0 = kb * bc;
 
+  if (c->decode_k) {
+    c->decode_offset[buf] = (size_t)k0 * c->io->kv_stride + (size_t)n * hd;
+    return;
+  }
+
+  if (c->head_tiles_ready) {
+    const uint32_t offset = (kb - c->H.kb_lo) * c->H.block_bytes;
+    c->L.kt_wh[buf] = c->H.kt_wh + offset;
+    c->L.v_wh[buf] = c->H.v_wh + offset;
+    return;
+  }
+
   if (c->resident) {
     const uint32_t ncol = resident_cols(c, kb);
     if (ncol == 0) {
@@ -256,6 +277,9 @@ static void dma_issue(attn_ctx *c, uint32_t n, uint32_t kb, uint32_t buf) {
  *        cache_to. Resident path: tiles past the registry's last column.
  */
 static void dma_land(attn_ctx *c, uint32_t kb, uint32_t buf) {
+  if (c->head_tiles_ready || c->decode_k) {
+    return;
+  }
   const uint32_t hd = c->s->head_dim;
   const uint32_t bc = c->t->bc;
   const uint32_t k0 = kb * bc;
@@ -287,6 +311,15 @@ static void dma_land(attn_ctx *c, uint32_t kb, uint32_t buf) {
 
 /** @brief One (col, d) pair of landing rows -> its K^T tile and V tile. */
 static void tile_one(attn_ctx *c, uint32_t buf, uint32_t col, uint32_t d) {
+  if (c->decode_k) {
+    const size_t src =
+      c->decode_offset[buf] + (size_t)(32u * col) * c->io->kv_stride + 32u * d;
+    hvx_tile_f16_rows_to_tile_transposed(kt_tile(c, buf, d, col),
+                                         c->decode_k + src, c->io->kv_stride);
+    hvx_tile_f16_rows_to_tile(v_tile(c, buf, col, d), c->decode_v + src,
+                              c->io->kv_stride);
+    return;
+  }
   const uint32_t hd = c->s->head_dim;
   const size_t src = (size_t)(32u * col) * hd + 32u * d;
   hvx_tile_f16_rows_to_tile_transposed(kt_tile(c, buf, d, col),
@@ -308,7 +341,7 @@ static void tile_worker(uint32_t n_threads, uint32_t i, void *ctx_) {
  *         inside the pipeline the pool is busy with the softmax). No-op on
  *         the resident path, whose tiles arrive ready. */
 static void tile_block_pool(attn_ctx *c, uint32_t buf) {
-  if (c->resident) {
+  if (c->resident || c->head_tiles_ready) {
     return;
   }
   c->w_buf = buf;
@@ -319,7 +352,7 @@ static void tile_block_pool(attn_ctx *c, uint32_t buf) {
 
 /** @brief Same, on the calling thread only. */
 static void tile_block_inline(attn_ctx *c, uint32_t buf) {
-  if (c->resident) {
+  if (c->resident || c->head_tiles_ready) {
     return;
   }
   for (uint32_t col = 0; col < c->L.n_col_tiles; ++col) {
@@ -327,6 +360,30 @@ static void tile_block_inline(attn_ctx *c, uint32_t buf) {
       tile_one(c, buf, col, d);
     }
   }
+}
+
+/**
+ * @brief Build a raw KV head's visible blocks once. The same landing and
+ *        zero-padding path as streaming produces the tiles; only their
+ *        destinations change. All DMA and pool work finishes before a
+ *        query uses the cache or the next head overwrites it.
+ */
+static void prepare_head_tiles(attn_ctx *c, uint32_t n) {
+  c->head_tiles_ready = 0;
+  for (uint32_t kb = c->H.kb_lo; kb < c->H.kb_hi; ++kb) {
+    const uint32_t buf = kb & 1u;
+    const uint32_t offset = (kb - c->H.kb_lo) * c->H.block_bytes;
+    c->L.kt_wh[buf] = c->H.kt_wh + offset;
+    c->L.v_wh[buf] = c->H.v_wh + offset;
+    const uint64_t t0 = now_us();
+    dma_issue(c, n, kb, buf);
+    dma_land(c, kb, buf);
+    const uint64_t t1 = now_us();
+    c->st->us_dma += t1 - t0;
+    tile_block_pool(c, buf);
+    c->st->us_tile += now_us() - t1;
+  }
+  c->head_tiles_ready = 1;
 }
 
 /** @brief S[sbuf] = Q.K^T for the block whose tiles are in @a buf. */
@@ -466,24 +523,36 @@ static void phase_store(attn_ctx *c, uint32_t n, uint32_t qb, uint32_t o_buf) {
   const HVX_Vector one_hf = Q6_Vh_vsplat_R((int)HVX_ATTN_HF_ONE);
   const uint32_t hd = c->s->head_dim;
   for (uint32_t i = 0; i < c->L.n_row_tiles; ++i) {
+    float *rows[32];
+    int inv_bits[32];
+    // l and the destination row are shared by every dimension tile.
+    // Retain the same scalar reciprocal (and therefore rounding) while
+    // avoiding repeated divisions for heads wider than 32 elements.
+    for (uint32_t rr = 0; rr < 32u; ++rr) {
+      uint32_t q, g;
+      if (hexkl_attn_f16_tile_row_to_qg(c->s, c->t, qb, 32u * i + rr, &q, &g)) {
+        rows[rr] = c->io->out + (size_t)q * c->io->out_stride +
+                   (size_t)(n * c->t->g + g) * hd;
+        const float inv_l = 1.0f / c->l_f32[32u * i + rr];
+        memcpy(&inv_bits[rr], &inv_l, sizeof(inv_l));
+      } else {
+        rows[rr] = NULL;
+      }
+    }
     for (uint32_t d = 0; d < c->L.n_dot_tiles; ++d) {
       const HVX_Vector *tile = o_tile(c, o_buf, i, d);
       for (uint32_t v = 0; v < HVX_TILE_F16_VECS; ++v) {
         const HVX_VectorPair w = Q6_Wqf32_vmpy_VhfVhf(tile[v], one_hf);
         for (uint32_t p = 0; p < 2u; ++p) {
-          const uint32_t r = 32u * i + 2u * v + p;
-          uint32_t q, g;
-          if (!hexkl_attn_f16_tile_row_to_qg(c->s, c->t, qb, r, &q, &g)) {
+          const uint32_t r = 2u * v + p;
+          if (!rows[r]) {
             continue;
           }
-          const float inv_l = 1.0f / c->l_f32[r];
-          int bits;
-          memcpy(&bits, &inv_l, sizeof(bits));
           const HVX_Vector row =
             Q6_Vsf_equals_Vqf32(p ? Q6_V_hi_W(w) : Q6_V_lo_W(w));
-          float *dst = c->io->out + (size_t)q * c->io->out_stride +
-                       (size_t)(n * c->t->g + g) * hd + 32u * d;
-          hvx_tile_store_u(dst, Q6_Vsf_vmpy_VsfVsf(row, Q6_V_vsplat_R(bits)));
+          float *dst = rows[r] + 32u * d;
+          hvx_tile_store_u(dst,
+                           Q6_Vsf_vmpy_VsfVsf(row, Q6_V_vsplat_R(inv_bits[r])));
         }
       }
     }
@@ -639,8 +708,36 @@ int hexkl_attn_f16_prefill(uint8_t *vtcm_base, uint32_t arena_top,
   c.st = st ? st : &local;
   memset(c.st, 0, sizeof(*c.st));
 
+  hexkl_attn_f16_decode_cache D;
+  if (!resident && hexkl_attn_f16_decode_cache_plan(s, t, &c.L, &D)) {
+    const uint64_t begin = now_us();
+    const uint32_t stride_bytes = io->kv_stride * 2u;
+    c.decode_k = (const uint16_t *)(vtcm_base + D.k);
+    c.decode_v = (const uint16_t *)(vtcm_base + D.v);
+    hexkl_dma_ring_push2d(vtcm_base + D.k, io->k, stride_bytes, stride_bytes,
+                          stride_bytes, s->cache_to, 0, 1);
+    hexkl_dma_ring_push2d(vtcm_base + D.v, io->v, stride_bytes, stride_bytes,
+                          stride_bytes, s->cache_to, 0, 1);
+    hexkl_dma_ring_drain();
+    // VTCM is not ordinary cached DDR: libc's scalar memset made ragged
+    // blocks much more expensive than exact multiples. Both ranges are
+    // 128-byte aligned, and each cache row is a multiple of one HVX vector.
+    const HVX_Vector zero = Q6_V_vzero();
+    for (uint32_t off = D.valid_bytes; off < D.bytes;
+         off += sizeof(HVX_Vector)) {
+      *(HVX_Vector *)(vtcm_base + D.k + off) = zero;
+      *(HVX_Vector *)(vtcm_base + D.v + off) = zero;
+    }
+    c.st->us_dma += now_us() - begin;
+  }
+
   const uint32_t n_qb = hexkl_attn_f16_n_q_blocks(s, t);
+  const int cache_head =
+    !resident && hexkl_attn_f16_head_tiles_plan(s, t, &c.L, &c.H);
   for (uint32_t n = 0; n < s->n_head_kv; ++n) {
+    if (cache_head) {
+      prepare_head_tiles(&c, n);
+    }
     for (uint32_t qb = 0; qb < n_qb; ++qb) {
       const uint64_t t0 = now_us();
       phase_qprep(&c, n, qb);

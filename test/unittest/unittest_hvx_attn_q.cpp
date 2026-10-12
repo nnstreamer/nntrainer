@@ -22,6 +22,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -220,7 +221,7 @@ protected:
   }
 
   void RunKind(uint32_t kind, uint32_t rows, uint32_t n_kv, uint32_t hd,
-               bool fixed = false) {
+               bool fixed = false, bool probe_tiles = true) {
     SCOPED_TRACE("kind " + std::to_string(kind) + " rows " +
                  std::to_string(rows) + " n_kv " + std::to_string(n_kv) +
                  " hd " + std::to_string(hd) + (fixed ? " fixed" : ""));
@@ -233,9 +234,11 @@ protected:
     std::vector<int8_t> kq, vq;
     DumpMatches(host, host_h, dsp_h, kq, vq);
     const hexkl_kv_q *kv = hexkl_kv_q_get(&host, host_h);
-    // A full column tile, and the partial last one (zeros past the rows).
-    TileMatmulMatches(dsp_h, kv, kq, vq, n_kv - 1, 1);
-    TileMatmulMatches(dsp_h, kv, kq, vq, 0, (rows - 1) / 32);
+    if (probe_tiles) {
+      // A full column tile, and the partial last one (zeros past the rows).
+      TileMatmulMatches(dsp_h, kv, kq, vq, n_kv - 1, 1);
+      TileMatmulMatches(dsp_h, kv, kq, vq, 0, (rows - 1) / 32);
+    }
     EXPECT_EQ(nntr_hvx_kv_release_q(handle_, dsp_h), AEE_SUCCESS);
     hexkl_kv_q_release(&host, host_h);
   }
@@ -366,7 +369,8 @@ const char *const kQ2StatNames[kQ2StatCount] = {
  */
 class HvxAttnQ2 : public hvx_test::SessionTest {
 protected:
-  void RunShape(const AttnShape &s, double min_snr_db, bool report = false) {
+  void RunShape(const AttnShape &s, double min_snr_db, bool report = false,
+                bool sample_reference = false) {
     SCOPED_TRACE(
       "n_q=" + std::to_string(s.n_q) + " from=" + std::to_string(s.cache_from) +
       " to=" + std::to_string(s.cache_to) + " hq=" +
@@ -382,7 +386,28 @@ protected:
     fill_hf(v, 0xA77E0003u, 1.0f);
     std::vector<float> sinks;
     std::vector<float> want;
-    ref_attention(s, q, k, v, sinks, want);
+    std::vector<uint32_t> reference_rows;
+    if (sample_reference) {
+      // Execute the full DSP prefill, but bound ARM reference time while
+      // the fixture owns the DSP session. Check both sides of every
+      // 64-row block boundary, including the final context position.
+      for (uint32_t r = 0; r < s.n_q; ++r) {
+        if (r % 64u != 0 && r % 64u != 63u && r + 1u != s.n_q)
+          continue;
+        reference_rows.push_back(r);
+        AttnShape one = s;
+        one.n_q = 1;
+        one.cache_from = s.cache_from + r;
+        const size_t stride = s.n_head_q * s.head_dim;
+        std::vector<float> qr(q.begin() + r * stride,
+                              q.begin() + (r + 1u) * stride),
+          wr;
+        ref_attention(one, qr, k, v, sinks, wr);
+        want.insert(want.end(), wr.begin(), wr.end());
+      }
+    } else {
+      ref_attention(s, q, k, v, sinks, want);
+    }
 
     std::vector<float> s_k(s.n_head_kv, 0.0f), s_v(width, 0.0f);
     for (uint32_t r = 0; r < s.cache_to; ++r) {
@@ -489,6 +514,14 @@ protected:
         }
       }
     }
+    if (sample_reference) {
+      std::vector<float> selected;
+      const size_t stride = s.n_head_q * s.head_dim;
+      for (uint32_t r : reference_rows)
+        selected.insert(selected.end(), got.begin() + r * stride,
+                        got.begin() + (r + 1u) * stride);
+      got.swap(selected);
+    }
     const double snr = snr_db(want, got);
     std::cout << "ATTN_Q2_FIELD shape=" << s.n_q << "x" << s.cache_to << "x"
               << s.n_head_q << "/" << s.n_head_kv << "x" << s.head_dim
@@ -525,6 +558,14 @@ TEST_F(HvxAttnQ2, WindowedGemmaSliding1024) {
 TEST_F(HvxAttnQ2, PaddedLastBlock) {
   // 100 rows: the second block has 36 valid rows.
   RunShape({100, 200, 300, 4, 2, 64, 0, 0, 0}, kSnrQ2);
+}
+
+TEST_F(HvxAttnQ2, LfmPrefill1024) {
+  RunShape({1024, 0, 1024, 32, 8, 64, 0, 0, 0}, kSnrQ2, true, true);
+}
+
+TEST_F(HvxAttnQ2, LfmDecodeWithHistory) {
+  RunShape({1, 1024, 1025, 32, 8, 64, 0, 0, 0}, kSnrQ2, true);
 }
 
 TEST_F(HvxAttnQ2, ReportSliding4096Chunk) {
@@ -660,6 +701,129 @@ protected:
     }
   }
 };
+
+/** Compare identical A8/KV8 arithmetic; timing excludes cache setup. */
+class HvxAttnQHmxDecode : public hvx_test::SessionTest {
+protected:
+  void Run(uint32_t rows, uint32_t bc, uint32_t window = 0,
+           bool options = false, uint32_t n_kv = 8, int reps = 3) {
+    const uint32_t hd = 64, hq = 4 * n_kv, width = n_kv * hd;
+    SCOPED_TRACE("rows=" + std::to_string(rows) + " bc=" + std::to_string(bc));
+    std::vector<uint16_t> k(static_cast<size_t>(rows) * width), v(k.size());
+    fill_hf(k, 0x484d5801u, 1.0f);
+    fill_hf(v, 0x484d5802u, 1.0f);
+    std::vector<uint8_t> q(hq * hd);
+    std::vector<float> scales(hq), qf(q.size()), sinks(options ? hq : 0);
+    std::vector<int32_t> zp(hq);
+    for (uint32_t h = 0; h < hq; ++h) {
+      scales[h] = 0.008f + 0.0001f * h;
+      zp[h] = 100 + h;
+      for (uint32_t d = 0; d < hd; ++d) {
+        q[h * hd + d] = (h * 37 + d * 19) & 255u;
+        qf[h * hd + d] = (int(q[h * hd + d]) - zp[h]) * scales[h];
+      }
+    }
+    fill_deterministic(sinks, 0x484d5803u, 2.0f);
+    uint32_t cache = 0;
+    ASSERT_EQ(nntr_hvx_kv_register_q(handle_, 0, rows, n_kv, hd, &cache), 0);
+    ASSERT_EQ(nntr_hvx_kv_append_q(handle_, cache, 0, k.data(), k.size(),
+                                   v.data(), v.size()),
+              0);
+    const float cap = options ? 3.0f : 0.0f;
+    std::vector<float> reference(q.size()), out(q.size()), cpu;
+    ref_attention(
+      {1, rows - 1, rows, hq, n_kv, hd, window, 0, bc, cap, options}, qf, k, v,
+      sinks, cpu);
+    for (uint32_t flags : {0u, 1u, 3u}) {
+      uint64_t sums[16] = {}, wall = 0;
+      for (int rep = -1; rep < reps; ++rep) {
+        uint32_t stats[16] = {};
+        const auto begin = std::chrono::steady_clock::now();
+        const int err = nntr_hvx_attn_q8_hmx_step(
+          handle_, cache, rows, 0, 1, rows - 1, rows, hq, window, cap, nullptr,
+          0, nullptr, 0, nullptr, 0, q.data(), q.size(), scales.data(),
+          scales.size(), zp.data(), zp.size(), sinks.data(), sinks.size(),
+          out.data(), out.size(), stats, 16, flags, bc);
+        const auto us = std::chrono::duration_cast<std::chrono::microseconds>(
+                          std::chrono::steady_clock::now() - begin)
+                          .count();
+        ASSERT_EQ(err, AEE_SUCCESS) << hex(err) << " flags=" << flags;
+        EXPECT_EQ(stats[2], 2u + flags);
+        for (float x : out)
+          ASSERT_TRUE(std::isfinite(x));
+        if (flags == 0u)
+          reference = out;
+        else
+          ASSERT_EQ(std::memcmp(reference.data(), out.data(),
+                                out.size() * sizeof(float)),
+                    0)
+            << "HMX decode must preserve every output bit, flags=" << flags;
+        if (rep >= 0) {
+          for (unsigned i = 0; i < 16; ++i)
+            sums[i] += stats[i];
+          wall += us;
+        }
+      }
+      EXPECT_GT(snr_db(cpu, out), 30.0);
+      std::cout << "HMX_DECODE rows=" << rows << " bc=" << bc
+                << " flags=" << flags << " hkv=" << n_kv << " window=" << window
+                << " options=" << options << " snr=" << snr_db(cpu, out)
+                << " wall_us=" << double(wall) / reps;
+      const char *names[] = {"append",    "attn",   "path",    "rpc_dsp",
+                             "qprep",     "dma",    "qk",      "dequant",
+                             "soft_wait", "pquant", "pv",      "oupd",
+                             "store",     "total",  "kcycles", "blocks"};
+      for (unsigned i = 0; i < 16; ++i)
+        std::cout << " " << names[i] << "=" << double(sums[i]) / reps;
+      std::cout << "\n";
+    }
+    EXPECT_EQ(nntr_hvx_kv_release_q(handle_, cache), 0);
+  }
+};
+
+TEST_F(HvxAttnQHmxDecode, BoundariesAndHeadPipeline) {
+  for (uint32_t rows :
+       {1u, 31u, 32u, 33u, 1024u, 1025u, 1088u, 2048u, 2049u, 4096u})
+    Run(rows, 0);
+  Run(33, 64, 0, false, 1);
+  Run(33, 64, 0, false, 3);
+}
+
+TEST_F(HvxAttnQHmxDecode, WindowSinkSoftcapAndMultipleBlocks) {
+  Run(1031, 1056, 256, true);
+  Run(1031, 0, 256, true);
+  Run(1031, 128, 256, true);
+  Run(1031, 256);
+}
+
+TEST_F(HvxAttnQHmxDecode, RejectsInvalidDecodeControls) {
+  uint32_t cache = 0, stats[16] = {};
+  ASSERT_EQ(nntr_hvx_kv_register_q(handle_, 0, 32, 8, 64, &cache), 0);
+  std::vector<uint8_t> q(2048, 128);
+  std::vector<float> scales(32, 0.01f), out(2048);
+  std::vector<int32_t> zp(32, 128);
+  auto call = [&](uint32_t flags, uint32_t bc, uint32_t nq, uint32_t hq) {
+    return nntr_hvx_attn_q8_hmx_step(
+      handle_, cache, 1, 0, nq, 0, 1, hq, 0, 0.0f, nullptr, 0, nullptr, 0,
+      nullptr, 0, q.data(), q.size(), scales.data(), scales.size(), zp.data(),
+      zp.size(), nullptr, 0, out.data(), out.size(), stats, 16, flags, bc);
+  };
+  EXPECT_TRUE(is_badparm(call(2, 0, 1, 32)));
+  EXPECT_TRUE(is_badparm(call(4, 0, 1, 32)));
+  EXPECT_TRUE(is_badparm(call(3, 31, 1, 32)));
+  EXPECT_TRUE(is_badparm(call(3, 2080, 1, 32)));
+  EXPECT_TRUE(is_badparm(call(3, 0, 2, 32)));
+  EXPECT_TRUE(is_badparm(call(3, 0, 1, 16)));
+  scales[0] = std::numeric_limits<float>::quiet_NaN();
+  EXPECT_TRUE(is_badparm(call(3, 0, 1, 32)));
+  EXPECT_EQ(nntr_hvx_kv_release_q(handle_, cache), 0);
+}
+
+TEST_F(HvxAttnQHmxDecode, ReportLfmTimes) {
+  for (uint32_t rows : {1024u, 1088u})
+    for (uint32_t bc : {0u, 128u, 256u, 512u})
+      Run(rows, bc, 0, false, 8, 20);
+}
 
 TEST_F(HvxAttnQDecode, Int8SingleTokenGqa) {
   RunDecode(0, {1, 511, 512, 16, 4, 128, 0, 0, 0}, kSnrQ8);
@@ -1117,6 +1281,15 @@ TEST_F(HvxAttnQ, Int8CacheMatchesHostAndMultiplies) {
 /** R4a: fixed scales and the global layer's head_dim, both on the DSP. */
 TEST_F(HvxAttnQ, Int8FixedScalesHeadDim512MatchesHostAndMultiplies) {
   RunKind(0, 70, 2, 512, true);
+}
+
+TEST_F(HvxAttnQ, Int8FixedScalesNarrowHeadsMatchHost) {
+  // Whole and partial tiles plus a three-row overwrite. Keep the master
+  // cache bounds check independent of the low-level HMX probe; the Q2
+  // tests exercise attention over the resulting narrow WH tiles.
+  RunKind(0, 64, 2, 64, true, false);
+  RunKind(0, 70, 2, 64, true, false);
+  RunKind(0, 70, 2, 32, true, false);
 }
 
 TEST_F(HvxAttnQ, Int4CacheMatchesHostAndMultiplies) {

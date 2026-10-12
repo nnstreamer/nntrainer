@@ -238,6 +238,15 @@ static inline void hexkl_attn_f16_choose_tiling(const hexkl_attn_f16_shape *s,
   if (bc > 256u) {
     bc = 256u;
   }
+  // The decode cache staging path vector-clears its ragged tail. A single
+  // block then tiles K/V once using the pool and avoids scalar inline tiling
+  // of every subsequent block. Limit this to the measured LFM2 shape.
+  if (s->n_q == 1 && s->head_dim == 64 && s->n_head_q == 32 &&
+      s->n_head_kv == 8 && !s->window && s->softcap == 0.0f) {
+    bc = hexkl_attn_round_up(s->cache_to, 32u);
+    if (bc > 2048u)
+      bc = 2048u;
+  }
   t->br = br;
   t->bc = bc;
 }
@@ -295,6 +304,98 @@ static inline void hexkl_attn_f16_kv_block_range(const hexkl_attn_f16_shape *s,
   hexkl_attn_f16_row_range(s, q1 - 1u, &lo1, &hi1);
   *blk_lo = lo0 / t->bc;
   *blk_hi = (hi1 + t->bc - 1u) / t->bc;
+}
+
+/** @brief A decode-only copy of the interleaved KV cache, padded to whole
+ * blocks. Wide DMA rows avoid re-reading DDR separately for every KV head. */
+typedef struct {
+  uint32_t k, v, bytes, valid_bytes, total;
+} hexkl_attn_f16_decode_cache;
+
+static inline int hexkl_attn_f16_decode_cache_plan(
+  const hexkl_attn_f16_shape *s, const hexkl_attn_f16_tiling *t,
+  const hexkl_attn_f16_layout *L, hexkl_attn_f16_decode_cache *C) {
+  if (!s || !t || !L || !C || s->n_q != 1 || s->window || s->head_dim != 64 ||
+      s->n_head_q != 32 || s->n_head_kv != 8 || !t->bc || t->bc % 32 ||
+      !s->cache_to || s->cache_to > 0xffffu || L->total > L->cfg_f16 ||
+      L->total % HEXKL_ATTN_TILE_BYTES)
+    return 0;
+  const uint64_t rows = ((uint64_t)s->cache_to + t->bc - 1u) / t->bc * t->bc;
+  const uint64_t bytes = rows * s->n_head_kv * s->head_dim * 2u;
+  const uint64_t total = L->total + 2u * bytes;
+  if (total > L->cfg_f16)
+    return 0;
+  C->k = L->total;
+  C->v = (uint32_t)(L->total + bytes);
+  C->bytes = (uint32_t)bytes;
+  C->valid_bytes = s->cache_to * s->n_head_kv * s->head_dim * 2u;
+  C->total = (uint32_t)total;
+  return 1;
+}
+
+/** @brief Optional per-head raw KV tile cache in the unused arena. */
+typedef struct {
+  uint32_t kb_lo, kb_hi; /**< visible block union, [lo, hi) */
+  uint32_t kt_wh, v_wh;  /**< one contiguous tile array per operand */
+  uint32_t block_bytes;  /**< one padded block of K or V */
+  uint32_t total;        /**< first byte past the optional regions */
+} hexkl_attn_f16_head_tiles;
+
+/**
+ * @brief Reserves tiles for all blocks visited by one head, returning 1
+ *        if useful and within the existing config boundary, or 0 to keep
+ *        streaming. The original layout and tiling are never changed.
+ *
+ * Only the visible union is retained: a windowed partial prefill need not
+ * store the unused prefix or future cache rows. Whole blocks include the
+ * last block's zero padding. Wide arithmetic protects the optional path
+ * even if a caller supplies a malformed shape/layout.
+ */
+static inline int hexkl_attn_f16_head_tiles_plan(const hexkl_attn_f16_shape *s,
+                                                 const hexkl_attn_f16_tiling *t,
+                                                 const hexkl_attn_f16_layout *L,
+                                                 hexkl_attn_f16_head_tiles *H) {
+  if (!s || !t || !L || !H || t->br == 0 || t->bc == 0 ||
+      t->bc % HEXKL_ATTN_TILE != 0 || s->n_q <= t->br || s->head_dim == 0 ||
+      s->head_dim > 512u || s->head_dim % HEXKL_ATTN_TILE != 0 ||
+      s->cache_to > 0xFFFFu || (uint64_t)s->cache_from + s->n_q > s->cache_to ||
+      L->total % HEXKL_ATTN_TILE_BYTES != 0 || L->total > L->cfg_f16) {
+    return 0;
+  }
+
+  const uint64_t first_end = (uint64_t)s->cache_from + 1u;
+  const uint64_t lo =
+    s->window && first_end > s->window ? first_end - s->window : 0;
+  const uint64_t hi = (uint64_t)s->cache_from + s->n_q;
+  const uint64_t kb_lo = lo / t->bc;
+  const uint64_t kb_hi = (hi + t->bc - 1u) / t->bc;
+  const uint64_t block_bytes = (uint64_t)t->bc * s->head_dim * 2u;
+  const uint64_t head_bytes = (kb_hi - kb_lo) * block_bytes;
+  const uint64_t total = L->total + 2u * head_bytes;
+  if (total > L->cfg_f16) {
+    return 0;
+  }
+
+  // A very narrow window with large query blocks may visit every cache
+  // block only once. Prebuilding then provides no reuse and is skipped.
+  uint64_t visits = 0;
+  const uint32_t n_qb = hexkl_attn_f16_n_q_blocks(s, t);
+  for (uint32_t qb = 0; qb < n_qb; ++qb) {
+    uint32_t blk_lo, blk_hi;
+    hexkl_attn_f16_kv_block_range(s, t, qb, &blk_lo, &blk_hi);
+    visits += blk_hi - blk_lo;
+  }
+  if (visits <= kb_hi - kb_lo) {
+    return 0;
+  }
+
+  H->kb_lo = (uint32_t)kb_lo;
+  H->kb_hi = (uint32_t)kb_hi;
+  H->kt_wh = L->total;
+  H->v_wh = (uint32_t)(L->total + head_bytes);
+  H->block_bytes = (uint32_t)block_bytes;
+  H->total = (uint32_t)total;
+  return 1;
 }
 
 /**

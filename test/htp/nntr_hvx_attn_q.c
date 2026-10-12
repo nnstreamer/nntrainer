@@ -10,6 +10,7 @@
  * @bug    No known bugs except for NYI items
  */
 
+#include <math.h>
 #include <string.h>
 
 #include <AEEStdErr.h>
@@ -25,6 +26,7 @@
 #include "hexkl_cvt.h"
 #include "hexkl_kv_q.h"
 #include "hexkl_micro.h"
+#include "htp_kv_cache.h"
 #include "hvx_attn_decode_q.h"
 #include "hvx_softmax_q.h"
 #include "nntr_hvx.h"
@@ -85,6 +87,13 @@ int nntr_hvx_kv_register_q(remote_handle64 handle, uint32 kind, uint32 max_rows,
   if (!s || !kv_handle) {
     return AEE_EBADPARM;
   }
+  if (kind == HTP_KV_KIND_F16) {
+    const int rc = nntr_hvx_kv_register_f16(handle, max_rows, n_head_kv,
+                                            head_dim, kv_handle);
+    if (rc == AEE_SUCCESS)
+      *kv_handle |= HTP_KV_F16_HANDLE;
+    return rc;
+  }
   return hexkl_kv_q_register(&s->kv_q, (hexkl_kv_q_kind)kind, max_rows,
                              n_head_kv, head_dim, kv_handle);
 }
@@ -110,6 +119,8 @@ int nntr_hvx_kv_release_q(remote_handle64 handle, uint32 kv_handle) {
   if (!s) {
     return AEE_EBADPARM;
   }
+  if (kv_handle & HTP_KV_F16_HANDLE)
+    return nntr_hvx_kv_release_f16(handle, kv_handle & ~HTP_KV_F16_HANDLE);
   return hexkl_kv_q_release(&s->kv_q, kv_handle);
 }
 
@@ -120,6 +131,9 @@ int nntr_hvx_kv_append_q(remote_handle64 handle, uint32 kv_handle, uint32 row0,
   if (!s) {
     return AEE_EBADPARM;
   }
+  if (kv_handle & HTP_KV_F16_HANDLE)
+    return nntr_hvx_kv_append_f16(handle, kv_handle & ~HTP_KV_F16_HANDLE, row0,
+                                  k_rows, k_rowsLen, v_rows, v_rowsLen);
   const hexkl_kv_q *kv = hexkl_kv_q_get(&s->kv_q, kv_handle);
   if (!kv) {
     return AEE_EBADPARM;
@@ -722,6 +736,22 @@ int nntr_hvx_attn_q_decode(remote_handle64 handle, uint32 kv_handle, uint32 n_q,
   return AEE_SUCCESS;
 }
 
+/** Optional trailing counters preserve existing short stats buffers. */
+static void copy_q_prefill_stats(uint32 *dst, const hexkl_attn_q_stats *st) {
+  dst[0] = (uint32)st->us_qprep;
+  dst[1] = (uint32)st->us_dma;
+  dst[2] = (uint32)st->us_qk;
+  dst[3] = (uint32)st->us_dequant;
+  dst[4] = (uint32)st->us_softmax;
+  dst[5] = (uint32)st->us_pquant;
+  dst[6] = (uint32)st->us_pv;
+  dst[7] = (uint32)st->us_oupd;
+  dst[8] = (uint32)st->us_store;
+  dst[9] = (uint32)st->us_total;
+  dst[10] = (uint32)(st->pcycles / 1000u);
+  dst[11] = st->n_blocks;
+}
+
 int nntr_hvx_attn_q_step(remote_handle64 handle, uint32 kv_handle, uint32 row0,
                          const uint16 *k_rows, int k_rowsLen,
                          const uint16 *v_rows, int v_rowsLen, uint32 n_q,
@@ -733,6 +763,38 @@ int nntr_hvx_attn_q_step(remote_handle64 handle, uint32 kv_handle, uint32 row0,
   nntr_hvx_session *s = (nntr_hvx_session *)handle;
   if (!s) {
     return AEE_EBADPARM;
+  }
+  if (kv_handle & HTP_KV_F16_HANDLE) {
+    // Append and HMX attention stay on the same owning FastRPC thread.
+    // No quantization: the tile cache holds the original FP16 bits.
+    const uint32_t id = kv_handle & ~HTP_KV_F16_HANDLE;
+    const hexkl_kv_tiles_f16 *kv = hexkl_kv_tiles_f16_get(&s->kv_tiles, id);
+    if (!kv || !stats_us || stats_usLen < 8 || !n_q ||
+        cache_to > kv->max_rows || cache_to < cache_from ||
+        n_q > cache_to - cache_from || k_rowsLen < 0 ||
+        k_rowsLen != v_rowsLen ||
+        (uint32_t)k_rowsLen % (kv->n_head_kv * kv->head_dim))
+      return AEE_EBADPARM;
+    const uint64_t t0 = HAP_perf_get_time_us();
+    if (k_rowsLen) {
+      const int rc = nntr_hvx_kv_append_f16(handle, id, row0, k_rows, k_rowsLen,
+                                            v_rows, v_rowsLen);
+      if (rc != AEE_SUCCESS)
+        return rc;
+    }
+    const uint64_t t1 = HAP_perf_get_time_us();
+    uint32_t stages[8] = {0};
+    const int rc = nntr_hvx_attn_f16_prefill_resident(
+      handle, id, n_q, cache_from, cache_to, n_head_q, window, 0, 0, softcap,
+      q_f32, q_f32Len, sinks, sinksLen, out_f32, out_f32Len, stages, 8);
+    const uint64_t t2 = HAP_perf_get_time_us();
+    memset(stats_us, 0, 8u * sizeof(*stats_us));
+    stats_us[0] = (uint32_t)(t1 - t0);
+    stats_us[1] = (uint32_t)(t2 - t1);
+    stats_us[2] = 1u;
+    stats_us[3] = (uint32_t)(t2 - t0);
+    stats_us[7] = (uint32_t)k_rowsLen / (kv->n_head_kv * kv->head_dim);
+    return rc;
   }
   const hexkl_kv_q *kv = hexkl_kv_q_get(&s->kv_q, kv_handle);
   if (!kv || cache_to > kv->max_rows || stats_usLen < 8) {
@@ -776,6 +838,7 @@ int nntr_hvx_attn_q_step(remote_handle64 handle, uint32 kv_handle, uint32 row0,
   io.out_stride = n_head_q * kv->head_dim;
   io.kv = kv;
 
+  hexkl_attn_q_stats detail = {0};
   int res;
   const int decode = n_q < 5u && kv->head_dim <= 128u;
   if (decode) {
@@ -787,7 +850,7 @@ int nntr_hvx_attn_q_step(remote_handle64 handle, uint32 kv_handle, uint32 row0,
       return AEE_EBADPARM;
     }
     res = hexkl_attn_q_prefill(s->vtcm_base, s->config_off, &shape, &tiling,
-                               &io, s->quant_pool, NULL);
+                               &io, s->quant_pool, &detail);
   }
   if (res != AEE_SUCCESS) {
     FARF(ERROR, "attn_q_step: kernel failed: 0x%08x", res);
@@ -802,5 +865,126 @@ int nntr_hvx_attn_q_step(remote_handle64 handle, uint32 kv_handle, uint32 row0,
   stats_us[5] = ast.stage_us;
   stats_us[6] = ast.bake_us;
   stats_us[7] = (uint32)((uint32_t)k_rowsLen / stride);
+  if (stats_usLen >= 20)
+    copy_q_prefill_stats(stats_us + 8, &detail);
   return AEE_SUCCESS;
+}
+
+static int attn_q8_step_impl(
+  remote_handle64 handle, uint32 kv_handle, uint32 row0, uint32 n_rows,
+  uint32 n_q, uint32 cache_from, uint32 cache_to, uint32 n_head_q,
+  uint32 window, float softcap, const uint8 *k, int kLen, const uint8 *v,
+  int vLen, const float *kv_scales, int kv_scalesLen, const uint8 *q, int qLen,
+  const float *q_scales, int q_scalesLen, const int32 *q_zp, int q_zpLen,
+  const float *sinks, int sinksLen, float *out, int outLen, uint32 *stats,
+  int statsLen, uint32 decode_flags, uint32 bc, int force_hmx) {
+  if ((decode_flags & ~3u) || (decode_flags == 2u) ||
+      (bc && (bc > 2048u || bc % 32u)) || (force_hmx && n_q != 1u))
+    return AEE_EBADPARM;
+  nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  if (!s)
+    return AEE_EBADPARM;
+  if (force_hmx && !s->hmx_locked)
+    return AEE_EUNSUPPORTED;
+  const hexkl_kv_q *kv = hexkl_kv_q_get(&s->kv_q, kv_handle);
+  if (!kv || kv->kind != HEXKL_KV_Q8 || kv->fixed || n_q == 0 ||
+      n_head_q == 0 || n_head_q % kv->n_head_kv || kv->head_dim > 256u ||
+      cache_to > kv->max_rows || cache_from > cache_to ||
+      n_q > cache_to - cache_from || row0 > cache_to ||
+      n_rows > cache_to - row0 || !(softcap >= 0.0f) ||
+      !hexkl_kv_q_finite(softcap) || statsLen < 4 || !stats || !q ||
+      !q_scales || !q_zp || !out)
+    return AEE_EBADPARM;
+  if (decode_flags && (kv->head_dim != 64u || n_head_q / kv->n_head_kv != 4u))
+    return AEE_EBADPARM;
+  const uint64_t kv_elems = (uint64_t)n_rows * kv->n_head_kv * kv->head_dim;
+  const uint64_t q_rows = (uint64_t)n_q * n_head_q;
+  const uint64_t q_elems = q_rows * kv->head_dim;
+  if ((uint64_t)kLen != kv_elems || (uint64_t)vLen != kv_elems ||
+      (uint64_t)kv_scalesLen != (uint64_t)n_rows * kv->n_head_kv * 2u ||
+      (uint64_t)qLen != q_elems || (uint64_t)outLen != q_elems ||
+      (uint64_t)q_scalesLen != q_rows || (uint64_t)q_zpLen != q_rows ||
+      (sinksLen != 0 && ((uint32_t)sinksLen != n_head_q || !sinks)) ||
+      (n_rows && (!k || !v || !kv_scales)))
+    return AEE_EBADPARM;
+  // Validate all metadata before changing the cache.
+  for (int i = 0; i < q_scalesLen; ++i)
+    if (!(q_scales[i] > 0.0f) || !hexkl_kv_q_finite(q_scales[i]) ||
+        q_zp[i] < 0 || q_zp[i] > 255)
+      return AEE_EBADPARM;
+  const uint64_t t0 = HAP_perf_get_time_us();
+  if (n_rows) {
+    const int rc = hexkl_kv_q_append_i8_pool(
+      &s->kv_q, kv_handle, row0, n_rows, (const int8_t *)k, (const int8_t *)v,
+      kv_scales, s->vtcm_base, s->quant_pool);
+    if (rc != AEE_SUCCESS)
+      return rc;
+  }
+  const uint64_t t1 = HAP_perf_get_time_us();
+  const hexkl_attn_f16_shape shape = {n_q,      cache_from,    cache_to,
+                                      n_head_q, kv->n_head_kv, kv->head_dim,
+                                      window,   softcap};
+  hexkl_attn_q_io io;
+  memset(&io, 0, sizeof(io));
+  io.q_stride = io.out_stride = n_head_q * kv->head_dim;
+  io.sinks = sinksLen ? sinks : NULL;
+  io.out = out;
+  io.kv = kv;
+  io.decode_flags = decode_flags;
+  const hexkl_attn_q8_input q8 = {q, q_scales, q_zp};
+  const int decode = !force_hmx && n_q < 5u && kv->head_dim <= 128u;
+  hexkl_attn_q_stats detail = {0};
+  int rc;
+  if (decode) {
+    rc = hvx_attn_decode_q_u8(&shape, &io, &q8, s->quant_pool, NULL);
+  } else {
+    hexkl_attn_f16_tiling tiling = {0, 0, 0, 0};
+    hexkl_attn_f16_choose_tiling(&shape, &tiling);
+    if (bc)
+      tiling.bc = bc;
+    if (hexkl_attn_q_tiling_init(&shape, &tiling) != HEXKL_ATTN_OK)
+      return AEE_EBADPARM;
+    rc = hexkl_attn_q_prefill_u8(s->vtcm_base, s->config_off, &shape, &tiling,
+                                 &io, &q8, s->quant_pool, &detail);
+  }
+  const uint64_t t2 = HAP_perf_get_time_us();
+  stats[0] = (uint32)(t1 - t0);
+  stats[1] = (uint32)(t2 - t1);
+  stats[2] = decode ? 0u : (force_hmx ? 2u + decode_flags : 1u);
+  stats[3] = (uint32)(t2 - t0);
+  if (statsLen >= 16)
+    copy_q_prefill_stats(stats + 4, &detail);
+  return rc;
+}
+
+int nntr_hvx_attn_q8_step(remote_handle64 handle, uint32 kv_handle, uint32 row0,
+                          uint32 n_rows, uint32 n_q, uint32 cache_from,
+                          uint32 cache_to, uint32 n_head_q, uint32 window,
+                          float softcap, const uint8 *k, int kLen,
+                          const uint8 *v, int vLen, const float *kv_scales,
+                          int kv_scalesLen, const uint8 *q, int qLen,
+                          const float *q_scales, int q_scalesLen,
+                          const int32 *q_zp, int q_zpLen, const float *sinks,
+                          int sinksLen, float *out, int outLen, uint32 *stats,
+                          int statsLen) {
+  return attn_q8_step_impl(handle, kv_handle, row0, n_rows, n_q, cache_from,
+                           cache_to, n_head_q, window, softcap, k, kLen, v,
+                           vLen, kv_scales, kv_scalesLen, q, qLen, q_scales,
+                           q_scalesLen, q_zp, q_zpLen, sinks, sinksLen, out,
+                           outLen, stats, statsLen, 0u, 0u, 0);
+}
+
+int nntr_hvx_attn_q8_hmx_step(
+  remote_handle64 handle, uint32 kv_handle, uint32 row0, uint32 n_rows,
+  uint32 n_q, uint32 cache_from, uint32 cache_to, uint32 n_head_q,
+  uint32 window, float softcap, const uint8 *k, int kLen, const uint8 *v,
+  int vLen, const float *kv_scales, int kv_scalesLen, const uint8 *q, int qLen,
+  const float *q_scales, int q_scalesLen, const int32 *q_zp, int q_zpLen,
+  const float *sinks, int sinksLen, float *out, int outLen, uint32 *stats,
+  int statsLen, uint32 decode_flags, uint32 bc) {
+  return attn_q8_step_impl(handle, kv_handle, row0, n_rows, n_q, cache_from,
+                           cache_to, n_head_q, window, softcap, k, kLen, v,
+                           vLen, kv_scales, kv_scalesLen, q, qLen, q_scales,
+                           q_scalesLen, q_zp, q_zpLen, sinks, sinksLen, out,
+                           outLen, stats, statsLen, decode_flags, bc, 1);
 }

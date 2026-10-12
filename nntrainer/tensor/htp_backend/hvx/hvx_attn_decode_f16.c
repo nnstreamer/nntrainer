@@ -42,8 +42,8 @@
 #define LOG2E 1.4426950408889634f
 /** @brief Cache rows per block: one fp16 vector of scores. */
 #define BLOCK 64u
-/** @brief Largest head_dim: two 64-lane fp16 vectors. */
-#define MAX_HD 128u
+/** @brief Largest head_dim: eight 64-lane fp16 vectors. */
+#define MAX_HD 512u
 /** @brief fp16 vectors per head row at MAX_HD. */
 #define MAX_CHUNKS (MAX_HD / 64u)
 
@@ -53,7 +53,8 @@ typedef struct {
   float scale;
   HVX_Vector cap_hf, k_hf; /**< softcap constants, see hexkl_attn_f16.c */
   int softcap_on;
-  HVX_Vector col_idx; /**< {0,1,...,63} as uint16 */
+  HVX_Vector col_idx;   /**< {0,1,...,63} as uint16 */
+  HVX_Vector score_idx; /**< {0..31} as uint32 */
 } dec_ctx;
 
 /** @brief Column index per lane, uint16 {0..63}. */
@@ -71,10 +72,10 @@ static HVX_Vector col_index64(void) {
 /**
  * @brief One (query row, head) unit.
  */
-static void decode_unit(const dec_ctx *c, uint32_t q, uint32_t h) {
+static inline __attribute__((always_inline)) void
+decode_unit(const dec_ctx *c, uint32_t q, uint32_t h, uint32_t hd) {
   const hexkl_attn_f16_shape *s = c->s;
   const hexkl_attn_f16_io *io = c->io;
-  const uint32_t hd = s->head_dim;
   const uint32_t n_chunks = (hd + 63u) / 64u;
   const uint32_t G = s->n_head_q / s->n_head_kv;
   const uint32_t n = h / G;
@@ -137,10 +138,9 @@ static void decode_unit(const dec_ctx *c, uint32_t q, uint32_t h) {
     const uint32_t j1 = k1 - k0;                  // one past last valid
 
     // Scores for the block: fp16 dot per row, summed in qf32.
-    float sc[BLOCK];
+    HVX_Vector sc_lo = zero, sc_hi = zero;
     for (uint32_t j = 0; j < BLOCK; ++j) {
       if (j < j0 || j >= j1) {
-        sc[j] = 0.0f; // masked below; keep it finite
         continue;
       }
       const uint16_t *krow = kbase + (size_t)(k0 + j) * io->kv_stride;
@@ -157,11 +157,17 @@ static void decode_unit(const dec_ctx *c, uint32_t q, uint32_t h) {
         acc = Q6_Vqf32_vadd_Vqf32Vqf32(acc, Q6_V_lo_W(p));
         acc = Q6_Vqf32_vadd_Vqf32Vqf32(acc, Q6_V_hi_W(p));
       }
-      sc[j] = hvx_attn_lane0_f32(hvx_attn_sum32_sf(Q6_Vsf_equals_Vqf32(acc)));
+      // Keep the reduced score in vector registers. Extracting one scalar
+      // per key serializes the HVX/scalar pipelines before the next key.
+      const HVX_Vector score = hvx_attn_sum32_sf(Q6_Vsf_equals_Vqf32(acc));
+      const HVX_VectorPred lane =
+        Q6_Q_vcmp_eq_VwVw(c->score_idx, Q6_V_vsplat_R((int)(j & 31u)));
+      if (j < 32u)
+        sc_lo = Q6_V_vmux_QVV(lane, score, sc_lo);
+      else
+        sc_hi = Q6_V_vmux_QVV(lane, score, sc_hi);
     }
-    // sc was just filled by scalar stores: load it through memcpy (see
-    // hvx_tile_load_u), never a punned vector load.
-    HVX_Vector sv = f32x64_to_hf(hvx_tile_load_u(sc), hvx_tile_load_u(sc + 32));
+    HVX_Vector sv = f32x64_to_hf(sc_lo, sc_hi);
     if (c->softcap_on) {
       sv = hvx_attn_softcap_hf(sv, c->cap_hf, c->k_hf);
     }
@@ -245,7 +251,14 @@ static void decode_worker(uint32_t n_threads, uint32_t i, void *ctx_) {
   const uint32_t lo = (uint32_t)((uint64_t)n_units * i / n_threads);
   const uint32_t hi = (uint32_t)((uint64_t)n_units * (i + 1) / n_threads);
   for (uint32_t u = lo; u < hi; ++u) {
-    decode_unit(c, u / c->s->n_head_q, u % c->s->n_head_q);
+    // Constant widths let the compiler keep Q and the output accumulators
+    // in registers and remove chunk-loop/addressing overhead per cache row.
+    if (c->s->head_dim == 64u)
+      decode_unit(c, u / c->s->n_head_q, u % c->s->n_head_q, 64u);
+    else if (c->s->head_dim == 128u)
+      decode_unit(c, u / c->s->n_head_q, u % c->s->n_head_q, 128u);
+    else
+      decode_unit(c, u / c->s->n_head_q, u % c->s->n_head_q, c->s->head_dim);
   }
 }
 
@@ -268,6 +281,10 @@ int hvx_attn_decode_f16(const hexkl_attn_f16_shape *s,
   c.io = io;
   c.scale = LOG2E / sqrtf((float)s->head_dim);
   c.col_idx = col_index64();
+  uint32_t score_idx[32];
+  for (uint32_t i = 0; i < 32u; ++i)
+    score_idx[i] = i;
+  c.score_idx = hvx_tile_load_u(score_idx);
   if (s->softcap > 0.0f) {
     const float cap = s->softcap * LOG2E;
     c.cap_hf = Q6_Vh_vsplat_R((int)hvx_attn_f32_to_hf(cap));

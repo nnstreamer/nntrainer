@@ -351,9 +351,31 @@ static void write_row_i8_tiles(hexkl_kv_q *kv, uint32_t n, uint32_t row,
  */
 static inline void xor80_copy(uint8_t *dst, const uint8_t *src, uint32_t n) {
   const HVX_Vector x = Q6_V_vsplat_R(0x80808080);
-  for (uint32_t i = 0; i < n; i += 128u) {
+  uint32_t i = 0;
+  for (; n - i >= 128u; i += 128u) {
     hvx_tile_store_u(dst + i, Q6_V_vxor_VV(hvx_tile_load_u(src + i), x));
   }
+  if (i < n) {
+    // A head may contain only 32 or 64 bytes. A whole-vector store here
+    // overwrites the next master row (or the heap after the last row).
+    HVX_Vector tail = Q6_V_vzero();
+    memcpy(&tail, src + i, n - i);
+    tail = Q6_V_vxor_VV(tail, x);
+    memcpy(dst + i, &tail, n - i);
+  }
+}
+
+/** @brief Load a row segment without reading past a 64-wide master block.
+ * A 64-byte row shares a vector with its neighbour. Only the low half is
+ * consumed by the narrow bake; rotating an odd row keeps every load inside
+ * the 32-row block, including the final row of the final cache head. */
+static inline HVX_Vector bake_row(const uint8_t *base, uint32_t row,
+                                  uint32_t hd, uint32_t segment) {
+  if (hd == 64u) {
+    const HVX_Vector pair = hvx_tile_load_u(base + (size_t)(row & ~1u) * hd);
+    return (row & 1u) ? Q6_V_vror_VR(pair, 64) : pair;
+  }
+  return hvx_tile_load_u(base + (size_t)row * hd + 128u * segment);
 }
 
 /**
@@ -380,12 +402,12 @@ static void bake_tile_hvx(hexkl_kv_q *kv, uint32_t n, uint32_t c) {
 
   /* V: rows 4s..4s+3, 128 bytes (four dim tiles) at a time. */
   for (uint32_t s = 0; s < 8u; ++s) {
-    for (uint32_t m = 0; m < hd / 128u; ++m) {
-      const uint8_t *r = vm0 + (size_t)(4u * s) * hd + 128u * m;
-      const HVX_Vector a = Q6_V_vxor_VV(hvx_tile_load_u(r), x80);
-      const HVX_Vector b = Q6_V_vxor_VV(hvx_tile_load_u(r + hd), x80);
-      const HVX_Vector cc = Q6_V_vxor_VV(hvx_tile_load_u(r + 2u * hd), x80);
-      const HVX_Vector d = Q6_V_vxor_VV(hvx_tile_load_u(r + 3u * hd), x80);
+    for (uint32_t m = 0; m < (hd + 127u) / 128u; ++m) {
+      const HVX_Vector a = Q6_V_vxor_VV(bake_row(vm0, 4u * s, hd, m), x80);
+      const HVX_Vector b = Q6_V_vxor_VV(bake_row(vm0, 4u * s + 1u, hd, m), x80);
+      const HVX_Vector cc =
+        Q6_V_vxor_VV(bake_row(vm0, 4u * s + 2u, hd, m), x80);
+      const HVX_Vector d = Q6_V_vxor_VV(bake_row(vm0, 4u * s + 3u, hd, m), x80);
       const HVX_VectorPair ab = Q6_W_vshuff_VVR(b, a, -1);
       const HVX_VectorPair cd = Q6_W_vshuff_VVR(d, cc, -1);
       const HVX_VectorPair t0 =
@@ -394,7 +416,7 @@ static void bake_tile_hvx(hexkl_kv_q *kv, uint32_t n, uint32_t c) {
         Q6_W_vshuff_VVR(Q6_V_hi_W(cd), Q6_V_hi_W(ab), -2);
       const HVX_Vector seg[4] = {Q6_V_lo_W(t0), Q6_V_hi_W(t0), Q6_V_lo_W(t1),
                                  Q6_V_hi_W(t1)};
-      for (uint32_t t = 0; t < 4u; ++t) {
+      for (uint32_t t = 0; t < (hd == 64u ? 2u : 4u); ++t) {
         uint8_t *tile = kv->v + hexkl_kv_q_tile_off(kv, n, c, 4u * m + t);
         hvx_tile_store_u(tile + 128u * s, seg[t]);
       }
@@ -402,11 +424,10 @@ static void bake_tile_hvx(hexkl_kv_q *kv, uint32_t n, uint32_t c) {
   }
 
   /* K^T: one 32 x 32 word block per 128-byte column of the rows. */
-  for (uint32_t m = 0; m < hd / 128u; ++m) {
+  for (uint32_t m = 0; m < (hd + 127u) / 128u; ++m) {
     HVX_Vector v[32];
     for (uint32_t r = 0; r < 32u; ++r) {
-      v[r] =
-        Q6_V_vxor_VV(hvx_tile_load_u(km0 + (size_t)r * hd + 128u * m), x80);
+      v[r] = Q6_V_vxor_VV(bake_row(km0, r, hd, m), x80);
     }
     for (uint32_t D = 16u; D >= 1u; D >>= 1) {
       for (uint32_t i = 0; i < 32u; ++i) {
@@ -420,7 +441,7 @@ static void bake_tile_hvx(hexkl_kv_q *kv, uint32_t n, uint32_t c) {
     }
     /** v[s] is word column 32m + s of the rows: dim tile (32m+s)/8,
      * segment (32m+s)%8. */
-    for (uint32_t s = 0; s < 32u; ++s) {
+    for (uint32_t s = 0; s < (hd == 64u ? 16u : 32u); ++s) {
       const uint32_t wq = 32u * m + s;
       uint8_t *tile = kv->kt + hexkl_kv_q_tile_off(kv, n, c, wq / 8u);
       hvx_tile_store_u(tile + 128u * (wq % 8u), v[s]);
@@ -493,13 +514,13 @@ static int append_fixed_i8(hexkl_kv_q *kv, uint32_t row0, uint32_t n_rows,
       const uint32_t t_lo = 32u * c, t_hi = t_lo + 32u;
       const int full = row0 <= t_lo && row0 + n_rows >= t_hi;
       // A tile the rows cover completely is built on HVX from its 32
-      // master rows (bake_tile_hvx; whole 128-byte row chunks, so head_dim
-      // a multiple of 128); a partial one, or a narrower head, takes the
+      // master rows (bake_tile_hvx; 128-byte chunks or paired 64-byte rows);
+      // a partial one, or another narrow head, takes the
       // per-row scatter through the position table (~5 us per tile pair, what
       // single-row decode appends pay). rm_to_wh_i8 with its staging and
       // copies measured 84 us and is the fallback for a part without a
       // usable position table.
-      if (full && direct && (hd % 128u) == 0u) {
+      if (full && direct && (hd == 64u || (hd % 128u) == 0u)) {
         const uint64_t tb0 = kvq_now_us();
         bake_tile_hvx(kv, n, c);
         if (st) {
@@ -786,4 +807,114 @@ int hexkl_kv_q_dump(const hexkl_kv_q *kv, uint32_t row0, uint32_t n_rows,
     }
   }
   return AEE_SUCCESS;
+}
+
+typedef struct {
+  hexkl_kv_q *kv;
+  uint32_t row0, n_rows, c_lo, n_col;
+  const int8_t *k, *v;
+  const float *scales;
+  int direct;
+} append_i8_ctx;
+
+/** @brief Owns complete (head, 32-row tile) units, including any partial
+ * first/last tile. Masters and WH destinations are distinct for every unit;
+ * grouping by absolute cache tile also avoids splitting interleaved V rows
+ * across workers. The WH position table was probed before publication and
+ * is read only here. No worker uses the shared bake scratch or VTCM.
+ */
+static void append_i8_worker(uint32_t n_threads, uint32_t i, void *vctx) {
+  const append_i8_ctx *c = (const append_i8_ctx *)vctx;
+  hexkl_kv_q *kv = c->kv;
+  const uint64_t units = (uint64_t)kv->n_head_kv * c->n_col;
+  const uint64_t lo = units * i / n_threads;
+  const uint64_t hi = units * (i + 1u) / n_threads;
+  uint32_t n = (uint32_t)(lo / c->n_col);
+  uint32_t col = (uint32_t)(lo % c->n_col);
+  for (uint64_t u = lo; u < hi; ++u) {
+    const uint32_t tile_row = 32u * (c->c_lo + col);
+    const uint32_t first = c->row0 > tile_row ? c->row0 : tile_row;
+    const uint32_t end = c->row0 + c->n_rows;
+    const uint32_t last = end < tile_row + 32u ? end : tile_row + 32u;
+    for (uint32_t row = first; row < last; ++row) {
+      const uint32_t r = row - c->row0;
+      const size_t src = (size_t)r * kv->n_head_kv + n;
+      const int8_t *kr = c->k + src * kv->head_dim;
+      const int8_t *vr = c->v + src * kv->head_dim;
+      int32_t sum = 0;
+      for (uint32_t d = 0; d < kv->head_dim; ++d) {
+        sum += kr[d];
+        kv->kt4[hexkl_kv_q_kt4_index(kv, n, row, d)] =
+          (uint8_t)((int32_t)kr[d] + HEXKL_KV_Q_BIAS);
+        kv->v4[hexkl_kv_q_v4_index(kv, n, row, d)] =
+          (uint8_t)((int32_t)vr[d] + HEXKL_KV_Q_BIAS);
+      }
+      kv->s_k[hexkl_kv_q_sk_index(kv, n, row)] = c->scales[2u * src];
+      kv->s_v[hexkl_kv_q_sv_index(kv, n, row)] = c->scales[2u * src + 1u];
+      kv->colsum_k[hexkl_kv_q_sk_index(kv, n, row)] = sum;
+#ifdef __hexagon__
+      if (c->direct)
+        write_row_i8_tiles(kv, n, row, kr, vr);
+#endif
+    }
+    if (++col == c->n_col) {
+      col = 0u;
+      ++n;
+    }
+  }
+}
+
+int hexkl_kv_q_append_i8_pool(hexkl_kv_q_table *tbl, uint32_t handle,
+                              uint32_t row0, uint32_t n_rows, const int8_t *k,
+                              const int8_t *v, const float *scales,
+                              uint8_t *vtcm_base, void *pool) {
+  hexkl_kv_q *kv = (hexkl_kv_q *)hexkl_kv_q_get(tbl, handle);
+  if (!kv || kv->kind != HEXKL_KV_Q8 || kv->fixed || !k || !v || !scales ||
+      row0 > kv->max_rows || n_rows > kv->max_rows - row0)
+    return AEE_EBADPARM;
+  /* Invalid metadata must leave the entire cache untouched. */
+  for (size_t i = 0; i < (size_t)n_rows * kv->n_head_kv * 2u; ++i)
+    if (!(scales[i] > 0.0f) || !hexkl_kv_q_finite(scales[i]))
+      return AEE_EBADPARM;
+  if (!n_rows)
+    return AEE_SUCCESS;
+  int direct = 0;
+#ifdef __hexagon__
+  direct = vtcm_base && wh_i8_probe(vtcm_base);
+#endif
+  const uint32_t c_lo = row0 / 32u;
+  const uint32_t n_col = (row0 + n_rows - 1u) / 32u - c_lo + 1u;
+  append_i8_ctx ctx = {kv, row0, n_rows, c_lo, n_col, k, v, scales, direct};
+#ifdef __hexagon__
+  if (pool && n_rows >= 64u) {
+    /* n_rows is a parallelism hint; the worker partitions every head/tile
+       unit itself, including when the pool has no background threads. */
+    hvx_worker_pool_run((hvx_worker_pool *)pool, append_i8_worker, &ctx,
+                        n_rows);
+  } else
+#else
+  (void)pool;
+#endif
+  {
+    append_i8_worker(1u, 0u, &ctx);
+  }
+  /* The fallback owns shared staging and VTCM, so bake only on the caller
+     after all workers have completed their master writes. */
+  if (vtcm_base && !direct && n_rows) {
+    for (uint32_t n = 0; n < kv->n_head_kv; ++n) {
+      for (uint32_t c = row0 / 32u; c <= (row0 + n_rows - 1u) / 32u; ++c) {
+        const int rc = bake_col_tile(kv, n, c, vtcm_base, NULL);
+        if (rc != AEE_SUCCESS)
+          return rc;
+      }
+    }
+  }
+  return AEE_SUCCESS;
+}
+
+int hexkl_kv_q_append_i8(hexkl_kv_q_table *tbl, uint32_t handle, uint32_t row0,
+                         uint32_t n_rows, const int8_t *k, const int8_t *v,
+                         const float *scales, uint8_t *vtcm_base) {
+  return hexkl_kv_q_append_i8_pool(tbl, handle, row0, n_rows, k, v, scales,
+                                   vtcm_base, NULL);
 }

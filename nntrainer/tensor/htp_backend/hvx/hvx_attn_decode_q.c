@@ -57,6 +57,7 @@
 typedef struct {
   const hexkl_attn_f16_shape *s;
   const hexkl_attn_q_io *io;
+  const hexkl_attn_q8_input *q8;
   const hexkl_kv_q *kv;
   float scale;             /**< log2e / sqrt(hd) */
   HVX_Vector cap_sf, k_sf; /**< softcap constants (f32 domain) */
@@ -115,8 +116,18 @@ static void decode_unit(const dec_ctx *c, uint32_t q, uint32_t h) {
   uint8_t qu[MAX_HD];
   float s_q;
   int32_t zp, qsum;
-  quant_q_u8(io->q + (size_t)q * io->q_stride + (size_t)h * hd, hd, qu, &s_q,
-             &zp, &qsum);
+  if (c->q8) {
+    const size_t row = (size_t)q * s->n_head_q + h;
+    memcpy(qu, c->q8->values + row * hd, hd);
+    s_q = c->q8->scales[row];
+    zp = c->q8->zero_points[row];
+    qsum = 0;
+    for (uint32_t d = 0; d < hd; ++d)
+      qsum += qu[d];
+  } else {
+    quant_q_u8(io->q + (size_t)q * io->q_stride + (size_t)h * hd, hd, qu, &s_q,
+               &zp, &qsum);
+  }
   uint32_t qw[MAX_G];
   memcpy(qw, qu, hd);
   const HVX_Vector qcorr = Q6_V_vsplat_R(HEXKL_KV_Q_BIAS * qsum);
@@ -239,12 +250,13 @@ static void decode_worker(uint32_t n_threads, uint32_t i, void *ctx_) {
   }
 }
 
-int hvx_attn_decode_q(const hexkl_attn_f16_shape *s, const hexkl_attn_q_io *io,
-                      hvx_worker_pool *pool, uint64_t *us) {
+static int decode_impl(const hexkl_attn_f16_shape *s, const hexkl_attn_q_io *io,
+                       const hexkl_attn_q8_input *q8, hvx_worker_pool *pool,
+                       uint64_t *us) {
   if (io && io->kv && io->kv->plain_masters) {
     return AEE_EBADPARM; /* row-major masters: the row-blocked kernel's cache */
   }
-  if (!s || !io || !io->q || !io->out || !io->kv) {
+  if (!s || !io || (!io->q && !q8) || !io->out || !io->kv) {
     return AEE_EBADPARM;
   }
   const hexkl_kv_q *kv = io->kv;
@@ -261,6 +273,7 @@ int hvx_attn_decode_q(const hexkl_attn_f16_shape *s, const hexkl_attn_q_io *io,
   memset(&c, 0, sizeof(c));
   c.s = s;
   c.io = io;
+  c.q8 = q8;
   c.kv = kv;
   c.scale = LOG2E / sqrtf((float)s->head_dim);
   {
@@ -283,4 +296,18 @@ int hvx_attn_decode_q(const hexkl_attn_f16_shape *s, const hexkl_attn_q_io *io,
     *us = HAP_perf_get_time_us() - t0;
   }
   return AEE_SUCCESS;
+}
+
+int hvx_attn_decode_q(const hexkl_attn_f16_shape *s, const hexkl_attn_q_io *io,
+                      hvx_worker_pool *pool, uint64_t *us) {
+  return decode_impl(s, io, NULL, pool, us);
+}
+
+int hvx_attn_decode_q_u8(const hexkl_attn_f16_shape *s,
+                         const hexkl_attn_q_io *io,
+                         const hexkl_attn_q8_input *q8, hvx_worker_pool *pool,
+                         uint64_t *us) {
+  if (!q8 || !q8->values || !q8->scales || !q8->zero_points)
+    return AEE_EBADPARM;
+  return decode_impl(s, io, q8, pool, us);
 }

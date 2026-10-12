@@ -112,6 +112,13 @@ typedef struct {
   hexkl_kv_q slots[HEXKL_KV_Q_MAX];
 } hexkl_kv_q_table;
 
+/** @brief Finite float check without an optional DSP libc classifier. */
+static inline int hexkl_kv_q_finite(float x) {
+  uint32_t bits;
+  memcpy(&bits, &x, sizeof(bits));
+  return (bits & 0x7f800000u) != 0x7f800000u;
+}
+
 /** @brief IEEE binary16 bits -> f32, bit-exact, no fp16 support needed. */
 static inline float hexkl_kv_q_hf_to_f32(uint16_t h) {
   const uint32_t sign = ((uint32_t)h & 0x8000u) << 16;
@@ -325,6 +332,22 @@ void hexkl_kv_q_stage(hexkl_kv_q *kv, uint32_t n, uint32_t c);
 int hexkl_kv_q_dump(const hexkl_kv_q *kv, uint32_t row0, uint32_t n_rows,
                     int8_t *k_q, int8_t *v_q, float *s_k, int32_t *colsum_k,
                     float *s_v);
+
+/** @brief Import producer-quantized signed INT8 rows, with K/V scales
+ * interleaved per (row, KV head). No requantization is performed. */
+int hexkl_kv_q_append_i8(hexkl_kv_q_table *tbl, uint32_t handle, uint32_t row0,
+                         uint32_t n_rows, const int8_t *k, const int8_t *v,
+                         const float *scales, uint8_t *vtcm_base);
+
+/** @brief The same import, with an optional hvx_worker_pool. On the DSP,
+ * appends of at least 64 rows partition independent head/tile units over
+ * the pool. Small appends and host builds remain serial. Validation and
+ * layout probing precede worker publication; fallback baking follows join.
+ */
+int hexkl_kv_q_append_i8_pool(hexkl_kv_q_table *tbl, uint32_t handle,
+                              uint32_t row0, uint32_t n_rows, const int8_t *k,
+                              const int8_t *v, const float *scales,
+                              uint8_t *vtcm_base, void *pool);
 
 #ifdef __cplusplus
 }

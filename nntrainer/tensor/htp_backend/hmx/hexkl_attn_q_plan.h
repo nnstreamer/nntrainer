@@ -49,7 +49,7 @@ typedef struct {
   uint32_t v_wh[2];     /**< [ct][dt] V weight tiles */
   uint32_t acc;         /**< one int32 readout tile */
   uint32_t s_hf[2];     /**< [2*rt][ct] fp16 score tiles (softmax layout) */
-  uint32_t p_ah;        /**< [dt][rt][ct] uint8 P' tiles, one set per V group */
+  uint32_t p_ah;        /**< [rt][ct] uint8 P' tiles shared by all V groups */
   uint32_t o_f32;       /**< [g_br][hd] f32 partial output */
   uint32_t qx_f32;      /**< [n_qb_chunk*g_br][hd] f32 gathered Q rows */
   uint32_t total;       /**< first byte past the last region */
