@@ -52,6 +52,21 @@
 
 끄는 법: `NNTR_HTP_DENSE_EARLY=0`, `NNTR_MOE_LRFU=0`.
 
+### 2.3 첫 토큰 (10-12, dlwlzzero 세션)
+
+첫 토큰(`[TIMING] first_token_ms`)은 p1024 1,463 ms, p2048 2,206 ms였고, 그중 decode 토큰 자체는 220–240 ms다. 나머지를 재서 셋을 없앴다. 전부 답 문장 md5 동일(p1024 `fe44d523`, p2048 `aff26409`), decode·prefill TPS 변화 없음.
+
+| 커밋 | 무엇을 | 왜 효과가 있었나 | 측정 (p1024 / p2048) |
+|---|---|---|---|
+| `321fb63a2` | KV seed의 int8 양자화를 HVX 벡터로 (amax, 양자화, K의 64×128 바이트 전치를 vshuff 네트워크로) | 원소마다 스칼라 `q8_of`, K 바이트마다 64 B 간격 scatter(바이트당 캐시 라인 하나)였다 | `kv_seed_rpc_ms` 429 → 93 / 900 → 183 |
+| `970655c18` | seed 행을 CPU 캐시의 fp16 비트 그대로 DSP에 (`attn_m1_kv_append_f16`), DSP가 정수 연산으로 정확히 widening | CPU 풀에서 fp16→f32 변환 145 / 288 ms, staging 바이트 2배 | 변환 0 ms; seed 합계(mha_core 타이머) 240 → 96 |
+| `746888e13` | RoPE 테이블을 "같은 테이블 공유"(`graph_share_param`)로 바인딩: 30층 중 2개만 전송 | 층마다 2 MiB를 heap 인자로 보내고 DSP가 memcmp로 같은지 비교했다 — 층당 14.6 ms, 합 439 ms. 첫 토큰의 가장 큰 미설명 덩어리 | attention 노드 532 → 수 ms |
+| 합 | | | **첫 토큰 1,463 → 506 ms, 2,206 → 636 ms** |
+
+남은 첫 토큰 구성(p1024 506 ms): decode 토큰 227(expert 풀이 비어 있어 평소 82보다 +145), pool_sync 77(host FC 사본 해제), graph_init 71, seed 89, 나머지 ≈40.
+
+host check: `ATTN M1 SEED VEC`(스칼라 정의와 바이트 비교, 전치 매핑 돌연변이가 잡힘), `ATTN M1 SEED F16`(fp16 전 클래스), graph_host_check의 share 케이스.
+
 ## 3. 실패한 것과 원인
 
 ### 3.1 decode — 미리 읽기 계열 (전부 실패, 원인이 같다)
@@ -120,7 +135,7 @@
 |---|---|---|
 | decode attention 커널 | 토큰당 11.8 ms | CPU의 fp16 합산 순서를 따르는 구조라 느리다. 바꾸면 반올림이 달라져 정확도 게이트가 먼저 필요 |
 | decode 작은 op 융합 (norm·add·RoPE) | 3.8 ms | 비트 동일 가능. NPU 그래프 코드 변경 |
-| 첫 토큰 시간 | 약 1 s | KV seed의 스칼라 양자화(층당 ≈30 ms)를 벡터화. 비트 동일 가능 |
+| 첫 토큰 시간 | 남은 것 ≈ 290 ms (§2.3) | 첫 토큰의 expert 전부 miss(+145 ms: prefill이 쓴 expert로 풀을 미리 채우기), pool_sync 77, graph_init 71 |
 | lm_head·FC 비트 수, router fp16 | 대역폭 한계 | 정확도 결정 필요 |
 | prefill attention softmax | 호출당 5.5 ms (p2048 168 ms) | 미착수 |
 | prefill o-proj 뒤 패스, router | 층당 2.5 ms, 호출당 10.7 ms | 미착수 |
