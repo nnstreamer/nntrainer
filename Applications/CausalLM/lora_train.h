@@ -175,6 +175,8 @@ struct TrainProgress {
   float best_loss =
     std::numeric_limits<float>::max(); ///< best valid loss so far
   unsigned int num_samples = 0;        ///< total training samples loaded
+  double epoch_seconds = 0.0; ///< wall time of the epoch (train + validation)
+  double train_seconds = 0.0; ///< training part of it; the rest is validation
 };
 
 /**

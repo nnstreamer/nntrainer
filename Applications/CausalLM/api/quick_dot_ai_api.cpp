@@ -3285,7 +3285,7 @@ void trainProgressBridge(const causallm::TrainProgress &p, void *user_data) {
     return;
   b->cb(p.epoch, p.train_loss, p.valid_loss, p.saved ? 1 : 0, p.best_loss,
         p.num_samples, p.output_path.c_str(), p.q4_output_path.c_str(),
-        b->user_data);
+        p.epoch_seconds, p.train_seconds, b->user_data);
 }
 
 } // namespace

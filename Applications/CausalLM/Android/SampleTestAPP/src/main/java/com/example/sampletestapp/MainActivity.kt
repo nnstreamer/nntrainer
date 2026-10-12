@@ -933,6 +933,14 @@ class MainActivity : AppCompatActivity() {
         trainLog = if (trainLog.isEmpty()) line else "$trainLog\n$line"
     }
 
+    /** 4.27s, 42.3s, or 3m 05s from a minute up. */
+    private fun formatSeconds(s: Double): String {
+        if (s < 10.0) return String.format("%.2fs", s)
+        if (s < 60.0) return String.format("%.1fs", s)
+        val total = s.toLong()
+        return String.format("%dm %02ds", total / 60, total % 60)
+    }
+
     private fun escapeJson(s: String): String =
         s.replace("\\", "\\\\").replace("\"", "\\\"")
 
@@ -2514,16 +2522,20 @@ class MainActivity : AppCompatActivity() {
                 override fun onEpochProgress(
                     epoch: Int, trainLoss: Float, validLoss: Float,
                     saved: Boolean, bestLoss: Float, numSamples: Int,
-                    outputPath: String, q4OutputPath: String
+                    outputPath: String, q4OutputPath: String,
+                    epochSeconds: Double, trainSeconds: Double
                 ) {
                     mainHandler.post {
                         trainEpochBoundaries.add(trainLossPoints.size - 1)
                         trainValidLosses.add(validLoss)
                         lossChartView?.addEpochBoundary(trainLossPoints.size - 1, validLoss)
                         appendTrainLog(String.format(
-                            "[epoch %d] train_loss=%.4f valid_loss=%.4f%s | best=%.4f | %d samples",
+                            "[epoch %d] train_loss=%.4f valid_loss=%.4f%s | best=%.4f | %d samples" +
+                                " | %s (train %s + valid %s)",
                             epoch, trainLoss, validLoss,
-                            if (saved) " ✓ saved" else "", bestLoss, numSamples))
+                            if (saved) " ✓ saved" else "", bestLoss, numSamples,
+                            formatSeconds(epochSeconds), formatSeconds(trainSeconds),
+                            formatSeconds(epochSeconds - trainSeconds)))
                         if (bestLoss < Float.MAX_VALUE)
                             trainBestLoss = String.format("%.4f", bestLoss)
                         rebuildUi()

@@ -1076,7 +1076,8 @@ struct TrainListenerCtx {
 void trainProgressTrampoline(unsigned int epoch, float train_loss,
                              float valid_loss, int saved, float best_loss,
                              unsigned int num_samples, const char *output_path,
-                             const char *q4_output_path, void *user_data) {
+                             const char *q4_output_path, double epoch_seconds,
+                             double train_seconds, void *user_data) {
   auto *ctx = static_cast<TrainListenerCtx *>(user_data);
   if (ctx == nullptr || ctx->env == nullptr || ctx->listener == nullptr ||
       ctx->onEpoch == nullptr)
@@ -1089,7 +1090,9 @@ void trainProgressTrampoline(unsigned int epoch, float train_loss,
   jstring q4J = env->NewStringUTF(q4_output_path ? q4_output_path : "");
   env->CallVoidMethod(ctx->listener, ctx->onEpoch, static_cast<jint>(epoch),
                       train_loss, valid_loss, saved ? JNI_TRUE : JNI_FALSE,
-                      best_loss, static_cast<jint>(num_samples), outJ, q4J);
+                      best_loss, static_cast<jint>(num_samples), outJ, q4J,
+                      static_cast<jdouble>(epoch_seconds),
+                      static_cast<jdouble>(train_seconds));
   if (env->ExceptionCheck()) {
     env->ExceptionDescribe();
     env->ExceptionClear();
@@ -1144,7 +1147,7 @@ Java_com_example_quickdotai_NativeCausalLm_trainLoraNative(
 
   jmethodID onEpoch =
     env->GetMethodID(listenerCls, "onEpochProgress",
-                     "(IFFZFILjava/lang/String;Ljava/lang/String;)V");
+                     "(IFFZFILjava/lang/String;Ljava/lang/String;DD)V");
   jmethodID onComplete =
     env->GetMethodID(listenerCls, "onTrainComplete", "()V");
   jmethodID onError =

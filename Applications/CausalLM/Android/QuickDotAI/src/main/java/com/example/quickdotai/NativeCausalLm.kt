@@ -409,11 +409,14 @@ object NativeCausalLm {
          * @param numSamples  total training samples loaded
          * @param outputPath  adapter output path
          * @param q4OutputPath Q4_0 adapter path (empty if not produced)
+         * @param epochSeconds wall time of the epoch, training + validation
+         * @param trainSeconds training part of epochSeconds (the rest is
+         *                     validation)
          */
         fun onEpochProgress(
             epoch: Int, trainLoss: Float, validLoss: Float, saved: Boolean,
             bestLoss: Float, numSamples: Int, outputPath: String,
-            q4OutputPath: String
+            q4OutputPath: String, epochSeconds: Double, trainSeconds: Double
         )
 
         /**

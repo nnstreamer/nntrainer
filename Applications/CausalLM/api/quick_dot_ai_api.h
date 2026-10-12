@@ -731,12 +731,21 @@ WIN_EXPORT const char *getModelCatalogJson(void);
  * @p callback is invoked after every epoch (may be NULL).
  *============================================================================*/
 
+/**
+ * @brief Per-epoch training progress callback.
+ *
+ * @param epoch_seconds  wall time of the epoch: training plus validation
+ *                       (the adapter save that follows is not counted)
+ * @param train_seconds  training part of @p epoch_seconds; the rest is
+ *                       the validation pass
+ */
 typedef void (*TrainProgressCallback)(unsigned int epoch, float train_loss,
                                       float valid_loss, int saved,
                                       float best_loss, unsigned int num_samples,
                                       const char *output_path,
                                       const char *q4_output_path,
-                                      void *user_data);
+                                      double epoch_seconds,
+                                      double train_seconds, void *user_data);
 
 /**
  * @brief Per-iteration training progress callback.

@@ -470,6 +470,13 @@ config). To use the resulting adapter at inference time, set
 run `nntr_causallm` as usual — `main.cpp` will call `load_weight_lora`
 instead of `load_weight` automatically.
 
+Each epoch ends with a line such as
+`[epoch 1] train_loss=4.98 valid_loss=3.02 time=8.31s (train 5.84s + valid 2.48s)`.
+`time` is the epoch's wall time, from its first iteration to the end of
+validation. The adapter save that follows is not included. The same two
+numbers reach `trainLora()`'s `TrainProgressCallback` (`epoch_seconds`,
+`train_seconds`) and the app's Training Log.
+
 ## Training with the OpenCL device (Android / Adreno)
 
 The training graph is built from host layers: their `calcDerivative` /
@@ -681,7 +688,8 @@ QAT, seq 128):
 | hybrid, 7 samples, 2 epochs | same, including epoch 2 after a skipped sample | worst rel 7.0e-7 |
 
 In the app, batch 4 for 2 epochs on 50 samples ran 12 steps per epoch, at
-about 420 ms per step (hybrid). Valid loss went 3.03 then 1.57. The first
+about 420 ms per step (hybrid). An epoch took 8.3 to 9.6 s, of which 5.8 to
+6.7 s was training and the rest validation. Valid loss went 3.03 then 1.57. The first
 step's loss matched the mean of the same four samples run at batch 1.
 
 The lr schedule (`--lr_decay_steps`) and the QAT EMA count steps, not

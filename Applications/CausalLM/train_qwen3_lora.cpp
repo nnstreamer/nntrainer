@@ -101,6 +101,12 @@ struct EpochBridge {
   unsigned int num_samples = 0;
   IterationProgressCb iter_cb = nullptr;
   void *iter_data = nullptr;
+  /** when the current epoch's first iteration could start: model.train()
+   *  for the first epoch, the end of the previous epoch's callback after */
+  std::chrono::steady_clock::time_point epoch_start;
+  /** when the current epoch's last training iteration ended; validation
+   *  runs from here to the epoch callback */
+  std::chrono::steady_clock::time_point last_iter_end;
 };
 
 static void onEpochComplete(void *user_data) {
@@ -108,11 +114,23 @@ static void onEpochComplete(void *user_data) {
   auto *st = static_cast<EpochBridge *>(user_data);
   ++st->epoch;
 
+  // Timed before the adapter save below, which is not part of the epoch.
+  using secs = std::chrono::duration<double>;
+  const auto epoch_end = std::chrono::steady_clock::now();
+  const double epoch_s = secs(epoch_end - st->epoch_start).count();
+  const double train_s = st->last_iter_end > st->epoch_start
+                           ? secs(st->last_iter_end - st->epoch_start).count()
+                           : epoch_s;
+
   auto train_stats = st->model->getTrainingStats();
   auto valid_stats = st->model->getValidStats();
 
+  char timing[96];
+  std::snprintf(timing, sizeof(timing), "%.2fs (train %.2fs + valid %.2fs)",
+                epoch_s, train_s, epoch_s - train_s);
   std::cout << "[epoch " << st->epoch << "] train_loss=" << train_stats.loss
-            << " valid_loss=" << valid_stats.loss << std::endl;
+            << " valid_loss=" << valid_stats.loss << " time=" << timing
+            << std::endl;
 
   bool saved = false;
   if (valid_stats.loss < st->best_loss) {
@@ -147,8 +165,11 @@ static void onEpochComplete(void *user_data) {
     progress.q4_output_path = st->q4_output_path;
     progress.best_loss = st->best_loss;
     progress.num_samples = st->num_samples;
+    progress.epoch_seconds = epoch_s;
+    progress.train_seconds = train_s;
     st->user_cb(progress, st->user_data);
   }
+  st->epoch_start = std::chrono::steady_clock::now();
 }
 
 int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
@@ -425,12 +446,14 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
 
     auto iteration_wrapper = [&bridge](unsigned int iteration, float loss,
                                        void *) {
+      bridge.last_iter_end = std::chrono::steady_clock::now();
       if (loraTrainCancelledFlag().load())
         throw std::runtime_error("training cancelled by user");
       if (bridge.iter_cb)
         bridge.iter_cb(iteration, bridge.epoch + 1, loss, bridge.iter_data);
     };
 
+    bridge.epoch_start = std::chrono::steady_clock::now();
     model.train(onEpochComplete, &bridge, nullptr, nullptr, iteration_wrapper,
                 nullptr);
 
