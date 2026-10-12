@@ -77,7 +77,10 @@ host check: `ATTN M1 SEED VEC`(스칼라 정의와 바이트 비교, 전치 매�
 | | prefill의 staging 버퍼(23 MB 행이 32 MiB class, 6개 pool, 370 MiB ION)를 첫 토큰이 끝난 뒤 해제(16 MiB 초과 class) | −320 MiB (p1024 −128) |
 | | 첫 토큰의 pool_sync가 396 MiB만 해제 | 첫 토큰 p1024 506 → 440 ms (1회) |
 
-문장 md5 동일, decode TPS 변화 없음. 남은 후보: (a) expert 슬롯은 decode용·prefill 양자화 KV 캐시(≈190–490 MiB heap)는 prefill용인데 둘이 동시에 매핑돼 DSP 피크가 합이다 — 슬롯을 prefill 뒤에 매핑하면 C를 +4–10 올릴 여지(검증 필요); (b) CPU fp16 KV 캐시는 rpcmem이라 seed가 staging에 복사하지 않고 그대로 넘길 수 있음(복사 2×8 MiB 제거); (c) RoPE 테이블 host 사본 30개 ≈ 78 MB는 바인딩 뒤 불필요; (d) embedding Q4_0 ≈ 400 MB host 상주는 파일 mmap으로; (e) prefill activation 텐서 ≈ 2 GB(host 피크의 대부분)는 all-NPU prefill에서 CPU가 읽지 않는 것이 많다 — 로더·그래프 메모리 계획 쪽.
+| `212afcd21` | `NNTR_MOE_CACHE_GROW=<n>`: 첫 토큰이 끝난 뒤(staging 해제 뒤) 풀을 층당 n개 키움. 슬롯은 miss가 채우며 `place()`로 매핑 | p2048 C32 +8, 번갈아 3회: 마지막 64 **12.29 → 12.79 TPS**, miss 56.9 → 42.3/토큰, 대기 27.1 → 22.8 ms, page-in 6.3 → 5.2 GB. 기본값 0(p4096은 여유가 작아 실행 중 매핑 실패 가능) |
+| (다음 커밋) | seed의 fp16 행을 staging 복사 없이 rpcmem 캐시에서 그대로 DSP에; RoPE 테이블 host 사본(30층 ≈78 MB)을 바인딩 뒤 해제 | seed RPC p1024 89 → 83, p2048 173 → 157 ms |
+
+문장 md5 동일, decode TPS 변화 없음(GROW 제외). 남은 후보: (a′) C 상향은 GROW로 가능해졌고 p4096용 안전한 상한 계산이 남음; (a) expert 슬롯은 decode용·prefill 양자화 KV 캐시(≈190–490 MiB heap)는 prefill용인데 둘이 동시에 매핑돼 DSP 피크가 합이다 — 슬롯을 prefill 뒤에 매핑하면 C를 +4–10 올릴 여지(검증 필요); (b) CPU fp16 KV 캐시는 rpcmem이라 seed가 staging에 복사하지 않고 그대로 넘길 수 있음(복사 2×8 MiB 제거); (c) RoPE 테이블 host 사본 30개 ≈ 78 MB는 바인딩 뒤 불필요; (d) embedding Q4_0 ≈ 400 MB host 상주는 파일 mmap으로; (e) prefill activation 텐서 ≈ 2 GB(host 피크의 대부분)는 all-NPU prefill에서 CPU가 읽지 않는 것이 많다 — 로더·그래프 메모리 계획 쪽.
 
 ## 3. 실패한 것과 원인
 

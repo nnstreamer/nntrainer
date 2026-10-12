@@ -2934,26 +2934,23 @@ public:
     int err;
     {
       std::lock_guard<std::mutex> lock(invoke_mutex_);
-      const size_t bytes =
-        static_cast<size_t>(n) * (k16 ? sizeof(uint16_t) : sizeof(float));
-      void *k_ion = stage(act_pool_, bytes).data();
-      void *v_ion = stage(x2_pool_, bytes).data();
-      std::memcpy(k_ion,
-                  k16 ? static_cast<const void *>(k16)
-                      : static_cast<const void *>(k_rows),
-                  bytes);
-      std::memcpy(v_ion,
-                  v16 ? static_cast<const void *>(v16)
-                      : static_cast<const void *>(v_rows),
-                  bytes);
-      err =
-        k16
-          ? nntr_hvx_attn_m1_kv_append_f16(
-              session, layer, 0u, n_rows, static_cast<const uint16_t *>(k_ion),
-              n, static_cast<const uint16_t *>(v_ion), n)
-          : nntr_hvx_attn_m1_kv_append(session, layer, 0u, n_rows,
-                                       static_cast<const float *>(k_ion), n,
-                                       static_cast<const float *>(v_ion), n);
+      if (k16) {
+        // [#4416 mem] the fp16 rows are the layer's CPU cache, an rpcmem
+        // block (alloc_shared): FastRPC maps it by its fd, so they go as
+        // they are -- no staging buffer, no copy (a heap source would be
+        // copied by the driver, as the f32 rows below were before staging)
+        err = nntr_hvx_attn_m1_kv_append_f16(session, layer, 0u, n_rows, k16, n,
+                                             v16, n);
+      } else {
+        const size_t bytes = static_cast<size_t>(n) * sizeof(float);
+        float *k_ion =
+          reinterpret_cast<float *>(stage(act_pool_, bytes).data());
+        float *v_ion = reinterpret_cast<float *>(stage(x2_pool_, bytes).data());
+        std::memcpy(k_ion, k_rows, bytes);
+        std::memcpy(v_ion, v_rows, bytes);
+        err = nntr_hvx_attn_m1_kv_append(session, layer, 0u, n_rows, k_ion, n,
+                                         v_ion, n);
+      }
     }
     seed_rpc_us_ += HtpProfile::nowUs() - t_seed;
     ++seed_calls_;
