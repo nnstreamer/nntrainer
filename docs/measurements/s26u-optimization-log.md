@@ -67,6 +67,18 @@
 
 host check: `ATTN M1 SEED VEC`(스칼라 정의와 바이트 비교, 전치 매핑 돌연변이가 잡힘), `ATTN M1 SEED F16`(fp16 전 클래스), graph_host_check의 share 케이스.
 
+### 2.4 메모리 (10-12, dlwlzzero 세션)
+
+어디에 얼마나 쓰는지부터 잤다(p2048, `[HTP] mem` 로그 + 0.5초 RSS 샘플링). DSP가 매핑한 것은 arena 2,176 MiB(expert 슬롯 32×30×1.45 = 1,392 + FC·dense WH 768) + lm_head Q4M1 448 + heap 686(prefill 끝) ≈ 3.3 GB로 매핑 한도에 걸려 있고, host는 prefill 중 RSS 2.7–3.1 GB(대부분 prefill activation 텐서), prefill 끝 mem_available **1.5 GB**였다.
+
+| 커밋 | 무엇을 | 측정 (p2048) |
+|---|---|---|
+| (이 절) | QS4CX FC·dense의 CPU 사본(786 MiB)을 첫 decode 토큰이 아니라 **로드 직후** 해제 (`dropHostFc(qs4cx_only)`): prefill은 WH 핸들, decode는 arena를 읽으므로 그 뒤 아무도 읽지 않음. Q4_0 lm_head(396)는 prefill의 CPU lm_head가 읽으니 첫 토큰까지 유지 | prefill 끝 mem_available 1,523 → 2,150 MiB. 페이지 캐시가 그만큼 expert 파일을 더 담아 pgpgin 8,809 → 5,154 MiB/실행(1회) |
+| | prefill의 staging 버퍼(23 MB 행이 32 MiB class, 6개 pool, 370 MiB ION)를 첫 토큰이 끝난 뒤 해제(16 MiB 초과 class) | −320 MiB (p1024 −128) |
+| | 첫 토큰의 pool_sync가 396 MiB만 해제 | 첫 토큰 p1024 506 → 440 ms (1회) |
+
+문장 md5 동일, decode TPS 변화 없음. 남은 후보: (a) expert 슬롯은 decode용·prefill 양자화 KV 캐시(≈190–490 MiB heap)는 prefill용인데 둘이 동시에 매핑돼 DSP 피크가 합이다 — 슬롯을 prefill 뒤에 매핑하면 C를 +4–10 올릴 여지(검증 필요); (b) CPU fp16 KV 캐시는 rpcmem이라 seed가 staging에 복사하지 않고 그대로 넘길 수 있음(복사 2×8 MiB 제거); (c) RoPE 테이블 host 사본 30개 ≈ 78 MB는 바인딩 뒤 불필요; (d) embedding Q4_0 ≈ 400 MB host 상주는 파일 mmap으로; (e) prefill activation 텐서 ≈ 2 GB(host 피크의 대부분)는 all-NPU prefill에서 CPU가 읽지 않는 것이 많다 — 로더·그래프 메모리 계획 쪽.
+
 ## 3. 실패한 것과 원인
 
 ### 3.1 decode — 미리 읽기 계열 (전부 실패, 원인이 같다)

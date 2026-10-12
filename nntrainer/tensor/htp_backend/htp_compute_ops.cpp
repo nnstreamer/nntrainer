@@ -2609,6 +2609,15 @@ public:
     if (wh_handles != 0u)
       std::fprintf(stderr, " wh_handles=%u", wh_handles);
     std::fputc('\n', stderr);
+    // [#4416 mem] the QS4CX FC / dense copies are read by nothing after
+    // this: the prefill runs them on the WH handles just registered and
+    // the token on its arena. Handing them back here, not at the first
+    // decode token, frees 0.8 GiB for the prefill (S26 Ultra p2048:
+    // mem_available at the prefill's end 1.5 GiB) -- the page cache keeps
+    // that much more of the expert file. The Q4_0 lm_head stays: the
+    // prefill's CPU lm_head (lmhead_engine cpu) reads it.
+    if (wh_handles != 0u)
+      dropHostFc(/*qs4cx_only=*/true);
   }
 
   /** [#130] The op record of @a op in the description (the words are
@@ -3067,6 +3076,28 @@ public:
   /** [plan 201 S1] Re-sends S1's EXPERTS tables when a prefill touched the
    *  pool since the last token: each expert's pair as the ARM files it
    *  (handle_cache_), HTP_GRAPH_NO_HANDLE for one the pool does not hold. */
+  /** [#4416 mem] The prefill's staging buffers (its 23 MB rows in 32 MiB
+   *  classes, six pools: 370 MiB of ION at p2048) outlive it; the token
+   *  stages rows of a few KB and the first token's seed 8 MiB (p2048).
+   *  Released once the second token has begun, classes above 16 MiB. */
+  void releasePrefillStaging() {
+    size_t freed = 0;
+    for (StagingPool *pl : {&act_pool_, &out_pool_, &rope_pool_, &x2_pool_,
+                            &attn_q_pool_, &attn_out_pool_})
+      for (auto it = pl->by_class.begin(); it != pl->by_class.end();)
+        if (it->first > (size_t(16) << 20)) {
+          pl->holds.erase(it->first);
+          pl->copied_out.erase(it->first);
+          freed += it->first;
+          it = pl->by_class.erase(it);
+        } else {
+          ++it;
+        }
+    if (freed != 0)
+      std::fprintf(stderr, "[HTP] staging: prefill classes released mib=%zu\n",
+                   freed >> 20);
+  }
+
   void poolSync() {
     if (!pool_dirty_)
       return;
@@ -3549,10 +3580,29 @@ public:
     }
   }
 
+  /** [#4416 mem] one line of where the memory is: the S1 PD's heap, the
+   *  staging pools' buffers, this process and the system (probe) */
+  void memLine(const char *where) {
+    uint32_t info1[7] = {0};
+    if (e2e_st_)
+      nntr_hvx_session_info(e2e_st_->h1, info1, 7);
+    size_t pools = 0;
+    for (const StagingPool *pl : {&act_pool_, &out_pool_, &rope_pool_,
+                                  &x2_pool_, &attn_q_pool_, &attn_out_pool_})
+      for (const auto &kv : pl->by_class)
+        pools += kv.first;
+    std::fprintf(stderr,
+                 "[HTP] mem %s: s1_heap_mib=%u staging_pools_mib=%zu "
+                 "rss_mib=%zu mem_available_mib=%zu\n",
+                 where, info1[4] >> 10, pools >> 20,
+                 static_cast<size_t>(rssKb() >> 10), memAvailableMib());
+  }
+
   void ensureGraphInit(remote_handle64 session) {
     std::lock_guard<std::mutex> lock(graph_mutex_);
     if (graph_inited_)
       return;
+    memLine("t1 before graph init (= prefill end)");
     // [#282 F] the first token's setup, timed (one line at the end)
     const uint64_t t_init = HtpProfile::nowUs();
     struct InitLine {
@@ -3632,6 +3682,7 @@ public:
       throw;
     }
     graph_inited_ = true;
+    memLine("t1 after graph init");
     char names[128];
     std::fprintf(stderr, "[HTP] graph: init n_ops=%u resident=%s moe_ops=%zu\n",
                  n_ops,
@@ -5931,6 +5982,8 @@ private:
     ++fwd_calls_; // one ARM -> DSP packet per token: calls/token = 1.00
     ++fwd_tokens_;
     if (e.tokens == 1)
+      releasePrefillStaging(); // [#4416 mem] the seed was the last big row
+    if (e.tokens == 1)
       std::fprintf(stderr,
                    "[HTP] token driver: first token pos=%u id=%u us=%llu "
                    "logits=%d\n",
@@ -7811,16 +7864,19 @@ private:
    *  ponytail: a second prefill that fell back to a CPU FC would read
    *  zeros (madvise DONTNEED on anonymous pages) -- single-prompt runs
    *  only; the upgrade is a re-read from the model file on that path. */
-  void dropHostFc() {
+  void dropHostFc(bool qs4cx_only = false) {
     static const bool on = std::getenv("NNTR_HTP_DROP_HOST_FC") != nullptr;
     if (!on || host_fc_dropped_ || !e2e_)
       return;
-    host_fc_dropped_ = true;
+    host_fc_dropped_ = !qs4cx_only;
     const size_t before = memAvailableMib();
     size_t bytes = 0;
-    for (const Q4Pending &p : q4_pending_) {
+    for (Q4Pending &p : q4_pending_) {
       if (p.canonical) // a tied head is the embedding table: still read
         continue;
+      if (p.dropped || (qs4cx_only && p.scale == nullptr))
+        continue;
+      p.dropped = true;
       const size_t codes =
         p.scale != nullptr
           ? static_cast<size_t>(p.K) * p.N / 2
@@ -7833,10 +7889,12 @@ private:
       }
     }
     std::fprintf(stderr,
-                 "[HTP] drop host fc: weights=%zu mib=%zu mem_avail_mib "
+                 "[HTP] drop host fc%s: weights=%zu mib=%zu mem_avail_mib "
                  "%zu -> %zu rss_mib=%zu\n",
-                 q4_pending_.size(), bytes >> 20, before, memAvailableMib(),
+                 qs4cx_only ? " (QS4CX, at load)" : "", q4_pending_.size(),
+                 bytes >> 20, before, memAvailableMib(),
                  static_cast<size_t>(rssKb() >> 10));
+    memLine("t1 after drop host fc");
   }
 
   /** @brief [#282] The pinned bytes of file range [off, off + len), or
@@ -8740,8 +8798,10 @@ private:
     uint32_t K, N;
     bool canonical;
     const float *scale = nullptr; /**< [#260] QS4CX: N scales; Q4_0: null */
+    bool dropped = false;         /**< [#4416 mem] CPU copy handed back */
   };
   std::vector<Q4Pending> q4_pending_;
+
   std::vector<uint32_t> q4m1_handles_;
   /** @brief The lm_head's slices by weight (lmHeadHandles); ok false: it
    *  could not be placed and stays on the CPU. */
