@@ -11,6 +11,7 @@
  *
  */
 
+#include "htp_strict.h"
 #include <acti_func.h>
 #include <cpu_backend.h>
 #include <htp_decode_hook.h>
@@ -345,9 +346,10 @@ void TieWordEmbedding::prepareLmhead(nntrainer::RunLayerContext &context) {
 
 bool TieWordEmbedding::placeLmheadOnAccelerator(
   nntrainer::RunLayerContext &context) {
-  if (mode_ != mode::lm_head || lmhead_blocked_tried_)
+  if (mode_ != mode::lm_head || lmhead_blocked_tried_ || htpCpuLmHead())
     return false;
-  nntrainer::ComputeOps *ops = context.getComputeOps();
+  nntrainer::ComputeOps *ops =
+    htpStrict() ? htpStrictOps() : context.getComputeOps();
   const nntrainer::Tensor &weight =
     context.getWeight(weight_idx[TieWordEmbeddingParams::weight]);
   if (ops == nullptr ||
@@ -562,7 +564,9 @@ void TieWordEmbedding::incremental_forwarding_lmhead(
   const bool no_bias =
     !std::get<nntrainer::props::DisableBias>(*layer_impl_props).empty() &&
     std::get<nntrainer::props::DisableBias>(*layer_impl_props).get();
-  nntrainer::ComputeOps *ops = input_.getOps();
+  nntrainer::ComputeOps *ops = htpCpuLmHead() ? nullptr
+                               : htpStrict()  ? htpStrictOps()
+                                              : input_.getOps();
   auto head_of = [&](nntrainer::Tensor &row, nntrainer::Tensor &out, bool cap) {
     const float c = cap ? softcap : 0.0f;
     if (no_bias && ops != nullptr && row.getDataType() == f32 &&
@@ -576,6 +580,8 @@ void TieWordEmbedding::incremental_forwarding_lmhead(
             : nullptr,
           eps, c, out.getData<float>()))
       return;
+    if (htpStrict() && !htpCpuLmHead())
+      throw std::runtime_error("NNTR_HTP_STRICT: LM head could not run on HTP");
     if (in_norm) {
       NNTR_THROW_IF(row.getDataType() != f32, std::invalid_argument)
         << "lm head: in_norm is FP32 only";
@@ -604,8 +610,8 @@ void TieWordEmbedding::incremental_forwarding_lmhead(
       hidden_step_dim, b * hidden_dim.getFeatureLen(), true);
     // [#132 Part B] a decode row's lm_head on the HTP (no bias there, and
     // nothing folded: the resident graph's op is the head alone)
-    if (b_size == 1 && to - from == 1 && !in_norm && softcap == 0.0f &&
-        input_step.getDataType() == f32 && no_bias &&
+    if (!htpCpuLmHead() && b_size == 1 && to - from == 1 && !in_norm &&
+        softcap == 0.0f && input_step.getDataType() == f32 && no_bias &&
         causallm::htpDecodeLmHead(
           from, input_step.getData<float>(), input_step.width(),
           hidden_step.getData<float>(), hidden_step.width()))

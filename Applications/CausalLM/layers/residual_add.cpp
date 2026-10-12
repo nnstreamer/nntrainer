@@ -12,6 +12,7 @@
  */
 
 #include "residual_add.h"
+#include "htp_strict.h"
 
 #include <cpu_backend.h>
 #include <nntrainer_error.h>
@@ -128,6 +129,13 @@ void ResidualAddLayer::run(nntrainer::RunLayerContext &context,
                      W))
       continue;
     if (!fused) {
+      if (htpStrict()) {
+        htpStrictMath(nntrainer::ComputeOps::InferenceMath::Add, rows, W, 0,
+                      0.0f, 1.0f, in0_step.getData<float>(),
+                      in1_step.getData<float>(), nullptr,
+                      out_step.getData<float>());
+        continue;
+      }
       out_step.copy(in0_step);
       out_step.add_i(in1_step);
       continue;

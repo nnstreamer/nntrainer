@@ -14,6 +14,7 @@
 #ifndef __LFM2_MOE_CAUSALLM_H__
 #define __LFM2_MOE_CAUSALLM_H__
 
+#include <cstdlib>
 #include <set>
 
 #include "lfm2_causallm.h"
@@ -36,6 +37,14 @@ public:
 
   virtual ~Lfm2MoeCausalLM() = default;
 
+  bool fuseMoeInputNorm(int layer_id) const override {
+    const char *q4 = std::getenv("NNTR_HTP_ROUTER_Q4_DECODE");
+    const char *fc = std::getenv("NNTR_HTP_FC_M1_HVX");
+    return (ROUTER_DTYPE == "FP32" ||
+            (ROUTER_DTYPE == "QS4CX" && (!q4 || std::atoi(q4) != 0) &&
+             (!fc || std::atoi(fc) != 0))) &&
+           layer_id >= static_cast<int>(NUM_DENSE_LAYERS);
+  }
   Tensor createMlp(const int layer_id, int dim, int hidden_dim,
                    Tensor input) override;
 
@@ -66,6 +75,7 @@ protected:
    * setupParameters) unless nntr_config.json carries its own
    * moe_layer_dtype, which nntr_quantize's --moe_dtype writes. */
   std::string MOE_LAYER_DTYPE;
+  std::string ROUTER_DTYPE = "FP32";
   /** engine ("cpu"/"htp"/...) for MoE FFN layers selected by
    * MOE_HTP_LAYERS (or every MoE layer, if that set is empty); defaults to
    * "cpu" so an existing model run is unaffected unless nntr_config.json

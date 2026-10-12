@@ -101,7 +101,6 @@ public:
   using prop_tag = nntrainer::uint_prop_tag; /**< property type */
 };
 
-
 /**
  * @brief UseRope property
  */
@@ -165,7 +164,6 @@ public:
     "rope_scaling_factor";                    /**< unique key to access */
   using prop_tag = nntrainer::float_prop_tag; /**< property type */
 };
-
 
 /**
  * @brief RopeScalingMaxPositionEmbeddings
@@ -353,7 +351,7 @@ private:
     props::MaxPositionEmbeddings, props::UseSink, props::RopeScalingType,
     props::RopeScalingFactor, props::RopePartialRotaryFactor,
     props::RopeScalingMaxPositionEmbeddings, props::AttnLogitSoftcapping,
-    props::IsCausal, props::KvCacheQuant>
+    props::IsCausal, props::KvCacheQuant, props::PrefillRopeFused>
     mha_core_props; /**< mha_core layer properties */
 
   /** softmax activation operation */
@@ -581,6 +579,10 @@ private:
    * @param[in] from sequence order
    * @param[in] convert_only true to only store the tensor into the cache dtype
    */
+  bool try_fused_rope_qkv(nntrainer::Tensor &q, nntrainer::Tensor &k,
+                          nntrainer::Tensor &v, nntrainer::Tensor &k_cache,
+                          nntrainer::Tensor &v_cache, unsigned from);
+
   void apply_rotary_emb_tensor_v2(nntrainer::Tensor &in, nntrainer::Tensor &out,
                                   unsigned int dim, unsigned int from,
                                   bool convert_only = false);

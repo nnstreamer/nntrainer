@@ -314,6 +314,13 @@ protected:
    * @param input    symbolic input tensor for this block
    * @return symbolic output tensor of the block
    */
+  /** Fuse a deferred LFM2 block residual into its consumer's norm. */
+  virtual bool fuseMoeInputNorm(int layer_id) const { return false; }
+  Tensor normalizeBlockInput(LayerHandle &norm, Tensor &input);
+  bool defer_block_residual_ = false;
+  bool has_block_residual_ = false;
+  Tensor block_residual_;
+
   virtual Tensor createTransformerDecoderBlock(const int layer_id,
                                                Tensor input);
 

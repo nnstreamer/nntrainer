@@ -10,6 +10,7 @@
  * @bug    No known bugs except for NYI items
  */
 
+#include "htp_strict.h"
 #include <acti_func.h>
 #include <algorithm>
 #include <atomic>
@@ -21,12 +22,15 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <htp_decode_hook.h>
 #include <deque>
+#include <htp_decode_hook.h>
 #include <htp_wh_layout.h>
 #ifndef _WIN32
 #include <unistd.h>
 #endif
+#include "moe_decode_lookahead.h"
+#include "moe_decode_predictor.h"
+#include "moe_lookahead_trace.h"
 #include <expert_lru.h>
 #include <iostream>
 #include <lfm2_moe_layer.h>
@@ -45,6 +49,33 @@
 namespace causallm {
 
 namespace {
+
+/** The router and FFN below read the same immutable expert input. A backend
+ * may retain its staged copy only for this scope; destruction also handles
+ * exceptions and early exits. Different router inputs cannot match the lease.
+ */
+class MoeInputReuseScope {
+public:
+  MoeInputReuseScope(nntrainer::ComputeOps *ops, const float *input,
+                     unsigned int rows, unsigned int cols) :
+    ops_(ops) {
+    if (ops_)
+      token_ = ops_->begin_moe_input_reuse(input, rows, cols);
+  }
+  ~MoeInputReuseScope() { reset(); }
+  void reset() {
+    if (token_) {
+      ops_->end_moe_input_reuse(token_);
+      token_ = 0;
+    }
+  }
+  MoeInputReuseScope(const MoeInputReuseScope &) = delete;
+  MoeInputReuseScope &operator=(const MoeInputReuseScope &) = delete;
+
+private:
+  nntrainer::ComputeOps *ops_;
+  uint64_t token_ = 0;
+};
 
 /**
  * @brief [P3] Where the MoE layer's ARM-side wall clock actually goes.
@@ -211,11 +242,334 @@ static int expertPrefetchDepth() {
   return k;
 }
 
+/** @brief Refill read-ahead after a completed MoE call, before the next
+ * conv/attention/router. The finished call's slots are then safe to reuse.
+ * Measurement switch: keep the original schedule unless explicitly enabled.
+ */
+static bool expertPrefetchAfterCall() {
+  static const bool enabled = [] {
+    const char *value = std::getenv("NNTR_MOE_PREFETCH_EARLY");
+    return value != nullptr && std::atoi(value) > 0;
+  }();
+  return enabled;
+}
+
 /** [doc 52 section 10.20] Read-ahead batches in flight, oldest first: the
  *  layer slot each was queued for and the LRU slots it holds. */
 static std::deque<std::pair<int, size_t>> g_prefetch_batches;
 /** The next layer slot to queue in the current prefill. */
 static int g_prefetch_next = 0;
+
+/** Decode lookahead is opt-in and uses the same fixed expert pool as demand.
+ * Only file reads overlap kernels; registration is collected between calls.
+ * The prototype shares the existing virtual-expert single-model lifecycle.
+ */
+struct DecodeLookahead {
+  using Clock = std::chrono::steady_clock;
+  struct Target {
+    std::string prefix;
+    const float *gate, *bias;
+    unsigned hidden, experts;
+    nntrainer::ComputeOps *ops;
+    std::vector<float> prediction_gate;
+  };
+  struct Stats {
+    uint64_t calls = 0, demand = 0, hits = 0, predicted = 0, correct = 0;
+    uint64_t reads = 0, useful = 0, predict_us = 0, begin_us = 0;
+    uint64_t collect_us = 0, window_us = 0, batches = 0;
+    uint64_t cancelled = 0;
+    uint64_t cache_skips = 0;
+    size_t last_misses = 4;
+  };
+  std::string mode;
+  std::vector<Target> targets;
+  std::unordered_map<std::string, const float *> gammas;
+  std::unordered_map<std::string, std::string> kinds;
+  std::vector<Stats> stats;
+  int prediction_target = -1, flight_target = -1;
+  unsigned step = 0, flight_step = 0;
+  std::vector<unsigned> prediction, flight_prediction;
+  std::vector<ExpertFileDesc> flight;
+  Clock::time_point queued;
+  bool trace = false;
+  unsigned read_limit = 4;
+  size_t retired_holds = 0;
+  bool selective = true;
+  bool adaptive = false;
+
+  DecodeLookahead() {
+    const char *v = std::getenv("NNTR_MOE_DECODE_PREFETCH");
+    mode = v ? v : "";
+    trace = std::getenv("NNTR_MOE_PREFETCH_BATCH_TRACE") != nullptr;
+    if (const char *limit = std::getenv("NNTR_MOE_DECODE_PREFETCH_LIMIT"))
+      read_limit =
+        static_cast<unsigned>(std::max(0, std::min(4, std::atoi(limit))));
+    if (const char *v = std::getenv("NNTR_MOE_DECODE_PREFETCH_SELECTIVE"))
+      selective = std::atoi(v) != 0;
+    if (const char *v = std::getenv("NNTR_MOE_DECODE_PREFETCH_ADAPTIVE"))
+      adaptive = std::atoi(v) != 0;
+  }
+  bool previous() const {
+    return mode == "previous" || mode == "previous_probe";
+  }
+  static uint64_t elapsed(Clock::time_point t) {
+    return std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() -
+                                                                 t)
+      .count();
+  }
+  void validate() const {
+    if (!mode.empty() && mode != "off" && mode != "block" &&
+        mode != "block_ffn" && !previous())
+      throw std::invalid_argument("Unknown NNTR_MOE_DECODE_PREFETCH mode");
+  }
+  ~DecodeLookahead() {
+    if (mode.empty())
+      return;
+    for (size_t i = 0; i < stats.size(); ++i) {
+      const auto &s = stats[i];
+      if (!s.calls)
+        continue;
+      std::fprintf(
+        stderr,
+        "[MOE-LOOKAHEAD] mode=%s layer=%zu kind=%s calls=%llu demand=%llu "
+        "hits=%llu predicted=%llu correct=%llu reads=%llu useful=%llu "
+        "predict_us=%llu begin_us=%llu collect_us=%llu window_us=%llu "
+        "batches=%llu cancelled=%llu cache_skips=%llu\n",
+        mode.c_str(), i, kinds[targets[i].prefix].c_str(),
+        (unsigned long long)s.calls, (unsigned long long)s.demand,
+        (unsigned long long)s.hits, (unsigned long long)s.predicted,
+        (unsigned long long)s.correct, (unsigned long long)s.reads,
+        (unsigned long long)s.useful, (unsigned long long)s.predict_us,
+        (unsigned long long)s.begin_us, (unsigned long long)s.collect_us,
+        (unsigned long long)s.window_us, (unsigned long long)s.batches,
+        (unsigned long long)s.cancelled, (unsigned long long)s.cache_skips);
+    }
+  }
+  void begin(const std::vector<causallm::ExpertLru::Key> &pinned) {
+    if (prediction_target < 0)
+      return;
+    if (flight_target >= 0 || !g_prefetch_batches.empty())
+      throw std::logic_error("decode lookahead overlaps an uncollected batch");
+    const int target = prediction_target;
+    auto *ops = targets.at(target).ops;
+    std::vector<ExpertFileDesc> want;
+    for (unsigned e : prediction)
+      if (!g_expert_lru.resident(g_expert_layers.at(target).at(e).key_gu))
+        want.push_back(g_expert_layers[target][e]);
+    want.resize(
+      std::min<size_t>(want.size(), mode == "previous_probe" ? 0 : read_limit));
+    // Keep predicted resident experts as well as the running call's weights.
+    auto protect = pinned;
+    for (unsigned e : prediction)
+      protect.push_back(g_expert_layers[target][e].key_gu);
+    const auto start = Clock::now();
+    if (!want.empty() &&
+        g_expert_lru.makeRoom(
+          want.size(), protect, [ops](causallm::ExpertLru::Key k) {
+            if (!ops->release_qs4cx_wh_expert(k))
+              throw std::logic_error("lookahead evicted an absent expert");
+          })) {
+      g_expert_lru.hold(want.size());
+      bool ok = false;
+      try {
+        ok = ops->prefetch_qs4cx_wh_experts_decode(want);
+      } catch (...) {
+        g_expert_lru.unhold(want.size());
+        throw;
+      }
+      if (ok) {
+        flight = std::move(want);
+        stats[target].reads += flight.size();
+        ++stats[target].batches;
+        queued = Clock::now();
+        flight_target = target;
+        flight_step = step;
+      } else {
+        g_expert_lru.unhold(want.size());
+      }
+    }
+    // Keep prediction even if all candidates already reside in the pool.
+    flight_prediction = std::move(prediction);
+    predicted_target = target;
+    stats[target].begin_us += elapsed(start);
+    prediction_target = -1;
+  }
+  int predicted_target = -1;
+  void take(int target, const std::vector<size_t> &active) {
+    if (mode.empty())
+      return;
+    if (retired_holds) {
+      const size_t freed =
+        targets.at(target).ops->prefetch_qs4cx_wh_experts_reap();
+      if (freed > retired_holds)
+        throw std::logic_error("decode prefetch reservation underflow");
+      g_expert_lru.unhold(freed);
+      retired_holds -= freed;
+    }
+    auto &s = stats.at(target);
+    ++s.calls;
+    s.demand += active.size();
+    // Observe demand before collecting predictions: successful prefetch must
+    // not look like a cache hit and turn its own predictor off next token.
+    s.last_misses = 0;
+    for (size_t e : active)
+      s.last_misses +=
+        !g_expert_lru.resident(g_expert_layers[target][e].key_gu);
+    if (predicted_target == target) {
+      s.predicted += flight_prediction.size();
+      for (size_t e : active)
+        s.correct +=
+          std::find(flight_prediction.begin(), flight_prediction.end(), e) !=
+          flight_prediction.end();
+      predicted_target = -1;
+      flight_prediction.clear();
+    }
+    if (flight_target >= 0) {
+      if (flight_target != target)
+        throw std::logic_error("lookahead batch consumed by the wrong layer");
+      const auto window = elapsed(queued);
+      uint64_t useful_mask = 0;
+      for (size_t j = 0; j < flight.size() && j < 64; ++j)
+        for (size_t e : active)
+          if (flight[j].key_gu == g_expert_layers[target][e].key_gu)
+            useful_mask |= uint64_t(1) << j;
+      s.window_us += window;
+      const auto start = Clock::now();
+      // Keep discarded in-flight slots held until a later nonblocking reap.
+      std::vector<const void *> keys;
+      size_t pending = 0;
+      try {
+        if (selective) {
+          std::vector<const void *> needed;
+          for (size_t e : active)
+            needed.push_back(g_expert_layers[target][e].key_gu);
+          auto done =
+            targets[target].ops->prefetch_qs4cx_wh_experts_select(needed);
+          keys = std::move(done.keys);
+          pending = done.pending;
+          s.cancelled += done.cancelled;
+        } else {
+          keys = targets[target].ops->prefetch_qs4cx_wh_experts_end();
+        }
+      } catch (...) {
+        g_expert_lru.unhold(flight.size());
+        flight.clear();
+        flight_target = -1;
+        throw;
+      }
+      if (pending > flight.size())
+        throw std::logic_error("decode prefetch pending exceeds reservation");
+      g_expert_lru.unhold(flight.size() - pending);
+      retired_holds += pending;
+      g_expert_lru.acquire(
+        keys, [](causallm::ExpertLru::Key) {},
+        [](causallm::ExpertLru::Key) {
+          throw std::logic_error("lookahead reservation lost");
+        });
+      s.collect_us += elapsed(start);
+      for (size_t e : active)
+        s.useful += std::find(keys.begin(), keys.end(),
+                              g_expert_layers[target][e].key_gu) != keys.end();
+      if (trace)
+        std::fprintf(
+          stderr,
+          "[MOE-LOOKAHEAD-TAKE] step=%u layer=%d kind=%s n=%zu window_us=%llu "
+          "useful_mask=%llu\n",
+          flight_step, target, kinds[targets[target].prefix].c_str(),
+          flight.size(), (unsigned long long)window,
+          (unsigned long long)useful_mask);
+      flight.clear();
+      flight_target = -1;
+    }
+    for (size_t e : active)
+      s.hits += g_expert_lru.resident(g_expert_layers[target][e].key_gu);
+  }
+};
+static DecodeLookahead g_decode_lookahead;
+
+static void decodeLookaheadNorm(const std::string &name, unsigned from,
+                                unsigned to, const float *input,
+                                const float *addend, const float *gamma,
+                                unsigned width, float epsilon) {
+  auto &d = g_decode_lookahead;
+  if (d.mode.empty())
+    return;
+  d.validate();
+  const auto split = name.find('_');
+  if (split == std::string::npos)
+    return;
+  const auto prefix = name.substr(0, split);
+  const auto suffix = name.substr(split);
+  if (suffix == "_ffn_norm")
+    d.gammas[prefix] = gamma;
+  else if (suffix == "_conv_norm" || suffix == "_attention_norm")
+    d.kinds[prefix] = suffix == "_conv_norm" ? "conv" : "attention";
+  if (!from || to - from != 1 || d.mode == "off")
+    return;
+  const bool previous = d.previous();
+  if (previous ? suffix != "_ffn_norm"
+               : (suffix != "_conv_norm" && suffix != "_attention_norm"))
+    return;
+  int target = -1;
+  for (size_t i = 0; i < d.targets.size(); ++i)
+    if (d.targets[i].prefix == prefix)
+      target = static_cast<int>(i) + (previous ? 1 : 0);
+  if (target < 0 || target >= static_cast<int>(d.targets.size()))
+    return;
+  if (previous && d.mode != "previous_probe" && d.adaptive &&
+      d.stats[target].last_misses == 0) {
+    ++d.stats[target].cache_skips;
+    return;
+  }
+  if (d.prediction_target >= 0)
+    throw std::logic_error("unlaunched decode prediction");
+  const auto &t = d.targets[target];
+  if (width != t.hidden)
+    throw std::logic_error("lookahead hidden dimension mismatch");
+  if (d.mode == "block_ffn") {
+    const auto it = d.gammas.find(t.prefix);
+    if (it == d.gammas.end())
+      throw std::logic_error("lookahead target FFN norm not registered");
+    gamma = it->second;
+  }
+  const auto start = DecodeLookahead::Clock::now();
+  std::vector<float> x(width), scores(t.experts, 0.0f);
+  float ss = 0;
+  for (unsigned h = 0; h < width; ++h) {
+    x[h] = input[h] + (addend ? addend[h] : 0.0f);
+    ss += x[h] * x[h];
+  }
+  const float inv = 1.0f / std::sqrt(ss / width + epsilon);
+  // Gate layout is [hidden, experts]. Inner loop vectorizes across experts.
+  for (unsigned h = 0; h < width; ++h) {
+    const float v = x[h] * inv * gamma[h];
+    for (unsigned e = 0; e < t.experts; ++e)
+      scores[e] += v * (t.prediction_gate.empty()
+                          ? t.gate
+                          : t.prediction_gate.data())[h * t.experts + e];
+  }
+  std::vector<unsigned> rank(t.experts);
+  for (unsigned e = 0; e < t.experts; ++e) {
+    scores[e] = 1.0f / (1.0f + std::exp(-scores[e])) + t.bias[e];
+    rank[e] = e;
+  }
+  const unsigned n = std::min<unsigned>(4, t.experts);
+  std::partial_sort(rank.begin(), rank.begin() + n, rank.end(),
+                    [&scores](unsigned a, unsigned b) {
+                      return scores[a] > scores[b] ||
+                             (scores[a] == scores[b] && a < b);
+                    });
+  rank.resize(n);
+  d.prediction = std::move(rank);
+  d.prediction_target = target;
+  d.step = from;
+  d.stats[target].predict_us += DecodeLookahead::elapsed(start);
+  // Previous-router mode starts once this call's real selection is known.
+  // Its resident experts are pinned; held slots protect the future reads
+  // while the current call stages any misses and then executes its FFN.
+  if (!previous)
+    d.begin({});
+}
 
 /**
  * @brief NNTR_MOE_TRACE=<path>: one line per MoE layer call,
@@ -263,7 +617,7 @@ Lfm2MoELayer::Lfm2MoELayer() :
             nntrainer::props::Unit(), props::MoEActivation(),
             props::RouterType(), props::CacheExperts(), props::InNorm(),
             props::RouterNorm(), props::OutNorm(), props::OutAdd(),
-            nntrainer::props::Epsilon()),
+            nntrainer::props::Epsilon(), props::RouterDtype()),
   softmax_router(false),
   gelu_act(false),
   expert_gate_up_proj_indices({}),
@@ -390,12 +744,21 @@ void Lfm2MoELayer::finalize(nntrainer::InitLayerContext &context) {
   if (router_norm)
     router_gamma_idx = request_gamma("router_norm_gamma");
 
-  // 4. Initialize gate layer (router). Always kept FP32.
+  // The router has its own storage dtype; legacy files keep FP32.
+  const auto &router_dtype = std::get<props::RouterDtype>(moe_props).get();
+  NNTR_THROW_IF(router_dtype != "FP32" && router_dtype != "QS4CX",
+                std::invalid_argument)
+    << "router_dtype must be FP32 or QS4CX";
+  const bool router_qs4 = router_dtype == "QS4CX";
+  NNTR_THROW_IF(router_qs4 && (!is_nchw || softmax_router),
+                std::invalid_argument)
+    << "QS4CX router requires NCHW sigmoid_bias routing";
   nntrainer::TensorDim gate_dim(
     1, is_nchw ? 1 : num_experts, is_nchw ? hidden_size : 1,
     is_nchw ? num_experts : hidden_size,
     nntrainer::TensorDim::TensorType(context.getFormat(),
-                                     nntrainer::TensorDim::DataType::FP32),
+                                     router_qs4 ? nntrainer::Tdatatype::QS4CX
+                                                : nntrainer::Tdatatype::FP32),
     is_nchw ? 0b0011 : 0b0101);
 
   gate_idx = context.requestWeight(
@@ -579,12 +942,13 @@ void Lfm2MoELayer::buildExpertAssignments(
  *  accelerator's slot pool, keyed by its two weight tensors. The dims are
  *  the kernel's: gate_up is [K, 2 * inter], down [inter, N_out]. */
 static ExpertFileDesc expertDesc(nntrainer::Tensor &gu, nntrainer::Tensor &dn) {
-  if (gu.getDataType() != nntrainer::Tdatatype::QS4CX_WH ||
-      dn.getDataType() != nntrainer::Tdatatype::QS4CX_WH) {
+  const auto dtype = gu.getDataType();
+  if ((dtype != nntrainer::Tdatatype::QS4CX_WH &&
+       dtype != nntrainer::Tdatatype::QS2CX_WH) ||
+      dn.getDataType() != dtype) {
     throw std::runtime_error(
-      "NNTR_MOE_CACHE_EXPERTS on an accelerator engine needs QS4CX_WH expert "
-      "weights (the file's bytes go to the DSP as they are); this model's "
-      "are not");
+      "NNTR_MOE_CACHE_EXPERTS needs matching QS4CX_WH or QS2CX_WH "
+      "expert weights");
   }
   return ExpertFileDesc{&gu,
                         &dn,
@@ -593,7 +957,8 @@ static ExpertFileDesc expertDesc(nntrainer::Tensor &gu, nntrainer::Tensor &dn) {
                         dn.getFileOffset(),
                         static_cast<unsigned int>(gu.height()),
                         static_cast<unsigned int>(dn.height()),
-                        static_cast<unsigned int>(dn.width())};
+                        static_cast<unsigned int>(dn.width()),
+                        dtype == nntrainer::Tdatatype::QS2CX_WH ? 2u : 4u};
 }
 
 static void loadVirtualExpert(nntrainer::ComputeOps *ops,
@@ -627,9 +992,48 @@ bool Lfm2MoELayer::preloadExperts(nntrainer::RunLayerContext &context) {
     descs.push_back(
       expertDesc(context.getWeight(expert_gate_up_proj_indices[e]),
                  context.getWeight(expert_down_proj_indices[e])));
+  // Export every descriptor, including experts the prompt never routes to.
+  // prepare_qs2_lut.py --manifest-log consumes these optional log records.
+  const char *export_qs2 = std::getenv("NNTR_HTP_QS2_EXPORT");
+  if (export_qs2 && std::strcmp(export_qs2, "1") == 0) {
+    for (const auto &d : descs) {
+      if (d.weight_bits == 2u) {
+        std::cout << "[QS2-WEIGHT] " << d.off_gu << ' ' << d.K << ' '
+                  << 2u * d.inter << std::endl
+                  << "[QS2-WEIGHT] " << d.off_dn << ' ' << d.inter << ' '
+                  << d.N_out << std::endl;
+      }
+    }
+  }
   if (expert_layer_slot < 0) {
     expert_layer_slot = static_cast<int>(g_expert_layers.size());
     g_expert_layers.push_back(descs);
+    if (!g_decode_lookahead.mode.empty()) {
+      g_decode_lookahead.validate();
+      setMoeDecodeLookaheadCallback(decodeLookaheadNorm);
+      const auto &gate = context.getWeight(gate_idx);
+      const bool q4 = gate.getDataType() == nntrainer::Tdatatype::QS4CX;
+      if (softmax_router || in_norm || router_norm || out_add ||
+          (!q4 && gate.getDataType() != nntrainer::Tdatatype::FP32))
+        throw std::invalid_argument(
+          "Decode lookahead requires plain FP32 or QS4CX LFM2 routing");
+      const auto name = context.getName();
+      g_decode_lookahead.targets.push_back(
+        {name.substr(0, name.find('_')),
+         q4 ? nullptr : gate.getData<float>(),
+         context.getWeight(expert_bias_idx).getData<float>(),
+         static_cast<unsigned>(context.getInput(0).width()),
+         num_experts,
+         ops,
+         {}});
+      if (q4 && g_decode_lookahead.mode != "off") {
+        auto &target = g_decode_lookahead.targets.back();
+        target.prediction_gate = decodePredictionWeights(
+          reinterpret_cast<const uint8_t *>(gate.getData<char>()),
+          gate.getScale<float>(), target.hidden, target.experts);
+      }
+      g_decode_lookahead.stats.emplace_back();
+    }
   }
 
   std::vector<causallm::ExpertLru::Key> need;
@@ -673,8 +1077,7 @@ static void normRows(const nntrainer::Tensor &src, nntrainer::Tensor &dst,
     << "MoE layer: in_norm / router_norm / out_norm are FP32 only";
   const unsigned int width = src.width();
   nntrainer::rms_norm_wrt_width_fp32_intrinsic(
-    src.getData<float>(), dst.getData<float>(), src.size() / width, width,
-    eps);
+    src.getData<float>(), dst.getData<float>(), src.size() / width, width, eps);
   dst.multiply_i(gamma);
 }
 
@@ -688,10 +1091,55 @@ static bool routerLogitsOnAccelerator(
   const nntrainer::Tensor &rows, const nntrainer::Tensor &gate_weights,
   const float *gamma, float eps, unsigned int total_tokens,
   unsigned int hidden_size, unsigned int num_experts, nntrainer::Tensor &logits,
-  AcceleratedRoute *route) {
+  AcceleratedRoute *route, bool sigmoid = false) {
   auto *ops = rows.getOps();
   const auto f32 = ml::train::TensorDim::DataType::FP32;
-  if (total_tokens <= 1 || ops == nullptr ||
+  // Run the stored INT4 matrix directly through the accelerator. Selection
+  // still consumes FP32 logits; no full FP32 router matrix is materialized.
+  if (gate_weights.getDataType() == nntrainer::Tdatatype::QS4CX) {
+    if (!ops || rows.getDataType() != f32 ||
+        !ops->supports_gemm_qs4cx_accel_fp32() || num_experts % 32 ||
+        num_experts > 128)
+      return false;
+    const float *x = rows.getData<float>();
+    std::vector<float> normed;
+    if (gamma) {
+      normed.resize(static_cast<size_t>(total_tokens) * hidden_size);
+      if (!ops->inference_math_fp32(
+            nntrainer::ComputeOps::InferenceMath::RmsNorm, total_tokens,
+            hidden_size, hidden_size, eps, 1.0f, x, nullptr, gamma,
+            normed.data()))
+        return false;
+      x = normed.data();
+    }
+    if (route && sigmoid) {
+      route->sel.resize(static_cast<size_t>(total_tokens) * route->n_sel);
+      route->weight.resize(static_cast<size_t>(total_tokens) * route->top_k);
+      if (ops->router_qs4cx_prefill(
+            gate_weights.getData<char>(), gate_weights.getScale<float>(), x,
+            logits.getData<float>(), total_tokens, hidden_size, num_experts,
+            route->top_k, route->n_sel, route->scale, route->sel.data(),
+            route->weight.data()))
+        return true;
+    }
+    ops->gemm_qs4cx_accel_fp32(gate_weights.getData<char>(),
+                               gate_weights.getScale<float>(),
+                               const_cast<float *>(x), logits.getData<float>(),
+                               total_tokens, num_experts, hidden_size);
+    if (route) {
+      if (!sigmoid)
+        throw std::invalid_argument("QS4CX router requires sigmoid routing");
+      route->sel.resize(static_cast<size_t>(total_tokens) * route->n_sel);
+      route->weight.resize(static_cast<size_t>(total_tokens) * route->top_k);
+      if (!ops->sigmoid_topk_fp32(total_tokens, num_experts, route->top_k,
+                                  route->n_sel, logits.getData<float>(),
+                                  route->scale, route->sel.data(),
+                                  route->weight.data()))
+        throw std::runtime_error("QS4CX router sigmoid top-k unavailable");
+    }
+    return true;
+  }
+  if ((!htpStrict() && total_tokens <= 1) || ops == nullptr ||
       !ops->supports_router_logits_fp32() || num_experts % 32 != 0 ||
       num_experts > 128 || rows.getDataType() != f32 ||
       gate_weights.getDataType() != f32)
@@ -700,12 +1148,20 @@ static bool routerLogitsOnAccelerator(
     route->sel.resize(static_cast<size_t>(total_tokens) * route->n_sel);
     route->weight.resize(static_cast<size_t>(total_tokens) * route->top_k);
   }
+  const bool fused_sigmoid = route && sigmoid && htpStrictFusion();
   ops->router_logits_fp32(
     total_tokens, hidden_size, num_experts, rows.getData<float>(), gamma, eps,
     gate_weights.getData<float>(), logits.getData<float>(),
-    route ? route->top_k : 0u, route ? route->n_sel : 0u,
+    route && (!sigmoid || fused_sigmoid) ? route->top_k : 0u,
+    route && (!sigmoid || fused_sigmoid) ? route->n_sel : 0u,
     route ? route->scale : nullptr, route ? route->sel.data() : nullptr,
-    route ? route->weight.data() : nullptr);
+    route ? route->weight.data() : nullptr, fused_sigmoid);
+  if (route && sigmoid && !fused_sigmoid &&
+      !ops->sigmoid_topk_fp32(total_tokens, num_experts, route->top_k,
+                              route->n_sel, logits.getData<float>(),
+                              route->scale, route->sel.data(),
+                              route->weight.data()))
+    throw std::runtime_error("NNTR_HTP_STRICT: sigmoid top-k unavailable");
   return true;
 }
 
@@ -744,6 +1200,10 @@ void Lfm2MoELayer::addEpilogue(nntrainer::RunLayerContext &context,
 
 void Lfm2MoELayer::forwarding(nntrainer::RunLayerContext &context,
                               bool training) {
+  if (htpStrict()) {
+    incremental_forwarding(context, 0, context.getInput(0).height(), training);
+    return;
+  }
   /** M0 (doc 43 §5): ARM-side wall timer around the whole layer -- this
    * profile is invisible to NNTR_HTP_PROFILE's host column by design, and
    * in the htp run the one dispatched layer's figure includes its
@@ -786,7 +1246,10 @@ void Lfm2MoELayer::forwarding(nntrainer::RunLayerContext &context,
     router_norm ? context.getWeight(router_gamma_idx).getData<float>()
                 : nullptr,
     norm_eps, total_tokens, hidden_size, num_experts, router_logits,
-    softmax_router ? &route : nullptr);
+    softmax_router || htpStrict() ? &route : nullptr,
+    htpStrict() && !softmax_router);
+  if (htpStrict() && !router_on_accel)
+    throw std::runtime_error("NNTR_HTP_STRICT: router would use CPU");
   if (router_norm && !router_on_accel)
     normRows(raw_input, router_in, context.getWeight(router_gamma_idx),
              norm_eps);
@@ -815,7 +1278,7 @@ void Lfm2MoELayer::forwarding(nntrainer::RunLayerContext &context,
   size_t max_assigned_tokens = 0;
   {
     M0Timer t(&g_m0.topk);
-    if (router_on_accel && softmax_router)
+    if (router_on_accel && (softmax_router || htpStrict()))
       assignmentsFromRoute(route, total_tokens, expert_assignments, nullptr);
     else
       buildExpertAssignments(router_logits, expert_bias, total_tokens,
@@ -985,12 +1448,21 @@ static bool moeReadAt(int fd, void *dst, size_t len, uint64_t off) {
  * the value plus 8, unsigned, where whSlot puts it.
  */
 static bool moeReadExpertWeight(int fd, uint64_t off, uint32_t K, uint32_t N,
-                                std::vector<float> &out) {
+                                std::vector<float> &out, unsigned int bits) {
   const size_t nibbles = nntrainer::whBytes(K, N);
   std::vector<uint8_t> packed(nibbles);
   std::vector<float> scale(N);
-  if (!moeReadAt(fd, packed.data(), nibbles, off) ||
-      !moeReadAt(fd, scale.data(), N * sizeof(float), off + nibbles)) {
+  if (bits == 2) {
+    std::vector<uint8_t> compact(nibbles / 2 + 4);
+    if (!moeReadAt(fd, compact.data(), compact.size(), off) ||
+        !nntrainer::wh2Expand(
+          compact.data(),
+          reinterpret_cast<const int8_t *>(compact.data() + nibbles / 2), K, N,
+          packed.data()) ||
+        !moeReadAt(fd, scale.data(), N * sizeof(float), off + compact.size()))
+      return false;
+  } else if (bits != 4 || !moeReadAt(fd, packed.data(), nibbles, off) ||
+             !moeReadAt(fd, scale.data(), N * sizeof(float), off + nibbles)) {
     return false;
   }
   std::vector<int8_t> q(static_cast<size_t>(K) * N);
@@ -1056,10 +1528,10 @@ static void moeDiff(const nntrainer::Tensor &input, nntrainer::Tensor &output,
                    trace_layer, e);
       return;
     }
-    if (!moeReadExpertWeight(d.fd, d.off_gu, d.K, 2u * intermediate_size,
-                             w_gu) ||
-        !moeReadExpertWeight(d.fd, d.off_dn, intermediate_size, d.N_out,
-                             w_dn)) {
+    if (!moeReadExpertWeight(d.fd, d.off_gu, d.K, 2u * intermediate_size, w_gu,
+                             d.weight_bits) ||
+        !moeReadExpertWeight(d.fd, d.off_dn, intermediate_size, d.N_out, w_dn,
+                             d.weight_bits)) {
       std::fprintf(stderr, "[MOE-DIFF] layer=%u expert=%zu: read failed\n",
                    trace_layer, e);
       return;
@@ -1157,10 +1629,14 @@ static bool tryMoeLayerOnAccelerator(
   // experts' halves have to agree, and every expert with every other: the
   // call takes one flag for the layer, and a model that mixed the two would
   // otherwise read half its weights with the wrong layout.
+  const auto dtype = context.getWeight(gate_up_indices[0]).getDataType();
   const auto wh = nntrainer::Tdatatype::QS4CX_WH;
   const auto plain = nntrainer::Tdatatype::QS4CX;
-  const bool weights_wh =
-    context.getWeight(gate_up_indices[0]).getDataType() == wh;
+  const bool two_bit = dtype == nntrainer::Tdatatype::QS2CX_WH;
+  const bool weights_wh = dtype == wh || two_bit;
+  if (two_bit && !experts_virtual)
+    throw std::invalid_argument("QS2CX_WH requires HTP expert streaming "
+                                "with NNTR_MOE_CACHE_EXPERTS > 0");
 
   // Decode's single token normally stays on the ARM side: it cannot amortize
   // the kernel's 64-row pad, which is why the fused path has the same gate.
@@ -1186,7 +1662,7 @@ static bool tryMoeLayerOnAccelerator(
   for (size_t e = 0; e < n_experts; ++e) {
     nntrainer::Tensor &gu = context.getWeight(gate_up_indices[e]);
     nntrainer::Tensor &dn = context.getWeight(down_indices[e]);
-    const auto want = weights_wh ? wh : plain;
+    const auto want = weights_wh ? dtype : plain;
     if (gu.getDataType() != want || dn.getDataType() != want) {
       return false;
     }
@@ -1210,6 +1686,8 @@ static bool tryMoeLayerOnAccelerator(
     if (!experts_virtual || !expert_assignments[e].empty())
       active.push_back(e);
   }
+  if (experts_virtual && total_tokens == 1)
+    g_decode_lookahead.take(expert_layer_slot, active);
   auto release = [&](causallm::ExpertLru::Key k) {
     if (!ops->release_qs4cx_wh_expert(k)) {
       throw std::logic_error("expert LRU evicted an expert the "
@@ -1310,6 +1788,60 @@ static bool tryMoeLayerOnAccelerator(
   }();
   const size_t cap = split_env ? std::min(split_env, g_expert_lru.capacity())
                                : g_expert_lru.capacity();
+  const int depth =
+    experts_virtual && total_tokens > 1 && expert_layer_slot >= 0
+      ? expertPrefetchDepth()
+      : 0;
+  bool refill_after_call = false;
+  auto queue_future = [&](bool current_finished) {
+    if (depth <= 0)
+      return;
+    g_prefetch_next = std::max(g_prefetch_next, expert_layer_slot + 1);
+    const int n_layers = static_cast<int>(g_expert_layers.size());
+    const int last = std::min(expert_layer_slot + depth, n_layers - 1);
+    size_t queued_experts = 0;
+    for (; g_prefetch_next <= last; ++g_prefetch_next) {
+      // Only the synchronous call's completion makes its weights reusable.
+      // Every future resident weight remains pinned; in-flight reads are
+      // protected separately by hold(), and consume the same fixed pool.
+      std::vector<causallm::ExpertLru::Key> pinned;
+      if (!current_finished)
+        pinned = need;
+      for (int l = expert_layer_slot + 1; l < n_layers; ++l)
+        for (const ExpertFileDesc &d : g_expert_layers[l])
+          if (g_expert_lru.resident(d.key_gu))
+            pinned.push_back(d.key_gu);
+      std::vector<ExpertFileDesc> want;
+      for (const ExpertFileDesc &d : g_expert_layers[g_prefetch_next])
+        if (!g_expert_lru.resident(d.key_gu))
+          want.push_back(d);
+      if (want.empty())
+        continue;
+      if (!g_expert_lru.makeRoom(want.size(), pinned, release))
+        break;
+      g_expert_lru.hold(want.size());
+      bool queued = false;
+      try {
+        queued = ops->prefetch_qs4cx_wh_experts_begin(want);
+      } catch (...) {
+        g_expert_lru.unhold(want.size());
+        throw;
+      }
+      if (queued) {
+        g_prefetch_batches.emplace_back(g_prefetch_next, want.size());
+        queued_experts += want.size();
+      } else
+        g_expert_lru.unhold(want.size());
+    }
+    static const bool trace =
+      std::getenv("NNTR_MOE_PREFETCH_SCHEDULE_TRACE") != nullptr;
+    if (trace && current_finished)
+      std::fprintf(stderr,
+                   "[MOE-PREFETCH] layer=%d after_call=%zu queued_batches=%zu "
+                   "resident=%zu capacity=%zu\n",
+                   expert_layer_slot, queued_experts, g_prefetch_batches.size(),
+                   g_expert_lru.size(), g_expert_lru.capacity());
+  };
   if (experts_virtual && active.size() > cap) {
     float *out = output.getData<float>();
     const size_t n_out = static_cast<size_t>(total_tokens) * hidden_size;
@@ -1337,10 +1869,6 @@ static bool tryMoeLayerOnAccelerator(
     // slots that free up each layer are the finished layers' (section
     // 10.33) -- and the in-flight slots are held so no miss takes them;
     // where there is no room the queue stops and resumes a layer later.
-    const int depth =
-      experts_virtual && total_tokens > 1 && expert_layer_slot >= 0
-        ? expertPrefetchDepth()
-        : 0;
     auto take_batch = [&] {
       const size_t held = g_prefetch_batches.front().second;
       g_prefetch_batches.pop_front();
@@ -1361,44 +1889,20 @@ static bool tryMoeLayerOnAccelerator(
         g_prefetch_next = 1;
     }
 
+    if (experts_virtual && total_tokens == 1 && g_decode_lookahead.previous()) {
+      std::vector<causallm::ExpertLru::Key> pinned;
+      for (size_t e : active)
+        pinned.push_back(g_expert_layers[expert_layer_slot][e].key_gu);
+      g_decode_lookahead.begin(pinned);
+    }
     stage(active);
 
-    if (depth > 0) {
-      g_prefetch_next = std::max(g_prefetch_next, expert_layer_slot + 1);
-      const int n_layers = static_cast<int>(g_expert_layers.size());
-      const int last = std::min(expert_layer_slot + depth, n_layers - 1);
-      for (; g_prefetch_next <= last; ++g_prefetch_next) {
-        std::vector<causallm::ExpertLru::Key> pinned(need);
-        for (int l = expert_layer_slot + 1; l < n_layers; ++l)
-          for (const ExpertFileDesc &d : g_expert_layers[l])
-            if (g_expert_lru.resident(d.key_gu))
-              pinned.push_back(d.key_gu);
-        std::vector<ExpertFileDesc> want;
-        for (const ExpertFileDesc &d : g_expert_layers[g_prefetch_next])
-          if (!g_expert_lru.resident(d.key_gu))
-            want.push_back(d);
-        if (want.empty())
-          continue;
-        if (!g_expert_lru.makeRoom(want.size(), pinned, release))
-          break;
-        g_expert_lru.hold(want.size());
-        bool queued = false;
-        try {
-          queued = ops->prefetch_qs4cx_wh_experts_begin(want);
-        } catch (...) {
-          g_expert_lru.unhold(want.size());
-          throw;
-        }
-        if (queued)
-          g_prefetch_batches.emplace_back(g_prefetch_next, want.size());
-        else
-          g_expert_lru.unhold(want.size());
-      }
-    }
+    queue_future(false);
 
     call(output.getData<float>(), add_x2 != nullptr);
     if (add_done)
       *add_done = add_x2 != nullptr;
+    refill_after_call = expertPrefetchAfterCall();
   }
 
 #ifndef _WIN32
@@ -1425,6 +1929,11 @@ static bool tryMoeLayerOnAccelerator(
       recency.push_back(&context.getWeight(gate_up_indices[*it]));
     g_expert_lru.refresh(recency);
   }
+  // Preserve the just-finished call's recency hints before choosing victims.
+  // Diagnostics above read from the model file, but finish those as well so
+  // the early refill does not change their I/O overlap or reference timing.
+  if (refill_after_call)
+    queue_future(true);
   return true;
 }
 
@@ -1631,6 +2140,15 @@ void Lfm2MoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
   nntrainer::TensorDim output_step_dim = output_.getDim();
   nntrainer::TensorDim router_logits_step_dim = router_logits_.getDim();
 
+  if (moeLookaheadDirectory() && from && to - from == 1 &&
+      gate_weights.getDataType() == nntrainer::Tdatatype::FP32) {
+    const std::string name = context.getName();
+    moeLookaheadDump(name + "_gate", gate_weights.getData<float>(),
+                     input_.width() * num_experts, true);
+    moeLookaheadDump(name + "_bias", expert_bias.getData<float>(), num_experts,
+                     true);
+  }
+
   input_step_dim.batch(1);
   output_step_dim.batch(1);
   router_logits_step_dim.batch(to - from);
@@ -1672,6 +2190,14 @@ void Lfm2MoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
     const unsigned hidden_size = input.width();
     const unsigned total_tokens = batch_size * seq_len;
 
+    MoeInputReuseScope input_reuse(
+      total_tokens > 1 && input.getDataType() == nntrainer::Tdatatype::FP32
+        ? input.getOps()
+        : nullptr,
+      input.getDataType() == nntrainer::Tdatatype::FP32 ? input.getData<float>()
+                                                        : nullptr,
+      total_tokens, hidden_size);
+
     // routing, part one: the logits on the accelerator (its norm folded
     // in, and for the softmax router its selection too) or the CPU's norm
     // of the router's copy for the dot below
@@ -1686,7 +2212,10 @@ void Lfm2MoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
       router_norm ? context.getWeight(router_gamma_idx).getData<float>()
                   : nullptr,
       norm_eps, total_tokens, hidden_size, num_experts, router_logits,
-      softmax_router ? &route : nullptr);
+      softmax_router || htpStrict() ? &route : nullptr,
+      htpStrict() && !softmax_router);
+    if (htpStrict() && !router_on_accel)
+      throw std::runtime_error("NNTR_HTP_STRICT: router would use CPU");
     if (router_norm && !router_on_accel)
       normRows(raw, router_in, context.getWeight(router_gamma_idx), norm_eps);
 
@@ -1728,7 +2257,7 @@ void Lfm2MoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
     size_t max_assigned_tokens = 0;
     {
       M0Timer t(&g_m0.topk);
-      if (router_on_accel && softmax_router)
+      if (router_on_accel && (softmax_router || htpStrict()))
         assignmentsFromRoute(route, total_tokens, expert_assignments,
                              want_extra ? &extra_top_k : nullptr);
       else
@@ -1800,6 +2329,9 @@ void Lfm2MoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
         &add_done);
       out_normed_on_accel = moe_layer_done && out_norm && total_tokens > 1;
     }
+    input_reuse.reset();
+    if (htpStrict() && !moe_layer_done)
+      throw std::runtime_error("NNTR_HTP_STRICT: expert FFN would use CPU");
 
     // The ARM path's own preparation, after the accelerator has had its
     // turn: it zero-fills the output itself (hexkl_mm_u8i4_moe.c, memset of
@@ -1875,10 +2407,10 @@ void Lfm2MoELayer::incremental_forwarding(nntrainer::RunLayerContext &context,
     // reshape output: [B*S,1,1,H] -> [B,1,S,H]
     output.reshape({batch_size, 1, seq_len, hidden_size});
     if (out_norm && !out_normed_on_accel) {
-      auto scratch = context.getTensor(experts_in_idx)
-                       .getSharedDataTensor(
-                         output_step_dim, b * output_step_dim.getFeatureLen(),
-                         true);
+      auto scratch =
+        context.getTensor(experts_in_idx)
+          .getSharedDataTensor(output_step_dim,
+                               b * output_step_dim.getFeatureLen(), true);
       normRows(output, scratch, context.getWeight(out_gamma_idx), norm_eps);
       output.copyData(scratch);
     }
@@ -2007,11 +2539,8 @@ void Lfm2MoELayer::save(std::ofstream &file,
 
     auto &weight = run_context.getWeight(i);
 
-    // Router gate and expert bias must never be quantized: the generic
-    // save-with-quantization path only special-cases height==1 (bias-like)
-    // tensors, but the gate is [hidden, num_experts] with num_experts
-    // possibly divisible by 32 (e.g. 32 here), which would otherwise be
-    // silently Q4_0-quantized and corrupt every tensor written after it.
+    // Preserve the configured router representation and the FP32 bias.
+    // The expert save dtype must not silently change either file layout.
     const ml::train::TensorDim::DataType effective_dtype =
       (i == gate_idx || i == expert_bias_idx)
         ? ml::train::TensorDim::DataType::NONE

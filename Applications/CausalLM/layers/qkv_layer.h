@@ -211,7 +211,7 @@ private:
              nntrainer::props::Epsilon, props::VNorm, props::VFromK,
              props::QScale, props::InNorm, props::Rope, props::RopeTheta,
              props::RopeScalingType, props::RopePartialRotaryFactor,
-             nntrainer::props::MaxTimestep>
+             nntrainer::props::MaxTimestep, props::PrefillRopeFused>
     qkv_props;
   std::array<unsigned int, 6>
     weight_idx; /**< [in_gamma,] q, [q_gamma,] k, [k_gamma,] v */
@@ -223,6 +223,7 @@ private:
   bool v_from_k = false;
   float q_scale = 1.0f;
   bool rope = false;
+  bool prefill_rope_fused = false;
   unsigned int rope_rows = 0; /**< positions the table holds */
   /** [pos][cos row (feature_size, halves duplicated) | sin row], shared by
    *  every layer of the same shape */

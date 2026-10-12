@@ -16,14 +16,49 @@
 #include <iostream>
 
 #include "htp_decode_hook.h"
+#include "htp_strict.h"
+#include "moe_decode_lookahead.h"
+#include "moe_lookahead_trace.h"
 #include "rms_norm.h"
 
 namespace causallm {
+
+// Installed at model load, before any forwarding. The experimental virtual
+// expert cache, like its existing prefill path, supports one model per process.
+static MoeDecodeLookaheadCallback lookahead_callback = nullptr;
+
+void setMoeDecodeLookaheadCallback(MoeDecodeLookaheadCallback callback) {
+  lookahead_callback = callback;
+}
+
+void moeDecodeLookaheadNorm(const std::string &name, unsigned from, unsigned to,
+                            const float *input, const float *addend,
+                            const float *gamma, unsigned width, float epsilon) {
+  if (lookahead_callback)
+    lookahead_callback(name, from, to, input, addend, gamma, width, epsilon);
+}
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 void RMSNormLayer::finalize(nntrainer::InitLayerContext &context) {
   std::vector<nntrainer::TensorDim> dim = context.getInputDimensions();
+  NNTR_THROW_IF(dim.size() != 1 && dim.size() != 2, std::invalid_argument)
+    << "RMSNorm expects one input or a residual pair";
+  NNTR_THROW_IF(dim.size() == 2 && (!htpStrict() || dim[0] != dim[1] ||
+                                    dim[0].getDataType() !=
+                                      nntrainer::TensorDim::DataType::FP32),
+                std::invalid_argument)
+    << "Residual RMSNorm requires matching FP32 inputs and HTP strict mode";
+  deferred_consumer_ = std::get<props::DeferredNormConsumer>(rms_props).get();
+  NNTR_THROW_IF(deferred_consumer_ != "none" &&
+                  (deferred_consumer_ != "conv" &&
+                   deferred_consumer_ != "router" &&
+                   deferred_consumer_ != "qkv"),
+                std::invalid_argument)
+    << "Unknown deferred norm consumer";
+  NNTR_THROW_IF(deferred_consumer_ != "none" && !htpStrict(),
+                std::invalid_argument)
+    << "Deferred norm requires a strict HTP consumer";
   context.setOutputDimensions(dim);
 
   if (!std::get<nntrainer::props::SkipPrefill>(rms_props).empty())
@@ -77,8 +112,63 @@ void RMSNormLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
     nntrainer::Tensor out_step =
       out.getSharedDataTensor(out_step_dim, b * out_dim.getFeatureLen(), true);
 
+    if (b_size == 1 &&
+        in_step.getDataType() == ml::train::TensorDim::DataType::FP32)
+      moeDecodeLookaheadNorm(
+        context.getName(), from, to, in_step.getData<float>(),
+        context.getNumInputs() == 2 ? context.getInput(1).getData<float>()
+                                    : nullptr,
+        gamma.getData<float>(), in_step.width(), epsilon);
+
+    // Snapshot the residual operands before a deferred consumer can reuse them.
+    // Offline analysis reconstructs RMSNorm and validates it against routing.
+    if (moeLookaheadDirectory() && from && to - from == 1 && b_size == 1 &&
+        in_step.getDataType() == ml::train::TensorDim::DataType::FP32) {
+      const std::string name = context.getName();
+      const std::string step = name + "_" + std::to_string(from);
+      moeLookaheadDump(name + "_gamma", gamma.getData<float>(), in_step.width(),
+                       true);
+      moeLookaheadDump(step + "_input", in_step.getData<float>(),
+                       in_step.width());
+      if (context.getNumInputs() == 2)
+        moeLookaheadDump(step + "_addend", context.getInput(1).getData<float>(),
+                         in_step.width());
+    }
+
     if (in_step.getDataType() == ml::train::TensorDim::DataType::FP32) {
       const auto &dim = in_step.getDim();
+      if (context.getNumInputs() == 2) {
+        auto residual = context.getInput(1).getSharedDataTensor(
+          in_step_dim, b * in_dim.getFeatureLen(), true);
+        auto sum = context.getOutput(1).getSharedDataTensor(
+          out_step_dim, b * out_dim.getFeatureLen(), true);
+        if (b_size == 1 && dim.height() == 1 && deferred_consumer_ != "none" &&
+            htpStrictOps()->defer_decode_norm(
+              deferred_consumer_, dim.width(), epsilon,
+              in_step.getData<float>(), residual.getData<float>(),
+              gamma.getData<float>(), sum.getData<float>(),
+              out_step.getData<float>()))
+          continue;
+        if (!htpStrictOps()->add_rmsnorm_fp32(
+              dim.height(), dim.width(), epsilon, in_step.getData<float>(),
+              residual.getData<float>(), gamma.getData<float>(),
+              sum.getData<float>(), out_step.getData<float>()))
+          throw std::runtime_error("HTP residual RMSNorm is unsupported");
+        continue;
+      }
+      if (htpStrict()) {
+        if (b_size == 1 && dim.height() == 1 && deferred_consumer_ != "none" &&
+            htpStrictOps()->defer_decode_norm(
+              deferred_consumer_, dim.width(), epsilon,
+              in_step.getData<float>(), nullptr, gamma.getData<float>(),
+              nullptr, out_step.getData<float>()))
+          continue;
+        htpStrictMath(nntrainer::ComputeOps::InferenceMath::RmsNorm,
+                      dim.height(), dim.width(), dim.width(), epsilon, 1.0f,
+                      in_step.getData<float>(), nullptr, gamma.getData<float>(),
+                      out_step.getData<float>());
+        continue;
+      }
       // [#130] one decode row: the HTP runs it when RMSNORM is resident
       if (to - from == 1 && b_size == 1 &&
           gamma.getDataType() == ml::train::TensorDim::DataType::FP32 &&
@@ -133,8 +223,10 @@ void RMSNormLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
 void RMSNormLayer::updateTensorsByInputDimensions(
   nntrainer::RunLayerContext &context,
   std::vector<nntrainer::TensorDim> input_dimensions) {
-  context.updateInput(SINGLE_INOUT_IDX, input_dimensions[0]);
-  context.updateOutput(SINGLE_INOUT_IDX, input_dimensions[0]);
+  for (unsigned i = 0; i < input_dimensions.size(); ++i) {
+    context.updateInput(i, input_dimensions[i]);
+    context.updateOutput(i, input_dimensions[i]);
+  }
 }
 
 void RMSNormLayer::calcDerivative(nntrainer::RunLayerContext &context) {
