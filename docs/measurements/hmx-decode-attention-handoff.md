@@ -57,3 +57,43 @@ decode attention의 수치가 바뀌는 변경은 지금까지 "비트 동일(�
 - 우리 커널: `nntrainer/tensor/htp_backend/hvx/hvx_attn_m1_f32.c`(forward: `p1_unit_q8`, `pv_walk_q8_*`; seed: `append_tile_q8`), `hvx_attn_m1_hf.h`, 스펙 `attn_m1_det.h`, host check `test/htp/host/attn_m1_host_check.c`, 그래프 호출 `hmx/hexkl_graph.c` `graph_op_attn_m1`.
 - 작업자 분석: `docs/measurements/s26u-prefill-handoff.md` §9(D3), `docs/measurements/s26u-optimization-log.md` §5.
 - #4418: 위 §2-A의 파일들, 측정 `docs/measurements/lfm2_24ba2b_s26_*.md/json`, 최종 env `docs/measurements/lfm2_htp_pr_validation_20261012/environment.json`.
+
+## 5. 결과 (2026-10-12, 후보 B 구현: `NNTR_HTP_ATTN_M1_FAST=1`)
+
+커밋 `011a5a315`. 캐시 바이트·레이아웃은 그대로, 산술만 교체: q는 헤드당 int16(K의 차원별 스케일 포함), scores는 int8 타일 행을 `vunpack` 후 `Vxx.w += vmpy(Vu.h, Rt.h)`로 int32 누산 → f32, softmax f32(`hvx_exp_det_sf`), P는 15비트 정수로 확률 행에, PV는 같은 vmpy로 256 위치 블록마다 int32 → f32 flush, 끝에 `out *= sv / l`. P3의 lane 단위는 (kv head, 128-dim chunk)(gqa 8은 half까지)라 V 바이트가 DDR을 1~2회만 지난다. 기본값은 기존 비트 동일 경로이고 env로만 켜진다(int8 캐시 필요, hd % 256, gqa 1/2/4/8). 호스트 체크 `ATTN M1 FAST`: f64 대비 SNR 27.8–42.1 dB(스펙 경로 최저 35.5), 워커 수 무관 동일 바이트.
+
+### 5.1 S26 Ultra, 같은 바이너리(`$D/pr4416_fast`), env만 다름, 번갈아, 2분 냉각, G=128, C=32, GROW=8
+
+| 회차 | 설정 | prefill ms | last64 TPS | ATTN_M1 us/token | MOE us/token | 답 md5 |
+|---|---|---|---|---|---|---|
+| p1024 1 | 기존 비트 동일 경로 | 1831 | 12.08 | 10383 | 39529 | fe44d523 |
+| p1024 1 | fast 켬 | 2209 | 10.91 | 6390 | 48200 | 46a84cf6 |
+| p1024 2 | 기존 비트 동일 경로 | 1905 | 12.74 | 10318 | 39671 | fe44d523 |
+| p1024 2 | fast 켬 | 1813 | 13.38 | 6236 | 37276 | 46a84cf6 |
+| p1024 3 | 기존 비트 동일 경로 | 1761 | 12.91 | 10300 | 36999 | fe44d523 |
+| p1024 3 | fast 켬 | 1748 | 13.84 | 6231 | 37946 | 46a84cf6 |
+| p2048 1 | 기존 비트 동일 경로 | 3346 | 11.70 | 12018 | 46989 | aff26409 |
+| p2048 1 | fast 켬 | 3272 | 14.80 | 6888 | 37680 | 405ed974 |
+| p2048 2 | 기존 비트 동일 경로 | 3801 | 13.06 | 11904 | 39357 | aff26409 |
+| p2048 2 | fast 켬 | 3415 | 14.54 | 7013 | 38763 | 405ed974 |
+
+ATTN_M1: p1024 10.3 → 6.2–6.4 ms/token, p2048 11.9–12.0 → 6.9–7.0. 전체 TPS 차이는 MOE miss 대기의 흔들림(p1024 1회차 fast 셀의 MOE 48 ms)이 attention 이득보다 크므로 ATTN_M1 열로 판정. fast 경로의 답은 실행마다 같다(결정적).
+
+### 5.2 분해 (phase words, `NNTR_HTP_PROFILE=1`, kpcyc/token, cache 0 = sliding 25층, cache 1 = full 5층)
+
+| | append | scores | softmax | pv | pool | call us |
+|---|---|---|---|---|---|---|
+| p1024 기존, sliding | 5634 | 30275 | 10703 | 32376 | 10430 | 7677 |
+| p1024 fast, sliding | 1328 | 30388 | 4446 | 34878 | 9604 | 5242 |
+| p1024 기존, full | 801 | 9167 | 1914 | 23344 | 4621 | 2582 |
+| p1024 fast, full | 174 | 5055 | 863 | 5186 | 1689 | 897 |
+| p2048 기존, full | 832 | 15885 | 3214 | 45959 | 8556 | 4461 |
+| p2048 fast, full | 189 | 7469 | 1606 | 11893 | 2939 | 1495 |
+
+- sliding 층의 scores·PV lane-cycle은 두 커널이 같다: 토큰당 K 52 MB·V 52 MB를 24–27 GB/s로 흘리는 중이고, 이것이 이 SoC의 HVX l2fetch DDR 한계(`docs/measurements/117-m1-gemv-vtcm-feed.md` 21–27 GB/s). 커널로는 더 못 줄인다. 이득은 직렬 APPEND(스칼라 q×scale, 2.7 ms → 0.6 ms)와 full 층(gqa 8, hd 512: 컴퓨트 바운드였고 PV의 V 중복 읽기 제거)에서 나왔다.
+- 스칼라 q 양자화 첫 버전은 APPEND 8.2 M pcyc(3.9 ms)였다. 벡터화 전에는 이득이 0이었다 — 분해를 먼저 보지 않았으면 커널 탓을 했을 것.
+- 더 내려가려면 KV 바이트 자체를 줄이거나(4비트 K/V) DMA로 VTCM에 넣어야 한다(#267 계열). p2048 이상에서 sliding 층 비용은 창 1024로 고정이라 full 층만 자란다.
+
+### 5.3 안 한 것
+- §3.2 정확도 게이트(강제 continuation NLL / top-1): 사용자 지시로 이번엔 생략. 채택 전 필수.
+- 기본값 전환: env 옵트인 그대로.
