@@ -3748,11 +3748,19 @@ public:
         return v != nullptr ? std::atoi(v) : 0;
       }();
       const bool q8 = q8_knob >= 2 || (q8_knob == 1 && c == 0u);
+      // [#4416 F] NNTR_HTP_ATTN_M1_FAST=1: the integer forward over the
+      // int8 cache (HVX_ATTN_M1_FAST; not bit-identical to the CPU)
+      static const bool fast_knob = [] {
+        const char *v = std::getenv("NNTR_HTP_ATTN_M1_FAST");
+        return v != nullptr && std::atoi(v) != 0;
+      }();
+      const bool fast = q8 && fast_knob;
       // [#289] lazy: a layer's cache comes at its seed, after the layer
       // before it freed its quantized prefill cache (HVX_ATTN_M1_LAZY)
       const int rc = nntr_hvx_attn_m1_register(
         session, n_attn, rec->n_kv, rec->gqa, rec->head_dim,
-        max_seq | (q8 ? 0x80000000u : 0u) | (kvSeedQ() ? 0x40000000u : 0u));
+        max_seq | (q8 ? 0x80000000u : 0u) | (kvSeedQ() ? 0x40000000u : 0u) |
+          (fast ? 0x20000000u : 0u));
       if (rc != AEE_SUCCESS) {
         throw std::runtime_error("nntr_hvx_attn_m1_register failed: " +
                                  graphErr(rc));
@@ -3765,7 +3773,7 @@ public:
                    (unsigned long long)n_attn * rec->n_kv * rec->head_dim *
                      ((max_seq + 63u) / 64u * 64u) * 2u *
                      (q8 ? 1u : sizeof(uint16_t)) / 1024u,
-                   q8 ? " int8" : "");
+                   fast ? " int8 fast" : (q8 ? " int8" : ""));
     }
     if (e2e_)
       e2eStart();
