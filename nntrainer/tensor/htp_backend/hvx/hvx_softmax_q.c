@@ -401,7 +401,7 @@ static void pass1_rowmax(const hvx_softmax_q_block *b, const HVX_Vector *S,
                          const HVX_Vector *CV, const uint8_t *cls, uint32_t c0,
                          uint32_t n, HVX_Vector *M, HVX_VectorPred qlow,
                          HVX_Vector vmin, HVX_Vector rowbase,
-                         HVX_Vector colbase);
+                         HVX_Vector colbase, uint32_t v_lo, uint32_t v_hi);
 
 /** A vrmpy row-sum accumulator (row k of the 4-row group in words
  * 8k..8k+7) -> lane 8k holds row k's sum. */
@@ -443,7 +443,7 @@ void hvx_softmax_q(const hvx_softmax_q_block *b, const int16_t *s_tiles,
     cls[c] = (uint8_t)hvx_softmax_q_tile_class(b, c);
     CV[c] = corr ? corr_vec(corr, c, qlow) : Q6_V_vzero();
   }
-  pass1_rowmax(b, S, CV, cls, 0, ct, M, qlow, vmin, rowbase, colbase);
+  pass1_rowmax(b, S, CV, cls, 0, ct, M, qlow, vmin, rowbase, colbase, 0, 32u);
 
   /* Pass 2: P' and row sums. */
   const HVX_Vector fmask = Q6_Vh_vsplat_R((1 << F) - 1);
@@ -582,60 +582,46 @@ static inline HVX_Vector p16_recip_v(HVX_Vector rowsum) {
   return Q6_V_vmux_QVV(Q6_Q_vcmp_eq_VwVw(rowsum, zero), zero, R);
 }
 
-static inline void part_classes(const hvx_softmax_q_block *b, uint32_t c0,
-                                uint32_t c1, uint8_t *cls) {
-  for (uint32_t c = c0; c < c1; ++c) {
-    cls[c - c0] = (uint8_t)hvx_softmax_q_tile_class(b, c);
+/**
+ * @brief The 16-bit softmax of one block over the row groups [w0, w1).
+ *
+ * A group is four rows; a block has 16. The three passes share one row
+ * range, so nothing a part computes is ever read by another part: the row
+ * maxima M, the row-sum accumulators RSL / RSH and the reciprocals R are
+ * all indexed by the row, and the P16 bytes a group writes are its own
+ * rows' bytes of every column tile. That is what makes the split free --
+ * the column split this replaced had to meet at a barrier twice and merge
+ * 3 x 48 vectors, which measured 3.5 us a block on a v81 and dominated
+ * the softmax of the blocks that have few column tiles.
+ *
+ * Splitting instead by column would be finer-grained (a block has up to
+ * 128 column tiles against 16 row groups) but every part then sees every
+ * row, so the row max and the row sum are reductions across parts.
+ *
+ * @param w0, w1  row groups, 0 <= w0 <= w1 <= 16, both even: pass 1 sweeps
+ *                four row-pair vectors at a time, so a part owns whole
+ *                8-row units
+ * @param rowsum  HVX_SOFTMAX_Q_ROWSUM_WORDS int32, this range's rows
+ *                written, or NULL
+ */
+void hvx_softmax_q16_rows(const hvx_softmax_q_block *b, const int16_t *s_tiles,
+                          const int16_t *corr, uint32_t w0, uint32_t w1,
+                          uint8_t *p_lo, uint8_t *p_hi, int32_t *rowsum,
+                          void *scratch) {
+  if (w0 >= w1 || w1 > 16u) {
+    return;
   }
-}
-
-void hvx_softmax_q16_part_max(const hvx_softmax_q_block *b,
-                              const int16_t *s_tiles, const int16_t *corr,
-                              uint32_t c0, uint32_t c1, void *scratch) {
-  HVX_Vector *M = (HVX_Vector *)scratch + SMX_M;
-  HVX_Vector *CV = (HVX_Vector *)scratch + SMX_CV;
-  const HVX_Vector *S = (const HVX_Vector *)s_tiles;
-  const HVX_VectorPred qlow = Q6_Q_vsetq_R(64);
-  const HVX_Vector vmin = Q6_Vh_vsplat_R(-32768);
-  const HVX_Vector colbase = Q6_Vh_vadd_VhVh(*(const HVX_Vector *)lane_col,
-                                             Q6_Vh_vsplat_R((int)b->col0));
-  const HVX_Vector rowbase = Q6_V_vmux_QVV(qlow, Q6_Vh_vsplat_R((int)b->row0),
-                                           Q6_Vh_vsplat_R((int)b->row0 + 1));
-  uint8_t cls[HVX_SOFTMAX_Q_MAX_TILES];
-  part_classes(b, c0, c1, cls);
-  for (uint32_t c = c0; c < c1; ++c) {
-    CV[c - c0] = corr ? corr_vec(corr, c, qlow) : Q6_V_vzero();
-  }
-  pass1_rowmax(b, S, CV, cls, c0, c1 - c0, M, qlow, vmin, rowbase, colbase);
-}
-
-void hvx_softmax_q16_merge_max(void *scratch, void *const *parts,
-                               uint32_t n_parts) {
-  HVX_Vector *M = (HVX_Vector *)scratch + SMX_M;
-  /** Reading a part another thread has already merged is harmless: the
-   * merged maximum is a fixed point of the merge. */
-  for (uint32_t v = 0; v < 32u; ++v) {
-    HVX_Vector m = M[v];
-    for (uint32_t p = 0; p < n_parts; ++p) {
-      m = Q6_Vh_vmax_VhVh(m, ((const HVX_Vector *)parts[p])[SMX_M + v]);
-    }
-    M[v] = m;
-  }
-}
-
-void hvx_softmax_q16_part_exp(const hvx_softmax_q_block *b,
-                              const int16_t *s_tiles, uint32_t c0, uint32_t c1,
-                              uint8_t *p_lo, uint8_t *p_hi, void *scratch) {
+  const uint32_t ct = b->n_col_tiles;
   const int F = b->frac_bits;
   const int rho_pair = ((int)b->rho_q15 << 16) | (int)b->rho_q15;
-  const HVX_Vector *M = (const HVX_Vector *)scratch + SMX_M;
+  HVX_Vector *M = (HVX_Vector *)scratch + SMX_M;
   HVX_Vector *RSL = (HVX_Vector *)scratch + SMX_RSL;
   HVX_Vector *RSH = (HVX_Vector *)scratch + SMX_RSH;
-  const HVX_Vector *CV = (const HVX_Vector *)scratch + SMX_CV;
+  HVX_Vector *R = (HVX_Vector *)scratch + SMX_R;
+  HVX_Vector *CV = (HVX_Vector *)scratch + SMX_CV;
   const HVX_Vector *S = (const HVX_Vector *)s_tiles; /* [ct][32] */
   HVX_Vector *PL = (HVX_Vector *)p_lo;               /* [ct][16] */
   HVX_Vector *PH = (HVX_Vector *)p_hi;               /* [ct][16] */
-  const uint32_t n = c1 - c0;
 
   const HVX_VectorPred qlow = Q6_Q_vsetq_R(64);
   const HVX_Vector vmin = Q6_Vh_vsplat_R(-32768);
@@ -643,9 +629,17 @@ void hvx_softmax_q16_part_exp(const hvx_softmax_q_block *b,
                                              Q6_Vh_vsplat_R((int)b->col0));
   const HVX_Vector rowbase = Q6_V_vmux_QVV(qlow, Q6_Vh_vsplat_R((int)b->row0),
                                            Q6_Vh_vsplat_R((int)b->row0 + 1));
+  /* Tile classes and corrections once for all three passes. */
   uint8_t cls[HVX_SOFTMAX_Q_MAX_TILES];
-  part_classes(b, c0, c1, cls);
+  for (uint32_t c = 0; c < ct; ++c) {
+    cls[c] = (uint8_t)hvx_softmax_q_tile_class(b, c);
+    CV[c] = corr ? corr_vec(corr, c, qlow) : Q6_V_vzero();
+  }
 
+  pass1_rowmax(b, S, CV, cls, 0, ct, M, qlow, vmin, rowbase, colbase, 2u * w0,
+               2u * w1);
+
+  /* Pass 2: P' = 2^((s - max) rho / 2^F) * 65536 and the row sums. */
   const HVX_Vector fmask = Q6_Vh_vsplat_R((1 << F) - 1);
   const HVX_Vector vA = Q6_Vh_vsplat_R(HVX_SOFTMAX_Q_EXP2_A);
   const HVX_Vector vB = Q6_Vh_vsplat_R(HVX_SOFTMAX_Q_EXP2_B);
@@ -673,7 +667,7 @@ void hvx_softmax_q16_part_exp(const hvx_softmax_q_block *b,
     (out_hi) = Q6_Vb_vpacko_VhVh(p1_, p0_);                                    \
   } while (0)
 
-  for (uint32_t w = 0; w < 16u; ++w) {
+  for (uint32_t w = w0; w < w1; ++w) {
     const uint32_t v0 = 2u * w;
     const HVX_Vector m0 = M[v0], m1 = M[v0 + 1u];
     const HVX_Vector rowv0 =
@@ -682,18 +676,17 @@ void hvx_softmax_q16_part_exp(const hvx_softmax_q_block *b,
       Q6_Vh_vadd_VhVh(rowbase, Q6_Vh_vsplat_R(2 * (int)v0 + 2));
     HVX_Vector rsl = zero, rsh = zero;
     uint32_t c = 0;
-    while (c < n) {
-      const uint32_t cc = c0 + c;
+    while (c < ct) {
       /* Two full tiles: four independent exp2 chains in flight. */
-      if (c + 2u <= n && cls[c] == TILE_FULL && cls[c + 1u] == TILE_FULL) {
-        const HVX_Vector *Sa = S + 32u * cc;
+      if (c + 2u <= ct && cls[c] == TILE_FULL && cls[c + 1u] == TILE_FULL) {
+        const HVX_Vector *Sa = S + 32u * c;
         HVX_Vector la, ha, lb, hb;
         SMX16_TILE_FULL(Sa, CV[c], la, ha);
         SMX16_TILE_FULL(Sa + 32u, CV[c + 1u], lb, hb);
-        PL[16u * cc + w] = la;
-        PH[16u * cc + w] = ha;
-        PL[16u * (cc + 1u) + w] = lb;
-        PH[16u * (cc + 1u) + w] = hb;
+        PL[16u * c + w] = la;
+        PH[16u * c + w] = ha;
+        PL[16u * (c + 1u) + w] = lb;
+        PH[16u * (c + 1u) + w] = hb;
         rsl = Q6_Vuw_vrmpyacc_VuwVubRub(rsl, la, 0x01010101u);
         rsh = Q6_Vuw_vrmpyacc_VuwVubRub(rsh, ha, 0x01010101u);
         rsl = Q6_Vuw_vrmpyacc_VuwVubRub(rsl, lb, 0x01010101u);
@@ -702,19 +695,19 @@ void hvx_softmax_q16_part_exp(const hvx_softmax_q_block *b,
         continue;
       }
       if (cls[c] == TILE_MASKED) {
-        PL[16u * cc + w] = zero;
-        PH[16u * cc + w] = zero;
+        PL[16u * c + w] = zero;
+        PH[16u * c + w] = zero;
         ++c;
         continue;
       }
       /* One tile, full or partial. */
-      const HVX_Vector *Sc = S + 32u * cc;
+      const HVX_Vector *Sc = S + 32u * c;
       const HVX_Vector cv = CV[c];
       HVX_Vector t0 = Q6_Vh_vsub_VhVh_sat(Q6_Vh_vsub_VhVh(Sc[v0], cv), m0);
       HVX_Vector t1 = Q6_Vh_vsub_VhVh_sat(Q6_Vh_vsub_VhVh(Sc[v0 + 1u], cv), m1);
       if (cls[c] == TILE_PARTIAL) {
         const HVX_Vector colv =
-          Q6_Vh_vadd_VhVh(colbase, Q6_Vh_vsplat_R(32 * (int)cc));
+          Q6_Vh_vadd_VhVh(colbase, Q6_Vh_vsplat_R(32 * (int)c));
         t0 = Q6_V_vmux_QVV(mask_q(b, rowv0, colv), vmin, t0);
         t1 = Q6_V_vmux_QVV(mask_q(b, rowv1, colv), vmin, t1);
       }
@@ -725,8 +718,8 @@ void hvx_softmax_q16_part_exp(const hvx_softmax_q_block *b,
       const HVX_Vector p1 = p16_prime_v(T1, e1, vm3, vm1, v15, one, zero);
       const HVX_Vector lo = Q6_Vb_vpacke_VhVh(p1, p0);
       const HVX_Vector hi = Q6_Vb_vpacko_VhVh(p1, p0);
-      PL[16u * cc + w] = lo;
-      PH[16u * cc + w] = hi;
+      PL[16u * c + w] = lo;
+      PH[16u * c + w] = hi;
       rsl = Q6_Vuw_vrmpyacc_VuwVubRub(rsl, lo, 0x01010101u);
       rsh = Q6_Vuw_vrmpyacc_VuwVubRub(rsh, hi, 0x01010101u);
       ++c;
@@ -735,55 +728,31 @@ void hvx_softmax_q16_part_exp(const hvx_softmax_q_block *b,
     RSH[w] = rsh;
   }
 #undef SMX16_TILE_FULL
-}
 
-void hvx_softmax_q16_merge_sum(void *scratch, void *const *parts,
-                               uint32_t n_parts, int32_t *rowsum) {
-  /** Row sums = low + 256 * high over all parts, lane 8k <- row 4w + k;
-   * the totals go over this scratch's dead row maxima. */
+  /** Row sums = low + 256 * high, lane 8k <- row 4w + k, and the
+   * reciprocals. The totals go over this range's now dead row maxima. */
   HVX_Vector *T = (HVX_Vector *)scratch + SMX_M;
-  for (uint32_t w = 0; w < 16u; ++w) {
-    HVX_Vector l = Q6_V_vzero(), h = Q6_V_vzero();
-    for (uint32_t p = 0; p < n_parts; ++p) {
-      const HVX_Vector *P = (const HVX_Vector *)parts[p];
-      l = Q6_Vw_vadd_VwVw(l, P[SMX_RSL + w]);
-      h = Q6_Vw_vadd_VwVw(h, P[SMX_RSH + w]);
+  for (uint32_t w = w0; w < w1; ++w) {
+    T[w] = rowsum_reduce(Q6_Vw_vadd_VwVw(RSL[w], Q6_Vw_vasl_VwR(RSH[w], 8)));
+    if (rowsum) {
+      ((HVX_Vector *)rowsum)[w] = T[w];
     }
-    T[w] = rowsum_reduce(Q6_Vw_vadd_VwVw(l, Q6_Vw_vasl_VwR(h, 8)));
-  }
-  if (rowsum) {
-    HVX_Vector *out = (HVX_Vector *)rowsum;
-    for (uint32_t w = 0; w < 16u; ++w) {
-      out[w] = T[w];
-    }
-  }
-  HVX_Vector *R = (HVX_Vector *)scratch + SMX_R;
-  for (uint32_t w = 0; w < 16u; ++w) {
     R[w] = p16_recip_v(T[w]);
   }
-}
 
-void hvx_softmax_q16_part_norm(const hvx_softmax_q_block *b, uint32_t c0,
-                               uint32_t c1, uint8_t *p_lo, uint8_t *p_hi,
-                               void *scratch) {
-  const uint32_t *R = (const uint32_t *)((HVX_Vector *)scratch + SMX_R);
-  HVX_Vector *PL = (HVX_Vector *)p_lo;
-  HVX_Vector *PH = (HVX_Vector *)p_hi;
-  const HVX_VectorPred qlow = Q6_Q_vsetq_R(64);
-  uint8_t cls[HVX_SOFTMAX_Q_MAX_TILES];
-  part_classes(b, c0, c1, cls);
-  /* P16 = round(P' * R / 65536) in place, R per row (row-sum layout). */
-  for (uint32_t w = 0; w < 16u; ++w) {
-    const uint32_t R0 = R[hvx_softmax_q_rowsum_index(4u * w)];
-    const uint32_t R1 = R[hvx_softmax_q_rowsum_index(4u * w + 1u)];
-    const uint32_t R2 = R[hvx_softmax_q_rowsum_index(4u * w + 2u)];
-    const uint32_t R3 = R[hvx_softmax_q_rowsum_index(4u * w + 3u)];
+  /* Pass 3: P16 = round(P' * R / 65536) in place, R per row. */
+  const uint32_t *Rw = (const uint32_t *)R;
+  for (uint32_t w = w0; w < w1; ++w) {
+    const uint32_t R0 = Rw[hvx_softmax_q_rowsum_index(4u * w)];
+    const uint32_t R1 = Rw[hvx_softmax_q_rowsum_index(4u * w + 1u)];
+    const uint32_t R2 = Rw[hvx_softmax_q_rowsum_index(4u * w + 2u)];
+    const uint32_t R3 = Rw[hvx_softmax_q_rowsum_index(4u * w + 3u)];
     const HVX_Vector M0 =
       Q6_V_vmux_QVV(qlow, Q6_Vh_vsplat_R((int)R0), Q6_Vh_vsplat_R((int)R1));
     const HVX_Vector M1 =
       Q6_V_vmux_QVV(qlow, Q6_Vh_vsplat_R((int)R2), Q6_Vh_vsplat_R((int)R3));
-    for (uint32_t c = c0; c < c1; ++c) {
-      if (cls[c - c0] == TILE_MASKED) {
+    for (uint32_t c = 0; c < ct; ++c) {
+      if (cls[c] == TILE_MASKED) {
         continue;
       }
       const HVX_Vector lo = PL[16u * c + w];
@@ -808,30 +777,26 @@ void hvx_softmax_q16_part_norm(const hvx_softmax_q_block *b, uint32_t c0,
 }
 
 /**
- * @brief hvx_softmax_q16: the five phases with a single part.
+ * @brief hvx_softmax_q16: every row group in one call.
  */
 void hvx_softmax_q16(const hvx_softmax_q_block *b, const int16_t *s_tiles,
                      const int16_t *corr, uint8_t *p_lo, uint8_t *p_hi,
                      int32_t *rowsum, void *scratch) {
-  void *const parts[1] = {scratch};
-  const uint32_t ct = b->n_col_tiles;
-  hvx_softmax_q16_part_max(b, s_tiles, corr, 0, ct, scratch);
-  hvx_softmax_q16_merge_max(scratch, parts, 1);
-  hvx_softmax_q16_part_exp(b, s_tiles, 0, ct, p_lo, p_hi, scratch);
-  hvx_softmax_q16_merge_sum(scratch, parts, 1, rowsum);
-  hvx_softmax_q16_part_norm(b, 0, ct, p_lo, p_hi, scratch);
+  hvx_softmax_q16_rows(b, s_tiles, corr, 0, 16u, p_lo, p_hi, rowsum, scratch);
 }
 
 /** Pass 1 of both softmaxes: row max of the corrected, masked scores into
- * M[32] (row-pair vectors, each row's max broadcast over its 32 lanes),
- * four row-pair vectors per sweep over the tiles so the branches and the
- * 4 KiB stride are paid once per four vectors. */
+ * M[v_lo, v_hi) (row-pair vectors, each row's max broadcast over its 32
+ * lanes), four row-pair vectors per sweep over the tiles so the branches
+ * and the 4 KiB stride are paid once per four vectors. @a v_lo and @a v_hi
+ * are multiples of four, which is what hvx_softmax_q16_rows' row ranges
+ * are built from. */
 static void pass1_rowmax(const hvx_softmax_q_block *b, const HVX_Vector *S,
                          const HVX_Vector *CV, const uint8_t *cls, uint32_t c0,
                          uint32_t n, HVX_Vector *M, HVX_VectorPred qlow,
                          HVX_Vector vmin, HVX_Vector rowbase,
-                         HVX_Vector colbase) {
-  for (uint32_t v = 0; v < 32u; v += 4u) {
+                         HVX_Vector colbase, uint32_t v_lo, uint32_t v_hi) {
+  for (uint32_t v = v_lo; v < v_hi; v += 4u) {
     HVX_Vector m0 = vmin, m1 = vmin, m2 = vmin, m3 = vmin;
     const HVX_Vector rowv0 =
       Q6_Vh_vadd_VhVh(rowbase, Q6_Vh_vsplat_R(2 * (int)v));

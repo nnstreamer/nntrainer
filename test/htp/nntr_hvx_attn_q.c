@@ -741,8 +741,38 @@ int nntr_hvx_probe_softmax_q16(remote_handle64 handle, uint32 n_col_tiles,
   memcpy(p_lo, vb + OFF_SM_P, (size_t)p_loLen);
   memcpy(p_hi, vb + OFF_SM_PH, (size_t)p_hiLen);
   memcpy(rowsum, vb + OFF_SM_RS, (size_t)rowsumLen * 4u);
+  /** stats[1]: the same block again in the three row ranges the attention
+      kernel's workers take, against the one-call result just copied out.
+      The parts share nothing, so one scratch serves all three: each
+      finishes before the next starts and none reads another's rows. A
+      non-zero bit here is the split itself going wrong, which the
+      comparison against the scalar reference cannot see (it only ever
+      calls hvx_softmax_q16). 0xA5 first, so a row group nobody writes
+      shows up too. */
+  memset(vb + OFF_SM_P, 0xA5, (size_t)p_loLen);
+  memset(vb + OFF_SM_PH, 0xA5, (size_t)p_hiLen);
+  memset(vb + OFF_SM_RS, 0xA5, (size_t)rowsumLen * 4u);
+  for (uint32_t part = 0; part < 3u; ++part) {
+    hvx_softmax_q16_rows(
+      &b, (const int16_t *)(vb + OFF_SM_S), (const int16_t *)(vb + OFF_SM_CORR),
+      2u * (8u * part / 3u), 2u * (8u * (part + 1u) / 3u), vb + OFF_SM_P,
+      vb + OFF_SM_PH, (int32_t *)(vb + OFF_SM_RS), vb + OFF_SM_SCR);
+  }
+  uint32 split_bad = 0;
+  if (memcmp(p_lo, vb + OFF_SM_P, (size_t)p_loLen) != 0) {
+    split_bad |= 1u;
+  }
+  if (memcmp(p_hi, vb + OFF_SM_PH, (size_t)p_hiLen) != 0) {
+    split_bad |= 2u;
+  }
+  if (memcmp(rowsum, vb + OFF_SM_RS, (size_t)rowsumLen * 4u) != 0) {
+    split_bad |= 4u;
+  }
   stats[0] = (uint32)(c1 - c0);
-  for (int i = 1; i < statsLen && i < 5; ++i) {
+  if (statsLen > 1) {
+    stats[1] = split_bad;
+  }
+  for (int i = 2; i < statsLen && i < 5; ++i) {
     stats[i] = 0;
   }
   return AEE_SUCCESS;

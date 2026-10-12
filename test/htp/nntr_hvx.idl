@@ -1213,6 +1213,9 @@ interface nntr_hvx : remote_handle64 {
 
    // The same for the 16-bit P of the a16 contract (hvx_softmax_q16):
    // P16 leaves as its low and high byte tiles, rowsum holds the P' sums.
+   // stats = { cycles of the HVX call, then the row-split check: the same
+   // block in three row ranges compared with the one-call result, bits
+   // 1/2/4 for p_lo / p_hi / rowsum, 0 when they agree }.
    AEEResult probe_softmax_q16(in uint32 n_col_tiles, in uint32 col0,
                                in uint32 n_cols, in uint32 row0,
                                in uint32 n_rows, in uint32 window,

@@ -13,8 +13,8 @@
  * calling thread owns HMX and the DMA queue and runs the two matmul
  * stages and the Q byte split (a VTCM pass over rows the DMA staged); the
  * pool workers run the softmax (one block shared by all of them, split by
- * column range) and the epilogue. Iteration i, with softmax(i) and QK(i+1)
- * already done:
+ * row range, which needs no barrier) and the epilogue. Iteration i, with
+ * softmax(i) and QK(i+1) already done:
  *
  *   submit W(i) = { softmax(i+1), epilogue(i-1) rows 0-31, rows 32-63 }
  *   drain DMA; PV(i); split Q(i+2) from its staging; push DMA for Q(i+3)
@@ -46,7 +46,6 @@
 #include "hexkl_attn_q2.h"
 
 #include <math.h>
-#include <stdatomic.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -111,27 +110,14 @@ typedef struct {
   hexkl_attn_q2_stats st;
 } ctx;
 
-/** @brief One pool job: W(i), with the two barriers of the shared softmax
- *         (reset by the HMX thread before each submit). */
+/** @brief One pool job: W(i). The softmax parts share nothing, so the
+ *         job carries no barrier. */
 #define NO_ITEM 0xFFFFFFFFu
 typedef struct {
   ctx *c;
   uint32_t smx_item; /**< softmax of this item, or NO_ITEM */
   uint32_t epi_item; /**< epilogue of this item, or NO_ITEM */
-  atomic_uint bar[2];
 } job_t;
-
-/** @brief Waits until all @a n participants of job @a j reached barrier
- *         @a k; the same SMT pause hint as the worker pool's spin. */
-static inline void job_barrier(job_t *j, uint32_t k, uint32_t n) {
-  if (n <= 1u) {
-    return;
-  }
-  atomic_fetch_add_explicit(&j->bar[k], 1u, memory_order_acq_rel);
-  while (atomic_load_explicit(&j->bar[k], memory_order_acquire) < n) {
-    asm volatile(" pause(#255)\n");
-  }
-}
 
 /* ---- small helpers ----------------------------------------------------- */
 
@@ -265,12 +251,16 @@ static void stage_qprep(ctx *c, uint32_t i) {
 
 /**
  * @brief Stage 2: the integer softmax over the block's score tiles, shared
- *        by the @a n participants of job @a j: part @a idx takes the
- *        column tiles [ct idx / n, ct (idx + 1) / n), the two merges
- *        happen behind the job's barriers.
+ *        by the @a n participants: part @a idx takes the 8-row units
+ *        [8 idx / n, 8 (idx + 1) / n) of the block's 64 rows.
+ *
+ * Parts share nothing (hvx_softmax_q16_rows), so there is no barrier and
+ * no merge between the passes. Splitting by column instead cost two
+ * barriers and two merges a block: 3.5 us of a v81's 64-row block, which
+ * was 40 % of the softmax on the shapes whose blocks have few column
+ * tiles (a 1024-row Gemma-4 sliding prefill averages 17).
  */
-static void stage_softmax(ctx *c, item_t *it, job_t *j, uint32_t idx,
-                          uint32_t n) {
+static void stage_softmax(ctx *c, item_t *it, uint32_t idx, uint32_t n) {
   const uint64_t t0 = now_us();
   const head_t *hd = &c->heads[it->h];
   hvx_softmax_q_block b;
@@ -287,22 +277,12 @@ static void stage_softmax(ctx *c, item_t *it, job_t *j, uint32_t idx,
     corr_v(c, it->h) + (size_t)(it->blk.lo - c->res.lo) * 32u;
   uint8_t *plo = p_tiles_lo(c, it->slot);
   uint8_t *phi = p_tiles_hi(c, it->slot);
-  /** An even split by tile count; weighting partial tiles and the epilogue
-   * halves was tried and measured no better. */
-  const uint32_t c0 = it->blk.n * idx / n;
-  const uint32_t c1 = it->blk.n * (idx + 1u) / n;
-  void *parts[HEXKL_ATTN_Q2_SMX_PARTS];
-  for (uint32_t p = 0; p < n; ++p) {
-    parts[p] = smx(c, p);
-  }
-  void *mine = smx(c, idx);
-  hvx_softmax_q16_part_max(&b, s16, corr, c0, c1, mine);
-  job_barrier(j, 0, n);
-  hvx_softmax_q16_merge_max(mine, parts, n);
-  hvx_softmax_q16_part_exp(&b, s16, c0, c1, plo, phi, mine);
-  job_barrier(j, 1, n);
-  hvx_softmax_q16_merge_sum(mine, parts, n, NULL);
-  hvx_softmax_q16_part_norm(&b, c0, c1, plo, phi, mine);
+  /** Whole 8-row units, two row groups each: every row sweeps every
+   * column tile, so an even split of the rows is an even split of the
+   * work whatever the masking does. 8 units over 3 workers is 3/3/2. */
+  const uint32_t w0 = 2u * (8u * idx / n);
+  const uint32_t w1 = 2u * (8u * (idx + 1u) / n);
+  hvx_softmax_q16_rows(&b, s16, corr, w0, w1, plo, phi, NULL, smx(c, idx));
   if (idx == 0) {
     it->us_softmax = (uint32_t)(now_us() - t0);
   }
@@ -375,7 +355,7 @@ static void worker_job(uint32_t n_threads, uint32_t idx, void *arg) {
   const uint32_t n =
     n_threads < HEXKL_ATTN_Q2_SMX_PARTS ? n_threads : HEXKL_ATTN_Q2_SMX_PARTS;
   if (j->smx_item != NO_ITEM && idx < n) {
-    stage_softmax(c, &c->items[j->smx_item], j, idx, n);
+    stage_softmax(c, &c->items[j->smx_item], idx, n);
   }
   if (j->epi_item != NO_ITEM) {
     for (uint32_t task = idx; task < 2u; task += n_threads) {
@@ -645,8 +625,6 @@ static int submit_job(ctx *c, hvx_worker_pool *pool, job_t *job,
   job->c = c;
   job->smx_item = smx_item;
   job->epi_item = epi_item;
-  atomic_store_explicit(&job->bar[0], 0u, memory_order_relaxed);
-  atomic_store_explicit(&job->bar[1], 0u, memory_order_relaxed);
   const uint64_t t0 = now_us();
   // This branch's submit returns nothing: it runs the job inline when the
   // pool has no workers, and wait is then a no-op, so a submitted job is

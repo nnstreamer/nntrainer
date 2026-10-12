@@ -1007,6 +1007,10 @@ TEST_F(HvxAttnQ, SoftmaxQ16MatchesReferenceBitExact) {
     }
     EXPECT_EQ(bad, 0u) << "P16 entries differ";
     EXPECT_EQ(bad_rs, 0u) << "row sums differ";
+    // The skel also ran the block in the three row ranges the attention
+    // kernel's workers take; bits 1/2/4 are p_lo / p_hi / rowsum differing
+    // from the one-call result above.
+    EXPECT_EQ(st[1], 0u) << "the row split does not match the whole block";
     std::cout << "SOFTMAX_Q16_FIELD case=" << c.name << " tiles=" << c.ct
               << " cycles=" << st[0] << " per_tile=" << st[0] / c.ct << "\n";
   }
