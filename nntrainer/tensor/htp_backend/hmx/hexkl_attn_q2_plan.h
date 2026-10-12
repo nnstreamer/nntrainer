@@ -94,7 +94,9 @@ typedef struct {
   uint32_t q_u16;      /**< [2][64][hd] u16 Q rows staged by DMA */
   uint32_t q_ah;       /**< [3][2][dt] uint8 Q tiles: low bytes, high bytes */
   uint32_t s16;        /**< [2][n_blk][64][32] int16 scores */
-  uint32_t planes;     /**< 4 convert planes, 2 KiB each (HMX thread only) */
+  uint32_t planes;     /**< [2][4] convert planes, 2 KiB each (HMX thread
+                            only): the tile being read out and the one
+                            being combined behind it */
   uint32_t p_ah;       /**< [2][2][n_blk] uint8 P16 tiles: low, high bytes */
   uint32_t o16;        /**< [2][dt][64][32] int16 output */
   uint32_t corr;       /**< [2][n_res + 1][32] int16 zero-point correction */
@@ -180,7 +182,7 @@ static inline int hexkl_attn_q2_plan(const hexkl_attn_f16_shape *s,
     L->s16 = off;
     off += HEXKL_ATTN_Q2_SLOTS * n_blk * HEXKL_ATTN_Q2_TILE16;
     L->planes = off;
-    off += 4u * HEXKL_CVT_PLANE_BYTES;
+    off += 2u * 4u * HEXKL_CVT_PLANE_BYTES;
     L->p_ah = off;
     off += HEXKL_ATTN_Q2_SLOTS * 2u * n_blk * TB;
     L->o16 = off;

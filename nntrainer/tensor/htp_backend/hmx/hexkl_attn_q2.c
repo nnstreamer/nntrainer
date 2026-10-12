@@ -540,36 +540,91 @@ static inline void zip_add_i16(const uint8_t *a_lo, const uint8_t *a_hi,
   }
 }
 
+/** @brief The four planes of bank @a k (the tile being read out is one
+ *         bank, the one being combined the other). */
+static inline uint8_t *plane_bank(ctx *c, uint32_t k) {
+  return planes(c) + k * 4u * HEXKL_CVT_PLANE_BYTES;
+}
+
 /**
- * @brief One int16 output tile from two u8 sweeps over @a n_pk packets:
- *        activation tiles @a act_hi / @a act_lo (stride @a act_step),
- *        weight tiles from @a wt (stride @a wt_step); blocks[0..2] are the
- *        scales 2^(e+8), 2^e, 2^(e-8).
+ * @brief The high-byte sweep of one output tile: @a n_pk packets of
+ *        activation tiles @a act_hi (stride @a act_step) by weight tiles
+ *        from @a wt (stride @a wt_step), read out at 2^(e+8) and 2^e into
+ *        bank @a pl's first two planes.
  */
-static inline void two_sweeps(ctx *c, const uint8_t *act_hi,
-                              const uint8_t *act_lo, uint32_t act_step,
-                              const uint8_t *wt, uint32_t wt_step,
-                              uint32_t n_pk, const uint8_t *blocks,
-                              int16_t *dst) {
-  uint8_t *pl = planes(c);
-  uint8_t *a_lo = pl, *a_hi = pl + HEXKL_CVT_PLANE_BYTES;
-  uint8_t *b_lo = a_hi + HEXKL_CVT_PLANE_BYTES,
-          *b_hi = b_lo + HEXKL_CVT_PLANE_BYTES;
-  const uint8_t *blk8 = blocks;
-  const uint8_t *blk0 = blocks + HEXKL_CVT_BLOCK_BYTES;
-  const uint8_t *blkm8 = blocks + 2u * HEXKL_CVT_BLOCK_BYTES;
+static inline void sweep_hi(const uint8_t *act_hi, uint32_t act_step,
+                            const uint8_t *wt, uint32_t wt_step, uint32_t n_pk,
+                            const uint8_t *blocks, uint8_t *pl) {
   hexkl_hmx_acc_clear_int32();
   for (uint32_t p = 0; p < n_pk; ++p) {
     hexkl_hmx_mm_u8i8(act_hi + (size_t)p * act_step, wt + (size_t)p * wt_step);
   }
-  acc_to_planes(blk8, blk0, a_lo, a_hi);
-  cvt_fence(a_hi);
+  acc_to_planes(blocks, blocks + HEXKL_CVT_BLOCK_BYTES, pl,
+                pl + HEXKL_CVT_PLANE_BYTES);
+}
+
+/**
+ * @brief The low-byte sweep, at 2^e and 2^(e-8) into the bank's other two
+ *        planes. Opens with the fence the clear needs: the convert must
+ *        have read the accumulator first.
+ */
+static inline void sweep_lo(const uint8_t *act_lo, uint32_t act_step,
+                            const uint8_t *wt, uint32_t wt_step, uint32_t n_pk,
+                            const uint8_t *blocks, uint8_t *pl) {
+  cvt_fence(pl + HEXKL_CVT_PLANE_BYTES);
   hexkl_hmx_acc_clear_int32();
   for (uint32_t p = 0; p < n_pk; ++p) {
     hexkl_hmx_mm_u8i8(act_lo + (size_t)p * act_step, wt + (size_t)p * wt_step);
   }
-  acc_to_planes(blk0, blkm8, b_lo, b_hi);
-  zip_add_i16(a_lo, a_hi, b_lo, b_hi, dst);
+  acc_to_planes(
+    blocks + HEXKL_CVT_BLOCK_BYTES, blocks + 2u * HEXKL_CVT_BLOCK_BYTES,
+    pl + 2u * HEXKL_CVT_PLANE_BYTES, pl + 3u * HEXKL_CVT_PLANE_BYTES);
+}
+
+/** @brief The bank's four planes combined into one int16 tile. */
+static inline void bank_to_i16(const uint8_t *pl, int16_t *dst) {
+  zip_add_i16(pl, pl + HEXKL_CVT_PLANE_BYTES, pl + 2u * HEXKL_CVT_PLANE_BYTES,
+              pl + 3u * HEXKL_CVT_PLANE_BYTES, dst);
+}
+
+/**
+ * @brief The two sweeps of every output tile, with the combine of the
+ *        tile before placed inside the wait the first sweep ends on.
+ *
+ * Reading a convert plane stalls the thread until the unit has written
+ * that address, which is how cvt_fence works. The combine used to sit
+ * right after its own tile's second sweep, so its first loads paid that
+ * wait in full: on a v81 a QK tile measured 488 cycles against 132 with
+ * the combine removed altogether. Two banks of planes make the combine
+ * read the previous tile, whose converts drained an iteration ago, and
+ * put it where the thread was going to wait anyway -- between the first
+ * sweep's converts and the fence that lets the second sweep clear the
+ * accumulator. The arithmetic is untouched, tile for tile.
+ *
+ * @param n_out   output tiles; @a wt advances by @a wt_tile a tile
+ * @param dst0    first int16 tile, @a dst_step bytes apart
+ */
+static void sweep_tiles(const uint8_t *act_hi, const uint8_t *act_lo,
+                        uint32_t act_step, const uint8_t *wt, uint32_t wt_step,
+                        uint32_t n_pk, const uint8_t *blocks, uint8_t *pl0,
+                        uint32_t n_out, size_t wt_tile, uint8_t *dst0,
+                        size_t dst_step) {
+  uint8_t *prev = NULL;
+  int16_t *prev_dst = NULL;
+  for (uint32_t t = 0; t < n_out; ++t) {
+    uint8_t *cur = pl0 + (t & 1u) * 4u * HEXKL_CVT_PLANE_BYTES;
+    const uint8_t *w = wt + (size_t)t * wt_tile;
+    sweep_hi(act_hi, act_step, w, wt_step, n_pk, blocks, cur);
+    if (prev) {
+      bank_to_i16(prev, prev_dst);
+    }
+    sweep_lo(act_lo, act_step, w, wt_step, n_pk, blocks, cur);
+    prev = cur;
+    prev_dst = (int16_t *)(dst0 + (size_t)t * dst_step);
+  }
+  if (prev) {
+    bank_to_i16(prev, prev_dst);
+  }
 }
 
 /** @brief Stage 1: the block's score tiles. Per column tile the packets
@@ -579,14 +634,11 @@ static void stage_qk(ctx *c, const item_t *it) {
   const uint8_t *q_lo = q_tiles_lo(c, it->qslot);
   const uint8_t *q_hi = q_tiles_hi(c, it->qslot);
   const uint8_t *blocks = cvt_qk(c, it->h);
-  const uint8_t *kt0 = kt_buf(c, it->n);
-  uint8_t *s16 = s16_tiles(c, it->slot);
-  for (uint32_t t = 0; t < it->blk.n; ++t) {
-    const uint32_t ri = it->blk.lo + t - c->res.lo;
-    const uint8_t *kt = kt0 + (size_t)ri * c->dt * 1024u;
-    two_sweeps(c, q_hi, q_lo, HEXKL_ATTN_Q2_TILE, kt, 1024u, c->dt, blocks,
-               (int16_t *)(s16 + (size_t)t * HEXKL_ATTN_Q2_TILE16));
-  }
+  const uint8_t *kt0 =
+    kt_buf(c, it->n) + (size_t)(it->blk.lo - c->res.lo) * c->dt * 1024u;
+  sweep_tiles(q_hi, q_lo, HEXKL_ATTN_Q2_TILE, kt0, 1024u, c->dt, blocks,
+              plane_bank(c, 0), it->blk.n, (size_t)c->dt * 1024u,
+              s16_tiles(c, it->slot), HEXKL_ATTN_Q2_TILE16);
   c->st.us_qk += now_us() - t0;
 }
 
@@ -599,12 +651,9 @@ static void stage_pv(ctx *c, item_t *it) {
   const uint8_t *blocks = cvt_pv(c);
   const uint8_t *v0 =
     v_buf(c, it->n) + (size_t)(it->blk.lo - c->res.lo) * c->dt * 1024u;
-  uint8_t *o16 = o16_tiles(c, it->slot);
-  for (uint32_t d = 0; d < c->dt; ++d) {
-    two_sweeps(c, p_hi, p_lo, HEXKL_ATTN_Q2_TILE, v0 + d * 1024u, c->dt * 1024u,
-               it->blk.n, blocks,
-               (int16_t *)(o16 + (size_t)d * HEXKL_ATTN_Q2_TILE16));
-  }
+  sweep_tiles(p_hi, p_lo, HEXKL_ATTN_Q2_TILE, v0, c->dt * 1024u, it->blk.n,
+              blocks, plane_bank(c, 0), c->dt, 1024u, o16_tiles(c, it->slot),
+              HEXKL_ATTN_Q2_TILE16);
   c->st.us_pv += now_us() - t0;
 }
 
