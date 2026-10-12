@@ -1,0 +1,30 @@
+{
+  "created": "2026-10-12T11:36:49.913328+09:00",
+  "serial": "R5KL30G6MCX",
+  "adb_port": 5038,
+  "device": "SM-S948N",
+  "soc": "SM8850",
+  "boot_id": "a4d4d712-87c7-45c3-b7ca-f1c4bb38419d",
+  "source_runtime": "/data/local/tmp/nntr_expert_update_v3_20261010",
+  "source_model": "/data/local/tmp/nntr_router4_20261010/inference-model",
+  "runtime": "/data/local/tmp/lfm2_s26_w2w4_matrix_20261012/runtime",
+  "binary_hashes": "fee77cb5f13ae91063b23b772f18409c40a2bd0e46611e0820f6b8c46beea440  nntrainer_causallm\n6890931669828acb0fc1899e1fb8f1feae742ff52cc2d1876772b978a869132d  libnntrainer.so\n86fb53d1d4c44038335f936f494a5ab07ada594a43cd82e64d347aebb46c4d97  libcausallm_core.so\n68346a57a93bcc845645117d46f50ee808c2a0d2addc0ae1534d08eaef5b8eb3  libnntr_hvx_skel.so\nfc21e5f39960f055faf46583922c49bdc60cd802000fe2384348f297b4d77679  libccapi-nntrainer.so\nb5d97c38a728afe28d341cda3369f512d35eaf9c680c1b0563cd6a63e395230f  libc++_shared.so\nc698d5d32aa89af4c94139f1e88542ea01960ea0cb5febc4de921461bcf8f6c7  libsdkl.so",
+  "weight_hash": "271f48e3d7b36746f0ddf6997ca37034cc4d7d1e5e9d47b12ed40fba765d4a3c  /data/local/tmp/nntr_router4_20261010/inference-model/weights.bin",
+  "tokenizer_hash": "2221c71b5dce048a8abae62843b92bd7deec13cc153f95fa6e3327a47b79a7da",
+  "git_head": "bdc40c2ab21d2850d4658787dd199677ec41efcf",
+  "thermal_gate": {
+    "AP_max_C": 30,
+    "BAT_range_C": [
+      25,
+      26.5
+    ],
+    "SKIN_range_C": [
+      26.5,
+      28.5
+    ],
+    "status": 0,
+    "quiet_seconds_min": 20,
+    "stable_readings": 3
+  },
+  "method": "Fresh process per run. Exact natural-text token counts; greedy 64 decode steps. OS page cache not flushed or pinned. Capacity 4096, Q8 KV, 8 CPU threads. Strict HTP including LM head; embedding lookup, sampling, I/O remain on CPU. TPS excludes load and uses timing runs only. RAM is sampled in separate runs. RAM = simultaneous smaps RSS + unique DMA-BUF fd sizes - mapped DMA RSS. RAM excludes unassigned system file cache and inaccessible DSP firmware memory. Start temperature is gated; continuous isothermal operation is not assumed."
+}

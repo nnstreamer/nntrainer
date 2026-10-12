@@ -1,0 +1,201 @@
+{
+  "date": "2026-10-09",
+  "device": "SM-S948N R5KL30G6MCX Hexagon v81",
+  "source_head": "bdc40c2ab21d2850d4658787dd199677ec41efcf",
+  "dirty_tree": true,
+  "pr4412": "4c3953bb161d0f7d799a72ddf9bdf9462e3ed482",
+  "input_tokens": 1024,
+  "output_tokens": 64,
+  "expert_cache": 8,
+  "prefetch_readers": 6,
+  "arm_threads": 8,
+  "lm_head": "HTP, existing tied Q4_0 fixture",
+  "fc": "QS4CX_WH",
+  "experts": "QS2CX_WH",
+  "runs": [
+    {
+      "variant": "arm",
+      "run": 1,
+      "battery_c": 27.1,
+      "prefill_ms": 2439,
+      "decode_ms": 6979,
+      "decode_tokens": 64,
+      "decode_tps": 9.17037,
+      "arena_mib": 1536,
+      "generated_text_sha256": "2aae11ce101798a963af1b6f19f56476e1ab4c1c65a6fc0e36aa6fb364ef72fb",
+      "log": "/tmp/nntr-qs2-prefill/arm-1.log"
+    },
+    {
+      "variant": "sync",
+      "run": 1,
+      "battery_c": 27.1,
+      "prefill_ms": 2427,
+      "decode_ms": 6640,
+      "decode_tokens": 64,
+      "decode_tps": 9.63855,
+      "arena_mib": 832,
+      "generated_text_sha256": "2aae11ce101798a963af1b6f19f56476e1ab4c1c65a6fc0e36aa6fb364ef72fb",
+      "log": "/tmp/nntr-qs2-prefill/sync-1.log"
+    },
+    {
+      "variant": "overlap",
+      "run": 1,
+      "battery_c": 27.7,
+      "prefill_ms": 2256,
+      "decode_ms": 6639,
+      "decode_tokens": 64,
+      "decode_tps": 9.64001,
+      "arena_mib": 832,
+      "generated_text_sha256": "2aae11ce101798a963af1b6f19f56476e1ab4c1c65a6fc0e36aa6fb364ef72fb",
+      "log": "/tmp/nntr-qs2-prefill/overlap-1.log"
+    },
+    {
+      "variant": "arm",
+      "run": 2,
+      "battery_c": 28.6,
+      "prefill_ms": 2422,
+      "decode_ms": 7009,
+      "decode_tokens": 64,
+      "decode_tps": 9.13112,
+      "arena_mib": 1536,
+      "generated_text_sha256": "2aae11ce101798a963af1b6f19f56476e1ab4c1c65a6fc0e36aa6fb364ef72fb",
+      "log": "/tmp/nntr-qs2-prefill/arm-2.log"
+    },
+    {
+      "variant": "sync",
+      "run": 2,
+      "battery_c": 28.9,
+      "prefill_ms": 2514,
+      "decode_ms": 6536,
+      "decode_tokens": 64,
+      "decode_tps": 9.79192,
+      "arena_mib": 832,
+      "generated_text_sha256": "2aae11ce101798a963af1b6f19f56476e1ab4c1c65a6fc0e36aa6fb364ef72fb",
+      "log": "/tmp/nntr-qs2-prefill/sync-2.log"
+    },
+    {
+      "variant": "overlap",
+      "run": 2,
+      "battery_c": 29.4,
+      "prefill_ms": 2264,
+      "decode_ms": 6582,
+      "decode_tokens": 64,
+      "decode_tps": 9.72349,
+      "arena_mib": 832,
+      "generated_text_sha256": "2aae11ce101798a963af1b6f19f56476e1ab4c1c65a6fc0e36aa6fb364ef72fb",
+      "log": "/tmp/nntr-qs2-prefill/overlap-2.log"
+    },
+    {
+      "variant": "arm",
+      "run": 3,
+      "battery_c": 29.6,
+      "prefill_ms": 2419,
+      "decode_ms": 6920,
+      "decode_tokens": 64,
+      "decode_tps": 9.24855,
+      "arena_mib": 1536,
+      "generated_text_sha256": "2aae11ce101798a963af1b6f19f56476e1ab4c1c65a6fc0e36aa6fb364ef72fb",
+      "log": "/tmp/nntr-qs2-prefill/arm-3.log"
+    },
+    {
+      "variant": "sync",
+      "run": 3,
+      "battery_c": 29.8,
+      "prefill_ms": 2493,
+      "decode_ms": 6542,
+      "decode_tokens": 64,
+      "decode_tps": 9.78294,
+      "arena_mib": 832,
+      "generated_text_sha256": "2aae11ce101798a963af1b6f19f56476e1ab4c1c65a6fc0e36aa6fb364ef72fb",
+      "log": "/tmp/nntr-qs2-prefill/sync-3.log"
+    },
+    {
+      "variant": "overlap",
+      "run": 3,
+      "battery_c": 30.0,
+      "prefill_ms": 2509,
+      "decode_ms": 6621,
+      "decode_tokens": 64,
+      "decode_tps": 9.66621,
+      "arena_mib": 832,
+      "generated_text_sha256": "2aae11ce101798a963af1b6f19f56476e1ab4c1c65a6fc0e36aa6fb364ef72fb",
+      "log": "/tmp/nntr-qs2-prefill/overlap-3.log"
+    }
+  ],
+  "summary": {
+    "arm": {
+      "mean_prefill_ms": 2426.6666666666665,
+      "aggregate_decode_tps": 9.183087813277215
+    },
+    "sync": {
+      "mean_prefill_ms": 2478.0,
+      "aggregate_decode_tps": 9.737295871792272
+    },
+    "overlap": {
+      "mean_prefill_ms": 2343.0,
+      "aggregate_decode_tps": 9.676443906864227
+    }
+  },
+  "profiles": {
+    "sync": {
+      "prefill": {
+        "dsp_us_per_call": 32346.9,
+        "raw": [
+          "[HTP-PROFILE]   K=2048  N=2048  M>1        calls=39      rows=39936    host=   1353.2 ms (34696.2 us/call)  dsp=32346.9 us/call (93.2%) transport= 2349.2 us/call  [quant 518.1 gather 74.6 requant 55.3 swiglu(hidden) 52897.3 dequant 124.7 acc 15550.7 drain 4843.5+2777.1 push 126.7 scatter 30.6 alloc 13.8 stage 967.5 mm 6693.4 | rest<=570.8 (1.6% of host) blocks=3865 m1_gemv=0/39 feed=0/39]",
+          "[HTP-PROFILE]     weight DMA: 135286 KB/call, first 512 KB took 90 us = 5.8 GB/s; averaged over the call 4.3 GB/s",
+          "[HTP-PROFILE]     DMA ring: desc=585/call waits=395 (blocked 4.9) wait=5732.2 us [act 61.9 gu 4843.5+dn 2777.1] busy=30..186 us -> engine 746.3..4574.8 GB/s  depth max=9  first expert ready at 26 us  last issue at 731 us of 32347",
+          "[HTP-PROFILE]     staging: act 8388608 B out 8388608 B ion=y  rpc allocs=253 (session)  non-ION in-args=6/33584 B"
+        ]
+      },
+      "decode": {
+        "dsp_us_per_call": 317.5,
+        "raw": [
+          "[HTP-PROFILE]   K=2048  N=2048  M==1       calls=2432    rows=2432     host=    869.3 ms (  357.4 us/call)  dsp=  317.5 us/call (88.8%) transport=   39.9 us/call  [quant 8.8 gather 0.0 requant 5.7 swiglu(hidden) 1051.8 dequant 0.0 acc 0.0 drain 0.0+0.0 push 0.0 scatter 6.4 alloc 0.1 stage 5.2 mm 283.6 | rest<=7.7 (2.2% of host) blocks=0 m1_gemv=2432/2432 feed=2432/2432]",
+          "[HTP-PROFILE]     weight DMA: 9216 KB/call, first 1536 KB took 26 us = 59.8 GB/s; averaged over the call 29.7 GB/s",
+          "[HTP-PROFILE]     DMA ring: desc=10/call waits=10 (blocked 3.8) wait=52.4 us [act 0.0 gu 0.0+dn 0.0] busy=107..252 us -> engine 37.5..88.2 GB/s  depth max=4  first expert ready at 38 us  last issue at 221 us of 318",
+          "[HTP-PROFILE]     staging: act 65536 B out 65536 B ion=y  rpc allocs=253 (session)  via=dspq 2432/2432 calls msg=116 B"
+        ]
+      }
+    },
+    "overlap": {
+      "prefill": {
+        "dsp_us_per_call": 26527.7,
+        "raw": [
+          "[HTP-PROFILE]   K=2048  N=2048  M>1        calls=39      rows=39936    host=   1056.5 ms (27089.2 us/call)  dsp=26527.7 us/call (97.9%) transport=  561.5 us/call  [quant 492.7 gather 68.7 requant 77.8 swiglu(hidden) 53776.7 dequant 101.5 acc 15350.5 drain 1652.8+32.9 push 122.4 scatter 38.4 alloc 13.5 stage 948.8 mm 6914.7 | rest<=712.9 (2.6% of host) blocks=3865 m1_gemv=0/39 feed=0/39]",
+          "[HTP-PROFILE]     weight DMA: 135286 KB/call, first 512 KB took 88 us = 5.9 GB/s; averaged over the call 5.2 GB/s",
+          "[HTP-PROFILE]     DMA ring: desc=585/call waits=395 (blocked 4.9) wait=441.8 us [act 55.1 gu 1652.8+dn 32.9] busy=18..190 us -> engine 730.9..7796.2 GB/s  depth max=8  first expert ready at 27 us  last issue at 635 us of 26528",
+          "[HTP-PROFILE]     staging: act 8388608 B out 8388608 B ion=y  rpc allocs=253 (session)  non-ION in-args=6/33584 B"
+        ]
+      },
+      "decode": {
+        "dsp_us_per_call": 317.1,
+        "raw": [
+          "[HTP-PROFILE]   K=2048  N=2048  M==1       calls=2432    rows=2432     host=    869.4 ms (  357.5 us/call)  dsp=  317.1 us/call (88.7%) transport=   40.3 us/call  [quant 8.7 gather 0.0 requant 5.7 swiglu(hidden) 1054.2 dequant 0.0 acc 0.0 drain 0.0+0.0 push 0.0 scatter 6.8 alloc 0.2 stage 5.9 mm 282.1 | rest<=7.8 (2.2% of host) blocks=0 m1_gemv=2432/2432 feed=2432/2432]",
+          "[HTP-PROFILE]     weight DMA: 9216 KB/call, first 1536 KB took 25 us = 61.9 GB/s; averaged over the call 29.8 GB/s",
+          "[HTP-PROFILE]     DMA ring: desc=10/call waits=10 (blocked 3.8) wait=51.8 us [act 0.0 gu 0.0+dn 0.0] busy=108..252 us -> engine 37.4..87.5 GB/s  depth max=4  first expert ready at 38 us  last issue at 220 us of 317",
+          "[HTP-PROFILE]     staging: act 65536 B out 65536 B ion=y  rpc allocs=253 (session)  via=dspq 2432/2432 calls msg=116 B"
+        ]
+      }
+    }
+  },
+  "dump_comparison": {
+    "reference": "/tmp/nntr-qs2-prefill/dump-sync-current",
+    "candidate": "/tmp/nntr-qs2-prefill/dump-overlap",
+    "reference_files": 4943,
+    "candidate_files": 4943,
+    "missing": [],
+    "extra": [],
+    "different": []
+  },
+  "dsp_sha256": {
+    "/tmp/nntr-qs2-prefill/sync-current-skel.so": "566264a4de23264645e72dee55bb1cc88c4b7c3c15613984a920908b55050c07",
+    "test/htp/build/libnntr_hvx_skel.so": "d727f2a879d4e1c30175c66389d413e67f8e3e992a1504efd2c1e51d7f60d804"
+  },
+  "validation": {
+    "host_checks": "pass; native HVX/ISS and NEON checks unavailable",
+    "device_tests": "5 passed",
+    "asan": "no finding in focused compact test",
+    "ubsan": "existing signed left shift in nntrainer/tensor/swiglu_det.h:152 on the larger scalar-reference shape"
+  },
+  "excluded_measurement": "initial-mixed-baseline: previous skel had older attention/DSP queue implementations; rebuilt control from the current tree with only pre-task MoE source"
+}

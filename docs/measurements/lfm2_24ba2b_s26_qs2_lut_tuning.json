@@ -1,0 +1,272 @@
+{
+  "date": "2026-10-09",
+  "device": "SM-S948N, Hexagon V81, serial R5KL30G6MCX",
+  "objective": "Improve exact QS2 LUT GEMV register reuse and parallel scheduling; compare with the existing LUT and register-expansion paths.",
+  "implementation": {
+    "nomatch": "V81 vlut16 :nomatch avoids two masks and a table-select OR per code vector. Four-way inner unroll bounds live registers. Earlier architectures keep the original match lookup.",
+    "shared_registers": "Two 128-output panels consume one LUT register load. Gate/up share a table; down pairs adjacent output panels. Eight-way unroll was fastest among the tested uncentered pair schedules, despite some spills.",
+    "parallel_experts": "Two experts share the existing worker pool in disjoint groups, using private LUTs and existing slabs. DMA waits precede access and joins precede slab reuse. Odd expert counts and insufficient table space retain a valid path.",
+    "centered_experiment": "Subtract exactly 127 from u8 activations only inside LUT construction. Products over K32 lie in [-32768,32512], so one int16 partial sum per output replaces two. Restore 127*column_sum in int32 before the original FP32 epilogue; no quantization or floating-point order change.",
+    "weight_format": "Original QS2CX_WH files/cache are retained; every model LUT variant includes runtime VTCM repacking. Prepacked layout is measured only in the isolated probe.",
+    "runtime_modes": {
+      "0": "Original expansion + GEMV (unchanged default)",
+      "1": "Register expansion + vrmpy",
+      "2": "Single-panel LUT with V81 nomatch optimization",
+      "3": "Two panels sharing LUT registers",
+      "4": "Shared-register pairs and two concurrent experts",
+      "5": "Centered exact shared-register pairs"
+    },
+    "build_defaults": {
+      "NNTR_LUT_NOMATCH": 1,
+      "NNTR_LUT_SINGLE_UNROLL": 4,
+      "NNTR_LUT_PAIR_UNROLL": 8,
+      "NNTR_LUT_CENTER_UNROLL": 2
+    },
+    "enablement": "Requires existing NNTR_HTP_QS2_VTCM=1 feed and supported single-token QS2 shapes; experimental modes stay opt-in."
+  },
+  "experiments": {
+    "initial_sweep_builds": 13,
+    "sweeps": "lfm2_s26_qs2_tune_validation_20261009/microbenchmarks.json",
+    "final_micro": "lfm2_s26_qs2_tune_validation_20261009/micro-final.json",
+    "selected_micro": [
+      {
+        "variant": "baseline",
+        "K": 2048,
+        "N": 3072,
+        "probe_mode": 1,
+        "valid_repeats": 3,
+        "gemv_us": [
+          7.125,
+          7.065,
+          7.175
+        ],
+        "median_gemv_us": 7.125,
+        "median_total_us": 8.77
+      },
+      {
+        "variant": "baseline",
+        "K": 1536,
+        "N": 2048,
+        "probe_mode": 1,
+        "valid_repeats": 3,
+        "gemv_us": [
+          3.92,
+          3.94,
+          3.93
+        ],
+        "median_gemv_us": 3.93,
+        "median_total_us": 5.55
+      },
+      {
+        "variant": "optimized",
+        "K": 2048,
+        "N": 3072,
+        "probe_mode": 1,
+        "valid_repeats": 3,
+        "gemv_us": [
+          6.985,
+          6.985,
+          6.99
+        ],
+        "median_gemv_us": 6.985,
+        "median_total_us": 8.65
+      },
+      {
+        "variant": "optimized",
+        "K": 2048,
+        "N": 3072,
+        "probe_mode": 5,
+        "valid_repeats": 3,
+        "gemv_us": [
+          7.4,
+          7.485,
+          7.42
+        ],
+        "median_gemv_us": 7.42,
+        "median_total_us": 9.135
+      },
+      {
+        "variant": "optimized",
+        "K": 2048,
+        "N": 3072,
+        "probe_mode": 7,
+        "valid_repeats": 3,
+        "gemv_us": [
+          8.025,
+          7.975,
+          8.07
+        ],
+        "median_gemv_us": 8.025,
+        "median_total_us": 9.71
+      },
+      {
+        "variant": "optimized",
+        "K": 1536,
+        "N": 2048,
+        "probe_mode": 1,
+        "valid_repeats": 3,
+        "gemv_us": [
+          3.88,
+          3.825,
+          3.86
+        ],
+        "median_gemv_us": 3.86,
+        "median_total_us": 5.445
+      },
+      {
+        "variant": "optimized",
+        "K": 1536,
+        "N": 2048,
+        "probe_mode": 5,
+        "valid_repeats": 3,
+        "gemv_us": [
+          3.335,
+          3.235,
+          3.245
+        ],
+        "median_gemv_us": 3.245,
+        "median_total_us": 4.9
+      },
+      {
+        "variant": "optimized",
+        "K": 1536,
+        "N": 2048,
+        "probe_mode": 7,
+        "valid_repeats": 3,
+        "gemv_us": [
+          3.475,
+          3.49,
+          3.565
+        ],
+        "median_gemv_us": 3.49,
+        "median_total_us": 5.105
+      }
+    ],
+    "probe_mode_numbers": "1=single-panel prepacked, 5=shared-register prepacked, 7=centered prepacked. These differ from NNTR_HTP_QS2_GEMV. Modes 7/8 time centered sums without the production integer restoration.",
+    "micro_conditions": "200 measured passes per cell, three warmups; final three alternating rounds, reject runs with detected other inference; requested GEMV workers 1/4/6/8, prepare/repack use full pool for >1. Selected rows exclude DMA and repacking; total includes preparation.",
+    "model_conditions": {
+      "serial": "R5KL30G6MCX",
+      "model": "/data/local/tmp/nntr_int8_kv_20261009/model",
+      "prompt": 1024,
+      "generation": 64,
+      "expert_cache": 8,
+      "repeats": 2
+    },
+    "model_raw": "lfm2_s26_qs2_tune_20261009-205716/results.json",
+    "model_summary": {
+      "legacy_lut": {
+        "runs": 2,
+        "prefill_ms": [
+          2058,
+          2057
+        ],
+        "decode_ms": [
+          2752,
+          2763
+        ],
+        "mean_prefill_ms": 2057.5,
+        "mean_decode_ms": 2757.5,
+        "decode_tps": 23.209428830462375,
+        "gain_percent_vs_legacy_lut": 0.0
+      },
+      "nomatch_lut": {
+        "runs": 2,
+        "prefill_ms": [
+          2082,
+          2102
+        ],
+        "decode_ms": [
+          2736,
+          2751
+        ],
+        "mean_prefill_ms": 2092,
+        "mean_decode_ms": 2743.5,
+        "decode_tps": 23.327865864771276,
+        "gain_percent_vs_legacy_lut": 0.5102970657918648
+      },
+      "pair_lut": {
+        "runs": 2,
+        "prefill_ms": [
+          2163,
+          2278
+        ],
+        "decode_ms": [
+          2734,
+          2754
+        ],
+        "mean_prefill_ms": 2220.5,
+        "mean_decode_ms": 2744,
+        "decode_tps": 23.323615160349853,
+        "gain_percent_vs_legacy_lut": 0.49198250728861304
+      },
+      "pair_experts": {
+        "runs": 2,
+        "prefill_ms": [
+          2120,
+          2032
+        ],
+        "decode_ms": [
+          2835,
+          2818
+        ],
+        "mean_prefill_ms": 2076,
+        "mean_decode_ms": 2826.5,
+        "decode_tps": 22.642844507341234,
+        "gain_percent_vs_legacy_lut": -2.4411816734477343
+      },
+      "centered_lut": {
+        "runs": 2,
+        "prefill_ms": [
+          2260,
+          2070
+        ],
+        "decode_ms": [
+          2740,
+          2748
+        ],
+        "mean_prefill_ms": 2165,
+        "mean_decode_ms": 2744,
+        "decode_tps": 23.323615160349853,
+        "gain_percent_vs_legacy_lut": 0.49198250728861304
+      },
+      "fused": {
+        "runs": 2,
+        "prefill_ms": [
+          2071,
+          2303
+        ],
+        "decode_ms": [
+          2725,
+          2710
+        ],
+        "mean_prefill_ms": 2187,
+        "mean_decode_ms": 2717.5,
+        "decode_tps": 23.551057957681692,
+        "gain_percent_vs_legacy_lut": 1.4719411223551138
+      }
+    },
+    "output_sha256": "c8cd577d1ae89370ac305d5308120c8956ce274af481977851ba38d0d726dd1f",
+    "model_limits": "Two 64-token decoding runs per variant. No overlapping inference detected. Controlled start temperature/idle gates and reversed second round, but shared-device usage between runs and normal run-to-run variability remain. Small differences are not statistical proof of a speedup. Do not compare absolute TPS with earlier sessions."
+  },
+  "validation": {
+    "new_kernel_strict_ASan_UBSan": "pass; independent dense reference, palette/activation extremes, layouts and guards",
+    "device_full_matrix": "1080 exact cells passed on final optimized benchmark build",
+    "device_integration": "MoeCompactExpertsMatchExpanded and MoeLayerM1GemvMatchesHmx passed; includes experimental modes, odd five-expert batching, cache rebind and prefill/fallback. Both benchmark build and later source snapshot passed.",
+    "host_moe": "all checks pass; compact fixture now carries actual column sums, needed to validate exact centered restoration.",
+    "host_suite": "Full recheck exited 0. Initial run failed in unrelated planar-dequant emulation; isolated recheck passed 600 cases and subsequent full run passed. No planar-dequant implementation was edited by this task. Existing unavailable native/ISS and AArch64 NEON checks were skipped.",
+    "older_architecture": "Kernel compiles for V79 with nomatch disabled by architecture guard. No V79 device run.",
+    "formatting": "clang-format 14 applied to changed C/C++ lines; git diff --check passed."
+  },
+  "provenance": {
+    "benchmark_source_hashes": "lfm2_s26_qs2_tune_validation_20261009/dsp-source-hashes-before-final.json",
+    "later_validation_source_hashes": "lfm2_s26_qs2_tune_validation_20261009/verify-source-hashes.json",
+    "benchmark_builds": "final-baseline.so uses NNTR_LUT_NOMATCH=0; final-optimized.so uses 1. All other compile settings and source hashes match at build time. Same ARM libraries in both runtimes. Binary hashes are in the model raw report.",
+    "shared_workspace": "A separate prefill change in hexkl_mm_u8i4_moe.c appeared after benchmark binaries were frozen. Preserved it and built a separate source snapshot for final integration verification without replacing measured binaries.",
+    "binary_sha256": {
+      "final-baseline.so": "ee3937ba207f6f74b2fbc4379bd8ef72741cb807f13901e9b223c5110bca8ae4",
+      "final-optimized.so": "5498d63132083e6c6988507a6e1d710021ca365bd72948d5363a0c90f367d9ac",
+      "libnntrainer.so": "d4e54bdfebe2ab46e7fc1374d5422c9489e77462bc790e5b29ea43b415149078"
+    }
+  },
+  "conclusion": "Kernel improvements are measurable, particularly down-panel register sharing. Whole-model LUT variants are close; concurrent experts regress in this schedule. No experimental mode becomes the default. Removing per-token weight repacking remains a separate integration opportunity."
+}

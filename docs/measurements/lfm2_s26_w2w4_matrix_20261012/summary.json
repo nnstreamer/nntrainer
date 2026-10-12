@@ -1,0 +1,807 @@
+{
+  "rows": [
+    {
+      "input_tokens": 512,
+      "cached_experts_per_layer": 8,
+      "decode_tokens": 64,
+      "timing_repeats": 3,
+      "memory_repeats": 1,
+      "timing_logs": [
+        "timing-i512-c8-r1.log",
+        "timing-i512-c8-r2.log",
+        "timing-i512-c8-r3.log"
+      ],
+      "memory_logs": [
+        "memory-i512-c8-r1.log"
+      ],
+      "prefill_ms_samples": [
+        1332,
+        1176,
+        1171
+      ],
+      "prefill_tps_median": 435.3741496598639,
+      "prefill_tps_min": 384.38438438438436,
+      "prefill_tps_max": 437.2331340734415,
+      "generation_ms_samples": [
+        1883,
+        1589,
+        1590
+      ],
+      "generation_tps_median": 40.25157232704402,
+      "generation_tps_min": 33.98831651619756,
+      "generation_tps_max": 40.27690371302706,
+      "timing_reported_peak_rss_gib": 1.5448112487792969,
+      "generated_outputs": [
+        {
+          "text": "cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred",
+          "sha256": "9d734b3f9a36b4e69f902d53ac7698727ce792a4fd6d1094e9e2f8241a8e7574"
+        },
+        {
+          "text": "cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred",
+          "sha256": "9d734b3f9a36b4e69f902d53ac7698727ce792a4fd6d1094e9e2f8241a8e7574"
+        },
+        {
+          "text": "cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred",
+          "sha256": "9d734b3f9a36b4e69f902d53ac7698727ce792a4fd6d1094e9e2f8241a8e7574"
+        }
+      ],
+      "decode_expert_cache_hit_percent": [
+        95.19942434210526,
+        95.19942434210526,
+        95.19942434210526
+      ],
+      "same_output_across_timing_repeats": true,
+      "total_peak_gib": 3.6725921630859375,
+      "rss_at_total_peak_gib": 1.51348876953125,
+      "dma_at_total_peak_gib": 2.1591033935546875,
+      "dma_rss_overlap_at_peak_gib": 0.0,
+      "memory_samples": 31,
+      "memory_sample_gap_seconds": {
+        "min": 0.22911596298217773,
+        "max": 0.3685002326965332,
+        "median": 0.3043398857116699
+      },
+      "thermal_status_max": 0,
+      "start_temperature_C": {
+        "AP": [
+          27.2,
+          27.4
+        ],
+        "BAT": [
+          26.2,
+          26.2
+        ],
+        "SKIN": [
+          28.5,
+          28.5
+        ]
+      },
+      "observed_HAL_temperature_C": {
+        "AP": [
+          27.2,
+          30.8
+        ],
+        "BAT": [
+          26.1,
+          26.2
+        ],
+        "SKIN": [
+          28.5,
+          29.4
+        ]
+      },
+      "direct_temperature_C": {
+        "hvx0": [
+          29.7,
+          56.7
+        ],
+        "hvx1": [
+          29.7,
+          56.7
+        ],
+        "hvx2": [
+          29.7,
+          55.6
+        ],
+        "hvx3": [
+          29.7,
+          55.6
+        ],
+        "hmx0": [
+          29.7,
+          52.1
+        ],
+        "hmx1": [
+          30.1,
+          53.2
+        ],
+        "hmx2": [
+          30.1,
+          56.0
+        ],
+        "hmx3": [
+          30.8,
+          59.4
+        ],
+        "sys_therm0": [
+          28.642,
+          29.067
+        ],
+        "battery": [
+          26.1,
+          26.3
+        ]
+      }
+    },
+    {
+      "input_tokens": 512,
+      "cached_experts_per_layer": 12,
+      "decode_tokens": 64,
+      "timing_repeats": 3,
+      "memory_repeats": 1,
+      "timing_logs": [
+        "timing-i512-c12-r1.log",
+        "timing-i512-c12-r2.log",
+        "timing-i512-c12-r3.log"
+      ],
+      "memory_logs": [
+        "memory-i512-c12-r1.log"
+      ],
+      "prefill_ms_samples": [
+        1124,
+        1115,
+        1105
+      ],
+      "prefill_tps_median": 459.19282511210764,
+      "prefill_tps_min": 455.51601423487546,
+      "prefill_tps_max": 463.34841628959276,
+      "generation_ms_samples": [
+        1590,
+        1598,
+        1608
+      ],
+      "generation_tps_median": 40.05006257822278,
+      "generation_tps_min": 39.80099502487562,
+      "generation_tps_max": 40.25157232704402,
+      "timing_reported_peak_rss_gib": 1.4989547729492188,
+      "generated_outputs": [
+        {
+          "text": "cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred",
+          "sha256": "9d734b3f9a36b4e69f902d53ac7698727ce792a4fd6d1094e9e2f8241a8e7574"
+        },
+        {
+          "text": "cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred",
+          "sha256": "9d734b3f9a36b4e69f902d53ac7698727ce792a4fd6d1094e9e2f8241a8e7574"
+        },
+        {
+          "text": "cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred",
+          "sha256": "9d734b3f9a36b4e69f902d53ac7698727ce792a4fd6d1094e9e2f8241a8e7574"
+        }
+      ],
+      "decode_expert_cache_hit_percent": [
+        95.62088815789474,
+        95.62088815789474,
+        95.62088815789474
+      ],
+      "same_output_across_timing_repeats": true,
+      "total_peak_gib": 3.9863243103027344,
+      "rss_at_total_peak_gib": 1.4815177917480469,
+      "dma_at_total_peak_gib": 2.5048065185546875,
+      "dma_rss_overlap_at_peak_gib": 0.0,
+      "memory_samples": 30,
+      "memory_sample_gap_seconds": {
+        "min": 0.2503387928009033,
+        "max": 0.361269474029541,
+        "median": 0.30324316024780273
+      },
+      "thermal_status_max": 0,
+      "start_temperature_C": {
+        "AP": [
+          27.3,
+          27.4
+        ],
+        "BAT": [
+          26.2,
+          26.2
+        ],
+        "SKIN": [
+          28.5,
+          28.5
+        ]
+      },
+      "observed_HAL_temperature_C": {
+        "AP": [
+          27.3,
+          34.5
+        ],
+        "BAT": [
+          26.1,
+          26.3
+        ],
+        "SKIN": [
+          28.5,
+          30.6
+        ]
+      },
+      "direct_temperature_C": {
+        "hvx0": [
+          29.7,
+          57.5
+        ],
+        "hvx1": [
+          29.7,
+          56.7
+        ],
+        "hvx2": [
+          29.3,
+          56.0
+        ],
+        "hvx3": [
+          29.3,
+          56.0
+        ],
+        "hmx0": [
+          28.9,
+          51.7
+        ],
+        "hmx1": [
+          29.7,
+          53.2
+        ],
+        "hmx2": [
+          29.3,
+          55.2
+        ],
+        "hmx3": [
+          29.7,
+          58.7
+        ],
+        "sys_therm0": [
+          28.691,
+          29.142
+        ],
+        "battery": [
+          26.1,
+          26.3
+        ]
+      }
+    },
+    {
+      "input_tokens": 1024,
+      "cached_experts_per_layer": 8,
+      "decode_tokens": 64,
+      "timing_repeats": 3,
+      "memory_repeats": 1,
+      "timing_logs": [
+        "timing-i1024-c8-r1.log",
+        "timing-i1024-c8-r2.log",
+        "timing-i1024-c8-r3.log"
+      ],
+      "memory_logs": [
+        "memory-i1024-c8-r1.log"
+      ],
+      "prefill_ms_samples": [
+        1721,
+        1720,
+        1732
+      ],
+      "prefill_tps_median": 595.0029052876234,
+      "prefill_tps_min": 591.2240184757505,
+      "prefill_tps_max": 595.3488372093024,
+      "generation_ms_samples": [
+        1645,
+        1605,
+        1637
+      ],
+      "generation_tps_median": 39.09590714722052,
+      "generation_tps_min": 38.90577507598784,
+      "generation_tps_max": 39.875389408099686,
+      "timing_reported_peak_rss_gib": 1.5285110473632812,
+      "generated_outputs": [
+        {
+          "text": "cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred",
+          "sha256": "9d734b3f9a36b4e69f902d53ac7698727ce792a4fd6d1094e9e2f8241a8e7574"
+        },
+        {
+          "text": "cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred",
+          "sha256": "9d734b3f9a36b4e69f902d53ac7698727ce792a4fd6d1094e9e2f8241a8e7574"
+        },
+        {
+          "text": "cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred",
+          "sha256": "9d734b3f9a36b4e69f902d53ac7698727ce792a4fd6d1094e9e2f8241a8e7574"
+        }
+      ],
+      "decode_expert_cache_hit_percent": [
+        95.38445723684211,
+        95.38445723684211,
+        95.38445723684211
+      ],
+      "same_output_across_timing_repeats": true,
+      "total_peak_gib": 3.8372879028320312,
+      "rss_at_total_peak_gib": 1.5158309936523438,
+      "dma_at_total_peak_gib": 2.3214569091796875,
+      "dma_rss_overlap_at_peak_gib": 0.0,
+      "memory_samples": 32,
+      "memory_sample_gap_seconds": {
+        "min": 0.2437300682067871,
+        "max": 0.3713502883911133,
+        "median": 0.3052043914794922
+      },
+      "thermal_status_max": 0,
+      "start_temperature_C": {
+        "AP": [
+          27.3,
+          27.4
+        ],
+        "BAT": [
+          26.2,
+          26.2
+        ],
+        "SKIN": [
+          28.5,
+          28.5
+        ]
+      },
+      "observed_HAL_temperature_C": {
+        "AP": [
+          27.3,
+          34.9
+        ],
+        "BAT": [
+          26.1,
+          26.4
+        ],
+        "SKIN": [
+          28.5,
+          30.7
+        ]
+      },
+      "direct_temperature_C": {
+        "hvx0": [
+          28.9,
+          58.7
+        ],
+        "hvx1": [
+          29.3,
+          58.3
+        ],
+        "hvx2": [
+          28.9,
+          57.5
+        ],
+        "hvx3": [
+          29.3,
+          56.7
+        ],
+        "hmx0": [
+          28.5,
+          52.9
+        ],
+        "hmx1": [
+          28.9,
+          54.4
+        ],
+        "hmx2": [
+          28.5,
+          56.3
+        ],
+        "hmx3": [
+          28.9,
+          59.8
+        ],
+        "sys_therm0": [
+          28.745,
+          29.298
+        ],
+        "battery": [
+          26.2,
+          26.5
+        ]
+      }
+    },
+    {
+      "input_tokens": 1024,
+      "cached_experts_per_layer": 12,
+      "decode_tokens": 64,
+      "timing_repeats": 3,
+      "memory_repeats": 1,
+      "timing_logs": [
+        "timing-i1024-c12-r1.log",
+        "timing-i1024-c12-r2.log",
+        "timing-i1024-c12-r3.log"
+      ],
+      "memory_logs": [
+        "memory-i1024-c12-r1.log"
+      ],
+      "prefill_ms_samples": [
+        1758,
+        1741,
+        1749
+      ],
+      "prefill_tps_median": 585.4774156660949,
+      "prefill_tps_min": 582.4800910125142,
+      "prefill_tps_max": 588.1677197013211,
+      "generation_ms_samples": [
+        1619,
+        1611,
+        1614
+      ],
+      "generation_tps_median": 39.653035935563814,
+      "generation_tps_min": 39.53057442865967,
+      "generation_tps_max": 39.72687771570453,
+      "timing_reported_peak_rss_gib": 1.4654083251953125,
+      "generated_outputs": [
+        {
+          "text": "cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred",
+          "sha256": "9d734b3f9a36b4e69f902d53ac7698727ce792a4fd6d1094e9e2f8241a8e7574"
+        },
+        {
+          "text": "cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred",
+          "sha256": "9d734b3f9a36b4e69f902d53ac7698727ce792a4fd6d1094e9e2f8241a8e7574"
+        },
+        {
+          "text": "cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred",
+          "sha256": "9d734b3f9a36b4e69f902d53ac7698727ce792a4fd6d1094e9e2f8241a8e7574"
+        }
+      ],
+      "decode_expert_cache_hit_percent": [
+        95.77508223684211,
+        95.77508223684211,
+        95.77508223684211
+      ],
+      "same_output_across_timing_repeats": true,
+      "total_peak_gib": 4.126350402832031,
+      "rss_at_total_peak_gib": 1.4591903686523438,
+      "dma_at_total_peak_gib": 2.6671600341796875,
+      "dma_rss_overlap_at_peak_gib": 0.0,
+      "memory_samples": 31,
+      "memory_sample_gap_seconds": {
+        "min": 0.24181365966796875,
+        "max": 0.3645143508911133,
+        "median": 0.3075295686721802
+      },
+      "thermal_status_max": 0,
+      "start_temperature_C": {
+        "AP": [
+          27.2,
+          27.3
+        ],
+        "BAT": [
+          26.2,
+          26.2
+        ],
+        "SKIN": [
+          28.5,
+          28.5
+        ]
+      },
+      "observed_HAL_temperature_C": {
+        "AP": [
+          27.2,
+          34.3
+        ],
+        "BAT": [
+          26.1,
+          26.3
+        ],
+        "SKIN": [
+          28.5,
+          30.5
+        ]
+      },
+      "direct_temperature_C": {
+        "hvx0": [
+          28.9,
+          56.7
+        ],
+        "hvx1": [
+          29.3,
+          56.3
+        ],
+        "hvx2": [
+          29.3,
+          55.2
+        ],
+        "hvx3": [
+          29.3,
+          56.0
+        ],
+        "hmx0": [
+          28.5,
+          50.9
+        ],
+        "hmx1": [
+          29.3,
+          52.5
+        ],
+        "hmx2": [
+          28.9,
+          54.4
+        ],
+        "hmx3": [
+          28.9,
+          58.3
+        ],
+        "sys_therm0": [
+          28.708,
+          29.202
+        ],
+        "battery": [
+          26.1,
+          26.4
+        ]
+      }
+    },
+    {
+      "input_tokens": 2048,
+      "cached_experts_per_layer": 8,
+      "decode_tokens": 64,
+      "timing_repeats": 3,
+      "memory_repeats": 1,
+      "timing_logs": [
+        "timing-i2048-c8-r1.log",
+        "timing-i2048-c8-r2.log",
+        "timing-i2048-c8-r3.log"
+      ],
+      "memory_logs": [
+        "memory-i2048-c8-r1.log"
+      ],
+      "prefill_ms_samples": [
+        3640,
+        3619,
+        3610
+      ],
+      "prefill_tps_median": 565.9021829234595,
+      "prefill_tps_min": 562.6373626373627,
+      "prefill_tps_max": 567.3130193905818,
+      "generation_ms_samples": [
+        2017,
+        1981,
+        2016
+      ],
+      "generation_tps_median": 31.746031746031747,
+      "generation_tps_min": 31.73029251363411,
+      "generation_tps_max": 32.30691569914185,
+      "timing_reported_peak_rss_gib": 1.4814949035644531,
+      "generated_outputs": [
+        {
+          "text": "cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred",
+          "sha256": "9d734b3f9a36b4e69f902d53ac7698727ce792a4fd6d1094e9e2f8241a8e7574"
+        },
+        {
+          "text": "cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred",
+          "sha256": "9d734b3f9a36b4e69f902d53ac7698727ce792a4fd6d1094e9e2f8241a8e7574"
+        },
+        {
+          "text": "cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred",
+          "sha256": "9d734b3f9a36b4e69f902d53ac7698727ce792a4fd6d1094e9e2f8241a8e7574"
+        }
+      ],
+      "decode_expert_cache_hit_percent": [
+        95.62088815789474,
+        95.62088815789474,
+        95.62088815789474
+      ],
+      "same_output_across_timing_repeats": true,
+      "total_peak_gib": 4.108936309814453,
+      "rss_at_total_peak_gib": 1.4617958068847656,
+      "dma_at_total_peak_gib": 2.6471405029296875,
+      "dma_rss_overlap_at_peak_gib": 0.0,
+      "memory_samples": 40,
+      "memory_sample_gap_seconds": {
+        "min": 0.2567312717437744,
+        "max": 0.3525373935699463,
+        "median": 0.299544095993042
+      },
+      "thermal_status_max": 0,
+      "start_temperature_C": {
+        "AP": [
+          27.3,
+          27.5
+        ],
+        "BAT": [
+          26.2,
+          26.2
+        ],
+        "SKIN": [
+          28.5,
+          28.5
+        ]
+      },
+      "observed_HAL_temperature_C": {
+        "AP": [
+          27.3,
+          34.6
+        ],
+        "BAT": [
+          26.1,
+          26.4
+        ],
+        "SKIN": [
+          28.5,
+          30.7
+        ]
+      },
+      "direct_temperature_C": {
+        "hvx0": [
+          30.1,
+          57.9
+        ],
+        "hvx1": [
+          30.1,
+          57.5
+        ],
+        "hvx2": [
+          29.7,
+          56.3
+        ],
+        "hvx3": [
+          30.5,
+          56.3
+        ],
+        "hmx0": [
+          29.7,
+          53.6
+        ],
+        "hmx1": [
+          30.5,
+          55.2
+        ],
+        "hmx2": [
+          30.5,
+          56.7
+        ],
+        "hmx3": [
+          31.2,
+          59.8
+        ],
+        "sys_therm0": [
+          28.716,
+          29.452
+        ],
+        "battery": [
+          26.2,
+          26.3
+        ]
+      }
+    },
+    {
+      "input_tokens": 2048,
+      "cached_experts_per_layer": 12,
+      "decode_tokens": 64,
+      "timing_repeats": 3,
+      "memory_repeats": 1,
+      "timing_logs": [
+        "timing-i2048-c12-r1.log",
+        "timing-i2048-c12-r2.log",
+        "timing-i2048-c12-r3.log"
+      ],
+      "memory_logs": [
+        "memory-i2048-c12-r1.log"
+      ],
+      "prefill_ms_samples": [
+        3675,
+        3624,
+        3508
+      ],
+      "prefill_tps_median": 565.121412803532,
+      "prefill_tps_min": 557.2789115646259,
+      "prefill_tps_max": 583.8084378563284,
+      "generation_ms_samples": [
+        1991,
+        1986,
+        2021
+      ],
+      "generation_tps_median": 32.14465092918132,
+      "generation_tps_min": 31.667491340920336,
+      "generation_tps_max": 32.225579053373615,
+      "timing_reported_peak_rss_gib": 1.4323387145996094,
+      "generated_outputs": [
+        {
+          "text": "cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred",
+          "sha256": "9d734b3f9a36b4e69f902d53ac7698727ce792a4fd6d1094e9e2f8241a8e7574"
+        },
+        {
+          "text": "cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred",
+          "sha256": "9d734b3f9a36b4e69f902d53ac7698727ce792a4fd6d1094e9e2f8241a8e7574"
+        },
+        {
+          "text": "cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred",
+          "sha256": "9d734b3f9a36b4e69f902d53ac7698727ce792a4fd6d1094e9e2f8241a8e7574"
+        }
+      ],
+      "decode_expert_cache_hit_percent": [
+        95.92927631578948,
+        95.92927631578948,
+        95.92927631578948
+      ],
+      "same_output_across_timing_repeats": true,
+      "total_peak_gib": 4.398067474365234,
+      "rss_at_total_peak_gib": 1.4052238464355469,
+      "dma_at_total_peak_gib": 2.9928436279296875,
+      "dma_rss_overlap_at_peak_gib": 0.0,
+      "memory_samples": 39,
+      "memory_sample_gap_seconds": {
+        "min": 0.24123620986938477,
+        "max": 0.3568568229675293,
+        "median": 0.30728888511657715
+      },
+      "thermal_status_max": 0,
+      "start_temperature_C": {
+        "AP": [
+          27.2,
+          27.3
+        ],
+        "BAT": [
+          26.2,
+          26.2
+        ],
+        "SKIN": [
+          28.5,
+          28.5
+        ]
+      },
+      "observed_HAL_temperature_C": {
+        "AP": [
+          27.2,
+          34.3
+        ],
+        "BAT": [
+          26.1,
+          26.4
+        ],
+        "SKIN": [
+          28.5,
+          30.6
+        ]
+      },
+      "direct_temperature_C": {
+        "hvx0": [
+          28.9,
+          56.3
+        ],
+        "hvx1": [
+          28.9,
+          56.3
+        ],
+        "hvx2": [
+          28.9,
+          55.6
+        ],
+        "hvx3": [
+          28.9,
+          55.6
+        ],
+        "hmx0": [
+          28.5,
+          51.7
+        ],
+        "hmx1": [
+          28.9,
+          53.2
+        ],
+        "hmx2": [
+          28.5,
+          55.6
+        ],
+        "hmx3": [
+          28.9,
+          58.3
+        ],
+        "sys_therm0": [
+          28.661,
+          29.331
+        ],
+        "battery": [
+          26.1,
+          26.4
+        ]
+      }
+    }
+  ],
+  "complete": true,
+  "method": "Fresh process per run. Exact natural-text token counts; greedy 64 decode steps. OS page cache not flushed or pinned. Capacity 4096, Q8 KV, 8 CPU threads. Strict HTP including LM head; embedding lookup, sampling, I/O remain on CPU. TPS excludes load and uses timing runs only. RAM is sampled in separate runs. RAM = simultaneous smaps RSS + unique DMA-BUF fd sizes - mapped DMA RSS. RAM excludes unassigned system file cache and inaccessible DSP firmware memory. Start temperature is gated; continuous isothermal operation is not assumed.",
+  "memory_definition": "Sampled maximum of contemporaneous CPU smaps RSS plus unique DMA-BUF allocation sizes, minus DMA pages in RSS. Includes model initialization, prefill and decode. CPU RSS alone is not total memory. Polling can miss brief peaks; per-run peak samples and intervals are retained.",
+  "temperature_definition": "Matching start temperature gates and cooldown between runs; no thermal override. Direct NPU die temperatures rise under load. HAL readings can be cached between HAL refreshes.",
+  "prompt": "Prefixes of the existing Ardley continuation prompt, verified with the model tokenizer and runtime. Greedy natural generation, no teacher forcing. Throughput depends on content and expert routing; not a quality evaluation. Observed greedy output repeats the token cred; high expert-cache reuse means decode TPS is not representative of varied conversational output."
+}

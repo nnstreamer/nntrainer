@@ -1,0 +1,79 @@
+{
+  "successful_timing_runs": 18,
+  "successful_memory_runs": 6,
+  "model_hash_unchanged": true,
+  "exact_token_counts_verified": true,
+  "start_temperatures_C": {
+    "AP": [
+      27.2,
+      27.3,
+      27.4,
+      27.5
+    ],
+    "BAT": [
+      26.2
+    ],
+    "SKIN": [
+      28.5
+    ]
+  },
+  "HAL_peak_temperatures_C": {
+    "AP": 34.9,
+    "BAT": 26.4,
+    "SKIN": 30.7
+  },
+  "dma_accounting": [
+    {
+      "run": "memory-i1024-c12-r1",
+      "dma_map_bytes": 2863841280,
+      "unique_dma_fd_bytes": 2863841280.0,
+      "overlap_kib": 0,
+      "total_peak_gib": 4.126350402832031
+    },
+    {
+      "run": "memory-i1024-c8-r1",
+      "dma_map_bytes": 2492645376,
+      "unique_dma_fd_bytes": 2492645376.0,
+      "overlap_kib": 0,
+      "total_peak_gib": 3.8372879028320312
+    },
+    {
+      "run": "memory-i2048-c12-r1",
+      "dma_map_bytes": 3213541376,
+      "unique_dma_fd_bytes": 3213541376.0,
+      "overlap_kib": 0,
+      "total_peak_gib": 4.398067474365234
+    },
+    {
+      "run": "memory-i2048-c8-r1",
+      "dma_map_bytes": 2842345472,
+      "unique_dma_fd_bytes": 2842345472.0,
+      "overlap_kib": 0,
+      "total_peak_gib": 4.108936309814453
+    },
+    {
+      "run": "memory-i512-c12-r1",
+      "dma_map_bytes": 2689515520,
+      "unique_dma_fd_bytes": 2689515520.0,
+      "overlap_kib": 0,
+      "total_peak_gib": 3.9863243103027344
+    },
+    {
+      "run": "memory-i512-c8-r1",
+      "dma_map_bytes": 2318319616,
+      "unique_dma_fd_bytes": 2318319616.0,
+      "overlap_kib": 0,
+      "total_peak_gib": 3.6725921630859375
+    }
+  ],
+  "script_sha256": {
+    "summarize.py": "92626380c59863c60a3957b6b0c7246e1fb25a11e4c41661f7e2f5adcabc05f7",
+    "measure.py": "71399fef544780e874ad371cd745a251f0ed971514d032d93b87c82b64fa3522",
+    "thermal_sampler.py": "b295029b643fb8e897dd7eb8cab47451241c0998e208301c1e1e6a60ca78dddc"
+  },
+  "excluded_attempts": [
+    "aborted-fd-race-scout-i1024-c8-r1",
+    "scout-i1024-c8-r1",
+    "aborted-exit-race-memory-i2048-c8-r1"
+  ]
+}

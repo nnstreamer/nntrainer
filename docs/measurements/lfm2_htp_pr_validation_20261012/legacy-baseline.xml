@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="4" failures="4" disabled="0" errors="0" time="0.214" timestamp="2026-10-12T15:49:54.609" name="AllTests">
+  <testsuite name="HvxM1Ops" tests="4" failures="4" disabled="0" skipped="0" errors="0" time="0.214" timestamp="2026-10-12T15:49:54.609">
+    <testcase name="RejectsBadShapes" file="./../unittest/unittest_hvx_softmax.cpp" line="792" status="run" result="completed" time="0.044" timestamp="2026-10-12T15:49:54.609" classname="HvxM1Ops">
+      <failure message="./../unittest/unittest_hvx_softmax.cpp:798&#x0A;Expected equality of these values:&#x0A;  err&#x0A;    Which is: -2147482112&#x0A;  (0x00000000 + 0x011) + kDspOffset&#x0A;    Which is: -2147482607&#x0A;rmsnorm chunk 48: got 0x80000600&#x0A;" type=""><![CDATA[./../unittest/unittest_hvx_softmax.cpp:798
+Expected equality of these values:
+  err
+    Which is: -2147482112
+  (0x00000000 + 0x011) + kDspOffset
+    Which is: -2147482607
+rmsnorm chunk 48: got 0x80000600
+]]></failure>
+      <failure message="./../unittest/unittest_hvx_softmax.cpp:804&#x0A;Expected equality of these values:&#x0A;  err&#x0A;    Which is: -2147482112&#x0A;  (0x00000000 + 0x011) + kDspOffset&#x0A;    Which is: -2147482607&#x0A;rope cs of 32: got 0x80000600&#x0A;" type=""><![CDATA[./../unittest/unittest_hvx_softmax.cpp:804
+Expected equality of these values:
+  err
+    Which is: -2147482112
+  (0x00000000 + 0x011) + kDspOffset
+    Which is: -2147482607
+rope cs of 32: got 0x80000600
+]]></failure>
+      <failure message="./../unittest/unittest_hvx_softmax.cpp:814&#x0A;Expected equality of these values:&#x0A;  err&#x0A;    Which is: -2147482112&#x0A;  (0x00000000 + 0x011) + kDspOffset&#x0A;    Which is: -2147482607&#x0A;conv state_out of 2C: got 0x80000600&#x0A;" type=""><![CDATA[./../unittest/unittest_hvx_softmax.cpp:814
+Expected equality of these values:
+  err
+    Which is: -2147482112
+  (0x00000000 + 0x011) + kDspOffset
+    Which is: -2147482607
+conv state_out of 2C: got 0x80000600
+]]></failure>
+    </testcase>
+    <testcase name="RmsnormMatchesDetBitExact" file="./../unittest/unittest_hvx_softmax.cpp" line="829" status="run" result="completed" time="0.067" timestamp="2026-10-12T15:49:54.654" classname="HvxM1Ops">
+      <failure message="./../unittest/unittest_hvx_softmax.cpp:841&#x0A;Expected equality of these values:&#x0A;  bad_y&#x0A;    Which is: 2048&#x0A;  0&#x0A;kind 2: y differs from the spec&#x0A;" type=""><![CDATA[./../unittest/unittest_hvx_softmax.cpp:841
+Expected equality of these values:
+  bad_y
+    Which is: 2048
+  0
+kind 2: y differs from the spec
+]]></failure>
+    </testcase>
+    <testcase name="QkNormMatchesDetBitExact" file="./../unittest/unittest_hvx_softmax.cpp" line="875" status="run" result="completed" time="0.052" timestamp="2026-10-12T15:49:54.721" classname="HvxM1Ops">
+      <failure message="./../unittest/unittest_hvx_softmax.cpp:890&#x0A;Expected equality of these values:&#x0A;  bad_y&#x0A;    Which is: 64&#x0A;  0&#x0A;32 heads: y differs&#x0A;" type=""><![CDATA[./../unittest/unittest_hvx_softmax.cpp:890
+Expected equality of these values:
+  bad_y
+    Which is: 64
+  0
+32 heads: y differs
+]]></failure>
+      <failure message="./../unittest/unittest_hvx_softmax.cpp:890&#x0A;Expected equality of these values:&#x0A;  bad_y&#x0A;    Which is: 64&#x0A;  0&#x0A;8 heads: y differs&#x0A;" type=""><![CDATA[./../unittest/unittest_hvx_softmax.cpp:890
+Expected equality of these values:
+  bad_y
+    Which is: 64
+  0
+8 heads: y differs
+]]></failure>
+    </testcase>
+    <testcase name="ConvGateM1MatchesDetBitExact" file="./../unittest/unittest_hvx_softmax.cpp" line="959" status="run" result="completed" time="0.05" timestamp="2026-10-12T15:49:54.774" classname="HvxM1Ops">
+      <failure message="./../unittest/unittest_hvx_softmax.cpp:985&#x0A;Expected equality of these values:&#x0A;  bad_out&#x0A;    Which is: 229&#x0A;  0&#x0A;conv1d + gate differs from the spec&#x0A;" type=""><![CDATA[./../unittest/unittest_hvx_softmax.cpp:985
+Expected equality of these values:
+  bad_out
+    Which is: 229
+  0
+conv1d + gate differs from the spec
+]]></failure>
+    </testcase>
+  </testsuite>
+</testsuites>

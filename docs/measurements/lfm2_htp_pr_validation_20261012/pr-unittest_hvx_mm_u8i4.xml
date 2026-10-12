@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="38" failures="0" disabled="3" errors="0" time="15.418" timestamp="2026-10-12T15:56:53.486" name="AllTests">
+  <testsuite name="HmxMmU8I4" tests="4" failures="0" disabled="0" skipped="0" errors="0" time="0.5" timestamp="2026-10-12T15:56:53.486">
+    <testcase name="Shape1_Minimal" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="525" status="run" result="completed" time="0.055" timestamp="2026-10-12T15:56:53.486" classname="HmxMmU8I4" />
+    <testcase name="Shape2_DecodeSingleToken" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="530" status="run" result="completed" time="0.168" timestamp="2026-10-12T15:56:53.542" classname="HmxMmU8I4" />
+    <testcase name="Shape3_PrefillQwen3Scale" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="536" status="run" result="completed" time="0.218" timestamp="2026-10-12T15:56:53.711" classname="HmxMmU8I4" />
+    <testcase name="Shape4_MultipleRowBlocks" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="541" status="run" result="completed" time="0.056" timestamp="2026-10-12T15:56:53.930" classname="HmxMmU8I4" />
+  </testsuite>
+  <testsuite name="HmxMmU8I4Layer" tests="27" failures="0" disabled="3" skipped="0" errors="0" time="13.454" timestamp="2026-10-12T15:56:53.987">
+    <testcase name="ConvBlockNativeWhPrefillAndContinuation" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="710" status="run" result="completed" time="0.061" timestamp="2026-10-12T15:56:53.987" classname="HmxMmU8I4Layer" />
+    <testcase name="ConvBlockHvxDecodeMatchesHmx" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="1010" status="run" result="completed" time="2.527" timestamp="2026-10-12T15:56:54.048" classname="HmxMmU8I4Layer" />
+    <testcase name="FcHvxDecodeMatchesHmx" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="1209" status="run" result="completed" time="1.016" timestamp="2026-10-12T15:56:56.576" classname="HmxMmU8I4Layer" />
+    <testcase name="Q4RouterFusionMatchesSeparateCalls" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="1342" status="run" result="completed" time="0.222" timestamp="2026-10-12T15:56:57.593" classname="HmxMmU8I4Layer" />
+    <testcase name="ThreeWeightsMatchPerWeightReference" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="1411" status="run" result="completed" time="0.086" timestamp="2026-10-12T15:56:57.816" classname="HmxMmU8I4Layer" />
+    <testcase name="RegisteredWeightSurvivesRepeatedCalls" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="1482" status="run" result="completed" time="0.054" timestamp="2026-10-12T15:56:57.902" classname="HmxMmU8I4Layer" />
+    <testcase name="ReleasedHandleIsRejectedAndSlotIsReused" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="1508" status="run" result="completed" time="0.06" timestamp="2026-10-12T15:56:57.956" classname="HmxMmU8I4Layer" />
+    <testcase name="MismatchedKIsRejected" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="1533" status="run" result="completed" time="0.055" timestamp="2026-10-12T15:56:58.017" classname="HmxMmU8I4Layer" />
+    <testcase name="BakeBitsDump" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="1548" status="run" result="completed" time="0.165" timestamp="2026-10-12T15:56:58.073" classname="HmxMmU8I4Layer" />
+    <testcase name="FusedSwigluMatchesTwoCallReference" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="1686" status="run" result="completed" time="0.253" timestamp="2026-10-12T15:56:58.239" classname="HmxMmU8I4Layer" />
+    <testcase name="GateUpSwigluMatchesHostIntermediate" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="1780" status="run" result="completed" time="0.542" timestamp="2026-10-12T15:56:58.493" classname="HmxMmU8I4Layer" />
+    <testcase name="GateUpSwigluPlusU8InMatchesTwoCallReference" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="1870" status="run" result="completed" time="0.934" timestamp="2026-10-12T15:56:59.036" classname="HmxMmU8I4Layer" />
+    <testcase name="MoeLayerMatchesTwoCallReference" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="1984" status="run" result="completed" time="0.835" timestamp="2026-10-12T15:56:59.971" classname="HmxMmU8I4Layer" />
+    <testcase name="MoeLayerSplitMatchesWhole" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="2212" status="run" result="completed" time="0.629" timestamp="2026-10-12T15:57:00.807" classname="HmxMmU8I4Layer" />
+    <testcase name="SwigluSurvivesExtremeNegativeGate" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="2385" status="run" result="completed" time="0.207" timestamp="2026-10-12T15:57:01.437" classname="HmxMmU8I4Layer" />
+    <testcase name="DISABLED_RegistryCapacity" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="2543" status="notrun" result="suppressed" time="0." timestamp="1970-01-01T09:00:00.000" classname="HmxMmU8I4Layer" />
+    <testcase name="ArenaMapAndDma" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="2673" status="run" result="completed" time="0.043" timestamp="2026-10-12T15:57:01.644" classname="HmxMmU8I4Layer" />
+    <testcase name="WhPackReferenceMatchesDspBake" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="2805" status="run" result="completed" time="0.158" timestamp="2026-10-12T15:57:01.687" classname="HmxMmU8I4Layer" />
+    <testcase name="WhLayoutTableFromDsp" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="2877" status="run" result="completed" time="0.045" timestamp="2026-10-12T15:57:01.846" classname="HmxMmU8I4Layer" />
+    <testcase name="WhLayoutTable" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="2993" status="run" result="completed" time="0.057" timestamp="2026-10-12T15:57:01.892" classname="HmxMmU8I4Layer" />
+    <testcase name="ArenaUncachedWriteAfterMap" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="3079" status="run" result="completed" time="0.058" timestamp="2026-10-12T15:57:01.949" classname="HmxMmU8I4Layer" />
+    <testcase name="MoeLayerFromArenaMatchesHeap" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="3389" status="run" result="completed" time="0.337" timestamp="2026-10-12T15:57:02.008" classname="HmxMmU8I4Layer" />
+    <testcase name="MoeCompactExpertsMatchExpanded" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="3568" status="run" result="completed" time="3.407" timestamp="2026-10-12T15:57:02.345" classname="HmxMmU8I4Layer" />
+    <testcase name="MoeLayerM1GemvMatchesHmx" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="3807" status="run" result="completed" time="0.608" timestamp="2026-10-12T15:57:05.754" classname="HmxMmU8I4Layer" />
+    <testcase name="MoeM1GemvFeedVsCompute" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="3925" status="run" result="completed" time="1.078" timestamp="2026-10-12T15:57:06.363" classname="HmxMmU8I4Layer" />
+    <testcase name="DISABLED_MemoryCeilings" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="4038" status="notrun" result="suppressed" time="0." timestamp="1970-01-01T09:00:00.000" classname="HmxMmU8I4Layer" />
+    <testcase name="DISABLED_ArenaCeilingThenHeapHeadroom" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="4404" status="notrun" result="suppressed" time="0." timestamp="1970-01-01T09:00:00.000" classname="HmxMmU8I4Layer" />
+  </testsuite>
+  <testsuite name="HmxArenaSlotReuse" tests="3" failures="0" disabled="0" skipped="0" errors="0" time="1.22" timestamp="2026-10-12T15:57:07.441">
+    <testcase name="Uncached" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="3369" status="run" result="completed" time="0.332" timestamp="2026-10-12T15:57:07.441" classname="HmxArenaSlotReuse" />
+    <testcase name="Swap" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="3375" status="run" result="completed" time="0.452" timestamp="2026-10-12T15:57:07.774" classname="HmxArenaSlotReuse" />
+    <testcase name="TailSwap" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="3381" status="run" result="completed" time="0.434" timestamp="2026-10-12T15:57:08.227" classname="HmxArenaSlotReuse" />
+  </testsuite>
+  <testsuite name="HmxMmU8I8Layer" tests="4" failures="0" disabled="0" skipped="0" errors="0" time="0.243" timestamp="2026-10-12T15:57:08.662">
+    <testcase name="ThreeWeightsMatchPerWeightReference" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="4202" status="run" result="completed" time="0.073" timestamp="2026-10-12T15:57:08.662" classname="HmxMmU8I8Layer" />
+    <testcase name="RegisteredWeightSurvivesRepeatedCalls" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="4245" status="run" result="completed" time="0.055" timestamp="2026-10-12T15:57:08.735" classname="HmxMmU8I8Layer" />
+    <testcase name="ReleasedHandleIsRejectedAndSlotIsReused" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="4268" status="run" result="completed" time="0.056" timestamp="2026-10-12T15:57:08.791" classname="HmxMmU8I8Layer" />
+    <testcase name="MismatchedKIsRejected" file="./../unittest/unittest_hvx_mm_u8i4.cpp" line="4291" status="run" result="completed" time="0.057" timestamp="2026-10-12T15:57:08.847" classname="HmxMmU8I8Layer" />
+  </testsuite>
+</testsuites>

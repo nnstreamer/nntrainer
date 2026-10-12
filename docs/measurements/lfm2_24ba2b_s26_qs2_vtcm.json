@@ -1,0 +1,154 @@
+{
+  "date": "2026-10-09",
+  "device": {
+    "serial": "R5KL30G6MCX",
+    "model": "SM-S948N",
+    "dsp": "Hexagon v81"
+  },
+  "reference_pr": {
+    "url": "https://github.com/nntrainer/nntrainer/pull/4412",
+    "sha": "4c3953bb161d0f7d799a72ddf9bdf9462e3ed482"
+  },
+  "model": "LFM2-24B-A2B",
+  "quantization": {
+    "fc": "QS4CX_WH",
+    "experts_file_and_arena": "QS2CX_WH",
+    "expert_compute": "int4 expanded by HVX inside VTCM",
+    "embedding_and_tied_head": "existing Q4_0 fixture"
+  },
+  "runtime": "/data/local/tmp/nntr_qs2_vtcm/bin",
+  "model_dir": "/data/local/tmp/nntr_qs2_pr4415_20261009/model",
+  "environment": {
+    "NNTR_HTP_STRICT": "1",
+    "NNTR_HTP_LMHEAD_CPU": "0",
+    "NNTR_MOE_CACHE_EXPERTS": "8",
+    "NNTR_MOE_PREFETCH_EARLY": "1",
+    "NNTR_MOE_PREFETCH_READERS": "6",
+    "NNTR_NUM_THREADS": "8",
+    "NNTR_HTP_QS2_VTCM": "0 for arm, 1 for vtcm"
+  },
+  "input_tokens": 1024,
+  "runs": [
+    {
+      "variant": "arm",
+      "run": 1,
+      "battery_c": 25.6,
+      "prefill_ms": 2435,
+      "decode_ms": 7243,
+      "decode_tokens": 64,
+      "decode_tps": 8.83612,
+      "arena_mib": 1536,
+      "generated_text_sha256": "a93eebddb2ba37072508dcc2d9333f268861e2e35b2cbf25a8d436b107809f69",
+      "log": "/tmp/nntr-qs2-vtcm/arm-1.log"
+    },
+    {
+      "variant": "vtcm",
+      "run": 1,
+      "battery_c": 26.0,
+      "prefill_ms": 2464,
+      "decode_ms": 6785,
+      "decode_tokens": 64,
+      "decode_tps": 9.43257,
+      "arena_mib": 832,
+      "generated_text_sha256": "a93eebddb2ba37072508dcc2d9333f268861e2e35b2cbf25a8d436b107809f69",
+      "log": "/tmp/nntr-qs2-vtcm/vtcm-1.log"
+    },
+    {
+      "variant": "arm",
+      "run": 2,
+      "battery_c": 26.0,
+      "prefill_ms": 2430,
+      "decode_ms": 7261,
+      "decode_tokens": 64,
+      "decode_tps": 8.81421,
+      "arena_mib": 1536,
+      "generated_text_sha256": "a93eebddb2ba37072508dcc2d9333f268861e2e35b2cbf25a8d436b107809f69",
+      "log": "/tmp/nntr-qs2-vtcm/arm-2.log"
+    },
+    {
+      "variant": "vtcm",
+      "run": 2,
+      "battery_c": 27.6,
+      "prefill_ms": 2554,
+      "decode_ms": 6841,
+      "decode_tokens": 64,
+      "decode_tps": 9.35536,
+      "arena_mib": 832,
+      "generated_text_sha256": "a93eebddb2ba37072508dcc2d9333f268861e2e35b2cbf25a8d436b107809f69",
+      "log": "/tmp/nntr-qs2-vtcm/vtcm-2.log"
+    },
+    {
+      "variant": "arm",
+      "run": 3,
+      "battery_c": 27.6,
+      "prefill_ms": 2379,
+      "decode_ms": 7158,
+      "decode_tokens": 64,
+      "decode_tps": 8.94104,
+      "arena_mib": 1536,
+      "generated_text_sha256": "a93eebddb2ba37072508dcc2d9333f268861e2e35b2cbf25a8d436b107809f69",
+      "log": "/tmp/nntr-qs2-vtcm/arm-3.log"
+    },
+    {
+      "variant": "vtcm",
+      "run": 3,
+      "battery_c": 28.5,
+      "prefill_ms": 2474,
+      "decode_ms": 6775,
+      "decode_tokens": 64,
+      "decode_tps": 9.44649,
+      "arena_mib": 832,
+      "generated_text_sha256": "a93eebddb2ba37072508dcc2d9333f268861e2e35b2cbf25a8d436b107809f69",
+      "log": "/tmp/nntr-qs2-vtcm/vtcm-3.log"
+    }
+  ],
+  "aggregate": {
+    "arm_decode_tps": 8.863447511771767,
+    "vtcm_decode_tps": 9.411303367481986,
+    "decode_gain_pct": 6.181069555413932,
+    "arm_mean_prefill_ms": 2414.6666666666665,
+    "vtcm_mean_prefill_ms": 2497.3333333333335,
+    "arena_mib": {
+      "arm": 1536,
+      "vtcm": 832
+    },
+    "weight_dma_payload_ratio": 0.5
+  },
+  "binary_sha256": {
+    "libnntrainer.so": "3e6099b4ed0a0607014f291fdcddf233d679676e18c1c93e3fccbe263e049419",
+    "libccapi-nntrainer.so": "fc21e5f39960f055faf46583922c49bdc60cd802000fe2384348f297b4d77679",
+    "libcausallm_core.so": "e374154369e42885dca6dadad0fa00708373be68edc74dc8a9da6059b37a1a21",
+    "nntrainer_causallm": "624cd5e7951c9ff94d4805c73e3d7a1099c7dd3b63ee21c309d73c32b45cd072",
+    "libnntr_hvx_skel.so": "3471ee7ce8d38ba4f3c1bd41838b71876bfeb330b3b7f824f358a995332605d4"
+  },
+  "validation": {
+    "device_kernel_tests": "5 passed, final DSP",
+    "compact_host": "18 cells pass, exact outputs and DMA payload counts",
+    "compact_sanitizers": "ASan/UBSan pass, leak detection disabled for harness globals",
+    "registry_swap_host": "pass: compact tails, bounds, invalid palette, 4<->2 rebind",
+    "full_host_suite": "run_host_checks.sh exit 0; native Hexagon/ISS and ARM NEON abs_max checks skipped (tools unavailable)",
+    "text_equal_across_six_runs": true,
+    "format": "clang-format 14 changed-line check and git diff --check passed"
+  },
+  "limitations": [
+    "Existing repetitive cred output remains; no PPL or token-ID comparison.",
+    "Three short runs per variant; no sustained thermal or diverse-routing claim.",
+    "Fresh coherent build baseline; do not compare directly with earlier 7.91 tok/s.",
+    "Prefill latency increased in this sample.",
+    "Hexagon native/ISS host check skipped because libnative.a is unavailable."
+  ],
+  "profile": {
+    "scope": "one extra profiled run per mode, separate from throughput aggregate",
+    "moe_decode_calls": 2432,
+    "arm": {
+      "dsp_us_per_call": 436.9,
+      "weight_dma_kib_per_call": 18432,
+      "dma_wait_us_per_call": 218.4
+    },
+    "vtcm": {
+      "dsp_us_per_call": 317.9,
+      "weight_dma_kib_per_call": 9216,
+      "dma_wait_us_per_call": 53.6
+    }
+  }
+}

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="29" failures="0" disabled="0" errors="0" time="4.878" timestamp="2026-10-12T15:56:38.965" name="AllTests">
+  <testsuite name="HmxAttnF16" tests="15" failures="0" disabled="0" skipped="0" errors="0" time="3.52" timestamp="2026-10-12T15:56:38.965">
+    <testcase name="ProbeLayoutsMatchHexkl" file="./../unittest/unittest_hvx_attn_f16.cpp" line="146" status="run" result="completed" time="0.045" timestamp="2026-10-12T15:56:38.965" classname="HmxAttnF16" />
+    <testcase name="ProbeMathPrimitives" file="./../unittest/unittest_hvx_attn_f16.cpp" line="200" status="run" result="completed" time="0.054" timestamp="2026-10-12T15:56:39.011" classname="HmxAttnF16" />
+    <testcase name="ProbeSubtraction" file="./../unittest/unittest_hvx_attn_f16.cpp" line="281" status="run" result="completed" time="0.058" timestamp="2026-10-12T15:56:39.065" classname="HmxAttnF16" />
+    <testcase name="PrefillFromEmptyCacheGqaMultiBlock" file="./../unittest/unittest_hvx_attn_f16.cpp" line="322" status="run" result="completed" time="0.13" timestamp="2026-10-12T15:56:39.124" classname="HmxAttnF16" />
+    <testcase name="PrefillWideHeadsTwoKvHeads" file="./../unittest/unittest_hvx_attn_f16.cpp" line="329" status="run" result="completed" time="0.117" timestamp="2026-10-12T15:56:39.254" classname="HmxAttnF16" />
+    <testcase name="PrefillGemma4LayerShapes" file="./../unittest/unittest_hvx_attn_f16.cpp" line="338" status="run" result="completed" time="2.046" timestamp="2026-10-12T15:56:39.372" classname="HmxAttnF16" />
+    <testcase name="PrefillAppendedToExistingCacheMha" file="./../unittest/unittest_hvx_attn_f16.cpp" line="349" status="run" result="completed" time="0.077" timestamp="2026-10-12T15:56:41.419" classname="HmxAttnF16" />
+    <testcase name="Lfm2DecodeContexts" file="./../unittest/unittest_hvx_attn_f16.cpp" line="355" status="run" result="completed" time="0.129" timestamp="2026-10-12T15:56:41.497" classname="HmxAttnF16" />
+    <testcase name="DecodeSingleRowRaggedCache" file="./../unittest/unittest_hvx_attn_f16.cpp" line="360" status="run" result="completed" time="0.07" timestamp="2026-10-12T15:56:41.627" classname="HmxAttnF16" />
+    <testcase name="SlidingWindowMasksTheLowerBound" file="./../unittest/unittest_hvx_attn_f16.cpp" line="369" status="run" result="completed" time="0.052" timestamp="2026-10-12T15:56:41.698" classname="HmxAttnF16" />
+    <testcase name="GroupOfThreeRoundsRowsUp" file="./../unittest/unittest_hvx_attn_f16.cpp" line="373" status="run" result="completed" time="0.067" timestamp="2026-10-12T15:56:41.750" classname="HmxAttnF16" />
+    <testcase name="RejectsBadShapes" file="./../unittest/unittest_hvx_attn_f16.cpp" line="378" status="run" result="completed" time="0.047" timestamp="2026-10-12T15:56:41.818" classname="HmxAttnF16" />
+    <testcase name="SinkJoinsTheDenominator" file="./../unittest/unittest_hvx_attn_f16.cpp" line="403" status="run" result="completed" time="0.072" timestamp="2026-10-12T15:56:41.866" classname="HmxAttnF16" />
+    <testcase name="SoftcapSquashesTheLogits" file="./../unittest/unittest_hvx_attn_f16.cpp" line="410" status="run" result="completed" time="0.091" timestamp="2026-10-12T15:56:41.938" classname="HmxAttnF16" />
+    <testcase name="AutoTilingMatchesReference" file="./../unittest/unittest_hvx_attn_f16.cpp" line="763" status="run" result="completed" time="0.456" timestamp="2026-10-12T15:56:42.029" classname="HmxAttnF16" />
+  </testsuite>
+  <testsuite name="HvxAttnDecodeF16" tests="9" failures="0" disabled="0" skipped="0" errors="0" time="0.661" timestamp="2026-10-12T15:56:42.486">
+    <testcase name="SingleTokenGqa" file="./../unittest/unittest_hvx_attn_f16.cpp" line="494" status="run" result="completed" time="0.066" timestamp="2026-10-12T15:56:42.486" classname="HvxAttnDecodeF16" />
+    <testcase name="FewTokensHeadDim64And96" file="./../unittest/unittest_hvx_attn_f16.cpp" line="500" status="run" result="completed" time="0.061" timestamp="2026-10-12T15:56:42.553" classname="HvxAttnDecodeF16" />
+    <testcase name="WindowSinkSoftcap" file="./../unittest/unittest_hvx_attn_f16.cpp" line="505" status="run" result="completed" time="0.083" timestamp="2026-10-12T15:56:42.614" classname="HvxAttnDecodeF16" />
+    <testcase name="TwoKeyDiagnostic" file="./../unittest/unittest_hvx_attn_f16.cpp" line="521" status="run" result="completed" time="0.048" timestamp="2026-10-12T15:56:42.698" classname="HvxAttnDecodeF16" />
+    <testcase name="BlockProbeScoresAndProbabilities" file="./../unittest/unittest_hvx_attn_f16.cpp" line="582" status="run" result="completed" time="0.06" timestamp="2026-10-12T15:56:42.746" classname="HvxAttnDecodeF16" />
+    <testcase name="FirstTokenSeesOnlyItself" file="./../unittest/unittest_hvx_attn_f16.cpp" line="622" status="run" result="completed" time="0.056" timestamp="2026-10-12T15:56:42.807" classname="HvxAttnDecodeF16" />
+    <testcase name="TinyCachesShowWhereErrorStarts" file="./../unittest/unittest_hvx_attn_f16.cpp" line="626" status="run" result="completed" time="0.069" timestamp="2026-10-12T15:56:42.864" classname="HvxAttnDecodeF16" />
+    <testcase name="Lfm2DecodeContexts" file="./../unittest/unittest_hvx_attn_f16.cpp" line="635" status="run" result="completed" time="0.149" timestamp="2026-10-12T15:56:42.933" classname="HvxAttnDecodeF16" />
+    <testcase name="WideHeads" file="./../unittest/unittest_hvx_attn_f16.cpp" line="640" status="run" result="completed" time="0.064" timestamp="2026-10-12T15:56:43.083" classname="HvxAttnDecodeF16" />
+  </testsuite>
+  <testsuite name="HmxAttnF16Resident" tests="3" failures="0" disabled="0" skipped="0" errors="0" time="0.267" timestamp="2026-10-12T15:56:43.147">
+    <testcase name="MatchesRawPathBitForBit" file="./../unittest/unittest_hvx_attn_f16.cpp" line="735" status="run" result="completed" time="0.111" timestamp="2026-10-12T15:56:43.147" classname="HmxAttnF16Resident" />
+    <testcase name="BlockPastRegistryEndIsZeroFilled" file="./../unittest/unittest_hvx_attn_f16.cpp" line="740" status="run" result="completed" time="0.099" timestamp="2026-10-12T15:56:43.259" classname="HmxAttnF16Resident" />
+    <testcase name="RejectsCacheBeyondRegistration" file="./../unittest/unittest_hvx_attn_f16.cpp" line="746" status="run" result="completed" time="0.055" timestamp="2026-10-12T15:56:43.359" classname="HmxAttnF16Resident" />
+  </testsuite>
+  <testsuite name="HtpSharedKvCache" tests="2" failures="0" disabled="0" skipped="0" errors="0" time="0.428" timestamp="2026-10-12T15:56:43.415">
+    <testcase name="DecodeHeapVsRpcmem" file="./../unittest/unittest_hvx_attn_f16.cpp" line="877" status="run" result="completed" time="0.201" timestamp="2026-10-12T15:56:43.415" classname="HtpSharedKvCache" />
+    <testcase name="PrefillHeapVsRpcmem" file="./../unittest/unittest_hvx_attn_f16.cpp" line="882" status="run" result="completed" time="0.226" timestamp="2026-10-12T15:56:43.617" classname="HtpSharedKvCache" />
+  </testsuite>
+</testsuites>

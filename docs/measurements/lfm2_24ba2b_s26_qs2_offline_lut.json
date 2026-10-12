@@ -1,0 +1,394 @@
+{
+  "date": "2026-10-10",
+  "status": "implemented_and_validated_opt_in_not_recommended_as_default",
+  "hardware": "Samsung S26 Ultra, Hexagon v81, device R5KL30G6MCX",
+  "reference": "https://github.com/microsoft/T-MAC/blob/main/t-man/README.md",
+  "implementation": {
+    "dense_lut": "Four distinct 16-entry int16 LUTs per 128-byte HVX vector; two output panels share table loads. K*16 bytes versus previous K*32. Unroll=1 selected after testing 2,4,8 and sequential panels; final dense GEMV disassembly has no stack spill.",
+    "offline_layout": "Lossless QS2CX_WH code permutation to [K/32][N/128][8][128], K*N/4 bytes. Compact K-major rows DMA to lower half of existing expanded-pitch VTCM rows. Runtime repack bypassed.",
+    "reader": "64-byte versioned little-endian header with source offset, shape, byte counts and CRC32 of entire source and payload. Both validated on every expert cache load.",
+    "storage": "Preserve original WH for prefill/fallback and append aligned prepared codes to each expert arena slot. Approximately twice cached code bytes, not twice entire model.",
+    "weight_semantics": "2-bit codes select four signed-int4 palette entries; no weight zero point added; no requantization.",
+    "activation_semantics": "Existing affine uint8 activations unchanged. LUT entries int16; final accumulation int32. No int8 LUT quantization.",
+    "modes": {
+      "6": "dense LUT with runtime repack",
+      "7": "dense LUT with offline codes; falls back to mode6 if registered experts lack prepared images"
+    },
+    "defaults": "Unchanged; both new modes opt-in.",
+    "artifact_count": 4864,
+    "artifact_bytes_including_headers": 5738119168
+  },
+  "end_to_end": {
+    "conditions": {
+      "model": "/data/local/tmp/nntr_int8_kv_20261009/model",
+      "prompt": 1024,
+      "generation": 64,
+      "expert_cache": 8,
+      "runs_per_variant": 2,
+      "thermal_limits": {
+        "AP": 42,
+        "SKIN": 38,
+        "BAT": 35
+      },
+      "crc_validation": "entire source and entire prepared payload on every expert cache load",
+      "offline_storage": "original WH codes and prepared LUT codes both retained in each expert slot"
+    },
+    "aggregation": "64 tokens divided by mean generation wall time of two balanced-order runs per variant",
+    "results": {
+      "original_lut": {
+        "runs": 2,
+        "decode_ms": [
+          2715,
+          2774
+        ],
+        "decode_tps": 23.319366004736747,
+        "prefill_ms": [
+          2084,
+          2166
+        ],
+        "decode_tps_change_percent": 0.0
+      },
+      "dense_lut": {
+        "runs": 2,
+        "decode_ms": [
+          2746,
+          2787
+        ],
+        "decode_tps": 23.133923730345202,
+        "prefill_ms": [
+          2087,
+          2268
+        ],
+        "decode_tps_change_percent": -0.7952286282306154
+      },
+      "dense_offline": {
+        "runs": 2,
+        "decode_ms": [
+          5101,
+          5313
+        ],
+        "decode_tps": 12.29114653351258,
+        "prefill_ms": [
+          5022,
+          5080
+        ],
+        "decode_tps_change_percent": -47.292106779335505
+      }
+    },
+    "all_generated_outputs_identical": true,
+    "no_concurrent_inference_detected": true,
+    "binary_hashes_unchanged_during_runs": true,
+    "limits": "Two runs per variant; small dense-only change is within possible run variance. Same benchmark binaries and workload for all cells; raw temperatures and commands retained."
+  },
+  "microbenchmark": {
+    "conditions": "8 HVX workers, median of 3 runs, 200 passes per run after 3 warmups. No-DMA cases use prepared VTCM inputs. DMA cases serialize whole-matrix DMA and compute; production uses overlapped scheduling.",
+    "probe_modes": {
+      "5": "original prepacked paired LUT",
+      "6": "original LUT with runtime row repack",
+      "9": "dense prepacked paired LUT",
+      "10": "dense LUT with runtime row repack",
+      "11": "dense offline K-major rows, no repack"
+    },
+    "warning": "Probe mode numbers differ from NNTR_HTP_QS2_GEMV environment modes. Microbenchmark excludes host file reads/checks and expert cache replacement.",
+    "results": [
+      {
+        "K": 2048,
+        "N": 3072,
+        "dma": 0,
+        "mode": 5,
+        "samples": 3,
+        "dma_us": 0.03,
+        "repack_us": 0.015,
+        "prep_us": 1.67,
+        "gemv_us": 7.45,
+        "total_us": 9.155
+      },
+      {
+        "K": 2048,
+        "N": 3072,
+        "dma": 0,
+        "mode": 6,
+        "samples": 3,
+        "dma_us": 0.01,
+        "repack_us": 15.2,
+        "prep_us": 1.645,
+        "gemv_us": 7.475,
+        "total_us": 24.315
+      },
+      {
+        "K": 2048,
+        "N": 3072,
+        "dma": 0,
+        "mode": 9,
+        "samples": 3,
+        "dma_us": 0.015,
+        "repack_us": 0.015,
+        "prep_us": 1.65,
+        "gemv_us": 8.675,
+        "total_us": 10.35
+      },
+      {
+        "K": 2048,
+        "N": 3072,
+        "dma": 0,
+        "mode": 10,
+        "samples": 3,
+        "dma_us": 0.015,
+        "repack_us": 15.225,
+        "prep_us": 1.6,
+        "gemv_us": 8.665,
+        "total_us": 25.49
+      },
+      {
+        "K": 2048,
+        "N": 3072,
+        "dma": 0,
+        "mode": 11,
+        "samples": 3,
+        "dma_us": 0.02,
+        "repack_us": 0.025,
+        "prep_us": 1.655,
+        "gemv_us": 8.7,
+        "total_us": 10.385
+      },
+      {
+        "K": 2048,
+        "N": 3072,
+        "dma": 1,
+        "mode": 5,
+        "samples": 3,
+        "dma_us": 22.715,
+        "repack_us": 0.02,
+        "prep_us": 1.775,
+        "gemv_us": 7.445,
+        "total_us": 31.975
+      },
+      {
+        "K": 2048,
+        "N": 3072,
+        "dma": 1,
+        "mode": 6,
+        "samples": 3,
+        "dma_us": 18.155,
+        "repack_us": 15.315,
+        "prep_us": 1.65,
+        "gemv_us": 7.38,
+        "total_us": 42.53
+      },
+      {
+        "K": 2048,
+        "N": 3072,
+        "dma": 1,
+        "mode": 9,
+        "samples": 3,
+        "dma_us": 22.485,
+        "repack_us": 0.015,
+        "prep_us": 1.665,
+        "gemv_us": 8.655,
+        "total_us": 32.815
+      },
+      {
+        "K": 2048,
+        "N": 3072,
+        "dma": 1,
+        "mode": 10,
+        "samples": 3,
+        "dma_us": 19.55,
+        "repack_us": 15.285,
+        "prep_us": 1.6,
+        "gemv_us": 8.715,
+        "total_us": 45.205
+      },
+      {
+        "K": 2048,
+        "N": 3072,
+        "dma": 1,
+        "mode": 11,
+        "samples": 3,
+        "dma_us": 20.18,
+        "repack_us": 0.025,
+        "prep_us": 1.645,
+        "gemv_us": 8.69,
+        "total_us": 30.6
+      },
+      {
+        "K": 1536,
+        "N": 2048,
+        "dma": 0,
+        "mode": 5,
+        "samples": 3,
+        "dma_us": 0.02,
+        "repack_us": 0.02,
+        "prep_us": 1.555,
+        "gemv_us": 3.265,
+        "total_us": 4.875
+      },
+      {
+        "K": 1536,
+        "N": 2048,
+        "dma": 0,
+        "mode": 6,
+        "samples": 3,
+        "dma_us": 0.025,
+        "repack_us": 8.155,
+        "prep_us": 1.48,
+        "gemv_us": 3.26,
+        "total_us": 12.99
+      },
+      {
+        "K": 1536,
+        "N": 2048,
+        "dma": 0,
+        "mode": 9,
+        "samples": 3,
+        "dma_us": 0.03,
+        "repack_us": 0.02,
+        "prep_us": 1.53,
+        "gemv_us": 3.745,
+        "total_us": 5.33
+      },
+      {
+        "K": 1536,
+        "N": 2048,
+        "dma": 0,
+        "mode": 10,
+        "samples": 3,
+        "dma_us": 0.01,
+        "repack_us": 8.23,
+        "prep_us": 1.525,
+        "gemv_us": 3.725,
+        "total_us": 13.495
+      },
+      {
+        "K": 1536,
+        "N": 2048,
+        "dma": 0,
+        "mode": 11,
+        "samples": 3,
+        "dma_us": 0.025,
+        "repack_us": 0.015,
+        "prep_us": 1.545,
+        "gemv_us": 3.73,
+        "total_us": 5.315
+      },
+      {
+        "K": 1536,
+        "N": 2048,
+        "dma": 1,
+        "mode": 5,
+        "samples": 3,
+        "dma_us": 6.645,
+        "repack_us": 0.01,
+        "prep_us": 1.56,
+        "gemv_us": 3.29,
+        "total_us": 11.49
+      },
+      {
+        "K": 1536,
+        "N": 2048,
+        "dma": 1,
+        "mode": 6,
+        "samples": 3,
+        "dma_us": 6.545,
+        "repack_us": 8.23,
+        "prep_us": 1.57,
+        "gemv_us": 3.26,
+        "total_us": 19.61
+      },
+      {
+        "K": 1536,
+        "N": 2048,
+        "dma": 1,
+        "mode": 9,
+        "samples": 3,
+        "dma_us": 6.555,
+        "repack_us": 0.03,
+        "prep_us": 1.53,
+        "gemv_us": 3.77,
+        "total_us": 11.905
+      },
+      {
+        "K": 1536,
+        "N": 2048,
+        "dma": 1,
+        "mode": 10,
+        "samples": 3,
+        "dma_us": 6.66,
+        "repack_us": 8.14,
+        "prep_us": 1.51,
+        "gemv_us": 3.74,
+        "total_us": 20.13
+      },
+      {
+        "K": 1536,
+        "N": 2048,
+        "dma": 1,
+        "mode": 11,
+        "samples": 3,
+        "dma_us": 6.605,
+        "repack_us": 0.02,
+        "prep_us": 1.525,
+        "gemv_us": 3.74,
+        "total_us": 11.93
+      }
+    ]
+  },
+  "interpretation": [
+    "Dense tables halve LUT storage but GEMV alone is approximately 15-16% slower on these two shapes; no demonstrated standalone speedup.",
+    "Removing runtime repack reduces no-DMA total microbenchmark time by about 57-59%; serial-DMA totals improve about 28-39%. This is not an end-to-end TPS claim.",
+    "Combined offline implementation regresses full-model TPS by about 47%. It adds original plus prepared file reads, full CRC passes, allocation/copy and dual-layout arena memory on expert misses. These are plausible dominant costs, but their individual causal contributions were not separately profiled.",
+    "Before promoting offline mode, redesign loading to avoid two layout reads on every miss, amortize validation with a sound immutable-artifact lifetime, and measure prefill/decode/cache behavior together."
+  ],
+  "validation": {
+    "host_suite": {
+      "command": "bash test/htp/host/run_host_checks.sh",
+      "exit_code": 0,
+      "log": "host-suite-final.log"
+    },
+    "offline_tool_reader": {
+      "command": "/tmp/nntr-lookahead-venv/bin/python -m unittest discover -s test/tools -p test_prepare_qs2_lut.py",
+      "tests": 4,
+      "result": "pass; Python conversion roundtrip, independent C production packer, C++ reader, malformed/stale/truncated artifacts, real expert shapes"
+    },
+    "sanitizers": "ASan+UBSan host kernel: 15 cases pass",
+    "device_kernel": "1440 exact cells per build: v81 nomatch VLUT and matching VLUT; 15 shape/palette cases, 1/4/6/8 workers, DMA off/on, 12 probe modes",
+    "device_moe": "Two MoE tests pass; additional poisoned-original-WH test proves mode7 reads prepared codes; prefill and cache rebind paths remain exact.",
+    "offline_conversion": "All 4864 source tensors independently roundtrip checked during export.",
+    "build": "Android ARM64 core/app and v81 DSP pass; kernel v79 -Wall -Werror cross compile pass (no v79 device test).",
+    "excluded_attempts": "Early export and extra MoE test attempts failed when another inference held DSP/VTCM resources. Idle retries passed; failed attempts excluded from reported performance.",
+    "format": "clang-format 14, current-task changed lines; no full platform CI matrix run.",
+    "current_source_v81_build": {
+      "exit_code": 0,
+      "log": "build-current.log"
+    }
+  },
+  "usage": [
+    "Run existing expert-cache CausalLM invocation with NNTR_HTP_QS2_EXPORT=1; capture stdout to experts.log.",
+    "python3 tools/htp/prepare_qs2_lut.py --model model.bin --manifest-log experts.log --output prepared_experts",
+    "Deploy the prepared_experts directory; use NNTR_HTP_QS2_VTCM=1 NNTR_HTP_QS2_GEMV=7 NNTR_HTP_QS2_PREPARED_DIR=/absolute/device/path/prepared_experts with the existing invocation.",
+    "For dense-only comparison use NNTR_HTP_QS2_GEMV=6 and unset NNTR_HTP_QS2_PREPARED_DIR."
+  ],
+  "evidence_directory": "docs/measurements/lfm2_s26_qs2_offline_20261010",
+  "source_sha256": {
+    "Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp": "67c2c372bc4f23fd5ecf29f54f4732790ff798f177dd366da7efb7ebb3c67282",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_dma.c": "1c72926fbd0b5be16d15d81f86a454161997fb6873c5a6fc1be0fa6719e200a8",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_dma.h": "5c86bf6ff98b262f7b4342c3b9e95cac638acff42b2252cf2323bbae0bf0aef0",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "89f84e7a4f82cfc3c046e42fb770bc9d41898d26b5346e0eef52151c1d343087",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "f6f94f23579ff30c9bac8e956e77f07a89c0ce93e8454749563a1f8e9588f5d0",
+    "nntrainer/tensor/htp_backend/htp_prepared_qs2.h": "f07793801fc26ca44506e99cb7682985506cc00e60243058b1670b586093d923",
+    "nntrainer/tensor/htp_backend/htp_qs2_gemv_opts.h": "9dd72431029e1adb402ad6705741f58b1d6eb1ea1d8fde051ffde479702bfc3c",
+    "nntrainer/tensor/htp_backend/htp_qs2_lut_layout.h": "97eb2b80a8533a90e121a8f5a7fef31c97d39e39134a31435cdfdd09f324968d",
+    "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8i2_lut.c": "ceea4170e27fb95ded01db51ad97beb596fd47e8001254b942a2de0ddbc11512",
+    "nntrainer/tensor/htp_backend/hvx/hvx_gemv_u8i2_lut.h": "e36a96da7f7f0e5fa8d5b71d2c5d50ff7ebdf8bc6382dfe57b8b333a800fe912",
+    "test/htp/host/moe_layer_host_check.c": "bfbfc84f7ad56103d80d164f13f8d916bd74698afa31efdf75fb5c03839964b3",
+    "test/htp/host/prepared_qs2_check.cpp": "e09c87cd16feefd280fa927b10edaeaa2510d5d04d9ccec94ad00a19582437e4",
+    "test/htp/host/qs2_lut_check.c": "99b6f819239f7318d72d115a052db7d2db790b28b9ab1e19af00d922928e0fff",
+    "test/htp/nntr_hvx.idl": "e5e5b4544e4fac9c6313cc01a69f20c919b3c6046e8cc20a6b243e52e721c899",
+    "test/htp/nntr_hvx_lut_probe.c": "715ce7de3edf33427d001453659cb551b89a4f3e4727355bb166f45a84c07e88",
+    "test/htp/nntr_hvx_mm_u8i4.c": "216bcb5d2c7b2ef19ddf68d7f4aa32028572ab089b6f1f4cedab99163a7db3b7",
+    "test/tools/test_prepare_qs2_lut.py": "83b0fc535cf46038f2adb4e34f1191e8f34de8a97a354b511447f2a428e54cd5",
+    "test/unittest/unittest_hvx_mm_u8i4.cpp": "65830a5933a1b08dba6914db54cc74877e37726a2b1fd84399500315447837d9",
+    "tools/htp/prepare_qs2_lut.py": "b9abae3445d9550e90bb60d2b28a67890fd75604fc31ec50ba404f83013693b8"
+  },
+  "build_source_note": "Performance binaries precede an include-path-only fix in test/htp/nntr_hvx_mm_u8i4.c and final formatting; current-source compile also checked. No executable behavior changed by that fix."
+}

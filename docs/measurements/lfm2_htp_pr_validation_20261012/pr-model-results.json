@@ -1,0 +1,44 @@
+[
+  {
+    "mode": "buffered",
+    "weight_io": "buffered",
+    "prefetch": "off",
+    "exit_code": 0,
+    "elapsed_seconds": 9.34,
+    "output": "cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred",
+    "output_sha256": "9d734b3f9a36b4e69f902d53ac7698727ce792a4fd6d1094e9e2f8241a8e7574",
+    "stats": [
+      "prefill: 1024 tokens, 1619 ms, 632.489 TPS",
+      "generation: 64 tokens, 1624 ms, 39.4089 TPS",
+      "peak memory: 1605936 KB"
+    ]
+  },
+  {
+    "mode": "direct",
+    "weight_io": "direct",
+    "prefetch": "off",
+    "exit_code": 0,
+    "elapsed_seconds": 9.14,
+    "output": "cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred",
+    "output_sha256": "9d734b3f9a36b4e69f902d53ac7698727ce792a4fd6d1094e9e2f8241a8e7574",
+    "stats": [
+      "prefill: 1024 tokens, 1733 ms, 590.883 TPS",
+      "generation: 64 tokens, 2021 ms, 31.6675 TPS",
+      "peak memory: 601064 KB"
+    ]
+  },
+  {
+    "mode": "lookahead",
+    "weight_io": "buffered",
+    "prefetch": "block_ffn",
+    "exit_code": 0,
+    "elapsed_seconds": 9.64,
+    "output": "cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred",
+    "output_sha256": "9d734b3f9a36b4e69f902d53ac7698727ce792a4fd6d1094e9e2f8241a8e7574",
+    "stats": [
+      "prefill: 1024 tokens, 1651 ms, 620.23 TPS",
+      "generation: 64 tokens, 1645 ms, 38.9058 TPS",
+      "peak memory: 1745952 KB"
+    ]
+  }
+]
