@@ -721,6 +721,13 @@ public:
     (void)pool;
   }
 
+  // [#4416] How the backend raises the pool's capacity by n keys once the
+  // prefill's buffers are released (NNTR_MOE_CACHE_GROW): the layer's
+  // ExpertLru::addCapacity. Ignored by a backend without the pool.
+  virtual void set_decode_pool_grow(const std::function<void(size_t)> &grow) {
+    (void)grow;
+  }
+
   // Undoes the above for one expert: both handles released, the slot back
   // in the pool for the next register_qs4cx_wh_expert_file. False when the
   // key is not resident.

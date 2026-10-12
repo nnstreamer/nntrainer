@@ -3073,6 +3073,29 @@ public:
     pool_fn_ = pool;
   }
 
+  void set_decode_pool_grow(const std::function<void(size_t)> &grow) override {
+    pool_grow_ = grow;
+  }
+
+  /** [#4416 mem] NNTR_MOE_CACHE_GROW=<n>: once the first token is done
+   *  (the prefill's staging released, its quantized KV caches freed), the
+   *  pool takes n more experts a layer; the slots are placed as the
+   *  misses fill them (place), in the DSP address space those buffers
+   *  held. At load the same C would not fit: S26 Ultra p2048, C 40 fails
+   *  the prefill's FC call for DSP heap, C 44 the load. */
+  void growPool() {
+    static const unsigned per_layer = [] {
+      const char *v = std::getenv("NNTR_MOE_CACHE_GROW");
+      return v != nullptr ? static_cast<unsigned>(std::atoi(v)) : 0u;
+    }();
+    if (per_layer == 0u || !pool_grow_ || moe_ops_.empty())
+      return;
+    pool_grow_(static_cast<size_t>(per_layer) * moe_ops_.size());
+    std::fprintf(stderr,
+                 "[HTP] pool: +%u experts a layer from the second token\n",
+                 per_layer);
+  }
+
   /** [plan 201 S1] Re-sends S1's EXPERTS tables when a prefill touched the
    *  pool since the last token: each expert's pair as the ARM files it
    *  (handle_cache_), HTP_GRAPH_NO_HANDLE for one the pool does not hold. */
@@ -5981,8 +6004,10 @@ private:
     e.inout_us += static_cast<int32_t>(r.t_out_us - r.t_in_us);
     ++fwd_calls_; // one ARM -> DSP packet per token: calls/token = 1.00
     ++fwd_tokens_;
-    if (e.tokens == 1)
+    if (e.tokens == 1) {
       releasePrefillStaging(); // [#4416 mem] the seed was the last big row
+      growPool();
+    }
     if (e.tokens == 1)
       std::fprintf(stderr,
                    "[HTP] token driver: first token pos=%u id=%u us=%llu "
@@ -8748,6 +8773,7 @@ private:
   static inline std::atomic<uint64_t> pf_done_{0};
   std::unordered_map<const void *, std::pair<uint32_t, uint32_t>> pool_where_;
   ExpertPoolFn pool_fn_;
+  std::function<void(size_t)> pool_grow_; /**< [#4416] set_decode_pool_grow */
   std::vector<uint8_t> pool_answered_; /**< [#289] layers a miss round served
                                           this token (handle_mutex_) */
   bool pool_dirty_ = true;
