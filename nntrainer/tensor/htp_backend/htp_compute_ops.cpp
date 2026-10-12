@@ -58,6 +58,7 @@
 #include <q4_gemv_cpu_det.h>
 #include <swiglu_det.h>
 #include <thread_manager.h>
+#include <weight_direct_file.h>
 
 #include <algorithm>
 #include <array>
@@ -5603,6 +5604,12 @@ private:
   /** @brief pread that finishes: 0, or the errno, or -1 at end of file.
    *  Does not throw, so a worker thread can call it. */
   static int preadAll(int fd, void *dst, size_t len, uint64_t off) {
+#if defined(__linux__) || defined(__ANDROID__)
+    if (weightDirectIO()) {
+      static WeightDirectFiles direct_files;
+      return direct_files.read(fd, dst, len, off);
+    }
+#endif
     uint8_t *p = static_cast<uint8_t *>(dst);
     while (len != 0) {
       const ssize_t n = ::pread(fd, p, len, static_cast<off_t>(off));
