@@ -190,7 +190,7 @@ class MainActivity : AppCompatActivity() {
     /* ───── UI state (preserved across light/dark theme rebuilds) ───── */
 
     private var darkMode = false
-    private var selectedTab: String = "openai"          // chat | openai | metrics
+    private var selectedTab: String = "train"          // chat | openai | metrics | train
     private var modelExpanded = true
     private var samplingExpanded = false
 
@@ -266,6 +266,7 @@ class MainActivity : AppCompatActivity() {
     private var trainSeed: String = "42"
     private var trainRunning: Boolean = false
     private var trainLog: String = ""
+    private var trainSettingsExpanded: Boolean = false
     private var trainBestLoss: String = "—"
     private val trainLossPoints = mutableListOf<Float>()  // per-iteration train loss
     private val trainEpochBoundaries = mutableListOf<Int>()  // iteration index where each epoch ends
@@ -797,74 +798,84 @@ class MainActivity : AppCompatActivity() {
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL; setPadding(dp(4), dp(4), dp(4), dp(4))
         }
-        val cc = roundedCard(t, t.surfaceContainer)
-        cc.addView(sectionHeader(t, "⧖", t.secondaryContainer, t.onSurface,
-            "LoRA Fine-tuning", "QAT / FP32 adapter training on-device"))
-        spacer(cc, 12)
-        cc.addView(labelView(t, "MODEL PATH"))
-        cc.addView(roundedEditText(t, trainModelPath, mono = true) { trainModelPath = it })
-        spacer(cc, 8)
-        cc.addView(labelView(t, "GPU TRUNK MODEL (hybrid, QS4CX-FP16)"))
-        cc.addView(roundedEditText(t, trainTrunkPath, mono = true) { trainTrunkPath = it })
-        spacer(cc, 8)
-        cc.addView(labelView(t, "TRAINING DATA"))
-        cc.addView(roundedEditText(t, trainDataPath, mono = true) { trainDataPath = it })
-        spacer(cc, 8)
-        val r1 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        r1.addView(labeledColumn(t, "LR", roundedEditText(t, trainLr, mono = true) { trainLr = it }, 1f))
-        spacerH(r1, 8); r1.addView(labeledColumn(t, "EPOCHS", roundedEditText(t, trainEpochs, mono = true) { trainEpochs = it }, 1f))
-        cc.addView(r1); spacer(cc, 8)
-        val r2 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        r2.addView(labeledColumn(t, "SEQ LEN", roundedEditText(t, trainSeqLen, mono = true) { trainSeqLen = it }, 1f))
-        spacerH(r2, 8); r2.addView(labeledColumn(t, "MAX SAMPLES", roundedEditText(t, trainMaxSamples, mono = true) { trainMaxSamples = it }, 1f))
-        cc.addView(r2); spacer(cc, 8)
-        val r3 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        r3.addView(labeledColumn(t, "LORA RANK", roundedEditText(t, trainLoraRank, mono = true) { trainLoraRank = it }, 1f))
-        spacerH(r3, 8); r3.addView(labeledColumn(t, "LORA ALPHA", roundedEditText(t, trainLoraAlpha, mono = true) { trainLoraAlpha = it }, 1f))
-        cc.addView(r3); spacer(cc, 8)
-        val r4 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        r4.addView(labeledColumn(t, "LORA LAST N", roundedEditText(t, trainLoraLastN, mono = true) { trainLoraLastN = it }, 1f))
-        spacerH(r4, 8); r4.addView(labeledColumn(t, "CLIP GRAD", roundedEditText(t, trainClipGrad, mono = true) { trainClipGrad = it }, 1f))
-        cc.addView(r4); spacer(cc, 8)
-        val r5 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        r5.addView(labeledColumn(t, "OUTPUT (blank=default)", roundedEditText(t, trainOutputPath, mono = true) { trainOutputPath = it }, 2f))
-        spacerH(r5, 8); r5.addView(labeledColumn(t, "SEED", roundedEditText(t, trainSeed, mono = true) { trainSeed = it }, 1f))
-        cc.addView(r5); spacer(cc, 8)
-        cc.addView(labelView(t, "RESUME LORA PATH (optional)"))
-        cc.addView(roundedEditText(t, trainResumePath, mono = true) { trainResumePath = it })
-        spacer(cc, 12)
-        cc.addView(buildTrainTabToggles(t))
-        container.addView(cc); spacer(container, 10)
-        val lossCard = roundedCard(t, t.secondaryContainer)
-        lossCard.addView(sectionHeader(t, "★", t.tertiaryContainer, t.onSurface,
-            "Best Validation Loss", trainBestLoss))
-        container.addView(lossCard); spacer(container, 10)
+        
+        // 1. Start Training Button at the top
+        container.addView(buildTrainTabToggles(t))
+        spacer(container, 10)
+
+        // 2. Chart
         container.addView(buildTrainChartPanel(t))
         spacer(container, 10)
+
+        // 3. Training Log below chart
         container.addView(buildTrainLogPanel(t))
+        spacer(container, 10)
+
+        // 4. Collapsible Settings Form
+        val cc = roundedCard(t, t.surfaceContainer)
+        val headerLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(16), dp(12), dp(16), dp(12))
+            setBackgroundColor(Color.TRANSPARENT)
+            setOnClickListener {
+                trainSettingsExpanded = !trainSettingsExpanded
+                rebuildUi()
+            }
+        }
+        val titleText = TextView(this).apply {
+            text = if (trainSettingsExpanded) "▼ TRAINING DATA (Settings)" else "▶ TRAINING DATA (Settings)"
+            setTextColor(t.onSurface)
+            typeface = Typeface.DEFAULT_BOLD
+            textSize = 16f
+        }
+        headerLayout.addView(titleText)
+        cc.addView(headerLayout)
+
+        if (trainSettingsExpanded) {
+            val content = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(dp(16), 0, dp(16), dp(16))
+            }
+            content.addView(labelView(t, "MODEL PATH"))
+            content.addView(roundedEditText(t, trainModelPath, mono = true) { trainModelPath = it })
+            spacer(content, 8)
+            content.addView(labelView(t, "GPU TRUNK MODEL (hybrid, QS4CX-FP16)"))
+            content.addView(roundedEditText(t, trainTrunkPath, mono = true) { trainTrunkPath = it })
+            spacer(content, 8)
+            content.addView(labelView(t, "TRAINING DATA"))
+            content.addView(roundedEditText(t, trainDataPath, mono = true) { trainDataPath = it })
+            spacer(content, 8)
+            val r1 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            r1.addView(labeledColumn(t, "LR", roundedEditText(t, trainLr, mono = true) { trainLr = it }, 1f))
+            spacerH(r1, 8); r1.addView(labeledColumn(t, "EPOCHS", roundedEditText(t, trainEpochs, mono = true) { trainEpochs = it }, 1f))
+            content.addView(r1); spacer(content, 8)
+            val r2 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            r2.addView(labeledColumn(t, "SEQ LEN", roundedEditText(t, trainSeqLen, mono = true) { trainSeqLen = it }, 1f))
+            spacerH(r2, 8); r2.addView(labeledColumn(t, "MAX SAMPLES", roundedEditText(t, trainMaxSamples, mono = true) { trainMaxSamples = it }, 1f))
+            content.addView(r2); spacer(content, 8)
+            val r3 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            r3.addView(labeledColumn(t, "LORA RANK", roundedEditText(t, trainLoraRank, mono = true) { trainLoraRank = it }, 1f))
+            spacerH(r3, 8); r3.addView(labeledColumn(t, "LORA ALPHA", roundedEditText(t, trainLoraAlpha, mono = true) { trainLoraAlpha = it }, 1f))
+            content.addView(r3); spacer(content, 8)
+            val r4 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            r4.addView(labeledColumn(t, "LORA LAST N", roundedEditText(t, trainLoraLastN, mono = true) { trainLoraLastN = it }, 1f))
+            spacerH(r4, 8); r4.addView(labeledColumn(t, "CLIP GRAD", roundedEditText(t, trainClipGrad, mono = true) { trainClipGrad = it }, 1f))
+            content.addView(r4); spacer(content, 8)
+            val r5 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            r5.addView(labeledColumn(t, "OUTPUT (blank=default)", roundedEditText(t, trainOutputPath, mono = true) { trainOutputPath = it }, 2f))
+            spacerH(r5, 8); r5.addView(labeledColumn(t, "SEED", roundedEditText(t, trainSeed, mono = true) { trainSeed = it }, 1f))
+            content.addView(r5); spacer(content, 8)
+            content.addView(labelView(t, "RESUME LORA PATH (optional)"))
+            content.addView(roundedEditText(t, trainResumePath, mono = true) { trainResumePath = it })
+            cc.addView(content)
+        }
+        container.addView(cc)
         return container
     }
 
     private fun buildTrainTabToggles(t: M3Tokens): View {
         val w = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        w.addView(labelView(t, "OPTIONS")); spacer(w, 6)
-        w.addView(androidx.appcompat.widget.SwitchCompat(this).apply {
-            text = "QAT (--lora_qat)"; isChecked = trainQatEnabled
-            setOnCheckedChangeListener { _, c -> trainQatEnabled = c }
-        })
-        w.addView(androidx.appcompat.widget.SwitchCompat(this).apply {
-            text = "Save Q4_0 adapter (--lora_weight_q4)"; isChecked = trainWeightQ4
-            setOnCheckedChangeListener { _, c -> trainWeightQ4 = c }
-        })
-        w.addView(androidx.appcompat.widget.SwitchCompat(this).apply {
-            text = "Train norms (--train_norms)"; isChecked = trainNorms
-            setOnCheckedChangeListener { _, c -> trainNorms = c }
-        })
-        w.addView(androidx.appcompat.widget.SwitchCompat(this).apply {
-            text = "GPU trunk + CPU head (--hybrid_trunk)"; isChecked = trainHybrid
-            setOnCheckedChangeListener { _, c -> trainHybrid = c }
-        })
-        spacer(w, 12)
         w.addView(Button(this).apply {
             text = if (trainRunning) "⏹ Stop Training" else "▶ Start Training"
             background = solid(if (trainRunning) t.error else t.primary, 24)
@@ -2532,9 +2543,6 @@ class MainActivity : AppCompatActivity() {
                             val avg = trainIterMs.average()
                             setStatus(String.format("Training… epoch %d iter %d · %.0f ms/iter · loss %.3f",
                                 epoch, iteration, avg, loss))
-                            if (iteration % 10 == 0)
-                                appendTrainLog(String.format("  iter %d: %.0f ms/iter (avg of last %d), loss %.3f",
-                                    iteration, avg, trainIterMs.size, loss))
                         }
                     }
                 }
