@@ -382,6 +382,11 @@ bool moe_experts_device_served_cl(ml::train::TensorDim::DataType expert_dtype) {
   return cc != nullptr && (cc->caps().dpas || cc->caps().int_dot_product);
 }
 
+bool moe_route_cl(const MoeRouter &router, unsigned int tokens, uint32_t *ids,
+                  float *weights) {
+  return tq2cx_moe_route_cl(router, tokens, ids, weights);
+}
+
 bool moe_experts_prebuild_cl(const MoeExpertGroup &group) {
   if (group.gate.empty() || group.gate[0] == nullptr ||
       group.gate[0]->getDataType() != ml::train::TensorDim::DataType::TQ2CX)

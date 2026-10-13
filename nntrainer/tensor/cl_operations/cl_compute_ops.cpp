@@ -564,6 +564,10 @@ public:
   bool moe_experts_prebuild(const MoeExpertGroup &group) override {
     return nntrainer::moe_experts_prebuild_cl(group);
   }
+  bool moe_route(const MoeRouter &router, unsigned int tokens, uint32_t *ids,
+                 float *weights) override {
+    return nntrainer::moe_route_cl(router, tokens, ids, weights);
+  }
 
 #ifdef ENABLE_FP16
   void scopy_fp16(const unsigned int N, const _FP16 *X, const unsigned int incX,

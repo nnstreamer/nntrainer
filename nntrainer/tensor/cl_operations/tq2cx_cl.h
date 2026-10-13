@@ -73,6 +73,19 @@ bool tq2cx_moe_experts_cl(const MoeExpertGroup &group);
  */
 bool tq2cx_moe_experts_prebuild_cl(const MoeExpertGroup &group);
 
+/**
+ * @brief Route @a tokens router rows on the device (ComputeOps::moe_route):
+ *        the deterministic router of moe_route_det.h, four launches with no
+ *        local memory (tq2moe_route_*_rows), then one blocking read of the
+ *        selected ids and weights.
+ * @param[out] ids     [tokens][topk] expert ids in rank order
+ * @param[out] weights [tokens][topk] their routing weights
+ * @return false, having enqueued nothing, when the device or the operands
+ *         are not served (the caller routes on the host)
+ */
+bool tq2cx_moe_route_cl(const MoeRouter &rt, unsigned int tokens, uint32_t *ids,
+                        float *weights);
+
 } // namespace nntrainer
 
 #endif // __TQ2CX_CL_H__

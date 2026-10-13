@@ -17,6 +17,7 @@
 #include <cmath>
 #include <condition_variable>
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <memory>
@@ -29,11 +30,14 @@
 #include <sys/mman.h>
 #endif
 
+#include <blas_kernel_interface.h>
 #include <blas_kernels.h>
 #include <cl_context.h>
 #include <cl_kernels/int8_int4_gemm_v8c.h>
 #include <cl_kernels/tq2cx_gemm.h>
 #include <cl_kernels/tq2cx_gemm_portable.h>
+#include <cl_kernels/tq2moe_glu_quant.h>
+#include <cl_kernels/tq2moe_route.h>
 #include <engine.h>
 #include <fp16.h>
 #include <moe_route_det.h>
@@ -382,392 +386,159 @@ __kernel void tq2moe_combine_f16(__global const float *Y, __global half *out,
 )CL";
 
 /**
- * The decode router on the device, three launches, the deterministic router
- * of moe_route_det.h term for term (only IEEE add / multiply / fma and exact
- * operations in a fixed order), so it selects the same experts with the same
- * weights as the host router on any device.
+ * The prefill gather quantizers of the grouped path, fused with the gather
+ * that fed the quantizer (one launch instead of two, no fp32 copy of the
+ * input): tq2moe_gather_quant_f16 / _f32 quantize gathered row r straight
+ * from the layer input row src_row[r] (fp16 widened exactly to fp32, or
+ * fp32) -- the row tq2moe_gather_* used to copy into an fp32 buffer for
+ * v8c_act_quant_f32_par. (The expert GeGLU + quantize of the grouped path
+ * is tq2moe_glu_act_quant_f32 in cl_kernels/tq2moe_glu_quant.cl, the kernel
+ * the decode GEMVs use too.)
  *
- * tq2moe_route_norm: one work-group: the rms scale of the row, then the
- * normalised, scaled row y[H] the projection reads.
- * tq2moe_route_logits: one lane per (expert, RT_SEG-wide segment of the
- * hidden axis): partial[seg][e] = the fma chain over the segment.
- * tq2moe_route_select: one work-group of E lanes: logits = partial sums in
- * segment order, softmax, top-k by rank, renormalisation, per-expert scale
- * (tq2moe_route_select_ref: the same in its one-lane reference form);
- * out ids[K] / w[K] in ascending expert id (the host combine order) and the
- * selected experts' record offsets for the batched GEMVs (off_gu = gate
- * offsets then up offsets, off_d = down offsets).
- *
- * Built with -DRT_SOFT_FMA on a device without a hardware fp32 fma
- * (DeviceCaps::fp32_fma), where fma() is a slow library routine: rt_fma then
- * builds the same correctly rounded result from multiplies and adds.
- *
- * tq2moe_route_logits built with -DRT_W_BF16 reads the router weight as the
- * high 16 bits of each fp32 value (tq2RouterWeightBf16: only when every low
- * half is zero), widened back exactly: the same fp32 operands, half the bytes.
+ * Both are v8c_act_quant_f32_par (int8_int4_gemm_v8c.cl) term for term: one
+ * 64-lane work-group per row, the same strided min / max and row-sum trees,
+ * the same scale / zero-point code (tq2q_row_params, kept above the
+ * FP_CONTRACT pragma like the quantizer it copies) and the same rounding, so
+ * the int8 rows, scales, zero points and row sums are those of the two-launch
+ * form bit for bit. Built with the quantizer's options (tq2QuantOptions),
+ * plus -DV8C_AQ_PERM to store each row in TQ2 order like the v8c quantizer
+ * (the expert GEMM tq2cx_gemm_tiles_v2_portable reads that order).
  */
-const std::string kTq2Route = R"CL(
+const std::string kTq2MoeQuant = R"CL(
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
-#pragma OPENCL FP_CONTRACT OFF
-#define RT_SEG 32
-#define RT_MAXH 4096
-#define RT_MAXE 256
-#define RT_MAXK 16
-
-// fma(a, b, c), correctly rounded, from fp32 multiplies and adds only (the
-// Dekker product and two-sum are exact, the low parts are added rounded to
-// odd, then the high part rounded to nearest: Boldo & Melquiond's emulated
-// fma). Outside the range where those steps are exact (huge operands, a
-// product below 2^-100) it calls fma().
-inline float rt_fma(const float a, const float b, const float c) {
-#ifdef RT_SOFT_FMA
-  const float ph = a * b;
-  const float m = fabs(ph);
-  if (fabs(a) <= 0x1p100f && fabs(b) <= 0x1p100f && fabs(c) <= 0x1p120f &&
-      m <= 0x1p100f && (m >= 0x1p-100f || a == 0.0f || b == 0.0f)) {
-    const float ta = 4097.0f * a, tb = 4097.0f * b;
-    const float ah = ta - (ta - a), al = a - ah;
-    const float bh = tb - (tb - b), bl = b - bh;
-    const float pl = ((ah * bh - ph) + ah * bl + al * bh) + al * bl;
-    const float th = c + ph;
-    const float tz = th - c;
-    const float tl = (c - (th - tz)) + (ph - tz);
-    const float v = tl + pl;
-    if (v == 0.0f)
-      return th;
-    const float vz = v - tl;
-    const float ve = (tl - (v - vz)) + (pl - vz);
-    uint vu = as_uint(v);
-    if (ve != 0.0f && (vu & 1u) == 0u)
-      vu = ((ve > 0.0f) == (v > 0.0f)) ? vu + 1u : vu - 1u;
-    return th + as_float(vu);
-  }
-#endif
-  return fma(a, b, c);
-}
-
-// The deterministic primitives of moe_route_det.h, term for term: only IEEE
-// add / multiply / fma and exact operations, so the host and every device
-// produce the same bits whatever their division / sqrt / exp accuracy.
-inline float rt_div(const float x, const float s) {
-  float y = 1.0f / s;
-  float e = rt_fma(-s, y, 1.0f);
-  y = rt_fma(e, y, y);
-  e = rt_fma(-s, y, 1.0f);
-  y = rt_fma(e, y, y);
-  const float q = x * y;
-  const float r = rt_fma(-s, q, x);
-  return r == 0.0f ? q : rt_fma(r, y, q);
-}
-inline float rt_rsqrt(const float a) {
-  float y = as_float(0x5f375a86u - (as_uint(a) >> 1));
-  const float h = 0.5f * a;
-  for (int it = 0; it < 3; ++it) {
-    const float hy = h * y;
-    const float r = rt_fma(-hy, y, 1.5f);
-    y = y * r;
-  }
-  return y;
-}
-inline float rt_exp(const float x) {
-  if (x < -87.0f)
-    return 0.0f;
-  const float t = x * 1.44269504088896341f;
-  const float n = rint(t);
-  float r = rt_fma(-n, 0.693145751953125f, x);
-  r = rt_fma(-n, 1.428606765330187e-06f, r);
-  float p = 1.3888889e-3f;
-  p = rt_fma(p, r, 8.3333333e-3f);
-  p = rt_fma(p, r, 4.1666667e-2f);
-  p = rt_fma(p, r, 1.6666667e-1f);
-  p = rt_fma(p, r, 0.5f);
-  p = rt_fma(p, r, 1.0f);
-  p = rt_fma(p, r, 1.0f);
-  return ldexp(p, (int)n);
-}
-
-__kernel void tq2moe_route_norm(__global const half *xh,
-                                __global const float *xf, const int x_half,
-                                __global const float *norm,
-                                const int has_norm,
-                                __global const float *rscale,
-                                const float hscale, const float eps,
-                                const int H, __global float *y) {
-  __local float lx[RT_MAXH];
-  __local float lacc[32];
-  __local float lscale;
-  const int tid = get_local_id(0);
-  const int lws = get_local_size(0);
-  for (int i = tid; 4 * i < H; i += lws) // H % 8 == 0
-    vstore4(x_half ? vload_half4(i, xh) : vload4(i, xf), i, lx);
-  barrier(CLK_LOCAL_MEM_FENCE);
-  // sum of squares in the host order: lane l of 32 sums x*x over i = l,
-  // l + 32, ... with fma; the 8-wide tail goes to lanes 0..7. The square of
-  // an fp16 value is exact in fp32 (22 bits), so for a half row x*x + acc is
-  // the same bits as fma(x, x, acc) without the fma.
-  if (tid < 32) {
-    const int n32 = H / 32 * 32;
-    float acc = 0.0f;
-    if (x_half) {
-      for (int i = tid; i < n32; i += 32)
-        acc = lx[i] * lx[i] + acc;
-      if (tid < 8)
-        for (int i = n32 + tid; i + 8 - tid <= H; i += 8)
-          acc = lx[i] * lx[i] + acc;
-    } else {
-      for (int i = tid; i < n32; i += 32)
-        acc = rt_fma(lx[i], lx[i], acc);
-      if (tid < 8)
-        for (int i = n32 + tid; i + 8 - tid <= H; i += 8)
-          acc = rt_fma(lx[i], lx[i], acc);
-    }
-    lacc[tid] = acc;
-  }
-  barrier(CLK_LOCAL_MEM_FENCE);
-  if (tid == 0) {
-    float h[4];
-    for (int j = 0; j < 4; ++j) {
-      __local const float *v = lacc + 8 * j;
-      h[j] = ((v[0] + v[4]) + (v[1] + v[5])) + ((v[2] + v[6]) + (v[3] + v[7]));
-    }
-    const float sumsq = ((h[0] + h[1]) + h[2]) + h[3];
-    const float mean = rt_div(sumsq, (float)H);
-    lscale = rt_rsqrt(mean + eps);
-  }
-  barrier(CLK_LOCAL_MEM_FENCE);
-  const float scale = lscale;
-  for (int i = tid; i < H; i += lws) {
-    float v = lx[i] * scale;
-    if (has_norm)
-      v = v * norm[i];
-    y[i] = v * (rscale[i] * hscale);
-  }
-}
-
-#ifdef RT_W_BF16
-#define RT_WT ushort
-#define RT_WLOAD(i) as_float(((uint)W[i]) << 16)
+#define TQ2Q_LWS 64
+/* V8C_AQ_PERM: each row stored in TQ2 order (int8_int4_gemm_v8c.cl) */
+#ifdef V8C_AQ_PERM
+#define V8C_AQ_IDX(k) (((k) & ~31) | (((k) & 7) << 2) | (((k) >> 3) & 3))
 #else
-#define RT_WT float
-#define RT_WLOAD(i) W[i]
+#define V8C_AQ_IDX(k) (k)
 #endif
 
-__kernel void tq2moe_route_logits(__global const float *y,
-                                  __global const RT_WT *W, const int H,
-                                  const int E, __global float *partial) {
-  const int e = get_global_id(0);
-  const int seg = get_global_id(1);
-  if (e >= E)
-    return;
-  const int f0 = seg * RT_SEG;
-  const int n = min(RT_SEG, H - f0);
-  float acc = 0.0f;
-#pragma unroll 8
-  for (int f = 0; f < n; ++f)
-    acc = rt_fma(y[f0 + f], RT_WLOAD((long)(f0 + f) * E + e), acc);
-  partial[(long)seg * E + e] = acc;
+/* scale / zero point of a row from its min and max (v8c_act_quant_*_par) */
+inline void tq2q_row_params(const float fmn, const float fmx,
+                            __private float *scale_q_out,
+                            __private float *recip_out,
+                            __private int *zp_out) {
+  const float rmin = fmn < 0.0f ? fmn : 0.0f;
+  const float rmax = fmx > 0.0f ? fmx : 0.0f;
+  const float qmin = -128.0f, qmax = 127.0f;
+  const float range = rmax - rmin;
+  const float scale_q = range > 0.0f ? 255.0f / range : 1.0f;
+  const float recip = range > 0.0f ? range / 255.0f : 1.0f;
+  const float dmin = rmin * scale_q, dmax = rmax * scale_q;
+  const float zp_lo = qmin - dmin, zp_hi = qmax - dmax;
+  float zp_f =
+    (qmin + dmin) + (qmax + dmax) > 0.0f ? zp_lo : zp_hi;
+  if (zp_f < qmin) zp_f = qmin;
+  if (zp_f > qmax) zp_f = qmax;
+  *scale_q_out = scale_q;
+  *recip_out = recip;
+  *zp_out = (int)rint(zp_f);
 }
 
-__kernel void tq2moe_route_select_ref(__global const float *partial,
-                                  const int nseg, __global const float *pes,
-                                  __global const uint *off_tab, const int E,
-                                  const int K, __global uint *ids,
-                                  __global float *wout, __global uint *off_gu,
-                                  __global uint *off_d) {
-  __local float lp[RT_MAXE];
-  __local float lred;
-  __local int rank_id[RT_MAXK];
-  __local float rank_p[RT_MAXK];
-  const int e = get_local_id(0);
-  float l = 0.0f;
-  if (e < E) {
-    l = partial[e];
-    for (int s = 1; s < nseg; ++s)
-      l = l + partial[(long)s * E + e];
-    lp[e] = l;
-  }
-  barrier(CLK_LOCAL_MEM_FENCE);
-  if (e == 0) {
-    float mx = lp[0];
-    for (int i = 1; i < E; ++i)
-      mx = fmax(mx, lp[i]);
-    lred = mx;
-  }
-  barrier(CLK_LOCAL_MEM_FENCE);
-  const float ex = e < E ? rt_exp(l - lred) : 0.0f;
-  barrier(CLK_LOCAL_MEM_FENCE);
-  if (e < E)
-    lp[e] = ex;
-  barrier(CLK_LOCAL_MEM_FENCE);
-  if (e == 0) {
-    float sum = 0.0f;
-    for (int i = 0; i < E; ++i)
-      sum = sum + lp[i];
-    lred = sum;
-  }
-  barrier(CLK_LOCAL_MEM_FENCE);
-  const float p = e < E ? rt_div(ex, lred) : 0.0f;
-  barrier(CLK_LOCAL_MEM_FENCE);
-  if (e < E)
-    lp[e] = p;
-  barrier(CLK_LOCAL_MEM_FENCE);
-  if (e < E) {
-    // rank among the experts: larger first, ties to the lower id
-    int rank = 0;
-    for (int i = 0; i < E; ++i)
-      rank += (lp[i] > p || (lp[i] == p && i < e)) ? 1 : 0;
-    if (rank < K) {
-      rank_id[rank] = e;
-      rank_p[rank] = p;
-    }
-  }
-  barrier(CLK_LOCAL_MEM_FENCE);
-  if (e == 0) {
-    int sel[RT_MAXK];
-    float val[RT_MAXK];
-    float s = 0.0f;
-    for (int j = 0; j < K; ++j) {
-      sel[j] = rank_id[j];
-      val[j] = rank_p[j];
-      s = s + val[j];
-    }
-    for (int j = 0; j < K; ++j)
-      val[j] = rt_div(val[j], s) * pes[sel[j]];
-    // ascending expert id: the order the host combine sums in
-    for (int a = 1; a < K; ++a)
-      for (int b = a; b > 0 && sel[b - 1] > sel[b]; --b) {
-        const int ti = sel[b]; sel[b] = sel[b - 1]; sel[b - 1] = ti;
-        const float tv = val[b]; val[b] = val[b - 1]; val[b - 1] = tv;
-      }
-    for (int a = 0; a < K; ++a) {
-      ids[a] = (uint)sel[a];
-      wout[a] = val[a];
-      off_gu[a] = off_tab[sel[a]];
-      off_gu[K + a] = off_tab[E + sel[a]];
-      off_d[a] = off_tab[2 * E + sel[a]];
-    }
-  }
+#pragma OPENCL FP_CONTRACT OFF
+
+/* the min / max tree, the row parameters and the row-sum tree of
+ * v8c_act_quant_f32_par around a value source LOAD(k) */
+#define TQ2Q_ROW(LOAD, PASS1_STORE)                                            \
+  const int row = get_group_id(0);                                             \
+  if (row >= M) return;                                                        \
+  const int tid = get_local_id(0);                                             \
+  __local float lmin[TQ2Q_LWS];                                                \
+  __local float lmax[TQ2Q_LWS];                                                \
+  __local int   lsum[TQ2Q_LWS];                                                \
+  __local float l_scale_q;                                                     \
+  __local int   l_zp;                                                          \
+  float pmin = 0.0f, pmax = 0.0f;                                              \
+  for (int k = tid; k < K; k += TQ2Q_LWS) {                                    \
+    float v = LOAD(k);                                                         \
+    PASS1_STORE(k, v);                                                         \
+    pmin = fmin(pmin, v);                                                      \
+    pmax = fmax(pmax, v);                                                      \
+  }                                                                            \
+  lmin[tid] = pmin;                                                            \
+  lmax[tid] = pmax;                                                            \
+  barrier(CLK_LOCAL_MEM_FENCE);                                                \
+  for (int s = TQ2Q_LWS / 2; s > 0; s >>= 1) {                                 \
+    if (tid < s) {                                                             \
+      lmin[tid] = fmin(lmin[tid], lmin[tid + s]);                              \
+      lmax[tid] = fmax(lmax[tid], lmax[tid + s]);                              \
+    }                                                                          \
+    barrier(CLK_LOCAL_MEM_FENCE);                                              \
+  }                                                                            \
+  if (tid == 0) {                                                              \
+    float sq, rc;                                                              \
+    int zq;                                                                    \
+    tq2q_row_params(lmin[0], lmax[0], &sq, &rc, &zq);                          \
+    l_scale_q = sq;                                                            \
+    l_zp = zq;                                                                 \
+    scale_per_row[row] = rc;                                                   \
+    zp_per_row[row] = zq;                                                      \
+  }                                                                            \
+  barrier(CLK_GLOBAL_MEM_FENCE | CLK_LOCAL_MEM_FENCE);                         \
+  const float scale_q = l_scale_q;                                             \
+  const int zp = l_zp;                                                         \
+  int psum = 0;                                                                \
+  for (int k = tid; k < K; k += TQ2Q_LWS) {                                    \
+    int q = (int)rint(LOAD2(k) * scale_q) + zp;                                \
+    if (q < -128) q = -128;                                                    \
+    if (q > 127) q = 127;                                                      \
+    act_int8[(long)row * K + V8C_AQ_IDX(k)] = (char)q;                         \
+    psum += q;                                                                 \
+  }                                                                            \
+  lsum[tid] = psum;                                                            \
+  barrier(CLK_LOCAL_MEM_FENCE);                                                \
+  for (int s = TQ2Q_LWS / 2; s > 0; s >>= 1) {                                 \
+    if (tid < s) lsum[tid] += lsum[tid + s];                                   \
+    barrier(CLK_LOCAL_MEM_FENCE);                                              \
+  }                                                                            \
+  if (tid == 0) row_sum_act[row] = lsum[0];
+
+#define TQ2Q_NO_STORE(k, v)
+
+__attribute__((reqd_work_group_size(TQ2Q_LWS, 1, 1)))
+__kernel void tq2moe_gather_quant_f32(
+    __global const float *in, __global const int *src_row,
+    __global char *act_int8, __global float *scale_per_row,
+    __global int *zp_per_row, __global int *row_sum_act, const int M,
+    const int K) {
+#define LOAD(k) in[(long)src_row[row] * K + (k)]
+#define LOAD2(k) LOAD(k)
+  TQ2Q_ROW(LOAD, TQ2Q_NO_STORE)
+#undef LOAD
+#undef LOAD2
 }
 
-// The same selection as tq2moe_route_select_ref, bit for bit, with less
-// latency: the segment loads are issued eight ahead (the adds keep the
-// segment order), the max is a two-level reduction (fmax is exact in any
-// order), every lane runs the softmax sum itself (the same strict
-// i = 0..E-1 chain, read four at a time from local memory, so no barrier
-// waits on one lane), the rank reads four probabilities per local load and
-// the K selected experts are renormalised and put in ascending id order by K
-// lanes at once (no per-lane arrays).
-__kernel void tq2moe_route_select(__global const float *partial,
-                                  const int nseg, __global const float *pes,
-                                  __global const uint *off_tab, const int E,
-                                  const int K, __global uint *ids,
-                                  __global float *wout, __global uint *off_gu,
-                                  __global uint *off_d) {
-  __local float4 lp4[RT_MAXE / 4];
-  __local float lm[16];
-  __local int rank_id[RT_MAXK];
-  __local float rank_p[RT_MAXK];
-  __local float *lp = (__local float *)lp4;
-  const int e = get_local_id(0);
-  const int lws = get_local_size(0); // a multiple of 16, >= E
-  float l = 0.0f;
-  if (e < E) {
-    __global const float *pe = partial + e;
-    l = pe[0];
-    int s = 1;
-    for (; s + 8 <= nseg; s += 8) {
-      const float v0 = pe[(long)(s + 0) * E], v1 = pe[(long)(s + 1) * E];
-      const float v2 = pe[(long)(s + 2) * E], v3 = pe[(long)(s + 3) * E];
-      const float v4 = pe[(long)(s + 4) * E], v5 = pe[(long)(s + 5) * E];
-      const float v6 = pe[(long)(s + 6) * E], v7 = pe[(long)(s + 7) * E];
-      l = l + v0;
-      l = l + v1;
-      l = l + v2;
-      l = l + v3;
-      l = l + v4;
-      l = l + v5;
-      l = l + v6;
-      l = l + v7;
-    }
-    for (; s < nseg; ++s)
-      l = l + pe[(long)s * E];
-  }
-  lp[e] = e < E ? l : -INFINITY;
-  barrier(CLK_LOCAL_MEM_FENCE);
-  // max: 16 lanes take lws / 16 values each, then every lane the 16
-  if (e < 16) {
-    const int g = lws / 16;
-    float m = lp[e * g];
-    for (int i = 1; i < g; ++i)
-      m = fmax(m, lp[e * g + i]);
-    lm[e] = m;
-  }
-  barrier(CLK_LOCAL_MEM_FENCE);
-  float mx = lm[0];
-  for (int i = 1; i < 16; ++i)
-    mx = fmax(mx, lm[i]);
-  const float ex = e < E ? rt_exp(l - mx) : 0.0f;
-  lp[e] = ex; // lp was last read before the barrier above
-  barrier(CLK_LOCAL_MEM_FENCE);
-  float sum = 0.0f;
-  {
-    const int e4 = E / 4;
-    for (int i = 0; i < e4; ++i) {
-      const float4 v = lp4[i];
-      sum = sum + v.s0;
-      sum = sum + v.s1;
-      sum = sum + v.s2;
-      sum = sum + v.s3;
-    }
-    for (int i = 4 * e4; i < E; ++i)
-      sum = sum + lp[i];
-  }
-  const float p = e < E ? rt_div(ex, sum) : 0.0f;
-  barrier(CLK_LOCAL_MEM_FENCE);
-  lp[e] = e < E ? p : -INFINITY;
-  barrier(CLK_LOCAL_MEM_FENCE);
-  if (e < E) {
-    // rank among the experts: larger first, ties to the lower id (the
-    // padding is -inf and never counts)
-    int rank = 0;
-    const int n4 = (E + 3) / 4;
-    for (int i = 0; i < n4; ++i) {
-      const float4 v = lp4[i];
-      const int b = 4 * i;
-      rank += (v.s0 > p || (v.s0 == p && b < e)) ? 1 : 0;
-      rank += (v.s1 > p || (v.s1 == p && b + 1 < e)) ? 1 : 0;
-      rank += (v.s2 > p || (v.s2 == p && b + 2 < e)) ? 1 : 0;
-      rank += (v.s3 > p || (v.s3 == p && b + 3 < e)) ? 1 : 0;
-    }
-    if (rank < K) {
-      rank_id[rank] = e;
-      rank_p[rank] = p;
-    }
-  }
-  barrier(CLK_LOCAL_MEM_FENCE);
-  if (e < K) {
-    float s = 0.0f;
-    for (int j = 0; j < K; ++j)
-      s = s + rank_p[j];
-    const int id = rank_id[e];
-    const float v = rt_div(rank_p[e], s) * pes[id];
-    // position in ascending expert id (the ids are distinct)
-    int pos = 0;
-    for (int j = 0; j < K; ++j)
-      pos += rank_id[j] < id ? 1 : 0;
-    ids[pos] = (uint)id;
-    wout[pos] = v;
-    off_gu[pos] = off_tab[id];
-    off_gu[K + pos] = off_tab[E + id];
-    off_d[pos] = off_tab[2 * E + id];
-  }
+__attribute__((reqd_work_group_size(TQ2Q_LWS, 1, 1)))
+__kernel void tq2moe_gather_quant_f16(
+    __global const half *in, __global const int *src_row,
+    __global char *act_int8, __global float *scale_per_row,
+    __global int *zp_per_row, __global int *row_sum_act, const int M,
+    const int K) {
+#define LOAD(k) ((float)in[(long)src_row[row] * K + (k)])
+#define LOAD2(k) LOAD(k)
+  TQ2Q_ROW(LOAD, TQ2Q_NO_STORE)
+#undef LOAD
+#undef LOAD2
 }
 )CL";
+
+// The device router kernels (decode and prefill): cl_kernels/tq2moe_route.cl.
 constexpr unsigned int kTq2RouteSeg = 32; /**< RT_SEG */
 static_assert(kTq2RouteSeg == kMoeRouteSeg,
               "the device router segments as moe_route_det.h does");
 constexpr unsigned int kTq2RouteMaxH = 4096; /**< RT_MAXH */
 constexpr unsigned int kTq2RouteMaxE = 256, kTq2RouteMaxK = 16;
+/** prefill router rows per segment-partial chunk: [rows][nseg][E] fp32
+ *  scratch, 11.5 MB at H 2816 / E 128 */
+constexpr unsigned int kTq2RoutePartRows = 256;
+/** prefill router: with a hardware fp32 fma, from this many lanes (E x
+ *  ceil(rows / 4)) the logits take one lane per expert and four rows over the
+ *  whole hidden axis (tq2moe_route_chain_rows) instead of the segment
+ *  partials and their sums. Xe3, H 2816 E 128: chain 0.33 vs 0.38 ms at 128
+ *  rows (4096 lanes), 0.24 vs 0.19 ms at 64; with the emulated fma the
+ *  segment form is as fast or faster at every row count measured. */
+constexpr size_t kTq2RouteChainLanes = 4096;
 
 /** v8c activation quantizer build options: bit-identical to the CPU port on a
  *  DPAS device; elsewhere the options the v8c FC path itself builds the
@@ -905,22 +676,57 @@ struct Tq2Workspace {
   Tq2Scratch xq;  /**< int8 rows [R][max(H, I)] */
   Tq2Scratch xs;  /**< per-row scale */
   Tq2Scratch xz;  /**< per-row zero point */
-  Tq2Scratch xrs; /**< per-row sum (quantizer output, unused here) */
+  Tq2Scratch xrs; /**< per-row sum (quantizer output; read by
+                       tq2cx_gemm_tiles_v2_portable) */
   Tq2Scratch yg;  /**< gate [R][I] (decode: gate and up, [2k][I]) */
   Tq2Scratch yu;  /**< up [R][I] */
   Tq2Scratch act; /**< GeGLU [R][I] */
   Tq2Scratch yd;  /**< down [R][H] */
   // device routing of a decode row (tq2moe_route_logits / _select)
-  Tq2Scratch r_ids;         /**< [K] selected expert ids, ascending */
-  Tq2Scratch r_w;           /**< [K] their routing weights */
-  Tq2Scratch r_off_gu;      /**< [2K] gate then up record offsets */
-  Tq2Scratch r_off_d;       /**< [K] down record offsets */
-  Tq2Scratch r_part;        /**< [segments][E] partial router logits */
-  Tq2Scratch r_y;           /**< [H] normalised, scaled router row */
+  Tq2Scratch r_ids;    /**< [K] selected expert ids, ascending */
+  Tq2Scratch r_w;      /**< [K] their routing weights */
+  Tq2Scratch r_off_gu; /**< [2K] gate then up record offsets */
+  Tq2Scratch r_off_d;  /**< [K] down record offsets */
+  Tq2Scratch r_part;   /**< [segments][E] partial router logits */
+  Tq2Scratch r_y;      /**< [H] normalised, scaled router row */
+  // device routing of prefill rows (tq2moe_route_*_rows)
+  Tq2Scratch r_acc;         /**< [T][32] lane sums of squares */
+  Tq2Scratch r_yrows;       /**< [T][H] normalised, scaled router rows */
+  Tq2Scratch r_logits;      /**< [T][E] logits, then probabilities */
+  Tq2Scratch r_ex;          /**< [T][E] exponentials */
+  Tq2Scratch r_ppart;       /**< [chunk rows][nseg][E] segment partials */
+  Tq2Scratch r_out;         /**< [T][2K] ids then weight bits, rank order */
   unsigned int const_k = 0; /**< K the constants below were built for */
   cl_mem c_zero = nullptr;  /**< [2K] zeros (the one activation row) */
   cl_mem c_iota = nullptr;  /**< [K] 0..K-1 */
   cl_mem c_count = nullptr; /**< [1] K */
+  /** image views of the int8 rows xq for tq2cx_gemm_tiles_v2_portable, one
+   *  per row length K (gate / up read H, down reads I) */
+  struct XqView {
+    cl_mem buf = nullptr; /**< the xq buffer the view was made over */
+    unsigned int K = 0;
+    int form = 0;    /**< 1 image2d, 2 image1d_buffer */
+    size_t rows = 0; /**< activation rows the view covers */
+    cl_mem img = nullptr;
+  };
+  XqView xq_view[2];
+  /** release the image views of xq (each one keeps its buffer alive) */
+  void releaseXqViews() {
+    for (auto &v : xq_view) {
+      if (v.img != nullptr)
+        opencl::clReleaseMemObjectT(v.img);
+      v = XqView{};
+    }
+  }
+  /** xq with at least @a need bytes; growing it drops the views of the old
+   *  buffer first, so that buffer is freed now and not when a later prefill
+   *  replaces the view. The workspace is a process-lifetime static with no
+   *  teardown hook (nor do its scratch buffers have one). */
+  cl_mem xqGet(ClContext *cc, size_t need) {
+    if (need > xq.bytes)
+      releaseXqViews();
+    return xq.get(cc, need);
+  }
 };
 
 std::unordered_map<const void *, std::unique_ptr<Tq2Stack>> &tq2Stacks() {
@@ -1046,21 +852,18 @@ void tq2Dispatch(ClContext *cc, const ClContext::SharedPtrClKernel &kp,
                                         lws.data());
 }
 
-/** quantize M rows of K floats from @a x into the workspace int8 rows; with
- *  @a perm each row is stored in TQ2 order (V8C_AQ_PERM, K % 32 == 0) */
-void tq2Quantize(ClContext *cc, Tq2Workspace &ws, cl_mem x, void *x_svm,
-                 unsigned int M, unsigned int K, bool fp16 = false,
-                 bool perm = false) {
+/** quantize M rows of K floats (halves with @a fp16) from @a x into the
+ *  given int8 rows, scale, zero point and row sum; with @a perm each row is
+ *  stored in TQ2 order (V8C_AQ_PERM, K % 32 == 0) */
+void tq2QuantizeTo(ClContext *cc, cl_mem x, void *x_svm, unsigned int M,
+                   unsigned int K, bool fp16, bool perm, cl_mem xq, cl_mem xs,
+                   cl_mem xz, cl_mem xr) {
   auto kp = cc->registerClKernel(
     int8_int4_gemm_v8c_kernel,
     fp16 ? "v8c_act_quant_f16_par" : "v8c_act_quant_f32_par",
     perm ? tq2QuantOptions(cc) + " -DV8C_AQ_PERM" : tq2QuantOptions(cc));
   NNTR_THROW_IF(!kp, std::runtime_error)
     << "tq2cx_moe_experts_cl: activation quantizer did not build";
-  cl_mem xq = ws.xq.get(cc, (size_t)M * K);
-  cl_mem xs = ws.xs.get(cc, (size_t)M * sizeof(float));
-  cl_mem xz = ws.xz.get(cc, (size_t)M * sizeof(int));
-  cl_mem xr = ws.xrs.get(cc, (size_t)M * sizeof(int));
   const int Mi = (int)M, Ki = (int)K;
   bool ok =
     (x_svm != nullptr ? kp->SetKernelSVMArguments(0, x_svm)
@@ -1077,6 +880,17 @@ void tq2Quantize(ClContext *cc, Tq2Workspace &ws, cl_mem x, void *x_svm,
               {kV8cQuantLws, 1, 1});
 }
 
+/** quantize M rows of K floats from @a x into the workspace int8 rows; with
+ *  @a perm each row is stored in TQ2 order (V8C_AQ_PERM, K % 32 == 0) */
+void tq2Quantize(ClContext *cc, Tq2Workspace &ws, cl_mem x, void *x_svm,
+                 unsigned int M, unsigned int K, bool fp16 = false,
+                 bool perm = false) {
+  tq2QuantizeTo(cc, x, x_svm, M, K, fp16, perm, ws.xqGet(cc, (size_t)M * K),
+                ws.xs.get(cc, (size_t)M * sizeof(float)),
+                ws.xz.get(cc, (size_t)M * sizeof(int)),
+                ws.xrs.get(cc, (size_t)M * sizeof(int)));
+}
+
 /** the decode GEMVs read activation rows in TQ2 order (tq2GemvGeom): the
  *  quantizer feeding tq2GemvBatchDev must then store that order */
 bool tq2GemvPermAct(ClContext *cc) { return tq2Dpas(cc) && tq2GemvGeom().perm; }
@@ -1087,11 +901,18 @@ void tq2QuantizeGemv(ClContext *cc, Tq2Workspace &ws, cl_mem x, void *x_svm,
   tq2Quantize(cc, ws, x, x_svm, M, K, fp16, tq2GemvPermAct(cc));
 }
 
+/** int8 activation rows held outside the workspace (a claimed norm
+ *  handoff); all null = the workspace rows */
+struct Tq2QRows {
+  cl_mem xq = nullptr, xs = nullptr, xz = nullptr;
+};
+
 /** the batched GEMV with the record offsets and activation rows on the
  *  device (Intel subgroup kernel on DPAS devices, the portable one else) */
 void tq2GemvBatchDev(ClContext *cc, Tq2Workspace &ws, const Tq2Stack &st,
                      cl_mem d_off, cl_mem d_ar, unsigned int B, cl_mem Y,
-                     unsigned int N, unsigned int K) {
+                     unsigned int N, unsigned int K,
+                     const Tq2QRows &rows = Tq2QRows{}) {
   const bool portable = !tq2Dpas(cc);
   const Tq2GemvGeom &geom = tq2GemvGeom();
   auto kp = portable
@@ -1101,7 +922,9 @@ void tq2GemvBatchDev(ClContext *cc, Tq2Workspace &ws, const Tq2Stack &st,
                                      tq2Options(geom.options()));
   NNTR_THROW_IF(!kp, std::runtime_error)
     << "tq2cx_moe_experts_cl: the batched GEMV did not build";
-  cl_mem xq = ws.xq.buf, xs = ws.xs.buf, xz = ws.xz.buf;
+  const bool own = rows.xq != nullptr;
+  cl_mem xq = own ? rows.xq : ws.xq.buf, xs = own ? rows.xs : ws.xs.buf,
+         xz = own ? rows.xz : ws.xz.buf;
   const int Ni = (int)N, Ki = (int)K;
   bool ok = kp->SetKernelArguments(0, &st.buf, sizeof(cl_mem)) &&
             kp->SetKernelArguments(1, &d_off, sizeof(cl_mem)) &&
@@ -1130,11 +953,11 @@ void tq2GemvBatchDev(ClContext *cc, Tq2Workspace &ws, const Tq2Stack &st,
 void tq2GemvBatch(ClContext *cc, Tq2Workspace &ws, const Tq2Stack &st,
                   const std::vector<uint32_t> &rec_off,
                   const std::vector<int> &act_row, cl_mem Y, unsigned int N,
-                  unsigned int K) {
+                  unsigned int K, const Tq2QRows &rows = Tq2QRows{}) {
   const unsigned int B = (unsigned int)rec_off.size();
   cl_mem d_off = tq2Small(cc, rec_off.data(), B * sizeof(uint32_t));
   cl_mem d_ar = tq2Small(cc, act_row.data(), B * sizeof(int));
-  tq2GemvBatchDev(cc, ws, st, d_off, d_ar, B, Y, N, K);
+  tq2GemvBatchDev(cc, ws, st, d_off, d_ar, B, Y, N, K, rows);
   opencl::clReleaseMemObjectT(d_off);
   opencl::clReleaseMemObjectT(d_ar);
 }
@@ -1250,6 +1073,64 @@ void tq2Glu(ClContext *cc, cl_mem gate, size_t gate_off, cl_mem up,
   if (ok)
     tq2Dispatch(cc, kp, 1, {(total + 63) / 64 * 64, 1, 1}, {64, 1, 1});
   NNTR_THROW_IF(!ok, std::runtime_error) << "tq2cx_moe_experts_cl: glu args";
+}
+
+/**
+ * @brief NNTR_TQ2CX_GLU_QUANT=0 keeps the separate GeGLU and down-input
+ *        quantiser (an A/B switch: the fused kernel writes the same bytes).
+ *        Read once.
+ */
+bool tq2GluQuantOn() {
+  static const bool on = []() {
+    const char *e = std::getenv("NNTR_TQ2CX_GLU_QUANT");
+    return !(e != nullptr && e[0] == '0');
+  }();
+  return on;
+}
+
+/**
+ * @brief The expert GeGLU of M rows of K and the quantisation of the result
+ *        for the down projection: act[M][K] as tq2Glu writes it, and the
+ *        workspace int8 rows / scale / zero point / row sum as tq2Quantize
+ *        (act, M, K, perm) writes them -- in one launch
+ *        (tq2moe_glu_act_quant_f32) instead of two.
+ */
+void tq2GluQuantize(ClContext *cc, Tq2Workspace &ws, cl_mem gate,
+                    size_t gate_off, cl_mem up, size_t up_off, cl_mem act,
+                    unsigned int M, unsigned int K, bool exact, bool perm) {
+  if (!tq2GluQuantOn()) {
+    tq2Glu(cc, gate, gate_off, up, up_off, act, (size_t)M * K, exact);
+    tq2Quantize(cc, ws, act, nullptr, M, K, false, perm);
+    return;
+  }
+  // the quantiser's program options, so the quant half is that kernel's
+  auto kp = cc->registerClKernel(
+    tq2moe_glu_quant_kernel, "tq2moe_glu_act_quant_f32",
+    perm ? tq2QuantOptions(cc) + " -DV8C_AQ_PERM" : tq2QuantOptions(cc));
+  NNTR_THROW_IF(!kp, std::runtime_error)
+    << "tq2cx_moe_experts_cl: the GeGLU quantizer did not build";
+  cl_mem xq = ws.xqGet(cc, (size_t)M * K);
+  cl_mem xs = ws.xs.get(cc, (size_t)M * sizeof(float));
+  cl_mem xz = ws.xz.get(cc, (size_t)M * sizeof(int));
+  cl_mem xr = ws.xrs.get(cc, (size_t)M * sizeof(int));
+  const int Mi = (int)M, Ki = (int)K, ex = exact ? 1 : 0;
+  const int go = (int)gate_off, uo = (int)up_off;
+  bool ok = kp->SetKernelArguments(0, &gate, sizeof(cl_mem)) &&
+            kp->SetKernelArguments(1, &up, sizeof(cl_mem)) &&
+            kp->SetKernelArguments(2, &act, sizeof(cl_mem)) &&
+            kp->SetKernelArguments(3, &xq, sizeof(cl_mem)) &&
+            kp->SetKernelArguments(4, &xs, sizeof(cl_mem)) &&
+            kp->SetKernelArguments(5, &xz, sizeof(cl_mem)) &&
+            kp->SetKernelArguments(6, &xr, sizeof(cl_mem)) &&
+            kp->SetKernelArguments(7, &Mi, sizeof(int)) &&
+            kp->SetKernelArguments(8, &Ki, sizeof(int)) &&
+            kp->SetKernelArguments(9, &ex, sizeof(int)) &&
+            kp->SetKernelArguments(10, &go, sizeof(int)) &&
+            kp->SetKernelArguments(11, &uo, sizeof(int));
+  NNTR_THROW_IF(!ok, std::runtime_error)
+    << "tq2cx_moe_experts_cl: GeGLU quantizer arguments";
+  tq2Dispatch(cc, kp, 1, {(size_t)M * kV8cQuantLws, 1, 1},
+              {kV8cQuantLws, 1, 1});
 }
 
 /**
@@ -1377,6 +1258,63 @@ bool tq2Act(const Tensor &t, size_t bytes, Tq2Act &a) {
   return a.svm != nullptr;
 }
 
+/**
+ * @brief NNTR_TQ2CX_NORM_HANDOFF=1 lets the pre-FFN norm's quantisation serve
+ *        the experts' input where it could (default off: the experts keep
+ *        their own input quantiser). Read once.
+ * @details Opt-in until an in-model run proves it: the handoff is reachable
+ *          only off DPAS, so no Xe3 run (FORCE_PORTABLE included) executes
+ *          it; its evidence is a kernel-level harness cell. Turn it on by
+ *          default once the Adreno harness and goldens pass with it.
+ */
+bool tq2NormHandoffOn() {
+  static const bool on = []() {
+    const char *e = std::getenv("NNTR_TQ2CX_NORM_HANDOFF");
+    return e != nullptr && e[0] == '1';
+  }();
+  return on;
+}
+
+/**
+ * @brief Do the router kernels use the device's fma()? False on a device
+ *        without a hardware fp32 fma (DeviceCaps::fp32_fma), and with
+ *        NNTR_TQ2CX_ROUTER_SOFT_FMA=1 (a test lane: the emulated fma of such
+ *        a device, -DRT_SOFT_FMA, on any device; the same bits either way).
+ */
+bool tq2RouterHwFma(ClContext *cc) {
+  static const bool forced = []() {
+    const char *e = std::getenv("NNTR_TQ2CX_ROUTER_SOFT_FMA");
+    return e != nullptr && e[0] == '1';
+  }();
+  return cc->caps().fp32_fma && !forced;
+}
+
+/**
+ * @brief The decode expert input's int8 row from the norm that wrote it
+ *        (v8cNormQuantClaim), when the experts would quantise exactly as that
+ *        norm did, else all null and the caller quantises.
+ * @details The fused norm quantises with the v8c FC's quantiser arithmetic
+ *          under the FC's program options, in plain order. The experts'
+ *          quantiser is the same kernel source; it matches only where it is
+ *          built with the same options and stores plain order -- not on a
+ *          DPAS device, which builds it with correctly rounded division and
+ *          stores TQ2 order (tq2QuantOptions, tq2GemvPermAct).
+ */
+Tq2QRows tq2ClaimNormRow(ClContext *cc, Tq2Workspace &ws, const Tq2Act &in,
+                         bool fp16, unsigned int H) {
+  Tq2QRows r;
+  if (!tq2NormHandoffOn() || !fp16 || in.mem == nullptr || cc->caps().dpas ||
+      tq2GemvPermAct(cc))
+    return r;
+  void *i8 = nullptr, *sc = nullptr, *zp = nullptr, *rs = nullptr;
+  if (!v8cNormQuantClaim(in.mem, 1, H, &i8, &sc, &zp, &rs))
+    return r;
+  r.xq = static_cast<cl_mem>(i8);
+  r.xs = static_cast<cl_mem>(sc);
+  r.xz = static_cast<cl_mem>(zp);
+  return r;
+}
+
 /** a host-readable fp32 weight, or null */
 float *tq2HostFloat(const Tensor *t) {
   if (t == nullptr || t->getDataType() != ml::train::TensorDim::DataType::FP32)
@@ -1469,6 +1407,429 @@ void tq2RouteConstants(ClContext *cc, Tq2Workspace &ws, unsigned int K) {
   ws.const_k = K;
 }
 
+/**
+ * @brief How the portable prefill GEMMs split the routed rows (read once).
+ *        Every choice gives the same outputs bit for bit (integer sums, the
+ *        reference epilogue); this is an A/B switch.
+ *  - NNTR_TQ2CX_FLAT_TILES=0: the one grouped launch over every expert's
+ *    max_rows / TQ2P_TM m-blocks (tq2cx_gemm_grouped_portable); default:
+ *    a list of only the tiles that hold rows (tq2cx_gemm_tiles_portable).
+ *    At a 1006-token prompt (30 layers, Xe3 with the portable kernels) that
+ *    is 1.08 M work-groups instead of 8.98 M and 1164 instead of 1563 ms.
+ */
+struct Tq2TileCfg {
+  bool flat = true;
+};
+const Tq2TileCfg &tq2TileCfg() {
+  static const Tq2TileCfg c = []() {
+    Tq2TileCfg r;
+    const char *f = std::getenv("NNTR_TQ2CX_FLAT_TILES");
+    r.flat = !(f != nullptr && f[0] == '0');
+    return r;
+  }();
+  return c;
+}
+
+/**
+ * @brief Fused prefill quantizers (tq2moe_gather_quant_*, tq2GluQuantize)
+ *        by default; NNTR_TQ2CX_QUANT_FUSE=0 keeps gather / GeGLU and the
+ *        quantizer as separate launches (an A/B switch; same bytes). At a
+ *        1006-token prompt on Xe3 the four launches take 156 ms of GPU time
+ *        over 30 layers, the two fused ones 61 ms, and the fp32 gather
+ *        buffer (R x H floats, 90 MB) is no longer allocated. Read once.
+ */
+bool tq2QuantFuse() {
+  static const bool on = []() {
+    const char *e = std::getenv("NNTR_TQ2CX_QUANT_FUSE");
+    return !(e != nullptr && e[0] == '0');
+  }();
+  return on;
+}
+
+/**
+ * @brief tq2cx_gemm_tiles_v2_portable for the portable prefill GEMMs: the
+ *        8-row tile list of tq2cx_gemm_tiles_portable, 8 rows x 4 channels
+ *        per work-item, TQ2-order activation rows (the prefill quantizers then
+ *        store that order), the biased unpack and the row-sum correction.
+ *        Same integers and epilogue, so the same outputs bit for bit.
+ *        Measured on Adreno 840 (routed 1K prompt, 30 layers of gate / up /
+ *        down, harness): 667 ms against 1584 ms for the P-TILES kernel.
+ *  - NNTR_TQ2CX_TILES_V2: unset = on for Qualcomm Adreno (vendor id
+ *    0x5143, no DPAS), off on every other device; 1 = on
+ *    (a non-image device takes the buffer form, e.g. Xe3 under
+ *    NNTR_TQ2CX_FORCE_PORTABLE=1, for exactness checks); 0 = off.
+ *  - NNTR_TQ2CX_TILES_V2_ACT=0|1|2 forces the activation fetch: 0 = buffer
+ *    only, 1 = image2d (the default on image devices), 2 = image1d_buffer
+ *    (the image2d form falls back to it above CL_DEVICE_IMAGE2D_MAX_HEIGHT
+ *    rows).
+ *  Read once.
+ */
+struct Tq2V2Cfg {
+  int on = -1;  /**< -1 = device default */
+  int act = -1; /**< -1 = device default */
+};
+const Tq2V2Cfg &tq2V2Cfg() {
+  static const Tq2V2Cfg c = []() {
+    Tq2V2Cfg r;
+    const char *e = std::getenv("NNTR_TQ2CX_TILES_V2");
+    if (e != nullptr && (e[0] == '0' || e[0] == '1'))
+      r.on = e[0] - '0';
+    const char *a = std::getenv("NNTR_TQ2CX_TILES_V2_ACT");
+    if (a != nullptr && a[0] >= '0' && a[0] <= '2' && a[1] == '\0')
+      r.act = a[0] - '0';
+    return r;
+  }();
+  return c;
+}
+
+const char *tq2V2FormName(int form) {
+  return form == 1 ? "image2d" : form == 2 ? "image1d_buffer" : "buffer";
+}
+
+/**
+ * @brief The v2 kernel of one activation form (0 buffer, 1 image2d,
+ *        2 image1d_buffer), or null when it does not build or the compiler
+ *        gave it local memory (it declares none: a non-zero size means
+ *        private arrays were placed there, the slow and once wrong-result
+ *        code shape of the Adreno 0842 compiler). Checked and logged once per
+ *        form; the caller holds tq2Mutex.
+ */
+ClContext::SharedPtrClKernel tq2V2Kernel(ClContext *cc, int form) {
+  static int state[3] = {0, 0, 0}; /**< 0 unknown, 1 good, -1 refused */
+  if (form < 0 || form > 2 || state[form] < 0)
+    return nullptr;
+  auto kp = cc->registerClKernel(
+    tq2cx_gemm_portable_kernel, "tq2cx_gemm_tiles_v2_portable",
+    tq2Options("-DTQ2P_V2=" + std::to_string(form)));
+  if (state[form] == 0) {
+    cl_ulong lmem = 0;
+    cl_int err = CL_INVALID_KERNEL;
+    if (kp && opencl::clGetKernelWorkGroupInfo != nullptr)
+      err = opencl::clGetKernelWorkGroupInfo(
+        kp->GetKernel(), cc->context_inst_.GetDeviceId(),
+        CL_KERNEL_LOCAL_MEM_SIZE, sizeof(lmem), &lmem, nullptr);
+    const bool good = kp && err == CL_SUCCESS && lmem == 0;
+    std::fprintf(stderr,
+                 "[TQ2-V2] tq2cx_gemm_tiles_v2_portable form=%s built=%d "
+                 "local_mem=%llu B%s\n",
+                 tq2V2FormName(form), kp ? 1 : 0, (unsigned long long)lmem,
+                 good ? "" : " -> not used");
+    state[form] = good ? 1 : -1;
+  }
+  return state[form] > 0 ? kp : nullptr;
+}
+
+/** image limits of the device: image2d max height, max width, and the
+ *  image1d_buffer max texels */
+struct Tq2ImgLimits {
+  size_t h2 = 0, w2 = 0, t1 = 0;
+};
+const Tq2ImgLimits &tq2ImgLimits(ClContext *cc) {
+  static const Tq2ImgLimits l = [cc]() {
+    Tq2ImgLimits r;
+    const cl_device_id d = cc->context_inst_.GetDeviceId();
+    if (opencl::clGetDeviceInfo(d, CL_DEVICE_IMAGE2D_MAX_HEIGHT, sizeof(r.h2),
+                                &r.h2, nullptr) != CL_SUCCESS)
+      r.h2 = 0;
+    if (opencl::clGetDeviceInfo(d, CL_DEVICE_IMAGE2D_MAX_WIDTH, sizeof(r.w2),
+                                &r.w2, nullptr) != CL_SUCCESS)
+      r.w2 = 0;
+    if (opencl::clGetDeviceInfo(d, CL_DEVICE_IMAGE_MAX_BUFFER_SIZE,
+                                sizeof(r.t1), &r.t1, nullptr) != CL_SUCCESS)
+      r.t1 = 0;
+    return r;
+  }();
+  return l;
+}
+
+/**
+ * @brief The v2 form the prefill GEMMs of a layer take, -1 = the P-TILES
+ *        kernel. Decided before the quantizers run, since v2 reads the rows
+ *        in TQ2 order. Only the flat tile plan, records
+ *        whose unit pairs are adjacent (row-major or TQ2_LAYV == 2) and
+ *        K % 64 == 0 for both K (an even unit count).
+ */
+int tq2V2Plan(ClContext *cc, bool tiles, unsigned int H, unsigned int I,
+              unsigned int R) {
+  const Tq2V2Cfg &c = tq2V2Cfg();
+  if (!tiles || c.on == 0)
+    return -1;
+  const bool img = cc->caps().image_v8c;
+  // default on only on Qualcomm Adreno, the device it was measured on;
+  // caps.image_v8c (vendor != Intel) would also take Mali / AMD / NVIDIA
+  // OpenCL. NNTR_TQ2CX_TILES_V2=1 still forces it on any device.
+  constexpr uint32_t qualcomm_vendor_id = 0x5143;
+  if (c.on < 0 &&
+      (cc->caps().dpas || cc->caps().vendor_id != qualcomm_vendor_id))
+    return -1;
+  const Tq2cxLayout lay = tq2cxStoredLayout();
+  if ((lay.tiled() && lay.V != 2) || H % 64 != 0 || I % 64 != 0)
+    return -1;
+  int form = c.act >= 0 ? c.act : (img ? 1 : 0);
+  // more rows than an image2d holds: the image1d_buffer form, else buffer
+  const Tq2ImgLimits &lim = tq2ImgLimits(cc);
+  if (form == 1 && R > lim.h2)
+    form = 2;
+  if (form == 2 && (size_t)R * (std::max(H, I) / 16) > lim.t1)
+    form = 0;
+  if (tq2V2Kernel(cc, form))
+    return form;
+  return form != 0 && tq2V2Kernel(cc, 0) ? 0 : -1;
+}
+
+/**
+ * @brief An image view (form 1 image2d, 2 image1d_buffer) of the workspace
+ *        int8 rows xq as rows of K bytes covering at least R rows (RGBA
+ *        uint32 texels: K / 16 per row), or null when the device limits or
+ *        the driver refuse it. The view covers the whole buffer, so it is
+ *        made again only when xq grows (or K / the form changes).
+ */
+cl_mem tq2XqView(ClContext *cc, Tq2Workspace &ws, unsigned int K,
+                 unsigned int R, int form) {
+  const size_t tpr = K / 16; /**< texels per row */
+  const size_t cap = ws.xq.bytes / K;
+  const Tq2ImgLimits &lim = tq2ImgLimits(cc);
+  size_t rows = 0;
+  if (form == 1 && tpr <= lim.w2)
+    rows = std::min(cap, lim.h2);
+  else if (form == 2 && tpr > 0)
+    rows = std::min(cap, lim.t1 / tpr);
+  if (rows < R || ws.xq.buf == nullptr)
+    return nullptr;
+  Tq2Workspace::XqView *slot = nullptr;
+  for (auto &v : ws.xq_view)
+    if (v.img != nullptr && v.buf == ws.xq.buf && v.K == K && v.form == form &&
+        v.rows >= R)
+      return v.img;
+  for (auto &v : ws.xq_view)
+    if (slot == nullptr && (v.img == nullptr || v.buf != ws.xq.buf || v.K == K))
+      slot = &v;
+  if (slot == nullptr)
+    slot = &ws.xq_view[0];
+  if (slot->img != nullptr)
+    opencl::clReleaseMemObjectT(slot->img);
+  *slot = Tq2Workspace::XqView{};
+  cl_image_format fmt = {CL_RGBA, CL_UNSIGNED_INT32};
+  cl_image_desc d;
+  std::memset(&d, 0, sizeof(d));
+  if (form == 1) {
+    // Pitch = K bytes (K / 16 RGBA32UI pixels), the rows are packed as the
+    // quantizer writes them. H % 64 == I % 64 == 0 (tq2V2Plan), so the pitch
+    // is a multiple of 64 B = 4 pixels: the same assumption as the v8c
+    // activation image (blas_kernel_interface, pitch K). It is NOT a multiple
+    // of what every driver reports: Adreno 840 reports
+    // CL_DEVICE_IMAGE_PITCH_ALIGNMENT 64 px and still accepts pitch K (44 /
+    // 176 px, in a kernel test and in the v8c path). So the reported alignment
+    // is logged, not enforced; a driver that enforces it refuses
+    // clCreateImage, and the caller falls back to image1d_buffer (no pitch),
+    // then the buffer form, then the P-TILES kernel.
+    static const cl_uint align = [cc]() {
+      cl_uint a = 0;
+      if (opencl::clGetDeviceInfo(cc->context_inst_.GetDeviceId(),
+                                  CL_DEVICE_IMAGE_PITCH_ALIGNMENT, sizeof(a),
+                                  &a, nullptr) != CL_SUCCESS)
+        a = 0;
+      return a;
+    }();
+    static bool noted = false;
+    if (align > 1 && tpr % align != 0 && !noted) {
+      noted = true;
+      std::fprintf(stderr,
+                   "[TQ2-V2] image2d view pitch %u B = %zu px is not a "
+                   "multiple of CL_DEVICE_IMAGE_PITCH_ALIGNMENT %u px: "
+                   "relying on the driver (a refusal falls back)\n",
+                   K, tpr, (unsigned)align);
+    }
+    d.image_type = CL_MEM_OBJECT_IMAGE2D;
+    d.image_width = tpr;
+    d.image_height = rows;
+    d.image_row_pitch = K;
+  } else {
+    d.image_type = CL_MEM_OBJECT_IMAGE1D_BUFFER;
+    d.image_width = rows * tpr;
+  }
+  d.buffer = ws.xq.buf;
+  cl_int err = CL_SUCCESS;
+  cl_mem img =
+    opencl::clCreateImageT(cc->context_inst_.GetContextNoRetain(),
+                           CL_MEM_READ_ONLY, &fmt, &d, nullptr, &err);
+  if (err != CL_SUCCESS || img == nullptr) {
+    static bool warned = false;
+    if (!warned)
+      std::fprintf(stderr,
+                   "[TQ2-V2] %s view of the int8 rows (K %u, %zu rows) "
+                   "refused (%d): another form is used\n",
+                   tq2V2FormName(form), K, rows, err);
+    warned = true;
+    return nullptr;
+  }
+  slot->buf = ws.xq.buf;
+  slot->K = K;
+  slot->form = form;
+  slot->rows = rows;
+  slot->img = img;
+  return img;
+}
+
+/** quantize gathered row r of the layer input (row src_row[r]) into the
+ *  workspace int8 rows, M rows of K values; with @a perm each row is stored
+ *  in TQ2 order (V8C_AQ_PERM, K % 32 == 0) */
+void tq2GatherQuantize(ClContext *cc, Tq2Workspace &ws, const Tq2Act &in,
+                       bool fp16, cl_mem src_row, unsigned int M,
+                       unsigned int K, bool perm) {
+  auto kp = cc->registerClKernel(
+    kTq2MoeQuant, fp16 ? "tq2moe_gather_quant_f16" : "tq2moe_gather_quant_f32",
+    perm ? tq2QuantOptions(cc) + " -DV8C_AQ_PERM" : tq2QuantOptions(cc));
+  NNTR_THROW_IF(!kp, std::runtime_error)
+    << "tq2cx_moe_experts_cl: the fused quantizers did not build";
+  cl_mem xq = ws.xqGet(cc, (size_t)M * K);
+  cl_mem xs = ws.xs.get(cc, (size_t)M * sizeof(float));
+  cl_mem xz = ws.xz.get(cc, (size_t)M * sizeof(int));
+  cl_mem xr = ws.xrs.get(cc, (size_t)M * sizeof(int));
+  const int Mi = (int)M, Ki = (int)K;
+  bool ok = in.bind(kp, 0) &&
+            kp->SetKernelArguments(1, &src_row, sizeof(cl_mem)) &&
+            kp->SetKernelArguments(2, &xq, sizeof(cl_mem)) &&
+            kp->SetKernelArguments(3, &xs, sizeof(cl_mem)) &&
+            kp->SetKernelArguments(4, &xz, sizeof(cl_mem)) &&
+            kp->SetKernelArguments(5, &xr, sizeof(cl_mem)) &&
+            kp->SetKernelArguments(6, &Mi, sizeof(int)) &&
+            kp->SetKernelArguments(7, &Ki, sizeof(int));
+  NNTR_THROW_IF(!ok, std::runtime_error)
+    << "tq2cx_moe_experts_cl: gather quantizer arguments";
+  tq2Dispatch(cc, kp, 1, {(size_t)M * kV8cQuantLws, 1, 1},
+              {kV8cQuantLws, 1, 1});
+}
+
+/**
+ * @brief The portable prefill GEMMs' split of one layer's routed rows,
+ *        shared by its gate, up and down GEMMs: the device tile list.
+ */
+struct Tq2Tiles {
+  unsigned int n_tiles = 0; /**< TQ2P_TM-row tiles */
+  cl_mem d_ro = nullptr, d_rc = nullptr, d_tiles = nullptr;
+  ~Tq2Tiles() {
+    for (cl_mem m : {d_ro, d_rc, d_tiles})
+      if (m != nullptr)
+        opencl::clReleaseMemObjectT(m);
+  }
+};
+
+/**
+ * @brief Plan the tiles of the routed rows: experts by row count, largest
+ *        first.
+ */
+void tq2PlanTiles(ClContext *cc, const std::vector<int> &row_off,
+                  const std::vector<int> &row_cnt, Tq2Tiles &t) {
+  const unsigned int k = (unsigned int)row_cnt.size();
+  std::vector<unsigned int> order(k);
+  for (unsigned int a = 0; a < k; ++a)
+    order[a] = a;
+  std::stable_sort(
+    order.begin(), order.end(),
+    [&](unsigned int x, unsigned int y) { return row_cnt[x] > row_cnt[y]; });
+  std::vector<int> tiles;
+  for (const unsigned int a : order) {
+    const int c = row_cnt[a];
+    for (int m0 = 0; m0 < c; m0 += (int)kTq2pTm) {
+      tiles.push_back((int)a);
+      tiles.push_back(m0);
+    }
+  }
+  t.n_tiles = (unsigned int)(tiles.size() / 2);
+  t.d_ro = tq2Small(cc, row_off.data(), k * sizeof(int));
+  t.d_rc = tq2Small(cc, row_cnt.data(), k * sizeof(int));
+  if (t.n_tiles)
+    t.d_tiles = tq2Small(cc, tiles.data(), tiles.size() * sizeof(int));
+}
+
+/** one portable prefill GEMM over the planned tiles, Y[R][N], R rows; with
+ *  @a v2 >= 0 (tq2V2Plan) the 8-row tiles take tq2cx_gemm_tiles_v2_portable
+ *  in that activation form (the rows are then in TQ2 order).
+ *  @return false (nothing launched) when v2 was planned but no form can run
+ *          now (image views refused and the buffer form refused): the rows
+ *          are in TQ2 order, so the caller quantizes them again in plain
+ *          order and calls again with v2 = -1 (the P-TILES kernel) */
+bool tq2GroupedGemmTiles(ClContext *cc, Tq2Workspace &ws, const Tq2Stack &st,
+                         const Tq2Tiles &t,
+                         const std::vector<uint32_t> &rec_off, cl_mem Y,
+                         unsigned int N, unsigned int K, unsigned int R,
+                         int v2) {
+  const unsigned int E = (unsigned int)rec_off.size();
+  cl_mem d_off = tq2Small(cc, rec_off.data(), E * sizeof(uint32_t));
+  cl_mem xq = ws.xq.buf, xs = ws.xs.buf, xz = ws.xz.buf;
+  const int Ni = (int)N, Ki = (int)K;
+  auto bind = [&](const ClContext::SharedPtrClKernel &kp, cl_mem tiles) {
+    return kp->SetKernelArguments(0, &xq, sizeof(cl_mem)) &&
+           kp->SetKernelArguments(1, &st.buf, sizeof(cl_mem)) &&
+           kp->SetKernelArguments(2, &d_off, sizeof(cl_mem)) &&
+           kp->SetKernelArguments(3, &t.d_ro, sizeof(cl_mem)) &&
+           kp->SetKernelArguments(4, &t.d_rc, sizeof(cl_mem)) &&
+           kp->SetKernelArguments(5, &xs, sizeof(cl_mem)) &&
+           kp->SetKernelArguments(6, &xz, sizeof(cl_mem)) &&
+           kp->SetKernelArguments(7, &Y, sizeof(cl_mem)) &&
+           kp->SetKernelArguments(8, &Ni, sizeof(int)) &&
+           kp->SetKernelArguments(9, &Ki, sizeof(int)) &&
+           kp->SetKernelArguments(10, &tiles, sizeof(cl_mem));
+  };
+  bool ok = true;
+  if (t.n_tiles && v2 >= 0) {
+    // the planned form, else image1d_buffer (rows past the image2d height or
+    // a refused image2d view), else the buffer form (no view)
+    int form = -1;
+    cl_mem view = nullptr;
+    ClContext::SharedPtrClKernel kp;
+    for (const int f : {v2 == 1 ? 1 : -1, v2 >= 1 ? 2 : -1, 0}) {
+      if (f < 0 || !(kp = tq2V2Kernel(cc, f)))
+        continue;
+      view = f > 0 ? tq2XqView(cc, ws, K, R, f) : nullptr;
+      if (f == 0 || view != nullptr) {
+        form = f;
+        break;
+      }
+    }
+    if (form < 0) {
+      static bool warned = false;
+      if (!warned)
+        std::fprintf(stderr,
+                     "[TQ2-V2] no v2 form usable at GEMM time (K %u, "
+                     "%u rows): the P-TILES kernel is used\n",
+                     K, R);
+      warned = true;
+      opencl::clReleaseMemObjectT(d_off);
+      return false;
+    }
+    cl_mem xr = ws.xrs.buf;
+    ok = bind(kp, t.d_tiles) &&
+         kp->SetKernelArguments(11, &xr, sizeof(cl_mem)) &&
+         kp->SetKernelArguments(12, form > 0 ? &view : &xq, sizeof(cl_mem));
+    if (ok)
+      tq2Dispatch(
+        cc, kp, 2,
+        {((size_t)N + 4 * kTq2pGLws - 1) / (4 * kTq2pGLws) * kTq2pGLws,
+         (size_t)t.n_tiles, 1},
+        {kTq2pGLws, 1, 1});
+  } else if (t.n_tiles) {
+    const unsigned int nb = tq2GroupedNb();
+    auto kp = cc->registerClKernel(
+      tq2cx_gemm_portable_kernel, "tq2cx_gemm_tiles_portable",
+      nb == 2 ? tq2Options() : tq2Options("-DTQ2P_NB=" + std::to_string(nb)));
+    NNTR_THROW_IF(!kp, std::runtime_error)
+      << "tq2cx_moe_experts_cl: tq2cx_gemm_tiles_portable did not build";
+    ok = ok && bind(kp, t.d_tiles);
+    if (ok)
+      tq2Dispatch(
+        cc, kp, 2,
+        {((size_t)N + kTq2pGLws * nb - 1) / (kTq2pGLws * nb) * kTq2pGLws,
+         (size_t)t.n_tiles, 1},
+        {kTq2pGLws, 1, 1});
+  }
+  opencl::clReleaseMemObjectT(d_off);
+  NNTR_THROW_IF(!ok, std::runtime_error)
+    << "tq2cx_moe_experts_cl: portable tile GEMM arguments";
+  return true;
+}
+
 } // namespace
 
 bool tq2cx_moe_experts_cl(const MoeExpertGroup &g) {
@@ -1551,6 +1912,9 @@ bool tq2cx_moe_experts_cl(const MoeExpertGroup &g) {
   if (device_route) {
     // ---- decode, routed on the device ----
     const unsigned int K = rt->topk;
+    // the input row's quantisation from the norm that wrote it, asked before
+    // this call enqueues anything (the write log must reach back to the norm)
+    const Tq2QRows in_q = tq2ClaimNormRow(cc, ws, in, fp16, H);
     tq2RouteConstants(cc, ws, K);
     cl_mem ids = ws.r_ids.get(cc, K * sizeof(uint32_t));
     cl_mem wts = ws.r_w.get(cc, K * sizeof(float));
@@ -1559,14 +1923,16 @@ bool tq2cx_moe_experts_cl(const MoeExpertGroup &g) {
     // the kernels use only IEEE add / multiply / fma (moe_route_det.h) and
     // must be built with strict math (no relaxed-math defaults) to keep them
     const std::string ropts = std::string("-cl-std=CL3.0 -DNNTR_STRICT_FP") +
-                              (cc->caps().fp32_fma ? "" : " -DRT_SOFT_FMA");
+                              (tq2RouterHwFma(cc) ? "" : " -DRT_SOFT_FMA");
     // the router weight as exact bf16 when every value allows it, else fp32
     cl_mem d_rw16 = tq2RouterWeightBf16(cc, r_w, (size_t)H * E);
-    auto nk = cc->registerClKernel(kTq2Route, "tq2moe_route_norm", ropts);
+    auto nk =
+      cc->registerClKernel(tq2moe_route_kernel, "tq2moe_route_norm", ropts);
     auto lk_ =
-      cc->registerClKernel(kTq2Route, "tq2moe_route_logits",
+      cc->registerClKernel(tq2moe_route_kernel, "tq2moe_route_logits",
                            d_rw16 != nullptr ? ropts + " -DRT_W_BF16" : ropts);
-    auto sk = cc->registerClKernel(kTq2Route, tq2RouteSelectKernel(), ropts);
+    auto sk =
+      cc->registerClKernel(tq2moe_route_kernel, tq2RouteSelectKernel(), ropts);
     NNTR_THROW_IF(!nk || !lk_ || !sk, std::runtime_error)
       << "tq2cx_moe_experts_cl: the device router did not build";
     const unsigned int nseg = (H + kTq2RouteSeg - 1) / kTq2RouteSeg;
@@ -1622,10 +1988,11 @@ bool tq2cx_moe_experts_cl(const MoeExpertGroup &g) {
     cl_mem ygu = ws.yg.get(cc, (size_t)2 * K * I * sizeof(float));
     cl_mem act = ws.act.get(cc, (size_t)K * I * sizeof(float));
     yd = ws.yd.get(cc, (size_t)K * H * sizeof(float));
-    tq2QuantizeGemv(cc, ws, in.mem, in.svm, 1, H, fp16);
-    tq2GemvBatchDev(cc, ws, st, off_gu, ws.c_zero, 2 * K, ygu, I, H);
-    tq2Glu(cc, ygu, 0, ygu, (size_t)K * I, act, (size_t)K * I, g.exact_gelu);
-    tq2QuantizeGemv(cc, ws, act, nullptr, K, I);
+    if (in_q.xq == nullptr)
+      tq2QuantizeGemv(cc, ws, in.mem, in.svm, 1, H, fp16);
+    tq2GemvBatchDev(cc, ws, st, off_gu, ws.c_zero, 2 * K, ygu, I, H, in_q);
+    tq2GluQuantize(cc, ws, ygu, 0, ygu, (size_t)K * I, act, K, I, g.exact_gelu,
+                   tq2GemvPermAct(cc));
     tq2GemvBatchDev(cc, ws, st, off_d, ws.c_iota, K, yd, H, I);
     d_src = ws.c_iota;
     d_w = wts;
@@ -1644,6 +2011,7 @@ bool tq2cx_moe_experts_cl(const MoeExpertGroup &g) {
       R += row_cnt[a];
       max_rows = std::max(max_rows, (unsigned int)row_cnt[a]);
     }
+    const bool tiles = T > 1 && !tq2Dpas(cc) && tq2TileCfg().flat;
     std::vector<int> counts(T, 0);
     for (unsigned int a = 0; a < k; ++a)
       for (const auto &tw : asg[g.active[a]])
@@ -1668,7 +2036,9 @@ bool tq2cx_moe_experts_cl(const MoeExpertGroup &g) {
 
     if (T == 1) {
       // ---- decode: one activation row, all experts batched ----
-      tq2QuantizeGemv(cc, ws, in.mem, in.svm, 1, H, fp16);
+      const Tq2QRows in_q = tq2ClaimNormRow(cc, ws, in, fp16, H);
+      if (in_q.xq == nullptr)
+        tq2QuantizeGemv(cc, ws, in.mem, in.svm, 1, H, fp16);
       std::vector<uint32_t> off_gu(2 * k);
       std::vector<int> ar_gu(2 * k, 0);
       for (unsigned int a = 0; a < k; ++a) {
@@ -1676,9 +2046,10 @@ bool tq2cx_moe_experts_cl(const MoeExpertGroup &g) {
         off_gu[k + a] = st.off_up[g.active[a]];
       }
       cl_mem ygu = ws.yg.get(cc, (size_t)2 * k * I * sizeof(float));
-      tq2GemvBatch(cc, ws, st, off_gu, ar_gu, ygu, I, H);
+      tq2GemvBatch(cc, ws, st, off_gu, ar_gu, ygu, I, H, in_q);
       cl_mem act = ws.act.get(cc, (size_t)k * I * sizeof(float));
-      tq2Glu(cc, ygu, 0, ygu, (size_t)k * I, act, (size_t)k * I, g.exact_gelu);
+      tq2GluQuantize(cc, ws, ygu, 0, ygu, (size_t)k * I, act, k, I,
+                     g.exact_gelu, tq2GemvPermAct(cc));
       std::vector<uint32_t> off_d(k);
       std::vector<int> ar_d(k);
       for (unsigned int a = 0; a < k; ++a) {
@@ -1686,44 +2057,82 @@ bool tq2cx_moe_experts_cl(const MoeExpertGroup &g) {
         ar_d[a] = (int)a;
       }
       yd = ws.yd.get(cc, (size_t)k * H * sizeof(float));
-      tq2QuantizeGemv(cc, ws, act, nullptr, k, I);
       tq2GemvBatch(cc, ws, st, off_d, ar_d, yd, H, I);
     } else {
       // ---- prefill: gather, grouped GEMMs over every expert's rows ----
-      auto gk = cc->registerClKernel(kTq2MoeAux, fp16 ? "tq2moe_gather_f16"
-                                                      : "tq2moe_gather_f32");
-      NNTR_THROW_IF(!gk, std::runtime_error)
-        << "tq2cx_moe_experts_cl: aux kernels did not build";
-      cl_mem xf = ws.xf.get(cc, (size_t)R * H * sizeof(float));
+      // tq2cx_gemm_tiles_v2_portable reads the int8 rows in TQ2 order: the
+      // two quantizers below then store that order
+      int v2 = tq2V2Plan(cc, tiles, H, I, R);
       cl_mem d_gsrc = tq2Small(cc, gather_src.data(), R * sizeof(int));
-      const int Hi = (int)H, tot = (int)((size_t)R * H);
-      bool ok = in.bind(gk, 0) &&
-                gk->SetKernelArguments(1, &xf, sizeof(cl_mem)) &&
-                gk->SetKernelArguments(2, &d_gsrc, sizeof(cl_mem)) &&
-                gk->SetKernelArguments(3, &Hi, sizeof(int)) &&
-                gk->SetKernelArguments(4, &tot, sizeof(int));
-      if (ok)
-        tq2Dispatch(cc, gk, 1, {((size_t)tot + 63) / 64 * 64, 1, 1},
-                    {64, 1, 1});
-      opencl::clReleaseMemObjectT(d_gsrc);
-      NNTR_THROW_IF(!ok, std::runtime_error)
-        << "tq2cx_moe_experts_cl: gather arguments";
-      tq2Quantize(cc, ws, xf, nullptr, R, H);
+      auto quantize_in = [&](bool perm) {
+        if (tq2QuantFuse()) {
+          tq2GatherQuantize(cc, ws, in, fp16, d_gsrc, R, H, perm);
+        } else {
+          auto gk = cc->registerClKernel(
+            kTq2MoeAux, fp16 ? "tq2moe_gather_f16" : "tq2moe_gather_f32");
+          NNTR_THROW_IF(!gk, std::runtime_error)
+            << "tq2cx_moe_experts_cl: aux kernels did not build";
+          cl_mem xf = ws.xf.get(cc, (size_t)R * H * sizeof(float));
+          const int Hi = (int)H, tot = (int)((size_t)R * H);
+          bool ok = in.bind(gk, 0) &&
+                    gk->SetKernelArguments(1, &xf, sizeof(cl_mem)) &&
+                    gk->SetKernelArguments(2, &d_gsrc, sizeof(cl_mem)) &&
+                    gk->SetKernelArguments(3, &Hi, sizeof(int)) &&
+                    gk->SetKernelArguments(4, &tot, sizeof(int));
+          if (ok)
+            tq2Dispatch(cc, gk, 1, {((size_t)tot + 63) / 64 * 64, 1, 1},
+                        {64, 1, 1});
+          if (!ok)
+            opencl::clReleaseMemObjectT(d_gsrc);
+          NNTR_THROW_IF(!ok, std::runtime_error)
+            << "tq2cx_moe_experts_cl: gather arguments";
+          tq2Quantize(cc, ws, xf, nullptr, R, H, false, perm);
+        }
+      };
+      quantize_in(v2 >= 0);
       std::vector<uint32_t> off_g(k), off_u(k), off_d(k);
       for (unsigned int a = 0; a < k; ++a) {
         off_g[a] = st.off_gate[g.active[a]];
         off_u[a] = st.off_up[g.active[a]];
         off_d[a] = st.off_down[g.active[a]];
       }
+      std::unique_ptr<Tq2Tiles> tl;
+      if (tiles) {
+        tl = std::make_unique<Tq2Tiles>();
+        tq2PlanTiles(cc, row_off, row_cnt, *tl);
+      }
+      // a v2 GEMM that cannot run (no usable form at GEMM time): quantize
+      // its rows again in plain order (requant) and take the P-TILES kernel
+      // for the rest of the layer (same outputs bit for bit)
+      auto gemm = [&](const std::vector<uint32_t> &off, cl_mem Y,
+                      unsigned int N, unsigned int K, auto requant) {
+        if (!tl) {
+          tq2GroupedGemm(cc, ws, st, off, row_off, row_cnt, max_rows, Y, N, K);
+          return;
+        }
+        if (tq2GroupedGemmTiles(cc, ws, st, *tl, off, Y, N, K, R, v2))
+          return;
+        v2 = -1;
+        requant();
+        tq2GroupedGemmTiles(cc, ws, st, *tl, off, Y, N, K, R, v2);
+      };
+      auto requant_in = [&]() { quantize_in(false); };
       cl_mem yg = ws.yg.get(cc, (size_t)R * I * sizeof(float));
       cl_mem yu = ws.yu.get(cc, (size_t)R * I * sizeof(float));
-      tq2GroupedGemm(cc, ws, st, off_g, row_off, row_cnt, max_rows, yg, I, H);
-      tq2GroupedGemm(cc, ws, st, off_u, row_off, row_cnt, max_rows, yu, I, H);
+      gemm(off_g, yg, I, H, requant_in);
+      gemm(off_u, yu, I, H, requant_in);
+      opencl::clReleaseMemObjectT(d_gsrc);
       cl_mem act = ws.act.get(cc, (size_t)R * I * sizeof(float));
-      tq2Glu(cc, yg, 0, yu, 0, act, (size_t)R * I, g.exact_gelu);
-      tq2Quantize(cc, ws, act, nullptr, R, I);
+      if (tq2QuantFuse()) {
+        tq2GluQuantize(cc, ws, yg, 0, yu, 0, act, R, I, g.exact_gelu, v2 >= 0);
+      } else {
+        tq2Glu(cc, yg, 0, yu, 0, act, (size_t)R * I, g.exact_gelu);
+        tq2Quantize(cc, ws, act, nullptr, R, I, false, v2 >= 0);
+      }
       yd = ws.yd.get(cc, (size_t)R * H * sizeof(float));
-      tq2GroupedGemm(cc, ws, st, off_d, row_off, row_cnt, max_rows, yd, H, I);
+      // both GeGLU paths leave the activations in act
+      gemm(off_d, yd, H, I,
+           [&]() { tq2Quantize(cc, ws, act, nullptr, R, I, false, false); });
     }
     d_src = tq2Small(cc, src_row.data(), src_row.size() * sizeof(int));
     d_w = tq2Small(cc, weight.data(), weight.size() * sizeof(float));
@@ -1761,6 +2170,206 @@ bool tq2cx_moe_experts_cl(const MoeExpertGroup &g) {
   NNTR_THROW_IF(!ok, std::runtime_error)
     << "tq2cx_moe_experts_cl: combine arguments";
 
+  return true;
+}
+
+bool tq2cx_moe_route_cl(const MoeRouter &rt, unsigned int tokens, uint32_t *ids,
+                        float *weights) {
+  using DT = ml::train::TensorDim::DataType;
+  if (rt.input == nullptr || rt.weight == nullptr || rt.scale == nullptr ||
+      rt.per_expert_scale == nullptr || tokens == 0 || ids == nullptr ||
+      weights == nullptr)
+    return false;
+  auto *cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  if (cc == nullptr)
+    return false;
+  const DT dt = rt.input->getDataType();
+  if (dt != DT::FP32 && dt != DT::FP16)
+    return false;
+  const bool fp16 = dt == DT::FP16;
+  const unsigned int H = rt.input->width();
+  const unsigned int E = rt.per_expert_scale->getDim().getDataLen();
+  const unsigned int K = rt.topk;
+  const size_t in_rows =
+    (size_t)rt.input->batch() * rt.input->channel() * rt.input->height();
+  if (K == 0 || K > kTq2RouteMaxK || K > E || E == 0 || H == 0 || H % 8 != 0 ||
+      in_rows < tokens || rt.weight->getDim().getDataLen() != (size_t)H * E)
+    return false;
+  float *r_w = tq2HostFloat(rt.weight);
+  float *r_scale = tq2HostFloat(rt.scale);
+  float *r_pes = tq2HostFloat(rt.per_expert_scale);
+  float *r_norm = tq2HostFloat(rt.norm);
+  if (r_w == nullptr || r_scale == nullptr || r_pes == nullptr ||
+      (rt.norm != nullptr && r_norm == nullptr))
+    return false;
+  Tq2Act rin;
+  if (!tq2Act(*rt.input, (size_t)tokens * H * (fp16 ? 2 : 4), rin))
+    return false;
+
+  std::lock_guard<std::mutex> lk(tq2Mutex());
+  Tq2Workspace &ws = tq2Workspace();
+  auto &q = cc->command_queue_inst_;
+  // strict math (no relaxed-math defaults): see the decode router
+  const std::string ropts = std::string("-cl-std=CL3.0 -DNNTR_STRICT_FP") +
+                            (tq2RouterHwFma(cc) ? "" : " -DRT_SOFT_FMA");
+  cl_mem d_rw16 = tq2RouterWeightBf16(cc, r_w, (size_t)H * E);
+  auto sk =
+    cc->registerClKernel(tq2moe_route_kernel, "tq2moe_route_sumsq_rows", ropts);
+  auto yk =
+    cc->registerClKernel(tq2moe_route_kernel, "tq2moe_route_y_rows", ropts);
+  auto lk_ =
+    cc->registerClKernel(tq2moe_route_kernel, "tq2moe_route_seg_rows",
+                         d_rw16 != nullptr ? ropts + " -DRT_W_BF16" : ropts);
+  auto fk =
+    cc->registerClKernel(tq2moe_route_kernel, "tq2moe_route_fold_rows", ropts);
+  const size_t elws = (E + 15) / 16 * 16;
+  const bool whole =
+    tq2RouterHwFma(cc) && (size_t)E * ((tokens + 3) / 4) >= kTq2RouteChainLanes;
+  auto wk =
+    whole
+      ? cc->registerClKernel(tq2moe_route_kernel, "tq2moe_route_chain_rows",
+                             d_rw16 != nullptr ? ropts + " -DRT_W_BF16" : ropts)
+      : ClContext::SharedPtrClKernel();
+  auto xk =
+    cc->registerClKernel(tq2moe_route_kernel, "tq2moe_route_exp_rows", ropts);
+  auto pk =
+    cc->registerClKernel(tq2moe_route_kernel, "tq2moe_route_prob_rows", ropts);
+  auto rk =
+    cc->registerClKernel(tq2moe_route_kernel, "tq2moe_route_rank_rows", ropts);
+  auto nk_ =
+    cc->registerClKernel(tq2moe_route_kernel, "tq2moe_route_fin_rows", ropts);
+  NNTR_THROW_IF(!sk || !yk || !lk_ || !fk || !xk || !pk || !rk || !nk_ ||
+                  (whole && !wk),
+                std::runtime_error)
+    << "tq2cx_moe_route_cl: the device router did not build";
+  cl_mem d_rw =
+    d_rw16 != nullptr ? d_rw16 : tq2RouterOperand(cc, r_w, (size_t)H * E);
+  cl_mem d_scale = tq2RouterOperand(cc, r_scale, H);
+  cl_mem d_pes = tq2RouterOperand(cc, r_pes, E);
+  cl_mem d_norm = r_norm != nullptr ? tq2RouterOperand(cc, r_norm, H) : d_scale;
+  const unsigned int nseg = (H + kTq2RouteSeg - 1) / kTq2RouteSeg;
+  const unsigned int chunk = std::min(tokens, kTq2RoutePartRows);
+  cl_mem acc = ws.r_acc.get(cc, (size_t)tokens * 32 * sizeof(float));
+  cl_mem yrows = ws.r_yrows.get(cc, (size_t)tokens * H * sizeof(float));
+  cl_mem logits = ws.r_logits.get(cc, (size_t)tokens * E * sizeof(float));
+  cl_mem ex = ws.r_ex.get(cc, (size_t)tokens * E * sizeof(float));
+  cl_mem part =
+    whole ? nullptr
+          : ws.r_ppart.get(cc, (size_t)chunk * nseg * E * sizeof(float));
+  cl_mem out = ws.r_out.get(cc, (size_t)tokens * 2 * K * sizeof(uint32_t));
+  const int x_half = fp16 ? 1 : 0, has_norm = r_norm != nullptr ? 1 : 0;
+  const float hscale = 1.0f / std::sqrt(static_cast<float>(H));
+  const float eps = rt.epsilon;
+  const int Hi = (int)H, Ei = (int)E, Ki = (int)K, Ti = (int)tokens,
+            nsegi = (int)nseg;
+  // the unused half / float input slot is bound to the same operand; the
+  // probabilities overwrite the logits (the exponentials read them first)
+  bool ok = rin.bind(sk, 0) && rin.bind(sk, 1) &&
+            sk->SetKernelArguments(2, &x_half, sizeof(int)) &&
+            sk->SetKernelArguments(3, &Hi, sizeof(int)) &&
+            sk->SetKernelArguments(4, &Ti, sizeof(int)) &&
+            sk->SetKernelArguments(5, &acc, sizeof(cl_mem)) &&
+            rin.bind(yk, 0) && rin.bind(yk, 1) &&
+            yk->SetKernelArguments(2, &x_half, sizeof(int)) &&
+            yk->SetKernelArguments(3, &acc, sizeof(cl_mem)) &&
+            yk->SetKernelArguments(4, &d_norm, sizeof(cl_mem)) &&
+            yk->SetKernelArguments(5, &has_norm, sizeof(int)) &&
+            yk->SetKernelArguments(6, &d_scale, sizeof(cl_mem)) &&
+            yk->SetKernelArguments(7, &hscale, sizeof(float)) &&
+            yk->SetKernelArguments(8, &eps, sizeof(float)) &&
+            yk->SetKernelArguments(9, &Hi, sizeof(int)) &&
+            yk->SetKernelArguments(10, &Ti, sizeof(int)) &&
+            yk->SetKernelArguments(11, &yrows, sizeof(cl_mem)) &&
+            lk_->SetKernelArguments(0, &yrows, sizeof(cl_mem)) &&
+            lk_->SetKernelArguments(1, &d_rw, sizeof(cl_mem)) &&
+            lk_->SetKernelArguments(2, &Hi, sizeof(int)) &&
+            lk_->SetKernelArguments(3, &Ei, sizeof(int)) &&
+            lk_->SetKernelArguments(6, &nsegi, sizeof(int)) &&
+            lk_->SetKernelArguments(7, &part, sizeof(cl_mem)) &&
+            fk->SetKernelArguments(0, &part, sizeof(cl_mem)) &&
+            fk->SetKernelArguments(1, &Ei, sizeof(int)) &&
+            fk->SetKernelArguments(4, &nsegi, sizeof(int)) &&
+            fk->SetKernelArguments(5, &logits, sizeof(cl_mem)) &&
+            xk->SetKernelArguments(0, &logits, sizeof(cl_mem)) &&
+            xk->SetKernelArguments(1, &Ei, sizeof(int)) &&
+            xk->SetKernelArguments(2, &Ti, sizeof(int)) &&
+            xk->SetKernelArguments(3, &ex, sizeof(cl_mem)) &&
+            pk->SetKernelArguments(0, &ex, sizeof(cl_mem)) &&
+            pk->SetKernelArguments(1, &Ei, sizeof(int)) &&
+            pk->SetKernelArguments(2, &Ti, sizeof(int)) &&
+            pk->SetKernelArguments(3, &logits, sizeof(cl_mem)) &&
+            rk->SetKernelArguments(0, &logits, sizeof(cl_mem)) &&
+            rk->SetKernelArguments(1, &Ei, sizeof(int)) &&
+            rk->SetKernelArguments(2, &Ki, sizeof(int)) &&
+            rk->SetKernelArguments(3, &Ti, sizeof(int)) &&
+            rk->SetKernelArguments(4, &out, sizeof(cl_mem)) &&
+            nk_->SetKernelArguments(0, &d_pes, sizeof(cl_mem)) &&
+            nk_->SetKernelArguments(1, &Ki, sizeof(int)) &&
+            nk_->SetKernelArguments(2, &Ti, sizeof(int)) &&
+            nk_->SetKernelArguments(3, &out, sizeof(cl_mem));
+  NNTR_THROW_IF(!ok, std::runtime_error)
+    << "tq2cx_moe_route_cl: device router arguments";
+
+  // a shared-plane input is handed to the device for the call
+  if (rin.svm)
+    q.enqueueSVMUnmap(rin.svm);
+  // lane sums: 32 lanes per row, two rows per group
+  tq2Dispatch(cc, sk, 2, {32, ((size_t)tokens + 1) / 2 * 2, 1}, {32, 2, 1});
+  // the scaled rows: four elements per lane, 64-lane groups
+  tq2Dispatch(cc, yk, 2, {((size_t)H / 4 + 63) / 64 * 64, (size_t)tokens, 1},
+              {64, 1, 1});
+  // logits: enough rows on a hardware fma, a lane per expert and four rows
+  // over the whole hidden axis; else, in chunks of rows, segment partials (a
+  // lane per expert, segment and eight rows), then their sums in segment
+  // order (a lane per expert and row). The same chains and sums either way.
+  if (whole) {
+    const int zero = 0;
+    NNTR_THROW_IF(!(wk->SetKernelArguments(0, &yrows, sizeof(cl_mem)) &&
+                    wk->SetKernelArguments(1, &d_rw, sizeof(cl_mem)) &&
+                    wk->SetKernelArguments(2, &Hi, sizeof(int)) &&
+                    wk->SetKernelArguments(3, &Ei, sizeof(int)) &&
+                    wk->SetKernelArguments(4, &zero, sizeof(int)) &&
+                    wk->SetKernelArguments(5, &Ti, sizeof(int)) &&
+                    wk->SetKernelArguments(6, &logits, sizeof(cl_mem))),
+                  std::runtime_error)
+      << "tq2cx_moe_route_cl: device router chain arguments";
+    tq2Dispatch(cc, wk, 2, {elws, ((size_t)tokens + 3) / 4, 1}, {elws, 1, 1});
+  }
+  for (unsigned int r0 = 0; !whole && r0 < tokens; r0 += chunk) {
+    const int r0i = (int)r0, ni = (int)std::min(chunk, tokens - r0);
+    NNTR_THROW_IF(!(lk_->SetKernelArguments(4, &r0i, sizeof(int)) &&
+                    lk_->SetKernelArguments(5, &ni, sizeof(int)) &&
+                    fk->SetKernelArguments(2, &r0i, sizeof(int)) &&
+                    fk->SetKernelArguments(3, &ni, sizeof(int))),
+                  std::runtime_error)
+      << "tq2cx_moe_route_cl: device router chunk arguments";
+    tq2Dispatch(cc, lk_, 3, {elws, (size_t)nseg, ((size_t)ni + 7) / 8},
+                {elws, 1, 1});
+    tq2Dispatch(cc, fk, 2, {elws, (size_t)ni, 1}, {elws, 1, 1});
+  }
+  // softmax and selection: a lane per expert and row, then per row
+  tq2Dispatch(cc, xk, 2, {elws, (size_t)tokens, 1}, {elws, 1, 1});
+  tq2Dispatch(cc, pk, 2, {elws, (size_t)tokens, 1}, {elws, 1, 1});
+  tq2Dispatch(cc, rk, 2, {elws, (size_t)tokens, 1}, {elws, 1, 1});
+  tq2Dispatch(cc, nk_, 1, {((size_t)tokens + 63) / 64 * 64, 1, 1}, {64, 1, 1});
+  if (rin.svm)
+    q.enqueueSVMMap(rin.svm, rin.bytes, /*read_only=*/true, nullptr,
+                    /*async=*/true);
+  // the one read back: every row's ids and weights (it waits for the queue)
+  std::vector<uint32_t> host((size_t)tokens * 2 * K);
+  const cl_int err = opencl::clEnqueueReadBuffer(
+    q.GetCommandQueue(), out, CL_TRUE, 0, host.size() * sizeof(uint32_t),
+    host.data(), 0, nullptr, nullptr);
+  NNTR_THROW_IF(err != CL_SUCCESS, std::runtime_error)
+    << "tq2cx_moe_route_cl: routing readback failed (" << err << ")";
+  for (size_t t = 0; t < tokens; ++t) {
+    const uint32_t *o = host.data() + t * 2 * K;
+    for (unsigned int j = 0; j < K; ++j) {
+      ids[t * K + j] = o[j];
+      std::memcpy(weights + t * K + j, o + K + j, sizeof(float));
+    }
+  }
   return true;
 }
 

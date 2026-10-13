@@ -130,6 +130,14 @@ bool moe_experts_cl(const MoeExpertGroup &group);
 bool moe_experts_prebuild_cl(const MoeExpertGroup &group);
 
 /**
+ * @brief ComputeOps::moe_route on the OpenCL table: route router rows on the
+ *        device (the deterministic router kernels), one blocking read of the
+ *        ids and weights; false, having enqueued nothing, when not served.
+ */
+bool moe_route_cl(const MoeRouter &router, unsigned int tokens, uint32_t *ids,
+                  float *weights);
+
+/**
  * @brief Does this device run the grouped expert launches, with device-side
  *        routing of a decode row, for experts of @a expert_dtype? A MoE layer
  *        whose experts it serves never reads its rows on the host in decode,

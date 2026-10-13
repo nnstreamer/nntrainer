@@ -220,20 +220,16 @@ __kernel void tq2cx_gemv_batch_portable(__global const uint *Wbase,
 #define TQ2P_NB 2
 #endif
 
-__kernel void tq2cx_gemm_grouped_portable(__global const char *X,
-                                          __global const uint *Wbase,
-                                          __global const uint *rec_off,
-                                          __global const int *row_off,
-                                          __global const int *row_cnt,
-                                          __global const float *x_scale,
-                                          __global const int *x_zp,
-                                          __global float *Y, const int N,
-                                          const int K) {
+/** the TQ2P_TM-row m-block at row m_local of expert e (one work-item) */
+static inline void tq2p_grouped_block(
+  __global const char *X, __global const uint *Wbase,
+  __global const uint *rec_off, __global const int *row_off,
+  __global const int *row_cnt, __global const float *x_scale,
+  __global const int *x_zp, __global float *Y, const int N, const int K,
+  const int e, const int m_local) {
 #if TQ2P_NB == 1
   const int n = get_global_id(0);
-  const int e = get_global_id(2);
   const int cnt = row_cnt[e];
-  const int m_local = get_global_id(1) * TQ2P_TM;
   if (n >= N || m_local >= cnt)
     return;
   const int r0 = row_off[e] + m_local;
@@ -276,9 +272,7 @@ __kernel void tq2cx_gemm_grouped_portable(__global const char *X,
 #else
   const int lid = get_local_id(0), lw = get_local_size(0);
   const int n0 = (int)get_group_id(0) * lw * TQ2P_NB + lid;
-  const int e = get_global_id(2);
   const int cnt = row_cnt[e];
-  const int m_local = get_global_id(1) * TQ2P_TM;
   if (n0 >= N || m_local >= cnt)
     return;
   const int r0 = row_off[e] + m_local;
@@ -347,3 +341,238 @@ __kernel void tq2cx_gemm_grouped_portable(__global const char *X,
   }
 #endif
 }
+
+__kernel void tq2cx_gemm_grouped_portable(__global const char *X,
+                                          __global const uint *Wbase,
+                                          __global const uint *rec_off,
+                                          __global const int *row_off,
+                                          __global const int *row_cnt,
+                                          __global const float *x_scale,
+                                          __global const int *x_zp,
+                                          __global float *Y, const int N,
+                                          const int K) {
+  tq2p_grouped_block(X, Wbase, rec_off, row_off, row_cnt, x_scale, x_zp, Y, N,
+                     K, get_global_id(2), get_global_id(1) * TQ2P_TM);
+}
+
+// =============================================================================
+// Tile-list grouped GEMMs (MoE prefill). The host lists only the
+// (expert, m-block) tiles that hold rows, as int pairs tiles[2t] = expert
+// slot e, tiles[2t + 1] = first row inside the expert, and a work-group reads
+// its pair from get_group_id(1): no work-group is launched for an expert's
+// missing m-blocks (one grid row per tile instead of max_rows / TQ2P_TM rows
+// for every expert).
+//
+// tq2cx_gemm_tiles_portable: tiles of TQ2P_TM rows, the work-item of
+// tq2cx_gemm_grouped_portable unchanged (same NB, same TM).
+//
+// Both forms sum the same integers (acc, the unit weight sums) and stores
+// the reference epilogue, so all are bit-identical to the grouped kernel.
+// =============================================================================
+__kernel void tq2cx_gemm_tiles_portable(
+  __global const char *X, __global const uint *Wbase,
+  __global const uint *rec_off, __global const int *row_off,
+  __global const int *row_cnt, __global const float *x_scale,
+  __global const int *x_zp, __global float *Y, const int N, const int K,
+  __global const int *tiles) {
+  const int t = get_group_id(1);
+  tq2p_grouped_block(X, Wbase, rec_off, row_off, row_cnt, x_scale, x_zp, Y, N,
+                     K, tiles[2 * t], tiles[2 * t + 1]);
+}
+
+// =============================================================================
+// tq2cx_gemm_tiles_v2_portable (built only with -DTQ2P_V2=<act form>): the
+// tile list of tq2cx_gemm_tiles_portable (TQ2P_TM = 8-row tiles) with a
+// wider register tile and a cheaper unpack.
+//  - Work-item: the 8 rows of its tile x 4 channels
+//    n = group * 4 * LW + c * LW + lane (LW = get_local_size(0), c = 0..3).
+//  - Activation rows in TQ2 order (V8C_AQ_PERM: byte 4j + b of a 32-tap
+//    block holds tap 8b + j), so weight dword j is bit j of every byte of
+//    the unit's masks.
+//  - Biased unpack: the kernel multiplies by w + 1 = p + (1 - g) in {0, 1, 2}
+//    (unsigned), ((p & Mj) + (~g & Mj)) >> j for the four bytes at once (a
+//    byte sum <= 2 << 6 cannot carry; bit 7 takes two shifts), with
+//    dot_acc_sat_4x8packed_su_int (signed activation x unsigned weight). The
+//    row sum the quantizer writes (xrs) removes the bias:
+//    acc = sum a (w + 1) - sum a. The integers are those of the other forms
+//    and saturation is unreachable (|sum| <= K * 128 * 2), so the epilogue
+//    (float)(acc - zp * wsum) * xs * S gives the same bits.
+//  - Activation fetch (TQ2P_V2): 0 = all 8 rows from the buffer (vload8);
+//    1 = rows 0-5 from an image2d view of the int8 rows (CL_RGBA,
+//    CL_UNSIGNED_INT32, width K / 16, pitch K bytes, one image row per
+//    activation row) and rows 6-7 from the buffer; 2 = the same through an
+//    image1d_buffer view (texel row * K / 16 + x), no height limit.
+//  - Two units per step, one 16-byte load per channel: the record must be
+//    row-major or tiled with TQ2_LAYV == 2, and U = K / 32 even (the host
+//    checks both).
+// Scalar code only: no private arrays. Measured on Adreno 840 (driver
+// 0842.19.8), dynamically indexed private arrays are placed in local memory
+// (CL_KERNEL_LOCAL_MEM_SIZE > 0 with no __local declared), run 2-14x slower
+// and gave one wrong-result case; the host logs the kernel's local memory
+// size at build. No __local, no barrier.
+// =============================================================================
+#ifdef TQ2P_V2
+
+#if TQ2_LAYR == 0
+#define TQ2P_V2_USTEP 2 /* words per unit along a row */
+#elif TQ2_LAYV == 2
+#define TQ2P_V2_USTEP (2 * TQ2_LAYR)
+#else
+#error "tq2cx_gemm_tiles_v2_portable: row-major or TQ2_LAYV == 2 records only"
+#endif
+
+#if TQ2P_V2 == 1
+__constant sampler_t tq2p_v2_smp =
+  CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
+#define TQ2P_V2_XARG __read_only image2d_t Xi
+/* texels 2uu, 2uu + 1 of activation row r0 + i */
+#define TQ2P_V2_XIMG(i, uu)                                                    \
+  (uint8)(read_imageui(Xi, tq2p_v2_smp, (int2)(2 * (uu), r0 + (i))),           \
+          read_imageui(Xi, tq2p_v2_smp, (int2)(2 * (uu) + 1, r0 + (i))))
+#elif TQ2P_V2 == 2
+#define TQ2P_V2_XARG __read_only image1d_buffer_t Xi
+#define TQ2P_V2_XIMG(i, uu)                                                    \
+  (uint8)(read_imageui(Xi, (r0 + (i)) * KT + 2 * (uu)),                        \
+          read_imageui(Xi, (r0 + (i)) * KT + 2 * (uu) + 1))
+#else
+#define TQ2P_V2_XARG __global const uint *Xi
+#endif
+/* the 32 int8 activations of unit uu of row r0 + i, from the buffer */
+#define TQ2P_V2_XBUF(i, uu) vload8((uu), xr + (i) * KD)
+#if TQ2P_V2 == 0
+#define TQ2P_V2_X(i, uu) TQ2P_V2_XBUF(i, uu)
+#else
+#define TQ2P_V2_X(i, uu) ((i) < 6 ? TQ2P_V2_XIMG(i, uu) : TQ2P_V2_XBUF(i, uu))
+#endif
+
+/* biased weight + 1 of bit j (j <= 6) of the four bytes, and of bit 7 */
+#define TQ2P_BU(p, ng, j)                                                      \
+  ((((p) & (0x01010101u << (j))) + ((ng) & (0x01010101u << (j)))) >> (j))
+#define TQ2P_BU7(p, ng)                                                        \
+  ((((p) >> 7) & 0x01010101u) + (((ng) >> 7) & 0x01010101u))
+/* unit (p, g) of channel c: add its weight sum, unpack it into w<c> */
+#define TQ2P_V2_UNIT(c, p, g)                                                  \
+  ws##c += tq2p_unit_wsum((p), (g));                                           \
+  const uint ng##c = ~(g);                                                     \
+  const uint8 w##c =                                                           \
+    (uint8)(TQ2P_BU((p), ng##c, 0), TQ2P_BU((p), ng##c, 1),                    \
+            TQ2P_BU((p), ng##c, 2), TQ2P_BU((p), ng##c, 3),                    \
+            TQ2P_BU((p), ng##c, 4), TQ2P_BU((p), ng##c, 5),                    \
+            TQ2P_BU((p), ng##c, 6), TQ2P_BU7((p), ng##c))
+/* acc += the 32-tap dot of activation a and biased weight w */
+#define TQ2P_DOT8(a, w, acc)                                                   \
+  acc = dot_acc_sat_4x8packed_su_int(                                          \
+    (a).s7, (w).s7,                                                            \
+    dot_acc_sat_4x8packed_su_int(                                              \
+      (a).s6, (w).s6,                                                          \
+      dot_acc_sat_4x8packed_su_int(                                            \
+        (a).s5, (w).s5,                                                        \
+        dot_acc_sat_4x8packed_su_int(                                          \
+          (a).s4, (w).s4,                                                      \
+          dot_acc_sat_4x8packed_su_int(                                        \
+            (a).s3, (w).s3,                                                    \
+            dot_acc_sat_4x8packed_su_int(                                      \
+              (a).s2, (w).s2,                                                  \
+              dot_acc_sat_4x8packed_su_int(                                    \
+                (a).s1, (w).s1,                                                \
+                dot_acc_sat_4x8packed_su_int((a).s0, (w).s0, acc))))))))
+/* row i of the tile against the 4 channels' unit uu */
+#define TQ2P_V2_ROW(i, uu)                                                     \
+  if ((i) < rows) {                                                            \
+    const uint8 a_ = TQ2P_V2_X(i, uu);                                         \
+    TQ2P_DOT8(a_, w0, acc0_##i);                                               \
+    TQ2P_DOT8(a_, w1, acc1_##i);                                               \
+    TQ2P_DOT8(a_, w2, acc2_##i);                                               \
+    TQ2P_DOT8(a_, w3, acc3_##i);                                               \
+  }
+/* one unit (h = 0: .xy, 1: .zw of the pair) for all rows */
+#define TQ2P_V2_HALF(uu, P, G)                                                 \
+  {                                                                            \
+    TQ2P_V2_UNIT(0, m0.P, m0.G);                                               \
+    TQ2P_V2_UNIT(1, m1.P, m1.G);                                               \
+    TQ2P_V2_UNIT(2, m2.P, m2.G);                                               \
+    TQ2P_V2_UNIT(3, m3.P, m3.G);                                               \
+    TQ2P_V2_ROW(0, uu)                                                         \
+    TQ2P_V2_ROW(1, uu)                                                         \
+    TQ2P_V2_ROW(2, uu)                                                         \
+    TQ2P_V2_ROW(3, uu)                                                         \
+    TQ2P_V2_ROW(4, uu)                                                         \
+    TQ2P_V2_ROW(5, uu)                                                         \
+    TQ2P_V2_ROW(6, uu)                                                         \
+    TQ2P_V2_ROW(7, uu)                                                         \
+  }
+#define TQ2P_V2_ACCS(c)                                                        \
+  int ws##c = 0, acc##c##_0 = 0, acc##c##_1 = 0, acc##c##_2 = 0,               \
+      acc##c##_3 = 0, acc##c##_4 = 0, acc##c##_5 = 0, acc##c##_6 = 0,          \
+      acc##c##_7 = 0
+#define TQ2P_V2_ST1(c, i)                                                      \
+  if ((i) < rows) {                                                            \
+    const int mr = r0 + (i);                                                   \
+    Y[(long)mr * N + n] =                                                      \
+      (float)((acc##c##_##i - xrs[mr]) - x_zp[mr] * ws##c) * x_scale[mr] * s;  \
+  }
+#define TQ2P_V2_STORE(c)                                                       \
+  if (nb0 + (c) * lw < N) {                                                    \
+    const int n = nb0 + (c) * lw;                                              \
+    const float s = S[n];                                                      \
+    TQ2P_V2_ST1(c, 0)                                                          \
+    TQ2P_V2_ST1(c, 1)                                                          \
+    TQ2P_V2_ST1(c, 2)                                                          \
+    TQ2P_V2_ST1(c, 3)                                                          \
+    TQ2P_V2_ST1(c, 4)                                                          \
+    TQ2P_V2_ST1(c, 5)                                                          \
+    TQ2P_V2_ST1(c, 6)                                                          \
+    TQ2P_V2_ST1(c, 7)                                                          \
+  }
+
+__kernel void tq2cx_gemm_tiles_v2_portable(
+  __global const char *X, __global const uint *Wbase,
+  __global const uint *rec_off, __global const int *row_off,
+  __global const int *row_cnt, __global const float *x_scale,
+  __global const int *x_zp, __global float *Y, const int N, const int K,
+  __global const int *tiles, __global const int *xrs, TQ2P_V2_XARG) {
+  const int t = get_group_id(1);
+  const int e = tiles[2 * t];
+  const int m_local = tiles[2 * t + 1];
+  const int cnt = row_cnt[e];
+  const int lw = get_local_size(0);
+  const int nb0 = (int)get_group_id(0) * lw * 4 + (int)get_local_id(0);
+  if (nb0 >= N || m_local >= cnt)
+    return;
+  const int r0 = row_off[e] + m_local;
+  const int rows = min(8, cnt - m_local);
+  const int U = K >> 5;
+  const int KD = K >> 2;
+#if TQ2P_V2 == 2
+  const int KT = K >> 4;
+#endif
+  __global const uint *rec = Wbase + rec_off[e];
+  __global const float *S =
+    (__global const float *)(rec + (long)tq2_npad(N) * U * 2);
+  __global const uint *xr = (__global const uint *)(X + (long)r0 * K);
+  /* channels past N read row N - 1 and are not stored */
+  __global const uint *wp0 = rec + 2 * tq2_uidx(min(nb0, N - 1), 0, U);
+  __global const uint *wp1 = rec + 2 * tq2_uidx(min(nb0 + lw, N - 1), 0, U);
+  __global const uint *wp2 =
+    rec + 2 * tq2_uidx(min(nb0 + 2 * lw, N - 1), 0, U);
+  __global const uint *wp3 =
+    rec + 2 * tq2_uidx(min(nb0 + 3 * lw, N - 1), 0, U);
+  TQ2P_V2_ACCS(0);
+  TQ2P_V2_ACCS(1);
+  TQ2P_V2_ACCS(2);
+  TQ2P_V2_ACCS(3);
+  for (int u = 0; u < U; u += 2) {
+    const uint4 m0 = vload4(0, wp0 + TQ2P_V2_USTEP * u);
+    const uint4 m1 = vload4(0, wp1 + TQ2P_V2_USTEP * u);
+    const uint4 m2 = vload4(0, wp2 + TQ2P_V2_USTEP * u);
+    const uint4 m3 = vload4(0, wp3 + TQ2P_V2_USTEP * u);
+    TQ2P_V2_HALF(u, x, y)
+    TQ2P_V2_HALF(u + 1, z, w)
+  }
+  TQ2P_V2_STORE(0)
+  TQ2P_V2_STORE(1)
+  TQ2P_V2_STORE(2)
+  TQ2P_V2_STORE(3)
+}
+
+#endif // TQ2P_V2

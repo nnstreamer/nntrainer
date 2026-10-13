@@ -718,6 +718,27 @@ public:
   }
 
   /**
+   * @brief Route @a tokens rows of @a router.input on the accelerator: the
+   *        deterministic router (moe_route_det.h), so the selected experts
+   *        and their weights are the host router's, bit for bit.
+   * @details Blocks until the routing is read back (one read of
+   * tokens x topk ids and weights; the router rows themselves stay on the
+   * device). Returns false, having enqueued nothing, when the backend does
+   * not route on the device; the caller then routes on the host.
+   * @param[out] ids     [tokens][topk] expert ids, in rank order (larger
+   *                     probability first, ties to the lower id)
+   * @param[out] weights [tokens][topk] their routing weights
+   */
+  virtual bool moe_route(const MoeRouter &router, unsigned int tokens,
+                         uint32_t *ids, float *weights) {
+    (void)router;
+    (void)tokens;
+    (void)ids;
+    (void)weights;
+    return false;
+  }
+
+  /**
    * @brief Build the backend's own copy of every expert weight of a MoE
    *        layer now (at load), the copy moe_experts() reads.
    * @details Only the weights and layer_key of @a group are read (plus

@@ -16,6 +16,8 @@ cl_op_kernels = [
   'two_conv_attention.cl',
   'tq2cx_gemm.cl',
   'tq2cx_gemm_portable.cl',
+  'tq2moe_route.cl',
+  'tq2moe_glu_quant.cl',
   'flash_attention.cl',
   'q4_0_ab_bi_8x4.cl',
   'q6_k_sgemv.cl',
