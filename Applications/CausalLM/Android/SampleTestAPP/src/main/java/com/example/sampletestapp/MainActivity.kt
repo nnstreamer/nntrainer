@@ -288,6 +288,10 @@ class MainActivity : AppCompatActivity() {
     private val trainEpochBoundaries = mutableListOf<Int>()  // iteration index where each epoch ends
     private val trainValidLosses = mutableListOf<Float>()  // mean train loss per epoch
     private var lossChartView: LossChartView? = null
+    /** One-line training status shown under the loss chart (not the top
+     *  hero card, which stays reserved for load / TEST messages). */
+    private var trainStatusText: String = "Idle"
+    private var trainStatusView: TextView? = null
 
     // ── Train tab TEST (before / after inference) state ─────────────────
     /** Cached inference handles: base checkpoint, and base + LoRA adapter.
@@ -841,19 +845,19 @@ class MainActivity : AppCompatActivity() {
         
         // 1. Start Training Button at the top
         container.addView(buildTrainTabToggles(t))
-        spacer(container, 10)
+        spacer(container, 8)
 
         // 2. Chart
         container.addView(buildTrainChartPanel(t))
-        spacer(container, 10)
+        spacer(container, 8)
 
         // 3. TEST — run the model before / after training
         container.addView(buildTrainTestPanel(t))
-        spacer(container, 10)
+        spacer(container, 8)
 
         // 4. Training Log
         container.addView(buildTrainLogPanel(t))
-        spacer(container, 10)
+        spacer(container, 8)
 
         // 5. Collapsible Settings Form
         val cc = roundedCard(t, t.surfaceContainer)
@@ -941,12 +945,16 @@ class MainActivity : AppCompatActivity() {
         val w = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         w.addView(Button(this).apply {
             text = if (trainRunning) "⏹ Stop Training" else "▶ Start Training"
+            isAllCaps = false
             background = solid(if (trainRunning) t.error else t.primary, 24)
             setTextColor(t.onPrimary); typeface = Typeface.DEFAULT_BOLD
-            setPadding(dp(16), dp(12), dp(16), dp(12))
+            stateListAnimator = null
+            setPadding(dp(18), dp(10), dp(18), dp(10))
             setOnClickListener {
                 if (trainRunning) onStopTraining() else onTrainClicked()
             }
+        }, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).also {
+            it.gravity = Gravity.CENTER_HORIZONTAL
         })
         return w
     }
@@ -954,7 +962,7 @@ class MainActivity : AppCompatActivity() {
     private fun buildTrainLogPanel(t: M3Tokens): View {
         val card = roundedCard(t, t.surfaceContainerHigh)
         card.addView(sectionHeader(t, "▤", t.surfaceContainerHigh, t.onSurface,
-            "Training Log", "Per-epoch loss / progress"))
+            "Training Log", ""))
         spacer(card, 8)
         card.addView(ScrollView(this).apply {
             addView(TextView(this@MainActivity).apply {
@@ -1017,7 +1025,7 @@ class MainActivity : AppCompatActivity() {
     private fun buildTrainTestPanel(t: M3Tokens): View {
         val card = roundedCard(t, t.surfaceContainerHigh)
         card.addView(sectionHeader(t, "🧪", t.secondaryContainer, t.onSurface,
-            "TEST", "Run inference before / after training"))
+            "TEST", ""))
         spacer(card, 8)
         card.addView(labelView(t, "PROMPT"))
         testPromptField = roundedEditText(t, testPromptText, multiline = true,
@@ -1041,7 +1049,7 @@ class MainActivity : AppCompatActivity() {
     private fun buildTrainChartPanel(t: M3Tokens): View {
         val card = roundedCard(t, t.surfaceContainerHigh)
         card.addView(sectionHeader(t, "📈", t.surfaceContainerHigh, t.onSurface,
-            "Training Loss Chart", "Real-time per-iteration loss"))
+            "Training Loss Chart", ""))
         spacer(card, 8)
         lossChartView = LossChartView(
             this,
@@ -1056,6 +1064,17 @@ class MainActivity : AppCompatActivity() {
             setData(trainLossPoints, trainEpochBoundaries, trainValidLosses)
         }
         card.addView(lossChartView!!)
+        spacer(card, 6)
+        // Training status line — "Training… / Training complete" lives
+        // here, under the chart, instead of the top hero card.
+        trainStatusView = TextView(this).apply {
+            text = trainStatusText
+            setTextColor(t.onSurfaceVar)
+            textSize = 12f
+            typeface = Typeface.MONOSPACE
+            setPadding(dp(4), 0, dp(4), 0)
+        }
+        card.addView(trainStatusView!!)
         return card
     }
 
@@ -1878,7 +1897,7 @@ class MainActivity : AppCompatActivity() {
             textSize = 15f
             typeface = Typeface.DEFAULT_BOLD
         })
-        col.addView(TextView(this).apply {
+        if (subtitle.isNotEmpty()) col.addView(TextView(this).apply {
             text = subtitle
             setTextColor(t.onSurfaceVar)
             textSize = 12f
@@ -2616,12 +2635,12 @@ class MainActivity : AppCompatActivity() {
             testAfterOutput = ""
         }
         testStopRequested = null
-        setStatus("TEST $which: loading model…")
+        setTrainStatus("TEST $which: loading model…")
         rebuildUi()
 
         val modelDir = trainModelPath.trim()
         if (modelDir.isEmpty()) {
-            setStatus("TEST: model path is empty")
+            setTrainStatus("TEST: model path is empty")
             testBeforeRunning = false; testAfterRunning = false
             rebuildUi()
             return
@@ -2663,14 +2682,14 @@ class MainActivity : AppCompatActivity() {
                 mainHandler.post {
                     if (which == "before") testBeforeRunning = false
                     else testAfterRunning = false
-                    setStatus("TEST $which: model load failed — see logcat")
+                    setTrainStatus("TEST $which: model load failed — see logcat")
                     appendTrainLog("TEST $which: ✗ model load failed ($modelDir)")
                     rebuildUi()
                 }
                 return@execute
             }
             mainHandler.post {
-                setStatus("TEST $which: running…")
+                setTrainStatus("TEST $which: running…")
                 rebuildUi()
             }
             val prompt = testPromptText
@@ -2693,12 +2712,12 @@ class MainActivity : AppCompatActivity() {
                 if (which == "before") testBeforeRunning = false
                 else testAfterRunning = false
                 if (rc != 0) {
-                    setStatus("TEST $which failed (rc=$rc)")
+                    setTrainStatus("TEST $which failed (rc=$rc)")
                     appendTrainLog("TEST $which: ✗ rc=$rc")
                 } else {
                     val out = if (which == "before") testBeforeOutput
                               else testAfterOutput
-                    setStatus("TEST $which done. (${out.length} chars)")
+                    setTrainStatus("TEST $which done. (${out.length} chars)")
                     appendTrainLog("TEST $which: ✓ \"${out.take(60)}\"")
                 }
                 rebuildUi()
@@ -2708,7 +2727,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun onStopTraining() {
         appendTrainLog("⏹ Stop requested — finishing current iteration…")
-        setStatus("Stopping training…")
+        setTrainStatus("Stopping training…")
         NativeCausalLm.stopLoraTrainingNative()
         rebuildUi()
     }
@@ -2723,12 +2742,12 @@ class MainActivity : AppCompatActivity() {
         trainEpochBoundaries.clear()
         trainValidLosses.clear()
         lossChartView?.clear()
-        setStatus("Training started…"); rebuildUi()
+        setTrainStatus("Training started…"); rebuildUi()
         val modelPath = trainModelPath.trim()
         val dataPath = trainDataPath.trim()
         if (modelPath.isEmpty() || dataPath.isEmpty()) {
             appendTrainLog("✗ model_path and data_path are required")
-            trainRunning = false; setStatus("Training failed: missing paths")
+            trainRunning = false; setTrainStatus("Training failed: missing paths")
             rebuildUi(); return
         }
         val sb = StringBuilder()
@@ -2770,7 +2789,7 @@ class MainActivity : AppCompatActivity() {
             if (!NativeCausalLm.ensureLoaded()) {
                 mainHandler.post {
                     appendTrainLog("✗ Failed to load native libraries")
-                    trainRunning = false; setStatus("Training failed: native libs")
+                    trainRunning = false; setTrainStatus("Training failed: native libs")
                     rebuildUi()
                 }
                 return@execute
@@ -2817,7 +2836,7 @@ class MainActivity : AppCompatActivity() {
                         }
                         if (trainIterMs.isNotEmpty()) {
                             val avg = trainIterMs.average()
-                            setStatus(String.format("Training… epoch %d iter %d · %.0f ms/iter · loss %.3f",
+                            setTrainStatus(String.format("Training… epoch %d iter %d · %.0f ms/iter · loss %.3f",
                                 epoch, iteration, avg, loss))
                         }
                     }
@@ -2825,7 +2844,7 @@ class MainActivity : AppCompatActivity() {
                 override fun onTrainComplete() {
                     mainHandler.post {
                         appendTrainLog("✓ Training complete!")
-                        trainRunning = false; setStatus("Training complete")
+                        trainRunning = false; setTrainStatus("Training complete")
                         rebuildUi()
                     }
                 }
@@ -2834,10 +2853,10 @@ class MainActivity : AppCompatActivity() {
                         val cancelled = NativeCausalLm.isLoraTrainingCancelled() != 0
                         if (cancelled) {
                             appendTrainLog("⏹ Training stopped by user")
-                            trainRunning = false; setStatus("Training stopped")
+                            trainRunning = false; setTrainStatus("Training stopped")
                         } else {
                             appendTrainLog("✗ Error: $message")
-                            trainRunning = false; setStatus("Training failed")
+                            trainRunning = false; setTrainStatus("Training failed")
                         }
                         rebuildUi()
                     }
@@ -2849,10 +2868,10 @@ class MainActivity : AppCompatActivity() {
                     val cancelled = NativeCausalLm.isLoraTrainingCancelled() != 0
                     if (cancelled) {
                         appendTrainLog("⏹ Training stopped by user")
-                        trainRunning = false; setStatus("Training stopped")
+                        trainRunning = false; setTrainStatus("Training stopped")
                     } else {
                         appendTrainLog("✗ trainLoraNative returned error code: $rc")
-                        trainRunning = false; setStatus("Training failed (rc=$rc)")
+                        trainRunning = false; setTrainStatus("Training failed (rc=$rc)")
                     }
                     rebuildUi()
                 }
@@ -3437,6 +3456,13 @@ class MainActivity : AppCompatActivity() {
         mainHandler.post {
             if (::statusView.isInitialized) statusView.text = text
         }
+    }
+
+    /** Status line under the loss chart on the Train tab; keeps the top
+     *  hero card free for load / streaming messages. */
+    private fun setTrainStatus(text: String) {
+        trainStatusText = text
+        mainHandler.post { trainStatusView?.text = text }
     }
 
     /**
