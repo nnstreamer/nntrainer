@@ -189,6 +189,19 @@ int hvx_rmsnorm_rows_f32(const float *x, float *y, uint32_t M, uint32_t n,
   return 0;
 }
 
+void hvx_rmsnorm_rows_cached_f32(const float *x, const float *residual,
+                                 float *sum, float *norm, float *cached,
+                                 uint32_t M, uint32_t n, const float *gamma,
+                                 float eps) {
+  for (size_t i = 0; i < (size_t)M * n; ++i) {
+    cached[i] = residual ? x[i] + residual[i] : x[i];
+    if (residual)
+      sum[i] = cached[i];
+  }
+  (void)hvx_rmsnorm_rows_f32(cached, cached, M, n, n, gamma, eps, NULL);
+  memcpy(norm, cached, (size_t)M * n * sizeof(float));
+}
+
 /* Scalar counterpart of the MoE call's post-FFN epilogue. */
 int hvx_rmsnorm_add_res_f32(float *out, const float *res, const float *x,
                             const float *x2, uint32_t M, uint32_t n,

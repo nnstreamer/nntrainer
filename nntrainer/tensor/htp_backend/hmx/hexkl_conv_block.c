@@ -36,6 +36,7 @@
 #include "hvx_dequant_i32.h"
 #include "hvx_gemm_u8i4_wh.h"
 #include "hvx_quant_u8.h"
+#include "hvx_rmsnorm_rows_f32.h"
 
 #if defined(__hexagon__)
 #include <hexagon_types.h>
@@ -135,13 +136,17 @@ static inline int cb_mm_reduce(uint8_t *vtcm_base, uint32_t act_off,
  * units publish one HMX row block, keeping the first block parallel while
  * later blocks can be produced under earlier blocks' HMX work. Each row
  * keeps the same min/max and rounding arithmetic. The pool's release/acquire
- * done byte publishes both the parameters and the tiles. */
+ * done byte publishes both the parameters and the tiles. Optional input
+ * normalization writes its cached rows and graph outputs in the same unit
+ * before quantization; no full normalized-input DMA is needed. */
 #define CB_PACK_UNIT_ROWS 16u
 #define CB_PACK_UNITS_THROUGH(row)                                             \
   (((row) + HEXKL_HMX_INT8_BLOCK_N_ROW) / CB_PACK_UNIT_ROWS)
 
 typedef struct {
-  const float *act_c;
+  float *act_c;
+  const float *x;
+  const hexkl_conv_block_norm *norm;
   float *scale;
   int32_t *zp;
   uint8_t *act_ah;
@@ -155,7 +160,15 @@ static void cb_pack_unit(uint32_t n_units, uint32_t u, void *v) {
   const uint32_t remaining = r0 < c->M ? c->M - r0 : 0u;
   const uint32_t n =
     remaining < CB_PACK_UNIT_ROWS ? remaining : CB_PACK_UNIT_ROWS;
-  /** The full activation DMA and zero padding completed before submit.
+  if (c->norm && n) {
+    const hexkl_conv_block_norm *p = c->norm;
+    const size_t offset = (size_t)r0 * c->K;
+    hvx_rmsnorm_rows_cached_f32(
+      c->x + offset, p->residual ? p->residual + offset : NULL,
+      p->sum ? p->sum + offset : NULL, p->norm + offset, c->act_c + offset, n,
+      c->K, p->gamma, p->eps);
+  }
+  /** Input DMA (or this unit's normalization) and zero padding completed.
      Do not submit nested work to the worker pool from a background unit. */
   hvx_quant_rows_u8_params(c->act_c + (size_t)r0 * c->K, n, CB_PACK_UNIT_ROWS,
                            c->K, c->scale + r0, c->zp + r0, NULL);
@@ -635,16 +648,17 @@ static int cb_m1_run(uint8_t *vtcm, uint32_t arena, uint32_t K, uint32_t C,
   return AEE_SUCCESS;
 }
 
-int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
-                         uint32_t vtcm_size, uint32_t config_off, uint32_t M,
-                         uint32_t K, uint32_t C, uint32_t N_out, uint32_t h_a,
-                         uint32_t h_b, uint32_t h_c, uint32_t h_out,
-                         const float *conv_w, const float *act_f32,
-                         float *out_f32, float *state_f32,
-                         hvx_worker_pool *pool, hexkl_moe_scratch *scratch,
-                         int weight_src_bypass, uint32_t flags) {
+static int cb_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
+                  uint32_t vtcm_size, uint32_t config_off, uint32_t M,
+                  uint32_t K, uint32_t C, uint32_t N_out, uint32_t h_a,
+                  uint32_t h_b, uint32_t h_c, uint32_t h_out,
+                  const float *conv_w, const float *act_f32, float *out_f32,
+                  float *state_f32, hvx_worker_pool *pool,
+                  hexkl_moe_scratch *scratch, int weight_src_bypass,
+                  uint32_t flags, const hexkl_conv_block_norm *input_norm) {
   if (!tbl || !vtcm_base || !conv_w || !act_f32 || !out_f32 || !state_f32 ||
-      !scratch || M == 0u) {
+      !scratch || M == 0u ||
+      M > UINT32_MAX - (HEXKL_HMX_INT8_BLOCK_N_ROW - 1u)) {
     return AEE_EBADPARM;
   }
   const uint32_t arena = vtcm_size < config_off ? vtcm_size : config_off;
@@ -689,14 +703,19 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
   const uint32_t o_ntiles = N_out / HEXKL_HMX_INT8_BLOCK_N_COL;
   const uint32_t half = L.acc_tiles / 2u; /* a/c pairs per batch */
   const uint32_t m_pad = ROUND_UP_U32(M, BR);
+  if ((size_t)m_pad > SIZE_MAX / sizeof(float) / K ||
+      (uint64_t)M + 2u > SIZE_MAX / sizeof(float) / C ||
+      (size_t)M > SIZE_MAX / sizeof(float) / N_out)
+    return AEE_EBADPARM;
   if ((c_ntiles + half - 1u) / half > CB_MAX_CHUNKS ||
       (c_ntiles + L.acc_tiles - 1u) / L.acc_tiles > CB_MAX_CHUNKS ||
       (o_ntiles + L.acc_tiles - 1u) / L.acc_tiles > CB_MAX_CHUNKS) {
     return AEE_EUNSUPPORTED;
   }
 
-  /** Heap scratch, session-lifetime (hexkl_moe_scratch): the cached copy of
-     the activation -- m_pad rows, the padding rows zero, since the pack
+  /** Heap scratch, session-lifetime (hexkl_moe_scratch): the cached normalized
+     activation, filled by DMA or each packing unit's RMSNorm -- m_pad rows,
+     the padding rows zero, since the pack
      reads whole 64-row blocks -- its per-row quant params, its AH tiles,
      g, the cached output, and the pack's done bytes. */
   const size_t sz_mpad_f32 = sizeof(float) * m_pad;
@@ -706,13 +725,22 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
   const size_t sz_out_c = sizeof(float) * (size_t)M * N_out;
   const size_t sz_pack_done = m_pad / CB_PACK_UNIT_ROWS + 1u;
   const size_t sz_rq = sizeof(float) * BR;
-  const size_t need = 2u * ROUND_UP_SZ(sz_mpad_f32, CB_SCRATCH_ALIGN) +
-                      ROUND_UP_SZ(sz_act_c, CB_SCRATCH_ALIGN) +
-                      ROUND_UP_SZ(sz_act_ah, CB_SCRATCH_ALIGN) +
-                      ROUND_UP_SZ(sz_g, CB_SCRATCH_ALIGN) +
-                      ROUND_UP_SZ(sz_out_c, CB_SCRATCH_ALIGN) +
-                      ROUND_UP_SZ(sz_pack_done, CB_SCRATCH_ALIGN) +
-                      4u * ROUND_UP_SZ(sz_rq, CB_SCRATCH_ALIGN);
+  const size_t sz_gamma =
+    input_norm && input_norm->gamma ? sizeof(float) * K : 0u;
+  /* The DSP uses 32-bit size_t. Individually valid FastRPC buffers can still
+   * overflow the combined scratch size, including padding and alignment. */
+  const size_t parts[] = {sz_mpad_f32, sz_mpad_f32, sz_act_c,     sz_act_ah,
+                          sz_g,        sz_out_c,    sz_pack_done, sz_rq,
+                          sz_rq,       sz_rq,       sz_rq,        sz_gamma};
+  size_t need = 0;
+  for (size_t i = 0; i < sizeof(parts) / sizeof(parts[0]); ++i) {
+    if (parts[i] > SIZE_MAX - (CB_SCRATCH_ALIGN - 1u))
+      return AEE_EBADPARM;
+    const size_t rounded = ROUND_UP_SZ(parts[i], CB_SCRATCH_ALIGN);
+    if (need > SIZE_MAX - rounded)
+      return AEE_EBADPARM;
+    need += rounded;
+  }
   uint64_t p0 = 0;
   HEXKL_PROBE_T0(p0);
   rc = hexkl_moe_scratch_reserve(scratch, need);
@@ -738,6 +766,12 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
     midbuf[i] =
       vtcm_base + L.mid_off + i * c_ktiles * HEXKL_HMX_ACTIVATION_ALIGNMENT;
   }
+  float *gamma_c = (float *)hexkl_moe_carve(&cur, sz_gamma);
+  hexkl_conv_block_norm packed_norm;
+  if (input_norm) {
+    packed_norm = *input_norm;
+    packed_norm.gamma = sz_gamma ? gamma_c : NULL;
+  }
   const float *const conv_w_v = (const float *)(vtcm_base + L.conv_w_off);
 
   hvx_bg_job pack_job;
@@ -762,7 +796,10 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
   HEXKL_PROBE_T0(p0);
   hexkl_dma_ring_reset();
   hexkl_moe_dma_copy(g, state_f32, 2u * C * sizeof(float), 0, 0);
-  hexkl_moe_dma_copy(act_c, act_f32, sizeof(float) * (size_t)M * K, 0, 0);
+  if (!input_norm)
+    hexkl_moe_dma_copy(act_c, act_f32, sizeof(float) * (size_t)M * K, 0, 0);
+  if (sz_gamma)
+    hexkl_moe_dma_copy(gamma_c, input_norm->gamma, sz_gamma, 0, 0);
   hexkl_moe_dma_copy(vtcm_base + L.conv_w_off, conv_w, 3u * C * sizeof(float),
                      0, 1);
   if (m_pad > M) {
@@ -785,6 +822,8 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
 
   HEXKL_PROBE_T0(p0);
   pack.act_c = act_c;
+  pack.x = act_f32;
+  pack.norm = input_norm ? &packed_norm : NULL;
   pack.scale = scale_all;
   pack.zp = zp_all;
   pack.act_ah = act_ah;
@@ -1155,4 +1194,59 @@ out:
      source or destination on an error path. Retire them before reuse. */
   hexkl_dma_ring_drain();
   return rc;
+}
+
+int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
+                         uint32_t vtcm_size, uint32_t config_off, uint32_t M,
+                         uint32_t K, uint32_t C, uint32_t N_out, uint32_t h_a,
+                         uint32_t h_b, uint32_t h_c, uint32_t h_out,
+                         const float *conv_w, const float *act_f32,
+                         float *out_f32, float *state_f32,
+                         hvx_worker_pool *pool, hexkl_moe_scratch *scratch,
+                         int weight_src_bypass, uint32_t flags) {
+  return cb_run(tbl, vtcm_base, vtcm_size, config_off, M, K, C, N_out, h_a, h_b,
+                h_c, h_out, conv_w, act_f32, out_f32, state_f32, pool, scratch,
+                weight_src_bypass, flags, NULL);
+}
+
+static int cb_overlap(const void *a, size_t a_bytes, const void *b,
+                      size_t b_bytes) {
+  const uintptr_t x = (uintptr_t)a, y = (uintptr_t)b;
+  return a && b && (x < y ? y - x < a_bytes : x - y < b_bytes);
+}
+
+int hexkl_conv_block_run_norm(
+  hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base, uint32_t vtcm_size,
+  uint32_t config_off, uint32_t M, uint32_t K, uint32_t C, uint32_t N_out,
+  uint32_t h_a, uint32_t h_b, uint32_t h_c, uint32_t h_out, const float *conv_w,
+  const float *act_f32, float *out_f32, float *state_f32, hvx_worker_pool *pool,
+  hexkl_moe_scratch *scratch, int weight_src_bypass, uint32_t flags,
+  const hexkl_conv_block_norm *input_norm) {
+  if (!input_norm || M <= 1u ||
+      M > UINT32_MAX - (HEXKL_HMX_INT8_BLOCK_N_ROW - 1u) || !input_norm->norm ||
+      (input_norm->residual && !input_norm->sum) ||
+      (size_t)M > SIZE_MAX / sizeof(float) / (K ? K : 1u) ||
+      (size_t)M > SIZE_MAX / sizeof(float) / (N_out ? N_out : 1u))
+    return AEE_EBADPARM;
+  const size_t bytes = (size_t)M * K * sizeof(float);
+  const size_t out_bytes = (size_t)M * N_out * sizeof(float);
+  float *sum = input_norm->residual ? input_norm->sum : NULL;
+  float *norm = input_norm->norm;
+  if (cb_overlap(sum, bytes, norm, bytes))
+    return AEE_EBADPARM;
+  const float *inputs[] = {act_f32, input_norm->residual};
+  float *outputs[] = {sum, norm};
+  for (uint32_t i = 0; i < 2u; ++i) {
+    if (cb_overlap(outputs[i], bytes, out_f32, out_bytes) ||
+        cb_overlap(outputs[i], bytes, state_f32,
+                   (size_t)C * 2u * sizeof(float)))
+      return AEE_EBADPARM;
+    for (uint32_t j = 0; j < 2u; ++j)
+      if (outputs[i] != inputs[j] &&
+          cb_overlap(outputs[i], bytes, inputs[j], bytes))
+        return AEE_EBADPARM;
+  }
+  return cb_run(tbl, vtcm_base, vtcm_size, config_off, M, K, C, N_out, h_a, h_b,
+                h_c, h_out, conv_w, act_f32, out_f32, state_f32, pool, scratch,
+                weight_src_bypass, flags, input_norm);
 }

@@ -222,6 +222,17 @@ void hexkl_moe_pack_bg_worker(uint32_t n_units, uint32_t u, void *vctx);
  * @param[in] flags       HEXKL_MOE_FLAG_* bits; 0 is the HMX block loop
  * @return AEE_SUCCESS, or the first failing stage's code
  */
+/** Exact quantized source rows retained by one router-to-MoE pair.
+ * The caller owns every buffer until the synchronous kernel completes.
+ * Only compact QS2 prefill with M > 4 and K divisible by 128 is supported.
+ */
+typedef struct {
+  const uint8_t *rows;
+  const float *scale;
+  const int32_t *zp;
+  uint32_t M, K;
+} hexkl_moe_prepared_input;
+
 int hexkl_mm_u8i4_moe_layer_run(
   hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base, uint32_t vtcm_size,
   uint32_t config_off, uint32_t M, uint32_t K, uint32_t inter, uint32_t N_out,
@@ -229,6 +240,15 @@ int hexkl_mm_u8i4_moe_layer_run(
   const uint32_t *row_index, const uint32_t *row_count, const float *row_weight,
   const float *act_f32, float *out_f32, hvx_worker_pool *pool,
   hexkl_moe_scratch *scratch, uint32_t flags);
+
+int hexkl_mm_u8i4_moe_layer_run_prepared(
+  hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base, uint32_t vtcm_size,
+  uint32_t config_off, uint32_t M, uint32_t K, uint32_t inter, uint32_t N_out,
+  uint32_t n_experts, const uint32_t *h_gate_up, const uint32_t *h_down,
+  const uint32_t *row_index, const uint32_t *row_count, const float *row_weight,
+  const float *act_f32, float *out_f32, hvx_worker_pool *pool,
+  hexkl_moe_scratch *scratch, uint32_t flags,
+  const hexkl_moe_prepared_input *prepared);
 
 /**
  * @brief Take a call of at most 4 rows (M <= 4, at most 16 active experts)

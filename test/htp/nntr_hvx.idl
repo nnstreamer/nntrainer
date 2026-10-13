@@ -1412,4 +1412,55 @@ interface nntr_hvx : remote_handle64 {
      in sequence<float> q, in sequence<float> k, in sequence<float> v,
      rout sequence<float> q_out, rout sequence<uint16> k_out,
      rout sequence<uint16> v_out, rout sequence<uint32> elapsed_us);
+   // Row-local prefill residual/RMSNorm and Conv input quantization. The
+   // graph's sum/norm outputs are published before Conv returns. Appended
+   // to preserve all existing ordinals; decode retains its current entry.
+   AEEResult mm_u8i4_conv_block_prefill_norm(in uint32 M, in uint32 K,
+     in uint32 C, in uint32 N_out, in sequence<uint32> h_in, in uint32 h_out,
+     in sequence<float> conv_w, in float eps, in sequence<float> x,
+     in sequence<float> residual, in sequence<float> gamma,
+     rout sequence<float> sum, rout sequence<float> norm,
+     rout sequence<float> result, inrout sequence<float> state,
+     rout sequence<uint32> stage_us);
+   // One explicitly leased, exact U8 router input. A new prepare replaces
+   // any prior lease. Cookie is nonzero only on success; weight registration
+   // between prepare and consume does not touch this private cached input.
+   AEEResult router_q4_prefill_prepare(in uint32 M, in uint32 K,
+     in uint32 E, in uint32 w_handle, in sequence<float> x,
+     in uint32 top_k, in uint32 n_sel, in sequence<float> bias,
+     rout sequence<uint32> sel, rout sequence<float> weight, rout uint64 cookie);
+   // Consume once, including on a shape or kernel error. Only compact QS2
+   // prefill M>4 is supported. stage_us is empty or the ordinary MoE table.
+   AEEResult mm_u8i4_moe_layer_prepared(in uint64 cookie,
+     in uint32 M, in uint32 K, in uint32 inter, in uint32 N_out, in uint32 act,
+     in sequence<uint32> h_gate_up, in sequence<uint32> h_down,
+     in sequence<uint32> row_index, in sequence<uint32> row_count,
+     in sequence<float> row_weight, rout sequence<float> out_f32,
+     rout sequence<uint32> stage_us);
+   // Publishes the preceding residual/RMSNorm outputs, then prepares exact
+   // Q8 router/FFN input under the same single-use cookie contract.
+   // EUNSUPPORTED occurs before any sum/norm output write and permits the
+   // caller to materialize and retry. Other errors may follow publication;
+   // aliased inputs must not be normalized again after such a failure.
+   AEEResult router_q4_prefill_norm_prepare(in uint32 M, in uint32 K,
+     in uint32 E, in uint32 w_handle, in uint32 top_k, in uint32 n_sel,
+     in float eps, in sequence<float> x, in sequence<float> residual,
+     in sequence<float> gamma, rout sequence<float> sum,
+     rout sequence<float> norm, in sequence<float> bias,
+     rout sequence<uint32> sel, rout sequence<float> weight,
+     rout uint64 cookie);
+   // Publish a preceding residual/RMSNorm while quantizing the shared QKV
+   // activation once, then write three disjoint graph outputs directly.
+   // Exactly three whole registered projections, with one FC row chunk.
+   // EUNSUPPORTED is pre-publication only; other errors must not retry the
+   // input norm because sum/norm may alias the raw input buffers exactly.
+   AEEResult mm_u8i4_qkv_prefill_norm(in uint32 M, in uint32 K,
+     in uint32 Nq, in uint32 Nk, in uint32 Nv,
+     in sequence<uint32> w_handles, in float post_eps,
+     in sequence<uint32> post_chunk, in sequence<float> post_gamma,
+     in uint32 rope_hd, in uint32 rope_handles, in sequence<float> rope_cs,
+     in float norm_eps, in sequence<float> x, in sequence<float> residual,
+     in sequence<float> gamma, rout sequence<float> sum,
+     rout sequence<float> norm, rout sequence<float> q,
+     rout sequence<float> k, rout sequence<float> v);
 };

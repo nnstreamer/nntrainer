@@ -378,6 +378,9 @@ typedef struct {
   const float *gamma;
   float eps;
   float *scratch;
+  const float *residual;
+  float *sum;
+  float *norm;
 } quant_params_pack_ctx;
 
 /** Row groups [lo, hi) of four: each group's parameters, then its pack,
@@ -399,9 +402,17 @@ static void quant_params_pack_worker(uint32_t n_threads, uint32_t i,
                                 c->out_ah);
       continue;
     }
+    if (c->norm) {
+      const size_t off = (size_t)m * c->k;
+      hvx_rmsnorm_rows_cached_f32(c->x + off,
+                                  c->residual ? c->residual + off : NULL,
+                                  c->sum ? c->sum + off : NULL, c->norm + off,
+                                  sc, 4u, c->k, c->gamma, c->eps);
+    }
     for (uint32_t r = 0; r < 4u; ++r) {
-      hvx_rmsnorm_row_f32(c->x + (size_t)(m + r) * c->k, sc + (size_t)r * c->k,
-                          c->gamma, c->k, c->eps);
+      if (!c->norm)
+        hvx_rmsnorm_row_f32(c->x + (size_t)(m + r) * c->k,
+                            sc + (size_t)r * c->k, c->gamma, c->k, c->eps);
       quant_row_params_one(sc, r, c->k, c->scale + m, c->zp + m);
     }
     const float *const row[4] = {sc, sc + c->k, sc + 2u * c->k, sc + 3u * c->k};
@@ -409,11 +420,13 @@ static void quant_params_pack_worker(uint32_t n_threads, uint32_t i,
   }
 }
 
-int hvx_quant_params_pack_u8_ah(const float *x, uint32_t m_valid,
-                                uint32_t m_pad, uint32_t k,
-                                const float *pre_gamma, float pre_eps,
-                                float *pre_scratch, float *scale, int32_t *zp,
-                                uint8_t *out_ah, hvx_worker_pool *pool) {
+static int quant_params_pack_u8_ah(const float *x, const float *residual,
+                                   float *sum, float *norm, uint32_t m_valid,
+                                   uint32_t m_pad, uint32_t k,
+                                   const float *pre_gamma, float pre_eps,
+                                   float *pre_scratch, float *scale,
+                                   int32_t *zp, uint8_t *out_ah,
+                                   hvx_worker_pool *pool) {
   const uint32_t n_ktiles = k / TILE_INNER;
   for (uint32_t m = m_valid; m < m_pad; ++m) {
     scale[m] = 1.0f;
@@ -426,13 +439,21 @@ int hvx_quant_params_pack_u8_ah(const float *x, uint32_t m_valid,
   const uint32_t m_vec_end = (m_valid / 4u) * 4u;
   if (m_vec_end > 0) {
     quant_params_pack_ctx ctx = {
-      x, m_vec_end / 4u, k, scale, zp, out_ah, pre_gamma, pre_eps, pre_scratch};
+      x,         m_vec_end / 4u, k,           scale,    zp,  out_ah,
+      pre_gamma, pre_eps,        pre_scratch, residual, sum, norm};
     hvx_worker_pool_run(pool, quant_params_pack_worker, &ctx, m_vec_end / 4u);
   }
   for (uint32_t m = m_vec_end; m < m_valid; ++m) {
     const float *row = x + (size_t)m * k;
     if (pre_scratch) {
-      hvx_rmsnorm_row_f32(row, pre_scratch, pre_gamma, k, pre_eps);
+      if (norm) {
+        const size_t off = (size_t)m * k;
+        hvx_rmsnorm_rows_cached_f32(row, residual ? residual + off : NULL,
+                                    sum ? sum + off : NULL, norm + off,
+                                    pre_scratch, 1u, k, pre_gamma, pre_eps);
+      } else {
+        hvx_rmsnorm_row_f32(row, pre_scratch, pre_gamma, k, pre_eps);
+      }
       row = pre_scratch;
     }
     quant_row_params_one(row, 0, k, scale + m, zp + m);
@@ -444,6 +465,28 @@ int hvx_quant_params_pack_u8_ah(const float *x, uint32_t m_valid,
       ACT_TILE_BYTES);
   }
   return AEE_SUCCESS;
+}
+
+int hvx_quant_params_pack_u8_ah(const float *x, uint32_t m_valid,
+                                uint32_t m_pad, uint32_t k,
+                                const float *pre_gamma, float pre_eps,
+                                float *pre_scratch, float *scale, int32_t *zp,
+                                uint8_t *out_ah, hvx_worker_pool *pool) {
+  return quant_params_pack_u8_ah(x, NULL, NULL, NULL, m_valid, m_pad, k,
+                                 pre_gamma, pre_eps, pre_scratch, scale, zp,
+                                 out_ah, pool);
+}
+
+int hvx_quant_norm_params_pack_u8_ah(const float *x, const float *residual,
+                                     float *sum, float *norm, uint32_t m_valid,
+                                     uint32_t m_pad, uint32_t k,
+                                     const float *gamma, float eps,
+                                     float *scratch, float *scale, int32_t *zp,
+                                     uint8_t *out_ah, hvx_worker_pool *pool) {
+  if (!norm || !scratch || (residual && !sum))
+    return AEE_EBADPARM;
+  return quant_params_pack_u8_ah(x, residual, sum, norm, m_valid, m_pad, k,
+                                 gamma, eps, scratch, scale, zp, out_ah, pool);
 }
 
 /** Compute params and quantize contiguous rows once for expert reuse.

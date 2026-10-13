@@ -698,7 +698,8 @@ int hexkl_mm_u8i4_layer_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
   const hexkl_mm_opts *o = opts ? opts : &kDefaults;
 
   if (!tbl || !vtcm_base || !handles || n_handles == 0 ||
-      (!act_f32 && !o->act_ah_prepacked) || !out_cat || M == 0 || K == 0) {
+      (!act_f32 && !o->act_ah_prepacked) || (!out_cat && !o->out_base) ||
+      M == 0 || K == 0) {
     return AEE_EBADPARM;
   }
   if ((o->act_scale == NULL) != (o->act_zp == NULL)) {
@@ -711,6 +712,11 @@ int hexkl_mm_u8i4_layer_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
     return AEE_EBADPARM; // the pre norm rides on the params scan
   }
   if ((o->out_off == NULL) != (o->out_ld == NULL)) {
+    return AEE_EBADPARM;
+  }
+  if ((o->out_base && (M == 1u || o->out_off)) ||
+      (o->pre_norm &&
+       (M == 1u || !o->pre_scratch || (o->pre_residual && !o->pre_sum)))) {
     return AEE_EBADPARM;
   }
 
@@ -731,7 +737,7 @@ int hexkl_mm_u8i4_layer_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
       return AEE_EBADPARM;
     }
     const hexkl_weight_u8i4 *h = &tbl->slots[handles[i]];
-    if (h->K != K || h->bits == 2u) {
+    if (h->K != K || h->bits == 2u || (o->out_base && !o->out_base[i])) {
       return AEE_EBADPARM;
     }
     const uint32_t nt = h->N / HEXKL_HMX_INT8_BLOCK_N_COL;
@@ -864,18 +870,29 @@ int hexkl_mm_u8i4_layer_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
     // Charged to DRAIN, not QUANT: this is a DMA wait, not compute, and
     // the whole point of this path is that QUANT should read ~0.
     const uint32_t rs = dma_row_size_dividing(act_bytes);
-    hexkl_dma_ring_push2d(vtcm_base + act_off, o->act_ah_prepacked, rs, rs, rs,
-                          act_bytes / rs, /*src_vtcm=*/0,
-                          /*dst_vtcm=*/1);
+    /* An internal prepared router may already have packed these exact
+     * bytes into this call's activation region. The regions planned above
+     * keep the weight and result buffers disjoint from it. */
+    if (o->act_ah_prepacked != vtcm_base + act_off)
+      hexkl_dma_ring_push2d(vtcm_base + act_off, o->act_ah_prepacked, rs, rs,
+                            rs, act_bytes / rs, /*src_vtcm=*/0,
+                            /*dst_vtcm=*/1);
     HEXKL_PROBE_T0(p0);
     hexkl_dma_ring_drain();
     HEXKL_PROBE_ADD(HEXKL_PROBE_DRAIN, p0);
   } else {
     HEXKL_PROBE_T0(p0);
     if (act_scale == NULL) {
-      rc0 = hvx_quant_params_pack_u8_ah(act_f32, M, m_pad, K, o->pre_gamma,
-                                        o->pre_eps, o->pre_scratch, loc_scale,
-                                        loc_zp, vtcm_base + act_off, o->pool);
+      if (o->pre_norm) {
+        rc0 = hvx_quant_norm_params_pack_u8_ah(
+          act_f32, o->pre_residual, o->pre_sum, o->pre_norm, M, m_pad, K,
+          o->pre_gamma, o->pre_eps, o->pre_scratch, loc_scale, loc_zp,
+          vtcm_base + act_off, o->pool);
+      } else {
+        rc0 = hvx_quant_params_pack_u8_ah(act_f32, M, m_pad, K, o->pre_gamma,
+                                          o->pre_eps, o->pre_scratch, loc_scale,
+                                          loc_zp, vtcm_base + act_off, o->pool);
+      }
       act_scale = loc_scale;
       act_zp = loc_zp;
     } else {
@@ -934,7 +951,8 @@ int hexkl_mm_u8i4_layer_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
     const uint32_t nt_n = h->N / HEXKL_HMX_INT8_BLOCK_N_COL;
     const uint32_t wcur = wbuf[i & 1u];
     float *const out_h =
-      o->out_off ? out_cat + o->out_off[i] : out_cat + out_off;
+      o->out_base ? o->out_base[i]
+                  : (o->out_off ? out_cat + o->out_off[i] : out_cat + out_off);
     const uint32_t ld_h = o->out_ld ? o->out_ld[i] : h->N;
 
     if (i + 1 < n_handles) {

@@ -135,6 +135,47 @@ static double run_add(uint32_t M, uint32_t n, int two, int with_gamma,
   return worst;
 }
 
+/** The consumer helper must publish the same bits as separate addition and
+ * normalization, including when either result aliases an input. cached is
+ * also checked because Conv immediately quantizes that copy. */
+static int run_cached(uint32_t M, uint32_t n, int residual, int with_gamma,
+                      unsigned alias) {
+  const size_t count = (size_t)M * n, bytes = count * sizeof(float);
+  float *x = malloc(bytes), *res = malloc(bytes), *sum = malloc(bytes);
+  float *norm = malloc(bytes), *cached = malloc(bytes);
+  float *esum = malloc(bytes), *enorm = malloc(bytes), *gamma = malloc(n * 4u);
+  unsigned seed = 17u + M + n;
+  for (size_t i = 0; i < count; ++i) {
+    const float factor = i % 29u == 0u ? 1e12f : 1.0f;
+    x[i] = frand(&seed) * factor;
+    res[i] = i % 11u == 0u ? -x[i] : frand(&seed) * factor;
+    esum[i] = residual ? x[i] + res[i] : x[i];
+  }
+  for (uint32_t i = 0; i < n; ++i)
+    gamma[i] = 1.0f + 0.5f * frand(&seed);
+  const float *g = with_gamma ? gamma : NULL;
+  int fail = hvx_rmsnorm_rows_f32(esum, enorm, M, n, n, g, 1e-5f, NULL);
+  float *sums[] = {sum, x, res, sum, sum, x, res};
+  float *norms[] = {norm, norm, norm, x, res, res, x};
+  hvx_rmsnorm_rows_cached_f32(x, residual ? res : NULL, sums[alias],
+                              norms[alias], cached, M, n, g, 1e-5f);
+  fail |= residual && memcmp(sums[alias], esum, bytes) != 0;
+  fail |= memcmp(norms[alias], enorm, bytes) != 0;
+  fail |= memcmp(cached, enorm, bytes) != 0;
+  if (fail)
+    printf("cached norm M=%u n=%u residual=%d gamma=%d alias=%u WRONG\n", M, n,
+           residual, with_gamma, alias);
+  free(x);
+  free(res);
+  free(sum);
+  free(norm);
+  free(cached);
+  free(esum);
+  free(enorm);
+  free(gamma);
+  return fail;
+}
+
 int main(void) {
   int fail = 0;
   const double tol = 2e-6; /* f32 sum of squares over 2816 terms, sqrtf */
@@ -148,6 +189,21 @@ int main(void) {
   fail |= run_add(7, 2816, 0, 1, 1.0f) > tol;  /* post_attention_norm */
   fail |= run_add(5, 2816, 1, 1, 0.75f) > tol; /* ffn + moe, layer scalar */
   fail |= run_add(2, 64, 1, 0, 2.0f) > tol;    /* tiny, gamma-less */
+  {
+    const uint32_t rows[] = {1u, 2u, 7u, 16u, 17u, 65u, 1024u};
+    const uint32_t widths[] = {32u, 64u, 2048u, 4096u};
+    unsigned cases = 0;
+    for (size_t r = 0; r < sizeof(rows) / sizeof(rows[0]); ++r)
+      for (size_t k = 0; k < sizeof(widths) / sizeof(widths[0]); ++k)
+        for (int residual = 0; residual < 2; ++residual)
+          for (int gamma = 0; gamma < 2; ++gamma)
+            for (unsigned alias = 0; alias < 7u; ++alias) {
+              fail |= run_cached(rows[r], widths[k], residual, gamma, alias);
+              ++cases;
+            }
+    printf("cached RMSNorm: %u cases, separate/cached/published bits checked\n",
+           cases);
+  }
   {
     float out[32], x[32];
     memset(out, 0, sizeof out);

@@ -632,6 +632,15 @@ sharedConstTensors NeuralNetwork::incremental_forwarding(
   unsigned int from, unsigned int to, bool training,
   std::function<bool(void *userdata)> stop_cb, void *userdata) {
 
+#ifdef ENABLE_HEXKL
+  // Strict CausalLM layers dispatch to HTP directly; the process-wide
+  // getComputeOps() can still be the CPU table in a mixed-backend graph.
+  struct DeferredNormGuard {
+    ComputeOps *ops;
+    ~DeferredNormGuard() { ops->discard_deferred_norm(); }
+  } deferred_norm_guard{get_htp_ops()};
+#endif
+
   unsigned int lookahead = std::get<props::FsuLookahead>(model_flex_props);
   bool fsu_mode = std::get<props::Fsu>(model_flex_props);
 

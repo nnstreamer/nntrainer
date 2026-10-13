@@ -460,6 +460,13 @@ void QKVLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
     return;
   }
 
+  // A model can designate this consumer even when its weights or head shape
+  // require the ordinary projection path. Publish its input before any read.
+  if (rows > 1 && htpStrict() &&
+      input_step.getDataType() == ml::train::TensorDim::DataType::FP32)
+    htpStrictOps()->materialize_prefill_qkv_norm(input_step.getData<float>(),
+                                                 rows, input_step_dim.width());
+
   // The CPU: the input norm first, into its scratch (the kernel is not in
   // place), then the projections read the normed rows.
   if (in_norm) {

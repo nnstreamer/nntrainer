@@ -103,6 +103,20 @@ typedef struct {
   float post_eps;
   uint32_t rope_hd, rope_handles;
   const float *rope_cs;
+
+  /** Optional prefill publication alongside pre_scratch. pre_norm is the
+      graph's M x K RMSNorm output; pre_sum is required with pre_residual.
+      All rows are normalized and packed before projection outputs start.
+      Exact aliases of norm/sum with the raw inputs are supported, but the
+      caller must reject partial overlap and preserve both graph outputs. */
+  const float *pre_residual;
+  float *pre_sum;
+  float *pre_norm;
+
+  /** Optional n_handles separate, contiguous M x N_i output bases. This
+      prefill-only mode is mutually exclusive with out_off/out_ld; the
+      caller validates their sizes and keeps the outputs disjoint. */
+  float *const *out_base;
 } hexkl_mm_opts;
 
 #endif /* __NNTRAINER_HEXKL_MM_OPTS_H__ */

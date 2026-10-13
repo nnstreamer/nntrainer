@@ -148,6 +148,23 @@ void RMSNormLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
           in_step_dim, b * in_dim.getFeatureLen() + tail_elements, true);
         auto sum = context.getOutput(1).getSharedDataTensor(
           out_step_dim, b * out_dim.getFeatureLen() + tail_elements, true);
+        if (!training && b_size == 1 && dim.height() > 1 &&
+            ((deferred_consumer_ == "conv" &&
+              htpStrictOps()->defer_prefill_conv_norm(
+                dim.height(), dim.width(), epsilon, in_step.getData<float>(),
+                residual.getData<float>(), gamma.getData<float>(),
+                sum.getData<float>(), out_step.getData<float>())) ||
+             (deferred_consumer_ == "router" &&
+              htpStrictOps()->defer_prefill_router_norm(
+                dim.height(), dim.width(), epsilon, in_step.getData<float>(),
+                residual.getData<float>(), gamma.getData<float>(),
+                sum.getData<float>(), out_step.getData<float>())) ||
+             (deferred_consumer_ == "qkv" &&
+              htpStrictOps()->defer_prefill_qkv_norm(
+                dim.height(), dim.width(), epsilon, in_step.getData<float>(),
+                residual.getData<float>(), gamma.getData<float>(),
+                sum.getData<float>(), out_step.getData<float>()))))
+          continue;
         if (b_size == 1 && dim.height() == 1 && deferred_consumer_ != "none" &&
             htpStrictOps()->defer_decode_norm(
               deferred_consumer_, dim.width(), epsilon,
@@ -163,6 +180,23 @@ void RMSNormLayer::incremental_forwarding(nntrainer::RunLayerContext &context,
         continue;
       }
       if (htpStrict()) {
+        if (!training && b_size == 1 && dim.height() > 1 &&
+            ((deferred_consumer_ == "conv" &&
+              htpStrictOps()->defer_prefill_conv_norm(
+                dim.height(), dim.width(), epsilon, in_step.getData<float>(),
+                nullptr, gamma.getData<float>(), nullptr,
+                out_step.getData<float>())) ||
+             (deferred_consumer_ == "router" &&
+              htpStrictOps()->defer_prefill_router_norm(
+                dim.height(), dim.width(), epsilon, in_step.getData<float>(),
+                nullptr, gamma.getData<float>(), nullptr,
+                out_step.getData<float>())) ||
+             (deferred_consumer_ == "qkv" &&
+              htpStrictOps()->defer_prefill_qkv_norm(
+                dim.height(), dim.width(), epsilon, in_step.getData<float>(),
+                nullptr, gamma.getData<float>(), nullptr,
+                out_step.getData<float>()))))
+          continue;
         if (b_size == 1 && dim.height() == 1 && deferred_consumer_ != "none" &&
             htpStrictOps()->defer_decode_norm(
               deferred_consumer_, dim.width(), epsilon,

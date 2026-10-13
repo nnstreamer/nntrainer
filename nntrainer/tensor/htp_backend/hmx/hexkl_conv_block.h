@@ -126,4 +126,36 @@ int hexkl_conv_block_run(hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base,
                          hvx_worker_pool *pool, hexkl_moe_scratch *scratch,
                          int weight_src_bypass, uint32_t flags);
 
+/** @brief Graph-visible inputs and outputs for prefill input normalization.
+ * residual == NULL selects plain RMSNorm and does not write sum. Otherwise
+ * sum is required. norm is always required, gamma may be NULL. Each published
+ * tensor has M * K floats and may exactly alias act_f32 or residual; the two
+ * outputs must be disjoint and must not overlap out_f32, state_f32, or an input
+ * partially. out_f32 may reuse raw inputs after phase 1 has packed all rows.
+ */
+typedef struct {
+  const float *residual;
+  const float *gamma;
+  float *sum;
+  float *norm;
+  float eps;
+} hexkl_conv_block_norm;
+
+/** @brief Prefill Conv with residual/RMSNorm in each input packing work unit.
+ *
+ * act_f32 is the unnormalized input. The optional residual is added with the
+ * existing f32 rounding, then the exact RMSNorm result is published and packed
+ * from cached scratch. This avoids rereading a full shared normalized tensor
+ * into the Conv input buffer and permits later rows' normalization to overlap
+ * the earlier rows' HMX work. input_norm is required and M must exceed one;
+ * all other arguments and the state commit rule match hexkl_conv_block_run.
+ */
+int hexkl_conv_block_run_norm(
+  hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base, uint32_t vtcm_size,
+  uint32_t config_off, uint32_t M, uint32_t K, uint32_t C, uint32_t N_out,
+  uint32_t h_a, uint32_t h_b, uint32_t h_c, uint32_t h_out, const float *conv_w,
+  const float *act_f32, float *out_f32, float *state_f32, hvx_worker_pool *pool,
+  hexkl_moe_scratch *scratch, int weight_src_bypass, uint32_t flags,
+  const hexkl_conv_block_norm *input_norm);
+
 #endif /* __NNTRAINER_HEXKL_CONV_BLOCK_H__ */

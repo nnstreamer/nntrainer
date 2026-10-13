@@ -12,6 +12,7 @@
  */
 #include "hexkl_conv_block.h"
 #include "hexkl_probe.h"
+#include "hvx_rmsnorm_rows_f32.h"
 #include "hvx_scalar_stubs.h"
 #include <AEEStdErr.h>
 #include <math.h>
@@ -86,6 +87,131 @@ static int compare(const char *what, const float *got, const float *want,
   }
   printf("%-18s: mismatches=%zu of %zu   worst_rel=%g\n", what, bad, n, worst);
   return bad != 0;
+}
+
+static int check_input_norm(uint8_t *vtcm, uint32_t vtcm_bytes) {
+  const uint32_t K = 64u, C = 64u, N = 64u;
+  const uint32_t rows[] = {2u, 15u, 16u, 17u, 63u, 64u, 65u, 129u};
+  W weights[4];
+  for (uint32_t i = 0; i < 4u; ++i)
+    make_weight(8u + i, K, C, &weights[i]);
+  float conv[3u * C], gamma[K], state[2u * C], expected_state[2u * C];
+  float initial_state[2u * C];
+  for (uint32_t i = 0; i < 3u * C; ++i)
+    conv[i] = rndf();
+  for (uint32_t i = 0; i < K; ++i)
+    gamma[i] = 1.0f + 0.5f * rndf();
+  for (uint32_t i = 0; i < 2u * C; ++i)
+    initial_state[i] = rndf();
+  hexkl_moe_scratch scratch = {NULL, NULL, 0};
+  unsigned cases = 0;
+  int fail = 0;
+  for (size_t shape = 0; shape < sizeof(rows) / sizeof(rows[0]); ++shape) {
+    const uint32_t M = rows[shape];
+    const size_t count = (size_t)M * K, bytes = count * sizeof(float);
+    float *x = malloc(bytes + 4u), *residual = malloc(bytes + 4u);
+    float *sum = malloc(bytes), *norm = malloc(bytes), *output = malloc(bytes);
+    float *xcopy = malloc(bytes), *rcopy = malloc(bytes);
+    float *expected_sum = malloc(bytes), *expected_norm = malloc(bytes);
+    float *expected_output = malloc(bytes);
+    for (size_t i = 0; i < count; ++i) {
+      xcopy[i] = rndf();
+      rcopy[i] = i % 13u == 0u ? -xcopy[i] : rndf();
+    }
+    for (unsigned add = 0; add < 2u; ++add) {
+      for (unsigned with_gamma = 0; with_gamma < 2u; ++with_gamma) {
+        for (size_t i = 0; i < count; ++i)
+          expected_sum[i] = add ? xcopy[i] + rcopy[i] : xcopy[i];
+        const float *g = with_gamma ? gamma : NULL;
+        fail |= hvx_rmsnorm_rows_f32(expected_sum, expected_norm, M, K, K, g,
+                                     1e-5f, NULL) != 0;
+        memcpy(expected_state, initial_state, sizeof(initial_state));
+        fail |= hexkl_conv_block_run(&g_tbl, vtcm, vtcm_bytes, vtcm_bytes, M, K,
+                                     C, N, 8, 9, 10, 11, conv, expected_norm,
+                                     expected_output, expected_state, NULL,
+                                     &scratch, 0, 0u) != AEE_SUCCESS;
+        const unsigned aliases = M == 17u || M == 65u ? 9u : 1u;
+        for (unsigned alias = 0; alias < aliases; ++alias) {
+          memcpy(x, xcopy, bytes);
+          memcpy(residual, rcopy, bytes);
+          memcpy(state, initial_state, sizeof(initial_state));
+          float *sums[] = {sum, x, residual, sum, sum, x, residual, sum, sum};
+          float *norms[] = {norm,     norm, norm, x,   residual,
+                            residual, x,    norm, norm};
+          float *outputs[] = {output, output, output, output,  output,
+                              output, output, x,      residual};
+          hexkl_conv_block_norm p = {add ? residual : NULL, g,
+                                     add ? sums[alias] : NULL, norms[alias],
+                                     1e-5f};
+          const int rc = hexkl_conv_block_run_norm(
+            &g_tbl, vtcm, vtcm_bytes, vtcm_bytes, M, K, C, N, 8, 9, 10, 11,
+            conv, x, outputs[alias], state, NULL, &scratch, 0, 0u, &p);
+          const int mismatch =
+            rc != AEE_SUCCESS ||
+            (add && memcmp(sums[alias], expected_sum, bytes)) ||
+            memcmp(norms[alias], expected_norm, bytes) ||
+            memcmp(outputs[alias], expected_output, bytes) ||
+            memcmp(state, expected_state, sizeof(state));
+          if (mismatch)
+            printf(
+              "Conv input norm M=%u add=%u gamma=%u alias=%u rc=%d WRONG\n", M,
+              add, with_gamma, alias, rc);
+          fail |= mismatch;
+          ++cases;
+        }
+      }
+    }
+    /* Partial aliases and overlapping published outputs must reject before
+     * normalization or state/output writes. */
+    memset(sum, 0, bytes);
+    memset(norm, 0, bytes);
+    memset(output, 0, bytes);
+    memset(state, 0, sizeof(state));
+    for (unsigned invalid = 0; invalid < 6u; ++invalid) {
+      hexkl_conv_block_norm p = {residual, gamma, sum, norm, 1e-5f};
+      uint32_t invalid_rows = M;
+      if (invalid == 0u)
+        p.norm = sum;
+      if (invalid == 1u)
+        p.sum = x + 1u;
+      if (invalid == 2u)
+        p.norm = output;
+      if (invalid == 3u)
+        p.sum = NULL;
+      if (invalid == 4u)
+        invalid_rows = 1u;
+      if (invalid == 5u)
+        invalid_rows = UINT32_MAX;
+      fail |= hexkl_conv_block_run_norm(&g_tbl, vtcm, vtcm_bytes, vtcm_bytes,
+                                        invalid_rows, K, C, N, 8, 9, 10, 11,
+                                        conv, x, output, state, NULL, &scratch,
+                                        0, 0u, &p) != AEE_EBADPARM;
+    }
+    for (size_t i = 0; i < count; ++i)
+      fail |= sum[i] != 0.0f || norm[i] != 0.0f || output[i] != 0.0f;
+    for (uint32_t i = 0; i < 2u * C; ++i)
+      fail |= state[i] != 0.0f;
+    free(x);
+    free(residual);
+    free(sum);
+    free(norm);
+    free(output);
+    free(xcopy);
+    free(rcopy);
+    free(expected_sum);
+    free(expected_norm);
+    free(expected_output);
+  }
+  hexkl_moe_scratch_free(&scratch);
+  for (uint32_t i = 0; i < 4u; ++i) {
+    free(weights[i].nib);
+    free(weights[i].ws);
+    free(weights[i].cs);
+    free(weights[i].bias);
+  }
+  printf("Conv input norm: %u cases plus rejected aliases %s\n", cases,
+         fail ? "WRONG" : "MATCH");
+  return fail;
 }
 
 int main(void) {
@@ -335,7 +461,14 @@ int main(void) {
     printf("4 MB arena        : rc=%d (want %d)\n", r, AEE_ENOMEMORY);
     fail |= (r != AEE_ENOMEMORY);
   }
+  fail |= check_input_norm(vtcm, sizeof(vtcm));
   printf(fail ? "\nFAIL\n" : "\nALL CHECKS PASS\n");
   hexkl_moe_scratch_free(&scratch);
+  free(x);
+  free(conv_w);
+  free(got);
+  free(got_state);
+  free(want);
+  free(want_state);
   return fail;
 }

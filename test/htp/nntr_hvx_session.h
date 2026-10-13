@@ -94,6 +94,8 @@ typedef struct {
   nntr_hvx_arena arenas[NNTR_HVX_MAX_ARENAS];
   hexkl_moe_scratch
     router_q4_scratch;           /**< cached logits for Q4 prefill routing */
+  uint64_t router_prepare_serial, router_prepare_cookie;
+  hexkl_moe_prepared_input router_prepared;
   hexkl_moe_scratch moe_scratch; /**< the MoE layer call's heap scratch,
                                       grown on demand, freed in close() */
   uint32_t moe_flags;       /**< HEXKL_MOE_FLAG_* bits from moe_set_opts; the

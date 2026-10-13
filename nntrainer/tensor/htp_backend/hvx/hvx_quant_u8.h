@@ -81,6 +81,17 @@ int hvx_quant_params_pack_u8_ah(const float *x, uint32_t m_valid,
                                 float *pre_scratch, float *scale, int32_t *zp,
                                 uint8_t *out_ah, hvx_worker_pool *pool);
 
+/** Normalize cached row groups, publish sum/norm, and quantize the same
+ * exact floats. scratch has the same per-worker contract as the entry above;
+ * norm is required and sum is required when residual is non-NULL. The caller
+ * validates disjoint/exact-alias publication ranges before invoking this. */
+int hvx_quant_norm_params_pack_u8_ah(const float *x, const float *residual,
+                                     float *sum, float *norm, uint32_t m_valid,
+                                     uint32_t m_pad, uint32_t k,
+                                     const float *gamma, float eps,
+                                     float *scratch, float *scale, int32_t *zp,
+                                     uint8_t *out_ah, hvx_worker_pool *pool);
+
 /**
  * @brief Same pack, but destination row d takes its input from source row
  *        @a row_map[d].

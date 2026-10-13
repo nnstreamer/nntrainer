@@ -23,6 +23,9 @@ public:
     cols_ = cols;
     return token_;
   }
+  uint64_t token(const float *input, unsigned rows, unsigned cols) const {
+    return matches(input, rows, cols) ? token_ : 0;
+  }
   void end(uint64_t token) {
     if (token && token == token_) {
       invalidate();
@@ -30,6 +33,12 @@ public:
     }
   }
   void invalidate() { staged_ = nullptr; }
+  void cancel() {
+    invalidate();
+    token_ = 0;
+    input_ = nullptr;
+    rows_ = cols_ = 0;
+  }
   void remember(const float *input, unsigned int rows, unsigned int cols,
                 void *staged) {
     if (matches(input, rows, cols))

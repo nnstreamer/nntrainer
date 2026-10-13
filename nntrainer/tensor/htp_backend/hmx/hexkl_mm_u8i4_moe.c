@@ -1430,12 +1430,30 @@ int hexkl_mm_u8i4_moe_layer_run(
   const uint32_t *row_index, const uint32_t *row_count, const float *row_weight,
   const float *act_f32, float *out_f32, hvx_worker_pool *pool,
   hexkl_moe_scratch *scratch, uint32_t flags) {
+  return hexkl_mm_u8i4_moe_layer_run_prepared(
+    tbl, vtcm_base, vtcm_size, config_off, M, K, inter, N_out, n_experts,
+    h_gate_up, h_down, row_index, row_count, row_weight, act_f32, out_f32, pool,
+    scratch, flags, NULL);
+}
+
+int hexkl_mm_u8i4_moe_layer_run_prepared(
+  hexkl_weight_u8i4_table *tbl, uint8_t *vtcm_base, uint32_t vtcm_size,
+  uint32_t config_off, uint32_t M, uint32_t K, uint32_t inter, uint32_t N_out,
+  uint32_t n_experts, const uint32_t *h_gate_up, const uint32_t *h_down,
+  const uint32_t *row_index, const uint32_t *row_count, const float *row_weight,
+  const float *act_f32, float *out_f32, hvx_worker_pool *pool,
+  hexkl_moe_scratch *scratch, uint32_t flags,
+  const hexkl_moe_prepared_input *prepared) {
 
   if (!tbl || !vtcm_base || !h_gate_up || !h_down || !row_index || !row_count ||
-      !row_weight || !act_f32 || !out_f32 || !scratch || M == 0u ||
-      n_experts == 0u) {
+      !row_weight || (!act_f32 && !prepared) || !out_f32 || !scratch ||
+      M == 0u || n_experts == 0u) {
     return AEE_EBADPARM;
   }
+  if (prepared &&
+      (!prepared->rows || !prepared->scale || !prepared->zp ||
+       prepared->M != M || prepared->K != K || M <= 4u || K % 128u != 0u))
+    return AEE_EBADPARM;
   const uint32_t act =
     (flags & HEXKL_MOE_FLAG_GELU_TANH) != 0u ? HVX_GLU_GELU_TANH : HVX_GLU_SILU;
 
@@ -1515,6 +1533,9 @@ int hexkl_mm_u8i4_moe_layer_run(
                          tbl->slots[h_down[e]].bits == 2u))
       allow_tail = 0;
   }
+  /* The prepared form has no FP32 source for the optional int4 tail path. */
+  if (prepared && !all_2bit)
+    return AEE_EUNSUPPORTED;
   /* Compressed weights must never reach a DDR int4 GEMV reader. */
   const int compact_feed_ok = hexkl_moe_flags_feed(flags) != 0u &&
                               (uint64_t)K * inter * 2u <= arena &&
@@ -1617,7 +1638,7 @@ int hexkl_mm_u8i4_moe_layer_run(
   const size_t sz_slot_u32 = sizeof(uint32_t) * n_slots_cap;
   const size_t sz_expert_u32 = sizeof(uint32_t) * n_experts;
   const size_t sz_mpad_u32 = sizeof(uint32_t) * m_pad;
-  const size_t sz_act_c = sizeof(float) * (size_t)M * K;
+  const size_t sz_act_c = prepared ? 0u : sizeof(float) * (size_t)M * K;
   const size_t sz_out_c = sizeof(float) * (size_t)M * N_out;
   /* One done byte per slot block for the background pack. */
   const size_t sz_pack_done = n_slots_cap / HEXKL_MOE_PACK_UNIT_ROWS + 1u;
@@ -1649,8 +1670,9 @@ int hexkl_mm_u8i4_moe_layer_run(
   const size_t sz_m1 = use_m1 ? MOE_M1_MAX_EXPERTS * sz_m1_expert : 0u;
   /** Dense FFN chunks taking every token already share their packed slots.
      Keep direct packing there; routed prefill reuses contiguous U8 rows. */
-  const int reuse_q8 = !use_m1 && M > 1u && widest < M && (K % 128u) == 0u;
-  const size_t sz_src_q8 = reuse_q8 ? (size_t)M * K : 0u;
+  const int reuse_q8 =
+    prepared || (!use_m1 && M > 1u && widest < M && (K % 128u) == 0u);
+  const size_t sz_src_q8 = reuse_q8 && !prepared ? (size_t)M * K : 0u;
   const size_t need = ROUND_UP_SZ(sz_src_q8, MOE_SCRATCH_ALIGN) +
                       ROUND_UP_SZ(sz_scale, MOE_SCRATCH_ALIGN) +
                       ROUND_UP_SZ(sz_zp, MOE_SCRATCH_ALIGN) +
@@ -1680,6 +1702,8 @@ int hexkl_mm_u8i4_moe_layer_run(
   }
   uint8_t *cur = scratch->base;
   uint8_t *src_q8 = hexkl_moe_carve(&cur, sz_src_q8);
+  if (prepared)
+    src_q8 = (uint8_t *)prepared->rows;
   float *rq_scale = (float *)hexkl_moe_carve(&cur, sz_scale);
   int32_t *rq_zp = (int32_t *)hexkl_moe_carve(&cur, sz_zp);
   uint8_t *act_ah = (uint8_t *)hexkl_moe_carve(&cur, sz_act_ah);
@@ -1760,8 +1784,9 @@ int hexkl_mm_u8i4_moe_layer_run(
   if (hexkl_probe_on) {
     hexkl_dma_trace_reset(hexkl_probe_now_ticks());
   }
-  moe_dma_copy(act_c, act_f32, sizeof(float) * (size_t)M * K, 0, 0,
-               HEXKL_DMA_SITE_COPY_IN);
+  if (!prepared)
+    moe_dma_copy(act_c, act_f32, sizeof(float) * (size_t)M * K, 0, 0,
+                 HEXKL_DMA_SITE_COPY_IN);
   memset(out_c, 0, sizeof(float) * (size_t)M * N_out);
   HEXKL_PROBE_ADD(HEXKL_PROBE_ACC_COPY, p0);
   if (n_active == 0u) {
@@ -1799,7 +1824,10 @@ int hexkl_mm_u8i4_moe_layer_run(
   /** The scan is per source row and independent of where a row ends up, so
      it still runs once over M rows. */
   HEXKL_PROBE_T0(p0);
-  if (reuse_q8)
+  if (prepared) {
+    memcpy(scale_all, prepared->scale, sizeof(float) * m_pad);
+    memcpy(zp_all, prepared->zp, sizeof(int32_t) * m_pad);
+  } else if (reuse_q8)
     hvx_quant_rows_u8_params_rowmajor(act_c, M, m_pad, K, scale_all, zp_all,
                                       src_q8, pool);
   else

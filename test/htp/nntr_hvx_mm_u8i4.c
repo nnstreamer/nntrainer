@@ -1012,6 +1012,8 @@ int nntr_hvx_router_q4_prefill(remote_handle64 handle, uint32 M, uint32 K,
                                const float *bias, int biasLen, uint32 *sel,
                                int selLen, float *weight, int weightLen) {
   nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  if (s)
+    s->router_prepare_cookie = 0;
   if (!s || !x || !bias || !sel || !weight || !M || !K || K % 32u || !E ||
       E > 128u || E % 32u || !top_k || top_k > n_sel || n_sel > E ||
       (uint64_t)M * K != (uint64_t)xLen || (uint32_t)biasLen != E ||
@@ -2095,6 +2097,50 @@ int nntr_hvx_mm_u8i4_conv_block_timed(
   return rc;
 }
 
+/** Publish graph norm outputs while packing the Conv's input rows. */
+int nntr_hvx_mm_u8i4_conv_block_prefill_norm(
+  remote_handle64 handle, uint32 M, uint32 K, uint32 C, uint32 N_out,
+  const uint32 *h_in, int h_inLen, uint32 h_out, const float *conv_w,
+  int conv_wLen, float eps, const float *x, int xLen, const float *residual,
+  int residualLen, const float *gamma, int gammaLen, float *sum, int sumLen,
+  float *norm, int normLen, float *result, int resultLen, float *state,
+  int stateLen, uint32 *stage_us, int stage_usLen) {
+  nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  const uint64_t count = (uint64_t)M * K;
+  const uint64_t out_count = (uint64_t)M * N_out;
+  const uint64_t conv_count = (uint64_t)3u * C;
+  if (M < 2u || count > INT32_MAX / sizeof(float) ||
+      out_count > INT32_MAX / sizeof(float) ||
+      conv_count > INT32_MAX / sizeof(float) || !h_in || !x || !norm ||
+      !gamma || !conv_w || !result || !state || xLen != (int)count ||
+      normLen != (int)count || gammaLen != (int)K ||
+      (residual ? residualLen != (int)count || !sum || sumLen != (int)count
+                : residualLen != 0 || sumLen != 0) ||
+      (stage_usLen != 0 && stage_usLen != MOE_N_STAGES) ||
+      (stage_usLen && !stage_us))
+    return AEE_EBADPARM;
+  int rc = check_conv_block_args(s, M, K, C, N_out, h_inLen, conv_wLen, xLen,
+                                 resultLen, stateLen);
+  if (rc)
+    return rc;
+  const hexkl_conv_block_norm input_norm = {residual, gamma, sum, norm, eps};
+  const int timed = stage_usLen != 0;
+  if (timed)
+    hexkl_probe_reset(1);
+  const uint64_t t0 = timed ? hexkl_probe_now() : 0;
+  rc = hexkl_conv_block_run_norm(
+    &s->weights_u8i4, s->vtcm_base, s->vtcm_size, s->config_off, M, K, C, N_out,
+    h_in[0], h_in[1], h_in[2], h_out, conv_w, x, result, state, s->quant_pool,
+    &s->moe_scratch, (s->moe_flags & HEXKL_MOE_FLAG_DMA_BYPASS) != 0u,
+    s->moe_flags, &input_norm);
+  if (timed) {
+    const uint64_t t1 = hexkl_probe_now();
+    hexkl_probe_on = 0;
+    moe_fill_stage_us(stage_us, (uint32)(t1 - t0));
+  }
+  return rc;
+}
+
 /** Decode norm and conv share the existing HMX-owning FastRPC thread. */
 int nntr_hvx_mm_u8i4_conv_block_norm(
   remote_handle64 handle, uint32 K, uint32 C, uint32 N_out, const uint32 *h_in,
@@ -2302,5 +2348,420 @@ int nntr_hvx_weight_swap_batch_u2lut_single_arena(
       break;
     *n_done = (uint32)i + 1u;
   }
+  return AEE_SUCCESS;
+}
+
+/* Bounded internal byte packing for the prepared Q4 router. */
+typedef struct {
+  const uint8_t *rows;
+  const uint32_t *map;
+  uint8_t *ah;
+  uint32_t M, K;
+} router_prepared_pack_ctx;
+
+static void router_prepared_pack_worker(uint32_t threads, uint32_t thread,
+                                        void *opaque) {
+  const router_prepared_pack_ctx *c = opaque;
+  const uint32_t units = c->M / 16u;
+  const uint32_t lo = (uint64_t)units * thread / threads;
+  const uint32_t hi = (uint64_t)units * (thread + 1u) / threads;
+  hvx_gather_rowmajor_u8_ah_rows(c->rows, c->map, lo * 16u, hi * 16u, c->K,
+                                 c->ah);
+}
+
+typedef struct {
+  const float *residual, *gamma;
+  float *sum, *norm;
+  float eps;
+} router_prepared_norm;
+
+typedef struct {
+  const router_prepared_norm *norm;
+  const float *x;
+  float *cached, *scale;
+  int32_t *zp;
+  uint8_t *rows;
+  uint32_t M, K;
+} router_prepared_norm_quant_ctx;
+
+static void router_prepared_norm_quant_worker(uint32_t threads, uint32_t thread,
+                                              void *opaque) {
+  const router_prepared_norm_quant_ctx *c = opaque;
+  const uint32_t lo = (uint64_t)c->M * thread / threads;
+  const uint32_t hi = (uint64_t)c->M * (thread + 1u) / threads;
+  const router_prepared_norm *n = c->norm;
+  // Quantize each small normalized batch while its f32 rows are cached.
+  for (uint32_t row = lo; row < hi; row += 16u) {
+    const uint32_t count = hi - row < 16u ? hi - row : 16u;
+    const size_t off = (size_t)row * c->K;
+    hvx_rmsnorm_rows_cached_f32(
+      c->x + off, n->residual ? n->residual + off : NULL,
+      n->residual ? n->sum + off : NULL, n->norm + off, c->cached + off, count,
+      c->K, n->gamma, n->eps);
+    hvx_quant_rows_u8_params_rowmajor(c->cached + off, count, count, c->K,
+                                      c->scale + row, c->zp + row,
+                                      c->rows + off, NULL);
+  }
+}
+
+static int router_q4_prefill_prepare_impl(
+  remote_handle64 handle, uint32 M, uint32 K, uint32 E, uint32 w_handle,
+  const float *x, int xLen, uint32 top_k, uint32 n_sel, const float *bias,
+  int biasLen, uint32 *sel, int selLen, float *weight, int weightLen,
+  uint64 *cookie, const router_prepared_norm *input_norm) {
+  nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  if (cookie)
+    *cookie = 0;
+  if (!s)
+    return AEE_EBADPARM;
+  s->router_prepare_cookie = 0;
+  s->router_prepared = (hexkl_moe_prepared_input){0};
+  if (!cookie || !x || !bias || !sel || !weight || M <= 4u || M > 2048u || !K ||
+      K > 4096u || K % 128u || !E || E > 128u || E % 32u || !top_k ||
+      top_k > n_sel || n_sel > E || (uint64_t)M * K != (uint64_t)xLen ||
+      (uint32_t)biasLen != E || (uint64_t)M * n_sel != (uint64_t)selLen ||
+      (uint64_t)M * top_k != (uint64_t)weightLen ||
+      w_handle >= HEXKL_MM_U8I4_MAX_WEIGHTS ||
+      !s->weights_u8i4.slots[w_handle].in_use ||
+      s->weights_u8i4.slots[w_handle].K != K ||
+      s->weights_u8i4.slots[w_handle].N != E ||
+      s->weights_u8i4.slots[w_handle].bits != 4u)
+    return AEE_EBADPARM;
+  if (!s->hmx_locked)
+    return AEE_EUNSUPPORTED;
+  const uint32_t padded = (M + 63u) & ~63u;
+  const size_t row_bytes = (size_t)padded * K;
+  const uint32_t arena =
+    s->vtcm_size < s->config_off ? s->vtcm_size : s->config_off;
+  /* The FC's exact activation + two weight buffers + minimum two result
+   * tiles must fit before the preparation writes any VTCM byte. */
+  if (row_bytes > 4u * 1024u * 1024u ||
+      row_bytes + (size_t)K * E + 2u * 8192u > arena)
+    return AEE_EUNSUPPORTED;
+  const size_t need =
+    row_bytes + 3u * padded * sizeof(uint32_t) + (size_t)M * E * sizeof(float);
+  int rc = hexkl_moe_scratch_reserve(&s->router_q4_scratch, need);
+  if (rc != AEE_SUCCESS)
+    return rc;
+  if (input_norm && !norm_rows_reserve(s, (size_t)M * K))
+    return AEE_ENOMEMORY;
+  uint8_t *cur = s->router_q4_scratch.base;
+  uint8_t *rows = hexkl_moe_carve(&cur, row_bytes);
+  float *scale = hexkl_moe_carve(&cur, padded * sizeof(float));
+  int32_t *zp = hexkl_moe_carve(&cur, padded * sizeof(int32_t));
+  uint32_t *map = hexkl_moe_carve(&cur, padded * sizeof(uint32_t));
+  float *logits = (float *)cur;
+  for (uint32_t r = 0; r < padded; ++r)
+    map[r] = r;
+  if (M < padded)
+    memset(rows + (size_t)M * K, 0, (size_t)(padded - M) * K);
+  if (input_norm) {
+    for (uint32_t row = M; row < padded; ++row) {
+      scale[row] = 1.0f;
+      zp[row] = 0;
+    }
+    const router_prepared_norm_quant_ctx norm_quant = {
+      input_norm, x, s->norm_rows, scale, zp, rows, M, K};
+    hvx_worker_pool_run(s->quant_pool, router_prepared_norm_quant_worker,
+                        (void *)&norm_quant, M);
+  } else {
+    hvx_quant_rows_u8_params_rowmajor(x, M, padded, K, scale, zp, rows,
+                                      s->quant_pool);
+  }
+  router_prepared_pack_ctx pack = {rows, map, s->vtcm_base, padded, K};
+  hvx_worker_pool_run(s->quant_pool, router_prepared_pack_worker, &pack,
+                      padded / 16u);
+  const hexkl_mm_opts opts = {
+    .pool = s->quant_pool,
+    .act_scale = scale,
+    .act_zp = zp,
+    .act_ah_prepacked = s->vtcm_base,
+    .weight_src_bypass = (s->moe_flags & HEXKL_MOE_FLAG_DMA_BYPASS) != 0u};
+  rc = fc_layer_run(s, M, K, &w_handle, 1u, NULL, logits, &opts);
+  if (rc == AEE_SUCCESS)
+    rc = nntr_hvx_sigmoid_topk_f32(handle, M, E, top_k, n_sel, logits,
+                                   (int)(M * E), bias, biasLen, sel, selLen,
+                                   weight, weightLen);
+  if (rc != AEE_SUCCESS) {
+    // EUNSUPPORTED promises that no graph output has been published. Once
+    // norm output can alias an input, replaying the add/norm is unsafe.
+    if (input_norm && (rc == AEE_EUNSUPPORTED || rc == AEE_EUNSUPPORTEDAPI))
+      return AEE_EFAILED;
+    return rc;
+  }
+  if (++s->router_prepare_serial == 0)
+    ++s->router_prepare_serial;
+  s->router_prepared = (hexkl_moe_prepared_input){rows, scale, zp, M, K};
+  s->router_prepare_cookie = s->router_prepare_serial;
+  *cookie = s->router_prepare_cookie;
+  return AEE_SUCCESS;
+}
+
+int nntr_hvx_mm_u8i4_moe_layer_prepared(
+  remote_handle64 handle, uint64 cookie, uint32 M, uint32 K, uint32 inter,
+  uint32 N_out, uint32 act, const uint32 *h_gate_up, int h_gate_upLen,
+  const uint32 *h_down, int h_downLen, const uint32 *row_index,
+  int row_indexLen, const uint32 *row_count, int row_countLen,
+  const float *row_weight, int row_weightLen, float *out_f32, int out_f32Len,
+  uint32 *stage_us, int stage_usLen) {
+  nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  if (!s)
+    return AEE_EBADPARM;
+  const int matched = cookie && cookie == s->router_prepare_cookie &&
+                      s->router_prepared.M == M && s->router_prepared.K == K;
+  const hexkl_moe_prepared_input prepared = s->router_prepared;
+  /* A failed consume expires the lease too. No replay can re-enter a
+   * kernel after the first attempt, successful or otherwise. */
+  s->router_prepare_cookie = 0;
+  s->router_prepared = (hexkl_moe_prepared_input){0};
+  if (!matched || !out_f32 || !h_gate_up || !h_down || !row_index ||
+      !row_count || !row_weight || act > 1u ||
+      (stage_usLen != 0 && (stage_usLen != MOE_N_STAGES || !stage_us)) ||
+      (uint64_t)M * K > INT32_MAX / sizeof(float) ||
+      (uint64_t)M * N_out > INT32_MAX / sizeof(float) ||
+      (uint64_t)K * inter > INT32_MAX / 2u ||
+      (uint64_t)inter * N_out > INT32_MAX)
+    return AEE_EBADPARM;
+  int rc = check_moe_layer_args(s, M, K, inter, N_out, h_gate_upLen, h_downLen,
+                                row_indexLen, row_countLen, row_weightLen,
+                                (int)(M * K), out_f32Len);
+  if (rc == AEE_SUCCESS)
+    rc = check_moe_row_totals(row_count, h_gate_upLen, row_indexLen);
+  if (rc != AEE_SUCCESS)
+    return rc;
+  uint64_t begin = 0, end = 0;
+  if (stage_usLen) {
+    hexkl_probe_reset(1);
+    begin = hexkl_probe_now();
+  }
+  rc = hexkl_mm_u8i4_moe_layer_run_prepared(
+    &s->weights_u8i4, s->vtcm_base, s->vtcm_size, s->config_off, M, K, inter,
+    N_out, (uint32_t)h_gate_upLen, h_gate_up, h_down, row_index, row_count,
+    row_weight, NULL, out_f32, s->quant_pool, &s->moe_scratch,
+    s->moe_flags | (act ? HEXKL_MOE_FLAG_GELU_TANH : 0u), &prepared);
+  if (stage_usLen) {
+    end = hexkl_probe_now();
+    hexkl_probe_on = 0;
+    return nntr_hvx_moe_stage_fill(stage_us, begin, end, rc);
+  }
+  return rc;
+}
+
+int nntr_hvx_router_q4_prefill_prepare(remote_handle64 handle, uint32 M,
+                                       uint32 K, uint32 E, uint32 w_handle,
+                                       const float *x, int xLen, uint32 top_k,
+                                       uint32 n_sel, const float *bias,
+                                       int biasLen, uint32 *sel, int selLen,
+                                       float *weight, int weightLen,
+                                       uint64 *cookie) {
+  return router_q4_prefill_prepare_impl(
+    handle, M, K, E, w_handle, x, xLen, top_k, n_sel, bias, biasLen, sel,
+    selLen, weight, weightLen, cookie, NULL);
+}
+
+static int router_prepare_overlap(const void *a, size_t a_bytes, const void *b,
+                                  size_t b_bytes) {
+  const uintptr_t x = (uintptr_t)a, y = (uintptr_t)b;
+  return a && b && (x < y ? y - x < a_bytes : x - y < b_bytes);
+}
+
+int nntr_hvx_router_q4_prefill_norm_prepare(
+  remote_handle64 handle, uint32 M, uint32 K, uint32 E, uint32 w_handle,
+  uint32 top_k, uint32 n_sel, float eps, const float *x, int xLen,
+  const float *residual, int residualLen, const float *gamma, int gammaLen,
+  float *sum, int sumLen, float *norm, int normLen, const float *bias,
+  int biasLen, uint32 *sel, int selLen, float *weight, int weightLen,
+  uint64 *cookie) {
+  nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  if (cookie)
+    *cookie = 0;
+  if (!s)
+    return AEE_EBADPARM;
+  s->router_prepare_cookie = 0;
+  s->router_prepared = (hexkl_moe_prepared_input){0};
+  const uint64_t count = (uint64_t)M * K;
+  if (count > INT32_MAX / sizeof(float) || !x || !norm || xLen != (int)count ||
+      normLen != (int)count ||
+      (gammaLen != 0 && (gammaLen != (int)K || !gamma)) ||
+      (residualLen != 0 && (residualLen != (int)count || !residual)) ||
+      (residualLen ? !sum || sumLen != (int)count : sumLen != 0) || !bias ||
+      !sel || !weight || !cookie || selLen < 0 || weightLen < 0)
+    return AEE_EBADPARM;
+  if (!residualLen)
+    residual = NULL;
+  if (!gammaLen)
+    gamma = NULL;
+  if (!residual)
+    sum = NULL;
+  const size_t bytes = (size_t)count * sizeof(float);
+  if (router_prepare_overlap(sum, bytes, norm, bytes))
+    return AEE_EBADPARM;
+  const float *inputs[] = {x, residual};
+  float *outputs[] = {sum, norm};
+  for (uint32_t i = 0; i < 2u; ++i) {
+    for (uint32_t j = 0; j < 2u; ++j)
+      if (outputs[i] != inputs[j] &&
+          router_prepare_overlap(outputs[i], bytes, inputs[j], bytes))
+        return AEE_EBADPARM;
+    if (router_prepare_overlap(outputs[i], bytes, gamma,
+                               (size_t)K * sizeof(float)) ||
+        router_prepare_overlap(outputs[i], bytes, bias,
+                               (size_t)E * sizeof(float)) ||
+        router_prepare_overlap(outputs[i], bytes, sel,
+                               (size_t)selLen * sizeof(uint32)) ||
+        router_prepare_overlap(outputs[i], bytes, weight,
+                               (size_t)weightLen * sizeof(float)))
+      return AEE_EBADPARM;
+  }
+  const router_prepared_norm input_norm = {residual, gamma, sum, norm, eps};
+  return router_q4_prefill_prepare_impl(
+    handle, M, K, E, w_handle, x, xLen, top_k, n_sel, bias, biasLen, sel,
+    selLen, weight, weightLen, cookie, &input_norm);
+}
+
+/** Prefill QKV with graph norm publication and three direct output bases. */
+int nntr_hvx_mm_u8i4_qkv_prefill_norm(
+  remote_handle64 handle, uint32 M, uint32 K, uint32 Nq, uint32 Nk, uint32 Nv,
+  const uint32 *w_handles, int w_handlesLen, float post_eps,
+  const uint32 *post_chunk, int post_chunkLen, const float *post_gamma,
+  int post_gammaLen, uint32 rope_hd, uint32 rope_handles, const float *rope_cs,
+  int rope_csLen, float norm_eps, const float *x, int xLen,
+  const float *residual, int residualLen, const float *gamma, int gammaLen,
+  float *sum, int sumLen, float *norm, int normLen, float *q, int qLen,
+  float *k, int kLen, float *v, int vLen) {
+  nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  const uint64_t count = (uint64_t)M * K;
+  const uint32_t widths[3] = {Nq, Nk, Nv};
+  const int out_lens[3] = {qLen, kLen, vLen};
+  float *out_base[3] = {q, k, v};
+  uint32_t handles[3], chunks[3] = {0u, 0u, 0u};
+  if (!s || M < 2u || M > 2048u || !K || K > 4096u || K % 128u ||
+      count > INT32_MAX / sizeof(float) || !x || !norm || xLen != (int)count ||
+      normLen != (int)count || !w_handles || w_handlesLen != 3 ||
+      (gammaLen != 0 && (gammaLen != (int)K || !gamma)) ||
+      (residualLen != 0 && (residualLen != (int)count || !residual)) ||
+      (residualLen ? !sum || sumLen != (int)count : sumLen != 0) ||
+      (post_chunkLen != 0 && (post_chunkLen != 3 || !post_chunk)) ||
+      post_gammaLen < 0 || rope_csLen < 0)
+    return AEE_EBADPARM;
+  if (!s->hmx_locked)
+    return AEE_EUNSUPPORTED;
+  if (!residualLen) {
+    residual = NULL;
+    sum = NULL;
+  }
+  if (!gammaLen)
+    gamma = NULL;
+  uint32_t widest = 0u, gamma_total = 0u;
+  for (uint32_t i = 0; i < 3u; ++i) {
+    const uint32_t n = widths[i];
+    const uint64_t n_out = (uint64_t)M * n;
+    handles[i] = w_handles[i];
+    if (!n || n > 4096u || n % 32u || n_out > INT32_MAX / sizeof(float) ||
+        !out_base[i] || out_lens[i] != (int)n_out ||
+        handles[i] >= HEXKL_MM_U8I4_MAX_WEIGHTS)
+      return AEE_EBADPARM;
+    const hexkl_weight_u8i4 *h = &s->weights_u8i4.slots[handles[i]];
+    if (!h->in_use || h->K != K || h->N != n ||
+        (h->bits != 0u && h->bits != 4u))
+      return AEE_EBADPARM;
+    widest = n > widest ? n : widest;
+    chunks[i] = post_chunkLen ? post_chunk[i] : 0u;
+    if (chunks[i] && (chunks[i] % 32u || n % chunks[i]))
+      return AEE_EBADPARM;
+    gamma_total += chunks[i];
+  }
+  if ((uint32_t)post_gammaLen != gamma_total || (gamma_total && !post_gamma) ||
+      rope_handles > 3u)
+    return AEE_EBADPARM;
+  if (rope_hd) {
+    if (rope_hd % 64u || !rope_cs ||
+        (uint64_t)rope_csLen != (uint64_t)M * 2u * rope_hd)
+      return AEE_EBADPARM;
+    for (uint32_t i = 0; i < rope_handles; ++i)
+      if (widths[i] % rope_hd)
+        return AEE_EBADPARM;
+  } else if (rope_csLen) {
+    return AEE_EBADPARM;
+  }
+
+  /* The three graph projections may reuse raw input storage: the whole
+   * activation is packed before any projection writes. Both published norm
+   * outputs must survive the call, and all still-used metadata stays disjoint.
+   */
+  const size_t bytes = (size_t)count * sizeof(float);
+  const float *inputs[2] = {x, residual};
+  float *outputs[5] = {sum, norm, q, k, v};
+  const size_t sizes[5] = {bytes, bytes, (size_t)qLen * sizeof(float),
+                           (size_t)kLen * sizeof(float),
+                           (size_t)vLen * sizeof(float)};
+  const void *metadata[5] = {gamma, post_gamma, rope_cs, w_handles, post_chunk};
+  const size_t meta_sizes[5] = {
+    (size_t)gammaLen * sizeof(float), (size_t)post_gammaLen * sizeof(float),
+    (size_t)rope_csLen * sizeof(float), 3u * sizeof(uint32),
+    (size_t)post_chunkLen * sizeof(uint32)};
+  for (uint32_t i = 0; i < 5u; ++i) {
+    for (uint32_t j = 0; j < i; ++j)
+      if (router_prepare_overlap(outputs[i], sizes[i], outputs[j], sizes[j]))
+        return AEE_EBADPARM;
+    for (uint32_t j = 0; j < 5u; ++j)
+      if (meta_sizes[j] && router_prepare_overlap(outputs[i], sizes[i],
+                                                  metadata[j], meta_sizes[j]))
+        return AEE_EBADPARM;
+    if (i < 2u)
+      for (uint32_t j = 0; j < 2u; ++j)
+        if (outputs[i] != inputs[j] &&
+            router_prepare_overlap(outputs[i], bytes, inputs[j], bytes))
+          return AEE_EBADPARM;
+  }
+
+  const uint32_t padded = (M + 63u) & ~63u;
+  const uint32_t arena =
+    s->vtcm_size < s->config_off ? s->vtcm_size : s->config_off;
+  /* K%128 and N%32 make each weight buffer 2048-byte aligned. Match the
+   * FC activation + two widest weight buffers + two result tiles exactly. */
+  if ((uint64_t)padded * K + (uint64_t)K * widest + 2u * 8192u > arena)
+    return AEE_EUNSUPPORTED;
+  if (!norm_rows_reserve(s, (size_t)count + K))
+    return AEE_ENOMEMORY;
+  float *cached_gamma = s->norm_rows + (size_t)count;
+  if (gamma)
+    memcpy(cached_gamma, gamma, (size_t)K * sizeof(float));
+  int post_done = 0;
+  hexkl_mm_opts opts = {.pool = s->quant_pool,
+                        .pre_scratch = s->norm_rows,
+                        .pre_gamma = gamma ? cached_gamma : NULL,
+                        .pre_eps = norm_eps,
+                        .weight_src_bypass =
+                          (s->moe_flags & HEXKL_MOE_FLAG_DMA_BYPASS) != 0u,
+                        .post_done = &post_done,
+                        .post_chunk = chunks,
+                        .post_gamma = post_gamma,
+                        .post_eps = post_eps,
+                        .rope_hd = rope_hd,
+                        .rope_handles = rope_handles,
+                        .rope_cs = rope_cs,
+                        .pre_residual = residual,
+                        .pre_sum = sum,
+                        .pre_norm = norm,
+                        .out_base = out_base};
+  int rc = fc_layer_run(s, M, K, handles, 3u, x, NULL, &opts);
+  /* A failed kernel may have published aliased sum/norm already. Never
+   * advertise a retryable fallback after crossing that publication point. */
+  if (rc == AEE_EUNSUPPORTED || rc == AEE_EUNSUPPORTEDAPI)
+    return AEE_EFAILED;
+  if (rc != AEE_SUCCESS)
+    return rc;
+  const float *g = post_gamma;
+  for (uint32_t i = 0; !post_done && i < 3u; ++i) {
+    if (chunks[i]) {
+      hvx_rmsnorm_rows_ld_f32(out_base[i], out_base[i], M, widths[i], widths[i],
+                              chunks[i], g, post_eps, s->quant_pool);
+      g += chunks[i];
+    }
+  }
+  for (uint32_t i = 0; !post_done && rope_hd && i < rope_handles; ++i)
+    hvx_rope_rows_ld_f32(out_base[i], M, widths[i], widths[i], rope_hd, rope_cs,
+                         s->quant_pool);
   return AEE_SUCCESS;
 }

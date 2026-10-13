@@ -1,0 +1,22 @@
+{
+  "artifact": {
+    "serial": "R5KL30G6MCX",
+    "runtime": "/data/local/tmp/lfm2_prefill1000_20261013/qkv-norm-direct-v1",
+    "sha256": "c1497d70c7ef947995c0355483c2d89df87241f7ba41f5d44f16509c3dad614b  qkv_norm_device_check\n767177c9bab86a78ccc88fc18981d3f4133ed82be8069b0383427e1f698d0625  libnntr_hvx_skel.so\nc698d5d32aa89af4c94139f1e88542ea01960ea0cb5febc4de921461bcf8f6c7  libsdkl.so",
+    "local": {
+      "qkv_norm_device_check": "c1497d70c7ef947995c0355483c2d89df87241f7ba41f5d44f16509c3dad614b",
+      "libnntr_hvx_skel.so": "767177c9bab86a78ccc88fc18981d3f4133ed82be8069b0383427e1f698d0625"
+    }
+  },
+  "command": "cd /data/local/tmp/lfm2_prefill1000_20261013/qkv-norm-direct-v1 && echo NNTR_BENCH_PID=$$ && exec env LD_LIBRARY_PATH=. ADSP_LIBRARY_PATH=. ./qkv_norm_device_check 7",
+  "returncode": 0,
+  "concurrent_pids": [],
+  "wall_seconds": 1.188577561000784,
+  "passed": true,
+  "valid": true,
+  "medians_us": {
+    "separate": 6552.657,
+    "fused": 4461.667,
+    "paired_gain": 2087.6050000000005
+  }
+}

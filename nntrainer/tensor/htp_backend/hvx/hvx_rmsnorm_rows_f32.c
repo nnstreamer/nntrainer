@@ -185,6 +185,39 @@ int hvx_add_rmsnorm_rows_f32(const float *x, const float *residual, float *sum,
   return 0;
 }
 
+void hvx_rmsnorm_rows_cached_f32(const float *x, const float *residual,
+                                 float *sum, float *norm, float *cached,
+                                 uint32_t M, uint32_t n, const float *gamma,
+                                 float eps) {
+  const uint32_t nvec = n / LANES;
+  for (uint32_t row = 0; row < M; ++row) {
+    const size_t offset = (size_t)row * n;
+    const HVX_UVector *vx = (const HVX_UVector *)(x + offset);
+    HVX_UVector *local = (HVX_UVector *)(cached + offset);
+    if (residual) {
+      const HVX_UVector *vr = (const HVX_UVector *)(residual + offset);
+      HVX_UVector *vs = (HVX_UVector *)(sum + offset);
+      for (uint32_t j = 0; j < nvec; ++j) {
+        const HVX_Vector value = Q6_Vsf_vadd_VsfVsf(vx[j], vr[j]);
+        local[j] = value;
+        vs[j] = value;
+      }
+    } else {
+      for (uint32_t j = 0; j < nvec; ++j)
+        local[j] = vx[j];
+    }
+#if defined(__hexagon__)
+    /* Keep the same stored f32 input as residual_norm_worker. In particular,
+     * an inlined norm must not retain the addition in qf32 registers. */
+    __asm__ volatile("" : : : "memory");
+#endif
+    norm_chunk((const float *)local, (float *)local, gamma, n, eps);
+    HVX_UVector *published = (HVX_UVector *)(norm + offset);
+    for (uint32_t j = 0; j < nvec; ++j)
+      published[j] = local[j];
+  }
+}
+
 typedef struct {
   float *out;
   const float *res; /**< the residual, or NULL when it is out itself */

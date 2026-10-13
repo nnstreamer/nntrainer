@@ -91,6 +91,43 @@ public:
     return false;
   }
 
+  /** Borrow shared prefill operands until the designated Conv immediately
+   * follows this norm. The consumer publishes both graph outputs before it
+   * returns. False leaves outputs untouched and requests synchronous norm. */
+  virtual bool defer_prefill_conv_norm(unsigned rows, unsigned width, float eps,
+                                       const float *x, const float *residual,
+                                       const float *gamma, float *sum,
+                                       float *norm) {
+    return false;
+  }
+
+  /** Borrow shared operands for the designated prefill router. Gamma is
+   * snapshotted; the router publishes sum/norm before returning. */
+  virtual bool defer_prefill_router_norm(unsigned rows, unsigned width,
+                                         float eps, const float *x,
+                                         const float *residual,
+                                         const float *gamma, float *sum,
+                                         float *norm) {
+    return false;
+  }
+
+  /** Borrow shared operands for the next QKV projection. Gamma is owned by
+   * the descriptor; its consumer publishes sum/norm before returning. */
+  virtual bool defer_prefill_qkv_norm(unsigned rows, unsigned width, float eps,
+                                      const float *x, const float *residual,
+                                      const float *gamma, float *sum,
+                                      float *norm) {
+    return false;
+  }
+
+  /** Materialize a deferred QKV norm before a projection uses a fallback. */
+  virtual void materialize_prefill_qkv_norm(const float *x, unsigned rows,
+                                            unsigned width) {}
+
+  /** Drop borrowed norm operands when a graph traversal ends, including
+   * cancellation or an exception before its designated consumer runs. */
+  virtual void discard_deferred_norm() noexcept {}
+
   /** Two outputs: sum = x + residual; norm = RMSNorm(sum) * gamma. */
   virtual bool add_rmsnorm_fp32(unsigned rows, unsigned width, float eps,
                                 const float *x, const float *residual,

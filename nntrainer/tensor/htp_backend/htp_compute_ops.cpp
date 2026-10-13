@@ -1247,7 +1247,10 @@ public:
     if (consumer_norm_calls_)
       std::fprintf(stderr, "[HTP] norm consumer fusion calls=%llu pending=%d\n",
                    (unsigned long long)consumer_norm_calls_,
-                   pending_norm_.norm != nullptr);
+                   pending_norm_.norm != nullptr ||
+                     pending_prefill_conv_norm_.norm != nullptr ||
+                     pending_prefill_router_norm_.norm != nullptr ||
+                     pending_prefill_qkv_norm_.norm != nullptr);
     if (fused_router_calls_ || fused_qkv_calls_)
       std::fprintf(stderr, "[HTP] fused RPC calls: router=%llu qkv_norm=%llu\n",
                    (unsigned long long)fused_router_calls_,
@@ -1421,6 +1424,136 @@ public:
   } pending_norm_;
   uint64_t consumer_norm_calls_ = 0;
 
+  struct PendingPrefillNorm {
+    unsigned rows = 0, width = 0;
+    float eps = 0;
+    const float *x = nullptr, *residual = nullptr;
+    std::vector<float> gamma;
+    float *sum = nullptr, *norm = nullptr;
+  } pending_prefill_conv_norm_, pending_prefill_router_norm_,
+    pending_prefill_qkv_norm_;
+
+  enum class PrefillNormConsumer { Conv, Router, Qkv };
+
+  static bool prefillNormOverlap(const void *a, size_t an, const void *b,
+                                 size_t bn) {
+    if (!a || !b || !an || !bn)
+      return false;
+    const auto aa = reinterpret_cast<uintptr_t>(a);
+    const auto bb = reinterpret_cast<uintptr_t>(b);
+    return aa <= bb ? bb - aa < an : aa - bb < bn;
+  }
+
+  bool defer_prefill_conv_norm(unsigned rows, unsigned width, float eps,
+                               const float *x, const float *residual,
+                               const float *gamma, float *sum,
+                               float *norm) override {
+    return deferPrefillNorm(PrefillNormConsumer::Conv, rows, width, eps, x,
+                            residual, gamma, sum, norm);
+  }
+
+  bool defer_prefill_router_norm(unsigned rows, unsigned width, float eps,
+                                 const float *x, const float *residual,
+                                 const float *gamma, float *sum,
+                                 float *norm) override {
+    return deferPrefillNorm(PrefillNormConsumer::Router, rows, width, eps, x,
+                            residual, gamma, sum, norm);
+  }
+
+  bool defer_prefill_qkv_norm(unsigned rows, unsigned width, float eps,
+                              const float *x, const float *residual,
+                              const float *gamma, float *sum,
+                              float *norm) override {
+    return deferPrefillNorm(PrefillNormConsumer::Qkv, rows, width, eps, x,
+                            residual, gamma, sum, norm);
+  }
+
+  bool deferPrefillNorm(PrefillNormConsumer consumer, unsigned rows,
+                        unsigned width, float eps, const float *x,
+                        const float *residual, const float *gamma, float *sum,
+                        float *norm) {
+    static const bool enabled = [] {
+      const char *e = std::getenv("NNTR_HTP_PREFILL_CONV_NORM");
+      const char *stats = std::getenv("NNTR_ACT_STATS");
+      return e && std::atoi(e) != 0 && (!stats || std::atoi(stats) == 0);
+    }();
+    static const bool router_enabled = [] {
+      const char *e = std::getenv("NNTR_HTP_PREFILL_ROUTER_NORM");
+      const char *reuse = std::getenv("NNTR_HTP_ROUTER_Q4_QUANT_REUSE");
+      const char *stats = std::getenv("NNTR_ACT_STATS");
+      return e && std::atoi(e) != 0 && reuse && std::atoi(reuse) != 0 &&
+             (!stats || std::atoi(stats) == 0);
+    }();
+    static const bool qkv_enabled = [] {
+      const char *e = std::getenv("NNTR_HTP_PREFILL_QKV_NORM");
+      const char *stats = std::getenv("NNTR_ACT_STATS");
+      return e && std::atoi(e) != 0 && (!stats || std::atoi(stats) == 0);
+    }();
+    const bool router = consumer == PrefillNormConsumer::Router;
+    const bool qkv = consumer == PrefillNormConsumer::Qkv;
+    const uint64_t count = static_cast<uint64_t>(rows) * width;
+    if (!(router ? router_enabled
+          : qkv  ? qkv_enabled
+                 : enabled) ||
+        rows < 2 || !width || width % 32 || count > INT32_MAX / sizeof(float) ||
+        !x || !gamma || !norm || (residual && !sum))
+      return false;
+    if (router &&
+        (rows <= 4 || rows > 2048 || width > 4096 || width % 128 ||
+         rows > fcMaxRows(width) || HtpProfile::global().level() >= 3 ||
+         uint64_t((rows + 63u) & ~63u) * width > (4u << 20)))
+      return false;
+    if (qkv &&
+        (rows > 2048 || width > 4096 || width % 128 || rows > fcMaxRows(width)))
+      return false;
+    const size_t bytes = static_cast<size_t>(count) * sizeof(float);
+    auto &backend = HtpBackend::global();
+    if (!backend.isSharedRange(x, bytes) ||
+        !backend.isSharedRange(norm, bytes) ||
+        (residual && (!backend.isSharedRange(residual, bytes) ||
+                      !backend.isSharedRange(sum, bytes))))
+      return false;
+    for (const float *dst : {sum, norm}) {
+      if (!dst)
+        continue;
+      if (prefillNormOverlap(dst, bytes, gamma, width * sizeof(float)))
+        return false;
+      for (const float *src : {x, residual})
+        if (src != dst && prefillNormOverlap(dst, bytes, src, bytes))
+          return false;
+    }
+    if (prefillNormOverlap(sum, bytes, norm, bytes))
+      return false;
+    std::lock_guard<std::mutex> lock(invoke_mutex_);
+    if (pending_prefill_conv_norm_.norm || pending_prefill_router_norm_.norm ||
+        pending_prefill_qkv_norm_.norm || pending_norm_.norm)
+      throw std::runtime_error("HTP deferred norm was not consumed");
+    auto &p = router ? pending_prefill_router_norm_
+              : qkv  ? pending_prefill_qkv_norm_
+                     : pending_prefill_conv_norm_;
+    // The graph can unload the RMSNorm weight before its designated consumer.
+    p.gamma.assign(gamma, gamma + width);
+    p.rows = rows;
+    p.width = width;
+    p.eps = eps;
+    p.x = x;
+    p.residual = residual;
+    p.sum = residual ? sum : nullptr;
+    p.norm = norm;
+    return true;
+  }
+
+  void discard_deferred_norm() noexcept override {
+    std::lock_guard<std::mutex> lock(invoke_mutex_);
+    pending_norm_.norm = nullptr;
+    pending_norm_.sum = nullptr;
+    pending_prefill_conv_norm_ = {};
+    pending_prefill_router_norm_ = {};
+    pending_prefill_qkv_norm_ = {};
+    prepared_moe_cookie_ = prepared_moe_lease_ = 0;
+    moe_input_reuse_.cancel();
+  }
+
   bool defer_decode_norm(const std::string &consumer, unsigned N, float eps,
                          const float *x, const float *residual,
                          const float *gamma, float *sum, float *norm) override {
@@ -1441,7 +1574,8 @@ public:
         return false;
     }
     std::lock_guard<std::mutex> lock(invoke_mutex_);
-    if (pending_norm_.norm)
+    if (pending_norm_.norm || pending_prefill_conv_norm_.norm ||
+        pending_prefill_router_norm_.norm || pending_prefill_qkv_norm_.norm)
       throw std::runtime_error("HTP deferred norm was not consumed");
     auto &p = pending_norm_;
     p.consumer = consumer;
@@ -1673,10 +1807,139 @@ public:
     return true;
   }
 
+  static bool unsupportedRpc(int err) {
+    const uint32_t remote = static_cast<uint32_t>(err);
+    return err == AEE_EUNSUPPORTED || err == AEE_EUNSUPPORTEDAPI ||
+           remote == 0x80000414u || remote == 0x8000046cu;
+  }
+
+  PendingPrefillNorm takePrefillRouterNorm(const float *x, unsigned M,
+                                           unsigned K) {
+    PendingPrefillNorm p;
+    {
+      std::lock_guard<std::mutex> lock(invoke_mutex_);
+      if (pending_prefill_router_norm_.norm) {
+        p = std::move(pending_prefill_router_norm_);
+        pending_prefill_router_norm_ = {};
+        prepared_moe_cookie_ = prepared_moe_lease_ = 0;
+      }
+    }
+    if (p.norm && (p.rows != M || p.width != K || p.norm != x))
+      throw std::runtime_error("HTP deferred prefill router norm mismatch");
+    return p;
+  }
+
+  void materializePrefillNorm(const PendingPrefillNorm &p) {
+    if (!p.norm)
+      return;
+    const bool materialized =
+      p.residual
+        ? add_rmsnorm_fp32(p.rows, p.width, p.eps, p.x, p.residual,
+                           p.gamma.data(), p.sum, p.norm)
+        : inferenceMath(InferenceMath::RmsNorm, p.rows, p.width, p.width, p.eps,
+                        1.0f, p.x, nullptr, p.gamma.data(), p.norm, nullptr);
+    if (!materialized)
+      throw std::runtime_error("HTP deferred prefill norm fallback");
+  }
+
+  PendingPrefillNorm takePrefillQkvNorm(const float *x, unsigned M,
+                                        unsigned K) {
+    PendingPrefillNorm p;
+    {
+      std::lock_guard<std::mutex> lock(invoke_mutex_);
+      p = std::move(pending_prefill_qkv_norm_);
+      pending_prefill_qkv_norm_ = {};
+    }
+    if (p.norm && (p.rows != M || p.width != K || p.norm != x))
+      throw std::runtime_error("HTP deferred prefill QKV norm mismatch");
+    return p;
+  }
+
+  void materialize_prefill_qkv_norm(const float *x, unsigned rows,
+                                    unsigned width) override {
+    materializePrefillNorm(takePrefillQkvNorm(x, rows, width));
+  }
+
   bool router_qs4cx_prefill(void *w, float *scales, const float *x,
                             float *logits, unsigned M, unsigned K, unsigned E,
                             unsigned top_k, unsigned n_sel, const float *bias,
                             unsigned *sel, float *weight) override {
+    const PendingPrefillNorm p = takePrefillRouterNorm(x, M, K);
+    if (p.norm) {
+      if (invokePrefillRouterNorm(p, w, scales, E, top_k, n_sel, bias, sel,
+                                  weight))
+        return true;
+      // The false result guarantees that sum/norm have not been published.
+      // Every ordinary router fallback must see a materialized input, even
+      // when it returns false and the caller falls through to generic FC.
+      materializePrefillNorm(p);
+    }
+    return routerQs4cxPrefill(w, scales, x, logits, M, K, E, top_k, n_sel, bias,
+                              sel, weight);
+  }
+
+  bool invokePrefillRouterNorm(const PendingPrefillNorm &p, void *w,
+                               float *scales, unsigned E, unsigned top_k,
+                               unsigned n_sel, const float *bias, unsigned *sel,
+                               float *weight) {
+    const unsigned M = p.rows, K = p.width;
+    if (!w || !scales || !E || E > 128 || E % 32 || !top_k || top_k > n_sel ||
+        n_sel > E || !bias || !sel || !weight || M <= 4 || M > 2048 ||
+        K > 4096 || K % 128 || M > fcMaxRows(K) ||
+        uint64_t((M + 63u) & ~63u) * K > (4u << 20) ||
+        HtpProfile::global().level() >= 3)
+      return false;
+    {
+      std::lock_guard<std::mutex> lock(invoke_mutex_);
+      if (!moe_input_reuse_.token(p.norm, M, K))
+        return false;
+    }
+    const auto session =
+      static_cast<remote_handle64>(HtpBackend::global().handle());
+    const FcHandles &fh = get_or_register_fc(w, session, K, E, scales);
+    if (fh.handles.size() != 1)
+      return false;
+    sendMoeOptsOnce(session);
+    std::lock_guard<std::mutex> lock(invoke_mutex_);
+    const uint64_t lease = moe_input_reuse_.token(p.norm, M, K);
+    if (!lease)
+      return false;
+    // The normalized graph output is still uninitialized here. Do not call
+    // stageInput or remember a staged activation until it is published.
+    const int count = static_cast<int>(M * K);
+    uint64 cookie = 0;
+    const uint64_t start = HtpProfile::nowUs();
+    const int err = nntr_hvx_router_q4_prefill_norm_prepare(
+      session, M, K, E, fh.handles[0], top_k, n_sel, p.eps, p.x, count,
+      p.residual, p.residual ? count : 0, p.gamma.data(), K, p.sum,
+      p.residual ? count : 0, p.norm, count, bias, E, sel, M * n_sel, weight,
+      M * top_k, &cookie);
+    // EUNSUPPORTED is explicitly pre-publication in this RPC. All other
+    // errors can follow writes to operands aliased by sum/norm; never retry.
+    if (unsupportedRpc(err))
+      return false;
+    if (err != AEE_SUCCESS)
+      throw std::runtime_error("HTP prefill router norm failed: " +
+                               std::to_string(err));
+    if (!cookie)
+      throw std::runtime_error("HTP prefill router norm returned empty lease");
+    prepared_moe_cookie_ = cookie;
+    prepared_moe_lease_ = lease;
+    ++consumer_norm_calls_;
+    HtpProfile &profile = HtpProfile::global();
+    if (profile.level()) {
+      const uint64_t elapsed = HtpProfile::nowUs() - start;
+      profile.addInvoke(M, K, E, elapsed, nullptr);
+      std::fprintf(stderr, "[HTP-ROUTER-NORM] M=%u K=%u rpc_us=%llu\n", M, K,
+                   (unsigned long long)elapsed);
+    }
+    return true;
+  }
+
+  bool routerQs4cxPrefill(void *w, float *scales, const float *x, float *logits,
+                          unsigned M, unsigned K, unsigned E, unsigned top_k,
+                          unsigned n_sel, const float *bias, unsigned *sel,
+                          float *weight) {
     if (M == 1u)
       return routerQ4Decode(w, scales, x, K, E, top_k, n_sel, bias, sel,
                             weight);
@@ -1688,9 +1951,14 @@ public:
       const char *v = std::getenv("NNTR_HTP_ROUTER_Q4_REUSE");
       return v && std::atoi(v) != 0;
     }();
-    if ((!fuse && !reuse) || M <= 1 || !K || K % 32 || !E || E > 128 ||
-        E % 32 || !top_k || top_k > n_sel || n_sel > E || !w || !scales || !x ||
-        !bias || !sel || !weight || static_cast<uint64_t>(M) * K > INT32_MAX ||
+    static const bool quant_reuse = [] {
+      const char *v = std::getenv("NNTR_HTP_ROUTER_Q4_QUANT_REUSE");
+      return v && std::atoi(v) != 0;
+    }();
+    if ((!fuse && !reuse && !quant_reuse) || M <= 1 || !K || K % 32 || !E ||
+        E > 128 || E % 32 || !top_k || top_k > n_sel || n_sel > E || !w ||
+        !scales || !x || !bias || !sel || !weight ||
+        static_cast<uint64_t>(M) * K > INT32_MAX ||
         static_cast<uint64_t>(M) * E > INT32_MAX)
       return false;
     const auto session =
@@ -1699,7 +1967,7 @@ public:
     if (fh.handles.size() != 1)
       return false;
     const unsigned step = fcMaxRows(K);
-    if (!fuse) {
+    if (!fuse && !quant_reuse) {
       invokeFc(session, fh, const_cast<float *>(x), logits, M, E, K,
                reuse && M <= step);
       return sigmoid_topk_fp32(M, E, top_k, n_sel, logits, bias, sel, weight);
@@ -1707,21 +1975,48 @@ public:
     sendMoeOptsOnce(session);
     std::lock_guard<std::mutex> lock(invoke_mutex_);
     HtpProfile &profile = HtpProfile::global();
+    const uint64_t lease = moe_input_reuse_.token(x, M, K);
+    const bool prepare = quant_reuse && lease && profile.level() < 3 && M > 4 &&
+                         M <= step && M <= 2048 && K <= 4096 &&
+                         K % 128u == 0u &&
+                         uint64_t((M + 63u) & ~63u) * K <= (4u << 20);
+    prepared_moe_cookie_ = prepared_moe_lease_ = 0;
     for (unsigned m0 = 0; m0 < M; m0 += step) {
       const unsigned rows = std::min(step, M - m0);
       const float *input = x + static_cast<size_t>(m0) * K;
-      auto &staged =
-        stageInput(act_pool_, input,
-                   static_cast<size_t>(rows) * K * sizeof(float), &out_pool_);
+      const size_t input_bytes = static_cast<size_t>(rows) * K * sizeof(float);
+      auto &staged = stageInput(act_pool_, input, input_bytes, &out_pool_);
+      const float *source = reinterpret_cast<const float *>(staged.data());
       const uint64_t t0 = HtpProfile::nowUs();
-      const int err = nntr_hvx_router_q4_prefill(
-        session, rows, K, E, fh.handles[0],
-        reinterpret_cast<const float *>(staged.data()), rows * K, top_k, n_sel,
-        bias, E, sel + static_cast<size_t>(m0) * n_sel, rows * n_sel,
-        weight + static_cast<size_t>(m0) * top_k, rows * top_k);
+      uint64 cookie = 0;
+      bool used_prepare = prepare;
+      int err =
+        prepare
+          ? nntr_hvx_router_q4_prefill_prepare(
+              session, rows, K, E, fh.handles[0], source, rows * K, top_k,
+              n_sel, bias, E, sel, rows * n_sel, weight, rows * top_k, &cookie)
+          : nntr_hvx_router_q4_prefill(
+              session, rows, K, E, fh.handles[0], source, rows * K, top_k,
+              n_sel, bias, E, sel + static_cast<size_t>(m0) * n_sel,
+              rows * n_sel, weight + static_cast<size_t>(m0) * top_k,
+              rows * top_k);
+      // Hexagon's AEE status codes include the remote error offset.
+      if (prepare && unsupportedRpc(err)) {
+        used_prepare = false;
+        err = nntr_hvx_router_q4_prefill(
+          session, rows, K, E, fh.handles[0], source, rows * K, top_k, n_sel,
+          bias, E, sel, rows * n_sel, weight, rows * top_k);
+      }
       if (err != AEE_SUCCESS)
         throw std::runtime_error("HTP Q4 router failed: " +
                                  std::to_string(err));
+      if (used_prepare) {
+        if (!cookie)
+          throw std::runtime_error(
+            "HTP prepared router returned an empty lease");
+        prepared_moe_cookie_ = cookie;
+        prepared_moe_lease_ = lease;
+      }
       if (profile.level())
         profile.addInvoke(rows, K, E, HtpProfile::nowUs() - t0, nullptr);
       // A chunk is not the full activation promised by the caller's lease.
@@ -1966,6 +2261,84 @@ public:
 
   bool supports_gemm_q4_0_batch_norm_fp32() const override { return true; }
 
+  bool invokePrefillQkvNorm(
+    remote_handle64 session, const PendingPrefillNorm &p,
+    const std::vector<uint32_t> &handles, const std::vector<unsigned> &widths,
+    const std::vector<float *> &outputs, const std::vector<unsigned> &chunks,
+    const std::vector<float> &gammas, float post_eps, const float *rope_cs,
+    unsigned rope_hd, unsigned rope_handles) {
+    if (!p.norm || handles.size() != 3 || widths.size() != 3 ||
+        outputs.size() != 3 || chunks.size() != 3)
+      return false;
+    const unsigned M = p.rows, K = p.width;
+    const size_t bytes = static_cast<size_t>(M) * K * sizeof(float);
+    auto &backend = HtpBackend::global();
+    size_t out_bytes[3];
+    for (unsigned i = 0; i < 3; ++i) {
+      const uint64_t count = static_cast<uint64_t>(M) * widths[i];
+      if (!widths[i] || widths[i] > 4096 || widths[i] % 32 ||
+          count > INT32_MAX / sizeof(float))
+        return false;
+      out_bytes[i] = static_cast<size_t>(count) * sizeof(float);
+      if (!backend.isSharedRange(outputs[i], out_bytes[i]) ||
+          prefillNormOverlap(outputs[i], out_bytes[i], p.norm, bytes) ||
+          prefillNormOverlap(outputs[i], out_bytes[i], p.sum, bytes))
+        return false;
+      for (unsigned j = 0; j < i; ++j)
+        if (prefillNormOverlap(outputs[i], out_bytes[i], outputs[j],
+                               out_bytes[j]))
+          return false;
+    }
+    const uint64_t cs_count = static_cast<uint64_t>(M) * 2u * rope_hd;
+    if (cs_count > INT32_MAX / sizeof(float))
+      return false;
+    sendMoeOptsOnce(session);
+    std::lock_guard<std::mutex> lock(invoke_mutex_);
+    const float *cs = nullptr;
+    if (rope_hd) {
+      float *staged = reinterpret_cast<float *>(
+        stage(rope_pool_, static_cast<size_t>(cs_count) * sizeof(float))
+          .data());
+      stagedMemcpy(staged, rope_cs,
+                   static_cast<size_t>(cs_count) * sizeof(float));
+      cs = staged;
+    }
+    // Direct graph writes must not leave old staged copies eligible for reuse.
+    for (StagingPool *pool : {&act_pool_, &out_pool_, &x2_pool_}) {
+      pool->holds.clear();
+      pool->copied_out.clear();
+    }
+    moe_input_reuse_.invalidate();
+    const int count = static_cast<int>(static_cast<size_t>(M) * K);
+    const uint64_t start = HtpProfile::nowUs();
+    const int err = nntr_hvx_mm_u8i4_qkv_prefill_norm(
+      session, M, K, widths[0], widths[1], widths[2], handles.data(), 3,
+      post_eps, chunks.data(), 3, gammas.data(), gammas.size(), rope_hd,
+      rope_handles, cs, static_cast<int>(cs_count), p.eps, p.x, count,
+      p.residual, p.residual ? count : 0, p.gamma.data(), K, p.sum,
+      p.residual ? count : 0, p.norm, count, outputs[0], M * widths[0],
+      outputs[1], M * widths[1], outputs[2], M * widths[2]);
+    // The RPC reports unsupported only before it can publish aliased outputs.
+    if (unsupportedRpc(err))
+      return false;
+    if (err != AEE_SUCCESS)
+      throw std::runtime_error("HTP prefill QKV norm failed: " +
+                               std::to_string(err));
+    ++consumer_norm_calls_;
+    ++shared_io_calls_[1];
+    shared_io_bytes_[1] += bytes * (p.residual ? 4u : 2u) + out_bytes[0] +
+                           out_bytes[1] + out_bytes[2];
+    HtpProfile &profile = HtpProfile::global();
+    if (profile.level()) {
+      const uint64_t elapsed = HtpProfile::nowUs() - start;
+      profile.addInvoke(M, K, widths[0] + widths[1] + widths[2], elapsed,
+                        nullptr);
+      std::fprintf(stderr, "[HTP-QKV-NORM] M=%u K=%u rpc_us=%llu\n", M, K,
+                   (unsigned long long)elapsed);
+    }
+    return true;
+  }
+
   void gemm_q4_0_batch_norm_fp32(
     std::vector<void *> matAdata, std::vector<float *> matAscale,
     float *matBdata, std::vector<float *> matCdata, unsigned int M,
@@ -1973,10 +2346,12 @@ public:
     const std::vector<unsigned int> &post_chunk, const float *post_gamma,
     float eps, const float *rope_cs, unsigned int rope_hd,
     unsigned int rope_weights, bool weights_wh) override {
+    const PendingPrefillNorm pending = takePrefillQkvNorm(matBdata, M, K);
     const remote_handle64 session =
       static_cast<remote_handle64>(HtpBackend::global().handle());
     const size_t n = matAdata.size();
-    if ((!post_chunk.empty() && post_chunk.size() != n) ||
+    if (N.size() != n || matCdata.size() != n ||
+        (!post_chunk.empty() && post_chunk.size() != n) ||
         (!matAscale.empty() && matAscale.size() != n) ||
         (weights_wh && matAscale.size() != n) ||
         (rope_hd != 0 && (rope_weights > n || rope_cs == nullptr))) {
@@ -2034,6 +2409,16 @@ public:
     // gemm_q4_0_batch_fp32 makes for VTCM carry them unchanged (the table
     // rows advance with the activation rows).
     const unsigned int step = fcMaxRows(K);
+    if (pending.norm) {
+      if (!pre_gamma && n == 3 && handles.size() == 3 && M <= step &&
+          invokePrefillQkvNorm(session, pending, handles, N, matCdata, chunks,
+                               gammas, eps, rope_cs, rope_hd, rope_slices)) {
+        if (weights_wh)
+          ++fused_qkv_calls_;
+        return;
+      }
+      materializePrefillNorm(pending);
+    }
     for (unsigned int m0 = 0; m0 < M; m0 += step) {
       const unsigned int m = std::min(step, M - m0);
       std::vector<OutSlice> rows = slices;
@@ -2112,6 +2497,7 @@ public:
     if (!enabled || M <= 1)
       return 0;
     std::lock_guard<std::mutex> lock(invoke_mutex_);
+    prepared_moe_cookie_ = prepared_moe_lease_ = 0;
     return moe_input_reuse_.begin(input, M, K);
   }
 
@@ -2120,6 +2506,8 @@ public:
       return;
     std::lock_guard<std::mutex> lock(invoke_mutex_);
     moe_input_reuse_.end(token);
+    if (token == prepared_moe_lease_)
+      prepared_moe_cookie_ = prepared_moe_lease_ = 0;
   }
 
   bool supports_router_logits_fp32() const override { return true; }
@@ -2182,6 +2570,9 @@ public:
                           unsigned int n_sel, const float *scale,
                           unsigned int *sel, float *weight,
                           bool sigmoid) override {
+    // This graph consumer can also have FP32 weights. It has no prepared
+    // Q4 input path, so publish the preceding norm before staging its input.
+    materializePrefillNorm(takePrefillRouterNorm(x, M, K));
     const remote_handle64 session =
       static_cast<remote_handle64>(HtpBackend::global().handle());
     const size_t x_len = static_cast<size_t>(M) * K;
@@ -6202,6 +6593,13 @@ private:
       }
       q.retained_norm = nullptr;
     }
+    const uint64_t lease = moe_input_reuse_.token(act, M, K);
+    uint64_t prepared_cookie = lease && lease == prepared_moe_lease_ &&
+                                   kind == 0 && !with_norms && !add_x2 &&
+                                   M > 4 && HtpProfile::global().level() < 3
+                                 ? prepared_moe_cookie_
+                                 : 0;
+    prepared_moe_cookie_ = prepared_moe_lease_ = 0;
     void *saved = moe_input_reuse_.consume(act, M, K);
     static const bool trace_reuse =
       std::getenv("NNTR_HTP_MOE_INPUT_REUSE_TRACE") != nullptr;
@@ -6216,7 +6614,7 @@ private:
       shared_io && HtpBackend::global().isSharedRange(out, out_bytes);
     HtpRpcBuffer &act_stage = reused     ? *static_cast<HtpRpcBuffer *>(saved)
                               : via_dspq ? *dspq_->act
-                              : (host_prenorm || direct_in)
+                              : (prepared_cookie || host_prenorm || direct_in)
                                 ? stage(act_pool_, act_bytes)
                                 : stageInput(act_pool_, act, act_bytes);
     // The post-FFN epilogue's second addend rides its own staging buffer,
@@ -6290,48 +6688,70 @@ private:
     for (int rep = 0; rep < reps && err == AEE_SUCCESS; ++rep) {
       uint32_t rep_stage[HTP_MOE_N_STAGES] = {0};
       const uint64_t t0 = profile.level() ? HtpProfile::nowUs() : 0;
-      err =
-        via_dspq ? dspqCall(M, K, inter, N_out, h_gu, h_dn, row_index,
-                            row_count, row_weight, act_bytes, out_bytes, glu,
-                            timed ? rep_stage : nullptr, act_offset, !retained)
-        : add_x2 != nullptr && !host_norms
-          ? nntr_hvx_mm_u8i4_moe_layer_norm_add(
-              session, M, K, inter, N_out, glu, eps, add_scale, pre_gamma,
-              static_cast<int>(K), post_gamma,
-              post_gamma ? static_cast<int>(N_out) : 0, add_gamma,
-              add_gamma ? static_cast<int>(N_out) : 0, h_gu.data(),
-              static_cast<int>(h_gu.size()), h_dn.data(),
-              static_cast<int>(h_dn.size()), row_index.data(),
-              static_cast<int>(row_index.size()), row_count.data(),
-              static_cast<int>(row_count.size()), row_weight.data(),
-              static_cast<int>(row_weight.size()), act_f32, act_len, x2_f32,
-              out_len, out_f32, out_len)
-        : norm_entry ? nntr_hvx_mm_u8i4_moe_layer_norm(
-                         session, M, K, inter, N_out, glu, eps, pre_gamma,
-                         pre_gamma ? static_cast<int>(K) : 0, post_gamma,
-                         post_gamma ? static_cast<int>(N_out) : 0, h_gu.data(),
-                         static_cast<int>(h_gu.size()), h_dn.data(),
-                         static_cast<int>(h_dn.size()), row_index.data(),
-                         static_cast<int>(row_index.size()), row_count.data(),
-                         static_cast<int>(row_count.size()), row_weight.data(),
-                         static_cast<int>(row_weight.size()), act_f32, act_len,
-                         out_f32, out_len)
-        : timed ? nntr_hvx_mm_u8i4_moe_layer_timed(
-                    session, M, K, inter, N_out, glu, h_gu.data(),
+      const bool attempted_prepared = prepared_cookie != 0;
+      if (prepared_cookie) {
+        err = nntr_hvx_mm_u8i4_moe_layer_prepared(
+          session, prepared_cookie, M, K, inter, N_out, glu, h_gu.data(),
+          static_cast<int>(h_gu.size()), h_dn.data(),
+          static_cast<int>(h_dn.size()), row_index.data(),
+          static_cast<int>(row_index.size()), row_count.data(),
+          static_cast<int>(row_count.size()), row_weight.data(),
+          static_cast<int>(row_weight.size()), out_f32, out_len,
+          timed ? rep_stage : nullptr, timed ? HTP_MOE_N_STAGES : 0);
+        prepared_cookie = 0;
+      } else {
+        err = AEE_EUNSUPPORTED;
+      }
+      // The prepared kernel rejects unsupported weight kinds before writing
+      // output; all such shapes retain the ordinary NPU path below.
+      if (err == AEE_EUNSUPPORTED ||
+          static_cast<uint32_t>(err) == 0x80000414u) {
+        if (attempted_prepared && !direct_in && !reused)
+          stagedMemcpy(act_f32, act, act_bytes);
+        err = via_dspq
+                ? dspqCall(M, K, inter, N_out, h_gu, h_dn, row_index, row_count,
+                           row_weight, act_bytes, out_bytes, glu,
+                           timed ? rep_stage : nullptr, act_offset, !retained)
+              : add_x2 != nullptr && !host_norms
+                ? nntr_hvx_mm_u8i4_moe_layer_norm_add(
+                    session, M, K, inter, N_out, glu, eps, add_scale, pre_gamma,
+                    static_cast<int>(K), post_gamma,
+                    post_gamma ? static_cast<int>(N_out) : 0, add_gamma,
+                    add_gamma ? static_cast<int>(N_out) : 0, h_gu.data(),
                     static_cast<int>(h_gu.size()), h_dn.data(),
                     static_cast<int>(h_dn.size()), row_index.data(),
                     static_cast<int>(row_index.size()), row_count.data(),
                     static_cast<int>(row_count.size()), row_weight.data(),
                     static_cast<int>(row_weight.size()), act_f32, act_len,
-                    out_f32, out_len, rep_stage, HTP_MOE_N_STAGES)
-                : nntr_hvx_mm_u8i4_moe_layer(
-                    session, M, K, inter, N_out, glu, h_gu.data(),
+                    x2_f32, out_len, out_f32, out_len)
+              : norm_entry
+                ? nntr_hvx_mm_u8i4_moe_layer_norm(
+                    session, M, K, inter, N_out, glu, eps, pre_gamma,
+                    pre_gamma ? static_cast<int>(K) : 0, post_gamma,
+                    post_gamma ? static_cast<int>(N_out) : 0, h_gu.data(),
                     static_cast<int>(h_gu.size()), h_dn.data(),
                     static_cast<int>(h_dn.size()), row_index.data(),
                     static_cast<int>(row_index.size()), row_count.data(),
                     static_cast<int>(row_count.size()), row_weight.data(),
                     static_cast<int>(row_weight.size()), act_f32, act_len,
-                    out_f32, out_len);
+                    out_f32, out_len)
+              : timed ? nntr_hvx_mm_u8i4_moe_layer_timed(
+                          session, M, K, inter, N_out, glu, h_gu.data(),
+                          static_cast<int>(h_gu.size()), h_dn.data(),
+                          static_cast<int>(h_dn.size()), row_index.data(),
+                          static_cast<int>(row_index.size()), row_count.data(),
+                          static_cast<int>(row_count.size()), row_weight.data(),
+                          static_cast<int>(row_weight.size()), act_f32, act_len,
+                          out_f32, out_len, rep_stage, HTP_MOE_N_STAGES)
+                      : nntr_hvx_mm_u8i4_moe_layer(
+                          session, M, K, inter, N_out, glu, h_gu.data(),
+                          static_cast<int>(h_gu.size()), h_dn.data(),
+                          static_cast<int>(h_dn.size()), row_index.data(),
+                          static_cast<int>(row_index.size()), row_count.data(),
+                          static_cast<int>(row_count.size()), row_weight.data(),
+                          static_cast<int>(row_weight.size()), act_f32, act_len,
+                          out_f32, out_len);
+      }
       const uint64_t elapsed = profile.level() ? HtpProfile::nowUs() - t0 : 0;
       // Fastest wins, stages and all, so the breakdown describes one real call
       // rather than a mix of a fast one and a slow one.
@@ -6430,6 +6850,94 @@ private:
     }
   }
 
+  bool invokePrefillConvNorm(remote_handle64 session, const ConvHandles &ch,
+                             const float *conv_w, const float *act, float *out,
+                             float *state, unsigned M, unsigned K, unsigned C,
+                             unsigned N_out) {
+    PendingPrefillNorm p;
+    {
+      std::lock_guard<std::mutex> lock(invoke_mutex_);
+      if (!pending_prefill_conv_norm_.norm)
+        return false;
+      p = std::move(pending_prefill_conv_norm_);
+      pending_prefill_conv_norm_ = {};
+    }
+    if (p.rows != M || p.width != K || p.norm != act)
+      throw std::runtime_error("HTP deferred prefill Conv norm mismatch");
+    const uint64_t out_count = static_cast<uint64_t>(M) * N_out;
+    const uint64_t conv_count64 = static_cast<uint64_t>(3u) * C;
+    const uint64_t small_count = static_cast<uint64_t>(5u) * C + K;
+    if (!conv_w || !out || !state || !N_out || !C ||
+        out_count > INT32_MAX / sizeof(float) ||
+        small_count > INT32_MAX / sizeof(float))
+      throw std::invalid_argument("HTP deferred prefill Conv shape");
+    const size_t bytes = static_cast<size_t>(M) * K * sizeof(float);
+    const size_t out_bytes = static_cast<size_t>(out_count) * sizeof(float);
+    const size_t state_count = static_cast<size_t>(2u) * C;
+    const size_t state_bytes = state_count * sizeof(float);
+    if (prefillNormOverlap(state, state_bytes, p.sum, bytes) ||
+        prefillNormOverlap(state, state_bytes, p.norm, bytes) ||
+        prefillNormOverlap(state, state_bytes, out, out_bytes))
+      throw std::invalid_argument("HTP deferred prefill Conv state alias");
+    auto &backend = HtpBackend::global();
+    if (!backend.isSharedRange(out, out_bytes) ||
+        prefillNormOverlap(out, out_bytes, p.sum, bytes) ||
+        prefillNormOverlap(out, out_bytes, p.norm, bytes)) {
+      // A graph may use the normalized output in place. Materialize the norm
+      // with the existing call before that graph's ordinary Conv path.
+      const bool materialized =
+        p.residual
+          ? add_rmsnorm_fp32(M, K, p.eps, p.x, p.residual, p.gamma.data(),
+                             p.sum, p.norm)
+          : inferenceMath(InferenceMath::RmsNorm, M, K, K, p.eps, 1.0f, p.x,
+                          nullptr, p.gamma.data(), p.norm, nullptr);
+      if (!materialized)
+        throw std::runtime_error("HTP deferred prefill Conv norm fallback");
+      return false;
+    }
+    std::lock_guard<std::mutex> lock(invoke_mutex_);
+    const size_t conv_count = static_cast<size_t>(conv_count64);
+    const size_t small_bytes = static_cast<size_t>(small_count) * sizeof(float);
+    if (!conv_buf_ || conv_buf_->size() < small_bytes)
+      conv_buf_ = std::make_unique<HtpRpcBuffer>(small_bytes);
+    if (!conv_buf_->data())
+      throw std::runtime_error("HTP prefill Conv norm staging allocation");
+    float *cw = reinterpret_cast<float *>(conv_buf_->data());
+    float *st = cw + conv_count, *gamma = st + state_count;
+    std::memcpy(cw, conv_w, conv_count * sizeof(float));
+    std::memcpy(st, state, state_count * sizeof(float));
+    std::memcpy(gamma, p.gamma.data(), K * sizeof(float));
+    HtpProfile &profile = HtpProfile::global();
+    const bool timed = profile.level() >= 2;
+    uint32_t stages[HTP_MOE_N_STAGES] = {};
+    const uint64_t start = HtpProfile::nowUs();
+    const int count = static_cast<int>(M * K);
+    const int err = nntr_hvx_mm_u8i4_conv_block_prefill_norm(
+      session, M, K, C, N_out, ch.h_in.data(), ch.h_in.size(), ch.h_out, cw,
+      conv_count, p.eps, p.x, count, p.residual, p.residual ? count : 0, gamma,
+      K, p.sum, p.residual ? count : 0, p.norm, count, out,
+      static_cast<int>(out_count), st, state_count, timed ? stages : nullptr,
+      timed ? HTP_MOE_N_STAGES : 0);
+    const uint64_t elapsed = HtpProfile::nowUs() - start;
+    if (err != AEE_SUCCESS)
+      throw std::runtime_error("HTP prefill Conv norm failed: " +
+                               std::to_string(err));
+    std::memcpy(state, st, state_count * sizeof(float));
+    ++consumer_norm_calls_;
+    ++shared_io_calls_[2];
+    shared_io_bytes_[2] += bytes * (p.residual ? 4u : 2u) + out_bytes;
+    if (profile.level()) {
+      profile.addInvokeMoeLayer(M, K, N_out, elapsed, timed ? stages : nullptr,
+                                *conv_buf_, *conv_buf_, 64, 2, false, true);
+      std::fprintf(stderr,
+                   "[HTP-CONV-NORM] M=%u K=%u rpc_us=%llu dsp_us=%u "
+                   "shared_bytes=%zu\n",
+                   M, K, (unsigned long long)elapsed, timed ? stages[0] : 0u,
+                   bytes * (p.residual ? 4u : 2u) + out_bytes);
+    }
+    return true;
+  }
+
   /** @brief [doc 51 section 2] One call for a whole conv block.
    *
    *  The activation goes over once and the output comes back once; the
@@ -6446,6 +6954,9 @@ private:
                        float *state, unsigned int M, unsigned int K,
                        unsigned int C, unsigned int N_out) {
     sendMoeOptsOnce(session);
+    if (invokePrefillConvNorm(session, ch, conv_w, act, out, state, M, K, C,
+                              N_out))
+      return;
     const int act_len = static_cast<int>(M) * static_cast<int>(K);
     const int out_len = static_cast<int>(M) * static_cast<int>(N_out);
     const int conv_len = 3 * static_cast<int>(C);
@@ -7265,11 +7776,16 @@ private:
                                  void *out_proj, const float *act, float *out,
                                  float *state, unsigned int M, unsigned int K,
                                  unsigned int C, unsigned int N) override {
-    const remote_handle64 session =
-      static_cast<remote_handle64>(HtpBackend::global().handle());
-    const ConvHandles &ch =
-      get_or_register_conv(in_proj, out_proj, session, K, C, N);
-    invokeConvBlock(session, ch, conv_w, act, out, state, M, K, C, N);
+    try {
+      const remote_handle64 session =
+        static_cast<remote_handle64>(HtpBackend::global().handle());
+      const ConvHandles &ch =
+        get_or_register_conv(in_proj, out_proj, session, K, C, N);
+      invokeConvBlock(session, ch, conv_w, act, out, state, M, K, C, N);
+    } catch (...) {
+      discard_deferred_norm();
+      throw;
+    }
   }
 
   bool register_q4_0_conv_block(void *in_proj, void *out_proj, unsigned int K,
@@ -7291,11 +7807,16 @@ private:
                                   unsigned int C, unsigned int N,
                                   const float *in_scale, const float *out_scale,
                                   bool weights_wh) override {
-    const remote_handle64 session =
-      static_cast<remote_handle64>(HtpBackend::global().handle());
-    const ConvHandles &ch = get_or_register_conv(
-      in_proj, out_proj, session, K, C, N, in_scale, out_scale, weights_wh);
-    invokeConvBlock(session, ch, conv_w, act, out, state, M, K, C, N);
+    try {
+      const remote_handle64 session =
+        static_cast<remote_handle64>(HtpBackend::global().handle());
+      const ConvHandles &ch = get_or_register_conv(
+        in_proj, out_proj, session, K, C, N, in_scale, out_scale, weights_wh);
+      invokeConvBlock(session, ch, conv_w, act, out, state, M, K, C, N);
+    } catch (...) {
+      discard_deferred_norm();
+      throw;
+    }
   }
 
   bool register_qs4cx_conv_block(void *in_proj, void *out_proj, unsigned int K,
@@ -8788,6 +9309,7 @@ private:
   };
   std::array<std::array<MathTiming, 8>, 2> math_timing_{};
   HtpActivationReuse moe_input_reuse_;
+  uint64_t prepared_moe_cookie_ = 0, prepared_moe_lease_ = 0;
   StagingPool out_pool_;
   StagingPool
     rope_prefill_pool_[6];    /**< independent Q/K/V/phase/cache staging */

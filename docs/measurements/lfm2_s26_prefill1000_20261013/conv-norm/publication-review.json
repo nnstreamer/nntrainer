@@ -1,0 +1,72 @@
+{
+  "scope": "Read-only production review of clean PUB fusion topic after MoE8832d0360. Only authorized mutation: free six main-owned Conv test fixture allocations in PUB and live.",
+  "production_review": "No concrete ABI/contract/cross-platform blocker found. ComputeOps virtual additions require a matched core/app/checker rebuild; existing RPC ordinals are preserved by append-only IDL. Borrowed descriptors own gamma and clear on consume, mismatch, registration exception, and graph traversal exit. Default publication is retained, fallback materializes before reads, and late norm publication errors cannot retry aliased raw inputs.",
+  "permanent_tests": {
+    "QKV host normal": "PASS486 exact sum/norm/scale/zero/AH",
+    "QKV host ASan+UBSan": "PASS486",
+    "Conv normal": "PASS96 input norm cases plus alias rejections and full existing Conv corpus",
+    "RMSNorm normal": "PASS784 cached publication cases plus existing RMSNorm cases",
+    "Conv ASan+UBSan": "PASS after six fixture frees; leak detection enabled,96 norm cases plus alias rejections and full existing Conv corpus.",
+    "RMSNorm ASan+UBSan": "PASS784 cached publication cases plus existing RMSNorm cases."
+  },
+  "coverage_limit": "Permanent host lane emulation verifies publication/rounding boundaries/packing and topology; silicon arithmetic is backed by prior direct Conv/QKV and lifecycle suites plus v9 132-file full raw parity. The private direct QKV98-case RPC checker has not been newly promoted; QKV/Router permanent lifecycle checkers build against a matching core through the supplied builder.",
+  "commands": [
+    "python3 test/htp/host/run_qkv_norm_pack_host_check.py",
+    "python3 test/htp/host/run_qkv_norm_pack_host_check.py --sanitize",
+    "bash /tmp/lfm2-prefill1000-20261013/conv-norm/publication-review/normal.sh",
+    "bash /tmp/lfm2-prefill1000-20261013/conv-norm/publication-review/sanitize.sh"
+  ],
+  "source_sha256": {
+    "nntrainer/models/neuralnet.cpp": "ec45d652be9813f9684c73b913d81adec02a4dbb1e5fac0a31fc376deda3eccc",
+    "nntrainer/tensor/htp_backend/htp_activation_reuse.h": "d796eab144b51c1624b13c7d4213faefe2ad31e0f6b2d3ebffb1ba3a2629d5de",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "c56a58e0cef397aa7d496668cc7d434d48c3b3ea5dc6f3e25bd62584e1e523d4",
+    "nntrainer/tensor/cpu_backend/compute_ops.h": "7264964c96845ff5f5b34d57faecd6788678f86239b30d0f68292fdb9b3e1bd0",
+    "nntrainer/tensor/htp_backend/hvx/hvx_rmsnorm_rows_f32.h": "59df6dbb395b5e82571e80b238a3dccb46c79feadcf2a891d31fc3557f0d4138",
+    "nntrainer/tensor/htp_backend/hvx/hvx_rmsnorm_rows_f32.c": "91d642a781343bbeaba8c52bca2730347f367b012aa7e255cf94784d78239393",
+    "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.h": "95ee4898a533a8ec071cdc4fd9cda4d804f438ac1402fdb06500ae9ce25e0a69",
+    "nntrainer/tensor/htp_backend/hvx/hvx_quant_u8.c": "561b95fc5431c7ecd7519b6b28e821cbef297321787acf323894367236bdd1dd",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.c": "f056bede5abfa6b18c463a3a2a89995889d065d7d2dccb1e25a1150f7479a954",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_moe.h": "ed116e867573203087e29c328f75827064ed0ed8be756a410ea8d36f30d0154a",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_u8i4_dma.c": "f7136a115fb14b0ede2a8a37702af9fb358ec9aa224c2412c673e1c90b1a8931",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_conv_block.c": "9f24f80188f35e7d3d9773f26555e0b168abb130df4bdf889fc7984ce0d90b9d",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_conv_block.h": "ca5ac16a3dc0d38c412c34c4821c7b30c0f1604a7ac4b469d919944cc2451a80",
+    "nntrainer/tensor/htp_backend/hmx/hexkl_mm_opts.h": "35f4535dac89b8cf825332d669d461bf84a701ebb80ce6f2e2e46ed08533c791",
+    "Applications/CausalLM/layers/rms_norm.cpp": "18bd19267286480d1951b9d1c0aa40c9355cd58a9dc4c9538b76cdb851d0ba5a",
+    "Applications/CausalLM/layers/qkv_layer.cpp": "a6e462b41c7b1e551ebcc4c004851a45309bc75d44fb0f028d91ad1bf37efbed",
+    "test/htp/nntr_hvx_session.h": "2f3e2d008a760662d5a9cfc1de80573e97b5f4360ff78dd8a8a81091753aaf9a",
+    "test/htp/nntr_hvx_mm_u8i4.c": "19f5bb9dd75fee3caf4e42c7e8a1f22760a5567f9f0439de810c354f7f51df37",
+    "test/htp/nntr_hvx.idl": "a2adcd03e8fa769b3fde8fc2fd30377ebe54300573979b62152ce183be1b297b",
+    "test/htp/host/hvx_scalar_stubs.c": "8085d8447a086b6c0e7aaaa7e4e9312b6bf3b7e29a46390a6f227018b7503559",
+    "test/htp/host/rmsnorm_rows_host_check.c": "261f854454a8da55b262781d022981a2901fc74da90e566ac8b8b2f475f1af07",
+    "test/htp/host/conv_block_host_check.c": "4c3f561377ba658b043c2ea85c8775f2522538ebdf2e4be11c27d20f5931c24b",
+    "test/htp/host/swap_host_check.c": "f621143e97e52e957abdd8a3b74e866ea5394a2d420dfb09796f438b0b3d4428",
+    "test/htp/conv_norm_device_check.cpp": "340ef1e9245812c783ec02e970ac2ff55e8df055cd2fc34504ddb384be0ca2a0",
+    "test/htp/host/prepared_router_host_check.c": "eee23b62fe91f88642395567df132b962e64d5d7a8378c1b05e942894ab433e0",
+    "test/htp/host/prepared_router_lease_host_check.cpp": "35deb5a738bb5232f370bf4e66aaed6ab2c80eb723011d5d95687948256e4b6e",
+    "test/htp/host/run_prepared_router_host_checks.py": "60f373d73da8659a8d068363645c8c7a9567d8012b6bfebcf103bac2b86465e2",
+    "test/htp/build_deferred_norm_device_checks.py": "602f9457e56cb250d55b3024daa7748942d0d9ddd4ec74de4838d3f15cbe82e3",
+    "test/htp/host/qkv_norm_pack_host_check.c": "0ace8ff52c39ed1375ea207b12733c77c54f3fe1afaf363465cad0e467797be1",
+    "test/htp/host/run_qkv_norm_pack_host_check.py": "44208183c0a225157db4b3df44672cc06c58bb5bde7ceee70d3ab86abab436b9",
+    "test/htp/qkv_norm_lifetime_device_check.cpp": "25a27c1743e3c4d6abe05be1cca55665737cf87dbe5376f0b0eb78324d384bb0",
+    "test/htp/router_norm_lifetime_device_check.cpp": "ed01646c6180a998aaec1719204c16e8a32af4eb65b379c3a5e79ff49fdb15f8"
+  },
+  "test_cleanup": {
+    "path": "test/htp/host/conv_block_host_check.c",
+    "freed": [
+      "x",
+      "conv_w",
+      "got",
+      "got_state",
+      "want",
+      "want_state"
+    ],
+    "sha256": "4c3f561377ba658b043c2ea85c8775f2522538ebdf2e4be11c27d20f5931c24b",
+    "formatter": "clang-format14.0.6 lines467:472",
+    "retest_command": "env ASAN_OPTIONS=halt_on_error=1 UBSAN_OPTIONS=halt_on_error=1 bash /tmp/lfm2-prefill1000-20261013/conv-norm/publication-review/sanitize.sh"
+  },
+  "logs": {
+    "normal.log": "aa7acf0c49fa6ae2da39c9df962fe4a61cba96660fd1061f486ba5a07eb46c83",
+    "sanitize.log": "7f2cce385edd8a7dffc768d3c42843ef0773fc14b6c8adcb54bed219ef7de7a9",
+    "sanitize-after-cleanup.log": "aa7acf0c49fa6ae2da39c9df962fe4a61cba96660fd1061f486ba5a07eb46c83"
+  }
+}

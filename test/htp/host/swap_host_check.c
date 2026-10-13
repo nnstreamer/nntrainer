@@ -31,6 +31,7 @@
     abort();                                                                   \
   }
 NOT_HERE(hexkl_conv_block_run)
+NOT_HERE(hexkl_conv_block_run_norm)
 NOT_HERE(hexkl_conv_block_prepare_decode)
 NOT_HERE(hexkl_mm_u8i4_bake_weights)
 NOT_HERE(hexkl_mm_u8i4_plan)
