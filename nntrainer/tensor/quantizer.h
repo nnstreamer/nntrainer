@@ -40,6 +40,7 @@ enum class QScheme : uint16_t {
   Q4_0 = 0x5,
   QS4CX = 0x6,
   TQ2CX = 0x9,
+  QS4ACX = 0xA,
   /** this is for custom use */
   CUSTOM_QUANTIZER_01 = 0x10,
   CUSTOM_QUANTIZER_02 = 0x11,

@@ -19,6 +19,7 @@
 #include <float_tensor.h>
 #include <int4_utils.h>
 #include <q4_0_utils.h>
+#include <qs4acx_tensor.h>
 #include <qs4cx_tensor.h> // refuseIfQs4cxPayloadDropped
 #include <ternary_tensor.h>
 #include <thread_manager.h>
@@ -767,6 +768,9 @@ Tensor &FloatTensor::dot(Tensor const &input, Tensor &output, bool trans,
   case Tdatatype::TQ2CX:
     dotTernary(input, output, trans, trans_in, beta);
     break;
+  case Tdatatype::QS4ACX:
+    dotQs4acx(input, output, trans, trans_in, beta);
+    break;
   default:
     throw std::invalid_argument("Error: unsupported datatype");
   }
@@ -1163,6 +1167,35 @@ Tensor &FloatTensor::dotTernary(Tensor const &input, Tensor &output, bool trans,
     tq2cx_gemm_ref_fp32(M, N, K, (const float *)getData(), K, input.getData(),
                         output.getData<float>(), N, beta);
   }
+  return output;
+}
+
+Tensor &FloatTensor::dotQs4acx(Tensor const &input, Tensor &output, bool trans,
+                               bool trans_in, float beta) const {
+  NNTR_THROW_IF(trans || trans_in, std::invalid_argument)
+    << "[FloatTensor::dotQs4acx] a QS4ACX weight cannot be transposed";
+  NNTR_THROW_IF(beta != 0.0f, std::invalid_argument)
+    << "[FloatTensor::dotQs4acx] accumulation (beta) is not supported";
+  NNTR_THROW_IF(output.getDataType() != Tdatatype::FP32, std::invalid_argument)
+    << "[FloatTensor::dotQs4acx] QS4ACX dot writes FP32 output only";
+
+  const size_t K = getDim().width();
+  const size_t M = getDim().getDataLen() / K;
+  const size_t N = input.getDim().width();
+  NNTR_THROW_IF(input.getDim().height() != K, std::invalid_argument)
+    << "[FloatTensor::dotQs4acx] weight IN " << input.getDim().height()
+    << " != activation width " << K;
+  NNTR_THROW_IF(output.getDim().getDataLen() != M * N, std::invalid_argument)
+    << "[FloatTensor::dotQs4acx] output size mismatch";
+
+  refuseIfQs4cxPayloadDropped(input.getData<uint8_t>(),
+                              "FloatTensor::dotQs4acx");
+  // Reference path (correctness only): fp32 activations, no ISA kernel. An
+  // optimized lane runs the QS4CX kernel on the record prefix and adds
+  // corr x rowsum(x) in its epilogue.
+  qs4acx_gemm_ref_fp32(M, N, K, (const float *)getData(), K,
+                       input.getData<uint8_t>(), nullptr,
+                       output.getData<float>(), N);
   return output;
 }
 

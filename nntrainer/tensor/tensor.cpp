@@ -19,6 +19,7 @@
 #include <q4_0_tensor.h>
 #include <q4_k_tensor.h>
 #include <q6_k_tensor.h>
+#include <qs4acx_tensor.h>
 #include <qs4cx_tensor.h>
 #include <short_tensor.h>
 #include <tensor.h>
@@ -140,6 +141,8 @@ Tensor::Tensor(std::string name_, Tformat fm, Tdatatype d_type) {
     itensor_ = std::make_unique<QS4CX_Tensor>(name_, fm);
   } else if (d_type == Tdatatype::TQ2CX) {
     itensor_ = std::make_unique<TernaryTensor>(name_, fm);
+  } else if (d_type == Tdatatype::QS4ACX) {
+    itensor_ = std::make_unique<QS4ACX_Tensor>(name_, fm);
   } else if (d_type == Tdatatype::UINT4) {
     itensor_ = std::make_unique<Uint4QTensor>(name_, fm);
   } else if (d_type == Tdatatype::UINT8) {
@@ -195,6 +198,8 @@ Tensor::Tensor(const TensorDim &d, bool alloc_now, Initializer init,
     itensor_ = std::make_unique<QS4CX_Tensor>(d, alloc_now, init, name);
   } else if (d.getDataType() == Tdatatype::TQ2CX) {
     itensor_ = std::make_unique<TernaryTensor>(d, alloc_now, init, name);
+  } else if (d.getDataType() == Tdatatype::QS4ACX) {
+    itensor_ = std::make_unique<QS4ACX_Tensor>(d, alloc_now, init, name);
   } else if (d.getDataType() == Tdatatype::UINT4) {
     if (qscheme != QScheme::Q4_Kx8) {
       itensor_ =
@@ -254,6 +259,8 @@ Tensor::Tensor(const TensorDim &d, const void *buf, QScheme qscheme) {
     itensor_ = std::make_unique<QS4CX_Tensor>(d, buf);
   } else if (d.getDataType() == Tdatatype::TQ2CX) {
     itensor_ = std::make_unique<TernaryTensor>(d, buf);
+  } else if (d.getDataType() == Tdatatype::QS4ACX) {
+    itensor_ = std::make_unique<QS4ACX_Tensor>(d, buf);
   } else if (d.getDataType() == Tdatatype::UINT4) {
     if (qscheme != QScheme::Q4_Kx8)
       itensor_ = std::make_unique<Uint4QTensor>(d, buf, qscheme);
@@ -308,6 +315,8 @@ Tensor::Tensor(const Tensor &rhs) {
     itensor_ = std::make_unique<QS4CX_Tensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::TQ2CX) {
     itensor_ = std::make_unique<TernaryTensor>(*rhs.itensor_);
+  } else if (rhs.getDataType() == Tdatatype::QS4ACX) {
+    itensor_ = std::make_unique<QS4ACX_Tensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::UINT4) {
     itensor_ = std::make_unique<Uint4QTensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::UINT8) {
@@ -374,6 +383,8 @@ Tensor::Tensor(const std::unique_ptr<TensorBase> &rhs) {
       "Tensor::setOnDiskLegacyQint4().");
   } else if (rhs->getDataType() == Tdatatype::TQ2CX) {
     itensor_ = std::make_unique<TernaryTensor>(*rhs.get());
+  } else if (rhs->getDataType() == Tdatatype::QS4ACX) {
+    itensor_ = std::make_unique<QS4ACX_Tensor>(*rhs.get());
   } else if (rhs->getDataType() == Tdatatype::BCQ) {
 #ifdef ENABLE_BIQGEMM
     itensor_ = std::make_unique<BCQTensor>(*rhs.get());
@@ -420,6 +431,8 @@ Tensor &Tensor::operator=(const Tensor &rhs) {
       "Tensor::setOnDiskLegacyQint4().");
   } else if (rhs.getDataType() == Tdatatype::TQ2CX) {
     itensor_ = std::make_unique<TernaryTensor>(*rhs.itensor_);
+  } else if (rhs.getDataType() == Tdatatype::QS4ACX) {
+    itensor_ = std::make_unique<QS4ACX_Tensor>(*rhs.itensor_);
   } else if (rhs.getDataType() == Tdatatype::BCQ) {
 #ifdef ENABLE_BIQGEMM
     itensor_ = std::make_unique<BCQTensor>(*rhs.itensor_);
@@ -461,6 +474,8 @@ bool Tensor::operator==(const Tensor &rhs) const {
       return itensorCompare<QS4CX_Tensor>(itensor_.get(), rhs.itensor_.get());
     } else if (getDataType() == Tdatatype::TQ2CX) {
       return itensorCompare<TernaryTensor>(itensor_.get(), rhs.itensor_.get());
+    } else if (getDataType() == Tdatatype::QS4ACX) {
+      return itensorCompare<QS4ACX_Tensor>(itensor_.get(), rhs.itensor_.get());
     } else if (getDataType() == Tdatatype::UINT4) {
       return itensorCompare<Uint4QTensor>(itensor_.get(), rhs.itensor_.get());
     } else if (getDataType() == Tdatatype::UINT8) {

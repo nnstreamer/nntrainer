@@ -53,7 +53,7 @@ public:
   /**
    * @brief Tensor Data Type.
    * Currently support QINT4, QINT8, QINT16, BCQ, Q4_K, UINT8, UINT16, UINT32,
-   * QS4CX, TQ2CX, FP16 & FP32
+   * QS4CX, TQ2CX, QS4ACX, FP16 & FP32
    */
   enum class DataType {
     QINT4,  /** [DEPRECATED - use QS4CX] per-channel int4 held in the
@@ -70,6 +70,7 @@ public:
                row-major nibbles plus one fp32 scale per output channel. */
     TQ2CX,  /** ternary {-1, 0, +1} as two bit planes, fp32 scale per
                output channel */
+    QS4ACX, /** QS4CX record + fp32 zero point per output channel */
     UINT4,  /** quantized unsigned int 4*/
     UINT8,  /** unsigned int 8 bit */
     UINT16, /** unsigned int 16 bit */

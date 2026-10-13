@@ -49,7 +49,7 @@
 #include <optimized_v1_planner.h>
 #include <optimized_v2_planner.h>
 #include <optimized_v3_planner.h>
-#include <qs4cx_tensor.h> // qs4cxHeapBypassOn
+#include <qs4cx_tensor.h> // int4HeapBypassOn
 #include <residency_policy.h>
 #include <tensor_pool.h>
 #include <tensor_wrap_specs.h>
@@ -507,15 +507,16 @@ std::vector<Weight *> Manager::requestWeights(
       // can never disagree about whether a payload is self-owned.
 #if defined(__x86_64__) || defined(__i386__) || defined(_M_X64) ||             \
   defined(_M_IX86) || defined(__aarch64__) || defined(_M_ARM64)
-      // A TQ2CX expert weight takes the same arm under tq2cxSingleCopyOn():
-      // its one fast reader is a device copy built from the file at load.
+      // QS4ACX takes the same arm under its own decision (int4HeapBypassOn),
+      // and a TQ2CX expert weight under tq2cxSingleCopyOn(): its one fast
+      // reader is the device expert stack, built from the file at load.
       const auto v_dt = dim_v.getDataType();
       const bool qs4cx_heap_bypass =
-        !enable_fsu &&
-        ((v_dt == ml::train::TensorDim::DataType::QS4CX &&
-          qs4cxHeapBypassOn()) ||
-         (v_dt == ml::train::TensorDim::DataType::TQ2CX && !is_virtual &&
-          tq2cxSingleCopyOn()));
+        !enable_fsu && (((v_dt == ml::train::TensorDim::DataType::QS4CX ||
+                          v_dt == ml::train::TensorDim::DataType::QS4ACX) &&
+                         int4HeapBypassOn(v_dt)) ||
+                        (v_dt == ml::train::TensorDim::DataType::TQ2CX &&
+                         !is_virtual && tq2cxSingleCopyOn()));
 #else
       const bool qs4cx_heap_bypass = false;
 #endif
