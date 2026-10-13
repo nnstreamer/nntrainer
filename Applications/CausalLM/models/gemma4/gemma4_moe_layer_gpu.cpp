@@ -24,6 +24,7 @@
 #include <layer_prof.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <thread_manager.h>
 
 #include <qs4cx_tensor.h>   // the released-payload registry
 #include <ternary_tensor.h> // tq2cxSingleCopyOn
@@ -160,6 +161,42 @@ bool deviceRouterOn() {
     return e == nullptr || e[0] != '0';
   }();
   return on;
+}
+
+/**
+ * @brief Route prefill rows on the device too (NNTR_G4MOE_DEVICE_ROUTER_PREFILL
+ *        =0, or NNTR_G4MOE_DEVICE_ROUTER=0, routes them on the host).
+ * @details Default on: the same deterministic router kernels as decode, over
+ * every row (ComputeOps::moe_route), so the routing is the host router's bit
+ * for bit. The router rows stay on the device; the host reads back only the
+ * selected ids and weights (tokens x topk) instead of reading every router
+ * row, widening it and routing it on the CPU while the GPU waits.
+ */
+bool devicePrefillRouterOn() {
+  static const bool on = []() {
+    const char *e = std::getenv("NNTR_G4MOE_DEVICE_ROUTER_PREFILL");
+    return e == nullptr || e[0] != '0';
+  }();
+  return on;
+}
+
+/**
+ * @brief NNTR_G4MOE_DEVICE_ROUTER_MIN_ROWS=n: prefill calls of fewer than n
+ *        rows route on the host (default 0: every prefill call on the
+ *        device). Read once.
+ * @details A switch for the per-device A/B of short prompts; both routers
+ *          select the same experts with the same weights, so it changes no
+ *          output.
+ */
+unsigned int deviceRouterMinRows() {
+  static const unsigned int v = []() {
+    const char *e = std::getenv("NNTR_G4MOE_DEVICE_ROUTER_MIN_ROWS");
+    if (e == nullptr || e[0] == '\0')
+      return 0u;
+    const long n = std::strtol(e, nullptr, 10);
+    return n > 0 ? static_cast<unsigned int>(n) : 0u;
+  }();
+  return v;
 }
 
 } // namespace
@@ -400,7 +437,12 @@ void Gemma4MoELayerGpu::forwardTensors(nntrainer::RunLayerContext &context,
   // The same code as the cpu layer on host tensors, so the selected experts,
   // their order and their weights are identical to the cpu engine's.
   Routing routing;
-  hostRoute(context, router_input, total_tokens, hidden_size, routing);
+  const bool device_routed =
+    !decode_step && deviceRouterOn() && devicePrefillRouterOn() &&
+    total_tokens >= deviceRouterMinRows() &&
+    deviceRoute(context, ops, router_input, total_tokens, routing);
+  if (!device_routed)
+    hostRoute(context, router_input, total_tokens, hidden_size, routing);
 
   // ---- experts, on the device ------------------------------------------
   // An expert format whose kernels batch several experts per launch runs the
@@ -428,6 +470,50 @@ void Gemma4MoELayerGpu::forwardTensors(nntrainer::RunLayerContext &context,
   nntrainer::clmem_raise_cl(output, 0);
 }
 
+bool Gemma4MoELayerGpu::deviceRoute(nntrainer::RunLayerContext &context,
+                                    nntrainer::ComputeOps *ops,
+                                    nntrainer::Tensor &router_input,
+                                    unsigned int total_tokens,
+                                    Routing &routing) {
+  nntrainer::MoeRouter rt;
+  rt.input = &router_input;
+  rt.weight = &context.getWeight(router_idx);
+  rt.scale = &context.getWeight(router_scale_idx);
+  rt.norm = router_norm_idx != std::numeric_limits<unsigned int>::max()
+              ? &context.getWeight(router_norm_idx)
+              : nullptr;
+  rt.per_expert_scale = &context.getWeight(per_expert_scale_idx);
+  rt.epsilon = epsilon;
+  rt.topk = topk;
+  std::vector<uint32_t> ids((size_t)total_tokens * topk);
+  std::vector<float> w((size_t)total_tokens * topk);
+  {
+    // enqueue + the one blocking read of the ids and weights
+    nntrainer::LayerProfScope prof_wait("g4moe_router_wait", false);
+    if (ops == nullptr ||
+        !ops->moe_route(rt, total_tokens, ids.data(), w.data()))
+      return false;
+  }
+  {
+    // the bucketing of routeTokens: rows in token order per expert
+    nntrainer::LayerProfScope prof_route("g4moe_router_host", false);
+    routing.assignments.assign(num_experts, {});
+    for (unsigned int t = 0; t < total_tokens; ++t)
+      for (unsigned int k = 0; k < topk; ++k) {
+        const uint32_t e = ids[(size_t)t * topk + k];
+        NNTR_THROW_IF(e >= num_experts, std::runtime_error)
+          << "Gemma4 MoE " << context.getName()
+          << ": device router selected expert " << e;
+        routing.assignments[e].emplace_back(t, w[(size_t)t * topk + k]);
+      }
+    routing.active.clear();
+    for (unsigned int e = 0; e < num_experts; ++e)
+      if (!routing.assignments[e].empty())
+        routing.active.push_back(e);
+  }
+  return true;
+}
+
 void Gemma4MoELayerGpu::hostRoute(nntrainer::RunLayerContext &context,
                                   nntrainer::Tensor &router_input,
                                   unsigned int total_tokens,
@@ -449,9 +535,17 @@ void Gemma4MoELayerGpu::hostRoute(nntrainer::RunLayerContext &context,
       HostRead hold(router_input);
       const uint16_t *src = router_input.getData<uint16_t>();
       float *dst = host_router_input.getData<float>();
-      const size_t n = (size_t)total_tokens * hidden_size;
-      for (size_t i = 0; i < n; ++i)
-        dst[i] = nntrainer::compute_fp16_to_fp32(src[i]);
+      // the same exact conversion per element, rows spread over the threads
+      auto widen_row = [&](size_t row) {
+        const size_t o = row * hidden_size;
+        for (size_t i = 0; i < hidden_size; ++i)
+          dst[o + i] = nntrainer::compute_fp16_to_fp32(src[o + i]);
+      };
+      if (total_tokens > 1)
+        nntrainer::ThreadManager::Global().parallel_for(0, total_tokens,
+                                                        widen_row);
+      else
+        widen_row(0);
     }
     nntrainer::LayerProfScope prof_route("g4moe_router_host", decode_step);
     routeTokens(context, host_router_input, host_router_scaled,

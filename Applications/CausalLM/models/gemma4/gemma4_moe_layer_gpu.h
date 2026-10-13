@@ -130,6 +130,16 @@ private:
                  unsigned int hidden_size, Routing &routing);
 
   /**
+   * @brief Route @a total_tokens prefill rows on the device
+   *        (ComputeOps::moe_route) and bucket them as routeTokens does.
+   * @return false, having enqueued nothing, when the backend declines (the
+   *         caller routes on the host)
+   */
+  bool deviceRoute(nntrainer::RunLayerContext &context,
+                   nntrainer::ComputeOps *ops, nntrainer::Tensor &router_input,
+                   unsigned int total_tokens, Routing &routing);
+
+  /**
    * @brief The per-expert loop (formats the grouped launch does not serve).
    */
   void forwardExpertLoop(nntrainer::RunLayerContext &context,
