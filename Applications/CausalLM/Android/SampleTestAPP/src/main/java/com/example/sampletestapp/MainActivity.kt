@@ -180,6 +180,7 @@ class MainActivity : AppCompatActivity() {
 
     @Volatile private var engine: QuickDotAI? = null
     @Volatile private var loadedKey: String? = null
+    @Volatile private var loadedRequest: LoadModelRequest? = null
     @Volatile private var selectedImageBytesList: MutableList<ByteArray> = mutableListOf()
 
     /** Convenience: first selected image (or null) — for single-image code paths. */
@@ -296,6 +297,19 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         checkAllFilesAccess()
+        // Pick a descriptor actually present in this native build.
+        if (selDescriptor == null) {
+            val initial = ModelCatalog.byId(ModelIds.GEMMA4_26B_A4B_HTP)
+                ?: ModelCatalog.selectable().firstOrNull()
+            if (initial != null) {
+                selFamily = initial.family
+                selRuntime = initial.runtime
+                selBackend = initial.backends.first()
+                chatSelFamily = selFamily
+                chatSelRuntime = selRuntime
+                chatSelBackend = selBackend
+            }
+        }
         // Seed the path field so a single Load tap works without typing.
         modelPathText = defaultModelPathFor(selDescriptor, selectedQuant) ?: ""
         rebuildUi()
@@ -598,6 +612,11 @@ class MainActivity : AppCompatActivity() {
                 rebuildUi(resetModelPath = true)
             })
             spacer(body, 12)
+
+            if (selDescriptor?.id == ModelIds.GEMMA4_26B_A4B_HTP) {
+                body.addView(labelView(t, "HTP · W4A32 · text generation"))
+                spacer(body, 12)
+            }
 
             // MODEL BASE PATH — editable root directory for model files.
             body.addView(labelView(t, "MODEL BASE PATH"))
@@ -2002,7 +2021,8 @@ class MainActivity : AppCompatActivity() {
     private fun badgeLabel(d: ModelDescriptor): String = when {
         Capability.MULTIMODAL in d.capabilities -> "[MULTIMODAL]  ${d.displayName}"
         Capability.EMBEDDING in d.capabilities  -> "[EMBEDDING]   ${d.displayName}"
-        d.backends == setOf(BackendType.NPU)    -> "[QNN]         ${d.displayName}"
+        d.id == ModelIds.GEMMA4_26B_A4B_HTP      -> "[HTP]         ${d.displayName}"
+        d.backends == setOf(BackendType.NPU)    -> "[NPU]         ${d.displayName}"
         else -> "[TEXT]        ${d.displayName}"
     }
 
@@ -2023,7 +2043,9 @@ class MainActivity : AppCompatActivity() {
         val e = engine
         engine = null
         loadedKey = null
+        loadedRequest = null
         if (e != null) {
+            e.cancel()
             engineExecutor.execute {
                 try { e.close() } catch (_: Throwable) { /* best effort */ }
             }
@@ -2037,7 +2059,7 @@ class MainActivity : AppCompatActivity() {
         setStatus("Loading ${req.modelKey}…  (vision=${req.visionBackend?.name ?: "off"})")
         outputText = ""
         mainHandler.post { rebuildUi() }
-        engineExecutor.execute { loadModelInternal(req) }
+        engineExecutor.execute { loadModelInternal(req, forceReload = true) }
     }
 
     private fun onCancelClicked() {
@@ -2111,14 +2133,15 @@ class MainActivity : AppCompatActivity() {
      * @brief Core model loading logic. Must be called from [engineExecutor].
      * Returns the loaded [QuickDotAI] engine, or null on failure.
      */
-    private fun loadModelInternal(req: LoadModelRequest): QuickDotAI? {
-        if (loadedKey != null && loadedKey != req.modelKey) {
+    private fun loadModelInternal(req: LoadModelRequest, forceReload: Boolean = false): QuickDotAI? {
+        if (engine != null && (forceReload || loadedRequest != req)) {
             try { engine?.close() } catch (_: Throwable) { /* best effort */ }
             engine = null
             loadedKey = null
+            loadedRequest = null
             clearChatSessionState()
         }
-        if (engine != null && loadedKey == req.modelKey) {
+        if (engine != null && loadedRequest == req) {
             if (activeSessionKey != null && activeSessionKey != req.modelKey) {
                 clearChatSessionState()
             }
@@ -2141,6 +2164,7 @@ class MainActivity : AppCompatActivity() {
             is BackendResult.Ok -> {
                 engine = newEngine
                 loadedKey = req.modelKey
+                loadedRequest = req
                 clearChatSessionState()
                 loadDefaultOpenAIExampleFor(req.modelId)
                 loadStatus = "loaded"
@@ -2256,6 +2280,7 @@ class MainActivity : AppCompatActivity() {
             when (val r = e.unload()) {
                 is BackendResult.Ok -> {
                     loadedKey = null
+                    loadedRequest = null
                     loadStatus = "idle"
                     loadedLabel = ""
                     clearChatSessionState()
@@ -2591,7 +2616,7 @@ class MainActivity : AppCompatActivity() {
         engineExecutor.execute {
             val e = loadModelInternal(req)
             if (e == null) {
-                streaming = false; setStatus("Model load failed.")
+                streaming = false
                 mainHandler.post { rebuildUi() }; return@execute
             }
             if (e.chatSessionId != null) {
@@ -2868,6 +2893,7 @@ class MainActivity : AppCompatActivity() {
         ModelIds.TINY_BERT      to "tiny-bert",
         ModelIds.FUNCTION_GEMMA to "function_gemma",
         ModelIds.GEMMA4_CPU     to "gemma4_cpu",
+        ModelIds.GEMMA4_26B_A4B_HTP to "gemma4-26b-a4b-htp-w4a32",
         ModelIds.GEMMA4_E2B_QNN to "gemma-4-e2b-qnn",
         ModelIds.VJEPA_QNN      to "vjepa2-qnn",
     )
