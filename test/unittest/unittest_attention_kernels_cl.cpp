@@ -24,6 +24,7 @@
 #include "util_func.h"
 #include <attention_kernel_interface.h>
 #include <attention_kernels.h>
+#include <blas_kernels.h>
 #include <cl_context.h>
 #include <engine.h>
 #include <layer_context.h>
@@ -533,6 +534,249 @@ TEST(attention_kernels, flash_decode_gqa_matches_cpu_FP16) {
 }
 
 #endif
+
+/**
+ * @brief Result of one fused-prefill case (see afp_case).
+ */
+struct AfpResult {
+  double abs64 = 0, rel64 = 0; ///< max abs / max rel* vs double reference
+  double abs32 = 0, rel32 = 0; ///< same vs the scalar fp32 reference
+  double ref32_abs64 = 0;      ///< scalar fp32 reference vs double
+  double flash_abs = -1;       ///< vs flash_attention_prefill_f16_cl
+  double flash_abs64 = -1;     ///< that arm vs the double reference
+  double tc_abs = -1;          ///< vs two_conv (fp16 scores, 3 passes)
+  double tc_abs64 = -1;        ///< that arm vs the double reference
+  size_t rows_checked = 0;
+  bool identical = false; ///< 3 runs bit-identical
+};
+
+/**
+ * @brief One fused GQA flash-prefill case: M query rows at positions
+ *        [N_kv - M, N_kv), causal, sliding window W (0 = none), ring
+ *        capacity cap (0 = linear cache). Checked against a double and a
+ *        scalar fp32 CPU reference (every row when M <= 334, else every 5th
+ *        row and the last 8), against the existing flash prefill arm and the
+ *        three-pass fp16-score arm on every element, and for 3-run identity.
+ * @return false when the device or the variant declined (test skips).
+ */
+static bool afp_case(unsigned Hq, unsigned Hkv, unsigned d, unsigned M,
+                     unsigned N_kv, unsigned W, unsigned cap, AfpResult &res) {
+  const unsigned HDq = Hq * d, HDkv = Hkv * d, G = Hq / Hkv;
+  const unsigned rows = cap ? cap : N_kv;
+  const unsigned q_off = N_kv - M;
+  unsigned x = 777u + N_kv * 13u + M * 7u + d;
+  auto rnd = [&x](float amp) {
+    x = x * 1103515245u + 12345u;
+    return amp * ((float)((x >> 8) & 0xFFFFu) / 32768.0f - 1.0f);
+  };
+  std::vector<uint16_t> Q((size_t)M * HDq), Kb((size_t)rows * HDkv),
+    Vb((size_t)rows * HDkv);
+  for (auto &q : Q)
+    q = floatToHalfBits(rnd(2.0f));
+  for (unsigned n = 0; n < N_kv; ++n) {
+    const size_t r = (size_t)(cap ? n % cap : n) * HDkv;
+    for (unsigned i = 0; i < HDkv; ++i) {
+      Kb[r + i] = floatToHalfBits(rnd(2.0f));
+      Vb[r + i] = floatToHalfBits(rnd(1.0f));
+    }
+  }
+  std::vector<float> Qf(Q.size()), Kf(Kb.size()), Vf(Vb.size());
+  for (size_t i = 0; i < Q.size(); ++i)
+    Qf[i] = halfBitsToFloat(Q[i]);
+  for (size_t i = 0; i < Kb.size(); ++i) {
+    Kf[i] = halfBitsToFloat(Kb[i]);
+    Vf[i] = halfBitsToFloat(Vb[i]);
+  }
+
+  auto *cc = static_cast<nntrainer::ClContext *>(
+    nntrainer::Engine::Global().getRegisteredContext("gpu"));
+  if (cc == nullptr)
+    return false;
+  cc->context_inst_.GetContext();
+  const size_t qB = Q.size() * 2, kB = Kb.size() * 2, oB = Q.size() * 2;
+  auto *Qs = static_cast<uint16_t *>(cc->context_inst_.createSVMRegion(qB));
+  auto *Ks = static_cast<uint16_t *>(cc->context_inst_.createSVMRegion(kB));
+  auto *Vs = static_cast<uint16_t *>(cc->context_inst_.createSVMRegion(kB));
+  auto *Os = static_cast<uint16_t *>(cc->context_inst_.createSVMRegion(oB));
+  if (!Qs || !Ks || !Vs || !Os)
+    return false;
+  std::memcpy(Qs, Q.data(), qB);
+  std::memcpy(Ks, Kb.data(), kB);
+  std::memcpy(Vs, Vb.data(), kB);
+  cc->command_queue_inst_.enqueueSVMUnmap(Qs);
+  cc->command_queue_inst_.enqueueSVMUnmap(Ks);
+  cc->command_queue_inst_.enqueueSVMUnmap(Vs);
+
+  auto poison = [&](uint16_t fill) {
+    cc->command_queue_inst_.enqueueSVMMap(Os, oB, /*read_only=*/false);
+    std::memset(Os, fill, oB);
+    cc->command_queue_inst_.enqueueSVMUnmap(Os);
+  };
+  auto grab = [&](std::vector<uint16_t> &out) {
+    nntrainer::cl_queue_finish();
+    cc->command_queue_inst_.enqueueSVMMap(Os, oB, /*read_only=*/true);
+    out.assign(Os, Os + Q.size());
+    cc->command_queue_inst_.enqueueSVMUnmap(Os);
+  };
+  auto run_afp = [&](std::vector<uint16_t> &out) {
+    poison(0xFF); // NaN: every element must be written
+    const bool ok = nntrainer::flash_prefill_gqa_f16_cl(
+      Qs, Ks, Vs, Os, nullptr, M, N_kv, Hq, Hkv, d, true, 0.0f, W, cap);
+    grab(out);
+    return ok;
+  };
+  std::vector<uint16_t> o1, o2, o3, of, ot;
+  bool ok = run_afp(o1) && run_afp(o2) && run_afp(o3);
+  if (ok) {
+    res.identical = (o1 == o2) && (o2 == o3);
+    poison(0);
+    if (nntrainer::flash_attention_prefill_f16_cl(
+          Qs, Ks, Vs, Os, M, N_kv, Hq, Hkv, d, 0u, true, true, 0.0f, W, cap))
+      grab(of);
+    if (cap == 0 && (W == 0 || W >= N_kv)) {
+      poison(0);
+      if (nntrainer::two_conv_attention_prefill_f16_cl(Qs, Ks, Vs, Os, M, N_kv,
+                                                       Hq, Hkv, d, true, true))
+        grab(ot);
+    }
+  }
+  cc->context_inst_.releaseSVMRegion(Qs);
+  cc->context_inst_.releaseSVMRegion(Ks);
+  cc->context_inst_.releaseSVMRegion(Vs);
+  cc->context_inst_.releaseSVMRegion(Os);
+  if (!ok)
+    return false;
+
+  auto maxdiff = [](const std::vector<uint16_t> &a,
+                    const std::vector<uint16_t> &b) {
+    double m = 0.0;
+    for (size_t i = 0; i < a.size(); ++i) {
+      const double u = halfBitsToFloat(a[i]), v = halfBitsToFloat(b[i]);
+      m = std::max(m, std::isfinite(u) && std::isfinite(v) ? std::fabs(u - v)
+                                                           : 1e30);
+    }
+    return m;
+  };
+  if (!of.empty())
+    res.flash_abs = maxdiff(o1, of);
+  if (!ot.empty())
+    res.tc_abs = maxdiff(o1, ot);
+  if (!of.empty())
+    res.flash_abs64 = 0.0;
+  if (!ot.empty())
+    res.tc_abs64 = 0.0;
+
+  // References on sampled rows (every row up to M = 334).
+  const double scale = 1.0 / std::sqrt((double)d);
+  const float scale_f = 1.0f / std::sqrt((float)d);
+  const unsigned stride = M <= 334 ? 1 : 5;
+  std::vector<double> sc64;
+  std::vector<float> sc32;
+  std::vector<double> o64(d);
+  std::vector<float> o32(d);
+  for (unsigned m = 0; m < M; ++m) {
+    if (m % stride != 0 && m + 8 < M)
+      continue;
+    ++res.rows_checked;
+    const unsigned pos = q_off + m;
+    const unsigned lo = (W > 0 && pos + 1 > W) ? pos + 1 - W : 0;
+    for (unsigned hq = 0; hq < Hq; ++hq) {
+      const unsigned hk = hq / G;
+      const float *qp = &Qf[(size_t)m * HDq + hq * d];
+      sc64.assign(pos + 1 - lo, 0.0);
+      sc32.assign(pos + 1 - lo, 0.0f);
+      double mx64 = -1e300;
+      float mx32 = -3e38f;
+      for (unsigned n = lo; n <= pos; ++n) {
+        const float *kp = &Kf[(size_t)(cap ? n % cap : n) * HDkv + hk * d];
+        double dot64 = 0.0;
+        float dot32 = 0.0f;
+        for (unsigned i = 0; i < d; ++i) {
+          dot64 += (double)qp[i] * (double)kp[i];
+          dot32 += qp[i] * kp[i];
+        }
+        sc64[n - lo] = dot64 * scale;
+        sc32[n - lo] = dot32 * scale_f;
+        mx64 = std::max(mx64, sc64[n - lo]);
+        mx32 = std::max(mx32, sc32[n - lo]);
+      }
+      double s64 = 0.0;
+      float s32 = 0.0f;
+      for (size_t j = 0; j < sc64.size(); ++j) {
+        sc64[j] = std::exp(sc64[j] - mx64);
+        sc32[j] = std::exp(sc32[j] - mx32);
+        s64 += sc64[j];
+        s32 += sc32[j];
+      }
+      std::fill(o64.begin(), o64.end(), 0.0);
+      std::fill(o32.begin(), o32.end(), 0.0f);
+      for (unsigned n = lo; n <= pos; ++n) {
+        const float *vp = &Vf[(size_t)(cap ? n % cap : n) * HDkv + hk * d];
+        const double p64 = sc64[n - lo] / s64;
+        const float p32 = sc32[n - lo] / s32;
+        for (unsigned i = 0; i < d; ++i) {
+          o64[i] += p64 * (double)vp[i];
+          o32[i] += p32 * vp[i];
+        }
+      }
+      for (unsigned i = 0; i < d; ++i) {
+        const size_t e = (size_t)m * HDq + hq * d + i;
+        const double g = halfBitsToFloat(o1[e]);
+        const double den = std::max(std::fabs(o64[i]), 1e-2);
+        const double e64 = std::isfinite(g) ? std::fabs(g - o64[i]) : 1e30;
+        const double e32 =
+          std::isfinite(g) ? std::fabs(g - (double)o32[i]) : 1e30;
+        res.abs64 = std::max(res.abs64, e64);
+        res.rel64 = std::max(res.rel64, e64 / den);
+        res.abs32 = std::max(res.abs32, e32);
+        res.rel32 =
+          std::max(res.rel32, e32 / std::max(std::fabs((double)o32[i]), 1e-2));
+        res.ref32_abs64 =
+          std::max(res.ref32_abs64, std::fabs((double)o32[i] - o64[i]));
+        if (!of.empty())
+          res.flash_abs64 = std::max(
+            res.flash_abs64, std::fabs(halfBitsToFloat(of[e]) - o64[i]));
+        if (!ot.empty())
+          res.tc_abs64 =
+            std::max(res.tc_abs64, std::fabs(halfBitsToFloat(ot[e]) - o64[i]));
+      }
+    }
+  }
+  return true;
+}
+
+/**
+ * @brief The fused GQA flash prefill (NNTR_ADRENO_FLASH_PREFILL) agrees with
+ *        CPU references on the Gemma4-26B prefill shapes and is bit-identical
+ *        run to run. One [AFP-UT] line per case.
+ */
+TEST(attention_kernels, flash_prefill_gqa_matches_cpu_FP16) {
+  struct C {
+    unsigned Hq, Hkv, d, M, N, W, cap;
+  };
+  const std::vector<C> cases = {
+    {16, 8, 256, 64, 64, 1024, 0}, {16, 8, 256, 334, 334, 1024, 0},
+    {16, 2, 512, 64, 64, 0, 0},    {16, 2, 512, 334, 334, 0, 0},
+    {16, 8, 256, 37, 37, 1024, 0}, {16, 8, 256, 200, 1300, 1024, 0},
+    {16, 2, 512, 129, 600, 0, 0},
+  };
+  for (const C &c : cases) {
+    AfpResult r;
+    if (!afp_case(c.Hq, c.Hkv, c.d, c.M, c.N, c.W, c.cap, r))
+      GTEST_SKIP() << "fused prefill declined on this device";
+    std::printf("[AFP-UT] Hq=%u Hkv=%u d=%u M=%u N=%u W=%u cap=%u rows=%zu | "
+                "vs f64: abs %.3e rel %.3e | vs f32: abs %.3e rel %.3e | "
+                "f32ref-f64 %.3e | vs flash arm %.3e (flash-f64 %.3e) | "
+                "vs two_conv %.3e (tc-f64 %.3e) | ident3 %d\n",
+                c.Hq, c.Hkv, c.d, c.M, c.N, c.W, c.cap, r.rows_checked, r.abs64,
+                r.rel64, r.abs32, r.rel32, r.ref32_abs64, r.flash_abs,
+                r.flash_abs64, r.tc_abs, r.tc_abs64, (int)r.identical);
+    std::fflush(stdout);
+    EXPECT_TRUE(r.identical);
+    EXPECT_LT(r.abs64, 4e-3);
+    EXPECT_LT(r.rel64, 5e-2);
+  }
+}
 
 GTEST_API_ int main(int argc, char **argv) {
   int result = -1;

@@ -5894,6 +5894,470 @@ bool flash_decode_gqa_f16_cl(const uint16_t *Q_svm, const uint16_t *K_svm,
   return true;
 }
 
+// ===========================================================================
+// [afp] Fused GQA flash prefill (NNTR_ADRENO_FLASH_PREFILL=1).
+//
+// The Adreno image arm runs prefill attention in three passes over the K/V
+// image mirrors (qk_band -> softmax -> sv_tm2): an [hQ, M, N_kv] fp16 score
+// tensor is written, re-read, normalized and read again, and every query head
+// reads its kv head's K/V on its own (gqa times per kv head). This is one pass
+// over the fp16 concat K/V cache instead.
+//
+// One work-group = ONE sub-group of AFP_NL lanes owns one (kv head, tile of
+// AFP_TQ query rows) and serves all AFP_G query heads of that kv head, i.e.
+// AFP_R = AFP_TQ * AFP_G (row, head) pairs; every K/V row is read once per
+// tile for all of them. Keys are walked in blocks of AFP_KB:
+//
+//  - Q.K^T: a step covers AFP_NL / AFP_LPK keys; AFP_LPK neighbouring lanes
+//    share one key and split its head dim (16 B loads, so AFP_LPK lanes read
+//    16 * AFP_LPK contiguous bytes of the K row). Each lane forms partial dots
+//    for the AFP_R pairs; a fixed xor butterfly (sub_group_shuffle_xor) over
+//    the AFP_LPK lanes completes them. AFP_NSTEP steps make a block.
+//  - online softmax per pair: the block max is a fixed xor butterfly over the
+//    whole sub-group; the running sum is kept per lane and reduced once at the
+//    end (same butterfly), so no per-block sum reduction.
+//  - P.V: lanes switch to a column split: AFP_RS row groups x (AFP_NL /
+//    AFP_RS) column slices of AFP_CPL columns, one coalesced V row per key.
+//    The probability of a key reaches the lanes through sub_group_broadcast
+//    (AFP_RS = 1) or sub_group_shuffle (AFP_RS > 1: the AFP_LPK lanes of a
+//    key expose different row groups). P stays fp32, accumulation is fp32.
+//
+// No __local memory and no barrier anywhere (the Adreno 0842.19.8 driver
+// miscomputes __local tiles at >= 2 work-groups per SP). Causal and sliding
+// window masks are block skips plus a per-(key, pair) test inside the
+// boundary blocks; masked keys get p = 0. Deterministic: fixed block size,
+// fixed lane split, fixed butterflies and fixed key order for a given
+// (M, N_kv, window) -- outputs are bit-identical run to run. Not identical to
+// the image arm (which rounds scores and probabilities to fp16) nor to the
+// flash/XMX arms (other summation orders).
+// ===========================================================================
+static const std::string afp_kernel_src = R"CL(
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#pragma OPENCL EXTENSION cl_khr_subgroups : enable
+#pragma OPENCL EXTENSION cl_khr_subgroup_shuffle : enable
+#if defined(AFP_INTEL_SG)
+#pragma OPENCL EXTENSION cl_intel_subgroups : enable
+#define AFP_SG_ATTR __attribute__((intel_reqd_sub_group_size(AFP_INTEL_SG)))
+#elif defined(cl_qcom_reqd_sub_group_size)
+#pragma OPENCL EXTENSION cl_qcom_reqd_sub_group_size : enable
+#define AFP_SG_ATTR __attribute__((qcom_reqd_sub_group_size("half")))
+#else
+#define AFP_SG_ATTR
+#endif
+
+// -cl-finite-math-only is in the default options: no infinities. A masked
+// score is this sentinel; anything below AFP_NEG_T counts as masked.
+#define AFP_NEG (-1.0e30f)
+#define AFP_NEG_T (-1.0e29f)
+#define AFP_R (AFP_TQ * AFP_G)          // (row, head) pairs per tile
+#define AFP_KPS (AFP_NL / AFP_LPK)      // keys per Q.K step
+#define AFP_KB (AFP_KPS * AFP_NSTEP)    // keys per block
+#define AFP_NCH (AFP_D / (8 * AFP_LPK)) // half8 chunks per lane per key
+#define AFP_RPL (AFP_R / AFP_RS)        // P.V rows per lane
+#define AFP_CSL (AFP_NL / AFP_RS)       // P.V column slices
+#define AFP_CPL (AFP_D / AFP_CSL)       // P.V columns per lane
+#define AFP_C4 (AFP_CPL / 4)            // float4 accumulators per row
+
+inline float afp_dot8(const float8 a, const float8 b, float acc) {
+  acc = fma(a.s0, b.s0, acc);
+  acc = fma(a.s1, b.s1, acc);
+  acc = fma(a.s2, b.s2, acc);
+  acc = fma(a.s3, b.s3, acc);
+  acc = fma(a.s4, b.s4, acc);
+  acc = fma(a.s5, b.s5, acc);
+  acc = fma(a.s6, b.s6, acc);
+  return fma(a.s7, b.s7, acc);
+}
+
+AFP_SG_ATTR __attribute__((reqd_work_group_size(AFP_NL, 1, 1))) __kernel void
+afp_probe(__global int *out) {
+  if (get_local_id(0) == 0) {
+    out[0] = (int)get_max_sub_group_size();
+    out[1] = (int)get_sub_group_size();
+    out[2] = (int)get_num_sub_groups();
+  }
+}
+
+AFP_SG_ATTR __attribute__((reqd_work_group_size(AFP_NL, 1, 1))) __kernel void
+afp_prefill(__global const half *Q, __global const half *K,
+            __global const half *V, __global half *O, const int M,
+            const int N_kv, const int HD_Q, const int HD_KV, const float scale,
+            const int causal, const int local_window, const int ring_cap,
+            const int n_kv_heads) {
+  const int lane = (int)get_sub_group_local_id();
+  const int n_tiles = (M + AFP_TQ - 1) / AFP_TQ;
+  const int gid = (int)get_group_id(0);
+  // Heaviest (latest) causal tiles first, all kv heads interleaved.
+  const int head_kv = gid % n_kv_heads;
+  const int tile = n_tiles - 1 - gid / n_kv_heads;
+  const int m0 = tile * AFP_TQ;
+  const int q_off = N_kv - M; // absolute position of query row 0
+  const int m_last = min(m0 + AFP_TQ, M) - 1;
+
+  // Key range of the whole tile (block skip); per-pair masks below.
+  int n_end = N_kv;
+  if (causal)
+    n_end = min(N_kv, q_off + m_last + 1);
+  int n_beg = 0;
+  if (local_window > 0) {
+    n_beg = q_off + m0 - local_window + 1;
+    if (n_beg < 0)
+      n_beg = 0;
+    n_beg = (n_beg / AFP_KB) * AFP_KB;
+  }
+
+  // Q.K lane split: key a of a step, d-slice sl.
+  const int ka = lane / AFP_LPK;
+  const int sl = lane % AFP_LPK;
+  // P.V lane split: row group h, column slice cs.
+  const int ph = lane / AFP_CSL;
+  const int cs = lane % AFP_CSL;
+
+  // Q row offsets per pair (rows past M are clamped; never stored).
+  int q_base[AFP_R];
+  int q_pos[AFP_R];
+#pragma unroll
+  for (int r = 0; r < AFP_R; ++r) {
+    const int t = r / AFP_G, g = r % AFP_G;
+    const int m = min(m0 + t, M - 1);
+    q_base[r] = m * HD_Q + (head_kv * AFP_G + g) * AFP_D;
+    q_pos[r] = q_off + m;
+  }
+  const int kv_head_off = head_kv * AFP_D;
+
+  float m_i[AFP_R], l_i[AFP_R];
+#pragma unroll
+  for (int r = 0; r < AFP_R; ++r) {
+    m_i[r] = AFP_NEG;
+    l_i[r] = 0.0f;
+  }
+  float4 acc[AFP_RPL][AFP_C4];
+#pragma unroll
+  for (int i = 0; i < AFP_RPL; ++i)
+#pragma unroll
+    for (int c = 0; c < AFP_C4; ++c)
+      acc[i][c] = (float4)(0.0f);
+
+  for (int kb = n_beg; kb < n_end; kb += AFP_KB) {
+    // ---- scores for AFP_NSTEP steps of AFP_KPS keys. Every Q chunk is
+    // loaded once per block and used against the AFP_NSTEP keys of this
+    // lane; each (step, pair) dot is one sequential fma chain.
+    float s[AFP_NSTEP][AFP_R];
+    long koff[AFP_NSTEP];
+#pragma unroll
+    for (int st = 0; st < AFP_NSTEP; ++st) {
+      const int nn = min(kb + st * AFP_KPS + ka, N_kv - 1);
+      const int prow = ring_cap > 0 ? (nn % ring_cap) : nn;
+      koff[st] = (long)prow * HD_KV + kv_head_off + sl * 8;
+#pragma unroll
+      for (int r = 0; r < AFP_R; ++r)
+        s[st][r] = 0.0f;
+    }
+#pragma unroll
+    for (int c = 0; c < AFP_NCH; ++c) {
+      float8 kf[AFP_NSTEP];
+#pragma unroll
+      for (int st = 0; st < AFP_NSTEP; ++st)
+        kf[st] = convert_float8(vload8(0, K + koff[st] + c * AFP_LPK * 8));
+#pragma unroll
+      for (int r = 0; r < AFP_R; ++r) {
+        const float8 qf =
+          convert_float8(vload8(0, Q + q_base[r] + (c * AFP_LPK + sl) * 8));
+#pragma unroll
+        for (int st = 0; st < AFP_NSTEP; ++st)
+          s[st][r] = afp_dot8(qf, kf[st], s[st][r]);
+      }
+    }
+#pragma unroll
+    for (int st = 0; st < AFP_NSTEP; ++st) {
+      const int n = kb + st * AFP_KPS + ka;
+#pragma unroll
+      for (int r = 0; r < AFP_R; ++r) {
+        float p = s[st][r];
+#pragma unroll
+        for (int msk = AFP_LPK >> 1; msk > 0; msk >>= 1)
+          p += sub_group_shuffle_xor(p, (uint)msk);
+        bool live = n < n_end;
+        if (causal)
+          live = live && (n <= q_pos[r]);
+        if (local_window > 0)
+          live = live && (n + local_window > q_pos[r]);
+        s[st][r] = live ? p * scale : AFP_NEG;
+      }
+    }
+    // ---- online softmax: block max (whole sub-group), rescale, p
+    float alpha[AFP_R];
+#pragma unroll
+    for (int r = 0; r < AFP_R; ++r) {
+      float mx = s[0][r];
+#pragma unroll
+      for (int st = 1; st < AFP_NSTEP; ++st)
+        mx = fmax(mx, s[st][r]);
+#pragma unroll
+      for (int msk = AFP_NL >> 1; msk > 0; msk >>= 1)
+        mx = fmax(mx, sub_group_shuffle_xor(mx, (uint)msk));
+      const float m_new = fmax(m_i[r], mx);
+      alpha[r] = (m_i[r] < AFP_NEG_T) ? 0.0f : exp(m_i[r] - m_new);
+      float lsum = 0.0f;
+#pragma unroll
+      for (int st = 0; st < AFP_NSTEP; ++st) {
+        const float pv = (s[st][r] < AFP_NEG_T) ? 0.0f : exp(s[st][r] - m_new);
+        s[st][r] = pv;
+        lsum += pv;
+      }
+      // one lane per key adds to the running sum
+      l_i[r] = l_i[r] * alpha[r] + (sl == 0 ? lsum : 0.0f);
+      m_i[r] = m_new;
+    }
+    // ---- P.V: this lane's rows (group ph) and columns (slice cs)
+#pragma unroll
+    for (int i = 0; i < AFP_RPL; ++i) {
+      float a = alpha[i];
+#pragma unroll
+      for (int h = 1; h < AFP_RS; ++h)
+        a = (ph == h) ? alpha[h * AFP_RPL + i] : a;
+#pragma unroll
+      for (int c = 0; c < AFP_C4; ++c)
+        acc[i][c] *= a;
+    }
+#pragma unroll
+    for (int st = 0; st < AFP_NSTEP; ++st) {
+      // What this lane exposes to the P.V lanes: the probabilities of the
+      // row group equal to its d-slice index (AFP_RS <= AFP_LPK).
+      float x[AFP_RPL];
+#pragma unroll
+      for (int i = 0; i < AFP_RPL; ++i) {
+        float v = s[st][i];
+#pragma unroll
+        for (int h = 1; h < AFP_RS; ++h)
+          v = (sl == h) ? s[st][h * AFP_RPL + i] : v;
+        x[i] = v;
+      }
+      for (int a = 0; a < AFP_KPS; ++a) {
+        const int n = kb + st * AFP_KPS + a;
+        const int nn = min(n, N_kv - 1);
+        const int prow = ring_cap > 0 ? (nn % ring_cap) : nn;
+        __global const half *vp =
+          V + (long)prow * HD_KV + kv_head_off + cs * AFP_CPL;
+        float4 vf[AFP_C4];
+#pragma unroll
+        for (int c = 0; c < AFP_C4; ++c)
+          vf[c] = convert_float4(vload4(c, vp));
+#pragma unroll
+        for (int i = 0; i < AFP_RPL; ++i) {
+#if AFP_RS == 1
+          const float p = sub_group_broadcast(x[i], (uint)(a * AFP_LPK));
+#else
+          const float p = sub_group_shuffle(x[i], (uint)(a * AFP_LPK + ph));
+#endif
+#pragma unroll
+          for (int c = 0; c < AFP_C4; ++c)
+            acc[i][c] = fma((float4)(p), vf[c], acc[i][c]);
+        }
+      }
+    }
+  }
+
+  // ---- final row sums (fixed butterfly), normalize, store
+#pragma unroll
+  for (int r = 0; r < AFP_R; ++r) {
+    float l = l_i[r];
+#pragma unroll
+    for (int msk = AFP_NL >> 1; msk > 0; msk >>= 1)
+      l += sub_group_shuffle_xor(l, (uint)msk);
+    l_i[r] = l;
+  }
+#pragma unroll
+  for (int i = 0; i < AFP_RPL; ++i) {
+    int r = i;
+    float l = l_i[i];
+#pragma unroll
+    for (int h = 1; h < AFP_RS; ++h) {
+      r = (ph == h) ? (h * AFP_RPL + i) : r;
+      l = (ph == h) ? l_i[h * AFP_RPL + i] : l;
+    }
+    const int t = r / AFP_G, g = r % AFP_G;
+    const int m = m0 + t;
+    if (m >= M)
+      continue;
+    const float inv = (l > 0.0f) ? (1.0f / l) : 0.0f;
+    __global half *op =
+      O + (long)m * HD_Q + (head_kv * AFP_G + g) * AFP_D + cs * AFP_CPL;
+#pragma unroll
+    for (int c = 0; c < AFP_C4; ++c)
+      vstore4(convert_half4(acc[i][c] * inv), c, op);
+  }
+}
+)CL";
+
+namespace {
+struct AfpScratch {
+  void *probe = nullptr;
+  size_t probe_cap = 0;
+  // copts -> 1 usable / 0 refused (sub-group layout does not hold, or the
+  // program did not build). Probed once per variant.
+  std::map<std::string, int> verdict;
+};
+AfpScratch &afp_scratch() {
+  static AfpScratch s;
+  return s;
+}
+} // namespace
+
+bool flash_prefill_gqa_enabled() {
+  static const bool on = []() {
+    const char *e = std::getenv("NNTR_ADRENO_FLASH_PREFILL");
+    return e != nullptr && std::atoi(e) != 0;
+  }();
+  return on;
+}
+
+bool flash_prefill_gqa_f16_cl(const uint16_t *Q_svm, const uint16_t *K_svm,
+                              const uint16_t *V_svm, uint16_t *O_svm,
+                              void *o_clmem, unsigned int M, unsigned int N_kv,
+                              unsigned int num_heads_Q,
+                              unsigned int num_heads_KV, unsigned int head_dim,
+                              bool causal, float attn_softcap,
+                              unsigned int local_window,
+                              unsigned int ring_cap) {
+  if (M == 0 || N_kv == 0 || M > N_kv || num_heads_Q == 0 ||
+      num_heads_KV == 0 || head_dim == 0)
+    return false;
+  if (num_heads_Q % num_heads_KV != 0 || head_dim % 32 != 0)
+    return false;
+  if (attn_softcap > 0.0f)
+    return false; // no score cap in this kernel (Gemma4 has none)
+  if (ring_cap > 0 && N_kv > ring_cap &&
+      (local_window == 0 || local_window + M > ring_cap))
+    return false; // a ring slot this call reads may already be overwritten
+  const int G = (int)(num_heads_Q / num_heads_KV);
+  if (G > 16)
+    return false;
+
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  if (blas_cc == nullptr)
+    return false;
+
+  // Lanes per work-group = the sub-group: Adreno runs a 64-lane "half" wave
+  // (qcom_reqd_sub_group_size); Intel takes a required size of 32, which is
+  // how the same kernel is checked on Xe.
+  const bool intel_sg = ClContext::Global().caps().subgroups;
+  const int NL = intel_sg ? 32 : 64;
+  // Tile rows: AFP_TQ * G pairs per tile, 8 for both Gemma4-26B layer kinds
+  // (sliding G=2 -> 4 rows, full G=8 -> 1 row).
+  const int TQ = (G >= 8) ? 1 : 8 / G;
+  const int R = TQ * G;
+  const int LPK = 4;
+  const int NSTEP = 2;
+  int RS = 2;
+  auto pow2 = [](int v) { return v > 0 && (v & (v - 1)) == 0; };
+  if (!pow2(LPK) || LPK > NL || (int)head_dim % (8 * LPK) != 0)
+    return false;
+  if (NSTEP < 1 || NSTEP > 8)
+    return false;
+  if (!pow2(RS) || RS > LPK || R % RS != 0)
+    RS = 1;
+  if (((int)head_dim * RS) % (NL * 4) != 0)
+    RS = 1;
+  if (((int)head_dim) % (NL * 4) != 0 && RS == 1)
+    return false;
+  if (R > 32)
+    return false;
+
+  std::string copts =
+    "-DAFP_NL=" + std::to_string(NL) + " -DAFP_D=" + std::to_string(head_dim) +
+    " -DAFP_G=" + std::to_string(G) + " -DAFP_TQ=" + std::to_string(TQ) +
+    " -DAFP_LPK=" + std::to_string(LPK) +
+    " -DAFP_NSTEP=" + std::to_string(NSTEP) + " -DAFP_RS=" + std::to_string(RS);
+  if (intel_sg)
+    copts += " -DAFP_INTEL_SG=" + std::to_string(NL);
+
+  AfpScratch &sc = afp_scratch();
+  auto vit = sc.verdict.find(copts);
+  if (vit != sc.verdict.end() && vit->second == 0)
+    return false;
+  ClContext::SharedPtrClKernel kp =
+    blas_cc->registerClKernel(afp_kernel_src, "afp_prefill", copts);
+  if (vit == sc.verdict.end()) {
+    // First use of this variant: the lane math needs the work-group to be
+    // exactly one sub-group of NL lanes. One blocking probe per variant.
+    int ok_v = 0;
+    int got[4] = {0, 0, 0, 0};
+    ClContext::SharedPtrClKernel kpr =
+      blas_cc->registerClKernel(afp_kernel_src, "afp_probe", copts);
+    if (kp && kpr &&
+        ensure_cl_stage_buf(&sc.probe, &sc.probe_cap, 4 * sizeof(int))) {
+      cl_mem pm = (cl_mem)sc.probe;
+      cl_command_queue q = blas_cc->command_queue_inst_.GetCommandQueue();
+      std::array<size_t, 1> g1 = {(size_t)NL}, l1 = {(size_t)NL};
+      bool rd = kpr->SetKernelArguments(0, &pm, sizeof(cl_mem));
+      if (rd) {
+        blas_cc->command_queue_inst_.enqueueKernel(
+          kpr->GetKernel(), 1, g1.data(), l1.data(), 0, nullptr, nullptr);
+        rd =
+          opencl::clEnqueueReadBuffer(q, pm, CL_TRUE, 0, 3 * sizeof(int), got,
+                                      0, nullptr, nullptr) == CL_SUCCESS;
+      }
+      if (rd)
+        ok_v = (got[1] == NL && got[2] == 1) ? 1 : 0;
+      std::fprintf(stderr,
+                   "[AFP] variant NL=%d d=%u G=%d TQ=%d LPK=%d NSTEP=%d RS=%d "
+                   "intel=%d: sub-group max=%d size=%d num=%d -> %s\n",
+                   NL, head_dim, G, TQ, LPK, NSTEP, RS, (int)intel_sg, got[0],
+                   got[1], got[2], ok_v ? "engaged" : "refused");
+    } else {
+      std::fprintf(stderr,
+                   "[AFP] variant NL=%d d=%u G=%d TQ=%d LPK=%d NSTEP=%d RS=%d: "
+                   "program did not build -> refused\n",
+                   NL, head_dim, G, TQ, LPK, NSTEP, RS);
+    }
+    sc.verdict[copts] = ok_v;
+    if (!ok_v)
+      return false;
+  }
+  if (!kp)
+    return false;
+
+  const float scale = 1.0f / std::sqrt((float)head_dim);
+  int Mi = (int)M, Ni = (int)N_kv, hdq = (int)(num_heads_Q * head_dim),
+      hdkv = (int)(num_heads_KV * head_dim), ca = causal ? 1 : 0;
+  int win = (local_window > 0 && local_window < N_kv) ? (int)local_window : 0;
+  int rc = (int)ring_cap, nkh = (int)num_heads_KV;
+  bool ok = kp->SetKernelSVMArguments(0, const_cast<uint16_t *>(Q_svm)) &&
+            kp->SetKernelSVMArguments(1, const_cast<uint16_t *>(K_svm)) &&
+            kp->SetKernelSVMArguments(2, const_cast<uint16_t *>(V_svm));
+  if (o_clmem != nullptr) {
+    cl_mem oh = static_cast<cl_mem>(o_clmem);
+    ok = ok && kp->SetKernelArguments(3, &oh, sizeof(cl_mem));
+  } else {
+    ok = ok && kp->SetKernelSVMArguments(3, O_svm);
+  }
+  ok = ok && kp->SetKernelArguments(4, &Mi, sizeof(int)) &&
+       kp->SetKernelArguments(5, &Ni, sizeof(int)) &&
+       kp->SetKernelArguments(6, &hdq, sizeof(int)) &&
+       kp->SetKernelArguments(7, &hdkv, sizeof(int)) &&
+       kp->SetKernelArguments(8, &scale, sizeof(float)) &&
+       kp->SetKernelArguments(9, &ca, sizeof(int)) &&
+       kp->SetKernelArguments(10, &win, sizeof(int)) &&
+       kp->SetKernelArguments(11, &rc, sizeof(int)) &&
+       kp->SetKernelArguments(12, &nkh, sizeof(int));
+  if (!ok)
+    return false;
+  const size_t n_tiles = (M + (unsigned int)TQ - 1) / (unsigned int)TQ;
+  std::array<size_t, 1> gws = {n_tiles * num_heads_KV * (size_t)NL};
+  std::array<size_t, 1> lws = {(size_t)NL};
+  blas_cc->command_queue_inst_.enqueueKernel(kp->GetKernel(), 1, gws.data(),
+                                             lws.data(), 0, nullptr, nullptr);
+  if (gh_mode() != 0) {
+    attn_gpuhash_note("aq", Q_svm, nullptr,
+                      (size_t)M * num_heads_Q * head_dim * 2, M);
+    attn_gpuhash_note("ao", O_svm, o_clmem,
+                      (size_t)M * num_heads_Q * head_dim * 2, M);
+  }
+  return true;
+}
+
 void cl_attention_release_caches() {
   // [reload] Model-teardown counterpart to what this file latches for the
   // process. No run is in flight at the call site and every item is rebuilt
@@ -5951,6 +6415,15 @@ void cl_attention_release_caches() {
       *b = nullptr;
     }
     as.acc_cap = as.ml_cap = as.probe_cap = 0;
+  }
+  // [afp] The fused prefill's probe buffer and variant verdicts.
+  {
+    AfpScratch &as = afp_scratch();
+    if (as.probe)
+      opencl::clReleaseMemObjectT(static_cast<cl_mem>(as.probe));
+    as.probe = nullptr;
+    as.probe_cap = 0;
+    as.verdict.clear();
   }
   // A teardown is a handle-epoch boundary for this file's memos too.
   opencl::clBumpHandleEpoch();
