@@ -758,6 +758,7 @@ WIN_EXPORT const char *getModelCatalogJson(void);
  *     "lora_qat":    true,                     // QAT fake-quant
  *     "lora_weight_q4": true,                  // also save Q4_0 adapter
  *     "qat_ema_momentum": 0.1,
+ *     "validate":    false,                    // per-epoch validation pass
  *     "lr_decay_rate":   0.0,
  *     "lr_decay_steps":  0.0,
  *     "output_path":    ".../lora_adapter.bin", // default
@@ -771,6 +772,10 @@ WIN_EXPORT const char *getModelCatalogJson(void);
 /**
  * @brief Per-epoch training progress callback.
  *
+ * @param train_loss     mean training loss over the epoch
+ * @param valid_loss     validation loss; NaN unless "validate" was set
+ * @param best_loss      best loss so far: validation loss with "validate",
+ *                       else the epoch-mean training loss
  * @param epoch_seconds  wall time of the epoch: training plus validation
  *                       (the adapter save that follows is not counted)
  * @param train_seconds  training part of @p epoch_seconds; the rest is

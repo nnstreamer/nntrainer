@@ -73,6 +73,10 @@ void printUsage(const char *prog) {
        "smooth\n"
     << "                        the block scales over more steps — try 0.01\n"
     << "                        if long QAT runs destabilize.\n"
+    << "  --validate            run a validation pass after every epoch and\n"
+    << "                        keep the adapter with the best validation\n"
+    << "                        loss (default: off -- the adapter with the\n"
+    << "                        best epoch-mean training loss is kept)\n"
     << "  --lora_weight_q4      also save a Q4_0 adapter (output path with\n"
     << "                        a _q4.bin suffix) alongside the FP32 one.\n"
     << "                        With --lora_qat, force-feeds the calibrated\n"
@@ -130,19 +134,29 @@ static void onEpochComplete(void *user_data) {
                            ? secs(st->last_iter_end - st->epoch_start).count()
                            : epoch_s;
 
+  // train_stats.loss is the mean over the epoch's iterations
   auto train_stats = st->model->getTrainingStats();
-  auto valid_stats = st->model->getValidStats();
+  const bool validate = st->params.validate;
+  const float valid_loss = validate ? st->model->getValidStats().loss
+                                    : std::numeric_limits<float>::quiet_NaN();
+  // the adapter is kept on the validation loss when there is one, else on
+  // the epoch-mean training loss
+  const float select_loss = validate ? valid_loss : train_stats.loss;
 
   char timing[96];
-  std::snprintf(timing, sizeof(timing), "%.2fs (train %.2fs + valid %.2fs)",
-                epoch_s, train_s, epoch_s - train_s);
-  std::cout << "[epoch " << st->epoch << "] train_loss=" << train_stats.loss
-            << " valid_loss=" << valid_stats.loss << " time=" << timing
-            << std::endl;
+  if (validate)
+    std::snprintf(timing, sizeof(timing), "%.2fs (train %.2fs + valid %.2fs)",
+                  epoch_s, train_s, epoch_s - train_s);
+  else
+    std::snprintf(timing, sizeof(timing), "%.2fs", train_s);
+  std::cout << "[epoch " << st->epoch << "] train_loss=" << train_stats.loss;
+  if (validate)
+    std::cout << " valid_loss=" << valid_loss;
+  std::cout << " time=" << timing << std::endl;
 
   bool saved = false;
-  if (valid_stats.loss < st->best_loss) {
-    st->best_loss = valid_stats.loss;
+  if (select_loss < st->best_loss) {
+    st->best_loss = select_loss;
     try {
       st->model->save_weight_lora(st->output_path);
       saved = true;
@@ -166,7 +180,7 @@ static void onEpochComplete(void *user_data) {
     TrainProgress progress;
     progress.epoch = st->epoch;
     progress.train_loss = train_stats.loss;
-    progress.valid_loss = valid_stats.loss;
+    progress.valid_loss = valid_loss;
     progress.accuracy = 0.0f;
     progress.saved = saved;
     progress.output_path = st->output_path;
@@ -436,7 +450,8 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
     if (hybrid)
       dataset->setProperty({"buffer_size=2"});
     model.setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset);
-    model.setDataset(ml::train::DatasetModeType::MODE_VALID, dataset);
+    if (params.validate)
+      model.setDataset(ml::train::DatasetModeType::MODE_VALID, dataset);
 
     EpochBridge bridge;
     bridge.model = &model;
@@ -462,8 +477,10 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
     model.train(onEpochComplete, &bridge, nullptr, nullptr, iteration_wrapper,
                 nullptr);
 
-    std::cout << "training complete; best valid_loss=" << bridge.best_loss
-              << ", adapter at " << output_path << std::endl;
+    std::cout << "training complete; best "
+              << (params.validate ? "valid_loss=" : "train_loss=")
+              << bridge.best_loss << ", adapter at " << output_path
+              << std::endl;
   } catch (const std::exception &e) {
     std::cerr << "Error: " << e.what() << std::endl;
     return EXIT_FAILURE;
@@ -533,6 +550,8 @@ int main(int argc, char *argv[]) {
         params.lora_weight_q4 = true;
       else if (arg == "--qat_ema_momentum")
         params.qat_ema_momentum = std::stof(next("--qat_ema_momentum"));
+      else if (arg == "--validate")
+        params.validate = true;
       else if (arg == "--seed")
         params.seed = static_cast<unsigned int>(std::stoul(next("--seed")));
       else if (arg == "--task")

@@ -164,6 +164,11 @@ struct TrainParams {
   bool lora_weight_q4 = false;   ///< also save a Q4_0 adapter
   float qat_ema_momentum = 0.0f; ///< EMA momentum for QAT scale update
   unsigned int seed = 42;        ///< RNG seed for epoch shuffling
+  /** run a validation pass after every epoch and select the saved adapter
+   *  on its loss. Off by default: the "validation" set is the training set
+   *  itself, so the pass costs a full extra forward per epoch for a number
+   *  the epoch-mean training loss already tracks. */
+  bool validate = false;
   /** "lm": next-token loss on every position of text lines; "decision":
    *  train a decision model on eve-rlcd JSONL questions (decision.h). */
   std::string task = "lm";
@@ -176,17 +181,20 @@ struct TrainParams {
  */
 struct TrainProgress {
   unsigned int epoch = 0;     ///< 1-based epoch index
-  float train_loss = 0.0f;    ///< running training loss for this epoch
-  float valid_loss = 0.0f;    ///< validation loss for this epoch
+  float train_loss = 0.0f;    ///< mean training loss over this epoch
+  /** validation loss for this epoch; NaN unless TrainParams::validate */
+  float valid_loss = std::numeric_limits<float>::quiet_NaN();
   float accuracy = 0.0f;      ///< top-1 accuracy (0 if unavailable)
   bool saved = false;         ///< whether the adapter was saved this epoch
   std::string output_path;    ///< current best-adapter output path
   std::string q4_output_path; ///< Q4_0 adapter path (empty if not saved)
-  float best_loss =
-    std::numeric_limits<float>::max(); ///< best valid loss so far
+  /** best loss so far: validation loss with TrainParams::validate, else
+   *  the epoch-mean training loss */
+  float best_loss = std::numeric_limits<float>::max();
   unsigned int num_samples = 0;        ///< total training samples loaded
   double epoch_seconds = 0.0; ///< wall time of the epoch (train + validation)
   double train_seconds = 0.0; ///< training part of it; the rest is validation
+                              ///< (equal without TrainParams::validate)
 };
 
 /**
