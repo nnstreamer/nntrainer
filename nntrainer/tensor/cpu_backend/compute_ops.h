@@ -597,6 +597,71 @@ public:
    */
   virtual void l2_normalize_rows(const Tensor &in, Tensor &out, float epsilon);
 
+  // ===========================================================================
+  // Mixture-of-experts data movement and expert projection
+  //
+  // A MoE layer runs each selected expert over the token rows routed to it:
+  // gather those rows, project them (gate / up / down FCs), and add the result
+  // back into the output rows with the routing weights. The three movement
+  // ops below keep those rows on the accelerator; they RETURN whether they ran
+  // instead of throwing, and enqueue nothing when they decline, so a layer can
+  // keep its host loop for operands an accelerator cannot address. The base
+  // (and the CPU table) decline everything.
+  // ===========================================================================
+
+  /**
+   * @brief out[r, :] = in[src_rows[r], :] for r in [0, rows).
+   * @return true when the accelerator ran it
+   */
+  virtual bool moe_gather_rows(const Tensor &in, Tensor &out,
+                               const unsigned int *src_rows,
+                               unsigned int rows) {
+    (void)in;
+    (void)out;
+    (void)src_rows;
+    (void)rows;
+    return false;
+  }
+
+  /**
+   * @brief out[dst_rows[r], :] += weights[r] * expert_out[r, :] for r in
+   *        [0, rows). The destination rows must be distinct within a call;
+   *        calls are ordered, so a caller that visits the experts in a fixed
+   *        order gets the same sums on every run.
+   * @return true when the accelerator ran it
+   */
+  virtual bool moe_scatter_add_rows(const Tensor &expert_out, Tensor &out,
+                                    const unsigned int *dst_rows,
+                                    const float *weights, unsigned int rows) {
+    (void)expert_out;
+    (void)out;
+    (void)dst_rows;
+    (void)weights;
+    (void)rows;
+    return false;
+  }
+
+  /**
+   * @brief out[0 .. rows, :] = 0.
+   * @return true when the accelerator ran it
+   */
+  virtual bool moe_zero_rows(Tensor &out, unsigned int rows) {
+    (void)out;
+    (void)rows;
+    return false;
+  }
+
+  /**
+   * @brief One expert projection: output = input x weight.
+   * @details The dispatch point for expert weights. It is fc() unless a
+   * backend serves an expert-only weight format here (see
+   * registerMoeExpertFcCl on the OpenCL table), so such a format plugs in
+   * without touching the MoE layers.
+   */
+  virtual void fc_expert(Tensor &input, Tensor &weight, Tensor &output) {
+    fc(input, weight, output);
+  }
+
 protected:
   /**
    * @brief Helper used by default impls to throw a uniform "not
