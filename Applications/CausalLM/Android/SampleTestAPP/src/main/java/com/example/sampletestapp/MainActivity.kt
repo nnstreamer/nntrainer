@@ -286,6 +286,24 @@ class MainActivity : AppCompatActivity() {
     private val trainValidLosses = mutableListOf<Float>()  // valid loss per epoch
     private var lossChartView: LossChartView? = null
 
+    // ── Train tab TEST (before / after inference) state ─────────────────
+    /** Cached inference handles: base checkpoint, and base + LoRA adapter.
+     *  0 = not loaded. Invalidated whenever training starts (the adapter
+     *  on disk changes mid-run). */
+    private var testBeforeHandle: Long = 0L
+    private var testAfterHandle: Long = 0L
+    private var testPromptText: String =
+        "What is the score of the following review on a scale of 1 to 5? " +
+            "Just answer with 1, 2, 3, 4, or 5 without further explanation. " +
+            "review: Teeny, tiny bars! It looked like ONE bar, it is so " +
+            "small! Cant believe these are 2000 calories!!"
+    private var testBeforeRunning: Boolean = false
+    private var testAfterRunning: Boolean = false
+    private var testBeforeOutput: String = ""
+    private var testAfterOutput: String = ""
+    /** "before" | "after" while a Stop has been requested for that column. */
+    private var testStopRequested: String? = null
+
     /* ───── UI refs (re-wired on every rebuildUi() call) ───── */
 
     private lateinit var rootHost: FrameLayout
@@ -306,6 +324,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var openAIMessagesField: EditText
     private lateinit var chatModelBasePathField: EditText
     private lateinit var chatSessionStatusView: TextView
+    private lateinit var testPromptField: EditText
+    private var testBeforeOutputView: TextView? = null
+    private var testAfterOutputView: TextView? = null
 
     /**
      * @brief ActivityResult launcher for the Android system photo picker
@@ -367,6 +388,7 @@ class MainActivity : AppCompatActivity() {
         if (::chatSeedField.isInitialized) seedText = chatSeedField.text.toString()
         if (::chatPromptField.isInitialized) chatPromptText = chatPromptField.text.toString()
         if (::openAIMessagesField.isInitialized) openAiJsonText = openAIMessagesField.text.toString()
+        if (::testPromptField.isInitialized) testPromptText = testPromptField.text.toString()
 
         // Save scroll positions before rebuilding
         if (::mainScrollView.isInitialized) mainScrollY = mainScrollView.scrollY
@@ -416,7 +438,9 @@ class MainActivity : AppCompatActivity() {
             else      -> buildOpenAiTab(tokens)
         })
 
-        if (selectedTab != "metrics") {
+        if (selectedTab != "metrics" && selectedTab != "train") {
+            // The Train tab builds its own TEST panel with per-column output
+            // boxes; the shared streaming output would just duplicate it.
             spacer(scrollColumn, 10)
             scrollColumn.addView(buildOutputPanel(tokens))
         }
@@ -820,11 +844,15 @@ class MainActivity : AppCompatActivity() {
         container.addView(buildTrainChartPanel(t))
         spacer(container, 10)
 
-        // 3. Training Log below chart
+        // 3. TEST — run the model before / after training
+        container.addView(buildTrainTestPanel(t))
+        spacer(container, 10)
+
+        // 4. Training Log
         container.addView(buildTrainLogPanel(t))
         spacer(container, 10)
 
-        // 4. Collapsible Settings Form
+        // 5. Collapsible Settings Form
         val cc = roundedCard(t, t.surfaceContainer)
         val headerLayout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -933,8 +961,77 @@ class MainActivity : AppCompatActivity() {
                 background = solid(t.surfaceContainer, 8)
                 setTextIsSelectable(true)
             })
-            layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, dp(260))
+            layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, dp(140))
         })
+        return card
+    }
+
+    /** One TEST column: a Run button over a small monospace output box. */
+    private fun buildTrainTestColumn(
+        t: M3Tokens, label: String, running: Boolean, output: String,
+        onRun: () -> Unit, which: String,
+    ): View {
+        val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        col.addView(Button(this).apply {
+            text = when {
+                running && testStopRequested == which -> "⏹ Stopping…"
+                running -> "■ Stop"
+                else -> "▶ Run $label"
+            }
+            isAllCaps = false
+            setTextColor(if (running) Color.WHITE else t.onPrimary)
+            textSize = 13f
+            typeface = Typeface.DEFAULT_BOLD
+            stateListAnimator = null
+            background = solid(if (running) t.error else t.primary, 24)
+            setPadding(dp(10), dp(8), dp(10), dp(8))
+            setOnClickListener {
+                if (running) {
+                    testStopRequested = which
+                    val h = if (which == "before") testBeforeHandle
+                            else testAfterHandle
+                    if (h != 0L) engineExecutor.execute {
+                        NativeCausalLm.cancelModelHandleNative(h)
+                    }
+                } else onRun()
+            }
+        }, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
+        spacer(col, 6)
+        val outBox = TextView(this).apply {
+            text = output.ifEmpty { "(not run yet)" }
+            setTextColor(if (output.isEmpty()) 0x4DFFFFFF else 0xFFEDE7F6.toInt())
+            textSize = 11f
+            typeface = Typeface.MONOSPACE
+            background = solid(t.codeBg, 12)
+            setPadding(dp(8), dp(8), dp(8), dp(8))
+        }
+        if (which == "before") testBeforeOutputView = outBox else testAfterOutputView = outBox
+        col.addView(outBox, LinearLayout.LayoutParams(MATCH_PARENT, dp(120)))
+        return col
+    }
+
+    /** TEST card: a prompt shared by both columns, then BEFORE / AFTER. */
+    private fun buildTrainTestPanel(t: M3Tokens): View {
+        val card = roundedCard(t, t.surfaceContainerHigh)
+        card.addView(sectionHeader(t, "🧪", t.secondaryContainer, t.onSurface,
+            "TEST", "Run inference before / after training"))
+        spacer(card, 8)
+        card.addView(labelView(t, "PROMPT"))
+        testPromptField = roundedEditText(t, testPromptText, multiline = true,
+            rows = 2) { testPromptText = it }
+        card.addView(testPromptField)
+        spacer(card, 8)
+        val cols = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        cols.addView(
+            buildTrainTestColumn(t, "BEFORE (base)", testBeforeRunning,
+                testBeforeOutput, { onTrainTestClicked("before") }, "before"),
+            LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+        spacerH(cols, 8)
+        cols.addView(
+            buildTrainTestColumn(t, "AFTER (trained)", testAfterRunning,
+                testAfterOutput, { onTrainTestClicked("after") }, "after"),
+            LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+        card.addView(cols)
         return card
     }
 
@@ -952,7 +1049,7 @@ class MainActivity : AppCompatActivity() {
             textColor = t.onSurface,
             epochLineColor = t.outline,
         ).apply {
-            layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, dp(280))
+            layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, dp(200))
             setData(trainLossPoints, trainEpochBoundaries, trainValidLosses)
         }
         card.addView(lossChartView!!)
@@ -2485,6 +2582,124 @@ class MainActivity : AppCompatActivity() {
 
     /* ───── Train handler ───── */
 
+    /** Destroy cached TEST inference handles (before/after columns). */
+    private fun invalidateTestHandles() {
+        for ((name, handle) in listOf("before" to testBeforeHandle,
+                                      "after" to testAfterHandle)) {
+            if (handle != 0L) {
+                engineExecutor.execute {
+                    NativeCausalLm.destroyModelHandleNative(handle)
+                }
+            }
+        }
+        testBeforeHandle = 0L
+        testAfterHandle = 0L
+    }
+
+    /**
+     * TEST card handler: run the prompt through the base checkpoint
+     * ("before") or the base + saved LoRA adapter ("after"), streaming
+     * into that column's output box.
+     */
+    private fun onTrainTestClicked(which: String) {
+        val alreadyRunning =
+            if (which == "before") testBeforeRunning else testAfterRunning
+        if (alreadyRunning) return
+        if (which == "before") {
+            testBeforeRunning = true
+            testBeforeOutput = ""
+        } else {
+            testAfterRunning = true
+            testAfterOutput = ""
+        }
+        testStopRequested = null
+        setStatus("TEST $which: loading model…")
+        rebuildUi()
+
+        val modelDir = trainModelPath.trim()
+        if (modelDir.isEmpty()) {
+            setStatus("TEST: model path is empty")
+            testBeforeRunning = false; testAfterRunning = false
+            rebuildUi()
+            return
+        }
+        // After column: load the FP32 adapter. A QAT run's _q4 file needs a
+        // Q4-tensor graph that rank-8 LoRA dims cannot build (Q4_0 requires
+        // width % 32 == 0) — LORA_TRAINING.md documents this: use the FP32
+        // adapter. Before column runs base only.
+        val loraPath = if (which == "after") {
+            "$modelDir/lora_adapter.bin"
+        } else ""
+
+        engineExecutor.execute {
+            val load: () -> Long = {
+                NativeCausalLm.ensureLoaded()
+                NativeCausalLm.loadModelHandleFromDirNative(
+                    backend = 0, // CPU
+                    modelDir = modelDir,
+                    quant = 1,   // W4A32 (matches QS4CX training models)
+                    nativeLibDir = applicationContext.applicationInfo.nativeLibraryDir,
+                    loraPath = loraPath.ifEmpty { null },
+                    loraRank = trainLoraRank.trim().toIntOrNull() ?: 8,
+                    loraAlpha = trainLoraAlpha.trim().toIntOrNull() ?: 16,
+                    loraLastN = trainLoraLastN.trim().toIntOrNull() ?: 7,
+                )
+            }
+            val handle = if (which == "before") {
+                if (testBeforeHandle != 0L) testBeforeHandle
+                else load().also { testBeforeHandle = it }
+            } else {
+                if (testAfterHandle != 0L) testAfterHandle
+                else load().also { testAfterHandle = it }
+            }
+            mainHandler.post { rebuildUi() }
+            if (handle == 0L) {
+                mainHandler.post {
+                    if (which == "before") testBeforeRunning = false
+                    else testAfterRunning = false
+                    setStatus("TEST $which: model load failed — see logcat")
+                    appendTrainLog("TEST $which: ✗ model load failed ($modelDir)")
+                    rebuildUi()
+                }
+                return@execute
+            }
+            mainHandler.post {
+                setStatus("TEST $which: running…")
+                rebuildUi()
+            }
+            val prompt = testPromptText
+            val sink = object : NativeCausalLm.NativeStreamListener {
+                override fun onDelta(text: String) {
+                    mainHandler.post {
+                        // Re-read the field: rebuildUi() swaps the output
+                        // boxes out from under a captured reference.
+                        val box = if (which == "before") testBeforeOutputView
+                                  else testAfterOutputView
+                        box?.append(text)
+                        if (which == "before") testBeforeOutput += text
+                        else testAfterOutput += text
+                    }
+                }
+            }
+            val rc = NativeCausalLm.runModelHandleStreamingNative(
+                handle, prompt, sink)
+            mainHandler.post {
+                if (which == "before") testBeforeRunning = false
+                else testAfterRunning = false
+                if (rc != 0) {
+                    setStatus("TEST $which failed (rc=$rc)")
+                    appendTrainLog("TEST $which: ✗ rc=$rc")
+                } else {
+                    val out = if (which == "before") testBeforeOutput
+                              else testAfterOutput
+                    setStatus("TEST $which done. (${out.length} chars)")
+                    appendTrainLog("TEST $which: ✓ \"${out.take(60)}\"")
+                }
+                rebuildUi()
+            }
+        }
+    }
+
     private fun onStopTraining() {
         appendTrainLog("⏹ Stop requested — finishing current iteration…")
         setStatus("Stopping training…")
@@ -2494,6 +2709,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun onTrainClicked() {
         if (trainRunning) return
+        // The adapter files on disk are about to change mid-run; the cached
+        // TEST handles hold loaded copies of the old weights, so drop them.
+        invalidateTestHandles()
         trainRunning = true; trainLog = ""; trainBestLoss = "—"
         trainLossPoints.clear()
         trainEpochBoundaries.clear()

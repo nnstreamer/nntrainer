@@ -164,6 +164,9 @@ public:
    */
   void setTrunkLayers(int n) { TRUNK_LAYERS = n; }
   void setHeadFromLayer(int n) { HEAD_FROM_LAYER = n; }
+  /** Build every layer on the cpu engine regardless of causallm_engine()
+   *  (see FORCE_CPU_ENGINE). Must be called before initialize(). */
+  void setForceCpuEngine(bool on) { FORCE_CPU_ENGINE = on; }
   /** first decoder block that carries LoRA (lora_last_n_layers) */
   int getLoraLayerStart() const { return LORA_LAYER_START; }
   /** hidden size */

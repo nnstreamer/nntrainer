@@ -251,6 +251,43 @@ WIN_EXPORT ErrorCode loadModelHandleByName(BackendType compute,
                                            CausalLmHandle *out_handle);
 
 /**
+ * @brief Load a model directly from an explicit model directory (e.g.
+ *        "/sdcard/q_qs4"), optionally applying a LoRA adapter on top of the
+ *        base checkpoint before inference.
+ *
+ * Unlike loadModelHandle()/loadModelHandleByName() — which resolve the
+ * model directory from the catalog (model_base_path + "<id>") and always
+ * load the plain base checkpoint — this entry point takes the directory
+ * as-is and is the inference counterpart of trainLora(): point it at the
+ * trained model directory and the saved adapter to evaluate fine-tuning
+ * results.
+ *
+ * When @p lora_path is non-NULL and non-empty, the LoRA layer config
+ * (rank/alpha/target/last_n) is defaulted the same way trainLora() does
+ * so the graph actually contains LoRA weights; an adapter file named
+ * "*_q4.bin" is loaded through load_weight_lora_q4() (the graph is built
+ * with Q4_0 LoRA tensors), any other file through load_weight_lora().
+ *
+ * @param compute         Compute backend
+ * @param model_dir       Absolute path to the model directory holding
+ *                        config.json / nntr_config.json / tokenizer / weights
+ * @param quant_type      Quantization type
+ * @param native_lib_dir  Native library directory path. May be NULL.
+ * @param lora_path       LoRA adapter file to apply. May be NULL (base only).
+ * @param out_handle      Out-parameter receiving the new handle on success
+ * @return ErrorCode
+ */
+WIN_EXPORT ErrorCode loadModelHandleFromDir(BackendType compute,
+                                            const char *model_dir,
+                                            ModelQuantizationType quant_type,
+                                            const char *native_lib_dir,
+                                            const char *lora_path,
+                                            unsigned int lora_rank,
+                                            unsigned int lora_alpha,
+                                            unsigned int lora_last_n,
+                                            CausalLmHandle *out_handle);
+
+/**
  * @brief SD 모델 로드 후 DDTree speculative decoding 활성화 여부를 설정한다.
  *        use_sd=false는 모든 모델에서 no-op (항상 CAUSAL_LM_ERROR_NONE).
  *        use_sd=true는 handle의 architecture가 configure_speculative_decoding

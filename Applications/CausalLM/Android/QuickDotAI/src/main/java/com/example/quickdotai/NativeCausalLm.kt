@@ -168,6 +168,25 @@ object NativeCausalLm {
         modelBasePath: String?,
     ): Long
 
+    /**
+     * @brief Loads a model directly from an explicit model directory,
+     *        optionally applying a saved LoRA adapter on top of the base
+     *        checkpoint (see loadModelHandleFromDir in quick_dot_ai_api.h).
+     *        rank/alpha/last_n shape the LoRA graph to the topology the
+     *        adapter was trained with; ignored when loraPath is null.
+     * @return Handle as Long, or 0 on failure.
+     */
+    external fun loadModelHandleFromDirNative(
+        backend: Int,
+        modelDir: String,
+        quant: Int,
+        nativeLibDir: String?,
+        loraPath: String?,
+        loraRank: Int,
+        loraAlpha: Int,
+        loraLastN: Int,
+    ): Long
+
     /** @brief Returns the registered model catalog as a JSON array string. */
     external fun nativeQueryCatalog(): String
 

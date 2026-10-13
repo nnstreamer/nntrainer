@@ -244,6 +244,37 @@ Java_com_example_quickdotai_NativeCausalLm_loadModelHandleByNameNative(
            : 0L;
 }
 
+// ---- loadModelHandleFromDir (explicit directory + optional LoRA) ----------
+extern "C" JNIEXPORT jlong JNICALL
+Java_com_example_quickdotai_NativeCausalLm_loadModelHandleFromDirNative(
+  JNIEnv *env, jobject /*thiz*/, jint backend, jstring modelDirJ, jint quant,
+  jstring nativeLibDirJ, jstring loraPathJ, jint loraRankJ, jint loraAlphaJ,
+  jint loraLastNJ) {
+  const char *dir = env->GetStringUTFChars(modelDirJ, nullptr);
+  const char *nld =
+    nativeLibDirJ ? env->GetStringUTFChars(nativeLibDirJ, nullptr) : nullptr;
+  const char *lora =
+    loraPathJ ? env->GetStringUTFChars(loraPathJ, nullptr) : nullptr;
+
+  CausalLmHandle h = nullptr;
+  ErrorCode ec = loadModelHandleFromDir(
+    static_cast<BackendType>(backend), dir,
+    static_cast<ModelQuantizationType>(quant), nld, lora,
+    static_cast<unsigned>(loraRankJ > 0 ? loraRankJ : 0),
+    static_cast<unsigned>(loraAlphaJ > 0 ? loraAlphaJ : 0),
+    static_cast<unsigned>(loraLastNJ > 0 ? loraLastNJ : 0), &h);
+
+  env->ReleaseStringUTFChars(modelDirJ, dir);
+  if (nld)
+    env->ReleaseStringUTFChars(nativeLibDirJ, nld);
+  if (lora)
+    env->ReleaseStringUTFChars(loraPathJ, lora);
+
+  return (ec == CAUSAL_LM_ERROR_NONE)
+           ? static_cast<jlong>(reinterpret_cast<uintptr_t>(h))
+           : 0L;
+}
+
 // ---- nativeQueryCatalog ---------------------------------------------------
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_example_quickdotai_NativeCausalLm_nativeQueryCatalog(
