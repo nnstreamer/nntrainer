@@ -2443,7 +2443,9 @@ static int router_q4_prefill_prepare_impl(
   int rc = hexkl_moe_scratch_reserve(&s->router_q4_scratch, need);
   if (rc != AEE_SUCCESS)
     return rc;
-  if (input_norm && !norm_rows_reserve(s, (size_t)M * K))
+  const size_t norm_count = (size_t)M * K;
+  if (input_norm &&
+      !norm_rows_reserve(s, norm_count + (input_norm->gamma ? K : 0u)))
     return AEE_ENOMEMORY;
   uint8_t *cur = s->router_q4_scratch.base;
   uint8_t *rows = hexkl_moe_carve(&cur, row_bytes);
@@ -2460,8 +2462,15 @@ static int router_q4_prefill_prepare_impl(
       scale[row] = 1.0f;
       zp[row] = 0;
     }
+    // Keep gamma in cached DSP memory across all rows, as Conv/QKV do.
+    router_prepared_norm cached_norm = *input_norm;
+    if (input_norm->gamma) {
+      float *cached_gamma = s->norm_rows + norm_count;
+      memcpy(cached_gamma, input_norm->gamma, (size_t)K * sizeof(float));
+      cached_norm.gamma = cached_gamma;
+    }
     const router_prepared_norm_quant_ctx norm_quant = {
-      input_norm, x, s->norm_rows, scale, zp, rows, M, K};
+      &cached_norm, x, s->norm_rows, scale, zp, rows, M, K};
     hvx_worker_pool_run(s->quant_pool, router_prepared_norm_quant_worker,
                         (void *)&norm_quant, M);
   } else {

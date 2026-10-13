@@ -66,7 +66,7 @@ typedef struct {
 } hexkl_mm_opts;
 static uint8_t scratch[1 << 20] __attribute__((aligned(128)));
 static uint8_t vtcm[1 << 16] __attribute__((aligned(128)));
-static float cached[5 * 128];
+static float cached[6 * 128];
 static int scratch_rc, norm_fail, fc_rc, selection_rc;
 static unsigned published, fc_calls, select_calls;
 static int hexkl_moe_scratch_reserve(hexkl_moe_scratch *s, size_t n) {
@@ -82,7 +82,7 @@ static void *hexkl_moe_carve(uint8_t **p, size_t n) {
   return out;
 }
 static int norm_rows_reserve(nntr_hvx_session *s, size_t n) {
-  assert(n <= 5 * 128);
+  assert(n <= 6 * 128);
   if (norm_fail)
     return 0;
   s->norm_rows = cached;
