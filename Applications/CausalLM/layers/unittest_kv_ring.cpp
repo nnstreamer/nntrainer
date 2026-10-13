@@ -796,9 +796,15 @@ TEST(KVRing, slab_sync_segments_stay_inside_both_allocations) {
  * now and reproducibility is one env away. The per-layer predicate stays, and
  * stays pinned, because the bound is one env away too.
  *
- * Pinned here because the whole contract is "no environment = the fast arm,
- * NNTR_DETERMINISTIC=1 = no layer on the image path", and both halves are
- * one-line predicates that a later refactor could invert without any test
+ * On the Android gpu engine the unset default is the reproducible arm (with
+ * the Adreno flash decode and GPU prefill attention, which made it the faster
+ * arm there); nntr_deterministic_default_on() is the one place that is
+ * decided, and off Android it stays the fast arm.
+ *
+ * Pinned here because the whole contract is "no environment = the platform
+ * default (the fast arm off Android), NNTR_DETERMINISTIC=0 = the fast arm,
+ * NNTR_DETERMINISTIC=1 = no layer on the image path", and each part is a
+ * one-line predicate that a later refactor could invert without any test
  * noticing.
  */
 TEST(KVRing, det_arm_per_layer_rule) {
@@ -808,10 +814,24 @@ TEST(KVRing, det_arm_per_layer_rule) {
   ScopedEnv allow("NNTR_ALLOW_NONDETERMINISTIC", nullptr);
   ScopedEnv wmax("NNTR_DET_IMG_WINDOW_MAX", nullptr);
   causallm::packAllowsNondeterministic() = false;
+  // The unset default: the reproducible arm on the Android gpu engine, the
+  // fast arm everywhere else (x86 / Intel, CUDA, the cpu engine).
+  const causallm::DetArm kDefault = nntr_deterministic_default_on()
+                                      ? causallm::DetArm::kPerLayer
+                                      : causallm::DetArm::kFast;
+#if !defined(__ANDROID__)
+  EXPECT_EQ(kDefault, causallm::DetArm::kFast);
+#endif
+  {
+    ScopedEnv cpu("NNTR_ENGINE", "cpu"); // never the default on a cpu engine
+    EXPECT_EQ(causallm::detArm(), causallm::DetArm::kFast);
+    ScopedEnv cuda("NNTR_ENGINE", "cuda"); // nor on a cuda one
+    EXPECT_EQ(causallm::detArm(), causallm::DetArm::kFast);
+  }
 
   { // the image bundle is not in play at all -> no layer takes it, any arm
     ScopedEnv img("NNTR_KV_IMG_ATTN", nullptr);
-    EXPECT_EQ(causallm::detArm(), causallm::DetArm::kFast);
+    EXPECT_EQ(causallm::detArm(), kDefault);
     EXPECT_FALSE(causallm::imageAttnRequested());
     EXPECT_FALSE(causallm::imageAttnLayer(512, MAXT));
     EXPECT_FALSE(causallm::imageAttnLayer(kFull, MAXT));
@@ -826,9 +846,12 @@ TEST(KVRing, det_arm_per_layer_rule) {
   }
 
   ScopedEnv img("NNTR_KV_IMG_ATTN", "1");
+  EXPECT_EQ(causallm::detArm(), kDefault); // no environment
 
-  // THE DEFAULT, no environment: the fast arm, EVERY layer on the image path
-  // (windowed, full, however the window is spelled).
+  // THE FAST ARM (the default off Android, NNTR_DETERMINISTIC=0 on it): EVERY
+  // layer on the image path (windowed, full, however the window is spelled).
+  ScopedEnv fast("NNTR_DETERMINISTIC",
+                 kDefault == causallm::DetArm::kFast ? nullptr : "0");
   EXPECT_EQ(causallm::detArm(), causallm::DetArm::kFast);
   EXPECT_FALSE(causallm::determinismFirst());
   EXPECT_TRUE(causallm::imageAttnRequested());
@@ -947,7 +970,7 @@ TEST(KVRing, ring_survives_both_arms) {
   const bool ring_arm = false; // no OpenCL arm to serve the gpu engine
 #endif
   {
-    ScopedEnv det("NNTR_DETERMINISTIC", nullptr); // the fast default
+    ScopedEnv det("NNTR_DETERMINISTIC", nullptr); // the platform default arm
     EXPECT_EQ(causallm::kvRingArmAvailable(), ring_arm);
     // a windowed layer is ringed; a full-attention one never is, on any arm
     EXPECT_EQ(causallm::kvRingCap(512, 16896, 4096, true) > 0u, ring_arm);

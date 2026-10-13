@@ -16,6 +16,7 @@
 #include <chrono>
 #include <climits>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <engine.h>
@@ -38,13 +39,35 @@
 
 static std::mutex rope_init_mtx;
 
+static bool mha_device_attention_on();
+
+// NNTR_MHA_HOST_FALLBACK=1 (value-checked, off by default): let an OpenCL
+// gpu-engine run hand an attention step to the HOST attention when every
+// device arm declined it. Without it that is an error (see
+// mha_assert_no_silent_host_attention): on the gpu engine the attention is a
+// device op, and a host fallback is a silent 10-20x slowdown (the Gemma4-26B
+// MoE 1K prefill attention spent seconds on the CPU that way) that no output
+// check notices. The opt-in exists for debugging a new shape or kernel.
+[[maybe_unused]] static bool mha_host_fallback_allowed() {
+  static const bool on = nntr_env_on("NNTR_MHA_HOST_FALLBACK");
+  return on;
+}
+
 // Minimum prefill step_size for routing attention/RoPE onto the GPU paths.
 // Below the threshold the prefill falls to the host path. The threshold no
 // longer depends on head_dim (the parameter is ignored): x86 returns 1 for
 // every head_dim (see the note below on the former head_dim=128 issue), and
 // ARM returns 1 with NNTR_MHA_GPU on, else 32. Env override:
-// NNTR_MIN_PREFILL.
+// NNTR_MIN_PREFILL, except on an Android OpenCL gpu-engine run with the device
+// attention on, where the threshold is 1 whatever it says (a short prefill
+// step must not take the host attention there either) unless
+// NNTR_MHA_HOST_FALLBACK=1.
 static unsigned int min_prefill_thr(unsigned int head_dim) {
+#if defined(__ANDROID__) && defined(ENABLE_OPENCL)
+  if (mha_device_attention_on() && nntr_engine_env() != "cuda" &&
+      !mha_host_fallback_allowed())
+    return 1u;
+#endif
   static const int env = []() {
     const char *e = std::getenv("NNTR_MIN_PREFILL");
     return e ? std::atoi(e) : -1;
@@ -851,6 +874,66 @@ static void mha_ring_assert_host_path_ok(unsigned int ring_cap,
        "NNTR_MHA_GPU=1 on OpenCL, adding NNTR_MHA_GPU_DECODE=1 for decode; "
        "NNTR_CUDA_ATTN=1 on NNTR_ENGINE=cuda) or set NNTR_KV_WINDOW_RING=0.";
 }
+
+#if defined(ENABLE_OPENCL)
+// [no-host-attn] The OpenCL attention cascade on the gpu engine tried its
+// device arms for this step and every one declined; the next arm is the host
+// attention. That is never a silent step on the gpu engine: log the reason and
+// stop, unless NNTR_MHA_HOST_FALLBACK=1 asks for the host path explicitly
+// (logged once then). kv_int8 without NNTR_KV_INT8_GPU is the documented host
+// route for an int8 cache (no validated GPU arm for it), so it is logged once
+// and not stopped. The ring check (mha_ring_assert_host_path_ok) still applies
+// after this when the host path is allowed.
+[[maybe_unused]] static void mha_assert_no_silent_host_attention(
+  unsigned int step_size, unsigned int cache_to, unsigned int head_dim,
+  unsigned int num_heads_Q, unsigned int num_heads_KV, unsigned int ring_cap,
+  bool kv_int8, bool img_arm, int use_image_attn, bool svm_ok) {
+  const bool det = causallm::detArm() == causallm::DetArm::kPerLayer;
+  char why[640];
+  std::snprintf(
+    why, sizeof(why),
+    "every device attention arm declined a %s step (step_size %u, N_kv %u, "
+    "head_dim %u, heads %u/%u, ring_cap %u): image arm %s; %s; flash decode "
+    "(NNTR_ADRENO_FLASH_DECODE) %s; GPU prefill attention "
+    "(NNTR_ADRENO_PREFILL_ATTN) %s; reproducible arm %s; svm %d; kv_int8 %d",
+    step_size > 1 ? "prefill" : "decode", step_size, cache_to, head_dim,
+    num_heads_Q, num_heads_KV, ring_cap,
+    img_arm ? (use_image_attn == 1 ? "tried" : "wanted but not engaged")
+            : "off for this layer",
+    step_size > 1 ? "buffer flash / two_conv declined"
+                  : "flash_decode / buffer flash / two_conv declined",
+    nntrainer::flash_decode_gqa_enabled() ? "on" : "off",
+    nntrainer::prefill_attn_apa_enabled() ? "on" : "off", det ? "on" : "off",
+    (int)svm_ok, (int)kv_int8);
+  if (kv_int8) {
+    static bool logged = false;
+    if (!logged) {
+      logged = true;
+      ml_loge("[no-host-attn] host attention for the int8 KV cache "
+              "(NNTR_KV_INT8_GPU unset): %s",
+              why);
+    }
+    return;
+  }
+  if (mha_host_fallback_allowed()) {
+    static bool logged = false;
+    if (!logged) {
+      logged = true;
+      ml_loge("[no-host-attn] NNTR_MHA_HOST_FALLBACK=1: taking the HOST "
+              "attention: %s",
+              why);
+    }
+    return;
+  }
+  ml_loge("[no-host-attn] %s", why);
+  NNTR_THROW_IF(true, std::runtime_error)
+    << "[no-host-attn] the gpu engine would run this attention step on the "
+       "host: "
+    << why
+    << ". Fix the arm that should take this shape, or set "
+       "NNTR_MHA_HOST_FALLBACK=1 to allow the host attention explicitly.";
+}
+#endif // ENABLE_OPENCL
 
 // The host attention paths read Q and the K/V cache and write O on the CPU.
 // A tensor in a device-only pool (NNTR_CUDA_DEV_ACT activations,
@@ -4365,10 +4448,7 @@ void MHACoreLayer::one_batch_incremental_forwarding(
             // 0.3B 16383 and +10.4% / +6.6% / +182 MiB on 1.5B 8103 (nothing on
             // a single-shot prefill like E2B's 923 tokens, which never splits),
             // so it stays opt-in and the throughput default keeps the budget.
-            static const bool scores_no_split = []() {
-              const char *d = std::getenv("NNTR_DETERMINISTIC");
-              return d != nullptr && d[0] != '0';
-            }();
+            static const bool scores_no_split = nntr_deterministic();
             const unsigned int _span = prefillSpanHint();
             const bool one_block =
               scores_no_split || (_span != 0u && _span <= step_size);
@@ -4624,6 +4704,14 @@ void MHACoreLayer::one_batch_incremental_forwarding(
             head_dim, is_causal, svm_ok);
         }
       }
+      // [no-host-attn] Prefill (step_size > 1) and decode alike: on the gpu
+      // engine a step every device arm declined does not go to the host
+      // attention below silently (NNTR_MHA_HOST_FALLBACK=1 to allow it).
+      if (!ok && mha_device_attention_on() && nntr_engine_env() != "cuda")
+        mha_assert_no_silent_host_attention(
+          step_size, cache_to, (unsigned int)head_dim, num_heads_Q,
+          num_heads_KV, kv_ring_cap, kv_int8, img_arm_want, use_image_attn,
+          svm_ok);
       if (ok) {
         // The wo FC consumes O through its static plane: raise it into the
         // planner sub-buffer when a non-cl_mem path (flash/two_conv/kvi8)

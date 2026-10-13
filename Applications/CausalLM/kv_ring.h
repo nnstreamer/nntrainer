@@ -41,8 +41,8 @@ namespace causallm {
  * @brief Which attention arm this process runs on the Adreno image bundle.
  * @details Two arms, one environment variable:
  *
- *   kFast       (the DEFAULT, no environment)
- *               The throughput arm: the OHWI image path serves every layer the
+ *   kFast       (the default off Android, NNTR_DETERMINISTIC=0 on Android)
+ *               The image arm: the OHWI image path serves every layer the
  *               bundle can host. It is the arm every published number was
  *               taken on and the one that matches the previous release's
  *               speed. Its output was not bit-identical run to run past ~2K
@@ -50,8 +50,9 @@ namespace causallm {
  *               read-write (NNTR_SV_IMG_RW, now the default); the measured
  *               cells reproduce with that binding, but this arm makes no
  *               per-layer guarantee (see imageAttnLayer()).
- *   kPerLayer   (NNTR_DETERMINISTIC=1)
- *               The reproducible arm, opt-in. imageAttnLayer() decides per
+ *   kPerLayer   (the default on the Android gpu engine; NNTR_DETERMINISTIC=1
+ *               elsewhere)
+ *               The reproducible arm. imageAttnLayer() decides per
  *               layer from detImageWindowMax(), which is 0: no layer takes the
  *               image kernels and the buffer/flash kernels serve all of them.
  *               The image bundle stays requested at process level, so a
@@ -64,11 +65,16 @@ namespace causallm {
  *               including the long-context ones the fast arm does not
  *               reproduce.
  *
- * The deterministic arm used to be the default and the fast one the opt-out;
- * the measured cost above is why that was reversed. NNTR_DETERMINISTIC=0 and
- * the pack's nntr_config "allow_nondeterministic" are still accepted and now
- * simply name the default; NNTR_ALLOW_NONDETERMINISTIC is no longer read.
- * An explicit NNTR_DETERMINISTIC outranks the pack key either way.
+ * The unset default is nntr_deterministic_default_on() (env_compat.h), the one
+ * place it is defined. On the Android gpu engine it is kPerLayer: with the
+ * Adreno flash decode and the three-pass GPU prefill attention (both default
+ * on there with it) this arm measured faster than the image arm on the
+ * Gemma4-26B MoE 1K cell (prefill 388 TPS, decode 38.9 ms/tok), so the cost
+ * figures above, taken before those kernels, no longer make the image arm
+ * the faster default on Adreno. Elsewhere the default stays kFast.
+ * NNTR_DETERMINISTIC=0 / =1 picks the arm explicitly on every platform. The
+ * pack's nntr_config "allow_nondeterministic" is still accepted and changes
+ * nothing; NNTR_ALLOW_NONDETERMINISTIC is no longer read.
  *
  * Every consumer -- the mirror prebuild, the Q staging, the decode-RoPE gate,
  * the engage and the ring rule -- resolves the arm through this one function,
@@ -94,7 +100,8 @@ inline bool &packAllowsNondeterministic() {
 /**
  * @brief Resolve the attention arm (see DetArm).
  * @details NNTR_DETERMINISTIC is value-checked: =1 (any non-zero) selects the
- * reproducible per-layer arm, =0 or unset is the fast default. It is the
+ * reproducible per-layer arm, =0 the fast (image) arm, and unset is
+ * nntr_deterministic_default_on() (on on the Android gpu engine). It is the
  * pre-existing cross-lane knob the API sets, so the same variable that pins
  * the cuBLAS FP32 math mode and the OpenCL reduction order also picks the
  * Adreno arm (CUDA async submission does not read it).
@@ -102,10 +109,7 @@ inline bool &packAllowsNondeterministic() {
  * not read here: both name the default, so ignoring them changes nothing.
  */
 inline DetArm detArm() {
-  DetArm arm = DetArm::kFast; // the baseline: no environment needed
-  const char *d = std::getenv("NNTR_DETERMINISTIC");
-  if (d != nullptr && d[0] != '\0')
-    arm = nntr_env_on("NNTR_DETERMINISTIC") ? DetArm::kPerLayer : DetArm::kFast;
+  const DetArm arm = nntr_deterministic() ? DetArm::kPerLayer : DetArm::kFast;
   // packAllowsNondeterministic() (still set from a pack's nntr_config) names
   // the default and changes nothing, so a pack written against the previous
   // contract keeps working. NNTR_ALLOW_NONDETERMINISTIC is not read at all.
@@ -121,11 +125,13 @@ inline DetArm detArm() {
       logged = true;
       std::fprintf(
         stderr,
-        "[DETERMINISM] NNTR_DETERMINISTIC=1: the reproducible attention arm is "
-        "selected. Every layer takes the buffer/flash kernels (the Adreno "
-        "image kernels are off); output is bit-identical run to run at the "
-        "measured cost of +20~22%% end-to-end and 2~4x slower prefill on "
-        "Adreno. Unset it for the fast default.\n");
+        "[DETERMINISM] the reproducible attention arm is selected (%s). "
+        "Every layer takes the buffer/flash kernels (the Adreno image kernels "
+        "are off); output is bit-identical run to run. NNTR_DETERMINISTIC=0 "
+        "selects the image arm.\n",
+        std::getenv("NNTR_DETERMINISTIC") != nullptr
+          ? "NNTR_DETERMINISTIC set"
+          : "the Android gpu-engine default");
     }
   }
   return arm;
@@ -133,9 +139,10 @@ inline DetArm detArm() {
 
 /**
  * @brief Has the caller asked for bit-identical output above everything else?
- * @details True only on the reproducible arm, i.e. with NNTR_DETERMINISTIC=1.
- * The cuBLAS FP32 math mode and the OpenCL reduction order read that same
- * variable themselves (CUDA async submission does not); this is the
+ * @details True only on the reproducible arm (NNTR_DETERMINISTIC=1, or unset on
+ * the Android gpu engine). The OpenCL reduction order reads the same answer
+ * through nntr_deterministic(); the cuBLAS FP32 math mode reads the variable
+ * itself (CUDA async submission does not); this is the
  * one-word spelling of it for the layer side and the unit test.
  */
 inline bool determinismFirst() { return detArm() == DetArm::kPerLayer; }
