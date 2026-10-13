@@ -25,6 +25,7 @@
 #include <nntrainer_log.h>
 #include <opencl_loader.h>
 #include <tensor.h>
+#include <tq2cx_cl.h>
 
 namespace nntrainer {
 
@@ -174,7 +175,20 @@ std::mutex &expertFcMutex() {
 }
 
 std::unordered_map<int, MoeExpertFcFn> &expertFcTable() {
-  static std::unordered_map<int, MoeExpertFcFn> table;
+  // The expert-only formats this tree ships a device FC for. Anything else
+  // registers through registerMoeExpertFcCl.
+  static std::unordered_map<int, MoeExpertFcFn> table = {
+    {static_cast<int>(ml::train::TensorDim::DataType::TQ2CX),
+     &tq2cx_expert_fc_cl},
+  };
+  return table;
+}
+
+std::unordered_map<int, MoeExpertGroupFn> &expertGroupTable() {
+  static std::unordered_map<int, MoeExpertGroupFn> table = {
+    {static_cast<int>(ml::train::TensorDim::DataType::TQ2CX),
+     &tq2cx_moe_experts_cl},
+  };
   return table;
 }
 
@@ -336,6 +350,43 @@ void moe_expert_fc_cl(Tensor &input, Tensor &weight, Tensor &output) {
     return;
   }
   get_cl_ops()->fc(input, weight, output);
+}
+
+void registerMoeExpertGroupCl(ml::train::TensorDim::DataType dtype,
+                              MoeExpertGroupFn fn) {
+  std::lock_guard<std::mutex> lk(expertFcMutex());
+  if (fn == nullptr)
+    expertGroupTable().erase(static_cast<int>(dtype));
+  else
+    expertGroupTable()[static_cast<int>(dtype)] = fn;
+}
+
+bool moe_experts_cl(const MoeExpertGroup &group) {
+  if (group.gate.empty() || group.gate[0] == nullptr)
+    return false;
+  MoeExpertGroupFn fn = nullptr;
+  {
+    std::lock_guard<std::mutex> lk(expertFcMutex());
+    auto it =
+      expertGroupTable().find(static_cast<int>(group.gate[0]->getDataType()));
+    if (it != expertGroupTable().end())
+      fn = it->second;
+  }
+  return fn != nullptr && fn(group);
+}
+
+bool moe_experts_device_served_cl(ml::train::TensorDim::DataType expert_dtype) {
+  if (expert_dtype != ml::train::TensorDim::DataType::TQ2CX)
+    return false;
+  ClContext *cc = moeClContext();
+  return cc != nullptr && (cc->caps().dpas || cc->caps().int_dot_product);
+}
+
+bool moe_experts_prebuild_cl(const MoeExpertGroup &group) {
+  if (group.gate.empty() || group.gate[0] == nullptr ||
+      group.gate[0]->getDataType() != ml::train::TensorDim::DataType::TQ2CX)
+    return false;
+  return tq2cx_moe_experts_prebuild_cl(group);
 }
 
 } // namespace nntrainer

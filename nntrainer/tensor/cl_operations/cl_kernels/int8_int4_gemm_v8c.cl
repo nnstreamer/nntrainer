@@ -144,6 +144,17 @@ __kernel void v8c_act_quant_f32(
 // ============================================================
 #define V8C_QUANT_LWS 64
 
+// V8C_AQ_PERM (the _par kernels below): store the int8 row in "TQ2 order",
+// the order the TQ2CX TQ2_ACT_PERM GEMVs read (tq2cx_gemm.cl): inside every
+// 32-tap block, byte 4j + b holds tap 8b + j. Only the store index changes --
+// the values, the scale, the zero point and the row sum are those of the
+// plain order -- and K must be a multiple of 32 (the TQ2CX host checks it).
+#ifdef V8C_AQ_PERM
+#define V8C_AQ_IDX(k) (((k) & ~31) | (((k) & 7) << 2) | (((k) >> 3) & 3))
+#else
+#define V8C_AQ_IDX(k) (k)
+#endif
+
 __attribute__((reqd_work_group_size(V8C_QUANT_LWS, 1, 1)))
 __kernel void v8c_act_quant_f32_par(
     __global const float *act_fp32,
@@ -208,7 +219,7 @@ __kernel void v8c_act_quant_f32_par(
     int q = (int)rint(act_fp32[(long)row * K + k] * scale_q) + zp;
     if (q < -128) q = -128;
     if (q > 127) q = 127;
-    act_int8[(long)row * K + k] = (char)q;
+    act_int8[(long)row * K + V8C_AQ_IDX(k)] = (char)q;
     psum += q;
   }
   lsum[tid] = psum;
@@ -280,7 +291,7 @@ __kernel void v8c_act_quant_f16_par(
     int q = (int)rint((float)act_fp16[(long)row * K + k] * scale_q) + zp;
     if (q < -128) q = -128;
     if (q > 127) q = 127;
-    act_int8[(long)row * K + k] = (char)q;
+    act_int8[(long)row * K + V8C_AQ_IDX(k)] = (char)q;
     psum += q;
   }
   lsum[tid] = psum;

@@ -36,6 +36,7 @@
 #ifndef __MOE_ROUTE_CL_H__
 #define __MOE_ROUTE_CL_H__
 
+#include <compute_ops.h>
 #include <tensor_dim.h>
 
 namespace nntrainer {
@@ -100,6 +101,41 @@ void registerMoeExpertFcCl(ml::train::TensorDim::DataType dtype,
  *        the dense FC.
  */
 void moe_expert_fc_cl(Tensor &input, Tensor &weight, Tensor &output);
+
+/**
+ * @brief Runs every selected expert of a MoE call at once for one expert
+ *        weight dtype.
+ * @return false when it declines (nothing enqueued)
+ */
+using MoeExpertGroupFn = bool (*)(const MoeExpertGroup &group);
+
+/**
+ * @brief Plug a grouped expert runner in for one expert weight dtype (the
+ *        dtype of the gate weights). TQ2CX is registered by default.
+ */
+void registerMoeExpertGroupCl(ml::train::TensorDim::DataType dtype,
+                              MoeExpertGroupFn fn);
+
+/**
+ * @brief ComputeOps::moe_experts on the OpenCL table: the registered runner
+ *        for the expert dtype, or false.
+ */
+bool moe_experts_cl(const MoeExpertGroup &group);
+
+/**
+ * @brief Build the device copy of a MoE layer's experts at load (see
+ *        ComputeOps::moe_experts_prebuild). TQ2CX is served; anything else
+ *        returns false.
+ */
+bool moe_experts_prebuild_cl(const MoeExpertGroup &group);
+
+/**
+ * @brief Does this device run the grouped expert launches, with device-side
+ *        routing of a decode row, for experts of @a expert_dtype? A MoE layer
+ *        whose experts it serves never reads its rows on the host in decode,
+ *        so the model may keep them in device-only memory.
+ */
+bool moe_experts_device_served_cl(ml::train::TensorDim::DataType expert_dtype);
 
 } // namespace nntrainer
 

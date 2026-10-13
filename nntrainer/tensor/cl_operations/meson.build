@@ -16,6 +16,7 @@ cl_op_sources = [
   'sigmoid_add_cl_op.cpp',
   'v8c_pack_cache.cpp',
   'moe_route_cl.cpp',
+  'tq2cx_cl.cpp',
 ]
 
 cl_op_headers = [

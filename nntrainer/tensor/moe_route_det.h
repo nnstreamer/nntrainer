@@ -11,7 +11,7 @@
  *         top-k, renormalisation, per-expert scale) whose every operation is
  *         an IEEE add / multiply / fma / exact bit operation in a fixed
  *         order, so the host code here and the OpenCL router kernels
- *         (tq2moe_route_logits / tq2moe_route_select) produce the same bits:
+ *         (tq2moe_route_norm / _logits / _select) produce the same bits:
  *         no BLAS, no libm exp / sqrt, no driver-dependent division.
  *
  * Order (the device kernels follow it term for term):

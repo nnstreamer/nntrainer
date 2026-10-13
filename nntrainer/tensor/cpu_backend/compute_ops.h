@@ -32,6 +32,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <utility>
 #include <vector>
 
 #ifdef ENABLE_FP16
@@ -41,6 +42,51 @@
 namespace nntrainer {
 
 class Tensor;
+
+/**
+ * @brief The router of a MoE layer, for a backend that routes a decode row on
+ *        the device (see MoeExpertGroup::router).
+ * @details The routing it computes: rms_norm(row, epsilon), times norm (when
+ * given), times scale * hidden^-1/2, the projection by weight, softmax over
+ * the experts, the topk largest (ties: lowest expert id), renormalised over
+ * the topk, times per_expert_scale of each selected expert.
+ */
+struct MoeRouter {
+  const Tensor *input = nullptr;            /**< [1, H] router row */
+  const Tensor *weight = nullptr;           /**< [H, E] fp32 projection */
+  const Tensor *scale = nullptr;            /**< [H] fp32 router scale */
+  const Tensor *norm = nullptr;             /**< [H] fp32, or null */
+  const Tensor *per_expert_scale = nullptr; /**< [E] fp32 */
+  float epsilon = 1.0e-6f;                  /**< rms_norm epsilon */
+  unsigned int topk = 0;                    /**< experts per token */
+};
+
+/**
+ * @brief All selected experts of one MoE forward call, for a backend that
+ *        runs them together (see ComputeOps::moe_experts).
+ */
+struct MoeExpertGroup {
+  const void *layer_key = nullptr;  /**< identity of the calling layer, for
+                                         state a backend keeps per layer */
+  const Tensor *input = nullptr;    /**< [T, H] expert input rows */
+  Tensor *output = nullptr;         /**< [T, H] written (not accumulated) */
+  unsigned int tokens = 0;          /**< T */
+  std::vector<Tensor *> gate;       /**< every expert's gate weight, by id */
+  std::vector<Tensor *> up;         /**< every expert's up weight, by id */
+  std::vector<Tensor *> down;       /**< every expert's down weight, by id */
+  std::vector<unsigned int> active; /**< selected experts, ascending id */
+  /** per expert id: (token row, routing weight), ascending token */
+  const std::vector<std::vector<std::pair<unsigned int, float>>> *assignments =
+    nullptr;
+  bool exact_gelu = false; /**< erf gelu gate instead of the tanh form */
+  /** moe_experts_prebuild only: where each record's bytes are read from,
+   *  [gate_0, up_0, down_0, gate_1, ...] (e.g. the weight file mapping);
+   *  null reads the weight tensors themselves */
+  const std::vector<const void *> *records = nullptr;
+  /** a one-token call may leave active / assignments empty and give the
+   *  router instead: the backend routes on the device (or declines) */
+  const MoeRouter *router = nullptr;
+};
 
 /**
  * @class ComputeOps
@@ -654,6 +700,33 @@ public:
   virtual bool moe_zero_rows(Tensor &out, unsigned int rows) {
     (void)out;
     (void)rows;
+    return false;
+  }
+
+  /**
+   * @brief Run every selected expert of a MoE call at once: GeGLU expert
+   *        FFN of each routed row and the weighted combine into the output.
+   * @details For expert formats whose kernels batch several experts in one
+   * launch (decode: all selected experts' gate / up as one batched GEMV;
+   * prefill: one grouped GEMM over all experts' gathered rows). Returns
+   * false, having enqueued nothing, when the backend does not serve the
+   * expert dtype; the layer then runs its per-expert loop.
+   */
+  virtual bool moe_experts(const MoeExpertGroup &group) {
+    (void)group;
+    return false;
+  }
+
+  /**
+   * @brief Build the backend's own copy of every expert weight of a MoE
+   *        layer now (at load), the copy moe_experts() reads.
+   * @details Only the weights and layer_key of @a group are read (plus
+   * group.records when given). Returns true when the backend holds the
+   * experts from now on, so the caller may release (or never fill) the host
+   * payloads; false, having built nothing, when it does not serve them.
+   */
+  virtual bool moe_experts_prebuild(const MoeExpertGroup &group) {
+    (void)group;
     return false;
   }
 

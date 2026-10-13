@@ -557,6 +557,12 @@ public:
   void fc_expert(Tensor &input, Tensor &weight, Tensor &output) override {
     nntrainer::moe_expert_fc_cl(input, weight, output);
   }
+  bool moe_experts(const MoeExpertGroup &group) override {
+    return nntrainer::moe_experts_cl(group);
+  }
+  bool moe_experts_prebuild(const MoeExpertGroup &group) override {
+    return nntrainer::moe_experts_prebuild_cl(group);
+  }
 
 #ifdef ENABLE_FP16
   void scopy_fp16(const unsigned int N, const _FP16 *X, const unsigned int incX,
