@@ -178,14 +178,23 @@ ExpertReaderPool::ExpertReaderPool(unsigned int readers, bool direct) :
 #endif
 {
   (void)direct;
-  const unsigned int n = std::max(1u, readers);
-  const int caller = currentCpu();
-  threads_.reserve(n);
-  for (unsigned int i = 0; i < n; ++i)
+  caller_cpu_ = currentCpu();
+  ensureReaders(std::max(1u, readers));
+}
+
+void ExpertReaderPool::ensureReaders(unsigned int n) {
+  std::lock_guard<std::mutex> lk(mu_);
+  if (stop_)
+    return;
+  n = std::min(16u, n);
+  const int caller = caller_cpu_;
+  while (threads_.size() < n)
     threads_.emplace_back([this, caller] {
       pinOffCpu(caller);
       loop();
     });
+  nthreads_.store(static_cast<unsigned int>(threads_.size()),
+                  std::memory_order_release);
 }
 
 ExpertReaderPool::~ExpertReaderPool() {

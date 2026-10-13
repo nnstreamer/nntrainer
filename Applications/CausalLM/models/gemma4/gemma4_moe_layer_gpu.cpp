@@ -483,7 +483,13 @@ void Gemma4MoELayerGpu::finalize(nntrainer::InitLayerContext &context) {
   // Streamed experts (moe_fsu / NNTR_G4MOE_FSU): the slots per layer are
   // moe_cache_size, or NNTR_MOE_CACHE_EXPERTS, or every expert. Set before the
   // base requests the expert weights: a non-zero cache makes them virtual.
-  moe_fsu = fsuEnvOverride(std::get<props::Gemma4MoEFsu>(moe_props).get());
+  const bool fsu_configured = std::get<props::Gemma4MoEFsu>(moe_props).get();
+  moe_fsu = fsuEnvOverride(fsu_configured);
+  // NNTR_G4MOE_FSU=0 on a pack (or a default) that streams: every expert
+  // resident, so the slot count goes with it (the guard below refuses a
+  // cache without moe_fsu).
+  if (fsu_configured && !moe_fsu)
+    std::get<props::Gemma4MoECacheSize>(moe_props).set(0);
   if (moe_fsu) {
     auto &cache = std::get<props::Gemma4MoECacheSize>(moe_props);
     unsigned int c = cache.get();

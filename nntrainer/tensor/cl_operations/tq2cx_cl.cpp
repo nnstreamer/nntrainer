@@ -931,19 +931,51 @@ constexpr size_t kTq2FlagsPage = 4096;
  *  decision */
 std::atomic<size_t> g_tq2_flags_align{64};
 
+/** the auto rule of NNTR_G4MOE_FSU_FLAGS: on from this many cache experts
+ *  per streamed layer (Adreno 840 phones, 1K decode: a gain at C32 / C40,
+ *  and at C16 with 3 readers -- 60.7 vs 73.8 ms/token with the flags off) */
+constexpr unsigned int kTq2FlagsAutoMinSlots = 16;
+
+/** NNTR_G4MOE_FSU_FLAGS_AUTO_MIN_C=n (default kTq2FlagsAutoMinSlots): the
+ *  auto rule's least cache experts per layer. Read once. */
+unsigned int tq2FlagsAutoMinSlots() {
+  static const unsigned int v = []() {
+    const char *e = std::getenv("NNTR_G4MOE_FSU_FLAGS_AUTO_MIN_C");
+    if (e == nullptr || *e == '\0')
+      return kTq2FlagsAutoMinSlots;
+    char *end = nullptr;
+    const unsigned long n = std::strtoul(e, &end, 10);
+    return (end != e && *end == '\0' && n >= 1 && n <= 4096)
+             ? (unsigned int)n
+             : kTq2FlagsAutoMinSlots;
+  }();
+  return v;
+}
+
+/** the reader threads the flags protocol wants on Android when
+ *  NNTR_MOE_READERS is unset (2 readers queue the demand reads behind the
+ *  reads ahead; 3 gave the best flags arm on two Adreno 840 phones) */
+constexpr unsigned int kTq2FlagsAndroidReaders = 3;
+
 /**
- * @brief NNTR_G4MOE_FSU_FLAGS=0|1|force|coarse (default 0): the streamed
- *        experts' slots are fine-grain SVM with atomics and the decode step
- *        publishes its misses to the host through it (see
+ * @brief NNTR_G4MOE_FSU_FLAGS=auto|0|1|force|coarse (default auto): the
+ *        streamed experts' slots are fine-grain SVM with atomics and the
+ *        decode step publishes its misses to the host through it (see
  *        tq2cx_moe_experts_cl). Decided once, at the first streamed layer
  *        (before any slot exists: the slot memory and stride depend on it),
  *        from @a g's shapes and offsets.
- * @details Refused (logged, the existing path kept) unless the device is an
- * Adreno GPU (force: any vendor), reports fine-grain buffer SVM with SVM
- * atomics, the loader has clSVMAlloc and clSetKernelArgSVMPointer, and the
- * expert records sit in the file as they sit in a slot (gate, up, down
- * 64-byte multiples, back to back). Xe3 (NEO 26.22) has coarse-grain SVM
- * only: refused there.
+ * @details auto (unset): on when @a g streams (fewer slots than experts)
+ * with at least kTq2FlagsAutoMinSlots slots, the device is an Adreno GPU and
+ * reports fine-grain buffer SVM with SVM atomics, and the conditions of 1
+ * below hold; off otherwise (one log line when @a g streams). 1: on unless
+ * refused (logged, the existing path kept): the device must be an Adreno GPU
+ * (force: any vendor), report fine-grain buffer SVM with SVM atomics, the
+ * loader must have clSVMAlloc and clSetKernelArgSVMPointer, and the expert
+ * records must sit in the file as they sit in a slot (gate, up, down 64-byte
+ * multiples, back to back). Xe3 (NEO 26.22) has coarse-grain SVM only:
+ * refused there, and auto is off.
+ * When it is on on Android and NNTR_MOE_READERS is unset, the expert reader
+ * pool grows to kTq2FlagsAndroidReaders threads.
  * The records' file offsets need no alignment: an O_DIRECT read puts a
  * record at its slot + (offset % 4096); one whose offset is not a multiple
  * of the alignment the GEMVs need (4 bytes for the portable kernels; the
@@ -961,13 +993,20 @@ bool tq2FsuFlagsDecide(ClContext *cc, const MoeExpertGroup &g) {
   static std::once_flag once;
   std::call_once(once, [cc, &g]() {
     const char *e = std::getenv("NNTR_G4MOE_FSU_FLAGS");
-    const std::string v = e != nullptr ? e : "0";
-    if (v != "1" && v != "force" && v != "coarse") {
+    const std::string v = e != nullptr && e[0] != '\0' ? e : "auto";
+    if (v != "auto" && v != "1" && v != "force" && v != "coarse") {
       if (v != "0")
         std::fprintf(stderr,
                      "[TQ2CX-FSU-FLAGS] NNTR_G4MOE_FSU_FLAGS=%s: not "
-                     "0|1|force|coarse, off\n",
+                     "auto|0|1|force|coarse, off\n",
                      e);
+      g_tq2_fsu_flags.store(0, std::memory_order_release);
+      return;
+    }
+    const bool automatic = v == "auto";
+    const bool streams = g.fsu != nullptr && g.fsu->slots < g.gate.size();
+    if (automatic && !streams) {
+      // every expert resident: nothing to stream, the slots stay as they are
       g_tq2_fsu_flags.store(0, std::memory_order_release);
       return;
     }
@@ -983,10 +1022,15 @@ bool tq2FsuFlagsDecide(ClContext *cc, const MoeExpertGroup &g) {
     const cl_device_svm_capabilities need =
       coarse ? CL_DEVICE_SVM_COARSE_GRAIN_BUFFER
              : CL_DEVICE_SVM_FINE_GRAIN_BUFFER | CL_DEVICE_SVM_ATOMICS;
-    if (v == "1" && cc->caps().vendor_id != qualcomm_vendor_id) {
+    if ((v == "1" || automatic) && cc->caps().vendor_id != qualcomm_vendor_id) {
       char b[96];
       std::snprintf(b, sizeof(b), "not an Adreno GPU (vendor 0x%x)",
                     (unsigned int)cc->caps().vendor_id);
+      why = b;
+    } else if (automatic && g.fsu->slots < tq2FlagsAutoMinSlots()) {
+      char b[96];
+      std::snprintf(b, sizeof(b), "%u cache experts per layer (auto needs %u)",
+                    g.fsu->slots, tq2FlagsAutoMinSlots());
       why = b;
     } else if ((caps & need) != need) {
       char b[96];
@@ -1011,10 +1055,16 @@ bool tq2FsuFlagsDecide(ClContext *cc, const MoeExpertGroup &g) {
                         !tq2FlagsKernel(cc, "tq2moe_fsu_gate")))
       why = "the flags kernels do not build (OpenCL C 2.0 / 3.0 atomics)";
     if (!why.empty()) {
-      std::fprintf(stderr,
-                   "[TQ2CX-FSU-FLAGS] refused: %s; the existing decode path "
-                   "is kept\n",
-                   why.c_str());
+      if (automatic)
+        std::fprintf(stderr,
+                     "[TQ2CX-FSU-FLAGS] auto: off (%s); the existing decode "
+                     "path is kept\n",
+                     why.c_str());
+      else
+        std::fprintf(stderr,
+                     "[TQ2CX-FSU-FLAGS] refused: %s; the existing decode "
+                     "path is kept\n",
+                     why.c_str());
       g_tq2_fsu_flags.store(0, std::memory_order_release);
       return;
     }
@@ -1027,10 +1077,10 @@ bool tq2FsuFlagsDecide(ClContext *cc, const MoeExpertGroup &g) {
                    (unsigned long long)caps);
     else
       std::fprintf(stderr,
-                   "[TQ2CX-FSU-FLAGS] on: expert slots in fine-grain SVM "
+                   "[TQ2CX-FSU-FLAGS] on%s: expert slots in fine-grain SVM "
                    "with atomics (svm caps 0x%llx), each record at its "
                    "O_DIRECT offset in a 4 KiB-page slot\n",
-                   (unsigned long long)caps);
+                   automatic ? " (auto)" : "", (unsigned long long)caps);
     if (!coarse) {
       // the gates' spin account is in polls: their time on this device
       g_tq2_flags_poll_ns.store(tq2FlagsCalibratePoll(cc));
@@ -1039,6 +1089,16 @@ bool tq2FsuFlagsDecide(ClContext *cc, const MoeExpertGroup &g) {
                    "0 = not measured)\n",
                    g_tq2_flags_poll_ns.load());
     }
+#if defined(__ANDROID__)
+    if (std::getenv("NNTR_MOE_READERS") == nullptr) {
+      ExpertReaderPool &pool = ExpertReaderPool::global();
+      pool.ensureReaders(kTq2FlagsAndroidReaders);
+      std::fprintf(stderr,
+                   "[TQ2CX-FSU-FLAGS] expert readers %u (flags default on "
+                   "Android; NNTR_MOE_READERS sets it)\n",
+                   pool.readers());
+    }
+#endif
     g_tq2_flags_align.store(tq2Dpas(cc) ? 64 : 4);
     g_tq2_fsu_flags.store(coarse ? 2 : 1, std::memory_order_release);
   });
@@ -5055,10 +5115,11 @@ double tq2FlagsCalibratePoll(ClContext *cc) {
 /**
  * @brief How the flags protocol's poller waits for the device's entries
  *        (FsuFlagsHost::PollConfig), read once:
- *        NNTR_G4MOE_FSU_FLAGS_POLL=spin|adaptive (default spin). spin: it
- *        spins NNTR_G4MOE_FSU_FLAGS_POLL_US (default 2000) after the last
+ *        NNTR_G4MOE_FSU_FLAGS_POLL=adaptive|spin (default adaptive). spin:
+ *        it spins NNTR_G4MOE_FSU_FLAGS_POLL_US (default 2000) after the last
  *        entry, then polls every 20 us -- during a decode it never stops
- *        spinning (a core at 100 %). adaptive: it spins
+ *        spinning (a core at 100 %). adaptive (two Adreno 840 phones: faster
+ *        on both, 0.23 instead of 0.6 of a core): it spins
  *        NNTR_G4MOE_FSU_FLAGS_POLL_US (default 100) after an entry (the
  *        read ahead follows the step's entry closely), then sleeps 1 us
  *        doubling up to NNTR_G4MOE_FSU_FLAGS_POLL_MAX_US (default 50; timer
@@ -5069,7 +5130,7 @@ double tq2FlagsCalibratePoll(ClContext *cc) {
 fsuflags::FsuFlagsHost::PollConfig tq2FlagsPoll() {
   fsuflags::FsuFlagsHost::PollConfig c;
   const char *e = std::getenv("NNTR_G4MOE_FSU_FLAGS_POLL");
-  c.adaptive = e != nullptr && std::string(e) == "adaptive";
+  c.adaptive = e == nullptr || std::string(e) != "spin";
   c.spin_us =
     tq2EnvUint("NNTR_G4MOE_FSU_FLAGS_POLL_US", c.adaptive ? 100u : 2000u);
   c.max_sleep_us =

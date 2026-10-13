@@ -15,6 +15,7 @@
 #endif
 #include <llm_util.hpp>
 #include <model.h>
+#include <nntrainer_log.h>
 #include <residency_policy.h>
 #include <safetensors_util.h>
 #include <tq2cx_layout.h>
@@ -22,6 +23,7 @@
 #include <moe_route_cl.h>
 #endif
 
+#include <cstdio>
 #include <cstdlib>
 #include <iostream>
 
@@ -95,8 +97,9 @@ void Gemma4MoECausalLM::setupParameters(json &cfg, json &generation_cfg,
       ? nntr_cfg["moe_cache_size"].get<unsigned int>()
       : 0;
   // moe_fsu (gpu engine): moe_cache_size is then the device slots per layer
-  moe_fsu = nntr_cfg.contains("moe_fsu") && !nntr_cfg["moe_fsu"].is_null() &&
-            nntr_cfg["moe_fsu"].get<bool>();
+  const bool fsu_in_cfg =
+    nntr_cfg.contains("moe_fsu") && !nntr_cfg["moe_fsu"].is_null();
+  moe_fsu = fsu_in_cfg && nntr_cfg["moe_fsu"].get<bool>();
 
   moe_expert_dtype = nntr_cfg.contains("moe_expert_dtype") &&
                          !nntr_cfg["moe_expert_dtype"].is_null()
@@ -104,6 +107,28 @@ void Gemma4MoECausalLM::setupParameters(json &cfg, json &generation_cfg,
                        : FC_LAYER_DTYPE;
   if (moe_expert_dtype == "TQ2CX")
     setTq2cxLayoutFromPack(nntr_cfg);
+
+#if defined(__ANDROID__) && defined(ENABLE_OPENCL)
+  // A phone cannot keep every expert of a TQ2CX pack resident (~7.5 GB on
+  // the gpu engine), so a pack that does not say otherwise streams its
+  // experts through 32 device slots per layer (C32: same tokens as resident,
+  // ~3.4 GB). An explicit "moe_fsu" key in nntr_config wins, and
+  // NNTR_G4MOE_FSU / NNTR_MOE_CACHE_EXPERTS still override at finalize.
+  if (!fsu_in_cfg && causallm_engine() == "gpu" &&
+      moe_expert_dtype == "TQ2CX") {
+    const char *e = std::getenv("NNTR_G4MOE_FSU");
+    const bool env_off = e != nullptr && e[0] != '\0' && e[0] != '1';
+    if (!env_off) {
+      moe_fsu = true;
+      if (moe_cache_size == 0)
+        moe_cache_size = 32;
+      std::fprintf(stderr, "[G4MOE] fsu default on Android: cache_experts=%u\n",
+                   moe_cache_size);
+      ml_logi("[G4MOE] fsu default on Android: cache_experts=%u",
+              moe_cache_size);
+    }
+  }
+#endif
 
   moe_router_norm_weight = nntr_cfg.contains("moe_router_norm_weight") &&
                            nntr_cfg["moe_router_norm_weight"].get<bool>();

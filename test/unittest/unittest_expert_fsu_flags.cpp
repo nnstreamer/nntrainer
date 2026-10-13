@@ -821,7 +821,7 @@ PollBench pollBench(FsuFlagsHost::PollConfig c, int tokens) {
 } // namespace
 
 TEST(FsuFlags, TheAdaptivePollerTakesEveryEntrySoonWithLessCpu) {
-  // the spin poller (the default) against the adaptive one at a
+  // the spin poller (the earlier default) against the adaptive one at a
   // phone's publish cadence: every entry taken, the adaptive one at a
   // fraction of the CPU, and soon (target: median <= 10 us)
   FsuFlagsHost::PollConfig spin;

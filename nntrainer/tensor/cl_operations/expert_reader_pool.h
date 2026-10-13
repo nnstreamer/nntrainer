@@ -144,7 +144,9 @@ public:
 
   /**
    * @brief The pool of the process: NNTR_MOE_READERS threads (default 4; 2
-   *        on Android, which reach the UFS ceiling), O_DIRECT unless
+   *        on Android, which reach the UFS ceiling; the streamed decode
+   *        without the host round trip, NNTR_G4MOE_FSU_FLAGS, grows it to 3
+   *        there when NNTR_MOE_READERS is unset), O_DIRECT unless
    *        NNTR_MOE_ODIRECT=0. Created on first use.
    */
   static ExpertReaderPool &global();
@@ -218,8 +220,15 @@ public:
   void post(std::function<void()> task);
 
   unsigned int readers() const {
-    return static_cast<unsigned int>(threads_.size());
+    return nthreads_.load(std::memory_order_acquire);
   }
+
+  /**
+   * @brief Grow the pool to @a n reader threads (at most 16); a pool that
+   *        has as many or more keeps its count. The new readers take work
+   *        from the same queues as the others. Any thread.
+   */
+  void ensureReaders(unsigned int n);
   bool directEnabled() const { return direct_; }
 
   /** @brief one read on the calling thread (what a reader runs), then its
@@ -261,7 +270,9 @@ private:
   std::map<Ticket, Batch> batches_;
   Ticket next_ = 1;
   bool stop_ = false;
-  std::vector<std::thread> threads_;
+  std::vector<std::thread> threads_; /**< grown under mu_ */
+  std::atomic<unsigned int> nthreads_{0};
+  int caller_cpu_ = -1; /**< the readers keep off the creator's core */
 
   /** the O_DIRECT descriptor opened for a caller's fd, and the file (device,
    *  inode) that fd named then: a descriptor number is reused once the
