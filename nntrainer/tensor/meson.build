@@ -52,6 +52,7 @@ tensor_headers = [
   'ternary_tensor.h',
   'tq2cx_layout.h',
   'qs4acx_tensor.h',
+  'moe_route_det.h',
   'weight.h',
   'var_grad.h',    
   'quantizer.h',    
