@@ -1,0 +1,39 @@
+{
+  "status": "READY_FOR_PARENT_RAW_PARITY_AND_CLEAN_TIMING",
+  "base": "3103136e938e08e212e505ddedc81d0eb35359c6",
+  "files": {
+    "nntrainer/tensor/htp_backend/htp_expert_host_staging.h": "e877e18f0290837997f631ed843f432222692bb8e4786424eedb4a3132f8d5a9",
+    "test/htp/host/expert_host_staging_host_check.cpp": "582425364b016628135ad315f4f87f4892b385e2d9452b34972aa348e252807e"
+  },
+  "patches": {
+    "production.patch": "013e299dc035e2150c5e39274d5b800f74a5101e132fc887d6c143129b3a30a8",
+    "tests.patch": "32343f7264b09707630ed0a0f04f286e3daf19d0d0257b9309bc71013247e781"
+  },
+  "format": "clang-format14 changed-lines PASS; frozen hashes unchanged",
+  "diff_check": "PASS",
+  "tests": {
+    "helper_assertions": 3916,
+    "actual_v16_backend_assertions": 758,
+    "normal": "PASS",
+    "asan_ubsan": "PASS",
+    "portable_header": "PASS"
+  },
+  "build_results": [
+    {
+      "kind": "core",
+      "returncode": 0,
+      "seconds": 7.256117405002442,
+      "log": "/tmp/lfm2-prefill1000-moe/eager-payload/publication-compat/core-matched-install.log"
+    },
+    {
+      "kind": "app",
+      "returncode": 0,
+      "seconds": 0.282169595000596,
+      "log": "/tmp/lfm2-prefill1000-moe/eager-payload/publication-compat/app-matched-install.log"
+    }
+  ],
+  "production_manifest": "/tmp/lfm2-prefill1000-moe/eager-payload/publication-compat/artifacts.json",
+  "diagnostic_manifest": "/tmp/lfm2-prefill1000-moe/eager-payload/publication-compat/diagnostic-artifacts.json",
+  "independent_review": "/tmp/lfm2-prefill1000-moe/eager-payload/publication-compat/independent-review.json",
+  "no_device_commit_root_live_mutations": true
+}

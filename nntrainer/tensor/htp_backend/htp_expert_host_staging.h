@@ -131,6 +131,15 @@ public:
     Lease(Lease &&) = delete;
     Lease &operator=(Lease &&) = delete;
     ~Lease() {
+      std::unique_ptr<uint8_t[]> payload;
+      {
+        std::lock_guard<std::mutex> lock(bank->mutex_);
+        payload = std::move(bank->records_[index].payload);
+      }
+      // The final shared lease follows every GU/DN copy. Free its ordinary
+      // payload while later graph work runs, without holding the bank lock.
+      // Keep the lease counted until free completes so cancellation joins it.
+      payload.reset();
       {
         std::lock_guard<std::mutex> lock(bank->mutex_);
         --bank->leases_;

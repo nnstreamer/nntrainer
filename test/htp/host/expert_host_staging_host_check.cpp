@@ -2,6 +2,39 @@
 #include "expert_host_staging_fixture.h"
 #include <cstdio>
 #if defined(__linux__) || defined(__ANDROID__)
+
+namespace {
+// Observe the real delete[] used by the helper, without production hooks.
+// Pausing it proves the bank lock is released and cancellation still joins
+// physical cleanup, rather than just clearing the stored pointer.
+struct PayloadDeleteProbe {
+  std::atomic<void *> target{nullptr};
+  std::mutex mutex;
+  std::condition_variable cv;
+  bool entered = false, release = false, freed = false;
+} payload_delete;
+} // namespace
+
+void *operator new[](std::size_t count) { return ::operator new(count); }
+void operator delete[](void *data) noexcept {
+  const bool watched = data && data == payload_delete.target.load();
+  if (watched) {
+    std::unique_lock<std::mutex> lock(payload_delete.mutex);
+    payload_delete.entered = true;
+    payload_delete.cv.notify_all();
+    payload_delete.cv.wait(lock, [] { return payload_delete.release; });
+  }
+  ::operator delete(data);
+  if (watched) {
+    std::lock_guard<std::mutex> lock(payload_delete.mutex);
+    payload_delete.freed = true;
+    payload_delete.cv.notify_all();
+  }
+}
+void operator delete[](void *data, std::size_t) noexcept {
+  ::operator delete[](data);
+}
+
 int main() {
   Fixture fixture(160);
   for (size_t n :
@@ -35,6 +68,72 @@ int main() {
     const auto stats = bank->stats();
     require(stats.count == n && stats.read == n && stats.taken == n &&
             stats.failed == 0 && stats.cancelled == 0);
+  }
+  // Shared copies retain one payload until the final lease, but the source
+  // descriptor and immutable record remain valid until scope cancellation.
+  {
+    std::vector<Desc> one{fixture.ds[0]};
+    auto bank = std::make_shared<Bank>(one, 61, &fixture);
+    fill(bank, 1);
+    auto lease = bank->take(one[0]);
+    auto final_copy = lease;
+    const auto *record = &lease->record();
+    const auto *payload = record->payload.get();
+    const int source_fd = record->fd();
+    lease.reset();
+    require(record->payload.get() == payload && !bank->take(one[0]));
+    std::vector<uint8_t> copied(record->gu_bytes + record->dn_bytes);
+    require(!final_copy->copyPart(false, copied.data(), record->gu_bytes));
+    require(!final_copy->copyPart(true, copied.data() + record->gu_bytes,
+                                  record->dn_bytes));
+    require(copied == fixture.expected[0]);
+    final_copy.reset();
+    require(!record->payload && record->source && record->fd() == source_fd);
+    require(fcntl(source_fd, F_GETFD) >= 0);
+    require(!bank->take(one[0]));
+    bank->cancelAndWait();
+    require(!record->source);
+    require(fcntl(source_fd, F_GETFD) == -1 && errno == EBADF);
+  }
+  // Last-lease freeing runs outside the bank mutex. Even after the payload
+  // pointer is moved out, cancelAndWait must wait for delete[] to finish.
+  {
+    std::vector<Desc> one{fixture.ds[1]};
+    auto bank = std::make_shared<Bank>(one, 62, &fixture);
+    fill(bank, 1);
+    auto lease = bank->take(one[0]);
+    const auto *record = &lease->record();
+    payload_delete.target.store(record->payload.get());
+    auto freeing =
+      std::async(std::launch::async,
+                 [last = std::move(lease)]() mutable { last.reset(); });
+    bool entered;
+    {
+      std::unique_lock<std::mutex> lock(payload_delete.mutex);
+      entered = payload_delete.cv.wait_for(
+        lock, std::chrono::seconds(2), [] { return payload_delete.entered; });
+    }
+    auto stats = std::async(std::launch::async, [&] { return bank->stats(); });
+    const bool unlocked = stats.wait_for(std::chrono::milliseconds(100)) ==
+                          std::future_status::ready;
+    auto cancelled =
+      std::async(std::launch::async, [&] { bank->cancelAndWait(); });
+    const bool joined = cancelled.wait_for(std::chrono::milliseconds(20)) ==
+                        std::future_status::timeout;
+    // Always unblock before assertions so a regressed implementation cannot
+    // strand the test's futures during exception unwinding.
+    {
+      std::lock_guard<std::mutex> lock(payload_delete.mutex);
+      payload_delete.release = true;
+    }
+    payload_delete.cv.notify_all();
+    freeing.get();
+    const auto observed = stats.get();
+    cancelled.get();
+    payload_delete.target.store(nullptr);
+    require(entered && unlocked && joined && payload_delete.freed);
+    require(observed.read == 1 && observed.taken == 1);
+    require(!record->payload && !record->source);
   }
   // Mainline descriptor has no optional packed-encoding member.
   {
@@ -138,11 +237,13 @@ int main() {
         0, 32, 64, r.payload.get(), true, scratch);
     });
     auto lease = bank->take(one[0]);
+    const auto *record = &lease->record();
     std::vector<uint8_t> untouched(2048, 0x7e);
     require(lease->copyPart(false, untouched.data(), untouched.size()) != 0);
     require(std::all_of(untouched.begin(), untouched.end(),
                         [](uint8_t b) { return b == 0x7e; }));
     lease.reset();
+    require(!record->payload && record->source);
     bank->cancelAndWait();
     require(bank->stats().failed == 1);
   }
@@ -210,8 +311,11 @@ int main() {
       auto bank = std::make_shared<Bank>(ds, 35 + failure, &fixture);
       fill(bank);
       auto batch = std::make_unique<Batch>();
+      std::vector<const Bank::Record *> records;
       for (auto d : ds)
         batch->experts.push_back(bank->take(d));
+      for (const auto &lease : batch->experts)
+        records.push_back(&lease->record());
       Batch existing;
       std::deque<std::unique_ptr<Batch>> batches;
       Jobs jobs(failure);
@@ -220,6 +324,8 @@ int main() {
       require(batch && batches.empty() && jobs.size() == 1 &&
               jobs.front().first == &existing);
       batch.reset();
+      for (const auto *record : records)
+        require(!record->payload && record->source);
       bank->cancelAndWait();
     }
   }

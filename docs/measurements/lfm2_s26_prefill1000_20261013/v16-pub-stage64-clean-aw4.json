@@ -1,0 +1,140 @@
+{
+  "variant": "combined-v16-publish",
+  "serial": "R5KL30G6MCX",
+  "input": 1024,
+  "mode": "clean",
+  "command": "cd /data/local/tmp/lfm2_prefill1000_20261013/combined-v16-publish && echo NNTR_BENCH_PID=$$ && exec env LD_LIBRARY_PATH=. ADSP_LIBRARY_PATH=. NNTR_HTP_STRICT=1 NNTR_HTP_LMHEAD_CPU=0 NNTR_HTP_SHARED_ACTIVATIONS=1 NNTR_HTP_QS2_VTCM=1 NNTR_HTP_ATTN_DECODE_HMX=1 NNTR_HTP_DSPQ=1 NNTR_HTP_DSPQ_MATH=1 NNTR_HTP_DSPQ_ROUTER=1 NNTR_HTP_DSPQ_SPIN_US=20 NNTR_HTP_ADD_NORM_FUSION=1 NNTR_HTP_BLOCK_NORM_FUSION=1 NNTR_HTP_NORM_CONSUMER_FUSION=1 NNTR_HTP_QKV_ROPE_FUSION=1 NNTR_HTP_RETAIN_ROUTER_INPUT=1 NNTR_HTP_CONV_M1_HVX=1 NNTR_HTP_FC_M1_HVX=1 NNTR_HTP_CONV_CHUNK_TILES=8 NNTR_HTP_FC_CHUNK_TILES=8 NNTR_MOE_CACHE_EXPERTS=22 NNTR_MOE_PREFETCH_EARLY=1 NNTR_MOE_PREFETCH_READERS=7 NNTR_NUM_THREADS=8 NNTR_OP_TIME=0 NNTR_HTP_PROFILE=0 NNTR_HTP_MATH_PROFILE=0 NNTR_HTP_DSPQ_CONV=1 NNTR_HTP_DSPQ_FC=1 NNTR_HTP_DSPQ_QKV=1 NNTR_HTP_DSPQ_MATH_SPLIT=1 NNTR_HTP_ATTN_RESIDENT_F16=0 NNTR_HTP_ATTN_Q2=0 NNTR_HTP_ATTN_Q8_WIRE=1 NNTR_HTP_QS2_GEMV=1 NNTR_HTP_ATTN_Q8_HMX=3 NNTR_HTP_ROUTER_Q4_DECODE=1 NNTR_HTP_ATTN_TRACE=0 NNTR_HTP_DMA_TRACE=0 NNTR_HTP_CONV_PREPACK=1 NNTR_HTP_CONV_OUT_CHUNK_TILES=0 NNTR_HTP_CONV_INPUT_CACHE=0 NNTR_MOE_IO_PROFILE=0 NNTR_HTP_QS2_MMAP_READ=1 NNTR_HTP_QS2_DIRECT_READ=0 NNTR_MOE_MISS_READERS=4 NNTR_HTP_EXPERT_UPDATE_MODE=3 NNTR_MOE_DECODE_PREFETCH=off NNTR_MOE_DECODE_PREFETCH_LIMIT=4 NNTR_MOE_DECODE_PREFETCH_SELECTIVE=1 NNTR_MOE_DECODE_PREFETCH_MMAP=1 NNTR_MOE_DECODE_PREFETCH_KEEP_READY=1 NNTR_MOE_DECODE_PREFETCH_ADAPTIVE=0 NNTR_WEIGHT_IO=direct NNTR_HTP_PREFILL_SHARED_IO=7 NNTR_LFM2_PREFILL_TAIL_ROWS=64 NNTR_HTP_PREFILL_ROPE_FUSION=0 NNTR_HTP_PREFILL_QKV_PREPARE=1 NNTR_HTP_PREFILL_CONV_NORM=1 NNTR_HTP_ROUTER_Q4_FUSION=1 NNTR_HTP_ROUTER_Q4_REUSE=1 NNTR_HTP_ROUTER_Q4_QUANT_REUSE=1 NNTR_HTP_PREFILL_ROUTER_NORM=1 NNTR_HTP_PREFILL_QKV_NORM=1 NNTR_MOE_HOST_STAGE_EXPERTS=64 ./nntrainer_causallm /data/local/tmp/lfm2_prefill800_20261012/model-1024-clean",
+  "env": {
+    "LD_LIBRARY_PATH": ".",
+    "ADSP_LIBRARY_PATH": ".",
+    "NNTR_HTP_STRICT": "1",
+    "NNTR_HTP_LMHEAD_CPU": "0",
+    "NNTR_HTP_SHARED_ACTIVATIONS": "1",
+    "NNTR_HTP_QS2_VTCM": "1",
+    "NNTR_HTP_ATTN_DECODE_HMX": "1",
+    "NNTR_HTP_DSPQ": "1",
+    "NNTR_HTP_DSPQ_MATH": "1",
+    "NNTR_HTP_DSPQ_ROUTER": "1",
+    "NNTR_HTP_DSPQ_SPIN_US": "20",
+    "NNTR_HTP_ADD_NORM_FUSION": "1",
+    "NNTR_HTP_BLOCK_NORM_FUSION": "1",
+    "NNTR_HTP_NORM_CONSUMER_FUSION": "1",
+    "NNTR_HTP_QKV_ROPE_FUSION": "1",
+    "NNTR_HTP_RETAIN_ROUTER_INPUT": "1",
+    "NNTR_HTP_CONV_M1_HVX": "1",
+    "NNTR_HTP_FC_M1_HVX": "1",
+    "NNTR_HTP_CONV_CHUNK_TILES": "8",
+    "NNTR_HTP_FC_CHUNK_TILES": "8",
+    "NNTR_MOE_CACHE_EXPERTS": "22",
+    "NNTR_MOE_PREFETCH_EARLY": "1",
+    "NNTR_MOE_PREFETCH_READERS": "7",
+    "NNTR_NUM_THREADS": "8",
+    "NNTR_OP_TIME": "0",
+    "NNTR_HTP_PROFILE": "0",
+    "NNTR_HTP_MATH_PROFILE": "0",
+    "NNTR_HTP_DSPQ_CONV": "1",
+    "NNTR_HTP_DSPQ_FC": "1",
+    "NNTR_HTP_DSPQ_QKV": "1",
+    "NNTR_HTP_DSPQ_MATH_SPLIT": "1",
+    "NNTR_HTP_ATTN_RESIDENT_F16": "0",
+    "NNTR_HTP_ATTN_Q2": "0",
+    "NNTR_HTP_ATTN_Q8_WIRE": "1",
+    "NNTR_HTP_QS2_GEMV": "1",
+    "NNTR_HTP_ATTN_Q8_HMX": "3",
+    "NNTR_HTP_ROUTER_Q4_DECODE": "1",
+    "NNTR_HTP_ATTN_TRACE": "0",
+    "NNTR_HTP_DMA_TRACE": "0",
+    "NNTR_HTP_CONV_PREPACK": "1",
+    "NNTR_HTP_CONV_OUT_CHUNK_TILES": "0",
+    "NNTR_HTP_CONV_INPUT_CACHE": "0",
+    "NNTR_MOE_IO_PROFILE": "0",
+    "NNTR_HTP_QS2_MMAP_READ": "1",
+    "NNTR_HTP_QS2_DIRECT_READ": "0",
+    "NNTR_MOE_MISS_READERS": "4",
+    "NNTR_HTP_EXPERT_UPDATE_MODE": "3",
+    "NNTR_MOE_DECODE_PREFETCH": "off",
+    "NNTR_MOE_DECODE_PREFETCH_LIMIT": "4",
+    "NNTR_MOE_DECODE_PREFETCH_SELECTIVE": "1",
+    "NNTR_MOE_DECODE_PREFETCH_MMAP": "1",
+    "NNTR_MOE_DECODE_PREFETCH_KEEP_READY": "1",
+    "NNTR_MOE_DECODE_PREFETCH_ADAPTIVE": "0",
+    "NNTR_WEIGHT_IO": "direct",
+    "NNTR_HTP_PREFILL_SHARED_IO": "7",
+    "NNTR_LFM2_PREFILL_TAIL_ROWS": "64",
+    "NNTR_HTP_PREFILL_ROPE_FUSION": "0",
+    "NNTR_HTP_PREFILL_QKV_PREPARE": "1",
+    "NNTR_HTP_PREFILL_CONV_NORM": "1",
+    "NNTR_HTP_ROUTER_Q4_FUSION": "1",
+    "NNTR_HTP_ROUTER_Q4_REUSE": "1",
+    "NNTR_HTP_ROUTER_Q4_QUANT_REUSE": "1",
+    "NNTR_HTP_PREFILL_ROUTER_NORM": "1",
+    "NNTR_HTP_PREFILL_QKV_NORM": "1",
+    "NNTR_MOE_HOST_STAGE_EXPERTS": "64"
+  },
+  "before": {
+    "status": 0,
+    "temperatures": {
+      "AP": 28.9,
+      "BAT": 26.9,
+      "PA": 29.4,
+      "SKIN": 29.4,
+      "SUBBAT": 0.0,
+      "USB": 26.2
+    }
+  },
+  "after": {
+    "status": 0,
+    "temperatures": {
+      "AP": 29.7,
+      "BAT": 26.8,
+      "PA": 29.2,
+      "SKIN": 29.4,
+      "SUBBAT": 0.0,
+      "USB": 26.2
+    }
+  },
+  "returncode": 0,
+  "artifact": {
+    "runtime": "/data/local/tmp/lfm2_prefill1000_20261013/combined-v16-publish",
+    "serial": "R5KL30G6MCX",
+    "sha256": "b6b3810484a0573ece103af9701946be4da7dbfa83c413d0b76de913218c718d  nntrainer_causallm\n8c2f66c178e77a0174339b595baf1447c9614ae8b985c0943fdab4392daa7168  libnntrainer.so\n3a49594fd8400571bd78f7412ec9fce09c6eee18025513782413f851d17d1c71  libcausallm_core.so\na403c2595e86494178e03f63a1b895fdacdf55e8ca4a3076777ee44cd8232ef1  libnntr_hvx_skel.so\n1fd18484dc116f2b75fdfcc1b7908bc00383258d534695a24802314ca9c83b74  libccapi-nntrainer.so\n7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df  libc++_shared.so\n63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe  libsdkl.so"
+  },
+  "concurrent_pids": [],
+  "wall_seconds": 9.351877877001243,
+  "cpu_mask": null,
+  "prefill": {
+    "tokens": 1024,
+    "ms": 1040,
+    "tps": 984.615
+  },
+  "generation": {
+    "tokens": 64,
+    "ms": 1924,
+    "tps": 33.264
+  },
+  "text_sha256": "593583cb32fa26b91cda08589e804f80bfc1ca6971895d7a8fa2684df431162b",
+  "generated_last_line": " cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred cred",
+  "valid": true,
+  "host_staging": {
+    "requested": 64,
+    "active": [
+      {
+        "token": 1,
+        "count": 64,
+        "payload_bytes": 153616896
+      }
+    ],
+    "done": [
+      {
+        "token": 1,
+        "count": 64,
+        "read": 64,
+        "consumed": 64
+      }
+    ],
+    "verified": true
+  },
+  "clean_timing_sample": true,
+  "memory_observer": false,
+  "io_profile": false
+}
