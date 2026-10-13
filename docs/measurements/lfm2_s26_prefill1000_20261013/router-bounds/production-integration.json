@@ -1,0 +1,19 @@
+{
+  "status": "Applied with parent authorization; full model verification owned by parent",
+  "baseline_backup": "/tmp/lfm2-router-bounds-20261013/live-before-integration/test/htp/nntr_hvx_small_ops.c",
+  "baseline_sha256": "2f1ce2077885bb9c78e2ebc7e077e44ee064bfaa1c77c5b68debb21b1906f2e3",
+  "files": {
+    "test/htp/nntr_hvx_small_ops.c": "ec57d127a0bfa9450ca29fa54bce532e5c2ec993d75560b603fdfc19b0374c0e",
+    "test/htp/router_bound_select.h": "d20e9caddacdf995adf4bdf53f9d0fd1ef14885cedcac7dc7194df6ebd087374",
+    "test/htp/router_sigmoid_bounds.h": "844ec419fb3d3b6b8b8bc9dfe15da7e2a33e23253dda17384c2684ce21288aee",
+    "test/htp/router_sigmoid_outer_bounds.h": "4ab9d2708ee1c62b5c616964b59f16dae7d6b56ff96ecfa0e9f7eee30e64a227",
+    "test/htp/host/router_bounds_reference.h": "5319516d707d566e84edbe7844545a57a74224ead0ef6e46610fdde701aa1827",
+    "test/htp/host/router_bounds_host_check.c": "a547a805ccac320d59165c809dde973f89b9f3b58456da0920173608685375a0",
+    "test/htp/host/generate_router_sigmoid_bounds.c": "9a662cdb4f57f764e7f9fd112b24190841efb9397b6fe8e5792c16f6c7e52fbc",
+    "test/htp/host/generate_router_sigmoid_outer_bounds.c": "ae15892d0c4b37803543ed6d65837aadb474061bd5e320f0f24320ae5bdf166b",
+    "test/htp/host/run_router_bounds_check.sh": "a1c05cf72197fd25dfa225cf8d96ab2b4a7027d5d957a3ae56a60bf48c6a6cd3"
+  },
+  "default_host_check": "bash test/htp/host/run_router_bounds_check.sh",
+  "sanitized_host_check": "bash test/htp/host/run_router_bounds_check.sh --sanitize",
+  "opt_in_regeneration": "CLANG_FORMAT_14=/path/to/clang-format-14 bash test/htp/host/run_router_bounds_check.sh --regenerate /tmp/router-bounds"
+}

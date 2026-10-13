@@ -344,9 +344,9 @@ static void sigmoid_select(const float *sig, const float *score, uint32_t E,
     weight[k] = sig[sel[k]] * inv;
 }
 
-/** Exact prefill sigmoid. The common positive-normal denominator allows
- *  the existing specialized reciprocal; exceptional inputs retain the
- *  general IEEE division, including subnormal results and canonical NaN. */
+/** Exact prefill sigmoid. Scalar division uses the compiler's correctly
+ *  rounded reciprocal/refinement sequence for the normal denominator and
+ *  result. Keep the integer fallback for exceptional inputs and subnormals. */
 static inline void prefill_router_sigmoid(float logit, float bias, float *sig,
                                           float *score) {
   const float ex =
@@ -354,10 +354,12 @@ static inline void prefill_router_sigmoid(float logit, float bias, float *sig,
   const float denominator = m1_det_add(ex, 1.0f);
   const uint32_t bits = m1_det_bits(denominator);
   *sig = bits >= 0x3f800000u && bits < 0x7e800000u
-           ? m1_recip_rn_det(denominator)
+           ? 1.0f / denominator
            : cpu_det_div_rn(1.0f, denominator);
   *score = m1_det_add(*sig, bias);
 }
+
+#include "router_bound_select.h"
 
 static void sigmoid_worker(uint32_t threads, uint32_t thread, void *opaque) {
   const sigmoid_ctx *c = (const sigmoid_ctx *)opaque;
@@ -369,11 +371,21 @@ static void sigmoid_worker(uint32_t threads, uint32_t thread, void *opaque) {
   const uint32_t hi = (uint32_t)((uint64_t)c->M * (thread + 1u) / threads);
   for (uint32 r = lo; r < hi; ++r) {
     float sig[128], score[128];
-    for (uint32 e = 0; e < E; ++e)
-      prefill_router_sigmoid(logits[(size_t)r * E + e], bias[e], &sig[e],
-                             &score[e]);
-    sigmoid_select(sig, score, E, top_k, n_sel, sel + (size_t)r * n_sel,
+    uint32_t index[128];
+    const uint32_t exact =
+      c->M > 1u ? prefill_router_bound_row(logits + (size_t)r * E, bias, E,
+                                           n_sel, sig, score, index)
+                : 0u;
+    if (!exact)
+      for (uint32 e = 0; e < E; ++e)
+        prefill_router_sigmoid(logits[(size_t)r * E + e], bias[e], &sig[e],
+                               &score[e]);
+    uint32_t *row_sel = sel + (size_t)r * n_sel;
+    sigmoid_select(sig, score, exact ? exact : E, top_k, n_sel, row_sel,
                    weight + (size_t)r * top_k);
+    if (exact)
+      for (uint32_t k = 0; k < n_sel; ++k)
+        row_sel[k] = index[row_sel[k]];
   }
 }
 

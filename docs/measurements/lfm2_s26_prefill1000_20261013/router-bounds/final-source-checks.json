@@ -1,0 +1,16 @@
+{
+  "clang_format": "14.0.6",
+  "new_C_H_files_exact_formatted": [
+    "test/htp/router_bound_select.h",
+    "test/htp/router_sigmoid_bounds.h",
+    "test/htp/router_sigmoid_outer_bounds.h",
+    "test/htp/host/router_bounds_reference.h",
+    "test/htp/host/router_bounds_host_check.c",
+    "test/htp/host/generate_router_sigmoid_bounds.c",
+    "test/htp/host/generate_router_sigmoid_outer_bounds.c"
+  ],
+  "small_ops_changed_lines_formatted": true,
+  "git_diff_check": "passed for owned production files",
+  "decode_behavior": "M1 dispatcher and expert worker unchanged",
+  "DSP_headers_copied_by_parent": "parent notified that new headers are absent from original build manifest"
+}
