@@ -1,0 +1,18 @@
+{
+  "status": "STOPPED_AT_USER_REQUEST",
+  "implemented": false,
+  "reason": "User accepted the current result and requested a summary; no additional optimization or device experiments are scheduled.",
+  "accepted_current_runtime": "combined-v19-publish",
+  "accepted_source_commit": "2a341e9587e5659213ed679d1d4701f4129c2bff",
+  "remaining_candidates": [
+    "Registration plus prepared MoE RPC needs a separate bounded transaction and failure ownership design.",
+    "Selective prefill completion may avoid unstarted inactive-expert reads; already-completed reads cannot be recovered."
+  ],
+  "routing_limits": [
+    "NNTR_MOE_TRACE disables the final-layer64-row tail; the final diagnostic layer is not the normal production shape.",
+    "First37 layers preserve their input shape and router norm fusion;160 prefetched experts had zero assigned rows.",
+    "Logical inactive payload is not measured avoidable physical traffic or promised TPS improvement.",
+    "All routing-trace latency and TPS is diagnostic only."
+  ],
+  "local_only_raw_trace_sha256": "4bdbb81f7d2b2857629ad5abc304b0af146602f1f12a1a2ef727964ce763671d"
+}

@@ -1,0 +1,167 @@
+{
+  "schema": 1,
+  "status": "SOURCE_ONLY_NOT_IMPLEMENTED_USER_STOPPED_FURTHER_OPTIMIZATION",
+  "scope": "Consider combining each prefill expert metadata swap with the following prepared-MoE FastRPC call. No code, tests, device calls, registry expansion, or cache expansion were performed for this candidate.",
+  "source_snapshot": {
+    "root": "/tmp/lfm2-prefill1000-moe/prefill-swap-moe-audit/source",
+    "manifest": "/tmp/lfm2-prefill1000-moe/prefill-swap-moe-audit/source-manifest.json",
+    "base": "7493cca56abbb35859ecb65ca1b3b7c61494366d",
+    "note": "Immutable pre-v19 snapshot; v19 attention composite does not change the expert registration ordering described here."
+  },
+  "evidence": {
+    "independent_profile_audit": "/tmp/lfm2-prefill1000-moe/v15-an1-independent-audit.json",
+    "profile_log": "docs/measurements/lfm2_s26_prefill1000_20261013/v15-pub-stage64-profile-an1.log",
+    "profile_lines": [
+      215,
+      216,
+      218
+    ],
+    "diagnostic_only": true,
+    "prefill_tokens": 1024,
+    "prefetched_experts": 1596,
+    "swap_rpc_count": 25,
+    "prepared_moe_rpc_count": 38,
+    "swap_batches": "First60, then24 batches of64; total1596.",
+    "swap_to_prepared_adjacency": "All25 selected timed swap calls are immediately followed by prepared-MoE in the an1 FastRPC trace. Rounded timestamps cannot measure pure transport precisely.",
+    "registration_section_ms": 17.2,
+    "registration_section_mean_ms_per_batch": 0.688,
+    "exposed_io_wait_ms": 50.6,
+    "ready_experts": 1509,
+    "reader_count": 7,
+    "reader_mean_ms_per_expert": 4.41,
+    "timed_rpc_total_v15": 189,
+    "maximum_call_count_reduction": 25,
+    "hypothetical_v15_calls_if_all_eligible": 164,
+    "v19_context_parent_report": {
+      "attention_calls_removed": 10,
+      "clean_composite_off_ms": [
+        1044,
+        1069
+      ],
+      "clean_composite_on_ms": [
+        1034,
+        1033
+      ],
+      "raw_files_exact": 132,
+      "note": "Parent-reported context only; no new run or recomputation was performed in this source audit."
+    },
+    "timing_caveats": [
+      "17.2ms includes handle locking, metadata registration and host bookkeeping after the read wait. It is an upper bound on the entire section, not an estimate of removable transport.",
+      "Metadata copies and registry updates still execute inside a combined RPC. No measured gain is claimed.",
+      "Faster compute can expose more expert I/O waiting. Registration and exposed-wait times are already inside MoE node timing; do not add them again to OP-TIME totals."
+    ]
+  },
+  "current_order": [
+    "Router publishes normalized FP32 graph outputs and prepares private Q8 input/cookie.",
+    "take_batch: pop app batch/unhold -> prefetch_end waits readers -> synchronous swap RPC -> backend files new keys -> app LRU acquire.",
+    "stage(active) resolves resident experts and any demand misses.",
+    "queue_future(false) may evict safely finished weights, reserve existing slots and start more readers.",
+    "Existing invokeMoeLayer consumes prepared cookie and runs MoE.",
+    "Diagnostics/recency then queue_future(true) when early prefetch is enabled."
+  ],
+  "rejected_placement": "Do not run the combined compute inside prefetch_end: that moves queue_future(false) after a MoE kernel and may delay future reads by the kernel duration. No proof establishes that the middle queue kick is always empty.",
+  "bounded_design_only": {
+    "placement": "At existing invokeMoeLayer, after unchanged stage(active) and queue_future(false).",
+    "pending_cap_experts": 64,
+    "pool": "Existing cache22 per-layer shares, existing arena slots, MAX_WEIGHTS2048; no additional pinned expert capacity.",
+    "eligibility": [
+      "Explicit opt-in; one current model/session/generation and prepared-input lease bound to act,M,K,inter,N.",
+      "M>4; compact QS2; uniform target shapes; existing live borrowed stable GU/DN handles; no first registration or shape replacement.",
+      "Successful complete reads, disjoint owned slots, validated metadata; no pending decode update.",
+      "No profile>=3, split-active calls, alternate MoE kind, folded norms/add epilogue, forward graph, or offline alternate representation.",
+      "A single pending batch only; preflight ordinary fallback for all ineligible cases."
+    ],
+    "pending_state": "Host keys may be provisionally resident while DSP metadata is pending; slots remain exclusively owned and cannot be freed, overwritten, unregistered or dispatched by any other consumer.",
+    "second_batch": "The app while-loop can drain multiple batches, especially expert_layer_slot==0, which drains all leftovers. A second end must synchronously commit the first pending batch before accepting another. The measured one-batch-per-MoE pattern is not a global invariant.",
+    "eager_flush_boundaries": [
+      "Second prefetch_end or incompatible batch.",
+      "Any nonprepared or unrelated weight consumer.",
+      "Release/unregister of a pending key before slot reuse.",
+      "Demand registration, prepared-cookie mismatch, shape/mode change, or entry into decode.",
+      "Explicit normal transaction finish when no matching MoE was executed."
+    ],
+    "protocol": "A distinct appended prefill RPC, not the decode DSPQ packet. It preflights every update binding and routing argument before metadata writes, uses the original bounded scalar swap behavior, then the unchanged prepared MoE kernel.",
+    "acknowledgment": "Outer RPC SUCCESS plus a validated explicit phase/committed count/inner status is required to distinguish untouched from committed. Any transport-level failure is uncertain, including apparent unsupported codes; no replay or slot reuse.",
+    "old_skel": "A read-only capability probe before provisional publication can establish support. Otherwise unsupported transport must fail closed, not be assumed to mean no mutation.",
+    "known_precommit_fallback": "Only a trustworthy untouched response may use the original swap followed by ordinary MoE. Consume/expire prepared input once; do not replay router or fused norm.",
+    "postcommit": "Metadata can remain committed after compute failure, as in the separate path. Never reapply updates or infer rollback. Any partial/uncertain commit keeps all pending slots quarantined and poisons session reuse.",
+    "separate_commit_helper": "Do not reuse current flushExpertUpdates/registerStagedBatch for provisional prefill ownership: their failure handling may return suffix slots to the free list although provisional experts_/LRU entries still own them. A new commit helper must not file keys twice or free pending slots on failure.",
+    "decode_limits_unchanged": {
+      "HTP_DSPQ_MAX_EXPERT_UPDATES": 8,
+      "rebind_batch_max_weight_bindings": 16,
+      "note": "Neither decode arrays nor expert_update_batch(count64) can hold the proposed prefill batch. Do not increase decode wire limits."
+    }
+  },
+  "unresolved_publication_and_lifetime_requirements": [
+    "unordered_map::reserve does not preallocate nodes. fileRegistered performs two operator[] operations and experts_.emplace; each can fail after partial publication. Prepare actual nodes or maintain an allocation-free rollback/quarantine journal before publication. Reserve the returned keys vector too.",
+    "App ExpertLru::acquire allocates a list and map after prefetch_end returns. Backend preallocation alone does not prove all-host-allocation preflight. It needs an explicit LRU transaction/preallocation API or an exception guard that irrevocably poisons logical session reuse.",
+    "App makeRoom/acquire removes an LRU victim before calling release. If eager flush in release throws, app recency is already changed; treat this as a poisoned logical session, not a retryable fallback.",
+    "Use an explicit throwing normal finish and a noexcept abort/poison guard around the MoE scope. Existing discard_deferred_norm only clears borrowed activation state; it must not silently discard pending weight metadata or hide failed best-effort RPC.",
+    "Poison must be checked before all expert handle cache hits, registration, dispatch, release and new arena-slot reservations. Existing expert_updates_failed_ checks cover only selected paths and are insufficient by themselves.",
+    "No waiting or RPC while holding prefetch_mutex. Preserve a single lock order for invoke/handle locks; readers do not mutate the DSP registry.",
+    "Router prepared Q8 storage is separate from the weight registry. The new wrapper must not reuse/invalidate router_prepare_scratch before consuming it."
+  ],
+  "early_exit_matrix": [
+    {
+      "event": "Unsupported shape/mode, missing prepared lease or allocation failure before provisional publication",
+      "required": "Use original synchronous path; no pending ownership published."
+    },
+    {
+      "event": "Read/metadata error before publication",
+      "required": "Retain original read failure behavior and slot cleanup; never publish invalid payload."
+    },
+    {
+      "event": "Allocation exception in app LRU acquire, stage arrays, queue_future, handle arrays or RPC staging after publication",
+      "required": "Noexcept transaction abort pins/quarantines pending slots and poisons every subsequent expert operation; do not silently drop state."
+    },
+    {
+      "event": "Second end, fallback, nonprepared consumer or pending-key release",
+      "required": "Throwing eager commit with stable handles before operation proceeds; on failure poison and preserve ownership."
+    },
+    {
+      "event": "Cancellation or early return before invoke",
+      "required": "Normal explicit finish commits; exception/cancel guard poisons with bounded retained ownership. No unobserved late metadata flush or retry."
+    },
+    {
+      "event": "Normal inference end with pending state",
+      "required": "Cannot report success until explicit flush succeeds. Scope and model/session generation must match."
+    },
+    {
+      "event": "Decode after canceled/mismatched prefill; decode updates before new prefill",
+      "required": "Reject poisoned session, or commit known pending state before transition. Keep separate cap64 prefill and cap8 decode containers."
+    },
+    {
+      "event": "Composite outer transport failure",
+      "required": "Uncertain mutation: no fallback/replay, no free-list insertion, no new dispatch; session reset required."
+    },
+    {
+      "event": "Inner failure after some updates or kernel start",
+      "required": "Keep committed/uncertain metadata ownership pinned. Do not treat partial expert count as proof that both halves of the next expert stayed unchanged."
+    },
+    {
+      "event": "Model teardown or session replacement",
+      "required": "No destructor RPC after session close. Stop/join readers and release arena ownership only under existing teardown ordering; pending state cannot survive into another generation."
+    }
+  ],
+  "unchanged_metadata_work": {
+    "experts": 1596,
+    "weights": 3192,
+    "scale_and_sum_copy_bytes": 65372160,
+    "scale_and_sum_copy_mib": 62.34375,
+    "current_scalar_dma_descriptors": 6384,
+    "current_scalar_dma_drains": 3192,
+    "note": "Source-derived logical metadata work, not measured DDR traffic. Chunking the existing16-binding rebind helper would be a separate DMA scheduling candidate, not part of a simple call-combining gain estimate."
+  },
+  "independent_review": {
+    "reviewer": "/root/moe_audit",
+    "scope": "Read-only source/design review; no implementation was validated.",
+    "key_findings": [
+      "Preserve queue_future(false) before compute.",
+      "Separate bounded prefill ownership from decode pending state.",
+      "All provisional map/node allocation failures and app LRU mutation require explicit handling.",
+      "Outer failure cannot justify replay; require capability gate and trustworthy untouched acknowledgment.",
+      "Noexcept cleanup must poison rather than silently leave provisional entries usable."
+    ]
+  },
+  "decision": "Potential call reduction is real, but safe implementation requires a distinct bounded transaction and wider ownership/failure guards. It remains NOT IMPLEMENTED. User asked to stop further optimization; no new validation or device work is pending from this agent."
+}
