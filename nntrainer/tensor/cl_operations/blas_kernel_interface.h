@@ -345,6 +345,30 @@ void v8cNormQuantCommit(void *src_clmem, unsigned int rows, unsigned int K);
 void v8cNormQuantAbort();
 
 /**
+ * @brief Claim the outstanding norm->FC handoff for a consumer that is not a
+ *        v8c FC (the TQ2CX expert GEMV): the int8 row, scale and zero point
+ *        the fused norm wrote, when it wrote them for exactly @a src_clmem
+ *        with this shape and nothing has written that buffer since.
+ *
+ * The caller must quantise with the arithmetic the norm used (the v8c
+ * quantiser under the v8c FC's build options, plain TQ2 order) -- the claim
+ * only answers whether the bytes behind the handle are still the ones the
+ * norm quantised.
+ *
+ * @param[in] src_clmem device buffer the consumer would quantise
+ * @param[in] rows rows the consumer reads
+ * @param[in] K row width
+ * @param[out] act_i8 int8 rows (cl_mem)
+ * @param[out] act_scale per-row scale (cl_mem)
+ * @param[out] act_zp per-row zero point (cl_mem)
+ * @param[out] act_rs per-row sum (cl_mem)
+ * @return true when the four handles hold this input's quantisation
+ */
+bool v8cNormQuantClaim(void *src_clmem, unsigned int rows, unsigned int K,
+                       void **act_i8, void **act_scale, void **act_zp,
+                       void **act_rs);
+
+/**
  * @brief Model-teardown hook: drop every process-lifetime cache the OpenCL FC
  *        path keys by a HOST pointer, plus the quantisation handoffs in its
  *        shared scratch.

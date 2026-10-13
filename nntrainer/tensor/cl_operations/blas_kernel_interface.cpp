@@ -1370,6 +1370,48 @@ void v8cNormQuantAbort() {
   v8c_scratch().nq_pending_slot = -1;
 }
 
+bool v8cNormQuantClaim(void *src_clmem, unsigned int rows, unsigned int K,
+                       void **act_i8, void **act_scale, void **act_zp,
+                       void **act_rs) {
+  if (src_clmem == nullptr || rows == 0 || K == 0)
+    return false;
+  std::lock_guard<std::mutex> slock(v8c_cache_mtx());
+  V8cScratch &sc = v8c_scratch();
+  auto &fs = v8c_fuse_stats();
+  if (sc.nq_slot < 0) {
+    ++fs.nq_none;
+    return false;
+  }
+  if (sc.nq_src != src_clmem) {
+    ++fs.nq_other;
+    return false;
+  }
+  const int slot = sc.nq_slot;
+  const unsigned int M_pad = v8c_m_pad_for(rows);
+  if (sc.nq_rows != rows || sc.nq_K != K ||
+      sc.act_i8_bytes[slot] < (size_t)M_pad * K ||
+      sc.act_scale_bytes[slot] < sizeof(float) * M_pad ||
+      sc.act_zp_bytes[slot] < sizeof(int) * M_pad ||
+      sc.act_rs_bytes[slot] < sizeof(int) * M_pad) {
+    ++fs.nq_shape;
+    return false;
+  }
+  // The same test the FC applies: the bytes at the handle must still be the
+  // ones the norm quantised.
+  if (!opencl::Kernel::bufferUnchangedSince(src_clmem, sc.nq_seq)) {
+    ++fs.nq_dirty;
+    return false;
+  }
+  ++fs.nq_hit;
+  if (sc.nq_site != nullptr)
+    ++v8c_norm_sites()[sc.nq_site].claimed;
+  *act_i8 = sc.act_i8[slot];
+  *act_scale = sc.act_scale[slot];
+  *act_zp = sc.act_zp[slot];
+  *act_rs = sc.act_rs[slot];
+  return true;
+}
+
 // Eager v8c weight build (see header). Moves the lazy per-weight nibble
 // permute + upload out of the first timed prefill: the CL FC layer calls this
 // right after its weight is read at model load. No-op (false) off the v8c

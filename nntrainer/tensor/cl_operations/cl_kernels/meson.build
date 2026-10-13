@@ -64,6 +64,7 @@ if get_option('enable-fp16')
     'swiglu_fp16.cl',
     'gelu_fp16.cl',
     'geglu_fp16.cl',
+    'geglu_q_fp16.cl',
     'sigmoid_glu_fp16.cl',
     'sigmoid_add_fp16.cl',
     'transpose_axis_0_fp16.cl',
