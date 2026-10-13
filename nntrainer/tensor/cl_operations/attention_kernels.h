@@ -453,6 +453,30 @@ bool flash_decode_gqa_f16_cl(const uint16_t *Q_svm, const uint16_t *K_svm,
 /// off). Read once per process.
 bool flash_decode_gqa_enabled();
 
+/// Fused GQA flash prefill (gated by NNTR_ADRENO_FLASH_PREFILL=1; see
+/// flash_prefill_gqa_enabled). One pass over the fp16 concat K/V cache
+/// ([rows, HD_KV], ring-mapped when ring_cap > 0): one sub-group per
+/// (kv head, tile of query rows) serves every query head of that kv head, so
+/// each K/V row is read once per tile; online softmax, P*V in registers, no
+/// __local memory and no barriers. Query row i sits at absolute position
+/// N_kv - M + i; causal / sliding-window (local_window > 0) masks as the
+/// other prefill arms. Q/K/V are SVM; O ([M, HD_Q]) goes to o_clmem when
+/// given, else to O_svm. Deterministic (fixed block size, lane split and
+/// reduction order). Returns false (nothing enqueued) on an unsupported
+/// shape, softcap > 0, a sub-group size that does not fit, or a program that
+/// does not build; the caller keeps its own arm.
+bool flash_prefill_gqa_f16_cl(const uint16_t *Q_svm, const uint16_t *K_svm,
+                              const uint16_t *V_svm, uint16_t *O_svm,
+                              void *o_clmem, unsigned int M, unsigned int N_kv,
+                              unsigned int num_heads_Q,
+                              unsigned int num_heads_KV, unsigned int head_dim,
+                              bool causal, float attn_softcap,
+                              unsigned int local_window, unsigned int ring_cap);
+
+/// True when NNTR_ADRENO_FLASH_PREFILL is set to a non-zero value (default
+/// off). Read once per process.
+bool flash_prefill_gqa_enabled();
+
 /**
  * @brief Pre-build the rope/scatter/copy kernel PROGRAM (rope_inplace source,
  *        file-local to attention_kernels.cpp) on the given context. Called from
