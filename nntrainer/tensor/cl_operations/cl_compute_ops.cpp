@@ -219,7 +219,8 @@ public:
       return;
 
     switch (weight.getDataType()) {
-    case ml::train::TensorDim::DataType::QS4CX: {
+    case ml::train::TensorDim::DataType::QS4CX:
+    case ml::train::TensorDim::DataType::QS4ACX: {
       // This is the fallback boundary the plain-payload release is guarded
       // at: once the v8c repack exists, NNTR_V8C_DROP_PLAIN may have handed
       // the nibbles' pages back, and the host dot below would then multiply
