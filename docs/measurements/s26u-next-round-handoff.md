@@ -75,3 +75,48 @@ record에서 꺼져 있는지 확인.
 - 항목당 커밋 하나, 빌드를 기기에 나란히 두고 번갈아 3회, 2분 냉각, 답 md5 비교(log §6).
 - 추천 순서: P2 → P3 → D2 → D3 → 작은 것들(P6–P11, D4, D5, D8, D9). P2는 변환 비트 일치 테스트가 먼저.
 - 보류 6건은 §3의 측정이 나온 뒤 이 문서에 결과와 결정을 덧붙인다.
+
+## 7. 2026-10-13 적용 결과
+
+기준은 이 문서를 쓴 뒤 PR에 올라온 작성자 커밋 3개(`4b50de470` decode overhead, `525aa04af` TL2 experts,
+`48a6bbb22` expert prefetch)를 포함한 head `48a6bbb22`이다(기기 디렉터리 `pr4416_h48`). 그 위에 항목당 커밋
+하나씩 올렸고, 전부 host check 통과 + 기기에서 답 문장 md5 동일(기본 env p1024 `fe44d523`, p2048 `aff26409`;
+FAST env p1024 `46a84cf6`). env는 §5.2의 config of record에 사용자 지시(10-13)로 `NNTR_HTP_ATTN_M1_FAST=1
+NNTR_EMBEDDING_MMAP=1`을 더한 것(§7.2부터); §7.1은 그 전의 기본 env.
+
+### 7.1 항목별 상태
+
+| # | 상태 | 커밋 | 비고 |
+|---|---|---|---|
+| P3 | 적용·검증 | `0377eb9c4` | 첫 구현은 1 ulp 차이가 8 %의 원소에 났다: **컴파일러가 `Q6_Vsf_*`를 qf32 연산으로 낮추고 따라갈 수 있는 변환을 지우기 때문에**, 기존 `addb_worker`는 handle(블록) 경계마다 누적기를 sf로 한 번 반올림한다. 융합 경로가 같은 지점에서 같은 반올림을 하도록(store를 거쳐 강제) 고쳐 동일. 기기 진단(35호출 비트 비교) bad=0 |
+| P6 | 적용·검증 | `8e49f2776` | (head, tile) 단위 풀 분배. permutation |
+| P7 | 적용·검증 | `ba1a09bfc` | f32 Q를 DMA로 staging에 넣고 `stage_qprep` 안에서 같은 HVX 연산 순서로 양자화. `q16_worker`·DSP heap의 u16 사본 삭제 |
+| P8 | 적용·검증 | `37d36e941` | 마지막 gate_up batch가 남은 dn chunk 전부 큐잉 |
+| P9 | 적용·검증 | `a015f2ab7` | sleepers 카운터, seq_cst Dekker 쌍 |
+| P10 | (a) 적용, 기기 확인 §7.3 | `555f6e173` | 행 블록 outer / k 블록 inner로 루프만 교환(같은 rows_block 호출, 같은 저장 지점). (b) 벡터 top-k는 미착수 |
+| P11 | 적용·검증 | `4ed071a61` | `stageInput`로 보관: 같은 테이블 포인터·바이트가 층마다 오고 sliding/global은 size class가 달라 서로 안 밀어냄 |
+| P2 | 1단계 적용, 기기 확인 §7.3; 2단계 코드만 | `c02772db3` | 1단계: 캘리브레이션(K/V \|max\|, Q min/max, scale·encoding 유도, fixed scale 설정)을 `attn_q2_step_fqc` 한 호출 안으로. max는 순서 무관이라 비트 동일. 2단계(K/V f32→fp16 변환·cache 행 쓰기를 DSP로): CPU cache가 rpcmem 블록이라 DSP가 직접 쓸 수 있고, HVX 정수 RNE 변환기(`hvx_f16_rne.h`)는 호스트 에뮬레이터에서 `hexkl_cvt_f32_to_hf`와 126만 케이스(fp16 전 패턴·동점·subnormal 경계) 비트 동일. 엔트리 `attn_q2_step_fqk`·ARM·mha_core 배선까지 작성했으나 **미빌드·미검증**(stash) |
+| D3 | 적용·검증 | `03e16fab5` | block-major `[Ep/32][K][32]`, `hvx_router_sm_pack_f32` |
+| D5 | 이미 됨 | `4b50de470` (작성자) | `decode_model->incremental_inference`가 tensor를 돌려주어 `new float[]`를 안 탄다 |
+| D8 | 이미 됨 | — | `Tensor::activate()`가 mmap 직후 `madvise(WILLNEED)` |
+| D2 | 미착수 | — | 작성자 커밋이 M=1 스케줄을 레인별 다중 큐 DMA(#117/#177/#185)로 바꿔 handoff의 분석(`:1225-1255`)이 더는 맞지 않는다. decode 벽시계가 같은 빌드에서 11.2–15.3 TPS로 흔들려(§7.2) 3–8 ms/토큰은 `NNTR_HTP_PROFILE=1`의 MoE us/토큰으로만 판정 가능 |
+| D4, D9 | 미착수 | — | 같은 이유(decode 소음 안) |
+| P1 P4 P5 D1 D6 D7 | 미측정 | — | — |
+
+### 7.2 r1 = P3+P6+P7+P8+P9+P11+D3 (기본 env, G128, 번갈아, 2분 냉각)
+
+| 설정 | 빌드 | prefill ms (회차) | decode 마지막 64 TPS (회차) |
+|---|---|---|---|
+| p1024 | h48 | 2134, 1872, 1936 | 13.4, 14.5, 14.4 |
+| p1024 | r1 | 1650, 1689, 2281* | 14.9, 14.3, 12.1* |
+| p2048 | h48 | 3371, 3361, 3436 | 11.2, 14.4, 15.3 |
+| p2048 | r1 | 3213, 3141, 3304 | 14.0, 14.1, 13.1 |
+| p4096 | h48 | 7518 (1회) | 11.9 |
+| p4096 | r1 | 7068 (1회) | 13.3 |
+
+읽는 법: (1) prefill은 p1024 중앙값 1872→1689(−10 %), p2048 평균 3389→3219(−5 %), p4096 7518→7068(−6 %).
+\* r1 p1024 3회차는 배터리 28.8 °C에서 나온 이상치(같은 빌드 1·2회차의 +35 %). (2) **decode 마지막 64 TPS는
+같은 빌드에서 11.2–15.3으로 흔들려 D3·P9·P8의 토큰당 몇 ms는 벽시계로 못 가른다** — 기기가 다른 작업자와
+공유되고(같은 날 `/data/local/tmp/gemma4_decode_prefetch_*`) 측정 중 배터리 26→30 °C. (3) p4096은 FAST env로
+돌아 md5 기준(`1b462136`)과 못 비교했고 두 빌드의 본문이 달랐다(FAST p4096은 §2.7대로 near-tie 형식) → §7.3의
+기본 env 재확인.
