@@ -252,6 +252,15 @@ protected:
    *        update the KVCacheManager's tracked write position.
    */
   void advanceKVCachePosition(unsigned int step_size);
+
+  /**
+   * @brief Before a step at absolute position pos: the windowed layers of
+   *        kv_cache move their window to the front (KVCacheManager::compact)
+   *        and the mha_core layers get the new row bases.
+   * @param[in] pos absolute position of the next row
+   * @param[in] force hand the bases over even when none moved (after a load)
+   */
+  void compactKVCache(unsigned int pos, bool force = false);
 };
 
 } // namespace causallm

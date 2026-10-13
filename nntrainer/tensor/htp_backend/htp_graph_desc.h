@@ -249,9 +249,11 @@ enum {
  * head_dim) and eps_bits holds the f32 bits of the norm epsilon (RMSNORM,
  * QK_NORM); both are 0 elsewhere. [plan 201 S4] An ATTN_M1's eps_bits is
  * its score scale, which must be an fp16 value (0: 1/sqrt(head_dim),
- * LFM2's 0.125; Gemma 4 sets 1.0), and its top_k the sliding window (0:
- * every position; Gemma's sliding layers 1024). A ROUTER_TOPK with eps_bits
- * set is Gemma 4's softmax router: it RMS-norms its input itself (that
+ * LFM2's 0.125; Gemma 4 sets 1.0), its top_k the sliding window (0:
+ * every position; Gemma's sliding layers 1024) and its n_experts the
+ * absolute position of its cache's row 0 (0 unless the cache holds a window
+ * of a long context: the op reads row pos - n_experts). A ROUTER_TOPK with
+ * eps_bits set is Gemma 4's softmax router: it RMS-norms its input itself (that
  * epsilon, ROUTER_BIAS's g as gamma), so it reads the un-normed stream,
  * then softmax, top-k, renormalise, per-expert scale (m1_ops_det.h); with
  * eps_bits 0 it is LFM2's sigmoid router. An RMSNORM's feed bit 0

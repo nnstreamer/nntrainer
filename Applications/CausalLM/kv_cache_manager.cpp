@@ -12,8 +12,10 @@
 
 #include "kv_cache_manager.h"
 
+#include <cstring>
 #include <memory>
 #include <stdexcept>
+#include <string>
 #include <utility>
 
 #include <memory_data.h>
@@ -36,6 +38,9 @@ KVCacheManager &KVCacheManager::operator=(KVCacheManager &&other) noexcept {
     head_dim_ = other.head_dim_;
     kv_width_ = other.kv_width_;
     kv_widths_ = std::move(other.kv_widths_);
+    rows_ = std::move(other.rows_);
+    keep_ = std::move(other.keep_);
+    bases_ = std::move(other.bases_);
     dtype_ = other.dtype_;
     format_ = other.format_;
     shared_alloc_ = std::move(other.shared_alloc_);
@@ -108,9 +113,13 @@ void KVCacheManager::allocate(unsigned int num_layers, unsigned int batch_size,
                               unsigned int max_seq_len,
                               const std::vector<unsigned int> &kv_widths,
                               ml::train::TensorDim::DataType dtype,
-                              ml::train::TensorDim::Format format) {
+                              ml::train::TensorDim::Format format,
+                              const std::vector<unsigned int> &rows,
+                              const std::vector<unsigned int> &keep) {
   if (num_layers == 0 || batch_size == 0 || max_seq_len == 0 ||
-      kv_widths.size() != num_layers) {
+      kv_widths.size() != num_layers ||
+      (!rows.empty() &&
+       (rows.size() != num_layers || keep.size() != num_layers))) {
     throw std::invalid_argument(
       "KVCacheManager::allocate: invalid layer, batch, or KV width count");
   }
@@ -131,13 +140,26 @@ void KVCacheManager::allocate(unsigned int num_layers, unsigned int batch_size,
   dtype_ = dtype;
   format_ = format;
   cache_pos_ = 0;
+  rows_.assign(num_layers, max_seq_len);
+  keep_.assign(num_layers, 0);
+  bases_.assign(num_layers, 0);
+  for (unsigned int i = 0; i < rows.size(); ++i) {
+    if (rows[i] == 0 || rows[i] >= max_seq_len)
+      continue;
+    // a step must fit behind the window it attends to
+    if (keep[i] == 0 || keep[i] >= rows[i])
+      throw std::invalid_argument(
+        "KVCacheManager::allocate: a windowed layer needs 0 < keep < rows");
+    rows_[i] = rows[i];
+    keep_[i] = keep[i];
+  }
 
   // Re-allocation: drop the old tensors before their blocks go back.
   layer_caches_.clear();
   releaseShared();
   layer_caches_.resize(num_layers);
   for (unsigned int i = 0; i < num_layers; ++i) {
-    ml::train::TensorDim cache_dim({batch_size, 1, max_seq_len, kv_widths_[i]},
+    ml::train::TensorDim cache_dim({batch_size, 1, rows_[i], kv_widths_[i]},
                                    {format, dtype});
     layer_caches_[i].key_cache = makeCacheTensor(cache_dim);
     layer_caches_[i].value_cache = makeCacheTensor(cache_dim);
@@ -160,7 +182,31 @@ void KVCacheManager::advance(unsigned int step_size) {
   cache_pos_ += step_size;
 }
 
-void KVCacheManager::reset() { cache_pos_ = 0; }
+void KVCacheManager::reset() {
+  cache_pos_ = 0;
+  bases_.assign(bases_.size(), 0);
+}
+
+bool KVCacheManager::compact(unsigned int pos) {
+  bool changed = false;
+  for (unsigned int l = 0; l < layer_caches_.size(); ++l) {
+    const unsigned int from = liveFrom(l, pos);
+    if (from <= bases_[l])
+      continue;
+    const size_t w = kv_widths_[l];
+    const size_t skip = (from - bases_[l]) * w, live = (pos - from) * w;
+    for (auto *t : {&layer_caches_[l].key_cache, &layer_caches_[l].value_cache})
+      for (unsigned int b = 0; b < batch_size_; ++b) {
+        // fp16 bits on every build (FP16 or UINT16 storage)
+        uint16_t *d =
+          t->getData<uint16_t>() + b * static_cast<size_t>(rows_[l]) * w;
+        std::memmove(d, d + skip, live * sizeof(uint16_t));
+      }
+    bases_[l] = from;
+    changed = true;
+  }
+  return changed;
+}
 
 nntrainer::Tensor &KVCacheManager::getKeyCache(unsigned int layer_idx) {
   if (layer_idx >= layer_caches_.size()) {
@@ -277,14 +323,22 @@ void KVCacheManager::save(const std::string &path, unsigned int seq_len) const {
     throw std::runtime_error("KVCacheManager::save: cannot open file: " + path);
   }
 
-  for (const auto &lc : layer_caches_) {
+  for (unsigned int l = 0; l < layer_caches_.size(); ++l) {
+    const auto &lc = layer_caches_[l];
+    const unsigned int from = liveFrom(l, seq_len);
+    if (from < bases_[l] || seq_len - bases_[l] > rows_[l])
+      throw std::out_of_range("KVCacheManager::save: layer " +
+                              std::to_string(l) + " does not hold rows [" +
+                              std::to_string(from) + ", " +
+                              std::to_string(seq_len) + ")");
     ml::train::TensorDim save_dim = lc.key_cache.getDim();
-    save_dim.height(seq_len);
+    save_dim.height(seq_len - from);
+    const size_t off = static_cast<size_t>(from - bases_[l]) * kv_widths_[l];
 
     nntrainer::Tensor k_slice = const_cast<nntrainer::Tensor &>(lc.key_cache)
-                                  .getSharedDataTensor(save_dim, 0, true);
+                                  .getSharedDataTensor(save_dim, off, true);
     nntrainer::Tensor v_slice = const_cast<nntrainer::Tensor &>(lc.value_cache)
-                                  .getSharedDataTensor(save_dim, 0, true);
+                                  .getSharedDataTensor(save_dim, off, true);
 
     k_slice.save(f);
     v_slice.save(f);
@@ -307,11 +361,15 @@ void KVCacheManager::load(const std::string &path, unsigned int seq_len) {
 
   // A dump of another model, length or dtype reads without an error and
   // decodes garbage: the file must be exactly the rows asked for.
+  auto slice_dim = [&](unsigned int l) {
+    ml::train::TensorDim d = layer_caches_[l].key_cache.getDim();
+    d.height(seq_len - liveFrom(l, seq_len));
+    return d;
+  };
   size_t want = 0;
-  for (auto &lc : layer_caches_) {
-    ml::train::TensorDim d = lc.key_cache.getDim();
-    d.height(seq_len);
-    want += 2 * lc.key_cache.getSharedDataTensor(d, 0, true).getMemoryBytes();
+  for (unsigned int l = 0; l < layer_caches_.size(); ++l) {
+    const ml::train::TensorDim d = slice_dim(l);
+    want += 2 * d.getDataLen() * d.getDataTypeSize();
   }
   f.seekg(0, std::ios::end);
   const size_t have = static_cast<size_t>(f.tellg());
@@ -323,9 +381,9 @@ void KVCacheManager::load(const std::string &path, unsigned int seq_len) {
       std::to_string(seq_len) + " rows (another model, length or dtype?)");
   }
 
-  for (auto &lc : layer_caches_) {
-    ml::train::TensorDim load_dim = lc.key_cache.getDim();
-    load_dim.height(seq_len);
+  for (unsigned int l = 0; l < layer_caches_.size(); ++l) {
+    auto &lc = layer_caches_[l];
+    const ml::train::TensorDim load_dim = slice_dim(l);
 
     nntrainer::Tensor k_slice =
       lc.key_cache.getSharedDataTensor(load_dim, 0, true);
@@ -334,6 +392,7 @@ void KVCacheManager::load(const std::string &path, unsigned int seq_len) {
 
     k_slice.read(f);
     v_slice.read(f);
+    bases_[l] = liveFrom(l, seq_len);
   }
 
   cache_pos_ = seq_len;

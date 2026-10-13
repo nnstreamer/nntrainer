@@ -116,7 +116,38 @@ public:
     unsigned int num_layers, unsigned int batch_size, unsigned int max_seq_len,
     const std::vector<unsigned int> &kv_widths,
     ml::train::TensorDim::DataType dtype = ml::train::TensorDim::DataType::FP16,
-    ml::train::TensorDim::Format format = ml::train::TensorDim::Format::NCHW);
+    ml::train::TensorDim::Format format = ml::train::TensorDim::Format::NCHW,
+    const std::vector<unsigned int> &rows = {},
+    const std::vector<unsigned int> &keep = {});
+
+  /**
+   * @brief A windowed layer -- one allocated with fewer rows than
+   *        max_seq_len -- holds absolute position a at row a - getBase():
+   *        a sliding-window attention never reads past its window, so only
+   *        the last keep rows before the step have to stay.
+   * @param[in] layer_idx attention layer index
+   * @return absolute position of the layer's row 0 (0 for a full layer)
+   */
+  unsigned int getBase(unsigned int layer_idx) const {
+    return bases_.at(layer_idx);
+  }
+
+  /**
+   * @brief Rows a layer's cache was allocated with.
+   */
+  unsigned int getRows(unsigned int layer_idx) const {
+    return rows_.at(layer_idx);
+  }
+
+  /**
+   * @brief Before a step that starts at absolute position pos: every
+   *        windowed layer moves its last keep rows to the front and its
+   *        base to pos - keep. The caller hands the new bases to the
+   *        attention layers (they index and mirror the rows).
+   * @param[in] pos absolute position of the next row to be written
+   * @return true when a base changed
+   */
+  bool compact(unsigned int pos);
 
   /**
    * @brief Check if the manager has been allocated
@@ -213,14 +244,19 @@ public:
   void save(const std::string &path) const;
 
   /**
-   * @brief Save KV cache to file up to specified length
+   * @brief Save KV cache to file up to specified length: per layer the K
+   *        rows then the V rows, raw. A windowed layer saves its last keep
+   *        rows only.
    * @param[in] path file path
    * @param[in] seq_len number of positions to save
    */
   void save(const std::string &path, unsigned int seq_len) const;
 
   /**
-   * @brief Load KV cache from file
+   * @brief Load KV cache from file. The file must be exactly what save
+   *        writes for seq_len positions of this allocation, or it throws. A
+   *        windowed layer's rows land at row 0 and its base at seq_len -
+   *        rows.
    * @param[in] path file path
    * @param[in] seq_len number of positions to load
    */
@@ -281,6 +317,18 @@ private:
   unsigned int head_dim_ = 0;     /**< head dimension */
   unsigned int kv_width_ = 0;     /**< num_heads_kv * head_dim */
   std::vector<unsigned int> kv_widths_;
+  std::vector<unsigned int> rows_;  /**< per-layer allocated rows */
+  std::vector<unsigned int> keep_;  /**< per-layer window (windowed layers) */
+  std::vector<unsigned int> bases_; /**< per-layer absolute pos of row 0 */
+
+  /** @brief Whether the layer has fewer rows than max_seq_len. */
+  bool windowed(unsigned int l) const { return rows_[l] < max_seq_len_; }
+
+  /** @brief First absolute position a dump of rows [.., pos) holds for the
+   *         layer: a windowed layer's last keep rows, else all of them. */
+  unsigned int liveFrom(unsigned int l, unsigned int pos) const {
+    return windowed(l) && pos > keep_[l] ? pos - keep_[l] : 0u;
+  }
 
   ml::train::TensorDim::DataType dtype_ = ml::train::TensorDim::DataType::FP16;
   ml::train::TensorDim::Format format_ = ml::train::TensorDim::Format::NCHW;

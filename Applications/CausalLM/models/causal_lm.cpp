@@ -295,6 +295,22 @@ void CausalLM::setKVCachePosition(unsigned int pos) {
   model->forEachLayer(fn, nullptr);
 }
 
+void CausalLM::compactKVCache(unsigned int pos, bool force) {
+  if (!kv_cache.compact(pos) && !force)
+    return;
+  // ponytail: the n-th mha_core layer in graph order is attention layer n
+  // (every model here builds them in that order); a model that shares or
+  // reorders them needs the layer's own index instead.
+  unsigned int n = 0;
+  std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>
+    fn = [&](ml::train::Layer &l, nntrainer::RunLayerContext &, void *) {
+      if (l.getType() == causallm::MHACoreLayer::type &&
+          n < kv_cache.getNumLayers())
+        l.setProperty({"cache_base=" + std::to_string(kv_cache.getBase(n++))});
+    };
+  model->forEachLayer(fn, nullptr);
+}
+
 void CausalLM::advanceKVCachePosition(unsigned int step_size) {
   // mha_core advances its own cache_index inside forwarding(), so the host
   // only has to keep KVCacheManager's tracked position in sync.
@@ -387,6 +403,8 @@ void CausalLM::load_kvcache(std::string path, int to_) {
   // their first step as before
   if (std::ifstream q2(path + ".q2", std::ios::binary); q2)
     causallm::MHACoreLayer::loadQ2Calibration(q2);
+  // a windowed layer's rows start at its base now
+  compactKVCache(static_cast<unsigned int>(to_), true);
   // mha_core layers each track their own cache_index; sync them all to the
   // newly-loaded position so the next forwarding() writes at the right slot.
   setKVCachePosition(static_cast<unsigned int>(to_));
@@ -691,6 +709,8 @@ void CausalLM::run(const WSTR prompt, bool do_sample, const WSTR system_prompt,
               static_cast<float>(init_input[done + i]);
       for (auto &o : out)
         delete[] o;
+      // a windowed (sliding) layer keeps its window in front of the chunk
+      compactKVCache(from + done);
       out = model->incremental_inference(
         BATCH_SIZE, input, label, step, from + done, from + done + step, false);
       done += step;
@@ -827,6 +847,20 @@ void CausalLM::run(const WSTR prompt, bool do_sample, const WSTR system_prompt,
    */
 
   input_len += SYS_PROMP_LEN;
+
+  // The windowed layers' caches from here on: the window, then one row a
+  // generated token. The accelerator's decode caches of those layers are
+  // sized and based the same (before its first decode row).
+  // ponytail: one (rows, base) for all windowed layers -- they share one
+  // window and one DSP cache; per-layer values if a model ever mixes them.
+  compactKVCache(input_len + global_token_len);
+  for (unsigned int l = 0; l < kv_cache.getNumLayers(); ++l)
+    if (kv_cache.getRows(l) < kv_cache.getMaxSeqLen()) {
+      const unsigned int base = kv_cache.getBase(l);
+      htpDecodeKvWindow(input_len + global_token_len - base + NUM_TO_GENERATE,
+                        base);
+      break;
+    }
 
   // Update generated token by prefill as an input
   for (unsigned int b = 0; b < BATCH_SIZE; ++b)

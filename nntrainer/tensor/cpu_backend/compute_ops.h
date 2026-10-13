@@ -594,6 +594,16 @@ public:
     (void)v_rows;
     return false;
   }
+  // The host's KV caches of the windowed (sliding) attention layers hold
+  // a window of the context: absolute position a is their row a - base and
+  // they have `rows` rows. Told before the first decode row, so the
+  // accelerator's own caches of those layers are that size and its
+  // attention reads row pos - base; the seed carries the rows from the
+  // base on. No-op where no decode graph is resident.
+  virtual void set_decode_kv_window(unsigned rows, unsigned base) {
+    (void)rows;
+    (void)base;
+  }
   // [#4416 D6] The same seed from the cache's fp16 bits, widened on the
   // accelerator (exactly, as compute_fp16_to_fp32): no CPU conversion.
   virtual bool decode_kv_seed_f16(unsigned n_rows, const uint16_t *k_rows,

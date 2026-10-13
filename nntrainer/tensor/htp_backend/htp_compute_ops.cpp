@@ -2845,12 +2845,14 @@ public:
       // The DSP cache must hold rows [0, pos): seed it from the layer's
       // copy after any jump (the first token after a prefill, a second
       // prompt). pos 0 needs nothing; the kernel rewinds.
-      if (pos != 0 && kv_len_[ord] != pos) {
+      // (rows from the layer's base on: set_decode_kv_window)
+      const uint32_t row = pos - rec->n_experts;
+      if (pos != 0 && kv_len_[ord] != row) {
         seed_ordinal_ = ord;
         --kind_next_[kind]; // the layer calls again for this same op
         return 2;
       }
-      kv_len_[ord] = pos + 1u;
+      kv_len_[ord] = row + 1u;
       break;
     }
     case HTP_OP_ADD:
@@ -2957,6 +2959,25 @@ public:
                     pending_op_ != HTP_GRAPH_NO_OP;
     cpu_fc_skipped_ += on;
     return on;
+  }
+
+  /** The sliding layers' caches as a window of the context: their DSP
+   *  cache is registered at `rows` rows and their ATTN_M1 records carry the
+   *  base (n_experts, unused by the kind), which graph_op_attn_m1 subtracts
+   *  from the token's position. Before the graph's init, which sends the
+   *  records and registers the caches. */
+  void set_decode_kv_window(unsigned rows, unsigned base) override {
+    if (graph_words_.empty())
+      return;
+    if (attn_registered_)
+      throw std::runtime_error(
+        "set_decode_kv_window: the decode attention caches are registered");
+    for (uint32_t op : kind_ops_[HTP_OP_ATTN_M1]) {
+      htp_graph_op *rec = htp_graph_op_at(graph_words_.data(), op);
+      if (rec->top_k != 0u) // a sliding layer (top_k: its window)
+        rec->n_experts = base;
+    }
+    attn_window_rows_ = (rows + 63u) / 64u * 64u;
   }
 
   bool decode_kv_seed_fp32(unsigned n_rows, const float *k_rows,
@@ -3884,7 +3905,10 @@ public:
       }
       if (rec == nullptr)
         continue;
-      const uint32_t max_seq = graph_words_[6];
+      // a windowed cache (set_decode_kv_window) holds that many rows
+      const uint32_t max_seq = rec->top_k != 0u && attn_window_rows_ != 0u
+                                 ? attn_window_rows_
+                                 : graph_words_[6];
       // [#282 D] NNTR_HTP_ATTN_M1_Q8: the int8 cache (half the bytes;
       // fixed scales from the prefill seed), HVX_ATTN_M1_Q8 in max_seq;
       // 1 = the first cache only (Gemma's sliding layers, 400 of its 440
@@ -9372,6 +9396,7 @@ private:
   std::vector<uint32_t> conv_next_pos_;
   std::vector<uint32_t> kv_len_;
   bool attn_registered_ = false;
+  uint32_t attn_window_rows_ = 0; /**< set_decode_kv_window, 0: none */
   /** [plan 201 S4] per attention ordinal its op, its session cache (0, or
    *  1 for the second attn_m1_register: another (n_kv, gqa, head_dim)) and
    *  its ordinal within that cache (hexkl_graph_init's) */
