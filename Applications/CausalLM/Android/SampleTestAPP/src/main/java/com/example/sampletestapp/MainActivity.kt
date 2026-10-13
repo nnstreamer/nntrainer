@@ -901,6 +901,23 @@ class MainActivity : AppCompatActivity() {
             content.addView(dropdownField(t, TRAIN_TASKS.map { it.second },
                     TRAIN_TASKS.first { it.first == trainTask }.second) { picked ->
                 trainTask = TRAIN_TASKS.first { it.second == picked }.first
+                // Each task ships its own demo model + data; picking TASK
+                // switches the defaults so the run works out of the box
+                // (a typed path is overwritten — that is the point).
+                when (trainTask) {
+                    "decision" -> {
+                        trainModelPath = "/sdcard/q_rlcd_qs4"
+                        trainDataPath = "/sdcard/rlcd_triage.jsonl"
+                        trainTrunkPath = "/sdcard/q_rlcd_qs4_gpu"
+                    }
+                    else -> {
+                        trainModelPath = "/sdcard/q_qs4"
+                        trainDataPath = "/sdcard/t.txt"
+                        trainTrunkPath = "/sdcard/q_qs4_gpu"
+                    }
+                }
+                // The cached TEST handles point at the previous model dir.
+                invalidateTestHandles()
                 rebuildUi()
             })
             spacer(content, 8)
