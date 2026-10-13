@@ -2396,6 +2396,17 @@ void CausalLM::releaseDeviceCaches() {
   // (d41d8cd9), because the arena's partially-used tail chunk is re-entered by
   // the next load with a zero-filled staging image and the flush rewrites the
   // previous load's still-referenced scales as zeros.
+  // Drain the queue FIRST, before the objects below are released: a model can
+  // be destroyed with decode kernels still in flight, and releasing cl_mems
+  // (and SVM planes) under them is undefined. The reset is the load-bearing
+  // half: the queue's in-flight flag is only cleared by its own enqueue-path
+  // drains, so without it the NEXT model in this process -- the training run
+  // the app starts after a TEST inference -- reads
+  // kernelsMayBeInFlight()==true for its whole life and takes every gated
+  // host/CL branch on the device path, silently corrupting its FP32
+  // activations (every iteration's loss NaN from the first one, 5.5k
+  // "clEnqueueSVMUnmap: not mapped" warnings per run).
+  nntrainer::cl_queue_drain_and_reset();
   nntrainer::cl_fc_release_caches();
   nntrainer::v8c_release_aux_arena();
   nntrainer::v8c_release_lmhead_caches();
