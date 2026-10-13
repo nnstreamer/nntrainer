@@ -1,0 +1,79 @@
+{
+  "runtime": "combined-v17-publish",
+  "input_tokens": 1024,
+  "output_tokens": 64,
+  "samples": [
+    {
+      "file": "v17-pub-stage64-clean-ay1.json",
+      "staging_experts": 64,
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1044,
+        "tps": 980.843
+      },
+      "generation": {
+        "tokens": 64,
+        "ms": 1872,
+        "tps": 34.188
+      },
+      "raw_log_sha256": "28ccbdc648384a7cfbb49d135fcd07ffddcc354567c85a9c24920bf6173dc4ed"
+    },
+    {
+      "file": "v17-pub-stage48-clean-ay2.json",
+      "staging_experts": 48,
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1030,
+        "tps": 994.175
+      },
+      "generation": {
+        "tokens": 64,
+        "ms": 1893,
+        "tps": 33.8088
+      },
+      "raw_log_sha256": "4333ca601d48392769ea00fdb03def2a85d72c06ce18e4bf770e57e9a0ddf181"
+    },
+    {
+      "file": "v17-pub-stage48-clean-ay3.json",
+      "staging_experts": 48,
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1050,
+        "tps": 975.238
+      },
+      "generation": {
+        "tokens": 64,
+        "ms": 1948,
+        "tps": 32.8542
+      },
+      "raw_log_sha256": "bcf301bee8bec84e08cf5739cf4b316d4faa7d0cffa6fbc75224e15c3f6dfaa8"
+    },
+    {
+      "file": "v17-pub-stage64-clean-ay4.json",
+      "staging_experts": 64,
+      "prefill": {
+        "tokens": 1024,
+        "ms": 1030,
+        "tps": 994.175
+      },
+      "generation": {
+        "tokens": 64,
+        "ms": 1882,
+        "tps": 34.0064
+      },
+      "raw_log_sha256": "8335bdb5d4169c26a1eac0065c2bc5f3cfe9c89fe6ef853122a97e8a762843b0"
+    }
+  ],
+  "experts64_ms": [
+    1044,
+    1030
+  ],
+  "experts48_ms": [
+    1030,
+    1050
+  ],
+  "experts64_mean_ms": 1037,
+  "experts48_mean_ms": 1040,
+  "decision": "Retain64. The48-expert bank did not improve matched ABBA timing. All samples retained.",
+  "target_met": false
+}
