@@ -99,6 +99,7 @@ if get_option('htp-inproc')
     # hmx/hexkl_kv_q.c: in nntrainer_sources already (cpu_backend, #4415)
     'hvx/hvx_worker_pool.c',
     'hvx/hvx_expand_i2i4.c',
+    'hvx/hvx_gemv_u8tl2.c',
     'hvx/hvx_gather_ah_u8.c',
     'hvx/hvx_scale_add_f32.c',
     'hvx/hvx_conv_gate_f32.c',

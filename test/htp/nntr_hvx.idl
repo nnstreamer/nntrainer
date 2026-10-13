@@ -1370,4 +1370,15 @@ interface nntr_hvx : remote_handle64 {
                                        in sequence<float> act_enc,
                                        in uint32 act_hd, in sequence<float> res,
                                        rout sequence<float> out_f32);
+   // Retag an idle symmetric QS2 arena slot after its native payload is read.
+   AEEResult weights_tl2(in sequence<uint32> handles, in uint32 enabled);
+   // Debug-only: 8*n VLUTs. mode=0/1 independent vlut32/vlut16,
+   // 2/3 dependent. stats: cycles lo/hi, microseconds lo/hi, checksum.
+   AEEResult vlut_probe(in uint32 mode, in uint32 n,
+                       rout sequence<uint32> stats);
+   // Debug-only native TL2 correctness and worker/DMA timing.
+   AEEResult tl2_gemv_probe(in uint32 K, in uint32 N, in uint32 mode,
+                           in uint32 workers, in uint32 passes,
+                           in sequence<uint8> act, in sequence<uint8> weight,
+                           rout sequence<int32> result, rout sequence<uint32> stats);
 };

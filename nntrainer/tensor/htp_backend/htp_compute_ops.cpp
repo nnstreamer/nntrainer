@@ -51,6 +51,7 @@
 #include <htp_dspq_wire.h>
 #include <htp_graph_desc.h>
 #include <htp_moe_opts.h>
+#include <htp_prepared_tl2.h>
 #include <htp_q4_0_convert.h>
 #include <htp_rpcmem.h>
 #include <htp_wh_layout.h>
@@ -1904,6 +1905,7 @@ public:
                                  const float *post_gamma, float eps,
                                  const float *add_x2, const float *add_gamma,
                                  float add_scale, bool out_to_host) override {
+    switchTl2Phase(false);
     // #4415's lfm2_moe passes its bool weights_wh: true reads as 4 bits
     if (w_bits == 1u)
       w_bits = 4u;
@@ -3122,6 +3124,7 @@ public:
     if (!pool_dirty_)
       return;
     const uint64_t t_ps = HtpProfile::nowUs(); // [#282 F]
+    switchTl2Phase(true);
     pinExperts();
     dropHostFc();
     const uint64_t t_drop = HtpProfile::nowUs();
@@ -3320,7 +3323,7 @@ public:
         l.off_gu = st.gu.off;
         l.off_dn = st.dn.off;
         // [plan 229] QS2CX_WH: the width and the palettes ride the answer
-        l.bits = x.w_bits;
+        l.bits = st.tl2 ? HTP_TL2_WEIGHT_BITS : x.w_bits;
         std::memset(l.pal_gu, 0, sizeof(l.pal_gu));
         std::memset(l.pal_dn, 0, sizeof(l.pal_dn));
         std::copy(st.gu.pal.begin(), st.gu.pal.end(), l.pal_gu);
@@ -4029,6 +4032,7 @@ public:
     const std::vector<ExpertFileDesc> &ds) override {
     const remote_handle64 session =
       static_cast<remote_handle64>(HtpBackend::global().handle());
+    switchTl2Phase(false);
     auto batch = std::make_unique<PrefetchBatch>();
     {
       std::lock_guard<std::mutex> lock(handle_mutex_);
@@ -7223,6 +7227,7 @@ private:
     const void *key_dn;
     uint32_t h_gu, h_dn;
     ExpertFileDesc d; /**< [#216] its file ranges, for the WILLNEED on evict */
+    bool tl2 = false;
   };
 
   /** @brief pread that finishes: 0, or the errno, or -1 at end of file.
@@ -7268,13 +7273,29 @@ private:
     uint8_t *base;
     ArenaEntry gu, dn;
     int rc; /**< preadAll's result for the whole expert */
+    bool tl2 = false;
   };
 
   /** @note Call with handle_mutex_ held. */
   StagedExpert stageExpert(remote_handle64 session, const ExpertFileDesc &d) {
+    if (!prepared_tl2_ && d.w_bits == 2u) {
+      const char *path = std::getenv("NNTR_HTP_TL2_PREPARED_FILE");
+      if (path && *path) {
+        if (!e2e_)
+          throw std::runtime_error("prepared TL2 requires NNTR_HTP_E2E=1");
+        prepared_tl2_.reset(new PreparedTl2(path, d.fd));
+        std::fprintf(stderr, "[HTP-TL2] prepared=%s receipt=%d\n", path,
+                     prepared_tl2_->validatedReceipt());
+      }
+    }
     const ExpertSlot slot = takeExpertSlot(session, d);
-    return StagedExpert{
-      d, slot, arena_chunks_[slot.chunk].buf->data() + slot.off, {}, {}, 0};
+    return StagedExpert{d,
+                        slot,
+                        arena_chunks_[slot.chunk].buf->data() + slot.off,
+                        {},
+                        {},
+                        0,
+                        tl2_decode_ && d.w_bits == 2u};
   }
 
   /** @brief A free slot, or a new one bumped into a chunk (the load, and
@@ -7366,6 +7387,22 @@ private:
     ArenaEntry &e = dn ? st.dn : st.gu;
     e.chunk = st.slot.chunk;
     e.off = st.slot.off + (dn ? gu_stride : 0u);
+    if (prepared_tl2_ && d.w_bits == 2u) {
+      try {
+        const uint32_t K = dn ? d.inter : d.K, N = dn ? d.N_out : 2u * d.inter;
+        uint8_t *dst = st.base + (dn ? gu_stride : 0u);
+        std::array<int8_t, 4> pal;
+        prepared_tl2_->read(d.fd, dn ? d.off_dn : d.off_gu, K, N, st.tl2, dst,
+                            pal.data());
+        e.pal.assign(pal.begin(), pal.end());
+        e.K = K;
+        e.N = N;
+        return 0;
+      } catch (const std::exception &err) {
+        std::fprintf(stderr, "[HTP-TL2] %s\n", err.what());
+        return EINVAL;
+      }
+    }
     return dn ? readWeight(d.fd, d.off_dn, d.inter, d.N_out, d.w_bits,
                            st.base + gu_stride, e, use_pool)
               : readWeight(d.fd, d.off_gu, d.K, 2 * d.inter, d.w_bits, st.base,
@@ -7608,7 +7645,7 @@ private:
     handle_cache_[d.key_gu] = h_gu;
     handle_cache_[d.key_dn] = h_dn;
     experts_.emplace(d.key_gu,
-                     ExpertResident{st.slot, d.key_dn, h_gu, h_dn, d});
+                     ExpertResident{st.slot, d.key_dn, h_gu, h_dn, d, st.tl2});
   }
 
   /**
@@ -7682,6 +7719,15 @@ private:
       if (rc != AEE_SUCCESS) { // refused whole: the DSP changed nothing
         done = 0;
         err = rc;
+      }
+      if (done && ok[0]->tl2) {
+        std::vector<uint32_t> handles;
+        for (uint32_t i = 0; i < done; ++i) {
+          handles.push_back(hg[i]);
+          handles.push_back(hd[i]);
+        }
+        if (nntr_hvx_weights_tl2(session, handles.data(), handles.size(), 1u))
+          throw std::runtime_error("TL2 registration failed");
       }
       for (size_t i = 0; i < n; ++i) {
         if (i < done)
@@ -8788,6 +8834,64 @@ private:
   std::vector<uint8_t> pool_answered_; /**< [#289] layers a miss round served
                                           this token (handle_mutex_) */
   bool pool_dirty_ = true;
+  std::unique_ptr<PreparedTl2> prepared_tl2_;
+  bool tl2_decode_ = false;
+
+  /** Decode replaces QS2 residents lazily on misses; prefill restores any
+   * TL2 residents before their HMX use. Prefetch is joined at the boundary.
+   * StagedExpert captures each read's format, independently of this flag. */
+  void switchTl2Phase(bool native) {
+    // A matched QS2 control reads the same validated artifact and uses the
+    // same host reader, but keeps its prefill representation for decode.
+    const char *decode = std::getenv("NNTR_HTP_TL2_DECODE");
+    if (decode && std::strcmp(decode, "0") == 0)
+      native = false;
+    if (!prepared_tl2_ || tl2_decode_ == native)
+      return;
+    while (!prefetch_qs4cx_wh_experts_end().empty()) {
+    }
+    const uint64_t start = HtpProfile::nowUs();
+    prepared_tl2_->discardAsync(!native);
+    if (native) {
+      // Existing QS2 residents are already symmetric and remain usable.
+      // Decode misses replace them with TL2 as the LRFU cache turns over;
+      // avoid a synchronous reread of the whole 960-expert pool at token 1.
+      tl2_decode_ = true;
+      std::fprintf(stderr, "[HTP-TL2] phase=decode lazy=1 ms=%.1f\n",
+                   (HtpProfile::nowUs() - start) / 1000.0);
+      return;
+    }
+    const auto session =
+      static_cast<remote_handle64>(HtpBackend::global().handle());
+    std::lock_guard<std::mutex> lock(handle_mutex_);
+    std::vector<StagedExpert> staged;
+    std::vector<uint32_t> handles;
+    for (const auto &item : experts_) {
+      const ExpertResident &r = item.second;
+      if (r.d.w_bits != 2u || !r.tl2)
+        continue;
+      staged.push_back({r.d,
+                        r.slot,
+                        arena_chunks_[r.slot.chunk].buf->data() + r.slot.off,
+                        {},
+                        {},
+                        0,
+                        native});
+      handles.push_back(r.h_gu);
+      handles.push_back(r.h_dn);
+    }
+    readMisses(staged);
+    for (const auto &st : staged)
+      throwPread(st.rc, "TL2 phase handoff");
+    if (nntr_hvx_weights_tl2(session, handles.data(), handles.size(), native))
+      throw std::runtime_error("TL2 phase registration failed");
+    for (auto &item : experts_)
+      item.second.tl2 = false;
+    tl2_decode_ = native;
+    std::fprintf(stderr, "[HTP-TL2] phase=%s experts=%zu ms=%.1f\n",
+                 native ? "decode" : "prefill", staged.size(),
+                 (HtpProfile::nowUs() - start) / 1000.0);
+  }
   bool graph_inited_ = false;
   bool graph_short_warned_ = false;
   // [#130] The stretch tables of section 3.2: per op the maximal resident
