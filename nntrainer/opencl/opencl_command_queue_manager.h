@@ -190,6 +190,21 @@ public:
   bool kernelsMayBeInFlight() const;
 
   /**
+   * @brief Drain the queue and reset the in-flight state.
+   * @details clFinish alone is not enough: the in-flight flag is cleared only
+   *          by the enqueue paths that drain (a blocking map, an unmap on a
+   *          coarse-grain device, a dispatch under the coarse-SVM drain), so a
+   *          teardown that merely calls clFinish leaves the flag set forever.
+   *          The next model in the process then reads kernelsMayBeInFlight()
+   *          as true for its whole life, which sends every gated host/CL
+   *          branch (swiglu, residual add, HostOperand) down the device path
+   *          for an FP32-activation run. Clears the flag after the finish and
+   *          also drops the undrained-SVM-plane set: its entries are
+   *          dispatch-epoch state, and a finished queue has retired them all.
+   */
+  void drainAndResetInFlight();
+
+  /**
    * @brief Whether the device's shared virtual memory is coarse-grain only,
    *        so the host must map a region before it reads or writes it.
    * @return true when neither fine-grain capability is reported

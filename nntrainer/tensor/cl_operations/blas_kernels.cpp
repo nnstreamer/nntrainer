@@ -5030,6 +5030,13 @@ void cl_queue_finish() {
     opencl::clFinish(blas_cc->command_queue_inst_.GetCommandQueue());
 }
 
+void cl_queue_drain_and_reset() {
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  if (blas_cc)
+    blas_cc->command_queue_inst_.drainAndResetInFlight();
+}
+
 void cl_svm_map_force(void *ptr, size_t bytes, bool read_only) {
   // Blocking host-coherent SVM map at a genuine GPU->host boundary (the
   // lm_head reading the final RMSNorm output on the host). The counterpart of

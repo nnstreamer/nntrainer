@@ -457,6 +457,16 @@ bool CommandQueueManager::kernelsMayBeInFlight() const {
   return s_kernels_in_flight.load(std::memory_order_relaxed);
 }
 
+void CommandQueueManager::drainAndResetInFlight() {
+  clFinish(command_queue_);
+  // Every enqueued command has completed, so nothing is in flight any more --
+  // and the undrained-plane set is dispatch-epoch state the finished queue
+  // has retired. Reset both: see the header for what a stale flag does to the
+  // next model in the process.
+  Kernel::clearUndrainedSvmPlanes();
+  s_kernels_in_flight.store(false, std::memory_order_relaxed);
+}
+
 bool CommandQueueManager::coarseGrainSVM() const {
   return coarseGrainSVMOnly();
 }

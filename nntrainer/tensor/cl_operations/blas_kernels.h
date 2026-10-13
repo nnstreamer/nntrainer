@@ -904,6 +904,18 @@ void v8c_collect_lazy_program_tasks(ClContext &cc,
 void cl_queue_finish();
 
 /**
+ * @brief Drain the GPU command queue AND reset the queue's in-flight state.
+ *
+ * The teardown counterpart of cl_queue_finish(): a model destroyed with
+ * kernels still queued leaves the queue's kernelsMayBeInFlight() flag set
+ * (only the enqueue paths' own drains clear it, and a bare clFinish does
+ * not), which would pin every gated host/CL branch of the NEXT model in the
+ * process -- an FP32-activation training run included -- to the device path.
+ * Call this where a model's device state is torn down.
+ */
+void cl_queue_drain_and_reset();
+
+/**
  * @brief Take a shared-virtual-memory buffer back for the host.
  *
  * The counterpart of cl_svm_unmap_force below, and the reason both have to
