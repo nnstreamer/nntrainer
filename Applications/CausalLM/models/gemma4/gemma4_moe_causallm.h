@@ -57,6 +57,8 @@ private:
   unsigned int top_k_experts = 0;
   unsigned int moe_intermediate_size = 0;
   unsigned int moe_cache_size = 0;
+  /** stream the experts from the file into device slots (gpu engine) */
+  bool moe_fsu = false;
   /**
    * @brief build the three residual adds of each decoder block (after
    * post_attention_norm, post_ffn_norm_2 and post_ffn_norm) as two-input

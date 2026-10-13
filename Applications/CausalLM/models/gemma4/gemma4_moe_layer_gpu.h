@@ -22,15 +22,22 @@
  * erf), projected down, and added back into the output rows with the routing
  * weights.
  *
- * Every expert weight stays resident (moe_cache_size = 0). The virtual expert
- * cache of the CPU layer has no device counterpart yet, so a non-zero cache
- * size is refused at finalize.
+ * By default every expert weight stays resident (moe_cache_size = 0). With
+ * moe_fsu (or NNTR_G4MOE_FSU=1) the experts are virtual: the load records
+ * where each expert's record is in the weight file and reads nothing, and the
+ * backend reads an expert into one of this layer's moe_cache_size device
+ * slots (NNTR_MOE_CACHE_EXPERTS overrides it) the first time a call needs it
+ * that does not find it there. Which expert holds which slot is this layer's
+ * ExpertResidency (least recently used out). A non-zero cache size without
+ * moe_fsu is refused at finalize (the cpu engine's mapped cache has no device
+ * counterpart).
  */
 
 #ifndef __GEMMA4_MOE_LAYER_GPU_H__
 #define __GEMMA4_MOE_LAYER_GPU_H__
 
 #include <compute_ops.h>
+#include <expert_residency.h>
 #include <gemma4_moe_layer.h>
 
 namespace causallm {
@@ -119,7 +126,56 @@ private:
    *        no copy or single copy is off.
    */
   bool buildDeviceExperts(nntrainer::RunLayerContext &context,
-                          const std::vector<const void *> *records);
+                          const std::vector<const void *> *records,
+                          const nntrainer::MoeExpertFsu *fsu = nullptr);
+
+  /**
+   * @brief Remember where every expert's record is in the weight file
+   *        (@a fd and the gate offsets; up and down must follow the gate
+   *        back to back). False, with a warning, when they do not.
+   */
+  bool recordExpertFile(nntrainer::RunLayerContext &context, int fd);
+
+  /**
+   * @brief The streamed-expert descriptor of this call (moe_fsu): fills the
+   *        residency through its acquire hook.
+   */
+  nntrainer::MoeExpertFsu fsuDescriptor();
+
+  /**
+   * @brief Note this layer's file descriptor for the layer before it (a
+   *        prefill reads this layer's block ahead) and create its expert
+   *        slots now.
+   */
+  void createExpertSlots(nntrainer::RunLayerContext &context);
+
+  /** @brief router_desc from this layer's router weights */
+  void setRouterDesc(nntrainer::RunLayerContext &context);
+
+  /**
+   * @brief A short prefill's prediction of the next streamed layer's
+   *        experts (NNTR_G4MOE_FSU_PREFILL_LOOKAHEAD): its router @a next
+   *        run on this layer's @a router_input rows on the device; @a ranked
+   *        = every expert in some row's top-k, most rows first (then the lower
+   *        id). Empty when the backend cannot route.
+   */
+  void predictNext(nntrainer::ComputeOps *ops, nntrainer::Tensor &router_input,
+                   unsigned int total_tokens, const nntrainer::MoeRouter &next,
+                   std::vector<unsigned int> &ranked);
+
+  bool moe_fsu;                        /**< experts streamed from the file */
+  causallm::ExpertResidency residency; /**< expert -> slot, layer 0 */
+  std::vector<unsigned int> slot_map;  /**< residency's map, for the backend */
+  int expert_fd;                       /**< weight file of the experts */
+  std::vector<uint64_t> expert_offset; /**< per expert: record offset */
+  size_t expert_record_bytes;          /**< gate + up + down bytes */
+  unsigned int fsu_index;       /**< position among the streamed MoE layers */
+  bool fsu_decode_call = false; /**< the call in flight is a decode step */
+  /** this layer's router weights (input unused), kept for the previous
+   *  streamed layer's next-layer prefetch (MoeExpertFsu::next_router) */
+  nntrainer::MoeRouter router_desc;
+  nntrainer::MoeExpertFsu file_desc; /**< where this layer's experts are
+                                          (read by the layer before it) */
 
   /**
    * @brief Route @a total_tokens rows on the host (reads a device-only

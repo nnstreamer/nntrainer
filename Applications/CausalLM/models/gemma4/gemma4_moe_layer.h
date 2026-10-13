@@ -55,6 +55,21 @@ public:
   using prop_tag = nntrainer::bool_prop_tag;
 };
 
+/**
+ * @brief Stream the experts from the weight file into device slots (the gpu
+ *        engine's expert slot arena) instead of keeping all of them resident.
+ *
+ * Needs a positive moe_cache_size: the slots per layer. The cpu engine maps
+ * virtual experts through its own cache (moe_cache_size alone) and ignores
+ * this.
+ */
+class Gemma4MoEFsu : public nntrainer::Property<bool> {
+public:
+  Gemma4MoEFsu(bool value = false) { set(value); }
+  static constexpr const char *key = "moe_fsu";
+  using prop_tag = nntrainer::bool_prop_tag;
+};
+
 } // namespace props
 
 class Gemma4ExpertCache;
@@ -102,7 +117,7 @@ protected:
   std::tuple<props::NumExperts, props::NumExpertsPerToken,
              nntrainer::props::Unit, props::MoEActivation,
              nntrainer::props::Epsilon, props::Gemma4MoECacheSize,
-             props::Gemma4RouterNormWeight>
+             props::Gemma4RouterNormWeight, props::Gemma4MoEFsu>
     moe_props;
 
   std::unique_ptr<Gemma4ExpertCache> expert_cache;

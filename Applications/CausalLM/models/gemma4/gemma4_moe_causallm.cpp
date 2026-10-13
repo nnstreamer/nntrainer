@@ -94,6 +94,9 @@ void Gemma4MoECausalLM::setupParameters(json &cfg, json &generation_cfg,
     nntr_cfg.contains("moe_cache_size") && !nntr_cfg["moe_cache_size"].is_null()
       ? nntr_cfg["moe_cache_size"].get<unsigned int>()
       : 0;
+  // moe_fsu (gpu engine): moe_cache_size is then the device slots per layer
+  moe_fsu = nntr_cfg.contains("moe_fsu") && !nntr_cfg["moe_fsu"].is_null() &&
+            nntr_cfg["moe_fsu"].get<bool>();
 
   moe_expert_dtype = nntr_cfg.contains("moe_expert_dtype") &&
                          !nntr_cfg["moe_expert_dtype"].is_null()
@@ -188,6 +191,7 @@ Tensor Gemma4MoECausalLM::createFeedForwardBlock(const int layer_id,
      withKey("num_experts", std::to_string(num_experts)),
      withKey("num_experts_per_token", std::to_string(top_k_experts)),
      withKey("moe_cache_size", std::to_string(moe_cache_size)),
+     withKey("moe_fsu", moe_fsu ? "true" : "false"),
      withKey("moe_activation", HIDDEN_ACTIVATION),
      withKey("epsilon", std::to_string(NORM_EPS)),
      withKey("router_norm_weight", moe_router_norm_weight ? "true" : "false"),

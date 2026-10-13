@@ -392,7 +392,7 @@ Gemma4MoELayer::Gemma4MoELayer() :
   moe_props(props::NumExperts(), props::NumExpertsPerToken(),
             nntrainer::props::Unit(), props::MoEActivation(),
             nntrainer::props::Epsilon(1.0e-6f), props::Gemma4MoECacheSize(),
-            props::Gemma4RouterNormWeight()),
+            props::Gemma4RouterNormWeight(), props::Gemma4MoEFsu()),
   expert_cache(std::make_unique<Gemma4ExpertCache>()),
   expert_gate_proj_indices(),
   expert_up_proj_indices(),
