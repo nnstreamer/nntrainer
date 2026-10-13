@@ -294,7 +294,7 @@ void ExpertReaderPool::readNow(ExpertRead &r) {
   // a read with a consumer and no destination stages in this thread's buffer
   thread_local AlignedBuffer own;
   AlignedBuffer *const given = r.bounce;
-  if (given == nullptr && r.consume && r.fd >= 0) {
+  if (r.dst == nullptr && given == nullptr && r.consume && r.fd >= 0) {
     try {
       own.reserve(bounceBytes(r.bytes));
     } catch (...) {
@@ -306,7 +306,8 @@ void ExpertReaderPool::readNow(ExpertRead &r) {
   readInto(r);
   if (r.error == 0 && r.consume) {
     try {
-      r.error = r.consume(r.bounce->data() + r.data_offset, r);
+      r.error = r.consume(
+        (r.dst != nullptr ? r.dst : r.bounce->data()) + r.data_offset, r);
     } catch (...) {
       r.error = EIO;
     }
@@ -323,26 +324,32 @@ void ExpertReaderPool::readNow(ExpertRead &r) {
 void ExpertReaderPool::readInto(ExpertRead &r) {
   r.error = 0;
   r.direct = false;
-  if (r.bounce == nullptr || r.bounce->capacity() < bounceBytes(r.bytes) ||
-      r.fd < 0) {
+  const uint64_t a = AlignedBuffer::kAlign;
+  uint8_t *const base = r.dst != nullptr      ? r.dst
+                        : r.bounce != nullptr ? r.bounce->data()
+                                              : nullptr;
+  if (base == nullptr || r.fd < 0 ||
+      (r.dst == nullptr && r.bounce->capacity() < bounceBytes(r.bytes)) ||
+      reinterpret_cast<uintptr_t>(base) % a != 0) {
     r.error = EINVAL;
     return;
   }
-  const uint64_t a = AlignedBuffer::kAlign;
   const uint64_t lo = r.offset / a * a;
   r.data_offset = static_cast<size_t>(r.offset - lo);
   if (direct_) {
     const int dfd = directFd(r.fd);
     if (dfd >= 0) {
       const uint64_t hi = (r.offset + r.bytes + a - 1) / a * a;
-      const int rc =
-        preadSome(dfd, r.bounce->data(), static_cast<size_t>(hi - lo), lo,
-                  r.data_offset + r.bytes);
+      const int rc = preadSome(dfd, base, static_cast<size_t>(hi - lo), lo,
+                               r.data_offset + r.bytes);
       if (rc == 0) {
         r.direct = true;
         return;
       }
-      if (rc != EINVAL) {
+      // EFAULT: the destination is memory O_DIRECT cannot pin (a caller's
+      // dst in device-shared memory the kernel cannot map, e.g. coarse-grain
+      // SVM on Intel NEO): the buffered read below copies into it instead
+      if (rc != EINVAL && !(rc == EFAULT && r.dst != nullptr)) {
         r.error = rc;
         return;
       }
@@ -350,8 +357,7 @@ void ExpertReaderPool::readInto(ExpertRead &r) {
       // through to the buffered read
     }
   }
-  r.error = preadSome(r.fd, r.bounce->data() + r.data_offset, r.bytes, r.offset,
-                      r.bytes);
+  r.error = preadSome(r.fd, base + r.data_offset, r.bytes, r.offset, r.bytes);
 }
 
 void ExpertReaderPool::retire(
@@ -422,6 +428,11 @@ void ExpertReaderPool::loop() {
 
 void ExpertReaderPool::submitLow(
   std::shared_ptr<std::vector<ExpertRead>> batch) {
+  submitDetached(std::move(batch), /*low=*/true);
+}
+
+void ExpertReaderPool::submitDetached(
+  std::shared_ptr<std::vector<ExpertRead>> batch, bool low) {
   if (!batch || batch->empty())
     return;
   std::lock_guard<std::mutex> lk(mu_);
@@ -431,9 +442,15 @@ void ExpertReaderPool::submitLow(
   b.owned = std::move(batch);
   const size_t n = b.reads->size();
   batches_.emplace(t, std::move(b));
+  auto &q = low ? low_ : jobs_;
   for (size_t i = 0; i < n; ++i)
-    low_.emplace_back(t, i);
+    q.emplace_back(t, i);
   work_cv_.notify_all();
+}
+
+size_t ExpertReaderPool::batchesInFlight() {
+  std::lock_guard<std::mutex> lk(mu_);
+  return batches_.size();
 }
 
 size_t ExpertReaderPool::lowQueued() {
@@ -479,6 +496,8 @@ void ExpertReaderPool::post(std::function<void()> task) {
 
 void ExpertReaderPool::wait(Ticket t, bool help) {
   std::vector<ExpertRead> *reads = nullptr;
+  // detached batches whose last read this waiter ran: dropped unlocked
+  std::vector<std::shared_ptr<std::vector<ExpertRead>>> retired;
   {
     std::unique_lock<std::mutex> lk(mu_);
     auto it = batches_.find(t);
@@ -518,7 +537,11 @@ void ExpertReaderPool::wait(Ticket t, bool help) {
           lk.unlock();
           readNow(*r);
           lk.lock();
-          ++batches_.at(job.first).done;
+          // a detached batch (submitDetached) is retired at its last read
+          std::shared_ptr<std::vector<ExpertRead>> release;
+          retire(job, release);
+          if (release)
+            retired.push_back(std::move(release));
           done_cv_.notify_all();
           continue;
         }

@@ -942,3 +942,144 @@ int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
+
+namespace {
+
+/** true when @a p holds bytes [off, off + n) of the file with contents
+ *  @a seed */
+bool holdsAt(const uint8_t *p, uint64_t off, size_t n, uint64_t seed) {
+  for (size_t i = 0; i < n; ++i)
+    if (p[i] != pattern(off + i, seed))
+      return false;
+  return true;
+}
+
+} // namespace
+
+TEST(ExpertReaderPool, ReadsStraightIntoACallersAlignedDestination) {
+  TempFile f(kFile, 11);
+  nntrainer::ExpertReaderPool pool(2, true);
+  const size_t a = nntrainer::AlignedBuffer::kAlign;
+  // slots of the flags protocol: 4 KiB pages that hold any 64-byte aligned
+  // record's O_DIRECT window
+  const size_t stride = (kRecord + a - 64 + a - 1) / a * a;
+  const uint64_t offs[] = {64, 4096 + 4032, 1000064,
+                           (kFile - kRecord) / 64 * 64};
+  nntrainer::AlignedBuffer slots(4 * stride);
+  std::memset(slots.data(), 0xAB, 4 * stride);
+  std::vector<nntrainer::ExpertRead> batch(4);
+  std::atomic<int> consumed{0};
+  for (size_t i = 0; i < 4; ++i) {
+    batch[i].fd = f.fd();
+    batch[i].offset = offs[i];
+    batch[i].bytes = kRecord;
+    batch[i].dst = slots.data() + i * stride;
+    batch[i].consume = [&, i](const uint8_t *rec,
+                              const nntrainer::ExpertRead &r) {
+      // consume gets the record where it lies, no staging copy
+      if (rec == slots.data() + i * stride + r.offset % a)
+        ++consumed;
+      return 0;
+    };
+  }
+  ASSERT_NO_THROW(pool.wait(pool.submit(&batch)));
+  EXPECT_EQ(consumed.load(), 4);
+  for (size_t i = 0; i < 4; ++i) {
+    EXPECT_EQ(batch[i].error, 0);
+    EXPECT_EQ(batch[i].data_offset, offs[i] % a);
+    EXPECT_LE(batch[i].data_offset + kRecord, stride);
+    EXPECT_TRUE(
+      holdsAt(slots.data() + i * stride + offs[i] % a, offs[i], kRecord, 11))
+      << "slot " << i;
+  }
+  // a destination off the page: refused, nothing written
+  std::vector<nntrainer::ExpertRead> bad(1);
+  bad[0].fd = f.fd();
+  bad[0].offset = 64;
+  bad[0].bytes = 4096;
+  bad[0].dst = slots.data() + 64;
+  EXPECT_THROW(pool.wait(pool.submit(&bad)), std::runtime_error);
+  EXPECT_EQ(bad[0].error, EINVAL);
+}
+
+TEST(ExpertReaderPool, DetachedReadsRunInOrderAndRetire) {
+  TempFile f(kFile, 12);
+  nntrainer::ExpertReaderPool pool(1, true);
+  Latch latch;
+  latch.block(pool);
+  latch.waitEntered(1);
+  std::mutex mu;
+  std::vector<int> order;
+  std::atomic<int> finished{0};
+  std::vector<nntrainer::AlignedBuffer> hb, lb;
+  auto high = lowBatch(f, hb, 2, 64);
+  auto low = lowBatch(f, lb, 1, 128);
+  for (size_t i = 0; i < 2; ++i)
+    (*high)[i].finished = [&, i](nntrainer::ExpertRead &r) {
+      std::lock_guard<std::mutex> lk(mu);
+      order.push_back(r.error == 0 ? (int)i : -100);
+      ++finished;
+    };
+  (*low)[0].finished = [&](nntrainer::ExpertRead &r) {
+    std::lock_guard<std::mutex> lk(mu);
+    order.push_back(r.error == 0 ? 10 : -100);
+    ++finished;
+  };
+  pool.submitDetached(low, /*low=*/true);
+  pool.submitDetached(high, /*low=*/false);
+  low.reset();
+  high.reset();
+  latch.release();
+  for (int i = 0; i < 1000 && finished.load() < 3; ++i)
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+  ASSERT_EQ(finished.load(), 3);
+  EXPECT_EQ(order, (std::vector<int>{0, 1, 10})); // demand first, then low
+  for (int i = 0; i < 200 && pool.batchesInFlight() != 0; ++i)
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+  EXPECT_EQ(pool.batchesInFlight(), 0u);
+}
+
+TEST(ExpertReaderPool, AHelpingWaiterRetiresADetachedReadItRan) {
+  TempFile f(kFile, 13);
+  nntrainer::ExpertReaderPool pool(1, true);
+  // the reader sits in A's consume until D (detached) is done: only the
+  // helping waiter of A can run D, and it must retire D's batch
+  std::mutex mu;
+  std::condition_variable cv;
+  bool d_done = false, a_in = false;
+  std::vector<nntrainer::AlignedBuffer> ab, db;
+  std::vector<nntrainer::ExpertRead> a(1);
+  nntrainer::AlignedBuffer abuf(nntrainer::ExpertReaderPool::bounceBytes(4096));
+  a[0].fd = f.fd();
+  a[0].offset = 4096;
+  a[0].bytes = 4096;
+  a[0].bounce = &abuf;
+  a[0].consume = [&](const uint8_t *, const nntrainer::ExpertRead &) {
+    std::unique_lock<std::mutex> lk(mu);
+    a_in = true;
+    cv.notify_all();
+    cv.wait_for(lk, std::chrono::seconds(10), [&] { return d_done; });
+    return d_done ? 0 : ETIMEDOUT;
+  };
+  const auto ta = pool.submit(&a);
+  {
+    std::unique_lock<std::mutex> lk(mu);
+    cv.wait_for(lk, std::chrono::seconds(10), [&] { return a_in; });
+    ASSERT_TRUE(a_in);
+  }
+  auto d = lowBatch(f, db, 1, 8192);
+  const std::thread::id me = std::this_thread::get_id();
+  std::thread::id ran;
+  (*d)[0].finished = [&](nntrainer::ExpertRead &r) {
+    std::lock_guard<std::mutex> lk(mu);
+    ran = std::this_thread::get_id();
+    d_done = r.error == 0;
+    cv.notify_all();
+  };
+  pool.submitDetached(d, /*low=*/false);
+  d.reset();
+  ASSERT_NO_THROW(pool.wait(ta, /*help=*/true));
+  EXPECT_TRUE(d_done);
+  EXPECT_EQ(ran, me);
+  EXPECT_EQ(pool.batchesInFlight(), 0u);
+}

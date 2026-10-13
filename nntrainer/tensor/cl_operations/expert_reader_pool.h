@@ -29,7 +29,11 @@
  * starts inside the bounce (data_offset). When O_DIRECT is not available
  * (other platforms, a file system that refuses it, NNTR_MOE_ODIRECT=0) the
  * read is a buffered positional read of the record itself, placed at the
- * same data_offset, so callers see one layout either way.
+ * same data_offset, so callers see one layout either way. A read may also go
+ * straight to a caller's own 4 KiB-aligned memory (ExpertRead::dst, e.g. an
+ * expert slot in fine-grain SVM): the same layout, no bounce and no copy.
+ * Batches the caller does not wait for are submitted detached
+ * (submitDetached / submitLow) and report through ExpertRead::finished.
  *
  * A short read or an I/O error never yields a partial record: the request
  * carries the error, and wait() throws for the batch.
@@ -91,6 +95,13 @@ struct ExpertRead {
   AlignedBuffer *bounce = nullptr; /**< destination, capacity at least
                                         ExpertReaderPool::bounceBytes(bytes);
                                         null with consume: the reader's own */
+  /** optional, in place of a bounce: the caller's own destination (e.g. an
+   *  expert slot the device reads), 4 KiB aligned (else the read fails with
+   *  EINVAL) and at least bounceBytes(bytes) long. The aligned superset is
+   *  read straight into it (O_DIRECT), or buffered the record alone at
+   *  dst + data_offset: either way the record ends at dst + offset % 4096,
+   *  with no copy. consume, when set, gets that address */
+  uint8_t *dst = nullptr;
   /** optional: run on the reader thread once the record is read, with the
    *  record's bytes (valid only during the call); a non-zero return (an
    *  errno) or an exception fails the read. With a null bounce the record
@@ -164,8 +175,22 @@ public:
    */
   void submitLow(std::shared_ptr<std::vector<ExpertRead>> batch);
 
+  /**
+   * @brief Queue the reads of @a batch detached, like submitLow, at normal
+   *        priority (@a low false: in FIFO order with the other reads and
+   *        posted tasks; a helping waiter may run one) or at low priority
+   *        (@a low true: submitLow). Nobody waits on them: each read reports
+   *        its end through ExpertRead::finished; the pool keeps @a batch
+   *        alive until its last read is done.
+   */
+  void submitDetached(std::shared_ptr<std::vector<ExpertRead>> batch, bool low);
+
   /** @brief low-priority reads queued and not started (tests, stats) */
   size_t lowQueued();
+
+  /** @brief batches not retired yet (tests: a detached batch is retired at
+   *         its last read, whoever ran it) */
+  size_t batchesInFlight();
 
   /**
    * @brief Block until every read of ticket @a t is done.
