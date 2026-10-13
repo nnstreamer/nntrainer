@@ -1019,16 +1019,12 @@ class MainActivity : AppCompatActivity() {
         return col
     }
 
-    /** TEST card: a prompt shared by both columns, then BEFORE / AFTER. */
+    /** TEST card: BEFORE / AFTER first (the demo actions), prompt entry
+     *  last — the fixed default prompt rarely needs editing. */
     private fun buildTrainTestPanel(t: M3Tokens): View {
         val card = roundedCard(t, t.surfaceContainerHigh)
         card.addView(sectionHeader(t, "🧪", t.secondaryContainer, t.onSurface,
             "TEST", ""))
-        spacer(card, 8)
-        card.addView(labelView(t, "PROMPT"))
-        testPromptField = roundedEditText(t, testPromptText, multiline = true,
-            rows = 2) { testPromptText = it }
-        card.addView(testPromptField)
         spacer(card, 8)
         val cols = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         cols.addView(
@@ -1041,6 +1037,11 @@ class MainActivity : AppCompatActivity() {
                 testAfterOutput, { onTrainTestClicked("after") }, "after"),
             LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
         card.addView(cols)
+        spacer(card, 8)
+        card.addView(labelView(t, "PROMPT"))
+        testPromptField = roundedEditText(t, testPromptText, multiline = true,
+            rows = 2) { testPromptText = it }
+        card.addView(testPromptField)
         return card
     }
 
