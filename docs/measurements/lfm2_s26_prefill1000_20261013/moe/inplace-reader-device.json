@@ -1,0 +1,9 @@
+{
+  "serial": "R5KL30G6MCX",
+  "binary_sha256": "484264848b776ea729a74d5d3a6738cd345ab716a8a60674817f7d876e758e8b",
+  "command": "env LD_LIBRARY_PATH=/data/local/tmp/lfm2_prefill1000_20261013/combined-v15-publish TMPDIR=/data/local/tmp /data/local/tmp/lfm2_prefill1000_20261013/qs2-inplace-reader-android",
+  "returncode": 0,
+  "stdout": "PASS QS2 in-place: 305711 assertions, exact bytes/scales/sums, metadata rejection, guards, partial errors, concurrent reads, GU2+DN1 O_DIRECT reads\n",
+  "stderr": "",
+  "scope": "Standalone actual in-place reader on Android; no DSP calls, not a TPS sample."
+}

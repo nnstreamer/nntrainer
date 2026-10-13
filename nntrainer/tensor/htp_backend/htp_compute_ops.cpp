@@ -4061,6 +4061,10 @@ public:
     {
       std::lock_guard<std::mutex> lock(prefetch_mutex_);
       host_expert_wait_us_ = 0;
+      if (hostExpertProfile()) {
+        host_expert_copy_us_ = 0;
+        host_expert_copy_bytes_ = 0;
+      }
       host_expert_bank_ = bank;
     }
     prefetch_cv_.notify_all();
@@ -4092,9 +4096,12 @@ public:
       std::fprintf(
         stderr,
         "[HTP-HOST-STAGING] count=%zu payload_bytes=%zu read=%zu "
-        "consumed=%zu cancelled=%zu failed=%zu transition_wait_us=%llu\n",
+        "consumed=%zu cancelled=%zu failed=%zu transition_wait_us=%llu "
+        "promotion_copy_us=%llu promotion_copy_bytes=%llu\n",
         stats.count, stats.bytes, stats.read, stats.taken, stats.cancelled,
-        stats.failed, (unsigned long long)host_expert_wait_us_.load());
+        stats.failed, (unsigned long long)host_expert_wait_us_.load(),
+        (unsigned long long)host_expert_copy_us_.load(),
+        (unsigned long long)host_expert_copy_bytes_.load());
     }
   }
 
@@ -8142,7 +8149,15 @@ private:
       // The bank contains only initialized compact bytes. Leave page padding
       // untouched, exactly like the existing validated direct read path.
       const size_t bytes = down ? record.dn_bytes : record.gu_bytes;
+      const bool profile = hostExpertProfile();
+      const uint64_t begin = profile ? HtpProfile::nowUs() : 0;
       const int rc = st.host->copyPart(down, st.base + offset, bytes);
+      if (profile) {
+        host_expert_copy_us_.fetch_add(HtpProfile::nowUs() - begin,
+                                       std::memory_order_relaxed);
+        if (!rc)
+          host_expert_copy_bytes_.fetch_add(bytes, std::memory_order_relaxed);
+      }
       if (rc)
         return rc;
       entry.K = down ? d.inter : d.K;
@@ -8418,14 +8433,31 @@ private:
   void readHostExpert(const std::shared_ptr<HostExpertBank> &bank) {
     bank->readOne([&](HostExpertBank::Record &record) {
       const uint64_t begin = HtpProfile::nowUs();
-      ArenaEntry gu, dn;
       const auto &d = record.d;
-      int rc = readWeight(record.fd(), d.off_gu, d.K, 2u * d.inter,
-                          record.payload.get(), gu, false, 2u, false);
+      const bool profile = hostExpertProfile();
+      auto read_part = [&](uint64_t off, uint32_t K, uint32_t N, uint8_t *dst,
+                           size_t bytes) {
+        HtpQs2ReadStats stats;
+        const int rc = htpReadQs2CompactInPlace(
+          [&](void *out, size_t len, uint64_t at) {
+            return preadAll(record.fd(), out, len, at);
+          },
+          off, K, N, dst, bytes, profile ? &stats : nullptr);
+        if (profile) {
+          qs2_reads_.fetch_add(1, std::memory_order_relaxed);
+          qs2_read_us_.fetch_add(stats.read_us, std::memory_order_relaxed);
+          // The owned heap record is transformed in place. The later arena
+          // copy is reported separately as promotion_copy_us/bytes.
+          qs2_metadata_us_.fetch_add(stats.metadata_us,
+                                     std::memory_order_relaxed);
+        }
+        return rc;
+      };
+      int rc = read_part(d.off_gu, d.K, 2u * d.inter, record.payload.get(),
+                         record.gu_bytes);
       if (!rc)
-        rc = readWeight(record.fd(), d.off_dn, d.inter, d.N_out,
-                        record.payload.get() + record.gu_bytes, dn, false, 2u,
-                        false);
+        rc = read_part(d.off_dn, d.inter, d.N_out,
+                       record.payload.get() + record.gu_bytes, record.dn_bytes);
       if (HtpProfile::global().level())
         HtpProfile::global().addPrefetchRead(HtpProfile::nowUs() - begin);
       return rc;
@@ -9336,6 +9368,7 @@ private:
   std::shared_ptr<HostExpertBank> host_expert_bank_; // prefetch_mutex_
   uint64_t host_expert_epoch_ = 0;
   std::atomic<uint64_t> host_expert_wait_us_{0};
+  std::atomic<uint64_t> host_expert_copy_us_{0}, host_expert_copy_bytes_{0};
   bool prefetch_stop_ = false;
   std::atomic<uint64_t> qs2_reads_{0}, qs2_read_us_{0}, qs2_copy_us_{0},
     qs2_metadata_us_{0}, qs2_copied_bytes_{0};

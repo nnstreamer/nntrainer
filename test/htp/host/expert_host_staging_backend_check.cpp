@@ -17,13 +17,14 @@ struct HtpProfile {
     static HtpProfile x;
     return x;
   }
-  unsigned level() { return 0; }
+  std::atomic<unsigned> enabled{0}, read_samples{0};
+  unsigned level() { return enabled; }
   static uint64_t nowUs() {
     return std::chrono::duration_cast<std::chrono::microseconds>(
              std::chrono::steady_clock::now().time_since_epoch())
       .count();
   }
-  void addPrefetchRead(uint64_t) {}
+  void addPrefetchRead(uint64_t) { ++read_samples; }
 };
 static unsigned cpuBit() { return 1; }
 class Harness {
@@ -75,6 +76,9 @@ public:
   std::atomic<unsigned> prefetch_reader_cpus_{0};
   uint64_t host_expert_epoch_ = 0;
   std::atomic<uint64_t> host_expert_wait_us_{0};
+  std::atomic<uint64_t> host_expert_copy_us_{0}, host_expert_copy_bytes_{0};
+  std::atomic<uint64_t> qs2_reads_{0}, qs2_read_us_{0}, qs2_copy_us_{0},
+    qs2_metadata_us_{0}, qs2_copied_bytes_{0};
   std::atomic<unsigned> slots_taken{0}, reads{0};
   bool compact = true, direct = true, prepared = false, tl2 = false;
   bool compactExperts() { return compact; }
@@ -112,6 +116,10 @@ public:
       e.N = n;
     }
     return rc;
+  }
+  int preadAll(int fd, void *dst, size_t bytes, uint64_t off) {
+    ++reads;
+    return readAll(fd, dst, bytes, off);
   }
   void releaseFinishedSlots(size_t n) {
     require(arena_chunks_.empty());
@@ -163,6 +171,8 @@ int main() {
       h.prepared = h.tl2 = false;
       h.expert_slots_placed_ = 160;
     }
+    h.host_expert_copy_us_ = 11;
+    h.host_expert_copy_bytes_ = 13;
     auto token = h.begin_qs2_host_prefetch(f.ds, &f, 64);
     require(token != 0);
     require(h.begin_qs2_host_prefetch(f.ds, &f.keys[0], 64) == 0);
@@ -170,6 +180,9 @@ int main() {
     require(h.hostExpertBank() != nullptr);
     h.waitHostExpertReads();
     require(h.reads == 128 && h.slots_taken == 0);
+    require(h.host_expert_copy_us_ == 11 && h.host_expert_copy_bytes_ == 13);
+    require(h.qs2_reads_ == 0 && h.qs2_read_us_ == 0 &&
+            h.qs2_metadata_us_ == 0);
     h.end_qs2_host_prefetch(token);
     require(h.hostExpertBank() == nullptr);
     auto newer = h.begin_qs2_host_prefetch(f.ds, &f.keys[0], 1);
@@ -223,6 +236,47 @@ int main() {
             h.free_expert_slots_.size() == 4);
     h.end_qs2_host_prefetch(token);
   }
+  // Profile actual in-place reads and the separate arena promotion. Failed GU
+  // skips DN; failed metadata in either part must publish no arena bytes.
+  require(setenv("NNTR_MOE_IO_PROFILE", "1", 1) == 0);
+  HtpProfile::global().enabled = 1;
+  for (int failed_part : {-1, 0, 1}) {
+    Fixture one(1);
+    if (failed_part >= 0) {
+      const auto &d = one.ds[0];
+      const uint64_t offset = failed_part ? d.off_dn : d.off_gu;
+      const size_t codes = failed_part ? size_t(d.inter) * d.N_out / 4
+                                       : size_t(d.K) * 2u * d.inter / 4;
+      const int8_t invalid = -9;
+      require(pwrite(one.fd, &invalid, 1, offset + codes) == 1);
+    }
+    Harness h;
+    HtpProfile::global().read_samples = 0;
+    auto token = h.begin_qs2_host_prefetch(one.ds, &one, 1);
+    require(token != 0);
+    h.waitHostExpertReads();
+    require(h.qs2_reads_ == (failed_part == 0 ? 1u : 2u));
+    require(h.qs2_copy_us_ == 0 && h.qs2_copied_bytes_ == 0);
+    require(HtpProfile::global().read_samples == 1);
+    h.releaseFinishedSlots(1);
+    require(h.beginExpertPrefetch(one.ds, false));
+    {
+      std::unique_lock<std::mutex> lock(h.prefetch_mutex_);
+      auto &b = *h.prefetch_batches_.front();
+      h.prefetch_done_cv_.wait(lock, [&] { return b.done == 1; });
+      require(b.experts[0].rc == (failed_part < 0 ? 0 : EINVAL));
+      require(h.host_expert_copy_bytes_ ==
+              (failed_part < 0 ? one.expected[0].size() : 0));
+      if (failed_part >= 0)
+        require(std::all_of(h.arena_chunks_[0].buf->storage.begin(),
+                            h.arena_chunks_[0].buf->storage.end(),
+                            [](uint8_t c) { return c == 0xcd; }));
+      h.prefetch_batches_.pop_front();
+    }
+    h.end_qs2_host_prefetch(token);
+  }
+  HtpProfile::global().enabled = 0;
+  require(unsetenv("NNTR_MOE_IO_PROFILE") == 0);
   std::printf("PASS extracted backend: %zu assertions, disabled/stale scope, "
               "actual worker copies and enqueue rollback\n",
               checks);

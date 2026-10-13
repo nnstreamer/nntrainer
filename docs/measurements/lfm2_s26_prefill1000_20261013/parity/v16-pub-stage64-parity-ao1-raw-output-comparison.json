@@ -1,0 +1,23 @@
+{
+  "baseline": "/home/jungone-lee/workspace/nntrainer/docs/measurements/lfm2_s26_prefill1000_20261013/parity/dumps-baseline-v1",
+  "candidate": "/home/jungone-lee/workspace/nntrainer/docs/measurements/lfm2_s26_prefill1000_20261013/parity/dumps-v16-pub-stage64-parity-ao1",
+  "files": 132,
+  "different": [],
+  "exact": true,
+  "staging_active": [
+    {
+      "token": 1,
+      "count": 64,
+      "payload_bytes": 153616896
+    }
+  ],
+  "staging_done": [
+    {
+      "token": 1,
+      "count": 64,
+      "read": 64,
+      "consumed": 64
+    }
+  ],
+  "scope": "65 raw logits, 65 token IDs, prompt and manifest; diagnostic timing is excluded from TPS results."
+}

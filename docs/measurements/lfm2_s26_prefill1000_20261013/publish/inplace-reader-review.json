@@ -1,0 +1,77 @@
+{
+  "status": "READY_FOR_PARENT_RAW_PARITY_AND_CLEAN_TIMING",
+  "base": "b26eab2017157749e841d22d9818937798cbe205",
+  "files": {
+    "nntrainer/tensor/htp_backend/htp_qs2_reader.h": "7b9855ada75372779993dd05c78ab6993aac476bc4827dbf38d2e795fdd2bf6e",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "91c426ef2ca6667ba8df6d21528723fe8f70561f06ded1502df6a6bf17585a71",
+    "test/htp/host/expert_host_staging_backend_check.cpp": "e26b0605a1139bd0369377d51591b6ebabe2c8fe6dd5705463374711833c0a32",
+    "test/htp/host/qs2_inplace_reader_check.cpp": "ae002036b646170402604d72dcd9edb56c5ee3195901b5613b8ca03a5d8495a1",
+    "test/htp/host/run_qs2_inplace_reader_checks.py": "8282a2c6024b241059fb9bdc84db99533781f103601bf0d2b46151412a8204ed"
+  },
+  "patches": {
+    "production.patch": "d8166a1fcc5153fcd6b8285d9eaaaa1f3b59f1752dca87604b01fb861e55d530",
+    "tests.patch": "eaadd0f6a28d877fc44ccb4332fc4c264a3f471bcbc753133733da42b39536b7"
+  },
+  "format": "clang-format14 changed-line check and whole new C++ fixture PASS; candidate hashes unchanged",
+  "diff_check": "PASS",
+  "tests": {
+    "reader-normal.log": {
+      "sha256": "4edd4bbb35e45b3b9d06de9ac030176e830524e4485f0ed341c6a1c976572ed2",
+      "pass_lines": [
+        "PASS QS2 in-place: 305846 assertions, exact bytes/scales/sums, metadata rejection, guards, partial errors, concurrent reads, GU2+DN1 O_DIRECT reads",
+        "QS2 reader: bytes, guards, failures, concurrent reuse and mmap PASS",
+        "PASS: compact reader header without Linux/Android macros"
+      ]
+    },
+    "staging-normal.log": {
+      "sha256": "2bc8a96efe67e905b6b74e5ea25d7b04c138391eecd7bc47cc90821f85f55ca3",
+      "pass_lines": [
+        "PASS host staging: 3884 assertions, actual QS2 validator, readers=7, bounds=160",
+        "PASS extracted backend: 758 assertions, disabled/stale scope, actual worker copies and enqueue rollback",
+        "PASS: generic staging header without Linux/Android macros"
+      ]
+    },
+    "reader-sanitize.log": {
+      "sha256": "4edd4bbb35e45b3b9d06de9ac030176e830524e4485f0ed341c6a1c976572ed2",
+      "pass_lines": [
+        "PASS QS2 in-place: 305846 assertions, exact bytes/scales/sums, metadata rejection, guards, partial errors, concurrent reads, GU2+DN1 O_DIRECT reads",
+        "QS2 reader: bytes, guards, failures, concurrent reuse and mmap PASS",
+        "PASS: compact reader header without Linux/Android macros"
+      ]
+    },
+    "staging-sanitize.log": {
+      "sha256": "dbacb55fe4b73f26c4fb270af9ad3b184c72482a16bba89f09b49f2f555e611b",
+      "pass_lines": [
+        "PASS host staging: 3884 assertions, actual QS2 validator, readers=7, bounds=160",
+        "PASS extracted backend: 758 assertions, disabled/stale scope, actual worker copies and enqueue rollback",
+        "PASS: generic staging header without Linux/Android macros"
+      ]
+    }
+  },
+  "build_results": [
+    {
+      "kind": "core",
+      "returncode": 0,
+      "seconds": 12.757860984998842,
+      "log": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/core-matched-install.log"
+    },
+    {
+      "kind": "app",
+      "returncode": 0,
+      "seconds": 0.9578190149986767,
+      "log": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/app-matched-install.log"
+    }
+  ],
+  "production_manifest": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/artifacts.json",
+  "diagnostic_manifest": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/diagnostic-artifacts.json",
+  "parent_android_checker": {
+    "assertions": 305711,
+    "sha256": "484264848b776ea729a74d5d3a6738cd345ab716a8a60674817f7d876e758e8b",
+    "count_delta_explanation": "135 optional host frozen-baseline assertions omitted on Android.",
+    "evidence": "/home/jungone-lee/workspace/nntrainer/docs/measurements/lfm2_s26_prefill1000_20261013/moe/inplace-reader-device.json"
+  },
+  "independent_review": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/independent-attention-review.json",
+  "device_calls_by_agent": false,
+  "commits_by_agent": false,
+  "root_live_changes_by_agent": false
+}

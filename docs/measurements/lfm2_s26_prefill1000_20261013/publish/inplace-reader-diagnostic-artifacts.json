@@ -1,0 +1,52 @@
+{
+  "diagnostic_only": true,
+  "tps_eligible": false,
+  "artifacts": {
+    "libnntrainer.so": {
+      "source": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/artifacts/libnntrainer.so",
+      "frozen": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/diagnostic-artifacts/libnntrainer.so",
+      "sha256": "8c2f66c178e77a0174339b595baf1447c9614ae8b985c0943fdab4392daa7168"
+    },
+    "libccapi-nntrainer.so": {
+      "source": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/artifacts/libccapi-nntrainer.so",
+      "frozen": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/diagnostic-artifacts/libccapi-nntrainer.so",
+      "sha256": "1fd18484dc116f2b75fdfcc1b7908bc00383258d534695a24802314ca9c83b74"
+    },
+    "libc++_shared.so": {
+      "source": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/artifacts/libc++_shared.so",
+      "frozen": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/diagnostic-artifacts/libc++_shared.so",
+      "sha256": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df"
+    },
+    "libsdkl.so": {
+      "source": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/artifacts/libsdkl.so",
+      "frozen": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/diagnostic-artifacts/libsdkl.so",
+      "sha256": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe"
+    },
+    "libcausallm_core.so": {
+      "source": "/tmp/lfm2-prefill1000-20261013/conv-norm/host-staging/publication-compat/diagnostic-artifacts/libcausallm_core.so",
+      "frozen": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/diagnostic-artifacts/libcausallm_core.so",
+      "sha256": "13eb53056b3825bbc12f7f44956bb483332832121ecfadcc9ac04f1eda197667"
+    },
+    "nntrainer_causallm": {
+      "source": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/artifacts/nntrainer_causallm",
+      "frozen": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/diagnostic-artifacts/nntrainer_causallm",
+      "sha256": "b6b3810484a0573ece103af9701946be4da7dbfa83c413d0b76de913218c718d"
+    },
+    "libnntr_hvx_skel.so": {
+      "source": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/artifacts/libnntr_hvx_skel.so",
+      "frozen": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/diagnostic-artifacts/libnntr_hvx_skel.so",
+      "sha256": "a403c2595e86494178e03f63a1b895fdacdf55e8ca4a3076777ee44cd8232ef1"
+    }
+  },
+  "production_manifest": "/tmp/lfm2-prefill1000-moe/inplace-staging/publication-compat/artifacts.json",
+  "diagnostic_reuse_manifest": "/tmp/lfm2-prefill1000-20261013/conv-norm/host-staging/publication-compat/diagnostic-build.json",
+  "diagnostic_delta_sha256": "586a274301c3eb94b83993f6e4f69900e4bb7d85620170f2d6df4c5f717892a1",
+  "diagnostic_source_sha256": {
+    "Applications/CausalLM/models/causal_lm.cpp": "87bc84354e7e710c546e7fd5ff958db5d06fbbd8937b7b5dfc5fc00a10fd9921",
+    "nntrainer/utils/parity_dump.h": "0084c483b59ea4aef9b65a6081850ac5120e597bef4e46882422e18ddd7a5692"
+  },
+  "matched_proof": "All 57 original PUB app object hashes and all interface/app source hashes reverified unchanged; v16 changes private backend implementation and reader only. Pair reused logits-only library with frozen new v16 core.",
+  "prefill_scope_hook_preserved": true,
+  "unchanged_app_object_count": 57,
+  "no_diagnostic_in_production_bundle": true
+}
