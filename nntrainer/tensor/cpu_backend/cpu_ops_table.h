@@ -398,6 +398,9 @@ public:
   // out = gelu_tanh(gate) * up over the live rows.
   void geglu(const Tensor &in1, const Tensor &in2, Tensor &out,
              unsigned int active_rows, unsigned int row_offset) override;
+  // out = gelu_erf(gate) * up over the live rows (exact gelu).
+  void geglu_erf(const Tensor &in1, const Tensor &in2, Tensor &out,
+                 unsigned int active_rows, unsigned int row_offset) override;
   // out = silu(gate) * up over the live rows (numerically stable SiLU).
   void swiglu(const Tensor &in1, const Tensor &in2, Tensor &out,
               unsigned int active_rows, unsigned int row_offset) override;

@@ -432,6 +432,12 @@ public:
    */
   virtual void geglu(const Tensor &in1, const Tensor &in2, Tensor &out,
                      unsigned int active_rows, unsigned int row_offset);
+  /**
+   * @brief out = gelu(in1) * in2 with the exact (erf) gelu -- the HF "gelu"
+   *        / approximate="none" GeGLU -- over the same row window as geglu().
+   */
+  virtual void geglu_erf(const Tensor &in1, const Tensor &in2, Tensor &out,
+                         unsigned int active_rows, unsigned int row_offset);
 
   /**
    * @brief SwiGLU activation over the `active_rows` rows starting at

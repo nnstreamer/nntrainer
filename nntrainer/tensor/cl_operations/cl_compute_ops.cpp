@@ -284,6 +284,10 @@ public:
              unsigned int active_rows, unsigned int row_offset) override {
     nntrainer::geglu_cl_op(in1, in2, out, active_rows, row_offset);
   }
+  void geglu_erf(const Tensor &in1, const Tensor &in2, Tensor &out,
+                 unsigned int active_rows, unsigned int row_offset) override {
+    nntrainer::geglu_erf_cl_op(in1, in2, out, active_rows, row_offset);
+  }
   void swiglu(const Tensor &in1, const Tensor &in2, Tensor &out,
               unsigned int active_rows, unsigned int row_offset) override {
     // FP32 operands the host just produced, with nothing left in the queue
