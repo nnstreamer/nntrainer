@@ -1141,7 +1141,9 @@ void NeuralNetwork::load(const std::string &file_path,
       // to mmap their backing region on demand. Without it, virtual tensors
       // end up with fd=-1 and activate() returns MAP_FAILED, segfaulting on
       // first use (e.g. SlimMoE expert weights when MMAP_READ=true).
-      model_file_fd = open(f_path.c_str(), O_RDONLY);
+      model_file_fd = weightPageCachePolicy() >= 0
+                        ? openWeightFile(f_path.c_str())
+                        : open(f_path.c_str(), O_RDONLY);
       NNTR_THROW_IF((model_file_fd == -1), std::invalid_argument)
         << "Cannot open file : " << f_path;
 
@@ -1155,77 +1157,92 @@ void NeuralNetwork::load(const std::string &file_path,
 
       std::atomic<size_t> next_load_index{0};
 
+      std::exception_ptr load_error;
+      std::mutex load_error_mutex;
       auto load_worker = [&]() {
-        for (size_t idx =
-               next_load_index.fetch_add(1, std::memory_order_relaxed);
-             idx < num_load_nodes;
-             idx = next_load_index.fetch_add(1, std::memory_order_relaxed)) {
-          auto node = load_nodes[idx];
+        try {
+          for (size_t idx =
+                 next_load_index.fetch_add(1, std::memory_order_relaxed);
+               idx < num_load_nodes;
+               idx = next_load_index.fetch_add(1, std::memory_order_relaxed)) {
+            auto node = load_nodes[idx];
 
-          if (!MMAP_READ) {
-            auto local_model_file = checkedOpenStream<std::ifstream>(
-              (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
-            node->read(local_model_file, false, exec_mode, fsu_mode,
-                       std::numeric_limits<size_t>::max(), true, model_file_fd);
-          } else {
+            if (weightPageCachePolicy() >= 0) {
+              node->read(FileReadSource{model_file_fd}, false, exec_mode,
+                         fsu_mode, std::numeric_limits<size_t>::max(), true,
+                         model_file_fd);
+            } else if (!MMAP_READ) {
+              auto local_model_file = checkedOpenStream<std::ifstream>(
+                (v.size() == 2) ? v[1] : v[0], std::ios::in | std::ios::binary);
+              node->read(local_model_file, false, exec_mode, fsu_mode,
+                         std::numeric_limits<size_t>::max(), true,
+                         model_file_fd);
+            } else {
 #if defined(_WIN32)
-            // Map per-ask, then unmap immediately after: enables early release
-            // of pages
-            HANDLE hFile =
-              CreateFileA(f_path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL,
-                          OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-            NNTR_THROW_IF((hFile == INVALID_HANDLE_VALUE), std::runtime_error)
-              << "CreateFileA failed";
+              // Map per-ask, then unmap immediately after: enables early
+              // release of pages
+              HANDLE hFile =
+                CreateFileA(f_path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL,
+                            OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+              NNTR_THROW_IF((hFile == INVALID_HANDLE_VALUE), std::runtime_error)
+                << "CreateFileA failed";
 
-            HANDLE hMap =
-              CreateFileMapping(hFile, NULL, PAGE_READONLY, 0, 0, NULL);
-            NNTR_THROW_IF((hMap == NULL), std::runtime_error)
-              << "CreateFileMapping failed";
+              HANDLE hMap =
+                CreateFileMapping(hFile, NULL, PAGE_READONLY, 0, 0, NULL);
+              NNTR_THROW_IF((hMap == NULL), std::runtime_error)
+                << "CreateFileMapping failed";
 
-            char *view =
-              static_cast<char *>(MapViewOfFile(hMap, FILE_MAP_READ, 0, 0, 0));
-            NNTR_THROW_IF((view == nullptr), std::runtime_error)
-              << "MapViewOfFile failed";
+              char *view = static_cast<char *>(
+                MapViewOfFile(hMap, FILE_MAP_READ, 0, 0, 0));
+              NNTR_THROW_IF((view == nullptr), std::runtime_error)
+                << "MapViewOfFile failed";
 
-            node->read(view, false, exec_mode, fsu_mode,
-                       std::numeric_limits<size_t>::max(), true, model_file_fd);
+              node->read(view, false, exec_mode, fsu_mode,
+                         std::numeric_limits<size_t>::max(), true,
+                         model_file_fd);
 
-            // Early unmap: let the OS reclaim the working set ASAP
-            UnmapViewOfFile(view);
-            CloseHandle(hMap);
-            CloseHandle(hFile);
+              // Early unmap: let the OS reclaim the working set ASAP
+              UnmapViewOfFile(view);
+              CloseHandle(hMap);
+              CloseHandle(hFile);
 #else
-            // POSIX: map per-task, advise kernel, drop pages, unmap
-            int fd = ::open(f_path.c_str(), O_RDONLY);
-            NNTR_THROW_IF((fd == -1), std::invalid_argument)
-              << "Cannot open file : " << f_path;
+              // POSIX: map per-task, advise kernel, drop pages, unmap
+              int fd = ::open(f_path.c_str(), O_RDONLY);
+              NNTR_THROW_IF((fd == -1), std::invalid_argument)
+                << "Cannot open file : " << f_path;
 
-            struct stat st {};
-            NNTR_THROW_IF((::fstat(fd, &st) == -1), std::invalid_argument)
-              << "Cannot get file info (fstat): " << f_path;
+              struct stat st {};
+              NNTR_THROW_IF((::fstat(fd, &st) == -1), std::invalid_argument)
+                << "Cannot get file info (fstat): " << f_path;
 
-            size_t f_size = static_cast<size_t>(st.st_size);
-            void *mmap_ptr =
-              ::mmap(nullptr, f_size, PROT_READ, MAP_PRIVATE, fd, 0);
-            ::close(fd); // fd not needed after mmap
-            NNTR_THROW_IF((mmap_ptr == MAP_FAILED), std::runtime_error)
-              << "mmap failed";
+              size_t f_size = static_cast<size_t>(st.st_size);
+              void *mmap_ptr =
+                ::mmap(nullptr, f_size, PROT_READ, MAP_PRIVATE, fd, 0);
+              ::close(fd); // fd not needed after mmap
+              NNTR_THROW_IF((mmap_ptr == MAP_FAILED), std::runtime_error)
+                << "mmap failed";
 
-            // Hint: many model loads touch scattered regions -> RANDOM helps
-            // reduce readahead
-            (void)::posix_madvise(mmap_ptr, f_size, POSIX_MADV_RANDOM);
+              // Hint: many model loads touch scattered regions -> RANDOM helps
+              // reduce readahead
+              (void)::posix_madvise(mmap_ptr, f_size, POSIX_MADV_RANDOM);
 
-            char *view = static_cast<char *>(mmap_ptr);
-            node->read(view, false, exec_mode, fsu_mode,
-                       std::numeric_limits<size_t>::max(), true, model_file_fd);
+              char *view = static_cast<char *>(mmap_ptr);
+              node->read(view, false, exec_mode, fsu_mode,
+                         std::numeric_limits<size_t>::max(), true,
+                         model_file_fd);
 
-            // Early drop: pages no longer needed; helps lower peak RSS during
-            // overlap
-            (void)::posix_madvise(mmap_ptr, f_size, POSIX_MADV_DONTNEED);
+              // Early drop: pages no longer needed; helps lower peak RSS during
+              // overlap
+              (void)::posix_madvise(mmap_ptr, f_size, POSIX_MADV_DONTNEED);
 
-            ::munmap(mmap_ptr, f_size);
+              ::munmap(mmap_ptr, f_size);
 #endif
+            }
           }
+        } catch (...) {
+          std::lock_guard<std::mutex> lock(load_error_mutex);
+          if (!load_error)
+            load_error = std::current_exception();
         }
       };
 
@@ -1238,6 +1255,8 @@ void NeuralNetwork::load(const std::string &file_path,
         if (t.joinable())
           t.join();
       }
+      if (load_error)
+        std::rethrow_exception(load_error);
 
     } else {
       for (auto iter = model_graph.cbegin(); iter != model_graph.cend();
