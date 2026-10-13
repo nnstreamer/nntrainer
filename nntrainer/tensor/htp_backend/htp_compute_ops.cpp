@@ -49,10 +49,12 @@
 #include <htp_act_quant.h>
 #include <htp_backend.h>
 #include <htp_dspq_wire.h>
+#include <htp_expert_prefetch.h>
 #include <htp_graph_desc.h>
 #include <htp_moe_opts.h>
 #include <htp_prepared_tl2.h>
 #include <htp_q4_0_convert.h>
+#include <htp_router_predict.h>
 #include <htp_rpcmem.h>
 #include <htp_wh_layout.h>
 #include <htp_wh_palette.h>
@@ -1198,6 +1200,12 @@ public:
       pool_srv_->cv.notify_all();
       pool_srv_->th.join();
     }
+    if (cpu_predictor_)
+      cpu_predictor_->drain();
+    if (pool_prefetch_)
+      pool_prefetch_->drain();
+    cpu_predictor_.reset();
+    pool_prefetch_.reset();
     {
       std::lock_guard<std::mutex> lock(prefetch_mutex_);
       prefetch_stop_ = true;
@@ -3125,6 +3133,7 @@ public:
       return;
     const uint64_t t_ps = HtpProfile::nowUs(); // [#282 F]
     switchTl2Phase(true);
+    initPoolPrefetch();
     pinExperts();
     dropHostFc();
     const uint64_t t_drop = HtpProfile::nowUs();
@@ -3261,6 +3270,10 @@ public:
         std::lock_guard<std::mutex> lock(handle_mutex_);
         pool_answered_.resize(pool_descs_.size());
         pool_answered_[it - moe_ops_.begin()] = 1;
+        if (prediction_confidence_)
+          prediction_confidence_->observe(it - moe_ops_.begin(),
+                                          (uint64_t(p.tok) << 32) + r.op,
+                                          r.routed, r.n_routed);
       }
       std::vector<const void *> need, loads;
       for (uint32_t i = 0; i < r.n_routed; ++i) {
@@ -3302,6 +3315,21 @@ public:
         std::lock_guard<std::mutex> lock(handle_mutex_);
         for (uint32_t i = 0; i < r.n_miss; ++i)
           p.pending.push_back(stageExpert(session, d[r.miss[i]]));
+      }
+      if (pool_prefetch_) {
+        // Transfer the retired pair to the prepared buffer. The old buffer
+        // becomes a spare with no DSP handles. S1 rebinds that pair in its
+        // existing miss answer, after evicting its former graph entry.
+        const char *join = std::getenv("NNTR_MOE_PREFETCH_JOIN");
+        for (auto &st : p.pending) {
+          if (!join || std::strcmp(join, "0") != 0)
+            st.prefetch_claimed = pool_prefetch_->claim(st.d.key_gu);
+          else
+            pool_prefetch_->take(st.d.key_gu, [&st](StagedExpert &ready) {
+              adoptPrefetch(st, ready);
+            });
+        }
+        pool_prefetch_->expireBefore((uint64_t(p.tok) << 32) + r.op + 1u);
       }
       for (uint32_t i = 0; i < r.n_miss; ++i) // [#282 B]
         if (pf_issued_keys_.erase(d[r.miss[i]].key_gu) != 0)
@@ -3386,12 +3414,43 @@ public:
     std::memcpy(&h, const_cast<const htp_pred_hint *>(hv), sizeof(h));
     if (h.seq2 != seq || h.n > HTP_MBOX_MISS_MAX)
       return last;
+    if (hv->seq != seq)
+      return last; // The writer may have replaced the hint while we copied it.
     ++pf_hints_;
     const auto it = std::upper_bound(moe_ops_.begin(), moe_ops_.end(), h.op);
     if (it == moe_ops_.end())
       return seq;
-    const std::vector<ExpertFileDesc> &d = pool_descs_[it - moe_ops_.begin()];
+    const size_t layer = static_cast<size_t>(it - moe_ops_.begin());
+    const std::vector<ExpertFileDesc> &d = pool_descs_[layer];
     std::vector<ExpertFileDesc> jobs;
+    if (pool_prefetch_) {
+      // A new hint targets L+1 while the real router of L is still running.
+      // Keep L's guesses until its demand; retire only earlier layers.
+      const size_t m = static_cast<size_t>(it - moe_ops_.begin());
+      const uint32_t current = m ? moe_ops_[m - 1] : 0u;
+      pool_prefetch_->expireBefore((uint64_t(tok) << 32) + current);
+    }
+    if (h.width != 0u) {
+      if (!cpu_predictor_ || h.width != prediction_routers_[layer].hidden ||
+          h.width > HTP_MBOX_PRED_MAX_WIDTH)
+        return seq;
+      std::vector<float> input(h.width);
+      std::memcpy(input.data(), page + HTP_MBOX_PRED_INPUT,
+                  h.width * sizeof(float));
+      std::atomic_thread_fence(std::memory_order_acquire);
+      if (hv->seq != seq)
+        return last;
+      const uint64_t epoch = (uint64_t(tok) << 32) + *it;
+      // There is no reason to compute an older hint once this one arrives.
+      cpu_predictor_->expireBefore(epoch);
+      cpu_predictor_->submit(d[0].key_gu, epoch, [&](PredictionJob &job) {
+        job.input = std::move(input);
+        job.layer = layer;
+        job.epoch = epoch;
+        job.native = tl2_decode_;
+      });
+      return seq;
+    }
     {
       std::lock_guard<std::mutex> lock(handle_mutex_);
       // NNTR_MOE_PREFETCH_TOP: only the guess's best n (best first)
@@ -3404,8 +3463,13 @@ public:
             pf_issued_keys_.insert(d[h.ids[i]].key_gu).second)
           jobs.push_back(d[h.ids[i]]);
     }
-    if (!jobs.empty())
+    if (pool_prefetch_) {
+      for (const auto &d : jobs)
+        pf_issued_ +=
+          queueDirectPrefetch(d, (uint64_t(tok) << 32) + *it, tl2_decode_);
+    } else if (!jobs.empty()) {
       prefetchQueue(std::move(jobs));
+    }
     return seq;
   }
 
@@ -3522,6 +3586,16 @@ public:
     // the round's own error first: a failed answer leaves its loads unfiled
     std::exception_ptr err = p.err;
     p.err = nullptr;
+    if (cpu_predictor_)
+      cpu_predictor_->expireBefore((uint64_t(p.tok) + 1u) << 32);
+    if (pool_prefetch_)
+      pool_prefetch_->expireBefore((uint64_t(p.tok) + 1u) << 32);
+    // No speculative I/O may outlive this token's model/file ownership.
+    // The final projection normally leaves ample time for reads to finish.
+    if (cpu_predictor_)
+      cpu_predictor_->drain();
+    if (pool_prefetch_)
+      pool_prefetch_->drain();
     if (err) {
       std::lock_guard<std::mutex> lock(handle_mutex_);
       for (StagedExpert &st : p.pending)
@@ -3674,10 +3748,17 @@ public:
       // [#266 S2] NNTR_HTP_PREDICT=1: the routers' next-layer guesses,
       // logged through NNTR_HTP_ROUTE_LOG (unset: the skel's default, off)
       if (const char *v = std::getenv("NNTR_HTP_PREDICT")) {
-        if (std::strcmp(v, "0") != 0 && std::strcmp(v, "1") != 0)
+        if (std::strcmp(v, "0") != 0 && std::strcmp(v, "1") != 0 &&
+            std::strcmp(v, "2") != 0)
           throw std::runtime_error(std::string("NNTR_HTP_PREDICT=") + v +
-                                   ": want 0 or 1");
-        const uint32_t on = v[0] == '1' ? 1u : 0u;
+                                   ": want 0 (off), 1 (DSP), or 2 (ARM)");
+        const uint32_t on = static_cast<uint32_t>(v[0] - '0');
+        if (on == 2u) {
+          const char *direct = std::getenv("NNTR_MOE_PREFETCH_DIRECT");
+          if (!direct || std::strcmp(direct, "1") != 0 || !prefetchThreads())
+            throw std::invalid_argument(
+              "ARM prediction requires direct prefetch and readers");
+        }
         float word;
         std::memcpy(&word, &on, sizeof(word));
         setParam(session, HTP_GRAPH_NO_OP, HTP_GRAPH_PARAM_PREDICT, &word, 1u,
@@ -5763,7 +5844,9 @@ private:
                      e.rt_overlap_us / rr, static_cast<double>(e.miss_us) / rr,
                      e.rt_anslat_us / rr, e.rt_rebind_us / rr);
       }
-      if (prefetchThreads() != 0)
+      const char *direct_prefetch = std::getenv("NNTR_MOE_PREFETCH_DIRECT");
+      if (prefetchThreads() != 0 &&
+          (!direct_prefetch || std::strcmp(direct_prefetch, "1") != 0))
         std::fprintf(stderr,
                      "[HTP] token driver: prefetch hints/token=%.2f "
                      "issued/token=%.2f done=%llu useful/token=%.2f\n",
@@ -7274,7 +7357,251 @@ private:
     ArenaEntry gu, dn;
     int rc; /**< preadAll's result for the whole expert */
     bool tl2 = false;
+    bool prefetched = false;
+    bool prefetch_claimed = false;
   };
+
+  /** Reserve DMA-visible spare slots before any token is in flight. The
+   * resident cache capacity and replacement policy remain unchanged.
+   * Workers only read; arena attachment happens once here, and the regular
+   * DSP miss answer rebinds a consumed slot without a registration RPC.
+   */
+  void initPoolPrefetch() {
+    const char *enabled = std::getenv("NNTR_MOE_PREFETCH_DIRECT");
+    if (!enabled || std::strcmp(enabled, "1") != 0 || pool_prefetch_)
+      return;
+    const char *predict = std::getenv("NNTR_HTP_PREDICT");
+    if (!predict ||
+        (std::strcmp(predict, "1") != 0 && std::strcmp(predict, "2") != 0) ||
+        !prefetchThreads())
+      throw std::invalid_argument(
+        "NNTR_MOE_PREFETCH_DIRECT requires NNTR_HTP_PREDICT=1 or 2 and "
+        "NNTR_MOE_PREFETCH > 0");
+    if (pool_descs_.empty() || pool_descs_[0].empty())
+      throw std::invalid_argument("Direct prefetch requires virtual experts");
+    // Keep decode worker tuning independent of prefill lookahead.
+    size_t readers = prefetchThreads();
+    if (const char *v = std::getenv("NNTR_MOE_PREFETCH_READERS"))
+      readers =
+        std::max<size_t>(1, std::min<size_t>(8, std::strtoul(v, nullptr, 10)));
+    size_t count = 16;
+    if (const char *v = std::getenv("NNTR_MOE_PREFETCH_SLOTS"))
+      count =
+        std::max<size_t>(1, std::min<size_t>(32, std::strtoul(v, nullptr, 10)));
+    std::vector<StagedExpert> slots;
+    const auto session =
+      static_cast<remote_handle64>(HtpBackend::global().handle());
+    {
+      std::lock_guard<std::mutex> lock(handle_mutex_);
+      const auto &d = pool_descs_[0][0];
+      const size_t bytes = expertStride(d.K, 2 * d.inter, d.w_bits) +
+                           expertStride(d.inter, d.N_out, d.w_bits);
+      for (const auto &layer : pool_descs_)
+        for (const auto &x : layer)
+          if (x.K != d.K || x.inter != d.inter || x.N_out != d.N_out ||
+              x.w_bits != d.w_bits)
+            throw std::invalid_argument(
+              "Direct prefetch requires uniform expert shapes");
+      for (size_t i = 0; i < count; ++i) {
+        ExpertSlot slot;
+        if (!place(session, bytes, count * bytes, &slot.chunk, &slot.off))
+          throw std::runtime_error("Cannot allocate direct prefetch slots: " +
+                                   arena_fail_);
+        slots.push_back({d,
+                         slot,
+                         arena_chunks_[slot.chunk].buf->data() + slot.off,
+                         {},
+                         {},
+                         0,
+                         false});
+      }
+      std::fprintf(stderr,
+                   "[HTP-PREFETCH] direct slots=%zu bytes=%zu readers=%zu\n",
+                   count, count * bytes, readers);
+    }
+    auto cpus = prefetchKnobs().cpus;
+    const uint32_t caller = cpuBit();
+    if (cpus.empty() && caller) {
+      const long n = sysconf(_SC_NPROCESSORS_CONF);
+      for (int c = 0; c < n && c < 32; ++c)
+        if ((caller & (1u << c)) == 0)
+          cpus.push_back(c);
+    }
+    auto queue = std::make_shared<HtpExpertPrefetch<StagedExpert>>(
+      std::move(slots), readers, [this, cpus](StagedExpert &st) {
+        // ThreadManager pins the caller; readers must not inherit that
+        // single core and delay the mailbox server on every expert read.
+        thread_local bool pinned = false;
+        if (!pinned) {
+          pinToCpus(cpus);
+          pinned = true;
+        }
+        st.rc = readExpert(st, false, false);
+        return st.rc == 0;
+      });
+    pool_prefetch_ = queue;
+    if (std::strcmp(predict, "2") == 0)
+      initCpuPredictor(cpus);
+    auto predictor = cpu_predictor_;
+    // atClose runs before atCloseLast unmaps the arena. Keep the queue alive
+    // independently of singleton destruction order; no reader outlives DMA.
+    HtpBackend::global().atClose([queue, predictor] {
+      if (predictor) {
+        predictor->drain();
+        const auto s = predictor->stats();
+        std::fprintf(stderr,
+                     "[HTP-PREDICT] arm submitted=%llu completed=%llu "
+                     "failed=%llu full=%llu\n",
+                     (unsigned long long)s.submitted,
+                     (unsigned long long)s.completed,
+                     (unsigned long long)s.failed, (unsigned long long)s.full);
+      }
+      queue->drain();
+      const auto s = queue->stats();
+      std::fprintf(
+        stderr,
+        "[HTP-PREFETCH] submitted=%llu completed=%llu used=%llu late=%llu "
+        "discarded=%llu failed=%llu full=%llu joined=%llu registration_rpc=0\n",
+        (unsigned long long)s.submitted, (unsigned long long)s.completed,
+        (unsigned long long)s.used, (unsigned long long)s.late,
+        (unsigned long long)s.discarded, (unsigned long long)s.failed,
+        (unsigned long long)s.full, (unsigned long long)s.joined);
+    });
+  }
+
+  struct PredictionJob {
+    std::vector<float> input;
+    size_t layer = 0;
+    uint64_t epoch = 0;
+    bool native = false;
+  };
+  struct PredictionRouter {
+    unsigned hidden = 0, experts = 0, top = 0;
+    std::vector<float> weights;
+  };
+
+  static unsigned prefetchTop() {
+    const char *v = std::getenv("NNTR_MOE_PREFETCH_TOP");
+    return v ? std::min(16u,
+                        static_cast<unsigned>(std::strtoul(v, nullptr, 10)))
+             : 8u;
+  }
+
+  bool queueDirectPrefetch(const ExpertFileDesc &d, uint64_t epoch,
+                           bool native) {
+    return pool_prefetch_->submit(d.key_gu, epoch, [&](StagedExpert &st) {
+      st.d = d;
+      st.gu = {};
+      st.dn = {};
+      st.rc = 0;
+      st.tl2 = native && d.w_bits == 2u;
+      st.prefetched = false;
+      st.prefetch_claimed = false;
+    });
+  }
+
+  /** Approximate lookahead only. Gamma is folded into a private gate copy;
+   * RMS's positive scalar and softmax do not change the top-k order. The
+   * actual routing and mixture weights always come from the NPU router.
+   */
+  void initCpuPredictor(const std::vector<int> &cpus) {
+    prediction_routers_.resize(moe_ops_.size());
+    for (size_t m = 0; m < moe_ops_.size(); ++m) {
+      const uint32_t router = moe_ops_[m] - 1u;
+      const auto *op = graphOp(router);
+      if (op->kind != HTP_OP_ROUTER_TOPK || !op->eps_bits ||
+          op->K > HTP_MBOX_PRED_MAX_WIDTH)
+        throw std::invalid_argument(
+          "ARM prefetch prediction requires Gemma softmax routers");
+      const float *w = nullptr, *gamma = nullptr;
+      for (const auto &p : load_params_)
+        if (p.op == router) {
+          if (p.which == HTP_GRAPH_PARAM_ROUTER_W)
+            w = p.data;
+          if (p.which == HTP_GRAPH_PARAM_ROUTER_BIAS)
+            gamma = p.data;
+        }
+      if (!w || !gamma)
+        throw std::invalid_argument("Missing ARM prediction router weights");
+      auto &r = prediction_routers_[m];
+      r.hidden = op->K;
+      r.experts = op->n_experts;
+      r.top = std::min(op->top_k, prefetchTop());
+      r.weights.resize(static_cast<size_t>(r.hidden) * r.experts);
+      for (unsigned h = 0; h < r.hidden; ++h)
+        for (unsigned e = 0; e < r.experts; ++e) {
+          const size_t i = static_cast<size_t>(h) * r.experts + e;
+          r.weights[i] = gamma[h] * w[i];
+        }
+    }
+    std::vector<PredictionJob> jobs(2);
+    for (auto &j : jobs)
+      j.input.resize(prediction_routers_[0].hidden);
+    if (const char *v = std::getenv("NNTR_MOE_PREFETCH_CONFIDENCE")) {
+      const float threshold = std::strtof(v, nullptr);
+      if (!std::isfinite(threshold) || threshold < 0 || threshold > 1)
+        throw std::invalid_argument("Prefetch confidence must be in [0, 1]");
+      if (threshold > 0)
+        prediction_confidence_.reset(
+          new HtpPrefetchConfidence(prediction_routers_.size(), threshold));
+    }
+    const char *blend_env = std::getenv("NNTR_MOE_PREFETCH_RESIDUAL");
+    const float blend = blend_env ? std::strtof(blend_env, nullptr) : 0.0f;
+    if (!std::isfinite(blend) || blend < 0 || blend > 1)
+      throw std::invalid_argument("Prefetch residual must be in [0, 1]");
+    std::shared_ptr<FILE> trace;
+    if (const char *path = std::getenv("NNTR_HTP_PREDICT_LOG")) {
+      FILE *file = std::fopen(path, "w");
+      if (!file)
+        throw std::runtime_error("Cannot open prediction trace");
+      trace.reset(file, std::fclose);
+    }
+    auto residual = std::make_shared<HtpRouterResidual>(
+      prediction_routers_.size(), prediction_routers_[0].hidden);
+    cpu_predictor_ = std::make_shared<HtpExpertPrefetch<PredictionJob>>(
+      std::move(jobs), 1,
+      [this, cpus, blend, residual, trace](PredictionJob &job) {
+        thread_local bool pinned = false;
+        if (!pinned) {
+          pinToCpus(cpus);
+          pinned = true;
+        }
+        const auto &r = prediction_routers_[job.layer];
+        const uint64_t token = job.epoch >> 32;
+        std::vector<float> corrected(r.hidden);
+        residual->observe(job.layer - 1u, token, job.input.data());
+        if (trace) {
+          std::fprintf(trace.get(), "%llu %zu", (unsigned long long)token,
+                       job.layer);
+          for (float candidate : {0.0f, 0.5f, 1.0f}) {
+            residual->apply(job.layer, token, job.input.data(), candidate,
+                            corrected.data());
+            const auto ranked = htpPredictExperts(
+              corrected.data(), r.weights.data(), r.hidden, r.experts, 8u);
+            std::fputs(" |", trace.get());
+            for (unsigned e : ranked)
+              std::fprintf(trace.get(), " %u", e);
+          }
+          std::fputc('\n', trace.get());
+        }
+        residual->apply(job.layer, token, job.input.data(), blend,
+                        corrected.data());
+        const auto ids = htpPredictExperts(corrected.data(), r.weights.data(),
+                                           r.hidden, r.experts, r.top);
+        std::lock_guard<std::mutex> lock(handle_mutex_);
+        std::vector<bool> absent;
+        for (size_t k = 0; k < ids.size(); ++k) {
+          const auto &d = pool_descs_[job.layer][ids[k]];
+          absent.push_back(experts_.count(d.key_gu) == 0);
+          if (absent.back() && (!prediction_confidence_ ||
+                                prediction_confidence_->allow(job.layer, k)))
+            queueDirectPrefetch(d, job.epoch, job.native);
+        }
+        if (prediction_confidence_)
+          prediction_confidence_->record(job.layer, job.epoch, ids, absent);
+        return true;
+      });
+  }
 
   /** @note Call with handle_mutex_ held. */
   StagedExpert stageExpert(remote_handle64 session, const ExpertFileDesc &d) {
@@ -7409,6 +7736,16 @@ private:
                            e, use_pool);
   }
 
+  /** Move a filled spare into a retired DSP pair without a copy or RPC. */
+  static void adoptPrefetch(StagedExpert &st, StagedExpert &ready) {
+    ready.slot.h_gu = st.slot.h_gu;
+    ready.slot.h_dn = st.slot.h_dn;
+    st.slot.h_gu = st.slot.h_dn = kNoHandle;
+    std::swap(st, ready);
+    st.prefetched = true;
+    st.prefetch_claimed = false;
+  }
+
   /** @brief [#266] A miss round's reads, all at once: one job per weight
    *  (two per expert), NNTR_MOE_MISS_READERS threads of the ThreadManager
    *  taking them in turn, each job one whole-range pread plus its tail.
@@ -7419,17 +7756,37 @@ private:
    *  StagedExpert's rc is set; no lock, no throw. The readers are the
    *  pool server and ThreadManager's workers, so at most
    *  getComputeThreadCount() (NNTR_NUM_THREADS) run at once. */
+
   void readMisses(std::vector<StagedExpert> &st) {
-    const size_t n_jobs = 2 * st.size();
-    std::vector<int> rc(n_jobs, 0);
-    std::atomic<size_t> next{0};
-    ThreadManager::Global().parallel_for(
-      0, std::min(missReaders(), n_jobs), [&](size_t) {
-        for (size_t j; (j = next.fetch_add(1)) < n_jobs;)
-          rc[j] = readExpertWeight(st[j / 2], j % 2 != 0, /*use_pool=*/false);
-      });
+    std::vector<size_t> jobs;
     for (size_t i = 0; i < st.size(); ++i)
-      st[i].rc = rc[2 * i] != 0 ? rc[2 * i] : rc[2 * i + 1];
+      if (!st[i].prefetched && !st[i].prefetch_claimed) {
+        jobs.push_back(2 * i);
+        jobs.push_back(2 * i + 1);
+      }
+    const size_t n_jobs = jobs.size();
+    std::vector<int> rc(2 * st.size(), 0);
+    std::atomic<size_t> next{0};
+    if (n_jobs)
+      ThreadManager::Global().parallel_for(
+        0, std::min(missReaders(), n_jobs), [&](size_t) {
+          for (size_t j; (j = next.fetch_add(1)) < n_jobs;) {
+            const size_t part = jobs[j];
+            rc[part] = readExpertWeight(st[part / 2], part % 2 != 0, false);
+          }
+        });
+    for (size_t i = 0; i < st.size(); ++i) {
+      auto &expert = st[i];
+      expert.rc = rc[2 * i] != 0 ? rc[2 * i] : rc[2 * i + 1];
+      if (expert.prefetch_claimed) {
+        const bool ok = pool_prefetch_->takeClaimed(
+          expert.d.key_gu,
+          [&expert](StagedExpert &ready) { adoptPrefetch(expert, ready); });
+        expert.prefetch_claimed = false;
+        if (!ok)
+          expert.rc = readExpert(expert, false, false);
+      }
+    }
   }
 
   /** @brief [#266] NNTR_MOE_MISS_READERS: the miss round's reader count
@@ -8831,9 +9188,13 @@ private:
   std::unordered_map<const void *, std::pair<uint32_t, uint32_t>> pool_where_;
   ExpertPoolFn pool_fn_;
   std::function<void(size_t)> pool_grow_; /**< [#4416] set_decode_pool_grow */
-  std::vector<uint8_t> pool_answered_; /**< [#289] layers a miss round served
-                                          this token (handle_mutex_) */
+  std::vector<uint8_t> pool_answered_;    /**< [#289] layers a miss round served
+                                             this token (handle_mutex_) */
   bool pool_dirty_ = true;
+  std::shared_ptr<HtpExpertPrefetch<StagedExpert>> pool_prefetch_;
+  std::shared_ptr<HtpExpertPrefetch<PredictionJob>> cpu_predictor_;
+  std::vector<PredictionRouter> prediction_routers_;
+  std::unique_ptr<HtpPrefetchConfidence> prediction_confidence_;
   std::unique_ptr<PreparedTl2> prepared_tl2_;
   bool tl2_decode_ = false;
 
@@ -8848,6 +9209,10 @@ private:
       native = false;
     if (!prepared_tl2_ || tl2_decode_ == native)
       return;
+    if (cpu_predictor_)
+      cpu_predictor_->drain();
+    if (pool_prefetch_)
+      pool_prefetch_->drain();
     while (!prefetch_qs4cx_wh_experts_end().empty()) {
     }
     const uint64_t start = HtpProfile::nowUs();
@@ -9014,9 +9379,10 @@ private:
              rt_anslat_us = 0, rt_rebind_us = 0;
     uint64_t pgpgin0 = 0; /**< [#216] vmstatPgpginKib() at driver on */
   };
-  /** @brief The mailbox page: HEXKL_MBOX_BYTES (18 432) rounded to the
-   *  #178 probe's 64 KiB. */
+  /** @brief Mailbox allocation, including the optional prediction row. */
   static constexpr size_t kMboxBytes = size_t(64) << 10;
+  static_assert(HTP_MBOX_PRED_INPUT + HTP_MBOX_PRED_BYTES <= kMboxBytes,
+                "Prediction input must fit the shared mailbox");
   /** [plan 201 S1] poolServe's thread and its handshake with tokenForward:
    *  active while a token is in flight, idle once the thread stopped
    *  polling; the loads of the last answer until S1 fills their pairs. */
