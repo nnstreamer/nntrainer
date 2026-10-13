@@ -413,7 +413,9 @@ class MainActivity : AppCompatActivity() {
         rootHost.addView(column)
 
         column.addView(buildTopBar(tokens))
-        column.addView(buildHeroCard(tokens))
+        // The Train tab carries its status under the loss chart; a hero
+        // card there would just duplicate it.
+        if (selectedTab != "train") column.addView(buildHeroCard(tokens))
         column.addView(buildTabBar(tokens))
 
         // Main scrolling content area — wraps the model section, the
@@ -843,23 +845,19 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayout.VERTICAL; setPadding(dp(4), dp(4), dp(4), dp(4))
         }
         
-        // 1. Start Training Button at the top
-        container.addView(buildTrainTabToggles(t))
-        spacer(container, 8)
-
-        // 2. Chart
+        // 1. Chart — the Start/Stop Training pill rides its header row.
         container.addView(buildTrainChartPanel(t))
         spacer(container, 8)
 
-        // 3. TEST — run the model before / after training
+        // 2. TEST — run the model before / after training
         container.addView(buildTrainTestPanel(t))
         spacer(container, 8)
 
-        // 4. Training Log
+        // 3. Training Log
         container.addView(buildTrainLogPanel(t))
         spacer(container, 8)
 
-        // 5. Collapsible Settings Form
+        // 4. Collapsible Settings Form
         val cc = roundedCard(t, t.surfaceContainer)
         val headerLayout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -941,12 +939,11 @@ class MainActivity : AppCompatActivity() {
         return container
     }
 
-    private fun buildTrainTabToggles(t: M3Tokens): View {
-        val w = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        // A plain TextView pill, not Button: Button drags in AppCompat's
-        // 48dp minimum and the ▶/⏹ emoji glyphs inflate the line box, so
-        // the control balloons well past its text.
-        w.addView(TextView(this).apply {
+    /** The Start/Stop Training pill shown on the chart header row. A
+     *  plain TextView, not Button: Button drags in AppCompat's 48dp
+     *  minimum and the ▶/⏹ emoji glyphs inflate the line box. */
+    private fun trainToggleButton(t: M3Tokens): View {
+        return TextView(this).apply {
             text = if (trainRunning) "Stop Training" else "Start Training"
             textSize = 13f
             typeface = Typeface.DEFAULT_BOLD
@@ -957,10 +954,7 @@ class MainActivity : AppCompatActivity() {
             setOnClickListener {
                 if (trainRunning) onStopTraining() else onTrainClicked()
             }
-        }, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).also {
-            it.gravity = Gravity.CENTER_HORIZONTAL
-        })
-        return w
+        }
     }
 
     private fun buildTrainLogPanel(t: M3Tokens): View {
@@ -1052,8 +1046,19 @@ class MainActivity : AppCompatActivity() {
 
     private fun buildTrainChartPanel(t: M3Tokens): View {
         val card = roundedCard(t, t.surfaceContainerHigh)
-        card.addView(sectionHeader(t, "📈", t.surfaceContainerHigh, t.onSurface,
-            "Training Loss Chart", ""))
+        // Header row: title left, Start/Stop Training pill right — the
+        // control costs no extra vertical space this way.
+        val headerRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        val header = sectionHeader(t, "📈", t.surfaceContainerHigh, t.onSurface,
+            "Training Loss Chart", "")
+        header.layoutParams = LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f)
+        headerRow.addView(header)
+        headerRow.addView(trainToggleButton(t), LinearLayout.LayoutParams(
+            WRAP_CONTENT, WRAP_CONTENT).also { it.leftMargin = dp(8) })
+        card.addView(headerRow)
         spacer(card, 8)
         lossChartView = LossChartView(
             this,
