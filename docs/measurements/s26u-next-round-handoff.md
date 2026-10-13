@@ -88,15 +88,15 @@ NNTR_EMBEDDING_MMAP=1`을 더한 것(§7.2부터); §7.1은 그 전의 기본 en
 
 | # | 상태 | 커밋 | 비고 |
 |---|---|---|---|
-| P3 | 적용·검증 | `0377eb9c4` | 첫 구현은 1 ulp 차이가 8 %의 원소에 났다: **컴파일러가 `Q6_Vsf_*`를 qf32 연산으로 낮추고 따라갈 수 있는 변환을 지우기 때문에**, 기존 `addb_worker`는 handle(블록) 경계마다 누적기를 sf로 한 번 반올림한다. 융합 경로가 같은 지점에서 같은 반올림을 하도록(store를 거쳐 강제) 고쳐 동일. 기기 진단(35호출 비트 비교) bad=0 |
-| P6 | 적용·검증 | `8e49f2776` | (head, tile) 단위 풀 분배. permutation |
-| P7 | 적용·검증 | `ba1a09bfc` | f32 Q를 DMA로 staging에 넣고 `stage_qprep` 안에서 같은 HVX 연산 순서로 양자화. `q16_worker`·DSP heap의 u16 사본 삭제 |
-| P8 | 적용·검증 | `37d36e941` | 마지막 gate_up batch가 남은 dn chunk 전부 큐잉 |
-| P9 | 적용·검증 | `a015f2ab7` | sleepers 카운터, seq_cst Dekker 쌍 |
-| P10 | (a) 적용, 기기 확인 §7.3 | `555f6e173` | 행 블록 outer / k 블록 inner로 루프만 교환(같은 rows_block 호출, 같은 저장 지점). (b) 벡터 top-k는 미착수 |
-| P11 | 적용·검증 | `4ed071a61` | `stageInput`로 보관: 같은 테이블 포인터·바이트가 층마다 오고 sliding/global은 size class가 달라 서로 안 밀어냄 |
-| P2 | 1단계 적용, 기기 확인 §7.3; 2단계 코드만 | `c02772db3` | 1단계: 캘리브레이션(K/V \|max\|, Q min/max, scale·encoding 유도, fixed scale 설정)을 `attn_q2_step_fqc` 한 호출 안으로. max는 순서 무관이라 비트 동일. 2단계(K/V f32→fp16 변환·cache 행 쓰기를 DSP로): CPU cache가 rpcmem 블록이라 DSP가 직접 쓸 수 있고, HVX 정수 RNE 변환기(`hvx_f16_rne.h`)는 호스트 에뮬레이터에서 `hexkl_cvt_f32_to_hf`와 126만 케이스(fp16 전 패턴·동점·subnormal 경계) 비트 동일. 엔트리 `attn_q2_step_fqk`·ARM·mha_core 배선까지 작성했으나 **미빌드·미검증**(stash) |
-| D3 | 적용·검증 | `03e16fab5` | block-major `[Ep/32][K][32]`, `hvx_router_sm_pack_f32` |
+| P3 | 적용·검증 | `7946529bb` | 첫 구현은 1 ulp 차이가 8 %의 원소에 났다: **컴파일러가 `Q6_Vsf_*`를 qf32 연산으로 낮추고 따라갈 수 있는 변환을 지우기 때문에**, 기존 `addb_worker`는 handle(블록) 경계마다 누적기를 sf로 한 번 반올림한다. 융합 경로가 같은 지점에서 같은 반올림을 하도록(store를 거쳐 강제) 고쳐 동일. 기기 진단(35호출 비트 비교) bad=0 |
+| P6 | 적용·검증 | `fbef6853f` | (head, tile) 단위 풀 분배. permutation |
+| P7 | 적용·검증 | `f5ba412a6` | f32 Q를 DMA로 staging에 넣고 `stage_qprep` 안에서 같은 HVX 연산 순서로 양자화. `q16_worker`·DSP heap의 u16 사본 삭제 |
+| P8 | 적용·검증 | `315bbbf3d` | 마지막 gate_up batch가 남은 dn chunk 전부 큐잉 |
+| P9 | 적용·검증 | `4fc272b18` | sleepers 카운터, seq_cst Dekker 쌍 |
+| P10 | (a) 적용, 기기 확인 §7.3 | `6827af2f9` | 행 블록 outer / k 블록 inner로 루프만 교환(같은 rows_block 호출, 같은 저장 지점). (b) 벡터 top-k는 미착수 |
+| P11 | 적용·검증 | `9d0d035d2` | `stageInput`로 보관: 같은 테이블 포인터·바이트가 층마다 오고 sliding/global은 size class가 달라 서로 안 밀어냄 |
+| P2 | 1단계 적용, 기기 확인 §7.3; 2단계 코드만 | `63b7ea8f7` | 1단계: 캘리브레이션(K/V \|max\|, Q min/max, scale·encoding 유도, fixed scale 설정)을 `attn_q2_step_fqc` 한 호출 안으로. max는 순서 무관이라 비트 동일. 2단계(K/V f32→fp16 변환·cache 행 쓰기를 DSP로): CPU cache가 rpcmem 블록이라 DSP가 직접 쓸 수 있고, HVX 정수 RNE 변환기(`hvx_f16_rne.h`)는 호스트 에뮬레이터에서 `hexkl_cvt_f32_to_hf`와 126만 케이스(fp16 전 패턴·동점·subnormal 경계) 비트 동일. 엔트리 `attn_q2_step_fqk`·ARM·mha_core 배선까지 작성했으나 **미빌드·미검증**(stash) |
+| D3 | 적용·검증 | `2d19a6ae5` | block-major `[Ep/32][K][32]`, `hvx_router_sm_pack_f32` |
 | D5 | 이미 됨 | `4b50de470` (작성자) | `decode_model->incremental_inference`가 tensor를 돌려주어 `new float[]`를 안 탄다 |
 | D8 | 이미 됨 | — | `Tensor::activate()`가 mmap 직후 `madvise(WILLNEED)` |
 | D2 | 미착수 | — | 작성자 커밋이 M=1 스케줄을 레인별 다중 큐 DMA(#117/#177/#185)로 바꿔 handoff의 분석(`:1225-1255`)이 더는 맞지 않는다. decode 벽시계가 같은 빌드에서 11.2–15.3 TPS로 흔들려(§7.2) 3–8 ms/토큰은 `NNTR_HTP_PROFILE=1`의 MoE us/토큰으로만 판정 가능 |
@@ -120,3 +120,24 @@ NNTR_EMBEDDING_MMAP=1`을 더한 것(§7.2부터); §7.1은 그 전의 기본 en
 공유되고(같은 날 `/data/local/tmp/gemma4_decode_prefetch_*`) 측정 중 배터리 26→30 °C. (3) p4096은 FAST env로
 돌아 md5 기준(`1b462136`)과 못 비교했고 두 빌드의 본문이 달랐다(FAST p4096은 §2.7대로 near-tie 형식) → §7.3의
 기본 env 재확인.
+
+### 7.3 기기 미측정으로 남긴 것 (사용자 지시 10-13: 지금 작업은 기기에서 돌리지 말 것)
+
+측정 중이던 큐를 중단했다. 다음은 **코드·host check는 끝났지만 기기 md5·시간이 없다**:
+
+- **P2 1단계** (`63b7ea8f7`, 기기 디렉터리 `pr4416_p2a`에 올려만 둠): p1024/p2048 답 md5가 기준과 같은지, `NNTR_HTP_ATTN_TRACE=1`의
+  `q2fc` 줄(`f16+calib`/`calib` us)과 `mha_core trace`로 CPU 캘리브레이션 몫이 사라졌는지. 환경 변수 `NNTR_HTP_ATTN_DSP_CALIB=0`이면 이전 경로.
+- **P10(a)** (`6827af2f9`, skel만 바뀜): p1024/p2048 md5와 router 호출 시간.
+- **p4096 기본 env md5** (`1b462136`): r1과 h48 둘 다 FAST env로만 돌아 본문이 서로 달랐다(§7.2 (3)). 기본 env로 두 빌드를 다시 돌려 비교해야
+  r1의 2-chunk prefill(P3의 행 chunk, P6의 부분 tile, P7)이 p4096에서도 비트 동일한지 안다.
+- **FAST env의 r1 수치**: 끊기기 전 3회(p1024 G128): h48 1685 / 1917 ms, 14.35 / 14.15 TPS; r1 1894 ms, 13.41 TPS — 1회뿐이고 배터리 29–30 °C
+  구간이라 판정 보류. 이후 측정은 전부 FAST env(`NNTR_HTP_ATTN_M1_FAST=1 NNTR_EMBEDDING_MMAP=1`)로 한다.
+- **P2 2단계**: 작업트리 stash(`P2 step 2 (K/V f32->fp16 on the DSP), unbuilt`)에 IDL(`attn_q2_step_fqk`: `inrout` cache 행 + `in` f32 행 +
+  `flags&1` 캘리브레이션)·DSP(`f16_rows_worker`, `q2_calibrate` 헬퍼)·`ComputeOps::sdpa_q2_kvcache_f32_rows`·ARM(`ionAlias`가 못 찾으면
+  false → CPU 변환)·mha_core(`dsp_kv_`: forward에서 변환을 미루고 `try_quantized_attention`이 가져감, 못 쓰면 `dsp_kv_flush_cpu`)까지
+  있다. 변환기 `hvx_f16_rne.h`와 host check `f16_rne_host_check.c`(+ 에뮬레이터에 `Q6_Vw_vlsr_VwVw`/`Q6_Vw_vasl_VwVw`/`Q6_Q_vcmp_gt_VuwVuw`
+  추가, `run_host_checks.sh` 등록)는 작업트리에 untracked/modified로 있다. 남은 순서: stub 재생성(`generate_stub.sh`) → skel·앱 빌드 →
+  `NNTR_HTP_ATTN_TRACE=1`로 (a) 변환 (b) 캘리브레이션 몫 측정 → md5. 기대치는 handoff의 −200~290 ms 중 변환 몫.
+- **주의(P3에서 배운 것)**: 새 커널이 기존 커널과 "같은 intrinsic"이어도 비트가 같다는 보장이 없다. 컴파일러가 `Vsf` 연산을 qf32로
+  낮추며 변환을 지우므로 루프 구조가 다르면 반올림 지점이 달라진다. `hexagon-llvm-objdump -d`로 두 함수의 `.qf32`/`.sf` 시퀀스를
+  맞추고, 기기 FARF 진단으로 비트 비교한 뒤 채택한다. host standin은 이것을 못 잡는다.
