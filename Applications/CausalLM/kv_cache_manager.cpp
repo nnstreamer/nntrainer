@@ -305,6 +305,24 @@ void KVCacheManager::load(const std::string &path, unsigned int seq_len) {
     throw std::runtime_error("KVCacheManager::load: cannot open file: " + path);
   }
 
+  // A dump of another model, length or dtype reads without an error and
+  // decodes garbage: the file must be exactly the rows asked for.
+  size_t want = 0;
+  for (auto &lc : layer_caches_) {
+    ml::train::TensorDim d = lc.key_cache.getDim();
+    d.height(seq_len);
+    want += 2 * lc.key_cache.getSharedDataTensor(d, 0, true).getMemoryBytes();
+  }
+  f.seekg(0, std::ios::end);
+  const size_t have = static_cast<size_t>(f.tellg());
+  f.seekg(0, std::ios::beg);
+  if (have != want) {
+    throw std::runtime_error(
+      "KVCacheManager::load: " + path + " is " + std::to_string(have) +
+      " bytes, " + std::to_string(want) + " expected for " +
+      std::to_string(seq_len) + " rows (another model, length or dtype?)");
+  }
+
   for (auto &lc : layer_caches_) {
     ml::train::TensorDim load_dim = lc.key_cache.getDim();
     load_dim.height(seq_len);
