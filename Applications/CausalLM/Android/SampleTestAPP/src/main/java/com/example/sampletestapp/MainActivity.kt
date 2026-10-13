@@ -981,19 +981,21 @@ class MainActivity : AppCompatActivity() {
         onRun: () -> Unit, which: String,
     ): View {
         val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        col.addView(Button(this).apply {
+        // TextView pill like the chart-header Start/Stop control — Button
+        // drags in AppCompat's 48dp minimum and the ▶/⏹ glyphs inflate the
+        // line box, so the control balloons past its text.
+        col.addView(TextView(this).apply {
             text = when {
-                running && testStopRequested == which -> "⏹ Stopping…"
-                running -> "■ Stop"
-                else -> "▶ Run $label"
+                running && testStopRequested == which -> "Stopping…"
+                running -> "Stop"
+                else -> "Run $label"
             }
-            isAllCaps = false
-            setTextColor(if (running) Color.WHITE else t.onPrimary)
             textSize = 13f
             typeface = Typeface.DEFAULT_BOLD
-            stateListAnimator = null
-            background = solid(if (running) t.error else t.primary, 24)
-            setPadding(dp(10), dp(8), dp(10), dp(8))
+            gravity = Gravity.CENTER
+            setTextColor(if (running) Color.WHITE else t.onPrimary)
+            background = solid(if (running) t.error else t.primary, 100)
+            setPadding(dp(10), dp(7), dp(10), dp(7))
             setOnClickListener {
                 if (running) {
                     testStopRequested = which
