@@ -15,6 +15,7 @@
 #include <weight.h>
 
 #include <fc_layer.h>
+#include <fp16.h>
 
 #include <gtest/gtest.h>
 
@@ -62,7 +63,7 @@ makeRunContext(const std::string &name, std::vector<nntrainer::Weight> &weights,
  *        it still exercises the real calibration code.
  */
 float fakeQuantWithScale(float v, float d) {
-  if (d < 1e-10f)
+  if (std::abs(d) < 1e-10f)
     return v;
   float q = std::round(v / d);
   q = std::max(-8.0f, std::min(7.0f, q));
@@ -329,18 +330,25 @@ TEST(FullyConnectedLoraQAT, EMABootstrapsThenBlendsAndFreezesDuringEval) {
   const nntrainer::Tensor &loraA_now = fx.weights[1].getVariableRef();
   const size_t K = fx.in_dim, N = fx.lora_rank;
   for (size_t b = 0; b < a_bd_2.size(); ++b) {
-    float max_abs = 0.0f;
+    float max_abs = 0.0f, m = 0.0f;
     for (size_t j = 0; j < 32; ++j) {
       const size_t nk = b * 32 + j;
       const size_t n = nk / K, k = nk % K;
-      max_abs =
-        std::max(max_abs, std::abs(loraA_now.getValue<float>(k * N + n)));
+      const float v = loraA_now.getValue<float>(k * N + n);
+      if (std::abs(v) > max_abs) {
+        max_abs = std::abs(v);
+        m = v;
+      }
     }
-    const float d_fresh = (max_abs > 1e-8f) ? max_abs / 8.0f : 0.0f;
-    const float expected_blend = 0.9f * a_bd_1[b] + 0.1f * d_fresh;
-    EXPECT_NEAR(a_bd_2[b], expected_blend, 1e-5f)
-      << "EMA block " << b << " did not blend as (1-momentum)*old + "
-                              "momentum*fresh";
+    // The EMA runs on the scale's magnitude; the sign follows the current
+    // largest-magnitude element (ggml: d = m / -8); the result is FP16.
+    const float mag = 0.9f * std::abs(a_bd_1[b]) + 0.1f * (max_abs / 8.0f);
+    const float expected_blend = nntrainer::compute_fp16_to_fp32(
+      nntrainer::compute_fp32_to_fp16(m > 0.0f ? -mag : mag));
+    EXPECT_FLOAT_EQ(a_bd_2[b], expected_blend)
+      << "EMA block " << b
+      << " did not blend as (1-momentum)*old + "
+         "momentum*fresh";
   }
 
   // A validation-mode (training=false) forward must NOT update the EMA:
@@ -360,4 +368,44 @@ TEST(FullyConnectedLoraQAT, EMABootstrapsThenBlendsAndFreezesDuringEval) {
   for (size_t b = 0; b < a_bd_4.size(); ++b)
     EXPECT_FLOAT_EQ(a_bd_4[b], a_bd_3[b])
       << "repeated validation-mode forward is not idempotent at block " << b;
+}
+
+/**
+ * @brief The scales follow ggml's Q4_0 convention and are FP16: on the first
+ *        training forward each block's largest-magnitude element lands
+ *        exactly on code -8 (d = m / -8), so a positive maximum is no longer
+ *        clipped to code 7, and every scale is an exact FP16 value -- the
+ *        precision the saved Q4_0 adapter stores.
+ */
+TEST(FullyConnectedLoraQAT, ScalesMapTheBlockMaximumToCodeMinus8InFp16) {
+  FCLoraQATFixture fx("fc_qat_ggml_scale");
+  // a large positive maximum in every block of loraA
+  float *a = fx.weights[1].getVariableRef().getData<float>();
+  const size_t K = fx.in_dim, N = fx.lora_rank;
+  for (size_t i = 0; i < K * N; ++i)
+    a[i] = 0.1f * std::sin(0.7f * i);
+  for (size_t b = 0; b < K * N / 32; ++b) {
+    const size_t nk = b * 32 + 5;
+    a[(nk % K) * N + nk / K] = 3.0f + 0.25f * b;
+  }
+  fx.layer.forwarding(fx.rc, true);
+  auto [a_bd, b_bd] = nntrainer::FullyConnectedLayer::getRegisteredBlockScales(
+    "fc_qat_ggml_scale");
+  ASSERT_EQ(a_bd.size(), K * N / 32);
+
+  const nntrainer::Tensor a_fq =
+    applyFakeQuantWithScales(fx.weights[1].getVariableRef(), a_bd);
+  for (size_t b = 0; b < a_bd.size(); ++b) {
+    const float d = a_bd[b];
+    EXPECT_LT(d, 0.0f) << "a positive maximum must give d = m / -8 < 0";
+    EXPECT_EQ(
+      nntrainer::compute_fp16_to_fp32(nntrainer::compute_fp32_to_fp16(d)), d)
+      << "block " << b << " scale is not an FP16 value";
+    const size_t nk = b * 32 + 5;
+    const size_t at = (nk % K) * N + nk / K;
+    EXPECT_FLOAT_EQ(a_fq.getValue<float>(at), -8.0f * d)
+      << "block " << b << " maximum is not on code -8";
+    EXPECT_NEAR(a_fq.getValue<float>(at), a[at], 2e-3f * a[at])
+      << "block " << b << " maximum is not preserved";
+  }
 }

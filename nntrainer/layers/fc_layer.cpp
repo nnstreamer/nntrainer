@@ -26,6 +26,7 @@
 #include <common_properties.h>
 #include <compute_ops.h>
 #include <fc_layer.h>
+#include <fp16.h>
 #include <ggml_interface.h>
 #include <layer_context.h>
 #include <lazy_tensor.h>
@@ -72,18 +73,33 @@ FullyConnectedLayer::FullyConnectedLayer() :
   lora_idx.fill(std::numeric_limits<unsigned>::max());
 }
 
+namespace {
+/** @brief mean magnitude of the (signed) per-block QAT scales */
+float meanAbs(const std::vector<float> &v) {
+  float sum = 0.0f;
+  for (float d : v)
+    sum += std::abs(d);
+  return v.empty() ? 0.0f : sum / static_cast<float>(v.size());
+}
+} // namespace
+
 // Per-block Q4_0 fake-quantization with EMA block scales tracked in N x K
 // layout.
 //
-// Blocks are defined in N x K layout (the transposed layout the Q4_0 GEMM
-// kernel and build_q4_0_forced_blocks both use at save time), so the EMA
-// scales computed here line up exactly with the blocks force-fed at save
-// time.
+// Blocks are defined in N x K layout (the transposed layout
+// build_q4_0_forced_blocks uses at save time), so the EMA scales computed
+// here line up exactly with the blocks force-fed at save time.
 //
-// Training:   compute a fresh per-block scale, bootstrap the EMA on first
-//             use, then update block_d[b] = (1-m)*block_d[b] + m*d_fresh,
-//             and quantize with the updated EMA scale.
-// Validation: quantize with the current EMA scale without updating it.
+// Scale:      ggml's Q4_0 convention: d = m / -8 for the block's
+//             largest-magnitude element m, so that element lands exactly on
+//             code -8 (the grid is -8..7: a plain max|w|/8 clips a positive
+//             maximum to 7). block_d holds the signed d; the EMA runs on its
+//             magnitude and the sign follows the current maximum.
+// Training:   update the EMA, bootstrapping it on first use:
+//             |d| = (1-m)*|d| + m*|d_fresh|; validation reads it unchanged.
+// FP16:       every stored scale is rounded to FP16, the precision the
+//             saved adapter keeps, so the values trained against are exactly
+//             the values deployed.
 // STE:        the caller (calcDerivative/calcGradient) treats the round in
 //             this function as the identity for gradient purposes; this
 //             function itself only computes the forward value.
@@ -100,24 +116,30 @@ Tensor FullyConnectedLayer::fakeQuantizeQ4_0(const Tensor &x,
 
   // Blocks run over the N x K linear index nk = b*32+j: n = nk/K, k = nk%K,
   // which is K x N element k*N+n. Raw-pointer loops (the per-element virtual
-  // getValue and std::function dispatch dominated this op); same arithmetic
-  // and order as before, so the result is bit-identical.
+  // getValue and std::function dispatch dominated this op).
   const float *src = x.getData<float>();
   Tensor x_fq = x.clone();
   float *dst = x_fq.getData<float>();
 
-  for (size_t b = 0; b < num_blocks_NK; ++b) {
-    float max_abs = 0.0f;
-    for (size_t j = 0; j < 32; ++j) {
-      const size_t nk = b * 32 + j;
-      max_abs = std::max(max_abs, std::abs(src[(nk % K) * N + nk / K]));
-    }
-    const float d_fresh = (max_abs > 1e-8f) ? max_abs / 8.0f : 0.0f;
-    if (training) {
-      if (block_d[b] < 1e-10f)
-        block_d[b] = d_fresh;
-      else
-        block_d[b] = (1.0f - momentum) * block_d[b] + momentum * d_fresh;
+  if (training) {
+    for (size_t b = 0; b < num_blocks_NK; ++b) {
+      float amax = 0.0f, m = 0.0f;
+      for (size_t j = 0; j < 32; ++j) {
+        const size_t nk = b * 32 + j;
+        const float v = src[(nk % K) * N + nk / K];
+        if (std::abs(v) > amax) {
+          amax = std::abs(v);
+          m = v;
+        }
+      }
+      if (amax <= 1e-8f)
+        continue; // all-zero block: keep its scale (0 until it has one)
+      const float fresh = amax / 8.0f;
+      const float prev = std::abs(block_d[b]);
+      const float mag =
+        prev < 1e-10f ? fresh : (1.0f - momentum) * prev + momentum * fresh;
+      block_d[b] =
+        compute_fp16_to_fp32(compute_fp32_to_fp16(m > 0.0f ? -mag : mag));
     }
   }
 
@@ -125,7 +147,7 @@ Tensor FullyConnectedLayer::fakeQuantizeQ4_0(const Tensor &x,
     const size_t k = i / N;
     const size_t n = i % N;
     const float d = block_d[(n * K + k) / 32];
-    if (d < 1e-10f)
+    if (std::abs(d) < 1e-10f)
       continue; // x_fq already holds v
     float q = std::round(dst[i] / d);
     q = std::max(-8.0f, std::min(7.0f, q));
@@ -878,19 +900,16 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
       b_fq = fakeQuantizeQ4_0(loraB, lora_b_block_d, training);
 
       // Publish the current calibration to the registries so the
-      // Application layer can force-feed these scales at save time.
-      if (!lora_a_block_d.empty() && !lora_b_block_d.empty()) {
+      // Application layer can force-feed these scales at save time. Only a
+      // training forward moves the scales.
+      if (training && !lora_a_block_d.empty() && !lora_b_block_d.empty()) {
         LoRAQATStats s;
         s.a_min = loraA.minValue();
         s.a_max = loraA.maxValue();
-        s.a_scale =
-          std::accumulate(lora_a_block_d.begin(), lora_a_block_d.end(), 0.0f) /
-          static_cast<float>(lora_a_block_d.size());
+        s.a_scale = meanAbs(lora_a_block_d);
         s.b_min = loraB.minValue();
         s.b_max = loraB.maxValue();
-        s.b_scale =
-          std::accumulate(lora_b_block_d.begin(), lora_b_block_d.end(), 0.0f) /
-          static_cast<float>(lora_b_block_d.size());
+        s.b_scale = meanAbs(lora_b_block_d);
         s.valid = true;
         std::lock_guard<std::mutex> lk(s_registry_mutex);
         s_qat_registry[layer_name_] = s;
