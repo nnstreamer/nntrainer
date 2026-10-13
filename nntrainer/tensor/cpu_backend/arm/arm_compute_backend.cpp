@@ -24,6 +24,7 @@
 #include <neon_impl.h>
 #include <nntrainer_error.h>
 #include <q4_0_utils.h>
+#include <tq2cx_kernels.h>
 
 namespace nntrainer {
 
@@ -391,6 +392,14 @@ void gemm_q4_0(const unsigned int M, std::vector<unsigned int> Ns,
                std::vector<void *> Bs, std::vector<unsigned int> ldbs,
                std::vector<float *> Cs, std::vector<unsigned int> ldcs) {
   return __ggml_q4_0_4x8_q8_0_GEMM<float>(M, Ns, K, A, lda, Bs, ldbs, Cs, ldcs);
+}
+
+void gemm_tq2cx_batch(const unsigned int M, const std::vector<unsigned int> &Ns,
+                      const unsigned int K, const float *A,
+                      const unsigned int lda, const std::vector<void *> &Bs,
+                      const std::vector<float *> &Cs,
+                      const std::vector<unsigned int> &ldcs) {
+  tq2cx_gemm_batch(M, Ns, K, A, lda, Bs, Cs, ldcs, tq2cx_tile_ref);
 }
 
 void gemm_q4_K(const unsigned int M, const unsigned int N, const unsigned int K,

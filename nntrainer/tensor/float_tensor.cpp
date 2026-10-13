@@ -1151,8 +1151,18 @@ Tensor &FloatTensor::dotTernary(Tensor const &input, Tensor &output, bool trans,
     << "[FloatTensor::dotTernary] output size mismatch";
 
   refuseIfTq2cxPayloadReleased(input.getData(), "FloatTensor::dotTernary");
-  tq2cx_gemm_ref_fp32(M, N, K, (const float *)getData(), K, input.getData(),
-                      output.getData<float>(), N, beta);
+  auto *o = getOps();
+  if (beta == 0.0f && o->supports_gemm_tq2cx_batch_fp32()) {
+    std::vector<void *> weights = {(void *)input.getData<uint8_t>()};
+    std::vector<float *> outputs = {output.getData<float>()};
+    o->gemm_tq2cx_batch_fp32(
+      weights, (float *)getData(), outputs, static_cast<unsigned int>(M),
+      {static_cast<unsigned int>(N)}, static_cast<unsigned int>(K));
+  } else {
+    // accumulation into the output: scalar reference
+    tq2cx_gemm_ref_fp32(M, N, K, (const float *)getData(), K, input.getData(),
+                        output.getData<float>(), N, beta);
+  }
   return output;
 }
 

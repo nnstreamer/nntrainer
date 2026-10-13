@@ -1131,6 +1131,27 @@ void gemm_q4_0(const unsigned int M, std::vector<unsigned int> Ns,
                std::vector<void *> Bs, std::vector<unsigned int> ldbs,
                std::vector<float *> Cs, std::vector<unsigned int> ldc);
 /**
+ * @brief TQ2CX GEMM against several weights : A (M,K) * Ws[i].T (Ns[i],K)
+ *
+ * A is used in fp32 as is. The arithmetic contract (bit-exact across
+ * implementations of one target for finite activations) is documented in
+ * tq2cx_kernels.h, the weight layout in ternary_tensor.h.
+ *
+ * @param M rows of A and of every output
+ * @param Ns output channels of each weight
+ * @param K input size shared by every weight
+ * @param A fp32 activation
+ * @param lda leading dimension of A
+ * @param Bs TQ2CX records (N x K)
+ * @param Cs fp32 outputs
+ * @param ldcs leading dimension of each output
+ */
+void gemm_tq2cx_batch(const unsigned int M, const std::vector<unsigned int> &Ns,
+                      const unsigned int K, const float *A,
+                      const unsigned int lda, const std::vector<void *> &Bs,
+                      const std::vector<float *> &Cs,
+                      const std::vector<unsigned int> &ldcs);
+/**
  * @brief q4_K GEMM : A (M,K) * W.T (N,K) = O (M,N)
  *
  * @param M Original row size of output

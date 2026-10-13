@@ -24,11 +24,14 @@
 #include <gtest/gtest.h>
 #include <random>
 #include <sstream>
+#include <tuple>
 #include <vector>
 
+#include <cpu_backend.h>
 #include <tensor.h>
 #include <tensor_dim.h>
 #include <ternary_tensor.h>
+#include <tq2cx_kernels.h>
 #include <tq2cx_layout.h>
 
 namespace {
@@ -508,8 +511,124 @@ TEST(TernaryTensor, dtype_string_round_trips_through_the_property_table) {
 }
 
 //==============================================================================
+// batched TQ2CX GEMM (ComputeOps / arch tiles)
+//==============================================================================
+
+/**
+ * @brief shapes for the batch kernel tests: {M, K, N}
+ */
+class TernaryBatchKernelTest
+  : public ::testing::TestWithParam<
+      std::tuple<unsigned int, unsigned int, unsigned int>> {};
+
+/**
+ * @brief pack -> validate -> batched dot. Every dispatch path must give
+ *        exactly the bits of the single-threaded scalar reference tile, the
+ *        result must not change between runs, and it must stay within 1e-5
+ *        (relative, RMS) of a double precision dense product.
+ */
+TEST_P(TernaryBatchKernelTest, matches_scalar_reference_p) {
+  const unsigned int M = std::get<0>(GetParam());
+  const unsigned int K = std::get<1>(GetParam());
+  const unsigned int N = std::get<2>(GetParam());
+
+  std::vector<float> scales;
+  const auto dense = makeTernaryDense(N, K, scales, 7 + K + N);
+  const TD wdim(1, 1, K, N, {TD::Format::NCHW, TD::DataType::TQ2CX});
+  std::vector<uint8_t> record(nntrainer::TernaryTensor::recordBytes(K, N));
+  nntrainer::tq2cx_pack_ref_fp32(N, K, dense.data(), K, record.data());
+  nntrainer::TernaryTensor packed(wdim, record.data());
+  ASSERT_TRUE(packed.validate());
+  nntrainer::Tensor w(wdim, record.data());
+
+  std::mt19937 rng(31 + M);
+  std::normal_distribution<float> nd(0.0f, 1.0f);
+  nntrainer::Tensor act(1, 1, M, K);
+  for (size_t i = 0; i < static_cast<size_t>(M) * K; ++i)
+    act.getData<float>()[i] = nd(rng);
+  const float *A = act.getData<float>();
+
+  const size_t len = static_cast<size_t>(M) * N;
+  std::vector<float> c_ref(len, -1.0f), c_arch(len, -2.0f), c_ops(len, -3.0f),
+    c_again(len, -4.0f), c_oracle(len, 0.0f);
+  std::vector<void *> Ws = {w.getData()};
+  const std::vector<unsigned int> Ns = {N};
+  auto out = [](std::vector<float> &v) {
+    return std::vector<float *>{v.data()};
+  };
+
+  nntrainer::tq2cx_gemm_batch(M, Ns, K, A, K, Ws, out(c_ref), Ns,
+                              nntrainer::tq2cx_tile_ref, false);
+  nntrainer::gemm_tq2cx_batch(M, Ns, K, A, K, Ws, out(c_arch), Ns);
+  nntrainer::gemm_tq2cx_batch(M, Ns, K, A, K, Ws, out(c_again), Ns);
+  auto *ops = nntrainer::getComputeOps();
+  ASSERT_NE(ops, nullptr);
+  ASSERT_TRUE(ops->supports_gemm_tq2cx_batch_fp32());
+  ops->gemm_tq2cx_batch_fp32(Ws, const_cast<float *>(A), out(c_ops), M, Ns, K);
+  nntrainer::tq2cx_gemm_ref_fp32(M, N, K, A, K, w.getData(), c_oracle.data(), N,
+                                 0.0f);
+
+  const size_t bytes = len * sizeof(float);
+  EXPECT_EQ(std::memcmp(c_ref.data(), c_arch.data(), bytes), 0)
+    << "arch tile differs from the scalar reference tile";
+  EXPECT_EQ(std::memcmp(c_arch.data(), c_again.data(), bytes), 0)
+    << "two runs of the threaded kernel differ";
+  EXPECT_EQ(std::memcmp(c_ref.data(), c_ops.data(), bytes), 0)
+    << "ComputeOps dispatch differs from the scalar reference tile";
+  EXPECT_EQ(std::memcmp(c_ref.data(), c_oracle.data(), bytes), 0)
+    << "batch reference differs from tq2cx_gemm_ref_fp32";
+
+  // the FC-layer path: activation.dot(weight)
+  nntrainer::Tensor y(1, 1, M, N);
+  act.dot(w, y, false, false, 0.0f);
+  EXPECT_EQ(std::memcmp(c_ref.data(), y.getData<float>(), bytes), 0)
+    << "FloatTensor::dot differs from the scalar reference tile";
+
+  double num = 0.0, den = 0.0;
+  for (unsigned int m = 0; m < M; ++m) {
+    for (unsigned int n = 0; n < N; ++n) {
+      double r = 0.0;
+      for (unsigned int k = 0; k < K; ++k)
+        r +=
+          static_cast<double>(A[(size_t)m * K + k]) * dense[(size_t)n * K + k];
+      const double d = r - c_ref[(size_t)m * N + n];
+      num += d * d;
+      den += r * r;
+    }
+  }
+  EXPECT_LE(std::sqrt(num / den), 1e-5);
+}
+
+INSTANTIATE_TEST_SUITE_P(ExpertShapes, TernaryBatchKernelTest,
+                         ::testing::Combine(::testing::Values(1u, 2u, 8u, 33u),
+                                            ::testing::Values(704u, 2816u),
+                                            ::testing::Values(704u, 2816u)));
+
+INSTANTIATE_TEST_SUITE_P(OddShapes, TernaryBatchKernelTest,
+                         ::testing::Values(std::make_tuple(5u, 100u, 13u),
+                                           std::make_tuple(3u, 40u, 24u),
+                                           std::make_tuple(17u, 64u, 57u)));
+
+//==============================================================================
 // stored layout v2 ("t2r16v2")
 //==============================================================================
+
+namespace {
+
+/**
+ * @brief Run with the process's stored TQ2CX layout set to @a l, restore on
+ *        scope exit.
+ */
+struct StoredLayoutScope {
+  nntrainer::Tq2cxLayout saved; /**< layout to restore */
+  explicit StoredLayoutScope(const nntrainer::Tq2cxLayout &l) :
+    saved(nntrainer::tq2cxStoredLayout()) {
+    nntrainer::setTq2cxStoredLayout(l);
+  }
+  ~StoredLayoutScope() { nntrainer::setTq2cxStoredLayout(saved); }
+};
+
+} // namespace
 
 TEST(TernaryLayout, ids_parse_and_print) {
   nntrainer::Tq2cxLayout l;
@@ -562,6 +681,111 @@ TEST(TernaryLayout, unit_index_is_the_spec) {
   for (size_t i = 0; i < hit.size(); ++i)
     EXPECT_LE(hit[i], 1) << "unit slot " << i << " used twice";
 }
+
+/**
+ * @brief shapes for the v2 tests: {M, K, N}
+ */
+class TernaryLayoutV2Test
+  : public ::testing::TestWithParam<
+      std::tuple<unsigned int, unsigned int, unsigned int>> {};
+
+/**
+ * @brief v1 record -> v2 -> v1 is the identity, and every kernel reading the
+ *        v2 record (scalar reference, arch tile, ComputeOps, the FC dot)
+ *        returns exactly the bits of the scalar reference over the v1 record:
+ *        the layout moves units, not values or the summation order.
+ */
+TEST_P(TernaryLayoutV2Test, v2_kernels_match_row_major_reference_p) {
+  const unsigned int M = std::get<0>(GetParam());
+  const unsigned int K = std::get<1>(GetParam());
+  const unsigned int N = std::get<2>(GetParam());
+  const auto rm = nntrainer::TQ2CX_LAYOUT_RM;
+  const auto v2 = nntrainer::TQ2CX_LAYOUT_T2R16V2;
+
+  std::vector<float> scales;
+  const auto dense = makeTernaryDense(N, K, scales, 11 + K + 3 * N);
+  std::vector<uint8_t> rec1(nntrainer::tq2cxRecordBytes(rm, N, K));
+  nntrainer::tq2cx_pack_ref_fp32(N, K, dense.data(), K, rec1.data(), rm);
+
+  // converter round trip; the direct v2 pack writes the same bytes
+  std::vector<uint8_t> rec2(nntrainer::tq2cxRecordBytes(v2, N, K), 0xAB);
+  nntrainer::tq2cxRelayout(rm, v2, rec1.data(), rec2.data(), N, K);
+  std::vector<uint8_t> back(rec1.size(), 0xCD);
+  nntrainer::tq2cxRelayout(v2, rm, rec2.data(), back.data(), N, K);
+  ASSERT_EQ(back, rec1);
+  std::vector<uint8_t> packed2(rec2.size(), 0x11);
+  nntrainer::tq2cx_pack_ref_fp32(N, K, dense.data(), K, packed2.data(), v2);
+  ASSERT_EQ(packed2, rec2);
+
+  std::mt19937 rng(57 + M);
+  std::normal_distribution<float> nd(0.0f, 1.0f);
+  nntrainer::Tensor act(1, 1, M, K);
+  for (size_t i = 0; i < static_cast<size_t>(M) * K; ++i)
+    act.getData<float>()[i] = nd(rng);
+  const float *A = act.getData<float>();
+  const size_t len = static_cast<size_t>(M) * N, bytes = len * sizeof(float);
+  const std::vector<unsigned int> Ns = {N};
+  auto out = [](std::vector<float> &v) {
+    return std::vector<float *>{v.data()};
+  };
+
+  // the expected bits: scalar reference tile over the row-major record
+  std::vector<float> c_ref(len, -1.0f);
+  {
+    std::vector<void *> W1 = {rec1.data()};
+    nntrainer::tq2cx_gemm_batch(M, Ns, K, A, K, W1, out(c_ref), Ns,
+                                nntrainer::tq2cx_tile_ref, false, rm);
+  }
+
+  StoredLayoutScope scope(v2);
+  const TD wdim(1, 1, K, N, {TD::Format::NCHW, TD::DataType::TQ2CX});
+  nntrainer::Tensor w(wdim, rec2.data());
+  ASSERT_EQ(w.bytes(), rec2.size());
+  nntrainer::TernaryTensor t2(wdim, rec2.data());
+  ASSERT_TRUE(t2.validate());
+  for (unsigned int n = 0; n < N; n += 3)
+    for (unsigned int k = 0; k < K; k += 7)
+      ASSERT_EQ(t2.decode(0, n, k), dense[(size_t)n * K + k]);
+
+  std::vector<void *> W2 = {w.getData()};
+  std::vector<float> c_tile(len, -2.0f), c_arch(len, -3.0f), c_ops(len, -4.0f),
+    c_oracle(len, 0.0f);
+  nntrainer::tq2cx_gemm_batch(M, Ns, K, A, K, W2, out(c_tile), Ns,
+                              nntrainer::tq2cx_tile_ref, false);
+  nntrainer::gemm_tq2cx_batch(M, Ns, K, A, K, W2, out(c_arch), Ns);
+  auto *ops = nntrainer::getComputeOps();
+  ASSERT_NE(ops, nullptr);
+  ops->gemm_tq2cx_batch_fp32(W2, const_cast<float *>(A), out(c_ops), M, Ns, K);
+  nntrainer::tq2cx_gemm_ref_fp32(M, N, K, A, K, w.getData(), c_oracle.data(), N,
+                                 0.0f);
+  EXPECT_EQ(std::memcmp(c_ref.data(), c_tile.data(), bytes), 0)
+    << "v2 scalar tile differs from the row-major reference";
+  EXPECT_EQ(std::memcmp(c_ref.data(), c_arch.data(), bytes), 0)
+    << "v2 arch tile differs from the row-major reference";
+  EXPECT_EQ(std::memcmp(c_ref.data(), c_ops.data(), bytes), 0)
+    << "v2 ComputeOps dispatch differs from the row-major reference";
+  EXPECT_EQ(std::memcmp(c_ref.data(), c_oracle.data(), bytes), 0)
+    << "v2 tq2cx_gemm_ref_fp32 differs from the row-major reference";
+
+  nntrainer::Tensor y(1, 1, M, N);
+  act.dot(w, y, false, false, 0.0f);
+  EXPECT_EQ(std::memcmp(c_ref.data(), y.getData<float>(), bytes), 0)
+    << "v2 FloatTensor::dot differs from the row-major reference";
+}
+
+INSTANTIATE_TEST_SUITE_P(ExpertShapes, TernaryLayoutV2Test,
+                         ::testing::Combine(::testing::Values(1u, 8u, 33u),
+                                            ::testing::Values(704u, 2816u),
+                                            ::testing::Values(704u, 2816u)));
+
+// N % 16 != 0 (padded rows), an odd unit count (one-unit tail block),
+// K % 32 != 0, N below one tile
+INSTANTIATE_TEST_SUITE_P(OddShapes, TernaryLayoutV2Test,
+                         ::testing::Values(std::make_tuple(5u, 100u, 13u),
+                                           std::make_tuple(3u, 96u, 40u),
+                                           std::make_tuple(17u, 64u, 57u),
+                                           std::make_tuple(2u, 160u, 100u),
+                                           std::make_tuple(4u, 32u, 8u)));
 
 int main(int argc, char **argv) {
   int result = -1;
