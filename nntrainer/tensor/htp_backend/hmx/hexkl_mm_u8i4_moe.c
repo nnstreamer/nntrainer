@@ -221,12 +221,20 @@ static void moe_expand_unit(uint32_t n_units, uint32_t u, void *vctx) {
   const uint32_t total = c->nbase * c->nrows;
   const uint32_t i0 = total * u / n_units;
   const uint32_t i1 = total * (u + 1u) / n_units;
-  uint32_t i;
-  for (i = i0; i < i1; ++i) {
-    uint8_t *dst = c->base[i / c->nrows] + (size_t)(i % c->nrows) * c->stride;
-    if (c->prepared)
-      hvx_i2_lut_unrepack_row(dst + c->src_bytes, c->src_bytes);
-    hvx_expand_i2i4(dst + c->src_bytes, c->src_bytes, c->lut, dst);
+  /** A unit visits contiguous k rows in at most two bases. Select a base
+   * once per run so the inner row loop does not perform integer division. */
+  for (uint32_t b = 0u; b < c->nbase; ++b) {
+    const uint32_t base0 = b * c->nrows, base1 = base0 + c->nrows;
+    const uint32_t lo = i0 > base0 ? i0 : base0;
+    const uint32_t hi = i1 < base1 ? i1 : base1;
+    if (lo >= hi)
+      continue;
+    uint8_t *dst = c->base[b] + (size_t)(lo - base0) * c->stride;
+    for (uint32_t i = lo; i < hi; ++i, dst += c->stride) {
+      if (c->prepared)
+        hvx_i2_lut_unrepack_row(dst + c->src_bytes, c->src_bytes);
+      hvx_expand_i2i4(dst + c->src_bytes, c->src_bytes, c->lut, dst);
+    }
   }
 }
 
@@ -497,7 +505,8 @@ typedef struct {
   uint32_t rq_m_blk, inter;
   float *rq_scale; /**< 64 each, the params the next down dequantizes with */
   int32_t *rq_zp;
-  uint8_t *mid; /**< the mid buffer it packs into */
+  uint8_t *mid;       /**< the mid buffer it packs into */
+  uint32_t next_tile; /**< Combined jobs balance DN after requantization. */
 } moe_dn_ctx;
 
 #define MOE_RQ_UNIT_ROWS 16u
@@ -534,7 +543,16 @@ static void moe_dn_worker(uint32_t n_threads, uint32_t i, void *vctx) {
                                 c->rq_zp, c->mid);
     }
   }
-  for (uint32_t j = i; j < c->nb; j += n_threads) {
+  /** A requant unit costs more than a down tile. Workers without a unit
+   * start down tiles immediately; the other workers join when their unit is
+   * complete. A tile's rows stay on one worker, preserving every output's
+   * accumulation order. Jobs without requant keep their static partition. */
+  const int shared = c->gate && n_threads > MOE_RQ_UNITS;
+  uint32_t j =
+    shared ? __atomic_fetch_add(&c->next_tile, 1u, __ATOMIC_RELAXED) : i;
+  for (; j < c->nb;
+       j = shared ? __atomic_fetch_add(&c->next_tile, 1u, __ATOMIC_RELAXED)
+                  : j + n_threads) {
     const uint32_t c0 = (c->nt0 + j) * HEXKL_ACC_TILE_COLS;
     const int32_t *tile =
       (const int32_t *)(c->tiles_base + (size_t)j * c->tile_stride);
@@ -1374,8 +1392,16 @@ int hexkl_mm_u8i4_moe_layout(uint32_t K, uint32_t inter, uint32_t N_out,
        better once it is well past the worker count, and a smaller chunk is
        what makes the matmul start sooner. 32 leaves gate_up in 4 paired
        chunks and down in 2. */
-    if (want > 32u) {
-      want = 32u;
+    uint32_t cap = 32u;
+#if defined(__HEXAGON_ARCH__) && __HEXAGON_ARCH__ >= 81
+    // The LFM2 expert on 8 MiB VTCM uses two GU chunks and one down chunk.
+    // Smaller arenas and other expert shapes retain their measured layout.
+    if (K == 2048u && inter == 1536u && N_out == 2048u &&
+        arena_bytes >= 7u * 1024u * 1024u)
+      cap = 64u;
+#endif
+    if (want > cap) {
+      want = cap;
     }
     L.acc_tiles = (fits < want) ? fits : want;
     /** Pairs: the gate_up epilogue dequantizes gate tile j and up tile j
@@ -2510,6 +2536,7 @@ int hexkl_mm_u8i4_moe_layer_run(
           c->tile_stride = ACC_TILE_BYTES;
           c->nt0 = nt0;
           c->nb = nb;
+          c->next_tile = 0u;
           c->row_stride = acc_planes ? 0u : acc->row_stride;
           c->m_count = pblk.m_blk;
           c->act_scale = rq_scale + pp * BR;

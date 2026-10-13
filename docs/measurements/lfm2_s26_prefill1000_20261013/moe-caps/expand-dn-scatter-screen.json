@@ -1,0 +1,77 @@
+{
+  "method": "6 timed repetitions per fixture; first interaction screen; not full-model TPS",
+  "labels": [
+    "expansion-control-screen-o1",
+    "expand-dn-screen-m1",
+    "scatter-aligned-screen-n1"
+  ],
+  "all_exact_sha256": true,
+  "cases": [
+    {
+      "case": "model_layer_00",
+      "median_us": {
+        "expansion-control-screen-o1": 10296.276000000002,
+        "expand-dn-screen-m1": 9985.207999999999,
+        "scatter-aligned-screen-n1": 9627.8645
+      },
+      "dn_gain_pct": 3.0211699841768302,
+      "scatter_gain_pct": 3.578728655427099,
+      "combined_gain_pct": 6.491779163651035
+    },
+    {
+      "case": "model_layer_01",
+      "median_us": {
+        "expansion-control-screen-o1": 11429.792000000001,
+        "expand-dn-screen-m1": 10913.412,
+        "scatter-aligned-screen-n1": 10495.729500000001
+      },
+      "dn_gain_pct": 4.517842494421609,
+      "scatter_gain_pct": 3.8272402801250327,
+      "combined_gain_pct": 8.172174086807527
+    },
+    {
+      "case": "model_layer_02",
+      "median_us": {
+        "expansion-control-screen-o1": 12273.1775,
+        "expand-dn-screen-m1": 11920.078,
+        "scatter-aligned-screen-n1": 10505.469
+      },
+      "dn_gain_pct": 2.8770014937044674,
+      "scatter_gain_pct": 11.86744751166897,
+      "combined_gain_pct": 14.403022363198126
+    },
+    {
+      "case": "model_layer_19",
+      "median_us": {
+        "expansion-control-screen-o1": 11449.088,
+        "expand-dn-screen-m1": 11169.401,
+        "scatter-aligned-screen-n1": 10875.417000000001
+      },
+      "dn_gain_pct": 2.442875799364974,
+      "scatter_gain_pct": 2.6320480391025303,
+      "combined_gain_pct": 5.010626173892618
+    },
+    {
+      "case": "model_layer_38",
+      "median_us": {
+        "expansion-control-screen-o1": 11288.099,
+        "expand-dn-screen-m1": 10932.8645,
+        "scatter-aligned-screen-n1": 10632.265500000001
+      },
+      "dn_gain_pct": 3.146982499001827,
+      "scatter_gain_pct": 2.7494989990957897,
+      "combined_gain_pct": 5.8099552457858366
+    },
+    {
+      "case": "tail_boundaries",
+      "median_us": {
+        "expansion-control-screen-o1": 13745.0785,
+        "expand-dn-screen-m1": 13114.7655,
+        "scatter-aligned-screen-n1": 12655.0
+      },
+      "dn_gain_pct": 4.585735905400612,
+      "scatter_gain_pct": 3.505708889724335,
+      "combined_gain_pct": 7.930682243830034
+    }
+  ]
+}

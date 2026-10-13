@@ -25,6 +25,16 @@
 void hvx_scale_add_scatter_tile_f32(float *out, const float *src,
                                     const uint32_t *rows, const float *weights,
                                     uint32_t m_count, uint32_t stride) {
+  if ((((uintptr_t)out | (uintptr_t)src | (uintptr_t)stride * sizeof(float)) &
+       (128u - 1u)) == 0u) {
+    for (uint32_t m = 0; m < m_count; ++m) {
+      HVX_Vector *dst = (HVX_Vector *)(out + (size_t)rows[m] * stride);
+      const HVX_Vector s = ((const HVX_Vector *)(src + (size_t)m * stride))[0];
+      dst[0] = Q6_Vsf_vadd_VsfVsf(
+        dst[0], Q6_Vsf_vmpy_VsfVsf(s, hvx_splat_sf(weights[m])));
+    }
+    return;
+  }
   for (uint32_t m = 0; m < m_count; ++m) {
     HVX_UVector *dst = (HVX_UVector *)(out + (size_t)rows[m] * stride);
     const HVX_Vector s = ((const HVX_UVector *)(src + (size_t)m * stride))[0];

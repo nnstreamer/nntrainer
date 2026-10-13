@@ -98,19 +98,51 @@ void hvx_expand_i2i4(const uint8_t *src, uint32_t src_bytes,
   const HVX_Vector tab = *(const HVX_UVector *)table;
   const HVX_Vector m0f = Q6_V_vsplat_R((int)0x0F0F0F0Fu);
 
-  for (uint32_t v = 0; v < vecs; ++v) {
-    const HVX_Vector s = *(const HVX_UVector *)(src + (size_t)v * EXPAND_VEC);
-    /** The two nibble planes are the two halves of every source byte, and
-       each is already a complete table index -- no spreading, because
-       whPack2 put the code pairs where the output byte pairs are. */
-    const HVX_Vector lo = Q6_V_vand_VV(s, m0f);
-    const HVX_Vector hi = Q6_V_vand_VV(Q6_Vuh_vlsr_VuhR(s, 4), m0f);
-    /** Straight out, no interleave: whPack2 already put the codes in the
-       order that makes each lookup a whole output vector (whCodeByte2).
-       The shuffle this replaces was 26% of the time (doc 54 5.13). */
-    HVX_UVector *d = (HVX_UVector *)(dst + (size_t)v * 2u * EXPAND_VEC);
-    d[0] = Q6_Vb_vlut32_VbVbI(lo, tab, 0);
-    d[1] = Q6_Vb_vlut32_VbVbI(hi, tab, 0);
+  /** All production VTCM chunks are vector aligned. Keep the unaligned
+   * public contract for diagnostics and non-VTCM callers. Aligned loads and
+   * stores can share instruction packets with the independent lookups. */
+  if ((((uintptr_t)src | (uintptr_t)dst) & (EXPAND_VEC - 1u)) == 0u) {
+    const HVX_Vector *input = (const HVX_Vector *)src;
+    HVX_Vector *output = (HVX_Vector *)dst;
+    uint32_t v = 0u;
+    for (; v + 1u < vecs; v += 2u) {
+      const HVX_Vector s0 = input[v];
+      const HVX_Vector s1 = input[v + 1u];
+      const HVX_Vector lo0 = Q6_V_vand_VV(s0, m0f);
+      const HVX_Vector lo1 = Q6_V_vand_VV(s1, m0f);
+      const HVX_Vector hi0 = Q6_V_vand_VV(Q6_Vuh_vlsr_VuhR(s0, 4), m0f);
+      const HVX_Vector hi1 = Q6_V_vand_VV(Q6_Vuh_vlsr_VuhR(s1, 4), m0f);
+      const HVX_Vector a0 = Q6_Vb_vlut32_VbVbI(lo0, tab, 0);
+      const HVX_Vector a1 = Q6_Vb_vlut32_VbVbI(lo1, tab, 0);
+      const HVX_Vector b0 = Q6_Vb_vlut32_VbVbI(hi0, tab, 0);
+      const HVX_Vector b1 = Q6_Vb_vlut32_VbVbI(hi1, tab, 0);
+      output[2u * v] = a0;
+      output[2u * v + 1u] = b0;
+      output[2u * v + 2u] = a1;
+      output[2u * v + 3u] = b1;
+    }
+    if (v < vecs) {
+      const HVX_Vector z = input[v];
+      const HVX_Vector lo = Q6_V_vand_VV(z, m0f);
+      const HVX_Vector hi = Q6_V_vand_VV(Q6_Vuh_vlsr_VuhR(z, 4), m0f);
+      output[2u * v] = Q6_Vb_vlut32_VbVbI(lo, tab, 0);
+      output[2u * v + 1u] = Q6_Vb_vlut32_VbVbI(hi, tab, 0);
+    }
+  } else {
+    for (uint32_t v = 0; v < vecs; ++v) {
+      const HVX_Vector s = *(const HVX_UVector *)(src + (size_t)v * EXPAND_VEC);
+      /** The two nibble planes are the two halves of every source byte, and
+         each is already a complete table index -- no spreading, because
+         whPack2 put the code pairs where the output byte pairs are. */
+      const HVX_Vector lo = Q6_V_vand_VV(s, m0f);
+      const HVX_Vector hi = Q6_V_vand_VV(Q6_Vuh_vlsr_VuhR(s, 4), m0f);
+      /** Straight out, no interleave: whPack2 already put the codes in the
+         order that makes each lookup a whole output vector (whCodeByte2).
+         The shuffle this replaces was 26% of the time (doc 54 5.13). */
+      HVX_UVector *d = (HVX_UVector *)(dst + (size_t)v * 2u * EXPAND_VEC);
+      d[0] = Q6_Vb_vlut32_VbVbI(lo, tab, 0);
+      d[1] = Q6_Vb_vlut32_VbVbI(hi, tab, 0);
+    }
   }
   /** src_bytes is a multiple of 128 for every shape this is called with (a
      WH tile is 256 code bytes); a tail would be a caller bug, so it is

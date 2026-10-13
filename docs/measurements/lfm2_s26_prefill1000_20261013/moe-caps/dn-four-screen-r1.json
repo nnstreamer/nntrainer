@@ -1,0 +1,223 @@
+{
+  "diagnostic_only": true,
+  "label": "dn-four-screen-r1",
+  "family": "moe",
+  "serial": "R5KL30G6MCX",
+  "command": "cd /data/local/tmp/lfm2_prefill1000_20261013/dn-four-screen-r1 && exec env LD_LIBRARY_PATH=. ADSP_LIBRARY_PATH=. ./moe_prefill_device_check routing.txt outputs 6",
+  "artifacts": {
+    "libnntr_hvx_skel.so": "88108f9200cdf419c7f6afe68703e4e063b51a86e81981d571fa914ea3b0c2ef",
+    "moe_prefill_device_check": "4b6a5dc331ee37df3465b0245ccace9710f31df0d5d2a2b2dd0d33e1e29feb86",
+    "libsdkl.so": "d6ec50fd0b8557ffa006763e383b3337fc7bc43187fbe217269c747e843f57c1",
+    "libnntrainer.so": "04c4cdd665214b6d42b3d079b850697377c19cd880ada12939be85680ffd592b",
+    "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+    "routing.txt": "fe5fb9ab9c9f37815c4722d18fb3b87692bf9ce801fcb2a639af00b02e8e2bff"
+  },
+  "before": {
+    "status": 0,
+    "temperatures": {
+      "AP": 25.6,
+      "BAT": 25.6,
+      "PA": 26.0,
+      "SKIN": 27.7,
+      "SUBBAT": 0.0,
+      "USB": 25.6
+    }
+  },
+  "after": {
+    "status": 0,
+    "temperatures": {
+      "AP": 25.6,
+      "BAT": 25.6,
+      "PA": 26.0,
+      "SKIN": 27.7,
+      "SUBBAT": 0.0,
+      "USB": 25.6
+    }
+  },
+  "passed": true,
+  "returncode": 0,
+  "wall_seconds": 1.9799043119983253,
+  "output_sha256": "5c19e20169894fbb2c7416fd8c3995d78ba25ab6abdcce948778cd7c456862a2  model_layer_00.f32\n0bc4baa7887fbbbc08f7577235bf55e2eef5b4d819e4fee29cf7647aa0e35ad0  model_layer_01.f32\n8904e6f1c823f2a8db4d7853287cae50f3dcbf235dab622538f64ac4b38f6989  model_layer_02.f32\n915d3200f13cd591af97543c19af333a2296664f06d4156e170f4872656ec7ef  model_layer_19.f32\n2de722a83327c12ecbc28d5605bc47fed603db51f3de510b8722bafcc6af80f6  model_layer_38.f32\n91aba1f9e8f56adb393dc01cb1597dc1e1f6d4527d34850a8c27915acfc3363d  tail_boundaries.f32",
+  "samples": [
+    {
+      "case": "model_layer_00",
+      "repeat": 0,
+      "us": 8651.146
+    },
+    {
+      "case": "model_layer_00",
+      "repeat": 1,
+      "us": 8832.239
+    },
+    {
+      "case": "model_layer_00",
+      "repeat": 2,
+      "us": 8814.583
+    },
+    {
+      "case": "model_layer_00",
+      "repeat": 3,
+      "us": 8955.573
+    },
+    {
+      "case": "model_layer_00",
+      "repeat": 4,
+      "us": 8834.428
+    },
+    {
+      "case": "model_layer_00",
+      "repeat": 5,
+      "us": 8867.396
+    },
+    {
+      "case": "model_layer_01",
+      "repeat": 0,
+      "us": 13042.292
+    },
+    {
+      "case": "model_layer_01",
+      "repeat": 1,
+      "us": 10521.25
+    },
+    {
+      "case": "model_layer_01",
+      "repeat": 2,
+      "us": 10209.739
+    },
+    {
+      "case": "model_layer_01",
+      "repeat": 3,
+      "us": 10384.74
+    },
+    {
+      "case": "model_layer_01",
+      "repeat": 4,
+      "us": 10116.354
+    },
+    {
+      "case": "model_layer_01",
+      "repeat": 5,
+      "us": 10423.542
+    },
+    {
+      "case": "model_layer_02",
+      "repeat": 0,
+      "us": 10172.968
+    },
+    {
+      "case": "model_layer_02",
+      "repeat": 1,
+      "us": 9994.74
+    },
+    {
+      "case": "model_layer_02",
+      "repeat": 2,
+      "us": 10040.105
+    },
+    {
+      "case": "model_layer_02",
+      "repeat": 3,
+      "us": 9844.532
+    },
+    {
+      "case": "model_layer_02",
+      "repeat": 4,
+      "us": 9817.552
+    },
+    {
+      "case": "model_layer_02",
+      "repeat": 5,
+      "us": 9766.354
+    },
+    {
+      "case": "model_layer_19",
+      "repeat": 0,
+      "us": 10510.208
+    },
+    {
+      "case": "model_layer_19",
+      "repeat": 1,
+      "us": 10435.156
+    },
+    {
+      "case": "model_layer_19",
+      "repeat": 2,
+      "us": 10446.146
+    },
+    {
+      "case": "model_layer_19",
+      "repeat": 3,
+      "us": 12779.427
+    },
+    {
+      "case": "model_layer_19",
+      "repeat": 4,
+      "us": 10410.782
+    },
+    {
+      "case": "model_layer_19",
+      "repeat": 5,
+      "us": 12944.01
+    },
+    {
+      "case": "model_layer_38",
+      "repeat": 0,
+      "us": 10093.438
+    },
+    {
+      "case": "model_layer_38",
+      "repeat": 1,
+      "us": 10131.667
+    },
+    {
+      "case": "model_layer_38",
+      "repeat": 2,
+      "us": 10129.636
+    },
+    {
+      "case": "model_layer_38",
+      "repeat": 3,
+      "us": 10104.323
+    },
+    {
+      "case": "model_layer_38",
+      "repeat": 4,
+      "us": 10372.343
+    },
+    {
+      "case": "model_layer_38",
+      "repeat": 5,
+      "us": 10351.823
+    },
+    {
+      "case": "tail_boundaries",
+      "repeat": 0,
+      "us": 12129.323
+    },
+    {
+      "case": "tail_boundaries",
+      "repeat": 1,
+      "us": 14375.417
+    },
+    {
+      "case": "tail_boundaries",
+      "repeat": 2,
+      "us": 12066.25
+    },
+    {
+      "case": "tail_boundaries",
+      "repeat": 3,
+      "us": 12029.479
+    },
+    {
+      "case": "tail_boundaries",
+      "repeat": 4,
+      "us": 11882.5
+    },
+    {
+      "case": "tail_boundaries",
+      "repeat": 5,
+      "us": 11937.031
+    }
+  ]
+}
