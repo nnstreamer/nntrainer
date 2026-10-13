@@ -57,6 +57,7 @@
 #include <decision_head_loss_layer.h>
 #include <embedding_layer.h>
 #include <fc_layer.h>
+#include <fp16.h>
 #include <lm_head_loss_layer.h>
 #include <mha_core.h>
 #include <neuralnet.h>
@@ -876,93 +877,91 @@ void Transformer::load_weight_lora(const std::string &base_path,
 namespace {
 
 // ---------------------------------------------------------------------------
-// Q4_0 helpers (block = 32 elements, 18 bytes: 2B FP16 scale + 16B nibbles)
+// Q4_0 LoRA adapter file (block = 32 elements, 18 bytes: FP16 scale d and 16
+// bytes of nibbles; element j is the low nibble of byte j, j + 16 the high,
+// value = (code - 8) * d).
+//
+//   u32 magic "NQ4L", u32 version
+//   per loraA / loraB, in graph order: u32 element count, count / 32 blocks
+//
+// Blocks are plain (not repacked for a GEMM kernel) and run over the N x K
+// linear index nk = n * K + k of the (K x N) weight -- the layout
+// FullyConnectedLayer::fakeQuantizeQ4_0 calibrates -- so they also cover a
+// rank-sized K below 32, which a per-row Q4_0 tensor cannot hold.
 // ---------------------------------------------------------------------------
+constexpr uint32_t Q4_ADAPTER_MAGIC = 0x4C34514E; // "NQ4L"
+constexpr uint32_t Q4_ADAPTER_VERSION = 1;
+constexpr size_t Q4_BLOCK = 32;
+constexpr size_t Q4_BLOCK_BYTES = 18;
+
+/** @brief value of the (K x N) weight at N x K linear index nk */
+inline float atNK(const float *data_KN, size_t K, size_t N, size_t nk) {
+  return data_KN[(nk % K) * N + nk / K];
+}
 
 /**
- * @brief Build repacked Q4_0 bytes from an FP32 weight stored in nntrainer's
- *        (K, N) layout. Mirrors GgmlQuantizer's own pipeline: transpose
- *        K x N -> N x K, then quantize_q4_0, then repack_q4_0. The repacked
- *        format is required by the W4A8 GEMM kernel.
+ * @brief Quantize one block to Q4_0 with the scale @p d (as stored: FP16).
+ *        The codes use the FP16 value, so dequantizing reproduces exactly
+ *        what fakeQuantizeQ4_0 computed with that scale.
  */
-std::vector<uint8_t> build_q4_0_natural(const float *data_KN, size_t K,
-                                        size_t N) {
-  std::vector<float> transposed(N * K);
-  for (size_t n = 0; n < N; ++n)
-    for (size_t k = 0; k < K; ++k)
-      transposed[n * K + k] = data_KN[k * N + n];
+void writeQ4Block(const float *v, float d, uint8_t *blk) {
+  const uint16_t d16 = nntrainer::compute_fp32_to_fp16(d);
+  const float dq = nntrainer::compute_fp16_to_fp32(d16);
+  std::memcpy(blk, &d16, sizeof(d16));
+  auto code = [dq](float x) {
+    if (std::abs(dq) < 1e-10f)
+      return 8;
+    return std::max(0, std::min(15, (int)std::round(x / dq) + 8));
+  };
+  for (size_t j = 0; j < Q4_BLOCK / 2; ++j)
+    blk[2 + j] = (uint8_t)(code(v[j]) | (code(v[j + Q4_BLOCK / 2]) << 4));
+}
 
-  size_t out_size = (N * K / 32) * 18;
-  std::vector<uint8_t> tmp(out_size);
-  nntrainer::quantize_q4_0(transposed.data(), tmp.data(), (int64_t)N,
-                           (int64_t)K, nullptr);
-
-  std::vector<uint8_t> out(out_size);
-  nntrainer::repack_q4_0(out.data(), tmp.data(), out_size, (unsigned int)N,
-                         (unsigned int)K);
+/**
+ * @brief Q4_0 blocks of a (K x N) LoRA weight. With @p block_d (the QAT
+ *        per-block EMA scales, N x K indexed, signed) those scales are
+ *        force-fed so the adapter is exactly what training quantized
+ *        against; otherwise, and for a block QAT never scaled, the natural
+ *        Q4_0 scale d = m / -8 of its largest-magnitude element m (PTQ).
+ */
+std::vector<uint8_t> buildQ4Blocks(const float *data_KN, size_t K, size_t N,
+                                   const std::vector<float> *block_d) {
+  const size_t num_blocks = K * N / Q4_BLOCK;
+  std::vector<uint8_t> out(num_blocks * Q4_BLOCK_BYTES);
+  float v[Q4_BLOCK];
+  for (size_t b = 0; b < num_blocks; ++b) {
+    float amax = 0.0f, m = 0.0f;
+    for (size_t j = 0; j < Q4_BLOCK; ++j) {
+      v[j] = atNK(data_KN, K, N, b * Q4_BLOCK + j);
+      if (std::abs(v[j]) > amax) {
+        amax = std::abs(v[j]);
+        m = v[j];
+      }
+    }
+    float d = m / -8.0f;
+    if (block_d != nullptr && b < block_d->size() &&
+        std::abs((*block_d)[b]) > 1e-10f)
+      d = (*block_d)[b];
+    writeQ4Block(v, d, out.data() + b * Q4_BLOCK_BYTES);
+  }
   return out;
 }
 
-/** Minimal FP32 -> FP16 conversion for writing Q4_0 block scale fields. */
-uint16_t q40_fp32_to_fp16(float v) {
-  union {
-    float f;
-    uint32_t u;
-  } x{v};
-  const uint32_t s = (x.u >> 16) & 0x8000u;
-  const int e = ((x.u >> 23) & 0xFFu) - 127 + 15;
-  const uint32_t m = x.u & 0x7FFFFFu;
-  if (e <= 0)
-    return (uint16_t)s;
-  if (e >= 31)
-    return (uint16_t)(s | 0x7C00u);
-  return (uint16_t)(s | ((uint32_t)e << 10) | (m >> 13));
-}
-
-/**
- * @brief Build repacked Q4_0 bytes using pre-specified per-block EMA scales
- *        (force-feed), instead of recomputing a natural per-block scale
- *        from the data. block_d_NK must be indexed in N x K layout -- the
- *        same layout FullyConnectedLayer::fakeQuantizeQ4_0 tracks -- so the
- *        saved adapter matches exactly what training quantized against.
- *        Output format matches build_q4_0_natural exactly.
- */
-std::vector<uint8_t>
-build_q4_0_forced_blocks(const float *data_KN, size_t K, size_t N,
-                         const std::vector<float> &block_d_NK) {
-  std::vector<float> transposed(N * K);
-  for (size_t n = 0; n < N; ++n)
-    for (size_t k = 0; k < K; ++k)
-      transposed[n * K + k] = data_KN[k * N + n];
-
-  const size_t num_blocks = N * K / 32;
-  const size_t out_size = num_blocks * 18;
-  std::vector<uint8_t> tmp(out_size, 0);
-
+/** @brief Dequantize Q4_0 blocks (N x K order) into a (K x N) weight. */
+void dequantizeQ4Blocks(const uint8_t *blocks, size_t K, size_t N,
+                        float *data_KN) {
+  const size_t num_blocks = K * N / Q4_BLOCK;
   for (size_t b = 0; b < num_blocks; ++b) {
-    const float *blk_data = transposed.data() + b * 32;
-    float d =
-      (b < block_d_NK.size() && block_d_NK[b] > 1e-10f) ? block_d_NK[b] : 1.0f;
-
-    uint16_t d_fp16 = q40_fp32_to_fp16(d);
-    uint8_t *blk = tmp.data() + b * 18;
-    std::memcpy(blk, &d_fp16, 2);
-
-    // Q4_0: quant stored as q+8 in [0,15]; lower nibble = elem[j], upper =
-    // elem[j+16].
-    for (int j = 0; j < 16; ++j) {
-      int q0 = (int)std::round(blk_data[j] / d) + 8;
-      int q1 = (int)std::round(blk_data[j + 16] / d) + 8;
-      q0 = std::max(0, std::min(15, q0));
-      q1 = std::max(0, std::min(15, q1));
-      blk[2 + j] = (uint8_t)((q0 & 0x0F) | ((q1 & 0x0F) << 4));
+    const uint8_t *blk = blocks + b * Q4_BLOCK_BYTES;
+    uint16_t d16;
+    std::memcpy(&d16, blk, sizeof(d16));
+    const float d = nntrainer::compute_fp16_to_fp32(d16);
+    for (size_t j = 0; j < Q4_BLOCK / 2; ++j) {
+      const size_t lo = b * Q4_BLOCK + j, hi = lo + Q4_BLOCK / 2;
+      data_KN[(lo % K) * N + lo / K] = ((int)(blk[2 + j] & 0x0F) - 8) * d;
+      data_KN[(hi % K) * N + hi / K] = ((int)(blk[2 + j] >> 4) - 8) * d;
     }
   }
-
-  std::vector<uint8_t> out(out_size);
-  nntrainer::repack_q4_0(out.data(), tmp.data(), out_size, (unsigned)N,
-                         (unsigned)K);
-  return out;
 }
 
 } // namespace
@@ -979,6 +978,10 @@ void Transformer::save_weight_lora_q4(const std::string &path) {
   std::ofstream f(path, std::ios::binary);
   NNTR_THROW_IF(!f.is_open(), std::runtime_error)
     << "Failed to open " << path << " for writing.";
+  f.write(reinterpret_cast<const char *>(&Q4_ADAPTER_MAGIC),
+          sizeof(Q4_ADAPTER_MAGIC));
+  f.write(reinterpret_cast<const char *>(&Q4_ADAPTER_VERSION),
+          sizeof(Q4_ADAPTER_VERSION));
 
   size_t total_blocks = 0;
   std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>
@@ -995,121 +998,64 @@ void Transformer::save_weight_lora_q4(const std::string &path) {
           continue;
 
         const nntrainer::Tensor &t = w->getVariableRef();
+        NNTR_THROW_IF(t.getDataType() != ml::train::TensorDim::DataType::FP32,
+                      std::runtime_error)
+          << "save_weight_lora_q4: '" << wname << "' is not FP32";
         const size_t K = t.getDim().height();
         const size_t N = t.getDim().width();
         const uint32_t total_elems = static_cast<uint32_t>(K * N);
+        NNTR_THROW_IF(total_elems % Q4_BLOCK != 0, std::runtime_error)
+          << "save_weight_lora_q4: '" << wname << "' has " << total_elems
+          << " elements, not a multiple of " << Q4_BLOCK;
 
         // QAT: force-feed the EMA block scales (N x K layout) calibrated
-        // during training. Non-QAT: fall back to natural (PTQ) scales.
-        std::vector<uint8_t> q4_bytes;
+        // during training. Non-QAT: natural (PTQ) scales.
+        std::vector<float> block_d;
         if (LORA_QAT) {
           auto [a_bd, b_bd] =
             nntrainer::FullyConnectedLayer::getRegisteredBlockScales(lname);
-          const std::vector<float> &block_d = is_loraA ? a_bd : b_bd;
-          q4_bytes =
-            block_d.empty()
-              ? build_q4_0_natural(t.getData<float>(), K, N)
-              : build_q4_0_forced_blocks(t.getData<float>(), K, N, block_d);
-        } else {
-          q4_bytes = build_q4_0_natural(t.getData<float>(), K, N);
+          block_d = is_loraA ? a_bd : b_bd;
         }
+        const std::vector<uint8_t> q4_bytes = buildQ4Blocks(
+          t.getData<float>(), K, N, block_d.empty() ? nullptr : &block_d);
 
         f.write(reinterpret_cast<const char *>(&total_elems),
                 sizeof(total_elems));
         f.write(reinterpret_cast<const char *>(q4_bytes.data()),
                 q4_bytes.size());
-        total_blocks += q4_bytes.size() / 18;
+        total_blocks += q4_bytes.size() / Q4_BLOCK_BYTES;
       }
     };
   model->forEachLayer(fn, nullptr);
 
   std::cout << "[save_weight_lora_q4] Saved Q4_0 LoRA adapters to " << path
-            << " (" << total_blocks << " blocks, " << (total_blocks * 18 / 1024)
-            << " KB)" << std::endl;
+            << " (" << total_blocks << " blocks, "
+            << (total_blocks * Q4_BLOCK_BYTES / 1024) << " KB)" << std::endl;
 }
 
 /**
- * @brief Load a pretrained (non-LoRA) base checkpoint, then load Q4_0 LoRA
- *        adapters directly into Q4_0-dtype loraA/loraB tensors.
+ * @brief Load a pretrained (non-LoRA) base checkpoint, then overlay a Q4_0
+ *        LoRA adapter, dequantized into the graph's FP32 loraA/loraB.
  */
 void Transformer::load_weight_lora_q4(const std::string &base_path,
                                       const std::string &lora_q4_path) {
-  NNTR_THROW_IF(!is_initialized, std::runtime_error)
-    << "Transformer model is not initialized. Please call "
-       "initialize() before load_weight_lora_q4().";
-
-  // The current graph has LoRA weights (loraA/loraB) spliced into every
-  // targeted FC layer, but the checkpoint at base_path has no such slots.
-  // model->load() assigns file offsets by walking the graph positionally, so
-  // loading the checkpoint directly into this model (as a naive load_weight()
-  // call would) desyncs every weight after the first LoRA slot it hits --
-  // this crashed with a heap-corrupting read inside NeuralNetwork::load().
-  // Fix: build a throwaway no-LoRA graph matching the checkpoint's own
-  // topology, load into that, then copy every matching weight over by name
-  // (mirroring load_weight_lora()'s FP32 path).
-  const unsigned int saved_lora_rank = LORA_RANK;
-  LORA_RANK = 0;
-  auto restore_lora_rank = [&]() { LORA_RANK = saved_lora_rank; };
-
-  ModelHandle base_model =
-    ml::train::createModel(ml::train::ModelType::NEURAL_NET);
-  base_model->setProperty({withKey("batch_size", BATCH_SIZE),
-                           withKey("epochs", "1"),
-                           withKey("model_tensor_type", MODEL_TENSOR_TYPE)});
-  auto [bx, by] = constructModel();
-  if (base_model->compile(bx, by, ml::train::ExecutionMode::INFERENCE)) {
-    restore_lora_rank();
-    throw std::invalid_argument(
-      "Base (no-LoRA) model compilation failed during load_weight_lora_q4.");
-  }
-  base_model->load(base_path, formatFromExtension(base_path));
-
-  restore_lora_rank();
-
-  std::unordered_map<std::string, const nntrainer::Tensor *> base_weights;
-  std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>
-    collect = [&base_weights](ml::train::Layer &,
-                              nntrainer::RunLayerContext &context, void *) {
-      for (auto &w : context.getWeights())
-        base_weights.emplace(w->getName(), &w->getVariableRef());
-    };
-  base_model->forEachLayer(collect, nullptr);
-
-  std::vector<std::string> unmatched;
-  unsigned int matched = 0;
-  std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>
-    apply =
-      [&](ml::train::Layer &, nntrainer::RunLayerContext &context, void *) {
-        for (auto &w : context.getWeights()) {
-          const std::string &name = w->getName();
-          auto it = base_weights.find(name);
-          if (it != base_weights.end()) {
-            nntrainer::Tensor &dst = w->getVariableRef();
-            const nntrainer::Tensor &src = *it->second;
-            const size_t bytes = src.getMemoryBytes();
-            std::memcpy(dst.getData<char>(), src.getData<char>(), bytes);
-            ++matched;
-          } else if (name.find(":loraA") == std::string::npos &&
-                     name.find(":loraB") == std::string::npos) {
-            unmatched.push_back(name);
-          }
-        }
-      };
-  model->forEachLayer(apply, nullptr);
-
-  NNTR_THROW_IF(!unmatched.empty(), std::runtime_error)
-    << "load_weight_lora_q4: " << unmatched.size()
-    << " non-LoRA weight(s) had no counterpart in the base checkpoint graph "
-       "(first: "
-    << unmatched.front()
-    << "). The base graph must match the graph the checkpoint was saved from.";
-  NNTR_THROW_IF(matched == 0, std::runtime_error)
-    << "load_weight_lora_q4: no weights were loaded from " << base_path;
+  // the base checkpoint goes in exactly as for an FP32 adapter
+  load_weight_lora(base_path, "");
 
   std::ifstream f(lora_q4_path, std::ios::binary);
   NNTR_THROW_IF(!f.is_open(), std::runtime_error)
     << "Failed to open Q4_0 LoRA file: " << lora_q4_path;
+  uint32_t magic = 0, version = 0;
+  f.read(reinterpret_cast<char *>(&magic), sizeof(magic));
+  f.read(reinterpret_cast<char *>(&version), sizeof(version));
+  NNTR_THROW_IF(!f || magic != Q4_ADAPTER_MAGIC, std::runtime_error)
+    << "load_weight_lora_q4: " << lora_q4_path
+    << " is not a Q4_0 LoRA adapter (no NQ4L header). Files saved before the "
+       "header was added stored every loraB as zeros; re-save the adapter.";
+  NNTR_THROW_IF(version != Q4_ADAPTER_VERSION, std::runtime_error)
+    << "load_weight_lora_q4: unsupported adapter version " << version;
 
+  std::vector<uint8_t> blocks;
   std::function<void(ml::train::Layer &, nntrainer::RunLayerContext &, void *)>
     fn = [&](ml::train::Layer &l, nntrainer::RunLayerContext &context, void *) {
       if (l.getType() != "fully_connected")
@@ -1128,26 +1074,29 @@ void Transformer::load_weight_lora_q4(const std::string &base_path,
           << "'";
 
         nntrainer::Tensor &dst = w->getVariableRef();
-        const uint32_t expected =
-          static_cast<uint32_t>(dst.getDim().getDataLen());
-        NNTR_THROW_IF(n != expected, std::runtime_error)
+        NNTR_THROW_IF(dst.getDataType() != ml::train::TensorDim::DataType::FP32,
+                      std::runtime_error)
+          << "load_weight_lora_q4: '" << wname
+          << "' is not FP32 (do not build the graph with lora_weight_q4)";
+        const size_t K = dst.getDim().height();
+        const size_t N = dst.getDim().width();
+        NNTR_THROW_IF(n != K * N, std::runtime_error)
           << "load_weight_lora_q4: element count mismatch for '" << wname
-          << "': file=" << n << " model=" << expected;
+          << "': file=" << n << " model=" << K * N;
 
-        // For Q4_0 tensors, read directly into the tensor buffer using memcpy
-        const size_t bytes = dst.getMemoryBytes();
-        void *buf = dst.getData<char>();
-        NNTR_THROW_IF(!buf, std::runtime_error)
-          << "load_weight_lora_q4: tensor buffer not allocated for '" << wname
-          << "'";
-        f.read(reinterpret_cast<char *>(buf), bytes);
+        blocks.resize((size_t)n / Q4_BLOCK * Q4_BLOCK_BYTES);
+        f.read(reinterpret_cast<char *>(blocks.data()), blocks.size());
         NNTR_THROW_IF(!f, std::runtime_error)
           << "load_weight_lora_q4: failed reading Q4_0 data for '" << wname
           << "'";
+        dequantizeQ4Blocks(blocks.data(), K, N, dst.getData<float>());
       }
     };
   model->forEachLayer(fn, nullptr);
 
+  NNTR_THROW_IF(f.peek() != std::char_traits<char>::eof(), std::runtime_error)
+    << "load_weight_lora_q4: " << lora_q4_path
+    << " holds more adapters than the graph has LoRA weights";
   std::cout << "[load_weight_lora_q4] Loaded Q4_0 LoRA adapters from "
             << lora_q4_path << std::endl;
 }

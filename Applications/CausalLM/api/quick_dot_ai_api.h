@@ -265,8 +265,8 @@ WIN_EXPORT ErrorCode loadModelHandleByName(BackendType compute,
  * When @p lora_path is non-NULL and non-empty, the LoRA layer config
  * (rank/alpha/target/last_n) is defaulted the same way trainLora() does
  * so the graph actually contains LoRA weights; an adapter file named
- * "*_q4.bin" is loaded through load_weight_lora_q4() (the graph is built
- * with Q4_0 LoRA tensors), any other file through load_weight_lora().
+ * "*_q4.bin" is loaded through load_weight_lora_q4() (dequantized into the
+ * graph's FP32 LoRA tensors), any other file through load_weight_lora().
  *
  * @param compute         Compute backend
  * @param model_dir       Absolute path to the model directory holding

@@ -1377,8 +1377,8 @@ static ErrorCode load_into_handle(CausalLmModel &h, BackendType compute,
 
     // An explicit adapter load must find LoRA weights in the graph: default
     // the LoRA layer config exactly as trainLora() does (rank 8 / alpha =
-    // 2*rank / wq..ffn_down targets) and, when the adapter is a *_q4 file,
-    // build the LoRA tensors as Q4_0 so load_weight_lora_q4() can fill them.
+    // 2*rank / wq..ffn_down targets). The LoRA tensors stay FP32 for either
+    // adapter format (a *_q4 file is dequantized into them).
     // rank/alpha/last_n hints come from the caller (the app's Train settings)
     // so the graph matches the topology the adapter was trained with.
     if (lora_path != nullptr && strlen(lora_path) > 0) {
@@ -1396,9 +1396,6 @@ static ErrorCode load_into_handle(CausalLmModel &h, BackendType compute,
       if (!nntr_cfg.contains("lora_target") || nntr_cfg["lora_target"].empty())
         nntr_cfg["lora_target"] = std::vector<std::string>{
           "wq", "wk", "wv", "wo", "ffn_up", "ffn_gate", "ffn_down"};
-      const std::string lora(lora_path);
-      if (lora.rfind("_q4") != std::string::npos)
-        nntr_cfg["lora_weight_q4"] = true;
       // The adapter graph runs on the cpu engine (setForceCpuEngine() below),
       // but mha_core's internal GPU arms -- rope_inplace_f16 and the device
       // attention -- gate on the use_gemm_attention LAYER property, not on the
@@ -1455,9 +1452,9 @@ static ErrorCode load_into_handle(CausalLmModel &h, BackendType compute,
     // instead.
     if (lora_path != nullptr && strlen(lora_path) > 0) {
       // Adapter on top of the base checkpoint. A "*_q4" file was saved by
-      // save_weight_lora_q4() and must land in the Q4_0 LoRA tensors (the
-      // graph was built with lora_weight_q4 — see the Factory injection
-      // below); everything else is an FP32 adapter from save_weight_lora().
+      // save_weight_lora_q4() and is dequantized into the FP32 LoRA tensors
+      // -- the int4 values a QAT run trained against; everything else is an
+      // FP32 adapter from save_weight_lora().
       const std::string lora(lora_path);
       const bool lora_q4 = lora.rfind("_q4") != std::string::npos;
       if (lora_q4) {

@@ -259,14 +259,15 @@ int runLoraTraining(const TrainParams &params, TrainProgressCb callback,
 
     // lora_qat implies lora_weight_q4: there is no point calibrating
     // fake-quant EMA scales without also saving the adapter they describe.
+    // It only selects the extra Q4_0 save; the graph's LoRA tensors stay
+    // FP32 (the lora_weight_q4 layer property builds inference-only Q4_0
+    // tensors, which cannot train).
     bool do_qat = params.lora_qat;
     bool do_weight_q4 = params.lora_weight_q4;
     if (do_qat)
       do_weight_q4 = true;
     if (do_qat)
       nntr_cfg["lora_qat"] = true;
-    if (do_weight_q4)
-      nntr_cfg["lora_weight_q4"] = true;
     if (do_qat && params.qat_ema_momentum > 0.0f)
       nntr_cfg["lora_qat_ema_momentum"] = params.qat_ema_momentum;
 

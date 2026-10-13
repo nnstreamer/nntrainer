@@ -707,8 +707,9 @@ public:
   virtual void save_weight_lora(const std::string &lora_path);
 
   /**
-   * @brief Save LoRA adapters as Q4_0 (block=32, repacked for the W4A8 GEMM
-   *        kernel). When LORA_QAT is active, force-feeds the per-block EMA
+   * @brief Save LoRA adapters as Q4_0 (block=32, plain blocks over the N x K
+   *        index behind an "NQ4L" header). When LORA_QAT is active,
+   *        force-feeds the per-block EMA
    *        scales calibrated during training instead of recomputing a
    *        natural per-block scale at save time, so the saved adapter
    *        matches the exact quantization the model trained against.
@@ -717,9 +718,10 @@ public:
   virtual void save_weight_lora_q4(const std::string &path);
 
   /**
-   * @brief Load a pretrained (non-LoRA) base checkpoint, then load Q4_0
-   *        LoRA adapters directly into Q4_0-dtype loraA/loraB tensors (see
-   *        LORA_WEIGHT_Q4), so the W4A8 GEMM kernel fires at inference.
+   * @brief Load a pretrained (non-LoRA) base checkpoint, then load a Q4_0
+   *        LoRA adapter, dequantized into the graph's FP32 loraA/loraB: the
+   *        exact int4 values a QAT run trained against (a rank-sized LoRA
+   *        GEMM is negligible next to the base weights, so it stays FP32).
    * @param base_path path to the pretrained (non-LoRA) checkpoint
    * @param lora_q4_path path to a Q4_0 adapter file (from
    *        save_weight_lora_q4())
