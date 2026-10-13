@@ -1,0 +1,33 @@
+{
+  "status": "Integrated after 81-case byte parity and interleaved ABBA gain; parent authorized selected attention-only files.",
+  "when_utc": "2026-10-13T07:25:46.017228+00:00",
+  "files": {
+    "nntrainer/tensor/htp_backend/hvx/hvx_attn_softmax_f16.h": {
+      "before_sha256": "a966b2a7de092b65af76205d6b779e5427b3b74932cdd69f18839316b684951e",
+      "after_sha256": "43b1b18b8d4d7b396be8fe45059e783b90b5242d5cfe249a7b854e417240ec47",
+      "formatter": "/tmp/lfm2-prefill1000-20261013/format/clang_format/data/bin/clang-format",
+      "changed_line_regions": [
+        "--lines=196:221",
+        "--lines=224:225"
+      ]
+    },
+    "nntrainer/tensor/htp_backend/hmx/hexkl_attn_f16_plan.h": {
+      "before_sha256": "6e97b5f60eaf379898337ba8dcc9897e844fa7c8da0cd68fdc63b23b2532bc27",
+      "after_sha256": "46768851cdf4986b23c4642d5ec5246eb86324c502f1e60b7dcde200710f20d1",
+      "formatter": "/tmp/lfm2-prefill1000-20261013/format/clang_format/data/bin/clang-format",
+      "changed_line_regions": [
+        "--lines=435:436",
+        "--lines=441:441"
+      ]
+    }
+  },
+  "backup_root": "/tmp/lfm2-attention1000-20261013/softmax-half-live-before",
+  "patch": "softmax-half-production.patch",
+  "device_parity": "mcx-softmax-half-candidate-parity.json",
+  "timing": "softmax-half-benchmark-summary.json",
+  "host_proof": "All 65536 half patterns and 1723452 row mappings passed normal and ASan/UBSan against original functions.",
+  "assembly": "softmax-half-production-equivalence.json",
+  "new_compiled_headers": [],
+  "IDL_changed": false,
+  "caveat": "Whole-model benefit remains to be measured by parent."
+}

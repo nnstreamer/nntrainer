@@ -942,13 +942,29 @@ static int attn_q8_step_impl(
   } else {
     hexkl_attn_f16_tiling tiling = {0, 0, 0, 0};
     hexkl_attn_f16_choose_tiling(&shape, &tiling);
-    // Full LFM2 prefill: four activation tiles share each KV DMA and pool
-    // launch. Keep the existing softmax columns and their arithmetic
-    // order; 64 query rows divide every selected KV block exactly.
+    // Full LFM2 prefill shares each KV DMA and pool launch across query
+    // rows. Keep the softmax column width and arithmetic order. Widen to
+    // 128 queries only when the unchanged block boundaries and both staged
+    // QK banks fit; small arenas retain the existing 64-query path.
     if (n_q >= 64u && n_q % 64u == 0u && cache_from == 0u && cache_to == n_q &&
         n_head_q == 32u && kv->n_head_kv == 8u && kv->head_dim == 64u &&
-        window == 0u && tiling.bc % 64u == 0u)
+        window == 0u && tiling.bc % 64u == 0u) {
       tiling.br = 64u;
+      if (!bc && n_q >= 128u && n_q % 128u == 0u && tiling.bc % 128u == 0u) {
+        hexkl_attn_f16_tiling wide = tiling;
+        hexkl_attn_q_layout layout;
+        wide.br = 128u;
+        if (hexkl_attn_q_tiling_init(&shape, &wide) == HEXKL_ATTN_OK &&
+            hexkl_attn_q_plan(&shape, &wide, s->config_off, kv->tile_bytes,
+                              hexkl_attn_q_chunk_count(&shape, &wide),
+                              &layout) == HEXKL_ATTN_OK &&
+            (uint64_t)layout.total + 2u * layout.n_row_tiles *
+                                       layout.n_col_tiles *
+                                       HEXKL_ATTN_Q_ACC_BYTES <=
+              s->config_off)
+          tiling.br = wide.br;
+      }
+    }
     if (bc)
       tiling.bc = bc;
     if (hexkl_attn_q_tiling_init(&shape, &tiling) != HEXKL_ATTN_OK)
@@ -998,9 +1014,12 @@ int nntr_hvx_attn_q8_npu_step(remote_handle64 handle, uint32 kv_handle,
   if (bytes > 0x7FFFFFFFu)
     return AEE_EBADPARM;
   const uint64_t begin = HAP_perf_get_time_us();
-  uint8_t *scratch = memalign(128u, (size_t)bytes);
-  if (!scratch)
+  // All HMX entry points share the session's serial owner. Quantization
+  // overwrites this scratch completely before its consumers run; no data
+  // survives the call. Conv/MoE already retain a larger allocation.
+  if (hexkl_moe_scratch_reserve(&s->moe_scratch, (size_t)bytes))
     return AEE_ENOMEMORY;
+  uint8_t *scratch = s->moe_scratch.base;
   float *ks = (float *)scratch, *qs = ks + 2u * kv_heads;
   int32_t *qz = (int32_t *)(qs + q_heads);
   uint8_t *k8 = scratch + metadata, *v8 = k8 + kLen, *q8 = v8 + kLen;
@@ -1017,7 +1036,6 @@ int nntr_hvx_attn_q8_npu_step(remote_handle64 handle, uint32 kv_handle,
                            outLen, stages, 16, 0u, 0u, 0);
   else
     rc = AEE_EBADPARM;
-  free(scratch);
   memset(stats, 0, (size_t)statsLen * sizeof(*stats));
   stats[0] = stages[0];
   stats[1] = stages[1];

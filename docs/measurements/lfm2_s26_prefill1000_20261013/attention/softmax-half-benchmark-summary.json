@@ -1,0 +1,410 @@
+{
+  "method": "ABBA, mean of two per-run medians, ten timed samples after two warmups each; synthetic one attention layer",
+  "serial": "R5KL30G6MCX",
+  "source_runtime": "combined-v6-capdual",
+  "all_valid": true,
+  "no_concurrent_processes": true,
+  "shapes": {
+    "1024": {
+      "wall_us": {
+        "control": 13857.25,
+        "candidate": 13612.0,
+        "reduction_us": 245.25,
+        "reduction_pct": 1.769831676559202,
+        "control_run_medians": [
+          13848.5,
+          13866.0
+        ],
+        "candidate_run_medians": [
+          13620.5,
+          13603.5
+        ]
+      },
+      "dsp_us": {
+        "control": 13441.0,
+        "candidate": 13175.25,
+        "reduction_us": 265.75,
+        "reduction_pct": 1.9771594375418495,
+        "control_run_medians": [
+          13409.0,
+          13473.0
+        ],
+        "candidate_run_medians": [
+          13168.0,
+          13182.5
+        ]
+      },
+      "quant_us": {
+        "control": 1943.5,
+        "candidate": 2133.25,
+        "reduction_us": -189.75,
+        "reduction_pct": -9.763313609467456,
+        "control_run_medians": [
+          1949.0,
+          1938.0
+        ],
+        "candidate_run_medians": [
+          2138.5,
+          2128.0
+        ]
+      },
+      "append_us": {
+        "control": 1919.0,
+        "candidate": 1938.0,
+        "reduction_us": -19.0,
+        "reduction_pct": -0.9900990099009901,
+        "control_run_medians": [
+          1910.0,
+          1928.0
+        ],
+        "candidate_run_medians": [
+          1930.0,
+          1946.0
+        ]
+      },
+      "attn_us": {
+        "control": 8874.0,
+        "candidate": 8447.25,
+        "reduction_us": 426.75,
+        "reduction_pct": 4.808992562542258,
+        "control_run_medians": [
+          8854.5,
+          8893.5
+        ],
+        "candidate_run_medians": [
+          8443.5,
+          8451.0
+        ]
+      },
+      "qprep_us": {
+        "control": 299.25,
+        "candidate": 235.75,
+        "reduction_us": 63.5,
+        "reduction_pct": 21.219715956558062,
+        "control_run_medians": [
+          300.0,
+          298.5
+        ],
+        "candidate_run_medians": [
+          235.0,
+          236.5
+        ]
+      },
+      "dma_us": {
+        "control": 156.0,
+        "candidate": 153.75,
+        "reduction_us": 2.25,
+        "reduction_pct": 1.4423076923076923,
+        "control_run_medians": [
+          156.5,
+          155.5
+        ],
+        "candidate_run_medians": [
+          153.0,
+          154.5
+        ]
+      },
+      "qk_us": {
+        "control": 585.5,
+        "candidate": 577.0,
+        "reduction_us": 8.5,
+        "reduction_pct": 1.4517506404782237,
+        "control_run_medians": [
+          586.5,
+          584.5
+        ],
+        "candidate_run_medians": [
+          575.5,
+          578.5
+        ]
+      },
+      "dequant_us": {
+        "control": 0.0,
+        "candidate": 0.0,
+        "reduction_us": 0.0,
+        "reduction_pct": null,
+        "control_run_medians": [
+          0.0,
+          0.0
+        ],
+        "candidate_run_medians": [
+          0.0,
+          0.0
+        ]
+      },
+      "softmax_us": {
+        "control": 5875.25,
+        "candidate": 5602.0,
+        "reduction_us": 273.25,
+        "reduction_pct": 4.650865920599124,
+        "control_run_medians": [
+          5850.0,
+          5900.5
+        ],
+        "candidate_run_medians": [
+          5606.5,
+          5597.5
+        ]
+      },
+      "pquant_us": {
+        "control": 0.0,
+        "candidate": 0.0,
+        "reduction_us": 0.0,
+        "reduction_pct": null,
+        "control_run_medians": [
+          0.0,
+          0.0
+        ],
+        "candidate_run_medians": [
+          0.0,
+          0.0
+        ]
+      },
+      "pv_us": {
+        "control": 684.5,
+        "candidate": 680.0,
+        "reduction_us": 4.5,
+        "reduction_pct": 0.6574141709276844,
+        "control_run_medians": [
+          681.5,
+          687.5
+        ],
+        "candidate_run_medians": [
+          682.5,
+          677.5
+        ]
+      },
+      "oupd_us": {
+        "control": 789.75,
+        "candidate": 790.0,
+        "reduction_us": -0.25,
+        "reduction_pct": -0.03165558721114277,
+        "control_run_medians": [
+          789.5,
+          790.0
+        ],
+        "candidate_run_medians": [
+          788.5,
+          791.5
+        ]
+      },
+      "store_us": {
+        "control": 303.25,
+        "candidate": 222.5,
+        "reduction_us": 80.75,
+        "reduction_pct": 26.628194558944767,
+        "control_run_medians": [
+          305.5,
+          301.0
+        ],
+        "candidate_run_medians": [
+          221.0,
+          224.0
+        ]
+      }
+    },
+    "2048": {
+      "wall_us": {
+        "control": 42954.25,
+        "candidate": 41540.0,
+        "reduction_us": 1414.25,
+        "reduction_pct": 3.292456508960115,
+        "control_run_medians": [
+          42898.5,
+          43010.0
+        ],
+        "candidate_run_medians": [
+          41406.0,
+          41674.0
+        ]
+      },
+      "dsp_us": {
+        "control": 42344.75,
+        "candidate": 40878.75,
+        "reduction_us": 1466.0,
+        "reduction_pct": 3.4620584606120004,
+        "control_run_medians": [
+          42404.5,
+          42285.0
+        ],
+        "candidate_run_medians": [
+          40837.5,
+          40920.0
+        ]
+      },
+      "quant_us": {
+        "control": 4935.0,
+        "candidate": 4936.25,
+        "reduction_us": -1.25,
+        "reduction_pct": -0.025329280648429587,
+        "control_run_medians": [
+          4948.5,
+          4921.5
+        ],
+        "candidate_run_medians": [
+          4931.0,
+          4941.5
+        ]
+      },
+      "append_us": {
+        "control": 4306.5,
+        "candidate": 4322.0,
+        "reduction_us": -15.5,
+        "reduction_pct": -0.35992104957622195,
+        "control_run_medians": [
+          4292.0,
+          4321.0
+        ],
+        "candidate_run_medians": [
+          4292.0,
+          4352.0
+        ]
+      },
+      "attn_us": {
+        "control": 30820.75,
+        "candidate": 29383.75,
+        "reduction_us": 1437.0,
+        "reduction_pct": 4.662443321463624,
+        "control_run_medians": [
+          30847.5,
+          30794.0
+        ],
+        "candidate_run_medians": [
+          29370.0,
+          29397.5
+        ]
+      },
+      "qprep_us": {
+        "control": 744.5,
+        "candidate": 607.0,
+        "reduction_us": 137.5,
+        "reduction_pct": 18.468770987239758,
+        "control_run_medians": [
+          741.5,
+          747.5
+        ],
+        "candidate_run_medians": [
+          604.0,
+          610.0
+        ]
+      },
+      "dma_us": {
+        "control": 746.25,
+        "candidate": 724.75,
+        "reduction_us": 21.5,
+        "reduction_pct": 2.88107202680067,
+        "control_run_medians": [
+          759.0,
+          733.5
+        ],
+        "candidate_run_medians": [
+          729.5,
+          720.0
+        ]
+      },
+      "qk_us": {
+        "control": 2130.75,
+        "candidate": 2092.5,
+        "reduction_us": 38.25,
+        "reduction_pct": 1.7951425554382259,
+        "control_run_medians": [
+          2131.0,
+          2130.5
+        ],
+        "candidate_run_medians": [
+          2090.5,
+          2094.5
+        ]
+      },
+      "dequant_us": {
+        "control": 0.0,
+        "candidate": 0.0,
+        "reduction_us": 0.0,
+        "reduction_pct": null,
+        "control_run_medians": [
+          0.0,
+          0.0
+        ],
+        "candidate_run_medians": [
+          0.0,
+          0.0
+        ]
+      },
+      "softmax_us": {
+        "control": 20655.75,
+        "candidate": 19566.25,
+        "reduction_us": 1089.5,
+        "reduction_pct": 5.274560352444235,
+        "control_run_medians": [
+          20681.0,
+          20630.5
+        ],
+        "candidate_run_medians": [
+          19556.5,
+          19576.0
+        ]
+      },
+      "pquant_us": {
+        "control": 0.0,
+        "candidate": 0.0,
+        "reduction_us": 0.0,
+        "reduction_pct": null,
+        "control_run_medians": [
+          0.0,
+          0.0
+        ],
+        "candidate_run_medians": [
+          0.0,
+          0.0
+        ]
+      },
+      "pv_us": {
+        "control": 2454.0,
+        "candidate": 2456.25,
+        "reduction_us": -2.25,
+        "reduction_pct": -0.09168704156479218,
+        "control_run_medians": [
+          2451.0,
+          2457.0
+        ],
+        "candidate_run_medians": [
+          2453.5,
+          2459.0
+        ]
+      },
+      "oupd_us": {
+        "control": 3030.5,
+        "candidate": 3012.25,
+        "reduction_us": 18.25,
+        "reduction_pct": 0.6022108562943409,
+        "control_run_medians": [
+          3034.0,
+          3027.0
+        ],
+        "candidate_run_medians": [
+          3013.0,
+          3011.5
+        ]
+      },
+      "store_us": {
+        "control": 652.0,
+        "candidate": 484.0,
+        "reduction_us": 168.0,
+        "reduction_pct": 25.766871165644172,
+        "control_run_medians": [
+          652.0,
+          652.0
+        ],
+        "candidate_run_medians": [
+          484.5,
+          483.5
+        ]
+      }
+    }
+  },
+  "parity": {
+    "control": "922671c191db5e4ce4a4be4a498c6cbfaa398cfb2f441f47c475b74d34f78591",
+    "candidate": "922671c191db5e4ce4a4be4a498c6cbfaa398cfb2f441f47c475b74d34f78591"
+  },
+  "note": "Quantization timing differs by about 190 us at 1024 although source logic is unchanged; whole RPC reduction is smaller than attention kernel reduction. Full-model benefit must be measured separately."
+}

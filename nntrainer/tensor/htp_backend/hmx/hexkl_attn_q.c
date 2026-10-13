@@ -81,12 +81,9 @@
 #define TB HEXKL_ATTN_TILE_BYTES
 #define LOG2E 1.4426950408889634f
 /** @brief Row cap; bounds the lane-mask arithmetic, not any buffer. */
-#define MAX_G_BR 256u
+#define MAX_G_BR 512u
 /** @brief Vectors per 2 KiB tile. */
 #define TILE_VECS (TB / sizeof(HVX_Vector))
-/** @brief VTCM the Q staging (f32 rows + uint8 tiles) may take per head
- *         chunk; the kernel divides it by the per-q-block cost. */
-#define Q_CHUNK_BUDGET (1536u * 1024u)
 
 static int map_plan_rc(int rc) {
   switch (rc) {
@@ -128,8 +125,9 @@ typedef struct {
   uint32_t acc_stage; /**< Optional per-column QK planes for the head worker. */
   uint32_t scale_stage; /**< Double-buffered K scale, colsum and V scale. */
   uint64_t worker_dequant_us;
-  uint32_t head_buf; /**< Current KV bank; the other bank may be prefetched. */
-  int acc_planes;    /**< Reconstruct only live rows from SDK byte planes. */
+  uint32_t head_buf;  /**< Current KV bank; the other bank may be prefetched. */
+  int acc_planes;     /**< Reconstruct only live rows from SDK byte planes. */
+  int prefill_planes; /**< Reconstruct staged prefill rows on HVX workers. */
   uint32_t
     active_rows; /**< Real decode rows, or the full padded prefill tile. */
   uint64_t
@@ -184,9 +182,8 @@ static inline const HVX_Vector *acc_rows(const attn_ctx *c) {
 /** Validate the immutable SDK configuration before bypassing its full-tile
  * byte-plane zip. Copy vectors to cached stack memory for scalar checks.
  */
-static int decode_planes_supported(const attn_ctx *c) {
-  if (!c->io->decode_flags || c->acc_layout->base != 0u ||
-      c->acc_layout->row_stride != 32u ||
+static int acc_planes_supported(const attn_ctx *c) {
+  if (c->acc_layout->base != 0u || c->acc_layout->row_stride != 32u ||
       ((uintptr_t)(c->vb + c->cfg) & (HEXKL_CVT_BLOCK_BYTES - 1u)))
     return 0;
   const uint32_t scales[4] = {0x6000u, 0x4000u, 0x2000u, 0u};
@@ -203,24 +200,27 @@ static int decode_planes_supported(const attn_ctx *c) {
   return 1;
 }
 
-static int read_acc(attn_ctx *c) {
-  if (!c->acc_planes)
-    return hexkl_micro_hmx_acc_read_int32(c->vb, c->cfg, c->L.acc);
+static int read_acc_planes(attn_ctx *c, uint32_t dst) {
   for (uint32_t p = 0; p < 4u; ++p)
     hexkl_cvt_issue(c->vb + c->cfg + p * HEXKL_CVT_BLOCK_BYTES,
-                    c->vb + c->L.acc + p * HEXKL_CVT_PLANE_BYTES);
+                    c->vb + dst + p * HEXKL_CVT_PLANE_BYTES);
   // Complete all convert writes before the next HMX accumulator clear.
-  (void)*(const volatile HVX_Vector *)(c->vb + c->L.acc +
-                                       HEXKL_ATTN_Q_ACC_BYTES - 128u);
+  (void)*(const volatile HVX_Vector *)(c->vb + dst + HEXKL_ATTN_Q_ACC_BYTES -
+                                       128u);
   return AEE_SUCCESS;
 }
 
+static int read_acc(attn_ctx *c) {
+  if (!c->acc_planes)
+    return hexkl_micro_hmx_acc_read_int32(c->vb, c->cfg, c->L.acc);
+  return read_acc_planes(c, c->L.acc);
+}
+
 /** Fuse SDK byte-plane interleaving into the four-row dequant epilogue. */
-static inline void acc_four_rows(const attn_ctx *c, uint32_t r,
-                                 HVX_Vector rows[4], int planes) {
-  const HVX_Vector *p = acc_rows(c);
+static inline void acc_four_rows_at(const HVX_Vector *p, uint32_t stride,
+                                    uint32_t r, HVX_Vector rows[4],
+                                    int planes) {
   if (!planes) {
-    const uint32_t stride = c->acc_layout->row_stride / 32u;
     for (uint32_t j = 0; j < 4u; ++j)
       rows[j] = p[(r + j) * stride];
     return;
@@ -236,6 +236,12 @@ static inline void acc_four_rows(const attn_ctx *c, uint32_t r,
   rows[1] = Q6_V_hi_W(first);
   rows[2] = Q6_V_lo_W(last);
   rows[3] = Q6_V_hi_W(last);
+}
+
+static inline void acc_four_rows(const attn_ctx *c, uint32_t r,
+                                 HVX_Vector rows[4], int planes) {
+  acc_four_rows_at(acc_rows(c), c->acc_layout->row_stride / 32u, r, rows,
+                   planes);
 }
 
 static inline float *o_row(const attn_ctx *c, uint32_t r) {
@@ -531,11 +537,14 @@ static void dequant_s(attn_ctx *c, uint32_t n, uint32_t kb, uint32_t i,
 /** @brief S[sbuf] = Q.K^T for the block in @a buf, dequantized. */
 static int phase_qk(attn_ctx *c, uint32_t n, uint32_t kb, uint32_t buf,
                     uint32_t sbuf) {
-  const uint64_t head_t0 = c->acc_stage ? now_us() : 0;
+  // Staged paths dequantize on workers. Time the complete issuing-thread
+  // QK phase once; synchronous fallback keeps separate per-tile counters.
+  const int phase_timed = c->acc_stage || c->prefill_acc[0];
+  const uint64_t head_t0 = phase_timed ? now_us() : 0;
   const int q4 = c->kv->kind == HEXKL_KV_Q4;
   for (uint32_t i = 0; i < c->L.n_row_tiles; ++i) {
     for (uint32_t col = 0; col < c->L.n_col_tiles; ++col) {
-      uint64_t t0 = c->acc_stage ? 0 : now_us();
+      uint64_t t0 = phase_timed ? 0 : now_us();
       hexkl_micro_hmx_acc_clear_int32();
       if (q4) {
         for (uint32_t d = 0; d < c->L.n_dot_tiles; ++d) {
@@ -554,7 +563,9 @@ static int phase_qk(attn_ctx *c, uint32_t n, uint32_t kb, uint32_t buf,
         const uint32_t staged =
           c->prefill_acc[sbuf] +
           (i * c->L.n_col_tiles + col) * HEXKL_ATTN_Q_ACC_BYTES;
-        rc = hexkl_micro_hmx_acc_read_int32(c->vb, c->cfg, staged);
+        rc = c->prefill_planes
+               ? read_acc_planes(c, staged)
+               : hexkl_micro_hmx_acc_read_int32(c->vb, c->cfg, staged);
       } else {
         rc = read_acc(c);
       }
@@ -562,7 +573,7 @@ static int phase_qk(attn_ctx *c, uint32_t n, uint32_t kb, uint32_t buf,
       if (rc != AEE_SUCCESS) {
         return rc;
       }
-      if (!c->acc_stage) {
+      if (!phase_timed) {
         uint64_t t1 = now_us();
         c->st->us_qk += t1 - t0;
         if (!c->prefill_acc[0]) {
@@ -572,7 +583,7 @@ static int phase_qk(attn_ctx *c, uint32_t n, uint32_t kb, uint32_t buf,
       }
     }
   }
-  if (c->acc_stage)
+  if (phase_timed)
     c->st->us_qk += now_us() - head_t0;
   return AEE_SUCCESS;
 }
@@ -741,13 +752,13 @@ static void dequant_prefill_four(attn_ctx *c, uint32_t r) {
     const uint32_t staged =
       c->prefill_acc[c->w_sbuf] +
       (i * c->L.n_col_tiles + col) * HEXKL_ATTN_Q_ACC_BYTES;
-    const HVX_Vector *restrict source = (const HVX_Vector *)(c->vb + staged) +
-                                        c->acc_layout->base / 32u +
-                                        row * (c->acc_layout->row_stride / 32u);
-    HVX_Vector q[4];
+    const HVX_Vector *restrict source =
+      (const HVX_Vector *)(c->vb + staged) + c->acc_layout->base / 32u;
+    HVX_Vector q[4], raw[4];
+    acc_four_rows_at(source, c->acc_layout->row_stride / 32u, row, raw,
+                     c->prefill_planes);
     for (uint32_t j = 0; j < 4u; ++j) {
-      const HVX_Vector a =
-        Q6_Vsf_equals_Vw(source[j * (c->acc_layout->row_stride / 32u)]);
+      const HVX_Vector a = Q6_Vsf_equals_Vw(raw[j]);
       const HVX_Vector zc =
         Q6_Vsf_vmpy_VsfVsf(Q6_Vsf_equals_Vw(Q6_V_vsplat_R(qz[j])), cs);
       const HVX_Vector corr = Q6_Vsf_vsub_VsfVsf(a, zc);
@@ -759,6 +770,16 @@ static void dequant_prefill_four(attn_ctx *c, uint32_t r) {
     dst[0] = Q6_Vhf_equals_Wqf32(Q6_W_vcombine_VV(q[1], q[0]));
     dst[1] = Q6_Vhf_equals_Wqf32(Q6_W_vcombine_VV(q[3], q[2]));
   }
+}
+
+/** The finite rescale's half-to-float mapping is exact bit construction.
+ * Keep the compiler's cast for NaN/Inf so its exceptional payload behavior
+ * remains unchanged. Ordinary prefill avoids a runtime call for every row.
+ */
+static inline float rescale_half_to_f32(uint16_t h) {
+  if ((h & 0x7c00u) == 0x7c00u)
+    return hvx_attn_hf_to_f32(h);
+  return hexkl_cvt_hf_to_f32(h);
 }
 
 /** Four rows own complete score and P vectors. Their softmax, rescale
@@ -778,7 +799,7 @@ static void softmax_pquant_worker(uint32_t n_threads, uint32_t i, void *ctx_) {
     softmax_row_pair(c, i32, v);
     softmax_row_pair(c, i32, v + 1u);
     for (uint32_t r = 4u * u; r < 4u * u + 4u; ++r)
-      c->a_f32[r] = hvx_attn_hf_to_f32(c->a_hf[r]);
+      c->a_f32[r] = rescale_half_to_f32(c->a_hf[r]);
     pquant_rows(c, i32, v, v + 2u);
   }
 }
@@ -1161,16 +1182,7 @@ static int prefill_impl(uint8_t *vtcm_base, uint32_t config_off,
 
   // Q chunk: as many q blocks as the budget allows, at least one.
   const uint32_t n_qb = hexkl_attn_f16_n_q_blocks(s, t);
-  const uint32_t per_qb =
-    t->g_br * s->head_dim * 4u +
-    (t->g_br / HEXKL_ATTN_Q_ROWS) * (s->head_dim / HEXKL_ATTN_TILE) * TB;
-  uint32_t chunk = Q_CHUNK_BUDGET / per_qb;
-  if (chunk == 0) {
-    chunk = 1;
-  }
-  if (chunk > n_qb) {
-    chunk = n_qb;
-  }
+  uint32_t chunk = hexkl_attn_q_chunk_count(s, t);
   int rc = map_plan_rc(
     hexkl_attn_q_plan(s, t, config_off, kv->tile_bytes, chunk, &c.L));
   if (rc == AEE_ENOMEMORY && chunk > 1) {
@@ -1198,7 +1210,7 @@ static int prefill_impl(uint8_t *vtcm_base, uint32_t config_off,
       (c.acc_layout->base % 32u) != 0) {
     return AEE_EUNSUPPORTED;
   }
-  c.acc_planes = decode_planes_supported(&c);
+  c.acc_planes = io->decode_flags && acc_planes_supported(&c);
   c.scale = LOG2E / sqrtf((float)s->head_dim);
 
   const uint32_t staged_total =
@@ -1221,6 +1233,7 @@ static int prefill_impl(uint8_t *vtcm_base, uint32_t config_off,
     c.prefill_acc[0] = c.L.total;
     c.prefill_acc[1] = c.L.total + acc_block_bytes;
     c.L.total += 2u * acc_block_bytes;
+    c.prefill_planes = acc_planes_supported(&c);
   }
   // Per-row metadata in cached heap memory: it is read and written by the
   // scalar unit, which VTCM serves slowly (see the file comment).

@@ -1,0 +1,587 @@
+{
+  "aggregation": "Each process uses two warmup repeats and ten timed repeats per length. Report means of the two per-process medians in its own ABBA group. Devices and independent groups are never pooled.",
+  "groups": {
+    "palh_mask_v2_vs_scratch": {
+      "files_in_run_order": [
+        "palh-scratch-bench-0.json",
+        "palh-masked-v2-bench-1.json",
+        "palh-masked-v2-bench-2.json",
+        "palh-scratch-bench-3.json"
+      ],
+      "serial": "R5KL308PALH",
+      "variants": [
+        "scratch",
+        "masked-v2"
+      ],
+      "results": {
+        "1024": {
+          "mean_of_run_medians_us": {
+            "scratch": {
+              "wall_us": 15289.5,
+              "dsp_us": 14667.75,
+              "quant_us": 2446.0,
+              "append_us": 2121.0,
+              "attn_us": 9293.75,
+              "qprep_us": 317.75,
+              "dma_us": 207.75,
+              "qk_us": 658.0,
+              "dequant_us": 0.0,
+              "softmax_us": 5917.25,
+              "pquant_us": 0.0,
+              "pv_us": 686.75,
+              "oupd_us": 791.0,
+              "store_us": 328.75
+            },
+            "masked-v2": {
+              "wall_us": 14783.5,
+              "dsp_us": 14210.25,
+              "quant_us": 2197.25,
+              "append_us": 2027.25,
+              "attn_us": 9226.25,
+              "qprep_us": 312.0,
+              "dma_us": 184.75,
+              "qk_us": 550.75,
+              "dequant_us": 0.0,
+              "softmax_us": 6001.0,
+              "pquant_us": 0.0,
+              "pv_us": 685.25,
+              "oupd_us": 793.0,
+              "store_us": 321.25
+            }
+          },
+          "second_vs_first_change_percent": {
+            "wall_us": -3.3094607410314225,
+            "attn_us": -0.7262945527908515
+          }
+        },
+        "2048": {
+          "mean_of_run_medians_us": {
+            "scratch": {
+              "wall_us": 43438.25,
+              "dsp_us": 42688.5,
+              "quant_us": 4854.5,
+              "append_us": 4294.75,
+              "attn_us": 31232.25,
+              "qprep_us": 750.0,
+              "dma_us": 767.75,
+              "qk_us": 2397.0,
+              "dequant_us": 0.0,
+              "softmax_us": 20142.5,
+              "pquant_us": 0.0,
+              "pv_us": 2436.25,
+              "oupd_us": 3025.75,
+              "store_us": 654.5
+            },
+            "masked-v2": {
+              "wall_us": 43677.0,
+              "dsp_us": 42929.0,
+              "quant_us": 4844.75,
+              "append_us": 4300.0,
+              "attn_us": 31682.25,
+              "qprep_us": 745.5,
+              "dma_us": 755.25,
+              "qk_us": 2164.75,
+              "dequant_us": 0.0,
+              "softmax_us": 20690.75,
+              "pquant_us": 0.0,
+              "pv_us": 2450.75,
+              "oupd_us": 3024.0,
+              "store_us": 653.75
+            }
+          },
+          "second_vs_first_change_percent": {
+            "wall_us": 0.5496307977416182,
+            "attn_us": 1.4408183848426015
+          }
+        }
+      }
+    },
+    "palh_mask_v2_vs_timer_half": {
+      "files_in_run_order": [
+        "palh-masked-v2-bench-4.json",
+        "palh-masked-v2-timer-half-bench-5.json",
+        "palh-masked-v2-timer-half-bench-6.json",
+        "palh-masked-v2-bench-7.json"
+      ],
+      "serial": "R5KL308PALH",
+      "variants": [
+        "masked-v2",
+        "masked-v2-timer-half"
+      ],
+      "results": {
+        "1024": {
+          "mean_of_run_medians_us": {
+            "masked-v2": {
+              "wall_us": 14906.75,
+              "dsp_us": 14321.0,
+              "quant_us": 2284.25,
+              "append_us": 2035.75,
+              "attn_us": 9253.0,
+              "qprep_us": 312.75,
+              "dma_us": 183.75,
+              "qk_us": 549.25,
+              "dequant_us": 0.0,
+              "softmax_us": 6024.5,
+              "pquant_us": 0.0,
+              "pv_us": 686.0,
+              "oupd_us": 788.75,
+              "store_us": 320.75
+            },
+            "masked-v2-timer-half": {
+              "wall_us": 14089.75,
+              "dsp_us": 13611.25,
+              "quant_us": 2049.25,
+              "append_us": 1928.25,
+              "attn_us": 8965.75,
+              "qprep_us": 303.5,
+              "dma_us": 167.0,
+              "qk_us": 571.75,
+              "dequant_us": 0.0,
+              "softmax_us": 5996.25,
+              "pquant_us": 0.0,
+              "pv_us": 680.0,
+              "oupd_us": 792.25,
+              "store_us": 303.75
+            }
+          },
+          "second_vs_first_change_percent": {
+            "wall_us": -5.480738591577639,
+            "attn_us": -3.1043985734356405
+          }
+        },
+        "2048": {
+          "mean_of_run_medians_us": {
+            "masked-v2": {
+              "wall_us": 44021.5,
+              "dsp_us": 43162.5,
+              "quant_us": 4859.75,
+              "append_us": 4325.0,
+              "attn_us": 31717.0,
+              "qprep_us": 753.0,
+              "dma_us": 746.5,
+              "qk_us": 2175.5,
+              "dequant_us": 0.0,
+              "softmax_us": 20718.75,
+              "pquant_us": 0.0,
+              "pv_us": 2445.75,
+              "oupd_us": 3021.0,
+              "store_us": 649.75
+            },
+            "masked-v2-timer-half": {
+              "wall_us": 43343.75,
+              "dsp_us": 42494.0,
+              "quant_us": 4847.75,
+              "append_us": 4297.25,
+              "attn_us": 31129.0,
+              "qprep_us": 752.75,
+              "dma_us": 749.5,
+              "qk_us": 2218.5,
+              "dequant_us": 0.0,
+              "softmax_us": 20899.75,
+              "pquant_us": 0.0,
+              "pv_us": 2444.25,
+              "oupd_us": 3026.5,
+              "store_us": 654.25
+            }
+          },
+          "second_vs_first_change_percent": {
+            "wall_us": -1.5395886101109646,
+            "attn_us": -1.8538953873317165
+          }
+        }
+      }
+    },
+    "palh_scratch_vs_timer_half": {
+      "files_in_run_order": [
+        "palh-nomask-scratch-bench-0.json",
+        "palh-nomask-timer-half-bench-1.json",
+        "palh-nomask-timer-half-bench-2.json",
+        "palh-nomask-scratch-bench-3.json"
+      ],
+      "serial": "R5KL308PALH",
+      "variants": [
+        "scratch",
+        "timer-half"
+      ],
+      "results": {
+        "1024": {
+          "mean_of_run_medians_us": {
+            "scratch": {
+              "wall_us": 15406.25,
+              "dsp_us": 14711.5,
+              "quant_us": 2442.5,
+              "append_us": 2144.25,
+              "attn_us": 9291.25,
+              "qprep_us": 314.5,
+              "dma_us": 210.5,
+              "qk_us": 657.5,
+              "dequant_us": 0.0,
+              "softmax_us": 5926.75,
+              "pquant_us": 0.0,
+              "pv_us": 683.75,
+              "oupd_us": 792.5,
+              "store_us": 331.75
+            },
+            "timer-half": {
+              "wall_us": 14834.5,
+              "dsp_us": 14150.5,
+              "quant_us": 2209.5,
+              "append_us": 2026.5,
+              "attn_us": 9178.25,
+              "qprep_us": 304.25,
+              "dma_us": 189.5,
+              "qk_us": 612.0,
+              "dequant_us": 0.0,
+              "softmax_us": 6084.0,
+              "pquant_us": 0.0,
+              "pv_us": 680.0,
+              "oupd_us": 790.5,
+              "store_us": 321.75
+            }
+          },
+          "second_vs_first_change_percent": {
+            "wall_us": -3.711156186612574,
+            "attn_us": -1.2161980357863533
+          }
+        },
+        "2048": {
+          "mean_of_run_medians_us": {
+            "scratch": {
+              "wall_us": 43233.25,
+              "dsp_us": 42428.75,
+              "quant_us": 4865.0,
+              "append_us": 4273.75,
+              "attn_us": 31202.5,
+              "qprep_us": 744.25,
+              "dma_us": 759.75,
+              "qk_us": 2381.5,
+              "dequant_us": 0.0,
+              "softmax_us": 20112.0,
+              "pquant_us": 0.0,
+              "pv_us": 2433.5,
+              "oupd_us": 3037.25,
+              "store_us": 649.25
+            },
+            "timer-half": {
+              "wall_us": 43324.5,
+              "dsp_us": 42553.75,
+              "quant_us": 4857.5,
+              "append_us": 4309.75,
+              "attn_us": 31278.5,
+              "qprep_us": 749.5,
+              "dma_us": 756.0,
+              "qk_us": 2202.0,
+              "dequant_us": 0.0,
+              "softmax_us": 21036.0,
+              "pquant_us": 0.0,
+              "pv_us": 2455.75,
+              "oupd_us": 3012.25,
+              "store_us": 651.75
+            }
+          },
+          "second_vs_first_change_percent": {
+            "wall_us": 0.2110644006638518,
+            "attn_us": 0.24357022674466045
+          }
+        }
+      }
+    },
+    "palh_experimental_mask_vs_no_mask": {
+      "files_in_run_order": [
+        "palh-nomask-masked-v2-timer-half-bench-4.json",
+        "palh-nomask-timer-half-bench-5.json",
+        "palh-nomask-timer-half-bench-6.json",
+        "palh-nomask-masked-v2-timer-half-bench-7.json"
+      ],
+      "serial": "R5KL308PALH",
+      "variants": [
+        "masked-v2-timer-half",
+        "timer-half"
+      ],
+      "results": {
+        "1024": {
+          "mean_of_run_medians_us": {
+            "masked-v2-timer-half": {
+              "wall_us": 14133.5,
+              "dsp_us": 13641.5,
+              "quant_us": 2040.25,
+              "append_us": 1939.0,
+              "attn_us": 8973.0,
+              "qprep_us": 308.0,
+              "dma_us": 168.25,
+              "qk_us": 572.5,
+              "dequant_us": 0.0,
+              "softmax_us": 5999.0,
+              "pquant_us": 0.0,
+              "pv_us": 680.25,
+              "oupd_us": 794.25,
+              "store_us": 305.75
+            },
+            "timer-half": {
+              "wall_us": 14240.0,
+              "dsp_us": 13760.0,
+              "quant_us": 2046.5,
+              "append_us": 1940.25,
+              "attn_us": 9093.25,
+              "qprep_us": 307.75,
+              "dma_us": 167.0,
+              "qk_us": 609.0,
+              "dequant_us": 0.0,
+              "softmax_us": 6053.0,
+              "pquant_us": 0.0,
+              "pv_us": 685.0,
+              "oupd_us": 786.0,
+              "store_us": 305.0
+            }
+          },
+          "second_vs_first_change_percent": {
+            "wall_us": 0.753528849895635,
+            "attn_us": 1.340131505627995
+          }
+        },
+        "2048": {
+          "mean_of_run_medians_us": {
+            "masked-v2-timer-half": {
+              "wall_us": 43263.75,
+              "dsp_us": 42396.25,
+              "quant_us": 4862.25,
+              "append_us": 4292.0,
+              "attn_us": 31109.25,
+              "qprep_us": 755.5,
+              "dma_us": 745.5,
+              "qk_us": 2217.25,
+              "dequant_us": 0.0,
+              "softmax_us": 20900.75,
+              "pquant_us": 0.0,
+              "pv_us": 2441.5,
+              "oupd_us": 3020.0,
+              "store_us": 647.75
+            },
+            "timer-half": {
+              "wall_us": 43583.75,
+              "dsp_us": 42618.75,
+              "quant_us": 4864.25,
+              "append_us": 4320.5,
+              "attn_us": 31310.0,
+              "qprep_us": 751.75,
+              "dma_us": 759.0,
+              "qk_us": 2204.0,
+              "dequant_us": 0.0,
+              "softmax_us": 21037.75,
+              "pquant_us": 0.0,
+              "pv_us": 2444.75,
+              "oupd_us": 3029.5,
+              "store_us": 650.5
+            }
+          },
+          "second_vs_first_change_percent": {
+            "wall_us": 0.7396492444598612,
+            "attn_us": 0.6453064602971681
+          }
+        }
+      }
+    },
+    "mcx_cleaned_no_mask_vs_mask": {
+      "files_in_run_order": [
+        "mcx-production-nomask-bench-0.json",
+        "mcx-production-masked-bench-1.json",
+        "mcx-production-masked-bench-2.json",
+        "mcx-production-nomask-bench-3.json"
+      ],
+      "serial": "R5KL30G6MCX",
+      "variants": [
+        "production-nomask",
+        "production-masked"
+      ],
+      "results": {
+        "1024": {
+          "mean_of_run_medians_us": {
+            "production-nomask": {
+              "wall_us": 14572.5,
+              "dsp_us": 14122.0,
+              "quant_us": 2296.75,
+              "append_us": 2037.5,
+              "attn_us": 8994.25,
+              "qprep_us": 310.5,
+              "dma_us": 185.75,
+              "qk_us": 591.0,
+              "dequant_us": 0.0,
+              "softmax_us": 5933.5,
+              "pquant_us": 0.0,
+              "pv_us": 684.75,
+              "oupd_us": 791.75,
+              "store_us": 316.0
+            },
+            "production-masked": {
+              "wall_us": 14078.5,
+              "dsp_us": 13670.25,
+              "quant_us": 2132.25,
+              "append_us": 1942.5,
+              "attn_us": 8947.25,
+              "qprep_us": 303.5,
+              "dma_us": 157.75,
+              "qk_us": 573.75,
+              "dequant_us": 0.0,
+              "softmax_us": 5990.25,
+              "pquant_us": 0.0,
+              "pv_us": 685.75,
+              "oupd_us": 789.25,
+              "store_us": 303.0
+            }
+          },
+          "second_vs_first_change_percent": {
+            "wall_us": -3.389946817635958,
+            "attn_us": -0.5225560774939519
+          }
+        },
+        "2048": {
+          "mean_of_run_medians_us": {
+            "production-nomask": {
+              "wall_us": 42612.0,
+              "dsp_us": 42092.0,
+              "quant_us": 4895.25,
+              "append_us": 4287.75,
+              "attn_us": 30663.25,
+              "qprep_us": 749.0,
+              "dma_us": 744.25,
+              "qk_us": 2133.5,
+              "dequant_us": 0.0,
+              "softmax_us": 20491.25,
+              "pquant_us": 0.0,
+              "pv_us": 2450.0,
+              "oupd_us": 3022.25,
+              "store_us": 652.75
+            },
+            "production-masked": {
+              "wall_us": 43199.75,
+              "dsp_us": 42639.0,
+              "quant_us": 4943.75,
+              "append_us": 4347.75,
+              "attn_us": 31080.0,
+              "qprep_us": 745.25,
+              "dma_us": 746.0,
+              "qk_us": 2212.75,
+              "dequant_us": 0.0,
+              "softmax_us": 20902.5,
+              "pquant_us": 0.0,
+              "pv_us": 2446.5,
+              "oupd_us": 3033.5,
+              "store_us": 651.0
+            }
+          },
+          "second_vs_first_change_percent": {
+            "wall_us": 1.3793062986952043,
+            "attn_us": 1.3591188148679656
+          }
+        }
+      }
+    },
+    "mcx_final_fresh_vs_selected": {
+      "files_in_run_order": [
+        "mcx-final-fresh-bench-0.json",
+        "mcx-final-production-nomask-bench-1.json",
+        "mcx-final-production-nomask-bench-2.json",
+        "mcx-final-fresh-bench-3.json"
+      ],
+      "serial": "R5KL30G6MCX",
+      "variants": [
+        "fresh",
+        "production-nomask"
+      ],
+      "results": {
+        "1024": {
+          "mean_of_run_medians_us": {
+            "fresh": {
+              "wall_us": 15534.0,
+              "dsp_us": 15095.0,
+              "quant_us": 2464.0,
+              "append_us": 1936.5,
+              "attn_us": 10006.75,
+              "qprep_us": 290.0,
+              "dma_us": 319.0,
+              "qk_us": 2371.5,
+              "dequant_us": 0.0,
+              "softmax_us": 4874.0,
+              "pquant_us": 0.0,
+              "pv_us": 668.5,
+              "oupd_us": 800.25,
+              "store_us": 343.5
+            },
+            "production-nomask": {
+              "wall_us": 14053.5,
+              "dsp_us": 13658.5,
+              "quant_us": 2126.5,
+              "append_us": 1945.25,
+              "attn_us": 8919.25,
+              "qprep_us": 303.5,
+              "dma_us": 164.0,
+              "qk_us": 590.0,
+              "dequant_us": 0.0,
+              "softmax_us": 5911.0,
+              "pquant_us": 0.0,
+              "pv_us": 680.25,
+              "oupd_us": 792.75,
+              "store_us": 303.25
+            }
+          },
+          "second_vs_first_change_percent": {
+            "wall_us": -9.530706836616453,
+            "attn_us": -10.867664326579563
+          }
+        },
+        "2048": {
+          "mean_of_run_medians_us": {
+            "fresh": {
+              "wall_us": 46007.0,
+              "dsp_us": 45332.25,
+              "quant_us": 5531.75,
+              "append_us": 4281.25,
+              "attn_us": 33204.25,
+              "qprep_us": 688.25,
+              "dma_us": 1525.0,
+              "qk_us": 8506.25,
+              "dequant_us": 0.0,
+              "softmax_us": 15149.25,
+              "pquant_us": 0.0,
+              "pv_us": 2434.0,
+              "oupd_us": 3038.0,
+              "store_us": 790.25
+            },
+            "production-nomask": {
+              "wall_us": 42827.5,
+              "dsp_us": 42097.75,
+              "quant_us": 4919.5,
+              "append_us": 4268.75,
+              "attn_us": 30665.5,
+              "qprep_us": 742.75,
+              "dma_us": 745.25,
+              "qk_us": 2129.25,
+              "dequant_us": 0.0,
+              "softmax_us": 20515.25,
+              "pquant_us": 0.0,
+              "pv_us": 2445.0,
+              "oupd_us": 3025.5,
+              "store_us": 650.0
+            }
+          },
+          "second_vs_first_change_percent": {
+            "wall_us": -6.910904862303557,
+            "attn_us": -7.645858587379628
+          }
+        }
+      }
+    }
+  },
+  "selection": {
+    "variant": "production-nomask",
+    "reason": "The cleaned path removes every masked-tile condition. Mask skipping had no reliable 1024 advantage and cost about 417 us per layer at 2048. The selected path improves both tested lengths against the fresh matched baseline.",
+    "features": [
+      "Br128 with exact VTCM fit, shape and default-block guards",
+      "SDK-validated raw accumulator planes reconstructed in worker registers",
+      "Existing session scratch reused for Q8 staging",
+      "One QK phase timing bracket when dequantization is on workers",
+      "Exact finite half conversion inline, original NaN/Inf fallback"
+    ],
+    "full_model_tps": "Not measured by the attention subagent; these bounded tests are single-layer synthetic measurements."
+  }
+}

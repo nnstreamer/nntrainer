@@ -79,6 +79,24 @@ static inline int hexkl_attn_q_tiling_init(const hexkl_attn_f16_shape *s,
   return hexkl_attn_f16_tiling_init_aligned(s, t, HEXKL_ATTN_Q_ROWS);
 }
 
+/** @brief Q staging budget, shared by the planner and prefill runner. */
+#define HEXKL_ATTN_Q_CHUNK_BUDGET (1536u * 1024u)
+
+/** @brief Query blocks per staging chunk for a validated shape/tiling. */
+static inline uint32_t
+hexkl_attn_q_chunk_count(const hexkl_attn_f16_shape *s,
+                         const hexkl_attn_f16_tiling *t) {
+  const uint32_t n_qb = hexkl_attn_f16_n_q_blocks(s, t);
+  const uint32_t per_qb =
+    t->g_br * s->head_dim * 4u + (t->g_br / HEXKL_ATTN_Q_ROWS) *
+                                   (s->head_dim / HEXKL_ATTN_TILE) *
+                                   HEXKL_ATTN_TILE_BYTES;
+  uint32_t chunk = HEXKL_ATTN_Q_CHUNK_BUDGET / per_qb;
+  if (!chunk)
+    chunk = 1u;
+  return chunk < n_qb ? chunk : n_qb;
+}
+
 /**
  * @brief Lays the regions out and checks them against the arena.
  *
