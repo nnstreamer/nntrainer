@@ -1,0 +1,231 @@
+{
+  "actionable_without_source_changes": [
+    "Use existing clean paired stage48/stage64 samples for the staging-count decision; do not promote stage128 based on its lower diagnostic prefill time.",
+    "Continue the already reviewed aligned owned O_DIRECT candidate as an independent memory/IO hypothesis. Stage64 has no first-transition blocking here, so faster initial reads alone do not imply equal whole-model savings.",
+    "Retain the existing later-layer deadline analysis: av1 excess waits are concentrated around layers32/33/35. These minimal timeline runs have no OP-TIME or per-layer reader trace, so they cannot establish whether the later tail repeats or its causal connection to startup."
+  ],
+  "config_difference": {
+    "NNTR_MOE_HOST_STAGE_EXPERTS": [
+      "64",
+      "128"
+    ]
+  },
+  "correction": {
+    "measured_stage128": "Bank complete 126.822 ms; first transition begins 102.504 ms and ends 126.833 ms; first wait 24.329 ms.",
+    "measured_stage64": "Bank complete 102.623 ms; first transition 104.206 ms; ready slack 1.583 ms; first wait 0 us at microsecond resolution.",
+    "previous_hypothesis": "The initial bank might finish in about 40 ms, leaving about 55 ms idle before first arena reuse.",
+    "verdict": "Contradicted by stage64 bb1; the earlier estimate used the wrong timer scope and was not an observed gap."
+  },
+  "counter_semantics": {
+    "existing_prefetch_reader_mean": "HtpProfile.addPrefetchRead for the host bank begins inside readHostExpert callback after payload allocation. From-host arena promotion/free is excluded. Its mean cannot predict bank duration by count/readers.",
+    "timeline_read_service_us": "Sum of overlapping readOne elapsed durations, starting before claim lock/new[] and ending under completion lock. Includes allocation, first touch, reader callback, scheduler and lock waits.",
+    "timing_eligibility": "Runner mode=clean is only its preset. NNTR_MOE_IO_PROFILE=1 and clean_timing_sample=false exclude both diagnostic TPS values from clean performance comparisons.",
+    "whole_process_io": "HTP-QS2-IO totals also cover model initialization and 64 decode tokens; not used to derive initial bank or late prefill IO."
+  },
+  "diagnostic_patch_sha256": "cc5da8c4c2c6e050f7168c4da63ca21686c78e972e22d117183b739b978154f6",
+  "findings": [
+    "No measured 55 ms startup idle opportunity. Stage64 is ready only 1.583 ms before the first safe transition.",
+    "The stage128 initial all-bank join exposes 24.329 ms of wait in this run. A larger bank is not automatically better even when average per-record service is lower.",
+    "Final cancel/join/residual-free is only 7 us at64 and 4 us at128. End-of-prefill bulk cleanup is no longer a >=5 ms opportunity in these eager-release runs.",
+    "Worker startup is 0.382/0.470 ms; all requested records are read and consumed, with no cancellation or failure.",
+    "Aggregate service nearly fills seven concurrent readOne windows; this says elapsed work overlaps, not that CPUs are saturated."
+  ],
+  "prior_late_tail_evidence": "/tmp/lfm2-prefill1000-20261013/attention-followup/v17-profile-anomaly.json",
+  "remaining_coverage_limit": "No record-level or later-layer timestamps were added. Bank-ready slack does not prove every reader thread was idle throughout it. Source-only analysis does not justify changing bounded bank-join scheduling.",
+  "reproduce": "python3 /tmp/lfm2-prefill1000-20261013/attention-followup/staging-timeline-diagnostic/analyze_completed_runs.py",
+  "runs": [
+    {
+      "artifact_sha256": {
+        "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+        "libcausallm_core.so": "3a49594fd8400571bd78f7412ec9fce09c6eee18025513782413f851d17d1c71",
+        "libccapi-nntrainer.so": "1fd18484dc116f2b75fdfcc1b7908bc00383258d534695a24802314ca9c83b74",
+        "libnntr_hvx_skel.so": "a403c2595e86494178e03f63a1b895fdacdf55e8ca4a3076777ee44cd8232ef1",
+        "libnntrainer.so": "fb2b771423461c5b156a2b65e9bed54f83129c907e180ed1e29cd5c048efe002",
+        "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+        "nntrainer_causallm": "b6b3810484a0573ece103af9701946be4da7dbfa83c413d0b76de913218c718d"
+      },
+      "clean_timing_sample": false,
+      "concurrent_pids": [],
+      "derived_us": {
+        "aggregate_service_divided_by_reader_count": 100965.57142857143,
+        "all_bank_reads_complete_from_begin": 102623,
+        "bank_ready_slack_at_first_transition": 1583,
+        "cancel_join_and_residual_free": 7,
+        "first_read_to_last_completion": 102241,
+        "first_transition_begin_from_begin": 104206,
+        "first_transition_blocking": 0,
+        "first_transition_end_from_begin": 104206,
+        "first_transition_wakeup_after_ready": 0,
+        "promotion_copy_mean": 166.015625,
+        "read_one_service_mean": 11043.109375,
+        "scope_to_cancel_begin": 1058076,
+        "worker_start_delay": 382
+      },
+      "generated_text_sha256": "593583cb32fa26b91cda08589e804f80bfc1ca6971895d7a8fa2684df431162b",
+      "inputs": {
+        "json": "/home/jungone-lee/workspace/nntrainer/docs/measurements/lfm2_s26_prefill1000_20261013/v17-timeline-stage64-diag-bb1.json",
+        "json_sha256": "0e595e9743efed5918d18355432a9b491a5a441c47c489f375ff0d59d167a143",
+        "log": "/home/jungone-lee/workspace/nntrainer/docs/measurements/lfm2_s26_prefill1000_20261013/v17-timeline-stage64-diag-bb1.log",
+        "log_sha256": "8beceed768afed089d08834cae237cb004e228425aa45453b907b0313f6786de",
+        "summary_line": 49,
+        "timeline_line": 50
+      },
+      "label": "v17-timeline-stage64-diag-bb1",
+      "prefill_diagnostic_only": {
+        "ms": 1058,
+        "tokens": 1024,
+        "tps": 967.864
+      },
+      "process_io_summary_scope": "Exit HTP-QS2-IO counters include initialization, prefill and 64 decode tokens; not a prefill-only or initial-bank-only measurement.",
+      "raw_timeline_us": {
+        "begin_us": 11867552509,
+        "cancel_begin_us": 11868610585,
+        "cancel_end_us": 11868610592,
+        "first_read_us": 11867552891,
+        "first_wait_begin_us": 11867656715,
+        "first_wait_end_us": 11867656715,
+        "last_read_us": 11867655132,
+        "read_service_us": 706759,
+        "token": 1
+      },
+      "readers": 7,
+      "service_duration_fraction_of_seven_reader_active_window": 0.9875252729195864,
+      "service_fraction_caveat": "Concurrent elapsed-duration coverage, including scheduler/lock/IO wait; not CPU utilization.",
+      "staging_summary": {
+        "cancelled": 0,
+        "consumed": 64,
+        "count": 64,
+        "failed": 0,
+        "payload_bytes": 153616896,
+        "promotion_copy_bytes": 153616896,
+        "promotion_copy_us": 10625,
+        "read": 64,
+        "transition_wait_us": 34
+      },
+      "thermal_after": {
+        "status": 0,
+        "temperatures": {
+          "AP": 29.4,
+          "BAT": 26.0,
+          "PA": 28.7,
+          "SKIN": 28.8,
+          "SUBBAT": 0.0,
+          "USB": 26.0
+        }
+      },
+      "thermal_before": {
+        "status": 0,
+        "temperatures": {
+          "AP": 26.5,
+          "BAT": 25.9,
+          "PA": 26.9,
+          "SKIN": 28.1,
+          "SUBBAT": 0.0,
+          "USB": 25.9
+        }
+      }
+    },
+    {
+      "artifact_sha256": {
+        "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+        "libcausallm_core.so": "3a49594fd8400571bd78f7412ec9fce09c6eee18025513782413f851d17d1c71",
+        "libccapi-nntrainer.so": "1fd18484dc116f2b75fdfcc1b7908bc00383258d534695a24802314ca9c83b74",
+        "libnntr_hvx_skel.so": "a403c2595e86494178e03f63a1b895fdacdf55e8ca4a3076777ee44cd8232ef1",
+        "libnntrainer.so": "fb2b771423461c5b156a2b65e9bed54f83129c907e180ed1e29cd5c048efe002",
+        "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+        "nntrainer_causallm": "b6b3810484a0573ece103af9701946be4da7dbfa83c413d0b76de913218c718d"
+      },
+      "clean_timing_sample": false,
+      "concurrent_pids": [],
+      "derived_us": {
+        "aggregate_service_divided_by_reader_count": 124583.85714285714,
+        "all_bank_reads_complete_from_begin": 126822,
+        "bank_ready_slack_at_first_transition": -24318,
+        "cancel_join_and_residual_free": 4,
+        "first_read_to_last_completion": 126352,
+        "first_transition_begin_from_begin": 102504,
+        "first_transition_blocking": 24329,
+        "first_transition_end_from_begin": 126833,
+        "first_transition_wakeup_after_ready": 11,
+        "promotion_copy_mean": 160.765625,
+        "read_one_service_mean": 6813.1796875,
+        "scope_to_cancel_begin": 1043171,
+        "worker_start_delay": 470
+      },
+      "generated_text_sha256": "593583cb32fa26b91cda08589e804f80bfc1ca6971895d7a8fa2684df431162b",
+      "inputs": {
+        "json": "/home/jungone-lee/workspace/nntrainer/docs/measurements/lfm2_s26_prefill1000_20261013/v17-timeline-stage128-diag-bb2.json",
+        "json_sha256": "72c89d36ded5783dc575746d4105b3626b6d7611116907aa67c65cfaf4a271e9",
+        "log": "/home/jungone-lee/workspace/nntrainer/docs/measurements/lfm2_s26_prefill1000_20261013/v17-timeline-stage128-diag-bb2.log",
+        "log_sha256": "0d7b7dbc80466466d9e21c08e0b02c1b0527832d051238918b3222497d66c395",
+        "summary_line": 49,
+        "timeline_line": 50
+      },
+      "label": "v17-timeline-stage128-diag-bb2",
+      "prefill_diagnostic_only": {
+        "ms": 1043,
+        "tokens": 1024,
+        "tps": 981.783
+      },
+      "process_io_summary_scope": "Exit HTP-QS2-IO counters include initialization, prefill and 64 decode tokens; not a prefill-only or initial-bank-only measurement.",
+      "raw_timeline_us": {
+        "begin_us": 11907781702,
+        "cancel_begin_us": 11908824873,
+        "cancel_end_us": 11908824877,
+        "first_read_us": 11907782172,
+        "first_wait_begin_us": 11907884206,
+        "first_wait_end_us": 11907908535,
+        "last_read_us": 11907908524,
+        "read_service_us": 872087,
+        "token": 1
+      },
+      "readers": 7,
+      "service_duration_fraction_of_seven_reader_active_window": 0.9860062139329583,
+      "service_fraction_caveat": "Concurrent elapsed-duration coverage, including scheduler/lock/IO wait; not CPU utilization.",
+      "staging_summary": {
+        "cancelled": 0,
+        "consumed": 128,
+        "count": 128,
+        "failed": 0,
+        "payload_bytes": 307233792,
+        "promotion_copy_bytes": 307233792,
+        "promotion_copy_us": 20578,
+        "read": 128,
+        "transition_wait_us": 24349
+      },
+      "thermal_after": {
+        "status": 0,
+        "temperatures": {
+          "AP": 30.0,
+          "BAT": 26.2,
+          "PA": 29.4,
+          "SKIN": 29.2,
+          "SUBBAT": 0.0,
+          "USB": 26.0
+        }
+      },
+      "thermal_before": {
+        "status": 0,
+        "temperatures": {
+          "AP": 27.5,
+          "BAT": 26.3,
+          "PA": 27.9,
+          "SKIN": 28.6,
+          "SUBBAT": 0.0,
+          "USB": 26.0
+        }
+      }
+    }
+  ],
+  "same_generated_text_hash": true,
+  "same_runtime_hashes": true,
+  "source_base": "v17 9b2ced98f; two-file timeline instrumentation only",
+  "source_locations": {
+    "arena_prefetch_wait_before_new_jobs": "build-source/nntrainer/tensor/htp_backend/htp_compute_ops.cpp:4279",
+    "existing_callback_timer": "build-source/nntrainer/tensor/htp_backend/htp_compute_ops.cpp:8452",
+    "final_join_and_free": "build-source/nntrainer/tensor/htp_backend/htp_expert_host_staging.h:283",
+    "first_join": "build-source/nntrainer/tensor/htp_backend/htp_expert_host_staging.h:249",
+    "read_one_clock_scope": "build-source/nntrainer/tensor/htp_backend/htp_expert_host_staging.h:212"
+  },
+  "status": "COMPLETED DIAGNOSTIC ANALYSIS; no clean TPS conclusion; no device or production-source changes"
+}
