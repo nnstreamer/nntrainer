@@ -943,13 +943,17 @@ class MainActivity : AppCompatActivity() {
 
     private fun buildTrainTabToggles(t: M3Tokens): View {
         val w = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        w.addView(Button(this).apply {
-            text = if (trainRunning) "⏹ Stop Training" else "▶ Start Training"
-            isAllCaps = false
-            background = solid(if (trainRunning) t.error else t.primary, 24)
-            setTextColor(t.onPrimary); typeface = Typeface.DEFAULT_BOLD
-            stateListAnimator = null
-            setPadding(dp(18), dp(10), dp(18), dp(10))
+        // A plain TextView pill, not Button: Button drags in AppCompat's
+        // 48dp minimum and the ▶/⏹ emoji glyphs inflate the line box, so
+        // the control balloons well past its text.
+        w.addView(TextView(this).apply {
+            text = if (trainRunning) "Stop Training" else "Start Training"
+            textSize = 13f
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER
+            setTextColor(if (trainRunning) Color.WHITE else t.onPrimary)
+            background = solid(if (trainRunning) t.error else t.primary, 100)
+            setPadding(dp(16), dp(7), dp(16), dp(7))
             setOnClickListener {
                 if (trainRunning) onStopTraining() else onTrainClicked()
             }
