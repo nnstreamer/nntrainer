@@ -36,6 +36,9 @@
 #include <vector>
 
 #include <gtest/gtest.h>
+#if defined(__linux__)
+#include <sys/prctl.h>
+#endif
 
 #include <cl_context.h>
 #include <cl_kernels/tq2moe_fsu_flags.h>
@@ -710,6 +713,139 @@ TEST(FsuFlags, ReadsAheadAreServedPromotedOrDroppedAndTheTablesAgree) {
     for (size_t e = 0; e < map.size(); ++e)
       EXPECT_EQ(mir[e], map[e]) << "layer " << l << " expert " << e;
   }
+}
+
+namespace {
+
+/** what pollBench measured */
+struct PollBench {
+  double p50_us = 0, p90_us = 0, max_us = 0, cpu_share = 0, gap_p50_us = 0;
+  size_t taken = 0, published = 0;
+};
+
+/**
+ * @brief The poller against a device that publishes like a phone's decode
+ *        (32 slots: ~1.7 ms per layer): per layer a step entry, a read
+ *        ahead 60 us later, the next step 1.55 ms after that and, every
+ *        7th layer, 2 ms more (a gate that waited); the host enqueues each
+ *        token's publishes ahead, as the backend does. The latency is
+ *        publish -> taken.
+ */
+PollBench pollBench(FsuFlagsHost::PollConfig c, int tokens) {
+  using clk = std::chrono::steady_clock;
+  std::vector<uint32_t> ctl(kCtlWords, 0);
+  std::vector<uint32_t> block(LayerLayout(4, 16).words, 0);
+  ExpertResidency res;
+  res.addLayer(0, 4, 16);
+  FsuFlagsHost host(
+    ctl.data(),
+    [](const FsuFlagsHost::Read &, std::shared_ptr<std::atomic<bool>>, bool) {},
+    false);
+  host.addLayer(0, block.data(), 4, 16, 2, hooksOf(res));
+  constexpr int kLayers = 24;
+  const size_t n = (size_t)tokens * kLayers * 2 + 2;
+  std::vector<clk::time_point> pub(n), take(n);
+  std::vector<char> got(n, 0);
+  host.onTake([&](uint32_t seq) {
+    if (seq < n) {
+      take[seq] = clk::now();
+      got[seq] = 1;
+    }
+  });
+  host.startPoller(c);
+#if defined(__linux__)
+  (void)prctl(PR_SET_TIMERSLACK, 1UL, 0UL, 0UL, 0UL);
+#endif
+  auto spin_until = [](clk::time_point t) {
+    while (clk::now() < t) {
+    }
+  };
+  auto publish = [&](uint32_t seq, uint32_t kind) {
+    while ((uint32_t)(seq - loadAcquire(ctl.data() + kCtlTail)) >
+           kRingEntries) {
+    }
+    uint32_t *en = ctl.data() + kCtlRing + (seq % kRingEntries) * kEntryWords;
+    en[kEnKind] = kind;
+    en[kEnLayer] = 0;
+    en[kEnCount] = 0;
+    en[kEnX] = 0;
+    pub[seq] = clk::now();
+    storeRelease(en, seq);
+  };
+  for (int t = 0; t < tokens; ++t) {
+    std::vector<uint32_t> seqs;
+    for (int l = 0; l < kLayers; ++l) {
+      seqs.push_back(host.beginPublish(0, false));
+      seqs.push_back(host.beginPublish(0, true));
+    }
+    auto at = clk::now();
+    for (int l = 0; l < kLayers; ++l) {
+      publish(seqs[2 * l], kKindStep);
+      spin_until(at += std::chrono::microseconds(60));
+      publish(seqs[2 * l + 1], kKindSpec);
+      at += std::chrono::microseconds(1550 + (l % 7 == 6 ? 2000 : 0));
+      spin_until(at);
+    }
+    // the token's end: sampling and the next token's enqueue
+    while (!host.consumed(seqs.back()))
+      std::this_thread::sleep_for(std::chrono::microseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(3));
+  }
+  host.stopPoller();
+  PollBench b;
+  std::vector<double> lat;
+  for (size_t i = 1; i < n; ++i)
+    if (pub[i] != clk::time_point()) {
+      ++b.published;
+      if (got[i]) {
+        ++b.taken;
+        lat.push_back(
+          std::chrono::duration<double, std::micro>(take[i] - pub[i]).count());
+      }
+    }
+  std::sort(lat.begin(), lat.end());
+  if (!lat.empty()) {
+    b.p50_us = lat[lat.size() / 2];
+    b.p90_us = lat[lat.size() * 9 / 10];
+    b.max_us = lat.back();
+  }
+  const auto st = host.stats();
+  b.cpu_share =
+    st.poller_wall_us ? (double)st.poller_cpu_us / st.poller_wall_us : 0.0;
+  std::vector<uint32_t> g = st.poll_gap_us;
+  std::sort(g.begin(), g.end());
+  b.gap_p50_us = g.empty() ? 0.0 : g[g.size() / 2];
+  return b;
+}
+
+} // namespace
+
+TEST(FsuFlags, TheAdaptivePollerTakesEveryEntrySoonWithLessCpu) {
+  // the spin poller (the default) against the adaptive one at a
+  // phone's publish cadence: every entry taken, the adaptive one at a
+  // fraction of the CPU, and soon (target: median <= 10 us)
+  FsuFlagsHost::PollConfig spin;
+  spin.spin_us = 2000;
+  FsuFlagsHost::PollConfig adaptive;
+  adaptive.adaptive = true;
+  adaptive.spin_us = 100;
+  adaptive.max_sleep_us = 50;
+  const PollBench a = pollBench(spin, 30);
+  const PollBench b = pollBench(adaptive, 30);
+  for (const auto &x :
+       {std::make_pair("spin", a), std::make_pair("adaptive", b)})
+    std::printf("[ INFO     ] poller %s: entries %zu/%zu latency p50 %.1f us "
+                "p90 %.1f us max %.1f us, last-empty-poll gap p50 %.1f us, "
+                "cpu %.1f %%\n",
+                x.first, x.second.taken, x.second.published, x.second.p50_us,
+                x.second.p90_us, x.second.max_us, x.second.gap_p50_us,
+                100.0 * x.second.cpu_share);
+  EXPECT_EQ(a.taken, a.published);
+  EXPECT_EQ(b.taken, b.published);
+  EXPECT_GT(a.cpu_share, 0.0);
+  EXPECT_LT(b.cpu_share, a.cpu_share);
+  // generous: a loaded CI host; the figures are printed above
+  EXPECT_LT(b.p50_us, 60.0);
 }
 
 TEST(FsuFlags, TheLastTokensStepsAreTalliedNotReplayed) {

@@ -112,6 +112,11 @@
 #include <utility>
 #include <vector>
 
+#if defined(__linux__)
+#include <sys/prctl.h>
+#include <time.h>
+#endif
+
 namespace nntrainer {
 namespace fsuflags {
 
@@ -621,6 +626,11 @@ public:
     uint64_t steps = 0, step_items = 0, misses = 0, ready_at_publish = 0;
     uint64_t specs = 0, spec_placed = 0, spec_hits = 0, spec_promoted = 0,
              spec_cancelled = 0;
+    /** the poller: per entry it waited for, the time from its last empty
+     *  poll to the poll that took it (an upper bound of the time the entry
+     *  sat in the ring), us; its sleeps; its thread's CPU time */
+    std::vector<uint32_t> poll_gap_us;
+    uint64_t poll_sleeps = 0, poller_cpu_us = 0, poller_wall_us = 0;
     uint64_t reads_done = 0, reads_failed = 0;
     uint64_t prepares = 0, prepare_us = 0, prepare_wait_us = 0, adopts = 0,
              room_waits = 0, drains = 0;
@@ -811,6 +821,9 @@ public:
         e.item[i][k] = en[kEnItems + i * kItemWords + k];
     // the copy is taken: the device may reuse the ring slot
     storeRelease(ctl_ + kCtlTail, seq);
+    last_kind_ = e.kind;
+    if (on_take_)
+      on_take_(seq);
     handle(e);
     consumed_.store(seq, std::memory_order_release);
     if (consume_waiters_.load(std::memory_order_acquire) != 0) {
@@ -820,18 +833,42 @@ public:
     return true;
   }
 
+  /** how the poller waits while a publish is outstanding */
+  struct PollConfig {
+    /** false (spin): spin for spin_us after the last entry, then poll every
+     *  20 us. true (adaptive): spin for spin_us after an entry, then sleep
+     *  min_sleep_us, doubling up to max_sleep_us (timer slack 1 ns where the
+     *  platform has it), and spin again from lead x the steps' usual
+     *  interval after the last step entry (an EWMA of step to step) until
+     *  the next one or 1.5 intervals */
+    bool adaptive = false;
+    unsigned int spin_us = 2000;
+    unsigned int min_sleep_us = 1, max_sleep_us = 50;
+    float lead = 0.8f;
+  };
+
   /**
-   * @brief Run pollOnce on a thread of its own: it spins while a publish is
-   *        outstanding (for @a spin_us after the last entry, then polls
-   *        every 20 us) and sleeps while none is.
+   * @brief Run pollOnce on a thread of its own: it waits as @a c says while
+   *        a publish is outstanding and sleeps on a condition variable
+   *        while none is.
    */
-  void startPoller(unsigned int spin_us = 2000) {
+  void startPoller(PollConfig c) {
     if (poller_.joinable())
       return;
     stop_ = false;
-    poller_ = std::thread([this, spin_us]() { pollLoop(spin_us); });
+    stop_flag_.store(false);
+    poller_ = std::thread([this, c]() { pollLoop(c); });
   }
+  /** the spin poller with a spin window of @a spin_us */
+  void startPoller(unsigned int spin_us = 2000) {
+    PollConfig c;
+    c.spin_us = spin_us;
+    startPoller(c);
+  }
+  /** tests: called by the poller with each sequence number it took */
+  void onTake(std::function<void(uint32_t)> f) { on_take_ = std::move(f); }
   void stopPoller() {
+    stop_flag_.store(true);
     {
       std::lock_guard<std::mutex> lk(work_mu_);
       stop_ = true;
@@ -1388,16 +1425,79 @@ private:
     storeRelease(t + l.L.hdr + kHdrGen, ++l.gen);
   }
 
-  void pollLoop(unsigned int spin_us) {
-    auto last = std::chrono::steady_clock::now();
+  /** this thread's CPU time in us (0 where unknown) */
+  static uint64_t threadCpuUs() {
+#if defined(__linux__)
+    struct timespec ts;
+    if (clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts) == 0)
+      return (uint64_t)ts.tv_sec * 1000000u + (uint64_t)ts.tv_nsec / 1000u;
+#endif
+    return 0;
+  }
+
+  static void cpuRelax() {
+#if defined(__x86_64__) || defined(__i386__)
+    __builtin_ia32_pause();
+#elif defined(__aarch64__)
+    asm volatile("yield" ::: "memory");
+#endif
+  }
+
+  void pollLoop(PollConfig c) {
+    using clk = std::chrono::steady_clock;
+#if defined(__linux__)
+    // the adaptive poller's short sleeps: no timer slack (default 50 us)
+    if (c.adaptive)
+      (void)prctl(PR_SET_TIMERSLACK, 1UL, 0UL, 0UL, 0UL);
+#endif
+    const auto t_start = clk::now();
+    const uint64_t cpu0 = threadCpuUs();
+    auto last = clk::now(); // the last entry taken
+    auto last_empty = last; // the last poll that found nothing
+    bool waiting = false;   // a poll found nothing since the last take
+    auto last_step = last;  // the last step entry taken
+    double step_us = 0.0;   // EWMA of step to step
+    unsigned int sleep_us = c.min_sleep_us;
+    uint64_t sleeps = 0;
+    std::vector<uint32_t> gaps;
+    auto flush = [&]() {
+      // the poller's own account, merged under the lock now and then
+      std::lock_guard<std::mutex> lk(mu_);
+      stats_.poll_gap_us.insert(stats_.poll_gap_us.end(), gaps.begin(),
+                                gaps.end());
+      stats_.poll_sleeps += sleeps;
+      stats_.poller_cpu_us = threadCpuUs() - cpu0;
+      stats_.poller_wall_us = usBetween(t_start, clk::now());
+      gaps.clear();
+      sleeps = 0;
+    };
     for (;;) {
       if (pollOnce()) {
-        last = std::chrono::steady_clock::now();
+        const auto t = clk::now();
+        if (waiting)
+          gaps.push_back((uint32_t)std::min<uint64_t>(usBetween(last_empty, t),
+                                                      0xFFFFFFFFu));
+        waiting = false;
+        last = t;
+        sleep_us = c.min_sleep_us;
+        if (last_kind_ == kKindStep) {
+          const double d = (double)usBetween(last_step, t);
+          // an EWMA of the step interval; a long gap (a token boundary, a
+          // prefill) counts at most 4 intervals
+          step_us =
+            step_us == 0.0 ? d : 0.8 * step_us + 0.2 * std::min(d, 4 * step_us);
+          last_step = t;
+        }
+        if (gaps.size() >= 256)
+          flush();
         continue;
       }
-      const uint32_t c = consumed_.load(std::memory_order_relaxed);
-      if (published_.load(std::memory_order_acquire) == c) {
+      last_empty = clk::now();
+      waiting = true;
+      const uint32_t cs = consumed_.load(std::memory_order_relaxed);
+      if (published_.load(std::memory_order_acquire) == cs) {
         // nothing outstanding: sleep until a publish is announced
+        flush();
         std::unique_lock<std::mutex> lk(work_mu_);
         work_cv_.wait(lk, [&] {
           return stop_ || published_.load(std::memory_order_acquire) !=
@@ -1405,23 +1505,38 @@ private:
         });
         if (stop_)
           return;
-        last = std::chrono::steady_clock::now();
+        last = clk::now();
+        waiting = false;
         continue;
       }
-      {
-        std::lock_guard<std::mutex> lk(work_mu_);
-        if (stop_)
-          return;
+      if (stop_flag_.load(std::memory_order_relaxed)) {
+        flush();
+        return;
       }
-      if (usSince(last) > spin_us)
-        std::this_thread::sleep_for(std::chrono::microseconds(20));
-#if defined(__x86_64__) || defined(__i386__)
-      else
-        __builtin_ia32_pause();
-#elif defined(__aarch64__)
-      else
-        asm volatile("yield" ::: "memory");
-#endif
+      const uint64_t since = usBetween(last, last_empty);
+      if (!c.adaptive) {
+        if (since > c.spin_us) {
+          std::this_thread::sleep_for(std::chrono::microseconds(20));
+          ++sleeps;
+        } else {
+          cpuRelax();
+        }
+        continue;
+      }
+      bool spin = since < c.spin_us;
+      if (!spin && step_us > 0.0) {
+        // the next step entry is due: spin through its usual arrival
+        const double ss = (double)usBetween(last_step, last_empty);
+        spin = ss >= c.lead * step_us && ss <= 1.5 * step_us + c.spin_us;
+      }
+      if (spin) {
+        cpuRelax();
+        sleep_us = c.min_sleep_us;
+      } else {
+        std::this_thread::sleep_for(std::chrono::microseconds(sleep_us));
+        ++sleeps;
+        sleep_us = std::min(c.max_sleep_us, 2 * sleep_us);
+      }
     }
   }
 
@@ -1444,6 +1559,9 @@ private:
   std::mutex work_mu_;
   std::condition_variable work_cv_;
   bool stop_ = false;
+  std::atomic<bool> stop_flag_{false}; /**< stop_, for the poller's spin */
+  std::function<void(uint32_t)> on_take_;
+  uint32_t last_kind_ = 0; /**< poller: the kind of the entry it took */
   std::thread poller_;
 };
 

@@ -5053,6 +5053,32 @@ double tq2FlagsCalibratePoll(ClContext *cc) {
 }
 
 /**
+ * @brief How the flags protocol's poller waits for the device's entries
+ *        (FsuFlagsHost::PollConfig), read once:
+ *        NNTR_G4MOE_FSU_FLAGS_POLL=spin|adaptive (default spin). spin: it
+ *        spins NNTR_G4MOE_FSU_FLAGS_POLL_US (default 2000) after the last
+ *        entry, then polls every 20 us -- during a decode it never stops
+ *        spinning (a core at 100 %). adaptive: it spins
+ *        NNTR_G4MOE_FSU_FLAGS_POLL_US (default 100) after an entry (the
+ *        read ahead follows the step's entry closely), then sleeps 1 us
+ *        doubling up to NNTR_G4MOE_FSU_FLAGS_POLL_MAX_US (default 50; timer
+ *        slack 1 ns), and spins again from NNTR_G4MOE_FSU_FLAGS_POLL_LEAD
+ *        percent (default 80) of the usual step-to-step interval after
+ *        the last step entry, through its arrival.
+ */
+fsuflags::FsuFlagsHost::PollConfig tq2FlagsPoll() {
+  fsuflags::FsuFlagsHost::PollConfig c;
+  const char *e = std::getenv("NNTR_G4MOE_FSU_FLAGS_POLL");
+  c.adaptive = e != nullptr && std::string(e) == "adaptive";
+  c.spin_us =
+    tq2EnvUint("NNTR_G4MOE_FSU_FLAGS_POLL_US", c.adaptive ? 100u : 2000u);
+  c.max_sleep_us =
+    std::max(1u, tq2EnvUint("NNTR_G4MOE_FSU_FLAGS_POLL_MAX_US", 50u));
+  c.lead = tq2EnvUint("NNTR_G4MOE_FSU_FLAGS_POLL_LEAD", 80u) / 100.0f;
+  return c;
+}
+
+/**
  * @brief The process's flags protocol state: the control block, a block per
  *        streamed layer, the host side (FsuFlagsHost: prepare, poller,
  *        replay) and the reads it starts (straight into the slots, O_DIRECT,
@@ -5219,15 +5245,20 @@ private:
     // the coarse-grain test mode consumes the ring on the host thread, after
     // each step's kernels completed (see the decode tail)
     if (!tq2FsuFlagsCoarse())
-      host_->startPoller(
-        tq2EnvUint("NNTR_G4MOE_FSU_FLAGS_POLL_US", 2000u)); // spin window
+      host_->startPoller(tq2FlagsPoll());
     instance_.store(this);
     std::fprintf(stderr,
                  "[TQ2CX-FSU-FLAGS] decode without the host round trip: "
-                 "ring %u x %u words, gate spin cap %llu polls, readers %u\n",
+                 "ring %u x %u words, gate spin cap %llu polls, readers %u, "
+                 "poll %s (spin %u us, sleeps up to %u us, lead %.2f)\n",
                  fsuflags::kRingEntries, fsuflags::kEntryWords,
                  (unsigned long long)tq2FlagsSpinCap(),
-                 ExpertReaderPool::global().readers());
+                 ExpertReaderPool::global().readers(),
+                 tq2FsuFlagsCoarse()       ? "host (coarse)"
+                 : tq2FlagsPoll().adaptive ? "adaptive"
+                                           : "spin",
+                 tq2FlagsPoll().spin_us, tq2FlagsPoll().max_sleep_us,
+                 (double)tq2FlagsPoll().lead);
   }
 
   void coarse(ClContext *cc, const Layer &l, bool map) {
@@ -5366,6 +5397,13 @@ struct Tq2FlagsStats {
     // the gates' spin account (device): the slowest lane's polls per gate
     const fsuflags::SpinAccount sp = fsuflags::spinAccount(f->ctl());
     const double poll_ns = g_tq2_flags_poll_ns.load();
+    // the poller's waits: last empty poll -> the poll that took the entry
+    std::vector<uint32_t> gp = s.poll_gap_us;
+    std::sort(gp.begin(), gp.end());
+    auto gpct = [&gp](double p) -> unsigned int {
+      return gp.empty() ? 0u
+                        : gp[std::min(gp.size() - 1, (size_t)(p * gp.size()))];
+    };
     std::fprintf(
       stderr,
       "[TQ2CX-FSU-FLAGS] tokens=%.0f steps=%llu hit_rate=%.4f "
@@ -5378,7 +5416,9 @@ struct Tq2FlagsStats {
       "room_waits=%llu adopts=%llu drains=%llu gates=%llu "
       "gates_waited_per_token=%.2f gate_spin_polls_per_token=%.0f "
       "gate_spin_max_polls=%u gate_poll_ns=%.1f gate_spin_ms_per_token=%.3f "
-      "gate_spin_ms_max=%.3f unreplayed_steps_tallied=%llu error=%s\n",
+      "gate_spin_ms_max=%.3f poll=%s poll_gap_us_p50=%u p90=%u p99=%u "
+      "poll_waits=%zu poll_sleeps=%llu poller_cpu_ms_per_token=%.3f "
+      "poller_cpu_share=%.3f unreplayed_steps_tallied=%llu error=%s\n",
       tok, (unsigned long long)s.steps, hit_rate, s.misses / tok, miss_mib,
       s.ready_at_publish / tok, (unsigned long long)s.specs,
       s.spec_placed / tok, s.spec_hits / tok,
@@ -5396,6 +5436,10 @@ struct Tq2FlagsStats {
       (unsigned long long)s.drains, (unsigned long long)sp.gates,
       sp.waited / tok, sp.polls / tok, sp.max_polls, poll_ns,
       sp.polls * poll_ns / 1e6 / tok, sp.max_polls * poll_ns / 1e6,
+      tq2FlagsPoll().adaptive ? "adaptive" : "spin", gpct(0.5), gpct(0.9),
+      gpct(0.99), gp.size(), (unsigned long long)s.poll_sleeps,
+      s.poller_cpu_us / 1000.0 / tok,
+      s.poller_wall_us ? (double)s.poller_cpu_us / s.poller_wall_us : 0.0,
       (unsigned long long)tallied, fsuflags::errorName(err));
   }
   std::atomic<unsigned long long> tokens{0};
