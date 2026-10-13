@@ -115,6 +115,9 @@ if get_option('enable-opencl')
   test_target += [['unittest_embedding_pool_ops', []]]
   # The OpenCL backend's expert reader pool (reads a temporary file; no GPU).
   test_target += [['unittest_expert_reader_pool', []]]
+  # The streamed-expert decode protocol without a host round trip
+  # (expert_fsu_flags.h): the device side emulated on a thread; no GPU.
+  test_target += [['unittest_expert_fsu_flags', []]]
 endif
 
 if get_option('enable-fp16')

@@ -123,6 +123,15 @@ void tq2cx_moe_experts_join_cl(const MoeExpertGroup &group);
  */
 void tq2cx_moe_experts_flush_deferred_cl(const Tensor &t);
 
+/**
+ * @brief The time of one poll of the streamed decode's gate kernel
+ *        (NNTR_G4MOE_FSU_FLAGS) on the registered gpu context, in ns,
+ *        measured now on scratch blocks (the flags protocol measures it once
+ *        at its decision to turn the gates' spin account into ms).
+ * @return 0 when it cannot run here (no gpu context, no SVM, no build)
+ */
+double tq2cx_fsu_gate_poll_ns_cl();
+
 } // namespace nntrainer
 
 #endif // __TQ2CX_CL_H__

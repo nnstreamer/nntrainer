@@ -161,6 +161,33 @@ struct MoeExpertFsu {
     reserve;
   std::function<void(unsigned int expert, bool admit)> release;
   std::function<bool(unsigned int expert)> resident;
+
+  // ---- decode without the host round trip (NNTR_G4MOE_FSU_FLAGS) ----
+  /** the device places a decode step's misses itself, from a victim queue
+   *  the backend publishes ahead of the step, and the backend replays what
+   *  it did into the policy afterwards (off the step's path). Set on the
+   *  call's descriptor and on the one the previous layer names as next.
+   *  victim_order: the slots in the order successive acquires would take
+   *  them for misses, without @a exclude (ExpertResidency::victimOrder);
+   *  place: a step of @a need whose misses went to @a placed (acquire()'s
+   *  history and recency); admit: a read ahead put @a expert into @a slot
+   *  (no access); forget: a read ahead dropped before it read. Host thread
+   *  only; each leaves slot_of current. */
+  std::function<std::vector<unsigned int>(
+    const std::vector<unsigned int> &exclude)>
+    victim_order;
+  std::function<void(
+    const std::vector<unsigned int> &need,
+    const std::vector<std::pair<unsigned int, unsigned int>> &placed)>
+    place;
+  std::function<void(unsigned int expert, unsigned int slot)> admit;
+  std::function<void(unsigned int expert)> forget;
+  /** optional: count a decode step the device placed that was never
+   *  replayed (the last token's, at exit: a step is replayed at its layer's
+   *  next prepare) into the model's totals: @a hits experts were resident,
+   *  @a misses were read. Changes no policy; may run at exit, after the
+   *  layer itself is gone, so it must not reach the layer */
+  std::function<void(unsigned int hits, unsigned int misses)> tally;
 };
 
 /**
@@ -880,7 +907,10 @@ public:
    *        call the layer's acquire / filled / refresh hooks), and rethrow
    *        what failed there. A layer calls it before it touches the state
    *        those hooks share (its residency policy). Only group.layer_key
-   *        is read.
+   *        and group.tokens are read: a call of more than one row (a
+   *        prefill, which may change the policy and write the slots itself)
+   *        also waits until the decode steps of every streamed layer are
+   *        done and replayed into the policies (NNTR_G4MOE_FSU_FLAGS).
    */
   virtual void moe_experts_join(const MoeExpertGroup &group) { (void)group; }
 

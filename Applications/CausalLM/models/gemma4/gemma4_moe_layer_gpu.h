@@ -143,6 +143,14 @@ private:
   nntrainer::MoeExpertFsu fsuDescriptor();
 
   /**
+   * @brief The hooks a backend that places decode misses on the device
+   *        replays them through (NNTR_G4MOE_FSU_FLAGS): the residency's
+   *        victimOrder / place / admit / forget / refresh, keeping slot_map
+   *        current.
+   */
+  void setFlagsHooks(nntrainer::MoeExpertFsu &d);
+
+  /**
    * @brief Note this layer's file descriptor for the layer before it (a
    *        prefill reads this layer's block ahead) and create its expert
    *        slots now.

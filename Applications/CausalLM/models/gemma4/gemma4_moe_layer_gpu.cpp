@@ -235,18 +235,35 @@ struct FsuStats {
   /** decode misses placed in a slot reserved by a read ahead, and the
    *  residents the reservations evicted */
   unsigned long long dec_reserved = 0, reserve_evictions = 0;
+  /** decode steps the device placed (NNTR_G4MOE_FSU_FLAGS), replayed at the
+   *  layer's next prepare: the last token's steps never are, and the
+   *  backend counts those in at exit (tally, before this line prints) */
+  unsigned long long dec_placed = 0, dec_tallied = 0;
   size_t record_bytes = 0;
   ~FsuStats() {
     if (layers == 0)
       return;
+    // with the flags protocol (dec_placed != 0) the device's steps are
+    // counted at their replay plus, at exit, the last token's that never
+    // replayed (tally): every decode step, as [TQ2CX-FSU-FLAGS] counts them
+    // (its misses = expert_reads - prefill reads); reads ahead are not
+    // counted here (they are in [TQ2CX-FSU-FLAGS])
+    char flags_part[96] = "";
+    if (dec_placed != 0)
+      std::snprintf(flags_part, sizeof(flags_part),
+                    " decode_steps=%llu of_them_tallied_at_exit=%llu",
+                    dec_calls, dec_tallied);
     std::fprintf(stderr,
                  "[G4MOE-FSU] layers=%u slots_per_layer=%u calls=%llu "
                  "expert_hits=%llu expert_reads=%llu read_mib=%.1f "
-                 "policy=%s lambda=%.3f prime=%.1f\n",
+                 "policy=%s lambda=%.3f prime=%.1f%s\n",
                  layers, slots, calls, hits, misses,
                  (double)misses * (double)record_bytes / 1048576.0, policy,
-                 lambda, prime);
-    if (!fsuStatsOn() || dec_calls == 0)
+                 lambda, prime, flags_part);
+    // with the flags protocol the backend's [TQ2CX-FSU-FLAGS] line has the
+    // per-token figures over every decode token (hit_rate, misses,
+    // miss_mib_per_token), so this one is not printed then
+    if (!fsuStatsOn() || dec_calls == 0 || dec_placed != 0)
       return;
     const double tok = (double)dec_calls / (double)layers;
     std::fprintf(stderr,
@@ -642,6 +659,7 @@ void Gemma4MoELayerGpu::createExpertSlots(nntrainer::RunLayerContext &context) {
   file_desc.resident = [this](unsigned int e) {
     return residency.slotOf(0, e) != causallm::ExpertResidency::kNone;
   };
+  setFlagsHooks(file_desc);
   // the layer's partition of the slot arena, now: every partition exists
   // before the first prefill, which lends some of them to its stream
   nntrainer::MoeExpertGroup group = expertWeightGroup(context);
@@ -652,6 +670,56 @@ void Gemma4MoELayerGpu::createExpertSlots(nntrainer::RunLayerContext &context) {
             "at the first call",
             context.getName().c_str(),
             ops == nullptr ? "no op table" : "declined");
+}
+
+void Gemma4MoELayerGpu::setFlagsHooks(nntrainer::MoeExpertFsu &d) {
+  d.victim_order = [this](const std::vector<unsigned int> &exclude) {
+    return residency.victimOrder(0, exclude);
+  };
+  // a decode step the device placed (replayed off its path): counted as a
+  // decode call like acquire()'s
+  d.place =
+    [this](const std::vector<unsigned int> &need,
+           const std::vector<std::pair<unsigned int, unsigned int>> &placed) {
+      const auto a = residency.place(0, need, placed);
+      slot_map = residency.slotMap(0);
+      auto &st = fsuStats();
+      std::lock_guard<std::mutex> lk(st.mu);
+      ++st.calls;
+      st.hits += a.hits;
+      st.misses += a.misses.size();
+      ++st.dec_calls;
+      st.dec_hits += a.hits;
+      st.dec_misses += a.misses.size();
+      ++st.dec_placed;
+    };
+  d.admit = [this](unsigned int e, unsigned int s) {
+    residency.admit(0, e, s);
+    slot_map = residency.slotMap(0);
+  };
+  d.forget = [this](unsigned int e) {
+    residency.forget(0, e);
+    slot_map = residency.slotMap(0);
+  };
+  d.refresh = [this](const std::vector<unsigned int> &recency) {
+    residency.refresh(0, recency);
+  };
+  // the steps never replayed, counted at exit: the totals only (the layer
+  // may be gone by then); the totals object exists from here on, so it
+  // outlives the backend's exit line that calls this
+  (void)fsuStats();
+  d.tally = [](unsigned int hits, unsigned int misses) {
+    auto &st = fsuStats();
+    std::lock_guard<std::mutex> lk(st.mu);
+    ++st.calls;
+    st.hits += hits;
+    st.misses += misses;
+    ++st.dec_calls;
+    st.dec_hits += hits;
+    st.dec_misses += misses;
+    ++st.dec_placed;
+    ++st.dec_tallied;
+  };
 }
 
 nntrainer::MoeExpertFsu Gemma4MoELayerGpu::fsuDescriptor() {
@@ -706,6 +774,7 @@ nntrainer::MoeExpertFsu Gemma4MoELayerGpu::fsuDescriptor() {
   d.resident = [this](unsigned int e) {
     return residency.slotOf(0, e) != causallm::ExpertResidency::kNone;
   };
+  setFlagsHooks(d);
   d.filled =
     [this](const std::vector<std::pair<unsigned int, unsigned int>> &fill,
            bool ok) {
@@ -922,6 +991,7 @@ void Gemma4MoELayerGpu::forwardTensors(nntrainer::RunLayerContext &context,
     // residency policy only once it is done
     nntrainer::MoeExpertGroup join;
     join.layer_key = this;
+    join.tokens = total_tokens;
     ops->moe_experts_join(join);
   }
   fsu_decode_call = decode_step;
