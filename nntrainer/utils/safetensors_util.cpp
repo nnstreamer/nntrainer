@@ -14,6 +14,8 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdint>
+#include <fstream>
 #include <iomanip>
 #include <sstream>
 #include <stdexcept>
@@ -377,6 +379,22 @@ std::map<std::string, std::string> parseMetadata(const std::string &json) {
   }
   s.expect('}');
   return out;
+}
+
+std::map<std::string, std::string> readMetadata(const std::string &path) {
+  std::ifstream f(path, std::ios::in | std::ios::binary);
+  if (!f.is_open())
+    throw std::runtime_error("safetensors: cannot open " + path);
+  uint64_t header_size = 0;
+  f.read(reinterpret_cast<char *>(&header_size), sizeof(header_size));
+  // a header is a few MB at most; refuse a size that is not one
+  if (!f || header_size == 0 || header_size > (1ull << 30))
+    throw std::runtime_error("safetensors: bad header length in " + path);
+  std::string json(static_cast<size_t>(header_size), '\0');
+  f.read(json.data(), static_cast<std::streamsize>(header_size));
+  if (!f)
+    throw std::runtime_error("safetensors: short header in " + path);
+  return parseMetadata(json);
 }
 
 std::string inspect(const std::string &json) {
