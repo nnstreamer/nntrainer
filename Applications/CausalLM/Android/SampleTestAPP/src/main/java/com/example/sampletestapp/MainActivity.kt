@@ -250,7 +250,7 @@ class MainActivity : AppCompatActivity() {
     private var trainLastIterNs: Long = 0L
     private val trainIterMs = ArrayDeque<Double>()
     private var trainDataPath: String = "/sdcard/t.txt"
-    private var trainLr: String = "5e-5"
+    private var trainLr: String = "1e-4"
     private var trainEpochs: String = "5"
     private var trainBatchSize: String = "1"
     /** "lm" (text lines, next-token loss) or "decision" (decision-model
@@ -265,7 +265,7 @@ class MainActivity : AppCompatActivity() {
         "sft" to "SFT — supervised on the answer",
         "rlcd" to "RLCD — RL, reward correct − p",
         "rlvr" to "RLVR — RL, reward correct")
-    private var trainSeqLen: String = "256"
+    private var trainSeqLen: String = "128"
     private var trainLoraRank: String = "8"
     private var trainLoraAlpha: String = "16"
     private var trainLoraLastN: String = "7"
