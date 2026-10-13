@@ -317,6 +317,8 @@ static const char *dtypeToStr(nntrainer::TensorDim::DataType dt) {
     return "Q6_K";
   case DT::QS4CX:
     return "QS4CX";
+  case DT::TQ2CX:
+    return "TQ2CX";
   case DT::BCQ:
     return "BCQ";
   default:

@@ -53,6 +53,7 @@
 #include <residency_policy.h>
 #include <tensor_pool.h>
 #include <tensor_wrap_specs.h>
+#include <ternary_tensor.h> // tq2cxSingleCopyOn
 #include <util_func.h>
 #include <var_grad.h>
 
@@ -506,9 +507,15 @@ std::vector<Weight *> Manager::requestWeights(
       // can never disagree about whether a payload is self-owned.
 #if defined(__x86_64__) || defined(__i386__) || defined(_M_X64) ||             \
   defined(_M_IX86) || defined(__aarch64__) || defined(_M_ARM64)
+      // A TQ2CX expert weight takes the same arm under tq2cxSingleCopyOn():
+      // its one fast reader is a device copy built from the file at load.
+      const auto v_dt = dim_v.getDataType();
       const bool qs4cx_heap_bypass =
-        dim_v.getDataType() == ml::train::TensorDim::DataType::QS4CX &&
-        !enable_fsu && qs4cxHeapBypassOn();
+        !enable_fsu &&
+        ((v_dt == ml::train::TensorDim::DataType::QS4CX &&
+          qs4cxHeapBypassOn()) ||
+         (v_dt == ml::train::TensorDim::DataType::TQ2CX && !is_virtual &&
+          tq2cxSingleCopyOn()));
 #else
       const bool qs4cx_heap_bypass = false;
 #endif

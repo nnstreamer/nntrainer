@@ -577,6 +577,13 @@ private:
    */
   Tensor &dotQs4cx(Tensor const &input, Tensor &output, bool trans,
                    bool trans_in, float beta, Tdatatype dtype) const;
+
+  /**
+   * @brief Float.dot(TQ2CX) -- ternary weight held as two bit planes
+   * @return Tensor& reference to the output tensor
+   */
+  Tensor &dotTernary(Tensor const &input, Tensor &output, bool trans,
+                     bool trans_in, float beta) const;
 };
 
 } // namespace nntrainer

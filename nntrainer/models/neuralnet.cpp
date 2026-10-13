@@ -138,6 +138,7 @@ Tensor mapExternalTensor(float *buf, const TensorDim &dim) {
   case TensorDim::DataType::Q4_K:
   case TensorDim::DataType::Q6_K:
   case TensorDim::DataType::Q4_0:
+  case TensorDim::DataType::TQ2CX:
     return Tensor::Map<uint8_t>(reinterpret_cast<uint8_t *>(buf), bytes, dim,
                                 0);
   case TensorDim::DataType::UINT32:
@@ -1427,7 +1428,8 @@ void NeuralNetwork::load(const std::string &file_path,
             tensor_data_type != TensorDim::DataType::FP16 &&
             tensor_data_type != TensorDim::DataType::Q6_K &&
             tensor_data_type != TensorDim::DataType::Q4_0 &&
-            tensor_data_type != TensorDim::DataType::QS4CX) {
+            tensor_data_type != TensorDim::DataType::QS4CX &&
+            tensor_data_type != TensorDim::DataType::TQ2CX) {
           // for tensor with qparam
           size += sizeof(uint16_t);
           // ... but only CharTensor, ShortTensor, UIntTensor (UINT8/16/32),

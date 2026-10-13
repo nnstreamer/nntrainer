@@ -20,6 +20,7 @@
 #include <int4_utils.h>
 #include <q4_0_utils.h>
 #include <qs4cx_tensor.h> // refuseIfQs4cxPayloadDropped
+#include <ternary_tensor.h>
 #include <thread_manager.h>
 
 #include <tensor.h>
@@ -763,6 +764,9 @@ Tensor &FloatTensor::dot(Tensor const &input, Tensor &output, bool trans,
   case Tdatatype::QS4CX:
     dotQs4cx(input, output, trans, trans_in, beta, input.getDataType());
     break;
+  case Tdatatype::TQ2CX:
+    dotTernary(input, output, trans, trans_in, beta);
+    break;
   default:
     throw std::invalid_argument("Error: unsupported datatype");
   }
@@ -1120,6 +1124,35 @@ Tensor &FloatTensor::dotQs4cx(Tensor const &input, Tensor &output, bool trans,
                                     opt_kernel_idx, true);
 #endif
 
+  return output;
+}
+
+Tensor &FloatTensor::dotTernary(Tensor const &input, Tensor &output, bool trans,
+                                bool trans_in, float beta) const {
+  // The TQ2CX record is the canonical [OUT, IN] weight, i.e. an already
+  // transposed rhs, so there is no operand left for trans / trans_in.
+  NNTR_THROW_IF(trans || trans_in, std::invalid_argument)
+    << "[FloatTensor::dotTernary] a TQ2CX weight cannot be transposed";
+  NNTR_THROW_IF(input.getDim().channel() != 1, std::invalid_argument)
+    << "[FloatTensor::dotTernary] a stacked (E > 1) TQ2CX weight has no "
+       "single operand; route one expert record at a time";
+  NNTR_THROW_IF(output.getDataType() != Tdatatype::FP32, std::invalid_argument)
+    << "[FloatTensor::dotTernary] TQ2CX dot writes FP32 output only";
+
+  // the weight is (K, N); every leading dimension of the activation is
+  // folded into the rows
+  const size_t K = getDim().width();
+  const size_t M = getDim().getDataLen() / K;
+  const size_t N = input.getDim().width();
+  NNTR_THROW_IF(input.getDim().height() != K, std::invalid_argument)
+    << "[FloatTensor::dotTernary] weight IN " << input.getDim().height()
+    << " != activation width " << K;
+  NNTR_THROW_IF(output.getDim().getDataLen() != M * N, std::invalid_argument)
+    << "[FloatTensor::dotTernary] output size mismatch";
+
+  refuseIfTq2cxPayloadReleased(input.getData(), "FloatTensor::dotTernary");
+  tq2cx_gemm_ref_fp32(M, N, K, (const float *)getData(), K, input.getData(),
+                      output.getData<float>(), N, beta);
   return output;
 }
 

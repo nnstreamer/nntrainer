@@ -61,6 +61,7 @@ test_target = [
   # Closed-form contract for the fused sigmoid-gated whole-ops.
   ['unittest_sigmoid_gate_ops', []],
   ['unittest_nntrainer_fallback', []],
+  ['unittest_nntrainer_tensor_ternary', []],
   ['unittest_nntrainer_tensor_types', []],
   ['unittest_nntrainer_tensor_advanced', []],
   ['unittest_nntrainer_exe_order', []],
