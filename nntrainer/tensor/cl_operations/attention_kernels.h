@@ -431,7 +431,7 @@ bool flash_decode_f16_cl(const uint16_t *Q_host, const uint16_t *K_host,
                          unsigned int local_window = 0u,
                          unsigned int ring_cap = 0u);
 
-/// Fused split-K flash-decode for M=1 (gated by NNTR_ADRENO_FLASH_DECODE=1;
+/// Fused split-K flash-decode for M=1 (gated by NNTR_ADRENO_FLASH_DECODE;
 /// see flash_decode_gqa_enabled). One pass over the fp16 concat K/V cache
 /// ([rows, HD_KV], ring-mapped when ring_cap > 0): a lane segment per
 /// (kv head, key block) scores every query head of that kv head with an
@@ -449,8 +449,10 @@ bool flash_decode_gqa_f16_cl(const uint16_t *Q_svm, const uint16_t *K_svm,
                              float attn_softcap, unsigned int local_window,
                              unsigned int ring_cap);
 
-/// True when NNTR_ADRENO_FLASH_DECODE is set to a non-zero value (default
-/// off). Read once per process.
+/// NNTR_ADRENO_FLASH_DECODE, value-checked (=0 turns it off). Unset: on where
+/// the reproducible arm is the default and in force (the Android gpu engine,
+/// see nntr_deterministic_default_on() in env_compat.h), off elsewhere. Read
+/// once per process.
 bool flash_decode_gqa_enabled();
 
 /// Fused GQA flash prefill (gated by NNTR_ADRENO_FLASH_PREFILL=1; see
@@ -478,7 +480,7 @@ bool flash_prefill_gqa_f16_cl(const uint16_t *Q_svm, const uint16_t *K_svm,
 bool flash_prefill_gqa_enabled();
 
 /// [apa] Three-pass prefill attention over the fp16 concat K/V cache (gated
-/// by NNTR_ADRENO_PREFILL_ATTN=1; see prefill_attn_apa_enabled). It is the
+/// by NNTR_ADRENO_PREFILL_ATTN; see prefill_attn_apa_enabled). It is the
 /// image arm's qk_band -> softmax_row_band -> sv_tm2 chain with BUFFER
 /// operands instead of the K/V image mirrors: the same band contract and the
 /// same per-thread tiles, with fp32 dots, fp32 scores and probabilities and
@@ -506,8 +508,10 @@ bool prefill_attn_apa_f16_cl(const uint16_t *Q_svm, const uint16_t *K_svm,
                              bool causal, float attn_softcap,
                              unsigned int local_window, unsigned int ring_cap);
 
-/// True when NNTR_ADRENO_PREFILL_ATTN is set to a non-zero value (default
-/// off). Read once per process.
+/// NNTR_ADRENO_PREFILL_ATTN, value-checked (=0 turns it off). Unset: on where
+/// the reproducible arm is the default and in force (the Android gpu engine,
+/// see nntr_deterministic_default_on() in env_compat.h), off elsewhere. Read
+/// once per process.
 bool prefill_attn_apa_enabled();
 
 /**

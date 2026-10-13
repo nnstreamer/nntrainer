@@ -405,6 +405,7 @@ int aminCl(const Tensor &input) { throwNoOpenCLKernel("aminCl"); }
 #include <cstdlib>
 #include <cstring>
 #include <engine.h>
+#include <env_compat.h> // nntr_deterministic()
 #include <memory>
 #if defined(ENABLE_CUDA) && ENABLE_CUDA == 1
 #include <cuda_context_manager.h> // [nondet] cuda::dev_only / copy_any
@@ -2104,10 +2105,9 @@ bool dotCl_v8c(const Tensor &input, const Tensor &weight, Tensor &output) {
   // layer's GEMVs while the host is still enqueueing them: without it the
   // 1.5B dense decode on that arm fell from 38.7 to 31.5 TPS. Same switch
   // the attention kernels read for their reduction order.
-  static const bool fc_flush_decode_keep = []() {
-    const char *det = std::getenv("NNTR_DETERMINISTIC");
-    return det != nullptr && det[0] == '1';
-  }();
+  // nntr_deterministic(): the variable, or its platform default when unset
+  // (on on the Android gpu engine, see env_compat.h).
+  static const bool fc_flush_decode_keep = nntr_deterministic();
   static const int fc_flush_mode = []() {
     const char *e = std::getenv("NNTR_FC_FLUSH");
     if (e)

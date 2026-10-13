@@ -26,6 +26,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <env_compat.h> // nntr_env_on_or(), nntr_deterministic()
 #include <map>
 #include <memory>
 #include <memory_pool.h>
@@ -4718,8 +4719,9 @@ bool flash_attention_prefill_f16_cl(
     // fixed LDS tree). Prefer the tree under the determinism contract unless
     // the user explicitly asked for SG. Cost: the +85% M=1024 attention lever
     // is lost (494 vs 136 ms) — prefill-only.
-    const char *det = std::getenv("NNTR_DETERMINISTIC");
-    if (det && det[0] == '1')
+    // nntr_deterministic(): the variable, or its platform default when unset
+    // (on on the Android gpu engine, see env_compat.h).
+    if (nntr_deterministic())
       return 0;
     return v8c_use_buffer_path() ? 1 : 0; // Intel buffer path => 1
   }();
@@ -5727,11 +5729,16 @@ AfdScratch &afd_scratch() {
 }
 } // namespace
 
+// NNTR_ADRENO_FLASH_DECODE, value-checked (=0 is the opt-out). Unset, it is on
+// exactly where the reproducible arm is on by default (the Android gpu engine,
+// nntr_deterministic_default_on()) and that arm is in force: the mirror-free
+// arm's decode then never reaches the host. An explicit NNTR_DETERMINISTIC=0
+// there (the image arm) leaves it off, since the fused decode on the image arm
+// is not the validated configuration. Off elsewhere unless set.
 bool flash_decode_gqa_enabled() {
-  static const bool on = []() {
-    const char *e = std::getenv("NNTR_ADRENO_FLASH_DECODE");
-    return e != nullptr && std::atoi(e) != 0;
-  }();
+  static const bool on =
+    nntr_env_on_or("NNTR_ADRENO_FLASH_DECODE",
+                   nntr_deterministic_default_on() && nntr_deterministic());
   return on;
 }
 
@@ -6746,11 +6753,14 @@ int apa_env_int(const char *name, int dflt) {
 }
 } // namespace
 
+// NNTR_ADRENO_PREFILL_ATTN, value-checked (=0 is the opt-out). Unset, it has
+// the same default as NNTR_ADRENO_FLASH_DECODE above: on where the
+// reproducible arm is on by default and in force (the Android gpu engine), so
+// the mirror-free arm's prefill attention runs on the GPU instead of the host.
 bool prefill_attn_apa_enabled() {
-  static const bool on = []() {
-    const char *e = std::getenv("NNTR_ADRENO_PREFILL_ATTN");
-    return e != nullptr && std::atoi(e) != 0;
-  }();
+  static const bool on =
+    nntr_env_on_or("NNTR_ADRENO_PREFILL_ATTN",
+                   nntr_deterministic_default_on() && nntr_deterministic());
   return on;
 }
 
