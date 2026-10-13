@@ -1,0 +1,131 @@
+{
+  "status": "READY_FOR_PARENT_FULL_MODEL_GATES",
+  "created_utc": "2026-10-13T11:07:37.014538+00:00",
+  "scope": "Aligned owned host staging only; seven PUB source/test files; no commit, root source mutation, or device action by this agent.",
+  "publication_base": "9b2ced98f66f65506385d9bd71759fb58a7f534e",
+  "publication_head_at_freeze": "7493cca56abbb35859ecb65ca1b3b7c61494366d",
+  "head_advance_docs_only": [
+    "docs/measurements/lfm2_s26_prefill1000_20261013/publish/eager-payload-config-evaluation.json",
+    "docs/measurements/lfm2_s26_prefill1000_20261013/v17-pub-stage48-clean-ay2.json",
+    "docs/measurements/lfm2_s26_prefill1000_20261013/v17-pub-stage48-clean-ay3.json",
+    "docs/measurements/lfm2_s26_prefill1000_20261013/v17-pub-stage64-clean-ay1.json",
+    "docs/measurements/lfm2_s26_prefill1000_20261013/v17-pub-stage64-clean-ay4.json"
+  ],
+  "source_files": {
+    "nntrainer/utils/weight_direct_file.h": "5e4bf76e523750f9d674aadfcdc002607ef73afd355c16fc7f24fb49e0b141b9",
+    "nntrainer/tensor/htp_backend/htp_expert_host_staging.h": "8ec9bb6577faf0901fa3bc1867864796b8a0249ee702e8c0e66e27a46b963875",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "c934250d5316b2b8202a1995d5b216cf5e2547a696097f56286570233fb458a4",
+    "test/htp/host/expert_host_staging_backend_check.cpp": "8109c4b3a419d60143cc02d82933c0a4bc3cd666f4b62e843611e7bd7f5be821",
+    "test/htp/host/run_expert_host_staging_checks.py": "a9d03e19b797e23b8a9faac8b49e1149a21e1b85276fe41dc9308ed6dc78ea46",
+    "test/htp/host/owned_envelope_check.cpp": "287beb265a9709da85d5ea6a71f37e310cdac257c32a573da62958dab5280ce2",
+    "test/htp/host/run_owned_envelope_checks.py": "d4f210439446daca97b16291d722dbb8ba4eb4b1e5b338d34deb10537224ecee"
+  },
+  "frozen_candidate_matches_pub": true,
+  "patches": {
+    "production.patch": "1859079fe7493566c5defb5fa8ac40df9796ffc8263f9803871f3d66614ed5e7",
+    "tests.patch": "b8a9c3faec79e91e995923fc35cf1090e3150bb706f2ab5355cd75eb4388c1f7"
+  },
+  "manifest_sha256": {
+    "artifacts.json": "b315dfa5c6cca106f2e913b7849e885390b501a57fcecf3074c6c88f2703af3a",
+    "diagnostic-artifacts.json": "54efda63c31d58b1c335737adfd9fb82faed16b588d0e5a4fa9f2502c4a7f704",
+    "android-checker-artifacts.json": "c15e7c4d21fd65d8922500430c0e8392cff8d380f16598378d126a35893bfb16",
+    "matched-install-results.json": "e7e3d770f430a9f5c8f35e996c6fd5d9cb4448d33baa868875773a75bd4a3e9d"
+  },
+  "production_runtime_sha256": {
+    "libnntrainer.so": "5ec28f29325933ed863fdb401736833524f031cc62c8e9e3bc21f4f9a4aca946",
+    "libccapi-nntrainer.so": "1fd18484dc116f2b75fdfcc1b7908bc00383258d534695a24802314ca9c83b74",
+    "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+    "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+    "libcausallm_core.so": "3a49594fd8400571bd78f7412ec9fce09c6eee18025513782413f851d17d1c71",
+    "nntrainer_causallm": "b6b3810484a0573ece103af9701946be4da7dbfa83c413d0b76de913218c718d",
+    "libnntr_hvx_skel.so": "a403c2595e86494178e03f63a1b895fdacdf55e8ca4a3076777ee44cd8232ef1"
+  },
+  "diagnostic_runtime_sha256": {
+    "libnntrainer.so": "5ec28f29325933ed863fdb401736833524f031cc62c8e9e3bc21f4f9a4aca946",
+    "libccapi-nntrainer.so": "1fd18484dc116f2b75fdfcc1b7908bc00383258d534695a24802314ca9c83b74",
+    "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+    "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+    "libcausallm_core.so": "040627e0971750f8a2ae27113c6549d1dcdbb058827c72e428bc19d9343a9e89",
+    "nntrainer_causallm": "b6b3810484a0573ece103af9701946be4da7dbfa83c413d0b76de913218c718d",
+    "libnntr_hvx_skel.so": "a403c2595e86494178e03f63a1b895fdacdf55e8ca4a3076777ee44cd8232ef1"
+  },
+  "all_source_artifact_exported_header_and_diagnostic_object_hashes_verified": true,
+  "full_android_core_app_default_install_pass": true,
+  "fresh_diagnostic_recompile_and_current_object_link_pass": true,
+  "production_app_object_changes": [],
+  "host_gates": {
+    "owned-normal.log": {
+      "sha256": "f9cfef9363442383b84287e1f94162b6dd08054f577b2e7b1d4b18da96010d07",
+      "pass_lines": [
+        "PASS: direct reads, tails, streams, six readers and fd reuse",
+        "PASS owned envelopes: 33662 assertions, all4096 offsets, target GU2/DN1, EOF3072, errors, promotion and physical free",
+        "PASS portable headers without Linux/Android macros"
+      ]
+    },
+    "owned-sanitize.log": {
+      "sha256": "f9cfef9363442383b84287e1f94162b6dd08054f577b2e7b1d4b18da96010d07",
+      "pass_lines": [
+        "PASS: direct reads, tails, streams, six readers and fd reuse",
+        "PASS owned envelopes: 33662 assertions, all4096 offsets, target GU2/DN1, EOF3072, errors, promotion and physical free",
+        "PASS portable headers without Linux/Android macros"
+      ]
+    },
+    "staging-normal.log": {
+      "sha256": "1564678a638aeac61f4990df6028e2cd48be18cd9cb84f4426d528b6f01c9994",
+      "pass_lines": [
+        "PASS host staging: 3916 assertions, actual QS2 validator, readers=7, bounds=160",
+        "PASS extracted backend: 859 assertions, disabled/stale scope, actual worker copies and enqueue rollback",
+        "PASS: generic staging header without Linux/Android macros"
+      ]
+    },
+    "staging-sanitize.log": {
+      "sha256": "b74801f8d8118073e92631668f8f7014f2d7f3bd7be88e0c26e6f7d108c5c057",
+      "pass_lines": [
+        "PASS host staging: 3916 assertions, actual QS2 validator, readers=7, bounds=160",
+        "PASS extracted backend: 859 assertions, disabled/stale scope, actual worker copies and enqueue rollback",
+        "PASS: generic staging header without Linux/Android macros"
+      ]
+    },
+    "diagnostic.log": {
+      "sha256": "f67cb011d08a112789ebe9d7478d8e896fdc266c96fd75f50a2987ac1fbe2484",
+      "pass_lines": [
+        "PUB diagnostic build PASS: /tmp/lfm2-prefill1000-moe/aligned-owned-staging/publication-compat/diagnostic-artifacts"
+      ]
+    }
+  },
+  "device_owned_reader_gate": {
+    "executed_by": "parent",
+    "evidence": "/home/jungone-lee/workspace/nntrainer/docs/measurements/lfm2_s26_prefill1000_20261013/moe/owned-envelope-device.json",
+    "evidence_sha256": "d06e43cff3a8e3a1495f71e6ddf735fd7189b022df8ba335d1f1de6528319e6a",
+    "binary_sha256": "e14545e8258328b8a13552b7091897ab5dff9f33769238fc47dfb373771f37b1",
+    "assertions": 33662,
+    "returncode": 0,
+    "scope": "Standalone actual O_DIRECT reader/envelope/metadata/lifecycle check; no DSP calls or TPS measurement."
+  },
+  "independent_production_review": {
+    "reviewer": "/root/moe_audit",
+    "status": "PASS",
+    "patch_sha256": "1859079fe7493566c5defb5fa8ac40df9796ffc8263f9803871f3d66614ed5e7",
+    "checks": [
+      "required logical bytes and aligned EOF short-read handling",
+      "private prefix/suffix and actual padded allocation cap",
+      "overflow and selected-shape bounds",
+      "typed deleter and final eager free before lease decrement",
+      "source fd lifetime",
+      "unchanged default read() body and shared identity cache"
+    ],
+    "clarification": "Production begin_qs2_host_prefetch requires weightDirectIO(); aligned=1 does not activate staging with buffered weight I/O. The explicit low-level owned-envelope API itself uses O_DIRECT."
+  },
+  "unchanged_limits": {
+    "pinned_expert_cache": 22,
+    "dsp_weight_registry": 2048,
+    "max_staged_experts": 160,
+    "max_owned_payload_allocated_bytes": 402653184
+  },
+  "known_pending_parent_gates": [
+    "Full model aligned count64 raw output parity (parent running)",
+    "Clean repeated same-binary aligned off/on TPS and memory evaluation before adoption"
+  ],
+  "material_build_or_matching_blocker": null,
+  "bundles_frozen": true
+}

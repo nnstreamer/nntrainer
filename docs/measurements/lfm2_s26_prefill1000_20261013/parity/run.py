@@ -19,9 +19,11 @@ def main():
     parser.add_argument('--variant', required=True)
     parser.add_argument('--label', required=True)
     parser.add_argument('--count', type=int, required=True)
+    parser.add_argument('--aligned', action='store_true')
     args = parser.parse_args()
     assert re.fullmatch(r'[a-zA-Z0-9_-]+', args.label)
     assert 0 <= args.count <= 160
+    assert not args.aligned or args.count > 0
     destination = HERE / ('dumps-' + args.label)
     comparison = HERE / (args.label + '-raw-output-comparison.json')
     assert not destination.exists() and not comparison.exists()
@@ -30,6 +32,7 @@ def main():
     measure.shell('mkdir ' + shlex.quote(remote))
     env = json.loads((OUT / 'v13-br256-r7-clean-x1.json').read_text())['env']
     env.update(NNTR_MOE_HOST_STAGE_EXPERTS=str(args.count),
+               NNTR_MOE_HOST_STAGE_ALIGNED='1' if args.aligned else '0',
                NNTR_MOE_IO_PROFILE='0', NNTR_PARITY_DUMP=remote,
                NNTR_PARITY_LOGIT_STEPS='65', NNTR_PARITY_LOGITS_ONLY='1')
     row = measure.run(args.variant, 1024, 'clean', args.label, env)
@@ -45,6 +48,9 @@ def main():
         assert len(active) == len(done) == 1
         assert active[0]['count'] == done[0]['count'] == args.count
         assert done[0]['read'] == done[0]['consumed'] == args.count
+        if args.aligned:
+            assert active[0].get('aligned') == 1
+            assert active[0]['payload_bytes'] <= active[0]['allocated_bytes'] <= 384 * 1024 * 1024
     else:
         assert not active and not done
     subprocess.run(measure.ADB + ['pull', remote, str(destination)],

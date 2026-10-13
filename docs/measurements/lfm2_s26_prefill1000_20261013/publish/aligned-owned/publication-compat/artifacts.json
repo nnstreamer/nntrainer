@@ -1,0 +1,93 @@
+{
+  "publication_base": "9b2ced98f66f65506385d9bd71759fb58a7f534e",
+  "production_only": true,
+  "host_source_sha256": {
+    "nntrainer/utils/weight_direct_file.h": "5e4bf76e523750f9d674aadfcdc002607ef73afd355c16fc7f24fb49e0b141b9",
+    "nntrainer/tensor/htp_backend/htp_expert_host_staging.h": "8ec9bb6577faf0901fa3bc1867864796b8a0249ee702e8c0e66e27a46b963875",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "c934250d5316b2b8202a1995d5b216cf5e2547a696097f56286570233fb458a4",
+    "test/htp/host/expert_host_staging_backend_check.cpp": "8109c4b3a419d60143cc02d82933c0a4bc3cd666f4b62e843611e7bd7f5be821",
+    "test/htp/host/run_expert_host_staging_checks.py": "a9d03e19b797e23b8a9faac8b49e1149a21e1b85276fe41dc9308ed6dc78ea46",
+    "test/htp/host/owned_envelope_check.cpp": "287beb265a9709da85d5ea6a71f37e310cdac257c32a573da62958dab5280ce2",
+    "test/htp/host/run_owned_envelope_checks.py": "d4f210439446daca97b16291d722dbb8ba4eb4b1e5b338d34deb10537224ecee",
+    "Applications/CausalLM/models/causal_lm.cpp": "b253531d74c0115b2015050ff1c83ff72198279996e6b5ba1cf12eeeacab991a",
+    "Applications/CausalLM/models/causal_lm.h": "112266e84e9c137b644710fb05b37e8060e3772968c07234593e5c6ff03c7f4b",
+    "Applications/CausalLM/models/lfm2_moe/lfm2_moe_causallm.cpp": "8fb2667a925f1bbbb5b31b5a99d6c6fcc1930f88c5b7035909442de62cdcc028",
+    "Applications/CausalLM/models/lfm2_moe/lfm2_moe_causallm.h": "11efad4b979bc60a63b0149ffdfcee15c106c44f51b7df3c9da8a91b9c39c42f",
+    "Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp": "798413988e8f6e7cfa0c7cd16ccb9268d09dc3867a934cc8abf820cab4130688",
+    "nntrainer/tensor/cpu_backend/compute_ops.h": "216d5b1fed2907cfabfcb1f277cb51b03ed525f40d3b2ac35adcfe10916bf112"
+  },
+  "artifacts": {
+    "libnntrainer.so": {
+      "source": "/tmp/lfm2-prefill1000-20261013/publish-build/core-libs/arm64-v8a/libnntrainer.so",
+      "frozen": "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/publication-compat/artifacts/libnntrainer.so",
+      "bytes": 5291376,
+      "sha256": "5ec28f29325933ed863fdb401736833524f031cc62c8e9e3bc21f4f9a4aca946"
+    },
+    "libccapi-nntrainer.so": {
+      "source": "/tmp/lfm2-prefill1000-20261013/publish-build/core-libs/arm64-v8a/libccapi-nntrainer.so",
+      "frozen": "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/publication-compat/artifacts/libccapi-nntrainer.so",
+      "bytes": 229512,
+      "sha256": "1fd18484dc116f2b75fdfcc1b7908bc00383258d534695a24802314ca9c83b74"
+    },
+    "libc++_shared.so": {
+      "source": "/tmp/lfm2-prefill1000-20261013/publish-build/core-libs/arm64-v8a/libc++_shared.so",
+      "frozen": "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/publication-compat/artifacts/libc++_shared.so",
+      "bytes": 9485032,
+      "sha256": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df"
+    },
+    "libsdkl.so": {
+      "source": "/tmp/lfm2-prefill1000-20261013/publish-build/core-libs/arm64-v8a/libsdkl.so",
+      "frozen": "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/publication-compat/artifacts/libsdkl.so",
+      "bytes": 152240,
+      "sha256": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe"
+    },
+    "libcausallm_core.so": {
+      "source": "/tmp/lfm2-prefill1000-20261013/publish-build/app-libs/arm64-v8a/libcausallm_core.so",
+      "frozen": "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/publication-compat/artifacts/libcausallm_core.so",
+      "bytes": 9505152,
+      "sha256": "3a49594fd8400571bd78f7412ec9fce09c6eee18025513782413f851d17d1c71"
+    },
+    "nntrainer_causallm": {
+      "source": "/tmp/lfm2-prefill1000-20261013/publish-build/app-libs/arm64-v8a/nntrainer_causallm",
+      "frozen": "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/publication-compat/artifacts/nntrainer_causallm",
+      "bytes": 318544,
+      "sha256": "b6b3810484a0573ece103af9701946be4da7dbfa83c413d0b76de913218c718d"
+    },
+    "libnntr_hvx_skel.so": {
+      "source": "/tmp/lfm2-prefill1000-moe/eager-payload/publication-compat/artifacts/libnntr_hvx_skel.so",
+      "frozen": "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/publication-compat/artifacts/libnntr_hvx_skel.so",
+      "bytes": 709712,
+      "sha256": "a403c2595e86494178e03f63a1b895fdacdf55e8ca4a3076777ee44cd8232ef1"
+    }
+  },
+  "build_results": [
+    {
+      "kind": "core",
+      "returncode": 0,
+      "seconds": 6.608423091001896,
+      "log": "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/publication-compat/core-matched-install.log"
+    },
+    {
+      "kind": "app",
+      "returncode": 0,
+      "seconds": 0.4328159609976865,
+      "log": "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/publication-compat/app-matched-install.log"
+    }
+  ],
+  "exported_headers": {
+    "/tmp/lfm2-prefill1000-20261013/publish/builddir/android_build_result/include/weight_direct_file.h": "5e4bf76e523750f9d674aadfcdc002607ef73afd355c16fc7f24fb49e0b141b9",
+    "/tmp/lfm2-prefill1000-20261013/publish/builddir/android_build_result/include/nntrainer/weight_direct_file.h": "5e4bf76e523750f9d674aadfcdc002607ef73afd355c16fc7f24fb49e0b141b9",
+    "/tmp/lfm2-prefill1000-20261013/publish/builddir/android_build_result/include/htp_expert_host_staging.h": "8ec9bb6577faf0901fa3bc1867864796b8a0249ee702e8c0e66e27a46b963875",
+    "/tmp/lfm2-prefill1000-20261013/publish/builddir/android_build_result/include/nntrainer/htp_expert_host_staging.h": "8ec9bb6577faf0901fa3bc1867864796b8a0249ee702e8c0e66e27a46b963875"
+  },
+  "app_objects_changed": [],
+  "dsp": {
+    "reused_unchanged": true,
+    "sha256": "a403c2595e86494178e03f63a1b895fdacdf55e8ca4a3076777ee44cd8232ef1",
+    "source_commit": "c40d68d59cca5bd0987ff33c66db2d8031572c71",
+    "registry_limit": 2048
+  },
+  "device_deployed_by_agent": false,
+  "commit_by_agent": false,
+  "root_live_changes_by_agent": false
+}

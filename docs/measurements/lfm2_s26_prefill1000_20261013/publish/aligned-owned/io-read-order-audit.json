@@ -1,0 +1,146 @@
+{
+  "scope": "Source-only audit; no implementation, benchmark, device, root, or PUB mutation.",
+  "source_root": "/tmp/lfm2-prefill1000-20261013/publish",
+  "source_head": "7493cca56abbb35859ecb65ca1b3b7c61494366d",
+  "source_sha256": {
+    "Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp": "798413988e8f6e7cfa0c7cd16ccb9268d09dc3867a934cc8abf820cab4130688",
+    "Applications/CausalLM/res/lfm2_moe/lfm2-8b-a1b/weight_converter.py": "a8a7318fb22d20504eebe58b87af1a7da1dcba62709b2d271d1848f6b0af0fae",
+    "Applications/CausalLM/quantize_stream.cpp": "2d5166d631f09193a8dba49e80986b00ec1b19ab3e3c7012160293a05b4cd89a",
+    "nntrainer/models/neuralnet.cpp": "ec45d652be9813f9684c73b913d81adec02a4dbb1e5fac0a31fc376deda3eccc",
+    "nntrainer/tensor/qs4cx_tensor.h": "3121afe298608da0aa3d421a8e09907bc2277a3fd874791971962d3be4adfe61",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "c934250d5316b2b8202a1995d5b216cf5e2547a696097f56286570233fb458a4",
+    "nntrainer/tensor/htp_backend/htp_expert_host_staging.h": "8ec9bb6577faf0901fa3bc1867864796b8a0249ee702e8c0e66e27a46b963875",
+    "nntrainer/utils/weight_direct_file.h": "5e4bf76e523750f9d674aadfcdc002607ef73afd355c16fc7f24fb49e0b141b9"
+  },
+  "verdict": {
+    "all_gu_then_all_dn": "DO_NOT_IMPLEMENT_FOR_THIS_LAYOUT",
+    "reason": "The measured weights.bin runtime layout is interleaved GU0,DN0,GU1,DN1. The hypothesized distant GU/DN blocks are absent. Two phases would skip and revisit ranges.",
+    "parts_candidate": "A distinct offset-ordered part-job experiment may test load balancing only after the pending timeline shows a meaningful queue tail. It is not a sequentiality fix or a guaranteed throughput gain.",
+    "existing_phase_knob": null
+  },
+  "layout_proof": [
+    {
+      "file": "Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp",
+      "line": 803,
+      "fact": "finalize requests one GU then its DN inside each expert loop; appendVirtualExpertFiles/preloadExperts enumerate experts ascending."
+    },
+    {
+      "file": "Applications/CausalLM/res/lfm2_moe/lfm2-8b-a1b/weight_converter.py",
+      "line": 127,
+      "fact": "FP32 converter writes each expert gate_up then down. Native HF tensors being separated does not imply separation in the converted file."
+    },
+    {
+      "file": "Applications/CausalLM/quantize_stream.cpp",
+      "line": 1328,
+      "fact": "writeLfm2Moe writes each quantized GU then DN in the expert loop; its documented order matches runtime requests."
+    },
+    {
+      "file": "nntrainer/models/neuralnet.cpp",
+      "line": 1098,
+      "fact": "BIN loading sets each distinct tensor file_offset=start_from, then increments by getMemoryBytes without inserting page padding for QS2CX_WH."
+    },
+    {
+      "file": "nntrainer/tensor/qs4cx_tensor.h",
+      "line": 341,
+      "fact": "QS2 size is ceil(K*N/4)+4+8*N, including palette, scale, and column sums."
+    },
+    {
+      "file": "Applications/CausalLM/models/lfm2_moe/lfm2_moe_layer.cpp",
+      "line": 956,
+      "fact": "expertDesc copies gu.getFileOffset and dn.getFileOffset into off_gu/off_dn, using the same model fd."
+    }
+  ],
+  "target_relative_offsets": {
+    "K": 2048,
+    "inter": 1536,
+    "N_out": 2048,
+    "gu_bytes": 1597444,
+    "dn_bytes": 802820,
+    "pair_bytes": 2400264,
+    "formula": [
+      "off_dn(e) = off_gu(e) + 1597444",
+      "off_gu(e+1) = off_dn(e) + 802820 within one layer"
+    ],
+    "first_three_relative": [
+      {
+        "expert": 0,
+        "off_gu": 0,
+        "off_dn": 1597444
+      },
+      {
+        "expert": 1,
+        "off_gu": 2400264,
+        "off_dn": 3997708
+      },
+      {
+        "expert": 2,
+        "off_gu": 4800528,
+        "off_dn": 6397972
+      }
+    ],
+    "source_file_padding": 0,
+    "arena_page_padding_is_separate": true,
+    "raw_descriptor_export_found": false,
+    "absolute_start_not_measured_in_this_audit": true,
+    "absolute_export_knob": "NNTR_HTP_QS2_EXPORT=1 emits off,K,N for all2432 experts during preload, before timed prefill; optional confirmation if a future model uses safetensors/arbitrary offsets."
+  },
+  "all_gu_then_dn_effect": {
+    "experts": 64,
+    "gap_between_gu_records_bytes": 802820,
+    "backward_transition_after_last_gu_to_first_dn_bytes": 151216632,
+    "backward_transition_MiB": 144.21141815185547,
+    "explanation": "Transition measured from end of GU63 to start of DN0. Actual synchronous seven-worker syscall order remains completion-dependent; this arithmetic describes desired logical job order, not physical flash seek distance."
+  },
+  "current_queue": {
+    "producer": "queue_future builds want in ascending descriptor order, obtains actual safely freed slots, publishes whole layer batches FIFO.",
+    "worker": "prefetchReaderLoop pops one (batch,index), then readExpert calls readExpertPart(GU), then readExpertPart(DN) if GU succeeded. Seven persistent readers each issue blocking synchronous preads.",
+    "host_bank": "readHostExpert/readOne similarly claims one whole descriptor and reads GU then DN. Ordinary arena jobs wait for this one-shot bank to finish; host leases are promotion copies, not new file reads.",
+    "completion": "done increments once per expert only after both halves; done_mask is one bit per expert. _end waits oldest batch done==experts.size before registration.",
+    "io_depth": "Splitting to two jobs does not raise maximum simultaneously blocked pread calls above the same seven reader threads. It may change scheduling tails or overlap GU and DN of one expert.",
+    "syscalls_target": "Healthy target remains GU2+DN1 aligned O_DIRECT requests per nonresident expert; no mathematical work changes."
+  },
+  "existing_modes": [
+    {
+      "name": "NNTR_MOE_MISS_READERS",
+      "scope": "Synchronous demand miss only, clamped1..4; ThreadManager jobs j map to expert=j/2, down=j%2. Interleaved part queue, not GU-first, and not the seven prefetch readers."
+    },
+    {
+      "name": "NNTR_MOE_PREFETCH_READERS / NNTR_MOE_PREFETCH_CPUS",
+      "scope": "Controls persistent reader count and affinity; no record-part order."
+    },
+    {
+      "name": "NNTR_MOE_PREFETCH / NNTR_MOE_PREFETCH_EARLY",
+      "scope": "Layer lookahead depth and earliest safe enqueue point; unchanged bytes and within-expert order."
+    },
+    {
+      "name": "NNTR_MOE_HOST_STAGE_ALIGNED",
+      "scope": "Only owned destination/enclosing direct read; changes neither descriptor nor job order."
+    }
+  ],
+  "if_part_job_pilot_is_later_authorized": {
+    "minimal_scope": "Only compact QS2 prefill arena reads after the host-bank drain, with !decode and !st.host. Keep initial host-bank reads, host promotions, decode, non-QS2, registration and all DSP code unchanged. Default off.",
+    "order": "Queue each actual GU/DN part by descriptor offset inside each layer batch; preserve layer batch priority. For this BIN layout that order is GU0,DN0,GU1,DN1. Do not globally sort across layers or add a GU barrier.",
+    "job_shape": "Explicit batch pointer + expert index + whole/GU/DN kind; avoid overloading index as2*expert+part because decode masks and vector indexing currently use expert indices.",
+    "completion": "Each part writes only its own ArenaEntry and disjoint destination. Combine errors under prefetch_mutex; choose GU error first to match old precedence; increment expert done/done_mask exactly once only after both parts and any lease release are finished.",
+    "leases": "Keep st.host stable until both halves finish if host copies are ever generalized; resetting the shared_ptr from each part is a race and may free data while the other part copies. Preferred first pilot excludes st.host.",
+    "batch_lifetime": "_end and retirement must retain raw-pointer target until every queued/running part is completed or explicitly cancelled; done cannot advance twice per expert.",
+    "transaction": "Publish all part jobs transactionally under prefetch_mutex; allocation failure removes every job for that batch before visibility, restores batch ownership, then returns every reserved slot and destroys leases outside queue lock.",
+    "cancellation": "Keep decode whole-expert path unchanged. If generalized, cancelling one queued half cannot recycle a slot or mark an expert complete while its sibling is in flight. Stop/join must account for all parts and preserve model fd/batch lifetime.",
+    "errors": "An already-running sibling may finish after the first half fails, but no invalid expert may register. Never free/reuse the slot until both writes stop. No automatic retry that could hide metadata errors."
+  },
+  "bounded_validation_plan": [
+    "First inspect parent v17 initial/last-read timeline. Avoid implementing phase ordering because the layout premise is false.",
+    "If queue-tail evidence warrants a part-job pilot, standalone compare whole-expert vs offset-ordered parts on actual descriptor offsets, seven identical readers/affinity, same original WeightDirectFile+QS2 metadata validator, same bytes and request counts; ABBA, output hashes, overall and last-batch completion times. Byte-only scratch benchmark is a screen and cannot establish full-model TPS.",
+    "Actual-source threaded host tests: GU slower/DN faster and reverse, GU/DN failures, simultaneous completion, enqueue failure at every part, cancellation with queued/running sibling, no registration/recycle until both stop, no slot/handle growth; normal+ASan/UBSan.",
+    "Only after those gates: matched full model raw132 parity, then clean same-binary repeated A/B at1024 with cache22/registry2048/readers7/staging count fixed. Detailed trace separate from TPS."
+  ],
+  "previous_work": {
+    "independent_moe_agent": "No prior GU-all/DN-all scheduling experiment or phase knob found in its audits.",
+    "not_the_same_as_dsp_overlap": "lfm2_24ba2b_s26_qs2_prefill_overlap concerns HMX DMA/2-bit expansion, not ARM UFS reader jobs.",
+    "spans": "Three-source split-record spans candidate rejected by full-model ABBA off1104/1103ms versus on1112/1117ms; it changed record read/copy, not job order.",
+    "chunk_2MiB": "Byte-only actual-file64pair screen retained1MiB: medians36.134ms versus36.524ms; arbitrary fixed regions, no descriptor/metadata evidence.",
+    "old_heap": "doc52 section10.19 rejected another heap prefetch/copy path on an older workload; current measured one-shot prefix staging has different lifetime/start point.",
+    "no_bandwidth_claim": "No DRAM or UFS physical bandwidth/seek claim is derived from file offsets or summed reader wall times."
+  },
+  "implementation_or_device_actions": []
+}

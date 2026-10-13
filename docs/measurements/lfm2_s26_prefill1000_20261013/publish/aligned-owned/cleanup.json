@@ -1,0 +1,21 @@
+{
+  "status": "PUB_FREE",
+  "head": "7493cca56abbb35859ecb65ca1b3b7c61494366d",
+  "restored_tracked_files": [
+    "nntrainer/utils/weight_direct_file.h",
+    "nntrainer/tensor/htp_backend/htp_expert_host_staging.h",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp",
+    "test/htp/host/expert_host_staging_backend_check.cpp",
+    "test/htp/host/run_expert_host_staging_checks.py"
+  ],
+  "removed_only_new_files": [
+    "test/htp/host/owned_envelope_check.cpp",
+    "test/htp/host/run_owned_envelope_checks.py"
+  ],
+  "verified_source_before_restore": true,
+  "verified_tracked_bytes_equal_head": true,
+  "git_status_after": "",
+  "root_production_changed": false,
+  "build_outputs_changed_by_cleanup": false,
+  "build_note": "PBUILD outputs and exported headers remain the last v18 build; composite owner must refresh baseline headers and rebuild. Frozen v18 runtime bundles remain untouched."
+}

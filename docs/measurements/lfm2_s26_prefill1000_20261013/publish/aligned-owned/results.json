@@ -1,0 +1,142 @@
+{
+  "status": "host_validated_private_candidate",
+  "prerequisites": {
+    "base_commit": "3103136e9",
+    "patches": [
+      {
+        "path": "/tmp/lfm2-prefill1000-moe/eager-payload/production.patch",
+        "sha256": "013e299dc035e2150c5e39274d5b800f74a5101e132fc887d6c143129b3a30a8"
+      },
+      {
+        "path": "/tmp/lfm2-prefill1000-moe/eager-payload/tests.patch",
+        "sha256": "32343f7264b09707630ed0a0f04f286e3daf19d0d0257b9309bc71013247e781"
+      }
+    ]
+  },
+  "activation": "NNTR_MOE_HOST_STAGE_EXPERTS=64 NNTR_MOE_HOST_STAGE_ALIGNED=1 NNTR_WEIGHT_IO=direct",
+  "default": "NNTR_MOE_HOST_STAGE_ALIGNED absent or0 keeps original owned heap path",
+  "production_files": [
+    "nntrainer/utils/weight_direct_file.h",
+    "nntrainer/tensor/htp_backend/htp_expert_host_staging.h",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp"
+  ],
+  "test_files": [
+    "test/htp/host/expert_host_staging_backend_check.cpp",
+    "test/htp/host/run_expert_host_staging_checks.py",
+    "test/htp/host/owned_envelope_check.cpp",
+    "test/htp/host/run_owned_envelope_checks.py"
+  ],
+  "format": {
+    "nntrainer/utils/weight_direct_file.h": true,
+    "nntrainer/tensor/htp_backend/htp_expert_host_staging.h": true,
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": true,
+    "test/htp/host/expert_host_staging_backend_check.cpp": true,
+    "test/htp/host/owned_envelope_check.cpp": true
+  },
+  "patches": {
+    "production": {
+      "path": "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/production.patch",
+      "sha256": "1859079fe7493566c5defb5fa8ac40df9796ffc8263f9803871f3d66614ed5e7",
+      "bytes": 12438
+    },
+    "tests": {
+      "path": "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/tests.patch",
+      "sha256": "b8a9c3faec79e91e995923fc35cf1090e3150bb706f2ab5355cd75eb4388c1f7",
+      "bytes": 27659
+    }
+  },
+  "source": {
+    "nntrainer/utils/weight_direct_file.h": {
+      "path": "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/source/nntrainer/utils/weight_direct_file.h",
+      "sha256": "5e4bf76e523750f9d674aadfcdc002607ef73afd355c16fc7f24fb49e0b141b9",
+      "bytes": 9849
+    },
+    "nntrainer/tensor/htp_backend/htp_expert_host_staging.h": {
+      "path": "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/source/nntrainer/tensor/htp_backend/htp_expert_host_staging.h",
+      "sha256": "8ec9bb6577faf0901fa3bc1867864796b8a0249ee702e8c0e66e27a46b963875",
+      "bytes": 12304
+    },
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": {
+      "path": "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/source/nntrainer/tensor/htp_backend/htp_compute_ops.cpp",
+      "sha256": "c934250d5316b2b8202a1995d5b216cf5e2547a696097f56286570233fb458a4",
+      "bytes": 471984
+    },
+    "test/htp/host/expert_host_staging_backend_check.cpp": {
+      "path": "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/source/test/htp/host/expert_host_staging_backend_check.cpp",
+      "sha256": "8109c4b3a419d60143cc02d82933c0a4bc3cd666f4b62e843611e7bd7f5be821",
+      "bytes": 11705
+    },
+    "test/htp/host/run_expert_host_staging_checks.py": {
+      "path": "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/source/test/htp/host/run_expert_host_staging_checks.py",
+      "sha256": "a9d03e19b797e23b8a9faac8b49e1149a21e1b85276fe41dc9308ed6dc78ea46",
+      "bytes": 5312
+    },
+    "test/htp/host/owned_envelope_check.cpp": {
+      "path": "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/source/test/htp/host/owned_envelope_check.cpp",
+      "sha256": "287beb265a9709da85d5ea6a71f37e310cdac257c32a573da62958dab5280ce2",
+      "bytes": 17846
+    },
+    "test/htp/host/run_owned_envelope_checks.py": {
+      "path": "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/source/test/htp/host/run_owned_envelope_checks.py",
+      "sha256": "d4f210439446daca97b16291d722dbb8ba4eb4b1e5b338d34deb10537224ecee",
+      "bytes": 1910
+    }
+  },
+  "gates": {
+    "owned-normal": {
+      "path": "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/owned-normal.log",
+      "sha256": "f9cfef9363442383b84287e1f94162b6dd08054f577b2e7b1d4b18da96010d07",
+      "bytes": 230
+    },
+    "owned-sanitize": {
+      "path": "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/owned-sanitize.log",
+      "sha256": "f9cfef9363442383b84287e1f94162b6dd08054f577b2e7b1d4b18da96010d07",
+      "bytes": 230
+    },
+    "staging-normal": {
+      "path": "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/staging-normal.log",
+      "sha256": "bd49b3804448a9e0f98313e76b3f0c2d66321cf9926027786de6ceaf7b64bc49",
+      "bytes": 3711
+    },
+    "staging-sanitize": {
+      "path": "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/staging-sanitize.log",
+      "sha256": "01abef63aa9c3cea8e5e6535c3443166ca45aa89bdedf392e09dbe48f3eecb32",
+      "bytes": 3718
+    },
+    "android-backend": {
+      "path": "/tmp/lfm2-prefill1000-moe/aligned-owned-staging/android-backend.log",
+      "sha256": "088083254c90844803b5532e11c0542f450d0d34155d163efd3c0a10e644f138",
+      "bytes": 346
+    }
+  },
+  "validation_commands": [
+    "python3 /tmp/lfm2-prefill1000-moe/aligned-owned-staging/source/test/htp/host/run_owned_envelope_checks.py --repo-root /tmp/lfm2-prefill1000-moe/aligned-owned-staging/source",
+    "python3 /tmp/lfm2-prefill1000-moe/aligned-owned-staging/source/test/htp/host/run_owned_envelope_checks.py --repo-root /tmp/lfm2-prefill1000-moe/aligned-owned-staging/source --sanitize",
+    "python3 /tmp/lfm2-prefill1000-moe/aligned-owned-staging/source/test/htp/host/run_expert_host_staging_checks.py --repo-root /tmp/lfm2-prefill1000-moe/aligned-owned-staging/source",
+    "python3 /tmp/lfm2-prefill1000-moe/aligned-owned-staging/source/test/htp/host/run_expert_host_staging_checks.py --repo-root /tmp/lfm2-prefill1000-moe/aligned-owned-staging/source --sanitize"
+  ],
+  "proofs": [
+    "Existing weight direct reader suite unchanged: PASS normal+ASan/UBSan.",
+    "Owned actual-O_DIRECT fixture33662 assertions normal+ASan/UBSan: all4096 offsets; target GU2+DN1 matches baseline request offsets/lengths; full logical EOFtail3072 passes; incomplete logical tail fails; negative/short/EINTR/error cases; metadata+promotion exact.",
+    "Actual backend extracted fixture859 assertions normal+ASan/UBSan: aligned on/off; one-use lease; no extra slot allocation while staging; actual reader callbacks; bad GU/DN metadata publish no arena bytes; enqueue rollback with aligned leases; scope cleanup.",
+    "Original/eager staging helper normal+ASan/UBSan and nonLinux/nonAndroid headers PASS.",
+    "Android aarch64 backend syntax-only PASS, one pre-existing sign-compare warning; no Android link/device execution performed."
+  ],
+  "memory": {
+    "logical_bytes_per_target_expert": 2400264,
+    "allocated_bytes_per_target_expert_4byte_heads": 2408448,
+    "allocated_bytes_per_target_expert_worst_byte_heads": 2416640,
+    "count64_worst_bytes": 154664960,
+    "count160_worst_bytes": 386662400,
+    "payload_cap_bytes": 402653184,
+    "cap_excludes": "ordinary allocator bookkeeping and bank metadata; actual requested page spans are charged",
+    "cap_fixture": "8 experts K8192/inter8160/N8192 with heads4095: logical402649152 fits384MiB; padded402751488 rejected."
+  },
+  "limits": [
+    "No speed claim until bounded target-device clean A/B and full raw parity.",
+    "No increase to RPC arena slots/cache22/MAX_WEIGHTS2048; no DSP/math changes.",
+    "O_DIRECT still fails closed if target filesystem rejects alignment.",
+    "Direct file cache assumes immutable source model, as baseline does.",
+    "Candidate is relative to3103136e9 plus explicit eager patches; root/PUB/device untouched."
+  ]
+}

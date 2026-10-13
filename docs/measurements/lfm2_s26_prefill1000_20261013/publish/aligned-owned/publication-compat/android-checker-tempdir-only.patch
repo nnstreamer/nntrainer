@@ -1,0 +1,74 @@
+--- pub/expert_host_staging_fixture.h
++++ android-checker/expert_host_staging_fixture.h
+@@ -11,6 +11,7 @@
+ #include <cstdio>
+ #include <deque>
+ #include <future>
++#include <string>
+ #include <thread>
+ #include <type_traits>
+ 
+@@ -32,6 +33,25 @@
+   if (!condition)
+     throw std::runtime_error("host staging assertion " +
+                              std::to_string(checks));
++}
++// Private standalone adaptation: choose a writable Android test directory.
++// File contents, production headers and all assertions remain unchanged.
++static inline int ownedTempFile(const char *name) {
++  const char *directory = std::getenv("NNTR_TEST_TMPDIR");
++  if (!directory || !*directory) {
++#if defined(__ANDROID__)
++    directory = "/data/local/tmp";
++#else
++    directory = "/tmp";
++#endif
++  }
++  std::string pattern = std::string(directory) + "/" + name;
++  std::vector<char> path(pattern.begin(), pattern.end());
++  path.push_back(0);
++  int fd = mkstemp(path.data());
++  if (fd >= 0)
++    unlink(path.data());
++  return fd;
+ }
+ static inline int readAll(int fd, void *dst, size_t n, uint64_t off) {
+   auto *p = static_cast<uint8_t *>(dst);
+@@ -70,10 +90,8 @@
+   std::vector<std::vector<uint8_t>> expected;
+   std::vector<int> keys;
+   explicit Fixture(size_t n) : keys(2 * n) {
+-    char path[] = "/tmp/nntr-host-stage-XXXXXX";
+-    fd = mkstemp(path);
++    fd = ownedTempFile("nntr-host-stage-XXXXXX");
+     require(fd >= 0);
+-    unlink(path);
+     size_t offset = 17;
+     for (size_t i = 0; i < n; ++i) {
+       Desc d{&keys[2 * i], &keys[2 * i + 1], fd, offset, 0, 32, 32, 32};
+--- pub/owned_envelope_check.cpp
++++ android-checker/owned_envelope_check.cpp
+@@ -147,10 +147,8 @@
+   return rc ? rc : part(true, r.d.off_dn, r.d.inter, r.d.N_out);
+ }
+ int main() {
+-  char path[] = "/tmp/nntr-owned-direct-XXXXXX";
+-  int fd = mkstemp(path);
++  int fd = ownedTempFile("nntr-owned-direct-XXXXXX");
+   require(fd >= 0);
+-  unlink(path);
+   const auto small = rawRecord(32, 64);
+   const auto expected = converted(small, 32, 64);
+   const size_t large_offset = 4096 * 8192u;
+@@ -433,10 +431,8 @@
+   // Reusing the integer fd cannot select the old identity-cached O_DIRECT fd.
+   const int reused = fd;
+   close(fd);
+-  char next_path[] = "/tmp/nntr-owned-reused-XXXXXX";
+-  fd = mkstemp(next_path);
++  fd = ownedTempFile("nntr-owned-reused-XXXXXX");
+   require(fd == reused);
+-  unlink(next_path);
+   auto changed = small;
+   changed[0] ^= 0xff;
+   require(write(fd, changed.data(), changed.size()) == ssize_t(changed.size()));

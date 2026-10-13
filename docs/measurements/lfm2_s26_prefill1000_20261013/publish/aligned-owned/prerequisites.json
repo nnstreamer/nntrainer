@@ -1,0 +1,13 @@
+{
+  "base_commit": "3103136e9",
+  "patches": [
+    {
+      "path": "/tmp/lfm2-prefill1000-moe/eager-payload/production.patch",
+      "sha256": "013e299dc035e2150c5e39274d5b800f74a5101e132fc887d6c143129b3a30a8"
+    },
+    {
+      "path": "/tmp/lfm2-prefill1000-moe/eager-payload/tests.patch",
+      "sha256": "32343f7264b09707630ed0a0f04f286e3daf19d0d0257b9309bc71013247e781"
+    }
+  ]
+}

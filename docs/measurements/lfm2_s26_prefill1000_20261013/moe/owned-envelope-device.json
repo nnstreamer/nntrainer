@@ -1,0 +1,32 @@
+{
+  "command": "cd /data/local/tmp/lfm2_prefill1000_20261013/owned-envelope-v18 && NNTR_TEST_TMPDIR=/data/local/tmp/lfm2_prefill1000_20261013/owned-envelope-v18 ./owned_envelope_check",
+  "serial": "R5KL30G6MCX",
+  "returncode": 0,
+  "binary_sha256": "e14545e8258328b8a13552b7091897ab5dff9f33769238fc47dfb373771f37b1",
+  "before": {
+    "status": 0,
+    "temperatures": {
+      "AP": 26.3,
+      "BAT": 25.7,
+      "PA": 26.7,
+      "SKIN": 27.9,
+      "SUBBAT": 0.0,
+      "USB": 25.9
+    }
+  },
+  "after": {
+    "status": 0,
+    "temperatures": {
+      "AP": 26.3,
+      "BAT": 25.7,
+      "PA": 26.7,
+      "SKIN": 27.9,
+      "SUBBAT": 0.0,
+      "USB": 25.9
+    }
+  },
+  "seconds": 0.34701477400085423,
+  "output": "PASS owned envelopes: 33662 assertions, all4096 offsets, target GU2/DN1, EOF3072, errors, promotion and physical free\n",
+  "raw_log_sha256": "3e141f3d5c7a1e4d67d068ca3a79b50bed95deda8301222af2231dd12048958d",
+  "scope": "Standalone actual O_DIRECT reader/envelope/metadata/lifecycle check; no DSP calls or TPS measurement."
+}

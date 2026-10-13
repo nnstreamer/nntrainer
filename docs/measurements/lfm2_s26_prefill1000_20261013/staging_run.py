@@ -22,14 +22,18 @@ def main():
     parser.add_argument('--length', type=int, choices=[1024, 2048], default=1024)
     parser.add_argument('--memory', action='store_true')
     parser.add_argument('--io-profile', action='store_true')
+    parser.add_argument('--aligned', action='store_true',
+                        help='Read staged weights directly into aligned host buffers')
     parser.add_argument('--cpu-mask', help='Main-process taskset mask')
     parser.add_argument('--reader-cpus', help='Explicit comma-separated reader CPUs')
     args = parser.parse_args()
     assert 0 <= args.count <= 160
+    assert not args.aligned or args.count > 0
     out = Path(__file__).resolve().parent
     env = json.loads((out / 'v13-br256-r7-clean-x1.json').read_text())['env']
     env['NNTR_MOE_HOST_STAGE_EXPERTS'] = str(args.count)
     env['NNTR_MOE_IO_PROFILE'] = '1' if args.io_profile else '0'
+    env['NNTR_MOE_HOST_STAGE_ALIGNED'] = '1' if args.aligned else '0'
     if args.reader_cpus is not None:
         assert re.fullmatch(r'\d+(,\d+)*', args.reader_cpus)
         assert all(int(cpu) < 32 for cpu in args.reader_cpus.split(','))
@@ -80,6 +84,7 @@ def main():
     done = re.findall(r'\[HTP-HOST-STAGING-DONE\] ([^\n]+)', raw)
     parse = lambda text: {k: int(v) for k, v in re.findall(r'(\w+)=(\d+)', text)}
     row['host_staging'] = {'requested': args.count,
+                           'aligned_requested': args.aligned,
                            'active': [parse(s) for s in active],
                            'done': [parse(s) for s in done]}
     verified = not active and not done if args.count == 0 else (
@@ -88,6 +93,11 @@ def main():
         parse(done[0]).get('count') == args.count and
         parse(done[0]).get('read') == args.count and
         parse(done[0]).get('consumed') == args.count)
+    if args.aligned and verified:
+        allocation = parse(active[0])
+        verified = (allocation.get('aligned') == 1 and
+                    allocation['payload_bytes'] <=
+                    allocation.get('allocated_bytes', 0) <= 384 * 1024 * 1024)
     row['host_staging']['verified'] = verified
     row['valid'] = row['valid'] and verified
     row['clean_timing_sample'] = not args.memory and not args.io_profile
