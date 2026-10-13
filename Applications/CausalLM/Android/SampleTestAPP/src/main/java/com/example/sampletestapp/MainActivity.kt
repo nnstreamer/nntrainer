@@ -283,7 +283,7 @@ class MainActivity : AppCompatActivity() {
     private var trainBestLoss: String = "—"
     private val trainLossPoints = mutableListOf<Float>()  // per-iteration train loss
     private val trainEpochBoundaries = mutableListOf<Int>()  // iteration index where each epoch ends
-    private val trainValidLosses = mutableListOf<Float>()  // valid loss per epoch
+    private val trainValidLosses = mutableListOf<Float>()  // mean train loss per epoch
     private var lossChartView: LossChartView? = null
 
     // ── Train tab TEST (before / after inference) state ─────────────────
@@ -2778,15 +2778,15 @@ class MainActivity : AppCompatActivity() {
                 ) {
                     mainHandler.post {
                         trainEpochBoundaries.add(trainLossPoints.size - 1)
-                        trainValidLosses.add(validLoss)
-                        lossChartView?.addEpochBoundary(trainLossPoints.size - 1, validLoss)
+                        // No validation pass: the epoch marker is the mean
+                        // training loss of the epoch.
+                        trainValidLosses.add(trainLoss)
+                        lossChartView?.addEpochBoundary(trainLossPoints.size - 1, trainLoss)
                         appendTrainLog(String.format(
-                            "[epoch %d] train_loss=%.4f valid_loss=%.4f%s | best=%.4f | %d samples" +
-                                " | %s (train %s + valid %s)",
-                            epoch, trainLoss, validLoss,
+                            "[epoch %d] avg_loss=%.4f%s | best=%.4f | %d samples | %s",
+                            epoch, trainLoss,
                             if (saved) " ✓ saved" else "", bestLoss, numSamples,
-                            formatSeconds(epochSeconds), formatSeconds(trainSeconds),
-                            formatSeconds(epochSeconds - trainSeconds)))
+                            formatSeconds(trainSeconds)))
                         if (bestLoss < Float.MAX_VALUE)
                             trainBestLoss = String.format("%.4f", bestLoss)
                         rebuildUi()
