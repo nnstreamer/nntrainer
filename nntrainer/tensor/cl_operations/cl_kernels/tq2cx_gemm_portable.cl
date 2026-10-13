@@ -153,6 +153,8 @@ __kernel void tq2cx_gemv_batch_portable(__global const uint *Wbase,
   const int n = get_group_id(0) * TQ2P_CPW + c;
   const int b = get_global_id(1);
   const int r = act_row[b];
+  if (r < 0)
+    return; // a row left to another launch (the whole group skips it)
   const int U = K >> 5;
   __global const uchar *xr = (__global const uchar *)(X + (long)r * K);
   for (int i = lid; i < (K >> 2); i += TQ2P_LWS) {

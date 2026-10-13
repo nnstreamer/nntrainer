@@ -313,6 +313,8 @@ __kernel void tq2cx_gemv_batch(__global const uint *Wbase,
 #endif
   const int b = get_group_id(1);
   const int r = act_row[b];
+  if (r < 0)
+    return; // a row left to another launch (the whole group skips it)
   __global const uint *rec = Wbase + rec_off[b];
   __global const uint2 *Wm = (__global const uint2 *)rec;
   __global const float *S =

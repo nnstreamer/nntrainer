@@ -14,19 +14,28 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
+#include <chrono>
 #include <cmath>
 #include <condition_variable>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <deque>
+#include <functional>
+#include <limits>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <stdexcept>
 #include <string>
+#include <thread>
+#include <tuple>
 #include <unordered_map>
 #include <vector>
 #if !defined(_WIN32)
+#include <fcntl.h>
 #include <sys/mman.h>
 #endif
 
@@ -39,6 +48,8 @@
 #include <cl_kernels/tq2moe_glu_quant.h>
 #include <cl_kernels/tq2moe_route.h>
 #include <engine.h>
+#include <expert_reader_pool.h>
+#include <expert_stage_cache.h>
 #include <fp16.h>
 #include <moe_route_det.h>
 #include <nntrainer_error.h>
@@ -331,7 +342,8 @@ __kernel void tq2moe_gather_f16(__global const half *in, __global float *out,
 __kernel void tq2moe_glu_f32(__global const float *gate,
                              __global const float *up, __global float *out,
                              const int total, const int exact,
-                             const int gate_off, const int up_off) {
+                             const int gate_off, const int up_off,
+                             const int out_off) {
   const int i = get_global_id(0);
   if (i >= total) return;
   const float x = gate[gate_off + i];
@@ -342,7 +354,7 @@ __kernel void tq2moe_glu_f32(__global const float *gate,
     const float inner = 0.7978845608028654f * (x + 0.044715f * x * x * x);
     g = 0.5f * x * (1.0f + tanh(inner));
   }
-  out[i] = g * up[up_off + i];
+  out[out_off + i] = g * up[up_off + i];
 }
 
 // out[t][j] = sum over c < counts[t] of weight[t*max_k+c] *
@@ -521,6 +533,28 @@ __kernel void tq2moe_gather_quant_f16(
 #undef LOAD
 #undef LOAD2
 }
+
+// The hit / miss split of a streamed decode step (one lane per selected
+// expert): res[e] != 0 when expert e is resident. The GEMVs take an
+// activation row per record and skip a record whose row is -1, so the
+// launch over the hits gets the miss rows as -1 and the launch over the
+// misses the hit rows: gate / up rows a and K + a read row 0, down row a
+// reads row a.
+__kernel void tq2moe_route_split(__global const uint *ids,
+                                 __global const uint *res, const int K,
+                                 __global int *gu_hit, __global int *gu_miss,
+                                 __global int *d_hit, __global int *d_miss) {
+  const int a = get_global_id(0);
+  if (a >= K)
+    return;
+  const int hit = res[ids[a]] != 0u;
+  gu_hit[a] = hit ? 0 : -1;
+  gu_hit[K + a] = hit ? 0 : -1;
+  gu_miss[a] = hit ? -1 : 0;
+  gu_miss[K + a] = hit ? -1 : 0;
+  d_hit[a] = hit ? a : -1;
+  d_miss[a] = hit ? -1 : a;
+}
 )CL";
 
 // The device router kernels (decode and prefill): cl_kernels/tq2moe_route.cl.
@@ -539,6 +573,9 @@ constexpr unsigned int kTq2RoutePartRows = 256;
  *  rows (4096 lanes), 0.24 vs 0.19 ms at 64; with the emulated fma the
  *  segment form is as fast or faster at every row count measured. */
 constexpr size_t kTq2RouteChainLanes = 4096;
+/** ranks after the top-k the select kernel reports for streamed experts
+ *  (RT_EXT): the recency hint of the slot residency */
+constexpr unsigned int kTq2RouteExt = 5;
 
 /** v8c activation quantizer build options: bit-identical to the CPU port on a
  *  DPAS device; elsewhere the options the v8c FC path itself builds the
@@ -648,6 +685,27 @@ struct Tq2Stack {
   cl_mem off_tab = nullptr; /**< [3][E] record offsets: gate, up, down */
   std::vector<uint32_t> off_gate, off_up, off_down; /**< word offsets */
   unsigned int H = 0, I = 0;
+  /** buf is the layer's partition of the expert slot arena (not owned):
+   *  an expert's records sit in its slot, at slot * slot_words */
+  bool arena = false;
+  size_t gu_bytes = 0, dn_bytes = 0; /**< 64-byte rounded record bytes */
+  size_t slot_bytes = 0;             /**< 2 * gu_bytes + dn_bytes */
+  /** off_tab describes the slot map of a complete partition (device
+   *  routing); built once, when the layer first reports it complete */
+  bool tab_complete = false;
+  /** the layer's decode step whose experts are still being made resident
+   *  off the host thread (Tq2AsyncJob); the next call waits for it */
+  std::shared_ptr<struct Tq2AsyncJob> async;
+  /** the next-layer prediction of this layer's last decode step
+   *  (NNTR_G4MOE_FSU_PREGATE): its readback of pg_ext must be done before
+   *  the step writes pg_ext again (the host waits for that, never a reader) */
+  std::shared_ptr<struct Tq2Prediction> pg;
+  cl_mem pg_ext = nullptr; /**< [K + RT_EXT] the next layer's predicted ids */
+  /** hit / miss split (tq2SplitOn): [E] 1 for a resident expert, read by
+   *  tq2moe_route_split; with off_tab it describes the slot map tab_slots
+   *  (the async job keeps both current) */
+  cl_mem res_flag = nullptr;
+  std::vector<unsigned int> tab_slots;
 };
 
 /** a grow-only device scratch buffer */
@@ -689,6 +747,13 @@ struct Tq2Workspace {
   Tq2Scratch r_off_d;  /**< [K] down record offsets */
   Tq2Scratch r_part;   /**< [segments][E] partial router logits */
   Tq2Scratch r_y;      /**< [H] normalised, scaled router row */
+  Tq2Scratch r_ext;    /**< [K + RT_EXT] ids by rank (streamed) */
+  // hit / miss split of a streamed decode step (tq2moe_route_split)
+  Tq2Scratch s_gu_hit, s_gu_miss; /**< [2K] act rows, -1 = skip */
+  Tq2Scratch s_d_hit, s_d_miss;   /**< [K] act rows, -1 = skip */
+  Tq2Scratch s_off_gu, s_off_d;   /**< the misses' offsets (the job's) */
+  /** the next-layer prediction's select outputs (not read) */
+  Tq2Scratch p_ids, p_w, p_off_gu, p_off_d;
   // device routing of prefill rows (tq2moe_route_*_rows)
   Tq2Scratch r_acc;         /**< [T][32] lane sums of squares */
   Tq2Scratch r_yrows;       /**< [T][H] normalised, scaled router rows */
@@ -735,6 +800,14 @@ std::unordered_map<const void *, std::unique_ptr<Tq2Stack>> &tq2Stacks() {
 }
 
 Tq2Workspace &tq2Workspace() {
+  static Tq2Workspace w;
+  return w;
+}
+
+/** the quantized GeGLU rows of a split decode step: kept apart from the
+ *  workspace's, whose row 0 (the step's input) the misses' gate / up GEMVs
+ *  still read after the hits' down GEMV */
+Tq2Workspace &tq2WorkspaceDown() {
   static Tq2Workspace w;
   return w;
 }
@@ -815,8 +888,1126 @@ std::unique_ptr<Tq2Stack> tq2BuildStack(ClContext *cc,
   return st;
 }
 
-/** the layer's stack; built here on first use (caller holds tq2Mutex) */
-const Tq2Stack &tq2Stack(ClContext *cc, const MoeExpertGroup &g) {
+// ---------------------------------------------------------------------------
+// Expert slot arena: experts read from the weight file at run time
+// ---------------------------------------------------------------------------
+
+/** an event several slots may share (the last-use marker of one call) */
+struct Tq2Event {
+  cl_event ev = nullptr;
+  explicit Tq2Event(cl_event e) : ev(e) {}
+  ~Tq2Event() {
+    if (ev != nullptr)
+      opencl::clReleaseEvent(ev);
+  }
+  Tq2Event(const Tq2Event &) = delete;
+  Tq2Event &operator=(const Tq2Event &) = delete;
+};
+using Tq2EventRef = std::shared_ptr<Tq2Event>;
+
+/** a host staging buffer of the fill path and the write still reading it */
+struct Tq2Bounce {
+  AlignedBuffer buf;
+  Tq2EventRef write;
+};
+
+/**
+ * @brief The expert slots of the MoE layers whose experts are read from the
+ *        weight file (MoeExpertGroup::fsu): one partition of C slots per
+ *        layer, each a CL_MEM_READ_ONLY buffer of C * slot_bytes.
+ *
+ * @details An expert's gate, up and down records sit in its slot exactly as
+ * in a resident stack (tq2BuildStack), so the kernels are the resident ones
+ * with the partition buffer and slot word offsets. A partition is one buffer
+ * so that every launch of a layer binds one cl_mem; the arena is therefore
+ * split across buffers at partition granularity and each partition must fit
+ * CL_DEVICE_MAX_MEM_ALLOC_SIZE.
+ *
+ * A fill is staged: the reader pool reads the record (O_DIRECT superset where
+ * possible) into a page-aligned host bounce, then a non-blocking
+ * clEnqueueWriteBuffer on a separate in-order I/O queue copies it into the
+ * slot. Two fences per slot:
+ *  - ready: the write's event. The compute queue waits on it (a barrier
+ *    with the event in its wait list, ahead of the call's kernels) before a
+ *    kernel reads the slot; the in-order compute queue then keeps every
+ *    later kernel behind that barrier, so the event is dropped.
+ *  - last_use: a marker on the compute queue after the last kernel of a call
+ *    that read the slot (the down projection). A write into the slot carries
+ *    it in its wait list, so an evicted slot is never overwritten while a
+ *    queued kernel still reads it. Recorded only for a partition with fewer
+ *    slots than experts (one that evicts).
+ */
+class Tq2ExpertArena {
+public:
+  struct Partition {
+    cl_mem buf = nullptr;
+    unsigned int slots = 0;
+    size_t slot_bytes = 0;
+    unsigned int index = UINT32_MAX; /**< MoeExpertFsu::layer_index */
+    /** a sub-buffer partition: the block buffer it is a window of (not
+     *  owned) and its origin there; null for a buffer of its own */
+    cl_mem block = nullptr;
+    size_t block_origin = 0;
+    /** NNTR_G4MOE_FSU_ARENA=svm: the partition's SVM memory (buf is a
+     *  CL_MEM_USE_HOST_PTR buffer over it); slot writes are CPU copies into
+     *  it (slotWrite), coarse-grain ones between a map and an unmap of the
+     *  written range. Null for a device buffer (clmem) */
+    uint8_t *host = nullptr;
+    bool fine = false;                 /**< fine-grain SVM: no map / unmap */
+    std::vector<Tq2EventRef> ready;    /**< per slot: write not yet waited */
+    std::vector<Tq2EventRef> last_use; /**< per slot: last reader marker */
+    /** guards last_use: the host thread records it, a reader thread that
+     *  writes a read-ahead record into a reserved slot (a short prefill's
+     *  next-layer read ahead) reads it */
+    std::mutex lu_mu;
+    Tq2EventRef lastUse(unsigned int slot) {
+      std::lock_guard<std::mutex> lk(lu_mu);
+      return slot < last_use.size() ? last_use[slot] : Tq2EventRef();
+    }
+    std::vector<Tq2EventRef> lastUses() {
+      std::lock_guard<std::mutex> lk(lu_mu);
+      return last_use;
+    }
+  };
+
+  /** the process's arena; never destroyed (its buffers and events belong
+   *  to the OpenCL context, which may be gone at static destruction) */
+  static Tq2ExpertArena &get() {
+    static Tq2ExpertArena *a = new Tq2ExpertArena();
+    return *a;
+  }
+
+  /**
+   * @brief The partition of @a key, created with @a slots slots of
+   *        @a slot_bytes on first use.
+   *
+   * @details With @a experts (the layer's E > slots) and a layer index below
+   * 2 * ceil(E / slots), the partition is a sub-buffer of one of two block
+   * buffers of ceil(E / slots) partitions each, in layer index order: the
+   * partitions the prefill stream borrows (streamLend: the lowest indices)
+   * then form two buffers in which expert e of a streamed layer sits in slot
+   * e, so a streamed prefill call binds one buffer for all its experts and
+   * runs the resident launch sequence (flat tiles, tiles-v2, fused
+   * quantizers). The memory is the same: a block buffer replaces the
+   * partitions it holds. Falls back to a buffer per partition when the
+   * block exceeds CL_DEVICE_MAX_MEM_ALLOC_SIZE, a partition origin is not a
+   * multiple of CL_DEVICE_MEM_BASE_ADDR_ALIGN, the driver refuses the
+   * sub-buffer, or NNTR_G4MOE_FSU_BLOCK=0 (the per-partition chunk path of
+   * the stream).
+   */
+  Partition &partition(ClContext *cc, const void *key, unsigned int slots,
+                       size_t slot_bytes, unsigned int index = UINT32_MAX,
+                       unsigned int experts = 0) {
+    std::lock_guard<std::mutex> lk(mu_);
+    auto it = parts_.find(key);
+    if (it != parts_.end()) {
+      NNTR_THROW_IF(it->second->slots != slots ||
+                      it->second->slot_bytes != slot_bytes,
+                    std::runtime_error)
+        << "tq2cx expert arena: a layer asked for " << slots << " x "
+        << slot_bytes << " B slots, it has " << it->second->slots << " x "
+        << it->second->slot_bytes;
+      return *it->second;
+    }
+    const size_t bytes = (size_t)slots * slot_bytes;
+    const opencl::DeviceInfo *info =
+      opencl::ContextManager::Global().getDeviceInfo();
+    const size_t max_alloc =
+      info != nullptr ? (size_t)info->getDeviceMaxMemAllocSize() : 0;
+    NNTR_THROW_IF(max_alloc != 0 && bytes > max_alloc, std::runtime_error)
+      << "tq2cx expert arena: " << slots << " slots of " << slot_bytes << " B ("
+      << bytes << " B) exceed CL_DEVICE_MAX_MEM_ALLOC_SIZE " << max_alloc
+      << "; lower the expert cache size";
+    auto p = std::make_unique<Partition>();
+    p->slots = slots;
+    p->slot_bytes = slot_bytes;
+    p->index = index;
+    p->ready.resize(slots);
+    p->last_use.resize(slots);
+    cl_int err = CL_SUCCESS;
+    if (experts > slots && index != UINT32_MAX && blockOn()) {
+      const unsigned int n = (experts + slots - 1) / slots;
+      if (index < 2 * n)
+        p->buf = blockPartition(cc, slots, slot_bytes, n, index, max_alloc,
+                                &p->block, &p->block_origin, &p->host);
+    }
+    if (p->buf == nullptr) {
+      opencl::ClMemAcctScope acct("tq2cx_moe_arena");
+      p->buf = allocArena(cc, bytes, &p->host, &err);
+    }
+    p->fine = p->host != nullptr && svmKind(cc) == 2;
+    NNTR_THROW_IF(err != CL_SUCCESS || p->buf == nullptr, std::runtime_error)
+      << "tq2cx expert arena: clCreateBuffer(" << bytes << ") failed (" << err
+      << ")";
+    total_slots_ += slots;
+    Partition &ref = *parts_.emplace(key, std::move(p)).first->second;
+    if (index != UINT32_MAX)
+      by_index_[index] = &ref;
+    return ref;
+  }
+
+  /** the partition of layer index @a index, or null */
+  Partition *byIndex(unsigned int index) {
+    std::lock_guard<std::mutex> lk(mu_);
+    auto it = by_index_.find(index);
+    return it == by_index_.end() ? nullptr : it->second;
+  }
+
+  /**
+   * @brief A second in-order I/O queue: the slot writes of the read-ahead
+   *        records (a short prefill's next-layer read ahead), so a step's
+   *        own writes on ioQueue() never queue behind one. Nothing names an
+   *        event of one queue on the other.
+   */
+  cl_command_queue ioQueueLow(ClContext *cc) {
+    std::lock_guard<std::mutex> lk(mu_);
+    if (io_low_ == nullptr) {
+      cl_int err = CL_SUCCESS;
+      io_low_ =
+        opencl::clCreateCommandQueue(cc->context_inst_.GetContextNoRetain(),
+                                     cc->context_inst_.GetDeviceId(), 0, &err);
+      NNTR_THROW_IF(err != CL_SUCCESS || io_low_ == nullptr, std::runtime_error)
+        << "tq2cx expert arena: low I/O queue creation failed (" << err << ")";
+    }
+    return io_low_;
+  }
+
+  /** the separate in-order queue the fills are written on */
+  cl_command_queue ioQueue(ClContext *cc) {
+    std::lock_guard<std::mutex> lk(mu_);
+    if (io_q_ == nullptr) {
+      cl_int err = CL_SUCCESS;
+      io_q_ =
+        opencl::clCreateCommandQueue(cc->context_inst_.GetContextNoRetain(),
+                                     cc->context_inst_.GetDeviceId(), 0, &err);
+      NNTR_THROW_IF(err != CL_SUCCESS || io_q_ == nullptr, std::runtime_error)
+        << "tq2cx expert arena: I/O queue creation failed (" << err << ")";
+    }
+    return io_q_;
+  }
+
+  /**
+   * @brief Read @a fills ((expert, slot) pairs) of @a part from the file and
+   *        write them into their slots. Returns once every write is queued;
+   *        each slot's ready event is set. @a bounces is the staging set (at
+   *        least two); a bounce is reused only after its previous write ran.
+   *        With @a wait_all the call also waits for every write (and leaves
+   *        no ready event behind): the bounces may be freed afterwards.
+   */
+  void fill(ClContext *cc, Partition &part, const Tq2Stack &st,
+            const MoeExpertFsu &fsu,
+            const std::vector<std::pair<unsigned int, unsigned int>> &fills,
+            std::vector<Tq2Bounce> &bounces, bool wait_all) {
+    if (fills.empty())
+      return;
+    NNTR_THROW_IF(bounces.size() < 2, std::invalid_argument)
+      << "tq2cx expert arena: at least two staging buffers";
+    const size_t rec = fsu.record_bytes;
+    const size_t rec_gu = tq2RecordBytes(st.I, st.H);
+    const bool packed = rec == st.slot_bytes; // file record == slot layout
+    cl_command_queue io = ioQueue(cc);
+    cl_command_queue cq = cc->command_queue_inst_.GetCommandQueue();
+    ExpertReaderPool &pool = ExpertReaderPool::global();
+    const size_t half = bounces.size() / 2;
+    for (auto &b : bounces)
+      b.buf.reserve(ExpertReaderPool::bounceBytes(rec));
+
+    // a write follows the slot's last reader, a marker on the compute
+    // queue: hand that queue to the device first (the marker is waited for
+    // on the host below, never named in a wait list)
+    opencl::clFlush(cq);
+
+    if (part.host != nullptr) {
+      // svm arena: each reader copies its record into the slot itself (the
+      // CPU copies run in parallel, not one by one on this thread); every
+      // slot's last reader is waited for here first, the writes name nothing
+      std::vector<ExpertRead> reads(fills.size());
+      for (size_t i = 0; i < fills.size(); ++i) {
+        const unsigned int e = fills[i].first, slot = fills[i].second;
+        NNTR_THROW_IF(e >= fsu.offset->size() || slot >= part.slots,
+                      std::out_of_range)
+          << "tq2cx expert arena: expert " << e << " slot " << slot;
+        const Tq2EventRef lu = part.lastUse(slot);
+        if (lu && lu->ev != nullptr) {
+          cl_event ev = lu->ev;
+          const cl_int werr = opencl::clWaitForEvents(1, &ev);
+          NNTR_THROW_IF(werr != CL_SUCCESS, std::runtime_error)
+            << "tq2cx expert arena: slot " << slot << "'s last reader failed ("
+            << werr << ")";
+        }
+        ExpertRead &r = reads[i];
+        r.fd = fsu.fd;
+        r.offset = (*fsu.offset)[e];
+        r.bytes = rec;
+        Partition *pp = &part;
+        const size_t at = (size_t)slot * part.slot_bytes;
+        const size_t gu = st.gu_bytes;
+        r.consume = [io, pp, at, packed, rec_gu, gu](const uint8_t *src,
+                                                     const ExpertRead &q) {
+          if (packed)
+            return slotWrite(io, *pp, at, q.bytes, src) == CL_SUCCESS ? 0 : EIO;
+          const size_t len[3] = {rec_gu, rec_gu, q.bytes - 2 * rec_gu};
+          const size_t dst[3] = {0, gu, 2 * gu};
+          const size_t from[3] = {0, rec_gu, 2 * rec_gu};
+          for (int k = 0; k < 3; ++k)
+            if (slotWrite(io, *pp, at + dst[k], len[k], src + from[k]) !=
+                CL_SUCCESS)
+              return EIO;
+          return 0;
+        };
+      }
+      pool.wait(pool.submit(&reads), /*help=*/true); // throws on a failure
+      for (const auto &f : fills) {
+        part.ready[f.second].reset();
+        std::lock_guard<std::mutex> lk(part.lu_mu);
+        part.last_use[f.second].reset();
+      }
+      filled_ += fills.size();
+      return;
+    }
+
+    // two banks of staging buffers: the reads of the next group run while
+    // this group is written. The groups stay in place (the pool holds a
+    // pointer to their read lists until they are waited).
+    struct Group {
+      size_t first = 0, count = 0;
+      std::vector<ExpertRead> reads;
+      ExpertReaderPool::Ticket ticket = 0;
+      bool pending = false;
+    };
+    Group grp[2];
+    auto issue = [&](size_t bank, size_t first) {
+      Group &g = grp[bank];
+      g.first = first;
+      g.count = std::min(half, fills.size() - first);
+      g.reads.assign(g.count, ExpertRead());
+      for (size_t i = 0; i < g.count; ++i) {
+        Tq2Bounce &b = bounces[bank * half + i];
+        if (b.write) { // the previous write from this bounce must be done
+          opencl::clWaitForEvents(1, &b.write->ev);
+          b.write.reset();
+        }
+        const unsigned int e = fills[first + i].first;
+        NNTR_THROW_IF(e >= fsu.offset->size(), std::out_of_range)
+          << "tq2cx expert arena: expert " << e;
+        ExpertRead &r = g.reads[i];
+        r.fd = fsu.fd;
+        r.offset = (*fsu.offset)[e];
+        r.bytes = rec;
+        r.bounce = &b.buf;
+      }
+      g.ticket = pool.submit(&g.reads);
+      g.pending = true;
+    };
+    auto write = [&](size_t bank) {
+      Group &g = grp[bank];
+      g.pending = false;
+      pool.wait(g.ticket); // throws on a failed read
+      for (size_t i = 0; i < g.count; ++i) {
+        const unsigned int slot = fills[g.first + i].second;
+        NNTR_THROW_IF(slot >= part.slots, std::out_of_range)
+          << "tq2cx expert arena: slot " << slot << " of " << part.slots;
+        Tq2Bounce &b = bounces[bank * half + i];
+        const uint8_t *src = b.buf.data() + g.reads[i].data_offset;
+        const size_t at = (size_t)slot * part.slot_bytes;
+        // No cross-queue wait list (the rule of the decode job and of the
+        // prefill stream): a write on the I/O queue that names a compute-
+        // queue event returns on Adreno only once the compute queue has run
+        // everything runnable (a probe self-test), and with a user event
+        // pending on the compute queue it did not return at all (a decode
+        // deadlock). The slot's last reader is therefore waited
+        // for here, on the host, and the write names nothing. That wait
+        // ends: this path (the load, the blocking ASYNC=0 step, a prefill's
+        // chunks) runs with no user event pending on the compute queue --
+        // the steps before it ended with their join or the token's blocking
+        // logits read -- and the queue was flushed above; the marker is
+        // normally complete already (a status read, no wait).
+        const Tq2EventRef lu_ref = part.lastUse(slot);
+        if (lu_ref && lu_ref->ev != nullptr) {
+          cl_event lu = lu_ref->ev;
+          cl_int est = CL_COMPLETE;
+          if (opencl::clGetEventInfo == nullptr ||
+              opencl::clGetEventInfo(lu, CL_EVENT_COMMAND_EXECUTION_STATUS,
+                                     sizeof(est), &est,
+                                     nullptr) != CL_SUCCESS ||
+              est > CL_COMPLETE) {
+            const cl_int werr = opencl::clWaitForEvents(1, &lu);
+            NNTR_THROW_IF(werr != CL_SUCCESS, std::runtime_error)
+              << "tq2cx expert arena: slot " << slot
+              << "'s last reader failed (" << werr << ")";
+            fence_waits_++;
+          }
+          NNTR_THROW_IF(est < 0, std::runtime_error)
+            << "tq2cx expert arena: slot " << slot << "'s last reader failed ("
+            << est << ")";
+        }
+        cl_event ev = nullptr;
+        cl_int err = CL_SUCCESS;
+        if (part.host != nullptr) {
+          // svm arena: CPU copies, done when this returns (no event)
+          if (packed) {
+            err = slotWrite(io, part, at, rec, src);
+          } else {
+            const size_t rec_dn = rec - 2 * rec_gu;
+            const size_t dst[3] = {0, st.gu_bytes, 2 * st.gu_bytes};
+            const size_t from[3] = {0, rec_gu, 2 * rec_gu};
+            const size_t len[3] = {rec_gu, rec_gu, rec_dn};
+            for (int p = 0; p < 3 && err == CL_SUCCESS; ++p)
+              err = slotWrite(io, part, at + dst[p], len[p], src + from[p]);
+          }
+          NNTR_THROW_IF(err != CL_SUCCESS, std::runtime_error)
+            << "tq2cx expert arena: slot write failed (" << err << ")";
+          b.write.reset();
+          part.ready[slot].reset();
+          std::lock_guard<std::mutex> lk(part.lu_mu);
+          part.last_use[slot].reset();
+          continue;
+        }
+        if (packed) {
+          err = opencl::clEnqueueWriteBuffer(io, part.buf, CL_FALSE, at, rec,
+                                             src, 0, nullptr, &ev);
+        } else {
+          // records not 64-byte multiples: gate, up, down at their rounded
+          // places in the slot (in-order queue: the last event covers all)
+          const size_t rec_dn = rec - 2 * rec_gu;
+          const size_t dst[3] = {0, st.gu_bytes, 2 * st.gu_bytes};
+          const size_t from[3] = {0, rec_gu, 2 * rec_gu};
+          const size_t len[3] = {rec_gu, rec_gu, rec_dn};
+          for (int p = 0; p < 3 && err == CL_SUCCESS; ++p)
+            err = opencl::clEnqueueWriteBuffer(
+              io, part.buf, CL_FALSE, at + dst[p], len[p], src + from[p], 0,
+              nullptr, p == 2 ? &ev : nullptr);
+        }
+        NNTR_THROW_IF(err != CL_SUCCESS, std::runtime_error)
+          << "tq2cx expert arena: slot write failed (" << err << ")";
+        auto ref = std::make_shared<Tq2Event>(ev);
+        b.write = ref;
+        part.ready[slot] = ref;
+        {
+          std::lock_guard<std::mutex> lk(part.lu_mu);
+          part.last_use[slot].reset(); // ordered behind it on the I/O queue
+        }
+      }
+      opencl::clFlush(io);
+    };
+
+    try {
+      size_t first = 0, bank = 0;
+      issue(bank, first);
+      first += grp[bank].count;
+      while (true) {
+        const bool more = first < fills.size();
+        if (more) {
+          issue(bank ^ 1, first);
+          first += grp[bank ^ 1].count;
+        }
+        write(bank);
+        if (!more)
+          break;
+        bank ^= 1;
+      }
+    } catch (...) {
+      // the readers still hold the other group's read list: let them finish
+      for (auto &g : grp)
+        if (g.pending) {
+          try {
+            pool.wait(g.ticket);
+          } catch (...) {
+          }
+        }
+      // and the writes queued so far still read their staging buffers
+      for (auto &b : bounces)
+        if (b.write)
+          opencl::clWaitForEvents(1, &b.write->ev);
+      throw;
+    }
+    filled_ += fills.size();
+    if (wait_all) {
+      for (auto &b : bounces)
+        if (b.write) {
+          opencl::clWaitForEvents(1, &b.write->ev);
+          b.write.reset();
+        }
+      for (const auto &f : fills)
+        part.ready[f.second].reset();
+    }
+  }
+
+  /**
+   * @brief Keep the compute queue's next kernels behind the writes of
+   *        @a slots (those still pending) and drop those events: the host
+   *        waits for the writes. Not a barrier on the compute queue naming
+   *        the I/O queue's events: the no-cross-queue-wait-list rule holds
+   *        both ways on the I/O / compute pair (see fill()). The writes are
+   *        flushed and wait for nothing, so they end; the callers (the load,
+   *        the blocking ASYNC=0 step, a complete partition's first decode)
+   *        wait for their reads on the host already.
+   */
+  void waitReady(ClContext *cc, Partition &part,
+                 const std::vector<unsigned int> &slots) {
+    std::vector<cl_event> evs;
+    std::vector<Tq2EventRef> keep;
+    for (unsigned int s : slots)
+      if (s < part.slots && part.ready[s]) {
+        evs.push_back(part.ready[s]->ev);
+        keep.push_back(part.ready[s]);
+        part.ready[s].reset();
+      }
+    if (evs.empty())
+      return;
+    opencl::clFlush(ioQueue(cc));
+    const cl_int err = opencl::clWaitForEvents((cl_uint)evs.size(), evs.data());
+    NNTR_THROW_IF(err != CL_SUCCESS, std::runtime_error)
+      << "tq2cx expert arena: slot writes failed (" << err << ")";
+  }
+
+  /** @brief every slot of @a part with a pending write */
+  std::vector<unsigned int> pendingSlots(const Partition &part) const {
+    std::vector<unsigned int> s;
+    for (unsigned int i = 0; i < part.slots; ++i)
+      if (part.ready[i])
+        s.push_back(i);
+    return s;
+  }
+
+  /**
+   * @brief Mark @a slots as read by everything enqueued so far on the
+   *        compute queue (call after the last kernel that reads them).
+   */
+  void markUse(ClContext *cc, Partition &part,
+               const std::vector<unsigned int> &slots) {
+    if (slots.empty())
+      return;
+    cl_command_queue cq = cc->command_queue_inst_.GetCommandQueue();
+    cl_event ev = nullptr;
+    const cl_int err =
+      opencl::clEnqueueBarrierWithWaitList(cq, 0, nullptr, &ev);
+    NNTR_THROW_IF(err != CL_SUCCESS, std::runtime_error)
+      << "tq2cx expert arena: last-use marker failed (" << err << ")";
+    auto ref = std::make_shared<Tq2Event>(ev);
+    std::lock_guard<std::mutex> lk(part.lu_mu);
+    for (unsigned int s : slots)
+      if (s < part.slots)
+        part.last_use[s] = ref;
+  }
+
+  /**
+   * @brief markUse of several partitions with one marker: @a uses holds,
+   *        per partition, the slots everything enqueued so far has read.
+   */
+  void markUseParts(
+    ClContext *cc,
+    const std::vector<std::pair<Partition *, std::vector<unsigned int>>>
+      &uses) {
+    bool any = false;
+    for (const auto &u : uses)
+      any = any || !u.second.empty();
+    if (!any)
+      return;
+    cl_command_queue cq = cc->command_queue_inst_.GetCommandQueue();
+    cl_event ev = nullptr;
+    const cl_int err =
+      opencl::clEnqueueBarrierWithWaitList(cq, 0, nullptr, &ev);
+    NNTR_THROW_IF(err != CL_SUCCESS, std::runtime_error)
+      << "tq2cx expert arena: last-use marker failed (" << err << ")";
+    auto ref = std::make_shared<Tq2Event>(ev);
+    for (const auto &u : uses) {
+      std::lock_guard<std::mutex> lk(u.first->lu_mu);
+      for (unsigned int s : u.second)
+        if (s < u.first->slots)
+          u.first->last_use[s] = ref;
+    }
+  }
+
+  /**
+   * @brief A blocking write of @a len bytes from @a src at byte @a at of
+   *        partition @a p: clEnqueueWriteBuffer on @a q for a device buffer;
+   *        for an SVM partition a CPU copy (coarse-grain: between a blocking
+   *        map of the range on @a q and its unmap, waited for on the host).
+   *        No wait list either way.
+   */
+  static cl_int slotWrite(cl_command_queue q, Partition &p, size_t at,
+                          size_t len, const void *src) {
+    if (p.host == nullptr)
+      return opencl::clEnqueueWriteBuffer(q, p.buf, CL_TRUE, at, len, src, 0,
+                                          nullptr, nullptr);
+    const auto t0 = std::chrono::steady_clock::now();
+    uint8_t *dst = p.host + at;
+    cl_int err = CL_SUCCESS;
+    // the maps / unmaps go on a queue of their own: on the I/O queue they
+    // slowed the job's next small table writes 25x (Xe3: 0.011 -> 0.25-0.39
+    // ms per step)
+    if (svm_q_ != nullptr)
+      q = svm_q_;
+    if (!p.fine)
+      err = opencl::clEnqueueSVMMap(q, CL_TRUE, CL_MAP_WRITE_INVALIDATE_REGION,
+                                    dst, len, 0, nullptr, nullptr);
+    if (err != CL_SUCCESS)
+      return err;
+    std::memcpy(dst, src, len);
+    if (!p.fine) {
+      cl_event ev = nullptr;
+      err = opencl::clEnqueueSVMUnmap(q, dst, 0, nullptr, &ev);
+      if (err == CL_SUCCESS && ev != nullptr)
+        err = opencl::clWaitForEvents(1, &ev);
+      if (ev != nullptr)
+        opencl::clReleaseEvent(ev);
+    }
+    svm_writes_++;
+    svm_write_us_ +=
+      (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now() - t0)
+        .count();
+    return err;
+  }
+
+  /** svm arena totals (slotWrite), printed at exit when used */
+  struct SvmStats {
+    ~SvmStats() {
+      const unsigned long long n = svm_writes_.load();
+      if (n != 0)
+        std::fprintf(stderr,
+                     "[TQ2CX-FSU-ARENA] svm slot writes=%llu "
+                     "ms_per_write=%.4f\n",
+                     n, svm_write_us_.load() / 1000.0 / n);
+    }
+  };
+
+  /** staging set of the run-time fills (the caller holds tq2Mutex) */
+  std::vector<Tq2Bounce> &runBounces() { return run_bounces_; }
+
+  size_t filled() const { return filled_; }
+
+  // ---- prefill block stream (every call below: the caller holds tq2Mutex)
+
+  /**
+   * @brief One of the two block buffers of the prefill stream: the
+   *        partitions lent to it (expert e of the block it holds sits in
+   *        slot e % C of parts[e / C]) and the reads of that block.
+   */
+  struct StreamSet {
+    std::vector<Partition *> parts;
+    /** the block buffer the parts are consecutive windows of (expert e in
+     *  slot e), or null: the per-part chunk path */
+    cl_mem block = nullptr;
+    unsigned int layer = UINT32_MAX; /**< layer index of the block */
+    int fd = -1;
+    std::vector<uint64_t> first, last; /**< per part: file range read */
+    std::vector<std::vector<ExpertRead>> reads; /**< per part */
+    std::vector<ExpertReaderPool::Ticket> ticket;
+    std::vector<bool> pending;
+  };
+
+  /**
+   * @brief Lend 2 x ceil(@a experts / @a slots) partitions of this shape to
+   *        the stream (the lowest layer indices; the same ones every time).
+   * @return false when the arena has fewer such partitions
+   */
+  bool streamLend(unsigned int slots, size_t slot_bytes, unsigned int experts) {
+    const unsigned int n = (experts + slots - 1) / slots;
+    if (!sets_[0].parts.empty() && sets_[0].parts.size() == n &&
+        sets_[0].parts[0]->slots == slots &&
+        sets_[0].parts[0]->slot_bytes == slot_bytes)
+      return true;
+    std::vector<Partition *> fit;
+    {
+      std::lock_guard<std::mutex> lk(mu_);
+      for (auto &kv : by_index_)
+        if (kv.second->slots == slots && kv.second->slot_bytes == slot_bytes)
+          fit.push_back(kv.second);
+    }
+    if (fit.size() < 2 * (size_t)n)
+      return false;
+    for (int x = 0; x < 2; ++x) {
+      endSet(sets_[x]);
+      StreamSet &S = sets_[x];
+      S.parts.assign(fit.begin() + x * n, fit.begin() + (x + 1) * n);
+      S.block = S.parts[0]->block;
+      for (unsigned int j = 0; j < n && S.block != nullptr; ++j)
+        if (S.parts[j]->block != S.block ||
+            S.parts[j]->block_origin != (size_t)j * slots * slot_bytes)
+          S.block = nullptr;
+      S.first.assign(n, 0);
+      S.last.assign(n, 0);
+      S.reads.assign(n, std::vector<ExpertRead>());
+      S.ticket.assign(n, 0);
+      S.pending.assign(n, false);
+    }
+    return true;
+  }
+
+  /**
+   * @brief Start reading the whole expert block of layer @a d (every expert,
+   *        its record into its slot of set @a x) unless set @a x holds or
+   *        reads that block already. Each record is written into its slot by
+   *        the reader that read it (a blocking write on the I/O queue that
+   *        waits for the slot's last reader), so a part is in device memory
+   *        once its ticket completes.
+   */
+  void streamIssue(ClContext *cc, unsigned int x, const MoeExpertFsu &d,
+                   const Tq2Stack &shape) {
+    StreamSet &S = sets_[x];
+    if (S.layer == d.layer_index)
+      return;
+    endSet(S);
+    const size_t rec = d.record_bytes;
+    const size_t rec_gu = tq2RecordBytes(shape.I, shape.H);
+    const bool packed = rec == shape.slot_bytes;
+    const size_t gu_bytes = shape.gu_bytes;
+    const unsigned int E = (unsigned int)d.offset->size();
+    const unsigned int C = S.parts[0]->slots;
+    cl_command_queue io = ioQueue(cc);
+    // the writes wait on markers of the compute queue: hand it over first
+    opencl::clFlush(cc->command_queue_inst_.GetCommandQueue());
+    ExpertReaderPool &pool = ExpertReaderPool::global();
+    S.fd = d.fd;
+    for (size_t j = 0; j < S.parts.size(); ++j) {
+      Partition &p = *S.parts[j];
+      std::vector<ExpertRead> &rd = S.reads[j];
+      rd.clear();
+      for (unsigned int sl = 0; sl < C && j * C + sl < E; ++sl) {
+        const unsigned int e = (unsigned int)(j * C + sl);
+        Tq2EventRef wait;
+        {
+          std::lock_guard<std::mutex> lk(p.lu_mu);
+          wait = p.last_use[sl];
+          p.last_use[sl].reset();
+        }
+        p.ready[sl].reset();
+        ExpertRead r;
+        r.fd = d.fd;
+        r.offset = (*d.offset)[e];
+        r.bytes = rec;
+        const size_t at = (size_t)sl * p.slot_bytes;
+        cl_mem buf = p.buf;
+        Partition *pp = &p;
+        r.consume = [io, buf, at, wait, packed, rec_gu, gu_bytes,
+                     pp](const uint8_t *src, const ExpertRead &q) -> int {
+          const auto w0 = std::chrono::steady_clock::now();
+          struct WriteClock {
+            std::chrono::steady_clock::time_point t0;
+            ~WriteClock() {
+              stream_stats_.write_us +=
+                (unsigned long long)
+                  std::chrono::duration_cast<std::chrono::microseconds>(
+                    std::chrono::steady_clock::now() - t0)
+                    .count();
+            }
+          } clock{w0};
+          cl_event w = wait ? wait->ev : nullptr;
+          if (w != nullptr) {
+            // The slot's last reader is a marker of the compute queue. The
+            // write does not name it: on Adreno 840 a blocking write on the
+            // I/O queue whose wait list names a compute-queue event returns
+            // only once the compute queue has run everything runnable (a
+            // probe self-test: 3 writes per layer against 100-400 without
+            // the list), which throttled the stream to the compute queue's
+            // pace; and with a user event pending on the compute queue it
+            // does not return at all (a decode deadlock).
+            // The reader waits for the marker on the host instead (it is
+            // normally long complete: the block's previous layer, two
+            // layers back) and then writes with no wait list.
+            cl_int est = CL_COMPLETE;
+            if (opencl::clGetEventInfo == nullptr ||
+                opencl::clGetEventInfo(w, CL_EVENT_COMMAND_EXECUTION_STATUS,
+                                       sizeof(est), &est,
+                                       nullptr) != CL_SUCCESS ||
+                est > CL_COMPLETE) {
+              const auto f0 = std::chrono::steady_clock::now();
+              const cl_int werr = opencl::clWaitForEvents(1, &w);
+              stream_stats_.fence_us +=
+                (unsigned long long)
+                  std::chrono::duration_cast<std::chrono::microseconds>(
+                    std::chrono::steady_clock::now() - f0)
+                    .count();
+              stream_stats_.fence_waits++;
+              if (werr != CL_SUCCESS)
+                return EIO;
+            } else if (est < 0) {
+              return EIO; // the last reader failed
+            }
+          }
+          cl_int err;
+          if (pp->host != nullptr) {
+            // svm arena: CPU copies into the slot
+            const size_t len[3] = {rec_gu, rec_gu, q.bytes - 2 * rec_gu};
+            const size_t dst[3] = {0, gu_bytes, 2 * gu_bytes};
+            const size_t from[3] = {0, rec_gu, 2 * rec_gu};
+            err = packed ? slotWrite(io, *pp, at, q.bytes, src) : CL_SUCCESS;
+            for (int pc = 0; !packed && pc < 3 && err == CL_SUCCESS; ++pc)
+              err = slotWrite(io, *pp, at + dst[pc], len[pc], src + from[pc]);
+          } else if (packed) {
+            err = opencl::clEnqueueWriteBuffer(io, buf, CL_TRUE, at, q.bytes,
+                                               src, 0, nullptr, nullptr);
+          } else {
+            // gate, up, down at their rounded places; the in-order queue
+            // completes the first two before the blocking third returns
+            const size_t len[3] = {rec_gu, rec_gu, q.bytes - 2 * rec_gu};
+            const size_t dst[3] = {0, gu_bytes, 2 * gu_bytes};
+            const size_t from[3] = {0, rec_gu, 2 * rec_gu};
+            err = CL_SUCCESS;
+            for (int pp = 0; pp < 3 && err == CL_SUCCESS; ++pp)
+              err = opencl::clEnqueueWriteBuffer(
+                io, buf, pp == 2 ? CL_TRUE : CL_FALSE, at + dst[pp], len[pp],
+                src + from[pp], 0, nullptr, nullptr);
+          }
+          return err == CL_SUCCESS ? 0 : EIO;
+        };
+        rd.push_back(std::move(r));
+      }
+      if (rd.empty()) {
+        S.pending[j] = false;
+        continue;
+      }
+      S.first[j] = rd.front().offset;
+      S.last[j] = rd.back().offset + rec;
+      S.ticket[j] = pool.submit(&rd);
+      S.pending[j] = true;
+    }
+    S.layer = d.layer_index;
+    stream_stats_.blocks++;
+    stream_stats_.records += E;
+    stream_stats_.bytes += (double)E * rec;
+  }
+
+  /**
+   * @brief Wait until part @a j of set @a x is in device memory; then drop
+   *        its file range from the page cache when @a dontneed.
+   */
+  void streamWait(unsigned int x, size_t j, bool dontneed) {
+    StreamSet &S = sets_[x];
+    if (!S.pending[j])
+      return;
+    S.pending[j] = false;
+    const auto t0 = std::chrono::steady_clock::now();
+    try {
+      ExpertReaderPool::global().wait(S.ticket[j]);
+    } catch (...) {
+      S.layer = UINT32_MAX; // the block is incomplete
+      throw;
+    }
+    stream_stats_.wait_ms += std::chrono::duration<double, std::milli>(
+                               std::chrono::steady_clock::now() - t0)
+                               .count();
+#if defined(POSIX_FADV_DONTNEED) && !defined(_WIN32)
+    if (dontneed && S.last[j] > S.first[j])
+      (void)::posix_fadvise(S.fd, (off_t)S.first[j],
+                            (off_t)(S.last[j] - S.first[j]),
+                            POSIX_FADV_DONTNEED);
+#else
+    (void)dontneed;
+#endif
+  }
+
+  StreamSet &streamSet(unsigned int x) { return sets_[x]; }
+
+  /** @brief forget both blocks (a call that does not stream): wait out any
+   *         read still in flight, since it writes into lent partitions */
+  void streamEnd() {
+    endSet(sets_[0]);
+    endSet(sets_[1]);
+  }
+
+  /** totals of the prefill stream, printed at exit when it ran */
+  struct StreamStats {
+    unsigned long long blocks = 0, records = 0;
+    double bytes = 0.0, wait_ms = 0.0;
+    std::atomic<unsigned long long> write_us{0}; /**< readers, summed */
+    /** host waits of the readers on a slot's last reader (summed) */
+    std::atomic<unsigned long long> fence_us{0}, fence_waits{0};
+    ~StreamStats() {
+      if (blocks == 0)
+        return;
+      std::fprintf(stderr,
+                   "[TQ2CX-FSU-STREAM] blocks=%llu records=%llu read_mib=%.1f "
+                   "compute_wait_ms=%.1f reader_write_ms=%.1f "
+                   "reader_fence_ms=%.1f fence_waits=%llu readers=%u\n",
+                   blocks, records, bytes / 1048576.0, wait_ms,
+                   write_us.load() / 1000.0, fence_us.load() / 1000.0,
+                   fence_waits.load(), ExpertReaderPool::global().readers());
+    }
+  };
+
+private:
+  /** NNTR_G4MOE_FSU_BLOCK=0: a buffer per partition (read once) */
+  static bool blockOn() {
+    static const bool on = []() {
+      const char *e = std::getenv("NNTR_G4MOE_FSU_BLOCK");
+      return !(e != nullptr && e[0] == '0');
+    }();
+    return on;
+  }
+
+  /**
+   * @brief Partition @a index (< 2 @a n) as a window of block buffer
+   *        index / @a n (created on first use, @a n partitions of @a slots
+   *        x @a slot_bytes): the sub-buffer, its block and origin; null when
+   *        the block cannot be made (the caller makes a buffer of its own).
+   *        Caller holds mu_.
+   */
+  cl_mem blockPartition(ClContext *cc, unsigned int slots, size_t slot_bytes,
+                        unsigned int n, unsigned int index, size_t max_alloc,
+                        cl_mem *block, size_t *origin, uint8_t **host) {
+    const size_t part_bytes = (size_t)slots * slot_bytes;
+    const size_t bytes = (size_t)n * part_bytes;
+    if (max_alloc != 0 && bytes > max_alloc)
+      return nullptr;
+    const cl_device_id dev = cc->context_inst_.GetDeviceId();
+    cl_uint align_bits = 0;
+    if (opencl::clGetDeviceInfo(dev, CL_DEVICE_MEM_BASE_ADDR_ALIGN,
+                                sizeof(align_bits), &align_bits,
+                                nullptr) != CL_SUCCESS ||
+        align_bits == 0 || part_bytes % (align_bits / 8 ? align_bits / 8 : 1))
+      return nullptr;
+    const auto key = std::make_tuple(slots, slot_bytes, index / n);
+    cl_mem &blk = blocks_[key];
+    uint8_t *&blk_host = block_host_[key];
+    cl_int err = CL_SUCCESS;
+    if (blk == nullptr) {
+      opencl::ClMemAcctScope acct("tq2cx_moe_arena");
+      blk = allocArena(cc, bytes, &blk_host, &err);
+      if (err != CL_SUCCESS || blk == nullptr) {
+        blk = nullptr;
+        return nullptr;
+      }
+    }
+    cl_buffer_region r;
+    r.origin = (size_t)(index % n) * part_bytes;
+    r.size = part_bytes;
+    cl_mem sub = opencl::clCreateSubBufferT(
+      blk, 0, CL_BUFFER_CREATE_TYPE_REGION, &r, &err);
+    if (err != CL_SUCCESS || sub == nullptr) {
+      static bool warned = false;
+      if (!warned)
+        ml_logw("tq2cx expert arena: sub-buffer refused (%d): a buffer per "
+                "partition (the stream runs per partition)",
+                (int)err);
+      warned = true;
+      return nullptr;
+    }
+    *block = blk;
+    *origin = r.origin;
+    *host = blk_host != nullptr ? blk_host + r.origin : nullptr;
+    return sub;
+  }
+
+  /**
+   * @brief NNTR_G4MOE_FSU_ARENA=auto|clmem|svm: what the slots are.
+   *  - clmem: device buffers (CL_MEM_READ_ONLY), filled by
+   *    clEnqueueWriteBuffer.
+   *  - svm: shared virtual memory (fine-grain when the device has it, else
+   *    coarse-grain) under a CL_MEM_USE_HOST_PTR buffer, so the kernels are
+   *    unchanged; filled by CPU copies (coarse-grain: between a map and an
+   *    unmap of the written range, on a queue of their own).
+   *  - auto (default): svm on Intel GPUs, clmem elsewhere. Xe3, C=16 cold,
+   *    same tokens (P1 / P2-256 / P4 1K, C=16 and 32): the prefill stream's
+   *    slot writes 3351 -> 624 ms per prefill, its compute wait 397 -> 24
+   *    ms, P4 1K prefill 1706 -> 1366 ms (the resident one is 1332), decode
+   *    equal (50.2 / 50.5 ms per token; P2-256 55.4 / 57.2, within the run
+   *    spread). An O_DIRECT read straight into SVM memory is refused there
+   *    (EFAULT), so the bytes still pass a host bounce; the GPU reads the
+   *    SVM arena at the device buffer's bandwidth (112 vs 110 GB/s) and the
+   *    USE_HOST_PTR view allocates nothing. Adreno: not measured yet (the
+   *    svm_probe microbench is staged for the phones), so clmem.
+   *    Note: with coarse-grain SVM a written range is mapped while kernels
+   *    may read other ranges of the same buffer, which the OpenCL rules
+   *    leave undefined (fine-grain is inside them); the slot written is
+   *    never one a queued kernel reads (its last reader is complete).
+   * @return 0 clmem, 1 coarse-grain svm, 2 fine-grain svm. Read once.
+   */
+  static int svmKind(ClContext *cc) {
+    static const int kind = [cc]() {
+      const char *e = std::getenv("NNTR_G4MOE_FSU_ARENA");
+      const std::string v = e != nullptr ? e : "auto";
+      const cl_device_id dev = cc->context_inst_.GetDeviceId();
+      bool want = v == "svm";
+      if (v == "auto" || v.empty()) {
+        cl_uint vendor = 0;
+        want = opencl::clGetDeviceInfo(dev, CL_DEVICE_VENDOR_ID, sizeof(vendor),
+                                       &vendor, nullptr) == CL_SUCCESS &&
+               vendor == 0x8086;
+      } else if (v != "svm" && v != "clmem") {
+        std::fprintf(stderr,
+                     "[TQ2CX-FSU-ARENA] NNTR_G4MOE_FSU_ARENA=%s: not "
+                     "auto|clmem|svm, auto kept\n",
+                     e);
+      }
+      if (!want)
+        return 0;
+      cl_device_svm_capabilities caps = 0;
+      if (opencl::clSVMAlloc == nullptr ||
+          opencl::clGetDeviceInfo(dev, CL_DEVICE_SVM_CAPABILITIES, sizeof(caps),
+                                  &caps, nullptr) != CL_SUCCESS)
+        caps = 0;
+      const int k = (caps & CL_DEVICE_SVM_FINE_GRAIN_BUFFER)     ? 2
+                    : (caps & CL_DEVICE_SVM_COARSE_GRAIN_BUFFER) ? 1
+                                                                 : 0;
+      std::fprintf(stderr, "[TQ2CX-FSU-ARENA] %s (%s, svm caps 0x%llx)\n",
+                   k == 2   ? "svm, fine-grain"
+                   : k == 1 ? "svm, coarse-grain"
+                            : "clmem (no buffer SVM)",
+                   v.c_str(), (unsigned long long)caps);
+      return k;
+    }();
+    return kind;
+  }
+
+  /** an arena buffer of @a bytes: a device buffer, or (svmKind) an SVM
+   *  allocation (*host) under a CL_MEM_USE_HOST_PTR buffer */
+  cl_mem allocArena(ClContext *cc, size_t bytes, uint8_t **host, cl_int *err) {
+    cl_context ctx = cc->context_inst_.GetContextNoRetain();
+    *host = nullptr;
+    const int kind = svmKind(cc);
+    if (kind == 1 && svm_q_ == nullptr) {
+      cl_int qerr = CL_SUCCESS;
+      svm_q_ = opencl::clCreateCommandQueue(
+        ctx, cc->context_inst_.GetDeviceId(), 0, &qerr);
+      if (qerr != CL_SUCCESS)
+        svm_q_ = nullptr;
+    }
+    if (kind != 0) {
+      const cl_svm_mem_flags f =
+        CL_MEM_READ_WRITE | (kind == 2 ? CL_MEM_SVM_FINE_GRAIN_BUFFER : 0);
+      void *p = opencl::clSVMAllocT(ctx, f, bytes, 0);
+      if (p != nullptr) {
+        // a view of the SVM allocation (no memory of its own: Xe3 MemAvailable
+        // and DRM totals unchanged by it): counted once in the GPU ledger
+        opencl::ClMemAcctViewScope view;
+        cl_mem m = opencl::clCreateBufferT(
+          ctx, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, bytes, p, err);
+        if (*err == CL_SUCCESS && m != nullptr) {
+          *host = static_cast<uint8_t *>(p);
+          return m;
+        }
+        opencl::clSVMFreeT(ctx, p);
+      }
+      ml_logw("tq2cx expert arena: SVM arena of %zu B refused; a device "
+              "buffer",
+              bytes);
+    }
+    return opencl::clCreateBufferT(ctx, CL_MEM_READ_ONLY, bytes, nullptr, err);
+  }
+
+  void endSet(StreamSet &S) {
+    for (size_t j = 0; j < S.pending.size(); ++j)
+      if (S.pending[j]) {
+        S.pending[j] = false;
+        try {
+          ExpertReaderPool::global().wait(S.ticket[j]);
+        } catch (...) {
+        }
+      }
+    S.layer = UINT32_MAX;
+  }
+
+  Tq2ExpertArena() : run_bounces_(16) {}
+  std::mutex mu_;
+  std::unordered_map<const void *, std::unique_ptr<Partition>> parts_;
+  std::map<unsigned int, Partition *> by_index_;
+  /** block buffers of the stream's partitions: (slots, slot bytes, group) */
+  std::map<std::tuple<unsigned int, size_t, unsigned int>, cl_mem> blocks_;
+  std::map<std::tuple<unsigned int, size_t, unsigned int>, uint8_t *>
+    block_host_;
+  StreamSet sets_[2];
+  static StreamStats stream_stats_;
+  static std::atomic<unsigned long long> svm_writes_, svm_write_us_;
+  static cl_command_queue svm_q_; /**< svm arena: the maps' queue */
+  static SvmStats svm_stats_;
+  cl_command_queue io_q_ = nullptr;
+  cl_command_queue io_low_ = nullptr;
+  std::vector<Tq2Bounce> run_bounces_;
+  size_t total_slots_ = 0;
+  std::atomic<size_t> filled_{0};
+  /** fill(): slot writes whose last reader the host had to wait for */
+  std::atomic<size_t> fence_waits_{0};
+};
+
+std::atomic<unsigned long long> Tq2ExpertArena::svm_writes_{0};
+std::atomic<unsigned long long> Tq2ExpertArena::svm_write_us_{0};
+cl_command_queue Tq2ExpertArena::svm_q_ = nullptr;
+Tq2ExpertArena::StreamStats Tq2ExpertArena::stream_stats_;
+Tq2ExpertArena::SvmStats Tq2ExpertArena::svm_stats_;
+
+/** words of one 64-byte rounded record */
+inline size_t tq2Words(size_t bytes) { return bytes / sizeof(uint32_t); }
+
+/**
+ * @brief The empty arena-backed stack of an FSU layer: its partition of
+ *        fsu.slots slots, no expert read yet. Declines (null) when the file
+ *        record is not gate | up | down of this layer's shapes.
+ */
+std::unique_ptr<Tq2Stack> tq2ArenaStack(ClContext *cc, const MoeExpertGroup &g,
+                                        Tq2ExpertArena::Partition **part) {
+  const MoeExpertFsu &fsu = *g.fsu;
+  auto st = std::make_unique<Tq2Stack>();
+  st->layout = tq2cxStoredLayout();
+  st->H = g.gate[0]->height();
+  st->I = g.gate[0]->width();
+  const size_t rec_gu = tq2RecordBytes(st->I, st->H);
+  const size_t rec_dn = tq2RecordBytes(st->H, st->I);
+  st->gu_bytes = (rec_gu + 63) / 64 * 64;
+  st->dn_bytes = (rec_dn + 63) / 64 * 64;
+  st->slot_bytes = 2 * st->gu_bytes + st->dn_bytes;
+  st->arena = true;
+  if (fsu.fd < 0 || fsu.offset == nullptr ||
+      fsu.offset->size() != g.gate.size() || fsu.slots == 0 ||
+      fsu.slots > g.gate.size() || fsu.record_bytes != 2 * rec_gu + rec_dn) {
+    ml_logw("tq2cx expert arena: declined (fd %d, %zu offsets for %zu "
+            "experts, %u slots, record %zu B vs %zu B expected)",
+            fsu.fd, fsu.offset ? fsu.offset->size() : (size_t)0, g.gate.size(),
+            fsu.slots, fsu.record_bytes, 2 * rec_gu + rec_dn);
+    return nullptr;
+  }
+  Tq2ExpertArena::Partition &p = Tq2ExpertArena::get().partition(
+    cc, g.layer_key, fsu.slots, st->slot_bytes, fsu.layer_index,
+    (unsigned int)g.gate.size());
+  st->buf = p.buf;
+  *part = &p;
+  return st;
+}
+
+/** gate, up and down word offsets of every expert from a slot map (an
+ *  expert that is not resident gets slot 0's: never read) */
+void tq2ArenaOffsets(Tq2Stack &st, const std::vector<unsigned int> &slot_of) {
+  const size_t E = slot_of.size();
+  st.off_gate.resize(E);
+  st.off_up.resize(E);
+  st.off_down.resize(E);
+  for (size_t e = 0; e < E; ++e) {
+    const size_t s =
+      slot_of[e] == std::numeric_limits<unsigned int>::max() ? 0 : slot_of[e];
+    const size_t base = s * st.slot_bytes;
+    st.off_gate[e] = (uint32_t)tq2Words(base);
+    st.off_up[e] = (uint32_t)tq2Words(base + st.gu_bytes);
+    st.off_down[e] = (uint32_t)tq2Words(base + 2 * st.gu_bytes);
+  }
+}
+
+/** (re)build the stack's [3][E] offset table from its offsets */
+void tq2ArenaTable(ClContext *cc, Tq2Stack &st) {
+  std::vector<uint32_t> tab;
+  tab.reserve(3 * st.off_gate.size());
+  tab.insert(tab.end(), st.off_gate.begin(), st.off_gate.end());
+  tab.insert(tab.end(), st.off_up.begin(), st.off_up.end());
+  tab.insert(tab.end(), st.off_down.begin(), st.off_down.end());
+  if (st.off_tab != nullptr)
+    opencl::clReleaseMemObjectT(st.off_tab);
+  st.off_tab = tq2Upload(cc, tab.data(), tab.size() * sizeof(uint32_t));
+}
+
+/** the partition of an arena-backed stack */
+Tq2ExpertArena::Partition &tq2Partition(ClContext *cc, const Tq2Stack &st,
+                                        const void *key, unsigned int slots) {
+  return Tq2ExpertArena::get().partition(cc, key, slots, st.slot_bytes);
+}
+
+/**
+ * @brief The layer's stack; built here on first use (caller holds tq2Mutex):
+ *        the resident stack, or for a layer that reads its experts from the
+ *        file (g.fsu) its empty partition of the slot arena. Null when an
+ *        arena stack is declined (nothing was enqueued).
+ */
+Tq2Stack *tq2Stack(ClContext *cc, const MoeExpertGroup &g) {
   auto it = tq2Stacks().find(g.layer_key);
   if (it != tq2Stacks().end()) {
     const Tq2cxLayout kl = tq2cxStoredLayout();
@@ -824,10 +2015,28 @@ const Tq2Stack &tq2Stack(ClContext *cc, const MoeExpertGroup &g) {
       << "tq2cx_moe_experts_cl: pack layout "
       << tq2cxLayoutName(it->second->layout) << ", kernel layout "
       << tq2cxLayoutName(kl);
-    return *it->second;
+    // an arena stack filled completely at load serves resident calls too
+    NNTR_THROW_IF(
+      (g.fsu != nullptr && !it->second->arena) ||
+        (g.fsu == nullptr && it->second->arena && !it->second->tab_complete),
+      std::runtime_error)
+      << "tq2cx_moe_experts_cl: a layer switched between resident and "
+         "streamed experts";
+    return it->second.get();
   }
-  auto st = tq2BuildStack(cc, g);
-  auto &ref = *st;
+  std::unique_ptr<Tq2Stack> st;
+  if (g.fsu != nullptr) {
+    Tq2ExpertArena::Partition *part = nullptr;
+    st = tq2ArenaStack(cc, g, &part);
+    if (!st)
+      return nullptr;
+    tq2ArenaOffsets(
+      *st, std::vector<unsigned int>(g.gate.size(),
+                                     std::numeric_limits<unsigned>::max()));
+  } else {
+    st = tq2BuildStack(cc, g);
+  }
+  Tq2Stack *ref = st.get();
   tq2Stacks().emplace(g.layer_key, std::move(st));
   return ref;
 }
@@ -889,6 +2098,38 @@ void tq2Quantize(ClContext *cc, Tq2Workspace &ws, cl_mem x, void *x_svm,
                 ws.xs.get(cc, (size_t)M * sizeof(float)),
                 ws.xz.get(cc, (size_t)M * sizeof(int)),
                 ws.xrs.get(cc, (size_t)M * sizeof(int)));
+}
+
+/** quantize rows [@a r0, @a r0 + @a n) of the fp32 rows @a x (K wide) into
+ *  the same rows of the workspace int8 rows; each row exactly as
+ *  tq2Quantize quantizes it (the other rows are left as they are) */
+void tq2QuantizeRowRange(ClContext *cc, Tq2Workspace &ws, cl_mem x,
+                         unsigned int r0, unsigned int n, unsigned int K) {
+  if (n == 0)
+    return;
+  auto kp =
+    cc->registerClKernel(int8_int4_gemm_v8c_kernel, "v8c_act_quant_f32_par",
+                         tq2QuantOptions(cc) + " -DV8C_AQ_ROW0");
+  NNTR_THROW_IF(!kp, std::runtime_error)
+    << "tq2cx_moe_experts_cl: activation quantizer (row range) did not build";
+  const unsigned int M = r0 + n;
+  cl_mem xq = ws.xqGet(cc, (size_t)M * K);
+  cl_mem xs = ws.xs.get(cc, (size_t)M * sizeof(float));
+  cl_mem xz = ws.xz.get(cc, (size_t)M * sizeof(int));
+  cl_mem xr = ws.xrs.get(cc, (size_t)M * sizeof(int));
+  const int Mi = (int)M, Ki = (int)K, r0i = (int)r0;
+  bool ok = kp->SetKernelArguments(0, &x, sizeof(cl_mem)) &&
+            kp->SetKernelArguments(1, &xq, sizeof(cl_mem)) &&
+            kp->SetKernelArguments(2, &xs, sizeof(cl_mem)) &&
+            kp->SetKernelArguments(3, &xz, sizeof(cl_mem)) &&
+            kp->SetKernelArguments(4, &xr, sizeof(cl_mem)) &&
+            kp->SetKernelArguments(5, &Mi, sizeof(int)) &&
+            kp->SetKernelArguments(6, &Ki, sizeof(int)) &&
+            kp->SetKernelArguments(7, &r0i, sizeof(int));
+  NNTR_THROW_IF(!ok, std::runtime_error)
+    << "tq2cx_moe_experts_cl: quantizer (row range) arguments";
+  tq2Dispatch(cc, kp, 1, {(size_t)n * kV8cQuantLws, 1, 1},
+              {kV8cQuantLws, 1, 1});
 }
 
 /** the decode GEMVs read activation rows in TQ2 order (tq2GemvGeom): the
@@ -1057,19 +2298,21 @@ void tq2GroupedGemm(ClContext *cc, Tq2Workspace &ws, const Tq2Stack &st,
 }
 
 void tq2Glu(ClContext *cc, cl_mem gate, size_t gate_off, cl_mem up,
-            size_t up_off, cl_mem out, size_t total, bool exact) {
+            size_t up_off, cl_mem out, size_t total, bool exact,
+            size_t out_off = 0) {
   auto kp = cc->registerClKernel(kTq2MoeAux, "tq2moe_glu_f32");
   NNTR_THROW_IF(!kp, std::runtime_error)
     << "tq2cx_moe_experts_cl: aux kernels did not build";
   const int ti = (int)total, ex = exact ? 1 : 0;
-  const int go = (int)gate_off, uo = (int)up_off;
+  const int go = (int)gate_off, uo = (int)up_off, oo = (int)out_off;
   bool ok = kp->SetKernelArguments(0, &gate, sizeof(cl_mem)) &&
             kp->SetKernelArguments(1, &up, sizeof(cl_mem)) &&
             kp->SetKernelArguments(2, &out, sizeof(cl_mem)) &&
             kp->SetKernelArguments(3, &ti, sizeof(int)) &&
             kp->SetKernelArguments(4, &ex, sizeof(int)) &&
             kp->SetKernelArguments(5, &go, sizeof(int)) &&
-            kp->SetKernelArguments(6, &uo, sizeof(int));
+            kp->SetKernelArguments(6, &uo, sizeof(int)) &&
+            kp->SetKernelArguments(7, &oo, sizeof(int));
   if (ok)
     tq2Dispatch(cc, kp, 1, {(total + 63) / 64 * 64, 1, 1}, {64, 1, 1});
   NNTR_THROW_IF(!ok, std::runtime_error) << "tq2cx_moe_experts_cl: glu args";
@@ -1174,9 +2417,17 @@ ClContext *tq2GroupContext(const MoeExpertGroup &g) {
 
 } // namespace
 
+namespace {
+/** decide the async decode mode of @a cc now (see tq2AsyncMode) */
+void tq2AsyncModeAtLoad(ClContext *cc);
+} // namespace
+
 bool tq2cx_moe_experts_prebuild_cl(const MoeExpertGroup &g) {
   if (g.layer_key == nullptr ||
       (g.records != nullptr && g.records->size() != 3 * g.gate.size()))
+    return false;
+  if (g.fsu != nullptr &&
+      (g.fsu->slot_of == nullptr || g.fsu->slot_of->size() != g.gate.size()))
     return false;
   ClContext *cc = tq2GroupContext(g);
   if (cc == nullptr) {
@@ -1186,6 +2437,10 @@ bool tq2cx_moe_experts_prebuild_cl(const MoeExpertGroup &g) {
             c ? c->caps().toString().c_str() : "no gpu context");
     return false;
   }
+  // a layer whose experts do not all stay resident decodes through the
+  // async step: run its device probe at load, not in the first decode step
+  if (g.fsu != nullptr && g.fsu->slots < g.gate.size())
+    tq2AsyncModeAtLoad(cc);
   {
     std::lock_guard<std::mutex> lk(tq2Mutex());
     if (tq2Stacks().count(g.layer_key))
@@ -1206,7 +2461,26 @@ bool tq2cx_moe_experts_prebuild_cl(const MoeExpertGroup &g) {
   }
   std::unique_ptr<Tq2Stack> st;
   try {
-    st = tq2BuildStack(cc, g);
+    if (g.fsu != nullptr) {
+      // the layer's partition of the slot arena, every listed expert read
+      // from the file now through the reader pool and the I/O queue
+      Tq2ExpertArena::Partition *part = nullptr;
+      st = tq2ArenaStack(cc, g, &part);
+      if (st) {
+        std::vector<Tq2Bounce> bounces(8);
+        static const std::vector<std::pair<unsigned int, unsigned int>> none;
+        Tq2ExpertArena::get().fill(cc, *part, *st, *g.fsu,
+                                   g.fsu->fill ? *g.fsu->fill : none, bounces,
+                                   /*wait_all=*/true);
+        tq2ArenaOffsets(*st, *g.fsu->slot_of);
+        if (g.fsu->complete) {
+          tq2ArenaTable(cc, *st);
+          st->tab_complete = true;
+        }
+      }
+    } else {
+      st = tq2BuildStack(cc, g);
+    }
   } catch (...) {
     {
       std::lock_guard<std::mutex> slk(slot_mu);
@@ -1220,6 +2494,8 @@ bool tq2cx_moe_experts_prebuild_cl(const MoeExpertGroup &g) {
     --in_flight;
   }
   slot_cv.notify_one();
+  if (!st)
+    return false;
   std::lock_guard<std::mutex> lk(tq2Mutex());
   tq2Stacks().emplace(g.layer_key, std::move(st));
   return true;
@@ -1405,6 +2681,16 @@ void tq2RouteConstants(ClContext *cc, Tq2Workspace &ws, unsigned int K) {
   ws.c_iota = tq2Upload(cc, iota.data(), iota.size() * sizeof(int));
   ws.c_count = tq2Upload(cc, &count, sizeof(int));
   ws.const_k = K;
+}
+
+/** an unsigned environment knob, @a def when unset or not a number */
+unsigned int tq2EnvUint(const char *name, unsigned int def) {
+  const char *e = std::getenv(name);
+  if (e == nullptr || *e == '\0')
+    return def;
+  char *end = nullptr;
+  const unsigned long v = std::strtoul(e, &end, 10);
+  return (end != e && *end == '\0' && v <= 1000000ul) ? (unsigned int)v : def;
 }
 
 /**
@@ -1832,6 +3118,1619 @@ bool tq2GroupedGemmTiles(ClContext *cc, Tq2Workspace &ws, const Tq2Stack &st,
 
 } // namespace
 
+namespace {
+
+/** how a device-routed decode step of a streamed layer waits for its misses
+ *  (NNTR_G4MOE_FSU_ASYNC, tq2AsyncMode) */
+enum class Tq2AsyncMode {
+  off,   /**< the host waits for the selection and reads the misses itself */
+  event, /**< reader threads complete a user event the GEMVs wait on */
+  join,  /**< reader threads make them resident; the host waits for that
+              before it enqueues the GEMVs (no user event on the queue) */
+};
+
+/**
+ * @brief The miss handling of one device-routed decode step of a streamed
+ *        layer, off the host thread.
+ *
+ * @details The host enqueues the router and a marker after its select kernel
+ * and moves on; the marker's callback posts this job on the reader pool. The
+ * job reads the selected ids back (on the I/O queue), makes them resident
+ * through the layer's acquire hook (the reads and the slot writes run on the
+ * readers, this one included), writes the slots' offsets the GEMVs read, and
+ * refreshes the recency. Then
+ *  - event: completes the user event the step's GEMVs wait on and flushes the
+ *    compute queue: a command behind a user event is not submitted after the
+ *    event completes until something flushes its queue (measured on Adreno
+ *    0842.19.8: without the flush every token stalled);
+ *  - join: only signals; the host waits (Tq2AsyncJob::wait) before it
+ *    enqueues the GEMVs.
+ * A failure completes the event with an error status; the layer's next
+ * join rethrows it.
+ */
+struct Tq2AsyncJob {
+  ClContext *cc = nullptr;
+  cl_command_queue io = nullptr; /**< the arena's I/O queue */
+  cl_command_queue cq = nullptr; /**< the compute queue (flushed in event) */
+  cl_mem ext = nullptr, off_gu = nullptr, off_d = nullptr;
+  unsigned int K = 0, X = 0, E = 0;
+  Tq2ExpertArena::Partition *part = nullptr;
+  Tq2Stack *st = nullptr;
+  // the descriptor's parts the job uses (the call's descriptor is gone)
+  int fd = -1;
+  const std::vector<uint64_t> *offset = nullptr;
+  size_t record_bytes = 0;
+  const std::vector<unsigned int> *slot_of = nullptr;
+  std::function<void(const std::vector<unsigned int> &,
+                     std::vector<std::pair<unsigned int, unsigned int>> &)>
+    acquire;
+  std::function<void(const std::vector<std::pair<unsigned int, unsigned int>> &,
+                     bool)>
+    filled;
+  std::function<void(const std::vector<unsigned int> &)> refresh;
+  /** the slots' last readers when the step was enqueued (compute-queue
+   *  markers ahead of the select: complete when the job runs, checked) */
+  std::vector<Tq2EventRef> last_use;
+  /** event mode: the job's reference to the user event (released in run) */
+  cl_event user = nullptr;
+  /** hit / miss split: off_gu / off_d are the misses' offset tables; the
+   *  hits' GEMVs already run from the select's (from the device slot table
+   *  st->off_tab / st->res_flag, which the job then updates) */
+  bool split = false;
+  /** the misses this step read (valid once done) */
+  size_t misses = 0;
+  /** the layer (MoeExpertFsu::layer_index), for the trace */
+  unsigned int layer = 0;
+  /** the next layer's prediction this step enqueued (NNTR_G4MOE_FSU_PREGATE)
+   *  or null; attached by the host after the job may already run, so under
+   *  mu: the job hands it on (handPrediction) once it is done, and a host
+   *  that attaches it later does that for the job (attachPrediction) */
+  std::shared_ptr<struct Tq2Prediction> pred;
+  bool pred_closed = false;
+  std::chrono::steady_clock::time_point posted;
+  std::mutex mu;
+  std::condition_variable cv;
+  bool done = false;
+  std::string error;
+
+  void run();
+  /**
+   * @brief The select marker ended with @a status (an error, not
+   *        CL_COMPLETE): the routing was not written, so nothing is read or
+   *        made resident. Logs, completes the user event with an error (the
+   *        GEMVs behind it fail) and leaves @a status in error: the layer's
+   *        next join throws it.
+   */
+  void fail(cl_int status);
+  /** complete the user event with @a status, flush, mark done */
+  void finish(cl_int status);
+  /** after finish: the job's arrival at its prediction (if attached) */
+  void handPrediction();
+  /** host: attach @a p, or arrive for the job when it is done already */
+  void attachPrediction(const std::shared_ptr<struct Tq2Prediction> &p);
+  /** run() / fail() is done (does not wait) */
+  bool ready() {
+    std::lock_guard<std::mutex> lk(mu);
+    return done;
+  }
+  /** wait until run() / fail() is done */
+  void wait() {
+    std::unique_lock<std::mutex> lk(mu);
+    cv.wait(lk, [this] { return done; });
+  }
+  /** wait, then rethrow the job's failure */
+  void join() {
+    wait();
+    NNTR_THROW_IF(!error.empty(), std::runtime_error)
+      << "tq2cx_moe_experts_cl: streamed decode step failed: " << error;
+  }
+};
+
+unsigned int tq2PregateM();
+
+/** async decode totals, printed at exit when used */
+struct Tq2AsyncStats {
+  std::atomic<unsigned long long> jobs{0}, misses{0}, job_us{0}, lag_us{0},
+    tails{0}, deferred{0}, host_wait_us{0}, failed{0}, split{0}, no_miss{0},
+    table_uploads{0}, event_skipped{0};
+  /** the job's phases, summed: routing readback, the misses' reads and slot
+   *  writes (from the first read submitted to the last write returned), the
+   *  offset / slot table writes */
+  std::atomic<unsigned long long> rb_us{0}, io_us{0}, tab_us{0};
+  /** next-layer prefetch: predictions issued, the decode tokens (steps of
+   *  layer 0), misses served from the read-ahead records (ready or after a
+   *  wait for their running read), misses whose queued read-ahead the step
+   *  took over, and the time the jobs spent waiting for running reads */
+  std::atomic<unsigned long long> pg_tasks{0}, tokens{0}, pg_served{0},
+    pg_waited{0}, pg_taken{0}, pg_wait_us{0};
+  /** the host -> slot copies of read-ahead records on the step's path
+   *  (every served record), and the time the job spent in them; the misses'
+   *  own slot writes (from the readers, summed) */
+  std::atomic<unsigned long long> pg_copies{0}, pg_copy_us{0}, miss_writes{0},
+    miss_write_us{0};
+  ~Tq2AsyncStats() {
+    if (failed.load() != 0)
+      std::fprintf(stderr,
+                   "[TQ2CX-FSU-ASYNC] ERROR: %llu decode steps failed "
+                   "(routing step status not CL_COMPLETE)\n",
+                   failed.load());
+    const unsigned long long n = jobs.load();
+    if (n == 0)
+      return;
+    const unsigned long long t = std::max(1ULL, tails.load());
+    std::fprintf(
+      stderr,
+      "[TQ2CX-FSU-ASYNC] jobs=%llu misses=%llu job_ms_avg=%.3f "
+      "callback_lag_ms_avg=%.3f tails=%llu deferred=%llu "
+      "tail_host_wait_ms_avg=%.3f split=%llu no_miss_tails=%llu "
+      "table_uploads=%llu event_skipped=%llu readback_ms_avg=%.3f "
+      "io_ms_avg=%.3f tables_ms_avg=%.3f "
+      "readers=%u pregate=%u pg_tasks=%llu pg_staged=%llu "
+      "pg_served=%llu pg_wasted=%llu pg_failed=%llu miss_writes=%llu "
+      "miss_write_ms_per_rec=%.3f\n",
+      n, misses.load(), job_us.load() / 1000.0 / (double)n,
+      lag_us.load() / 1000.0 / (double)n, tails.load(), deferred.load(),
+      host_wait_us.load() / 1000.0 / (double)t, split.load(), no_miss.load(),
+      table_uploads.load(), event_skipped.load(),
+      rb_us.load() / 1000.0 / (double)n, io_us.load() / 1000.0 / (double)n,
+      tab_us.load() / 1000.0 / (double)n, ExpertReaderPool::global().readers(),
+      tq2PregateM(), pg_tasks.load(), pg_staged(), pg_served.load(),
+      pg_wasted(), pg_failed(), miss_writes.load(),
+      miss_writes.load() ? miss_write_us.load() / 1000.0 / miss_writes.load()
+                         : 0.0);
+    if (tq2PregateM() > 0)
+      printPregate(n);
+  }
+  unsigned long long pg_staged() const;
+  unsigned long long pg_wasted() const;
+  unsigned long long pg_failed() const;
+  /** [TQ2CX-FSU-PREGATE]: per decode token */
+  void printPregate(unsigned long long n) const;
+};
+Tq2AsyncStats &tq2AsyncStats() {
+  static Tq2AsyncStats s;
+  return s;
+}
+
+unsigned long long tq2UsSince(std::chrono::steady_clock::time_point t0) {
+  return (unsigned long long)
+    std::chrono::duration_cast<std::chrono::microseconds>(
+           std::chrono::steady_clock::now() - t0)
+      .count();
+}
+
+/**
+ * @brief NNTR_G4MOE_FSU_PREGATE=m (0..K + RT_EXT; default 8, 0 = off):
+ *        next-layer prefetch. A streamed layer's device-routed decode step
+ *        also runs the next streamed layer's router on its own router row
+ *        (pre-gating, a lookahead probe's best variant: 0.66 of the
+ *        actual top-8 at m = 8, 0.79 at 12) and the top-m predicted experts
+ *        that the next layer does not hold are read ahead at low priority.
+ *        The next layer's step takes a miss found there instead of reading
+ *        it. Routing, residency decisions and outputs are unchanged. 8 by
+ *        default on every platform: measured faster than 0 with the same
+ *        tokens on Xe3 (P4 1K C=16 steady 52.7 -> 46.2 ms/token, P2-256
+ *        59.7 -> 52.3) and on Adreno 840 (two phones, P4 1K C=16 115.3 ->
+ *        93.5 ms/token with LRFU, P2-256 103.5 -> 82.7); 12 reads 1.7x the
+ *        bytes for +1 served record per token and was slower on both.
+ *        Read once.
+ */
+// (m = 10 in the same sweep: P4 1K 69.7, P2-256 80.3 ms per token against
+// 67.6 / 74.3 at 8; 1.6x the wasted reads for <= 2 more served per token)
+unsigned int tq2PregateM() {
+  static const unsigned int m = []() {
+    const unsigned int v = tq2EnvUint("NNTR_G4MOE_FSU_PREGATE", 8);
+    return std::min(v, kTq2RouteMaxK + kTq2RouteExt);
+  }();
+  return m;
+}
+
+/**
+ * @brief NNTR_G4MOE_FSU_PREGATE_LAYERS=a-b (default 5-28): the layers
+ *        (MoeExpertFsu::layer_index) whose experts are predicted. A routing
+ *        probe: the next-layer prediction of layers 0-4 and 29 is poor (and
+ *        12 / 16 / 17 / 19 weaker); a layer outside gets no prediction, so
+ *        no router launches and no reads for it. Kept by a sweep
+ *        (Xe3, C=16 cold, 2 runs, same tokens; steady ms per token P4 1K /
+ *        P2-256): 5-28 67.6 / 74.3, 3-29 69.4 / 76.5, 1-29 70.2 / 74.1 --
+ *        the wider ranges serve 1.5-4.8 more records per token (served
+ *        fraction 0.39 -> 0.42-0.46) for 10 to 18 more wasted reads, and are
+ *        not faster; the trace simulation's ceiling at 5-28 (every read in
+ *        time) is 25.1 served of 58.5 misses (0.43), which the phones
+ *        already reach (24.7). Read once.
+ */
+bool tq2PregateTarget(unsigned int layer) {
+  static const std::pair<unsigned int, unsigned int> r = []() {
+    std::pair<unsigned int, unsigned int> d{5, 28};
+    const char *e = std::getenv("NNTR_G4MOE_FSU_PREGATE_LAYERS");
+    if (e == nullptr || e[0] == '\0')
+      return d;
+    unsigned int a = 0, b = 0;
+    if (std::sscanf(e, "%u-%u", &a, &b) == 2 && a <= b)
+      return std::make_pair(a, b);
+    std::fprintf(stderr,
+                 "[TQ2CX-FSU-PREGATE] NNTR_G4MOE_FSU_PREGATE_LAYERS=%s: not "
+                 "a-b, 5-28 kept\n",
+                 e);
+    return d;
+  }();
+  return layer >= r.first && layer <= r.second;
+}
+
+/**
+ * @brief NNTR_G4MOE_FSU_PREGATE_INFLIGHT=n (1..8, default 2): read-ahead
+ *        reads of one layer submitted at once (the next goes when one ends).
+ *        Kept by a sweep (Xe3, C=16 cold, 2 runs, same tokens;
+ *        steady ms per token P4 1K / P2-256): 2: 67.6 / 74.3, 3: 72.0 /
+ *        78.5, 4: 69.2 / 82.7 -- a wider window serves more (P4 22.8 -> 24.7
+ *        per token, P2 34.1 -> 38.6, fewer taken over) but its reads crowd
+ *        the step's own (job 0.63 -> 0.68-0.75 ms). Read once.
+ */
+unsigned int tq2PregateInflight() {
+  static const unsigned int n = std::max(
+    1u, std::min(8u, tq2EnvUint("NNTR_G4MOE_FSU_PREGATE_INFLIGHT", 2)));
+  return n;
+}
+
+/** the process's read-ahead records; never destroyed (a reader thread may
+ *  end a read into it during exit) */
+ExpertStageCache &tq2StageCache() {
+  static ExpertStageCache *c =
+    new ExpertStageCache(ExpertReaderPool::global(), tq2PregateInflight());
+  return *c;
+}
+
+unsigned long long Tq2AsyncStats::pg_staged() const {
+  return tq2PregateM() > 0 ? tq2StageCache().stats().staged.load() : 0;
+}
+unsigned long long Tq2AsyncStats::pg_wasted() const {
+  return tq2PregateM() > 0 ? tq2StageCache().stats().wasted.load() : 0;
+}
+unsigned long long Tq2AsyncStats::pg_failed() const {
+  return tq2PregateM() > 0 ? tq2StageCache().stats().failed.load() : 0;
+}
+void Tq2AsyncStats::printPregate(unsigned long long n) const {
+  const auto &c = tq2StageCache().stats();
+  const double tok = std::max(1.0, (double)tokens.load());
+  const unsigned long long miss = misses.load(), srv = pg_served.load();
+  std::fprintf(
+    stderr,
+    "[TQ2CX-FSU-PREGATE] m=%u inflight=%u tokens=%llu predictions=%llu "
+    "predicted_per_tok=%.2f staged_per_tok=%.2f reads_per_tok=%.2f "
+    "served_per_tok=%.2f served_after_wait=%llu taken_over_per_tok=%.2f "
+    "wasted_per_tok=%.2f cancelled_per_tok=%.2f late=%llu failed=%llu "
+    "misses_per_tok=%.2f crit_misses_per_tok=%.2f served_frac=%.3f "
+    "wait_ms_avg=%.3f job_ms_avg=%.3f\n",
+    tq2PregateM(), tq2PregateInflight(), tokens.load(), c.predictions.load(),
+    c.predicted.load() / tok, c.staged.load() / tok, c.reads.load() / tok,
+    srv / tok, pg_waited.load(), pg_taken.load() / tok, c.wasted.load() / tok,
+    c.cancelled.load() / tok, c.late.load(), c.failed.load(), miss / tok,
+    (double)(miss - std::min(miss, srv)) / tok,
+    miss ? (double)srv / (double)miss : 0.0,
+    pg_waited.load() ? pg_wait_us.load() / 1000.0 / pg_waited.load() : 0.0,
+    job_us.load() / 1000.0 / (double)std::max(1ULL, n));
+  const unsigned long long cp = pg_copies.load();
+  std::fprintf(stderr,
+               "[TQ2CX-FSU-PREGATE-COPY] copies_per_tok=%.2f "
+               "copy_ms_per_tok=%.3f copy_ms_per_rec=%.4f\n",
+               cp / tok, pg_copy_us.load() / 1000.0 / tok,
+               cp ? pg_copy_us.load() / 1000.0 / cp : 0.0);
+}
+
+/**
+ * @brief NNTR_G4MOE_FSU_PREFILL_LOOKAHEAD=0|1 (default 1): a short prefill
+ *        call (fewer rows than MoeExpertFsu::spec_min_tokens, so its layers
+ *        are not streamed) reads the next layer's predicted experts
+ *        (MoeExpertFsu::next_ahead) into that layer's own slots once its own
+ *        experts are enqueued, and runs its chunks resident experts first.
+ *        Read once.
+ */
+bool tq2PrefillAheadOn() {
+  static const bool v = []() {
+    const char *e = std::getenv("NNTR_G4MOE_FSU_PREFILL_LOOKAHEAD");
+    return e == nullptr || e[0] != '0';
+  }();
+  return v;
+}
+
+/**
+ * @brief The short prefill's next-layer read-ahead in flight (one at a
+ *        time: the next layer's call joins it first). Under tq2Mutex.
+ */
+struct Tq2PrefillAhead {
+  bool pending = false;
+  unsigned int layer = UINT32_MAX;     /**< the next layer's index */
+  const MoeExpertFsu *nx = nullptr;    /**< its descriptor (the layer's own) */
+  std::vector<unsigned int> predicted; /**< the whole prediction */
+  /** (expert, reserved slot) per read */
+  std::vector<std::pair<unsigned int, unsigned int>> issued;
+  std::vector<ExpertRead> reads;
+  ExpertReaderPool::Ticket ticket = 0;
+  std::chrono::steady_clock::time_point t_issue;
+  /** joined: the next layer's call compares with its routing (stats) */
+  bool stats_due = false;
+  std::vector<unsigned int> admitted; /**< written and admitted */
+};
+
+Tq2PrefillAhead &tq2PrefillAhead() {
+  static Tq2PrefillAhead a;
+  return a;
+}
+
+/** [TQ2CX-FSU-PREFILL-AHEAD] totals, printed at exit when used */
+struct Tq2PrefillAheadStats {
+  std::atomic<unsigned long long> calls{0}, predicted{0}, active{0}, covered{0},
+    issued{0}, used{0}, failed{0}, join_wait_us{0}, ahead_us{0},
+    reserve_stop{0}, resident{0};
+  ~Tq2PrefillAheadStats() {
+    const unsigned long long n = calls.load();
+    if (n == 0)
+      return;
+    const double a = std::max(1ULL, active.load());
+    std::fprintf(
+      stderr,
+      "[TQ2CX-FSU-PREFILL-AHEAD] layer_calls=%llu active=%.1f/call "
+      "predicted=%.1f/call covered=%llu (%.1f%% of active) "
+      "resident_at_issue=%llu issued=%llu used=%llu (%.1f%% of issued, "
+      "%.1f%% of active) failed=%llu reserve_stops=%llu "
+      "issue_to_join_ms_avg=%.2f join_wait_ms_avg=%.2f\n",
+      n, active.load() / (double)n, predicted.load() / (double)n,
+      covered.load(), 100.0 * covered.load() / a, resident.load(),
+      issued.load(), used.load(),
+      issued.load() ? 100.0 * used.load() / issued.load() : 0.0,
+      100.0 * used.load() / a, failed.load(), reserve_stop.load(),
+      ahead_us.load() / 1000.0 / (double)n,
+      join_wait_us.load() / 1000.0 / (double)n);
+  }
+};
+
+Tq2PrefillAheadStats &tq2PrefillAheadStats() {
+  static Tq2PrefillAheadStats s;
+  return s;
+}
+
+/**
+ * @brief Wait for the read-ahead in flight, if any, and end its
+ *        reservations: a record written is admitted into its slot (resident,
+ *        no access counted), a failed one frees its slot. Before anything
+ *        else touches the slots or the policies of the streamed layers.
+ *        Caller holds tq2Mutex.
+ */
+void tq2PrefillAheadJoin() {
+  Tq2PrefillAhead &a = tq2PrefillAhead();
+  if (!a.pending)
+    return;
+  a.pending = false;
+  const auto t0 = std::chrono::steady_clock::now();
+  try {
+    ExpertReaderPool::global().wait(a.ticket, /*help=*/true);
+  } catch (...) {
+    // per read below: a failed one is not admitted
+  }
+  auto &s = tq2PrefillAheadStats();
+  s.join_wait_us += tq2UsSince(t0);
+  s.ahead_us +=
+    (unsigned long long)std::chrono::duration_cast<std::chrono::microseconds>(
+      t0 - a.t_issue)
+      .count();
+  Tq2ExpertArena::Partition *np = Tq2ExpertArena::get().byIndex(a.layer);
+  a.admitted.clear();
+  for (size_t i = 0; i < a.issued.size(); ++i) {
+    const bool ok = a.reads[i].error == 0;
+    const unsigned int e = a.issued[i].first, slot = a.issued[i].second;
+    if (ok && np != nullptr && slot < np->slots) {
+      np->ready[slot].reset();
+      std::lock_guard<std::mutex> lk(np->lu_mu);
+      np->last_use[slot].reset();
+    }
+    if (!ok)
+      s.failed++;
+    a.nx->release(e, ok);
+    if (ok)
+      a.admitted.push_back(e);
+  }
+  a.reads.clear();
+  a.issued.clear();
+  a.stats_due = true;
+}
+
+/**
+ * @brief The next layer's call: compare the prediction with its routing
+ *        (stats only). Caller holds tq2Mutex.
+ */
+void tq2PrefillAheadTally(const MoeExpertFsu &fsu,
+                          const std::vector<unsigned int> &active) {
+  Tq2PrefillAhead &a = tq2PrefillAhead();
+  if (!a.stats_due)
+    return;
+  a.stats_due = false;
+  if (a.layer != fsu.layer_index)
+    return;
+  auto in = [&active](unsigned int e) {
+    return std::binary_search(active.begin(), active.end(), e);
+  };
+  auto &s = tq2PrefillAheadStats();
+  s.calls++;
+  s.active += active.size();
+  s.predicted += a.predicted.size();
+  for (unsigned int e : a.predicted)
+    s.covered += in(e) ? 1 : 0;
+  s.issued += a.admitted.size();
+  for (unsigned int e : a.admitted)
+    s.used += in(e) ? 1 : 0;
+}
+
+/**
+ * @brief Read the predicted experts of the next layer (fsu.next_ahead) that
+ *        it does not hold into its own slots, on the reader pool, and return
+ *        at once (the next layer's call joins them). A slot comes from the
+ *        next layer's policy (reserve: a free slot or a victim outside the
+ *        prediction, never more than its slots minus a call's top-k); the
+ *        reader waits for the slot's last reader (a marker of the layer's
+ *        previous call, a token or a turn back: complete), then writes the
+ *        record. No staging memory beyond the readers' own buffers. Caller
+ *        holds tq2Mutex, after this call's own experts are enqueued.
+ */
+void tq2PrefillAheadIssue(ClContext *cc, const MoeExpertFsu &fsu,
+                          const Tq2Stack &shape) {
+  const MoeExpertFsu *nx = fsu.next;
+  if (!tq2PrefillAheadOn() || fsu.next_ahead == nullptr ||
+      fsu.next_ahead->empty() || nx == nullptr || !nx->reserve ||
+      !nx->release || nx->fd < 0 || nx->offset == nullptr ||
+      nx->layer_index == UINT32_MAX || nx->record_bytes != fsu.record_bytes ||
+      nx->slots >= nx->offset->size())
+    return;
+  Tq2ExpertArena &arena = Tq2ExpertArena::get();
+  Tq2ExpertArena::Partition *np = arena.byIndex(nx->layer_index);
+  if (np == nullptr || np->slots != nx->slots ||
+      np->slot_bytes != shape.slot_bytes)
+    return;
+  tq2PrefillAheadJoin(); // none in flight normally (joined at the call)
+  // a decode step of the next layer from the previous token may still run
+  // its hooks on a reader thread: done before its policy is touched
+  for (auto &kv : tq2Stacks())
+    if (kv.second->async) {
+      auto job = std::move(kv.second->async);
+      job->join();
+    }
+  Tq2PrefillAhead &a = tq2PrefillAhead();
+  a = Tq2PrefillAhead();
+  a.layer = nx->layer_index;
+  a.nx = nx;
+  a.predicted = *fsu.next_ahead;
+  auto &s = tq2PrefillAheadStats();
+  for (unsigned int e : a.predicted) {
+    if (e >= nx->offset->size())
+      continue;
+    if (nx->resident && nx->resident(e)) {
+      s.resident++;
+      continue;
+    }
+    const unsigned int slot = nx->reserve(e, a.predicted);
+    if (slot == std::numeric_limits<unsigned int>::max() || slot >= np->slots) {
+      if (slot != std::numeric_limits<unsigned int>::max())
+        nx->release(e, false);
+      s.reserve_stop++;
+      break; // no room left (at most slots - top-k reserved)
+    }
+    a.issued.emplace_back(e, slot);
+  }
+  a.t_issue = std::chrono::steady_clock::now();
+  a.stats_due = true; // a call that issues nothing still tallies
+  a.admitted.clear();
+  if (a.issued.empty())
+    return;
+  // the slots' last readers are compute-queue markers: hand the queue over
+  opencl::clFlush(cc->command_queue_inst_.GetCommandQueue());
+  cl_command_queue lowq = arena.ioQueueLow(cc);
+  const size_t rec = nx->record_bytes;
+  const size_t rec_gu = tq2RecordBytes(shape.I, shape.H);
+  const size_t gu = shape.gu_bytes;
+  const bool packed = rec == shape.slot_bytes;
+  a.reads.resize(a.issued.size());
+  for (size_t i = 0; i < a.issued.size(); ++i) {
+    const unsigned int e = a.issued[i].first, slot = a.issued[i].second;
+    ExpertRead &r = a.reads[i];
+    r.fd = nx->fd;
+    r.offset = (*nx->offset)[e];
+    r.bytes = rec;
+    const size_t at = (size_t)slot * np->slot_bytes;
+    r.consume = [lowq, np, slot, at, packed, rec_gu,
+                 gu](const uint8_t *src, const ExpertRead &q) -> int {
+      const Tq2EventRef lu = np->lastUse(slot);
+      if (lu && lu->ev != nullptr) {
+        cl_event ev = lu->ev;
+        if (opencl::clWaitForEvents(1, &ev) != CL_SUCCESS)
+          return EIO;
+      }
+      if (packed)
+        return Tq2ExpertArena::slotWrite(lowq, *np, at, q.bytes, src) ==
+                   CL_SUCCESS
+                 ? 0
+                 : EIO;
+      const size_t len[3] = {rec_gu, rec_gu, q.bytes - 2 * rec_gu};
+      const size_t dst[3] = {0, gu, 2 * gu};
+      const size_t from[3] = {0, rec_gu, 2 * rec_gu};
+      for (int k = 0; k < 3; ++k)
+        if (Tq2ExpertArena::slotWrite(lowq, *np, at + dst[k], len[k],
+                                      src + from[k]) != CL_SUCCESS)
+          return EIO;
+      return 0;
+    };
+  }
+  a.ticket = ExpertReaderPool::global().submit(&a.reads);
+  a.pending = true;
+}
+
+/**
+ * @brief One next-layer prediction (pre-gating) of a decode step. It needs
+ *        two things: its marker (the next layer's router kernels wrote ext)
+ *        and the predicting step's own job (its misses go first). Whichever
+ *        comes last issues it: the marker's callback posts issue() on the
+ *        reader pool, the job runs it on its way out. issue() never waits on
+ *        another task: one small blocking readback of the ids on the I/O
+ *        queue (no wait list; the marker is complete), then low-priority
+ *        detached reads (ExpertStageCache::stage). Replaces an earlier
+ *        prefetch task, which was posted on the pool and blocked a reader
+ *        waiting for the step's job: with 2 readers (Android) the step's
+ *        misses then ran at queue depth 1, and with one reader it could
+ *        deadlock (a helping wait skips posted tasks).
+ */
+struct Tq2Prediction : std::enable_shared_from_this<Tq2Prediction> {
+  cl_command_queue io = nullptr;
+  cl_mem ext = nullptr; /**< [X] predicted ids, rank order */
+  unsigned int X = 0, m = 0, E = 0;
+  unsigned int layer = 0; /**< the next (predicted) layer's index */
+  uint64_t gen = 0;       /**< its stage-cache generation at enqueue */
+  ExpertStageCache::Source src;
+  std::vector<unsigned int> slot_of; /**< the next layer's, at enqueue */
+  std::atomic<int> arrivals{2};
+  std::atomic<bool> marker_ok{false};
+  std::mutex mu;
+  std::condition_variable cv;
+  bool issued = false;
+
+  void arrive(bool from_callback) {
+    if (arrivals.fetch_sub(1) != 1)
+      return;
+    if (from_callback) {
+      // a driver callback thread: no blocking call here
+      auto self = shared_from_this();
+      ExpertReaderPool::global().post([self]() { self->issue(); });
+    } else {
+      issue();
+    }
+  }
+  void issue() {
+    if (marker_ok.load()) {
+      std::vector<uint32_t> ranked(X);
+      const cl_int err =
+        opencl::clEnqueueReadBuffer(io, ext, CL_TRUE, 0, X * sizeof(uint32_t),
+                                    ranked.data(), 0, nullptr, nullptr);
+      if (err == CL_SUCCESS) {
+        constexpr unsigned int kNo = std::numeric_limits<unsigned int>::max();
+        std::vector<unsigned int> ids;
+        for (unsigned int i = 0; i < std::min(m, X); ++i) {
+          const unsigned int e = ranked[i];
+          if (e < E && e < slot_of.size() && slot_of[e] == kNo)
+            ids.push_back(e);
+        }
+        try {
+          tq2StageCache().stage(layer, gen, src, ids);
+        } catch (...) {
+        }
+      }
+      tq2AsyncStats().pg_tasks++;
+    }
+    {
+      std::lock_guard<std::mutex> lk(mu);
+      issued = true;
+    }
+    cv.notify_all();
+  }
+  /** host: wait until issue() ran (its readback of ext is done) */
+  void waitIssued() {
+    std::unique_lock<std::mutex> lk(mu);
+    cv.wait(lk, [this] { return issued; });
+  }
+};
+
+/** the prediction marker's callback: one of the prediction's two arrivals */
+void CL_CALLBACK tq2PregateReady(cl_event ev, cl_int status, void *data) {
+  auto *holder = static_cast<std::shared_ptr<Tq2Prediction> *>(data);
+  std::shared_ptr<Tq2Prediction> p = std::move(*holder);
+  delete holder;
+  p->marker_ok = status == CL_COMPLETE;
+  p->arrive(/*from_callback=*/true);
+  opencl::clReleaseEvent(ev);
+}
+
+void Tq2AsyncJob::handPrediction() {
+  std::shared_ptr<Tq2Prediction> p;
+  {
+    std::lock_guard<std::mutex> lk(mu);
+    p = std::move(pred);
+    pred_closed = true;
+  }
+  if (p)
+    p->arrive(/*from_callback=*/false);
+}
+
+void Tq2AsyncJob::attachPrediction(const std::shared_ptr<Tq2Prediction> &p) {
+  {
+    std::lock_guard<std::mutex> lk(mu);
+    if (!pred_closed) {
+      pred = p;
+      return;
+    }
+  }
+  p->arrive(/*from_callback=*/false); // the job is done: its arrival
+}
+
+void Tq2AsyncJob::run() {
+  const auto t0 = std::chrono::steady_clock::now();
+  tq2AsyncStats().lag_us += tq2UsSince(posted);
+  std::vector<std::pair<unsigned int, unsigned int>> fills;
+  bool acquired = false;
+  cl_int status = CL_COMPLETE;
+  try {
+    std::vector<uint32_t> ranked(X);
+    cl_int err =
+      opencl::clEnqueueReadBuffer(io, ext, CL_TRUE, 0, X * sizeof(uint32_t),
+                                  ranked.data(), 0, nullptr, nullptr);
+    tq2AsyncStats().rb_us += tq2UsSince(t0);
+    NNTR_THROW_IF(err != CL_SUCCESS, std::runtime_error)
+      << "routing readback failed (" << err << ")";
+    std::vector<unsigned int> ids(ranked.begin(), ranked.begin() + K);
+    std::sort(ids.begin(), ids.end()); // the order ids[] / w[] are in
+    for (unsigned int e : ids)
+      NNTR_THROW_IF(e >= E, std::runtime_error) << "routed expert " << e;
+    acquire(ids, fills);
+    acquired = true;
+    misses = fills.size();
+    if (split) {
+      // the device split the experts by the slot map it was given
+      // (st->tab_slots); the policy must agree, or a "hit" GEMV has read a
+      // slot that does not hold its expert
+      constexpr unsigned int kNo = std::numeric_limits<unsigned int>::max();
+      std::vector<unsigned int> dev_miss, pol_miss;
+      for (unsigned int e : ids)
+        if (e >= st->tab_slots.size() || st->tab_slots[e] == kNo)
+          dev_miss.push_back(e);
+      for (const auto &f : fills)
+        pol_miss.push_back(f.first);
+      std::sort(pol_miss.begin(), pol_miss.end());
+      NNTR_THROW_IF(dev_miss != pol_miss, std::runtime_error)
+        << "hit / miss split: the device found " << dev_miss.size()
+        << " misses, the residency policy " << pol_miss.size();
+    }
+    // the misses: read and written into their slots by the readers; this
+    // job runs on one of them and reads alongside (wait with help)
+    if (!fills.empty()) {
+      // A slot's last reader is a marker the compute queue got before this
+      // step's select: the queue is in order, so it completed before the
+      // select did, and the select's completion started this job. The
+      // writes therefore take no wait list. They must not: a blocking write
+      // on the I/O queue that names a compute-queue event, even a complete
+      // one, does not return on Adreno (0842.19) while the compute queue
+      // holds commands behind a user event not yet set -- the GEMVs behind
+      // this job's own event -- so the job never sets it. Checked, not
+      // assumed: a last reader not complete fails the step.
+      for (const auto &f : fills) {
+        const unsigned int sl = f.second;
+        NNTR_THROW_IF(sl >= part->slots || f.first >= offset->size(),
+                      std::runtime_error)
+          << "slot " << sl << " expert " << f.first;
+        const Tq2EventRef &lu = last_use[sl];
+        cl_int est = CL_COMPLETE;
+        if (lu && lu->ev != nullptr && opencl::clGetEventInfo != nullptr &&
+            opencl::clGetEventInfo(lu->ev, CL_EVENT_COMMAND_EXECUTION_STATUS,
+                                   sizeof(est), &est, nullptr) != CL_SUCCESS)
+          est = CL_COMPLETE; // no status: the queue order still holds
+        NNTR_THROW_IF(est != CL_COMPLETE, std::runtime_error)
+          << "slot " << sl << ": its last reader (status " << est
+          << ") was not complete when the step's select was";
+      }
+      const size_t slot_bytes = part->slot_bytes;
+      std::vector<ExpertRead> reads;
+      reads.reserve(fills.size());
+      // misses the previous layer's step read ahead (tq2PregateM): a record
+      // read is copied from host memory below; one being read is waited for
+      // after this step's own reads (a running read, never a task); one
+      // whose read nobody started is taken over (that read is cancelled) and
+      // read here like any miss
+      using Staged =
+        std::pair<std::shared_ptr<ExpertStageCache::Entry>, size_t>;
+      std::vector<Staged> staged, flying;
+      const bool pg = tq2PregateM() > 0;
+      for (size_t i = 0; i < fills.size(); ++i) {
+        const unsigned int e = fills[i].first, sl = fills[i].second;
+        if (pg) {
+          auto tk = tq2StageCache().claim(layer, e);
+          if (tk.kind == ExpertStageCache::Claim::ready) {
+            staged.emplace_back(std::move(tk.entry), (size_t)sl * slot_bytes);
+            continue;
+          }
+          if (tk.kind == ExpertStageCache::Claim::in_flight) {
+            flying.emplace_back(std::move(tk.entry), (size_t)sl * slot_bytes);
+            continue;
+          }
+          if (tk.kind == ExpertStageCache::Claim::take_over)
+            tq2AsyncStats().pg_taken++;
+        }
+        Tq2ExpertArena::Partition *pp = part;
+        cl_command_queue q = io;
+        const size_t at = (size_t)sl * slot_bytes;
+        reads.emplace_back();
+        ExpertRead &r = reads.back();
+        r.fd = fd;
+        r.offset = (*offset)[e];
+        r.bytes = record_bytes;
+        r.consume = [q, pp, at](const uint8_t *src,
+                                const ExpertRead &rd) -> int {
+          const auto w0 = std::chrono::steady_clock::now();
+          const cl_int err =
+            Tq2ExpertArena::slotWrite(q, *pp, at, rd.bytes, src);
+          tq2AsyncStats().miss_write_us += tq2UsSince(w0);
+          tq2AsyncStats().miss_writes++;
+          return err == CL_SUCCESS ? 0 : EIO;
+        };
+      }
+      ExpertReaderPool &pool = ExpertReaderPool::global();
+      const auto t_io = std::chrono::steady_clock::now();
+      const ExpertReaderPool::Ticket tk = pool.submit(&reads);
+      // the staged misses, while the readers read the rest: a host -> slot
+      // copy each, on this step's path (timed: pg_copy_us)
+      for (const Staged &sg : staged) {
+        const auto c0 = std::chrono::steady_clock::now();
+        const cl_int werr = Tq2ExpertArena::slotWrite(
+          io, *part, sg.second, record_bytes, sg.first->data());
+        tq2AsyncStats().pg_copy_us += tq2UsSince(c0);
+        tq2AsyncStats().pg_copies++;
+        tq2StageCache().release(sg.first);
+        NNTR_THROW_IF(werr != CL_SUCCESS, std::runtime_error)
+          << "staged slot write failed (" << werr << ")";
+        tq2AsyncStats().pg_served++;
+      }
+      pool.wait(tk, /*help=*/true);
+      // the records being read ahead when the step claimed them: a failed
+      // one is read now
+      std::vector<ExpertRead> late;
+      for (const Staged &sg : flying) {
+        const auto w0 = std::chrono::steady_clock::now();
+        const bool ok = tq2StageCache().waitReady(*sg.first);
+        tq2AsyncStats().pg_wait_us += tq2UsSince(w0);
+        if (ok) {
+          const auto c0 = std::chrono::steady_clock::now();
+          const cl_int werr = Tq2ExpertArena::slotWrite(
+            io, *part, sg.second, record_bytes, sg.first->data());
+          tq2AsyncStats().pg_copy_us += tq2UsSince(c0);
+          tq2AsyncStats().pg_copies++;
+          tq2StageCache().release(sg.first);
+          NNTR_THROW_IF(werr != CL_SUCCESS, std::runtime_error)
+            << "staged slot write failed (" << werr << ")";
+          tq2AsyncStats().pg_served++;
+          tq2AsyncStats().pg_waited++;
+          continue;
+        }
+        tq2StageCache().release(sg.first);
+        late.emplace_back();
+        ExpertRead &r = late.back();
+        r.fd = fd;
+        r.offset = (*offset)[sg.first->expert];
+        r.bytes = record_bytes;
+        Tq2ExpertArena::Partition *pp = part;
+        cl_command_queue q = io;
+        const size_t at = sg.second;
+        r.consume = [q, pp, at](const uint8_t *src,
+                                const ExpertRead &rd) -> int {
+          return Tq2ExpertArena::slotWrite(q, *pp, at, rd.bytes, src) ==
+                     CL_SUCCESS
+                   ? 0
+                   : EIO;
+        };
+      }
+      if (!late.empty())
+        pool.wait(pool.submit(&late), /*help=*/true);
+      tq2AsyncStats().io_us += tq2UsSince(t_io);
+      tq2AsyncStats().misses += fills.size();
+    }
+    const auto t_tab = std::chrono::steady_clock::now();
+    filled(fills, true);
+    acquired = false;
+    // split without a miss: the slot map did not change and the misses'
+    // GEMVs have no row to run
+    if (!split || !fills.empty()) {
+      tq2ArenaOffsets(*st, *slot_of);
+      std::vector<uint32_t> ogu(2 * K), od(K);
+      for (unsigned int a = 0; a < K; ++a) {
+        ogu[a] = st->off_gate[ids[a]];
+        ogu[K + a] = st->off_up[ids[a]];
+        od[a] = st->off_down[ids[a]];
+      }
+      err = opencl::clEnqueueWriteBuffer(io, off_gu, CL_TRUE, 0,
+                                         ogu.size() * sizeof(uint32_t),
+                                         ogu.data(), 0, nullptr, nullptr);
+      if (err == CL_SUCCESS)
+        err = opencl::clEnqueueWriteBuffer(io, off_d, CL_TRUE, 0,
+                                           od.size() * sizeof(uint32_t),
+                                           od.data(), 0, nullptr, nullptr);
+      NNTR_THROW_IF(err != CL_SUCCESS, std::runtime_error)
+        << "slot offsets write failed (" << err << ")";
+    }
+    if (split && !fills.empty()) {
+      // the device slot table of the layer's next step: the misses are
+      // resident now, their victims are not. This step's select has read it
+      // (the job runs after it); the next one runs after the next join.
+      std::vector<uint32_t> tab;
+      tab.reserve(3 * E);
+      tab.insert(tab.end(), st->off_gate.begin(), st->off_gate.end());
+      tab.insert(tab.end(), st->off_up.begin(), st->off_up.end());
+      tab.insert(tab.end(), st->off_down.begin(), st->off_down.end());
+      std::vector<uint32_t> res(E);
+      for (unsigned int e = 0; e < E; ++e)
+        res[e] = (*slot_of)[e] != std::numeric_limits<unsigned int>::max();
+      err = opencl::clEnqueueWriteBuffer(io, st->off_tab, CL_TRUE, 0,
+                                         tab.size() * sizeof(uint32_t),
+                                         tab.data(), 0, nullptr, nullptr);
+      if (err == CL_SUCCESS)
+        err = opencl::clEnqueueWriteBuffer(io, st->res_flag, CL_TRUE, 0,
+                                           res.size() * sizeof(uint32_t),
+                                           res.data(), 0, nullptr, nullptr);
+      NNTR_THROW_IF(err != CL_SUCCESS, std::runtime_error)
+        << "slot table write failed (" << err << ")";
+      st->tab_slots = *slot_of;
+    }
+    tq2AsyncStats().tab_us += tq2UsSince(t_tab);
+    // recency hint: the extended ranks, least to most recent
+    if (refresh)
+      refresh(std::vector<unsigned int>(ranked.rbegin(), ranked.rend()));
+  } catch (const std::exception &ex) {
+    error = ex.what();
+    status = -1;
+  } catch (...) {
+    error = "unknown failure";
+    status = -1;
+  }
+  if (acquired) {
+    try {
+      filled(fills, false);
+    } catch (...) {
+    }
+  }
+  // what was read ahead for this step and not used is dropped, and a
+  // prediction for it staged from now on is refused (before the user event:
+  // nothing downstream of this step runs before its layer is closed)
+  if (tq2PregateM() > 0)
+    tq2StageCache().close(layer);
+  if (layer == 0)
+    tq2AsyncStats().tokens++;
+  tq2AsyncStats().jobs++;
+  tq2AsyncStats().job_us += tq2UsSince(t0);
+  finish(status);
+  // on the way out: the next layer's prediction (read ahead after this
+  // step's misses, at low priority; nothing here waits for it)
+  handPrediction();
+}
+
+void Tq2AsyncJob::finish(cl_int status) {
+  if (user != nullptr) {
+    // the GEMVs behind the event may run now (or fail with the error); the
+    // flush submits them
+    opencl::clSetUserEventStatus(user, status);
+    opencl::clFlush(cq);
+    opencl::clReleaseEvent(user);
+    user = nullptr;
+  }
+  {
+    std::lock_guard<std::mutex> lk(mu);
+    done = true;
+  }
+  cv.notify_all();
+}
+
+void Tq2AsyncJob::fail(cl_int status) {
+  error = "the routing step ended with status " + std::to_string(status) +
+          " (the select kernel or a command before it failed)";
+  std::fprintf(stderr, "[TQ2CX-FSU-ASYNC] ERROR: %s\n", error.c_str());
+  tq2AsyncStats().failed++;
+  if (tq2PregateM() > 0)
+    tq2StageCache().close(layer);
+  finish(status < 0 ? status : -1);
+  handPrediction();
+}
+
+/** the select marker's callback: post the job on the reader pool. Any
+ *  status but CL_COMPLETE means the routing (ext) was never written: the
+ *  job must not read it back (an independent queue would return the
+ *  previous step's ids), it fails the step instead. */
+void CL_CALLBACK tq2AsyncSelected(cl_event ev, cl_int status, void *data) {
+  auto *holder = static_cast<std::shared_ptr<Tq2AsyncJob> *>(data);
+  std::shared_ptr<Tq2AsyncJob> job = std::move(*holder);
+  delete holder;
+  job->posted = std::chrono::steady_clock::now();
+  if (status == CL_COMPLETE)
+    ExpertReaderPool::global().post([job]() { job->run(); });
+  else
+    ExpertReaderPool::global().post([job, status]() { job->fail(status); });
+  opencl::clReleaseEvent(ev);
+}
+
+/** a deferred decode-step tail: the kernels that write the output @a key */
+struct Tq2Tail {
+  const void *key = nullptr;
+  std::function<void()> run;
+};
+
+/** pending tails, oldest first; guarded by tq2Mutex */
+std::vector<Tq2Tail> &tq2Tails() {
+  static std::vector<Tq2Tail> v;
+  return v;
+}
+
+/** enqueue every pending tail, oldest first (caller holds tq2Mutex) */
+void tq2RunTails() {
+  auto &v = tq2Tails();
+  if (v.empty())
+    return;
+  std::vector<Tq2Tail> run;
+  run.swap(v);
+  setDeferredOutputsPending(false);
+  for (auto &t : run)
+    t.run();
+}
+
+/** the key of an operand: its device buffer or its shared-memory pointer */
+const void *tq2ActKey(const Tq2Act &a) {
+  return a.mem != nullptr ? static_cast<const void *>(a.mem) : a.svm;
+}
+
+/** one layer of the probe, handed to its worker by the layer's marker */
+struct Tq2ProbeTask {
+  cl_event user = nullptr; /**< the layer's user event (worker's ref) */
+  cl_event busy = nullptr; /**< marker after the layer's busy kernel (ref) */
+  unsigned int stage = 0;  /**< the layer's slot in the slot buffer */
+  float value = 0.0f;      /**< what the worker writes there */
+};
+
+/** the probe's shared state (see tq2AsyncProbe); leaked, with the probe's
+ *  queues and buffers, when a probe thread is still inside the driver at the
+ *  end (a failed probe) */
+struct Tq2Probe {
+  std::mutex mu;
+  std::condition_variable cv;
+  std::deque<Tq2ProbeTask> to_run; /**< layers whose marker fired */
+  bool stop = false;
+  unsigned int fired = 0;        /**< marker callbacks */
+  unsigned int taken = 0;        /**< layers the worker started */
+  unsigned int set = 0;          /**< layers the worker finished */
+  unsigned int reads = 0;        /**< host blocking reads that returned */
+  unsigned long long writes = 0; /**< worker writes, all layers */
+  int io_errors = 0;
+  cl_int status = CL_COMPLETE;
+  std::chrono::steady_clock::time_point at;
+};
+
+/** a marker callback of the probe: hand the layer to the worker (like the
+ *  decode step's callback posting its job) */
+struct Tq2ProbeStage {
+  Tq2Probe *p = nullptr;
+  Tq2ProbeTask task; /**< user null for the round-trip marker */
+};
+
+void CL_CALLBACK tq2ProbeFired(cl_event ev, cl_int st, void *d) {
+  auto *s = static_cast<Tq2ProbeStage *>(d);
+  Tq2Probe *p = s->p;
+  {
+    std::lock_guard<std::mutex> lk(p->mu);
+    ++p->fired;
+    if (st != CL_COMPLETE)
+      p->status = st;
+    p->at = std::chrono::steady_clock::now();
+    if (s->task.user != nullptr)
+      p->to_run.push_back(s->task);
+  }
+  p->cv.notify_all();
+  delete s;
+  opencl::clReleaseEvent(ev);
+}
+
+/** what tq2AsyncProbe found */
+struct Tq2ProbeResult {
+  bool callbacks = false; /**< marker callbacks fire */
+  bool events = false;    /**< the event pipeline keeps its order, no stall */
+};
+
+/**
+ * @brief Do marker callbacks, user events and the decode step's pattern
+ *        work on this device? On two scratch queues (compute, I/O):
+ *        (1) a marker's callback round trip; (2) the decode token in its
+ *        order: kReps tokens of kStages layers enqueued ahead, each layer =
+ *        kernel, marker (its callback hands the layer to a worker thread, as
+ *        the select's callback posts the step's job), a busy kernel that
+ *        reads the buffer the worker writes (the hit GEMVs over the slot
+ *        arena, and the dense MLP, the queue runs while the job reads), a
+ *        marker, a barrier on the layer's user event, a kernel that reads
+ *        the slot the worker writes and one that reads the written buffer
+ *        (the misses' GEMVs), a shared-memory map / unmap (the activation
+ *        protocol), kernel. The worker does what the job does: a
+ *        blocking read on the I/O queue of a buffer the compute queue wrote
+ *        (the routing readback), then blocking writes on the I/O queue (the
+ *        expert slot writes) until the busy kernel is done and two more --
+ *        so they span the compute queue going idle with commands held
+ *        behind the user event, the moment an earlier decode deadlock
+ *        needed -- then the slot, then it completes the user event and
+ *        flushes the compute queue. Meanwhile the host sits in a blocking
+ *        read on the compute queue (the token's logits readback; a clFinish
+ *        on Adreno), and the expert writes run on two threads (the job and
+ *        the reader helping it). Every kernel adds to every element of the
+ *        checked buffer and the sum must be exact; every token must finish
+ *        within kTokenBound. A stalled token completes its user events with
+ *        an error to drain; a thread still in the driver then is left behind
+ *        (and the probe's objects leaked: the process may not recover).
+ *
+ *        What it does not show: that every driver race is absent. On
+ *        Adreno 840, writes that named a long-complete compute-queue marker
+ *        in their wait list still passed the probe while the decode with
+ *        that ordering hung. The probe answers "does this device run the
+ *        step's ordering", not "is every other ordering safe": the step
+ *        itself must keep to the ordering the probe runs. Logs one line.
+ */
+Tq2ProbeResult tq2AsyncProbe(ClContext *cc) {
+  Tq2ProbeResult r;
+  if (opencl::clCreateUserEvent == nullptr ||
+      opencl::clSetUserEventStatus == nullptr ||
+      opencl::clSetEventCallback == nullptr ||
+      opencl::clGetEventInfo == nullptr)
+    return r;
+  const auto t_start = std::chrono::steady_clock::now();
+  cl_int err = CL_SUCCESS;
+  cl_context ctx = cc->context_inst_.GetContextNoRetain();
+  cl_device_id dev = cc->context_inst_.GetDeviceId();
+  cl_command_queue q = opencl::clCreateCommandQueue(ctx, dev, 0, &err);
+  if (err != CL_SUCCESS || q == nullptr)
+    return r;
+  cl_command_queue qi = opencl::clCreateCommandQueue(ctx, dev, 0, &err);
+  if (err != CL_SUCCESS || qi == nullptr) {
+    opencl::clReleaseCommandQueue(q);
+    return r;
+  }
+  auto *pr = new Tq2Probe();
+  bool leak = false; // a callback or a probe thread may still come / run
+  double rt_us = -1.0;
+  {
+    cl_event m = nullptr;
+    err = opencl::clEnqueueBarrierWithWaitList(q, 0, nullptr, &m);
+    const auto t0 = std::chrono::steady_clock::now();
+    if (err == CL_SUCCESS)
+      err = opencl::clSetEventCallback(m, CL_COMPLETE, tq2ProbeFired,
+                                       new Tq2ProbeStage{pr, {}});
+    opencl::clFlush(q);
+    std::unique_lock<std::mutex> lk(pr->mu);
+    r.callbacks = err == CL_SUCCESS &&
+                  pr->cv.wait_for(lk, std::chrono::seconds(2),
+                                  [pr] { return pr->fired == 1; }) &&
+                  pr->status == CL_COMPLETE;
+    if (r.callbacks)
+      rt_us = std::chrono::duration<double, std::micro>(pr->at - t0).count();
+    else
+      leak = true;
+  }
+  constexpr unsigned int kReps = 3, kStages = 6, kMaxWrites = 64;
+  constexpr int kBusyIters = 512;
+  constexpr size_t kChunk = 64 * 1024, kWriteBuf = 16 * kChunk;
+  constexpr auto kTokenBound = std::chrono::milliseconds(1000);
+  long lost = -1;
+  unsigned int stalls = 0;
+  if (r.callbacks) {
+    static const char *src =
+      "__kernel void tq2_probe_add1(__global float *a, int n) {"
+      " int i = get_global_id(0); if (i < n) a[i] += 1.0f; }"
+      "__kernel void tq2_probe_add_slot(__global float *a,"
+      " __global const float *s, int l, int n) {"
+      " int i = get_global_id(0); if (i < n) a[i] += s[l]; }"
+      "__kernel void tq2_probe_busy(__global float *c,"
+      " __global const float *w, int nw, int iters) {"
+      " int i = get_global_id(0); float x = c[i] + w[i % nw];"
+      " for (int k = 0; k < iters; ++k) x = fma(x, 0.999999f, 1e-7f);"
+      " c[i] = x; }";
+    cl_program prg =
+      opencl::clCreateProgramWithSource(ctx, 1, &src, nullptr, &err);
+    cl_kernel k = nullptr, ks = nullptr, kb = nullptr, kt = nullptr;
+    if (err == CL_SUCCESS && opencl::clBuildProgram(prg, 1, &dev, "", nullptr,
+                                                    nullptr) == CL_SUCCESS) {
+      k = opencl::clCreateKernel(prg, "tq2_probe_add1", &err);
+      ks = opencl::clCreateKernel(prg, "tq2_probe_add_slot", &err);
+      kb = opencl::clCreateKernel(prg, "tq2_probe_busy", &err);
+      kt = opencl::clCreateKernel(prg, "tq2_probe_busy", &err);
+    }
+    const int n = 1 << 14, nb = 1 << 16, iters = kBusyIters, one = 1;
+    const int nwf = (int)(kWriteBuf / sizeof(float));
+    cl_mem b = nullptr, sb = nullptr, cb = nullptr, wb = nullptr;
+    if (k != nullptr && ks != nullptr && kb != nullptr && kt != nullptr) {
+      b = opencl::clCreateBuffer(ctx, CL_MEM_READ_WRITE, n * sizeof(float),
+                                 nullptr, &err);
+      sb = opencl::clCreateBuffer(ctx, CL_MEM_READ_WRITE,
+                                  kStages * sizeof(float), nullptr, &err);
+      cb = opencl::clCreateBuffer(ctx, CL_MEM_READ_WRITE, nb * sizeof(float),
+                                  nullptr, &err);
+      wb =
+        opencl::clCreateBuffer(ctx, CL_MEM_READ_ONLY, kWriteBuf, nullptr, &err);
+    }
+    void *svm = opencl::clSVMAlloc(ctx, CL_MEM_READ_WRITE, 4096, 0);
+    const size_t gsz = n, gbz = nb;
+    std::vector<std::thread> stuck; // probe threads left in the driver
+    if (b != nullptr && sb != nullptr && cb != nullptr && wb != nullptr &&
+        svm != nullptr) {
+      const float zero = 0.0f;
+      opencl::clEnqueueFillBuffer(q, b, &zero, sizeof(float), 0,
+                                  n * sizeof(float), 0, nullptr, nullptr);
+      opencl::clEnqueueFillBuffer(q, sb, &zero, sizeof(float), 0,
+                                  kStages * sizeof(float), 0, nullptr, nullptr);
+      opencl::clEnqueueFillBuffer(q, cb, &zero, sizeof(float), 0,
+                                  nb * sizeof(float), 0, nullptr, nullptr);
+      opencl::clEnqueueFillBuffer(q, wb, &zero, sizeof(float), 0, kWriteBuf, 0,
+                                  nullptr, nullptr);
+      opencl::clFinish(q);
+      bool ok =
+        opencl::clSetKernelArg(k, 0, sizeof(cl_mem), &b) == CL_SUCCESS &&
+        opencl::clSetKernelArg(k, 1, sizeof(int), &n) == CL_SUCCESS &&
+        opencl::clSetKernelArg(ks, 0, sizeof(cl_mem), &b) == CL_SUCCESS &&
+        opencl::clSetKernelArg(ks, 1, sizeof(cl_mem), &sb) == CL_SUCCESS &&
+        opencl::clSetKernelArg(ks, 3, sizeof(int), &n) == CL_SUCCESS &&
+        opencl::clSetKernelArg(kb, 0, sizeof(cl_mem), &cb) == CL_SUCCESS &&
+        opencl::clSetKernelArg(kb, 1, sizeof(cl_mem), &wb) == CL_SUCCESS &&
+        opencl::clSetKernelArg(kb, 2, sizeof(int), &nwf) == CL_SUCCESS &&
+        opencl::clSetKernelArg(kb, 3, sizeof(int), &iters) == CL_SUCCESS &&
+        opencl::clSetKernelArg(kt, 0, sizeof(cl_mem), &cb) == CL_SUCCESS &&
+        opencl::clSetKernelArg(kt, 1, sizeof(cl_mem), &wb) == CL_SUCCESS &&
+        opencl::clSetKernelArg(kt, 2, sizeof(int), &nwf) == CL_SUCCESS &&
+        opencl::clSetKernelArg(kt, 3, sizeof(int), &one) == CL_SUCCESS;
+      // the worker: the job's I/O, then the user event and the flush
+      std::thread worker([pr, q, qi, b, sb, wb]() {
+        std::vector<float> rb(64);
+        for (;;) {
+          Tq2ProbeTask t;
+          {
+            std::unique_lock<std::mutex> lk(pr->mu);
+            pr->cv.wait(lk, [pr] { return pr->stop || !pr->to_run.empty(); });
+            if (pr->to_run.empty())
+              return;
+            t = pr->to_run.front();
+            pr->to_run.pop_front();
+            ++pr->taken;
+          }
+          cl_int e = opencl::clEnqueueReadBuffer(
+            qi, b, CL_TRUE, 0, rb.size() * sizeof(float), rb.data(), 0, nullptr,
+            nullptr);
+          // the slot writes, on two threads as the job and the reader that
+          // helps it: until the busy kernel is done, and two more each
+          auto writes = [&t, qi, wb](size_t base, unsigned int &w) {
+            std::vector<uint8_t> data(kChunk, 0);
+            unsigned int after = 0;
+            cl_int err = CL_SUCCESS;
+            while (err == CL_SUCCESS && after < 2 && w < kMaxWrites) {
+              cl_int bst = CL_COMPLETE;
+              opencl::clGetEventInfo(t.busy, CL_EVENT_COMMAND_EXECUTION_STATUS,
+                                     sizeof(bst), &bst, nullptr);
+              if (bst <= CL_COMPLETE)
+                ++after;
+              const size_t at = base + (w % (kWriteBuf / kChunk / 2)) * kChunk;
+              err = opencl::clEnqueueWriteBuffer(
+                qi, wb, CL_TRUE, at, kChunk, data.data(), 0, nullptr, nullptr);
+              ++w;
+            }
+            return err;
+          };
+          unsigned int w = 0, w2 = 0;
+          cl_int e2 = CL_SUCCESS;
+          if (e == CL_SUCCESS) {
+            std::thread helper([&]() { e2 = writes(kWriteBuf / 2, w2); });
+            e = writes(0, w);
+            helper.join();
+            if (e == CL_SUCCESS)
+              e = e2;
+            w += w2;
+          }
+          if (e == CL_SUCCESS)
+            e = opencl::clEnqueueWriteBuffer(
+              qi, sb, CL_TRUE, t.stage * sizeof(float), sizeof(float), &t.value,
+              0, nullptr, nullptr);
+          opencl::clReleaseEvent(t.busy);
+          opencl::clSetUserEventStatus(t.user,
+                                       e == CL_SUCCESS ? CL_COMPLETE : -1);
+          opencl::clFlush(q);
+          opencl::clReleaseEvent(t.user);
+          {
+            std::lock_guard<std::mutex> lk(pr->mu);
+            ++pr->set;
+            pr->writes += w;
+            if (e != CL_SUCCESS)
+              ++pr->io_errors;
+          }
+          pr->cv.notify_all();
+        }
+      });
+      auto add1 = [&]() {
+        return opencl::clEnqueueNDRangeKernel(q, k, 1, nullptr, &gsz, nullptr,
+                                              0, nullptr,
+                                              nullptr) == CL_SUCCESS;
+      };
+      double expect = 0.0;
+      for (unsigned int rep = 0; rep < kReps && ok; ++rep) {
+        std::vector<cl_event> users;
+        unsigned int set0 = 0, reads0 = 0, fired0 = 0;
+        {
+          std::lock_guard<std::mutex> lk(pr->mu);
+          set0 = pr->set;
+          reads0 = pr->reads;
+          fired0 = pr->fired;
+        }
+        for (unsigned int l = 0; l < kStages && ok; ++l) {
+          cl_event u = opencl::clCreateUserEvent(ctx, &err);
+          if (err != CL_SUCCESS || u == nullptr) {
+            ok = false;
+            break;
+          }
+          users.push_back(u);
+          const float v = (float)(rep * kStages + l + 1);
+          const int li = (int)l;
+          cl_event m = nullptr, busy = nullptr;
+          ok =
+            add1() &&
+            opencl::clEnqueueBarrierWithWaitList(q, 0, nullptr, &m) ==
+              CL_SUCCESS &&
+            opencl::clEnqueueNDRangeKernel(q, kb, 1, nullptr, &gbz, nullptr, 0,
+                                           nullptr, nullptr) == CL_SUCCESS &&
+            opencl::clEnqueueBarrierWithWaitList(q, 0, nullptr, &busy) ==
+              CL_SUCCESS;
+          if (ok) {
+            opencl::clRetainEvent(u); // the worker's reference
+            ok = opencl::clSetEventCallback(
+                   m, CL_COMPLETE, tq2ProbeFired,
+                   new Tq2ProbeStage{pr, {u, busy, l, v}}) == CL_SUCCESS;
+            if (!ok) { // never handed to the worker
+              opencl::clReleaseEvent(u);
+              opencl::clReleaseEvent(busy);
+            }
+          }
+          if (!ok)
+            break;
+          ok =
+            opencl::clEnqueueBarrierWithWaitList(q, 1, &u, nullptr) ==
+              CL_SUCCESS &&
+            opencl::clSetKernelArg(ks, 2, sizeof(int), &li) == CL_SUCCESS &&
+            opencl::clEnqueueNDRangeKernel(q, ks, 1, nullptr, &gsz, nullptr, 0,
+                                           nullptr, nullptr) == CL_SUCCESS &&
+            opencl::clEnqueueNDRangeKernel(q, kt, 1, nullptr, &gbz, nullptr, 0,
+                                           nullptr, nullptr) == CL_SUCCESS &&
+            opencl::clEnqueueSVMMap(q, CL_FALSE, CL_MAP_READ, svm, 4096, 0,
+                                    nullptr, nullptr) == CL_SUCCESS &&
+            opencl::clEnqueueSVMUnmap(q, svm, 0, nullptr, nullptr) ==
+              CL_SUCCESS &&
+            add1();
+          expect += 2.0 + v;
+        }
+        opencl::clFlush(q); // once per token, as the decode step does
+        // the token's readback: a blocking read on the compute queue, on a
+        // thread of its own so that a deadlock is a timeout here
+        std::thread reader([pr, q, b]() {
+          float x = 0.0f;
+          const cl_int e = opencl::clEnqueueReadBuffer(
+            q, b, CL_TRUE, 0, sizeof(float), &x, 0, nullptr, nullptr);
+          {
+            std::lock_guard<std::mutex> lk(pr->mu);
+            ++pr->reads;
+            if (e != CL_SUCCESS)
+              ++pr->io_errors;
+          }
+          pr->cv.notify_all();
+        });
+        const unsigned int want = (unsigned int)users.size();
+        bool finished = false;
+        {
+          std::unique_lock<std::mutex> lk(pr->mu);
+          finished = pr->cv.wait_for(lk, kTokenBound, [&] {
+            return pr->set - set0 == want && pr->reads - reads0 == 1;
+          });
+        }
+        if (!finished) {
+          // a stall: complete every event of the token with an error so the
+          // queues drain, give the threads a moment, else leave them
+          ++stalls;
+          ok = false;
+          for (cl_event u : users)
+            opencl::clSetUserEventStatus(u, -1);
+          opencl::clFlush(q);
+          std::unique_lock<std::mutex> lk(pr->mu);
+          finished = pr->cv.wait_for(lk, kTokenBound, [&] {
+            return pr->fired - fired0 == want && pr->to_run.empty() &&
+                   pr->set == pr->taken && pr->reads - reads0 == 1;
+          });
+        }
+        for (cl_event u : users)
+          opencl::clReleaseEvent(u); // the host's reference
+        if (finished) {
+          reader.join();
+        } else {
+          stuck.push_back(std::move(reader));
+          leak = true;
+        }
+      }
+      {
+        std::lock_guard<std::mutex> lk(pr->mu);
+        pr->stop = true;
+      }
+      pr->cv.notify_all();
+      if (leak) {
+        stuck.push_back(std::move(worker));
+      } else {
+        worker.join();
+        opencl::clFinish(q);
+        std::vector<float> v(n, -1.0f);
+        if (ok && pr->io_errors == 0 &&
+            opencl::clEnqueueReadBuffer(q, b, CL_TRUE, 0, n * sizeof(float),
+                                        v.data(), 0, nullptr,
+                                        nullptr) == CL_SUCCESS) {
+          lost = 0;
+          for (int i = 0; i < n; ++i)
+            lost += (long)std::lround(expect - (double)v[i]);
+        }
+      }
+      r.events = ok && stalls == 0 && lost == 0 && pr->io_errors == 0;
+    }
+    for (auto &t : stuck)
+      t.detach(); // inside the driver; the probe's objects stay alive
+    if (!leak) {
+      for (cl_mem m : {b, sb, cb, wb})
+        if (m != nullptr)
+          opencl::clReleaseMemObjectT(m);
+      if (svm != nullptr)
+        opencl::clSVMFreeT(ctx, svm);
+    }
+    // the scratch program and kernels are kept (the loader has no release
+    // entries for them); a few hundred bytes, once per process
+  }
+  const unsigned long long writes = pr->writes;
+  if (!leak) {
+    opencl::clReleaseCommandQueue(qi);
+    opencl::clReleaseCommandQueue(q);
+    delete pr;
+  }
+  std::fprintf(stderr,
+               "[TQ2CX-FSU-ASYNC] probe: callbacks %s (round trip %.1f us), "
+               "event pipeline %s (%u tokens x %u layers, %llu I/O-queue "
+               "writes across the compute queue going idle behind user events, "
+               "host blocking read; stalls %u, lost updates %ld)%s, %.1f ms\n",
+               r.callbacks ? "ok" : "FAILED", rt_us, r.events ? "ok" : "FAILED",
+               kReps, kStages, writes, stalls, lost,
+               leak ? " (probe threads left in the driver)" : "",
+               std::chrono::duration<double, std::milli>(
+                 std::chrono::steady_clock::now() - t_start)
+                 .count());
+  return r;
+}
+
+/**
+ * @brief NNTR_G4MOE_FSU_ASYNC=0|1|event|join|probe|auto (default auto): how a
+ *        device-routed decode step of a streamed layer waits for its misses
+ *        (Tq2AsyncMode). 0 = off (the host waits); 1 / event = event without
+ *        the probe (testing a driver; selectable on Adreno); join = join
+ *        without the probe; auto = join on Qualcomm Adreno when the probe's
+ *        callbacks work (else off), on other non-Intel devices event when
+ *        the device passes tq2AsyncProbe, join when only its callbacks work,
+ *        else off; probe = run the probe and take its answer (event / join /
+ *        off) on any non-Intel device, Adreno included (on Intel it still
+ *        takes join; for testing the probe). Adreno: join because it was
+ *        measured faster on the phone (an Adreno 840 phone, steady ms per
+ *        token join vs event: P1 103.7 vs 112.4, P2-256 104.7 vs 107.4,
+ *        P2-1024 120.1 vs 122.4; P4 113.1 vs 110.6, the one cell event won).
+ *        Intel (NEO): join without the probe, as commands enqueued behind
+ *        a user event lose their order across shared-memory map / unmap
+ *        there (a standalone repro loses 10 to 14 of 4000 kernel updates on
+ *        Xe3) and a decode step behind one faulted in the driver. Decided
+ *        once per device, at load (tq2AsyncModeAtLoad): the probe must not
+ *        land in the first decode step. It takes tens of milliseconds (an
+ *        earlier probe took 22-24 s on Adreno: its host waited out a 2 s
+ *        bound per token for a notify the worker never sent).
+ */
+Tq2AsyncMode tq2AsyncMode(ClContext *cc) {
+  static std::mutex mu;
+  static std::map<cl_device_id, Tq2AsyncMode> modes;
+  // held across the probe: a second loader thread of the same device waits
+  // for the answer instead of probing again
+  std::lock_guard<std::mutex> lk(mu);
+  const cl_device_id dev = cc->context_inst_.GetDeviceId();
+  auto it = modes.find(dev);
+  if (it != modes.end())
+    return it->second;
+  const Tq2AsyncMode mode = [cc]() {
+    const char *e = std::getenv("NNTR_G4MOE_FSU_ASYNC");
+    const std::string v = e != nullptr ? e : "auto";
+    if (v == "0")
+      return Tq2AsyncMode::off;
+    if (v == "1" || v == "event") {
+      std::fprintf(stderr, "[TQ2CX-FSU-ASYNC] mode event (forced, no probe)\n");
+      return Tq2AsyncMode::event;
+    }
+    if (v == "join") {
+      std::fprintf(stderr, "[TQ2CX-FSU-ASYNC] mode join (forced, no probe)\n");
+      return Tq2AsyncMode::join;
+    }
+    const bool intel = cc->caps().vendor_id == 0x8086;
+    if (intel && v != "probe") {
+      std::fprintf(stderr, "[TQ2CX-FSU-ASYNC] mode join (Intel: no user "
+                           "events on the compute queue)\n");
+      return Tq2AsyncMode::join;
+    }
+    const Tq2ProbeResult p = tq2AsyncProbe(cc);
+    if (intel) { // probe: run it (testing it), keep the Intel rule
+      std::fprintf(stderr, "[TQ2CX-FSU-ASYNC] mode join (Intel: no user "
+                           "events on the compute queue; probe only run)\n");
+      return Tq2AsyncMode::join;
+    }
+    // Adreno, auto: join (measured); the probe still decides whether the
+    // callbacks join needs work at all
+    constexpr uint32_t qualcomm_vendor_id = 0x5143;
+    const bool adreno = cc->caps().vendor_id == qualcomm_vendor_id;
+    const bool events = p.events && !(adreno && v != "probe");
+    const Tq2AsyncMode m = events        ? Tq2AsyncMode::event
+                           : p.callbacks ? Tq2AsyncMode::join
+                                         : Tq2AsyncMode::off;
+    std::fprintf(stderr, "[TQ2CX-FSU-ASYNC] mode %s%s\n",
+                 m == Tq2AsyncMode::event  ? "event"
+                 : m == Tq2AsyncMode::join ? "join"
+                                           : "off",
+                 adreno && v != "probe" && m == Tq2AsyncMode::join
+                   ? " (Adreno: join measured faster; event = "
+                     "NNTR_G4MOE_FSU_ASYNC=event)"
+                   : "");
+    return m;
+  }();
+  modes.emplace(dev, mode);
+  return mode;
+}
+
+void tq2AsyncModeAtLoad(ClContext *cc) { (void)tq2AsyncMode(cc); }
+
+/**
+ * @brief NNTR_G4MOE_FSU_DEFER=0|1 (default 1): an async decode step leaves
+ *        its expert GEMVs and combine for the output's first reader
+ *        (ComputeOps::flush_deferred), so the work the graph enqueues in
+ *        between (the dense MLP) runs while the misses are read.
+ */
+bool tq2DeferOn() {
+  static const bool on = []() {
+    const char *e = std::getenv("NNTR_G4MOE_FSU_DEFER");
+    return e == nullptr || e[0] != '0';
+  }();
+  return on;
+}
+
+/**
+ * @brief NNTR_G4MOE_FSU_SPLIT=0|1|auto (default auto): an async decode step
+ *        runs the GEMVs of its resident (hit) experts as soon as it is routed
+ *        and leaves only the misses' behind their reads (the GEMV skips a
+ *        record whose activation row is -1). Bit-identical: a row is
+ *        computed the same in either launch and the combine order is fixed.
+ *        auto = in event mode only, where everything behind the user event
+ *        waits for the reads; in join mode the host waits for the job
+ *        anyway and the extra launches cost a little (Xe3: 0 to -2 % decode,
+ *        same tokens).
+ */
+bool tq2SplitOn(Tq2AsyncMode mode) {
+  static const int on = []() {
+    const char *e = std::getenv("NNTR_G4MOE_FSU_SPLIT");
+    if (e == nullptr || std::string(e) == "auto")
+      return -1;
+    return e[0] != '0' ? 1 : 0;
+  }();
+  return on < 0 ? mode == Tq2AsyncMode::event : on == 1;
+}
+
+/** the weighted combine into the output rows (ascending expert id) */
+bool tq2Combine(ClContext *cc, bool fp16, cl_mem yd, const Tq2Act &out,
+                cl_mem d_src, cl_mem d_w, cl_mem d_cnt, unsigned int H,
+                unsigned int max_k, unsigned int T) {
+  auto kp = cc->registerClKernel(kTq2MoeAux, fp16 ? "tq2moe_combine_f16"
+                                                  : "tq2moe_combine_f32");
+  NNTR_THROW_IF(!kp, std::runtime_error)
+    << "tq2cx_moe_experts_cl: aux kernels did not build";
+  const int Hi = (int)H, mk = (int)max_k, tot = (int)((size_t)T * H);
+  bool ok = kp->SetKernelArguments(0, &yd, sizeof(cl_mem)) && out.bind(kp, 1) &&
+            kp->SetKernelArguments(2, &d_src, sizeof(cl_mem)) &&
+            kp->SetKernelArguments(3, &d_w, sizeof(cl_mem)) &&
+            kp->SetKernelArguments(4, &d_cnt, sizeof(cl_mem)) &&
+            kp->SetKernelArguments(5, &Hi, sizeof(int)) &&
+            kp->SetKernelArguments(6, &mk, sizeof(int)) &&
+            kp->SetKernelArguments(7, &tot, sizeof(int));
+  if (ok)
+    tq2Dispatch(cc, kp, 1, {((size_t)tot + 63) / 64 * 64, 1, 1}, {64, 1, 1});
+  return ok;
+}
+
+/**
+ * @brief Does a call of @a T rows on this streamed layer stream whole
+ *        layers (MoeExpertFsu::spec_min_tokens)? Lends the stream its
+ *        partitions on first use. Caller holds tq2Mutex.
+ */
+bool tq2StreamOn(const MoeExpertFsu *fsu, const Tq2ExpertArena::Partition *part,
+                 unsigned int E, unsigned int T) {
+  if (fsu == nullptr || part == nullptr || part->slots >= E ||
+      T < fsu->spec_min_tokens || fsu->layer_index == UINT32_MAX ||
+      fsu->offset == nullptr || fsu->offset->size() != E)
+    return false;
+  return Tq2ExpertArena::get().streamLend(part->slots, part->slot_bytes, E);
+}
+
+/** start the block reads of this layer (unless read ahead) and the next */
+void tq2StreamIssue(ClContext *cc, const MoeExpertFsu &fsu, const Tq2Stack &st,
+                    unsigned int E) {
+  Tq2ExpertArena &arena = Tq2ExpertArena::get();
+  arena.streamIssue(cc, fsu.layer_index % 2, fsu, st);
+  const MoeExpertFsu *nx = fsu.next;
+  if (nx != nullptr && nx->fd >= 0 && nx->offset != nullptr &&
+      nx->offset->size() == E && nx->record_bytes == fsu.record_bytes &&
+      nx->slots == fsu.slots && nx->layer_index == fsu.layer_index + 1)
+    arena.streamIssue(cc, nx->layer_index % 2, *nx, st);
+}
+
+} // namespace
+
+bool tq2cx_moe_experts_prefetch_cl(const MoeExpertGroup &g) {
+  const MoeExpertFsu *fsu = g.fsu;
+  if (fsu == nullptr || g.layer_key == nullptr || g.tokens == 0 ||
+      fsu->slot_of == nullptr || fsu->slot_of->size() != g.gate.size())
+    return false;
+  ClContext *cc = tq2GroupContext(g);
+  if (cc == nullptr)
+    return false;
+  std::lock_guard<std::mutex> lk(tq2Mutex());
+  Tq2Stack *st = tq2Stack(cc, g);
+  if (st == nullptr || !st->arena)
+    return false;
+  tq2RunTails();
+  if (st->async) {
+    auto job = std::move(st->async);
+    job->join();
+  }
+  tq2PrefillAheadJoin();
+  Tq2ExpertArena::Partition &part =
+    tq2Partition(cc, *st, g.layer_key, fsu->slots);
+  const unsigned int E = (unsigned int)g.gate.size();
+  if (!tq2StreamOn(fsu, &part, E, g.tokens))
+    return false;
+  tq2StreamIssue(cc, *fsu, *st, E);
+  return true;
+}
+
+void tq2cx_moe_experts_join_cl(const MoeExpertGroup &g) {
+  std::lock_guard<std::mutex> lk(tq2Mutex());
+  tq2RunTails();
+  tq2PrefillAheadJoin();
+  auto it = tq2Stacks().find(g.layer_key);
+  if (it == tq2Stacks().end() || !it->second->async)
+    return;
+  auto job = std::move(it->second->async);
+  job->join();
+}
+
+void tq2cx_moe_experts_flush_deferred_cl(const Tensor &t) {
+  if (!deferredOutputsPending())
+    return;
+  Tq2Act a;
+  if (!tq2Act(t, 0, a))
+    return;
+  std::lock_guard<std::mutex> lk(tq2Mutex());
+  const void *key = tq2ActKey(a);
+  for (const auto &tl : tq2Tails()) {
+    if (tl.key == key) {
+      tq2RunTails();
+      return;
+    }
+  }
+}
+
 bool tq2cx_moe_experts_cl(const MoeExpertGroup &g) {
   using DT = ml::train::TensorDim::DataType;
   const MoeRouter *rt = g.router;
@@ -1843,6 +4742,17 @@ bool tq2cx_moe_experts_cl(const MoeExpertGroup &g) {
     return false;
   if (device_route && g.tokens != 1)
     return false; // the device router routes one decode row
+  // experts read from the file: the device router looks the offsets of a
+  // complete slot map up on the device; otherwise the host reads the
+  // selected ids back and the acquire hook makes them resident first (so a
+  // device-routed call needs the hook). A caller without an acquire hook
+  // must have made every active expert resident.
+  const MoeExpertFsu *fsu = g.fsu;
+  if (fsu != nullptr &&
+      (fsu->slot_of == nullptr || fsu->slot_of->size() != g.gate.size() ||
+       (device_route && !fsu->complete && !fsu->acquire) ||
+       (!fsu->acquire && g.active.size() > fsu->slots)))
+    return false;
   ClContext *cc = tq2GroupContext(g);
   if (cc == nullptr)
     return false;
@@ -1886,14 +4796,61 @@ bool tq2cx_moe_experts_cl(const MoeExpertGroup &g) {
   }
 
   std::lock_guard<std::mutex> lk(tq2Mutex());
-  const Tq2Stack &st = tq2Stack(cc, g);
+  Tq2Stack *stp = tq2Stack(cc, g);
+  if (stp == nullptr)
+    return false;
+  // a tail nobody flushed (its output had no reader through the graph):
+  // enqueue it ahead of this call
+  tq2RunTails();
+  // the previous layer's read-ahead into this layer's slots (a short
+  // prefill): written and admitted before this call's acquire
+  tq2PrefillAheadJoin();
+  Tq2Stack &st = *stp;
+  if (st.async) {
+    // the layer's previous decode step may still be making experts resident
+    auto job = std::move(st.async);
+    job->join();
+  }
   Tq2Workspace &ws = tq2Workspace();
+  // ---- experts read from the file into the layer's slots ----
+  Tq2ExpertArena &arena = Tq2ExpertArena::get();
+  Tq2ExpertArena::Partition *part =
+    fsu != nullptr ? &tq2Partition(cc, st, g.layer_key, fsu->slots) : nullptr;
+  // a partition with fewer slots than experts evicts: fence its slots
+  const bool evicting = part != nullptr && part->slots < g.gate.size();
+  // make @a experts resident (read the misses), refresh the offsets, and
+  // keep the next kernels behind their writes; returns their slots
+  // The policy holds the slots of the misses from its acquire until
+  // fsu->filled: the reads are in flight in between.
+  auto fsuAcquire = [&](const std::vector<unsigned int> &experts) {
+    std::vector<std::pair<unsigned int, unsigned int>> fills;
+    if (fsu->acquire)
+      fsu->acquire(experts, fills);
+    else if (fsu->fill != nullptr)
+      fills = *fsu->fill;
+    std::vector<unsigned int> slots;
+    try {
+      arena.fill(cc, *part, st, *fsu, fills, arena.runBounces(), false);
+      tq2ArenaOffsets(st, *fsu->slot_of);
+      slots.reserve(experts.size());
+      for (unsigned int e : experts) {
+        const unsigned int s = (*fsu->slot_of)[e];
+        NNTR_THROW_IF(s >= part->slots, std::runtime_error)
+          << "tq2cx_moe_experts_cl: expert " << e
+          << " is not resident after its acquire";
+        slots.push_back(s);
+      }
+      arena.waitReady(cc, *part, slots);
+    } catch (...) {
+      if (fsu->acquire && fsu->filled)
+        fsu->filled(fills, false);
+      throw;
+    }
+    if (fsu->acquire && fsu->filled)
+      fsu->filled(fills, true);
+    return slots;
+  };
   auto &q = cc->command_queue_inst_;
-
-  auto combine_kp = cc->registerClKernel(
-    kTq2MoeAux, fp16 ? "tq2moe_combine_f16" : "tq2moe_combine_f32");
-  NNTR_THROW_IF(!combine_kp, std::runtime_error)
-    << "tq2cx_moe_experts_cl: aux kernels did not build";
 
   // shared-plane operands are handed to the device for the call
   if (in.svm)
@@ -1904,6 +4861,7 @@ bool tq2cx_moe_experts_cl(const MoeExpertGroup &g) {
     q.enqueueSVMUnmap(rin.svm);
 
   cl_mem yd = nullptr;
+  bool ahead = false; // a short prefill that may read the next layer ahead
   // combine tables: device buffers (device routing) or per-call uploads
   cl_mem d_src = nullptr, d_w = nullptr, d_cnt = nullptr;
   bool own_tables = false;
@@ -1915,6 +4873,48 @@ bool tq2cx_moe_experts_cl(const MoeExpertGroup &g) {
     // the input row's quantisation from the norm that wrote it, asked before
     // this call enqueues anything (the write log must reach back to the norm)
     const Tq2QRows in_q = tq2ClaimNormRow(cc, ws, in, fp16, H);
+    if (part != nullptr)
+      arena.streamEnd();
+    // streamed experts not all resident: the select kernel also reports the
+    // next ranks; the host waits for it, makes the selected experts resident
+    // and writes their slots' offsets in place of the table's
+    const bool fsu_route = part != nullptr && !fsu->complete;
+    const Tq2AsyncMode amode = fsu_route ? tq2AsyncMode(cc) : Tq2AsyncMode::off;
+    // the hit / miss split: the GEMVs over the resident experts run now, only
+    // the misses' wait for their reads
+    const bool split = amode != Tq2AsyncMode::off && tq2SplitOn(amode);
+    if (part != nullptr && fsu->complete) {
+      // a complete partition: its slot map is fixed, look it up on the
+      // device like a resident stack's; the writes still pending first
+      if (!st.tab_complete) {
+        tq2ArenaOffsets(st, *fsu->slot_of);
+        tq2ArenaTable(cc, st);
+        st.tab_complete = true;
+      }
+      arena.waitReady(cc, *part, arena.pendingSlots(*part));
+    } else if (fsu_route && (st.off_tab == nullptr ||
+                             (split && (st.res_flag == nullptr ||
+                                        st.tab_slots != *fsu->slot_of)))) {
+      // the select kernel's table operand; its offsets are rewritten below.
+      // Split: it also gives the hits their offsets and must describe the
+      // slot map now (the async job keeps it current; anything else that
+      // moved experts -- a prefill that lent the slots, the blocking step --
+      // is caught here). The previous step's select has run (joined).
+      tq2ArenaOffsets(st, *fsu->slot_of);
+      tq2ArenaTable(cc, st);
+      if (split) {
+        std::vector<uint32_t> res(E);
+        for (unsigned int e = 0; e < E; ++e)
+          res[e] =
+            (*fsu->slot_of)[e] != std::numeric_limits<unsigned int>::max();
+        if (st.res_flag != nullptr)
+          opencl::clReleaseMemObjectT(st.res_flag);
+        st.res_flag =
+          tq2Upload(cc, res.data(), E * sizeof(uint32_t), CL_MEM_READ_WRITE);
+        st.tab_slots = *fsu->slot_of;
+        tq2AsyncStats().table_uploads++;
+      }
+    }
     tq2RouteConstants(cc, ws, K);
     cl_mem ids = ws.r_ids.get(cc, K * sizeof(uint32_t));
     cl_mem wts = ws.r_w.get(cc, K * sizeof(float));
@@ -1931,8 +4931,9 @@ bool tq2cx_moe_experts_cl(const MoeExpertGroup &g) {
     auto lk_ =
       cc->registerClKernel(tq2moe_route_kernel, "tq2moe_route_logits",
                            d_rw16 != nullptr ? ropts + " -DRT_W_BF16" : ropts);
-    auto sk =
-      cc->registerClKernel(tq2moe_route_kernel, tq2RouteSelectKernel(), ropts);
+    auto sk = cc->registerClKernel(
+      tq2moe_route_kernel, tq2RouteSelectKernel(),
+      fsu_route ? ropts + " -DRT_EXT=" + std::to_string(kTq2RouteExt) : ropts);
     NNTR_THROW_IF(!nk || !lk_ || !sk, std::runtime_error)
       << "tq2cx_moe_experts_cl: the device router did not build";
     const unsigned int nseg = (H + kTq2RouteSeg - 1) / kTq2RouteSeg;
@@ -1973,6 +4974,10 @@ bool tq2cx_moe_experts_cl(const MoeExpertGroup &g) {
               sk->SetKernelArguments(7, &wts, sizeof(cl_mem)) &&
               sk->SetKernelArguments(8, &off_gu, sizeof(cl_mem)) &&
               sk->SetKernelArguments(9, &off_d, sizeof(cl_mem));
+    const unsigned int X = K + kTq2RouteExt;
+    cl_mem ext = fsu_route ? ws.r_ext.get(cc, X * sizeof(uint32_t)) : nullptr;
+    if (fsu_route)
+      ok = ok && sk->SetKernelArguments(10, &ext, sizeof(cl_mem));
     NNTR_THROW_IF(!ok, std::runtime_error)
       << "tq2cx_moe_experts_cl: device router arguments";
     // the norm: one group, a lane per four row elements up to 512 lanes
@@ -1984,6 +4989,349 @@ bool tq2cx_moe_experts_cl(const MoeExpertGroup &g) {
     const size_t elws = (E + 15) / 16 * 16;
     tq2Dispatch(cc, lk_, 2, {elws, (size_t)nseg, 1}, {elws, 1, 1});
     tq2Dispatch(cc, sk, 1, {elws, 1, 1}, {elws, 1, 1});
+    cl_mem s_gu_hit = nullptr, s_gu_miss = nullptr, s_d_hit = nullptr,
+           s_d_miss = nullptr;
+    if (split) {
+      s_gu_hit = ws.s_gu_hit.get(cc, 2 * K * sizeof(int));
+      s_gu_miss = ws.s_gu_miss.get(cc, 2 * K * sizeof(int));
+      s_d_hit = ws.s_d_hit.get(cc, K * sizeof(int));
+      s_d_miss = ws.s_d_miss.get(cc, K * sizeof(int));
+      auto spk =
+        cc->registerClKernel(tq2moe_route_kernel, "tq2moe_route_split", ropts);
+      NNTR_THROW_IF(!spk, std::runtime_error)
+        << "tq2cx_moe_experts_cl: the hit / miss split did not build";
+      NNTR_THROW_IF(
+        !(spk->SetKernelArguments(0, &ids, sizeof(cl_mem)) &&
+          spk->SetKernelArguments(1, &st.res_flag, sizeof(cl_mem)) &&
+          spk->SetKernelArguments(2, &Ki, sizeof(int)) &&
+          spk->SetKernelArguments(3, &s_gu_hit, sizeof(cl_mem)) &&
+          spk->SetKernelArguments(4, &s_gu_miss, sizeof(cl_mem)) &&
+          spk->SetKernelArguments(5, &s_d_hit, sizeof(cl_mem)) &&
+          spk->SetKernelArguments(6, &s_d_miss, sizeof(cl_mem))),
+        std::runtime_error)
+        << "tq2cx_moe_experts_cl: hit / miss split arguments";
+      tq2Dispatch(cc, spk, 1, {16, 1, 1}, {16, 1, 1});
+    }
+
+    std::vector<unsigned int> route_used;
+    if (amode != Tq2AsyncMode::off) {
+      // non-blocking: a job on the reader pool makes the selected experts
+      // resident once the select kernel is done (Tq2AsyncJob); the expert
+      // GEMVs and the combine (the tail) run behind it, enqueued now or,
+      // deferred, by the output's first reader, so the work the graph
+      // enqueues in between (the dense MLP) runs while the misses are read
+      cl_command_queue cq = q.GetCommandQueue();
+      cl_context ctx = cc->context_inst_.GetContextNoRetain();
+      cl_event sel = nullptr, user = nullptr;
+      cl_int err = opencl::clEnqueueBarrierWithWaitList(cq, 0, nullptr, &sel);
+      if (err == CL_SUCCESS && amode == Tq2AsyncMode::event) {
+        user = opencl::clCreateUserEvent(ctx, &err);
+        if (err == CL_SUCCESS)
+          err = opencl::clRetainEvent(user); // the job's reference
+      }
+      NNTR_THROW_IF(err != CL_SUCCESS, std::runtime_error)
+        << "tq2cx_moe_experts_cl: async decode fence failed (" << err << ")";
+      auto job = std::make_shared<Tq2AsyncJob>();
+      job->cc = cc;
+      job->io = arena.ioQueue(cc);
+      job->cq = cq;
+      job->ext = ext;
+      job->split = split;
+      // split: the job writes the misses' tables, the hits read off_gu /
+      // off_d (the select's) meanwhile
+      job->off_gu =
+        split ? ws.s_off_gu.get(cc, 2 * K * sizeof(uint32_t)) : off_gu;
+      job->off_d = split ? ws.s_off_d.get(cc, K * sizeof(uint32_t)) : off_d;
+      job->K = K;
+      job->X = X;
+      job->E = E;
+      job->part = part;
+      job->st = &st;
+      job->fd = fsu->fd;
+      job->offset = fsu->offset;
+      job->record_bytes = fsu->record_bytes;
+      job->slot_of = fsu->slot_of;
+      job->acquire = fsu->acquire;
+      job->filled = fsu->filled;
+      job->refresh = fsu->refresh;
+      job->last_use = part->lastUses();
+      job->user = user;
+      job->layer = fsu->layer_index;
+      st.async = job;
+      auto *holder = new std::shared_ptr<Tq2AsyncJob>(job);
+      err =
+        opencl::clSetEventCallback(sel, CL_COMPLETE, tq2AsyncSelected, holder);
+      if (err != CL_SUCCESS) {
+        delete holder;
+        st.async.reset();
+        if (user != nullptr) {
+          opencl::clSetUserEventStatus(user, -1);
+          opencl::clReleaseEvent(user);
+          opencl::clReleaseEvent(user);
+        }
+        opencl::clReleaseEvent(sel);
+        NNTR_THROW_IF(true, std::runtime_error)
+          << "tq2cx_moe_experts_cl: select callback failed (" << err << ")";
+      }
+      opencl::clFlush(cq); // the select must run for the callback to come
+      // the activation row does not depend on the routing: quantize it now,
+      // and hand the inputs back as the end of the call does
+      tq2QuantizeGemv(cc, ws, in.mem, in.svm, 1, H, fp16);
+      const bool exact = g.exact_gelu;
+      if (split) {
+        // the hits' half now, while the job reads the misses: gate / up and
+        // down over the resident experts' records (the miss rows skip), the
+        // GeGLU over every row (a miss row's is recomputed by the tail). A
+        // row is the same computation in either launch, the combine reads
+        // the rows in the same order: the same bits as one launch.
+        cl_mem ygu = ws.yg.get(cc, (size_t)2 * K * I * sizeof(float));
+        cl_mem act = ws.act.get(cc, (size_t)K * I * sizeof(float));
+        cl_mem yd = ws.yd.get(cc, (size_t)K * H * sizeof(float));
+        Tq2Workspace &wd = tq2WorkspaceDown();
+        tq2GemvBatchDev(cc, ws, st, off_gu, s_gu_hit, 2 * K, ygu, I, H);
+        tq2Glu(cc, ygu, 0, ygu, (size_t)K * I, act, (size_t)K * I, exact);
+        tq2QuantizeGemv(cc, wd, act, nullptr, K, I);
+        tq2GemvBatchDev(cc, wd, st, off_d, s_d_hit, K, yd, H, I);
+        opencl::clFlush(cq);
+        tq2AsyncStats().split++;
+      }
+      // next-layer prefetch (pre-gating): the next streamed layer's router
+      // on this layer's router row; the predicted experts the next layer
+      // does not hold are read ahead into host memory once this step's job
+      // and the prediction are both done (Tq2Prediction)
+      const MoeExpertFsu *nx = fsu->next;
+      const MoeRouter *nr = fsu->next_router;
+      if (tq2PregateM() > 0 && nx != nullptr && nr != nullptr && nx->fd >= 0 &&
+          nx->offset != nullptr && nx->offset->size() == E &&
+          nx->slot_of != nullptr && nx->slot_of->size() == E && nx->slots < E &&
+          nx->record_bytes == fsu->record_bytes &&
+          nx->layer_index != UINT32_MAX && tq2PregateTarget(nx->layer_index)) {
+        const float *n_w = tq2HostFloat(nr->weight);
+        const float *n_scale = tq2HostFloat(nr->scale);
+        const float *n_pes = tq2HostFloat(nr->per_expert_scale);
+        const float *n_norm =
+          nr->norm != nullptr ? tq2HostFloat(nr->norm) : nullptr;
+        if (n_w != nullptr && n_scale != nullptr && n_pes != nullptr &&
+            (nr->norm == nullptr || n_norm != nullptr) &&
+            nr->weight->getDim().getDataLen() == (size_t)H * E) {
+          if (st.pg) {
+            // the last prediction's readback of pg_ext is done (it was
+            // issued by the end of the previous token's step of this layer)
+            st.pg->waitIssued();
+            st.pg.reset();
+          }
+          if (st.pg_ext == nullptr) {
+            opencl::ClMemAcctScope acct("tq2cx_router");
+            st.pg_ext = tq2Upload(cc, std::vector<uint32_t>(X, 0).data(),
+                                  X * sizeof(uint32_t), CL_MEM_READ_WRITE);
+          }
+          cl_mem p_rw16 = tq2RouterWeightBf16(cc, n_w, (size_t)H * E);
+          cl_mem p_rw = p_rw16 != nullptr
+                          ? p_rw16
+                          : tq2RouterOperand(cc, n_w, (size_t)H * E);
+          cl_mem p_scale = tq2RouterOperand(cc, n_scale, H);
+          cl_mem p_pes = tq2RouterOperand(cc, n_pes, E);
+          cl_mem p_norm =
+            n_norm != nullptr ? tq2RouterOperand(cc, n_norm, H) : p_scale;
+          const int p_has_norm = n_norm != nullptr ? 1 : 0;
+          const float p_eps = nr->epsilon;
+          auto plk = cc->registerClKernel(
+            tq2moe_route_kernel, "tq2moe_route_logits",
+            p_rw16 != nullptr ? ropts + " -DRT_W_BF16" : ropts);
+          cl_mem p_ids = ws.p_ids.get(cc, K * sizeof(uint32_t));
+          cl_mem p_w = ws.p_w.get(cc, K * sizeof(float));
+          cl_mem p_ogu = ws.p_off_gu.get(cc, 2 * K * sizeof(uint32_t));
+          cl_mem p_od = ws.p_off_d.get(cc, K * sizeof(uint32_t));
+          bool pok = plk && rin.bind(nk, 0) && rin.bind(nk, 1) &&
+                     nk->SetKernelArguments(2, &x_half, sizeof(int)) &&
+                     nk->SetKernelArguments(3, &p_norm, sizeof(cl_mem)) &&
+                     nk->SetKernelArguments(4, &p_has_norm, sizeof(int)) &&
+                     nk->SetKernelArguments(5, &p_scale, sizeof(cl_mem)) &&
+                     nk->SetKernelArguments(6, &hscale, sizeof(float)) &&
+                     nk->SetKernelArguments(7, &p_eps, sizeof(float)) &&
+                     nk->SetKernelArguments(8, &Hi, sizeof(int)) &&
+                     nk->SetKernelArguments(9, &ry, sizeof(cl_mem)) &&
+                     plk->SetKernelArguments(0, &ry, sizeof(cl_mem)) &&
+                     plk->SetKernelArguments(1, &p_rw, sizeof(cl_mem)) &&
+                     plk->SetKernelArguments(2, &Hi, sizeof(int)) &&
+                     plk->SetKernelArguments(3, &Ei, sizeof(int)) &&
+                     plk->SetKernelArguments(4, &partial, sizeof(cl_mem)) &&
+                     sk->SetKernelArguments(0, &partial, sizeof(cl_mem)) &&
+                     sk->SetKernelArguments(1, &nsegi, sizeof(int)) &&
+                     sk->SetKernelArguments(2, &p_pes, sizeof(cl_mem)) &&
+                     sk->SetKernelArguments(3, &st.off_tab, sizeof(cl_mem)) &&
+                     sk->SetKernelArguments(4, &Ei, sizeof(int)) &&
+                     sk->SetKernelArguments(5, &Ki, sizeof(int)) &&
+                     sk->SetKernelArguments(6, &p_ids, sizeof(cl_mem)) &&
+                     sk->SetKernelArguments(7, &p_w, sizeof(cl_mem)) &&
+                     sk->SetKernelArguments(8, &p_ogu, sizeof(cl_mem)) &&
+                     sk->SetKernelArguments(9, &p_od, sizeof(cl_mem)) &&
+                     sk->SetKernelArguments(10, &st.pg_ext, sizeof(cl_mem));
+          cl_event pev = nullptr;
+          if (pok) {
+            tq2Dispatch(cc, nk, 1, {nlws, 1, 1}, {nlws, 1, 1});
+            tq2Dispatch(cc, plk, 2, {elws, (size_t)nseg, 1}, {elws, 1, 1});
+            tq2Dispatch(cc, sk, 1, {elws, 1, 1}, {elws, 1, 1});
+            pok = opencl::clEnqueueBarrierWithWaitList(cq, 0, nullptr, &pev) ==
+                  CL_SUCCESS;
+          }
+          if (pok) {
+            auto pred = std::make_shared<Tq2Prediction>();
+            pred->io = arena.ioQueue(cc);
+            pred->ext = st.pg_ext;
+            pred->X = X;
+            pred->m = tq2PregateM();
+            pred->E = E;
+            pred->layer = nx->layer_index;
+            pred->gen = tq2StageCache().generation(nx->layer_index);
+            pred->src.fd = nx->fd;
+            pred->src.offset = nx->offset;
+            pred->src.record_bytes = nx->record_bytes;
+            pred->slot_of = *nx->slot_of;
+            st.pg = pred;
+            auto *ph = new std::shared_ptr<Tq2Prediction>(pred);
+            if (opencl::clSetEventCallback(pev, CL_COMPLETE, tq2PregateReady,
+                                           ph) != CL_SUCCESS) {
+              delete ph;
+              opencl::clReleaseEvent(pev);
+              pred->arrive(/*from_callback=*/false); // no prediction
+            }
+            // the job (maybe running already) arrives when it is done
+            job->attachPrediction(pred);
+            opencl::clFlush(cq);
+          }
+        }
+      }
+      const bool defer = tq2DeferOn() && g.output_deferred != nullptr;
+      if (defer && in.svm)
+        q.enqueueSVMMap(in.svm, in.bytes, /*read_only=*/true, nullptr,
+                        /*async=*/true);
+      if (defer && rin.svm && rin.svm != in.svm)
+        q.enqueueSVMMap(rin.svm, rin.bytes, /*read_only=*/true, nullptr,
+                        /*async=*/true);
+      Tq2Stack *stp = &st;
+      // the tail: the GEMVs read the slots' offsets the job writes; every
+      // slot's next writer waits for them (the job chose the slots)
+      auto tail = [cc, stp, part, evicting, amode, job, user, K, I, H, fp16,
+                   exact, defer, in, out, off_gu, off_d, wts, split, s_gu_miss,
+                   s_d_miss]() {
+        auto &cq_mgr = cc->command_queue_inst_;
+        // event mode, the job already done (a deferred tail comes after the
+        // dense MLP): its writes have completed, so the kernels below need
+        // no barrier on its event, and without a miss no kernel at all
+        const bool done_early = amode == Tq2AsyncMode::event && job->ready();
+        if (done_early) {
+          opencl::clReleaseEvent(user); // the host's reference
+          tq2AsyncStats().event_skipped++;
+          job->join(); // rethrow its failure
+        } else if (amode == Tq2AsyncMode::join) {
+          // the work enqueued since the call (the hits, the dense MLP) runs
+          // while the host waits
+          opencl::clFlush(cq_mgr.GetCommandQueue());
+          const auto t0 = std::chrono::steady_clock::now();
+          job->wait();
+          tq2AsyncStats().host_wait_us += tq2UsSince(t0);
+          job->join(); // rethrow its failure
+        } else {
+          const cl_int e = opencl::clEnqueueBarrierWithWaitList(
+            cq_mgr.GetCommandQueue(), 1, &user, nullptr);
+          opencl::clReleaseEvent(user); // the host's reference
+          NNTR_THROW_IF(e != CL_SUCCESS, std::runtime_error)
+            << "tq2cx_moe_experts_cl: async decode barrier failed (" << e
+            << ")";
+        }
+        tq2AsyncStats().tails++;
+        Tq2Workspace &w = tq2Workspace();
+        cl_mem ygu = w.yg.get(cc, (size_t)2 * K * I * sizeof(float));
+        cl_mem act = w.act.get(cc, (size_t)K * I * sizeof(float));
+        cl_mem yd = w.yd.get(cc, (size_t)K * H * sizeof(float));
+        if (split) {
+          // the misses' half; once the job is known done, no miss = nothing
+          if ((amode != Tq2AsyncMode::join && !done_early) ||
+              job->misses != 0) {
+            Tq2Workspace &wd = tq2WorkspaceDown();
+            tq2GemvBatchDev(cc, w, *stp, job->off_gu, s_gu_miss, 2 * K, ygu, I,
+                            H);
+            tq2Glu(cc, ygu, 0, ygu, (size_t)K * I, act, (size_t)K * I, exact);
+            tq2QuantizeGemv(cc, wd, act, nullptr, K, I);
+            tq2GemvBatchDev(cc, wd, *stp, job->off_d, s_d_miss, K, yd, H, I);
+          } else {
+            tq2AsyncStats().no_miss++;
+          }
+        } else {
+          tq2GemvBatchDev(cc, w, *stp, off_gu, w.c_zero, 2 * K, ygu, I, H);
+          tq2Glu(cc, ygu, 0, ygu, (size_t)K * I, act, (size_t)K * I, exact);
+          tq2QuantizeGemv(cc, w, act, nullptr, K, I);
+          tq2GemvBatchDev(cc, w, *stp, off_d, w.c_iota, K, yd, H, I);
+        }
+        if (evicting) {
+          std::vector<unsigned int> all(part->slots);
+          for (unsigned int sl = 0; sl < part->slots; ++sl)
+            all[sl] = sl;
+          Tq2ExpertArena::get().markUse(cc, *part, all);
+        }
+        NNTR_THROW_IF(
+          !tq2Combine(cc, fp16, yd, out, w.c_iota, wts, w.c_count, H, K, 1),
+          std::runtime_error)
+          << "tq2cx_moe_experts_cl: combine arguments";
+        // deferred: the caller already handed the output to the device as
+        // it was (unmapped); in place, the end of the call maps it like the
+        // blocking step does
+        if (!defer) {
+          if (in.svm)
+            cq_mgr.enqueueSVMMap(in.svm, in.bytes, /*read_only=*/true, nullptr,
+                                 /*async=*/true);
+          if (out.svm)
+            cq_mgr.enqueueSVMMap(out.svm, out.bytes, /*read_only=*/true,
+                                 nullptr, /*async=*/true);
+        }
+      };
+      if (defer) {
+        tq2Tails().push_back({tq2ActKey(out), std::move(tail)});
+        setDeferredOutputsPending(true);
+        *g.output_deferred = true;
+        tq2AsyncStats().deferred++;
+      } else {
+        tail();
+        if (rin.svm && rin.svm != in.svm)
+          q.enqueueSVMMap(rin.svm, rin.bytes, /*read_only=*/true, nullptr,
+                          /*async=*/true);
+      }
+      return true;
+    } else if (fsu_route) {
+      // wait for the selection, read the ids back (rank order)
+      std::vector<uint32_t> ranked(X);
+      cl_command_queue cq = q.GetCommandQueue();
+      cl_int err =
+        opencl::clEnqueueReadBuffer(cq, ext, CL_TRUE, 0, X * sizeof(uint32_t),
+                                    ranked.data(), 0, nullptr, nullptr);
+      NNTR_THROW_IF(err != CL_SUCCESS, std::runtime_error)
+        << "tq2cx_moe_experts_cl: routing readback failed (" << err << ")";
+      std::vector<unsigned int> ids(ranked.begin(), ranked.begin() + K);
+      std::sort(ids.begin(), ids.end()); // the order ids[] / w[] are in
+      for (unsigned int e : ids)
+        NNTR_THROW_IF(e >= E, std::runtime_error)
+          << "tq2cx_moe_experts_cl: routed expert " << e << " of " << E;
+      route_used = fsuAcquire(ids);
+      // recency hint: the extended ranks, least to most recent
+      if (fsu->refresh)
+        fsu->refresh(std::vector<unsigned int>(ranked.rbegin(), ranked.rend()));
+      std::vector<uint32_t> ogu(2 * K), od(K);
+      for (unsigned int a = 0; a < K; ++a) {
+        ogu[a] = st.off_gate[ids[a]];
+        ogu[K + a] = st.off_up[ids[a]];
+        od[a] = st.off_down[ids[a]];
+      }
+      err = opencl::clEnqueueWriteBuffer(cq, off_gu, CL_TRUE, 0,
+                                         ogu.size() * sizeof(uint32_t),
+                                         ogu.data(), 0, nullptr, nullptr);
+      if (err == CL_SUCCESS)
+        err = opencl::clEnqueueWriteBuffer(cq, off_d, CL_TRUE, 0,
+                                           od.size() * sizeof(uint32_t),
+                                           od.data(), 0, nullptr, nullptr);
+      NNTR_THROW_IF(err != CL_SUCCESS, std::runtime_error)
+        << "tq2cx_moe_experts_cl: slot offsets write failed (" << err << ")";
+    }
 
     cl_mem ygu = ws.yg.get(cc, (size_t)2 * K * I * sizeof(float));
     cl_mem act = ws.act.get(cc, (size_t)K * I * sizeof(float));
@@ -1994,6 +5342,8 @@ bool tq2cx_moe_experts_cl(const MoeExpertGroup &g) {
     tq2GluQuantize(cc, ws, ygu, 0, ygu, (size_t)K * I, act, K, I, g.exact_gelu,
                    tq2GemvPermAct(cc));
     tq2GemvBatchDev(cc, ws, st, off_d, ws.c_iota, K, yd, H, I);
+    if (evicting && fsu_route)
+      arena.markUse(cc, *part, route_used);
     d_src = ws.c_iota;
     d_w = wts;
     d_cnt = ws.c_count;
@@ -2001,17 +5351,66 @@ bool tq2cx_moe_experts_cl(const MoeExpertGroup &g) {
   } else {
     const unsigned int k = (unsigned int)g.active.size();
     const auto &asg = *g.assignments;
+    // Streamed experts, a call of many rows on an evicting layer: whole
+    // layers stream through partitions the arena lends (the layer forgot its
+    // resident experts first); the experts run per lent partition.
+    const bool stream = T > 1 && tq2StreamOn(fsu, part, E, T);
+    if (part != nullptr && !stream)
+      arena.streamEnd();
+    ahead = T > 1 && part != nullptr && !stream && fsu->next_ahead != nullptr;
+    // A streamed layer whose block buffer holds every expert of the layer
+    // (expert e in slot e of one cl_mem, Tq2ExpertArena::partition): the
+    // resident launch sequence below, once the block is in device memory.
+    Tq2ExpertArena::StreamSet *bset = nullptr;
+    if (stream && arena.streamSet(fsu->layer_index % 2).block != nullptr)
+      bset = &arena.streamSet(fsu->layer_index % 2);
+    // Launch order of the active experts. Resident, streamed, or one chunk:
+    // ascending id. Read in chunks (more active experts than slots): the
+    // experts with the most rows first, so the largest launches start while
+    // the reads of the rest are still to come. Each expert's rows are laid
+    // out in launch order, so a chunk's rows are one contiguous range; the
+    // combine still sums every token's contributions in ascending expert id,
+    // so the order changes no value.
+    std::vector<unsigned int> ord(k);
+    for (unsigned int a = 0; a < k; ++a)
+      ord[a] = a;
+    const bool chunked = T > 1 && part != nullptr && !stream && k > part->slots;
+    // a short prefill (NNTR_G4MOE_FSU_PREFILL_LOOKAHEAD): the chunks take
+    // the resident experts first (those the previous layer read ahead among
+    // them), so no chunk's misses evict an expert a later chunk needs and
+    // the first chunk's kernels start without a read
+    const bool res_first = chunked && tq2PrefillAheadOn() && fsu->resident;
+    if (T > 1 && part != nullptr && !stream)
+      tq2PrefillAheadTally(*fsu, g.active);
+    std::vector<char> res(res_first ? k : 0, 0);
+    for (unsigned int a = 0; res_first && a < k; ++a)
+      res[a] = fsu->resident(g.active[a]) ? 1 : 0;
+    if (chunked)
+      std::stable_sort(
+        ord.begin(), ord.end(), [&](unsigned int x, unsigned int y) {
+          if (res_first && res[x] != res[y])
+            return res[x] > res[y];
+          return asg[g.active[x]].size() > asg[g.active[y]].size();
+        });
     // per-token contribution table, ascending expert id (the active list
     // order): source row of the down output and the routing weight
     std::vector<int> row_off(k), row_cnt(k);
     unsigned int R = 0, max_rows = 0;
-    for (unsigned int a = 0; a < k; ++a) {
+    for (unsigned int i = 0; i < k; ++i) {
+      const unsigned int a = ord[i];
       row_off[a] = (int)R;
       row_cnt[a] = (int)asg[g.active[a]].size();
       R += row_cnt[a];
       max_rows = std::max(max_rows, (unsigned int)row_cnt[a]);
     }
-    const bool tiles = T > 1 && !tq2Dpas(cc) && tq2TileCfg().flat;
+    // gathered row layout: the launch order above (ascending id unless
+    // chunked). Any layout gives the same results: rows are quantized
+    // independently and the combine adds the contributions in table order
+    // (ascending expert id), not row order. Streamed or chunked experts
+    // (moe_fsu) run the per-chunk grouped GEMMs, not the tile list; a
+    // streamed layer in a block buffer (bset) runs the one pass.
+    const bool one_pass = (!stream && !chunked) || bset != nullptr;
+    const bool tiles = T > 1 && one_pass && !tq2Dpas(cc) && tq2TileCfg().flat;
     std::vector<int> counts(T, 0);
     for (unsigned int a = 0; a < k; ++a)
       for (const auto &tw : asg[g.active[a]])
@@ -2036,6 +5435,9 @@ bool tq2cx_moe_experts_cl(const MoeExpertGroup &g) {
 
     if (T == 1) {
       // ---- decode: one activation row, all experts batched ----
+      std::vector<unsigned int> used;
+      if (part != nullptr)
+        used = fsuAcquire(g.active);
       const Tq2QRows in_q = tq2ClaimNormRow(cc, ws, in, fp16, H);
       if (in_q.xq == nullptr)
         tq2QuantizeGemv(cc, ws, in.mem, in.svm, 1, H, fp16);
@@ -2058,81 +5460,251 @@ bool tq2cx_moe_experts_cl(const MoeExpertGroup &g) {
       }
       yd = ws.yd.get(cc, (size_t)k * H * sizeof(float));
       tq2GemvBatch(cc, ws, st, off_d, ar_d, yd, H, I);
+      if (evicting)
+        arena.markUse(cc, *part, used);
     } else {
       // ---- prefill: gather, grouped GEMMs over every expert's rows ----
       // tq2cx_gemm_tiles_v2_portable reads the int8 rows in TQ2 order: the
       // two quantizers below then store that order
       int v2 = tq2V2Plan(cc, tiles, H, I, R);
       cl_mem d_gsrc = tq2Small(cc, gather_src.data(), R * sizeof(int));
-      auto quantize_in = [&](bool perm) {
+      if (one_pass) {
+        // one launch sequence over every active expert (the resident ones,
+        // or a streamed layer's block: expert e in slot e of the block)
+        std::vector<unsigned int> used;
+        Tq2Stack bst;
+        const Tq2Stack *rs = &st;
+        if (bset != nullptr) {
+          tq2StreamIssue(cc, *fsu, st, E);
+          bst.layout = st.layout;
+          bst.H = st.H;
+          bst.I = st.I;
+          bst.arena = true;
+          bst.gu_bytes = st.gu_bytes;
+          bst.dn_bytes = st.dn_bytes;
+          bst.slot_bytes = st.slot_bytes;
+          bst.buf = bset->block;
+          tq2ArenaOffsets(bst, [E]() {
+            std::vector<unsigned int> v(E);
+            for (unsigned int e = 0; e < E; ++e)
+              v[e] = e;
+            return v;
+          }());
+          rs = &bst;
+        } else if (part != nullptr) {
+          used = fsuAcquire(g.active);
+        }
+        auto quantize_in = [&](bool perm) {
+          if (tq2QuantFuse()) {
+            tq2GatherQuantize(cc, ws, in, fp16, d_gsrc, R, H, perm);
+          } else {
+            auto gk = cc->registerClKernel(
+              kTq2MoeAux, fp16 ? "tq2moe_gather_f16" : "tq2moe_gather_f32");
+            NNTR_THROW_IF(!gk, std::runtime_error)
+              << "tq2cx_moe_experts_cl: aux kernels did not build";
+            cl_mem xf = ws.xf.get(cc, (size_t)R * H * sizeof(float));
+            const int Hi = (int)H, tot = (int)((size_t)R * H);
+            bool ok = in.bind(gk, 0) &&
+                      gk->SetKernelArguments(1, &xf, sizeof(cl_mem)) &&
+                      gk->SetKernelArguments(2, &d_gsrc, sizeof(cl_mem)) &&
+                      gk->SetKernelArguments(3, &Hi, sizeof(int)) &&
+                      gk->SetKernelArguments(4, &tot, sizeof(int));
+            if (ok)
+              tq2Dispatch(cc, gk, 1, {((size_t)tot + 63) / 64 * 64, 1, 1},
+                          {64, 1, 1});
+            if (!ok)
+              opencl::clReleaseMemObjectT(d_gsrc);
+            NNTR_THROW_IF(!ok, std::runtime_error)
+              << "tq2cx_moe_experts_cl: gather arguments";
+            tq2Quantize(cc, ws, xf, nullptr, R, H, false, perm);
+          }
+        };
+        quantize_in(v2 >= 0);
+        std::vector<uint32_t> off_g(k), off_u(k), off_d(k);
+        for (unsigned int a = 0; a < k; ++a) {
+          off_g[a] = rs->off_gate[g.active[a]];
+          off_u[a] = rs->off_up[g.active[a]];
+          off_d[a] = rs->off_down[g.active[a]];
+        }
+        std::unique_ptr<Tq2Tiles> tl;
+        if (tiles) {
+          tl = std::make_unique<Tq2Tiles>();
+          tq2PlanTiles(cc, row_off, row_cnt, *tl);
+        }
+        // a v2 GEMM that cannot run (no usable form at GEMM time): quantize
+        // its rows again in plain order (requant) and take the P-TILES kernel
+        // for the rest of the layer (same outputs bit for bit)
+        auto gemm = [&](const std::vector<uint32_t> &off, cl_mem Y,
+                        unsigned int N, unsigned int K, auto requant) {
+          if (!tl) {
+            tq2GroupedGemm(cc, ws, *rs, off, row_off, row_cnt, max_rows, Y, N,
+                           K);
+            return;
+          }
+          if (tq2GroupedGemmTiles(cc, ws, *rs, *tl, off, Y, N, K, R, v2))
+            return;
+          v2 = -1;
+          requant();
+          tq2GroupedGemmTiles(cc, ws, *rs, *tl, off, Y, N, K, R, v2);
+        };
+        if (bset != nullptr) {
+          // the GEMMs read the block: wait until all of it is in device
+          // memory (the input rows above are quantized meanwhile)
+          const unsigned int x = fsu->layer_index % 2;
+          for (size_t j = 0; j < bset->parts.size(); ++j)
+            arena.streamWait(x, j, fsu->fadvise_dontneed);
+        }
+        auto requant_in = [&]() { quantize_in(false); };
+        cl_mem yg = ws.yg.get(cc, (size_t)R * I * sizeof(float));
+        cl_mem yu = ws.yu.get(cc, (size_t)R * I * sizeof(float));
+        gemm(off_g, yg, I, H, requant_in);
+        gemm(off_u, yu, I, H, requant_in);
+        opencl::clReleaseMemObjectT(d_gsrc);
+        cl_mem act = ws.act.get(cc, (size_t)R * I * sizeof(float));
         if (tq2QuantFuse()) {
-          tq2GatherQuantize(cc, ws, in, fp16, d_gsrc, R, H, perm);
+          tq2GluQuantize(cc, ws, yg, 0, yu, 0, act, R, I, g.exact_gelu,
+                         v2 >= 0);
         } else {
-          auto gk = cc->registerClKernel(
-            kTq2MoeAux, fp16 ? "tq2moe_gather_f16" : "tq2moe_gather_f32");
-          NNTR_THROW_IF(!gk, std::runtime_error)
-            << "tq2cx_moe_experts_cl: aux kernels did not build";
-          cl_mem xf = ws.xf.get(cc, (size_t)R * H * sizeof(float));
-          const int Hi = (int)H, tot = (int)((size_t)R * H);
-          bool ok = in.bind(gk, 0) &&
-                    gk->SetKernelArguments(1, &xf, sizeof(cl_mem)) &&
-                    gk->SetKernelArguments(2, &d_gsrc, sizeof(cl_mem)) &&
-                    gk->SetKernelArguments(3, &Hi, sizeof(int)) &&
-                    gk->SetKernelArguments(4, &tot, sizeof(int));
-          if (ok)
-            tq2Dispatch(cc, gk, 1, {((size_t)tot + 63) / 64 * 64, 1, 1},
-                        {64, 1, 1});
-          if (!ok)
-            opencl::clReleaseMemObjectT(d_gsrc);
-          NNTR_THROW_IF(!ok, std::runtime_error)
-            << "tq2cx_moe_experts_cl: gather arguments";
-          tq2Quantize(cc, ws, xf, nullptr, R, H, false, perm);
+          tq2Glu(cc, yg, 0, yu, 0, act, (size_t)R * I, g.exact_gelu);
+          tq2Quantize(cc, ws, act, nullptr, R, I, false, v2 >= 0);
         }
-      };
-      quantize_in(v2 >= 0);
-      std::vector<uint32_t> off_g(k), off_u(k), off_d(k);
-      for (unsigned int a = 0; a < k; ++a) {
-        off_g[a] = st.off_gate[g.active[a]];
-        off_u[a] = st.off_up[g.active[a]];
-        off_d[a] = st.off_down[g.active[a]];
-      }
-      std::unique_ptr<Tq2Tiles> tl;
-      if (tiles) {
-        tl = std::make_unique<Tq2Tiles>();
-        tq2PlanTiles(cc, row_off, row_cnt, *tl);
-      }
-      // a v2 GEMM that cannot run (no usable form at GEMM time): quantize
-      // its rows again in plain order (requant) and take the P-TILES kernel
-      // for the rest of the layer (same outputs bit for bit)
-      auto gemm = [&](const std::vector<uint32_t> &off, cl_mem Y,
-                      unsigned int N, unsigned int K, auto requant) {
-        if (!tl) {
-          tq2GroupedGemm(cc, ws, st, off, row_off, row_cnt, max_rows, Y, N, K);
-          return;
+        yd = ws.yd.get(cc, (size_t)R * H * sizeof(float));
+        // both GeGLU paths leave the activations in act
+        gemm(off_d, yd, H, I,
+             [&]() { tq2Quantize(cc, ws, act, nullptr, R, I, false, false); });
+        if (bset != nullptr) {
+          // the slots read, per lent partition (expert e: slot e % C of
+          // part e / C), behind one marker
+          const unsigned int C = part->slots;
+          std::vector<
+            std::pair<Tq2ExpertArena::Partition *, std::vector<unsigned int>>>
+            uses(bset->parts.size());
+          for (size_t j = 0; j < bset->parts.size(); ++j)
+            uses[j].first = bset->parts[j];
+          for (unsigned int a = 0; a < k; ++a) {
+            const unsigned int e = g.active[a];
+            NNTR_THROW_IF(e / C >= uses.size(), std::logic_error)
+              << "tq2cx_moe_experts_cl: expert " << e
+              << " outside the streamed block";
+            uses[e / C].second.push_back(e % C);
+          }
+          arena.markUseParts(cc, uses);
+        } else if (evicting) {
+          arena.markUse(cc, *part, used);
         }
-        if (tq2GroupedGemmTiles(cc, ws, st, *tl, off, Y, N, K, R, v2))
-          return;
-        v2 = -1;
-        requant();
-        tq2GroupedGemmTiles(cc, ws, st, *tl, off, Y, N, K, R, v2);
-      };
-      auto requant_in = [&]() { quantize_in(false); };
-      cl_mem yg = ws.yg.get(cc, (size_t)R * I * sizeof(float));
-      cl_mem yu = ws.yu.get(cc, (size_t)R * I * sizeof(float));
-      gemm(off_g, yg, I, H, requant_in);
-      gemm(off_u, yu, I, H, requant_in);
-      opencl::clReleaseMemObjectT(d_gsrc);
-      cl_mem act = ws.act.get(cc, (size_t)R * I * sizeof(float));
-      if (tq2QuantFuse()) {
-        tq2GluQuantize(cc, ws, yg, 0, yu, 0, act, R, I, g.exact_gelu, v2 >= 0);
       } else {
-        tq2Glu(cc, yg, 0, yu, 0, act, (size_t)R * I, g.exact_gelu);
-        tq2Quantize(cc, ws, act, nullptr, R, I, false, v2 >= 0);
+        // streamed or chunked experts: gather the rows in fp32 (the
+        // per-chunk quantizers read row ranges of it)
+        auto gk = cc->registerClKernel(kTq2MoeAux, fp16 ? "tq2moe_gather_f16"
+                                                        : "tq2moe_gather_f32");
+        NNTR_THROW_IF(!gk, std::runtime_error)
+          << "tq2cx_moe_experts_cl: aux kernels did not build";
+        cl_mem xf = ws.xf.get(cc, (size_t)R * H * sizeof(float));
+        const int Hi = (int)H, tot = (int)((size_t)R * H);
+        bool ok = in.bind(gk, 0) &&
+                  gk->SetKernelArguments(1, &xf, sizeof(cl_mem)) &&
+                  gk->SetKernelArguments(2, &d_gsrc, sizeof(cl_mem)) &&
+                  gk->SetKernelArguments(3, &Hi, sizeof(int)) &&
+                  gk->SetKernelArguments(4, &tot, sizeof(int));
+        if (ok)
+          tq2Dispatch(cc, gk, 1, {((size_t)tot + 63) / 64 * 64, 1, 1},
+                      {64, 1, 1});
+        opencl::clReleaseMemObjectT(d_gsrc);
+        NNTR_THROW_IF(!ok, std::runtime_error)
+          << "tq2cx_moe_experts_cl: gather arguments";
+        cl_mem yg = ws.yg.get(cc, (size_t)R * I * sizeof(float));
+        cl_mem yu = ws.yu.get(cc, (size_t)R * I * sizeof(float));
+        cl_mem act = ws.act.get(cc, (size_t)R * I * sizeof(float));
+        yd = ws.yd.get(cc, (size_t)R * H * sizeof(float));
+        // In chunks: a chunk's grouped GEMMs produce exactly its experts'
+        // rows (row_off / row_cnt are absolute), and the quantizers and the
+        // GeGLU work per row, restricted to the chunk's rows, so the output
+        // does not depend on the chunking. The int8 rows of the down
+        // projection reuse the input's buffer: in-order, a chunk's input
+        // rows are consumed before its GeGLU rows are quantized.
+        ws.xqGet(cc, (size_t)R * std::max(H, I));
+        ws.xs.get(cc, (size_t)R * sizeof(float));
+        ws.xz.get(cc, (size_t)R * sizeof(int));
+        ws.xrs.get(cc, (size_t)R * sizeof(int));
+        // experts [i0, i1) of the launch order on stack @a cs (offsets
+        // @a og / @a ou / @a od, per expert of the chunk)
+        auto runChunk = [&](const Tq2Stack &cs, unsigned int i0,
+                            unsigned int i1, const std::vector<uint32_t> &og,
+                            const std::vector<uint32_t> &ou,
+                            const std::vector<uint32_t> &od) {
+          const unsigned int n = i1 - i0;
+          std::vector<int> c_off(n), c_cnt(n);
+          unsigned int c_max = 0, rows = 0;
+          for (unsigned int i = i0; i < i1; ++i) {
+            const unsigned int a = ord[i];
+            c_off[i - i0] = row_off[a];
+            c_cnt[i - i0] = row_cnt[a];
+            c_max = std::max(c_max, (unsigned int)row_cnt[a]);
+            rows += row_cnt[a];
+          }
+          const unsigned int r0 = (unsigned int)row_off[ord[i0]];
+          tq2QuantizeRowRange(cc, ws, xf, r0, rows, H);
+          tq2GroupedGemm(cc, ws, cs, og, c_off, c_cnt, c_max, yg, I, H);
+          tq2GroupedGemm(cc, ws, cs, ou, c_off, c_cnt, c_max, yu, I, H);
+          tq2Glu(cc, yg, (size_t)r0 * I, yu, (size_t)r0 * I, act,
+                 (size_t)rows * I, g.exact_gelu, (size_t)r0 * I);
+          tq2QuantizeRowRange(cc, ws, act, r0, rows, I);
+          tq2GroupedGemm(cc, ws, cs, od, c_off, c_cnt, c_max, yd, H, I);
+        };
+        if (stream) {
+          // the lent partitions of this layer's block: expert e in slot
+          // e % C of part e / C; one chunk per part, in read order
+          const unsigned int x = fsu->layer_index % 2;
+          tq2StreamIssue(cc, *fsu, st, E);
+          Tq2ExpertArena::StreamSet &S = arena.streamSet(x);
+          const unsigned int C = part->slots;
+          unsigned int i = 0;
+          for (size_t j = 0; j < S.parts.size(); ++j) {
+            arena.streamWait(x, j, fsu->fadvise_dontneed);
+            const unsigned int i0 = i;
+            while (i < k && g.active[ord[i]] < (j + 1) * C)
+              ++i;
+            if (i == i0)
+              continue;
+            Tq2ExpertArena::Partition &p = *S.parts[j];
+            Tq2Stack cs = st;
+            cs.buf = p.buf;
+            std::vector<uint32_t> og, ou, od;
+            std::vector<unsigned int> used;
+            for (unsigned int ii = i0; ii < i; ++ii) {
+              const unsigned int sl = g.active[ord[ii]] - (unsigned int)j * C;
+              const size_t base = (size_t)sl * p.slot_bytes;
+              og.push_back((uint32_t)tq2Words(base));
+              ou.push_back((uint32_t)tq2Words(base + st.gu_bytes));
+              od.push_back((uint32_t)tq2Words(base + 2 * st.gu_bytes));
+              used.push_back(sl);
+            }
+            runChunk(cs, i0, i, og, ou, od);
+            arena.markUse(cc, p, used);
+          }
+          NNTR_THROW_IF(i != k, std::logic_error)
+            << "tq2cx_moe_experts_cl: " << (k - i)
+            << " active experts outside the streamed block";
+        } else {
+          // read in chunks of at most the layer's slots, launch order
+          for (unsigned int i0 = 0; i0 < k; i0 += part->slots) {
+            const unsigned int i1 = std::min(k, i0 + part->slots);
+            std::vector<unsigned int> experts;
+            for (unsigned int i = i0; i < i1; ++i)
+              experts.push_back(g.active[ord[i]]);
+            const std::vector<unsigned int> used = fsuAcquire(experts);
+            std::vector<uint32_t> og, ou, od;
+            for (unsigned int e : experts) {
+              og.push_back(st.off_gate[e]);
+              ou.push_back(st.off_up[e]);
+              od.push_back(st.off_down[e]);
+            }
+            runChunk(st, i0, i1, og, ou, od);
+            if (evicting)
+              arena.markUse(cc, *part, used);
+          }
+        }
       }
-      yd = ws.yd.get(cc, (size_t)R * H * sizeof(float));
-      // both GeGLU paths leave the activations in act
-      gemm(off_d, yd, H, I,
-           [&]() { tq2Quantize(cc, ws, act, nullptr, R, I, false, false); });
     }
     d_src = tq2Small(cc, src_row.data(), src_row.size() * sizeof(int));
     d_w = tq2Small(cc, weight.data(), weight.size() * sizeof(float));
@@ -2141,18 +5713,7 @@ bool tq2cx_moe_experts_cl(const MoeExpertGroup &g) {
   }
 
   // ---- weighted combine into the output rows (ascending expert id) ----
-  const int Hi = (int)H, mk = (int)max_k, tot = (int)((size_t)T * H);
-  bool ok = combine_kp->SetKernelArguments(0, &yd, sizeof(cl_mem)) &&
-            out.bind(combine_kp, 1) &&
-            combine_kp->SetKernelArguments(2, &d_src, sizeof(cl_mem)) &&
-            combine_kp->SetKernelArguments(3, &d_w, sizeof(cl_mem)) &&
-            combine_kp->SetKernelArguments(4, &d_cnt, sizeof(cl_mem)) &&
-            combine_kp->SetKernelArguments(5, &Hi, sizeof(int)) &&
-            combine_kp->SetKernelArguments(6, &mk, sizeof(int)) &&
-            combine_kp->SetKernelArguments(7, &tot, sizeof(int));
-  if (ok)
-    tq2Dispatch(cc, combine_kp, 1, {((size_t)tot + 63) / 64 * 64, 1, 1},
-                {64, 1, 1});
+  const bool ok = tq2Combine(cc, fp16, yd, out, d_src, d_w, d_cnt, H, max_k, T);
   if (own_tables) {
     opencl::clReleaseMemObjectT(d_src);
     opencl::clReleaseMemObjectT(d_w);
@@ -2170,6 +5731,10 @@ bool tq2cx_moe_experts_cl(const MoeExpertGroup &g) {
   NNTR_THROW_IF(!ok, std::runtime_error)
     << "tq2cx_moe_experts_cl: combine arguments";
 
+  // a short prefill: the next layer's predicted experts are read into its
+  // slots while this layer's kernels run
+  if (ahead)
+    tq2PrefillAheadIssue(cc, *fsu, st);
   return true;
 }
 

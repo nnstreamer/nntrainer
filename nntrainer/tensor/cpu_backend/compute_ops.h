@@ -32,6 +32,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <utility>
 #include <vector>
 
@@ -62,6 +63,107 @@ struct MoeRouter {
 };
 
 /**
+ * @brief Where a MoE layer's experts come from when the backend reads them
+ *        from the weight file into its own expert slots (see
+ *        MoeExpertGroup::fsu).
+ * @details One expert's record is its gate, up and down weights back to back
+ * in the file (record_bytes in all). The layer owns the residency policy: it
+ * decides which expert sits in which of its @a slots slots; the backend owns
+ * the bytes (the slot memory, the reads, and the fences that keep a slot from
+ * being overwritten while a queued kernel still reads it).
+ */
+struct MoeExpertFsu {
+  int fd = -1; /**< the weight file, kept open by the caller */
+  /** per expert id: file offset of its record */
+  const std::vector<uint64_t> *offset = nullptr;
+  size_t record_bytes = 0; /**< bytes of one record (the record stride) */
+  unsigned int slots = 0;  /**< this layer's slots */
+  /** per expert id: its slot, or UINT_MAX when not resident; read after
+   *  each acquire below */
+  const std::vector<unsigned int> *slot_of = nullptr;
+  /** (expert, slot) pairs to read before use, for a caller that acquired
+   *  them up front (no acquire hook) */
+  const std::vector<std::pair<unsigned int, unsigned int>> *fill = nullptr;
+  /** make @a experts resident (the backend calls it with at most @a slots
+   *  experts at a time, before it uses them) and append the (expert, slot)
+   *  pairs that must be read first to @a fill; may be empty when @a fill
+   *  above already covers the call */
+  std::function<void(const std::vector<unsigned int> &experts,
+                     std::vector<std::pair<unsigned int, unsigned int>> &fill)>
+    acquire;
+  /** called once the (expert, slot) pairs @a fill that the acquire hook
+   *  returned are ordered ahead of every later reader and writer of their
+   *  slots (@a ok), or could not be read (!@a ok: those slots do not hold
+   *  the experts); the policy holds those slots from its acquire until
+   *  then, so no other acquire takes them while their reads are in flight */
+  std::function<void(
+    const std::vector<std::pair<unsigned int, unsigned int>> &fill, bool ok)>
+    filled;
+  /** every expert is resident and stays in its slot (slot_of no longer
+   *  changes): the backend may route a decode row on the device */
+  bool complete = false;
+  /** a decode row routed on the device: the experts ranked after the
+   *  selected ones, with them, least to most recent (the top-1 last); a
+   *  hint for the policy (it loads and evicts nothing) */
+  std::function<void(const std::vector<unsigned int> &recency)> refresh;
+
+  // ---- prefill: whole-layer block stream ----
+  /** position of the layer among the streamed MoE layers (0, 1, ...; every
+   *  layer's partition is created at load under this index), or UINT_MAX */
+  unsigned int layer_index = UINT32_MAX;
+  /** the next streamed MoE layer's descriptor (fd, offset, record_bytes,
+   *  slots, layer_index), or null for the last layer */
+  const MoeExpertFsu *next = nullptr;
+  /** a call of at least this many rows on a layer with fewer slots than
+   *  experts streams whole layers: its experts run from a block read
+   *  ahead (during the previous layer) into partitions lent by the arena,
+   *  and it reads the next layer's block ahead the same way. The layer has
+   *  forgotten its resident experts before such a call (its slots may be
+   *  lent). Fewer rows: only the routed experts are read, most rows first */
+  unsigned int spec_min_tokens = 64;
+  /** drop the page cache of a streamed block's file range once it is
+   *  consumed (posix_fadvise DONTNEED) */
+  bool fadvise_dontneed = true;
+
+  // ---- short prefill: next-layer read-ahead ----
+  /** a call of fewer than spec_min_tokens rows (not streamed): the experts
+   *  the next layer (next) is predicted to need -- its router run on this
+   *  call's router rows, every expert in some row's top-k -- most
+   *  predicted rows first, or null. Once this call's experts are enqueued
+   *  the backend may read the ones the next layer does not hold into that
+   *  layer's own slots (next->reserve; next->release with admit once
+   *  written), so the reads run while this layer computes and the next
+   *  layer's acquire finds them resident. A hint only: no routing and no
+   *  value changes; a wrong prediction is a record evicted later
+   *  (NNTR_G4MOE_FSU_PREFILL_LOOKAHEAD=0: never read ahead) */
+  const std::vector<unsigned int> *next_ahead = nullptr;
+
+  // ---- decode: next-layer prefetch (pre-gating) ----
+  /** the next streamed layer's router (weight, scale, norm,
+   *  per_expert_scale, epsilon; input and topk unused), or null. A backend
+   *  may run it on this layer's router row to predict the next layer's
+   *  experts and read the ones not resident ahead into a host record cache
+   *  (NNTR_G4MOE_FSU_PREGATE); the next layer's misses found there are then
+   *  copied, not read. Changes no routing and no residency. */
+  const MoeRouter *next_router = nullptr;
+  /** the layer's residency hooks, set on the descriptor the previous layer
+   *  names as next (a short prefill's read ahead, next_ahead): reserve a
+   *  slot for @a expert ahead of the layer's next call (a free slot or a victim
+   *  outside @a avoid evicted now; the slot is held for it and the
+   *  reservation counts no access), or UINT_MAX; release(expert, admit)
+   *  ends an unused reservation (admit: the written record stays as a
+   *  resident expert, no access counted); resident(expert). The layer's
+   *  next acquire places a reserved expert in its slot. Called from reader
+   *  threads. resident may also be set on the call's own descriptor: a
+   *  short prefill's chunks then take the resident experts first. */
+  std::function<unsigned int(unsigned int expert,
+                             const std::vector<unsigned int> &avoid)>
+    reserve;
+  std::function<void(unsigned int expert, bool admit)> release;
+  std::function<bool(unsigned int expert)> resident;
+};
+
+/**
  * @brief All selected experts of one MoE forward call, for a backend that
  *        runs them together (see ComputeOps::moe_experts).
  */
@@ -86,6 +188,14 @@ struct MoeExpertGroup {
   /** a one-token call may leave active / assignments empty and give the
    *  router instead: the backend routes on the device (or declines) */
   const MoeRouter *router = nullptr;
+  /** non-null: the experts are not resident in the weights (or are read
+   *  past them); the backend reads them from the file into its slots */
+  const MoeExpertFsu *fsu = nullptr;
+  /** set by the backend (when non-null) to true when the kernels that write
+   *  @a output were left deferred until its first reader asks for them
+   *  (ComputeOps::flush_deferred); the caller then hands the output over
+   *  as the backend left it and does not touch it */
+  bool *output_deferred = nullptr;
 };
 
 /**
@@ -752,6 +862,39 @@ public:
   }
 
   /**
+   * @brief Start reading what the next moe_experts() call of a streamed MoE
+   *        layer (group.fsu) will need, so the read overlaps the work queued
+   *        before that call (the router). Only group.fsu, group.layer_key,
+   *        the weights and group.tokens are read. Returns false when nothing
+   *        was started (the call then reads what it needs itself).
+   */
+  virtual bool moe_experts_prefetch(const MoeExpertGroup &group) {
+    (void)group;
+    return false;
+  }
+
+  /**
+   * @brief Wait until nothing of an earlier moe_experts() call of the layer
+   *        group.layer_key still runs off the calling thread (a streamed
+   *        decode step makes its experts resident on reader threads, which
+   *        call the layer's acquire / filled / refresh hooks), and rethrow
+   *        what failed there. A layer calls it before it touches the state
+   *        those hooks share (its residency policy). Only group.layer_key
+   *        is read.
+   */
+  virtual void moe_experts_join(const MoeExpertGroup &group) { (void)group; }
+
+  /**
+   * @brief A producer may leave the last kernels that write its output
+   *        deferred (a streamed MoE decode step: its expert half waits for
+   *        reads, and work enqueued in between - the dense MLP - runs
+   *        meanwhile; MoeExpertGroup::output_deferred). Enqueue them now if
+   *        @a t is such an output: the graph calls this for every input of
+   *        a node before the node runs.
+   */
+  virtual void flush_deferred(const Tensor &t) { (void)t; }
+
+  /**
    * @brief One expert projection: output = input x weight.
    * @details The dispatch point for expert weights. It is fc() unless a
    * backend serves an expert-only weight format here (see
@@ -782,6 +925,15 @@ extern ComputeOps *g_compute_ops;
  * @brief Ensure the global compute ops is initialized.
  */
 void ensureComputeOps();
+
+/**
+ * @brief Is any producer's output deferred (ComputeOps::flush_deferred)?
+ *        The graph asks the inputs' tables to flush only while it is set.
+ */
+bool deferredOutputsPending();
+
+/** @brief set by a backend when it defers / has flushed every output */
+void setDeferredOutputsPending(bool pending);
 
 /**
  * @brief Get the active compute ops with lazy initialization.

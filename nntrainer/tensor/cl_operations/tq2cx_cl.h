@@ -62,12 +62,25 @@ void tq2cx_expert_fc_cl(Tensor &input, Tensor &weight, Tensor &output);
  * ascending id, so the output is identical run to run. Declines (returns
  * false) for shapes the kernels do not take (K % 32, the XMX block rules)
  * or when the device has no DPAS for the prefill GEMM.
+ *
+ * Streamed experts (group.fsu): the layer's experts live in its partition of
+ * the expert slot arena (group.fsu->slots slots of one record each, one
+ * buffer per layer) instead of a stack of all of them. Before a launch reads
+ * them, the experts the layer's acquire hook reports as misses are read from
+ * the weight file (ExpertReaderPool, page-aligned bounce, non-blocking write
+ * on a separate I/O queue) and the compute queue waits on those writes; a
+ * slot is rewritten only after the marker that follows its last reader. A
+ * prefill call with more active experts than slots runs in chunks of at most
+ * that many experts (same output). The device router serves such a layer
+ * only once every expert is resident (group.fsu->complete).
  */
 bool tq2cx_moe_experts_cl(const MoeExpertGroup &group);
 
 /**
  * @brief Build the layer's stacked device expert records now, from
- *        group.records when given (the file mapping) or from the weights.
+ *        group.records when given (the file mapping) or from the weights;
+ *        with group.fsu, in the layer's partition of the expert slot arena,
+ *        reading group.fsu->fill from the file (and waiting for it).
  * @return true when the stack exists (built now or before); false, having
  *         built nothing, when the grouped kernels do not serve this layer.
  */
@@ -85,6 +98,30 @@ bool tq2cx_moe_experts_prebuild_cl(const MoeExpertGroup &group);
  */
 bool tq2cx_moe_route_cl(const MoeRouter &rt, unsigned int tokens, uint32_t *ids,
                         float *weights);
+
+/**
+ * @brief Streamed experts (group.fsu) whose next call streams whole layers
+ *        (group.tokens >= fsu->spec_min_tokens, fewer slots than experts):
+ *        start reading this layer's block (when it was not read ahead) and
+ *        the next layer's block into the partitions the arena lends to the
+ *        stream. False when the arena cannot lend them (nothing started).
+ */
+bool tq2cx_moe_experts_prefetch_cl(const MoeExpertGroup &group);
+
+/**
+ * @brief Wait for the decode step of the streamed layer group.layer_key
+ *        whose experts are made resident on reader threads
+ *        (NNTR_G4MOE_FSU_ASYNC); rethrow its failure. Also enqueues any
+ *        deferred step tail first. No-op for other layers.
+ */
+void tq2cx_moe_experts_join_cl(const MoeExpertGroup &group);
+
+/**
+ * @brief Enqueue the deferred tail (expert GEMVs and combine) of the
+ *        streamed decode step whose output is @a t, if one is pending.
+ *        Cheap when nothing is pending (one atomic load).
+ */
+void tq2cx_moe_experts_flush_deferred_cl(const Tensor &t);
 
 } // namespace nntrainer
 

@@ -32,6 +32,12 @@
 // tq2moe_route_fin_rows: one work-item per row: renormalisation and
 // per-expert scale of the K weights, in place.
 //
+// Built with -DRT_EXT=r (streamed experts) the decode select kernels take one
+// more argument, ext[K + r]: the ids of ranks 0 .. K + r - 1 in rank order
+// (the selected K, then the next r), a recency hint for the expert slots. The
+// selection itself is the same code either way. tq2moe_route_split: the
+// hit / miss split of a streamed decode step.
+//
 // Built with -DRT_SOFT_FMA on a device without a hardware fp32 fma
 // (DeviceCaps::fp32_fma), where fma() is a slow library routine: rt_fma then
 // builds the same correctly rounded result from multiplies and adds.
@@ -206,7 +212,11 @@ __kernel void tq2moe_route_select_ref(__global const float *partial,
                                   __global const uint *off_tab, const int E,
                                   const int K, __global uint *ids,
                                   __global float *wout, __global uint *off_gu,
-                                  __global uint *off_d) {
+                                  __global uint *off_d
+#ifdef RT_EXT
+                                  , __global uint *ext
+#endif
+                                  ) {
   __local float lp[RT_MAXE];
   __local float lred;
   __local int rank_id[RT_MAXK];
@@ -253,6 +263,10 @@ __kernel void tq2moe_route_select_ref(__global const float *partial,
       rank_id[rank] = e;
       rank_p[rank] = p;
     }
+#ifdef RT_EXT
+    else if (rank < K + RT_EXT)
+      ext[rank] = (uint)e;
+#endif
   }
   barrier(CLK_LOCAL_MEM_FENCE);
   if (e == 0) {
@@ -261,6 +275,9 @@ __kernel void tq2moe_route_select_ref(__global const float *partial,
     float s = 0.0f;
     for (int j = 0; j < K; ++j) {
       sel[j] = rank_id[j];
+#ifdef RT_EXT
+      ext[j] = (uint)rank_id[j];
+#endif
       val[j] = rank_p[j];
       s = s + val[j];
     }
@@ -295,7 +312,11 @@ __kernel void tq2moe_route_select(__global const float *partial,
                                   __global const uint *off_tab, const int E,
                                   const int K, __global uint *ids,
                                   __global float *wout, __global uint *off_gu,
-                                  __global uint *off_d) {
+                                  __global uint *off_d
+#ifdef RT_EXT
+                                  , __global uint *ext
+#endif
+                                  ) {
   __local float4 lp4[RT_MAXE / 4];
   __local float lm[16];
   __local int rank_id[RT_MAXK];
@@ -376,6 +397,10 @@ __kernel void tq2moe_route_select(__global const float *partial,
       rank_id[rank] = e;
       rank_p[rank] = p;
     }
+#ifdef RT_EXT
+    else if (rank < K + RT_EXT)
+      ext[rank] = (uint)e;
+#endif
   }
   barrier(CLK_LOCAL_MEM_FENCE);
   if (e < K) {
@@ -383,6 +408,9 @@ __kernel void tq2moe_route_select(__global const float *partial,
     for (int j = 0; j < K; ++j)
       s = s + rank_p[j];
     const int id = rank_id[e];
+#ifdef RT_EXT
+    ext[e] = (uint)id;
+#endif
     const float v = rt_div(rank_p[e], s) * pes[id];
     // position in ascending expert id (the ids are distinct)
     int pos = 0;
@@ -394,6 +422,28 @@ __kernel void tq2moe_route_select(__global const float *partial,
     off_gu[K + pos] = off_tab[E + id];
     off_d[pos] = off_tab[2 * E + id];
   }
+}
+
+// The hit / miss split of a streamed decode step (one lane per selected
+// expert): res[e] != 0 when expert e is resident. The GEMVs take an
+// activation row per record and skip a record whose row is -1, so the
+// launch over the hits gets the miss rows as -1 and the launch over the
+// misses the hit rows: gate / up rows a and K + a read row 0, down row a
+// reads row a.
+__kernel void tq2moe_route_split(__global const uint *ids,
+                                 __global const uint *res, const int K,
+                                 __global int *gu_hit, __global int *gu_miss,
+                                 __global int *d_hit, __global int *d_miss) {
+  const int a = get_global_id(0);
+  if (a >= K)
+    return;
+  const int hit = res[ids[a]] != 0u;
+  gu_hit[a] = hit ? 0 : -1;
+  gu_hit[K + a] = hit ? 0 : -1;
+  gu_miss[a] = hit ? -1 : 0;
+  gu_miss[K + a] = hit ? -1 : 0;
+  d_hit[a] = hit ? a : -1;
+  d_miss[a] = hit ? -1 : a;
 }
 
 // ---- prefill: T rows -------------------------------------------------------

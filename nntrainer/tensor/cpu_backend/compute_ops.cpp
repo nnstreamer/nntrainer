@@ -32,6 +32,7 @@
 
 #include <compute_ops.h>
 
+#include <atomic>
 #include <mutex>
 #include <stdexcept>
 #include <string>
@@ -46,6 +47,18 @@ std::once_flag g_compute_ops_init_flag;
 
 void ensureComputeOps() {
   std::call_once(g_compute_ops_init_flag, []() { init_backend(); });
+}
+
+namespace {
+std::atomic<bool> g_deferred_outputs{false};
+} // namespace
+
+bool deferredOutputsPending() {
+  return g_deferred_outputs.load(std::memory_order_acquire);
+}
+
+void setDeferredOutputsPending(bool pending) {
+  g_deferred_outputs.store(pending, std::memory_order_release);
 }
 
 [[noreturn]] void ComputeOps::throwNotImplemented(const char *op) {

@@ -568,6 +568,15 @@ public:
                  float *weights) override {
     return nntrainer::moe_route_cl(router, tokens, ids, weights);
   }
+  bool moe_experts_prefetch(const MoeExpertGroup &group) override {
+    return nntrainer::moe_experts_prefetch_cl(group);
+  }
+  void moe_experts_join(const MoeExpertGroup &group) override {
+    nntrainer::moe_experts_join_cl(group);
+  }
+  void flush_deferred(const Tensor &t) override {
+    nntrainer::moe_experts_flush_deferred_cl(t);
+  }
 
 #ifdef ENABLE_FP16
   void scopy_fp16(const unsigned int N, const _FP16 *X, const unsigned int incX,

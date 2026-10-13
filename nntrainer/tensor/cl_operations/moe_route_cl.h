@@ -138,6 +138,25 @@ bool moe_route_cl(const MoeRouter &router, unsigned int tokens, uint32_t *ids,
                   float *weights);
 
 /**
+ * @brief Start the reads of a streamed MoE layer's next call ahead (see
+ *        ComputeOps::moe_experts_prefetch). TQ2CX is served; anything else
+ *        returns false.
+ */
+bool moe_experts_prefetch_cl(const MoeExpertGroup &group);
+
+/**
+ * @brief Wait for the off-thread part of a streamed MoE layer's earlier
+ *        calls (see ComputeOps::moe_experts_join).
+ */
+void moe_experts_join_cl(const MoeExpertGroup &group);
+
+/**
+ * @brief Enqueue the deferred kernels that write @a t, if any (see
+ *        ComputeOps::flush_deferred).
+ */
+void moe_experts_flush_deferred_cl(const Tensor &t);
+
+/**
  * @brief Does this device run the grouped expert launches, with device-side
  *        routing of a decode row, for experts of @a expert_dtype? A MoE layer
  *        whose experts it serves never reads its rows on the host in decode,

@@ -394,4 +394,19 @@ bool moe_experts_prebuild_cl(const MoeExpertGroup &group) {
   return tq2cx_moe_experts_prebuild_cl(group);
 }
 
+bool moe_experts_prefetch_cl(const MoeExpertGroup &group) {
+  if (group.gate.empty() || group.gate[0] == nullptr ||
+      group.gate[0]->getDataType() != ml::train::TensorDim::DataType::TQ2CX)
+    return false;
+  return tq2cx_moe_experts_prefetch_cl(group);
+}
+
+void moe_experts_join_cl(const MoeExpertGroup &group) {
+  tq2cx_moe_experts_join_cl(group);
+}
+
+void moe_experts_flush_deferred_cl(const Tensor &t) {
+  tq2cx_moe_experts_flush_deferred_cl(t);
+}
+
 } // namespace nntrainer

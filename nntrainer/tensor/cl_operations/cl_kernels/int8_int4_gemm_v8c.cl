@@ -181,6 +181,9 @@ __kernel void v8c_act_quant_f32(
 #define V8C_AQ_IDX(k) (k)
 #endif
 
+// V8C_AQ_ROW0 (v8c_act_quant_f32_par): one more argument, row0 -- the
+// work-groups quantize rows row0, row0 + 1, ... (< M) in place of 0, 1, ...;
+// every row is quantized exactly as without it.
 __attribute__((reqd_work_group_size(V8C_QUANT_LWS, 1, 1)))
 __kernel void v8c_act_quant_f32_par(
     __global const float *act_fp32,
@@ -188,8 +191,16 @@ __kernel void v8c_act_quant_f32_par(
     __global       float *scale_per_row,
     __global       int   *zp_per_row,
     __global       int   *row_sum_act,
-    const int M, const int K) {
+    const int M, const int K
+#ifdef V8C_AQ_ROW0
+    , const int row0
+#endif
+    ) {
+#ifdef V8C_AQ_ROW0
+  const int row = row0 + get_group_id(0);
+#else
   const int row = get_group_id(0);
+#endif
   if (row >= M) return;
   const int tid = get_local_id(0);
   __local float lmin[V8C_QUANT_LWS];
