@@ -431,6 +431,28 @@ bool flash_decode_f16_cl(const uint16_t *Q_host, const uint16_t *K_host,
                          unsigned int local_window = 0u,
                          unsigned int ring_cap = 0u);
 
+/// Fused split-K flash-decode for M=1 (gated by NNTR_ADRENO_FLASH_DECODE=1;
+/// see flash_decode_gqa_enabled). One pass over the fp16 concat K/V cache
+/// ([rows, HD_KV], ring-mapped when ring_cap > 0): a lane segment per
+/// (kv head, key block) scores every query head of that kv head with an
+/// online softmax and accumulates P*V in registers (no __local memory, no
+/// barriers), then a merge kernel folds the per-block partials in a fixed
+/// order. Q/K/V are SVM; O is written to o_clmem when given, else to O_svm.
+/// Deterministic (fixed block size and merge order). Returns false (nothing
+/// enqueued) on an unsupported shape, softcap > 0, a sub-group size that does
+/// not fit, or a program that does not build; the caller keeps its own arm.
+bool flash_decode_gqa_f16_cl(const uint16_t *Q_svm, const uint16_t *K_svm,
+                             const uint16_t *V_svm, uint16_t *O_svm,
+                             void *o_clmem, unsigned int N_kv,
+                             unsigned int num_heads_Q,
+                             unsigned int num_heads_KV, unsigned int head_dim,
+                             float attn_softcap, unsigned int local_window,
+                             unsigned int ring_cap);
+
+/// True when NNTR_ADRENO_FLASH_DECODE is set to a non-zero value (default
+/// off). Read once per process.
+bool flash_decode_gqa_enabled();
+
 /**
  * @brief Pre-build the rope/scatter/copy kernel PROGRAM (rope_inplace source,
  *        file-local to attention_kernels.cpp) on the given context. Called from

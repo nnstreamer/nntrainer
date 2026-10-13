@@ -5488,6 +5488,412 @@ bool flash_decode_f16_cl(const uint16_t *Q_host, const uint16_t *K_host,
   return true;
 }
 
+// ===========================================================================
+// [afd] Fused split-K flash-decode for M=1 (NNTR_ADRENO_FLASH_DECODE=1).
+//
+// The Adreno image arm decodes with three passes over the K/V image mirrors
+// (qk_band -> softmax -> sv_tm2): a [hQ, 1, N_kv] fp16 score row is written,
+// re-read, normalized and read again, and each pass walks keys serially. This
+// is one pass over the fp16 SVM K/V cache instead:
+//
+//  - afd_partial: one SEGMENT of AFD_L lanes owns one (kv head, key block of
+//    AFD_KPP keys). It loads each key's K row once (16 B per lane, AFD_L lanes
+//    side by side = one coalesced row) and scores it against ALL AFD_G query
+//    heads that share the kv head, keeps an online softmax (running max m and
+//    sum l) per query head, and accumulates P*V in registers. The per-key dot
+//    is reduced across the segment with a fixed xor butterfly of
+//    sub_group_shuffle_xor: no __local tile and no barrier (the Adreno
+//    0842.19.8 driver miscomputes __local tiles at >= 2 work-groups per SP).
+//    It writes one unnormalized partial (m, l, acc[d]) per (block, q head).
+//  - afd_merge: one work-item per (q head, 8 output elements) folds the
+//    partials of its head in block order and writes O (fp16).
+//
+// Deterministic by construction: the block size, the lane split, the butterfly
+// and the merge order are all fixed, so a given (N_kv, window, shape) always
+// adds the same numbers in the same order. The order differs from the image
+// arm's (and from flash_decode_f16_cl's), so outputs are close, not identical.
+// A segment walks the same number of keys whatever its clip (masked keys get
+// p = 0), which keeps every lane of a sub-group in the same control flow
+// around the shuffles.
+// ===========================================================================
+static const std::string afd_kernel_src = R"CL(
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#pragma OPENCL EXTENSION cl_khr_subgroups : enable
+#pragma OPENCL EXTENSION cl_khr_subgroup_shuffle : enable
+#if defined(AFD_INTEL_SG)
+#pragma OPENCL EXTENSION cl_intel_subgroups : enable
+#define AFD_SG_ATTR __attribute__((intel_reqd_sub_group_size(AFD_INTEL_SG)))
+#elif defined(cl_qcom_reqd_sub_group_size)
+#pragma OPENCL EXTENSION cl_qcom_reqd_sub_group_size : enable
+#define AFD_SG_ATTR __attribute__((qcom_reqd_sub_group_size("half")))
+#else
+#define AFD_SG_ATTR
+#endif
+
+// -cl-finite-math-only is in the default options: no infinities. Masked
+// scores use this sentinel and an explicit valid flag instead.
+#define AFD_NEG (-1.0e30f)
+#define AFD_NC (AFD_VPL / 8) // half8 chunks per lane
+#define AFD_D (AFD_L * AFD_VPL)
+
+inline float afd_hsum8(const float8 t) {
+  return ((t.s0 + t.s1) + (t.s2 + t.s3)) + ((t.s4 + t.s5) + (t.s6 + t.s7));
+}
+
+// Fixed xor butterfly over the AFD_L lanes of a segment. Lane i and lane i^m
+// add the same two values (a+b == b+a), so every lane ends with the same sum.
+inline float afd_seg_sum(float p) {
+#pragma unroll
+  for (uint m = AFD_L >> 1; m > 0; m >>= 1)
+    p += sub_group_shuffle_xor(p, m);
+  return p;
+}
+
+AFD_SG_ATTR __attribute__((reqd_work_group_size(AFD_WG, 1, 1))) __kernel void
+afd_probe(__global int *out) {
+  if (get_local_id(0) == 0) {
+    out[0] = (int)get_max_sub_group_size();
+    out[1] = (int)get_sub_group_size();
+    out[2] = (int)get_num_sub_groups();
+  }
+}
+
+AFD_SG_ATTR __attribute__((reqd_work_group_size(AFD_WG, 1, 1))) __kernel void
+afd_partial(__global const half *Q, __global const half *K,
+            __global const half *V, __global float *part_acc,
+            __global float *part_ml, const int N_kv, const int HD_KV,
+            const float scale, const int win_start, const int ring_cap,
+            const int part_base, const int n_parts, const int n_kv_heads) {
+  // Logical lane in the work-group, from the sub-group ids (no assumption on
+  // how the driver maps local ids onto sub-groups). The host checked that the
+  // sub-group size is a multiple of AFD_L, so a segment never straddles two
+  // sub-groups and lane = sub-group local id mod AFD_L.
+  const int wl = (int)(get_sub_group_id() * get_max_sub_group_size() +
+                       get_sub_group_local_id());
+  const int seg = (int)get_group_id(0) * (AFD_WG / AFD_L) + wl / AFD_L;
+  const int lane = (int)get_sub_group_local_id() % AFD_L;
+  const bool seg_ok = seg < n_kv_heads * n_parts;
+  const int sc = seg_ok ? seg : 0;
+  const int head_kv = sc / n_parts;
+  const int part_l = sc % n_parts;
+  const int kb = (part_base + part_l) * AFD_KPP; // first key on the abs grid
+  int n_lo = kb > win_start ? kb : win_start;
+  int n_hi = min(kb + AFD_KPP, N_kv);
+  if (!seg_ok)
+    n_hi = n_lo; // no live key: the segment still walks, fully masked
+
+  const long hoff = (long)head_kv * AFD_D;
+  half8 qv[AFD_G][AFD_NC];
+#pragma unroll
+  for (int g = 0; g < AFD_G; ++g)
+#pragma unroll
+    for (int c = 0; c < AFD_NC; ++c)
+      qv[g][c] =
+        vload8(0, Q + (long)(head_kv * AFD_G + g) * AFD_D + (c * AFD_L + lane) * 8);
+
+  float8 acc[AFD_G][AFD_NC];
+  float m_i[AFD_G], l_i[AFD_G];
+#pragma unroll
+  for (int g = 0; g < AFD_G; ++g) {
+    m_i[g] = AFD_NEG;
+    l_i[g] = 0.0f;
+#pragma unroll
+    for (int c = 0; c < AFD_NC; ++c)
+      acc[g][c] = (float8)(0.0f);
+  }
+
+  for (int t0 = kb; t0 < kb + AFD_KPP; t0 += AFD_T) {
+    float s[AFD_T][AFD_G];
+    bool live[AFD_T];
+    long row[AFD_T];
+#pragma unroll
+    for (int j = 0; j < AFD_T; ++j) {
+      const int n = t0 + j;
+      live[j] = (n >= n_lo) && (n < n_hi);
+      // A masked key still reads a real row (its score is discarded).
+      const int nn = min(n, N_kv - 1);
+      row[j] = (long)(ring_cap > 0 ? (nn % ring_cap) : nn) * HD_KV + hoff;
+    }
+#pragma unroll
+    for (int j = 0; j < AFD_T; ++j) {
+      float8 kf[AFD_NC];
+#pragma unroll
+      for (int c = 0; c < AFD_NC; ++c)
+        kf[c] = convert_float8(vload8(0, K + row[j] + (c * AFD_L + lane) * 8));
+#pragma unroll
+      for (int g = 0; g < AFD_G; ++g) {
+        float p = 0.0f;
+#pragma unroll
+        for (int c = 0; c < AFD_NC; ++c)
+          p += afd_hsum8(convert_float8(qv[g][c]) * kf[c]);
+        p = afd_seg_sum(p);
+        s[j][g] = live[j] ? p * scale : AFD_NEG;
+      }
+    }
+    float8 vf[AFD_T][AFD_NC];
+#pragma unroll
+    for (int j = 0; j < AFD_T; ++j)
+#pragma unroll
+      for (int c = 0; c < AFD_NC; ++c)
+        vf[j][c] = convert_float8(vload8(0, V + row[j] + (c * AFD_L + lane) * 8));
+#pragma unroll
+    for (int g = 0; g < AFD_G; ++g) {
+      float mt = m_i[g];
+#pragma unroll
+      for (int j = 0; j < AFD_T; ++j)
+        mt = fmax(mt, s[j][g]);
+      const float alpha = exp(m_i[g] - mt);
+      float lsum = l_i[g] * alpha;
+      float pj[AFD_T];
+#pragma unroll
+      for (int j = 0; j < AFD_T; ++j) {
+        pj[j] = live[j] ? exp(s[j][g] - mt) : 0.0f;
+        lsum += pj[j];
+      }
+#pragma unroll
+      for (int c = 0; c < AFD_NC; ++c) {
+        float8 a = acc[g][c] * alpha;
+#pragma unroll
+        for (int j = 0; j < AFD_T; ++j)
+          a += pj[j] * vf[j][c];
+        acc[g][c] = a;
+      }
+      l_i[g] = lsum;
+      m_i[g] = mt;
+    }
+  }
+
+  if (!seg_ok)
+    return;
+#pragma unroll
+  for (int g = 0; g < AFD_G; ++g) {
+    const long ph = ((long)head_kv * n_parts + part_l) * AFD_G + g;
+#pragma unroll
+    for (int c = 0; c < AFD_NC; ++c)
+      vstore8(acc[g][c], 0, part_acc + ph * AFD_D + (c * AFD_L + lane) * 8);
+    if (lane == 0) {
+      part_ml[ph * 2 + 0] = m_i[g];
+      part_ml[ph * 2 + 1] = l_i[g];
+    }
+  }
+}
+
+// One work-item per (q head, 8 output elements); partials folded in block
+// order. O is fp16 [1, HD_Q].
+__kernel void afd_merge(__global const float *part_acc,
+                        __global const float *part_ml, __global half *O,
+                        const int n_parts, const int n_q_heads) {
+  const int gid = (int)get_global_id(0);
+  const int per = AFD_D / 8;
+  const int hq = gid / per;
+  const int e = gid % per;
+  if (hq >= n_q_heads)
+    return;
+  const int head_kv = hq / AFD_G;
+  const int g = hq % AFD_G;
+  float m_g = AFD_NEG;
+  for (int p = 0; p < n_parts; ++p) {
+    const long ph = ((long)head_kv * n_parts + p) * AFD_G + g;
+    if (part_ml[ph * 2 + 1] > 0.0f)
+      m_g = fmax(m_g, part_ml[ph * 2 + 0]);
+  }
+  float8 acc = (float8)(0.0f);
+  float l_g = 0.0f;
+  for (int p = 0; p < n_parts; ++p) {
+    const long ph = ((long)head_kv * n_parts + p) * AFD_G + g;
+    const float l_p = part_ml[ph * 2 + 1];
+    if (l_p > 0.0f) {
+      const float w = exp(part_ml[ph * 2 + 0] - m_g);
+      acc += w * vload8(0, part_acc + ph * AFD_D + e * 8);
+      l_g += w * l_p;
+    }
+  }
+  const float inv = (l_g > 0.0f) ? (1.0f / l_g) : 0.0f;
+  vstore8(convert_half8(acc * inv), 0, O + (long)hq * AFD_D + e * 8);
+}
+)CL";
+
+namespace {
+struct AfdScratch {
+  void *acc = nullptr, *ml = nullptr, *probe = nullptr;
+  size_t acc_cap = 0, ml_cap = 0, probe_cap = 0;
+  // copts -> 1 usable / 0 refused (sub-group size does not fit, or the
+  // program did not build). Probed once per variant.
+  std::map<std::string, int> verdict;
+};
+AfdScratch &afd_scratch() {
+  static AfdScratch s;
+  return s;
+}
+} // namespace
+
+bool flash_decode_gqa_enabled() {
+  static const bool on = []() {
+    const char *e = std::getenv("NNTR_ADRENO_FLASH_DECODE");
+    return e != nullptr && std::atoi(e) != 0;
+  }();
+  return on;
+}
+
+bool flash_decode_gqa_f16_cl(const uint16_t *Q_svm, const uint16_t *K_svm,
+                             const uint16_t *V_svm, uint16_t *O_svm,
+                             void *o_clmem, unsigned int N_kv,
+                             unsigned int num_heads_Q,
+                             unsigned int num_heads_KV, unsigned int head_dim,
+                             float attn_softcap, unsigned int local_window,
+                             unsigned int ring_cap) {
+  if (num_heads_Q == 0 || num_heads_KV == 0 || head_dim == 0 || N_kv == 0)
+    return false;
+  if (num_heads_Q % num_heads_KV != 0 || head_dim % 8 != 0)
+    return false;
+  if (attn_softcap > 0.0f)
+    return false; // no score cap in this kernel (Gemma4 has none)
+  const unsigned int G = num_heads_Q / num_heads_KV;
+  if (G > 16)
+    return false;
+
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  if (blas_cc == nullptr)
+    return false;
+  // Intel exposes required sub-group sizes {8,16,32}; Adreno runs a 64-lane
+  // half wave. The segment width is d/8 lanes (one half8 per lane per key)
+  // capped by the sub-group size.
+  const bool intel_sg = ClContext::Global().caps().subgroups;
+  const unsigned int l_cap = intel_sg ? 32u : 64u;
+  unsigned int L = head_dim / 8;
+  if (L > l_cap)
+    L = l_cap;
+  if (L < 8 || (L & (L - 1)) != 0 || head_dim % (8 * L) != 0 ||
+      head_dim / (8 * L) > 4)
+    return false;
+  const unsigned int VPL = head_dim / L;
+  const int kpp = head_dim >= 512 ? 64 : 32;
+  const int T = (G >= 8) ? 2 : 4;
+  const int WG = 64;
+
+  std::string copts =
+    "-DAFD_L=" + std::to_string(L) + " -DAFD_VPL=" + std::to_string(VPL) +
+    " -DAFD_G=" + std::to_string(G) + " -DAFD_KPP=" + std::to_string(kpp) +
+    " -DAFD_T=" + std::to_string(T) + " -DAFD_WG=" + std::to_string(WG);
+  if (intel_sg)
+    copts += " -DAFD_INTEL_SG=" + std::to_string(L < 16 ? 16 : L);
+
+  AfdScratch &sc = afd_scratch();
+  cl_command_queue q = blas_cc->command_queue_inst_.GetCommandQueue();
+  auto vit = sc.verdict.find(copts);
+  if (vit != sc.verdict.end() && vit->second == 0)
+    return false;
+  ClContext::SharedPtrClKernel kp =
+    blas_cc->registerClKernel(afd_kernel_src, "afd_partial", copts);
+  ClContext::SharedPtrClKernel km =
+    blas_cc->registerClKernel(afd_kernel_src, "afd_merge", copts);
+  if (vit == sc.verdict.end()) {
+    // First use of this variant: the segment layout needs every sub-group to
+    // hold whole segments. One blocking probe per variant per process.
+    int ok_v = 0;
+    ClContext::SharedPtrClKernel kpr =
+      blas_cc->registerClKernel(afd_kernel_src, "afd_probe", copts);
+    if (kp && km && kpr &&
+        ensure_cl_stage_buf(&sc.probe, &sc.probe_cap, 4 * sizeof(int))) {
+      cl_mem pm = (cl_mem)sc.probe;
+      int got[4] = {0, 0, 0, 0};
+      std::array<size_t, 1> g1 = {(size_t)WG}, l1 = {(size_t)WG};
+      bool rd = kpr->SetKernelArguments(0, &pm, sizeof(cl_mem));
+      if (rd) {
+        blas_cc->command_queue_inst_.enqueueKernel(
+          kpr->GetKernel(), 1, g1.data(), l1.data(), 0, nullptr, nullptr);
+        rd =
+          opencl::clEnqueueReadBuffer(q, pm, CL_TRUE, 0, 3 * sizeof(int), got,
+                                      0, nullptr, nullptr) == CL_SUCCESS;
+      }
+      if (rd) {
+        const int sgmax = got[0];
+        ok_v = (sgmax > 0 && sgmax % (int)L == 0) ? 1 : 0;
+      }
+      std::fprintf(stderr,
+                   "[AFD] variant L=%u VPL=%u G=%u KPP=%d T=%d intel=%d: "
+                   "sub-group max=%d size=%d num=%d -> %s\n",
+                   L, VPL, G, kpp, T, (int)intel_sg, got[0], got[1], got[2],
+                   ok_v ? "engaged" : "refused");
+    } else {
+      std::fprintf(stderr,
+                   "[AFD] variant L=%u VPL=%u G=%u: program did not build -> "
+                   "refused\n",
+                   L, VPL, G);
+    }
+    sc.verdict[copts] = ok_v;
+    if (!ok_v)
+      return false;
+  }
+  if (!kp || !km)
+    return false;
+
+  const int win_start =
+    (local_window > 0 && local_window < N_kv) ? (int)(N_kv - local_window) : 0;
+  const int part_base = win_start / kpp;
+  const int n_parts = (int)((N_kv + (unsigned int)kpp - 1) / kpp) - part_base;
+  const int segs = (int)num_heads_KV * n_parts;
+  const size_t acc_bytes = (size_t)segs * G * head_dim * sizeof(float);
+  const size_t ml_bytes = (size_t)segs * G * 2 * sizeof(float);
+  if (!ensure_cl_stage_buf(&sc.acc, &sc.acc_cap, acc_bytes) ||
+      !ensure_cl_stage_buf(&sc.ml, &sc.ml_cap, ml_bytes))
+    return false;
+  cl_mem acc_m = (cl_mem)sc.acc, ml_m = (cl_mem)sc.ml;
+
+  const float scale = 1.0f / std::sqrt((float)head_dim);
+  int Ni = (int)N_kv, hkv = (int)(num_heads_KV * head_dim);
+  int ws = win_start, rc = (int)ring_cap, pb = part_base, np = n_parts;
+  int nkh = (int)num_heads_KV, nqh = (int)num_heads_Q;
+  if (!kp->SetKernelSVMArguments(0, const_cast<uint16_t *>(Q_svm)) ||
+      !kp->SetKernelSVMArguments(1, const_cast<uint16_t *>(K_svm)) ||
+      !kp->SetKernelSVMArguments(2, const_cast<uint16_t *>(V_svm)) ||
+      !kp->SetKernelArguments(3, &acc_m, sizeof(cl_mem)) ||
+      !kp->SetKernelArguments(4, &ml_m, sizeof(cl_mem)) ||
+      !kp->SetKernelArguments(5, &Ni, sizeof(int)) ||
+      !kp->SetKernelArguments(6, &hkv, sizeof(int)) ||
+      !kp->SetKernelArguments(7, &scale, sizeof(float)) ||
+      !kp->SetKernelArguments(8, &ws, sizeof(int)) ||
+      !kp->SetKernelArguments(9, &rc, sizeof(int)) ||
+      !kp->SetKernelArguments(10, &pb, sizeof(int)) ||
+      !kp->SetKernelArguments(11, &np, sizeof(int)) ||
+      !kp->SetKernelArguments(12, &nkh, sizeof(int)))
+    return false;
+  {
+    const size_t lanes = (size_t)segs * L;
+    std::array<size_t, 1> gws = {(lanes + WG - 1) / WG * WG};
+    std::array<size_t, 1> lws = {(size_t)WG};
+    blas_cc->command_queue_inst_.enqueueKernel(kp->GetKernel(), 1, gws.data(),
+                                               lws.data(), 0, nullptr, nullptr);
+  }
+  bool o_ok = km->SetKernelArguments(0, &acc_m, sizeof(cl_mem)) &&
+              km->SetKernelArguments(1, &ml_m, sizeof(cl_mem));
+  if (o_clmem != nullptr) {
+    cl_mem oh = static_cast<cl_mem>(o_clmem);
+    o_ok = o_ok && km->SetKernelArguments(2, &oh, sizeof(cl_mem));
+  } else {
+    o_ok = o_ok && km->SetKernelSVMArguments(2, O_svm);
+  }
+  o_ok = o_ok && km->SetKernelArguments(3, &np, sizeof(int)) &&
+         km->SetKernelArguments(4, &nqh, sizeof(int));
+  if (!o_ok)
+    return false;
+  {
+    const size_t items = (size_t)num_heads_Q * (head_dim / 8);
+    std::array<size_t, 1> gws = {(items + 63) / 64 * 64};
+    std::array<size_t, 1> lws = {64};
+    blas_cc->command_queue_inst_.enqueueKernel(km->GetKernel(), 1, gws.data(),
+                                               lws.data(), 0, nullptr, nullptr);
+  }
+  if (gh_mode() != 0) {
+    attn_gpuhash_note("aq", Q_svm, nullptr, (size_t)num_heads_Q * head_dim * 2,
+                      1);
+    attn_gpuhash_note("ao", O_svm, o_clmem, (size_t)num_heads_Q * head_dim * 2,
+                      1);
+  }
+  return true;
+}
+
 void cl_attention_release_caches() {
   // [reload] Model-teardown counterpart to what this file latches for the
   // process. No run is in flight at the call site and every item is rebuilt
@@ -5535,6 +5941,16 @@ void cl_attention_release_caches() {
       as.pool[i].reset();
       as.cap[i] = 0;
     }
+  }
+  // [afd] The fused decode's partial buffers and probe verdicts.
+  {
+    AfdScratch &as = afd_scratch();
+    for (void **b : {&as.acc, &as.ml, &as.probe}) {
+      if (*b)
+        opencl::clReleaseMemObjectT(static_cast<cl_mem>(*b));
+      *b = nullptr;
+    }
+    as.acc_cap = as.ml_cap = as.probe_cap = 0;
   }
   // A teardown is a handle-epoch boundary for this file's memos too.
   opencl::clBumpHandleEpoch();

@@ -11,6 +11,8 @@
  */
 
 #include <cmath>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <gtest/gtest.h>
@@ -371,6 +373,163 @@ TEST(attention_kernels, flash_attention_prefill_matches_cpu_FP16) {
   EXPECT_LT(rel, 3e-2) << "flash attention prefill diverges from the CPU "
                           "reference, relative L2 = "
                        << rel;
+}
+
+/**
+ * @brief One fused split-K flash-decode case against a double-precision CPU
+ *        reference and against the existing flash_decode_f16_cl, plus a
+ *        3-run bit-identity check.
+ * @param Hq query heads, @param Hkv kv heads, @param d head dim
+ * @param N_kv keys (the query is the last position), @param W sliding window
+ *        (0 = none), @param cap ring capacity in rows (0 = linear cache)
+ * @param[out] max_abs, max_rel vs the reference; flash_abs vs the old decode
+ *        (-1 if it declined); identical = 3 runs bit-identical.
+ * @return false when the device or the variant declined (test skips).
+ */
+static bool afd_case(unsigned Hq, unsigned Hkv, unsigned d, unsigned N_kv,
+                     unsigned W, unsigned cap, double &max_abs, double &max_rel,
+                     double &flash_abs, bool &identical) {
+  const unsigned HDq = Hq * d, HDkv = Hkv * d, G = Hq / Hkv;
+  const unsigned rows = cap ? cap : N_kv;
+  unsigned x = 12345u + N_kv * 7u + d;
+  auto rnd = [&x](float amp) {
+    x = x * 1103515245u + 12345u;
+    return amp * ((float)((x >> 8) & 0xFFFFu) / 32768.0f - 1.0f);
+  };
+  std::vector<uint16_t> Q(HDq), Kb((size_t)rows * HDkv),
+    Vb((size_t)rows * HDkv);
+  for (auto &q : Q)
+    q = floatToHalfBits(rnd(2.0f));
+  // Logical keys 0..N_kv-1 land at row n % cap; the last writes win, as in
+  // the model's ring.
+  for (unsigned n = 0; n < N_kv; ++n) {
+    const size_t r = (size_t)(cap ? n % cap : n) * HDkv;
+    for (unsigned i = 0; i < HDkv; ++i) {
+      Kb[r + i] = floatToHalfBits(rnd(2.0f));
+      Vb[r + i] = floatToHalfBits(rnd(1.0f));
+    }
+  }
+  const unsigned lo = (W > 0 && W < N_kv) ? N_kv - W : 0;
+  std::vector<double> ref(HDq, 0.0);
+  const double scale = 1.0 / std::sqrt((double)d);
+  for (unsigned hq = 0; hq < Hq; ++hq) {
+    const unsigned hk = hq / G;
+    std::vector<double> sc(N_kv - lo);
+    double mx = -1e300;
+    for (unsigned n = lo; n < N_kv; ++n) {
+      const size_t r = (size_t)(cap ? n % cap : n) * HDkv + hk * d;
+      double dot = 0.0;
+      for (unsigned i = 0; i < d; ++i)
+        dot += (double)halfBitsToFloat(Q[hq * d + i]) *
+               (double)halfBitsToFloat(Kb[r + i]);
+      sc[n - lo] = dot * scale;
+      mx = std::max(mx, sc[n - lo]);
+    }
+    double sum = 0.0;
+    for (auto &v : sc) {
+      v = std::exp(v - mx);
+      sum += v;
+    }
+    for (unsigned n = lo; n < N_kv; ++n) {
+      const size_t r = (size_t)(cap ? n % cap : n) * HDkv + hk * d;
+      const double p = sc[n - lo] / sum;
+      for (unsigned i = 0; i < d; ++i)
+        ref[hq * d + i] += p * (double)halfBitsToFloat(Vb[r + i]);
+    }
+  }
+
+  auto *cc = static_cast<nntrainer::ClContext *>(
+    nntrainer::Engine::Global().getRegisteredContext("gpu"));
+  if (cc == nullptr)
+    return false;
+  cc->context_inst_.GetContext();
+  const size_t qB = Q.size() * 2, kB = Kb.size() * 2, oB = (size_t)HDq * 2;
+  auto *Qs = static_cast<uint16_t *>(cc->context_inst_.createSVMRegion(qB));
+  auto *Ks = static_cast<uint16_t *>(cc->context_inst_.createSVMRegion(kB));
+  auto *Vs = static_cast<uint16_t *>(cc->context_inst_.createSVMRegion(kB));
+  auto *Os = static_cast<uint16_t *>(cc->context_inst_.createSVMRegion(oB));
+  if (!Qs || !Ks || !Vs || !Os)
+    return false;
+  std::memcpy(Qs, Q.data(), qB);
+  std::memcpy(Ks, Kb.data(), kB);
+  std::memcpy(Vs, Vb.data(), kB);
+  cc->command_queue_inst_.enqueueSVMUnmap(Qs);
+  cc->command_queue_inst_.enqueueSVMUnmap(Ks);
+  cc->command_queue_inst_.enqueueSVMUnmap(Vs);
+
+  auto run_afd = [&](std::vector<uint16_t> &out) {
+    cc->command_queue_inst_.enqueueSVMMap(Os, oB, /*read_only=*/false);
+    std::memset(Os, 0xFF, oB); // NaN poison: every element must be written
+    cc->command_queue_inst_.enqueueSVMUnmap(Os);
+    const bool ok = nntrainer::flash_decode_gqa_f16_cl(
+      Qs, Ks, Vs, Os, nullptr, N_kv, Hq, Hkv, d, 0.0f, W, cap);
+    cc->command_queue_inst_.enqueueSVMMap(Os, oB, /*read_only=*/true);
+    out.assign(Os, Os + HDq);
+    cc->command_queue_inst_.enqueueSVMUnmap(Os);
+    return ok;
+  };
+  std::vector<uint16_t> o1, o2, o3, of;
+  bool ok = run_afd(o1) && run_afd(o2) && run_afd(o3);
+  if (ok) {
+    identical = (o1 == o2) && (o2 == o3);
+    double rmax = 0.0;
+    max_abs = 0.0;
+    for (unsigned i = 0; i < HDq; ++i) {
+      const double g = halfBitsToFloat(o1[i]);
+      max_abs =
+        std::max(max_abs, std::isfinite(g) ? std::fabs(g - ref[i]) : 1e30);
+      rmax = std::max(rmax, std::fabs(ref[i]));
+    }
+    max_rel = max_abs / std::max(rmax, 1e-30);
+    // The current decode arm on this lane, for a same-input comparison.
+    cc->command_queue_inst_.enqueueSVMMap(Os, oB, /*read_only=*/false);
+    std::memset(Os, 0, oB);
+    cc->command_queue_inst_.enqueueSVMUnmap(Os);
+    flash_abs = -1.0;
+    if (nntrainer::flash_decode_f16_cl(Qs, Ks, Vs, Os, N_kv, Hq, Hkv, d, 0u,
+                                       true, 0.0f, W, cap)) {
+      cc->command_queue_inst_.enqueueSVMMap(Os, oB, /*read_only=*/true);
+      of.assign(Os, Os + HDq);
+      cc->command_queue_inst_.enqueueSVMUnmap(Os);
+      flash_abs = 0.0;
+      for (unsigned i = 0; i < HDq; ++i)
+        flash_abs =
+          std::max(flash_abs, (double)std::fabs(halfBitsToFloat(o1[i]) -
+                                                halfBitsToFloat(of[i])));
+    }
+  }
+  cc->context_inst_.releaseSVMRegion(Qs);
+  cc->context_inst_.releaseSVMRegion(Ks);
+  cc->context_inst_.releaseSVMRegion(Vs);
+  cc->context_inst_.releaseSVMRegion(Os);
+  return ok;
+}
+
+/**
+ * @brief The fused split-K flash-decode (NNTR_ADRENO_FLASH_DECODE) agrees with
+ *        a CPU reference on the Gemma4-26B decode shapes and is bit-identical
+ *        run to run. Prints one [AFD-UT] line per case.
+ */
+TEST(attention_kernels, flash_decode_gqa_matches_cpu_FP16) {
+  struct C {
+    unsigned Hq, Hkv, d, N, W, cap;
+  };
+  const std::vector<C> cases = {
+    {16, 8, 256, 64, 1024, 0},   {16, 8, 256, 1000, 1024, 0},
+    {16, 8, 256, 2048, 1024, 0}, {16, 8, 256, 2048, 1024, 1280},
+    {16, 2, 512, 64, 0, 0},      {16, 2, 512, 1000, 0, 0},
+  };
+  for (const C &c : cases) {
+    double ma = 0, mr = 0, fa = 0;
+    bool same = false;
+    if (!afd_case(c.Hq, c.Hkv, c.d, c.N, c.W, c.cap, ma, mr, fa, same))
+      GTEST_SKIP() << "fused flash-decode declined on this device";
+    std::printf("[AFD-UT] Hq=%u Hkv=%u d=%u N_kv=%u W=%u cap=%u: max_abs=%.3e "
+                "max_rel=%.3e vs_flash_decode_abs=%.3e identical_x3=%d\n",
+                c.Hq, c.Hkv, c.d, c.N, c.W, c.cap, ma, mr, fa, (int)same);
+    EXPECT_TRUE(same) << "fused flash-decode is not run-to-run identical";
+    EXPECT_LT(mr, 4e-3) << "fused flash-decode diverges from the reference";
+  }
 }
 
 #endif
