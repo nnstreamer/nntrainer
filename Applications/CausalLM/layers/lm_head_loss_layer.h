@@ -41,6 +41,7 @@
 #include <layer_devel.h>
 #include <node_exporter.h>
 
+#include <cstdint>
 #include <vector>
 
 namespace causallm {
@@ -95,6 +96,11 @@ private:
   std::vector<float> logits_; /**< one chunk of logits / dL/dlogits */
   std::vector<float> x_rows_; /**< the chunk's input rows */
   std::vector<float> dx_rows_;
+  /** int8 head (NNTR_LMHEAD_Q8): the frozen W as q8_0x4, built once */
+  std::vector<uint8_t> w_q8_;  /**< W   (vocab x hidden), blocks on hidden */
+  std::vector<uint8_t> wt_q8_; /**< W^T (hidden x vocab), blocks on vocab */
+  const float *w_q8_src_ = nullptr; /**< the W the copies were built from */
+  void buildQ8(const float *w, unsigned int vocab, unsigned int hidden);
 };
 
 } // namespace causallm

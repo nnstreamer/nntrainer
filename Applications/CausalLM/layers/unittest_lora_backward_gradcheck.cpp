@@ -26,6 +26,7 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <cstdlib>
 #include <functional>
 #include <limits>
 #include <memory>
@@ -1042,6 +1043,93 @@ TEST(CausalLmLoraBackward, LmHeadLossMatchesReferenceAndFiniteDifference) {
     EXPECT_NEAR(analytic[i], numeric, 1e-3 + 2e-2 * std::abs(numeric))
       << "dL/dx mismatch at " << i;
   }
+}
+
+/**
+ * @brief lm_head_loss int8 head (NNTR_LMHEAD_Q8=1): the Q8_0 x Q8_0 logits
+ *        and dL/dx GEMMs track the FP32 head. Sized for the int8 path
+ *        (hidden and vocabulary multiples of 32) with 70 scored rows across
+ *        three 32-row chunks; the results must differ from FP32 (the int8
+ *        path really ran) but only by quantization error.
+ */
+namespace {
+/** @brief set (or, for nullptr, clear) an environment variable */
+void setEnvVar(const char *name, const char *value) {
+#if defined(_WIN32)
+  _putenv_s(name, value ? value : "");
+#else
+  if (value)
+    setenv(name, value, 1);
+  else
+    unsetenv(name);
+#endif
+}
+} // namespace
+
+TEST(CausalLmLoraBackward, LmHeadLossInt8HeadTracksFp32) {
+  const unsigned int B = 2, L = 40, H = 64, V = 4096;
+
+  causallm::LmHeadLossLayer layer;
+  ASSERT_NO_THROW(layer.setProperty({"unit=" + std::to_string(V)}));
+  nntrainer::InitLayerContext init_context({nntrainer::TensorDim({B, 1, L, H})},
+                                           {true}, false, "lm_head_loss_q8", "",
+                                           0.0f, {"NCHW", "FP32", "FP32"});
+  ASSERT_NO_THROW(layer.finalize(init_context));
+
+  std::mt19937 rng(11);
+  std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+  std::vector<nntrainer::Weight> weights;
+  std::vector<nntrainer::Var_Grad> inputs, outputs, tensors;
+  nntrainer::Tensor w(nntrainer::TensorDim({1, 1, V, H}), true);
+  for (size_t i = 0; i < w.size(); ++i)
+    w.getData<float>()[i] = 0.25f * dist(rng);
+  weights.emplace_back(w, nntrainer::Tensor(), nntrainer::Tensor(),
+                       "Embedding");
+  inputs.emplace_back(init_context.getInputDimensions()[0],
+                      nntrainer::Initializer::NONE, true, true, "input");
+  outputs.emplace_back(init_context.getOutSpecs()[0].variable_spec.dim,
+                       nntrainer::Initializer::NONE, true, true, "output");
+  float *x = inputs[0].getVariableRef().getData<float>();
+  for (size_t i = 0; i < (size_t)B * L * H; ++i)
+    x[i] = dist(rng);
+  auto run_context =
+    makeRunContext("lm_head_loss_q8", weights, inputs, outputs, tensors);
+
+  // batch 0: 38 scored positions; batch 1: 32 scored, then padding
+  float *label = run_context.getOutputGradUnsafe(0).getData<float>();
+  std::uniform_int_distribution<unsigned int> tok(0, V - 1);
+  for (unsigned int r = 0; r < B * L; ++r)
+    label[r] = -1.0f;
+  for (unsigned int i = 0; i < 38; ++i)
+    label[i] = static_cast<float>(tok(rng));
+  for (unsigned int i = 0; i < 32; ++i)
+    label[L + i] = static_cast<float>(tok(rng));
+
+  auto run = [&](const char *q8, std::vector<float> &dx) {
+    setEnvVar("NNTR_LMHEAD_Q8", q8);
+    layer.forwarding(run_context, true);
+    layer.calcDerivative(run_context);
+    const nntrainer::Tensor &d = run_context.getOutgoingDerivative(0);
+    dx.assign(d.getData<float>(), d.getData<float>() + d.size());
+    return run_context.getLoss();
+  };
+  std::vector<float> dx_fp32, dx_q8;
+  const float loss_fp32 = run("0", dx_fp32);
+  const float loss_q8 = run("1", dx_q8);
+  setEnvVar("NNTR_LMHEAD_Q8", nullptr);
+
+  EXPECT_NE(loss_q8, loss_fp32) << "the int8 head did not run";
+  EXPECT_NEAR(loss_q8, loss_fp32, 1e-3 * loss_fp32);
+  double num = 0.0, den = 0.0;
+  for (size_t i = 0; i < dx_fp32.size(); ++i) {
+    num += ((double)dx_q8[i] - dx_fp32[i]) * ((double)dx_q8[i] - dx_fp32[i]);
+    den += (double)dx_fp32[i] * dx_fp32[i];
+  }
+  ASSERT_GT(den, 0.0);
+  EXPECT_LT(std::sqrt(num / den), 2e-2) << "dL/dx relative L2 error";
+  // padding rows get no gradient on the int8 path either
+  for (unsigned int i = (L + 32) * H; i < B * L * H; ++i)
+    EXPECT_EQ(dx_q8[i], 0.0f) << "padding element " << i;
 }
 
 namespace {
