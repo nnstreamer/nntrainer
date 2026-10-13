@@ -140,6 +140,13 @@ void dotCl(Tensor const &input, Tensor const &m, Tensor &result, bool trans,
     const float *mdata = m.getData();
     float *rdata = result.getData();
 
+    // out_svm: the same landing rule as the FP16 branch below. A result tensor
+    // in coarse-grain shared virtual memory has to be host-mapped before the
+    // staging read-back, or the copy-out never lands and the tensor keeps
+    // whatever it held -- an all-zero FP32 FC on Intel Xe3.
+    const bool out_svm =
+      result.getMemoryData() && result.getMemoryData()->isSVM();
+
     /// shortcut handling in case of vector
     /// for vector, (1 * K) == (K * 1) in current memory layout...
     /// and plaese note that N, K, M is a fixed place holder after considering
@@ -157,19 +164,21 @@ void dotCl(Tensor const &input, Tensor const &m, Tensor &result, bool trans,
     }
     /// case2: (M * K) X (K * 1)
     else if (N == 1) {
-      trans ? sgemv_cl(data, mdata, rdata, trans, dim2, dim1, lda)
-            : sgemv_cl(data, mdata, rdata, trans, dim1, dim2, lda);
+      trans ? sgemv_cl(data, mdata, rdata, trans, dim2, dim1, lda, out_svm)
+            : sgemv_cl(data, mdata, rdata, trans, dim1, dim2, lda, out_svm);
     }
     /// case3: (1 * K) X (K * N) = 1 * N = R
     /// = R^T = (K * N) ^T * (1 * K) ^T = (N * K) * (K * 1) = (N * K) * (1 * K)
     /// Effectively a translation of sgemv
     else if (M == 1) {
-      trans_m ? sgemv_cl(mdata, data, rdata, !trans_m, mdim1, mdim2, ldb)
-              : sgemv_cl(mdata, data, rdata, !trans_m, mdim2, mdim1, ldb);
+      trans_m
+        ? sgemv_cl(mdata, data, rdata, !trans_m, mdim1, mdim2, ldb, out_svm)
+        : sgemv_cl(mdata, data, rdata, !trans_m, mdim2, mdim1, ldb, out_svm);
     }
     /// case others: use sgemm
     else {
-      sgemm_cl(trans, trans_m, data, mdata, rdata, M, N, K, lda, ldb, ldc);
+      sgemm_cl(trans, trans_m, data, mdata, rdata, M, N, K, lda, ldb, ldc,
+               out_svm);
     }
   } else if (input.getDataType() == ml::train::TensorDim::DataType::FP16) {
 #ifdef ENABLE_FP16

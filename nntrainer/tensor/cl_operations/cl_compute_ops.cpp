@@ -242,9 +242,15 @@ public:
       input.dot(weight, output, false, false);
       break;
     }
-    default:
+    default: {
+      // dotCl stages the FP32 / FP16 activation through a host copy (its
+      // kernels read staging buffers, not the tensor), so an input a kernel
+      // may still be writing -- the row gather of a MoE expert, say -- has to
+      // land on the host first, exactly like the quantized host arm above.
+      HostOperand host_in(input, /*host_writes=*/false);
       nntrainer::dotCl(input, weight, output);
       break;
+    }
     }
   }
 
