@@ -1,0 +1,325 @@
+{
+  "runtime": "/data/local/tmp/lfm2_prefill1000_20261013/composite-v19-device-gate",
+  "command": "cd /data/local/tmp/lfm2_prefill1000_20261013/composite-v19-device-gate && exec env LD_LIBRARY_PATH=. ADSP_LIBRARY_PATH=. NNTR_HTP_STRICT=1 NNTR_HTP_LMHEAD_CPU=0 NNTR_HTP_SHARED_ACTIVATIONS=1 NNTR_HTP_QS2_VTCM=1 NNTR_HTP_ATTN_DECODE_HMX=1 NNTR_HTP_DSPQ=1 NNTR_HTP_DSPQ_MATH=1 NNTR_HTP_DSPQ_ROUTER=1 NNTR_HTP_DSPQ_SPIN_US=20 NNTR_HTP_ADD_NORM_FUSION=1 NNTR_HTP_BLOCK_NORM_FUSION=1 NNTR_HTP_NORM_CONSUMER_FUSION=1 NNTR_HTP_QKV_ROPE_FUSION=1 NNTR_HTP_RETAIN_ROUTER_INPUT=1 NNTR_HTP_CONV_M1_HVX=1 NNTR_HTP_FC_M1_HVX=1 NNTR_HTP_CONV_CHUNK_TILES=8 NNTR_HTP_FC_CHUNK_TILES=8 NNTR_MOE_CACHE_EXPERTS=22 NNTR_MOE_PREFETCH_EARLY=1 NNTR_MOE_PREFETCH_READERS=7 NNTR_NUM_THREADS=8 NNTR_OP_TIME=0 NNTR_HTP_PROFILE=0 NNTR_HTP_MATH_PROFILE=0 NNTR_HTP_DSPQ_CONV=1 NNTR_HTP_DSPQ_FC=1 NNTR_HTP_DSPQ_QKV=1 NNTR_HTP_DSPQ_MATH_SPLIT=1 NNTR_HTP_ATTN_RESIDENT_F16=0 NNTR_HTP_ATTN_Q2=0 NNTR_HTP_ATTN_Q8_WIRE=1 NNTR_HTP_QS2_GEMV=1 NNTR_HTP_ATTN_Q8_HMX=3 NNTR_HTP_ROUTER_Q4_DECODE=1 NNTR_HTP_ATTN_TRACE=0 NNTR_HTP_DMA_TRACE=0 NNTR_HTP_CONV_PREPACK=1 NNTR_HTP_CONV_OUT_CHUNK_TILES=0 NNTR_HTP_CONV_INPUT_CACHE=0 NNTR_MOE_IO_PROFILE=0 NNTR_HTP_QS2_MMAP_READ=1 NNTR_HTP_QS2_DIRECT_READ=0 NNTR_MOE_MISS_READERS=4 NNTR_HTP_EXPERT_UPDATE_MODE=3 NNTR_MOE_DECODE_PREFETCH=off NNTR_MOE_DECODE_PREFETCH_LIMIT=4 NNTR_MOE_DECODE_PREFETCH_SELECTIVE=1 NNTR_MOE_DECODE_PREFETCH_MMAP=1 NNTR_MOE_DECODE_PREFETCH_KEEP_READY=1 NNTR_MOE_DECODE_PREFETCH_ADAPTIVE=0 NNTR_WEIGHT_IO=direct NNTR_HTP_PREFILL_SHARED_IO=7 NNTR_LFM2_PREFILL_TAIL_ROWS=64 NNTR_HTP_PREFILL_ROPE_FUSION=0 NNTR_HTP_PREFILL_QKV_PREPARE=1 NNTR_HTP_PREFILL_CONV_NORM=1 NNTR_HTP_ROUTER_Q4_FUSION=1 NNTR_HTP_ROUTER_Q4_REUSE=1 NNTR_HTP_ROUTER_Q4_QUANT_REUSE=1 NNTR_HTP_PREFILL_ROUTER_NORM=1 NNTR_HTP_PREFILL_QKV_NORM=1 ./attention_composite_device_check --bench",
+  "checker_sha256": "033b00ead872b7cbea52b62a568e152706ce76d9edbd9d35525b48ac5cf1420e",
+  "returncode": 0,
+  "elapsed_seconds": 1.179826259613037,
+  "diagnostic_only": true,
+  "clean_timing_sample": false,
+  "pass_tag": "ALL_ATTENTION_COMPOSITE_CASES_PASSED cases=3",
+  "pass": true,
+  "log_sha256": "c4f0d907d01cc49d169c534413df94bb03c229429f2b7bf92034d196a8bc0231",
+  "thermal_after": {
+    "status": 0,
+    "temperatures": {
+      "AP": 26.1,
+      "BAT": 25.7,
+      "PA": 26.4,
+      "SKIN": 27.9,
+      "SUBBAT": 0.0,
+      "USB": 26.0
+    }
+  },
+  "rows": [
+    {
+      "seed": 17,
+      "mode": "separate",
+      "repeat": 2,
+      "wall_us": 15884,
+      "prepare_us": 748,
+      "attention_us": 13715
+    },
+    {
+      "seed": 17,
+      "mode": "composite",
+      "repeat": 2,
+      "wall_us": 15423,
+      "prepare_us": 796,
+      "attention_us": 13682
+    },
+    {
+      "seed": 17,
+      "mode": "composite",
+      "repeat": 3,
+      "wall_us": 15235,
+      "prepare_us": 760,
+      "attention_us": 13669
+    },
+    {
+      "seed": 17,
+      "mode": "separate",
+      "repeat": 3,
+      "wall_us": 16128,
+      "prepare_us": 788,
+      "attention_us": 13732
+    },
+    {
+      "seed": 17,
+      "mode": "separate",
+      "repeat": 4,
+      "wall_us": 15972,
+      "prepare_us": 755,
+      "attention_us": 13757
+    },
+    {
+      "seed": 17,
+      "mode": "composite",
+      "repeat": 4,
+      "wall_us": 15486,
+      "prepare_us": 800,
+      "attention_us": 13709
+    },
+    {
+      "seed": 17,
+      "mode": "composite",
+      "repeat": 5,
+      "wall_us": 15211,
+      "prepare_us": 762,
+      "attention_us": 13629
+    },
+    {
+      "seed": 17,
+      "mode": "separate",
+      "repeat": 5,
+      "wall_us": 15855,
+      "prepare_us": 792,
+      "attention_us": 13720
+    },
+    {
+      "seed": 17,
+      "mode": "separate",
+      "repeat": 6,
+      "wall_us": 15845,
+      "prepare_us": 747,
+      "attention_us": 13747
+    },
+    {
+      "seed": 17,
+      "mode": "composite",
+      "repeat": 6,
+      "wall_us": 15568,
+      "prepare_us": 799,
+      "attention_us": 13727
+    },
+    {
+      "seed": 17,
+      "mode": "composite",
+      "repeat": 7,
+      "wall_us": 15580,
+      "prepare_us": 757,
+      "attention_us": 13729
+    },
+    {
+      "seed": 17,
+      "mode": "separate",
+      "repeat": 7,
+      "wall_us": 15934,
+      "prepare_us": 789,
+      "attention_us": 13815
+    },
+    {
+      "seed": 29,
+      "mode": "separate",
+      "repeat": 2,
+      "wall_us": 15952,
+      "prepare_us": 785,
+      "attention_us": 13739
+    },
+    {
+      "seed": 29,
+      "mode": "composite",
+      "repeat": 2,
+      "wall_us": 15397,
+      "prepare_us": 818,
+      "attention_us": 13645
+    },
+    {
+      "seed": 29,
+      "mode": "composite",
+      "repeat": 3,
+      "wall_us": 15353,
+      "prepare_us": 763,
+      "attention_us": 13607
+    },
+    {
+      "seed": 29,
+      "mode": "separate",
+      "repeat": 3,
+      "wall_us": 15952,
+      "prepare_us": 833,
+      "attention_us": 13727
+    },
+    {
+      "seed": 29,
+      "mode": "separate",
+      "repeat": 4,
+      "wall_us": 15788,
+      "prepare_us": 785,
+      "attention_us": 13731
+    },
+    {
+      "seed": 29,
+      "mode": "composite",
+      "repeat": 4,
+      "wall_us": 15510,
+      "prepare_us": 816,
+      "attention_us": 13643
+    },
+    {
+      "seed": 29,
+      "mode": "composite",
+      "repeat": 5,
+      "wall_us": 15506,
+      "prepare_us": 766,
+      "attention_us": 13642
+    },
+    {
+      "seed": 29,
+      "mode": "separate",
+      "repeat": 5,
+      "wall_us": 16111,
+      "prepare_us": 839,
+      "attention_us": 13772
+    },
+    {
+      "seed": 29,
+      "mode": "separate",
+      "repeat": 6,
+      "wall_us": 16115,
+      "prepare_us": 781,
+      "attention_us": 13771
+    },
+    {
+      "seed": 29,
+      "mode": "composite",
+      "repeat": 6,
+      "wall_us": 15538,
+      "prepare_us": 818,
+      "attention_us": 13700
+    },
+    {
+      "seed": 29,
+      "mode": "composite",
+      "repeat": 7,
+      "wall_us": 15469,
+      "prepare_us": 766,
+      "attention_us": 13734
+    },
+    {
+      "seed": 29,
+      "mode": "separate",
+      "repeat": 7,
+      "wall_us": 16062,
+      "prepare_us": 828,
+      "attention_us": 13725
+    },
+    {
+      "seed": 83,
+      "mode": "separate",
+      "repeat": 2,
+      "wall_us": 16026,
+      "prepare_us": 748,
+      "attention_us": 13727
+    },
+    {
+      "seed": 83,
+      "mode": "composite",
+      "repeat": 2,
+      "wall_us": 15529,
+      "prepare_us": 775,
+      "attention_us": 13693
+    },
+    {
+      "seed": 83,
+      "mode": "composite",
+      "repeat": 3,
+      "wall_us": 15541,
+      "prepare_us": 741,
+      "attention_us": 13704
+    },
+    {
+      "seed": 83,
+      "mode": "separate",
+      "repeat": 3,
+      "wall_us": 16084,
+      "prepare_us": 790,
+      "attention_us": 13737
+    },
+    {
+      "seed": 83,
+      "mode": "separate",
+      "repeat": 4,
+      "wall_us": 16005,
+      "prepare_us": 747,
+      "attention_us": 13749
+    },
+    {
+      "seed": 83,
+      "mode": "composite",
+      "repeat": 4,
+      "wall_us": 15562,
+      "prepare_us": 776,
+      "attention_us": 13704
+    },
+    {
+      "seed": 83,
+      "mode": "composite",
+      "repeat": 5,
+      "wall_us": 15638,
+      "prepare_us": 738,
+      "attention_us": 13774
+    },
+    {
+      "seed": 83,
+      "mode": "separate",
+      "repeat": 5,
+      "wall_us": 15945,
+      "prepare_us": 785,
+      "attention_us": 13835
+    },
+    {
+      "seed": 83,
+      "mode": "separate",
+      "repeat": 6,
+      "wall_us": 15925,
+      "prepare_us": 749,
+      "attention_us": 13779
+    },
+    {
+      "seed": 83,
+      "mode": "composite",
+      "repeat": 6,
+      "wall_us": 15430,
+      "prepare_us": 780,
+      "attention_us": 13684
+    },
+    {
+      "seed": 83,
+      "mode": "composite",
+      "repeat": 7,
+      "wall_us": 15441,
+      "prepare_us": 750,
+      "attention_us": 13724
+    },
+    {
+      "seed": 83,
+      "mode": "separate",
+      "repeat": 7,
+      "wall_us": 16058,
+      "prepare_us": 790,
+      "attention_us": 13752
+    }
+  ],
+  "summary": {
+    "separate": {
+      "count": 18,
+      "median_us": 15962.0,
+      "mean_us": 15980.055555555555
+    },
+    "composite": {
+      "count": 18,
+      "median_us": 15496.0,
+      "mean_us": 15467.611111111111
+    }
+  }
+}

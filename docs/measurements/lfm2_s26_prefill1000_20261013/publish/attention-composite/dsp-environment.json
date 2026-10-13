@@ -1,0 +1,7 @@
+{
+  "HEXAGON_SDK_ROOT": "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1",
+  "DEFAULT_HEXAGON_TOOLS_ROOT": "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.4.0.1/tools/HEXAGON_Tools/19.0.04",
+  "HEXKL_ROOT": "/home/jungone-lee/workspace/nntrainer/hexkl_addon",
+  "HEXKL_SDK_VER": "6.4.0.2",
+  "HEX_ARCH": "v81"
+}

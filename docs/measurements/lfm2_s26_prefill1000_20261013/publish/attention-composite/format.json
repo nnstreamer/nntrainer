@@ -1,0 +1,44 @@
+{
+  "test/htp/nntr_hvx_attn_q.c": {
+    "before": "631da5406d70db9064e210178433edc0f99b939489124b866b339e5a270a7bd8",
+    "after": "631da5406d70db9064e210178433edc0f99b939489124b866b339e5a270a7bd8",
+    "lines": [
+      "--lines=31:31",
+      "--lines=1065:1122"
+    ]
+  },
+  "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": {
+    "before": "a87f510368f385407545d656ae5b730fd977f2485a0437e2e18dcbb79a85427a",
+    "after": "a87f510368f385407545d656ae5b730fd977f2485a0437e2e18dcbb79a85427a",
+    "lines": [
+      "--lines=1252:1254",
+      "--lines=1349:1349",
+      "--lines=9689:9767",
+      "--lines=10248:10259"
+    ]
+  },
+  "nntrainer/tensor/htp_backend/htp_rope_prefill.h": {
+    "before": "d51028a12078b2b49eab034f97bb75d1c5a7bfebc8cff58242b73f623ffcde7f",
+    "after": "d51028a12078b2b49eab034f97bb75d1c5a7bfebc8cff58242b73f623ffcde7f",
+    "lines": [
+      "--lines=9:29"
+    ]
+  },
+  "Applications/CausalLM/layers/mha_core.cpp": {
+    "before": "dd380c3dec27e4f59d1a4d6adfa12ea16814bd053ae272921ddff20541ca6ee4",
+    "after": "dd380c3dec27e4f59d1a4d6adfa12ea16814bd053ae272921ddff20541ca6ee4",
+    "lines": [
+      "--lines=1333:1342",
+      "--lines=1347:1347",
+      "--lines=1738:1827"
+    ]
+  },
+  "Applications/CausalLM/layers/mha_core.h": {
+    "before": "06bf5391f259e940b43659cba11e1dc45d12bb5adf8acc114840c4cdee0dfa7f",
+    "after": "06bf5391f259e940b43659cba11e1dc45d12bb5adf8acc114840c4cdee0dfa7f",
+    "lines": [
+      "--lines=586:594"
+    ]
+  },
+  "formatter_version": "clang-format version 14.0.6 (https://github.com/ssciwr/clang-format-wheel e79d44a98fc6eeb3e9751220e441da03812564c1)"
+}

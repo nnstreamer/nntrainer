@@ -1,0 +1,146 @@
+{
+  "status": "SOURCE/BUILD AND PARENT FULL-MODEL GATES PASS",
+  "reviewer": "moe_audit",
+  "publication_base": "7493cca56abbb35859ecb65ca1b3b7c61494366d",
+  "publication_head_now": "394e06b950c15382331e898f5cc3a9697fb0e9c8",
+  "production_allowlist": [
+    "Applications/CausalLM/layers/mha_core.cpp",
+    "Applications/CausalLM/layers/mha_core.h",
+    "nntrainer/tensor/htp_backend/htp_rope_prefill.h",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp",
+    "test/htp/nntr_hvx_attn_q.c",
+    "test/htp/nntr_hvx.idl"
+  ],
+  "test_allowlist": [
+    "test/htp/host/attention_composite_host_check.cpp",
+    "test/htp/host/run_attention_composite_host_checks.py",
+    "test/htp/attention_composite_device_check.cpp"
+  ],
+  "source_sha256": {
+    "Applications/CausalLM/layers/mha_core.cpp": "dd380c3dec27e4f59d1a4d6adfa12ea16814bd053ae272921ddff20541ca6ee4",
+    "Applications/CausalLM/layers/mha_core.h": "06bf5391f259e940b43659cba11e1dc45d12bb5adf8acc114840c4cdee0dfa7f",
+    "nntrainer/tensor/htp_backend/htp_rope_prefill.h": "d51028a12078b2b49eab034f97bb75d1c5a7bfebc8cff58242b73f623ffcde7f",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "a87f510368f385407545d656ae5b730fd977f2485a0437e2e18dcbb79a85427a",
+    "test/htp/nntr_hvx_attn_q.c": "631da5406d70db9064e210178433edc0f99b939489124b866b339e5a270a7bd8",
+    "test/htp/nntr_hvx.idl": "a183e90733f6035f9ac104944aba24e705f5db68f0a8b2cffedd757d93f37673",
+    "test/htp/host/attention_composite_host_check.cpp": "30d4e6d37c39bb33e101e4af73551a59b76862e575a300f05c8915429cd4d5ae",
+    "test/htp/host/run_attention_composite_host_checks.py": "56f2692bda617365a394766915b7fdf39cd8ab20169b23fe8eb67dcad42eabc9",
+    "test/htp/attention_composite_device_check.cpp": "33ce273d2656985aac4816becbb70a4ac998fcdf7dd811102ddbb4c9a79face9"
+  },
+  "source_matches_private_reviewed_candidate": true,
+  "patches": {
+    "production.patch": "d329678d59096576ffede7fc2a4a56604964baff5a1836e64fa302cfca31fd4a",
+    "tests.patch": "2932430424bef49ec374159df55b0df91dce9d1b9cf8d2c890c6f29eafa23f95",
+    "root-applicability.patch": "fd91bc4569444b1055aef4bc0ceaaeef5d392121d5ecc165d51af6093eb17383"
+  },
+  "root_applicability": {
+    "root_before_sha256": {
+      "Applications/CausalLM/layers/mha_core.cpp": "2fa8a238c328c1d53d0eb22343edf421972b81c14c7f8b76821a42795882c3ff",
+      "Applications/CausalLM/layers/mha_core.h": "ef9e1a5c7afc620042d82d25727ed1eabe13884a5c223698da0cce010a734cfb",
+      "nntrainer/tensor/htp_backend/htp_rope_prefill.h": "6bb86b4b46061710dd29bd41f237c402f4d1bda929e3d7e97bea0183cef54a53",
+      "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "97f5212767fc955bb08197b60a7fca27dd7fddbea189bb68ccd679582e773465",
+      "test/htp/nntr_hvx_attn_q.c": "08c57ff28707d111be36c6864586b5430ba6e5f3ef44ffdad039074e160894ff",
+      "test/htp/nntr_hvx.idl": "5faf5e0e5c52800b5466294685ad7e82de8257ee9e19b98320e6074caad67d58"
+    },
+    "private_after_sha256": {
+      "Applications/CausalLM/layers/mha_core.cpp": "dd380c3dec27e4f59d1a4d6adfa12ea16814bd053ae272921ddff20541ca6ee4",
+      "Applications/CausalLM/layers/mha_core.h": "06bf5391f259e940b43659cba11e1dc45d12bb5adf8acc114840c4cdee0dfa7f",
+      "nntrainer/tensor/htp_backend/htp_rope_prefill.h": "d51028a12078b2b49eab034f97bb75d1c5a7bfebc8cff58242b73f623ffcde7f",
+      "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "de697a3ad85e6bbd8ef17b6efaa2a2b7c460f3ab1e3d271418109a8a872c2c4f",
+      "test/htp/nntr_hvx_attn_q.c": "631da5406d70db9064e210178433edc0f99b939489124b866b339e5a270a7bd8",
+      "test/htp/nntr_hvx.idl": "037329752fc6ee1b6c80996c7cf7b8727753f8951d3363d7769ed0cc35499324",
+      "test/htp/host/attention_composite_host_check.cpp": "30d4e6d37c39bb33e101e4af73551a59b76862e575a300f05c8915429cd4d5ae",
+      "test/htp/host/run_attention_composite_host_checks.py": "56f2692bda617365a394766915b7fdf39cd8ab20169b23fe8eb67dcad42eabc9",
+      "test/htp/attention_composite_device_check.cpp": "33ce273d2656985aac4816becbb70a4ac998fcdf7dd811102ddbb4c9a79face9"
+    },
+    "old_idl_method_count": 140,
+    "new_idl_method_count": 141,
+    "existing_idl_prefix_byte_identical": true,
+    "foreign_idl_methods_retained": [
+      "tl2_gemv_probe",
+      "weight_swap_tl2_arena",
+      "weight_swap_batch_tl2_arena",
+      "weight_swap_tl2_compact_arena",
+      "weight_swap_batch_tl2_compact_arena"
+    ],
+    "root_mutations": false,
+    "patch_sha256": "fd91bc4569444b1055aef4bc0ceaaeef5d392121d5ecc165d51af6093eb17383"
+  },
+  "format": {
+    "version": "clang-format version 14.0.6 (https://github.com/ssciwr/clang-format-wheel e79d44a98fc6eeb3e9751220e441da03812564c1)",
+    "scope": "changed lines for existing C/C++/headers; whole new C++ fixtures",
+    "all_files_match_private_formatted_source": true
+  },
+  "tests": {
+    "normal": "1101 assertions + non-HTP header + non-Linux fixture guard PASS",
+    "asan_ubsan": "1101 assertions + portability guards PASS",
+    "negative_replay_guard": "Actual caller short-circuit removal is rejected by fixture",
+    "independent_review": "/tmp/lfm2-prefill1000-moe/attention-composite/independent-source-review.json"
+  },
+  "logs_sha256": {
+    "composite-normal.log": "227ec3a31347c6e40cb7e11cb89f65abc4b70f04a1cc15300bdaeb4f8f4e1862",
+    "composite-sanitized.log": "227ec3a31347c6e40cb7e11cb89f65abc4b70f04a1cc15300bdaeb4f8f4e1862",
+    "stub-generation.log": "1529e0bf5d2d1bfdcd9a967db3e91dee2e7bdf24eba772297841ac533f5ca989",
+    "dsp-build.log": "b2584e2d90d2c544f366732ba8f4ad0c97abf6f139463064635616729839e6d1",
+    "core-matched-install.log": "dd53cd9dafbf6c9dcc3f098969a0a2e36c22abc82d776ecd6534b40bafaf6475",
+    "app-matched-install.log": "bc80b0842209b74a707bf21716d4d40950c5af01fc649307277d2ed846832ae5",
+    "diagnostic-build.log": "92f36684c0fd63cdb35da8cf853f43cd18c90e1476db706c13942fbd75d69a2d"
+  },
+  "build": {
+    "all_returncodes_zero": true,
+    "matching_IDL_stub_core_app_skel": true,
+    "registry_limit": 2048,
+    "cache_configuration_changed": false,
+    "source_manifest_files": 1324,
+    "source_manifest_sha256": "cad98bfce1316ef3afdd4f3e57fd36b40ee641204d1670d96a94a1db274a4a70",
+    "dependency_manifest_sha256": "9c5a89214456c36f21a204adad4a72a1648982a969986c9ec0b426a0911e896c",
+    "exported_header_manifest_sha256": "16dd36ff60aa9f79ac5583a6558e78cd9baf38aff239d2a695de67bb7171f0bd",
+    "no_stale_v18_headers": "weight_direct_file and expert_host_staging replaced from restored committed v17 source; new bridge/ComputeOps/IDL header installed in both include roots",
+    "app_core_and_installed_core_hashes_match": true
+  },
+  "production_artifacts": {
+    "libnntrainer.so": "01b740f720da0809096f3fe2231dd4002a18f83ef50a657b8c92fdb68b22c1e5",
+    "libccapi-nntrainer.so": "1fd18484dc116f2b75fdfcc1b7908bc00383258d534695a24802314ca9c83b74",
+    "libcausallm_core.so": "cd09776090af0cd75ac973e8fe77f5cbe41b7eb0c67e0a24b6d3a51e10752832",
+    "nntrainer_causallm": "b6b3810484a0573ece103af9701946be4da7dbfa83c413d0b76de913218c718d",
+    "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+    "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+    "libnntr_hvx_skel.so": "3660c0c7fbf7d10331d87cdf00530a3bda38b7617319611e2e343f02b3dd8211"
+  },
+  "diagnostic_artifacts": {
+    "libnntrainer.so": "01b740f720da0809096f3fe2231dd4002a18f83ef50a657b8c92fdb68b22c1e5",
+    "libccapi-nntrainer.so": "1fd18484dc116f2b75fdfcc1b7908bc00383258d534695a24802314ca9c83b74",
+    "libcausallm_core.so": "3f00bc0b6836ed045923464e573129c0478c1ba449f9fbc8eddfb3daa9b31945",
+    "nntrainer_causallm": "b6b3810484a0573ece103af9701946be4da7dbfa83c413d0b76de913218c718d",
+    "libc++_shared.so": "7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df",
+    "libsdkl.so": "63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe",
+    "libnntr_hvx_skel.so": "3660c0c7fbf7d10331d87cdf00530a3bda38b7617319611e2e343f02b3dd8211"
+  },
+  "diagnostic_current_object_provenance": "Fresh compile of current PUB causal_lm.cpp plus five exact existing raw-dump hunks, linked against freshly built current app objects; production objects/artifacts checked unchanged",
+  "device_evidence": {
+    "private_exact_gate": "docs/measurements/lfm2_s26_prefill1000_20261013/attention/composite-v19-device-gate.json",
+    "private_gate": "PASS3 cases Q/FP16KV/rawKV/output +17 continuation +1 decode",
+    "private_bench": "18 measured samples/path after balanced warmup; separate median15962us vs composite15496us, opportunity about4.7ms/10 calls before overlap",
+    "pub_full_model_gate": "PASS:132 raw files exact, ten composite calls, v19-pub-stage64-composite-parity-bc1"
+  },
+  "elf_comparison": "See dsp-elf-comparison.json. Text and rodata differ despite exact shared source/generated inputs; no paths-only equivalence claim. Actual PUB binary gates remain required.",
+  "ownership": {
+    "PUB_source_tests_applied_by_agent": true,
+    "PUB_generated_build_and_exported_headers_updated": true,
+    "root_source_changed": false,
+    "device_calls": false,
+    "commits_or_pushes": false,
+    "remaining_device_and_commit_owner": "parent"
+  },
+  "remaining_required_gates": [],
+  "no_further_source_changes_planned": true,
+  "parent_finalization": {
+    "original_review_sha256": "e760e8bfb8d20eabd87b358edf872e2301d7b439d6dec7932c158985229e4537",
+    "clean_abba": "off1044/1069 ms, on1034/1033 ms; goal1000TPS at1024 not yet reached",
+    "2048_repeats_tps": [
+      1029.66,
+      1033.82,
+      1034.34
+    ]
+  }
+}

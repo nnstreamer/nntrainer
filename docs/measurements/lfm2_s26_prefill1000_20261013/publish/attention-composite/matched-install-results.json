@@ -1,0 +1,71 @@
+[
+  {
+    "kind": "stub-generation",
+    "command": [
+      "bash",
+      "nntrainer/tensor/htp_backend/generate_stub.sh"
+    ],
+    "cwd": "/tmp/lfm2-prefill1000-20261013/publish",
+    "returncode": 0,
+    "seconds": 0.8614012819998607,
+    "log": "/tmp/lfm2-prefill1000-moe/attention-composite/publication-compat/stub-generation.log"
+  },
+  {
+    "kind": "dsp-build",
+    "command": [
+      "bash",
+      "test/htp/build.sh"
+    ],
+    "cwd": "/tmp/lfm2-prefill1000-20261013/publish",
+    "returncode": 0,
+    "seconds": 23.42467669599864,
+    "log": "/tmp/lfm2-prefill1000-moe/attention-composite/publication-compat/dsp-build.log"
+  },
+  {
+    "kind": "core-matched-install",
+    "command": [
+      "/home/jungone-lee/workspace/nntrainer/android-ndk-r30/ndk-build",
+      "NDK_PROJECT_PATH=/tmp/lfm2-prefill1000-20261013/publish-build",
+      "APP_BUILD_SCRIPT=/tmp/lfm2-prefill1000-20261013/publish-build/Android-core.mk",
+      "NDK_APPLICATION_MK=/tmp/lfm2-prefill1000-20261013/Application-core.mk",
+      "NDK_OUT=/tmp/lfm2-prefill1000-20261013/publish-build/core-obj",
+      "NDK_LIBS_OUT=/tmp/lfm2-prefill1000-20261013/publish-build/core-libs",
+      "-j8",
+      "APP_MODULES=nntrainer ccapi-nntrainer"
+    ],
+    "cwd": "/tmp/lfm2-prefill1000-20261013/publish",
+    "returncode": 0,
+    "seconds": 6.638109103998431,
+    "log": "/tmp/lfm2-prefill1000-moe/attention-composite/publication-compat/core-matched-install.log"
+  },
+  {
+    "kind": "app-matched-install",
+    "command": [
+      "/home/jungone-lee/workspace/nntrainer/android-ndk-r30/ndk-build",
+      "NDK_PROJECT_PATH=/tmp/lfm2-prefill1000-20261013/publish-build",
+      "APP_BUILD_SCRIPT=/tmp/lfm2-prefill1000-20261013/publish/Applications/CausalLM/jni/Android.mk",
+      "NDK_APPLICATION_MK=/tmp/lfm2-prefill1000-20261013/publish/Applications/CausalLM/jni/Application.mk",
+      "NDK_OUT=/tmp/lfm2-prefill1000-20261013/publish-build/app-obj",
+      "NDK_LIBS_OUT=/tmp/lfm2-prefill1000-20261013/publish-build/app-libs",
+      "NNTRAINER_ROOT=/tmp/lfm2-prefill1000-20261013/publish",
+      "ANDROID_NDK=/home/jungone-lee/workspace/nntrainer/android-ndk-r30",
+      "-j8",
+      "APP_MODULES=causallm_core nntrainer_causallm"
+    ],
+    "cwd": "/tmp/lfm2-prefill1000-20261013/publish/Applications/CausalLM/jni",
+    "returncode": 0,
+    "seconds": 5.468568880998646,
+    "log": "/tmp/lfm2-prefill1000-moe/attention-composite/publication-compat/app-matched-install.log"
+  },
+  {
+    "kind": "diagnostic-build",
+    "command": [
+      "python3",
+      "/tmp/lfm2-prefill1000-moe/attention-composite/publication-compat/build_publication_diagnostic.py"
+    ],
+    "cwd": "/tmp/lfm2-prefill1000-moe/attention-composite/publication-compat",
+    "returncode": 0,
+    "seconds": 3.400922894001269,
+    "log": "/tmp/lfm2-prefill1000-moe/attention-composite/publication-compat/diagnostic-build.log"
+  }
+]

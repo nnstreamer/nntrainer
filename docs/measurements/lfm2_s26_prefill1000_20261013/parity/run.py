@@ -20,6 +20,7 @@ def main():
     parser.add_argument('--label', required=True)
     parser.add_argument('--count', type=int, required=True)
     parser.add_argument('--aligned', action='store_true')
+    parser.add_argument('--attention-composite', action='store_true')
     args = parser.parse_args()
     assert re.fullmatch(r'[a-zA-Z0-9_-]+', args.label)
     assert 0 <= args.count <= 160
@@ -33,6 +34,7 @@ def main():
     env = json.loads((OUT / 'v13-br256-r7-clean-x1.json').read_text())['env']
     env.update(NNTR_MOE_HOST_STAGE_EXPERTS=str(args.count),
                NNTR_MOE_HOST_STAGE_ALIGNED='1' if args.aligned else '0',
+               NNTR_HTP_PREFILL_ATTN_COMPOSITE='1' if args.attention_composite else '0',
                NNTR_MOE_IO_PROFILE='0', NNTR_PARITY_DUMP=remote,
                NNTR_PARITY_LOGIT_STEPS='65', NNTR_PARITY_LOGITS_ONLY='1')
     row = measure.run(args.variant, 1024, 'clean', args.label, env)
@@ -53,6 +55,9 @@ def main():
             assert active[0]['payload_bytes'] <= active[0]['allocated_bytes'] <= 384 * 1024 * 1024
     else:
         assert not active and not done
+    composite_calls = sum(int(n) for n in re.findall(
+        r'\[HTP\] prefill prepare\+Q8 attention calls=(\d+)', raw))
+    assert composite_calls == (10 if args.attention_composite else 0)
     subprocess.run(measure.ADB + ['pull', remote, str(destination)],
                    capture_output=True, check=True)
     baseline = HERE / 'dumps-baseline-v1'
@@ -65,6 +70,7 @@ def main():
     result = dict(baseline=str(baseline), candidate=str(destination),
                   files=len(expected), different=different, exact=not different,
                   staging_active=active, staging_done=done,
+                  attention_composite_calls=composite_calls,
                   scope='65 raw logits, 65 token IDs, prompt and manifest; '
                         'diagnostic timing is excluded from TPS results.')
     measure.save(comparison, result)

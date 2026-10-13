@@ -1,0 +1,138 @@
+{
+  "private": "/tmp/lfm2-prefill1000-moe/attention-composite/artifacts/libnntr_hvx_skel.so",
+  "pub": "/tmp/lfm2-prefill1000-moe/attention-composite/publication-compat/artifacts/libnntr_hvx_skel.so",
+  "allocatable_sections": {
+    ".ctors": {
+      "private_bytes": 8,
+      "pub_bytes": 8,
+      "same": true,
+      "private_sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+      "pub_sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc"
+    },
+    ".data": {
+      "private_bytes": 80,
+      "pub_bytes": 80,
+      "same": true,
+      "private_sha256": "03b936c36312284c3d9898c0f5bc163e4dd1a42525502fb3f3aa0e573f56a9d3",
+      "pub_sha256": "03b936c36312284c3d9898c0f5bc163e4dd1a42525502fb3f3aa0e573f56a9d3"
+    },
+    ".data.rel.ro": {
+      "private_bytes": 7056,
+      "pub_bytes": 7056,
+      "same": false,
+      "private_sha256": "955ccd0201eff122c5c6a99579f0c24fb38a6650ccfad63d3c67b213f7639297",
+      "pub_sha256": "9fb88e510b022f35f3d658156405cce78223a7f8750b3c6c551dcf371253fb6c"
+    },
+    ".dtors": {
+      "private_bytes": 12,
+      "pub_bytes": 12,
+      "same": true,
+      "private_sha256": "0d18cf0d8f9bce74b9cab44255d56572f195f501536f77e6e36b90790a41b192",
+      "pub_sha256": "0d18cf0d8f9bce74b9cab44255d56572f195f501536f77e6e36b90790a41b192"
+    },
+    ".dynamic": {
+      "private_bytes": 152,
+      "pub_bytes": 152,
+      "same": false,
+      "private_sha256": "75b5a48bb4ac0fe0727a7defa6bc16483d7ebd84edfdefdabbaa2607c48ed7cd",
+      "pub_sha256": "6c9cc41835a5f6b5004a88379de44c6ab6b812f0d19eb40facb7744213df303f"
+    },
+    ".dynstr": {
+      "private_bytes": 11109,
+      "pub_bytes": 11109,
+      "same": true,
+      "private_sha256": "8c33fac29f2ec5475c4834247d58f8fa48692a34ba3d596ecf9c7453936581d9",
+      "pub_sha256": "8c33fac29f2ec5475c4834247d58f8fa48692a34ba3d596ecf9c7453936581d9"
+    },
+    ".dynsym": {
+      "private_bytes": 7456,
+      "pub_bytes": 7456,
+      "same": false,
+      "private_sha256": "366752be239134c6cfbb20062b80d7a6abde60be09423a5e7549789650986fe0",
+      "pub_sha256": "ec7b57367e02a76135866da4a4f39bb48239c6077811b3e324ab4a88e3d92274"
+    },
+    ".eh_frame": {
+      "private_bytes": 4,
+      "pub_bytes": 4,
+      "same": true,
+      "private_sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+      "pub_sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+    },
+    ".fini": {
+      "private_bytes": 68,
+      "pub_bytes": 68,
+      "same": false,
+      "private_sha256": "e7119ea8f49853778069eff8b799aee92b682c920aac77fc82c7d342478919f5",
+      "pub_sha256": "44259057b93ca6c226948941cb2428bbbe58311e17fa367019c9bf20648e7aa3"
+    },
+    ".got": {
+      "private_bytes": 248,
+      "pub_bytes": 248,
+      "same": true,
+      "private_sha256": "b3ab6982980fddf460a2f47adb428475ce9afa89092fd034499d017a35993f05",
+      "pub_sha256": "b3ab6982980fddf460a2f47adb428475ce9afa89092fd034499d017a35993f05"
+    },
+    ".got.plt": {
+      "private_bytes": 1632,
+      "pub_bytes": 1632,
+      "same": true,
+      "private_sha256": "0dc756603fa627629652725e15e2024a76dfabc6090ea327f96a7ae24a35ee57",
+      "pub_sha256": "0dc756603fa627629652725e15e2024a76dfabc6090ea327f96a7ae24a35ee57"
+    },
+    ".hash": {
+      "private_bytes": 3736,
+      "pub_bytes": 3736,
+      "same": true,
+      "private_sha256": "258cace118af48933b471aa47fcf48c2ab45790e1fbcb64ce8a4d21c127892cd",
+      "pub_sha256": "258cace118af48933b471aa47fcf48c2ab45790e1fbcb64ce8a4d21c127892cd"
+    },
+    ".init": {
+      "private_bytes": 108,
+      "pub_bytes": 108,
+      "same": false,
+      "private_sha256": "a4345c2e4661818ce526c525ea6e05cb9fae75376ddde05b7968b1e19915c1d2",
+      "pub_sha256": "cf8806ee16db6184ddc81d2cb4b0841b84f76bddae17cb85926c420c5ef633f9"
+    },
+    ".plt": {
+      "private_bytes": 6512,
+      "pub_bytes": 6512,
+      "same": false,
+      "private_sha256": "29bbccd473c37050587f09f7d8bf167748069068e2ac1fa19bf0c5f17c3b988b",
+      "pub_sha256": "a26aee319afbc8a6c33a33b6dc8daf05f601118d28c1509bfcf7ad8f28c4e22d"
+    },
+    ".rela.dyn": {
+      "private_bytes": 12780,
+      "pub_bytes": 12780,
+      "same": false,
+      "private_sha256": "d373b45a07869b983114ddb6e96325282b3cd317f117e9a2073643d659b39d1b",
+      "pub_sha256": "a6a3ad91411a82d10d80d1d3308eb19ba48196e1491d3e833bb693288f227d6f"
+    },
+    ".rela.plt": {
+      "private_bytes": 4848,
+      "pub_bytes": 4848,
+      "same": false,
+      "private_sha256": "7af608630049c1d820025ff7ca4f41da4f7d4cd4055789bc1442c94a16c13d9c",
+      "pub_sha256": "afc431741f489fe505ab559e9f05f46387ba950033f86bc2e84032d2d8265fd8"
+    },
+    ".rodata": {
+      "private_bytes": 30767,
+      "pub_bytes": 30767,
+      "same": false,
+      "private_sha256": "f9e3f6a89fd1bbfc1d8eb81a7b4014dea48626ff67c2c7493a59fc644230f8f5",
+      "pub_sha256": "d066b90f15dcf3000e3debed06071ac3e839f5676474a78803e394651fe91dfd"
+    },
+    ".text": {
+      "private_bytes": 565368,
+      "pub_bytes": 565432,
+      "same": false,
+      "private_sha256": "73c9f16c5721e57a7cca095d0fb78dc42b9b4b3a2651db722516c87a9bd3344f",
+      "pub_sha256": "49f1cff4b3fc5b588705a2d07011ddca3cd9981291889bed5ecc88ef94d5a0e7"
+    }
+  },
+  "normalized_printable_string_multiset_equal": false,
+  "private_only_normalized_strings": [],
+  "pub_only_normalized_strings": [
+    ";s\"`;sp<AHnm"
+  ],
+  "interpretation": "Report exact comparisons only; source equality and identical generated stubs are recorded separately. Do not infer whole-program equivalence solely from ELF section hashes."
+}

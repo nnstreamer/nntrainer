@@ -24,6 +24,8 @@ def main():
     parser.add_argument('--io-profile', action='store_true')
     parser.add_argument('--aligned', action='store_true',
                         help='Read staged weights directly into aligned host buffers')
+    parser.add_argument('--attention-composite', action='store_true',
+                        help='Combine initial 1024-row preparation and Q8 attention')
     parser.add_argument('--cpu-mask', help='Main-process taskset mask')
     parser.add_argument('--reader-cpus', help='Explicit comma-separated reader CPUs')
     args = parser.parse_args()
@@ -34,6 +36,7 @@ def main():
     env['NNTR_MOE_HOST_STAGE_EXPERTS'] = str(args.count)
     env['NNTR_MOE_IO_PROFILE'] = '1' if args.io_profile else '0'
     env['NNTR_MOE_HOST_STAGE_ALIGNED'] = '1' if args.aligned else '0'
+    env['NNTR_HTP_PREFILL_ATTN_COMPOSITE'] = '1' if args.attention_composite else '0'
     if args.reader_cpus is not None:
         assert re.fullmatch(r'\d+(,\d+)*', args.reader_cpus)
         assert all(int(cpu) < 32 for cpu in args.reader_cpus.split(','))
@@ -98,6 +101,14 @@ def main():
         verified = (allocation.get('aligned') == 1 and
                     allocation['payload_bytes'] <=
                     allocation.get('allocated_bytes', 0) <= 384 * 1024 * 1024)
+    composite_calls = sum(int(n) for n in re.findall(
+        r'\[HTP\] prefill prepare\+Q8 attention calls=(\d+)', raw))
+    expected_calls = 10 if args.attention_composite and args.length == 1024 else 0
+    row['attention_composite'] = {'requested': args.attention_composite,
+                                  'calls': composite_calls,
+                                  'expected_calls': expected_calls,
+                                  'verified': composite_calls == expected_calls}
+    verified = verified and composite_calls == expected_calls
     row['host_staging']['verified'] = verified
     row['valid'] = row['valid'] and verified
     row['clean_timing_sample'] = not args.memory and not args.io_profile
@@ -113,7 +124,7 @@ def main():
     print('STAGING EVIDENCE', row['host_staging'],
           'clean_timing_sample=', row['clean_timing_sample'],
           'memory_peak_kb=', row.get('memory_peak_kb'), flush=True)
-    assert verified, 'Staging lifecycle/count mismatch'
+    assert verified, 'Staging lifecycle or attention call count mismatch'
 
 
 if __name__ == '__main__':

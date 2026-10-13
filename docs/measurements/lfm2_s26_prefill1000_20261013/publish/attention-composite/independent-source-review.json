@@ -1,0 +1,77 @@
+{
+  "status": "SOURCE REVIEW PASS; pending matched DSP/ARM build and device numerical/raw/TPS gates",
+  "reviewer": "attention_audit",
+  "candidate_root": "/tmp/lfm2-prefill1000-moe/attention-composite/source",
+  "base_commit": "3103136e938e08e212e505ddedc81d0eb35359c6",
+  "source_sha256": {
+    "Applications/CausalLM/layers/mha_core.cpp": "dd380c3dec27e4f59d1a4d6adfa12ea16814bd053ae272921ddff20541ca6ee4",
+    "Applications/CausalLM/layers/mha_core.h": "06bf5391f259e940b43659cba11e1dc45d12bb5adf8acc114840c4cdee0dfa7f",
+    "nntrainer/tensor/htp_backend/htp_rope_prefill.h": "d51028a12078b2b49eab034f97bb75d1c5a7bfebc8cff58242b73f623ffcde7f",
+    "nntrainer/tensor/htp_backend/htp_compute_ops.cpp": "54ffc54c187ee0f40841e18c6e963581015ee5c2de2c547e4f463f3475e46c04",
+    "test/htp/nntr_hvx_attn_q.c": "631da5406d70db9064e210178433edc0f99b939489124b866b339e5a270a7bd8",
+    "test/htp/nntr_hvx.idl": "a183e90733f6035f9ac104944aba24e705f5db68f0a8b2cffedd757d93f37673",
+    "test/htp/host/attention_composite_host_check.cpp": "e8178231fde2bad19920abf5d3dbb597eeee8014fd2561370f206375918111c1",
+    "test/htp/host/run_attention_composite_host_checks.py": "54780ce39b1262711221e142d65d4268c8e03cedeedb79f8ad70b3d133ba5a87"
+  },
+  "unchanged_function_sha256": {
+    "nntr_hvx_attn_q8_npu_step": "11b6a3d9f85927b6de028c48a4ba644bfbb8f15b0cc7644fb6f2fa69197ce84d",
+    "nntr_hvx_rope_qkv_prefill_f32": "9c4d2719f82c3a89c8d615fe1ffd2152d6329fa7cddcacc710d795b2969cc296",
+    "MHACoreLayer::try_quantized_attention": "8a03771aa03107313381712ee03cab6c0b55eaa46f3664ad3d38f6f751f281d0",
+    "MHACoreLayer::try_accelerated_attention": "c591d12b706b49c2c79627d6769c866481ca905665cb1d841d203714be35191d",
+    "MHACoreLayer::try_fused_rope_qkv": "d812c2e0c6c52f61196fdabd630e27f005fea77092a7fe5bfabdcdbba50a7499",
+    "MHACoreLayer::release_quantized_cache": "72e59d9f59c48f2952ebf6192118125a37cbb550c07a88b4e4bbb945be8d0901"
+  },
+  "resolved_findings": [
+    "All outer errors including EUNSUPPORTED throw; only outer SUCCESS plus zero-tail phase3 permits original-path fallback.",
+    "Status 96-byte range checked against every public input/output before any status or graph publication.",
+    "Malformed phase3 carrying nonzero preparation time/legacy stats is rejected; phase/status sentinel catches missing completion."
+  ],
+  "reviewed_contracts": [
+    "Exactly existing RoPE/FP16 worker entry then existing Q8 quant+append+attention entry; no numerical kernel edits.",
+    "Private CS staging retained under one invoke_mutex scope; all other graph ranges required shared and disjoint; no deferred borrowed state.",
+    "Successful output is direct FP32 and updates synced only after attention completion.",
+    "After inner attention failure: prepared=true, release all quantized cache handles, mark failed, skip original preparation, existing FP16 fallback; no second RoPE/append.",
+    "Prepare failure and uncertain transport error throw before caller can replay.",
+    "Initial 1024 rows/Q32/KV8/head64/cache0..1024, causal, Q8 wire/NPU, no sinks/window/softcap, strict, FP32 Q/K/V/output and FP16/UINT16 graph caches only.",
+    "Existing lazy registration outside timed prefill remains unchanged; one real RPC counter, separate composite trace, no double-counted legacy preparation RPC.",
+    "Append-only IDL requires fresh matching stub/core/skel/app; prior apps/diagnostics cannot be mixed after MHA/header changes."
+  ],
+  "host_fixture_review": "Extracts actual DSP wrapper, ARM method/free bridge, MHA helper/release/caller prefix from selected checkout. Legacy numerical kernels are callbacks, so this proves control flow/publication ordering and not HVX numerical parity.",
+  "reported_host_gates": {
+    "host-normal.log": "PASS: attention composite actual control flow (1101 assertions)\nPASS: non-HTP composite header",
+    "host-sanitized.log": "PASS: attention composite actual control flow (1101 assertions)\nPASS: non-HTP composite header"
+  },
+  "remaining_gates": [
+    "Matched Android/DSP builds and append-only IDL audit.",
+    "Device sequential-versus-composite Q/FP16 cache/output parity; raw K/V preservation; continuation/decode through resulting resident handles.",
+    "Full-model raw132 parity and bounded paired clean timing."
+  ],
+  "files_modified_by_reviewer": [],
+  "device_calls_by_reviewer": 0,
+  "device_checker_source_review": {
+    "status": "PASS source review; device execution pending",
+    "path": "/tmp/lfm2-prefill1000-moe/attention-composite/source/test/htp/attention_composite_device_check.cpp",
+    "sha256": "33ce273d2656985aac4816becbb70a4ac998fcdf7dd811102ddbb4c9a79face9",
+    "cases": 3,
+    "patterns": "Finite random inputs plus signed zeros, FP32 subnormals and FP16 rounding boundaries",
+    "comparisons": [
+      "Q FP32 bytes",
+      "public K/V FP16 bytes",
+      "raw K/V unchanged",
+      "prefill output bytes",
+      "17-row resident-cache continuation output",
+      "1-row decode output"
+    ],
+    "default_compute_rpcs": 21,
+    "default_register_release_rpcs": 12,
+    "benchmark_repetitions_per_case": 8,
+    "benchmark_warmup_repetitions_excluded": 2,
+    "benchmark_order": "Alternating AB/BA, balanced in retained repetitions; all reset copies outside measured calls",
+    "limitation": "Continuation observes resident cache through its existing consumers; it is not a literal internal-KV dump."
+  },
+  "matched_builds_reported_by_author": {
+    "DSP": "PASS SDK6.4.0.1/tool19.0.04/HexKL6.4.0.2 v81 import gate",
+    "Android_backend_MHA_syntax": "PASS",
+    "standalone_checker": "new generated FastRPC stub linked; append-only IDL requires matching new skel"
+  }
+}

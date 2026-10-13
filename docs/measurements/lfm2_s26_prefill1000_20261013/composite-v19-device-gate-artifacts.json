@@ -1,0 +1,5 @@
+{
+  "runtime": "/data/local/tmp/lfm2_prefill1000_20261013/composite-v19-device-gate",
+  "serial": "R5KL30G6MCX",
+  "sha256": "b6b3810484a0573ece103af9701946be4da7dbfa83c413d0b76de913218c718d  nntrainer_causallm\ndd062b1b6612e8d672eb886aab45d800f6e9239172b0a6db3f05483e59b7c749  libnntrainer.so\n3a49594fd8400571bd78f7412ec9fce09c6eee18025513782413f851d17d1c71  libcausallm_core.so\n7b2985262f3026f4df3df679886bd25f0876e6139c93768fd37ff98fc3a112d6  libnntr_hvx_skel.so\n1fd18484dc116f2b75fdfcc1b7908bc00383258d534695a24802314ca9c83b74  libccapi-nntrainer.so\n7466ed097631a564ed6bff0b47768caa76bf03270d2047b5a65c03f497b824df  libc++_shared.so\n63c9b0db89064d92166a9211b95c7153380bd5385cec402e66910c05f940e5fe  libsdkl.so"
+}

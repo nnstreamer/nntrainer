@@ -583,6 +583,15 @@ private:
                           nntrainer::Tensor &v, nntrainer::Tensor &k_cache,
                           nntrainer::Tensor &v_cache, unsigned from);
 
+  /** True completes attention. False with prepared=true retains the public
+   * Q/K/V writes and requires attention fallback without a second RoPE. */
+  bool try_prefill_q8_composite(unsigned batch, unsigned from, unsigned to,
+                                nntrainer::Tensor &q, nntrainer::Tensor &k,
+                                nntrainer::Tensor &v, nntrainer::Tensor &kc,
+                                nntrainer::Tensor &vc, nntrainer::Tensor &out,
+                                const ml::train::TensorDim &cache_dim,
+                                bool &prepared);
+
   void apply_rotary_emb_tensor_v2(nntrainer::Tensor &in, nntrainer::Tensor &out,
                                   unsigned int dim, unsigned int from,
                                   bool convert_only = false);

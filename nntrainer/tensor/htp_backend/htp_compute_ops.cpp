@@ -1249,6 +1249,9 @@ public:
     if (rope_qkv_calls_)
       std::fprintf(stderr, "[HTP] fused QKV RoPE calls=%llu\n",
                    (unsigned long long)rope_qkv_calls_);
+    if (prefill_q8_composite_calls_)
+      std::fprintf(stderr, "[HTP] prefill prepare+Q8 attention calls=%llu\n",
+                   (unsigned long long)prefill_q8_composite_calls_);
     if (consumer_norm_calls_)
       std::fprintf(stderr, "[HTP] norm consumer fusion calls=%llu pending=%d\n",
                    (unsigned long long)consumer_norm_calls_,
@@ -1343,6 +1346,7 @@ public:
   }
 
   uint64_t rope_prefill_calls_ = 0;
+  uint64_t prefill_q8_composite_calls_ = 0;
   uint64_t rope_prefill_prepare_us_ = 0, rope_prefill_rpc_us_ = 0;
   uint64_t rope_prefill_dsp_us_ = 0, rope_prefill_copyout_us_ = 0;
   uint64_t rope_prefill_staged_bytes_ = 0;
@@ -9682,6 +9686,85 @@ public:
     }
   }
 
+  HtpPrefillAttentionResult prefillQ8Attention(int handle, unsigned rows,
+                                               const float *cs, float *q,
+                                               const float *k, const float *v,
+                                               uint16_t *ko, uint16_t *vo,
+                                               float *out) {
+    const char *enabled = std::getenv("NNTR_HTP_PREFILL_ATTN_COMPOSITE");
+    const char *prepare = std::getenv("NNTR_HTP_PREFILL_QKV_PREPARE");
+    const char *wire = std::getenv("NNTR_HTP_ATTN_Q8_WIRE");
+    const char *npu = std::getenv("NNTR_HTP_ATTN_Q8_NPU");
+    auto &backend = HtpBackend::global();
+    if (!enabled || !std::atoi(enabled) || !prepare || !std::atoi(prepare) ||
+        !wire || !std::atoi(wire) || (npu && !std::atoi(npu)) ||
+        !backend.enabled() || handle < 0 || rows != 1024u || !out ||
+        !nntr_rope_prefill_valid(rows, 2048u, 512u, 64u, cs, q, k, v, ko, vo))
+      return HtpPrefillAttentionResult::Unsupported;
+    const size_t nq = size_t(rows) * 2048u, nk = size_t(rows) * 512u;
+    const size_t nc = size_t(rows) * 128u;
+    if (nntr_rope_ranges_overlap(out, nq * 4u, q, nq * 4u) ||
+        nntr_rope_ranges_overlap(out, nq * 4u, k, nk * 4u) ||
+        nntr_rope_ranges_overlap(out, nq * 4u, v, nk * 4u) ||
+        nntr_rope_ranges_overlap(out, nq * 4u, cs, nc * 4u) ||
+        nntr_rope_ranges_overlap(out, nq * 4u, ko, nk * 2u) ||
+        nntr_rope_ranges_overlap(out, nq * 4u, vo, nk * 2u) ||
+        !backend.isSharedRange(q, nq * 4u) ||
+        !backend.isSharedRange(k, nk * 4u) ||
+        !backend.isSharedRange(v, nk * 4u) ||
+        !backend.isSharedRange(ko, nk * 2u) ||
+        !backend.isSharedRange(vo, nk * 2u) ||
+        !backend.isSharedRange(out, nq * 4u))
+      return HtpPrefillAttentionResult::Unsupported;
+    {
+      std::lock_guard<std::mutex> lock(attn_kind_mutex_);
+      const auto found = attn_cache_kinds_.find(handle);
+      if (found == attn_cache_kinds_.end() || found->second != 0u)
+        return HtpPrefillAttentionResult::Unsupported;
+    }
+    std::lock_guard<std::mutex> lock(invoke_mutex_);
+    const float *phase = cs;
+    if (!backend.isSharedRange(cs, nc * 4u)) {
+      auto *dst =
+        reinterpret_cast<float *>(stage(rope_prefill_pool_[3], nc * 4u).data());
+      stagedMemcpy(dst, cs, nc * 4u);
+      phase = dst;
+    }
+    uint32_t status[24];
+    std::fill(std::begin(status), std::end(status), UINT32_MAX);
+    const bool trace = attn_trace_enabled();
+    const int64_t start = trace ? now_us() : 0;
+    ++prefill_q8_composite_calls_;
+    const int err = nntr_hvx_attn_q8_prefill_prepare(
+      static_cast<remote_handle64>(backend.handle()), uint32_t(handle), rows,
+      phase, int(nc), q, int(nq), k, int(nk), v, int(nk), ko, int(nk), vo,
+      int(nk), out, int(nq), status, 24);
+    // Outer errors do not prove whether in-place Q writes completed. Only
+    // an explicit successful phase-3 record permits original-path fallback.
+    if (err != AEE_SUCCESS)
+      throw std::runtime_error("HTP prefill composite transport failed: " +
+                               std::to_string(err));
+    if (trace)
+      ml_logi("HTP attn trace prepare_q8: rows=%u phase=%u prepare_rc=%u "
+              "attention_rc=%u rpc_us=%lld prepare_dsp_us=%u attn_dsp_us=%u "
+              "quant_us=%u append_us=%u attn_us=%u",
+              rows, status[0], status[1], status[2],
+              static_cast<long long>(now_us() - start), status[3], status[7],
+              status[8], status[4], status[5]);
+    if (status[0] == 3u &&
+        std::all_of(std::begin(status) + 1, std::end(status),
+                    [](uint32_t value) { return value == 0u; }))
+      return HtpPrefillAttentionResult::Unsupported;
+    if (status[1] != AEE_SUCCESS)
+      throw std::runtime_error("HTP prefill QKV RoPE failed: " +
+                               std::to_string(status[1]));
+    if (status[0] == 2u && status[2] == AEE_SUCCESS)
+      return HtpPrefillAttentionResult::Complete;
+    if (status[0] == 1u && status[2] != AEE_SUCCESS)
+      return HtpPrefillAttentionResult::Prepared;
+    throw std::runtime_error("HTP prefill composite completion is invalid");
+  }
+
   bool sdpa_q8_npu(int handle, unsigned row0, unsigned rows, const uint16_t *k,
                    const uint16_t *v, const float *q, unsigned n_q,
                    unsigned cache_from, unsigned cache_to, unsigned q_heads,
@@ -10160,6 +10243,18 @@ bool htp_rope_qkv_prefill(unsigned rows, unsigned qw, unsigned kw, unsigned hd,
                           const float *v, uint16_t *ko, uint16_t *vo) {
   return static_cast<HtpComputeOps *>(get_htp_ops())
     ->ropeQkvPrefill(rows, qw, kw, hd, cs, q, k, v, ko, vo);
+}
+
+HtpPrefillAttentionResult
+htp_rope_q8_attention_prefill(int handle, unsigned rows, const float *cs,
+                              float *q, const float *k, const float *v,
+                              uint16_t *ko, uint16_t *vo, float *out) {
+#ifndef NNTR_HTP_INPROC
+  return static_cast<HtpComputeOps *>(get_htp_ops())
+    ->prefillQ8Attention(handle, rows, cs, q, k, v, ko, vo, out);
+#else
+  return HtpPrefillAttentionResult::Unsupported;
+#endif
 }
 
 } // namespace nntrainer

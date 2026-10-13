@@ -1463,4 +1463,18 @@ interface nntr_hvx : remote_handle64 {
      in sequence<float> gamma, rout sequence<float> sum,
      rout sequence<float> norm, rout sequence<float> q,
      rout sequence<float> k, rout sequence<float> v);
+   // Exact composition of rope_qkv_prefill_f32 and attn_q8_npu_step.
+   // Initial shape: M=1024, Q32/KV8/head64, append/cache range [0,M),
+   // dynamic Q8, no window/softcap/sinks. Q is in-place and FP16 K/V
+   // remain the public graph cache; the original two entries are unchanged.
+   // Outer success carries status[0..3]: phase (0=prepare failed,
+   // 1=prepared/attention failed, 2=complete, 3=unsupported before any graph
+   // publication), prepare rc, attention rc, prepare us; status[4..23] are
+   // the existing attention stats. Only phase3 permits original preparation
+   // fallback. Every outer error is uncertain completion: do not replay.
+   AEEResult attn_q8_prefill_prepare(in uint32 kv_handle, in uint32 M,
+     in sequence<float> cs, inrout sequence<float> q,
+     in sequence<float> k, in sequence<float> v,
+     rout sequence<uint16> k_out, rout sequence<uint16> v_out,
+     rout sequence<float> out_f32, rout sequence<uint32> status);
 };

@@ -28,6 +28,7 @@
 #include "hexkl_kv_q.h"
 #include "hexkl_micro.h"
 #include "htp_kv_cache.h"
+#include "htp_rope_prefill_shape.h"
 #include "hvx_attn_decode_q.h"
 #include "hvx_kv_quant.h"
 #include "hvx_softmax_q.h"
@@ -1059,6 +1060,64 @@ int nntr_hvx_attn_q8_npu_step(remote_handle64 handle, uint32 kv_handle,
   if (statsLen >= 20)
     memcpy(stats + 8, stages + 4, 12u * sizeof(*stats));
   return rc;
+}
+
+int nntr_hvx_attn_q8_prefill_prepare(remote_handle64 handle, uint32 kv_handle,
+                                     uint32 M, const float *cs, int csLen,
+                                     float *q, int qLen, const float *k,
+                                     int kLen, const float *v, int vLen,
+                                     uint16 *ko, int koLen, uint16 *vo,
+                                     int voLen, float *out, int outLen,
+                                     uint32 *status, int statusLen) {
+  if (M != 1024u)
+    return AEE_EINVALIDFORMAT;
+  const size_t nq = (size_t)M * 2048u, nk = (size_t)M * 512u;
+  const size_t nc = (size_t)M * 128u;
+  if (!status || statusLen != 24 || !out || qLen != (int)nq ||
+      outLen != (int)nq || kLen != (int)nk || vLen != (int)nk ||
+      koLen != (int)nk || voLen != (int)nk || csLen != (int)nc ||
+      !nntr_rope_prefill_valid(M, 2048u, 512u, 64u, cs, q, k, v, ko, vo) ||
+      nntr_rope_ranges_overlap(out, nq * 4u, q, nq * 4u) ||
+      nntr_rope_ranges_overlap(out, nq * 4u, k, nk * 4u) ||
+      nntr_rope_ranges_overlap(out, nq * 4u, v, nk * 4u) ||
+      nntr_rope_ranges_overlap(out, nq * 4u, cs, nc * 4u) ||
+      nntr_rope_ranges_overlap(out, nq * 4u, ko, nk * 2u) ||
+      nntr_rope_ranges_overlap(out, nq * 4u, vo, nk * 2u) ||
+      nntr_rope_ranges_overlap(status, 24u * 4u, q, nq * 4u) ||
+      nntr_rope_ranges_overlap(status, 24u * 4u, k, nk * 4u) ||
+      nntr_rope_ranges_overlap(status, 24u * 4u, v, nk * 4u) ||
+      nntr_rope_ranges_overlap(status, 24u * 4u, cs, nc * 4u) ||
+      nntr_rope_ranges_overlap(status, 24u * 4u, ko, nk * 2u) ||
+      nntr_rope_ranges_overlap(status, 24u * 4u, vo, nk * 2u) ||
+      nntr_rope_ranges_overlap(status, 24u * 4u, out, nq * 4u))
+    return AEE_EINVALIDFORMAT;
+  memset(status, 0, 24u * sizeof(*status));
+  nntr_hvx_session *s = (nntr_hvx_session *)handle;
+  const hexkl_kv_q *kv = s ? hexkl_kv_q_get(&s->kv_q, kv_handle) : NULL;
+  if (!s || !s->hmx_locked || !kv || kv->kind != HEXKL_KV_Q8 || kv->fixed ||
+      kv->n_head_kv != 8u || kv->head_dim != 64u || kv->max_rows < M) {
+    status[0] = 3u;
+    return AEE_SUCCESS;
+  }
+  const int prepared = nntr_hvx_rope_qkv_prefill_f32(
+    handle, M, 2048u, 512u, 64u, cs, csLen, q, qLen, k, kLen, v, vLen, q, qLen,
+    ko, koLen, vo, voLen, status + 3, 1);
+  status[1] = (uint32)prepared;
+  if (prepared != AEE_SUCCESS)
+    return AEE_SUCCESS;
+  // Both original entries join their workers before returning. Do not reserve
+  // attention scratch before preparation: even a later allocation failure must
+  // retain the Q and public FP16 K/V writes of the original call sequence.
+  status[0] = 1u;
+  const int attended = nntr_hvx_attn_q8_npu_step(
+    handle, kv_handle, 0u, ko, koLen, vo, voLen, M, 0u, M, 32u, 0u, 0.0f, q,
+    qLen, NULL, 0, out, outLen, status + 4, 20);
+  status[2] = (uint32)attended;
+  if (attended == AEE_SUCCESS)
+    status[0] = 2u;
+  // Only phase 3 is safe to fall back before preparation. Every outer error
+  // may represent uncertain transport completion and must never be replayed.
+  return AEE_SUCCESS;
 }
 
 int nntr_hvx_attn_q8_step(remote_handle64 handle, uint32 kv_handle, uint32 row0,

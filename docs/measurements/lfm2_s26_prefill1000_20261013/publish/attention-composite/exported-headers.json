@@ -1,0 +1,42 @@
+{
+  "/tmp/lfm2-prefill1000-20261013/publish/builddir/android_build_result/include/weight_direct_file.h": {
+    "source": "/tmp/lfm2-prefill1000-20261013/publish/nntrainer/utils/weight_direct_file.h",
+    "sha256": "0b19549278efe3d590be6886e29e83e42475edb62f832ed3154bcced81da9e66"
+  },
+  "/tmp/lfm2-prefill1000-20261013/publish/builddir/android_build_result/include/nntrainer/weight_direct_file.h": {
+    "source": "/tmp/lfm2-prefill1000-20261013/publish/nntrainer/utils/weight_direct_file.h",
+    "sha256": "0b19549278efe3d590be6886e29e83e42475edb62f832ed3154bcced81da9e66"
+  },
+  "/tmp/lfm2-prefill1000-20261013/publish/builddir/android_build_result/include/htp_expert_host_staging.h": {
+    "source": "/tmp/lfm2-prefill1000-20261013/publish/nntrainer/tensor/htp_backend/htp_expert_host_staging.h",
+    "sha256": "e877e18f0290837997f631ed843f432222692bb8e4786424eedb4a3132f8d5a9"
+  },
+  "/tmp/lfm2-prefill1000-20261013/publish/builddir/android_build_result/include/nntrainer/htp_expert_host_staging.h": {
+    "source": "/tmp/lfm2-prefill1000-20261013/publish/nntrainer/tensor/htp_backend/htp_expert_host_staging.h",
+    "sha256": "e877e18f0290837997f631ed843f432222692bb8e4786424eedb4a3132f8d5a9"
+  },
+  "/tmp/lfm2-prefill1000-20261013/publish/builddir/android_build_result/include/htp_rope_prefill.h": {
+    "source": "/tmp/lfm2-prefill1000-20261013/publish/nntrainer/tensor/htp_backend/htp_rope_prefill.h",
+    "sha256": "d51028a12078b2b49eab034f97bb75d1c5a7bfebc8cff58242b73f623ffcde7f"
+  },
+  "/tmp/lfm2-prefill1000-20261013/publish/builddir/android_build_result/include/nntrainer/htp_rope_prefill.h": {
+    "source": "/tmp/lfm2-prefill1000-20261013/publish/nntrainer/tensor/htp_backend/htp_rope_prefill.h",
+    "sha256": "d51028a12078b2b49eab034f97bb75d1c5a7bfebc8cff58242b73f623ffcde7f"
+  },
+  "/tmp/lfm2-prefill1000-20261013/publish/builddir/android_build_result/include/compute_ops.h": {
+    "source": "/tmp/lfm2-prefill1000-20261013/publish/nntrainer/tensor/cpu_backend/compute_ops.h",
+    "sha256": "216d5b1fed2907cfabfcb1f277cb51b03ed525f40d3b2ac35adcfe10916bf112"
+  },
+  "/tmp/lfm2-prefill1000-20261013/publish/builddir/android_build_result/include/nntrainer/compute_ops.h": {
+    "source": "/tmp/lfm2-prefill1000-20261013/publish/nntrainer/tensor/cpu_backend/compute_ops.h",
+    "sha256": "216d5b1fed2907cfabfcb1f277cb51b03ed525f40d3b2ac35adcfe10916bf112"
+  },
+  "/tmp/lfm2-prefill1000-20261013/publish/builddir/android_build_result/include/nntr_hvx.h": {
+    "source": "/tmp/lfm2-prefill1000-20261013/publish/nntrainer/tensor/htp_backend/generated/nntr_hvx.h",
+    "sha256": "28d3095d5664f20f5efe6cc8c4d071b21e333efc3eb1d42755334b23991c9c95"
+  },
+  "/tmp/lfm2-prefill1000-20261013/publish/builddir/android_build_result/include/nntrainer/nntr_hvx.h": {
+    "source": "/tmp/lfm2-prefill1000-20261013/publish/nntrainer/tensor/htp_backend/generated/nntr_hvx.h",
+    "sha256": "28d3095d5664f20f5efe6cc8c4d071b21e333efc3eb1d42755334b23991c9c95"
+  }
+}
