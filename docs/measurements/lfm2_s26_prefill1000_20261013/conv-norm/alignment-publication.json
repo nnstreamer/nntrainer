@@ -1,0 +1,11 @@
+{
+  "topic": "Aligned HVX cached RMSNorm and four-row Conv gate loads/stores",
+  "guards": "128-byte pointer alignment and32-float row strides/width; retain generic path and prefix/tail handling",
+  "host_cases_per_run": 2556,
+  "host_modes": "normal and ASan/UBSan PASS on clean publication source",
+  "dsp_build": "v81 -O3 -Wall -Werror PASS",
+  "device": "Four Conv plain/residual fixtures output+state exact, ABBA median4126.328 to3934.453us (4.65%)",
+  "raw_parity": "Cumulative v13 matches132 baseline output files",
+  "limitations": "Host lane emulation does not prove silicon arithmetic; isolated device fixtures and cumulative model parity are separate evidence. No whole-model4.65% gain claimed.",
+  "dsp_build_log_sha256": "b2584e2d90d2c544f366732ba8f4ad0c97abf6f139463064635616729839e6d1"
+}
