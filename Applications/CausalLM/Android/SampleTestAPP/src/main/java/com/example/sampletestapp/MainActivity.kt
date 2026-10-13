@@ -3671,7 +3671,9 @@ private class LossChartView(
         }
         if (minLoss == maxLoss) maxLoss = minLoss + 1f
         val yPad = (maxLoss - minLoss) * 0.1f
-        val yMin = minLoss - yPad
+        // Loss is non-negative — keep the axis floor at 0 instead of
+        // dipping below zero on the 10% padding.
+        val yMin = (minLoss - yPad).coerceAtLeast(0f)
         val yMax = maxLoss + yPad
         val yRangePadded = yMax - yMin
 
