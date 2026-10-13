@@ -113,6 +113,8 @@ if get_option('enable-opencl')
   # The backend is selected by NNTR_OPS_BACKEND so the two engines are compared
   # across separate processes.
   test_target += [['unittest_embedding_pool_ops', []]]
+  # The OpenCL backend's expert reader pool (reads a temporary file; no GPU).
+  test_target += [['unittest_expert_reader_pool', []]]
 endif
 
 if get_option('enable-fp16')

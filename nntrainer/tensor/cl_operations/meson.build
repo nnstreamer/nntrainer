@@ -17,6 +17,7 @@ cl_op_sources = [
   'v8c_pack_cache.cpp',
   'moe_route_cl.cpp',
   'tq2cx_cl.cpp',
+  'expert_reader_pool.cpp',
 ]
 
 cl_op_headers = [
