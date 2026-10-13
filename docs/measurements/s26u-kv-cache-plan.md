@@ -173,3 +173,52 @@ O(n²) ≈ 11 TFLOP → 수십 초–수 분. 결과 파일 660 MiB × 2.
 - softmax 타일 한도(128) 상향: VTCM 예산의 벽이고 full 층 5개뿐이라 CPU fallback으로 간다
   (R1이 막히면 그때 다시 본다).
 - 두 23k cache를 한 프로세스에서 바꿔 끼우기: config 둘, 프로세스 재시작. 로드 0.4 s.
+
+## 7. 2026-10-13 저녁 — 구현된 것, 발견된 것, 남은 것
+
+실행자: Fable 5.1 세션(이 문서의 계획을 쓴 세션이 이어서 실행). 기기 `R5KL308PALH`, 브랜치 `htp/s26-kv-dump`.
+
+### 7.1 커밋
+
+| 커밋 | 무엇 |
+|---|---|
+| `e42977acb` | KV 덤프: 기존 `system_prompt.kvcache` 경로 그대로. 저장 시 int8 attention의 보정값을 `<path>.q2`에 함께 저장(없으면 로드한 실행이 짧은 질문 행만으로 다시 보정해 답이 갈림). SAVE 모드도 INIT_SEQ_LEN chunk. 로드는 크기 검사. `[TIMING] kv_load_ms` |
+| `54d63a7cb` | sliding 층의 KV cache를 window + 한 step 크기로(§2.1의 "행 base"). `KVCacheManager::compact`, mha_core `cache_base`, DSP `ATTN_M1`은 `pos − n_experts` 행을 읽음, `set_decode_kv_window`. 23k에서 fp16 cache 5 GB → 1.1 GB |
+| `d222390bf` | int8 attention의 scale이 뒤 step 행에 맞춰 커짐(아래 7.3) |
+| `7b8f1f38a` | staging: kept 텐서의 버퍼가 재사용되기 전에 호스트에 전체 복사. 진단 env 노브들(모두 기본 꺼짐) |
+
+데모 스크립트 사본: `docs/measurements/s26u-kv-demo/` (`demo.sh inst|cfg|save|run|verify`, `mkcfg.py <name> <doc.txt> "<question>" [max_seq_len] [C] [more.txt]`, `ans.sh`, `tools/`). 작업 사본은 `~/workspace/s26u-work/`.
+
+### 7.2 측정 (각 1회, C: 2k 32, 4k 24, 23k 24, 저장·6k 추가는 8)
+
+| 경로 | 로드 ms | 추가 prefill | 60토큰 | 답 |
+|---|---|---|---|---|
+| 2k cache + 질문 32 | 230 | 1.8 s | 89 ms/토큰 | 정상, 통째 prefill과 바이트 동일(scale 성장 전) |
+| 2k 통째(2,108) | — | 5.4 s (성장 후 6.0) | 90 ms/토큰 | 정상 |
+| 22k cache + 질문 32 | 330 | 2.2 s | 127–139 ms/토큰 | 정상, 통째와 바이트 동일 |
+| 22k cache + 6k 추가 + 60 | 307 | **69.5 s** | 180 ms/토큰 | 정상 |
+| 22k 저장(통째 prefill) | — | 160 s | — | — |
+
+22k + 6k의 69 s는 full attention 층 5개가 4,096 컬럼을 넘으면 int8 커널이 거절(`hexkl_attn_q2_plan` 타일 128 상한)하고 fp16 HTP 커널로 떨어지기 때문이다(층당 수십 ms → 약 10배). 정확도가 아니라 속도 항목이고, §2.3 R1의 "fallback이 o-proj와 맞물리는가"는 맞물린다(정상 답).
+
+### 7.3 "3번째 chunk부터 답이 깨진다"의 원인
+
+증상: 2048행 chunk 셋 이상인 프롬프트(4,123·4,126·4,537·4,837 토큰)와 1024행 chunk로 돈 2k 문서가 빈 줄·백틱·`de de de`를 냈다. 2-chunk(≤4,096)와 cache+질문은 정상. window 커밋 이전 빌드에서도 같다(PR head의 기존 결함).
+
+가른 방법: 같은 cache를 로드하고 질문 32행만 돌리는 A/B(attention 엔진만 바꿈), MoE·o-proj 호출의 입출력 덤프(`NNTR_HTP_DUMP`, 호스트 텐서가 완전하도록 `NNTR_HTP_KEEP_OUT=0`), 단계별 호스트 대체 노브.
+
+1. **결정적이다.** staging 복사 강제, direct path 끔, 스레드 수, prefetch, C, o-proj u16 경로 끔 — 결과 md5가 바이트 단위로 같다. 레이스·메모리 오류가 아니다.
+2. **int8 scale 고정이 뒤 chunk를 잘랐다.** scale은 첫 step 행으로만 보정되고 고정이었다. 1024행 chunk의 2k 문서에서 뒤 chunk의 V는 보정값의 1.6–2.0배(층당 약 2,000개 clip), Q는 u16 범위를 45 % 넘었다(`NNTR_HTP_ATTN_TRACE`의 `q2 clip` 줄). 매 step 최대값이 커지면 scale을 다시 만들고 미러를 재양자화하게 바꾸자(`d222390bf`) 깨지던 4개 중 3개가 문서로 답한다.
+3. **남은 것은 노이즈 경계.** HTP attention(int8이든 fp16 커널이든)과 CPU attention은 같은 Q·K·V에서 context가 층 0에서 1.7–2.0 %, 마지막 층 state에서 약 30 % 다르다 — 정상 프롬프트(2k)도 같은 폭이다. 즉 이 파이프라인은 어디서나 그만큼 흔들리고, 대부분의 프롬프트는 견디고, 일부(4,123 하나)는 반올림 변형에 따라 정상↔쓰레기로 뒤집힌다(fp16 커널·CPU는 정상, int8 두 커널은 깨짐). 그 30 %의 성분: fp16 HTP 커널 자체는 CPU와 sliding 층 0.1 %, full 층(4k 컬럼) 0.7–1.5 %; int8 커널은 fp16 커널과 1.3 %; CPU 경로의 Q fp16 반올림이 나머지. 헤드별로 고르게 분포(0.5–3 %)하고 특정 행에 몰리지 않는다.
+4. 처음 의심했던 것 중 **아닌 것**: u16 context 포화(0), o-proj의 u16 입력 경로(끄면 md5 동일), MoE 융합 epilogue(호스트로 빼면 바뀌지만 반올림 변형일 뿐), staging stale read(한 번 관측됐으나 결과 불변), decode attn_m1 커널(4,049 kv 빌드의 decode 깨짐은 별건: window 커밋이 피해 감).
+
+### 7.4 선택지
+
+| | 정확도 | 속도 | 크기 |
+|---|---|---|---|
+| A. scale 성장(적용) | 4건 중 3건 복구 | 2k prefill +10 % | 됨 |
+| B. `attention_kv_dtype: ""` → fp16 HTP 커널 | 시험 3건 전부 정상 | 2k 5.4 → 8.7 s, 4.5k 9.6 → 24 s | config만 |
+| C. int8 K를 dim별 scale로(decode attn_m1이 이미 그렇게 함; decode 쪽 주석 "헤드당 K scale은 NLL +9.4 %") | int8의 1.3 %를 줄임 | 유지 | DSP 커널 + IDL, 며칠 |
+| D. full 층 int8 커널의 컬럼 분할(타일 128 상한) | — | 22k+6k 69 s → 수 초대 | DSP 커널, 며칠 |
+
+데모(cache + 질문, cache + 추가 prefill)는 A로 전부 정상이었다. 프롬프트가 바뀌어도 안전하려면 B를 env/config로 켤 수 있게 두고, 근본은 C·D.
