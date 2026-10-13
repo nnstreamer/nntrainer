@@ -477,6 +477,39 @@ bool flash_prefill_gqa_f16_cl(const uint16_t *Q_svm, const uint16_t *K_svm,
 /// off). Read once per process.
 bool flash_prefill_gqa_enabled();
 
+/// [apa] Three-pass prefill attention over the fp16 concat K/V cache (gated
+/// by NNTR_ADRENO_PREFILL_ATTN=1; see prefill_attn_apa_enabled). It is the
+/// image arm's qk_band -> softmax_row_band -> sv_tm2 chain with BUFFER
+/// operands instead of the K/V image mirrors: the same band contract and the
+/// same per-thread tiles, with fp32 dots, fp32 scores and probabilities and
+/// fp32 P*V accumulation (NNTR_APA_F32=0: fp16 scores and probabilities and
+/// the image arm's own softmax_row_band_f16, i.e. the image arm's numerics;
+/// on Gemma4 that error was enough to derail a long greedy continuation, see
+/// attention_kernels.cpp). qk and sv are register-tiled twins that read the K/V
+/// rows ([rows, HD_KV], ring-mapped when ring_cap > 0) with vload8. No image,
+/// no sub-group operation, no __local memory in a K loop. Query row i sits at
+/// absolute position N_kv - M + i; causal / sliding-window (local_window > 0)
+/// masks and the softcap as the image arm. Q/K/V are SVM; O ([M, HD_Q]) goes
+/// to o_clmem when given, else to O_svm. Deterministic: every output element
+/// is a fixed-order function of its own row, so the result does not depend on
+/// how the rows are split into launches (the scores scratch is bounded by
+/// NNTR_APA_SCORES_MB, default 48). Returns false (nothing enqueued) on an
+/// unsupported shape, a ring slot the call could need already overwritten, or
+/// a program that does not build; the caller keeps its own arm.
+/// The fp32 scores take 4 bytes per cell (30 MB -> 60 MB at the 1K cell, so
+/// the default 48 MB budget splits it into two row blocks).
+bool prefill_attn_apa_f16_cl(const uint16_t *Q_svm, const uint16_t *K_svm,
+                             const uint16_t *V_svm, uint16_t *O_svm,
+                             void *o_clmem, unsigned int M, unsigned int N_kv,
+                             unsigned int num_heads_Q,
+                             unsigned int num_heads_KV, unsigned int head_dim,
+                             bool causal, float attn_softcap,
+                             unsigned int local_window, unsigned int ring_cap);
+
+/// True when NNTR_ADRENO_PREFILL_ATTN is set to a non-zero value (default
+/// off). Read once per process.
+bool prefill_attn_apa_enabled();
+
 /**
  * @brief Pre-build the rope/scatter/copy kernel PROGRAM (rope_inplace source,
  *        file-local to attention_kernels.cpp) on the given context. Called from

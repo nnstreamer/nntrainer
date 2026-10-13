@@ -6358,6 +6358,644 @@ bool flash_prefill_gqa_f16_cl(const uint16_t *Q_svm, const uint16_t *K_svm,
   return true;
 }
 
+// ===========================================================================
+// [apa] Three-pass prefill attention over the fp16 concat K/V cache
+// (NNTR_ADRENO_PREFILL_ATTN=1).
+//
+// The mirror-free arm (NNTR_DETERMINISTIC=1) has no K/V image mirrors, and on
+// Adreno none of the buffer-arm prefill kernels takes Gemma4's d = 256 / 512:
+// flash_attention_prefill_f16_cl declines d > 128 off the Intel buffer path,
+// and two_conv_attention_prefill_f16_cl is gated off (and knows no window,
+// chunk offset or softcap). The prefill attention therefore ran on the host.
+//
+// This is the image arm's own chain (qk_matmul_f16_ohwi_img_band ->
+// softmax_row_band_f16 -> sv_matmul_f16_ohwi_img_tm2) with BUFFER operands:
+//
+//  - apa_qk_band: one thread computes APA_TM query rows x APA_TN keys of one
+//    query head, fp32 dot over half8 chunks (dot(lo) + dot(hi) per chunk, as
+//    the image kernel), scale, softcap, mask, fp32 score. K rows are read with
+//    vload8 from the concat slab (row n at n * HD_KV + head_kv * d, ring-mapped
+//    n % ring_cap), not from the OHWI K image. The grid covers each m-tile's
+//    score band (the same tca_score_band() contract as the image arm).
+//  - apa_softmax_band_f32: the image arm's softmax_row_band_f16 (band mode 1:
+//    the row pair's band, 64-aligned floor, 64-wide LDS tree) over fp32
+//    scores; e and p stay fp32.
+//  - apa_sv_tm2: one thread computes the row pair (m0, m0 + 1) x 8 output
+//    channels; per 8-key block it loads the two score half8s and the 8 keys'
+//    V half8s (channels x0..x0+7 of each V row, coalesced across the x
+//    threads) and accumulates in fp32. It reads only cells inside the pair's
+//    band, like the image kernel.
+//
+// fp32 scores, not the image arm's fp16 ones. Gemma4's scaled scores reach
+// ~25, where an fp16 score is off by up to 2^-7 and every probability by up
+// to ~0.8 %. Measured on the 1K P4 cell (Adreno 840, layer prefill dumps
+// against an f64 recomputation from the same Q/K/V): the fp16 chain's O is off
+// by up to 2.2e-2..4.3e-2 (mean 1.4e-4..3.3e-4) -- exactly the fp16-score
+// family's own error, and still half the host fp16 path's -- and that was
+// enough to send the greedy 26B-A4B continuation into a repetition loop with
+// no end of turn. With fp32 scores O sits at the fp16 output rounding floor
+// (max 3.9e-3..7.8e-3 for |O| up to 21, mean 5e-5..8e-5) and the text ends
+// cleanly. NNTR_APA_F32=0 keeps the fp16 chain (the image arm's numerics and
+// its own softmax_row_band_f16) for A/B.
+//
+// Masked scores are written as -65504 (fp16 lowest) instead of -INFINITY: the
+// default options carry -cl-finite-math-only, and exp(-65504 - max) is +0.0
+// in fp32 for every real row max, so the softmax output is the same.
+//
+// Every output element depends only on its own row's inputs in a fixed order,
+// so the result is bit-identical run to run and also independent of how the
+// rows are split into launches (the scores scratch is bounded by
+// NNTR_APA_SCORES_MB; a split starts on a multiple of 64 rows, which keeps the
+// qk tiles and the softmax/sv row pairs where they are). No image read (the
+// slab is written through buffers, and an image view of it would reopen the
+// stale-texel hazard this driver has), no sub-group operation, no __local
+// memory in the qk/sv K loops. The softmax's row reduction is the image arm's
+// LDS tree, unchanged.
+// ===========================================================================
+static const std::string apa_kernel_src = R"CL(
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#ifndef APA_TM
+#define APA_TM 4
+#endif
+#ifndef APA_TN
+#define APA_TN 8
+#endif
+// = SOFTMAX_LWS of softmax_row_band_f16: the band floor alignment.
+#define APA_BAND_ALIGN 64
+#define APA_MASKED (-65504.0f)
+// APA_F32 (the default): fp32 scores / probabilities in the scratch, softmax
+// apa_softmax_band_f32. Without it: fp16, the image arm's numerics.
+#ifdef APA_F32
+typedef float apa_s_t;
+typedef float8 apa_s8_t;
+#define APA_S8_F(x) (x)
+#else
+typedef half apa_s_t;
+typedef half8 apa_s8_t;
+#define APA_S8_F(x) convert_float8(x)
+#endif
+
+// Same integer arithmetic as tca_score_band() in two_conv_attention.cl.
+static inline void apa_score_band(const int M, const int N_kv,
+                                  const int causal, const int local_window,
+                                  const int pair_lo, const int pair_hi,
+                                  const int align_lo, int *n_lo, int *n_hi) {
+  int lo = 0;
+  int hi = N_kv;
+  if (causal) {
+    const int q_off = N_kv - M;
+    int tex_hi = (N_kv + 7) >> 3;
+    const int tex_hi_causal = ((q_off + pair_hi) >> 3) + 1;
+    if (tex_hi_causal < tex_hi)
+      tex_hi = tex_hi_causal;
+    if (local_window > 0) {
+      const int n_first = q_off + pair_lo - local_window + 1;
+      int t0 = 0;
+      if (n_first > 0)
+        t0 = n_first >> 3;
+      if (t0 > tex_hi)
+        t0 = tex_hi;
+      lo = t0 << 3;
+      if (align_lo > 1)
+        lo = lo & ~(align_lo - 1);
+    }
+    hi = tex_hi << 3;
+    if (hi > N_kv)
+      hi = N_kv;
+  }
+  if (lo > hi)
+    lo = hi;
+  *n_lo = lo;
+  *n_hi = hi;
+}
+
+static inline int apa_row(const int n, const int ring_cap) {
+  return ring_cap > 0 ? n % ring_cap : n;
+}
+
+// The read-only operands are `const restrict` (they never alias the output),
+// which lets the compiler take its read-only load path for them.
+// gws = (n-tiles of the widest band, ceil(M / APA_TM), num_heads_Q)
+__kernel void apa_qk_band(__global const half *restrict Q,
+                          __global const half *restrict K,
+                          __global apa_s_t *restrict scores, const int M,
+                          const int N_kv,
+                          const int q_row0, const int d, const int HD_Q,
+                          const int HD_KV, const int gqa, const int causal,
+                          const float scale, const float softcap,
+                          const int local_window, const int ring_cap) {
+  const int m0 = (int)get_global_id(1) * APA_TM;
+  const int head_q = (int)get_global_id(2);
+  const int head_kv = head_q / gqa;
+  if (m0 >= M)
+    return;
+  int band_lo, band_hi;
+  {
+    const int mlast = (m0 + APA_TM - 1 < M - 1) ? (m0 + APA_TM - 1) : (M - 1);
+    apa_score_band(M, N_kv, causal, local_window, m0, mlast, APA_BAND_ALIGN,
+                   &band_lo, &band_hi);
+  }
+  const int n0 = band_lo + (int)get_global_id(0) * APA_TN;
+  if (n0 >= band_hi || n0 >= N_kv)
+    return;
+  const int q_off = N_kv - M;
+  const long sb = (long)head_q * (long)M * (long)N_kv;
+
+  // Whole tile masked (above the causal diagonal, or below every row's
+  // window floor): no dot products.
+  if (causal && (n0 > q_off + m0 + (APA_TM - 1) ||
+                 (local_window > 0 &&
+                  (n0 + APA_TN - 1) + local_window <= q_off + m0))) {
+#pragma unroll
+    for (int i = 0; i < APA_TM; i++) {
+      const int m = m0 + i;
+      if (m >= M)
+        continue;
+#pragma unroll
+      for (int j = 0; j < APA_TN; j++) {
+        const int n = n0 + j;
+        if (n < N_kv)
+          scores[sb + (long)m * N_kv + n] = (apa_s_t)APA_MASKED;
+      }
+    }
+    return;
+  }
+
+  // Row offsets (rows past M / keys past N_kv are clamped to valid ones and
+  // never stored).
+  int qoff[APA_TM];
+#pragma unroll
+  for (int i = 0; i < APA_TM; i++) {
+    const int m = (m0 + i < M) ? (m0 + i) : (M - 1);
+    qoff[i] = (q_row0 + m) * HD_Q + head_q * d;
+  }
+  int koff[APA_TN];
+#pragma unroll
+  for (int j = 0; j < APA_TN; j++) {
+    const int n = (n0 + j < N_kv) ? (n0 + j) : (N_kv - 1);
+    koff[j] = apa_row(n, ring_cap) * HD_KV + head_kv * d;
+  }
+
+  float acc[APA_TM][APA_TN];
+#pragma unroll
+  for (int i = 0; i < APA_TM; i++)
+#pragma unroll
+    for (int j = 0; j < APA_TN; j++)
+      acc[i][j] = 0.0f;
+
+  for (int x = 0; x < d; x += 8) {
+    half8 qp[APA_TM];
+    half8 kp[APA_TN];
+#pragma unroll
+    for (int i = 0; i < APA_TM; i++)
+      qp[i] = vload8(0, Q + qoff[i] + x);
+#pragma unroll
+    for (int j = 0; j < APA_TN; j++)
+      kp[j] = vload8(0, K + koff[j] + x);
+#pragma unroll
+    for (int i = 0; i < APA_TM; i++) {
+      const float4 qlo = convert_float4(qp[i].s0123);
+      const float4 qhi = convert_float4(qp[i].s4567);
+#pragma unroll
+      for (int j = 0; j < APA_TN; j++) {
+        const float4 klo = convert_float4(kp[j].s0123);
+        const float4 khi = convert_float4(kp[j].s4567);
+        acc[i][j] += dot(qlo, klo) + dot(qhi, khi);
+      }
+    }
+  }
+
+#pragma unroll
+  for (int i = 0; i < APA_TM; i++) {
+    const int m = m0 + i;
+    if (m >= M)
+      continue;
+#pragma unroll
+    for (int j = 0; j < APA_TN; j++) {
+      const int n = n0 + j;
+      if (n >= N_kv)
+        continue;
+      float v = acc[i][j] * scale;
+      if (softcap > 0.0f)
+        v = softcap * tanh(v / softcap);
+      if (causal && (n > q_off + m ||
+                     (local_window > 0 && n + local_window <= q_off + m)))
+        v = APA_MASKED;
+      scores[sb + (long)m * N_kv + n] = (apa_s_t)v;
+    }
+  }
+}
+
+#ifdef APA_F32
+// The image arm's softmax_row_band_f16 (band mode 1: the row pair's band with
+// a 64-aligned floor, a 64-wide LDS tree for the max and the sum) over fp32
+// scores: e = exp(s - max) and p = e / sum stay fp32. gws = (64, M, H).
+__attribute__((reqd_work_group_size(APA_BAND_ALIGN, 1, 1))) __kernel void
+apa_softmax_band_f32(__global float *scores, const int M, const int N_kv,
+                     const int causal, const int local_window) {
+  const int tid = get_local_id(0);
+  const int m = get_group_id(1);
+  const int h = get_group_id(2);
+  if (m >= M)
+    return;
+  __global float *row = scores + (long)h * (long)M * N_kv + (long)m * N_kv;
+  int n_lo, n_hi;
+  {
+    const int mlo = m & ~1;
+    const int mhi = (mlo + 1 < M) ? (mlo + 1) : (M - 1);
+    apa_score_band(M, N_kv, causal, local_window, mlo, mhi, APA_BAND_ALIGN,
+                   &n_lo, &n_hi);
+  }
+  __local float lscratch[APA_BAND_ALIGN];
+  float pmax = APA_MASKED;
+  for (int n = n_lo + tid; n < n_hi; n += APA_BAND_ALIGN)
+    pmax = fmax(pmax, row[n]);
+  lscratch[tid] = pmax;
+  barrier(CLK_LOCAL_MEM_FENCE);
+  for (int s = APA_BAND_ALIGN / 2; s > 0; s >>= 1) {
+    if (tid < s)
+      lscratch[tid] = fmax(lscratch[tid], lscratch[tid + s]);
+    barrier(CLK_LOCAL_MEM_FENCE);
+  }
+  const float row_max = lscratch[0];
+  barrier(CLK_LOCAL_MEM_FENCE);
+  float psum = 0.0f;
+  for (int n = n_lo + tid; n < n_hi; n += APA_BAND_ALIGN) {
+    const float e = exp(row[n] - row_max);
+    row[n] = e;
+    psum += e;
+  }
+  lscratch[tid] = psum;
+  barrier(CLK_LOCAL_MEM_FENCE);
+  for (int s = APA_BAND_ALIGN / 2; s > 0; s >>= 1) {
+    if (tid < s)
+      lscratch[tid] += lscratch[tid + s];
+    barrier(CLK_LOCAL_MEM_FENCE);
+  }
+  const float row_sum = lscratch[0];
+  const float inv = (row_sum > 0.0f) ? (1.0f / row_sum) : 0.0f;
+  for (int n = n_lo + tid; n < n_hi; n += APA_BAND_ALIGN)
+    row[n] = row[n] * inv;
+}
+#endif
+
+// gws = (d / 8, ceil(M / 2), num_heads_Q)
+__kernel void apa_sv_tm2(__global const apa_s_t *restrict scores,
+                         __global const half *restrict V,
+                         __global half *restrict O, const int M, const int N_kv,
+                         const int q_row0, const int d, const int HD_Q,
+                         const int HD_KV, const int gqa, const int causal,
+                         const int local_window, const int ring_cap) {
+  const int x0 = (int)get_global_id(0) * 8;
+  const int m0 = (int)get_global_id(1) * 2;
+  const int head_q = (int)get_global_id(2);
+  if (m0 >= M || x0 >= d)
+    return;
+  const int m1 = m0 + 1;
+  const int has1 = (m1 < M);
+  const int head_kv = head_q / gqa;
+  const long sb0 = (long)head_q * (long)M * (long)N_kv + (long)m0 * (long)N_kv;
+  const long sb1 = sb0 + (has1 ? (long)N_kv : 0L);
+  // Key range of the row pair: the causal cap of m1 and the window floor of
+  // m0, in 8-key blocks -- the cells the pair's softmax band normalised.
+  int n_tex1 = (N_kv + 7) >> 3;
+  int n_tex0 = 0;
+  if (causal) {
+    const int q_off = N_kv - M;
+    const int cap_m = has1 ? m1 : m0;
+    const int tex_causal = ((q_off + cap_m) >> 3) + 1;
+    if (tex_causal < n_tex1)
+      n_tex1 = tex_causal;
+    if (local_window > 0) {
+      const int n_first = q_off + m0 - local_window + 1;
+      if (n_first > 0)
+        n_tex0 = n_first >> 3;
+      if (n_tex0 > n_tex1)
+        n_tex0 = n_tex1;
+    }
+  }
+  const int vcol = head_kv * d + x0;
+
+  float8 acc0 = (float8)(0.0f), acc1 = (float8)(0.0f);
+  for (int t = n_tex0; t < n_tex1; t++) {
+    const int n0 = t * 8;
+    apa_s8_t s0, s1;
+    if (n0 + 8 <= N_kv) {
+      s0 = vload8(0, scores + sb0 + n0);
+      s1 = vload8(0, scores + sb1 + n0);
+    } else {
+      // Tail block: no private array (this driver demotes dynamically
+      // addressed private arrays to __local), element by element.
+#define APA_S(sb, k)                                                           \
+  ((n0 + (k) < N_kv) ? scores[(sb) + n0 + (k)] : (apa_s_t)0)
+      s0 = (apa_s8_t)(APA_S(sb0, 0), APA_S(sb0, 1), APA_S(sb0, 2),
+                      APA_S(sb0, 3), APA_S(sb0, 4), APA_S(sb0, 5),
+                      APA_S(sb0, 6), APA_S(sb0, 7));
+      s1 = (apa_s8_t)(APA_S(sb1, 0), APA_S(sb1, 1), APA_S(sb1, 2),
+                      APA_S(sb1, 3), APA_S(sb1, 4), APA_S(sb1, 5),
+                      APA_S(sb1, 6), APA_S(sb1, 7));
+#undef APA_S
+    }
+    const int nl = N_kv - 1;
+    const float8 v0 = convert_float8(
+      vload8(0, V + apa_row(min(n0 + 0, nl), ring_cap) * HD_KV + vcol));
+    const float8 v1 = convert_float8(
+      vload8(0, V + apa_row(min(n0 + 1, nl), ring_cap) * HD_KV + vcol));
+    const float8 v2 = convert_float8(
+      vload8(0, V + apa_row(min(n0 + 2, nl), ring_cap) * HD_KV + vcol));
+    const float8 v3 = convert_float8(
+      vload8(0, V + apa_row(min(n0 + 3, nl), ring_cap) * HD_KV + vcol));
+    const float8 v4 = convert_float8(
+      vload8(0, V + apa_row(min(n0 + 4, nl), ring_cap) * HD_KV + vcol));
+    const float8 v5 = convert_float8(
+      vload8(0, V + apa_row(min(n0 + 5, nl), ring_cap) * HD_KV + vcol));
+    const float8 v6 = convert_float8(
+      vload8(0, V + apa_row(min(n0 + 6, nl), ring_cap) * HD_KV + vcol));
+    const float8 v7 = convert_float8(
+      vload8(0, V + apa_row(min(n0 + 7, nl), ring_cap) * HD_KV + vcol));
+    const float8 p0 = APA_S8_F(s0);
+    const float8 p1 = APA_S8_F(s1);
+    acc0 += ((p0.s0 * v0 + p0.s1 * v1) + (p0.s2 * v2 + p0.s3 * v3)) +
+            ((p0.s4 * v4 + p0.s5 * v5) + (p0.s6 * v6 + p0.s7 * v7));
+    acc1 += ((p1.s0 * v0 + p1.s1 * v1) + (p1.s2 * v2 + p1.s3 * v3)) +
+            ((p1.s4 * v4 + p1.s5 * v5) + (p1.s6 * v6 + p1.s7 * v7));
+  }
+  vstore8(convert_half8(acc0), 0, O + (long)(q_row0 + m0) * HD_Q +
+                                     (long)head_q * d + x0);
+  if (has1)
+    vstore8(convert_half8(acc1), 0, O + (long)(q_row0 + m1) * HD_Q +
+                                       (long)head_q * d + x0);
+}
+)CL";
+
+namespace {
+struct ApaScratch {
+  // copts -> kernel handles (registerClKernel's own lookup is not free on a
+  // per-layer call), and the shapes already announced.
+  std::map<std::string, ClContext::SharedPtrClKernel> qk, sv, sm;
+  std::map<std::string, int> verdict; // copts -> 1 built / 0 did not build
+  std::map<std::string, int> logged;  // shape key -> announced
+};
+ApaScratch &apa_scratch() {
+  static ApaScratch s;
+  return s;
+}
+int apa_env_int(const char *name, int dflt) {
+  const char *e = std::getenv(name);
+  return (e != nullptr && e[0] != '\0') ? std::atoi(e) : dflt;
+}
+} // namespace
+
+bool prefill_attn_apa_enabled() {
+  static const bool on = []() {
+    const char *e = std::getenv("NNTR_ADRENO_PREFILL_ATTN");
+    return e != nullptr && std::atoi(e) != 0;
+  }();
+  return on;
+}
+
+bool prefill_attn_apa_f16_cl(const uint16_t *Q_svm, const uint16_t *K_svm,
+                             const uint16_t *V_svm, uint16_t *O_svm,
+                             void *o_clmem, unsigned int M, unsigned int N_kv,
+                             unsigned int num_heads_Q,
+                             unsigned int num_heads_KV, unsigned int head_dim,
+                             bool causal, float attn_softcap,
+                             unsigned int local_window, unsigned int ring_cap) {
+  if (M == 0 || N_kv == 0 || M > N_kv || num_heads_Q == 0 ||
+      num_heads_KV == 0 || head_dim == 0)
+    return false;
+  if (num_heads_Q % num_heads_KV != 0 || head_dim % 8 != 0)
+    return false;
+  const unsigned int win =
+    (local_window > 0 && local_window < N_kv) ? local_window : 0u;
+  // The band reads keys from a 64-aligned floor below the first row's window
+  // floor (their scores are masked) and the newest key of the call; with a
+  // ring every one of those slots must still hold its own row or a row the
+  // mask zeroes -- the same refusal as the fused prefill.
+  if (ring_cap > 0 && N_kv > ring_cap && (win == 0 || win + M > ring_cap))
+    return false;
+  auto *blas_cc =
+    static_cast<ClContext *>(Engine::Global().getRegisteredContext("gpu"));
+  if (blas_cc == nullptr)
+    return false;
+
+  // Each qk work-item computes TM query rows x TN keys.
+  const int TM = 4;
+  const int TN = 8;
+  // Work-group shapes from a screen on the Adreno 840 at the 1K cell (wall
+  // time of the 25 sliding + 5 full calls, fp32 scores): qk 4 key tiles x 16
+  // row tiles and sv 32 channel groups x 2 row pairs give ~510-525 ms against
+  // ~740-750 ms for 8,8,1 / 8,8,1 (the image arm's shapes). sv takes 32
+  // channel groups only when d / 8 has them; the result does not depend on the
+  // shapes (every element is computed in a fixed order by one work-item).
+  const std::array<size_t, 3> qk_lws = {4, 16, 1};
+  const std::array<size_t, 3> sv_lws = head_dim / 8 >= 32
+                                         ? std::array<size_t, 3>{32, 2, 1}
+                                         : std::array<size_t, 3>{8, 8, 1};
+  // Scores scratch budget (MiB). Read per call so a test can split one call
+  // into several row blocks; the result does not depend on the split.
+  long budget_mb = apa_env_int("NNTR_APA_SCORES_MB", 48);
+  if (budget_mb <= 0)
+    budget_mb = 48;
+  const size_t budget = (size_t)budget_mb << 20;
+
+  // fp32 scores (default; NNTR_APA_F32=0 = the image arm's fp16 scores and
+  // its softmax_row_band_f16). Read per call, like the budget, so a test can
+  // run both.
+  const bool f32 = apa_env_int("NNTR_APA_F32", 1) != 0;
+  const std::string copts = "-DAPA_TM=" + std::to_string(TM) +
+                            " -DAPA_TN=" + std::to_string(TN) +
+                            (f32 ? " -DAPA_F32" : "");
+  const std::string sm_copts = f32 ? copts : tca_copts();
+  const size_t s_bytes = f32 ? 4u : 2u;
+  constexpr unsigned int SOFTMAX_LWS = 64; // softmax_row_band_f16
+
+  std::lock_guard<std::mutex> lock(tca_mtx());
+  ApaScratch &as = apa_scratch();
+  {
+    auto vit = as.verdict.find(copts);
+    if (vit != as.verdict.end() && vit->second == 0)
+      return false;
+  }
+  ClContext::SharedPtrClKernel &kqk = as.qk[copts];
+  ClContext::SharedPtrClKernel &ksv = as.sv[copts];
+  ClContext::SharedPtrClKernel &ksm = as.sm[sm_copts];
+  if (!kqk)
+    kqk = blas_cc->registerClKernel(apa_kernel_src, "apa_qk_band", copts);
+  if (!ksv)
+    ksv = blas_cc->registerClKernel(apa_kernel_src, "apa_sv_tm2", copts);
+  if (!ksm)
+    ksm = f32 ? blas_cc->registerClKernel(apa_kernel_src,
+                                          "apa_softmax_band_f32", sm_copts)
+              : blas_cc->registerClKernel(two_conv_attention_kernel,
+                                          "softmax_row_band_f16", sm_copts);
+  if (!kqk || !ksv || !ksm) {
+    if (as.verdict.find(copts) == as.verdict.end())
+      std::fprintf(stderr,
+                   "[APA] TM=%d TN=%d: program did not build (qk=%d sv=%d "
+                   "softmax=%d) -> refused\n",
+                   TM, TN, (int)(bool)kqk, (int)(bool)ksv, (int)(bool)ksm);
+    as.verdict[copts] = 0;
+    return false;
+  }
+  as.verdict[copts] = 1;
+
+  // Row blocks: the whole call when its scores fit the budget, else blocks of
+  // a multiple of 64 rows (the last block has the widest key span N_kv).
+  const size_t row_bytes = (size_t)num_heads_Q * (size_t)N_kv * s_bytes;
+  unsigned int rows_per = M;
+  if (row_bytes * (size_t)M > budget) {
+    rows_per = (unsigned int)(budget / row_bytes) & ~63u;
+    if (rows_per < 64u)
+      rows_per = 64u;
+    if (rows_per > M)
+      rows_per = M;
+  }
+  TcaScratch &sc = tca_scratch();
+  cl_context ctx = blas_cc->context_inst_.GetContextNoRetain();
+  if (!tca_ensure(ctx, &sc.scores, &sc.scores_bytes,
+                  row_bytes * (size_t)rows_per, CL_MEM_READ_WRITE))
+    return false;
+  cl_mem scores_buf = sc.scores;
+
+  const int d = (int)head_dim, HDq = (int)(num_heads_Q * head_dim),
+            HDkv = (int)(num_heads_KV * head_dim),
+            gqa = (int)(num_heads_Q / num_heads_KV), ca = causal ? 1 : 0,
+            lw = (int)win, rc = (int)ring_cap, bmode = 1;
+  const float scale = 1.0f / std::sqrt((float)head_dim);
+  const unsigned int q_off_all = N_kv - M;
+
+  auto pad = [](size_t v, size_t l) { return ((v + l - 1) / l) * l; };
+  bool ok = true;
+  unsigned int blocks = 0;
+  for (unsigned int a = 0; ok && a < M; a += rows_per) {
+    const unsigned int b = std::min(M, a + rows_per);
+    const int Ms = (int)(b - a), Ns = (int)(q_off_all + b), q0 = (int)a;
+    ++blocks;
+    // ---- qk over each m-tile's score band.
+    {
+      size_t nx = 0;
+      for (int m0 = 0; m0 < Ms; m0 += TM) {
+        const int ml = std::min(m0 + TM - 1, Ms - 1);
+        int blo = 0, bhi = 0;
+        tca_score_band_host(Ms, Ns, ca, lw, m0, ml, (int)SOFTMAX_LWS, &blo,
+                            &bhi);
+        if (bhi > blo)
+          nx = std::max(nx, (size_t)((bhi - blo + TN - 1) / TN));
+      }
+      if (nx == 0)
+        nx = 1;
+      const size_t mx = ((size_t)Ms + TM - 1) / TM;
+      std::array<size_t, 3> gws = {pad(nx, qk_lws[0]), pad(mx, qk_lws[1]),
+                                   pad(num_heads_Q, qk_lws[2])};
+      ok = kqk->SetKernelSVMArguments(0, const_cast<uint16_t *>(Q_svm)) &&
+           kqk->SetKernelSVMArguments(1, const_cast<uint16_t *>(K_svm)) &&
+           kqk->SetKernelArguments(2, &scores_buf, sizeof(cl_mem)) &&
+           kqk->SetKernelArguments(3, &Ms, sizeof(int)) &&
+           kqk->SetKernelArguments(4, &Ns, sizeof(int)) &&
+           kqk->SetKernelArguments(5, &q0, sizeof(int)) &&
+           kqk->SetKernelArguments(6, &d, sizeof(int)) &&
+           kqk->SetKernelArguments(7, &HDq, sizeof(int)) &&
+           kqk->SetKernelArguments(8, &HDkv, sizeof(int)) &&
+           kqk->SetKernelArguments(9, &gqa, sizeof(int)) &&
+           kqk->SetKernelArguments(10, &ca, sizeof(int)) &&
+           kqk->SetKernelArguments(11, &scale, sizeof(float)) &&
+           kqk->SetKernelArguments(12, &attn_softcap, sizeof(float)) &&
+           kqk->SetKernelArguments(13, &lw, sizeof(int)) &&
+           kqk->SetKernelArguments(14, &rc, sizeof(int));
+      if (!ok)
+        break;
+      // gws.z is padded only if lws.z > 1; heads past num_heads_Q would read
+      // past Q, so the z extent must stay exact.
+      if (gws[2] != num_heads_Q) {
+        ok = false;
+        break;
+      }
+      blas_cc->command_queue_inst_.enqueueKernel(
+        kqk->GetKernel(), 3, gws.data(), qk_lws.data(), 0, nullptr, nullptr);
+    }
+    // ---- softmax over each row pair's band (the image arm's kernel).
+    {
+      ok = ksm->SetKernelArguments(0, &scores_buf, sizeof(cl_mem)) &&
+           ksm->SetKernelArguments(1, &Ms, sizeof(int)) &&
+           ksm->SetKernelArguments(2, &Ns, sizeof(int)) &&
+           ksm->SetKernelArguments(3, &ca, sizeof(int)) &&
+           ksm->SetKernelArguments(4, &lw, sizeof(int)) &&
+           (f32 || ksm->SetKernelArguments(5, &bmode, sizeof(int)));
+      if (!ok)
+        break;
+      std::array<size_t, 3> gws = {SOFTMAX_LWS, (size_t)Ms, num_heads_Q};
+      std::array<size_t, 3> lws = {SOFTMAX_LWS, 1, 1};
+      blas_cc->command_queue_inst_.enqueueKernel(
+        ksm->GetKernel(), 3, gws.data(), lws.data(), 0, nullptr, nullptr);
+    }
+    // ---- P*V for each row pair x 8 channels.
+    {
+      const size_t dx = (size_t)d / 8, pairs = ((size_t)Ms + 1) / 2;
+      std::array<size_t, 3> gws = {pad(dx, sv_lws[0]), pad(pairs, sv_lws[1]),
+                                   pad(num_heads_Q, sv_lws[2])};
+      if (gws[2] != num_heads_Q) {
+        ok = false;
+        break;
+      }
+      ok = ksv->SetKernelArguments(0, &scores_buf, sizeof(cl_mem)) &&
+           ksv->SetKernelSVMArguments(1, const_cast<uint16_t *>(V_svm));
+      if (ok && o_clmem != nullptr) {
+        cl_mem oh = static_cast<cl_mem>(o_clmem);
+        ok = ksv->SetKernelArguments(2, &oh, sizeof(cl_mem));
+      } else if (ok) {
+        ok = ksv->SetKernelSVMArguments(2, O_svm);
+      }
+      ok = ok && ksv->SetKernelArguments(3, &Ms, sizeof(int)) &&
+           ksv->SetKernelArguments(4, &Ns, sizeof(int)) &&
+           ksv->SetKernelArguments(5, &q0, sizeof(int)) &&
+           ksv->SetKernelArguments(6, &d, sizeof(int)) &&
+           ksv->SetKernelArguments(7, &HDq, sizeof(int)) &&
+           ksv->SetKernelArguments(8, &HDkv, sizeof(int)) &&
+           ksv->SetKernelArguments(9, &gqa, sizeof(int)) &&
+           ksv->SetKernelArguments(10, &ca, sizeof(int)) &&
+           ksv->SetKernelArguments(11, &lw, sizeof(int)) &&
+           ksv->SetKernelArguments(12, &rc, sizeof(int));
+      if (!ok)
+        break;
+      blas_cc->command_queue_inst_.enqueueKernel(
+        ksv->GetKernel(), 3, gws.data(), sv_lws.data(), 0, nullptr, nullptr);
+    }
+  }
+  if (!ok) {
+    // Something was refused after a launch may have been enqueued: the
+    // caller's fallback recomputes O in full, so nothing partial survives.
+    std::fprintf(stderr,
+                 "[APA] d=%u hQ=%u hKV=%u M=%u N_kv=%u: argument bind / grid "
+                 "check failed -> declined\n",
+                 head_dim, num_heads_Q, num_heads_KV, M, N_kv);
+    return false;
+  }
+  {
+    char key[160];
+    std::snprintf(key, sizeof(key), "%u/%u/%u/%d/%d/%d/%s", head_dim,
+                  num_heads_Q, num_heads_KV, win > 0 ? 1 : 0,
+                  attn_softcap > 0.0f ? 1 : 0, ring_cap > 0 ? 1 : 0,
+                  copts.c_str());
+    if (as.logged.emplace(key, 1).second)
+      std::fprintf(
+        stderr,
+        "[APA] d=%u hQ=%u hKV=%u G=%d M=%u N_kv=%u W=%u softcap=%.1f "
+        "ring=%u TM=%d TN=%d qk_lws=%zu,%zu,%zu sv_lws=%zu,%zu,%zu "
+        "scores=%zuMB blocks=%u -> engaged\n",
+        head_dim, num_heads_Q, num_heads_KV, gqa, M, N_kv, win, attn_softcap,
+        ring_cap, TM, TN, qk_lws[0], qk_lws[1], qk_lws[2], sv_lws[0], sv_lws[1],
+        sv_lws[2], (row_bytes * (size_t)rows_per) >> 20, blocks);
+  }
+  if (gh_mode() != 0) {
+    attn_gpuhash_note("aq", Q_svm, nullptr,
+                      (size_t)M * num_heads_Q * head_dim * 2, M);
+    attn_gpuhash_note("ao", O_svm, o_clmem,
+                      (size_t)M * num_heads_Q * head_dim * 2, M);
+  }
+  return true;
+}
+
 void cl_attention_release_caches() {
   // [reload] Model-teardown counterpart to what this file latches for the
   // process. No run is in flight at the call site and every item is rebuilt
@@ -6424,6 +7062,17 @@ void cl_attention_release_caches() {
     as.probe = nullptr;
     as.probe_cap = 0;
     as.verdict.clear();
+  }
+  // [apa] The three-pass prefill's kernel handles, build verdicts and the
+  // shapes it announced (its scores live in the TcaScratch above).
+  {
+    std::lock_guard<std::mutex> lk(tca_mtx());
+    ApaScratch &as = apa_scratch();
+    as.qk.clear();
+    as.sv.clear();
+    as.sm.clear();
+    as.verdict.clear();
+    as.logged.clear();
   }
   // A teardown is a handle-epoch boundary for this file's memos too.
   opencl::clBumpHandleEpoch();
