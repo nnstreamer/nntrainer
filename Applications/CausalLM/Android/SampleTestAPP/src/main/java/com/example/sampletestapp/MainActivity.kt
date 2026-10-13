@@ -310,6 +310,8 @@ class MainActivity : AppCompatActivity() {
                 chatSelBackend = selBackend
             }
         }
+        selDescriptor?.let { loadDefaultOpenAIExampleFor(it.id) }
+        loadDefaultChatPromptFor(chatSelDescriptor)
         // Seed the path field so a single Load tap works without typing.
         modelPathText = defaultModelPathFor(selDescriptor, selectedQuant) ?: ""
         rebuildUi()
@@ -589,6 +591,7 @@ class MainActivity : AppCompatActivity() {
                 selRuntime = ModelCatalog.runtimesFor(selFamily).firstOrNull() ?: selRuntime
                 selBackend = ModelCatalog.backendsFor(selFamily, selRuntime).firstOrNull() ?: selBackend
                 selSdEnabled = false
+                selDescriptor?.let { loadDefaultOpenAIExampleFor(it.id) }
                 modelPathText = defaultModelPathFor(selDescriptor, selectedQuant) ?: ""
                 rebuildUi(resetModelPath = true)
             })
@@ -599,6 +602,7 @@ class MainActivity : AppCompatActivity() {
                 selRuntime = RuntimeKind.valueOf(picked)
                 selBackend = ModelCatalog.backendsFor(selFamily, selRuntime).firstOrNull() ?: selBackend
                 selSdEnabled = false
+                selDescriptor?.let { loadDefaultOpenAIExampleFor(it.id) }
                 modelPathText = defaultModelPathFor(selDescriptor, selectedQuant) ?: ""
                 rebuildUi(resetModelPath = true)
             })
@@ -608,6 +612,7 @@ class MainActivity : AppCompatActivity() {
             body.addView(chipRow(t, ModelCatalog.backendsFor(selFamily, selRuntime).map { it.name }, selBackend.name) { picked ->
                 selBackend = BackendType.valueOf(picked)
                 selSdEnabled = false
+                selDescriptor?.let { loadDefaultOpenAIExampleFor(it.id) }
                 modelPathText = defaultModelPathFor(selDescriptor, selectedQuant) ?: ""
                 rebuildUi(resetModelPath = true)
             })
@@ -837,6 +842,7 @@ class MainActivity : AppCompatActivity() {
             chatSelRuntime = ModelCatalog.runtimesFor(chatSelFamily).firstOrNull() ?: chatSelRuntime
             chatSelBackend = ModelCatalog.backendsFor(chatSelFamily, chatSelRuntime).firstOrNull() ?: chatSelBackend
             chatSelSdEnabled = false
+            loadDefaultChatPromptFor(chatSelDescriptor)
             clearChatSessionState()
             rebuildUi()
         })
@@ -847,6 +853,7 @@ class MainActivity : AppCompatActivity() {
             chatSelRuntime = RuntimeKind.valueOf(picked)
             chatSelBackend = ModelCatalog.backendsFor(chatSelFamily, chatSelRuntime).firstOrNull() ?: chatSelBackend
             chatSelSdEnabled = false
+            loadDefaultChatPromptFor(chatSelDescriptor)
             clearChatSessionState()
             rebuildUi()
         })
@@ -856,6 +863,7 @@ class MainActivity : AppCompatActivity() {
         modelCard.addView(chipRow(t, ModelCatalog.backendsFor(chatSelFamily, chatSelRuntime).map { it.name }, chatSelBackend.name) { picked ->
             chatSelBackend = BackendType.valueOf(picked)
             chatSelSdEnabled = false
+            loadDefaultChatPromptFor(chatSelDescriptor)
             clearChatSessionState()
             rebuildUi()
         })
@@ -2145,7 +2153,6 @@ class MainActivity : AppCompatActivity() {
             if (activeSessionKey != null && activeSessionKey != req.modelKey) {
                 clearChatSessionState()
             }
-            loadDefaultOpenAIExampleFor(req.modelId)
             loadStatus = "loaded"
             loadedLabel = req.modelKey
             setStatus("Already loaded: ${req.modelKey}")
@@ -2166,7 +2173,6 @@ class MainActivity : AppCompatActivity() {
                 loadedKey = req.modelKey
                 loadedRequest = req
                 clearChatSessionState()
-                loadDefaultOpenAIExampleFor(req.modelId)
                 loadStatus = "loaded"
                 loadedLabel = req.modelKey
                 setStatus("Loaded ${req.modelKey} (${newEngine.kind}, arch=${newEngine.architecture ?: "?"})")
@@ -2839,7 +2845,20 @@ class MainActivity : AppCompatActivity() {
   ]
 }"""
 
+    private val gemma4MoeExample: String by lazy {
+        resources.openRawResource(R.raw.gemma4_moe_messages).bufferedReader().use { it.readText().trim() }
+    }
+
+    private fun loadDefaultChatPromptFor(descriptor: ModelDescriptor?) {
+        if (descriptor?.id != ModelIds.GEMMA4_26B_A4B_HTP) return
+        val prompt = Json.parseToJsonElement(gemma4MoeExample).jsonArray[0]
+            .jsonObject.getValue("content").jsonPrimitive.content
+        chatPromptText = prompt
+        if (::chatPromptField.isInitialized) chatPromptField.setText(prompt)
+    }
+
     private fun defaultOpenAIExampleForId(modelId: String): String {
+        if (modelId == ModelIds.GEMMA4_26B_A4B_HTP) return gemma4MoeExample
         exampleByModelId[modelId]?.let { return it }
         val d = ModelCatalog.byId(modelId)
         return when {
@@ -2849,9 +2868,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadDefaultOpenAIExampleFor(modelId: String) {
-        openAiJsonText = defaultOpenAIExampleForId(modelId)
-        if (::openAIMessagesField.isInitialized) {
-            mainHandler.post { openAIMessagesField.setText(openAiJsonText) }
+        val example = defaultOpenAIExampleForId(modelId)
+        runOnUiThread {
+            // Update the field before rebuilding so the UI snapshot retains it.
+            openAiJsonText = example
+            if (::openAIMessagesField.isInitialized) openAIMessagesField.setText(example)
         }
     }
 
